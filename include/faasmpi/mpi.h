@@ -72,7 +72,7 @@ struct faasmpi_info_t {
 };
 
 struct faasmpi_request_t {
-    int id;
+    int _unused;
 };
 
 struct faasmpi_group_t {

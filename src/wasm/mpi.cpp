@@ -59,6 +59,22 @@ namespace wasm {
             return hostDataType;
         }
 
+        /**
+         * We use a trick here to avoid allocating extra memory. Rather than create an actual
+         * struct for the MPI_Request, we just use the pointer to hold the value of its ID
+         */
+        void writeFaasmRequestId(I32 requestPtrPtr, I32 requestId) {
+            writeMpiResult<int>(requestPtrPtr, requestId);
+        }
+
+        /**
+         * This uses the same trick, where we read the value of the pointer as the request ID.
+         */
+        I32 getFaasmRequestId(I32 requestPtrPtr) {
+            I32 requestId = Runtime::memoryRef<I32>(getExecutingModule()->defaultMemory, requestPtrPtr);
+            return requestId;
+        }
+
         faasmpi_info_t *getFaasmInfoType(I32 wasmPtr) {
             faasmpi_info_t *hostInfoType = &Runtime::memoryRef<faasmpi_info_t>(memory, wasmPtr);
             return hostInfoType;
@@ -162,6 +178,25 @@ namespace wasm {
     }
 
     /**
+    * Sends a single async point-to-point message
+    */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Isend", I32, MPI_Isend,
+                                   I32 buffer, I32 count, I32 datatype, I32 destRank, I32 tag, I32 comm, I32 requestPtrPtr) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - MPI_Isend {} {} {} {} {} {} {}", buffer, count, datatype, destRank, tag, comm, requestPtrPtr);
+
+        ContextWrapper ctx(comm);
+        faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
+
+        auto inputs = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, buffer, count);
+        int requestId = ctx.world.isend(ctx.rank, destRank, inputs, hostDtype, count);
+
+        ctx.writeFaasmRequestId(requestPtrPtr, requestId);
+
+        return MPI_SUCCESS;
+    }
+
+    /**
      * Returns the number of elements the given MPI_Status corresponds to.
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Get_count", I32, MPI_Get_count, I32 statusPtr, I32 datatype,
@@ -188,9 +223,8 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Recv", I32, MPI_Recv, I32 buffer, I32 count,
                                    I32 datatype, I32 sourceRank, I32 tag, I32 comm, I32 statusPtr) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - MPI_Recv {} {} {} {} {} {} {}",
-                      buffer, count, datatype, sourceRank, tag, comm, statusPtr);
+        util::getLogger()->debug("S - MPI_Recv {} {} {} {} {} {} {}",
+                                 buffer, count, datatype, sourceRank, tag, comm, statusPtr);
 
         ContextWrapper ctx;
         MPI_Status *status = &Runtime::memoryRef<MPI_Status>(ctx.memory, statusPtr);
@@ -201,11 +235,43 @@ namespace wasm {
         return 0;
     }
 
+    /**
+     * Receives a single asynchronous point-to-point message.
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Irecv", I32, MPI_Irecv, I32 buffer, I32 count,
+                                   I32 datatype, I32 sourceRank, I32 tag, I32 comm, I32 requestPtrPtr) {
+
+        util::getLogger()->debug("S - MPI_Irecv {} {} {} {} {} {} {}",
+                                 buffer, count, datatype, sourceRank, tag, comm, requestPtrPtr);
+
+        ContextWrapper ctx;
+        faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
+        auto outputs = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, buffer, count);
+        int requestId = ctx.world.irecv(sourceRank, ctx.rank, outputs, hostDtype, count);
+
+        ctx.writeFaasmRequestId(requestPtrPtr, requestId);
+
+        return MPI_SUCCESS;
+    }
+
     int terminateMpi() {
         if (executingContext.getRank() <= 0) {
             mpi::MpiWorld &world = getExecutingWorld();
             world.destroy();
         }
+
+        return MPI_SUCCESS;
+    }
+
+    /**
+     * Waits for the asynchronous request to complete
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Wait", I32, MPI_Wait, I32 requestPtrPtr, I32 status) {
+        util::getLogger()->debug("S - MPI_Wait {} {}", requestPtrPtr, status);
+
+        ContextWrapper ctx;
+        int requestId = ctx.getFaasmRequestId(requestPtrPtr);
+        ctx.world.awaitAsyncRequest(requestId);
 
         return MPI_SUCCESS;
     }
@@ -309,7 +375,7 @@ namespace wasm {
 
         auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, recvBuf, recvCount * hostRecvDtype->size);
         uint8_t *hostSendBuffer;
-        if(isInPlace(sendBuf)) {
+        if (isInPlace(sendBuf)) {
             hostSendBuffer = hostRecvBuffer;
         } else {
             hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, sendBuf, sendCount * hostSendDtype->size);
