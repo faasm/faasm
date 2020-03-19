@@ -10,12 +10,12 @@ FAASM_MAIN_FUNC() {
     }
 
     int rank;
-    int world_size;
+    int worldSize;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+    MPI_Comm_size(MPI_COMM_WORLD, &worldSize);
 
     if(rank == 0) {
-        printf("MPI world size %i\n", world_size);
+        printf("MPI world size %i\n", worldSize);
     }
 
     int message;

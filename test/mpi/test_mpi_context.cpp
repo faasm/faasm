@@ -47,6 +47,43 @@ namespace tests {
         REQUIRE_THROWS(c.createWorld(msg));
     }
 
+    TEST_CASE("Check default world size is set", "[mpi]") {
+        cleanSystem();
+
+        // Create message with non-zero rank
+        message::Message msg = util::messageFactory("mpi", "hellompi");
+        msg.set_mpirank(0);
+
+        // Set a new world size
+        util::SystemConfig &conf = util::getSystemConfig();
+        int origSize = conf.defaultMpiWorldSize;
+        int defaultWorldSize = 12;
+        conf.defaultMpiWorldSize = defaultWorldSize;
+
+        // Request different sizes
+        int requestedWorldSize;
+        SECTION("Under zero") {
+            requestedWorldSize = -1;
+        }
+        SECTION("Zero") {
+            requestedWorldSize = 0;
+        }
+
+        // Create the world
+        MpiContext c;
+        msg.set_mpiworldsize(requestedWorldSize);
+        c.createWorld(msg);
+        int worldId = c.getWorldId();
+
+        // Check that the size is set to the default
+        MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
+        MpiWorld &world = reg.getOrInitialiseWorld(msg, worldId);
+        REQUIRE(world.getSize() == defaultWorldSize);
+
+        // Reset config
+        conf.defaultMpiWorldSize = origSize;
+    }
+
     TEST_CASE("Check joining world", "[mpi]") {
         cleanSystem();
 
