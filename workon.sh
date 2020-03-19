@@ -47,6 +47,11 @@ if [[ -d /faasm/build ]]; then
   export PATH=/faasm/build/bin:$PATH
 fi
 
+# Bare metal
+if [[ -d "${THIS_DIR}/build" ]]; then
+  export PATH=${THIS_DIR}/build/bin:$PATH
+fi
+
 # Native MPI
 export PATH=/usr/local/faasm/openmpi/bin:$PATH
 
