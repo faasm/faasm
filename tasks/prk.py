@@ -71,7 +71,7 @@ PRK_STATS = {
 
 
 @task
-def invoke(ctx, func, native=False, iface=None, np=10):
+def invoke(ctx, func, native=False, iface=None, np=8):
     """
     Invoke one of the ParRes Kernels functions
     """
