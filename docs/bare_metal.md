@@ -67,3 +67,13 @@ source workon.sh
 inv upload demo hello
 inv invoke demo hello --input="hello!"
 ```
+
+## Troubleshooting
+
+Faasm is run using [supervisor](https://github.com/Supervisor/supervisor) on each 
+of the hosts. 
+
+Logs can be found at:
+
+- `/var/log/faasm_upload.log` - upload server logs (on the `upload` host)
+- `/var/log/faasm_worker.log` - worker logs (on `worker` hosts)

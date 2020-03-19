@@ -88,11 +88,18 @@ inv prk.invoke nstream --native
 
 ## 4. Run wasm code
 
-Faasm functions using MPI can be run as with any others. To check this works you can run:
+Faasm functions using MPI can be run as with any others. To check the basic WASM MPI set-up, run:
+
+```bash
+inv upload.user mpi
+inv invoke mpi mpi_checks
+```
+
+To check this works you can run:
 
 ```bash
 inv upload.user prk
-inv prk.invoke nstream --native
+inv prk.invoke nstream
 ``` 
 
 ## Troubleshooting Native MPI
