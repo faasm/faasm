@@ -1,9 +1,13 @@
 ---
 
 - name: "Run upload build on upload"
-  shell: "cmake --build . --target upload"
+  shell: "cmake --build . --target {{ item }}"
   args:
     chdir: "/usr/local/code/faasm/build"
+  with_items:
+    - "upload"
+    - "codegen_func"
+    - "codegen_shared_obj"
 
 - name: "Create supervisor file"
   become: yes

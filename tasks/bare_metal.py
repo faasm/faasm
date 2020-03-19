@@ -5,7 +5,7 @@ from invoke import task
 
 from tasks.util.env import ANSIBLE_ROOT
 
-DEFAULT_INVENTORY = join(ANSIBLE_ROOT, "inventory", "mpi.yml")
+DEFAULT_INVENTORY = join(ANSIBLE_ROOT, "inventory", "bare_metal.yml")
 
 
 def _call_ansible_command(cmd):
@@ -34,6 +34,14 @@ def _ansible_command(host_group, cmd, inventory=DEFAULT_INVENTORY):
         "-a", "\"{}\"".format(cmd)
     ]
     _call_ansible_command(shell_cmd)
+
+
+@task
+def setup(ctx):
+    """
+    Run the initial machine set-up
+    """
+    _ansible_playbook_command("benchmark.yml")
 
 
 @task

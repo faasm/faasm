@@ -57,6 +57,7 @@ More detail on some key features and implementations can be found below:
 - [Distributed state](docs/state.md) - sharing state between functions.
 - [Faasm host interface](docs/host_interface.md) - the serverless-specific interface between functions and the underlying host.
 - [Kubernetes and Knative integration](docs/kubernetes.md)- deploying Faasm as part of a full serverless platform.
+- [Bare metal/ VM deployment](docs/bare_metal.md) - deploying Faasm on bare metal or VMs as a stand-alone system.
 - [Tensorflow Lite](docs/tensorflow.md) - performing inference in Faasm functions with TF Lite.  
 - [API](docs/api.md) - invoking and managing functions and state through Faasm's HTTP API.
 - [MPI](docs/mpi.md) and [OpenMP](docs/openmp.md) - executing existing MPI and OpenMP applications in Faasm.
