@@ -1,6 +1,5 @@
 #include "worker.h"
 
-#include <redis/Redis.h>
 #include <state/State.h>
 #include <scheduler/Scheduler.h>
 #include <module_cache/WasmModuleCache.h>
