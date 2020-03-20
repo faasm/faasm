@@ -1,6 +1,5 @@
 #include "StateKeyValue.h"
 
-#include <redis/Redis.h>
 #include <util/config.h>
 #include <util/memory.h>
 #include <util/locks.h>
@@ -17,6 +16,7 @@ namespace state {
      * Key/value
      */
     StateKeyValue::StateKeyValue(const std::string &keyIn, size_t sizeIn) : key(keyIn),
+                                                                            backend(getBackend()),
                                                                             valueSize(sizeIn) {
 
         // Work out size of required shared memory
@@ -29,9 +29,11 @@ namespace state {
 
         // Set up flags
         dirtyMask = new uint8_t[sharedMemSize];
+
         zeroDirtyMask();
 
         allocatedMask = new uint8_t[sharedMemSize];
+
         zeroAllocatedMask();
     }
 
@@ -75,12 +77,11 @@ namespace state {
         }
 
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
-        redis::Redis &redis = redis::Redis::getState();
 
         // Read from the remote
         logger->debug("Pulling remote value for {}", key);
         auto memoryBytes = static_cast<uint8_t *>(sharedMemory);
-        redis.get(key, memoryBytes, valueSize);
+        backend.get(key, memoryBytes, valueSize);
 
         PROF_END(statePull)
     }
@@ -110,7 +111,6 @@ namespace state {
         }
 
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
-        redis::Redis &redis = redis::Redis::getState();
 
         // Note - redis ranges are inclusive, so we need to knock one off
         size_t rangeEnd = offset + length - 1;
@@ -118,7 +118,7 @@ namespace state {
         // Read from the remote
         logger->debug("Pulling remote segment ({}-{}) for {}", offset, offset + length, key);
         auto memoryBytes = static_cast<uint8_t *>(sharedMemory);
-        redis.getRange(key, memoryBytes + offset, length, offset, rangeEnd);
+        backend.getRange(key, memoryBytes + offset, length, offset, rangeEnd);
 
         PROF_END(stateSegmentPull)
     }
@@ -127,9 +127,7 @@ namespace state {
         PROF_START(remoteLock)
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
-        redis::Redis &redis = redis::Redis::getState();
-
-        long remoteLockId = redis.acquireLock(key, remoteLockTimeout);
+        long remoteLockId = backend.acquireLock(key, remoteLockTimeout);
         unsigned int retryCount = 0;
         while (remoteLockId <= 0) {
             logger->debug("Waiting on remote lock for {} (loop {})", key, retryCount);
@@ -142,7 +140,7 @@ namespace state {
             // Sleep for 1ms
             usleep(1000);
 
-            remoteLockId = redis.acquireLock(key, remoteLockTimeout);
+            remoteLockId = backend.acquireLock(key, remoteLockTimeout);
             retryCount++;
         }
 
@@ -289,8 +287,7 @@ namespace state {
 
         // Delete remote
         FullLock lock(valueMutex);
-        redis::Redis &redis = redis::Redis::getState();
-        redis.del(key);
+        backend.del(key);
     }
 
     size_t StateKeyValue::size() {
@@ -439,8 +436,7 @@ namespace state {
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
         logger->debug("Pushing whole value for {}", key);
 
-        redis::Redis &redis = redis::Redis::getState();
-        redis.set(key, static_cast<uint8_t *>(sharedMemory), valueSize);
+        backend.set(key, static_cast<uint8_t *>(sharedMemory), valueSize);
 
         // Remove any dirty flags
         isDirty = false;
@@ -477,8 +473,6 @@ namespace state {
 
         PROF_START(pushPartial)
 
-        redis::Redis &redis = redis::Redis::getState();
-
         // We need a full lock while doing this, mainly to ensure no other threads start
         // the same process
         FullLock lock(valueMutex);
@@ -502,7 +496,7 @@ namespace state {
 
                     // Pipeline the change
                     unsigned long length = i - startIdx;
-                    redis.setRangePipeline(key, startIdx, sharedMemoryBytes + startIdx, length);
+                    backend.setRangePipeline(key, startIdx, sharedMemoryBytes + startIdx, length);
                     updateCount++;
                 }
             } else {
@@ -516,7 +510,7 @@ namespace state {
         // Write a final chunk
         if (isOn) {
             unsigned long length = valueSize - startIdx;
-            redis.setRangePipeline(key, startIdx, sharedMemoryBytes + startIdx, length);
+            backend.setRangePipeline(key, startIdx, sharedMemoryBytes + startIdx, length);
             updateCount++;
         }
 
@@ -525,12 +519,12 @@ namespace state {
 
         // Flush the pipeline
         logger->debug("Pipelined {} updates on {}", updateCount, key);
-        redis.flushPipeline(updateCount);
+        backend.flushPipeline(updateCount);
 
         // Read the latest value
         if (_fullyAllocated) {
             logger->debug("Pulling from remote on partial push for {}", key);
-            redis.get(key, sharedMemoryBytes, valueSize);
+            backend.get(key, sharedMemoryBytes, valueSize);
         }
 
         // Mark as no longer dirty
@@ -545,8 +539,7 @@ namespace state {
     }
 
     void StateKeyValue::unlockGlobal() {
-        redis::Redis &redis = redis::Redis::getState();
-        redis.releaseLock(key, lastRemoteLockId);
+        backend.releaseLock(key, lastRemoteLockId);
     }
 
     void StateKeyValue::lockRead() {
@@ -564,4 +557,5 @@ namespace state {
     void StateKeyValue::unlockWrite() {
         valueMutex.unlock();
     }
+
 }

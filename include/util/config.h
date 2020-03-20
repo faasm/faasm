@@ -29,6 +29,7 @@ namespace util {
         std::string awsLogLevel;
         std::string pythonPreload;
         std::string captureStdout;
+        std::string stateMode;
 
         // Redis
         std::string redisStateHost;
