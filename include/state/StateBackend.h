@@ -1,15 +1,20 @@
 #pragma once
 
 #include <util/config.h>
+#include <vector>
 
 namespace state {
     class StateBackend {
     public:
         virtual void get(const std::string &key, uint8_t* buffer, size_t bufferLen) = 0;
 
+        virtual std::vector<uint8_t> get(const std::string &key) = 0;
+
         virtual void getRange(const std::string &key, uint8_t *buffer, size_t bufferLen, long start, long end) = 0;
 
         virtual void set(const std::string &key, const uint8_t *value, size_t size) = 0;
+
+        virtual void set(const std::string &key, const std::vector<uint8_t> &value) = 0;
 
         virtual long acquireLock(const std::string &key, int expirySeconds) = 0;
 

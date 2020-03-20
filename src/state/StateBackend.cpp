@@ -12,6 +12,8 @@ namespace state {
         } else if (conf.stateMode == "inmemory") {
             static thread_local InMemoryStateBackend inMemoryBackend;
             return inMemoryBackend;
+        } else {
+            throw std::runtime_error("Unrecognised state mode: " + conf.stateMode);
         }
     }
 }
