@@ -45,4 +45,12 @@ namespace state {
     void RedisStateBackend::flushPipeline(long pipelineLength) {
         redis.flushPipeline(pipelineLength);
     }
+
+    void RedisStateBackend::enqueueBytes(const std::string &queueName, const std::vector<uint8_t> &value) {
+        redis.enqueueBytes(queueName, value);
+    }
+
+    void RedisStateBackend::dequeueMultiple(const std::string &queueName, uint8_t *buff, long buffLen, long nElems) {
+        redis.dequeueMultiple(queueName, buff, buffLen, nElems);
+    }
 }

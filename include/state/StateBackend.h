@@ -25,6 +25,10 @@ namespace state {
         virtual void setRangePipeline(const std::string &key, long offset, const uint8_t *value, size_t size) = 0;
 
         virtual void flushPipeline(long pipelineLength) = 0;
+
+        virtual void enqueueBytes(const std::string &queueName, const std::vector<uint8_t> &value) = 0;
+
+        virtual void dequeueMultiple(const std::string &queueName, uint8_t *buff, long buffLen, long nElems) = 0;
     };
     
     StateBackend &getBackend();

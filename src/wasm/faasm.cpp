@@ -6,7 +6,6 @@
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
-#include <redis/Redis.h>
 #include <util/state.h>
 #include <util/files.h>
 #include <storage/SharedFilesManager.h>
@@ -113,8 +112,8 @@ namespace wasm {
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
         std::vector<uint8_t> bytes(data, data + dataLen);
 
-        redis::Redis &redis = redis::Redis::getState();
-        redis.enqueueBytes(actualKey, bytes);
+        state::StateBackend &stateBackend = state::getBackend();
+        stateBackend.enqueueBytes(actualKey, bytes);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_appended_state", void, __faasm_read_appended_state,
@@ -126,10 +125,9 @@ namespace wasm {
         util::getLogger()->debug("S - read_appended_state - {} {} {} {}", actualKey, bufferPtr, bufferLen, nElems);
 
         // Dequeue straight to buffer
-        redis::Redis &redis = redis::Redis::getState();
-
+        state::StateBackend &stateBackend = state::getBackend();
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
-        redis.dequeueMultiple(actualKey, buffer, bufferLen, nElems);
+        stateBackend.dequeueMultiple(actualKey, buffer, bufferLen, nElems);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_clear_appended_state", void, __faasm_clear_appended_state,
@@ -142,8 +140,8 @@ namespace wasm {
 
         logger->debug("S - clear_appended_state - {}", actualKey);
 
-        redis::Redis &redis = redis::Redis::getState();
-        redis.del(actualKey);
+        state::StateBackend &stateBackend = state::getBackend();
+        stateBackend.del(actualKey);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state_offset", void, __faasm_write_state_offset,
@@ -171,12 +169,12 @@ namespace wasm {
 
         // Write to state
         const std::string actualKey = util::keyForUser(getExecutingCall()->user(), key);
-        redis::Redis &redis = redis::Redis::getState();
-        redis.set(actualKey, bytes);
+        state::StateBackend &stateBackend = state::getBackend();
+        stateBackend.set(actualKey, bytes);
 
         return bytes.size();
-    }     
-    
+    }
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state", void, __faasm_read_state,
                                    I32 keyPtr, I32 bufferPtr, I32 bufferLen) {
         auto kv = getStateKV(keyPtr, bufferLen);

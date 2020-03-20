@@ -13,7 +13,8 @@ namespace state {
         return empty;
     }
 
-    void InMemoryStateBackend::getRange(const std::string &key, uint8_t *buffer, size_t bufferLen, long start, long end) {
+    void InMemoryStateBackend::getRange(const std::string &key, uint8_t *buffer, size_t bufferLen,
+                                        long start, long end) {
         // TODO - implement
     }
 
@@ -38,11 +39,20 @@ namespace state {
         // TODO - implement
     }
 
-    void InMemoryStateBackend::setRangePipeline(const std::string &key, long offset, const uint8_t *value, size_t size) {
+    void
+    InMemoryStateBackend::setRangePipeline(const std::string &key, long offset, const uint8_t *value, size_t size) {
         // TODO - implement
     }
 
     void InMemoryStateBackend::flushPipeline(long pipelineLength) {
+        // TODO - implement
+    }
+
+    void InMemoryStateBackend::enqueueBytes(const std::string &queueName, const std::vector<uint8_t> &value) {
+        // TODO - implement
+    }
+
+    void InMemoryStateBackend::dequeueMultiple(const std::string &queueName, uint8_t *buff, long buffLen, long nElems) {
         // TODO - implement
     }
 }

@@ -28,6 +28,10 @@ namespace state {
 
         void flushPipeline(long pipelineLength) override;
 
+        void enqueueBytes(const std::string &queueName, const std::vector<uint8_t> &value) override;
+
+        void dequeueMultiple(const std::string &queueName, uint8_t *buff, long buffLen, long nElems) override;
+
     private:
         redis::Redis &redis;
     };
