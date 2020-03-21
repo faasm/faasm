@@ -15,9 +15,9 @@ To do this, you can download the versions from the current release, then apply a
 for this release (if there are any), i.e.:
 
 ```bash
-inv download-toolchain
-inv download-sysroot
-inv download-runtime-root
+inv toolchain.download-toolchain
+inv toolchain.download-sysroot
+inv toolchain.download-runtime
 ``` 
 
 To check things are working properly you can run the tests locally with the new versions.
@@ -41,14 +41,14 @@ Run the following to create the new release in Github (this will bundle up the s
 toolchain and runtime root too).
 
 ```bash
-inv gh-create-release
-inv gh-upload-artifacts
+inv github.create-release
+inv github.upload-artifacts
 ```
 
 Now check the draft release. If it's ok:
 
 ```bash
-inv gh-publish-release
+inv github.publish-release
 ```
 
 ## 4. Rebuild Docker containers
@@ -56,7 +56,7 @@ inv gh-publish-release
 You can rebuild all the containers for the given release with:
 
 ```bash
-inv docker-build-release
+inv docker.release
 ```
 
 ## 5. Create a PR
@@ -66,8 +66,10 @@ release. If it's green, you can merge it into master.
 
 ## Github config
 
-If this is your first time releasing, you'll need to create a public access token with 
-the relevant permissions and add it to `~/faasm/faasm.ini`:
+If this is your first time releasing, you'll need to 
+[create a public access token](https://github.com/settings/tokens) 
+with the relevant permissions (just `public_repo`) and add it to 
+`~/faasm/faasm.ini`:
 
 ```ini
 [Github]

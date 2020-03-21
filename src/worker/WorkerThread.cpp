@@ -6,7 +6,7 @@
 #include <scheduler/Scheduler.h>
 #include <util/config.h>
 #include <util/timing.h>
-#include <zygote/ZygoteRegistry.h>
+#include <module_cache/WasmModuleCache.h>
 
 using namespace isolation;
 
@@ -52,13 +52,12 @@ namespace worker {
         }
     }
 
-    void WorkerThread::finishCall(message::Message &call, const std::string &errorMsg) {
+    void WorkerThread::finishCall(message::Message &call, bool success, const std::string &errorMsg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         const std::string funcStr = util::funcToString(call, true);
         logger->info("Finished {}", funcStr);
 
-        bool isSuccess = errorMsg.empty();
-        if (!isSuccess) {
+        if (!success) {
             call.set_outputdata(errorMsg);
         }
 
@@ -66,7 +65,7 @@ namespace worker {
         util::SystemConfig &conf = util::getSystemConfig();
         if (conf.captureStdout == "on") {
             std::string moduleStdout = module->getCapturedStdout();
-            if(!moduleStdout.empty()) {
+            if (!moduleStdout.empty()) {
                 std::string newOutput = moduleStdout + "\n" + call.outputdata();
                 call.set_outputdata(newOutput);
 
@@ -81,13 +80,13 @@ namespace worker {
 
         // Set result
         logger->debug("Setting function result for {}", funcStr);
-        globalBus.setFunctionResult(call, isSuccess);
+        globalBus.setFunctionResult(call);
 
         // Restore from zygote
         logger->debug("Resetting module {} from zygote", funcStr);
-        zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
-        wasm::WasmModule &zygote = registry.getZygote(call);
-        *module = zygote;
+        module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
+        wasm::WasmModule &cachedModule = registry.getCachedModule(call);
+        *module = cachedModule;
 
         // Increment the execution counter
         executionCount++;
@@ -110,14 +109,14 @@ namespace worker {
         // Get queue from the scheduler
         currentQueue = scheduler.getFunctionQueue(msg);
 
-        // Instantiate the module from its zygote
-        PROF_START(zygoteCreate)
+        // Instantiate the module from its snapshot
+        PROF_START(snapshotCreate)
 
-        zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
-        wasm::WasmModule &zygote = registry.getZygote(msg);
-        module = std::make_unique<wasm::WasmModule>(zygote);
+        module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
+        wasm::WasmModule &snapshot = registry.getCachedModule(msg);
+        module = std::make_unique<wasm::WasmModule>(snapshot);
 
-        PROF_END(zygoteCreate)
+        PROF_END(snapshotCreate)
 
         _isBound = true;
     }
@@ -186,38 +185,49 @@ namespace worker {
                 this->bindToFunction(msg, true);
             }
 
+            // Check if we need to restore from a different snapshot
+            const std::string snapshotKey = msg.snapshotkey();
+            if (!snapshotKey.empty()) {
+                PROF_START(snapshotOverride)
+
+                module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
+                wasm::WasmModule &snapshot = registry.getCachedModule(msg);
+                module = std::make_unique<wasm::WasmModule>(snapshot);
+
+                PROF_END(snapshotOverride)
+            }
+
             errorMessage = this->executeCall(msg);
         }
 
         return errorMessage;
     }
 
-    const std::string WorkerThread::executeCall(message::Message &call) {
+    std::string WorkerThread::executeCall(message::Message &call) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         const std::string funcStr = util::funcToString(call, true);
         logger->info("WorkerThread executing {}", funcStr);
 
         // Create and execute the module
-        int exitCode = 0;
-        try {
-            exitCode = module->execute(call);
-        }
-        catch (const std::exception &e) {
-            std::string errorMessage = "Error: " + std::string(e.what());
-            logger->error(errorMessage);
-
-            this->finishCall(call, errorMessage);
-            return errorMessage;
-        }
-
+        bool success;
         std::string errorMessage;
 
-        if (exitCode != 0) {
-            errorMessage = "Non-zero exit code: " + std::to_string(exitCode);
+        try {
+            success = module->execute(call);
+        }
+        catch (const std::exception &e) {
+            errorMessage = "Error: " + std::string(e.what());
+            logger->error(errorMessage);
+            success = false;
+            call.set_returnvalue(1);
         }
 
-        this->finishCall(call, errorMessage);
+        if (!success && errorMessage.empty()) {
+            errorMessage = "Call failed (return value=" + std::to_string(call.returnvalue()) + ")";
+        }
+
+        this->finishCall(call, success, errorMessage);
         return errorMessage;
     }
 }

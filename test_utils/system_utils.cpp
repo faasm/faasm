@@ -10,7 +10,7 @@ extern "C" {
 #include <state/State.h>
 #include <scheduler/Scheduler.h>
 #include <emulator/emulator.h>
-#include <zygote/ZygoteRegistry.h>
+#include <module_cache/WasmModuleCache.h>
 #include <storage/SharedFilesManager.h>
 #include <boost/filesystem.hpp>
 #include <worker/worker.h>
@@ -42,7 +42,7 @@ namespace tests {
         scheduler::getGlobalMessageBus().clear();
 
         // Clear zygotes
-        zygote::getZygoteRegistry().clear();
+        module_cache::getWasmModuleCache().clear();
 
         // Reset system config
         conf.reset();

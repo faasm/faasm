@@ -1,8 +1,7 @@
 #include <util/locks.h>
+#include <util/config.h>
 
 #include "mpi/MpiWorldRegistry.h"
-
-#define DEFAULT_WORLD_SIZE 5
 
 namespace mpi {
     MpiWorldRegistry &getMpiWorldRegistry() {
@@ -15,9 +14,10 @@ namespace mpi {
             throw std::runtime_error("World already exists");
         }
 
+        util::SystemConfig &conf = util::getSystemConfig();
         int worldSize = msg.mpiworldsize();
-        if(worldSize == 0) {
-            worldSize = DEFAULT_WORLD_SIZE;
+        if(worldSize <= 0) {
+            worldSize = conf.defaultMpiWorldSize;
         }
 
         util::FullLock lock(registryMutex);

@@ -39,6 +39,8 @@ namespace wasm {
 
     Uptr getNumberOfPagesForBytes(U32 nBytes);
 
+    struct WasmThreadSpec;
+
     class WasmModule final : Runtime::Resolver {
     public:
         WasmModule();
@@ -51,7 +53,7 @@ namespace wasm {
 
         void bindToFunction(const message::Message &msg, bool executeZygote = true);
 
-        int execute(message::Message &msg);
+        bool execute(message::Message &msg);
 
         Runtime::GCPointer<Runtime::Memory> defaultMemory;
 
@@ -87,6 +89,12 @@ namespace wasm {
         );
 
         Runtime::Function *getFunction(const std::string &funcName, bool strict);
+
+        Runtime::Function *getMainFunction();
+
+        Runtime::Function *getDefaultZygoteFunction();
+
+        Runtime::Function *getFunctionFromPtr(int funcPtr);
 
         bool resolve(const std::string &moduleName,
                      const std::string &name,
@@ -129,9 +137,17 @@ namespace wasm {
 
         void mapMemoryFromFd();
 
-        void snapshotCrossHost(const std::string &filePath);
+        void snapshotToFile(const std::string &filePath);
 
-        void restoreCrossHost(const message::Message &msg, const std::string &filePath);
+        std::vector<uint8_t> snapshotToMemory();
+
+        size_t snapshotToState(const std::string &stateKey);
+
+        void restoreFromFile(const std::string &filePath);
+
+        void restoreFromMemory(const std::vector<uint8_t> &data);
+
+        void restoreFromState(const std::string &stateKey, size_t stateSize);
 
         ssize_t captureStdout(const struct iovec *iovecs, int iovecCount);
 
@@ -141,14 +157,10 @@ namespace wasm {
 
         void clearCapturedStdout();
 
+        I64 executeThread(WasmThreadSpec &spec);
     private:
         Runtime::GCPointer<Runtime::Instance> envModule;
         Runtime::GCPointer<Runtime::Instance> moduleInstance;
-
-        // Note: we don't use GCPointers for the function instances as there are tied
-        // to the lifecycle of the underlying module
-        Runtime::Function *functionInstance;
-        Runtime::Function *zygoteFunctionInstance;
 
         // Dynamic modules
         int dynamicModuleCount = 0;
@@ -181,6 +193,10 @@ namespace wasm {
         ssize_t stdoutSize;
         int getStdoutFd();
 
+        void doSnapshot(std::ostream &outStream);
+
+        void doRestore(std::istream &inStream);
+
         void reset();
 
         void clone(const WasmModule &other);
@@ -210,5 +226,14 @@ namespace wasm {
         }
 
         int exitCode;
+    };
+
+    struct WasmThreadSpec {
+        Runtime::ContextRuntimeData *contextRuntimeData;
+        wasm::WasmModule *parentModule;
+        message::Message *parentCall;
+        Runtime::Function *func;
+        IR::UntaggedValue *funcArgs;
+        size_t stackSize;
     };
 }

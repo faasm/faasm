@@ -21,7 +21,7 @@
 	url = https://github.com/madler/zlib.git
 [submodule "third-party/musl"]
 	path = third-party/musl
-	url = https://github.com/Shillaker/musl
+	url = https://github.com/Shillaker/musl.git
 [submodule "third-party/llvm-project"]
 	path = third-party/llvm-project
 	url = https://github.com/llvm/llvm-project.git
@@ -36,4 +36,7 @@
 	url = https://github.com/Shillaker/faasm-demo-c.git
 [submodule "third-party/ParResKernels"]
 	path = third-party/ParResKernels
-	url = https://github.com/Shillaker/Kernels
+	url = https://github.com/Shillaker/Kernels.git
+[submodule "third-party/LULESH"]
+	path = third-party/LULESH
+	url = https://github.com/mfournial/LULESH.git

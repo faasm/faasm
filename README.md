@@ -10,8 +10,8 @@ Faasm provides multi-tenant isolation, but also lets functions share regions of 
 These shared memory regions give low-latency concurrent access to data, and are synchronised 
 globally to support large-scale parallelism.
 
-Faasm combines software fault isolation from WebAssembly with standard Linux tools to isolate functions
-in Faaslets, which provide security and resource isolation at low cost. Faaslets run side-by-side as threads 
+Faasm combines software fault isolation from WebAssembly with standard Linux tools, to provide 
+security and resource isolatation at low cost. Faasm runs functions side-by-side as threads 
 of a single runtime process, with low overheads and fast boot times. The underlying WebAssembly
 execution and code generation is handled by [WAVM](https://github.com/WAVM/WAVM). 
 
@@ -19,6 +19,8 @@ Faasm defines a custom [host interface](docs/host_interface.md) which lets funct
 serverless-specific tasks (e.g. invoking other functions and managing state), as well as interacting 
 with the underlying host (e.g. using the filesystem and networking). The Faasm host interface achieves
 the same goal as [WASI](https://wasi.dev/), but in a serverless-specific context.
+
+A preprint of our paper on Faasm can be found [here](https://arxiv.org/abs/2002.09344).
 
 # Quick start
 
@@ -55,14 +57,12 @@ More detail on some key features and implementations can be found below:
 - [Distributed state](docs/state.md) - sharing state between functions.
 - [Faasm host interface](docs/host_interface.md) - the serverless-specific interface between functions and the underlying host.
 - [Kubernetes and Knative integration](docs/kubernetes.md)- deploying Faasm as part of a full serverless platform.
+- [Bare metal/ VM deployment](docs/bare_metal.md) - deploying Faasm on bare metal or VMs as a stand-alone system.
 - [Tensorflow Lite](docs/tensorflow.md) - performing inference in Faasm functions with TF Lite.  
 - [API](docs/api.md) - invoking and managing functions and state through Faasm's HTTP API.
 - [MPI](docs/mpi.md) and [OpenMP](docs/openmp.md) - executing existing MPI and OpenMP applications in Faasm.
 - [Local development](docs/local_dev.md) - developing and modifying Faasm.
 - [Faasm.js](https://github.com/Shillaker/faasmjs) - executing Faasm functions in the browser and on the server. 
-- [Proto-Faaslets](docs/proto_faaslets.md) - rapid snapshot-and-restore initialisation to cut down cold starts.
+- [Threading](docs/threads.md) - executing multi-threaded applications.
+- [Proto-Functions](docs/proto_functions.md) - snapshot-and-restore to reduce cold starts.
  
-<!---
-Docs to be written/ completed:
-- [Distributed state](docs/state.md) and [scheduling](docs/scheduling.md) - sharing state and function executions between distributed Faasm instances.)
--->

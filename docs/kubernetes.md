@@ -1,40 +1,76 @@
 # Faasm Kubernetes/ Knative integration
 
 Faasm is a runtime designed to be integrated into other serverless platforms.
-The recommended integration is with [KNative](https://cloud.google.com/knative/).
+The recommended integration is with [Knative](https://knative.dev/).
 
-All Kubernetes and Knative configuration can be found in the [k8s](../k8s) 
-directory, and the [Knative tasks](../tasks/knative.py).
+All of Faasm's Kubernetes and Knative configuration can be found in the 
+[k8s](../k8s) directory, and the relevant parts of the Faasm CLI can be 
+found in the [Knative tasks](../tasks/knative.py).  
 
-## Knative Set-up
+These steps generally assume that you have 
+[`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/) 
+and [`kn`](https://knative.dev/docs/install/install-kn/) installed
+and these are able to connect to your cluster.
 
-Provided you have an accessible Kubernetes cluster (cloud provider, local Minikube, 
-bare metal etc.) with Knative installed, you can deploy Faasm as follows.
+## Cluster Set-up
+
+### Google Kubernetes Engine
+
+To set up Faasm on [GKE](https://console.cloud.google.com/kubernetes) you can do the following:
+
+- Set up an account and the [Cloud SDK](https://cloud.google.com/sdk) ([Ubuntu quick start](https://cloud.google.com/sdk/docs/quickstart-debian-ubuntu))
+- Create a Kubernetes cluster **with Istio enabled and version >=v1.15**
+- Aim for >=4 nodes with more than one vCPU
+- Set up your local `kubectl` to connect to your cluster (click the "Connect" button in the web interface)
+- Check things are working by running `kubectl get nodes`
+- Install Knative serving as described below
+
+### Bare metal
 
 If you're deploying on a bare-metal cluster then you need to update the `externalIPs` 
 field in the `upload-service.yml` file to match your k8s master node. 
 
-On a cloud provider you should be provided with an endpoint which will handle the external 
-connectivity.
+You also need to install Istio as described in [the Knative docs](https://knative.dev/docs/install/any-kubernetes-cluster/).
 
-To deploy, you can run:
+## Installation
 
-```
+### Knative
+
+Faasm requires a minimal install of [Knative serving](https://knative.dev/docs/install/any-kubernetes-cluster/).
+If your cluster doesn't already have Knative installed, you can run:
+
+```bash
+# Install
+inv knative.install
+
+# Check
+kubectl get pods -n knative-serving
+```  
+
+### Faasm
+
+You can then run the Faasm deploy (where `replicas` is the number of replicas in the Faasm pod):
+
+```bash 
+# Bare-metal/ GKE
+inv knative.deploy --replicas=4
+
 # Local
-inv k8s-deploy --local
-
-# Remote bare-metal (must be run on master node)
-inv k8s-deploy --bare-metal
+inv knative.deploy --local
 ```
 
-Once everything has started up, you can get the relevant URLs as follows (on the master node), 
-then populate your `~/faasm/faasm.ini` file as described below.
+This might take a couple of minutes depending on the underlying cluster.
 
 ## Config file
 
-To avoid typing in hostnames and ports over and over, you can populate a section of your 
-`~/faasm/faasm.ini` file. To get the values, run `./bin/knative_route.sh` which should print out 
-something like:
+Once everything has started up, you can populate your `~/faasm/faasm.ini` file to avoid
+typing in hostnames all the time. To do this, run:
+
+```
+./bin/knative_route.sh
+```
+
+Which should print out something like:
 
 ```
 [Faasm]
@@ -44,7 +80,7 @@ upload_host = ...   # IP of the upload service
 upload_port = ...   # Usually 8002
 ```
 
-You can then copy-paste this.
+You can then copy-paste this into `~/faasm/faasm.ini`.
 
 ## Uploading functions
 
@@ -61,7 +97,7 @@ inv invoke demo hello
 When workers die or are killed, you'll need to clear the queue:
 
 ```
-inv redis-clear-queue --knative
+inv redis.clear-queue --knative
 ```
 
 ## Uploading and running native functions
@@ -72,7 +108,7 @@ For benchmarking we need to run the functions in a more "normal" serverless way 
 in a container). To build the relevant container:
 
 ```
-inv build-knative-native <user> <function>
+inv knative.build-native <user> <function>
 ```
 
 This will use a parameterised Dockerfile to create a container that runs the given function 
@@ -80,19 +116,19 @@ natively. You can test locally with:
 
 ```
 # Build the container
-inv build-knative-native <user> <function> --nopush
+inv knative.build-native <user> <function> --nopush
 
 # Start the container
-inv knative-native-local <user> <function>
+inv knative.native-local <user> <function>
 
 # Submit a request
-inv invoke user function --native
+inv invoke <user> <function> --native
 ```
 
 Once you're happy you can run the following on your machine with knative access:
 
 ```
-inv deploy-knative-native <user> <function>
+inv knative.deploy-native <user> <function>
 
 inv invoke --native <user> <function>
 ```
@@ -110,20 +146,20 @@ To run Python functions natively we use pyfaasm and a standard Flask-based knati
 executor. This can be found at `func/knative_native.py`. We can build the container with:
 
 ```
-inv docker-build -c knative-native-python --push
+inv docker.build -c knative-native-python --push
 ```
 
 To check things locally:
 
 ```
-inv knative-native-python-local
+inv knative.native-python-local
 inv invoke python hello --py
 ```
 
 To deploy, from the machine with k8s access:
 
 ```
-inv deploy-knative-native-python
+inv knative.deploy-native-python
 ```
 
 ## Troubleshooting

@@ -1,13 +1,10 @@
-from copy import copy
-from os import environ
 from os.path import join, exists
 from shutil import rmtree
-from subprocess import check_output, call
+from subprocess import check_output
 
 from invoke import task
 
-from tasks.util.codegen import find_codegen_shared_lib
-from tasks.util.download import download_proj
+import tasks.util.codegen
 from tasks.util.env import PYODIDE_INSTALL_DIR, FAASM_RUNTIME_ROOT, PY_RUNTIME_ROOT, PYODIDE_PACKAGES, \
     FAASM_SHARED_ROOT
 from tasks.util.files import glob_remove
@@ -54,16 +51,22 @@ def _remove_runtime_dir(dir_name):
 
 @task
 def clear_runtime_pyc(ctx):
+    """
+    Clear out runtime .pyc files
+    """
     print("Clearing out runtime pyc files")
     _clear_pyc_files(FAASM_RUNTIME_ROOT)
 
 
 @task
-def set_up_python_package(ctx, pkg_name):
+def set_up_package(ctx, pkg_name):
+    """
+    Set up a given Python package
+    """
     _do_set_up_python_packages([pkg_name])
 
     # Run codegen for just this package
-    binary = find_codegen_shared_lib()
+    binary = tasks.codegen.find_codegen_shared_lib()
     pkg_install_dir = join(PY_RUNTIME_ROOT, "site-packages", pkg_name)
 
     if not exists(pkg_install_dir):
@@ -87,7 +90,10 @@ def _do_set_up_python_packages(package_names):
 
 
 @task
-def set_up_python_runtime(ctx):
+def set_up_runtime(ctx):
+    """
+    Set up the Python runtime
+    """
     print("Clearing out pyc files")
     _clear_pyc_files(PYODIDE_INSTALL_DIR)
     _clear_pyc_files(PYODIDE_PACKAGES)
@@ -115,10 +121,13 @@ def set_up_python_runtime(ctx):
     _do_set_up_python_packages(_PACKAGES_INCLUDED.keys())
 
     # Run codegen
-    run_python_codegen(ctx)
+    codegen(ctx)
 
 
 @task
-def run_python_codegen(ctx):
-    binary = find_codegen_shared_lib()
+def codegen(ctx):
+    """
+    Run Python codegen
+    """
+    binary = tasks.util.codegen.find_codegen_shared_lib()
     check_output("{} {}".format(binary, PY_RUNTIME_ROOT), shell=True)

@@ -17,7 +17,7 @@ namespace scheduler {
 
         std::string getMessageStatus(unsigned int messageId) override;
 
-        void setFunctionResult(message::Message &msg, bool success) override;
+        void setFunctionResult(message::Message &msg) override;
 
         message::Message getFunctionResult(unsigned int messageId, int timeoutMs) override;
 

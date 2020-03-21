@@ -29,7 +29,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # Therefore we set it to 4GB - 1 page, i.e.
     # max-memory = (4*1024*1024*1024) - (64*1024) = 4294901760.
     #
-    # WARNING: the code may also set limits on the max memory size, so must be changed there too (IRModuleRegistry.h)
+    # WARNING: the code may also set limits on the max memory size, so must be changed there too (IRModuleCache.h)
     #
     # This max memory limit can stop benchmarks working so make sure it's big and consider restricting
     # in a more specific manner for certain functions.

@@ -33,7 +33,7 @@ RUN pip3 install -r /tmp/requirements.txt
 
 # Download the toolchain
 WORKDIR /usr/local/code/faasm
-RUN inv download-toolchain
+RUN inv toolchain.download-toolchain
 
 # Build codegen binaries
 WORKDIR /faasm/build

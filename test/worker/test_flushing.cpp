@@ -6,7 +6,7 @@
 #include <util/config.h>
 #include <boost/filesystem.hpp>
 #include <util/files.h>
-#include <zygote/ZygoteRegistry.h>
+#include <module_cache/WasmModuleCache.h>
 
 namespace tests {
     TEST_CASE("Test flushing empty worker", "[worker]") {
@@ -52,14 +52,14 @@ namespace tests {
         const message::Message msgA = util::messageFactory("demo", "echo");
         const message::Message msgB = util::messageFactory("demo", "dummy");
 
-        zygote::ZygoteRegistry &reg = zygote::getZygoteRegistry();
-        reg.getZygote(msgA);
-        reg.getZygote(msgB);
+        module_cache::WasmModuleCache &reg = module_cache::getWasmModuleCache();
+        reg.getCachedModule(msgA);
+        reg.getCachedModule(msgB);
 
-        REQUIRE(reg.getTotalZygoteCount() == 2);
+        REQUIRE(reg.getTotalCachedModuleCount() == 2);
 
         worker::flushWorkerHost();
-        REQUIRE(reg.getTotalZygoteCount() == 0);
+        REQUIRE(reg.getTotalCachedModuleCount() == 0);
     }
     
     TEST_CASE("Test flushing worker clears scheduler", "[worker]") {

@@ -14,10 +14,10 @@ There will be as many `gene/mapper_index` functions as there are chunks of the i
 You can download the genomics data then upload to your Faasm instance with:
 
 ```bash
-inv genomics-download-s3
+inv data.genomics-download-s3
 
 # Use --local-copy if running locally
-inv genomics-upload-data --local-copy
+inv genomics.upload-data --local-copy
 ```
 
 The genomics data is shared via Faasm's shared files rather than directly through shared state.
@@ -32,13 +32,13 @@ To build the genomics library to WASM, build and upload the functions you can ru
 ./bin/build_genomics.sh
 
 # Upload
-inv upload-genomics
+inv upload.genomics
 
 # Invoke for a single read chunk
 inv invoke gene mapper --input=1
 
 # Invoke in a loop for all read chunks
-inv genomics-mapping
+inv genomics.mapping
 ```
 
 ## Native
@@ -48,7 +48,7 @@ Note, if you're building native and wasm in the same directory, be sure to clean
 First you need to install libfaasm natively:
 
 ```bash
-inv install-native-tools
+inv libs.native
 ```
 
 One that's set up, you can run the following:
@@ -65,14 +65,14 @@ The index and reads only need to be set up once and uploaded to S3. To do this y
 
 ```bash
 # Download the data
-inv download-reads
-inv download-genome
+inv genomics.download-reads
+inv genomics.download-genome
 
 # Run the indexing
-inv index-genome
+inv genomics.index-genome
 
 # Do the upload
-inv genomics-upload-s3
+inv data.genomics-upload-s3
 ```
 
 ### Mapping

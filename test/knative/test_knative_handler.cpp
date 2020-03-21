@@ -120,7 +120,8 @@ namespace tests {
         SECTION("Failure") {
             std::string errorMsg = "I have failed";
             msg.set_outputdata(errorMsg);
-            bus.setFunctionResult(msg, false);
+            msg.set_returnvalue(1);
+            bus.setFunctionResult(msg);
 
             expectedOutput = "FAILED: " + errorMsg;
         }
@@ -128,7 +129,8 @@ namespace tests {
         SECTION("Success") {
             std::string errorMsg = "I have succeeded";
             msg.set_outputdata(errorMsg);
-            bus.setFunctionResult(msg, true);
+            msg.set_returnvalue(0);
+            bus.setFunctionResult(msg);
 
             expectedOutput = "SUCCESS: " + errorMsg;
         }

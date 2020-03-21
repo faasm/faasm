@@ -43,15 +43,10 @@ def _get_repo():
 
 
 @task
-def gh_print_repos(ctx):
-    g = _get_github_instance()
-
-    for repo in g.get_user().get_repos():
-        print(repo.name)
-
-
-@task
-def gh_create_release(ctx):
+def create_release(ctx):
+    """
+    Create a draft release on Github
+    """
     # Get the head of master
     r = _get_repo()
     b = r.get_branch(branch="master")
@@ -77,7 +72,10 @@ def gh_create_release(ctx):
 
 
 @task
-def gh_upload_artifacts(ctx):
+def upload_artifacts(ctx):
+    """
+    Upload release artifacts
+    """
     rel = _get_release()
 
     # Zip the relevant artifacts
@@ -97,6 +95,9 @@ def gh_upload_artifacts(ctx):
 
 
 @task
-def gh_publish_release(ctx):
+def publish_release(ctx):
+    """
+    Publish the draft release
+    """
     rel = _get_release()
     rel.update_release(rel.title, rel.raw_data["body"], draft=False)

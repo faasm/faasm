@@ -1,5 +1,7 @@
 #pragma once
 
+#include <faasmpi/mpi.h>
+
 namespace mpi {
     enum MpiMessageType {
         NORMAL,
@@ -11,7 +13,7 @@ namespace mpi {
         REDUCE,
         ALLREDUCE,
         ALLTOALL,
-        RMA_WRITE,
+        RMA_WRITE
     };
 
     struct MpiMessage {

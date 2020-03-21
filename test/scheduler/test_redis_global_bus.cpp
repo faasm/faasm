@@ -63,7 +63,7 @@ namespace tests {
         }
 
         SECTION("Check reading/ writing function results") {
-            bus.setFunctionResult(call, true);
+            bus.setFunctionResult(call);
 
             // Check result has been written to the right key
             REQUIRE(redis.listLength(call.resultkey()) == 1);
@@ -75,7 +75,6 @@ namespace tests {
             // Check retrieval method gets the same call out again
             message::Message actualCall2 = bus.getFunctionResult(call.id(), 1);
 
-            call.set_success(true);
             checkMessageEquality(call, actualCall2);
         }
 
@@ -125,7 +124,7 @@ namespace tests {
                 // Listen to local queue, set result on global bus
                 for(int m = 0; m < nWorkerMessages; m++) {
                     message::Message msg = queue->dequeue(5000);
-                    bus.setFunctionResult(msg, true);
+                    bus.setFunctionResult(msg);
                 }
             });
         }
@@ -154,14 +153,14 @@ namespace tests {
         // Create a message
 
         std::string expectedOutput;
-        bool expectedSuccess;
+        int expectedReturnValue = 0;
         message::Message_MessageType expectedType;
         std::string expectedNodeId = util::getNodeId();
 
         message::Message msg;
         SECTION("Running") {
             msg = util::messageFactory("demo", "echo");
-            expectedSuccess = false;
+            expectedReturnValue = 0;
             expectedType = message::Message_MessageType_EMPTY;
             expectedNodeId = "";
         }
@@ -171,9 +170,10 @@ namespace tests {
 
             expectedOutput = "I have failed";
             msg.set_outputdata(expectedOutput);
-            bus.setFunctionResult(msg, false);
+            msg.set_returnvalue(1);
+            bus.setFunctionResult(msg);
 
-            expectedSuccess = false;
+            expectedReturnValue = 1;
             expectedType = message::Message_MessageType_CALL;
         }
 
@@ -182,17 +182,18 @@ namespace tests {
 
             expectedOutput = "I have succeeded";
             msg.set_outputdata(expectedOutput);
-            bus.setFunctionResult(msg, true);
+            msg.set_returnvalue(0);
+            bus.setFunctionResult(msg);
 
-            expectedSuccess = true;
+            expectedReturnValue = 0;
             expectedType = message::Message_MessageType_CALL;
         }
 
         // Check status when nothing has been written 
         const message::Message result = bus.getFunctionResult(msg.id(), 0);
 
+        REQUIRE(result.returnvalue() == expectedReturnValue);
         REQUIRE(result.type() == expectedType);
-        REQUIRE(result.success() == expectedSuccess);
         REQUIRE(result.outputdata() == expectedOutput);
         REQUIRE(result.executednode() == expectedNodeId);
     }
