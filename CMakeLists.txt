@@ -20,14 +20,14 @@ option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
 option(FAASM_AWS_SUPPORT "Whether to include AWS support" OFF)
 
 # Library type (for shared libraries)
-if(FAASM_STATIC_LIBS)
+if (FAASM_STATIC_LIBS)
     function(faasm_public_lib lib_name lib_deps)
         add_library(${lib_name} STATIC ${lib_deps})
     endfunction()
     function(faasm_private_lib lib_name lib_deps)
         add_library(${lib_name} STATIC ${lib_deps})
     endfunction()
-else()
+else ()
     function(faasm_public_lib lib_name lib_deps)
         add_library(${lib_name} SHARED ${lib_deps})
     endfunction()
@@ -35,7 +35,7 @@ else()
         add_library(${lib_name} STATIC ${lib_deps})
         target_compile_options(${lib_name} PRIVATE "-fPIC")
     endfunction()
-endif()
+endif ()
 
 # Switch on WAVM stack traces in debug (potential performance gain?)
 set(WAVM_ENABLE_UNWIND ON CACHE BOOL "WAVM unwind")
@@ -54,7 +54,7 @@ add_definitions(-DFAASM_PROFILE_ON=0)
 
 # Custom LLVM build (also for profiling)
 set(FAASM_CUSTOM_LLVM 0)
-if(${FAASM_CUSTOM_LLVM})
+if (${FAASM_CUSTOM_LLVM})
     message(STATUS "Using custom LLVM")
 
     # Force using custom build of LLVM for codegen
@@ -63,11 +63,11 @@ if(${FAASM_CUSTOM_LLVM})
 
     set(WAVM_PERF_LIBS 1)
     add_definitions(-DWAVM_PERF_EVENTS=1)
-else()
+else ()
     # Use LLVM 8 explicitly for the lib parts (i.e. codegen)
     set(LLVM_DIR /usr/lib/llvm-8)
     find_package(LLVM REQUIRED CONFIG)
-endif()
+endif ()
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 
@@ -75,15 +75,15 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 # add_definitions(-DEIGEN_DONT_PARALLELIZE)
 # add_definitions(-DEIGEN_NO_MALLOC)
 
-if(FAASM_AWS_SUPPORT)
-# AWS
-find_package(aws-lambda-runtime)
+if (FAASM_AWS_SUPPORT)
+    # AWS
+    find_package(aws-lambda-runtime)
 
-# AWS SDK
-find_package(AWSSDK REQUIRED COMPONENTS lambda s3 sqs)
+    # AWS SDK
+    find_package(AWSSDK REQUIRED COMPONENTS lambda s3 sqs)
 
-add_definitions("-DAWS_SUPPORT=1")
-endif()
+    add_definitions("-DAWS_SUPPORT=1")
+endif ()
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -217,6 +217,7 @@ else ()
     add_subdirectory(lib-faasmp)
     add_subdirectory(lib-faasmpi)
     add_subdirectory(lib-pyinit)
+    add_subdirectory(lib-rust)
 
     # Custom malloc
     add_subdirectory(third-party/malloc)
@@ -225,12 +226,12 @@ else ()
     add_subdirectory(experiment)
 
     # AWS-specific
-    if(FAASM_AWS_SUPPORT)
+    if (FAASM_AWS_SUPPORT)
         add_subdirectory(src/aws)
         add_subdirectory(src/lambda_func)
         add_subdirectory(src/dispatch)
         add_subdirectory(src/lambda)
-    endif()
+    endif ()
 
     # Faasm runtime
     add_subdirectory(src/codegen)
@@ -263,7 +264,7 @@ else ()
     add_subdirectory(test_ibm)
     add_subdirectory(test_knative)
 
-    if(FAASM_AWS_SUPPORT)
-    add_subdirectory(test_aws)
-    endif()
+    if (FAASM_AWS_SUPPORT)
+        add_subdirectory(test_aws)
+    endif ()
 endif ()

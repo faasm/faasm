@@ -1,7 +1,6 @@
 #include "WasmModule.h"
 
 #include <mutex>
-#include <cstdio>
 
 #include <WAVM/Platform/Thread.h>
 #include <WAVM/Runtime/Runtime.h>
@@ -104,12 +103,6 @@ namespace wasm {
         thisThreadNumber = threadArgs->tid;
 
         return getExecutingModule()->executeThread(threadArgs->spec);
-    }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__println", void, __println, I32 _buffer) {
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        const char *buffer = (const char *) &Runtime::memoryRef<I32>(memoryPtr, _buffer);
-        printf("%s\n", buffer);
     }
 
     /**
