@@ -1,31 +1,36 @@
 #include <iostream>
-#include <signal.h>
 #include <util/TCPClient.h>
+#include <util/logging.h>
 
 using namespace util;
 
-TCPClient tcp;
+#define N_REQUESTS 3
+#define PORT 8005
+#define HOST "127.0.0.1"
 
-void sig_exit(int s) {
-    tcp.exit();
-    exit(0);
-}
+int main() {
+    util::initLogging();
+    const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-int main(int argc, char *argv[]) {
-    if (argc != 4) {
-        std::cerr << "Usage: ./client ip port message" << std::endl;
-        return 0;
-    }
-    signal(SIGINT, sig_exit);
+    TCPClient client(HOST, PORT);
 
-    tcp.setup(argv[1], atoi(argv[2]));
-    while (1) {
-        tcp.Send(argv[3]);
-        std::string rec = tcp.receive();
-        if (rec != "") {
-            std::cout << rec << std::endl;
+    for (int i = 0; i < N_REQUESTS; i++) {
+        // Send some data
+        std::vector<uint8_t> bytesToSend = {0, 1, 2, 3, 4, 5, 6, 7};
+        client.sendBytes(bytesToSend.data(), bytesToSend.size());
+
+        // Expect to receive it back
+        std::vector<uint8_t> receivedBytes;
+        receivedBytes.reserve(bytesToSend.size());
+        size_t receivedSize = client.receiveBytes(receivedBytes.data(), bytesToSend.size());
+
+        if (receivedSize != bytesToSend.size()) {
+            logger->error("Bytes unexpected size (got {}, expected {})", receivedSize, bytesToSend.size());
+        } else if (receivedBytes != bytesToSend) {
+            logger->error("Sent and received do not match up");
+        } else {
+            logger->debug("Bytes sent and received as expected");
         }
-        sleep(1);
     }
     return 0;
 }

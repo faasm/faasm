@@ -1,40 +1,33 @@
 #pragma once
 
-#include <iostream>
-#include <unistd.h>
-
 #include <vector>
 #include <string>
-#include <cstdio>
-#include <cstdlib>
 
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 
+#define RECEIVE_SIZE 256
+
 namespace util {
 
     class TCPClient {
-    private:
-        int sock;
-        std::string address;
-        int port;
-        struct sockaddr_in server;
-
     public:
-        TCPClient();
+        TCPClient(std::string host, int port);
 
-        bool setup(std::string address, int port);
+        void sendBytes(uint8_t *buffer, int bufferLen);
 
-        bool Send(std::string data);
-
-        std::string receive(int size = 4096);
-
-        std::string read();
+        size_t receiveBytes(uint8_t *buffer, int bufferLen);
 
         void exit();
+    private:
+        std::string host;
+        int port;
+
+        int clientSocket;
     };
 }
 

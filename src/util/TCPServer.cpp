@@ -1,140 +1,113 @@
 #include "TCPServer.h"
 
+#include <cstring>
+#include <util/logging.h>
+
+#define BUF_SIZE 256
 
 namespace util {
-    char TCPServer::msg[MAXPACKETSIZE];
-    int TCPServer::num_client;
-    int TCPServer::last_closed;
-    bool TCPServer::isonline;
-    vector<descript_socket *> TCPServer::Message;
-    vector<descript_socket *> TCPServer::newsockfd;
-    std::mutex TCPServer::mt;
 
-    void *TCPServer::Task(void *arg) {
-        int n;
-        struct descript_socket *desc = (struct descript_socket *) arg;
-        pthread_detach(pthread_self());
+    TCPServer::TCPServer(int port) : clientCount(0) {
+        // Set up the socket
+        serverSocket = socket(AF_INET, SOCK_STREAM, 0);
 
-        cerr << "open client[ id:" << desc->id << " ip:" << desc->ip << " socket:" << desc->socket << " send:"
-             << desc->enable_message_runtime << " ]" << endl;
-        while (1) {
-            n = recv(desc->socket, msg, MAXPACKETSIZE, 0);
-            if (n != -1) {
-                if (n == 0) {
-                    isonline = false;
-                    cerr << "close client[ id:" << desc->id << " ip:" << desc->ip << " socket:" << desc->socket << " ]"
-                         << endl;
-                    last_closed = desc->id;
-                    close(desc->socket);
-
-                    int id = desc->id;
-                    auto new_end = std::remove_if(newsockfd.begin(), newsockfd.end(),
-                                                  [id](descript_socket *device) { return device->id == id; });
-                    newsockfd.erase(new_end, newsockfd.end());
-
-                    if (num_client > 0) num_client--;
-                    break;
-                }
-                msg[n] = 0;
-                desc->message = string(msg);
-                std::lock_guard<std::mutex> guard(mt);
-                Message.push_back(desc);
-            }
-            usleep(600);
-        }
-        if (desc != NULL)
-            free(desc);
-        cerr << "exit thread: " << this_thread::get_id() << endl;
-        pthread_exit(NULL);
-
-        return 0;
-    }
-
-    int TCPServer::setup(int port, vector<int> opts) {
-        int opt = 1;
-        isonline = false;
-        last_closed = -1;
-        sockfd = socket(AF_INET, SOCK_STREAM, 0);
         memset(&serverAddress, 0, sizeof(serverAddress));
-
-        for (unsigned int i = 0; i < opts.size(); i++) {
-            if ((setsockopt(sockfd, SOL_SOCKET, opts.size(), (char *) &opt, sizeof(opt))) < 0) {
-                cerr << "Errore setsockopt" << endl;
-                return -1;
-            }
-        }
-
         serverAddress.sin_family = AF_INET;
         serverAddress.sin_addr.s_addr = htonl(INADDR_ANY);
         serverAddress.sin_port = htons(port);
 
-        if ((::bind(sockfd, (struct sockaddr *) &serverAddress, sizeof(serverAddress))) < 0) {
-            cerr << "Errore bind" << endl;
-            return -1;
-        }
+        // Reuse addr and port
+        int reuse = 1;
+        setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, (const char *) &reuse, sizeof(reuse));
+        setsockopt(serverSocket, SOL_SOCKET, SO_REUSEPORT, (const char *) &reuse, sizeof(reuse));
 
-        if (listen(sockfd, 5) < 0) {
-            cerr << "Errore listen" << endl;
-            return -1;
-        }
-        num_client = 0;
-        isonline = true;
-        return 0;
+        // Bind and listen
+        bind(serverSocket, (struct sockaddr *) &serverAddress, sizeof(serverAddress));
+
+        listen(serverSocket, 5);
+
+        util::getLogger()->debug("Listening on {}", port);
     }
 
     void TCPServer::accepted() {
-        socklen_t sosize = sizeof(clientAddress);
-        descript_socket *so = new descript_socket;
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("TCP accept");
+        struct sockaddr_in clientAddress{};
+        socklen_t addrSize = sizeof(clientAddress);
 
-        so->socket = accept(sockfd, (struct sockaddr *) &clientAddress, &sosize);
-        so->id = num_client;
-        so->ip = inet_ntoa(clientAddress.sin_addr);
-        newsockfd.push_back(so);
+        int socket = accept(serverSocket, (struct sockaddr *) &clientAddress, &addrSize);
 
-        cerr << "accept client[ id:" << newsockfd[num_client]->id <<
-             " ip:" << newsockfd[num_client]->ip <<
-             " handle:" << newsockfd[num_client]->socket << " ]" << endl;
+        threads.emplace_back([this, socket, logger] {
+            int packetCount = 0;
+            int dataLen;
+            std::vector<uint8_t> data;
 
-        pthread_create(&serverThread[num_client], NULL, &Task, (void *) newsockfd[num_client]);
-        isonline = true;
-        num_client++;
+            while (true) {
+                // Receive the data
+                uint8_t buffer[BUF_SIZE];
+                int nRecv = recv(socket, buffer, BUF_SIZE, 0);
+
+                // Handle errors or disconnect
+                if (nRecv == 0) {
+                    // Connection closed
+                    clientCount--;
+                    break;
+                }
+
+                if (nRecv < 0) {
+                    // Error
+                    clientCount--;
+                    break;
+                }
+
+                // On the first packet, we need to get the total data length
+                // which is held as an integer at the start of the packet.
+                uint8_t *packetData;
+                if (packetCount == 0) {
+                    int *bufferInts = reinterpret_cast<int *>(buffer);
+                    dataLen = bufferInts[0];
+
+                    // Point at the start of the data
+                    packetData = buffer + sizeof(int);
+                    nRecv -= sizeof(int);
+                } else {
+                    packetData = buffer;
+                }
+
+                // Insert the data from this packet
+                data.insert(std::end(data), packetData, packetData + nRecv);
+
+                if(data.size() == dataLen) {
+                    break;
+                } else {
+                    logger->debug("TCP packet {} = {} bytes", packetCount, nRecv);
+                    packetCount++;
+                }
+
+            }
+
+            if (dataLen != data.size()) {
+                logger->warn("Did not receive all TCP data (expected {}, got {})", dataLen, data.size());
+            } else {
+                logger->debug("TCP got {} bytes as expected", data.size());
+            }
+
+            // Echo back
+            send(socket, data.data(), data.size(), 0);
+        });
+
+        clientCount++;
     }
 
-    vector<descript_socket *> TCPServer::getMessage() {
-        std::lock_guard<std::mutex> guard(mt);
-        return Message;
-    }
-
-    void TCPServer::Send(string msg, int id) {
-        send(newsockfd[id]->socket, msg.c_str(), msg.length(), 0);
-    }
-
-    int TCPServer::get_last_closed_sockets() {
-        return last_closed;
-    }
-
-    void TCPServer::clean(int id) {
-        Message[id]->message = "";
-        memset(msg, 0, MAXPACKETSIZE);
-    }
-
-    string TCPServer::get_ip_addr(int id) {
-        return newsockfd[id]->ip;
-    }
-
-    bool TCPServer::is_online() {
-        return isonline;
-    }
-
-    void TCPServer::detach(int id) {
-        close(newsockfd[id]->socket);
-        newsockfd[id]->ip = "";
-        newsockfd[id]->id = -1;
-        newsockfd[id]->message = "";
+    void TCPServer::start() {
+        while (true) {
+            accepted();
+        }
     }
 
     void TCPServer::closed() {
-        close(sockfd);
+        util::getLogger()->debug("Shutting down server");
+        close(serverSocket);
     }
 }
 
