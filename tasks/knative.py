@@ -18,7 +18,6 @@ BARE_METAL_REMOTE_CONF = join(K8S_DIR, "bare-metal-remote")
 LOCAL_CONF = join(K8S_DIR, "local")
 COMMON_CONF = join(K8S_DIR, "common")
 IBM_CONF = join(K8S_DIR, "ibm")
-LEGACY_CONF = join(K8S_DIR, "legacy")
 
 KNATIVE_VERSION = "0.13.0"
 
