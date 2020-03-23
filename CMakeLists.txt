@@ -235,7 +235,6 @@ else ()
     # Faasm runtime
     add_subdirectory(src/codegen)
     add_subdirectory(src/data)
-    add_subdirectory(src/edge)
     add_subdirectory(src/emulator)
     add_subdirectory(src/endpoint)
     add_subdirectory(src/ibm)
