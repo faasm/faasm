@@ -10,8 +10,7 @@ namespace state {
     }
 
     std::vector<uint8_t> RedisStateBackend::get(const std::string &key) {
-        std::vector<uint8_t> empty;
-        return empty;
+        return redis.get(key);
     }
 
     void RedisStateBackend::getRange(const std::string &key, uint8_t *buffer, size_t bufferLen, long start, long end) {
