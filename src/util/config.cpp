@@ -40,6 +40,7 @@ namespace util {
         awsLogLevel = getEnvVar("AWS_LOG_LEVEL", "off");
         pythonPreload = getEnvVar("PYTHON_PRELOAD", "off");
         captureStdout = getEnvVar("CAPTURE_STDOUT", "off");
+        stateMode = getEnvVar("STATE_MODE", "redis");
 
         // Redis
         redisStateHost = getEnvVar("REDIS_STATE_HOST", "localhost");
@@ -103,6 +104,7 @@ namespace util {
         logger->info("AWS_LOG_LEVEL              {}", awsLogLevel);
         logger->info("PYTHON_PRELOAD             {}", pythonPreload);
         logger->info("CAPTURE_STDOUT             {}", captureStdout);
+        logger->info("STATE_MODE                 {}", stateMode);
 
         logger->info("--- Redis ---");
         logger->info("REDIS_STATE_HOST           {}", redisStateHost);

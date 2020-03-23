@@ -1,5 +1,7 @@
 #pragma once
 
+#include "StateBackend.h"
+
 #include <util/clock.h>
 #include <util/exception.h>
 
@@ -17,7 +19,7 @@ namespace state {
     class StateKeyValue {
     public:
         // Remote lock timeout in seconds
-        unsigned int remoteLockTimeout = 1;
+        int remoteLockTimeout = 1;
 
         // Remote lock sleep time in milliseconds
         unsigned int remoteLockMaxRetries = 3;
@@ -81,6 +83,8 @@ namespace state {
         bool isDirty;
 
         std::shared_mutex valueMutex;
+
+        StateBackend &backend;
 
         int lastRemoteLockId = 0;
 
