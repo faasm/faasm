@@ -1,12 +1,3 @@
-# GPU stuff
-omp_get_wtime
-__kmpc_push_target_tripcount
-__kmpc_fork_teams
-__tgt_target_teams
-__tgt_bin_desc
-__tgt_register_lib
-__tgt_unregister_lib
-
 # OpenMP implementations
 __kmpc_fork_call
 __kmpc_critical
@@ -36,6 +27,15 @@ omp_set_num_threads
 omp_get_level
 omp_get_max_active_levels
 omp_set_max_active_levels
+omp_get_wtime
 
 # Debug functions
 __faasmp_debug_copy
+
+# GPU stuff
+__kmpc_push_target_tripcount
+__kmpc_fork_teams
+__tgt_target_teams
+__tgt_bin_desc
+__tgt_register_lib
+__tgt_unregister_lib
