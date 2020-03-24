@@ -20,6 +20,9 @@ available commands can be shown with:
 inv -l
 ```
 
+They are loosely collected into namespaces (of the format `xxx.yyy`) and 
+there is tab completion (but it's a bit slow).
+
 ## Local cluster
 
 To start a local deployment, you can run:

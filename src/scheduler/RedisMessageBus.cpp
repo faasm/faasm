@@ -47,9 +47,7 @@ namespace scheduler {
         }
     }
 
-    void RedisMessageBus::setFunctionResult(message::Message &msg, bool success) {
-        msg.set_success(success);
-
+    void RedisMessageBus::setFunctionResult(message::Message &msg) {
         // Record which node did the execution
         msg.set_executednode(util::getNodeId());
 
@@ -112,7 +110,7 @@ namespace scheduler {
 
         if (result.type() == message::Message_MessageType_EMPTY) {
             return "RUNNING";
-        } else if (result.success()) {
+        } else if (result.returnvalue() == 0) {
             return "SUCCESS: " + result.outputdata();
         } else {
             return "FAILED: " + result.outputdata();

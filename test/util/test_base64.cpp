@@ -30,7 +30,7 @@ namespace tests {
         msg.set_isasync(true);
         msg.set_ispython(true);
         msg.set_istypescript(true);
-        msg.set_success(false);
+        msg.set_returnvalue(1234);
         msg.set_inputdata("[0], %$ 2233 9");
         msg.set_resultkey("blahblah");
         msg.set_type(message::Message_MessageType_BIND);

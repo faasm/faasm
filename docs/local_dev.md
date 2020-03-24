@@ -64,8 +64,8 @@ The Faasm toolchain and runtime require some prebuilt files which can be downloa
 
 ```bash
 source workon.sh
-inv download-toolchain
-inv download-sysroot
+inv toolchain.download-toolchain
+inv toolchain.download-sysroot
 ```
 
 If you want to build the toolchain from scratch, you'll need to look at the `toolchain.md` doc.
@@ -95,7 +95,7 @@ export PATH=$(pwd)/bin:$PATH
 To run codegen for all the C++ functions:
 
 ```
-inv run-local-codegen
+inv codegen.local
 ```
 
 ### Python functions
@@ -103,13 +103,13 @@ inv run-local-codegen
 You can pull down the prepackaged python runtime and required runtime files with:
 
 ```
-inv download-runtime-root
+inv toolchain.download-runtime
 ```
 
 You can then put the Python functions in place with:
 
 ```
-inv upload-user python --py --local-copy
+inv upload.user python --py --local-copy
 ```
 
 ## Networking

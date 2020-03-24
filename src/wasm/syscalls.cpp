@@ -129,6 +129,8 @@ namespace wasm {
                 return s__munmap(a, b);
             case 102:
                 return s__socketcall(a, b);
+            case 125:
+                return s__mprotect(a, b, c);
             case 140:
                 return s__llseek(a, b, c, d, e);
             case 145:

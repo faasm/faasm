@@ -19,9 +19,13 @@ RUN pip3 install -r /tmp/requirements.txt
 # Copy code into place
 COPY . /usr/local/code/faasm
 
-# Build the wavm binary
+# Build some useful targets
 WORKDIR /faasm/build
 RUN cmake --build . --target wavm
+RUN cmake --build . --target simple_runner
+RUN cmake --build . --target codegen_func
+RUN cmake --build . --target codegen_shared_obj
+RUN cmake --build . --target func_sym
 
 # Install Faasm native tools
 WORKDIR /faasm/native_tools
@@ -41,8 +45,8 @@ RUN ninja install
 
 # Download the toolchain
 WORKDIR /usr/local/code/faasm
-RUN inv download-toolchain
-RUN inv download-sysroot
+RUN inv toolchain.download-toolchain
+RUN inv toolchain.download-sysroot
 
 # Install pyfaasm
 RUN pip3 install pyfaasm

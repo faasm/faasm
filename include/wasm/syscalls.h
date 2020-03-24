@@ -25,6 +25,12 @@ namespace wasm {
 
     std::string getMaskedPathFromWasm(I32 strPtr);
 
+    int awaitChainedCall(unsigned int messageId);
+
+    int makeChainedCall(const std::string &functionName, int idx, int pyIdx, const std::vector<uint8_t> &inputData);
+
+    int spawnChainedThread(const std::string &snapshotKey, size_t snapshotSize, int funcPtr, int argsPtr);
+
     // ---------------------------
     // System-related structs
     // ---------------------------
@@ -162,6 +168,17 @@ namespace wasm {
         U16 ws_ypixel;
     };
 
+    /**
+     * Found in pthread_impl.h
+     * The "real" pthread struct has a lot of stuff in it. We only
+     * care about a subset of the fields that appear at the start,
+     * _especially_ the pointer to itself, which allows references to
+     * be treated like pointers.
+     */
+     struct wasm_pthread {
+         I32 selfPtr;
+     };
+
     // Sockets/ network
     enum SocketCalls : U32 {
         sc_socket = 1,
@@ -255,6 +272,8 @@ namespace wasm {
     I32 s__mkdir(I32 pathPtr, I32 mode);
 
     I32 s__mmap(I32 addr, I32 length, I32 prot, I32 flags, I32 fd, I32 offset);
+
+    I32 s__mprotect(I32 addrPtr, I32 len, I32 prot);
 
     I32 s__munmap(I32 addr, I32 length);
 

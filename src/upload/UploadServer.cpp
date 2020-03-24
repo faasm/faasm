@@ -3,12 +3,12 @@
 #include <util/logging.h>
 #include <util/bytes.h>
 
-#include <redis/Redis.h>
 #include <storage/FileLoader.h>
 #include <util/config.h>
 #include <util/state.h>
 #include <util/files.h>
 #include <state/State.h>
+#include <state/StateBackend.h>
 
 
 namespace edge {
@@ -168,8 +168,8 @@ namespace edge {
 
         logger->info("Downloading state from ({}/{})", user, key);
 
-        redis::Redis &redis = redis::Redis::getState();
-        const std::vector<uint8_t> value = redis.get(realKey);
+        state::StateBackend &stateBackend = state::getBackend();
+        const std::vector<uint8_t> value = stateBackend.get(realKey);
 
         return value;
     }
@@ -184,18 +184,16 @@ namespace edge {
 
         logger->info("Upload state to ({}/{})", user, key);
 
-        redis::Redis &redis = redis::Redis::getState();
-
         // Read request body into KV store
         const concurrency::streams::istream bodyStream = request.body();
         concurrency::streams::stringstreambuf inputStream;
-        bodyStream.read_to_end(inputStream).then([&inputStream, &redis, &realKey](size_t size) {
+        bodyStream.read_to_end(inputStream).then([&inputStream, &realKey](size_t size) {
             if (size > 0) {
+                state::StateBackend &stateBackend = state::getBackend();
                 std::string s = inputStream.collection();
                 const std::vector<uint8_t> bytesData = util::stringToBytes(s);
-                redis.set(realKey, bytesData);
+                stateBackend.set(realKey, bytesData);
             }
-
         }).wait();
 
         http_response response(status_codes::OK);

@@ -33,6 +33,7 @@ namespace tests {
         REQUIRE(conf.awsLogLevel == "off");
         REQUIRE(conf.pythonPreload == "off");
         REQUIRE(conf.captureStdout == "off");
+        REQUIRE(conf.stateMode == "redis");
 
         REQUIRE(conf.redisPort == "6379");
 
@@ -40,10 +41,11 @@ namespace tests {
         REQUIRE(conf.noScheduler == 0);
         REQUIRE(conf.maxInFlightRatio == 3);
         REQUIRE(conf.maxWorkersPerFunction == 10);
+        REQUIRE(conf.threadMode == "local");
 
         REQUIRE(conf.globalMessageTimeout == 60000);
         REQUIRE(conf.boundTimeout == 30000);
-        REQUIRE(conf.unboundTimeout == 60000);
+        REQUIRE(conf.unboundTimeout == 300000);
         REQUIRE(conf.chainedCallTimeout == 300000);
 
         REQUIRE(conf.defaultMpiWorldSize == 5);
@@ -66,6 +68,7 @@ namespace tests {
         std::string awsLog = setEnvVar("AWS_LOG_LEVEL", "debug");
         std::string pythonPre = setEnvVar("PYTHON_PRELOAD", "on");
         std::string captureStdout = setEnvVar("CAPTURE_STDOUT", "on");
+        std::string stateMode = setEnvVar("STATE_MODE", "foobar");
 
         std::string redisState = setEnvVar("REDIS_STATE_HOST", "not-localhost");
         std::string redisQueue = setEnvVar("REDIS_QUEUE_HOST", "other-host");
@@ -77,6 +80,7 @@ namespace tests {
         std::string noScheduler = setEnvVar("NO_SCHEDULER", "1");
         std::string inFlightRatio = setEnvVar("MAX_IN_FLIGHT_RATIO", "8888");
         std::string workers = setEnvVar("MAX_WORKERS_PER_FUNCTION", "7777");
+        std::string threadMode = setEnvVar("THREAD_MODE", "threadfoo");
 
         std::string globalTimeout = setEnvVar("GLOBAL_MESSAGE_TIMEOUT", "9876");
         std::string boundTimeout = setEnvVar("BOUND_TIMEOUT", "6666");
@@ -109,6 +113,7 @@ namespace tests {
         REQUIRE(conf.awsLogLevel == "debug");
         REQUIRE(conf.pythonPreload == "on");
         REQUIRE(conf.captureStdout == "on");
+        REQUIRE(conf.stateMode == "foobar");
 
         REQUIRE(conf.redisStateHost == "not-localhost");
         REQUIRE(conf.redisQueueHost == "other-host");
@@ -120,6 +125,7 @@ namespace tests {
         REQUIRE(conf.noScheduler == 1);
         REQUIRE(conf.maxInFlightRatio == 8888);
         REQUIRE(conf.maxWorkersPerFunction == 7777);
+        REQUIRE(conf.threadMode == "threadfoo");
 
         REQUIRE(conf.globalMessageTimeout == 9876);
         REQUIRE(conf.boundTimeout == 6666);
@@ -152,6 +158,7 @@ namespace tests {
         setEnvVar("AWS_LOG_LEVEL", awsLog);
         setEnvVar("PYTHON_PRELOAD", pythonPre);
         setEnvVar("CAPTURE_STDOUT", captureStdout);
+        setEnvVar("STATE_MODE", stateMode);
 
         setEnvVar("REDIS_STATE_HOST", redisState);
         setEnvVar("REDIS_QUEUE_HOST", redisQueue);
@@ -163,6 +170,7 @@ namespace tests {
         setEnvVar("NO_SCHEDULER", noScheduler);
         setEnvVar("MAX_IN_FLIGHT_RATIO", inFlightRatio);
         setEnvVar("MAX_WORKERS_PER_FUNCTION", workers);
+        setEnvVar("THREAD_MODE", threadMode);
 
         setEnvVar("GLOBAL_MESSAGE_TIMEOUT", globalTimeout);
         setEnvVar("BOUND_TIMEOUT", boundTimeout);

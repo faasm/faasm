@@ -11,7 +11,7 @@
 #include <util/config.h>
 #include <util/locks.h>
 
-#include <wasm/IRModuleRegistry.h>
+#include <ir_cache/IRModuleCache.h>
 #include <wasm/serialisation.h>
 
 #include <WAVM/WASM/WASM.h>
@@ -20,10 +20,13 @@
 #include <WAVM/IR/Module.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
+#include <Runtime/RuntimePrivate.h>
 #include <WAVM/WASTParse/WASTParse.h>
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/uio.h>
+#include <util/bytes.h>
+#include <util/macros.h>
 
 using namespace WAVM;
 
@@ -120,11 +123,6 @@ namespace wasm {
             envModule = Runtime::remapToClonedCompartment(other.envModule, compartment);
             moduleInstance = Runtime::remapToClonedCompartment(other.moduleInstance, compartment);
 
-            // NOTE: although we are using the remapping functions here, the function
-            // variables are just pointers (and are returned directly)
-            functionInstance = Runtime::remapToClonedCompartment(other.functionInstance, compartment);
-            zygoteFunctionInstance = Runtime::remapToClonedCompartment(other.zygoteFunctionInstance, compartment);
-
             // Extract the memory and table again
             defaultMemory = Runtime::getDefaultMemory(moduleInstance);
             defaultTable = Runtime::getDefaultTable(moduleInstance);
@@ -177,9 +175,6 @@ namespace wasm {
         defaultMemory = nullptr;
         defaultTable = nullptr;
         moduleInstance = nullptr;
-
-        functionInstance = nullptr;
-        zygoteFunctionInstance = nullptr;
 
         envModule = nullptr;
 
@@ -333,25 +328,18 @@ namespace wasm {
 
         PROF_START(wasmBind)
 
-        // Get main entrypoint function
-        std::string mainFuncName(ENTRY_FUNC_NAME);
-        if (boundIsTypescript) {
-            mainFuncName = "_asMain";
-        }
-        functionInstance = getFunction(mainFuncName, true);
-
         // Keep reference to memory and table
         defaultMemory = Runtime::getDefaultMemory(moduleInstance);
         defaultTable = Runtime::getDefaultTable(moduleInstance);
 
         // Get and execute zygote function
         if (executeZygote) {
-            zygoteFunctionInstance = getFunction(ZYGOTE_FUNC_NAME, false);
-            if (zygoteFunctionInstance) {
+            Runtime::Function *zygoteFunc = getDefaultZygoteFunction();
+            if (zygoteFunc) {
                 IR::UntaggedValue result;
-                const IR::FunctionType funcType = Runtime::getFunctionType(zygoteFunctionInstance);
+                const IR::FunctionType funcType = Runtime::getFunctionType(zygoteFunc);
                 executeFunction(
-                        zygoteFunctionInstance,
+                        zygoteFunc,
                         funcType,
                         {},
                         result
@@ -430,7 +418,7 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         PROF_START(wasmCreateModule)
-        IRModuleRegistry &moduleRegistry = wasm::getIRModuleRegistry();
+        IRModuleCache &moduleRegistry = wasm::getIRModuleCache();
         bool isMainModule = sharedModulePath.empty();
 
         // Warning: be very careful here to stick to *references* to the same shared modules
@@ -651,7 +639,7 @@ namespace wasm {
     /**
      * Executes the given function call
      */
-    int WasmModule::execute(message::Message &msg) {
+    bool WasmModule::execute(message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         if (!_isBound) {
@@ -668,55 +656,75 @@ namespace wasm {
         executingModule = this;
         executingCall = &msg;
 
-        int exitCode = 0;
+        // Run a specific function if requested
+        int funcPtr = msg.funcptr();
+        std::vector<IR::UntaggedValue> invokeArgs;
+        Runtime::Function *funcInstance;
+        IR::FunctionType funcType;
+        if (funcPtr > 0) {
+            funcInstance = getFunctionFromPtr(funcPtr);
 
-        // Set up arguments
-        std::vector<IR::UntaggedValue> invokeArgs = getArgcArgv(msg);
+            // NOTE - when we've got a function pointer, we assume the args are a single integer
+            // held in the input data (resulting from a chained thread invocation)
+            if(msg.inputdata().empty()) {
+                invokeArgs = {0};
+            } else {
+                int intArg = std::stoi(msg.inputdata());
+                invokeArgs = {intArg};
+            }
 
+            funcType = IR::FunctionType(
+                    {IR::ValueType::i32},
+                    {IR::ValueType::i32}
+            );
+        } else if (boundIsTypescript) {
+            // Different function signature for typescript
+            funcType = IR::FunctionType(
+                    {IR::ValueType::i32},
+                    {}
+            );
+        } else {
+            // Set up main args
+            invokeArgs = getArgcArgv(msg);
+            funcInstance = getMainFunction();
+            funcType = IR::FunctionType(
+                    {IR::ValueType::i32},
+                    {IR::ValueType::i32, IR::ValueType::i32}
+            );
+        }
+
+        // Call the function
+        int returnValue = 0;
+        bool success = true;
         try {
-            // Call the function
+            Runtime::catchRuntimeExceptions([this, &funcInstance, &funcType, &invokeArgs, &returnValue, &logger] {
+                logger->debug("Invoking C/C++ function");
 
-            Runtime::catchRuntimeExceptions([this, &invokeArgs, &exitCode, &logger] {
                 IR::UntaggedValue result;
+                executeFunction(
+                        funcInstance,
+                        funcType,
+                        invokeArgs,
+                        result
+                );
 
-                // Different function signature for different languages
-                if (boundIsTypescript) {
-                    logger->debug("Invoking typescript function");
-                    executeFunction(
-                            functionInstance,
-                            IR::FunctionType(
-                                    {IR::ValueType::i32},
-                                    {}
-                            ),
-                            {},
-                            result
-                    );
-                } else {
-                    logger->debug("Invoking C/C++ function");
-
-                    executeFunction(
-                            functionInstance,
-                            IR::FunctionType(
-                                    {IR::ValueType::i32},
-                                    {IR::ValueType::i32, IR::ValueType::i32}
-                            ),
-                            invokeArgs,
-                            result
-                    );
-                }
-
-                exitCode = result.i32;
-            }, [&logger, &exitCode](Runtime::Exception *ex) {
+                returnValue = result.i32;
+            }, [&logger, &success, &returnValue](Runtime::Exception *ex) {
                 logger->error("Runtime exception: {}", Runtime::describeException(ex).c_str());
                 Runtime::destroyException(ex);
-                exitCode = 1;
+                success = false;
+                returnValue = 1;
             });
         }
         catch (wasm::WasmExitException &e) {
-            exitCode = e.exitCode;
+            logger->debug("Caught wasm exit exception (code {})", e.exitCode);
+            returnValue = e.exitCode;
+            success = e.exitCode == 0;
         }
 
-        return exitCode;
+        // Record the return value
+        msg.set_returnvalue(returnValue);
+        return success;
     }
 
     U32 WasmModule::mmapFile(U32 fd, U32 length) {
@@ -969,7 +977,7 @@ namespace wasm {
     std::map<std::string, std::string> WasmModule::buildDisassemblyMap() {
         std::map<std::string, std::string> output;
 
-        IRModuleRegistry &moduleRegistry = wasm::getIRModuleRegistry();
+        IRModuleCache &moduleRegistry = wasm::getIRModuleCache();
         IR::Module &module = moduleRegistry.getModule(boundUser, boundFunction, "");
 
         IR::DisassemblyNames disassemblyNames;
@@ -1030,7 +1038,7 @@ namespace wasm {
         }
 
         bool isNotOwned = openFds.find(fd) == openFds.end();
-        if(isNotOwned) {
+        if (isNotOwned) {
             logger->error("fd not owned by this thread {}", fd);
             throw std::runtime_error("fd not owned by this function");
         }
@@ -1101,8 +1109,38 @@ namespace wasm {
         mmap(memoryBase, memoryFdSize, PROT_WRITE, MAP_PRIVATE | MAP_FIXED, memoryFd, 0);
     }
 
-    void WasmModule::snapshotCrossHost(const std::string &filePath) {
+    void WasmModule::snapshotToFile(const std::string &filePath) {
         std::ofstream outStream(filePath, std::ios::binary);
+        doSnapshot(outStream);
+    }
+
+    std::vector<uint8_t> WasmModule::snapshotToMemory() {
+        std::ostringstream outStream;
+        doSnapshot(outStream);
+
+        std::string outStr = outStream.str();
+
+        return std::vector<uint8_t>(outStr.begin(), outStr.end());
+    }
+
+    size_t WasmModule::snapshotToState(const std::string &stateKey) {
+        const std::vector<uint8_t> snapData = snapshotToMemory();
+        unsigned long stateSize = snapData.size();
+
+        state::State &state = state::getGlobalState();
+        const std::shared_ptr<state::StateKeyValue> &stateKv = state.getKV(
+                boundUser,
+                stateKey,
+                stateSize
+        );
+
+        stateKv->set(snapData.data());
+        stateKv->pushFull();
+
+        return stateSize;
+    }
+
+    void WasmModule::doSnapshot(std::ostream &outStream) {
         cereal::BinaryOutputArchive archive(outStream);
 
         // Serialise memory
@@ -1118,9 +1156,36 @@ namespace wasm {
         archive(mem);
     }
 
-    void WasmModule::restoreCrossHost(const message::Message &msg, const std::string &filePath) {
+    void WasmModule::restoreFromFile(const std::string &filePath) {
         // Read execution state from file
         std::ifstream inStream(filePath, std::ios::binary);
+        doRestore(inStream);
+    }
+
+    void WasmModule::restoreFromMemory(const std::vector<uint8_t> &data) {
+        std::istringstream inStream(std::string(reinterpret_cast<const char *>(data.data()), data.size()));
+        doRestore(inStream);
+    }
+
+    void WasmModule::restoreFromState(const std::string &stateKey, size_t stateSize) {
+        if(!isBound()) {
+            throw std::runtime_error("Module must be bound before restoring from state");
+        }
+
+        state::State &state = state::getGlobalState();
+        const std::shared_ptr<state::StateKeyValue> &stateKv = state.getKV(
+                boundUser,
+                stateKey,
+                stateSize
+        );
+
+        stateKv->pull();
+        uint8_t *snapPtr = stateKv->get();
+        const std::vector<uint8_t> snapData = std::vector<uint8_t>(snapPtr, snapPtr + stateSize);
+        restoreFromMemory(snapData);
+    }
+
+    void WasmModule::doRestore(std::istream &inStream) {
         cereal::BinaryInputArchive archive(inStream);
 
         // Read in serialised data
@@ -1205,4 +1270,61 @@ namespace wasm {
         stdoutMemFd = 0;
         stdoutSize = 0;
     }
+
+    I64 WasmModule::executeThread(WasmThreadSpec &spec) {
+        // Set up TLS for this thread
+        setExecutingModule(spec.parentModule);
+        setExecutingCall(spec.parentCall);
+
+        // Create a new region for this thread's stack
+        U32 thisStackBase = getExecutingModule()->mmapMemory(spec.stackSize);
+        U32 stackTop = thisStackBase + spec.stackSize - 1;
+
+        // Create a new context for this thread
+        Runtime::Context *threadContext = createContext(
+                getCompartmentFromContextRuntimeData(spec.contextRuntimeData)
+        );
+
+        // Set the stack pointer in this context
+        IR::UntaggedValue &stackGlobal = threadContext->runtimeData->mutableGlobals[0];
+        if (stackGlobal.u32 != STACK_SIZE) {
+            util::getLogger()->error("Expected first mutable global in context to be stack pointer ({})",
+                                     stackGlobal.u32);
+            throw std::runtime_error("Unexpected mutable global format");
+        }
+
+        threadContext->runtimeData->mutableGlobals[0] = stackTop;
+
+        // Execute the function
+        IR::UntaggedValue result;
+        Runtime::invokeFunction(
+                threadContext,
+                spec.func,
+                Runtime::getFunctionType(spec.func),
+                spec.funcArgs,
+                &result
+        );
+
+        return result.i32;
+    }
+
+    Runtime::Function *WasmModule::getMainFunction() {
+        std::string mainFuncName(ENTRY_FUNC_NAME);
+
+        if (boundIsTypescript) {
+            mainFuncName = "_asMain";
+        }
+
+        return getFunction(mainFuncName, true);
+    }
+
+    Runtime::Function *WasmModule::getDefaultZygoteFunction() {
+        return getFunction(ZYGOTE_FUNC_NAME, false);
+    }
+
+    Runtime::Function *WasmModule::getFunctionFromPtr(int funcPtr) {
+        Runtime::Object *funcObj = Runtime::getTableElement(defaultTable, funcPtr);
+        return Runtime::asFunction(funcObj);
+    }
+
 }

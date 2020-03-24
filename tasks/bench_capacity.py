@@ -9,7 +9,9 @@ from tasks.util.env import BENCHMARK_BUILD
 
 @task
 def max_threads(ctx):
-
+    """
+    Run max threads check
+    """
     print("---- ulimit ----")
     call("ulimit -aS", shell=True)
 

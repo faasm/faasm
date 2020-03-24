@@ -10,6 +10,7 @@ include_directories(${CMAKE_CURRENT_LIST_DIR} ${PROJ_INCLUDE})
 
 set(PUBLIC_HEADERS
         ${PROJ_INCLUDE}/faasm/core.h
+        faasm/array.h
         faasm/compare.h
         faasm/counter.h
         faasm/faasm.h

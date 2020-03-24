@@ -1,4 +1,3 @@
-from multiprocessing.pool import Pool
 from os import makedirs
 from os import remove
 from os.path import exists, join
@@ -7,8 +6,7 @@ from subprocess import check_output
 
 from invoke import task
 
-from tasks.python import run_python_codegen
-from tasks.util.codegen import find_codegen_func, find_codegen_shared_lib
+import tasks.python
 from tasks.util.env import FAASM_RUNTIME_ROOT, FAASM_LOCAL_DIR
 from tasks.util.env import FAASM_SYSROOT
 from tasks.util.release import get_runtime_tar_name, get_runtime_tar_path, \
@@ -20,43 +18,10 @@ TOOLCHAIN_INSTALL = join(FAASM_LOCAL_DIR, "toolchain")
 
 
 @task
-def codegen(ctx, user, function):
-    binary = find_codegen_func()
-    check_output("{} {} {}".format(binary, user, function), shell=True)
-
-
-@task
-def codegen_user(ctx, user):
-    _do_codegen_user(user)
-
-
-def _do_codegen_user(user):
-    print("Running codegen for user {}".format(user))
-
-    binary = find_codegen_func()
-    check_output("{} {}".format(binary, user), shell=True)
-
-
-@task
-def run_local_codegen(ctx):
-    _do_codegen_user("demo")
-    _do_codegen_user("errors")
-    _do_codegen_user("omp")
-    _do_codegen_user("mpi")
-
-    # Run these in parallel
-    p = Pool(3)
-    users = ["python", "sgd", "tf"]
-    p.map(_do_codegen_user, users)
-
-    print("Running codegen on python shared objects")
-    binary = find_codegen_shared_lib()
-    shared_obj_dir = join(FAASM_RUNTIME_ROOT, "lib", "python3.7")
-    check_output("{} {}".format(binary, shared_obj_dir), shell=True)
-
-
-@task
 def download_sysroot(ctx):
+    """
+    Download the sysroot for the Faasm toolchain
+    """
     url = get_sysroot_url()
     tar_name = get_sysroot_tar_name()
     tar_path = get_sysroot_tar_path()
@@ -77,6 +42,9 @@ def download_sysroot(ctx):
 
 @task
 def download_toolchain(ctx):
+    """
+    Download the Faasm toolchain
+    """
     url = get_toolchain_url()
     tar_name = get_toolchain_tar_name()
     tar_path = get_toolchain_tar_path()
@@ -96,7 +64,10 @@ def download_toolchain(ctx):
 
 
 @task
-def download_runtime_root(ctx, nocodegen=False):
+def download_runtime(ctx, nocodegen=False):
+    """
+    Download the Faasm runtime files
+    """
     url = get_runtime_url()
     tar_name = get_runtime_tar_name()
     tar_path = get_runtime_tar_path()
@@ -116,4 +87,4 @@ def download_runtime_root(ctx, nocodegen=False):
     # Run codegen
     if not nocodegen:
         print("Running codegen")
-        run_python_codegen(ctx)
+        tasks.python.codegen(ctx)

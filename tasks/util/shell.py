@@ -1,5 +1,8 @@
 import shutil
 from os.path import join, exists
+from subprocess import call
+
+from tasks.util.env import POSSIBLE_BUILD_BINS
 
 
 def find_command(bin_name, dirs):
@@ -20,3 +23,20 @@ def find_command(bin_name, dirs):
         print("WARNING: found multiple candidates for {}, taking {}".format(bin_name, found_cmd))
 
     return found_cmd
+
+
+def run_command(bin_name, args=None):
+    cmd_path = find_command(bin_name, POSSIBLE_BUILD_BINS)
+
+    cmd = [cmd_path]
+
+    if args:
+        cmd.extend(args)
+
+    cmd = " ".join(cmd)
+    print(cmd)
+    res = call(cmd, shell=True)
+
+    if res != 0:
+        print("Failed running {}".format(bin_name))
+        exit(1)

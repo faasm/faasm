@@ -73,4 +73,8 @@ namespace tests {
     TEST_CASE("Test MPI window creation", "[wasm]") {
         checkMpiFunc("mpi_wincreate");
     }
+
+    TEST_CASE("Test MPI async", "[wasm]") {
+        checkMpiFunc("mpi_isendrecv");
+    }
 }

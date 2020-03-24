@@ -35,7 +35,7 @@ This section of the host interface covers management of state as outlined in
 | `void append_state(key, val)` | Write output data for function |
 | `void lock_state_read/write(key)` | Write output data for function |
 | `void lock_state_global_read/write(key)` | Write output data for function |
- 
+
 ## POSIX-like system calls
 
 This section covers "standard" POSIX-like system calls, some of which are also found 
@@ -53,11 +53,13 @@ in [WASI](https://wasi.dev/).
 | File I/O | `size_t read/write(...)` | As above |
 | Timing | `int gettime(...)` | Per-user monotonic clock only |
 | Random | `size_t getrandom(...)` | Uses underlying `host/dev/urandom` |
- 
+  
  ## Further extensions
+  
+ The Faasm host interface also includes extentions and libraries appropriate 
+ to large-scale parallel applications: 
  
- The Faasm host interface may grow over time to support a wider range of POSIX-like
- system calls, and other functionality appropriate to a serverless context. Support for
- collective communication over MPI is an example of this, and outlined in the 
- [Faasm MPI docs](mpi.md).
+ - [pthreads](threads.md)
+ - [OpenMP](openmp.md) 
+ - [MPI](mpi.md) 
   

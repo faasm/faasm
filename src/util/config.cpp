@@ -40,6 +40,7 @@ namespace util {
         awsLogLevel = getEnvVar("AWS_LOG_LEVEL", "off");
         pythonPreload = getEnvVar("PYTHON_PRELOAD", "off");
         captureStdout = getEnvVar("CAPTURE_STDOUT", "off");
+        stateMode = getEnvVar("STATE_MODE", "redis");
 
         // Redis
         redisStateHost = getEnvVar("REDIS_STATE_HOST", "localhost");
@@ -54,11 +55,12 @@ namespace util {
         noScheduler = this->getSystemConfIntParam("NO_SCHEDULER", "0");
         maxInFlightRatio = this->getSystemConfIntParam("MAX_IN_FLIGHT_RATIO", "3");
         maxWorkersPerFunction = this->getSystemConfIntParam("MAX_WORKERS_PER_FUNCTION", "10");
+        threadMode = getEnvVar("THREAD_MODE", "local");
 
         // Worker-related timeouts (all in seconds)
         globalMessageTimeout = this->getSystemConfIntParam("GLOBAL_MESSAGE_TIMEOUT", "60000");
         boundTimeout = this->getSystemConfIntParam("BOUND_TIMEOUT", "30000");
-        unboundTimeout = this->getSystemConfIntParam("UNBOUND_TIMEOUT", "60000");
+        unboundTimeout = this->getSystemConfIntParam("UNBOUND_TIMEOUT", "300000");
         chainedCallTimeout = this->getSystemConfIntParam("CHAINED_CALL_TIMEOUT", "300000");
 
         // Filesystem storage
@@ -102,6 +104,7 @@ namespace util {
         logger->info("AWS_LOG_LEVEL              {}", awsLogLevel);
         logger->info("PYTHON_PRELOAD             {}", pythonPreload);
         logger->info("CAPTURE_STDOUT             {}", captureStdout);
+        logger->info("STATE_MODE                 {}", stateMode);
 
         logger->info("--- Redis ---");
         logger->info("REDIS_STATE_HOST           {}", redisStateHost);
@@ -117,6 +120,7 @@ namespace util {
         logger->info("NO_SCHEDULER               {}", noScheduler);
         logger->info("MAX_IN_FLIGHT_RATIO        {}", maxInFlightRatio);
         logger->info("MAX_WORKERS_PER_FUNCTION   {}", maxWorkersPerFunction);
+        logger->info("THREAD_MODE                {}", threadMode);
 
         logger->info("--- Timeouts ---");
         logger->info("GLOBAL_MESSAGE_TIMEOUT     {}", globalMessageTimeout);

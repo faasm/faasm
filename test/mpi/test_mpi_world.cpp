@@ -162,6 +162,41 @@ namespace tests {
         }
     }
 
+    TEST_CASE("Test async send and recv", "[mpi]") {
+        cleanSystem();
+
+        const message::Message &msg = util::messageFactory(user, func);
+        mpi::MpiWorld world;
+        world.create(msg, worldId, worldSize);
+
+        // Register two ranks
+        int rankA = 1;
+        int rankB = 2;
+        world.registerRank(rankA);
+        world.registerRank(rankB);
+
+        // Send a couple of async messages (from both to each other)
+        std::vector<int> messageDataA = {0, 1, 2};
+        std::vector<int> messageDataB = {3, 4, 5, 6};
+        int sendIdA = world.isend(rankA, rankB, BYTES(messageDataA.data()), MPI_INT, messageDataA.size());
+        int sendIdB = world.isend(rankB, rankA, BYTES(messageDataB.data()), MPI_INT, messageDataB.size());
+
+        // Asynchronously do the receives
+        std::vector<int> actualA(messageDataA.size(), 0);
+        std::vector<int> actualB(messageDataB.size(), 0);
+        int recvIdA = world.irecv(rankA, rankB, BYTES(actualA.data()), MPI_INT, actualA.size());
+        int recvIdB = world.irecv(rankB, rankA, BYTES(actualB.data()), MPI_INT, actualB.size());
+
+        // Await the results out of order (they should all complete)
+        world.awaitAsyncRequest(recvIdB);
+        world.awaitAsyncRequest(sendIdA);
+        world.awaitAsyncRequest(recvIdA);
+        world.awaitAsyncRequest(sendIdB);
+
+        REQUIRE(actualA == messageDataA);
+        REQUIRE(actualB == messageDataB);
+    }
+
     TEST_CASE("Test send across nodes", "[mpi]") {
         cleanSystem();
         std::string nodeIdA = util::randomString(NODE_ID_LEN);
@@ -781,6 +816,102 @@ namespace tests {
                 doReduceTest<double>(world, root, MPI_MAX, MPI_DOUBLE, rankData, expected);
             }
         }
+    }
+
+    TEST_CASE("Test gather and allgather", "[mpi]") {
+        cleanSystem();
+
+        const message::Message &msg = util::messageFactory(user, func);
+        mpi::MpiWorld world;
+        int thisWorldSize = 5;
+        int root = 3;
+
+        world.create(msg, worldId, thisWorldSize);
+
+        // Register the ranks (zero already registered by default
+        for (int r = 1; r < thisWorldSize; r++) {
+            world.registerRank(r);
+        }
+
+        // Build up per-rank data and expectation
+        int nPerRank = 3;
+        int gatheredSize = nPerRank * thisWorldSize;
+        std::vector<std::vector<int>> rankData(thisWorldSize, std::vector<int>(nPerRank));
+        std::vector<int> expected(gatheredSize, 0);
+        for (int i = 0; i < gatheredSize; i++) {
+            int thisRank = i / nPerRank;
+            expected[i] = i;
+            rankData[thisRank][i % nPerRank] = i;
+        }
+
+        // Prepare result buffer
+        std::vector<int> actual(gatheredSize, 0);
+
+        SECTION("Gather") {
+            // Run gather on all non-root ranks
+            for (int r = 0; r < thisWorldSize; r++) {
+                if (r == root) {
+                    continue;
+                }
+                world.gather(r, root, BYTES(rankData[r].data()), MPI_INT, nPerRank, nullptr, MPI_INT, nPerRank);
+            }
+
+            SECTION("In place") {
+                // With in-place gather we assume that the root's data is in the correct place in the
+                // recv buffer already.
+                std::copy(rankData[root].begin(), rankData[root].end(), actual.data() + (root * nPerRank));
+
+                world.gather(root, root, BYTES(actual.data()), MPI_INT, nPerRank, BYTES(actual.data()),
+                             MPI_INT, nPerRank);
+
+                REQUIRE(actual == expected);
+            }
+
+            SECTION("Not in place") {
+                world.gather(root, root, BYTES(rankData[root].data()), MPI_INT, nPerRank, BYTES(actual.data()),
+                             MPI_INT, nPerRank);
+
+                REQUIRE(actual == expected);
+            }
+        }
+
+        SECTION("Allgather") {
+            bool isInPlace;
+
+            SECTION("In place") {
+                isInPlace = true;
+            }
+
+            SECTION("Not in place") {
+                isInPlace = false;
+            }
+
+            // Run allgather in threads
+            std::vector<std::thread> threads;
+            for (int r = 0; r < thisWorldSize; r++) {
+                threads.emplace_back([&, r, isInPlace] {
+                    if (isInPlace) {
+                        // Put this rank's data in place in the recv buffer as expected
+                        std::copy(rankData[r].begin(), rankData[r].end(), actual.data() + (r * nPerRank));
+
+                        world.allGather(r, BYTES(actual.data()), MPI_INT, nPerRank,
+                                        BYTES(actual.data()), MPI_INT, nPerRank);
+                    } else {
+                        world.allGather(r, BYTES(rankData[r].data()), MPI_INT, nPerRank,
+                                        BYTES(actual.data()), MPI_INT, nPerRank);
+                    }
+
+                    REQUIRE(actual == expected);
+                });
+            }
+
+            for (auto &t : threads) {
+                if (t.joinable()) {
+                    t.join();
+                }
+            }
+        }
+
     }
 
     TEST_CASE("Test all-to-all", "[mpi]") {

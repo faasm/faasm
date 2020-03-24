@@ -1,7 +1,7 @@
 #include <catch/catch.hpp>
 #include "utils.h"
 #include <wasm/WasmModule.h>
-#include <wasm/IRModuleRegistry.h>
+#include <ir_cache/IRModuleCache.h>
 #include <storage/SharedFilesManager.h>
 
 namespace tests {
@@ -43,7 +43,7 @@ namespace tests {
     std::string mainData = "PyBool_Type";
     std::string dataA = "PyArray_API";
     std::string dataB = "PyUFunc_API";
-    int mainDataOffset = 6438720;
+    int mainDataOffset = 6438704;
     int dataAOffset = 42049184;
     int dataBOffset = 73334784;
 
@@ -58,7 +58,7 @@ namespace tests {
         std::string preloadBefore = conf.pythonPreload;
         conf.pythonPreload = "off";
 
-        wasm::IRModuleRegistry &registry = wasm::getIRModuleRegistry();
+        wasm::IRModuleCache &registry = wasm::getIRModuleCache();
 
         // Bind to Python function
         message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);

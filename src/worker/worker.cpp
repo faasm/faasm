@@ -1,9 +1,8 @@
 #include "worker.h"
 
-#include <redis/Redis.h>
 #include <state/State.h>
 #include <scheduler/Scheduler.h>
-#include <zygote/ZygoteRegistry.h>
+#include <module_cache/WasmModuleCache.h>
 #include <storage/SharedFilesManager.h>
 #include <boost/filesystem.hpp>
 
@@ -30,6 +29,6 @@ namespace worker {
         scheduler::getGlobalMessageBus().clear();
 
         // Clear zygotes
-        zygote::getZygoteRegistry().clear();
+        module_cache::getWasmModuleCache().clear();
     }
 }

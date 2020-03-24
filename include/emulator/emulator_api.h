@@ -5,6 +5,6 @@ unsigned int setEmulatedMessageFromJson(const char *msgJson);
 
 char* emulatorGetAsyncResponse();
 
-void emulatorSetCallStatus(int success);
+void emulatorSetCallStatus(bool success);
 
 #endif

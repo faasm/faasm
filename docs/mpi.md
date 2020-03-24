@@ -17,31 +17,7 @@ inv upload mpi hellompi
 inv invoke mpi hellompi
 ```
 
-## ParRes Kernels
-
-We can benchmark Faasm's MPI implementation using the [ParRes Kernels](https://github.com/ParRes/Kernels)
-modified slightly in the fork found in `third-party/ParResKernels`.
-
-To compile and upload you can run the following:
-
-```bash
-inv compile-prk
-inv upload-user prk
-```
-
-This uploads a number of the kernels written for MPI, e.g. `nstream`. These can be invoked using:
-
-```bash
-inv invoke-prk nstream
-```
-
-## Extending the Faasm MPI implementation
-
-The MPI interface declarations live in `lib-faasmpi` and the definitions in `src/wasm/syscalls_mpi.cpp`.
-
-Any new functions need to be included in `lib-faasmpi/faasmpi.imports`. 
-
-## Installing/ running locally
+## Running code locally
 
 To install the latest Open MPI locally you can use the following Ansible playbook:
  
@@ -58,6 +34,24 @@ Once you've built a native executable linked against this, you can then use `mpi
 /usr/local/faasm/openmpi/bin/mpirun -n 2 <your native mpi func> 
 ```
 
+## ParRes Kernels
+
+We can benchmark Faasm's MPI implementation using the [ParRes Kernels](https://github.com/ParRes/Kernels)
+modified slightly in the fork found in `third-party/ParResKernels`.
+
+To compile and upload you can run the following:
+
+```bash
+inv libs.prk
+inv upload.user prk
+```
+
+This uploads a number of the kernels written for MPI, e.g. `nstream`. These can be invoked using:
+
+```bash
+inv prk.invoke nstream
+```
+
 # Benchmarks
 
 We benchmark Faasm against OpenMPI by running both on the same set of bare metal
@@ -70,76 +64,42 @@ prompt or passwords.
 
 ## 1. Set up the VMs
 
-The set-up is done with Ansible. You need to create a file in this directory at 
-`ansible/inventory/mpi.yml` which groups the machines into their roles in Faasm.
+Follow the normal Faasm [bare metal setup](bare_metal.md).
 
-Note that you must explicitly provide the hostname/ IP to be used by MPI with 
-`mpi_host=...`. If the machines only have a single network interface, this is just 
-the machine's hostname or IP.
+## 2. Install OpenMPI
 
-```ini
-[all]
-host1  mpi_host=<hostname/ IP>
-host2  mpi_host=<hostname/ IP>
-host3  mpi_host=<hostname/ IP>
-host4  mpi_host=<hostname/ IP>
-
-[worker]
-host1
-host2
-
-# One host
-[upload]
-host3
-
-# One host
-[redis]
-host3
-
-# One host
-[edge]
-host4
-```
-
-You can then run the set-up on all the machines with:
+Run the Ansible playbook:
 
 ```bash
 cd ansible
-ansible-playbook -i inventory/mpi.yml benchmark.yml
-ansible-playbook -i inventory/mpi.yml faasm_bare.yml
 ansible-playbook -i inventory/mpi.yml mpi_benchmark.yml
-```
-
-## 2. Check the Faasm environment
-
-To check that Faasm is set up properly (and to run any subsequent Faasm commands):
-
-```bash
-cd /usr/local/code/faasm
-source workon.sh
-
-inv upload demo hello
-inv invoke demo hello --input="hello!"
 ```
 
 ## 3. Run native code
 
-The Ansible set-up process will create a hostfile at `~/mpi_hostfile` according to your inventory.
+The set-up process will create a hostfile at `~/mpi_hostfile` according to your inventory.
 This is automatically used by the underlying scripts to run the benchmarks.
 
 To check the native code works, you can run:
 
 ```bash
-inv invoke-prk nstream --native
+inv prk.invoke nstream --native
 ```
 
 ## 4. Run wasm code
 
-Faasm functions using MPI can be run as with any others. To check this works you can run:
+Faasm functions using MPI can be run as with any others. To check the basic WASM MPI set-up, run:
 
 ```bash
-inv upload-user prk
-inv invoke-prk nstream --native
+inv upload.user mpi
+inv invoke mpi mpi_checks
+```
+
+To check this works you can run:
+
+```bash
+inv upload.user prk
+inv prk.invoke nstream
 ``` 
 
 ## Troubleshooting Native MPI
@@ -157,3 +117,9 @@ You can also specify CIDR address ranges:
 ```bash
 mpirun ... -mca btl_tcp_if_include 192.168.0.0/16 ...
 ```
+
+## Extending the Faasm MPI implementation
+
+The MPI interface declarations live in `lib-faasmpi` and the definitions in `src/wasm/mpi.cpp`.
+
+Any new functions need to be included in `lib-faasmpi/faasmpi.imports`. 

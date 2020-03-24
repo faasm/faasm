@@ -4,9 +4,9 @@ Faasm executes functions compiled to WebAssembly, which therefore rules out
 languages that cannot be compiled to WebAssembly. However, we can support 
 dynamic languages like Python by compiling _the language runtime_ to WebAssembly. 
 
-In Faasm we do this with Python based on the excellent [Pyodide](https://github.com/iodide-project/pyodide) 
-project, with a set of custom C-extensions and decorators to support the 
-[Faasm host interface](host_interface.md) provided in [Pyfaasm](https://github.com/Shillaker/pyfaasm).
+In Faasm we do this with Python via a set of custom C-extensions and decorators to support the 
+[Faasm host interface](host_interface.md) provided in [Pyfaasm](https://github.com/Shillaker/pyfaasm),
+and use CPython compiled to WebAssembly with [Pyodide](https://github.com/iodide-project/pyodide).
 
 ## Enabling Python support
 
@@ -14,12 +14,12 @@ Python support is **not enabled by default**. To enable the Python runtime you m
 environment variables:
 
 ```bash
-# On the "upload" container/ endpoint
+# On the "upload" container/ endpoint (see docker-compose.yml locally)
 PYTHON_CODEGEN=on
 ```
 
-The first time the system runs it will generate the relevant machine code, which can take up 
-to 30s. 
+The first time the system runs it will generate machine code for CPython and all the 
+Python C-extensions. This can take around a minute. 
 
 ## Running a Python function
 
@@ -92,7 +92,7 @@ make clean && make
 Once this is all built we can put the relevant files in place _in a new terminal session_ at the root of the project:
 
 ```
-inv set-up-python-runtime
+inv python.set-up-runtime
 ```
 
 ## Adding packages
@@ -120,7 +120,7 @@ You can then build it with:
 ./bin/pyodide buildpkg --package_abi=0 packages/<pypi pkg name>/meta.yaml
 ```
 
-## Adding to runtime root
+### Adding the new package to the runtime root
 
 Once added, we need to include this in the Faasm runtime root:
 
@@ -131,7 +131,7 @@ Once added, we need to include this in the Faasm runtime root:
 You can then set it up with:
 
 ```bash
-inv set-up-python-package <pkg name>
+inv python.set-up-package <pkg name>
 ```
 
 Note that this modifies the runtime root bundle included in a release, so changes here will need to 

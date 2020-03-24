@@ -29,6 +29,7 @@ namespace util {
         std::string awsLogLevel;
         std::string pythonPreload;
         std::string captureStdout;
+        std::string stateMode;
 
         // Redis
         std::string redisStateHost;
@@ -44,6 +45,7 @@ namespace util {
         int noScheduler;
         int maxInFlightRatio;
         int maxWorkersPerFunction;
+        std::string threadMode;
 
         // Worker-related timeouts
         int globalMessageTimeout;
