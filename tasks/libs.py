@@ -115,10 +115,10 @@ def faasm(ctx, clean=False):
     """
     Compile and install all Faasm libraries
     """
-    _build_faasm_lib("lib-cpp", clean)
-    _build_faasm_lib("lib-pyinit", clean)
-    _build_faasm_lib("lib-faasmp", clean)
-    _build_faasm_lib("lib-faasmpi", clean)
+    _build_faasm_lib("libs/cpp", clean)
+    _build_faasm_lib("libs/pyinit", clean)
+    _build_faasm_lib("libs/faasmp", clean)
+    _build_faasm_lib("libs/faasmpi", clean)
 
 
 @task
@@ -126,7 +126,7 @@ def faasmp(ctx, clean=False):
     """
     Compile and install the Faasm OpenMP library
     """
-    _build_faasm_lib("lib-faasmp", clean)
+    _build_faasm_lib("libs/faasmp", clean)
 
 
 @task
@@ -134,7 +134,7 @@ def faasmpi(ctx, clean=False):
     """
     Compile and install the Faasm MPI library
     """
-    _build_faasm_lib("lib-faasmpi", clean)
+    _build_faasm_lib("libs/faasmpi", clean)
 
 
 @task

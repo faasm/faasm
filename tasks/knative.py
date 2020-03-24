@@ -12,7 +12,7 @@ from tasks.util.ibm import get_ibm_kubeconfig
 from tasks.util.endpoints import get_invoke_host_port
 from tasks.util.version import get_faasm_version
 
-K8S_DIR = join(PROJ_ROOT, "k8s")
+K8S_DIR = join(PROJ_ROOT, "deploy", "k8s")
 BARE_METAL_CONF = join(K8S_DIR, "bare-metal")
 BARE_METAL_REMOTE_CONF = join(K8S_DIR, "bare-metal-remote")
 LOCAL_CONF = join(K8S_DIR, "local")

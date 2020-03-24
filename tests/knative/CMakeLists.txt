@@ -2,19 +2,19 @@ file(GLOB_RECURSE TEST_FILES ${CMAKE_CURRENT_LIST_DIR} test_*.cpp)
 
 include_directories(
         ${CMAKE_CURRENT_LIST_DIR}
-        ${CMAKE_CURRENT_LIST_DIR}/../test_utils
+        ${CMAKE_CURRENT_LIST_DIR}/../utils
 )
 
 add_executable(
-        tests_ibm
+        tests_knative
         main.cpp
         ${TEST_FILES}
 )
 
-target_link_libraries(tests_ibm
+target_link_libraries(tests_knative
         test_utils
-        scheduler
-        worker_ibm_lib
+        emulator
+        knative_native
         )
 
-add_test(NAME ibm_tests COMMAND "tests_ibm/tests")
+add_test(NAME knative_tests COMMAND "tests_knative/tests")

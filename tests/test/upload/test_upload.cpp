@@ -132,7 +132,7 @@ namespace tests {
 
             // Load some valid dummy wasm bytes
             // TODO - hard-coded file path is a bad idea
-            std::vector<uint8_t> wasmBytes = util::readFileToBytes("/usr/local/code/faasm/test/upload/dummy.wasm");
+            std::vector<uint8_t> wasmBytes = util::readFileToBytes("/usr/local/code/faasm/tests/test/upload/dummy.wasm");
 
             // Check putting the file
             std::string url = "/f/gamma/delta";
@@ -154,7 +154,7 @@ namespace tests {
         }
 
         SECTION("Test uploading shared file") {
-            const char *realPath = "/usr/local/code/faasm/test/upload/dummy_file.txt";
+            const char *realPath = "/usr/local/code/faasm/tests/test/upload/dummy_file.txt";
             std::vector<uint8_t> fileBytes = util::readFileToBytes(realPath);
 
             // Clear out any existing
