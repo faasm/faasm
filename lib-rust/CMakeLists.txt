@@ -15,7 +15,7 @@ set(PUBLIC_HEADERS
 add_custom_target(${TARGET})
 set_target_properties(${TARGET} PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
-# install public header manually since we used a fake target
+# Install public header manually since we used a fake target
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
     install(FILES ${PUBLIC_HEADERS} DESTINATION ${CMAKE_SYSROOT}/include/faasm)
 else ()

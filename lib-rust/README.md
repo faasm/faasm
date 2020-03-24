@@ -1,5 +1,5 @@
 # Faasm Rust Library
 
-This is a set of extra utilities to be used _in Faasm Rust functions_ along with the C++ toolset.
+This is a set of extra utilities to be used in [Rust functions](../docs/rust.md) along with the C++ toolchain.
 
-It offers a more natual integration with the Rust ecosystem.
+It augments the existing standard library with any Rust-specific tweaks.
