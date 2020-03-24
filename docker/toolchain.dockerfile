@@ -4,6 +4,7 @@ FROM faasm/worker:$FAASM_VERSION
 SHELL ["/bin/bash", "-c"]
 
 # Install various deps
+RUN apt-get update
 RUN apt-get install -y libpython3-dev \
     python3-dev \
     python3-pip \
