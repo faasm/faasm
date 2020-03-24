@@ -198,5 +198,6 @@ namespace wasm {
         mathsLink();
         mpiLink();
         ompLink();
+        rustLink();
     }
 }

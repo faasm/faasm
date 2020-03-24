@@ -324,4 +324,5 @@ namespace wasm {
     void ompLink();
     void chainLink();
     void faasmLink();
+    void rustLink();
 }

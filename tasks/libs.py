@@ -119,7 +119,7 @@ def faasm(ctx, clean=False):
     _build_faasm_lib("lib-pyinit", clean)
     _build_faasm_lib("lib-faasmp", clean)
     _build_faasm_lib("lib-faasmpi", clean)
-
+    _build_faasm_lib("lib-rust", clean)
 
 @task
 def faasmp(ctx, clean=False):
@@ -136,6 +136,12 @@ def faasmpi(ctx, clean=False):
     """
     _build_faasm_lib("lib-faasmpi", clean)
 
+@task
+def rust(ctx, clean=False):
+    """
+    Install Rust library
+    """
+    _build_faasm_lib("lib-rust", clean)
 
 @task
 def fake(ctx, clean=False):
