@@ -41,6 +41,7 @@ def local(ctx):
     _do_codegen_user("errors")
     _do_codegen_user("omp")
     _do_codegen_user("mpi")
+    _do_codegen_user("rust")
 
     # Run these in parallel
     p = Pool(3)

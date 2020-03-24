@@ -12,6 +12,7 @@ bench.csv
 !omp/**/function.wasm
 !prk/**/function.wasm
 !python/**/function.wasm
+!rust/**/function.wasm
 !sgd/**/function.wasm
 !tf/**/function.wasm
 !ts/**/function.wasm
