@@ -18,6 +18,7 @@ set(LIB_FILES
         mpi.cpp
         network.cpp
         openmp.cpp
+        rust_interface.cpp
         syscalls.cpp
         threads.cpp
         typescript.cpp
