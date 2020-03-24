@@ -11,9 +11,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Faasm directories
 set(FAASM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(FAASM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
-set(FAASM_LIB_C_DIR ${CMAKE_CURRENT_LIST_DIR}/lib-c)
-set(FAASM_LIB_CPP_DIR ${CMAKE_CURRENT_LIST_DIR}/lib-cpp)
-set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lib-pyinit)
+set(FAASM_LIB_CPP_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/cpp)
+set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/pyinit)
 set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/WAVM/Lib)
 
 option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
@@ -91,7 +90,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 include_directories(
         ${FAASM_INCLUDE_DIR}
-        ${FAASM_LIB_C_DIR}
         ${FAASM_LIB_CPP_DIR}
         ${FAASM_PYTHON_LIB_DIR}
         ${CMAKE_CURRENT_BINARY_DIR}/src # Required for protobuf
@@ -101,8 +99,8 @@ if (FAASM_BUILD_TYPE STREQUAL "knative-native")
     message(STATUS "Running knative native build")
 
     add_subdirectory(func)
-    add_subdirectory(lib-cpp)
-    add_subdirectory(lib-pyinit)
+    add_subdirectory(libs/cpp)
+    add_subdirectory(libs/pyinit)
 
     add_subdirectory(src/emulator)
     add_subdirectory(src/endpoint)
@@ -117,7 +115,7 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda-func")
     message(STATUS "Running lambda function build")
 
     add_subdirectory(func)
-    add_subdirectory(lib-cpp)
+    add_subdirectory(libs/cpp)
 
     add_subdirectory(src/aws)
     add_subdirectory(src/lambda_func)
@@ -189,8 +187,8 @@ elseif (FAASM_BUILD_TYPE STREQUAL "native-tools")
 
     set(FAASM_LIB_TYPE SHARED)
 
-    add_subdirectory(lib-cpp)
-    add_subdirectory(lib-faasmp)
+    add_subdirectory(libs/cpp)
+    add_subdirectory(libs/faasmp)
     add_subdirectory(src/emulator)
     add_subdirectory(src/proto)
     add_subdirectory(src/redis)
@@ -213,17 +211,14 @@ else ()
     add_subdirectory(func)
 
     # Faasm libraries
-    add_subdirectory(lib-cpp)
-    add_subdirectory(lib-faasmp)
-    add_subdirectory(lib-faasmpi)
-    add_subdirectory(lib-pyinit)
-    add_subdirectory(lib-rust)
+    add_subdirectory(libs/cpp)
+    add_subdirectory(libs/faasmp)
+    add_subdirectory(libs/faasmpi)
+    add_subdirectory(libs/pyinit)
+    add_subdirectory(libs/rust)
 
     # Custom malloc
     add_subdirectory(third-party/malloc)
-
-    # Experiments
-    add_subdirectory(experiment)
 
     # AWS-specific
     if (FAASM_AWS_SUPPORT)
@@ -238,6 +233,7 @@ else ()
     add_subdirectory(src/data)
     add_subdirectory(src/emulator)
     add_subdirectory(src/endpoint)
+    add_subdirectory(src/experiment)
     add_subdirectory(src/ibm)
     add_subdirectory(src/ir_cache)
     add_subdirectory(src/knative)
@@ -258,12 +254,12 @@ else ()
 
     # Tests
     add_library(catch INTERFACE)
-    add_subdirectory(test)
-    add_subdirectory(test_utils)
-    add_subdirectory(test_ibm)
-    add_subdirectory(test_knative)
+    add_subdirectory(tests/test)
+    add_subdirectory(tests/utils)
+    add_subdirectory(tests/ibm)
+    add_subdirectory(tests/knative)
 
     if (FAASM_AWS_SUPPORT)
-        add_subdirectory(test_aws)
+        add_subdirectory(tests/aws)
     endif ()
 endif ()

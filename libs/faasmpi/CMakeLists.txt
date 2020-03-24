@@ -5,7 +5,7 @@ project(libfaasmpi)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(PROJ_INCLUDE ${CMAKE_CURRENT_LIST_DIR}/../include/faasmpi)
+set(PROJ_INCLUDE ${CMAKE_CURRENT_LIST_DIR}/../../include/faasmpi)
 include_directories(${CMAKE_CURRENT_LIST_DIR} ${PROJ_INCLUDE})
 
 set(PUBLIC_HEADERS
