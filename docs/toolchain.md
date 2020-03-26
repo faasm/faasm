@@ -25,7 +25,23 @@ file that's used under the hood to build functions and libraries.
 # Building
 
 On the rare occasion that we do need to rebuild the toolchain (e.g. when a new 
-LLVM version is released), we need to do the following:
+LLVM version is released), we can run through the steps below.
+
+## Toolchain Updates
+
+When updating the underlying LLVM version of the toolchain you'll need to create a 
+[new release](releases.md). The steps should be something like:
+
+- Upgrade the LLVM submodule if necessary (see below)
+- Bump up the Faasm version (as outlined in [release docs](releases.md))
+- Rebuild the toolchain itself (see below)
+- Rebuild the basic sysroot libraries (`inv libs.toolchain --clean`)
+- Rebuild 3rd party libraries (Pyodide and Tensorflow, see relevant docs)
+- Rebuild and upload _all_ wasm functions (all those under `funcs`)
+- Set up the runtime root (see Python docs and Ansible `runtime_fs.yml` playbook)
+- Make sure all the tests run
+- Create a new [release](releases.md)
+- Rebuild all Docker images for this release
 
 ## Upgrading LLVM
 
@@ -45,35 +61,42 @@ versions and update accordingly.
 
 You can then follow the steps below as normal, making sure you start with `make clean-all`.
 
+
 ## Building Toolchain
 
 To build from scratch you just need to be in the `toolchain` directory, then run:
 
-```
+```bash
 make
 ```
 
-This a _very_ long time as it builds a lot of the LLVM toolchain from scratch.
+This a while (perhaps 30/40 mins) as it builds a lot of the LLVM toolchain from scratch.
+
+When it finishes, check things are up to the new version with:
+
+```bash
+inv toolchain.version
+```
 
 ## Rebuilding Toolchain
 
 To rebuild, there different options. The first is just rebuilding libc:
 
-```
+```bash
 make clean-libc
 make
 ```
 
 Another is rebuilding all the libs, i.e. libc, libcxx, libcxxabi and compiler-rt:
 
-```
+```bash
 make clean-libs
 make
 ```
 
 The final option is to rebuild EVERYTHING, including Clang. This takes ages and is only necessary if you need to change the underlying LLVM or Clang configuration (rare):
 
-```
+```bash
 make clean-all
 make
 ```
@@ -97,18 +120,3 @@ You will need to set this target explicitly the relevant CMake/ Makefile (as the
 ## SIMD
 
 SIMD support is also in flux but possible to switch on with `-msimd128` and `-munimplemented-simd128`.
-
-## Toolchain Updates
-
-When updating the underlying LLVM version of the toolchain you'll need to create a 
-[new release](releases.md). The steps should be something like:
-
-- Bump up the Faasm version (as outlined in [release docs](releases.md))
-- Rebuild the toolchain itself (based on instructions above)
-- Rebuild the basic sysroot libraries (`inv libs.libc libs.eigen libs.faasm`)
-- Rebuild 3rd party libraries (Pyodide and Tensorflow, see relevant docs)
-- Rebuild and upload _all_ wasm functions (all those under `funcs`)
-- Set up the runtime root (see Python docs and Ansible `runtime_fs.yml` playbook)
-- Make sure all the tests run
-- Create a new [release](releases.md)
-- Rebuild all Docker images for this release
