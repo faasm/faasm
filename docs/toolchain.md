@@ -1,28 +1,49 @@
 # Faasm Toolchain
 
-Although wasm support is included in upstream LLVM, we still need to build things ourselves. This will hopefully change in future.
+Faasm aims to support a range of legacy applications, so requires a toolchain
+capable of compiling large projects that may require threading, C++ exceptions 
+and dynamic linking. Unfortunately these features are not covered by the 
+[wasi-sdk](https://github.com/WebAssembly/wasi-sdk) and 
+[wasi-libc](https://github.com/WebAssembly/wasi-libc) at this time, therefore
+we need to use a custom LLVM toolchain and musl fork. The musl fork is based
+off the now-archived project found [here](https://github.com/jfbastien/musl). 
 
-We need to build a custom LLVM toolchain with a modified musl and libcxx and libcxxabi set to use pthreads.
+Fortunately we only rarely need to build the toolchain, and it can be downloaded
+by running:
 
-To download the built toolchain you can run:
-
-```
+```bash
+# Toolchain - clang, clang++, wasm-ld etc.
 inv toolchain.download-toolchain
+
+# Sysroot - wasm-compiled libc, libcxx etc.
+inv toolchain.download-sysroot
 ```
 
-This also includes the relevant sysroot files (which will be placed at `/usr/local/faasm/llvm-sysroot`).
-
-A CMake toolchain file exists at `toolchain/FaasmToolchain.cmake`.
-
-## Runtime
-
-Certain files need to be in place at runtime, to download these:
-
-```
-inv toolchain.download-runtime
-```
+This repo contains a [Faasm CMake toolchain](../toolchain/FaasmToolchain.cmake),
+file that's used under the hood to build functions and libraries.
 
 # Building
+
+On the rare occasion that we do need to rebuild the toolchain (e.g. when a new 
+LLVM version is released), we need to do the following:
+
+## Upgrading LLVM
+
+To upgrade the underlying LLVM version you need to update the _submodule_ in this 
+project. Find the commit related to tag name for the desired release in 
+[the LLVM repo](https://github.com/llvm/llvm-project/releases) (e.g. `llvmorg-10.0.0`), then:
+
+```bash
+cd third-party/llvm-project
+git checkout master
+git fetch origin
+git checkout <tag-name>
+```
+
+Once done, check the [toolchain Makefile](../toolchain/Makefile) for any references to LLVM 
+versions and update accordingly.
+
+You can then follow the steps below as normal, making sure you start with `make clean-all`.
 
 ## Building Toolchain
 
@@ -32,7 +53,7 @@ To build from scratch you just need to be in the `toolchain` directory, then run
 make
 ```
 
-This takes ages as it builds a whole LLVM toolchain.
+This a _very_ long time as it builds a lot of the LLVM toolchain from scratch.
 
 ## Rebuilding Toolchain
 
