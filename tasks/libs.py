@@ -20,6 +20,20 @@ PRK_DIR = join(THIRD_PARTY_DIR, "ParResKernels")
 
 
 @task
+def toolchain(ctx, clean=False):
+    """
+    Compile and install all libs crucial to the toolchain
+    """
+    libc(ctx)
+    malloc(ctx, clean=clean)
+    faasm(ctx, clean=clean)
+    fake(ctx, clean=clean)
+    eigen(ctx)
+    zlib(ctx)
+    tflite(ctx, clean=clean)
+
+
+@task
 def libc(ctx):
     """
     Compile and install libc
@@ -121,6 +135,7 @@ def faasm(ctx, clean=False):
     _build_faasm_lib("faasmpi", clean)
     _build_faasm_lib("rust", clean)
 
+
 @task
 def faasmp(ctx, clean=False):
     """
@@ -136,12 +151,14 @@ def faasmpi(ctx, clean=False):
     """
     _build_faasm_lib("faasmpi", clean)
 
+
 @task
 def rust(ctx, clean=False):
     """
     Install Rust library
     """
     _build_faasm_lib("rust", clean)
+
 
 @task
 def fake(ctx, clean=False):
@@ -313,7 +330,7 @@ def png(ctx):
 
 
 @task
-def zlib(ctx):
+def zlib(ctx, clean=False):
     """
     Compile and install zlib
     """

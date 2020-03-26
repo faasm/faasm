@@ -2,7 +2,7 @@ from os import makedirs
 from os import remove
 from os.path import exists, join
 from shutil import rmtree
-from subprocess import check_output
+from subprocess import check_output, call
 
 from invoke import task
 
@@ -41,13 +41,13 @@ def download_sysroot(ctx):
 
 
 @task
-def download_toolchain(ctx):
+def download_toolchain(ctx, version=None):
     """
     Download the Faasm toolchain
     """
     url = get_toolchain_url()
-    tar_name = get_toolchain_tar_name()
-    tar_path = get_toolchain_tar_path()
+    tar_name = get_toolchain_tar_name(version=version)
+    tar_path = get_toolchain_tar_path(version=version)
 
     if exists(TOOLCHAIN_INSTALL):
         print("Deleting existing toolchain at {}".format(TOOLCHAIN_INSTALL))
@@ -88,3 +88,17 @@ def download_runtime(ctx, nocodegen=False):
     if not nocodegen:
         print("Running codegen")
         tasks.python.codegen(ctx)
+
+
+@task
+def version(ctx):
+    """
+    Prints the version of various LLVM tools
+    """
+    bin_dir = join(TOOLCHAIN_INSTALL, "bin")
+
+    for exe in ["clang", "clang++", "llvm-ar", "wasm-ld"]:
+        bin_path = join(bin_dir, exe)
+        print("---- {} ----".format(exe))
+        call("{} --version".format(bin_path), shell=True)
+        print("")
