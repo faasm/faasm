@@ -33,8 +33,8 @@ def get_toolchain_tar_name(version=None):
     return "faasm-toolchain-{}.tar.gz".format(version)
 
 
-def get_toolchain_tar_path():
-    tar_name = get_toolchain_tar_name()
+def get_toolchain_tar_path(version=None):
+    tar_name = get_toolchain_tar_name(version=version)
     return join(FAASM_LOCAL_DIR, tar_name)
 
 

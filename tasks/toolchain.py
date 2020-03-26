@@ -41,13 +41,13 @@ def download_sysroot(ctx):
 
 
 @task
-def download_toolchain(ctx):
+def download_toolchain(ctx, version=None):
     """
     Download the Faasm toolchain
     """
     url = get_toolchain_url()
-    tar_name = get_toolchain_tar_name()
-    tar_path = get_toolchain_tar_path()
+    tar_name = get_toolchain_tar_name(version=version)
+    tar_path = get_toolchain_tar_path(version=version)
 
     if exists(TOOLCHAIN_INSTALL):
         print("Deleting existing toolchain at {}".format(TOOLCHAIN_INSTALL))
