@@ -12,6 +12,7 @@ export WASM_LDSHARED=${WASM_TOOLCHAIN_BIN}/wasm-ld
 
 export WASM_LDFLAGS="-Xlinker --stack-first -Xlinker --no-entry -Xlinker --no-check-features -ldlmalloc"
 
+# TODO - WASI-ify these
 export WASM_BUILD=wasm32
 export WASM_HOST=wasm32-unknown-none
 export WASM_HOST_UNKNOWN=wasm32-unknown-unknown

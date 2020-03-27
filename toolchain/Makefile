@@ -1,8 +1,10 @@
 # Project directories
 PROJ_ROOT=${CURDIR}/..
 LLVM_PROJ_DIR=$(PROJ_ROOT)/third-party/llvm-project
+
 TOOLCHAIN_DIR=$(PROJ_ROOT)/toolchain
-TOOLCHAIN_FILE=$(TOOLCHAIN_DIR)/FaasmToolchain.cmake
+# TOOLCHAIN_FILE=$(TOOLCHAIN_DIR)/FaasmToolchain.cmake
+TOOLCHAIN_FILE=$(TOOLCHAIN_DIR)/WasiToolchain.cmake
 
 # Install dirs
 FAASM_LOCAL_DIR=/usr/local/faasm
@@ -15,6 +17,11 @@ CLANG_VERSION=10.0.0
 BUILD_DIR=$(LLVM_PROJ_DIR)/build
 LLVM_CONFIG=$(BUILD_DIR)/llvm/bin/llvm-config
 AR=$(BUILD_DIR)/llvm/bin/llvm-ar
+
+# -------------------------------------------
+# This is adapted from the wasi-sdk Makefile found here:
+# https://github.com/WebAssembly/wasi-sdk/blob/master/Makefile
+# -------------------------------------------
 
 default: build
 
@@ -38,7 +45,7 @@ $(BUILD_DIR)/llvm.BUILT:
 		-DCMAKE_BUILD_TYPE=MinSizeRel \
 		-DCMAKE_INSTALL_PREFIX=$(PREFIX) \
 		-DLLVM_TARGETS_TO_BUILD=WebAssembly \
-		-DLLVM_DEFAULT_TARGET_TRIPLE=wasm32 \
+		-DLLVM_DEFAULT_TARGET_TRIPLE=wasm32-wasi \
 		-DLLVM_EXTERNAL_CLANG_SOURCE_DIR=$(LLVM_PROJ_DIR)/clang \
 		-DLLVM_EXTERNAL_LLD_SOURCE_DIR=$(LLVM_PROJ_DIR)/lld \
 		-DLLVM_ENABLE_PROJECTS="lld;clang" \
@@ -55,6 +62,12 @@ $(BUILD_DIR)/llvm.BUILT:
 		install-llvm-size \
 		install-llvm-config
 	touch $(BUILD_DIR)/llvm.BUILT
+
+$(BUILD_DIR)/wasi-libc.BUILT: $(BUILD_DIR)/llvm.BUILT
+	cd $(PROJ_ROOT)/third-party/wasi-libc; $(MAKE) \
+		WASM_CC=$(PREFIX)/bin/clang \
+		SYSROOT=$(FAASM_SYSROOT)
+	touch $(BUILD_DIR)/wasi-libc.BUILT
 
 $(BUILD_DIR)/libc.BUILT: $(BUILD_DIR)/llvm.BUILT
 	cd $(PROJ_ROOT); bash bin/build_musl.sh llvm

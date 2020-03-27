@@ -40,3 +40,6 @@
 [submodule "third-party/LULESH"]
 	path = third-party/LULESH
 	url = https://github.com/mfournial/LULESH.git
+[submodule "third-party/wasi-libc"]
+	path = third-party/wasi-libc
+	url = https://github.com/WebAssembly/wasi-libc
