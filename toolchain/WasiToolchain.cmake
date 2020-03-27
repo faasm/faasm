@@ -40,6 +40,9 @@ set(CMAKE_DL_LIBS "")
 # Explicitly disable eigen parallelisation
 add_definitions(-DEIGEN_DONT_PARALLELIZE=1)
 
+# Add definition for flagging Faasm
+add_definitions(-D__faasm)
+
 # Note: see Clang wasm-specific flags at https://clang.llvm.org/docs/ClangCommandLineReference.html#webassembly
 # Note the optimisation level. We want to keep vectorization so stick with O3
 # Also note that the optimisation is crucial to getting any kind of decent performance
