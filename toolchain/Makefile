@@ -18,6 +18,8 @@ BUILD_DIR=$(LLVM_PROJ_DIR)/build
 LLVM_CONFIG=$(BUILD_DIR)/llvm/bin/llvm-config
 AR=$(BUILD_DIR)/llvm/bin/llvm-ar
 
+WASI_LIBC_DIR=$(PROJ_ROOT)/third-party/wasi-libc
+
 # -------------------------------------------
 # This is adapted from the wasi-sdk Makefile found here:
 # https://github.com/WebAssembly/wasi-sdk/blob/master/Makefile
@@ -27,7 +29,7 @@ default: build
 
 .PHONY: clean-libc
 clean-libc:
-	rm $(BUILD_DIR)/libc.BUILT
+	rm -rf $(BUILD_DIR)/libc.BUILT $(WASI_LIBC_DIR)/build
 
 .PHONY: clean-libs
 clean-libs: clean-libc
@@ -63,17 +65,19 @@ $(BUILD_DIR)/llvm.BUILT:
 		install-llvm-config
 	touch $(BUILD_DIR)/llvm.BUILT
 
-$(BUILD_DIR)/wasi-libc.BUILT: $(BUILD_DIR)/llvm.BUILT
-	cd $(PROJ_ROOT)/third-party/wasi-libc; $(MAKE) \
+# WASI libc
+$(BUILD_DIR)/libc.BUILT: $(BUILD_DIR)/llvm.BUILT
+	cd $(WASI_LIBC_DIR); $(MAKE) \
 		WASM_CC=$(PREFIX)/bin/clang \
 		SYSROOT=$(FAASM_SYSROOT)
-	touch $(BUILD_DIR)/wasi-libc.BUILT
-
-$(BUILD_DIR)/libc.BUILT: $(BUILD_DIR)/llvm.BUILT
-	cd $(PROJ_ROOT); bash bin/build_musl.sh llvm
-	cd $(FAASM_SYSROOT)/lib; $(AR) rc libpthread.a
-	cd $(FAASM_SYSROOT)/lib; $(AR) rc libdl.a
 	touch $(BUILD_DIR)/libc.BUILT
+
+# Musl libc
+#$(BUILD_DIR)/libc.BUILT: $(BUILD_DIR)/llvm.BUILT
+#	cd $(PROJ_ROOT); bash bin/build_musl.sh llvm
+#	cd $(FAASM_SYSROOT)/lib; $(AR) rc libpthread.a
+#	cd $(FAASM_SYSROOT)/lib; $(AR) rc libdl.a
+#	touch $(BUILD_DIR)/libc.BUILT
 
 $(BUILD_DIR)/compiler-rt.BUILT: $(BUILD_DIR)/libc.BUILT
 	mkdir -p $(BUILD_DIR)/compiler-rt
@@ -160,5 +164,7 @@ $(BUILD_DIR)/libcxxabi.BUILT: $(BUILD_DIR)/libcxx.BUILT
 .PHONY: extras
 extras: $(BUILD_DIR)/libcxxabi.BUILT
 	cp $(TOOLCHAIN_DIR)/sysroot_extras/* $(FAASM_SYSROOT)/lib/
+
+libc: $(BUILD_DIR)/libc.BUILT
 
 build: $(BUILD_DIR)/llvm.BUILT $(BUILD_DIR)/libc.BUILT $(BUILD_DIR)/compiler-rt.BUILT $(BUILD_DIR)/libcxxabi.BUILT $(BUILD_DIR)/libcxx.BUILT extras
