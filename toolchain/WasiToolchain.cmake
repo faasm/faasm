@@ -66,14 +66,6 @@ set(CMAKE_CXX_COMPILER_WORKS ON)
 # issues. Without it the stack will overflow into the global data.
 # stack-size is also crucial to bigger functions not messing up
 
-SET(FAASM_EXE_LINKER_FLAGS "\
-        -Xlinker --no-entry \
-        -Xlinker --export=main \
-        -Xlinker --stack-first \
-        -Xlinker --threads \
-        -Xlinker --no-check-features \
-")
-
 SET(FAASM_COMMON_LINKER_FLAGS "\
     -Xlinker --shared-memory \
     -Xlinker --stack-first \
@@ -82,7 +74,11 @@ SET(FAASM_COMMON_LINKER_FLAGS "\
     -Xlinker --max-memory=4294901760 \
 ")
 
-SET(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} ${FAASM_COMMON_LINKER_FLAGS} CACHE STRING "faasm build")
-SET(CMAKE_STATIC_LINKER_FLAGS ${CMAKE_STATIC_LINKER_FLAGS} ${FAASM_COMMON_LINKER_FLAGS} CACHE STRING "faasm build")
-SET(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS} ${FAASM_COMMON_LINKER_FLAGS} CACHE STRING "faasm build")
+SET(FAASM_EXE_LINKER_FLAGS "${FAASM_COMMON_LINKER_FLAGS} \
+    -Xlinker --no-entry \
+    -Xlinker --export=main \
+")
 
+# Note, these get passed to llvm-ar for static libs, so 
+# don't set for CMAKE_STATIC_LINKER_FLAGS
+SET(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} ${FAASM_COMMON_LINKER_FLAGS} CACHE STRING "faasm build")

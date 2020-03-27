@@ -102,13 +102,15 @@ def native(ctx, clean=False):
     call("sudo make install", shell=True, cwd=build_dir)
 
 
-def _build_faasm_lib(dir_name, clean):
+def _build_faasm_lib(dir_name, clean, verbose):
     work_dir = join(PROJ_ROOT, "libs", dir_name)
     build_dir = join(PROJ_ROOT, "build", dir_name)
 
     clean_dir(build_dir, clean)
 
+    verbose_str = "VERBOSE=1" if verbose else ""
     build_cmd = [
+        verbose_str,
         "cmake",
         "-DFAASM_BUILD_TYPE=wasm",
         "-DCMAKE_BUILD_TYPE=Release",
@@ -120,20 +122,23 @@ def _build_faasm_lib(dir_name, clean):
     print(build_cmd_str)
 
     call(build_cmd_str, shell=True, cwd=build_dir)
-    call("make", shell=True, cwd=build_dir)
+    call("{} make".format(verbose_str), shell=True, cwd=build_dir)
     call("make install", shell=True, cwd=build_dir)
 
 
 @task
-def faasm(ctx, clean=False):
+def faasm(ctx, clean=False, lib=None, verbose=False):
     """
     Compile and install all Faasm libraries
     """
-    _build_faasm_lib("cpp", clean)
-    _build_faasm_lib("pyinit", clean)
-    _build_faasm_lib("faasmp", clean)
-    _build_faasm_lib("faasmpi", clean)
-    _build_faasm_lib("rust", clean)
+    if lib:
+        _build_faasm_lib(lib, clean, verbose)
+    else:
+        _build_faasm_lib("cpp", clean, verbose)
+        _build_faasm_lib("pyinit", clean, verbose)
+        _build_faasm_lib("faasmp", clean, verbose)
+        _build_faasm_lib("faasmpi", clean, verbose)
+        _build_faasm_lib("rust", clean, verbose)
 
 
 @task
@@ -283,7 +288,7 @@ def lulesh(ctx, mpi=False, omp=False, clean=True, debug=False, cp=True):
 
 
 @task
-def eigen(ctx):
+def eigen(ctx, verbose=False):
     """
     Compile and install Eigen
     """
@@ -294,7 +299,10 @@ def eigen(ctx):
         rmtree(build_dir)
     makedirs(build_dir)
 
+    verbose_string = "VERBOSE=1" if verbose else ""
+
     cmd = [
+        verbose_string,
         "cmake",
         "-DFAASM_BUILD_TYPE=wasm",
         "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
@@ -305,7 +313,7 @@ def eigen(ctx):
     cmd_string = " ".join(cmd)
 
     call(cmd_string, shell=True, cwd=build_dir)
-    call("make install", shell=True, cwd=build_dir)
+    call("{} make install".format(verbose_string), shell=True, cwd=build_dir)
 
 
 @task
