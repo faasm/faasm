@@ -73,3 +73,16 @@ SET(FAASM_EXE_LINKER_FLAGS "\
         -Xlinker --threads \
         -Xlinker --no-check-features \
 ")
+
+SET(FAASM_COMMON_LINKER_FLAGS "\
+    -Xlinker --shared-memory \
+    -Xlinker --stack-first \
+    -Xlinker --no-check-features \
+    -Xlinker --threads \
+    -Xlinker --max-memory=4294901760 \
+")
+
+SET(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} ${FAASM_COMMON_LINKER_FLAGS} CACHE STRING "faasm build")
+SET(CMAKE_STATIC_LINKER_FLAGS ${CMAKE_STATIC_LINKER_FLAGS} ${FAASM_COMMON_LINKER_FLAGS} CACHE STRING "faasm build")
+SET(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS} ${FAASM_COMMON_LINKER_FLAGS} CACHE STRING "faasm build")
+

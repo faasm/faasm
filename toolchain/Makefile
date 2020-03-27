@@ -133,6 +133,7 @@ $(BUILD_DIR)/libcxx.BUILT: $(BUILD_DIR)/compiler-rt.BUILT
 		-DLIBCXX_CXX_ABI_INCLUDE_PATHS=$(LLVM_PROJ_DIR)/libcxxabi/include \
 		-DLIBCXX_HAS_MUSL_LIBC:BOOL=ON \
 		-DLIBCXX_ABI_VERSION=2 \
+		-DLIBCXX_LIBDIR_SUFFIX=/wasm32-wasi \
 		--debug-trycompile \
 		$(LLVM_PROJ_DIR)/libcxx
 	ninja -v -C $(BUILD_DIR)/libcxx install
@@ -163,6 +164,7 @@ $(BUILD_DIR)/libcxxabi.BUILT: $(BUILD_DIR)/libcxx.BUILT
 		-DLIBCXXABI_LIBCXX_PATH=$(LLVM_PROJ_DIR)/libcxx \
 		-DLIBCXXABI_LIBCXX_INCLUDES=$(FAASM_SYSROOT)/include/c++/v1 \
 		-DUNIX:BOOL=ON \
+                -DLIBCXXABI_LIBDIR_SUFFIX=/wasm32-wasi \
 		--debug-trycompile \
 		$(LLVM_PROJ_DIR)/libcxxabi
 	ninja -v -C $(BUILD_DIR)/libcxxabi install
@@ -171,6 +173,11 @@ $(BUILD_DIR)/libcxxabi.BUILT: $(BUILD_DIR)/libcxx.BUILT
 .PHONY: extras
 extras: $(BUILD_DIR)/libcxxabi.BUILT
 	cp $(TOOLCHAIN_DIR)/sysroot_extras/* $(FAASM_SYSROOT)/lib/
+	cp $(TOOLCHAIN_DIR)/sysroot_extras/* $(FAASM_SYSROOT)/lib/wasm32-wasi/
+
+.PHONY: final_copy
+final_copy: $(BUILD_DIR)/libc.BUILT $(BUILD_DIR)/compiler-rt.BUILT
+	cp $(FAASM_SYSROOT)/lib/wasm32-wasi/* $(FAASM_SYSROOT)/lib/
 
 libc: $(BUILD_DIR)/libc.BUILT
 
@@ -180,4 +187,4 @@ libcxxabi: $(BUILD_DIR)/libcxxabi.BUILT
 
 compiler-rt: $(BUILD_DIR)/compiler-rt.BUILT
 
-build: $(BUILD_DIR)/llvm.BUILT $(BUILD_DIR)/libc.BUILT $(BUILD_DIR)/compiler-rt.BUILT $(BUILD_DIR)/libcxxabi.BUILT $(BUILD_DIR)/libcxx.BUILT extras
+build: $(BUILD_DIR)/llvm.BUILT $(BUILD_DIR)/libc.BUILT $(BUILD_DIR)/compiler-rt.BUILT $(BUILD_DIR)/libcxxabi.BUILT $(BUILD_DIR)/libcxx.BUILT extras final_copy
