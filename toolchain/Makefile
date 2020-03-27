@@ -172,7 +172,6 @@ $(BUILD_DIR)/libcxxabi.BUILT: $(BUILD_DIR)/libcxx.BUILT
 
 .PHONY: extras
 extras: $(BUILD_DIR)/libcxxabi.BUILT
-	cp $(TOOLCHAIN_DIR)/sysroot_extras/* $(FAASM_SYSROOT)/lib/
 	cp $(TOOLCHAIN_DIR)/sysroot_extras/* $(FAASM_SYSROOT)/lib/wasm32-wasi/
 
 libc: $(BUILD_DIR)/libc.BUILT

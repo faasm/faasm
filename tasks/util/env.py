@@ -51,6 +51,7 @@ PY_RUNTIME_ROOT = join(FAASM_RUNTIME_ROOT, "lib", "python3.7")
 
 FAASM_TOOLCHAIN_FILE = join(PROJ_ROOT, "toolchain", "WasiToolchain.cmake")
 FAASM_SYSROOT = join(FAASM_LOCAL_DIR, "llvm-sysroot")
+SYSROOT_INSTALL_PREFIX = FAASM_SYSROOT
 
 LATEST_CMAKE = "/usr/local/lib/cmake-3.15/bin/cmake"
 

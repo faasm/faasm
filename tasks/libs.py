@@ -8,7 +8,7 @@ from invoke import task
 
 from tasks.compile import clean_dir
 from tasks.util.codegen import find_codegen_shared_lib
-from tasks.util.env import PROJ_ROOT, FAASM_TOOLCHAIN_FILE, FAASM_SYSROOT, FAASM_INSTALL_DIR, \
+from tasks.util.env import PROJ_ROOT, FAASM_TOOLCHAIN_FILE, SYSROOT_INSTALL_PREFIX, FAASM_INSTALL_DIR, \
     FAASM_RUNTIME_ROOT, WASM_DIR
 from tasks.util.env import THIRD_PARTY_DIR
 from toolchain.python_env import WASM_HOST, BASE_CONFIG_CMD, WASM_CFLAGS, WASM_CXXFLAGS, WASM_LDFLAGS, WASM_CC, \
@@ -28,7 +28,7 @@ def toolchain(ctx, clean=False):
     faasm(ctx, clean=clean)
     fake(ctx, clean=clean)
     # zlib(ctx)
-    tflite(ctx, clean=clean)
+    # tflite(ctx, clean=clean)
 
 
 @task
@@ -144,7 +144,7 @@ def fake(ctx, clean=False):
         "-DFAASM_BUILD_TYPE=wasm",
         "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_SYSROOT),
+        "-DCMAKE_INSTALL_PREFIX={}".format(SYSROOT_INSTALL_PREFIX),
         work_dir,
     ]
 
@@ -153,7 +153,7 @@ def fake(ctx, clean=False):
     call("make install", shell=True, cwd=build_dir)
 
     # Copy shared object into place
-    sysroot_files = join(FAASM_SYSROOT, "lib", "libfake*.so")
+    sysroot_files = join(SYSROOT_INSTALL_PREFIX, "lib", "libfake*.so")
 
     runtime_lib_dir = join(FAASM_RUNTIME_ROOT, "lib")
     if not exists(runtime_lib_dir):
@@ -211,7 +211,7 @@ def lulesh(ctx, mpi=False, omp=False, clean=True, debug=False, cp=True):
         "-DFAASM_BUILD_TYPE=wasm",
         "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_SYSROOT),
+        "-DCMAKE_INSTALL_PREFIX={}".format(SYSROOT_INSTALL_PREFIX),
         work_dir
     ])
     if debug:
@@ -271,7 +271,7 @@ def eigen(ctx, verbose=False):
         "-DFAASM_BUILD_TYPE=wasm",
         "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_SYSROOT),
+        "-DCMAKE_INSTALL_PREFIX={}".format(SYSROOT_INSTALL_PREFIX),
         work_dir
     ]
     cmd_string = " ".join(cmd)
@@ -339,13 +339,13 @@ def tflite(ctx, clean=False):
     make_cmd = ["make -j 4"]
     make_cmd.extend(BASE_CONFIG_CMD)
     make_cmd.extend([
-        "CFLAGS=\"{} -ftls-model=local-exec -ldlmalloc\"".format(WASM_CFLAGS),
-        "CXXFLAGS=\"{} -ldlmalloc\"".format(WASM_CXXFLAGS),
+        "CFLAGS=\"{} -ftls-model=local-exec\"".format(WASM_CFLAGS),
+        "CXXFLAGS=\"{}\"".format(WASM_CXXFLAGS),
         "LDFLAGS=\"{} -Xlinker --max-memory=4294967296\"".format(WASM_LDFLAGS),
         "MINIMAL_SRCS=",
         "TARGET={}".format(WASM_HOST),
         "BUILD_WITH_MMAP=false",
-        "LIBS=\"-lstdc++ -ldlmalloc\"",
+        "LIBS=\"-lstdc++\"",
         "-C \"{}\"".format(tf_dir),
         "-f tensorflow/lite/tools/make/Makefile",
     ])
