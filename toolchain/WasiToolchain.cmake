@@ -32,8 +32,8 @@ set(CMAKE_CXX_COMPILER ${INSTALL_DIR}/clang++)
 set(CMAKE_AR ${INSTALL_DIR}/llvm-ar CACHE STRING "faasm build")
 set(CMAKE_NM ${INSTALL_DIR}/llvm-nm CACHE STRING "faasm build")
 set(CMAKE_RANLIB ${INSTALL_DIR}/llvm-ranlib CACHE STRING "faasm build")
-set(CMAKE_LD ${INSTALL_DIR}/wasm-ld CACHE STRING "faasm build")
-set(CMAKE_LDSHARED ${INSTALL_DIR}/wasm-ld CACHE STRING "faasm build")
+#set(CMAKE_LD ${INSTALL_DIR}/wasm-ld CACHE STRING "faasm build")
+#set(CMAKE_LDSHARED ${INSTALL_DIR}/wasm-ld CACHE STRING "faasm build")
 
 set(CMAKE_DL_LIBS "")
 

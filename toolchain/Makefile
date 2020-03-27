@@ -74,8 +74,8 @@ $(BUILD_DIR)/libc.BUILT: $(BUILD_DIR)/llvm.BUILT
 		WASM_AR=$(PREFIX)/bin/llvm-ar \
 		WASM_NM=$(PREFIX)/bin/llvm-nm \
 		SYSROOT=$(FAASM_SYSROOT)
-	mv $(FAASM_SYSROOT)/lib/wasm32-wasi/* $(FAASM_SYSROOT)/lib/
-	rm -r $(FAASM_SYSROOT)/lib/wasm32-wasi
+	# mv $(FAASM_SYSROOT)/lib/wasm32-wasi/* $(FAASM_SYSROOT)/lib/
+	# rm -r $(FAASM_SYSROOT)/lib/wasm32-wasi
 	touch $(BUILD_DIR)/libc.BUILT
 
 # Musl libc
@@ -99,10 +99,11 @@ $(BUILD_DIR)/compiler-rt.BUILT: $(BUILD_DIR)/libc.BUILT
 		-DLLVM_CONFIG_PATH=$(LLVM_CONFIG) \
 		-DCMAKE_INSTALL_PREFIX=$(PREFIX)/lib/clang/$(CLANG_VERSION)/ \
 		-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
+		-DCOMPILER_RT_OS_DIR=wasi \
 		$(LLVM_PROJ_DIR)/compiler-rt/lib/builtins
 	ninja -v -C $(BUILD_DIR)/compiler-rt install
 	cp -R $(BUILD_DIR)/llvm/lib/clang $(PREFIX)/lib/
-	cp $(PREFIX)/lib/clang/$(CLANG_VERSION)/lib/wasm/* $(PREFIX)/lib/clang/$(CLANG_VERSION)/lib/
+	# cp $(PREFIX)/lib/clang/$(CLANG_VERSION)/lib/wasi/* $(PREFIX)/lib/clang/$(CLANG_VERSION)/lib/
 	touch $(BUILD_DIR)/compiler-rt.BUILT
 
 $(BUILD_DIR)/libcxx.BUILT: $(BUILD_DIR)/compiler-rt.BUILT
