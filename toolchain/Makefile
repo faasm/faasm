@@ -175,10 +175,6 @@ extras: $(BUILD_DIR)/libcxxabi.BUILT
 	cp $(TOOLCHAIN_DIR)/sysroot_extras/* $(FAASM_SYSROOT)/lib/
 	cp $(TOOLCHAIN_DIR)/sysroot_extras/* $(FAASM_SYSROOT)/lib/wasm32-wasi/
 
-.PHONY: final_copy
-final_copy: $(BUILD_DIR)/libc.BUILT $(BUILD_DIR)/compiler-rt.BUILT
-	cp $(FAASM_SYSROOT)/lib/wasm32-wasi/* $(FAASM_SYSROOT)/lib/
-
 libc: $(BUILD_DIR)/libc.BUILT
 
 libcxx: $(BUILD_DIR)/libcxx.BUILT
@@ -187,4 +183,4 @@ libcxxabi: $(BUILD_DIR)/libcxxabi.BUILT
 
 compiler-rt: $(BUILD_DIR)/compiler-rt.BUILT
 
-build: $(BUILD_DIR)/llvm.BUILT $(BUILD_DIR)/libc.BUILT $(BUILD_DIR)/compiler-rt.BUILT $(BUILD_DIR)/libcxxabi.BUILT $(BUILD_DIR)/libcxx.BUILT extras final_copy
+build: $(BUILD_DIR)/llvm.BUILT $(BUILD_DIR)/libc.BUILT $(BUILD_DIR)/compiler-rt.BUILT $(BUILD_DIR)/libcxxabi.BUILT $(BUILD_DIR)/libcxx.BUILT extras

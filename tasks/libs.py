@@ -24,47 +24,11 @@ def toolchain(ctx, clean=False):
     """
     Compile and install all libs crucial to the toolchain
     """
-    libc(ctx)
-    malloc(ctx, clean=clean)
+    eigen(ctx)
     faasm(ctx, clean=clean)
     fake(ctx, clean=clean)
-    eigen(ctx)
-    zlib(ctx)
+    # zlib(ctx)
     tflite(ctx, clean=clean)
-
-
-@task
-def libc(ctx):
-    """
-    Compile and install libc
-    """
-    check_output("./bin/build_musl.sh", shell=True, cwd=PROJ_ROOT)
-    malloc(ctx, clean=True)
-
-
-@task
-def malloc(ctx, clean=False):
-    """
-    Compile and install dlmalloc
-    """
-    work_dir = join(PROJ_ROOT, "third-party", "malloc")
-    build_dir = join(PROJ_ROOT, "build", "malloc")
-
-    clean_dir(build_dir, clean)
-
-    build_cmd = [
-        "cmake",
-        "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
-        work_dir,
-    ]
-
-    build_cmd_str = " ".join(build_cmd)
-    print(build_cmd_str)
-
-    call(build_cmd_str, shell=True, cwd=build_dir)
-    call("make", shell=True, cwd=build_dir)
-    call("make install", shell=True, cwd=build_dir)
 
 
 @task
@@ -142,27 +106,27 @@ def faasm(ctx, clean=False, lib=None, verbose=False):
 
 
 @task
-def faasmp(ctx, clean=False):
+def faasmp(ctx, clean=False, verbose=False):
     """
     Compile and install the Faasm OpenMP library
     """
-    _build_faasm_lib("faasmp", clean)
+    _build_faasm_lib("faasmp", clean, verbose)
 
 
 @task
-def faasmpi(ctx, clean=False):
+def faasmpi(ctx, clean=False, verbose=False):
     """
     Compile and install the Faasm MPI library
     """
-    _build_faasm_lib("faasmpi", clean)
+    _build_faasm_lib("faasmpi", clean, verbose)
 
 
 @task
-def rust(ctx, clean=False):
+def rust(ctx, clean=False, verbose=False):
     """
     Install Rust library
     """
-    _build_faasm_lib("rust", clean)
+    _build_faasm_lib("rust", clean, verbose)
 
 
 @task

@@ -15,7 +15,7 @@ WASM_LDSHARED = join(WASM_TOOLCHAIN_BIN, "wasm-ld")
 WASM_LDFLAGS = "-Xlinker --stack-first -Xlinker --no-check-features"
 
 WASM_BUILD = "wasm32"
-WASM_HOST = "wasm32-unknown-none"
+WASM_HOST = "wasm32-unknown-wasi"
 WASM_HOST_UNKNOWN = "wasm32-unknown-unknown"
 
 WASM_CFLAGS = "-O3 --sysroot={} -msimd128".format(WASM_SYSROOT)
@@ -30,7 +30,7 @@ BASE_CONFIG_CMD = [
 ]
 
 BASE_CONFIG_FLAGS = [
-    "CFLAGS=\"{} -ldlmalloc\"".format(WASM_CFLAGS),
-    "CXXFLAGS=\"{} -ldlmalloc\"".format(WASM_CXXFLAGS),
+    "CFLAGS=\"{}\"".format(WASM_CFLAGS),
+    "CXXFLAGS=\"{}\"".format(WASM_CXXFLAGS),
     "LDFLAGS=\"{}\"".format(WASM_LDFLAGS),
 ]
