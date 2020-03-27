@@ -69,10 +69,13 @@ $(BUILD_DIR)/llvm.BUILT:
 # WASI libc
 $(BUILD_DIR)/libc.BUILT: $(BUILD_DIR)/llvm.BUILT
 	cd $(WASI_LIBC_DIR); $(MAKE) \
+		THREAD_MODEL=faasm \
 		WASM_CC=$(PREFIX)/bin/clang \
 		WASM_AR=$(PREFIX)/bin/llvm-ar \
 		WASM_NM=$(PREFIX)/bin/llvm-nm \
 		SYSROOT=$(FAASM_SYSROOT)
+	mv $(FAASM_SYSROOT)/lib/wasm32-wasi/* $(FAASM_SYSROOT)/lib/
+	rm -r $(FAASM_SYSROOT)/lib/wasm32-wasi
 	touch $(BUILD_DIR)/libc.BUILT
 
 # Musl libc
