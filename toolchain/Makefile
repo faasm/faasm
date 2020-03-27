@@ -55,6 +55,7 @@ $(BUILD_DIR)/llvm.BUILT:
 		$(LLVM_PROJ_DIR)/llvm
 	ninja -v -C $(BUILD_DIR)/llvm \
 		install-clang \
+		install-clang-resource-headers \
 		install-lld \
 		install-llc \
 		install-llvm-ar \
@@ -69,6 +70,8 @@ $(BUILD_DIR)/llvm.BUILT:
 $(BUILD_DIR)/libc.BUILT: $(BUILD_DIR)/llvm.BUILT
 	cd $(WASI_LIBC_DIR); $(MAKE) \
 		WASM_CC=$(PREFIX)/bin/clang \
+		WASM_AR=$(PREFIX)/bin/llvm-ar \
+		WASM_NM=$(PREFIX)/bin/llvm-nm \
 		SYSROOT=$(FAASM_SYSROOT)
 	touch $(BUILD_DIR)/libc.BUILT
 
