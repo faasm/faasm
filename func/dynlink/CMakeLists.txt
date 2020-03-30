@@ -13,8 +13,11 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # NOTE: According to this LLVM bug: https://bugs.llvm.org/show_bug.cgi?id=42714
     # ONLY the wasm32-unknown-emscripten triple supports fPIC wasm, so we must override
     # whatever is already sets
-    # set(CMAKE_C_COMPILER_TARGET wasm32-unknown-emscripten)
-    # set(CMAKE_CXX_COMPILER_TARGET wasm32-unknown-emscripten)
+    # ALSO: WASI is strict about only compiling wasm32-wasi targets, therefore we must
+    # fake __wasi__
+    add_definitions(-D__wasi__)
+    set(CMAKE_C_COMPILER_TARGET wasm32-unknown-emscripten)
+    set(CMAKE_CXX_COMPILER_TARGET wasm32-unknown-emscripten)
 
     message(STATUS "Detected wasm build")
 
