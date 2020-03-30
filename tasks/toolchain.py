@@ -102,3 +102,40 @@ def version(ctx):
         print("---- {} ----".format(exe))
         call("{} --version".format(bin_path), shell=True)
         print("")
+
+
+def _scp_dir(user, host, dir_name):
+    target_dir = join(FAASM_LOCAL_DIR, dir_name)
+
+    # Nuke the current
+    print("Removing existing {}".format(target_dir))
+    rmtree(TOOLCHAIN_INSTALL, ignore_errors=True)
+
+    # Do the copy
+    scp_cmd = [
+        "scp", "-r",
+        "{}@{}:{}".format(user, host, target_dir),
+        FAASM_LOCAL_DIR
+    ]
+    scp_cmd = " ".join(scp_cmd)
+    print(scp_cmd)
+
+    res = call(scp_cmd, shell=True)
+    if res != 0:
+        raise RuntimeError("Failed to copy {}@{}:{}".format(user, host, dir_name))
+
+
+@task
+def scp_toolchain(ctx, user, host):
+    """
+    Copies the toolchain from a remote host
+    """
+    _scp_dir(user, host, "toolchain")
+
+
+@task
+def scp_sysroot(ctx, user, host):
+    """
+    Copies the sysroot from a remote host
+    """
+    _scp_dir(user, host, "llvm-sysroot")
