@@ -46,7 +46,10 @@ add_definitions(-D__faasm)
 # Note: see Clang wasm-specific flags at https://clang.llvm.org/docs/ClangCommandLineReference.html#webassembly
 # Note the optimisation level. We want to keep vectorization so stick with O3
 # Also note that the optimisation is crucial to getting any kind of decent performance
-set(FAASM_COMPILER_FLAGS "-O3 -msimd128 --sysroot=${FAASM_SYSROOT}")
+# We must explicitly exclude atomics here just in case we've accidentally introduced them
+# upstream. Use of atomics means we can't link things together:
+# https://reviews.llvm.org/D59281
+set(FAASM_COMPILER_FLAGS "-O3 -msimd128 -mno-atomics --sysroot=${FAASM_SYSROOT}")
 
 set(CMAKE_SYSROOT ${FAASM_SYSROOT} CACHE STRING "faasm build")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${FAASM_COMPILER_FLAGS}" CACHE STRING "faasm build")
@@ -66,8 +69,10 @@ set(CMAKE_CXX_COMPILER_WORKS ON)
 # issues. Without it the stack will overflow into the global data.
 # stack-size is also crucial to bigger functions not messing up
 
+# This needs to be included to support libcxx with atomics
+# -Xlinker --shared-memory 
+
 SET(FAASM_COMMON_LINKER_FLAGS "\
-    -Xlinker --shared-memory \
     -Xlinker --stack-first \
     -Xlinker --no-check-features \
     -Xlinker --threads \

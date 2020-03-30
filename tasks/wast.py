@@ -4,7 +4,8 @@ from subprocess import call
 
 from invoke import task
 
-from tasks.util.env import PROJ_ROOT
+from tasks.util.env import PROJ_ROOT, POSSIBLE_BUILD_BINS
+from tasks.util.shell import find_command
 
 
 @task
@@ -35,10 +36,10 @@ def _do_wast(wasm_path, wast_path, cwd=None):
     if exists(wast_path):
         remove(wast_path)
 
-    disassemble_bin = join(PROJ_ROOT, "cmake-build-debug", "third-party", "WAVM", "bin", "wavm")
+    wavm_bin = find_command("wavm", POSSIBLE_BUILD_BINS)
 
     cmd = [
-        disassemble_bin,
+        wavm_bin,
         "disassemble",
         wasm_path,
         wast_path,
