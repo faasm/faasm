@@ -18,6 +18,17 @@
 #include <storage/SharedFilesManager.h>
 #include <util/macros.h>
 
+/**
+ * WASI filesystem handling
+ *
+ * The main WASI repo contains a fair bit of info on WASI's filesystem handling.
+ *
+ * https://github.com/WebAssembly/WASI/blob/master/phases/snapshot/docs.md
+ *
+ * You can also look at the WASI API:
+ * https://github.com/WebAssembly/wasi-libc/blob/master/libc-bottom-half/headers/public/wasi/api.h
+ */
+
 namespace wasm {
 
     I32 doOpen(I32 pathPtr, int flags, int mode) {
@@ -81,7 +92,16 @@ namespace wasm {
             mode = S_IRWXU | S_IRGRP | S_IROTH;
         }
 
-        return doOpen(path, (int) (osReadWrite | osExtra), mode);
+        int fdRes = doOpen(path, (int) (osReadWrite | osExtra), mode);
+
+        if(fdRes > 0) {
+            // Write result to memory location
+            Runtime::memoryRef<int>(getExecutingModule()->defaultMemory, resFdPtr) = fdRes;
+            return __WASI_ESUCCESS;
+        } else {
+            // TODO - map this to the WASI errnos
+            return fd;
+        }
     }
 
 
@@ -135,6 +155,33 @@ namespace wasm {
         }
 
         return returnValue;
+    }
+
+    /**
+     * This works a little like the normal Linux readdir, in that it will be called
+     * repeatedly to get the full listing of a directory.
+     *
+     * The function should fill the read buffer until it's reached the final "page"
+     * of results, at which point the returned size will be smaller than the read buffer.
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_readdir", I32, wasi_fd_readdir,
+                                   I32 fd,
+                                   I32 buf,
+                                   I32 bufLen,
+                                   U64 startCookie,
+                                   I32 resSizePtr
+                                   ) {
+
+
+        if(startCookie == __WASI_DIRCOOKIE_START) {
+            // First loop around
+        } else {
+            // Not first loop around
+        }
+
+        // TODO - implement using underlying readdir?
+
+        return 0;
     }
 
     /**

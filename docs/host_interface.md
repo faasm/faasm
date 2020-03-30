@@ -1,10 +1,18 @@
 # Faasm Host Interface
 
-To execute functions compiled to WebAssembly, Faasm must define an interface
-that allows these functions to interact with the underlying host and runtime.
-This interface must support a subset of standard POSIX-like syscalls, as well 
-as serverless-specific tasks such as state management, and invoking other 
-functions.
+To execute functions compiled to WebAssembly, Faasm must define an 
+interface that allows these functions to interact with the underlying 
+host and runtime.
+
+Faasm is primarily a serverless runtime, hence its interface supports
+state management, building chains of invoked functions, and handling
+communication with the wider system. 
+
+Faasm also targets legacy applications and libraries, hence must support
+a number of POSIX-like system calls.
+
+Faasm uses a modified version of [WASI](https://wasi.dev/), 
+and a fork of [wasi-libc](https://github.com/Shillaker/wasi-libc).
 
 ## Function invocation and chaining
 
@@ -63,3 +71,10 @@ in [WASI](https://wasi.dev/).
  - [OpenMP](openmp.md) 
  - [MPI](mpi.md) 
   
+ ## WASI tinkering
+ 
+ To modify Faasm's WASI support the following links are useful:
+ 
+ - [WASI specs/ docs](https://github.com/WebAssembly/WASI/tree/master/phases) - details of the WASI API
+ - [WASI overview](https://github.com/WebAssembly/WASI/blob/master/docs/WASI-overview.md) - excellent high-level rationale and design summary
+ - [WASI design principles](https://github.com/WebAssembly/WASI/blob/master/docs/DesignPrinciples.md) - motivating WASI's capability-based approach and other key design principles.

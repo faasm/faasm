@@ -15,10 +15,10 @@ security and resource isolatation at low cost. Faasm runs functions side-by-side
 of a single runtime process, with low overheads and fast boot times. The underlying WebAssembly
 execution and code generation is handled by [WAVM](https://github.com/WAVM/WAVM). 
 
-Faasm defines a custom [host interface](docs/host_interface.md) which lets functions perform 
-serverless-specific tasks (e.g. invoking other functions and managing state), as well as interacting 
-with the underlying host (e.g. using the filesystem and networking). The Faasm host interface achieves
-the same goal as [WASI](https://wasi.dev/), but in a serverless-specific context.
+Faasm defines a custom [host interface](docs/host_interface.md) which is an extension of 
+[WASI](https://wasi.dev/), including serverless-specific tasks (e.g. invoking other functions
+and managing state), as well as interacting with serverless abstractions required by 
+existing applications and libraries (e.g. using the filesystem and networking).
 
 A preprint of our paper on Faasm can be found [here](https://arxiv.org/abs/2002.09344).
 
