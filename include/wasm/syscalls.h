@@ -114,23 +114,21 @@ namespace wasm {
     };
 
     /**
-     * To be sure what the target dirent struct is like, you need to look in dirent.h in
-     * the correct sysroot. Wasm libc looks like:
+     * To double check this, work out which header from the sysroot is resolved
+     * Currently this is:
+     *  - include/__struct_dirent.h
+     *  - include/__typedef_ino_t.h
      *
      * struct dirent {
-     *   ino_t d_ino;  // 64-bit
-     *   off_t d_off;  // 64-bit
-     *   unsigned short d_reclen;
-     *   unsigned char d_type;
-     *   char d_name[256];
+     *     ino_t d_ino;  # unsigned long long
+     *     unsigned char d_type;
+     *     char d_name[];
      * };
      */
     struct wasm_dirent64 {
         U64 d_ino;
-        I64 d_off;
-        U16 d_reclen;
         U8 d_type;
-        U8 d_name[256];
+        U8 d_name[];
     };
 
     /**
@@ -325,4 +323,5 @@ namespace wasm {
     void chainLink();
     void faasmLink();
     void rustLink();
+    void wasiLink();
 }

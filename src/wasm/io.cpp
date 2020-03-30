@@ -13,17 +13,15 @@
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
+#include <WAVM/WASI/WASIABI.h>
 #include <storage/FileLoader.h>
 #include <storage/SharedFilesManager.h>
 #include <util/macros.h>
 
-
 namespace wasm {
 
-    I32 s__open(I32 pathPtr, I32 flags, I32 mode) {
-        const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+    I32 doOpen(I32 pathPtr, int flags, int mode) {
         const std::string path = getStringFromWasm(pathPtr);
-        logger->debug("S - open - {} {} {}", path, flags, mode);
 
         storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
         int fd = sfm.openFile(path, flags, mode);
@@ -36,6 +34,61 @@ namespace wasm {
         }
 
         return fd;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_open", I32, wasi_path_open,
+                                   I32 fd,
+                                   I32 lookupFlags,
+                                   I32 path,
+                                   I32 pathLen,
+                                   U32 openFlags,
+                                   U64 rightsBase,
+                                   I64 rightsInheriting,
+                                   I32 fdFlags,
+                                   I32 resFdPtr) {
+
+        // Hacked from WAVM's WASIFile to ensure things have enough permissions not to break.
+        const bool read = rightsBase & (__WASI_RIGHT_FD_READ | __WASI_RIGHT_FD_READDIR);
+        const bool write = rightsBase & (__WASI_RIGHT_FD_DATASYNC | __WASI_RIGHT_FD_WRITE
+                                         | __WASI_RIGHT_FD_ALLOCATE | __WASI_RIGHT_FD_FILESTAT_SET_SIZE);
+
+        unsigned int osReadWrite = 0;
+        if (read && write) {
+            osReadWrite = O_RDWR;
+        } else if (read) {
+            osReadWrite = O_RDONLY;
+        } else if (write) {
+            osReadWrite = O_WRONLY;
+        } else {
+            throw std::runtime_error("Unable to detect valid file flags");
+        }
+
+        U16 openFlagsCast = (U16) openFlags;
+        unsigned int osExtra = 0;
+        if (openFlagsCast & (__WASI_O_CREAT | __WASI_O_DIRECTORY)) {
+            osExtra = O_CREAT | O_DIRECTORY;
+        } else if (openFlagsCast & (__WASI_O_CREAT | __WASI_O_TRUNC)) {
+            osExtra = O_CREAT | O_TRUNC;
+        } else if (openFlagsCast & (__WASI_O_CREAT | __WASI_O_EXCL)) {
+            osExtra = O_CREAT | O_EXCL;
+        } else if (openFlagsCast != 0) {
+            throw std::runtime_error("Unrecognised flags on opening file");
+        }
+
+        int mode = 0;
+        if (openFlagsCast & __WASI_O_CREAT) {
+            // Set create mode
+            mode = S_IRWXU | S_IRGRP | S_IROTH;
+        }
+
+        return doOpen(path, (int) (osReadWrite | osExtra), mode);
+    }
+
+
+    I32 s__open(I32 pathPtr, I32 flags, I32 mode) {
+        const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+        logger->debug("S - open - {} {} {}", pathPtr, flags, mode);
+        return doOpen(pathPtr, flags, mode);
     }
 
     I32 s__dup(I32 oldFd) {
@@ -142,9 +195,7 @@ namespace wasm {
                     // Copy the relevant info into the wasm dirent.
                     struct wasm_dirent64 dWasm{};
                     dWasm.d_ino = (U32) d->d_ino;
-                    dWasm.d_off = wasmDirentCount * wasmDirentSize;
                     dWasm.d_type = d->d_type;
-                    dWasm.d_reclen = wasmDirentSize;
 
                     // Copy the name into place
                     size_t nameLen = strlen(d->d_name);

@@ -35,6 +35,8 @@ using namespace WAVM;
 namespace wasm {
     WAVM_DECLARE_INTRINSIC_MODULE(env)
 
+    WAVM_DECLARE_INTRINSIC_MODULE(wasi)
+
     WAVM_DECLARE_INTRINSIC_MODULE(tsenv)
 
     Uptr getNumberOfPagesForBytes(U32 nBytes);
@@ -160,6 +162,7 @@ namespace wasm {
         I64 executeThread(WasmThreadSpec &spec);
     private:
         Runtime::GCPointer<Runtime::Instance> envModule;
+        Runtime::GCPointer<Runtime::Instance> wasiModule;
         Runtime::GCPointer<Runtime::Instance> moduleInstance;
 
         // Dynamic modules

@@ -12,25 +12,16 @@
 using namespace WAVM;
 
 /**
- * USEFUL NOTES
+ * SYSCALL NUMBERING
  *
- * The wasm syscall interface varies across toolchains. To work out what's going on
- * locate the libc you're compiling against, and
- * look at
- *   - src/internal/syscall.h
- *   - arch/XXX/syscall_arch.h
- *   - arch/XXX/libc.imports
- *
- * where XXX is probably wasm32.
- *
- * Syscall numbers can be found in arch/XXX/bits/syscall.h(.in)
- *
- * The full i386 table can also give hints for higher numbers:
- * https://github.com/torvalds/linux/blob/master/arch/x86/entry/syscalls/syscall_32.tbl
+ * Have a look in the sysroot at include/bits/syscall.h to
+ * determine the system call numbering.
  */
 
 namespace wasm {
     WAVM_DEFINE_INTRINSIC_MODULE(env)
+
+    WAVM_DEFINE_INTRINSIC_MODULE(wasi)
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "syscall", I32, syscall, I32 syscallNo, I32 argsPtr) {
         switch(syscallNo) {

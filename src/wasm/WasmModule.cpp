@@ -121,6 +121,7 @@ namespace wasm {
 
             // Remap parts we need specific references to
             envModule = Runtime::remapToClonedCompartment(other.envModule, compartment);
+            wasiModule = Runtime::remapToClonedCompartment(other.wasiModule, compartment);
             moduleInstance = Runtime::remapToClonedCompartment(other.moduleInstance, compartment);
 
             // Extract the memory and table again
@@ -177,6 +178,7 @@ namespace wasm {
         moduleInstance = nullptr;
 
         envModule = nullptr;
+        wasiModule = nullptr;
 
         executionContext = nullptr;
 
@@ -438,6 +440,13 @@ namespace wasm {
                 envModule = Intrinsics::instantiateModule(
                         compartment,
                         {WAVM_INTRINSIC_MODULE_REF(env)},
+                        "env"
+                );
+
+                // WASI
+                wasiModule = Intrinsics::instantiateModule(
+                        compartment,
+                        {WAVM_INTRINSIC_MODULE_REF(wasi)},
                         "env"
                 );
             }
@@ -835,9 +844,18 @@ namespace wasm {
 
         bool isMainModule = moduleInstance == nullptr;
 
+        Runtime::Instance* modulePtr = nullptr;
+        if(moduleName == "env") {
+            modulePtr = envModule;
+        } else if(moduleName == "wasi_snapshot_preview1") {
+            modulePtr = wasiModule;
+        } else {
+            throw std::runtime_error("Unrecognised module name: " + moduleName);
+        }
+
         if (isMainModule) {
-            // Main module linking comes from env module
-            resolved = getInstanceExport(envModule, name);
+            // Main module linking comes from env module or WASI
+            resolved = getInstanceExport(modulePtr, name);
         } else {
             if (moduleName == "GOT.mem") {
                 // Handle global offset table memory entries
@@ -936,7 +954,7 @@ namespace wasm {
                 resolved = asObject(table);
             } else {
                 // First check in normal env
-                resolved = getInstanceExport(envModule, name);
+                resolved = getInstanceExport(modulePtr, name);
 
                 // Check the main module if not
                 if (!resolved) {
