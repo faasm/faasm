@@ -23,13 +23,13 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
 
     # Install in WASM sysroot
     install(TARGETS faasmp
-            ARCHIVE DESTINATION ${CMAKE_SYSROOT}/lib
-            LIBRARY DESTINATION ${CMAKE_SYSROOT}/lib
+            ARCHIVE DESTINATION ${CMAKE_SYSROOT}/lib/wasm32-wasi
+            LIBRARY DESTINATION ${CMAKE_SYSROOT}/lib/wasm32-wasi
             PUBLIC_HEADER DESTINATION ${CMAKE_SYSROOT}/include/faasmp
             )
 
     # Add imports
-    install(FILES faasmp.imports DESTINATION ${CMAKE_SYSROOT}/lib RENAME libfaasmp.imports)
+    install(FILES faasmp.imports DESTINATION ${CMAKE_SYSROOT}/lib/wasm32-wasi RENAME libfaasmp.imports)
 
     # Add omp header (already present in native builds)
     install(FILES omp.h DESTINATION ${CMAKE_SYSROOT}/include)

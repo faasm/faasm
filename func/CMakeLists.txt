@@ -53,12 +53,12 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
 
     function(faasm_func_c func_name file_name)
         add_executable(${func_name} ${file_name})
-        target_link_libraries(${func_name} faasm dlmalloc)
+        target_link_libraries(${func_name} faasm)
     endfunction(faasm_func_c)
 
     function(faasm_func func_name file_name)
         add_executable(${func_name} ${file_name})
-        target_link_libraries(${func_name} faasm dlmalloc)
+        target_link_libraries(${func_name} faasm)
     endfunction(faasm_func)
 
     function(faasm_dynamic_func func_name file_name)
