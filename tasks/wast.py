@@ -43,6 +43,7 @@ def _do_wast(wasm_path, wast_path, cwd=None):
         wasm_path,
         wast_path,
         "--enable simd",
+        "--enable atomics",
     ]
 
     cmd = " ".join(cmd)
