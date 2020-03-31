@@ -41,6 +41,8 @@ namespace storage {
         uint64_t rightsBase;
         uint64_t rightsInheriting;
 
+        int getLinuxFd();
+
     private:
         DIR *dirPtr;
         struct dirent *direntPtr;

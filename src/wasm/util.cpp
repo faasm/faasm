@@ -8,6 +8,8 @@
 #include <boost/filesystem.hpp>
 #include <storage/SharedFilesManager.h>
 
+#include <WAVM/WASI/WASIABI.h>
+
 
 namespace wasm {
     void getBytesFromWasm(I32 dataPtr, I32 dataLen, uint8_t *buffer) {
@@ -86,24 +88,42 @@ namespace wasm {
     }
 
     iovec *wasmIovecsToNativeIovecs(I32 wasmIovecPtr, I32 wasmIovecCount) {
+        // Get array of wasm iovecs from memory
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-
-        // Get array of iovecs from memory
         auto wasmIovecs = Runtime::memoryArrayPtr<wasm_iovec>(memoryPtr, wasmIovecPtr, wasmIovecCount);
 
-        // Build vector of iovecs
+        // Convert to native iovecs
         auto nativeIovecs = new iovec[wasmIovecCount];
         for (int i = 0; i < wasmIovecCount; i++) {
-            wasm_iovec wasmIovec = wasmIovecs[i];
 
-            // Create a native iovec from the wasm one
+            wasm_iovec wasmIovec = wasmIovecs[i];
             U8 *outputPtr = &Runtime::memoryRef<U8>(memoryPtr, wasmIovec.iov_base);
             iovec nativeIovec{
                     .iov_base = outputPtr,
                     .iov_len = wasmIovec.iov_len,
             };
 
-            // Add to the list
+            nativeIovecs[i] = nativeIovec;
+        }
+
+        return nativeIovecs;
+    }
+
+    iovec *wasiIovecsToNativeIovecs(I32 wasiIovecPtr, I32 wasiIovecCount) {
+        // Get array of wasi iovecs from memory
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        auto wasmIovecs = Runtime::memoryArrayPtr<__wasi_ciovec_t>(memoryPtr, wasiIovecPtr, wasiIovecCount);
+
+        // Convert to native iovecs
+        auto nativeIovecs = new iovec[wasiIovecCount];
+        for (int i = 0; i < wasiIovecCount; i++) {
+            __wasi_ciovec_t wasiIovec = wasmIovecs[i];
+            U8 *outputPtr = &Runtime::memoryRef<U8>(memoryPtr, wasiIovec.buf);
+            iovec nativeIovec{
+                    .iov_base = outputPtr,
+                    .iov_len = wasiIovec.buf_len,
+            };
+
             nativeIovecs[i] = nativeIovec;
         }
 

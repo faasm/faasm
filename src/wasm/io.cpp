@@ -407,6 +407,20 @@ namespace wasm {
         return 0;
     }
 
+    ssize_t doWritev(int fd, iovec *nativeIovecs, I32 iovecCount) {
+        ssize_t bytesWritten = writev(fd, nativeIovecs, iovecCount);
+
+        // Catpure stdout if necessary, otherwise write as normal
+        util::SystemConfig &conf = util::getSystemConfig();
+        if (fd == STDOUT_FILENO && conf.captureStdout == "on") {
+            getExecutingModule()->captureStdout(nativeIovecs, iovecCount);
+        }
+
+        delete[] nativeIovecs;
+
+        return bytesWritten;
+    }
+
     /**
      * Writing is ok provided the function owns the file descriptor
      */
@@ -417,18 +431,21 @@ namespace wasm {
         module->checkThreadOwnsFd(fd);
 
         iovec *nativeIovecs = wasmIovecsToNativeIovecs(iov, iovcnt);
-        Iptr count = writev(fd, nativeIovecs, iovcnt);
+        return (I32) doWritev(fd, nativeIovecs, iovcnt);
+    }
 
-        // Catpure stdout if necessary, otherwise write as normal
-        util::SystemConfig &conf = util::getSystemConfig();
-        if (fd == STDOUT_FILENO && conf.captureStdout == "on") {
-            module->captureStdout(nativeIovecs, iovcnt);
-        }
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_write", I32, wasi_fd_write, I32 fd, I32 iovecsPtr, I32 iovecCount,
+                                   I32 resBytesWrittenPtr) {
+        util::getLogger()->debug("S - fd_write - {} {} {} {}", fd, iovecsPtr, iovecCount, resBytesWrittenPtr);
 
+        storage::FileDescriptor &fileDesc = getFileDescriptor(fd);
+        
+        iovec *nativeIovecs = wasiIovecsToNativeIovecs(iovecsPtr, iovecCount);
+        ssize_t bytesWritten = doWritev(fileDesc.getLinuxFd(), nativeIovecs, iovecCount);
 
-        delete[] nativeIovecs;
-
-        return (I32) count;
+        Runtime::memoryRef<int>(getExecutingModule()->defaultMemory, resBytesWrittenPtr) = (int) bytesWritten;
+        
+        return __WASI_ESUCCESS;
     }
 
     I32 s__readv(I32 fd, I32 iovecPtr, I32 iovecCount) {
@@ -576,11 +593,11 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_fdstat_get", I32, wasi_fd_fdstat_get, I32 fd, I32 statPtr) {
         util::getLogger()->debug("S - fd_fdstat_get - {} {}", fd, statPtr);
-        
+
         storage::FileDescriptor &fileDesc = getFileDescriptor(fd);
         storage::Stat fileStat = fileDesc.stat();
 
-        if(fileStat.failed) {
+        if (fileStat.failed) {
             return fileStat.wasiErrno;
         }
 
@@ -621,14 +638,17 @@ namespace wasm {
         }
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_seek", I32, wasi_fd_seek, I32 fd, I64 offset, I32 whence, I32 newOffsetPtr) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_seek", I32, wasi_fd_seek, I32 fd, I64 offset, I32 whence,
+                                   I32 newOffsetPtr) {
         util::getLogger()->debug("S - fd_seek - {} {} {}", offset, whence, newOffsetPtr);
 
         // Get pointer to result in memory
         uint64_t *newOffsetHostPtr = &Runtime::memoryRef<uint64_t>(getExecutingModule()->defaultMemory, newOffsetPtr);
 
         storage::FileDescriptor &fileDesc = getFileDescriptor(fd);
-        return fileDesc.seek(offset, whence, newOffsetHostPtr);
+        uint16_t wasiErrno = fileDesc.seek(offset, whence, newOffsetHostPtr);
+
+        return wasiErrno;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "ioctl", I32, ioctl, I32 a, I32 b, I32 c) {

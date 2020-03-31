@@ -166,4 +166,8 @@ namespace storage {
 
         return __WASI_ESUCCESS;
     }
+
+    int FileDescriptor::getLinuxFd() {
+        return linuxFd;
+    }
 }

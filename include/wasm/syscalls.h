@@ -209,6 +209,8 @@ namespace wasm {
 
     iovec *wasmIovecsToNativeIovecs(I32 wasmIovecPtr, I32 wasmIovecCount);
 
+    iovec *wasiIovecsToNativeIovecs(I32 wasiIovecPtr, I32 wasiIovecCount);
+
     // Faasm
 
     std::shared_ptr<state::StateKeyValue> getStateKV(I32 keyPtr, size_t size);
