@@ -65,51 +65,17 @@ namespace wasm {
                                    I32 pathLen,
                                    U32 openFlags,
                                    U64 rightsBase,
-                                   I64 rightsInheriting,
+                                   U64 rightsInheriting,
                                    I32 fdFlags,
                                    I32 resFdPtr) {
 
-        // Hacked from WAVM's WASIFile to ensure things have enough permissions not to break.
-        const bool read = rightsBase & (__WASI_RIGHT_FD_READ | __WASI_RIGHT_FD_READDIR);
-        const bool write = rightsBase & (__WASI_RIGHT_FD_DATASYNC | __WASI_RIGHT_FD_WRITE
-                                         | __WASI_RIGHT_FD_ALLOCATE | __WASI_RIGHT_FD_FILESTAT_SET_SIZE);
-
-        unsigned int osReadWrite = 0;
-        if (read && write) {
-            osReadWrite = O_RDWR;
-        } else if (read) {
-            osReadWrite = O_RDONLY;
-        } else if (write) {
-            osReadWrite = O_WRONLY;
-        } else {
-            throw std::runtime_error("Unable to detect valid file flags");
-        }
-
-        U16 openFlagsCast = (U16) openFlags;
-        unsigned int osExtra = 0;
-        if (openFlagsCast & (__WASI_O_CREAT | __WASI_O_DIRECTORY)) {
-            osExtra = O_CREAT | O_DIRECTORY;
-        } else if (openFlagsCast & (__WASI_O_CREAT | __WASI_O_TRUNC)) {
-            osExtra = O_CREAT | O_TRUNC;
-        } else if (openFlagsCast & (__WASI_O_CREAT | __WASI_O_EXCL)) {
-            osExtra = O_CREAT | O_EXCL;
-        } else if (openFlagsCast != 0) {
-            throw std::runtime_error("Unrecognised flags on opening file");
-        }
-
-        int mode = 0;
-        if (openFlagsCast & __WASI_O_CREAT) {
-            // Set create mode
-            mode = S_IRWXU | S_IRGRP | S_IROTH;
-        }
-
+        // Open a new file descriptor
         const std::string pathStr = getStringFromWasm(path);
-        int fdRes = doOpen(path, (int) (osReadWrite | osExtra), mode);
+        fileDescriptors.try_emplace(fd, pathStr);
+        storage::FileDescriptor &fileDesc = fileDescriptors.at(fd);
+        int fdRes = fileDesc.open(rightsBase, rightsInheriting, openFlags);
 
         if (fdRes > 0) {
-            // Create the fd
-            fileDescriptors.try_emplace(fd, pathStr);
-
             // Write result to memory location
             Runtime::memoryRef<int>(getExecutingModule()->defaultMemory, resFdPtr) = fdRes;
             return __WASI_ESUCCESS;
@@ -118,7 +84,6 @@ namespace wasm {
             return fd;
         }
     }
-
 
     I32 s__open(I32 pathPtr, I32 flags, I32 mode) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
@@ -382,6 +347,15 @@ namespace wasm {
         return 0;
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_close", I32, wasi_fd_close, I32 fd) {
+        util::getLogger()->debug("S - fd_close - {}", fd);
+
+        storage::FileDescriptor &fileDesc = getFileDescriptor(fd);
+        fileDesc.close();
+
+        return 0;
+    }
+
     /** Poll is ok but can pass in an array of structs. */
     I32 s__poll(I32 fdsPtr, I32 nfds, I32 timeout) {
         util::getLogger()->debug("S - poll - {} {} {}", fdsPtr, nfds, timeout);
@@ -600,6 +574,27 @@ namespace wasm {
         return 0;
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_fdstat_get", I32, wasi_fd_fdstat_get, I32 fd, I32 statPtr) {
+        util::getLogger()->debug("S - fd_fdstat_get - {} {}", fd, statPtr);
+        
+        storage::FileDescriptor &fileDesc = getFileDescriptor(fd);
+        storage::Stat fileStat = fileDesc.stat();
+
+        if(fileStat.failed) {
+            return fileStat.wasiErrno;
+        }
+
+        auto wasiFdStat = &Runtime::memoryRef<__wasi_fdstat_t>(getExecutingModule()->defaultMemory, statPtr);
+        wasiFdStat->fs_filetype = fileStat.wasiFiletype;
+        wasiFdStat->fs_rights_base = fileDesc.rightsBase;
+        wasiFdStat->fs_rights_inheriting = fileDesc.rightsInheriting;
+
+        // TODO - set fs flags
+        wasiFdStat->fs_flags = 0;
+
+        return 0;
+    }
+
     /**
      * llseek is called from the implementations of both seek and lseek. Calls
      * to llseek can be replaced with an equivalent call to lseek, which is what
@@ -624,6 +619,16 @@ namespace wasm {
             *hostResultPtr = res;
             return 0;
         }
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_seek", I32, wasi_fd_seek, I32 fd, I64 offset, I32 whence, I32 newOffsetPtr) {
+        util::getLogger()->debug("S - fd_seek - {} {} {}", offset, whence, newOffsetPtr);
+
+        // Get pointer to result in memory
+        uint64_t *newOffsetHostPtr = &Runtime::memoryRef<uint64_t>(getExecutingModule()->defaultMemory, newOffsetPtr);
+
+        storage::FileDescriptor &fileDesc = getFileDescriptor(fd);
+        return fileDesc.seek(offset, whence, newOffsetHostPtr);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "ioctl", I32, ioctl, I32 a, I32 b, I32 c) {
