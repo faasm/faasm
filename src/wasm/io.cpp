@@ -1,6 +1,5 @@
 #include "WasmModule.h"
 #include "syscalls.h"
-#include "../../../../../lib/llvm-8/lib/clang/8.0.1/include/opencl-c.h"
 
 #include <util/bytes.h>
 #include <util/config.h>
@@ -40,7 +39,7 @@ namespace wasm {
             throw std::runtime_error("Unrecognised fd");
         }
 
-        return fileDescriptors[fd];
+        return fileDescriptors.at(fd);
     }
 
     I32 doOpen(I32 pathPtr, int flags, int mode) {
@@ -104,11 +103,12 @@ namespace wasm {
             mode = S_IRWXU | S_IRGRP | S_IROTH;
         }
 
+        const std::string pathStr = getStringFromWasm(path);
         int fdRes = doOpen(path, (int) (osReadWrite | osExtra), mode);
 
         if (fdRes > 0) {
             // Create the fd
-            fileDescriptors.try_emplace(fd, path);
+            fileDescriptors.try_emplace(fd, pathStr);
 
             // Write result to memory location
             Runtime::memoryRef<int>(getExecutingModule()->defaultMemory, resFdPtr) = fdRes;
