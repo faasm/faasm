@@ -25,6 +25,29 @@ namespace storage {
         }
     }
 
+    FileDescriptor FileDescriptor::stdFdFactory(int stdFd, const std::string &devPath) {
+        FileDescriptor fdStd(devPath);
+        fdStd.rightsBase = __WASI_RIGHT_FD_READ | __WASI_RIGHT_FD_FDSTAT_SET_FLAGS
+                             | __WASI_RIGHT_FD_WRITE | __WASI_RIGHT_FD_FILESTAT_GET
+                             | __WASI_RIGHT_POLL_FD_READWRITE;
+
+        fdStd.linuxFd = stdFd;
+        return fdStd;
+    }
+
+    FileDescriptor FileDescriptor::stdoutFactory() {
+        return FileDescriptor::stdFdFactory(STDOUT_FILENO, "/dev/stdout");
+    }
+
+    FileDescriptor FileDescriptor::stdinFactory() {
+        return FileDescriptor::stdFdFactory(STDIN_FILENO, "/dev/stdin");
+    }
+
+    FileDescriptor FileDescriptor::stderrFactory() {
+        return FileDescriptor::stdFdFactory(STDERR_FILENO, "/dev/stderr");
+    }
+
+
     FileDescriptor::FileDescriptor(std::string pathIn) : path(std::move(pathIn)),
                                                          iterStarted(false), iterFinished(false),
                                                          dirPtr(nullptr), direntPtr(nullptr),

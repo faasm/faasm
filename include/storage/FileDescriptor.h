@@ -22,6 +22,12 @@ namespace storage {
 
     class FileDescriptor {
     public:
+        static FileDescriptor stdinFactory();
+
+        static FileDescriptor stdoutFactory();
+
+        static FileDescriptor stderrFactory();
+
         explicit FileDescriptor(std::string pathIn);
 
         DirEnt iterNext();
@@ -45,6 +51,8 @@ namespace storage {
 
         void setLinuxFd(int linuxFdIn);
     private:
+        static FileDescriptor stdFdFactory(int stdFd, const std::string &devPath);
+
         DIR *dirPtr;
         struct dirent *direntPtr;
 

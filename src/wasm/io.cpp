@@ -37,8 +37,11 @@ namespace wasm {
     storage::FileDescriptor &getFileDescriptor(int fd) {
         if (fileDescriptors.count(fd) == 0) {
             if(fd == STDOUT_FILENO) {
-                fileDescriptors.try_emplace(fd, "stdout");
-                fileDescriptors.at(fd).setLinuxFd(fd);
+                fileDescriptors.emplace(fd, storage::FileDescriptor::stdoutFactory());
+            } else if(fd == STDIN_FILENO) {
+                fileDescriptors.emplace(fd, storage::FileDescriptor::stdinFactory());
+            } else if(fd == STDERR_FILENO) {
+                fileDescriptors.emplace(fd, storage::FileDescriptor::stderrFactory());
             } else {
                 throw std::runtime_error("Unrecognised fd");
             }

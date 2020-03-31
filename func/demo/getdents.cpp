@@ -7,9 +7,11 @@
 #include <string>
 #include <faasm/input.h>
 
+
 FAASM_MAIN_FUNC() {
     const char* dirName = faasm::getStringInput("");
     DIR *dirp = opendir(dirName);
+
     if (dirp == nullptr) {
         printf("Couldn't open dir %s\n", dirName);
         return 1;
