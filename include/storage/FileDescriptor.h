@@ -43,6 +43,7 @@ namespace storage {
 
         int getLinuxFd();
 
+        void setLinuxFd(int linuxFdIn);
     private:
         DIR *dirPtr;
         struct dirent *direntPtr;

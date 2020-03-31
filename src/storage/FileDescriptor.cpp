@@ -11,11 +11,17 @@
 
 namespace storage {
     uint16_t errnoToWasi(int errnoIn) {
-        switch(errnoIn) {
-            case EBADF: return __WASI_EBADF;
-            case EINVAL: return __WASI_EINVAL;
-            case ENOENT: return __WASI_ENOENT;
-            default: throw std::runtime_error("Unsupported WASI errno");
+        switch (errnoIn) {
+            case EPERM:
+                return __WASI_EPERM;
+            case EBADF:
+                return __WASI_EBADF;
+            case EINVAL:
+                return __WASI_EINVAL;
+            case ENOENT:
+                return __WASI_ENOENT;
+            default:
+                throw std::runtime_error("Unsupported WASI errno");
         }
     }
 
@@ -111,32 +117,42 @@ namespace storage {
 
     Stat FileDescriptor::stat() {
         struct stat64 nativeStat{};
-        storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
-        int result = sfm.statFile(path, &nativeStat);
+
+        int result;
+        if (linuxFd == STDOUT_FILENO) {
+            result = ::fstat64(STDOUT_FILENO, &nativeStat);
+        } else {
+            storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
+            result = sfm.statFile(path, &nativeStat);
+        }
 
         Stat s;
-        if(result < 0) {
+        if (result < 0) {
             s.failed = true;
             s.wasiErrno = errnoToWasi(-1 * result);
         }
-        if(result == -EPERM) {
+        if (result == -EPERM) {
             s.failed = true;
             s.wasiErrno = __WASI_EPERM;
-        } else if(result == -ENOENT) {
+        } else if (result == -ENOENT) {
             s.failed = true;
             s.wasiErrno = __WASI_ENOENT;
-        } else if(result < 0) {
+        } else if (result < 0) {
             throw std::runtime_error("Unsupported error condition");
         }
 
-        if(S_ISREG(nativeStat.st_mode)) {
+        if (linuxFd == STDOUT_FILENO) {
+            // Do nothing for stdout
+        } else if (S_ISREG(nativeStat.st_mode)) {
             s.wasiFiletype = __WASI_FILETYPE_REGULAR_FILE;
-        } else if(S_ISBLK(nativeStat.st_mode)) {
+        } else if (S_ISBLK(nativeStat.st_mode)) {
             s.wasiFiletype = __WASI_FILETYPE_BLOCK_DEVICE;
-        } else if(S_ISDIR(nativeStat.st_mode)) {
+        } else if (S_ISDIR(nativeStat.st_mode)) {
             s.wasiFiletype = __WASI_FILETYPE_DIRECTORY;
-        } else if(S_ISLNK(nativeStat.st_mode)) {
+        } else if (S_ISLNK(nativeStat.st_mode)) {
             s.wasiFiletype = __WASI_FILETYPE_SYMBOLIC_LINK;
+        } else if (S_ISCHR(nativeStat.st_mode)) {
+            s.wasiFiletype = __WASI_FILETYPE_CHARACTER_DEVICE;
         } else {
             throw std::runtime_error("Unrecognised file type");
         }
@@ -146,9 +162,9 @@ namespace storage {
 
     uint16_t FileDescriptor::seek(uint64_t offset, int whence, uint64_t *newOffset) {
         int linuxWhence;
-        if(whence == __WASI_WHENCE_CUR) {
+        if (whence == __WASI_WHENCE_CUR) {
             linuxWhence = SEEK_CUR;
-        } else if(whence == __WASI_WHENCE_END) {
+        } else if (whence == __WASI_WHENCE_END) {
             linuxWhence = SEEK_END;
         } else if (whence == __WASI_WHENCE_SET) {
             linuxWhence = SEEK_SET;
@@ -158,7 +174,7 @@ namespace storage {
 
         // Do the seek
         off_t result = ::lseek(linuxFd, offset, linuxWhence);
-        if(result < 0) {
+        if (result < 0) {
             return errnoToWasi(errno);
         }
 
@@ -169,5 +185,9 @@ namespace storage {
 
     int FileDescriptor::getLinuxFd() {
         return linuxFd;
+    }
+
+    void FileDescriptor::setLinuxFd(int linuxFdIn) {
+        linuxFd = linuxFdIn;
     }
 }

@@ -36,7 +36,12 @@ namespace wasm {
 
     storage::FileDescriptor &getFileDescriptor(int fd) {
         if (fileDescriptors.count(fd) == 0) {
-            throw std::runtime_error("Unrecognised fd");
+            if(fd == STDOUT_FILENO) {
+                fileDescriptors.try_emplace(fd, "stdout");
+                fileDescriptors.at(fd).setLinuxFd(fd);
+            } else {
+                throw std::runtime_error("Unrecognised fd");
+            }
         }
 
         return fileDescriptors.at(fd);
@@ -444,7 +449,7 @@ namespace wasm {
         ssize_t bytesWritten = doWritev(fileDesc.getLinuxFd(), nativeIovecs, iovecCount);
 
         Runtime::memoryRef<int>(getExecutingModule()->defaultMemory, resBytesWrittenPtr) = (int) bytesWritten;
-        
+
         return __WASI_ESUCCESS;
     }
 
