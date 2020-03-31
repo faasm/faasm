@@ -1,8 +1,11 @@
 #include "WasmModule.h"
 #include "syscalls.h"
+#include "../../../../../lib/llvm-8/lib/clang/8.0.1/include/opencl-c.h"
 
 #include <util/bytes.h>
 #include <util/config.h>
+
+#include <storage/FileDescriptor.h>
 
 #include <dirent.h>
 #include <poll.h>
@@ -30,6 +33,15 @@
  */
 
 namespace wasm {
+    static thread_local std::unordered_map<int, storage::FileDescriptor> fileDescriptors;
+
+    storage::FileDescriptor &getFileDescriptor(int fd) {
+        if (fileDescriptors.count(fd) == 0) {
+            throw std::runtime_error("Unrecognised fd");
+        }
+
+        return fileDescriptors[fd];
+    }
 
     I32 doOpen(I32 pathPtr, int flags, int mode) {
         const std::string path = getStringFromWasm(pathPtr);
@@ -94,7 +106,10 @@ namespace wasm {
 
         int fdRes = doOpen(path, (int) (osReadWrite | osExtra), mode);
 
-        if(fdRes > 0) {
+        if (fdRes > 0) {
+            // Create the fd
+            fileDescriptors.try_emplace(fd, path);
+
             // Write result to memory location
             Runtime::memoryRef<int>(getExecutingModule()->defaultMemory, resFdPtr) = fdRes;
             return __WASI_ESUCCESS;
@@ -170,16 +185,54 @@ namespace wasm {
                                    I32 bufLen,
                                    U64 startCookie,
                                    I32 resSizePtr
-                                   ) {
+    ) {
 
+        storage::FileDescriptor &fileDesc = getFileDescriptor(fd);
+        bool isStartCookie = startCookie == __WASI_DIRCOOKIE_START;
 
-        if(startCookie == __WASI_DIRCOOKIE_START) {
-            // First loop around
-        } else {
-            // Not first loop around
+        if (fileDesc.iterStarted && isStartCookie) {
+            throw std::runtime_error("Directory iterator already exists, but this is the start cookie");
+        } else if (!fileDesc.iterStarted && !isStartCookie) {
+            throw std::runtime_error("No directory iterator exists, and this is not the start cookie");
         }
 
-        // TODO - implement using underlying readdir?
+        U8 *buffer = Runtime::memoryArrayPtr<U8>(getExecutingModule()->defaultMemory, buf, bufLen);
+        size_t bytesCopied = 0;
+        size_t bytesLeft = bufLen;
+
+        if (!fileDesc.iterFinished) {
+            while (bytesLeft > 0) {
+                storage::DirEnt dirEnt = fileDesc.iterNext();
+
+                // Done
+                if (dirEnt.isEnd) {
+                    break;
+                }
+
+                __wasi_dirent_t wasmDirEnt{
+                        .d_next = dirEnt.next,
+                        .d_type = dirEnt.type,
+                        .d_ino = dirEnt.ino,
+                        .d_namlen = (unsigned int) dirEnt.path.size()
+                };
+
+                // Copy the dirent itself
+                int direntCopySize = util::safeCopyToBuffer(
+                        BYTES(&wasmDirEnt), sizeof(wasmDirEnt),
+                        buffer + bytesCopied, bytesLeft
+                );
+                bytesCopied += direntCopySize;
+                bytesLeft = std::min<int>(0, bytesLeft - direntCopySize);
+
+                // Copy its name in straight after
+                int pathCopySize = util::safeCopyToBuffer(
+                        BYTES_CONST(dirEnt.path.c_str()), dirEnt.path.size(),
+                        buffer + bytesCopied, bytesLeft
+                );
+                bytesCopied += pathCopySize;
+                bytesLeft = std::min<int>(0, bytesLeft - pathCopySize);
+            }
+        }
 
         return 0;
     }

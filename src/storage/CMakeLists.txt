@@ -5,6 +5,7 @@ include_directories(
 
 set(HEADERS
         ${FAASM_INCLUDE_DIR}/storage/FileLoader.h
+        ${FAASM_INCLUDE_DIR}/storage/FileIterator.h
         ${FAASM_INCLUDE_DIR}/storage/FileserverFileLoader.h
         ${FAASM_INCLUDE_DIR}/storage/IBMFileLoader.h
         ${FAASM_INCLUDE_DIR}/storage/IBMStorageWrapper.h
@@ -14,6 +15,7 @@ set(HEADERS
 
 set(LIB_FILES
         FileLoader.cpp
+        FileDescriptor.cpp
         LocalFileLoader.cpp
         FileserverFileLoader.cpp
         IBMFileLoader.cpp
