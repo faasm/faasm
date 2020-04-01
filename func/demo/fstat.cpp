@@ -105,12 +105,15 @@ int compareSwithS64(struct stat &s, struct stat64 &s64) {
     // Some properties being zero can signal that something has gone wrong
     if (s.st_dev == 0) { printf("st_dev is zero\n"); return 1; }
     if (s.st_mode == 0) { printf("st_mode is zero\n"); return 1; }
-    if (s.st_uid == 0) { printf("st_uid is zero\n"); return 1; }
-    if (s.st_gid == 0) { printf("st_gid is zero\n"); return 1; }
-    if (s.st_blksize == 0) { printf("st_blksize is zero\n"); return 1; }
     if (s.st_atim.tv_sec == 0) { printf("st_atim.tv_sec is zero\n"); return 1; }
     if (s.st_mtim.tv_sec == 0) { printf("st_mtim.tv_sec is zero\n"); return 1; }
     if (s.st_ctim.tv_sec == 0) { printf("st_ctim.tv_sec is zero\n"); return 1; }
+
+#ifndef __wasm__
+    if (s.st_blksize == 0) { printf("st_blksize is zero\n"); return 1; }
+    if (s.st_uid == 0) { printf("st_uid is zero\n"); return 1; }
+    if (s.st_gid == 0) { printf("st_gid is zero\n"); return 1; }
+#endif
 
     return 0;
 }

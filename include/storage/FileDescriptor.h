@@ -17,7 +17,17 @@ namespace storage {
     public:
         bool failed;
         uint16_t wasiErrno;
+
         uint8_t wasiFiletype;
+
+        uint64_t st_dev;
+        uint64_t st_ino;
+        uint32_t st_nlink;
+        uint64_t st_size;
+        uint32_t st_mode;
+        uint64_t st_atim;
+        uint64_t st_mtim;
+        uint64_t st_ctim;
     };
 
     class FileDescriptor {
@@ -32,9 +42,9 @@ namespace storage {
 
         DirEnt iterNext();
 
-        Stat stat();
+        Stat stat(const std::string &relativePath = "");
 
-        void path_open(uint64_t rightsBaseIn, uint64_t rightsInheritingIn, uint32_t openFlags);
+        int path_open(uint64_t rightsBaseIn, uint64_t rightsInheritingIn, uint32_t openFlags);
 
         void close();
 
@@ -61,9 +71,6 @@ namespace storage {
         int linuxFd;
         int linuxMode;
         int linuxFlags;
-    };
-
-    class FileDescriptorNotFoundException : public std::exception {
     };
 }
 

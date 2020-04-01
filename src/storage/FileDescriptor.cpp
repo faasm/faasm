@@ -1,10 +1,13 @@
 #include "FileDescriptor.h"
+#include "syscall.h"
+
+#include <util/timing.h>
 
 #include <utility>
 #include <dirent.h>
 #include <stdexcept>
 #include <storage/SharedFilesManager.h>
-
+#include <boost/filesystem.hpp>
 #include <WAVM/WASI/WASIABI.h>
 #include <fcntl.h>
 
@@ -90,7 +93,7 @@ namespace storage {
         return d;
     }
 
-    void FileDescriptor::path_open(uint64_t rightsBaseIn, uint64_t rightsInheritingIn, uint32_t openFlags) {
+    int FileDescriptor::path_open(uint64_t rightsBaseIn, uint64_t rightsInheritingIn, uint32_t openFlags) {
         rightsBase = rightsBaseIn;
         rightsInheriting = rightsInheritingIn;
 
@@ -125,7 +128,6 @@ namespace storage {
         }
 
         linuxFlags = osReadWrite | osExtra;
-
         linuxMode = 0;
         if (openFlagsCast & __WASI_O_CREAT) {
             // Set create mode
@@ -135,44 +137,54 @@ namespace storage {
         storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
         linuxFd = sfm.openFile(path, linuxFlags, linuxMode);
 
-//        // TODO - remove the negation fiddles here.
-//        if (linuxFd < 0) {
-//            // Our "open" returns a negative errno and callers in
-//            // turn expect a negative errno.
-//            return -1 * errnoToWasi(-1 * linuxFd);
-//        } else {
-//            return linuxFd;
-//        }
+        // TODO - remove the negation fiddles here.
+        if (linuxFd < 0) {
+            // Our "open" returns a negative errno and callers in
+            // turn expect a negative errno.
+            return -1 * errnoToWasi(-1 * linuxFd);
+        } else {
+            return linuxFd;
+        }
     }
 
     void FileDescriptor::close() {
 
     }
 
-    Stat FileDescriptor::stat() {
+    Stat FileDescriptor::stat(const std::string &relativePath) {
         struct stat64 nativeStat{};
 
-        int result;
-        if (linuxFd == STDOUT_FILENO) {
-            result = ::fstat64(STDOUT_FILENO, &nativeStat);
+        int statErrno = 0;
+        if (linuxFd == STDOUT_FILENO || linuxFd == STDIN_FILENO || linuxFd == STDERR_FILENO) {
+            int result = ::fstat64(linuxFd, &nativeStat);
+            if(result < 0) {
+                statErrno = errno;
+            }
         } else {
+            std::string statPath;
+            if(relativePath.empty()) {
+                statPath = path;
+            } else {
+                boost::filesystem::path joinedPath(path);
+                joinedPath.append(relativePath);
+                statPath = joinedPath.string();
+            }
+
             storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
-            result = sfm.statFile(path, &nativeStat);
+            int result = sfm.statFile(statPath, &nativeStat);
+            if(result < 0) {
+                statErrno = -1 * result;
+            }
         }
 
         Stat s;
-        if (result < 0) {
+
+        if (statErrno > 0) {
             s.failed = true;
-            s.wasiErrno = errnoToWasi(-1 * result);
-        }
-        if (result == -EPERM) {
-            s.failed = true;
-            s.wasiErrno = __WASI_EPERM;
-        } else if (result == -ENOENT) {
-            s.failed = true;
-            s.wasiErrno = __WASI_ENOENT;
-        } else if (result < 0) {
-            throw std::runtime_error("Unsupported error condition");
+            s.wasiErrno = errnoToWasi(statErrno);
+            return s;
+        } else {
+            s.failed = false;
         }
 
         if (linuxFd == STDOUT_FILENO) {
@@ -190,6 +202,15 @@ namespace storage {
         } else {
             throw std::runtime_error("Unrecognised file type");
         }
+
+        s.st_dev = nativeStat.st_dev;
+        s.st_ino = nativeStat.st_ino;
+        s.st_nlink = nativeStat.st_nlink;
+        s.st_size = nativeStat.st_size;
+        s.st_mode = nativeStat.st_mode;
+        s.st_atim = util::timespecToNanos(&nativeStat.st_atim);
+        s.st_mtim = util::timespecToNanos(&nativeStat.st_mtim);
+        s.st_ctim = util::timespecToNanos(&nativeStat.st_ctim);
 
         return s;
     }

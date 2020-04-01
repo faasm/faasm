@@ -643,6 +643,42 @@ namespace wasm {
         return 0;
     }
 
+    I32 doFileStat(int fd, const std::string &relativePath, I32 statPtr) {
+        WasmModule *module = getExecutingModule();
+        storage::FileDescriptor &fileDesc = module->getFileDescriptor(fd);
+        auto wasiFileStat = &Runtime::memoryRef<__wasi_filestat_t>(module->defaultMemory, statPtr);
+
+        storage::Stat fileStat = fileDesc.stat(relativePath);
+        if (fileStat.failed) {
+            return fileStat.wasiErrno;
+        }
+
+        wasiFileStat->st_dev = fileStat.st_dev;
+        wasiFileStat->st_ino = fileStat.st_ino;
+        wasiFileStat->st_filetype = fileStat.wasiFiletype;
+        wasiFileStat->st_nlink = fileStat.st_nlink;
+        wasiFileStat->st_size = fileStat.st_size;
+        wasiFileStat->st_atim = fileStat.st_atim;
+        wasiFileStat->st_mtim = fileStat.st_mtim;
+        wasiFileStat->st_ctim = fileStat.st_ctim;
+
+        return __WASI_ESUCCESS;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_filestat_get", I32, wasi_fd_filestat_get, I32 fd, I32 statPtr) {
+        util::getLogger()->debug("S - fd_filestat_get - {} {}", fd, statPtr);
+
+        return doFileStat(fd, "", statPtr);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_filestat_get", I32, wasi_path_filestat_get,
+                                   I32 fd, I32 lookupFlags, I32 path, I32 pathLen, I32 statPtr) {
+        util::getLogger()->debug("S - path_filestat_get - {} {} {} {} {}", fd, lookupFlags, path, pathLen, statPtr);
+
+        const std::string &pathStr = getStringFromWasm(path);
+        return doFileStat(fd, pathStr, statPtr);
+    }
+
     /**
      * llseek is called from the implementations of both seek and lseek. Calls
      * to llseek can be replaced with an equivalent call to lseek, which is what

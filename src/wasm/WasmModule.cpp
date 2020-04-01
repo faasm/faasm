@@ -1395,7 +1395,10 @@ namespace wasm {
         fileDescriptors.try_emplace(thisFd, fullPath);
         storage::FileDescriptor &fileDesc = fileDescriptors.at(thisFd);
 
-        fileDesc.path_open(rightsBase, rightsInheriting, openFlags);
+        int linuxFd = fileDesc.path_open(rightsBase, rightsInheriting, openFlags);
+        if(linuxFd < 0) {
+            return linuxFd;
+        }
 
         return thisFd;
     }

@@ -19,4 +19,6 @@ namespace util {
     double getTimeDiffMillis(const util::TimePoint &begin);
 
     void logEndTimer(const std::string &label, const util::TimePoint &begin);
+
+    uint64_t timespecToNanos(struct timespec *nativeTimespec);
 }

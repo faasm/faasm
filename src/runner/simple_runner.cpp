@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
         bool success = runFunction(user, f, runCount);
         if (!success) {
             throw std::runtime_error(fmt::format(
-                    "Function {}/{} returned non-zero exit code {}", user, f)
+                    "Function {}/{} failed", user, f)
             );
         }
     }
