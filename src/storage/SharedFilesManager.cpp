@@ -50,6 +50,17 @@ namespace storage {
         }
     }
 
+    DIR *SharedFilesManager::openDir(const std::string &path) {
+        std::string fakePath = maskPath(path);
+        DIR *res = ::opendir(fakePath.c_str());
+
+        if(res == nullptr) {
+            util::getLogger()->error("Failed to open dir {}: {}", fakePath, strerror(errno));
+        }
+
+        return res;
+    }
+
     int SharedFilesManager::statFile(const std::string &path, struct stat64 *statPtr) {
         bool isShared = util::startsWith(path, SHARED_FILE_PREFIX);
         if (isShared) {

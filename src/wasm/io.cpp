@@ -38,7 +38,7 @@ namespace wasm {
 
         WasmModule *module = getExecutingModule();
         if(!module->fileDescriptorExists(fd)) {
-            return __WASI_ENOENT;
+            return __WASI_EBADF;
         }
 
         storage::FileDescriptor &fileDesc = module->getFileDescriptor(fd);
@@ -56,7 +56,7 @@ namespace wasm {
 
         WasmModule *module = getExecutingModule();
         if(!module->fileDescriptorExists(fd)) {
-            return __WASI_ENOENT;
+            return __WASI_EBADF;
         }
 
         storage::FileDescriptor &fileDesc = module->getFileDescriptor(fd);
@@ -85,7 +85,7 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_open", I32, wasi_path_open,
-                                   I32 fd,
+                                   I32 rootFd,
                                    I32 lookupFlags,
                                    I32 path,
                                    I32 pathLen,
@@ -96,11 +96,11 @@ namespace wasm {
                                    I32 resFdPtr) {
 
         const std::string pathStr = getStringFromWasm(path);
-        util::getLogger()->debug("S - path_open - {} {}", pathStr, pathLen);
+        util::getLogger()->debug("S - path_open - {} {} {}", rootFd, pathStr, pathLen);
 
         // Open a new file descriptor
         int fdRes = getExecutingModule()->openFileDescriptor(
-                fd, pathStr,
+                rootFd, pathStr,
                 rightsBase, rightsInheriting, openFlags
         );
 

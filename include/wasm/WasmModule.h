@@ -172,7 +172,7 @@ namespace wasm {
 
         storage::FileDescriptor &getFileDescriptor(int fd);
 
-        int openFileDescriptor(int fd, const std::string &path,
+        int openFileDescriptor(int rootFd, const std::string &path,
                                 uint64_t rightsBase, uint64_t rightsInheriting, uint32_t openFlags);
 
     private:
@@ -217,6 +217,7 @@ namespace wasm {
         size_t argvBufferSize;
 
         // Filesystem
+        int nextFd;
         std::unordered_map<int, storage::FileDescriptor> fileDescriptors;
 
         void doSnapshot(std::ostream &outStream);

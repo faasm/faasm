@@ -4,6 +4,7 @@
 #include <fstream>
 
 #include <cereal/archives/binary.hpp>
+#include <boost/filesystem.hpp>
 
 #include <util/func.h>
 #include <util/memory.h>
@@ -1356,12 +1357,15 @@ namespace wasm {
         // just above the stdxxx's (i.e. > 3)
         createPreopenedFileDescriptor(3, "/");
         createPreopenedFileDescriptor(4, ".");
+
+        // Set the starting point for subsequent file descriptors
+        nextFd = 5;
     }
 
     void WasmModule::createPreopenedFileDescriptor(int fd, const std::string &path) {
         // Open the descriptor as a directory
         storage::FileDescriptor fileDesc(path);
-        fileDesc.open(
+        fileDesc.path_open(
                 DIRECTORY_RIGHTS,
                 INHERITING_DIRECTORY_RIGHTS,
                 0
@@ -1372,14 +1376,28 @@ namespace wasm {
         fileDescriptors.emplace(fd, fileDesc);
     }
 
-    int WasmModule::openFileDescriptor(int fd, const std::string &path,
+    int WasmModule::openFileDescriptor(int rootFd, const std::string &path,
                             uint64_t rightsBase, uint64_t rightsInheriting, uint32_t openFlags) {
-        fileDescriptors.try_emplace(fd, path);
-        storage::FileDescriptor &fileDesc = fileDescriptors.at(fd);
+        storage::FileDescriptor &rootFileDesc = getExecutingModule()->getFileDescriptor(rootFd);
 
-        int fdRes = fileDesc.open(rightsBase, rightsInheriting, openFlags);
+        std::string fullPath;
+        if(rootFileDesc.path == ".") {
+            fullPath = path;
+        } else {
+            boost::filesystem::path joinedPath(rootFileDesc.path);
+            joinedPath.append(path);
+            fullPath = std::string(joinedPath.string());
+        }
 
-        return fdRes;
+        // Assign a new file descriptor
+        int thisFd = nextFd;
+        nextFd++;
+        fileDescriptors.try_emplace(thisFd, fullPath);
+        storage::FileDescriptor &fileDesc = fileDescriptors.at(thisFd);
+
+        fileDesc.path_open(rightsBase, rightsInheriting, openFlags);
+
+        return thisFd;
     }
 
     bool WasmModule::fileDescriptorExists(int fd) {

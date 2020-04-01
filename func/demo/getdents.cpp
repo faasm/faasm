@@ -10,6 +10,8 @@
 
 FAASM_MAIN_FUNC() {
     const char* dirName = faasm::getStringInput("");
+    printf("Opening dir %s\n", dirName);
+
     DIR *dirp = opendir(dirName);
 
     if (dirp == nullptr) {

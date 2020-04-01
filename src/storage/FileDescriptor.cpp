@@ -20,6 +20,8 @@ namespace storage {
                 return __WASI_EINVAL;
             case ENOENT:
                 return __WASI_ENOENT;
+            case EISDIR:
+                return __WASI_EISDIR;
             default:
                 throw std::runtime_error("Unsupported WASI errno");
         }
@@ -63,9 +65,10 @@ namespace storage {
         if (!iterStarted) {
             iterStarted = true;
 
-            dirPtr = opendir(path.c_str());
+            storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
+            dirPtr = sfm.openDir(path);
             if (dirPtr == nullptr) {
-                // TODO - handle error
+                throw std::runtime_error("Failed to open dir");
             }
         }
 
@@ -87,21 +90,23 @@ namespace storage {
         return d;
     }
 
-    int FileDescriptor::open(uint64_t rightsBaseIn, uint64_t rightsInheritingIn, uint32_t openFlags) {
+    void FileDescriptor::path_open(uint64_t rightsBaseIn, uint64_t rightsInheritingIn, uint32_t openFlags) {
         rightsBase = rightsBaseIn;
         rightsInheriting = rightsInheritingIn;
 
         // Hacked from WAVM's WASIFile to ensure things have enough permissions not to break.
-        const bool read = rightsBase & (__WASI_RIGHT_FD_READ | __WASI_RIGHT_FD_READDIR);
+        const bool readDir = rightsBase & __WASI_RIGHT_FD_READDIR;
+        const bool readFile = rightsBase & __WASI_RIGHT_FD_READDIR;
+
         const bool write = rightsBase & (__WASI_RIGHT_FD_DATASYNC | __WASI_RIGHT_FD_WRITE
                                          | __WASI_RIGHT_FD_ALLOCATE | __WASI_RIGHT_FD_FILESTAT_SET_SIZE);
 
         unsigned int osReadWrite = 0;
-        if (read && write) {
+        if (readFile && write) {
             osReadWrite = O_RDWR;
-        } else if (read) {
+        } else if (readFile || readDir) {
             osReadWrite = O_RDONLY;
-        } else if (write) {
+        } else if (write && !readFile) {
             osReadWrite = O_WRONLY;
         } else {
             throw std::runtime_error("Unable to detect valid file flags");
@@ -119,26 +124,25 @@ namespace storage {
             throw std::runtime_error("Unrecognised flags on opening file");
         }
 
-        int mode = 0;
+        linuxFlags = osReadWrite | osExtra;
+
+        linuxMode = 0;
         if (openFlagsCast & __WASI_O_CREAT) {
             // Set create mode
-            mode = S_IRWXU | S_IRGRP | S_IROTH;
+            linuxMode = S_IRWXU | S_IRGRP | S_IROTH;
         }
 
-        int flags = osReadWrite | osExtra;
         storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
-        linuxFd = sfm.openFile(path, flags, mode);
-        linuxMode = mode;
-        linuxFlags = flags;
+        linuxFd = sfm.openFile(path, linuxFlags, linuxMode);
 
-        // TODO - remove the negation fiddles here.
-        if (linuxFd < 0) {
-            // Our "open" returns a negative errno and callers in
-            // turn expect a negative errno.
-            return -1 * errnoToWasi(-1 * linuxFd);
-        } else {
-            return linuxFd;
-        }
+//        // TODO - remove the negation fiddles here.
+//        if (linuxFd < 0) {
+//            // Our "open" returns a negative errno and callers in
+//            // turn expect a negative errno.
+//            return -1 * errnoToWasi(-1 * linuxFd);
+//        } else {
+//            return linuxFd;
+//        }
     }
 
     void FileDescriptor::close() {

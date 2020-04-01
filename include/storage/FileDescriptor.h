@@ -34,7 +34,7 @@ namespace storage {
 
         Stat stat();
 
-        int open(uint64_t rightsBaseIn, uint64_t rightsInheritingIn, uint32_t openFlags);
+        void path_open(uint64_t rightsBaseIn, uint64_t rightsInheritingIn, uint32_t openFlags);
 
         void close();
 

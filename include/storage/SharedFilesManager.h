@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <dirent.h>
 
 
 #define SHARED_FILE_PREFIX "faasm://"
@@ -38,6 +39,8 @@ namespace storage {
     class SharedFilesManager {
     public:
         int openFile(const std::string &path, int flags, int mode);
+
+        DIR *openDir(const std::string &path);
 
         int statFile(const std::string &path, struct stat64 *statPtr);
 
