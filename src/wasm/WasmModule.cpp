@@ -377,42 +377,47 @@ namespace wasm {
         PROF_END(wasmBind)
     }
 
-    std::vector<IR::UntaggedValue> WasmModule::getArgcArgv(const message::Message &msg) {
-        if (msg.cmdline().empty()) {
-            // Return argc=0 argv=NULL if no commandline args specified
-            return {0, 0};
-        }
+    U32 WasmModule::getArgc() {
+        return argc;
+    }
 
+    U32 WasmModule::getArgvBufferSize() {
+        return argvBufferSize;
+    }
+
+    void WasmModule::prepareArgcArgv(const message::Message &msg) {
         // Here we set up the arguments to main(), i.e. argc and argv
         // We allow passing of arbitrary commandline arguments via the invocation message.
         // These are passed as a string with a space separating each argument.
-        const std::vector<std::string> argv = util::getArgvForMessage(msg);
-        U32 argc = argv.size();
-        size_t argvSize = argv.size() * sizeof(U32);
+        argv = util::getArgvForMessage(msg);
+        argc = argv.size();
 
-        // Create a new page for argv and its values to live in. At the start we put the array of
-        // char pointers (i.e. the actual argv char* array), then above that we place the actual
-        // strings.
-        U32 argvPointersOffset = mmapMemory(1);
-        U32 argvValuesOffset = argvPointersOffset + argvSize + 10;
-        U32 *argvPointersHost = &Runtime::memoryRef<U32>(defaultMemory, argvPointersOffset);
-        char *argvValuesHost = &Runtime::memoryRef<char>(defaultMemory, argvValuesOffset);
-
-        for (uint i = 0; i < argv.size(); i++) {
-            const std::string thisArgv = argv[i];
-
-            // Write this string to memory and record its pointer
-            std::copy(thisArgv.begin(), thisArgv.end(), argvValuesHost);
-            argvPointersHost[i] = argvValuesOffset;
-
-            // Move both pointers and values offset along
-            // (allowing space for a null terminator on the string)
-            argvValuesHost += thisArgv.size() + 1;
-            argvValuesOffset += thisArgv.size() + 1;
+        // Work out the size of the buffer to hold the strings (allowing
+        // for null terminators)
+        argvBufferSize = 0;
+        for (const auto& thisArg : argv) {
+            argvBufferSize += thisArg.size() + 1;
         }
+    }
 
-        // Create the vector with argc and the pointer to argv
-        return {argc, argvPointersOffset};
+    void WasmModule::writeArgvToMemory(U32 wasmArgvPointers, U32 wasmArgvBuffer) {
+        // Iterate through values, putting them in memory
+        U32 wasmNextBuffer = wasmArgvBuffer;
+        U32 wasmNextPointer = wasmArgvPointers;
+
+        for (const auto &thisArg : argv) {
+            // Write this string to the buffer
+            U8 *nextBuffer = &Runtime::memoryRef<U8>(defaultMemory, wasmNextBuffer);
+            std::copy(thisArg.begin(), thisArg.end(), nextBuffer);
+
+            // Write the pointer
+            U32 *nextPointer = &Runtime::memoryRef<U32>(defaultMemory, wasmNextPointer);
+            *nextPointer = wasmNextBuffer;
+
+            // Move everything along , allowing space for a null terminator on the string
+            wasmNextBuffer += thisArg.size() + 1;
+            wasmNextPointer += sizeof(U32);
+        }
     }
 
     Runtime::Instance *
@@ -571,19 +576,6 @@ namespace wasm {
         // Instantiate the shared module
         Runtime::Instance *mod = createModuleInstance(name, path);
 
-        // Call the wasm constructor function. This allows the module to perform any relevant initialisation
-        Runtime::Function *wasmCtorsFunction = asFunctionNullable(getInstanceExport(mod, "__wasm_call_ctors"));
-        if (wasmCtorsFunction) {
-            logger->debug("Executing __wasm_call_ctors for {}", path);
-            IR::UntaggedValue result;
-            executeFunction(
-                    wasmCtorsFunction,
-                    IR::FunctionType({}, {}),
-                    {},
-                    result
-            );
-        }
-
         // Keep a record of this module
         dynamicPathToHandleMap[path] = nextHandle;
         dynamicModuleMap[nextHandle] = mod;
@@ -675,7 +667,7 @@ namespace wasm {
 
             // NOTE - when we've got a function pointer, we assume the args are a single integer
             // held in the input data (resulting from a chained thread invocation)
-            if(msg.inputdata().empty()) {
+            if (msg.inputdata().empty()) {
                 invokeArgs = {0};
             } else {
                 int intArg = std::stoi(msg.inputdata());
@@ -694,11 +686,13 @@ namespace wasm {
             );
         } else {
             // Set up main args
-            invokeArgs = getArgcArgv(msg);
+            prepareArgcArgv(msg);
+
+            // Get the entrypoint function
             funcInstance = getMainFunction();
             funcType = IR::FunctionType(
                     {IR::ValueType::i32},
-                    {IR::ValueType::i32, IR::ValueType::i32}
+                    {}
             );
         }
 
@@ -844,10 +838,10 @@ namespace wasm {
 
         bool isMainModule = moduleInstance == nullptr;
 
-        Runtime::Instance* modulePtr = nullptr;
-        if(moduleName == "env") {
+        Runtime::Instance *modulePtr = nullptr;
+        if (moduleName == "env") {
             modulePtr = envModule;
-        } else if(moduleName == "wasi_snapshot_preview1") {
+        } else if (moduleName == "wasi_snapshot_preview1") {
             modulePtr = wasiModule;
         } else {
             throw std::runtime_error("Unrecognised module name: " + moduleName);
@@ -1186,7 +1180,7 @@ namespace wasm {
     }
 
     void WasmModule::restoreFromState(const std::string &stateKey, size_t stateSize) {
-        if(!isBound()) {
+        if (!isBound()) {
             throw std::runtime_error("Module must be bound before restoring from state");
         }
 

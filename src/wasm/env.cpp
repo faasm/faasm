@@ -10,8 +10,28 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <util/macros.h>
+#include <WAVM/WASI/WASIABI.h>
 
 namespace wasm {
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "args_sizes_get", I32, wasi_args_sizes_get, I32 argcPtr, I32 argvBufSize) {
+        util::getLogger()->debug("S - args_sizes_get - {} {}", argcPtr, argvBufSize);
+        WasmModule *module = getExecutingModule();
+
+        Runtime::memoryRef<U32>(module->defaultMemory, argcPtr) = module->getArgc();
+        Runtime::memoryRef<U32>(module->defaultMemory, argvBufSize) = module->getArgvBufferSize();
+
+        return __WASI_ESUCCESS;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "args_get", I32, wasi_args_get, I32 argvPtr, I32 argvBufPtr) {
+        util::getLogger()->debug("S - args_get - {} {}", argvPtr, argvBufPtr);
+        WasmModule *module = getExecutingModule();
+        module->writeArgvToMemory(argvPtr, argvBufPtr);
+
+        return __WASI_ESUCCESS;
+    }
+
     I32 s__gettid() {
         return FAKE_TID;
     }
@@ -43,6 +63,11 @@ namespace wasm {
     I32 s__exit(I32 a, I32 b) {
         util::getLogger()->debug("S - exit - {} {}", a, b);
         throw (wasm::WasmExitException(a));
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "proc_exit", void, wasi_proc_exit, I32 retCode) {
+        util::getLogger()->debug("S - proc_exit - {}", retCode);
+        throw (wasm::WasmExitException(retCode));
     }
 
     I32 s__sched_getaffinity(I32 pid, I32 cpuSetSize, I32 maskPtr) {

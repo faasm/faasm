@@ -27,7 +27,7 @@
 
 // Zygote function (must match faasm.h linked into the functions themselves)
 #define ZYGOTE_FUNC_NAME "_faasm_zygote"
-#define ENTRY_FUNC_NAME "main"
+#define ENTRY_FUNC_NAME "_start"
 
 using namespace WAVM;
 
@@ -160,6 +160,13 @@ namespace wasm {
         void clearCapturedStdout();
 
         I64 executeThread(WasmThreadSpec &spec);
+
+        U32 getArgc();
+
+        U32 getArgvBufferSize();
+
+        void writeArgvToMemory(U32 wasmArgvPointers, U32 wasmArgvBuffer);
+
     private:
         Runtime::GCPointer<Runtime::Instance> envModule;
         Runtime::GCPointer<Runtime::Instance> wasiModule;
@@ -196,6 +203,11 @@ namespace wasm {
         ssize_t stdoutSize;
         int getStdoutFd();
 
+        // Argc/argv
+        unsigned int argc;
+        std::vector<std::string> argv;
+        size_t argvBufferSize;
+
         void doSnapshot(std::ostream &outStream);
 
         void doRestore(std::istream &inStream);
@@ -206,7 +218,7 @@ namespace wasm {
 
         void addModuleToGOT(IR::Module &mod, bool isMainModule);
 
-        std::vector<IR::UntaggedValue> getArgcArgv(const message::Message &msg);
+        void prepareArgcArgv(const message::Message &msg);
 
         Runtime::Instance *createModuleInstance(
                 const std::string &name,
