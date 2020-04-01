@@ -109,7 +109,7 @@ def _scp_dir(user, host, dir_name):
 
     # Nuke the current
     print("Removing existing {}".format(target_dir))
-    rmtree(TOOLCHAIN_INSTALL, ignore_errors=True)
+    rmtree(target_dir, ignore_errors=True)
 
     # Do the copy
     scp_cmd = [
