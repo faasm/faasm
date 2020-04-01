@@ -15,6 +15,10 @@ __syscall5
 __syscall6
 __syscall_cp
 
+# Memory
+mmap
+munmap
+
 # Dynamic linking
 dlopen
 dlsym

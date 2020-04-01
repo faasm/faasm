@@ -66,12 +66,7 @@ namespace wasm {
         return kv;
     }
 
-    /**
-     * Note that syscall 192 is mmap2, which has the same interface as mmap except that the final argument specifies
-     * the offset into the file in 4096-byte units (instead of bytes, as is done by mmap). Given that we
-     * ignore the offset we can just treat it like mmap
-     */
-    I32 s__mmap(I32 addr, I32 length, I32 prot, I32 flags, I32 fd, I32 offset) {
+    I32 doMmap(I32 addr, I32 length, I32 prot, I32 flags, I32 fd, I32 offset) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - mmap - {} {} {} {} {} {}", addr, length, prot, flags, fd, offset);
 
@@ -99,14 +94,20 @@ namespace wasm {
         return module->mmapMemory(length);
     }
 
-    /*
-     * Although we let things call munmap, we don't actually want to bother as the memory can't
-     * be reused for that module anyway.
-     *
-     * NOTE - ENABLING THIS BREAKS MEMORY CLONING
-     * By unmapping some pages in a memory, we can't then reuse that memory when cloned.
+    /**
+     * Note that syscall 192 is mmap2, which has the same interface as mmap except that the final argument specifies
+     * the offset into the file in 4096-byte units (instead of bytes, as is done by mmap). Given that we
+     * ignore the offset we can just treat it like mmap
      */
-    I32 s__munmap(I32 addr, I32 length) {
+    I32 s__mmap(I32 addr, I32 length, I32 prot, I32 flags, I32 fd, I32 offset) {
+        return doMmap(addr, length, prot, flags, fd, offset);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "mmap", I32, wasi_mmap, I32 addr, I32 length, I32 prot, I32 flags, I32 fd, I64 offset) {
+        return doMmap(addr, length, prot, flags, fd, (I32) offset);
+    }
+
+    I32 doMunmap(I32 addr, I32 length) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - munmap - {} {} (IGNORED)", addr, length);
 
@@ -133,8 +134,22 @@ namespace wasm {
 //
 //        // Unmap the memory
 //        unmapMemoryPages(memory, addrPageBase, numPages);
-
         return 0;
+    }
+
+    /*
+     * Although we let things call munmap, we don't actually want to bother as the memory can't
+     * be reused for that module anyway.
+     *
+     * NOTE - ENABLING THIS BREAKS MEMORY CLONING
+     * By unmapping some pages in a memory, we can't then reuse that memory when cloned.
+     */
+    I32 s__munmap(I32 addr, I32 length) {
+        return doMunmap(addr, length);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "munmap", I32, wasi_munmap, I32 addr, I32 length) {
+        return doMunmap(addr, length);
     }
 
     /**
