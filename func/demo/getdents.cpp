@@ -22,7 +22,7 @@ FAASM_MAIN_FUNC() {
     struct dirent *dp;
     std::string output;
 
-    printf("ino   d_type   name\n");
+    printf("ino     d_type  name\n");
 
     int count = 0;
     while ((dp = readdir(dirp)) != NULL) {
@@ -32,7 +32,7 @@ FAASM_MAIN_FUNC() {
 
         output += name + std::string(",");
 
-        printf("%u   %u   %s\n", (unsigned int) d_ino, d_type, name);
+        printf("%u %u       %s\n", (unsigned int) d_ino, d_type, name);
         count++;
     }
 

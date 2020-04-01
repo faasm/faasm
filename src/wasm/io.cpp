@@ -37,7 +37,7 @@ namespace wasm {
         util::getLogger()->debug("S - fd_prestat_get - {} {}", fd, prestatPtr);
 
         WasmModule *module = getExecutingModule();
-        if(!module->fileDescriptorExists(fd)) {
+        if (!module->fileDescriptorExists(fd)) {
             return __WASI_EBADF;
         }
 
@@ -55,7 +55,7 @@ namespace wasm {
         util::getLogger()->debug("S - fd_prestat_dir_name - {} {}", fd, pathPtr, pathLen);
 
         WasmModule *module = getExecutingModule();
-        if(!module->fileDescriptorExists(fd)) {
+        if (!module->fileDescriptorExists(fd)) {
             return __WASI_EBADF;
         }
 
@@ -178,6 +178,7 @@ namespace wasm {
                                    U64 startCookie,
                                    I32 resSizePtr
     ) {
+        util::getLogger()->debug("S - fd_readdir - {} {} {} {} {}", fd, buf, bufLen, startCookie, resSizePtr);
 
         storage::FileDescriptor &fileDesc = getExecutingModule()->getFileDescriptor(fd);
         bool isStartCookie = startCookie == __WASI_DIRCOOKIE_START;
@@ -214,7 +215,7 @@ namespace wasm {
                         buffer + bytesCopied, bytesLeft
                 );
                 bytesCopied += direntCopySize;
-                bytesLeft = std::min<int>(0, bytesLeft - direntCopySize);
+                bytesLeft -= direntCopySize;
 
                 // Copy its name in straight after
                 int pathCopySize = util::safeCopyToBuffer(
@@ -222,9 +223,12 @@ namespace wasm {
                         buffer + bytesCopied, bytesLeft
                 );
                 bytesCopied += pathCopySize;
-                bytesLeft = std::min<int>(0, bytesLeft - pathCopySize);
+                bytesLeft -= pathCopySize;
             }
         }
+
+        // Set the result
+        Runtime::memoryRef<U32>(getExecutingModule()->defaultMemory, resSizePtr) = bytesCopied;
 
         return 0;
     }
