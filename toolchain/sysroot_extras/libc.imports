@@ -25,16 +25,26 @@ dlsym
 dlclose
 dlerror
 
-# Python-related
-realpath
-getpriority
-setpriority
+# Environment
 uname
-openpty
-forkpty
-lockf
+getpid
+getpwuid
+getuid
+getgid
 getresuid
 getresgid
+realpath
+lockf
+
+# Scheduling
+getpriority
+setpriority
+
+# Terminal utils
+openpty
+forkpty
+
+# Resource limits
 getrusage
 getrlimit
 setrlimit
@@ -43,6 +53,10 @@ setrlimit
 pthread_create
 pthread_exit
 pthread_join
+pthread_mutex_lock
+pthread_mutex_unlock
+pthread_cond_wait
+pthread_cond_broadcast
 __tls_base
 
 # WASI

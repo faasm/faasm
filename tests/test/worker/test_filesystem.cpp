@@ -46,13 +46,6 @@ namespace tests {
         execFunction(msg);
     }
 
-    TEST_CASE("Test errno with stat64", "[worker]") {
-        cleanSystem();
-
-        message::Message msg = util::messageFactory("demo", "errno");
-        execFunction(msg);
-    }
-
     TEST_CASE("Test fcntl", "[worker]") {
         cleanSystem();
         message::Message msg = util::messageFactory("demo", "fcntl");
