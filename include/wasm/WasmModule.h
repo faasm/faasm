@@ -13,6 +13,7 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Linker.h>
 #include <WAVM/Runtime/Runtime.h>
+#include <storage/FileDescriptor.h>
 
 #define ONE_MB_BYTES 1024 * 1024
 
@@ -167,6 +168,13 @@ namespace wasm {
 
         void writeArgvToMemory(U32 wasmArgvPointers, U32 wasmArgvBuffer);
 
+        bool fileDescriptorExists(int fd);
+
+        storage::FileDescriptor &getFileDescriptor(int fd);
+
+        int openFileDescriptor(int fd, const std::string &path,
+                                uint64_t rightsBase, uint64_t rightsInheriting, uint32_t openFlags);
+
     private:
         Runtime::GCPointer<Runtime::Instance> envModule;
         Runtime::GCPointer<Runtime::Instance> wasiModule;
@@ -208,17 +216,22 @@ namespace wasm {
         std::vector<std::string> argv;
         size_t argvBufferSize;
 
+        // Filesystem
+        std::unordered_map<int, storage::FileDescriptor> fileDescriptors;
+
         void doSnapshot(std::ostream &outStream);
 
         void doRestore(std::istream &inStream);
-
-        void reset();
 
         void clone(const WasmModule &other);
 
         void addModuleToGOT(IR::Module &mod, bool isMainModule);
 
         void prepareArgcArgv(const message::Message &msg);
+
+        void prepareFilesystem(const message::Message &msg);
+
+        void createPreopenedFileDescriptor(int fd, const std::string &path);
 
         Runtime::Instance *createModuleInstance(
                 const std::string &name,

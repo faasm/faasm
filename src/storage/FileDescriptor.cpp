@@ -28,8 +28,8 @@ namespace storage {
     FileDescriptor FileDescriptor::stdFdFactory(int stdFd, const std::string &devPath) {
         FileDescriptor fdStd(devPath);
         fdStd.rightsBase = __WASI_RIGHT_FD_READ | __WASI_RIGHT_FD_FDSTAT_SET_FLAGS
-                             | __WASI_RIGHT_FD_WRITE | __WASI_RIGHT_FD_FILESTAT_GET
-                             | __WASI_RIGHT_POLL_FD_READWRITE;
+                           | __WASI_RIGHT_FD_WRITE | __WASI_RIGHT_FD_FILESTAT_GET
+                           | __WASI_RIGHT_POLL_FD_READWRITE;
 
         fdStd.linuxFd = stdFd;
         return fdStd;
@@ -131,7 +131,14 @@ namespace storage {
         linuxMode = mode;
         linuxFlags = flags;
 
-        return linuxFd;
+        // TODO - remove the negation fiddles here.
+        if (linuxFd < 0) {
+            // Our "open" returns a negative errno and callers in
+            // turn expect a negative errno.
+            return -1 * errnoToWasi(-1 * linuxFd);
+        } else {
+            return linuxFd;
+        }
     }
 
     void FileDescriptor::close() {

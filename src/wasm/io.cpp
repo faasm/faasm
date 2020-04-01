@@ -32,22 +32,40 @@
  */
 
 namespace wasm {
-    static thread_local std::unordered_map<int, storage::FileDescriptor> fileDescriptors;
 
-    storage::FileDescriptor &getFileDescriptor(int fd) {
-        if (fileDescriptors.count(fd) == 0) {
-            if(fd == STDOUT_FILENO) {
-                fileDescriptors.emplace(fd, storage::FileDescriptor::stdoutFactory());
-            } else if(fd == STDIN_FILENO) {
-                fileDescriptors.emplace(fd, storage::FileDescriptor::stdinFactory());
-            } else if(fd == STDERR_FILENO) {
-                fileDescriptors.emplace(fd, storage::FileDescriptor::stderrFactory());
-            } else {
-                throw std::runtime_error("Unrecognised fd");
-            }
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_prestat_get", I32, wasi_fd_prestat_get, I32 fd, I32 prestatPtr) {
+        util::getLogger()->debug("S - fd_prestat_get - {} {}", fd, prestatPtr);
+
+        WasmModule *module = getExecutingModule();
+        if(!module->fileDescriptorExists(fd)) {
+            return __WASI_ENOENT;
         }
 
-        return fileDescriptors.at(fd);
+        storage::FileDescriptor &fileDesc = module->getFileDescriptor(fd);
+
+        auto wasiPrestat = &Runtime::memoryRef<__wasi_prestat_t>(module->defaultMemory, prestatPtr);
+        wasiPrestat->pr_type = fileDesc.wasiPreopenType;
+        wasiPrestat->u.dir.pr_name_len = fileDesc.path.size();
+
+        return __WASI_ESUCCESS;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_prestat_dir_name", I32, wasi_fd_prestat_dir_name, I32 fd, I32 pathPtr,
+                                   I32 pathLen) {
+        util::getLogger()->debug("S - fd_prestat_dir_name - {} {}", fd, pathPtr, pathLen);
+
+        WasmModule *module = getExecutingModule();
+        if(!module->fileDescriptorExists(fd)) {
+            return __WASI_ENOENT;
+        }
+
+        storage::FileDescriptor &fileDesc = module->getFileDescriptor(fd);
+
+        // Copy the path into the wasm buffer
+        char *buffer = Runtime::memoryArrayPtr<char>(module->defaultMemory, pathPtr, pathLen);
+        std::copy(fileDesc.path.begin(), fileDesc.path.end(), buffer);
+
+        return __WASI_ESUCCESS;
     }
 
     I32 doOpen(I32 pathPtr, int flags, int mode) {
@@ -77,25 +95,26 @@ namespace wasm {
                                    I32 fdFlags,
                                    I32 resFdPtr) {
 
-        // Open a new file descriptor
         const std::string pathStr = getStringFromWasm(path);
-        fileDescriptors.try_emplace(fd, pathStr);
-        storage::FileDescriptor &fileDesc = fileDescriptors.at(fd);
-        int fdRes = fileDesc.open(rightsBase, rightsInheriting, openFlags);
+        util::getLogger()->debug("S - path_open - {} {}", pathStr, pathLen);
+
+        // Open a new file descriptor
+        int fdRes = getExecutingModule()->openFileDescriptor(
+                fd, pathStr,
+                rightsBase, rightsInheriting, openFlags
+        );
 
         if (fdRes > 0) {
             // Write result to memory location
             Runtime::memoryRef<int>(getExecutingModule()->defaultMemory, resFdPtr) = fdRes;
             return __WASI_ESUCCESS;
         } else {
-            // TODO - map this to the WASI errnos
-            return fd;
+            return fdRes;
         }
     }
 
     I32 s__open(I32 pathPtr, I32 flags, I32 mode) {
-        const std::shared_ptr<spdlog::logger> logger = util::getLogger();
-        logger->debug("S - open - {} {} {}", pathPtr, flags, mode);
+        util::getLogger()->debug("S - open - {} {} {}", pathPtr, flags, mode);
         return doOpen(pathPtr, flags, mode);
     }
 
@@ -160,7 +179,7 @@ namespace wasm {
                                    I32 resSizePtr
     ) {
 
-        storage::FileDescriptor &fileDesc = getFileDescriptor(fd);
+        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileDescriptor(fd);
         bool isStartCookie = startCookie == __WASI_DIRCOOKIE_START;
 
         if (fileDesc.iterStarted && isStartCookie) {
@@ -358,7 +377,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_close", I32, wasi_fd_close, I32 fd) {
         util::getLogger()->debug("S - fd_close - {}", fd);
 
-        storage::FileDescriptor &fileDesc = getFileDescriptor(fd);
+        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileDescriptor(fd);
         fileDesc.close();
 
         return 0;
@@ -446,8 +465,8 @@ namespace wasm {
                                    I32 resBytesWrittenPtr) {
         util::getLogger()->debug("S - fd_write - {} {} {} {}", fd, iovecsPtr, iovecCount, resBytesWrittenPtr);
 
-        storage::FileDescriptor &fileDesc = getFileDescriptor(fd);
-        
+        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileDescriptor(fd);
+
         iovec *nativeIovecs = wasiIovecsToNativeIovecs(iovecsPtr, iovecCount);
         ssize_t bytesWritten = doWritev(fileDesc.getLinuxFd(), nativeIovecs, iovecCount);
 
@@ -602,7 +621,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_fdstat_get", I32, wasi_fd_fdstat_get, I32 fd, I32 statPtr) {
         util::getLogger()->debug("S - fd_fdstat_get - {} {}", fd, statPtr);
 
-        storage::FileDescriptor &fileDesc = getFileDescriptor(fd);
+        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileDescriptor(fd);
         storage::Stat fileStat = fileDesc.stat();
 
         if (fileStat.failed) {
@@ -653,7 +672,7 @@ namespace wasm {
         // Get pointer to result in memory
         uint64_t *newOffsetHostPtr = &Runtime::memoryRef<uint64_t>(getExecutingModule()->defaultMemory, newOffsetPtr);
 
-        storage::FileDescriptor &fileDesc = getFileDescriptor(fd);
+        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileDescriptor(fd);
         uint16_t wasiErrno = fileDesc.seek(offset, whence, newOffsetHostPtr);
 
         return wasiErrno;

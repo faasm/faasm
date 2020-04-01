@@ -88,6 +88,7 @@ namespace storage {
             logger->debug("Arbitrary access to local file {}", fakePath);
             fd = open(fakePath.c_str(), flags, mode);
         }
+
         // NOTE - musl expects us to return the negative errno, not -1
         if (fd < 0) {
             return -errno;

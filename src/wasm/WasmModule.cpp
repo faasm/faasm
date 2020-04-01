@@ -27,6 +27,7 @@
 #include <sys/uio.h>
 #include <util/bytes.h>
 #include <util/macros.h>
+#include <WASI/WASIPrivate.h>
 
 using namespace WAVM;
 
@@ -395,7 +396,7 @@ namespace wasm {
         // Work out the size of the buffer to hold the strings (allowing
         // for null terminators)
         argvBufferSize = 0;
-        for (const auto& thisArg : argv) {
+        for (const auto &thisArg : argv) {
             argvBufferSize += thisArg.size() + 1;
         }
     }
@@ -662,7 +663,12 @@ namespace wasm {
         std::vector<IR::UntaggedValue> invokeArgs;
         Runtime::Function *funcInstance;
         IR::FunctionType funcType;
+
+        // Prepare filesystem
+        prepareFilesystem(msg);
+
         if (funcPtr > 0) {
+            // Get the function this call is referring to
             funcInstance = getFunctionFromPtr(funcPtr);
 
             // NOTE - when we've got a function pointer, we assume the args are a single integer
@@ -688,10 +694,11 @@ namespace wasm {
             // Set up main args
             prepareArgcArgv(msg);
 
-            // Get the entrypoint function
+            // Get the entrypoint function (this is _start at the time of writing,
+            // which is () -> void)
             funcInstance = getMainFunction();
             funcType = IR::FunctionType(
-                    {IR::ValueType::i32},
+                    {},
                     {}
             );
         }
@@ -1339,4 +1346,51 @@ namespace wasm {
         return Runtime::asFunction(funcObj);
     }
 
+    void WasmModule::prepareFilesystem(const message::Message &msg) {
+        // Predefined stdin, stdout and stderr
+        fileDescriptors.emplace(STDIN_FILENO, storage::FileDescriptor::stdinFactory());
+        fileDescriptors.emplace(STDOUT_FILENO, storage::FileDescriptor::stdoutFactory());
+        fileDescriptors.emplace(STDERR_FILENO, storage::FileDescriptor::stderrFactory());
+
+        // Add roots, note that they are predefined as the file descriptors
+        // just above the stdxxx's (i.e. > 3)
+        createPreopenedFileDescriptor(3, "/");
+        createPreopenedFileDescriptor(4, ".");
+    }
+
+    void WasmModule::createPreopenedFileDescriptor(int fd, const std::string &path) {
+        // Open the descriptor as a directory
+        storage::FileDescriptor fileDesc(path);
+        fileDesc.open(
+                DIRECTORY_RIGHTS,
+                INHERITING_DIRECTORY_RIGHTS,
+                0
+        );
+
+        // Add to this module's fds
+        fileDesc.wasiPreopenType = __WASI_PREOPENTYPE_DIR;
+        fileDescriptors.emplace(fd, fileDesc);
+    }
+
+    int WasmModule::openFileDescriptor(int fd, const std::string &path,
+                            uint64_t rightsBase, uint64_t rightsInheriting, uint32_t openFlags) {
+        fileDescriptors.try_emplace(fd, path);
+        storage::FileDescriptor &fileDesc = fileDescriptors.at(fd);
+
+        int fdRes = fileDesc.open(rightsBase, rightsInheriting, openFlags);
+
+        return fdRes;
+    }
+
+    bool WasmModule::fileDescriptorExists(int fd) {
+        return fileDescriptors.count(fd) > 0;
+    }
+
+    storage::FileDescriptor &WasmModule::getFileDescriptor(int fd) {
+        if (fileDescriptors.count(fd) == 0) {
+            throw std::runtime_error("File descriptor does not exist");
+        }
+
+        return fileDescriptors.at(fd);
+    }
 }

@@ -47,6 +47,8 @@ namespace storage {
         uint64_t rightsBase;
         uint64_t rightsInheriting;
 
+        uint8_t wasiPreopenType;
+
         int getLinuxFd();
 
         void setLinuxFd(int linuxFdIn);
@@ -59,6 +61,9 @@ namespace storage {
         int linuxFd;
         int linuxMode;
         int linuxFlags;
+    };
+
+    class FileDescriptorNotFoundException : public std::exception {
     };
 }
 
