@@ -3,6 +3,18 @@ _Exit
 exit
 abort
 puts
+fork
+kill
+wait
+execv
+execve
+raise
+ttyname
+pipe
+getpwnam
+
+# Unknown
+fiprintf
 
 # Musl syscall interface
 __syscall
@@ -35,6 +47,14 @@ getresuid
 getresgid
 realpath
 lockf
+getcwd
+fchdir
+chdir
+__h_errno_location
+system
+getegid
+geteuid
+getppid
 
 # Scheduling
 getpriority
@@ -53,11 +73,69 @@ setrlimit
 pthread_create
 pthread_exit
 pthread_join
+pthread_mutex_init
 pthread_mutex_lock
 pthread_mutex_unlock
+pthread_mutex_destroy
+pthread_attr_init
+pthread_attr_setstacksize
+pthread_attr_destroy
+pthread_detach
+pthread_self
+pthread_mutex_trylock
+pthread_key_create
+pthread_key_delete
+pthread_setspecific
+pthread_getspecific
 pthread_cond_wait
 pthread_cond_broadcast
+pthread_cond_destroy
+pthread_cond_signal
+pthread_cond_timedwait
+pthread_cond_init
 __tls_base
+
+# Signals
+signal
+
+# Sockets
+socket
+bind
+connect
+accept
+getsockname
+listen
+sendto
+recvfrom
+setsockopt
+getsockopt
+getservbyname
+gethostbyaddr
+getservbyport
+gethostname
+gethostbyname
+getprotobyname
+inet_addr
+inet_ntoa
+
+# Messages
+bindtextdomain
+textdomain
+dcgettext
+dgettext
+gettext
+
+# Non-WASI filesystem 
+dup
+chmod
+umask
+
+# Non-WASI timing
+utime
+
+# C++ exceptions
+__cxa_begin_catch
+
 
 # WASI
 __wasi_args_get

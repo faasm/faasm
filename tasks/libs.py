@@ -153,7 +153,7 @@ def fake(ctx, clean=False):
     call("make install", shell=True, cwd=build_dir)
 
     # Copy shared object into place
-    sysroot_files = join(SYSROOT_INSTALL_PREFIX, "lib", "libfake*.so")
+    sysroot_files = join(SYSROOT_INSTALL_PREFIX, "lib", "wasm32-wasi", "libfake*.so")
 
     runtime_lib_dir = join(FAASM_RUNTIME_ROOT, "lib")
     if not exists(runtime_lib_dir):
