@@ -29,8 +29,10 @@
 #define DYNAMIC_MODULE_STACK_SIZE 2 * ONE_MB_BYTES
 #define DYNAMIC_MODULE_HEAP_PAGES 480
 
+// Special known function names
 // Zygote function (must match faasm.h linked into the functions themselves)
 #define ZYGOTE_FUNC_NAME "_faasm_zygote"
+#define WASM_CTORS_FUNC_NAME "__wasm_call_ctors"
 #define ENTRY_FUNC_NAME "_start"
 
 using namespace WAVM;
@@ -99,6 +101,8 @@ namespace wasm {
         Runtime::Function *getMainFunction();
 
         Runtime::Function *getDefaultZygoteFunction();
+
+        Runtime::Function *getWasmConstructorsFunction();
 
         Runtime::Function *getFunctionFromPtr(int funcPtr);
 

@@ -3,8 +3,8 @@
 namespace wasm {
     WasmEnvironment::WasmEnvironment() {
         vars = {
-                "PYTHONHOME=/lib",
-                "PYTHON_PATH=/lib",
+                "PYTHONHOME=/work",
+                "PYTHON_PATH=/work",
                 "PYTHONHASHSEED=0",
                 "PYTHONNOUSERSITE=on",
                 "LC_CTYPE=en_GB.UTF-8",
