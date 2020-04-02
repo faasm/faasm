@@ -4,10 +4,10 @@
 #include <sys/time.h>
 
 #include <WAVM/Runtime/Intrinsics.h>
+#include <WAVM/WASI/WASIABI.h>
+#include <util/timing.h>
 
 namespace wasm {
-
-
     //TODO - make timing functions more secure
     I32 s__clock_gettime(I32 clockId, I32 timespecPtr) {
         util::getLogger()->debug("S - clock_gettime - {} {}", clockId, timespecPtr);
@@ -62,8 +62,24 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "clock_time_get", I32, wasi_clock_time_get, I32 a, I64 b,
-                                   I32 c) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "clock_time_get", I32, wasi_clock_time_get, I32 clockId, I64 precision, I32 resultPtr) {
+        util::getLogger()->debug("S - clock_time_get - {} {} {}", clockId, precision, resultPtr);
+
+        timespec ts{};
+        int retVal = clock_gettime(clockId, &ts);
+        if (retVal < 0) {
+            if(EINVAL) {
+                return __WASI_EINVAL;
+            } else {
+                throw std::runtime_error("Unexpected clock error");
+            }
+        }
+
+        uint64_t result = util::timespecToNanos(&ts);
+        Runtime::memoryRef<uint64_t>(getExecutingModule()->defaultMemory, resultPtr) = result;
+
+        return __WASI_ESUCCESS;
+    }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "clock_res_get", I32, wasi_clock_res_get, I32 a, I32 b) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);

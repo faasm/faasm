@@ -105,6 +105,9 @@ namespace wasm {
         boundFunction = other.boundFunction;
         boundIsTypescript = other.boundIsTypescript;
 
+        // Filesystem
+        filesystem = other.filesystem;
+
         // Do not copy over any captured stdout
         stdoutMemFd = 0;
         stdoutSize = 0;
@@ -336,6 +339,9 @@ namespace wasm {
         defaultMemory = Runtime::getDefaultMemory(moduleInstance);
         defaultTable = Runtime::getDefaultTable(moduleInstance);
 
+        // Prepare the filesystem
+        filesystem.prepareFilesystem(msg);
+
         // Get and execute zygote function
         if (executeZygote) {
             Runtime::Function *zygoteFunc = getDefaultZygoteFunction();
@@ -402,24 +408,32 @@ namespace wasm {
         }
     }
 
-    void WasmModule::writeArgvToMemory(U32 wasmArgvPointers, U32 wasmArgvBuffer) {
+    void WasmModule::writeStringArrayToMemory(const std::vector<std::string> &strings, U32 strPoitners, U32 strBuffer) {
         // Iterate through values, putting them in memory
-        U32 wasmNextBuffer = wasmArgvBuffer;
-        U32 wasmNextPointer = wasmArgvPointers;
+        U32 strNextBuffer = strBuffer;
+        U32 strNextPointer = strPoitners;
 
-        for (const auto &thisArg : argv) {
+        for (const auto &thisStr : strings) {
             // Write this string to the buffer
-            U8 *nextBuffer = &Runtime::memoryRef<U8>(defaultMemory, wasmNextBuffer);
-            std::copy(thisArg.begin(), thisArg.end(), nextBuffer);
+            U8 *nextBuffer = &Runtime::memoryRef<U8>(defaultMemory, strNextBuffer);
+            std::copy(thisStr.begin(), thisStr.end(), nextBuffer);
 
             // Write the pointer
-            U32 *nextPointer = &Runtime::memoryRef<U32>(defaultMemory, wasmNextPointer);
-            *nextPointer = wasmNextBuffer;
+            U32 *nextPointer = &Runtime::memoryRef<U32>(defaultMemory, strNextPointer);
+            *nextPointer = strNextBuffer;
 
             // Move everything along , allowing space for a null terminator on the string
-            wasmNextBuffer += thisArg.size() + 1;
-            wasmNextPointer += sizeof(U32);
+            strNextBuffer += thisStr.size() + 1;
+            strNextPointer += sizeof(U32);
         }
+    }
+
+    void WasmModule::writeArgvToMemory(U32 wasmArgvPointers, U32 wasmArgvBuffer) {
+        writeStringArrayToMemory(argv, wasmArgvPointers, wasmArgvBuffer);
+    }
+
+    void WasmModule::writeWasmEnvToMemory(U32 envPointers, U32 envBuffer) {
+        writeStringArrayToMemory(wasmEnvironment.getVars(), envPointers, envBuffer);
     }
 
     Runtime::Instance *
@@ -664,9 +678,6 @@ namespace wasm {
         std::vector<IR::UntaggedValue> invokeArgs;
         Runtime::Function *funcInstance;
         IR::FunctionType funcType;
-
-        // Prepare filesystem
-        prepareFilesystem(msg);
 
         if (funcPtr > 0) {
             // Get the function this call is referring to
@@ -1347,71 +1358,11 @@ namespace wasm {
         return Runtime::asFunction(funcObj);
     }
 
-    void WasmModule::prepareFilesystem(const message::Message &msg) {
-        // Predefined stdin, stdout and stderr
-        fileDescriptors.emplace(STDIN_FILENO, storage::FileDescriptor::stdinFactory());
-        fileDescriptors.emplace(STDOUT_FILENO, storage::FileDescriptor::stdoutFactory());
-        fileDescriptors.emplace(STDERR_FILENO, storage::FileDescriptor::stderrFactory());
-
-        // Add roots, note that they are predefined as the file descriptors
-        // just above the stdxxx's (i.e. > 3)
-        createPreopenedFileDescriptor(3, "/");
-        createPreopenedFileDescriptor(4, ".");
-
-        // Set the starting point for subsequent file descriptors
-        nextFd = 5;
+    storage::FileSystem &WasmModule::getFileSystem() {
+        return filesystem;
     }
 
-    void WasmModule::createPreopenedFileDescriptor(int fd, const std::string &path) {
-        // Open the descriptor as a directory
-        storage::FileDescriptor fileDesc(path);
-        fileDesc.path_open(
-                DIRECTORY_RIGHTS,
-                INHERITING_DIRECTORY_RIGHTS,
-                0
-        );
-
-        // Add to this module's fds
-        fileDesc.wasiPreopenType = __WASI_PREOPENTYPE_DIR;
-        fileDescriptors.emplace(fd, fileDesc);
-    }
-
-    int WasmModule::openFileDescriptor(int rootFd, const std::string &path,
-                            uint64_t rightsBase, uint64_t rightsInheriting, uint32_t openFlags) {
-        storage::FileDescriptor &rootFileDesc = getExecutingModule()->getFileDescriptor(rootFd);
-
-        std::string fullPath;
-        if(rootFileDesc.path == ".") {
-            fullPath = path;
-        } else {
-            boost::filesystem::path joinedPath(rootFileDesc.path);
-            joinedPath.append(path);
-            fullPath = std::string(joinedPath.string());
-        }
-
-        // Assign a new file descriptor
-        int thisFd = nextFd;
-        nextFd++;
-        fileDescriptors.try_emplace(thisFd, fullPath);
-        storage::FileDescriptor &fileDesc = fileDescriptors.at(thisFd);
-
-        int linuxFd = fileDesc.path_open(rightsBase, rightsInheriting, openFlags);
-        if(linuxFd < 0) {
-            return linuxFd;
-        }
-
-        return thisFd;
-    }
-
-    bool WasmModule::fileDescriptorExists(int fd) {
-        return fileDescriptors.count(fd) > 0;
-    }
-
-    storage::FileDescriptor &WasmModule::getFileDescriptor(int fd) {
-        if (fileDescriptors.count(fd) == 0) {
-            throw std::runtime_error("File descriptor does not exist");
-        }
-
-        return fileDescriptors.at(fd);
+    wasm::WasmEnvironment &WasmModule::getWasmEnvironment() {
+        return wasmEnvironment;
     }
 }

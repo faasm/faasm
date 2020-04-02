@@ -170,6 +170,28 @@ namespace wasm {
         return 0;
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "environ_sizes_get", I32, wasi_environ_sizes_get,
+                                   I32 environCountPtr, I32 environBuffSizePtr) {
+        util::getLogger()->debug("S - environ_sizes_get - {} {}", environCountPtr, environBuffSizePtr);
+
+        WasmModule *module = getExecutingModule();
+        WasmEnvironment &wasmEnv = module->getWasmEnvironment();
+
+        Runtime::memoryRef<U32>(module->defaultMemory, environCountPtr) = wasmEnv.getEnvCount();
+        Runtime::memoryRef<U32>(module->defaultMemory, environBuffSizePtr) = wasmEnv.getEnvBufferSize();
+
+        return __WASI_ESUCCESS;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "environ_get", I32, wasi_environ_get, I32 environPtrs, I32 environBuf) {
+        util::getLogger()->debug("S - environ_get - {} {}", environPtrs, environBuf);
+
+        WasmModule *module = getExecutingModule();
+        module->writeWasmEnvToMemory(environPtrs, environBuf);
+
+        return __WASI_ESUCCESS;
+    }
+
 
     // Random
     I32 s__getrandom(I32 bufPtr, I32 bufLen, I32 flags) {
@@ -180,6 +202,10 @@ namespace wasm {
         // TODO - should we obscure this somehow?
         return getrandom(hostBuf, bufLen, flags);
     }
+
+    // --------------------------
+    // Unsupported
+    // --------------------------
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__h_errno_location", I32, __h_errno_location) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
@@ -199,13 +225,6 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getpwnam", I32, getpwnam, I32 a) {
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "environ_sizes_get", I32, wasi_environ_sizes_get, I32 a,
-                                   I32 b) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "environ_get", I32, wasi_environ_get, I32 a, I32 b) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 

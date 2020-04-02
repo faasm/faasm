@@ -1,5 +1,7 @@
 #pragma once
 
+#include "WasmEnvironment.h"
+
 #include <util/logging.h>
 #include <state/State.h>
 #include <proto/faasm.pb.h>
@@ -13,7 +15,8 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Linker.h>
 #include <WAVM/Runtime/Runtime.h>
-#include <storage/FileDescriptor.h>
+
+#include <storage/FileSystem.h>
 
 #define ONE_MB_BYTES 1024 * 1024
 
@@ -154,7 +157,7 @@ namespace wasm {
 
         ssize_t captureStdout(const struct iovec *iovecs, int iovecCount);
 
-        ssize_t captureStdout(const void* buffer);
+        ssize_t captureStdout(const void *buffer);
 
         std::string getCapturedStdout();
 
@@ -168,12 +171,11 @@ namespace wasm {
 
         void writeArgvToMemory(U32 wasmArgvPointers, U32 wasmArgvBuffer);
 
-        bool fileDescriptorExists(int fd);
+        void writeWasmEnvToMemory(U32 envPointers, U32 envBuffer);
 
-        storage::FileDescriptor &getFileDescriptor(int fd);
+        storage::FileSystem &getFileSystem();
 
-        int openFileDescriptor(int rootFd, const std::string &path,
-                                uint64_t rightsBase, uint64_t rightsInheriting, uint32_t openFlags);
+        WasmEnvironment &getWasmEnvironment();
 
     private:
         Runtime::GCPointer<Runtime::Instance> envModule;
@@ -209,6 +211,7 @@ namespace wasm {
         // Output buffer
         int stdoutMemFd;
         ssize_t stdoutSize;
+
         int getStdoutFd();
 
         // Argc/argv
@@ -216,9 +219,13 @@ namespace wasm {
         std::vector<std::string> argv;
         size_t argvBufferSize;
 
+        void writeStringArrayToMemory(const std::vector<std::string> &strings, U32 strPoitners, U32 strBuffer);
+
         // Filesystem
-        int nextFd;
-        std::unordered_map<int, storage::FileDescriptor> fileDescriptors;
+        storage::FileSystem filesystem;
+
+        // Environment
+        WasmEnvironment wasmEnvironment;
 
         void doSnapshot(std::ostream &outStream);
 
@@ -229,10 +236,6 @@ namespace wasm {
         void addModuleToGOT(IR::Module &mod, bool isMainModule);
 
         void prepareArgcArgv(const message::Message &msg);
-
-        void prepareFilesystem(const message::Message &msg);
-
-        void createPreopenedFileDescriptor(int fd, const std::string &path);
 
         Runtime::Instance *createModuleInstance(
                 const std::string &name,

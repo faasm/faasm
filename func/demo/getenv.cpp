@@ -5,6 +5,16 @@
 #include <string.h>
 
 FAASM_MAIN_FUNC() {
+    // Check predefined var
+    const char *expectedCtype = "en_GB.UTF-8";
+    char *preset = getenv("LC_CTYPE");
+    if (strcmp(preset, expectedCtype) == 0) {
+        printf("LC_CTYPE as expected\n");
+    } else {
+        printf("LC_CTYPE not as expected (got %s, expected %s)\n", preset, expectedCtype);
+        return 1;
+    }
+
     const char *varName = "FOOBAR";
     char *unset = getenv(varName);
 

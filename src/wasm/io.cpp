@@ -37,11 +37,11 @@ namespace wasm {
         util::getLogger()->debug("S - fd_prestat_get - {} {}", fd, prestatPtr);
 
         WasmModule *module = getExecutingModule();
-        if (!module->fileDescriptorExists(fd)) {
+        if (!module->getFileSystem().fileDescriptorExists(fd)) {
             return __WASI_EBADF;
         }
 
-        storage::FileDescriptor &fileDesc = module->getFileDescriptor(fd);
+        storage::FileDescriptor &fileDesc = module->getFileSystem().getFileDescriptor(fd);
 
         auto wasiPrestat = &Runtime::memoryRef<__wasi_prestat_t>(module->defaultMemory, prestatPtr);
         wasiPrestat->pr_type = fileDesc.wasiPreopenType;
@@ -55,11 +55,11 @@ namespace wasm {
         util::getLogger()->debug("S - fd_prestat_dir_name - {} {}", fd, pathPtr, pathLen);
 
         WasmModule *module = getExecutingModule();
-        if (!module->fileDescriptorExists(fd)) {
+        if (!module->getFileSystem().fileDescriptorExists(fd)) {
             return __WASI_EBADF;
         }
 
-        storage::FileDescriptor &fileDesc = module->getFileDescriptor(fd);
+        storage::FileDescriptor &fileDesc = module->getFileSystem().getFileDescriptor(fd);
 
         // Copy the path into the wasm buffer
         char *buffer = Runtime::memoryArrayPtr<char>(module->defaultMemory, pathPtr, pathLen);
@@ -99,7 +99,7 @@ namespace wasm {
         util::getLogger()->debug("S - path_open - {} {} {}", rootFd, pathStr, pathLen);
 
         // Open a new file descriptor
-        int fdRes = getExecutingModule()->openFileDescriptor(
+        int fdRes = getExecutingModule()->getFileSystem().openFileDescriptor(
                 rootFd, pathStr,
                 rightsBase, rightsInheriting, openFlags
         );
@@ -180,7 +180,7 @@ namespace wasm {
     ) {
         util::getLogger()->debug("S - fd_readdir - {} {} {} {} {}", fd, buf, bufLen, startCookie, resSizePtr);
 
-        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileDescriptor(fd);
+        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileSystem().getFileDescriptor(fd);
         bool isStartCookie = startCookie == __WASI_DIRCOOKIE_START;
 
         if (fileDesc.iterStarted && isStartCookie) {
@@ -381,7 +381,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_close", I32, wasi_fd_close, I32 fd) {
         util::getLogger()->debug("S - fd_close - {}", fd);
 
-        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileDescriptor(fd);
+        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileSystem().getFileDescriptor(fd);
         fileDesc.close();
 
         return 0;
@@ -469,7 +469,7 @@ namespace wasm {
                                    I32 resBytesWrittenPtr) {
         util::getLogger()->debug("S - fd_write - {} {} {} {}", fd, iovecsPtr, iovecCount, resBytesWrittenPtr);
 
-        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileDescriptor(fd);
+        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileSystem().getFileDescriptor(fd);
 
         iovec *nativeIovecs = wasiIovecsToNativeIovecs(iovecsPtr, iovecCount);
         ssize_t bytesWritten = doWritev(fileDesc.getLinuxFd(), nativeIovecs, iovecCount);
@@ -625,7 +625,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_fdstat_get", I32, wasi_fd_fdstat_get, I32 fd, I32 statPtr) {
         util::getLogger()->debug("S - fd_fdstat_get - {} {}", fd, statPtr);
 
-        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileDescriptor(fd);
+        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileSystem().getFileDescriptor(fd);
         storage::Stat fileStat = fileDesc.stat();
 
         if (fileStat.failed) {
@@ -645,7 +645,7 @@ namespace wasm {
 
     I32 doFileStat(int fd, const std::string &relativePath, I32 statPtr) {
         WasmModule *module = getExecutingModule();
-        storage::FileDescriptor &fileDesc = module->getFileDescriptor(fd);
+        storage::FileDescriptor &fileDesc = module->getFileSystem().getFileDescriptor(fd);
         auto wasiFileStat = &Runtime::memoryRef<__wasi_filestat_t>(module->defaultMemory, statPtr);
 
         storage::Stat fileStat = fileDesc.stat(relativePath);
@@ -712,7 +712,7 @@ namespace wasm {
         // Get pointer to result in memory
         uint64_t *newOffsetHostPtr = &Runtime::memoryRef<uint64_t>(getExecutingModule()->defaultMemory, newOffsetPtr);
 
-        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileDescriptor(fd);
+        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileSystem().getFileDescriptor(fd);
         uint16_t wasiErrno = fileDesc.seek(offset, whence, newOffsetHostPtr);
 
         return wasiErrno;
