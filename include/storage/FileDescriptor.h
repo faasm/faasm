@@ -44,6 +44,8 @@ namespace storage {
 
         Stat stat(const std::string &relativePath = "");
 
+        ssize_t readLink(const std::string &relativePath, char* buffer, size_t bufferLen);
+
         int path_open(uint64_t rightsBaseIn, uint64_t rightsInheritingIn, uint32_t openFlags);
 
         void close();
@@ -64,6 +66,8 @@ namespace storage {
         void setLinuxFd(int linuxFdIn);
     private:
         static FileDescriptor stdFdFactory(int stdFd, const std::string &devPath);
+
+        std::string absPath(const std::string &relativePath);
 
         DIR *dirPtr;
         struct dirent *direntPtr;

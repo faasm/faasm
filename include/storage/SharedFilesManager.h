@@ -44,6 +44,8 @@ namespace storage {
 
         int statFile(const std::string &path, struct stat64 *statPtr);
 
+        ssize_t readLink(const std::string &path, char* buffer, size_t bufLen);
+
         void clear();
 
     private:

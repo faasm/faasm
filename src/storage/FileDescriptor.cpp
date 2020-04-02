@@ -151,6 +151,19 @@ namespace storage {
 
     }
 
+    std::string FileDescriptor::absPath(const std::string &relativePath) {
+        std::string res;
+        if(relativePath.empty()) {
+            res = path;
+        } else {
+            boost::filesystem::path joinedPath(path);
+            joinedPath.append(relativePath);
+            res = joinedPath.string();
+        }
+
+        return res;
+    }
+
     Stat FileDescriptor::stat(const std::string &relativePath) {
         struct stat64 nativeStat{};
 
@@ -161,15 +174,8 @@ namespace storage {
                 statErrno = errno;
             }
         } else {
-            std::string statPath;
-            if(relativePath.empty()) {
-                statPath = path;
-            } else {
-                boost::filesystem::path joinedPath(path);
-                joinedPath.append(relativePath);
-                statPath = joinedPath.string();
-            }
-
+            std::string statPath = absPath(relativePath);
+            
             storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
             int result = sfm.statFile(statPath, &nativeStat);
             if(result < 0) {
@@ -213,6 +219,14 @@ namespace storage {
         s.st_ctim = util::timespecToNanos(&nativeStat.st_ctim);
 
         return s;
+    }
+
+    ssize_t FileDescriptor::readLink(const std::string &relativePath, char* buffer, size_t bufferLen) {
+        std::string linkPath = absPath(relativePath);
+
+        SharedFilesManager &sfm = storage::getSharedFilesManager();
+        ssize_t bytesRead = sfm.readLink(linkPath, buffer, bufferLen);
+        return bytesRead;
     }
 
     uint16_t FileDescriptor::seek(uint64_t offset, int whence, uint64_t *newOffset) {

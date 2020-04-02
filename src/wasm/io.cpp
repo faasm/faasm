@@ -335,22 +335,6 @@ namespace wasm {
         return (I32) bytesRead;
     }
 
-    /**
-    * readlink is ok for certain special cases
-    */
-    I32 s__readlink(I32 pathPtr, I32 bufPtr, I32 bufLen) {
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        char *path = &Runtime::memoryRef<char>(memoryPtr, (Uptr) pathPtr);
-
-        util::getLogger()->debug("S - readlink - {} {} {}", path, bufPtr, bufLen);
-
-        char *buf = Runtime::memoryArrayPtr<char>(memoryPtr, (Uptr) bufPtr, (Uptr) bufLen);
-
-        ssize_t bytesRead = readlink(path, buf, (size_t) bufLen);
-
-        return (I32) bytesRead;
-    }
-
     I32 s__close(I32 fd) {
         util::getLogger()->debug("S - close - {}", fd);
 
@@ -659,9 +643,9 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_filestat_get", I32, wasi_path_filestat_get,
                                    I32 fd, I32 lookupFlags, I32 path, I32 pathLen, I32 statPtr) {
-        util::getLogger()->debug("S - path_filestat_get - {} {} {} {} {}", fd, lookupFlags, path, pathLen, statPtr);
-
         const std::string &pathStr = getStringFromWasm(path);
+        util::getLogger()->debug("S - path_filestat_get - {} {} {} {}", fd, lookupFlags, pathStr, statPtr);
+
         return doFileStat(fd, pathStr, statPtr);
     }
 
@@ -750,6 +734,38 @@ namespace wasm {
         return 0;
     }
 
+    I32 s__readlink(I32 pathPtr, I32 bufPtr, I32 bufLen) {
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        char *path = &Runtime::memoryRef<char>(memoryPtr, (Uptr) pathPtr);
+
+        util::getLogger()->debug("S - readlink - {} {} {}", path, bufPtr, bufLen);
+
+        char *buf = Runtime::memoryArrayPtr<char>(memoryPtr, (Uptr) bufPtr, (Uptr) bufLen);
+
+        ssize_t bytesRead = readlink(path, buf, (size_t) bufLen);
+
+        return (I32) bytesRead;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_readlink", I32, wasi_path_readlink, I32 rootFd, I32 pathPtr,
+                                   I32 pathLen, I32 buffPtr, I32 buffLen, I32 resBytesUsed) {
+        std::string pathStr = getStringFromWasm(pathPtr);
+        util::getLogger()->debug("S - path_readlink - {} {} {} {} {}", rootFd, pathStr, buffPtr, buffLen, resBytesUsed);
+
+        WasmModule *module = getExecutingModule();
+        storage::FileDescriptor &fileDesc = module->getFileSystem().getFileDescriptor(rootFd);
+
+        char *buffer = Runtime::memoryArrayPtr<char>(module->defaultMemory, buffPtr, buffLen);
+        ssize_t readBytes = fileDesc.readLink(pathStr, buffer, buffLen);
+        Runtime::memoryRef<U32>(module->defaultMemory, resBytesUsed) = (U32) readBytes;
+
+        return __WASI_ESUCCESS;
+    }
+
+    // -----------------------------
+    // Unsupported
+    // -----------------------------
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "umask", I32, umask, I32 a) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
@@ -813,9 +829,6 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_create_directory", I32, wasi_path_create_directory, I32 a, I32 b,
                                    I32 c) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_readlink", I32, wasi_path_readlink, I32 a, I32 b, I32 c, I32 d, I32 e,
-                                   I32 f) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_symlink", I32, wasi_path_symlink, I32 a, I32 b, I32 c, I32 d,
                                    I32 e) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
