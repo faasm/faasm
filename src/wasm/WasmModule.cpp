@@ -359,6 +359,8 @@ namespace wasm {
                 logger->error("{} for {}/{} failed with return code {}",
                               WASM_CTORS_FUNC_NAME, boundUser, boundFunction, result.i32);
                 throw std::runtime_error(std::string(WASM_CTORS_FUNC_NAME) + " failed");
+            } else {
+                logger->debug("Successfully executed {} for {}/{}", WASM_CTORS_FUNC_NAME, boundUser, boundFunction);
             }
         }
 
@@ -378,6 +380,8 @@ namespace wasm {
                 if (result.i32 != 0) {
                     logger->error("Zygote for {}/{} failed with return code {}", boundUser, boundFunction, result.i32);
                     throw std::runtime_error("Zygote failed");
+                } else {
+                    logger->debug("Successfully executed zygote for {}/{}", boundUser, boundFunction);
                 }
             }
         }

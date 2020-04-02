@@ -85,9 +85,17 @@ def _build_faasm_lib(dir_name, clean, verbose):
     build_cmd_str = " ".join(build_cmd)
     print(build_cmd_str)
 
-    call(build_cmd_str, shell=True, cwd=build_dir)
-    call("{} make".format(verbose_str), shell=True, cwd=build_dir)
-    call("make install", shell=True, cwd=build_dir)
+    res = call(build_cmd_str, shell=True, cwd=build_dir)
+    if res != 0:
+        exit(1)
+
+    res = call("{} make".format(verbose_str), shell=True, cwd=build_dir)
+    if res != 0:
+        exit(1)
+
+    res = call("make install", shell=True, cwd=build_dir)
+    if res != 0:
+        exit(1)
 
 
 @task
@@ -276,8 +284,13 @@ def eigen(ctx, verbose=False):
     ]
     cmd_string = " ".join(cmd)
 
-    call(cmd_string, shell=True, cwd=build_dir)
-    call("{} make install".format(verbose_string), shell=True, cwd=build_dir)
+    res = call(cmd_string, shell=True, cwd=build_dir)
+    if res != 0:
+        exit(1)
+
+    res = call("{} make install".format(verbose_string), shell=True, cwd=build_dir)
+    if res != 0:
+        exit(1)
 
 
 @task
