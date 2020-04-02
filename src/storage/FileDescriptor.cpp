@@ -11,6 +11,8 @@
 #include <WAVM/WASI/WASIABI.h>
 #include <fcntl.h>
 
+#define RIGHTS_WRITE __WASI_RIGHT_FD_DATASYNC | __WASI_RIGHT_FD_WRITE | __WASI_RIGHT_FD_ALLOCATE | __WASI_RIGHT_FD_FILESTAT_SET_SIZE
+#define RIGHTS_READ __WASI_RIGHT_FD_READDIR | __WASI_RIGHT_FD_READ
 
 namespace storage {
     uint16_t errnoToWasi(int errnoIn) {
@@ -56,7 +58,8 @@ namespace storage {
     FileDescriptor::FileDescriptor(std::string pathIn) : path(std::move(pathIn)),
                                                          iterStarted(false), iterFinished(false),
                                                          dirPtr(nullptr), direntPtr(nullptr),
-                                                         linuxFd(-1), linuxMode(-1), linuxFlags(-1) {
+                                                         linuxFd(-1), linuxMode(-1), linuxFlags(-1), linuxErrno(0),
+                                                         wasiErrno(0) {
 
     }
 
@@ -93,58 +96,55 @@ namespace storage {
         return d;
     }
 
-    int FileDescriptor::path_open(uint64_t rightsBaseIn, uint64_t rightsInheritingIn, uint32_t openFlags) {
+    bool FileDescriptor::path_open(uint64_t rightsBaseIn, uint64_t rightsInheritingIn, uint32_t openFlags) {
         rightsBase = rightsBaseIn;
         rightsInheriting = rightsInheritingIn;
 
-        // Hacked from WAVM's WASIFile to ensure things have enough permissions not to break.
-        const bool readDir = rightsBase & __WASI_RIGHT_FD_READDIR;
-        const bool readFile = rightsBase & __WASI_RIGHT_FD_READDIR;
+        // Work out read/write
+        const bool rightsRead = rightsBase & RIGHTS_READ;
+        const bool rightsWrite = rightsBase & RIGHTS_WRITE;
 
-        const bool write = rightsBase & (__WASI_RIGHT_FD_DATASYNC | __WASI_RIGHT_FD_WRITE
-                                         | __WASI_RIGHT_FD_ALLOCATE | __WASI_RIGHT_FD_FILESTAT_SET_SIZE);
-
-        unsigned int osReadWrite = 0;
-        if (readFile && write) {
-            osReadWrite = O_RDWR;
-        } else if (readFile || readDir) {
-            osReadWrite = O_RDONLY;
-        } else if (write && !readFile) {
-            osReadWrite = O_WRONLY;
+        int readWrite = 0;
+        if (rightsRead && rightsWrite) {
+            readWrite = O_RDWR;
+        } else if (rightsRead) {
+            readWrite = O_RDONLY;
+        } else if (!rightsRead && rightsWrite) {
+            readWrite = O_WRONLY;
         } else {
             throw std::runtime_error("Unable to detect valid file flags");
         }
 
-        uint16_t openFlagsCast = (uint16_t) openFlags;
-        unsigned int osExtra = 0;
-        if (openFlagsCast & (__WASI_O_CREAT | __WASI_O_DIRECTORY)) {
-            osExtra = O_CREAT | O_DIRECTORY;
-        } else if (openFlagsCast & (__WASI_O_CREAT | __WASI_O_TRUNC)) {
-            osExtra = O_CREAT | O_TRUNC;
-        } else if (openFlagsCast & (__WASI_O_CREAT | __WASI_O_EXCL)) {
-            osExtra = O_CREAT | O_EXCL;
+        auto openFlagsCast = (uint16_t) openFlags;
+        if (openFlagsCast & __WASI_O_CREAT) {
+            linuxFlags = readWrite | O_CREAT;
+            linuxMode = S_IRWXU | S_IRGRP | S_IROTH;
+        }
+        if (openFlagsCast & __WASI_O_DIRECTORY) {
+            // Note - we can only pass O_RDONLY with O_DIRECTORY
+            linuxFlags = O_RDONLY | O_DIRECTORY;
+            linuxMode = 0;
+        } else if (openFlagsCast & __WASI_O_TRUNC) {
+            linuxFlags = readWrite | O_TRUNC;
+            linuxMode = 0;
+        } else if (openFlagsCast & __WASI_O_EXCL) {
+            linuxFlags = readWrite | O_EXCL;
+            linuxMode = 0;
         } else if (openFlagsCast != 0) {
             throw std::runtime_error("Unrecognised flags on opening file");
-        }
-
-        linuxFlags = osReadWrite | osExtra;
-        linuxMode = 0;
-        if (openFlagsCast & __WASI_O_CREAT) {
-            // Set create mode
-            linuxMode = S_IRWXU | S_IRGRP | S_IROTH;
         }
 
         storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
         linuxFd = sfm.openFile(path, linuxFlags, linuxMode);
 
-        // TODO - remove the negation fiddles here.
+        // The function above returns a negative errno
         if (linuxFd < 0) {
-            // Our "open" returns a negative errno and callers in
-            // turn expect a negative errno.
-            return -1 * errnoToWasi(-1 * linuxFd);
-        } else {
-            return linuxFd;
+            linuxErrno = linuxFd * -1;
+            wasiErrno = errnoToWasi(linuxErrno);
+            return false;
         }
+
+        return true;
     }
 
     void FileDescriptor::close() {
@@ -153,7 +153,7 @@ namespace storage {
 
     std::string FileDescriptor::absPath(const std::string &relativePath) {
         std::string res;
-        if(relativePath.empty()) {
+        if (relativePath.empty()) {
             res = path;
         } else {
             boost::filesystem::path joinedPath(path);
@@ -170,15 +170,15 @@ namespace storage {
         int statErrno = 0;
         if (linuxFd == STDOUT_FILENO || linuxFd == STDIN_FILENO || linuxFd == STDERR_FILENO) {
             int result = ::fstat64(linuxFd, &nativeStat);
-            if(result < 0) {
+            if (result < 0) {
                 statErrno = errno;
             }
         } else {
             std::string statPath = absPath(relativePath);
-            
+
             storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
             int result = sfm.statFile(statPath, &nativeStat);
-            if(result < 0) {
+            if (result < 0) {
                 statErrno = -1 * result;
             }
         }
@@ -221,7 +221,7 @@ namespace storage {
         return s;
     }
 
-    ssize_t FileDescriptor::readLink(const std::string &relativePath, char* buffer, size_t bufferLen) {
+    ssize_t FileDescriptor::readLink(const std::string &relativePath, char *buffer, size_t bufferLen) {
         std::string linkPath = absPath(relativePath);
 
         SharedFilesManager &sfm = storage::getSharedFilesManager();
@@ -258,5 +258,13 @@ namespace storage {
 
     void FileDescriptor::setLinuxFd(int linuxFdIn) {
         linuxFd = linuxFdIn;
+    }
+
+    int FileDescriptor::getLinuxErrno() {
+        return linuxErrno;
+    }
+
+    uint16_t FileDescriptor::getWasiErrno() {
+        return wasiErrno;
     }
 }

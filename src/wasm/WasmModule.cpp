@@ -347,22 +347,25 @@ namespace wasm {
         // that lets things set up the environment (e.g. handling preopened
         // file descriptors).
         Runtime::Function *wasmCtorsFunction = getWasmConstructorsFunction();
-        if (wasmCtorsFunction) {
-            IR::UntaggedValue result;
-            executeFunction(
-                    wasmCtorsFunction,
-                    IR::FunctionType({}, {}),
-                    {},
-                    result
-            );
+        if (!wasmCtorsFunction) {
+            logger->error("Did not find __wasm_call_ctors function for {}/{}", boundUser, boundFunction);
+            throw std::runtime_error("Did not find __wasm_call_ctors");
+        }
 
-            if (result.i32 != 0) {
-                logger->error("{} for {}/{} failed with return code {}",
-                              WASM_CTORS_FUNC_NAME, boundUser, boundFunction, result.i32);
-                throw std::runtime_error(std::string(WASM_CTORS_FUNC_NAME) + " failed");
-            } else {
-                logger->debug("Successfully executed {} for {}/{}", WASM_CTORS_FUNC_NAME, boundUser, boundFunction);
-            }
+        IR::UntaggedValue result;
+        executeFunction(
+                wasmCtorsFunction,
+                IR::FunctionType({}, {}),
+                {},
+                result
+        );
+
+        if (result.i32 != 0) {
+            logger->error("{} for {}/{} failed with return code {}",
+                          WASM_CTORS_FUNC_NAME, boundUser, boundFunction, result.i32);
+            throw std::runtime_error(std::string(WASM_CTORS_FUNC_NAME) + " failed");
+        } else {
+            logger->debug("Successfully executed {} for {}/{}", WASM_CTORS_FUNC_NAME, boundUser, boundFunction);
         }
 
         // Get and execute zygote function

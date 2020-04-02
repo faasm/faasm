@@ -114,7 +114,7 @@ namespace storage {
 
         // NOTE - musl expects us to return the negative errno, not -1
         if (fd < 0) {
-            return -errno;
+            return -1 * errno;
         }
 
         return fd;

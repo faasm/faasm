@@ -99,17 +99,18 @@ namespace wasm {
         util::getLogger()->debug("S - path_open - {} {} {}", rootFd, pathStr, pathLen);
 
         // Open a new file descriptor
+        // Returns a negative wasi errno if fails
         int fdRes = getExecutingModule()->getFileSystem().openFileDescriptor(
                 rootFd, pathStr,
                 rightsBase, rightsInheriting, openFlags
         );
 
-        if (fdRes > 0) {
+        if (fdRes < 0) {
+            return fdRes;
+        } else {
             // Write result to memory location
             Runtime::memoryRef<int>(getExecutingModule()->defaultMemory, resFdPtr) = fdRes;
             return __WASI_ESUCCESS;
-        } else {
-            return fdRes;
         }
     }
 

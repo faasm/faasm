@@ -2,6 +2,8 @@
 
 #include <WASI/WASIPrivate.h>
 #include <boost/filesystem.hpp>
+#include <util/logging.h>
+#include <util/config.h>
 
 namespace storage {
     void FileSystem::prepareFilesystem(const message::Message &msg) {
@@ -22,11 +24,16 @@ namespace storage {
     void FileSystem::createPreopenedFileDescriptor(int fd, const std::string &path) {
         // Open the descriptor as a directory
         storage::FileDescriptor fileDesc(path);
-        fileDesc.path_open(
+        bool success = fileDesc.path_open(
                 DIRECTORY_RIGHTS,
                 INHERITING_DIRECTORY_RIGHTS,
-                0
+                __WASI_O_DIRECTORY
         );
+
+        if(!success) {
+            util::getLogger()->error("Failed on preopened FD {} ({})", path, strerror(fileDesc.getLinuxErrno()));
+            throw std::runtime_error("Problem opening preopened fd");
+        }
 
         // Add to this module's fds
         fileDesc.wasiPreopenType = __WASI_PREOPENTYPE_DIR;
@@ -52,9 +59,9 @@ namespace storage {
         fileDescriptors.try_emplace(thisFd, fullPath);
         storage::FileDescriptor &fileDesc = fileDescriptors.at(thisFd);
 
-        int linuxFd = fileDesc.path_open(rightsBase, rightsInheriting, openFlags);
-        if(linuxFd < 0) {
-            return linuxFd;
+        bool success = fileDesc.path_open(rightsBase, rightsInheriting, openFlags);
+        if(!success) {
+            return -1 * fileDesc.getWasiErrno();
         }
 
         return thisFd;

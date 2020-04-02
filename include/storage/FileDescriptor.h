@@ -46,7 +46,7 @@ namespace storage {
 
         ssize_t readLink(const std::string &relativePath, char* buffer, size_t bufferLen);
 
-        int path_open(uint64_t rightsBaseIn, uint64_t rightsInheritingIn, uint32_t openFlags);
+        bool path_open(uint64_t rightsBaseIn, uint64_t rightsInheritingIn, uint32_t openFlags);
 
         void close();
 
@@ -64,6 +64,10 @@ namespace storage {
         int getLinuxFd();
 
         void setLinuxFd(int linuxFdIn);
+
+        int getLinuxErrno();
+
+        uint16_t getWasiErrno();
     private:
         static FileDescriptor stdFdFactory(int stdFd, const std::string &devPath);
 
@@ -75,6 +79,9 @@ namespace storage {
         int linuxFd;
         int linuxMode;
         int linuxFlags;
+        int linuxErrno;
+
+        uint16_t wasiErrno;
     };
 }
 
