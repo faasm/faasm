@@ -13,7 +13,7 @@ FAASM_MAIN_FUNC() {
         return 1;
     }
 
-    const char* expected = "/work/";
+    const char* expected = "/bin";
     if(strcmp(res, expected) != 0) {
         printf("Unexpected working dir (expected %s, got %s)\n", expected, res);
         return 1;

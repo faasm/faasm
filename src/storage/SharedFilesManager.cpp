@@ -73,6 +73,18 @@ namespace storage {
         }
     }
 
+    ssize_t SharedFilesManager::readLink(const std::string &path, char *buffer, size_t bufLen) {
+        bool isShared = util::startsWith(path, SHARED_FILE_PREFIX);
+        if (isShared) {
+            util::getLogger()->error("Readlink on shared not yet supported ({})", path);
+            throw std::runtime_error("Readlink on shared file not supported");
+        }
+
+        std::string fakePath = maskPath(path);
+        ssize_t bytesRead = ::readlink(fakePath.c_str(), buffer, (size_t) bufLen);
+        return bytesRead;
+    }
+
     int SharedFilesManager::openLocalFile(const std::string &path, int flags, int mode) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 

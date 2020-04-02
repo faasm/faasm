@@ -6,7 +6,7 @@
 #define FAKE_NAME "faasm"
 #define FAKE_PASSWORD  "foobar123"
 #define FAKE_HOME "/home/faasm/"
-#define FAKE_WORKING_DIR "/work/bin"
+#define FAKE_WORKING_DIR "/bin"
 
 #define FAKE_PID 23
 #define FAKE_TID 66
