@@ -83,7 +83,6 @@
 //}
 
 FAASM_ZYGOTE() {
-    setUpPyEnvironment();
     Py_InitializeEx(0);
 
     setUpPyNumpy();
@@ -112,8 +111,6 @@ FAASM_ZYGOTE() {
 }
 
 FAASM_MAIN_FUNC() {
-    setUpPyEnvironment();
-
     char *user = faasmGetPythonUser();
     char *funcName = faasmGetPythonFunc();
 

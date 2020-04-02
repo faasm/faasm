@@ -4,14 +4,26 @@
 #include <stdio.h>
 #include <string.h>
 
+bool checkPredefined(const char* name, const char* expected) {
+    char *actual = getenv(name);
+    if (strcmp(actual, expected) == 0) {
+        printf("%s as expected (%s)\n", name, expected);
+        return false;
+    } else {
+        printf("%s not as expected (got %s, expected %s)\n", name, actual, expected);
+        return true;
+    }
+}
+
 FAASM_MAIN_FUNC() {
     // Check predefined var
-    const char *expectedCtype = "en_GB.UTF-8";
-    char *preset = getenv("LC_CTYPE");
-    if (strcmp(preset, expectedCtype) == 0) {
-        printf("LC_CTYPE as expected\n");
-    } else {
-        printf("LC_CTYPE not as expected (got %s, expected %s)\n", preset, expectedCtype);
+    bool failed = false;
+    failed |= checkPredefined("LC_CTYPE", "en_GB.UTF-8");
+    failed |= checkPredefined("PYTHONHOME", "/usr/local");
+    failed |= checkPredefined("PYTHON_PATH", "/usr/local");
+    failed |= checkPredefined("PYTHONWASM", "1");
+
+    if(failed) {
         return 1;
     }
 

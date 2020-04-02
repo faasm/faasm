@@ -13,9 +13,6 @@ ttyname
 pipe
 getpwnam
 
-# Unknown
-fiprintf
-
 # Musl syscall interface
 __syscall
 __syscall0

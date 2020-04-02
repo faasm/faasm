@@ -203,15 +203,24 @@ namespace wasm {
         return getrandom(hostBuf, bufLen, flags);
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getcwd", I32, getcwd, I32 bufPtr, I32 bufLen) {
+        util::getLogger()->debug("S - getcwd - {} {}", bufPtr, bufLen);
+
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        char *hostBuf = Runtime::memoryArrayPtr<char>(memoryPtr, (Uptr) bufPtr, (Uptr) bufLen);
+
+        // Fake working directory
+        std::strcpy(hostBuf, FAKE_WORKING_DIR);
+
+        // Note, this needs to return the buffer on success, NOT zero
+        return bufPtr;
+    }
+
     // --------------------------
     // Unsupported
     // --------------------------
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__h_errno_location", I32, __h_errno_location) {
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getcwd", I32, getcwd, I32 a, I32 b) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 

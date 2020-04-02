@@ -315,20 +315,6 @@ namespace wasm {
         return wasmBytesRead;
     }
 
-    I32 s__getcwd(I32 bufPtr, I32 bufLen) {
-        util::getLogger()->debug("S - getcwd - {} {}", bufPtr, bufLen);
-
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-
-        char *hostBuf = Runtime::memoryArrayPtr<char>(memoryPtr, (Uptr) bufPtr, (Uptr) bufLen);
-
-        // Fake working directory
-        std::strcpy(hostBuf, FAKE_WORKING_DIR);
-
-        // Note, this needs to return the buffer on success, NOT zero
-        return bufPtr;
-    }
-
     /**
      * Read is ok provided the function owns the file descriptor
      */
@@ -762,10 +748,6 @@ namespace wasm {
         const char *format = &Runtime::memoryRef<char>(memoryPtr, (Uptr) formatPtr);
         std::cout << "S - vfprintf - " << format << std::endl;
         return 0;
-    }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "fiprintf", I32, fiprintf, I32 a, I32 b, I32 c) {
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "umask", I32, umask, I32 a) {

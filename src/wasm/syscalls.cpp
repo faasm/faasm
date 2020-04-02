@@ -134,8 +134,6 @@ namespace wasm {
                 return s__sigaction(a, b, c);
             case 175:
                 return s__rt_sigprocmask(a, b, c, d);
-            case 183:
-                return s__getcwd(a, b);
             case 186:
                 return s__sigaltstack(a, b);
             case 192:

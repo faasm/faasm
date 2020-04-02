@@ -6,7 +6,7 @@
 #define FAKE_NAME "faasm"
 #define FAKE_PASSWORD  "foobar123"
 #define FAKE_HOME "/home/faasm/"
-#define FAKE_WORKING_DIR "/work/"
+#define FAKE_WORKING_DIR "/lib"
 
 #define FAKE_PID 23
 #define FAKE_TID 66
@@ -238,8 +238,6 @@ namespace wasm {
     I32 s__fstat64(I32 fd, I32 statBufPtr);
 
     I32 s__futex(I32 uaddrPtr, I32 futex_op, I32 val, I32 timeoutPtr, I32 uaddr2Ptr, I32 other);
-
-    I32 s__getcwd(I32 bufPtr, I32 bufLen);
 
     I32 s__getdents64(I32 fd, I32 wasmDirentBuf, I32 wasmDirentBufLen);
 
