@@ -9,7 +9,7 @@
 
 
 FAASM_MAIN_FUNC() {
-    const char* dirName = faasm::getStringInput("");
+    const char* dirName = "lib/python3.7";
     printf("Opening dir %s\n", dirName);
 
     DIR *dirp = opendir(dirName);

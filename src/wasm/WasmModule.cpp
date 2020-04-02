@@ -105,8 +105,9 @@ namespace wasm {
         boundFunction = other.boundFunction;
         boundIsTypescript = other.boundIsTypescript;
 
-        // Filesystem
         filesystem = other.filesystem;
+
+        wasmEnvironment = other.wasmEnvironment;
 
         // Do not copy over any captured stdout
         stdoutMemFd = 0;

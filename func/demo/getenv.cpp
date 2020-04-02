@@ -19,8 +19,8 @@ FAASM_MAIN_FUNC() {
     // Check predefined var
     bool failed = false;
     failed |= checkPredefined("LC_CTYPE", "en_GB.UTF-8");
-    failed |= checkPredefined("PYTHONHOME", "/usr/local");
-    failed |= checkPredefined("PYTHON_PATH", "/usr/local");
+    failed |= checkPredefined("PYTHONHOME", "/");
+    failed |= checkPredefined("PYTHON_PATH", "/");
     failed |= checkPredefined("PYTHONWASM", "1");
 
     if(failed) {
