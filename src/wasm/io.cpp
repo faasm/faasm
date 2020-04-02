@@ -763,4 +763,102 @@ namespace wasm {
         std::cout << "S - vfprintf - " << format << std::endl;
         return 0;
     }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "fiprintf", I32, fiprintf, I32 a, I32 b, I32 c) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "umask", I32, umask, I32 a) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "dup", I32, dup, I32 a) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "fchdir", I32, s__fchdir, I32 a) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "chmod", I32, s__chmod, I32 a, I32 b) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_datasync", I32, wasi_fd_datasync, I32 a) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_pwrite", I32, wasi_fd_pwrite, I32 a, I32 b, I32 c, I64 d,
+                                   I32 e) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_read", I32, wasi_fd_read, I32 a, I32 b, I32 c, I32 d) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_pread", I32, wasi_fd_pread, I32 a, I32 b, I32 c, I64 d,
+                                   I32 e) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_filestat_set_size", I32, wasi_fd_filestat_set_size, I32 a,
+                                   I64 b) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_sync", I32, wasi_fd_sync, I32 a) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_allocate", I32, wasi_fd_allocate, I32 a, I64 b, I64 c) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_advise", I32, wasi_fd_advise, I32 a, I64 b, I64 c, I32 d) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_fdstat_set_flags", I32, wasi_fd_fdstat_set_flags, I32 a,
+                                   I32 b) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "poll_oneoff", I32, wasi_poll_oneoff, I32 a, I32 b, I32 c,
+                                   I32 d) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
+
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_filestat_set_times", I32, fd_filestat_set_times, I32 a, I64 b, I64 c,
+                                   I32 d) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_rename", I32, wasi_path_rename, I32 a, I32 b, I32 c, I32 d, I32 e,
+                                   I32 f) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_link", I32, wasi_path_link, I32 a, I32 b, I32 c, I32 d, I32 e, I32 f,
+                                   I32 g) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_create_directory", I32, wasi_path_create_directory, I32 a, I32 b,
+                                   I32 c) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_readlink", I32, wasi_path_readlink, I32 a, I32 b, I32 c, I32 d, I32 e,
+                                   I32 f) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_symlink", I32, wasi_path_symlink, I32 a, I32 b, I32 c, I32 d,
+                                   I32 e) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_unlink_file", I32, wasi_path_unlink_file, I32 a, I32 b,
+                                   I32 c) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_remove_directory", I32, wasi_path_remove_directory, I32 a, I32 b,
+                                   I32 c) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_tell", I32, wasi_fd_tell, I32 a, I32 b) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "lockf", I32, lockf, I32 a, I32 b, I64 c) {
+        util::getLogger()->debug("S - lockf - {} {} {}", a, b, c);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "realpath", I32, realpath, I32 a, U32 b) {
+        util::getLogger()->debug("S - realpath - {} {}", a, b);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    void ioLink() {
+
+    }
 }

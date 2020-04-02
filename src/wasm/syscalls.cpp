@@ -106,8 +106,6 @@ namespace wasm {
                 return s__dup(a);
             case 45:
                 return s__brk(a);
-            case 48:
-                return s__signal(a, b);
             case 54:
                 return s__ioctl(a, b, c, d, e, f);
             case 78:
@@ -185,10 +183,21 @@ namespace wasm {
     void linkHook() {
         chainLink();
         dynlinkLink();
+        envLink();
         faasmLink();
+        ioLink();
+        libcxxLink();
         mathsLink();
+        memoryLink();
+        messagesLink();
         mpiLink();
+        networkLink();
         ompLink();
+        processLink();
         rustLink();
+        schedulingLink();
+        signalsLink();
+        threadsLink();
+        timingLink();
     }
 }

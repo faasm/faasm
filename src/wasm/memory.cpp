@@ -245,4 +245,8 @@ namespace wasm {
 
         return 0;
     }
+
+    void memoryLink() {
+
+    }
 }

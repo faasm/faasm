@@ -305,8 +305,6 @@ namespace wasm {
 
     I32 s__siginterrupt(I32 a, I32 b);
 
-    I32 s__signal(I32 a, I32 b);
-
     I32 s__socketcall(I32 call, I32 argsPtr);
 
     I32 s__stat64(I32 pathPtr, I32 statBufPtr);
@@ -318,12 +316,23 @@ namespace wasm {
     I32 s__writev(I32 fd, I32 iov, I32 iovcnt);
 
     // Hack to include other files
-    void dynlinkLink();
-    void mathsLink();
-    void mpiLink();
-    void ompLink();
     void chainLink();
+    void dynlinkLink();
+    void envLink();
     void faasmLink();
+    void ioLink();
+    void libcxxLink();
+    void mathsLink();
+    void memoryLink();
+    void messagesLink();
+    void mpiLink();
+    void networkLink();
+    void ompLink();
+    void processLink();
     void rustLink();
+    void schedulingLink();
+    void signalsLink();
+    void threadsLink();
+    void timingLink();
     void wasiLink();
 }

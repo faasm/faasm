@@ -4,7 +4,6 @@
 #include <util/bytes.h>
 #include <util/config.h>
 
-#include <sys/time.h>
 #include <sys/random.h>
 
 #include <WAVM/Runtime/Runtime.h>
@@ -60,6 +59,30 @@ namespace wasm {
         return FAKE_GID;
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getpid", I32, getpid) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getegid", I32, getegid) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "geteuid", I32, geteuid) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getgid", I32, getgid) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getppid", I32, getppid) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getuid", I32, getuid) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
     I32 s__exit(I32 a, I32 b) {
         util::getLogger()->debug("S - exit - {} {}", a, b);
         throw (wasm::WasmExitException(a));
@@ -112,7 +135,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "sysconf", I32, _sysconf, I32 a) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - _sysconf - {}", a);
-        
+
         if (a == _SC_NPROCESSORS_ONLN) {
             return sysconf(a);
         } else {
@@ -147,44 +170,6 @@ namespace wasm {
         return 0;
     }
 
-    // ------------------------
-    // Timing
-    // ------------------------
-
-    //TODO - make timing functions more secure
-    I32 s__clock_gettime(I32 clockId, I32 timespecPtr) {
-        util::getLogger()->debug("S - clock_gettime - {} {}", clockId, timespecPtr);
-
-        timespec ts{};
-        int retVal = clock_gettime(clockId, &ts);
-        if (retVal == -1) {
-            int systemErrno = errno;
-            util::getLogger()->error("Clock type not supported - {} ({})\n", systemErrno, strerror(systemErrno));
-            return -systemErrno;
-        }
-
-        auto result = &Runtime::memoryRef<wasm_timespec>(getExecutingModule()->defaultMemory, (Uptr) timespecPtr);
-        result->tv_sec = I64(ts.tv_sec);
-        result->tv_nsec = I32(ts.tv_nsec);
-
-        return 0;
-    }
-
-    /**
-     * As specified in the gettimeofday man page, use of the timezone struct is obsolete and hence not supported here
-     */
-    I32 s__gettimeofday(int tvPtr, int tzPtr) {
-        util::getLogger()->debug("S - gettimeofday - {} {}", tvPtr, tzPtr);
-
-        timeval tv{};
-        gettimeofday(&tv, nullptr);
-
-        auto result = &Runtime::memoryRef<wasm_timeval>(getExecutingModule()->defaultMemory, (Uptr) tvPtr);
-        result->tv_sec = I32(tv.tv_sec);
-        result->tv_usec = I32(tv.tv_usec);
-
-        return 0;
-    }
 
     // Random
     I32 s__getrandom(I32 bufPtr, I32 bufLen, I32 flags) {
@@ -196,18 +181,74 @@ namespace wasm {
         return getrandom(hostBuf, bufLen, flags);
     }
 
-    /**
-     * Allow sleep for now
-     */
-    I32 s__nanosleep(I32 reqPtr, I32 remPtr) {
-        util::getLogger()->debug("S - nanosleep - {} {}", reqPtr, remPtr);
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__h_errno_location", I32, __h_errno_location) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
 
-        auto request = &Runtime::memoryRef<wasm_timespec>(getExecutingModule()->defaultMemory, (Uptr) reqPtr);
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getcwd", I32, getcwd, I32 a, I32 b) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
 
-        // TODO - is this ok? Should we allow?
-        // Round up
-        sleep(request->tv_sec + 1);
 
-        return 0;
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "ttyname", I32, ttyname, I32 a) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getpwuid", I32, getpwuid, I32 a) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getpwnam", I32, getpwnam, I32 a) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "environ_sizes_get", I32, wasi_environ_sizes_get, I32 a,
+                                   I32 b) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "environ_get", I32, wasi_environ_get, I32 a, I32 b) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "random_get", I32, wasi_random_get, I32 a, I32 b) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getresuid", I32, getresuid, I32 a, I32 b, I32 c) {
+        util::getLogger()->debug("S - getresuid - {} {} {}", a, b, c);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getresgid", I32, getresgid, I32 a, I32 b, I32 c) {
+        util::getLogger()->debug("S - getresgid - {} {} {}", a, b, c);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getrusage", I32, getrusage, I32 a, I32 b) {
+        util::getLogger()->debug("S - getrusage - {} {}", a, b);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getrlimit", I32, getrlimit, I32 a, I32 b) {
+        util::getLogger()->debug("S - getrlimit - {} {}", a, b);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "setrlimit", I32, setrlimit, I32 a, I32 b) {
+        util::getLogger()->debug("S - setrlimit - {} {}", a, b);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "longjmp", void, longjmp, I32 a, U32 b) {
+        util::getLogger()->debug("S - longjmp - {} {}", a, b);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "setjmp", I32, setjmp, I32 a) {
+        util::getLogger()->debug("S - setjmp - {}", a);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    void envLink() {
+
     }
 }

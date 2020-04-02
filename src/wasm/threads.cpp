@@ -25,31 +25,6 @@ namespace wasm {
     static std::string activeSnapshotKey;
     static size_t threadSnapshotSize;
 
-    I32 s__fork() {
-        util::getLogger()->debug("S - fork");
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    // ---------------------------------------
-    // Signals
-    //
-    // The runtime itself will handle thread creation/ deletion etc.
-    // So we don't worry about signal-related calls
-    // ---------------------------------------
-
-    I32 s__rt_sigprocmask(I32 how, I32 sigSetPtr, I32 oldSetPtr, I32 sigsetsize) {
-        util::getLogger()->debug("S - rt_sigprocmask - {} {} {} {}", how, sigSetPtr, oldSetPtr, sigsetsize);
-
-        return 0;
-    }
-
-    // ---------------------------------------
-    // pthreads
-    //
-    // We stub out a lot of the standard guts of pthread to intercept at
-    // the highest level (i.e. pthread_create, pthread_join etc.)
-    // ---------------------------------------
-
     I64 createPthread(void *threadSpecPtr) {
         auto threadSpec = reinterpret_cast<WasmThreadSpec *>(threadSpecPtr);
         I64 res = getExecutingModule()->executeThread(*threadSpec);
@@ -128,6 +103,7 @@ namespace wasm {
             logger->error("Unsupported threading mode: {}", conf.threadMode);
             throw std::runtime_error("Unsupported threading mode");
         }
+
         return 0;
     }
 
@@ -209,5 +185,109 @@ namespace wasm {
         logger->debug("S - futex - {} {} {} {} {} {} (uaddr = {})", uaddrPtr, opStr, val, timeoutPtr, uaddr2Ptr, other,
                       actualVal);
         return returnValue;
+    }
+
+    /*
+     * --------------------------
+     * Stubbed
+     * --------------------------
+     */
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_init", I32, pthread_mutex_init, I32 a, I32 b) {
+        util::getLogger()->debug("S - pthread_mutex_init {} {}", a, b);
+
+        return 0;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_cond_init", I32, pthread_cond_init, I32 a, I32 b) {
+        util::getLogger()->debug("S - pthread_cond_init {} {}", a, b);
+
+        return 0;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_lock", I32, pthread_mutex_lock, I32 a) {
+        util::getLogger()->debug("S - pthread_mutex_lock {}", a);
+
+        return 0;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_cond_signal", I32, pthread_cond_signal, I32 a) {
+        util::getLogger()->debug("S - pthread_cond_signal {}", a);
+
+        return 0;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_unlock", I32, pthread_mutex_unlock, I32 a) {
+        util::getLogger()->debug("S - pthread_mutex_unlock {}", a);
+
+        return 0;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_destroy", I32, pthread_mutex_destroy, I32 a) {
+        util::getLogger()->debug("S - pthread_mutex_destroy {}", a);
+
+        return 0;
+    }
+
+    /*
+     * --------------------------
+     * Unsupported
+     * --------------------------
+     */
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_cond_timedwait", I32, pthread_cond_timedwait, I32 a, I32 b, I32 c) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_cond_destroy", I32, pthread_cond_destroy, I32 a) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_self", I32, pthread_self) {
+        return 0;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_cond_wait", I32, pthread_cond_wait, I32 a, I32 b) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_attr_init", I32, s__pthread_attr_init, I32 a) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_attr_setstacksize", I32, s__pthread_attr_setstacksize, I32 a, I32 b) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_attr_destroy", I32, s__pthread_attr_destroy, I32 a) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_detach", I32, s__pthread_detach, I32 a) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_trylock", I32, s__pthread_mutex_trylock, I32 a) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_key_create", I32, s__pthread_key_create, I32 a, I32 b) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_key_delete", I32, s__pthread_key_delete, I32 a) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_setspecific", I32, s__pthread_setspecific, I32 a, I32 b) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_getspecific", I32, s__pthread_getspecific, I32 a) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    void threadsLink() {
+
     }
 }
