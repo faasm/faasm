@@ -8,8 +8,6 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Platform/Thread.h>
-#include <util/macros.h>
-#include <util/bytes.h>
 
 
 #define PTHREAD_STACK_SIZE (2 * ONE_MB_BYTES)

@@ -44,6 +44,7 @@ omp_func(simple_master simple_master.cpp)
 if (CMAKE_C_COMPILER_VERSION MATCHES "^10.*")
     message(WARNING "Skipping several OMP functions for Clang ${CMAKE_C_COMPILER_VERSION}")
 else ()
+    # Single host parallelism only
     omp_func(simple_reduce simple_reduce.cpp)
     omp_func(nested_parallel nested_parallel.cpp)
     omp_func(custom_reduce custom_reduce.cpp)
@@ -57,6 +58,10 @@ else ()
     omp_func(intel_nstreams intel_nstreams.cpp)
     omp_func(intel_synch_p2p intel_synch_p2p.cpp)
     omp_func(intel_transpose intel_transpose.cpp)
+
+    # Multi host
+    omp_func(multi_sum multi_sum.cpp)
+    omp_func(multi_thread_sum multi_thread_sum.cpp)
 endif ()
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")

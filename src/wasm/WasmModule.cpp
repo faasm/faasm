@@ -1327,4 +1327,8 @@ namespace wasm {
         return Runtime::asFunction(funcObj);
     }
 
+    int WasmModule::parallelMode() {
+        return parMode;
+    }
+
 }

@@ -31,7 +31,6 @@
 
 using namespace WAVM;
 
-
 namespace wasm {
     WAVM_DECLARE_INTRINSIC_MODULE(env)
 
@@ -158,9 +157,14 @@ namespace wasm {
         void clearCapturedStdout();
 
         I64 executeThread(WasmThreadSpec &spec);
+
+        int parallelMode();
     private:
         Runtime::GCPointer<Runtime::Instance> envModule;
         Runtime::GCPointer<Runtime::Instance> moduleInstance;
+
+        // Parallel mode
+        int parMode = 0;
 
         // Dynamic modules
         int dynamicModuleCount = 0;

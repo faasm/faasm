@@ -144,7 +144,7 @@ code to a temporary location in the remote environment (`/tmp/tmp.XXX`), which y
 to `/usr/local/code/faasm` as described above. 
 
 Ensure the toolchain within CLion is pointing at the correct remote version of Clang that is installed 
-as part of the Faasm Ansible playbook (i.e. `/usr/bib/clang(++)`
+as part of the Faasm Ansible playbook (i.e. `/usr/bin/clang(++)`), and possibly recent CMake.
 
 I do **not** recommend setting a WASM/FAASM CMake profile because it will confuse your IDE a lot. 
 

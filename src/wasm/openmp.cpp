@@ -1,4 +1,5 @@
 #include "WasmModule.h"
+#include "../../libs/faasmp/faasmp/faasmp.h"
 
 #include <mutex>
 
@@ -9,6 +10,10 @@
 #include <util/barrier.h>
 #include <util/environment.h>
 #include <Runtime/RuntimePrivate.h>
+
+#include <state/StateKeyValue.h>
+//#include <faasmp/faasmp.h>
+#include <scheduler/Scheduler.h>
 
 #define OMP_STACK_SIZE (2 * ONE_MB_BYTES)
 
@@ -200,7 +205,7 @@ namespace wasm {
     /**
      * The omp flush directive identifies a point at which the compiler ensures that all threads in a parallel region
      * have the same view of specified objects in memory. Like clang here we use a fence, but this semantic might
-     * not be suited for multitenancy.
+     * not be suited for distributed work. People doing disitributed OMP have a specicialised DSM
      * @param loc Source location info
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_flush", void, __kmpc_flush, I32 loc) {
@@ -264,6 +269,14 @@ namespace wasm {
         return thisThreadNumber; // Might be wrong if called at depth 1 while another thread at depths 1 has forked
     }
 
+    int userDefaultDevice = 1;
+    int userNumDevices = 1;
+    // Map of tid to message ID for chained calls
+
+    // Flag to say whether we've spawned a thread
+    static std::string activeSnapshotKey;
+    static size_t threadSnapshotSize;
+
     /**
      * The "real" version of this function is implemented in the openmp source at
      * openmp/runtime/src/kmp_csupport.cpp. This in turn calls __kmp_fork_call which
@@ -292,59 +305,105 @@ namespace wasm {
         Runtime::Function *func = Runtime::asFunction(
                 Runtime::getTableElement(getExecutingModule()->defaultTable, microtaskPtr));
 
+        if (1 != userNumDevices) {
+            int nextNumThreads = userNumDevices;
+//            std::vector<OMPThreadArgs> threadArgs;
+//            threadArgs.reserve(nextNumThreads);
+
+            std::vector<std::vector<IR::UntaggedValue>> microtaskArgs;
+            microtaskArgs.reserve(nextNumThreads);
+
+            std::vector<int> chainedThreads;
+            chainedThreads.reserve(nextNumThreads);
+            for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
+                // Note - these arguments are the thread number followed by the number of
+                // shared variables, then the pointers to those shared variables
+                microtaskArgs.push_back({threadNum, argc});
+                if (argc > 0) {
+                    // Get pointer to start of arguments in host memory
+                    U32 *pointers = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
+                    for (int argIdx = 0; argIdx < argc; argIdx++) {
+                        microtaskArgs[threadNum].emplace_back(pointers[argIdx]);
+                    }
+                }
+
+//                threadArgs.push_back({
+//                                             .tid = threadNum, .newLevel = nextLevel,
+//                                             .spec.contextRuntimeData = contextRuntimeData,
+//                                             .spec.parentModule = parentModule, .spec.parentCall = parentCall,
+//                                             .spec.func = func, .spec.funcArgs = microtaskArgs[threadNum].data(),
+//                                             .spec.stackSize = OMP_STACK_SIZE
+//                                     });
+            }
+
+            if (activeSnapshotKey.empty()) {
+                int callId = getExecutingCall()->id();
+                activeSnapshotKey = fmt::format("omp_snapshot_{}", callId);
+                threadSnapshotSize = parentModule->snapshotToState(activeSnapshotKey);
+            }
+
+            scheduler::Scheduler &sch = scheduler::getScheduler();
+
+            message::Message *originalCall = getExecutingCall();
+            const std::string origStr = util::funcToString(*originalCall, false);
+
+            // Create the threads themselves
+            for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
+                message::Message call = util::messageFactory(originalCall->user(), originalCall->function());
+                call.set_isasync(true);
+
+                // Snapshot details
+                call.set_snapshotkey(activeSnapshotKey);
+                call.set_snapshotsize(threadSnapshotSize);
+                call.set_funcptr(microtaskPtr);
+                call.set_inputdata(microtaskArgs[threadNum].data(), microtaskArgs[threadNum].size());
+                const std::string chainedStr = util::funcToString(call, false);
+                sch.callFunction(call);
+                // Schedule the call
+                util::getLogger()->debug("Chained thread {} ({}) -> {} {}({}) ({})", origStr, util::getNodeId(), chainedStr,
+                                         microtaskPtr, argsPtr, call.schedulednode());
+                chainedThreads[threadNum] = call.id();
+            }
+
+            I64 numErrors = 0;
+
+            for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
+                scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
+                scheduler::Scheduler &scheduler = scheduler::getScheduler();
+                int callTimeoutMs = util::getSystemConfig().chainedCallTimeout;
+
+                // Free this thread
+                message::Message *msg = getExecutingCall();
+                scheduler.notifyAwaiting(*msg);
+
+                int returnCode = 1;
+                try {
+                    const message::Message result = bus.getFunctionResult(chainedThreads[threadNum], callTimeoutMs);
+                    returnCode = result.returnvalue();
+                } catch (redis::RedisNoResponseException &ex) {
+                    util::getLogger()->error("Timed out waiting for chained call: {}", chainedThreads[threadNum]);
+                } catch (std::exception &ex) {
+                    util::getLogger()->error("Non-timeout exception waiting for chained call: {}", ex.what());
+                }
+
+                scheduler.notifyFinishedAwaiting(*msg);
+
+                if (returnCode) {
+                    numErrors++;
+                }
+            }
+            if (numErrors) {
+                throw std::runtime_error(fmt::format("{}} OMP threads have exited with errors", numErrors));
+            }
+            return;
+        }
+
         // Set up number of threads for next level
         int nextNumThreads = get_next_level_num_threads(thisLevel);
         thisLevel->pushed_num_threads = -1; // Resets for next push
 
         // Set up new level
         OMPLevel *nextLevel = new OMPLevel(thisLevel, nextNumThreads);
-
-        // --------------------------------------------------------------------------
-        // NOTE - 10/03/2020 - commenting out experiment code from @mfournial from
-        // https://github.com/lsds/Faasm/pull/176 in case it needs to be resurrected
-        // --------------------------------------------------------------------------
-        //
-        //if (nextNumThreads <= -1) {
-        //    logger->warn("Skipping something");
-        //    OMPLevel *toRestore = thisLevel;
-        //    int oldNumber = thisThreadNumber;
-        //    thisLevel = nextLevel;
-        //    std::vector<IR::UntaggedValue> mta;
-        //    if (argc > 0) {
-        //        U32 *pointers = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
-        //        // Get pointer to start of arguments in host memory
-        //        for (int argIdx = 0; argIdx < argc; argIdx++) {
-        //            mta.emplace_back(pointers[argIdx]);
-        //        }
-        //    }
-        //    thisThreadNumber = 1;
-        //    U32 thisStackBase = getExecutingModule()->mmapMemory(OMP_STACK_SIZE);
-        //    U32 stackTop = thisStackBase + OMP_STACK_SIZE - 1;
-        //    Runtime::Context *threadContext = createContext(
-        //            getCompartmentFromContextRuntimeData(contextRuntimeData)
-        //    );
-        //    IR::UntaggedValue &stackGlobal = threadContext->runtimeData->mutableGlobals[0];
-        //    if (stackGlobal.u32 != STACK_SIZE) {
-        //        logger->error("Expected first mutable global in context to be stack pointer ({})", stackGlobal.u32);
-        //        throw std::runtime_error("Unexpected mutable global format");
-        //    }
-        //    threadContext->runtimeData->mutableGlobals[0] = stackTop;
-        //
-        //    // Execute the function
-        //    IR::UntaggedValue result;
-        //    Runtime::invokeFunction(
-        //            threadContext,
-        //            func,
-        //            Runtime::getFunctionType(func),
-        //            mta.data(),
-        //            &result
-        //    );
-        //
-        //    logger->warn("After");
-        //    thisThreadNumber = oldNumber;
-        //    thisLevel = toRestore;
-        //    return;
-        //}
 
         // Note - must ensure thread arguments are outside loop scope otherwise they do
         // may not exist by the time the thread actually consumes them
@@ -568,6 +627,8 @@ namespace wasm {
         }
     }
 
+    int *data = 0;
+
     /**
      * A blocking reduce that includes an implicit barrier.
      * @param loc source location information
@@ -602,8 +663,13 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_reduce_nowait", I32, __kmpc_reduce_nowait, I32 loc, I32 gtid,
                                    I32 num_vars, I32 reduce_size, I32 reduce_data, I32 reduce_func, I32 lck) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - __kmpc_reduce_nowait {} {} {} {} {} {} {}", loc, gtid, num_vars, reduce_size, reduce_data,
+        logger->info("S - __kmpc_reduce_nowait {} {} {} {} {} {} {}", loc, gtid, num_vars, reduce_size, reduce_data,
                       reduce_func, lck);
+
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        data = &Runtime::memoryRef<I32>(memoryPtr, reduce_data);
+        int *a = &Runtime::memoryRef<I32>(memoryPtr, *data);
+        logger->warn("BEFORE: {}, pointing to {}", *data, *a);
         return runReduction();
     }
 
@@ -627,7 +693,40 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_reduce_nowait", void, __kmpc_end_reduce_nowait, I32 loc, I32 gtid,
                                    I32 lck) {
         util::getLogger()->debug("S - __kmpc_end_reduce_nowait {} {} {}", loc, gtid, lck);
+        auto logger = util::getLogger();
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        int *a = &Runtime::memoryRef<I32>(memoryPtr, *data);
+        if (data != 0) {
+            logger->warn("AFTER {}, {}", *data, *a);
+        }
         endReduction();
+    }
+
+    /**
+     * Get the number of devices (different CPU sockets or machines) available to that user
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_num_devices", int, omp_get_num_devices) {
+        util::getLogger()->debug("S - omp_get_num_devices");
+        return userNumDevices;
+    }
+
+    /**
+     *
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_set_default_device", void, omp_set_default_device, int defaultDeviceNumber) {
+        auto logger = util::getLogger();
+        logger->debug("S - omp_set_default_device {}", defaultDeviceNumber);
+        if (abs(defaultDeviceNumber) > userNumDevices) {
+            util::getLogger()->warn("Given default device index ({}) is bigger than num of available devices ({}), ignoring", defaultDeviceNumber, userNumDevices);
+            return;
+        }
+        // Use negative device number to indicate using multiple devices in parallel
+        if (defaultDeviceNumber < 0) {
+            defaultDeviceNumber *= -1;
+            userDefaultDevice = defaultDeviceNumber;
+        } else {
+            userDefaultDevice = defaultDeviceNumber;
+        }
     }
 
     void ompLink() {

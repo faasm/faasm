@@ -2,13 +2,13 @@ version: "3"
 
 services:
   redis-state:
-    image: faasm/redis:${FAASM_VERSION}
+    image: faasm/redis:0.0.11
 
   redis-queue:
-    image: faasm/redis:${FAASM_VERSION}
+    image: faasm/redis:0.0.11
 
   upload:
-    image: faasm/upload:${FAASM_VERSION}
+    image: faasm/upload:0.0.11
     ports:
       - "8002:8002"
     depends_on:
@@ -26,7 +26,7 @@ services:
       - PYTHON_CODEGEN=off
 
   worker:
-    image: faasm/knative-worker:${FAASM_VERSION}
+    image: faasm/knative-worker:0.0.11
     depends_on:
       - upload
     expose:
