@@ -22,7 +22,7 @@ namespace storage {
 
         uint64_t st_dev;
         uint64_t st_ino;
-        uint32_t st_nlink;
+        uint64_t st_nlink;
         uint64_t st_size;
         uint32_t st_mode;
         uint64_t st_atim;

@@ -202,7 +202,7 @@ namespace wasm {
         sc_sendmmsg,
     };
 
-    // Seems as though the WAVM subscription type isn't quite right
+    // Temp while WAVM has issue: https://github.com/WAVM/WAVM/issues/271
     struct wasi_subscription_t {
         __wasi_userdata_t userdata;
         __wasi_eventtype_t type;
@@ -218,6 +218,18 @@ namespace wasm {
             } fd_readwrite;
         } u;
     };
+
+    // Temp while WAVM has issue: https://github.com/WAVM/WAVM/issues/272
+    struct wasi_filestat_t    {
+        __wasi_device_t st_dev;
+        __wasi_inode_t st_ino;
+        __wasi_filetype_t st_filetype;
+        uint64_t st_nlink;
+        __wasi_filesize_t st_size;
+        __wasi_timestamp_t st_atim;
+        __wasi_timestamp_t st_mtim;
+        __wasi_timestamp_t st_ctim;
+    } ;
 
     // Struct conversion
 
