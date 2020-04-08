@@ -281,6 +281,10 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_cond_broadcast", I32, pthread_cond_broadcast, I32 a) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_cond_wait", I32, pthread_cond_wait, I32 a, I32 b) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
