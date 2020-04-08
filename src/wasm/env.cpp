@@ -35,20 +35,6 @@ namespace wasm {
         return FAKE_TID;
     }
 
-    I32 s__getpid() {
-        return FAKE_PID;
-    }
-
-    I32 s__getuid32() {
-        util::getLogger()->debug("S - getuid32");
-        return FAKE_UID;
-    }
-
-    I32 s__getgid32() {
-        util::getLogger()->debug("S - getgid32");
-        return FAKE_GID;
-    }
-
     I32 s__geteuid32() {
         util::getLogger()->debug("S - geteuid32");
         return FAKE_UID;
@@ -59,8 +45,54 @@ namespace wasm {
         return FAKE_GID;
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getpwuid", I32, getpwuid, I32 uid) {
+        util::getLogger()->debug("S - getpwuid {}", uid);
+
+        if(uid != FAKE_UID) {
+            throw std::runtime_error("Attempting to get pwd for non fake UID");
+        }
+
+        // Set up strings to place in passwd
+        std::string fakeName = std::string(FAKE_NAME);
+        std::string fakeDir = std::string(FAKE_WORKING_DIR);
+
+        // Create enough memory
+        size_t nameOffset = sizeof(wasm_passwd);
+        size_t dirOffset = nameOffset + fakeName.size() + 1;
+        size_t newMemSize = dirOffset + fakeDir.size();
+        U32 wasmMemPtr = getExecutingModule()->mmapMemory(newMemSize);
+
+        // Work out the pointers to the strings in wasm memory
+        U32 namePtr = wasmMemPtr + nameOffset;
+        U32 dirPtr = wasmMemPtr + dirOffset;
+
+        // Get reference to the struct in wasm memory
+        auto wasmPasswd = &Runtime::memoryRef<wasm_passwd>(getExecutingModule()->defaultMemory, wasmMemPtr);
+        wasmPasswd->pw_uid = FAKE_UID;
+        wasmPasswd->pw_gid = FAKE_GID;
+        wasmPasswd->pw_dir = dirPtr;
+        wasmPasswd->pw_name = namePtr;
+
+        // Copy the strings into place
+        std::copy(fakeName.begin(), fakeName.end(), reinterpret_cast<char*>(wasmPasswd) + nameOffset);
+        std::copy(fakeDir.begin(), fakeDir.end(), reinterpret_cast<char*>(wasmPasswd) + dirOffset);
+        
+        return wasmMemPtr;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getuid", I32, getuid) {
+        util::getLogger()->debug("S - getuid");
+        return FAKE_UID;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getgid", I32, getgid) {
+        util::getLogger()->debug("S - getgid");
+        return FAKE_GID;
+    }
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getpid", I32, getpid) {
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+        util::getLogger()->debug("S - getpid");
+        return FAKE_PID;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getegid", I32, getegid) {
@@ -71,15 +103,7 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getgid", I32, getgid) {
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getppid", I32, getppid) {
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getuid", I32, getuid) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
@@ -235,10 +259,6 @@ namespace wasm {
 
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "ttyname", I32, ttyname, I32 a) {
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getpwuid", I32, getpwuid, I32 a) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 

@@ -275,8 +275,6 @@ namespace wasm {
 
     I32 s__getegid32();
 
-    I32 s__getgid32();
-
     I32 s__getpid();
 
     I32 s__gettid();
@@ -284,8 +282,6 @@ namespace wasm {
     I32 s__getrandom(I32 bufPtr, I32 bufLen, I32 flags);
 
     I32 s__gettimeofday(I32 tvPtr, I32 tzPtr);
-
-    I32 s__getuid32();
 
     I32 s__ioctl(I32 fd, I32 request, I32 argPtr, I32 d, I32 e, I32 f);
 

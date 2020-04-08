@@ -94,8 +94,6 @@ namespace wasm {
                 return s__close(a);
             case 10:
                 return s__unlink(a);
-            case 20:
-                return s__getpid();
             case 33:
                 return s__access(a, b);
             case 38:
@@ -145,10 +143,6 @@ namespace wasm {
                 return s__lstat64(a, b);
             case 197:
                 return s__fstat64(a, b);
-            case 199:
-                return s__getuid32();
-            case 200:
-                return s__getgid32();
             case 201:
                 return s__geteuid32();
             case 202:
