@@ -450,6 +450,18 @@ namespace wasm {
         return __WASI_ESUCCESS;
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_read", I32, wasi_fd_read, I32 fd, I32 iovecsPtr, I32 iovecCount,
+                                   I32 resBytesRead) {
+        util::getLogger()->debug("S - fd_read - {} {} {}", fd, iovecsPtr, iovecCount);
+        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileSystem().getFileDescriptor(fd);
+        iovec *nativeIovecs = wasiIovecsToNativeIovecs(iovecsPtr, iovecCount);
+
+        int bytesRead = readv(fileDesc.getLinuxFd(), nativeIovecs, iovecCount);
+        Runtime::memoryRef<int>(getExecutingModule()->defaultMemory, resBytesRead) = (int) bytesRead;
+
+        return __WASI_ESUCCESS;
+    }
+
     I32 s__readv(I32 fd, I32 iovecPtr, I32 iovecCount) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - readv - {} {} {}", fd, iovecPtr, iovecCount);
@@ -524,7 +536,8 @@ namespace wasm {
         return res;
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_unlink_file", I32, wasi_path_unlink_file, I32 rootFd, I32 pathPtr, I32 pathLen) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_unlink_file", I32, wasi_path_unlink_file, I32 rootFd, I32 pathPtr,
+                                   I32 pathLen) {
         util::getLogger()->debug("S - path_unlink_file - {} {}", rootFd, pathPtr);
 
         std::string pathStr = getStringFromWasm(pathPtr);
@@ -691,7 +704,7 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_seek", I32, wasi_fd_seek, I32 fd, I64 offset, I32 whence,
                                    I32 newOffsetPtr) {
-        util::getLogger()->debug("S - fd_seek - {} {} {}", offset, whence, newOffsetPtr);
+        util::getLogger()->debug("S - fd_seek - {} {} {} {}", fd, offset, whence, newOffsetPtr);
 
         // Get pointer to result in memory
         uint64_t *newOffsetHostPtr = &Runtime::memoryRef<uint64_t>(getExecutingModule()->defaultMemory, newOffsetPtr);
@@ -802,10 +815,6 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_pwrite", I32, wasi_fd_pwrite, I32 a, I32 b, I32 c, I64 d,
                                    I32 e) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_read", I32, wasi_fd_read, I32 a, I32 b, I32 c, I32 d) {
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_pread", I32, wasi_fd_pread, I32 a, I32 b, I32 c, I64 d,
                                    I32 e) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
