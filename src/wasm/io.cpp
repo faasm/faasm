@@ -837,10 +837,6 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_fdstat_set_flags", I32, wasi_fd_fdstat_set_flags, I32 a,
                                    I32 b) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "poll_oneoff", I32, wasi_poll_oneoff, I32 a, I32 b, I32 c,
-                                   I32 d) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
-
-
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_filestat_set_times", I32, fd_filestat_set_times, I32 a, I64 b, I64 c,
                                    I32 d) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
 

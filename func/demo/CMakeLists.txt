@@ -7,7 +7,6 @@ function(demo_func exec_name dir_path)
     set(ALL_DEMO_FUNCS ${ALL_DEMO_FUNCS} ${exec_name} PARENT_SCOPE)
 endfunction(demo_func)
 
-demo_func(abort abort.cpp)
 demo_func(argc_argv argc_argv.cpp)
 demo_func(argc_argv_test argc_argv_test.cpp)
 demo_func(brk brk.cpp)

@@ -21,4 +21,6 @@ namespace util {
     void logEndTimer(const std::string &label, const util::TimePoint &begin);
 
     uint64_t timespecToNanos(struct timespec *nativeTimespec);
+
+    void nanosToTimespec(uint64_t nanos, struct timespec *nativeTimespec);
 }

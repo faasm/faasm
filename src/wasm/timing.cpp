@@ -58,6 +58,49 @@ namespace wasm {
         return 0;
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "poll_oneoff", I32, wasi_poll_oneoff, I32 subscriptionsPtr, I32 eventsPtr, I32 nSubs,
+                                   I32 resNEvents) {
+        util::getLogger()->debug("S - poll_oneoff - {} {} {} {}", subscriptionsPtr, eventsPtr, nSubs, resNEvents);
+        WasmModule *module = getExecutingModule();
+
+        auto inEvents = Runtime::memoryArrayPtr<wasi_subscription_t>(module->defaultMemory, subscriptionsPtr, nSubs);
+        auto outEvents = Runtime::memoryArrayPtr<__wasi_event_t>(module->defaultMemory, eventsPtr, nSubs);
+
+        for(int i = 0; i < nSubs; i++) {
+            wasi_subscription_t *thisSub = &inEvents[i];
+
+            if(thisSub->type == __WASI_EVENTTYPE_CLOCK) {
+                // This is a timing event like a sleep
+                uint64_t timeoutNanos = thisSub->u.clock.timeout;
+                int clockType = 0;
+                if(thisSub->u.clock.clock_id == __WASI_CLOCK_MONOTONIC) {
+                    clockType = CLOCK_MONOTONIC;
+                } else if(thisSub->u.clock.clock_id == __WASI_CLOCK_REALTIME) {
+                    clockType = CLOCK_REALTIME;
+                } else {
+                    throw std::runtime_error("Unimplemented clock type");
+                }
+
+                // Do the sleep
+                timespec t{};
+                util::nanosToTimespec(timeoutNanos, &t);
+                clock_nanosleep(clockType, 0, &t, nullptr);
+            } else {
+                throw std::runtime_error("Unimplemented event type");
+            }
+            
+            // Say that the event has occurred
+            __wasi_event_t *thisEvent = &outEvents[i];
+            thisEvent->type = thisSub->type;
+            thisEvent->error = __WASI_ESUCCESS;
+        }
+        
+        // Write the result
+        Runtime::memoryRef<U32>(module->defaultMemory, resNEvents) = (U32) nSubs;
+
+        return __WASI_ESUCCESS;
+    }
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "utime", I32, s__utime, I32 a, I32 b) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }

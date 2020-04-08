@@ -2,6 +2,7 @@
 
 #include <sys/socket.h>
 #include <mpi/MpiContext.h>
+#include <WAVM/WASI/WASIABI.h>
 
 #define FAKE_NAME "faasm"
 #define FAKE_PASSWORD  "foobar123"
@@ -173,9 +174,9 @@ namespace wasm {
      * _especially_ the pointer to itself, which allows references to
      * be treated like pointers.
      */
-     struct wasm_pthread {
-         I32 selfPtr;
-     };
+    struct wasm_pthread {
+        I32 selfPtr;
+    };
 
     // Sockets/ network
     enum SocketCalls : U32 {
@@ -199,6 +200,23 @@ namespace wasm {
         sc_accept4,
         sc_recvmmsg,
         sc_sendmmsg,
+    };
+
+    // Seems as though the WAVM subscription type isn't quite right
+    struct wasi_subscription_t {
+        __wasi_userdata_t userdata;
+        __wasi_eventtype_t type;
+        union __wasi_subscription_u {
+            struct __wasi_subscription_u_clock_t {
+                __wasi_clockid_t clock_id;
+                __wasi_timestamp_t timeout;
+                __wasi_timestamp_t precision;
+                __wasi_subclockflags_t flags;
+            } clock;
+            struct __wasi_subscription_u_fd_readwrite_t {
+                __wasi_fd_t fd;
+            } fd_readwrite;
+        } u;
     };
 
     // Struct conversion
@@ -315,22 +333,40 @@ namespace wasm {
 
     // Hack to include other files
     void chainLink();
+
     void dynlinkLink();
+
     void envLink();
+
     void faasmLink();
+
     void ioLink();
+
     void libcxxLink();
+
     void mathsLink();
+
     void memoryLink();
+
     void messagesLink();
+
     void mpiLink();
+
     void networkLink();
+
     void ompLink();
+
     void processLink();
+
     void rustLink();
+
     void schedulingLink();
+
     void signalsLink();
+
     void threadsLink();
+
     void timingLink();
+
     void wasiLink();
 }

@@ -34,4 +34,9 @@ namespace util {
 
         return nanos;
     }
+
+    void nanosToTimespec(uint64_t nanos, struct timespec *nativeTimespec) {
+        nativeTimespec->tv_sec = nanos / 1000000000;
+        nativeTimespec->tv_nsec = nanos % 1000000000;
+    }
 }

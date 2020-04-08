@@ -114,10 +114,10 @@ namespace wasm {
         return 0;
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "abort", void, abort) {
-        util::getLogger()->debug("S - abort");
-        throw (wasm::WasmExitException(0));
-    }
+//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "abort", void, abort) {
+//        util::getLogger()->debug("S - abort");
+//        throw (wasm::WasmExitException(0));
+//    }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "exit", void, exit, I32 a) {
         util::getLogger()->debug("S - exit - {}", a);
@@ -199,8 +199,17 @@ namespace wasm {
 
         auto hostBuf = &Runtime::memoryRef<U8>(getExecutingModule()->defaultMemory, (Uptr) bufPtr);
 
-        // TODO - should we obscure this somehow?
         return getrandom(hostBuf, bufLen, flags);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "random_get", I32, wasi_random_get, I32 bufPtr, I32 bufLen) {
+        util::getLogger()->debug("S - random_get - {} {}", bufPtr, bufLen);
+
+        auto hostBuf = &Runtime::memoryRef<U8>(getExecutingModule()->defaultMemory, (Uptr) bufPtr);
+
+        getrandom(hostBuf, bufLen, 0);
+
+        return __WASI_ESUCCESS;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getcwd", I32, getcwd, I32 bufPtr, I32 bufLen) {
@@ -234,10 +243,6 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getpwnam", I32, getpwnam, I32 a) {
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "random_get", I32, wasi_random_get, I32 a, I32 b) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
