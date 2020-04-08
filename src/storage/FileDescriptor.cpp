@@ -119,8 +119,7 @@ namespace storage {
         if (openFlagsCast & __WASI_O_CREAT) {
             linuxFlags = readWrite | O_CREAT;
             linuxMode = S_IRWXU | S_IRGRP | S_IROTH;
-        }
-        if (openFlagsCast & __WASI_O_DIRECTORY) {
+        } else if (openFlagsCast & __WASI_O_DIRECTORY) {
             // Note - we can only pass O_RDONLY with O_DIRECTORY
             linuxFlags = O_RDONLY | O_DIRECTORY;
             linuxMode = 0;
@@ -130,8 +129,11 @@ namespace storage {
         } else if (openFlagsCast & __WASI_O_EXCL) {
             linuxFlags = readWrite | O_EXCL;
             linuxMode = 0;
-        } else if (openFlagsCast != 0) {
-            throw std::runtime_error("Unrecognised flags on opening file");
+        } else if (openFlagsCast == 0) {
+            linuxFlags = readWrite;
+            linuxMode = 0;
+        } else {
+            throw std::runtime_error("Unrecognised open flags");
         }
 
         storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
@@ -153,15 +155,30 @@ namespace storage {
 
     std::string FileDescriptor::absPath(const std::string &relativePath) {
         std::string res;
+
         if (relativePath.empty()) {
             res = path;
         } else {
-            boost::filesystem::path joinedPath(path);
+            std::string basePath = path == "." ? "" : path;
+            boost::filesystem::path joinedPath(basePath);
             joinedPath.append(relativePath);
             res = joinedPath.string();
         }
 
         return res;
+    }
+
+    bool FileDescriptor::unlink(const std::string &relativePath) {
+        std::string fullPath = absPath(relativePath);
+        storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
+        int res = sfm.unlink(fullPath);
+
+        if (res != 0) {
+            wasiErrno = errnoToWasi(-1 * res);
+            return false;
+        }
+
+        return true;
     }
 
     Stat FileDescriptor::stat(const std::string &relativePath) {

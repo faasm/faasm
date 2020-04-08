@@ -44,6 +44,8 @@ namespace storage {
 
         Stat stat(const std::string &relativePath = "");
 
+        bool unlink(const std::string &relativePath = "");
+
         ssize_t readLink(const std::string &relativePath, char* buffer, size_t bufferLen);
 
         bool path_open(uint64_t rightsBaseIn, uint64_t rightsInheritingIn, uint32_t openFlags);

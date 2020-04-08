@@ -73,6 +73,17 @@ namespace storage {
         }
     }
 
+    int SharedFilesManager::unlink(const std::string &path) {
+        const std::string maskedPath = maskPath(path);
+        int unlinkRes = ::unlink(maskedPath.c_str());
+
+        if(unlinkRes != 0) {
+            return -errno;
+        }
+
+        return 0;
+    }
+
     ssize_t SharedFilesManager::readLink(const std::string &path, char *buffer, size_t bufLen) {
         bool isShared = util::startsWith(path, SHARED_FILE_PREFIX);
         if (isShared) {
