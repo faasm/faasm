@@ -16,7 +16,8 @@ namespace storage {
         storage::FileDescriptor &getFileDescriptor(int fd);
 
         int openFileDescriptor(int rootFd, const std::string &path,
-                               uint64_t rightsBase, uint64_t rightsInheriting, uint32_t openFlags);
+                               uint64_t rightsBase, uint64_t rightsInheriting,
+                               uint32_t lookupFlags, uint32_t openFlags, int32_t fdFlags);
 
         void createPreopenedFileDescriptor(int fd, const std::string &path);
 

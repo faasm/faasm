@@ -46,9 +46,10 @@ namespace storage {
 
         bool unlink(const std::string &relativePath = "");
 
-        ssize_t readLink(const std::string &relativePath, char* buffer, size_t bufferLen);
+        ssize_t readLink(const std::string &relativePath, char *buffer, size_t bufferLen);
 
-        bool path_open(uint64_t rightsBaseIn, uint64_t rightsInheritingIn, uint32_t openFlags);
+        bool path_open(uint64_t requestedRightsBase, uint64_t requestedRightsInheriting, uint32_t lookupFlags, uint32_t openFlags,
+                       int32_t fdFlags);
 
         void close();
 
@@ -58,8 +59,6 @@ namespace storage {
         bool iterStarted;
         bool iterFinished;
 
-        uint64_t rightsBase;
-        uint64_t rightsInheriting;
 
         uint8_t wasiPreopenType;
 
@@ -70,6 +69,14 @@ namespace storage {
         int getLinuxErrno();
 
         uint16_t getWasiErrno();
+
+        uint64_t getActualRightsBase();
+
+        uint64_t getActualRightsInheriting();
+
+        void setActualRightsBase(uint64_t val);
+
+        void setActualRightsInheriting(uint64_t val);
     private:
         static FileDescriptor stdFdFactory(int stdFd, const std::string &devPath);
 
@@ -77,6 +84,10 @@ namespace storage {
 
         DIR *dirPtr;
         struct dirent *direntPtr;
+
+        bool rightsSet;
+        uint64_t actualRightsBase;
+        uint64_t actualRightsInheriting;
 
         int linuxFd;
         int linuxMode;

@@ -102,7 +102,7 @@ namespace wasm {
         // Returns a negative wasi errno if fails
         int fdRes = getExecutingModule()->getFileSystem().openFileDescriptor(
                 rootFd, pathStr,
-                rightsBase, rightsInheriting, openFlags
+                rightsBase, rightsInheriting, lookupFlags, openFlags, fdFlags
         );
 
         if (fdRes < 0) {
@@ -623,16 +623,16 @@ namespace wasm {
         util::getLogger()->debug("S - fd_fdstat_get - {} {}", fd, statPtr);
 
         storage::FileDescriptor &fileDesc = getExecutingModule()->getFileSystem().getFileDescriptor(fd);
-        storage::Stat fileStat = fileDesc.stat();
+        storage::Stat statResult = fileDesc.stat();
 
-        if (fileStat.failed) {
-            return fileStat.wasiErrno;
+        if (statResult.failed) {
+            return statResult.wasiErrno;
         }
 
         auto wasiFdStat = &Runtime::memoryRef<__wasi_fdstat_t>(getExecutingModule()->defaultMemory, statPtr);
-        wasiFdStat->fs_filetype = fileStat.wasiFiletype;
-        wasiFdStat->fs_rights_base = fileDesc.rightsBase;
-        wasiFdStat->fs_rights_inheriting = fileDesc.rightsInheriting;
+        wasiFdStat->fs_filetype = statResult.wasiFiletype;
+        wasiFdStat->fs_rights_base = fileDesc.getActualRightsBase();
+        wasiFdStat->fs_rights_inheriting = fileDesc.getActualRightsInheriting();
 
         // TODO - set fs flags
         wasiFdStat->fs_flags = 0;

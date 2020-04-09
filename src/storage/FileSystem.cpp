@@ -24,13 +24,18 @@ namespace storage {
     void FileSystem::createPreopenedFileDescriptor(int fd, const std::string &path) {
         // Open the descriptor as a directory
         storage::FileDescriptor fileDesc(path);
+        fileDesc.setActualRightsBase(DIRECTORY_RIGHTS);
+        fileDesc.setActualRightsInheriting(INHERITING_DIRECTORY_RIGHTS);
+
         bool success = fileDesc.path_open(
                 DIRECTORY_RIGHTS,
                 INHERITING_DIRECTORY_RIGHTS,
-                __WASI_O_DIRECTORY
+                0,
+                __WASI_O_DIRECTORY,
+                0
         );
 
-        if(!success) {
+        if (!success) {
             util::getLogger()->error("Failed on preopened FD {} ({})", path, strerror(fileDesc.getLinuxErrno()));
             throw std::runtime_error("Problem opening preopened fd");
         }
@@ -41,11 +46,13 @@ namespace storage {
     }
 
     int FileSystem::openFileDescriptor(int rootFd, const std::string &path,
-                                       uint64_t rightsBase, uint64_t rightsInheriting, uint32_t openFlags) {
+                                       uint64_t rightsBase, uint64_t rightsInheriting,
+                                       uint32_t lookupFlags, uint32_t openFlags, int32_t fdFlags) {
+
         storage::FileDescriptor &rootFileDesc = getFileDescriptor(rootFd);
 
         std::string fullPath;
-        if(rootFileDesc.path == ".") {
+        if (rootFileDesc.path == ".") {
             fullPath = path;
         } else {
             boost::filesystem::path joinedPath(rootFileDesc.path);
@@ -59,8 +66,10 @@ namespace storage {
         fileDescriptors.try_emplace(thisFd, fullPath);
         storage::FileDescriptor &fileDesc = fileDescriptors.at(thisFd);
 
-        bool success = fileDesc.path_open(rightsBase, rightsInheriting, openFlags);
-        if(!success) {
+        // TODO - set inherited rights on new file descriptor
+
+        bool success = fileDesc.path_open(rightsBase, rightsInheriting, lookupFlags, openFlags, fdFlags);
+        if (!success) {
             return -1 * fileDesc.getWasiErrno();
         }
 

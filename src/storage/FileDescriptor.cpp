@@ -34,9 +34,9 @@ namespace storage {
 
     FileDescriptor FileDescriptor::stdFdFactory(int stdFd, const std::string &devPath) {
         FileDescriptor fdStd(devPath);
-        fdStd.rightsBase = __WASI_RIGHT_FD_READ | __WASI_RIGHT_FD_FDSTAT_SET_FLAGS
+        fdStd.setActualRightsBase(__WASI_RIGHT_FD_READ | __WASI_RIGHT_FD_FDSTAT_SET_FLAGS
                            | __WASI_RIGHT_FD_WRITE | __WASI_RIGHT_FD_FILESTAT_GET
-                           | __WASI_RIGHT_POLL_FD_READWRITE;
+                           | __WASI_RIGHT_POLL_FD_READWRITE);
 
         fdStd.linuxFd = stdFd;
         return fdStd;
@@ -58,6 +58,7 @@ namespace storage {
     FileDescriptor::FileDescriptor(std::string pathIn) : path(std::move(pathIn)),
                                                          iterStarted(false), iterFinished(false),
                                                          dirPtr(nullptr), direntPtr(nullptr),
+                                                         rightsSet(false),
                                                          linuxFd(-1), linuxMode(-1), linuxFlags(-1), linuxErrno(0),
                                                          wasiErrno(0) {
 
@@ -96,13 +97,15 @@ namespace storage {
         return d;
     }
 
-    bool FileDescriptor::path_open(uint64_t rightsBaseIn, uint64_t rightsInheritingIn, uint32_t openFlags) {
-        rightsBase = rightsBaseIn;
-        rightsInheriting = rightsInheritingIn;
+    bool FileDescriptor::path_open(uint64_t requestedRightsBase, uint64_t requestedRightsInheriting, uint32_t lookupFlags,
+                                   uint32_t openFlags, int32_t fdFlags) {
+        if(!rightsSet) {
+            throw std::runtime_error("Opening path with no rights set");
+        }
 
         // Work out read/write
-        const bool rightsRead = rightsBase & RIGHTS_READ;
-        const bool rightsWrite = rightsBase & RIGHTS_WRITE;
+        const bool rightsRead = actualRightsBase & RIGHTS_READ;
+        const bool rightsWrite = actualRightsBase & RIGHTS_WRITE;
 
         int readWrite = 0;
         if (rightsRead && rightsWrite) {
@@ -115,6 +118,7 @@ namespace storage {
             throw std::runtime_error("Unable to detect valid file flags");
         }
 
+        // Open flags
         auto openFlagsCast = (uint16_t) openFlags;
         if (openFlagsCast & __WASI_O_CREAT) {
             linuxFlags = readWrite | O_CREAT;
@@ -134,6 +138,29 @@ namespace storage {
             linuxMode = 0;
         } else {
             throw std::runtime_error("Unrecognised open flags");
+        }
+
+        // More open flags
+        if(fdFlags != 0) {
+            bool fdFlagsHandled = false;
+            if (fdFlags & __WASI_FDFLAG_RSYNC) {
+                linuxFlags |= O_RSYNC;
+                fdFlagsHandled = true;
+            }
+
+            if (fdFlags & __WASI_FDFLAG_APPEND) {
+                linuxFlags |= O_APPEND;
+                fdFlagsHandled = true;
+            }
+
+            if (fdFlags & __WASI_FDFLAG_DSYNC) {
+                linuxFlags |= O_DSYNC;
+                fdFlagsHandled = true;
+            }
+
+            if(!fdFlagsHandled) {
+                throw std::runtime_error("Unhandled fd flags");
+            }
         }
 
         storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
@@ -200,42 +227,52 @@ namespace storage {
             }
         }
 
-        Stat s;
-
-        if (statErrno > 0) {
-            s.failed = true;
-            s.wasiErrno = errnoToWasi(statErrno);
-            return s;
+        Stat statResult;
+        if (statErrno != 0) {
+            statResult.failed = true;
+            statResult.wasiErrno = errnoToWasi(statErrno);
+            return statResult;
         } else {
-            s.failed = false;
+            statResult.failed = false;
         }
 
-        if (linuxFd == STDOUT_FILENO) {
-            // Do nothing for stdout
+        // Work out file type
+        bool isReadOnly = false;
+        if (linuxFd == STDOUT_FILENO || linuxFd == STDIN_FILENO || linuxFd == STDERR_FILENO) {
+            // Don't add file type for stds
         } else if (S_ISREG(nativeStat.st_mode)) {
-            s.wasiFiletype = __WASI_FILETYPE_REGULAR_FILE;
+            statResult.wasiFiletype = __WASI_FILETYPE_REGULAR_FILE;
         } else if (S_ISBLK(nativeStat.st_mode)) {
-            s.wasiFiletype = __WASI_FILETYPE_BLOCK_DEVICE;
+            statResult.wasiFiletype = __WASI_FILETYPE_BLOCK_DEVICE;
         } else if (S_ISDIR(nativeStat.st_mode)) {
-            s.wasiFiletype = __WASI_FILETYPE_DIRECTORY;
+            statResult.wasiFiletype = __WASI_FILETYPE_DIRECTORY;
+            isReadOnly = true;
         } else if (S_ISLNK(nativeStat.st_mode)) {
-            s.wasiFiletype = __WASI_FILETYPE_SYMBOLIC_LINK;
+            statResult.wasiFiletype = __WASI_FILETYPE_SYMBOLIC_LINK;
         } else if (S_ISCHR(nativeStat.st_mode)) {
-            s.wasiFiletype = __WASI_FILETYPE_CHARACTER_DEVICE;
+            statResult.wasiFiletype = __WASI_FILETYPE_CHARACTER_DEVICE;
         } else {
             throw std::runtime_error("Unrecognised file type");
         }
 
-        s.st_dev = nativeStat.st_dev;
-        s.st_ino = nativeStat.st_ino;
-        s.st_nlink = nativeStat.st_nlink;
-        s.st_size = nativeStat.st_size;
-        s.st_mode = nativeStat.st_mode;
-        s.st_atim = util::timespecToNanos(&nativeStat.st_atim);
-        s.st_mtim = util::timespecToNanos(&nativeStat.st_mtim);
-        s.st_ctim = util::timespecToNanos(&nativeStat.st_ctim);
+        // Set WASI rights accordingly
+        if(isReadOnly) {
+            setActualRightsBase(RIGHTS_READ);
+        } else {
+            setActualRightsBase(RIGHTS_READ | RIGHTS_WRITE);
+        }
 
-        return s;
+        // Set up the result
+        statResult.st_dev = nativeStat.st_dev;
+        statResult.st_ino = nativeStat.st_ino;
+        statResult.st_nlink = nativeStat.st_nlink;
+        statResult.st_size = nativeStat.st_size;
+        statResult.st_mode = nativeStat.st_mode;
+        statResult.st_atim = util::timespecToNanos(&nativeStat.st_atim);
+        statResult.st_mtim = util::timespecToNanos(&nativeStat.st_mtim);
+        statResult.st_ctim = util::timespecToNanos(&nativeStat.st_ctim);
+
+        return statResult;
     }
 
     ssize_t FileDescriptor::readLink(const std::string &relativePath, char *buffer, size_t bufferLen) {
@@ -283,5 +320,23 @@ namespace storage {
 
     uint16_t FileDescriptor::getWasiErrno() {
         return wasiErrno;
+    }
+
+    uint64_t FileDescriptor::getActualRightsBase() {
+        return actualRightsBase;
+    }
+
+    uint64_t FileDescriptor::getActualRightsInheriting() {
+        return actualRightsInheriting;
+    }
+
+    void FileDescriptor::setActualRightsBase(uint64_t val) {
+        actualRightsBase = val;
+        rightsSet = true;
+    }
+
+    void FileDescriptor::setActualRightsInheriting(uint64_t val) {
+        actualRightsInheriting = val;
+        rightsSet = true;
     }
 }
