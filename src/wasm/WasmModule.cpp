@@ -886,12 +886,11 @@ namespace wasm {
         bool isMainModule = moduleInstance == nullptr;
 
         Runtime::Instance *modulePtr = nullptr;
-        if (moduleName == "env") {
-            modulePtr = envModule;
-        } else if (moduleName == "wasi_snapshot_preview1") {
+        if (moduleName == "wasi_snapshot_preview1") {
             modulePtr = wasiModule;
         } else {
-            throw std::runtime_error("Unrecognised module name: " + moduleName);
+            // Default to env module
+            modulePtr = envModule;
         }
 
         if (isMainModule) {
@@ -1265,12 +1264,8 @@ namespace wasm {
 
     int WasmModule::getStdoutFd() {
         if (stdoutMemFd == 0) {
-            message::Message *call = getExecutingCall();
-            const std::string fdName = std::to_string(call->id());
-            stdoutMemFd = memfd_create(fdName.c_str(), 0);
-
-            util::getLogger()->debug("Capturing stdout: fd={},{} for {}", fdName, stdoutMemFd,
-                                     util::funcToString(*call, true));
+            stdoutMemFd = memfd_create("stdoutfd", 0);
+            util::getLogger()->debug("Capturing stdout: fd={}", stdoutMemFd);
         }
 
         return stdoutMemFd;
@@ -1278,7 +1273,7 @@ namespace wasm {
 
     ssize_t WasmModule::captureStdout(const struct iovec *iovecs, int iovecCount) {
         int memFd = getStdoutFd();
-        ssize_t writtenSize = writev(memFd, iovecs, iovecCount);
+        ssize_t writtenSize = ::writev(memFd, iovecs, iovecCount);
 
         if (writtenSize < 0) {
             util::getLogger()->error("Failed capturing stdout: {}", strerror(errno));

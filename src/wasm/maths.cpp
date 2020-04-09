@@ -44,4 +44,63 @@ namespace wasm {
 
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__errno_location", I32, wasi__errno_location) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__trunctfdf2", F64, wasi__trunctfdf2, I64 a, I64 b) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "fiprintf", I32, wasi_fiprintf, I32 a, I32 b, I32 c) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__unordtf2", I32, wasi__unordtf2, I64 a, I64 b, I64 c, I64 d) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__eqtf2", I32, wasi__eqtf2, I64 a, I64 b, I64 c, I64 d) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__signbitl", I32, wasi__signbitl, I64 a, I64 b) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__extendsftf2", void, wasi__extendsftf2, I32 a, F32 b) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__lttf2", I32, wasi__lttf2, I64 a, I64 b, I64 c, I64 d) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__getf2", I32, wasi__getf2, I64 a, I64 b, I64 c, I64 d) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__extenddftf2", void, wasi__extenddftf2, I32 a, F64 b) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__multf3", void, wasi__multf3, I32 a, I64 b, I64 c, I64 d, I64 e) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__addtf3", void, wasi__addtf3, I32 a, I64 b, I64 c, I64 d, I64 e) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+
+    }
 }
