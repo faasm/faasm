@@ -70,9 +70,6 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - mmap - {} {} {} {} {} {}", addr, length, prot, flags, fd, offset);
 
-        // TODO - support other types of mmap, e.g. mmapping in files
-        // Currently we assume mmap is always asking for more heap
-
         // Although we are ignoring the offset we should probably
         // double check when something explicitly requests one
         if (offset != 0) {
@@ -86,12 +83,14 @@ namespace wasm {
 
         WasmModule *module = getExecutingModule();
 
-        // If in unsafe mode we can think about allowing mmapping of file descriptors
         if (fd != -1) {
-            return module->mmapFile(fd, length);
+            // If fd is provided, we're mapping a file into memory
+            storage::FileDescriptor &fileDesc = module->getFileSystem().getFileDescriptor(fd);
+            return module->mmapFile(fileDesc.getLinuxFd(), length);
+        } else {
+            // Map memory
+            return module->mmapMemory(length);
         }
-
-        return module->mmapMemory(length);
     }
 
     /**
