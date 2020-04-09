@@ -2,6 +2,8 @@
 
 #include <fcntl.h>
 #include <stdio.h>
+#include <cerrno>
+#include <cstring>
 
 FAASM_MAIN_FUNC() {
     int fd = open("/etc/hosts", O_RDONLY);
@@ -15,7 +17,7 @@ FAASM_MAIN_FUNC() {
     int newFd = fcntl(fd, F_DUPFD, 0);
 
     if (newFd <= 0) {
-        printf("Unable to duplicate fd with fcntl\n");
+        printf("Unable to duplicate fd with fcntl (%i): %i (%s)\n", newFd, errno, strerror(errno));
         return 1;
     }
 

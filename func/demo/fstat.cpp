@@ -196,8 +196,8 @@ FAASM_MAIN_FUNC() {
     // Use fstat
     printf("---- fstat ----\n");
     int fd = open(path, O_RDONLY);
-    if (fd != 0) {
-        printf("Failed to open file: %i (%s)\n", errno, strerror(errno));
+    if (fd < 0) {
+        printf("Failed to open file (fd=%i): %i (%s)\n", fd, errno, strerror(errno));
         return 1;
     }
 

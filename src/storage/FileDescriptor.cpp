@@ -130,8 +130,6 @@ namespace storage {
 
     bool
     FileDescriptor::pathOpen(uint32_t lookupFlags, uint32_t openFlags, int32_t fdFlags) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
         if (!rightsSet) {
             throw std::runtime_error("Opening path with no rights set");
         }
@@ -142,16 +140,12 @@ namespace storage {
         int readWrite = 0;
         if (openMode == OpenMode::DIRECTORY) {
             readWrite = O_RDONLY;
-            logger->trace("Path open: dir ({})", path);
         } else if (rwType == ReadWriteType::READ_WRITE) {
             readWrite = O_RDWR;
-            logger->trace("Path open: rw ({})", path);
         } else if (rwType == ReadWriteType::WRITE_ONLY) {
             readWrite = O_WRONLY;
-            logger->trace("Path open: wo ({})", path);
         } else {
             readWrite = O_RDONLY;
-            logger->trace("Path open: ro ({})", path);
         }
 
         // Open flags
@@ -274,7 +268,7 @@ namespace storage {
         // Work out file type
         bool isReadOnly = false;
         if (linuxFd == STDOUT_FILENO || linuxFd == STDIN_FILENO || linuxFd == STDERR_FILENO) {
-            // Don't add file type for stds
+            statResult.wasiFiletype = __WASI_FILETYPE_CHARACTER_DEVICE;
         } else if (S_ISREG(nativeStat.st_mode)) {
             statResult.wasiFiletype = __WASI_FILETYPE_REGULAR_FILE;
         } else if (S_ISBLK(nativeStat.st_mode)) {

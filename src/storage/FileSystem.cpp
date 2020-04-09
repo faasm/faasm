@@ -63,22 +63,6 @@ namespace storage {
         uint64_t effectiveInheritedRights = rightsInheriting & rootFileDesc.getActualRightsInheriting();
         fileDesc.setActualRights(effectiveRights, effectiveInheritedRights);
 
-        ReadWriteType requestedRw = getRwType(rightsBase);
-        ReadWriteType effectiveRw = getRwType(effectiveRights);
-
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        if(requestedRw == ReadWriteType::READ_ONLY) {
-            logger->trace("Requested READ_ONLY {}", fullPath);
-        } else if(requestedRw == ReadWriteType::READ_WRITE) {
-            logger->trace("Requested READ_WRITE {}", fullPath);
-        }
-
-        if(effectiveRw == ReadWriteType::READ_ONLY) {
-            logger->trace("Effective READ_ONLY {}", fullPath);
-        } else if(effectiveRw == ReadWriteType::READ_WRITE) {
-            logger->trace("Effective READ_WRITE {}", fullPath);
-        }
-        
         // Open the path
         bool success = fileDesc.pathOpen(lookupFlags, openFlags, fdFlags);
         if (!success) {

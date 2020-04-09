@@ -96,7 +96,8 @@ namespace wasm {
                                    I32 resFdPtr) {
 
         const std::string pathStr = getStringFromWasm(path);
-        util::getLogger()->debug("S - path_open - {} {} {}", rootFd, pathStr, pathLen);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - path_open - {} {} {}", rootFd, pathStr, pathLen);
 
         // Open a new file descriptor
         // Returns a negative wasi errno if fails
@@ -105,7 +106,7 @@ namespace wasm {
         );
 
         if (fdRes < 0) {
-            util::getLogger()->trace("Failed open file descriptor: {}", fdRes);
+            logger->trace("Failed open file descriptor: {}", fdRes);
             return -1 * fdRes;
         } else {
             // Write result to memory location
