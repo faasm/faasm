@@ -61,6 +61,18 @@ namespace storage {
         return res;
     }
 
+    int SharedFilesManager::mkdir(const std::string &path) {
+        std::string fullPath = maskPath(path);
+        int res = ::mkdir(fullPath.c_str(), 0755);
+        return res;
+    }
+
+    int SharedFilesManager::rename(const std::string &oldPath, const std::string &newPath) {
+        std::string fullOldPath = maskPath(oldPath);
+        int res = ::rename(fullOldPath.c_str(), newPath.c_str());
+        return res;
+    }
+
     int SharedFilesManager::statFile(const std::string &path, struct stat64 *statPtr) {
         bool isShared = util::startsWith(path, SHARED_FILE_PREFIX);
         if (isShared) {

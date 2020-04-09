@@ -271,12 +271,6 @@ namespace wasm {
 
     I32 s__getdents64(I32 fd, I32 wasmDirentBuf, I32 wasmDirentBufLen);
 
-    I32 s__geteuid32();
-
-    I32 s__getegid32();
-
-    I32 s__getpid();
-
     I32 s__gettid();
 
     I32 s__getrandom(I32 bufPtr, I32 bufLen, I32 flags);

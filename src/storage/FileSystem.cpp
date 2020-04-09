@@ -36,6 +36,15 @@ namespace storage {
         fileDesc.wasiPreopenType = __WASI_PREOPENTYPE_DIR;
         fileDescriptors.emplace(fd, fileDesc);
     }
+    
+    int FileSystem::createNew(const std::string &path) {
+        // Assign a new file descriptor
+        int thisFd = nextFd;
+        nextFd++;
+        fileDescriptors.try_emplace(thisFd, path);
+        
+        return thisFd;
+    }
 
     int FileSystem::openFileDescriptor(int rootFd, const std::string &path,
                                        uint64_t rightsBase, uint64_t rightsInheriting,
@@ -52,13 +61,10 @@ namespace storage {
             fullPath = std::string(joinedPath.string());
         }
 
-        // Assign a new file descriptor
-        int thisFd = nextFd;
-        nextFd++;
-        fileDescriptors.try_emplace(thisFd, fullPath);
-        storage::FileDescriptor &fileDesc = fileDescriptors.at(thisFd);
-
+        int thisFd = createNew(fullPath);
+        
         // Set rights on new file descriptor
+        FileDescriptor &fileDesc = fileDescriptors.at(thisFd);
         uint64_t effectiveRights = rightsBase & rootFileDesc.getActualRightsBase();
         uint64_t effectiveInheritedRights = rightsInheriting & rootFileDesc.getActualRightsInheriting();
         fileDesc.setActualRights(effectiveRights, effectiveInheritedRights);
@@ -82,5 +88,17 @@ namespace storage {
         }
 
         return fileDescriptors.at(fd);
+    }
+
+    int FileSystem::dup(int fd) {
+        // Create the entry in the file system
+        FileDescriptor &originalDesc = getFileDescriptor(fd);
+        int newFd = createNew(originalDesc.path);
+
+        // Duplicate the old entry's details
+        FileDescriptor &newDesc = fileDescriptors.at(newFd);
+        newDesc.dup(originalDesc);
+
+        return newFd;
     }
 }

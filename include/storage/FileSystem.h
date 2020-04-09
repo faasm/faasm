@@ -21,8 +21,12 @@ namespace storage {
 
         void createPreopenedFileDescriptor(int fd, const std::string &path);
 
+        int dup(int fd);
+
     private:
         int nextFd;
         std::unordered_map<int, storage::FileDescriptor> fileDescriptors;
+
+        int createNew(const std::string &path);
     };
 }

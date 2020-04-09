@@ -143,10 +143,6 @@ namespace wasm {
                 return s__lstat64(a, b);
             case 197:
                 return s__fstat64(a, b);
-            case 201:
-                return s__geteuid32();
-            case 202:
-                return s__getegid32();
             case 219:
                 return s__madvise(a, b, c);
             case 220:

@@ -49,6 +49,10 @@ namespace storage {
         void clear();
 
         int unlink(const std::string &path);
+
+        int mkdir(const std::string &path);
+
+        int rename(const std::string &oldPath, const std::string &newPath);
     private:
         std::unordered_map<std::string, SharedFile> sharedFileMap;
         std::shared_mutex sharedFileMapMutex;

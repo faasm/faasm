@@ -20,6 +20,7 @@ namespace storage {
         READ_ONLY,
         READ_WRITE,
         WRITE_ONLY,
+        CUSTOM,
     };
 
     OpenMode getOpenMode(uint16_t openFlags);
@@ -68,13 +69,19 @@ namespace storage {
 
         bool unlink(const std::string &relativePath = "");
 
+        bool rename(const std::string &newPath, const std::string &relativePath = "");
+
         ssize_t readLink(const std::string &relativePath, char *buffer, size_t bufferLen);
 
         bool pathOpen(uint32_t lookupFlags, uint32_t openFlags, int32_t fdFlags);
 
         void close();
 
+        bool mkdir(const std::string &dirPath);
+
         uint16_t seek(uint64_t offset, int whence, uint64_t *newOffset);
+
+        uint64_t tell();
 
         const std::string path;
         bool iterStarted;
@@ -96,10 +103,11 @@ namespace storage {
 
         void setActualRights(uint64_t rights, uint64_t inheriting);
 
+        std::string absPath(const std::string &relativePath);
+
+        void dup(FileDescriptor &other);
     private:
         static FileDescriptor stdFdFactory(int stdFd, const std::string &devPath);
-
-        std::string absPath(const std::string &relativePath);
 
         DIR *dirPtr;
         struct dirent *direntPtr;

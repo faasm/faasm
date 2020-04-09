@@ -10,8 +10,9 @@
 #include <boost/filesystem.hpp>
 #include <WAVM/WASI/WASIABI.h>
 #include <fcntl.h>
-#include <util/logging.h>
 
+
+#define WASI_FD_FLAGS (__WASI_FDFLAG_RSYNC | __WASI_FDFLAG_APPEND | __WASI_FDFLAG_DSYNC | __WASI_FDFLAG_SYNC | __WASI_FDFLAG_NONBLOCK)
 
 namespace storage {
     OpenMode getOpenMode(uint16_t openFlags) {
@@ -23,7 +24,7 @@ namespace storage {
             return OpenMode::TRUNC;
         } else if (openFlags & __WASI_O_EXCL) {
             return OpenMode::EXCL;
-        } else if(openFlags == 0) {
+        } else if (openFlags == 0) {
             return OpenMode::NONE;
         } else {
             throw std::runtime_error("Unable to detect open mode");
@@ -42,7 +43,7 @@ namespace storage {
         } else if (!rightsRead && rightsWrite) {
             return ReadWriteType::WRITE_ONLY;
         } else {
-            throw std::runtime_error("Unable to detect r/w type");
+            return ReadWriteType::CUSTOM;
         }
     }
 
@@ -95,6 +96,18 @@ namespace storage {
 
     }
 
+    void FileDescriptor::dup(FileDescriptor &other) {
+        // Call dup properly on the underlying file descriptor
+        linuxFd = ::dup(other.linuxFd);
+
+        // Assume everything else the same
+        linuxFlags = other.linuxFlags;
+        linuxMode = other.linuxMode;
+
+        // Copy rights
+        setActualRights(other.getActualRightsBase(), other.getActualRightsInheriting());
+    }
+
     DirEnt FileDescriptor::iterNext() {
         if (iterFinished) {
             throw std::runtime_error("Directory iterator finished");
@@ -144,8 +157,11 @@ namespace storage {
             readWrite = O_RDWR;
         } else if (rwType == ReadWriteType::WRITE_ONLY) {
             readWrite = O_WRONLY;
-        } else {
+        } else if (rwType == ReadWriteType::READ_ONLY) {
             readWrite = O_RDONLY;
+        } else {
+            // Default to r/w
+            readWrite = O_RDWR;
         }
 
         // Open flags
@@ -171,23 +187,28 @@ namespace storage {
 
         // More open flags
         if (fdFlags != 0) {
-            bool fdFlagsHandled = false;
-            if (fdFlags & __WASI_FDFLAG_RSYNC) {
-                linuxFlags |= O_RSYNC;
-                fdFlagsHandled = true;
-            }
+            if (fdFlags & WASI_FD_FLAGS) {
+                if (fdFlags & __WASI_FDFLAG_RSYNC) {
+                    linuxFlags |= O_RSYNC;
+                }
 
-            if (fdFlags & __WASI_FDFLAG_APPEND) {
-                linuxFlags |= O_APPEND;
-                fdFlagsHandled = true;
-            }
+                if (fdFlags & __WASI_FDFLAG_APPEND) {
+                    linuxFlags |= O_APPEND;
+                }
 
-            if (fdFlags & __WASI_FDFLAG_DSYNC) {
-                linuxFlags |= O_DSYNC;
-                fdFlagsHandled = true;
-            }
+                if (fdFlags & __WASI_FDFLAG_DSYNC) {
+                    linuxFlags |= O_DSYNC;
+                }
 
-            if (!fdFlagsHandled) {
+                if (fdFlags & __WASI_FDFLAG_SYNC) {
+                    linuxFlags |= O_SYNC;
+                }
+
+                if (fdFlags & __WASI_FDFLAG_NONBLOCK) {
+                    linuxFlags |= O_NONBLOCK;
+                }
+
+            } else {
                 throw std::runtime_error("Unhandled fd flags");
             }
         }
@@ -199,6 +220,17 @@ namespace storage {
         if (linuxFd < 0) {
             linuxErrno = linuxFd * -1;
             wasiErrno = errnoToWasi(linuxErrno);
+            return false;
+        }
+
+        return true;
+    }
+
+    bool FileDescriptor::mkdir(const std::string &dirPath) {
+        storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
+        int res = sfm.mkdir(dirPath);
+        if (res < 0) {
+            wasiErrno = errnoToWasi(errno);
             return false;
         }
 
@@ -228,6 +260,19 @@ namespace storage {
         std::string fullPath = absPath(relativePath);
         storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
         int res = sfm.unlink(fullPath);
+
+        if (res != 0) {
+            wasiErrno = errnoToWasi(-1 * res);
+            return false;
+        }
+
+        return true;
+    }
+
+    bool FileDescriptor::rename(const std::string &newPath, const std::string &relativePath) {
+        std::string fullPath = absPath(relativePath);
+        storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
+        int res = sfm.rename(fullPath, newPath);
 
         if (res != 0) {
             wasiErrno = errnoToWasi(-1 * res);
@@ -334,6 +379,11 @@ namespace storage {
         *newOffset = (uint64_t) result;
 
         return __WASI_ESUCCESS;
+    }
+
+    uint64_t FileDescriptor::tell() {
+        off_t result = ::lseek(linuxFd, 0, SEEK_CUR);
+        return result;
     }
 
     int FileDescriptor::getLinuxFd() {

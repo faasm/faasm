@@ -35,13 +35,13 @@ namespace wasm {
         return FAKE_TID;
     }
 
-    I32 s__geteuid32() {
-        util::getLogger()->debug("S - geteuid32");
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "geteuid", I32, geteuid) {
+        util::getLogger()->debug("S - geteuid");
         return FAKE_UID;
     }
 
-    I32 s__getegid32() {
-        util::getLogger()->debug("S - getegid32");
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getegid", I32, getegid) {
+        util::getLogger()->debug("S - getegid");
         return FAKE_GID;
     }
 
@@ -93,14 +93,6 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getpid", I32, getpid) {
         util::getLogger()->debug("S - getpid");
         return FAKE_PID;
-    }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getegid", I32, getegid) {
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "geteuid", I32, geteuid) {
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getppid", I32, getppid) {

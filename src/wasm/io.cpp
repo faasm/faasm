@@ -106,7 +106,6 @@ namespace wasm {
         );
 
         if (fdRes < 0) {
-            logger->trace("Failed open file descriptor: {}", fdRes);
             return -1 * fdRes;
         } else {
             // Write result to memory location
@@ -133,6 +132,16 @@ namespace wasm {
         return newFd;
     }
 
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "dup", I32, dup, I32 fd) {
+        util::getLogger()->debug("S - dup - {}", fd);
+
+        storage::FileSystem &fs = getExecutingModule()->getFileSystem();
+        int newFd = fs.dup(fd);
+
+        return newFd;
+    }
+    
     I32 s__fcntl64(I32 fd, I32 cmd, I32 c) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - fcntl64 - {} {} {}", fd, cmd, c);
@@ -517,6 +526,22 @@ namespace wasm {
         return res;
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_create_directory", I32, wasi_path_create_directory, I32 fd, I32 path,
+                                   I32 pathLen) {
+        const std::string &pathStr = getStringFromWasm(path);
+        util::getLogger()->debug("S - path_create_directory - {} {}", fd, pathStr);
+
+        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileSystem().getFileDescriptor(fd);
+        bool success = fileDesc.mkdir(pathStr);
+
+        if(!success) {
+            return fileDesc.getWasiErrno();
+        }
+        
+        return __WASI_ESUCCESS;
+    }
+
+
     I32 s__rename(I32 srcPtr, I32 destPtr) {
         const std::string srcPath = getMaskedPathFromWasm(srcPtr);
         const std::string destPath = getMaskedPathFromWasm(destPtr);
@@ -536,6 +561,27 @@ namespace wasm {
         }
         return res;
     }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_rename", I32, wasi_path_rename, I32 fd,
+            I32 oldPath, I32 oldPathLen, I32 newFd, I32 newPath, I32 newPathLen) {
+        std::string oldPathStr = getStringFromWasm(oldPath);
+        std::string newPathStr = getStringFromWasm(newPath);
+
+        util::getLogger()->debug("S - path_rename - {} {} {} {}", fd, oldPathStr, newFd, newPathStr);
+
+        WasmModule *module = getExecutingModule();
+        storage::FileDescriptor &oldFileDesc = module->getFileSystem().getFileDescriptor(fd);
+        storage::FileDescriptor &newFileDesc = module->getFileSystem().getFileDescriptor(newFd);
+
+        const std::string &fullNewPath = newFileDesc.absPath(newPathStr);
+        bool success = oldFileDesc.rename(fullNewPath);
+        if(!success) {
+            return oldFileDesc.getWasiErrno();
+        }
+
+        return __WASI_ESUCCESS;
+    }
+
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_unlink_file", I32, wasi_path_unlink_file, I32 rootFd, I32 pathPtr,
                                    I32 pathLen) {
@@ -705,6 +751,17 @@ namespace wasm {
         }
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_tell", I32, wasi_fd_tell, I32 fd, I32 resOffsetPtr) {
+        util::getLogger()->debug("S - fd_tell - {} {}", fd, resOffsetPtr);
+
+        WasmModule *module = getExecutingModule();
+
+        storage::FileDescriptor &fileDesc = module->getFileSystem().getFileDescriptor(fd);
+        uint64_t offset = fileDesc.tell();
+        Runtime::memoryRef<U64>(module->defaultMemory, resOffsetPtr) = offset;
+        return 0;
+    }
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_seek", I32, wasi_fd_seek, I32 fd, I64 offset, I32 whence,
                                    I32 newOffsetPtr) {
         util::getLogger()->debug("S - fd_seek - {} {} {} {}", fd, offset, whence, newOffsetPtr);
@@ -800,10 +857,6 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "dup", I32, dup, I32 a) {
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "fchdir", I32, s__fchdir, I32 a) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
@@ -843,14 +896,8 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_filestat_set_times", I32, fd_filestat_set_times, I32 a, I64 b, I64 c,
                                    I32 d) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_rename", I32, wasi_path_rename, I32 a, I32 b, I32 c, I32 d, I32 e,
-                                   I32 f) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
-
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_link", I32, wasi_path_link, I32 a, I32 b, I32 c, I32 d, I32 e, I32 f,
                                    I32 g) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_create_directory", I32, wasi_path_create_directory, I32 a, I32 b,
-                                   I32 c) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_symlink", I32, wasi_path_symlink, I32 a, I32 b, I32 c, I32 d,
                                    I32 e) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
@@ -858,9 +905,6 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_remove_directory", I32, wasi_path_remove_directory, I32 a, I32 b,
                                    I32 c) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_tell", I32, wasi_fd_tell, I32 a, I32 b) {
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "lockf", I32, lockf, I32 a, I32 b, I64 c) {
         util::getLogger()->debug("S - lockf - {} {} {}", a, b, c);
