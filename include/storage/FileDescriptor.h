@@ -3,7 +3,29 @@
 #include <string>
 #include <dirent.h>
 
+// See wasi-libc/libc-bottom-half/cloudlibc/src/libc/fcntl/openat.c
+#define WASI_RIGHTS_WRITE __WASI_RIGHT_FD_DATASYNC | __WASI_RIGHT_FD_WRITE | __WASI_RIGHT_FD_ALLOCATE | __WASI_RIGHT_FD_FILESTAT_SET_SIZE
+#define WASI_RIGHTS_READ __WASI_RIGHT_FD_READDIR | __WASI_RIGHT_FD_READ
+
 namespace storage {
+    enum OpenMode {
+        CREATE,
+        DIRECTORY,
+        EXCL,
+        TRUNC,
+        NONE,
+    };
+
+    enum ReadWriteType {
+        READ_ONLY,
+        READ_WRITE,
+        WRITE_ONLY,
+    };
+
+    OpenMode getOpenMode(uint16_t openFlags);
+
+    ReadWriteType getRwType(uint64_t rights);
+
     class DirEnt {
     public:
         unsigned int next;
@@ -48,8 +70,7 @@ namespace storage {
 
         ssize_t readLink(const std::string &relativePath, char *buffer, size_t bufferLen);
 
-        bool path_open(uint64_t requestedRightsBase, uint64_t requestedRightsInheriting, uint32_t lookupFlags, uint32_t openFlags,
-                       int32_t fdFlags);
+        bool pathOpen(uint32_t lookupFlags, uint32_t openFlags, int32_t fdFlags);
 
         void close();
 
@@ -58,7 +79,6 @@ namespace storage {
         const std::string path;
         bool iterStarted;
         bool iterFinished;
-
 
         uint8_t wasiPreopenType;
 
@@ -74,9 +94,8 @@ namespace storage {
 
         uint64_t getActualRightsInheriting();
 
-        void setActualRightsBase(uint64_t val);
+        void setActualRights(uint64_t rights, uint64_t inheriting);
 
-        void setActualRightsInheriting(uint64_t val);
     private:
         static FileDescriptor stdFdFactory(int stdFd, const std::string &devPath);
 

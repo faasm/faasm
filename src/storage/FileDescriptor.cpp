@@ -10,11 +10,42 @@
 #include <boost/filesystem.hpp>
 #include <WAVM/WASI/WASIABI.h>
 #include <fcntl.h>
+#include <util/logging.h>
 
-#define RIGHTS_WRITE __WASI_RIGHT_FD_DATASYNC | __WASI_RIGHT_FD_WRITE | __WASI_RIGHT_FD_ALLOCATE | __WASI_RIGHT_FD_FILESTAT_SET_SIZE
-#define RIGHTS_READ __WASI_RIGHT_FD_READDIR | __WASI_RIGHT_FD_READ
 
 namespace storage {
+    OpenMode getOpenMode(uint16_t openFlags) {
+        if (openFlags & __WASI_O_DIRECTORY) {
+            return OpenMode::DIRECTORY;
+        } else if (openFlags & __WASI_O_CREAT) {
+            return OpenMode::CREATE;
+        } else if (openFlags & __WASI_O_TRUNC) {
+            return OpenMode::TRUNC;
+        } else if (openFlags & __WASI_O_EXCL) {
+            return OpenMode::EXCL;
+        } else if(openFlags == 0) {
+            return OpenMode::NONE;
+        } else {
+            throw std::runtime_error("Unable to detect open mode");
+        }
+    }
+
+    ReadWriteType getRwType(uint64_t rights) {
+        // Work out read/write
+        const bool rightsRead = rights & WASI_RIGHTS_READ;
+        const bool rightsWrite = rights & WASI_RIGHTS_WRITE;
+
+        if (rightsRead && rightsWrite) {
+            return ReadWriteType::READ_WRITE;
+        } else if (rightsRead) {
+            return ReadWriteType::READ_ONLY;
+        } else if (!rightsRead && rightsWrite) {
+            return ReadWriteType::WRITE_ONLY;
+        } else {
+            throw std::runtime_error("Unable to detect r/w type");
+        }
+    }
+
     uint16_t errnoToWasi(int errnoIn) {
         switch (errnoIn) {
             case EPERM:
@@ -34,10 +65,10 @@ namespace storage {
 
     FileDescriptor FileDescriptor::stdFdFactory(int stdFd, const std::string &devPath) {
         FileDescriptor fdStd(devPath);
-        fdStd.setActualRightsBase(__WASI_RIGHT_FD_READ | __WASI_RIGHT_FD_FDSTAT_SET_FLAGS
-                           | __WASI_RIGHT_FD_WRITE | __WASI_RIGHT_FD_FILESTAT_GET
-                           | __WASI_RIGHT_POLL_FD_READWRITE);
-
+        uint64_t rights = __WASI_RIGHT_FD_READ | __WASI_RIGHT_FD_FDSTAT_SET_FLAGS
+                          | __WASI_RIGHT_FD_WRITE | __WASI_RIGHT_FD_FILESTAT_GET
+                          | __WASI_RIGHT_POLL_FD_READWRITE;
+        fdStd.setActualRights(rights, rights);
         fdStd.linuxFd = stdFd;
         return fdStd;
     }
@@ -97,43 +128,47 @@ namespace storage {
         return d;
     }
 
-    bool FileDescriptor::path_open(uint64_t requestedRightsBase, uint64_t requestedRightsInheriting, uint32_t lookupFlags,
-                                   uint32_t openFlags, int32_t fdFlags) {
-        if(!rightsSet) {
+    bool
+    FileDescriptor::pathOpen(uint32_t lookupFlags, uint32_t openFlags, int32_t fdFlags) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        if (!rightsSet) {
             throw std::runtime_error("Opening path with no rights set");
         }
 
-        // Work out read/write
-        const bool rightsRead = actualRightsBase & RIGHTS_READ;
-        const bool rightsWrite = actualRightsBase & RIGHTS_WRITE;
+        OpenMode openMode = getOpenMode((uint16_t) openFlags);
+        ReadWriteType rwType = getRwType(actualRightsBase);
 
         int readWrite = 0;
-        if (rightsRead && rightsWrite) {
-            readWrite = O_RDWR;
-        } else if (rightsRead) {
+        if (openMode == OpenMode::DIRECTORY) {
             readWrite = O_RDONLY;
-        } else if (!rightsRead && rightsWrite) {
+            logger->trace("Path open: dir ({})", path);
+        } else if (rwType == ReadWriteType::READ_WRITE) {
+            readWrite = O_RDWR;
+            logger->trace("Path open: rw ({})", path);
+        } else if (rwType == ReadWriteType::WRITE_ONLY) {
             readWrite = O_WRONLY;
+            logger->trace("Path open: wo ({})", path);
         } else {
-            throw std::runtime_error("Unable to detect valid file flags");
+            readWrite = O_RDONLY;
+            logger->trace("Path open: ro ({})", path);
         }
 
         // Open flags
-        auto openFlagsCast = (uint16_t) openFlags;
-        if (openFlagsCast & __WASI_O_CREAT) {
+        if (openMode == OpenMode::CREATE) {
             linuxFlags = readWrite | O_CREAT;
             linuxMode = S_IRWXU | S_IRGRP | S_IROTH;
-        } else if (openFlagsCast & __WASI_O_DIRECTORY) {
+        } else if (openMode == OpenMode::DIRECTORY) {
             // Note - we can only pass O_RDONLY with O_DIRECTORY
-            linuxFlags = O_RDONLY | O_DIRECTORY;
+            linuxFlags = readWrite | O_DIRECTORY;
             linuxMode = 0;
-        } else if (openFlagsCast & __WASI_O_TRUNC) {
+        } else if (openMode == OpenMode::TRUNC) {
             linuxFlags = readWrite | O_TRUNC;
             linuxMode = 0;
-        } else if (openFlagsCast & __WASI_O_EXCL) {
+        } else if (openMode == OpenMode::EXCL) {
             linuxFlags = readWrite | O_EXCL;
             linuxMode = 0;
-        } else if (openFlagsCast == 0) {
+        } else if (openMode == OpenMode::NONE) {
             linuxFlags = readWrite;
             linuxMode = 0;
         } else {
@@ -141,7 +176,7 @@ namespace storage {
         }
 
         // More open flags
-        if(fdFlags != 0) {
+        if (fdFlags != 0) {
             bool fdFlagsHandled = false;
             if (fdFlags & __WASI_FDFLAG_RSYNC) {
                 linuxFlags |= O_RSYNC;
@@ -158,7 +193,7 @@ namespace storage {
                 fdFlagsHandled = true;
             }
 
-            if(!fdFlagsHandled) {
+            if (!fdFlagsHandled) {
                 throw std::runtime_error("Unhandled fd flags");
             }
         }
@@ -256,10 +291,11 @@ namespace storage {
         }
 
         // Set WASI rights accordingly
-        if(isReadOnly) {
-            setActualRightsBase(RIGHTS_READ);
+        if (isReadOnly) {
+            setActualRights(WASI_RIGHTS_READ, WASI_RIGHTS_READ);
         } else {
-            setActualRightsBase(RIGHTS_READ | RIGHTS_WRITE);
+            uint64_t rights = WASI_RIGHTS_READ | WASI_RIGHTS_WRITE;
+            setActualRights(rights, rights);
         }
 
         // Set up the result
@@ -330,13 +366,9 @@ namespace storage {
         return actualRightsInheriting;
     }
 
-    void FileDescriptor::setActualRightsBase(uint64_t val) {
-        actualRightsBase = val;
-        rightsSet = true;
-    }
-
-    void FileDescriptor::setActualRightsInheriting(uint64_t val) {
-        actualRightsInheriting = val;
+    void FileDescriptor::setActualRights(uint64_t rights, uint64_t inheriting) {
+        actualRightsBase = rights;
+        actualRightsInheriting = inheriting;
         rightsSet = true;
     }
 }

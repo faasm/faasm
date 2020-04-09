@@ -24,16 +24,8 @@ namespace storage {
     void FileSystem::createPreopenedFileDescriptor(int fd, const std::string &path) {
         // Open the descriptor as a directory
         storage::FileDescriptor fileDesc(path);
-        fileDesc.setActualRightsBase(DIRECTORY_RIGHTS);
-        fileDesc.setActualRightsInheriting(INHERITING_DIRECTORY_RIGHTS);
-
-        bool success = fileDesc.path_open(
-                DIRECTORY_RIGHTS,
-                INHERITING_DIRECTORY_RIGHTS,
-                0,
-                __WASI_O_DIRECTORY,
-                0
-        );
+        fileDesc.setActualRights(DIRECTORY_RIGHTS, INHERITING_DIRECTORY_RIGHTS);
+        bool success = fileDesc.pathOpen(0, __WASI_O_DIRECTORY, 0);
 
         if (!success) {
             util::getLogger()->error("Failed on preopened FD {} ({})", path, strerror(fileDesc.getLinuxErrno()));
@@ -66,9 +58,29 @@ namespace storage {
         fileDescriptors.try_emplace(thisFd, fullPath);
         storage::FileDescriptor &fileDesc = fileDescriptors.at(thisFd);
 
-        // TODO - set inherited rights on new file descriptor
+        // Set rights on new file descriptor
+        uint64_t effectiveRights = rightsBase & rootFileDesc.getActualRightsBase();
+        uint64_t effectiveInheritedRights = rightsInheriting & rootFileDesc.getActualRightsInheriting();
+        fileDesc.setActualRights(effectiveRights, effectiveInheritedRights);
 
-        bool success = fileDesc.path_open(rightsBase, rightsInheriting, lookupFlags, openFlags, fdFlags);
+        ReadWriteType requestedRw = getRwType(rightsBase);
+        ReadWriteType effectiveRw = getRwType(effectiveRights);
+
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        if(requestedRw == ReadWriteType::READ_ONLY) {
+            logger->trace("Requested READ_ONLY {}", fullPath);
+        } else if(requestedRw == ReadWriteType::READ_WRITE) {
+            logger->trace("Requested READ_WRITE {}", fullPath);
+        }
+
+        if(effectiveRw == ReadWriteType::READ_ONLY) {
+            logger->trace("Effective READ_ONLY {}", fullPath);
+        } else if(effectiveRw == ReadWriteType::READ_WRITE) {
+            logger->trace("Effective READ_WRITE {}", fullPath);
+        }
+        
+        // Open the path
+        bool success = fileDesc.pathOpen(lookupFlags, openFlags, fdFlags);
         if (!success) {
             return -1 * fileDesc.getWasiErrno();
         }

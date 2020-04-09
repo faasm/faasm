@@ -101,11 +101,11 @@ namespace wasm {
         // Open a new file descriptor
         // Returns a negative wasi errno if fails
         int fdRes = getExecutingModule()->getFileSystem().openFileDescriptor(
-                rootFd, pathStr,
-                rightsBase, rightsInheriting, lookupFlags, openFlags, fdFlags
+                rootFd, pathStr, rightsBase, rightsInheriting, lookupFlags, openFlags, fdFlags
         );
 
         if (fdRes < 0) {
+            util::getLogger()->trace("Failed open file descriptor: {}", fdRes);
             return -1 * fdRes;
         } else {
             // Write result to memory location
@@ -620,12 +620,14 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_fdstat_get", I32, wasi_fd_fdstat_get, I32 fd, I32 statPtr) {
-        util::getLogger()->debug("S - fd_fdstat_get - {} {}", fd, statPtr);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - fd_fdstat_get - {} {}", fd, statPtr);
 
         storage::FileDescriptor &fileDesc = getExecutingModule()->getFileSystem().getFileDescriptor(fd);
         storage::Stat statResult = fileDesc.stat();
 
         if (statResult.failed) {
+            logger->trace("Failed stat: {}", statResult.wasiErrno);
             return statResult.wasiErrno;
         }
 
