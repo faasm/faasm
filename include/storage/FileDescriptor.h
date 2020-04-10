@@ -61,7 +61,13 @@ namespace storage {
 
         static FileDescriptor stderrFactory();
 
-        explicit FileDescriptor(std::string pathIn);
+        FileDescriptor();
+
+//        FileDescriptor(const FileDescriptor &other);
+//
+//        FileDescriptor &operator=(const FileDescriptor &other);
+//
+//        void clone(const FileDescriptor &other);
 
         DirEnt iterNext();
 
@@ -83,7 +89,6 @@ namespace storage {
 
         uint64_t tell();
 
-        const std::string path;
         bool iterStarted;
         bool iterFinished;
 
@@ -105,9 +110,13 @@ namespace storage {
 
         std::string absPath(const std::string &relativePath);
 
-        void dup(FileDescriptor &other);
+        void setPath(const std::string &newPath);
+
+        std::string getPath();
     private:
         static FileDescriptor stdFdFactory(int stdFd, const std::string &devPath);
+
+        std::string path;
 
         DIR *dirPtr;
         struct dirent *direntPtr;
