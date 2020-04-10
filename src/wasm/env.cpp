@@ -32,6 +32,7 @@ namespace wasm {
     }
 
     I32 s__gettid() {
+        util::getLogger()->debug("S - gettid");
         return FAKE_TID;
     }
 
@@ -130,10 +131,10 @@ namespace wasm {
         return 0;
     }
 
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "abort", void, abort) {
-//        util::getLogger()->debug("S - abort");
-//        throw (wasm::WasmExitException(0));
-//    }
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "abort", void, abort) {
+        util::getLogger()->debug("S - abort");
+        throw (wasm::WasmExitException(0));
+    }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "exit", void, exit, I32 a) {
         util::getLogger()->debug("S - exit - {}", a);
@@ -292,6 +293,11 @@ namespace wasm {
         util::getLogger()->debug("S - setjmp - {}", a);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__errno_location", I32, wasi__errno_location) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
 
     void envLink() {
 

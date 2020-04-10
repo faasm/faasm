@@ -58,7 +58,8 @@ namespace wasm {
         return 0;
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "poll_oneoff", I32, wasi_poll_oneoff, I32 subscriptionsPtr, I32 eventsPtr, I32 nSubs,
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "poll_oneoff", I32, wasi_poll_oneoff, I32 subscriptionsPtr, I32 eventsPtr,
+                                   I32 nSubs,
                                    I32 resNEvents) {
         util::getLogger()->debug("S - poll_oneoff - {} {} {} {}", subscriptionsPtr, eventsPtr, nSubs, resNEvents);
         WasmModule *module = getExecutingModule();
@@ -66,16 +67,16 @@ namespace wasm {
         auto inEvents = Runtime::memoryArrayPtr<wasi_subscription_t>(module->defaultMemory, subscriptionsPtr, nSubs);
         auto outEvents = Runtime::memoryArrayPtr<__wasi_event_t>(module->defaultMemory, eventsPtr, nSubs);
 
-        for(int i = 0; i < nSubs; i++) {
+        for (int i = 0; i < nSubs; i++) {
             wasi_subscription_t *thisSub = &inEvents[i];
 
-            if(thisSub->type == __WASI_EVENTTYPE_CLOCK) {
+            if (thisSub->type == __WASI_EVENTTYPE_CLOCK) {
                 // This is a timing event like a sleep
                 uint64_t timeoutNanos = thisSub->u.clock.timeout;
                 int clockType = 0;
-                if(thisSub->u.clock.clock_id == __WASI_CLOCK_MONOTONIC) {
+                if (thisSub->u.clock.clock_id == __WASI_CLOCK_MONOTONIC) {
                     clockType = CLOCK_MONOTONIC;
-                } else if(thisSub->u.clock.clock_id == __WASI_CLOCK_REALTIME) {
+                } else if (thisSub->u.clock.clock_id == __WASI_CLOCK_REALTIME) {
                     clockType = CLOCK_REALTIME;
                 } else {
                     throw std::runtime_error("Unimplemented clock type");
@@ -88,13 +89,13 @@ namespace wasm {
             } else {
                 throw std::runtime_error("Unimplemented event type");
             }
-            
+
             // Say that the event has occurred
             __wasi_event_t *thisEvent = &outEvents[i];
             thisEvent->type = thisSub->type;
             thisEvent->error = __WASI_ESUCCESS;
         }
-        
+
         // Write the result
         Runtime::memoryRef<U32>(module->defaultMemory, resNEvents) = (U32) nSubs;
 
@@ -105,13 +106,28 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "clock_time_get", I32, wasi_clock_time_get, I32 clockId, I64 precision, I32 resultPtr) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "clock_time_get", I32, wasi_clock_time_get, I32 clockId, I64 precision,
+                                   I32 resultPtr) {
         util::getLogger()->debug("S - clock_time_get - {} {} {}", clockId, precision, resultPtr);
 
         timespec ts{};
-        int retVal = clock_gettime(clockId, &ts);
+
+        int linuxClockId;
+        if (clockId == __WASI_CLOCK_REALTIME) {
+            linuxClockId = CLOCK_REALTIME;
+        } else if (clockId == __WASI_CLOCK_MONOTONIC) {
+            linuxClockId = CLOCK_MONOTONIC;
+        } else if (clockId == __WASI_CLOCK_PROCESS_CPUTIME_ID) {
+            linuxClockId = CLOCK_PROCESS_CPUTIME_ID;
+        } else if (clockId == __WASI_CLOCK_THREAD_CPUTIME_ID) {
+            linuxClockId = CLOCK_THREAD_CPUTIME_ID;
+        } else {
+            throw std::runtime_error("Unknown clock ID");
+        }
+
+        int retVal = clock_gettime(linuxClockId, &ts);
         if (retVal < 0) {
-            if(EINVAL) {
+            if (EINVAL) {
                 return __WASI_EINVAL;
             } else {
                 throw std::runtime_error("Unexpected clock error");

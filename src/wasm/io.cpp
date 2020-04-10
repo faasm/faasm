@@ -916,6 +916,11 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
+    // This is an Emscripten-specific function
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "fiprintf", I32, wasi_fiprintf, I32 a, I32 b, I32 c) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
     void ioLink() {
 
     }

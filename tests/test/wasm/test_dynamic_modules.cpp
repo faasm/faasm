@@ -43,9 +43,9 @@ namespace tests {
     std::string mainData = "PyBool_Type";
     std::string dataA = "PyArray_API";
     std::string dataB = "PyUFunc_API";
-    int mainDataOffset = 6354224;
-    int dataAOffset = 42049184;
-    int dataBOffset = 73334784;
+    int mainDataOffset = 6361056;
+    int dataAOffset = 42966688;
+    int dataBOffset = 74252288;
 
     // NOTE - extra table entries are created for each module loaded (not sure from where)
     int extraFuncsPerModule = 6;
