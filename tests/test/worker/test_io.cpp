@@ -20,12 +20,6 @@ namespace tests {
         execFunction(call);
     }
 
-    TEST_CASE("Test file operations", "[worker]") {
-        cleanSystem();
-        message::Message call = util::messageFactory("demo", "file");
-        execFunction(call);
-    }
-
     TEST_CASE("Test execution of echo function", "[worker]") {
         cleanSystem();
         message::Message call = util::messageFactory("demo", "echo");

@@ -18,8 +18,7 @@ namespace tests {
 
         // Check function signatures
         REQUIRE(Runtime::getFunctionType(mainFunc) == IR::FunctionType(
-                {IR::ValueType::i32},
-                {IR::ValueType::i32, IR::ValueType::i32}));
+                {IR::ValueType::i32}, {}));
         REQUIRE(Runtime::getFunctionType(zygoteFunc) == IR::FunctionType({IR::ValueType::i32}, {}));
         REQUIRE(Runtime::getFunctionType(ptrFunc) == IR::FunctionType({IR::ValueType::i32}, {IR::ValueType::i32}));
     }
@@ -37,7 +36,7 @@ namespace tests {
         // Set up call with a specific function pointer and zygote in state
         call.set_snapshotkey(stateKey);
         call.set_funcptr(1);
-        
+
         // Restore from the zygote and execute the function (expect it to succeed)
         wasm::WasmModule moduleB;
         moduleB.bindToFunction(call);

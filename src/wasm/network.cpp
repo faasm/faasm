@@ -324,6 +324,16 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "sock_send", I32, wasi_sock_send, I32 a, I32 b, I32 c, I32 d,
+                                   I32 e) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "sock_recv", I32, wasi_sock_recv, I32 a, I32 b, I32 c, I32 d, I32 e,
+                                   I32 f) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "sock_shutdown", I32, wasi_sock_shutdown, I32 a, I32 b) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "bind", I32, bind, I32 a, I32 b, I32 c) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
@@ -380,16 +390,6 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getsockname", I32, s__getsockname, I32 a, I32 b, I32 c) {
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "sock_send", I32, wasi_sock_send, I32 a, I32 b, I32 c, I32 d,
-                                   I32 e) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "sock_recv", I32, wasi_sock_recv, I32 a, I32 b, I32 c, I32 d, I32 e,
-                                   I32 f) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "sock_shutdown", I32, wasi_sock_shutdown, I32 a, I32 b) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
