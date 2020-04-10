@@ -9,7 +9,8 @@
 	url = https://github.com/Shillaker/gem3-mapper.git
 [submodule "third-party/WAVM"]
 	path = third-party/WAVM
-	url = https://github.com/Shillaker/WAVM.git
+    url = https://github.com/Shillaker/WAVM.git
+    branch = faasm
 [submodule "third-party/libpng"]
 	path = third-party/libpng
 	url = https://github.com/glennrp/libpng.git
