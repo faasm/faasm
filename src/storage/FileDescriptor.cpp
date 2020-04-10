@@ -65,7 +65,9 @@ namespace storage {
     }
 
     FileDescriptor FileDescriptor::stdFdFactory(int stdFd, const std::string &devPath) {
-        FileDescriptor fdStd(devPath);
+        FileDescriptor fdStd;
+        fdStd.setPath(devPath);
+
         uint64_t rights = __WASI_RIGHT_FD_READ | __WASI_RIGHT_FD_FDSTAT_SET_FLAGS
                           | __WASI_RIGHT_FD_WRITE | __WASI_RIGHT_FD_FILESTAT_GET
                           | __WASI_RIGHT_POLL_FD_READWRITE;
@@ -86,27 +88,45 @@ namespace storage {
         return FileDescriptor::stdFdFactory(STDERR_FILENO, "/dev/stderr");
     }
 
-
-    FileDescriptor::FileDescriptor(std::string pathIn) : path(std::move(pathIn)),
-                                                         iterStarted(false), iterFinished(false),
-                                                         dirPtr(nullptr), direntPtr(nullptr),
-                                                         rightsSet(false),
-                                                         linuxFd(-1), linuxMode(-1), linuxFlags(-1), linuxErrno(0),
-                                                         wasiErrno(0) {
+    FileDescriptor::FileDescriptor() : iterStarted(false), iterFinished(false),
+                                       dirPtr(nullptr), direntPtr(nullptr),
+                                       rightsSet(false),
+                                       linuxFd(-1), linuxMode(-1), linuxFlags(-1), linuxErrno(0),
+                                       wasiErrno(0) {
 
     }
 
-    void FileDescriptor::dup(FileDescriptor &other) {
-        // Call dup properly on the underlying file descriptor
-        linuxFd = ::dup(other.linuxFd);
-
-        // Assume everything else the same
-        linuxFlags = other.linuxFlags;
-        linuxMode = other.linuxMode;
-
-        // Copy rights
-        setActualRights(other.getActualRightsBase(), other.getActualRightsInheriting());
-    }
+//    FileDescriptor &FileDescriptor::operator=(const FileDescriptor &other) {
+//        clone(other);
+//        return *this;
+//    }
+//
+//    FileDescriptor::FileDescriptor(const FileDescriptor &other) {
+//        clone(other);
+//    }
+//
+//    void FileDescriptor::clone(const FileDescriptor &other) {
+//        path = other.path;
+//
+//        iterStarted = other.iterStarted;
+//        iterFinished = other.iterFinished;
+//
+//        dirPtr = other.dirPtr;
+//        direntPtr = other.direntPtr;
+//
+//        rightsSet = other.rightsSet;
+//        actualRightsBase = other.actualRightsBase;
+//        actualRightsInheriting = other.actualRightsInheriting;
+//
+//        // Note, we want to refer to the _same_ underlying linux fd
+//        linuxFd = other.linuxFd;
+//        linuxFlags = other.linuxFlags;
+//        linuxMode = other.linuxMode;
+//        linuxErrno = other.linuxErrno;
+//
+//        wasiErrno = other.wasiErrno;
+//        wasiPreopenType = other.wasiPreopenType;
+//    }
 
     DirEnt FileDescriptor::iterNext() {
         if (iterFinished) {
@@ -241,6 +261,14 @@ namespace storage {
 
     }
 
+    std::string FileDescriptor::getPath() {
+        return path;
+    }
+
+    void FileDescriptor::setPath(const std::string &newPath) {
+        path = newPath;
+    }
+
     std::string FileDescriptor::absPath(const std::string &relativePath) {
         std::string res;
 
@@ -358,18 +386,7 @@ namespace storage {
         return bytesRead;
     }
 
-    uint16_t FileDescriptor::seek(uint64_t offset, int whence, uint64_t *newOffset) {
-        int linuxWhence;
-        if (whence == __WASI_WHENCE_CUR) {
-            linuxWhence = SEEK_CUR;
-        } else if (whence == __WASI_WHENCE_END) {
-            linuxWhence = SEEK_END;
-        } else if (whence == __WASI_WHENCE_SET) {
-            linuxWhence = SEEK_SET;
-        } else {
-            throw std::runtime_error("Unsupported whence");
-        }
-
+    uint16_t FileDescriptor::seek(uint64_t offset, int linuxWhence, uint64_t *newOffset) {
         // Do the seek
         off_t result = ::lseek(linuxFd, offset, linuxWhence);
         if (result < 0) {

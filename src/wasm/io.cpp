@@ -45,14 +45,14 @@ namespace wasm {
 
         auto wasiPrestat = &Runtime::memoryRef<__wasi_prestat_t>(module->defaultMemory, prestatPtr);
         wasiPrestat->pr_type = fileDesc.wasiPreopenType;
-        wasiPrestat->u.dir.pr_name_len = fileDesc.path.size();
+        wasiPrestat->u.dir.pr_name_len = fileDesc.getPath().size();
 
         return __WASI_ESUCCESS;
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_prestat_dir_name", I32, wasi_fd_prestat_dir_name, I32 fd, I32 pathPtr,
-                                   I32 pathLen) {
-        util::getLogger()->debug("S - fd_prestat_dir_name - {} {}", fd, pathPtr, pathLen);
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_prestat_dir_name", I32, wasi_fd_prestat_dir_name, I32 fd, I32 resPathPtr,
+                                   I32 resPathLen) {
+        util::getLogger()->debug("S - fd_prestat_dir_name - {} {}", fd, resPathPtr, resPathLen);
 
         WasmModule *module = getExecutingModule();
         if (!module->getFileSystem().fileDescriptorExists(fd)) {
@@ -62,8 +62,9 @@ namespace wasm {
         storage::FileDescriptor &fileDesc = module->getFileSystem().getFileDescriptor(fd);
 
         // Copy the path into the wasm buffer
-        char *buffer = Runtime::memoryArrayPtr<char>(module->defaultMemory, pathPtr, pathLen);
-        std::copy(fileDesc.path.begin(), fileDesc.path.end(), buffer);
+        char *buffer = Runtime::memoryArrayPtr<char>(module->defaultMemory, resPathPtr, resPathLen);
+        const std::string &pathStr = fileDesc.getPath();
+        std::copy(pathStr.begin(), pathStr.end(), buffer);
 
         return __WASI_ESUCCESS;
     }
@@ -132,14 +133,25 @@ namespace wasm {
         return newFd;
     }
 
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "dup", I32, dup, I32 fd) {
-        util::getLogger()->debug("S - dup - {}", fd);
-
+    int doWasiDup(I32 fd) {
         storage::FileSystem &fs = getExecutingModule()->getFileSystem();
         int newFd = fs.dup(fd);
 
         return newFd;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "dup", I32, dup, I32 fd) {
+        util::getLogger()->debug("S - dup - {}", fd);
+        return doWasiDup(fd);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__wasi_fd_dup", I32, __wasi_fd_dup, I32 fd, I32 resFdPtr) {
+        util::getLogger()->debug("S - fd_dup - {}", fd, resFdPtr);
+
+        int newFd = doWasiDup(fd);
+        Runtime::memoryRef<I32>(getExecutingModule()->defaultMemory, resFdPtr) = newFd;
+
+        return __WASI_ESUCCESS;
     }
     
     I32 s__fcntl64(I32 fd, I32 cmd, I32 c) {
@@ -770,7 +782,19 @@ namespace wasm {
         uint64_t *newOffsetHostPtr = &Runtime::memoryRef<uint64_t>(getExecutingModule()->defaultMemory, newOffsetPtr);
 
         storage::FileDescriptor &fileDesc = getExecutingModule()->getFileSystem().getFileDescriptor(fd);
-        uint16_t wasiErrno = fileDesc.seek(offset, whence, newOffsetHostPtr);
+
+        int linuxWhence;
+        if (whence == WASI_WHENCE_CUR) {
+            linuxWhence = SEEK_CUR;
+        } else if (whence == WASI_WHENCE_END) {
+            linuxWhence = SEEK_END;
+        } else if (whence == WASI_WHENCE_SET) {
+            linuxWhence = SEEK_SET;
+        } else {
+            throw std::runtime_error("Unsupported whence");
+        }
+
+        uint16_t wasiErrno = fileDesc.seek(offset, linuxWhence, newOffsetHostPtr);
 
         return wasiErrno;
     }

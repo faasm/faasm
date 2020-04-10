@@ -23,7 +23,8 @@ namespace storage {
 
     void FileSystem::createPreopenedFileDescriptor(int fd, const std::string &path) {
         // Open the descriptor as a directory
-        storage::FileDescriptor fileDesc(path);
+        storage::FileDescriptor fileDesc;
+        fileDesc.setPath(path);
         fileDesc.setActualRights(DIRECTORY_RIGHTS, INHERITING_DIRECTORY_RIGHTS);
         bool success = fileDesc.pathOpen(0, __WASI_O_DIRECTORY, 0);
 
@@ -36,13 +37,11 @@ namespace storage {
         fileDesc.wasiPreopenType = __WASI_PREOPENTYPE_DIR;
         fileDescriptors.emplace(fd, fileDesc);
     }
-    
-    int FileSystem::createNew(const std::string &path) {
+
+    int FileSystem::getNewFd() {
         // Assign a new file descriptor
         int thisFd = nextFd;
         nextFd++;
-        fileDescriptors.try_emplace(thisFd, path);
-        
         return thisFd;
     }
 
@@ -53,18 +52,19 @@ namespace storage {
         storage::FileDescriptor &rootFileDesc = getFileDescriptor(rootFd);
 
         std::string fullPath;
-        if (rootFileDesc.path == ".") {
+        if (rootFileDesc.getPath() == ".") {
             fullPath = path;
         } else {
-            boost::filesystem::path joinedPath(rootFileDesc.path);
+            boost::filesystem::path joinedPath(rootFileDesc.getPath());
             joinedPath.append(path);
             fullPath = std::string(joinedPath.string());
         }
 
-        int thisFd = createNew(fullPath);
-        
+        int thisFd = getNewFd();
+        FileDescriptor &fileDesc = fileDescriptors[thisFd];
+        fileDesc.setPath(fullPath);
+
         // Set rights on new file descriptor
-        FileDescriptor &fileDesc = fileDescriptors.at(thisFd);
         uint64_t effectiveRights = rightsBase & rootFileDesc.getActualRightsBase();
         uint64_t effectiveInheritedRights = rightsInheriting & rootFileDesc.getActualRightsInheriting();
         fileDesc.setActualRights(effectiveRights, effectiveInheritedRights);
@@ -91,14 +91,12 @@ namespace storage {
     }
 
     int FileSystem::dup(int fd) {
-        // Create the entry in the file system
+        // We just want to map the *same* underlying object to a new descriptor
+        int thisFd = getNewFd();
+
         FileDescriptor &originalDesc = getFileDescriptor(fd);
-        int newFd = createNew(originalDesc.path);
+        fileDescriptors[thisFd] = originalDesc;
 
-        // Duplicate the old entry's details
-        FileDescriptor &newDesc = fileDescriptors.at(newFd);
-        newDesc.dup(originalDesc);
-
-        return newFd;
+        return thisFd;
     }
 }

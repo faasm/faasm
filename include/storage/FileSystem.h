@@ -27,6 +27,6 @@ namespace storage {
         int nextFd;
         std::unordered_map<int, storage::FileDescriptor> fileDescriptors;
 
-        int createNew(const std::string &path);
+        int getNewFd();
     };
 }
