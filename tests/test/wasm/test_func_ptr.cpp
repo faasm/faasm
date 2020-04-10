@@ -7,22 +7,6 @@ using namespace wasm;
 
 namespace tests {
 
-    TEST_CASE("Test extracting functions from module", "[wasm]") {
-        message::Message call = util::messageFactory("demo", "threads_check");
-        wasm::WasmModule module;
-        module.bindToFunction(call);
-
-        Runtime::Function *mainFunc = module.getMainFunction();
-        Runtime::Function *zygoteFunc = module.getDefaultZygoteFunction();
-        Runtime::Function *ptrFunc = module.getFunctionFromPtr(1);
-
-        // Check function signatures
-        REQUIRE(Runtime::getFunctionType(mainFunc) == IR::FunctionType(
-                {IR::ValueType::i32}, {}));
-        REQUIRE(Runtime::getFunctionType(zygoteFunc) == IR::FunctionType({IR::ValueType::i32}, {}));
-        REQUIRE(Runtime::getFunctionType(ptrFunc) == IR::FunctionType({IR::ValueType::i32}, {IR::ValueType::i32}));
-    }
-
     TEST_CASE("Test executing function given specific pointer", "[wasm]") {
         message::Message call = util::messageFactory("demo", "threads_check");
 

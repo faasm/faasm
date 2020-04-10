@@ -83,8 +83,6 @@ namespace wasm {
 
         int dynamicLoadModule(const std::string &path, Runtime::Context *context);
 
-        Runtime::Instance *getDynamicModule(int handle);
-
         Uptr getDynamicModuleFunction(int handle, const std::string &funcName);
 
         Uptr addFunctionToTable(Runtime::Object *exportedFunc);
@@ -96,13 +94,7 @@ namespace wasm {
                 IR::UntaggedValue &result
         );
 
-        Runtime::Function *getFunction(const std::string &funcName, bool strict);
-
-        Runtime::Function *getMainFunction();
-
-        Runtime::Function *getDefaultZygoteFunction();
-
-        Runtime::Function *getWasmConstructorsFunction();
+        Runtime::Function *getFunction(Runtime::Instance *module, const std::string &funcName, bool strict);
 
         Runtime::Function *getFunctionFromPtr(int funcPtr);
 
@@ -241,10 +233,20 @@ namespace wasm {
 
         void prepareArgcArgv(const message::Message &msg);
 
+        void executeZygoteFunction();
+
+        void executeWasmConstructorsFunction(Runtime::Instance *module);
+
         Runtime::Instance *createModuleInstance(
                 const std::string &name,
                 const std::string &sharedModulePath
         );
+
+        Runtime::Function *getMainFunction(Runtime::Instance *module);
+
+        Runtime::Function *getDefaultZygoteFunction(Runtime::Instance *module);
+
+        Runtime::Function *getWasmConstructorsFunction(Runtime::Instance *module);
     };
 
     WasmModule *getExecutingModule();

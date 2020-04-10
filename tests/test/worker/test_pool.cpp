@@ -189,15 +189,6 @@ namespace tests {
         execFuncWithPool(call, false, 1);
     }
 
-    TEST_CASE("Test python chaining", "[worker]") {
-        message::Message call = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
-        call.set_pythonuser("python");
-        call.set_pythonfunction("chain");
-        call.set_ispython(true);
-
-        execFuncWithPool(call, true, 1);
-    }
-
     TEST_CASE("Test repeat invocation with state", "[worker]") {
         setUp();
 
