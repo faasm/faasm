@@ -245,6 +245,11 @@ namespace wasm {
         return 0;
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "shm_open", I32, shm_open, I32 a, I32 b, I32 c) {
+        util::getLogger()->debug("S - shm_open - {} {} {}", a, b, c);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
     void memoryLink() {
 
     }

@@ -277,12 +277,16 @@ namespace wasm {
         return 0;
     }
 
-
     /*
      * --------------------------
      * Unsupported
      * --------------------------
      */
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_equal", I32, pthread_equal, I32 a, I32 b) {
+        util::getLogger()->trace("S - pthread_equal {} {}", a, b);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_cond_timedwait", I32, pthread_cond_timedwait, I32 a, I32 b, I32 c) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
