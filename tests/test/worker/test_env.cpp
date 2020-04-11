@@ -56,6 +56,13 @@ namespace tests {
         execFunction(msg);
     }
 
+    TEST_CASE("Test getcwd", "[worker]") {
+        cleanSystem();
+
+        message::Message msg = util::messageFactory("demo", "getcwd");
+        execFunction(msg);
+    }
+
     TEST_CASE("Test argc/argv", "[worker]") {
         cleanSystem();
         message::Message msg = util::messageFactory("demo", "argc_argv_test");

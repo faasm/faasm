@@ -3,7 +3,6 @@ PROJ_ROOT=${CURDIR}/..
 LLVM_PROJ_DIR=$(PROJ_ROOT)/third-party/llvm-project
 
 TOOLCHAIN_DIR=$(PROJ_ROOT)/toolchain
-# TOOLCHAIN_FILE=$(TOOLCHAIN_DIR)/FaasmToolchain.cmake
 TOOLCHAIN_FILE=$(TOOLCHAIN_DIR)/WasiToolchain.cmake
 
 # Install dirs
@@ -74,16 +73,7 @@ $(BUILD_DIR)/libc.BUILT: $(BUILD_DIR)/llvm.BUILT
 		WASM_AR=$(PREFIX)/bin/llvm-ar \
 		WASM_NM=$(PREFIX)/bin/llvm-nm \
 		SYSROOT=$(FAASM_SYSROOT)
-	# mv $(FAASM_SYSROOT)/lib/wasm32-wasi/* $(FAASM_SYSROOT)/lib/
-	# rm -r $(FAASM_SYSROOT)/lib/wasm32-wasi
 	touch $(BUILD_DIR)/libc.BUILT
-
-# Musl libc
-#$(BUILD_DIR)/libc.BUILT: $(BUILD_DIR)/llvm.BUILT
-#	cd $(PROJ_ROOT); bash bin/build_musl.sh llvm
-#	cd $(FAASM_SYSROOT)/lib; $(AR) rc libpthread.a
-#	cd $(FAASM_SYSROOT)/lib; $(AR) rc libdl.a
-#	touch $(BUILD_DIR)/libc.BUILT
 
 $(BUILD_DIR)/compiler-rt.BUILT: $(BUILD_DIR)/libc.BUILT
 	mkdir -p $(BUILD_DIR)/compiler-rt
@@ -103,7 +93,6 @@ $(BUILD_DIR)/compiler-rt.BUILT: $(BUILD_DIR)/libc.BUILT
 		$(LLVM_PROJ_DIR)/compiler-rt/lib/builtins
 	ninja -v -C $(BUILD_DIR)/compiler-rt install
 	cp -R $(BUILD_DIR)/llvm/lib/clang $(PREFIX)/lib/
-	# cp $(PREFIX)/lib/clang/$(CLANG_VERSION)/lib/wasi/* $(PREFIX)/lib/clang/$(CLANG_VERSION)/lib/
 	touch $(BUILD_DIR)/compiler-rt.BUILT
 
 $(BUILD_DIR)/libcxx.BUILT: $(BUILD_DIR)/compiler-rt.BUILT

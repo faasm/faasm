@@ -96,38 +96,6 @@ namespace storage {
 
     }
 
-//    FileDescriptor &FileDescriptor::operator=(const FileDescriptor &other) {
-//        clone(other);
-//        return *this;
-//    }
-//
-//    FileDescriptor::FileDescriptor(const FileDescriptor &other) {
-//        clone(other);
-//    }
-//
-//    void FileDescriptor::clone(const FileDescriptor &other) {
-//        path = other.path;
-//
-//        iterStarted = other.iterStarted;
-//        iterFinished = other.iterFinished;
-//
-//        dirPtr = other.dirPtr;
-//        direntPtr = other.direntPtr;
-//
-//        rightsSet = other.rightsSet;
-//        actualRightsBase = other.actualRightsBase;
-//        actualRightsInheriting = other.actualRightsInheriting;
-//
-//        // Note, we want to refer to the _same_ underlying linux fd
-//        linuxFd = other.linuxFd;
-//        linuxFlags = other.linuxFlags;
-//        linuxMode = other.linuxMode;
-//        linuxErrno = other.linuxErrno;
-//
-//        wasiErrno = other.wasiErrno;
-//        wasiPreopenType = other.wasiPreopenType;
-//    }
-
     DirEnt FileDescriptor::iterNext() {
         if (iterFinished) {
             throw std::runtime_error("Directory iterator finished");

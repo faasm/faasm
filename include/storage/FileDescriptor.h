@@ -63,12 +63,6 @@ namespace storage {
 
         FileDescriptor();
 
-//        FileDescriptor(const FileDescriptor &other);
-//
-//        FileDescriptor &operator=(const FileDescriptor &other);
-//
-//        void clone(const FileDescriptor &other);
-
         DirEnt iterNext();
 
         Stat stat(const std::string &relativePath = "");
