@@ -27,6 +27,7 @@ __syscall_cp
 # Memory
 mmap
 munmap
+shm_open
 
 # Dynamic linking
 dlopen
@@ -90,6 +91,7 @@ pthread_cond_destroy
 pthread_cond_signal
 pthread_cond_timedwait
 pthread_cond_init
+pthread_equal
 __tls_base
 
 # Signals
@@ -132,7 +134,6 @@ utime
 
 # C++ exceptions
 __cxa_begin_catch
-
 
 # WASI
 __wasi_args_get

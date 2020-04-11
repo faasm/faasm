@@ -365,7 +365,7 @@ def tflite(ctx, clean=False):
 
     make_cmd.append(make_target)
 
-    clean_dir = join(tf_make_dir, "gen", "wasm32-unknown-none_x86_64")
+    clean_dir = join(tf_make_dir, "gen", "wasm32-unknown-wasi_x86_64")
     if clean and exists(clean_dir):
         rmtree(clean_dir)
 
