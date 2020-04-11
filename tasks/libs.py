@@ -28,7 +28,7 @@ def toolchain(ctx, clean=False):
     faasm(ctx, clean=clean)
     fake(ctx, clean=clean)
     # zlib(ctx)
-    # tflite(ctx, clean=clean)
+    tflite(ctx, clean=clean)
 
 
 @task
@@ -349,7 +349,7 @@ def tflite(ctx, clean=False):
         check_output(download_script, shell=True)
 
     make_target = "lib"
-    make_cmd = ["make -j 4"]
+    make_cmd = ["make -j"]
     make_cmd.extend(BASE_CONFIG_CMD)
     make_cmd.extend([
         "CFLAGS=\"{} -ftls-model=local-exec\"".format(WASM_CFLAGS),
@@ -442,7 +442,7 @@ def mpi_bench(ctx, clean=False):
     if clean:
         call("make clean", shell=True, cwd=bench_dir)
 
-    make_cmd = "make -j 4 {}".format(make_target)
+    make_cmd = "make -j {}".format(make_target)
     res = call(make_cmd, shell=True, cwd=bench_dir, env={
         "CC": WASM_CC,
         "CXX": WASM_CXX,

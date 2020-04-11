@@ -24,7 +24,7 @@ export BLAS=None
 export LAPACK=None
 export ATLAS=None
 
-python3 setup.py build -j 3 install
+python3 setup.py build -j install
 
 popd
 popd
