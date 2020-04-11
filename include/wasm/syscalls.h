@@ -2,17 +2,23 @@
 
 #include <sys/socket.h>
 #include <mpi/MpiContext.h>
+#include <WAVM/WASI/WASIABI.h>
 
 #define FAKE_NAME "faasm"
 #define FAKE_PASSWORD  "foobar123"
 #define FAKE_HOME "/home/faasm/"
-#define FAKE_WORKING_DIR "/work/"
+#define FAKE_WORKING_DIR "/bin"
 
 #define FAKE_PID 23
 #define FAKE_TID 66
 #define FAKE_UID 1000
 #define FAKE_GID 1000
 #define FAKE_N_PROCESSORS 4
+
+// Temp while WAVM has issue
+#define WASI_WHENCE_SET 0
+#define WASI_WHENCE_CUR 1
+#define WASI_WHENCE_END 2
 
 namespace wasm {
     void getBytesFromWasm(I32 dataPtr, I32 dataLen, uint8_t *buffer);
@@ -114,23 +120,21 @@ namespace wasm {
     };
 
     /**
-     * To be sure what the target dirent struct is like, you need to look in dirent.h in
-     * the correct sysroot. Wasm libc looks like:
+     * To double check this, work out which header from the sysroot is resolved
+     * Currently this is:
+     *  - include/__struct_dirent.h
+     *  - include/__typedef_ino_t.h
      *
      * struct dirent {
-     *   ino_t d_ino;  // 64-bit
-     *   off_t d_off;  // 64-bit
-     *   unsigned short d_reclen;
-     *   unsigned char d_type;
-     *   char d_name[256];
+     *     ino_t d_ino;  # unsigned long long
+     *     unsigned char d_type;
+     *     char d_name[];
      * };
      */
     struct wasm_dirent64 {
         U64 d_ino;
-        I64 d_off;
-        U16 d_reclen;
         U8 d_type;
-        U8 d_name[256];
+        U8 d_name[];
     };
 
     /**
@@ -175,9 +179,9 @@ namespace wasm {
      * _especially_ the pointer to itself, which allows references to
      * be treated like pointers.
      */
-     struct wasm_pthread {
-         I32 selfPtr;
-     };
+    struct wasm_pthread {
+        I32 selfPtr;
+    };
 
     // Sockets/ network
     enum SocketCalls : U32 {
@@ -203,6 +207,35 @@ namespace wasm {
         sc_sendmmsg,
     };
 
+    // Temp while WAVM has issue: https://github.com/WAVM/WAVM/issues/272
+    struct wasi_subscription_t {
+        __wasi_userdata_t userdata;
+        __wasi_eventtype_t type;
+        union __wasi_subscription_u {
+            struct __wasi_subscription_u_clock_t {
+                __wasi_clockid_t clock_id;
+                __wasi_timestamp_t timeout;
+                __wasi_timestamp_t precision;
+                __wasi_subclockflags_t flags;
+            } clock;
+            struct __wasi_subscription_u_fd_readwrite_t {
+                __wasi_fd_t fd;
+            } fd_readwrite;
+        } u;
+    };
+
+    // Temp while WAVM has issue
+    struct wasi_filestat_t    {
+        __wasi_device_t st_dev;
+        __wasi_inode_t st_ino;
+        __wasi_filetype_t st_filetype;
+        uint64_t st_nlink;
+        __wasi_filesize_t st_size;
+        __wasi_timestamp_t st_atim;
+        __wasi_timestamp_t st_mtim;
+        __wasi_timestamp_t st_ctim;
+    } ;
+
     // Struct conversion
 
     sockaddr getSockAddr(I32 addrPtr);
@@ -210,6 +243,8 @@ namespace wasm {
     void writeNativeStatToWasmStat(struct stat64 *nativeStatPtr, I32 wasmStatPtr);
 
     iovec *wasmIovecsToNativeIovecs(I32 wasmIovecPtr, I32 wasmIovecCount);
+
+    iovec *wasiIovecsToNativeIovecs(I32 wasiIovecPtr, I32 wasiIovecCount);
 
     // Faasm
 
@@ -239,25 +274,13 @@ namespace wasm {
 
     I32 s__futex(I32 uaddrPtr, I32 futex_op, I32 val, I32 timeoutPtr, I32 uaddr2Ptr, I32 other);
 
-    I32 s__getcwd(I32 bufPtr, I32 bufLen);
-
     I32 s__getdents64(I32 fd, I32 wasmDirentBuf, I32 wasmDirentBufLen);
-
-    I32 s__geteuid32();
-
-    I32 s__getegid32();
-
-    I32 s__getgid32();
-
-    I32 s__getpid();
 
     I32 s__gettid();
 
     I32 s__getrandom(I32 bufPtr, I32 bufLen, I32 flags);
 
     I32 s__gettimeofday(I32 tvPtr, I32 tzPtr);
-
-    I32 s__getuid32();
 
     I32 s__ioctl(I32 fd, I32 request, I32 argPtr, I32 d, I32 e, I32 f);
 
@@ -305,8 +328,6 @@ namespace wasm {
 
     I32 s__siginterrupt(I32 a, I32 b);
 
-    I32 s__signal(I32 a, I32 b);
-
     I32 s__socketcall(I32 call, I32 argsPtr);
 
     I32 s__stat64(I32 pathPtr, I32 statBufPtr);
@@ -318,11 +339,41 @@ namespace wasm {
     I32 s__writev(I32 fd, I32 iov, I32 iovcnt);
 
     // Hack to include other files
-    void dynlinkLink();
-    void mathsLink();
-    void mpiLink();
-    void ompLink();
     void chainLink();
+
+    void dynlinkLink();
+
+    void envLink();
+
     void faasmLink();
+
+    void ioLink();
+
+    void libcxxLink();
+
+    void mathsLink();
+
+    void memoryLink();
+
+    void messagesLink();
+
+    void mpiLink();
+
+    void networkLink();
+
+    void ompLink();
+
+    void processLink();
+
     void rustLink();
+
+    void schedulingLink();
+
+    void signalsLink();
+
+    void threadsLink();
+
+    void timingLink();
+
+    void wasiLink();
 }

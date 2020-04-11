@@ -49,15 +49,15 @@ if(FAASM_BUILD_TYPE STREQUAL "wasm")
 
     # Install in WASM sysroot
     install(TARGETS faasm
-            ARCHIVE DESTINATION ${CMAKE_SYSROOT}/lib
-            LIBRARY DESTINATION ${CMAKE_SYSROOT}/lib
+            ARCHIVE DESTINATION ${CMAKE_SYSROOT}/lib/wasm32-wasi
+            LIBRARY DESTINATION ${CMAKE_SYSROOT}/lib/wasm32-wasi
             PUBLIC_HEADER DESTINATION ${CMAKE_SYSROOT}/include/faasm
             )
 
     # Add allowed import files
     install(
             FILES ${PROJ_INCLUDE}/faasm/faasm.imports
-            DESTINATION ${CMAKE_SYSROOT}/lib
+            DESTINATION ${CMAKE_SYSROOT}/lib/wasm32-wasi
             RENAME libfaasm.imports
     )
 else ()

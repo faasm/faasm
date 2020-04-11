@@ -6,6 +6,7 @@ include_directories(
 file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/wasm/*.h")
 
 set(LIB_FILES
+        WasmEnvironment.cpp
         WasmModule.cpp
         chaining_util.cpp
         chaining.cpp
@@ -13,16 +14,21 @@ set(LIB_FILES
         env.cpp
         faasm.cpp
         io.cpp
+        libcxx.cpp
         maths.cpp
         memory.cpp
+        messages.cpp
         mpi.cpp
         network.cpp
         openmp.cpp
+        process.cpp
         rust.cpp
+        scheduling.cpp
+        signals.cpp
         syscalls.cpp
         threads.cpp
+        timing.cpp
         typescript.cpp
-        unsupported.cpp
         util.cpp
         ${HEADERS}
         )

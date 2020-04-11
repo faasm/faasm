@@ -174,12 +174,16 @@ namespace tests {
         // This may fail because it's too brittle in which case we can do something more flexible
 
         // Check a few known definitions
-        REQUIRE(disasMap["functionDef0"] == "main");
-        REQUIRE(disasMap["functionDef1"] == "_faasm_func_0");
-        REQUIRE(disasMap["functionDef2"] == "faasmGetInputSize");
+        REQUIRE(disasMap["functionDef0"] == "__wasm_call_ctors");
+        REQUIRE(disasMap["functionDef1"] == "_start");
+        REQUIRE(disasMap["functionDef2"] == "main");
+        REQUIRE(disasMap["functionDef3"] == "_faasm_func_0");
+        REQUIRE(disasMap["functionDef4"] == "faasmGetInputSize");
 
         // Check a couple of imports
-        REQUIRE(disasMap["functionImport3"] == "__syscall1");
-        REQUIRE(disasMap["functionImport4"] == "__syscall3");
+        REQUIRE(disasMap["functionImport0"] == "__wasi_proc_exit");
+        REQUIRE(disasMap["functionImport1"] == "__faasm_read_input");
+        REQUIRE(disasMap["functionImport2"] == "__faasm_write_output");
+        REQUIRE(disasMap["functionImport3"] == "__faasm_get_idx");
     }
 }

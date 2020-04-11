@@ -5,7 +5,7 @@
 
 FAASM_MAIN_FUNC() {
     int actual = sysconf(_SC_NPROCESSORS_ONLN);
-    int expected = 4;
+    int expected = 1;
 
     if(actual != expected) {
         printf("Number processors not as expected (expected %i but was %i)\n", expected, actual);

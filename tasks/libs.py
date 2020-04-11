@@ -8,7 +8,7 @@ from invoke import task
 
 from tasks.compile import clean_dir
 from tasks.util.codegen import find_codegen_shared_lib
-from tasks.util.env import PROJ_ROOT, FAASM_TOOLCHAIN_FILE, FAASM_SYSROOT, FAASM_INSTALL_DIR, \
+from tasks.util.env import PROJ_ROOT, FAASM_TOOLCHAIN_FILE, SYSROOT_INSTALL_PREFIX, FAASM_INSTALL_DIR, \
     FAASM_RUNTIME_ROOT, WASM_DIR
 from tasks.util.env import THIRD_PARTY_DIR
 from toolchain.python_env import WASM_HOST, BASE_CONFIG_CMD, WASM_CFLAGS, WASM_CXXFLAGS, WASM_LDFLAGS, WASM_CC, \
@@ -24,47 +24,11 @@ def toolchain(ctx, clean=False):
     """
     Compile and install all libs crucial to the toolchain
     """
-    libc(ctx)
-    malloc(ctx, clean=clean)
+    eigen(ctx)
     faasm(ctx, clean=clean)
     fake(ctx, clean=clean)
-    eigen(ctx)
-    zlib(ctx)
+    # zlib(ctx)
     tflite(ctx, clean=clean)
-
-
-@task
-def libc(ctx):
-    """
-    Compile and install libc
-    """
-    check_output("./bin/build_musl.sh", shell=True, cwd=PROJ_ROOT)
-    malloc(ctx, clean=True)
-
-
-@task
-def malloc(ctx, clean=False):
-    """
-    Compile and install dlmalloc
-    """
-    work_dir = join(PROJ_ROOT, "third-party", "malloc")
-    build_dir = join(PROJ_ROOT, "build", "malloc")
-
-    clean_dir(build_dir, clean)
-
-    build_cmd = [
-        "cmake",
-        "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
-        work_dir,
-    ]
-
-    build_cmd_str = " ".join(build_cmd)
-    print(build_cmd_str)
-
-    call(build_cmd_str, shell=True, cwd=build_dir)
-    call("make", shell=True, cwd=build_dir)
-    call("make install", shell=True, cwd=build_dir)
 
 
 @task
@@ -102,13 +66,15 @@ def native(ctx, clean=False):
     call("sudo make install", shell=True, cwd=build_dir)
 
 
-def _build_faasm_lib(dir_name, clean):
+def _build_faasm_lib(dir_name, clean, verbose):
     work_dir = join(PROJ_ROOT, "libs", dir_name)
     build_dir = join(PROJ_ROOT, "build", dir_name)
 
     clean_dir(build_dir, clean)
 
+    verbose_str = "VERBOSE=1" if verbose else ""
     build_cmd = [
+        verbose_str,
         "cmake",
         "-DFAASM_BUILD_TYPE=wasm",
         "-DCMAKE_BUILD_TYPE=Release",
@@ -119,45 +85,56 @@ def _build_faasm_lib(dir_name, clean):
     build_cmd_str = " ".join(build_cmd)
     print(build_cmd_str)
 
-    call(build_cmd_str, shell=True, cwd=build_dir)
-    call("make", shell=True, cwd=build_dir)
-    call("make install", shell=True, cwd=build_dir)
+    res = call(build_cmd_str, shell=True, cwd=build_dir)
+    if res != 0:
+        exit(1)
+
+    res = call("{} make".format(verbose_str), shell=True, cwd=build_dir)
+    if res != 0:
+        exit(1)
+
+    res = call("make install", shell=True, cwd=build_dir)
+    if res != 0:
+        exit(1)
 
 
 @task
-def faasm(ctx, clean=False):
+def faasm(ctx, clean=False, lib=None, verbose=False):
     """
     Compile and install all Faasm libraries
     """
-    _build_faasm_lib("cpp", clean)
-    _build_faasm_lib("pyinit", clean)
-    _build_faasm_lib("faasmp", clean)
-    _build_faasm_lib("faasmpi", clean)
-    _build_faasm_lib("rust", clean)
+    if lib:
+        _build_faasm_lib(lib, clean, verbose)
+    else:
+        _build_faasm_lib("cpp", clean, verbose)
+        _build_faasm_lib("pyinit", clean, verbose)
+        _build_faasm_lib("faasmp", clean, verbose)
+        _build_faasm_lib("faasmpi", clean, verbose)
+        _build_faasm_lib("rust", clean, verbose)
 
 
 @task
-def faasmp(ctx, clean=False):
+def faasmp(ctx, clean=False, verbose=False):
     """
     Compile and install the Faasm OpenMP library
     """
-    _build_faasm_lib("faasmp", clean)
+    _build_faasm_lib("faasmp", clean, verbose)
 
 
 @task
-def faasmpi(ctx, clean=False):
+def faasmpi(ctx, clean=False, verbose=False):
     """
     Compile and install the Faasm MPI library
     """
-    _build_faasm_lib("faasmpi", clean)
+    _build_faasm_lib("faasmpi", clean, verbose)
 
 
 @task
-def rust(ctx, clean=False):
+def rust(ctx, clean=False, verbose=False):
     """
     Install Rust library
     """
-    _build_faasm_lib("rust", clean)
+    _build_faasm_lib("rust", clean, verbose)
 
 
 @task
@@ -175,7 +152,7 @@ def fake(ctx, clean=False):
         "-DFAASM_BUILD_TYPE=wasm",
         "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_SYSROOT),
+        "-DCMAKE_INSTALL_PREFIX={}".format(SYSROOT_INSTALL_PREFIX),
         work_dir,
     ]
 
@@ -184,7 +161,7 @@ def fake(ctx, clean=False):
     call("make install", shell=True, cwd=build_dir)
 
     # Copy shared object into place
-    sysroot_files = join(FAASM_SYSROOT, "lib", "libfake*.so")
+    sysroot_files = join(SYSROOT_INSTALL_PREFIX, "lib", "wasm32-wasi", "libfake*.so")
 
     runtime_lib_dir = join(FAASM_RUNTIME_ROOT, "lib")
     if not exists(runtime_lib_dir):
@@ -242,7 +219,7 @@ def lulesh(ctx, mpi=False, omp=False, clean=True, debug=False, cp=True):
         "-DFAASM_BUILD_TYPE=wasm",
         "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_SYSROOT),
+        "-DCMAKE_INSTALL_PREFIX={}".format(SYSROOT_INSTALL_PREFIX),
         work_dir
     ])
     if debug:
@@ -283,7 +260,7 @@ def lulesh(ctx, mpi=False, omp=False, clean=True, debug=False, cp=True):
 
 
 @task
-def eigen(ctx):
+def eigen(ctx, verbose=False):
     """
     Compile and install Eigen
     """
@@ -294,18 +271,26 @@ def eigen(ctx):
         rmtree(build_dir)
     makedirs(build_dir)
 
+    verbose_string = "VERBOSE=1" if verbose else ""
+
     cmd = [
+        verbose_string,
         "cmake",
         "-DFAASM_BUILD_TYPE=wasm",
         "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_SYSROOT),
+        "-DCMAKE_INSTALL_PREFIX={}".format(SYSROOT_INSTALL_PREFIX),
         work_dir
     ]
     cmd_string = " ".join(cmd)
 
-    call(cmd_string, shell=True, cwd=build_dir)
-    call("make install", shell=True, cwd=build_dir)
+    res = call(cmd_string, shell=True, cwd=build_dir)
+    if res != 0:
+        exit(1)
+
+    res = call("{} make install".format(verbose_string), shell=True, cwd=build_dir)
+    if res != 0:
+        exit(1)
 
 
 @task
@@ -364,23 +349,23 @@ def tflite(ctx, clean=False):
         check_output(download_script, shell=True)
 
     make_target = "lib"
-    make_cmd = ["make -j 4"]
+    make_cmd = ["make -j"]
     make_cmd.extend(BASE_CONFIG_CMD)
     make_cmd.extend([
-        "CFLAGS=\"{} -ftls-model=local-exec -ldlmalloc\"".format(WASM_CFLAGS),
-        "CXXFLAGS=\"{} -ldlmalloc\"".format(WASM_CXXFLAGS),
+        "CFLAGS=\"{} -ftls-model=local-exec\"".format(WASM_CFLAGS),
+        "CXXFLAGS=\"{}\"".format(WASM_CXXFLAGS),
         "LDFLAGS=\"{} -Xlinker --max-memory=4294967296\"".format(WASM_LDFLAGS),
         "MINIMAL_SRCS=",
         "TARGET={}".format(WASM_HOST),
         "BUILD_WITH_MMAP=false",
-        "LIBS=\"-lstdc++ -ldlmalloc\"",
+        "LIBS=\"-lstdc++\"",
         "-C \"{}\"".format(tf_dir),
         "-f tensorflow/lite/tools/make/Makefile",
     ])
 
     make_cmd.append(make_target)
 
-    clean_dir = join(tf_make_dir, "gen", "wasm32-unknown-none_x86_64")
+    clean_dir = join(tf_make_dir, "gen", "wasm32-unknown-wasi_x86_64")
     if clean and exists(clean_dir):
         rmtree(clean_dir)
 
@@ -457,7 +442,7 @@ def mpi_bench(ctx, clean=False):
     if clean:
         call("make clean", shell=True, cwd=bench_dir)
 
-    make_cmd = "make -j 4 {}".format(make_target)
+    make_cmd = "make -j {}".format(make_target)
     res = call(make_cmd, shell=True, cwd=bench_dir, env={
         "CC": WASM_CC,
         "CXX": WASM_CXX,

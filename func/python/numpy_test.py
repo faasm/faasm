@@ -2,6 +2,9 @@ import numpy as np
 
 
 def main_func():
+    print("Starting numpy version {}".format(np.__version__))
+    np.__config__.show()
+
     a = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
     print("10={}".format(a[10]))
     print("6={}".format(a[6]))

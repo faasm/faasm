@@ -13,8 +13,8 @@ if(FAASM_BUILD_TYPE STREQUAL "wasm")
     set_target_properties(pyinit PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
     install(TARGETS pyinit
-            ARCHIVE DESTINATION ${CMAKE_SYSROOT}/lib
-            LIBRARY DESTINATION ${CMAKE_SYSROOT}/lib
+            ARCHIVE DESTINATION ${CMAKE_SYSROOT}/lib/wasm32-wasi
+            LIBRARY DESTINATION ${CMAKE_SYSROOT}/lib/wasm32-wasi
             RUNTIME DESTINATION ${CMAKE_SYSROOT}/bin
             PUBLIC_HEADER DESTINATION ${CMAKE_SYSROOT}/include/faasm
             )

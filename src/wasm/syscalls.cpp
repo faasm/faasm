@@ -12,25 +12,16 @@
 using namespace WAVM;
 
 /**
- * USEFUL NOTES
+ * SYSCALL NUMBERING
  *
- * The wasm syscall interface varies across toolchains. To work out what's going on
- * locate the libc you're compiling against, and
- * look at
- *   - src/internal/syscall.h
- *   - arch/XXX/syscall_arch.h
- *   - arch/XXX/libc.imports
- *
- * where XXX is probably wasm32.
- *
- * Syscall numbers can be found in arch/XXX/bits/syscall.h(.in)
- *
- * The full i386 table can also give hints for higher numbers:
- * https://github.com/torvalds/linux/blob/master/arch/x86/entry/syscalls/syscall_32.tbl
+ * Have a look in the sysroot at include/bits/syscall.h to
+ * determine the system call numbering.
  */
 
 namespace wasm {
     WAVM_DEFINE_INTRINSIC_MODULE(env)
+
+    WAVM_DEFINE_INTRINSIC_MODULE(wasi)
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "syscall", I32, syscall, I32 syscallNo, I32 argsPtr) {
         switch(syscallNo) {
@@ -103,8 +94,6 @@ namespace wasm {
                 return s__close(a);
             case 10:
                 return s__unlink(a);
-            case 20:
-                return s__getpid();
             case 33:
                 return s__access(a, b);
             case 38:
@@ -115,8 +104,6 @@ namespace wasm {
                 return s__dup(a);
             case 45:
                 return s__brk(a);
-            case 48:
-                return s__signal(a, b);
             case 54:
                 return s__ioctl(a, b, c, d, e, f);
             case 78:
@@ -145,8 +132,6 @@ namespace wasm {
                 return s__sigaction(a, b, c);
             case 175:
                 return s__rt_sigprocmask(a, b, c, d);
-            case 183:
-                return s__getcwd(a, b);
             case 186:
                 return s__sigaltstack(a, b);
             case 192:
@@ -158,14 +143,6 @@ namespace wasm {
                 return s__lstat64(a, b);
             case 197:
                 return s__fstat64(a, b);
-            case 199:
-                return s__getuid32();
-            case 200:
-                return s__getgid32();
-            case 201:
-                return s__geteuid32();
-            case 202:
-                return s__getegid32();
             case 219:
                 return s__madvise(a, b, c);
             case 220:
@@ -194,10 +171,21 @@ namespace wasm {
     void linkHook() {
         chainLink();
         dynlinkLink();
+        envLink();
         faasmLink();
+        ioLink();
+        libcxxLink();
         mathsLink();
+        memoryLink();
+        messagesLink();
         mpiLink();
+        networkLink();
         ompLink();
+        processLink();
         rustLink();
+        schedulingLink();
+        signalsLink();
+        threadsLink();
+        timingLink();
     }
 }

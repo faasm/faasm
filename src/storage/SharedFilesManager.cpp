@@ -50,6 +50,29 @@ namespace storage {
         }
     }
 
+    DIR *SharedFilesManager::openDir(const std::string &path) {
+        std::string fakePath = maskPath(path);
+        DIR *res = ::opendir(fakePath.c_str());
+
+        if(res == nullptr) {
+            util::getLogger()->error("Failed to open dir {}: {}", fakePath, strerror(errno));
+        }
+
+        return res;
+    }
+
+    int SharedFilesManager::mkdir(const std::string &path) {
+        std::string fullPath = maskPath(path);
+        int res = ::mkdir(fullPath.c_str(), 0755);
+        return res;
+    }
+
+    int SharedFilesManager::rename(const std::string &oldPath, const std::string &newPath) {
+        std::string fullOldPath = maskPath(oldPath);
+        int res = ::rename(fullOldPath.c_str(), newPath.c_str());
+        return res;
+    }
+
     int SharedFilesManager::statFile(const std::string &path, struct stat64 *statPtr) {
         bool isShared = util::startsWith(path, SHARED_FILE_PREFIX);
         if (isShared) {
@@ -60,6 +83,29 @@ namespace storage {
             std::string fakePath = maskPath(path);
             return stat64(fakePath.c_str(), statPtr);
         }
+    }
+
+    int SharedFilesManager::unlink(const std::string &path) {
+        const std::string maskedPath = maskPath(path);
+        int unlinkRes = ::unlink(maskedPath.c_str());
+
+        if(unlinkRes != 0) {
+            return -errno;
+        }
+
+        return 0;
+    }
+
+    ssize_t SharedFilesManager::readLink(const std::string &path, char *buffer, size_t bufLen) {
+        bool isShared = util::startsWith(path, SHARED_FILE_PREFIX);
+        if (isShared) {
+            util::getLogger()->error("Readlink on shared not yet supported ({})", path);
+            throw std::runtime_error("Readlink on shared file not supported");
+        }
+
+        std::string fakePath = maskPath(path);
+        ssize_t bytesRead = ::readlink(fakePath.c_str(), buffer, (size_t) bufLen);
+        return bytesRead;
     }
 
     int SharedFilesManager::openLocalFile(const std::string &path, int flags, int mode) {
@@ -88,9 +134,10 @@ namespace storage {
             logger->debug("Arbitrary access to local file {}", fakePath);
             fd = open(fakePath.c_str(), flags, mode);
         }
+
         // NOTE - musl expects us to return the negative errno, not -1
         if (fd < 0) {
-            return -errno;
+            return -1 * errno;
         }
 
         return fd;

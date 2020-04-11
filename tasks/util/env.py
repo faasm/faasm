@@ -15,6 +15,7 @@ FAASM_LOCAL_DIR = "/usr/local/faasm"
 FAASM_RUNTIME_ROOT = join(FAASM_LOCAL_DIR, "runtime_root")
 FAASM_SHARED_ROOT = join(FAASM_LOCAL_DIR, "shared")
 FAASM_SHARED_STORAGE_ROOT = join(FAASM_LOCAL_DIR, "shared_store")
+FAASM_SHARED_ROOT = join(FAASM_LOCAL_DIR, "shared")
 FAASM_INSTALL_DIR = "/usr/local"
 
 FAASM_CONFIG_FILE = join(FAASM_HOME, "faasm.ini")
@@ -49,15 +50,19 @@ PYODIDE_PACKAGES = join(PYODIDE_ROOT, "packages")
 PYODIDE_INSTALL_DIR = join(PYODIDE_ROOT, "cpython", "installs", "python-3.7.0")
 PY_RUNTIME_ROOT = join(FAASM_RUNTIME_ROOT, "lib", "python3.7")
 
-FAASM_TOOLCHAIN_FILE = join(PROJ_ROOT, "toolchain", "FaasmToolchain.cmake")
+FAASM_TOOLCHAIN_FILE = join(PROJ_ROOT, "toolchain", "WasiToolchain.cmake")
 FAASM_SYSROOT = join(FAASM_LOCAL_DIR, "llvm-sysroot")
+SYSROOT_INSTALL_PREFIX = FAASM_SYSROOT
 
 LATEST_CMAKE = "/usr/local/lib/cmake-3.15/bin/cmake"
 
 POSSIBLE_BUILD_BINS = [
     "/faasm/build/bin/",  # Containers
+    "/faasm/build/third-party/WAVM/bin/",  # Containers
     join(PROJ_ROOT, "build", "bin"),  # Local builds
+    join(PROJ_ROOT, "build", "third-party", "WAVM", "bin"),  # Local builds
     join(PROJ_ROOT, "cmake-build-debug", "bin"),  # CLion
+    join(PROJ_ROOT, "cmake-build-debug", "third-party", "WAVM", "bin"),  # CLion
     join(HOME_DIR, "faasm", "bench", "bin"),  # Benchmark
 ]
 

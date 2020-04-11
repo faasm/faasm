@@ -1,7 +1,5 @@
 #include <util/logging.h>
 
-#include <stdio.h>
-
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Inline/FloatComponents.h>

@@ -8,16 +8,14 @@
 
 
 namespace tests {
-    TEST_CASE("Test gedents", "[worker]") {
+    TEST_CASE("Test getdents", "[worker]") {
         cleanSystem();
 
         // Note, our test function adds an extra comma, hence the blank
         // These are all the files we _might_ see
         std::vector<std::string> expected = {
                 "", ".", "..",
-                "etc", "include", "lib", "tmp",
-                "raytrace.ppm", "chaos.ppm",
-                "share", "usr"
+                "hosts", "passwd", "resolv.conf"
         };
 
         message::Message msg = util::messageFactory("demo", "getdents");
@@ -46,13 +44,6 @@ namespace tests {
         execFunction(msg);
     }
 
-    TEST_CASE("Test errno with stat64", "[worker]") {
-        cleanSystem();
-
-        message::Message msg = util::messageFactory("demo", "errno");
-        execFunction(msg);
-    }
-
     TEST_CASE("Test fcntl", "[worker]") {
         cleanSystem();
         message::Message msg = util::messageFactory("demo", "fcntl");
@@ -69,6 +60,13 @@ namespace tests {
         cleanSystem();
 
         message::Message msg = util::messageFactory("demo", "fstat");
+        execFunction(msg);
+    }
+
+    TEST_CASE("Test file operations", "[worker]") {
+        cleanSystem();
+
+        message::Message msg = util::messageFactory("demo", "file");
         execFunction(msg);
     }
 }

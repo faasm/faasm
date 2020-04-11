@@ -11,4 +11,6 @@ namespace util {
     void trimTrailingZeros(std::vector<uint8_t> &vectorIn);
 
     int safeCopyToBuffer(const std::vector<uint8_t> &dataIn, uint8_t *buffer, int bufferLen);
+
+    int safeCopyToBuffer(const uint8_t *dataIn, int dataLen, uint8_t *buffer, int bufferLen);
 }

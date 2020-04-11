@@ -53,14 +53,6 @@ namespace tests {
         REQUIRE(messageIsFound);
     }
 
-    TEST_CASE("Test connecting to socket not owned by function", "[wasm]") {
-        checkError("socket", "fd not owned by this function");
-    }
-
-    TEST_CASE("Test polling multiple fds not owned by function", "[wasm]") {
-        checkError("multi_poll", "fd not owned by this function");
-    }
-
     TEST_CASE("Test non-zero return code is error", "[wasm]") {
         checkError("ret_one", "Call failed (return value=1)");
     }

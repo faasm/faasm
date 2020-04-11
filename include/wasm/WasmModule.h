@@ -1,5 +1,7 @@
 #pragma once
 
+#include "WasmEnvironment.h"
+
 #include <util/logging.h>
 #include <state/State.h>
 #include <proto/faasm.pb.h>
@@ -14,6 +16,8 @@
 #include <WAVM/Runtime/Linker.h>
 #include <WAVM/Runtime/Runtime.h>
 
+#include <storage/FileSystem.h>
+
 #define ONE_MB_BYTES 1024 * 1024
 
 // Note: this is *not* controlling the size provisioned by the linker, that is hard-coded in the build.
@@ -25,15 +29,19 @@
 #define DYNAMIC_MODULE_STACK_SIZE 2 * ONE_MB_BYTES
 #define DYNAMIC_MODULE_HEAP_PAGES 480
 
+// Special known function names
 // Zygote function (must match faasm.h linked into the functions themselves)
 #define ZYGOTE_FUNC_NAME "_faasm_zygote"
-#define ENTRY_FUNC_NAME "main"
+#define WASM_CTORS_FUNC_NAME "__wasm_call_ctors"
+#define ENTRY_FUNC_NAME "_start"
 
 using namespace WAVM;
 
 
 namespace wasm {
     WAVM_DECLARE_INTRINSIC_MODULE(env)
+
+    WAVM_DECLARE_INTRINSIC_MODULE(wasi)
 
     WAVM_DECLARE_INTRINSIC_MODULE(tsenv)
 
@@ -75,8 +83,6 @@ namespace wasm {
 
         int dynamicLoadModule(const std::string &path, Runtime::Context *context);
 
-        Runtime::Instance *getDynamicModule(int handle);
-
         Uptr getDynamicModuleFunction(int handle, const std::string &funcName);
 
         Uptr addFunctionToTable(Runtime::Object *exportedFunc);
@@ -88,11 +94,7 @@ namespace wasm {
                 IR::UntaggedValue &result
         );
 
-        Runtime::Function *getFunction(const std::string &funcName, bool strict);
-
-        Runtime::Function *getMainFunction();
-
-        Runtime::Function *getDefaultZygoteFunction();
+        Runtime::Function *getFunction(Runtime::Instance *module, const std::string &funcName, bool strict);
 
         Runtime::Function *getFunctionFromPtr(int funcPtr);
 
@@ -151,15 +153,29 @@ namespace wasm {
 
         ssize_t captureStdout(const struct iovec *iovecs, int iovecCount);
 
-        ssize_t captureStdout(const void* buffer);
+        ssize_t captureStdout(const void *buffer);
 
         std::string getCapturedStdout();
 
         void clearCapturedStdout();
 
         I64 executeThread(WasmThreadSpec &spec);
+
+        U32 getArgc();
+
+        U32 getArgvBufferSize();
+
+        void writeArgvToMemory(U32 wasmArgvPointers, U32 wasmArgvBuffer);
+
+        void writeWasmEnvToMemory(U32 envPointers, U32 envBuffer);
+
+        storage::FileSystem &getFileSystem();
+
+        WasmEnvironment &getWasmEnvironment();
+
     private:
         Runtime::GCPointer<Runtime::Instance> envModule;
+        Runtime::GCPointer<Runtime::Instance> wasiModule;
         Runtime::GCPointer<Runtime::Instance> moduleInstance;
 
         // Dynamic modules
@@ -191,24 +207,46 @@ namespace wasm {
         // Output buffer
         int stdoutMemFd;
         ssize_t stdoutSize;
+
         int getStdoutFd();
+
+        // Argc/argv
+        unsigned int argc;
+        std::vector<std::string> argv;
+        size_t argvBufferSize;
+
+        void writeStringArrayToMemory(const std::vector<std::string> &strings, U32 strPoitners, U32 strBuffer);
+
+        // Filesystem
+        storage::FileSystem filesystem;
+
+        // Environment
+        WasmEnvironment wasmEnvironment;
 
         void doSnapshot(std::ostream &outStream);
 
         void doRestore(std::istream &inStream);
 
-        void reset();
-
         void clone(const WasmModule &other);
 
         void addModuleToGOT(IR::Module &mod, bool isMainModule);
 
-        std::vector<IR::UntaggedValue> getArgcArgv(const message::Message &msg);
+        void prepareArgcArgv(const message::Message &msg);
+
+        void executeZygoteFunction();
+
+        void executeWasmConstructorsFunction(Runtime::Instance *module);
 
         Runtime::Instance *createModuleInstance(
                 const std::string &name,
                 const std::string &sharedModulePath
         );
+
+        Runtime::Function *getMainFunction(Runtime::Instance *module);
+
+        Runtime::Function *getDefaultZygoteFunction(Runtime::Instance *module);
+
+        Runtime::Function *getWasmConstructorsFunction(Runtime::Instance *module);
     };
 
     WasmModule *getExecutingModule();

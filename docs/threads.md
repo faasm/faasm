@@ -1,4 +1,4 @@
-# Faasm and Threading
+# Threading
 
 Serverless applications benefit most from the parallelism of many small functions
 distributed across hosts. Spawning one or two threads to do background work still 
@@ -9,7 +9,7 @@ To support larger multi-threaded applications, Faasm can transparently distribut
 threads across multiple serverless functions, thus allowing them to take advantage 
 of serverless parallelism. 
 
-This functionality is accessed in C/C++ through subsets of pthreads and [OpenMP](openmp.md). 
+This functionality is accessed in C/C++ through pthreads and [OpenMP](openmp.md). 
 Faasm intercepts normal threading calls and chains a new serverless function to execute
 the thread, potentially on another host. Shared data is managed with 
 [shared state](state.md) and the process memory is migrated across hosts with

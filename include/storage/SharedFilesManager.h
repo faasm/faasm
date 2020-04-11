@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <dirent.h>
 
 
 #define SHARED_FILE_PREFIX "faasm://"
@@ -39,10 +40,19 @@ namespace storage {
     public:
         int openFile(const std::string &path, int flags, int mode);
 
+        DIR *openDir(const std::string &path);
+
         int statFile(const std::string &path, struct stat64 *statPtr);
+
+        ssize_t readLink(const std::string &path, char* buffer, size_t bufLen);
 
         void clear();
 
+        int unlink(const std::string &path);
+
+        int mkdir(const std::string &path);
+
+        int rename(const std::string &oldPath, const std::string &newPath);
     private:
         std::unordered_map<std::string, SharedFile> sharedFileMap;
         std::shared_mutex sharedFileMapMutex;
