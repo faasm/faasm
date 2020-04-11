@@ -11,14 +11,12 @@ These shared memory regions give low-latency concurrent access to data, and are 
 globally to support large-scale parallelism.
 
 Faasm combines software fault isolation from WebAssembly with standard Linux tools, to provide 
-security and resource isolatation at low cost. Faasm runs functions side-by-side as threads 
+security and resource isolation at low cost. Faasm runs functions side-by-side as threads 
 of a single runtime process, with low overheads and fast boot times. The underlying WebAssembly
 execution and code generation is handled by [WAVM](https://github.com/WAVM/WAVM). 
 
-Faasm defines a custom [host interface](docs/host_interface.md) which is an extension of 
-[WASI](https://wasi.dev/), including serverless-specific tasks (e.g. invoking other functions
-and managing state), as well as interacting with serverless abstractions required by 
-existing applications and libraries (e.g. using the filesystem and networking).
+Faasm defines a custom [host interface](docs/host_interface.md) which extends 
+[WASI](https://wasi.dev/) to include function inputs and outputs, chaining functions, managing state, accessing the distributed filesystem, dynamic linking, pthreads, OpenMP and MPI.   
 
 A preprint of our paper on Faasm can be found [here](https://arxiv.org/abs/2002.09344).
 
