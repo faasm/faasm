@@ -41,7 +41,7 @@ namespace module_cache {
      * or one of many "special" cached modules, those restored from snapshots captured at
      * arbitrary points (e.g. when spawning a thread).
      */
-    wasm::WasmModule &WasmModuleCache::getCachedModule(const message::Message &msg) {
+    wasm::WAVMWasmModule &WasmModuleCache::getCachedModule(const message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Get the keys for both types of cached module
@@ -54,7 +54,7 @@ namespace module_cache {
             if (cachedModuleMap.count(baseKey) == 0) {
                 // Instantiate the base module
                 logger->debug("Creating new base zygote: {}", baseKey);
-                wasm::WasmModule &module = cachedModuleMap[baseKey];
+                wasm::WAVMWasmModule &module = cachedModuleMap[baseKey];
                 module.bindToFunction(msg);
 
                 // Write memory to fd (to allow copy-on-write cloning)
@@ -74,8 +74,8 @@ namespace module_cache {
             if (cachedModuleMap.count(specialKey) == 0) {
                 // Get the base module and the special module
                 logger->debug("Creating new special zygote: {}", specialKey);
-                wasm::WasmModule &baseModule = cachedModuleMap[baseKey];
-                wasm::WasmModule &specialModule = cachedModuleMap[specialKey];
+                wasm::WAVMWasmModule &baseModule = cachedModuleMap[baseKey];
+                wasm::WAVMWasmModule &specialModule = cachedModuleMap[specialKey];
 
                 // Clone the special module from the base one
                 specialModule = baseModule;

@@ -1,6 +1,6 @@
 #include <catch/catch.hpp>
 #include "utils.h"
-#include <wasm/WasmModule.h>
+#include <wavm/WAVMWasmModule.h>
 #include <ir_cache/IRModuleCache.h>
 #include <storage/SharedFilesManager.h>
 
@@ -62,7 +62,7 @@ namespace tests {
 
         // Bind to Python function
         message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
-        wasm::WasmModule module;
+        wasm::WAVMWasmModule module;
         module.bindToFunction(msg);
 
         // Get initial sizes
@@ -144,7 +144,7 @@ namespace tests {
         conf.pythonPreload = preloadBefore;
     }
 
-    void checkFuncInGOT(wasm::WasmModule &module, const std::string &funcName, int expectedIdx,
+    void checkFuncInGOT(wasm::WAVMWasmModule &module, const std::string &funcName, int expectedIdx,
             const std::string &expectedName) {
         int funcIdx = module.getFunctionOffsetFromGOT(funcName);
         REQUIRE(funcIdx == expectedIdx);
@@ -155,7 +155,7 @@ namespace tests {
         REQUIRE(Runtime::getFunctionDebugName(funcObj) == expectedName);
     }
 
-    void checkDataInGOT(wasm::WasmModule &module, const std::string &dataName, int expectedOffset) {
+    void checkDataInGOT(wasm::WAVMWasmModule &module, const std::string &dataName, int expectedOffset) {
         int actualOffset = module.getDataOffsetFromGOT(dataName);
         REQUIRE(actualOffset == expectedOffset);
     }
@@ -167,7 +167,7 @@ namespace tests {
 
         // Bind to Python function
         message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
-        wasm::WasmModule module;
+        wasm::WAVMWasmModule module;
         module.bindToFunction(msg);
 
         Uptr initialTableSize = Runtime::getTableNumElements(module.defaultTable);
@@ -215,7 +215,7 @@ namespace tests {
         conf.pythonPreload = preloadBefore;
     }
 
-    void resolveGlobalI32(wasm::WasmModule &module, const std::string &moduleName, const std::string &name, I32 expected) {
+    void resolveGlobalI32(wasm::WAVMWasmModule &module, const std::string &moduleName, const std::string &name, I32 expected) {
         IR::GlobalType globalType;
         Runtime::Object* importObj;
         module.resolve(moduleName, name, globalType, importObj);
@@ -231,7 +231,7 @@ namespace tests {
 
         // Bind to Python function
         message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
-        wasm::WasmModule module;
+        wasm::WAVMWasmModule module;
         module.bindToFunction(msg);
 
         // Load a dynamic module

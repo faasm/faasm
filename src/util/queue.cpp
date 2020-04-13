@@ -1,4 +1,4 @@
-#include "queue.h"
+#include <util/queue.h>
 
 namespace util {
     TokenPool::TokenPool(int nTokens) : _size(nTokens) {

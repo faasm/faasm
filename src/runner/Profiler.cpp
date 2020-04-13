@@ -36,7 +36,7 @@ namespace runner {
         call.set_inputdata(this->inputData);
 
         module_cache::WasmModuleCache &moduleCache = module_cache::getWasmModuleCache();
-        wasm::WasmModule &cachedModule = moduleCache.getCachedModule(call);
+        wasm::WAVMWasmModule &cachedModule = moduleCache.getCachedModule(call);
 
         logger->info("Running benchmark in WASM");
         for (int i = 0; i < nIterations; i++) {
@@ -45,7 +45,7 @@ namespace runner {
             const util::TimePoint wasmTp = util::startTimer();
 
             // Create module
-            wasm::WasmModule module(cachedModule);
+            wasm::WAVMWasmModule module(cachedModule);
             util::logEndTimer("WASM initialisation", tpInit);
 
             // Exec the function

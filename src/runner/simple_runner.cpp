@@ -81,10 +81,10 @@ bool runFunction(std::string &user, std::string &function, int runCount) {
 
     // Create the module
     module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
-    wasm::WasmModule &cachedModule = registry.getCachedModule(m);
+    wasm::WAVMWasmModule &cachedModule = registry.getCachedModule(m);
 
     // Create new module from cache
-    wasm::WasmModule module(cachedModule);
+    wasm::WAVMWasmModule module(cachedModule);
 
     // Run repeated executions
     bool success = true;

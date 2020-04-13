@@ -10,7 +10,7 @@ namespace tests {
     TEST_CASE("Test executing function given specific pointer", "[wasm]") {
         message::Message call = util::messageFactory("demo", "threads_check");
 
-        wasm::WasmModule module;
+        wasm::WAVMWasmModule module;
         module.bindToFunction(call);
 
         // Create zygote from which to restore
@@ -22,7 +22,7 @@ namespace tests {
         call.set_funcptr(1);
 
         // Restore from the zygote and execute the function (expect it to succeed)
-        wasm::WasmModule moduleB;
+        wasm::WAVMWasmModule moduleB;
         moduleB.bindToFunction(call);
 
         moduleB.restoreFromState(stateKey, snapshotSize);

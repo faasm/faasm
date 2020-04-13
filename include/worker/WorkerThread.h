@@ -3,7 +3,7 @@
 #include <system/NetworkNamespace.h>
 
 #include <util/func.h>
-#include <wasm/WasmModule.h>
+#include <wavm/WAVMWasmModule.h>
 #include <scheduler/Scheduler.h>
 
 #include <string>
@@ -24,7 +24,7 @@ namespace worker {
         void finish();
 
         std::string id;
-        std::unique_ptr<wasm::WasmModule> module;
+        std::unique_ptr<wasm::WAVMWasmModule> module;
 
         const int threadIdx;
     private:

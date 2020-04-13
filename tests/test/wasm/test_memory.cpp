@@ -1,5 +1,5 @@
 #include <catch/catch.hpp>
-#include <wasm/WasmModule.h>
+#include <wavm/WAVMWasmModule.h>
 #include <util/bytes.h>
 #include <util/func.h>
 #include <util/config.h>
@@ -16,7 +16,7 @@ namespace tests {
         call.set_user("demo");
         call.set_function("echo");
 
-        wasm::WasmModule module;
+        wasm::WAVMWasmModule module;
         module.bindToFunction(call);
 
         // File we know to exist
@@ -30,7 +30,6 @@ namespace tests {
         fstat(fd, &sb);
         size_t bufferSize = sb.st_size;
 
-        module.addFdForThisThread(fd);
         U32 mappedWasmPtr = module.mmapFile(fd, bufferSize);
         U8 *hostPtr = &Runtime::memoryRef<U8>(module.defaultMemory, mappedWasmPtr);
         

@@ -1,4 +1,4 @@
-#include "WasmModule.h"
+#include "WAVMWasmModule.h"
 #include "syscalls.h"
 
 #include <util/logging.h>
@@ -84,14 +84,6 @@ namespace wasm {
                 return s__exit(a, b);
             case 2:
                 return s__fork();
-            case 3:
-                return s__read(a, b, c);
-            case 4:
-                return s__write(a, b, c);
-            case 5:
-                return s__open(a, b, c);
-            case 6:
-                return s__close(a);
             case 10:
                 return s__unlink(a);
             case 33:
@@ -100,12 +92,8 @@ namespace wasm {
                 return s__rename(a, b);
             case 39:
                 return s__mkdir(a, b);
-            case 41:
-                return s__dup(a);
             case 45:
                 return s__brk(a);
-            case 54:
-                return s__ioctl(a, b, c, d, e, f);
             case 78:
                 return s__gettimeofday(a, b);
             case 85:
@@ -118,16 +106,8 @@ namespace wasm {
                 return s__socketcall(a, b);
             case 125:
                 return s__mprotect(a, b, c);
-            case 140:
-                return s__llseek(a, b, c, d, e);
-            case 145:
-                return s__readv(a, b, c);
-            case 146:
-                return s__writev(a, b, c);
             case 162:
                 return s__nanosleep(a, b);
-            case 168:
-                return s__poll(a, b, c);
             case 174:
                 return s__sigaction(a, b, c);
             case 175:
@@ -147,8 +127,6 @@ namespace wasm {
                 return s__madvise(a, b, c);
             case 220:
                 return s__getdents64(a, b, c);
-            case 221:
-                return s__fcntl64(a, b, c);
             case 223:
                 return s__sbrk(a);
             case 224:

@@ -11,6 +11,6 @@ add_executable(
         ${TEST_FILES}
 )
 
-target_link_libraries(tests_aws test_utils scheduler wasm aws)
+target_link_libraries(tests_aws test_utils scheduler wasm wavmmodule aws)
 
 add_test(NAME aws_tests COMMAND "tests_aws/tests")

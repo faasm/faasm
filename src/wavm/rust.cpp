@@ -1,7 +1,7 @@
-#include "WasmModule.h"
+#include "WAVMWasmModule.h"
+#include "syscalls.h"
 
 #include <cstdio>
-#include <wasm/syscalls.h>
 
 namespace wasm {
 

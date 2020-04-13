@@ -45,3 +45,6 @@
     path = third-party/wasi-libc
     url = https://github.com/Shillaker/wasi-libc
 
+[submodule "third-party/wamr"]
+	path = third-party/wamr
+	url = https://github.com/bytecodealliance/wasm-micro-runtime.git

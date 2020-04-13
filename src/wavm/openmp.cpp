@@ -1,4 +1,4 @@
-#include "WasmModule.h"
+#include "WAVMWasmModule.h"
 
 #include <mutex>
 
@@ -284,7 +284,7 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __kmpc_fork_call {} {} {} {}", locPtr, argc, microtaskPtr, argsPtr);
 
-        WasmModule *parentModule = getExecutingModule();
+        WAVMWasmModule *parentModule = getExecutingModule();
         Runtime::Memory *memoryPtr = parentModule->defaultMemory;
         message::Message *parentCall = getExecutingCall();
 

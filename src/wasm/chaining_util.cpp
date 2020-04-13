@@ -1,8 +1,6 @@
 #include "WasmModule.h"
-#include "syscalls.h"
 
 #include <scheduler/Scheduler.h>
-#include <util/macros.h>
 
 
 namespace wasm {
