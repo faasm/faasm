@@ -1,6 +1,6 @@
 #pragma once
 
-#include <wasm/WAVMWasmModule.h>
+#include <wavm/WAVMWasmModule.h>
 
 namespace module_cache {
     class WasmModuleCache {

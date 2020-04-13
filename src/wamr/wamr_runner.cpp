@@ -1,5 +1,6 @@
+#include "WAMRWasmModule.h"
+
 #include <string>
-#include <wasm/WAMRWasmModule.h>
 #include <util/func.h>
 
 int main() {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "WasmModule.h"
+#include <wasm/WasmModule.h>
 
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Linker.h>

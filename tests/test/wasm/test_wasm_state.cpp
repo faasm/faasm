@@ -1,5 +1,5 @@
 #include <catch/catch.hpp>
-#include <wasm/WAVMWasmModule.h>
+#include <wavm/WAVMWasmModule.h>
 #include <util/func.h>
 #include <emulator/emulator.h>
 #include <redis/Redis.h>

@@ -1,7 +1,7 @@
 #pragma once
 
+#include <wasm/WasmModule.h>
 #include <wasm_runtime_common.h>
-#include "WasmModule.h"
 
 #define ERROR_BUFFER_SIZE 256
 #define STACK_SIZE_KB 1024

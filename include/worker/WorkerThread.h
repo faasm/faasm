@@ -3,7 +3,7 @@
 #include <system/NetworkNamespace.h>
 
 #include <util/func.h>
-#include <wasm/WAVMWasmModule.h>
+#include <wavm/WAVMWasmModule.h>
 #include <scheduler/Scheduler.h>
 
 #include <string>

@@ -6,6 +6,7 @@
 
 #include <functional>
 #include <mutex>
+#include <util/random.h>
 
 static std::string nodeId;
 static std::size_t nodeIdHash;

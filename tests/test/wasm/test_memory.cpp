@@ -1,5 +1,5 @@
 #include <catch/catch.hpp>
-#include <wasm/WAVMWasmModule.h>
+#include <wavm/WAVMWasmModule.h>
 #include <util/bytes.h>
 #include <util/func.h>
 #include <util/config.h>

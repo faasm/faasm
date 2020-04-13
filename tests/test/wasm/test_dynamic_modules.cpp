@@ -1,6 +1,6 @@
 #include <catch/catch.hpp>
 #include "utils.h"
-#include <wasm/WAVMWasmModule.h>
+#include <wavm/WAVMWasmModule.h>
 #include <ir_cache/IRModuleCache.h>
 #include <storage/SharedFilesManager.h>
 
