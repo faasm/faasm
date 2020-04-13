@@ -16,7 +16,8 @@ of a single runtime process, with low overheads and fast boot times. The underly
 execution and code generation is handled by [WAVM](https://github.com/WAVM/WAVM). 
 
 Faasm defines a custom [host interface](docs/host_interface.md) which extends 
-[WASI](https://wasi.dev/) to include function inputs and outputs, chaining functions, managing state, accessing the distributed filesystem, dynamic linking, pthreads, OpenMP and MPI.   
+[WASI](https://wasi.dev/) to include function inputs and outputs, chaining functions, managing 
+state, accessing the distributed filesystem, dynamic linking, pthreads, OpenMP and MPI.   
 
 A preprint of our paper on Faasm can be found [here](https://arxiv.org/abs/2002.09344).
 
