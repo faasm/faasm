@@ -51,3 +51,6 @@ target_link_libraries(thread_bench_mem bench)
 
 add_executable(thread_bench_time thread_bench_time.cpp)
 target_link_libraries(thread_bench_time bench)
+
+add_executable(wamr_runner wamr_runner.cpp)
+target_link_libraries(wamr_runner bench)

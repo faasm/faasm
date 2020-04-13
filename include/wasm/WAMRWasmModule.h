@@ -1,9 +1,15 @@
 #pragma once
 
+#include <wasm_runtime_common.h>
 #include "WasmModule.h"
+
+#define ERROR_BUFFER_SIZE 256
+#define STACK_SIZE_KB 1024
+#define HEAP_SIZE_KB 1024
 
 namespace wasm {
     class WAMRWasmModule: public WasmModule {
+    public:
         // ----- Module lifecycle -----
         void bindToFunction(const message::Message &msg) override;
 
@@ -12,6 +18,8 @@ namespace wasm {
         bool execute(message::Message &msg) override;
 
         const bool isBound() override;
+
+        void tearDown();
 
         // ----- Environment variables
         void writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer) override;
@@ -27,5 +35,16 @@ namespace wasm {
         void doSnapshot(std::ostream &outStream) override;
 
         void doRestore(std::istream &inStream) override;
+    private:
+        bool _isBound;
+
+        std::vector<uint8_t> wasmFileBytes;
+        std::vector<char> errorBuffer;
+
+        WASMModuleCommon *wasmModule;
+        WASMModuleInstanceCommon *moduleInstance;
+        WASMExecEnv *executionEnv;
+
+        void executeFunction(const std::string &funcName);
     };
 }

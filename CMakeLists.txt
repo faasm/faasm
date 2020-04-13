@@ -20,6 +20,7 @@ option(FAASM_AWS_SUPPORT "Whether to include AWS support" OFF)
 
 # WAMR configuration
 set(WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
+set(WAMR_INCLUDE_DIR ${WAMR_ROOT_DIR}/core/iwasm/include)
 set(WAMR_BUILD_TARGET X86_64)
 set(WAMR_BUILD_PLATFORM linux)
 set(WAMR_BUILD_INTERP 1)
@@ -217,7 +218,7 @@ else ()
 
     # WAMR
     include (${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
-    add_library(vmlib ${WAMR_RUNTIME_LIB_SOURCE})
+    add_library(libwamr ${WAMR_RUNTIME_LIB_SOURCE})
 
     # Faasm demo
     add_subdirectory(third-party/faasm-demo-c)
