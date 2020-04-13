@@ -19,4 +19,5 @@ target_link_libraries(test_utils
         data
         worker_knative_lib
         worker_ibm_lib
+        wamrmodule
         )

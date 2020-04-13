@@ -19,7 +19,7 @@ option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
 option(FAASM_AWS_SUPPORT "Whether to include AWS support" OFF)
 
 # WAMR configuration
-option(FAASM_WAMR_SUPPORT "Support for WAMR" OFF)
+option(FAASM_WAMR_SUPPORT "Support for WAMR" ON)
 if (FAASM_WAMR_SUPPORT)
     set(WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
     set(WAMR_INCLUDE_DIR ${WAMR_ROOT_DIR}/core/iwasm/include)

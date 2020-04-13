@@ -72,7 +72,7 @@ namespace wasm {
         // Invoke the function
         bool success = wasm_runtime_call_wasm(executionEnv, func, 0, nullptr);
         if (success) {
-            logger->info("Function success");
+            logger->info("{} success", funcName);
         } else {
             std::string errorMessage(errorBuffer.data());
             logger->error("Function failed: {}", errorMessage);
