@@ -1,5 +1,6 @@
 #include "WAMRWasmModule.h"
 
+#include <wamr/native.h>
 #include <storage/FileLoader.h>
 #include <wasm_export.h>
 
@@ -20,6 +21,9 @@ namespace wasm {
 
         // Initialise WAMR
         wasm_runtime_init();
+
+        // Initialise natives
+        initialiseWAMRNatives();
 
         // Load wasm
         errorBuffer.reserve(ERROR_BUFFER_SIZE);

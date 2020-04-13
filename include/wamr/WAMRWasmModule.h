@@ -8,7 +8,7 @@
 #define HEAP_SIZE_KB 1024
 
 namespace wasm {
-    class WAMRWasmModule: public WasmModule {
+    class WAMRWasmModule : public WasmModule {
     public:
         // ----- Module lifecycle -----
         void bindToFunction(const message::Message &msg) override;
@@ -31,10 +31,12 @@ namespace wasm {
 
         // ----- Argc/argv -----
         void writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer) override;
+
     protected:
         void doSnapshot(std::ostream &outStream) override;
 
         void doRestore(std::istream &inStream) override;
+
     private:
         bool _isBound;
 

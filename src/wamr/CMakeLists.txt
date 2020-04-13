@@ -9,6 +9,8 @@ set(HEADERS
 
 set(LIB_FILES
         WAMRWasmModule.cpp
+        faasm.cpp
+        native.cpp
         ${HEADERS}
         )
 
