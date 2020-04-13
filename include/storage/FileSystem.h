@@ -9,7 +9,7 @@
 namespace storage {
     class FileSystem {
     public:
-        void prepareFilesystem(const message::Message &msg);
+        void prepareFilesystem();
 
         bool fileDescriptorExists(int fd);
 

@@ -6,7 +6,7 @@
 #include <util/config.h>
 
 namespace storage {
-    void FileSystem::prepareFilesystem(const message::Message &msg) {
+    void FileSystem::prepareFilesystem() {
         // Predefined stdin, stdout and stderr
         fileDescriptors.emplace(0, storage::FileDescriptor::stdinFactory());
         fileDescriptors.emplace(1, storage::FileDescriptor::stdoutFactory());

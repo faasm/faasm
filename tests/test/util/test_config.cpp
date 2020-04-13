@@ -34,6 +34,7 @@ namespace tests {
         REQUIRE(conf.pythonPreload == "off");
         REQUIRE(conf.captureStdout == "off");
         REQUIRE(conf.stateMode == "redis");
+        REQUIRE(conf.wasmVm == "wavm");
 
         REQUIRE(conf.redisPort == "6379");
 
@@ -69,6 +70,7 @@ namespace tests {
         std::string pythonPre = setEnvVar("PYTHON_PRELOAD", "on");
         std::string captureStdout = setEnvVar("CAPTURE_STDOUT", "on");
         std::string stateMode = setEnvVar("STATE_MODE", "foobar");
+        std::string wasmVm = setEnvVar("WASM_VM", "blah");
 
         std::string redisState = setEnvVar("REDIS_STATE_HOST", "not-localhost");
         std::string redisQueue = setEnvVar("REDIS_QUEUE_HOST", "other-host");
@@ -114,6 +116,7 @@ namespace tests {
         REQUIRE(conf.pythonPreload == "on");
         REQUIRE(conf.captureStdout == "on");
         REQUIRE(conf.stateMode == "foobar");
+        REQUIRE(conf.wasmVm == "blah");
 
         REQUIRE(conf.redisStateHost == "not-localhost");
         REQUIRE(conf.redisQueueHost == "other-host");
@@ -159,6 +162,7 @@ namespace tests {
         setEnvVar("PYTHON_PRELOAD", pythonPre);
         setEnvVar("CAPTURE_STDOUT", captureStdout);
         setEnvVar("STATE_MODE", stateMode);
+        setEnvVar("WASM_VM", wasmVm);
 
         setEnvVar("REDIS_STATE_HOST", redisState);
         setEnvVar("REDIS_QUEUE_HOST", redisQueue);

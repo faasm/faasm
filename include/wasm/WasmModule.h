@@ -65,10 +65,10 @@ namespace wasm {
         // ----- Environment variables
         virtual void writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer) = 0;
 
-        virtual WasmEnvironment &getWasmEnvironment() = 0;
+        WasmEnvironment &getWasmEnvironment();
 
         // ----- Filesystem -----
-        virtual storage::FileSystem &getFileSystem() = 0;
+        storage::FileSystem &getFileSystem();
 
         // ----- Stdout capture -----
         virtual ssize_t captureStdout(const struct iovec *iovecs, int iovecCount) = 0;
@@ -101,13 +101,22 @@ namespace wasm {
 
         virtual std::vector<uint8_t> snapshotToMemory() = 0;
 
-        virtual size_t snapshotToState(const std::string &stateKey) = 0;
+        size_t snapshotToState(const std::string &stateKey);
 
         virtual void restoreFromFile(const std::string &filePath) = 0;
 
         virtual void restoreFromMemory(const std::vector<uint8_t> &data) = 0;
 
         virtual void restoreFromState(const std::string &stateKey, size_t stateSize) = 0;
+
+    protected:
+        std::string boundUser;
+        
+        std::string boundFunction;
+
+        storage::FileSystem filesystem;
+
+        WasmEnvironment wasmEnvironment;
     };
 
     // ----- Global functions -----

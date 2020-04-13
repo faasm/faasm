@@ -36,11 +36,6 @@ namespace wasm {
         // ----- Environment variables
         void writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer) override;
 
-        WasmEnvironment &getWasmEnvironment() override;
-
-        // ----- Filesystem -----
-        storage::FileSystem &getFileSystem() override;
-
         // ----- Stdout capture -----
         ssize_t captureStdout(const struct iovec *iovecs, int iovecCount) override;
 

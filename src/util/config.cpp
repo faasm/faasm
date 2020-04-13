@@ -41,6 +41,7 @@ namespace util {
         pythonPreload = getEnvVar("PYTHON_PRELOAD", "off");
         captureStdout = getEnvVar("CAPTURE_STDOUT", "off");
         stateMode = getEnvVar("STATE_MODE", "redis");
+        wasmVm = getEnvVar("WASM_VM", "wavm");
 
         // Redis
         redisStateHost = getEnvVar("REDIS_STATE_HOST", "localhost");
@@ -105,6 +106,7 @@ namespace util {
         logger->info("PYTHON_PRELOAD             {}", pythonPreload);
         logger->info("CAPTURE_STDOUT             {}", captureStdout);
         logger->info("STATE_MODE                 {}", stateMode);
+        logger->info("WASM_VM                    {}", wasmVm);
 
         logger->info("--- Redis ---");
         logger->info("REDIS_STATE_HOST           {}", redisStateHost);

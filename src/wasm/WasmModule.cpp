@@ -49,4 +49,29 @@ namespace wasm {
 
         return pageCount;
     }
+
+    storage::FileSystem &WasmModule::getFileSystem() {
+        return filesystem;
+    }
+
+    wasm::WasmEnvironment &WasmModule::getWasmEnvironment() {
+        return wasmEnvironment;
+    }
+
+    size_t WasmModule::snapshotToState(const std::string &stateKey) {
+        const std::vector<uint8_t> snapData = snapshotToMemory();
+        unsigned long stateSize = snapData.size();
+
+        state::State &state = state::getGlobalState();
+        const std::shared_ptr<state::StateKeyValue> &stateKv = state.getKV(
+                getBoundUser(),
+                stateKey,
+                stateSize
+        );
+
+        stateKv->set(snapData.data());
+        stateKv->pushFull();
+
+        return stateSize;
+    }
 }
