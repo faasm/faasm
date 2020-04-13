@@ -1,4 +1,4 @@
-#include "WasmModule.h"
+#include "WAVMWasmModule.h"
 #include "syscalls.h"
 
 #include <linux/futex.h>

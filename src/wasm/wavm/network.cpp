@@ -1,4 +1,4 @@
-#include "WasmModule.h"
+#include "WAVMWasmModule.h"
 #include "syscalls.h"
 
 #include <util/bytes.h>
@@ -105,8 +105,6 @@ namespace wasm {
                     printf("Socket error: %i\n", sock);
                 }
 
-                module->addFdForThisThread(sock);
-
                 return sock;
             }
 
@@ -118,9 +116,6 @@ namespace wasm {
                 I32 addrLen = subCallArgs[2];
 
                 util::getLogger()->debug("S - connect - {} {} {}", sockfd, addrPtr, addrLen);
-
-                // Allow connecting if thread owns socket
-                module->checkThreadOwnsFd(sockfd);
 
                 sockaddr addr = getSockAddr(addrPtr);
                 int result = connect(sockfd, &addr, sizeof(sockaddr));
@@ -144,9 +139,6 @@ namespace wasm {
                 Uptr bufPtr = subCallArgs[1];
                 size_t bufLen = subCallArgs[2];
                 I32 flags = subCallArgs[3];
-
-                // Make sure thread owns this socket
-                module->checkThreadOwnsFd(sockfd);
 
                 // Set up buffer
                 U8 *buf = Runtime::memoryArrayPtr<U8>(memoryPtr, bufPtr, bufLen);
@@ -205,8 +197,6 @@ namespace wasm {
 
                 util::getLogger()->debug("S - bind - {} {} {}", sockfd, addrPtr, addrLen);
 
-                // If thread owns fd, we can bind
-                module->checkThreadOwnsFd(sockfd);
                 int bindResult = bind(sockfd, &addr, sizeof(addr));
 
                 return (I32) bindResult;
@@ -219,8 +209,6 @@ namespace wasm {
                 I32 addrLenPtr = subCallArgs[2];
 
                 util::getLogger()->debug("S - getsockname - {} {} {}", sockfd, addrPtr, addrLenPtr);
-
-                module->checkThreadOwnsFd(sockfd);
 
                 sockaddr nativeAddr = getSockAddr(addrPtr);
                 socklen_t nativeAddrLen = sizeof(nativeAddr);

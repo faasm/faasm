@@ -33,7 +33,7 @@
 
 
 namespace wasm {
-    class WasmModule  {
+    class WasmModule {
     public:
         // ----- Module lifecycle -----
         virtual void bindToFunction(const message::Message &msg, bool executeZygote) = 0;
@@ -42,9 +42,9 @@ namespace wasm {
 
         virtual const bool isBound() = 0;
 
-        virtual std::string getBoundUser() = 0;
+        std::string getBoundUser();
 
-        virtual std::string getBoundFunction() = 0;
+        std::string getBoundFunction();
 
         // ----- Memory management -----
         virtual uint32_t mmapMemory(uint32_t length) = 0;
@@ -56,11 +56,11 @@ namespace wasm {
         virtual uint32_t mmapKey(const std::shared_ptr<state::StateKeyValue> &kv, long offset, uint32_t length) = 0;
 
         // ----- Legacy argc/ argv -----
-        virtual uint32_t getArgc() = 0;
+        uint32_t getArgc();
 
-        virtual uint32_t getArgvBufferSize() = 0;
+        uint32_t getArgvBufferSize();
 
-        virtual void writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer) = 0;
+        void writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer);
 
         // ----- Environment variables
         virtual void writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer) = 0;
@@ -71,22 +71,13 @@ namespace wasm {
         storage::FileSystem &getFileSystem();
 
         // ----- Stdout capture -----
-        virtual ssize_t captureStdout(const struct iovec *iovecs, int iovecCount) = 0;
+        ssize_t captureStdout(const struct iovec *iovecs, int iovecCount);
 
-        virtual ssize_t captureStdout(const void *buffer) = 0;
+        ssize_t captureStdout(const void *buffer);
 
-        virtual std::string getCapturedStdout() = 0;
+        std::string getCapturedStdout();
 
-        virtual void clearCapturedStdout() = 0;
-
-        // ----- Pre-WASI filesystem stuff -----
-        virtual void addFdForThisThread(int fd) = 0;
-
-        virtual void removeFdForThisThread(int fd) = 0;
-
-        virtual void clearFds() = 0;
-
-        virtual void checkThreadOwnsFd(int fd) = 0;
+        void clearCapturedStdout();
 
         // ----- Typescript -----
         virtual bool getBoundIsTypescript() = 0;
@@ -97,26 +88,42 @@ namespace wasm {
         virtual void mapMemoryFromFd() = 0;
 
         // ----- Snapshot/ restore -----
-        virtual void snapshotToFile(const std::string &filePath) = 0;
+        void snapshotToFile(const std::string &filePath);
 
-        virtual std::vector<uint8_t> snapshotToMemory() = 0;
+        std::vector<uint8_t> snapshotToMemory();
 
         size_t snapshotToState(const std::string &stateKey);
 
-        virtual void restoreFromFile(const std::string &filePath) = 0;
+        void restoreFromFile(const std::string &filePath);
 
-        virtual void restoreFromMemory(const std::vector<uint8_t> &data) = 0;
+        void restoreFromMemory(const std::vector<uint8_t> &data);
 
-        virtual void restoreFromState(const std::string &stateKey, size_t stateSize) = 0;
+        void restoreFromState(const std::string &stateKey, size_t stateSize);
 
     protected:
         std::string boundUser;
-        
+
         std::string boundFunction;
 
         storage::FileSystem filesystem;
 
         WasmEnvironment wasmEnvironment;
+
+        int stdoutMemFd;
+        ssize_t stdoutSize;
+
+        // Argc/argv
+        unsigned int argc;
+        std::vector<std::string> argv;
+        size_t argvBufferSize;
+
+        int getStdoutFd();
+
+        virtual void doSnapshot(std::ostream &outStream) = 0;
+
+        virtual void doRestore(std::istream &inStream) = 0;
+
+        void prepareArgcArgv(const message::Message &msg);
     };
 
     // ----- Global functions -----

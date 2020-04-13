@@ -30,7 +30,6 @@ namespace tests {
         fstat(fd, &sb);
         size_t bufferSize = sb.st_size;
 
-        module.addFdForThisThread(fd);
         U32 mappedWasmPtr = module.mmapFile(fd, bufferSize);
         U8 *hostPtr = &Runtime::memoryRef<U8>(module.defaultMemory, mappedWasmPtr);
         

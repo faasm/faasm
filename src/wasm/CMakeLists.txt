@@ -8,30 +8,30 @@ file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/wasm/*.h")
 set(LIB_FILES
         WasmEnvironment.cpp
         WasmModule.cpp
+        chaining_util.cpp
         wamr/WAMRWasmModule
         wavm/WAVMWasmModule
-        chaining_util.cpp
-        chaining.cpp
-        dynlink.cpp
-        env.cpp
-        faasm.cpp
-        io.cpp
-        libcxx.cpp
-        maths.cpp
-        memory.cpp
-        messages.cpp
-        mpi.cpp
-        network.cpp
-        openmp.cpp
-        process.cpp
-        rust.cpp
-        scheduling.cpp
-        signals.cpp
-        syscalls.cpp
-        threads.cpp
-        timing.cpp
-        typescript.cpp
-        util.cpp
+        wavm/chaining.cpp
+        wavm/dynlink.cpp
+        wavm/env.cpp
+        wavm/faasm.cpp
+        wavm/io.cpp
+        wavm/libcxx.cpp
+        wavm/maths.cpp
+        wavm/memory.cpp
+        wavm/messages.cpp
+        wavm/mpi.cpp
+        wavm/network.cpp
+        wavm/openmp.cpp
+        wavm/process.cpp
+        wavm/rust.cpp
+        wavm/scheduling.cpp
+        wavm/signals.cpp
+        wavm/syscalls.cpp
+        wavm/threads.cpp
+        wavm/timing.cpp
+        wavm/typescript.cpp
+        wavm/util.cpp
         ${HEADERS}
         )
 

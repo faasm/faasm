@@ -1,4 +1,4 @@
-#include "WasmModule.h"
+#include "WAVMWasmModule.h"
 #include "syscalls.h"
 
 #include <util/bytes.h>
@@ -69,22 +69,6 @@ namespace wasm {
         return __WASI_ESUCCESS;
     }
 
-    I32 doOpen(I32 pathPtr, int flags, int mode) {
-        const std::string path = getStringFromWasm(pathPtr);
-
-        storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
-        int fd = sfm.openFile(path, flags, mode);
-
-        // NOTE: virtual filesystem will return the negative errno associated
-        // with any failed operations
-        if (fd > 0) {
-            WasmModule *module = getExecutingModule();
-            module->addFdForThisThread(fd);
-        }
-
-        return fd;
-    }
-
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_open", I32, wasi_path_open,
                                    I32 rootFd,
                                    I32 lookupFlags,
@@ -115,24 +99,6 @@ namespace wasm {
         }
     }
 
-    I32 s__open(I32 pathPtr, I32 flags, I32 mode) {
-        util::getLogger()->debug("S - open - {} {} {}", pathPtr, flags, mode);
-        return doOpen(pathPtr, flags, mode);
-    }
-
-    I32 s__dup(I32 oldFd) {
-        util::getLogger()->debug("S - dup - {}", oldFd);
-
-        WasmModule *module = getExecutingModule();
-
-        module->checkThreadOwnsFd(oldFd);
-
-        int newFd = dup(oldFd);
-        module->addFdForThisThread(newFd);
-
-        return newFd;
-    }
-
     int doWasiDup(I32 fd) {
         storage::FileSystem &fs = getExecutingModule()->getFileSystem();
         int newFd = fs.dup(fd);
@@ -152,39 +118,6 @@ namespace wasm {
         Runtime::memoryRef<I32>(getExecutingModule()->defaultMemory, resFdPtr) = newFd;
 
         return __WASI_ESUCCESS;
-    }
-    
-    I32 s__fcntl64(I32 fd, I32 cmd, I32 c) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - fcntl64 - {} {} {}", fd, cmd, c);
-
-        WasmModule *module = getExecutingModule();
-
-        module->checkThreadOwnsFd(fd);
-
-        // Duplicating file descriptors
-        int returnValue;
-        if (cmd == F_DUPFD || cmd == F_DUPFD_CLOEXEC) {
-            // Duplicating file descriptors is allowed
-            returnValue = fcntl(fd, cmd, c);
-
-            if (returnValue > 0) {
-                module->addFdForThisThread(returnValue);
-            }
-        } else if (cmd == F_GETFL || cmd == F_GETFD || cmd == F_SETFD) {
-            // Getting file flags, file descriptor flags and setting file descriptor flags are allowed
-            returnValue = fcntl(fd, cmd, c);
-        } else {
-            logger->warn("Allowing arbitrary fcntl command: {}", cmd);
-            returnValue = fcntl(fd, cmd, c);
-        }
-
-        if (returnValue < 0) {
-            logger->warn("Failed fcntl call");
-            return -errno;
-        }
-
-        return returnValue;
     }
 
     /**
@@ -338,95 +271,11 @@ namespace wasm {
         return wasmBytesRead;
     }
 
-    /**
-     * Read is ok provided the function owns the file descriptor
-     */
-    I32 s__read(I32 fd, I32 bufPtr, I32 bufLen) {
-        util::getLogger()->debug("S - read - {} {} {}", fd, bufPtr, bufLen);
-
-        // Provided the thread owns the fd, we allow reading.
-        WasmModule *module = getExecutingModule();
-        module->checkThreadOwnsFd(fd);
-
-        // Get the buffer etc.
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        U8 *buf = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufPtr, (Uptr) bufLen);
-
-        // Do the actual read
-        ssize_t bytesRead = read(fd, buf, (size_t) bufLen);
-
-        return (I32) bytesRead;
-    }
-
-    I32 s__close(I32 fd) {
-        util::getLogger()->debug("S - close - {}", fd);
-
-        // Provided the thread owns the fd, we allow closing.
-        WasmModule *module = getExecutingModule();
-        module->checkThreadOwnsFd(fd);
-        module->removeFdForThisThread(fd);
-
-        close(fd);
-
-        return 0;
-    }
-
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_close", I32, wasi_fd_close, I32 fd) {
         util::getLogger()->debug("S - fd_close - {}", fd);
 
         storage::FileDescriptor &fileDesc = getExecutingModule()->getFileSystem().getFileDescriptor(fd);
         fileDesc.close();
-
-        return 0;
-    }
-
-    /** Poll is ok but can pass in an array of structs. */
-    I32 s__poll(I32 fdsPtr, I32 nfds, I32 timeout) {
-        util::getLogger()->debug("S - poll - {} {} {}", fdsPtr, nfds, timeout);
-
-        auto *fds = Runtime::memoryArrayPtr<pollfd>(getExecutingModule()->defaultMemory, (Uptr) fdsPtr, (Uptr) nfds);
-        WasmModule *module = getExecutingModule();
-
-        // Check this thread has permission to poll the relevant fds
-        for (int i = 0; i < nfds; i++) {
-            pollfd fd = fds[i];
-            module->checkThreadOwnsFd(fd.fd);
-        }
-
-        int pollRes = poll(fds, (size_t) nfds, timeout);
-        return pollRes;
-    }
-
-    /**
-     * Note that ioctl gets called in different ways. If it's called through the top-level
-     * ioctl() function (as defined in ioctl.c), argsPtr will be a varargs array.
-     *
-     * Other places will call ioctl directly with syscall(SYS_ioctl, ...), in this case the
-     * arguments may be direct pointers to arguments.
-     *
-     * We need to be careful which one we assume (you can check by inspecting the request flag,
-     * and looking into the musl source).
-     */
-    I32 s__ioctl(I32 fd, I32 request, I32 argsPtr, I32 d, I32 e, I32 f) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - ioctl - {} {} {} {} {} {}", fd, request, argsPtr, d, e, f);
-
-        // Check ownership of fd
-        getExecutingModule()->checkThreadOwnsFd(fd);
-
-        if (request == TIOCGWINSZ) {
-            // Getting the window size, importantly we assume this is call from isatty
-            // where the argsPtr is a direct pointer to the winsize struct.
-            auto ws = &Runtime::memoryRef<wasm_winsize>(getExecutingModule()->defaultMemory, argsPtr);
-            ws->ws_col = 10;
-            ws->ws_row = 11;
-            ws->ws_xpixel = 100;
-            ws->ws_ypixel = 101;
-
-        } else {
-            logger->warn("Unknown ioctl request: {}", request);
-            throw std::runtime_error("Unknown ioctl request");
-        }
 
         return 0;
     }
@@ -443,19 +292,6 @@ namespace wasm {
         delete[] nativeIovecs;
 
         return bytesWritten;
-    }
-
-    /**
-     * Writing is ok provided the function owns the file descriptor
-     */
-    I32 s__writev(I32 fd, I32 iov, I32 iovcnt) {
-        util::getLogger()->debug("S - writev - {} {} {}", fd, iov, iovcnt);
-
-        WasmModule *module = getExecutingModule();
-        module->checkThreadOwnsFd(fd);
-
-        iovec *nativeIovecs = wasmIovecsToNativeIovecs(iov, iovcnt);
-        return (I32) doWritev(fd, nativeIovecs, iovcnt);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_write", I32, wasi_fd_write, I32 fd, I32 iovecsPtr, I32 iovecCount,
@@ -482,45 +318,6 @@ namespace wasm {
         Runtime::memoryRef<int>(getExecutingModule()->defaultMemory, resBytesRead) = (int) bytesRead;
 
         return __WASI_ESUCCESS;
-    }
-
-    I32 s__readv(I32 fd, I32 iovecPtr, I32 iovecCount) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - readv - {} {} {}", fd, iovecPtr, iovecCount);
-
-        getExecutingModule()->checkThreadOwnsFd(fd);
-
-        iovec *nativeIovecs = wasmIovecsToNativeIovecs(iovecPtr, iovecCount);
-
-        int bytesRead = readv(fd, nativeIovecs, iovecCount);
-        if (bytesRead == -1) {
-            logger->error("Failed readv {} - {}", errno, strerror(errno));
-            throw std::runtime_error("Failed readv");
-        }
-
-        delete[] nativeIovecs;
-
-        return bytesRead;
-    }
-
-    /**
-     * Writing is ok provided the function owns the file descriptor
-     */
-    I32 s__write(I32 fd, I32 bufPtr, I32 bufLen) {
-        util::getLogger()->debug("S - write - {} {} {}", fd, bufPtr, bufLen);
-
-        // Provided the thread owns the fd, we allow reading.
-        WasmModule *module = getExecutingModule();
-        module->checkThreadOwnsFd(fd);
-
-        // Get the buffer etc.
-        Runtime::Memory *memoryPtr = module->defaultMemory;
-        U8 *buf = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufPtr, (Uptr) bufLen);
-
-        // Do the actual read
-        ssize_t bytesWritten = write(fd, buf, (size_t) bufLen);
-
-        return bytesWritten;
     }
 
     I32 s__mkdir(I32 pathPtr, I32 mode) {
@@ -735,32 +532,6 @@ namespace wasm {
         util::getLogger()->debug("S - path_filestat_get - {} {} {} {}", fd, lookupFlags, pathStr, statPtr);
 
         return doFileStat(fd, pathStr, statPtr);
-    }
-
-    /**
-     * llseek is called from the implementations of both seek and lseek. Calls
-     * to llseek can be replaced with an equivalent call to lseek, which is what
-     * musl would do in the absence of llseek.
-     */
-    I32 s__llseek(I32 fd, I32 offsetHigh, I32 offsetLow, I32 resultPtr, I32 whence) {
-        util::getLogger()->debug("S - llseek - {} {} {} {} {}", fd, offsetHigh, offsetLow, resultPtr, whence);
-
-        WasmModule *module = getExecutingModule();
-        module->checkThreadOwnsFd(fd);
-
-        // The caller is expecting the result to be written to the result pointer
-        Runtime::Memory *memoryPtr = module->defaultMemory;
-        I32 *hostResultPtr = &Runtime::memoryRef<I32>(memoryPtr, (Uptr) resultPtr);
-
-        int res = (int) lseek(fd, offsetLow, whence);
-
-        // Success returns zero and failure returns negative errno
-        if (res < 0) {
-            return -errno;
-        } else {
-            *hostResultPtr = res;
-            return 0;
-        }
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_tell", I32, wasi_fd_tell, I32 fd, I32 resOffsetPtr) {

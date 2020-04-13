@@ -34,10 +34,6 @@ namespace wasm {
 
         const bool isBound() override;
 
-        std::string getBoundUser() override;
-
-        std::string getBoundFunction() override;
-
         bool tearDown();
 
         // ----- Memory management -----
@@ -49,33 +45,8 @@ namespace wasm {
 
         uint32_t mmapKey(const std::shared_ptr<state::StateKeyValue> &kv, long offset, uint32_t length) override;
 
-        // ----- Legacy argc/ argv -----
-        uint32_t getArgc() override;
-
-        uint32_t getArgvBufferSize() override;
-
-        void writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer) override;
-
         // ----- Environment variables
         void writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer) override;
-
-        // ----- Stdout capture -----
-        ssize_t captureStdout(const struct iovec *iovecs, int iovecCount) override;
-
-        ssize_t captureStdout(const void *buffer) override;
-
-        std::string getCapturedStdout() override;
-
-        void clearCapturedStdout() override;
-
-        // ----- Pre-WASI filesystem stuff -----
-        void addFdForThisThread(int fd) override;
-
-        void removeFdForThisThread(int fd) override;
-
-        void clearFds() override;
-
-        void checkThreadOwnsFd(int fd) override;
 
         // ----- Typescript -----
         bool getBoundIsTypescript() override;
@@ -84,19 +55,6 @@ namespace wasm {
         void writeMemoryToFd(int fd) override;
 
         void mapMemoryFromFd() override;
-
-        // ----- Snapshot/ restore -----
-        void snapshotToFile(const std::string &filePath) override;
-
-        std::vector<uint8_t> snapshotToMemory() override;
-
-        size_t snapshotToState(const std::string &stateKey) override;
-
-        void restoreFromFile(const std::string &filePath) override;
-
-        void restoreFromMemory(const std::vector<uint8_t> &data) override;
-
-        void restoreFromState(const std::string &stateKey, size_t stateSize) override;
 
         // ----- Internals -----
         Runtime::GCPointer<Runtime::Memory> defaultMemory;
@@ -152,6 +110,12 @@ namespace wasm {
         int getFunctionOffsetFromGOT(const std::string &funcName);
 
         int getDataOffsetFromGOT(const std::string &name);
+
+    protected:
+        void doSnapshot(std::ostream &outStream) override;
+
+        void doRestore(std::istream &inStream) override;
+
     private:
         Runtime::GCPointer<Runtime::Instance> envModule;
         Runtime::GCPointer<Runtime::Instance> wasiModule;
@@ -181,28 +145,11 @@ namespace wasm {
         std::unordered_map<std::string, int> globalOffsetMemoryMap;
         std::unordered_map<std::string, int> missingGlobalOffsetEntries;
 
-        // Output buffer
-        int stdoutMemFd;
-        ssize_t stdoutSize;
-
-        int getStdoutFd();
-
-        // Argc/argv
-        unsigned int argc;
-        std::vector<std::string> argv;
-        size_t argvBufferSize;
-
         void writeStringArrayToMemory(const std::vector<std::string> &strings, uint32_t strPoitners, uint32_t strBuffer);
-
-        void doSnapshot(std::ostream &outStream);
-
-        void doRestore(std::istream &inStream);
 
         void clone(const WAVMWasmModule &other);
 
         void addModuleToGOT(IR::Module &mod, bool isMainModule);
-
-        void prepareArgcArgv(const message::Message &msg);
 
         void executeZygoteFunction();
 

@@ -14,14 +14,6 @@ namespace wasm {
         return false;
     }
 
-    std::string WAMRWasmModule::getBoundUser() {
-        return "none";
-    }
-
-    std::string WAMRWasmModule::getBoundFunction() {
-        return "none";
-    }
-
     // ----- Memory management -----
     uint32_t WAMRWasmModule::mmapMemory(uint32_t length) {
         return 0;
@@ -39,64 +31,8 @@ namespace wasm {
         return 0;
     }
 
-    // ----- Legacy argc/ argv -----
-    uint32_t WAMRWasmModule::getArgc() {
-        return 0;
-    }
-
-    uint32_t WAMRWasmModule::getArgvBufferSize() {
-        return 0;
-    }
-
-    void WAMRWasmModule::writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer) {
-
-    }
-
     // ----- Environment variables
     void WAMRWasmModule::writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer) {
-
-    }
-
-    WasmEnvironment &WAMRWasmModule::getWasmEnvironment() {
-
-    }
-
-    // ----- Filesystem -----
-    storage::FileSystem &WAMRWasmModule::getFileSystem() {
-
-    }
-
-    // ----- Stdout capture -----
-    ssize_t WAMRWasmModule::captureStdout(const struct iovec *iovecs, int iovecCount) {
-        return 0;
-    }
-
-    ssize_t WAMRWasmModule::captureStdout(const void *buffer) {
-        return 0;
-    }
-
-    std::string WAMRWasmModule::getCapturedStdout() {
-        return "";
-    }
-
-    void WAMRWasmModule::clearCapturedStdout() {
-
-    }
-
-    // ----- Pre-WASI filesystem stuff -----
-    void WAMRWasmModule::addFdForThisThread(int fd) {
-
-    }
-
-    void WAMRWasmModule::removeFdForThisThread(int fd) {
-
-    }
-
-    void WAMRWasmModule::clearFds() {
-
-    }
-
-    void WAMRWasmModule::checkThreadOwnsFd(int fd) {
 
     }
 
@@ -115,27 +51,11 @@ namespace wasm {
     }
 
     // ----- Snapshot/ restore -----
-    void WAMRWasmModule::snapshotToFile(const std::string &filePath) {
+    void WAMRWasmModule::doSnapshot(std::ostream &outStream) {
 
     }
 
-    std::vector<uint8_t> WAMRWasmModule::snapshotToMemory() {
-        return {};
-    }
-
-    size_t WAMRWasmModule::snapshotToState(const std::string &stateKey) {
-        return 0;
-    }
-
-    void WAMRWasmModule::restoreFromFile(const std::string &filePath) {
-
-    }
-
-    void WAMRWasmModule::restoreFromMemory(const std::vector<uint8_t> &data) {
-
-    }
-
-    void WAMRWasmModule::restoreFromState(const std::string &stateKey, size_t stateSize) {
+    void WAMRWasmModule::doRestore(std::istream &inStream) {
 
     }
 }
