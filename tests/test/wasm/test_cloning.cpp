@@ -1,5 +1,5 @@
 #include <catch/catch.hpp>
-#include <wasm/WasmModule.h>
+#include <wasm/WAVMWasmModule.h>
 #include <util/func.h>
 #include <util/config.h>
 #include <WAVM/Runtime/Intrinsics.h>
@@ -17,10 +17,10 @@ namespace tests {
     }
 
     TEST_CASE("Test cloning empty modules doesn't break", "[wasm]") {
-        WasmModule moduleA;
-        WasmModule moduleB(moduleA);
+        WAVMWasmModule moduleA;
+        WAVMWasmModule moduleB(moduleA);
 
-        WasmModule moduleC;
+        WAVMWasmModule moduleC;
         moduleC = moduleA;
 
         // Check clear-up
@@ -30,7 +30,7 @@ namespace tests {
     }
 
     void
-    _doChecks(wasm::WasmModule &moduleA, wasm::WasmModule &moduleB, const std::string &user, const std::string &func,
+    _doChecks(wasm::WAVMWasmModule &moduleA, wasm::WAVMWasmModule &moduleB, const std::string &user, const std::string &func,
               const std::string &inputA,              const std::string &inputB, bool isTypescript, bool isPython) {
 
         message::Message msgA = util::messageFactory(user, func);
@@ -45,7 +45,7 @@ namespace tests {
         }
 
         // Dummy execution initially to avoid any first-time set-up differences
-        WasmModule moduleWarmUp;
+        WAVMWasmModule moduleWarmUp;
         moduleWarmUp.bindToFunction(msgA);
         moduleWarmUp.execute(msgA);
 
@@ -165,10 +165,10 @@ namespace tests {
             msgA.set_istypescript(true);
         }
 
-        WasmModule moduleA;
+        WAVMWasmModule moduleA;
         moduleA.bindToFunction(msgA);
 
-        WasmModule moduleB(moduleA);
+        WAVMWasmModule moduleB(moduleA);
         _doChecks(moduleA, moduleB, user, func, inputA, inputB, isTypescript, isPython);
     }
 
@@ -181,10 +181,10 @@ namespace tests {
             convertMsgToPython(msgA);
         }
 
-        WasmModule moduleA;
+        WAVMWasmModule moduleA;
         moduleA.bindToFunction(msgA);
 
-        WasmModule moduleB = moduleA;
+        WAVMWasmModule moduleB = moduleA;
         _doChecks(moduleA, moduleB, user, func, inputA, inputB, isTypescript, isPython);
     }
 
@@ -241,12 +241,12 @@ namespace tests {
     TEST_CASE("Test GC on cloned modules without execution") {
         message::Message msg = util::messageFactory("demo", "echo");
 
-        WasmModule moduleA;
+        WAVMWasmModule moduleA;
         moduleA.bindToFunction(msg);
 
-        WasmModule moduleB(moduleA);
+        WAVMWasmModule moduleB(moduleA);
 
-        WasmModule moduleC = moduleA;
+        WAVMWasmModule moduleC = moduleA;
 
         REQUIRE(moduleA.tearDown());
         REQUIRE(moduleB.tearDown());
@@ -256,14 +256,14 @@ namespace tests {
     TEST_CASE("Test GC on cloned modules with execution") {
         message::Message msg = util::messageFactory("demo", "echo");
 
-        WasmModule moduleA;
+        WAVMWasmModule moduleA;
         moduleA.bindToFunction(msg);
         moduleA.execute(msg);
 
-        WasmModule moduleB(moduleA);
+        WAVMWasmModule moduleB(moduleA);
         moduleB.execute(msg);
 
-        WasmModule moduleC = moduleA;
+        WAVMWasmModule moduleC = moduleA;
         moduleC.execute(msg);
 
         REQUIRE(moduleA.tearDown());

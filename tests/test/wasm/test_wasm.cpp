@@ -10,7 +10,7 @@ namespace tests {
     TEST_CASE("Test executing WASM module with no input", "[wasm]") {
         message::Message call = util::messageFactory("demo", "dummy");
 
-        wasm::WasmModule module;
+        wasm::WAVMWasmModule module;
         module.bindToFunction(call);
 
         // Execute the function
@@ -32,14 +32,14 @@ namespace tests {
         call.set_user("demo");
         call.set_function("print");
 
-        wasm::WasmModule module;
+        wasm::WAVMWasmModule module;
         module.bindToFunction(call);
 
         bool success = module.execute(call);
         REQUIRE(success);
     }
 
-    void executeX2(wasm::WasmModule &module) {
+    void executeX2(wasm::WAVMWasmModule &module) {
         message::Message call;
         call.set_user("demo");
         call.set_function("x2");
@@ -65,7 +65,7 @@ namespace tests {
         call.set_user("demo");
         call.set_function("x2");
 
-        wasm::WasmModule module;
+        wasm::WAVMWasmModule module;
         REQUIRE(!module.isBound());
 
         module.bindToFunction(call);
@@ -78,9 +78,9 @@ namespace tests {
         call.set_function("x2");
 
         module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
-        wasm::WasmModule &cachedModule = registry.getCachedModule(call);
+        wasm::WAVMWasmModule &cachedModule = registry.getCachedModule(call);
         
-        wasm::WasmModule module(cachedModule);
+        wasm::WAVMWasmModule module(cachedModule);
 
         // Perform first execution
         executeX2(module);
@@ -102,7 +102,7 @@ namespace tests {
         callA.set_user("demo");
         callA.set_function("dummy");
 
-        wasm::WasmModule module;
+        wasm::WAVMWasmModule module;
         REQUIRE_THROWS(module.execute(callA));
     }
 
@@ -111,7 +111,7 @@ namespace tests {
         callA.set_user("demo");
         callA.set_function("dummy");
 
-        wasm::WasmModule module;
+        wasm::WAVMWasmModule module;
         module.bindToFunction(callA);
         REQUIRE_THROWS(module.bindToFunction(callA));
     }
@@ -120,7 +120,7 @@ namespace tests {
         message::Message callA = util::messageFactory("demo", "dummy");
         message::Message callB = util::messageFactory("demo", "x2");
 
-        wasm::WasmModule module;
+        wasm::WAVMWasmModule module;
         module.bindToFunction(callA);
 
         REQUIRE_THROWS(module.execute(callB));
@@ -130,9 +130,9 @@ namespace tests {
         message::Message call = util::messageFactory("demo", "heap");
 
         module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
-        wasm::WasmModule &cachedModule = registry.getCachedModule(call);
+        wasm::WAVMWasmModule &cachedModule = registry.getCachedModule(call);
         
-        wasm::WasmModule module(cachedModule);
+        wasm::WAVMWasmModule module(cachedModule);
 
         Uptr initialPages = Runtime::getMemoryNumPages(module.defaultMemory);
 
@@ -146,7 +146,7 @@ namespace tests {
     }
 
     TEST_CASE("Test GC", "[wasm]") {
-        wasm::WasmModule module;
+        wasm::WAVMWasmModule module;
         message::Message call = util::messageFactory("demo", "malloc");
 
         SECTION("Plain module"){
@@ -166,7 +166,7 @@ namespace tests {
 
     TEST_CASE("Test disassemble module", "[wasm]") {
         message::Message call = util::messageFactory("demo", "echo");
-        wasm::WasmModule module;
+        wasm::WAVMWasmModule module;
         module.bindToFunction(call);
 
         std::map<std::string, std::string> disasMap = module.buildDisassemblyMap();

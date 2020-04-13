@@ -1,5 +1,5 @@
 #include <catch/catch.hpp>
-#include <wasm/WasmModule.h>
+#include <wasm/WAVMWasmModule.h>
 #include <util/bytes.h>
 #include <util/func.h>
 #include <util/config.h>
@@ -16,7 +16,7 @@ namespace tests {
         call.set_user("demo");
         call.set_function("echo");
 
-        wasm::WasmModule module;
+        wasm::WAVMWasmModule module;
         module.bindToFunction(call);
 
         // File we know to exist

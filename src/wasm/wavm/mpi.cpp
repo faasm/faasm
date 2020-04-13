@@ -104,7 +104,7 @@ namespace wasm {
             *hostResPtr = result;
         }
 
-        WasmModule *module;
+        WAVMWasmModule *module;
         Runtime::Memory *memory;
         mpi::MpiWorld &world;
         int rank;
@@ -541,7 +541,7 @@ namespace wasm {
         }
 
         // Create the new memory region
-        WasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingModule();
         U32 mappedWasmPtr = module->mmapMemory(memSize);
 
         // Write the result to the wasm memory (note that the argument passed to the

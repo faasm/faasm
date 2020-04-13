@@ -1,5 +1,5 @@
 #include <catch/catch.hpp>
-#include <wasm/WasmModule.h>
+#include <wasm/WAVMWasmModule.h>
 #include <util/func.h>
 #include <emulator/emulator.h>
 #include <redis/Redis.h>
@@ -7,7 +7,7 @@
 
 namespace tests {
     void _checkMapping(
-            wasm::WasmModule &module,
+            wasm::WAVMWasmModule &module,
             std::shared_ptr<state::StateKeyValue> &kv,
             long offset,
             long size,
@@ -23,8 +23,8 @@ namespace tests {
     }
 
     TEST_CASE("Test loading state into wasm module", "[wasm]") {
-        wasm::WasmModule moduleA;
-        wasm::WasmModule moduleB;
+        wasm::WAVMWasmModule moduleA;
+        wasm::WAVMWasmModule moduleB;
 
         const message::Message call = util::messageFactory("demo", "echo");
         moduleA.bindToFunction(call);

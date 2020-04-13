@@ -28,7 +28,9 @@ namespace wasm {
         ~WAVMWasmModule() override;
 
         // ----- Module lifecycle -----
-        void bindToFunction(const message::Message &msg, bool executeZygote) override;
+        void bindToFunction(const message::Message &msg) override;
+
+        void bindToFunctionNoZygote(const message::Message &msg) override;
 
         bool execute(message::Message &msg) override;
 
@@ -72,6 +74,8 @@ namespace wasm {
                 const std::vector<IR::UntaggedValue> &arguments,
                 IR::UntaggedValue &result
         );
+
+        void writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer) override;
 
         // ----- Resolution/ linking -----
 
@@ -145,6 +149,8 @@ namespace wasm {
         std::unordered_map<std::string, int> globalOffsetMemoryMap;
         std::unordered_map<std::string, int> missingGlobalOffsetEntries;
 
+        void doBindToFunction(const message::Message &msg, bool executeZygote);
+
         void writeStringArrayToMemory(const std::vector<std::string> &strings, uint32_t strPoitners, uint32_t strBuffer);
 
         void clone(const WAVMWasmModule &other);
@@ -167,9 +173,13 @@ namespace wasm {
         Runtime::Function *getWasmConstructorsFunction(Runtime::Instance *module);
     };
 
+    WAVMWasmModule *getExecutingModule();
+
+    void setExecutingModule(WAVMWasmModule *executingModule);
+
     struct WasmThreadSpec {
         Runtime::ContextRuntimeData *contextRuntimeData;
-        wasm::WasmModule *parentModule;
+        wasm::WAVMWasmModule *parentModule;
         message::Message *parentCall;
         Runtime::Function *func;
         IR::UntaggedValue *funcArgs;

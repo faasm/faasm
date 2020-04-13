@@ -33,7 +33,7 @@ namespace wasm {
      * straight through.
      */
     I32 s__socketcall(I32 call, I32 argsPtr) {
-        WasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingModule();
         Runtime::Memory *memoryPtr = module->defaultMemory;
 
         // NOTE

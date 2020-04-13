@@ -15,7 +15,7 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "args_sizes_get", I32, wasi_args_sizes_get, I32 argcPtr, I32 argvBufSize) {
         util::getLogger()->debug("S - args_sizes_get - {} {}", argcPtr, argvBufSize);
-        WasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingModule();
 
         Runtime::memoryRef<U32>(module->defaultMemory, argcPtr) = module->getArgc();
         Runtime::memoryRef<U32>(module->defaultMemory, argvBufSize) = module->getArgvBufferSize();
@@ -25,7 +25,7 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "args_get", I32, wasi_args_get, I32 argvPtr, I32 argvBufPtr) {
         util::getLogger()->debug("S - args_get - {} {}", argvPtr, argvBufPtr);
-        WasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingModule();
         module->writeArgvToMemory(argvPtr, argvBufPtr);
 
         return __WASI_ESUCCESS;
@@ -191,7 +191,7 @@ namespace wasm {
                                    I32 environCountPtr, I32 environBuffSizePtr) {
         util::getLogger()->debug("S - environ_sizes_get - {} {}", environCountPtr, environBuffSizePtr);
 
-        WasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingModule();
         WasmEnvironment &wasmEnv = module->getWasmEnvironment();
 
         Runtime::memoryRef<U32>(module->defaultMemory, environCountPtr) = wasmEnv.getEnvCount();
@@ -203,7 +203,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "environ_get", I32, wasi_environ_get, I32 environPtrs, I32 environBuf) {
         util::getLogger()->debug("S - environ_get - {} {}", environPtrs, environBuf);
 
-        WasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingModule();
         module->writeWasmEnvToMemory(environPtrs, environBuf);
 
         return __WASI_ESUCCESS;

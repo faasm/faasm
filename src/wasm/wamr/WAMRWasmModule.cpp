@@ -2,7 +2,11 @@
 
 namespace wasm {
     // ----- Module lifecycle -----
-    void WAMRWasmModule::bindToFunction(const message::Message &msg, bool executeZygote) {
+    void WAMRWasmModule::bindToFunction(const message::Message &msg) {
+
+    }
+
+    void WAMRWasmModule::bindToFunctionNoZygote(const message::Message &msg) {
 
     }
 
@@ -49,6 +53,11 @@ namespace wasm {
     void WAMRWasmModule::mapMemoryFromFd() {
 
     }
+
+    // ----- Argc/ argv -----
+    void WAMRWasmModule::writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer) {
+
+    };
 
     // ----- Snapshot/ restore -----
     void WAMRWasmModule::doSnapshot(std::ostream &outStream) {

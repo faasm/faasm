@@ -9,8 +9,9 @@ set(LIB_FILES
         WasmEnvironment.cpp
         WasmModule.cpp
         chaining_util.cpp
-        wamr/WAMRWasmModule
-        wavm/WAVMWasmModule
+        wamr/WAMRWasmModule.cpp
+        wavm/WAVMWasmModule.cpp
+        wavm/syscalls.h
         wavm/chaining.cpp
         wavm/dynlink.cpp
         wavm/env.cpp

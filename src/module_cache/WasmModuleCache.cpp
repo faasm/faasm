@@ -41,7 +41,7 @@ namespace module_cache {
      * or one of many "special" cached modules, those restored from snapshots captured at
      * arbitrary points (e.g. when spawning a thread).
      */
-    wasm::WasmModule &WasmModuleCache::getCachedModule(const message::Message &msg) {
+    wasm::WAVMWasmModule &WasmModuleCache::getCachedModule(const message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Get the keys for both types of cached module

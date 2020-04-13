@@ -36,7 +36,9 @@ namespace wasm {
     class WasmModule {
     public:
         // ----- Module lifecycle -----
-        virtual void bindToFunction(const message::Message &msg, bool executeZygote) = 0;
+        virtual void bindToFunction(const message::Message &msg) = 0;
+
+        virtual void bindToFunctionNoZygote(const message::Message &msg) = 0;
 
         virtual bool execute(message::Message &msg) = 0;
 
@@ -60,7 +62,7 @@ namespace wasm {
 
         uint32_t getArgvBufferSize();
 
-        void writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer);
+        virtual void writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer) = 0;
 
         // ----- Environment variables
         virtual void writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer) = 0;
@@ -127,10 +129,6 @@ namespace wasm {
     };
 
     // ----- Global functions -----
-    WasmModule *getExecutingModule();
-
-    void setExecutingModule(WasmModule *executingModule);
-
     message::Message *getExecutingCall();
 
     void setExecutingCall(message::Message *other);

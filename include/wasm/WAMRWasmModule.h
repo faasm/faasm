@@ -5,7 +5,9 @@
 namespace wasm {
     class WAMRWasmModule: public WasmModule {
         // ----- Module lifecycle -----
-        void bindToFunction(const message::Message &msg, bool executeZygote) override;
+        void bindToFunction(const message::Message &msg) override;
+
+        void bindToFunctionNoZygote(const message::Message &msg) override;
 
         bool execute(message::Message &msg) override;
 
@@ -31,6 +33,8 @@ namespace wasm {
 
         void mapMemoryFromFd() override;
 
+        // ----- Argc/argv -----
+        void writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer) override;
     protected:
         void doSnapshot(std::ostream &outStream) override;
 

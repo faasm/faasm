@@ -33,8 +33,19 @@
 using namespace WAVM;
 
 namespace wasm {
-    WAVMWasmModule::WAVMWasmModule() : stdoutMemFd(0), stdoutSize(0) {
+    static thread_local WAVMWasmModule *executingModule;
 
+    WAVMWasmModule *getExecutingModule() {
+        return executingModule;
+    }
+
+    void setExecutingModule(WAVMWasmModule *other) {
+        executingModule = other;
+    }
+
+    WAVMWasmModule::WAVMWasmModule() {
+        stdoutMemFd = 0;
+        stdoutSize = 0;
     }
 
     WAVMWasmModule &WAVMWasmModule::operator=(const WAVMWasmModule &other) {
@@ -184,7 +195,8 @@ namespace wasm {
         return _isBound;
     }
 
-    Runtime::Function *WAVMWasmModule::getFunction(Runtime::Instance *module, const std::string &funcName, bool strict) {
+    Runtime::Function *
+    WAVMWasmModule::getFunction(Runtime::Instance *module, const std::string &funcName, bool strict) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Look up the function
@@ -277,7 +289,15 @@ namespace wasm {
         Runtime::invokeFunction(executionContext, func, funcType, arguments.data(), &result);
     }
 
-    void WAVMWasmModule::bindToFunction(const message::Message &msg, bool executeZygote) {
+    void WAVMWasmModule::bindToFunction(const message::Message &msg) {
+        doBindToFunction(msg, true);
+    }
+
+    void WAVMWasmModule::bindToFunctionNoZygote(const message::Message &msg) {
+        doBindToFunction(msg, false);
+    }
+
+    void WAVMWasmModule::doBindToFunction(const message::Message &msg, bool executeZygote) {
         /*
          * NOTE - the order things happen in this function is important.
          * The zygote function may execute non-trivial code and modify the memory,
@@ -347,7 +367,8 @@ namespace wasm {
         PROF_END(wasmBind)
     }
 
-    void WAVMWasmModule::writeStringArrayToMemory(const std::vector<std::string> &strings, U32 strPoitners, U32 strBuffer) {
+    void
+    WAVMWasmModule::writeStringArrayToMemory(const std::vector<std::string> &strings, U32 strPoitners, U32 strBuffer) {
         // Iterate through values, putting them in memory
         U32 strNextBuffer = strBuffer;
         U32 strNextPointer = strPoitners;
@@ -782,9 +803,9 @@ namespace wasm {
     }
 
     bool WAVMWasmModule::resolve(const std::string &moduleName,
-                             const std::string &name,
-                             IR::ExternType type,
-                             Runtime::Object *&resolved) {
+                                 const std::string &name,
+                                 IR::ExternType type,
+                                 Runtime::Object *&resolved) {
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 

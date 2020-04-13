@@ -81,7 +81,7 @@ namespace wasm {
             logger->warn("WARNING: ignoring mmap hint at {}", addr);
         }
 
-        WasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingModule();
 
         if (fd != -1) {
             // If fd is provided, we're mapping a file into memory
@@ -168,7 +168,7 @@ namespace wasm {
             throw std::runtime_error("brk not page-aligned");
         }
 
-        WasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingModule();
         Runtime::Memory *memory = module->defaultMemory;
 
         Uptr currentPageCount = getMemoryNumPages(memory);
@@ -215,7 +215,7 @@ namespace wasm {
     I32 s__sbrk(I32 increment) {
         util::getLogger()->debug("S - sbrk - {}", increment);
 
-        WasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingModule();
         Runtime::Memory *memory = module->defaultMemory;
 
         Uptr currentPageCount = getMemoryNumPages(memory);

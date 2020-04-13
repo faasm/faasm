@@ -47,12 +47,6 @@ namespace tests {
         // Reset system config
         conf.reset();
 
-        // When running tests we don't get the benefit of thread-local storage
-        // As everything is single-threaded, therefore we need to clear out the
-        // open file descriptors
-        wasm::WasmModule m;
-        m.clearFds();
-
         // Set emulator user
         resetEmulator();
         setEmulatorUser("tester");

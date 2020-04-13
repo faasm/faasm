@@ -192,7 +192,7 @@ namespace wasm {
         util::getLogger()->debug("S - read_state - {} {}", kv->key, totalLen);
 
         // Map shared memory
-        WasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingModule();
         U32 wasmPtr = module->mmapKey(kv, 0, totalLen);
 
         return wasmPtr;
@@ -216,7 +216,7 @@ namespace wasm {
         util::getLogger()->debug("S - read_state_offset_ptr - {} {} {} {}", kv->key, totalLen, offset, len);
 
         // Map whole key in shared memory
-        WasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingModule();
         U32 wasmPtr = module->mmapKey(kv, offset, len);
         return wasmPtr;
     }

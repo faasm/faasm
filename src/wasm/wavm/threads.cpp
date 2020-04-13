@@ -60,7 +60,7 @@ namespace wasm {
 
         // Set the bits we care about on the pthread struct
         // NOTE - setting the initial pointer is crucial for inter-operation with existing C code
-        WasmModule *thisModule = getExecutingModule();
+        WAVMWasmModule *thisModule = getExecutingModule();
         wasm_pthread *pthreadHost = &Runtime::memoryRef<wasm_pthread>(thisModule->defaultMemory, pthreadPtr);
         pthreadHost->selfPtr = pthreadPtr;
 

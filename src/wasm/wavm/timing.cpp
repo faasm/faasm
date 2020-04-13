@@ -62,7 +62,7 @@ namespace wasm {
                                    I32 nSubs,
                                    I32 resNEvents) {
         util::getLogger()->debug("S - poll_oneoff - {} {} {} {}", subscriptionsPtr, eventsPtr, nSubs, resNEvents);
-        WasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingModule();
 
         auto inEvents = Runtime::memoryArrayPtr<wasi_subscription_t>(module->defaultMemory, subscriptionsPtr, nSubs);
         auto outEvents = Runtime::memoryArrayPtr<__wasi_event_t>(module->defaultMemory, eventsPtr, nSubs);
