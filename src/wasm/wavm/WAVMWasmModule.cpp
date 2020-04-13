@@ -22,12 +22,8 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 #include <Runtime/RuntimePrivate.h>
-#include <WAVM/WASTParse/WASTParse.h>
-#include <sys/mman.h>
 #include <sys/types.h>
-#include <sys/uio.h>
 #include <util/bytes.h>
-#include <util/macros.h>
 #include <WASI/WASIPrivate.h>
 
 using namespace WAVM;
@@ -996,10 +992,6 @@ namespace wasm {
 
     int WAVMWasmModule::getNextTableBase() {
         return nextTableBase;
-    }
-
-    bool WAVMWasmModule::getBoundIsTypescript() {
-        return boundIsTypescript;
     }
 
     int WAVMWasmModule::getFunctionOffsetFromGOT(const std::string &funcName) {

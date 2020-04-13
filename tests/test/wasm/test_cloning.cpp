@@ -69,7 +69,6 @@ namespace tests {
         REQUIRE(moduleB.isBound());
         REQUIRE(moduleB.getBoundUser() == moduleA.getBoundUser());
         REQUIRE(moduleB.getBoundFunction() == moduleA.getBoundFunction());
-        REQUIRE(moduleB.getBoundIsTypescript() == moduleA.getBoundIsTypescript());
 
         REQUIRE(memBeforeB == memBeforeA);
 

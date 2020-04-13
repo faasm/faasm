@@ -48,15 +48,6 @@ namespace wasm {
 
         std::string getBoundFunction();
 
-        // ----- Memory management -----
-        virtual uint32_t mmapMemory(uint32_t length) = 0;
-
-        virtual uint32_t mmapPages(uint32_t pages) = 0;
-
-        virtual uint32_t mmapFile(uint32_t fp, uint32_t length) = 0;
-
-        virtual uint32_t mmapKey(const std::shared_ptr<state::StateKeyValue> &kv, long offset, uint32_t length) = 0;
-
         // ----- Legacy argc/ argv -----
         uint32_t getArgc();
 
@@ -80,9 +71,6 @@ namespace wasm {
         std::string getCapturedStdout();
 
         void clearCapturedStdout();
-
-        // ----- Typescript -----
-        virtual bool getBoundIsTypescript() = 0;
 
         // ----- CoW memory -----
         virtual void writeMemoryToFd(int fd) = 0;
