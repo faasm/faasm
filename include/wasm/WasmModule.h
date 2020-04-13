@@ -12,10 +12,6 @@
 #include <thread>
 #include <mutex>
 
-#include <WAVM/Runtime/Intrinsics.h>
-#include <WAVM/Runtime/Linker.h>
-#include <WAVM/Runtime/Runtime.h>
-
 #include <storage/FileSystem.h>
 
 #define ONE_MB_BYTES 1024 * 1024
@@ -35,220 +31,86 @@
 #define WASM_CTORS_FUNC_NAME "__wasm_call_ctors"
 #define ENTRY_FUNC_NAME "_start"
 
-using namespace WAVM;
-
 
 namespace wasm {
-    WAVM_DECLARE_INTRINSIC_MODULE(env)
-
-    WAVM_DECLARE_INTRINSIC_MODULE(wasi)
-
-    WAVM_DECLARE_INTRINSIC_MODULE(tsenv)
-
-    Uptr getNumberOfPagesForBytes(U32 nBytes);
-
-    struct WasmThreadSpec;
-
-    class WasmModule final : Runtime::Resolver {
+    class WasmModule  {
     public:
-        WasmModule();
+        // ----- Module lifecycle -----
+        virtual void bindToFunction(const message::Message &msg, bool executeZygote) = 0;
 
-        WasmModule(const WasmModule &other);
+        virtual bool execute(message::Message &msg) = 0;
 
-        WasmModule &operator=(const WasmModule &other);
+        virtual const bool isBound() = 0;
 
-        ~WasmModule();
+        virtual std::string getBoundUser() = 0;
 
-        void bindToFunction(const message::Message &msg, bool executeZygote = true);
+        virtual std::string getBoundFunction() = 0;
 
-        bool execute(message::Message &msg);
+        // ----- Memory management -----
+        virtual uint32_t mmapMemory(uint32_t length) = 0;
 
-        Runtime::GCPointer<Runtime::Memory> defaultMemory;
+        virtual uint32_t mmapPages(uint32_t pages) = 0;
 
-        Runtime::GCPointer<Runtime::Table> defaultTable;
+        virtual uint32_t mmapFile(uint32_t fp, uint32_t length) = 0;
 
-        Runtime::GCPointer<Runtime::Context> executionContext;
+        virtual uint32_t mmapKey(const std::shared_ptr<state::StateKeyValue> &kv, long offset, uint32_t length) = 0;
 
-        Runtime::GCPointer<Runtime::Compartment> compartment;
+        // ----- Legacy argc/ argv -----
+        virtual uint32_t getArgc() = 0;
 
-        const bool isBound();
+        virtual uint32_t getArgvBufferSize() = 0;
 
-        U32 mmapMemory(U32 length);
+        virtual void writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer) = 0;
 
-        U32 mmapPages(U32 pages);
+        // ----- Environment variables
+        virtual void writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer) = 0;
 
-        U32 mmapFile(U32 fp, U32 length);
+        virtual WasmEnvironment &getWasmEnvironment() = 0;
 
-        U32 mmapKey(const std::shared_ptr<state::StateKeyValue> &kv, long offset, U32 length);
+        // ----- Filesystem -----
+        virtual storage::FileSystem &getFileSystem() = 0;
 
-        int dynamicLoadModule(const std::string &path, Runtime::Context *context);
+        // ----- Stdout capture -----
+        virtual ssize_t captureStdout(const struct iovec *iovecs, int iovecCount) = 0;
 
-        Uptr getDynamicModuleFunction(int handle, const std::string &funcName);
+        virtual ssize_t captureStdout(const void *buffer) = 0;
 
-        Uptr addFunctionToTable(Runtime::Object *exportedFunc);
+        virtual std::string getCapturedStdout() = 0;
 
-        void executeFunction(
-                Runtime::Function *func,
-                IR::FunctionType funcType,
-                const std::vector<IR::UntaggedValue> &arguments,
-                IR::UntaggedValue &result
-        );
+        virtual void clearCapturedStdout() = 0;
 
-        Runtime::Function *getFunction(Runtime::Instance *module, const std::string &funcName, bool strict);
+        // ----- Pre-WASI filesystem stuff -----
+        virtual void addFdForThisThread(int fd) = 0;
 
-        Runtime::Function *getFunctionFromPtr(int funcPtr);
+        virtual void removeFdForThisThread(int fd) = 0;
 
-        bool resolve(const std::string &moduleName,
-                     const std::string &name,
-                     IR::ExternType type,
-                     Runtime::Object *&resolved) override;
+        virtual void clearFds() = 0;
 
-        std::map<std::string, std::string> buildDisassemblyMap();
+        virtual void checkThreadOwnsFd(int fd) = 0;
 
-        void addFdForThisThread(int fd);
+        // ----- Typescript -----
+        virtual bool getBoundIsTypescript() = 0;
 
-        void removeFdForThisThread(int fd);
+        // ----- CoW memory -----
+        virtual void writeMemoryToFd(int fd) = 0;
 
-        void clearFds();
+        virtual void mapMemoryFromFd() = 0;
 
-        void checkThreadOwnsFd(int fd);
+        // ----- Snapshot/ restore -----
+        virtual void snapshotToFile(const std::string &filePath) = 0;
 
-        std::string getBoundUser();
+        virtual std::vector<uint8_t> snapshotToMemory() = 0;
 
-        std::string getBoundFunction();
+        virtual size_t snapshotToState(const std::string &stateKey) = 0;
 
-        bool getBoundIsTypescript();
+        virtual void restoreFromFile(const std::string &filePath) = 0;
 
-        I32 getGlobalI32(const std::string &globalName, Runtime::Context *context);
+        virtual void restoreFromMemory(const std::vector<uint8_t> &data) = 0;
 
-        bool tearDown();
-
-        int getDynamicModuleCount();
-
-        int getNextMemoryBase();
-
-        int getNextStackPointer();
-
-        int getNextTableBase();
-
-        int getFunctionOffsetFromGOT(const std::string &funcName);
-
-        int getDataOffsetFromGOT(const std::string &name);
-
-        void writeMemoryToFd(int fd);
-
-        void mapMemoryFromFd();
-
-        void snapshotToFile(const std::string &filePath);
-
-        std::vector<uint8_t> snapshotToMemory();
-
-        size_t snapshotToState(const std::string &stateKey);
-
-        void restoreFromFile(const std::string &filePath);
-
-        void restoreFromMemory(const std::vector<uint8_t> &data);
-
-        void restoreFromState(const std::string &stateKey, size_t stateSize);
-
-        ssize_t captureStdout(const struct iovec *iovecs, int iovecCount);
-
-        ssize_t captureStdout(const void *buffer);
-
-        std::string getCapturedStdout();
-
-        void clearCapturedStdout();
-
-        I64 executeThread(WasmThreadSpec &spec);
-
-        U32 getArgc();
-
-        U32 getArgvBufferSize();
-
-        void writeArgvToMemory(U32 wasmArgvPointers, U32 wasmArgvBuffer);
-
-        void writeWasmEnvToMemory(U32 envPointers, U32 envBuffer);
-
-        storage::FileSystem &getFileSystem();
-
-        WasmEnvironment &getWasmEnvironment();
-
-    private:
-        Runtime::GCPointer<Runtime::Instance> envModule;
-        Runtime::GCPointer<Runtime::Instance> wasiModule;
-        Runtime::GCPointer<Runtime::Instance> moduleInstance;
-
-        // Dynamic modules
-        int dynamicModuleCount = 0;
-        int nextMemoryBase = 0;
-        int nextStackPointer = 0;
-        int nextTableBase = 0;
-
-        int memoryFd = -1;
-        size_t memoryFdSize = 0;
-
-        bool _isBound = false;
-        std::string boundUser;
-        std::string boundFunction;
-        bool boundIsTypescript = false;
-
-        // Shared memory regions
-        std::unordered_map<std::string, I32> sharedMemWasmPtrs;
-
-        // Map of dynamically loaded modules
-        std::unordered_map<std::string, int> dynamicPathToHandleMap;
-        std::unordered_map<int, Runtime::GCPointer<Runtime::Instance>> dynamicModuleMap;
-
-        // Dynamic linking tables and memories
-        std::unordered_map<std::string, Uptr> globalOffsetTableMap;
-        std::unordered_map<std::string, int> globalOffsetMemoryMap;
-        std::unordered_map<std::string, int> missingGlobalOffsetEntries;
-
-        // Output buffer
-        int stdoutMemFd;
-        ssize_t stdoutSize;
-
-        int getStdoutFd();
-
-        // Argc/argv
-        unsigned int argc;
-        std::vector<std::string> argv;
-        size_t argvBufferSize;
-
-        void writeStringArrayToMemory(const std::vector<std::string> &strings, U32 strPoitners, U32 strBuffer);
-
-        // Filesystem
-        storage::FileSystem filesystem;
-
-        // Environment
-        WasmEnvironment wasmEnvironment;
-
-        void doSnapshot(std::ostream &outStream);
-
-        void doRestore(std::istream &inStream);
-
-        void clone(const WasmModule &other);
-
-        void addModuleToGOT(IR::Module &mod, bool isMainModule);
-
-        void prepareArgcArgv(const message::Message &msg);
-
-        void executeZygoteFunction();
-
-        void executeWasmConstructorsFunction(Runtime::Instance *module);
-
-        Runtime::Instance *createModuleInstance(
-                const std::string &name,
-                const std::string &sharedModulePath
-        );
-
-        Runtime::Function *getMainFunction(Runtime::Instance *module);
-
-        Runtime::Function *getDefaultZygoteFunction(Runtime::Instance *module);
-
-        Runtime::Function *getWasmConstructorsFunction(Runtime::Instance *module);
+        virtual void restoreFromState(const std::string &stateKey, size_t stateSize) = 0;
     };
 
+    // ----- Global functions -----
     WasmModule *getExecutingModule();
 
     void setExecutingModule(WasmModule *executingModule);
@@ -257,6 +119,12 @@ namespace wasm {
 
     void setExecutingCall(message::Message *other);
 
+    // Convenience function
+    size_t getNumberOfPagesForBytes(uint32_t nBytes);
+
+    /*
+     * Exception thrown when wasm module terminates
+     */
     class WasmExitException : public std::exception {
     public:
         explicit WasmExitException(int exitCode) : exitCode(exitCode) {
@@ -266,12 +134,4 @@ namespace wasm {
         int exitCode;
     };
 
-    struct WasmThreadSpec {
-        Runtime::ContextRuntimeData *contextRuntimeData;
-        wasm::WasmModule *parentModule;
-        message::Message *parentCall;
-        Runtime::Function *func;
-        IR::UntaggedValue *funcArgs;
-        size_t stackSize;
-    };
 }

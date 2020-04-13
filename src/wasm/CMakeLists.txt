@@ -8,6 +8,8 @@ file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/wasm/*.h")
 set(LIB_FILES
         WasmEnvironment.cpp
         WasmModule.cpp
+        wamr/WAMRWasmModule
+        wavm/WAVMWasmModule
         chaining_util.cpp
         chaining.cpp
         dynlink.cpp
