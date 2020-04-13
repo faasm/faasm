@@ -18,6 +18,17 @@ set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/WAVM/Lib)
 option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
 option(FAASM_AWS_SUPPORT "Whether to include AWS support" OFF)
 
+# WAMR configuration
+set(WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
+set(WAMR_BUILD_TARGET X86_64)
+set(WAMR_BUILD_PLATFORM linux)
+set(WAMR_BUILD_INTERP 1)
+set(WAMR_BUILD_FAST_INTERP 1)
+set(WAMR_BUILD_JIT 1)
+set(WAMR_BUILD_AOT 0)
+set(WAMR_BUILD_LIBC_BUILTIN 0)  # We need to use Faasm's libc
+set(WAMR_BUILD_LIBC_WASI 0)  # We need to use Faasm's libc
+
 # Library type (for shared libraries)
 if (FAASM_STATIC_LIBS)
     function(faasm_public_lib lib_name lib_deps)
@@ -203,6 +214,10 @@ else ()
 
     # WAVM
     add_subdirectory(third-party/WAVM)
+
+    # WAMR
+    include (${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
+    add_library(vmlib ${WAMR_RUNTIME_LIB_SOURCE})
 
     # Faasm demo
     add_subdirectory(third-party/faasm-demo-c)
