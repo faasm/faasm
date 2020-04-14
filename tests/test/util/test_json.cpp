@@ -64,4 +64,11 @@ namespace tests {
         REQUIRE(getValueFromJsonString("foo", "{\"FOO\": \"aa\", \"blah\": \"xxx\"}") == "");
         REQUIRE(getValueFromJsonString("foo", "{\"foo\": \"\"}") == "");
     }
+    
+    TEST_CASE("Test with raw string literals", "[util]") {
+        const message::Message &msg = jsonToMessage(R"({"user": "foo", "function": "bar", "index": 2})");
+        REQUIRE(msg.user() == "foo");
+        REQUIRE(msg.function() == "bar");
+        REQUIRE(msg.idx() == 2);
+    }
 }

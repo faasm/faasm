@@ -1,12 +1,12 @@
-from pyfaasm.core import getInput, setOutput
+from pyfaasm.core import get_input, set_output
 
 
 def main_func():
-    i = getInput()
+    i = get_input()
 
     print("Got input {}".format(i))
 
-    setOutput(bytes(i))
+    set_output(bytes(i))
 
 
 if __name__ == "__main__":

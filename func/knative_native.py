@@ -6,7 +6,8 @@ from json import dumps
 from time import sleep
 
 from flask import Flask, request
-from pyfaasm.core import getOutput, setEmulatorMessage, emulatorSetStatus, emulatorGetAsyncResponse, setLocalInputOutput
+from pyfaasm.core import get_output, set_emulator_message, set_emulator_status, \
+    get_emulator_async_response, set_local_input_output
 
 app = Flask(__name__)
 
@@ -17,7 +18,7 @@ logging.basicConfig(level=logging.INFO)
 
 def execute_main(json_data):
     # Set up the emulator again (in case we're running in a separate thread)
-    setEmulatorMessage(dumps(json_data))
+    set_emulator_message(dumps(json_data))
 
     user = json_data["py_user"]
     func = json_data["py_func"]
@@ -30,13 +31,13 @@ def execute_main(json_data):
     mod = __import__(module_name, fromlist=[""])
 
     mod.main_func()
-    emulatorSetStatus(1)
+    set_emulator_status(1)
 
 
 @app.route('/', methods=["GET", "POST"])
 def run_func():
     global request_count
-    setLocalInputOutput(True)
+    set_local_input_output(True)
 
     # Get input
     json_data = request.get_json()
@@ -65,7 +66,7 @@ def run_func():
 
     # Set up this main thread with the emulator
     # Make sure to pass on the message ID for child threads
-    msgId = setEmulatorMessage(dumps(json_data))
+    msgId = set_emulator_message(dumps(json_data))
     json_data["id"] = msgId
 
     if json_data.get("async", False):
@@ -73,11 +74,11 @@ def run_func():
         func_thread = threading.Thread(target=execute_main, args=[json_data])
         func_thread.start()
 
-        return emulatorGetAsyncResponse()
+        return get_emulator_async_response()
     else:
         # Run in main thread
         execute_main(json_data)
-        func_output = getOutput()
+        func_output = get_output()
 
         if not func_output:
             return "Empty output"

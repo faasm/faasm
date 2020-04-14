@@ -3,90 +3,39 @@
 
 #include <Python.h>
 
+#ifndef __wasm__
+extern "C" {
+#include <emulator/emulator_api.h>
+}
+#endif
+
+// --------------------------------------------------
+// See the CPython embedding docs for more info:
+// https://docs.python.org/3/extending/embedding.html
+// --------------------------------------------------
+
 #define WASM_PYTHON_FUNC_PREFIX "faasm://pyfuncs/"
 #define NATIVE_PYTHON_FUNC_PREFIX "/usr/local/code/faasm/func/"
 
-//#ifdef __wasm__
-//#include <clapack/f2c.h>
-//#include <clapack/cblas.h>
-//#include <clapack/clapack.h>
-//#else
-//#include <cblas.h>
-//#endif
-//
-//void forceLinkBlas() {
-//    FILE *devNull = fopen("/dev/null", "w");
-//
-//    // CBLAS - import all the cblas functions needed by numpy
-//    fprintf(devNull, "%p", cblas_sdot);
-//    fprintf(devNull, "%p", cblas_ddot);
-////    fprintf(devNull, "%p", cblas_cdotu_sub);
-////    fprintf(devNull, "%p", cblas_zdotu_sub);
-////    fprintf(devNull, "%p", cblas_cdotc_sub);
-////    fprintf(devNull, "%p", cblas_zdotc_sub);
-//    fprintf(devNull, "%p", cblas_daxpy);
-//    fprintf(devNull, "%p", cblas_zaxpy);
-//    fprintf(devNull, "%p", cblas_saxpy);
-//    fprintf(devNull, "%p", cblas_caxpy);
-//    fprintf(devNull, "%p", cblas_dgemm);
-//    fprintf(devNull, "%p", cblas_sgemm);
-//    fprintf(devNull, "%p", cblas_zgemm);
-//    fprintf(devNull, "%p", cblas_cgemm);
-//    fprintf(devNull, "%p", cblas_dgemv);
-//    fprintf(devNull, "%p", cblas_sgemv);
-//    fprintf(devNull, "%p", cblas_zgemv);
-//    fprintf(devNull, "%p", cblas_cgemv);
-//    fprintf(devNull, "%p", cblas_dsyrk);
-//    fprintf(devNull, "%p", cblas_csyrk);
-//    fprintf(devNull, "%p", cblas_zsyrk);
-//    fprintf(devNull, "%p", cblas_ssyrk);
-//
-//    // LAPACK - must import everything needed by numpy here
-//#ifdef __wasm__
-//    fprintf(devNull, "%p", dgelsd_);
-//    fprintf(devNull, "%p", dgeqrf_);
-//    fprintf(devNull, "%p", dorgqr_);
-//    fprintf(devNull, "%p", zgelsd_);
-//    fprintf(devNull, "%p", zgeqrf_);
-//    fprintf(devNull, "%p", zungqr_);
-//
-//    fprintf(devNull, "%p", scopy_);
-//    fprintf(devNull, "%p", sgetrf_);
-//    fprintf(devNull, "%p", dcopy_);
-//    fprintf(devNull, "%p", dgetrf_);
-//    fprintf(devNull, "%p", ccopy_);
-//    fprintf(devNull, "%p", zcopy_);
-//    fprintf(devNull, "%p", cgetrf_);
-//    fprintf(devNull, "%p", zgetrf_);
-//    fprintf(devNull, "%p", ssyevd_);
-//    fprintf(devNull, "%p", dsyevd_);
-//    fprintf(devNull, "%p", cheevd_);
-//    fprintf(devNull, "%p", zheevd_);
-//    fprintf(devNull, "%p", sgesv_);
-//    fprintf(devNull, "%p", dgesv_);
-//    fprintf(devNull, "%p", cgesv_);
-//    fprintf(devNull, "%p", zgesv_);
-//    fprintf(devNull, "%p", spotrf_);
-//    fprintf(devNull, "%p", dpotrf_);
-//    fprintf(devNull, "%p", cpotrf_);
-//    fprintf(devNull, "%p", zpotrf_);
-//    fprintf(devNull, "%p", sgesdd_);
-//    fprintf(devNull, "%p", dgesdd_);
-//    fprintf(devNull, "%p", cgesdd_);
-//    fprintf(devNull, "%p", zgesdd_);
-//    fprintf(devNull, "%p", sgeev_);
-//    fprintf(devNull, "%p", dgeev_);
-//    fprintf(devNull, "%p", zgeev_);
-//    fprintf(devNull, "%p", sgelsd_);
-//    fprintf(devNull, "%p", cgelsd_);
-//#endif
-//}
+#define DEFAULT_MAIN_FUNC "main_func"
 
+const char* getPythonFunctionName(int funcIdx) {
+    if(funcIdx == 0) {
+        return DEFAULT_MAIN_FUNC;
+    } else {
+        char *funcName = new char[20];
+        sprintf(funcName, "faasm_func_%i", funcIdx);
+        return funcName;
+    }
+}
+
+/**
+ * We initialise CPython using a Faasm zygote to avoid doing so repeatedly
+ */
 FAASM_ZYGOTE() {
     Py_InitializeEx(0);
 
     setUpPyNumpy();
-//    forceLinkBlas();
 
     unsigned int preloadNumpy = getConfFlag("PRELOAD_NUMPY");
     if(preloadNumpy == 1) {
@@ -111,28 +60,64 @@ FAASM_ZYGOTE() {
 }
 
 FAASM_MAIN_FUNC() {
+    // When uncommented this file can be run as a normal executable for testing
+    setEmulatedMessageFromJson(R"({"user": "python", "function": "py_func", "py_user": "python", "py_func": "hello", "py_idx": 0})");
+
     char *user = faasmGetPythonUser();
     char *funcName = faasmGetPythonFunc();
+    int funcIdx = faasmGetCurrentIdx();
+    const char* pythonFuncName = getPythonFunctionName(funcIdx);
 
     auto filePath = new char[50 + strlen(funcName)];
 
+    // File path will be different if running in WAVM vs. natively
 #ifdef __wasm__
     sprintf(filePath, "%s%s/%s/function.py", WASM_PYTHON_FUNC_PREFIX, user, funcName);
 #else
     sprintf(filePath, "%s%s/%s.py", NATIVE_PYTHON_FUNC_PREFIX, user, funcName);
 #endif
 
-    FILE *fp = fopen(filePath, "r");
-    if (fp == nullptr) {
-        printf("Failed to open file at %s\n", filePath);
+    // Load and import the module
+    PyObject *moduleName = PyUnicode_DecodeFSDefault(filePath);
+    PyObject *module = PyImport_Import(moduleName);
+    Py_DECREF(moduleName);
+
+    if (module != nullptr) {
+        PyObject *func = PyObject_GetAttrString(module, pythonFuncName);
+
+        if (func && PyCallable_Check(func)) {
+            // Execute the function.
+            // Note that entrypoints take no arguments for now
+            PyObject * returnValue = PyObject_CallObject(func, nullptr);
+
+            if (returnValue != nullptr) {
+                printf("Python call succeeded: %ld\n", PyLong_AsLong(returnValue));
+                Py_DECREF(returnValue);
+            }
+            else {
+                Py_DECREF(func);
+                Py_DECREF(module);
+                PyErr_Print();
+                printf("Python call failed\n");
+                return 1;
+            }
+        }
+        else {
+            if (PyErr_Occurred()) {
+                PyErr_Print();
+            }
+            printf("Cannot find function \"%s\"\n", funcName);
+        }
+
+        Py_XDECREF(func);
+        Py_DECREF(module);
+    } else {
+        PyErr_Print();
+        fprintf(stderr, "Failed to load \"%s\"\n", funcName);
         return 1;
     }
 
-    printf("WASM python function: %s\n", filePath);
-
-    PyRun_SimpleFile(fp, filePath);
     Py_FinalizeEx();
-    fclose(fp);
 
     return 0;
 }
