@@ -448,14 +448,16 @@ void __faasm_unlock_state_write(const char *key) {
 
 }
 
+void copyStringToBuffer(unsigned char *buffer, const std::string &strIn) {
+    ::strcpy(reinterpret_cast<char*>(buffer), strIn.c_str());
+}
+
 void __faasm_get_py_user(unsigned char *buffer, long bufferLen) {
-    const std::vector<uint8_t> bytes = util::stringToBytes(_emulatedCall.pythonuser());
-    std::copy(bytes.data(), bytes.data() + bytes.size(), buffer);
+    copyStringToBuffer(buffer, _emulatedCall.pythonuser());
 }
 
 void __faasm_get_py_func(unsigned char *buffer, long bufferLen) {
-    const std::vector<uint8_t> bytes = util::stringToBytes(_emulatedCall.pythonfunction());
-    std::copy(bytes.data(), bytes.data() + bytes.size(), buffer);
+    copyStringToBuffer(buffer, _emulatedCall.pythonfunction());
 }
 
 unsigned int __faasm_conf_flag(const char *key) {

@@ -43,6 +43,3 @@ def main_func():
     for k, v in d.items():
         print("{}: {} ({})".format(k, v, d[k]))
 
-
-if __name__ == "__main__":
-    main_func()

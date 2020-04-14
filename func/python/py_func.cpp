@@ -19,6 +19,10 @@ extern "C" {
 
 #define DEFAULT_MAIN_FUNC "main_func"
 
+/**
+ * Returns the relevant Python entry function. We need to invoke different
+ * functions depending on which Faasm function index we're dealing with.
+ */
 const char* getPythonFunctionName(int funcIdx) {
     if(funcIdx == 0) {
         return DEFAULT_MAIN_FUNC;
@@ -30,7 +34,35 @@ const char* getPythonFunctionName(int funcIdx) {
 }
 
 /**
- * We initialise CPython using a Faasm zygote to avoid doing so repeatedly
+ * Returns the working dir we need to be in to import the Python module
+ * for the required function.
+ */
+const char* getPythonWorkingDir(const char* user, const char* funcName) {
+    auto workingDir = new char[60];
+
+#ifdef __wasm__
+    sprintf(workingDir, "%s%s/%s", WASM_PYTHON_FUNC_PREFIX, user, funcName);
+#else
+    sprintf(workingDir, "%s%s", NATIVE_PYTHON_FUNC_PREFIX, user);
+#endif
+
+    return workingDir;
+}
+
+/**
+ * Returns the name of the python module to execute. If executing in wasm this
+ * will be different to when executing natively.
+ */
+const char* getPythonModuleName(const char* funcName) {
+#ifdef __wasm__
+    return "function";
+#else
+    return funcName;
+#endif
+}
+
+/**
+ * Initialise CPython using a Faasm zygote to avoid doing so repeatedly
  */
 FAASM_ZYGOTE() {
     Py_InitializeEx(0);
@@ -60,27 +92,26 @@ FAASM_ZYGOTE() {
 }
 
 FAASM_MAIN_FUNC() {
-    // When uncommented this file can be run as a normal executable for testing
-    setEmulatedMessageFromJson(R"({"user": "python", "function": "py_func", "py_user": "python", "py_func": "hello", "py_idx": 0})");
+    // With this line uncommented, this file can be run as a normal executable for testing
+    setEmulatedMessageFromJson(R"({"user": "python", "function": "py_func", "py_user": "python", "py_func": "lang_test", "py_idx": 0})");
 
+    // Get details of the Faasm call
     char *user = faasmGetPythonUser();
     char *funcName = faasmGetPythonFunc();
     int funcIdx = faasmGetCurrentIdx();
+
+    // Variables related to importing/ executing the Python module
     const char* pythonFuncName = getPythonFunctionName(funcIdx);
+    const char* workingDir = getPythonWorkingDir(user, funcName);
+    const char* pythonModuleName = getPythonModuleName(funcName);
 
-    auto filePath = new char[50 + strlen(funcName)];
+    // Add the directory to the Python path
+    PyObject *sys = PyImport_ImportModule("sys");
+    PyObject *path = PyObject_GetAttrString(sys, "path");
+    PyList_Append(path, PyUnicode_FromString(workingDir));
 
-    // File path will be different if running in WAVM vs. natively
-#ifdef __wasm__
-    sprintf(filePath, "%s%s/%s/function.py", WASM_PYTHON_FUNC_PREFIX, user, funcName);
-#else
-    sprintf(filePath, "%s%s/%s.py", NATIVE_PYTHON_FUNC_PREFIX, user, funcName);
-#endif
-
-    // Load and import the module
-    PyObject *moduleName = PyUnicode_DecodeFSDefault(filePath);
-    PyObject *module = PyImport_Import(moduleName);
-    Py_DECREF(moduleName);
+    // Import the module
+    PyObject *module = PyImport_ImportModule(pythonModuleName);
 
     if (module != nullptr) {
         PyObject *func = PyObject_GetAttrString(module, pythonFuncName);
