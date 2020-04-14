@@ -93,7 +93,7 @@ FAASM_ZYGOTE() {
 
 FAASM_MAIN_FUNC() {
     // With this line uncommented, this file can be run as a normal executable for testing
-    setEmulatedMessageFromJson(R"({"user": "python", "function": "py_func", "py_user": "python", "py_func": "lang_test", "py_entry": "faasm_main"})");
+    // setEmulatedMessageFromJson(R"({"user": "python", "function": "py_func", "py_user": "python", "py_func": "lang_test", "py_entry": "faasm_main"})");
 
     // Get details of the Faasm call
     char *user = faasmGetPythonUser();

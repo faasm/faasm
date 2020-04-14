@@ -3,7 +3,7 @@ import os
 from decimal import Decimal
 
 
-def main_func():
+def faasm_main():
     print("Running Python version {}".format(sys.version))
 
     py_wasm_env = os.getenv("PYTHONWASM", "NOT SET")

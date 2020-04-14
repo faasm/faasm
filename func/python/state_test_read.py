@@ -9,7 +9,7 @@ def _check_segment(key, offset, length, expected):
         exit(1)
 
 
-def main_func():
+def faasm_main():
     key = "pyStateTest"
     value_len = 10
     expected = b'0199956789'
@@ -26,7 +26,3 @@ def main_func():
     _check_segment(key, 4, 4, b'9567')
 
     print("Successful Python state reading check")
-
-
-if __name__ == "__main__":
-    main_func()

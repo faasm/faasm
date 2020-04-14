@@ -19,7 +19,7 @@ def _check_full_value(expected):
         exit(1)
 
 
-def main_func():
+def faasm_main():
     # Set the full value initially
     setState(key, full_value)
     push_state(key)
@@ -42,7 +42,3 @@ def main_func():
         exit(1)
 
     print("Successful Python state writing check")
-
-
-if __name__ == "__main__":
-    main_func()
