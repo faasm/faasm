@@ -41,7 +41,7 @@ void faasmWriteStateOffset(const char *key, long totalLen, long offset, const ui
     __faasm_write_state_offset(key, totalLen, offset, data, dataLen);
 }
 
-unsigned long faasmWriteStateFromFile(const char* key, const char* filePath) {
+unsigned long faasmWriteStateFromFile(const char *key, const char *filePath) {
     return (unsigned long) __faasm_write_state_from_file(key, filePath);
 }
 
@@ -124,19 +124,25 @@ int faasmGetCurrentIdx() {
     return __faasm_get_idx();
 }
 
-char* faasmGetPythonUser() {
-    char* user = new char[20];
-     __faasm_get_py_user(BYTES(user), 20);
-     return user;
+char *faasmGetPythonUser() {
+    char *user = new char[20];
+    __faasm_get_py_user(BYTES(user), 20);
+    return user;
 }
 
-char* faasmGetPythonFunc() {
-    char* funcName = new char[20];
-     __faasm_get_py_func(BYTES(funcName), 20);
-     return funcName;
+char *faasmGetPythonFunc() {
+    char *funcName = new char[20];
+    __faasm_get_py_func(BYTES(funcName), 20);
+    return funcName;
 }
 
-unsigned int getConfFlag(const char* key) {
+char *faasmGetPythonEntry() {
+    char *entryFuncName = new char[30];
+    __faasm_get_py_entry(BYTES(entryFuncName), 30);
+    return entryFuncName;
+}
+
+unsigned int getConfFlag(const char *key) {
     return __faasm_conf_flag(key);
 }
 

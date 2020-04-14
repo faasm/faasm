@@ -28,7 +28,7 @@ namespace wasm {
         return returnCode;
     }
 
-    int makeChainedCall(const std::string &functionName, int idx, int pyIdx, const std::vector<uint8_t> &inputData) {
+    int makeChainedCall(const std::string &functionName, int idx, const char* pyFuncName, const std::vector<uint8_t> &inputData) {
         scheduler::Scheduler &sch = scheduler::getScheduler();
         message::Message *originalCall = getExecutingCall();
 
@@ -40,7 +40,7 @@ namespace wasm {
 
         call.set_pythonuser(originalCall->pythonuser());
         call.set_pythonfunction(originalCall->pythonfunction());
-        call.set_pythonidx(pyIdx);
+        call.set_pythonentry(pyFuncName);
         call.set_ispython(originalCall->ispython());
 
         const std::string origStr = util::funcToString(*originalCall, false);

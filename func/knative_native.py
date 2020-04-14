@@ -22,15 +22,18 @@ def execute_main(json_data):
 
     user = json_data["py_user"]
     func = json_data["py_func"]
-    idx = json_data.get("py_idx", 0)
+    entry = json_data.get("py_entry", "faasm_main")
 
-    app.logger.info("Executing {}/{} (idx {})".format(user, func, idx))
+    app.logger.info("Executing {}/{} (entry {})".format(user, func, entry))
 
     # Assume function is in the current path
     module_name = "{}.{}".format(user, func)
     mod = __import__(module_name, fromlist=[""])
 
-    mod.main_func()
+    # Get the entry function and invoke
+    entry_function_obj = getattr(mod, entry)
+    entry_function_obj()
+
     set_emulator_status(1)
 
 

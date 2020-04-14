@@ -17,7 +17,7 @@ extern "C" {
 #define WASM_PYTHON_FUNC_PREFIX "faasm://pyfuncs/"
 #define NATIVE_PYTHON_FUNC_PREFIX "/usr/local/code/faasm/func/"
 
-#define DEFAULT_MAIN_FUNC "main_func"
+#define DEFAULT_MAIN_FUNC "faasm_main"
 
 /**
  * Returns the relevant Python entry function. We need to invoke different
@@ -93,15 +93,14 @@ FAASM_ZYGOTE() {
 
 FAASM_MAIN_FUNC() {
     // With this line uncommented, this file can be run as a normal executable for testing
-    setEmulatedMessageFromJson(R"({"user": "python", "function": "py_func", "py_user": "python", "py_func": "lang_test", "py_idx": 0})");
+    setEmulatedMessageFromJson(R"({"user": "python", "function": "py_func", "py_user": "python", "py_func": "lang_test", "py_entry": "faasm_main"})");
 
     // Get details of the Faasm call
     char *user = faasmGetPythonUser();
     char *funcName = faasmGetPythonFunc();
-    int funcIdx = faasmGetCurrentIdx();
+    char* pythonFuncName = faasmGetPythonEntry();
 
     // Variables related to importing/ executing the Python module
-    const char* pythonFuncName = getPythonFunctionName(funcIdx);
     const char* workingDir = getPythonWorkingDir(user, funcName);
     const char* pythonModuleName = getPythonModuleName(funcName);
 

@@ -317,6 +317,13 @@ namespace wasm {
         _readPythonInput(bufferPtr, bufferLen, value);
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_get_py_entry", void, __faasm_get_py_entry, I32 bufferPtr,
+                                   I32 bufferLen) {
+        util::getLogger()->debug("S - get_py_entry - {} {}", bufferPtr, bufferLen);
+        std::string value = getExecutingCall()->pythonentry();
+        _readPythonInput(bufferPtr, bufferLen, value);
+    }
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_conf_flag", U32, __faasm_conf_flag, I32 keyPtr) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         const std::string key = getStringFromWasm(keyPtr);

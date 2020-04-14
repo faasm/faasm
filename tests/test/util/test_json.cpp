@@ -17,7 +17,7 @@ namespace tests {
 
         msg.set_pythonuser("py user");
         msg.set_pythonfunction("py func");
-        msg.set_pythonidx(12);
+        msg.set_pythonentry("py entry");
 
         msg.set_isasync(true);
         msg.set_ispython(true);

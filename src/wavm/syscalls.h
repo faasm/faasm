@@ -33,7 +33,8 @@ namespace wasm {
 
     int awaitChainedCall(unsigned int messageId);
 
-    int makeChainedCall(const std::string &functionName, int idx, int pyIdx, const std::vector<uint8_t> &inputData);
+    int makeChainedCall(const std::string &functionName, int idx, const char *pyFunc,
+                        const std::vector<uint8_t> &inputData);
 
     int spawnChainedThread(const std::string &snapshotKey, size_t snapshotSize, int funcPtr, int argsPtr);
 
@@ -225,7 +226,7 @@ namespace wasm {
     };
 
     // Temp while WAVM has issue
-    struct wasi_filestat_t    {
+    struct wasi_filestat_t {
         __wasi_device_t st_dev;
         __wasi_inode_t st_ino;
         __wasi_filetype_t st_filetype;
@@ -234,7 +235,7 @@ namespace wasm {
         __wasi_timestamp_t st_atim;
         __wasi_timestamp_t st_mtim;
         __wasi_timestamp_t st_ctim;
-    } ;
+    };
 
     // Struct conversion
 

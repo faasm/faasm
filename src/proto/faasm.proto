@@ -39,7 +39,7 @@ message Message {
 
     optional string pythonUser = 22;
     optional string pythonFunction = 23;
-    optional int32 pythonIdx = 24;
+    optional string pythonEntry = 24;
 
     optional int32 coldStartInterval = 25;
 
