@@ -14,8 +14,8 @@ extern "C" {
 // https://docs.python.org/3/extending/embedding.html
 // --------------------------------------------------
 
-#define WASM_PYTHON_FUNC_PREFIX "faasm://pyfuncs/"
-#define NATIVE_PYTHON_FUNC_PREFIX "/usr/local/code/faasm/func/"
+#define WASM_PYTHON_FUNC_DIR "/python/"
+#define NATIVE_PYTHON_FUNC_DIR "/usr/local/code/faasm/func/"
 
 #define DEFAULT_MAIN_FUNC "faasm_main"
 
@@ -23,13 +23,13 @@ extern "C" {
  * Returns the relevant Python entry function. We need to invoke different
  * functions depending on which Faasm function index we're dealing with.
  */
-const char* getPythonFunctionName(int funcIdx) {
-    if(funcIdx == 0) {
+const char* getPythonFunctionName() {
+    char *entryFunc = faasmGetPythonEntry();
+
+    if(strlen(entryFunc) == 0) {
         return DEFAULT_MAIN_FUNC;
     } else {
-        char *funcName = new char[20];
-        sprintf(funcName, "faasm_func_%i", funcIdx);
-        return funcName;
+        return entryFunc;
     }
 }
 
@@ -41,9 +41,9 @@ const char* getPythonWorkingDir(const char* user, const char* funcName) {
     auto workingDir = new char[60];
 
 #ifdef __wasm__
-    sprintf(workingDir, "%s%s/%s", WASM_PYTHON_FUNC_PREFIX, user, funcName);
+    sprintf(workingDir, "%s%s/%s", NATIVE_PYTHON_FUNC_DIR, user, funcName);
 #else
-    sprintf(workingDir, "%s%s", NATIVE_PYTHON_FUNC_PREFIX, user);
+    sprintf(workingDir, "%s%s", NATIVE_PYTHON_FUNC_DIR, user);
 #endif
 
     return workingDir;
@@ -58,20 +58,6 @@ const char* getPythonModuleName(const char* funcName) {
     return "function";
 #else
     return funcName;
-#endif
-}
-
-/**
- * This is a slight hack to ensure the file is present locally
- */
-void touchPythonFile(const char* user, const char* funcName) {
-#ifdef __wasm__
-    char fullPath[30];
-    sprintf(fullPath, "%s/%s/%s/function.py", WASM_PYTHON_FUNC_PREFIX, user, funcName);
-    struct stat s{};
-    ::stat(fullPath, &s);
-#else
-    // Nothing to do when running locally
 #endif
 }
 
@@ -112,10 +98,7 @@ FAASM_MAIN_FUNC() {
     // Get details of the Faasm call
     char *user = faasmGetPythonUser();
     char *funcName = faasmGetPythonFunc();
-    char* pythonFuncName = faasmGetPythonEntry();
-
-    // Make sure file is present
-    touchPythonFile(user, funcName);
+    const char* pythonFuncName = getPythonFunctionName();
 
     // Variables related to importing/ executing the Python module
     const char* workingDir = getPythonWorkingDir(user, funcName);

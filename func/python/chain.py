@@ -17,13 +17,6 @@ def chain_two(input_bytes):
 
 
 def faasm_main():
-    if PYTHON_LOCAL_CHAINING:
-        print("Running native python")
-        register_function(1, chain_one)
-        register_function(2, chain_two)
-    else:
-        print("Not running native python")
-
     print("Main chaining entry point")
     call_a = chain_this_with_input(chain_one, b'1234')
     call_b = chain_this_with_input(chain_two, b'5678')
