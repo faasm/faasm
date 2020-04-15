@@ -39,6 +39,10 @@ namespace storage {
             return empty;
         }
 
+        if(boost::filesystem::is_directory(fullPath)) {
+            throw SharedFileIsDirectoryException(fullPath);
+        }
+
         return loadFileBytes(fullPath);
     }
 

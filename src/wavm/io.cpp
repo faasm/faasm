@@ -160,9 +160,9 @@ namespace wasm {
 
                 __wasi_dirent_t wasmDirEnt{
                         .d_next = dirEnt.next,
-                        .d_type = dirEnt.type,
                         .d_ino = dirEnt.ino,
-                        .d_namlen = (unsigned int) dirEnt.path.size()
+                        .d_namlen = (unsigned int) dirEnt.path.size(),
+                        .d_type = dirEnt.type
                 };
 
                 // Copy the dirent itself

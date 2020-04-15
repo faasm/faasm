@@ -112,7 +112,7 @@ namespace storage {
         }
 
         // Call readdir to get next dirent
-        direntPtr = readdir(dirPtr);
+        direntPtr = ::readdir(dirPtr);
 
         // Build the actual dirent
         DirEnt d;

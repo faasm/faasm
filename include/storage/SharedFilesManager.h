@@ -20,6 +20,7 @@ namespace storage {
     enum FileState {
         NOT_CHECKED,
         NOT_EXISTS,
+        EXISTS_DIR,
         EXISTS
     };
 
@@ -28,6 +29,8 @@ namespace storage {
         FileState state = NOT_CHECKED;
 
         int openFile(const std::string &path, int flags, int mode);
+
+        DIR *openDir(const std::string &path);
 
         int statFile(const std::string &path, struct stat64 *statPtr);
     private:

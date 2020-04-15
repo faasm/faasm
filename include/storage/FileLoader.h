@@ -4,6 +4,7 @@
 
 #include <string>
 #include <vector>
+#include <util/exception.h>
 
 
 namespace storage {
@@ -43,4 +44,11 @@ namespace storage {
     void checkFileExists(const std::string &path);
 
     std::vector<uint8_t> loadFileBytes(const std::string &path);
+
+    class SharedFileIsDirectoryException : public util::FaasmException {
+    public:
+        explicit SharedFileIsDirectoryException(const std::string& filePath): FaasmException(filePath + " is a directory") {
+
+        }
+    };
 };

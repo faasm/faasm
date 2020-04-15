@@ -62,6 +62,20 @@ const char* getPythonModuleName(const char* funcName) {
 }
 
 /**
+ * This is a slight hack to ensure the file is present locally
+ */
+void touchPythonFile(const char* user, const char* funcName) {
+#ifdef __wasm__
+    char fullPath[30];
+    sprintf(fullPath, "%s/%s/%s/function.py", WASM_PYTHON_FUNC_PREFIX, user, funcName);
+    struct stat s{};
+    ::stat(fullPath, &s);
+#else
+    // Nothing to do when running locally
+#endif
+}
+
+/**
  * Initialise CPython using a Faasm zygote to avoid doing so repeatedly
  */
 FAASM_ZYGOTE() {
@@ -99,6 +113,9 @@ FAASM_MAIN_FUNC() {
     char *user = faasmGetPythonUser();
     char *funcName = faasmGetPythonFunc();
     char* pythonFuncName = faasmGetPythonEntry();
+
+    // Make sure file is present
+    touchPythonFile(user, funcName);
 
     // Variables related to importing/ executing the Python module
     const char* workingDir = getPythonWorkingDir(user, funcName);

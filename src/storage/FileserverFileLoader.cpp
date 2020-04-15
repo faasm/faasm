@@ -18,10 +18,15 @@ namespace storage {
         std::string header;
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
+
         // Shortcut if already exists
         if(boost::filesystem::exists(storagePath)) {
-            logger->debug("Loading from filesystem at {}", storagePath);
-            return util::readFileToBytes(storagePath);
+            if(boost::filesystem::is_directory(storagePath)) {
+                throw SharedFileIsDirectoryException(storagePath);
+            } else {
+                logger->debug("Loading from filesystem at {}", storagePath);
+                return util::readFileToBytes(storagePath);
+            }
         }
 
         logger->debug("Loading from fileserver at {}", url);
@@ -36,6 +41,9 @@ namespace storage {
             fileBytes = util::readFileFromUrlWithHeader(url, header);
         } catch(util::FileNotFoundAtUrlException &e) {
             // Leave empty if file not found
+        } catch(util::FileAtUrlIsDirectoryException &e) {
+            // Throw exception if we're dealing with a directory
+            throw SharedFileIsDirectoryException(path);
         }
 
         if (fileBytes.empty()) {

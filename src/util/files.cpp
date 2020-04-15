@@ -107,6 +107,10 @@ namespace util {
             throw FileNotFoundAtUrlException(msg);
         }
 
+        if(out.str() == "IS_DIR") {
+            throw util::FileAtUrlIsDirectoryException(url + " is a directory");
+        }
+
         return util::stringToBytes(out.str());
     }
 }
