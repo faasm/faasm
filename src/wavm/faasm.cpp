@@ -164,7 +164,7 @@ namespace wasm {
         util::getLogger()->debug("S - write_state_from_file - {} {}", key, path);
 
         // Read file into bytes
-        const std::string maskedPath = storage::maskPath(path);
+        const std::string maskedPath = storage::prependRuntimeRoot(path);
         const std::vector<uint8_t> bytes = util::readFileToBytes(maskedPath);
 
         // Write to state

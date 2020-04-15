@@ -43,7 +43,7 @@ namespace wasm {
 
     std::string getMaskedPathFromWasm(I32 strPtr) {
         const std::string originalPath = getStringFromWasm(strPtr);
-        return storage::maskPath(originalPath);
+        return storage::prependRuntimeRoot(originalPath);
     }
 
     /** Translates a wasm sockaddr into a native sockaddr */

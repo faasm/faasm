@@ -17,7 +17,7 @@ namespace tests {
         sfm.clear();
 
         std::string validPath = "include/python3.7m/Python.h";
-        std::string maskedValidPath = maskPath(validPath);
+        std::string maskedValidPath = prependRuntimeRoot(validPath);
         std::string invalidPath = "/foobar/123/blah";
 
         SECTION("Stat valid file") {

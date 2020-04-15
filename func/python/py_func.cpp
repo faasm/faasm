@@ -41,7 +41,7 @@ const char* getPythonWorkingDir(const char* user, const char* funcName) {
     auto workingDir = new char[60];
 
 #ifdef __wasm__
-    sprintf(workingDir, "%s%s/%s", NATIVE_PYTHON_FUNC_DIR, user, funcName);
+    sprintf(workingDir, "%s%s/%s", WASM_PYTHON_FUNC_DIR, user, funcName);
 #else
     sprintf(workingDir, "%s%s", NATIVE_PYTHON_FUNC_DIR, user);
 #endif

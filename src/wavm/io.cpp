@@ -445,25 +445,6 @@ namespace wasm {
         return 0;
     }
 
-    I32 s__stat64(I32 pathPtr, I32 statBufPtr) {
-        const std::string pathStr = getStringFromWasm(pathPtr);
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - stat64 - {} {}", pathStr, statBufPtr);
-
-        // Use virtual FS to do the stat in case file is shared
-        struct stat64 nativeStat{};
-        storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
-        int result = sfm.statFile(pathStr, &nativeStat);
-
-        if (result < 0) {
-            return -errno;
-        }
-
-        writeNativeStatToWasmStat(&nativeStat, statBufPtr);
-
-        return result;
-    }
-
     I32 s__lstat64(I32 pathPtr, I32 statBufPtr) {
         const std::string fakePath = getMaskedPathFromWasm(pathPtr);
         util::getLogger()->debug("S - lstat - {} {}", fakePath, statBufPtr);

@@ -17,8 +17,7 @@ namespace worker {
         state::getGlobalState().forceClearAll();
 
         // Clear shared files
-        storage::getSharedFilesManager().clear();
-        boost::filesystem::remove_all(conf.sharedFilesDir);
+        storage::FileSystem::clearSharedFiles();
 
         // Reset scheduler
         scheduler::Scheduler &sch = scheduler::getScheduler();
