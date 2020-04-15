@@ -18,8 +18,6 @@
 #include <sys/stat.h>
 
 
-#define SHARED_FILE_PREFIX "faasm://"
-
 #define WASI_FD_FLAGS (__WASI_FDFLAG_RSYNC | __WASI_FDFLAG_APPEND | __WASI_FDFLAG_DSYNC | __WASI_FDFLAG_SYNC | __WASI_FDFLAG_NONBLOCK)
 
 namespace storage {
@@ -377,7 +375,7 @@ namespace storage {
                     realPath = realPathForSharedFile(statPath);
                 }
             } else {
-                realPath = prependRuntimeRoot(path);
+                realPath = prependRuntimeRoot(statPath);
             }
 
             // Do the actual stat

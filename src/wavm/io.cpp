@@ -17,7 +17,6 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/WASI/WASIABI.h>
 #include <storage/FileLoader.h>
-#include <storage/SharedFilesManager.h>
 #include <util/macros.h>
 
 /**

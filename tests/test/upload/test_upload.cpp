@@ -9,7 +9,7 @@
 
 #include <boost/filesystem.hpp>
 #include <storage/FileLoader.h>
-#include <storage/SharedFilesManager.h>
+
 
 using namespace web::http::experimental::listener;
 using namespace web::http;

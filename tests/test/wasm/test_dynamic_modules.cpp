@@ -2,7 +2,6 @@
 #include "utils.h"
 #include <wavm/WAVMWasmModule.h>
 #include <ir_cache/IRModuleCache.h>
-#include <storage/SharedFilesManager.h>
 
 namespace tests {
 

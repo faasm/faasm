@@ -4,6 +4,8 @@
 #include <dirent.h>
 #include <unordered_map>
 
+#define SHARED_FILE_PREFIX "faasm://"
+
 // See wasi-libc/libc-bottom-half/cloudlibc/src/libc/fcntl/openat.c
 #define WASI_RIGHTS_WRITE (__WASI_RIGHT_FD_DATASYNC | __WASI_RIGHT_FD_WRITE | __WASI_RIGHT_FD_ALLOCATE | __WASI_RIGHT_FD_FILESTAT_SET_SIZE)
 #define WASI_RIGHTS_READ (__WASI_RIGHT_FD_READDIR | __WASI_RIGHT_FD_READ)

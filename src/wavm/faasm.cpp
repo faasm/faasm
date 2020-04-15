@@ -8,7 +8,6 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <util/state.h>
 #include <util/files.h>
-#include <storage/SharedFilesManager.h>
 
 namespace wasm {
     void faasmLink() {

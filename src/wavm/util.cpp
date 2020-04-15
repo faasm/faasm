@@ -6,7 +6,6 @@
 #include <util/config.h>
 
 #include <boost/filesystem.hpp>
-#include <storage/SharedFilesManager.h>
 
 #include <WAVM/WASI/WASIABI.h>
 

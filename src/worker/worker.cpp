@@ -3,13 +3,10 @@
 #include <state/State.h>
 #include <scheduler/Scheduler.h>
 #include <module_cache/WasmModuleCache.h>
-#include <storage/SharedFilesManager.h>
 #include <boost/filesystem.hpp>
 
 namespace worker {
     void flushWorkerHost() {
-        util::SystemConfig &conf = util::getSystemConfig();
-
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->warn("Flushing host {}", util::getNodeId());
 
