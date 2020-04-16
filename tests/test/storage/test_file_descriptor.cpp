@@ -7,10 +7,91 @@
 #include <boost/filesystem.hpp>
 #include <storage/FileLoader.h>
 #include <util/files.h>
+#include <WAVM/WASI/WASIABI.h>
 
 using namespace storage;
 
-//namespace tests {
+namespace tests {
+    FileDescriptor &getRootFd() {
+        FileSystem fs;
+        fs.prepareFilesystem();
+
+        FileDescriptor &rootFd = fs.getFileDescriptor(4);
+        return rootFd;
+    }
+
+    TEST_CASE("Check stat and mkdir", "[storage]") {
+        FileDescriptor &fd = getRootFd();
+        
+        std::string dummyDir = "fs_test_dir";
+
+        util::SystemConfig &conf = util::getSystemConfig();
+        std::string realDir = conf.runtimeFilesDir + "/" + dummyDir;
+        if(boost::filesystem::exists(realDir)) {
+            boost::filesystem::remove_all(realDir);
+        }
+
+        // Stat non-existent dir
+        Stat dirStat = fd.stat(dummyDir);
+        REQUIRE(dirStat.wasiErrno == __WASI_ENOENT);
+        REQUIRE(dirStat.failed);
+
+        // Create the directory
+        fd.mkdir(dummyDir);
+        Stat dirStatB = fd.stat(dummyDir);
+        REQUIRE(dirStatB.wasiErrno == 0);
+        REQUIRE(!dirStatB.failed);
+        REQUIRE(dirStatB.wasiFiletype == __WASI_FILETYPE_DIRECTORY);
+
+        // Delete the directory
+        fd.rmdir(dummyDir);
+        Stat dirStatC = fd.stat(dummyDir);
+        REQUIRE(dirStatC.wasiErrno == __WASI_ENOENT);
+        REQUIRE(dirStatC.failed);
+    }
+
+    TEST_CASE("Check creating and writing to a file", "[storage]") {
+        FileSystem fs;
+        fs.prepareFilesystem();
+
+        int rootFd = 4;
+        FileDescriptor &rootFileDesc = fs.getFileDescriptor(4);
+
+        std::string dummyDir = "fs_test_dir";
+        std::string dummyPath = dummyDir + "/dummy_file.txt";
+
+        // Set up the directory
+        util::SystemConfig &conf = util::getSystemConfig();
+        std::string realDir = conf.runtimeFilesDir + "/" + dummyDir;
+        if(!boost::filesystem::exists(realDir)) {
+            boost::filesystem::create_directories(realDir);
+        }
+
+        // Remove the file
+        std::string realPath = conf.runtimeFilesDir + "/" + dummyPath;
+        if(boost::filesystem::exists(realPath)) {
+            boost::filesystem::remove(realPath);
+        }
+
+        // Stat the file to begin with
+        Stat fileStat = rootFileDesc.stat(dummyPath);
+        REQUIRE(fileStat.wasiErrno == __WASI_ENOENT);
+        REQUIRE(fileStat.failed);
+
+        // Create the file (ignore perms)
+        int fileFd = fs.openFileDescriptor(rootFd, dummyPath, 0, 0, 0,
+                __WASI_O_CREAT, 0);
+        REQUIRE(fileFd > 0);
+
+        FileDescriptor &fileFileDesc = fs.getFileDescriptor(fileFd);
+
+        // Check it now exists
+        Stat fileStatB = rootFileDesc.stat(dummyPath);
+        REQUIRE(fileStatB.wasiErrno == 0);
+        REQUIRE(!fileStatB.failed);
+        REQUIRE(fileStatB.wasiFiletype == __WASI_FILETYPE_REGULAR_FILE);
+    }
+    
 //    TEST_CASE("Check loading local files", "[storage]") {
 //        SharedFilesManager &sfm = getSharedFilesManager();
 //        sfm.clear();
@@ -130,4 +211,4 @@ using namespace storage;
 //            REQUIRE(actual == actualUsed);
 //        }
 //    }
-//}
+}

@@ -73,6 +73,8 @@ namespace storage {
 
         bool unlink(const std::string &relativePath = "");
 
+        bool rmdir(const std::string &relativePath = "");
+
         bool rename(const std::string &newPath, const std::string &relativePath = "");
 
         ssize_t readLink(const std::string &relativePath, char *buffer, size_t bufferLen);

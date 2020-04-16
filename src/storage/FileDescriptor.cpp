@@ -311,6 +311,19 @@ namespace storage {
         return true;
     }
 
+    bool FileDescriptor::rmdir(const std::string &relativePath) {
+        std::string fullPath = absPath(relativePath);
+        const std::string maskedPath = prependRuntimeRoot(fullPath);
+        int res = ::rmdir(maskedPath.c_str());
+
+        if(res != 0) {
+            wasiErrno = errnoToWasi(errno);
+            return false;
+        }
+
+        return true;
+    }
+
     bool FileDescriptor::rename(const std::string &newPath, const std::string &relativePath) {
         std::string fullPath = absPath(relativePath);
         std::string fullOldPath = prependRuntimeRoot(fullPath);
@@ -364,6 +377,7 @@ namespace storage {
             return statResult;
         } else {
             statResult.failed = false;
+            statResult.wasiErrno = 0;
         }
 
         // Work out file type
