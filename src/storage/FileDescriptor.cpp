@@ -265,12 +265,12 @@ namespace storage {
         // Attempt to open the local file
         if (realPath == "/dev/urandom") {
             //TODO avoid use of system-wide urandom
-            linuxFd = open("/dev/urandom", 0, 0);
+            linuxFd = ::open("/dev/urandom", 0, 0);
 
         } else if (realPath == "/dev/null") {
-            linuxFd = open("/dev/null", 0, 0);
+            linuxFd = ::open("/dev/null", 0, 0);
         } else {
-            linuxFd = open(realPath.c_str(), linuxFlags, linuxMode);
+            linuxFd = ::open(realPath.c_str(), linuxFlags, linuxMode);
         }
 
         if (linuxFd < 0) {
