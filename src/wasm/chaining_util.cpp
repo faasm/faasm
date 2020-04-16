@@ -40,7 +40,9 @@ namespace wasm {
 
         call.set_pythonuser(originalCall->pythonuser());
         call.set_pythonfunction(originalCall->pythonfunction());
-        call.set_pythonentry(pyFuncName);
+        if(pyFuncName != nullptr) {
+            call.set_pythonentry(pyFuncName);
+        }
         call.set_ispython(originalCall->ispython());
 
         const std::string origStr = util::funcToString(*originalCall, false);
