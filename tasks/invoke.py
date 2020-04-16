@@ -16,12 +16,14 @@ def invoke(ctx, user, func,
            ibm=False,
            poll=False,
            cmdline=None,
+           reset=False,
            ):
     """
     Invoke a function
     """
     invoke_impl(user, func, host=host, port=port, input=input, py=py, async=async,
-                knative=knative, native=native, ibm=ibm, poll=poll, cmdline=cmdline)
+                knative=knative, native=native, ibm=ibm, poll=poll, cmdline=cmdline,
+                reset=reset)
 
 
 @task
