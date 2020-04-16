@@ -28,4 +28,4 @@ set(LIB_FILES
         )
 
 faasm_private_lib(wasm "${LIB_FILES}")
-target_link_libraries(wasm ir_cache mpi state scheduler storage libWAVM)
+target_link_libraries(wasm ir_cache mpi openmp state scheduler storage libWAVM)

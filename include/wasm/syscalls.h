@@ -29,7 +29,8 @@ namespace wasm {
 
     int makeChainedCall(const std::string &functionName, int idx, int pyIdx, const std::vector<uint8_t> &inputData);
 
-    int spawnChainedThread(const std::string &snapshotKey, size_t snapshotSize, int funcPtr, int argsPtr);
+    int
+    spawnChainedThread(const std::string &snapshotKey, size_t snapshotSize, int funcPtr, int argsPtr, int threadNum);
 
     // ---------------------------
     // System-related structs
@@ -175,9 +176,9 @@ namespace wasm {
      * _especially_ the pointer to itself, which allows references to
      * be treated like pointers.
      */
-     struct wasm_pthread {
-         I32 selfPtr;
-     };
+    struct wasm_pthread {
+        I32 selfPtr;
+    };
 
     // Sockets/ network
     enum SocketCalls : U32 {
@@ -319,10 +320,16 @@ namespace wasm {
 
     // Hack to include other files
     void dynlinkLink();
+
     void mathsLink();
+
     void mpiLink();
+
     void ompLink();
+
     void chainLink();
+
     void faasmLink();
+
     void rustLink();
 }

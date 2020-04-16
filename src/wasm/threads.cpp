@@ -117,8 +117,10 @@ namespace wasm {
                 threadSnapshotSize = thisModule->snapshotToState(activeSnapshotKey);
             }
 
+            int threadNumber = Runtime::memoryRef<I32>(thisModule->defaultMemory, argsPtr);
+
             // Chain the threaded call
-            int chainedCallId = spawnChainedThread(activeSnapshotKey, threadSnapshotSize, entryFunc, argsPtr);
+            int chainedCallId = spawnChainedThread(activeSnapshotKey, threadSnapshotSize, entryFunc, argsPtr, threadNumber);
 
             // Record this thread -> call ID
             chainedThreads.insert({pthreadPtr, chainedCallId});

@@ -150,7 +150,7 @@ namespace wasm {
 
         ssize_t captureStdout(const struct iovec *iovecs, int iovecCount);
 
-        ssize_t captureStdout(const void* buffer);
+        ssize_t captureStdout(const void *buffer);
 
         std::string getCapturedStdout();
 
@@ -158,13 +158,9 @@ namespace wasm {
 
         I64 executeThread(WasmThreadSpec &spec);
 
-        int parallelMode();
     private:
         Runtime::GCPointer<Runtime::Instance> envModule;
         Runtime::GCPointer<Runtime::Instance> moduleInstance;
-
-        // Parallel mode
-        int parMode = 0;
 
         // Dynamic modules
         int dynamicModuleCount = 0;

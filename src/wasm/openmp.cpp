@@ -1,23 +1,23 @@
 #include "WasmModule.h"
-#include "../../libs/faasmp/faasmp/faasmp.h"
 
-#include <mutex>
+#include <openmp/Level.h>
+#include <openmp/ThreadState.h>
 
 #include <WAVM/Platform/Thread.h>
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
 
-#include <util/barrier.h>
-#include <util/environment.h>
-#include <Runtime/RuntimePrivate.h>
-
 #include <state/StateKeyValue.h>
-//#include <faasmp/faasmp.h>
+#include <faasm/array.h>
 #include <scheduler/Scheduler.h>
 
 #define OMP_STACK_SIZE (2 * ONE_MB_BYTES)
 
+using namespace openmp;
+
 namespace wasm {
+    // every
+    constexpr auto REDUCE_ARR_KEY = "omp_wowzoid";
 
     // Types in accordance with Clang's OpenMP implementation
     namespace kmp {
@@ -36,58 +36,11 @@ namespace wasm {
         };
     }
 
-    // Global variables controlled by level master
-    class OMPLevel {
-    public:
-        const int depth; // Number of nested OpenMP constructs, 0 for serial code
-        const int effective_depth; // Number of parallel regions (> 1 thread) above this level
-        int max_active_level; // Max number of effective parallel regions allowed from the top
-        const int num_threads; // Number of threads of this level
-        int wanted_num_threads; // Desired number of thread set by omp_set_num_threads for all future levels
-        int pushed_num_threads; // Num threads pushed by compiler, valid for one parallel section, overrides wanted
-        std::unique_ptr<util::Barrier> barrier = {}; // Only needed if num_threads > 1
-        std::mutex reduceMutex; // Mutex used for reduction data
-        // TODO - This implementation limits to one lock for all critical sections at a level.
-        // Mention in report (maybe fix looking at the lck address and doing a lookup on it though?)
-        std::mutex criticalSection; // Mutex used in critical sections.
-
-        // Defaults set to mimic Clang 9.0.1 behaviour
-        OMPLevel() : depth(0), effective_depth(0), max_active_level(1), num_threads(1), wanted_num_threads(-1),
-                     pushed_num_threads(-1) {}
-
-        OMPLevel(const OMPLevel *parent, int num_threads) : depth(parent->depth + 1),
-                                                            effective_depth(
-                                                                    num_threads > 1 ? parent->effective_depth + 1
-                                                                                    : parent->effective_depth),
-                                                            max_active_level(parent->max_active_level),
-                                                            num_threads(num_threads),
-                                                            wanted_num_threads(-1),
-                                                            pushed_num_threads(-1) {
-            if (num_threads > 1) {
-                barrier = std::make_unique<util::Barrier>(num_threads);
-            }
-        }
-    };
 
     OMPLevel deviceSequentialLevel = {};
     thread_local OMPLevel *thisLevel = &deviceSequentialLevel;
 
-    int get_next_level_num_threads(const OMPLevel *currentLevel) {
-        // Limits to one thread if we have exceeded maximum parallelism depth
-        if (currentLevel->effective_depth >= currentLevel->max_active_level) {
-            return 1;
-        }
-
-        // Extracts user preference unless compiler has overridden it for this parallel section
-        int nextWanted = currentLevel->pushed_num_threads > 0 ? currentLevel->pushed_num_threads
-                                                              : currentLevel->wanted_num_threads;
-
-        // Returns user preference if set or device's maximum
-        return nextWanted > 0 ? nextWanted : util::getUsableCores();
-    }
-
     // Thread-local variables for each OMP thread
-    thread_local int thisThreadNumber = 0;
 
     // Arguments passed to spawned threads. Shared at by the level apart from tid
     struct OMPThreadArgs {
@@ -105,7 +58,6 @@ namespace wasm {
 
         // Set up OMP TLS
         thisLevel = threadArgs->newLevel;
-        thisThreadNumber = threadArgs->tid;
 
         return getExecutingModule()->executeThread(threadArgs->spec);
     }
@@ -133,7 +85,7 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_max_threads", I32, omp_get_max_threads) {
         util::getLogger()->debug("S - omp_get_max_threads");
-        return get_next_level_num_threads(thisLevel);
+        return thisLevel->get_next_level_num_threads();
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_level", I32, omp_get_level) {
@@ -269,8 +221,8 @@ namespace wasm {
         return thisThreadNumber; // Might be wrong if called at depth 1 while another thread at depths 1 has forked
     }
 
-    int userDefaultDevice = 1;
-    int userNumDevices = 1;
+    int userNumDevice = 1;
+    int userMaxNumDevices = 3; // Number of devices available to each user by default
     // Map of tid to message ID for chained calls
 
     // Flag to say whether we've spawned a thread
@@ -305,46 +257,38 @@ namespace wasm {
         Runtime::Function *func = Runtime::asFunction(
                 Runtime::getTableElement(getExecutingModule()->defaultTable, microtaskPtr));
 
-        if (1 != userNumDevices) {
-            int nextNumThreads = userNumDevices;
-//            std::vector<OMPThreadArgs> threadArgs;
-//            threadArgs.reserve(nextNumThreads);
+        if (1 != userNumDevice) {
+            int nextNumThreads = userNumDevice;
+            logger->warn("Number of threads spawned: {}", nextNumThreads);
 
             std::vector<std::vector<IR::UntaggedValue>> microtaskArgs;
             microtaskArgs.reserve(nextNumThreads);
 
             std::vector<int> chainedThreads;
             chainedThreads.reserve(nextNumThreads);
+
             for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
-                // Note - these arguments are the thread number followed by the number of
-                // shared variables, then the pointers to those shared variables
                 microtaskArgs.push_back({threadNum, argc});
                 if (argc > 0) {
-                    // Get pointer to start of arguments in host memory
                     U32 *pointers = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
                     for (int argIdx = 0; argIdx < argc; argIdx++) {
                         microtaskArgs[threadNum].emplace_back(pointers[argIdx]);
                     }
                 }
-
-//                threadArgs.push_back({
-//                                             .tid = threadNum, .newLevel = nextLevel,
-//                                             .spec.contextRuntimeData = contextRuntimeData,
-//                                             .spec.parentModule = parentModule, .spec.parentCall = parentCall,
-//                                             .spec.func = func, .spec.funcArgs = microtaskArgs[threadNum].data(),
-//                                             .spec.stackSize = OMP_STACK_SIZE
-//                                     });
             }
 
+            // rec
             if (activeSnapshotKey.empty()) {
                 int callId = getExecutingCall()->id();
                 activeSnapshotKey = fmt::format("omp_snapshot_{}", callId);
                 threadSnapshotSize = parentModule->snapshotToState(activeSnapshotKey);
+            } else {
+                throw std::runtime_error("TODO");
             }
 
             scheduler::Scheduler &sch = scheduler::getScheduler();
 
-            message::Message *originalCall = getExecutingCall();
+            const message::Message *originalCall = getExecutingCall();
             const std::string origStr = util::funcToString(*originalCall, false);
 
             // Create the threads themselves
@@ -355,13 +299,13 @@ namespace wasm {
                 // Snapshot details
                 call.set_snapshotkey(activeSnapshotKey);
                 call.set_snapshotsize(threadSnapshotSize);
-                call.set_funcptr(microtaskPtr);
+                call.set_funcptr(microtaskPtr); // ugh..?>?>
                 call.set_inputdata(microtaskArgs[threadNum].data(), microtaskArgs[threadNum].size());
                 const std::string chainedStr = util::funcToString(call, false);
                 sch.callFunction(call);
                 // Schedule the call
-                util::getLogger()->debug("Chained thread {} ({}) -> {} {}({}) ({})", origStr, util::getNodeId(), chainedStr,
-                                         microtaskPtr, argsPtr, call.schedulednode());
+                logger->warn("Forked thread {} ({}) -> {} {}({}) ({})", origStr, util::getNodeId(), chainedStr,
+                             microtaskPtr, argsPtr, call.schedulednode());
                 chainedThreads[threadNum] = call.id();
             }
 
@@ -371,6 +315,8 @@ namespace wasm {
                 scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
                 scheduler::Scheduler &scheduler = scheduler::getScheduler();
                 int callTimeoutMs = util::getSystemConfig().chainedCallTimeout;
+                logger->warn("Waiting for thread #{} with call id {} with a timeout of {}", threadNum,
+                             chainedThreads[threadNum], callTimeoutMs);
 
                 // Free this thread
                 message::Message *msg = getExecutingCall();
@@ -378,7 +324,9 @@ namespace wasm {
 
                 int returnCode = 1;
                 try {
+                    logger->warn("Calling bus");
                     const message::Message result = bus.getFunctionResult(chainedThreads[threadNum], callTimeoutMs);
+                    logger->warn("Done calling bus");
                     returnCode = result.returnvalue();
                 } catch (redis::RedisNoResponseException &ex) {
                     util::getLogger()->error("Timed out waiting for chained call: {}", chainedThreads[threadNum]);
@@ -399,7 +347,7 @@ namespace wasm {
         }
 
         // Set up number of threads for next level
-        int nextNumThreads = get_next_level_num_threads(thisLevel);
+        int nextNumThreads = thisLevel->get_next_level_num_threads();
         thisLevel->pushed_num_threads = -1; // Resets for next push
 
         // Set up new level
@@ -430,13 +378,17 @@ namespace wasm {
             }
 
             // Arguments for spawning the thread
-            // NOTE - CLion auto-format insists on this layout...
+            // NOTE - CLion auto-format insists on this layout... and clangd really hates C99 extensions
             threadArgs.push_back({
                                          .tid = threadNum, .newLevel = nextLevel,
-                                         .spec.contextRuntimeData = contextRuntimeData,
-                                         .spec.parentModule = parentModule, .spec.parentCall = parentCall,
-                                         .spec.func = func, .spec.funcArgs = microtaskArgs[threadNum].data(),
-                                         .spec.stackSize = OMP_STACK_SIZE
+                                         .spec = {
+                                                 .contextRuntimeData = contextRuntimeData,
+                                                 .parentModule = parentModule,
+                                                 .parentCall = parentCall,
+                                                 .func = func,
+                                                 .funcArgs = microtaskArgs[threadNum].data(),
+                                                 .stackSize = OMP_STACK_SIZE
+                                         }
                                  });
         }
 
@@ -627,8 +579,6 @@ namespace wasm {
         }
     }
 
-    int *data = 0;
-
     /**
      * A blocking reduce that includes an implicit barrier.
      * @param loc source location information
@@ -646,8 +596,18 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __kmpc_reduce {} {} {} {} {} {} {}", loc, gtid, num_vars, reduce_size,
                       reduce_data, reduce_func, lck);
-        return runReduction();
+
+        logger->warn("REDUCE: {}", REDUCE_ARR_KEY);
+//        faasm::AsyncArray<int> distArray(REDUCE_ARR_KEY, thisLevel->num_threads);
+////
+////        // Do the update
+//        distArray.pullLazy();
+//        distArray[thisThreadNumber] = 200;
+//        distArray.push();
+        return 10; // Just need a number different from 1 and 2
     }
+
+    int *data = nullptr;
 
     /**
      * The nowait version is used for a reduce clause with the nowait argument. Or direct exit of parallel section.
@@ -664,7 +624,7 @@ namespace wasm {
                                    I32 num_vars, I32 reduce_size, I32 reduce_data, I32 reduce_func, I32 lck) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->info("S - __kmpc_reduce_nowait {} {} {} {} {} {} {}", loc, gtid, num_vars, reduce_size, reduce_data,
-                      reduce_func, lck);
+                     reduce_func, lck);
 
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         data = &Runtime::memoryRef<I32>(memoryPtr, reduce_data);
@@ -696,7 +656,7 @@ namespace wasm {
         auto logger = util::getLogger();
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         int *a = &Runtime::memoryRef<I32>(memoryPtr, *data);
-        if (data != 0) {
+        if (data != nullptr) {
             logger->warn("AFTER {}, {}", *data, *a);
         }
         endReduction();
@@ -707,25 +667,28 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_num_devices", int, omp_get_num_devices) {
         util::getLogger()->debug("S - omp_get_num_devices");
-        return userNumDevices;
+        return userNumDevice;
     }
 
     /**
      *
      */
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_set_default_device", void, omp_set_default_device, int defaultDeviceNumber) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_set_default_device", void, omp_set_default_device,
+                                   int defaultDeviceNumber) {
         auto logger = util::getLogger();
         logger->debug("S - omp_set_default_device {}", defaultDeviceNumber);
-        if (abs(defaultDeviceNumber) > userNumDevices) {
-            util::getLogger()->warn("Given default device index ({}) is bigger than num of available devices ({}), ignoring", defaultDeviceNumber, userNumDevices);
+        if (abs(defaultDeviceNumber) > userMaxNumDevices) {
+            util::getLogger()->warn(
+                    "Given default device index ({}) is bigger than num of available devices ({}), ignoring",
+                    defaultDeviceNumber, userMaxNumDevices);
             return;
         }
         // Use negative device number to indicate using multiple devices in parallel
         if (defaultDeviceNumber < 0) {
             defaultDeviceNumber *= -1;
-            userDefaultDevice = defaultDeviceNumber;
+            userNumDevice = defaultDeviceNumber;
         } else {
-            userDefaultDevice = defaultDeviceNumber;
+            userNumDevice = defaultDeviceNumber;
         }
     }
 

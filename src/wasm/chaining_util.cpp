@@ -1,9 +1,8 @@
 #include "WasmModule.h"
 #include "syscalls.h"
 
+#include <atomic>
 #include <scheduler/Scheduler.h>
-#include <util/macros.h>
-
 
 namespace wasm {
     int awaitChainedCall(unsigned int messageId) {
@@ -55,7 +54,8 @@ namespace wasm {
         return call.id();
     }
 
-    int spawnChainedThread(const std::string &snapshotKey, size_t snapshotSize, int funcPtr, int argsPtr) {
+    int
+    spawnChainedThread(const std::string &snapshotKey, size_t snapshotSize, int funcPtr, int argsPtr, int threadNum) {
         scheduler::Scheduler &sch = scheduler::getScheduler();
 
         message::Message *originalCall = getExecutingCall();
@@ -71,6 +71,7 @@ namespace wasm {
         // hence we use the input data here to hold this argument as a string
         call.set_funcptr(funcPtr);
         call.set_inputdata(std::to_string(argsPtr));
+        call.set_threadnum(threadNum);
 
         const std::string origStr = util::funcToString(*originalCall, false);
         const std::string chainedStr = util::funcToString(call, false);

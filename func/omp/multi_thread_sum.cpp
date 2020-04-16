@@ -4,14 +4,14 @@
 #include <pthread.h>
 #include <faasm/compare.h>
 
-#define N_DEVICE 2
-#define N_THREADS 1
+#define N_DEVICE 1
+#define N_THREADS 50
 #define ARRAY_KEY "multi_thread_sum"
 #define ARRAY_SIZE ((N_DEVICE) * (N_THREADS))
 
 void *threadIncrement(void *voidArgs) {
-//    auto threadNo = *((int *) voidArgs);
     int threadNo = omp_get_thread_num();
+    printf("threadNum:%d\n", threadNo);
 
     faasm::AsyncArray<int> distArray(ARRAY_KEY, ARRAY_SIZE);
 
@@ -24,7 +24,6 @@ void *threadIncrement(void *voidArgs) {
 }
 
 FAASM_MAIN_FUNC() {
-    omp_set_default_device(-N_DEVICE);
     faasm::AsyncArray<int> distArray(ARRAY_KEY, ARRAY_SIZE);
     distArray.zero();
 
@@ -54,6 +53,10 @@ FAASM_MAIN_FUNC() {
     if (!faasm::compareArrays(distArray.data(), expected, N_THREADS)) {
         return 1;
     }
+    for (int t = 0; t < N_THREADS; t++) {
+        printf("%d: %d, ", t, distArray[t]);
+    }
+    printf("\n");
 
     return 0;
 }

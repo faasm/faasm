@@ -48,5 +48,7 @@ message Message {
     optional int32 mpiRank = 28;
     optional int32 mpiWorldSize = 29;
 
-    optional string cmdline = 30;
+    optional int32 threadNum = 30;
+
+    optional string cmdline = 31;
 }

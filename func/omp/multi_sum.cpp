@@ -1,15 +1,17 @@
-#include <atomic>
 #include <omp.h>
 #include <cstdio>
 #include <random>
 #include "../../libs/faasmp/faasmp/faasmp.h"
 
-const int ITERATIONS = 2;
-const int EXPECTED = ITERATIONS * (ITERATIONS - 1) / 2;
+#define num_devices num_threads
+
+constexpr int ITERATIONS = 4;
+constexpr int EXPECTED = ITERATIONS * (ITERATIONS - 1) / 2;
 
 int main() {
+    omp_set_default_device(-3);
     long result = 0;
-    #pragma omp parallel for num_threads(2) default(none) reduction(+:result)
+    #pragma omp parallel for num_devices(4) default(none) reduction(+:result)
     for (int i = 0; i < ITERATIONS; i++) {
         result += i;
     }
@@ -18,6 +20,7 @@ int main() {
         printf("Custom reduction failed. Expected %d but got %ld\n", EXPECTED, result);
         return EXIT_FAILURE;
     }
+    printf("All happy\n");
     return EXIT_SUCCESS;
 }
 
