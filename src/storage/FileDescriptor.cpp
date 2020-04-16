@@ -1,58 +1,27 @@
 #include "FileDescriptor.h"
-#include "syscall.h"
+#include "SharedFiles.h"
 
 #include <util/timing.h>
 
-#include <utility>
 #include <dirent.h>
 #include <stdexcept>
 #include <boost/filesystem.hpp>
 #include <WAVM/WASI/WASIABI.h>
 #include <fcntl.h>
-#include <util/strings.h>
-#include <util/locks.h>
 #include <util/config.h>
 #include <util/logging.h>
-#include <storage/FileLoader.h>
-#include <util/files.h>
 #include <sys/stat.h>
 
 
 #define WASI_FD_FLAGS (__WASI_FDFLAG_RSYNC | __WASI_FDFLAG_APPEND | __WASI_FDFLAG_DSYNC | __WASI_FDFLAG_SYNC | __WASI_FDFLAG_NONBLOCK)
 
+
 namespace storage {
-    enum FileState {
-        NOT_CHECKED,
-        NOT_EXISTS,
-        EXISTS_DIR,
-        EXISTS
-    };
-
-    static std::shared_mutex sharedFileMapMutex;
-    static std::unordered_map<std::string, FileState> sharedFileMap;
-
     std::string prependRuntimeRoot(const std::string &originalPath) {
         util::SystemConfig &conf = util::getSystemConfig();
         boost::filesystem::path p(conf.runtimeFilesDir);
         p.append(originalPath);
         return p.string();
-    }
-
-    std::string prependSharedRoot(const std::string &originalPath) {
-        util::SystemConfig &conf = util::getSystemConfig();
-        boost::filesystem::path p(conf.sharedFilesDir);
-        p.append(originalPath);
-        return p.string();
-    }
-
-    std::string realPathForSharedFile(const std::string &sharedPath) {
-        std::string strippedPath = util::removeSubstr(sharedPath, SHARED_FILE_PREFIX);
-        std::string realPath = prependSharedRoot(sharedPath);
-        return realPath;
-    }
-
-    bool FileDescriptor::isPathShared(const std::string &p) {
-        return util::startsWith(p, SHARED_FILE_PREFIX);
     }
 
     OpenMode getOpenMode(uint16_t openFlags) {
@@ -169,14 +138,14 @@ namespace storage {
 
             std::string realPath;
             dirPtr = nullptr;
-            if (isPathShared(path)) {
-                int pullErr = pullSharedFile(path);
+            if (SharedFiles::isPathShared(path)) {
+                int pullErr = SharedFiles::syncSharedFile(path);
 
                 if (pullErr != 0) {
                     throw std::runtime_error("Failed to open shared dir");
                 }
 
-                realPath = realPathForSharedFile(path);
+                realPath = SharedFiles::realPathForSharedFile(path);
             } else {
                 realPath = prependRuntimeRoot(path);
             }
@@ -277,18 +246,18 @@ namespace storage {
             }
         }
 
-        bool isShared = isPathShared(path);
+        bool isShared = SharedFiles::isPathShared(path);
         std::string realPath;
         if (isShared) {
             // Pull the shared file
-            linuxErrno = pullSharedFile(path);
+            linuxErrno = SharedFiles::syncSharedFile(path);
             if (linuxErrno != 0) {
                 linuxFd = -1;
                 wasiErrno = errnoToWasi(linuxErrno);
                 return false;
             }
 
-            realPath = realPathForSharedFile(path);
+            realPath = SharedFiles::realPathForSharedFile(path);
         } else {
             realPath = prependRuntimeRoot(path);;
         }
@@ -369,10 +338,10 @@ namespace storage {
 
             int result;
             std::string realPath;
-            if (isPathShared(statPath)) {
-                statErrno = pullSharedFile(statPath);
+            if (SharedFiles::isPathShared(statPath)) {
+                statErrno = SharedFiles::syncSharedFile(statPath);
                 if (statErrno == 0) {
-                    realPath = realPathForSharedFile(statPath);
+                    realPath = SharedFiles::realPathForSharedFile(statPath);
                 }
             } else {
                 realPath = prependRuntimeRoot(statPath);
@@ -439,7 +408,7 @@ namespace storage {
     ssize_t FileDescriptor::readLink(const std::string &relativePath, char *buffer, size_t bufferLen) {
         std::string linkPath = prependRuntimeRoot(absPath(relativePath));
 
-        if (isPathShared(linkPath)) {
+        if (SharedFiles::isPathShared(linkPath)) {
             util::getLogger()->error("Readlink on shared not yet supported ({})", path);
             throw std::runtime_error("Readlink on shared file not supported");
         }
@@ -491,72 +460,4 @@ namespace storage {
         rightsSet = true;
     }
 
-    int FileDescriptor::pullSharedFile(const std::string &sharedPath) {
-        // Pull if need be
-        if (sharedFileMap.count(sharedPath) == 0) {
-            std::string strippedPath = util::removeSubstr(sharedPath, SHARED_FILE_PREFIX);
-            std::string realPath = prependSharedRoot(sharedPath);
-
-            util::FullLock fullLock(sharedFileMapMutex);
-
-            if (sharedFileMap.count(sharedPath) != 0) {
-                return sharedFileMap[sharedPath];
-            }
-
-            sharedFileMap[sharedPath] = NOT_CHECKED;
-
-            if (boost::filesystem::exists(realPath)) {
-                // If already exists on filesystem, just mark it as such
-                if (boost::filesystem::is_directory(realPath)) {
-                    sharedFileMap[sharedPath] = EXISTS_DIR;
-                } else {
-                    sharedFileMap[sharedPath] = EXISTS;
-                }
-            } else {
-                boost::filesystem::path p(realPath);
-
-                FileLoader &loader = getFileLoader();
-                std::vector<uint8_t> bytes;
-                bool isDir = false;
-
-                try {
-                    bytes = loader.loadSharedFile(strippedPath);
-                } catch (storage::SharedFileIsDirectoryException &e) {
-                    isDir = true;
-                }
-
-                // Handle directories and files accordingly
-                if (isDir) {
-                    // Create directory if path is a directory
-                    boost::filesystem::create_directories(p);
-                    sharedFileMap[sharedPath] = EXISTS_DIR;
-                } else if (bytes.empty()) {
-                    sharedFileMap[sharedPath] = NOT_EXISTS;
-                } else {
-                    // Create parent directory
-                    if (p.has_parent_path()) {
-                        boost::filesystem::create_directories(p.parent_path());
-                    }
-
-                    // Write to file
-                    util::writeBytesToFile(realPath, bytes);
-                    sharedFileMap[sharedPath] = EXISTS;
-                }
-            }
-        }
-
-        FileState &state = sharedFileMap[sharedPath];
-        switch (state) {
-            case (NOT_EXISTS): {
-                return ENOENT;
-            }
-            case (EXISTS_DIR):
-            case (EXISTS): {
-                return 0;
-            }
-            default: {
-                return ENOENT;
-            }
-        }
-    }
 }
