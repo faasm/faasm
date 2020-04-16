@@ -46,7 +46,7 @@ namespace util {
         outfile.open(path, std::ios::out | std::ios::binary);
 
         if (!outfile.is_open()) {
-            throw std::runtime_error("Could not write to file");
+            throw std::runtime_error("Could not write to file " + path);
         }
 
         outfile.write((char *) data.data(), data.size());

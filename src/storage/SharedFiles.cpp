@@ -29,7 +29,7 @@ namespace storage {
 
     std::string SharedFiles::realPathForSharedFile(const std::string &sharedPath) {
         std::string strippedPath = util::removeSubstr(sharedPath, SHARED_FILE_PREFIX);
-        std::string realPath = prependSharedRoot(sharedPath);
+        std::string realPath = prependSharedRoot(strippedPath);
         return realPath;
     }
 
@@ -45,7 +45,7 @@ namespace storage {
             // Work out the real path
             std::string realPath;
             if(localPath.empty()) {
-                prependSharedRoot(strippedPath);
+                realPath = prependSharedRoot(strippedPath);
             } else {
                 realPath = localPath;
             }

@@ -8,7 +8,7 @@
 #include <boost/filesystem.hpp>
 #include <util/bytes.h>
 #include <util/files.h>
-#include <storage/FileDescriptor.h>
+
 
 namespace tests {
     TEST_CASE("Test accessing shared files from wasm", "[worker]") {

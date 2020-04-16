@@ -336,16 +336,15 @@ namespace storage {
                 statErrno = errno;
             }
         } else {
-            std::string statPath = absPath(relativePath);
-
             int result;
             std::string realPath;
-            if (SharedFiles::isPathShared(statPath)) {
-                statErrno = SharedFiles::syncSharedFile(statPath);
+            if (SharedFiles::isPathShared(relativePath)) {
+                statErrno = SharedFiles::syncSharedFile(relativePath);
                 if (statErrno == 0) {
-                    realPath = SharedFiles::realPathForSharedFile(statPath);
+                    realPath = SharedFiles::realPathForSharedFile(relativePath);
                 }
             } else {
+                std::string statPath = absPath(relativePath);
                 realPath = prependRuntimeRoot(statPath);
             }
 
