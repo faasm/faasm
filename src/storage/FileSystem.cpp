@@ -1,4 +1,5 @@
 #include "FileSystem.h"
+#include "SharedFiles.h"
 
 #include <WASI/WASIPrivate.h>
 #include <boost/filesystem.hpp>
@@ -101,6 +102,8 @@ namespace storage {
     }
 
     void FileSystem::clearSharedFiles() {
+        SharedFiles::clear();
+
         // Just nuke the whole shared directory
         util::SystemConfig &conf = util::getSystemConfig();
         boost::filesystem::remove_all(conf.sharedFilesDir);

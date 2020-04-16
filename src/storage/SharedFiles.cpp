@@ -112,4 +112,8 @@ namespace storage {
             }
         }
     }
+
+    void SharedFiles::clear() {
+        sharedFileMap.clear();
+    }
 }

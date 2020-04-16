@@ -50,7 +50,7 @@ namespace tests {
         REQUIRE(dirStatC.failed);
     }
 
-    TEST_CASE("Check creating and writing to a file", "[storage]") {
+    TEST_CASE("Check creating, renaming and deleting a file", "[storage]") {
         FileSystem fs;
         fs.prepareFilesystem();
 
@@ -90,6 +90,31 @@ namespace tests {
         REQUIRE(fileStatB.wasiErrno == 0);
         REQUIRE(!fileStatB.failed);
         REQUIRE(fileStatB.wasiFiletype == __WASI_FILETYPE_REGULAR_FILE);
+
+        // Rename it
+        std::string newPath = dummyDir + "/renamed_file.txt";
+        fileFileDesc.rename(newPath);
+
+        // Stat new and old
+        Stat fileStatC = rootFileDesc.stat(newPath);
+        REQUIRE(fileStatC.wasiErrno == 0);
+        REQUIRE(!fileStatC.failed);
+        REQUIRE(fileStatB.wasiFiletype == __WASI_FILETYPE_REGULAR_FILE);
+
+        Stat fileStatD = rootFileDesc.stat(dummyPath);
+        REQUIRE(fileStatD.wasiErrno == __WASI_ENOENT);
+        REQUIRE(fileStatD.failed);
+
+        // Now remove it and check
+        rootFileDesc.unlink(newPath);
+
+        Stat fileStatE = rootFileDesc.stat(newPath);
+        REQUIRE(fileStatE.wasiErrno == __WASI_ENOENT);
+        REQUIRE(fileStatE.failed);
+
+        Stat fileStatF = rootFileDesc.stat(dummyPath);
+        REQUIRE(fileStatF.wasiErrno == __WASI_ENOENT);
+        REQUIRE(fileStatF.failed);
     }
     
 //    TEST_CASE("Check loading local files", "[storage]") {
