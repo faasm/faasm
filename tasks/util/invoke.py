@@ -38,7 +38,7 @@ def invoke_impl(user, func,
                 ibm=False,
                 poll=False,
                 cmdline=None,
-                reset=reset,
+                reset=False,
                 mpi_world_size=None,
                 poll_interval_ms=1000):
     faasm_config = get_faasm_config()
