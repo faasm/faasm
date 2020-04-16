@@ -280,7 +280,7 @@ namespace wasm {
     }
 
     ssize_t doWritev(int fd, iovec *nativeIovecs, I32 iovecCount) {
-        ssize_t bytesWritten = writev(fd, nativeIovecs, iovecCount);
+        ssize_t bytesWritten = ::writev(fd, nativeIovecs, iovecCount);
 
         // Catpure stdout if necessary, otherwise write as normal
         util::SystemConfig &conf = util::getSystemConfig();
@@ -382,7 +382,7 @@ namespace wasm {
         storage::FileDescriptor &newFileDesc = module->getFileSystem().getFileDescriptor(newFd);
 
         const std::string &fullNewPath = newFileDesc.absPath(newPathStr);
-        bool success = oldFileDesc.rename(fullNewPath);
+        bool success = oldFileDesc.rename(fullNewPath, oldPathStr);
         if(!success) {
             return oldFileDesc.getWasiErrno();
         }

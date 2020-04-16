@@ -168,6 +168,8 @@ namespace wasm {
         Runtime::Function *getDefaultZygoteFunction(Runtime::Instance *module);
 
         Runtime::Function *getWasmConstructorsFunction(Runtime::Instance *module);
+
+        void syncPythonFunctionFile(const message::Message &msg);
     };
 
     WAVMWasmModule *getExecutingModule();

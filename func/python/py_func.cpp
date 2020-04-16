@@ -14,7 +14,7 @@ extern "C" {
 // https://docs.python.org/3/extending/embedding.html
 // --------------------------------------------------
 
-#define WASM_PYTHON_FUNC_DIR "/python/"
+#define WASM_PYTHON_FUNC_DIR "/pyfuncs/"
 #define NATIVE_PYTHON_FUNC_DIR "/usr/local/code/faasm/func/"
 
 #define DEFAULT_MAIN_FUNC "faasm_main"

@@ -2,8 +2,6 @@
 
 #include <string>
 
-#define SHARED_FILE_PREFIX "faasm://"
-
 namespace storage {
     class SharedFiles {
     public:

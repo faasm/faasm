@@ -1,11 +1,13 @@
 #include "SharedFiles.h"
 
-#include <util/locks.h>
-#include <storage/FileLoader.h>
-#include <util/files.h>
-#include <util/config.h>
 #include <boost/filesystem.hpp>
+#include <storage/FileLoader.h>
+#include <util/config.h>
+#include <util/files.h>
+#include <util/func.h>
+#include <util/locks.h>
 #include <util/strings.h>
+
 
 namespace storage {
     enum FileState {
@@ -40,10 +42,11 @@ namespace storage {
         if (sharedFileMap.count(sharedPath) == 0) {
             std::string strippedPath = util::removeSubstr(sharedPath, SHARED_FILE_PREFIX);
 
-            std::string realPath = prependSharedRoot(sharedPath);
-
-            // Override real path if necessary
+            // Work out the real path
+            std::string realPath;
             if(localPath.empty()) {
+                prependSharedRoot(strippedPath);
+            } else {
                 realPath = localPath;
             }
 

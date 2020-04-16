@@ -62,18 +62,24 @@ namespace util {
         return getUrl(msg, "p");
     }
 
-    boost::filesystem::path getPythonFunctionDir(const message::Message &msg) {
-        // Note - Python functions are stored as shared files so they're
-        // accessible to the executing wasm
-        boost::filesystem::path path(util::getSystemConfig().sharedFilesStorageDir);
+    std::string _doGetPythonFunctionFile(const message::Message &msg, const std::string &parentDir, bool createDirs) {
+        if (!msg.ispython()) {
+            throw std::runtime_error(
+                    "Getting python function file for non-Python function " + funcToString(msg, false)
+            );
+        }
+        boost::filesystem::path path(parentDir);
 
         path.append(PYTHON_FUNC_DIR);
-        path.append(msg.user());
-        path.append(msg.function());
+        path.append(msg.pythonuser());
+        path.append(msg.pythonfunction());
 
-        boost::filesystem::create_directories(path);
+        if (createDirs) {
+            boost::filesystem::create_directories(path);
+        }
 
-        return path;
+        path.append(pyFile);
+        return path.string();
     }
 
     boost::filesystem::path _doGetDir(std::string baseDir, const message::Message &msg, bool create) {
@@ -138,10 +144,20 @@ namespace util {
     }
 
     std::string getPythonFunctionFile(const message::Message &msg) {
-        auto path = getPythonFunctionDir(msg);
-        path.append(pyFile);
+        // Python functions are stored as shared files to make it easier to
+        // share them through the system
+        return _doGetPythonFunctionFile(msg, util::getSystemConfig().sharedFilesStorageDir, true);
+    }
 
-        return path.string();
+    std::string getPythonFunctionFileSharedPath(const message::Message &msg) {
+        // This is the shared path of the form faasm:// used to access the Python file
+        return _doGetPythonFunctionFile(msg, SHARED_FILE_PREFIX, false);
+    }
+
+    std::string getPythonRuntimeFunctionFile(const message::Message &msg) {
+        // This is the path where the file is placed at runtime to be
+        // accessible to the function
+        return _doGetPythonFunctionFile(msg, util::getSystemConfig().runtimeFilesDir, true);
     }
 
     std::string getFunctionFile(const message::Message &msg) {
@@ -233,6 +249,15 @@ namespace util {
         setMessageId(msg);
 
         return msg;
+    }
+
+    void convertMessageToPython(message::Message &msg) {
+        msg.set_ispython(true);
+        msg.set_pythonfunction(msg.function());
+        msg.set_pythonuser(msg.user());
+
+        msg.set_user(PYTHON_USER);
+        msg.set_function(PYTHON_FUNC);
     }
 
     unsigned int setMessageId(message::Message &msg) {

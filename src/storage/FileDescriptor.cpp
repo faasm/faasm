@@ -68,8 +68,10 @@ namespace storage {
                 return __WASI_ENOENT;
             case EISDIR:
                 return __WASI_EISDIR;
+            case EEXIST:
+                return __WASI_EEXIST;
             default:
-                throw std::runtime_error("Unsupported WASI errno");
+                throw std::runtime_error("Unsupported WASI errno: " + std::to_string(errnoIn));
         }
     }
 
@@ -85,15 +87,13 @@ namespace storage {
         std::string res;
 
         if (relativePath.empty()) {
-            res = path;
+            return path;
         } else {
             std::string basePath = path == "." ? "" : path;
             boost::filesystem::path joinedPath(basePath);
             joinedPath.append(relativePath);
-            res = joinedPath.string();
+            return joinedPath.string();
         }
-
-        return res;
     }
 
     FileDescriptor FileDescriptor::stdFdFactory(int stdFd, const std::string &devPath) {
@@ -283,7 +283,7 @@ namespace storage {
     }
 
     bool FileDescriptor::mkdir(const std::string &dirPath) {
-        std::string fullPath = prependRuntimeRoot(path);
+        std::string fullPath = prependRuntimeRoot(dirPath);
         int res = ::mkdir(fullPath.c_str(), 0755);
 
         if (res < 0) {
@@ -314,7 +314,9 @@ namespace storage {
     bool FileDescriptor::rename(const std::string &newPath, const std::string &relativePath) {
         std::string fullPath = absPath(relativePath);
         std::string fullOldPath = prependRuntimeRoot(fullPath);
-        int res = ::rename(fullOldPath.c_str(), newPath.c_str());
+        std::string fullNewPath = prependRuntimeRoot(newPath);
+
+        int res = ::rename(fullOldPath.c_str(), fullNewPath.c_str());
 
         if (res != 0) {
             wasiErrno = errnoToWasi(-1 * res);

@@ -17,6 +17,7 @@ namespace runner {
     void PythonProfiler::runNative() {
         // Get path to file
         message::Message msg = util::messageFactory(pythonUser, pythonFunction);
+        util::convertMessageToPython(msg);
         std::string fullPath = util::getPythonFunctionFile(msg);
 
         // To avoid contamination across runs, fork a new process
