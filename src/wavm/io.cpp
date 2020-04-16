@@ -481,7 +481,7 @@ namespace wasm {
     I32 doFileStat(int fd, const std::string &relativePath, I32 statPtr) {
         WAVMWasmModule *module = getExecutingModule();
         storage::FileDescriptor &fileDesc = module->getFileSystem().getFileDescriptor(fd);
-        auto wasiFileStat = &Runtime::memoryRef<wasi_filestat_t>(module->defaultMemory, statPtr);
+        auto wasiFileStat = &Runtime::memoryRef<__wasi_filestat_t>(module->defaultMemory, statPtr);
 
         storage::Stat fileStat = fileDesc.stat(relativePath);
         if (fileStat.failed) {

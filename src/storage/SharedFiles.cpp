@@ -28,9 +28,13 @@ namespace storage {
     }
 
     std::string SharedFiles::realPathForSharedFile(const std::string &sharedPath) {
-        std::string strippedPath = util::removeSubstr(sharedPath, SHARED_FILE_PREFIX);
-        std::string realPath = prependSharedRoot(strippedPath);
+        std::string realPath = prependSharedRoot(stripSharedPrefix(sharedPath));
         return realPath;
+    }
+
+    std::string SharedFiles::stripSharedPrefix(const std::string &sharedPath) {
+        std::string strippedPath = util::removeSubstr(sharedPath, SHARED_FILE_PREFIX);
+        return strippedPath;
     }
 
     bool SharedFiles::isPathShared(const std::string &p) {

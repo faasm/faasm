@@ -2,12 +2,10 @@
 
 #include "utils.h"
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <boost/filesystem.hpp>
-#include <storage/FileLoader.h>
 #include <util/files.h>
 #include <WAVM/WASI/WASIABI.h>
+#include <storage/SharedFiles.h>
 
 using namespace storage;
 
@@ -118,25 +116,45 @@ namespace tests {
     }
 
     TEST_CASE("Check seek", "[storage]") {
+        SharedFiles::clear();
+
         FileSystem fs;
         fs.prepareFilesystem();
 
         int rootFd = 4;
         FileDescriptor &rootFileDesc = fs.getFileDescriptor(4);
-        std::string dummyPath = "dummy_test_file.txt";
 
-        // Remove the file
         util::SystemConfig &conf = util::getSystemConfig();
-        std::string realPath = conf.runtimeFilesDir + "/" + dummyPath;
+        std::string dummyPath;
+        std::string realPath;
+        std::string contentPath;
+
+        std::vector<uint8_t> contents = {0, 1, 2, 3, 4, 5, 6};
+
+        SECTION("Local file") {
+            dummyPath = "dummy_test_file.txt";
+            realPath = conf.runtimeFilesDir + "/" + dummyPath;
+            contentPath = realPath;
+            util::writeBytesToFile(realPath, contents);
+        }
+
+        SECTION("Shared file") {
+            dummyPath = "faasm://dummy_test_file.txt";
+            contentPath = util::getSharedFileFile("dummy_test_file.txt");
+
+            // This is the path where the file should end up after being synced
+            realPath = SharedFiles::realPathForSharedFile(dummyPath);
+        }
+
+        // Set up the file
         if (boost::filesystem::exists(realPath)) {
             boost::filesystem::remove(realPath);
         }
+        util::writeBytesToFile(contentPath, contents);
 
-        // Create with some bytes
-        std::vector<uint8_t> contents = {0, 1, 2, 3, 4, 5, 6};
-        util::writeBytesToFile(realPath, contents);
-
+        // Open file descriptor for the file
         int newFd = fs.openFileDescriptor(rootFd, dummyPath, 0, 0, 0, __WASI_O_CREAT, 0);
+        REQUIRE(newFd > 0);
         FileDescriptor &newFileDesc = fs.getFileDescriptor(newFd);
 
         // Check zero initially
@@ -162,5 +180,47 @@ namespace tests {
         newFileDesc.seek(1, __WASI_WHENCE_SET, &actual);
         REQUIRE(actual == 1);
         REQUIRE(newFileDesc.tell() == 1);
+
+        boost::filesystem::remove(realPath);
+    }
+
+    TEST_CASE("Check stat and read shared file", "[storage]") {
+        SharedFiles::clear();
+
+        FileSystem fs;
+        fs.prepareFilesystem();
+
+        int rootFd = 4;
+        FileDescriptor &rootFileDesc = fs.getFileDescriptor(4);
+
+        // Set up the shared file
+        std::string relativePath = "test/shared-file-stat.txt";
+        std::string fullPath = util::getSharedFileFile(relativePath);
+        if (boost::filesystem::exists(fullPath)) {
+            boost::filesystem::remove(fullPath);
+        }
+
+        std::vector<uint8_t> contents = {0, 1, 2, 3, 4, 5};
+        util::writeBytesToFile(fullPath, contents);
+
+        // Stat it as a shared file
+        std::string sharedPath = std::string(SHARED_FILE_PREFIX) + relativePath;
+        const Stat &statRes = rootFileDesc.stat(sharedPath);
+        REQUIRE(!statRes.failed);
+        REQUIRE(statRes.wasiErrno == 0);
+        REQUIRE(statRes.wasiFiletype == __WASI_FILETYPE_REGULAR_FILE);
+
+        // Open it as a shared file
+        int fileFd = fs.openFileDescriptor(rootFd, sharedPath, 0, 0, 0, __WASI_O_CREAT, 0);
+        REQUIRE(fileFd > 0);
+        FileDescriptor &fileFileDesc = fs.getFileDescriptor(fileFd);
+        
+        // Check path
+        util::SystemConfig &conf = util::getSystemConfig();
+        REQUIRE(fileFileDesc.getPath() == sharedPath);
+        
+        const std::string &realPath = storage::SharedFiles::realPathForSharedFile(sharedPath);
+        const std::vector<uint8_t> &actualContents = util::readFileToBytes(realPath);
+        REQUIRE(actualContents == contents);
     }
 }

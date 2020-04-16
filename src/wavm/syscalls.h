@@ -15,10 +15,6 @@
 #define FAKE_GID 1000
 #define FAKE_N_PROCESSORS 4
 
-// Temp while WAVM has issue
-#define WASI_WHENCE_SET 0
-#define WASI_WHENCE_CUR 1
-#define WASI_WHENCE_END 2
 
 namespace wasm {
     void getBytesFromWasm(I32 dataPtr, I32 dataLen, uint8_t *buffer);
@@ -206,35 +202,6 @@ namespace wasm {
         sc_accept4,
         sc_recvmmsg,
         sc_sendmmsg,
-    };
-
-    // Temp while WAVM has issue: https://github.com/WAVM/WAVM/issues/272
-    struct wasi_subscription_t {
-        __wasi_userdata_t userdata;
-        __wasi_eventtype_t type;
-        union __wasi_subscription_u {
-            struct __wasi_subscription_u_clock_t {
-                __wasi_clockid_t clock_id;
-                __wasi_timestamp_t timeout;
-                __wasi_timestamp_t precision;
-                __wasi_subclockflags_t flags;
-            } clock;
-            struct __wasi_subscription_u_fd_readwrite_t {
-                __wasi_fd_t fd;
-            } fd_readwrite;
-        } u;
-    };
-
-    // Temp while WAVM has issue
-    struct wasi_filestat_t {
-        __wasi_device_t st_dev;
-        __wasi_inode_t st_ino;
-        __wasi_filetype_t st_filetype;
-        uint64_t st_nlink;
-        __wasi_filesize_t st_size;
-        __wasi_timestamp_t st_atim;
-        __wasi_timestamp_t st_mtim;
-        __wasi_timestamp_t st_ctim;
     };
 
     // Struct conversion

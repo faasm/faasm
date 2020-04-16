@@ -212,7 +212,8 @@ namespace tests {
         loader.uploadPythonFunction(msg);
 
         // Check file exists as expected
-        const message::Message tempMsg = util::messageFactory("python", "foobar");
+        message::Message tempMsg = util::messageFactory("python", "foobar");
+        util::convertMessageToPython(tempMsg);
         const std::string filePath = util::getPythonFunctionFile(tempMsg);
         const std::vector<uint8_t> actualBytes = util::readFileToBytes(filePath);
         REQUIRE(actualBytes == expected);

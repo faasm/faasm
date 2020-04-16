@@ -9,6 +9,8 @@ namespace storage {
 
         static std::string realPathForSharedFile(const std::string &sharedPath);
 
+        static std::string stripSharedPrefix(const std::string &sharedPath);
+
         static bool isPathShared(const std::string &p);
 
         static void clear();
