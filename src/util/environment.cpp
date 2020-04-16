@@ -3,12 +3,6 @@
 #include <thread>
 
 namespace util {
-    void setLocale() {
-        if(!::setlocale(LC_CTYPE, "en_GB.UTF-8")) {
-            throw std::runtime_error("Cannot set locale");
-        }
-    }
-
     std::string getEnvVar(std::string const &key, std::string const &deflt) {
         char const *val = getenv(key.c_str());
 

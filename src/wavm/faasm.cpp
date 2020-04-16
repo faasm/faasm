@@ -288,18 +288,20 @@ namespace wasm {
     }
 
     void _readPythonInput(I32 buffPtr, I32 buffLen, const std::string &value) {
-        // If nothing ignore
-        if (value.empty()) {
-            return;
-        }
-
-        // Copy value into WASM
+        // Get wasm buffer
         U8 *buffer = Runtime::memoryArrayPtr<U8>(getExecutingModule()->defaultMemory, (Uptr) buffPtr, (Uptr) buffLen);
-        std::vector<uint8_t> bytes = util::stringToBytes(value);
-        std::copy(bytes.begin(), bytes.end(), buffer);
 
-        // Add null terminator
-        buffer[value.size()] = '\0';
+        if (value.empty()) {
+            // If nothing, just write a null terminator
+            buffer[0] = '\0';
+        } else {
+            // Copy value into WASM
+            std::vector<uint8_t> bytes = util::stringToBytes(value);
+            std::copy(bytes.begin(), bytes.end(), buffer);
+
+            // Add null terminator
+            buffer[value.size()] = '\0';
+        }
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_get_py_user", void, __faasm_get_py_user, I32 bufferPtr,

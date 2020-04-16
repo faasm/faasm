@@ -3,8 +3,6 @@
 #include <string>
 
 namespace util {
-    void setLocale();
-
     std::string getEnvVar(const std::string &key, const std::string &deflt);
 
     std::string setEnvVar(const std::string &varName, const std::string &value);

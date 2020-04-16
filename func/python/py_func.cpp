@@ -136,7 +136,7 @@ FAASM_MAIN_FUNC() {
             if (PyErr_Occurred()) {
                 PyErr_Print();
             }
-            printf("Cannot find function \"%s\"\n", funcName);
+            printf("Cannot find function \"%s\"\n", pythonFuncName);
         }
 
         Py_XDECREF(func);

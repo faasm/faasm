@@ -13,9 +13,6 @@ namespace  util {
             return;
         }
 
-        // Must ensure we have the correct locale set
-        util::setLocale();
-
         // Initialise the logger
         logger = spdlog::stderr_color_mt("console");
 
