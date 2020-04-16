@@ -432,7 +432,18 @@ namespace storage {
         return bytesRead;
     }
 
-    uint16_t FileDescriptor::seek(uint64_t offset, int linuxWhence, uint64_t *newOffset) {
+    uint16_t FileDescriptor::seek(uint64_t offset, int wasiWhence, uint64_t *newOffset) {
+        int linuxWhence;
+        if (wasiWhence == __WASI_WHENCE_CUR) {
+            linuxWhence = SEEK_CUR;
+        } else if (wasiWhence == __WASI_WHENCE_END) {
+            linuxWhence = SEEK_END;
+        } else if (wasiWhence == __WASI_WHENCE_SET) {
+            linuxWhence = SEEK_SET;
+        } else {
+            throw std::runtime_error("Unsupported whence");
+        }
+
         // Do the seek
         off_t result = ::lseek(linuxFd, offset, linuxWhence);
         if (result < 0) {

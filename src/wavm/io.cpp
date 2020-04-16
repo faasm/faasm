@@ -534,18 +534,7 @@ namespace wasm {
 
         storage::FileDescriptor &fileDesc = getExecutingModule()->getFileSystem().getFileDescriptor(fd);
 
-        int linuxWhence;
-        if (whence == WASI_WHENCE_CUR) {
-            linuxWhence = SEEK_CUR;
-        } else if (whence == WASI_WHENCE_END) {
-            linuxWhence = SEEK_END;
-        } else if (whence == WASI_WHENCE_SET) {
-            linuxWhence = SEEK_SET;
-        } else {
-            throw std::runtime_error("Unsupported whence");
-        }
-
-        uint16_t wasiErrno = fileDesc.seek(offset, linuxWhence, newOffsetHostPtr);
+        uint16_t wasiErrno = fileDesc.seek(offset, whence, newOffsetHostPtr);
 
         return wasiErrno;
     }
