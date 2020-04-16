@@ -29,9 +29,6 @@ namespace tests {
         // Clear shared files
         storage::FileSystem::clearSharedFiles();
 
-        // Nuke shared files
-        boost::filesystem::remove_all(conf.sharedFilesDir);
-
         // Reset scheduler
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.clear();

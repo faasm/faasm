@@ -349,19 +349,20 @@ namespace storage {
                 statErrno = errno;
             }
         } else {
-            int result;
+            // Work out whether we're stat-ing a shared path
+            std::string statPath = absPath(relativePath);
             std::string realPath;
-            if (SharedFiles::isPathShared(relativePath)) {
-                statErrno = SharedFiles::syncSharedFile(relativePath);
+            if (SharedFiles::isPathShared(statPath)) {
+                statErrno = SharedFiles::syncSharedFile(statPath);
                 if (statErrno == 0) {
-                    realPath = SharedFiles::realPathForSharedFile(relativePath);
+                    realPath = SharedFiles::realPathForSharedFile(statPath);
                 }
             } else {
-                std::string statPath = absPath(relativePath);
                 realPath = prependRuntimeRoot(statPath);
             }
 
             // Do the actual stat
+            int result;
             if (!realPath.empty()) {
                 result = ::stat(realPath.c_str(), &nativeStat);
                 if (result < 0) {

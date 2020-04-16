@@ -203,7 +203,7 @@ namespace tests {
         std::vector<uint8_t> contents = {0, 1, 2, 3, 4, 5};
         util::writeBytesToFile(fullPath, contents);
 
-        // Stat it as a shared file
+        // Stat it as a relative path
         std::string sharedPath = std::string(SHARED_FILE_PREFIX) + relativePath;
         const Stat &statRes = rootFileDesc.stat(sharedPath);
         REQUIRE(!statRes.failed);
@@ -214,11 +214,17 @@ namespace tests {
         int fileFd = fs.openFileDescriptor(rootFd, sharedPath, 0, 0, 0, __WASI_O_CREAT, 0);
         REQUIRE(fileFd > 0);
         FileDescriptor &fileFileDesc = fs.getFileDescriptor(fileFd);
-        
-        // Check path
+
+        // Stat again using the absolute path
+        const Stat &statResB = fileFileDesc.stat();
+        REQUIRE(!statResB.failed);
+        REQUIRE(statResB.wasiErrno == 0);
+        REQUIRE(statResB.wasiFiletype == __WASI_FILETYPE_REGULAR_FILE);
+
+        // Check path of this new file descriptor
         util::SystemConfig &conf = util::getSystemConfig();
         REQUIRE(fileFileDesc.getPath() == sharedPath);
-        
+
         const std::string &realPath = storage::SharedFiles::realPathForSharedFile(sharedPath);
         const std::vector<uint8_t> &actualContents = util::readFileToBytes(realPath);
         REQUIRE(actualContents == contents);

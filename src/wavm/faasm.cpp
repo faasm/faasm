@@ -331,7 +331,8 @@ namespace wasm {
         util::SystemConfig &conf = util::getSystemConfig();
 
         if (key == "PRELOAD_NUMPY") {
-            return conf.pythonPreload == "on";
+            int res = conf.pythonPreload == "on" ? 1 : 0;
+            return res;
         } else if (key == "ALWAYS_ON") {
             // For testing
             return 1;
