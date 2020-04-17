@@ -1,6 +1,5 @@
 #include "WorkerThread.h"
 
-#include <openmp/ThreadState.h>
 #include <system/CGroup.h>
 #include <system/NetworkNamespace.h>
 
@@ -198,9 +197,6 @@ namespace worker {
                 module = std::make_unique<wasm::WasmModule>(snapshot);
 
                 PROF_END(snapshotOverride)
-            }
-            if (msg.has_threadnum()) {
-                wasm::thisThreadNumber = msg.threadnum();
             }
             errorMessage = this->executeCall(msg);
         }

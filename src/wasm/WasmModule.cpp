@@ -27,6 +27,7 @@
 #include <sys/uio.h>
 #include <util/bytes.h>
 #include <util/macros.h>
+#include <openmp/ThreadState.h>
 
 using namespace WAVM;
 
@@ -653,8 +654,17 @@ namespace wasm {
             }
         }
 
+        // Set TLS for this context
         executingModule = this;
         executingCall = &msg;
+
+        if (msg.has_threadnum()) {
+            openmp::setThreadNumber(msg.threadnum());
+        } else {
+            openmp::setThreadNumber(0);
+        }
+        openmp::OMPLevel ompLevel = {};
+        openmp::setThreadLevel(&ompLevel);
 
         // Run a specific function if requested
         int funcPtr = msg.funcptr();
@@ -666,7 +676,7 @@ namespace wasm {
 
             // NOTE - when we've got a function pointer, we assume the args are a single integer
             // held in the input data (resulting from a chained thread invocation)
-            if(msg.inputdata().empty()) {
+            if (msg.inputdata().empty()) {
                 invokeArgs = {0};
             } else {
                 int intArg = std::stoi(msg.inputdata());
@@ -1168,7 +1178,7 @@ namespace wasm {
     }
 
     void WasmModule::restoreFromState(const std::string &stateKey, size_t stateSize) {
-        if(!isBound()) {
+        if (!isBound()) {
             throw std::runtime_error("Module must be bound before restoring from state");
         }
 
@@ -1275,6 +1285,8 @@ namespace wasm {
         // Set up TLS for this thread
         setExecutingModule(spec.parentModule);
         setExecutingCall(spec.parentCall);
+        openmp::setThreadNumber(spec.tid);
+        openmp::setThreadLevel(spec.level);
 
         // Create a new region for this thread's stack
         U32 thisStackBase = getExecutingModule()->mmapMemory(spec.stackSize);

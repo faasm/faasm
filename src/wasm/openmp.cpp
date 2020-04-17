@@ -7,15 +7,14 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
 
-#include <state/StateKeyValue.h>
 #include <faasm/array.h>
+#include <state/StateKeyValue.h>
 #include <scheduler/Scheduler.h>
 
-#define OMP_STACK_SIZE (2 * ONE_MB_BYTES)
-
-using namespace openmp;
+constexpr int OMP_STACK_SIZE = 2 * (ONE_MB_BYTES);
 
 namespace wasm {
+    using namespace openmp;
     // every
     constexpr auto REDUCE_ARR_KEY = "omp_wowzoid";
 
@@ -36,12 +35,6 @@ namespace wasm {
         };
     }
 
-
-    OMPLevel deviceSequentialLevel = {};
-    thread_local OMPLevel *thisLevel = &deviceSequentialLevel;
-
-    // Thread-local variables for each OMP thread
-
     // Arguments passed to spawned threads. Shared at by the level apart from tid
     struct OMPThreadArgs {
         int tid;
@@ -54,13 +47,7 @@ namespace wasm {
      * (hence needs to set up its own TLS)
      */
     I64 ompThreadEntryFunc(void *threadArgsPtr) {
-        auto threadArgs = reinterpret_cast<OMPThreadArgs *>(threadArgsPtr);
-
-        // Set up OMP TLS
-        thisLevel = threadArgs->newLevel;
-        thisThreadNumber = threadArgs->tid;
-
-        return getExecutingModule()->executeThread(threadArgs->spec);
+        return getExecutingModule()->executeThread(*reinterpret_cast<WasmThreadSpec *>(threadArgsPtr));
     }
 
     /**
@@ -356,7 +343,7 @@ namespace wasm {
 
         // Note - must ensure thread arguments are outside loop scope otherwise they do
         // may not exist by the time the thread actually consumes them
-        std::vector<OMPThreadArgs> threadArgs;
+        std::vector<WasmThreadSpec> threadArgs;
         threadArgs.reserve(nextNumThreads);
 
         std::vector<std::vector<IR::UntaggedValue>> microtaskArgs;
@@ -381,15 +368,14 @@ namespace wasm {
             // Arguments for spawning the thread
             // NOTE - CLion auto-format insists on this layout... and clangd really hates C99 extensions
             threadArgs.push_back({
-                                         .tid = threadNum, .newLevel = nextLevel,
-                                         .spec = {
-                                                 .contextRuntimeData = contextRuntimeData,
-                                                 .parentModule = parentModule,
-                                                 .parentCall = parentCall,
-                                                 .func = func,
-                                                 .funcArgs = microtaskArgs[threadNum].data(),
-                                                 .stackSize = OMP_STACK_SIZE
-                                         }
+                                         .contextRuntimeData = contextRuntimeData,
+                                         .parentModule = parentModule,
+                                         .parentCall = parentCall,
+                                         .func = func,
+                                         .funcArgs = microtaskArgs[threadNum].data(),
+                                         .stackSize = OMP_STACK_SIZE,
+                                         .tid = threadNum,
+                                         .level = nextLevel
                                  });
         }
 
