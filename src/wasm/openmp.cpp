@@ -58,6 +58,7 @@ namespace wasm {
 
         // Set up OMP TLS
         thisLevel = threadArgs->newLevel;
+        thisThreadNumber = threadArgs->tid;
 
         return getExecutingModule()->executeThread(threadArgs->spec);
     }
@@ -546,7 +547,7 @@ namespace wasm {
      *  When reaching the end of the reduction loop, the threads need to synchronise to operate the
      *  reduction function. In the multi-machine case, this
      */
-    int runReduction() {
+    int startReduction() {
         int retVal = 0;
 
         switch (determineReductionMethod()) {
@@ -598,13 +599,14 @@ namespace wasm {
                       reduce_data, reduce_func, lck);
 
         logger->warn("REDUCE: {}", REDUCE_ARR_KEY);
+        return startReduction();
 //        faasm::AsyncArray<int> distArray(REDUCE_ARR_KEY, thisLevel->num_threads);
 ////
 ////        // Do the update
 //        distArray.pullLazy();
 //        distArray[thisThreadNumber] = 200;
 //        distArray.push();
-        return 10; // Just need a number different from 1 and 2
+//        return 10; // Just need a number different from 1 and 2
     }
 
     int *data = nullptr;
@@ -630,7 +632,7 @@ namespace wasm {
         data = &Runtime::memoryRef<I32>(memoryPtr, reduce_data);
         int *a = &Runtime::memoryRef<I32>(memoryPtr, *data);
         logger->warn("BEFORE: {}, pointing to {}", *data, *a);
-        return runReduction();
+        return startReduction();
     }
 
     /**
