@@ -2,6 +2,8 @@
 #include "KnativeEndpoint.h"
 
 namespace knative {
+    KnativeEndpoint::KnativeEndpoint() : KnativeEndpoint(8080){ }
+
     KnativeEndpoint::KnativeEndpoint(int port) : Endpoint(port, 4) {
     }
 
