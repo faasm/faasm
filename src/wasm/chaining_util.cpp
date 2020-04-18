@@ -1,7 +1,6 @@
 #include "WasmModule.h"
 #include "syscalls.h"
 
-#include <atomic>
 #include <scheduler/Scheduler.h>
 
 namespace wasm {

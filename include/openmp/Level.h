@@ -2,6 +2,7 @@
 #define FAASM_LEVEL_H
 
 #include <mutex>
+#include <proto/faasm.pb.h>
 #include <util/barrier.h>
 #include <util/environment.h>
 
@@ -28,6 +29,13 @@ namespace wasm {
 
             // Local constructor
             OMPLevel(const OMPLevel *parent, int num_threads);
+
+            // Distributed constructor
+            OMPLevel(int depth, int effective_depth, int max_active_level, int num_threads);
+
+            // Distribued message construction. Calling the distributed constructor with the message
+            // arguments set in this function should be equivalent to calling the local constructor
+            void snapshot_parent(message::Message &msg) const;
 
             int get_next_level_num_threads() const;
         };

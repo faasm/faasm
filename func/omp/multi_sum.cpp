@@ -5,13 +5,19 @@
 
 #define num_devices num_threads
 
-constexpr int ITERATIONS = 4;
+#ifdef WASM_COMPILATION
+// implement Custom reduce operators
+//#else
+// default zero cost abstraction implementation (like struct and overloaded +)
+#endif
+
+constexpr int ITERATIONS = 10000;
 constexpr int EXPECTED = ITERATIONS * (ITERATIONS - 1) / 2;
 
 int main() {
-    omp_set_default_device(-3);
+    omp_set_default_device(-2);
     long result = 0;
-    #pragma omp parallel for num_devices(4) default(none) reduction(+:result)
+    #pragma omp parallel for num_devices(30) default(none) reduction(+:result)
     for (int i = 0; i < ITERATIONS; i++) {
         result += i;
     }

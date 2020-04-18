@@ -654,16 +654,14 @@ namespace wasm {
             }
         }
 
-        // Set TLS for this context
+        // Set TLS for this context with hacky conditional stack instantiation
         executingModule = this;
         executingCall = &msg;
-
-        if (msg.has_threadnum()) {
-            openmp::setThreadNumber(msg.threadnum());
-        } else {
-            openmp::setThreadNumber(0);
-        }
-        openmp::OMPLevel ompLevel = {};
+        openmp::setThreadNumber(msg.threadnum());
+        openmp::OMPLevel ompLevel = !msg.has_ldepth() ? openmp::OMPLevel() : openmp::OMPLevel(msg.ldepth(),
+                                                                                              msg.leffdepth(),
+                                                                                              msg.lmal(),
+                                                                                              msg.numthreads());
         openmp::setThreadLevel(&ompLevel);
 
         // Run a specific function if requested
@@ -671,7 +669,19 @@ namespace wasm {
         std::vector<IR::UntaggedValue> invokeArgs;
         Runtime::Function *funcInstance;
         IR::FunctionType funcType;
-        if (funcPtr > 0) {
+        if (msg.has_threadnum()) {
+            funcInstance = getFunctionFromPtr(funcPtr);
+            funcType = Runtime::getFunctionType(funcInstance);
+            int threadNum = msg.threadnum();
+            int argc = msg.functionargs_size();
+            logger->debug("Running OMP thread #{} for function{} with argType {} (argc = {})", threadNum, funcPtr,
+                          WAVM::IR::asString(funcType), argc);
+            invokeArgs.emplace_back(threadNum);
+            invokeArgs.emplace_back(argc);
+            for (int argIdx = 0; argIdx < argc; argIdx++) {
+                invokeArgs.emplace_back(msg.functionargs(argIdx));
+            }
+        } else if (funcPtr > 0) {
             funcInstance = getFunctionFromPtr(funcPtr);
 
             // NOTE - when we've got a function pointer, we assume the args are a single integer

@@ -32,6 +32,12 @@ namespace state {
 
         void dequeueMultiple(const std::string &queueName, uint8_t *buff, long buffLen, long nElems) override;
 
+        long incrByLong(const std::string &key, long value) override;
+
+        void setLong(const std::string &key, long value) override;
+
+        long getLong(const std::string &key) override;
+
     private:
         redis::Redis &redis;
     };

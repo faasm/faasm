@@ -164,7 +164,7 @@ namespace worker {
         std::string errorMessage;
         if (msg.type() == message::Message_MessageType_BIND) {
             const std::string funcStr = util::funcToString(msg, false);
-            logger->error("MIKE: Worker {} binding to {}", id, funcStr);
+            logger->info("Worker {} binding to {}", id, funcStr);
 
             try {
                 this->bindToFunction(msg);
@@ -172,7 +172,6 @@ namespace worker {
                 errorMessage = "Invalid function: " + funcStr;
             }
         } else {
-            logger->error("MIKE: not binding");
             int coldStartInterval = msg.coldstartinterval();
             bool isColdStart = coldStartInterval > 0 &&
                                executionCount > 0 &&
@@ -187,7 +186,6 @@ namespace worker {
             }
 
             // Check if we need to restore from a different snapshot
-            // At the moment this is always executed.
             const std::string snapshotKey = msg.snapshotkey();
             if (!snapshotKey.empty()) {
                 PROF_START(snapshotOverride)
