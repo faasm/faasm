@@ -1,6 +1,6 @@
 set(FAASM_USER omp)
 
-if (FAASM_BUILD_TYPE STREQUAL "Wasm")
+if (FAASM_BUILD_TYPE STREQUAL "wasm")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 else ()
@@ -30,6 +30,7 @@ function(omp_func exec_name dir_path)
 endfunction(omp_func)
 
 
+# Single host parallelism only
 omp_func(for_static_schedule for_static_schedule.cpp)
 omp_func(header_api_support header_api_support.cpp)
 omp_func(hellomp hellomp.cpp)
@@ -39,31 +40,22 @@ omp_func(simple_barrier simple_barrier.cpp)
 omp_func(simple_flush simple_flush.cpp)
 omp_func(simple_for simple_for.cpp)
 omp_func(simple_master simple_master.cpp)
+omp_func(simple_reduce simple_reduce.cpp)
+omp_func(nested_parallel nested_parallel.cpp)
+omp_func(custom_reduce custom_reduce.cpp)
+omp_func(pi_calculation pi_calculation.cpp)
+omp_func(reduction_integral reduction_integral.cpp)
+omp_func(setting_num_threads setting_num_threads.cpp)
+omp_func(reduction_average reduction_average.cpp)
+omp_func(simple_critical simple_critical.cpp)
 
-# 26/04/2020 - the following functions cause an error in Clang when compiled with LLVM 10.0.0
-# 19/04/2020 - it is now believed they only cause error when using Faasm's release of LLVM
-if (CMAKE_C_COMPILER_VERSION MATCHES "^10.*")
-    message(WARNING "Skipping several OMP functions for Clang ${CMAKE_C_COMPILER_VERSION}")
-else ()
-    # Single host parallelism only
-    omp_func(simple_reduce simple_reduce.cpp)
-    omp_func(nested_parallel nested_parallel.cpp)
-    omp_func(custom_reduce custom_reduce.cpp)
-    omp_func(pi_calculation pi_calculation.cpp)
-    omp_func(reduction_integral reduction_integral.cpp)
-    omp_func(setting_num_threads setting_num_threads.cpp)
-    omp_func(reduction_average reduction_average.cpp)
-    omp_func(simple_critical simple_critical.cpp)
+# Intel OMP files
+omp_func(intel_nstreams intel_nstreams.cpp)
+omp_func(intel_synch_p2p intel_synch_p2p.cpp)
+omp_func(intel_transpose intel_transpose.cpp)
 
-    # Intel OMP files
-    omp_func(intel_nstreams intel_nstreams.cpp)
-    omp_func(intel_synch_p2p intel_synch_p2p.cpp)
-    omp_func(intel_transpose intel_transpose.cpp)
-
-    # Multi host
-    omp_func(multi_sum multi_sum.cpp)
-    omp_func(multi_thread_sum multi_thread_sum.cpp)
-endif ()
+# Multi host
+omp_func(multi_sum multi_sum.cpp)
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
     omp_func(stack_debug stack_debug.cpp)
