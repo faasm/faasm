@@ -53,8 +53,7 @@ namespace wasm {
         return call.id();
     }
 
-    int
-    spawnChainedThread(const std::string &snapshotKey, size_t snapshotSize, int funcPtr, int argsPtr, int threadNum) {
+    int spawnChainedThread(const std::string &snapshotKey, size_t snapshotSize, int funcPtr, int argsPtr) {
         scheduler::Scheduler &sch = scheduler::getScheduler();
 
         message::Message *originalCall = getExecutingCall();
@@ -70,7 +69,6 @@ namespace wasm {
         // hence we use the input data here to hold this argument as a string
         call.set_funcptr(funcPtr);
         call.set_inputdata(std::to_string(argsPtr));
-        call.set_threadnum(threadNum);
 
         const std::string origStr = util::funcToString(*originalCall, false);
         const std::string chainedStr = util::funcToString(call, false);
