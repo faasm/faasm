@@ -1,6 +1,6 @@
 set(FAASM_USER omp)
 
-if (FAASM_BUILD_TYPE STREQUAL "wasm")
+if (FAASM_BUILD_TYPE STREQUAL "Wasm")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 else ()
@@ -41,6 +41,7 @@ omp_func(simple_for simple_for.cpp)
 omp_func(simple_master simple_master.cpp)
 
 # 26/04/2020 - the following functions cause an error in Clang when compiled with LLVM 10.0.0
+# 19/04/2020 - it is now believed they only cause error when using Faasm's release of LLVM
 if (CMAKE_C_COMPILER_VERSION MATCHES "^10.*")
     message(WARNING "Skipping several OMP functions for Clang ${CMAKE_C_COMPILER_VERSION}")
 else ()

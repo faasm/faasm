@@ -2,7 +2,7 @@ include_directories(
         ${FAASM_INCLUDE_DIR}/knative
 )
 
-FIND_PACKAGE(Boost 1.65 OPTIONAL_COMPONENTS program_options)
+FIND_PACKAGE(Boost 1.65 QUIET OPTIONAL_COMPONENTS program_options)
 if (Boost_FOUND)
     INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR})
 endif ()
