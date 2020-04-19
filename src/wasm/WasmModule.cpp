@@ -669,7 +669,7 @@ namespace wasm {
         std::vector<IR::UntaggedValue> invokeArgs;
         Runtime::Function *funcInstance;
         IR::FunctionType funcType;
-        if (msg.has_threadnum()) {
+        if (msg.has_ldepth()) {
             funcInstance = getFunctionFromPtr(funcPtr);
             funcType = Runtime::getFunctionType(funcInstance);
             int threadNum = msg.threadnum();
