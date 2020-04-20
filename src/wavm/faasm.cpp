@@ -176,27 +176,33 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state", I32, __faasm_read_state,
                                    I32 keyPtr, I32 bufferPtr, I32 bufferLen) {
-        std::string key = getStringFromWasm(keyPtr);
-        util::getLogger()->debug("S - read_state - {} {} {}", key, bufferPtr, bufferLen);
-        state::State &state = state::getGlobalState();
 
+        // If buffer len is zero, just need the state size
         if(bufferLen == 0) {
-            return (I32) state.getStateSize(getExecutingCall()->user(), key);
+            std::string user = getExecutingCall()->user();
+            std::string key = getStringFromWasm(keyPtr);
+            const std::string &actualKey = util::keyForUser(user, key);
+            util::getLogger()->debug("S - read_state - {} {} {}", actualKey, bufferPtr, bufferLen);
+
+            state::State &state = state::getGlobalState();
+            return (I32) state.getStateSize(user, key);
+        } else {
+            auto kv = getStateKV(keyPtr, bufferLen);
+            util::getLogger()->debug("S - read_state - {} {} {}", kv->key, bufferPtr, bufferLen);
+
+            // Copy to straight to buffer
+            Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+            U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
+            kv->get(buffer);
+            return kv->size();
         }
 
-        auto kv = getStateKV(keyPtr, bufferLen);
-
-        // Copy to straight to buffer
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
-        kv->get(buffer);
-        return kv->size();
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_ptr", I32, __faasm_read_state_ptr,
                                    I32 keyPtr, I32 totalLen) {
         auto kv = getStateKV(keyPtr, totalLen);
-        util::getLogger()->debug("S - read_state - {} {}", kv->key, totalLen);
+        util::getLogger()->debug("S - read_state_ptr - {} {}", kv->key, totalLen);
 
         // Map shared memory
         WAVMWasmModule *module = getExecutingModule();

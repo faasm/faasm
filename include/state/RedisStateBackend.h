@@ -4,7 +4,7 @@
 #include "StateBackend.h"
 
 namespace state {
-    class RedisStateBackend : public StateBackend {
+    class RedisStateBackend final : public StateBackend {
     public:
         RedisStateBackend();
 

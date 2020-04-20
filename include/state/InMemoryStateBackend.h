@@ -3,7 +3,7 @@
 #include "StateBackend.h"
 
 namespace state {
-    class InMemoryStateBackend : public StateBackend {
+    class InMemoryStateBackend final : public StateBackend {
     public:
         InMemoryStateBackend();
 

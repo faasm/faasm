@@ -346,6 +346,12 @@ namespace tests {
         execFunction(msg);
     }
 
+    TEST_CASE("Test state size", "[worker]") {
+        setUp();
+        message::Message msg = util::messageFactory("demo", "state_size");
+        execFunction(msg);
+    }
+
     TEST_CASE("Test shared state write pointers", "[worker]") {
         setUp();
 

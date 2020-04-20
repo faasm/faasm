@@ -2,6 +2,7 @@
 #define FAASMC_CORE_H
 
 #include <stdint.h>
+#include <stddef.h>
 #include <stdbool.h>
 
 #ifdef __cplusplus
@@ -9,6 +10,11 @@ extern "C" {
 #endif
 
 #define BYTES(arr) reinterpret_cast<uint8_t*>(arr)
+
+/**
+* Gets the size of the state at the given key
+*/
+size_t faasmReadStateSize(const char *key);
 
 /**
 * Reads the full state at the given key
