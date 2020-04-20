@@ -1,4 +1,5 @@
-from pyfaasm.core import get_state, get_state_offset, setState, set_state_offset, push_state, pull_state, push_state_partial
+from pyfaasm.core import get_state, get_state_offset, set_state_offset, push_state, pull_state, push_state_partial, \
+    set_state
 
 key = "pyStateTest"
 value_len = 10
@@ -21,7 +22,7 @@ def _check_full_value(expected):
 
 def faasm_main():
     # Set the full value initially
-    setState(key, full_value)
+    set_state(key, full_value)
     push_state(key)
 
     # Check the full value has been written

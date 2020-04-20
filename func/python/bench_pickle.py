@@ -214,9 +214,14 @@ BENCHMARKS = {
     'pickle_dict': (bench_pickle_dict, 5),
 }
 
-if __name__ == "__main__":
+
+def faasm_main():
     multiplier = 5
 
     for bm_name in BENCHMARKS.keys():
         benchmark, inner_loops = BENCHMARKS[bm_name]
         benchmark(inner_loops * multiplier)
+
+
+if __name__ == "__main__":
+    faasm_main()

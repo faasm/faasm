@@ -2,7 +2,8 @@ import json
 
 from pyperformance.benchmarks.bm_json_loads import DICT, TUPLE, DICT_GROUP, bench_json_loads
 
-if __name__ == "__main__":
+
+def faasm_main():
     json_dict = json.dumps(DICT)
     json_tuple = json.dumps(TUPLE)
     json_dict_group = json.dumps(DICT_GROUP)
@@ -10,3 +11,7 @@ if __name__ == "__main__":
 
     for x in range(100):
         bench_json_loads(objs)
+
+
+if __name__ == "__main__":
+    faasm_main()

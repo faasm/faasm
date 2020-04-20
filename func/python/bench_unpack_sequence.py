@@ -7,9 +7,10 @@ def bench_all(loops):
     return dt1 + dt2
 
 
-if __name__ == "__main__":
-    benchmarks = {"tuple": bench_tuple_unpacking,
-                  "list": bench_list_unpacking}
-
+def faasm_main():
     loops = 5
     bench_all(loops)
+
+
+if __name__ == "__main__":
+    faasm_main()
