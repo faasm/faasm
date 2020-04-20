@@ -127,7 +127,7 @@ FAASM_MAIN_FUNC() {
                 long inputSize = faasmGetInputSize();
                 if (inputSize == 0) {
                     // No input from Faasm
-                    pythonFuncArgs = nullptr;
+                    inputBytes = PyBytes_FromStringAndSize("", 0);
                 } else {
                     // Read input into buffer
                     auto rawInput = new uint8_t[inputSize];
@@ -135,9 +135,10 @@ FAASM_MAIN_FUNC() {
 
                     // Convert to python bytes object and build arguments tuple
                     inputBytes = PyBytes_FromStringAndSize((char *) rawInput, inputSize);
-                    pythonFuncArgs = PyTuple_New(1);
-                    PyTuple_SetItem(pythonFuncArgs, 0, inputBytes);
                 }
+
+                pythonFuncArgs = PyTuple_New(1);
+                PyTuple_SetItem(pythonFuncArgs, 0, inputBytes);
             }
 
             // Execute the function

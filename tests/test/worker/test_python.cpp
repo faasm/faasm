@@ -86,4 +86,13 @@ namespace tests {
 
         execFuncWithPool(call, true, 1);
     }
+
+    TEST_CASE("Test python sharing dict", "[worker]") {
+        message::Message call = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+        call.set_pythonuser("python");
+        call.set_pythonfunction("dict_state");
+        call.set_ispython(true);
+
+        execFuncWithPool(call, true, 1);
+    }
 }

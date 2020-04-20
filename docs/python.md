@@ -40,19 +40,24 @@ A simple example of chaining Python functions in Faasm looks like:
 ```python
 from pyfaasm.core import await_call, chain_this_with_input
 
-def func_one():
+def func_one(data):
     pass
 
-def func_two():
+def func_two(data):
     pass
 
 def faasm_main():
-    call_one = chain_this_with_input(func_one)
-    call_two = chain_this_with_input(func_two)
+    call_one = chain_this_with_input(func_one, b'')
+    call_two = chain_this_with_input(func_two, b'')
 
     await_call(call_one)
     await_call(call_two)
 ```
+
+A couple of the Python test functions also demonstrate chaining:
+
+- [Simple example](../func/python/chain.py) 
+- [Chaining with shared state](../func/python/dict_state.py) 
 
 # Building CPython
 

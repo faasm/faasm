@@ -4,9 +4,12 @@ extern "C" {
 #include "faasm/host_interface.h"
 }
 
+size_t faasmReadStateSize(const char *key) {
+    return __faasm_read_state(key, nullptr, 0);
+}
 
-void faasmReadState(const char *key, uint8_t *buffer, long bufferLen) {
-    __faasm_read_state(key, buffer, bufferLen);
+long faasmReadState(const char *key, uint8_t *buffer, long bufferLen) {
+    return __faasm_read_state(key, buffer, bufferLen);
 }
 
 uint8_t *faasmReadStatePtr(const char *key, long totalLen) {

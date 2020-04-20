@@ -189,6 +189,25 @@ namespace tests {
         }
     }
 
+    TEST_CASE("Test strlen", "[redis]") {
+        Redis &redisState = Redis::getState();
+        redisState.flushAll();
+
+        std::string keyA = "alpha";
+        std::string keyB = "beta";
+        std::string keyNonExist = "blahblah";
+
+        std::vector<uint8_t> valueA = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+        redisState.set(keyA, valueA);
+
+        std::string valueB = "barbaz";
+        redisState.set(keyB, util::stringToBytes(valueB));
+
+        REQUIRE(redisState.strlen(keyA) == valueA.size());
+        REQUIRE(redisState.strlen(keyB) == valueB.size());
+        REQUIRE(redisState.strlen(keyNonExist) == 0);
+    }
+
     TEST_CASE("Test setnxex", "[redis]") {
         Redis &redisState = Redis::getState();
         redisState.flushAll();

@@ -23,6 +23,15 @@ namespace state {
         userStateMap.clear();
     }
 
+    size_t State::getStateSize(const std::string &user, const std::string &keyIn) {
+        if(user.empty()) {
+            throw std::runtime_error("Attempting to access state with empty user");
+        }
+
+        std::shared_ptr<UserState> us = this->getUserState(user);
+        return us->getSize(keyIn);
+    }
+
     std::shared_ptr<StateKeyValue> State::getKV(const std::string &user, const std::string &key, size_t size) {
         if(user.empty()) {
             throw std::runtime_error("Attempting to access state with empty user");

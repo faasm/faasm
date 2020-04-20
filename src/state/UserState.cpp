@@ -18,6 +18,22 @@ namespace state {
         return kvMap.size();
     }
 
+    size_t UserState::getSize(const std::string &key) {
+        {
+            util::SharedLock sharedLock(kvMapMutex);
+            if (kvMap.count(key) > 0) {
+                return kvMap[key]->size();
+            }
+        }
+
+        // Full lock for doing anything
+        FullLock fullLock(kvMapMutex);
+
+        std::string actualKey = util::keyForUser(user, key);
+        StateBackend &backend = getBackend();
+        return backend.getSize(actualKey);
+    }
+
     std::shared_ptr<StateKeyValue> UserState::getValue(const std::string &key, size_t size) {
         {
             util::SharedLock sharedLock(kvMapMutex);
