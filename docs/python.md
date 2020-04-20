@@ -54,6 +54,11 @@ def faasm_main():
     await_call(call_two)
 ```
 
+A couple of the Python test functions also demonstrate chaining:
+
+- [Simple example](../func/python/chain.py) 
+- [Chaining with shared state](../func/python/dict_state.py) 
+
 # Building CPython
 
 Note that this is only relevant for building the Python support from scratch.
