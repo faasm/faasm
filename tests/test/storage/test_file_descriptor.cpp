@@ -122,7 +122,6 @@ namespace tests {
         fs.prepareFilesystem();
 
         int rootFd = 4;
-        FileDescriptor &rootFileDesc = fs.getFileDescriptor(4);
 
         util::SystemConfig &conf = util::getSystemConfig();
         std::string dummyPath;
@@ -222,7 +221,6 @@ namespace tests {
         REQUIRE(statResB.wasiFiletype == __WASI_FILETYPE_REGULAR_FILE);
 
         // Check path of this new file descriptor
-        util::SystemConfig &conf = util::getSystemConfig();
         REQUIRE(fileFileDesc.getPath() == sharedPath);
 
         const std::string &realPath = storage::SharedFiles::realPathForSharedFile(sharedPath);
