@@ -72,27 +72,39 @@ def create_release(ctx):
 
 
 @task
-def upload_artifacts(ctx):
+def upload_artifacts(ctx, which=None):
     """
     Upload release artifacts
     """
     rel = _get_release()
 
-    # Zip the relevant artifacts
-    toolchain_name, toolchain_path = tar_toolchain()
-    sysroot_name, sysroot_path = tar_sysroot()
-    runtime_name, runtime_path = tar_runtime_root()
+    artifacts = ["toolchain", "sysroot", "runtime"]
+    if which:
+        artifacts = [which]
 
-    # Upload assets
-    print("Uploading toolchain to GH")
-    rel.upload_asset(toolchain_path, label=toolchain_name)
+    for a in artifacts:
+        if a == "toolchain":
+            toolchain_name, toolchain_path = tar_toolchain()
 
-    print("Uploading sysroot to GH")
-    rel.upload_asset(sysroot_path, label=sysroot_name)
+            print("Uploading toolchain to GH")
+            rel.upload_asset(toolchain_path, label=toolchain_name)
 
-    print("Uploading runtime root to GH")
-    rel.upload_asset(runtime_path, label=runtime_name)
+        elif a == "sysroot":
+            sysroot_name, sysroot_path = tar_sysroot()
 
+            print("Uploading sysroot to GH")
+            rel.upload_asset(sysroot_path, label=sysroot_name)
+
+        elif a == "runtime":
+            runtime_name, runtime_path = tar_runtime_root()
+
+            print("Uploading runtime root to GH")
+            rel.upload_asset(runtime_path, label=runtime_name)
+
+        else:
+            print("Unrecognised artifact: {} (must be {})".format(a, artifacts))
+            exit(1)
+            
 
 @task
 def publish_release(ctx):
