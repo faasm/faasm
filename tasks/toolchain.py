@@ -104,18 +104,34 @@ def version(ctx):
         print("")
 
 
-def _scp_dir(user, host, dir_name):
-    target_dir = join(FAASM_LOCAL_DIR, dir_name)
+def _scp_dir_from(user, host, dir_name):
+    _do_scp(True, user, host, dir_name)
 
-    # Nuke the current
-    print("Removing existing {}".format(target_dir))
-    rmtree(target_dir, ignore_errors=True)
 
-    # Do the copy
+def _scp_dir_to(user, host, dir_name):
+    _do_scp(False, user, host, dir_name)
+
+
+def _do_scp(is_from, user, host, dir_name):
+    local_dir = join(FAASM_LOCAL_DIR, dir_name)
+    if is_from:
+        from_dir = "{}@{}:{}".format(user, host, local_dir)
+        to_dir = local_dir
+
+        # Nuke the current
+        print("Removing existing {}".format(to_dir))
+        rmtree(to_dir, ignore_errors=True)
+    else:
+        from_dir = local_dir
+
+        # Note with the "to" case, we've not nuked the remote file,
+        # so the remote dir is one level higher
+        to_dir = "{}@{}:{}".format(user, host, FAASM_LOCAL_DIR)
+
     scp_cmd = [
-        "scp", "-r",
-        "{}@{}:{}".format(user, host, target_dir),
-        FAASM_LOCAL_DIR
+        "rsync", "-av",
+        from_dir,
+        to_dir
     ]
     scp_cmd = " ".join(scp_cmd)
     print(scp_cmd)
@@ -130,7 +146,7 @@ def scp_toolchain(ctx, user, host):
     """
     Copies the toolchain from a remote host
     """
-    _scp_dir(user, host, "toolchain")
+    _scp_dir_from(user, host, "toolchain")
 
 
 @task
@@ -138,4 +154,28 @@ def scp_sysroot(ctx, user, host):
     """
     Copies the sysroot from a remote host
     """
-    _scp_dir(user, host, "llvm-sysroot")
+    _scp_dir_from(user, host, "llvm-sysroot")
+
+
+@task
+def scp_toolchain_to(ctx, user, host):
+    """
+    Copies the toolchain *to* a remote host
+    """
+    _scp_dir_to(user, host, "toolchain")
+
+
+@task
+def scp_sysroot_to(ctx, user, host):
+    """
+    Copies the sysroot *to* a remote host
+    """
+    _scp_dir_to(user, host, "llvm-sysroot")
+
+
+@task
+def scp_runtime_to(ctx, user, host):
+    """
+    Copies the runtime root *to* a remote host
+    """
+    _scp_dir_to(user, host, "runtime_root")
