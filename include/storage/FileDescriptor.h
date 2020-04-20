@@ -2,12 +2,16 @@
 
 #include <string>
 #include <dirent.h>
+#include <unordered_map>
+
 
 // See wasi-libc/libc-bottom-half/cloudlibc/src/libc/fcntl/openat.c
 #define WASI_RIGHTS_WRITE (__WASI_RIGHT_FD_DATASYNC | __WASI_RIGHT_FD_WRITE | __WASI_RIGHT_FD_ALLOCATE | __WASI_RIGHT_FD_FILESTAT_SET_SIZE)
 #define WASI_RIGHTS_READ (__WASI_RIGHT_FD_READDIR | __WASI_RIGHT_FD_READ)
 
 namespace storage {
+    std::string prependRuntimeRoot(const std::string &originalPath);
+
     enum OpenMode {
         CREATE,
         DIRECTORY,
@@ -69,6 +73,8 @@ namespace storage {
 
         bool unlink(const std::string &relativePath = "");
 
+        bool rmdir(const std::string &relativePath = "");
+
         bool rename(const std::string &newPath, const std::string &relativePath = "");
 
         ssize_t readLink(const std::string &relativePath, char *buffer, size_t bufferLen);
@@ -79,7 +85,7 @@ namespace storage {
 
         bool mkdir(const std::string &dirPath);
 
-        uint16_t seek(uint64_t offset, int whence, uint64_t *newOffset);
+        uint16_t seek(uint64_t offset, int wasiWhence, uint64_t *newOffset);
 
         uint64_t tell();
 
@@ -89,8 +95,6 @@ namespace storage {
         uint8_t wasiPreopenType;
 
         int getLinuxFd();
-
-        void setLinuxFd(int linuxFdIn);
 
         int getLinuxErrno();
 

@@ -103,7 +103,7 @@ def set_up_runtime(ctx):
     _remove_runtime_dir("lib")
 
     print("\nRemoving any existing python functions")
-    funcs_dir = join(FAASM_SHARED_ROOT, "pyfuncs")
+    funcs_dir = join(FAASM_RUNTIME_ROOT, "pyfuncs")
     if exists(funcs_dir):
         rmtree(funcs_dir)
 

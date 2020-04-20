@@ -8,7 +8,6 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <util/state.h>
 #include <util/files.h>
-#include <storage/SharedFilesManager.h>
 
 namespace wasm {
     void faasmLink() {
@@ -164,7 +163,7 @@ namespace wasm {
         util::getLogger()->debug("S - write_state_from_file - {} {}", key, path);
 
         // Read file into bytes
-        const std::string maskedPath = storage::maskPath(path);
+        const std::string maskedPath = storage::prependRuntimeRoot(path);
         const std::vector<uint8_t> bytes = util::readFileToBytes(maskedPath);
 
         // Write to state
@@ -289,18 +288,20 @@ namespace wasm {
     }
 
     void _readPythonInput(I32 buffPtr, I32 buffLen, const std::string &value) {
-        // If nothing ignore
-        if (value.empty()) {
-            return;
-        }
-
-        // Copy value into WASM
+        // Get wasm buffer
         U8 *buffer = Runtime::memoryArrayPtr<U8>(getExecutingModule()->defaultMemory, (Uptr) buffPtr, (Uptr) buffLen);
-        std::vector<uint8_t> bytes = util::stringToBytes(value);
-        std::copy(bytes.begin(), bytes.end(), buffer);
 
-        // Add null terminator
-        buffer[value.size()] = '\0';
+        if (value.empty()) {
+            // If nothing, just write a null terminator
+            buffer[0] = '\0';
+        } else {
+            // Copy value into WASM
+            std::vector<uint8_t> bytes = util::stringToBytes(value);
+            std::copy(bytes.begin(), bytes.end(), buffer);
+
+            // Add null terminator
+            buffer[value.size()] = '\0';
+        }
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_get_py_user", void, __faasm_get_py_user, I32 bufferPtr,
@@ -317,6 +318,13 @@ namespace wasm {
         _readPythonInput(bufferPtr, bufferLen, value);
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_get_py_entry", void, __faasm_get_py_entry, I32 bufferPtr,
+                                   I32 bufferLen) {
+        util::getLogger()->debug("S - get_py_entry - {} {}", bufferPtr, bufferLen);
+        std::string value = getExecutingCall()->pythonentry();
+        _readPythonInput(bufferPtr, bufferLen, value);
+    }
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_conf_flag", U32, __faasm_conf_flag, I32 keyPtr) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         const std::string key = getStringFromWasm(keyPtr);
@@ -325,7 +333,8 @@ namespace wasm {
         util::SystemConfig &conf = util::getSystemConfig();
 
         if (key == "PRELOAD_NUMPY") {
-            return conf.pythonPreload == "on";
+            int res = conf.pythonPreload == "on" ? 1 : 0;
+            return res;
         } else if (key == "ALWAYS_ON") {
             // For testing
             return 1;

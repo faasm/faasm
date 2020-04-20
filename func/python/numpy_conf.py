@@ -28,7 +28,7 @@ INFOS = [
 ]
 
 
-def main_func():
+def faasm_main():
     for info_name in INFOS:
         this_info = np.__config__.get_info(info_name)
         if this_info:
@@ -44,7 +44,3 @@ def main_func():
 
     time_taken = time() - dt_a
     print("Took {:.2f}s".format(time_taken))
-
-
-if __name__ == "__main__":
-    main_func()

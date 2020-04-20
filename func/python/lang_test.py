@@ -3,7 +3,7 @@ import os
 from decimal import Decimal
 
 
-def main_func():
+def faasm_main():
     print("Running Python version {}".format(sys.version))
 
     py_wasm_env = os.getenv("PYTHONWASM", "NOT SET")
@@ -43,6 +43,3 @@ def main_func():
     for k, v in d.items():
         print("{}: {} ({})".format(k, v, d[k]))
 
-
-if __name__ == "__main__":
-    main_func()

@@ -1,20 +1,29 @@
 #include "FileDescriptor.h"
-#include "syscall.h"
+#include "SharedFiles.h"
 
 #include <util/timing.h>
 
-#include <utility>
 #include <dirent.h>
 #include <stdexcept>
-#include <storage/SharedFilesManager.h>
 #include <boost/filesystem.hpp>
 #include <WAVM/WASI/WASIABI.h>
 #include <fcntl.h>
+#include <util/config.h>
+#include <util/logging.h>
+#include <sys/stat.h>
 
 
 #define WASI_FD_FLAGS (__WASI_FDFLAG_RSYNC | __WASI_FDFLAG_APPEND | __WASI_FDFLAG_DSYNC | __WASI_FDFLAG_SYNC | __WASI_FDFLAG_NONBLOCK)
 
+
 namespace storage {
+    std::string prependRuntimeRoot(const std::string &originalPath) {
+        util::SystemConfig &conf = util::getSystemConfig();
+        boost::filesystem::path p(conf.runtimeFilesDir);
+        p.append(originalPath);
+        return p.string();
+    }
+
     OpenMode getOpenMode(uint16_t openFlags) {
         if (openFlags & __WASI_O_DIRECTORY) {
             return OpenMode::DIRECTORY;
@@ -59,8 +68,31 @@ namespace storage {
                 return __WASI_ENOENT;
             case EISDIR:
                 return __WASI_EISDIR;
+            case EEXIST:
+                return __WASI_EEXIST;
             default:
-                throw std::runtime_error("Unsupported WASI errno");
+                throw std::runtime_error("Unsupported WASI errno: " + std::to_string(errnoIn));
+        }
+    }
+
+    std::string FileDescriptor::getPath() {
+        return path;
+    }
+
+    void FileDescriptor::setPath(const std::string &newPath) {
+        path = newPath;
+    }
+
+    std::string FileDescriptor::absPath(const std::string &relativePath) {
+        std::string res;
+
+        if (relativePath.empty()) {
+            return path;
+        } else {
+            std::string basePath = path == "." ? "" : path;
+            boost::filesystem::path joinedPath(basePath);
+            joinedPath.append(relativePath);
+            return joinedPath.string();
         }
     }
 
@@ -104,15 +136,28 @@ namespace storage {
         if (!iterStarted) {
             iterStarted = true;
 
-            storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
-            dirPtr = sfm.openDir(path);
+            std::string realPath;
+            dirPtr = nullptr;
+            if (SharedFiles::isPathShared(path)) {
+                int pullErr = SharedFiles::syncSharedFile(path);
+
+                if (pullErr != 0) {
+                    throw std::runtime_error("Failed to open shared dir");
+                }
+
+                realPath = SharedFiles::realPathForSharedFile(path);
+            } else {
+                realPath = prependRuntimeRoot(path);
+            }
+
+            dirPtr = ::opendir(realPath.c_str());
             if (dirPtr == nullptr) {
                 throw std::runtime_error("Failed to open dir");
             }
         }
 
         // Call readdir to get next dirent
-        direntPtr = readdir(dirPtr);
+        direntPtr = ::readdir(dirPtr);
 
         // Build the actual dirent
         DirEnt d;
@@ -201,12 +246,35 @@ namespace storage {
             }
         }
 
-        storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
-        linuxFd = sfm.openFile(path, linuxFlags, linuxMode);
+        bool isShared = SharedFiles::isPathShared(path);
+        std::string realPath;
+        if (isShared) {
+            // Pull the shared file
+            linuxErrno = SharedFiles::syncSharedFile(path);
+            if (linuxErrno != 0) {
+                linuxFd = -1;
+                wasiErrno = errnoToWasi(linuxErrno);
+                return false;
+            }
 
-        // The function above returns a negative errno
+            realPath = SharedFiles::realPathForSharedFile(path);
+        } else {
+            realPath = prependRuntimeRoot(path);;
+        }
+
+        // Attempt to open the local file
+        if (realPath == "/dev/urandom") {
+            //TODO avoid use of system-wide urandom
+            linuxFd = ::open("/dev/urandom", 0, 0);
+
+        } else if (realPath == "/dev/null") {
+            linuxFd = ::open("/dev/null", 0, 0);
+        } else {
+            linuxFd = ::open(realPath.c_str(), linuxFlags, linuxMode);
+        }
+
         if (linuxFd < 0) {
-            linuxErrno = linuxFd * -1;
+            linuxErrno = errno;
             wasiErrno = errnoToWasi(linuxErrno);
             return false;
         }
@@ -215,8 +283,9 @@ namespace storage {
     }
 
     bool FileDescriptor::mkdir(const std::string &dirPath) {
-        storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
-        int res = sfm.mkdir(dirPath);
+        std::string fullPath = prependRuntimeRoot(dirPath);
+        int res = ::mkdir(fullPath.c_str(), 0755);
+
         if (res < 0) {
             wasiErrno = errnoToWasi(errno);
             return false;
@@ -229,36 +298,26 @@ namespace storage {
 
     }
 
-    std::string FileDescriptor::getPath() {
-        return path;
-    }
-
-    void FileDescriptor::setPath(const std::string &newPath) {
-        path = newPath;
-    }
-
-    std::string FileDescriptor::absPath(const std::string &relativePath) {
-        std::string res;
-
-        if (relativePath.empty()) {
-            res = path;
-        } else {
-            std::string basePath = path == "." ? "" : path;
-            boost::filesystem::path joinedPath(basePath);
-            joinedPath.append(relativePath);
-            res = joinedPath.string();
-        }
-
-        return res;
-    }
-
     bool FileDescriptor::unlink(const std::string &relativePath) {
         std::string fullPath = absPath(relativePath);
-        storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
-        int res = sfm.unlink(fullPath);
+        const std::string maskedPath = prependRuntimeRoot(fullPath);
+        int res = ::unlink(maskedPath.c_str());
 
         if (res != 0) {
-            wasiErrno = errnoToWasi(-1 * res);
+            wasiErrno = errnoToWasi(errno);
+            return false;
+        }
+
+        return true;
+    }
+
+    bool FileDescriptor::rmdir(const std::string &relativePath) {
+        std::string fullPath = absPath(relativePath);
+        const std::string maskedPath = prependRuntimeRoot(fullPath);
+        int res = ::rmdir(maskedPath.c_str());
+
+        if(res != 0) {
+            wasiErrno = errnoToWasi(errno);
             return false;
         }
 
@@ -267,8 +326,10 @@ namespace storage {
 
     bool FileDescriptor::rename(const std::string &newPath, const std::string &relativePath) {
         std::string fullPath = absPath(relativePath);
-        storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
-        int res = sfm.rename(fullPath, newPath);
+        std::string fullOldPath = prependRuntimeRoot(fullPath);
+        std::string fullNewPath = prependRuntimeRoot(newPath);
+
+        int res = ::rename(fullOldPath.c_str(), fullNewPath.c_str());
 
         if (res != 0) {
             wasiErrno = errnoToWasi(-1 * res);
@@ -279,21 +340,34 @@ namespace storage {
     }
 
     Stat FileDescriptor::stat(const std::string &relativePath) {
-        struct stat64 nativeStat{};
+        struct stat nativeStat{};
 
         int statErrno = 0;
         if (linuxFd == STDOUT_FILENO || linuxFd == STDIN_FILENO || linuxFd == STDERR_FILENO) {
-            int result = ::fstat64(linuxFd, &nativeStat);
+            int result = ::fstat(linuxFd, &nativeStat);
             if (result < 0) {
                 statErrno = errno;
             }
         } else {
+            // Work out whether we're stat-ing a shared path
             std::string statPath = absPath(relativePath);
+            std::string realPath;
+            if (SharedFiles::isPathShared(statPath)) {
+                statErrno = SharedFiles::syncSharedFile(statPath);
+                if (statErrno == 0) {
+                    realPath = SharedFiles::realPathForSharedFile(statPath);
+                }
+            } else {
+                realPath = prependRuntimeRoot(statPath);
+            }
 
-            storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
-            int result = sfm.statFile(statPath, &nativeStat);
-            if (result < 0) {
-                statErrno = -1 * result;
+            // Do the actual stat
+            int result;
+            if (!realPath.empty()) {
+                result = ::stat(realPath.c_str(), &nativeStat);
+                if (result < 0) {
+                    statErrno = errno;
+                }
             }
         }
 
@@ -304,6 +378,7 @@ namespace storage {
             return statResult;
         } else {
             statResult.failed = false;
+            statResult.wasiErrno = 0;
         }
 
         // Work out file type
@@ -347,14 +422,29 @@ namespace storage {
     }
 
     ssize_t FileDescriptor::readLink(const std::string &relativePath, char *buffer, size_t bufferLen) {
-        std::string linkPath = absPath(relativePath);
+        std::string linkPath = prependRuntimeRoot(absPath(relativePath));
 
-        SharedFilesManager &sfm = storage::getSharedFilesManager();
-        ssize_t bytesRead = sfm.readLink(linkPath, buffer, bufferLen);
+        if (SharedFiles::isPathShared(linkPath)) {
+            util::getLogger()->error("Readlink on shared not yet supported ({})", path);
+            throw std::runtime_error("Readlink on shared file not supported");
+        }
+
+        ssize_t bytesRead = ::readlink(linkPath.c_str(), buffer, (size_t) bufferLen);
         return bytesRead;
     }
 
-    uint16_t FileDescriptor::seek(uint64_t offset, int linuxWhence, uint64_t *newOffset) {
+    uint16_t FileDescriptor::seek(uint64_t offset, int wasiWhence, uint64_t *newOffset) {
+        int linuxWhence;
+        if (wasiWhence == __WASI_WHENCE_CUR) {
+            linuxWhence = SEEK_CUR;
+        } else if (wasiWhence == __WASI_WHENCE_END) {
+            linuxWhence = SEEK_END;
+        } else if (wasiWhence == __WASI_WHENCE_SET) {
+            linuxWhence = SEEK_SET;
+        } else {
+            throw std::runtime_error("Unsupported whence");
+        }
+
         // Do the seek
         off_t result = ::lseek(linuxFd, offset, linuxWhence);
         if (result < 0) {
@@ -373,10 +463,6 @@ namespace storage {
 
     int FileDescriptor::getLinuxFd() {
         return linuxFd;
-    }
-
-    void FileDescriptor::setLinuxFd(int linuxFdIn) {
-        linuxFd = linuxFdIn;
     }
 
     int FileDescriptor::getLinuxErrno() {
@@ -400,4 +486,5 @@ namespace storage {
         actualRightsInheriting = inheriting;
         rightsSet = true;
     }
+
 }

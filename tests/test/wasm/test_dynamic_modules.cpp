@@ -2,7 +2,6 @@
 #include "utils.h"
 #include <wavm/WAVMWasmModule.h>
 #include <ir_cache/IRModuleCache.h>
-#include <storage/SharedFilesManager.h>
 
 namespace tests {
 
@@ -43,9 +42,9 @@ namespace tests {
     std::string mainData = "PyBool_Type";
     std::string dataA = "PyArray_API";
     std::string dataB = "PyUFunc_API";
-    int mainDataOffset = 6361280;
-    int dataAOffset = 42966688;
-    int dataBOffset = 74252288;
+    int mainDataOffset = 6316112;
+    int dataAOffset = 41918112;
+    int dataBOffset = 73203712;
 
     // NOTE - extra table entries are created for each module loaded (not sure from where)
     int extraFuncsPerModule = 6;
@@ -161,6 +160,8 @@ namespace tests {
     }
 
     TEST_CASE("Test GOT population", "[wasm]") {
+        cleanSystem();
+
         util::SystemConfig &conf = util::getSystemConfig();
         std::string preloadBefore = conf.pythonPreload;
         conf.pythonPreload = "off";

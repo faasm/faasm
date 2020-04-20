@@ -6,6 +6,7 @@
 #include <module_cache/WasmModuleCache.h>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <util/files.h>
 
 bool runFunction(std::string &user, std::string &function, int runCount);
 

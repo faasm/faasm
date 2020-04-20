@@ -20,15 +20,6 @@ namespace wasm {
         return idx;
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_get_py_idx", I32, __faasm_get_py_idx) {
-        util::getLogger()->debug("S - get_py_idx");
-
-        message::Message *call = getExecutingCall();
-        int idx = call->pythonidx();
-
-        return idx;
-    }
-
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_await_call", I32, __faasm_await_call, U32 messageId) {
         util::getLogger()->debug("S - await_call - {}", messageId);
 
@@ -42,7 +33,7 @@ namespace wasm {
 
         const std::vector<uint8_t> inputData = getBytesFromWasm(inputDataPtr, inputDataLen);
 
-        return makeChainedCall(funcName, 0, 0, inputData);
+        return makeChainedCall(funcName, 0, nullptr, inputData);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_this", U32, __faasm_chain_this,
@@ -52,16 +43,17 @@ namespace wasm {
         message::Message *call = getExecutingCall();
         const std::vector<uint8_t> inputData = getBytesFromWasm(inputDataPtr, inputDataLen);
 
-        return makeChainedCall(call->function(), idx, 0, inputData);
+        return makeChainedCall(call->function(), idx, nullptr, inputData);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_py", U32, __faasm_chain_py,
-                                   I32 idx, I32 inputDataPtr, I32 inputDataLen) {
-        util::getLogger()->debug("S - chain_py - {} {} {}", idx, inputDataPtr, inputDataLen);
+                                   I32 namePtr, I32 inputDataPtr, I32 inputDataLen) {
+        const std::string pyFuncName = getStringFromWasm(namePtr);
+        util::getLogger()->debug("S - chain_py - {} {} {}", pyFuncName, inputDataPtr, inputDataLen);
 
         message::Message *call = getExecutingCall();
         const std::vector<uint8_t> inputData = getBytesFromWasm(inputDataPtr, inputDataLen);
 
-        return makeChainedCall(call->function(), 0, idx, inputData);
+        return makeChainedCall(call->function(), 0, pyFuncName.c_str(), inputData);
     }
 }

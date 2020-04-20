@@ -6,6 +6,7 @@
 #include <util/files.h>
 #include <iomanip>
 #include <util/func.h>
+#include <wavm/WAVMWasmModule.h>
 
 int main(int argc, char *argv[]) {
     util::initLogging();
@@ -25,7 +26,7 @@ int main(int argc, char *argv[]) {
 
     logger->info("Disassembling function {}/{}", user, function);
 
-    wasm::WasmModule module;
+    wasm::WAVMWasmModule module;
     module.bindToFunction(call);
 
     std::map<std::string, std::string> disasMap = module.buildDisassemblyMap();

@@ -64,11 +64,11 @@ namespace wasm {
         util::getLogger()->debug("S - poll_oneoff - {} {} {} {}", subscriptionsPtr, eventsPtr, nSubs, resNEvents);
         WAVMWasmModule *module = getExecutingModule();
 
-        auto inEvents = Runtime::memoryArrayPtr<wasi_subscription_t>(module->defaultMemory, subscriptionsPtr, nSubs);
+        auto inEvents = Runtime::memoryArrayPtr<__wasi_subscription_t>(module->defaultMemory, subscriptionsPtr, nSubs);
         auto outEvents = Runtime::memoryArrayPtr<__wasi_event_t>(module->defaultMemory, eventsPtr, nSubs);
 
         for (int i = 0; i < nSubs; i++) {
-            wasi_subscription_t *thisSub = &inEvents[i];
+            __wasi_subscription_t *thisSub = &inEvents[i];
 
             if (thisSub->type == __WASI_EVENTTYPE_CLOCK) {
                 // This is a timing event like a sleep

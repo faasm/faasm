@@ -1,4 +1,5 @@
 #include "FileSystem.h"
+#include "SharedFiles.h"
 
 #include <WASI/WASIPrivate.h>
 #include <boost/filesystem.hpp>
@@ -45,18 +46,20 @@ namespace storage {
         return thisFd;
     }
 
-    int FileSystem::openFileDescriptor(int rootFd, const std::string &path,
+    int FileSystem::openFileDescriptor(int rootFd, const std::string &relativePath,
                                        uint64_t rightsBase, uint64_t rightsInheriting,
                                        uint32_t lookupFlags, uint32_t openFlags, int32_t fdFlags) {
 
         storage::FileDescriptor &rootFileDesc = getFileDescriptor(rootFd);
 
         std::string fullPath;
-        if (rootFileDesc.getPath() == ".") {
-            fullPath = path;
+        if (SharedFiles::isPathShared(relativePath)) {
+            fullPath = relativePath;
+        } else if (rootFileDesc.getPath() == ".") {
+            fullPath = relativePath;
         } else {
             boost::filesystem::path joinedPath(rootFileDesc.getPath());
-            joinedPath.append(path);
+            joinedPath.append(relativePath);
             fullPath = std::string(joinedPath.string());
         }
 
@@ -98,5 +101,13 @@ namespace storage {
         fileDescriptors[thisFd] = originalDesc;
 
         return thisFd;
+    }
+
+    void FileSystem::clearSharedFiles() {
+        SharedFiles::clear();
+
+        // Just nuke the whole shared directory
+        util::SystemConfig &conf = util::getSystemConfig();
+        boost::filesystem::remove_all(conf.sharedFilesDir);
     }
 }

@@ -167,6 +167,11 @@ char* faasmGetPythonUser();
 char* faasmGetPythonFunc();
 
 /**
+ * Returns the python entrypoint
+ */
+char* faasmGetPythonEntry();
+
+/**
  * Returns a 1 or 0 saying whether the conf flag is on or off
  */
 unsigned int getConfFlag(const char* key);

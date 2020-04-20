@@ -103,7 +103,12 @@ namespace edge {
             } else if (pathType == "sobjobj") {
                 returnBytes = l.loadSharedObjectObjectFile(filePath);
             } else {
-                returnBytes = l.loadSharedFile(filePath);
+                try {
+                    returnBytes = l.loadSharedFile(filePath);
+                } catch(storage::SharedFileIsDirectoryException &e) {
+                    // If shared file is a directory, say so
+                    returnBytes = util::stringToBytes("IS_DIR");
+                }
             }
         } else {
             logger->debug("GET request to {}", uri);

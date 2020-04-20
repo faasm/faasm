@@ -1,18 +1,19 @@
 #include "WAVMWasmModule.h"
 
-#include <sys/mman.h>
-#include <fstream>
-
-#include <cereal/archives/binary.hpp>
 #include <boost/filesystem.hpp>
+#include <cereal/archives/binary.hpp>
+#include <fstream>
+#include <sys/mman.h>
+#include <sys/types.h>
 
+#include <ir_cache/IRModuleCache.h>
+#include <storage/SharedFiles.h>
+#include <util/bytes.h>
 #include <util/func.h>
 #include <util/memory.h>
 #include <util/timing.h>
 #include <util/config.h>
 #include <util/locks.h>
-
-#include <ir_cache/IRModuleCache.h>
 #include <wasm/serialisation.h>
 
 #include <WAVM/WASM/WASM.h>
@@ -22,8 +23,6 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 #include <Runtime/RuntimePrivate.h>
-#include <sys/types.h>
-#include <util/bytes.h>
 #include <WASI/WASIPrivate.h>
 
 using namespace WAVM;
@@ -623,6 +622,9 @@ namespace wasm {
         setExecutingModule(this);
         setExecutingCall(&msg);
 
+        // Ensure Python function file in place (if necessary)
+        syncPythonFunctionFile(msg);
+
         // Run a specific function if requested
         int funcPtr = msg.funcptr();
         std::vector<IR::UntaggedValue> invokeArgs;
@@ -1189,5 +1191,16 @@ namespace wasm {
     Runtime::Function *WAVMWasmModule::getFunctionFromPtr(int funcPtr) {
         Runtime::Object *funcObj = Runtime::getTableElement(defaultTable, funcPtr);
         return Runtime::asFunction(funcObj);
+    }
+
+    void WAVMWasmModule::syncPythonFunctionFile(const message::Message &msg) {
+        if(!msg.ispython()) {
+            return;
+        }
+
+        std::string sharedPath = util::getPythonFunctionFileSharedPath(msg);
+        std::string runtimeFilePath = util::getPythonRuntimeFunctionFile(msg);
+
+        storage::SharedFiles::syncSharedFile(sharedPath, runtimeFilePath);
     }
 }

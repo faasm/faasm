@@ -8,7 +8,6 @@
 #include <boost/filesystem.hpp>
 #include <util/bytes.h>
 #include <util/files.h>
-#include <storage/SharedFilesManager.h>
 
 
 namespace tests {

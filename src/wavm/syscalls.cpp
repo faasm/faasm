@@ -117,8 +117,6 @@ namespace wasm {
             case 192:
                 // mmap2 is basically the same as mmap (difference is in the final argument which we ignore)
                 return s__mmap(a, b, c, d, e, f);
-            case 195:
-                return s__stat64(a, b);
             case 196:
                 return s__lstat64(a, b);
             case 197:

@@ -23,6 +23,7 @@ namespace storage {
 
         int dup(int fd);
 
+        static void clearSharedFiles();
     private:
         int nextFd;
         std::unordered_map<int, storage::FileDescriptor> fileDescriptors;

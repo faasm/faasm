@@ -5,6 +5,8 @@
 #include <vector>
 #include "exception.h"
 
+#define SHARED_FILE_PREFIX "faasm://"
+
 #define SHARED_OBJ_EXT ".o"
 
 #define PYTHON_USER "python"
@@ -33,6 +35,10 @@ namespace util {
 
     std::string getPythonFunctionFile(const message::Message &msg);
 
+    std::string getPythonFunctionFileSharedPath(const message::Message &msg);
+
+    std::string getPythonRuntimeFunctionFile(const message::Message &msg);
+
     std::string getFunctionSymbolsFile(const message::Message &msg);
 
     std::string getFunctionObjectFile(const message::Message &msg);
@@ -50,6 +56,8 @@ namespace util {
     std::string buildAsyncResponse(const message::Message &msg);
 
     message::Message messageFactory(const std::string &user, const std::string &function);
+
+    void convertMessageToPython(message::Message &msg);
 
     std::string resultKeyFromMessageId(unsigned int mid);
 

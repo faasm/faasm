@@ -46,7 +46,7 @@ namespace util {
         outfile.open(path, std::ios::out | std::ios::binary);
 
         if (!outfile.is_open()) {
-            throw std::runtime_error("Could not write to file");
+            throw std::runtime_error("Could not write to file " + path);
         }
 
         outfile.write((char *) data.data(), data.size());
@@ -105,6 +105,10 @@ namespace util {
         if (out.str().empty()) {
             std::string msg = "Empty response for file " + url;
             throw FileNotFoundAtUrlException(msg);
+        }
+
+        if(out.str() == "IS_DIR") {
+            throw util::FileAtUrlIsDirectoryException(url + " is a directory");
         }
 
         return util::stringToBytes(out.str());

@@ -17,7 +17,6 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/WASI/WASIABI.h>
 #include <storage/FileLoader.h>
-#include <storage/SharedFilesManager.h>
 #include <util/macros.h>
 
 /**
@@ -160,9 +159,9 @@ namespace wasm {
 
                 __wasi_dirent_t wasmDirEnt{
                         .d_next = dirEnt.next,
-                        .d_type = dirEnt.type,
                         .d_ino = dirEnt.ino,
-                        .d_namlen = (unsigned int) dirEnt.path.size()
+                        .d_namlen = (unsigned int) dirEnt.path.size(),
+                        .d_type = dirEnt.type
                 };
 
                 // Copy the dirent itself
@@ -281,7 +280,7 @@ namespace wasm {
     }
 
     ssize_t doWritev(int fd, iovec *nativeIovecs, I32 iovecCount) {
-        ssize_t bytesWritten = writev(fd, nativeIovecs, iovecCount);
+        ssize_t bytesWritten = ::writev(fd, nativeIovecs, iovecCount);
 
         // Catpure stdout if necessary, otherwise write as normal
         util::SystemConfig &conf = util::getSystemConfig();
@@ -383,7 +382,7 @@ namespace wasm {
         storage::FileDescriptor &newFileDesc = module->getFileSystem().getFileDescriptor(newFd);
 
         const std::string &fullNewPath = newFileDesc.absPath(newPathStr);
-        bool success = oldFileDesc.rename(fullNewPath);
+        bool success = oldFileDesc.rename(fullNewPath, oldPathStr);
         if(!success) {
             return oldFileDesc.getWasiErrno();
         }
@@ -445,25 +444,6 @@ namespace wasm {
         return 0;
     }
 
-    I32 s__stat64(I32 pathPtr, I32 statBufPtr) {
-        const std::string pathStr = getStringFromWasm(pathPtr);
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - stat64 - {} {}", pathStr, statBufPtr);
-
-        // Use virtual FS to do the stat in case file is shared
-        struct stat64 nativeStat{};
-        storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
-        int result = sfm.statFile(pathStr, &nativeStat);
-
-        if (result < 0) {
-            return -errno;
-        }
-
-        writeNativeStatToWasmStat(&nativeStat, statBufPtr);
-
-        return result;
-    }
-
     I32 s__lstat64(I32 pathPtr, I32 statBufPtr) {
         const std::string fakePath = getMaskedPathFromWasm(pathPtr);
         util::getLogger()->debug("S - lstat - {} {}", fakePath, statBufPtr);
@@ -501,7 +481,7 @@ namespace wasm {
     I32 doFileStat(int fd, const std::string &relativePath, I32 statPtr) {
         WAVMWasmModule *module = getExecutingModule();
         storage::FileDescriptor &fileDesc = module->getFileSystem().getFileDescriptor(fd);
-        auto wasiFileStat = &Runtime::memoryRef<wasi_filestat_t>(module->defaultMemory, statPtr);
+        auto wasiFileStat = &Runtime::memoryRef<__wasi_filestat_t>(module->defaultMemory, statPtr);
 
         storage::Stat fileStat = fileDesc.stat(relativePath);
         if (fileStat.failed) {
@@ -554,18 +534,7 @@ namespace wasm {
 
         storage::FileDescriptor &fileDesc = getExecutingModule()->getFileSystem().getFileDescriptor(fd);
 
-        int linuxWhence;
-        if (whence == WASI_WHENCE_CUR) {
-            linuxWhence = SEEK_CUR;
-        } else if (whence == WASI_WHENCE_END) {
-            linuxWhence = SEEK_END;
-        } else if (whence == WASI_WHENCE_SET) {
-            linuxWhence = SEEK_SET;
-        } else {
-            throw std::runtime_error("Unsupported whence");
-        }
-
-        uint16_t wasiErrno = fileDesc.seek(offset, linuxWhence, newOffsetHostPtr);
+        uint16_t wasiErrno = fileDesc.seek(offset, whence, newOffsetHostPtr);
 
         return wasiErrno;
     }

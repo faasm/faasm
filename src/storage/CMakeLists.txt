@@ -11,7 +11,7 @@ set(HEADERS
         ${FAASM_INCLUDE_DIR}/storage/IBMFileLoader.h
         ${FAASM_INCLUDE_DIR}/storage/IBMStorageWrapper.h
         ${FAASM_INCLUDE_DIR}/storage/LocalFileLoader.h
-        ${FAASM_INCLUDE_DIR}/storage/SharedFilesManager.h
+        ${FAASM_INCLUDE_DIR}/storage/SharedFiles.h
         )
 
 set(LIB_FILES
@@ -22,7 +22,7 @@ set(LIB_FILES
         IBMFileLoader.cpp
         IBMStorageWrapper.cpp
         LocalFileLoader.cpp
-        SharedFilesManager.cpp
+        SharedFiles.cpp
         instance.cpp
         ${HEADERS}
         )
