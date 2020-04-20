@@ -40,5 +40,7 @@ third-party
 !third-party/malloc
 !third-party/eigen
 !third-party/WAVM
+!third-party/wamr
+
 
 !third-party/tensorflow
