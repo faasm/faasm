@@ -174,15 +174,23 @@ namespace wasm {
         return bytes.size();
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state", void, __faasm_read_state,
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state", I32, __faasm_read_state,
                                    I32 keyPtr, I32 bufferPtr, I32 bufferLen) {
+        std::string key = getStringFromWasm(keyPtr);
+        util::getLogger()->debug("S - read_state - {} {} {}", key, bufferPtr, bufferLen);
+        state::State &state = state::getGlobalState();
+
+        if(bufferLen == 0) {
+            return (I32) state.getStateSize(getExecutingCall()->user(), key);
+        }
+
         auto kv = getStateKV(keyPtr, bufferLen);
-        util::getLogger()->debug("S - read_state - {} {} {}", kv->key, bufferPtr, bufferLen);
 
         // Copy to straight to buffer
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
         kv->get(buffer);
+        return kv->size();
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_ptr", I32, __faasm_read_state_ptr,

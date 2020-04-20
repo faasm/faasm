@@ -12,6 +12,8 @@ namespace state {
     public:
         explicit UserState(const std::string &userIn);
 
+        size_t getSize(const std::string &key);
+
         std::shared_ptr<StateKeyValue> getValue(const std::string &key, size_t size);
 
         size_t getKeyCount();

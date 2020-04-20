@@ -128,7 +128,7 @@ int __faasm_get_idx() {
     throw std::runtime_error("Not implemented self-chaining");
 }
 
-void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen) {
+long __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen) {
     if (bufferLen == 0) {
         return;
     }
@@ -137,6 +137,9 @@ void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen) 
 
     redis::Redis &redis = redis::Redis::getState();
     redis.get(actualKey, buffer, bufferLen);
+
+    // TODO - return actual size
+    return 0;
 }
 
 

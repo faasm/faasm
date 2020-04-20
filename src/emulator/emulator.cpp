@@ -105,16 +105,22 @@ unsigned int setEmulatedMessage(const message::Message &msg) {
     return msgId;
 }
 
-std::shared_ptr<state::StateKeyValue> getKv(const char *key, size_t size) {
-    state::State &s = state::getGlobalState();
-
+std::string getEmulatedUser() {
     if (_emulatedCall.user().empty()) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("Setting dummy emulator user {}", DUMMY_USER);
         setEmulatorUser(DUMMY_USER);
     }
 
-    return s.getKV(_emulatedCall.user(), key, size);
+    return _emulatedCall.user();
+}
+
+std::shared_ptr<state::StateKeyValue> getKv(const char *key, size_t size) {
+    state::State &s = state::getGlobalState();
+
+    const std::string &emulatedUser = getEmulatedUser();
+
+    return s.getKV(emulatedUser, key, size);
 }
 
 void __faasm_write_output(const unsigned char *output, long outputLen) {
@@ -123,14 +129,18 @@ void __faasm_write_output(const unsigned char *output, long outputLen) {
 }
 
 
-void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen) {
+long __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen) {
     util::getLogger()->debug("E - read_state {} {}", key, bufferLen);
+    state::State &s = state::getGlobalState();
+    std::string emulatedUser = getEmulatedUser();
+
     if (bufferLen == 0) {
-        return;
+        return s.getStateSize(emulatedUser, key);
     }
 
     auto kv = getKv(key, bufferLen);
     kv->get(buffer);
+    return kv->size();
 }
 
 unsigned char *__faasm_read_state_ptr(const char *key, long totalLen) {

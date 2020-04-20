@@ -8,6 +8,8 @@ namespace state {
     public:
         RedisStateBackend();
 
+        size_t getSize(const std::string &key) override;
+
         void get(const std::string &key, uint8_t *buffer, size_t bufferLen) override;
 
         std::vector<uint8_t> get(const std::string &key) override;

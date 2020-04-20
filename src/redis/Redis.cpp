@@ -165,6 +165,14 @@ namespace redis {
         logger->debug("Successfully pinged redis");
     }
 
+    size_t Redis::strlen(const std::string &key) {
+        auto reply = (redisReply *) redisCommand(context, "STRLEN %s", key.c_str());
+
+        size_t result = reply->integer;
+        freeReplyObject(reply);
+        return result;
+    }
+
     void Redis::get(const std::string &key, uint8_t *buffer, size_t size) {
         auto reply = (redisReply *) redisCommand(context, "GET %s", key.c_str());
 

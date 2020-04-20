@@ -5,8 +5,8 @@ extern "C" {
 }
 
 
-void faasmReadState(const char *key, uint8_t *buffer, long bufferLen) {
-    __faasm_read_state(key, buffer, bufferLen);
+long faasmReadState(const char *key, uint8_t *buffer, long bufferLen) {
+    return __faasm_read_state(key, buffer, bufferLen);
 }
 
 uint8_t *faasmReadStatePtr(const char *key, long totalLen) {

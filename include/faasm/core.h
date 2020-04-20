@@ -13,7 +13,7 @@ extern "C" {
 /**
 * Reads the full state at the given key
 */
-void faasmReadState(const char *key, unsigned char *buffer, long bufferLen);
+long faasmReadState(const char *key, unsigned char *buffer, long bufferLen);
 
 /**
 * Reads append-only state

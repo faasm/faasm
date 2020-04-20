@@ -9,7 +9,7 @@
 #endif
 
 HOST_IFACE_FUNC
-void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen);
+long __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen);
 
 HOST_IFACE_FUNC
 unsigned char *__faasm_read_state_ptr(const char *key, long totalLen);
