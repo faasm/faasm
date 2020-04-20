@@ -32,6 +32,29 @@ namespace tests {
         return kv;
     }
 
+    TEST_CASE("Test state sizes", "[state]") {
+        cleanSystem();
+
+        State &s = getGlobalState();
+        std::string user = "alpha";
+        std::string key = "beta";
+
+        // Empty should be none
+        REQUIRE(s.getStateSize(user, key) == 0);
+
+        // Set a value
+        std::vector<uint8_t> bytes = {0, 1, 2, 3, 4};
+        auto kv = s.getKV(user, key, bytes.size());
+        kv->set(bytes.data());
+        kv->pushFull();
+
+        // Clear local KV
+        s.forceClearAll();
+
+        // Get size
+        REQUIRE(s.getStateSize(user, key) == bytes.size());
+    }
+
     TEST_CASE("Test simple state get/set", "[state]") {
         redis::Redis &redisState = redis::Redis::getState();
         auto kv = setupKV(5);
