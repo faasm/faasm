@@ -16,6 +16,8 @@ jobs:
       DOCKER_BUILDKIT: 1
     steps:
       - uses: actions/checkout@v2
+      - name: "Print Docker tag"
+        run: echo "DOCKER TAG = ${GITHUB_REF//\//-}"
       - uses: docker/build-push-action@v1
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -23,7 +25,7 @@ jobs:
           repository: faasm/testing
           dockerfile: docker/testing.dockerfile
           always_pull: true
-          tag_with_ref: true
+          tags: ${GITHUB_REF//\//-}
           build_args: FAASM_VERSION=0.1.1
       - name: "Create a docker network"
         run: docker network create -d bridge test-net
@@ -40,5 +42,5 @@ jobs:
           -e REDIS_QUEUE_HOST=redis
           -e LOG_LEVEL=info
           -e THREADS_PER_WORKER=5
-          faasm/testing:${GITHUB_SHA}
+          faasm/testing:${GITHUB_REF//\//-}
           /usr/local/code/faasm/bin/ci_run.sh
