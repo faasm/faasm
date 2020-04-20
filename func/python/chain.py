@@ -1,5 +1,4 @@
-from pyfaasm.core import get_function_idx, get_input, chain_this_with_input, register_function, \
-    PYTHON_LOCAL_CHAINING, await_call
+from pyfaasm.core import chain_this_with_input, await_call
 
 
 def chain_one(input_bytes):

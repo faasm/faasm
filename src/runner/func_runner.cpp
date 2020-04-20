@@ -43,8 +43,8 @@ int main(int argc, char *argv[]) {
     }
 
     if (user == "python") {
-
-        logger->info("Running Python function {}/{}", user, function);
+        util::convertMessageToPython(call);
+        logger->info("Running Python function {}/{}", call.pythonuser(), call.pythonfunction());
     } else {
         logger->info("Running function {}/{}", user, function);
     }

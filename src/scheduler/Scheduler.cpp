@@ -269,6 +269,8 @@ namespace scheduler {
             bindMsg.set_type(message::Message_MessageType_BIND);
             bindMsg.set_ispython(msg.ispython());
             bindMsg.set_istypescript(msg.istypescript());
+            bindMsg.set_pythonuser(msg.pythonuser());
+            bindMsg.set_pythonfunction(msg.pythonfunction());
 
             this->enqueueMessage(bindMsg);
         }

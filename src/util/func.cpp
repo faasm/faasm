@@ -9,6 +9,8 @@
 #include <util/gids.h>
 #include <util/config.h>
 #include <boost/algorithm/string.hpp>
+#include <util/logging.h>
+#include <util/json.h>
 
 
 namespace util {
@@ -66,6 +68,12 @@ namespace util {
         if (!msg.ispython()) {
             throw std::runtime_error(
                     "Getting python function file for non-Python function " + funcToString(msg, false)
+            );
+        }
+
+        if(msg.pythonuser().empty() || msg.pythonfunction().empty()) {
+            throw std::runtime_error(
+                    "Invalid Python call: user=" + msg.pythonuser() + " func=" + msg.pythonfunction()
             );
         }
         boost::filesystem::path path(parentDir);
