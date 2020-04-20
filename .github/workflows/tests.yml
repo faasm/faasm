@@ -16,14 +16,15 @@ jobs:
       DOCKER_BUILDKIT: 1
     steps:
       - uses: actions/checkout@v2
-      - uses: whoan/docker-build-with-cache-action@v5
+      - uses: docker/build-push-action@v1
         with:
-          username: Shillaker
-          password: "${{ secrets.GITHUB_TOKEN }}"
-          image_name: faasm/testing
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: faasm/testing
           dockerfile: docker/testing.dockerfile
-          registry: docker.pkg.github.com
-          build_extra_args: "--compress=true --build-arg FAASM_VERSION=0.1.1"
+          always_pull: true
+          tag_with_ref: true
+          build_args: FAASM_VERSION=0.1.1
       - name: "Create a docker network"
         run: docker network create -d bridge test-net
       - name: "Stop redis container"
