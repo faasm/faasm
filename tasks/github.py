@@ -104,7 +104,7 @@ def upload_artifacts(ctx, which=None):
         else:
             print("Unrecognised artifact: {} (must be {})".format(a, artifacts))
             exit(1)
-            
+
 
 @task
 def publish_release(ctx):
