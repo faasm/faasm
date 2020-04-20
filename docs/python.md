@@ -38,20 +38,17 @@ This should give a message and the version of Python being run.
 A simple example of chaining Python functions in Faasm looks like:
 
 ```python
-from pyfaasm.core import await_call, chain_this, faasm_func, faasm_main
+from pyfaasm.core import await_call, chain_this_with_input
 
-@faasm_func(1)
 def func_one():
     pass
 
-@faasm_func(2)
 def func_two():
     pass
 
-@faasm_main
-def main_func():
-    call_one = chain_this(1)
-    call_two = chain_this(2)
+def faasm_main():
+    call_one = chain_this_with_input(func_one)
+    call_two = chain_this_with_input(func_two)
 
     await_call(call_one)
     await_call(call_two)
