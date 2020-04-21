@@ -7,6 +7,8 @@ namespace knative_native {
     public:
         KnativeNativeEndpoint(std::string userIn, std::string funcIn);
 
+        KnativeNativeEndpoint(std::string userIn, std::string funcIn, int port, int threadCount);
+
         std::shared_ptr<Pistache::Http::Handler> getHandler() override;
     private:
         const std::string user;

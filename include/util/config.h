@@ -67,6 +67,10 @@ namespace util {
         // MPI
         int defaultMpiWorldSize;
 
+        // Endpoing
+        int endpointPort;
+        int endpointNumThreads;
+
         SystemConfig();
 
         void print();

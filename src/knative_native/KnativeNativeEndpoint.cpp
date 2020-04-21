@@ -4,11 +4,19 @@
 #include <utility>
 
 namespace knative_native {
+
+    KnativeNativeEndpoint::KnativeNativeEndpoint(std::string userIn, std::string funcIn) : Endpoint(),
+                                                                                           user(std::move(userIn)),
+                                                                                           func(std::move(funcIn)) {
+    }
+
     KnativeNativeEndpoint::KnativeNativeEndpoint(
             std::string userIn,
-            std::string funcIn
-    ) : Endpoint(8080,
-                 2),
+            std::string funcIn,
+            int port,
+            int threadCount
+    ) : Endpoint(port,
+                 threadCount),
         user(std::move(userIn)),
         func(std::move(funcIn)) {
     }
