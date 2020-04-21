@@ -634,12 +634,12 @@ namespace wasm {
         Runtime::Function *funcInstance;
         IR::FunctionType funcType;
 
-        if (msg.has_ldepth()) {
+        if (msg.has_ompdepth()) {
             // Handle OMP functions
             funcInstance = getFunctionFromPtr(funcPtr);
             funcType = Runtime::getFunctionType(funcInstance);
-            int threadNum = msg.threadnum();
-            int argc = msg.functionargs_size();
+            int threadNum = msg.ompthreadnum();
+            int argc = msg.ompfunctionargs_size();
 
             logger->debug("Running OMP thread #{} for function{} with argType {} (argc = {})", threadNum, funcPtr,
                           WAVM::IR::asString(funcType), argc);
@@ -647,7 +647,7 @@ namespace wasm {
             invokeArgs.emplace_back(threadNum);
             invokeArgs.emplace_back(argc);
             for (int argIdx = 0; argIdx < argc; argIdx++) {
-                invokeArgs.emplace_back(msg.functionargs(argIdx));
+                invokeArgs.emplace_back(msg.ompfunctionargs(argIdx));
             }
 
         } else if (funcPtr > 0) {

@@ -275,7 +275,7 @@ namespace wasm {
                             reducePtr = &Runtime::memoryRef<I32>(memoryPtr, pointers[argIdx]);
                             logger->warn("BEFORE ARG: {}", *reducePtr);
                         }
-                        call.add_functionargs(pointers[argIdx]);
+                        call.add_ompfunctionargs(pointers[argIdx]);
                     }
                 }
 
@@ -284,8 +284,8 @@ namespace wasm {
                 call.set_snapshotkey(activeSnapshotKey);
                 call.set_snapshotsize(threadSnapshotSize);
                 call.set_funcptr(microtaskPtr); // ugh..?>?> TODO-Luckily I don't think it's being used.
-                call.set_threadnum(threadNum);
-                call.set_numthreads(nextNumThreads);
+                call.set_ompthreadnum(threadNum);
+                call.set_ompnumthreads(nextNumThreads);
                 thisLevel->snapshot_parent(call);
                 const std::string chainedStr = util::funcToString(call, false);
                 sch.callFunction(call);
@@ -339,7 +339,7 @@ namespace wasm {
         thisLevel->pushed_num_threads = -1; // Resets for next push
 
         // Set up new level
-        auto nextLevel = new OMPLevel(thisLevel, nextNumThreads);
+        auto nextLevel = std::make_shared<OMPLevel>(thisLevel, nextNumThreads);
 
         // Note - must ensure thread arguments are outside loop scope otherwise they do
         // may not exist by the time the thread actually consumes them
@@ -398,7 +398,6 @@ namespace wasm {
             throw std::runtime_error(fmt::format("{}} OMP threads have exited with errors", numErrors));
         }
 
-        delete nextLevel;
     }
 
     /**

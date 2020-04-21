@@ -2,7 +2,7 @@
 
 namespace wasm {
     namespace openmp {
-        OMPLevel::OMPLevel(const OMPLevel *parent, int num_threads) :
+        OMPLevel::OMPLevel(const std::shared_ptr<OMPLevel> parent, int num_threads) :
                 depth(parent->depth + 1),
                 effective_depth(num_threads > 1 ? parent->effective_depth + 1 : parent->effective_depth),
                 max_active_level(parent->max_active_level),
@@ -36,9 +36,9 @@ namespace wasm {
         }
 
         void OMPLevel::snapshot_parent(message::Message &msg) const {
-            msg.set_ldepth(depth);
-            msg.set_leffdepth(effective_depth);
-            msg.set_lmal(max_active_level);
+            msg.set_ompdepth(depth);
+            msg.set_ompeffdepth(effective_depth);
+            msg.set_ompmal(max_active_level);
         }
 
     }

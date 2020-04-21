@@ -40,7 +40,7 @@ target_link_libraries(bench_mem bench)
 add_executable(bench_func bench_func.cpp)
 target_link_libraries(bench_func bench)
 
-add_executable(bench_omp bench_func.cpp)
+add_executable(bench_omp bench_omp.cpp)
 target_link_libraries(bench_omp bench)
 
 add_executable(bench_time bench_time.cpp)

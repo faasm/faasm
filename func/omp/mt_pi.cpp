@@ -10,7 +10,7 @@ unsigned long thread_seed() {
 }
 
 int main(int argc, char **argv) {
-    long long iterations = 100l;
+    long long iterations = 1000LL;
     int num_threads = 1;
     if (argc == 3) {
         num_threads = std::stoi(argv[1]);

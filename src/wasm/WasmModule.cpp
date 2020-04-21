@@ -195,16 +195,16 @@ namespace wasm {
     }
 
     void WasmModule::prepareOpenMPContext(const message::Message &msg) {
-        openmp::setThreadNumber(msg.threadnum());
-        openmp::OMPLevel *ompLevel;
+        openmp::setThreadNumber(msg.ompthreadnum());
+        std::shared_ptr<openmp::OMPLevel> ompLevel;
 
-        if (msg.has_ldepth()) {
-            ompLevel = new openmp::OMPLevel(msg.ldepth(),
-                                            msg.leffdepth(),
-                                            msg.lmal(),
-                                            msg.numthreads());
+        if (msg.has_ompdepth()) {
+            ompLevel = std::make_shared<openmp::OMPLevel>(msg.ompdepth(),
+                                                          msg.ompeffdepth(),
+                                                          msg.ompmal(),
+                                                          msg.ompnumthreads());
         } else {
-            ompLevel = new openmp::OMPLevel();
+            ompLevel = std::make_shared<openmp::OMPLevel>();
         }
 
         openmp::setThreadLevel(ompLevel);

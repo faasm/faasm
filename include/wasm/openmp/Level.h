@@ -27,7 +27,7 @@ namespace wasm {
             OMPLevel() = default;
 
             // Local constructor
-            OMPLevel(const OMPLevel *parent, int num_threads);
+            OMPLevel(const std::shared_ptr<OMPLevel> parent, int num_threads);
 
             // Distributed constructor
             OMPLevel(int depth, int effective_depth, int max_active_level, int num_threads);

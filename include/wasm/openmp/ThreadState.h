@@ -7,11 +7,11 @@ namespace wasm {
     namespace openmp {
         // TLS for each OMP thread
         extern thread_local int thisThreadNumber;
-        extern thread_local OMPLevel *thisLevel;
+        extern thread_local std::shared_ptr<OMPLevel> thisLevel;
 
         void setThreadNumber(int);
 
-        void setThreadLevel(OMPLevel *);
+        void setThreadLevel(std::shared_ptr<OMPLevel>);
     }
 }
 

@@ -13,7 +13,7 @@ nativeRun(std::ofstream &profOut, const std::string &execPath, long num_iteratio
           int num_threads);
 
 void wasmRun(std::ofstream &profOut, message::Message &call, long num_iterations, const std::string &iteration_name,
-             int num_threads, wasm::WasmModule module);
+             int num_threads, wasm::WAVMWasmModule module);
 
 int main(int argc, char *argv[]) {
     util::initLogging();
@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
 
     message::Message call = util::messageFactory(user, funcName);
     module_cache::WasmModuleCache &moduleCache = module_cache::getWasmModuleCache();
-    wasm::WasmModule &cachedModule = moduleCache.getCachedModule(call);
+    wasm::WAVMWasmModule &cachedModule = moduleCache.getCachedModule(call);
 
     for (int run = 1; run <= wasmIterations; run++) {
         logger->info("WASM - {} ({}/{})", funcName, run, nativeIterations);
@@ -81,12 +81,12 @@ int main(int argc, char *argv[]) {
 }
 
 void wasmRun(std::ofstream &profOut, message::Message &call, long num_iterations, const std::string &iteration_name,
-             int num_threads, wasm::WasmModule cachedModule) {
+             int num_threads, wasm::WAVMWasmModule cachedModule) {
     auto args = fmt::format("{} {}", num_threads, num_iterations);
     call.set_cmdline(args.c_str());
     const util::TimePoint wasmTp = util::startTimer();
 
-    wasm::WasmModule module{cachedModule};
+    wasm::WAVMWasmModule module{cachedModule};
 
     module.execute(call);
 

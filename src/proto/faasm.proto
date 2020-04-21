@@ -48,12 +48,12 @@ message Message {
     optional int32 mpiRank = 28;
     optional int32 mpiWorldSize = 29;
 
-    optional int32 threadNum = 30 [default = 0];
-    repeated uint32 functionArgs = 31;
-    optional int32 lDepth = 32;
-    optional int32 lEffDepth = 33;
-    optional int32 lMAL = 34;
-    optional int32 numThreads = 35;
+    optional int32 ompThreadNum = 30 [default = 0];
+    repeated uint32 ompFunctionArgs = 31;
+    optional int32 ompDepth = 32;
+    optional int32 ompEffDepth = 33;
+    optional int32 ompMAL = 34;
+    optional int32 ompNumThreads = 35;
 
     optional string cmdline = 36;
 }
