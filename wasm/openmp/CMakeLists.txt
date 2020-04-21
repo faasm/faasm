@@ -1,6 +1,6 @@
-include_directories(${FAASM_INCLUDE_DIR}/openmp)
+include_directories(${FAASM_INCLUDE_DIR}/wasm/openmp)
 
-file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/openmp/*.h")
+file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/wasm/openmp/*.h")
 
 set(LIB_FILES
         Level.cpp

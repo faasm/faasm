@@ -1,7 +1,7 @@
 #include "WAVMWasmModule.h"
 
-#include <openmp/Level.h>
-#include <openmp/ThreadState.h>
+#include <wasm/openmp/Level.h>
+#include <wasm/openmp/ThreadState.h>
 
 #include <WAVM/Platform/Thread.h>
 #include <WAVM/Runtime/Runtime.h>
@@ -15,7 +15,6 @@ constexpr int OMP_STACK_SIZE = 2 * (ONE_MB_BYTES);
 
 namespace wasm {
     using namespace openmp;
-    // TODO - random?
     const auto REDUCE_KEY = std::string("omp_wowzoid");
 
     // Types in accordance with Clang's OpenMP implementation
@@ -34,13 +33,6 @@ namespace wasm {
             empty_reduce_block = (4 << 8)
         };
     }
-
-    // Arguments passed to spawned threads. Shared at by the level apart from tid
-    struct OMPThreadArgs {
-        int tid;
-        OMPLevel *newLevel;
-        struct WasmThreadSpec spec;
-    };
 
     /**
      * Function used to spawn OMP threads. Will be called from within a thread
@@ -347,7 +339,7 @@ namespace wasm {
         thisLevel->pushed_num_threads = -1; // Resets for next push
 
         // Set up new level
-        OMPLevel *nextLevel = new OMPLevel(thisLevel, nextNumThreads);
+        auto nextLevel = new OMPLevel(thisLevel, nextNumThreads);
 
         // Note - must ensure thread arguments are outside loop scope otherwise they do
         // may not exist by the time the thread actually consumes them
@@ -587,18 +579,11 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_reduce", I32, __kmpc_reduce, I32 loc, I32 gtid, I32 num_vars,
                                    I32 reduce_size, I32 reduce_data, I32 reduce_func, I32 lck) {
-        throw std::runtime_error("RIP");
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __kmpc_reduce {} {} {} {} {} {} {}", loc, gtid, num_vars, reduce_size,
                       reduce_data, reduce_func, lck);
 
         return startReduction();
-//        faasm::AsyncArray<int> distArray(REDUCE_ARR_KEY, thisLevel->num_threads);
-////
-////        // Do the update
-//        distArray.pullLazy();
-//        distArray[thisThreadNumber] = 200;
-//        distArray.push();
     }
 
     /**
@@ -616,15 +601,17 @@ namespace wasm {
                                    I32 num_vars, I32 reduce_size, I32 reduce_data, I32 reduce_func, I32 lck) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __kmpc_reduce_nowait {} {} {} {} {} {} {}", loc, gtid, num_vars, reduce_size, reduce_data,
-                     reduce_func, lck);
+                      reduce_func, lck);
 
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        int *localReduceData = &Runtime::memoryRef<I32>(memoryPtr, Runtime::memoryRef<I32>(memoryPtr, reduce_data));
-        logger->warn("BEFORE {}, pointing to {}", *localReduceData);
-//        return startReduction();
-
-        state::getBackend().incrByLong(REDUCE_KEY, *localReduceData);
-        return kmp::empty_reduce_block; // Just need a number different from 1 and 2
+        if (1 == userNumDevice) {
+            Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+            int *localReduceData = &Runtime::memoryRef<I32>(memoryPtr, Runtime::memoryRef<I32>(memoryPtr, reduce_data));
+            logger->debug("Reduce local data ({}): {}", thisThreadNumber, *localReduceData);
+            state::getBackend().incrByLong(REDUCE_KEY, *localReduceData);
+            return kmp::empty_reduce_block; // Just need a number different from 1 and 2
+        } else {
+            return startReduction();
+        }
     }
 
     /**
@@ -634,9 +621,12 @@ namespace wasm {
      * @param lck kmp_critical_name* to the critical section.
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_reduce", void, __kmpc_end_reduce, I32 loc, I32 gtid, I32 lck) {
-        throw std::runtime_error("RIP");
         util::getLogger()->debug("S - __kmpc_end_reduce {} {} {}", loc, gtid, lck);
-        endReduction();
+        if (1 == userNumDevice) {
+            endReduction();
+        } else {
+            throw std::runtime_error("End reduce called in distributed context");
+        }
     }
 
     /**
@@ -647,10 +637,12 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_reduce_nowait", void, __kmpc_end_reduce_nowait, I32 loc, I32 gtid,
                                    I32 lck) {
-        // TODO - have two variants of OMPLevel for that
-        throw std::runtime_error("Shouldn't run end reduce in distributed");
         util::getLogger()->debug("S - __kmpc_end_reduce_nowait {} {} {}", loc, gtid, lck);
-        endReduction();
+        if (1 == userNumDevice) {
+            endReduction();
+        } else {
+            throw std::runtime_error("End reduce called in distributed context");
+        }
     }
 
     /**

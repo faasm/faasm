@@ -1,5 +1,4 @@
-#ifndef FAASM_LEVEL_H
-#define FAASM_LEVEL_H
+#pragma once
 
 #include <mutex>
 #include <proto/faasm.pb.h>
@@ -42,6 +41,3 @@ namespace wasm {
 
     }
 }
-
-
-#endif //FAASM_LEVEL_H
