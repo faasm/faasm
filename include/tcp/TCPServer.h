@@ -28,8 +28,6 @@ namespace tcp {
         int port;
         int serverSocket;
         struct sockaddr_in serverAddress{};
-
-        std::vector<std::thread> threads;
     };
 
 }

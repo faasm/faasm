@@ -31,7 +31,7 @@ namespace tcp {
         // Receive the message data
         if (m->len > 0) {
             m->buffer = new uint8_t[m->len];
-            recv(clientSocket, m->buffer, m->len, 0);
+            ::recv(clientSocket, m->buffer, m->len, 0);
         } else {
             m->buffer = nullptr;
         }
