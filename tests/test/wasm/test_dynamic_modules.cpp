@@ -1,8 +1,7 @@
 #include <catch/catch.hpp>
 #include "utils.h"
-#include <wasm/WasmModule.h>
+#include <wavm/WAVMWasmModule.h>
 #include <ir_cache/IRModuleCache.h>
-#include <storage/SharedFilesManager.h>
 
 namespace tests {
 
@@ -43,9 +42,9 @@ namespace tests {
     std::string mainData = "PyBool_Type";
     std::string dataA = "PyArray_API";
     std::string dataB = "PyUFunc_API";
-    int mainDataOffset = 6354224;
-    int dataAOffset = 42049184;
-    int dataBOffset = 73334784;
+    int mainDataOffset = 6316112;
+    int dataAOffset = 41918112;
+    int dataBOffset = 73203712;
 
     // NOTE - extra table entries are created for each module loaded (not sure from where)
     int extraFuncsPerModule = 6;
@@ -62,7 +61,7 @@ namespace tests {
 
         // Bind to Python function
         message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
-        wasm::WasmModule module;
+        wasm::WAVMWasmModule module;
         module.bindToFunction(msg);
 
         // Get initial sizes
@@ -144,7 +143,7 @@ namespace tests {
         conf.pythonPreload = preloadBefore;
     }
 
-    void checkFuncInGOT(wasm::WasmModule &module, const std::string &funcName, int expectedIdx,
+    void checkFuncInGOT(wasm::WAVMWasmModule &module, const std::string &funcName, int expectedIdx,
             const std::string &expectedName) {
         int funcIdx = module.getFunctionOffsetFromGOT(funcName);
         REQUIRE(funcIdx == expectedIdx);
@@ -155,19 +154,21 @@ namespace tests {
         REQUIRE(Runtime::getFunctionDebugName(funcObj) == expectedName);
     }
 
-    void checkDataInGOT(wasm::WasmModule &module, const std::string &dataName, int expectedOffset) {
+    void checkDataInGOT(wasm::WAVMWasmModule &module, const std::string &dataName, int expectedOffset) {
         int actualOffset = module.getDataOffsetFromGOT(dataName);
         REQUIRE(actualOffset == expectedOffset);
     }
 
     TEST_CASE("Test GOT population", "[wasm]") {
+        cleanSystem();
+
         util::SystemConfig &conf = util::getSystemConfig();
         std::string preloadBefore = conf.pythonPreload;
         conf.pythonPreload = "off";
 
         // Bind to Python function
         message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
-        wasm::WasmModule module;
+        wasm::WAVMWasmModule module;
         module.bindToFunction(msg);
 
         Uptr initialTableSize = Runtime::getTableNumElements(module.defaultTable);
@@ -215,7 +216,7 @@ namespace tests {
         conf.pythonPreload = preloadBefore;
     }
 
-    void resolveGlobalI32(wasm::WasmModule &module, const std::string &moduleName, const std::string &name, I32 expected) {
+    void resolveGlobalI32(wasm::WAVMWasmModule &module, const std::string &moduleName, const std::string &name, I32 expected) {
         IR::GlobalType globalType;
         Runtime::Object* importObj;
         module.resolve(moduleName, name, globalType, importObj);
@@ -231,7 +232,7 @@ namespace tests {
 
         // Bind to Python function
         message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
-        wasm::WasmModule module;
+        wasm::WAVMWasmModule module;
         module.bindToFunction(msg);
 
         // Load a dynamic module

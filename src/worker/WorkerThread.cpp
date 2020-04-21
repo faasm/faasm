@@ -85,7 +85,7 @@ namespace worker {
         // Restore from zygote
         logger->debug("Resetting module {} from zygote", funcStr);
         module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
-        wasm::WasmModule &cachedModule = registry.getCachedModule(call);
+        wasm::WAVMWasmModule &cachedModule = registry.getCachedModule(call);
         *module = cachedModule;
 
         // Increment the execution counter
@@ -113,8 +113,8 @@ namespace worker {
         PROF_START(snapshotCreate)
 
         module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
-        wasm::WasmModule &snapshot = registry.getCachedModule(msg);
-        module = std::make_unique<wasm::WasmModule>(snapshot);
+        wasm::WAVMWasmModule &snapshot = registry.getCachedModule(msg);
+        module = std::make_unique<wasm::WAVMWasmModule>(snapshot);
 
         PROF_END(snapshotCreate)
 
@@ -191,8 +191,8 @@ namespace worker {
                 PROF_START(snapshotOverride)
 
                 module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
-                wasm::WasmModule &snapshot = registry.getCachedModule(msg);
-                module = std::make_unique<wasm::WasmModule>(snapshot);
+                wasm::WAVMWasmModule &snapshot = registry.getCachedModule(msg);
+                module = std::make_unique<wasm::WAVMWasmModule>(snapshot);
 
                 PROF_END(snapshotOverride)
             }

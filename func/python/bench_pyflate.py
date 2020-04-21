@@ -3,7 +3,8 @@ from os.path import exists
 
 from pyperformance.benchmarks.bm_pyflate import bench_pyflake
 
-if __name__ == "__main__":
+
+def faasm_main():
     if os.environ.get("PYTHONWASM") == "1":
         file_path = "/lib/python3.7/site-packages/pyperformance/benchmarks/data/interpreter.tar.bz2"
     else:
@@ -12,3 +13,7 @@ if __name__ == "__main__":
             file_path = "/usr/local/lib/python3.6/dist-packages/pyperformance/benchmarks/data/interpreter.tar.bz2"
 
     bench_pyflake(1, file_path)
+
+
+if __name__ == "__main__":
+    faasm_main()

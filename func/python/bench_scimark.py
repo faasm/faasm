@@ -1,5 +1,5 @@
-from array import array
 import math
+from array import array
 
 from six.moves import xrange
 
@@ -382,7 +382,8 @@ BENCHMARKS = {
     'fft': (bench_FFT, 1024, 50),
 }
 
-if __name__ == "__main__":
+
+def faasm_main():
     benchmarks = sorted(BENCHMARKS)
 
     loops = 1
@@ -391,3 +392,7 @@ if __name__ == "__main__":
         args = BENCHMARKS[bench][1:]
         f = BENCHMARKS[bench][0]
         f(loops, *args)
+
+
+if __name__ == "__main__":
+    faasm_main()

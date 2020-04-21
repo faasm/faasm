@@ -2,12 +2,13 @@ import multiprocessing
 from functools import partial
 from os import makedirs, listdir
 from os.path import join, exists
-from shutil import copy
+from shutil import copy, rmtree
 
 from invoke import task
 
 from tasks.util.endpoints import get_upload_host_port
-from tasks.util.env import PROJ_ROOT, RUNTIME_S3_BUCKET, FUNC_DIR, WASM_DIR, FAASM_SHARED_STORAGE_ROOT
+from tasks.util.env import PROJ_ROOT, RUNTIME_S3_BUCKET, FUNC_DIR, WASM_DIR, FAASM_SHARED_STORAGE_ROOT, \
+    FAASM_SHARED_ROOT, FAASM_RUNTIME_ROOT
 from tasks.util.genomics import INDEX_CHUNKS
 from tasks.util.upload_util import curl_file, upload_file_to_s3, upload_file_to_ibm
 
@@ -25,6 +26,11 @@ def _upload_function(user, func, port=None, host=None, s3=False, ibm=False, py=F
 
     if py and local_copy:
         storage_dir = join(FAASM_SHARED_STORAGE_ROOT, "pyfuncs", user, func)
+        runtime_dir = join(FAASM_RUNTIME_ROOT, "pyfuncs", user, func)
+
+        if exists(runtime_dir):
+            rmtree(runtime_dir)
+
         if not exists(storage_dir):
             makedirs(storage_dir)
 

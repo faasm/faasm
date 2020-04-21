@@ -15,16 +15,16 @@ export WASM_NM=$(WASM_TOOLCHAIN_BIN)/llvm.nm
 export WASM_RANLIB=$(WASM_TOOLCHAIN_BIN)/llvm-ranlib
 export WASM_LD=$(WASM_TOOLCHAIN_BIN)/wasm-ld
 export WASM_LDSHARED=$(WASM_TOOLCHAIN_BIN)/wasm-ld
-export WASM_LDFLAGS="-Xlinker --stack-first -ldlmalloc"
+export WASM_LDFLAGS="-Xlinker --stack-first -Xlinker --no-check-features"
 
 export WASM_BUILD=wasm32
-export WASM_HOST=wasm32-unknown-none
+export WASM_HOST=wasm32-unknown-wasi
 export WASM_HOST_UNKNOWN=wasm32-unknown-unknown
 
 # Note potential performance gains from unimplemented-simd128 here.
 # May not be necessary in future. 
-export WASM_CFLAGS_NO_QUOTES=-O3 --sysroot=$(WASM_SYSROOT) -msimd128 -munimplemented-simd128
-export WASM_CXXFLAGS_NO_QUOTES=-O3 --sysroot=$(WASM_SYSROOT) -msimd128 -munimplemented-simd128
+export WASM_CFLAGS_NO_QUOTES=-O3 --sysroot=$(WASM_SYSROOT) -msimd128 -munimplemented-simd128 -mno-atomics -D__faasm
+export WASM_CXXFLAGS_NO_QUOTES=$(WASM_CFLAGS_NO_QUOTES)
 export WASM_CFLAGS="$(WASM_CFLAGS_NO_QUOTES)"
 export WASM_CXXFLAGS="$(WASM_CXXFLAGS_NO_QUOTES)"
 

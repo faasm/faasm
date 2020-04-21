@@ -105,16 +105,22 @@ unsigned int setEmulatedMessage(const message::Message &msg) {
     return msgId;
 }
 
-std::shared_ptr<state::StateKeyValue> getKv(const char *key, size_t size) {
-    state::State &s = state::getGlobalState();
-
+std::string getEmulatedUser() {
     if (_emulatedCall.user().empty()) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("Setting dummy emulator user {}", DUMMY_USER);
         setEmulatorUser(DUMMY_USER);
     }
 
-    return s.getKV(_emulatedCall.user(), key, size);
+    return _emulatedCall.user();
+}
+
+std::shared_ptr<state::StateKeyValue> getKv(const char *key, size_t size) {
+    state::State &s = state::getGlobalState();
+
+    const std::string &emulatedUser = getEmulatedUser();
+
+    return s.getKV(emulatedUser, key, size);
 }
 
 void __faasm_write_output(const unsigned char *output, long outputLen) {
@@ -123,14 +129,18 @@ void __faasm_write_output(const unsigned char *output, long outputLen) {
 }
 
 
-void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen) {
+long __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen) {
     util::getLogger()->debug("E - read_state {} {}", key, bufferLen);
+    state::State &s = state::getGlobalState();
+    std::string emulatedUser = getEmulatedUser();
+
     if (bufferLen == 0) {
-        return;
+        return s.getStateSize(emulatedUser, key);
     }
 
     auto kv = getKv(key, bufferLen);
     kv->get(buffer);
+    return kv->size();
 }
 
 unsigned char *__faasm_read_state_ptr(const char *key, long totalLen) {
@@ -266,11 +276,11 @@ long __faasm_read_input(unsigned char *buffer, long bufferLen) {
     return bufferLen;
 }
 
-unsigned int _chain_local(int idx, int pyIdx, const unsigned char *buffer, long bufferLen) {
+unsigned int _chain_local(int idx, const char* pyName, const unsigned char *buffer, long bufferLen) {
     util::getLogger()->debug("E - chain_this_local idx {} input len {}", idx, bufferLen);
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-    if (pyIdx > 0) {
+    if (pyName != nullptr) {
         throw std::runtime_error("Not yet implemented");
     }
 
@@ -298,7 +308,7 @@ unsigned int _chain_local(int idx, int pyIdx, const unsigned char *buffer, long 
     return thisCallId;
 }
 
-unsigned int _chain_knative(const std::string &funcName, int idx, int pyIdx, const unsigned char *buffer,
+unsigned int _chain_knative(const std::string &funcName, int idx, const char *pyName, const unsigned char *buffer,
         long bufferLen) {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
     logger->debug("E - chain_this_knative idx {} input len {}", idx, bufferLen);
@@ -322,7 +332,7 @@ unsigned int _chain_knative(const std::string &funcName, int idx, int pyIdx, con
     msg.set_ispython(_emulatedCall.ispython());
     msg.set_pythonuser(_emulatedCall.pythonuser());
     msg.set_pythonfunction(_emulatedCall.pythonfunction());
-    msg.set_pythonidx(pyIdx);
+    msg.set_pythonentry(pyName);
 
     // Chained calls are always async and can be awaited by the caller
     msg.set_isasync(true);
@@ -349,18 +359,18 @@ unsigned int __faasm_chain_function(const char *name, const unsigned char *input
 unsigned int __faasm_chain_this(int idx, const unsigned char *buffer, long bufferLen) {
     util::SystemConfig &conf = util::getSystemConfig();
     if (conf.hostType == "knative") {
-        return _chain_knative(_emulatedCall.function(), idx, 0, buffer, bufferLen);
+        return _chain_knative(_emulatedCall.function(), idx, nullptr, buffer, bufferLen);
     } else {
-        return _chain_local(idx, 0, buffer, bufferLen);
+        return _chain_local(idx, nullptr, buffer, bufferLen);
     }
 }
 
-unsigned int __faasm_chain_py(int idx, const unsigned char *buffer, long bufferLen) {
+unsigned int __faasm_chain_py(const char* name, const unsigned char *buffer, long bufferLen) {
     util::SystemConfig &conf = util::getSystemConfig();
     if (conf.hostType == "knative") {
-        return _chain_knative(_emulatedCall.function(), 0, idx, buffer, bufferLen);
+        return _chain_knative(_emulatedCall.function(), 0, name, buffer, bufferLen);
     } else {
-        return _chain_local(0, idx, buffer, bufferLen);
+        return _chain_local(0, name, buffer, bufferLen);
     }
 }
 
@@ -420,10 +430,6 @@ int __faasm_get_idx() {
     return _emulatedCall.idx();
 }
 
-int __faasm_get_py_idx() {
-    return _emulatedCall.pythonidx();
-}
-
 void __faasm_lock_state_global(const char *key) {
 
 }
@@ -448,14 +454,20 @@ void __faasm_unlock_state_write(const char *key) {
 
 }
 
+void copyStringToBuffer(unsigned char *buffer, const std::string &strIn) {
+    ::strcpy(reinterpret_cast<char*>(buffer), strIn.c_str());
+}
+
 void __faasm_get_py_user(unsigned char *buffer, long bufferLen) {
-    const std::vector<uint8_t> bytes = util::stringToBytes(_emulatedCall.pythonuser());
-    std::copy(bytes.data(), bytes.data() + bytes.size(), buffer);
+    copyStringToBuffer(buffer, _emulatedCall.pythonuser());
 }
 
 void __faasm_get_py_func(unsigned char *buffer, long bufferLen) {
-    const std::vector<uint8_t> bytes = util::stringToBytes(_emulatedCall.pythonfunction());
-    std::copy(bytes.data(), bytes.data() + bytes.size(), buffer);
+    copyStringToBuffer(buffer, _emulatedCall.pythonfunction());
+}
+
+void __faasm_get_py_entry(unsigned char *buffer, long bufferLen) {
+    copyStringToBuffer(buffer, _emulatedCall.pythonentry());
 }
 
 unsigned int __faasm_conf_flag(const char *key) {

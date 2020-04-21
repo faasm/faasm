@@ -1,12 +1,21 @@
 # Faasm Host Interface
 
-To execute functions compiled to WebAssembly, Faasm must define an interface
-that allows these functions to interact with the underlying host and runtime.
-This interface must support a subset of standard POSIX-like syscalls, as well 
-as serverless-specific tasks such as state management, and invoking other 
-functions.
+Faasm functions can interact with the Faasm runtime and underlying host
+through the host interface. This lets them do things like manage state and 
+interact with other functions. 
 
-## Function invocation and chaining
+The host interface includes:
+
+- Function input/ output
+- Chaining functions
+- State management
+- [WASI](https://wasi.dev/) 
+- Dynamic linking
+- [pthreads](threads.md)
+- [MPI](mpi.md)
+- [OpenMP](openmp.md)
+
+## Function input/output and chaining
 
 These cover interactions with serverless functions and their ability to invoke
 other functions ("chaining").
@@ -35,31 +44,29 @@ This section of the host interface covers management of state as outlined in
 | `void append_state(key, val)` | Write output data for function |
 | `void lock_state_read/write(key)` | Write output data for function |
 | `void lock_state_global_read/write(key)` | Write output data for function |
-
-## POSIX-like system calls
-
-This section covers "standard" POSIX-like system calls, some of which are also found 
-in [WASI](https://wasi.dev/).
-
-| Category | Function | Description  |
-|---|---|---|
-| Dynamic linking | `void *dlopen/dlsym(...)` | Dynamic linking of libraries | 
-| Dynamic linking | `int dlclose(...)` | As above |
-| Memory | `void* mmap(...), int munmap(...)` | Memory grow/shrink only |
-| Memory | `int brk(...), void* sbrk(...)` | Memory grow/shrink only |
-| Network | `int socket/connect/bind(...)` | Client-side networking only |
-| Network | `size_t send/recv(...)` | Send/recv via virtual interface |
-| File I/O | `int open/close/dup/stat(...)` | Per-user virtual filesystem access |
-| File I/O | `size_t read/write(...)` | As above |
-| Timing | `int gettime(...)` | Per-user monotonic clock only |
-| Random | `size_t getrandom(...)` | Uses underlying `host/dev/urandom` |
-  
- ## Further extensions
-  
- The Faasm host interface also includes extentions and libraries appropriate 
- to large-scale parallel applications: 
  
- - [pthreads](threads.md)
- - [OpenMP](openmp.md) 
- - [MPI](mpi.md) 
-  
+ ## POSIX-like calls and WASI
+ 
+ Faasm supports WASI, but adds and customises further POSIX-like system calls
+ to support a broader range of legacy applications and libraries (such as 
+ [CPython](python.md)).
+ 
+ This is done in part with a modified [wasi-libc](https://github.com/Shillaker/wasi-libc).
+ 
+ The main additions and modifications are as follows:
+ 
+ | Category | Function | Description  |
+ |---|---|---|
+ | Dynamic linking | `void *dlopen/dlsym(...)` | Standard POSIX-like dynamic linking | 
+ | Dynamic linking | `int dlclose(...)` | As above |
+ | Memory | `void* mmap(...), int munmap(...)` | Only permits memory growth and file mapping | 
+ | File I/O | `int dup(...)` | Necessary for certain legacy applications |
+ 
+ Faasm supports standard filesystem syscalls, but provides a serverless-specific implementation. 
+ Because functions may be executing on different hosts, all filesystem accesses are
+ _global-read-local-write_, i.e. functions can access files from any host, but writes are only
+ made locally. This is sufficient to support legacy filesystem use-cases, while 
+ any data sharing between functions can be done through [state](state.md).
+ 
+ As mentioned above, Faasm also supports [pthreads](threads.md), which also introduce a number
+ of extra POSIX syscalls.

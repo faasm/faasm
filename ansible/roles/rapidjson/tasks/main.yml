@@ -25,7 +25,7 @@
   when: rj_stat.stat.exists == False
 
 - name: "Build components"
-  shell: "make -j 3"
+  shell: "make -j"
   args:
     chdir: "/tmp/rapidjson/build"
   when: rj_stat.stat.exists == False

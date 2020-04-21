@@ -2,7 +2,8 @@ import io
 import logging
 from pyperformance.benchmarks.bm_logging import BENCHMARKS, truncate_stream
 
-if __name__ == "__main__":
+
+def faasm_main():
     stream = io.StringIO()
 
     handler = logging.StreamHandler(stream=stream)
@@ -22,3 +23,7 @@ if __name__ == "__main__":
             bench_func(loops, logger, stream)
 
             truncate_stream(stream)
+
+
+if __name__ == "__main__":
+    faasm_main()

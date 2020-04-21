@@ -1,6 +1,7 @@
 from pyperformance.benchmarks.bm_spectral_norm import DEFAULT_N, eval_AtA_times_u
 
-if __name__ == "__main__":
+
+def faasm_main():
     loops = 2
     range_it = range(loops)
 
@@ -16,3 +17,7 @@ if __name__ == "__main__":
         for ue, ve in zip(u, v):
             vBv += ue * ve
             vv += ve * ve
+
+
+if __name__ == "__main__":
+    faasm_main()

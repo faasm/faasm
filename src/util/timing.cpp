@@ -27,4 +27,16 @@ namespace util {
         const std::shared_ptr<spdlog::logger> &l = util::getLogger();
         l->trace("TIME = {:.2f}ms ({})", millis, label);
     }
+
+    uint64_t timespecToNanos(struct timespec *nativeTimespec) {
+        uint64_t nanos = nativeTimespec->tv_sec * 1000000000;
+        nanos += nativeTimespec->tv_nsec;
+
+        return nanos;
+    }
+
+    void nanosToTimespec(uint64_t nanos, struct timespec *nativeTimespec) {
+        nativeTimespec->tv_sec = nanos / 1000000000;
+        nativeTimespec->tv_nsec = nanos % 1000000000;
+    }
 }

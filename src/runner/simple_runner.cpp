@@ -6,6 +6,7 @@
 #include <module_cache/WasmModuleCache.h>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <util/files.h>
 
 bool runFunction(std::string &user, std::string &function, int runCount);
 
@@ -54,7 +55,7 @@ int main(int argc, char *argv[]) {
         bool success = runFunction(user, f, runCount);
         if (!success) {
             throw std::runtime_error(fmt::format(
-                    "Function {}/{} returned non-zero exit code {}", user, f)
+                    "Function {}/{} failed", user, f)
             );
         }
     }
@@ -81,10 +82,10 @@ bool runFunction(std::string &user, std::string &function, int runCount) {
 
     // Create the module
     module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
-    wasm::WasmModule &cachedModule = registry.getCachedModule(m);
+    wasm::WAVMWasmModule &cachedModule = registry.getCachedModule(m);
 
     // Create new module from cache
-    wasm::WasmModule module(cachedModule);
+    wasm::WAVMWasmModule module(cachedModule);
 
     // Run repeated executions
     bool success = true;

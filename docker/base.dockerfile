@@ -35,7 +35,7 @@ RUN ansible-playbook pistache.yml
 # Out of tree build
 WORKDIR /faasm/build
 
-# Build WAVM to avoid repetition in other dockerfiles
+# Build WAVM and WAMR to avoid repetition in other dockerfiles
 RUN cmake \
     -GNinja \
     -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
@@ -44,3 +44,4 @@ RUN cmake \
     /usr/local/code/faasm
 
 RUN cmake --build . --target libWAVM
+RUN cmake --build . --target libwamr

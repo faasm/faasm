@@ -3,7 +3,6 @@
 
 #include "LocalFileLoader.h"
 #include "FileserverFileLoader.h"
-#include "SharedFilesManager.h"
 
 #if AWS_SUPPORT == 1
 #include "S3FileLoader.h"
@@ -33,11 +32,5 @@ namespace storage {
         } else {
             throw std::runtime_error("Invalid function storage mode");
         }
-    }
-
-    SharedFilesManager &getSharedFilesManager() {
-        // Note - not thread-local but internally thread-safe
-        static SharedFilesManager m;
-        return m;
     }
 }

@@ -3,9 +3,11 @@
 #include "StateBackend.h"
 
 namespace state {
-    class InMemoryStateBackend : public StateBackend {
+    class InMemoryStateBackend final : public StateBackend {
     public:
         InMemoryStateBackend();
+
+        size_t getSize(const std::string &key) override;
 
         void get(const std::string &key, uint8_t *buffer, size_t bufferLen) override;
 

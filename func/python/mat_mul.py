@@ -1,24 +1,23 @@
-from pyfaasm.core import getFunctionIdx, getInput, setOutput
-from pyfaasm.matrix import divide_and_conquer, distributed_divide_and_conquer
+import pyfaasm.matrix as mat
+from pyfaasm.core import get_input, set_output
 
 
-def main_func():
-    # This is the Faasm entry point. If we've been chained,
-    # we need to invoke the worker, otherwise run the main function
-    idx = getFunctionIdx()
+# Note - slight hack here as PyFaasm matrix multiplication expects top-level
+# functions of the names in the matrix module
 
-    if idx == 0:
-        print("Kicking off divide and conquer")
-        divide_and_conquer()
-
-        output = "Matrix multiplication finished"
-        setOutput(output.encode("utf-8"))
-    else:
-        # Run the worker
-        print("Running matrix multiplication worker")
-        input_bytes = getInput()
-        distributed_divide_and_conquer(input_bytes)
+def divide_and_conquer():
+    print("Kicking off divide and conquer")
+    mat.divide_and_conquer()
+    output = "Matrix multiplication finished"
+    set_output(output.encode("utf-8"))
 
 
-if __name__ == "__main__":
-    main_func()
+def distributed_divide_and_conquer():
+    # Run the worker
+    print("Running matrix multiplication worker")
+    input_bytes = get_input()
+    mat.distributed_divide_and_conquer(input_bytes)
+
+
+def faasm_main():
+    divide_and_conquer()

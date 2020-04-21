@@ -18,6 +18,21 @@ set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/WAVM/Lib)
 option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
 option(FAASM_AWS_SUPPORT "Whether to include AWS support" OFF)
 
+# WAMR configuration
+option(FAASM_WAMR_SUPPORT "Support for WAMR" ON)
+if (FAASM_WAMR_SUPPORT)
+    set(WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
+    set(WAMR_INCLUDE_DIR ${WAMR_ROOT_DIR}/core/iwasm/include)
+    set(WAMR_BUILD_TARGET X86_64)
+    set(WAMR_BUILD_PLATFORM linux)
+    set(WAMR_BUILD_INTERP 1)
+    set(WAMR_BUILD_FAST_INTERP 1)
+    set(WAMR_BUILD_JIT 1)
+    set(WAMR_BUILD_AOT 0)
+    set(WAMR_BUILD_LIBC_WASI 1)
+    set(WAMR_BUILD_LIBC_BUILTIN 0)
+endif()
+
 # Library type (for shared libraries)
 if (FAASM_STATIC_LIBS)
     function(faasm_public_lib lib_name lib_deps)
@@ -162,6 +177,7 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda-worker")
     add_subdirectory(src/system)
     add_subdirectory(src/util)
     add_subdirectory(src/wasm)
+    add_subdirectory(src/wavm)
     add_subdirectory(src/worker)
 
 elseif (FAASM_BUILD_TYPE STREQUAL "lambda-dispatch")
@@ -203,6 +219,11 @@ else ()
 
     # WAVM
     add_subdirectory(third-party/WAVM)
+
+    if(FAASM_WAMR_SUPPORT)
+    include (${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
+    add_library(libwamr ${WAMR_RUNTIME_LIB_SOURCE})
+    endif()
 
     # Faasm demo
     add_subdirectory(third-party/faasm-demo-c)
@@ -250,7 +271,9 @@ else ()
     add_subdirectory(src/system)
     add_subdirectory(src/upload)
     add_subdirectory(src/util)
+    add_subdirectory(src/wamr)
     add_subdirectory(src/wasm)
+    add_subdirectory(src/wavm)
     add_subdirectory(src/worker)
 
     # Tests

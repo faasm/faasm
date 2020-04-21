@@ -10,33 +10,8 @@
 #include <math.h>
 #include <complex.h>
 
-void setUpPyEnvironment() {
-#ifdef __wasm__
-    // Python env vars - https://docs.python.org/3/using/cmdline.html#environment-variables
-    setenv("PYTHONHOME", "/", 1);
-    setenv("PYTHONPATH", "/", 1);
-    setenv("PYTHONHASHSEED", "0", 1);
-    setenv("PYTHONNOUSERSITE", "on", 1);
-    setenv("LC_CTYPE", "en_GB.UTF-8", 1);
-
-    // Faasm-specific
-    setenv("PYTHONWASM", "1", 1);
-
-#else
-    // Switch off numpy threading
-    setenv("OPENBLAS_NUM_THREADS", "1", 1);
-    setenv("MKL_NUM_THREADS", "1", 1);
-#endif
-}
-
 void setUpPyNumpy() {
     FILE *devNull = fopen("/dev/null", "w");
-
-    // NOTE - we need to include a call to fiprintf to make
-    // the emscripten stuff work
-#ifdef __wasm__
-    fiprintf(devNull, "%s", "blah");
-#endif
 
     // I/O
     fprintf(devNull, "%p", scanf);

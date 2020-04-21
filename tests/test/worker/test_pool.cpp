@@ -189,15 +189,6 @@ namespace tests {
         execFuncWithPool(call, false, 1);
     }
 
-    TEST_CASE("Test python chaining", "[worker]") {
-        message::Message call = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
-        call.set_pythonuser("python");
-        call.set_pythonfunction("chain");
-        call.set_ispython(true);
-
-        execFuncWithPool(call, true, 1);
-    }
-
     TEST_CASE("Test repeat invocation with state", "[worker]") {
         setUp();
 
@@ -352,6 +343,12 @@ namespace tests {
     TEST_CASE("Test big mmap", "[worker]") {
         setUp();
         message::Message msg = util::messageFactory("demo", "mmap_big");
+        execFunction(msg);
+    }
+
+    TEST_CASE("Test state size", "[worker]") {
+        setUp();
+        message::Message msg = util::messageFactory("demo", "state_size");
         execFunction(msg);
     }
 

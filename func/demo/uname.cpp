@@ -24,12 +24,12 @@ FAASM_MAIN_FUNC() {
 
     // Check the result
     int res = 0;
-    res += _check_value("sysname", u.sysname, "Linux");
-    res += _check_value("nodename", u.nodename, "faasm");
-    res += _check_value("release", u.release, "1.0.0");
-    res += _check_value("version", u.version, "Faasm 123");
-    res += _check_value("machine", u.machine, "x86");
+    res += _check_value("sysname", u.sysname, "wasi");
+    res += _check_value("release", u.release, "0.0.0");
+    res += _check_value("version", u.version, "0.0.0");
+    res += _check_value("machine", u.machine, "wasm32");
     res += _check_value("domainname", u.domainname, "(none)");
+    res += _check_value("nodename", u.nodename, "(none)");
 
     if(res > 0) {
         printf("ERROR - uname check failed\n");

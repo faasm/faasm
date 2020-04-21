@@ -43,14 +43,8 @@ int main(int argc, char *argv[]) {
     }
 
     if (user == "python") {
-        call.set_ispython(true);
-        call.set_pythonfunction(function);
-        call.set_pythonuser(user);
-
-        call.set_user(PYTHON_USER);
-        call.set_function(PYTHON_FUNC);
-
-        logger->info("Running Python function {}/{}", user, function);
+        util::convertMessageToPython(call);
+        logger->info("Running Python function {}/{}", call.pythonuser(), call.pythonfunction());
     } else {
         logger->info("Running function {}/{}", user, function);
     }

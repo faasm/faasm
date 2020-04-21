@@ -5,8 +5,6 @@
 extern "C" {
 #endif
 
-void setUpPyEnvironment();
-
 void setUpPyNumpy();
 
 #ifdef __cplusplus

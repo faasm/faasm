@@ -22,13 +22,13 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
 
     # Install in WASM sysroot
     install(TARGETS faasmpi
-            ARCHIVE DESTINATION ${CMAKE_SYSROOT}/lib
-            LIBRARY DESTINATION ${CMAKE_SYSROOT}/lib
+            ARCHIVE DESTINATION ${CMAKE_SYSROOT}/lib/wasm32-wasi
+            LIBRARY DESTINATION ${CMAKE_SYSROOT}/lib/wasm32-wasi
             PUBLIC_HEADER DESTINATION ${CMAKE_SYSROOT}/include/faasmpi
             )
 
     # Add imports
-    install(FILES faasmpi.imports DESTINATION ${CMAKE_SYSROOT}/lib RENAME libfaasmpi.imports)
+    install(FILES faasmpi.imports DESTINATION ${CMAKE_SYSROOT}/lib/wasm32-wasi RENAME libfaasmpi.imports)
 
     # Add mpi header (already present in native builds)
     install(FILES ${PROJ_INCLUDE}/mpi.h DESTINATION ${CMAKE_SYSROOT}/include)

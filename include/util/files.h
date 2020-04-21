@@ -26,4 +26,11 @@ namespace util {
 
         }
     };
+
+    class FileAtUrlIsDirectoryException : public util::FaasmException {
+    public:
+        explicit FileAtUrlIsDirectoryException(std::string message): FaasmException(std::move(message)) {
+
+        }
+    };
 }

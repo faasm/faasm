@@ -8,4 +8,4 @@ set(LIB_FILES
 )
 
 faasm_private_lib(module_cache "${LIB_FILES}")
-target_link_libraries(module_cache wasm)
+target_link_libraries(module_cache wasm wavmmodule)

@@ -29,7 +29,7 @@ namespace util {
 
         d.AddMember("py_user", Value(msg.pythonuser().c_str(), msg.pythonuser().size(), a).Move(), a);
         d.AddMember("py_func", Value(msg.pythonfunction().c_str(), msg.pythonfunction().size(), a).Move(), a);
-        d.AddMember("py_idx", msg.pythonidx(), a);
+        d.AddMember("py_entry", Value(msg.pythonentry().c_str(), msg.pythonentry().size(), a).Move(), a);
 
         d.AddMember("input_data", Value(msg.inputdata().c_str(), msg.inputdata().size(), a).Move(), a);
         d.AddMember("output_data", Value(msg.outputdata().c_str(), msg.outputdata().size(), a).Move(), a);
@@ -107,7 +107,7 @@ namespace util {
 
         msg.set_pythonuser(getStringFromJson(d, "py_user", ""));
         msg.set_pythonfunction(getStringFromJson(d, "py_func", ""));
-        msg.set_pythonidx(getIntFromJson(d, "py_idx", 0));
+        msg.set_pythonentry(getStringFromJson(d, "py_entry", ""));
 
         msg.set_inputdata(getStringFromJson(d, "input_data", ""));
         msg.set_outputdata(getStringFromJson(d, "output_data", ""));

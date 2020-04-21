@@ -80,6 +80,8 @@ namespace redis {
 
         std::vector<uint8_t> get(const std::string &key);
 
+        size_t strlen(const std::string &key);
+
         void get(const std::string &key, uint8_t *buffer, size_t size);
 
         void set(const std::string &key, const std::vector<uint8_t> &value);

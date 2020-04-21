@@ -30,6 +30,7 @@ namespace util {
         std::string pythonPreload;
         std::string captureStdout;
         std::string stateMode;
+        std::string wasmVm;
 
         // Redis
         std::string redisStateHost;

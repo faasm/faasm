@@ -56,6 +56,7 @@ namespace storage {
 
         // Explicitly allow simd support
         moduleIR.featureSpec.simd = true;
+        moduleIR.featureSpec.atomics = true;
 
         if (this->isWasm(bytes)) {
             // Handle WASM

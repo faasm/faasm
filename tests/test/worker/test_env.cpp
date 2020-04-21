@@ -21,13 +21,6 @@ namespace tests {
         execFunction(msg);
     }
 
-    TEST_CASE("Test abort", "[worker]") {
-        cleanSystem();
-
-        message::Message msg = util::messageFactory("demo", "abort");
-        execFunction(msg);
-    }
-
     TEST_CASE("Test exit", "[worker]") {
         cleanSystem();
 
@@ -60,6 +53,13 @@ namespace tests {
         cleanSystem();
 
         message::Message msg = util::messageFactory("demo", "getpwuid");
+        execFunction(msg);
+    }
+
+    TEST_CASE("Test getcwd", "[worker]") {
+        cleanSystem();
+
+        message::Message msg = util::messageFactory("demo", "getcwd");
         execFunction(msg);
     }
 

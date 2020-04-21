@@ -4,9 +4,11 @@
 #include "StateBackend.h"
 
 namespace state {
-    class RedisStateBackend : public StateBackend {
+    class RedisStateBackend final : public StateBackend {
     public:
         RedisStateBackend();
+
+        size_t getSize(const std::string &key) override;
 
         void get(const std::string &key, uint8_t *buffer, size_t bufferLen) override;
 

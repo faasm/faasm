@@ -3,6 +3,11 @@
 namespace state {
     InMemoryStateBackend::InMemoryStateBackend() = default;
 
+    size_t InMemoryStateBackend::getSize(const std::string &key) {
+        // TODO - implement
+        return 0;
+    }
+
     void InMemoryStateBackend::get(const std::string &key, uint8_t *buffer, size_t bufferLen) {
         // TODO - implement
     }

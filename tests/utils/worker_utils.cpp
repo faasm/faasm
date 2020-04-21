@@ -91,9 +91,9 @@ namespace tests {
 
     void checkMultipleExecutions(message::Message &msg, int nExecs) {
         module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
-        wasm::WasmModule &cachedModule = registry.getCachedModule(msg);
+        wasm::WAVMWasmModule &cachedModule = registry.getCachedModule(msg);
 
-        wasm::WasmModule module(cachedModule);
+        wasm::WAVMWasmModule module(cachedModule);
 
         for (int i = 0; i < nExecs; i++) {
             bool success = module.execute(msg);

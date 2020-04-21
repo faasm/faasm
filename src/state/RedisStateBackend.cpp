@@ -5,6 +5,10 @@ namespace state {
 
     }
 
+    size_t RedisStateBackend::getSize(const std::string &key) {
+        return redis.strlen(key);
+    }
+
     void RedisStateBackend::get(const std::string &key, uint8_t *buffer, size_t bufferLen) {
         redis.get(key, buffer, bufferLen);
     }

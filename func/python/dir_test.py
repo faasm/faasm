@@ -2,7 +2,7 @@ import multiprocessing
 import os
 
 
-def main_func():
+def faasm_main():
     print("MP version = {}".format(multiprocessing))
 
     paths = [
@@ -19,7 +19,3 @@ def main_func():
 
         for file in dirlist:
             print(file)
-
-
-if __name__ == "__main__":
-    main_func()

@@ -16,14 +16,27 @@ jobs:
       DOCKER_BUILDKIT: 1
     steps:
       - uses: actions/checkout@v2
-      - name: "Build the testing image"
-        run: docker build . -f docker/testing.dockerfile --tag faasm/testing:${GITHUB_SHA} --build-arg FAASM_VERSION=0.0.12
+      - name: "Set up docker tag"
+        shell: bash
+        run: echo "##[set-output name=tag;]$(echo ${GITHUB_REF//\//-})"
+        id: get_tag
+      - name: "Print Docker tag"
+        run: echo "DOCKER TAG = ${{ steps.get_tag.outputs.tag }}"
+      - uses: docker/build-push-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: faasm/testing
+          dockerfile: docker/testing.dockerfile
+          always_pull: true
+          tags: ${{ steps.get_tag.outputs.tag }}
+          build_args: FAASM_VERSION=0.1.2
       - name: "Create a docker network"
         run: docker network create -d bridge test-net
       - name: "Stop redis container"
         run: docker stop redis | true
       - name: "Run the redis container"
-        run: docker run -d --name redis --net=test-net --rm faasm/redis:0.0.12
+        run: docker run -d --name redis --net=test-net --rm faasm/redis:0.1.2
       - name: "Run the testing container"
         run: >
           docker run --privileged --net=test-net
@@ -33,5 +46,5 @@ jobs:
           -e REDIS_QUEUE_HOST=redis
           -e LOG_LEVEL=info
           -e THREADS_PER_WORKER=5
-          faasm/testing:${GITHUB_SHA}
+          faasm/testing:${{ steps.get_tag.outputs.tag }}
           /usr/local/code/faasm/bin/ci_run.sh

@@ -39,8 +39,8 @@ namespace tests {
         }
 
         // Create the full module
-        wasm::WasmModule moduleA;
-        moduleA.bindToFunction(m, true);
+        wasm::WAVMWasmModule moduleA;
+        moduleA.bindToFunction(m);
 
         if (mode == "memory") {
             // Serialise to memory
@@ -54,8 +54,8 @@ namespace tests {
         }
 
         // Create the module to be restored but don't execute zygote
-        wasm::WasmModule moduleB;
-        moduleB.bindToFunction(m, false);
+        wasm::WAVMWasmModule moduleB;
+        moduleB.bindToFunctionNoZygote(m);
 
         // Restore from cross-host data
         if (mode == "memory") {

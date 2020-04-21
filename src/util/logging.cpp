@@ -13,6 +13,7 @@ namespace  util {
             return;
         }
 
+        // Initialise the logger
         logger = spdlog::stderr_color_mt("console");
 
         // Work out log level from environment

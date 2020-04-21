@@ -2,6 +2,7 @@
 #define FAASMC_CORE_H
 
 #include <stdint.h>
+#include <stddef.h>
 #include <stdbool.h>
 
 #ifdef __cplusplus
@@ -11,9 +12,14 @@ extern "C" {
 #define BYTES(arr) reinterpret_cast<uint8_t*>(arr)
 
 /**
+* Gets the size of the state at the given key
+*/
+size_t faasmReadStateSize(const char *key);
+
+/**
 * Reads the full state at the given key
 */
-void faasmReadState(const char *key, unsigned char *buffer, long bufferLen);
+long faasmReadState(const char *key, unsigned char *buffer, long bufferLen);
 
 /**
 * Reads append-only state
@@ -165,6 +171,11 @@ char* faasmGetPythonUser();
  * Returns the python function
  */
 char* faasmGetPythonFunc();
+
+/**
+ * Returns the python entrypoint
+ */
+char* faasmGetPythonEntry();
 
 /**
  * Returns a 1 or 0 saying whether the conf flag is on or off
