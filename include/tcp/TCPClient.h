@@ -1,5 +1,7 @@
 #pragma once
 
+#include "TCPMessage.h"
+
 #include <vector>
 #include <string>
 
@@ -12,15 +14,17 @@
 
 #define RECEIVE_SIZE 256
 
-namespace util {
+namespace tcp {
 
     class TCPClient {
     public:
         TCPClient(std::string host, int port);
 
-        void sendBytes(uint8_t *buffer, int bufferLen);
+        void sendMessage(TCPMessage *msg);
 
-        size_t receiveBytes(uint8_t *buffer, int bufferLen);
+        TCPMessage *recvMessage();
+
+        TCPMessage *recvMessage(size_t dataSize);
 
         void exit();
     private:

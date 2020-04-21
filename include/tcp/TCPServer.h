@@ -9,22 +9,25 @@
 #include <arpa/inet.h>
 
 
-namespace util {
+namespace tcp {
     class TCPServer {
     public:
-        explicit TCPServer(int port);
+        explicit TCPServer(int portIn);
 
-        void start();
+        void start(int messageLimit = -1);
 
         void accepted();
 
         void closed();
 
+        void setEchoMode(bool echoModeIn);
+
     private:
+        int port;
         int serverSocket;
         struct sockaddr_in serverAddress{};
 
-        std::atomic<int> clientCount;
+        bool echoMode;
 
         std::vector<std::thread> threads;
     };

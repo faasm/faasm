@@ -24,8 +24,6 @@ set(LIB_FILES
         random.cpp
         state.cpp
         strings.cpp
-        TCPClient.cpp
-        TCPServer.cpp
         timing.cpp
         ${HEADERS}
         )

@@ -17,6 +17,7 @@ target_link_libraries(test_utils
         worker_lib
         emulator
         data
+        tcp
         worker_knative_lib
         worker_ibm_lib
         wamrmodule

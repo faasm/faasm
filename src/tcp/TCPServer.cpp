@@ -4,10 +4,10 @@
 #include <util/logging.h>
 
 #define BUF_SIZE 256
+#define BACKLOG 5
 
-namespace util {
-
-    TCPServer::TCPServer(int port) : clientCount(0) {
+namespace tcp {
+    TCPServer::TCPServer(int portIn) : port(portIn) {
         // Set up the socket
         serverSocket = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -24,9 +24,12 @@ namespace util {
         // Bind and listen
         bind(serverSocket, (struct sockaddr *) &serverAddress, sizeof(serverAddress));
 
-        listen(serverSocket, 5);
+        listen(serverSocket, BACKLOG);
 
         util::getLogger()->debug("Listening on {}", port);
+
+        // Echo mode off (only for testing)
+        echoMode = false;
     }
 
     void TCPServer::accepted() {
@@ -36,8 +39,12 @@ namespace util {
         socklen_t addrSize = sizeof(clientAddress);
 
         int socket = accept(serverSocket, (struct sockaddr *) &clientAddress, &addrSize);
+        if(socket == -1) {
+            logger->error("Failed to accept");
+            return;
+        }
 
-        threads.emplace_back([this, socket, logger] {
+        threads.emplace_back([this, &socket, logger] {
             int packetCount = 0;
             int dataLen;
             std::vector<uint8_t> data;
@@ -50,13 +57,11 @@ namespace util {
                 // Handle errors or disconnect
                 if (nRecv == 0) {
                     // Connection closed
-                    clientCount--;
                     break;
                 }
 
                 if (nRecv < 0) {
                     // Error
-                    clientCount--;
                     break;
                 }
 
@@ -83,7 +88,6 @@ namespace util {
                     logger->debug("TCP packet {} = {} bytes", packetCount, nRecv);
                     packetCount++;
                 }
-
             }
 
             if (dataLen != data.size()) {
@@ -92,14 +96,17 @@ namespace util {
                 logger->debug("TCP got {} bytes as expected", data.size());
             }
 
-            // Echo back
-            send(socket, data.data(), data.size(), 0);
-        });
+            // Echo back if in echo mode
+            if(echoMode) {
+                send(socket, data.data(), data.size(), 0);
+            }
 
-        clientCount++;
+            close(socket);
+        });
     }
 
-    void TCPServer::start() {
+    void TCPServer::start(int msgLimit) {
+        util::getLogger()->debug("Starting TCP server on port {}", port);
         while (true) {
             accepted();
         }
@@ -108,6 +115,10 @@ namespace util {
     void TCPServer::closed() {
         util::getLogger()->debug("Shutting down server");
         close(serverSocket);
+    }
+
+    void TCPServer::setEchoMode(bool echoModeIn) {
+        echoMode = echoModeIn;
     }
 }
 
