@@ -1,5 +1,4 @@
 import multiprocessing
-import redis
 from json import dumps
 from time import sleep
 
@@ -38,7 +37,6 @@ def invoke_impl(user, func,
                 ibm=False,
                 poll=False,
                 cmdline=None,
-                reset=False,
                 mpi_world_size=None,
                 poll_interval_ms=1000):
     faasm_config = get_faasm_config()
@@ -116,11 +114,6 @@ def invoke_impl(user, func,
         headers = _get_knative_headers("worker")
     else:
         headers = {}
-
-    # deletes warm set
-    if knative and reset:
-        r = redis.Redis(host='localhost', port=6379, db=0)
-        r.delete("w_{}/{}".format(user, func))
 
     if async:
         # Submit initial async call
