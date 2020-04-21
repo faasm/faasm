@@ -54,8 +54,9 @@ omp_func(intel_nstreams intel_nstreams.cpp)
 omp_func(intel_synch_p2p intel_synch_p2p.cpp)
 omp_func(intel_transpose intel_transpose.cpp)
 
-# Multi host
+# Multi host and experiments
 omp_func(multi_sum multi_sum.cpp)
+omp_func(mt_pi mt_pi.cpp)
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
     omp_func(stack_debug stack_debug.cpp)
