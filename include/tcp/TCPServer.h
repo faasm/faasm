@@ -1,5 +1,7 @@
 #pragma once
 
+#include "TCPMessage.h"
+
 #include <vector>
 #include <atomic>
 #include <thread>
@@ -14,20 +16,18 @@ namespace tcp {
     public:
         explicit TCPServer(int portIn);
 
-        void start(int messageLimit = -1);
+        TCPMessage *accept() const;
 
-        void accepted();
+        void respond(TCPMessage *request, TCPMessage *response);
 
-        void closed();
+        void noResponse(TCPMessage *request);
 
-        void setEchoMode(bool echoModeIn);
+        void close() const;
 
     private:
         int port;
         int serverSocket;
         struct sockaddr_in serverAddress{};
-
-        bool echoMode;
 
         std::vector<std::thread> threads;
     };

@@ -20,11 +20,11 @@ namespace tcp {
     public:
         TCPClient(std::string host, int port);
 
-        void sendMessage(TCPMessage *msg);
+        void sendMessage(TCPMessage *msg) const;
 
-        TCPMessage *recvMessage();
+        TCPMessage *recvMessage() const;
 
-        TCPMessage *recvMessage(size_t dataSize);
+        TCPMessage *recvMessage(size_t dataSize) const;
 
         void exit();
     private:

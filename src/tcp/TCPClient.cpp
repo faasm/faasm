@@ -13,20 +13,20 @@ namespace tcp {
         server.sin_family = AF_INET;
         server.sin_port = htons(port);
 
-        connect(clientSocket, (struct sockaddr *) &server, sizeof(server));
+        ::connect(clientSocket, (struct sockaddr *) &server, sizeof(server));
     }
 
-    void TCPClient::sendMessage(TCPMessage *msg) {
+    void TCPClient::sendMessage(TCPMessage *msg) const {
         size_t msgSize = tcpMessageLen(msg);
         uint8_t *msgBuffer = tcpMessageToBuffer(msg);
 
-        send(clientSocket, msgBuffer, msgSize, 0);
+        ::send(clientSocket, msgBuffer, msgSize, 0);
     }
 
-    TCPMessage *TCPClient::recvMessage() {
+    TCPMessage *TCPClient::recvMessage() const {
         // Receive the message header
         auto m = new TCPMessage();
-        recv(clientSocket, BYTES(&m), sizeof(TCPMessage), 0);
+        ::recv(clientSocket, BYTES(m), sizeof(TCPMessage), 0);
 
         // Receive the message data
         if (m->len > 0) {
@@ -39,16 +39,16 @@ namespace tcp {
         return m;
     }
 
-    TCPMessage *TCPClient::recvMessage(size_t dataSize) {
+    TCPMessage *TCPClient::recvMessage(size_t dataSize) const {
         size_t bufferSize = sizeof(TCPMessage) + dataSize;
         auto buffer = new uint8_t[bufferSize];
-        recv(clientSocket, buffer, bufferSize, 0);
+        ::recv(clientSocket, buffer, bufferSize, 0);
 
         TCPMessage *m = tcpMessageFromBuffer(buffer);
         return m;
     }
 
     void TCPClient::exit() {
-        close(clientSocket);
+        ::close(clientSocket);
     }
 }

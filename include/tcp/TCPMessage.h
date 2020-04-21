@@ -10,6 +10,7 @@ namespace tcp {
     };
 
     struct TCPMessage {
+        int _fromSocket;
         TCPMessageType type;
         size_t len;
         uint8_t *buffer;
