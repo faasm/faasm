@@ -32,7 +32,7 @@ jobs:
           repository: faasm/testing
           dockerfile: docker/testing.dockerfile
           always_pull: true
-          push: $${{ secrets.DOCKER_PASSWORD }} # only pushes if we were given the secret
+          push: ${{ secrets.DOCKER_PASSWORD }} # only pushes if we were given the secret
           tags: ${{ steps.get_tag.outputs.tag }}
           build_args: FAASM_VERSION=0.1.2
       - name: "Create a docker network"
