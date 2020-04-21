@@ -15,5 +15,4 @@ target_link_libraries(worker_knative_lib endpoint worker_lib)
 
 add_executable(worker_knative worker_knative.cpp)
 
-target_compile_definitions(worker_knative PRIVATE WITH_BOOST=1)
-target_link_libraries(worker_knative worker_knative_lib Boost::program_options)
+target_link_libraries(worker_knative worker_knative_lib)
