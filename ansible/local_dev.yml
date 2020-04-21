@@ -5,7 +5,7 @@
   gather_facts: yes
   roles:
     - linux
-    - llvm9
+    - llvm10
     - eigen
     - pistache
     - protobuf
