@@ -8,8 +8,6 @@ set(HEADERS
         "${FAASM_INCLUDE_DIR}/wasm/WasmModule.h"
         )
 
-add_subdirectory(openmp)
-
 set(LIB_FILES
         WasmEnvironment.cpp
         WasmModule.cpp

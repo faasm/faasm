@@ -1,16 +1,16 @@
 #include "WasmModule.h"
 
-#include <sys/mman.h>
-#include <boost/filesystem.hpp>
-#include <openmp/ThreadState.h>
-#include <util/func.h>
-#include <util/config.h>
-#include <util/locks.h>
-
 #include <ir_cache/IRModuleCache.h>
 #include <util/bytes.h>
-#include <sstream>
+#include <util/config.h>
+#include <util/func.h>
+#include <util/locks.h>
 #include <sys/uio.h>
+#include <wasm/openmp/ThreadState.h>
+
+#include <boost/filesystem.hpp>
+#include <sstream>
+#include <sys/mman.h>
 
 
 namespace wasm {

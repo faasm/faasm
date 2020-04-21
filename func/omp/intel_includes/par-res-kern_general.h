@@ -193,7 +193,7 @@ static inline void optimize_split(int *r_in0, int *r_in1, float lb_weight){
     int r[2], fac[2][2], delta, r_opt[2], i;
     float max_aspect, imbalance, cost, cost_opt;
 
-    cost_opt=INT_MAX;
+    cost_opt = (float) INT64_MAX;
     for (delta=-MIN((*r_in0),(*r_in1))+1; delta<MIN((*r_in0),(*r_in1)); delta++) {
         r[0]=(*r_in0-delta); r[1] = (*r_in1)+delta;
         for (i=0; i<2; i++) factor(r[i], &fac[i][0], &fac[i][1]);

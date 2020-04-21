@@ -1,4 +1,4 @@
-#include "openmp/ThreadState.h"
+#include "wasm/openmp/ThreadState.h"
 
 namespace wasm {
     namespace openmp {

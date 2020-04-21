@@ -23,7 +23,7 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <Runtime/RuntimePrivate.h>
 #include <WASI/WASIPrivate.h>
-#include <openmp/ThreadState.h>
+#include <wasm/openmp/ThreadState.h>
 
 using namespace WAVM;
 

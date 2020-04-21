@@ -1,7 +1,7 @@
 #ifndef FAASM_THREADSTATE_H
 #define FAASM_THREADSTATE_H
 
-#include <openmp/Level.h>
+#include <wasm/openmp/Level.h>
 
 namespace wasm {
     namespace openmp {

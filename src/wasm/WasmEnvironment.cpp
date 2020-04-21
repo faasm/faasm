@@ -29,7 +29,7 @@ namespace wasm {
 
     uint32_t WasmEnvironment::getEnvBufferSize() {
         uint32_t bufferSize = 0;
-        for (const auto v : vars) {
+        for (const auto &v : vars) {
             bufferSize += v.size() + 1;
         }
 
