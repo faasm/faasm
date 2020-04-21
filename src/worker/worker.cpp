@@ -3,13 +3,10 @@
 #include <state/State.h>
 #include <scheduler/Scheduler.h>
 #include <module_cache/WasmModuleCache.h>
-#include <storage/SharedFilesManager.h>
 #include <boost/filesystem.hpp>
 
 namespace worker {
     void flushWorkerHost() {
-        util::SystemConfig &conf = util::getSystemConfig();
-
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->warn("Flushing host {}", util::getNodeId());
 
@@ -17,8 +14,7 @@ namespace worker {
         state::getGlobalState().forceClearAll();
 
         // Clear shared files
-        storage::getSharedFilesManager().clear();
-        boost::filesystem::remove_all(conf.sharedFilesDir);
+        storage::FileSystem::clearSharedFiles();
 
         // Reset scheduler
         scheduler::Scheduler &sch = scheduler::getScheduler();

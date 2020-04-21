@@ -31,7 +31,7 @@ Version needs to be updated in:
 
 - `VERSION` at the project root
 - `FAASM_VERSION` variable in `.env` file at project root
-- Any kubernetes config files in `k8s` that specify image names
+- Any kubernetes config files in `deploy/k8s` that specify image names
 
 This can usually be done with a find-and-replace on the current version number.
 

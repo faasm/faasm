@@ -91,7 +91,7 @@ int level2() {
 
     bool checkAllRun[n] = {false, false};
 
-    #pragma omp parallel for num_threads(n) default(none) shared(r, checkAllRun, n, level2_failed)
+    #pragma omp parallel for num_threads(n) default(none) shared(r, checkAllRun, n, level2_failed, nested)
     for (int i = 0; i < 2; i++) {
 
         if (nested != is_nested()) {

@@ -2,7 +2,7 @@ from os import makedirs
 from os import remove
 from os.path import exists, join
 from shutil import rmtree
-from subprocess import check_output
+from subprocess import check_output, call
 
 from invoke import task
 
@@ -41,13 +41,13 @@ def download_sysroot(ctx):
 
 
 @task
-def download_toolchain(ctx):
+def download_toolchain(ctx, version=None):
     """
     Download the Faasm toolchain
     """
     url = get_toolchain_url()
-    tar_name = get_toolchain_tar_name()
-    tar_path = get_toolchain_tar_path()
+    tar_name = get_toolchain_tar_name(version=version)
+    tar_path = get_toolchain_tar_path(version=version)
 
     if exists(TOOLCHAIN_INSTALL):
         print("Deleting existing toolchain at {}".format(TOOLCHAIN_INSTALL))
@@ -88,3 +88,94 @@ def download_runtime(ctx, nocodegen=False):
     if not nocodegen:
         print("Running codegen")
         tasks.python.codegen(ctx)
+
+
+@task
+def version(ctx):
+    """
+    Prints the version of various LLVM tools
+    """
+    bin_dir = join(TOOLCHAIN_INSTALL, "bin")
+
+    for exe in ["clang", "clang++", "llvm-ar", "wasm-ld"]:
+        bin_path = join(bin_dir, exe)
+        print("---- {} ----".format(exe))
+        call("{} --version".format(bin_path), shell=True)
+        print("")
+
+
+def _scp_dir_from(user, host, dir_name):
+    _do_scp(True, user, host, dir_name)
+
+
+def _scp_dir_to(user, host, dir_name):
+    _do_scp(False, user, host, dir_name)
+
+
+def _do_scp(is_from, user, host, dir_name):
+    local_dir = join(FAASM_LOCAL_DIR, dir_name)
+    if is_from:
+        from_dir = "{}@{}:{}".format(user, host, local_dir)
+        to_dir = local_dir
+
+        # Nuke the current
+        print("Removing existing {}".format(to_dir))
+        rmtree(to_dir, ignore_errors=True)
+    else:
+        from_dir = local_dir
+
+        # Note with the "to" case, we've not nuked the remote file,
+        # so the remote dir is one level higher
+        to_dir = "{}@{}:{}".format(user, host, FAASM_LOCAL_DIR)
+
+    scp_cmd = [
+        "rsync", "-av",
+        from_dir,
+        to_dir
+    ]
+    scp_cmd = " ".join(scp_cmd)
+    print(scp_cmd)
+
+    res = call(scp_cmd, shell=True)
+    if res != 0:
+        raise RuntimeError("Failed to copy {}@{}:{}".format(user, host, dir_name))
+
+
+@task
+def scp_toolchain(ctx, user, host):
+    """
+    Copies the toolchain from a remote host
+    """
+    _scp_dir_from(user, host, "toolchain")
+
+
+@task
+def scp_sysroot(ctx, user, host):
+    """
+    Copies the sysroot from a remote host
+    """
+    _scp_dir_from(user, host, "llvm-sysroot")
+
+
+@task
+def scp_toolchain_to(ctx, user, host):
+    """
+    Copies the toolchain *to* a remote host
+    """
+    _scp_dir_to(user, host, "toolchain")
+
+
+@task
+def scp_sysroot_to(ctx, user, host):
+    """
+    Copies the sysroot *to* a remote host
+    """
+    _scp_dir_to(user, host, "llvm-sysroot")
+
+
+@task
+def scp_runtime_to(ctx, user, host):
+    """
+    Copies the runtime root *to* a remote host
+    """
+    _scp_dir_to(user, host, "runtime_root")

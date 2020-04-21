@@ -37,7 +37,7 @@ namespace runner {
 
         logger->info("Executing function {}/{}", user, func);
 
-        wasm::WasmModule module;
+        wasm::WAVMWasmModule module;
         module.bindToFunction(m);
         module.execute(m);
     }

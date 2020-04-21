@@ -354,7 +354,7 @@ class TensorflowExperimentRunner(WrkRunner):
         return super().execute_benchmark(native)
 
     def get_wrk_script(self):
-        return join(PROJ_ROOT, "conf", "tflite_bench.lua")
+        return join(PROJ_ROOT, "deploy", "conf", "tflite_bench.lua")
 
     def get_result_folder_name(self, system):
         folder_name = "SYSTEM_{}_COLD_{}_THREADS_{}_CONNS_{}_DELAY_{}_logs".format(

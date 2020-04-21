@@ -1,6 +1,4 @@
-def main_func():
+
+
+def faasm_main():
     return
-
-
-if __name__ == "__main__":
-    main_func()

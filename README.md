@@ -11,14 +11,13 @@ These shared memory regions give low-latency concurrent access to data, and are 
 globally to support large-scale parallelism.
 
 Faasm combines software fault isolation from WebAssembly with standard Linux tools, to provide 
-security and resource isolatation at low cost. Faasm runs functions side-by-side as threads 
+security and resource isolation at low cost. Faasm runs functions side-by-side as threads 
 of a single runtime process, with low overheads and fast boot times. The underlying WebAssembly
 execution and code generation is handled by [WAVM](https://github.com/WAVM/WAVM). 
 
-Faasm defines a custom [host interface](docs/host_interface.md) which lets functions perform 
-serverless-specific tasks (e.g. invoking other functions and managing state), as well as interacting 
-with the underlying host (e.g. using the filesystem and networking). The Faasm host interface achieves
-the same goal as [WASI](https://wasi.dev/), but in a serverless-specific context.
+Faasm defines a custom [host interface](docs/host_interface.md) which extends 
+[WASI](https://wasi.dev/) to include function inputs and outputs, chaining functions, managing 
+state, accessing the distributed filesystem, dynamic linking, pthreads, OpenMP and MPI.   
 
 A preprint of our paper on Faasm can be found [here](https://arxiv.org/abs/2002.09344).
 
@@ -54,6 +53,7 @@ More detail on some key features and implementations can be found below:
 - [Usage and set-up](docs/setup.md) - using the CLI and other features.
 - [C/C++ functions](docs/cpp.md) - writing and deploying Faasm functions in C/C++.
 - [Python functions](docs/python.md) - isolating and executing functions in Python.
+- [Rust functions](docs/rust.md) - links and resources for writing Faasm Rust functions.
 - [Distributed state](docs/state.md) - sharing state between functions.
 - [Faasm host interface](docs/host_interface.md) - the serverless-specific interface between functions and the underlying host.
 - [Kubernetes and Knative integration](docs/kubernetes.md)- deploying Faasm as part of a full serverless platform.

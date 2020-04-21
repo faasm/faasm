@@ -1,7 +1,8 @@
 from pyperformance.benchmarks.bm_chaos import Spline, GVector, Chaosgame, DEFAULT_THICKNESS, DEFAULT_WIDTH, \
     DEFAULT_HEIGHT, DEFAULT_ITERATIONS, DEFAULT_RNG_SEED
 
-if __name__ == "__main__":
+
+def faasm_main():
     splines = [
         Spline([
             GVector(1.597350, 3.304460, 0.000000),
@@ -31,3 +32,7 @@ if __name__ == "__main__":
     filename = "chaos.ppm"
     iterations = DEFAULT_ITERATIONS * 2
     chaos.create_image_chaos(DEFAULT_WIDTH, DEFAULT_HEIGHT, iterations, filename, DEFAULT_RNG_SEED)
+
+
+if __name__ == "__main__":
+    faasm_main()

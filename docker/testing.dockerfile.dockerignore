@@ -15,7 +15,7 @@ build
 # Misc project files
 docker
 docs
-k8s
+deploy/k8s
 node_modules
 typescript
 venv
@@ -46,5 +46,6 @@ third-party
 !wasm/omp/
 !wasm/mpi/
 !wasm/python/
+!wasm/rust/
 !wasm/sgd/
 !wasm/tf/

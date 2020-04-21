@@ -3,6 +3,7 @@
 
 #include <faasm/faasm.h>
 
+#define ITERATIONS 10
 
 bool compareArrays(const char *label, int *actual, int *expected) {
     for (size_t i = 0; i < 4; i++) {
@@ -25,13 +26,11 @@ bool compareArrays(const char *label, int *actual, int *expected) {
  * Simple counting test for static and static chunk scheduling
  */
 FAASM_MAIN_FUNC() {
-    const int iterations = 10;
-
     int countsA[4] = {0, 0, 0, 0};
     int expectedA[4] = {3, 3, 3, 1}; // Based on native behaviour
 
     #pragma omp parallel for schedule(static, 3) num_threads(4) default(none) shared(countsA)
-    for (int i = 0; i < iterations; i++) {
+    for (int i = 0; i < ITERATIONS; i++) {
         int threadNum = omp_get_thread_num();
         countsA[threadNum]++;
     }
@@ -44,7 +43,7 @@ FAASM_MAIN_FUNC() {
     int expectedB[4] = {3, 3, 2, 2}; // Based on native behaviour
 
     #pragma omp parallel for schedule(static) num_threads(4) default(none) shared(countsB)
-    for (int i = 0; i < iterations; i++) {
+    for (int i = 0; i < ITERATIONS; i++) {
         int threadNum = omp_get_thread_num();
         countsB[threadNum]++;
     }

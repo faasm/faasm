@@ -23,7 +23,7 @@ include_directories(
 
 # Set where the library has been built
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
-    set(TF_LIB ${TF_BUILD_DIR}/wasm32-unknown-none_x86_64/lib/libtensorflow-lite.a)
+    set(TF_LIB ${TF_BUILD_DIR}/wasm32-unknown-wasi_x86_64/lib/libtensorflow-lite.a)
 else()
     set(TF_LIB ${TF_BUILD_DIR}/linux_x86_64/lib/libtensorflow-lite.a)
 endif()

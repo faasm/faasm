@@ -1,11 +1,12 @@
 #include "bytes.h"
 
 #include <vector>
+#include <cstring>
 
 namespace util {
 
     std::vector<uint8_t> stringToBytes(const std::string &str) {
-        if(str.empty()) {
+        if (str.empty()) {
             std::vector<uint8_t> empty;
             return empty;
         }
@@ -40,18 +41,19 @@ namespace util {
             return dataSize;
         }
 
-        if(dataIn.empty()) {
+        return safeCopyToBuffer(dataIn.data(), dataIn.size(), buffer, bufferLen);
+    }
+
+    int safeCopyToBuffer(const uint8_t *dataIn, int dataLen, uint8_t *buffer, int bufferLen) {
+        if (dataLen == 0) {
             return 0;
         }
 
-        // Handle short buffer
-        if (dataSize > bufferLen) {
-            dataSize = bufferLen;
-        }
+        // Truncate date being copied into a short buffer
+        int copyLen = std::min(dataLen, bufferLen);
+        std::copy(dataIn, dataIn + copyLen, buffer);
 
-        std::copy(dataIn.data(), dataIn.data() + dataSize, buffer);
-
-        return dataSize;
+        return copyLen;
     }
 
     std::string bytesToString(const std::vector<uint8_t> &bytes) {

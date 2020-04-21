@@ -9,7 +9,7 @@
 #endif
 
 HOST_IFACE_FUNC
-void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen);
+long __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen);
 
 HOST_IFACE_FUNC
 unsigned char *__faasm_read_state_ptr(const char *key, long totalLen);
@@ -99,10 +99,10 @@ HOST_IFACE_FUNC
 void __faasm_get_py_func(unsigned char *buffer, long bufferLen);
 
 HOST_IFACE_FUNC
-int __faasm_get_py_idx();
+void __faasm_get_py_entry(unsigned char *buffer, long bufferLen);
 
 HOST_IFACE_FUNC
-unsigned int __faasm_chain_py(int idx, const unsigned char *inputData, long inputDataSize);
+unsigned int __faasm_chain_py(const char* name, const unsigned char *inputData, long inputDataSize);
 
 HOST_IFACE_FUNC
 unsigned int __faasm_conf_flag(const char* key);

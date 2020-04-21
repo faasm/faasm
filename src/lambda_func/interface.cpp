@@ -118,7 +118,7 @@ unsigned int __faasm_chain_this(int idx, const unsigned char *inputData, long in
     throw std::runtime_error("Not implemented self-chaining");
 }
 
-unsigned int __faasm_chain_py(int idx, const unsigned char *inputData, long inputDataSize) {
+unsigned int __faasm_chain_py(const char *name, const unsigned char *inputData, long inputDataSize) {
     // TODO - invoke this function again with the given index
     throw std::runtime_error("Not implemented py-chaining");
 }
@@ -128,12 +128,7 @@ int __faasm_get_idx() {
     throw std::runtime_error("Not implemented self-chaining");
 }
 
-int __faasm_get_py_idx() {
-    // TODO - get this from the context somehow
-    throw std::runtime_error("Not implemented self-chaining");
-}
-
-void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen) {
+long __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen) {
     if (bufferLen == 0) {
         return;
     }
@@ -142,6 +137,9 @@ void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen) 
 
     redis::Redis &redis = redis::Redis::getState();
     redis.get(actualKey, buffer, bufferLen);
+
+    // TODO - return actual size
+    return 0;
 }
 
 
@@ -279,6 +277,9 @@ void __faasm_get_py_user(unsigned char *buffer, long bufferLen) {
 }
 
 void __faasm_get_py_func(unsigned char *buffer, long bufferLen) {
+}
+
+void __faasm_get_py_entry(unsigned char *buffer, long bufferLen) {
 }
 
 unsigned int __faasm_conf_flag(const char* key) {

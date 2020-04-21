@@ -51,7 +51,7 @@ services:
   nginx:
     image: nginx:latest
     volumes:
-      - ./conf/nginx-local.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/conf/nginx-local.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - worker
     ports:

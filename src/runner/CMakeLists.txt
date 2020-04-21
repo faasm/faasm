@@ -13,7 +13,7 @@ set(LIB_FILES
         )
 
 faasm_private_lib(bench "${LIB_FILES}")
-target_link_libraries(bench worker_lib wasm util module_cache system)
+target_link_libraries(bench worker_lib wasm wavmmodule util module_cache system)
 
 add_executable(capacity_experiment capacity_experiment.cpp)
 target_link_libraries(capacity_experiment bench)

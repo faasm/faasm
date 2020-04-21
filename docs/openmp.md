@@ -18,6 +18,6 @@ inv invoke omp hellomp
 Runtime OMP functions are implemented just like any other host interface function 
 and can be found in `src/wasm/openmp.cpp`. 
 
-The list of acceptable unresolved imports is in `lib-faasmp/faasmp.imports`.
+The list of acceptable unresolved imports is in `libs/faasmp/faasmp.imports`.
 
 To add a new function you need to include it in both of these files. 

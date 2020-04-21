@@ -23,7 +23,7 @@ function(polybench_func exec_name dir_path)
             )
 
     if (FAASM_BUILD_TYPE STREQUAL "wasm")
-        target_link_libraries(poly_${exec_name} faasm dlmalloc)
+        target_link_libraries(poly_${exec_name} faasm)
     else()
         target_link_libraries(poly_${exec_name} m)
     endif()

@@ -7,6 +7,11 @@ namespace state {
     class StateBackend {
     public:
         /**
+         * Returns the size of the key
+         */
+        virtual size_t getSize(const std::string &key) = 0;
+
+        /**
          * Fills the buffer with the state value
          */
         virtual void get(const std::string &key, uint8_t* buffer, size_t bufferLen) = 0;

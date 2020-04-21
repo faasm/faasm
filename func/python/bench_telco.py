@@ -82,7 +82,7 @@ def bench_telco(loops, filename):
         outfil.truncate()
 
 
-if __name__ == "__main__":
+def faasm_main():
     if os.environ.get("PYTHONWASM") == "1":
         file_path = "/lib/python3.7/site-packages/pyperformance/benchmarks/data/telco-bench.b"
     else:
@@ -93,3 +93,7 @@ if __name__ == "__main__":
     loops = 10
 
     bench_telco(loops, file_path)
+
+
+if __name__ == "__main__":
+    faasm_main()

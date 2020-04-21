@@ -1,13 +1,19 @@
 set(FAASM_USER errors)
 
-faasm_func(bad_malloc bad_malloc.cpp)
-faasm_func(multi_poll multi_poll.cpp)
-faasm_func(munmap munmap.cpp)
-faasm_func(open_blocked open_blocked.cpp)
-faasm_func(ret_one ret_one.cpp)
-faasm_func(socket socket.cpp)
-faasm_func(stdin_poll stdin_poll.cpp)
+function(error_func exec_name dir_path)
+    faasm_func(${exec_name} ${dir_path})
+
+    set(ALL_ERROR_FUNCS ${ALL_ERROR_FUNCS} ${exec_name} PARENT_SCOPE)
+endfunction(error_func)
+
+error_func(bad_malloc bad_malloc.cpp)
+error_func(munmap munmap.cpp)
+error_func(open_blocked open_blocked.cpp)
+error_func(ret_one ret_one.cpp)
+error_func(stdin_poll stdin_poll.cpp)
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
-    faasm_func(stackoverflow stackoverflow.cpp)
+    error_func(stackoverflow stackoverflow.cpp)
 endif()
+
+add_custom_target(errors_all_funcs DEPENDS ${ALL_ERROR_FUNCS})

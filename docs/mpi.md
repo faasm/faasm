@@ -120,6 +120,6 @@ mpirun ... -mca btl_tcp_if_include 192.168.0.0/16 ...
 
 ## Extending the Faasm MPI implementation
 
-The MPI interface declarations live in `lib-faasmpi` and the definitions in `src/wasm/mpi.cpp`.
+The MPI interface declarations live in `libs/faasmpi` and the definitions in `src/wasm/mpi.cpp`.
 
-Any new functions need to be included in `lib-faasmpi/faasmpi.imports`. 
+Any new functions need to be included in `libs/faasmpi/faasmpi.imports`. 

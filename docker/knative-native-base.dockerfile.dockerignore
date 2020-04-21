@@ -15,7 +15,7 @@ build
 # Misc project files
 docker
 docs
-k8s
+deploy/k8s
 node_modules
 typescript
 venv
@@ -40,5 +40,7 @@ third-party
 !third-party/malloc
 !third-party/eigen
 !third-party/WAVM
+!third-party/wamr
+
 
 !third-party/tensorflow

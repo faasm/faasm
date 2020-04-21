@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: upload
+  namespace: faasm
+  labels:
+    app: faasm
+    role: upload
+spec:
+  containers:
+    - name: upload
+      image: faasm/upload:0.1.2
+      imagePullPolicy: Always
+      ports:
+        - containerPort: 8002
+      env:
+        - name: REDIS_STATE_HOST
+          value: redis-state
+        - name: REDIS_QUEUE_HOST
+          value: redis-queue
+        - name: FUNCTION_STORAGE
+          value: "local"
+        - name: LOG_LEVEL
+          value: "debug"
+        - name: CGROUP_MODE
+          value: "off"
+        - name: NETNS_MODE
+          value: "off"

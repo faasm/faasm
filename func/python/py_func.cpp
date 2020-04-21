@@ -3,97 +3,77 @@
 
 #include <Python.h>
 
-#define WASM_PYTHON_FUNC_PREFIX "faasm://pyfuncs/"
-#define NATIVE_PYTHON_FUNC_PREFIX "/usr/local/code/faasm/func/"
+#ifndef __wasm__
+extern "C" {
+#include <emulator/emulator_api.h>
+}
+#endif
 
-//#ifdef __wasm__
-//#include <clapack/f2c.h>
-//#include <clapack/cblas.h>
-//#include <clapack/clapack.h>
-//#else
-//#include <cblas.h>
-//#endif
-//
-//void forceLinkBlas() {
-//    FILE *devNull = fopen("/dev/null", "w");
-//
-//    // CBLAS - import all the cblas functions needed by numpy
-//    fprintf(devNull, "%p", cblas_sdot);
-//    fprintf(devNull, "%p", cblas_ddot);
-////    fprintf(devNull, "%p", cblas_cdotu_sub);
-////    fprintf(devNull, "%p", cblas_zdotu_sub);
-////    fprintf(devNull, "%p", cblas_cdotc_sub);
-////    fprintf(devNull, "%p", cblas_zdotc_sub);
-//    fprintf(devNull, "%p", cblas_daxpy);
-//    fprintf(devNull, "%p", cblas_zaxpy);
-//    fprintf(devNull, "%p", cblas_saxpy);
-//    fprintf(devNull, "%p", cblas_caxpy);
-//    fprintf(devNull, "%p", cblas_dgemm);
-//    fprintf(devNull, "%p", cblas_sgemm);
-//    fprintf(devNull, "%p", cblas_zgemm);
-//    fprintf(devNull, "%p", cblas_cgemm);
-//    fprintf(devNull, "%p", cblas_dgemv);
-//    fprintf(devNull, "%p", cblas_sgemv);
-//    fprintf(devNull, "%p", cblas_zgemv);
-//    fprintf(devNull, "%p", cblas_cgemv);
-//    fprintf(devNull, "%p", cblas_dsyrk);
-//    fprintf(devNull, "%p", cblas_csyrk);
-//    fprintf(devNull, "%p", cblas_zsyrk);
-//    fprintf(devNull, "%p", cblas_ssyrk);
-//
-//    // LAPACK - must import everything needed by numpy here
-//#ifdef __wasm__
-//    fprintf(devNull, "%p", dgelsd_);
-//    fprintf(devNull, "%p", dgeqrf_);
-//    fprintf(devNull, "%p", dorgqr_);
-//    fprintf(devNull, "%p", zgelsd_);
-//    fprintf(devNull, "%p", zgeqrf_);
-//    fprintf(devNull, "%p", zungqr_);
-//
-//    fprintf(devNull, "%p", scopy_);
-//    fprintf(devNull, "%p", sgetrf_);
-//    fprintf(devNull, "%p", dcopy_);
-//    fprintf(devNull, "%p", dgetrf_);
-//    fprintf(devNull, "%p", ccopy_);
-//    fprintf(devNull, "%p", zcopy_);
-//    fprintf(devNull, "%p", cgetrf_);
-//    fprintf(devNull, "%p", zgetrf_);
-//    fprintf(devNull, "%p", ssyevd_);
-//    fprintf(devNull, "%p", dsyevd_);
-//    fprintf(devNull, "%p", cheevd_);
-//    fprintf(devNull, "%p", zheevd_);
-//    fprintf(devNull, "%p", sgesv_);
-//    fprintf(devNull, "%p", dgesv_);
-//    fprintf(devNull, "%p", cgesv_);
-//    fprintf(devNull, "%p", zgesv_);
-//    fprintf(devNull, "%p", spotrf_);
-//    fprintf(devNull, "%p", dpotrf_);
-//    fprintf(devNull, "%p", cpotrf_);
-//    fprintf(devNull, "%p", zpotrf_);
-//    fprintf(devNull, "%p", sgesdd_);
-//    fprintf(devNull, "%p", dgesdd_);
-//    fprintf(devNull, "%p", cgesdd_);
-//    fprintf(devNull, "%p", zgesdd_);
-//    fprintf(devNull, "%p", sgeev_);
-//    fprintf(devNull, "%p", dgeev_);
-//    fprintf(devNull, "%p", zgeev_);
-//    fprintf(devNull, "%p", sgelsd_);
-//    fprintf(devNull, "%p", cgelsd_);
-//#endif
-//}
+// --------------------------------------------------
+// See the CPython embedding docs for more info:
+// https://docs.python.org/3/extending/embedding.html
+// --------------------------------------------------
 
+#define WASM_PYTHON_FUNC_DIR "/pyfuncs/"
+#define NATIVE_PYTHON_FUNC_DIR "/usr/local/code/faasm/func/"
+
+#define DEFAULT_MAIN_FUNC "faasm_main"
+
+/**
+ * Returns the relevant Python entry function. We need to invoke different
+ * functions depending on which Faasm function index we're dealing with.
+ */
+const char *getPythonFunctionName() {
+    char *entryFunc = faasmGetPythonEntry();
+
+    if (strlen(entryFunc) == 0) {
+        return DEFAULT_MAIN_FUNC;
+    } else {
+        return entryFunc;
+    }
+}
+
+/**
+ * Returns the working dir we need to be in to import the Python module
+ * for the required function.
+ */
+const char *getPythonWorkingDir(const char *user, const char *funcName) {
+    auto workingDir = new char[60];
+
+#ifdef __wasm__
+    sprintf(workingDir, "%s%s/%s", WASM_PYTHON_FUNC_DIR, user, funcName);
+#else
+    sprintf(workingDir, "%s%s", NATIVE_PYTHON_FUNC_DIR, user);
+#endif
+
+    return workingDir;
+}
+
+/**
+ * Returns the name of the python module to execute. If executing in wasm this
+ * will be different to when executing natively.
+ */
+const char *getPythonModuleName(const char *funcName) {
+#ifdef __wasm__
+    return "function";
+#else
+    return funcName;
+#endif
+}
+
+/**
+ * Initialise CPython using a Faasm zygote to avoid doing so repeatedly
+ */
 FAASM_ZYGOTE() {
-    setUpPyEnvironment();
     Py_InitializeEx(0);
 
     setUpPyNumpy();
-//    forceLinkBlas();
 
     unsigned int preloadNumpy = getConfFlag("PRELOAD_NUMPY");
-    if(preloadNumpy == 1) {
+    if (preloadNumpy == 1) {
         // Import numpy up front
-        PyObject* numpyModule = PyImport_ImportModule("numpy");
-        if(!numpyModule) {
+        PyObject *numpyModule = PyImport_ImportModule("numpy");
+        if (!numpyModule) {
             printf("\nFailed to import numpy\n");
         } else {
             printf("\nPython initialised numpy\n");
@@ -101,8 +81,8 @@ FAASM_ZYGOTE() {
     }
 
     // Import pyfaasm
-    PyObject* pyfaasmModule = PyImport_ImportModule("pyfaasm.core");
-    if(!pyfaasmModule) {
+    PyObject *pyfaasmModule = PyImport_ImportModule("pyfaasm.core");
+    if (!pyfaasmModule) {
         printf("\nFailed to import pyfaasm\n");
     } else {
         printf("\nPython initialised pyfaasm\n");
@@ -112,30 +92,92 @@ FAASM_ZYGOTE() {
 }
 
 FAASM_MAIN_FUNC() {
-    setUpPyEnvironment();
+    // With this line uncommented, this file can be run as a normal executable for testing
+    // setEmulatedMessageFromJson(R"({"user": "python", "function": "py_func", "py_user": "python", "py_func": "lang_test", "py_entry": "faasm_main"})");
 
+    // Get details of the Faasm call
     char *user = faasmGetPythonUser();
     char *funcName = faasmGetPythonFunc();
+    const char *pythonFuncName = getPythonFunctionName();
 
-    auto filePath = new char[50 + strlen(funcName)];
+    // Variables related to importing/ executing the Python module
+    const char *workingDir = getPythonWorkingDir(user, funcName);
+    const char *pythonModuleName = getPythonModuleName(funcName);
 
-#ifdef __wasm__
-    sprintf(filePath, "%s%s/%s/function.py", WASM_PYTHON_FUNC_PREFIX, user, funcName);
-#else
-    sprintf(filePath, "%s%s/%s.py", NATIVE_PYTHON_FUNC_PREFIX, user, funcName);
-#endif
+    // Add the directory to the Python path
+    PyObject *sys = PyImport_ImportModule("sys");
+    PyObject *path = PyObject_GetAttrString(sys, "path");
+    PyList_Append(path, PyUnicode_FromString(workingDir));
 
-    FILE *fp = fopen(filePath, "r");
-    if (fp == nullptr) {
-        printf("Failed to open file at %s\n", filePath);
+    // Import the module
+    PyObject *module = PyImport_ImportModule(pythonModuleName);
+
+    if (module != nullptr) {
+        PyObject *func = PyObject_GetAttrString(module, pythonFuncName);
+
+        if (func && PyCallable_Check(func)) {
+            // Note that chained functions take their input data as argument
+            PyObject *pythonFuncArgs;
+            PyObject *inputBytes;
+            if (strcmp(pythonFuncName, DEFAULT_MAIN_FUNC) == 0) {
+                // Default main function takes no argument
+                pythonFuncArgs = nullptr;
+            } else {
+                // Get input for Faasm function
+                long inputSize = faasmGetInputSize();
+                if (inputSize == 0) {
+                    // No input from Faasm
+                    inputBytes = PyBytes_FromStringAndSize("", 0);
+                } else {
+                    // Read input into buffer
+                    auto rawInput = new uint8_t[inputSize];
+                    faasmGetInput(rawInput, inputSize);
+
+                    // Convert to python bytes object and build arguments tuple
+                    inputBytes = PyBytes_FromStringAndSize((char *) rawInput, inputSize);
+                }
+
+                pythonFuncArgs = PyTuple_New(1);
+                PyTuple_SetItem(pythonFuncArgs, 0, inputBytes);
+            }
+
+            // Execute the function
+            PyObject *returnValue = PyObject_CallObject(func, pythonFuncArgs);
+
+            // Clear up args
+            if(pythonFuncArgs != nullptr) {
+                Py_DECREF(pythonFuncArgs);
+                Py_DECREF(inputBytes);
+            }
+
+            // Check return value and clear up
+            if (returnValue != nullptr) {
+                printf("Python call succeeded (return value = %ld)\n", PyLong_AsLong(returnValue));
+                Py_DECREF(returnValue);
+            } else {
+                // Have to tidy up here as about to return
+                PyErr_Print();
+                printf("Python call failed\n");
+                Py_DECREF(func);
+                Py_DECREF(module);
+                return 1;
+            }
+        } else {
+            if (PyErr_Occurred()) {
+                PyErr_Print();
+            }
+            printf("Cannot find function \"%s\"\n", pythonFuncName);
+        }
+
+        Py_XDECREF(func);
+        Py_DECREF(module);
+    } else {
+        PyErr_Print();
+        fprintf(stderr, "Failed to load \"%s\"\n", funcName);
         return 1;
     }
 
-    printf("WASM python function: %s\n", filePath);
-
-    PyRun_SimpleFile(fp, filePath);
     Py_FinalizeEx();
-    fclose(fp);
 
     return 0;
 }

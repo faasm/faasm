@@ -4,7 +4,7 @@ Faasm is a runtime designed to be integrated into other serverless platforms.
 The recommended integration is with [Knative](https://knative.dev/).
 
 All of Faasm's Kubernetes and Knative configuration can be found in the 
-[k8s](../k8s) directory, and the relevant parts of the Faasm CLI can be 
+[k8s](../deploy/k8s) directory, and the relevant parts of the Faasm CLI can be 
 found in the [Knative tasks](../tasks/knative.py).  
 
 These steps generally assume that you have 

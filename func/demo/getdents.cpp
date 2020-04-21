@@ -7,9 +7,13 @@
 #include <string>
 #include <faasm/input.h>
 
+
 FAASM_MAIN_FUNC() {
-    const char* dirName = faasm::getStringInput("");
+    const char* dirName = "/etc/";
+    printf("Opening dir %s\n", dirName);
+
     DIR *dirp = opendir(dirName);
+
     if (dirp == nullptr) {
         printf("Couldn't open dir %s\n", dirName);
         return 1;
@@ -18,19 +22,17 @@ FAASM_MAIN_FUNC() {
     struct dirent *dp;
     std::string output;
 
-    printf("ino        d_off            reclen   d_type   name\n");
+    printf("ino     d_type  name\n");
 
     int count = 0;
     while ((dp = readdir(dirp)) != NULL) {
         ino_t d_ino = dp->d_ino;
-        off_t off = dp->d_off;
-        unsigned short reclen = dp->d_reclen;
         unsigned char d_type = dp->d_type;
         char *name = dp->d_name;
 
         output += name + std::string(",");
 
-        printf("%u   %i   %i   %u   %s\n", (unsigned int) d_ino, (int) off, reclen, d_type, name);
+        printf("%u %u       %s\n", (unsigned int) d_ino, d_type, name);
         count++;
     }
 
