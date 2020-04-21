@@ -2,6 +2,7 @@
 
 #include <sys/mman.h>
 #include <boost/filesystem.hpp>
+#include <openmp/ThreadState.h>
 #include <util/func.h>
 #include <util/config.h>
 #include <util/locks.h>
@@ -192,4 +193,21 @@ namespace wasm {
             argvBufferSize += thisArg.size() + 1;
         }
     }
+
+    void WasmModule::prepareOpenMPContext(const message::Message &msg) {
+        openmp::setThreadNumber(msg.threadnum());
+        openmp::OMPLevel *ompLevel;
+
+        if (msg.has_ldepth()) {
+            ompLevel = new openmp::OMPLevel(msg.ldepth(),
+                                            msg.leffdepth(),
+                                            msg.lmal(),
+                                            msg.numthreads());
+        } else {
+            ompLevel = new openmp::OMPLevel();
+        }
+
+        openmp::setThreadLevel(ompLevel);
+    }
+
 }

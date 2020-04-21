@@ -183,5 +183,9 @@ namespace wasm {
         Runtime::Function *func;
         IR::UntaggedValue *funcArgs;
         size_t stackSize;
+
+        // OpenMP thread information. Give defaults when not using OMP
+        int tid = 0;
+        openmp::OMPLevel *level = nullptr;
     };
 }

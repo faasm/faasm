@@ -33,6 +33,10 @@ if (FAASM_WAMR_SUPPORT)
     set(WAMR_BUILD_LIBC_BUILTIN 0)
 endif()
 
+# Boost
+find_package(Boost 1.65 QUIET OPTIONAL_COMPONENTS program_options)
+include_directories(${Boost_INCLUDE_DIR})
+
 # Library type (for shared libraries)
 if (FAASM_STATIC_LIBS)
     function(faasm_public_lib lib_name lib_deps)

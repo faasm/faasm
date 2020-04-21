@@ -2,7 +2,6 @@
 
 #include <boost/filesystem.hpp>
 #include <cereal/archives/binary.hpp>
-#include <fstream>
 #include <sys/mman.h>
 #include <sys/types.h>
 
@@ -24,6 +23,7 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <Runtime/RuntimePrivate.h>
 #include <WASI/WASIPrivate.h>
+#include <openmp/ThreadState.h>
 
 using namespace WAVM;
 
@@ -625,13 +625,32 @@ namespace wasm {
         // Ensure Python function file in place (if necessary)
         syncPythonFunctionFile(msg);
 
+        // Set up OMP
+        prepareOpenMPContext(msg);
+
         // Run a specific function if requested
         int funcPtr = msg.funcptr();
         std::vector<IR::UntaggedValue> invokeArgs;
         Runtime::Function *funcInstance;
         IR::FunctionType funcType;
 
-        if (funcPtr > 0) {
+        if (msg.has_ldepth()) {
+            // Handle OMP functions
+            funcInstance = getFunctionFromPtr(funcPtr);
+            funcType = Runtime::getFunctionType(funcInstance);
+            int threadNum = msg.threadnum();
+            int argc = msg.functionargs_size();
+
+            logger->debug("Running OMP thread #{} for function{} with argType {} (argc = {})", threadNum, funcPtr,
+                          WAVM::IR::asString(funcType), argc);
+
+            invokeArgs.emplace_back(threadNum);
+            invokeArgs.emplace_back(argc);
+            for (int argIdx = 0; argIdx < argc; argIdx++) {
+                invokeArgs.emplace_back(msg.functionargs(argIdx));
+            }
+
+        } else if (funcPtr > 0) {
             // Get the function this call is referring to
             funcInstance = getFunctionFromPtr(funcPtr);
 
@@ -1090,6 +1109,10 @@ namespace wasm {
         setExecutingModule(spec.parentModule);
         setExecutingCall(spec.parentCall);
 
+        // Set up OMP properties
+        openmp::setThreadNumber(spec.tid);
+        openmp::setThreadLevel(spec.level);
+
         // Create a new region for this thread's stack
         U32 thisStackBase = getExecutingModule()->mmapMemory(spec.stackSize);
         U32 stackTop = thisStackBase + spec.stackSize - 1;
@@ -1194,7 +1217,7 @@ namespace wasm {
     }
 
     void WAVMWasmModule::syncPythonFunctionFile(const message::Message &msg) {
-        if(!msg.ispython()) {
+        if (!msg.ispython()) {
             return;
         }
 
