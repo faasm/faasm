@@ -55,8 +55,8 @@ namespace tests {
 
             redisQueue.setLong(key, 5);
             REQUIRE(redisQueue.getLong(key) == 5);
-            REQUIRE(redis.incrByLong(key, 10) == 5 + 10);
-            REQUIRE(redis.decrByLong(key, 2) == 5 + 10 - 2);
+            REQUIRE(redisQueue.incrByLong(key, 10) == 5 + 10);
+            REQUIRE(redisQueue.decrByLong(key, 2) == 5 + 10 - 2);
         }
 
         SECTION("Test enqueue/ dequeue bytes") {

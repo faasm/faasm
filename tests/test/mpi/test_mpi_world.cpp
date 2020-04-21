@@ -994,8 +994,8 @@ namespace tests {
         // Create a window
         faasmpi_win_t winA1{
                 .worldId=worldA.getId(),
-                .size = bufferSize,
                 .rank = rankA1,
+                .size = bufferSize,
         };
         worldA.createWindow(&winA1, BYTES(dataA1.data()));
 
