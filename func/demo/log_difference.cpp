@@ -1,7 +1,8 @@
-#include <math.h>
 #include <cstdio>
 #include <cstdint>
+
 const int32_t EXPECTED = -2147483529;
+
 int main() {
     int32_t result = 100;
     for (int32_t i = -200000000; i < 200000000; i++) {
