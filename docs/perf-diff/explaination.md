@@ -1,6 +1,13 @@
 # Perf shows that the loops are doing the same
 
-### Perf stat:
+## Log function
+
+Experiment code [here](../../func/demo/log_difference.cpp).
+
+### Perf stat
+
+#### Native
+
 ```
  Performance counter stats for 'speed_difference':
 
@@ -15,6 +22,8 @@
 
       14.531197506 seconds time elapsed
 ```
+
+#### Wasm
 
 ```
  Performance counter stats for 'simple_runner demo speed_difference':
@@ -42,13 +51,78 @@ functionDef2        __original_main
 The global time spent in each section is very similar:
 ![Time division](time-division.png)
 
-The loop bodies (pictures below) look quite similar -- unless the unknown/unknown:XX are something to worry about. However the Wasm code 
-before the loop fiddles with the MM registers. Manually compiling with `clang++ -O3 -mavx2` but did not alter the native
-speed. I think I have only found a bad example of speed difference where here MUSL's log is faster than GLibC's log.
-When looking at the version ran in Wasm, it is a lot smaller than the one in GLibC which does not
-explain why my experiement ran faster. I'll try to instead profile the mersenne_twister_engine on native and
-Wasm and see how that one does because I think that'll be closer to my results.
+The loop bodies (pictures below) look quite similar -- unless the unknown/unknown:XX are something to worry about. The Wasm code 
+fiddles a lot with the MM registers before the loop. Manually compiling the native code with `clang++ -O3 -mavx2 -S` for comparison lead
+to the same code as shown below.
 
 ![main native](main-native.png)
 
 ![main Wasm](main-wasm.png)
+
+I think this is not a good experiment for general-purpose speed comparison between Wasm and Native because it seems that
+here the only difference is that MUSL's log is faster than GLibC's log. When looking at the `log` function ran in Wasm,
+it is a lot smaller than the GLibC one, which is the only explanation I have here for the speed difference.
+
+This experiment is however useful for understanding our second experiment because there is a log function taking 25% of
+the run time of the native Mersenne Twister engine experiment but there is no sign of `log` seems absent from the Wasm
+which however leads to the same result. I can only think the log was somehow optimised away?
+
+## Mersenne Twister Engine
+
+Experiment code [here](../../func/demo/mt_difference.cpp).
+
+### Perf stats
+
+#### Native
+
+
+```
+       9170.419967      task-clock (msec)         #    1.000 CPUs utilized
+                 5      context-switches          #    0.001 K/sec
+                 0      cpu-migrations            #    0.000 K/sec
+               588      page-faults               #    0.064 K/sec
+    27,822,779,162      cycles                    #    3.034 GHz
+    17,508,333,503      instructions              #    0.63  insn per cycle
+     2,560,064,376      branches                  #  279.165 M/sec
+         1,122,999      branch-misses             #    0.04% of all branches
+
+       9.171005174 seconds time elapsed
+
+```
+
+#### Wasm
+
+```
+
+
+       1317.060034      task-clock (msec)         #    1.000 CPUs utilized
+                 1      context-switches          #    0.001 K/sec
+                 0      cpu-migrations            #    0.000 K/sec
+             5,610      page-faults               #    0.004 M/sec
+     2,992,325,962      cycles                    #    2.272 GHz
+     6,657,716,630      instructions              #    2.22  insn per cycle
+       218,836,121      branches                  #  166.155 M/sec
+         5,013,145      branch-misses             #    2.29% of all branches
+
+       1.317535341 seconds time elapsed
+```
+
+
+###  Perf Report
+
+On the left, Wasm on the right, native. The symbol table is as follows. The
+fact we only have the `main` function in Wasm seem to indicate there is some
+inlining going on.
+```
+functionDef2        __original_main
+```
+
+![Perf report MT](mt-time.png)
+
+And indeed we can compare the loop bodies in the main function we the native simply
+calls the MT engine. And the Wasm code seem to be that same code but inlined (omitted
+because it was too long).
+
+The Native main loop uses `callq`, I'm not sure about perf's measures about the cost
+of instructions (`callq` < `mov` < `add`), and it seems clear that it doesn't include
+the time spent in `callq` because perf inverts the call graph.
