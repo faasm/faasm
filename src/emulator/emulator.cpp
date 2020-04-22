@@ -426,6 +426,10 @@ int __faasm_await_call(unsigned int callId) {
     }
 }
 
+long __faasm_get_call_output(unsigned int messageId, unsigned char *buffer, long bufferLen) {
+    throw std::runtime_error("Get call output not implemented in emulator");
+}
+
 int __faasm_get_idx() {
     return _emulatedCall.idx();
 }

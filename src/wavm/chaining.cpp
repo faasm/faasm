@@ -5,6 +5,7 @@
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
+#include <util/bytes.h>
 
 namespace wasm {
     void chainLink() {
@@ -24,6 +25,38 @@ namespace wasm {
         util::getLogger()->debug("S - await_call - {}", messageId);
 
         return awaitChainedCall(messageId);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_get_call_output", I32, __faasm_get_call_output, U32 messageId,
+                                   I32 bufferPtr, I32 bufferLen) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - get_call_output - {} {} {}", messageId, bufferPtr, bufferLen);
+
+        auto buffer = &Runtime::memoryRef<uint8_t>(getExecutingModule()->defaultMemory, bufferPtr);
+
+        // TODO - avoid always getting the function result even if we're just checking the length
+        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
+        const message::Message result = globalBus.getFunctionResult(messageId, 0);
+
+        if(bufferLen == 0) {
+            return result.outputdata().size();
+        }
+
+        int outputLen = 0;
+        if (result.type() == message::Message_MessageType_EMPTY) {
+            logger->error("Cannot find output for {}", messageId);
+        } else if (result.returnvalue() == 0) {
+            std::vector<uint8_t> outputData = util::stringToBytes(result.outputdata());
+            outputLen = util::safeCopyToBuffer(outputData, buffer, bufferLen);
+        } else {
+            logger->error("Cannot get output for {} (failed)", messageId);
+        }
+
+        return outputLen;
+    }
+
+    long __faasm_get_call_output(unsigned int messageId, unsigned char *buffer, long bufferLen) {
+        throw std::runtime_error("Get call output not implemented in emulator");
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_function", U32, __faasm_chain_function,

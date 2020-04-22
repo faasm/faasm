@@ -158,6 +158,16 @@ unsigned int faasmChainThisInput(int idx, const uint8_t *inputData, long inputDa
 unsigned int faasmAwaitCall(unsigned int callId);
 
 /**
+ * Gets the output from the given call into the buffer
+ */
+void faasmGetCallOutput(unsigned int messageId, uint8_t *buffer, long bufferLen);
+
+/**
+ * Returns the size of the output for the given call
+ */
+long faasmGetCallOutputSize(unsigned int messageId);
+
+/**
  * Gets the index of the current function
  */
 int faasmGetCurrentIdx();
