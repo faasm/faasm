@@ -78,8 +78,6 @@ if (${FAASM_CUSTOM_LLVM})
     set(WAVM_PERF_LIBS 1)
     add_definitions(-DWAVM_PERF_EVENTS=1)
 else ()
-    # Use LLVM 8 explicitly for the lib parts (i.e. codegen)
-    set(LLVM_DIR /usr/lib/llvm-8)
     find_package(LLVM REQUIRED CONFIG)
 endif ()
 
