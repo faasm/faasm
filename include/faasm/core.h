@@ -160,12 +160,7 @@ unsigned int faasmAwaitCall(unsigned int callId);
 /**
  * Gets the output from the given call into the buffer
  */
-void faasmGetCallOutput(unsigned int messageId, uint8_t *buffer, long bufferLen);
-
-/**
- * Returns the size of the output for the given call
- */
-long faasmGetCallOutputSize(unsigned int messageId);
+unsigned int faasmAwaitCallOutput(unsigned int messageId, uint8_t *buffer, long bufferLen);
 
 /**
  * Gets the index of the current function

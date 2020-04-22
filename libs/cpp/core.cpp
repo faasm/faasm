@@ -115,15 +115,8 @@ unsigned int faasmAwaitCall(unsigned int messageId) {
     return __faasm_await_call(messageId);
 }
 
-void faasmGetCallOutput(unsigned int messageId, uint8_t *buffer, long bufferLen) {
-    __faasm_get_call_output(messageId, buffer, bufferLen);
-}
-
-long faasmGetCallOutputSize(unsigned int messageId) {
-    uint8_t buf[1];
-
-    // Passing zero buffer len returns total size
-    return __faasm_get_call_output(messageId, buf, 0);
+unsigned int faasmAwaitCallOutput(unsigned int messageId, uint8_t *buffer, long bufferLen) {
+    return __faasm_await_call_output(messageId, buffer, bufferLen);
 }
 
 unsigned int faasmChainFunctionInput(const char *name, const uint8_t *inputData, long inputDataSize) {
