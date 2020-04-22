@@ -109,6 +109,10 @@ int __faasm_await_call(unsigned int messageId) {
     return 0;
 }
 
+int __faasm_await_call_output(unsigned int messageId, unsigned char *buffer, long bufferLen) {
+    throw std::runtime_error("Get call output not implemented in emulator");
+}
+
 unsigned int __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize) {
     throw std::runtime_error("Not implemented named chaining");
 }

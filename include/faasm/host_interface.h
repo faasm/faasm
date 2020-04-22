@@ -90,6 +90,9 @@ HOST_IFACE_FUNC
 int __faasm_await_call(unsigned int messageId);
 
 HOST_IFACE_FUNC
+int __faasm_await_call_output(unsigned int messageId, unsigned char *buffer, long bufferLen);
+
+HOST_IFACE_FUNC
 int __faasm_get_idx();
 
 HOST_IFACE_FUNC

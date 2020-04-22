@@ -4,11 +4,12 @@
   become: yes
   apt:
     name:
-      - "apt-transport-https"
-      - "ca-certificates"
-      - "curl"
-      - "gnupg2"
-      - "software-properties-common"
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg2
+      - pass
+      - software-properties-common
     update_cache: yes
 
 - name: "Add Docker GPG key"

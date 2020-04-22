@@ -75,7 +75,8 @@ namespace worker {
 
         fflush(stdout);
 
-        // Notify the scheduler *before* setting the result
+        // Notify the scheduler *before* setting the result. Calls awaiting
+        // the result will carry on blocking
         scheduler.notifyCallFinished(call);
 
         // Set result
