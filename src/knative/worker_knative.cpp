@@ -17,7 +17,7 @@ int main() {
 
     // Start endpoint (will also have multiple threads)
     logger->info("Starting knative endpoint");
-    KnativeEndpoint endpoint();
+    KnativeEndpoint endpoint;
     endpoint.start();
 
     logger->info("Shutting down knative endpoint");
