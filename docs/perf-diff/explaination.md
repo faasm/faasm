@@ -67,6 +67,14 @@ This experiment is however useful for understanding our second experiment becaus
 the run time of the native Mersenne Twister engine experiment but there is no sign of `log` seems absent from the Wasm
 which however leads to the same result. I can only think the log was somehow optimised away?
 
+### Confirmation
+
+Compiling similar code at `-O3` natively but changing libc implementations gives the following:
+* glibc: 14.2
+* musl: 6.3
+
+Confirming our hypothesis that the musl `log` function is better.
+
 ## Mersenne Twister Engine
 
 Experiment code [here](../../func/demo/mt_difference.cpp).
@@ -126,3 +134,9 @@ because it was too long).
 The Native main loop uses `callq`, I'm not sure about perf's measures about the cost
 of instructions (`callq` < `mov` < `add`), and it seems clear that it doesn't include
 the time spent in `callq` because perf inverts the call graph.
+
+### Confirmation
+
+TODO confirm that:
+* Wasm code generation is more prone to inlining which helped in this loopy context
+* Wasm optimised the `logl` away, or else what happened to it?
