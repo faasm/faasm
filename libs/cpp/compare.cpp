@@ -1,3 +1,4 @@
+#include <cstdint>
 #include "faasm/compare.h"
 
 namespace faasm {
@@ -17,6 +18,8 @@ namespace faasm {
 
         return true;
     }
+
+    template bool compareArrays<uint8_t>(uint8_t *a, uint8_t *b, int len);
 
     template bool compareArrays<int>(int *a, int *b, int len);
 
