@@ -30,13 +30,13 @@ jobs:
           dockerfile: docker/testing.dockerfile
           always_pull: true
           tags: ${{ steps.get_tag.outputs.tag }}
-          build_args: FAASM_VERSION=0.1.2
+          build_args: FAASM_VERSION=0.1.3
       - name: "Create a docker network"
         run: docker network create -d bridge test-net
       - name: "Stop redis container"
         run: docker stop redis | true
       - name: "Run the redis container"
-        run: docker run -d --name redis --net=test-net --rm faasm/redis:0.1.2
+        run: docker run -d --name redis --net=test-net --rm faasm/redis:0.1.3
       - name: "Run the testing container"
         run: >
           docker run --privileged --net=test-net
