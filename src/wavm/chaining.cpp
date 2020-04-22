@@ -55,10 +55,6 @@ namespace wasm {
         return outputLen;
     }
 
-    long __faasm_get_call_output(unsigned int messageId, unsigned char *buffer, long bufferLen) {
-        throw std::runtime_error("Get call output not implemented in emulator");
-    }
-
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_function", U32, __faasm_chain_function,
                                    I32 namePtr, I32 inputDataPtr, I32 inputDataLen) {
         std::string funcName = getStringFromWasm(namePtr);
