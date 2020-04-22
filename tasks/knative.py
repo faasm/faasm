@@ -76,6 +76,7 @@ KNATIVE_ENV = {
     "BOUND_TIMEOUT": str(THIRTY_SECS),  # How long a bound worker sticks around for
     "UNBOUND_TIMEOUT": str(10 * ONE_MIN),  # How long an unbound worker sticks around for
     "GLOBAL_MESSAGE_TIMEOUT": str(2 * ONE_MIN),  # How long things wait for messages on global bus
+    "ENDPOINT_INTERFACE": "eth0", # Assuming eth0 is accessible to other nodes
 }
 
 
