@@ -1,4 +1,4 @@
-from os import mkdir, listdir
+from os import makedirs, listdir
 from os.path import exists, join, splitext
 from shutil import copy
 from subprocess import call
@@ -15,8 +15,7 @@ FUNC_BUILD_DIR = join(PROJ_ROOT, "build", "func")
 def _copy_built_function(user, func):
     dest_folder = join(WASM_DIR, user, func)
 
-    if not exists(dest_folder):
-        mkdir(dest_folder)
+    makedirs(dest_folder, exist_ok=True)
 
     src_file = join(FUNC_BUILD_DIR, user, ".".join([func, "wasm"]))
     dest_file = join(dest_folder, "function.wasm")
