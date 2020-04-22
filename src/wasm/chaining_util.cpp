@@ -1,6 +1,7 @@
 #include "WasmModule.h"
 
 #include <scheduler/Scheduler.h>
+#include <util/bytes.h>
 
 
 namespace wasm {
@@ -81,5 +82,26 @@ namespace wasm {
                                  funcPtr, argsPtr, call.schedulednode());
 
         return call.id();
+    }
+
+    int awaitChainedCallOutput(unsigned int messageId, uint8_t* buffer, int bufferLen) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        int callTimeoutMs = util::getSystemConfig().chainedCallTimeout;
+
+        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
+        const message::Message result = globalBus.getFunctionResult(messageId, callTimeoutMs);
+
+        if(result.type() == message::Message_MessageType_EMPTY) {
+            logger->error("Cannot find output for {}", messageId);
+        }
+
+        std::vector<uint8_t> outputData = util::stringToBytes(result.outputdata());
+        int outputLen = util::safeCopyToBuffer(outputData, buffer, bufferLen);
+
+        if(outputLen < outputData.size()) {
+            logger->warn("Undersized output buffer: {} for {} output", bufferLen, outputLen);
+        }
+
+        return result.returnvalue();
     }
 }

@@ -5,6 +5,7 @@
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
+#include <util/bytes.h>
 
 namespace wasm {
     void chainLink() {
@@ -24,6 +25,16 @@ namespace wasm {
         util::getLogger()->debug("S - await_call - {}", messageId);
 
         return awaitChainedCall(messageId);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_await_call_output", I32, __faasm_await_call_output, U32 messageId,
+                                   I32 bufferPtr, I32 bufferLen) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - await_call_output - {} {} {}", messageId, bufferPtr, bufferLen);
+
+        auto buffer = &Runtime::memoryRef<uint8_t>(getExecutingModule()->defaultMemory, bufferPtr);
+
+        return awaitChainedCallOutput(messageId, buffer, bufferLen);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_function", U32, __faasm_chain_function,

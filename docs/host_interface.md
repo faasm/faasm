@@ -26,7 +26,7 @@ other functions ("chaining").
 | `void write_call_output(out_data)` | Write output data for function |
 | `int chain_call(name, args)` | Call function and return `call_id` |
 | `int await_call(call_id)` | Await completion of `call_id` |
-| `byte* get_call_output(call_id)` | Load the output data of `call_id` |
+| `byte* await_call_output(call_id)` | Await completion and get output of `call_id` |
 
 ## State
 
