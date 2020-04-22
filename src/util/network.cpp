@@ -24,8 +24,8 @@ namespace util {
     }
 
     /**
-     * Returns the first IP found from any network interface with an
-     * IPV4 address, unless an interface is supplied
+     * Returns the IP for the given interface, or picks one based on
+     * an "appropriate" interface name.
      */
     std::string getPrimaryIPForThisHost(const std::string &interface) {
         // Get interfaces and addresses

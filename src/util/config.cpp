@@ -80,14 +80,14 @@ namespace util {
         defaultMpiWorldSize = this->getSystemConfIntParam("DEFAULT_MPI_WORLD_SIZE", "5");
 
         // Endpoint
-        endpointNetIface = getEnvVar("ENDPOINT_INTERFACE", "");
+        endpointInterface = getEnvVar("ENDPOINT_INTERFACE", "");
         endpointHost = getEnvVar("ENDPOINT_HOST", "");
         endpointPort = this->getSystemConfIntParam("ENDPOINT_PORT", "8080");
         endpointNumThreads = this->getSystemConfIntParam("ENDPOINT_NUM_THREADS", "4");
 
         if(endpointHost.empty()) {
             // Get the IP for this host
-            endpointHost = util::getPrimaryIPForThisHost(endpointNetIface);
+            endpointHost = util::getPrimaryIPForThisHost(endpointInterface);
         }
     }
 
@@ -157,7 +157,7 @@ namespace util {
         logger->info("DEFAULT_MPI_WORLD_SIZE  {}", defaultMpiWorldSize);
 
         logger->info("--- Endpoint ---");
-        logger->info("ENDPOINT_INTERFACE         {}", endpointNetIface);
+        logger->info("ENDPOINT_INTERFACE         {}", endpointInterface);
         logger->info("ENDPOINT_HOST              {}", endpointHost);
         logger->info("ENDPOINT_PORT              {}", endpointPort);
         logger->info("ENDPOINT_NUM_THREADS       {}", endpointNumThreads);

@@ -68,7 +68,7 @@ namespace util {
         int defaultMpiWorldSize;
 
         // Endpoint
-        std::string endpointNetIface;
+        std::string endpointInterface;
         std::string endpointHost;
         int endpointPort;
         int endpointNumThreads;
