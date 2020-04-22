@@ -56,4 +56,16 @@ namespace state {
     void RedisStateBackend::dequeueMultiple(const std::string &queueName, uint8_t *buff, long buffLen, long nElems) {
         redis.dequeueMultiple(queueName, buff, buffLen, nElems);
     }
+
+    long RedisStateBackend::incrByLong(const std::string &key, long value) {
+        return redis.incrByLong(key, value);
+    }
+
+    void RedisStateBackend::setLong(const std::string &key, long value) {
+        redis.setLong(key, value);
+    }
+
+    long RedisStateBackend::getLong(const std::string &key) {
+        return redis.getLong(key);
+    }
 }

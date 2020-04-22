@@ -96,6 +96,10 @@ namespace redis {
 
         long decr(const std::string &key);
 
+        long incrByLong(const std::string &key, long val);
+
+        long decrByLong(const std::string &key, long val);
+
         void setRange(const std::string &key, long offset, const uint8_t *value, size_t size);
 
         void setRangePipeline(const std::string &key, long offset, const uint8_t *value, size_t size);

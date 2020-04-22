@@ -1,5 +1,8 @@
 name: Tests
 
+# Note - the credentials for Docker in here are pulled from the repo's secrets
+# https://github.com/lsds/Faasm/settings/secrets
+
 on:
   push:
     branches:
@@ -29,6 +32,7 @@ jobs:
           repository: faasm/testing
           dockerfile: docker/testing.dockerfile
           always_pull: true
+          push: ${{ secrets.DOCKER_PASSWORD }} # only pushes if we were given the secret
           tags: ${{ steps.get_tag.outputs.tag }}
           build_args: FAASM_VERSION=0.1.2
       - name: "Create a docker network"

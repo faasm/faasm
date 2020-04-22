@@ -77,6 +77,10 @@ namespace util {
 
         // MPI
         defaultMpiWorldSize = this->getSystemConfIntParam("DEFAULT_MPI_WORLD_SIZE", "5");
+
+        // Endpoint
+        endpointPort = this->getSystemConfIntParam("ENDPOINT_PORT", "8080");
+        endpointNumThreads = this->getSystemConfIntParam("ENDPOINT_NUM_THREADS", "4");
     }
 
     int SystemConfig::getSystemConfIntParam(const char *name, const char *defaultValue) {
@@ -143,6 +147,10 @@ namespace util {
 
         logger->info("--- MPI ---");
         logger->info("DEFAULT_MPI_WORLD_SIZE  {}", defaultMpiWorldSize);
+
+        logger->info("--- Endpoint ---");
+        logger->info("ENDPOINT_PORT              {}", endpointPort);
+        logger->info("ENDPOINT_NUM_THREADS       {}", endpointNumThreads);
     }
 
     void _setNodeId() {

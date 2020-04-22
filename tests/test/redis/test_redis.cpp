@@ -50,6 +50,15 @@ namespace tests {
             REQUIRE(redisQueue.getCounter(key) == 2);
         }
 
+        SECTION("Test incrby / decrby") {
+            std::string key = "test_counter_by";
+
+            redisQueue.setLong(key, 5);
+            REQUIRE(redisQueue.getLong(key) == 5);
+            REQUIRE(redisQueue.incrByLong(key, 10) == 5 + 10);
+            REQUIRE(redisQueue.decrByLong(key, 2) == 5 + 10 - 2);
+        }
+
         SECTION("Test enqueue/ dequeue bytes") {
             // Enqueue some values
             std::vector<uint8_t> bytesA = util::stringToBytes(VALUE_A);

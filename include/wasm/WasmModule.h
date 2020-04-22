@@ -1,5 +1,6 @@
 #pragma once
 
+#include <wasm/openmp/Level.h>
 #include "WasmEnvironment.h"
 
 #include <util/logging.h>
@@ -114,7 +115,9 @@ namespace wasm {
         virtual void doRestore(std::istream &inStream) = 0;
 
         void prepareArgcArgv(const message::Message &msg);
-    };
+
+        void prepareOpenMPContext(const message::Message &msg);
+};
 
     // ----- Global functions -----
     message::Message *getExecutingCall();

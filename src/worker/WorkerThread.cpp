@@ -196,7 +196,6 @@ namespace worker {
 
                 PROF_END(snapshotOverride)
             }
-
             errorMessage = this->executeCall(msg);
         }
 

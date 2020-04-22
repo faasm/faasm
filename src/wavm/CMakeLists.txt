@@ -7,6 +7,8 @@ set(HEADERS
         "${FAASM_INCLUDE_DIR}/wavm/WAVMWasmModule.h"
         )
 
+add_subdirectory(openmp)
+
 set(LIB_FILES
         WAVMWasmModule.cpp
         syscalls.h

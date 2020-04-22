@@ -70,6 +70,24 @@ namespace state {
          * Dequeues multiple values from a queue
          */
         virtual void dequeueMultiple(const std::string &queueName, uint8_t *buff, long buffLen, long nElems) = 0;
+
+        /**
+         * Increments the number stored at key by increment. If the key does not exist, it is set to 0 before
+         * performing the operation. This operation is limited to 64 bit signed integers.
+         * Returns new value.
+         */
+         virtual long incrByLong(const std::string &key, long value) = 0;
+
+         /**
+          * Gets long at key.
+          */
+         virtual long getLong(const std::string &key) = 0;
+
+         /**
+          * Sets key with value. This operation is limited to 64 bit signed integers.
+          */
+         virtual void setLong(const std::string &key, long value) = 0;
+
     };
     
     StateBackend &getBackend();

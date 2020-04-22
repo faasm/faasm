@@ -1,7 +1,6 @@
 #include "Redis.h"
 
 #include <util/network.h>
-#include <util/environment.h>
 #include <util/logging.h>
 #include <util/random.h>
 
@@ -213,6 +212,26 @@ namespace redis {
         long result = reply->integer;
         freeReplyObject(reply);
 
+        return result;
+    }
+
+    long Redis::incrByLong(const std::string &key, long val) {
+        // Format is NOT printf compatible contrary to what the docs say, hence %i instead of %l.
+        auto reply = (redisReply *) redisCommand(context, "INCRBY %s %i", key.c_str(), val);
+
+        long result = reply->integer;
+
+        freeReplyObject(reply);
+        return result;
+    }
+
+    long Redis::decrByLong(const std::string &key, long val) {
+        // Format is NOT printf compatible contrary to what the docs say, hence %i instead of %l.
+        auto reply = (redisReply *) redisCommand(context, "DECRBY %s %i", key.c_str(), val);
+
+        long result = reply->integer;
+
+        freeReplyObject(reply);
         return result;
     }
 
@@ -485,6 +504,7 @@ namespace redis {
     }
 
     void Redis::setLong(const std::string &key, long value) {
+        // Format is NOT printf compatible contrary to what the docs say, hence %i instead of %l.
         auto reply = (redisReply *) redisCommand(context, "SET %s %i", key.c_str(), value);
 
         freeReplyObject(reply);

@@ -6,7 +6,8 @@
 using namespace knative;
 
 int main() {
-    util::initLogging ();
+
+    util::initLogging();
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
     // Start the worker pool
@@ -16,11 +17,11 @@ int main() {
 
     // Start endpoint (will also have multiple threads)
     logger->info("Starting knative endpoint");
-    KnativeEndpoint endpoint;
+    KnativeEndpoint endpoint();
     endpoint.start();
 
     logger->info("Shutting down knative endpoint");
     w.shutdown();
 
-    return 0;
+    return EXIT_SUCCESS;
 }

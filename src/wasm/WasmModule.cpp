@@ -1,15 +1,16 @@
 #include "WasmModule.h"
 
-#include <sys/mman.h>
-#include <boost/filesystem.hpp>
-#include <util/func.h>
-#include <util/config.h>
-#include <util/locks.h>
-
 #include <ir_cache/IRModuleCache.h>
 #include <util/bytes.h>
-#include <sstream>
+#include <util/config.h>
+#include <util/func.h>
+#include <util/locks.h>
 #include <sys/uio.h>
+#include <wasm/openmp/ThreadState.h>
+
+#include <boost/filesystem.hpp>
+#include <sstream>
+#include <sys/mman.h>
 
 
 namespace wasm {
@@ -192,4 +193,21 @@ namespace wasm {
             argvBufferSize += thisArg.size() + 1;
         }
     }
+
+    void WasmModule::prepareOpenMPContext(const message::Message &msg) {
+        openmp::setThreadNumber(msg.ompthreadnum());
+        std::shared_ptr<openmp::OMPLevel> ompLevel;
+
+        if (msg.has_ompdepth()) {
+            ompLevel = std::make_shared<openmp::OMPLevel>(msg.ompdepth(),
+                                                          msg.ompeffdepth(),
+                                                          msg.ompmal(),
+                                                          msg.ompnumthreads());
+        } else {
+            ompLevel = std::make_shared<openmp::OMPLevel>();
+        }
+
+        openmp::setThreadLevel(ompLevel);
+    }
+
 }
