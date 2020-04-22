@@ -8,7 +8,6 @@
 
 namespace endpoint {
     Endpoint::Endpoint(int portIn, int threadCountIn): port(portIn), threadCount(threadCountIn) {
-
     }
 
     void Endpoint::start() {

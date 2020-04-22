@@ -1,7 +1,12 @@
 #ifndef _FAASMP_H
 #define _FAASMP_H
 
-#include <stdint.h>
+#include <cstdint>
+
+#define CONCAT_(x,y) x##y
+#define CONCAT(x,y) CONCAT_(x,y)
+#define uniquename static bool CONCAT(sb_, __COUNTER__) = false
+
 
 #ifdef __cplusplus
 extern "C" {

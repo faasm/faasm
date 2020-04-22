@@ -32,5 +32,11 @@ namespace state {
         void enqueueBytes(const std::string &queueName, const std::vector<uint8_t> &value) override;
 
         void dequeueMultiple(const std::string &queueName, uint8_t *buff, long buffLen, long nElems) override;
+
+        long incrByLong(const std::string &key, long value) override;
+
+        void setLong(const std::string &key, long value) override;
+
+        long getLong(const std::string &key) override;
     };
 }

@@ -60,4 +60,18 @@ namespace state {
     void InMemoryStateBackend::dequeueMultiple(const std::string &queueName, uint8_t *buff, long buffLen, long nElems) {
         // TODO - implement
     }
+
+    long InMemoryStateBackend::incrByLong(const std::string &key, long value) {
+        // TODO - implement
+        return 0;
+    }
+
+    void InMemoryStateBackend::setLong(const std::string &key, long value) {
+        // TODO - implement
+    }
+
+    long InMemoryStateBackend::getLong(const std::string &key) {
+        // TODO - implement
+        return 0;
+    }
 }
