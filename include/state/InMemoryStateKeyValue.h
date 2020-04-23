@@ -8,13 +8,12 @@
 
 
 namespace state {
-    class RedisStateKeyValue final : public StateKeyValue {
+    class InMemoryStateKeyValue final : public StateKeyValue {
     public:
-        RedisStateKeyValue(const std::string &keyIn, size_t sizeIn);
+        InMemoryStateKeyValue(const std::string &keyIn, size_t sizeIn);
     private:
-        int lastRemoteLockId = 0;
-
         redis::Redis &redis;
+        std::string thisIP;
 
         void lockGlobal() override;
 
@@ -30,6 +29,10 @@ namespace state {
 
         void deleteFromRemote() override;
 
-        long waitOnRemoteLock();
+        std::string getMasterIP(const std::string &key);
+
+        std::string getMasterForGet(const std::string &key);
+
+        size_t getStateSize(const std::string &user, const std::string &key);
     };
 }

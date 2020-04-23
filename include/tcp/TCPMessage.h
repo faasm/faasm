@@ -7,6 +7,9 @@
 namespace tcp {
     enum TCPMessageType {
         STANDARD,
+        STATE_SIZE,
+        STATE_GET,
+        STATE_SET,
     };
 
     struct TCPMessage {

@@ -6,6 +6,7 @@ include_directories(
 file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/state/*.h")
 
 set(LIB_FILES
+        InMemoryStateKeyValue.cpp
         State.cpp
         StateKeyValue.cpp
         RedisStateKeyValue.cpp

@@ -1,7 +1,6 @@
 #include "RedisStateKeyValue.h"
 
 #include <redis/Redis.h>
-#include <util/locks.h>
 #include <util/logging.h>
 #include <util/timing.h>
 #include <util/macros.h>
