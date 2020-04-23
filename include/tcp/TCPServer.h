@@ -9,14 +9,15 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <util/exception.h>
 
 
 namespace tcp {
     class TCPServer {
     public:
-        explicit TCPServer(int portIn);
+        TCPServer(int portIn, long timeoutMillisIn);
 
-        TCPMessage *accept() const;
+        void start();
 
         void respond(TCPMessage *request, TCPMessage *response);
 
@@ -24,10 +25,20 @@ namespace tcp {
 
         void close() const;
 
+        virtual TCPMessage *handleMessage(TCPMessage *request) = 0;
+
     private:
         int port;
         int serverSocket;
         struct sockaddr_in serverAddress{};
+
+        long timeoutMillis;
     };
 
+    class TCPTimeoutException: public util::FaasmException {
+    public:
+        explicit TCPTimeoutException(std::string message): FaasmException(std::move(message)) {
+
+        }
+    };
 }

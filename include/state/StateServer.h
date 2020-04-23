@@ -6,12 +6,13 @@
 
 
 namespace state {
-    class StateServer {
+    class StateServer : public tcp::TCPServer {
     public:
         StateServer();
 
-        void startServer();
+        tcp::TCPMessage * handleMessage(tcp::TCPMessage *);
+
     private:
-        tcp::TCPServer tcpServer;
+        long timeoutMillis;
     };
 }

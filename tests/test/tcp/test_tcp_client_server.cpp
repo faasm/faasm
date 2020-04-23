@@ -18,7 +18,7 @@ namespace tests {
         std::thread serverThread([port, &requestBytes, &responseBytes] {
             TCPServer server(port);
 
-            TCPMessage *m = server.accept();
+            TCPMessage *m = server.next(200);
             std::vector<uint8_t> actualRecv(m->buffer, m->buffer + m->len);
             
             REQUIRE(actualRecv == requestBytes);

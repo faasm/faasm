@@ -2,6 +2,7 @@
 
 #include "WorkerThreadPool.h"
 
+#include <state/StateServer.h>
 #include <wasm/WasmModule.h>
 
 #include <util/config.h>
@@ -20,5 +21,6 @@ namespace worker {
         util::SystemConfig &conf;
         worker::WorkerThreadPool pool;
         scheduler::Scheduler &scheduler;
+        state::StateServer stateServer;
     };
 }

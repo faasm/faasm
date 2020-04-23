@@ -1,28 +1,34 @@
 #include "StateServer.h"
 
-namespace state {
-    StateServer::StateServer() : tcpServer(STATE_PORT) {
+#include <util/logging.h>
+#include <util/config.h>
 
+namespace state {
+    StateServer::StateServer() : tcp::TCPServer(STATE_PORT, util::getSystemConfig().globalMessageTimeout) {
     }
 
-    void StateServer::startServer() {
-        while (true) {
-            tcp::TCPMessage *recvMessage = tcpServer.accept();
+    tcp::TCPMessage *StateServer::handleMessage(tcp::TCPMessage *recvMessage) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-            switch (recvMessage->type) {
-                case (tcp::TCPMessageType::STATE_SIZE): {
-                    // TODO - state size
-                }
-                case (tcp::TCPMessageType::STATE_GET): {
-                    // TODO - state get
-                }
-                case (tcp::TCPMessageType::STATE_SET): {
-                    // TODO - state set
-                }
-                default: {
-                    // TODO - fail
-                }
+        switch (recvMessage->type) {
+            case (tcp::TCPMessageType::STATE_SIZE): {
+                logger->debug("State size request");
+                // TODO - state size
+            }
+            case (tcp::TCPMessageType::STATE_GET): {
+                logger->debug("State get request");
+                // TODO - state get
+            }
+            case (tcp::TCPMessageType::STATE_SET): {
+                logger->debug("State set request");
+                // TODO - state set
+            }
+            default: {
+                // TODO - fail
             }
         }
+
+        // TODO - response
+        return nullptr;
     }
 }

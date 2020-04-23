@@ -3,12 +3,14 @@
 #include <cstring>
 #include <util/logging.h>
 #include <util/macros.h>
+#include <poll.h>
+#include <sys/ioctl.h>
 
 #define BUF_SIZE 256
 #define BACKLOG 5
 
 namespace tcp {
-    TCPServer::TCPServer(int portIn) : port(portIn) {
+    TCPServer::TCPServer(int portIn, long timeoutMillisIn) : port(portIn), timeoutMillis(timeoutMillisIn) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Set up the socket
@@ -20,19 +22,32 @@ namespace tcp {
         serverAddress.sin_port = htons(port);
 
         // Reuse addr and port
-        int reuse = 1;
-        setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, (const char *) &reuse, sizeof(reuse));
-        setsockopt(serverSocket, SOL_SOCKET, SO_REUSEPORT, (const char *) &reuse, sizeof(reuse));
+        int onFlag = 1;
+        int addrRes = setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, (const char *) &onFlag, sizeof(onFlag));
+        if (addrRes < 0) {
+            throw std::runtime_error("Failed to reuse address");
+        }
+
+        int portRes = setsockopt(serverSocket, SOL_SOCKET, SO_REUSEPORT, (const char *) &onFlag, sizeof(onFlag));
+        if (portRes < 0) {
+            throw std::runtime_error("Failed to reuse port");
+        }
+
+        // Set to non-blocking
+        int nonBlockRes = ioctl(serverSocket, FIONBIO, (const char *) &onFlag);
+        if (nonBlockRes < 0) {
+            throw std::runtime_error("Failed to set non-blocking");
+        }
 
         // Bind and listen
         int bindRes = ::bind(serverSocket, (struct sockaddr *) &serverAddress, sizeof(serverAddress));
-        if(bindRes < 0) {
+        if (bindRes < 0) {
             logger->error("Failed to bind to {}. Errno {} ({})", port, errno, strerror(errno));
             throw std::runtime_error("Failed to bind TCP server");
         }
-        
+
         int listenRes = ::listen(serverSocket, BACKLOG);
-        if(listenRes < 0) {
+        if (listenRes < 0) {
             logger->error("Failed to listen on {}. Errno {} ({})", port, errno, strerror(errno));
             throw std::runtime_error("Failed to listen with TCP server");
         }
@@ -40,14 +55,25 @@ namespace tcp {
         logger->debug("Listening on {}", port);
     }
 
-    TCPMessage *TCPServer::accept() const {
+    void TCPServer::start() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("TCP accept");
         struct sockaddr_in clientAddress{};
         socklen_t addrSize = sizeof(clientAddress);
 
+        struct pollfd pollFds[1];
+        memset(pollFds, '\0', sizeof(pollFds));
+        pollFds[0].fd = serverSocket;
+        pollFds[0].events = POLLIN;
+
+        // Wait for input
+        int pollRes = ::poll(pollFds, 1, timeoutMillis);
+        if (pollRes == 0) {
+            throw TCPTimeoutException("Polling timed out");
+        }
+
         int socket = ::accept(serverSocket, (struct sockaddr *) &clientAddress, &addrSize);
-        if(socket < 0) {
+        if (socket < 0) {
             logger->error("Failed to accept {}. Errno {} ({})", port, errno, strerror(errno));
             throw std::runtime_error("Failed to accept with TCP server");
         }
@@ -79,7 +105,7 @@ namespace tcp {
                 std::copy(buffer, buffer + messageHeaderSize, BYTES(msg));
 
                 // Provision the message buffer
-                if(msg->len > 0) {
+                if (msg->len > 0) {
                     msg->buffer = new uint8_t[msg->len];
                 }
 
@@ -91,13 +117,13 @@ namespace tcp {
             }
 
             // Insert the data from this packet
-            if(nRecv > 0) {
+            if (nRecv > 0) {
                 std::copy(bufferStart, bufferStart + nRecv, msg->buffer);
             }
 
             bytesReceived += nRecv;
 
-            if(bytesReceived >= msg->len) {
+            if (bytesReceived >= msg->len) {
                 break;
             } else {
                 logger->debug("TCP packet {} = {} bytes", packetCount, nRecv);
@@ -112,7 +138,13 @@ namespace tcp {
         }
 
         msg->_fromSocket = socket;
-        return msg;
+
+        TCPMessage *response = handleMessage(msg);
+        if (response) {
+            respond(msg, response);
+        } else {
+            noResponse(msg);
+        }
     }
 
     void TCPServer::respond(TCPMessage *request, TCPMessage *response) {
