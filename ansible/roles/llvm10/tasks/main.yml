@@ -44,5 +44,6 @@
     - "wasm-ld"
     - "lld"
     - "llvm-ar"
+    - "llvm-config"
     - "llvm-nm"
     - "llvm-ranlib"
