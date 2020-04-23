@@ -11,7 +11,6 @@ from tasks.util.version import get_faasm_version
 
 # Order matters here
 RELEASE_CONTAINERS = [
-    "cpp-root",
     "base",
     "base-test",
     "worker",
@@ -23,6 +22,7 @@ RELEASE_CONTAINERS = [
     "toolchain",
 ]
 
+FAASM_CONTAINERS = ["cpp-root"].extend(RELEASE_CONTAINERS)
 
 @task
 def purge(context):
@@ -82,7 +82,7 @@ def build(ctx, c, nocache=False, push=False):
 
     shell_env = copy(os.environ)
     shell_env["DOCKER_BUILDKIT"] = "1"
-
+        
     _check_valid_containers(c)
 
     version = get_faasm_version()
@@ -168,3 +168,7 @@ def push_release(ctx):
     """
 
     push(ctx, RELEASE_CONTAINERS)
+    
+@task
+def build_all(ctx, nocache=False, push=False)):
+    build(ctx, FAASM_CONTAINERS, nocache, push)
