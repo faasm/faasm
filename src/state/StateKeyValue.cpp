@@ -13,7 +13,10 @@ using namespace util;
 
 namespace state {
     StateKeyValue::StateKeyValue(const std::string &keyIn, size_t sizeIn) : key(keyIn),
+                                                                            redis(redis::Redis::getState()),
+                                                                            logger(util::getLogger()),
                                                                             valueSize(sizeIn) {
+
         // Work out size of required shared memory
         size_t nHostPages = getRequiredHostPages(valueSize);
         sharedMemSize = nHostPages * HOST_PAGE_SIZE;
@@ -33,7 +36,6 @@ namespace state {
     }
 
     void StateKeyValue::pull() {
-        const std::shared_ptr<spdlog::logger> &logger = getLogger();
         logger->debug("Pulling state for {}", key);
         pullImpl(false);
     }
@@ -73,8 +75,6 @@ namespace state {
 
         // Return just the required segment
         if ((offset + length) > valueSize) {
-            const std::shared_ptr<spdlog::logger> &logger = getLogger();
-
             logger->error("Out of bounds read at {} on {} with length {}", offset + length, key, valueSize);
             throw std::runtime_error("Out of bounds read");
         }
@@ -106,8 +106,6 @@ namespace state {
     }
 
     void StateKeyValue::setSegment(long offset, const uint8_t *buffer, size_t length) {
-        const std::shared_ptr<spdlog::logger> &logger = getLogger();
-
         // Check we're in bounds
         size_t end = offset + length;
         if (end > valueSize) {
@@ -173,7 +171,6 @@ namespace state {
     void StateKeyValue::clear() {
         FullLock lock(valueMutex);
 
-        const std::shared_ptr<spdlog::logger> &logger = getLogger();
         logger->debug("Clearing value {}", key);
 
         // Set flag to say this is effectively new again
@@ -188,7 +185,6 @@ namespace state {
 
     void StateKeyValue::mapSharedMemory(void *destination, long pagesOffset, long nPages) {
         PROF_START(mapSharedMem)
-        const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         if (!isPageAligned(destination)) {
             logger->error("Non-aligned destination for shared mapping of {}", key);
@@ -228,7 +224,6 @@ namespace state {
 
     void StateKeyValue::unmapSharedMemory(void *mappedAddr) {
         FullLock lock(valueMutex);
-        const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         if (!isPageAligned(mappedAddr)) {
             logger->error("Attempting to unmap non-page-aligned memory at {} for {}", mappedAddr, key);
@@ -247,8 +242,6 @@ namespace state {
 
     void StateKeyValue::allocateSegment(long offset, size_t length) {
         initialiseStorage(false);
-
-        const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         // Work out the aligned region to allocate
         long alignedOffset = util::alignOffsetDown(offset);
@@ -273,8 +266,6 @@ namespace state {
         if (sharedMemory != nullptr) {
             return;
         }
-
-        const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         if (sharedMemSize == 0) {
             throw StateKeyValueException("Initialising storage without a size for " + key);
@@ -395,8 +386,6 @@ namespace state {
     }
 
     void StateKeyValue::doPushPartial(const uint8_t *dirtyMaskBytes) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
         // Ignore if not dirty
         if (!isDirty) {
             return;
@@ -414,6 +403,31 @@ namespace state {
 
         pushPartialToRemote(dirtyMaskBytes);
     }
+
+    long StateKeyValue::waitOnRedisRemoteLock(const std::string &redisKey) {
+        PROF_START(remoteLock)
+
+        long remoteLockId = redis.acquireLock(redisKey, REMOTE_LOCK_TIMEOUT_SECS);
+        unsigned int retryCount = 0;
+        while (remoteLockId <= 0) {
+            logger->debug("Waiting on remote lock for {} (loop {})", redisKey, retryCount);
+
+            if (retryCount >= REMOTE_LOCK_MAX_RETRIES) {
+                logger->error("Timed out waiting for lock on {}", redisKey);
+                break;
+            }
+
+            // Sleep for 1ms
+            usleep(1000);
+
+            remoteLockId = redis.acquireLock(redisKey, REMOTE_LOCK_TIMEOUT_SECS);
+            retryCount++;
+        }
+
+        PROF_END(remoteLock)
+        return remoteLockId;
+    }
+
 
     void StateKeyValue::deleteGlobal() {
         // Clear locally

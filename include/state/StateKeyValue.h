@@ -2,6 +2,7 @@
 
 #include <util/clock.h>
 #include <util/exception.h>
+#include <redis/Redis.h>
 
 #include <atomic>
 #include <shared_mutex>
@@ -10,10 +11,11 @@
 #include <vector>
 
 
+#define REMOTE_LOCK_TIMEOUT_SECS 1
+#define REMOTE_LOCK_MAX_RETRIES 3
+
+
 namespace state {
-    /**
-     * A specific key/value pair for state
-     */
     class StateKeyValue {
     public:
         explicit StateKeyValue(const std::string &keyIn, size_t sizeIn);
@@ -75,6 +77,10 @@ namespace state {
     protected:
         bool isDirty;
 
+        redis::Redis &redis;
+
+        const std::shared_ptr<spdlog::logger> logger;
+
         std::shared_mutex valueMutex;
         std::atomic<bool> _fullyAllocated;
 
@@ -99,6 +105,8 @@ namespace state {
         void zeroAllocatedMask();
 
         void initialiseStorage(bool allocate);
+
+        long waitOnRedisRemoteLock(const std::string &redisKey);
 
         virtual void pullFromRemote() = 0;
 

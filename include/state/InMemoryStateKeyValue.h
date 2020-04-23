@@ -8,12 +8,19 @@
 
 
 namespace state {
+    enum InMemoryStateKeyStatus {
+        NO_MASTER,
+        MASTER,
+        NOT_MASTER,
+    };
+
     class InMemoryStateKeyValue final : public StateKeyValue {
     public:
         InMemoryStateKeyValue(const std::string &keyIn, size_t sizeIn);
     private:
-        redis::Redis &redis;
         std::string thisIP;
+        std::string masterIP;
+        InMemoryStateKeyStatus status;
 
         void lockGlobal() override;
 
@@ -28,11 +35,5 @@ namespace state {
         void pushPartialToRemote(const uint8_t *dirtyMaskBytes) override;
 
         void deleteFromRemote() override;
-
-        std::string getMasterIP(const std::string &key);
-
-        std::string getMasterForGet(const std::string &key);
-
-        size_t getStateSize(const std::string &user, const std::string &key);
     };
 }

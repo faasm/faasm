@@ -7,6 +7,8 @@
 using namespace web::http::experimental::listener;
 using namespace web::http;
 
+#define UPLOAD_PORT "8002"
+
 namespace edge {
     class UploadServer {
     public:

@@ -14,8 +14,6 @@ namespace state {
     private:
         int lastRemoteLockId = 0;
 
-        redis::Redis &redis;
-
         void lockGlobal() override;
 
         void unlockGlobal() override;
@@ -29,7 +27,5 @@ namespace state {
         void pushPartialToRemote(const uint8_t *dirtyMaskBytes) override;
 
         void deleteFromRemote() override;
-
-        long waitOnRemoteLock();
     };
 }

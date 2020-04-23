@@ -5,6 +5,7 @@
 
 namespace state {
     StateServer::StateServer() : tcp::TCPServer(STATE_PORT, util::getSystemConfig().globalMessageTimeout) {
+
     }
 
     tcp::TCPMessage *StateServer::handleMessage(tcp::TCPMessage *recvMessage) {

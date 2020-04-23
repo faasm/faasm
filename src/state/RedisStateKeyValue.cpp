@@ -1,45 +1,15 @@
 #include "RedisStateKeyValue.h"
 
-#include <redis/Redis.h>
 #include <util/logging.h>
 #include <util/timing.h>
 #include <util/macros.h>
 
-#define REMOTE_LOCK_TIMEOUT_SECS 1
-#define REMOTE_LOCK_MAX_RETRIES 3
-
 namespace state {
-    RedisStateKeyValue::RedisStateKeyValue(const std::string &keyIn, size_t sizeIn) : StateKeyValue(keyIn, sizeIn),
-                                                                                      redis(redis::Redis::getState()) {
+    RedisStateKeyValue::RedisStateKeyValue(const std::string &keyIn, size_t sizeIn) : StateKeyValue(keyIn, sizeIn) {
     };
 
-    long RedisStateKeyValue::waitOnRemoteLock() {
-        PROF_START(remoteLock)
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        long remoteLockId = redis.acquireLock(key, REMOTE_LOCK_TIMEOUT_SECS);
-        unsigned int retryCount = 0;
-        while (remoteLockId <= 0) {
-            logger->debug("Waiting on remote lock for {} (loop {})", key, retryCount);
-
-            if (retryCount >= REMOTE_LOCK_MAX_RETRIES) {
-                logger->error("Timed out waiting for lock on {}", key);
-                break;
-            }
-
-            // Sleep for 1ms
-            usleep(1000);
-
-            remoteLockId = redis.acquireLock(key, REMOTE_LOCK_TIMEOUT_SECS);
-            retryCount++;
-        }
-
-        PROF_END(remoteLock)
-        return remoteLockId;
-    }
-
     void RedisStateKeyValue::lockGlobal() {
-        lastRemoteLockId = this->waitOnRemoteLock();
+        lastRemoteLockId = waitOnRedisRemoteLock(key);
     }
 
     void RedisStateKeyValue::unlockGlobal() {
@@ -48,7 +18,6 @@ namespace state {
 
     void RedisStateKeyValue::pullFromRemote() {
         PROF_START(statePull)
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Read from the remote
         logger->debug("Pulling remote value for {}", key);
@@ -60,8 +29,6 @@ namespace state {
 
     void RedisStateKeyValue::pullRangeFromRemote(long offset, size_t length) {
         PROF_START(stateSegmentPull)
-
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Note - redis ranges are inclusive, so we need to knock one off
         size_t rangeEnd = offset + length - 1;
@@ -77,7 +44,6 @@ namespace state {
     void RedisStateKeyValue::pushToRemote() {
         PROF_START(pushFull)
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("Pushing whole value for {}", key);
 
         redis.set(key, static_cast<uint8_t *>(sharedMemory), valueSize);
@@ -90,8 +56,6 @@ namespace state {
     }
 
     void RedisStateKeyValue::pushPartialToRemote(const uint8_t *dirtyMaskBytes) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
         PROF_START(pushPartial)
 
         // Iterate through and pipeline the dirty segments

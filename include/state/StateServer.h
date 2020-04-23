@@ -2,14 +2,14 @@
 
 #include <tcp/TCPServer.h>
 
-#define STATE_PORT 8005
+#define STATE_PORT 8003
 
 
 namespace state {
-    class StateServer : public tcp::TCPServer {
+    class StateServer final : public tcp::TCPServer {
     public:
         StateServer();
 
-        tcp::TCPMessage * handleMessage(tcp::TCPMessage *);
+        tcp::TCPMessage * handleMessage(tcp::TCPMessage *) override;
     };
 }

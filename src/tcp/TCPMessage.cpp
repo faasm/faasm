@@ -3,6 +3,11 @@
 #include "TCPMessage.h"
 
 namespace tcp {
+    void freeTcpMessage(TCPMessage *msg) {
+        delete[] msg->buffer;
+        delete msg;
+    }
+
     size_t tcpMessageLen(TCPMessage *msg) {
         return sizeof(TCPMessage) + msg->len;
     }

@@ -6,24 +6,21 @@
 #include <atomic>
 #include <thread>
 
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#include <poll.h>
+#include <sys/socket.h>
+
 #include <util/exception.h>
 
+#define POLL_COUNT 50
 
 namespace tcp {
     class TCPServer {
     public:
         TCPServer(int portIn, long timeoutMillisIn);
 
-        void start();
-
-        void stop();
-
-        void respond(TCPMessage *request, TCPMessage *response);
-
-        void noResponse(TCPMessage *request);
+        int poll();
 
         void close() const;
 
@@ -33,13 +30,22 @@ namespace tcp {
         int port;
         int serverSocket;
         struct sockaddr_in serverAddress{};
+        struct pollfd pollFds[POLL_COUNT];
+        int nFds = 1;
 
         long timeoutMillis;
     };
 
-    class TCPTimeoutException: public util::FaasmException {
+    class TCPFailedException : public util::FaasmException {
     public:
-        explicit TCPTimeoutException(std::string message): FaasmException(std::move(message)) {
+        explicit TCPFailedException(std::string message) : FaasmException(std::move(message)) {
+
+        }
+    };
+
+    class TCPTimeoutException : public util::FaasmException {
+    public:
+        explicit TCPTimeoutException(std::string message) : FaasmException(std::move(message)) {
 
         }
     };

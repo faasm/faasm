@@ -9,7 +9,6 @@
 #include <mpi/MpiGlobalBus.h>
 
 namespace worker {
-
     WorkerThreadPool::WorkerThreadPool(int nThreads) :
             _shutdown(false),
             scheduler(scheduler::getScheduler()),
@@ -126,13 +125,11 @@ namespace worker {
 
         stateThread = std::thread([this] {
             state::StateServer server;
-
-            // TODO - start/ stop
             while (!this->isShutdown()) {
-                server.start();
+                server.poll();
             }
 
-            server.stop();
+            server.close();
         });
     }
 
