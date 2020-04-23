@@ -82,7 +82,7 @@ def build(ctx, c, nocache=False, push=False):
 
     shell_env = copy(os.environ)
     shell_env["DOCKER_BUILDKIT"] = "1"
-        
+
     _check_valid_containers(c)
 
     version = get_faasm_version()
