@@ -22,7 +22,7 @@ RELEASE_CONTAINERS = [
     "toolchain",
 ]
 
-FAASM_CONTAINERS = ["cpp-root"].extend(RELEASE_CONTAINERS)
+FAASM_CONTAINERS = ["cpp-root"] + RELEASE_CONTAINERS
 
 @task
 def purge(context):
