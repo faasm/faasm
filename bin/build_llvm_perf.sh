@@ -2,13 +2,13 @@
 set -e
 set -x
 
-THIRD_PARTY_DIR=/usr/local/code/faasm/third-party
-if [[ ! -d ${THIRD_PARTY_DIR} ]]; then
-  echo "THIRD_PARTY_DIR (${THIRD_PARTY_DIR}) does not exists"
+CODE_DIR=/usr/local/code/
+if [[ ! -d ${CODE_DIR} ]]; then
+  echo "CODE_DIR (${CODE_DIR}) does not exists"
   exit 1
 fi
 
-LLVM_DIR=${THIRD_PARTY_DIR}/llvm-perf
+LLVM_DIR=${CODE_DIR}/llvm-perf
 BUILD_DIR=${LLVM_DIR}/build
 
 # Clone LLVM-9 repo if not done already. Version must be compatible with WAVM

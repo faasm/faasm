@@ -70,13 +70,15 @@ add_definitions(-DFAASM_PROFILE_ON=0)
 set(FAASM_CUSTOM_LLVM 0)
 if (${FAASM_CUSTOM_LLVM})
     # In accordance with bin/build_llvm_perf.sh and LLVM version for WAVM
-    set(LLVM_DIR /usr/local/code/faasm/third-party/llvm-perf/build/lib/cmake/llvm)
-    message(STATUS "Using custom LLVM at ${LLVM_DIR} with profiling")
+    set(LLVM_DIR /usr/local/code/llvm-perf/build/lib/cmake/llvm)
+    message(STATUS "Using custom LLVM at ${LLVM_DIR} for profiling")
     find_package(LLVM REQUIRED CONFIG NO_DEFAULT_PATH)
 
     set(WAVM_PERF_LIBS 1)
     add_definitions(-DWAVM_PERF_EVENTS=1)
 else ()
+    # Use LLVM 8 explicitly for the lib parts (i.e. codegen)
+    set(LLVM_DIR /usr/lib/llvm-8)
     find_package(LLVM REQUIRED CONFIG)
 endif ()
 

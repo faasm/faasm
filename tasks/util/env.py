@@ -56,10 +56,6 @@ SYSROOT_INSTALL_PREFIX = FAASM_SYSROOT
 
 LATEST_CMAKE = "/usr/local/lib/cmake-3.15/bin/cmake"
 
-MUSL_INSTALL_DIR = join(FAASM_LOCAL_DIR, "musl_native")
-MUSL_CC = join(MUSL_INSTALL_DIR, "bin", "musl-clang")
-MUSL_NATIVE_OBJ_DIR = join(FAASM_LOCAL_DIR, "musl_obj")
-
 POSSIBLE_BUILD_BINS = [
     "/faasm/build/bin/",  # Containers
     "/faasm/build/third-party/WAVM/bin/",  # Containers

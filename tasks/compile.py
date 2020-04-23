@@ -5,7 +5,7 @@ from subprocess import call
 
 from invoke import task
 
-from tasks.util.env import FAASM_TOOLCHAIN_FILE, FUNC_DIR, WASM_DIR, PROJ_ROOT, MUSL_NATIVE_OBJ_DIR, MUSL_CC
+from tasks.util.env import FAASM_TOOLCHAIN_FILE, FUNC_DIR, WASM_DIR, PROJ_ROOT
 from tasks.util.files import clean_dir
 from tasks.util.typescript import ASC_BINARY, TS_DIR
 
@@ -104,28 +104,3 @@ def _ts_compile(func, optimize=True):
     cmd_string = " ".join(cmd)
     print(cmd_string)
     call(cmd_string, cwd=TS_DIR, shell=True)
-
-@task
-def native_musl(ctx, user, func, debug=False):
-
-    src_file = join(FUNC_DIR, user, f"{func}.cpp")
-    if not exists(src_file):
-        raise RuntimeError("Can't find source file {}".format(src_file))
-
-    dest_dir = join(MUSL_NATIVE_OBJ_DIR, user, func)
-    if not exists(dest_dir):
-        makedirs(dest_dir, exist_ok=True)
-
-    dest_file = join(dest_dir, func)
-
-    cmd = " ".join([
-        MUSL_CC,
-        src_file,
-        "-O3 -o",
-        dest_file
-    ])
-
-    if debug:
-        print(cmd)
-
-    call(cmd, cwd=MUSL_NATIVE_OBJ_DIR, shell=True)
