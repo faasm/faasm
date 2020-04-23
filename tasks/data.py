@@ -9,7 +9,7 @@ from invoke import task
 
 from tasks.util.endpoints import get_kubernetes_upload_host, get_upload_host_port
 from tasks.util.env import FUNC_DIR, FAASM_SHARED_STORAGE_ROOT
-from tasks.util.env import STATE_S3_BUCKET, DATA_S3_BUCKET, FAASM_DATA_DIR
+from tasks.util.env import DATA_S3_BUCKET, FAASM_DATA_DIR
 from tasks.util.matrices import get_matrix_dir
 from tasks.util.state import upload_binary_state, upload_sparse_matrix
 from tasks.util.state import upload_shared_file
@@ -133,14 +133,6 @@ def reuters_state(ctx, host=None, knative=True):
     Upload reuters experiment state
     """
     _do_reuters_upload(host=host, knative=knative)
-
-
-@task
-def reuters_state_s3(ctx):
-    """
-    Upload reuters experiment state to S3
-    """
-    _do_reuters_upload(s3_bucket=STATE_S3_BUCKET)
 
 
 def _do_reuters_upload(host=None, s3_bucket=None, knative=False):

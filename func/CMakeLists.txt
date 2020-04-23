@@ -3,13 +3,6 @@ project(faasm-func)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# Lambda-specific stuff
-if (FAASM_BUILD_TYPE STREQUAL "lambda-func")
-    add_definitions(-DAWS_LAMBDA=1)
-else ()
-    add_definitions(-DAWS_LAMBDA=0)
-endif ()
-
 # Knative native-specific stuff
 if (FAASM_BUILD_TYPE STREQUAL "knative-native")
     add_definitions(-DKNATIVE_NATIVE=1)
@@ -73,26 +66,6 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
 
     endfunction(faasm_dynamic_func)
 
-elseif (FAASM_BUILD_TYPE STREQUAL "lambda-func")
-    # ----------------------
-    # AWS Lambda build
-    # ----------------------
-    function(faasm_func_c func_name file_name)
-        # Don't support C functions on AWS Lambda
-    endfunction(faasm_func_c)
-
-    function(faasm_func func_name file_name)
-        add_executable(${func_name}-lambda ${file_name})
-        target_link_libraries(${func_name}-lambda lambda-func)
-
-        # Add custom target to build Lambda zip file
-        aws_lambda_package_target(${func_name}-lambda)
-    endfunction(faasm_func)
-
-    function(faasm_dynamic_func func_name file_name)
-        faasm_func(${func_name} ${file_name})
-    endfunction(faasm_dynamic_func)
-
 elseif (FAASM_BUILD_TYPE STREQUAL "knative-native")
     # ----------------------
     # Knative native build
@@ -148,10 +121,3 @@ else()
     add_subdirectory(omp)
     add_subdirectory(mpi)
 endif()
-
-# Skip some builds for lambda builds
-if (FAASM_BUILD_TYPE STREQUAL "lambda-func")
-else ()
-    add_subdirectory(python)
-    add_subdirectory(tf)
-endif ()

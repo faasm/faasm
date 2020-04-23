@@ -1,6 +1,0 @@
----
-
-- name: "Put pywren config in place"
-  template:
-    src: "pywren_config.j2"
-    dest: "~/.pywren_config"

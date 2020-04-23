@@ -262,7 +262,6 @@ def build_native(ctx, user, func, host=False, clean=False, nopush=False):
             "-DCMAKE_C_COMPILER=/usr/bin/clang",
             "-DFAASM_BUILD_TYPE=knative-native",
             "-DCMAKE_BUILD_TYPE=Debug",
-            "-DFAASM_AWS_SUPPORT=OFF",
             PROJ_ROOT
         ]
         call(" ".join(cmd), cwd=build_dir, shell=True)

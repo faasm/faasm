@@ -1,5 +1,4 @@
 import pprint
-from json import dumps
 from os.path import join
 from subprocess import check_output, call
 
@@ -7,8 +6,7 @@ import requests
 from invoke import task
 
 from tasks.util.config import get_faasm_config
-from tasks.util.env import RUNTIME_S3_BUCKET, STATE_S3_BUCKET, DATA_S3_BUCKET, TEST_S3_BUCKET, \
-    ANSIBLE_ROOT
+from tasks.util.env import RUNTIME_S3_BUCKET, DATA_S3_BUCKET, TEST_S3_BUCKET, ANSIBLE_ROOT
 from tasks.util.ibm import get_ibm_kubeconfig
 
 
@@ -47,7 +45,6 @@ def ibm_set_up_cos(ctx):
 def ibm_create_buckets(ctx):
     bucket_names = [
         RUNTIME_S3_BUCKET,
-        STATE_S3_BUCKET,
         DATA_S3_BUCKET,
         TEST_S3_BUCKET,
     ]

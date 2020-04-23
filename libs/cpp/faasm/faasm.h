@@ -6,11 +6,7 @@
 // For different integrations we need to provide different entry
 // points. These must define their own main() method which ensures
 // exec() eventually gets called
-#if AWS_LAMBDA == 1
-
-#include <lambda_func/interface.h>
-#elif KNATIVE_NATIVE == 1
-
+if KNATIVE_NATIVE == 1
 #include <knative_native/interface.h>
 #else
 

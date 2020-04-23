@@ -21,6 +21,7 @@ namespace tests {
         std::vector<uint8_t> byteDataA = {0, 1, 2, 3, 'c', '\\', '@', '$', '%'};
         std::vector<uint8_t> byteDataB = {11, 99, 123, '#', '\n', '\t'};
 
+
         SECTION("Test bytes read/ write") {
             wrapper.addKeyBytes(conf.bucketName, "alpha", byteDataA);
             wrapper.addKeyBytes(conf.bucketName, "beta", byteDataB);

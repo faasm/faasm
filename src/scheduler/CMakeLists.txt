@@ -20,11 +20,5 @@ set(LIB_FILES
         ${HEADERS}
 )
 
-if(FAASM_AWS_SUPPORT)
-    set(HEADERS ${FAASM_INCLUDE_DIR}/scheduler/AWSMessageBus.h ${HEADERS})
-    set(LIB_FILES AWSMessageBus.cpp ${LIB_FILES})
-    set(EXTRA_LIBS aws)
-endif()
-
 faasm_private_lib(scheduler "${LIB_FILES}")
 target_link_libraries(scheduler redis ${EXTRA_LIBS})

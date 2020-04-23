@@ -45,7 +45,6 @@ def native(ctx, clean=False):
     build_cmd = [
         "cmake",
         "-DFAASM_BUILD_TYPE=native-tools",
-        "-DFAASM_AWS_SUPPORT=OFF",
         "-DFAASM_STATIC_LIBS=OFF",
         "-DCMAKE_BUILD_TYPE=Release",
         "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_INSTALL_DIR),
