@@ -39,7 +39,6 @@ namespace util {
         cgroupMode = getEnvVar("CGROUP_MODE", "on");
         netNsMode = getEnvVar("NETNS_MODE", "off");
         logLevel = getEnvVar("LOG_LEVEL", "info");
-        awsLogLevel = getEnvVar("AWS_LOG_LEVEL", "off");
         pythonPreload = getEnvVar("PYTHON_PRELOAD", "off");
         captureStdout = getEnvVar("CAPTURE_STDOUT", "off");
         stateMode = getEnvVar("STATE_MODE", "redis");
@@ -115,7 +114,6 @@ namespace util {
         logger->info("CGROUP_MODE                {}", cgroupMode);
         logger->info("NETNS_MODE                 {}", netNsMode);
         logger->info("LOG_LEVEL                  {}", logLevel);
-        logger->info("AWS_LOG_LEVEL              {}", awsLogLevel);
         logger->info("PYTHON_PRELOAD             {}", pythonPreload);
         logger->info("CAPTURE_STDOUT             {}", captureStdout);
         logger->info("STATE_MODE                 {}", stateMode);

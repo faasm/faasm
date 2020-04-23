@@ -1,6 +1,5 @@
 from invoke import Collection
 
-# import tasks.aws
 # import tasks.ibm
 import tasks.bare_metal
 import tasks.bench_capacity

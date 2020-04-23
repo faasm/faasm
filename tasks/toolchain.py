@@ -78,7 +78,7 @@ def download_runtime(ctx, nocodegen=False):
         rmtree(FAASM_RUNTIME_ROOT)
 
     # Download the bundle
-    print("Downloading from S3")
+    print("Downloading")
     download_tar_from_url(url, tar_name, FAASM_LOCAL_DIR)
 
     # Remove downloaded tar
