@@ -43,13 +43,16 @@ clean-all:
 $(BUILD_DIR)/llvm.BUILT:
 	mkdir -p $(BUILD_DIR)/llvm
 	cd $(BUILD_DIR)/llvm; cmake -G Ninja \
+		-DCMAKE_C_COMPILER=/usr/bin/clang \
+		-DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
 		-DCMAKE_BUILD_TYPE=MinSizeRel \
 		-DCMAKE_INSTALL_PREFIX=$(PREFIX) \
 		-DLLVM_TARGETS_TO_BUILD=WebAssembly \
 		-DLLVM_DEFAULT_TARGET_TRIPLE=wasm32-wasi \
 		-DLLVM_EXTERNAL_CLANG_SOURCE_DIR=$(LLVM_PROJ_DIR)/clang \
+		-DLLVM_EXTERNAL_OPENMP_SOURCE_DIR=$(LLVM_PROJ_DIR)/openmp \
 		-DLLVM_EXTERNAL_LLD_SOURCE_DIR=$(LLVM_PROJ_DIR)/lld \
-		-DLLVM_ENABLE_PROJECTS="lld;clang" \
+		-DLLVM_ENABLE_PROJECTS="lld;clang;openmp" \
 		-DDEFAULT_SYSROOT=$(FAASM_SYSROOT) \
 		$(LLVM_PROJ_DIR)/llvm
 	ninja -v -C $(BUILD_DIR)/llvm \
@@ -78,6 +81,8 @@ $(BUILD_DIR)/libc.BUILT: $(BUILD_DIR)/llvm.BUILT
 $(BUILD_DIR)/compiler-rt.BUILT: $(BUILD_DIR)/libc.BUILT
 	mkdir -p $(BUILD_DIR)/compiler-rt
 	cd $(BUILD_DIR)/compiler-rt; cmake -G Ninja \
+		-DCMAKE_C_COMPILER=/usr/bin/clang \
+		-DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
 		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
 		-DCMAKE_TOOLCHAIN_FILE=$(TOOLCHAIN_FILE) \
 		-DCOMPILER_RT_BAREMETAL_BUILD=On \
@@ -131,6 +136,8 @@ $(BUILD_DIR)/libcxx.BUILT: $(BUILD_DIR)/compiler-rt.BUILT
 $(BUILD_DIR)/libcxxabi.BUILT: $(BUILD_DIR)/libcxx.BUILT
 	mkdir -p $(BUILD_DIR)/libcxxabi
 	cd $(BUILD_DIR)/libcxxabi; cmake -G Ninja \
+		-DCMAKE_C_COMPILER=/usr/bin/clang \
+		-DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
 		-DCMAKE_BUILD_TYPE=RelWithDebugInfo \
 		-DCMAKE_C_FLAGS="-I$(FAASM_SYSROOT)/include" \
 		-DCMAKE_CXX_FLAGS="-I$(FAASM_SYSROOT)/include/c++/v1" \
