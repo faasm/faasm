@@ -7,11 +7,9 @@ file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/state/*.h")
 
 set(LIB_FILES
         State.cpp
-        StateBackend.cpp
-        RedisStateBackend.cpp
-        InMemoryStateBackend.cpp
-        UserState.cpp
         StateKeyValue.cpp
+        RedisStateKeyValue.cpp
+        UserState.cpp
         ${HEADERS}
     )
 

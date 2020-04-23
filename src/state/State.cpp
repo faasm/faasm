@@ -32,7 +32,7 @@ namespace state {
         return us->getSize(keyIn);
     }
 
-    std::shared_ptr<StateKeyValue> State::getKV(const std::string &user, const std::string &key, size_t size) {
+    std::shared_ptr<RedisStateKeyValue> State::getKV(const std::string &user, const std::string &key, size_t size) {
         if(user.empty()) {
             throw std::runtime_error("Attempting to access state with empty user");
         }

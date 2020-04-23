@@ -30,11 +30,12 @@ namespace state {
         FullLock fullLock(kvMapMutex);
 
         std::string actualKey = util::keyForUser(user, key);
-        StateBackend &backend = getBackend();
-        return backend.getSize(actualKey);
+        // TODO break hard Redis dep
+        redis::Redis &redis = redis::Redis::getState();
+        return redis.strlen(actualKey);
     }
 
-    std::shared_ptr<StateKeyValue> UserState::getValue(const std::string &key, size_t size) {
+    std::shared_ptr<RedisStateKeyValue> UserState::getValue(const std::string &key, size_t size) {
         {
             util::SharedLock sharedLock(kvMapMutex);
             if (kvMap.count(key) > 0) {
@@ -56,7 +57,9 @@ namespace state {
 
         // Always mask keys with the user
         std::string actualKey = util::keyForUser(user, key);
-        auto kv = new StateKeyValue(actualKey, size);
+
+        // TODO - work out how to do this with different types
+        auto kv = new RedisStateKeyValue(actualKey, size);
         kvMap.emplace(KVPair(key, kv));
 
         return kvMap[key];

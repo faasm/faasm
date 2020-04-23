@@ -14,7 +14,8 @@ namespace state {
 
         size_t getSize(const std::string &key);
 
-        std::shared_ptr<StateKeyValue> getValue(const std::string &key, size_t size);
+        // TODO - split up
+        std::shared_ptr<RedisStateKeyValue> getValue(const std::string &key, size_t size);
 
         size_t getKeyCount();
 

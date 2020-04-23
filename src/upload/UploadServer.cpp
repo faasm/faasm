@@ -7,8 +7,7 @@
 #include <util/config.h>
 #include <util/state.h>
 #include <util/files.h>
-#include <state/State.h>
-#include <state/StateBackend.h>
+#include <redis/Redis.h>
 
 
 namespace edge {
@@ -173,8 +172,9 @@ namespace edge {
 
         logger->info("Downloading state from ({}/{})", user, key);
 
-        state::StateBackend &stateBackend = state::getBackend();
-        const std::vector<uint8_t> value = stateBackend.get(realKey);
+        // TODO - break hard Redis dependency here
+        redis::Redis &redis = redis::Redis::getState();
+        const std::vector<uint8_t> value = redis.get(realKey);
 
         return value;
     }
@@ -194,10 +194,11 @@ namespace edge {
         concurrency::streams::stringstreambuf inputStream;
         bodyStream.read_to_end(inputStream).then([&inputStream, &realKey](size_t size) {
             if (size > 0) {
-                state::StateBackend &stateBackend = state::getBackend();
+                // TODO - break hard Redis dependency here
+                redis::Redis &redis = redis::Redis::getState();
                 std::string s = inputStream.collection();
                 const std::vector<uint8_t> bytesData = util::stringToBytes(s);
-                stateBackend.set(realKey, bytesData);
+                redis.set(realKey, bytesData);
             }
         }).wait();
 
