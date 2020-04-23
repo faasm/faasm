@@ -9,8 +9,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include <redis/Redis.h>
-
 
 namespace state {
     /**
@@ -18,12 +16,6 @@ namespace state {
      */
     class StateKeyValue {
     public:
-        // Remote lock timeout in seconds
-        int remoteLockTimeout = 1;
-
-        // Remote lock sleep time in milliseconds
-        unsigned int remoteLockMaxRetries = 3;
-
         explicit StateKeyValue(const std::string &keyIn, size_t sizeIn);
 
         const std::string key;
@@ -72,13 +64,13 @@ namespace state {
 
         std::string getSegmentKey(long offset, long length);
 
+        void deleteGlobal();
+
+        void pushFull();
+
         virtual void lockGlobal() = 0;
 
         virtual void unlockGlobal() = 0;
-
-        virtual void deleteGlobal() = 0;
-
-        virtual void pushFull() = 0;
 
     protected:
         bool isDirty;
@@ -92,13 +84,11 @@ namespace state {
         void *dirtyMask;
         void *allocatedMask;
 
-        virtual void pullImpl(bool onlyIfEmpty) = 0;
+        void pullImpl(bool onlyIfEmpty);
 
-        virtual void pullSegmentImpl(bool onlyIfEmpty, long offset, size_t length) = 0;
+        void pullSegmentImpl(bool onlyIfEmpty, long offset, size_t length);
 
-        virtual long waitOnRemoteLock() = 0;
-
-        virtual void doPushPartial(const uint8_t *dirtyMaskBytes) = 0;
+        void doPushPartial(const uint8_t *dirtyMaskBytes);
 
         bool isSegmentAllocated(long offset, size_t length);
 
@@ -109,37 +99,17 @@ namespace state {
         void zeroAllocatedMask();
 
         void initialiseStorage(bool allocate);
+
+        virtual void pullFromRemote() = 0;
+
+        virtual void pullRangeFromRemote(long offset, size_t length) = 0;
+
+        virtual void pushToRemote() = 0;
+
+        virtual void pushPartialToRemote(const uint8_t *dirtyMaskBytes) = 0;
+
+        virtual void deleteFromRemote() = 0;
     };
-
-    class RedisStateKeyValue final : public StateKeyValue {
-    public:
-        RedisStateKeyValue(const std::string &keyIn, size_t sizeIn);
-
-        void pushFull();
-    private:
-        redis::Redis &redis;
-
-        int lastRemoteLockId = 0;
-
-        void pullImpl(bool onlyIfEmpty);
-
-        void pullSegmentImpl(bool onlyIfEmpty, long offset, size_t length);
-
-        long waitOnRemoteLock();
-
-        void doPushPartial(const uint8_t *dirtyMaskBytes);
-
-        void lockGlobal();
-
-        void unlockGlobal();
-
-        void deleteGlobal();
-
-    };
-
-    // TODO - work out how to do this with different types
-    typedef std::unordered_map<std::string, std::shared_ptr<RedisStateKeyValue>> KVMap;
-    typedef std::pair<std::string, std::shared_ptr<RedisStateKeyValue>> KVPair;
 
     class StateKeyValueException : public std::runtime_error {
     public:

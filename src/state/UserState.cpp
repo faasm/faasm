@@ -60,7 +60,7 @@ namespace state {
 
         // TODO - work out how to do this with different types
         auto kv = new RedisStateKeyValue(actualKey, size);
-        kvMap.emplace(KVPair(key, kv));
+        kvMap.emplace(key, kv);
 
         return kvMap[key];
     }

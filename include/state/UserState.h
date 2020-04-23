@@ -1,6 +1,6 @@
 #pragma once
 
-#include "StateKeyValue.h"
+#include "RedisStateKeyValue.h"
 
 #include <util/clock.h>
 
@@ -22,7 +22,8 @@ namespace state {
     private:
         const std::string user;
 
-        KVMap kvMap;
+        // TODO - genericise
+        std::unordered_map<std::string, std::shared_ptr<RedisStateKeyValue>> kvMap;
         std::shared_mutex kvMapMutex;
     };
 

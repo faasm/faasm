@@ -1,4 +1,4 @@
-#include "StateKeyValue.h"
+#include "RedisStateKeyValue.h"
 
 #include <redis/Redis.h>
 #include <util/locks.h>
@@ -6,35 +6,49 @@
 #include <util/timing.h>
 #include <util/macros.h>
 
+#define REMOTE_LOCK_TIMEOUT_SECS 1
+#define REMOTE_LOCK_MAX_RETRIES 3
 
 namespace state {
     RedisStateKeyValue::RedisStateKeyValue(const std::string &keyIn, size_t sizeIn) : StateKeyValue(keyIn, sizeIn),
                                                                                       redis(redis::Redis::getState()) {
-
     };
 
-    void RedisStateKeyValue::pullImpl(bool onlyIfEmpty) {
-        // Drop out if we already have the data and we don't care about updating
-        {
-            util::SharedLock lock(valueMutex);
-            if (onlyIfEmpty && _fullyAllocated) {
-                return;
+    long RedisStateKeyValue::waitOnRemoteLock() {
+        PROF_START(remoteLock)
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        long remoteLockId = redis.acquireLock(key, REMOTE_LOCK_TIMEOUT_SECS);
+        unsigned int retryCount = 0;
+        while (remoteLockId <= 0) {
+            logger->debug("Waiting on remote lock for {} (loop {})", key, retryCount);
+
+            if (retryCount >= REMOTE_LOCK_MAX_RETRIES) {
+                logger->error("Timed out waiting for lock on {}", key);
+                break;
             }
+
+            // Sleep for 1ms
+            usleep(1000);
+
+            remoteLockId = redis.acquireLock(key, REMOTE_LOCK_TIMEOUT_SECS);
+            retryCount++;
         }
 
-        // Unique lock on the whole value
-        util::FullLock lock(valueMutex);
+        PROF_END(remoteLock)
+        return remoteLockId;
+    }
+
+    void RedisStateKeyValue::lockGlobal() {
+        lastRemoteLockId = this->waitOnRemoteLock();
+    }
+
+    void RedisStateKeyValue::unlockGlobal() {
+        redis.releaseLock(key, lastRemoteLockId);
+    }
+
+    void RedisStateKeyValue::pullFromRemote() {
         PROF_START(statePull)
-
-        if (onlyIfEmpty && _fullyAllocated) {
-            return;
-        }
-
-        // Initialise storage if necessary
-        if (!_fullyAllocated) {
-            initialiseStorage(true);
-        }
-
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Read from the remote
@@ -45,29 +59,8 @@ namespace state {
         PROF_END(statePull)
     }
 
-    void RedisStateKeyValue::pullSegmentImpl(bool onlyIfEmpty, long offset, size_t length) {
-        // Drop out if we already have the data and we don't care about updating
-        {
-            util::SharedLock lock(valueMutex);
-            if (onlyIfEmpty && (_fullyAllocated || isSegmentAllocated(offset, length))) {
-                return;
-            }
-        }
-
-        // Unique lock
-        util::FullLock lock(valueMutex);
+    void RedisStateKeyValue::pullRangeFromRemote(long offset, size_t length) {
         PROF_START(stateSegmentPull)
-
-        // Check condition again
-        bool segmentAllocated = isSegmentAllocated(offset, length);
-        if (onlyIfEmpty && (_fullyAllocated || segmentAllocated)) {
-            return;
-        }
-
-        // Initialise the storage if empty
-        if (!segmentAllocated) {
-            allocateSegment(offset, length);
-        }
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -82,51 +75,26 @@ namespace state {
         PROF_END(stateSegmentPull)
     }
 
+    void RedisStateKeyValue::pushToRemote() {
+        PROF_START(pushFull)
 
-    long RedisStateKeyValue::waitOnRemoteLock() {
-        PROF_START(remoteLock)
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Pushing whole value for {}", key);
 
-        long remoteLockId = redis.acquireLock(key, remoteLockTimeout);
-        unsigned int retryCount = 0;
-        while (remoteLockId <= 0) {
-            logger->debug("Waiting on remote lock for {} (loop {})", key, retryCount);
+        redis.set(key, static_cast<uint8_t *>(sharedMemory), valueSize);
 
-            if (retryCount >= remoteLockMaxRetries) {
-                logger->error("Timed out waiting for lock on {}", key);
-                break;
-            }
+        // Remove any dirty flags
+        isDirty = false;
+        zeroDirtyMask();
 
-            // Sleep for 1ms
-            usleep(1000);
-
-            remoteLockId = redis.acquireLock(key, remoteLockTimeout);
-            retryCount++;
-        }
-
-        PROF_END(remoteLock)
-        return remoteLockId;
+        PROF_END(pushFull)
     }
 
-    void RedisStateKeyValue::doPushPartial(const uint8_t *dirtyMaskBytes) {
+    void RedisStateKeyValue::pushPartialToRemote(const uint8_t *dirtyMaskBytes) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        // Ignore if not dirty
-        if (!isDirty) {
-            return;
-        }
 
         PROF_START(pushPartial)
 
-        // We need a full lock while doing this, mainly to ensure no other threads start
-        // the same process
-        util::FullLock lock(valueMutex);
-
-        // Double check condition
-        if (!isDirty) {
-            logger->debug("Ignoring partial push on {}", key);
-            return;
-        }
         // Iterate through and pipeline the dirty segments
         auto sharedMemoryBytes = BYTES(sharedMemory);
         long updateCount = 0;
@@ -178,48 +146,7 @@ namespace state {
         PROF_END(pushPartial)
     }
 
-    void RedisStateKeyValue::deleteGlobal() {
-        // Clear locally
-        clear();
-
-        // Delete remote
-        util::FullLock lock(valueMutex);
+    void RedisStateKeyValue::deleteFromRemote() {
         redis.del(key);
-    }
-
-    void RedisStateKeyValue::pushFull() {
-        // Ignore if not dirty
-        if (!isDirty) {
-            return;
-        }
-
-        PROF_START(pushFull)
-
-        // Get full lock for complete push
-        util::FullLock fullLock(valueMutex);
-
-        // Double check condition
-        if (!isDirty) {
-            return;
-        }
-
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Pushing whole value for {}", key);
-
-        redis.set(key, static_cast<uint8_t *>(sharedMemory), valueSize);
-
-        // Remove any dirty flags
-        isDirty = false;
-        zeroDirtyMask();
-
-        PROF_END(pushFull)
-    }
-
-    void RedisStateKeyValue::lockGlobal() {
-        lastRemoteLockId = this->waitOnRemoteLock();
-    }
-
-    void RedisStateKeyValue::unlockGlobal() {
-        redis.releaseLock(key, lastRemoteLockId);
     }
 }

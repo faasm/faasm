@@ -14,7 +14,6 @@ using namespace util;
 namespace state {
     StateKeyValue::StateKeyValue(const std::string &keyIn, size_t sizeIn) : key(keyIn),
                                                                             valueSize(sizeIn) {
-
         // Work out size of required shared memory
         size_t nHostPages = getRequiredHostPages(valueSize);
         sharedMemSize = nHostPages * HOST_PAGE_SIZE;
@@ -49,8 +48,6 @@ namespace state {
         }
         return true;
     }
-
-
 
     void StateKeyValue::get(uint8_t *buffer) {
         pullImpl(true);
@@ -330,6 +327,104 @@ namespace state {
         doPushPartial(dirtyMaskBytes);
     }
 
+    void StateKeyValue::pushFull() {
+        // Ignore if not dirty
+        if (!isDirty) {
+            return;
+        }
+
+        // Get full lock for complete push
+        util::FullLock fullLock(valueMutex);
+
+        // Double check condition
+        if (!isDirty) {
+            return;
+        }
+
+        pushToRemote();
+    }
+
+    void StateKeyValue::pullImpl(bool onlyIfEmpty) {
+        // Drop out if we already have the data and we don't care about updating
+        {
+            util::SharedLock lock(valueMutex);
+            if (onlyIfEmpty && _fullyAllocated) {
+                return;
+            }
+        }
+
+        // Unique lock on the whole value
+        util::FullLock lock(valueMutex);
+
+        if (onlyIfEmpty && _fullyAllocated) {
+            return;
+        }
+
+        // Initialise storage if necessary
+        if (!_fullyAllocated) {
+            initialiseStorage(true);
+        }
+
+        pullFromRemote();
+    }
+
+    void StateKeyValue::pullSegmentImpl(bool onlyIfEmpty, long offset, size_t length) {
+        // Drop out if we already have the data and we don't care about updating
+        {
+            util::SharedLock lock(valueMutex);
+            if (onlyIfEmpty && (_fullyAllocated || isSegmentAllocated(offset, length))) {
+                return;
+            }
+        }
+
+        // Unique lock
+        util::FullLock lock(valueMutex);
+
+        // Check condition again
+        bool segmentAllocated = isSegmentAllocated(offset, length);
+        if (onlyIfEmpty && (_fullyAllocated || segmentAllocated)) {
+            return;
+        }
+
+        // Initialise the storage if empty
+        if (!segmentAllocated) {
+            allocateSegment(offset, length);
+        }
+
+        pullRangeFromRemote(offset, length);
+    }
+
+    void StateKeyValue::doPushPartial(const uint8_t *dirtyMaskBytes) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        // Ignore if not dirty
+        if (!isDirty) {
+            return;
+        }
+
+        // We need a full lock while doing this, mainly to ensure no other threads start
+        // the same process
+        util::FullLock lock(valueMutex);
+
+        // Double check condition
+        if (!isDirty) {
+            logger->debug("Ignoring partial push on {}", key);
+            return;
+        }
+
+        pushPartialToRemote(dirtyMaskBytes);
+    }
+
+    void StateKeyValue::deleteGlobal() {
+        // Clear locally
+        clear();
+
+        // Delete remote
+        util::FullLock lock(valueMutex);
+
+        deleteFromRemote();
+    }
+
     void StateKeyValue::lockRead() {
         valueMutex.lock_shared();
     }
@@ -345,5 +440,4 @@ namespace state {
     void StateKeyValue::unlockWrite() {
         valueMutex.unlock();
     }
-
 }
