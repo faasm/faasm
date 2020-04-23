@@ -147,6 +147,10 @@ namespace tcp {
         }
     }
 
+    void TCPServer::stop() {
+
+    }
+
     void TCPServer::respond(TCPMessage *request, TCPMessage *response) {
         size_t bufferLen = tcpMessageLen(response);
         uint8_t *buffer = tcpMessageToBuffer(response);

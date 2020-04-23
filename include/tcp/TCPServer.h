@@ -19,6 +19,8 @@ namespace tcp {
 
         void start();
 
+        void stop();
+
         void respond(TCPMessage *request, TCPMessage *response);
 
         void noResponse(TCPMessage *request);

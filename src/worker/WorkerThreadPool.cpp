@@ -126,9 +126,13 @@ namespace worker {
 
         stateThread = std::thread([this] {
             state::StateServer server;
+
+            // TODO - start/ stop
             while (!this->isShutdown()) {
-                server.next();
+                server.start();
             }
+
+            server.stop();
         });
     }
 

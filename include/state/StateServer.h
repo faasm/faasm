@@ -11,8 +11,5 @@ namespace state {
         StateServer();
 
         tcp::TCPMessage * handleMessage(tcp::TCPMessage *);
-
-    private:
-        long timeoutMillis;
     };
 }
