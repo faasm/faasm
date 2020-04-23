@@ -13,13 +13,13 @@ using namespace faasm;
         int c = randomInteger(100, topEnd);
 
         REQUIRE(a >= 10);
-        REQUIRE(a < topEnd);
+        REQUIRE(a <= topEnd);
 
         REQUIRE(b >= 30);
-        REQUIRE(b < topEnd);
+        REQUIRE(b <= topEnd);
 
         REQUIRE(c >= 100);
-        REQUIRE(c < topEnd);
+        REQUIRE(c <= topEnd);
 
         bool allUnequal = (a != b) & (b != c);
         REQUIRE(allUnequal);
