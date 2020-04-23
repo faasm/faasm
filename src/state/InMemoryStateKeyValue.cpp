@@ -7,10 +7,10 @@
 #define STATE_PORT 8005
 
 namespace state {
-    InMemoryStateKeyValue::InMemoryStateKeyValue(const std::string &keyIn, size_t sizeIn) : StateKeyValue(keyIn,
-                                                                                                          sizeIn),
-                                                                                            redis(redis::Redis::getState()),
-                                                                                            thisIP(util::getSystemConfig().endpointHost) {
+    InMemoryStateKeyValue::InMemoryStateKeyValue(
+            const std::string &keyIn, size_t sizeIn) : StateKeyValue(keyIn, sizeIn),
+                                                       redis(redis::Redis::getState()),
+                                                       thisIP(util::getSystemConfig().endpointHost) {
     };
 
     std::string getKeyForMasterLookup(const std::string &key) {
