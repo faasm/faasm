@@ -5,16 +5,16 @@ RUN apt-get install -y software-properties-common sudo wget
 
 # Note - we have to stick with stable LLVM here for now
 RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
-RUN add-apt-repository "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-8 main"
+RUN add-apt-repository "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-9 main"
 RUN apt-get update
 RUN apt-get install -y build-essential \
-    llvm-8 \
-    llvm-8-dev \
-    llvm-8-tools \
-    lld-8 \
-    clang-8 \
-    clang-tools-8 \
-    libclang-8-dev \
+    llvm-9 \
+    llvm-9-dev \
+    llvm-9-tools \
+    lld-9 \
+    clang-9 \
+    clang-tools-9 \
+    libclang-9-dev \
     make
 
 # Install an up-to-date cmake
@@ -40,13 +40,15 @@ RUN apt-get clean autoclean
 RUN apt-get autoremove
 
 # Symlinks
-RUN ln -s /usr/bin/clang-8 /usr/bin/clang
-RUN ln -s /usr/bin/clang-cpp-8 /usr/bin/clang-cpp
-RUN ln -s /usr/bin/clang++-8 /usr/bin/clang++
-RUN ln -s /usr/bin/llvm-8 /usr/bin/llvm
-RUN ln -s /usr/bin/wasm-ld-8 /usr/bin/wasm-ld
-RUN ln -s /usr/bin/llvm-ar-8 /usr/bin/llvm-ar
-RUN ln -s /usr/bin/lld-8 /usr/bin/lld
+RUN ln -s /usr/bin/clang-9 /usr/bin/clang && \
+    ln -s /usr/bin/clang++-9 /usr/bin/clang++ && \
+    ln -s /usr/bin/clang-cpp-9 /usr/bin/clang-cpp && \
+    ln -s /usr/bin/lld-9 /usr/bin/lld && \
+    ln -s /usr/bin/llvm-ar-9 /usr/bin/llvm-ar && \
+    ln -s /usr/bin/llvm-config-9 /usr/bin/llvm-config && \
+    ln -s /usr/bin/llvm-nm-9 /usr/bin/llvm-nm && \
+    ln -s /usr/bin/llvm-ranlib-9 /usr/bin/llvm-ranlib && \
+    ln -s /usr/bin/wasm-ld-9 /usr/bin/wasm-ld
 
 # Protobuf - note the "no-same-owner" here to avoid inheriting dodgy perms from archive
 WORKDIR /tmp
