@@ -1,7 +1,11 @@
 #include "UserState.h"
+#include "RedisStateKeyValue.h"
+#include "InMemoryStateKeyValue.h"
 
 #include <util/locks.h>
 #include <util/state.h>
+#include <redis/Redis.h>
+
 
 using namespace util;
 
@@ -30,12 +34,13 @@ namespace state {
         FullLock fullLock(kvMapMutex);
 
         std::string actualKey = util::keyForUser(user, key);
+
         // TODO break hard Redis dep
         redis::Redis &redis = redis::Redis::getState();
         return redis.strlen(actualKey);
     }
 
-    std::shared_ptr<RedisStateKeyValue> UserState::getValue(const std::string &key, size_t size) {
+    std::shared_ptr<StateKeyValue> UserState::getValue(const std::string &key, size_t size) {
         {
             util::SharedLock sharedLock(kvMapMutex);
             if (kvMap.count(key) > 0) {
@@ -58,9 +63,15 @@ namespace state {
         // Always mask keys with the user
         std::string actualKey = util::keyForUser(user, key);
 
-        // TODO - work out how to do this with different types
-        auto kv = new RedisStateKeyValue(actualKey, size);
-        kvMap.emplace(key, kv);
+        // Vary key-value implementation depending on state mode
+        std::string stateMode = util::getSystemConfig().stateMode;
+        if(stateMode == "redis") {
+            auto kv = new RedisStateKeyValue(actualKey, size);
+            kvMap.emplace(key, kv);
+        } else if(stateMode == "inmemory") {
+            auto kv = new InMemoryStateKeyValue(actualKey, size);
+            kvMap.emplace(key, kv);
+        }
 
         return kvMap[key];
     }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "RedisStateKeyValue.h"
+#include "StateKeyValue.h"
 
 #include <util/clock.h>
 
@@ -15,7 +15,7 @@ namespace state {
         size_t getSize(const std::string &key);
 
         // TODO - split up
-        std::shared_ptr<RedisStateKeyValue> getValue(const std::string &key, size_t size);
+        std::shared_ptr<StateKeyValue> getValue(const std::string &key, size_t size);
 
         size_t getKeyCount();
 
@@ -23,7 +23,7 @@ namespace state {
         const std::string user;
 
         // TODO - genericise
-        std::unordered_map<std::string, std::shared_ptr<RedisStateKeyValue>> kvMap;
+        std::unordered_map<std::string, std::shared_ptr<StateKeyValue>> kvMap;
         std::shared_mutex kvMapMutex;
     };
 

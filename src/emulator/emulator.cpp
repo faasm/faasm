@@ -115,7 +115,7 @@ std::string getEmulatedUser() {
     return _emulatedCall.user();
 }
 
-std::shared_ptr<state::RedisStateKeyValue> getKv(const char *key, size_t size) {
+std::shared_ptr<state::StateKeyValue> getKv(const char *key, size_t size) {
     state::State &s = state::getGlobalState();
 
     const std::string &emulatedUser = getEmulatedUser();

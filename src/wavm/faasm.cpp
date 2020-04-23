@@ -1,13 +1,15 @@
 #include "WAVMWasmModule.h"
 #include "syscalls.h"
 
-#include <util/bytes.h>
-#include <state/StateKeyValue.h>
-
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
-#include <util/state.h>
+
+#include <redis/Redis.h>
+#include <state/StateKeyValue.h>
+#include <util/bytes.h>
 #include <util/files.h>
+#include <util/state.h>
+
 
 namespace wasm {
     void faasmLink() {

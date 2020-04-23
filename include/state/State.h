@@ -10,7 +10,7 @@ namespace state {
     public:
         size_t getStateSize(const std::string &user, const std::string &keyIn);
 
-        std::shared_ptr<RedisStateKeyValue> getKV(const std::string &user, const std::string &key, size_t size);
+        std::shared_ptr<StateKeyValue> getKV(const std::string &user, const std::string &key, size_t size);
 
         std::shared_ptr<UserState> getUserState(const std::string &user);
 

@@ -8,7 +8,7 @@
 namespace tests {
     void _checkMapping(
             wasm::WAVMWasmModule &module,
-            std::shared_ptr<state::RedisStateKeyValue> &kv,
+            std::shared_ptr<state::StateKeyValue> &kv,
             long offset,
             long size,
             std::vector<uint8_t> &expected
