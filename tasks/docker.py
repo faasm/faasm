@@ -170,5 +170,5 @@ def push_release(ctx):
     push(ctx, RELEASE_CONTAINERS)
     
 @task
-def build_all(ctx, nocache=False, push=False)):
+def build_all(ctx, nocache=False, push=False):
     build(ctx, FAASM_CONTAINERS, nocache, push)
