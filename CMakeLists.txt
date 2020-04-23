@@ -16,7 +16,6 @@ set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/pyinit)
 set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/WAVM/Lib)
 
 option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
-option(FAASM_AWS_SUPPORT "Whether to include AWS support" OFF)
 
 # WAMR configuration
 option(FAASM_WAMR_SUPPORT "Support for WAMR" ON)
@@ -89,16 +88,6 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 # add_definitions(-DEIGEN_DONT_PARALLELIZE)
 # add_definitions(-DEIGEN_NO_MALLOC)
 
-if (FAASM_AWS_SUPPORT)
-    # AWS
-    find_package(aws-lambda-runtime)
-
-    # AWS SDK
-    find_package(AWSSDK REQUIRED COMPONENTS lambda s3 sqs)
-
-    add_definitions("-DAWS_SUPPORT=1")
-endif ()
-
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -125,74 +114,6 @@ if (FAASM_BUILD_TYPE STREQUAL "knative-native")
     add_subdirectory(src/scheduler)
     add_subdirectory(src/state)
     add_subdirectory(src/tcp)
-    add_subdirectory(src/util)
-
-elseif (FAASM_BUILD_TYPE STREQUAL "lambda-func")
-    message(STATUS "Running lambda function build")
-
-    add_subdirectory(func)
-    add_subdirectory(libs/cpp)
-
-    add_subdirectory(src/aws)
-    add_subdirectory(src/lambda_func)
-    add_subdirectory(src/proto)
-    add_subdirectory(src/redis)
-    add_subdirectory(src/util)
-
-elseif (FAASM_BUILD_TYPE STREQUAL "lambda-redis")
-    message(STATUS "Running lambda redis build")
-
-    add_subdirectory(src/aws)
-    add_subdirectory(src/proto)
-    add_subdirectory(src/redis)
-    add_subdirectory(src/util)
-
-elseif (FAASM_BUILD_TYPE STREQUAL "lambda-state")
-    message(STATUS "Running lambda state build")
-
-    add_subdirectory(src/aws)
-    add_subdirectory(src/proto)
-    add_subdirectory(src/redis)
-    add_subdirectory(src/state)
-    add_subdirectory(src/util)
-
-elseif (FAASM_BUILD_TYPE STREQUAL "lambda-worker")
-    # ------------------
-    # Lambda worker build
-    # ------------------
-
-    message(STATUS "Running lambda worker build")
-
-    add_subdirectory(third-party/WAVM)
-
-    add_subdirectory(src/aws)
-    add_subdirectory(src/codegen)
-    add_subdirectory(src/ir_cache)
-    add_subdirectory(src/lambda)
-    add_subdirectory(src/module_cache)
-    add_subdirectory(src/proto)
-    add_subdirectory(src/redis)
-    add_subdirectory(src/scheduler)
-    add_subdirectory(src/state)
-    add_subdirectory(src/storage)
-    add_subdirectory(src/system)
-    add_subdirectory(src/util)
-    add_subdirectory(src/wasm)
-    add_subdirectory(src/wavm)
-    add_subdirectory(src/worker)
-
-elseif (FAASM_BUILD_TYPE STREQUAL "lambda-dispatch")
-    # ------------------
-    # Lambda dispatch build
-    # ------------------
-
-    message(STATUS "Running lambda dispatch build")
-
-    add_subdirectory(src/aws)
-    add_subdirectory(src/dispatch)
-    add_subdirectory(src/proto)
-    add_subdirectory(src/redis)
-    add_subdirectory(src/scheduler)
     add_subdirectory(src/util)
 
 elseif (FAASM_BUILD_TYPE STREQUAL "native-tools")
@@ -243,14 +164,6 @@ else ()
     # Custom malloc
     add_subdirectory(third-party/malloc)
 
-    # AWS-specific
-    if (FAASM_AWS_SUPPORT)
-        add_subdirectory(src/aws)
-        add_subdirectory(src/lambda_func)
-        add_subdirectory(src/dispatch)
-        add_subdirectory(src/lambda)
-    endif ()
-
     # Faasm runtime
     add_subdirectory(src/codegen)
     add_subdirectory(src/data)
@@ -284,8 +197,4 @@ else ()
     add_subdirectory(tests/utils)
     add_subdirectory(tests/ibm)
     add_subdirectory(tests/knative)
-
-    if (FAASM_AWS_SUPPORT)
-        add_subdirectory(tests/aws)
-    endif ()
 endif ()

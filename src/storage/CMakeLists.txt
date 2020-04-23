@@ -27,11 +27,5 @@ set(LIB_FILES
         ${HEADERS}
         )
 
-if(FAASM_AWS_SUPPORT)
-    set(HEADERS ${FAASM_INCLUDE_DIR}/storage/S3FileLoader.h ${HEADERS})
-    set(LIB_FILES S3FileLoader.cpp ${LIB_FILES})
-    set(EXTRA_LIBS aws)
-endif()
-
 faasm_private_lib(storage "${LIB_FILES}")
 target_link_libraries(storage util libWAVM ${EXTRA_LIBS})

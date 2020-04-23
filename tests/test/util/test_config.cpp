@@ -30,7 +30,6 @@ namespace tests {
         REQUIRE(conf.bucketName == "");
         REQUIRE(conf.queueName == "faasm-messages");
         REQUIRE(conf.netNsMode == "off");
-        REQUIRE(conf.awsLogLevel == "off");
         REQUIRE(conf.pythonPreload == "off");
         REQUIRE(conf.captureStdout == "off");
         REQUIRE(conf.stateMode == "redis");
@@ -66,7 +65,6 @@ namespace tests {
         std::string queue = setEnvVar("QUEUE_NAME", "dummy-queue");
         std::string cgMode = setEnvVar("CGROUP_MODE", "off");
         std::string nsMode = setEnvVar("NETNS_MODE", "on");
-        std::string awsLog = setEnvVar("AWS_LOG_LEVEL", "debug");
         std::string pythonPre = setEnvVar("PYTHON_PRELOAD", "on");
         std::string captureStdout = setEnvVar("CAPTURE_STDOUT", "on");
         std::string stateMode = setEnvVar("STATE_MODE", "foobar");
@@ -112,7 +110,6 @@ namespace tests {
         REQUIRE(conf.queueName == "dummy-queue");
         REQUIRE(conf.cgroupMode == "off");
         REQUIRE(conf.netNsMode == "on");
-        REQUIRE(conf.awsLogLevel == "debug");
         REQUIRE(conf.pythonPreload == "on");
         REQUIRE(conf.captureStdout == "on");
         REQUIRE(conf.stateMode == "foobar");
@@ -158,7 +155,6 @@ namespace tests {
         setEnvVar("QUEUE_NAME", queue);
         setEnvVar("CGROUP_MODE", cgMode);
         setEnvVar("NETNS_MODE", nsMode);
-        setEnvVar("AWS_LOG_LEVEL", awsLog);
         setEnvVar("PYTHON_PRELOAD", pythonPre);
         setEnvVar("CAPTURE_STDOUT", captureStdout);
         setEnvVar("STATE_MODE", stateMode);

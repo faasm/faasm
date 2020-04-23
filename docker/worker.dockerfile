@@ -4,7 +4,7 @@ FROM faasm/base:${FAASM_VERSION}
 # Must restate ARG after FROM
 ARG FAASM_VERSION
 
-# Get the runtime root from S3
+# Get the runtime root
 WORKDIR /usr/local/faasm
 RUN wget -q https://github.com/lsds/Faasm/releases/download/v${FAASM_VERSION}/faasm-runtime-root-${FAASM_VERSION}.tar.gz
 RUN tar --no-same-owner -xf faasm-runtime-root-${FAASM_VERSION}.tar.gz

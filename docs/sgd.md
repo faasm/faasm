@@ -2,8 +2,7 @@
 
 To use the original Hogwild dataset we must download it and parse it into a Faasm-friendly form.
 
-This can be done once and uploaded to S3 (see below). From then on it can just be downloaded directly
-from S3 on relevant machines.
+This can be done once and uploaded to S3 (see below). From then on it can just be downloaded directly from S3 on relevant machines.
 
 From there it must be uploaded into the relevant state storage for running the algorithm.
 
@@ -31,10 +30,6 @@ inv data.reuters-state-upload localhost
 
 # K8s
 inv data.reuters-state-upload <k8s_service_host>
-
-# AWS - load into S3, then into Redis via Lambda function
-inv data.reuters-state-upload-s3
-inv data.reuters-prepare-aws
 ```
 
 ## Invoking the function
