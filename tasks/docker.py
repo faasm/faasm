@@ -11,6 +11,7 @@ from tasks.util.version import get_faasm_version
 
 # Order matters here
 RELEASE_CONTAINERS = [
+    "cpp-root",
     "base",
     "base-test",
     "worker",
