@@ -20,7 +20,6 @@ namespace redis {
     public:
         explicit RedisInstance(RedisRole role);
 
-        std::string conditionalLockSha;
         std::string delifeqSha;
 
         std::string ip;
@@ -32,24 +31,6 @@ namespace redis {
         std::mutex scriptsLock;
 
         std::string loadScript(redisContext *context, const std::string &scriptBody);
-
-        // Conditional lock is used as part of a locking scheme where we need to make sure an assumption
-        // is correct before acquiring the lock. The function takes 4 arguments:
-        // key_to_check, key_to_lock, expected_value, lock_id
-        //
-        // This takes elements of the redlock algorithm described here: https://redis.io/topics/distlock
-        //
-        // Return values:
-        // -1 = value is different
-        // 0 = lock not acquired
-        // 1 = lock acquired
-        const std::string conditionalLockCmd = "local val = redis.call(\"GET\", KEYS[1]) \n"
-                                               ""
-                                               "if (val == false) or (val == ARGV[1]) then \n"
-                                               "    return redis.call(\"SETNX\", KEYS[2], ARGV[2]) \n"
-                                               "else \n"
-                                               "    return -1 \n"
-                                               "end";
 
         // Script to delete a key if it equals a given value
         const std::string delifeqCmd = "if redis.call(\"GET\", KEYS[1]) == ARGV[1] then \n"
@@ -137,8 +118,6 @@ namespace redis {
         /**
         *  ------ Locking ------
         */
-
-        long acquireConditionalLock(const std::string &key, long expectedValue);
 
         long acquireLock(const std::string &key, int expirySeconds);
 
