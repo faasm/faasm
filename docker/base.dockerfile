@@ -1,4 +1,4 @@
-FROM faasm/cpp-root
+FROM faasm/cpp-root:0.1.3
 
 RUN apt-get update
 RUN apt-add-repository ppa:ansible/ansible
