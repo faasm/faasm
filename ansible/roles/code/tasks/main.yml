@@ -49,10 +49,11 @@
   args:
     warn: no
 
+# Not supported by ansible: Set small group permission to not trigger git
 - name: "Set code permissions to faasm"
   become: yes
   command: |
-    chmod -c -R g=rw,g+x "{{ item }}"
+    chmod -c -R g=rw,g+X "{{ item }}"
   register: chmod_status
   changed_when: chmod_status.stdout != ""
   with_items:
