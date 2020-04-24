@@ -21,6 +21,6 @@
 
 - name: "Install CLI"
   become: yes
-  shell: "pip3 install -e ./faasmcli"
+  shell: "pip3 install ./faasmcli"
   args:
     chdir: "/usr/local/code/faasm"

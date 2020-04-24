@@ -37,7 +37,7 @@ source workon.sh
 pip install -r faasmcli/requirements.txt
 
 # Faasm CLI
-pip install -e faasmcli
+pip install -e ./faasmcli
 
 # Faasm playbook
 cd ansible
