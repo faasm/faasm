@@ -1,11 +1,28 @@
 ---
 
+- name: "Ensure group faasm exists"
+  become: yes
+  group:
+    name: faasm
+    state: present
+
+- name: Add users to group
+  become: yes
+  user:
+    name: "{{ item }}"
+    groups: faasm
+    append: yes
+  with_items:
+    - scs17
+    - mfournial
+
 - name: "Set up directory"
   become: yes
   file:
     path: "/usr/local/code"
     state: directory
-    mode: 0777
+    group: "faasm"
+    mode: 0775
 
 - name: "Install system deps"
   become: yes
@@ -16,7 +33,8 @@
 
 - name: "Check out code"
   git:
-    repo: "https://github.com/lsds/Faasm.git"
+    repo: "https://github.com/mfournial/Faasm.git"
+    version: "fix-bm"
     dest: /usr/local/code/faasm
     update: yes
 
@@ -24,7 +42,15 @@
   become: yes
   file:
     path: "/usr/local/code/faasm"
-    state: directory
-    owner: "{{ ansible_env.USER }}"
-    group: "{{ ansible_env.USER }}"
-    mode: 0755
+    group: "faasm"
+    recurse: yes
+
+# Not supported by ansible: sets directories to 775 and files to 664
+- name: "Directory permission"
+  become: yes
+  command: |
+    chmod -c -R ug=rw,o=r,a-x+X "{{ item }}"
+  register: chmod_status
+  changed_when: chmod_status.stdout != ""
+  with_items:
+    - /usr/local/code/faasm
