@@ -36,7 +36,7 @@ WORKDIR /usr/local/code/faasm
 RUN pip3 install -e faasmcli/
 
 # Download the toolchain
-RUN inv toolchain.download-toolchain
+RUN inv -r faasmcli/faasmcli toolchain.download-toolchain
 
 # Build codegen binaries
 WORKDIR /faasm/build

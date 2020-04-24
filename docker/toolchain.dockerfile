@@ -46,8 +46,8 @@ RUN ninja install
 
 # Download the toolchain
 WORKDIR /usr/local/code/faasm
-RUN inv toolchain.download-toolchain
-RUN inv toolchain.download-sysroot
+RUN inv -r faasmcli/faasmcli toolchain.download-toolchain
+RUN inv -r faasmcli/faasmcli toolchain.download-sysroot
 
 # Install pyfaasm
 RUN pip3 install pyfaasm
