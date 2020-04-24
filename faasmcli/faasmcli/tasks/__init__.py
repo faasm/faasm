@@ -25,7 +25,6 @@ from . import wast
 
 # Default names
 ns = Collection(
-    # aws,
     # ibm,
     codegen,
     compile,

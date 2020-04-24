@@ -1,16 +1,10 @@
 # Faasm CLI
 
-This is just a wrapper package around the Faasm CLI to allow it to be used
-in other projects. You only need to build and install this if you are creating 
-a Faasm release or using the CLI from another project. Using the CLI normally 
-from Faasm should "just work".
+This is just a wrapper package around the Faasm CLI to allow it to be imported
+and extended in other projects. **We don't publish it on PyPI**. 
 
-To release, you need to run:
+You will _only_ need to install this package if you're using it for an external
+project. It should work as part of normal Faasm without installing.
 
-```bash
-./release.sh
-```
-
-You'll need to have set up your `keyring` if you want to avoid entering creds,
-this is described [here](https://pypi.org/project/twine/).
-
+See the [local dev docs](../docs/local_dev.md) for info on using this package 
+with IDEs.

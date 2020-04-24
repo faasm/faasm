@@ -11,10 +11,9 @@ from faasmcli.util.env import PROJ_ROOT, FAASM_TOOLCHAIN_FILE, SYSROOT_INSTALL_P
     FAASM_RUNTIME_ROOT, WASM_DIR
 from faasmcli.util.env import THIRD_PARTY_DIR
 from faasmcli.util.files import clean_dir
-from toolchain.python_env import WASM_HOST, BASE_CONFIG_CMD, WASM_CFLAGS, WASM_CXXFLAGS, WASM_LDFLAGS, WASM_CC, \
+from faasmcli.util.toolchain import WASM_HOST, BASE_CONFIG_CMD, WASM_CFLAGS, WASM_CXXFLAGS, WASM_LDFLAGS, WASM_CC, \
     WASM_CXX, WASM_RANLIB, WASM_AR, WASM_LD
-from toolchain.python_env import WASM_SYSROOT, WASM_BUILD, \
-    BASE_CONFIG_FLAGS
+from faasmcli.util.toolchain import WASM_SYSROOT, WASM_BUILD, BASE_CONFIG_FLAGS
 
 PRK_DIR = join(THIRD_PARTY_DIR, "ParResKernels")
 
