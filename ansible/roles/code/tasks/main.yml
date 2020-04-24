@@ -23,6 +23,7 @@
     state: directory
     group: "faasm"
     mode: 0775
+    recurse: yes
 
 - name: "Install system deps"
   become: yes
@@ -38,15 +39,18 @@
     dest: /usr/local/code/faasm
     update: yes
 
-- name: "Directory ownership"
+# Not supported by ansible: recursively change ownership for dirs and files
+- name: "Set directory ownership to faasm"
   become: yes
-  file:
-    path: "/usr/local/code/faasm"
-    group: "faasm"
-    recurse: yes
+  command: |
+    chown -c -R :faasm "{{ item }}"
+  register: chown_status
+  changed_when: chown_status.stdout != ""
+  with_items:
+    - /usr/local/code/faasm
 
 # Not supported by ansible: sets directories to 775 and files to 664
-- name: "Directory permission"
+- name: "Set code permissions to faasm"
   become: yes
   command: |
     chmod -c -R ug=rw,o=r,a-x+X "{{ item }}"
