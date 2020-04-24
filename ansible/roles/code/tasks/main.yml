@@ -50,10 +50,11 @@
     - /usr/local/code/faasm
 
 # Not supported by ansible: sets directories to 775 and files to 664
+# Do not set execute bit because git tracks it
 - name: "Set code permissions to faasm"
   become: yes
   command: |
-    chmod -c -R ug=rw,o=r,a-x+X "{{ item }}"
+    chmod -c -R g=+w "{{ item }}"
   register: chmod_status
   changed_when: chmod_status.stdout != ""
   with_items:
