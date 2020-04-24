@@ -17,9 +17,6 @@ source venv/bin/activate
 alias inv="inv -r faasmcli/faasmcli"
 alias invoke="invoke -r faasmcli/faasmcli"
 
-# Ensure both the Faasm Python code is accessible, as well as the calling dir
-export PYTHONPATH="${PYTHONPATH}:${CALLING_DIR}:${THIS_DIR}/tasks"
-
 # ----------------------------
 # Invoke tab-completion (http://docs.pyinvoke.org/en/stable/invoke.html#shell-tab-completion)
 # ----------------------------

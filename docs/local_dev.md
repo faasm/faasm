@@ -34,7 +34,7 @@ sudo pip install -U ansible
 
 # Faasm python env 
 source workon.sh
-pip install -r requirements.txt
+pip install -r faasmcli/requirements.txt
 
 # Faasm playbook
 cd ansible

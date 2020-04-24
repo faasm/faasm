@@ -6,7 +6,7 @@ from subprocess import check_output, call
 
 from invoke import task
 
-import tasks.python
+from . import python as this_python
 from faasmcli.util.env import FAASM_RUNTIME_ROOT, FAASM_LOCAL_DIR
 from faasmcli.util.env import FAASM_SYSROOT
 from faasmcli.util.release import get_runtime_tar_name, get_runtime_tar_path, \
@@ -87,7 +87,7 @@ def download_runtime(ctx, nocodegen=False):
     # Run codegen
     if not nocodegen:
         print("Running codegen")
-        tasks.python.codegen(ctx)
+        this_python.codegen(ctx)
 
 
 @task

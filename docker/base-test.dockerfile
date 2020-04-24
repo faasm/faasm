@@ -28,7 +28,7 @@ RUN apt-get install -y python3-dev python3-pip
 RUN pip3 install invoke requests
 
 # Install other python deps
-COPY requirements.txt /tmp/requirements.txt
+COPY faasmcli/requirements.txt /tmp/requirements.txt
 RUN pip3 install -r /tmp/requirements.txt
 
 # Download the toolchain
