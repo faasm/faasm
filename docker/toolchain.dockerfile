@@ -44,16 +44,16 @@ RUN cmake \
 RUN ninja
 RUN ninja install
 
-# Download the toolchain
+# Install the CLI
 WORKDIR /usr/local/code/faasm
+RUN pip3 install -e faasmcli/
+
+# Download the toolchain
 RUN inv -r faasmcli/faasmcli toolchain.download-toolchain
 RUN inv -r faasmcli/faasmcli toolchain.download-sysroot
 
 # Install pyfaasm
 RUN pip3 install pyfaasm
-
-# Install the CLI
-RUN pip3 install -e faasmcli/
 
 # Remove worker entrypoint
 COPY bin/noop-entrypoint.sh /entrypoint.sh
