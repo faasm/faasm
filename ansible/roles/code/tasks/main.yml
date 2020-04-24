@@ -40,6 +40,7 @@
 
 # Not supported by ansible: recursively change ownership for dirs and files
 - name: "Set directory ownership to faasm"
+  warn: false
   become: yes
   command: |
     chown -c -R :faasm "{{ item }}"
@@ -48,12 +49,11 @@
   with_items:
     - /usr/local/code/faasm
 
-# Not supported by ansible: Allow writes. Ideally we'd want directories to be 775 and files 664
-# But submodules are not all configured properly and git tracks the execute bit
 - name: "Set code permissions to faasm"
+  warn: false
   become: yes
   command: |
-    chmod -c -R g=+w "{{ item }}"
+    chmod -c -R g=rw,g+x "{{ item }}"
   register: chmod_status
   changed_when: chmod_status.stdout != ""
   with_items:
