@@ -1,7 +1,6 @@
 #include "Profiler.h"
 
 #include <util/logging.h>
-#include <util/config.h>
 #include <fstream>
 
 
@@ -19,7 +18,7 @@ int main(int argc, char *argv[]) {
     int nativeIterations = std::stoi(argv[3]);
     int wasmIterations = std::stoi(argv[4]);
 
-    std::string outfile = std::string("/usr/local/code/faasm/wasm/") + user + "/" + funcName + "/bench.csv";
+    std::string outfile = user + "-" + funcName + "-bench.csv";
 
     std::ofstream profOut;
     profOut.open(outfile);

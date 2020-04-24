@@ -61,7 +61,7 @@ namespace runner {
 
     void Profiler::runBenchmark(int nNativeIterations, int nWasmIterations, std::ofstream &profOut) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->info("Benchmarking {} ({}) ({}x native and {}x wasm)", this->outputName, inputData, nNativeIterations,
+        logger->info("Benchmarking {} (input {}) ({}x native and {}x wasm)", this->outputName, inputData, nNativeIterations,
                      nWasmIterations);
 
         logger->info("Running benchmark natively");

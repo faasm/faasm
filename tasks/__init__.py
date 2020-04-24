@@ -9,13 +9,12 @@ import tasks.bench_tpt
 import tasks.codegen
 import tasks.compile
 import tasks.config
-import tasks.data
 import tasks.disas
 import tasks.docker
 import tasks.experiments
 import tasks.genomics
 import tasks.github
-import tasks.invoke
+import tasks.call
 import tasks.knative
 import tasks.libs
 import tasks.python
@@ -52,6 +51,7 @@ ns = Collection(
 )
 
 # Custom names
+ns.add_collection(ns.from_module(tasks.call), name="invoke")
 ns.add_collection(ns.from_module(tasks.bare_metal), name="bm")
 
 # Benchmarking

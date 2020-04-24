@@ -145,9 +145,6 @@ else ()
     add_library(libwamr ${WAMR_RUNTIME_LIB_SOURCE})
     endif()
 
-    # Faasm demo
-    add_subdirectory(third-party/faasm-demo-c)
-
     # Faasm functions
     add_subdirectory(func)
 
