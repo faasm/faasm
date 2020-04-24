@@ -23,7 +23,6 @@
     state: directory
     group: "faasm"
     mode: 0775
-    recurse: yes
 
 - name: "Install system deps"
   become: yes
@@ -49,8 +48,8 @@
   with_items:
     - /usr/local/code/faasm
 
-# Not supported by ansible: sets directories to 775 and files to 664
-# Do not set execute bit because git tracks it
+# Not supported by ansible: Allow writes. Ideally we'd want directories to be 775 and files 664
+# But submodules are not all configured properly and git tracks the execute bit
 - name: "Set code permissions to faasm"
   become: yes
   command: |
