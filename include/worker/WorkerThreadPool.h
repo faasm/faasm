@@ -16,6 +16,8 @@ namespace worker {
 
         void startThreadPool();
 
+        void startStateServer();
+
         void reset();
 
         int getThreadToken();

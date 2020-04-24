@@ -6,14 +6,14 @@ include_directories(
 file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/state/*.h")
 
 set(LIB_FILES
+        InMemoryStateKeyValue.cpp
         State.cpp
-        StateBackend.cpp
-        RedisStateBackend.cpp
-        InMemoryStateBackend.cpp
-        UserState.cpp
         StateKeyValue.cpp
+        StateServer.cpp
+        RedisStateKeyValue.cpp
+        UserState.cpp
         ${HEADERS}
     )
 
 faasm_private_lib(state "${LIB_FILES}")
-target_link_libraries(state proto redis)
+target_link_libraries(state proto tcp redis)

@@ -1,9 +1,8 @@
 #pragma once
 
-#include "StateBackend.h"
-
 #include <util/clock.h>
 #include <util/exception.h>
+#include <redis/Redis.h>
 
 #include <atomic>
 #include <shared_mutex>
@@ -12,18 +11,13 @@
 #include <vector>
 
 
+#define REMOTE_LOCK_TIMEOUT_SECS 1
+#define REMOTE_LOCK_MAX_RETRIES 3
+
+
 namespace state {
-    /**
-     * A specific key/value pair for state
-     */
     class StateKeyValue {
     public:
-        // Remote lock timeout in seconds
-        int remoteLockTimeout = 1;
-
-        // Remote lock sleep time in milliseconds
-        unsigned int remoteLockMaxRetries = 3;
-
         explicit StateKeyValue(const std::string &keyIn, size_t sizeIn);
 
         const std::string key;
@@ -46,17 +40,11 @@ namespace state {
 
         void pull();
 
-        void pushFull();
-
         void pushPartial();
 
         void pushPartialMask(const std::shared_ptr<StateKeyValue> &maskKv);
 
         void clear();
-
-        void lockGlobal();
-
-        void unlockGlobal();
 
         void lockRead();
 
@@ -79,22 +67,38 @@ namespace state {
         std::string getSegmentKey(long offset, long length);
 
         void deleteGlobal();
-    private:
+
+        void pushFull();
+
+        virtual void lockGlobal() = 0;
+
+        virtual void unlockGlobal() = 0;
+
+    protected:
         bool isDirty;
 
+        redis::Redis &redis;
+
+        const std::shared_ptr<spdlog::logger> logger;
+
         std::shared_mutex valueMutex;
-
-        StateBackend &backend;
-
-        int lastRemoteLockId = 0;
+        std::atomic<bool> _fullyAllocated;
 
         size_t valueSize;
         size_t sharedMemSize;
         void *sharedMemory;
-        void* dirtyMask;
-        void* allocatedMask;
+        void *dirtyMask;
+        void *allocatedMask;
 
-        std::atomic<bool> _fullyAllocated;
+        void pullImpl(bool onlyIfEmpty);
+
+        void pullSegmentImpl(bool onlyIfEmpty, long offset, size_t length);
+
+        void doPushPartial(const uint8_t *dirtyMaskBytes);
+
+        bool isSegmentAllocated(long offset, size_t length);
+
+        void allocateSegment(long offset, size_t length);
 
         void zeroDirtyMask();
 
@@ -102,25 +106,22 @@ namespace state {
 
         void initialiseStorage(bool allocate);
 
-        void allocateSegment(long offset, size_t length);
+        long waitOnRedisRemoteLock(const std::string &redisKey);
 
-        void pullImpl(bool onlyIfEmpty);
+        virtual void pullFromRemote() = 0;
 
-        void pullSegmentImpl(bool onlyIfEmpty, long offset, size_t length);
+        virtual void pullRangeFromRemote(long offset, size_t length) = 0;
 
-        long waitOnRemoteLock();
+        virtual void pushToRemote() = 0;
 
-        bool isSegmentAllocated(long offset, size_t length);
+        virtual void pushPartialToRemote(const uint8_t *dirtyMaskBytes) = 0;
 
-        void doPushPartial(const uint8_t *dirtyMaskBytes);
+        virtual void deleteFromRemote() = 0;
     };
 
-    typedef std::unordered_map<std::string, std::shared_ptr<StateKeyValue>> KVMap;
-    typedef std::pair<std::string, std::shared_ptr<StateKeyValue>> KVPair;
-
-class StateKeyValueException : public std::runtime_error {
+    class StateKeyValueException : public std::runtime_error {
     public:
-        explicit StateKeyValueException(const std::string& message): runtime_error(message) {
+        explicit StateKeyValueException(const std::string &message) : runtime_error(message) {
 
         }
     };

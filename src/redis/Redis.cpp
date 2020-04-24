@@ -24,14 +24,13 @@ namespace redis {
         port = std::stoi(portStr);
 
         // Load scripts
-        if (conditionalLockSha.empty()) {
+        if (delifeqSha.empty()) {
             std::unique_lock<std::mutex> lock(scriptsLock);
 
-            if (conditionalLockSha.empty()) {
+            if (delifeqSha.empty()) {
                 printf("Loading scripts for Redis instance at %s\n", hostname.c_str());
                 redisContext *context = redisConnect(ip.c_str(), port);
 
-                conditionalLockSha = this->loadScript(context, conditionalLockCmd);
                 delifeqSha = this->loadScript(context, delifeqCmd);
 
                 redisFree(context);
@@ -414,30 +413,6 @@ namespace redis {
      *  ------ Locking ------
      */
 
-    long Redis::acquireConditionalLock(const std::string &key, long expectedValue) {
-        std::string lockKey = key + "_lock";
-        unsigned int lockId = util::generateGid();
-
-        // Invoke the script
-        auto reply = (redisReply *) redisCommand(
-                context,
-                "EVALSHA %s 2 %s %s %i %i",
-                instance.conditionalLockSha.c_str(),
-                key.c_str(),
-                lockKey.c_str(),
-                expectedValue,
-                lockId
-        );
-
-        long result = extractScriptResult(reply);
-
-        if (result > 0) {
-            return lockId;
-        } else {
-            return result;
-        }
-    }
-
     long Redis::acquireLock(const std::string &key, int expirySeconds) {
         // Implementation of single host redlock algorithm
         // https://redis.io/topics/distlock
@@ -653,4 +628,3 @@ namespace redis {
         freeReplyObject(reply);
     }
 }
-

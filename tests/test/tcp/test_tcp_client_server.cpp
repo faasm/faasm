@@ -1,34 +1,24 @@
 #include <catch/catch.hpp>
 
-#include <tcp/TCPServer.h>
-#include <tcp/TCPMessage.h>
+#include <tcp/EchoServer.h>
 #include <tcp/TCPClient.h>
 
 using namespace tcp;
 
 namespace tests {
-    TEST_CASE("Test send and receive", "[tcp]") {
+    TEST_CASE("Test send and receive on echo server", "[tcp]") {
         int port = 8006;
         std::string host = "127.0.0.1";
 
         std::vector<uint8_t> requestBytes = {0, 1, 2, 3, 4};
-        std::vector<uint8_t> responseBytes = {5, 6, 7};
 
         // Run an echo server in a thread
-        std::thread serverThread([port, &requestBytes, &responseBytes] {
-            TCPServer server(port);
-
-            TCPMessage *m = server.accept();
-            std::vector<uint8_t> actualRecv(m->buffer, m->buffer + m->len);
-            
-            REQUIRE(actualRecv == requestBytes);
-            
-            TCPMessage r;
-            r.type=TCPMessageType::STANDARD;
-            r.len = responseBytes.size();
-            r.buffer = responseBytes.data();
-
-            server.respond(m, &r);
+        std::thread serverThread([port] {
+            EchoServer server(port);
+            int nMsgs = 0;
+            while(nMsgs == 0) {
+                nMsgs += server.poll();
+            }
         });
 
         // Let the server start
@@ -45,7 +35,7 @@ namespace tests {
         // Receive response
         TCPMessage *r = client.recvMessage();
         std::vector<uint8_t> actualRecv(r->buffer, r->buffer + r->len);
-        REQUIRE(actualRecv == responseBytes);
+        REQUIRE(actualRecv == requestBytes);
 
         // Let server thread finish
         if(serverThread.joinable()) {

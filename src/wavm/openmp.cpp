@@ -240,7 +240,7 @@ namespace wasm {
         if (1 != userNumDevice) {
             int *reducePtr = nullptr;
             int nextNumThreads = thisLevel->get_next_level_num_threads();
-            state::StateBackend &redis = state::getBackend();
+            redis::Redis &redis = redis::Redis::getState();
             logger->warn("Number of threads spawned: {}", nextNumThreads);
 
             std::vector<int> chainedThreads;
@@ -606,7 +606,13 @@ namespace wasm {
             Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
             int *localReduceData = &Runtime::memoryRef<I32>(memoryPtr, Runtime::memoryRef<I32>(memoryPtr, reduce_data));
             logger->debug("Reduce local data ({}): {}", thisThreadNumber, *localReduceData);
-            state::getBackend().incrByLong(REDUCE_KEY, *localReduceData);
+
+            if(util::getSystemConfig().stateMode == "redis") {
+                redis::Redis &redis = redis::Redis::getState();
+                redis.incrByLong(REDUCE_KEY, *localReduceData);
+            } else {
+                throw std::runtime_error("Only supports Redis for state");
+            }
             return kmp::empty_reduce_block; // Just need a number different from 1 and 2
         } else {
             return startReduction();

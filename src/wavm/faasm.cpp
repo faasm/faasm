@@ -1,13 +1,15 @@
 #include "WAVMWasmModule.h"
 #include "syscalls.h"
 
-#include <util/bytes.h>
-#include <state/StateKeyValue.h>
-
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
-#include <util/state.h>
+
+#include <redis/Redis.h>
+#include <state/StateKeyValue.h>
+#include <util/bytes.h>
 #include <util/files.h>
+#include <util/state.h>
+
 
 namespace wasm {
     void faasmLink() {
@@ -111,8 +113,9 @@ namespace wasm {
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
         std::vector<uint8_t> bytes(data, data + dataLen);
 
-        state::StateBackend &stateBackend = state::getBackend();
-        stateBackend.enqueueBytes(actualKey, bytes);
+        // TODO - Redis dep
+        redis::Redis &redis = redis::Redis::getState();
+        redis.enqueueBytes(actualKey, bytes);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_appended_state", void, __faasm_read_appended_state,
@@ -124,9 +127,9 @@ namespace wasm {
         util::getLogger()->debug("S - read_appended_state - {} {} {} {}", actualKey, bufferPtr, bufferLen, nElems);
 
         // Dequeue straight to buffer
-        state::StateBackend &stateBackend = state::getBackend();
+        redis::Redis &redis = redis::Redis::getState();
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
-        stateBackend.dequeueMultiple(actualKey, buffer, bufferLen, nElems);
+        redis.dequeueMultiple(actualKey, buffer, bufferLen, nElems);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_clear_appended_state", void, __faasm_clear_appended_state,
@@ -139,8 +142,8 @@ namespace wasm {
 
         logger->debug("S - clear_appended_state - {}", actualKey);
 
-        state::StateBackend &stateBackend = state::getBackend();
-        stateBackend.del(actualKey);
+        redis::Redis &redis = redis::Redis::getState();
+        redis.del(actualKey);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state_offset", void, __faasm_write_state_offset,
@@ -168,8 +171,8 @@ namespace wasm {
 
         // Write to state
         const std::string actualKey = util::keyForUser(getExecutingCall()->user(), key);
-        state::StateBackend &stateBackend = state::getBackend();
-        stateBackend.set(actualKey, bytes);
+        redis::Redis &redis = redis::Redis::getState();
+        redis.set(actualKey, bytes);
 
         return bytes.size();
     }

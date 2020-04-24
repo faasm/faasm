@@ -5,15 +5,13 @@
 #include <util/config.h>
 
 int main() {
-    std::string port = "8002";
-    
     util::initLogging();
 
     util::SystemConfig &config = util::getSystemConfig();
     config.print();
 
     edge::UploadServer server;
-    server.listen(port);
+    server.listen(UPLOAD_PORT);
 
     return 0;
 }

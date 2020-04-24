@@ -4,11 +4,11 @@
 
 #include <scheduler/GlobalMessageBus.h>
 #include <scheduler/SharingMessageBus.h>
+#include <state/StateServer.h>
 #include <worker/worker.h>
 #include <mpi/MpiGlobalBus.h>
 
 namespace worker {
-
     WorkerThreadPool::WorkerThreadPool(int nThreads) :
             _shutdown(false),
             scheduler(scheduler::getScheduler()),
@@ -108,6 +108,28 @@ namespace worker {
             }
 
             // Will die gracefully at this point
+        });
+    }
+
+    void WorkerThreadPool::startStateServer() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        // Start the state worker if necessary
+        util::SystemConfig &conf = util::getSystemConfig();
+        if(conf.stateMode != "inmemory") {
+            logger->info("Not starting state server in state mode {}", conf.stateMode);
+            return;
+        }
+
+        logger->info("Starting state server");
+
+        stateThread = std::thread([this] {
+            state::StateServer server;
+            while (!this->isShutdown()) {
+                server.poll();
+            }
+
+            server.close();
         });
     }
 

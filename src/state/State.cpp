@@ -1,6 +1,5 @@
 #include "State.h"
 #include "UserState.h"
-#include "StateKeyValue.h"
 
 #include <util/config.h>
 #include <util/locks.h>

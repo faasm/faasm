@@ -20,8 +20,8 @@ namespace state {
 
     private:
         const std::string user;
-
-        KVMap kvMap;
+        
+        std::unordered_map<std::string, std::shared_ptr<StateKeyValue>> kvMap;
         std::shared_mutex kvMapMutex;
     };
 

@@ -320,53 +320,6 @@ namespace tests {
         checkLock(Redis::getQueue());
     }
 
-    void checkConditionalLock(Redis &redis) {
-        redis.flushAll();
-
-        std::string key = "lock_test";
-        std::string lockKey = key + "_lock";
-
-        // Check we can acquire the lock when the key doesn't exist
-        long lockId = redis.acquireConditionalLock(key, 10);
-        REQUIRE(lockId > 0);
-        REQUIRE(redis.getLong(lockKey) == lockId);
-        REQUIRE(redis.getLong(key) == 0);
-
-        // Release it
-        redis.releaseLock(key, lockId);
-
-        // Set some value and check we can get the lock with the right value
-        redis.setLong(key, 50);
-        long lockId2 = redis.acquireConditionalLock(key, 50);
-        REQUIRE(lockId2 > 0);
-        REQUIRE(redis.getLong(lockKey) == lockId2);
-        REQUIRE(redis.getLong(key) == 50);
-
-        // Check someone else can't get it with the same value
-        long lockId3 = redis.acquireConditionalLock(key, 50);
-        REQUIRE(lockId3 == 0);
-        REQUIRE(redis.getLong(lockKey) == lockId2);
-        REQUIRE(redis.getLong(key) == 50);
-
-        // Release it
-        redis.releaseLock(key, lockId2);
-
-        // Check we can't acquire it with the wrong value
-        redis.setLong(key, 50);
-        long lockId4 = redis.acquireConditionalLock(key, 20);
-        REQUIRE(lockId4 == -1);
-        REQUIRE(redis.getLong(lockKey) == 0);
-        REQUIRE(redis.getLong(key) == 50);
-    }
-
-    TEST_CASE("Test acquire/ release conditional lock for state", "[redis]") {
-        checkConditionalLock(Redis::getState());
-    }
-
-    TEST_CASE("Test acquire/ release conditional lock for queue", "[redis]") {
-        checkConditionalLock(Redis::getQueue());
-    }
-
     TEST_CASE("Test set operations with empty sets", "[redis]") {
         Redis &redis = Redis::getQueue();
         redis.flushAll();
@@ -595,11 +548,11 @@ namespace tests {
         std::vector<uint8_t> expectedAll(0);
         expectedAll.insert(expectedAll.begin(), bytesA.begin(), bytesA.end());
         expectedAll.insert(expectedAll.begin() + bytesA.size(),
-                        bytesB.begin(), bytesB.end());
+                           bytesB.begin(), bytesB.end());
         expectedAll.insert(expectedAll.begin() + bytesA.size() + bytesB.size(),
-                        bytesC.begin(), bytesC.end());
+                           bytesC.begin(), bytesC.end());
         expectedAll.insert(expectedAll.begin() + bytesA.size() + bytesB.size() + bytesC.size(),
-                        bytesD.begin(), bytesD.end());
+                           bytesD.begin(), bytesD.end());
 
         std::vector<uint8_t> actualAll(bytesA.size() + bytesB.size() + bytesC.size() + bytesD.size());
         redisQueue.dequeueMultiple(key, actualAll.data(), actualAll.size(), 4);
@@ -616,7 +569,7 @@ namespace tests {
         redisQueue.del(key);
 
         // Sanity check
-        REQUIRE(redisQueue.listLength(key) ==0);
+        REQUIRE(redisQueue.listLength(key) == 0);
 
         // Try dequeueing something
         std::vector<uint8_t> actual = {0, 0, 0, 0};
@@ -655,21 +608,21 @@ namespace tests {
     void checkDequeueBytes(Redis &redis, const std::string &queueName, const std::vector<uint8_t> expected) {
         unsigned long bufferLen = expected.size();
         auto buffer = new uint8_t[bufferLen];
-        
+
         redis.dequeueBytes(queueName, buffer, bufferLen);
-        
+
         std::vector<uint8_t> actual(buffer, buffer + bufferLen);
         REQUIRE(actual == expected);
     }
-    
+
     TEST_CASE("Test enqueue dequeue bytes pointers", "[redis]") {
         Redis &redisQueue = Redis::getQueue();
         redisQueue.flushAll();
-        
+
         std::vector<uint8_t> dataA = {0, 1, 2, 3, 4, 5};
         std::vector<uint8_t> dataB = {6, 7};
         std::vector<uint8_t> dataC = {2, 4, 6};
-        
+
         std::string queueA = "testQueueA";
         std::string queueB = "testQueueB";
 

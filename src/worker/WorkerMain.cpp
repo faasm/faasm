@@ -18,6 +18,9 @@ namespace worker {
         // Start thread pool in background
         pool.startThreadPool();
 
+        // In-memory state
+        pool.startStateServer();
+
         // Work sharing
         pool.startSharingThread();
 
