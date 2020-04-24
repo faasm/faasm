@@ -66,3 +66,8 @@ More detail on some key features and implementations can be found below:
 - [Threading](docs/threads.md) - executing multi-threaded applications.
 - [Proto-Functions](docs/proto_functions.md) - snapshot-and-restore to reduce cold starts.
  
+## Experiments and benchmarks
+
+Faasm experiments and benchmarks live in the 
+[Faasm experiments repo](https://github.com/lsds/faasm-experiments/).
+
