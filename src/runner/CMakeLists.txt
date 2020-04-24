@@ -1,21 +1,17 @@
-find_package(PythonLibs)
-
-include_directories(${FAASM_INCLUDE_DIR}/runner)
-
-set(LIB_FILES
-        function.cpp
-        ${FAASM_INCLUDE_DIR}/runner/function.h
+set(RUNNER_LIBS
+        worker_lib
+        wasm
+        wavmmodule
+        util
+        module_cache
+        system
         )
 
-faasm_private_lib(bench "${LIB_FILES}")
-target_link_libraries(bench worker_lib wasm wavmmodule util module_cache system)
-
 add_executable(func_runner func_runner.cpp)
-target_link_libraries(func_runner bench)
+target_link_libraries(func_runner ${RUNNER_LIBS})
 
 add_executable(simple_runner simple_runner.cpp)
-target_link_libraries(simple_runner bench)
+target_link_libraries(simple_runner ${RUNNER_LIBS})
 
 add_executable(func_sym func_sym.cpp)
-target_link_libraries(func_sym bench)
-
+target_link_libraries(func_sym ${RUNNER_LIBS})
