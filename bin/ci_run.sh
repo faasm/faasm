@@ -9,7 +9,7 @@ pushd /usr/local/code/faasm
 ./bin/netns.sh 5
 
 # Set up TF data
-inv data.tf-upload --local-copy
+inv -r faasmcli/faasmcli data.tf-upload --local-copy
 
 popd
 
