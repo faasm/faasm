@@ -25,4 +25,5 @@ PyOpenSSL
 pywren-ibm-cloud
 redis
 requests
+setuptools
 wheel

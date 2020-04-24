@@ -33,7 +33,7 @@ RUN pip3 install -r /tmp/requirements.txt
 
 # Install the CLI
 WORKDIR /usr/local/code/faasm
-RUN pip3 install ./faasmcli
+RUN pip3 install -e faasmcli/
 
 # Download the toolchain
 RUN inv toolchain.download-toolchain

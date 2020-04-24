@@ -53,7 +53,7 @@ RUN inv toolchain.download-sysroot
 RUN pip3 install pyfaasm
 
 # Install the CLI
-RUN pip3 install ./faasmcli
+RUN pip3 install -e faasmcli/
 
 # Remove worker entrypoint
 WORKDIR /usr/local/code/faasm
