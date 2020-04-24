@@ -40,7 +40,7 @@
 
 # Not supported by ansible: recursively change ownership for dirs and files
 - name: "Set directory ownership to faasm"
-  warn: false
+  warn: no
   become: yes
   command: |
     chown -c -R :faasm "{{ item }}"
@@ -50,7 +50,7 @@
     - /usr/local/code/faasm
 
 - name: "Set code permissions to faasm"
-  warn: false
+  warn: no
   become: yes
   command: |
     chmod -c -R g=rw,g+x "{{ item }}"
