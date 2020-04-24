@@ -1,5 +1,4 @@
-#ifndef FAASM_THREADSTATE_H
-#define FAASM_THREADSTATE_H
+#pragma once
 
 #include <wasm/openmp/Level.h>
 
@@ -14,5 +13,3 @@ namespace wasm {
         void setThreadLevel(std::shared_ptr<OMPLevel>);
     }
 }
-
-#endif //FAASM_THREADSTATE_H
