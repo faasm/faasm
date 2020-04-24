@@ -56,7 +56,6 @@ RUN pip3 install pyfaasm
 RUN pip3 install -e faasmcli/
 
 # Remove worker entrypoint
-WORKDIR /usr/local/code/faasm
 COPY bin/noop-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
