@@ -148,7 +148,7 @@ to correctly resolve imports, you can do one of:
 - Open the IDE directly in the `faasmcli` directory
 
 Note that you don't need to install it to use `inv` from the Faasm CLI, as this is set up to directly
-import the files (provided you've used `workon.sh` as described in the [setup](setup.md).
+import the files (provided you've used `workon.sh` as described in the [setup](setup.md)).
 
 ## Remote development using CLion
 
