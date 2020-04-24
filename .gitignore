@@ -117,6 +117,7 @@ dkms.conf
 __pycache__/
 *.pyc
 venv/
+*.egg-info/
 
 # Kubernetes
 .kube/

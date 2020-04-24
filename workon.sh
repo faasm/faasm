@@ -1,6 +1,5 @@
 #!/bin/bash
 
-#CALLING_DIR=$(pwd)
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 pushd ${THIS_DIR} >> /dev/null
 
@@ -15,9 +14,8 @@ fi
 export VIRTUAL_ENV_DISABLE_PROMPT=1
 source venv/bin/activate
 
-# Allow overriding the invoke tasks file
-# INVOKE_ROOT=${INVOKE_ROOT:-$THIS_DIR}  
-# alias inv="inv -r ${INVOKE_TASKS}"
+alias inv="inv -r faasmcli/faasmcli"
+alias invoke="invoke -r faasmcli/faasmcli"
 
 # Ensure both the Faasm Python code is accessible, as well as the calling dir
 export PYTHONPATH="${PYTHONPATH}:${CALLING_DIR}:${THIS_DIR}/tasks"
@@ -32,7 +30,7 @@ _complete_invoke() {
     COMPREPLY=( $(compgen -W "${candidates}" -- $2) )
 }
 
-# complete -F _complete_invoke -o default invoke inv
+complete -F _complete_invoke -o default invoke inv
 
 # ----------------------------
 # Environment vars
