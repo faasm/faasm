@@ -14,15 +14,13 @@ namespace state {
 
         size_t getSize(const std::string &key);
 
-        // TODO - split up
         std::shared_ptr<StateKeyValue> getValue(const std::string &key, size_t size);
 
         size_t getKeyCount();
 
     private:
         const std::string user;
-
-        // TODO - genericise
+        
         std::unordered_map<std::string, std::shared_ptr<StateKeyValue>> kvMap;
         std::shared_mutex kvMapMutex;
     };
