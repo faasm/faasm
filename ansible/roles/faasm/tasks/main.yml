@@ -8,12 +8,13 @@
       - supervisor
 
 - name: "Create build dir"
+  become: yes
   file:
     path: "/usr/local/code/faasm/build"
     state: directory
-    owner: "{{ ansible_env.USER }}"
-    group: "{{ ansible_env.USER }}"
+    group: "faasm"
     mode: 0775
+    recurse: yes
 
 - name: "Prepare out-of-tree build"
   shell: >
@@ -29,6 +30,9 @@
 - name: "Create faasm home dir"
   file:
     path: "{{ ansible_env.HOME }}/faasm"
+    state: directory
+    group: "faasm"
+    mode: 0775
 
 - name: "Put Faasm config in place"
   template:
