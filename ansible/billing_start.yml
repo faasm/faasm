@@ -1,9 +1,0 @@
----
-
-- hosts: all
-  gather_facts: no
-  tasks:
-    - name: "Start billing script"
-      shell: "(/usr/bin/python3 /tmp/billing/metrics.py >/dev/null 2>&1 &)"
-      async: 10
-      poll: 0

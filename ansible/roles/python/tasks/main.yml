@@ -15,6 +15,6 @@
 
 - name: "Install python deps"
   become: yes
-  shell: "pip3 install -r requirements.txt"
+  shell: "pip3 install -r faasmcli/requirements.txt"
   args:
     chdir: "/usr/local/code/faasm"

@@ -14,7 +14,7 @@ RUN apt-get install -y libpython3-dev \
     vim
 
 # Python requirements
-COPY requirements.txt /tmp/requirements.txt
+COPY faasmcli/requirements.txt /tmp/requirements.txt
 RUN pip3 install -r /tmp/requirements.txt
 
 # Copy code into place

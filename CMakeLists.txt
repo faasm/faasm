@@ -145,9 +145,6 @@ else ()
     add_library(libwamr ${WAMR_RUNTIME_LIB_SOURCE})
     endif()
 
-    # Faasm demo
-    add_subdirectory(third-party/faasm-demo-c)
-
     # Faasm functions
     add_subdirectory(func)
 
@@ -166,7 +163,6 @@ else ()
     add_subdirectory(src/data)
     add_subdirectory(src/emulator)
     add_subdirectory(src/endpoint)
-    add_subdirectory(src/experiment)
     add_subdirectory(src/ibm)
     add_subdirectory(src/ir_cache)
     add_subdirectory(src/knative)

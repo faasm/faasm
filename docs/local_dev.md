@@ -34,7 +34,7 @@ sudo pip install -U ansible
 
 # Faasm python env 
 source workon.sh
-pip install -r requirements.txt
+pip install -r faasmcli/requirements.txt
 
 # Faasm playbook
 cd ansible
@@ -135,6 +135,20 @@ To use cgroup isolation, you'll need to run:
 ```
 sudo ./bin/cgroup.sh
 ```
+
+# CLion/ JetBrains
+
+## Python
+
+The Python files for Faasm are all contained in the nested `faasmcli` project. To get JetBrains IDEs
+to correctly resolve imports, you can do one of:
+
+- Mark the top-level `faasmcli` directory as a "Project sources" or equivalent in your IDE
+- [Add an interpreter path](https://www.jetbrains.com/help/pycharm/installing-uninstalling-and-reloading-interpreter-paths.html#add). 
+- Open the IDE directly in the `faasmcli` directory
+
+Note that you don't need to install it to use `inv` from the Faasm CLI, as this is set up to directly
+import the files (provided you've used `workon.sh` as described in the [setup](setup.md)).
 
 ## Remote development using CLion
 
