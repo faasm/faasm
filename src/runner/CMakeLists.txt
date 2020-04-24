@@ -4,10 +4,7 @@ include_directories(${FAASM_INCLUDE_DIR}/runner)
 
 set(LIB_FILES
         function.cpp
-        Profiler.cpp
-        GenericFunctionProfiler.cpp
         ${FAASM_INCLUDE_DIR}/runner/function.h
-        ${FAASM_INCLUDE_DIR}/runner/Profiler.h
         )
 
 faasm_private_lib(bench "${LIB_FILES}")
