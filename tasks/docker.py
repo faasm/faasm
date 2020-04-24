@@ -22,6 +22,7 @@ RELEASE_CONTAINERS = [
     "toolchain",
 ]
 
+FAASM_CONTAINERS = ["cpp-root"] + RELEASE_CONTAINERS
 
 @task
 def purge(context):
@@ -167,3 +168,7 @@ def push_release(ctx):
     """
 
     push(ctx, RELEASE_CONTAINERS)
+    
+@task
+def build_all(ctx, nocache=False, push=False):
+    build(ctx, FAASM_CONTAINERS, nocache, push)

@@ -25,10 +25,10 @@
   become: yes
   apt:
     name:
-      - clang-9
+      - clang-10
       - clangd-10
-      - clang-tools-9
-      - libclang-9-dev
+      - clang-tools-10
+      - libclang-10-dev
     update_cache: yes
 
 - name: "Default symlinks"
@@ -44,5 +44,6 @@
     - "wasm-ld"
     - "lld"
     - "llvm-ar"
+    - "llvm-config"
     - "llvm-nm"
     - "llvm-ranlib"
