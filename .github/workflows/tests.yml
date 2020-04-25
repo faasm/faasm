@@ -9,6 +9,7 @@ on:
       - master
   pull_request:
     branches:
+      - master
       - gh-actions
 
 jobs:
