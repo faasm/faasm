@@ -1,29 +1,5 @@
 ---
 
-- name: "Ensure group faasm exists"
-  become: yes
-  group:
-    name: faasm
-    state: present
-
-- name: Add users to group
-  become: yes
-  user:
-    name: "{{ item }}"
-    groups: faasm
-    append: yes
-  with_items:
-    - scs17
-    - mfournial
-
-- name: "Set up directory"
-  become: yes
-  file:
-    path: "/usr/local/code"
-    state: directory
-    group: "faasm"
-    mode: 0775
-
 - name: "Install system deps"
   become: yes
   apt:
@@ -33,30 +9,23 @@
 
 - name: "Check out code"
   git:
-    repo: "https://github.com/lsds/Faasm.git"
-    dest: /usr/local/code/faasm
+    repo: "{{ groups['code']['remote-url'] | default('https://github.com/lsds/Faasm.git') }}"
+    dest: "{{ ansible_env.HOME }}/faasm-bm"
+    version: "{{ groups['code']['version'] | default('master') }}"
     update: yes
 
-# Not supported by ansible: recursively change ownership for dirs and files
-- name: "Set directory ownership to faasm"
+- name: "Set up local code directory"
   become: yes
-  command: |
-    chown -c -R :faasm "{{ item }}"
-  register: chown_status
-  changed_when: chown_status.stdout != ""
-  with_items:
-    - /usr/local/code/faasm
-  args:
-    warn: no
+  file:
+    path: "/usr/local/code"
+    state: directory
 
-# Not supported by ansible: Set small group permission to not trigger git
-- name: "Set code permissions to faasm"
-  become: yes
-  command: |
-    chmod -c -R g=rw,g+X "{{ item }}"
-  register: chmod_status
-  changed_when: chmod_status.stdout != ""
-  with_items:
-    - /usr/local/code/faasm
-  args:
-    warn: no
+- name: "Create symbolic link to repo in local code directory"
+  file:
+    src: "{{ ansible_env.HOME }}/faasm-git"
+    dest: "/usr/local/code/faasm"
+    state: link
+    force: yes #unlinks other users
+    owner: "{{ ansible_env.USER }}"
+    group: "{{ ansible_env.USER }}"
+    mode: 0755
