@@ -9,9 +9,9 @@
 
 - name: "Check out code"
   git:
-    repo: "{{ groups['code']['remote-url'] | default('https://github.com/lsds/Faasm.git') }}"
+    repo: "{{ hostvars[host]['remote-url'] | default('https://github.com/lsds/Faasm.git') }}"
     dest: "{{ ansible_env.HOME }}/faasm-bm"
-    version: "{{ groups['code']['version'] | default('master') }}"
+    version: "{{ hostvars[host]['version'] | default('master') }}"
     update: yes
 
 - name: "Set up local code directory"
@@ -23,7 +23,7 @@
 - name: "Create symbolic link to repo in local code directory"
   become: yes
   file:
-    src: "{{ ansible_env.HOME }}/faasm-git"
+    src: "{{ ansible_env.HOME }}/faasm-bm"
     dest: "/usr/local/code/faasm"
     state: link
     force: yes #unlinks other users
