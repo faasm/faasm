@@ -21,6 +21,7 @@
     state: directory
 
 - name: "Create symbolic link to repo in local code directory"
+  become: yes
   file:
     src: "{{ ansible_env.HOME }}/faasm-git"
     dest: "/usr/local/code/faasm"
