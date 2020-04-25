@@ -9,9 +9,9 @@
 
 - name: "Check out code"
   git:
-    repo: "{{ hostvars['all']['remote_url'] | default('https://github.com/lsds/Faasm.git') }}"
+    repo: "{{ remote_url | default('https://github.com/lsds/Faasm.git') }}"
     dest: "{{ ansible_env.HOME }}/faasm-bm"
-    version: "{{ hostvars[host]['version'] | default('master') }}"
+    version: "{{ repo_version | default('master') }}"
     update: yes
 
 - name: "Set up local code directory"
