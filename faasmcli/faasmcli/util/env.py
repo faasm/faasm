@@ -2,7 +2,7 @@ from os import makedirs, environ
 from os.path import dirname, realpath, join, exists, expanduser
 
 HOME_DIR = expanduser("~")
-PROJ_ROOT = dirname(dirname(dirname(realpath(__file__))))
+PROJ_ROOT = dirname(dirname(dirname(dirname(realpath(__file__)))))
 THIRD_PARTY_DIR = join(PROJ_ROOT, "third-party")
 ANSIBLE_ROOT = join(PROJ_ROOT, "ansible")
 

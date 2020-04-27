@@ -81,15 +81,12 @@ $(BUILD_DIR)/libc.BUILT: $(BUILD_DIR)/llvm.BUILT
 $(BUILD_DIR)/compiler-rt.BUILT: $(BUILD_DIR)/libc.BUILT
 	mkdir -p $(BUILD_DIR)/compiler-rt
 	cd $(BUILD_DIR)/compiler-rt; cmake -G Ninja \
-		-DCMAKE_C_COMPILER=/usr/bin/clang \
-		-DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
 		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
 		-DCMAKE_TOOLCHAIN_FILE=$(TOOLCHAIN_FILE) \
-		-DCOMPILER_RT_BAREMETAL_BUILD=On \
+		-DCOMPILER_RT_BAREMETAL_BUILD=ON \
 		-DCOMPILER_RT_BUILD_XRAY=OFF \
 		-DCOMPILER_RT_INCLUDE_TESTS=OFF \
 		-DCOMPILER_RT_HAS_FPIC_FLAG=OFF \
-		-DCOMPILER_RT_ENABLE_IOS=OFF \
 		-DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON \
 		-DLLVM_CONFIG_PATH=$(LLVM_CONFIG) \
 		-DCMAKE_INSTALL_PREFIX=$(PREFIX)/lib/clang/$(CLANG_VERSION)/ \
@@ -136,8 +133,6 @@ $(BUILD_DIR)/libcxx.BUILT: $(BUILD_DIR)/compiler-rt.BUILT
 $(BUILD_DIR)/libcxxabi.BUILT: $(BUILD_DIR)/libcxx.BUILT
 	mkdir -p $(BUILD_DIR)/libcxxabi
 	cd $(BUILD_DIR)/libcxxabi; cmake -G Ninja \
-		-DCMAKE_C_COMPILER=/usr/bin/clang \
-		-DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
 		-DCMAKE_BUILD_TYPE=RelWithDebugInfo \
 		-DCMAKE_C_FLAGS="-I$(FAASM_SYSROOT)/include" \
 		-DCMAKE_CXX_FLAGS="-I$(FAASM_SYSROOT)/include/c++/v1" \
@@ -169,6 +164,8 @@ $(BUILD_DIR)/libcxxabi.BUILT: $(BUILD_DIR)/libcxx.BUILT
 .PHONY: extras
 extras: $(BUILD_DIR)/libcxxabi.BUILT
 	cp $(TOOLCHAIN_DIR)/sysroot_extras/* $(FAASM_SYSROOT)/lib/wasm32-wasi/
+
+llvm: $(BUILD_DIR)/llvm.BUILT
 
 libc: $(BUILD_DIR)/libc.BUILT
 

@@ -31,9 +31,12 @@ RUN pip3 install invoke requests
 COPY faasmcli/requirements.txt /tmp/requirements.txt
 RUN pip3 install -r /tmp/requirements.txt
 
-# Download the toolchain
+# Install the CLI
 WORKDIR /usr/local/code/faasm
-RUN inv toolchain.download-toolchain
+RUN pip3 install -e faasmcli/
+
+# Download the toolchain
+RUN inv -r faasmcli/faasmcli toolchain.download-toolchain
 
 # Build codegen binaries
 WORKDIR /faasm/build

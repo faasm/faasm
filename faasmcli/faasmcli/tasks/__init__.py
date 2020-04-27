@@ -7,7 +7,7 @@ from . import codegen
 from . import compile
 from . import config
 from . import disas
-from . import docker
+from . import docker_tasks
 from . import github
 from . import knative
 from . import libs
@@ -15,6 +15,7 @@ from . import prk
 from . import python
 from . import redis
 from . import run
+from . import tensorflow
 from . import toolchain
 from . import upload
 from . import wast
@@ -26,7 +27,6 @@ ns = Collection(
     compile,
     config,
     disas,
-    docker,
     github,
     knative,
     libs,
@@ -40,8 +40,10 @@ ns = Collection(
 )
 
 # Custom names
-ns.add_collection(ns.from_module(call), name="invoke")
 ns.add_collection(ns.from_module(bare_metal), name="bm")
+ns.add_collection(ns.from_module(call), name="invoke")
+ns.add_collection(ns.from_module(docker_tasks), name="docker")
+ns.add_collection(ns.from_module(tensorflow), name="tf")
 
 # Can only generate matrix data with things installed
 try:

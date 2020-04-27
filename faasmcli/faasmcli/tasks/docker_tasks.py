@@ -1,4 +1,7 @@
 import os
+import docker
+from packaging import version
+
 from copy import copy
 from os.path import join, exists
 from subprocess import call, check_output
@@ -23,6 +26,7 @@ RELEASE_CONTAINERS = [
 ]
 
 FAASM_CONTAINERS = ["cpp-root"] + RELEASE_CONTAINERS
+
 
 @task
 def purge(context):
@@ -85,7 +89,7 @@ def build(ctx, c, nocache=False, push=False):
 
     _check_valid_containers(c)
 
-    version = get_faasm_version()
+    faasm_ver = get_faasm_version()
 
     for container in c:
         # Check if we need to template a special dockerignore file
@@ -102,7 +106,7 @@ def build(ctx, c, nocache=False, push=False):
             with open(join(PROJ_ROOT, dockerignore_target_path), "w") as fh:
                 fh.write(template.render())
 
-        tag_name = "faasm/{}:{}".format(container, version)
+        tag_name = "faasm/{}:{}".format(container, faasm_ver)
 
         if nocache:
             no_cache_str = "--no-cache"
@@ -119,7 +123,7 @@ def build(ctx, c, nocache=False, push=False):
             raise RuntimeError("Failed docker build for {}".format(tag_name))
 
         if push:
-            _do_push(container, version)
+            _do_push(container, faasm_ver)
 
 
 @task(iterable=["c"])
@@ -127,13 +131,12 @@ def push(ctx, c):
     """
     Push container images
     """
-
-    version = get_faasm_version()
+    faasm_ver = get_faasm_version()
 
     _check_valid_containers(c)
 
     for container in c:
-        _do_push(container, version)
+        _do_push(container, faasm_ver)
 
 
 @task(iterable=["c"])
@@ -141,13 +144,12 @@ def pull(ctx, c):
     """
     Pull container images
     """
-
-    version = get_faasm_version()
+    faasm_ver = get_faasm_version()
 
     _check_valid_containers(c)
 
     for container in c:
-        res = call("docker pull faasm/{}:{}".format(container, version), shell=True, cwd=PROJ_ROOT)
+        res = call("docker pull faasm/{}:{}".format(container, faasm_ver), shell=True, cwd=PROJ_ROOT)
         if res != 0:
             raise RuntimeError("Failed docker pull for {}".format(container))
 
@@ -157,7 +159,6 @@ def pull_release(ctx):
     """
     Pull container images for a release
     """
-
     pull(ctx, RELEASE_CONTAINERS)
 
 
@@ -168,7 +169,28 @@ def push_release(ctx):
     """
 
     push(ctx, RELEASE_CONTAINERS)
-    
+
+
 @task
 def build_all(ctx, nocache=False, push=False):
     build(ctx, FAASM_CONTAINERS, nocache, push)
+
+
+@task
+def delete_old(ctx):
+    """
+    Deletes old Docker images
+    """
+    faasm_ver = get_faasm_version()
+
+    dock = docker.from_env()
+    images = dock.images.list()
+    for image in images:
+        for t in image.tags:
+            if not t.startswith("faasm/"):
+                continue
+
+            tag_ver = t.split(":")[-1]
+            if version.parse(tag_ver) < version.parse(faasm_ver):
+                print("Removing old image: {}".format(t))
+                dock.images.remove(t, force=True)

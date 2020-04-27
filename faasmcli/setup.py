@@ -4,7 +4,7 @@ except ImportError:
     from distutils.core import setup
 
 PKG_NAME = "faasmcli"
-PKG_VERSION = "0.1.3"
+PKG_VERSION = "0.0.1"
 
 
 def main():

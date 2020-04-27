@@ -44,10 +44,13 @@ RUN cmake \
 RUN ninja
 RUN ninja install
 
-# Download the toolchain
+# Install the CLI
 WORKDIR /usr/local/code/faasm
-RUN inv toolchain.download-toolchain
-RUN inv toolchain.download-sysroot
+RUN pip3 install -e faasmcli/
+
+# Download the toolchain
+RUN inv -r faasmcli/faasmcli toolchain.download-toolchain
+RUN inv -r faasmcli/faasmcli toolchain.download-sysroot
 
 # Install pyfaasm
 RUN pip3 install pyfaasm

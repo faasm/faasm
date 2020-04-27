@@ -18,3 +18,9 @@
   shell: "pip3 install -r faasmcli/requirements.txt"
   args:
     chdir: "/usr/local/code/faasm"
+
+- name: "Install CLI"
+  become: yes
+  shell: "pip3 install -e faasmcli/"
+  args:
+    chdir: "/usr/local/code/faasm"
