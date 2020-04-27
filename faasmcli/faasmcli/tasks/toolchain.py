@@ -116,11 +116,11 @@ def _do_scp(is_from, user, host, dir_name):
     local_dir = join(FAASM_LOCAL_DIR, dir_name)
     if is_from:
         from_dir = "{}@{}:{}".format(user, host, local_dir)
-        to_dir = local_dir
+        to_dir = FAASM_LOCAL_DIR
 
         # Nuke the current
-        print("Removing existing {}".format(to_dir))
-        rmtree(to_dir, ignore_errors=True)
+        print("Removing existing {}".format(local_dir))
+        rmtree(local_dir, ignore_errors=True)
     else:
         from_dir = local_dir
 
