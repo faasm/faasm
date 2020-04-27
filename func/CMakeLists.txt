@@ -11,7 +11,7 @@ else ()
 endif ()
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
-    message(STATUS "Detected wasm build (sysroot=${CMAKE_SYSROOT}")
+    message(STATUS "Detected wasm build (sysroot=${CMAKE_SYSROOT})")
 
     # Eigen definitions
     # add_definitions(-DEIGEN_VECTORIZE_SSE2=1)
@@ -113,7 +113,9 @@ add_subdirectory(demo)
 add_subdirectory(dynlink)
 add_subdirectory(gene)
 add_subdirectory(polybench)
+add_subdirectory(python)
 add_subdirectory(sgd)
+add_subdirectory(tf)
 
 # Skip some builds for Knative native
 if(FAASM_BUILD_TYPE STREQUAL "knative-native")

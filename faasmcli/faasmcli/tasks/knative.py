@@ -206,8 +206,8 @@ def _delete_knative_fn(name, hard):
 
 
 def _deploy_knative_fn(name, image, replicas, concurrency, annotations, extra_env=None, shell_env=None):
-    version = get_faasm_version()
-    image = "{}:{}".format(image, version)
+    faasm_ver = get_faasm_version()
+    image = "{}:{}".format(image, faasm_ver)
 
     cmd = [
         "kn", "service", "create", name,
@@ -270,14 +270,14 @@ def build_native(ctx, user, func, host=False, clean=False, nopush=False):
         call(make_cmd, cwd=build_dir, shell=True)
     else:
         # Build the container
-        version = get_faasm_version()
-        tag_name = "{}:{}".format(_native_image_name(func), version)
+        faasm_ver = get_faasm_version()
+        tag_name = "{}:{}".format(_native_image_name(func), faasm_ver)
         cmd = [
             "docker",
             "build",
             "--no-cache" if clean else "",
             "-t", tag_name,
-            "--build-arg", "FAASM_VERSION={}".format(version),
+            "--build-arg", "FAASM_VERSION={}".format(faasm_ver),
             "--build-arg", "FAASM_USER={}".format(user),
             "--build-arg", "FAASM_FUNC={}".format(func),
             "-f", "docker/knative-native.dockerfile",
@@ -390,8 +390,8 @@ def native_python_local(ctx, host=False):
 
 
 def _do_knative_native_local(img_name):
-    version = get_faasm_version()
-    img_name = "{}:{}".format(img_name, version)
+    faasm_ver = get_faasm_version()
+    img_name = "{}:{}".format(img_name, faasm_ver)
 
     cmd = [
         "docker", "run",

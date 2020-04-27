@@ -5,6 +5,7 @@ boto
 boto3
 configparser
 cryptography
+docker
 dulwich
 flask
 genshi
@@ -15,6 +16,7 @@ invoke
 Jinja2
 matplotlib
 numpy
+packaging
 pyperformance
 psutil
 pyaes

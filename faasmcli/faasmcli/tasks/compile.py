@@ -37,7 +37,10 @@ def _do_compile(target, clean, debug):
         FUNC_DIR,
     ]
 
-    res = call(" ".join(build_cmd), shell=True, cwd=FUNC_BUILD_DIR)
+    build_cmd = " ".join(build_cmd)
+    print(build_cmd)
+
+    res = call(build_cmd, shell=True, cwd=FUNC_BUILD_DIR)
     if res != 0:
         raise RuntimeError("Failed on cmake for {}".format(target))
 

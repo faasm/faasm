@@ -13,10 +13,10 @@ def _tag_name(version):
 
 
 def _get_release():
-    version = get_faasm_version()
+    faasm_ver = get_faasm_version()
     r = _get_repo()
     rels = r.get_releases()
-    tag_name = _tag_name(version)
+    tag_name = _tag_name(faasm_ver)
 
     rel = rels[0]
     if rel.tag_name != tag_name:
@@ -52,21 +52,21 @@ def create_release(ctx):
     b = r.get_branch(branch="master")
     head = b.commit
 
-    version = get_faasm_version()
+    faasm_ver = get_faasm_version()
 
     # Create a tag from the head
-    tag_name = _tag_name(version)
+    tag_name = _tag_name(faasm_ver)
     r.create_git_tag(
         tag_name,
-        "Release {}\n".format(version),
+        "Release {}\n".format(faasm_ver),
         head.sha,
         "commit",
     )
 
     r.create_git_release(
         tag_name,
-        "Faasm {}".format(version),
-        "Release {}\n".format(version),
+        "Faasm {}".format(faasm_ver),
+        "Release {}\n".format(faasm_ver),
         draft=True
     )
 
