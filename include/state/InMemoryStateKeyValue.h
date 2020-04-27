@@ -17,7 +17,7 @@ namespace state {
 
     class InMemoryStateKeyValue final : public StateKeyValue {
     public:
-        InMemoryStateKeyValue(const std::string &keyIn, size_t sizeIn);
+        InMemoryStateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn);
     private:
         std::string thisIP;
         std::string masterIP;
@@ -38,7 +38,5 @@ namespace state {
         void pushPartialToRemote(const uint8_t *dirtyMaskBytes) override;
 
         void deleteFromRemote() override;
-
-        tcp::TCPMessage *buildTCPMessage(int msgType, size_t dataSize);
     };
 }

@@ -74,13 +74,13 @@ namespace tests {
         REQUIRE(actual == values);
 
         // Check that the underlying key in Redis isn't changed
-        REQUIRE(redisState.get(kv->key).empty());
+        REQUIRE(redisState.get(kv->joinedKey).empty());
 
         // Check that when pushed, the update is pushed to redis
         kv->pushFull();
         kv->get(actual.data());
         REQUIRE(actual == values);
-        REQUIRE(redisState.get(kv->key) == values);
+        REQUIRE(redisState.get(kv->joinedKey) == values);
     }
 
     TEST_CASE("Test get/ set segment", "[state]") {
@@ -96,7 +96,7 @@ namespace tests {
         std::vector<uint8_t> actual(10);
         kv->get(actual.data());
         REQUIRE(actual == values);
-        REQUIRE(redisState.get(kv->key) == values);
+        REQUIRE(redisState.get(kv->joinedKey) == values);
 
         // Update a subsection
         std::vector<uint8_t> update = {8, 8, 8};
@@ -106,7 +106,7 @@ namespace tests {
         std::vector<uint8_t> expected = {0, 0, 1, 8, 8, 8, 3, 3, 4, 4};
         kv->get(actual.data());
         REQUIRE(actual == expected);
-        REQUIRE(redisState.get(kv->key) == values);
+        REQUIRE(redisState.get(kv->joinedKey) == values);
 
         // Try getting a segment
         std::vector<uint8_t> actualSegment(3);
@@ -115,7 +115,7 @@ namespace tests {
 
         // Run push and check redis updated
         kv->pushPartial();
-        REQUIRE(redisState.get(kv->key) == expected);
+        REQUIRE(redisState.get(kv->joinedKey) == expected);
     }
 
     TEST_CASE("Test marking segments dirty", "[state]") {
@@ -137,7 +137,7 @@ namespace tests {
         kv->flagSegmentDirty(0, 2);
         kv->pushPartial();
         values.at(0) = 8;
-        REQUIRE(redisState.get(kv->key) == values);
+        REQUIRE(redisState.get(kv->joinedKey) == values);
 
         // Make sure the memory has now been updated to reflect the remote as well
         // (losing our local change not marked as dirty)
@@ -150,7 +150,7 @@ namespace tests {
 
         redis::Redis &redisState = redis::Redis::getState();
         auto kv = setupKV(20);
-        const char *key = kv->key.c_str();
+        const char *key = kv->joinedKey.c_str();
 
         // Set up and push
         std::vector<uint8_t> values = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -201,7 +201,7 @@ namespace tests {
         long nDoubles = 20;
         long nBytes = nDoubles * sizeof(double);
         auto kv = setupKV(nBytes);
-        const char *key = kv->key.c_str();
+        const char *key = kv->joinedKey.c_str();
 
         // Set up both with zeroes initiall
         std::vector<double> expected(nDoubles);
@@ -268,14 +268,14 @@ namespace tests {
 
         kv->pushPartial();
         std::vector<uint8_t> expected = {0, 1, 2, 3, 8};
-        REQUIRE(redisState.get(kv->key) == expected);
+        REQUIRE(redisState.get(kv->joinedKey) == expected);
 
         // Update the first
         kv->setSegment(0, update.data(), 1);
 
         kv->pushPartial();
         expected = {8, 1, 2, 3, 8};
-        REQUIRE(redisState.get(kv->key) == expected);
+        REQUIRE(redisState.get(kv->joinedKey) == expected);
 
         // Update both
         update = {6};
@@ -284,7 +284,7 @@ namespace tests {
 
         kv->pushPartial();
         expected = {6, 1, 2, 3, 6};
-        REQUIRE(redisState.get(kv->key) == expected);
+        REQUIRE(redisState.get(kv->joinedKey) == expected);
     }
 
     TEST_CASE("Test push partial with mask", "[state]") {
@@ -310,7 +310,7 @@ namespace tests {
         kvData->pushFull();
 
         // Check round trip
-        std::vector<uint8_t> actualValue = redisState.get(kvData->key);
+        std::vector<uint8_t> actualValue = redisState.get(kvData->joinedKey);
         std::vector<uint8_t> expectedValue(dataBytePtr, dataBytePtr + stateSize);
 
         REQUIRE(actualValue == expectedValue);
@@ -335,7 +335,7 @@ namespace tests {
                 3333.3333  // New (updated in memory and masked)
         };
 
-        std::vector<uint8_t> actualValue2 = redisState.get(kvData->key);
+        std::vector<uint8_t> actualValue2 = redisState.get(kvData->joinedKey);
         auto expectedBytePtr = BYTES(expected.data());
         std::vector<uint8_t> expectedBytes(expectedBytePtr, expectedBytePtr + stateSize);
     }
@@ -349,11 +349,11 @@ namespace tests {
         kv->pushFull();
 
         redis::Redis &redisState = redis::Redis::getState();
-        REQUIRE(redisState.get(kv->key) == values);
+        REQUIRE(redisState.get(kv->joinedKey) == values);
 
         // Now update in Redis directly
         std::vector<uint8_t> newValues = {5, 5, 5, 5};
-        redisState.set(kv->key, newValues);
+        redisState.set(kv->joinedKey, newValues);
 
         // Get and check whether the remote is pulled
         if (!async) {
@@ -389,17 +389,17 @@ namespace tests {
 
         // Change in redis directly
         std::vector<uint8_t> newValues = {3, 4, 5, 6};
-        redisState.set(kv->key, newValues);
+        redisState.set(kv->joinedKey, newValues);
 
         // Push and make sure redis not changed as it's not dirty
         kv->pushFull();
-        REQUIRE(redisState.get(kv->key) == newValues);
+        REQUIRE(redisState.get(kv->joinedKey) == newValues);
 
         // Now change locally and check push happens
         std::vector<uint8_t> newValues2 = {7, 7, 7, 7};
         kv->set(newValues2.data());
         kv->pushFull();
-        REQUIRE(redisState.get(kv->key) == newValues2);
+        REQUIRE(redisState.get(kv->joinedKey) == newValues2);
     }
 
     TEST_CASE("Test mapping shared memory", "[state]") {
@@ -460,7 +460,7 @@ namespace tests {
         // Write value direct to redis
         std::vector<uint8_t> value = {0, 1, 2, 3, 4};
         redis::Redis &redisState = redis::Redis::getState();
-        redisState.set(kv->key, value.data(), length);
+        redisState.set(kv->joinedKey, value.data(), length);
 
         // Try to map the kv
         void *mappedRegion = mmap(nullptr, util::HOST_PAGE_SIZE, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -523,7 +523,7 @@ namespace tests {
         std::vector<uint8_t> value(totalSize);
         std::fill(value.data(), value.data() + totalSize, 1);
         redis::Redis &redisState = redis::Redis::getState();
-        redisState.set(kv->key, value);
+        redisState.set(kv->joinedKey, value);
 
         // Map a couple of segments in host memory (as would be done by the wasm module)
         void *mappedRegionA = mmap(nullptr, mappingSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -560,7 +560,7 @@ namespace tests {
         // Set up value in Redis
         redis::Redis &redisState = redis::Redis::getState();
         std::vector<uint8_t> value = {0, 1, 2, 3, 4, 5};
-        redisState.set(kv->key, value);
+        redisState.set(kv->joinedKey, value);
 
         std::vector<uint8_t> expected;
 
@@ -582,9 +582,9 @@ namespace tests {
         std::vector<uint8_t> values = {0, 1, 2, 3, 4};
         kv->set(values.data());
         kv->pushFull();
-        REQUIRE(redisState.get(kv->key) == values);
+        REQUIRE(redisState.get(kv->joinedKey) == values);
 
         kv->deleteGlobal();
-        redisState.get(kv->key);
+        redisState.get(kv->joinedKey);
     }
 }

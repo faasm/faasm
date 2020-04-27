@@ -18,9 +18,13 @@
 namespace state {
     class StateKeyValue {
     public:
-        explicit StateKeyValue(const std::string &keyIn, size_t sizeIn);
+        StateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn);
+
+        const std::string user;
 
         const std::string key;
+
+        const std::string joinedKey;
 
         void get(uint8_t *buffer);
 
@@ -63,8 +67,6 @@ namespace state {
         void flagSegmentAllocated(long offset, long len);
 
         size_t size();
-
-        std::string getSegmentKey(long offset, long length);
 
         void deleteGlobal();
 

@@ -8,14 +8,18 @@
 
 #include <sys/mman.h>
 #include <util/macros.h>
+#include <util/state.h>
 
 using namespace util;
 
 namespace state {
-    StateKeyValue::StateKeyValue(const std::string &keyIn, size_t sizeIn) : key(keyIn),
-                                                                            redis(redis::Redis::getState()),
-                                                                            logger(util::getLogger()),
-                                                                            valueSize(sizeIn) {
+    StateKeyValue::StateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn) :
+            user(userIn),
+            key(keyIn),
+            joinedKey(util::keyForUser(user, key)),
+            redis(redis::Redis::getState()),
+            logger(util::getLogger()),
+            valueSize(sizeIn) {
 
         // Work out size of required shared memory
         size_t nHostPages = getRequiredHostPages(valueSize);
@@ -36,7 +40,7 @@ namespace state {
     }
 
     void StateKeyValue::pull() {
-        logger->debug("Pulling state for {}", key);
+        logger->debug("Pulling state for {}/{}", user, key);
         pullImpl(false);
     }
 
@@ -75,7 +79,8 @@ namespace state {
 
         // Return just the required segment
         if ((offset + length) > valueSize) {
-            logger->error("Out of bounds read at {} on {} with length {}", offset + length, key, valueSize);
+            logger->error("Out of bounds read at {} on {}/{} with length {}",
+                    offset + length, user, key, valueSize);
             throw std::runtime_error("Out of bounds read");
         }
 
@@ -160,18 +165,10 @@ namespace state {
         memset(((uint8_t *) allocatedMask) + offset, 0b11111111, len);
     }
 
-    std::string StateKeyValue::getSegmentKey(long offset, long length) {
-        util::SharedLock lock(valueMutex);
-
-        std::string regionKey = key + "_" + std::to_string(offset) + "_" + std::to_string(length);
-
-        return regionKey;
-    }
-
     void StateKeyValue::clear() {
         FullLock lock(valueMutex);
 
-        logger->debug("Clearing value {}", key);
+        logger->debug("Clearing value {}/{}", user, key);
 
         // Set flag to say this is effectively new again
         _fullyAllocated = false;

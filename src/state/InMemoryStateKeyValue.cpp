@@ -1,22 +1,22 @@
 #include "InMemoryStateKeyValue.h"
 
 #include <util/bytes.h>
-#include <util/logging.h>
 
 #include <memory>
 #include <state/StateMessage.h>
 #include <util/macros.h>
 
 #define MASTER_KEY_PREFIX "master_"
-#define STATE_PORT 8005
 
 
 namespace state {
     InMemoryStateKeyValue::InMemoryStateKeyValue(
-            const std::string &keyIn, size_t sizeIn) : StateKeyValue(keyIn, sizeIn),
-                                                       thisIP(util::getSystemConfig().endpointHost) {
+            const std::string &userIn, const std::string &keyIn,
+            size_t sizeIn) : StateKeyValue(userIn, keyIn, sizeIn),
+                             thisIP(util::getSystemConfig().endpointHost) {
+
         // Establish master
-        const std::string masterKey = MASTER_KEY_PREFIX + key;
+        const std::string masterKey = MASTER_KEY_PREFIX + joinedKey;
         std::vector<uint8_t> masterIPBytes = redis.get(masterKey);
 
         // If there's no master set, attempt to claim
@@ -66,30 +66,15 @@ namespace state {
         }
     }
 
-    tcp::TCPMessage *InMemoryStateKeyValue::buildTCPMessage(int msgType, size_t dataSize) {
-        unsigned long keySize = key.size();
-        unsigned long fullSize = keySize + dataSize;
-
-        auto msg = new tcp::TCPMessage();
-        msg->type = msgType;
-        msg->len = fullSize;
-        msg->buffer = new uint8_t[fullSize];
-
-        // Copy the key in at the start
-        auto keyBytes = BYTES_CONST(key.data());
-        std::copy(keyBytes, keyBytes + keySize, msg->buffer);
-
-        return msg;
-    }
-
     void InMemoryStateKeyValue::pullFromRemote() {
         if (status == InMemoryStateKeyStatus::MASTER) {
             return;
         }
 
         // Send the message
-        tcp::TCPMessage *msg = buildTCPMessage(StateMessageType::STATE_PULL, 0);
+        tcp::TCPMessage *msg = buildStateTCPMessage(StateMessageType::STATE_PULL, user, key, 0);
         masterClient->sendMessage(msg);
+        tcp::freeTcpMessage(msg);
 
         // Await the response
         tcp::TCPMessage *response = masterClient->recvMessage();
@@ -109,17 +94,18 @@ namespace state {
 
         // Buffer contains two ints, offset and length
         size_t dataSize = 2 * sizeof(int32_t);
-        tcp::TCPMessage *msg = buildTCPMessage(StateMessageType::STATE_PULL, dataSize);
+        tcp::TCPMessage *msg = buildStateTCPMessage(StateMessageType::STATE_PULL, user, key, dataSize);
 
         // Copy offset and length into buffer
+        unsigned long dataOffset = sizeof(int32_t) + user.size() + sizeof(int32_t) + key.size();
         auto offSetInt = (int32_t) offset;
         auto lengthInt = (int32_t) length;
-        unsigned long keySize = key.size();
-        std::copy(BYTES(&offSetInt), BYTES(&offSetInt) + sizeof(int32_t), msg->buffer + keySize);
-        std::copy(BYTES(&lengthInt), BYTES(&lengthInt) + sizeof(int32_t), msg->buffer + keySize + sizeof(int32_t));
+        std::copy(BYTES(&offSetInt), BYTES(&offSetInt) + sizeof(int32_t), msg->buffer + dataOffset);
+        std::copy(BYTES(&lengthInt), BYTES(&lengthInt) + sizeof(int32_t), msg->buffer + dataOffset + sizeof(int32_t));
 
         // Send the message
         masterClient->sendMessage(msg);
+        tcp::freeTcpMessage(msg);
 
         // Await the response
         tcp::TCPMessage *response = masterClient->recvMessage();
@@ -153,13 +139,14 @@ namespace state {
             // TODO - delete locally
         } else {
             // Send the message
-            tcp::TCPMessage *msg = buildTCPMessage(StateMessageType::STATE_DELETE, 0);
+            tcp::TCPMessage *msg = buildStateTCPMessage(StateMessageType::STATE_DELETE, user, key, 0);
             masterClient->sendMessage(msg);
+            tcp::freeTcpMessage(msg);
 
             // Await the response
             tcp::TCPMessage *response = masterClient->recvMessage();
             if (response->type != StateMessageType::OK_RESPONSE) {
-                logger->error("Unexpected response from delete of {}@{}", key, masterIP);
+                logger->error("Unexpected response from delete of {}/{}@{}", user, key, masterIP);
                 throw std::runtime_error("Delete failed");
             }
         }

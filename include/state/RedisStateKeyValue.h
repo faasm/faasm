@@ -10,7 +10,7 @@
 namespace state {
     class RedisStateKeyValue final : public StateKeyValue {
     public:
-        RedisStateKeyValue(const std::string &keyIn, size_t sizeIn);
+        RedisStateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn);
     private:
         int lastRemoteLockId = 0;
 

@@ -59,7 +59,7 @@ namespace tests {
 
         // Write the value to redis
         redis::Redis &redis = redis::Redis::getState();
-        redis.set(kv->key, value);
+        redis.set(kv->joinedKey, value);
 
         // Check mapping the whole region
         _checkMapping(moduleA, kv, 0, stateSize, value);

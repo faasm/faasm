@@ -1,6 +1,10 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
+
+#include <tcp/TCPMessage.h>
+
 
 #define STATE_PORT 8003
 
@@ -25,4 +29,11 @@ namespace state {
         int valueLen;
         uint8_t *value;
     };
+
+    tcp::TCPMessage *buildStateTCPMessage(
+            int msgType,
+            const std::string &user,
+            const std::string &key,
+            size_t dataSize
+    );
 }

@@ -5,7 +5,6 @@
 #include <WAVM/Runtime/Intrinsics.h>
 
 #include <redis/Redis.h>
-#include <state/StateKeyValue.h>
 #include <util/bytes.h>
 #include <util/files.h>
 #include <util/state.h>

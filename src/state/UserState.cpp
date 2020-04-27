@@ -60,16 +60,13 @@ namespace state {
             throw StateKeyValueException("Uninitialized value for key " + key);
         }
 
-        // Always mask keys with the user
-        std::string actualKey = util::keyForUser(user, key);
-
         // Vary key-value implementation depending on state mode
         std::string stateMode = util::getSystemConfig().stateMode;
         if(stateMode == "redis") {
-            auto kv = new RedisStateKeyValue(actualKey, size);
+            auto kv = new RedisStateKeyValue(user, key, size);
             kvMap.emplace(key, kv);
         } else if(stateMode == "inmemory") {
-            auto kv = new InMemoryStateKeyValue(actualKey, size);
+            auto kv = new InMemoryStateKeyValue(user, key, size);
             kvMap.emplace(key, kv);
         }
 
