@@ -347,7 +347,7 @@ def tflite(ctx, clean=False):
         check_output(download_script, shell=True)
 
     make_target = "lib"
-    make_cmd = ["make -j"]
+    make_cmd = ["make"]
     make_cmd.extend(BASE_CONFIG_CMD)
     make_cmd.extend([
         "CFLAGS=\"{} -ftls-model=local-exec\"".format(WASM_CFLAGS),
