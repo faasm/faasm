@@ -16,18 +16,18 @@ namespace tests {
         std::thread serverThread([port] {
             EchoServer server(port);
             int nMsgs = 0;
-            while(nMsgs == 0) {
+            while (nMsgs == 0) {
                 nMsgs += server.poll();
             }
         });
 
         // Let the server start
-        usleep(1000*100);
+        usleep(1000 * 100);
 
         // Send request with client
         TCPClient client(host, port);
         TCPMessage m;
-        m.type=TCPMessageType::STANDARD;
+        m.type = 1;
         m.len = requestBytes.size();
         m.buffer = requestBytes.data();
         client.sendMessage(&m);
@@ -38,7 +38,7 @@ namespace tests {
         REQUIRE(actualRecv == requestBytes);
 
         // Let server thread finish
-        if(serverThread.joinable()) {
+        if (serverThread.joinable()) {
             serverThread.join();
         }
     }

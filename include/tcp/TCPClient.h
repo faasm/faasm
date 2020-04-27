@@ -12,8 +12,6 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#define RECEIVE_SIZE 256
-
 namespace tcp {
 
     class TCPClient {
@@ -27,6 +25,7 @@ namespace tcp {
         TCPMessage *recvMessage(size_t dataSize) const;
 
         void exit();
+
     private:
         std::string host;
         int port;

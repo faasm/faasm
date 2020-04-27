@@ -5,6 +5,7 @@
 #include <util/clock.h>
 
 #include <redis/Redis.h>
+#include <tcp/TCPClient.h>
 
 
 namespace state {
@@ -22,6 +23,8 @@ namespace state {
         std::string masterIP;
         InMemoryStateKeyStatus status;
 
+        std::unique_ptr<tcp::TCPClient> masterClient;
+
         void lockGlobal() override;
 
         void unlockGlobal() override;
@@ -35,5 +38,7 @@ namespace state {
         void pushPartialToRemote(const uint8_t *dirtyMaskBytes) override;
 
         void deleteFromRemote() override;
+
+        tcp::TCPMessage *buildTCPMessage(int msgType, size_t dataSize);
     };
 }

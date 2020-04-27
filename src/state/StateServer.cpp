@@ -12,17 +12,25 @@ namespace state {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         switch (recvMessage->type) {
-            case (tcp::TCPMessageType::STATE_SIZE): {
+            case (StateMessageType::STATE_SIZE): {
                 logger->debug("State size request");
                 // TODO - state size
             }
-            case (tcp::TCPMessageType::STATE_GET): {
+            case (StateMessageType::STATE_GET): {
                 logger->debug("State get request");
                 // TODO - state get
             }
-            case (tcp::TCPMessageType::STATE_SET): {
+            case (StateMessageType::STATE_SET): {
                 logger->debug("State set request");
                 // TODO - state set
+            }
+            case (StateMessageType::STATE_LOCK): {
+                logger->debug("State lock request");
+
+            }
+            case (StateMessageType::STATE_UNLOCK): {
+                logger->debug("State unlock request");
+
             }
             default: {
                 // TODO - fail
