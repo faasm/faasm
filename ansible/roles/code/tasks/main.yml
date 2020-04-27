@@ -1,12 +1,5 @@
 ---
 
-- name: "Set up directory"
-  become: yes
-  file:
-    path: "/usr/local/code"
-    state: directory
-    mode: 0777
-
 - name: "Install system deps"
   become: yes
   apt:
@@ -16,15 +9,24 @@
 
 - name: "Check out code"
   git:
-    repo: "https://github.com/lsds/Faasm.git"
-    dest: /usr/local/code/faasm
+    repo: "{{ remote_url | default('https://github.com/lsds/Faasm.git') }}"
+    dest: "{{ ansible_env.HOME }}/faasm-bm"
+    version: "{{ repo_version | default('master') }}"
     update: yes
 
-- name: "Directory ownership"
+- name: "Set up local code directory"
   become: yes
   file:
-    path: "/usr/local/code/faasm"
+    path: "/usr/local/code"
     state: directory
+
+- name: "Create symbolic link to repo in local code directory"
+  become: yes
+  file:
+    src: "{{ ansible_env.HOME }}/faasm-bm"
+    dest: "/usr/local/code/faasm"
+    state: link
+    force: yes #unlinks other users
     owner: "{{ ansible_env.USER }}"
     group: "{{ ansible_env.USER }}"
     mode: 0755
