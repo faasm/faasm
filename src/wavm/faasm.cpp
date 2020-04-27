@@ -17,20 +17,20 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_push_state", void, __faasm_push_state, I32 keyPtr) {
         auto kv = getStateKV(keyPtr, 0);
-        util::getLogger()->debug("S - push_state - {}", kv->key);
+        util::getLogger()->debug("S - push_state - {}", kv->joinedKey);
         kv->pushFull();
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_push_state_partial", void, __faasm_push_state_partial, I32 keyPtr) {
         auto kv = getStateKV(keyPtr, 0);
-        util::getLogger()->debug("S - push_state_partial - {}", kv->key);
+        util::getLogger()->debug("S - push_state_partial - {}", kv->joinedKey);
         kv->pushPartial();
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_push_state_partial_mask", void, __faasm_push_state_partial_mask,
                                    I32 keyPtr, I32 maskKeyPtr) {
         auto kv = getStateKV(keyPtr, 0);
-        util::getLogger()->debug("S - push_state_partial_mask - {} {}", kv->key, maskKeyPtr);
+        util::getLogger()->debug("S - push_state_partial_mask - {} {}", kv->joinedKey, maskKeyPtr);
 
         auto maskKv = getStateKV(maskKeyPtr, 0);
         kv->pushPartialMask(maskKv);
@@ -38,49 +38,49 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_pull_state", void, __faasm_pull_state, I32 keyPtr, I32 stateLen) {
         auto kv = getStateKV(keyPtr, stateLen);
-        util::getLogger()->debug("S - pull_state - {} {}", kv->key, stateLen);
+        util::getLogger()->debug("S - pull_state - {} {}", kv->joinedKey, stateLen);
 
         kv->pull();
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_lock_state_global", void, __faasm_lock_state_global, I32 keyPtr) {
         auto kv = getStateKV(keyPtr, 0);
-        util::getLogger()->debug("S - lock_state_global - {}", kv->key);
+        util::getLogger()->debug("S - lock_state_global - {}", kv->joinedKey);
 
         kv->lockGlobal();
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_unlock_state_global", void, __faasm_unlock_state_global, I32 keyPtr) {
         auto kv = getStateKV(keyPtr, 0);
-        util::getLogger()->debug("S - unlock_state_global - {}", kv->key);
+        util::getLogger()->debug("S - unlock_state_global - {}", kv->joinedKey);
 
         kv->unlockGlobal();
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_lock_state_read", void, __faasm_lock_state_read, I32 keyPtr) {
         auto kv = getStateKV(keyPtr, 0);
-        util::getLogger()->debug("S - lock_state_read - {}", kv->key);
+        util::getLogger()->debug("S - lock_state_read - {}", kv->joinedKey);
 
         kv->lockRead();
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_unlock_state_read", void, __faasm_unlock_state_read, I32 keyPtr) {
         auto kv = getStateKV(keyPtr, 0);
-        util::getLogger()->debug("S - unlock_state_read - {}", kv->key);
+        util::getLogger()->debug("S - unlock_state_read - {}", kv->joinedKey);
 
         kv->unlockRead();
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_lock_state_write", void, __faasm_lock_state_write, I32 keyPtr) {
         auto kv = getStateKV(keyPtr, 0);
-        util::getLogger()->debug("S - lock_state_write - {}", kv->key);
+        util::getLogger()->debug("S - lock_state_write - {}", kv->joinedKey);
 
         kv->lockWrite();
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_unlock_state_write", void, __faasm_unlock_state_write, I32 keyPtr) {
         auto kv = getStateKV(keyPtr, 0);
-        util::getLogger()->debug("S - unlock_state_write - {}", keyPtr, kv->key);
+        util::getLogger()->debug("S - unlock_state_write - {}", keyPtr, kv->joinedKey);
 
         kv->unlockWrite();
     }
@@ -90,12 +90,12 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         auto kv = getStateKV(keyPtr, dataLen);
-        logger->debug("S - write_state - {} {} {}", kv->key, dataPtr, dataLen);
+        logger->debug("S - write_state - {} {} {}", kv->joinedKey, dataPtr, dataLen);
 
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
 
-        logger->debug("Writing state length {} to key {}", dataLen, kv->key);
+        logger->debug("Writing state length {} to key {}", dataLen, kv->joinedKey);
         kv->set(data);
     }
 
@@ -148,7 +148,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state_offset", void, __faasm_write_state_offset,
                                    I32 keyPtr, I32 totalLen, I32 offset, I32 dataPtr, I32 dataLen) {
         auto kv = getStateKV(keyPtr, totalLen);
-        util::getLogger()->debug("S - write_state_offset - {} {} {} {} {}", kv->key, totalLen, offset, dataPtr,
+        util::getLogger()->debug("S - write_state_offset - {} {} {} {} {}", kv->joinedKey, totalLen, offset, dataPtr,
                                  dataLen);
 
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
@@ -190,7 +190,7 @@ namespace wasm {
             return (I32) state.getStateSize(user, key);
         } else {
             auto kv = getStateKV(keyPtr, bufferLen);
-            util::getLogger()->debug("S - read_state - {} {} {}", kv->key, bufferPtr, bufferLen);
+            util::getLogger()->debug("S - read_state - {} {} {}", kv->joinedKey, bufferPtr, bufferLen);
 
             // Copy to straight to buffer
             Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
@@ -204,7 +204,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_ptr", I32, __faasm_read_state_ptr,
                                    I32 keyPtr, I32 totalLen) {
         auto kv = getStateKV(keyPtr, totalLen);
-        util::getLogger()->debug("S - read_state_ptr - {} {}", kv->key, totalLen);
+        util::getLogger()->debug("S - read_state_ptr - {} {}", kv->joinedKey, totalLen);
 
         // Map shared memory
         WAVMWasmModule *module = getExecutingModule();
@@ -216,7 +216,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset", void, __faasm_read_state_offset,
                                    I32 keyPtr, I32 totalLen, I32 offset, I32 bufferPtr, I32 bufferLen) {
         auto kv = getStateKV(keyPtr, totalLen);
-        util::getLogger()->debug("S - read_state_offset - {} {} {} {} {}", kv->key, totalLen, offset, bufferPtr,
+        util::getLogger()->debug("S - read_state_offset - {} {} {} {} {}", kv->joinedKey, totalLen, offset, bufferPtr,
                                  bufferLen);
 
         // Copy to straight to buffer
@@ -228,7 +228,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset_ptr", I32, __faasm_read_state_offset_ptr,
                                    I32 keyPtr, I32 totalLen, I32 offset, I32 len) {
         auto kv = getStateKV(keyPtr, totalLen);
-        util::getLogger()->debug("S - read_state_offset_ptr - {} {} {} {}", kv->key, totalLen, offset, len);
+        util::getLogger()->debug("S - read_state_offset_ptr - {} {} {} {}", kv->joinedKey, totalLen, offset, len);
 
         // Map whole key in shared memory
         WAVMWasmModule *module = getExecutingModule();
@@ -239,7 +239,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_flag_state_dirty", void, __faasm_flag_state_dirty,
                                    I32 keyPtr, I32 totalLen) {
         auto kv = getStateKV(keyPtr, totalLen);
-        util::getLogger()->debug("S - __faasm_flag_state_dirty - {} {}", kv->key, totalLen);
+        util::getLogger()->debug("S - __faasm_flag_state_dirty - {} {}", kv->joinedKey, totalLen);
 
         kv->flagDirty();
     }

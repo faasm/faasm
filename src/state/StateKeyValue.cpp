@@ -40,7 +40,7 @@ namespace state {
     }
 
     void StateKeyValue::pull() {
-        logger->debug("Pulling state for {}/{}", user, key);
+        logger->debug("Pulling state for {}", joinedKey);
         pullImpl(false);
     }
 
@@ -79,8 +79,8 @@ namespace state {
 
         // Return just the required segment
         if ((offset + length) > valueSize) {
-            logger->error("Out of bounds read at {} on {}/{} with length {}",
-                    offset + length, user, key, valueSize);
+            logger->error("Out of bounds read at {} on {} with length {}",
+                    offset + length, joinedKey, valueSize);
             throw std::runtime_error("Out of bounds read");
         }
 
@@ -168,7 +168,7 @@ namespace state {
     void StateKeyValue::clear() {
         FullLock lock(valueMutex);
 
-        logger->debug("Clearing value {}/{}", user, key);
+        logger->debug("Clearing value {}", joinedKey);
 
         // Set flag to say this is effectively new again
         _fullyAllocated = false;
