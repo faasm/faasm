@@ -12,7 +12,7 @@ namespace state {
 
     };
 
-    size_t RedisStateKeyValue::getStateSize(const std::string &userIn, const std::string keyIn) {
+    size_t RedisStateKeyValue::getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn) {
         std::string actualKey = util::keyForUser(userIn, keyIn);
         redis::Redis &redis = redis::Redis::getState();
         return redis.strlen(actualKey);

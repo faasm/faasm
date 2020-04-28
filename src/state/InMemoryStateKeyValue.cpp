@@ -5,53 +5,109 @@
 #include <memory>
 #include <state/StateMessage.h>
 #include <util/macros.h>
+#include <util/locks.h>
+#include <util/state.h>
+#include <util/logging.h>
 
 #define MASTER_KEY_PREFIX "master_"
 
 
 namespace state {
-    InMemoryStateKeyValue::InMemoryStateKeyValue(
-            const std::string &userIn, const std::string &keyIn,
-            size_t sizeIn) : StateKeyValue(userIn, keyIn, sizeIn),
-                             thisIP(util::getSystemConfig().endpointHost) {
+    static std::unordered_map<std::string, std::string> masterMap;
+    static std::shared_mutex masterMapMutex;
 
-        // Establish master
+    std::string getMasterKey(const std::string &user, const std::string &key) {
         const std::string masterKey = MASTER_KEY_PREFIX + user + "_" + key;
+        return masterKey;
+    }
+
+    std::string getMasterIP(const std::string &user, const std::string &key, bool claim) {
+        std::string lookupKey = util::keyForUser(user, key);
+
+        // See if we already have the master
+        {
+            util::SharedLock lock(masterMapMutex);
+            if (masterMap.count(lookupKey) > 0) {
+                return masterMap[lookupKey];
+            }
+        }
+
+        // No master found, need to establish
+
+        // Acquire lock
+        util::FullLock lock(masterMapMutex);
+
+        // Double check condition
+        if (masterMap.count(lookupKey) > 0) {
+            return masterMap[lookupKey];
+        }
+
+        // Query Redis
+        const std::string masterKey = getMasterKey(user, key);
+        redis::Redis &redis = redis::Redis::getState();
         std::vector<uint8_t> masterIPBytes = redis.get(masterKey);
 
-        // If there's no master set, attempt to claim
+        if (masterIPBytes.empty() && !claim) {
+            // No master found and not claiming
+            throw std::runtime_error("Found no master for state " + masterKey);
+        }
+
+        // If no master and we want to claim, attempt to do so
         if (masterIPBytes.empty()) {
-            // Get the remote lock
-            long masterLockId = waitOnRedisRemoteLock(masterKey);
+            long masterLockId = StateKeyValue::waitOnRedisRemoteLock(masterKey);
             if (masterLockId < 0) {
-                logger->error("Unable to acquire remote lock for {}", masterKey);
+                util::getLogger()->error("Unable to acquire remote lock for {}", masterKey);
                 throw std::runtime_error("Unable to get remote lock");
             }
 
             // Check again now that we have the lock
             masterIPBytes = redis.get(masterKey);
+
+            // If still empty, we can claim
             if (masterIPBytes.empty()) {
-                // Claim the master if we've got the lock and nobody else is master
+                std::string thisIP = util::getSystemConfig().endpointHost;
                 redis.set(masterKey, util::stringToBytes(thisIP));
-                masterIP = thisIP;
-                status = InMemoryStateKeyStatus::MASTER;
             }
 
             redis.releaseLock(masterKey, masterLockId);
         }
 
-        // If we're not master after that, someone else must be
-        if (status != InMemoryStateKeyStatus::MASTER) {
-            masterIP = util::bytesToString(masterIPBytes);
-            status = InMemoryStateKeyStatus::NOT_MASTER;
+        // Cache the result locally
+        std::string masterIP = util::bytesToString(masterIPBytes);
+        masterMap[lookupKey] = masterIP;
 
-            // Set up TCP client to communicate with master
-            masterClient = std::make_unique<tcp::TCPClient>(masterIP, STATE_PORT);
-        }
+        return masterIP;
     }
 
-    size_t InMemoryStateKeyValue::getStateSize(const std::string &userIn, const std::string keyIn) {
-        // TODO - get state size (how to work out master/ not master here in static method?)
+    InMemoryStateKeyValue::InMemoryStateKeyValue(
+            const std::string &userIn, const std::string &keyIn,
+            size_t sizeIn) : StateKeyValue(userIn, keyIn, sizeIn),
+                             thisIP(util::getSystemConfig().endpointHost) {
+
+        // Retrieve the master IP for this key
+        masterIP = getMasterIP(user, key, true);
+
+        // Mark whether we're master
+        status = masterIP == thisIP ? InMemoryStateKeyStatus::MASTER : InMemoryStateKeyStatus::NOT_MASTER;
+
+        // Set up TCP client to communicate with master
+        masterClient = std::make_unique<tcp::TCPClient>(masterIP, STATE_PORT);
+    }
+
+    size_t InMemoryStateKeyValue::getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn) {
+        // Get the master IP (failing if there isn't one)
+        const std::string &masterIP = getMasterIP(userIn, keyIn, false);
+
+        // TODO - cache this result
+
+        // Sanity check that the master is *not* this machine
+        std::string thisIP = util::getSystemConfig().endpointHost;
+        if (masterIP == thisIP) {
+            throw std::runtime_error("Attempting to pull state size on master");
+        }
+
+        // TODO - request state size from master
+
         return 0;
     }
 

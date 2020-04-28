@@ -47,9 +47,9 @@ namespace state {
         // TODO - cache this?
         std::string stateMode = util::getSystemConfig().stateMode;
         if (stateMode == "redis") {
-            return RedisStateKeyValue::getStateSize(user, keyIn);
+            return RedisStateKeyValue::getStateSizeFromRemote(user, keyIn);
         } else if (stateMode == "inmemory") {
-            return InMemoryStateKeyValue::getStateSize(user, keyIn);
+            return InMemoryStateKeyValue::getStateSizeFromRemote(user, keyIn);
         } else {
             throw std::runtime_error("Unrecognised state mode: " + stateMode);
         }

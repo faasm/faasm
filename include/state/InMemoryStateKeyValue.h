@@ -19,7 +19,7 @@ namespace state {
     public:
         InMemoryStateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn);
 
-        static size_t getStateSize(const std::string &userIn, const std::string keyIn);
+        static size_t getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn);
     private:
         std::string thisIP;
         std::string masterIP;

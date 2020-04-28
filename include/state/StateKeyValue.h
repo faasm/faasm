@@ -24,6 +24,8 @@ namespace state {
 
         const std::string key;
 
+        static long waitOnRedisRemoteLock(const std::string &redisKey);
+
         void get(uint8_t *buffer);
 
         uint8_t *get();
@@ -107,8 +109,6 @@ namespace state {
         void zeroAllocatedMask();
 
         void initialiseStorage(bool allocate);
-
-        long waitOnRedisRemoteLock(const std::string &redisKey);
 
         void markDirtySegment(long offset, long len);
 

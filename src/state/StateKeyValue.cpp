@@ -422,9 +422,11 @@ namespace state {
     long StateKeyValue::waitOnRedisRemoteLock(const std::string &redisKey) {
         PROF_START(remoteLock)
 
+        redis::Redis &redis = redis::Redis::getState();
         long remoteLockId = redis.acquireLock(redisKey, REMOTE_LOCK_TIMEOUT_SECS);
         unsigned int retryCount = 0;
         while (remoteLockId <= 0) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->debug("Waiting on remote lock for {} (loop {})", redisKey, retryCount);
 
             if (retryCount >= REMOTE_LOCK_MAX_RETRIES) {
