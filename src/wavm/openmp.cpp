@@ -279,7 +279,6 @@ namespace wasm {
                     }
                 }
 
-
                 // Snapshot details
                 call.set_snapshotkey(activeSnapshotKey);
                 call.set_snapshotsize(threadSnapshotSize);
