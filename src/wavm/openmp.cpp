@@ -303,7 +303,7 @@ namespace wasm {
                 }
             }
             if (numErrors) {
-                throw std::runtime_error(fmt::format("{}} OMP threads have exited with errors", numErrors));
+                throw std::runtime_error(fmt::format("{} OMP threads have exited with errors", numErrors));
             }
 
 
