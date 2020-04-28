@@ -64,8 +64,6 @@ namespace state {
 
         void flagSegmentDirty(long offset, long len);
 
-        void flagSegmentAllocated(long offset, long len);
-
         size_t size();
 
         void deleteGlobal();
@@ -109,6 +107,10 @@ namespace state {
         void initialiseStorage(bool allocate);
 
         long waitOnRedisRemoteLock(const std::string &redisKey);
+
+        void markDirtySegment(long offset, long len);
+
+        void markAllocatedSegment(long offset, long len);
 
         virtual void pullFromRemote() = 0;
 

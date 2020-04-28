@@ -135,7 +135,7 @@ namespace state {
         auto bytePtr = static_cast<uint8_t *>(sharedMemory);
         std::copy(buffer, buffer + length, bytePtr + offset);
 
-        flagSegmentDirty(offset, length);
+        markDirtySegment(offset, length);
     }
 
     void StateKeyValue::flagDirty() {
@@ -157,15 +157,19 @@ namespace state {
     }
 
     void StateKeyValue::flagSegmentDirty(long offset, long len) {
+        // This is accessible publicly but also called internally when a
+        // lock is already held, hence we need to split the locking and
+        // marking of the segment.
         util::SharedLock lock(valueMutex);
+        markDirtySegment(offset, len);
+    }
 
+    void StateKeyValue::markDirtySegment(long offset, long len) {
         isDirty |= true;
         memset(((uint8_t *) dirtyMask) + offset, 0b11111111, len);
     }
 
-    void StateKeyValue::flagSegmentAllocated(long offset, long len) {
-        util::SharedLock lock(valueMutex);
-
+    void StateKeyValue::markAllocatedSegment(long offset, long len) {
         memset(((uint8_t *) allocatedMask) + offset, 0b11111111, len);
     }
 
@@ -257,7 +261,7 @@ namespace state {
         }
 
         // Flag the segment as allocated
-        flagSegmentAllocated(alignedOffset, alignedLength);
+        markAllocatedSegment(alignedOffset, alignedLength);
     }
 
     void StateKeyValue::initialiseStorage(bool allocate) {
