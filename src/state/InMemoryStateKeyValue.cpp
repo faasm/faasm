@@ -16,7 +16,7 @@ namespace state {
                              thisIP(util::getSystemConfig().endpointHost) {
 
         // Establish master
-        const std::string masterKey = MASTER_KEY_PREFIX + joinedKey;
+        const std::string masterKey = MASTER_KEY_PREFIX + user + "_" + key;
         std::vector<uint8_t> masterIPBytes = redis.get(masterKey);
 
         // If there's no master set, attempt to claim

@@ -12,6 +12,8 @@ namespace state {
     public:
         RedisStateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn);
     private:
+        const std::string joinedKey;
+
         int lastRemoteLockId = 0;
 
         void lockGlobal() override;

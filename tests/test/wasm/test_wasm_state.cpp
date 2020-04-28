@@ -4,6 +4,7 @@
 #include <emulator/emulator.h>
 #include <redis/Redis.h>
 #include <util/memory.h>
+#include <util/state.h>
 
 namespace tests {
     void _checkMapping(
@@ -56,10 +57,11 @@ namespace tests {
         const std::string user = getEmulatorUser();
         const std::string key = "wasm_state_test";
         auto kv = s.getKV(user, key, stateSize);
+        std::string actualKey = util::keyForUser(kv->user, kv->key);
 
         // Write the value to redis
         redis::Redis &redis = redis::Redis::getState();
-        redis.set(kv->joinedKey, value);
+        redis.set(actualKey, value);
 
         // Check mapping the whole region
         _checkMapping(moduleA, kv, 0, stateSize, value);

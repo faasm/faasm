@@ -24,8 +24,6 @@ namespace state {
 
         const std::string key;
 
-        const std::string joinedKey;
-
         void get(uint8_t *buffer);
 
         uint8_t *get();

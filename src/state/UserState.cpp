@@ -33,9 +33,8 @@ namespace state {
         // Full lock for doing anything
         FullLock fullLock(kvMapMutex);
 
-        std::string actualKey = util::keyForUser(user, key);
-
         // TODO break hard Redis dep
+        std::string actualKey = util::keyForUser(user, key);
         redis::Redis &redis = redis::Redis::getState();
         return redis.strlen(actualKey);
     }

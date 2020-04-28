@@ -9,6 +9,7 @@
 #include <sys/mman.h>
 #include <emulator/emulator.h>
 #include <faasm/state.h>
+#include <util/state.h>
 
 using namespace state;
 
@@ -74,13 +75,14 @@ namespace tests {
         REQUIRE(actual == values);
 
         // Check that the underlying key in Redis isn't changed
-        REQUIRE(redisState.get(kv->joinedKey).empty());
+        std::string actualKey = util::keyForUser(kv->user, kv->key);
+        REQUIRE(redisState.get(actualKey).empty());
 
         // Check that when pushed, the update is pushed to redis
         kv->pushFull();
         kv->get(actual.data());
         REQUIRE(actual == values);
-        REQUIRE(redisState.get(kv->joinedKey) == values);
+        REQUIRE(redisState.get(actualKey) == values);
     }
 
     TEST_CASE("Test get/ set segment", "[state]") {
@@ -95,8 +97,9 @@ namespace tests {
         // Get and check
         std::vector<uint8_t> actual(10);
         kv->get(actual.data());
+        std::string actualKey = util::keyForUser(kv->user, kv->key);
         REQUIRE(actual == values);
-        REQUIRE(redisState.get(kv->joinedKey) == values);
+        REQUIRE(redisState.get(actualKey) == values);
 
         // Update a subsection
         std::vector<uint8_t> update = {8, 8, 8};
@@ -106,7 +109,7 @@ namespace tests {
         std::vector<uint8_t> expected = {0, 0, 1, 8, 8, 8, 3, 3, 4, 4};
         kv->get(actual.data());
         REQUIRE(actual == expected);
-        REQUIRE(redisState.get(kv->joinedKey) == values);
+        REQUIRE(redisState.get(actualKey) == values);
 
         // Try getting a segment
         std::vector<uint8_t> actualSegment(3);
@@ -115,7 +118,7 @@ namespace tests {
 
         // Run push and check redis updated
         kv->pushPartial();
-        REQUIRE(redisState.get(kv->joinedKey) == expected);
+        REQUIRE(redisState.get(actualKey) == expected);
     }
 
     TEST_CASE("Test marking segments dirty", "[state]") {
@@ -137,7 +140,8 @@ namespace tests {
         kv->flagSegmentDirty(0, 2);
         kv->pushPartial();
         values.at(0) = 8;
-        REQUIRE(redisState.get(kv->joinedKey) == values);
+        std::string actualKey = util::keyForUser(kv->user, kv->key);
+        REQUIRE(redisState.get(actualKey) == values);
 
         // Make sure the memory has now been updated to reflect the remote as well
         // (losing our local change not marked as dirty)
@@ -150,7 +154,8 @@ namespace tests {
 
         redis::Redis &redisState = redis::Redis::getState();
         auto kv = setupKV(20);
-        const char *key = kv->joinedKey.c_str();
+        std::string actualKey = util::keyForUser(kv->user, kv->key);
+        const char *key = actualKey.c_str();
 
         // Set up and push
         std::vector<uint8_t> values = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -201,7 +206,8 @@ namespace tests {
         long nDoubles = 20;
         long nBytes = nDoubles * sizeof(double);
         auto kv = setupKV(nBytes);
-        const char *key = kv->joinedKey.c_str();
+        std::string actualKey = util::keyForUser(kv->user, kv->key);
+        const char *key = actualKey.c_str();
 
         // Set up both with zeroes initiall
         std::vector<double> expected(nDoubles);
@@ -256,6 +262,7 @@ namespace tests {
     TEST_CASE("Test partially setting just first/ last element", "[state]") {
         redis::Redis &redisState = redis::Redis::getState();
         auto kv = setupKV(5);
+        std::string actualKey = util::keyForUser(kv->user, kv->key);
 
         // Set up and push
         std::vector<uint8_t> values = {0, 1, 2, 3, 4};
@@ -268,14 +275,14 @@ namespace tests {
 
         kv->pushPartial();
         std::vector<uint8_t> expected = {0, 1, 2, 3, 8};
-        REQUIRE(redisState.get(kv->joinedKey) == expected);
+        REQUIRE(redisState.get(actualKey) == expected);
 
         // Update the first
         kv->setSegment(0, update.data(), 1);
 
         kv->pushPartial();
         expected = {8, 1, 2, 3, 8};
-        REQUIRE(redisState.get(kv->joinedKey) == expected);
+        REQUIRE(redisState.get(actualKey) == expected);
 
         // Update both
         update = {6};
@@ -284,7 +291,7 @@ namespace tests {
 
         kv->pushPartial();
         expected = {6, 1, 2, 3, 6};
-        REQUIRE(redisState.get(kv->joinedKey) == expected);
+        REQUIRE(redisState.get(actualKey) == expected);
     }
 
     TEST_CASE("Test push partial with mask", "[state]") {
@@ -310,7 +317,8 @@ namespace tests {
         kvData->pushFull();
 
         // Check round trip
-        std::vector<uint8_t> actualValue = redisState.get(kvData->joinedKey);
+        std::string actualKey = util::keyForUser(kvData->user, kvData->key);
+        std::vector<uint8_t> actualValue = redisState.get(actualKey);
         std::vector<uint8_t> expectedValue(dataBytePtr, dataBytePtr + stateSize);
 
         REQUIRE(actualValue == expectedValue);
@@ -335,13 +343,15 @@ namespace tests {
                 3333.3333  // New (updated in memory and masked)
         };
 
-        std::vector<uint8_t> actualValue2 = redisState.get(kvData->joinedKey);
+        std::vector<uint8_t> actualValue2 = redisState.get(actualKey);
         auto expectedBytePtr = BYTES(expected.data());
         std::vector<uint8_t> expectedBytes(expectedBytePtr, expectedBytePtr + stateSize);
     }
 
     void checkPulling(bool async) {
         auto kv = setupKV(4);
+        std::string actualKey = util::keyForUser(kv->user, kv->key);
+
         std::vector<uint8_t> values = {0, 1, 2, 3};
 
         // Push and make sure reflected in redis
@@ -349,11 +359,11 @@ namespace tests {
         kv->pushFull();
 
         redis::Redis &redisState = redis::Redis::getState();
-        REQUIRE(redisState.get(kv->joinedKey) == values);
+        REQUIRE(redisState.get(actualKey) == values);
 
         // Now update in Redis directly
         std::vector<uint8_t> newValues = {5, 5, 5, 5};
-        redisState.set(kv->joinedKey, newValues);
+        redisState.set(actualKey, newValues);
 
         // Get and check whether the remote is pulled
         if (!async) {
@@ -382,6 +392,7 @@ namespace tests {
         redis::Redis &redisState = redis::Redis::getState();
 
         auto kv = setupKV(4);
+        std::string actualKey = util::keyForUser(kv->user, kv->key);
 
         std::vector<uint8_t> values = {0, 1, 2, 3};
         kv->set(values.data());
@@ -389,17 +400,17 @@ namespace tests {
 
         // Change in redis directly
         std::vector<uint8_t> newValues = {3, 4, 5, 6};
-        redisState.set(kv->joinedKey, newValues);
+        redisState.set(actualKey, newValues);
 
         // Push and make sure redis not changed as it's not dirty
         kv->pushFull();
-        REQUIRE(redisState.get(kv->joinedKey) == newValues);
+        REQUIRE(redisState.get(actualKey) == newValues);
 
         // Now change locally and check push happens
         std::vector<uint8_t> newValues2 = {7, 7, 7, 7};
         kv->set(newValues2.data());
         kv->pushFull();
-        REQUIRE(redisState.get(kv->joinedKey) == newValues2);
+        REQUIRE(redisState.get(actualKey) == newValues2);
     }
 
     TEST_CASE("Test mapping shared memory", "[state]") {
@@ -456,11 +467,12 @@ namespace tests {
         // Set up the KV
         int length = 5;
         auto kv = setupKV(length);
+        std::string actualKey = util::keyForUser(kv->user, kv->key);
 
         // Write value direct to redis
         std::vector<uint8_t> value = {0, 1, 2, 3, 4};
         redis::Redis &redisState = redis::Redis::getState();
-        redisState.set(kv->joinedKey, value.data(), length);
+        redisState.set(actualKey, value.data(), length);
 
         // Try to map the kv
         void *mappedRegion = mmap(nullptr, util::HOST_PAGE_SIZE, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -518,12 +530,13 @@ namespace tests {
         // Set up a larger total value
         size_t totalSize = (10 * util::HOST_PAGE_SIZE) + 15;
         auto kv = setupKV(totalSize);
+        std::string actualKey = util::keyForUser(kv->user, kv->key);
 
         // Write ones to storage
         std::vector<uint8_t> value(totalSize);
         std::fill(value.data(), value.data() + totalSize, 1);
         redis::Redis &redisState = redis::Redis::getState();
-        redisState.set(kv->joinedKey, value);
+        redisState.set(actualKey, value);
 
         // Map a couple of segments in host memory (as would be done by the wasm module)
         void *mappedRegionA = mmap(nullptr, mappingSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -556,11 +569,12 @@ namespace tests {
     TEST_CASE("Test pulling") {
         auto kv = setupKV(6);
         REQUIRE(kv->size() == 6);
+        std::string actualKey = util::keyForUser(kv->user, kv->key);
 
         // Set up value in Redis
         redis::Redis &redisState = redis::Redis::getState();
         std::vector<uint8_t> value = {0, 1, 2, 3, 4, 5};
-        redisState.set(kv->joinedKey, value);
+        redisState.set(actualKey, value);
 
         std::vector<uint8_t> expected;
 
@@ -577,14 +591,44 @@ namespace tests {
     TEST_CASE("Test deletion", "[state]") {
         redis::Redis &redisState = redis::Redis::getState();
         auto kv = setupKV(5);
+        std::string actualKey = util::keyForUser(kv->user, kv->key);
 
         // Push some data and check
         std::vector<uint8_t> values = {0, 1, 2, 3, 4};
         kv->set(values.data());
         kv->pushFull();
-        REQUIRE(redisState.get(kv->joinedKey) == values);
+        REQUIRE(redisState.get(actualKey) == values);
 
         kv->deleteGlobal();
-        redisState.get(kv->joinedKey);
+        redisState.get(actualKey);
+    }
+
+    TEST_CASE("Test appended state with KV", "[state]") {
+        auto kv = setupKV(1);
+
+        std::vector<uint8_t> valuesA = {0, 1, 2, 3, 4};
+        std::vector<uint8_t> valuesB = {5, 6};
+        std::vector<uint8_t> valuesC = {6, 5, 4, 3, 2, 1};
+
+        // Append one
+        kv->append(valuesA.data(), valuesA.size());
+
+        // Check
+        std::vector<uint8_t> actualA = {0, 0, 0, 0, 0};
+        kv->getAppended(actualA.data(), actualA.size(), 1);
+        REQUIRE(actualA == valuesA);
+
+        // Append a few and check
+        kv->append(valuesB.data(), valuesB.size());
+        kv->append(valuesB.data(), valuesB.size());
+        kv->append(valuesC.data(), valuesC.size());
+
+        size_t actualSize = valuesA.size() + 2 * valuesB.size() + valuesC.size();
+        std::vector<uint8_t> actualMulti(actualSize, 0);
+
+        std::vector<uint8_t> expectedMulti = {0, 1, 2, 3, 4, 5, 6, 5, 6, 6, 5, 4, 3, 2, 1};
+        kv->getAppended(actualMulti.data(), actualSize, 4);
+
+        REQUIRE(actualMulti == expectedMulti);
     }
 }

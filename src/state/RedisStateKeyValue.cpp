@@ -3,10 +3,12 @@
 #include <util/logging.h>
 #include <util/timing.h>
 #include <util/macros.h>
+#include <util/state.h>
 
 namespace state {
     RedisStateKeyValue::RedisStateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn)
-            : StateKeyValue(userIn, keyIn, sizeIn) {
+            : StateKeyValue(userIn, keyIn, sizeIn),
+              joinedKey(util::keyForUser(user, key)) {
 
     };
 
@@ -111,7 +113,7 @@ namespace state {
         PROF_END(pushPartial)
     }
 
-    void RedisStateKeyValue::appendToRemote(const uint8_t* data, size_t length) {
+    void RedisStateKeyValue::appendToRemote(const uint8_t *data, size_t length) {
         redis.enqueueBytes(joinedKey, data, length);
     }
 
