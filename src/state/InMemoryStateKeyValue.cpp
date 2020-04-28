@@ -50,6 +50,11 @@ namespace state {
         }
     }
 
+    size_t InMemoryStateKeyValue::getStateSize(const std::string &userIn, const std::string keyIn) {
+        // TODO - get state size (how to work out master/ not master here in static method?)
+        return 0;
+    }
+
     void InMemoryStateKeyValue::lockGlobal() {
         if (status == InMemoryStateKeyStatus::MASTER) {
             // TODO - acquire global lock locally

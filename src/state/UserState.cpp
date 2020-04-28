@@ -33,10 +33,14 @@ namespace state {
         // Full lock for doing anything
         FullLock fullLock(kvMapMutex);
 
-        // TODO break hard Redis dep
-        std::string actualKey = util::keyForUser(user, key);
-        redis::Redis &redis = redis::Redis::getState();
-        return redis.strlen(actualKey);
+        std::string stateMode = util::getSystemConfig().stateMode;
+        if (stateMode == "redis") {
+            return RedisStateKeyValue::getStateSize(user, key);
+        } else if (stateMode == "inmemory") {
+            return InMemoryStateKeyValue::getStateSize(user, key);
+        } else {
+            throw std::runtime_error("Unrecognised state mode: " + stateMode);
+        }
     }
 
     std::shared_ptr<StateKeyValue> UserState::getValue(const std::string &key, size_t size) {
@@ -61,12 +65,14 @@ namespace state {
 
         // Vary key-value implementation depending on state mode
         std::string stateMode = util::getSystemConfig().stateMode;
-        if(stateMode == "redis") {
+        if (stateMode == "redis") {
             auto kv = new RedisStateKeyValue(user, key, size);
             kvMap.emplace(key, kv);
-        } else if(stateMode == "inmemory") {
+        } else if (stateMode == "inmemory") {
             auto kv = new InMemoryStateKeyValue(user, key, size);
             kvMap.emplace(key, kv);
+        } else {
+            throw std::runtime_error("Unrecognised state mode: " + stateMode);
         }
 
         return kvMap[key];

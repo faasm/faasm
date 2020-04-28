@@ -12,6 +12,12 @@ namespace state {
 
     };
 
+    size_t RedisStateKeyValue::getStateSize(const std::string &userIn, const std::string keyIn) {
+        std::string actualKey = util::keyForUser(userIn, keyIn);
+        redis::Redis &redis = redis::Redis::getState();
+        return redis.strlen(actualKey);
+    }
+
     void RedisStateKeyValue::lockGlobal() {
         lastRemoteLockId = waitOnRedisRemoteLock(joinedKey);
     }

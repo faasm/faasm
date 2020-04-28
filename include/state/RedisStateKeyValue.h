@@ -11,6 +11,8 @@ namespace state {
     class RedisStateKeyValue final : public StateKeyValue {
     public:
         RedisStateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn);
+
+        static size_t getStateSize(const std::string &userIn, const std::string keyIn);
     private:
         const std::string joinedKey;
 
