@@ -38,6 +38,10 @@ namespace state {
 
         void setSegment(long offset, const uint8_t *buffer, size_t length);
 
+        void append(uint8_t *buffer, size_t length);
+
+        void getAppended(uint8_t *buffer, size_t length, long nValues);
+
         void mapSharedMemory(void *destination, long pagesOffset, long nPages);
 
         void unmapSharedMemory(void *mappedAddr);
@@ -117,6 +121,10 @@ namespace state {
         virtual void pullRangeFromRemote(long offset, size_t length) = 0;
 
         virtual void pushToRemote() = 0;
+
+        virtual void appendToRemote(const uint8_t *data, size_t length) = 0;
+
+        virtual void pullAppendedFromRemote(uint8_t *data, size_t length, long nValues) = 0;
 
         virtual void pushPartialToRemote(const uint8_t *dirtyMaskBytes) = 0;
 

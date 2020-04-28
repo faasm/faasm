@@ -110,6 +110,18 @@ namespace state {
         isDirty = true;
     }
 
+    void StateKeyValue::append(uint8_t *buffer, size_t length) {
+        SharedLock lock(valueMutex);
+
+        appendToRemote(buffer, length);
+    }
+
+    void StateKeyValue::getAppended(uint8_t *buffer, size_t length, long nValues) {
+        SharedLock lock(valueMutex);
+
+        return pullAppendedFromRemote(buffer, length, nValues);
+    }
+
     void StateKeyValue::setSegment(long offset, const uint8_t *buffer, size_t length) {
         // Check we're in bounds
         size_t end = offset + length;

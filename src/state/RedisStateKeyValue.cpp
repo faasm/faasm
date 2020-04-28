@@ -111,6 +111,14 @@ namespace state {
         PROF_END(pushPartial)
     }
 
+    void RedisStateKeyValue::appendToRemote(const uint8_t* data, size_t length) {
+        redis.enqueueBytes(joinedKey, data, length);
+    }
+
+    void RedisStateKeyValue::pullAppendedFromRemote(uint8_t *data, size_t length, long nValues) {
+        redis.dequeueMultiple(joinedKey, data, length, nValues);
+    }
+
     void RedisStateKeyValue::deleteFromRemote() {
         redis.del(joinedKey);
     }

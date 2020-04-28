@@ -26,6 +26,10 @@ namespace state {
 
         void pushPartialToRemote(const uint8_t *dirtyMaskBytes) override;
 
+        void appendToRemote(const uint8_t *data, size_t length) override;
+
+        void pullAppendedFromRemote(uint8_t *data, size_t length, long nValues) override;
+
         void deleteFromRemote() override;
     };
 }

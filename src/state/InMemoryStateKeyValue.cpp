@@ -134,6 +134,22 @@ namespace state {
         // TODO - do partial push to master
     }
 
+    void InMemoryStateKeyValue::appendToRemote(const uint8_t *data, size_t length) {
+        if (status == InMemoryStateKeyStatus::MASTER) {
+            // TODO - do append locally
+        } else {
+            // TODO - do append to master
+        }
+    }
+
+    void InMemoryStateKeyValue::pullAppendedFromRemote(uint8_t *data, size_t length, long nValues) {
+        if (status == InMemoryStateKeyStatus::MASTER) {
+            return;
+        }
+
+        // TODO - pull append-only data
+    }
+
     void InMemoryStateKeyValue::deleteFromRemote() {
         if (status == InMemoryStateKeyStatus::MASTER) {
             // TODO - delete locally
