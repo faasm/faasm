@@ -98,8 +98,6 @@ namespace state {
         // Get the master IP (failing if there isn't one)
         const std::string &masterIP = getMasterIP(userIn, keyIn, false);
 
-        // TODO - cache this result
-
         // Sanity check that the master is *not* this machine
         std::string thisIP = util::getSystemConfig().endpointHost;
         if (masterIP == thisIP) {
@@ -107,6 +105,8 @@ namespace state {
         }
 
         // TODO - request state size from master
+
+        // TODO - cache this result
 
         return 0;
     }
@@ -158,7 +158,7 @@ namespace state {
         tcp::TCPMessage *msg = buildStateTCPMessage(StateMessageType::STATE_PULL, user, key, dataSize);
 
         // Copy offset and length into buffer
-        unsigned long dataOffset = sizeof(int32_t) + user.size() + sizeof(int32_t) + key.size();
+        unsigned long dataOffset = getTCPMessageDataOffset(user, key);
         auto offSetInt = (int32_t) offset;
         auto lengthInt = (int32_t) length;
         std::copy(BYTES(&offSetInt), BYTES(&offSetInt) + sizeof(int32_t), msg->buffer + dataOffset);
@@ -184,7 +184,25 @@ namespace state {
             return;
         }
 
-        // TODO - do push to master
+        // Buffer contains length followed by the data
+        size_t valueSize = size();
+        auto valuePtr = BYTES(sharedMemory);
+        size_t dataSize = sizeof(int32_t) + valueSize;
+        tcp::TCPMessage *msg = buildStateTCPMessage(StateMessageType::STATE_PUSH, user, key, dataSize);
+        
+        // Copy length and data into buffer
+        unsigned long dataOffset = getTCPMessageDataOffset(user, key);
+        auto sizeInt = (int32_t) valueSize;
+        std::copy(BYTES(&sizeInt), BYTES(&sizeInt) + sizeof(int32_t), msg->buffer + dataOffset);
+
+        // TODO - avoid copy here?
+        lockRead();
+        std::copy(valuePtr, valuePtr + valueSize, msg->buffer + dataOffset + sizeof(int32_t));
+        unlockRead();
+
+        // Send the message (no response)
+        masterClient->sendMessage(msg);
+        tcp::freeTcpMessage(msg);
     }
 
     void InMemoryStateKeyValue::pushPartialToRemote(const uint8_t *dirtyMaskBytes) {
@@ -192,7 +210,7 @@ namespace state {
             return;
         }
 
-        // TODO - do partial push to master
+        // TODO - iterate through dirty mask and push to remote (see Redis)
     }
 
     void InMemoryStateKeyValue::appendToRemote(const uint8_t *data, size_t length) {

@@ -58,7 +58,7 @@ namespace state {
 
         SharedLock lock(valueMutex);
 
-        auto bytePtr = static_cast<uint8_t *>(sharedMemory);
+        auto bytePtr = BYTES(sharedMemory);
         std::copy(bytePtr, bytePtr + valueSize, buffer);
     }
 
@@ -67,7 +67,7 @@ namespace state {
 
         SharedLock lock(valueMutex);
 
-        return static_cast<uint8_t *>(sharedMemory);
+        return BYTES(sharedMemory);
     }
 
     void StateKeyValue::getSegment(long offset, uint8_t *buffer, size_t length) {
@@ -82,7 +82,7 @@ namespace state {
             throw std::runtime_error("Out of bounds read");
         }
 
-        auto bytePtr = static_cast<uint8_t *>(sharedMemory);
+        auto bytePtr = BYTES(sharedMemory);
         std::copy(bytePtr + offset, bytePtr + offset + length, buffer);
     }
 
@@ -91,7 +91,7 @@ namespace state {
 
         SharedLock lock(valueMutex);
 
-        uint8_t *segmentPtr = static_cast<uint8_t *>(sharedMemory) + offset;
+        uint8_t *segmentPtr = BYTES(sharedMemory) + offset;
         return segmentPtr;
     }
 
@@ -104,7 +104,7 @@ namespace state {
         }
 
         // Copy data into shared region
-        std::copy(buffer, buffer + valueSize, static_cast<uint8_t *>(sharedMemory));
+        std::copy(buffer, buffer + valueSize, BYTES(sharedMemory));
         isDirty = true;
     }
 
@@ -142,7 +142,7 @@ namespace state {
         }
 
         // Do the copy
-        auto bytePtr = static_cast<uint8_t *>(sharedMemory);
+        auto bytePtr = BYTES(sharedMemory);
         std::copy(buffer, buffer + length, bytePtr + offset);
 
         markDirtySegment(offset, length);

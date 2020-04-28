@@ -4,6 +4,10 @@
 
 namespace state {
 
+    size_t getTCPMessageDataOffset(const std::string &user, const std::string &key) {
+        return sizeof(int32_t) + user.size() + sizeof(int32_t) + key.size();
+    }
+
     tcp::TCPMessage *buildStateTCPMessage(int msgType,
                                           const std::string &user, const std::string &key,
                                           size_t dataSize) {

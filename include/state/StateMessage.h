@@ -17,8 +17,11 @@ namespace state {
         STATE_PULL,
         STATE_PULL_CHUNK,
         STATE_PULL_RESPONSE,
+        STATE_PULL_CHUNK_RESPONSE,
         STATE_PUSH,
         STATE_PUSH_CHUNK,
+        STATE_SIZE,
+        STATE_SIZE_RESPONSE,
         STATE_UNLOCK,
         TIMEOUT_RESPONSE,
     };
@@ -29,6 +32,8 @@ namespace state {
         int valueLen;
         uint8_t *value;
     };
+
+    size_t getTCPMessageDataOffset(const std::string &user, const std::string &key);
 
     tcp::TCPMessage *buildStateTCPMessage(
             int msgType,
