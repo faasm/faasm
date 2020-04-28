@@ -231,14 +231,11 @@ namespace wasm {
 
             redis.setLong(REDUCE_KEY, 0);
 
-            // rec
+            // TODO - Implement redo
             if (activeSnapshotKey.empty()) {
                 int callId = getExecutingCall()->id();
                 activeSnapshotKey = fmt::format("omp_snapshot_{}", callId);
                 threadSnapshotSize = parentModule->snapshotToState(activeSnapshotKey);
-            } else {
-                // TODO - implement
-                //throw std::runtime_error("OMP already bound");
             }
 
             scheduler::Scheduler &sch = scheduler::getScheduler();
@@ -246,7 +243,7 @@ namespace wasm {
             const message::Message *originalCall = getExecutingCall();
             const std::string origStr = util::funcToString(*originalCall, false);
 
-            // Create the threads themselves
+            // Create the threads (messages) themselves
             for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
                 message::Message call = util::messageFactory(originalCall->user(), originalCall->function());
                 call.set_isasync(true);
@@ -264,7 +261,7 @@ namespace wasm {
                 // Snapshot details
                 call.set_snapshotkey(activeSnapshotKey);
                 call.set_snapshotsize(threadSnapshotSize);
-                call.set_funcptr(microtaskPtr); // ugh..?>?> TODO-Luckily I don't think it's being used.
+                call.set_funcptr(microtaskPtr);
                 call.set_ompthreadnum(threadNum);
                 call.set_ompnumthreads(nextNumThreads);
                 thisLevel->snapshot_parent(call);
@@ -497,16 +494,6 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_for_static_fini", void, __kmpc_for_static_fini,
                                    I32 loc, I32 gtid) {
         util::getLogger()->debug("S - __kmpc_for_static_fini {} {}", loc, gtid);
-    }
-
-    /**
-     * There exists many reduction methods, implementing everything as a reduce block
-     */
-    kmp::_reduction_method determineReductionMethod() {
-        if (thisLevel->num_threads == 1) {
-            return kmp::empty_reduce_block;
-        }
-        return kmp::critical_reduce_block;
     }
 
     /**

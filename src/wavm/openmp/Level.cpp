@@ -42,6 +42,8 @@ namespace wasm {
         }
 
         ReduceTypes SingleHostLevel::reductionMethod() {
+            // There exists many reduction methods, simply implement everything as a critical block
+            // unless we know we can avoid synchronisation for now
             if (num_threads == 1) {
                 return ReduceTypes::emptyBlock;
             }
