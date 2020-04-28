@@ -11,6 +11,7 @@ __kmpc_flush
 
 # OpenMP loops
 __kmpc_for_static_init_4
+__kmpc_for_static_init_8
 __kmpc_for_static_fini
 
 # OpenMP reduce
@@ -28,6 +29,10 @@ omp_get_level
 omp_get_max_active_levels
 omp_set_default_device
 omp_set_max_active_levels
+
+# Redis state
+__faasmp_incrby
+__faasmp_getLong
 
 # Debug functions
 __faasmp_debug_copy

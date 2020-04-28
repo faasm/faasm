@@ -23,7 +23,8 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <Runtime/RuntimePrivate.h>
 #include <WASI/WASIPrivate.h>
-#include <wasm/openmp/ThreadState.h>
+
+#include <wavm/openmp/ThreadState.h>
 
 using namespace WAVM;
 
@@ -644,10 +645,20 @@ namespace wasm {
             logger->debug("Running OMP thread #{} for function{} with argType {} (argc = {})", threadNum, funcPtr,
                           WAVM::IR::asString(funcType), argc);
 
+//            invokeArgs.emplace_back(100);
+//            invokeArgs.emplace_back(200);
+//            invokeArgs.emplace_back(400);
+//            invokeArgs.emplace_back(500);
             invokeArgs.emplace_back(threadNum);
             invokeArgs.emplace_back(argc);
-            for (int argIdx = 0; argIdx < argc; argIdx++) {
+//            for (int argIdx = 0; argIdx < argc; argIdx++) {
+            for (int argIdx = argc - 1; argIdx >=  0; argIdx--) {
                 invokeArgs.emplace_back(msg.ompfunctionargs(argIdx));
+            }
+            // Those could be all nullptr and yet have NO effect
+//            std::reverse(invokeArgs.begin(), invokeArgs.end());
+            for (auto & invokeArg : invokeArgs) {
+                logger->error("invokeArgs {}", invokeArg.i32);
             }
 
         } else if (funcPtr > 0) {
@@ -1110,8 +1121,7 @@ namespace wasm {
         setExecutingCall(spec.parentCall);
 
         // Set up OMP properties
-        openmp::setThreadNumber(spec.tid);
-        openmp::setThreadLevel(spec.level);
+        openmp::setTLS(spec.tid, spec.level);
 
         // Create a new region for this thread's stack
         U32 thisStackBase = getExecutingModule()->mmapMemory(spec.stackSize);

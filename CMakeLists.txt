@@ -12,6 +12,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(FAASM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(FAASM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
 set(FAASM_LIB_CPP_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/cpp)
+set(FAASM_LIB_FAASMP_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/faasmp)
 set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/pyinit)
 set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/WAVM/Lib)
 
@@ -80,6 +81,7 @@ else ()
 endif ()
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+include_directories(${LLVM_INCLUDE_DIRS})
 
 # Eigen parallelisation
 # add_definitions(-DEIGEN_DONT_PARALLELIZE)
@@ -92,6 +94,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 include_directories(
         ${FAASM_INCLUDE_DIR}
         ${FAASM_LIB_CPP_DIR}
+        ${FAASM_LIB_FAASMP_DIR}
         ${FAASM_PYTHON_LIB_DIR}
         ${CMAKE_CURRENT_BINARY_DIR}/src # Required for protobuf
 )

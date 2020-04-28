@@ -59,6 +59,14 @@ namespace tests {
             REQUIRE(redisQueue.decrByLong(key, 2) == 5 + 10 - 2);
         }
 
+        SECTION("Test lpush / rpush") {
+            std::string key = "test_basic_list_push";
+            redisQueue.del(key);
+
+            REQUIRE(redisQueue.lpushLong(key, 1) == 1);
+            REQUIRE(redisQueue.rpushLong(key, 2) == 2);
+        }
+
         SECTION("Test enqueue/ dequeue bytes") {
             // Enqueue some values
             std::vector<uint8_t> bytesA = util::stringToBytes(VALUE_A);

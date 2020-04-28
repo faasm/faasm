@@ -25,7 +25,7 @@ message Message {
     optional string statusKey = 11;
 
     optional string scheduledNode = 12;
-    optional int32 hops = 13;
+    optional int32 hops = 13 [default = 0];
     optional string executedNode = 14;
 
     optional bool isAsync = 15;
