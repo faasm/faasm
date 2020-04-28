@@ -9,7 +9,7 @@ constexpr int EXPECTED = ITERATIONS * (ITERATIONS - 1) / 2;
 int main() {
     omp_set_default_device(-2);
     long result = 0;
-    #pragma omp parallel for num_threads(2) default(none) reduction(+:result)
+    #pragma omp parallel for num_threads(50) default(none) reduction(+:result)
     for (int i = 0; i < ITERATIONS; i++) {
         result += i;
     }

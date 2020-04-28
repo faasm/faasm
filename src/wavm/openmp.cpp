@@ -255,7 +255,7 @@ namespace wasm {
                 threadSnapshotSize = parentModule->snapshotToState(activeSnapshotKey);
             } else {
                 // TODO - implement
-                throw std::runtime_error("OMP already bound");
+                //throw std::runtime_error("OMP already bound");
             }
 
             scheduler::Scheduler &sch = scheduler::getScheduler();
@@ -273,7 +273,6 @@ namespace wasm {
                     for (int argIdx = 0; argIdx < argc; argIdx++) {
                         if (argIdx == 0) {
                             reducePtr = &Runtime::memoryRef<I32>(memoryPtr, pointers[argIdx]);
-                            logger->warn("BEFORE ARG: {}", *reducePtr);
                         }
                         call.add_ompfunctionargs(pointers[argIdx]);
                     }
@@ -601,7 +600,7 @@ namespace wasm {
         logger->debug("S - __kmpc_reduce_nowait {} {} {} {} {} {} {}", loc, gtid, num_vars, reduce_size, reduce_data,
                       reduce_func, lck);
 
-        if (1 == userNumDevice) {
+        if (1 != userNumDevice) {
             Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
             int *localReduceData = &Runtime::memoryRef<I32>(memoryPtr, Runtime::memoryRef<I32>(memoryPtr, reduce_data));
             logger->debug("Reduce local data ({}): {}", thisThreadNumber, *localReduceData);
