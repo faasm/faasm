@@ -6,7 +6,7 @@
 
 using namespace faasm;
 
-namespace data {
+namespace storage {
     class SparseMatrixFileSerialiser : public SparseMatrixSerialiser {
     public:
         using SparseMatrixSerialiser::SparseMatrixSerialiser;
@@ -15,14 +15,4 @@ namespace data {
 
         static SparseMatrix<double> readFromFiles(const std::string &directory);
     };
-
-    void runPool(const SgdParams &params, int epoch);
-
-    void clear();
-
-    double getRMSE(const SgdParams &p);
-
-    std::vector<double> getErrors();
-
-    void run(int epoch, int batchNumber);
 }

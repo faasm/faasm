@@ -3,16 +3,7 @@ include_directories(
         ${FAASM_WAVM_SOURCE_DIR}
 )
 
-set(HEADERS
-        ${FAASM_INCLUDE_DIR}/storage/FileLoader.h
-        ${FAASM_INCLUDE_DIR}/storage/FileDescriptor.h
-        ${FAASM_INCLUDE_DIR}/storage/FileSystem.h
-        ${FAASM_INCLUDE_DIR}/storage/FileserverFileLoader.h
-        ${FAASM_INCLUDE_DIR}/storage/IBMFileLoader.h
-        ${FAASM_INCLUDE_DIR}/storage/IBMStorageWrapper.h
-        ${FAASM_INCLUDE_DIR}/storage/LocalFileLoader.h
-        ${FAASM_INCLUDE_DIR}/storage/SharedFiles.h
-        )
+file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/storage/*.h")
 
 set(LIB_FILES
         FileDescriptor.cpp
@@ -23,9 +14,10 @@ set(LIB_FILES
         IBMStorageWrapper.cpp
         LocalFileLoader.cpp
         SharedFiles.cpp
+        SparseMatrixFileSerialiser.cpp
         instance.cpp
         ${HEADERS}
         )
 
 faasm_private_lib(storage "${LIB_FILES}")
-target_link_libraries(storage util libWAVM ${EXTRA_LIBS})
+target_link_libraries(storage faasm util libWAVM)

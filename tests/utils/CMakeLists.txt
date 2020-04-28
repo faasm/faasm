@@ -16,7 +16,6 @@ target_link_libraries(test_utils
         upload_lib
         worker_lib
         emulator
-        data
         tcp
         worker_knative_lib
         worker_ibm_lib

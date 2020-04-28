@@ -5,9 +5,7 @@
 #include <faasm/sgd.h>
 #include <faasm/matrix.h>
 
-#include <data/data.h>
 #include <redis/Redis.h>
-#include <state/State.h>
 #include <util/environment.h>
 #include <emulator/emulator.h>
 #include <util/state.h>
