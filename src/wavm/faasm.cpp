@@ -4,8 +4,6 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
 
-#include <redis/Redis.h>
-#include <state/StateKeyValue.h>
 #include <util/bytes.h>
 #include <util/files.h>
 #include <util/state.h>
@@ -106,30 +104,24 @@ namespace wasm {
 
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
-        const std::string actualKey = util::keyForUser(getExecutingCall()->user(), key);
-
-        logger->debug("S - append_state - {} {} {}", actualKey, dataPtr, dataLen);
-
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
-        std::vector<uint8_t> bytes(data, data + dataLen);
 
-        // TODO - Redis dep
-        redis::Redis &redis = redis::Redis::getState();
-        redis.enqueueBytes(actualKey, bytes);
+        logger->debug("S - append_state - {} {} {}", key, dataPtr, dataLen);
+
+        auto kv = getStateKV(keyPtr, dataLen);
+        kv->append(data, dataLen);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_appended_state", void, __faasm_read_appended_state,
                                    I32 keyPtr, I32 bufferPtr, I32 bufferLen, I32 nElems) {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
-        const std::string actualKey = util::keyForUser(getExecutingCall()->user(), key);
-
-        util::getLogger()->debug("S - read_appended_state - {} {} {} {}", actualKey, bufferPtr, bufferLen, nElems);
-
-        // Dequeue straight to buffer
-        redis::Redis &redis = redis::Redis::getState();
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
-        redis.dequeueMultiple(actualKey, buffer, bufferLen, nElems);
+
+        util::getLogger()->debug("S - read_appended_state - {} {} {} {}", key, bufferPtr, bufferLen, nElems);
+
+        auto kv = getStateKV(keyPtr, bufferLen);
+        kv->getAppended(buffer, bufferLen, nElems);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_clear_appended_state", void, __faasm_clear_appended_state,
@@ -138,12 +130,10 @@ namespace wasm {
 
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
-        const std::string actualKey = util::keyForUser(getExecutingCall()->user(), key);
 
-        logger->debug("S - clear_appended_state - {}", actualKey);
-
-        redis::Redis &redis = redis::Redis::getState();
-        redis.del(actualKey);
+        logger->debug("S - clear_appended_state - {}", key);
+        auto kv = getStateKV(keyPtr, 0);
+        kv->deleteGlobal();
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state_offset", void, __faasm_write_state_offset,
@@ -168,13 +158,13 @@ namespace wasm {
         // Read file into bytes
         const std::string maskedPath = storage::prependRuntimeRoot(path);
         const std::vector<uint8_t> bytes = util::readFileToBytes(maskedPath);
+        unsigned long fileLength = bytes.size();
 
         // Write to state
-        const std::string actualKey = util::keyForUser(getExecutingCall()->user(), key);
-        redis::Redis &redis = redis::Redis::getState();
-        redis.set(actualKey, bytes);
-
-        return bytes.size();
+        auto kv = getStateKV(keyPtr, fileLength);
+        kv->set(bytes.data());
+        
+        return fileLength;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state", I32, __faasm_read_state,
@@ -184,8 +174,7 @@ namespace wasm {
         if(bufferLen == 0) {
             std::string user = getExecutingCall()->user();
             std::string key = getStringFromWasm(keyPtr);
-            const std::string &actualKey = util::keyForUser(user, key);
-            util::getLogger()->debug("S - read_state - {} {} {}", actualKey, bufferPtr, bufferLen);
+            util::getLogger()->debug("S - read_state - {} {} {}", key, bufferPtr, bufferLen);
 
             state::State &state = state::getGlobalState();
             return (I32) state.getStateSize(user, key);

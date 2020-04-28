@@ -3,26 +3,36 @@
 #include <util/logging.h>
 #include <util/timing.h>
 #include <util/macros.h>
+#include <util/state.h>
 
 namespace state {
-    RedisStateKeyValue::RedisStateKeyValue(const std::string &keyIn, size_t sizeIn) : StateKeyValue(keyIn, sizeIn) {
+    RedisStateKeyValue::RedisStateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn)
+            : StateKeyValue(userIn, keyIn, sizeIn),
+              joinedKey(util::keyForUser(user, key)) {
+
     };
 
+    size_t RedisStateKeyValue::getStateSize(const std::string &userIn, const std::string keyIn) {
+        std::string actualKey = util::keyForUser(userIn, keyIn);
+        redis::Redis &redis = redis::Redis::getState();
+        return redis.strlen(actualKey);
+    }
+
     void RedisStateKeyValue::lockGlobal() {
-        lastRemoteLockId = waitOnRedisRemoteLock(key);
+        lastRemoteLockId = waitOnRedisRemoteLock(joinedKey);
     }
 
     void RedisStateKeyValue::unlockGlobal() {
-        redis.releaseLock(key, lastRemoteLockId);
+        redis.releaseLock(joinedKey, lastRemoteLockId);
     }
 
     void RedisStateKeyValue::pullFromRemote() {
         PROF_START(statePull)
 
         // Read from the remote
-        logger->debug("Pulling remote value for {}", key);
+        logger->debug("Pulling remote value for {}", joinedKey);
         auto memoryBytes = static_cast<uint8_t *>(sharedMemory);
-        redis.get(key, memoryBytes, valueSize);
+        redis.get(joinedKey, memoryBytes, valueSize);
 
         PROF_END(statePull)
     }
@@ -34,9 +44,9 @@ namespace state {
         size_t rangeEnd = offset + length - 1;
 
         // Read from the remote
-        logger->debug("Pulling remote segment ({}-{}) for {}", offset, offset + length, key);
+        logger->debug("Pulling remote segment ({}-{}) for {}", offset, offset + length, joinedKey);
         auto memoryBytes = static_cast<uint8_t *>(sharedMemory);
-        redis.getRange(key, memoryBytes + offset, length, offset, rangeEnd);
+        redis.getRange(joinedKey, memoryBytes + offset, length, offset, rangeEnd);
 
         PROF_END(stateSegmentPull)
     }
@@ -44,9 +54,9 @@ namespace state {
     void RedisStateKeyValue::pushToRemote() {
         PROF_START(pushFull)
 
-        logger->debug("Pushing whole value for {}", key);
+        logger->debug("Pushing whole value for {}", joinedKey);
 
-        redis.set(key, static_cast<uint8_t *>(sharedMemory), valueSize);
+        redis.set(joinedKey, static_cast<uint8_t *>(sharedMemory), valueSize);
 
         // Remove any dirty flags
         isDirty = false;
@@ -72,7 +82,7 @@ namespace state {
 
                     // Pipeline the change
                     unsigned long length = i - startIdx;
-                    redis.setRangePipeline(key, startIdx, sharedMemoryBytes + startIdx, length);
+                    redis.setRangePipeline(joinedKey, startIdx, sharedMemoryBytes + startIdx, length);
                     updateCount++;
                 }
             } else {
@@ -86,7 +96,7 @@ namespace state {
         // Write a final chunk
         if (isOn) {
             unsigned long length = valueSize - startIdx;
-            redis.setRangePipeline(key, startIdx, sharedMemoryBytes + startIdx, length);
+            redis.setRangePipeline(joinedKey, startIdx, sharedMemoryBytes + startIdx, length);
             updateCount++;
         }
 
@@ -94,13 +104,13 @@ namespace state {
         memset((void *) dirtyMaskBytes, 0, valueSize);
 
         // Flush the pipeline
-        logger->debug("Pipelined {} updates on {}", updateCount, key);
+        logger->debug("Pipelined {} updates on {}", updateCount, joinedKey);
         redis.flushPipeline(updateCount);
 
         // Read the latest value
         if (_fullyAllocated) {
-            logger->debug("Pulling from remote on partial push for {}", key);
-            redis.get(key, sharedMemoryBytes, valueSize);
+            logger->debug("Pulling from remote on partial push for {}", joinedKey);
+            redis.get(joinedKey, sharedMemoryBytes, valueSize);
         }
 
         // Mark as no longer dirty
@@ -109,7 +119,15 @@ namespace state {
         PROF_END(pushPartial)
     }
 
+    void RedisStateKeyValue::appendToRemote(const uint8_t *data, size_t length) {
+        redis.enqueueBytes(joinedKey, data, length);
+    }
+
+    void RedisStateKeyValue::pullAppendedFromRemote(uint8_t *data, size_t length, long nValues) {
+        redis.dequeueMultiple(joinedKey, data, length, nValues);
+    }
+
     void RedisStateKeyValue::deleteFromRemote() {
-        redis.del(key);
+        redis.del(joinedKey);
     }
 }

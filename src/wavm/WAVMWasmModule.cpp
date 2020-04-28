@@ -790,7 +790,7 @@ namespace wasm {
 
     U32 WAVMWasmModule::mmapKey(const std::shared_ptr<state::StateKeyValue> &kv, long offset, U32 length) {
         // Create a key for this specific offset and length and cache the pointer once done
-        const std::string segmentKey = kv->getSegmentKey(offset, length);
+        std::string segmentKey = kv->user + "_" + kv->key + "_" + std::to_string(offset) + "_" + std::to_string(length);
 
         // See if this is the first time the module has seen this key
         if (sharedMemWasmPtrs.count(segmentKey) == 0) {

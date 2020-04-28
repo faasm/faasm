@@ -1,9 +1,8 @@
 #pragma once
 
+#include "StateMessage.h"
+
 #include <tcp/TCPServer.h>
-
-#define STATE_PORT 8003
-
 
 namespace state {
     class StateServer final : public tcp::TCPServer {

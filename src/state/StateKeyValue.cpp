@@ -12,10 +12,12 @@
 using namespace util;
 
 namespace state {
-    StateKeyValue::StateKeyValue(const std::string &keyIn, size_t sizeIn) : key(keyIn),
-                                                                            redis(redis::Redis::getState()),
-                                                                            logger(util::getLogger()),
-                                                                            valueSize(sizeIn) {
+    StateKeyValue::StateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn) :
+            user(userIn),
+            key(keyIn),
+            redis(redis::Redis::getState()),
+            logger(util::getLogger()),
+            valueSize(sizeIn) {
 
         // Work out size of required shared memory
         size_t nHostPages = getRequiredHostPages(valueSize);
@@ -36,7 +38,7 @@ namespace state {
     }
 
     void StateKeyValue::pull() {
-        logger->debug("Pulling state for {}", key);
+        logger->debug("Pulling state for {}/{}", user, key);
         pullImpl(false);
     }
 
@@ -75,7 +77,8 @@ namespace state {
 
         // Return just the required segment
         if ((offset + length) > valueSize) {
-            logger->error("Out of bounds read at {} on {} with length {}", offset + length, key, valueSize);
+            logger->error("Out of bounds read at {} on {}/{} with length {}",
+                          offset + length, user, key, valueSize);
             throw std::runtime_error("Out of bounds read");
         }
 
@@ -105,6 +108,18 @@ namespace state {
         isDirty = true;
     }
 
+    void StateKeyValue::append(uint8_t *buffer, size_t length) {
+        FullLock lock(valueMutex);
+
+        appendToRemote(buffer, length);
+    }
+
+    void StateKeyValue::getAppended(uint8_t *buffer, size_t length, long nValues) {
+        SharedLock lock(valueMutex);
+
+        return pullAppendedFromRemote(buffer, length, nValues);
+    }
+
     void StateKeyValue::setSegment(long offset, const uint8_t *buffer, size_t length) {
         // Check we're in bounds
         size_t end = offset + length;
@@ -130,7 +145,7 @@ namespace state {
         auto bytePtr = static_cast<uint8_t *>(sharedMemory);
         std::copy(buffer, buffer + length, bytePtr + offset);
 
-        flagSegmentDirty(offset, length);
+        markDirtySegment(offset, length);
     }
 
     void StateKeyValue::flagDirty() {
@@ -152,26 +167,26 @@ namespace state {
     }
 
     void StateKeyValue::flagSegmentDirty(long offset, long len) {
+        // This is accessible publicly but also called internally when a
+        // lock is already held, hence we need to split the locking and
+        // marking of the segment.
+        util::SharedLock lock(valueMutex);
+        markDirtySegment(offset, len);
+    }
+
+    void StateKeyValue::markDirtySegment(long offset, long len) {
         isDirty |= true;
         memset(((uint8_t *) dirtyMask) + offset, 0b11111111, len);
     }
 
-    void StateKeyValue::flagSegmentAllocated(long offset, long len) {
+    void StateKeyValue::markAllocatedSegment(long offset, long len) {
         memset(((uint8_t *) allocatedMask) + offset, 0b11111111, len);
-    }
-
-    std::string StateKeyValue::getSegmentKey(long offset, long length) {
-        util::SharedLock lock(valueMutex);
-
-        std::string regionKey = key + "_" + std::to_string(offset) + "_" + std::to_string(length);
-
-        return regionKey;
     }
 
     void StateKeyValue::clear() {
         FullLock lock(valueMutex);
 
-        logger->debug("Clearing value {}", key);
+        logger->debug("Clearing value {}/{}", user, key);
 
         // Set flag to say this is effectively new again
         _fullyAllocated = false;
@@ -256,7 +271,7 @@ namespace state {
         }
 
         // Flag the segment as allocated
-        flagSegmentAllocated(alignedOffset, alignedLength);
+        markAllocatedSegment(alignedOffset, alignedLength);
     }
 
     void StateKeyValue::initialiseStorage(bool allocate) {

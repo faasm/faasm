@@ -18,7 +18,9 @@
 namespace state {
     class StateKeyValue {
     public:
-        explicit StateKeyValue(const std::string &keyIn, size_t sizeIn);
+        StateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn);
+
+        const std::string user;
 
         const std::string key;
 
@@ -33,6 +35,10 @@ namespace state {
         void set(const uint8_t *buffer);
 
         void setSegment(long offset, const uint8_t *buffer, size_t length);
+
+        void append(uint8_t *buffer, size_t length);
+
+        void getAppended(uint8_t *buffer, size_t length, long nValues);
 
         void mapSharedMemory(void *destination, long pagesOffset, long nPages);
 
@@ -60,11 +66,7 @@ namespace state {
 
         void flagSegmentDirty(long offset, long len);
 
-        void flagSegmentAllocated(long offset, long len);
-
         size_t size();
-
-        std::string getSegmentKey(long offset, long length);
 
         void deleteGlobal();
 
@@ -108,11 +110,19 @@ namespace state {
 
         long waitOnRedisRemoteLock(const std::string &redisKey);
 
+        void markDirtySegment(long offset, long len);
+
+        void markAllocatedSegment(long offset, long len);
+
         virtual void pullFromRemote() = 0;
 
         virtual void pullRangeFromRemote(long offset, size_t length) = 0;
 
         virtual void pushToRemote() = 0;
+
+        virtual void appendToRemote(const uint8_t *data, size_t length) = 0;
+
+        virtual void pullAppendedFromRemote(uint8_t *data, size_t length, long nValues) = 0;
 
         virtual void pushPartialToRemote(const uint8_t *dirtyMaskBytes) = 0;
 

@@ -9,6 +9,7 @@
 
 #include <boost/filesystem.hpp>
 #include <storage/FileLoader.h>
+#include <util/state.h>
 
 
 using namespace web::http::experimental::listener;
@@ -91,9 +92,9 @@ namespace tests {
             edge::UploadServer::handlePut(requestB);
 
             // Check states uploaded with usernames prefixed
-            std::string realKeyA1 = "foo_bar";
-            std::string realKeyA2 = "foo_baz";
-            std::string realKeyB = "bat_qux";
+            std::string realKeyA1 = util::keyForUser("foo", "bar");
+            std::string realKeyA2 = util::keyForUser("foo", "baz");
+            std::string realKeyB = util::keyForUser("bat", "qux");
 
             REQUIRE(redisQueue.get(realKeyA1) == stateA1);
             REQUIRE(redisQueue.get(realKeyA2) == stateA2);

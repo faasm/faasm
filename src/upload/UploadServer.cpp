@@ -5,9 +5,8 @@
 
 #include <storage/FileLoader.h>
 #include <util/config.h>
-#include <util/state.h>
 #include <util/files.h>
-#include <redis/Redis.h>
+#include <state/State.h>
 
 
 namespace edge {
@@ -168,14 +167,14 @@ namespace edge {
         const std::vector<std::string> pathParts = UploadServer::getPathParts(request);
         std::string user = pathParts[1];
         std::string key = pathParts[2];
-        std::string realKey = util::keyForUser(user, key);
-
         logger->info("Downloading state from ({}/{})", user, key);
 
-        // TODO - break hard Redis dependency here
-        redis::Redis &redis = redis::Redis::getState();
-        const std::vector<uint8_t> value = redis.get(realKey);
-
+        state::State &state = state::getGlobalState();
+        size_t stateSize = state.getStateSize(user, key);
+        const std::shared_ptr<state::StateKeyValue> &kv = state.getKV(user, key, stateSize);
+        uint8_t *stateValue = kv->get();
+        
+        const std::vector<uint8_t> value(stateValue, stateValue + stateSize);
         return value;
     }
 
@@ -185,20 +184,21 @@ namespace edge {
         const std::vector<std::string> pathParts = UploadServer::getPathParts(request);
         std::string user = pathParts[1];
         std::string key = pathParts[2];
-        std::string realKey = util::keyForUser(user, key);
 
         logger->info("Upload state to ({}/{})", user, key);
 
         // Read request body into KV store
         const concurrency::streams::istream bodyStream = request.body();
         concurrency::streams::stringstreambuf inputStream;
-        bodyStream.read_to_end(inputStream).then([&inputStream, &realKey](size_t size) {
+        bodyStream.read_to_end(inputStream).then([&inputStream, &user, &key](size_t size) {
             if (size > 0) {
-                // TODO - break hard Redis dependency here
-                redis::Redis &redis = redis::Redis::getState();
                 std::string s = inputStream.collection();
                 const std::vector<uint8_t> bytesData = util::stringToBytes(s);
-                redis.set(realKey, bytesData);
+
+                state::State &state = state::getGlobalState();
+                const std::shared_ptr<state::StateKeyValue> &kv = state.getKV(user, key, bytesData.size());
+                kv->set(bytesData.data());
+                kv->pushFull();
             }
         }).wait();
 

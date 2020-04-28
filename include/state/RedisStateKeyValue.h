@@ -10,8 +10,12 @@
 namespace state {
     class RedisStateKeyValue final : public StateKeyValue {
     public:
-        RedisStateKeyValue(const std::string &keyIn, size_t sizeIn);
+        RedisStateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn);
+
+        static size_t getStateSize(const std::string &userIn, const std::string keyIn);
     private:
+        const std::string joinedKey;
+
         int lastRemoteLockId = 0;
 
         void lockGlobal() override;
@@ -25,6 +29,10 @@ namespace state {
         void pushToRemote() override;
 
         void pushPartialToRemote(const uint8_t *dirtyMaskBytes) override;
+
+        void appendToRemote(const uint8_t *data, size_t length) override;
+
+        void pullAppendedFromRemote(uint8_t *data, size_t length, long nValues) override;
 
         void deleteFromRemote() override;
     };
