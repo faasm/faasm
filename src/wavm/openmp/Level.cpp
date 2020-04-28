@@ -1,8 +1,8 @@
-#include "wasm/openmp/Level.h"
+#include <wavm/openmp/Level.h>
 
 namespace wasm {
     namespace openmp {
-        OMPLevel::OMPLevel(const std::shared_ptr<OMPLevel> parent, int num_threads) :
+        Level::Level(const std::shared_ptr<Level> parent, int num_threads) :
                 depth(parent->depth + 1),
                 effective_depth(num_threads > 1 ? parent->effective_depth + 1 : parent->effective_depth),
                 max_active_level(parent->max_active_level),
@@ -12,7 +12,7 @@ namespace wasm {
             }
         }
 
-        OMPLevel::OMPLevel(int depth, int effective_depth, int max_active_level, int num_threads) :
+        Level::Level(int depth, int effective_depth, int max_active_level, int num_threads) :
                 depth(depth + 1),
                 effective_depth(num_threads > 1 ? effective_depth + 1 : effective_depth),
                 max_active_level(max_active_level),
@@ -22,7 +22,7 @@ namespace wasm {
             }
         }
 
-        int OMPLevel::get_next_level_num_threads() const {
+        int Level::get_next_level_num_threads() const {
             // Limits to one thread if we have exceeded maximum parallelism depth
             if (effective_depth >= max_active_level) {
                 return 1;
@@ -35,11 +35,30 @@ namespace wasm {
             return nextWanted > 0 ? nextWanted : (int) util::getUsableCores();
         }
 
-        void OMPLevel::snapshot_parent(message::Message &msg) const {
+        void Level::snapshot_parent(message::Message &msg) const {
             msg.set_ompdepth(depth);
             msg.set_ompeffdepth(effective_depth);
             msg.set_ompmal(max_active_level);
         }
 
+        ReduceTypes SingleHostLevel::reductionMethod() {
+            if (num_threads == 1) {
+                return ReduceTypes::emptyBlock;
+            }
+            return ReduceTypes::criticalBlock;
+        }
+
+        SingleHostLevel::SingleHostLevel(struct std::shared_ptr<Level> parent, int numThreads) :
+                Level(std::move(parent), numThreads) {
+        }
+
+        MultiHostSumLevel::MultiHostSumLevel(int Depth, int effectiveDepth, int maxActiveLevel, int numThreads)
+                : Level(Depth, effectiveDepth, maxActiveLevel, numThreads) {
+
+        }
+
+        ReduceTypes MultiHostSumLevel::reductionMethod() {
+            return ReduceTypes::multiHostSum;
+        }
     }
 }

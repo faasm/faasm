@@ -6,7 +6,7 @@
 #include <util/func.h>
 #include <util/locks.h>
 #include <sys/uio.h>
-#include <wasm/openmp/ThreadState.h>
+#include <wavm/openmp/ThreadState.h>
 
 #include <boost/filesystem.hpp>
 #include <sstream>
@@ -196,15 +196,17 @@ namespace wasm {
 
     void WasmModule::prepareOpenMPContext(const message::Message &msg) {
         openmp::setThreadNumber(msg.ompthreadnum());
-        std::shared_ptr<openmp::OMPLevel> ompLevel;
+        std::shared_ptr<openmp::Level> ompLevel;
 
         if (msg.has_ompdepth()) {
-            ompLevel = std::make_shared<openmp::OMPLevel>(msg.ompdepth(),
-                                                          msg.ompeffdepth(),
-                                                          msg.ompmal(),
-                                                          msg.ompnumthreads());
+            ompLevel = std::static_pointer_cast<openmp::Level>(
+                    std::make_shared<openmp::MultiHostSumLevel>(msg.ompdepth(),
+                                                                msg.ompeffdepth(),
+                                                                msg.ompmal(),
+                                                                msg.ompnumthreads()));
         } else {
-            ompLevel = std::make_shared<openmp::OMPLevel>();
+            ompLevel = std::static_pointer_cast<openmp::Level>(
+                    std::make_shared<openmp::SingleHostLevel>());
         }
 
         openmp::setThreadLevel(ompLevel);

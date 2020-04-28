@@ -1,7 +1,7 @@
 #include "WAVMWasmModule.h"
 
-#include <wasm/openmp/Level.h>
-#include <wasm/openmp/ThreadState.h>
+#include <wavm/openmp/Level.h>
+#include <wavm/openmp/ThreadState.h>
 
 #include <WAVM/Platform/Thread.h>
 #include <WAVM/Runtime/Runtime.h>
@@ -16,23 +16,6 @@ constexpr int OMP_STACK_SIZE = 2 * (ONE_MB_BYTES);
 namespace wasm {
     using namespace openmp;
     const auto REDUCE_KEY = std::string("omp_wowzoid");
-
-    // Types in accordance with Clang's OpenMP implementation
-    namespace kmp {
-        enum sched_type : I32 {
-            sch_lower = 32, /**< lower bound for unordered values */
-            sch_static_chunked = 33,
-            sch_static = 34, /**< static unspecialized */
-        };
-
-        enum _reduction_method {
-            reduction_method_not_defined = 0,
-            critical_reduce_block = (1 << 8),
-            atomic_reduce_block = (2 << 8),
-            tree_reduce_block = (3 << 8),
-            empty_reduce_block = (4 << 8)
-        };
-    }
 
     /**
      * Function used to spawn OMP threads. Will be called from within a thread
@@ -337,7 +320,7 @@ namespace wasm {
         thisLevel->pushed_num_threads = -1; // Resets for next push
 
         // Set up new level
-        auto nextLevel = std::make_shared<OMPLevel>(thisLevel, nextNumThreads);
+        auto nextLevel = std::make_shared<SingleHostLevel>(thisLevel, nextNumThreads);
 
         // Note - must ensure thread arguments are outside loop scope otherwise they do
         // may not exist by the time the thread actually consumes them
@@ -530,24 +513,39 @@ namespace wasm {
      *  When reaching the end of the reduction loop, the threads need to synchronise to operate the
      *  reduction function. In the multi-machine case, this
      */
-    int startReduction() {
+    int startReduction(int reduce_data) {
         int retVal = 0;
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        switch (determineReductionMethod()) {
-            case kmp::critical_reduce_block:
-                util::getLogger()->debug("Thread {} reduction locking", thisThreadNumber);
+        switch (thisLevel->reductionMethod()) {
+            case ReduceTypes::criticalBlock:
+                logger->debug("Thread {} reduction locking", thisThreadNumber);
                 thisLevel->reduceMutex.lock();
                 retVal = 1;
                 break;
-            case kmp::empty_reduce_block:
+            case ReduceTypes::emptyBlock:
                 retVal = 1;
                 break;
-            case kmp::atomic_reduce_block:
+            case ReduceTypes::atomicBlock:
                 retVal = 2;
                 break;
-            case kmp::reduction_method_not_defined:
-            case kmp::tree_reduce_block:
-                std::runtime_error("Unsupported reduce operation");
+            case ReduceTypes::notDefined:
+                throw std::runtime_error("Unsupported reduce operation");
+                break;
+            case ReduceTypes::multiHostSum:
+                retVal = 4; // Skips compiler generated end_reduce statements;
+                Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+                int *localReduceData = &Runtime::memoryRef<I32>(memoryPtr,
+                                                                Runtime::memoryRef<I32>(memoryPtr, reduce_data));
+                logger->debug("Reduce local data ({}): {}", thisThreadNumber, *localReduceData);
+
+                if (util::getSystemConfig().stateMode == "redis") {
+                    redis::Redis &redis = redis::Redis::getState();
+                    redis.incrByLong(REDUCE_KEY, *localReduceData);
+                } else {
+                    throw std::runtime_error("Only supports Redis for state");
+                }
+                break;
         }
         return retVal;
     }
@@ -576,11 +574,10 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_reduce", I32, __kmpc_reduce, I32 loc, I32 gtid, I32 num_vars,
                                    I32 reduce_size, I32 reduce_data, I32 reduce_func, I32 lck) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - __kmpc_reduce {} {} {} {} {} {} {}", loc, gtid, num_vars, reduce_size,
+        util::getLogger()->debug("S - __kmpc_reduce {} {} {} {} {} {} {}", loc, gtid, num_vars, reduce_size,
                       reduce_data, reduce_func, lck);
 
-        return startReduction();
+        return startReduction(reduce_data);
     }
 
     /**
@@ -596,25 +593,10 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_reduce_nowait", I32, __kmpc_reduce_nowait, I32 loc, I32 gtid,
                                    I32 num_vars, I32 reduce_size, I32 reduce_data, I32 reduce_func, I32 lck) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - __kmpc_reduce_nowait {} {} {} {} {} {} {}", loc, gtid, num_vars, reduce_size, reduce_data,
+        util::getLogger()->debug("S - __kmpc_reduce_nowait {} {} {} {} {} {} {}", loc, gtid, num_vars, reduce_size, reduce_data,
                       reduce_func, lck);
 
-        if (1 != userNumDevice) {
-            Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-            int *localReduceData = &Runtime::memoryRef<I32>(memoryPtr, Runtime::memoryRef<I32>(memoryPtr, reduce_data));
-            logger->debug("Reduce local data ({}): {}", thisThreadNumber, *localReduceData);
-
-            if(util::getSystemConfig().stateMode == "redis") {
-                redis::Redis &redis = redis::Redis::getState();
-                redis.incrByLong(REDUCE_KEY, *localReduceData);
-            } else {
-                throw std::runtime_error("Only supports Redis for state");
-            }
-            return kmp::empty_reduce_block; // Just need a number different from 1 and 2
-        } else {
-            return startReduction();
-        }
+        return startReduction(reduce_data);
     }
 
     /**
