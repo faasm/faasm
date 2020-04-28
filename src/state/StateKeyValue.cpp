@@ -157,11 +157,15 @@ namespace state {
     }
 
     void StateKeyValue::flagSegmentDirty(long offset, long len) {
+        util::SharedLock lock(valueMutex);
+
         isDirty |= true;
         memset(((uint8_t *) dirtyMask) + offset, 0b11111111, len);
     }
 
     void StateKeyValue::flagSegmentAllocated(long offset, long len) {
+        util::SharedLock lock(valueMutex);
+
         memset(((uint8_t *) allocatedMask) + offset, 0b11111111, len);
     }
 
