@@ -1,6 +1,6 @@
 #pragma once
 
-#include "UserState.h"
+#include "StateKeyValue.h"
 
 #include <string>
 #include <shared_mutex>
@@ -12,14 +12,12 @@ namespace state {
 
         std::shared_ptr<StateKeyValue> getKV(const std::string &user, const std::string &key, size_t size);
 
-        std::shared_ptr<UserState> getUserState(const std::string &user);
-
         void forceClearAll();
 
         size_t getKVCount();
     private:
-        UserStateMap userStateMap;
-        std::shared_mutex userStateMapMutex;
+        std::unordered_map<std::string, std::shared_ptr<StateKeyValue>> kvMap;
+        std::shared_mutex mapMutex;
     };
 
     State &getGlobalState();

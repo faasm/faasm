@@ -12,7 +12,6 @@ set(LIB_FILES
         StateMessage.cpp
         StateServer.cpp
         RedisStateKeyValue.cpp
-        UserState.cpp
         ${HEADERS}
     )
 
