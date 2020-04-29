@@ -27,20 +27,15 @@
     dest: "/usr/local/code/faasm"
     state: link
     force: yes #unlinks other users
-    owner: "{{ ansible_env.USER }}"
-    group: "{{ ansible_env.USER }}"
+    owner: "{{ ansible_user_id }}"
+    group: "{{ ansible_user_id }}"
     mode: 0755
 
 - name: "Set up filesystem directories"
   become: yes
   file:
-    path: " {{ item }}"
+    path: "/usr/local/faasm"
     state: directory
     owner: "{{ ansible_user_id }}"
     group: "{{ ansible_user_id }}"
     recurse: yes
-  loop:
-    - "/usr/local/faasm/object"
-    - "/usr/local/faasm/runtime_root"
-    - "/usr/local/faasm/shared"
-
