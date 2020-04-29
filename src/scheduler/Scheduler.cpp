@@ -203,7 +203,7 @@ namespace scheduler {
 
         // Mark if this is the first scheduling decision made on this message
         if (msg.schedulednode().empty()) {
-            logger->warn("Setting best node")
+            logger->warn("Setting best node");
             msg.set_schedulednode(bestNode);
         }
 
