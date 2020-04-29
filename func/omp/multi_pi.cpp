@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    double pi = (4.0 * result) / iterations;
+    double pi = (4.0 * result) / (2.0  * iterations);
 
     if (pi - 3.14 > 0.01) {
         printf("Low accuracy. Expected pi got %f\n", pi);

@@ -248,7 +248,7 @@ namespace wasm {
 
             U32 *nativeArgs = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
             if (argc > 0) {
-                reducePtr = &Runtime::memoryRef<I32>(memoryPtr, nativeArgs[0]);
+                reducePtr = &Runtime::memoryRef<I32>(memoryPtr, argsPtr);
             }
 
             logger->warn("About to create those threads");

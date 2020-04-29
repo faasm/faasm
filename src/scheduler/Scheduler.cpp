@@ -390,7 +390,6 @@ namespace scheduler {
             return nodeId;
         }
 
-        logger->warn("Getting function warm set");
         // Get options from the warm set
         std::string warmSet = this->getFunctionWarmSetName(msg);
         redis::Redis &redis = redis::Redis::getQueue();
@@ -401,13 +400,11 @@ namespace scheduler {
 
         // If we have warm options, pick a random one
         if (!warmOptions.empty()) {
-            logger->warn("Option {} as executing node", util::randomStringFromSet(warmOptions));
             return util::randomStringFromSet(warmOptions);
         }
 
         // If there are no other warm options and we're a maybe, accept on this node
         if (thisOpinion == SchedulerOpinion::MAYBE) {
-            logger->warn("Returning ourselves as executing node");
             return nodeId;
         }
 

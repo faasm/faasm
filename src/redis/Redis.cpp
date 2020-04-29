@@ -356,7 +356,7 @@ namespace redis {
     }
 
     int Redis::rpushLong(const std::string &key, long value) {
-        auto reply = (redisReply *) redisCommand(context, "LPUSH %s %i", key.c_str(), value);
+        auto reply = (redisReply *) redisCommand(context, "RPUSH %s %i", key.c_str(), value);
         return reply->integer;
     }
 
