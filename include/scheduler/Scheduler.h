@@ -74,7 +74,7 @@ namespace scheduler {
         std::vector<unsigned int> getScheduledMessageIds();
 
     private:
-        std::string nodeId;
+        std::string &nodeId;
 
         void updateOpinion(const message::Message &msg);
 

@@ -175,7 +175,7 @@ namespace util {
         }
     }
 
-    std::string getNodeId() {
+    std::string& getNodeId() {
         _setNodeId();
         return nodeId;
     }
