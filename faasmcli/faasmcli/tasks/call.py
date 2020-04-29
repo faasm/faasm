@@ -33,11 +33,14 @@ def invoke(ctx, user, func,
 @task
 def multi_pi(ctx, number_times=5):
     output_file = "/usr/local/code/faasm/multi_pi.csv"
+    # * 2 in this experiment since starting from `- iterations` instead of 0
     sizes = {
-        "big": 100000000,
-        "huge": 600000000,
+        "Tiny": 100000,
+        "Small": 10000000,
+        "Big": 100000000,
+        "Huge": 600000000,
     }
-    threads = [1]+ list(range(2, 25, 2))
+    threads = [1] + list(range(2, 25, 2))
 
     r = redis.Redis(host="koala10")
     times_key = "multi_pi_times"
