@@ -9,11 +9,11 @@ unsigned long thread_seed() {
 
 int main(int argc, char **argv) {
     omp_set_default_device(-2);
-    long long iterations = 1000LL;
+    long iterations = 1000LL;
     int num_threads = 1;
     if (argc == 3) {
         num_threads = std::stoi(argv[1]);
-        iterations = std::stoll(argv[2]);
+        iterations = std::stol(argv[2]);
     } else if (argc != 1) {
         printf("Usage: mt_pi [num_threads num_iterations]");
     }
@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
         std::mt19937_64 generator(thread_seed());
         double x, y;
         #pragma omp for nowait
-        for (long i = 0; i < iterations; i++) {
+        for (long i = -iterations; i < iterations; i++) {
             x = unif(generator);
             y = unif(generator);
             if (x * x + y * y <= 1.0) {
