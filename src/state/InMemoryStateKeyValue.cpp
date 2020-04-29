@@ -60,13 +60,12 @@ namespace state {
                 throw std::runtime_error("Unable to get remote lock");
             }
 
-            // Check again now that we have the lock
+            // Check there's still no master, if so, claim
             masterIPBytes = redis.get(masterKey);
-
-            // If still empty, we can claim
             if (masterIPBytes.empty()) {
                 std::string thisIP = util::getSystemConfig().endpointHost;
-                redis.set(masterKey, util::stringToBytes(thisIP));
+                masterIPBytes = util::stringToBytes(thisIP);
+                redis.set(masterKey, masterIPBytes);
             }
 
             redis.releaseLock(masterKey, masterLockId);
@@ -90,8 +89,10 @@ namespace state {
         // Mark whether we're master
         status = masterIP == thisIP ? InMemoryStateKeyStatus::MASTER : InMemoryStateKeyStatus::NOT_MASTER;
 
-        // Set up TCP client to communicate with master
-        masterClient = std::make_unique<tcp::TCPClient>(masterIP, STATE_PORT);
+        // Set up TCP client to communicate with master if necessary
+        if(status == InMemoryStateKeyStatus::NOT_MASTER) {
+            masterClient = std::make_unique<tcp::TCPClient>(masterIP, STATE_PORT);
+        }
     }
 
     size_t InMemoryStateKeyValue::getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn) {
@@ -109,6 +110,11 @@ namespace state {
         // TODO - cache this result
 
         return 0;
+    }
+
+    void InMemoryStateKeyValue::clearAll() {
+        util::FullLock lock(masterMapMutex);
+        masterMap.clear();
     }
 
     void InMemoryStateKeyValue::lockGlobal() {
@@ -245,5 +251,9 @@ namespace state {
                 throw std::runtime_error("Delete failed");
             }
         }
+    }
+
+    bool InMemoryStateKeyValue::isMaster() {
+        return status == InMemoryStateKeyStatus::MASTER;
     }
 }

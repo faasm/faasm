@@ -17,6 +17,15 @@ namespace state {
     }
 
     void State::forceClearAll() {
+        std::string stateMode = util::getSystemConfig().stateMode;
+        if (stateMode == "redis") {
+            RedisStateKeyValue::clearAll();
+        } else if (stateMode == "inmemory") {
+            InMemoryStateKeyValue::clearAll();
+        } else {
+            throw std::runtime_error("Unrecognised state mode: " + stateMode);
+        }
+
         kvMap.clear();
     }
 

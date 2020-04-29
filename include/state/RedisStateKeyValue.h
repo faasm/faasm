@@ -13,6 +13,8 @@ namespace state {
         RedisStateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn);
 
         static size_t getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn);
+
+        static void clearAll();
     private:
         const std::string joinedKey;
 

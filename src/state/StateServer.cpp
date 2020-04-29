@@ -37,76 +37,67 @@ namespace state {
         uint8_t *statePtr = kv->get();
 
         // Construct appropriate response
-        tcp::TCPMessage* response = nullptr;
-        switch (recvMessage->type) {
-            case (StateMessageType::STATE_SIZE): {
-                logger->debug("State size: {}", key);
+        tcp::TCPMessage *response = nullptr;
+        int requestType = recvMessage->type;
+        if (requestType == StateMessageType::STATE_SIZE) {
+            logger->debug("State size: {}", key);
 
-                response = new tcp::TCPMessage();
-                response->type = StateMessageType::STATE_SIZE_RESPONSE;
-                response->len = sizeof(size_t);
-                response->buffer = new uint8_t[sizeof(size_t)];
-                std::copy(BYTES(&stateSize), BYTES(&stateSize) + sizeof(size_t), response->buffer);
-            }
-            case (StateMessageType::STATE_PULL): {
-                logger->debug("State pull: {}", key);
+            response = new tcp::TCPMessage();
+            response->type = StateMessageType::STATE_SIZE_RESPONSE;
+            response->len = sizeof(size_t);
+            response->buffer = new uint8_t[sizeof(size_t)];
+            std::copy(BYTES(&stateSize), BYTES(&stateSize) + sizeof(size_t), response->buffer);
+        } else if (requestType == StateMessageType::STATE_PULL) {
+            logger->debug("State pull: {}", key);
 
-                response = new tcp::TCPMessage();
-                response->type = StateMessageType::STATE_PULL_RESPONSE;
-                response->len = stateSize;
-                
-                // TODO - can we do this without copying?
-                response->buffer = new uint8_t[stateSize];
+            response = new tcp::TCPMessage();
+            response->type = StateMessageType::STATE_PULL_RESPONSE;
+            response->len = stateSize;
 
-                kv->lockRead();
-                std::copy(statePtr, statePtr + stateSize, response->buffer);
-                kv->unlockRead();
-            }
-            case (StateMessageType::STATE_PULL_CHUNK): {
-                logger->debug("State pull chunk: {}", key);
+            // TODO - can we do this without copying?
+            response->buffer = new uint8_t[stateSize];
 
-                // Extract offset and length from request
-                int32_t chunkOffset = *(reinterpret_cast<int32_t*>(keyBufferStart + keyLen));
-                int32_t chunkLen = *(reinterpret_cast<int32_t*>(keyBufferStart + keyLen + sizeof(int32_t)));
+            kv->lockRead();
+            std::copy(statePtr, statePtr + stateSize, response->buffer);
+            kv->unlockRead();
+        } else if (requestType == StateMessageType::STATE_PULL_CHUNK) {
+            logger->debug("State pull chunk: {}", key);
 
-                response = new tcp::TCPMessage();
-                response->type = StateMessageType::STATE_PULL_CHUNK_RESPONSE;
-                response->len = chunkLen;
+            // Extract offset and length from request
+            int32_t chunkOffset = *(reinterpret_cast<int32_t *>(keyBufferStart + keyLen));
+            int32_t chunkLen = *(reinterpret_cast<int32_t *>(keyBufferStart + keyLen + sizeof(int32_t)));
 
-                // TODO - can we do this without copying?
-                uint8_t *chunkPtr = kv->getSegment(chunkOffset, chunkLen);
-                response->buffer = new uint8_t[chunkLen];
+            response = new tcp::TCPMessage();
+            response->type = StateMessageType::STATE_PULL_CHUNK_RESPONSE;
+            response->len = chunkLen;
 
-                kv->lockRead();
-                std::copy(chunkPtr, chunkPtr + chunkLen, response->buffer);
-                kv->unlockRead();
-            }
-            case (StateMessageType::STATE_PUSH): {
-                logger->debug("State push: {}", key);
+            // TODO - can we do this without copying?
+            uint8_t *chunkPtr = kv->getSegment(chunkOffset, chunkLen);
+            response->buffer = new uint8_t[chunkLen];
 
-                // Extract data from request (data is preceded by its length)
-                uint8_t *data = keyBufferStart + keyLen + sizeof(int32_t);
+            kv->lockRead();
+            std::copy(chunkPtr, chunkPtr + chunkLen, response->buffer);
+            kv->unlockRead();
+        } else if (requestType == StateMessageType::STATE_PUSH) {
+            logger->debug("State push: {}", key);
 
-                kv->lockWrite();
-                kv->set(data);
-                kv->unlockWrite();
-            }
-            case (StateMessageType::STATE_PUSH_CHUNK): {
-                logger->debug("State push chunk {}", key);
-            }
-            case (StateMessageType::STATE_LOCK): {
-                logger->debug("State lock: {}", key);
-            }
-            case (StateMessageType::STATE_UNLOCK): {
-                logger->debug("State unlock: {}", key);
-            }
-            case (StateMessageType::STATE_DELETE): {
-                logger->debug("State delete: {}", key);
-            }
-            default: {
-                logger->error("Unrecognised request {}", recvMessage->type);
-                throw std::runtime_error("Unrecognised state request type");
-            }
+            // Extract data from request (data is preceded by its length)
+            uint8_t *data = keyBufferStart + keyLen + sizeof(int32_t);
+
+            kv->lockWrite();
+            kv->set(data);
+            kv->unlockWrite();
+        } else if (requestType == StateMessageType::STATE_PUSH_CHUNK) {
+            logger->debug("State push chunk {}", key);
+        } else if (requestType == StateMessageType::STATE_LOCK) {
+            logger->debug("State lock: {}", key);
+        } else if (requestType == StateMessageType::STATE_UNLOCK) {
+            logger->debug("State unlock: {}", key);
+        } else if (requestType == StateMessageType::STATE_DELETE) {
+            logger->debug("State delete: {}", key);
+        } else {
+            logger->error("Unrecognised request {}", requestType);
+            throw std::runtime_error("Unrecognised state request type");
         }
 
         return response;

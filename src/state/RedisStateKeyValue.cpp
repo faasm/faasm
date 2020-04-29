@@ -18,6 +18,11 @@ namespace state {
         return redis.strlen(actualKey);
     }
 
+    void RedisStateKeyValue::clearAll() {
+        redis::Redis &redis = redis::Redis::getState();
+        return redis.flushAll();
+    }
+
     void RedisStateKeyValue::lockGlobal() {
         lastRemoteLockId = waitOnRedisRemoteLock(joinedKey);
     }
