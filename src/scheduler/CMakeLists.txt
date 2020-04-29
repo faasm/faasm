@@ -21,4 +21,4 @@ set(LIB_FILES
 )
 
 faasm_private_lib(scheduler "${LIB_FILES}")
-target_link_libraries(scheduler redis ${EXTRA_LIBS})
+target_link_libraries(scheduler redis)

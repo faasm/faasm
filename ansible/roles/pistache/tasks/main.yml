@@ -20,7 +20,7 @@
     chdir: "/tmp/pistache/build"
   with_items:
     - 'cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ..'
-    - "make"
+    - "make -j"
 
 - name: "Install"
   become: yes
