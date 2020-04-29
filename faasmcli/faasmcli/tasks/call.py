@@ -37,7 +37,7 @@ def multi_pi(ctx, number_times=5):
         "big": 100000000,
         "huge": 2100000000,
     }
-    threads = [1] + list(range(2, 25, 2))
+    threads = [1]#+ list(range(2, 25, 2))
 
     r = redis.Redis(host="koala10")
     times_key = "multi_pi_times"
@@ -47,14 +47,16 @@ def multi_pi(ctx, number_times=5):
         for iter_size in sizes.values():
             for num_threads in threads:
                 cmd = f"{num_threads} {iter_size}"
+                print(f"running omp/multi_pi -- {cmd}")
                 invoke_impl("omp", "multi_pi", knative=True, cmdline=cmd)
-                time.sleep(1)
+                # allow for async inboke
                 while r.llen(times_key) == num_times:
+                    print("Waiting for function to finish")
                     time.sleep(1.5)
                 num_times += 1
 
     num_times -= 1
-    times = r.lrange(times_key, 0, num_times)
+    times = list(map(int, r.lrange(times_key, 0, num_times)))
     assert(len(times) == num_times)
     idx = 0
     with open(output_file, "w") as csv:

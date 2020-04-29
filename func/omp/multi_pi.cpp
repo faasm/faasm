@@ -22,6 +22,7 @@ int main(int argc, char **argv) {
     #pragma omp parallel num_threads(num_threads) default(none) firstprivate(iterations) reduction(+:result)
     {
         std::uniform_real_distribution<double> unif(0, 1);
+
         std::mt19937_64 generator(thread_seed());
         double x, y;
         #pragma omp for nowait

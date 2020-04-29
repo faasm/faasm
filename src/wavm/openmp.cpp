@@ -246,21 +246,21 @@ namespace wasm {
             const message::Message *originalCall = getExecutingCall();
             const std::string origStr = util::funcToString(*originalCall, false);
 
+            U32 *nativeArgs = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
+            if (argc > 0) {
+                reducePtr = &Runtime::memoryRef<I32>(memoryPtr, nativeArgs[0]);
+            }
+
+            logger->warn("About to create those threads");
             // Create the threads (messages) themselves
             for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
                 message::Message call = util::messageFactory(originalCall->user(), originalCall->function());
                 call.set_isasync(true);
-
-                if (argc > 0) {
-                    U32 *pointers = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
-                    for (int argIdx = 0; argIdx < argc; argIdx++) {
-                        if (argIdx == 0) {
-                            reducePtr = &Runtime::memoryRef<I32>(memoryPtr, pointers[argIdx]);
-                        }
-                        call.add_ompfunctionargs(pointers[argIdx]);
-                    }
+                for (int argIdx = 0; argIdx < argc; argIdx++) {
+                    call.add_ompfunctionargs(nativeArgs[argIdx]);
                 }
 
+                logger->warn("Arguments set");
                 // Snapshot details
                 call.set_snapshotkey(activeSnapshotKey);
                 call.set_snapshotsize(threadSnapshotSize);
