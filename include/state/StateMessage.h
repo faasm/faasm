@@ -14,12 +14,15 @@ namespace state {
     enum StateMessageType {
         ERROR_RESPONSE,
         OK_RESPONSE,
+        STATE_APPEND,
         STATE_DELETE,
         STATE_LOCK,
         STATE_PULL,
+        STATE_PULL_APPENDED,
         STATE_PULL_CHUNK,
         STATE_PULL_RESPONSE,
         STATE_PULL_CHUNK_RESPONSE,
+        STATE_PULL_APPENDED_RESPONSE,
         STATE_PUSH,
         STATE_PUSH_CHUNK,
         STATE_SIZE,
@@ -44,11 +47,17 @@ namespace state {
             size_t dataSize
     );
 
+    std::pair<std::string, std::string> getUserKeyFromStateMessage(tcp::TCPMessage *msg);
+
     tcp::TCPMessage *buildStateSizeMessage(const std::string &user, const std::string &key);
+
+    tcp::TCPMessage *buildStateSizeResponse(const std::string &user, const std::string &key, size_t stateSize);
 
     size_t extractSizeResponse(const tcp::TCPMessage *msg);
 
     tcp::TCPMessage *buildStatePullMessage(const StateKeyValue *kv);
+
+    tcp::TCPMessage *buildStatePullResponse(StateKeyValue *kv);
 
     void extractPullResponse(const tcp::TCPMessage *msg, StateKeyValue *kv);
 
@@ -61,6 +70,8 @@ namespace state {
     tcp::TCPMessage *buildStatePushMessage(StateKeyValue *kv);
 
     void extractPushData(const tcp::TCPMessage *msg, StateKeyValue *kv);
+
+    void extractPushChunkData(const tcp::TCPMessage *msg, StateKeyValue *kv);
 
     tcp::TCPMessage *buildStatePushChunkMessage(StateKeyValue *kv, long offset, size_t length);
 

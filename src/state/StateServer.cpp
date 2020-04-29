@@ -13,54 +13,26 @@ namespace state {
     tcp::TCPMessage *StateServer::handleMessage(tcp::TCPMessage *recvMessage) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // User/key is the first bit of data, extract it
-        uint8_t *userLenStart = recvMessage->buffer;
-        int32_t userLen = *(reinterpret_cast<int32_t *>(userLenStart));
-
-        uint8_t *userBufferStart = userLenStart + sizeof(int32_t);
-        auto userBuffer = reinterpret_cast<char *>(userBufferStart);
-
-        uint8_t *keyLenStart = userBufferStart + userLen;
-        int32_t keyLen = *(reinterpret_cast<int32_t *>(keyLenStart));
-
-        uint8_t *keyBufferStart = keyLenStart + sizeof(int32_t);
-        auto keyBuffer = reinterpret_cast<char *>(keyBufferStart);
-
-        std::string user(userBuffer, userBuffer + userLen);
-        std::string key(keyBuffer, keyBuffer + keyLen);
+        std::pair<std::string, std::string> userKeyPair = getUserKeyFromStateMessage(recvMessage);
+        const std::string &user = userKeyPair.first;
+        const std::string &key = userKeyPair.second;
 
         // Get the size. State should be mastered on this host, hence we don't need
         // to specify size (will error if not the case).
         State &state = state::getGlobalState();
         const std::shared_ptr<StateKeyValue> &kv = state.getKV(user, key, 0);
         size_t stateSize = kv->size();
-        uint8_t *statePtr = kv->get();
 
         // Construct appropriate response
         tcp::TCPMessage *response = nullptr;
         int requestType = recvMessage->type;
         if (requestType == StateMessageType::STATE_SIZE) {
             logger->debug("State size: {}", key);
-
-            response = new tcp::TCPMessage();
-            response->type = StateMessageType::STATE_SIZE_RESPONSE;
-            response->len = sizeof(size_t);
-            response->buffer = new uint8_t[sizeof(size_t)];
-            std::copy(BYTES(&stateSize), BYTES(&stateSize) + sizeof(size_t), response->buffer);
+            response = buildStateSizeResponse(user, key, stateSize);
 
         } else if (requestType == StateMessageType::STATE_PULL) {
             logger->debug("State pull: {}", key);
-
-            response = new tcp::TCPMessage();
-            response->type = StateMessageType::STATE_PULL_RESPONSE;
-            response->len = stateSize;
-
-            // TODO - can we do this without copying?
-            response->buffer = new uint8_t[stateSize];
-
-            kv->lockRead();
-            std::copy(statePtr, statePtr + stateSize, response->buffer);
-            kv->unlockRead();
+            response = buildStatePullResponse(kv.get());
 
         } else if (requestType == StateMessageType::STATE_PULL_CHUNK) {
             logger->debug("State pull chunk: {}", key);
@@ -68,12 +40,11 @@ namespace state {
 
         } else if (requestType == StateMessageType::STATE_PUSH) {
             logger->debug("State push: {}", key);
-
-            // Note - no response
             extractPushData(recvMessage, kv.get());
 
         } else if (requestType == StateMessageType::STATE_PUSH_CHUNK) {
             logger->debug("State push chunk {}", key);
+            extractPushChunkData(recvMessage, kv.get());
 
         } else if (requestType == StateMessageType::STATE_LOCK) {
             logger->debug("State lock: {}", key);

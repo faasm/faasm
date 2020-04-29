@@ -9,6 +9,26 @@ namespace state {
         return sizeof(int32_t) + user.size() + sizeof(int32_t) + key.size();
     }
 
+    std::pair<std::string, std::string> getUserKeyFromStateMessage(tcp::TCPMessage *msg) {
+        // User/key come first in the message, each preceded by their length
+        uint8_t *userLenStart = msg->buffer;
+        int32_t userLen = *(reinterpret_cast<int32_t *>(userLenStart));
+
+        uint8_t *userBufferStart = userLenStart + sizeof(int32_t);
+        auto userBuffer = reinterpret_cast<char *>(userBufferStart);
+
+        uint8_t *keyLenStart = userBufferStart + userLen;
+        int32_t keyLen = *(reinterpret_cast<int32_t *>(keyLenStart));
+
+        uint8_t *keyBufferStart = keyLenStart + sizeof(int32_t);
+        auto keyBuffer = reinterpret_cast<char *>(keyBufferStart);
+
+        std::string user(userBuffer, userBuffer + userLen);
+        std::string key(keyBuffer, keyBuffer + keyLen);
+
+        return {user, key};
+    }
+
     tcp::TCPMessage *buildStateTCPMessage(int msgType,
                                           const std::string &user, const std::string &key,
                                           size_t dataSize) {
@@ -46,6 +66,16 @@ namespace state {
         return msg;
     }
 
+    tcp::TCPMessage *buildStateSizeResponse(const std::string &user, const std::string &key, size_t stateSize) {
+        tcp::TCPMessage *response = new tcp::TCPMessage();
+        response->type = StateMessageType::STATE_SIZE_RESPONSE;
+        response->len = sizeof(size_t);
+        response->buffer = new uint8_t[sizeof(size_t)];
+
+        std::copy(BYTES(&stateSize), BYTES(&stateSize) + sizeof(size_t), response->buffer);
+        return response;
+    }
+
     size_t extractSizeResponse(const tcp::TCPMessage *msg) {
         if (msg->type == StateMessageType::STATE_SIZE_RESPONSE) {
             size_t stateSize = *(reinterpret_cast<size_t *>(msg->buffer));
@@ -64,6 +94,21 @@ namespace state {
                 0);
         return msg;
     }
+
+    tcp::TCPMessage *buildStatePullResponse(StateKeyValue *kv) {
+        size_t stateSize = kv->size();
+
+        tcp::TCPMessage *response = new tcp::TCPMessage();
+        response->type = StateMessageType::STATE_PULL_RESPONSE;
+        response->len = stateSize;
+
+        // TODO - can we do this without copying?
+        response->buffer = new uint8_t[stateSize];
+        kv->get(response->buffer);
+
+        return response;
+    }
+
 
     void extractPullResponse(const tcp::TCPMessage *msg, StateKeyValue *kv) {
         if (msg->type == StateMessageType::STATE_PULL_RESPONSE) {
@@ -105,12 +150,8 @@ namespace state {
         response->len = chunkLen;
 
         // TODO - can we do this without copying?
-        uint8_t *chunkPtr = kv->getSegment(chunkOffset, chunkLen);
         response->buffer = new uint8_t[chunkLen];
-
-        kv->lockRead();
-        std::copy(chunkPtr, chunkPtr + chunkLen, response->buffer);
-        kv->unlockRead();
+        kv->getSegment(chunkOffset, response->buffer, chunkLen);
 
         return response;
     }
@@ -131,7 +172,6 @@ namespace state {
 
         // Buffer contains length followed by the data
         size_t valueSize = kv->size();
-        auto valuePtr = kv->get();
         size_t dataSize = sizeof(int32_t) + valueSize;
         tcp::TCPMessage *msg = buildStateTCPMessage(StateMessageType::STATE_PUSH, user, key, dataSize);
 
@@ -141,9 +181,8 @@ namespace state {
         std::copy(BYTES(&sizeInt), BYTES(&sizeInt) + sizeof(int32_t), msg->buffer + dataOffset);
 
         // TODO - avoid copy here?
-        kv->lockRead();
-        std::copy(valuePtr, valuePtr + valueSize, msg->buffer + dataOffset + sizeof(int32_t));
-        kv->unlockRead();
+        uint8_t *dataBufferStart = msg->buffer + dataOffset + sizeof(int32_t);
+        kv->get(dataBufferStart);
 
         return msg;
     }
@@ -152,9 +191,18 @@ namespace state {
         // Extract data from request (data is preceded by its length)
         size_t dataOffset = getTCPMessageDataOffset(kv->user, kv->key);
         uint8_t *data = msg->buffer + dataOffset + sizeof(int32_t);
-
-        // Note - set() already performs necessary locking
         kv->set(data);
+    }
+
+    void extractPushChunkData(const tcp::TCPMessage *msg, StateKeyValue *kv) {
+        size_t dataOffset = getTCPMessageDataOffset(kv->user, kv->key);
+        uint8_t *msgBuffer = msg->buffer + dataOffset;
+
+        int32_t offset = *(reinterpret_cast<int32_t*>(msgBuffer));
+        int32_t length = *(reinterpret_cast<int32_t*>(msgBuffer + sizeof(int32_t)));
+        uint8_t *data = msgBuffer + (2*sizeof(int32_t));
+
+        kv->setSegment(offset, data, length);
     }
 
     tcp::TCPMessage *buildStatePushChunkMessage(StateKeyValue *kv, long offset, size_t length) {
@@ -173,11 +221,9 @@ namespace state {
         std::copy(BYTES(&lengthInt), BYTES(&lengthInt) + sizeof(int32_t), msg->buffer + dataOffset + sizeof(int32_t));
 
         // TODO - avoid copy here?
-        uint8_t *dataPtr = kv->getSegment(offset, length);
-        kv->lockRead();
-        std::copy(dataPtr, dataPtr + length, msg->buffer + dataOffset + (2 * sizeof(int32_t)));
-        kv->unlockRead();
-
+        uint8_t *dataBufferStart = msg->buffer + dataOffset + (2 * sizeof(int32_t));
+        kv->getSegment(offset, dataBufferStart, length);
+        
         return msg;
     }
 
