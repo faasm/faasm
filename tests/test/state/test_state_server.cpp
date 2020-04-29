@@ -146,14 +146,14 @@ namespace tests {
         tcp::TCPMessage *response;
 
         SECTION("State size") {
-            request = buildStateSizeMessage(userA, keyA);
+            request = buildStateSizeRequest(userA, keyA);
             response = s.handleMessage(request);
             size_t actualSize = extractSizeResponse(response);
             REQUIRE(actualSize == dataA.size());
         }
 
         SECTION("State pull") {
-            request = buildStatePullMessage(kvA.get());
+            request = buildStatePullRequest(kvA.get());
             response = s.handleMessage(request);
             extractPullResponse(response, kvB.get());
             kvB->get(actual.data());
@@ -165,7 +165,7 @@ namespace tests {
             long offset = 2;
             size_t chunkSize = 3;
 
-            request = buildStatePullChunkMessage(kvA.get(), offset, chunkSize);
+            request = buildStatePullChunkRequest(kvA.get(), offset, chunkSize);
 
             response = s.handleMessage(request);
             extractPullChunkResponse(response, kvB.get(), offset, chunkSize);
@@ -178,7 +178,7 @@ namespace tests {
         }
 
         SECTION("State push") {
-            request = buildStatePushMessage(&kvADuplicate);
+            request = buildStatePushRequest(&kvADuplicate);
             response = s.handleMessage(request);
 
             REQUIRE(response == nullptr);
@@ -191,7 +191,7 @@ namespace tests {
         SECTION("State push chunk") {
             long offset = 1;
             size_t chunkSize = 3;
-            request = buildStatePushChunkMessage(&kvADuplicate, offset, chunkSize);
+            request = buildStatePushChunkRequest(&kvADuplicate, offset, chunkSize);
             response = s.handleMessage(request);
 
             REQUIRE(response == nullptr);

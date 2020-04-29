@@ -56,7 +56,7 @@ namespace state {
         return msg;
     }
 
-    tcp::TCPMessage *buildStateSizeMessage(const std::string &user, const std::string &key) {
+    tcp::TCPMessage *buildStateSizeRequest(const std::string &user, const std::string &key) {
         tcp::TCPMessage *msg = buildStateTCPMessage(
                 StateMessageType::STATE_SIZE,
                 user,
@@ -86,7 +86,7 @@ namespace state {
         }
     }
 
-    tcp::TCPMessage *buildStatePullMessage(const StateKeyValue *kv) {
+    tcp::TCPMessage *buildStatePullRequest(const StateKeyValue *kv) {
         tcp::TCPMessage *msg = buildStateTCPMessage(
                 StateMessageType::STATE_PULL,
                 kv->user,
@@ -119,7 +119,7 @@ namespace state {
         }
     }
 
-    tcp::TCPMessage *buildStatePullChunkMessage(const StateKeyValue *kv, long offset, size_t length) {
+    tcp::TCPMessage *buildStatePullChunkRequest(const StateKeyValue *kv, long offset, size_t length) {
         std::string user = kv->user;
         std::string key = kv->key;
 
@@ -166,7 +166,7 @@ namespace state {
         }
     }
 
-    tcp::TCPMessage *buildStatePushMessage(StateKeyValue *kv) {
+    tcp::TCPMessage *buildStatePushRequest(StateKeyValue *kv) {
         std::string user = kv->user;
         std::string key = kv->key;
 
@@ -187,25 +187,14 @@ namespace state {
         return msg;
     }
 
-    void extractPushData(const tcp::TCPMessage *msg, StateKeyValue *kv) {
+    void extractStatePushData(const tcp::TCPMessage *msg, StateKeyValue *kv) {
         // Extract data from request (data is preceded by its length)
         size_t dataOffset = getTCPMessageDataOffset(kv->user, kv->key);
         uint8_t *data = msg->buffer + dataOffset + sizeof(int32_t);
         kv->set(data);
     }
 
-    void extractPushChunkData(const tcp::TCPMessage *msg, StateKeyValue *kv) {
-        size_t dataOffset = getTCPMessageDataOffset(kv->user, kv->key);
-        uint8_t *msgBuffer = msg->buffer + dataOffset;
-
-        int32_t offset = *(reinterpret_cast<int32_t*>(msgBuffer));
-        int32_t length = *(reinterpret_cast<int32_t*>(msgBuffer + sizeof(int32_t)));
-        uint8_t *data = msgBuffer + (2*sizeof(int32_t));
-
-        kv->setSegment(offset, data, length);
-    }
-
-    tcp::TCPMessage *buildStatePushChunkMessage(StateKeyValue *kv, long offset, size_t length) {
+    tcp::TCPMessage *buildStatePushChunkRequest(StateKeyValue *kv, long offset, size_t length) {
         std::string user = kv->user;
         std::string key = kv->key;
 
@@ -227,7 +216,18 @@ namespace state {
         return msg;
     }
 
-    tcp::TCPMessage *buildStateDeleteMessage(StateKeyValue *kv) {
+    void extractStatePushChunkData(const tcp::TCPMessage *msg, StateKeyValue *kv) {
+        size_t dataOffset = getTCPMessageDataOffset(kv->user, kv->key);
+        uint8_t *msgBuffer = msg->buffer + dataOffset;
+
+        int32_t offset = *(reinterpret_cast<int32_t*>(msgBuffer));
+        int32_t length = *(reinterpret_cast<int32_t*>(msgBuffer + sizeof(int32_t)));
+        uint8_t *data = msgBuffer + (2*sizeof(int32_t));
+
+        kv->setSegment(offset, data, length);
+    }
+
+    tcp::TCPMessage *buildStateDeleteRequest(StateKeyValue *kv) {
         tcp::TCPMessage *msg = buildStateTCPMessage(
                 StateMessageType::STATE_DELETE,
                 kv->user,
@@ -236,4 +236,25 @@ namespace state {
         );
         return msg;
     }
+
+    tcp::TCPMessage *buildStateLockRequest(StateKeyValue *kv) {
+        tcp::TCPMessage *msg = buildStateTCPMessage(
+                StateMessageType::STATE_LOCK,
+                kv->user,
+                kv->key,
+                0
+        );
+        return msg;
+    }
+
+    tcp::TCPMessage *buildStateUnlockRequest(StateKeyValue *kv) {
+        tcp::TCPMessage *msg = buildStateTCPMessage(
+                StateMessageType::STATE_UNLOCK,
+                kv->user,
+                kv->key,
+                0
+        );
+        return msg;
+    }
+
 }

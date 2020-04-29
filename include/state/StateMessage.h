@@ -49,31 +49,36 @@ namespace state {
 
     std::pair<std::string, std::string> getUserKeyFromStateMessage(tcp::TCPMessage *msg);
 
-    tcp::TCPMessage *buildStateSizeMessage(const std::string &user, const std::string &key);
+    tcp::TCPMessage *buildStateSizeRequest(const std::string &user, const std::string &key);
 
     tcp::TCPMessage *buildStateSizeResponse(const std::string &user, const std::string &key, size_t stateSize);
 
     size_t extractSizeResponse(const tcp::TCPMessage *msg);
 
-    tcp::TCPMessage *buildStatePullMessage(const StateKeyValue *kv);
+    tcp::TCPMessage *buildStatePullRequest(const StateKeyValue *kv);
 
     tcp::TCPMessage *buildStatePullResponse(StateKeyValue *kv);
 
     void extractPullResponse(const tcp::TCPMessage *msg, StateKeyValue *kv);
 
-    tcp::TCPMessage *buildStatePullChunkMessage(const StateKeyValue *kv, long offset, size_t length);
+    tcp::TCPMessage *buildStatePullChunkRequest(const StateKeyValue *kv, long offset, size_t length);
 
     tcp::TCPMessage *buildStatePullChunkResponse(tcp::TCPMessage *request, StateKeyValue *kv);
 
     void extractPullChunkResponse(const tcp::TCPMessage *msg, StateKeyValue *kv, long offset, size_t length);
 
-    tcp::TCPMessage *buildStatePushMessage(StateKeyValue *kv);
+    tcp::TCPMessage *buildStatePushRequest(StateKeyValue *kv);
 
-    void extractPushData(const tcp::TCPMessage *msg, StateKeyValue *kv);
+    void extractStatePushData(const tcp::TCPMessage *msg, StateKeyValue *kv);
 
-    void extractPushChunkData(const tcp::TCPMessage *msg, StateKeyValue *kv);
+    void extractStatePushChunkData(const tcp::TCPMessage *msg, StateKeyValue *kv);
 
-    tcp::TCPMessage *buildStatePushChunkMessage(StateKeyValue *kv, long offset, size_t length);
+    tcp::TCPMessage *buildStatePushChunkRequest(StateKeyValue *kv, long offset, size_t length);
 
-    tcp::TCPMessage *buildStateDeleteMessage(StateKeyValue *kv);
+    tcp::TCPMessage *buildStateDeleteRequest(StateKeyValue *kv);
+
+    tcp::TCPMessage *buildStateLockRequest(StateKeyValue *kv);
+
+    tcp::TCPMessage *buildStateUnlockRequest(StateKeyValue *kv);
+
 }

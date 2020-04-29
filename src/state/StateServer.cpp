@@ -40,20 +40,29 @@ namespace state {
 
         } else if (requestType == StateMessageType::STATE_PUSH) {
             logger->debug("State push: {}", key);
-            extractPushData(recvMessage, kv.get());
+            extractStatePushData(recvMessage, kv.get());
 
         } else if (requestType == StateMessageType::STATE_PUSH_CHUNK) {
             logger->debug("State push chunk {}", key);
-            extractPushChunkData(recvMessage, kv.get());
+            extractStatePushChunkData(recvMessage, kv.get());
+
+        } else if (requestType == StateMessageType::STATE_APPEND) {
+            logger->debug("State append {}", key);
+
+        } else if (requestType == StateMessageType::STATE_PULL_APPENDED) {
+            logger->debug("State pull appended {}", key);
 
         } else if (requestType == StateMessageType::STATE_LOCK) {
             logger->debug("State lock: {}", key);
+            kv->lockGlobal();
 
         } else if (requestType == StateMessageType::STATE_UNLOCK) {
             logger->debug("State unlock: {}", key);
+            kv->unlockGlobal();
 
         } else if (requestType == StateMessageType::STATE_DELETE) {
             logger->debug("State delete: {}", key);
+            kv->deleteGlobal();
 
         } else {
             logger->error("Unrecognised request {}", requestType);

@@ -105,7 +105,7 @@ namespace state {
         }
 
         // TODO - avoid creating a TCP client on every request
-        tcp::TCPMessage *msg = buildStateSizeMessage(userIn, keyIn);
+        tcp::TCPMessage *msg = buildStateSizeRequest(userIn, keyIn);
         tcp::TCPClient client(masterIP, STATE_PORT);
         client.sendMessage(msg);
 
@@ -123,17 +123,23 @@ namespace state {
 
     void InMemoryStateKeyValue::lockGlobal() {
         if (status == InMemoryStateKeyStatus::MASTER) {
-            // TODO - acquire global lock locally
+            lockWrite();
         } else {
-            // TODO - acquire global lock remotely
+            // Send message to master (will block)
+            tcp::TCPMessage *msg = buildStateLockRequest(this);
+            masterClient->sendMessage(msg);
+            tcp::freeTcpMessage(msg);
         }
     }
 
     void InMemoryStateKeyValue::unlockGlobal() {
         if (status == InMemoryStateKeyStatus::MASTER) {
-            // TODO - global unlock locally
+            unlockWrite();
         } else {
-            // TODO - global unlock on remote
+            // Send message to master
+            tcp::TCPMessage *msg = buildStateUnlockRequest(this);
+            masterClient->sendMessage(msg);
+            tcp::freeTcpMessage(msg);
         }
     }
 
@@ -143,7 +149,7 @@ namespace state {
         }
 
         // Send the message
-        tcp::TCPMessage *msg = buildStatePullMessage(this);
+        tcp::TCPMessage *msg = buildStatePullRequest(this);
         masterClient->sendMessage(msg);
         tcp::freeTcpMessage(msg);
 
@@ -158,7 +164,7 @@ namespace state {
         }
 
         // Send the message
-        tcp::TCPMessage *msg = buildStatePullChunkMessage(this, offset, length);
+        tcp::TCPMessage *msg = buildStatePullChunkRequest(this, offset, length);
         masterClient->sendMessage(msg);
         tcp::freeTcpMessage(msg);
 
@@ -173,7 +179,7 @@ namespace state {
         }
 
         // Send the message (no response)
-        tcp::TCPMessage *msg = buildStatePushMessage(this);
+        tcp::TCPMessage *msg = buildStatePushRequest(this);
         masterClient->sendMessage(msg);
         tcp::freeTcpMessage(msg);
     }
@@ -204,10 +210,10 @@ namespace state {
 
     void InMemoryStateKeyValue::deleteFromRemote() {
         if (status == InMemoryStateKeyStatus::MASTER) {
-            // TODO - delete locally
+            clear();
         } else {
             // Send the message
-            tcp::TCPMessage *msg = buildStateDeleteMessage(this);
+            tcp::TCPMessage *msg = buildStateDeleteRequest(this);
             masterClient->sendMessage(msg);
             tcp::freeTcpMessage(msg);
         }

@@ -452,7 +452,6 @@ namespace state {
 
         // Delete remote
         util::FullLock lock(valueMutex);
-
         deleteFromRemote();
     }
 
