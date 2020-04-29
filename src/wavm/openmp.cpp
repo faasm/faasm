@@ -11,6 +11,8 @@
 #include <state/StateKeyValue.h>
 #include <scheduler/Scheduler.h>
 
+#include <util/timing.h>
+
 constexpr int OMP_STACK_SIZE = 2 * (ONE_MB_BYTES);
 
 namespace wasm {
@@ -221,6 +223,7 @@ namespace wasm {
                 Runtime::getTableElement(getExecutingModule()->defaultTable, microtaskPtr));
 
         if (1 != userNumDevice) {
+            const util::TimePoint iterationTp = util::startTimer();
             int *reducePtr = nullptr;
             int nextNumThreads = thisLevel->get_next_level_num_threads();
             redis::Redis &redis = redis::Redis::getState();
@@ -309,6 +312,8 @@ namespace wasm {
 
             *reducePtr = redis.getLong(REDUCE_KEY);
             logger->error("END DISTRIBUTED FORK. SETTING REDUCE VALUE TO {}", *reducePtr);
+            const long distributedIterationTime = util::getTimeDiffMicros(iterationTp);
+            redis.rpushLong("multi_pi_times", distributedIterationTime);
             return;
         }
 

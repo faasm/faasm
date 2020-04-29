@@ -355,6 +355,11 @@ namespace redis {
         return extractStringSetFromReply(reply);
     }
 
+    int Redis::rpushLong(const std::string &key, long value) {
+        auto reply = (redisReply *) redisCommand(context, "LPUSH %s %i", key.c_str(), value);
+        return reply->integer;
+    }
+
     void Redis::flushAll() {
         auto reply = (redisReply *) redisCommand(context, "FLUSHALL");
         freeReplyObject(reply);

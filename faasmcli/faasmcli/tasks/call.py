@@ -3,6 +3,11 @@ from invoke import task
 from faasmcli.util.call import invoke_impl, status_call_impl, flush_call_impl
 from faasmcli.util.endpoints import get_invoke_host_port
 
+import time
+from subprocess import call
+import redis
+
+current_milli_time = lambda: int(round(time.time() * 1000))
 
 @task(default=True)
 def invoke(ctx, user, func,
@@ -22,6 +27,43 @@ def invoke(ctx, user, func,
     """
     invoke_impl(user, func, host=host, port=port, input=input, py=py, async=async,
                 knative=knative, native=native, ibm=ibm, poll=poll, cmdline=cmdline)
+
+
+@task
+def multi_pi(ctx, number_times=5):
+    output_file = "/usr/local/code/faasm/multi_pi.csv"
+    sizes = {
+        "big": 100000000,
+        "huge": 2100000000,
+    }
+    threads = [1] + list(range(2, 25, 2))
+
+    r = redis.Redis(host="koala10")
+    times_key = "multi_pi_times"
+    r.delete(times_key)
+    num_times = 0
+    for _ in range(number_times):
+        for iter_size in sizes.values():
+            for num_threads in threads:
+                cmd = f"{num_threads} {iter_size}"
+                invoke_impl("omp", "multi_pi", knative=True, cmdline=cmd)
+                time.sleep(1)
+                while r.llen(times_key) == num_times:
+                    time.sleep(1.5)
+                num_times += 1
+
+    num_times -= 1
+    times = r.lrange(times_key, 0, num_times)
+    assert(len(times) == num_times)
+    idx = 0
+    with open(output_file, "w") as csv:
+        csv.write("iterations,numThreads,type,milliseconds")
+        for _ in range(number_times):
+            for iter_name in sizes.keys():
+                for num_threads in threads:
+                    result = f"{iter_size},{num_threads},distributed,{times[idx]}"
+                    idx += 1
+                    csv.write(result)
 
 
 @task
