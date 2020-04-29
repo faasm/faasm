@@ -1,5 +1,7 @@
 #include <wavm/openmp/Level.h>
 
+#include <util/config.h>
+
 namespace wasm {
     namespace openmp {
         Level::Level(const std::shared_ptr<Level> parent, int num_threads) :
@@ -32,7 +34,7 @@ namespace wasm {
             int nextWanted = pushed_num_threads > 0 ? pushed_num_threads : wanted_num_threads;
 
             // Returns user preference if set or device's maximum
-            return nextWanted > 0 ? nextWanted : (int) util::getUsableCores();
+            return nextWanted > 0 ? nextWanted : (int) util::getSystemConfig().maxWorkersPerFunction;
         }
 
         void Level::snapshot_parent(message::Message &msg) const {
