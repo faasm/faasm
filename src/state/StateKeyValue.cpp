@@ -194,7 +194,7 @@ namespace state {
         zeroAllocatedMask();
     }
 
-    size_t StateKeyValue::size() {
+    size_t StateKeyValue::size() const {
         return valueSize;
     }
 

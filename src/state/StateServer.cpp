@@ -47,6 +47,7 @@ namespace state {
             response->len = sizeof(size_t);
             response->buffer = new uint8_t[sizeof(size_t)];
             std::copy(BYTES(&stateSize), BYTES(&stateSize) + sizeof(size_t), response->buffer);
+
         } else if (requestType == StateMessageType::STATE_PULL) {
             logger->debug("State pull: {}", key);
 
@@ -60,41 +61,29 @@ namespace state {
             kv->lockRead();
             std::copy(statePtr, statePtr + stateSize, response->buffer);
             kv->unlockRead();
+
         } else if (requestType == StateMessageType::STATE_PULL_CHUNK) {
             logger->debug("State pull chunk: {}", key);
+            response = buildStatePullChunkResponse(recvMessage, kv.get());
 
-            // Extract offset and length from request
-            int32_t chunkOffset = *(reinterpret_cast<int32_t *>(keyBufferStart + keyLen));
-            int32_t chunkLen = *(reinterpret_cast<int32_t *>(keyBufferStart + keyLen + sizeof(int32_t)));
-
-            response = new tcp::TCPMessage();
-            response->type = StateMessageType::STATE_PULL_CHUNK_RESPONSE;
-            response->len = chunkLen;
-
-            // TODO - can we do this without copying?
-            uint8_t *chunkPtr = kv->getSegment(chunkOffset, chunkLen);
-            response->buffer = new uint8_t[chunkLen];
-
-            kv->lockRead();
-            std::copy(chunkPtr, chunkPtr + chunkLen, response->buffer);
-            kv->unlockRead();
         } else if (requestType == StateMessageType::STATE_PUSH) {
             logger->debug("State push: {}", key);
 
-            // Extract data from request (data is preceded by its length)
-            uint8_t *data = keyBufferStart + keyLen + sizeof(int32_t);
+            // Note - no response
+            extractPushData(recvMessage, kv.get());
 
-            kv->lockWrite();
-            kv->set(data);
-            kv->unlockWrite();
         } else if (requestType == StateMessageType::STATE_PUSH_CHUNK) {
             logger->debug("State push chunk {}", key);
+
         } else if (requestType == StateMessageType::STATE_LOCK) {
             logger->debug("State lock: {}", key);
+
         } else if (requestType == StateMessageType::STATE_UNLOCK) {
             logger->debug("State unlock: {}", key);
+
         } else if (requestType == StateMessageType::STATE_DELETE) {
             logger->debug("State delete: {}", key);
+
         } else {
             logger->error("Unrecognised request {}", requestType);
             throw std::runtime_error("Unrecognised state request type");

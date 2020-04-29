@@ -68,7 +68,7 @@ namespace state {
 
         void flagSegmentDirty(long offset, long len);
 
-        size_t size();
+        size_t size() const;
 
         void deleteGlobal();
 

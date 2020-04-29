@@ -14,7 +14,9 @@ using namespace state;
 namespace tests {
     static const char *userA = "foo";
     static const char *keyA = "bar";
-    static std::vector<uint8_t> dataA = {0, 1, 2, 3};
+    static const char *keyB = "baz";
+    static std::vector<uint8_t> dataA = {0, 1, 2, 3, 4, 5, 6, 7};
+    static std::vector<uint8_t> dataB = {7, 6, 5, 4, 3, 2, 1, 0};
 
     // Remote must be localhost
     static const char *remoteHost = "127.0.0.1";
@@ -118,6 +120,94 @@ namespace tests {
         std::shared_ptr<InMemoryStateKeyValue> inMemLocalKv = std::static_pointer_cast<InMemoryStateKeyValue>(localKv);
 
         return inMemLocalKv;
+    }
+
+    TEST_CASE("Test request/ response", "[state]") {
+        setUpStateMode();
+
+        std::vector<uint8_t> actual(dataA.size(), 0);
+
+        // Prepare a key-value with data
+        State &state = getGlobalState();
+        auto kvA = state.getKV(userA, keyA, dataA.size());
+        kvA->set(dataA.data());
+
+        // Prepare a key-value with no data
+        auto kvB = state.getKV(userA, keyB, dataA.size());
+
+        // Prepare a key-value with same key but different data (for pushing)
+        auto kvADuplicate = InMemoryStateKeyValue(userA, keyA, dataB.size());
+        kvADuplicate.set(dataB.data());
+
+        // Create server
+        StateServer s;
+
+        tcp::TCPMessage *request;
+        tcp::TCPMessage *response;
+
+        SECTION("State size") {
+            request = buildStateSizeMessage(userA, keyA);
+            response = s.handleMessage(request);
+            size_t actualSize = extractSizeResponse(response);
+            REQUIRE(actualSize == dataA.size());
+        }
+
+        SECTION("State pull") {
+            request = buildStatePullMessage(kvA.get());
+            response = s.handleMessage(request);
+            extractPullResponse(response, kvB.get());
+            kvB->get(actual.data());
+
+            REQUIRE(actual == dataA);
+        }
+
+        SECTION("State pull chunk") {
+            long offset = 2;
+            size_t chunkSize = 3;
+
+            request = buildStatePullChunkMessage(kvA.get(), offset, chunkSize);
+
+            response = s.handleMessage(request);
+            extractPullChunkResponse(response, kvB.get(), offset, chunkSize);
+            kvB->get(actual.data());
+
+            std::vector<uint8_t> expected(dataA.size(), 0);
+            std::copy(dataA.begin() + offset, dataA.begin() + offset + chunkSize, expected.begin() + offset);
+
+            REQUIRE(actual == expected);
+        }
+
+        SECTION("State push") {
+            request = buildStatePushMessage(&kvADuplicate);
+            response = s.handleMessage(request);
+
+            REQUIRE(response == nullptr);
+
+            // Get the data from the key-value registered for that user/key
+            kvA->get(actual.data());
+            REQUIRE(actual == dataB);
+        }
+
+        SECTION("State push chunk") {
+            long offset = 1;
+            size_t chunkSize = 3;
+            request = buildStatePushChunkMessage(&kvADuplicate, offset, chunkSize);
+            response = s.handleMessage(request);
+
+            REQUIRE(response == nullptr);
+
+            // Create expected - a chunk written into existing data
+            std::vector<uint8_t> expected(dataA.begin(), dataA.end());
+            std::copy(dataB.begin() + offset, dataB.begin() + offset + chunkSize, expected.begin() + offset);
+
+            kvA->get(actual.data());
+            REQUIRE(actual == expected);
+        }
+
+        tcp::freeTcpMessage(request);
+        tcp::freeTcpMessage(response);
+
+        resetStateMode();
     }
 
     TEST_CASE("Test local-only state", "[state]") {

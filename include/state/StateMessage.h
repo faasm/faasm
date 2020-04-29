@@ -1,5 +1,7 @@
 #pragma once
 
+#include "StateKeyValue.h"
+
 #include <cstdint>
 #include <string>
 
@@ -41,4 +43,26 @@ namespace state {
             const std::string &key,
             size_t dataSize
     );
+
+    tcp::TCPMessage *buildStateSizeMessage(const std::string &user, const std::string &key);
+
+    size_t extractSizeResponse(const tcp::TCPMessage *msg);
+
+    tcp::TCPMessage *buildStatePullMessage(const StateKeyValue *kv);
+
+    void extractPullResponse(const tcp::TCPMessage *msg, StateKeyValue *kv);
+
+    tcp::TCPMessage *buildStatePullChunkMessage(const StateKeyValue *kv, long offset, size_t length);
+
+    tcp::TCPMessage *buildStatePullChunkResponse(tcp::TCPMessage *request, StateKeyValue *kv);
+
+    void extractPullChunkResponse(const tcp::TCPMessage *msg, StateKeyValue *kv, long offset, size_t length);
+
+    tcp::TCPMessage *buildStatePushMessage(StateKeyValue *kv);
+
+    void extractPushData(const tcp::TCPMessage *msg, StateKeyValue *kv);
+
+    tcp::TCPMessage *buildStatePushChunkMessage(StateKeyValue *kv, long offset, size_t length);
+
+    tcp::TCPMessage *buildStateDeleteMessage(StateKeyValue *kv);
 }

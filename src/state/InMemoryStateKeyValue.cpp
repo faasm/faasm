@@ -4,7 +4,6 @@
 
 #include <memory>
 #include <state/StateMessage.h>
-#include <util/macros.h>
 #include <util/locks.h>
 #include <util/state.h>
 #include <util/logging.h>
@@ -90,7 +89,7 @@ namespace state {
         status = masterIP == thisIP ? InMemoryStateKeyStatus::MASTER : InMemoryStateKeyStatus::NOT_MASTER;
 
         // Set up TCP client to communicate with master if necessary
-        if(status == InMemoryStateKeyStatus::NOT_MASTER) {
+        if (status == InMemoryStateKeyStatus::NOT_MASTER) {
             masterClient = std::make_unique<tcp::TCPClient>(masterIP, STATE_PORT);
         }
     }
@@ -105,11 +104,16 @@ namespace state {
             throw std::runtime_error("Attempting to pull state size on master");
         }
 
-        // TODO - request state size from master
+        // TODO - avoid creating a TCP client on every request
+        tcp::TCPMessage *msg = buildStateSizeMessage(userIn, keyIn);
+        tcp::TCPClient client(masterIP, STATE_PORT);
+        client.sendMessage(msg);
 
-        // TODO - cache this result
+        // TODO - we know the size here
+        tcp::TCPMessage *response = client.recvMessage();
+        size_t stateSize = extractSizeResponse(response);
 
-        return 0;
+        return stateSize;
     }
 
     void InMemoryStateKeyValue::clearAll() {
@@ -139,19 +143,13 @@ namespace state {
         }
 
         // Send the message
-        tcp::TCPMessage *msg = buildStateTCPMessage(StateMessageType::STATE_PULL, user, key, 0);
+        tcp::TCPMessage *msg = buildStatePullMessage(this);
         masterClient->sendMessage(msg);
         tcp::freeTcpMessage(msg);
 
         // Await the response
         tcp::TCPMessage *response = masterClient->recvMessage();
-        if (response->type == StateMessageType::STATE_PULL_RESPONSE) {
-            // Set the value with the response data
-            set(response->buffer);
-        } else {
-            logger->error("Unexpected response from pull from {} ({})", masterIP, response->type);
-            throw std::runtime_error("Pull failed");
-        }
+        extractPullResponse(response, this);
     }
 
     void InMemoryStateKeyValue::pullRangeFromRemote(long offset, size_t length) {
@@ -159,30 +157,14 @@ namespace state {
             return;
         }
 
-        // Buffer contains two ints, offset and length
-        size_t dataSize = 2 * sizeof(int32_t);
-        tcp::TCPMessage *msg = buildStateTCPMessage(StateMessageType::STATE_PULL, user, key, dataSize);
-
-        // Copy offset and length into buffer
-        unsigned long dataOffset = getTCPMessageDataOffset(user, key);
-        auto offSetInt = (int32_t) offset;
-        auto lengthInt = (int32_t) length;
-        std::copy(BYTES(&offSetInt), BYTES(&offSetInt) + sizeof(int32_t), msg->buffer + dataOffset);
-        std::copy(BYTES(&lengthInt), BYTES(&lengthInt) + sizeof(int32_t), msg->buffer + dataOffset + sizeof(int32_t));
-
         // Send the message
+        tcp::TCPMessage *msg = buildStatePullChunkMessage(this, offset, length);
         masterClient->sendMessage(msg);
         tcp::freeTcpMessage(msg);
 
         // Await the response
         tcp::TCPMessage *response = masterClient->recvMessage();
-        if (response->type == StateMessageType::STATE_PULL_RESPONSE) {
-            // Set the chunk with the response data
-            setSegment(offset, response->buffer, length);
-        } else {
-            logger->error("Unexpected response from pull range from {} ({})", masterIP, response->type);
-            throw std::runtime_error("Pull range failed");
-        }
+        extractPullChunkResponse(response, this, offset, length);
     }
 
     void InMemoryStateKeyValue::pushToRemote() {
@@ -190,23 +172,8 @@ namespace state {
             return;
         }
 
-        // Buffer contains length followed by the data
-        size_t valueSize = size();
-        auto valuePtr = BYTES(sharedMemory);
-        size_t dataSize = sizeof(int32_t) + valueSize;
-        tcp::TCPMessage *msg = buildStateTCPMessage(StateMessageType::STATE_PUSH, user, key, dataSize);
-        
-        // Copy length and data into buffer
-        unsigned long dataOffset = getTCPMessageDataOffset(user, key);
-        auto sizeInt = (int32_t) valueSize;
-        std::copy(BYTES(&sizeInt), BYTES(&sizeInt) + sizeof(int32_t), msg->buffer + dataOffset);
-
-        // TODO - avoid copy here?
-        lockRead();
-        std::copy(valuePtr, valuePtr + valueSize, msg->buffer + dataOffset + sizeof(int32_t));
-        unlockRead();
-
         // Send the message (no response)
+        tcp::TCPMessage *msg = buildStatePushMessage(this);
         masterClient->sendMessage(msg);
         tcp::freeTcpMessage(msg);
     }
@@ -240,16 +207,9 @@ namespace state {
             // TODO - delete locally
         } else {
             // Send the message
-            tcp::TCPMessage *msg = buildStateTCPMessage(StateMessageType::STATE_DELETE, user, key, 0);
+            tcp::TCPMessage *msg = buildStateDeleteMessage(this);
             masterClient->sendMessage(msg);
             tcp::freeTcpMessage(msg);
-
-            // Await the response
-            tcp::TCPMessage *response = masterClient->recvMessage();
-            if (response->type != StateMessageType::OK_RESPONSE) {
-                logger->error("Unexpected response from delete of {}/{}@{}", user, key, masterIP);
-                throw std::runtime_error("Delete failed");
-            }
         }
     }
 
