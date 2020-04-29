@@ -186,7 +186,7 @@ namespace wasm {
         return thisThreadNumber; // Might be wrong if called at depth 1 while another thread at depths 1 has forked
     }
 
-    int userNumDevice = 1;
+    int userDefaultDevice = 0;
     int userMaxNumDevices = 3; // Number of devices available to each user by default
     // Map of tid to message ID for chained calls
 
@@ -222,7 +222,7 @@ namespace wasm {
         Runtime::Function *func = Runtime::asFunction(
                 Runtime::getTableElement(getExecutingModule()->defaultTable, microtaskPtr));
 
-        if (1 != userNumDevice) {
+        if (0 > userDefaultDevice) {
             const util::TimePoint iterationTp = util::startTimer();
             int *reducePtr = nullptr;
             int nextNumThreads = thisLevel->get_next_level_num_threads();
@@ -599,7 +599,7 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_reduce", void, __kmpc_end_reduce, I32 loc, I32 gtid, I32 lck) {
         util::getLogger()->debug("S - __kmpc_end_reduce {} {} {}", loc, gtid, lck);
-        if (1 == userNumDevice) {
+        if (0 <= userDefaultDevice) {
             endReduction();
         } else {
             throw std::runtime_error("End reduce called in distributed context");
@@ -615,7 +615,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_reduce_nowait", void, __kmpc_end_reduce_nowait, I32 loc, I32 gtid,
                                    I32 lck) {
         util::getLogger()->debug("S - __kmpc_end_reduce_nowait {} {} {}", loc, gtid, lck);
-        if (1 == userNumDevice) {
+        if (0 <= userDefaultDevice) {
             endReduction();
         } else {
             throw std::runtime_error("End reduce called in distributed context");
@@ -627,7 +627,7 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_num_devices", int, omp_get_num_devices) {
         util::getLogger()->debug("S - omp_get_num_devices");
-        return userNumDevice;
+        return userDefaultDevice;
     }
 
     /**
@@ -645,12 +645,7 @@ namespace wasm {
         }
         // Use negative device number to indicate using multiple devices in parallel
         // TODO - add parallel flag to Level to set here
-        if (defaultDeviceNumber < 0) {
-            defaultDeviceNumber *= -1;
-            userNumDevice = defaultDeviceNumber;
-        } else {
-            userNumDevice = defaultDeviceNumber;
-        }
+        userDefaultDevice = defaultDeviceNumber;
     }
 
     void ompLink() {

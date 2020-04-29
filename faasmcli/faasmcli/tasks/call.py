@@ -32,15 +32,15 @@ def invoke(ctx, user, func,
 
 @task
 def multi_pi(ctx, number_times=5):
-    output_file = "/usr/local/code/faasm/multi_pi.csv"
+    output_file = "/usr/local/code/faasm/wasm/omp/multi_pi/bench.csv"
     # * 2 in this experiment since starting from `- iterations` instead of 0
     sizes = {
-        "Tiny": 100000,
+        # "Tiny": 100000,
         "Small": 10000000,
-        "Big": 100000000,
-        "Huge": 600000000,
+        # "Big": 100000000,
+        "Huge": 900000000,
     }
-    threads = [1] + list(range(2, 25, 2))
+    threads = [1] + list(range(2, 45, 2))
 
     r = redis.Redis(host="koala10")
     times_key = "multi_pi_times"
@@ -49,8 +49,20 @@ def multi_pi(ctx, number_times=5):
     for _ in range(number_times):
         for iter_size in sizes.values():
             for num_threads in threads:
-                cmd = f"{num_threads} {iter_size}"
-                print(f"running omp/multi_pi -- {cmd}")
+                cmd = f"{num_threads} {iter_size} -1"
+                print(f"running omp/multi_pi -- {cmd} -1")
+                invoke_impl("omp", "multi_pi", knative=True, cmdline=cmd)
+                # allow for async inboke
+                while r.llen(times_key) == num_times:
+                    print("Waiting for function to finish")
+                    time.sleep(1.5)
+                num_times += 1
+
+    for _ in range(number_times):
+        for iter_size in sizes.values():
+            for num_threads in threads:
+                cmd = f"{num_threads} {iter_size} 0"
+                print(f"running omp/multi_pi -- {cmd} 0")
                 invoke_impl("omp", "multi_pi", knative=True, cmdline=cmd)
                 # allow for async inboke
                 while r.llen(times_key) == num_times:
@@ -67,6 +79,13 @@ def multi_pi(ctx, number_times=5):
             for iter_name in sizes.keys():
                 for num_threads in threads:
                     result = f"{iter_name},{num_threads},distributed,{times[idx]}\n"
+                    idx += 1
+                    csv.write(result)
+
+        for _ in range(number_times):
+            for iter_name in sizes.keys():
+                for num_threads in threads:
+                    result = f"{iter_name},{num_threads},local,{times[idx]}\n"
                     idx += 1
                     csv.write(result)
 

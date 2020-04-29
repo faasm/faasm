@@ -8,15 +8,19 @@ unsigned long thread_seed() {
 }
 
 int main(int argc, char **argv) {
-    omp_set_default_device(-2);
     long iterations = 1000LL;
-    int num_threads = 1;
-    if (argc == 3) {
-        num_threads = std::stoi(argv[1]);
+    long num_threads = 1;
+    long num_devices = 0;
+    if (argc == 4) {
+        num_threads = std::stol(argv[1]);
         iterations = std::stol(argv[2]);
+        num_devices = std::stol(argv[3]);
     } else if (argc != 1) {
-        printf("Usage: mt_pi [num_threads num_iterations]");
+        printf("Usage: mt_pi [num_threads num_iterations num_devices]");
+        return 5;
     }
+
+    omp_set_default_device(num_devices);
 
     long long result = 0;
     #pragma omp parallel num_threads(num_threads) default(none) firstprivate(iterations) reduction(+:result)
