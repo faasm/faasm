@@ -22,7 +22,7 @@
     chdir: "/tmp/"
   with_items:
     - "curl -O -L https://github.com/google/protobuf/releases/download/v3.6.0/protobuf-cpp-3.6.0.tar.gz"
-    - "tar xvf protobuf-cpp-3.6.0.tar.gz"
+    - "tar --no-same-owner -xf protobuf-cpp-3.6.0.tar.gz"
   when: pb_stat.stat.exists == False
 
 - name: "Build and install"
@@ -32,7 +32,7 @@
     chdir: "/tmp/protobuf-3.6.0"
   with_items:
     - "./configure --prefix=/usr CC=/usr/bin/clang CPP=/usr/bin/clang-cpp CXX=/usr/bin/clang++"
-    - "make"
+    - "make -j"
     - "make install"
     - "ldconfig"
   when: pb_stat.stat.exists == False
