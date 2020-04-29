@@ -3,9 +3,14 @@ FROM ubuntu:18.04
 RUN apt-get update
 RUN apt-get install -y software-properties-common sudo wget
 
-# Note - we have to stick with stable LLVM here for now
+# Note use stable LLVM
 RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
 RUN add-apt-repository "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main"
+
+# Ansible repo
+RUN apt-add-repository -y ppa:ansible/ansible
+
+# Core deps
 RUN apt-get update
 RUN apt-get install -y build-essential \
     llvm-10 \
@@ -17,7 +22,7 @@ RUN apt-get install -y build-essential \
     libclang-10-dev \
     make
 
-# Install an up-to-date cmake
+# Up-to-date cmake
 RUN apt remove --purge --auto-remove cmake
 WORKDIR /usr/local/lib/cmake-3.15.0
 RUN wget https://github.com/Kitware/CMake/releases/download/v3.15.0/cmake-3.15.0-Linux-x86_64.sh
@@ -25,8 +30,22 @@ RUN chmod +x cmake-3.15.0-Linux-x86_64.sh
 RUN ./cmake-3.15.0-Linux-x86_64.sh --skip-license --prefix=/usr/local
 RUN rm cmake-3.15.0-Linux-x86_64.sh
 
-# Install other deps
+# All other deps
 RUN apt-get install -y sudo \
+    ansible \
+    cgroup-bin \
+    iproute2 \
+    iptables \
+    redis-tools \
+    libz-dev \
+    libboost-dev \
+    libcpprest-dev \
+    libhiredis-dev \
+    libcgroup-dev \
+    libcurl4-openssl-dev \
+    ninja-build \
+    cgroup-tools \
+    cgroup-bin \
     libboost-all-dev \
     ninja-build \
     git \
@@ -57,12 +76,20 @@ RUN tar --no-same-owner -xf protobuf-cpp-3.6.0.tar.gz
 
 WORKDIR /tmp/protobuf-3.6.0
 RUN ./configure --prefix=/usr CC=/usr/bin/clang CPP=/usr/bin/clang-cpp CXX=/usr/bin/clang++
-RUN make
+RUN make -j $(nproc --ignore 1)
 RUN make install
 RUN ldconfig
 
 # Remove source
 WORKDIR /
 RUN rm -rf /tmp/protobuf-3.6.0
+
+# Faasm dependencies via Ansible
+COPY ansible /usr/local/code/faasm/ansible
+WORKDIR /usr/local/code/faasm/ansible
+RUN ansible-playbook spdlog.yml
+RUN ansible-playbook cereal.yml
+RUN ansible-playbook rapidjson.yml
+RUN ansible-playbook pistache.yml
 
 CMD /bin/bash
