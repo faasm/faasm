@@ -40,55 +40,43 @@ def multi_pi(ctx, number_times=5):
         # "Big": 100000000,
         "Huge": 900000000,
     }
-    threads = [1] + list(range(2, 45, 2))
+
+    modes = {
+        "Local": 0,
+        "Distributed": -1,
+    }
+    threads = [1] + list(range(2, 41, 2))
 
     r = redis.Redis(host="koala10")
     times_key = "multi_pi_times"
     r.delete(times_key)
     num_times = 0
-    for _ in range(number_times):
+    for mode in modes.values():
         for iter_size in sizes.values():
             for num_threads in threads:
-                cmd = f"{num_threads} {iter_size} -1"
-                print(f"running omp/multi_pi -- {cmd} -1")
-                invoke_impl("omp", "multi_pi", knative=True, cmdline=cmd)
-                # allow for async inboke
-                while r.llen(times_key) == num_times:
-                    print("Waiting for function to finish")
-                    time.sleep(1.5)
-                num_times += 1
-
-    for _ in range(number_times):
-        for iter_size in sizes.values():
-            for num_threads in threads:
-                cmd = f"{num_threads} {iter_size} 0"
-                print(f"running omp/multi_pi -- {cmd} 0")
-                invoke_impl("omp", "multi_pi", knative=True, cmdline=cmd)
-                # allow for async inboke
-                while r.llen(times_key) == num_times:
-                    print("Waiting for function to finish")
-                    time.sleep(1.5)
-                num_times += 1
+                for _ in range(number_times):
+                    cmd = f"{num_threads} {iter_size} {mode}"
+                    print(f"running omp/multi_pi -- {cmd}")
+                    invoke_impl("omp", "multi_pi", knative=True, cmdline=cmd)
+                    # allow for async flag in invoke too
+                    while r.llen(times_key) == num_times:
+                        print("Waiting for function to finish")
+                        time.sleep(1.5)
+                    num_times += 1
 
     times = list(map(int, r.lrange(times_key, 0, num_times)))
     assert(len(times) == num_times)
     idx = 0
+
     with open(output_file, "w") as csv:
         csv.write("iterations,numThreads,type,milliseconds\n")
-        for _ in range(number_times):
+        for mode in modes.keys():
             for iter_name in sizes.keys():
                 for num_threads in threads:
-                    result = f"{iter_name},{num_threads},distributed,{times[idx]}\n"
-                    idx += 1
-                    csv.write(result)
-
-        for _ in range(number_times):
-            for iter_name in sizes.keys():
-                for num_threads in threads:
-                    result = f"{iter_name},{num_threads},local,{times[idx]}\n"
-                    idx += 1
-                    csv.write(result)
-
+                    for _ in range(number_times):
+                        result = f"{iter_name},{num_threads},{mode},{times[idx]}\n"
+                        idx += 1
+                        csv.write(result)
 
 @task
 def status(ctx, call_id, host=None, port=None):

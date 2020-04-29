@@ -222,12 +222,15 @@ namespace wasm {
         Runtime::Function *func = Runtime::asFunction(
                 Runtime::getTableElement(getExecutingModule()->defaultTable, microtaskPtr));
 
+        const util::TimePoint iterationTp = util::startTimer();
+        redis::Redis &redis = redis::Redis::getState();
+
+        // Set up number of threads for next level
+        int nextNumThreads = thisLevel->get_next_level_num_threads();
+        thisLevel->pushed_num_threads = -1; // Resets for next push
+
         if (0 > userDefaultDevice) {
-            const util::TimePoint iterationTp = util::startTimer();
             int *reducePtr = nullptr;
-            int nextNumThreads = thisLevel->get_next_level_num_threads();
-            redis::Redis &redis = redis::Redis::getState();
-            logger->warn("Number of threads spawned: {}", nextNumThreads);
 
             std::vector<int> chainedThreads;
             chainedThreads.reserve(nextNumThreads);
@@ -251,7 +254,6 @@ namespace wasm {
                 reducePtr = &Runtime::memoryRef<I32>(memoryPtr, argsPtr);
             }
 
-            logger->warn("About to create those threads");
             // Create the threads (messages) themselves
             for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
                 message::Message call = util::messageFactory(originalCall->user(), originalCall->function());
@@ -260,7 +262,6 @@ namespace wasm {
                     call.add_ompfunctionargs(nativeArgs[argIdx]);
                 }
 
-                logger->warn("Arguments set");
                 // Snapshot details
                 call.set_snapshotkey(activeSnapshotKey);
                 call.set_snapshotsize(threadSnapshotSize);
@@ -305,81 +306,78 @@ namespace wasm {
                     numErrors++;
                 }
             }
+
             if (numErrors) {
                 throw std::runtime_error(fmt::format("{} OMP threads have exited with errors", numErrors));
             }
 
-
             *reducePtr = redis.getLong(REDUCE_KEY);
             logger->error("END DISTRIBUTED FORK. SETTING REDUCE VALUE TO {}", *reducePtr);
-            const long distributedIterationTime = util::getTimeDiffMicros(iterationTp);
-            redis.rpushLong("multi_pi_times", distributedIterationTime);
-            return;
-        }
+        } else { // Single host
 
-        // Set up number of threads for next level
-        int nextNumThreads = thisLevel->get_next_level_num_threads();
-        thisLevel->pushed_num_threads = -1; // Resets for next push
+            // Set up new level
+            auto nextLevel = std::make_shared<SingleHostLevel>(thisLevel, nextNumThreads);
 
-        // Set up new level
-        auto nextLevel = std::make_shared<SingleHostLevel>(thisLevel, nextNumThreads);
+            // Note - must ensure thread arguments are outside loop scope otherwise they do
+            // may not exist by the time the thread actually consumes them
+            std::vector<WasmThreadSpec> threadArgs;
+            threadArgs.reserve(nextNumThreads);
 
-        // Note - must ensure thread arguments are outside loop scope otherwise they do
-        // may not exist by the time the thread actually consumes them
-        std::vector<WasmThreadSpec> threadArgs;
-        threadArgs.reserve(nextNumThreads);
+            std::vector<std::vector<IR::UntaggedValue>> microtaskArgs;
+            microtaskArgs.reserve(nextNumThreads);
 
-        std::vector<std::vector<IR::UntaggedValue>> microtaskArgs;
-        microtaskArgs.reserve(nextNumThreads);
+            std::vector<WAVM::Platform::Thread *> platformThreads;
+            platformThreads.reserve(nextNumThreads);
 
-        std::vector<WAVM::Platform::Thread *> platformThreads;
-        platformThreads.reserve(nextNumThreads);
-
-        // Build up arguments
-        for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
-            // Note - these arguments are the thread number followed by the number of
-            // shared variables, then the pointers to those shared variables
-            microtaskArgs.push_back({threadNum, argc});
-            if (argc > 0) {
-                // Get pointer to start of arguments in host memory
-                U32 *pointers = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
-                for (int argIdx = 0; argIdx < argc; argIdx++) {
-                    microtaskArgs[threadNum].emplace_back(pointers[argIdx]);
+            // Build up arguments
+            for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
+                // Note - these arguments are the thread number followed by the number of
+                // shared variables, then the pointers to those shared variables
+                microtaskArgs.push_back({threadNum, argc});
+                if (argc > 0) {
+                    // Get pointer to start of arguments in host memory
+                    U32 *pointers = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
+                    for (int argIdx = 0; argIdx < argc; argIdx++) {
+                        microtaskArgs[threadNum].emplace_back(pointers[argIdx]);
+                    }
                 }
+
+                // Arguments for spawning the thread
+                // NOTE - CLion auto-format insists on this layout... and clangd really hates C99 extensions
+                threadArgs.push_back({
+                                             .contextRuntimeData = contextRuntimeData,
+                                             .parentModule = parentModule,
+                                             .parentCall = parentCall,
+                                             .func = func,
+                                             .funcArgs = microtaskArgs[threadNum].data(),
+                                             .stackSize = OMP_STACK_SIZE,
+                                             .tid = threadNum,
+                                             .level = nextLevel
+                                     });
             }
 
-            // Arguments for spawning the thread
-            // NOTE - CLion auto-format insists on this layout... and clangd really hates C99 extensions
-            threadArgs.push_back({
-                                         .contextRuntimeData = contextRuntimeData,
-                                         .parentModule = parentModule,
-                                         .parentCall = parentCall,
-                                         .func = func,
-                                         .funcArgs = microtaskArgs[threadNum].data(),
-                                         .stackSize = OMP_STACK_SIZE,
-                                         .tid = threadNum,
-                                         .level = nextLevel
-                                 });
+            // Create the threads themselves
+            for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
+                platformThreads.emplace_back(Platform::createThread(
+                        0,
+                        ompThreadEntryFunc,
+                        &threadArgs[threadNum]
+                ));
+            }
+
+            // Await all threads
+            I64 numErrors = 0;
+            for (auto t: platformThreads) {
+                numErrors += Platform::joinThread(t);
+            }
+
+            if (numErrors) {
+                throw std::runtime_error(fmt::format("{} OMP threads have exited with errors", numErrors));
+            }
         }
 
-        // Create the threads themselves
-        for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
-            platformThreads.emplace_back(Platform::createThread(
-                    0,
-                    ompThreadEntryFunc,
-                    &threadArgs[threadNum]
-            ));
-        }
-
-        // Await all threads
-        I64 numErrors = 0;
-        for (auto t: platformThreads) {
-            numErrors += Platform::joinThread(t);
-        }
-
-        if (numErrors) {
-            throw std::runtime_error(fmt::format("{}} OMP threads have exited with errors", numErrors));
-        }
+        const long distributedIterationTime = util::getTimeDiffMicros(iterationTp);
+        redis.rpushLong("multi_pi_times", distributedIterationTime);
 
     }
 
