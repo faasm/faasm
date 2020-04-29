@@ -22,18 +22,20 @@ int main(int argc, char **argv) {
 
     omp_set_default_device(num_devices);
 
-    long long result = 0;
+    long result = 0;
     #pragma omp parallel num_threads(num_threads) default(none) firstprivate(iterations) reduction(+:result)
     {
         std::uniform_real_distribution<double> unif(0, 1);
 
         std::mt19937_64 generator(thread_seed());
-        double x, y;
+        double x, y, z, k;
         #pragma omp for nowait
         for (long i = -iterations; i < iterations; i++) {
+            z = unif(generator);
+            k = unif(generator);
             x = unif(generator);
             y = unif(generator);
-            if (x * x + y * y <= 1.0) {
+            if (x * x + y * y <= 1.0 && z * z + k * k <= 3.0) {
                 result++;
             }
         }
