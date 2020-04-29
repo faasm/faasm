@@ -35,9 +35,9 @@ def multi_pi(ctx, number_times=5):
     output_file = "/usr/local/code/faasm/multi_pi.csv"
     sizes = {
         "big": 100000000,
-        "huge": 2100000000,
+        "huge": 600000000,
     }
-    threads = [1]#+ list(range(2, 25, 2))
+    threads = [1]+ list(range(2, 25, 2))
 
     r = redis.Redis(host="koala10")
     times_key = "multi_pi_times"
@@ -55,16 +55,15 @@ def multi_pi(ctx, number_times=5):
                     time.sleep(1.5)
                 num_times += 1
 
-    num_times -= 1
     times = list(map(int, r.lrange(times_key, 0, num_times)))
     assert(len(times) == num_times)
     idx = 0
     with open(output_file, "w") as csv:
-        csv.write("iterations,numThreads,type,milliseconds")
+        csv.write("iterations,numThreads,type,milliseconds\n")
         for _ in range(number_times):
             for iter_name in sizes.keys():
                 for num_threads in threads:
-                    result = f"{iter_size},{num_threads},distributed,{times[idx]}"
+                    result = f"{iter_name},{num_threads},distributed,{times[idx]}\n"
                     idx += 1
                     csv.write(result)
 
