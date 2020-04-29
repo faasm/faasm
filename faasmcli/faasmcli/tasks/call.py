@@ -45,7 +45,7 @@ def multi_pi(ctx, number_times=5):
         "Local": 0,
         "Distributed": -1,
     }
-    threads = [1] + list(range(2, 41, 2))
+    threads = list(range(2, 41, 2))
 
     r = redis.Redis(host="koala10")
     times_key = "multi_pi_times"
