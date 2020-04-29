@@ -25,7 +25,7 @@ namespace worker {
         pool.startSharingThread();
 
         // Start MPI thread in background
-        pool.startMpiThread();
+//        pool.startMpiThread();
     }
 
     void WorkerMain::awaitGlobalQueue() {

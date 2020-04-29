@@ -279,13 +279,13 @@ namespace scheduler {
 
     std::string opinionStr(const SchedulerOpinion &o) {
         switch (o) {
-            case (MAYBE): {
+            case (SchedulerOpinion::MAYBE): {
                 return "MAYBE";
             }
-            case (YES): {
+            case (SchedulerOpinion::YES): {
                 return "YES";
             }
-            case (NO): {
+            case (SchedulerOpinion::NO): {
                 return "NO";
             }
             default:
@@ -312,17 +312,17 @@ namespace scheduler {
         if (isInFlightRatioBreached) {
             if (atMaxThreads) {
                 // If in-flight ratio is breached and we're at the max, we're a definite NO
-                newOpinion = NO;
+                newOpinion = SchedulerOpinion::NO;
             } else {
                 // If in-flight ratio is breached but we can add more threads, we're a YES
-                newOpinion = YES;
+                newOpinion = SchedulerOpinion::YES;
             }
         } else if (hasWarmThreads) {
             // If we've not breached the in-flight ratio and we have some warm threads, we're a YES
-            newOpinion = YES;
+            newOpinion = SchedulerOpinion::YES;
         } else {
             // If we have no threads we're a maybe
-            newOpinion = MAYBE;
+            newOpinion = SchedulerOpinion::MAYBE;
         }
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
@@ -343,21 +343,21 @@ namespace scheduler {
                     maxInFlightRatio
             );
 
-            if (newOpinion == NO) {
+            if (newOpinion == SchedulerOpinion::NO) {
                 // Moving to no means we want to switch off from all decisions
                 removeNodeFromWarmSet(funcStr);
                 removeNodeFromGlobalSet();
-            } else if (newOpinion == MAYBE && currentOpinion == NO) {
+            } else if (newOpinion == SchedulerOpinion::MAYBE && currentOpinion == SchedulerOpinion::NO) {
                 // Rejoin the global set if we're now a maybe when previously a no
                 addNodeToGlobalSet();
-            } else if (newOpinion == MAYBE && currentOpinion == YES) {
+            } else if (newOpinion == SchedulerOpinion::MAYBE && currentOpinion == SchedulerOpinion::YES) {
                 // Stay in the global set, but not in the warm if we've gone back to maybe from yes
                 removeNodeFromWarmSet(funcStr);
-            } else if (newOpinion == YES && currentOpinion == NO) {
+            } else if (newOpinion == SchedulerOpinion::YES && currentOpinion == SchedulerOpinion::NO) {
                 // Rejoin everything if we're into a yes state from a no
                 addNodeToWarmSet(funcStr);
                 addNodeToGlobalSet();
-            } else if (newOpinion == YES && currentOpinion == MAYBE) {
+            } else if (newOpinion == SchedulerOpinion::YES && currentOpinion == SchedulerOpinion::MAYBE) {
                 // Join the warm set if we've become yes from maybe
                 addNodeToWarmSet(funcStr);
             } else {
@@ -386,7 +386,7 @@ namespace scheduler {
         // Accept if we have capacity
         const std::string funcStrNoId = util::funcToString(msg, false);
         SchedulerOpinion thisOpinion = opinionMap[funcStrNoId];
-        if (thisOpinion == YES) {
+        if (thisOpinion == SchedulerOpinion::YES) {
             return nodeId;
         }
 
@@ -401,11 +401,12 @@ namespace scheduler {
 
         // If we have warm options, pick a random one
         if (!warmOptions.empty()) {
+            logger->warn("Option {} as executing node", util::randomStringFromSet(warmOptions));
             return util::randomStringFromSet(warmOptions);
         }
 
         // If there are no other warm options and we're a maybe, accept on this node
-        if (thisOpinion == MAYBE) {
+        if (thisOpinion == SchedulerOpinion::MAYBE) {
             logger->warn("Returning ourselves as executing node");
             return nodeId;
         }
