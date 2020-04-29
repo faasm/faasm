@@ -203,6 +203,7 @@ namespace scheduler {
 
         // Mark if this is the first scheduling decision made on this message
         if (msg.schedulednode().empty()) {
+            logger->warn("Setting best node")
             msg.set_schedulednode(bestNode);
         }
 
@@ -389,6 +390,7 @@ namespace scheduler {
             return nodeId;
         }
 
+        logger->warn("Getting function warm set");
         // Get options from the warm set
         std::string warmSet = this->getFunctionWarmSetName(msg);
         redis::Redis &redis = redis::Redis::getQueue();
@@ -404,6 +406,7 @@ namespace scheduler {
 
         // If there are no other warm options and we're a maybe, accept on this node
         if (thisOpinion == MAYBE) {
+            logger->warn("Returning ourselves as executing node");
             return nodeId;
         }
 
