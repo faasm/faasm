@@ -31,14 +31,16 @@ def invoke(ctx, user, func,
 
 
 @task
-def multi_pi(ctx, number_times=5):
+def multi_pi(ctx, number_times=10):
+    backoff = lambda x: max(x / 2,  number_times)
+
     output_file = "/usr/local/code/faasm/wasm/omp/multi_pi/bench.csv"
     # * 2 in this experiment since starting from `- iterations` instead of 0
     sizes = {
-        # "Tiny": 100000,
-        "Small": 10000000,
-        # "Big": 100000000,
-        "Huge": 900000000,
+        "Tiny": 200000,
+        # "Small": 10000000,
+        "Big": 200000000,
+        "Huge": 10000000000,
     }
 
     modes = {
@@ -54,7 +56,7 @@ def multi_pi(ctx, number_times=5):
     for mode in modes.values():
         for iter_size in sizes.values():
             for num_threads in threads:
-                for _ in range(number_times):
+                for _ in range(backoff(num_threads)):
                     cmd = f"{num_threads} {iter_size} {mode}"
                     print(f"running omp/multi_pi -- {cmd}")
                     invoke_impl("omp", "multi_pi", knative=True, cmdline=cmd)
@@ -73,7 +75,7 @@ def multi_pi(ctx, number_times=5):
         for mode in modes.keys():
             for iter_name in sizes.keys():
                 for num_threads in threads:
-                    for _ in range(number_times):
+                    for _ in range(backoff(num_threads)):
                         result = f"{iter_name},{num_threads},{mode},{times[idx]}\n"
                         idx += 1
                         csv.write(result)
