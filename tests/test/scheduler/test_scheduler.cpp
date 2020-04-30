@@ -530,7 +530,7 @@ namespace tests {
             sch.callFunction(msg);
         }
         REQUIRE(sch.getFunctionThreadCount(msg) == inFlightRatio);
-        REQUIRE(sch.getOpinion(msg) == YES);
+        REQUIRE(sch.getOpinion(msg) == SchedulerOpinion::YES);
 
         // Saturate up to max workers
         int remainingCalls = workersPerFunc - inFlightRatio;
@@ -540,7 +540,7 @@ namespace tests {
 
         // Check scheduler no longer accepting calls
         REQUIRE(sch.getFunctionThreadCount(msg) == workersPerFunc);
-        REQUIRE(sch.getOpinion(msg) == NO);
+        REQUIRE(sch.getOpinion(msg) == SchedulerOpinion::NO);
 
         // Reset conf
         conf.maxInFlightRatio = originalInFlight;

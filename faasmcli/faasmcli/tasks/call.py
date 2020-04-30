@@ -3,7 +3,6 @@ from invoke import task
 from faasmcli.util.call import invoke_impl, status_call_impl, flush_call_impl
 from faasmcli.util.endpoints import get_invoke_host_port
 
-current_milli_time = lambda: int(round(time.time() * 1000))
 
 @task(default=True)
 def invoke(ctx, user, func,
