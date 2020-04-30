@@ -56,43 +56,5 @@ namespace state {
 
     size_t extractSizeResponse(const tcp::TCPMessage *msg);
 
-    tcp::TCPMessage *buildStatePullRequest(const StateKeyValue *kv);
-
-    tcp::TCPMessage *buildStatePullResponse(StateKeyValue *kv);
-
-    void extractPullResponse(const tcp::TCPMessage *msg, StateKeyValue *kv);
-
-    tcp::TCPMessage *buildStatePullChunkRequest(const StateKeyValue *kv, long offset, size_t length);
-
-    tcp::TCPMessage *buildStatePullChunkResponse(tcp::TCPMessage *request, StateKeyValue *kv);
-
-    void extractPullChunkResponse(const tcp::TCPMessage *msg, StateKeyValue *kv, long offset, size_t length);
-
-    tcp::TCPMessage *buildStatePushRequest(StateKeyValue *kv);
-
-    void extractStatePushData(const tcp::TCPMessage *msg, StateKeyValue *kv);
-
-    tcp::TCPMessage *buildStatePushChunkRequest(StateKeyValue *kv, long offset, size_t length);
-
-    void extractStatePushChunkData(const tcp::TCPMessage *msg, StateKeyValue *kv);
-
-    tcp::TCPMessage *buildStatePushMultiChunkRequest(StateKeyValue *kv, const std::vector<StateChunk> &chunks);
-
-    void extractStatePushMultiChunkData(const tcp::TCPMessage *msg, StateKeyValue *kv);
-
-    tcp::TCPMessage *buildStateAppendRequest(StateKeyValue *kv, size_t length, const uint8_t *data);
-
-    void extractStateAppendData(const tcp::TCPMessage *msg, StateKeyValue *kv);
-
-    tcp::TCPMessage *buildPullAppendedRequest(StateKeyValue *kv, size_t length, long nValues);
-
-    tcp::TCPMessage *buildPullAppendedResponse(tcp::TCPMessage *request, StateKeyValue *kv);
-
     void extractPullAppendedData(const tcp::TCPMessage *msg, uint8_t *buffer);
-
-    tcp::TCPMessage *buildStateDeleteRequest(StateKeyValue *kv);
-
-    tcp::TCPMessage *buildStateLockRequest(StateKeyValue *kv);
-
-    tcp::TCPMessage *buildStateUnlockRequest(StateKeyValue *kv);
 }

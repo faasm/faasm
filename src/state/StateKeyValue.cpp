@@ -99,13 +99,18 @@ namespace state {
         // Unique lock for setting the whole value
         FullLock lock(valueMutex);
 
+        doSet(buffer);
+
+        isDirty = true;
+    }
+
+    void StateKeyValue::doSet(const uint8_t *buffer) {
         if (sharedMemory == nullptr) {
             initialiseStorage(true);
         }
 
         // Copy data into shared region
         std::copy(buffer, buffer + valueSize, BYTES(sharedMemory));
-        isDirty = true;
     }
 
     void StateKeyValue::append(uint8_t *buffer, size_t length) {
@@ -121,14 +126,20 @@ namespace state {
     }
 
     void StateKeyValue::setSegment(long offset, const uint8_t *buffer, size_t length) {
+        FullLock lock(valueMutex);
+
+        doSetSegment(offset, buffer, length);
+
+        markDirtySegment(offset, length);
+    }
+
+    void StateKeyValue::doSetSegment(long offset, const uint8_t *buffer, size_t length) {
         // Check we're in bounds
         size_t end = offset + length;
         if (end > valueSize) {
             logger->error("Trying to write segment finishing at {} (value length {})", end, valueSize);
             throw std::runtime_error("Attempting to set segment out of bounds");
         }
-
-        FullLock lock(valueMutex);
 
         // If necessary, allocate the memory
         if (!isSegmentAllocated(offset, length)) {
@@ -144,8 +155,6 @@ namespace state {
         // Do the copy
         auto bytePtr = BYTES(sharedMemory);
         std::copy(buffer, buffer + length, bytePtr + offset);
-
-        markDirtySegment(offset, length);
     }
 
     void StateKeyValue::flagDirty() {

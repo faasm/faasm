@@ -3,6 +3,7 @@
 #include <util/logging.h>
 #include <util/config.h>
 #include <state/State.h>
+#include <state/InMemoryStateKeyValue.h>
 
 namespace state {
     StateServer::StateServer(State &stateIn) : tcp::TCPServer(STATE_PORT, util::getSystemConfig().globalMessageTimeout),
@@ -19,7 +20,9 @@ namespace state {
 
         // Get the size. State should be mastered on this host, hence we don't need
         // to specify size (will error if not the case).
-        const std::shared_ptr<StateKeyValue> &kv = state.getKV(user, key, 0);
+        std::shared_ptr<StateKeyValue> localKv = state.getKV(user, key, 0);
+        std::shared_ptr<InMemoryStateKeyValue> kv = std::static_pointer_cast<InMemoryStateKeyValue>(localKv);
+
         size_t stateSize = kv->size();
 
         // Construct appropriate response
@@ -30,40 +33,40 @@ namespace state {
             response = buildStateSizeResponse(user, key, stateSize);
 
         } else if (requestType == StateMessageType::STATE_PULL) {
-            logger->debug("State pull: {}", key);
-            response = buildStatePullResponse(kv.get());
+            response = kv->buildStatePullResponse();
+            logger->debug("State pull: {} ({})", key, response->len);
 
         } else if (requestType == StateMessageType::STATE_PULL_CHUNK) {
             logger->debug("State pull chunk: {}", key);
-            response = buildStatePullChunkResponse(recvMessage, kv.get());
+            response = kv->buildStatePullChunkResponse(recvMessage);
 
         } else if (requestType == StateMessageType::STATE_PUSH) {
             logger->debug("State push: {}", key);
-            extractStatePushData(recvMessage, kv.get());
+            kv->extractStatePushData(recvMessage);
 
         } else if (requestType == StateMessageType::STATE_PUSH_CHUNK) {
             logger->debug("State push chunk {}", key);
-            extractStatePushChunkData(recvMessage, kv.get());
+            kv->extractStatePushChunkData(recvMessage);
 
         } else if (requestType == StateMessageType::STATE_PUSH_MANY_CHUNK) {
             logger->debug("State push many chunk {}", key);
-            extractStatePushMultiChunkData(recvMessage, kv.get());
+            kv->extractStatePushMultiChunkData(recvMessage);
 
         } else if (requestType == StateMessageType::STATE_APPEND) {
             logger->debug("State append {}", key);
-            extractStateAppendData(recvMessage, kv.get());
+            kv->extractStateAppendData(recvMessage);
 
         } else if (requestType == StateMessageType::STATE_PULL_APPENDED) {
             logger->debug("State pull appended {}", key);
-            response = buildPullAppendedResponse(recvMessage, kv.get());
+            response = kv->buildPullAppendedResponse(recvMessage);
 
         } else if (requestType == StateMessageType::STATE_LOCK) {
             logger->debug("State lock: {}", key);
-            kv->lockGlobal();
+            localKv->lockGlobal();
 
         } else if (requestType == StateMessageType::STATE_UNLOCK) {
             logger->debug("State unlock: {}", key);
-            kv->unlockGlobal();
+            localKv->unlockGlobal();
 
         } else if (requestType == StateMessageType::STATE_DELETE) {
             logger->debug("State delete: {}", key);

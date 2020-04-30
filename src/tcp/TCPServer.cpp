@@ -156,12 +156,14 @@ namespace tcp {
 
                     // Insert the data from this packet
                     if (nRecv > 0) {
-                        std::copy(bufferStart, bufferStart + nRecv, msg->buffer);
+                        uint8_t *msgBufferPosition = msg->buffer + bytesReceived;
+                        std::copy(bufferStart, bufferStart + nRecv, msgBufferPosition);
                     }
 
                     bytesReceived += nRecv;
 
                     if (bytesReceived >= msg->len) {
+                        logger->debug("Finished message type {} len {} ({} packets)", msg->type, bytesReceived, packetCount);
                         break;
                     } else {
                         logger->debug("TCP packet {} = {} bytes", packetCount, nRecv);
@@ -177,7 +179,6 @@ namespace tcp {
                 }
 
                 // Record that we've now received a message
-                logger->debug("Processed message type {}", msg->type);
                 nMessagesProcessed++;
 
                 // Allow subclass to handle the message and respond

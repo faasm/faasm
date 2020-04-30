@@ -27,13 +27,54 @@ namespace state {
 
     class InMemoryStateKeyValue final : public StateKeyValue {
     public:
-        InMemoryStateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn, const std::string &thisIPIn);
+        InMemoryStateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn,
+                              const std::string &thisIPIn);
 
-        static size_t getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn, const std::string &thisIPIn);
+        static size_t
+        getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn, const std::string &thisIPIn);
 
         static void clearAll();
 
         bool isMaster();
+
+        // Functions related to TCP messages
+        tcp::TCPMessage *buildStatePullRequest();
+
+        tcp::TCPMessage *buildStatePullResponse();
+
+        void extractPullResponse(const tcp::TCPMessage *msg);
+
+        tcp::TCPMessage *buildStatePullChunkRequest(long offset, size_t length);
+
+        tcp::TCPMessage *buildStatePullChunkResponse(tcp::TCPMessage *request);
+
+        void extractPullChunkResponse(const tcp::TCPMessage *msg, long offset, size_t length);
+
+        tcp::TCPMessage *buildStatePushRequest();
+
+        void extractStatePushData(const tcp::TCPMessage *msg);
+
+        tcp::TCPMessage *buildStatePushChunkRequest(long offset, size_t length);
+
+        void extractStatePushChunkData(const tcp::TCPMessage *msg);
+
+        tcp::TCPMessage *buildStatePushMultiChunkRequest(const std::vector<StateChunk> &chunks);
+
+        void extractStatePushMultiChunkData(const tcp::TCPMessage *msg);
+
+        tcp::TCPMessage *buildStateAppendRequest(size_t length, const uint8_t *data);
+
+        void extractStateAppendData(const tcp::TCPMessage *msg);
+
+        tcp::TCPMessage *buildPullAppendedRequest(size_t length, long nValues);
+
+        tcp::TCPMessage *buildPullAppendedResponse(tcp::TCPMessage *request);
+
+        tcp::TCPMessage *buildStateDeleteRequest();
+
+        tcp::TCPMessage *buildStateLockRequest();
+
+        tcp::TCPMessage *buildStateUnlockRequest();
 
     private:
         std::string thisIP;

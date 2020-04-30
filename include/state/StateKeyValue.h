@@ -132,6 +132,10 @@ namespace state {
 
         std::vector<StateChunk> getDirtyChunks(const uint8_t *dirtyMaskBytes);
 
+        void doSet(const uint8_t *data);
+
+        void doSetSegment(long offset, const uint8_t *buffer, size_t length);
+
         virtual void pullFromRemote() = 0;
 
         virtual void pullRangeFromRemote(long offset, size_t length) = 0;

@@ -13,15 +13,19 @@
 
 
 namespace state {
+    // --------------------------------------------
+    // Static properties and methods
+    // --------------------------------------------
+
     static std::unordered_map<std::string, std::string> masterMap;
     static std::shared_mutex masterMapMutex;
 
-    std::string getMasterKey(const std::string &user, const std::string &key) {
+    static std::string getMasterKey(const std::string &user, const std::string &key) {
         const std::string masterKey = MASTER_KEY_PREFIX + user + "_" + key;
         return masterKey;
     }
 
-    std::string getMasterIP(
+    static std::string getMasterIP(
             const std::string &user, const std::string &key,
             const std::string &thisIP,
             bool claim
@@ -81,23 +85,6 @@ namespace state {
         return masterIP;
     }
 
-    InMemoryStateKeyValue::InMemoryStateKeyValue(
-            const std::string &userIn, const std::string &keyIn,
-            size_t sizeIn, const std::string &thisIPIn) : StateKeyValue(userIn, keyIn, sizeIn),
-                                                          thisIP(thisIPIn) {
-
-        // Retrieve the master IP for this key
-        masterIP = getMasterIP(user, key, thisIP, true);
-
-        // Mark whether we're master
-        status = masterIP == thisIP ? InMemoryStateKeyStatus::MASTER : InMemoryStateKeyStatus::NOT_MASTER;
-
-        // Set up TCP client to communicate with master if necessary
-        if (status == InMemoryStateKeyStatus::NOT_MASTER) {
-            masterClient = std::make_unique<tcp::TCPClient>(masterIP, STATE_PORT);
-        }
-    }
-
     size_t InMemoryStateKeyValue::getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn,
                                                          const std::string &thisIP) {
         // Get the master IP
@@ -130,12 +117,41 @@ namespace state {
         masterMap.clear();
     }
 
+    // --------------------------------------------
+    // Class definition
+    // --------------------------------------------
+
+    InMemoryStateKeyValue::InMemoryStateKeyValue(
+            const std::string &userIn, const std::string &keyIn,
+            size_t sizeIn, const std::string &thisIPIn) : StateKeyValue(userIn, keyIn, sizeIn),
+                                                          thisIP(thisIPIn) {
+
+        // Retrieve the master IP for this key
+        masterIP = getMasterIP(user, key, thisIP, true);
+
+        // Mark whether we're master
+        status = masterIP == thisIP ? InMemoryStateKeyStatus::MASTER : InMemoryStateKeyStatus::NOT_MASTER;
+
+        // Set up TCP client to communicate with master if necessary
+        if (status == InMemoryStateKeyStatus::NOT_MASTER) {
+            masterClient = std::make_unique<tcp::TCPClient>(masterIP, STATE_PORT);
+        }
+    }
+
+    bool InMemoryStateKeyValue::isMaster() {
+        return status == InMemoryStateKeyStatus::MASTER;
+    }
+
+    // ----------------------------------------
+    // Normal state key-value API
+    // ----------------------------------------
+
     void InMemoryStateKeyValue::lockGlobal() {
         if (status == InMemoryStateKeyStatus::MASTER) {
             lockWrite();
         } else {
             // Send message to master (will block)
-            tcp::TCPMessage *msg = buildStateLockRequest(this);
+            tcp::TCPMessage *msg = buildStateLockRequest();
             masterClient->sendMessage(msg);
             tcp::freeTcpMessage(msg);
         }
@@ -146,7 +162,7 @@ namespace state {
             unlockWrite();
         } else {
             // Send message to master
-            tcp::TCPMessage *msg = buildStateUnlockRequest(this);
+            tcp::TCPMessage *msg = buildStateUnlockRequest();
             masterClient->sendMessage(msg);
             tcp::freeTcpMessage(msg);
         }
@@ -158,13 +174,13 @@ namespace state {
         }
 
         // Send the message
-        tcp::TCPMessage *msg = buildStatePullRequest(this);
+        tcp::TCPMessage *msg = buildStatePullRequest();
         masterClient->sendMessage(msg);
         tcp::freeTcpMessage(msg);
 
         // Await the response
         tcp::TCPMessage *response = masterClient->recvMessage();
-        extractPullResponse(response, this);
+        extractPullResponse(response);
         tcp::freeTcpMessage(response);
     }
 
@@ -174,13 +190,13 @@ namespace state {
         }
 
         // Send the message
-        tcp::TCPMessage *msg = buildStatePullChunkRequest(this, offset, length);
+        tcp::TCPMessage *msg = buildStatePullChunkRequest(offset, length);
         masterClient->sendMessage(msg);
         tcp::freeTcpMessage(msg);
 
         // Await the response
         tcp::TCPMessage *response = masterClient->recvMessage();
-        extractPullChunkResponse(response, this, offset, length);
+        extractPullChunkResponse(response, offset, length);
         tcp::freeTcpMessage(response);
     }
 
@@ -190,7 +206,7 @@ namespace state {
         }
 
         // Send the message (no response)
-        tcp::TCPMessage *msg = buildStatePushRequest(this);
+        tcp::TCPMessage *msg = buildStatePushRequest();
         masterClient->sendMessage(msg);
         tcp::freeTcpMessage(msg);
     }
@@ -201,7 +217,7 @@ namespace state {
             zeroDirtyMask();
         } else {
             // Send the request
-            buildStatePushMultiChunkRequest(this, chunks);
+            buildStatePushMultiChunkRequest(chunks);
 
             // Read the latest value
             if (_fullyAllocated) {
@@ -221,7 +237,7 @@ namespace state {
 
         } else {
             // Send the request (no response)
-            tcp::TCPMessage *msg = buildStateAppendRequest(this, length, data);
+            tcp::TCPMessage *msg = buildStateAppendRequest(length, data);
             masterClient->sendMessage(msg);
             tcp::freeTcpMessage(msg);
         }
@@ -239,7 +255,7 @@ namespace state {
             }
         } else {
             // Request from remote
-            tcp::TCPMessage *msg = buildPullAppendedRequest(this, length, nValues);
+            tcp::TCPMessage *msg = buildPullAppendedRequest(length, nValues);
             masterClient->sendMessage(msg);
             tcp::freeTcpMessage(msg);
 
@@ -259,13 +275,308 @@ namespace state {
             appendedData.clear();
         } else {
             // Send the message
-            tcp::TCPMessage *msg = buildStateDeleteRequest(this);
+            tcp::TCPMessage *msg = buildStateDeleteRequest();
             masterClient->sendMessage(msg);
             tcp::freeTcpMessage(msg);
         }
     }
 
-    bool InMemoryStateKeyValue::isMaster() {
-        return status == InMemoryStateKeyStatus::MASTER;
+    // -------------------------------------------
+    // TCP Message handling
+    // -------------------------------------------
+
+    tcp::TCPMessage *InMemoryStateKeyValue::buildStatePullRequest() {
+        tcp::TCPMessage *msg = buildStateTCPMessage(
+                StateMessageType::STATE_PULL,
+                user,
+                key,
+                0);
+        return msg;
+    }
+
+    tcp::TCPMessage *InMemoryStateKeyValue::buildStatePullResponse() {
+        size_t stateSize = size();
+
+        auto response = new tcp::TCPMessage();
+        response->type = StateMessageType::STATE_PULL_RESPONSE;
+        response->len = stateSize;
+
+        // TODO - can we do this without copying?
+        response->buffer = new uint8_t[stateSize];
+        get(response->buffer);
+
+        return response;
+    }
+
+    void InMemoryStateKeyValue::extractPullResponse(const tcp::TCPMessage *msg) {
+        util::getLogger()->debug("Got pull response type {} ({})", msg->type, msg->len);
+
+        if (msg->type == StateMessageType::STATE_PULL_RESPONSE) {
+            // Set without locking and setting dirty
+            doSet(msg->buffer);
+        } else {
+            util::getLogger()->error("Unexpected response from pull ({})", msg->type);
+            throw std::runtime_error("Pull failed");
+        }
+    }
+
+    tcp::TCPMessage *InMemoryStateKeyValue::buildStatePullChunkRequest(long offset, size_t length) {
+        // Buffer contains two ints, offset and length
+        size_t dataSize = 2 * sizeof(int32_t);
+        tcp::TCPMessage *msg = buildStateTCPMessage(StateMessageType::STATE_PULL_CHUNK, user, key, dataSize);
+
+        // Copy offset and length into buffer
+        unsigned long dataOffset = getTCPMessageDataOffset(user, key);
+        auto offSetInt = (int32_t) offset;
+        auto lengthInt = (int32_t) length;
+        std::copy(BYTES(&offSetInt), BYTES(&offSetInt) + sizeof(int32_t), msg->buffer + dataOffset);
+        std::copy(BYTES(&lengthInt), BYTES(&lengthInt) + sizeof(int32_t), msg->buffer + dataOffset + sizeof(int32_t));
+
+        return msg;
+    }
+
+    tcp::TCPMessage *InMemoryStateKeyValue::buildStatePullChunkResponse(tcp::TCPMessage *request) {
+        unsigned long dataOffset = getTCPMessageDataOffset(user, key);
+
+        // Extract offset and length from request
+        uint8_t *requestData = request->buffer + dataOffset;
+        int32_t chunkOffset = *(reinterpret_cast<int32_t *>(requestData));
+        int32_t chunkLen = *(reinterpret_cast<int32_t *>(requestData + sizeof(int32_t)));
+
+        auto response = new tcp::TCPMessage();
+        response->type = StateMessageType::STATE_PULL_CHUNK_RESPONSE;
+        response->len = chunkLen;
+
+        // TODO - can we do this without copying?
+        response->buffer = new uint8_t[chunkLen];
+        getSegment(chunkOffset, response->buffer, chunkLen);
+
+        return response;
+    }
+
+    void InMemoryStateKeyValue::extractPullChunkResponse(const tcp::TCPMessage *msg, long offset, size_t length) {
+        if (msg->type == StateMessageType::STATE_PULL_CHUNK_RESPONSE) {
+            // Set the chunk with the response data without locking
+            doSetSegment(offset, msg->buffer, length);
+        } else {
+            util::getLogger()->error("Unexpected response from pull chunk {}", msg->type);
+            throw std::runtime_error("Pull range failed");
+        }
+    }
+
+    tcp::TCPMessage *InMemoryStateKeyValue::buildStatePushRequest() {
+        // Buffer contains length followed by the data
+        size_t valueSize = size();
+        size_t dataSize = sizeof(int32_t) + valueSize;
+        tcp::TCPMessage *msg = buildStateTCPMessage(StateMessageType::STATE_PUSH, user, key, dataSize);
+
+        // Copy length and data into buffer
+        unsigned long dataOffset = getTCPMessageDataOffset(user, key);
+        auto sizeInt = (int32_t) valueSize;
+        std::copy(BYTES(&sizeInt), BYTES(&sizeInt) + sizeof(int32_t), msg->buffer + dataOffset);
+
+        // TODO - avoid copy here?
+        uint8_t *dataBufferStart = msg->buffer + dataOffset + sizeof(int32_t);
+        get(dataBufferStart);
+
+        return msg;
+    }
+
+    void InMemoryStateKeyValue::extractStatePushData(const tcp::TCPMessage *msg) {
+        // Extract data from request (data is preceded by its length)
+        size_t dataOffset = getTCPMessageDataOffset(user, key);
+        uint8_t *data = msg->buffer + dataOffset + sizeof(int32_t);
+
+        // Copy directly (do not need to lock etc.)
+        uint8_t *valueBytes = get();
+        std::copy(data, data + size(), valueBytes);
+    }
+
+    tcp::TCPMessage *InMemoryStateKeyValue::buildStatePushChunkRequest(long offset, size_t length) {
+        // Buffer contains offset, length then the data
+        size_t dataSize = (2 * sizeof(int32_t)) + length;
+        tcp::TCPMessage *msg = buildStateTCPMessage(StateMessageType::STATE_PUSH_CHUNK, user, key, dataSize);
+
+        // Write the offset, length and data
+        unsigned long dataOffset = getTCPMessageDataOffset(user, key);
+        auto offSetInt = (int32_t) offset;
+        auto lengthInt = (int32_t) length;
+        std::copy(BYTES(&offSetInt), BYTES(&offSetInt) + sizeof(int32_t), msg->buffer + dataOffset);
+        std::copy(BYTES(&lengthInt), BYTES(&lengthInt) + sizeof(int32_t), msg->buffer + dataOffset + sizeof(int32_t));
+
+        // TODO - avoid copy here?
+        uint8_t *dataBufferStart = msg->buffer + dataOffset + (2 * sizeof(int32_t));
+        getSegment(offset, dataBufferStart, length);
+
+        return msg;
+    }
+
+    void InMemoryStateKeyValue::extractStatePushChunkData(const tcp::TCPMessage *msg) {
+        size_t dataOffset = getTCPMessageDataOffset(user, key);
+        uint8_t *msgBuffer = msg->buffer + dataOffset;
+
+        int32_t offset = *(reinterpret_cast<int32_t *>(msgBuffer));
+        int32_t length = *(reinterpret_cast<int32_t *>(msgBuffer + sizeof(int32_t)));
+        uint8_t *data = msgBuffer + (2 * sizeof(int32_t));
+
+        uint8_t *valueBytes = get();
+        std::copy(data, data + length, valueBytes + offset);
+    }
+
+    tcp::TCPMessage *InMemoryStateKeyValue::buildStateAppendRequest(size_t length, const uint8_t *data) {
+        size_t dataSize = sizeof(int32_t) + length;
+        tcp::TCPMessage *msg = buildStateTCPMessage(
+                StateMessageType::STATE_APPEND,
+                user,
+                key,
+                dataSize
+        );
+
+        // Copy in length and data
+        auto lengthInt = (int32_t) length;
+        size_t bufferOffset = getTCPMessageDataOffset(user, key);
+        uint8_t *bufferStart = msg->buffer + bufferOffset;
+        std::copy(BYTES(&lengthInt), BYTES(&lengthInt) + sizeof(int32_t), bufferStart);
+        std::copy(data, data + length, bufferStart + sizeof(int32_t));
+
+        return msg;
+    }
+
+    void InMemoryStateKeyValue::extractStateAppendData(const tcp::TCPMessage *msg) {
+        size_t dataOffset = getTCPMessageDataOffset(user, key);
+        uint8_t *msgBuffer = msg->buffer + dataOffset;
+
+        int32_t length = *(reinterpret_cast<int32_t *>(msgBuffer));
+        uint8_t *data = msgBuffer + sizeof(int32_t);
+        append(data, length);
+    }
+
+    tcp::TCPMessage *InMemoryStateKeyValue::buildPullAppendedRequest(size_t length, long nValues) {
+        size_t dataSize = 2 * sizeof(int32_t);
+        tcp::TCPMessage *msg = buildStateTCPMessage(
+                StateMessageType::STATE_PULL_APPENDED,
+                user,
+                key,
+                dataSize
+        );
+
+        auto lengthInt = (int32_t) length;
+        auto nValuesInt = (int32_t) nValues;
+        size_t bufferOffset = getTCPMessageDataOffset(user, key);
+        uint8_t *bufferStart = msg->buffer + bufferOffset;
+        std::copy(BYTES(&lengthInt), BYTES(&lengthInt) + sizeof(int32_t), bufferStart);
+        std::copy(BYTES(&nValuesInt), BYTES(&nValuesInt) + sizeof(int32_t), bufferStart + sizeof(int32_t));
+
+        return msg;
+    }
+
+    tcp::TCPMessage *InMemoryStateKeyValue::buildPullAppendedResponse(tcp::TCPMessage *request) {
+        size_t bufferOffset = getTCPMessageDataOffset(user, key);
+
+        uint8_t *requestData = request->buffer + bufferOffset;
+        int32_t length = *(reinterpret_cast<int32_t *>(requestData));
+        int32_t nValues = *(reinterpret_cast<int32_t *>(requestData + sizeof(int32_t)));
+
+        auto response = new tcp::TCPMessage();
+        response->type = StateMessageType::STATE_PULL_CHUNK_RESPONSE;
+        response->len = length;
+        response->buffer = new uint8_t[length];
+
+        // Copy appended data into response
+        getAppended(response->buffer, length, nValues);
+
+        return response;
+    }
+
+    tcp::TCPMessage *InMemoryStateKeyValue::buildStateDeleteRequest() {
+        tcp::TCPMessage *msg = buildStateTCPMessage(
+                StateMessageType::STATE_DELETE,
+                user,
+                key,
+                0
+        );
+        return msg;
+    }
+
+    tcp::TCPMessage *InMemoryStateKeyValue::buildStateLockRequest() {
+        tcp::TCPMessage *msg = buildStateTCPMessage(
+                StateMessageType::STATE_LOCK,
+                user,
+                key,
+                0
+        );
+        return msg;
+    }
+
+    tcp::TCPMessage *InMemoryStateKeyValue::buildStateUnlockRequest() {
+        tcp::TCPMessage *msg = buildStateTCPMessage(
+                StateMessageType::STATE_UNLOCK,
+                user,
+                key,
+                0
+        );
+        return msg;
+    }
+
+    tcp::TCPMessage *InMemoryStateKeyValue::buildStatePushMultiChunkRequest(const std::vector<StateChunk> &chunks) {
+        // Build up pipeline of updates. Data will be byte array of form:
+        // |offset|length|data|offset|length|data|...
+
+        // Provision buffer for everything
+        size_t bufferLen = 0;
+        for (auto &c : chunks) {
+            bufferLen += (2 * sizeof(int32_t)) + c.length;
+        }
+
+        tcp::TCPMessage *msg = buildStateTCPMessage(
+                StateMessageType::STATE_PUSH_MANY_CHUNK,
+                user,
+                key,
+                bufferLen
+        );
+
+        size_t dataOffset = getTCPMessageDataOffset(user, key);
+        uint8_t *chunkBuffer = msg->buffer + dataOffset;
+
+        // Populate the buffer
+        size_t offset = 0;
+        for (auto &c : chunks) {
+            auto offsetInt = (int32_t) c.offset;
+            auto lengthInt = (int32_t) c.length;
+
+            std::copy(&offsetInt, &offsetInt + sizeof(int32_t), chunkBuffer + offset);
+            std::copy(&lengthInt, &lengthInt + sizeof(int32_t), chunkBuffer + offset + sizeof(int32_t));
+            std::copy(c.data, c.data + c.length, chunkBuffer + offset + (2 * sizeof(int32_t)));
+
+            offset += (2 * sizeof(int32_t)) + c.length;
+        }
+
+        return msg;
+    }
+
+    void InMemoryStateKeyValue::extractStatePushMultiChunkData(const tcp::TCPMessage *msg) {
+        size_t dataOffset = getTCPMessageDataOffset(user, key);
+
+        // Get direct pointer to kv data
+        uint8_t *kvMemory = get();
+
+        // Prepare to iterate through chunks
+        size_t chunkBufferLen = msg->len;
+        uint8_t *chunkBuffer = msg->buffer + dataOffset;
+        size_t offset = 0;
+        lockWrite();
+
+        // Iterate through chunk buffer and copy values into kv memory
+        while (offset < chunkBufferLen) {
+            int32_t chunkOffset = *(reinterpret_cast<int32_t *>(chunkBuffer + offset));
+            int32_t chunkLength = *(reinterpret_cast<int32_t *>(chunkBuffer + offset + sizeof(int32_t)));
+            uint8_t *chunkData = chunkBuffer + offset + (2 * sizeof(int32_t));
+
+            std::copy(chunkData, chunkData + chunkLength, kvMemory + chunkOffset);
+
+            offset += (2 * sizeof(int32_t)) + chunkLength;
+        }
+
+        unlockWrite();
     }
 }

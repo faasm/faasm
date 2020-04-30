@@ -108,13 +108,14 @@ namespace tests {
 
         std::vector<uint8_t> actual(dataA.size(), 0);
 
-        // Prepare a key-value with data
         State &state = getGlobalState();
-        auto kvA = state.getKV(userA, keyA, dataA.size());
+
+        // Prepare a key-value with data
+        auto kvA = getKv(userA, keyA, dataA.size());
         kvA->set(dataA.data());
 
         // Prepare a key-value with no data
-        auto kvB = state.getKV(userA, keyB, dataA.size());
+        auto kvB = getKv(userA, keyB, dataA.size());
 
         // Prepare a key-value with same key but different data (for pushing)
         auto kvADuplicate = InMemoryStateKeyValue(userA, keyA, dataB.size(), clientHost);
@@ -134,9 +135,9 @@ namespace tests {
         }
 
         SECTION("State pull") {
-            request = buildStatePullRequest(kvA.get());
+            request = kvA->buildStatePullRequest();
             response = s.handleMessage(request);
-            extractPullResponse(response, kvB.get());
+            kvB->extractPullResponse(response);
             kvB->get(actual.data());
 
             REQUIRE(actual == dataA);
@@ -146,10 +147,10 @@ namespace tests {
             long offset = 2;
             size_t chunkSize = 3;
 
-            request = buildStatePullChunkRequest(kvA.get(), offset, chunkSize);
+            request = kvA->buildStatePullChunkRequest(offset, chunkSize);
 
             response = s.handleMessage(request);
-            extractPullChunkResponse(response, kvB.get(), offset, chunkSize);
+            kvB->extractPullChunkResponse(response, offset, chunkSize);
             kvB->get(actual.data());
 
             std::vector<uint8_t> expected(dataA.size(), 0);
@@ -159,7 +160,7 @@ namespace tests {
         }
 
         SECTION("State push") {
-            request = buildStatePushRequest(&kvADuplicate);
+            request = kvADuplicate.buildStatePushRequest();
             response = s.handleMessage(request);
 
             REQUIRE(response == nullptr);
@@ -172,7 +173,7 @@ namespace tests {
         SECTION("State push chunk") {
             long offset = 1;
             size_t chunkSize = 3;
-            request = buildStatePushChunkRequest(&kvADuplicate, offset, chunkSize);
+            request = kvADuplicate.buildStatePushChunkRequest(offset, chunkSize);
             response = s.handleMessage(request);
 
             REQUIRE(response == nullptr);
@@ -192,16 +193,16 @@ namespace tests {
             std::vector<uint8_t> chunkC = {2, 2};
             std::vector<uint8_t> expected = {3, 2, 1, 5, 5, 2, 2};
 
-            tcp::TCPMessage *requestA = buildStateAppendRequest(kvA.get(), chunkA.size(), chunkA.data());
-            tcp::TCPMessage *requestB = buildStateAppendRequest(kvA.get(), chunkB.size(), chunkB.data());
-            tcp::TCPMessage *requestC = buildStateAppendRequest(kvA.get(), chunkC.size(), chunkC.data());
+            tcp::TCPMessage *requestA = kvA->buildStateAppendRequest(chunkA.size(), chunkA.data());
+            tcp::TCPMessage *requestB = kvA->buildStateAppendRequest(chunkB.size(), chunkB.data());
+            tcp::TCPMessage *requestC = kvA->buildStateAppendRequest(chunkC.size(), chunkC.data());
 
             s.handleMessage(requestA);
             s.handleMessage(requestB);
             s.handleMessage(requestC);
 
             size_t totalLength = chunkA.size() + chunkB.size() + chunkC.size();
-            tcp::TCPMessage *pullRequest = buildPullAppendedRequest(kvA.get(), totalLength, 3);
+            tcp::TCPMessage *pullRequest = kvA->buildPullAppendedRequest(totalLength, 3);
             tcp::TCPMessage *pullResponse = s.handleMessage(pullRequest);
 
             std::vector<uint8_t> actualAll(expected.size(), 0);
@@ -284,7 +285,7 @@ namespace tests {
 
         std::thread serverThread;
         SECTION("Remote master") {
-            serverThread = startBackgroundStateServer(3, true);
+            serverThread = startBackgroundStateServer(2, true);
 
             // Get the state size before accessing the value locally
             size_t actualSize = state.getStateSize(userA, keyA);
