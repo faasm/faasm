@@ -20,7 +20,6 @@ namespace tests {
 
     // Remote must be localhost
     static const char *remoteHost = "127.0.0.1";
-    static const char *clientHost = "5.6.7.8";
 
     static std::string originalHost;
     static std::string originalStateMode;
@@ -82,23 +81,17 @@ namespace tests {
             state::StateServer server(state);
             logger->debug("Running test state server for {} messages", nMessages);
             int processedMessages = 0;
-            while(processedMessages < nMessages) {
+            while (processedMessages < nMessages) {
                 processedMessages += server.poll();
                 logger->debug("Test state server processed {} messages", processedMessages);
             }
 
             // Close the server
             server.close();
-
-            // Close this process
-            exit(0);
         });
 
         // Give it time to start
         usleep(500 * 1000);
-
-        // Set the host for the main thread
-        conf.endpointHost = clientHost;
 
         return serverThread;
     };
@@ -118,14 +111,15 @@ namespace tests {
         auto kvB = getKv(userA, keyB, dataA.size());
 
         // Prepare a key-value with same key but different data (for pushing)
-        auto kvADuplicate = InMemoryStateKeyValue(userA, keyA, dataB.size(), clientHost);
+        std::string thisIP = util::getSystemConfig().endpointHost;
+        auto kvADuplicate = InMemoryStateKeyValue(userA, keyA, dataB.size(), thisIP);
         kvADuplicate.set(dataB.data());
 
         // Create server
         StateServer s(state::getGlobalState());
 
-        tcp::TCPMessage *request;
-        tcp::TCPMessage *response;
+        tcp::TCPMessage *request = nullptr;
+        tcp::TCPMessage *response = nullptr;
 
         SECTION("State size") {
             request = buildStateSizeRequest(userA, keyA);
@@ -215,6 +209,8 @@ namespace tests {
             tcp::freeTcpMessage(pullResponse);
         }
 
+        s.close();
+
         tcp::freeTcpMessage(request);
         tcp::freeTcpMessage(response);
 
@@ -237,6 +233,8 @@ namespace tests {
         // Check that we get the expected size
         State &state = state::getGlobalState();
         REQUIRE(state.getStateSize(userA, keyA) == dataA.size());
+
+        resetStateMode();
     }
 
     TEST_CASE("Test local-only append", "[state]") {
@@ -262,6 +260,8 @@ namespace tests {
         kv->getAppended(actual.data(), actual.size(), 3);
 
         REQUIRE(actual == expected);
+
+        resetStateMode();
     }
 
     void checkServerComms() {
@@ -273,47 +273,51 @@ namespace tests {
         // Check it's equal
         std::vector<uint8_t> actual(kv->get(), kv->get() + dataA.size());
         REQUIRE(actual == dataA);
-
-        // Reset
-        resetStateMode();
     }
 
-    TEST_CASE("Test simple state server operation", "[state]") {
+    TEST_CASE("Test state server as remote master", "[state]") {
         setUpStateMode();
 
+        std::thread serverThread = startBackgroundStateServer(2, true);
+
+        // Get the state size before accessing the value locally
         State &state = state::getGlobalState();
+        size_t actualSize = state.getStateSize(userA, keyA);
+        REQUIRE(actualSize == dataA.size());
 
-        std::thread serverThread;
-        SECTION("Remote master") {
-            serverThread = startBackgroundStateServer(2, true);
+        // Access locally and check not master
+        auto localKv = getKv(userA, keyA, dataA.size());
+        REQUIRE(!localKv->isMaster());
 
-            // Get the state size before accessing the value locally
-            size_t actualSize = state.getStateSize(userA, keyA);
-            REQUIRE(actualSize == dataA.size());
-
-            // Access locally and check not master
-            auto localKv = getKv(userA, keyA, dataA.size());
-            REQUIRE(!localKv->isMaster());
-
-            checkServerComms();
-        }
-
-        SECTION("Non-remote master") {
-            serverThread = startBackgroundStateServer(0, false);
-
-            // Set up the state in this thread
-            auto localKv = getKv(userA, keyA, dataA.size());
-            localKv->set(dataA.data());
-            REQUIRE(localKv->isMaster());
-
-            localKv->pushFull();
-
-            checkServerComms();
-        }
+        checkServerComms();
 
         // Wait for server to finish
         if (serverThread.joinable()) {
             serverThread.join();
         }
+
+        resetStateMode();
+    }
+
+    TEST_CASE("Test state server with local master", "[state]") {
+        setUpStateMode();
+
+        std::thread serverThread = startBackgroundStateServer(0, false);
+
+        // Set up the state in this thread
+        auto localKv = getKv(userA, keyA, dataA.size());
+        localKv->set(dataA.data());
+        REQUIRE(localKv->isMaster());
+
+        localKv->pushFull();
+
+        checkServerComms();
+
+        // Wait for server to finish
+        if (serverThread.joinable()) {
+            serverThread.join();
+        }
+
+        resetStateMode();
     }
 }

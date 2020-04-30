@@ -6,9 +6,12 @@
 #include <net/if.h>
 #include <ifaddrs.h>
 #include <util/strings.h>
+#include <unordered_map>
 
 
 namespace util {
+    static std::unordered_map<std::string, std::string> ipMap;
+
     std::string getIPFromHostname(const std::string &hostname) {
         hostent *record = gethostbyname(hostname.c_str());
 
@@ -28,6 +31,10 @@ namespace util {
      * an "appropriate" interface name.
      */
     std::string getPrimaryIPForThisHost(const std::string &interface) {
+        if(ipMap.count(interface) > 0) {
+            return ipMap[interface];
+        }
+
         // Get interfaces and addresses
         struct ifaddrs *allAddrs = nullptr;
         ::getifaddrs(&allAddrs);
@@ -81,6 +88,8 @@ namespace util {
             printf("Detected IP %s\n", ipAddress.c_str());
         }
 
+        // Cache and return the result
+        ipMap[interface] = ipAddress;
         return ipAddress;
     }
 }

@@ -303,7 +303,8 @@ namespace state {
 
         // TODO - can we do this without copying?
         response->buffer = new uint8_t[stateSize];
-        get(response->buffer);
+        auto bytePtr = BYTES(sharedMemory);
+        std::copy(bytePtr, bytePtr + valueSize, response->buffer);
 
         return response;
     }
@@ -349,7 +350,8 @@ namespace state {
 
         // TODO - can we do this without copying?
         response->buffer = new uint8_t[chunkLen];
-        getSegment(chunkOffset, response->buffer, chunkLen);
+        auto bytePtr = BYTES(sharedMemory);
+        std::copy(bytePtr + chunkOffset, bytePtr + chunkOffset + chunkLen, response->buffer);
 
         return response;
     }
@@ -377,7 +379,8 @@ namespace state {
 
         // TODO - avoid copy here?
         uint8_t *dataBufferStart = msg->buffer + dataOffset + sizeof(int32_t);
-        get(dataBufferStart);
+        auto bytePtr = BYTES(sharedMemory);
+        std::copy(bytePtr, bytePtr + valueSize, dataBufferStart);
 
         return msg;
     }
@@ -406,7 +409,8 @@ namespace state {
 
         // TODO - avoid copy here?
         uint8_t *dataBufferStart = msg->buffer + dataOffset + (2 * sizeof(int32_t));
-        getSegment(offset, dataBufferStart, length);
+        auto bytePtr = BYTES(sharedMemory);
+        std::copy(bytePtr + offset, bytePtr + offset + length, dataBufferStart);
 
         return msg;
     }
