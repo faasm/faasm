@@ -25,12 +25,12 @@ namespace tests {
     static std::string originalStateMode;
 
     static void setUpStateMode() {
-        cleanSystem();
-
         util::SystemConfig &conf = util::getSystemConfig();
         originalStateMode = conf.stateMode;
         originalHost = conf.endpointHost;
         conf.stateMode = "inmemory";
+
+        cleanSystem();
     }
 
     static void resetStateMode() {
@@ -269,7 +269,7 @@ namespace tests {
         });
 
         // Give it time to start
-        usleep(30000 * 1000);
+        usleep(1000 * 1000);
 
         // Get the state size before accessing the value locally
         State &state = state::getGlobalState();

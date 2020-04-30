@@ -6,7 +6,7 @@
 #include <state/InMemoryStateKeyValue.h>
 
 namespace state {
-    StateServer::StateServer(State &stateIn) : tcp::TCPServer(STATE_PORT, util::getSystemConfig().globalMessageTimeout),
+    StateServer::StateServer(State &stateIn) : tcp::TCPServer(STATE_PORT, -1),
                                                state(stateIn) {
 
     }
