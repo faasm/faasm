@@ -33,8 +33,8 @@ namespace state {
             response = buildStateSizeResponse(user, key, stateSize);
 
         } else if (requestType == StateMessageType::STATE_PULL) {
+            logger->debug("State pull: {}", key);
             response = kv->buildStatePullResponse();
-            logger->debug("State pull: {} ({})", key, response->len);
 
         } else if (requestType == StateMessageType::STATE_PULL_CHUNK) {
             logger->debug("State pull chunk: {}", key);
@@ -43,18 +43,22 @@ namespace state {
         } else if (requestType == StateMessageType::STATE_PUSH) {
             logger->debug("State push: {}", key);
             kv->extractStatePushData(recvMessage);
+            response = kv->buildOkResponse();
 
         } else if (requestType == StateMessageType::STATE_PUSH_CHUNK) {
             logger->debug("State push chunk {}", key);
             kv->extractStatePushChunkData(recvMessage);
+            response = kv->buildOkResponse();
 
         } else if (requestType == StateMessageType::STATE_PUSH_MANY_CHUNK) {
             logger->debug("State push many chunk {}", key);
             kv->extractStatePushMultiChunkData(recvMessage);
+            response = kv->buildOkResponse();
 
         } else if (requestType == StateMessageType::STATE_APPEND) {
             logger->debug("State append {}", key);
             kv->extractStateAppendData(recvMessage);
+            response = kv->buildOkResponse();
 
         } else if (requestType == StateMessageType::STATE_PULL_APPENDED) {
             logger->debug("State pull appended {}", key);
@@ -63,14 +67,17 @@ namespace state {
         } else if (requestType == StateMessageType::STATE_LOCK) {
             logger->debug("State lock: {}", key);
             localKv->lockGlobal();
+            response = kv->buildOkResponse();
 
         } else if (requestType == StateMessageType::STATE_UNLOCK) {
             logger->debug("State unlock: {}", key);
             localKv->unlockGlobal();
+            response = kv->buildOkResponse();
 
         } else if (requestType == StateMessageType::STATE_DELETE) {
             logger->debug("State delete: {}", key);
             kv->deleteGlobal();
+            response = kv->buildOkResponse();
 
         } else {
             logger->error("Unrecognised request {}", requestType);

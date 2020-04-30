@@ -76,6 +76,10 @@ namespace state {
 
         tcp::TCPMessage *buildStateUnlockRequest();
 
+        tcp::TCPMessage *buildOkResponse();
+
+        void awaitOkResponse();
+
     private:
         std::string thisIP;
         std::string masterIP;

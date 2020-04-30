@@ -150,10 +150,13 @@ namespace state {
         if (status == InMemoryStateKeyStatus::MASTER) {
             lockWrite();
         } else {
-            // Send message to master (will block)
+            // Send message to master
             tcp::TCPMessage *msg = buildStateLockRequest();
             masterClient->sendMessage(msg);
             tcp::freeTcpMessage(msg);
+
+            // Wait for response
+            awaitOkResponse();
         }
     }
 
@@ -165,6 +168,9 @@ namespace state {
             tcp::TCPMessage *msg = buildStateUnlockRequest();
             masterClient->sendMessage(msg);
             tcp::freeTcpMessage(msg);
+
+            // Wait for response
+            awaitOkResponse();
         }
     }
 
@@ -205,10 +211,13 @@ namespace state {
             return;
         }
 
-        // Send the message (no response)
+        // Send the message
         tcp::TCPMessage *msg = buildStatePushRequest();
         masterClient->sendMessage(msg);
         tcp::freeTcpMessage(msg);
+
+        // Wait for response
+        awaitOkResponse();
     }
 
     void InMemoryStateKeyValue::pushPartialToRemote(const std::vector<StateChunk> &chunks) {
@@ -236,10 +245,13 @@ namespace state {
             appendedData.emplace_back(length, dataCopy);
 
         } else {
-            // Send the request (no response)
+            // Send the request
             tcp::TCPMessage *msg = buildStateAppendRequest(length, data);
             masterClient->sendMessage(msg);
             tcp::freeTcpMessage(msg);
+
+            // Wait for response
+            awaitOkResponse();
         }
     }
 
@@ -278,6 +290,9 @@ namespace state {
             tcp::TCPMessage *msg = buildStateDeleteRequest();
             masterClient->sendMessage(msg);
             tcp::freeTcpMessage(msg);
+
+            // Wait for response
+            awaitOkResponse();
         }
     }
 
@@ -582,5 +597,22 @@ namespace state {
         }
 
         unlockWrite();
+    }
+
+    tcp::TCPMessage *InMemoryStateKeyValue::buildOkResponse() {
+        auto msg = new tcp::TCPMessage();
+        msg->type = StateMessageType::OK_RESPONSE;
+
+        return msg;
+    }
+
+    void InMemoryStateKeyValue::awaitOkResponse() {
+        tcp::TCPMessage *response = masterClient->recvMessage();
+
+        if(response->type != StateMessageType::OK_RESPONSE) {
+            throw StateKeyValueException("Error response");
+        }
+
+        tcp::freeTcpMessage(response);
     }
 }

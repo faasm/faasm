@@ -47,55 +47,6 @@ namespace tests {
         return inMemLocalKv;
     }
 
-    // NOTE - in a real deployment each server would be running in its own
-    // process on a separate host. To run it in a thread like this we need to
-    // be careful to avoid sharing any global variables with the main thread.
-    //
-    // We force the server thread to have localhost IP, and the main thread
-    // to be the "client" with a junk IP.
-    static std::thread startBackgroundStateServer(int nMessages, bool remoteMaster) {
-        util::SystemConfig &conf = util::getSystemConfig();
-        originalHost = conf.endpointHost;
-
-        std::thread serverThread([remoteMaster, nMessages] {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-            // Override the host endpoint for the server thread
-            util::getSystemConfig().endpointHost = remoteHost;
-
-            // Deliberately don't use global state to ensure this thread
-            // has its own copies of things
-            State state;
-
-            // Master the data in this thread if necessary
-            if (remoteMaster) {
-                logger->debug("Setting master for test");
-
-                const std::shared_ptr<StateKeyValue> &kv = state.getKV(userA, keyA, dataA.size());
-                kv->set(dataA.data());
-
-                logger->debug("Finished setting master for test {}/{}", kv->user, kv->key);
-            }
-
-            // Process the required number of messages
-            state::StateServer server(state);
-            logger->debug("Running test state server for {} messages", nMessages);
-            int processedMessages = 0;
-            while (processedMessages < nMessages) {
-                processedMessages += server.poll();
-                logger->debug("Test state server processed {} messages", processedMessages);
-            }
-
-            // Close the server
-            server.close();
-        });
-
-        // Give it time to start
-        usleep(500 * 1000);
-
-        return serverThread;
-    };
-
     TEST_CASE("Test request/ response", "[state]") {
         setUpStateMode();
 
@@ -157,7 +108,7 @@ namespace tests {
             request = kvADuplicate.buildStatePushRequest();
             response = s.handleMessage(request);
 
-            REQUIRE(response == nullptr);
+            REQUIRE(response->type == StateMessageType::OK_RESPONSE);
 
             // Get the data from the key-value registered for that user/key
             kvA->get(actual.data());
@@ -170,7 +121,7 @@ namespace tests {
             request = kvADuplicate.buildStatePushChunkRequest(offset, chunkSize);
             response = s.handleMessage(request);
 
-            REQUIRE(response == nullptr);
+            REQUIRE(response->type == StateMessageType::OK_RESPONSE);
 
             // Create expected - a chunk written into existing data
             std::vector<uint8_t> expected(dataA.begin(), dataA.end());
@@ -278,7 +229,47 @@ namespace tests {
     TEST_CASE("Test state server as remote master", "[state]") {
         setUpStateMode();
 
-        std::thread serverThread = startBackgroundStateServer(2, true);
+        int nMessages = 2;
+
+        // NOTE - in a real deployment each server would be running in its own
+        // process on a separate host. To run it in a thread like this we need to
+        // be careful to avoid sharing any global variables with the main thread.
+        //
+        // We force the server thread to have localhost IP, and the main thread
+        // to be the "client" with a junk IP.
+        std::thread serverThread([nMessages] {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+            // Override the host endpoint for the server thread
+            util::getSystemConfig().endpointHost = remoteHost;
+
+            // Deliberately don't use global state to ensure this thread
+            // has its own copies of things
+            State state;
+
+            // Master the data in this thread
+            logger->debug("Setting master for test");
+
+            const std::shared_ptr<StateKeyValue> &kv = state.getKV(userA, keyA, dataA.size());
+            kv->set(dataA.data());
+
+            logger->debug("Finished setting master for test {}/{}", kv->user, kv->key);
+
+            // Process the required number of messages
+            state::StateServer server(state);
+            logger->debug("Running test state server for {} messages", nMessages);
+            int processedMessages = 0;
+            while (processedMessages < nMessages) {
+                processedMessages += server.poll();
+                logger->debug("Test state server processed {} messages", processedMessages);
+            }
+
+            // Close the server
+            server.close();
+        });
+
+        // Give it time to start
+        usleep(30000 * 1000);
 
         // Get the state size before accessing the value locally
         State &state = state::getGlobalState();
@@ -302,9 +293,6 @@ namespace tests {
     TEST_CASE("Test state server with local master", "[state]") {
         setUpStateMode();
 
-        std::thread serverThread = startBackgroundStateServer(0, false);
-
-        // Set up the state in this thread
         auto localKv = getKv(userA, keyA, dataA.size());
         localKv->set(dataA.data());
         REQUIRE(localKv->isMaster());
@@ -312,11 +300,6 @@ namespace tests {
         localKv->pushFull();
 
         checkServerComms();
-
-        // Wait for server to finish
-        if (serverThread.joinable()) {
-            serverThread.join();
-        }
 
         resetStateMode();
     }
