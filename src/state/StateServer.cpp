@@ -3,7 +3,6 @@
 #include <util/logging.h>
 #include <util/config.h>
 #include <state/State.h>
-#include <util/macros.h>
 
 namespace state {
     StateServer::StateServer() : tcp::TCPServer(STATE_PORT, util::getSystemConfig().globalMessageTimeout) {
@@ -48,9 +47,11 @@ namespace state {
 
         } else if (requestType == StateMessageType::STATE_APPEND) {
             logger->debug("State append {}", key);
+            extractStateAppendData(recvMessage, kv.get());
 
         } else if (requestType == StateMessageType::STATE_PULL_APPENDED) {
             logger->debug("State pull appended {}", key);
+            response = buildPullAppendedResponse(recvMessage, kv.get());
 
         } else if (requestType == StateMessageType::STATE_LOCK) {
             logger->debug("State lock: {}", key);

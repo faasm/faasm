@@ -145,7 +145,7 @@ namespace state {
         int32_t chunkOffset = *(reinterpret_cast<int32_t *>(requestData));
         int32_t chunkLen = *(reinterpret_cast<int32_t *>(requestData + sizeof(int32_t)));
 
-        tcp::TCPMessage *response = new tcp::TCPMessage();
+        auto response = new tcp::TCPMessage();
         response->type = StateMessageType::STATE_PULL_CHUNK_RESPONSE;
         response->len = chunkLen;
 
@@ -155,7 +155,7 @@ namespace state {
 
         return response;
     }
-    
+
     void extractPullChunkResponse(const tcp::TCPMessage *msg, StateKeyValue *kv, long offset, size_t length) {
         if (msg->type == StateMessageType::STATE_PULL_CHUNK_RESPONSE) {
             // Set the chunk with the response data
@@ -212,7 +212,7 @@ namespace state {
         // TODO - avoid copy here?
         uint8_t *dataBufferStart = msg->buffer + dataOffset + (2 * sizeof(int32_t));
         kv->getSegment(offset, dataBufferStart, length);
-        
+
         return msg;
     }
 
@@ -220,11 +220,81 @@ namespace state {
         size_t dataOffset = getTCPMessageDataOffset(kv->user, kv->key);
         uint8_t *msgBuffer = msg->buffer + dataOffset;
 
-        int32_t offset = *(reinterpret_cast<int32_t*>(msgBuffer));
-        int32_t length = *(reinterpret_cast<int32_t*>(msgBuffer + sizeof(int32_t)));
-        uint8_t *data = msgBuffer + (2*sizeof(int32_t));
+        int32_t offset = *(reinterpret_cast<int32_t *>(msgBuffer));
+        int32_t length = *(reinterpret_cast<int32_t *>(msgBuffer + sizeof(int32_t)));
+        uint8_t *data = msgBuffer + (2 * sizeof(int32_t));
 
         kv->setSegment(offset, data, length);
+    }
+
+    tcp::TCPMessage *buildStateAppendRequest(StateKeyValue *kv, size_t length, const uint8_t *data) {
+        size_t dataSize = sizeof(int32_t) + length;
+        tcp::TCPMessage *msg = buildStateTCPMessage(
+                StateMessageType::STATE_APPEND,
+                kv->user,
+                kv->key,
+                dataSize
+        );
+
+        // Copy in length and data
+        auto lengthInt = (int32_t) length;
+        size_t bufferOffset = getTCPMessageDataOffset(kv->user, kv->key);
+        uint8_t *bufferStart = msg->buffer + bufferOffset;
+        std::copy(BYTES(&lengthInt), BYTES(&lengthInt) + sizeof(int32_t), bufferStart);
+        std::copy(data, data + length, bufferStart + sizeof(int32_t));
+
+        return msg;
+    }
+
+    void extractStateAppendData(const tcp::TCPMessage *msg, StateKeyValue *kv) {
+        size_t dataOffset = getTCPMessageDataOffset(kv->user, kv->key);
+        uint8_t *msgBuffer = msg->buffer + dataOffset;
+
+        int32_t length = *(reinterpret_cast<int32_t *>(msgBuffer));
+        uint8_t *data = msgBuffer + sizeof(int32_t);
+        kv->append(data, length);
+    }
+
+    tcp::TCPMessage *buildPullAppendedRequest(StateKeyValue *kv, size_t length, long nValues) {
+        size_t dataSize = 2 * sizeof(int32_t);
+        tcp::TCPMessage *msg = buildStateTCPMessage(
+                StateMessageType::STATE_PULL_APPENDED,
+                kv->user,
+                kv->key,
+                dataSize
+        );
+
+        auto lengthInt = (int32_t) length;
+        auto nValuesInt = (int32_t) nValues;
+        size_t bufferOffset = getTCPMessageDataOffset(kv->user, kv->key);
+        uint8_t *bufferStart = msg->buffer + bufferOffset;
+        std::copy(BYTES(&lengthInt), BYTES(&lengthInt) + sizeof(int32_t), bufferStart);
+        std::copy(BYTES(&nValuesInt), BYTES(&nValuesInt) + sizeof(int32_t), bufferStart + sizeof(int32_t));
+
+        return msg;
+    }
+
+    tcp::TCPMessage *buildPullAppendedResponse(tcp::TCPMessage *request, StateKeyValue *kv) {
+        size_t bufferOffset = getTCPMessageDataOffset(kv->user, kv->key);
+
+        uint8_t *requestData = request->buffer + bufferOffset;
+        int32_t length = *(reinterpret_cast<int32_t *>(requestData));
+        int32_t nValues = *(reinterpret_cast<int32_t *>(requestData + sizeof(int32_t)));
+
+        auto response = new tcp::TCPMessage();
+        response->type = StateMessageType::STATE_PULL_CHUNK_RESPONSE;
+        response->len = length;
+        response->buffer = new uint8_t[length];
+
+        // Copy appended data into response
+        kv->getAppended(response->buffer, length, nValues);
+
+        return response;
+    }
+
+    void extractPullAppendedData(const tcp::TCPMessage *msg, uint8_t *buffer) {
+        // Directly copy received data
+        std::copy(msg->buffer, msg->buffer + msg->len, buffer);
     }
 
     tcp::TCPMessage *buildStateDeleteRequest(StateKeyValue *kv) {

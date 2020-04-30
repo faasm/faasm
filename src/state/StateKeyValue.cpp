@@ -117,7 +117,7 @@ namespace state {
     void StateKeyValue::getAppended(uint8_t *buffer, size_t length, long nValues) {
         SharedLock lock(valueMutex);
 
-        return pullAppendedFromRemote(buffer, length, nValues);
+        pullAppendedFromRemote(buffer, length, nValues);
     }
 
     void StateKeyValue::setSegment(long offset, const uint8_t *buffer, size_t length) {

@@ -71,9 +71,19 @@ namespace state {
 
     void extractStatePushData(const tcp::TCPMessage *msg, StateKeyValue *kv);
 
+    tcp::TCPMessage *buildStatePushChunkRequest(StateKeyValue *kv, long offset, size_t length);
+
     void extractStatePushChunkData(const tcp::TCPMessage *msg, StateKeyValue *kv);
 
-    tcp::TCPMessage *buildStatePushChunkRequest(StateKeyValue *kv, long offset, size_t length);
+    tcp::TCPMessage *buildStateAppendRequest(StateKeyValue *kv, size_t length, const uint8_t *data);
+
+    void extractStateAppendData(const tcp::TCPMessage *msg, StateKeyValue *kv);
+
+    tcp::TCPMessage *buildPullAppendedRequest(StateKeyValue *kv, size_t length, long nValues);
+
+    tcp::TCPMessage *buildPullAppendedResponse(tcp::TCPMessage *request, StateKeyValue *kv);
+
+    void extractPullAppendedData(const tcp::TCPMessage *msg, uint8_t *buffer);
 
     tcp::TCPMessage *buildStateDeleteRequest(StateKeyValue *kv);
 

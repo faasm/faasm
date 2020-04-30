@@ -15,6 +15,16 @@ namespace state {
         NOT_MASTER,
     };
 
+    class AppendedInMemoryState {
+    public:
+        AppendedInMemoryState(size_t lengthIn, uint8_t *dataIn) : length(lengthIn), data(dataIn) {
+
+        }
+
+        size_t length;
+        std::unique_ptr<uint8_t> data;
+    };
+
     class InMemoryStateKeyValue final : public StateKeyValue {
     public:
         InMemoryStateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn);
@@ -24,10 +34,13 @@ namespace state {
         static void clearAll();
 
         bool isMaster();
+
     private:
         std::string thisIP;
         std::string masterIP;
         InMemoryStateKeyStatus status;
+
+        std::vector<AppendedInMemoryState> appendedData;
 
         std::unique_ptr<tcp::TCPClient> masterClient;
 

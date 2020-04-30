@@ -203,6 +203,35 @@ namespace tests {
             kvA->get(actual.data());
             REQUIRE(actual == expected);
         }
+        
+        SECTION("State append") {
+            // Append a few chunks
+            std::vector<uint8_t> chunkA = {3, 2, 1};
+            std::vector<uint8_t> chunkB = {5, 5};
+            std::vector<uint8_t> chunkC = {2, 2};
+            std::vector<uint8_t> expected = {3, 2, 1, 5, 5, 2, 2};
+
+            tcp::TCPMessage *requestA = buildStateAppendRequest(kvA.get(), chunkA.size(), chunkA.data());
+            tcp::TCPMessage *requestB = buildStateAppendRequest(kvA.get(), chunkB.size(), chunkB.data());
+            tcp::TCPMessage *requestC = buildStateAppendRequest(kvA.get(), chunkC.size(), chunkC.data());
+
+            s.handleMessage(requestA);
+            s.handleMessage(requestB);
+            s.handleMessage(requestC);
+
+            size_t totalLength = chunkA.size() + chunkB.size() + chunkC.size();
+            tcp::TCPMessage *pullRequest = buildPullAppendedRequest(kvA.get(), totalLength, 3);
+            tcp::TCPMessage *pullResponse = s.handleMessage(pullRequest);
+
+            std::vector<uint8_t> actualAll(expected.size(), 0);
+            extractPullAppendedData(pullResponse, actualAll.data());
+            REQUIRE(actualAll == expected);
+
+            tcp::freeTcpMessage(requestA);
+            tcp::freeTcpMessage(requestB);
+            tcp::freeTcpMessage(requestC);
+            tcp::freeTcpMessage(pullResponse);
+        }
 
         tcp::freeTcpMessage(request);
         tcp::freeTcpMessage(response);
@@ -210,7 +239,7 @@ namespace tests {
         resetStateMode();
     }
 
-    TEST_CASE("Test local-only state", "[state]") {
+    TEST_CASE("Test local-only push/ pull", "[state]") {
         setUpStateMode();
 
         // Create a key-value locally
@@ -226,6 +255,31 @@ namespace tests {
         // Check that we get the expected size
         State &state = state::getGlobalState();
         REQUIRE(state.getStateSize(userA, keyA) == dataA.size());
+    }
+
+    TEST_CASE("Test local-only append", "[state]") {
+        setUpStateMode();
+
+        // Append a few chunks
+        std::vector<uint8_t> chunkA = {1, 1};
+        std::vector<uint8_t> chunkB = {2, 2, 2};
+        std::vector<uint8_t> chunkC = {3, 3};
+        std::vector<uint8_t> expected = {1, 1, 2, 2, 2, 3, 3};
+
+        // Normal in-memory storage isn't used for append-only,
+        // so size doesn't matter
+        auto kv = getKv(userA, keyA, 1);
+
+        kv->append(chunkA.data(), chunkA.size());
+        kv->append(chunkB.data(), chunkB.size());
+        kv->append(chunkC.data(), chunkC.size());
+
+        size_t totalLength = chunkA.size() + chunkB.size() + chunkC.size();
+        std::vector<uint8_t> actual(totalLength, 0);
+
+        kv->getAppended(actual.data(), actual.size(), 3);
+
+        REQUIRE(actual == expected);
     }
 
     TEST_CASE("Test simple state server operation", "[state]") {

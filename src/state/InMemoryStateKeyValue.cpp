@@ -156,6 +156,7 @@ namespace state {
         // Await the response
         tcp::TCPMessage *response = masterClient->recvMessage();
         extractPullResponse(response, this);
+        tcp::freeTcpMessage(response);
     }
 
     void InMemoryStateKeyValue::pullRangeFromRemote(long offset, size_t length) {
@@ -171,6 +172,7 @@ namespace state {
         // Await the response
         tcp::TCPMessage *response = masterClient->recvMessage();
         extractPullChunkResponse(response, this, offset, length);
+        tcp::freeTcpMessage(response);
     }
 
     void InMemoryStateKeyValue::pushToRemote() {
@@ -194,23 +196,51 @@ namespace state {
 
     void InMemoryStateKeyValue::appendToRemote(const uint8_t *data, size_t length) {
         if (status == InMemoryStateKeyStatus::MASTER) {
-            // TODO - do append locally
+            // Create new memory region to hold data
+            auto dataCopy = new uint8_t[length];
+            std::copy(data, data + length, dataCopy);
+
+            // Add to list
+            appendedData.emplace_back(length, dataCopy);
+
         } else {
-            // TODO - do append to master
+            // Send the request (no response)
+            tcp::TCPMessage *msg = buildStateAppendRequest(this, length, data);
+            masterClient->sendMessage(msg);
+            tcp::freeTcpMessage(msg);
         }
     }
 
     void InMemoryStateKeyValue::pullAppendedFromRemote(uint8_t *data, size_t length, long nValues) {
         if (status == InMemoryStateKeyStatus::MASTER) {
-            return;
-        }
+            // Copy all appended data into buffer locally
+            size_t offset = 0;
+            for(int i = 0; i < nValues;i++) {
+                AppendedInMemoryState &appended = appendedData.at(i);
+                uint8_t *dataStart = appended.data.get();
+                std::copy(dataStart, dataStart + appended.length, data + offset);
+                offset += appended.length;
+            }
+        } else {
+            // Request from remote
+            tcp::TCPMessage *msg = buildPullAppendedRequest(this, length, nValues);
+            masterClient->sendMessage(msg);
+            tcp::freeTcpMessage(msg);
 
-        // TODO - pull append-only data
+            // Await the response
+            tcp::TCPMessage *response = masterClient->recvMessage();
+            extractPullAppendedData(response, data);
+            tcp::freeTcpMessage(response);
+        }
     }
 
     void InMemoryStateKeyValue::deleteFromRemote() {
         if (status == InMemoryStateKeyStatus::MASTER) {
+            // Run normal clear
             clear();
+
+            // Clear appended data
+            appendedData.clear();
         } else {
             // Send the message
             tcp::TCPMessage *msg = buildStateDeleteRequest(this);
