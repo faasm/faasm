@@ -105,6 +105,8 @@ namespace redis {
 
         std::unordered_set<std::string> sinter(const std::string &keyA, const std::string &keyB);
 
+        int lpushLong(const std::string &key, long val);
+
         int rpushLong(const std::string &key, long val);
 
         void flushAll();
