@@ -32,7 +32,7 @@ def invoke(ctx, user, func,
 
 @task
 def multi_pi(ctx, number_times=10):
-    backoff = lambda x: max(x / 2,  number_times)
+    backoff = lambda x: min(max(1, x // 2),  number_times)
 
     output_file = "/usr/local/code/faasm/wasm/omp/multi_pi/bench.csv"
     # * 2 in this experiment since starting from `- iterations` instead of 0
