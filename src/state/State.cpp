@@ -26,6 +26,7 @@ namespace state {
             throw std::runtime_error("Unrecognised state mode: " + stateMode);
         }
 
+        util::SharedLock sharedLock(mapMutex);
         kvMap.clear();
     }
 

@@ -49,7 +49,7 @@ namespace state {
 
         if (masterIPBytes.empty() && !claim) {
             // No master found and not claiming
-            throw std::runtime_error("Found no master for state " + masterKey);
+            throw StateKeyValueException("Found no master for state " + masterKey);
         }
 
         // If no master and we want to claim, attempt to do so
@@ -96,8 +96,13 @@ namespace state {
     }
 
     size_t InMemoryStateKeyValue::getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn) {
-        // Get the master IP (failing if there isn't one)
-        const std::string &masterIP = getMasterIP(userIn, keyIn, false);
+        // Get the master IP
+        std::string masterIP;
+        try {
+            masterIP = getMasterIP(userIn, keyIn, false);
+        } catch(StateKeyValueException &ex) {
+            return 0;
+        }
 
         // Sanity check that the master is *not* this machine
         std::string thisIP = util::getSystemConfig().endpointHost;

@@ -355,7 +355,7 @@ namespace state {
 
             std::copy(&offsetInt, &offsetInt + sizeof(int32_t), chunkBuffer + offset);
             std::copy(&lengthInt, &lengthInt + sizeof(int32_t), chunkBuffer + offset + sizeof(int32_t));
-            std::copy(c.data.get(), c.data.get() + c.length, chunkBuffer + offset + (2 * sizeof(int32_t)));
+            std::copy(c.data, c.data + c.length, chunkBuffer + offset + (2 * sizeof(int32_t)));
 
             offset += (2 * sizeof(int32_t)) + c.length;
         }

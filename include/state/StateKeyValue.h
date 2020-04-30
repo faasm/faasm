@@ -25,7 +25,10 @@ namespace state {
 
         long offset;
         size_t length;
-        std::unique_ptr<uint8_t> data;
+
+        // Note - this pointer will always refer to chunks of the underlying
+        // state, so does not need to be deleted
+        uint8_t *data;
     };
 
 

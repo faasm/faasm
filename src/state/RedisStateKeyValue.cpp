@@ -75,7 +75,7 @@ namespace state {
 
         // Pipeline the updates
         for (auto &c : chunks) {
-            redis.setRangePipeline(joinedKey, c.offset, c.data.get(), c.length);
+            redis.setRangePipeline(joinedKey, c.offset, c.data, c.length);
         }
 
         // Flush the pipeline

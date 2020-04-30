@@ -282,6 +282,10 @@ namespace tests {
         REQUIRE(actual == expected);
     }
 
+    TEST_CASE("Test local-only multi-chunk push", "[state]") {
+
+    }
+
     TEST_CASE("Test simple state server operation", "[state]") {
         setUpStateMode();
 
