@@ -327,4 +327,65 @@ namespace state {
         return msg;
     }
 
+    tcp::TCPMessage *buildStatePushMultiChunkRequest(StateKeyValue *kv, const std::vector<StateChunk> &chunks) {
+        // Build up pipeline of updates. Data will be byte array of form:
+        // |offset|length|data|offset|length|data|...
+
+        // Provision buffer for everything
+        size_t bufferLen = 0;
+        for (auto &c : chunks) {
+            bufferLen += (2 * sizeof(int32_t)) + c.length;
+        }
+
+        tcp::TCPMessage *msg = buildStateTCPMessage(
+                StateMessageType::STATE_PUSH_MANY_CHUNK,
+                kv->user,
+                kv->key,
+                bufferLen
+        );
+
+        size_t dataOffset = getTCPMessageDataOffset(kv->user, kv->key);
+        uint8_t *chunkBuffer = msg->buffer + dataOffset;
+
+        // Populate the buffer
+        size_t offset = 0;
+        for (auto &c : chunks) {
+            auto offsetInt = (int32_t) c.offset;
+            auto lengthInt = (int32_t) c.length;
+
+            std::copy(&offsetInt, &offsetInt + sizeof(int32_t), chunkBuffer + offset);
+            std::copy(&lengthInt, &lengthInt + sizeof(int32_t), chunkBuffer + offset + sizeof(int32_t));
+            std::copy(c.data.get(), c.data.get() + c.length, chunkBuffer + offset + (2 * sizeof(int32_t)));
+
+            offset += (2 * sizeof(int32_t)) + c.length;
+        }
+
+        return msg;
+    }
+
+    void extractStatePushMultiChunkData(const tcp::TCPMessage *msg, StateKeyValue *kv) {
+        size_t dataOffset = getTCPMessageDataOffset(kv->user, kv->key);
+
+        // Get direct pointer to kv data
+        uint8_t *kvMemory = kv->get();
+
+        // Prepare to iterate through chunks
+        size_t chunkBufferLen = msg->len;
+        uint8_t *chunkBuffer = msg->buffer + dataOffset;
+        size_t offset = 0;
+        kv->lockWrite();
+
+        // Iterate through chunk buffer and copy values into kv memory
+        while (offset < chunkBufferLen) {
+            int32_t chunkOffset = *(reinterpret_cast<int32_t *>(chunkBuffer + offset));
+            int32_t chunkLength = *(reinterpret_cast<int32_t *>(chunkBuffer + offset + sizeof(int32_t)));
+            uint8_t *chunkData = chunkBuffer + offset + (2 * sizeof(int32_t));
+
+            std::copy(chunkData, chunkData + chunkLength, kvMemory + chunkOffset);
+
+            offset += (2 * sizeof(int32_t)) + chunkLength;
+        }
+
+        kv->unlockWrite();
+    }
 }

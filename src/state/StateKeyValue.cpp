@@ -416,7 +416,17 @@ namespace state {
             return;
         }
 
-        pushPartialToRemote(dirtyMaskBytes);
+        // Work out what's dirty
+        const std::vector<StateChunk> &chunks = getDirtyChunks(dirtyMaskBytes);
+
+        // Zero the mask now that we're finished with it
+        memset((void *) dirtyMaskBytes, 0, valueSize);
+
+        // Do the write
+        pushPartialToRemote(chunks);
+
+        // Mark as no longer dirty
+        isDirty = false;
     }
 
     long StateKeyValue::waitOnRedisRemoteLock(const std::string &redisKey) {
@@ -469,5 +479,40 @@ namespace state {
 
     void StateKeyValue::unlockWrite() {
         valueMutex.unlock();
+    }
+
+    std::vector<StateChunk> StateKeyValue::getDirtyChunks(const uint8_t *dirtyMaskBytes) {
+        std::vector<StateChunk> chunks;
+
+        auto sharedMemoryBytes = BYTES(sharedMemory);
+        long startIdx = 0;
+        bool isOn = false;
+
+        // Iterate through looking for dirty chunks
+        for (size_t i = 0; i < valueSize; i++) {
+            if (dirtyMaskBytes[i] == 0) {
+                // If we encounter an "off" mask and we're "on", switch off and write the segment
+                if (isOn) {
+                    isOn = false;
+
+                    // Record the chunk
+                    unsigned long length = i - startIdx;
+                    chunks.emplace_back(startIdx, length, sharedMemoryBytes + startIdx);
+                }
+            } else {
+                if (!isOn) {
+                    isOn = true;
+                    startIdx = i;
+                }
+            }
+        }
+
+        // Add the final chunk if necessary
+        if (isOn) {
+            unsigned long length = valueSize - startIdx;
+            chunks.emplace_back(startIdx, length, sharedMemoryBytes + startIdx);
+        }
+
+        return chunks;
     }
 }

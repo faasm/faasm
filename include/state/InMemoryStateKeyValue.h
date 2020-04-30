@@ -54,7 +54,7 @@ namespace state {
 
         void pushToRemote() override;
 
-        void pushPartialToRemote(const uint8_t *dirtyMaskBytes) override;
+        void pushPartialToRemote(const std::vector<StateChunk> &dirtyChunks) override;
 
         void appendToRemote(const uint8_t *data, size_t length) override;
 

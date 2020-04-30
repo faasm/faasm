@@ -7,6 +7,7 @@
 #include <util/locks.h>
 #include <util/state.h>
 #include <util/logging.h>
+#include <util/macros.h>
 
 #define MASTER_KEY_PREFIX "master_"
 
@@ -186,12 +187,19 @@ namespace state {
         tcp::freeTcpMessage(msg);
     }
 
-    void InMemoryStateKeyValue::pushPartialToRemote(const uint8_t *dirtyMaskBytes) {
+    void InMemoryStateKeyValue::pushPartialToRemote(const std::vector<StateChunk> &chunks) {
         if (status == InMemoryStateKeyStatus::MASTER) {
-            return;
-        }
+            // Just need to reset dirty mask as there's no work to be done
+            zeroDirtyMask();
+        } else {
+            // Send the request
+            buildStatePushMultiChunkRequest(this, chunks);
 
-        // TODO - iterate through dirty mask and push to remote (see Redis)
+            // Read the latest value
+            if (_fullyAllocated) {
+                pullFromRemote();
+            }
+        }
     }
 
     void InMemoryStateKeyValue::appendToRemote(const uint8_t *data, size_t length) {
@@ -215,7 +223,7 @@ namespace state {
         if (status == InMemoryStateKeyStatus::MASTER) {
             // Copy all appended data into buffer locally
             size_t offset = 0;
-            for(int i = 0; i < nValues;i++) {
+            for (int i = 0; i < nValues; i++) {
                 AppendedInMemoryState &appended = appendedData.at(i);
                 uint8_t *dataStart = appended.data.get();
                 std::copy(dataStart, dataStart + appended.length, data + offset);

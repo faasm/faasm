@@ -25,6 +25,7 @@ namespace state {
         STATE_PULL_APPENDED_RESPONSE,
         STATE_PUSH,
         STATE_PUSH_CHUNK,
+        STATE_PUSH_MANY_CHUNK,
         STATE_SIZE,
         STATE_SIZE_RESPONSE,
         STATE_UNLOCK,
@@ -75,6 +76,10 @@ namespace state {
 
     void extractStatePushChunkData(const tcp::TCPMessage *msg, StateKeyValue *kv);
 
+    tcp::TCPMessage *buildStatePushMultiChunkRequest(StateKeyValue *kv, const std::vector<StateChunk> &chunks);
+
+    void extractStatePushMultiChunkData(const tcp::TCPMessage *msg, StateKeyValue *kv);
+
     tcp::TCPMessage *buildStateAppendRequest(StateKeyValue *kv, size_t length, const uint8_t *data);
 
     void extractStateAppendData(const tcp::TCPMessage *msg, StateKeyValue *kv);
@@ -90,5 +95,4 @@ namespace state {
     tcp::TCPMessage *buildStateLockRequest(StateKeyValue *kv);
 
     tcp::TCPMessage *buildStateUnlockRequest(StateKeyValue *kv);
-
 }

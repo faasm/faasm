@@ -45,6 +45,10 @@ namespace state {
             logger->debug("State push chunk {}", key);
             extractStatePushChunkData(recvMessage, kv.get());
 
+        } else if (requestType == StateMessageType::STATE_PUSH_MANY_CHUNK) {
+            logger->debug("State push many chunk {}", key);
+            extractStatePushMultiChunkData(recvMessage, kv.get());
+
         } else if (requestType == StateMessageType::STATE_APPEND) {
             logger->debug("State append {}", key);
             extractStateAppendData(recvMessage, kv.get());

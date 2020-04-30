@@ -16,6 +16,19 @@
 
 
 namespace state {
+    class StateChunk {
+    public:
+        StateChunk(long offsetIn, size_t lengthIn, uint8_t *dataIn) : offset(offsetIn), length(lengthIn),
+                                                                      data(dataIn) {
+
+        }
+
+        long offset;
+        size_t length;
+        std::unique_ptr<uint8_t> data;
+    };
+
+
     class StateKeyValue {
     public:
         StateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn);
@@ -114,6 +127,8 @@ namespace state {
 
         void markAllocatedSegment(long offset, long len);
 
+        std::vector<StateChunk> getDirtyChunks(const uint8_t *dirtyMaskBytes);
+
         virtual void pullFromRemote() = 0;
 
         virtual void pullRangeFromRemote(long offset, size_t length) = 0;
@@ -124,7 +139,7 @@ namespace state {
 
         virtual void pullAppendedFromRemote(uint8_t *data, size_t length, long nValues) = 0;
 
-        virtual void pushPartialToRemote(const uint8_t *dirtyMaskBytes) = 0;
+        virtual void pushPartialToRemote(const std::vector<StateChunk> &dirtyChunks) = 0;
 
         virtual void deleteFromRemote() = 0;
     };
