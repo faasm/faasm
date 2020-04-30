@@ -27,9 +27,9 @@ namespace state {
 
     class InMemoryStateKeyValue final : public StateKeyValue {
     public:
-        InMemoryStateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn);
+        InMemoryStateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn, const std::string &thisIPIn);
 
-        static size_t getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn);
+        static size_t getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn, const std::string &thisIPIn);
 
         static void clearAll();
 

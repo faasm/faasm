@@ -124,7 +124,7 @@ namespace worker {
         logger->info("Starting state server");
 
         stateThread = std::thread([this] {
-            state::StateServer server;
+            state::StateServer server(state::getGlobalState());
             while (!this->isShutdown()) {
                 server.poll();
             }

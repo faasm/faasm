@@ -5,7 +5,8 @@
 #include <state/State.h>
 
 namespace state {
-    StateServer::StateServer() : tcp::TCPServer(STATE_PORT, util::getSystemConfig().globalMessageTimeout) {
+    StateServer::StateServer(State &stateIn) : tcp::TCPServer(STATE_PORT, util::getSystemConfig().globalMessageTimeout),
+                                               state(stateIn) {
 
     }
 
@@ -18,7 +19,6 @@ namespace state {
 
         // Get the size. State should be mastered on this host, hence we don't need
         // to specify size (will error if not the case).
-        State &state = state::getGlobalState();
         const std::shared_ptr<StateKeyValue> &kv = state.getKV(user, key, 0);
         size_t stateSize = kv->size();
 

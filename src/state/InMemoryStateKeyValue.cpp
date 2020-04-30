@@ -21,7 +21,11 @@ namespace state {
         return masterKey;
     }
 
-    std::string getMasterIP(const std::string &user, const std::string &key, bool claim) {
+    std::string getMasterIP(
+            const std::string &user, const std::string &key,
+            const std::string &thisIP,
+            bool claim
+    ) {
         std::string lookupKey = util::keyForUser(user, key);
 
         // See if we already have the master
@@ -63,7 +67,6 @@ namespace state {
             // Check there's still no master, if so, claim
             masterIPBytes = redis.get(masterKey);
             if (masterIPBytes.empty()) {
-                std::string thisIP = util::getSystemConfig().endpointHost;
                 masterIPBytes = util::stringToBytes(thisIP);
                 redis.set(masterKey, masterIPBytes);
             }
@@ -80,11 +83,11 @@ namespace state {
 
     InMemoryStateKeyValue::InMemoryStateKeyValue(
             const std::string &userIn, const std::string &keyIn,
-            size_t sizeIn) : StateKeyValue(userIn, keyIn, sizeIn),
-                             thisIP(util::getSystemConfig().endpointHost) {
+            size_t sizeIn, const std::string &thisIPIn) : StateKeyValue(userIn, keyIn, sizeIn),
+                                                          thisIP(thisIPIn) {
 
         // Retrieve the master IP for this key
-        masterIP = getMasterIP(user, key, true);
+        masterIP = getMasterIP(user, key, thisIP, true);
 
         // Mark whether we're master
         status = masterIP == thisIP ? InMemoryStateKeyStatus::MASTER : InMemoryStateKeyStatus::NOT_MASTER;
@@ -95,17 +98,17 @@ namespace state {
         }
     }
 
-    size_t InMemoryStateKeyValue::getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn) {
+    size_t InMemoryStateKeyValue::getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn,
+                                                         const std::string &thisIP) {
         // Get the master IP
         std::string masterIP;
         try {
-            masterIP = getMasterIP(userIn, keyIn, false);
-        } catch(StateKeyValueException &ex) {
+            masterIP = getMasterIP(userIn, keyIn, thisIP, false);
+        } catch (StateKeyValueException &ex) {
             return 0;
         }
 
         // Sanity check that the master is *not* this machine
-        std::string thisIP = util::getSystemConfig().endpointHost;
         if (masterIP == thisIP) {
             throw std::runtime_error("Attempting to pull state size on master");
         }

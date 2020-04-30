@@ -387,7 +387,7 @@ namespace tests {
         REQUIRE(redisState.get(actualKey) == expected);
     }
 
-    TEST_CASE("Test push partial with mask", "[state]") {
+    TEST_CASE("Test redis push partial with mask", "[state]") {
         cleanSystem();
 
         redis::Redis &redisState = redis::Redis::getState();
@@ -482,11 +482,11 @@ namespace tests {
         }
     }
 
-    TEST_CASE("Test async pulling", "[state]") {
+    TEST_CASE("Test redis async pulling", "[state]") {
         checkPulling(true);
     }
 
-    TEST_CASE("Test sync pulling", "[state]") {
+    TEST_CASE("Test redis sync pulling", "[state]") {
         checkPulling(false);
     }
 
@@ -537,7 +537,6 @@ namespace tests {
         auto byteRegionB = static_cast<uint8_t *>(mappedRegionB);
 
         // Check shared memory regions reflect state
-
         std::vector<uint8_t> expected = {5, 1, 5, 3, 4};
         for (int i = 0; i < 5; i++) {
             REQUIRE(byteRegionA[i] == expected.at(i));

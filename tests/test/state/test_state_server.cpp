@@ -37,82 +37,6 @@ namespace tests {
         util::getSystemConfig().stateMode = originalStateMode;
     }
 
-    // Need to have a separate *process* running to ensure the state
-    // server has its own copy of data
-    static pid_t forkStateServer(int nMessages, bool remoteMaster) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        pid_t serverPid = fork();
-
-        if (serverPid < 0) {
-            logger->error("Failed to fork state server ({})", serverPid);
-            FAIL("Failed to fork state server");
-        }
-
-        util::SystemConfig &conf = util::getSystemConfig();
-        originalHost = conf.endpointHost;
-
-        if (serverPid == 0) {
-            // Override the host endpoint in the forked process
-            conf.endpointHost = remoteHost;
-            logger->debug("Starting forked state server on {}", conf.endpointHost);
-
-            // Master the data in this process if necessary
-            if (remoteMaster) {
-                State &state = state::getGlobalState();
-                const std::shared_ptr<StateKeyValue> &kv = state.getKV(userA, keyA, dataA.size());
-                kv->set(dataA.data());
-            }
-
-            // Process the required number of messages
-            state::StateServer server;
-            for (int i = 0; i < nMessages; i++) {
-                server.poll();
-            }
-
-            // Close the server
-            logger->debug("Closing forked state server on {}", conf.endpointHost);
-            server.close();
-
-            // Close this process
-            exit(0);
-        } else {
-            conf.endpointHost = clientHost;
-
-            // Give it time to start
-            usleep(1000 * 1000);
-            return serverPid;
-        }
-
-        return 0;
-    };
-
-    static void waitForServer(pid_t serverPid) {
-        int nChecks = 3;
-
-        // Wait for the server to finish
-        bool success = false;
-        for (int i = 0; i < nChecks; i++) {
-            int serverStatus;
-            int wPid = waitpid(serverPid, &serverStatus, 0);
-
-            if (wPid == -1) {
-                break;
-            }
-
-            if (WIFEXITED(serverStatus)) {
-                util::getLogger()->debug("Forked server terminated successfully");
-                success = true;
-                break;
-            }
-        }
-
-        // Reset host
-        util::SystemConfig &conf = util::getSystemConfig();
-        conf.endpointHost = originalHost;
-
-        REQUIRE(success);
-    }
-
     std::shared_ptr<InMemoryStateKeyValue> getKv(const std::string &user, const std::string &key, size_t stateSize) {
         State &state = state::getGlobalState();
 
@@ -121,6 +45,58 @@ namespace tests {
 
         return inMemLocalKv;
     }
+
+    // NOTE - in a real deployment each server would be running in its own
+    // process on a separate host. To run it in a thread like this we need to
+    // be careful to avoid sharing any global variables with the main thread.
+    //
+    // We force the server thread to have localhost IP, and the main thread
+    // to be the "client" with a junk IP.
+    static std::thread startBackgroundStateServer(int nMessages, bool remoteMaster) {
+        util::SystemConfig &conf = util::getSystemConfig();
+        originalHost = conf.endpointHost;
+
+        std::thread serverThread([remoteMaster, nMessages] {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+            // Override the host endpoint for the server thread
+            util::getSystemConfig().endpointHost = remoteHost;
+
+            // Deliberately don't use global state to ensure this thread
+            // has its own copies of things
+            State state;
+
+            // Master the data in this thread if necessary
+            if (remoteMaster) {
+                logger->debug("Setting master for test");
+
+                const std::shared_ptr<StateKeyValue> &kv = state.getKV(userA, keyA, dataA.size());
+                kv->set(dataA.data());
+
+                logger->debug("Finished setting master for test {}/{}", kv->user, kv->key);
+            }
+
+            // Process the required number of messages
+            state::StateServer server(state);
+            for (int i = 0; i < nMessages; i++) {
+                server.poll();
+            }
+
+            // Close the server
+            server.close();
+
+            // Close this process
+            exit(0);
+        });
+
+        // Give it time to start
+        usleep(500 * 1000);
+
+        // Set the host for the main thread
+        conf.endpointHost = clientHost;
+
+        return serverThread;
+    };
 
     TEST_CASE("Test request/ response", "[state]") {
         setUpStateMode();
@@ -136,11 +112,11 @@ namespace tests {
         auto kvB = state.getKV(userA, keyB, dataA.size());
 
         // Prepare a key-value with same key but different data (for pushing)
-        auto kvADuplicate = InMemoryStateKeyValue(userA, keyA, dataB.size());
+        auto kvADuplicate = InMemoryStateKeyValue(userA, keyA, dataB.size(), clientHost);
         kvADuplicate.set(dataB.data());
 
         // Create server
-        StateServer s;
+        StateServer s(state::getGlobalState());
 
         tcp::TCPMessage *request;
         tcp::TCPMessage *response;
@@ -203,7 +179,7 @@ namespace tests {
             kvA->get(actual.data());
             REQUIRE(actual == expected);
         }
-        
+
         SECTION("State append") {
             // Append a few chunks
             std::vector<uint8_t> chunkA = {3, 2, 1};
@@ -282,10 +258,6 @@ namespace tests {
         REQUIRE(actual == expected);
     }
 
-    TEST_CASE("Test local-only multi-chunk push", "[state]") {
-
-    }
-
     TEST_CASE("Test simple state server operation", "[state]") {
         setUpStateMode();
 
@@ -293,27 +265,29 @@ namespace tests {
 
         pid_t serverPid;
 
+        std::thread serverThread;
         SECTION("Remote master") {
-            serverPid = forkStateServer(3, true);
+            serverThread = startBackgroundStateServer(2, true);
 
+            // Get the state size before accessing the value locally
+            size_t actualSize = state.getStateSize(userA, keyA);
+            REQUIRE(actualSize == dataA.size());
+
+            // Access locally and check not master
             auto localKv = getKv(userA, keyA, dataA.size());
             REQUIRE(!localKv->isMaster());
         }
 
         SECTION("Non-remote master") {
-            serverPid = forkStateServer(0, false);
+            serverThread = startBackgroundStateServer(0, false);
 
-            // Set the data in this process
+            // Set up the state in this thread
             auto localKv = getKv(userA, keyA, dataA.size());
             localKv->set(dataA.data());
             REQUIRE(localKv->isMaster());
 
             localKv->pushFull();
         }
-
-        // Get the state size
-        size_t actualSize = state.getStateSize(userA, keyA);
-        REQUIRE(actualSize == dataA.size());
 
         // Pull the state
         const std::shared_ptr<StateKeyValue> &kv = state.getKV(userA, keyA, dataA.size());
@@ -324,7 +298,9 @@ namespace tests {
         REQUIRE(actual == dataA);
 
         // Wait for server to finish
-        waitForServer(serverPid);
+        if (serverThread.joinable()) {
+            serverThread.join();
+        }
 
         // Reset
         resetStateMode();
