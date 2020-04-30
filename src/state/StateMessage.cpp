@@ -81,7 +81,7 @@ namespace state {
             size_t stateSize = *(reinterpret_cast<size_t *>(msg->buffer));
             return stateSize;
         } else {
-            util::getLogger()->error("Unexpected response from pull ({})", msg->type);
+            util::getLogger()->error("Unexpected response from size ({})", msg->type);
             throw std::runtime_error("Pull failed");
         }
     }
@@ -161,7 +161,7 @@ namespace state {
             // Set the chunk with the response data
             kv->setSegment(offset, msg->buffer, length);
         } else {
-            util::getLogger()->error("Unexpected response from pull {}", msg->type);
+            util::getLogger()->error("Unexpected response from pull chunk {}", msg->type);
             throw std::runtime_error("Pull range failed");
         }
     }

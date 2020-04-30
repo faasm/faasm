@@ -73,8 +73,6 @@ namespace tcp {
             throw TCPTimeoutException("Polling timed out");
         }
 
-        logger->debug("Got {} poll events", pollCount);
-
         // Process poll events by iterating through each socket
         int currentFds = nFds;
         for (int i = 0; i < currentFds; i++) {
@@ -179,6 +177,7 @@ namespace tcp {
                 }
 
                 // Record that we've now received a message
+                logger->debug("Processed message type {}", msg->type);
                 nMessagesProcessed++;
 
                 // Allow subclass to handle the message and respond

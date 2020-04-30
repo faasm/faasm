@@ -30,10 +30,12 @@ namespace tests {
 
         util::SystemConfig &conf = util::getSystemConfig();
         originalStateMode = conf.stateMode;
+        originalHost = conf.endpointHost;
         conf.stateMode = "inmemory";
     }
 
     static void resetStateMode() {
+        util::getSystemConfig().endpointHost = originalHost;
         util::getSystemConfig().stateMode = originalStateMode;
     }
 
@@ -78,8 +80,11 @@ namespace tests {
 
             // Process the required number of messages
             state::StateServer server(state);
-            for (int i = 0; i < nMessages; i++) {
-                server.poll();
+            logger->debug("Running test state server for {} messages", nMessages);
+            int processedMessages = 0;
+            while(processedMessages < nMessages) {
+                processedMessages += server.poll();
+                logger->debug("Test state server processed {} messages", processedMessages);
             }
 
             // Close the server
@@ -258,16 +263,28 @@ namespace tests {
         REQUIRE(actual == expected);
     }
 
+    void checkServerComms() {
+        // Pull the state
+        State &state = state::getGlobalState();
+        const std::shared_ptr<StateKeyValue> &kv = state.getKV(userA, keyA, dataA.size());
+        kv->pull();
+
+        // Check it's equal
+        std::vector<uint8_t> actual(kv->get(), kv->get() + dataA.size());
+        REQUIRE(actual == dataA);
+
+        // Reset
+        resetStateMode();
+    }
+
     TEST_CASE("Test simple state server operation", "[state]") {
         setUpStateMode();
 
         State &state = state::getGlobalState();
 
-        pid_t serverPid;
-
         std::thread serverThread;
         SECTION("Remote master") {
-            serverThread = startBackgroundStateServer(2, true);
+            serverThread = startBackgroundStateServer(3, true);
 
             // Get the state size before accessing the value locally
             size_t actualSize = state.getStateSize(userA, keyA);
@@ -276,6 +293,8 @@ namespace tests {
             // Access locally and check not master
             auto localKv = getKv(userA, keyA, dataA.size());
             REQUIRE(!localKv->isMaster());
+
+            checkServerComms();
         }
 
         SECTION("Non-remote master") {
@@ -287,22 +306,13 @@ namespace tests {
             REQUIRE(localKv->isMaster());
 
             localKv->pushFull();
+
+            checkServerComms();
         }
-
-        // Pull the state
-        const std::shared_ptr<StateKeyValue> &kv = state.getKV(userA, keyA, dataA.size());
-        kv->pull();
-
-        // Check it's equal
-        std::vector<uint8_t> actual(kv->get(), kv->get() + dataA.size());
-        REQUIRE(actual == dataA);
 
         // Wait for server to finish
         if (serverThread.joinable()) {
             serverThread.join();
         }
-
-        // Reset
-        resetStateMode();
     }
 }
