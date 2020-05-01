@@ -195,7 +195,6 @@ namespace wasm {
     }
 
     void WasmModule::prepareOpenMPContext(const message::Message &msg) {
-        openmp::setThreadNumber(msg.ompthreadnum());
         std::shared_ptr<openmp::Level> ompLevel;
 
         if (msg.has_ompdepth()) {
@@ -209,7 +208,7 @@ namespace wasm {
                     std::make_shared<openmp::SingleHostLevel>());
         }
 
-        openmp::setThreadLevel(ompLevel);
+        openmp::setTLS(msg.ompthreadnum(), ompLevel);
     }
 
 }

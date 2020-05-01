@@ -171,14 +171,14 @@ namespace wasm {
                                    I32 loc, I32 globalTid, I32 numThreads) {
         util::getLogger()->debug("S - __kmpc_push_num_threads {} {} {}", loc, globalTid, numThreads);
         if (numThreads > 0) {
-            thisLevel->pushed_num_threads = numThreads;
+            pushedNumThreads = numThreads;
         }
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_set_num_threads", void, omp_set_num_threads, I32 numThreads) {
         util::getLogger()->debug("S - omp_set_num_threads {}", numThreads);
         if (numThreads > 0) {
-            thisLevel->wanted_num_threads = numThreads;
+            wantedNumThreads = numThreads;
         }
     }
 
@@ -233,7 +233,7 @@ namespace wasm {
 
         // Set up number of threads for next level
         int nextNumThreads = thisLevel->get_next_level_num_threads();
-        thisLevel->pushed_num_threads = -1; // Resets for next push
+        pushedNumThreads = -1; // Resets for next push
 
         if (0 > userDefaultDevice) {
             int *reducePtr = nullptr;

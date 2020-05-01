@@ -1111,8 +1111,7 @@ namespace wasm {
         setExecutingCall(spec.parentCall);
 
         // Set up OMP properties
-        openmp::setThreadNumber(spec.tid);
-        openmp::setThreadLevel(spec.level);
+        openmp::setTLS(spec.tid, spec.level);
 
         // Create a new region for this thread's stack
         U32 thisStackBase = getExecutingModule()->mmapMemory(spec.stackSize);

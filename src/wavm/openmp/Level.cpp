@@ -1,10 +1,11 @@
 #include <wavm/openmp/Level.h>
 
+#include <openmp/ThreadState.h>
 #include <util/config.h>
 
 namespace wasm {
     namespace openmp {
-        Level::Level(const std::shared_ptr<Level> parent, int num_threads) :
+        Level::Level(const std::shared_ptr<Level>& parent, int num_threads) :
                 depth(parent->depth + 1),
                 effective_depth(num_threads > 1 ? parent->effective_depth + 1 : parent->effective_depth),
                 max_active_level(parent->max_active_level),
@@ -31,7 +32,7 @@ namespace wasm {
             }
 
             // Extracts user preference unless compiler has overridden it for this parallel section
-            int nextWanted = pushed_num_threads > 0 ? pushed_num_threads : wanted_num_threads;
+            int nextWanted = pushedNumThreads > 0 ? pushedNumThreads : wantedNumThreads;
 
             // Returns user preference if set or device's maximum
             return nextWanted > 0 ? nextWanted : (int) util::getSystemConfig().maxWorkersPerFunction;
@@ -52,7 +53,7 @@ namespace wasm {
             return ReduceTypes::criticalBlock;
         }
 
-        SingleHostLevel::SingleHostLevel(struct std::shared_ptr<Level> parent, int numThreads) :
+        SingleHostLevel::SingleHostLevel(const std::shared_ptr<Level>& parent, int numThreads) :
                 Level(std::move(parent), numThreads) {
         }
 

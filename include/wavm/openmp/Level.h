@@ -24,8 +24,6 @@ namespace wasm {
             const int effective_depth = 0; // Number of parallel regions (> 1 thread) above this level
             int max_active_level = 1; // Max number of effective parallel regions allowed from the top
             const int num_threads = 1; // Number of threads of this level
-            int wanted_num_threads = -1; // Desired number of thread set by omp_set_num_threads for all future levels
-            int pushed_num_threads = -1; // Num threads pushed by compiler, valid for one parallel section, overrides wanted
             std::unique_ptr<util::Barrier> barrier = {}; // Only needed if num_threads > 1
             std::mutex reduceMutex; // Mutex used for reduction data. Although technically wrong behaviour, make sense for us
             // TODO - This implementation limits to one lock for all critical sections at a level.
@@ -36,7 +34,7 @@ namespace wasm {
             Level() = default;
 
             // Local constructor
-            Level(const std::shared_ptr<Level> parent, int num_threads);
+            Level(const std::shared_ptr<Level> &parent, int num_threads);
 
             // Distributed constructor
             Level(int depth, int effective_depth, int max_active_level, int num_threads);
@@ -58,7 +56,7 @@ namespace wasm {
         public:
             SingleHostLevel() = default;
 
-            SingleHostLevel(struct std::shared_ptr<Level> parent, int numThreads);
+            SingleHostLevel(const std::shared_ptr<Level>& parent, int numThreads);
             ReduceTypes reductionMethod() override;
 
             ~SingleHostLevel() = default;
