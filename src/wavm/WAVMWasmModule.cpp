@@ -26,6 +26,8 @@
 
 #include <wavm/openmp/ThreadState.h>
 
+constexpr int THREAD_STACK_SIZE(2 * ONE_MB_BYTES);
+
 using namespace WAVM;
 
 namespace wasm {
@@ -629,87 +631,19 @@ namespace wasm {
         // Set up OMP
         prepareOpenMPContext(msg);
 
+        // Executes OMP fork message if necessary
+        if (msg.has_ompdepth()) {
+            executeRemoteOMP(msg);
+            return true;
+        }
+
         // Run a specific function if requested
         int funcPtr = msg.funcptr();
         std::vector<IR::UntaggedValue> invokeArgs;
         Runtime::Function *funcInstance;
         IR::FunctionType funcType;
 
-        if (msg.has_ompdepth()) {
-            // Handle OMP functions
-            funcInstance = getFunctionFromPtr(funcPtr);
-            funcType = Runtime::getFunctionType(funcInstance);
-            int threadNum = msg.ompthreadnum();
-            int argc = msg.ompfunctionargs_size();
-
-            logger->debug("Running OMP thread #{} for function{} with argType {} (argc = {})", threadNum, funcPtr,
-                          WAVM::IR::asString(funcType), argc);
-
-            invokeArgs.emplace_back(threadNum);
-            invokeArgs.emplace_back(argc);
-            for (int argIdx = argc - 1; argIdx >= 0; argIdx--) {
-                invokeArgs.emplace_back(msg.ompfunctionargs(argIdx));
-            }
-
-            // TODO - refactor with executeThread
-            int ss = 2 * ONE_MB_BYTES;
-            U32 thisStackBase = getExecutingModule()->mmapMemory(ss);
-            U32 stackTop = thisStackBase + ss - 1;
-
-            // Create a new context for this thread
-            Runtime::Context *threadContext = createContext(
-                    getCompartmentFromContextRuntimeData(getContextRuntimeData(executionContext))
-            );
-
-            // Set the stack pointer in this context
-            IR::UntaggedValue &stackGlobal = threadContext->runtimeData->mutableGlobals[0];
-            if (stackGlobal.u32 != STACK_SIZE) {
-                util::getLogger()->error("Expected first mutable global in context to be stack pointer ({})",
-                                         stackGlobal.u32);
-                throw std::runtime_error("Unexpected mutable global format");
-            }
-
-            threadContext->runtimeData->mutableGlobals[0] = stackTop;
-
-            int returnValue = 0;
-            bool success = true;
-            try {
-                Runtime::catchRuntimeExceptions(
-                        [this, &funcInstance, &funcType, &invokeArgs, &returnValue, &logger, &threadContext] {
-                            logger->debug("Invoking C/C++ function");
-
-                            setExecutingModule(this);
-
-                            // Execute the function
-                            IR::UntaggedValue result;
-                            Runtime::invokeFunction(
-                                    threadContext,
-                                    funcInstance,
-                                    funcType,
-                                    invokeArgs.data(),
-                                    &result
-                            );
-
-                            return result.i32;
-
-                            returnValue = result.i32;
-                        }, [&logger, &success, &returnValue](Runtime::Exception *ex) {
-                            logger->error("Runtime exception: {}", Runtime::describeException(ex).c_str());
-                            Runtime::destroyException(ex);
-                            success = false;
-                            returnValue = 1;
-                        });
-            }
-            catch (wasm::WasmExitException &e) {
-                logger->debug("Caught wasm exit exception (code {})", e.exitCode);
-                returnValue = e.exitCode;
-                success = e.exitCode == 0;
-            }
-
-            // Record the return value
-            msg.set_returnvalue(returnValue);
-            return success;
-        } else if (funcPtr > 0) {
+        if (funcPtr > 0) {
             // Get the function this call is referring to
             funcInstance = getFunctionFromPtr(funcPtr);
 
@@ -777,6 +711,37 @@ namespace wasm {
         // Record the return value
         msg.set_returnvalue(returnValue);
         return success;
+    }
+
+    void WAVMWasmModule::executeRemoteOMP(message::Message &msg) {
+        int funcPtr = msg.funcptr();
+        std::vector<IR::UntaggedValue> invokeArgs;
+        Runtime::Function *funcInstance;
+        IR::FunctionType funcType;
+
+        // Handle OMP functions
+        funcInstance = getFunctionFromPtr(funcPtr);
+        int threadNum = msg.ompthreadnum();
+        int argc = msg.ompfunctionargs_size();
+
+        util::getLogger()->debug("Running OMP thread #{} for function{} with argType {} (argc = {})", threadNum,
+                                 funcPtr,
+                                 WAVM::IR::asString(funcType), argc);
+
+        invokeArgs.emplace_back(threadNum);
+        invokeArgs.emplace_back(argc);
+        for (int argIdx = argc - 1; argIdx >= 0; argIdx--) {
+            invokeArgs.emplace_back(msg.ompfunctionargs(argIdx));
+        }
+
+        WasmThreadSpec spec = {
+                getContextRuntimeData(executionContext),
+                funcInstance,
+                invokeArgs.data(),
+        };
+
+        // Record the return value
+        msg.set_returnvalue(executeThreadLocally(spec));
     }
 
     U32 WAVMWasmModule::mmapFile(U32 fd, U32 length) {
@@ -1163,17 +1128,15 @@ namespace wasm {
     }
 
 
-    I64 WAVMWasmModule::executeThread(WasmThreadSpec &spec) {
-        // Set up TLS for this thread
-        setExecutingModule(spec.parentModule);
-        setExecutingCall(spec.parentCall);
-
-        // Set up OMP properties
-        openmp::setTLS(spec.tid, spec.level);
-
+    /*
+     * Creates a thread execution context
+     * Assumes the worker module TLS was set up already
+     */
+    I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec &spec) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         // Create a new region for this thread's stack
-        U32 thisStackBase = getExecutingModule()->mmapMemory(spec.stackSize);
-        U32 stackTop = thisStackBase + spec.stackSize - 1;
+        U32 thisStackBase = getExecutingModule()->mmapMemory(THREAD_STACK_SIZE);
+        U32 stackTop = thisStackBase + THREAD_STACK_SIZE - 1;
 
         // Create a new context for this thread
         Runtime::Context *threadContext = createContext(
@@ -1190,17 +1153,37 @@ namespace wasm {
 
         threadContext->runtimeData->mutableGlobals[0] = stackTop;
 
-        // Execute the function
+        int returnValue = 0;
         IR::UntaggedValue result;
-        Runtime::invokeFunction(
-                threadContext,
-                spec.func,
-                Runtime::getFunctionType(spec.func),
-                spec.funcArgs,
-                &result
-        );
+        try {
+            Runtime::catchRuntimeExceptions(
+                    [this, &spec, &returnValue, &logger, &threadContext, &result] {
+                        logger->debug("Invoking C/C++ function");
 
-        return result.i32;
+                        setExecutingModule(this);
+
+                        // Execute the function
+                        Runtime::invokeFunction(
+                                threadContext,
+                                spec.func,
+                                Runtime::getFunctionType(spec.func),
+                                spec.funcArgs,
+                                &result
+                        );
+
+                        returnValue = result.i32;
+                    }, [&logger, &returnValue](Runtime::Exception *ex) {
+                        logger->error("Runtime exception: {}", Runtime::describeException(ex).c_str());
+                        Runtime::destroyException(ex);
+                        returnValue = 1;
+                    });
+        }
+        catch (wasm::WasmExitException &e) {
+            logger->debug("Caught wasm exit exception (code {})", e.exitCode);
+            returnValue = e.exitCode;
+        }
+
+        return returnValue;
     }
 
     Runtime::Function *WAVMWasmModule::getMainFunction(Runtime::Instance *module) {

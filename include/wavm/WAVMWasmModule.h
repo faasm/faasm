@@ -88,7 +88,7 @@ namespace wasm {
         int32_t getGlobalI32(const std::string &globalName, Runtime::Context *context);
 
         // ----- Threading -----
-        int64_t executeThread(WasmThreadSpec &spec);
+        int64_t executeThreadLocally(WasmThreadSpec &spec);
 
         // ----- Disassembly -----
         std::map<std::string, std::string> buildDisassemblyMap();
@@ -170,6 +170,8 @@ namespace wasm {
         Runtime::Function *getWasmConstructorsFunction(Runtime::Instance *module);
 
         void syncPythonFunctionFile(const message::Message &msg);
+
+        void executeRemoteOMP(message::Message &msg);
     };
 
     WAVMWasmModule *getExecutingModule();
@@ -178,14 +180,7 @@ namespace wasm {
 
     struct WasmThreadSpec {
         Runtime::ContextRuntimeData *contextRuntimeData;
-        wasm::WAVMWasmModule *parentModule;
-        message::Message *parentCall;
         Runtime::Function *func;
         IR::UntaggedValue *funcArgs;
-        size_t stackSize;
-
-        // OpenMP thread information. Give defaults when not using OMP
-        int tid = 0;
-        std::shared_ptr<openmp::Level> level = nullptr;
     };
 }

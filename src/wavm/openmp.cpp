@@ -13,10 +13,29 @@
 
 #include <util/timing.h>
 
-constexpr int OMP_STACK_SIZE = 2 * (ONE_MB_BYTES);
-
 namespace wasm {
     using namespace openmp;
+
+    struct LocalThreadArgs {
+        int tid = 0;
+        std::shared_ptr<openmp::Level> level = nullptr;
+        wasm::WAVMWasmModule *parentModule;
+        message::Message *parentCall;
+        WasmThreadSpec spec;
+    };
+
+    /**
+     * Function used to spawn OMP threads. Will be called from within a thread
+     * (hence needs to set up its own TLS)
+     */
+    I64 ompThreadEntryFunc(void *threadArgsPtr) {
+        auto args = *reinterpret_cast<LocalThreadArgs *>(threadArgsPtr);
+        // Set up various TLS
+        setTLS(args.tid, args.level);
+        setExecutingModule(args.parentModule);
+        setExecutingCall(args.parentCall);
+        return getExecutingModule()->executeThreadLocally(args.spec);
+    }
 
     /**
      * Performs actual static assignment
@@ -24,13 +43,6 @@ namespace wasm {
     template<typename T>
     void for_static_init(I32 schedule, I32 *lastIter, T *lower, T *upper, T *stride, T incr, T chunk);
 
-    /**
-     * Function used to spawn OMP threads. Will be called from within a thread
-     * (hence needs to set up its own TLS)
-     */
-    I64 ompThreadEntryFunc(void *threadArgsPtr) {
-        return getExecutingModule()->executeThread(*reinterpret_cast<WasmThreadSpec *>(threadArgsPtr));
-    }
 
     /**
      * @return the thread number, within its team, of the thread executing the function.
@@ -318,7 +330,7 @@ namespace wasm {
 
             // Note - must ensure thread arguments are outside loop scope otherwise they do
             // may not exist by the time the thread actually consumes them
-            std::vector<WasmThreadSpec> threadArgs;
+            std::vector<LocalThreadArgs> threadArgs;
             threadArgs.reserve(nextNumThreads);
 
             std::vector<std::vector<IR::UntaggedValue>> microtaskArgs;
@@ -343,14 +355,15 @@ namespace wasm {
                 // Arguments for spawning the thread
                 // NOTE - CLion auto-format insists on this layout... and clangd really hates C99 extensions
                 threadArgs.push_back({
-                                             .contextRuntimeData = contextRuntimeData,
+                                             .tid = threadNum,
+                                             .level = nextLevel,
                                              .parentModule = parentModule,
                                              .parentCall = parentCall,
-                                             .func = func,
-                                             .funcArgs = microtaskArgs[threadNum].data(),
-                                             .stackSize = OMP_STACK_SIZE,
-                                             .tid = threadNum,
-                                             .level = nextLevel
+                                             .spec = {
+                                                     .contextRuntimeData = contextRuntimeData,
+                                                     .func = func,
+                                                     .funcArgs = microtaskArgs[threadNum].data(),
+                                             }
                                      });
             }
 
