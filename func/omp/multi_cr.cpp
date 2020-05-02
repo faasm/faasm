@@ -9,12 +9,12 @@ unsigned long thread_seed() {
 }
 
 int main(int argc, char **argv) {
-    long iterations = 1000LL;
+    long iterations = 1000L;
     long num_threads = 1;
     long num_devices = 0;
     if (argc == 4) {
         num_threads = std::stol(argv[1]);
-        iterations = std::stoll(argv[2]);
+        iterations = std::stol(argv[2]);
         num_devices = std::stol(argv[3]);
     } else if (argc != 1) {
         printf("Usage: mt_pi [num_threads num_iterations num_devices]");
