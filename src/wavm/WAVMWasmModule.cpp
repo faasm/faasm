@@ -645,22 +645,70 @@ namespace wasm {
             logger->debug("Running OMP thread #{} for function{} with argType {} (argc = {})", threadNum, funcPtr,
                           WAVM::IR::asString(funcType), argc);
 
-//            invokeArgs.emplace_back(100);
-//            invokeArgs.emplace_back(200);
-//            invokeArgs.emplace_back(400);
-//            invokeArgs.emplace_back(500);
             invokeArgs.emplace_back(threadNum);
             invokeArgs.emplace_back(argc);
-//            for (int argIdx = 0; argIdx < argc; argIdx++) {
-            for (int argIdx = argc - 1; argIdx >=  0; argIdx--) {
+            for (int argIdx = argc - 1; argIdx >= 0; argIdx--) {
                 invokeArgs.emplace_back(msg.ompfunctionargs(argIdx));
             }
-            // Those could be all nullptr and yet have NO effect
-//            std::reverse(invokeArgs.begin(), invokeArgs.end());
-            for (auto & invokeArg : invokeArgs) {
-                logger->error("invokeArgs {}", invokeArg.i32);
+
+            // TODO - refactor with executeThread
+            int ss = 2 * ONE_MB_BYTES;
+            U32 thisStackBase = getExecutingModule()->mmapMemory(ss);
+            U32 stackTop = thisStackBase + ss - 1;
+
+            // Create a new context for this thread
+            Runtime::Context *threadContext = createContext(
+                    getCompartmentFromContextRuntimeData(getContextRuntimeData(executionContext))
+            );
+
+            // Set the stack pointer in this context
+            IR::UntaggedValue &stackGlobal = threadContext->runtimeData->mutableGlobals[0];
+            if (stackGlobal.u32 != STACK_SIZE) {
+                util::getLogger()->error("Expected first mutable global in context to be stack pointer ({})",
+                                         stackGlobal.u32);
+                throw std::runtime_error("Unexpected mutable global format");
             }
 
+            threadContext->runtimeData->mutableGlobals[0] = stackTop;
+
+            int returnValue = 0;
+            bool success = true;
+            try {
+                Runtime::catchRuntimeExceptions(
+                        [this, &funcInstance, &funcType, &invokeArgs, &returnValue, &logger, &threadContext] {
+                            logger->debug("Invoking C/C++ function");
+
+                            setExecutingModule(this);
+
+                            // Execute the function
+                            IR::UntaggedValue result;
+                            Runtime::invokeFunction(
+                                    threadContext,
+                                    funcInstance,
+                                    funcType,
+                                    invokeArgs.data(),
+                                    &result
+                            );
+
+                            return result.i32;
+
+                            returnValue = result.i32;
+                        }, [&logger, &success, &returnValue](Runtime::Exception *ex) {
+                            logger->error("Runtime exception: {}", Runtime::describeException(ex).c_str());
+                            Runtime::destroyException(ex);
+                            success = false;
+                            returnValue = 1;
+                        });
+            }
+            catch (wasm::WasmExitException &e) {
+                logger->debug("Caught wasm exit exception (code {})", e.exitCode);
+                returnValue = e.exitCode;
+                success = e.exitCode == 0;
+            }
+
+            // Record the return value
+            msg.set_returnvalue(returnValue);
+            return success;
         } else if (funcPtr > 0) {
             // Get the function this call is referring to
             funcInstance = getFunctionFromPtr(funcPtr);

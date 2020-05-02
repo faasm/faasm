@@ -11,8 +11,6 @@
 #include <state/StateKeyValue.h>
 #include <scheduler/Scheduler.h>
 
-#include "/usr/local/faasm/llvm-sysroot/include/faasmp/reduction.h"
-
 #include <util/timing.h>
 
 constexpr int OMP_STACK_SIZE = 2 * (ONE_MB_BYTES);
@@ -254,19 +252,12 @@ namespace wasm {
             const std::string origStr = util::funcToString(*originalCall, false);
 
             U32 *nativeArgs = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
-//            U32 *level1 = &Runtime::memoryRef<U32>(memoryPtr, nativeArgs[0]);
-
-            int pos = 1;
-            auto test = &Runtime::memoryRef<i64>(memoryPtr, nativeArgs[pos]);
-            logger->error("GIVEN at {} ({}): {}",pos, nativeArgs[pos], test->x);
 
             // Create the threads (messages) themselves
             for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
                 message::Message call = util::messageFactory(originalCall->user(), originalCall->function());
                 call.set_isasync(true);
-                for (int argIdx = argc - 1; argIdx >=  0; argIdx--) {
-//                for (int argIdx = 0; argIdx < argc; argIdx++) {
-                    logger->error("nativeArgs {}",nativeArgs[argIdx]);
+                for (int argIdx = argc - 1; argIdx >= 0; argIdx--) {
                     call.add_ompfunctionargs(nativeArgs[argIdx]);
                 }
 
@@ -280,7 +271,7 @@ namespace wasm {
                 const std::string chainedStr = util::funcToString(call, false);
                 sch.callFunction(call);
 
-                logger->warn("Forked thread {} ({}) -> {} {}(*{}) ({})", origStr, util::getNodeId(), chainedStr,
+                logger->info("Forked thread {} ({}) -> {} {}(*{}) ({})", origStr, util::getNodeId(), chainedStr,
                              microtaskPtr, argsPtr, call.schedulednode());
                 chainedThreads[threadNum] = call.id();
             }
@@ -392,7 +383,7 @@ namespace wasm {
         logger->debug("S - __faasmp_incryby {} {}", keyPtr, value);
 
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        std::string key {&Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr)};
+        std::string key{&Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr)};
         redis::Redis &redis = redis::Redis::getState();
         return redis.incrByLong(key, value);
     }
@@ -402,7 +393,7 @@ namespace wasm {
         logger->debug("S - __faasmp_getLong {}", keyPtr);
 
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        std::string key {&Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr)};
+        std::string key{&Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr)};
         redis::Redis &redis = redis::Redis::getState();
         return redis.getLong(key);
     }
@@ -511,18 +502,7 @@ namespace wasm {
                 throw std::runtime_error("Unsupported reduce operation");
                 break;
             case ReduceTypes::multiHostSum:
-                retVal = thisThreadNumber == 0 ? 1 : 0; // Skips compiler generated end_reduce statements;
-//                Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-//                I64 *localReduceData = &Runtime::memoryRef<I64>(memoryPtr,
-//                                                                Runtime::memoryRef<I64>(memoryPtr, reduce_data));
-//                logger->error("Reduce local data ({}): {}", thisThreadNumber, *localReduceData);
-
-                //if (util::getSystemConfig().stateMode == "redis") {
-                //    redis::Redis &redis = redis::Redis::getState();
-                //    redis.incrByLong(REDUCE_KEY, *localReduceData);
-                //} else {
-                //    throw std::runtime_error("Only supports Redis for state");
-                //}
+                retVal = 1;
                 break;
         }
         return retVal;
@@ -532,10 +512,12 @@ namespace wasm {
      *  Called immediately after running the reduction section before exiting the `reduce` construct.
      */
     void endReduction() {
-        // Unlocking not owned mutex is UB
-        if (thisLevel->numThreads > 1) {
-            util::getLogger()->debug("Thread {} unlocking reduction", thisThreadNumber);
-            thisLevel->reduceMutex.unlock();
+        if (0 <= userDefaultDevice) {
+            // Unlocking not owned mutex is UB
+            if (thisLevel->numThreads > 1) {
+                util::getLogger()->debug("Thread {} unlocking reduction", thisThreadNumber);
+                thisLevel->reduceMutex.unlock();
+            }
         }
     }
 
@@ -572,8 +554,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_reduce_nowait", I32, __kmpc_reduce_nowait, I32 loc, I32 gtid,
                                    I32 num_vars, I32 reduce_size, I32 reduce_data, I32 reduce_func, I32 lck) {
         util::getLogger()->debug("S - __kmpc_reduce_nowait {} {} {} {} {} {} {}", loc, gtid, num_vars, reduce_size,
-                                 reduce_data,
-                                 reduce_func, lck);
+                                 reduce_data, reduce_func, lck);
 
         return startReduction(reduce_data);
     }
@@ -586,11 +567,7 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_reduce", void, __kmpc_end_reduce, I32 loc, I32 gtid, I32 lck) {
         util::getLogger()->debug("S - __kmpc_end_reduce {} {} {}", loc, gtid, lck);
-        if (0 <= userDefaultDevice) {
-            endReduction();
-        } else {
-//            throw std::runtime_error("End reduce called in distributed context");
-        }
+        endReduction();
     }
 
     /**
@@ -602,11 +579,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_reduce_nowait", void, __kmpc_end_reduce_nowait, I32 loc, I32 gtid,
                                    I32 lck) {
         util::getLogger()->debug("S - __kmpc_end_reduce_nowait {} {} {}", loc, gtid, lck);
-        if (0 <= userDefaultDevice) {
-            endReduction();
-        } else {
-//            throw std::runtime_error("End reduce called in distributed context");
-        }
+        endReduction();
     }
 
     /**
@@ -631,7 +604,7 @@ namespace wasm {
             return;
         }
         // Use negative device number to indicate using multiple devices in parallel
-        // TODO - add parallel flag to Level to set here
+        // TODO - flag with the specialisation of Level instead
         userDefaultDevice = defaultDeviceNumber;
     }
 

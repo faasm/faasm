@@ -9,34 +9,40 @@ unsigned long thread_seed() {
 }
 
 int main(int argc, char **argv) {
-    int iterations[3] = {4};
-//    long iterations = 1;
+    long iterations = 1000LL;
     long num_threads = 1;
-    long num_devices = -1;
+    long num_devices = 0;
+    if (argc == 4) {
+        num_threads = std::stol(argv[1]);
+        iterations = std::stoll(argv[2]);
+        num_devices = std::stol(argv[3]);
+    } else if (argc != 1) {
+        printf("Usage: mt_pi [num_threads num_iterations num_devices]");
+        return 5;
+    }
 
     omp_set_default_device(num_devices);
 
-    i64 result(90);
+    i64 result(0);
     #pragma omp parallel num_threads(num_threads) default(none) firstprivate(iterations) reduction(+:result)
     {
-//        std::uniform_real_distribution<double> unif(0, 1);
-//        std::mt19937_64 generator(thread_seed());
-//        double x, y;
-//
-//        #pragma omp for nowait
-//        for (long long i = 0; i < iterations[0]; ++i) {
-//            x = unif(generator);
-//            y = unif(generator);
-//            if (x * x + y * y <= 1.0) {
-//                ++result;
-//            }
-//        }
-    }
-//    printf("my coapy sscsaasnstructor %ld\n", (int64_t) result);
+        std::uniform_real_distribution<double> unif(0, 1);
+        std::mt19937_64 generator(thread_seed());
+        double x, y;
 
-    double pi = (4.0 * (double) result) / iterations[0];
+        #pragma omp for nowait
+        for (long long i = 0; i < iterations; ++i) {
+            x = unif(generator);
+            y = unif(generator);
+            if (x * x + y * y <= 1.0) {
+                ++result;
+            }
+        }
+    }
+
+    double pi = (4.0 * (double) result) / iterations;
 
     if (abs(pi - 3.14) > 0.01) {
-        printf("Low accuracy. Expected pi got %f\n", pi);
+        printf("Low accuracy Expected pi got %f\n", pi);
     }
 }
