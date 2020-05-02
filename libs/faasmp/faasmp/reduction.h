@@ -59,8 +59,7 @@ public:
 
 class i64 {
 
-//private:
-public:
+private:
     int64_t x = 0;
     // Depending on the number of threads and the reduction, a copy constructor with the initial reductor
     // is created on some paths (i.e. for certain threads). A better implementation would deal with references
