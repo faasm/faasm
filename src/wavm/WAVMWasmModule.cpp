@@ -717,7 +717,6 @@ namespace wasm {
         int funcPtr = msg.funcptr();
         std::vector<IR::UntaggedValue> invokeArgs;
         Runtime::Function *funcInstance;
-        IR::FunctionType funcType;
 
         // Handle OMP functions
         funcInstance = getFunctionFromPtr(funcPtr);
@@ -725,8 +724,7 @@ namespace wasm {
         int argc = msg.ompfunctionargs_size();
 
         util::getLogger()->debug("Running OMP thread #{} for function{} with argType {} (argc = {})", threadNum,
-                                 funcPtr,
-                                 WAVM::IR::asString(funcType), argc);
+                                 funcPtr, argc);
 
         invokeArgs.emplace_back(threadNum);
         invokeArgs.emplace_back(argc);
