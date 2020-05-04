@@ -23,6 +23,11 @@ namespace wasm {
         message::Message *parentCall;
         WasmThreadSpec spec;
     };
+    /**
+     * Performs actual static assignment
+     */
+    template<typename T>
+    void for_static_init(I32 schedule, I32 *lastIter, T *lower, T *upper, T *stride, T incr, T chunk);
 
     /**
      * Function used to spawn OMP threads. Will be called from within a thread
@@ -264,7 +269,6 @@ namespace wasm {
             const std::string origStr = util::funcToString(*originalCall, false);
 
             U32 *nativeArgs = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
-
             // Create the threads (messages) themselves
             for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
                 message::Message call = util::messageFactory(originalCall->user(), originalCall->function());

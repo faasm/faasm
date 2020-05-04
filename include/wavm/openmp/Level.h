@@ -38,7 +38,7 @@ namespace wasm {
             Level(const std::shared_ptr<Level> &parent, int num_threads);
 
             // Distributed constructor
-            Level(int depth, int effectiveDepth, int maxActiveLevel, int numThreads);
+            Level(int depth, int effective_depth, int max_active_level, int num_threads);
 
             // Distribued message construction. Calling the distributed constructor with the message
             // arguments set in this function should be equivalent to calling the local constructor

@@ -15,13 +15,13 @@ namespace wasm {
             }
         }
 
-        Level::Level(int depth, int effectiveDepth, int maxActiveLevel, int num_threads) :
+        Level::Level(int depth, int effectiveDepth, int maxActiveLevel, int numThreads) :
                 depth(depth + 1),
-                effectiveDepth(num_threads > 1 ? effectiveDepth + 1 : effectiveDepth),
+                effectiveDepth(numThreads > 1 ? effectiveDepth + 1 : effectiveDepth),
                 maxActiveLevel(maxActiveLevel),
-                numThreads(num_threads) {
-            if (num_threads > 1) {
-                barrier = std::make_unique<util::Barrier>(num_threads);
+                numThreads(numThreads) {
+            if (numThreads > 1) {
+                barrier = std::make_unique<util::Barrier>(numThreads);
             }
         }
 

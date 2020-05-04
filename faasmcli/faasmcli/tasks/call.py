@@ -25,7 +25,6 @@ def invoke(ctx, user, func,
     invoke_impl(user, func, host=host, port=port, input=input, py=py, async=async,
                 knative=knative, native=native, ibm=ibm, poll=poll, cmdline=cmdline, debug=debug)
 
-
 @task
 def multi_cr(ctx, number_times=6):
     backoff = lambda x: min(max(1, x // 2),  number_times)
