@@ -1,14 +1,14 @@
 #include <catch/catch.hpp>
 
 #include "utils.h"
-#include <data/data.h>
+
+#include <storage/SparseMatrixFileSerialiser.h>
 
 #include <boost/filesystem.hpp>
 #include <util/state.h>
 #include <util/files.h>
 #include <emulator/emulator.h>
 
-using namespace data;
 using namespace boost::filesystem;
 
 namespace tests {
@@ -39,7 +39,7 @@ namespace tests {
         SparseMatrix<double> mat = faasm::randomSparseMatrix(5, 10, 0.4);
 
         path dummyDir = _setUp();
-        SparseMatrixFileSerialiser s(mat);
+        storage::SparseMatrixFileSerialiser s(mat);
         s.writeToFile(dummyDir.string());
 
         // Load sizes and check they still match
@@ -52,7 +52,7 @@ namespace tests {
         REQUIRE(sizes->cols == 10);
 
         // Read all files in
-        SparseMatrix<double> actual = SparseMatrixFileSerialiser::readFromFiles(dummyDir.string());
+        SparseMatrix<double> actual = storage::SparseMatrixFileSerialiser::readFromFiles(dummyDir.string());
         checkSparseMatrixEquality(mat, actual);
     }
 
@@ -64,7 +64,7 @@ namespace tests {
         // Write to the file
         SparseMatrix<double> mat = faasm::randomSparseMatrix(5, 10, 0.4);
         path dummyDir = _setUp();
-        SparseMatrixFileSerialiser s(mat);
+        storage::SparseMatrixFileSerialiser s(mat);
         s.writeToFile(dummyDir.string());
 
         // Write to state from files

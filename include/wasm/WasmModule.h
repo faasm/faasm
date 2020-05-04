@@ -1,6 +1,6 @@
 #pragma once
 
-#include <wasm/openmp/Level.h>
+#include <wavm/openmp/Level.h>
 #include "WasmEnvironment.h"
 
 #include <util/logging.h>

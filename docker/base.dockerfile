@@ -1,36 +1,11 @@
-FROM faasm/cpp-root:0.1.3
-
-RUN apt-get update
-RUN apt-add-repository ppa:ansible/ansible
-RUN apt-get update
-RUN apt-get install -y ansible \
-    cgroup-bin \
-    iproute2 \
-    iptables \
-    redis-tools \
-    libz-dev \
-    libboost-dev \
-    libcpprest-dev \
-    libhiredis-dev \
-    libcgroup-dev \
-    libcurl4-openssl-dev \
-    ninja-build \
-    cgroup-tools \
-    cgroup-bin
+FROM faasm/cpp-root:0.1.5
 
 # Put code in place
 COPY . /usr/local/code/faasm
 
-# Install native dependencies
+# Install Eigen
 WORKDIR /usr/local/code/faasm/ansible
-
-RUN ansible-playbook spdlog.yml
-RUN ansible-playbook cereal.yml
-
-RUN ansible-playbook rapidjson.yml
 RUN ansible-playbook eigen.yml
-
-RUN ansible-playbook pistache.yml
 
 # Out of tree build
 WORKDIR /faasm/build

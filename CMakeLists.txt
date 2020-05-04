@@ -80,6 +80,7 @@ else ()
 endif ()
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+include_directories({LLVM_INCLUDE_DIRS})
 
 # Eigen parallelisation
 # add_definitions(-DEIGEN_DONT_PARALLELIZE)
@@ -160,7 +161,6 @@ else ()
 
     # Faasm runtime
     add_subdirectory(src/codegen)
-    add_subdirectory(src/data)
     add_subdirectory(src/emulator)
     add_subdirectory(src/endpoint)
     add_subdirectory(src/ibm)

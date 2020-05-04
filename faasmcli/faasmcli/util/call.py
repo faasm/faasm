@@ -36,6 +36,7 @@ def invoke_impl(user, func,
                 poll=False,
                 cmdline=None,
                 mpi_world_size=None,
+                debug=False,
                 poll_interval_ms=1000):
     faasm_config = get_faasm_config()
 
@@ -157,7 +158,7 @@ def invoke_impl(user, func,
             return success, output
     else:
         if ibm or knative:
-            return do_post(url, msg, headers=headers, json=True)
+            return do_post(url, msg, headers=headers, json=True, debug=debug)
         else:
             raise RuntimeError("Must specify knative or ibm")
 

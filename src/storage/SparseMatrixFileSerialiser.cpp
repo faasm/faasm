@@ -1,4 +1,4 @@
-#include "data.h"
+#include "SparseMatrixFileSerialiser.h"
 
 #include <util/files.h>
 #include <util/logging.h>
@@ -9,7 +9,7 @@
 
 using namespace boost::filesystem;
 
-namespace data {
+namespace storage {
     struct SparseFiles {
         path valuesPath;
         path innersPath;

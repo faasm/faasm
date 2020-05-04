@@ -14,11 +14,11 @@
 
 
 namespace scheduler {
-    // Note - default opinion should be maybe
-    enum SchedulerOpinion {
-        MAYBE,
-        YES,
-        NO
+    // Note - default opinion when zero initialised should be maybe
+    enum class SchedulerOpinion {
+        MAYBE = 0,
+        YES = 1,
+        NO = 2,
     };
 
     class Scheduler {
@@ -74,7 +74,7 @@ namespace scheduler {
         std::vector<unsigned int> getScheduledMessageIds();
 
     private:
-        std::string nodeId;
+        const std::string &nodeId;
 
         void updateOpinion(const message::Message &msg);
 

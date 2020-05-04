@@ -5,7 +5,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 else ()
     find_package(OpenMP REQUIRED)
-    include_directories(${OPENMP_INCLUDE_DIR})
+    include_directories(${OPENMP_INCLUDE_DIR} ${LLVM_INCLUDE_DIRS}/openmp)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif ()
@@ -56,6 +56,7 @@ omp_func(intel_transpose intel_transpose.cpp)
 
 # Multi host and experiments
 omp_func(multi_sum multi_sum.cpp)
+omp_func(multi_pi multi_pi.cpp)
 omp_func(mt_pi mt_pi.cpp)
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
