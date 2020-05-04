@@ -1,7 +1,7 @@
 #include "WAVMWasmModule.h"
 
-#include <wasm/openmp/Level.h>
-#include <wasm/openmp/ThreadState.h>
+#include <wavm/openmp/Level.h>
+#include <wavm/openmp/ThreadState.h>
 
 #include <WAVM/Platform/Thread.h>
 #include <WAVM/Runtime/Runtime.h>
@@ -11,28 +11,19 @@
 #include <state/StateKeyValue.h>
 #include <scheduler/Scheduler.h>
 
+#include <util/timing.h>
+
 constexpr int OMP_STACK_SIZE = 2 * (ONE_MB_BYTES);
 
 namespace wasm {
     using namespace openmp;
     const auto REDUCE_KEY = std::string("omp_wowzoid");
 
-    // Types in accordance with Clang's OpenMP implementation
-    namespace kmp {
-        enum sched_type : I32 {
-            sch_lower = 32, /**< lower bound for unordered values */
-            sch_static_chunked = 33,
-            sch_static = 34, /**< static unspecialized */
-        };
-
-        enum _reduction_method {
-            reduction_method_not_defined = 0,
-            critical_reduce_block = (1 << 8),
-            atomic_reduce_block = (2 << 8),
-            tree_reduce_block = (3 << 8),
-            empty_reduce_block = (4 << 8)
-        };
-    }
+    /**
+     * Performs actual static assignment
+     */
+    template<typename T>
+    void for_static_init(I32 schedule, I32 *lastIter, T *lower, T *upper, T *stride, T incr, T chunk);
 
     /**
      * Function used to spawn OMP threads. Will be called from within a thread
@@ -180,14 +171,14 @@ namespace wasm {
                                    I32 loc, I32 globalTid, I32 numThreads) {
         util::getLogger()->debug("S - __kmpc_push_num_threads {} {} {}", loc, globalTid, numThreads);
         if (numThreads > 0) {
-            thisLevel->pushed_num_threads = numThreads;
+            pushedNumThreads = numThreads;
         }
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_set_num_threads", void, omp_set_num_threads, I32 numThreads) {
         util::getLogger()->debug("S - omp_set_num_threads {}", numThreads);
         if (numThreads > 0) {
-            thisLevel->wanted_num_threads = numThreads;
+            wantedNumThreads = numThreads;
         }
     }
 
@@ -201,7 +192,7 @@ namespace wasm {
         return thisThreadNumber; // Might be wrong if called at depth 1 while another thread at depths 1 has forked
     }
 
-    int userNumDevice = 1;
+    int userDefaultDevice = 0;
     int userMaxNumDevices = 3; // Number of devices available to each user by default
     // Map of tid to message ID for chained calls
 
@@ -237,25 +228,26 @@ namespace wasm {
         Runtime::Function *func = Runtime::asFunction(
                 Runtime::getTableElement(getExecutingModule()->defaultTable, microtaskPtr));
 
-        if (1 != userNumDevice) {
+        const util::TimePoint iterationTp = util::startTimer();
+        redis::Redis &redis = redis::Redis::getState();
+
+        // Set up number of threads for next level
+        int nextNumThreads = thisLevel->get_next_level_num_threads();
+        pushedNumThreads = -1; // Resets for next push
+
+        if (0 > userDefaultDevice) {
             int *reducePtr = nullptr;
-            int nextNumThreads = thisLevel->get_next_level_num_threads();
-            redis::Redis &redis = redis::Redis::getState();
-            logger->warn("Number of threads spawned: {}", nextNumThreads);
 
             std::vector<int> chainedThreads;
             chainedThreads.reserve(nextNumThreads);
 
             redis.setLong(REDUCE_KEY, 0);
 
-            // rec
+            // TODO - Implement redo
             if (activeSnapshotKey.empty()) {
                 int callId = getExecutingCall()->id();
                 activeSnapshotKey = fmt::format("omp_snapshot_{}", callId);
                 threadSnapshotSize = parentModule->snapshotToState(activeSnapshotKey);
-            } else {
-                // TODO - implement
-                throw std::runtime_error("OMP already bound");
             }
 
             scheduler::Scheduler &sch = scheduler::getScheduler();
@@ -263,27 +255,23 @@ namespace wasm {
             const message::Message *originalCall = getExecutingCall();
             const std::string origStr = util::funcToString(*originalCall, false);
 
-            // Create the threads themselves
+            U32 *nativeArgs = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
+            if (argc > 0) {
+                reducePtr = &Runtime::memoryRef<I32>(memoryPtr, argsPtr);
+            }
+
+            // Create the threads (messages) themselves
             for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
                 message::Message call = util::messageFactory(originalCall->user(), originalCall->function());
                 call.set_isasync(true);
-
-                if (argc > 0) {
-                    U32 *pointers = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
-                    for (int argIdx = 0; argIdx < argc; argIdx++) {
-                        if (argIdx == 0) {
-                            reducePtr = &Runtime::memoryRef<I32>(memoryPtr, pointers[argIdx]);
-                            logger->warn("BEFORE ARG: {}", *reducePtr);
-                        }
-                        call.add_ompfunctionargs(pointers[argIdx]);
-                    }
+                for (int argIdx = 0; argIdx < argc; argIdx++) {
+                    call.add_ompfunctionargs(nativeArgs[argIdx]);
                 }
-
 
                 // Snapshot details
                 call.set_snapshotkey(activeSnapshotKey);
                 call.set_snapshotsize(threadSnapshotSize);
-                call.set_funcptr(microtaskPtr); // ugh..?>?> TODO-Luckily I don't think it's being used.
+                call.set_funcptr(microtaskPtr);
                 call.set_ompthreadnum(threadNum);
                 call.set_ompnumthreads(nextNumThreads);
                 thisLevel->snapshot_parent(call);
@@ -324,79 +312,78 @@ namespace wasm {
                     numErrors++;
                 }
             }
-            if (numErrors) {
-                throw std::runtime_error(fmt::format("{}} OMP threads have exited with errors", numErrors));
-            }
 
+            if (numErrors) {
+                throw std::runtime_error(fmt::format("{} OMP threads have exited with errors", numErrors));
+            }
 
             *reducePtr = redis.getLong(REDUCE_KEY);
             logger->error("END DISTRIBUTED FORK. SETTING REDUCE VALUE TO {}", *reducePtr);
-            return;
-        }
+        } else { // Single host
 
-        // Set up number of threads for next level
-        int nextNumThreads = thisLevel->get_next_level_num_threads();
-        thisLevel->pushed_num_threads = -1; // Resets for next push
+            // Set up new level
+            auto nextLevel = std::make_shared<SingleHostLevel>(thisLevel, nextNumThreads);
 
-        // Set up new level
-        auto nextLevel = std::make_shared<OMPLevel>(thisLevel, nextNumThreads);
+            // Note - must ensure thread arguments are outside loop scope otherwise they do
+            // may not exist by the time the thread actually consumes them
+            std::vector<WasmThreadSpec> threadArgs;
+            threadArgs.reserve(nextNumThreads);
 
-        // Note - must ensure thread arguments are outside loop scope otherwise they do
-        // may not exist by the time the thread actually consumes them
-        std::vector<WasmThreadSpec> threadArgs;
-        threadArgs.reserve(nextNumThreads);
+            std::vector<std::vector<IR::UntaggedValue>> microtaskArgs;
+            microtaskArgs.reserve(nextNumThreads);
 
-        std::vector<std::vector<IR::UntaggedValue>> microtaskArgs;
-        microtaskArgs.reserve(nextNumThreads);
+            std::vector<WAVM::Platform::Thread *> platformThreads;
+            platformThreads.reserve(nextNumThreads);
 
-        std::vector<WAVM::Platform::Thread *> platformThreads;
-        platformThreads.reserve(nextNumThreads);
-
-        // Build up arguments
-        for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
-            // Note - these arguments are the thread number followed by the number of
-            // shared variables, then the pointers to those shared variables
-            microtaskArgs.push_back({threadNum, argc});
-            if (argc > 0) {
-                // Get pointer to start of arguments in host memory
-                U32 *pointers = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
-                for (int argIdx = 0; argIdx < argc; argIdx++) {
-                    microtaskArgs[threadNum].emplace_back(pointers[argIdx]);
+            // Build up arguments
+            for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
+                // Note - these arguments are the thread number followed by the number of
+                // shared variables, then the pointers to those shared variables
+                microtaskArgs.push_back({threadNum, argc});
+                if (argc > 0) {
+                    // Get pointer to start of arguments in host memory
+                    U32 *pointers = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
+                    for (int argIdx = 0; argIdx < argc; argIdx++) {
+                        microtaskArgs[threadNum].emplace_back(pointers[argIdx]);
+                    }
                 }
+
+                // Arguments for spawning the thread
+                // NOTE - CLion auto-format insists on this layout... and clangd really hates C99 extensions
+                threadArgs.push_back({
+                                             .contextRuntimeData = contextRuntimeData,
+                                             .parentModule = parentModule,
+                                             .parentCall = parentCall,
+                                             .func = func,
+                                             .funcArgs = microtaskArgs[threadNum].data(),
+                                             .stackSize = OMP_STACK_SIZE,
+                                             .tid = threadNum,
+                                             .level = nextLevel
+                                     });
             }
 
-            // Arguments for spawning the thread
-            // NOTE - CLion auto-format insists on this layout... and clangd really hates C99 extensions
-            threadArgs.push_back({
-                                         .contextRuntimeData = contextRuntimeData,
-                                         .parentModule = parentModule,
-                                         .parentCall = parentCall,
-                                         .func = func,
-                                         .funcArgs = microtaskArgs[threadNum].data(),
-                                         .stackSize = OMP_STACK_SIZE,
-                                         .tid = threadNum,
-                                         .level = nextLevel
-                                 });
+            // Create the threads themselves
+            for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
+                platformThreads.emplace_back(Platform::createThread(
+                        0,
+                        ompThreadEntryFunc,
+                        &threadArgs[threadNum]
+                ));
+            }
+
+            // Await all threads
+            I64 numErrors = 0;
+            for (auto t: platformThreads) {
+                numErrors += Platform::joinThread(t);
+            }
+
+            if (numErrors) {
+                throw std::runtime_error(fmt::format("{} OMP threads have exited with errors", numErrors));
+            }
         }
 
-        // Create the threads themselves
-        for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
-            platformThreads.emplace_back(Platform::createThread(
-                    0,
-                    ompThreadEntryFunc,
-                    &threadArgs[threadNum]
-            ));
-        }
-
-        // Await all threads
-        I64 numErrors = 0;
-        for (auto t: platformThreads) {
-            numErrors += Platform::joinThread(t);
-        }
-
-        if (numErrors) {
-            throw std::runtime_error(fmt::format("{}} OMP threads have exited with errors", numErrors));
-        }
+        const long distributedIterationTime = util::getTimeDiffMicros(iterationTp);
+        redis.rpushLong("multi_pi_times", distributedIterationTime);
 
     }
 
@@ -416,7 +403,6 @@ namespace wasm {
 
         *hostDest = *hostSrc;
     }
-
     /**
      * @param    loc       Source code location
      * @param    gtid      Global thread id of this thread
@@ -450,13 +436,199 @@ namespace wasm {
         I32 *upper = &Runtime::memoryRef<I32>(memoryPtr, upperPtr);
         I32 *stride = &Runtime::memoryRef<I32>(memoryPtr, stridePtr);
 
+        for_static_init<I32>(schedule, lastIter, lower, upper, stride, incr, chunk);
+    }
+
+    /*
+     * See __kmpc_for_static_init_4
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_for_static_init_8", void, __kmpc_for_static_init_8,
+                                   I32 loc, I32 gtid, I32 schedule, I32 lastIterPtr,
+                                   I32 lowerPtr, I32 upperPtr, I32 stridePtr, // Pointers to I64
+                                   I64 incr, I64 chunk) {
+
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - __kmpc_for_static_init_4 {} {} {} {} {} {} {} {} {}",
+                      loc, gtid, schedule, lastIterPtr, lowerPtr, upperPtr, stridePtr, incr, chunk);
+
+        // Get host pointers for the things we need to write
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        I32 *lastIter = &Runtime::memoryRef<I32>(memoryPtr, lastIterPtr);
+        I64 *lower = &Runtime::memoryRef<I64>(memoryPtr, lowerPtr);
+        I64 *upper = &Runtime::memoryRef<I64>(memoryPtr, upperPtr);
+        I64 *stride = &Runtime::memoryRef<I64>(memoryPtr, stridePtr);
+
+        for_static_init<I64>(schedule, lastIter, lower, upper, stride, incr, chunk);
+    }
+
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_for_static_fini", void, __kmpc_for_static_fini,
+                                   I32 loc, I32 gtid) {
+        util::getLogger()->debug("S - __kmpc_for_static_fini {} {}", loc, gtid);
+    }
+
+    /**
+     *  When reaching the end of the reduction loop, the threads need to synchronise to operate the
+     *  reduction function. In the multi-machine case, this
+     */
+    int startReduction(int reduce_data) {
+        int retVal = 0;
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        switch (thisLevel->reductionMethod()) {
+            case ReduceTypes::criticalBlock:
+                logger->debug("Thread {} reduction locking", thisThreadNumber);
+                thisLevel->reduceMutex.lock();
+                retVal = 1;
+                break;
+            case ReduceTypes::emptyBlock:
+                retVal = 1;
+                break;
+            case ReduceTypes::atomicBlock:
+                retVal = 2;
+                break;
+            case ReduceTypes::notDefined:
+                throw std::runtime_error("Unsupported reduce operation");
+                break;
+            case ReduceTypes::multiHostSum:
+                retVal = 4; // Skips compiler generated end_reduce statements;
+                Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+                int *localReduceData = &Runtime::memoryRef<I32>(memoryPtr,
+                                                                Runtime::memoryRef<I32>(memoryPtr, reduce_data));
+                logger->debug("Reduce local data ({}): {}", thisThreadNumber, *localReduceData);
+
+                if (util::getSystemConfig().stateMode == "redis") {
+                    redis::Redis &redis = redis::Redis::getState();
+                    redis.incrByLong(REDUCE_KEY, *localReduceData);
+                } else {
+                    throw std::runtime_error("Only supports Redis for state");
+                }
+                break;
+        }
+        return retVal;
+    }
+
+    /**
+     *  Called immediately after running the reduction section before exiting the `reduce` construct.
+     */
+    void endReduction() {
+        // Unlocking not owned mutex is UB
+        if (thisLevel->num_threads > 1) {
+            util::getLogger()->debug("Thread {} unlocking reduction", thisThreadNumber);
+            thisLevel->reduceMutex.unlock();
+        }
+    }
+
+    /**
+     * A blocking reduce that includes an implicit barrier.
+     * @param loc source location information
+     * @param gtid global thread id
+     * @param num_vars number of items (variables) to be reduced
+     * @param reduce_size size of data in bytes to be reduced
+     * @param reduce_data pointer to data to be reduced
+     * @param reduce_func callback function providing reduction operation on two operands and returning result of reduction in lhs_data. Of type void(∗)(void ∗lhs data, void ∗rhs data)
+     * @param lck pointer to the unique lock data structure
+     * @return 1 for the master thread, 0 for all other team threads, 2 for all team threads if atomic reduction needed
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_reduce", I32, __kmpc_reduce, I32 loc, I32 gtid, I32 num_vars,
+                                   I32 reduce_size, I32 reduce_data, I32 reduce_func, I32 lck) {
+        util::getLogger()->debug("S - __kmpc_reduce {} {} {} {} {} {} {}", loc, gtid, num_vars, reduce_size,
+                                 reduce_data, reduce_func, lck);
+
+        return startReduction(reduce_data);
+    }
+
+    /**
+     * The nowait version is used for a reduce clause with the nowait argument. Or direct exit of parallel section.
+     * @param loc source location information
+     * @param gtid global thread id
+     * @param num_vars number of items (variables) to be reduced
+     * @param reduce_size size of data in bytes to be reduced
+     * @param reduce_data pointer to data to be reduced
+     * @param reduce_func callback function providing reduction operation on two operands and returning result of reduction in lhs_data. Of type void(∗)(void ∗lhs data, void ∗rhs data)
+     * @param lck pointer to the unique lock data structure
+     * @return 1 for the master thread, 0 for all other team threads, 2 for all team threads if atomic reduction needed
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_reduce_nowait", I32, __kmpc_reduce_nowait, I32 loc, I32 gtid,
+                                   I32 num_vars, I32 reduce_size, I32 reduce_data, I32 reduce_func, I32 lck) {
+        util::getLogger()->debug("S - __kmpc_reduce_nowait {} {} {} {} {} {} {}", loc, gtid, num_vars, reduce_size,
+                                 reduce_data,
+                                 reduce_func, lck);
+
+        return startReduction(reduce_data);
+    }
+
+    /**
+     * Finish the execution of a blocking reduce. The lck pointer must be the same as that used in the corresponding start function.
+     * @param loc location info
+     * @param gtid global thread id
+     * @param lck kmp_critical_name* to the critical section.
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_reduce", void, __kmpc_end_reduce, I32 loc, I32 gtid, I32 lck) {
+        util::getLogger()->debug("S - __kmpc_end_reduce {} {} {}", loc, gtid, lck);
+        if (0 <= userDefaultDevice) {
+            endReduction();
+        } else {
+            throw std::runtime_error("End reduce called in distributed context");
+        }
+    }
+
+    /**
+     * Arguments similar to __kmpc_end_reduce. Finish the execution of a reduce_nowait.
+     * @param loc
+     * @param gtid
+     * @param lck
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_reduce_nowait", void, __kmpc_end_reduce_nowait, I32 loc, I32 gtid,
+                                   I32 lck) {
+        util::getLogger()->debug("S - __kmpc_end_reduce_nowait {} {} {}", loc, gtid, lck);
+        if (0 <= userDefaultDevice) {
+            endReduction();
+        } else {
+            throw std::runtime_error("End reduce called in distributed context");
+        }
+    }
+
+    /**
+     * Get the number of devices (different CPU sockets or machines) available to that user
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_num_devices", int, omp_get_num_devices) {
+        util::getLogger()->debug("S - omp_get_num_devices");
+        return userDefaultDevice;
+    }
+
+    /**
+     *
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_set_default_device", void, omp_set_default_device,
+                                   int defaultDeviceNumber) {
+        auto logger = util::getLogger();
+        logger->debug("S - omp_set_default_device {}", defaultDeviceNumber);
+        if (abs(defaultDeviceNumber) > userMaxNumDevices) {
+            util::getLogger()->warn(
+                    "Given default device index ({}) is bigger than num of available devices ({}), ignoring",
+                    defaultDeviceNumber, userMaxNumDevices);
+            return;
+        }
+        // Use negative device number to indicate using multiple devices in parallel
+        // TODO - add parallel flag to Level to set here
+        userDefaultDevice = defaultDeviceNumber;
+    }
+
+    template<typename T>
+    void for_static_init(I32 schedule, I32 *lastIter, T *lower, T *upper, T *stride, T incr, T chunk) {
+        // Unsigned version of the given template parameter
+        typedef typename std::make_unsigned<T>::type UT;
+
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         if (thisLevel->num_threads == 1) {
             *lastIter = true;
             *stride = (incr > 0) ? (*upper - *lower + 1) : (-(*lower - *upper + 1));
             return;
         }
 
-        unsigned int tripCount;
+        UT tripCount;
         if (incr == 1) {
             tripCount = *upper - *lower + 1;
         } else if (incr == -1) {
@@ -510,174 +682,6 @@ namespace wasm {
             default: {
                 throw std::runtime_error(fmt::format("Unimplemented scheduler {}", schedule));
             }
-        }
-    }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_for_static_fini", void, __kmpc_for_static_fini,
-                                   I32 loc, I32 gtid) {
-        util::getLogger()->debug("S - __kmpc_for_static_fini {} {}", loc, gtid);
-    }
-
-    /**
-     * There exists many reduction methods, implementing everything as a reduce block
-     */
-    kmp::_reduction_method determineReductionMethod() {
-        if (thisLevel->num_threads == 1) {
-            return kmp::empty_reduce_block;
-        }
-        return kmp::critical_reduce_block;
-    }
-
-    /**
-     *  When reaching the end of the reduction loop, the threads need to synchronise to operate the
-     *  reduction function. In the multi-machine case, this
-     */
-    int startReduction() {
-        int retVal = 0;
-
-        switch (determineReductionMethod()) {
-            case kmp::critical_reduce_block:
-                util::getLogger()->debug("Thread {} reduction locking", thisThreadNumber);
-                thisLevel->reduceMutex.lock();
-                retVal = 1;
-                break;
-            case kmp::empty_reduce_block:
-                retVal = 1;
-                break;
-            case kmp::atomic_reduce_block:
-                retVal = 2;
-                break;
-            case kmp::reduction_method_not_defined:
-            case kmp::tree_reduce_block:
-                std::runtime_error("Unsupported reduce operation");
-        }
-        return retVal;
-    }
-
-    /**
-     *  Called immediately after running the reduction section before exiting the `reduce` construct.
-     */
-    void endReduction() {
-        // Unlocking not owned mutex is UB
-        if (thisLevel->num_threads > 1) {
-            util::getLogger()->debug("Thread {} unlocking reduction", thisThreadNumber);
-            thisLevel->reduceMutex.unlock();
-        }
-    }
-
-    /**
-     * A blocking reduce that includes an implicit barrier.
-     * @param loc source location information
-     * @param gtid global thread id
-     * @param num_vars number of items (variables) to be reduced
-     * @param reduce_size size of data in bytes to be reduced
-     * @param reduce_data pointer to data to be reduced
-     * @param reduce_func callback function providing reduction operation on two operands and returning result of reduction in lhs_data. Of type void(∗)(void ∗lhs data, void ∗rhs data)
-     * @param lck pointer to the unique lock data structure
-     * @return 1 for the master thread, 0 for all other team threads, 2 for all team threads if atomic reduction needed
-     */
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_reduce", I32, __kmpc_reduce, I32 loc, I32 gtid, I32 num_vars,
-                                   I32 reduce_size, I32 reduce_data, I32 reduce_func, I32 lck) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - __kmpc_reduce {} {} {} {} {} {} {}", loc, gtid, num_vars, reduce_size,
-                      reduce_data, reduce_func, lck);
-
-        return startReduction();
-    }
-
-    /**
-     * The nowait version is used for a reduce clause with the nowait argument. Or direct exit of parallel section.
-     * @param loc source location information
-     * @param gtid global thread id
-     * @param num_vars number of items (variables) to be reduced
-     * @param reduce_size size of data in bytes to be reduced
-     * @param reduce_data pointer to data to be reduced
-     * @param reduce_func callback function providing reduction operation on two operands and returning result of reduction in lhs_data. Of type void(∗)(void ∗lhs data, void ∗rhs data)
-     * @param lck pointer to the unique lock data structure
-     * @return 1 for the master thread, 0 for all other team threads, 2 for all team threads if atomic reduction needed
-     */
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_reduce_nowait", I32, __kmpc_reduce_nowait, I32 loc, I32 gtid,
-                                   I32 num_vars, I32 reduce_size, I32 reduce_data, I32 reduce_func, I32 lck) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - __kmpc_reduce_nowait {} {} {} {} {} {} {}", loc, gtid, num_vars, reduce_size, reduce_data,
-                      reduce_func, lck);
-
-        if (1 == userNumDevice) {
-            Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-            int *localReduceData = &Runtime::memoryRef<I32>(memoryPtr, Runtime::memoryRef<I32>(memoryPtr, reduce_data));
-            logger->debug("Reduce local data ({}): {}", thisThreadNumber, *localReduceData);
-
-            if(util::getSystemConfig().stateMode == "redis") {
-                redis::Redis &redis = redis::Redis::getState();
-                redis.incrByLong(REDUCE_KEY, *localReduceData);
-            } else {
-                throw std::runtime_error("Only supports Redis for state");
-            }
-            return kmp::empty_reduce_block; // Just need a number different from 1 and 2
-        } else {
-            return startReduction();
-        }
-    }
-
-    /**
-     * Finish the execution of a blocking reduce. The lck pointer must be the same as that used in the corresponding start function.
-     * @param loc location info
-     * @param gtid global thread id
-     * @param lck kmp_critical_name* to the critical section.
-     */
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_reduce", void, __kmpc_end_reduce, I32 loc, I32 gtid, I32 lck) {
-        util::getLogger()->debug("S - __kmpc_end_reduce {} {} {}", loc, gtid, lck);
-        if (1 == userNumDevice) {
-            endReduction();
-        } else {
-            throw std::runtime_error("End reduce called in distributed context");
-        }
-    }
-
-    /**
-     * Arguments similar to __kmpc_end_reduce. Finish the execution of a reduce_nowait.
-     * @param loc
-     * @param gtid
-     * @param lck
-     */
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_reduce_nowait", void, __kmpc_end_reduce_nowait, I32 loc, I32 gtid,
-                                   I32 lck) {
-        util::getLogger()->debug("S - __kmpc_end_reduce_nowait {} {} {}", loc, gtid, lck);
-        if (1 == userNumDevice) {
-            endReduction();
-        } else {
-            throw std::runtime_error("End reduce called in distributed context");
-        }
-    }
-
-    /**
-     * Get the number of devices (different CPU sockets or machines) available to that user
-     */
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_num_devices", int, omp_get_num_devices) {
-        util::getLogger()->debug("S - omp_get_num_devices");
-        return userNumDevice;
-    }
-
-    /**
-     *
-     */
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_set_default_device", void, omp_set_default_device,
-                                   int defaultDeviceNumber) {
-        auto logger = util::getLogger();
-        logger->debug("S - omp_set_default_device {}", defaultDeviceNumber);
-        if (abs(defaultDeviceNumber) > userMaxNumDevices) {
-            util::getLogger()->warn(
-                    "Given default device index ({}) is bigger than num of available devices ({}), ignoring",
-                    defaultDeviceNumber, userMaxNumDevices);
-            return;
-        }
-        // Use negative device number to indicate using multiple devices in parallel
-        // TODO - add parallel flag to Level to set here
-        if (defaultDeviceNumber < 0) {
-            defaultDeviceNumber *= -1;
-            userNumDevice = defaultDeviceNumber;
-        } else {
-            userNumDevice = defaultDeviceNumber;
         }
     }
 

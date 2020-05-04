@@ -8,7 +8,7 @@
 #define RESULT_KEY_EXPIRY 30000
 
 namespace util {
-    std::string getNodeId();
+    std::string& getNodeId();
 
     std::size_t getNodeIdHash();
 

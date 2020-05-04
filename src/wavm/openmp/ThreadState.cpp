@@ -1,17 +1,18 @@
-#include "wasm/openmp/ThreadState.h"
+#include "wavm/openmp/ThreadState.h"
 
 namespace wasm {
     namespace openmp {
 
         thread_local int thisThreadNumber = 0;
-        thread_local std::shared_ptr<OMPLevel> thisLevel = nullptr;
+        thread_local std::shared_ptr<Level> thisLevel = nullptr;
+        thread_local int wantedNumThreads = 1;
+        thread_local int pushedNumThreads = -1;
 
-        void setThreadNumber(int tid) {
+        void setTLS(int tid, std::shared_ptr<Level>& level) {
             thisThreadNumber = tid;
-        }
-
-        void setThreadLevel(std::shared_ptr<OMPLevel> level) {
             thisLevel = level;
+            wantedNumThreads = -1;
+            pushedNumThreads = -1;
         }
     }
 }

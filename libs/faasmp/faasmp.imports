@@ -11,6 +11,7 @@ __kmpc_flush
 
 # OpenMP loops
 __kmpc_for_static_init_4
+__kmpc_for_static_init_8
 __kmpc_for_static_fini
 
 # OpenMP reduce

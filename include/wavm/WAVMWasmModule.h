@@ -186,6 +186,6 @@ namespace wasm {
 
         // OpenMP thread information. Give defaults when not using OMP
         int tid = 0;
-        std::shared_ptr<openmp::OMPLevel> level = nullptr;
+        std::shared_ptr<openmp::Level> level = nullptr;
     };
 }

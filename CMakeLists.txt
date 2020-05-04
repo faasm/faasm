@@ -80,6 +80,7 @@ else ()
 endif ()
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+include_directories({LLVM_INCLUDE_DIRS})
 
 # Eigen parallelisation
 # add_definitions(-DEIGEN_DONT_PARALLELIZE)
