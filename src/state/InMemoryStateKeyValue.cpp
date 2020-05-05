@@ -580,7 +580,7 @@ namespace state {
         uint8_t *kvMemory = get();
 
         // Prepare to iterate through chunks
-        size_t chunkBufferLen = msg->len;
+        size_t chunkBufferLen = msg->len - dataOffset;
         uint8_t *chunkBuffer = msg->buffer + dataOffset;
         size_t offset = 0;
         lockWrite();

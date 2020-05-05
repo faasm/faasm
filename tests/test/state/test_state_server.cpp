@@ -25,12 +25,16 @@ namespace tests {
     static std::string originalStateMode;
 
     static void setUpStateMode() {
+        // Note - we have to make sure the state mode is set to in-memory before
+        // and after cleaning the system
         util::SystemConfig &conf = util::getSystemConfig();
         originalStateMode = conf.stateMode;
         originalHost = conf.endpointHost;
         conf.stateMode = "inmemory";
 
         cleanSystem();
+
+        conf.stateMode = "inmemory";
     }
 
     static void resetStateMode() {
@@ -127,6 +131,29 @@ namespace tests {
             std::vector<uint8_t> expected(dataA.begin(), dataA.end());
             std::copy(dataB.begin() + offset, dataB.begin() + offset + chunkSize, expected.begin() + offset);
 
+            kvA->get(actual.data());
+            REQUIRE(actual == expected);
+        }
+
+        SECTION("State push multi chunk") {
+            std::vector<uint8_t> chunkDataA = {7, 7};
+            std::vector<uint8_t> chunkDataB = {8};
+            std::vector<uint8_t> chunkDataC = {9, 9, 9};
+
+            // Deliberately overlap chunks
+            state::StateChunk chunkA(0, chunkDataA);
+            state::StateChunk chunkB(6, chunkDataB);
+            state::StateChunk chunkC(1, chunkDataC);
+
+            std::vector<StateChunk> chunks = {chunkA, chunkB, chunkC};
+
+            // Make the request
+            request = kvADuplicate.buildStatePushMultiChunkRequest(chunks);
+            response = s.handleMessage(request);
+            REQUIRE(response->type == StateMessageType::OK_RESPONSE);
+
+            // Check expectation
+            std::vector<uint8_t> expected = {7, 9, 9, 9, 4, 5, 8, 7};
             kvA->get(actual.data());
             REQUIRE(actual == expected);
         }
@@ -229,6 +256,9 @@ namespace tests {
     TEST_CASE("Test state server as remote master", "[state]") {
         setUpStateMode();
 
+        State &globalState = state::getGlobalState();
+        REQUIRE(globalState.getKVCount() == 0);
+        
         int nMessages = 2;
 
         // NOTE - in a real deployment each server would be running in its own
@@ -251,8 +281,13 @@ namespace tests {
             logger->debug("Setting master for test");
 
             const std::shared_ptr<StateKeyValue> &kv = state.getKV(userA, keyA, dataA.size());
-            kv->set(dataA.data());
+            std::shared_ptr<InMemoryStateKeyValue> inMemKv = std::static_pointer_cast<InMemoryStateKeyValue>(kv);
 
+            // Check this kv "thinks" it's master
+            REQUIRE(inMemKv->isMaster());
+
+            // Set the data
+            kv->set(dataA.data());
             logger->debug("Finished setting master for test {}/{}", kv->user, kv->key);
 
             // Process the required number of messages
@@ -269,10 +304,10 @@ namespace tests {
         });
 
         // Give it time to start
-        usleep(1000 * 1000);
+        usleep(500 * 1000);
 
         // Get the state size before accessing the value locally
-        State &state = state::getGlobalState();
+        State &state = globalState;
         size_t actualSize = state.getStateSize(userA, keyA);
         REQUIRE(actualSize == dataA.size());
 

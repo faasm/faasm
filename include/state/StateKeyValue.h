@@ -23,6 +23,11 @@ namespace state {
 
         }
 
+        StateChunk(long offsetIn, std::vector<uint8_t> &data) : offset(offsetIn), length(data.size()),
+                                                                      data(data.data()) {
+
+        }
+
         long offset;
         size_t length;
 
