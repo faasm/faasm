@@ -123,7 +123,7 @@ namespace redis {
         *  ------ Locking ------
         */
 
-        long acquireLock(const std::string &key, int expirySeconds);
+        std::optional<long> acquireLock(const std::string &key, int expirySeconds);
 
         void releaseLock(const std::string &key, long lockId);
 

@@ -22,22 +22,23 @@ namespace state {
         // If there's no master set, attempt to claim
         if (masterIPBytes.empty()) {
             // Get the remote lock
-            long masterLockId = waitOnRedisRemoteLock(masterKey);
-            if (masterLockId < 0) {
+
+            if (auto masterLockId = waitOnRedisRemoteLock(masterKey)) {
+                // Check again now that we have the lock
+                masterIPBytes = redis.get(masterKey);
+                if (masterIPBytes.empty()) {
+                    // Claim the master if we've got the lock and nobody else is master
+                    redis.set(masterKey, util::stringToBytes(thisIP));
+                    masterIP = thisIP;
+                    status = InMemoryStateKeyStatus::MASTER;
+                }
+
+                redis.releaseLock(masterKey, masterLockId.value());
+            } else {
                 logger->error("Unable to acquire remote lock for {}", masterKey);
                 throw std::runtime_error("Unable to get remote lock");
             }
 
-            // Check again now that we have the lock
-            masterIPBytes = redis.get(masterKey);
-            if (masterIPBytes.empty()) {
-                // Claim the master if we've got the lock and nobody else is master
-                redis.set(masterKey, util::stringToBytes(thisIP));
-                masterIP = thisIP;
-                status = InMemoryStateKeyStatus::MASTER;
-            }
-
-            redis.releaseLock(masterKey, masterLockId);
         }
 
         // If we're not master after that, someone else must be

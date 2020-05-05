@@ -19,10 +19,12 @@ namespace state {
     }
 
     void RedisStateKeyValue::lockGlobal() {
-        lastRemoteLockId = waitOnRedisRemoteLock(joinedKey);
+        util::FullLock lock(localMutex);
+        lastRemoteLockId = waitOnRedisRemoteLock(joinedKey).value_or(-1);
     }
 
     void RedisStateKeyValue::unlockGlobal() {
+        util::FullLock lock(localMutex);
         redis.releaseLock(joinedKey, lastRemoteLockId);
     }
 

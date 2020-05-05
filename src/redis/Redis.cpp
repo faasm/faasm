@@ -423,20 +423,18 @@ namespace redis {
      *  ------ Locking ------
      */
 
-    long Redis::acquireLock(const std::string &key, int expirySeconds) {
+    std::optional<long> Redis::acquireLock(const std::string &key, int expirySeconds) {
         // Implementation of single host redlock algorithm
         // https://redis.io/topics/distlock
-        unsigned int lockId = util::generateGid();
+        long lockId = util::generateGid();
 
         std::string lockKey = key + "_lock";
+        bool result = this->setnxex(lockKey, lockId, expirySeconds);
 
-        long result = this->setnxex(lockKey, lockId, expirySeconds);
-
-        // Return the lock ID if successful, else return -1
-        if (result == 1) {
+        if (result) {
             return lockId;
         } else {
-            return 0;
+            return std::nullopt;
         }
     }
 
@@ -462,16 +460,14 @@ namespace redis {
         // See docs on set for info on options: https://redis.io/commands/set
         // We use NX to say "set if not exists" and ex to specify the expiry of this key/value
         // This is useful in implementing locks. We only use longs as values to keep things simple
-        auto reply = (redisReply *) redisCommand(context, "SET %s %i NX EX %i", key.c_str(), value, expirySeconds);
+        auto reply = (redisReply *) redisCommand(context, "SET %s %i EX %i NX", key.c_str(), value, expirySeconds);
 
+        bool success = false;
         if (reply->type == REDIS_REPLY_ERROR) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("Failed to SET {} - {}", key.c_str(), reply->str);
-        }
-
-        bool success = true;
-        if (reply->type == REDIS_REPLY_NIL) {
-            success = false;
+        } else if (reply->type == REDIS_REPLY_STATUS) {
+            success = true;
         }
 
         freeReplyObject(reply);

@@ -3,7 +3,7 @@
 #include "StateKeyValue.h"
 
 #include <util/clock.h>
-
+#include <util/locks.h>
 #include <redis/Redis.h>
 
 
@@ -15,6 +15,8 @@ namespace state {
         static size_t getStateSize(const std::string &userIn, const std::string keyIn);
     private:
         const std::string joinedKey;
+
+        std::shared_mutex localMutex;
 
         int lastRemoteLockId = 0;
 
