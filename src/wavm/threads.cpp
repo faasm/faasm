@@ -10,9 +10,13 @@
 #include <WAVM/Platform/Thread.h>
 
 
-#define PTHREAD_STACK_SIZE (2 * ONE_MB_BYTES)
-
 namespace wasm {
+    struct PThreadArgs {
+        wasm::WAVMWasmModule *parentModule;
+        message::Message *parentCall;
+        WasmThreadSpec *spec;
+    };
+
     // Map of tid to pointer to local thread
     static thread_local std::unordered_map<I32, WAVM::Platform::Thread *> localThreads;
 
@@ -24,12 +28,16 @@ namespace wasm {
     static size_t threadSnapshotSize;
 
     I64 createPthread(void *threadSpecPtr) {
-        auto threadSpec = reinterpret_cast<WasmThreadSpec *>(threadSpecPtr);
-        I64 res = getExecutingModule()->executeThread(*threadSpec);
+        // Set up TLS for this thread
+        auto pArg = reinterpret_cast<PThreadArgs *>(threadSpecPtr);
+        setExecutingModule(pArg->parentModule);
+        setExecutingCall(pArg->parentCall);
+        I64 res = getExecutingModule()->executeThreadLocally(*pArg->spec);
 
         // Delete the spec, no longer needed
-        delete[] threadSpec->funcArgs;
-        delete threadSpec;
+        delete[] pArg->spec->funcArgs;
+        delete pArg->spec;
+        delete pArg;
 
         return res;
     }
@@ -75,14 +83,16 @@ namespace wasm {
 
             auto spec = new WasmThreadSpec();
             spec->contextRuntimeData = contextRuntimeData;
-            spec->parentModule = thisModule;
-            spec->parentCall = getExecutingCall();
             spec->func = func;
             spec->funcArgs = threadArgs;
-            spec->stackSize = PTHREAD_STACK_SIZE;
+
+            auto pArgs = new PThreadArgs();
+            pArgs->parentModule = thisModule;
+            pArgs->parentCall = getExecutingCall();
+            pArgs->spec = spec;
 
             // Spawn the thread
-            localThreads.insert({pthreadPtr, Platform::createThread(0, createPthread, spec)});
+            localThreads.insert({pthreadPtr, Platform::createThread(0, createPthread, pArgs)});
 
         } else if (conf.threadMode == "chain") {
             // Create a new zygote if one isn't already active

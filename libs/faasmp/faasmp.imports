@@ -30,5 +30,9 @@ omp_get_max_active_levels
 omp_set_default_device
 omp_set_max_active_levels
 
+# Redis state
+__faasmp_incrby
+__faasmp_getLong
+
 # Debug functions
 __faasmp_debug_copy

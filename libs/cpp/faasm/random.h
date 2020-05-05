@@ -11,6 +11,8 @@ namespace faasm {
     void shuffleArray(int *arrayIn, size_t arrayLen);
 
     int* randomIntRange(int rangeLen);
+
+    std::string randomString(int len);
 }
 
 #endif

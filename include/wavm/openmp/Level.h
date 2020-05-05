@@ -21,9 +21,9 @@ namespace wasm {
         class Level {
         public:
             const int depth = 0; // Number of nested OpenMP constructs, 0 for serial code
-            const int effective_depth = 0; // Number of parallel regions (> 1 thread) above this level
-            int max_active_level = 1; // Max number of effective parallel regions allowed from the top
-            const int num_threads = 1; // Number of threads of this level
+            const int effectiveDepth = 0; // Number of parallel regions (> 1 thread) above this level
+            int maxActiveLevel = 1; // Max number of effective parallel regions allowed from the top
+            const int numThreads = 1; // Number of threads of this level
             std::unique_ptr<util::Barrier> barrier = {}; // Only needed if num_threads > 1
             std::mutex reduceMutex; // Mutex used for reduction data. Although technically wrong behaviour, make sense for us
             // TODO - This implementation limits to one lock for all critical sections at a level.
