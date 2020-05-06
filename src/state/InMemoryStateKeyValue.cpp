@@ -563,8 +563,10 @@ namespace state {
             auto offsetInt = (int32_t) c.offset;
             auto lengthInt = (int32_t) c.length;
 
-            std::copy(&offsetInt, &offsetInt + sizeof(int32_t), chunkBuffer + offset);
-            std::copy(&lengthInt, &lengthInt + sizeof(int32_t), chunkBuffer + offset + sizeof(int32_t));
+            util::getLogger()->debug("CHUNK {} - {}", offsetInt, lengthInt);
+
+            std::copy(BYTES(&offsetInt), BYTES(&offsetInt) + sizeof(int32_t), chunkBuffer + offset);
+            std::copy(BYTES(&lengthInt), BYTES(&lengthInt) + sizeof(int32_t), chunkBuffer + offset + sizeof(int32_t));
             std::copy(c.data, c.data + c.length, chunkBuffer + offset + (2 * sizeof(int32_t)));
 
             offset += (2 * sizeof(int32_t)) + c.length;

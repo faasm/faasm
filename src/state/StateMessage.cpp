@@ -42,6 +42,7 @@ namespace state {
         msg->type = msgType;
         msg->len = fullSize;
         msg->buffer = new uint8_t[fullSize];
+        memset(msg->buffer, 0, fullSize);
 
         // Fill buffer with: user size | user | key size | key
         auto userBytes = BYTES_CONST(user.data());
