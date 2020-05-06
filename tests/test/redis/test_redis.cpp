@@ -294,27 +294,27 @@ namespace tests {
 
         // Check we can acquire the lock
         auto lockId = redis.acquireLock(key, 10);
-        REQUIRE(lockId.value() > 0);
+        REQUIRE(lockId > 0);
         REQUIRE(redis.getLong(lockKey) == lockId);
         REQUIRE(redis.get(key) == value);
 
         // Check someone else can't acquire the lock
         auto lockId2 = redis.acquireLock(key, 10);
-        REQUIRE(!lockId2.has_value());
+        REQUIRE(lockId2 == 0);
         REQUIRE(redis.getLong(lockKey) == lockId);
         REQUIRE(redis.get(key) == value);
 
         // Release with an invalid lock ID and check it's still locked
-        redis.releaseLock(key, lockId.value() + 1);
+        redis.releaseLock(key, lockId + 1);
         auto lockId3 = redis.acquireLock(key, 10);
-        REQUIRE(!lockId3.has_value());
+        REQUIRE(lockId3 == 0);
         REQUIRE(redis.getLong(lockKey) == lockId);
         REQUIRE(redis.get(key) == value);
 
         // Release with valid ID and check we can re-acquire
-        redis.releaseLock(key, lockId.value());
+        redis.releaseLock(key, lockId);
         auto lockId4 = redis.acquireLock(key, 10);
-        REQUIRE(lockId4.value() > 0);
+        REQUIRE(lockId4 > 0);
         REQUIRE(lockId4 != lockId);
         REQUIRE(redis.getLong(lockKey) == lockId4);
         REQUIRE(redis.get(key) == value);
