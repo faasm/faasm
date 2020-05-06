@@ -56,8 +56,6 @@ namespace tests {
 
         std::vector<uint8_t> actual(dataA.size(), 0);
 
-        State &state = getGlobalState();
-
         // Prepare a key-value with data
         auto kvA = getKv(userA, keyA, dataA.size());
         kvA->set(dataA.data());
