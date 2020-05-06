@@ -18,14 +18,17 @@ namespace state {
         return redis.strlen(actualKey);
     }
 
+    // TODO - the remote locking here is quite primitive since we ignore the fact threads can run
+    // on the same machine. Redis is also aware of scheduling and so we could optimise this.
     void RedisStateKeyValue::lockGlobal() {
-        util::FullLock lock(localMutex);
+        util::FullLock lock(valueMutex);
         lastRemoteLockId = waitOnRedisRemoteLock(joinedKey).value_or(-1);
     }
 
     void RedisStateKeyValue::unlockGlobal() {
-        util::FullLock lock(localMutex);
+        util::FullLock lock(valueMutex);
         redis.releaseLock(joinedKey, lastRemoteLockId);
+        lastRemoteLockId = -1;
     }
 
     void RedisStateKeyValue::pullFromRemote() {
