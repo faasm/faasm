@@ -62,8 +62,8 @@ namespace state {
 
         // If no master and we want to claim, attempt to do so
         if (masterIPBytes.empty()) {
-            long masterLockId = StateKeyValue::waitOnRedisRemoteLock(masterKey);
-            if (masterLockId < 0) {
+            uint32_t masterLockId = StateKeyValue::waitOnRedisRemoteLock(masterKey);
+            if (masterLockId == 0) {
                 util::getLogger()->error("Unable to acquire remote lock for {}", masterKey);
                 throw std::runtime_error("Unable to get remote lock");
             }

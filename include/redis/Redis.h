@@ -123,11 +123,11 @@ namespace redis {
         *  ------ Locking ------
         */
 
-        long acquireLock(const std::string &key, int expirySeconds);
+        uint32_t acquireLock(const std::string &key, int expirySeconds);
 
-        void releaseLock(const std::string &key, long lockId);
+        void releaseLock(const std::string &key, uint32_t lockId);
 
-        void delIfEq(const std::string &key, long value);
+        void delIfEq(const std::string &key, uint32_t value);
 
         bool setnxex(const std::string &key, long value, int expirySeconds);
 

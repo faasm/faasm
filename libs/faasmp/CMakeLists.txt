@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 set(PUBLIC_HEADERS
         faasmp/faasmp.h
+        faasmp/reduction.h
         )
 
 set(LIB_FILES

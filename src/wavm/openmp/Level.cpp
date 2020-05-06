@@ -5,29 +5,29 @@
 
 namespace wasm {
     namespace openmp {
-        Level::Level(const std::shared_ptr<Level>& parent, int num_threads) :
+        Level::Level(const std::shared_ptr<Level> &parent, int numThreads) :
                 depth(parent->depth + 1),
-                effective_depth(num_threads > 1 ? parent->effective_depth + 1 : parent->effective_depth),
-                max_active_level(parent->max_active_level),
-                num_threads(num_threads) {
-            if (num_threads > 1) {
-                barrier = std::make_unique<util::Barrier>(num_threads);
+                effectiveDepth(numThreads > 1 ? parent->effectiveDepth + 1 : parent->effectiveDepth),
+                maxActiveLevel(parent->maxActiveLevel),
+                numThreads(numThreads) {
+            if (numThreads > 1) {
+                barrier = std::make_unique<util::Barrier>(numThreads);
             }
         }
 
-        Level::Level(int depth, int effective_depth, int max_active_level, int num_threads) :
+        Level::Level(int depth, int effectiveDepth, int maxActiveLevel, int numThreads) :
                 depth(depth + 1),
-                effective_depth(num_threads > 1 ? effective_depth + 1 : effective_depth),
-                max_active_level(max_active_level),
-                num_threads(num_threads) {
-            if (num_threads > 1) {
-                barrier = std::make_unique<util::Barrier>(num_threads);
+                effectiveDepth(numThreads > 1 ? effectiveDepth + 1 : effectiveDepth),
+                maxActiveLevel(maxActiveLevel),
+                numThreads(numThreads) {
+            if (numThreads > 1) {
+                barrier = std::make_unique<util::Barrier>(numThreads);
             }
         }
 
         int Level::get_next_level_num_threads() const {
             // Limits to one thread if we have exceeded maximum parallelism depth
-            if (effective_depth >= max_active_level) {
+            if (effectiveDepth >= maxActiveLevel) {
                 return 1;
             }
 
@@ -40,20 +40,20 @@ namespace wasm {
 
         void Level::snapshot_parent(message::Message &msg) const {
             msg.set_ompdepth(depth);
-            msg.set_ompeffdepth(effective_depth);
-            msg.set_ompmal(max_active_level);
+            msg.set_ompeffdepth(effectiveDepth);
+            msg.set_ompmal(maxActiveLevel);
         }
 
         ReduceTypes SingleHostLevel::reductionMethod() {
             // There exists many reduction methods, simply implement everything as a critical block
             // unless we know we can avoid synchronisation for now
-            if (num_threads == 1) {
+            if (numThreads == 1) {
                 return ReduceTypes::emptyBlock;
             }
             return ReduceTypes::criticalBlock;
         }
 
-        SingleHostLevel::SingleHostLevel(const std::shared_ptr<Level>& parent, int numThreads) :
+        SingleHostLevel::SingleHostLevel(const std::shared_ptr<Level> &parent, int numThreads) :
                 Level(std::move(parent), numThreads) {
         }
 

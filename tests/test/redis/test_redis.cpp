@@ -254,8 +254,8 @@ namespace tests {
         redis.flushAll();
 
         std::string key = "delifeq_test";
-        long valueA = 101;
-        long valueB = 102;
+        uint32_t valueA = 101;
+        uint32_t valueB = 102;
 
         // Try with nothing set
         redis.delIfEq(key, valueA);
@@ -293,27 +293,27 @@ namespace tests {
         redis.releaseLock(key, 1234);
 
         // Check we can acquire the lock
-        long lockId = redis.acquireLock(key, 10);
+        auto lockId = redis.acquireLock(key, 10);
         REQUIRE(lockId > 0);
         REQUIRE(redis.getLong(lockKey) == lockId);
         REQUIRE(redis.get(key) == value);
 
         // Check someone else can't acquire the lock
-        long lockId2 = redis.acquireLock(key, 10);
+        auto lockId2 = redis.acquireLock(key, 10);
         REQUIRE(lockId2 == 0);
         REQUIRE(redis.getLong(lockKey) == lockId);
         REQUIRE(redis.get(key) == value);
 
         // Release with an invalid lock ID and check it's still locked
         redis.releaseLock(key, lockId + 1);
-        long lockId3 = redis.acquireLock(key, 10);
+        auto lockId3 = redis.acquireLock(key, 10);
         REQUIRE(lockId3 == 0);
         REQUIRE(redis.getLong(lockKey) == lockId);
         REQUIRE(redis.get(key) == value);
 
         // Release with valid ID and check we can re-acquire
         redis.releaseLock(key, lockId);
-        long lockId4 = redis.acquireLock(key, 10);
+        auto lockId4 = redis.acquireLock(key, 10);
         REQUIRE(lockId4 > 0);
         REQUIRE(lockId4 != lockId);
         REQUIRE(redis.getLong(lockKey) == lockId4);

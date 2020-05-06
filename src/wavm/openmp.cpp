@@ -13,12 +13,16 @@
 
 #include <util/timing.h>
 
-constexpr int OMP_STACK_SIZE = 2 * (ONE_MB_BYTES);
-
 namespace wasm {
     using namespace openmp;
-    const auto REDUCE_KEY = std::string("omp_wowzoid");
 
+    struct LocalThreadArgs {
+        int tid = 0;
+        std::shared_ptr<openmp::Level> level = nullptr;
+        wasm::WAVMWasmModule *parentModule;
+        message::Message *parentCall;
+        WasmThreadSpec spec;
+    };
     /**
      * Performs actual static assignment
      */
@@ -30,8 +34,20 @@ namespace wasm {
      * (hence needs to set up its own TLS)
      */
     I64 ompThreadEntryFunc(void *threadArgsPtr) {
-        return getExecutingModule()->executeThread(*reinterpret_cast<WasmThreadSpec *>(threadArgsPtr));
+        auto args = *reinterpret_cast<LocalThreadArgs *>(threadArgsPtr);
+        // Set up various TLS
+        setTLS(args.tid, args.level);
+        setExecutingModule(args.parentModule);
+        setExecutingCall(args.parentCall);
+        return getExecutingModule()->executeThreadLocally(args.spec);
     }
+
+    /**
+     * Performs actual static assignment
+     */
+    template<typename T>
+    void for_static_init(I32 schedule, I32 *lastIter, T *lower, T *upper, T *stride, T incr, T chunk);
+
 
     /**
      * @return the thread number, within its team, of the thread executing the function.
@@ -47,7 +63,7 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_num_threads", I32, omp_get_num_threads) {
         util::getLogger()->debug("S - omp_get_num_threads");
-        return thisLevel->num_threads;
+        return thisLevel->numThreads;
     }
 
     /**
@@ -66,7 +82,7 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_max_active_levels", I32, omp_get_max_active_levels) {
         util::getLogger()->debug("S - omp_get_max_active_levels");
-        return thisLevel->max_active_level;
+        return thisLevel->maxActiveLevel;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_set_max_active_levels", void, omp_set_max_active_levels, I32 level) {
@@ -76,7 +92,7 @@ namespace wasm {
             logger->warn("Trying to set active level with a negative number {}", level);
             return;
         }
-        thisLevel->max_active_level = level;
+        thisLevel->maxActiveLevel = level;
     }
 
     /**
@@ -89,7 +105,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_barrier", void, __kmpc_barrier, I32 loc, I32 globalTid) {
         util::getLogger()->debug("S - __kmpc_barrier {} {}", loc, globalTid);
 
-        if (!thisLevel->barrier || thisLevel->num_threads <= 1) {
+        if (!thisLevel->barrier || thisLevel->numThreads <= 1) {
             return;
         }
 
@@ -106,7 +122,7 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_critical", void, __kmpc_critical, I32 loc, I32 globalTid, I32 crit) {
         util::getLogger()->debug("S - __kmpc_critical {} {} {}", loc, globalTid, crit);
-        if (thisLevel->num_threads > 1) {
+        if (thisLevel->numThreads > 1) {
             thisLevel->criticalSection.lock();
         }
     }
@@ -120,7 +136,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_critical", void, __kmpc_end_critical, I32 loc, I32 globalTid,
                                    I32 crit) {
         util::getLogger()->debug("S - __kmpc_end_critical {} {} {}", loc, globalTid, crit);
-        if (thisLevel->num_threads > 1) {
+        if (thisLevel->numThreads > 1) {
             thisLevel->criticalSection.unlock();
         }
     }
@@ -236,12 +252,9 @@ namespace wasm {
         pushedNumThreads = -1; // Resets for next push
 
         if (0 > userDefaultDevice) {
-            int *reducePtr = nullptr;
 
             std::vector<int> chainedThreads;
             chainedThreads.reserve(nextNumThreads);
-
-            redis.setLong(REDUCE_KEY, 0);
 
             // TODO - Implement redo
             if (activeSnapshotKey.empty()) {
@@ -256,15 +269,11 @@ namespace wasm {
             const std::string origStr = util::funcToString(*originalCall, false);
 
             U32 *nativeArgs = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
-            if (argc > 0) {
-                reducePtr = &Runtime::memoryRef<I32>(memoryPtr, argsPtr);
-            }
-
             // Create the threads (messages) themselves
             for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
                 message::Message call = util::messageFactory(originalCall->user(), originalCall->function());
                 call.set_isasync(true);
-                for (int argIdx = 0; argIdx < argc; argIdx++) {
+                for (int argIdx = argc - 1; argIdx >= 0; argIdx--) {
                     call.add_ompfunctionargs(nativeArgs[argIdx]);
                 }
 
@@ -278,7 +287,7 @@ namespace wasm {
                 const std::string chainedStr = util::funcToString(call, false);
                 sch.callFunction(call);
 
-                logger->warn("Forked thread {} ({}) -> {} {}(*{}) ({})", origStr, util::getNodeId(), chainedStr,
+                logger->info("Forked thread {} ({}) -> {} {}(*{}) ({})", origStr, util::getNodeId(), chainedStr,
                              microtaskPtr, argsPtr, call.schedulednode());
                 chainedThreads[threadNum] = call.id();
             }
@@ -317,8 +326,7 @@ namespace wasm {
                 throw std::runtime_error(fmt::format("{} OMP threads have exited with errors", numErrors));
             }
 
-            *reducePtr = redis.getLong(REDUCE_KEY);
-            logger->error("END DISTRIBUTED FORK. SETTING REDUCE VALUE TO {}", *reducePtr);
+            logger->debug("Distributed Fork finished successfully");
         } else { // Single host
 
             // Set up new level
@@ -326,7 +334,7 @@ namespace wasm {
 
             // Note - must ensure thread arguments are outside loop scope otherwise they do
             // may not exist by the time the thread actually consumes them
-            std::vector<WasmThreadSpec> threadArgs;
+            std::vector<LocalThreadArgs> threadArgs;
             threadArgs.reserve(nextNumThreads);
 
             std::vector<std::vector<IR::UntaggedValue>> microtaskArgs;
@@ -351,14 +359,15 @@ namespace wasm {
                 // Arguments for spawning the thread
                 // NOTE - CLion auto-format insists on this layout... and clangd really hates C99 extensions
                 threadArgs.push_back({
-                                             .contextRuntimeData = contextRuntimeData,
+                                             .tid = threadNum,
+                                             .level = nextLevel,
                                              .parentModule = parentModule,
                                              .parentCall = parentCall,
-                                             .func = func,
-                                             .funcArgs = microtaskArgs[threadNum].data(),
-                                             .stackSize = OMP_STACK_SIZE,
-                                             .tid = threadNum,
-                                             .level = nextLevel
+                                             .spec = {
+                                                     .contextRuntimeData = contextRuntimeData,
+                                                     .func = func,
+                                                     .funcArgs = microtaskArgs[threadNum].data(),
+                                             }
                                      });
             }
 
@@ -384,7 +393,26 @@ namespace wasm {
 
         const long distributedIterationTime = util::getTimeDiffMicros(iterationTp);
         redis.rpushLong("multi_pi_times", distributedIterationTime);
+    }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasmp_incryby", I64, __faasmp_incrby, I32 keyPtr, I64 value) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - __faasmp_incryby {} {}", keyPtr, value);
+
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        std::string key{&Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr)};
+        redis::Redis &redis = redis::Redis::getState();
+        return redis.incrByLong(key, value);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasmp_getLong", I64, __faasmp_getLong, I32 keyPtr) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - __faasmp_getLong {}", keyPtr);
+
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        std::string key{&Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr)};
+        redis::Redis &redis = redis::Redis::getState();
+        return redis.getLong(key);
     }
 
     /**
@@ -491,18 +519,7 @@ namespace wasm {
                 throw std::runtime_error("Unsupported reduce operation");
                 break;
             case ReduceTypes::multiHostSum:
-                retVal = 4; // Skips compiler generated end_reduce statements;
-                Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-                int *localReduceData = &Runtime::memoryRef<I32>(memoryPtr,
-                                                                Runtime::memoryRef<I32>(memoryPtr, reduce_data));
-                logger->debug("Reduce local data ({}): {}", thisThreadNumber, *localReduceData);
-
-                if (util::getSystemConfig().stateMode == "redis") {
-                    redis::Redis &redis = redis::Redis::getState();
-                    redis.incrByLong(REDUCE_KEY, *localReduceData);
-                } else {
-                    throw std::runtime_error("Only supports Redis for state");
-                }
+                retVal = 1;
                 break;
         }
         return retVal;
@@ -512,10 +529,12 @@ namespace wasm {
      *  Called immediately after running the reduction section before exiting the `reduce` construct.
      */
     void endReduction() {
-        // Unlocking not owned mutex is UB
-        if (thisLevel->num_threads > 1) {
-            util::getLogger()->debug("Thread {} unlocking reduction", thisThreadNumber);
-            thisLevel->reduceMutex.unlock();
+        if (0 <= userDefaultDevice) {
+            // Unlocking not owned mutex is UB
+            if (thisLevel->numThreads > 1) {
+                util::getLogger()->debug("Thread {} unlocking reduction", thisThreadNumber);
+                thisLevel->reduceMutex.unlock();
+            }
         }
     }
 
@@ -552,8 +571,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_reduce_nowait", I32, __kmpc_reduce_nowait, I32 loc, I32 gtid,
                                    I32 num_vars, I32 reduce_size, I32 reduce_data, I32 reduce_func, I32 lck) {
         util::getLogger()->debug("S - __kmpc_reduce_nowait {} {} {} {} {} {} {}", loc, gtid, num_vars, reduce_size,
-                                 reduce_data,
-                                 reduce_func, lck);
+                                 reduce_data, reduce_func, lck);
 
         return startReduction(reduce_data);
     }
@@ -566,11 +584,7 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_reduce", void, __kmpc_end_reduce, I32 loc, I32 gtid, I32 lck) {
         util::getLogger()->debug("S - __kmpc_end_reduce {} {} {}", loc, gtid, lck);
-        if (0 <= userDefaultDevice) {
-            endReduction();
-        } else {
-            throw std::runtime_error("End reduce called in distributed context");
-        }
+        endReduction();
     }
 
     /**
@@ -582,11 +596,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_reduce_nowait", void, __kmpc_end_reduce_nowait, I32 loc, I32 gtid,
                                    I32 lck) {
         util::getLogger()->debug("S - __kmpc_end_reduce_nowait {} {} {}", loc, gtid, lck);
-        if (0 <= userDefaultDevice) {
-            endReduction();
-        } else {
-            throw std::runtime_error("End reduce called in distributed context");
-        }
+        endReduction();
     }
 
     /**
@@ -611,7 +621,7 @@ namespace wasm {
             return;
         }
         // Use negative device number to indicate using multiple devices in parallel
-        // TODO - add parallel flag to Level to set here
+        // TODO - flag with the specialisation of Level instead
         userDefaultDevice = defaultDeviceNumber;
     }
 
@@ -622,7 +632,7 @@ namespace wasm {
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        if (thisLevel->num_threads == 1) {
+        if (thisLevel->numThreads == 1) {
             *lastIter = true;
             *stride = (incr > 0) ? (*upper - *lower + 1) : (-(*lower - *upper + 1));
             return;
@@ -647,17 +657,17 @@ namespace wasm {
                     chunk = 1;
                 }
                 span = chunk * incr;
-                *stride = span * thisLevel->num_threads;
+                *stride = span * thisLevel->numThreads;
                 *lower = *lower + (span * thisThreadNumber);
                 *upper = *lower + span - incr;
-                *lastIter = (thisThreadNumber == ((tripCount - 1) / (unsigned int) chunk) % thisLevel->num_threads);
+                *lastIter = (thisThreadNumber == ((tripCount - 1) / (unsigned int) chunk) % thisLevel->numThreads);
                 break;
             }
             case kmp::sch_static: { // (chunk not given)
                 // If we have fewer trip_counts than threads
-                if (tripCount < thisLevel->num_threads) {
+                if (tripCount < thisLevel->numThreads) {
                     logger->warn("Small for loop trip count {} {}", tripCount,
-                                 thisLevel->num_threads); // Warns for future use, not tested at scale
+                                 thisLevel->numThreads); // Warns for future use, not tested at scale
                     if (thisThreadNumber < tripCount) {
                         *upper = *lower = *lower + thisThreadNumber * incr;
                     } else {
@@ -668,12 +678,12 @@ namespace wasm {
                     // TODO: We only implement below kmp_sch_static_balanced, not kmp_sch_static_greedy
                     // Those are set through KMP_SCHEDULE so we would need to look out for real code setting this
                     logger->debug("Ignores KMP_SCHEDULE variable, defaults to static balanced schedule");
-                    U32 small_chunk = tripCount / thisLevel->num_threads;
-                    U32 extras = tripCount % thisLevel->num_threads;
+                    U32 small_chunk = tripCount / thisLevel->numThreads;
+                    U32 extras = tripCount % thisLevel->numThreads;
                     *lower += incr * (thisThreadNumber * small_chunk +
                                       (thisThreadNumber < extras ? thisThreadNumber : extras));
                     *upper = *lower + small_chunk * incr - (thisThreadNumber < extras ? 0 : incr);
-                    *lastIter = (thisThreadNumber == thisLevel->num_threads - 1);
+                    *lastIter = (thisThreadNumber == thisLevel->numThreads - 1);
                 }
 
                 *stride = tripCount;
