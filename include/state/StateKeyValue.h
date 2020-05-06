@@ -110,7 +110,7 @@ namespace state {
 
         void initialiseStorage(bool allocate);
 
-        std::optional<long> waitOnRedisRemoteLock(const std::string &redisKey);
+        uint32_t waitOnRedisRemoteLock(const std::string &redisKey);
 
         void markDirtySegment(long offset, long len);
 

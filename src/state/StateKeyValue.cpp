@@ -419,13 +419,13 @@ namespace state {
         pushPartialToRemote(dirtyMaskBytes);
     }
 
-    std::optional<long> StateKeyValue::waitOnRedisRemoteLock(const std::string &redisKey) {
+    uint32_t StateKeyValue::waitOnRedisRemoteLock(const std::string &redisKey) {
         PROF_START(remoteLock)
 
-        std::optional<long> remoteLockId = redis.acquireLock(redisKey, REMOTE_LOCK_TIMEOUT_SECS);
+        uint32_t remoteLockId = redis.acquireLock(redisKey, REMOTE_LOCK_TIMEOUT_SECS);
         unsigned int retryCount = 0;
 
-        while (!remoteLockId.has_value()) {
+        while (remoteLockId) {
             logger->info("Waiting on remote lock for {} (loop {})", redisKey, retryCount);
 
             if (retryCount >= REMOTE_LOCK_MAX_RETRIES) {
@@ -433,9 +433,7 @@ namespace state {
                 break;
             }
 
-            // Sleep for 1ms + noise
-            std::chrono::microseconds ms(500 + (rand() % 3000));
-            std::this_thread::sleep_for(ms);
+            std::this_thread::sleep_for(std::chrono::milliseconds (1));
 
             remoteLockId = redis.acquireLock(redisKey, REMOTE_LOCK_TIMEOUT_SECS);
             retryCount++;

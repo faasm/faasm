@@ -28,7 +28,7 @@ namespace state {
     void RedisStateKeyValue::unlockGlobal() {
         util::FullLock lock(valueMutex);
         redis.releaseLock(joinedKey, lastRemoteLockId);
-        lastRemoteLockId = -1;
+        lastRemoteLockId = 0;
     }
 
     void RedisStateKeyValue::pullFromRemote() {

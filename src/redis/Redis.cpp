@@ -423,10 +423,10 @@ namespace redis {
      *  ------ Locking ------
      */
 
-    std::optional<long> Redis::acquireLock(const std::string &key, int expirySeconds) {
+    uint32_t Redis::acquireLock(const std::string &key, int expirySeconds) {
         // Implementation of single host redlock algorithm
         // https://redis.io/topics/distlock
-        long lockId = util::generateGid();
+        uint32_t lockId = util::generateGid();
 
         std::string lockKey = key + "_lock";
         bool result = this->setnxex(lockKey, lockId, expirySeconds);
@@ -434,7 +434,7 @@ namespace redis {
         if (result) {
             return lockId;
         } else {
-            return std::nullopt;
+            return 0;
         }
     }
 
