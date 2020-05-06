@@ -438,12 +438,12 @@ namespace redis {
         }
     }
 
-    void Redis::releaseLock(const std::string &key, long lockId) {
+    void Redis::releaseLock(const std::string &key, uint32_t lockId) {
         std::string lockKey = key + "_lock";
         this->delIfEq(lockKey, lockId);
     }
 
-    void Redis::delIfEq(const std::string &key, long value) {
+    void Redis::delIfEq(const std::string &key, uint32_t value) {
         // Invoke the script
         auto reply = (redisReply *) redisCommand(
                 context,

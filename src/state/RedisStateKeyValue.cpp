@@ -12,10 +12,17 @@ namespace state {
 
     };
 
-    size_t RedisStateKeyValue::getStateSize(const std::string &userIn, const std::string keyIn) {
+    size_t RedisStateKeyValue::getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn) {
         std::string actualKey = util::keyForUser(userIn, keyIn);
         redis::Redis &redis = redis::Redis::getState();
         return redis.strlen(actualKey);
+    }
+
+    void RedisStateKeyValue::clearAll(bool global) {
+        if(global) {
+            redis::Redis &redis = redis::Redis::getState();
+            redis.flushAll();
+        }
     }
 
     // TODO - the remote locking here is quite primitive since we ignore the fact threads can run
@@ -70,56 +77,24 @@ namespace state {
         PROF_END(pushFull)
     }
 
-    void RedisStateKeyValue::pushPartialToRemote(const uint8_t *dirtyMaskBytes) {
+    void RedisStateKeyValue::pushPartialToRemote(const std::vector<StateChunk> &chunks) {
         PROF_START(pushPartial)
 
-        // Iterate through and pipeline the dirty segments
-        auto sharedMemoryBytes = BYTES(sharedMemory);
-        long updateCount = 0;
-        long startIdx = 0;
-        bool isOn = false;
-
-        for (size_t i = 0; i < valueSize; i++) {
-            if (dirtyMaskBytes[i] == 0) {
-                // If we encounter an "off" mask and we're "on", switch off and write the segment
-                if (isOn) {
-                    isOn = false;
-
-                    // Pipeline the change
-                    unsigned long length = i - startIdx;
-                    redis.setRangePipeline(joinedKey, startIdx, sharedMemoryBytes + startIdx, length);
-                    updateCount++;
-                }
-            } else {
-                if (!isOn) {
-                    isOn = true;
-                    startIdx = i;
-                }
-            }
+        // Pipeline the updates
+        for (auto &c : chunks) {
+            redis.setRangePipeline(joinedKey, c.offset, c.data, c.length);
         }
-
-        // Write a final chunk
-        if (isOn) {
-            unsigned long length = valueSize - startIdx;
-            redis.setRangePipeline(joinedKey, startIdx, sharedMemoryBytes + startIdx, length);
-            updateCount++;
-        }
-
-        // Zero the mask now that we're finished with it
-        memset((void *) dirtyMaskBytes, 0, valueSize);
 
         // Flush the pipeline
-        logger->debug("Pipelined {} updates on {}", updateCount, joinedKey);
-        redis.flushPipeline(updateCount);
+        logger->debug("Pipelined {} updates on {}", chunks.size(), joinedKey);
+        redis.flushPipeline(chunks.size());
 
         // Read the latest value
         if (_fullyAllocated) {
             logger->debug("Pulling from remote on partial push for {}", joinedKey);
+            auto sharedMemoryBytes = BYTES(sharedMemory);
             redis.get(joinedKey, sharedMemoryBytes, valueSize);
         }
-
-        // Mark as no longer dirty
-        isDirty = false;
 
         PROF_END(pushPartial)
     }

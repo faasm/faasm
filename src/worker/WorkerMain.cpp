@@ -6,7 +6,8 @@
 namespace worker {
     WorkerMain::WorkerMain() : conf(util::getSystemConfig()),
                                pool(conf.threadsPerWorker),
-                               scheduler(scheduler::getScheduler()) {
+                               scheduler(scheduler::getScheduler()),
+                               stateServer(state::getGlobalState()) {
 
     }
 

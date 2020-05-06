@@ -4,8 +4,10 @@
 
 namespace tcp {
     void freeTcpMessage(TCPMessage *msg) {
-        delete[] msg->buffer;
-        delete msg;
+        if(msg != nullptr) {
+            delete[] msg->buffer;
+            delete msg;
+        }
     }
 
     size_t tcpMessageLen(TCPMessage *msg) {

@@ -18,6 +18,27 @@ constexpr int REMOTE_LOCK_MAX_RETRIES(10);
 
 
 namespace state {
+    class StateChunk {
+    public:
+        StateChunk(long offsetIn, size_t lengthIn, uint8_t *dataIn) : offset(offsetIn), length(lengthIn),
+                                                                      data(dataIn) {
+
+        }
+
+        StateChunk(long offsetIn, std::vector<uint8_t> &data) : offset(offsetIn), length(data.size()),
+                                                                      data(data.data()) {
+
+        }
+
+        long offset;
+        size_t length;
+
+        // Note - this pointer will always refer to chunks of the underlying
+        // state, so does not need to be deleted
+        uint8_t *data;
+    };
+
+
     class StateKeyValue {
     public:
         StateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn);
@@ -25,6 +46,8 @@ namespace state {
         const std::string user;
 
         const std::string key;
+
+        static uint32_t waitOnRedisRemoteLock(const std::string &redisKey);
 
         void get(uint8_t *buffer);
 
@@ -68,7 +91,7 @@ namespace state {
 
         void flagSegmentDirty(long offset, long len);
 
-        size_t size();
+        size_t size() const;
 
         void deleteGlobal();
 
@@ -110,11 +133,15 @@ namespace state {
 
         void initialiseStorage(bool allocate);
 
-        uint32_t waitOnRedisRemoteLock(const std::string &redisKey);
-
         void markDirtySegment(long offset, long len);
 
         void markAllocatedSegment(long offset, long len);
+
+        std::vector<StateChunk> getDirtyChunks(const uint8_t *dirtyMaskBytes);
+
+        void doSet(const uint8_t *data);
+
+        void doSetSegment(long offset, const uint8_t *buffer, size_t length);
 
         virtual void pullFromRemote() = 0;
 
@@ -126,7 +153,7 @@ namespace state {
 
         virtual void pullAppendedFromRemote(uint8_t *data, size_t length, long nValues) = 0;
 
-        virtual void pushPartialToRemote(const uint8_t *dirtyMaskBytes) = 0;
+        virtual void pushPartialToRemote(const std::vector<StateChunk> &dirtyChunks) = 0;
 
         virtual void deleteFromRemote() = 0;
     };

@@ -58,7 +58,7 @@ namespace state {
 
         SharedLock lock(valueMutex);
 
-        auto bytePtr = static_cast<uint8_t *>(sharedMemory);
+        auto bytePtr = BYTES(sharedMemory);
         std::copy(bytePtr, bytePtr + valueSize, buffer);
     }
 
@@ -67,7 +67,7 @@ namespace state {
 
         SharedLock lock(valueMutex);
 
-        return static_cast<uint8_t *>(sharedMemory);
+        return BYTES(sharedMemory);
     }
 
     void StateKeyValue::getSegment(long offset, uint8_t *buffer, size_t length) {
@@ -82,7 +82,7 @@ namespace state {
             throw std::runtime_error("Out of bounds read");
         }
 
-        auto bytePtr = static_cast<uint8_t *>(sharedMemory);
+        auto bytePtr = BYTES(sharedMemory);
         std::copy(bytePtr + offset, bytePtr + offset + length, buffer);
     }
 
@@ -91,7 +91,7 @@ namespace state {
 
         SharedLock lock(valueMutex);
 
-        uint8_t *segmentPtr = static_cast<uint8_t *>(sharedMemory) + offset;
+        uint8_t *segmentPtr = BYTES(sharedMemory) + offset;
         return segmentPtr;
     }
 
@@ -99,13 +99,18 @@ namespace state {
         // Unique lock for setting the whole value
         FullLock lock(valueMutex);
 
+        doSet(buffer);
+
+        isDirty = true;
+    }
+
+    void StateKeyValue::doSet(const uint8_t *buffer) {
         if (sharedMemory == nullptr) {
             initialiseStorage(true);
         }
 
         // Copy data into shared region
-        std::copy(buffer, buffer + valueSize, static_cast<uint8_t *>(sharedMemory));
-        isDirty = true;
+        std::copy(buffer, buffer + valueSize, BYTES(sharedMemory));
     }
 
     void StateKeyValue::append(uint8_t *buffer, size_t length) {
@@ -117,18 +122,24 @@ namespace state {
     void StateKeyValue::getAppended(uint8_t *buffer, size_t length, long nValues) {
         SharedLock lock(valueMutex);
 
-        return pullAppendedFromRemote(buffer, length, nValues);
+        pullAppendedFromRemote(buffer, length, nValues);
     }
 
     void StateKeyValue::setSegment(long offset, const uint8_t *buffer, size_t length) {
+        FullLock lock(valueMutex);
+
+        doSetSegment(offset, buffer, length);
+
+        markDirtySegment(offset, length);
+    }
+
+    void StateKeyValue::doSetSegment(long offset, const uint8_t *buffer, size_t length) {
         // Check we're in bounds
         size_t end = offset + length;
         if (end > valueSize) {
             logger->error("Trying to write segment finishing at {} (value length {})", end, valueSize);
             throw std::runtime_error("Attempting to set segment out of bounds");
         }
-
-        FullLock lock(valueMutex);
 
         // If necessary, allocate the memory
         if (!isSegmentAllocated(offset, length)) {
@@ -142,10 +153,8 @@ namespace state {
         }
 
         // Do the copy
-        auto bytePtr = static_cast<uint8_t *>(sharedMemory);
+        auto bytePtr = BYTES(sharedMemory);
         std::copy(buffer, buffer + length, bytePtr + offset);
-
-        markDirtySegment(offset, length);
     }
 
     void StateKeyValue::flagDirty() {
@@ -194,7 +203,7 @@ namespace state {
         zeroAllocatedMask();
     }
 
-    size_t StateKeyValue::size() {
+    size_t StateKeyValue::size() const {
         return valueSize;
     }
 
@@ -416,17 +425,28 @@ namespace state {
             return;
         }
 
-        pushPartialToRemote(dirtyMaskBytes);
+        // Work out what's dirty
+        const std::vector<StateChunk> &chunks = getDirtyChunks(dirtyMaskBytes);
+
+        // Zero the mask now that we're finished with it
+        memset((void *) dirtyMaskBytes, 0, valueSize);
+
+        // Do the write
+        pushPartialToRemote(chunks);
+
+        // Mark as no longer dirty
+        isDirty = false;
     }
 
     uint32_t StateKeyValue::waitOnRedisRemoteLock(const std::string &redisKey) {
         PROF_START(remoteLock)
 
+        redis::Redis &redis = redis::Redis::getState();
         uint32_t remoteLockId = redis.acquireLock(redisKey, REMOTE_LOCK_TIMEOUT_SECS);
         unsigned int retryCount = 0;
-
-        while (remoteLockId) {
-            logger->info("Waiting on remote lock for {} (loop {})", redisKey, retryCount);
+        while (remoteLockId == 0) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->debug("Waiting on remote lock for {} (loop {})", redisKey, retryCount);
 
             if (retryCount >= REMOTE_LOCK_MAX_RETRIES) {
                 logger->error("Timed out waiting for lock on {}", redisKey);
@@ -450,7 +470,6 @@ namespace state {
 
         // Delete remote
         util::FullLock lock(valueMutex);
-
         deleteFromRemote();
     }
 
@@ -468,5 +487,40 @@ namespace state {
 
     void StateKeyValue::unlockWrite() {
         valueMutex.unlock();
+    }
+
+    std::vector<StateChunk> StateKeyValue::getDirtyChunks(const uint8_t *dirtyMaskBytes) {
+        std::vector<StateChunk> chunks;
+
+        auto sharedMemoryBytes = BYTES(sharedMemory);
+        long startIdx = 0;
+        bool isOn = false;
+
+        // Iterate through looking for dirty chunks
+        for (size_t i = 0; i < valueSize; i++) {
+            if (dirtyMaskBytes[i] == 0) {
+                // If we encounter an "off" mask and we're "on", switch off and write the segment
+                if (isOn) {
+                    isOn = false;
+
+                    // Record the chunk
+                    unsigned long length = i - startIdx;
+                    chunks.emplace_back(startIdx, length, sharedMemoryBytes + startIdx);
+                }
+            } else {
+                if (!isOn) {
+                    isOn = true;
+                    startIdx = i;
+                }
+            }
+        }
+
+        // Add the final chunk if necessary
+        if (isOn) {
+            unsigned long length = valueSize - startIdx;
+            chunks.emplace_back(startIdx, length, sharedMemoryBytes + startIdx);
+        }
+
+        return chunks;
     }
 }

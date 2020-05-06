@@ -15,10 +15,21 @@ using namespace state;
 
 namespace tests {
     static int staticCount = 0;
+    static std::string originalStateMode;
 
-    std::shared_ptr<StateKeyValue> setupKV(size_t size) {
+    static void setUpStateMode(const std::string &newMode) {
         cleanSystem();
 
+        util::SystemConfig &conf = util::getSystemConfig();
+        originalStateMode = conf.stateMode;
+        conf.stateMode = newMode;
+    }
+
+    static void resetStateMode() {
+        util::getSystemConfig().stateMode = originalStateMode;
+    }
+
+    std::shared_ptr<StateKeyValue> setupKV(size_t size) {
         // We have to make sure emulator is using the right user
         const std::string user = getEmulatorUser();
 
@@ -33,15 +44,16 @@ namespace tests {
         return kv;
     }
 
-    TEST_CASE("Test state sizes", "[state]") {
-        cleanSystem();
+    static void doStateSizeCheck(const std::string &stateMode) {
+        setUpStateMode(stateMode);
 
         State &s = getGlobalState();
         std::string user = "alpha";
         std::string key = "beta";
 
         // Empty should be none
-        REQUIRE(s.getStateSize(user, key) == 0);
+        size_t initialSize = s.getStateSize(user, key);
+        REQUIRE(initialSize == 0);
 
         // Set a value
         std::vector<uint8_t> bytes = {0, 1, 2, 3, 4};
@@ -49,14 +61,23 @@ namespace tests {
         kv->set(bytes.data());
         kv->pushFull();
 
-        // Clear local KV
-        s.forceClearAll();
-
         // Get size
         REQUIRE(s.getStateSize(user, key) == bytes.size());
+
+        resetStateMode();
     }
 
-    TEST_CASE("Test simple state get/set", "[state]") {
+    TEST_CASE("Test Redis state sizes", "[state]") {
+        doStateSizeCheck("redis");
+    }
+
+    TEST_CASE("Test in-memory state sizes", "[state]") {
+        doStateSizeCheck("inmemory");
+    }
+
+    static void doGetSetCheck(const std::string &stateMode) {
+        setUpStateMode(stateMode);
+
         redis::Redis &redisState = redis::Redis::getState();
         auto kv = setupKV(5);
 
@@ -76,16 +97,33 @@ namespace tests {
 
         // Check that the underlying key in Redis isn't changed
         std::string actualKey = util::keyForUser(kv->user, kv->key);
-        REQUIRE(redisState.get(actualKey).empty());
+        if(stateMode == "redis") {
+            REQUIRE(redisState.get(actualKey).empty());
+        }
 
-        // Check that when pushed, the update is pushed to redis
         kv->pushFull();
         kv->get(actual.data());
         REQUIRE(actual == values);
-        REQUIRE(redisState.get(actualKey) == values);
+
+        // Check that when pushed, the update is pushed to redis
+        if(stateMode == "redis") {
+            REQUIRE(redisState.get(actualKey) == values);
+        }
+
+        resetStateMode();
     }
 
-    TEST_CASE("Test get/ set segment", "[state]") {
+    TEST_CASE("Test simple redis state get/set", "[state]") {
+        doGetSetCheck("redis");
+    }
+
+    TEST_CASE("Test simple in memory state get/set", "[state]") {
+        doGetSetCheck("inmemory");
+    }
+
+    static void doGetSetSegmentChecks(const std::string &stateMode) {
+        setUpStateMode(stateMode);
+
         redis::Redis &redisState = redis::Redis::getState();
         auto kv = setupKV(10);
 
@@ -99,17 +137,23 @@ namespace tests {
         kv->get(actual.data());
         std::string actualKey = util::keyForUser(kv->user, kv->key);
         REQUIRE(actual == values);
-        REQUIRE(redisState.get(actualKey) == values);
+
+        if(stateMode == "redis") {
+            REQUIRE(redisState.get(actualKey) == values);
+        }
 
         // Update a subsection
         std::vector<uint8_t> update = {8, 8, 8};
         kv->setSegment(3, update.data(), 3);
 
-        // Check changed locally but not in redis
         std::vector<uint8_t> expected = {0, 0, 1, 8, 8, 8, 3, 3, 4, 4};
         kv->get(actual.data());
         REQUIRE(actual == expected);
-        REQUIRE(redisState.get(actualKey) == values);
+
+        // Check changed locally but not in redis
+        if(stateMode == "redis") {
+            REQUIRE(redisState.get(actualKey) == values);
+        }
 
         // Try getting a segment
         std::vector<uint8_t> actualSegment(3);
@@ -118,11 +162,24 @@ namespace tests {
 
         // Run push and check redis updated
         kv->pushPartial();
-        REQUIRE(redisState.get(actualKey) == expected);
+        if(stateMode == "redis") {
+            REQUIRE(redisState.get(actualKey) == expected);
+        }
+
+        resetStateMode();
     }
 
-    TEST_CASE("Test marking segments dirty", "[state]") {
-        cleanSystem();
+    TEST_CASE("Test redis get/ set segment", "[state]") {
+        doGetSetSegmentChecks("redis");
+    }
+
+    TEST_CASE("Test in memory get/ set segment", "[state]") {
+        doGetSetSegmentChecks("inmemory");
+    }
+
+    static void doMarkDirtyChecks(const std::string &stateMode) {
+        setUpStateMode(stateMode);
+
         redis::Redis &redisState = redis::Redis::getState();
         auto kv = setupKV(10);
 
@@ -136,20 +193,43 @@ namespace tests {
         ptr[0] = 8;
         ptr[5] = 7;
 
-        // Mark one region as dirty, do push and check update happens
+        // Mark one region as dirty and do push partial
         kv->flagSegmentDirty(0, 2);
         kv->pushPartial();
+
+        // Update expectation
         values.at(0) = 8;
         std::string actualKey = util::keyForUser(kv->user, kv->key);
-        REQUIRE(redisState.get(actualKey) == values);
 
-        // Make sure the memory has now been updated to reflect the remote as well
-        // (losing our local change not marked as dirty)
+        // Check in redis
+        if(stateMode == "redis") {
+            REQUIRE(redisState.get(actualKey) == values);
+        }
+
+        // With in-memory state we expect the unmarked update
+        // *not* to be overwritten, as this is the master
+        // With the redis state, we expect to lose the unmarked
+        // local change.
+        if(stateMode == "inmemory") {
+            values.at(5) = 7;
+        }
+
+        // Check expectation
         std::vector<uint8_t> actualMemory(ptr, ptr + values.size());
         REQUIRE(actualMemory == values);
+
+        resetStateMode();
     }
 
-    TEST_CASE("Test marking multiple segments dirty", "[state]") {
+    TEST_CASE("Test redis marking segments dirty", "[state]") {
+        doMarkDirtyChecks("redis");
+    }
+
+    TEST_CASE("Test in memory marking segments dirty", "[state]") {
+        doMarkDirtyChecks("inmemory");
+    }
+
+    TEST_CASE("Test redis overlaps with multiple segments dirty", "[state]") {
         cleanSystem();
 
         redis::Redis &redisState = redis::Redis::getState();
@@ -199,10 +279,11 @@ namespace tests {
         REQUIRE(redisState.get(key) == expected);
     }
 
-    TEST_CASE("Test doubles partial", "[state]") {
-        cleanSystem();
+    static void doPartialDoubleUpdatesCheck(const std::string &stateMode) {
+        setUpStateMode(stateMode);
 
         redis::Redis &redisState = redis::Redis::getState();
+
         long nDoubles = 20;
         long nBytes = nDoubles * sizeof(double);
         auto kv = setupKV(nBytes);
@@ -245,9 +326,21 @@ namespace tests {
         REQUIRE(expected == actualPostPush);
 
         // Also check redis
-        std::vector<double> actualFromRedis(nDoubles);
-        redisState.get(key, BYTES(actualFromRedis.data()), nBytes);
-        REQUIRE(expected == actualFromRedis);
+        if(stateMode == "redis") {
+            std::vector<double> actualFromRedis(nDoubles);
+            redisState.get(key, BYTES(actualFromRedis.data()), nBytes);
+            REQUIRE(expected == actualFromRedis);
+        }
+
+        resetStateMode();
+    }
+
+    TEST_CASE("Test redis partial update of doubles in state", "[state]") {
+        doPartialDoubleUpdatesCheck("redis");
+    }
+
+    TEST_CASE("Test in memory partial update of doubles in state", "[state]") {
+        doPartialDoubleUpdatesCheck("inmemory");
     }
 
     TEST_CASE("Test set segment cannot be out of bounds", "[state]") {
@@ -259,7 +352,7 @@ namespace tests {
         REQUIRE_THROWS(kv->setSegment(5, update.data(), 3));
     }
 
-    TEST_CASE("Test partially setting just first/ last element", "[state]") {
+    TEST_CASE("Test redis partially setting just first/ last element", "[state]") {
         redis::Redis &redisState = redis::Redis::getState();
         auto kv = setupKV(5);
         std::string actualKey = util::keyForUser(kv->user, kv->key);
@@ -294,7 +387,7 @@ namespace tests {
         REQUIRE(redisState.get(actualKey) == expected);
     }
 
-    TEST_CASE("Test push partial with mask", "[state]") {
+    TEST_CASE("Test redis push partial with mask", "[state]") {
         cleanSystem();
 
         redis::Redis &redisState = redis::Redis::getState();
@@ -307,10 +400,14 @@ namespace tests {
         // Set up value in memory
         uint8_t *dataBytePtr = kvData->get();
         auto dataDoublePtr = reinterpret_cast<double *>(dataBytePtr);
-        dataDoublePtr[0] = 1.2345;
-        dataDoublePtr[1] = 12.345;
-        dataDoublePtr[2] = 987.6543;
-        dataDoublePtr[3] = 10987654.3;
+        std::vector<double> initial = {
+                1.2345,
+                12.345,
+                987.6543,
+                10987654.3
+        };
+
+        std::copy(initial.begin(), initial.end(), dataDoublePtr);
 
         // Push 
         kvData->flagDirty();
@@ -318,22 +415,25 @@ namespace tests {
 
         // Check round trip
         std::string actualKey = util::keyForUser(kvData->user, kvData->key);
-        std::vector<uint8_t> actualValue = redisState.get(actualKey);
-        std::vector<uint8_t> expectedValue(dataBytePtr, dataBytePtr + stateSize);
+        std::vector<uint8_t> actualBytes = redisState.get(actualKey);
+        auto actualDoublePtr = reinterpret_cast<double*>(actualBytes.data());
+        std::vector<double> actualDoubles(actualDoublePtr, actualDoublePtr + 4);
 
-        REQUIRE(actualValue == expectedValue);
+        REQUIRE(actualDoubles == initial);
 
         // Now update a couple of elements in memory
         dataDoublePtr[1] = 11.11;
         dataDoublePtr[2] = 222.222;
         dataDoublePtr[3] = 3333.3333;
-        kvData->flagDirty();
 
-        // Mask two as having changed
+        // Mask two as having changed and push with mask
         uint8_t *maskBytePtr = kvMask->get();
         auto maskIntPtr = reinterpret_cast<unsigned int *>(maskBytePtr);
         faasm::maskDouble(maskIntPtr, 1);
         faasm::maskDouble(maskIntPtr, 3);
+
+        kvData->flagDirty();
+        kvData->pushPartialMask(kvMask);
 
         // Expected value will be a mix of new and old
         std::vector<double> expected = {
@@ -343,9 +443,11 @@ namespace tests {
                 3333.3333  // New (updated in memory and masked)
         };
 
+        // Check in redis
         std::vector<uint8_t> actualValue2 = redisState.get(actualKey);
-        auto expectedBytePtr = BYTES(expected.data());
-        std::vector<uint8_t> expectedBytes(expectedBytePtr, expectedBytePtr + stateSize);
+        auto actualDoublesPtr = reinterpret_cast<double *>(actualValue2.data());
+        std::vector<double> actualDoubles2(actualDoublesPtr, actualDoublesPtr + 4);
+        REQUIRE(actualDoubles2 == expected);
     }
 
     void checkPulling(bool async) {
@@ -380,11 +482,11 @@ namespace tests {
         }
     }
 
-    TEST_CASE("Test async pulling", "[state]") {
+    TEST_CASE("Test redis async pulling", "[state]") {
         checkPulling(true);
     }
 
-    TEST_CASE("Test sync pulling", "[state]") {
+    TEST_CASE("Test redis sync pulling", "[state]") {
         checkPulling(false);
     }
 
@@ -435,7 +537,6 @@ namespace tests {
         auto byteRegionB = static_cast<uint8_t *>(mappedRegionB);
 
         // Check shared memory regions reflect state
-
         std::vector<uint8_t> expected = {5, 1, 5, 3, 4};
         for (int i = 0; i < 5; i++) {
             REQUIRE(byteRegionA[i] == expected.at(i));

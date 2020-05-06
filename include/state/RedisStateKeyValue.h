@@ -12,7 +12,9 @@ namespace state {
     public:
         RedisStateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn);
 
-        static size_t getStateSize(const std::string &userIn, const std::string keyIn);
+        static size_t getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn);
+
+        static void clearAll(bool global);
     private:
         const std::string joinedKey;
 
@@ -28,7 +30,7 @@ namespace state {
 
         void pushToRemote() override;
 
-        void pushPartialToRemote(const uint8_t *dirtyMaskBytes) override;
+        void pushPartialToRemote(const std::vector<StateChunk> &dirtyChunks) override;
 
         void appendToRemote(const uint8_t *data, size_t length) override;
 

@@ -16,7 +16,23 @@ namespace state {
         return s;
     }
 
-    void State::forceClearAll() {
+    // NOTE - to ease testing we must be careful to ensure the IP
+    // used throughout the in-memory state is only captured here
+    State::State() : thisIP(util::getSystemConfig().endpointHost) {
+
+    }
+
+    void State::forceClearAll(bool global) {
+        std::string stateMode = util::getSystemConfig().stateMode;
+        if (stateMode == "redis") {
+            RedisStateKeyValue::clearAll(global);
+        } else if (stateMode == "inmemory") {
+            InMemoryStateKeyValue::clearAll(global);
+        } else {
+            throw std::runtime_error("Unrecognised state mode: " + stateMode);
+        }
+
+        util::SharedLock sharedLock(mapMutex);
         kvMap.clear();
     }
 
@@ -47,9 +63,9 @@ namespace state {
         // TODO - cache this?
         std::string stateMode = util::getSystemConfig().stateMode;
         if (stateMode == "redis") {
-            return RedisStateKeyValue::getStateSize(user, keyIn);
+            return RedisStateKeyValue::getStateSizeFromRemote(user, keyIn);
         } else if (stateMode == "inmemory") {
-            return InMemoryStateKeyValue::getStateSize(user, keyIn);
+            return InMemoryStateKeyValue::getStateSizeFromRemote(user, keyIn, thisIP);
         } else {
             throw std::runtime_error("Unrecognised state mode: " + stateMode);
         }
@@ -89,7 +105,8 @@ namespace state {
             auto kv = new RedisStateKeyValue(user, key, size);
             kvMap.emplace(lookupKey, kv);
         } else if (stateMode == "inmemory") {
-            auto kv = new InMemoryStateKeyValue(user, key, size);
+            // NOTE - passing IP here is crucial for testing
+            auto kv = new InMemoryStateKeyValue(user, key, size, thisIP);
             kvMap.emplace(lookupKey, kv);
         } else {
             throw std::runtime_error("Unrecognised state mode: " + stateMode);

@@ -73,8 +73,6 @@ namespace tcp {
             throw TCPTimeoutException("Polling timed out");
         }
 
-        logger->debug("Got {} poll events", pollCount);
-
         // Process poll events by iterating through each socket
         int currentFds = nFds;
         for (int i = 0; i < currentFds; i++) {
@@ -158,12 +156,14 @@ namespace tcp {
 
                     // Insert the data from this packet
                     if (nRecv > 0) {
-                        std::copy(bufferStart, bufferStart + nRecv, msg->buffer);
+                        uint8_t *msgBufferPosition = msg->buffer + bytesReceived;
+                        std::copy(bufferStart, bufferStart + nRecv, msgBufferPosition);
                     }
 
                     bytesReceived += nRecv;
 
                     if (bytesReceived >= msg->len) {
+                        logger->debug("Finished message type {} len {} ({} packets)", msg->type, bytesReceived, packetCount);
                         break;
                     } else {
                         logger->debug("TCP packet {} = {} bytes", packetCount, nRecv);

@@ -254,8 +254,8 @@ namespace tests {
         redis.flushAll();
 
         std::string key = "delifeq_test";
-        long valueA = 101;
-        long valueB = 102;
+        uint32_t valueA = 101;
+        uint32_t valueB = 102;
 
         // Try with nothing set
         redis.delIfEq(key, valueA);

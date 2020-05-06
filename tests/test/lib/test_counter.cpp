@@ -11,9 +11,7 @@ using namespace faasm;
 
 namespace tests {
     TEST_CASE("Test normal counter operation", "[counter]") {
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-        redisQueue.flushAll();
-        state::getGlobalState().forceClearAll();
+        state::getGlobalState().forceClearAll(true);
 
         const char *key = "test_counter";
         initCounter(key);
