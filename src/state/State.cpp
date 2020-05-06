@@ -64,7 +64,7 @@ namespace state {
 
         // See if we have locally
         {
-            util::SharedLock sharedLock(mapMutex);
+            SharedLock sharedLock(mapMutex);
             if (kvMap.count(lookupKey) > 0) {
                 return kvMap[lookupKey];
             }

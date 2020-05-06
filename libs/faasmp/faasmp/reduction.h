@@ -46,8 +46,7 @@ public:
 
         union State val = readState(counterKey);
         val.x += increment;
-        writeState(counterKey, val
-        );
+        writeState(counterKey, val);
 
         faasmUnlockStateGlobal(counterKey);
 

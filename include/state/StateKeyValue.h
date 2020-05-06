@@ -5,14 +5,16 @@
 #include <redis/Redis.h>
 
 #include <atomic>
+#include <chrono>
 #include <shared_mutex>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
 
-#define REMOTE_LOCK_TIMEOUT_SECS 1
-#define REMOTE_LOCK_MAX_RETRIES 3
+constexpr int REMOTE_LOCK_TIMEOUT_SECS(1);
+constexpr int REMOTE_LOCK_MAX_RETRIES(10);
 
 
 namespace state {
@@ -108,7 +110,7 @@ namespace state {
 
         void initialiseStorage(bool allocate);
 
-        long waitOnRedisRemoteLock(const std::string &redisKey);
+        uint32_t waitOnRedisRemoteLock(const std::string &redisKey);
 
         void markDirtySegment(long offset, long len);
 

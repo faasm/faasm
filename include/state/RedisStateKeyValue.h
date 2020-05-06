@@ -3,7 +3,7 @@
 #include "StateKeyValue.h"
 
 #include <util/clock.h>
-
+#include <util/locks.h>
 #include <redis/Redis.h>
 
 
@@ -16,7 +16,7 @@ namespace state {
     private:
         const std::string joinedKey;
 
-        int lastRemoteLockId = 0;
+        uint32_t lastRemoteLockId = 0;
 
         void lockGlobal() override;
 
