@@ -22,7 +22,7 @@ namespace state {
     // on the same machine. Redis is also aware of scheduling and so we could optimise this.
     void RedisStateKeyValue::lockGlobal() {
         util::FullLock lock(valueMutex);
-        lastRemoteLockId = waitOnRedisRemoteLock(joinedKey).value_or(-1);
+        lastRemoteLockId = waitOnRedisRemoteLock(joinedKey);
     }
 
     void RedisStateKeyValue::unlockGlobal() {
