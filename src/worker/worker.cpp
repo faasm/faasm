@@ -11,7 +11,7 @@ namespace worker {
         logger->warn("Flushing host {}", util::getNodeId());
 
         // Clear out any cached state
-        state::getGlobalState().forceClearAll();
+        state::getGlobalState().forceClearAll(false);
 
         // Clear shared files
         storage::FileSystem::clearSharedFiles();

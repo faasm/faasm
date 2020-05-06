@@ -14,7 +14,7 @@ namespace state {
 
         static size_t getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn);
 
-        static void clearAll();
+        static void clearAll(bool global);
     private:
         const std::string joinedKey;
 

@@ -112,7 +112,7 @@ namespace state {
         return stateSize;
     }
 
-    void InMemoryStateKeyValue::clearAll() {
+    void InMemoryStateKeyValue::clearAll(bool global) {
         util::FullLock lock(masterMapMutex);
         masterMap.clear();
     }

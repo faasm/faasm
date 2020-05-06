@@ -18,9 +18,11 @@ namespace state {
         return redis.strlen(actualKey);
     }
 
-     void RedisStateKeyValue::clearAll() {
-        redis::Redis &redis = redis::Redis::getState();
-        return redis.flushAll();
+    void RedisStateKeyValue::clearAll(bool global) {
+        if(global) {
+            redis::Redis &redis = redis::Redis::getState();
+            redis.flushAll();
+        }
     }
 
     // TODO - the remote locking here is quite primitive since we ignore the fact threads can run

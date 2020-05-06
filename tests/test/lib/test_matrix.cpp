@@ -32,10 +32,7 @@ namespace tests {
     }
 
     TEST_CASE("Test matrix to redis round trip", "[matrix]") {
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-        redisQueue.flushAll();
-
-        state::getGlobalState().forceClearAll();
+        state::getGlobalState().forceClearAll(true);
 
         MatrixXd mat = buildDummyMatrix();
 
@@ -83,10 +80,7 @@ namespace tests {
     }
 
     void checkReadingMatrixColumnsFromState(bool async) {
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-        redisQueue.flushAll();
-
-        state::getGlobalState().forceClearAll();
+        state::getGlobalState().forceClearAll(true);
 
         long nRows = 4;
         long nCols = 5;
@@ -102,8 +96,8 @@ namespace tests {
         faasm::writeMatrixToState(stateKey, mat, pushPull);
 
         if (pushPull) {
-            // Flush everything to force it to do a partial pull
-            state::getGlobalState().forceClearAll();
+            // Flush everything locally to force it to do a partial pull
+            state::getGlobalState().forceClearAll(false);
         }
 
         // Read a subset of columns (exclusive)
@@ -254,7 +248,7 @@ namespace tests {
 
         // Nuke everything locally
         if (pushPull) {
-            state::getGlobalState().forceClearAll();
+            state::getGlobalState().forceClearAll(false);
         }
 
         // Read a subsection
@@ -264,7 +258,7 @@ namespace tests {
 
         // Nuke everything locally
         if (pushPull) {
-            state::getGlobalState().forceClearAll();
+            state::getGlobalState().forceClearAll(false);
         }
 
         // Read the whole thing and check

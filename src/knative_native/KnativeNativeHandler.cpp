@@ -52,9 +52,9 @@ namespace knative_native {
 
         // Simulate a cold start if necessary
         if (coldStartRequired || requestCount == 0) {
-            // Clear out state
+            // Clear out state locally
             state::State &s = state::getGlobalState();
-            s.forceClearAll();
+            s.forceClearAll(false);
 
             // Do the sleep
             std::string coldStartDelayStr = util::getEnvVar("COLD_START_DELAY_MS", "0");

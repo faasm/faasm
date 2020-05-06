@@ -22,12 +22,12 @@ namespace state {
 
     }
 
-    void State::forceClearAll() {
+    void State::forceClearAll(bool global) {
         std::string stateMode = util::getSystemConfig().stateMode;
         if (stateMode == "redis") {
-            RedisStateKeyValue::clearAll();
+            RedisStateKeyValue::clearAll(global);
         } else if (stateMode == "inmemory") {
-            InMemoryStateKeyValue::clearAll();
+            InMemoryStateKeyValue::clearAll(global);
         } else {
             throw std::runtime_error("Unrecognised state mode: " + stateMode);
         }

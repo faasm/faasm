@@ -14,7 +14,7 @@ namespace state {
 
         std::shared_ptr<StateKeyValue> getKV(const std::string &user, const std::string &key, size_t size);
 
-        void forceClearAll();
+        void forceClearAll(bool global);
 
         size_t getKVCount();
     private:

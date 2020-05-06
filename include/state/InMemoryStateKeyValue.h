@@ -33,7 +33,7 @@ namespace state {
         static size_t
         getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn, const std::string &thisIPIn);
 
-        static void clearAll();
+        static void clearAll(bool global);
 
         bool isMaster();
 

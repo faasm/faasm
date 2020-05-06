@@ -24,7 +24,7 @@ namespace tests {
         redis::Redis::getQueue().flushAll();
 
         // Clear out any cached state
-        state::getGlobalState().forceClearAll();
+        state::getGlobalState().forceClearAll(true);
 
         // Clear shared files
         storage::FileSystem::clearSharedFiles();
