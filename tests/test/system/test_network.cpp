@@ -9,7 +9,7 @@ using namespace isolation;
 
 namespace tests {
 
-    TEST_CASE("Test basic network properties", "[worker]") {
+    TEST_CASE("Test basic network properties", "[faaslet]") {
         util::SystemConfig &conf = util::getSystemConfig();
         std::string original = conf.netNsMode;
         

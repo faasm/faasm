@@ -2,6 +2,7 @@
 #include <module_cache/WasmModuleCache.h>
 #include <emulator/emulator.h>
 #include <util/environment.h>
+#include <util/bytes.h>
 
 #include "utils.h"
 
@@ -174,6 +175,37 @@ namespace tests {
         conf.pythonPreload = originalPreload;
 
         cleanSystem();
+    }
+
+    void checkCallingFunctionGivesBoolOutput(const std::string &user, const std::string &funcName, bool expected) {
+        message::Message call = util::messageFactory("demo", funcName);
+        setEmulatedMessage(call);
+
+        FaasletPool pool(1);
+        Faaslet w(1);
+
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        sch.callFunction(call);
+
+        // Bind and execute
+        w.processNextMessage();
+        w.processNextMessage();
+
+        // Check output is true
+        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
+        message::Message result = globalBus.getFunctionResult(call.id(), 1);
+        REQUIRE(result.returnvalue() == 0);
+        std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
+
+        std::vector<uint8_t> expectedOutput;
+
+        if (expected) {
+            expectedOutput = {1};
+        } else {
+            expectedOutput = {0};
+        }
+
+        REQUIRE(outputBytes == expectedOutput);
     }
 }
 

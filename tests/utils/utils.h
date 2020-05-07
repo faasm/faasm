@@ -24,4 +24,6 @@ namespace tests {
             bool checkChained = false, int nThreads = 4, bool clean = true);
 
     void checkMultipleExecutions(message::Message &msg, int nExecs);
+
+    void checkCallingFunctionGivesBoolOutput(const std::string &user, const std::string &funcName, bool expected);
 }

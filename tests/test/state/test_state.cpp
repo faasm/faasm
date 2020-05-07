@@ -231,6 +231,7 @@ namespace tests {
 
     TEST_CASE("Test redis overlaps with multiple segments dirty", "[state]") {
         cleanSystem();
+        setUpStateMode("redis");
 
         redis::Redis &redisState = redis::Redis::getState();
         auto kv = setupKV(20);
@@ -277,6 +278,8 @@ namespace tests {
         // Push and check that with no pull we're up to date
         kv->pushPartial();
         REQUIRE(redisState.get(key) == expected);
+
+        resetStateMode();
     }
 
     static void doPartialDoubleUpdatesCheck(const std::string &stateMode) {
@@ -353,6 +356,8 @@ namespace tests {
     }
 
     TEST_CASE("Test redis partially setting just first/ last element", "[state]") {
+        setUpStateMode("redis");
+
         redis::Redis &redisState = redis::Redis::getState();
         auto kv = setupKV(5);
         std::string actualKey = util::keyForUser(kv->user, kv->key);
@@ -385,10 +390,13 @@ namespace tests {
         kv->pushPartial();
         expected = {6, 1, 2, 3, 6};
         REQUIRE(redisState.get(actualKey) == expected);
+
+        resetStateMode();
     }
 
     TEST_CASE("Test redis push partial with mask", "[state]") {
         cleanSystem();
+        setUpStateMode("redis");
 
         redis::Redis &redisState = redis::Redis::getState();
 
@@ -448,9 +456,13 @@ namespace tests {
         auto actualDoublesPtr = reinterpret_cast<double *>(actualValue2.data());
         std::vector<double> actualDoubles2(actualDoublesPtr, actualDoublesPtr + 4);
         REQUIRE(actualDoubles2 == expected);
+
+        resetStateMode();
     }
 
     void checkPulling(bool async) {
+        setUpStateMode("redis");
+
         auto kv = setupKV(4);
         std::string actualKey = util::keyForUser(kv->user, kv->key);
 
@@ -480,6 +492,8 @@ namespace tests {
         } else {
             REQUIRE(actual == newValues);
         }
+
+        resetStateMode();
     }
 
     TEST_CASE("Test redis async pulling", "[state]") {
@@ -491,6 +505,8 @@ namespace tests {
     }
 
     TEST_CASE("Test pushing only happens when dirty", "[state]") {
+        setUpStateMode("redis");
+
         redis::Redis &redisState = redis::Redis::getState();
 
         auto kv = setupKV(4);
@@ -513,6 +529,8 @@ namespace tests {
         kv->set(newValues2.data());
         kv->pushFull();
         REQUIRE(redisState.get(actualKey) == newValues2);
+
+        resetStateMode();
     }
 
     TEST_CASE("Test mapping shared memory", "[state]") {
@@ -565,6 +583,8 @@ namespace tests {
     }
 
     TEST_CASE("Test mapping shared memory pulls if not initialised", "[state]") {
+        setUpStateMode("redis");
+
         // Set up the KV
         int length = 5;
         auto kv = setupKV(length);
@@ -582,6 +602,8 @@ namespace tests {
         auto byteRegion = static_cast<uint8_t *>(mappedRegion);
         std::vector<uint8_t> actualValue(byteRegion, byteRegion + length);
         REQUIRE(actualValue == value);
+
+        resetStateMode();
     }
 
     TEST_CASE("Test mapping small shared memory offsets", "[state]") {
@@ -625,6 +647,8 @@ namespace tests {
     }
 
     TEST_CASE("Test mapping bigger uninitialized shared memory offsets", "[state]") {
+        setUpStateMode("redis");
+
         // Define some larger chunks
         size_t mappingSize = 3 * util::HOST_PAGE_SIZE;
 
@@ -665,9 +689,13 @@ namespace tests {
         REQUIRE(segmentB[0] == 1);
         REQUIRE(segmentA[5] == 5);
         REQUIRE(segmentB[9] == 9);
+
+        resetStateMode();
     }
 
     TEST_CASE("Test pulling") {
+        setUpStateMode("redis");
+
         auto kv = setupKV(6);
         REQUIRE(kv->size() == 6);
         std::string actualKey = util::keyForUser(kv->user, kv->key);
@@ -687,9 +715,13 @@ namespace tests {
         uint8_t *actualBytes = kv->get();
         std::vector<uint8_t> actual(actualBytes, actualBytes + 6);
         REQUIRE(actual == expected);
+
+        resetStateMode();
     }
 
     TEST_CASE("Test deletion", "[state]") {
+        setUpStateMode("redis");
+
         redis::Redis &redisState = redis::Redis::getState();
         auto kv = setupKV(5);
         std::string actualKey = util::keyForUser(kv->user, kv->key);
@@ -702,6 +734,8 @@ namespace tests {
 
         kv->deleteGlobal();
         redisState.get(actualKey);
+
+        resetStateMode();
     }
 
     TEST_CASE("Test appended state with KV", "[state]") {

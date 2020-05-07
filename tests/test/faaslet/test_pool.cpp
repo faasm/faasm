@@ -38,7 +38,7 @@ namespace tests {
         cleanSystem();
     }
 
-    TEST_CASE("Test worker initially pre-warmed", "[worker]") {
+    TEST_CASE("Test worker initially pre-warmed", "[faaslet]") {
         setUp();
 
         FaasletPool pool(1);
@@ -55,7 +55,7 @@ namespace tests {
         }
     }
 
-    TEST_CASE("Test binding to function", "[worker]") {
+    TEST_CASE("Test binding to function", "[faaslet]") {
         setUp();
 
         message::Message call = util::messageFactory("demo", "chain");
@@ -69,7 +69,7 @@ namespace tests {
         checkBound(w, call, true);
     }
 
-    TEST_CASE("Test binding twice causes error unless forced", "[worker]") {
+    TEST_CASE("Test binding twice causes error unless forced", "[faaslet]") {
         setUp();
 
         message::Message callA = util::messageFactory("demo", "chain");
@@ -92,7 +92,7 @@ namespace tests {
         REQUIRE_THROWS(w.bindToFunction(callB, true));
     }
 
-    TEST_CASE("Test execution of empty echo function", "[worker]") {
+    TEST_CASE("Test execution of empty echo function", "[faaslet]") {
         setUp();
         message::Message call = util::messageFactory("demo", "echo");
         setEmulatedMessage(call);
@@ -103,7 +103,7 @@ namespace tests {
         tearDown();
     }
 
-    TEST_CASE("Test repeat execution of WASM module", "[worker]") {
+    TEST_CASE("Test repeat execution of WASM module", "[faaslet]") {
         setUp();
 
         message::Message call = util::messageFactory("demo", "echo");
@@ -147,7 +147,7 @@ namespace tests {
         tearDown();
     }
 
-    TEST_CASE("Test bind message causes worker to bind", "[worker]") {
+    TEST_CASE("Test bind message causes worker to bind", "[faaslet]") {
         setUp();
 
         // Create worker
@@ -174,108 +174,7 @@ namespace tests {
         REQUIRE(w.isBound());
     }
 
-    TEST_CASE("Test function chaining", "[worker]") {
-        message::Message call = util::messageFactory("demo", "chain");
-        execFuncWithPool(call, false, 2);
-    }
-
-    TEST_CASE("Test named function chaining", "[worker]") {
-        message::Message call = util::messageFactory("demo", "chain_named_a");
-        execFuncWithPool(call, false, 2);
-    }
-
-    TEST_CASE("Test appended state", "[worker]") {
-        message::Message call = util::messageFactory("demo", "state_append");
-        execFuncWithPool(call, false, 1);
-    }
-
-    TEST_CASE("Test repeat invocation with state", "[worker]") {
-        setUp();
-
-        // Set up the function call
-        message::Message call = util::messageFactory("demo", "increment");
-        setEmulatedMessage(call);
-
-        // Call function
-        FaasletPool pool(1);
-        Faaslet w(1);
-
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        sch.callFunction(call);
-
-        // Bind and exec
-        w.processNextMessage();
-        w.processNextMessage();
-
-        // Check result
-        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message resultA = globalBus.getFunctionResult(call.id(), 1);
-        REQUIRE(resultA.returnvalue() == 0);
-        REQUIRE(resultA.outputdata() == "Counter: 001");
-
-        // Call the function a second time, the state should have been incremented
-        call.set_id(0);
-        util::setMessageId(call);
-        setEmulatedMessage(call);
-
-        sch.callFunction(call);
-        w.processNextMessage();
-
-        message::Message resultB = globalBus.getFunctionResult(call.id(), 1);
-        REQUIRE(resultB.returnvalue() == 0);
-        REQUIRE(resultB.outputdata() == "Counter: 002");
-    }
-
-    void checkStateExample(const std::string &funcName, const std::string &keyName, std::vector<uint8_t> expectedOutput,
-                           std::vector<uint8_t> expectedRedis) {
-        setUp();
-
-        // Set up the function call
-        message::Message call = util::messageFactory("demo", funcName);
-        setEmulatedMessage(call);
-
-        // Call function
-        FaasletPool pool(1);
-        Faaslet w(1);
-
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        sch.callFunction(call);
-
-        // Bind and exec
-        w.processNextMessage();
-        w.processNextMessage();
-
-        // Check result
-        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(call.id(), 1);
-        REQUIRE(result.returnvalue() == 0);
-        std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
-
-        REQUIRE(outputBytes == expectedOutput);
-
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-        REQUIRE(redisQueue.get(keyName) == expectedRedis);
-    }
-
-    TEST_CASE("Test asynchronous state", "[worker]") {
-        checkStateExample(
-                "state_async",
-                "demo_state_async_example",
-                {1, 1, 1, 1},
-                {3, 2, 1, 0}
-        );
-    }
-
-    TEST_CASE("Test offset state", "[worker]") {
-        checkStateExample(
-                "state_offset",
-                "demo_state_offset_example",
-                {5, 5, 6, 6, 4},
-                {5, 5, 6, 6, 4, 5, 6}
-        );
-    }
-
-    TEST_CASE("Test memory is reset", "[worker]") {
+    TEST_CASE("Test memory is reset", "[faaslet]") {
         cleanSystem();
 
         message::Message call = util::messageFactory("demo", "heap");
@@ -302,77 +201,19 @@ namespace tests {
         REQUIRE(afterPages == initialPages);
     }
 
-    void checkCallingFunctionGivesBoolOutput(const std::string &funcName, bool expected) {
-        message::Message call = util::messageFactory("demo", funcName);
-        setEmulatedMessage(call);
-
-        // Call function
-        FaasletPool pool(1);
-        Faaslet w(1);
-
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        sch.callFunction(call);
-
-        // Bind and execute
-        w.processNextMessage();
-        w.processNextMessage();
-
-        // Check output is true
-        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(call.id(), 1);
-        REQUIRE(result.returnvalue() == 0);
-        std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
-
-        std::vector<uint8_t> expectedOutput;
-
-        if (expected) {
-            expectedOutput = {1};
-        } else {
-            expectedOutput = {0};
-        }
-
-        REQUIRE(outputBytes == expectedOutput);
-    }
-
-    TEST_CASE("Test mmap/munmap", "[worker]") {
+    TEST_CASE("Test mmap/munmap", "[faaslet]") {
         setUp();
 
-        checkCallingFunctionGivesBoolOutput("mmap", true);
+        checkCallingFunctionGivesBoolOutput("demo", "mmap", true);
     }
 
-    TEST_CASE("Test big mmap", "[worker]") {
+    TEST_CASE("Test big mmap", "[faaslet]") {
         setUp();
         message::Message msg = util::messageFactory("demo", "mmap_big");
         execFunction(msg);
     }
 
-    TEST_CASE("Test state size", "[worker]") {
-        setUp();
-        message::Message msg = util::messageFactory("demo", "state_size");
-        execFunction(msg);
-    }
-
-    TEST_CASE("Test shared state write pointers", "[worker]") {
-        setUp();
-
-        // Run the function to write
-        checkCallingFunctionGivesBoolOutput("state_shared_write", true);
-
-        // Run the function to read
-        checkCallingFunctionGivesBoolOutput("state_shared_read", true);
-    }
-
-    TEST_CASE("Test shared state offset pointers", "[worker]") {
-        setUp();
-
-        // Run the function to write
-        checkCallingFunctionGivesBoolOutput("state_shared_write_offset", true);
-
-        // Run the function to read
-        checkCallingFunctionGivesBoolOutput("state_shared_read_offset", true);
-    }
-
-    TEST_CASE("Test pool accounting", "[worker]") {
+    TEST_CASE("Test pool accounting", "[faaslet]") {
         cleanSystem();
 
         FaasletPool pool(5);
@@ -391,7 +232,7 @@ namespace tests {
         REQUIRE(pool.getThreadCount() == 2);
     }
 
-    TEST_CASE("Test worker lifecycle interacts with scheduler", "[worker]") {
+    TEST_CASE("Test worker lifecycle interacts with scheduler", "[faaslet]") {
         cleanSystem();
         redis::Redis &redis = redis::Redis::getQueue();
 
@@ -441,11 +282,5 @@ namespace tests {
         REQUIRE(sch.getFunctionInFlightRatio(call) == 0);
         REQUIRE(bindQueue->size() == 0);
         REQUIRE(!redis.sismember(warmSetName, nodeId));
-    }
-
-    TEST_CASE("Test writing file to state", "[worker]") {
-        cleanSystem();
-        message::Message msg = util::messageFactory("demo", "state_file");
-        execFunction(msg);
     }
 }

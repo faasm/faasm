@@ -11,7 +11,7 @@
 
 
 namespace tests {
-    TEST_CASE("Test accessing shared files from wasm", "[worker]") {
+    TEST_CASE("Test accessing shared files from wasm", "[faaslet]") {
         cleanSystem();
 
         // Set up a dummy file

@@ -5,13 +5,13 @@
 #include <util/func.h>
 
 namespace tests {
-    TEST_CASE("Test zygote function works", "[worker]") {
+    TEST_CASE("Test zygote function works", "[faaslet]") {
         cleanSystem();
         message::Message msg = util::messageFactory("demo", "zygote_check");
         execFunction(msg);
     }
 
-    TEST_CASE("Test repeat execution of zygote function", "[worker]") {
+    TEST_CASE("Test repeat execution of zygote function", "[faaslet]") {
         cleanSystem();
         message::Message msg = util::messageFactory("demo", "zygote_check");
         checkMultipleExecutions(msg, 4);

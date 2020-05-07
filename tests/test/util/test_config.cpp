@@ -32,7 +32,7 @@ namespace tests {
         REQUIRE(conf.netNsMode == "off");
         REQUIRE(conf.pythonPreload == "off");
         REQUIRE(conf.captureStdout == "off");
-        REQUIRE(conf.stateMode == "redis");
+        REQUIRE(conf.stateMode == "inmemory");
         REQUIRE(conf.wasmVm == "wavm");
 
         REQUIRE(conf.redisPort == "6379");

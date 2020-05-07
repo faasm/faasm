@@ -7,7 +7,7 @@
 
 namespace tests {
     // NOTE: if this is failing make sure you've set up libfake
-    TEST_CASE("Test e2e execution of dynamic linking modules", "[worker]") {
+    TEST_CASE("Test e2e execution of dynamic linking modules", "[faaslet]") {
         cleanSystem();
 
         const char *filePath = "/usr/local/faasm/runtime_root/lib/libfakeLibA.so";

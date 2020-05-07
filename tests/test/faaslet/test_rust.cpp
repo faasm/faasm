@@ -5,7 +5,7 @@
 #include <utils.h>
 
 namespace tests {
-    TEST_CASE("Test rust function works", "[worker]") {
+    TEST_CASE("Test rust function works", "[faaslet]") {
         cleanSystem();
 
         // TODO - WASI - get Rust working again

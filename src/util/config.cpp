@@ -41,7 +41,7 @@ namespace util {
         logLevel = getEnvVar("LOG_LEVEL", "info");
         pythonPreload = getEnvVar("PYTHON_PRELOAD", "off");
         captureStdout = getEnvVar("CAPTURE_STDOUT", "off");
-        stateMode = getEnvVar("STATE_MODE", "redis");
+        stateMode = getEnvVar("STATE_MODE", "inmemory");
         wasmVm = getEnvVar("WASM_VM", "wavm");
 
         // Redis
