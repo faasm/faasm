@@ -228,7 +228,10 @@ namespace state {
 
     void StateKeyValue::clear() {
         FullLock lock(valueMutex);
+        doClear();
+    }
 
+    void StateKeyValue::doClear() {
         logger->debug("Clearing value {}/{}", user, key);
 
         // Set flag to say this is effectively new again

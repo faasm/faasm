@@ -440,82 +440,91 @@ namespace tests {
         resetStateMode();
     }
 
-    void checkPulling(bool async) {
-        setUpStateMode("redis");
-
-        auto kv = setupKV(4);
-        std::string actualKey = util::keyForUser(kv->user, kv->key);
-
+    void checkPulling(bool doPull) {
         std::vector<uint8_t> values = {0, 1, 2, 3};
+        std::vector<uint8_t> actual(values.size(), 0);
 
-        // Push and make sure reflected in redis
-        kv->set(values.data());
-        kv->pushFull();
+        DummyStateServer server;
+        setUpDummyServer(server, values);
 
-        redis::Redis &redisState = redis::Redis::getState();
-        REQUIRE(redisState.get(actualKey) == values);
+        // Get, with optional pull
+        int nMessages = 1;
+        if(doPull) {
+            nMessages = 2;
+        }
 
-        // Now update in Redis directly
+        server.start(nMessages);
+
+        // Initial pull
+        const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
+        localKv->pull();
+
+        // Update directly on the remote KV
+        std::shared_ptr<state::StateKeyValue> remoteKv = server.getRemoteKv();
         std::vector<uint8_t> newValues = {5, 5, 5, 5};
-        redisState.set(actualKey, newValues);
+        remoteKv->set(newValues.data());
 
-        // Get and check whether the remote is pulled
-        if (!async) {
-            kv->pull();
-        }
-
-        std::vector<uint8_t> actual(4);
-        kv->get(actual.data());
-
-        if (async) {
-            REQUIRE(actual == values);
-        } else {
+        if(doPull) {
+            // Check locak changed with another pull
+            localKv->pull();
+            localKv->get(actual.data());
             REQUIRE(actual == newValues);
+        } else {
+            // Check local unchanged without another pull
+            localKv->get(actual.data());
+            REQUIRE(actual == values);
         }
+
+        server.wait();
 
         resetStateMode();
     }
 
-    TEST_CASE("Test redis async pulling", "[state]") {
+    TEST_CASE("Test updates pulled from remote", "[state]") {
         checkPulling(true);
     }
 
-    TEST_CASE("Test redis sync pulling", "[state]") {
+    TEST_CASE("Test updates not pulled from remote without call to pull", "[state]") {
         checkPulling(false);
     }
 
     TEST_CASE("Test pushing only happens when dirty", "[state]") {
-        setUpStateMode("redis");
-
-        redis::Redis &redisState = redis::Redis::getState();
-
-        auto kv = setupKV(4);
-        std::string actualKey = util::keyForUser(kv->user, kv->key);
-
         std::vector<uint8_t> values = {0, 1, 2, 3};
-        kv->set(values.data());
-        kv->pushFull();
+        DummyStateServer server;
+        setUpDummyServer(server, values);
 
-        // Change in redis directly
+        server.start(2);
+
+        // Pull locally
+        const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
+        localKv->pull();
+
+        // Change remote directly
+        std::shared_ptr<state::StateKeyValue> remoteKv = server.getRemoteKv();
         std::vector<uint8_t> newValues = {3, 4, 5, 6};
-        redisState.set(actualKey, newValues);
+        remoteKv->set(newValues.data());
 
-        // Push and make sure redis not changed as it's not dirty
-        kv->pushFull();
-        REQUIRE(redisState.get(actualKey) == newValues);
+        // Push and make sure remote has not changed without local being dirty
+        localKv->pushFull();
+        REQUIRE(server.getRemoteKvValue() == newValues);
 
         // Now change locally and check push happens
         std::vector<uint8_t> newValues2 = {7, 7, 7, 7};
-        kv->set(newValues2.data());
-        kv->pushFull();
-        REQUIRE(redisState.get(actualKey) == newValues2);
+        localKv->set(newValues2.data());
+        localKv->pushFull();
+        REQUIRE(server.getRemoteKvValue() == newValues2);
+
+        server.wait();
 
         resetStateMode();
     }
 
     TEST_CASE("Test mapping shared memory", "[state]") {
+        cleanSystem();
+
         // Set up the KV
-        auto kv = setupKV(5);
+        State &s = getGlobalState();
+        auto kv = s.getKV(getEmulatorUser(), "mapping_test", 5);
         std::vector<uint8_t> value = {0, 1, 2, 3, 4};
         kv->set(value.data());
 
@@ -563,34 +572,39 @@ namespace tests {
     }
 
     TEST_CASE("Test mapping shared memory pulls if not initialised", "[state]") {
-        setUpStateMode("redis");
+        std::vector<uint8_t> values = {0, 1, 2, 3, 4};
+        DummyStateServer server;
+        setUpDummyServer(server, values);
 
-        // Set up the KV
-        int length = 5;
-        auto kv = setupKV(length);
-        std::string actualKey = util::keyForUser(kv->user, kv->key);
+        // One implicit pull
+        server.start(1);
+        
+        // Write value to remote
+        const std::shared_ptr<state::StateKeyValue> &remoteKv = server.getRemoteKv();
+        remoteKv->set(values.data());
 
-        // Write value direct to redis
-        std::vector<uint8_t> value = {0, 1, 2, 3, 4};
-        redis::Redis &redisState = redis::Redis::getState();
-        redisState.set(actualKey, value.data(), length);
-
-        // Try to map the kv
+        // Try to map the kv locally
         void *mappedRegion = mmap(nullptr, util::HOST_PAGE_SIZE, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-        kv->mapSharedMemory(mappedRegion, 0, 1);
+        const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
+        localKv->mapSharedMemory(mappedRegion, 0, 1);
 
         auto byteRegion = static_cast<uint8_t *>(mappedRegion);
-        std::vector<uint8_t> actualValue(byteRegion, byteRegion + length);
-        REQUIRE(actualValue == value);
+        std::vector<uint8_t> actualValue(byteRegion, byteRegion + values.size());
+        REQUIRE(actualValue == values);
+
+        server.wait();
 
         resetStateMode();
     }
 
     TEST_CASE("Test mapping small shared memory offsets", "[state]") {
+        cleanSystem();
+
         // Set up the KV
-        auto kv = setupKV(7);
-        std::vector<uint8_t> value = {0, 1, 2, 3, 4, 5, 6};
-        kv->set(value.data());
+        std::vector<uint8_t> values = {0, 1, 2, 3, 4, 5, 6};
+        State &s = getGlobalState();
+        auto kv = s.getKV(getEmulatorUser(), "mapping_small_test", values.size());
+        kv->set(values.data());
 
         // Map a single page of host memory
         void *mappedRegionA = mmap(nullptr, util::HOST_PAGE_SIZE, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -627,29 +641,28 @@ namespace tests {
     }
 
     TEST_CASE("Test mapping bigger uninitialized shared memory offsets", "[state]") {
-        setUpStateMode("redis");
-
-        // Define some larger chunks
+        // Define some mapping larger than a page
         size_t mappingSize = 3 * util::HOST_PAGE_SIZE;
 
-        // Set up a larger total value
+        // Set up a larger total value full of ones
         size_t totalSize = (10 * util::HOST_PAGE_SIZE) + 15;
-        auto kv = setupKV(totalSize);
-        std::string actualKey = util::keyForUser(kv->user, kv->key);
+        std::vector<uint8_t> values(totalSize, 1);
 
-        // Write ones to storage
-        std::vector<uint8_t> value(totalSize);
-        std::fill(value.data(), value.data() + totalSize, 1);
-        redis::Redis &redisState = redis::Redis::getState();
-        redisState.set(actualKey, value);
+        // Set up remote server
+        DummyStateServer server;
+        setUpDummyServer(server, values);
+
+        // Expecting two implicit pulls
+        server.start(2);
 
         // Map a couple of segments in host memory (as would be done by the wasm module)
         void *mappedRegionA = mmap(nullptr, mappingSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         void *mappedRegionB = mmap(nullptr, mappingSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
         // Do the mapping and check they're reporting the correct offset
-        kv->mapSharedMemory(mappedRegionA, 6, 3);
-        kv->mapSharedMemory(mappedRegionB, 2, 3);
+        const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
+        localKv->mapSharedMemory(mappedRegionA, 6, 3);
+        localKv->mapSharedMemory(mappedRegionB, 2, 3);
 
         // Get a byte pointer to each
         auto byteRegionA = static_cast<uint8_t *>(mappedRegionA);
@@ -662,64 +675,49 @@ namespace tests {
         // Get pointers to these segments
         size_t offsetA = (6 * util::HOST_PAGE_SIZE);
         size_t offsetB = (2 * util::HOST_PAGE_SIZE);
-        uint8_t *segmentA = kv->getSegment(offsetA, 10);
-        uint8_t *segmentB = kv->getSegment(offsetB, 10);
+        uint8_t *segmentA = localKv->getSegment(offsetA, 10);
+        uint8_t *segmentB = localKv->getSegment(offsetB, 10);
 
         REQUIRE(segmentA[0] == 1);
         REQUIRE(segmentB[0] == 1);
         REQUIRE(segmentA[5] == 5);
         REQUIRE(segmentB[9] == 9);
 
-        resetStateMode();
-    }
-
-    TEST_CASE("Test pulling") {
-        setUpStateMode("redis");
-
-        auto kv = setupKV(6);
-        REQUIRE(kv->size() == 6);
-        std::string actualKey = util::keyForUser(kv->user, kv->key);
-
-        // Set up value in Redis
-        redis::Redis &redisState = redis::Redis::getState();
-        std::vector<uint8_t> value = {0, 1, 2, 3, 4, 5};
-        redisState.set(actualKey, value);
-
-        std::vector<uint8_t> expected;
-
-        // Pull and check storage is initialised
-        kv->pull();
-        REQUIRE(kv->size() == 6);
-
-        expected = {0, 1, 2, 3, 4, 5};
-        uint8_t *actualBytes = kv->get();
-        std::vector<uint8_t> actual(actualBytes, actualBytes + 6);
-        REQUIRE(actual == expected);
+        server.wait();
 
         resetStateMode();
     }
 
     TEST_CASE("Test deletion", "[state]") {
-        setUpStateMode("redis");
-
-        redis::Redis &redisState = redis::Redis::getState();
-        auto kv = setupKV(5);
-        std::string actualKey = util::keyForUser(kv->user, kv->key);
-
-        // Push some data and check
         std::vector<uint8_t> values = {0, 1, 2, 3, 4};
-        kv->set(values.data());
-        kv->pushFull();
-        REQUIRE(redisState.get(actualKey) == values);
+        DummyStateServer server;
+        setUpDummyServer(server, values);
 
-        kv->deleteGlobal();
-        redisState.get(actualKey);
+        // One push, one deletion
+        server.start(2);
+        
+        // Check data remotely and locally
+        REQUIRE(server.getLocalKvValue() == values);
+        REQUIRE(server.getRemoteKvValue() == values);
+        
+        // Delete
+        const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
+        localKv->deleteGlobal();
+
+        // Check it's gone
+        REQUIRE(server.remoteState.getKVCount() == 0);
 
         resetStateMode();
     }
 
     TEST_CASE("Test appended state with KV", "[state]") {
-        auto kv = setupKV(1);
+        cleanSystem();
+
+        // Set up the KV
+        std::vector<uint8_t> values(1, 0);
+        State &s = getGlobalState();
+        auto kv = s.getKV(getEmulatorUser(), "appending_test", values.size());
+        kv->set(values.data());
 
         std::vector<uint8_t> valuesA = {0, 1, 2, 3, 4};
         std::vector<uint8_t> valuesB = {5, 6};

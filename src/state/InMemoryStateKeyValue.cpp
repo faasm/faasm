@@ -286,7 +286,7 @@ namespace state {
     void InMemoryStateKeyValue::deleteFromRemote() {
         if (status == InMemoryStateKeyStatus::MASTER) {
             // Run normal clear
-            clear();
+            doClear();
 
             // Clear appended data
             appendedData.clear();

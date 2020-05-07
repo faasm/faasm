@@ -126,6 +126,8 @@ namespace state {
 
         void doSet(const uint8_t *data);
 
+        void doClear();
+
         void doSetSegment(long offset, const uint8_t *buffer, size_t length);
 
         virtual void pullFromRemote() = 0;
