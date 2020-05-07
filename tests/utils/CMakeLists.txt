@@ -14,7 +14,7 @@ target_link_libraries(test_utils
         catch
         faasm
         upload_lib
-        worker_lib
+        faaslet_lib
         emulator
         tcp
         worker_knative_lib

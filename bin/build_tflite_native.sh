@@ -15,7 +15,9 @@ TF_LITE_DIR=${TF_DIR}/tensorflow/lite
 
 pushd ${TF_LITE_DIR}
 
-make -j \
+N_PROC=$(nproc --ignore=1)
+
+make -j ${N_PROC} \
   BUILD_WITH_NNAPI=false \
   -C ${TF_DIR} \
   -f tensorflow/lite/tools/make/Makefile \

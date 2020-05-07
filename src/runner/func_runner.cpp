@@ -3,7 +3,7 @@
 #include <redis/Redis.h>
 #include <util/config.h>
 #include <util/timing.h>
-#include <worker/WorkerThreadPool.h>
+#include <faaslet/FaasletPool.h>
 
 
 int main(int argc, char *argv[]) {
@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Set up a worker pool
-    worker::WorkerThreadPool pool(nThreads);
+    faaslet::FaasletPool pool(nThreads);
 
     // Switch on MPI
     pool.startMpiThread();

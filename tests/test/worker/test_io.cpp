@@ -6,10 +6,10 @@ extern "C" {
 }
 
 #include <util/config.h>
-#include <worker/WorkerThreadPool.h>
+#include <faaslet/FaasletPool.h>
 #include <emulator/emulator.h>
 
-using namespace worker;
+using namespace faaslet;
 
 namespace tests {
     TEST_CASE("Test fixed input with colon", "[worker]") {

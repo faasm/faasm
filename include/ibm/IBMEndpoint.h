@@ -4,7 +4,7 @@
 
 #include <pistache/http.h>
 #include <pistache/router.h>
-#include <worker/WorkerMain.h>
+#include <faaslet/FaasmMain.h>
 #include <scheduler/SchedulerHttpMixin.h>
 
 #define INVOKE_MODE "invoke"
@@ -31,7 +31,7 @@ namespace ibm {
         bool testMode = false;
     private:
         Pistache::Rest::Router router;
-        worker::WorkerMain *workerMain;
+        faaslet::FaasmMain *faasmMain;
 
         std::mutex startedMutex;
         bool started = false;

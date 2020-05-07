@@ -11,8 +11,6 @@ extern "C" {
 #include <scheduler/Scheduler.h>
 #include <emulator/emulator.h>
 #include <module_cache/WasmModuleCache.h>
-#include <boost/filesystem.hpp>
-#include <worker/worker.h>
 
 
 namespace tests {

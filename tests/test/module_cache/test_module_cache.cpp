@@ -26,8 +26,8 @@ namespace tests {
         REQUIRE(moduleA.isBound());
 
         // Execute the function normally and make sure zygote is not used directly
-        worker::WorkerThread workerThread = execFunction(msgA);
-        REQUIRE(workerThread.isBound());
-        REQUIRE(std::addressof(moduleA) != std::addressof(*workerThread.module));
+        faaslet::Faaslet faaslet = execFunction(msgA);
+        REQUIRE(faaslet.isBound());
+        REQUIRE(std::addressof(moduleA) != std::addressof(*faaslet.module));
     }
 }

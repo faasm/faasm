@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstdint>
+#include <cmath>
 
 const int32_t EXPECTED = -2147483529;
 

@@ -8,10 +8,10 @@
 
 #include <string>
 
-namespace worker {
-    class WorkerThread {
+namespace faaslet {
+    class Faaslet {
     public:
-        explicit WorkerThread(int threadIdx);
+        explicit Faaslet(int threadIdx);
 
         void bindToFunction(const message::Message &msg, bool force = false);
 

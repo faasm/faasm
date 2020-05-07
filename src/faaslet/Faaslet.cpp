@@ -1,4 +1,4 @@
-#include "WorkerThread.h"
+#include "Faaslet.h"
 
 #include <system/CGroup.h>
 #include <system/NetworkNamespace.h>
@@ -10,8 +10,8 @@
 
 using namespace isolation;
 
-namespace worker {
-    WorkerThread::WorkerThread(int threadIdxIn) : threadIdx(threadIdxIn),
+namespace faaslet {
+    Faaslet::Faaslet(int threadIdxIn) : threadIdx(threadIdxIn),
                                                   scheduler(scheduler::getScheduler()),
                                                   globalBus(scheduler::getGlobalMessageBus()) {
 
@@ -39,11 +39,11 @@ namespace worker {
         executionCount = 0;
     }
 
-    const bool WorkerThread::isBound() {
+    const bool Faaslet::isBound() {
         return _isBound;
     }
 
-    void WorkerThread::finish() {
+    void Faaslet::finish() {
         ns->removeCurrentThread();
 
         if (_isBound) {
@@ -52,7 +52,7 @@ namespace worker {
         }
     }
 
-    void WorkerThread::finishCall(message::Message &call, bool success, const std::string &errorMsg) {
+    void Faaslet::finishCall(message::Message &call, bool success, const std::string &errorMsg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         const std::string funcStr = util::funcToString(call, true);
         logger->info("Finished {}", funcStr);
@@ -93,7 +93,7 @@ namespace worker {
         executionCount++;
     }
 
-    void WorkerThread::bindToFunction(const message::Message &msg, bool force) {
+    void Faaslet::bindToFunction(const message::Message &msg, bool force) {
         // If already bound, will be an error, unless forced to rebind to the same message
         if (_isBound) {
             if (force) {
@@ -122,7 +122,7 @@ namespace worker {
         _isBound = true;
     }
 
-    void WorkerThread::run() {
+    void Faaslet::run() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Wait for next message
@@ -146,7 +146,7 @@ namespace worker {
         this->finish();
     }
 
-    std::string WorkerThread::processNextMessage() {
+    std::string Faaslet::processNextMessage() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Work out which timeout
@@ -203,11 +203,11 @@ namespace worker {
         return errorMessage;
     }
 
-    std::string WorkerThread::executeCall(message::Message &call) {
+    std::string Faaslet::executeCall(message::Message &call) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         const std::string funcStr = util::funcToString(call, true);
-        logger->info("WorkerThread executing {}", funcStr);
+        logger->info("Faaslet executing {}", funcStr);
 
         // Create and execute the module
         bool success;

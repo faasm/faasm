@@ -1,15 +1,15 @@
-#include <worker/WorkerThread.h>
+#include <faaslet/Faaslet.h>
+#include <faaslet/FaasmMain.h>
 
-#include "WorkerThreadPool.h"
+#include "FaasletPool.h"
 
 #include <scheduler/GlobalMessageBus.h>
 #include <scheduler/SharingMessageBus.h>
 #include <state/StateServer.h>
-#include <worker/worker.h>
 #include <mpi/MpiGlobalBus.h>
 
-namespace worker {
-    WorkerThreadPool::WorkerThreadPool(int nThreads) :
+namespace faaslet {
+    FaasletPool::FaasletPool(int nThreads) :
             _shutdown(false),
             scheduler(scheduler::getScheduler()),
             threadTokenPool(nThreads) {
@@ -19,7 +19,7 @@ namespace worker {
         redis::Redis::getState().ping();
     }
 
-    void WorkerThreadPool::startGlobalQueueThread() {
+    void FaasletPool::startGlobalQueueThread() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         util::SystemConfig &conf = util::getSystemConfig();
 
@@ -49,7 +49,7 @@ namespace worker {
         globalQueueThread.join();
     }
 
-    void WorkerThreadPool::startSharingThread() {
+    void FaasletPool::startSharingThread() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->info("Starting work sharing listener");
 
@@ -91,7 +91,7 @@ namespace worker {
         });
     }
 
-    void WorkerThreadPool::startMpiThread() {
+    void FaasletPool::startMpiThread() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->info("Starting MPI queue listener");
 
@@ -111,7 +111,7 @@ namespace worker {
         });
     }
 
-    void WorkerThreadPool::startStateServer() {
+    void FaasletPool::startStateServer() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Start the state worker if necessary
@@ -133,7 +133,7 @@ namespace worker {
         });
     }
 
-    void WorkerThreadPool::startThreadPool() {
+    void FaasletPool::startThreadPool() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->info("Starting worker thread pool");
 
@@ -153,7 +153,7 @@ namespace worker {
 
                 // Spawn thread to execute function
                 poolThreads.emplace_back(std::thread([this, threadIdx] {
-                    WorkerThread w(threadIdx);
+                    Faaslet w(threadIdx);
 
                     // Worker will now run for a long time
                     w.run();
@@ -178,7 +178,7 @@ namespace worker {
         preparePythonRuntime();
     }
 
-    void WorkerThreadPool::preparePythonRuntime() {
+    void FaasletPool::preparePythonRuntime() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         util::SystemConfig &conf = util::getSystemConfig();
@@ -200,23 +200,23 @@ namespace worker {
         logger->info("Python runtime prepared");
     }
 
-    void WorkerThreadPool::reset() {
+    void FaasletPool::reset() {
         threadTokenPool.reset();
     }
 
-    int WorkerThreadPool::getThreadToken() {
+    int FaasletPool::getThreadToken() {
         return threadTokenPool.getToken();
     }
 
-    int WorkerThreadPool::getThreadCount() {
+    int FaasletPool::getThreadCount() {
         return threadTokenPool.taken();
     }
 
-    bool WorkerThreadPool::isShutdown() {
+    bool FaasletPool::isShutdown() {
         return _shutdown;
     }
 
-    void WorkerThreadPool::shutdown() {
+    void FaasletPool::shutdown() {
         _shutdown = true;
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();

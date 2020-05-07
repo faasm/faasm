@@ -10,11 +10,11 @@ extern "C" {
 #include <util/bytes.h>
 #include <redis/Redis.h>
 
-#include <worker/WorkerThreadPool.h>
-#include <worker/WorkerThread.h>
+#include <faaslet/FaasletPool.h>
+#include <faaslet/Faaslet.h>
 #include <emulator/emulator.h>
 
-using namespace worker;
+using namespace faaslet;
 
 namespace tests {
     static std::string originalNsMode;
@@ -41,12 +41,12 @@ namespace tests {
     TEST_CASE("Test worker initially pre-warmed", "[worker]") {
         setUp();
 
-        WorkerThreadPool pool(1);
-        WorkerThread w(1);
+        FaasletPool pool(1);
+        Faaslet w(1);
         REQUIRE(!w.isBound());
     }
 
-    void checkBound(WorkerThread &w, message::Message &msg, bool isBound) {
+    void checkBound(Faaslet &w, message::Message &msg, bool isBound) {
         REQUIRE(w.isBound() == isBound);
         if (w.module) {
             REQUIRE(w.module->isBound() == isBound);
@@ -61,8 +61,8 @@ namespace tests {
         message::Message call = util::messageFactory("demo", "chain");
         setEmulatedMessage(call);
 
-        WorkerThreadPool pool(1);
-        WorkerThread w(1);
+        FaasletPool pool(1);
+        Faaslet w(1);
         checkBound(w, call, false);
 
         w.bindToFunction(call);
@@ -75,8 +75,8 @@ namespace tests {
         message::Message callA = util::messageFactory("demo", "chain");
         setEmulatedMessage(callA);
 
-        WorkerThreadPool pool(1);
-        WorkerThread w(1);
+        FaasletPool pool(1);
+        Faaslet w(1);
 
         // Bind once
         w.bindToFunction(callA);
@@ -111,8 +111,8 @@ namespace tests {
         setEmulatedMessage(call);
 
         // Set up
-        WorkerThreadPool pool(1);
-        WorkerThread w(1);
+        FaasletPool pool(1);
+        Faaslet w(1);
 
         // Bind to function
         scheduler::Scheduler &sch = scheduler::getScheduler();
@@ -151,8 +151,8 @@ namespace tests {
         setUp();
 
         // Create worker
-        WorkerThreadPool pool(1);
-        WorkerThread w(1);
+        FaasletPool pool(1);
+        Faaslet w(1);
         REQUIRE(!w.isBound());
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
@@ -197,8 +197,8 @@ namespace tests {
         setEmulatedMessage(call);
 
         // Call function
-        WorkerThreadPool pool(1);
-        WorkerThread w(1);
+        FaasletPool pool(1);
+        Faaslet w(1);
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.callFunction(call);
@@ -235,8 +235,8 @@ namespace tests {
         setEmulatedMessage(call);
 
         // Call function
-        WorkerThreadPool pool(1);
-        WorkerThread w(1);
+        FaasletPool pool(1);
+        Faaslet w(1);
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.callFunction(call);
@@ -282,8 +282,8 @@ namespace tests {
         setEmulatedMessage(call);
 
         // Call function
-        WorkerThreadPool pool(1);
-        WorkerThread w(1);
+        FaasletPool pool(1);
+        Faaslet w(1);
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.callFunction(call);
@@ -307,8 +307,8 @@ namespace tests {
         setEmulatedMessage(call);
 
         // Call function
-        WorkerThreadPool pool(1);
-        WorkerThread w(1);
+        FaasletPool pool(1);
+        Faaslet w(1);
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.callFunction(call);
@@ -375,15 +375,15 @@ namespace tests {
     TEST_CASE("Test pool accounting", "[worker]") {
         cleanSystem();
 
-        WorkerThreadPool pool(5);
+        FaasletPool pool(5);
         REQUIRE(pool.getThreadCount() == 0);
 
         message::Message call = util::messageFactory("demo", "noop");
         setEmulatedMessage(call);
 
         // Add threads and check tokens are taken
-        WorkerThread w1(pool.getThreadToken());
-        WorkerThread w2(pool.getThreadToken());
+        Faaslet w1(pool.getThreadToken());
+        Faaslet w2(pool.getThreadToken());
         REQUIRE(pool.getThreadCount() == 2);
 
         // Bind
@@ -395,9 +395,9 @@ namespace tests {
         cleanSystem();
         redis::Redis &redis = redis::Redis::getQueue();
 
-        WorkerThreadPool pool(5);
+        FaasletPool pool(5);
 
-        WorkerThread w(1);
+        Faaslet w(1);
         std::string nodeId = util::getNodeId();
 
         message::Message call = util::messageFactory("demo", "noop");
