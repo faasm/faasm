@@ -5,7 +5,7 @@
 #include <module_cache/WasmModuleCache.h>
 
 namespace faaslet {
-    void flushWorkerHost() {
+    void flushFaasletHost() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->warn("Flushing host {}", util::getNodeId());
 

@@ -8,7 +8,7 @@
 #include <util/config.h>
 
 namespace faaslet {
-    void flushWorkerHost();
+    void flushFaasletHost();
 
     class FaasmMain {
     public:

@@ -66,7 +66,7 @@ namespace faaslet {
 
                     // Clear out this worker node if we've received a flush message
                     if (msg.isflushrequest()) {
-                        flushWorkerHost();
+                        flushFaasletHost();
 
                         preparePythonRuntime();
 
