@@ -29,12 +29,23 @@ namespace tests {
         util::getSystemConfig().stateMode = originalStateMode;
     }
 
+    void setUpDummyServer(DummyStateServer &server, const std::vector<uint8_t> &values) {
+        setUpStateMode("inmemory");
+
+        staticCount++;
+        const std::string stateKey = "state_key_" + std::to_string(staticCount);
+
+        // Set state remotely
+        server.dummyUser = getEmulatorUser();
+        server.dummyKey = stateKey;
+        server.dummyData = values;
+    }
+
     std::shared_ptr<StateKeyValue> setupKV(size_t size) {
         // We have to make sure emulator is using the right user
         const std::string user = getEmulatorUser();
 
         staticCount++;
-
         const std::string stateKey = "state_key_" + std::to_string(staticCount);
 
         // Get state and remove key if already exists
@@ -123,27 +134,20 @@ namespace tests {
     }
 
     TEST_CASE("Test in memory get/ set segment", "[state]") {
-        setUpStateMode("inmemory");
-
-        // Set state remotely
-        std::vector<uint8_t> values = {0, 0, 1, 1, 2, 2, 3, 3, 4, 4};
         DummyStateServer server;
-        server.dummyUser = getEmulatorUser();
-        server.dummyKey = "get_set_check";
-        server.dummyData = values;
-
+        std::vector<uint8_t> values = {0, 0, 1, 1, 2, 2, 3, 3, 4, 4};
+        setUpDummyServer(server, values);
+        
         // Get, push, pull
         server.start(3);
 
         // Get locally
-        State &globalState = state::getGlobalState();
-        const std::shared_ptr<StateKeyValue> &localKv = globalState.getKV(server.dummyUser, server.dummyKey, values.size());
-        std::vector<uint8_t> actual(values.size(), 0);
-        localKv->get(actual.data());
+        std::vector<uint8_t> actual = server.getLocalKvValue();
         REQUIRE(actual == values);
 
         // Update a subsection
         std::vector<uint8_t> update = {8, 8, 8};
+        std::shared_ptr<state::StateKeyValue> localKv = server.getLocalKv();
         localKv->setSegment(3, update.data(), 3);
 
         std::vector<uint8_t> expected = {0, 0, 1, 8, 8, 8, 3, 3, 4, 4};
@@ -168,74 +172,50 @@ namespace tests {
         resetStateMode();
     }
 
-    static void doMarkDirtyChecks(const std::string &stateMode) {
-        setUpStateMode(stateMode);
-
-        redis::Redis &redisState = redis::Redis::getState();
-        auto kv = setupKV(10);
-
-        // Set up and push
+    TEST_CASE("Test in memory marking segments dirty", "[state]") {
         std::vector<uint8_t> values = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-        kv->set(values.data());
-        kv->pushFull();
+        DummyStateServer server;
+        setUpDummyServer(server, values);
 
-        // Get pointer and update in memory only
-        uint8_t *ptr = kv->get();
+        // Get, push, pull
+        server.start(3);
+        
+        // Get pointer to local and update in memory only
+        const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
+        uint8_t *ptr = localKv->get();
         ptr[0] = 8;
         ptr[5] = 7;
 
         // Mark one region as dirty and do push partial
-        kv->flagSegmentDirty(0, 2);
-        kv->pushPartial();
+        localKv->flagSegmentDirty(0, 2);
+        localKv->pushPartial();
 
         // Update expectation
         values.at(0) = 8;
-        std::string actualKey = util::keyForUser(kv->user, kv->key);
 
-        // Check in redis
-        if (stateMode == "redis") {
-            REQUIRE(redisState.get(actualKey) == values);
-        }
+        // Check remote
+        REQUIRE(server.getRemoteKvValue() == values);
 
-        // With in-memory state we expect the unmarked update
-        // *not* to be overwritten, as this is the master
-        // With the redis state, we expect to lose the unmarked
-        // local change.
-        if (stateMode == "inmemory") {
-            values.at(5) = 7;
-        }
-
-        // Check expectation
+        // Check local value has been set with the latest remote value
         std::vector<uint8_t> actualMemory(ptr, ptr + values.size());
         REQUIRE(actualMemory == values);
+
+        server.wait();
 
         resetStateMode();
     }
 
-    TEST_CASE("Test redis marking segments dirty", "[state]") {
-        doMarkDirtyChecks("redis");
-    }
-
-    TEST_CASE("Test in memory marking segments dirty", "[state]") {
-        doMarkDirtyChecks("inmemory");
-    }
-
-    TEST_CASE("Test redis overlaps with multiple segments dirty", "[state]") {
-        cleanSystem();
-        setUpStateMode("redis");
-
-        redis::Redis &redisState = redis::Redis::getState();
-        auto kv = setupKV(20);
-        std::string actualKey = util::keyForUser(kv->user, kv->key);
-        const char *key = actualKey.c_str();
-
-        // Set up and push
+    TEST_CASE("Test overlaps with multiple segments dirty", "[state]") {
         std::vector<uint8_t> values = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-        kv->set(values.data());
-        kv->pushFull();
+        DummyStateServer server;
+        setUpDummyServer(server, values);
 
-        // Get pointer
-        uint8_t *statePtr = kv->get();
+        // Get, push, pull
+        server.start(3);
+        
+        // Get pointer to local data
+        const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
+        uint8_t *statePtr = localKv->get();
 
         // Update a couple of areas
         statePtr[1] = 1;
@@ -251,90 +231,97 @@ namespace tests {
         statePtr[17] = 7;
 
         // Mark regions as dirty
-        kv->flagSegmentDirty(1, 3);
-        kv->flagSegmentDirty(10, 2);
-        kv->flagSegmentDirty(14, 4);
+        localKv->flagSegmentDirty(1, 3);
+        localKv->flagSegmentDirty(10, 2);
+        localKv->flagSegmentDirty(14, 4);
 
-        // Update one non-overlapping value in state
+        // Update one non-overlapping value remotely
         std::vector<uint8_t> directA = {2, 2};
-        redisState.setRange(key, 6, directA.data(), 2);
+        const std::shared_ptr<state::StateKeyValue> &remoteKv = server.getRemoteKv();
+        remoteKv->setSegment(6, directA.data(), 2);
 
-        // Update one overlapping value in state
+        // Update one overlapping value remotely
         std::vector<uint8_t> directB = {6, 6, 6, 6, 6};
-        redisState.setRange(key, 0, directB.data(), 5);
+        remoteKv->setSegment(0, directB.data(), 5);
 
-        // Check all updates are taken and the state ones take precedence
+        // Check expectations before push
+        std::vector<uint8_t> expectedLocal = {0, 1, 2, 3, 0, 0, 0, 0, 0, 0, 4, 5, 0, 0, 7, 7, 7, 7, 0, 0};
+        std::vector<uint8_t> expectedRemote = {6, 6, 6, 6, 6, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+        REQUIRE(server.getLocalKvValue() == expectedLocal);
+        REQUIRE(server.getRemoteKvValue() == expectedRemote);
+
+        // Push changes
+        localKv->pushPartial();
+
+        // Check updates are made locally and remotely
         std::vector<uint8_t> expected = {6, 1, 2, 3, 6, 0, 2, 2, 0, 0, 4, 5, 0, 0, 7, 7, 7, 7, 0, 0};
 
-        // Push and check that with no pull we're up to date
-        kv->pushPartial();
-        REQUIRE(redisState.get(key) == expected);
+        REQUIRE(server.getLocalKvValue() == expected);
+        REQUIRE(server.getRemoteKvValue() == expected);
+
+        server.wait();
 
         resetStateMode();
     }
 
-    static void doPartialDoubleUpdatesCheck(const std::string &stateMode) {
-        setUpStateMode(stateMode);
-
-        redis::Redis &redisState = redis::Redis::getState();
-
+    TEST_CASE("Test in memory partial update of doubles in state", "[state]") {
         long nDoubles = 20;
         long nBytes = nDoubles * sizeof(double);
-        auto kv = setupKV(nBytes);
-        std::string actualKey = util::keyForUser(kv->user, kv->key);
-        const char *key = actualKey.c_str();
 
-        // Set up both with zeroes initiall
+        std::vector<uint8_t> values(nBytes, 0);
+        DummyStateServer server;
+        setUpDummyServer(server, values);
+
+        // Get, push, pull
+        server.start(3);
+        
+        // Set up both with zeroes initially
         std::vector<double> expected(nDoubles);
         std::vector<uint8_t> actualBytes(nBytes);
         memset(expected.data(), 0, nBytes);
         memset(actualBytes.data(), 0, nBytes);
-
-        // Push zeroes to state
-        kv->set(actualBytes.data());
-        kv->pushFull();
-
-        // Update some elements in both and flag dirty
-        auto actualPtr = reinterpret_cast<double *>(kv->get());
+        
+        // Update a value locally and flag dirty
+        const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
+        auto actualPtr = reinterpret_cast<double *>(localKv->get());
         auto expectedPtr = expected.data();
         actualPtr[0] = 123.456;
         expectedPtr[0] = 123.456;
-        kv->flagSegmentDirty(0, sizeof(double));
+        localKv->flagSegmentDirty(0, sizeof(double));
 
+        // Update another value
         actualPtr[1] = -100304.223;
         expectedPtr[1] = -100304.223;
-        kv->flagSegmentDirty(1 * sizeof(double), sizeof(double));
+        localKv->flagSegmentDirty(1 * sizeof(double), sizeof(double));
 
+        // And another
         actualPtr[9] = 6090293.222;
         expectedPtr[9] = 6090293.222;
-        kv->flagSegmentDirty(9 * sizeof(double), sizeof(double));
+        localKv->flagSegmentDirty(9 * sizeof(double), sizeof(double));
 
+        // And another
         actualPtr[13] = -123.444;
         expectedPtr[13] = -123.444;
-        kv->flagSegmentDirty(13 * sizeof(double), sizeof(double));
+        localKv->flagSegmentDirty(13 * sizeof(double), sizeof(double));
 
-        // Push and check that with no pull we're up to date
-        kv->pushPartial();
-        auto postPushDoublePtr = reinterpret_cast<double *>(kv->get());
+        // Push
+        localKv->pushPartial();
+
+        // Check local
+        auto postPushDoublePtr = reinterpret_cast<double *>(localKv->get());
         std::vector<double> actualPostPush(postPushDoublePtr, postPushDoublePtr + nDoubles);
         REQUIRE(expected == actualPostPush);
 
-        // Also check redis
-        if (stateMode == "redis") {
-            std::vector<double> actualFromRedis(nDoubles);
-            redisState.get(key, BYTES(actualFromRedis.data()), nBytes);
-            REQUIRE(expected == actualFromRedis);
-        }
+        // Check remote
+        std::vector<uint8_t> remoteValue = server.getRemoteKvValue();
+        auto postPushDoublePtrRemote = reinterpret_cast<double *>(remoteValue.data());
+        std::vector<double> actualPostPushRemote(postPushDoublePtr, postPushDoublePtr + nDoubles);
+        REQUIRE(expected == actualPostPushRemote);
+
+        server.wait();
 
         resetStateMode();
-    }
-
-    TEST_CASE("Test redis partial update of doubles in state", "[state]") {
-        doPartialDoubleUpdatesCheck("redis");
-    }
-
-    TEST_CASE("Test in memory partial update of doubles in state", "[state]") {
-        doPartialDoubleUpdatesCheck("inmemory");
     }
 
     TEST_CASE("Test set segment cannot be out of bounds", "[state]") {
@@ -346,58 +333,59 @@ namespace tests {
         REQUIRE_THROWS(kv->setSegment(5, update.data(), 3));
     }
 
-    TEST_CASE("Test redis partially setting just first/ last element", "[state]") {
-        setUpStateMode("redis");
-
-        redis::Redis &redisState = redis::Redis::getState();
-        auto kv = setupKV(5);
-        std::string actualKey = util::keyForUser(kv->user, kv->key);
-
-        // Set up and push
+    TEST_CASE("Test partially setting just first/ last element", "[state]") {
         std::vector<uint8_t> values = {0, 1, 2, 3, 4};
-        kv->set(values.data());
-        kv->pushFull();
+        DummyStateServer server;
+        setUpDummyServer(server, values);
 
-        // Update just the last
+        // Only 3 push-partial messages as kv not fully allocated
+        server.start(3);
+        
+        // Update just the last element
         std::vector<uint8_t> update = {8};
-        kv->setSegment(4, update.data(), 1);
+        const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
+        localKv->setSegment(4, update.data(), 1);
 
-        kv->pushPartial();
+        localKv->pushPartial();
         std::vector<uint8_t> expected = {0, 1, 2, 3, 8};
-        REQUIRE(redisState.get(actualKey) == expected);
+        REQUIRE(server.getRemoteKvValue() == expected);
 
         // Update the first
-        kv->setSegment(0, update.data(), 1);
-
-        kv->pushPartial();
+        localKv->setSegment(0, update.data(), 1);
+        localKv->pushPartial();
         expected = {8, 1, 2, 3, 8};
-        REQUIRE(redisState.get(actualKey) == expected);
+        REQUIRE(server.getRemoteKvValue() == expected);
 
-        // Update both
+        // Update two
         update = {6};
-        kv->setSegment(0, update.data(), 1);
-        kv->setSegment(4, update.data(), 1);
+        localKv->setSegment(0, update.data(), 1);
+        localKv->setSegment(4, update.data(), 1);
 
-        kv->pushPartial();
+        localKv->pushPartial();
         expected = {6, 1, 2, 3, 6};
-        REQUIRE(redisState.get(actualKey) == expected);
+        REQUIRE(server.getRemoteKvValue() == expected);
+
+        server.wait();
 
         resetStateMode();
     }
 
-    TEST_CASE("Test redis push partial with mask", "[state]") {
-        cleanSystem();
-        setUpStateMode("redis");
-
-        redis::Redis &redisState = redis::Redis::getState();
-
-        // Create two key-values of same size
+    TEST_CASE("Test push partial with mask", "[state]") {
         size_t stateSize = 4 * sizeof(double);
-        std::shared_ptr<StateKeyValue> kvData = setupKV(stateSize);
-        std::shared_ptr<StateKeyValue> kvMask = setupKV(stateSize);
+        std::vector<uint8_t> values(stateSize, 0);
+        DummyStateServer server;
+        setUpDummyServer(server, values);
 
-        // Set up value in memory
-        uint8_t *dataBytePtr = kvData->get();
+        // Get, full push, push partial
+        server.start(4);
+        
+        // Create another local KV of same size
+        State &state = getGlobalState();
+        auto maskKv = state.getKV(getEmulatorUser(), "dummy_mask", stateSize);
+        
+        // Set up value locally
+        const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
+        uint8_t *dataBytePtr = localKv->get();
         auto dataDoublePtr = reinterpret_cast<double *>(dataBytePtr);
         std::vector<double> initial = {
                 1.2345,
@@ -409,30 +397,29 @@ namespace tests {
         std::copy(initial.begin(), initial.end(), dataDoublePtr);
 
         // Push 
-        kvData->flagDirty();
-        kvData->pushFull();
+        localKv->flagDirty();
+        localKv->pushFull();
 
-        // Check round trip
-        std::string actualKey = util::keyForUser(kvData->user, kvData->key);
-        std::vector<uint8_t> actualBytes = redisState.get(actualKey);
+        // Check pushed remotely
+        std::vector<uint8_t> actualBytes = server.getRemoteKvValue();
         auto actualDoublePtr = reinterpret_cast<double *>(actualBytes.data());
         std::vector<double> actualDoubles(actualDoublePtr, actualDoublePtr + 4);
 
         REQUIRE(actualDoubles == initial);
 
-        // Now update a couple of elements in memory
+        // Now update a couple of elements locally
         dataDoublePtr[1] = 11.11;
         dataDoublePtr[2] = 222.222;
         dataDoublePtr[3] = 3333.3333;
 
         // Mask two as having changed and push with mask
-        uint8_t *maskBytePtr = kvMask->get();
+        uint8_t *maskBytePtr = maskKv->get();
         auto maskIntPtr = reinterpret_cast<unsigned int *>(maskBytePtr);
         faasm::maskDouble(maskIntPtr, 1);
         faasm::maskDouble(maskIntPtr, 3);
 
-        kvData->flagDirty();
-        kvData->pushPartialMask(kvMask);
+        localKv->flagDirty();
+        localKv->pushPartialMask(maskKv);
 
         // Expected value will be a mix of new and old
         std::vector<double> expected = {
@@ -442,11 +429,13 @@ namespace tests {
                 3333.3333  // New (updated in memory and masked)
         };
 
-        // Check in redis
-        std::vector<uint8_t> actualValue2 = redisState.get(actualKey);
+        // Check remotely
+        std::vector<uint8_t> actualValue2 = server.getRemoteKvValue();
         auto actualDoublesPtr = reinterpret_cast<double *>(actualValue2.data());
         std::vector<double> actualDoubles2(actualDoublesPtr, actualDoublesPtr + 4);
         REQUIRE(actualDoubles2 == expected);
+
+        server.wait();
 
         resetStateMode();
     }

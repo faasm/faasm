@@ -19,7 +19,11 @@ namespace tests {
 
         std::shared_ptr<state::StateKeyValue> getRemoteKv();
 
+        std::shared_ptr<state::StateKeyValue> getLocalKv();
+
         std::vector<uint8_t> getRemoteKvValue();
+
+        std::vector<uint8_t> getLocalKvValue();
 
         std::vector<uint8_t> dummyData;
         std::string dummyUser;
