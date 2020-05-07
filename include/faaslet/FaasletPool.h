@@ -3,10 +3,10 @@
 #include <scheduler/Scheduler.h>
 #include <util/queue.h>
 
-namespace worker {
-    class WorkerThreadPool {
+namespace faaslet {
+    class FaasletPool {
     public:
-        explicit WorkerThreadPool(int nThreads);
+        explicit FaasletPool(int nThreads);
 
         void startGlobalQueueThread();
 

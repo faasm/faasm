@@ -59,7 +59,7 @@ namespace tests {
         writeCall.set_pythonuser("python");
         writeCall.set_pythonfunction("state_test_write");
         writeCall.set_ispython(true);
-        worker::WorkerThread worker = execFunction(writeCall);
+        faaslet::Faaslet worker = execFunction(writeCall);
 
         // Now run the state read function
         message::Message readCall = util::messageFactory(PYTHON_USER, PYTHON_FUNC);

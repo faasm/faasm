@@ -2,16 +2,16 @@
 
 #include "utils.h"
 
-#include <worker/WorkerThreadPool.h>
-#include <worker/WorkerThread.h>
+#include <faaslet/FaasletPool.h>
+#include <faaslet/Faaslet.h>
 #include <scheduler/InMemoryMessageQueue.h>
 
-using namespace worker;
+using namespace faaslet;
 
 namespace tests {
     void execErrorFunction(message::Message &call) {
-        WorkerThreadPool pool(1);
-        WorkerThread w(1);
+        FaasletPool pool(1);
+        Faaslet w(1);
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.callFunction(call);

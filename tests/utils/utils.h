@@ -1,8 +1,8 @@
 #pragma once
 
 #include <util/func.h>
-#include <worker/WorkerThreadPool.h>
-#include <worker/WorkerThread.h>
+#include <faaslet/FaasletPool.h>
+#include <faaslet/Faaslet.h>
 
 #include "faasm/matrix.h"
 #include "faasm/sgd.h"
@@ -16,7 +16,7 @@ namespace tests {
 
     void checkMessageEquality(const message::Message &msgA, const message::Message &msgB);
 
-    worker::WorkerThread execFunction(message::Message &msg, const std::string &expectedOutput = "");
+    faaslet::Faaslet execFunction(message::Message &msg, const std::string &expectedOutput = "");
 
     std::string execFunctionWithStringResult(message::Message &msg);
 

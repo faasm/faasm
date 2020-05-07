@@ -2,7 +2,7 @@
 
 #include "utils.h"
 
-#include <worker/worker.h>
+#include <faaslet/FaasmMain.h>
 #include <util/config.h>
 #include <boost/filesystem.hpp>
 #include <util/files.h>
@@ -10,7 +10,7 @@
 
 namespace tests {
     TEST_CASE("Test flushing empty worker", "[worker]") {
-        worker::flushWorkerHost();
+        faaslet::flushFaasletHost();
     }
 
     TEST_CASE("Test flushing worker clears state", "[worker]") {
@@ -21,7 +21,7 @@ namespace tests {
 
         REQUIRE(state.getKVCount() == 2);
 
-        worker::flushWorkerHost();
+        faaslet::flushFaasletHost();
 
         REQUIRE(state.getKVCount() == 0);
     }
@@ -44,7 +44,7 @@ namespace tests {
         REQUIRE(boost::filesystem::exists(sharedPath));
 
         // Flush and check file is gone
-        worker::flushWorkerHost();
+        faaslet::flushFaasletHost();
         REQUIRE(!boost::filesystem::exists(sharedPath));
     }
 
@@ -58,7 +58,7 @@ namespace tests {
 
         REQUIRE(reg.getTotalCachedModuleCount() == 2);
 
-        worker::flushWorkerHost();
+        faaslet::flushFaasletHost();
         REQUIRE(reg.getTotalCachedModuleCount() == 0);
     }
     
@@ -73,7 +73,7 @@ namespace tests {
         REQUIRE(sch.getFunctionInFlightCount(msgA) == 1);
         REQUIRE(sch.getFunctionInFlightCount(msgB) == 1);
 
-        worker::flushWorkerHost();
+        faaslet::flushFaasletHost();
 
         REQUIRE(sch.getFunctionInFlightCount(msgA) == 0);
         REQUIRE(sch.getFunctionInFlightCount(msgB) == 0);

@@ -1,16 +1,18 @@
 #pragma once
 
-#include "WorkerThreadPool.h"
+#include "FaasletPool.h"
 
 #include <state/StateServer.h>
 #include <wasm/WasmModule.h>
 
 #include <util/config.h>
 
-namespace worker {
-    class WorkerMain {
+namespace faaslet {
+    void flushFaasletHost();
+
+    class FaasmMain {
     public:
-        WorkerMain();
+        FaasmMain();
 
         void startBackground();
 
@@ -19,7 +21,7 @@ namespace worker {
         void shutdown();
     private:
         util::SystemConfig &conf;
-        worker::WorkerThreadPool pool;
+        faaslet::FaasletPool pool;
         scheduler::Scheduler &scheduler;
         state::StateServer stateServer;
     };

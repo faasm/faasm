@@ -5,19 +5,19 @@
 
 #include "utils.h"
 
-using namespace worker;
+using namespace faaslet;
 
 namespace tests {
 
-    WorkerThread execFunction(message::Message &call, const std::string &expectedOutput) {
+    Faaslet execFunction(message::Message &call, const std::string &expectedOutput) {
         // Turn off python preloading
         util::SystemConfig &conf = util::getSystemConfig();
         std::string originalPreload = conf.pythonPreload;
         conf.pythonPreload = "off";
 
         // Set up worker to listen for relevant function
-        WorkerThreadPool pool(1);
-        WorkerThread w(1);
+        FaasletPool pool(1);
+        Faaslet w(1);
         REQUIRE(!w.isBound());
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
@@ -63,8 +63,8 @@ namespace tests {
         conf.pythonPreload = "off";
 
         // Set up worker to listen for relevant function
-        WorkerThreadPool pool(1);
-        WorkerThread w(1);
+        FaasletPool pool(1);
+        Faaslet w(1);
         REQUIRE(!w.isBound());
 
         // Call the function
@@ -129,7 +129,7 @@ namespace tests {
         // Set up a real worker pool to execute the function
         conf.threadsPerWorker = nThreads;
         conf.maxWorkersPerFunction = nThreads;
-        WorkerThreadPool pool(nThreads);
+        FaasletPool pool(nThreads);
         pool.startThreadPool();
 
         unsigned int mainFuncId;
