@@ -213,8 +213,6 @@ namespace wasm {
     // Map of tid to message ID for chained calls
 
     // Flag to say whether we've spawned a thread
-    static std::string activeSnapshotKey;
-    static size_t threadSnapshotSize;
 
     /**
      * The "real" version of this function is implemented in the openmp source at
@@ -245,7 +243,7 @@ namespace wasm {
                 Runtime::getTableElement(getExecutingModule()->defaultTable, microtaskPtr));
 
 #ifdef FAASM_OPENMP_FORK_PROFILE
-        const util::TimePoint iterationTp = util::startTimer();
+        util::TimePoint iterationTp = util::startTimer();
         redis::Redis &redis = redis::Redis::getState();
 #endif
 
@@ -258,12 +256,14 @@ namespace wasm {
             std::vector<int> chainedThreads;
             chainedThreads.reserve(nextNumThreads);
 
-            // TODO - Implement redo
-            if (activeSnapshotKey.empty()) {
-                int callId = getExecutingCall()->id();
-                activeSnapshotKey = fmt::format("omp_snapshot_{}", callId);
-                threadSnapshotSize = parentModule->snapshotToState(activeSnapshotKey);
-            }
+            std::string activeSnapshotKey;
+            size_t threadSnapshotSize;
+
+            // TODO - Implement different cases like calling parallel section in a loop
+            // Or calling several parallel sections to cache snapshots as much as possible
+            int32_t callId = rand() % 100'000;
+            activeSnapshotKey = fmt::format("omp_snapshot_fork_{}", callId);
+            threadSnapshotSize = parentModule->snapshotToState(activeSnapshotKey);
 
             scheduler::Scheduler &sch = scheduler::getScheduler();
 
@@ -296,6 +296,7 @@ namespace wasm {
 
             I64 numErrors = 0;
 
+            iterationTp = util::startTimer();
             for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
                 scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
                 scheduler::Scheduler &scheduler = scheduler::getScheduler();

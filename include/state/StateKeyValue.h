@@ -14,7 +14,7 @@
 
 
 constexpr int REMOTE_LOCK_TIMEOUT_SECS(1);
-constexpr int REMOTE_LOCK_MAX_RETRIES(10);
+constexpr int REMOTE_LOCK_MAX_RETRIES(1000);
 
 
 namespace state {
@@ -108,7 +108,7 @@ namespace state {
 
         const std::shared_ptr<spdlog::logger> logger;
 
-        std::shared_mutex valueMutex;
+        std::recursive_mutex valueMutex;
         std::atomic<bool> _fullyAllocated;
 
         size_t valueSize;

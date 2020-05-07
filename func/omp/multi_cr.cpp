@@ -8,8 +8,6 @@ unsigned long thread_seed() {
     return static_cast<unsigned long>(threadNum * threadNum * 77 + 22 * threadNum + 1927);
 }
 
-constexpr int32_t iterations = 1'000;
-
 int main(int argc, char **argv) {
     uint32_t num_threads = 1;
     int32_t num_devices = 0;
@@ -31,36 +29,22 @@ int main(int argc, char **argv) {
 
     omp_set_default_device(num_devices);
 
-    std::vector<double> pis;
-    pis.reserve(num_times);
+    std::vector<uint32_t> accs;
+    accs.reserve(num_times);
     for (int i = 0; i < num_times; i++) {
         i64 result(0);
-        #pragma omp parallel num_threads(num_threads) default(none) firstprivate(iterations) reduction(+:result)
+        #pragma omp parallel num_threads(num_threads) default(none) reduction(+:result)
         {
-            std::uniform_real_distribution<double> unif(0, 1);
-            std::mt19937_64 generator(thread_seed());
-            double x, y;
-
-            #pragma omp for nowait
-            for (int32_t j = 0; j < iterations; ++j) {
-                x = unif(generator);
-                y = unif(generator);
-                if (x * x + y * y <= 1.0) {
-                    ++result;
-                }
-            }
+            result += omp_get_thread_num();
         }
-        pis.emplace_back((4.0 * (double) result) / iterations);
+        accs.emplace_back((int64_t ) result);
     }
 
-    double reference = pis[0];
-    if (abs(reference - 3.14) > 0.01) {
-        printf("Low accuracy Expected pi got %f\n", reference);
-    }
-
-    for (double pi : pis) {
-        if (pi != reference) {
-            printf("Expected %f, got %f\n", reference, pi);
+    uint32_t expected = num_threads * (num_threads - 1) / 2;
+    for (int i = 0; i < accs.size(); i++) {
+        uint32_t acc = accs[i];
+        if (acc != expected) {
+            printf("Expected %d, got %d at %d\n", expected, acc, i);
             break;
         }
     }
