@@ -12,13 +12,11 @@ using namespace util;
 
 namespace state {
     State &getGlobalState() {
-        static State s;
+        static State s(util::getSystemConfig().endpointHost);
         return s;
     }
 
-    // NOTE - to ease testing we must be careful to ensure the IP
-    // used throughout the in-memory state is only captured here
-    State::State() : thisIP(util::getSystemConfig().endpointHost) {
+    State::State(std::string thisIPIn) : thisIP(thisIPIn) {
 
     }
 

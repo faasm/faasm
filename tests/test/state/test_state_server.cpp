@@ -18,27 +18,15 @@ namespace tests {
     static std::vector<uint8_t> dataA = {0, 1, 2, 3, 4, 5, 6, 7};
     static std::vector<uint8_t> dataB = {7, 6, 5, 4, 3, 2, 1, 0};
 
-    // Remote must be localhost
-    static const char *remoteHost = "127.0.0.1";
-
-    static std::string originalHost;
     static std::string originalStateMode;
 
     static void setUpStateMode() {
-        // Note - we have to make sure the state mode is set to in-memory before
-        // and after cleaning the system
         util::SystemConfig &conf = util::getSystemConfig();
         originalStateMode = conf.stateMode;
-        originalHost = conf.endpointHost;
-        conf.stateMode = "inmemory";
-
         cleanSystem();
-
-        conf.stateMode = "inmemory";
     }
 
     static void resetStateMode() {
-        util::getSystemConfig().endpointHost = originalHost;
         util::getSystemConfig().stateMode = originalStateMode;
     }
 
@@ -259,54 +247,15 @@ namespace tests {
         
         int nMessages = 2;
 
-        // NOTE - in a real deployment each server would be running in its own
-        // process on a separate host. To run it in a thread like this we need to
-        // be careful to avoid sharing any global variables with the main thread.
-        //
-        // We force the server thread to have localhost IP, and the main thread
-        // to be the "client" with a junk IP.
-        std::thread serverThread([nMessages] {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        DummyStateServer server;
+        server.dummyData = dataA;
+        server.dummyUser = userA;
+        server.dummyKey = keyA;
 
-            // Override the host endpoint for the server thread
-            util::getSystemConfig().endpointHost = remoteHost;
-
-            // Deliberately don't use global state to ensure this thread
-            // has its own copies of things
-            State state;
-
-            // Master the data in this thread
-            logger->debug("Setting master for test");
-
-            const std::shared_ptr<StateKeyValue> &kv = state.getKV(userA, keyA, dataA.size());
-            std::shared_ptr<InMemoryStateKeyValue> inMemKv = std::static_pointer_cast<InMemoryStateKeyValue>(kv);
-
-            // Check this kv "thinks" it's master
-            REQUIRE(inMemKv->isMaster());
-
-            // Set the data
-            kv->set(dataA.data());
-            logger->debug("Finished setting master for test {}/{}", kv->user, kv->key);
-
-            // Process the required number of messages
-            state::StateServer server(state);
-            logger->debug("Running test state server for {} messages", nMessages);
-            int processedMessages = 0;
-            while (processedMessages < nMessages) {
-                processedMessages += server.poll();
-                logger->debug("Test state server processed {} messages", processedMessages);
-            }
-
-            // Close the server
-            server.close();
-        });
-
-        // Give it time to start
-        usleep(500 * 1000);
+        server.start(nMessages);
 
         // Get the state size before accessing the value locally
-        State &state = globalState;
-        size_t actualSize = state.getStateSize(userA, keyA);
+        size_t actualSize = globalState.getStateSize(userA, keyA);
         REQUIRE(actualSize == dataA.size());
 
         // Access locally and check not master
@@ -315,10 +264,7 @@ namespace tests {
 
         checkServerComms();
 
-        // Wait for server to finish
-        if (serverThread.joinable()) {
-            serverThread.join();
-        }
+        server.wait();
 
         resetStateMode();
     }

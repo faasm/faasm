@@ -9,7 +9,26 @@
 
 using namespace faasm;
 
+#define LOCALHOST "127.0.0.1"
+
+
 namespace tests {
+    class DummyStateServer {
+    public:
+        DummyStateServer();
+
+        std::vector<uint8_t> dummyData;
+        std::string dummyUser;
+        std::string dummyKey;
+
+        void start(int nMessages);
+
+        void wait();
+
+        std::thread serverThread;
+        state::State remoteState;
+    };
+
     void cleanSystem();
 
     void checkSparseMatrixEquality(const SparseMatrix<double> &a, const SparseMatrix<double> &b);

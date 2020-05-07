@@ -8,7 +8,7 @@
 namespace state {
     class State {
     public:
-        State();
+        explicit State(std::string thisIPIn);
 
         size_t getStateSize(const std::string &user, const std::string &keyIn);
 
