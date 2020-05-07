@@ -244,8 +244,10 @@ namespace wasm {
         Runtime::Function *func = Runtime::asFunction(
                 Runtime::getTableElement(getExecutingModule()->defaultTable, microtaskPtr));
 
+#ifdef FAASM_OPENMP_FORK_PROFILE
         const util::TimePoint iterationTp = util::startTimer();
         redis::Redis &redis = redis::Redis::getState();
+#endif
 
         // Set up number of threads for next level
         int nextNumThreads = thisLevel->get_next_level_num_threads();
@@ -391,8 +393,10 @@ namespace wasm {
             }
         }
 
+#ifdef FAASM_OPENMP_FORK_PROFILE
         const long distributedIterationTime = util::getTimeDiffMicros(iterationTp);
-        redis.rpushLong("multi_pi_times", distributedIterationTime);
+        redis.rpushLong(fmt::format("{}_fork_times", parentModule->getBoundFunction()), distributedIterationTime);
+#endif
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasmp_incryby", I64, __faasmp_incrby, I32 keyPtr, I64 value) {

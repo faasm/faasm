@@ -65,6 +65,7 @@ add_definitions(-DDLL_IMPORT=)
 
 # Faasm profiling
 add_definitions(-DFAASM_PROFILE_ON=0)
+add_definitions(-DFAASM_OPENMP_FORK_PROFILE=0) # requires Redis
 
 # Custom LLVM build (also for profiling)
 set(FAASM_CUSTOM_LLVM 0)
