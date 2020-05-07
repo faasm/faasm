@@ -2,10 +2,11 @@ from invoke import task
 
 from faasmcli.util.call import invoke_impl, status_call_impl, flush_call_impl
 from faasmcli.util.endpoints import get_invoke_host_port
-from subprocess import call
 
 import time
 import redis
+import subprocess
+from subprocess import call, run
 
 micro_time = lambda: int(time.perf_counter() * 1000_000)
 def time_func_microseconds(func):
@@ -14,8 +15,8 @@ def time_func_microseconds(func):
     return micro_time() - start
 
 @task
-def multi_cr(ctx, debug=False, num_times=20_0000):
-    output_file = "/usr/local/code/faasm/wasm/omp/multi_cr/bench_all.csv"
+def multi_cr(ctx, debug=False, num_times=200, num_threads=1):
+    output_file = f"/usr/local/code/faasm/wasm/omp/multi_cr/bench_all.csv"
     modes = {
         "native": 0,
         "wasm": -1,
@@ -23,33 +24,51 @@ def multi_cr(ctx, debug=False, num_times=20_0000):
 
     func = "multi_cr"
 
-    threads = [1] + list(range(2, 11, 2))
+    threads = [1] + list(range(2, 25, 2))
 
     r = redis.Redis(host="localhost")
     rkey = f"{func}_fork_times"
+    rkey1 = f"{func}_local_fork_times"
     r.delete(rkey)
-    rindex = 0
+    # rindex = 0
 
     with open(output_file, "w") as csv:
         csv.write("numThreads,type,microseconds\n")
         for num_threads in threads:
             cmd = f"{num_threads} {num_times} 0"
             print(f"NATIVE: running omp/multi_cr-- {cmd}")
-            t_native = time_func_microseconds(lambda: call("/usr/local/code/faasm/ninja-build/bin/multi_cr"))
-            cmd = f"{num_threads} {num_times} -1"
+            # t_native = run(["/usr/local/code/faasm/ninja-build/bin/multi_cr", f"{num_threads}", "1", "0"], stdout=subprocess.PIPE).stdout.decode('utf-8')
+            t_native = run(["/usr/local/code/faasm/ninja-build/bin/multi_cr", f"{num_threads}", f"{num_times}", "0"], stdout=subprocess.PIPE).stdout.decode('utf-8')
+            csv.write(t_native)
+
+            # WasmMP
+            cmd = f"{num_threads} {num_times} 0"
             print(f"WASM running omp/multi_cr-- {cmd}")
-            invoke_impl("omp", "multi_cr", knative=True, cmdline=cmd)
-            if r.llen(rkey) == rindex:
+            invoke_impl("omp", "multi_cr_local", knative=True, cmdline=cmd)
+            if r.llen(rkey1) != num_times:
                 print("Failed to run wasm")
                 exit(1)
-            t_wasm = int(r.lindex(rkey, rindex))
-            rindex += 1
-            native_line = f"{num_threads},native,{t_native//num_times}\n"
-            wasm_line = f"{num_threads},wasm,{t_wasm//num_times}\n"
-            if debug:
-                print([native_line, wasm_line])
-            csv.write(native_line)
-            csv.write(wasm_line)
+            t_wasm = list(map(int, r.lrange(rkey1, 0, num_times)))
+            for t in t_wasm:
+                wasm_line = f"{num_threads},WasmMP,{t}\n"
+                csv.write(wasm_line)
+            r.flushall()
+
+            # faasmp
+            cmd = f"{num_threads} {num_times} -1"
+            print(f"FAASM running omp/multi_cr-- {cmd}")
+            invoke_impl("omp", "multi_cr", knative=True, cmdline=cmd)
+            if r.llen(rkey) != num_times:
+                print("Failed to run faasm")
+                exit(1)
+            t_wasm = list(map(int, r.lrange(rkey, 0, num_times)))
+            r.delete(rkey)
+            for t in t_wasm:
+                wasm_line = f"{num_threads},FaasMP,{t}\n"
+                csv.write(wasm_line)
+
+            r.flushall()
+
 
 
 @task(default=True)

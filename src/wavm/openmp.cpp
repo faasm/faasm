@@ -243,7 +243,7 @@ namespace wasm {
                 Runtime::getTableElement(getExecutingModule()->defaultTable, microtaskPtr));
 
 #ifdef FAASM_OPENMP_FORK_PROFILE
-        util::TimePoint iterationTp = util::startTimer();
+        const std::chrono::time_point iterationTp = std::chrono::system_clock::now();
         redis::Redis &redis = redis::Redis::getState();
 #endif
 
@@ -261,8 +261,8 @@ namespace wasm {
 
             // TODO - Implement different cases like calling parallel section in a loop
             // Or calling several parallel sections to cache snapshots as much as possible
-            int32_t callId = rand() % 100'000;
-            activeSnapshotKey = fmt::format("omp_snapshot_fork_{}", callId);
+            int32_t callId = std::rand() % 100'000;
+            activeSnapshotKey = fmt::format("fork_{}", callId);
             threadSnapshotSize = parentModule->snapshotToState(activeSnapshotKey);
 
             scheduler::Scheduler &sch = scheduler::getScheduler();
@@ -289,14 +289,13 @@ namespace wasm {
                 const std::string chainedStr = util::funcToString(call, false);
                 sch.callFunction(call);
 
-                logger->info("Forked thread {} ({}) -> {} {}(*{}) ({})", origStr, util::getNodeId(), chainedStr,
-                             microtaskPtr, argsPtr, call.schedulednode());
+                logger->debug("Forked thread {} ({}) -> {} {}(*{}) ({})", origStr, util::getNodeId(), chainedStr,
+                              microtaskPtr, argsPtr, call.schedulednode());
                 chainedThreads[threadNum] = call.id();
             }
 
             I64 numErrors = 0;
 
-            iterationTp = util::startTimer();
             for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
                 scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
                 scheduler::Scheduler &scheduler = scheduler::getScheduler();
@@ -329,6 +328,7 @@ namespace wasm {
                 throw std::runtime_error(fmt::format("{} OMP threads have exited with errors", numErrors));
             }
 
+            redis.del("omp_" + activeSnapshotKey);
             logger->debug("Distributed Fork finished successfully");
         } else { // Single host
 
@@ -395,19 +395,21 @@ namespace wasm {
         }
 
 #ifdef FAASM_OPENMP_FORK_PROFILE
-        const long distributedIterationTime = util::getTimeDiffMicros(iterationTp);
+        const long distributedIterationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now() - iterationTp).count();// util::getTimeDiffNanos(iterationTp);
+//        logger->error("It's been {}", distributedIterationTime);
         redis.rpushLong(fmt::format("{}_fork_times", parentModule->getBoundFunction()), distributedIterationTime);
 #endif
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasmp_incryby", I64, __faasmp_incrby, I32 keyPtr, I64 value) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - __faasmp_incryby {} {}", keyPtr, value);
-
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        std::string key{&Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr)};
-        redis::Redis &redis = redis::Redis::getState();
-        return redis.incrByLong(key, value);
+    static util::TimePoint iterationTp;
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "faasmp_incrby", void, faasmp_incrby) {
+//        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+//        logger->debug("S - __faasmp_incryby {} {}", keyPtr, value);
+//
+//        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+//        std::string key{&Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr)};
+//        redis::Redis &redis = redis::Redis::getState();
+//        return redis.incrByLong(key, value);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasmp_getLong", I64, __faasmp_getLong, I32 keyPtr) {
@@ -424,17 +426,25 @@ namespace wasm {
      * This function is just around to debug issues with threaded access to stacks.
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasmp_debug_copy", void, __faasmp_debug_copy, I32 src, I32 dest) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - __faasmp_debug_copy {} {}", src, dest);
-
-        // Get pointers on host to both src and dest
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        int *hostSrc = &Runtime::memoryRef<int>(memoryPtr, src);
-        int *hostDest = &Runtime::memoryRef<int>(memoryPtr, dest);
-
-        logger->debug("{}: copy {} -> {}", thisThreadNumber, *hostSrc, *hostDest);
-
-        *hostDest = *hostSrc;
+        if (iterationTp == util::TimePoint()) {
+            iterationTp = util::startTimer();
+        } else {
+            redis::Redis &redis = redis::Redis::getState();
+            const long distributedIterationTime = util::getTimeDiffMicros(iterationTp);
+            redis.rpushLong("multi_cr_fork_times", distributedIterationTime);
+            iterationTp = util::TimePoint();
+        }
+//        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+//        logger->debug("S - __faasmp_debug_copy {} {}", src, dest);
+//
+//        // Get pointers on host to both src and dest
+//        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+//        int *hostSrc = &Runtime::memoryRef<int>(memoryPtr, src);
+//        int *hostDest = &Runtime::memoryRef<int>(memoryPtr, dest);
+//
+//        logger->debug("{}: copy {} -> {}", thisThreadNumber, *hostSrc, *hostDest);
+//
+//        *hostDest = *hostSrc;
     }
     /**
      * @param    loc       Source code location

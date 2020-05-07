@@ -30,16 +30,16 @@ namespace state {
     void RedisStateKeyValue::lockGlobal() {
         // for security, would be great to have this mutex time out after the same duration as Redis. Of
         // Course we'd have to make this time long enough to account of time difference and drift
-        globalLock.lock();
         valueMutex.lock();
+        globalLock.lock();
         lastRemoteLockId = waitOnRedisRemoteLock(joinedKey);
     }
 
     void RedisStateKeyValue::unlockGlobal() {
         redis.releaseLock(joinedKey, lastRemoteLockId);
         lastRemoteLockId = 0;
-        valueMutex.unlock();
         globalLock.unlock();
+        valueMutex.unlock();
     }
 
     void RedisStateKeyValue::pullFromRemote() {
