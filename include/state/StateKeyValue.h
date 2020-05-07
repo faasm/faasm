@@ -61,7 +61,7 @@ namespace state {
 
         void setSegment(long offset, const uint8_t *buffer, size_t length);
 
-        void append(uint8_t *buffer, size_t length);
+        void append(const uint8_t *buffer, size_t length);
 
         void getAppended(uint8_t *buffer, size_t length, long nValues);
 

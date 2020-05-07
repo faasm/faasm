@@ -8,7 +8,6 @@ extern "C" {
 #include <emulator/emulator.h>
 #include <util/locks.h>
 #include <util/logging.h>
-#include <redis/Redis.h>
 #include <state/State.h>
 #include <thread>
 #include <util/state.h>
@@ -21,7 +20,9 @@ extern "C" {
 #include <util/files.h>
 
 /**
- * C++ emulation of Faasm system
+ * Used to emulate Faasm in native applications (i.e. anything that's not WebAssembly)
+ *
+ * This will make use of the existing state key-value abstraction where possible.
  */
 
 // Note thread-locality here
@@ -32,6 +33,10 @@ static std::unordered_map<int, std::thread> threads;
 static int threadCount = 1;
 
 #define DUMMY_USER "emulated"
+
+// --------------------------------------------------------------
+// EMULATOR-SPECIFIC
+// --------------------------------------------------------------
 
 void resetEmulator() {
     _emulatedCall = message::Message();
@@ -76,6 +81,7 @@ void emulatorSetCallStatus(bool success) {
     message::Message resultMsg = _emulatedCall;
 
     const std::string funcStr = util::funcToString(resultMsg, true);
+
     if (success) {
         logger->debug("Setting success status for {}", funcStr);
         resultMsg.set_returnvalue(0);
@@ -115,11 +121,13 @@ std::string getEmulatedUser() {
     return _emulatedCall.user();
 }
 
+// --------------------------------------------------------------
+// FAASM HOST INTERFACE IMPLEMENTATION
+// --------------------------------------------------------------
+
 std::shared_ptr<state::StateKeyValue> getKv(const char *key, size_t size) {
     state::State &s = state::getGlobalState();
-
     const std::string &emulatedUser = getEmulatedUser();
-
     return s.getKV(emulatedUser, key, size);
 }
 
@@ -127,7 +135,6 @@ void __faasm_write_output(const unsigned char *output, long outputLen) {
     util::getLogger()->debug("E - write_output {} {}", output, outputLen);
     _emulatedCall.set_outputdata(output, outputLen);
 }
-
 
 long __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen) {
     util::getLogger()->debug("E - read_state {} {}", key, bufferLen);
@@ -169,28 +176,24 @@ void __faasm_write_state(const char *key, const uint8_t *data, long dataLen) {
 
 void __faasm_append_state(const char *key, const uint8_t *data, long dataLen) {
     util::getLogger()->debug("E - append_state {} {}", key, dataLen);
-    redis::Redis &redis = redis::Redis::getState();
-    std::vector<uint8_t> bytes(data, data + dataLen);
-
-    const std::string actualKey = util::keyForUser(getEmulatorUser(), key);
-    redis.enqueueBytes(actualKey, bytes);
+    auto kv = getKv(key, dataLen);
+    kv->append(data, dataLen);
 }
 
 void __faasm_read_appended_state(const char *key, unsigned char *buffer, long bufferLen, long nElems) {
     util::getLogger()->debug("E - read_appended_state {} {} {}", key, bufferLen, nElems);
 
-    // Read straight into buffer
-    redis::Redis &redis = redis::Redis::getState();
-    const std::string actualKey = util::keyForUser(getEmulatorUser(), key);
-
-    redis.dequeueMultiple(actualKey, buffer, bufferLen, nElems);
+    const std::string user = getEmulatorUser();
+    size_t stateSize = state::getGlobalState().getStateSize(user, key);
+    auto kv = getKv(key, stateSize);
+    kv->getAppended(buffer, bufferLen, nElems);
 }
 
 void __faasm_clear_appended_state(const char *key) {
     util::getLogger()->debug("E - clear_appended_state {}", key);
-    redis::Redis &redis = redis::Redis::getState();
-    const std::string actualKey = util::keyForUser(getEmulatorUser(), key);
-    redis.del(actualKey);
+    size_t stateSize = state::getGlobalState().getStateSize(getEmulatorUser(), key);
+    auto kv = getKv(key, stateSize);
+    kv->deleteGlobal();
 }
 
 void __faasm_write_state_offset(const char *key, long totalLen, long offset, const unsigned char *data, long dataLen) {
@@ -205,11 +208,12 @@ unsigned int __faasm_write_state_from_file(const char *key, const char *filePath
 
     // Read file into bytes
     const std::vector<uint8_t> bytes = util::readFileToBytes(filePath);
+    unsigned long fileLength = bytes.size();
 
     // Write to state
-    const std::string actualKey = util::keyForUser(getEmulatorUser(), key);
-    redis::Redis &redis = redis::Redis::getState();
-    redis.set(actualKey, bytes);
+    auto kv = state::getGlobalState().getKV(getEmulatorUser(), key, fileLength);
+    kv->set(bytes.data());
+    kv->pushFull();
 
     return bytes.size();
 }
@@ -276,7 +280,7 @@ long __faasm_read_input(unsigned char *buffer, long bufferLen) {
     return bufferLen;
 }
 
-unsigned int _chain_local(int idx, const char* pyName, const unsigned char *buffer, long bufferLen) {
+unsigned int _chain_local(int idx, const char *pyName, const unsigned char *buffer, long bufferLen) {
     util::getLogger()->debug("E - chain_this_local idx {} input len {}", idx, bufferLen);
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -309,7 +313,7 @@ unsigned int _chain_local(int idx, const char* pyName, const unsigned char *buff
 }
 
 unsigned int _chain_knative(const std::string &funcName, int idx, const char *pyName, const unsigned char *buffer,
-        long bufferLen) {
+                            long bufferLen) {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
     logger->debug("E - chain_this_knative idx {} input len {}", idx, bufferLen);
 
@@ -365,7 +369,7 @@ unsigned int __faasm_chain_this(int idx, const unsigned char *buffer, long buffe
     }
 }
 
-unsigned int __faasm_chain_py(const char* name, const unsigned char *buffer, long bufferLen) {
+unsigned int __faasm_chain_py(const char *name, const unsigned char *buffer, long bufferLen) {
     util::SystemConfig &conf = util::getSystemConfig();
     if (conf.hostType == "knative") {
         return _chain_knative(_emulatedCall.function(), 0, name, buffer, bufferLen);
@@ -378,7 +382,7 @@ int _await_call_knative(unsigned int callId) {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
     logger->debug("E - await_call_knative {}", callId);
     int timeoutMs = util::getSystemConfig().chainedCallTimeout;
-    
+
     scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
     int returnCode = 1;
     try {
@@ -459,7 +463,7 @@ void __faasm_unlock_state_write(const char *key) {
 }
 
 void copyStringToBuffer(unsigned char *buffer, const std::string &strIn) {
-    ::strcpy(reinterpret_cast<char*>(buffer), strIn.c_str());
+    ::strcpy(reinterpret_cast<char *>(buffer), strIn.c_str());
 }
 
 void __faasm_get_py_user(unsigned char *buffer, long bufferLen) {

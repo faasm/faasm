@@ -149,12 +149,12 @@ namespace tests {
         REQUIRE(actualWeights(0, 3) == weightsCopy(0, 3));
     }
 
-    void checkAppendOnlyInState(redis::Redis &r, const char *key, long nDoubles, std::vector<double> expected) {
-        redis::Redis &redisQueue = redis::Redis::getQueue();
+    void checkAppendOnlyInState(const std::string &user, const char *key, long nDoubles, std::vector<double> expected) {
         size_t bufferSize = nDoubles * sizeof(double);
-        std::vector<uint8_t> actualBytes(bufferSize);
-        redisQueue.dequeueMultiple(key, actualBytes.data(), bufferSize, nDoubles);
+        std::vector<uint8_t> actualBytes(bufferSize, 0);
 
+        const std::shared_ptr<state::StateKeyValue> &kv = state::getGlobalState().getKV(user, key, bufferSize);
+        kv->get(actualBytes.data());
         REQUIRE(!actualBytes.empty());
 
         auto actualPtr = reinterpret_cast<double *>(actualBytes.data());
@@ -164,18 +164,12 @@ namespace tests {
     }
 
     TEST_CASE("Test writing errors to state", "[sgd]") {
-        redis::Redis &redisQueue = redis::Redis::getQueue();
         cleanSystem();
 
         MatrixXd a = randomDenseMatrix(1, 5);
         MatrixXd b = randomDenseMatrix(1, 5);
         MatrixXd c = randomDenseMatrix(1, 5);
         MatrixXd d = randomDenseMatrix(1, 5);
-
-        // Check no errors set initially
-        std::string errorKey = util::keyForUser(getEmulatorUser(), ERRORS_KEY);
-        const std::vector<uint8_t> initial = redisQueue.get(errorKey);
-        REQUIRE(initial.empty());
 
         SgdParams params = getDummySgdParams();
         params.nBatches = 4;
@@ -190,24 +184,16 @@ namespace tests {
         // Write and check
         writeHingeError(params, a, b);
         writeHingeError(params, a, b);
-        checkAppendOnlyInState(redisQueue, errorKey.c_str(), 2, {expected1, expected2});
+        checkAppendOnlyInState(getEmulatorUser(), ERRORS_KEY, 2, {expected1, expected2});
     }
 
     TEST_CASE("Test reading errors from state", "[sgd]") {
         cleanSystem();
         const std::string user = getEmulatorUser();
 
-        redis::Redis &redisState = redis::Redis::getState();
-
         SgdParams p = getDummySgdParams();
         p.nBatches = 3;
         p.nTrain = 20;
-
-        // With nothing set up, error should be zero
-        redisState.del(ERRORS_KEY);
-
-        double initial = faasm::readRootMeanSquaredError(p);
-        REQUIRE(initial == 0);
 
         // Write the error for two of the three batches
         MatrixXd a = randomDenseMatrix(1, 5);
@@ -218,8 +204,7 @@ namespace tests {
         writeHingeError(p, a, b);
         writeHingeError(p, a, b);
 
-        const std::string actualKey = util::keyForUser(user, ERRORS_KEY);
-        checkAppendOnlyInState(redisState, actualKey.c_str(), 2, {expected, expected});
+        checkAppendOnlyInState(user, ERRORS_KEY, 2, {expected, expected});
 
         // Error should just include the 2 written
         double expectedRmse1 = sqrt((2 * expected) / p.nTrain);
@@ -228,7 +213,7 @@ namespace tests {
 
         // Now write error for a third batch
         writeHingeError(p, a, b);
-        checkAppendOnlyInState(redisState, actualKey.c_str(), 3, {expected, expected, expected});
+        checkAppendOnlyInState(user, ERRORS_KEY, 3, {expected, expected, expected});
 
         // Work out what the result should be
         double expectedRmse2 = sqrt((3 * expected) / p.nTrain);

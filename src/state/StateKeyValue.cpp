@@ -113,7 +113,7 @@ namespace state {
         std::copy(buffer, buffer + valueSize, BYTES(sharedMemory));
     }
 
-    void StateKeyValue::append(uint8_t *buffer, size_t length) {
+    void StateKeyValue::append(const uint8_t *buffer, size_t length) {
         FullLock lock(valueMutex);
 
         appendToRemote(buffer, length);
