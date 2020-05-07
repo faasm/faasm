@@ -17,6 +17,10 @@ namespace tests {
     public:
         DummyStateServer();
 
+        std::shared_ptr<state::StateKeyValue> getRemoteKv();
+
+        std::vector<uint8_t> getRemoteKvValue();
+
         std::vector<uint8_t> dummyData;
         std::string dummyUser;
         std::string dummyKey;

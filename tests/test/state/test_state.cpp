@@ -79,6 +79,7 @@ namespace tests {
         setUpStateMode(stateMode);
 
         redis::Redis &redisState = redis::Redis::getState();
+
         auto kv = setupKV(5);
 
         std::vector<uint8_t> actual(5);
@@ -97,7 +98,7 @@ namespace tests {
 
         // Check that the underlying key in Redis isn't changed
         std::string actualKey = util::keyForUser(kv->user, kv->key);
-        if(stateMode == "redis") {
+        if (stateMode == "redis") {
             REQUIRE(redisState.get(actualKey).empty());
         }
 
@@ -106,7 +107,7 @@ namespace tests {
         REQUIRE(actual == values);
 
         // Check that when pushed, the update is pushed to redis
-        if(stateMode == "redis") {
+        if (stateMode == "redis") {
             REQUIRE(redisState.get(actualKey) == values);
         }
 
@@ -121,60 +122,50 @@ namespace tests {
         doGetSetCheck("inmemory");
     }
 
-    static void doGetSetSegmentChecks(const std::string &stateMode) {
-        setUpStateMode(stateMode);
+    TEST_CASE("Test in memory get/ set segment", "[state]") {
+        setUpStateMode("inmemory");
 
-        redis::Redis &redisState = redis::Redis::getState();
-        auto kv = setupKV(10);
-
-        // Set up and push
+        // Set state remotely
         std::vector<uint8_t> values = {0, 0, 1, 1, 2, 2, 3, 3, 4, 4};
-        kv->set(values.data());
-        kv->pushFull();
+        DummyStateServer server;
+        server.dummyUser = getEmulatorUser();
+        server.dummyKey = "get_set_check";
+        server.dummyData = values;
 
-        // Get and check
-        std::vector<uint8_t> actual(10);
-        kv->get(actual.data());
-        std::string actualKey = util::keyForUser(kv->user, kv->key);
+        // Get, push, pull
+        server.start(3);
+
+        // Get locally
+        State &globalState = state::getGlobalState();
+        const std::shared_ptr<StateKeyValue> &localKv = globalState.getKV(server.dummyUser, server.dummyKey, values.size());
+        std::vector<uint8_t> actual(values.size(), 0);
+        localKv->get(actual.data());
         REQUIRE(actual == values);
-
-        if(stateMode == "redis") {
-            REQUIRE(redisState.get(actualKey) == values);
-        }
 
         // Update a subsection
         std::vector<uint8_t> update = {8, 8, 8};
-        kv->setSegment(3, update.data(), 3);
+        localKv->setSegment(3, update.data(), 3);
 
         std::vector<uint8_t> expected = {0, 0, 1, 8, 8, 8, 3, 3, 4, 4};
-        kv->get(actual.data());
+        localKv->get(actual.data());
         REQUIRE(actual == expected);
 
-        // Check changed locally but not in redis
-        if(stateMode == "redis") {
-            REQUIRE(redisState.get(actualKey) == values);
-        }
+        // Check remote is unchanged
+        REQUIRE(server.getRemoteKvValue() == values);
 
-        // Try getting a segment
+        // Try getting a segment locally
         std::vector<uint8_t> actualSegment(3);
-        kv->getSegment(3, actualSegment.data(), 3);
+        localKv->getSegment(3, actualSegment.data(), 3);
         REQUIRE(actualSegment == update);
 
-        // Run push and check redis updated
-        kv->pushPartial();
-        if(stateMode == "redis") {
-            REQUIRE(redisState.get(actualKey) == expected);
-        }
+        // Run push and check remote is updated
+        localKv->pushPartial();
+        REQUIRE(server.getRemoteKvValue() == expected);
+
+        // Wait for server to finish
+        server.wait();
 
         resetStateMode();
-    }
-
-    TEST_CASE("Test redis get/ set segment", "[state]") {
-        doGetSetSegmentChecks("redis");
-    }
-
-    TEST_CASE("Test in memory get/ set segment", "[state]") {
-        doGetSetSegmentChecks("inmemory");
     }
 
     static void doMarkDirtyChecks(const std::string &stateMode) {
@@ -202,7 +193,7 @@ namespace tests {
         std::string actualKey = util::keyForUser(kv->user, kv->key);
 
         // Check in redis
-        if(stateMode == "redis") {
+        if (stateMode == "redis") {
             REQUIRE(redisState.get(actualKey) == values);
         }
 
@@ -210,7 +201,7 @@ namespace tests {
         // *not* to be overwritten, as this is the master
         // With the redis state, we expect to lose the unmarked
         // local change.
-        if(stateMode == "inmemory") {
+        if (stateMode == "inmemory") {
             values.at(5) = 7;
         }
 
@@ -329,7 +320,7 @@ namespace tests {
         REQUIRE(expected == actualPostPush);
 
         // Also check redis
-        if(stateMode == "redis") {
+        if (stateMode == "redis") {
             std::vector<double> actualFromRedis(nDoubles);
             redisState.get(key, BYTES(actualFromRedis.data()), nBytes);
             REQUIRE(expected == actualFromRedis);
@@ -424,7 +415,7 @@ namespace tests {
         // Check round trip
         std::string actualKey = util::keyForUser(kvData->user, kvData->key);
         std::vector<uint8_t> actualBytes = redisState.get(actualKey);
-        auto actualDoublePtr = reinterpret_cast<double*>(actualBytes.data());
+        auto actualDoublePtr = reinterpret_cast<double *>(actualBytes.data());
         std::vector<double> actualDoubles(actualDoublePtr, actualDoublePtr + 4);
 
         REQUIRE(actualDoubles == initial);

@@ -10,6 +10,17 @@ namespace tests {
 
     }
 
+    std::shared_ptr<StateKeyValue> DummyStateServer::getRemoteKv() {
+        auto ptr = remoteState.getKV(dummyUser, dummyKey, dummyData.size());
+        return ptr;
+    }
+
+    std::vector<uint8_t> DummyStateServer::getRemoteKvValue() {
+        std::vector<uint8_t> actual(dummyData.size(), 0);
+        getRemoteKv()->get(actual.data());
+        return actual;
+    }
+    
     void DummyStateServer::start(int nMessages) {
         // NOTE - in a real deployment each server would be running in its own
         // process on a separate host. To run it in a thread like this we need to
@@ -39,7 +50,7 @@ namespace tests {
                 kv->set(dummyData.data());
                 logger->debug("Finished setting master for test {}/{}", kv->user, kv->key);
             }
-
+            
             // Process the required number of messages
             StateServer server(remoteState);
             logger->debug("Running test state server for {} messages", nMessages);

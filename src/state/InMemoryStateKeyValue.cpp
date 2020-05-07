@@ -226,9 +226,14 @@ namespace state {
             zeroDirtyMask();
         } else {
             // Send the request
-            buildStatePushMultiChunkRequest(chunks);
+            tcp::TCPMessage *msg = buildStatePushMultiChunkRequest(chunks);
+            masterClient->sendMessage(msg);
+            tcp::freeTcpMessage(msg);
 
-            // Read the latest value
+            // Wait for response
+            awaitOkResponse();
+
+            // Read the latest full value
             if (_fullyAllocated) {
                 pullFromRemote();
             }
@@ -562,8 +567,6 @@ namespace state {
         for (auto &c : chunks) {
             auto offsetInt = (int32_t) c.offset;
             auto lengthInt = (int32_t) c.length;
-
-            util::getLogger()->debug("CHUNK {} - {}", offsetInt, lengthInt);
 
             std::copy(BYTES(&offsetInt), BYTES(&offsetInt) + sizeof(int32_t), chunkBuffer + offset);
             std::copy(BYTES(&lengthInt), BYTES(&lengthInt) + sizeof(int32_t), chunkBuffer + offset + sizeof(int32_t));

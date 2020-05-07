@@ -43,6 +43,8 @@ namespace state {
     public:
         StateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn);
 
+        StateKeyValue(const std::string &userIn, const std::string &keyIn);
+
         const std::string user;
 
         const std::string key;
@@ -113,31 +115,14 @@ namespace state {
 
         size_t valueSize;
         size_t sharedMemSize;
-        void *sharedMemory;
-        void *dirtyMask;
-        void *allocatedMask;
 
-        void pullImpl(bool onlyIfEmpty);
-
-        void pullSegmentImpl(bool onlyIfEmpty, long offset, size_t length);
-
-        void doPushPartial(const uint8_t *dirtyMaskBytes);
-
-        bool isSegmentAllocated(long offset, size_t length);
-
-        void allocateSegment(long offset, size_t length);
+        void *sharedMemory = nullptr;
+        void *dirtyMask = nullptr;
+        void *allocatedMask = nullptr;
 
         void zeroDirtyMask();
 
         void zeroAllocatedMask();
-
-        void initialiseStorage(bool allocate);
-
-        void markDirtySegment(long offset, long len);
-
-        void markAllocatedSegment(long offset, long len);
-
-        std::vector<StateChunk> getDirtyChunks(const uint8_t *dirtyMaskBytes);
 
         void doSet(const uint8_t *data);
 
@@ -156,6 +141,29 @@ namespace state {
         virtual void pushPartialToRemote(const std::vector<StateChunk> &dirtyChunks) = 0;
 
         virtual void deleteFromRemote() = 0;
+
+    private:
+        void configureSize();
+
+        void checkSizeConfigured();
+
+        void markDirtySegment(long offset, long len);
+
+        void markAllocatedSegment(long offset, long len);
+
+        bool isSegmentAllocated(long offset, size_t length);
+
+        void allocateSegment(long offset, size_t length);
+
+        void initialiseStorage(bool allocate);
+
+        void pullImpl(bool onlyIfEmpty);
+
+        void pullSegmentImpl(bool onlyIfEmpty, long offset, size_t length);
+
+        void doPushPartial(const uint8_t *dirtyMaskBytes);
+
+        std::vector<StateChunk> getDirtyChunks(const uint8_t *dirtyMaskBytes);
     };
 
     class StateKeyValueException : public std::runtime_error {

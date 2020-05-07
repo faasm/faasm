@@ -12,6 +12,12 @@
 using namespace util;
 
 namespace state {
+    StateKeyValue::StateKeyValue(const std::string &userIn, const std::string &keyIn):
+             StateKeyValue(userIn, keyIn, 0) {
+        // If using this constructor, we don't know the size, hence cannot use
+        // a number of operations.
+    }
+
     StateKeyValue::StateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn) :
             user(userIn),
             key(keyIn),
@@ -19,22 +25,32 @@ namespace state {
             logger(util::getLogger()),
             valueSize(sizeIn) {
 
+        if (sizeIn > 0) {
+            configureSize();
+        }
+    }
+
+    void StateKeyValue::configureSize() {
         // Work out size of required shared memory
         size_t nHostPages = getRequiredHostPages(valueSize);
         sharedMemSize = nHostPages * HOST_PAGE_SIZE;
         sharedMemory = nullptr;
 
+        // Set up flags and masks
         isDirty = false;
         _fullyAllocated = false;
 
-        // Set up flags
         dirtyMask = new uint8_t[sharedMemSize];
-
         zeroDirtyMask();
 
         allocatedMask = new uint8_t[sharedMemSize];
-
         zeroAllocatedMask();
+    }
+
+    void StateKeyValue::checkSizeConfigured() {
+        if(valueSize <= 0) {
+            throw StateKeyValueException(fmt::format("{}/{} has no size set", user, key));
+        }
     }
 
     void StateKeyValue::pull() {
@@ -43,6 +59,8 @@ namespace state {
     }
 
     bool StateKeyValue::isSegmentAllocated(long offset, size_t length) {
+        checkSizeConfigured();
+
         // TODO - more efficient way of checking this
         auto allocatedMaskBytes = BYTES(allocatedMask);
         for (size_t i = 0; i < length; i++) {
@@ -96,6 +114,8 @@ namespace state {
     }
 
     void StateKeyValue::set(const uint8_t *buffer) {
+        checkSizeConfigured();
+
         // Unique lock for setting the whole value
         FullLock lock(valueMutex);
 
@@ -105,6 +125,8 @@ namespace state {
     }
 
     void StateKeyValue::doSet(const uint8_t *buffer) {
+        checkSizeConfigured();
+
         if (sharedMemory == nullptr) {
             initialiseStorage(true);
         }
@@ -126,6 +148,8 @@ namespace state {
     }
 
     void StateKeyValue::setSegment(long offset, const uint8_t *buffer, size_t length) {
+        checkSizeConfigured();
+
         FullLock lock(valueMutex);
 
         doSetSegment(offset, buffer, length);
@@ -134,6 +158,8 @@ namespace state {
     }
 
     void StateKeyValue::doSetSegment(long offset, const uint8_t *buffer, size_t length) {
+        checkSizeConfigured();
+
         // Check we're in bounds
         size_t end = offset + length;
         if (end > valueSize) {
@@ -162,20 +188,28 @@ namespace state {
     }
 
     void StateKeyValue::zeroDirtyMask() {
+        checkSizeConfigured();
+
         memset(dirtyMask, 0, valueSize);
     }
 
     void StateKeyValue::zeroAllocatedMask() {
+        checkSizeConfigured();
+
         memset(allocatedMask, 0, valueSize);
     }
 
     void StateKeyValue::zeroValue() {
+        checkSizeConfigured();
+
         util::FullLock lock(valueMutex);
 
         memset(sharedMemory, 0, valueSize);
     }
 
     void StateKeyValue::flagSegmentDirty(long offset, long len) {
+        checkSizeConfigured();
+
         // This is accessible publicly but also called internally when a
         // lock is already held, hence we need to split the locking and
         // marking of the segment.
@@ -208,6 +242,8 @@ namespace state {
     }
 
     void StateKeyValue::mapSharedMemory(void *destination, long pagesOffset, long nPages) {
+        checkSizeConfigured();
+
         PROF_START(mapSharedMem)
 
         if (!isPageAligned(destination)) {
@@ -247,6 +283,8 @@ namespace state {
     }
 
     void StateKeyValue::unmapSharedMemory(void *mappedAddr) {
+        checkSizeConfigured();
+
         FullLock lock(valueMutex);
 
         if (!isPageAligned(mappedAddr)) {
@@ -284,6 +322,8 @@ namespace state {
     }
 
     void StateKeyValue::initialiseStorage(bool allocate) {
+        checkSizeConfigured();
+
         PROF_START(initialiseStorage)
 
         // Don't need to initialise twice
@@ -338,11 +378,15 @@ namespace state {
     }
 
     void StateKeyValue::pushPartial() {
+        checkSizeConfigured();
+
         auto dirtyMaskBytes = BYTES(dirtyMask);
         doPushPartial(dirtyMaskBytes);
     }
 
     void StateKeyValue::pushFull() {
+        checkSizeConfigured();
+
         // Ignore if not dirty
         if (!isDirty) {
             return;
@@ -360,6 +404,8 @@ namespace state {
     }
 
     void StateKeyValue::pullImpl(bool onlyIfEmpty) {
+        checkSizeConfigured();
+
         // Drop out if we already have the data and we don't care about updating
         {
             util::SharedLock lock(valueMutex);
@@ -384,6 +430,8 @@ namespace state {
     }
 
     void StateKeyValue::pullSegmentImpl(bool onlyIfEmpty, long offset, size_t length) {
+        checkSizeConfigured();
+
         // Drop out if we already have the data and we don't care about updating
         {
             util::SharedLock lock(valueMutex);

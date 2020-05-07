@@ -227,18 +227,7 @@ namespace tests {
 
         resetStateMode();
     }
-
-    void checkServerComms() {
-        // Pull the state
-        State &state = state::getGlobalState();
-        const std::shared_ptr<StateKeyValue> &kv = state.getKV(userA, keyA, dataA.size());
-        kv->pull();
-
-        // Check it's equal
-        std::vector<uint8_t> actual(kv->get(), kv->get() + dataA.size());
-        REQUIRE(actual == dataA);
-    }
-
+    
     TEST_CASE("Test state server as remote master", "[state]") {
         setUpStateMode();
 
@@ -262,7 +251,23 @@ namespace tests {
         auto localKv = getKv(userA, keyA, dataA.size());
         REQUIRE(!localKv->isMaster());
 
-        checkServerComms();
+        // Set the state locally and check
+        State &state = state::getGlobalState();
+        const std::shared_ptr<StateKeyValue> &kv = state.getKV(userA, keyA, dataA.size());
+        kv->set(dataB.data());
+
+        std::vector<uint8_t> actualLocal(dataA.size(), 0);
+        kv->get(actualLocal.data());
+        REQUIRE(actualLocal == dataB);
+
+        // Check it's not changed remotely
+        std::vector<uint8_t> actualRemote = server.getRemoteKvValue();
+        REQUIRE(actualRemote == dataA);
+
+        // Push and check remote is updated
+        kv->pushFull();
+        actualRemote = server.getRemoteKvValue();
+        REQUIRE(actualRemote == dataB);
 
         server.wait();
 
@@ -272,13 +277,23 @@ namespace tests {
     TEST_CASE("Test state server with local master", "[state]") {
         setUpStateMode();
 
+        // Set and push 
         auto localKv = getKv(userA, keyA, dataA.size());
         localKv->set(dataA.data());
         REQUIRE(localKv->isMaster());
-
         localKv->pushFull();
 
-        checkServerComms();
+        // Modify locally
+        localKv->set(dataB.data());
+        
+        // Pull
+        State &state = state::getGlobalState();
+        const std::shared_ptr<StateKeyValue> &kv = state.getKV(userA, keyA, dataA.size());
+        kv->pull();
+
+        // Check it's still the same locally set value
+        std::vector<uint8_t> actual(kv->get(), kv->get() + dataA.size());
+        REQUIRE(actual == dataB);
 
         resetStateMode();
     }
