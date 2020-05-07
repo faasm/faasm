@@ -8,6 +8,11 @@ namespace util {
         return clock.now();
     }
 
+    long getTimeDiffNanos(const util::TimePoint &begin) {
+        util::Clock &clock = util::getGlobalClock();
+        return clock.timeDiffNano(clock.now(), begin);
+    }
+
     long getTimeDiffMicros(const util::TimePoint &begin) {
         util::Clock &clock = util::getGlobalClock();
         util::TimePoint end = clock.now();
