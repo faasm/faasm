@@ -1,13 +1,6 @@
 #include <omp.h>
 #include <cstdio>
 #include <random>
-#ifdef __wasm__
-#include "faasmp/faasmp.h"
-#else
-#import <chrono>
-typedef std::chrono::system_clock::time_point TimePoint;
-#endif
-#include "faasmp/reduction.h"
 
 unsigned long thread_seed() {
     int threadNum = omp_get_thread_num();
@@ -35,32 +28,15 @@ int main(int argc, char **argv) {
 
     omp_set_default_device(num_devices);
 
-//#ifdef __wasm__
-//    int a = 0;
-//    __faasmp_debug_copy(&a, &a);
-//#endif
-
     std::vector<uint32_t> accs;
     accs.reserve(num_times);
     for (int i = 0; i < num_times; i++) {
-#ifndef __wasm__
-        TimePoint t1 = std::chrono::system_clock::now();
-#endif
-        result(0);
+        int result(0);
         #pragma omp parallel num_threads(num_threads) default(none) reduction(+:result)
         {
             result += omp_get_thread_num();
         }
         accs.emplace_back((int64_t ) result);
-#ifndef __wasm__
-        TimePoint t2 = std::chrono::system_clock::now();
-        long diff = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
-        if (i == 0) {
-            printf("%d,native-realistic,%ld\n",num_threads, diff);
-        } else {
-            printf("%d,native-warm,%ld\n",num_threads, diff);
-        }
-#endif
     }
 
     uint32_t expected = num_threads * (num_threads - 1) / 2;
@@ -71,7 +47,4 @@ int main(int argc, char **argv) {
             break;
         }
     }
-//#ifdef __wasm__
-//    __faasmp_debug_copy(&a, &a);
-//#endif
 }
