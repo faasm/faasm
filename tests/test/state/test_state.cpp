@@ -701,8 +701,7 @@ namespace tests {
         REQUIRE(server.getRemoteKvValue() == values);
         
         // Delete
-        const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
-        localKv->deleteGlobal();
+        getGlobalState().deleteKV(server.dummyUser, server.dummyKey);
 
         // Check it's gone
         REQUIRE(server.remoteState.getKVCount() == 0);

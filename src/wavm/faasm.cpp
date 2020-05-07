@@ -132,8 +132,10 @@ namespace wasm {
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
 
         logger->debug("S - clear_appended_state - {}", key);
-        auto kv = getStateKV(keyPtr, 0);
-        kv->deleteGlobal();
+        const std::pair<std::string, std::string> userKey = getUserKeyPairFromWasm(keyPtr);
+
+        state::State &s = state::getGlobalState();
+        s.deleteKV(userKey.first, userKey.second);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state_offset", void, __faasm_write_state_offset,

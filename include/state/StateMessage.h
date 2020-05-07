@@ -54,6 +54,8 @@ namespace state {
 
     tcp::TCPMessage *buildStateSizeResponse(const std::string &user, const std::string &key, size_t stateSize);
 
+    tcp::TCPMessage *buildStateDeleteRequest(const std::string &user, const std::string &key);
+
     size_t extractSizeResponse(const tcp::TCPMessage *msg);
 
     void extractPullAppendedData(const tcp::TCPMessage *msg, uint8_t *buffer);

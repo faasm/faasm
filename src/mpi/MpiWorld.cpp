@@ -94,10 +94,11 @@ namespace mpi {
 
     void MpiWorld::destroy() {
         setUpStateKV();
-        stateKV->deleteGlobal();
+        state::getGlobalState().deleteKV(stateKV->user, stateKV->key);
 
         for (auto &s: rankNodeMap) {
-            getRankNodeState(s.first)->deleteGlobal();
+            const std::shared_ptr<state::StateKeyValue> &rankState = getRankNodeState(s.first);
+            state::getGlobalState().deleteKV(rankState->user, rankState->key);
         }
 
         localQueueMap.clear();

@@ -67,6 +67,16 @@ namespace state {
         return msg;
     }
 
+    tcp::TCPMessage *buildStateDeleteRequest(const std::string &user, const std::string &key) {
+        tcp::TCPMessage *msg = buildStateTCPMessage(
+                StateMessageType::STATE_DELETE,
+                user,
+                key,
+                0);
+
+        return msg;
+    }
+
     tcp::TCPMessage *buildStateSizeResponse(const std::string &user, const std::string &key, size_t stateSize) {
         auto response = new tcp::TCPMessage();
         response->type = StateMessageType::STATE_SIZE_RESPONSE;

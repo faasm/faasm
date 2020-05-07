@@ -85,8 +85,8 @@ namespace state {
         return masterIP;
     }
 
-    size_t InMemoryStateKeyValue::getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn,
-                                                         const std::string &thisIP) {
+    std::string getMasterIPForOtherMaster(const std::string &userIn, const std::string &keyIn,
+                                          const std::string &thisIP) {
         // Get the master IP
         std::string masterIP;
         try {
@@ -100,16 +100,47 @@ namespace state {
             throw std::runtime_error("Attempting to pull state size on master");
         }
 
+        return masterIP;
+    }
+
+    size_t InMemoryStateKeyValue::getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn,
+                                                         const std::string &thisIP) {
+
+        std::string masterIP = getMasterIPForOtherMaster(userIn, keyIn, thisIP);
+
         // TODO - avoid creating a TCP client on every request
         tcp::TCPMessage *msg = buildStateSizeRequest(userIn, keyIn);
         tcp::TCPClient client(masterIP, STATE_PORT);
         client.sendMessage(msg);
+        tcp::freeTcpMessage(msg);
 
         // TODO - we know the size here
         tcp::TCPMessage *response = client.recvMessage();
         size_t stateSize = extractSizeResponse(response);
+        tcp::freeTcpMessage(response);
 
         return stateSize;
+    }
+
+    void InMemoryStateKeyValue::deleteFromRemote(const std::string &userIn, const std::string &keyIn, const std::string &thisIPIn) {
+        std::string masterIP = getMasterIP(userIn, keyIn, thisIPIn, false);
+
+        // Ignore if we're the master
+        if(masterIP == thisIPIn) {
+            return;
+        }
+
+        tcp::TCPMessage *msg = buildStateDeleteRequest(userIn, keyIn);
+        tcp::TCPClient client(masterIP, STATE_PORT);
+        client.sendMessage(msg);
+        tcp::freeTcpMessage(msg);
+
+        tcp::TCPMessage *response = client.recvMessage();
+        if(response->type != state::StateMessageType::OK_RESPONSE) {
+            throw std::runtime_error("Failed to delete from remote");
+        }
+
+        tcp::freeTcpMessage(response);
     }
 
     void InMemoryStateKeyValue::clearAll(bool global) {
@@ -280,24 +311,6 @@ namespace state {
             tcp::TCPMessage *response = masterClient->recvMessage();
             extractPullAppendedData(response, data);
             tcp::freeTcpMessage(response);
-        }
-    }
-
-    void InMemoryStateKeyValue::deleteFromRemote() {
-        if (status == InMemoryStateKeyStatus::MASTER) {
-            // Run normal clear
-            doClear();
-
-            // Clear appended data
-            appendedData.clear();
-        } else {
-            // Send the message
-            tcp::TCPMessage *msg = buildStateDeleteRequest();
-            masterClient->sendMessage(msg);
-            tcp::freeTcpMessage(msg);
-
-            // Wait for response
-            awaitOkResponse();
         }
     }
 
@@ -510,16 +523,6 @@ namespace state {
         getAppended(response->buffer, length, nValues);
 
         return response;
-    }
-
-    tcp::TCPMessage *InMemoryStateKeyValue::buildStateDeleteRequest() {
-        tcp::TCPMessage *msg = buildStateTCPMessage(
-                StateMessageType::STATE_DELETE,
-                user,
-                key,
-                0
-        );
-        return msg;
     }
 
     tcp::TCPMessage *InMemoryStateKeyValue::buildStateLockRequest() {

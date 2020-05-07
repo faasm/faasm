@@ -191,9 +191,8 @@ void __faasm_read_appended_state(const char *key, unsigned char *buffer, long bu
 
 void __faasm_clear_appended_state(const char *key) {
     util::getLogger()->debug("E - clear_appended_state {}", key);
-    size_t stateSize = state::getGlobalState().getStateSize(getEmulatorUser(), key);
-    auto kv = getKv(key, stateSize);
-    kv->deleteGlobal();
+    state::State &state = state::getGlobalState();
+    state.deleteKV(getEmulatorUser(), key);
 }
 
 void __faasm_write_state_offset(const char *key, long totalLen, long offset, const unsigned char *data, long dataLen) {

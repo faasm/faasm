@@ -77,8 +77,6 @@ namespace state {
 
         void pushPartialMask(const std::shared_ptr<StateKeyValue> &maskKv);
 
-        void clear();
-
         void lockRead();
 
         void unlockRead();
@@ -94,8 +92,6 @@ namespace state {
         void flagSegmentDirty(long offset, long len);
 
         size_t size() const;
-
-        void deleteGlobal();
 
         void pushFull();
 
@@ -126,8 +122,6 @@ namespace state {
 
         void doSet(const uint8_t *data);
 
-        void doClear();
-
         void doSetSegment(long offset, const uint8_t *buffer, size_t length);
 
         virtual void pullFromRemote() = 0;
@@ -141,8 +135,6 @@ namespace state {
         virtual void pullAppendedFromRemote(uint8_t *data, size_t length, long nValues) = 0;
 
         virtual void pushPartialToRemote(const std::vector<StateChunk> &dirtyChunks) = 0;
-
-        virtual void deleteFromRemote() = 0;
 
     private:
         void configureSize();

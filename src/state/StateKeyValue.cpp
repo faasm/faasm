@@ -226,20 +226,6 @@ namespace state {
         memset(((uint8_t *) allocatedMask) + offset, 0b11111111, len);
     }
 
-    void StateKeyValue::clear() {
-        FullLock lock(valueMutex);
-        doClear();
-    }
-
-    void StateKeyValue::doClear() {
-        logger->debug("Clearing value {}/{}", user, key);
-
-        // Set flag to say this is effectively new again
-        _fullyAllocated = false;
-        zeroDirtyMask();
-        zeroAllocatedMask();
-    }
-
     size_t StateKeyValue::size() const {
         return valueSize;
     }
@@ -512,16 +498,6 @@ namespace state {
 
         PROF_END(remoteLock)
         return remoteLockId;
-    }
-
-
-    void StateKeyValue::deleteGlobal() {
-        // Clear locally
-        clear();
-
-        // Delete remote
-        util::FullLock lock(valueMutex);
-        deleteFromRemote();
     }
 
     void StateKeyValue::lockRead() {

@@ -76,9 +76,8 @@ namespace state {
 
         } else if (requestType == StateMessageType::STATE_DELETE) {
             logger->debug("State delete: {}", key);
-            kv->deleteGlobal();
             response = kv->buildOkResponse();
-
+            state.deleteKV(user, key);
         } else {
             logger->error("Unrecognised request {}", requestType);
             throw std::runtime_error("Unrecognised state request type");

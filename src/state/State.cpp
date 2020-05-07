@@ -69,6 +69,23 @@ namespace state {
         }
     }
 
+    void State::deleteKV(const std::string &userIn, const std::string &keyIn) {
+        // Remove from master
+        std::string stateMode = util::getSystemConfig().stateMode;
+        if (stateMode == "redis") {
+            RedisStateKeyValue::deleteFromRemote(userIn, keyIn);
+        } else if (stateMode == "inmemory") {
+            InMemoryStateKeyValue::deleteFromRemote(userIn, keyIn, thisIP);
+        } else {
+            throw std::runtime_error("Unrecognised state mode: " + stateMode);
+        }
+
+        // Remove locally
+        FullLock fullLock(mapMutex);
+        std::string lookupKey = util::keyForUser(userIn, keyIn);
+        kvMap.erase(lookupKey);
+    }
+
     std::shared_ptr<StateKeyValue> State::getKV(const std::string &user, const std::string &key, size_t size) {
         if (user.empty()) {
             throw std::runtime_error("Attempting to access state with empty user");

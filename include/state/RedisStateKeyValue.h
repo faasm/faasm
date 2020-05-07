@@ -14,6 +14,8 @@ namespace state {
 
         static size_t getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn);
 
+        static void deleteFromRemote(const std::string &userIn, const std::string &keyIn);
+
         static void clearAll(bool global);
     private:
         const std::string joinedKey;
@@ -35,7 +37,5 @@ namespace state {
         void appendToRemote(const uint8_t *data, size_t length) override;
 
         void pullAppendedFromRemote(uint8_t *data, size_t length, long nValues) override;
-
-        void deleteFromRemote() override;
     };
 }

@@ -16,6 +16,8 @@ namespace state {
 
         void forceClearAll(bool global);
 
+        void deleteKV(const std::string &userIn, const std::string &keyIn);
+
         size_t getKVCount();
     private:
         const std::string thisIP;
