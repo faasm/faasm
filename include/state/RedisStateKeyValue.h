@@ -18,8 +18,6 @@ namespace state {
     private:
         const std::string joinedKey;
 
-        std::mutex globalLock;
-
         uint32_t lastRemoteLockId = 0;
 
         void lockGlobal() override;
