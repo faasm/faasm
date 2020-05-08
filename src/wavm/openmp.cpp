@@ -401,14 +401,14 @@ namespace wasm {
     }
 
     static util::TimePoint iterationTp;
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "faasmp_incrby", void, faasmp_incrby) {
-//        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-//        logger->debug("S - __faasmp_incryby {} {}", keyPtr, value);
-//
-//        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-//        std::string key{&Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr)};
-//        redis::Redis &redis = redis::Redis::getState();
-//        return redis.incrByLong(key, value);
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "faasmp_incrby", I64, __faasmp_incrby, I32 keyPtr, I64 value) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - __faasmp_incryby {} {}", keyPtr, value);
+
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        std::string key{&Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr)};
+        redis::Redis &redis = redis::Redis::getState();
+        return redis.incrByLong(key, value);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasmp_getLong", I64, __faasmp_getLong, I32 keyPtr) {
@@ -425,25 +425,17 @@ namespace wasm {
      * This function is just around to debug issues with threaded access to stacks.
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasmp_debug_copy", void, __faasmp_debug_copy, I32 src, I32 dest) {
-        if (iterationTp == util::TimePoint()) {
-            iterationTp = util::startTimer();
-        } else {
-            redis::Redis &redis = redis::Redis::getState();
-            const long distributedIterationTime = util::getTimeDiffMicros(iterationTp);
-            redis.rpushLong("multi_cr_fork_times", distributedIterationTime);
-            iterationTp = util::TimePoint();
-        }
-//        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-//        logger->debug("S - __faasmp_debug_copy {} {}", src, dest);
-//
-//        // Get pointers on host to both src and dest
-//        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-//        int *hostSrc = &Runtime::memoryRef<int>(memoryPtr, src);
-//        int *hostDest = &Runtime::memoryRef<int>(memoryPtr, dest);
-//
-//        logger->debug("{}: copy {} -> {}", thisThreadNumber, *hostSrc, *hostDest);
-//
-//        *hostDest = *hostSrc;
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - __faasmp_debug_copy {} {}", src, dest);
+
+        // Get pointers on host to both src and dest
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        int *hostSrc = &Runtime::memoryRef<int>(memoryPtr, src);
+        int *hostDest = &Runtime::memoryRef<int>(memoryPtr, dest);
+
+        logger->debug("{}: copy {} -> {}", thisThreadNumber, *hostSrc, *hostDest);
+
+        *hostDest = *hostSrc;
     }
     /**
      * @param    loc       Source code location
