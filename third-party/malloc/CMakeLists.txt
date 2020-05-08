@@ -10,8 +10,8 @@ add_library(dlmalloc STATIC dlmalloc.c)
 set_target_properties(dlmalloc PROPERTIES PUBLIC_HEADER malloc.h)
 
 install(TARGETS dlmalloc
-        ARCHIVE DESTINATION ${CMAKE_SYSROOT}/lib
-        LIBRARY DESTINATION ${CMAKE_SYSROOT}/lib
+        ARCHIVE DESTINATION ${CMAKE_SYSROOT}/lib/wasm32-wasi
+        LIBRARY DESTINATION ${CMAKE_SYSROOT}/lib/wasm32-wasi
         RUNTIME DESTINATION ${CMAKE_SYSROOT}/bin
         PUBLIC_HEADER DESTINATION ${CMAKE_SYSROOT}/include/
         )
