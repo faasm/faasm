@@ -208,12 +208,6 @@ namespace wasm {
         return thisThreadNumber; // Might be wrong if called at depth 1 while another thread at depths 1 has forked
     }
 
-    int userDefaultDevice = 0;
-    int userMaxNumDevices = 3; // Number of devices available to each user by default
-    // Map of tid to message ID for chained calls
-
-    // Flag to say whether we've spawned a thread
-
     /**
      * The "real" version of this function is implemented in the openmp source at
      * openmp/runtime/src/kmp_csupport.cpp. This in turn calls __kmp_fork_call which
@@ -251,7 +245,7 @@ namespace wasm {
         int nextNumThreads = thisLevel->get_next_level_num_threads();
         pushedNumThreads = -1; // Resets for next push
 
-        if (0 > userDefaultDevice) {
+        if (0 > thisLevel->userDefaultDevice) {
 
             std::vector<int> chainedThreads;
             chainedThreads.reserve(nextNumThreads);
@@ -400,7 +394,6 @@ namespace wasm {
 #endif
     }
 
-    static util::TimePoint iterationTp;
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "faasmp_incrby", I64, __faasmp_incrby, I32 keyPtr, I64 value) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __faasmp_incryby {} {}", keyPtr, value);
@@ -535,7 +528,7 @@ namespace wasm {
      *  Called immediately after running the reduction section before exiting the `reduce` construct.
      */
     void endReduction() {
-        if (0 <= userDefaultDevice) {
+        if (0 <= thisLevel->userDefaultDevice) {
             // Unlocking not owned mutex is UB
             if (thisLevel->numThreads > 1) {
                 util::getLogger()->debug("Thread {} unlocking reduction", thisThreadNumber);
@@ -610,25 +603,24 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_num_devices", int, omp_get_num_devices) {
         util::getLogger()->debug("S - omp_get_num_devices");
-        return userDefaultDevice;
+        return thisLevel->userDefaultDevice;
     }
 
     /**
-     *
+     * Switches between local and remote threads.
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_set_default_device", void, omp_set_default_device,
                                    int defaultDeviceNumber) {
         auto logger = util::getLogger();
         logger->debug("S - omp_set_default_device {}", defaultDeviceNumber);
-        if (abs(defaultDeviceNumber) > userMaxNumDevices) {
+        if (abs(defaultDeviceNumber) > 1) {
             util::getLogger()->warn(
-                    "Given default device index ({}) is bigger than num of available devices ({}), ignoring",
-                    defaultDeviceNumber, userMaxNumDevices);
+                    "Given default device index ({}) is bigger than num of available devices (1), ignoring",
+                    defaultDeviceNumber);
             return;
         }
-        // Use negative device number to indicate using multiple devices in parallel
-        // TODO - flag with the specialisation of Level instead
-        userDefaultDevice = defaultDeviceNumber;
+        // TODO - flag negative with the specialisation of Level instead
+        thisLevel->userDefaultDevice = defaultDeviceNumber;
     }
 
     template<typename T>
