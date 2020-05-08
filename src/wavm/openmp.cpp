@@ -329,6 +329,13 @@ namespace wasm {
             logger->debug("Distributed Fork finished successfully");
         } else { // Single host
 
+#ifdef OMP_PTS
+            if (nextNumThreads > thisLevel->stackTops.size()) {
+                logger->error("OpenMP needs to allocate more initial stacks than configured max threads");
+                throw std::runtime_error("Too many asked OpenMP threads");
+            }
+#endif
+
             // Set up new level
             auto nextLevel = std::make_shared<SingleHostLevel>(thisLevel, nextNumThreads);
 
@@ -367,6 +374,11 @@ namespace wasm {
                                                      .contextRuntimeData = contextRuntimeData,
                                                      .func = func,
                                                      .funcArgs = microtaskArgs[threadNum].data(),
+#ifdef OMP_PTS
+                                                     .stackTop = thisLevel->stackTops.size() > 0 ? thisLevel->stackTops[threadNum] : parentModule->allocateThreadStack(),
+#else
+                                                     .stackTop = parentModule->allocateThreadStack(),
+#endif
                                              }
                                      });
             }

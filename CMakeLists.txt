@@ -31,7 +31,7 @@ if (FAASM_WAMR_SUPPORT)
     set(WAMR_BUILD_AOT 0)
     set(WAMR_BUILD_LIBC_WASI 1)
     set(WAMR_BUILD_LIBC_BUILTIN 0)
-endif()
+endif ()
 
 # Library type (for shared libraries)
 if (FAASM_STATIC_LIBS)
@@ -49,6 +49,11 @@ else ()
         add_library(${lib_name} STATIC ${lib_deps})
         target_compile_options(${lib_name} PRIVATE "-fPIC")
     endfunction()
+endif ()
+
+option(OMP_PTS "PREALLOCATE THREAD STACK: Only available for local WasmMP and non recursive levels" FALSE)
+if (OMP_PTS)
+    add_compile_definitions(-DOMP_PTS)
 endif ()
 
 # Switch on WAVM stack traces in debug (potential performance gain?)
@@ -143,10 +148,10 @@ else ()
     # WAVM
     add_subdirectory(third-party/WAVM)
 
-    if(FAASM_WAMR_SUPPORT)
-    include (${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
-    add_library(libwamr ${WAMR_RUNTIME_LIB_SOURCE})
-    endif()
+    if (FAASM_WAMR_SUPPORT)
+        include(${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
+        add_library(libwamr ${WAMR_RUNTIME_LIB_SOURCE})
+    endif ()
 
     # Faasm functions
     add_subdirectory(func)

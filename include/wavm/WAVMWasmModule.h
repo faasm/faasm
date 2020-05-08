@@ -5,6 +5,7 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Linker.h>
 #include <WAVM/Runtime/Runtime.h>
+#include <wavm/openmp/ThreadState.h>
 
 using namespace WAVM;
 
@@ -112,6 +113,8 @@ namespace wasm {
 
         int getDataOffsetFromGOT(const std::string &name);
 
+        U32 allocateThreadStack();
+
     protected:
         void doSnapshot(std::ostream &outStream) override;
 
@@ -172,6 +175,8 @@ namespace wasm {
         void syncPythonFunctionFile(const message::Message &msg);
 
         void executeRemoteOMP(message::Message &msg);
+
+        void prepareOpenMPContext(const message::Message &msg);
     };
 
     WAVMWasmModule *getExecutingModule();
@@ -182,5 +187,6 @@ namespace wasm {
         Runtime::ContextRuntimeData *contextRuntimeData;
         Runtime::Function *func;
         IR::UntaggedValue *funcArgs;
+        U32 stackTop;
     };
 }

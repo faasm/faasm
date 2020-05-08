@@ -24,8 +24,6 @@
 #include <Runtime/RuntimePrivate.h>
 #include <WASI/WASIPrivate.h>
 
-#include <wavm/openmp/ThreadState.h>
-
 constexpr int THREAD_STACK_SIZE(2 * ONE_MB_BYTES);
 
 using namespace WAVM;
@@ -736,6 +734,7 @@ namespace wasm {
                 getContextRuntimeData(executionContext),
                 funcInstance,
                 invokeArgs.data(),
+                getExecutingModule()->allocateThreadStack(),
         };
 
         // Record the return value
@@ -762,6 +761,10 @@ namespace wasm {
         }
 
         return wasmPtr;
+    }
+
+    U32 WAVMWasmModule::allocateThreadStack() {
+        return this->mmapMemory(THREAD_STACK_SIZE);
     }
 
     U32 WAVMWasmModule::mmapMemory(U32 length) {
@@ -1133,7 +1136,7 @@ namespace wasm {
     I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec &spec) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         // Create a new region for this thread's stack
-        U32 thisStackBase = getExecutingModule()->mmapMemory(THREAD_STACK_SIZE);
+        U32 thisStackBase = spec.stackTop;
         U32 stackTop = thisStackBase + THREAD_STACK_SIZE - 1;
 
         // Create a new context for this thread
@@ -1265,4 +1268,33 @@ namespace wasm {
 
         storage::SharedFiles::syncSharedFile(sharedPath, runtimeFilePath);
     }
+
+    void WAVMWasmModule::prepareOpenMPContext(const message::Message &msg) {
+        std::shared_ptr<openmp::Level> ompLevel;
+
+        if (msg.has_ompdepth()) {
+            ompLevel = std::static_pointer_cast<openmp::Level>(
+                    std::make_shared<openmp::MultiHostSumLevel>(msg.ompdepth(),
+                                                                msg.ompeffdepth(),
+                                                                msg.ompmal(),
+                                                                msg.ompnumthreads()));
+        } else {
+#ifdef OMP_PTS
+            WAVMWasmModule *module = getExecutingModule();
+            std::vector<U32> stackTops;
+            stackTops.reserve(util::getSystemConfig().maxWorkersPerFunction);
+            for (size_t i = 0; i < util::getSystemConfig().maxWorkersPerFunction; i++) {
+                stackTops.emplace_back(module->allocateThreadStack());
+            }
+            ompLevel = std::static_pointer_cast<openmp::Level>(
+                    std::make_shared<openmp::SingleHostLevel>(std::move(stackTops)));
+#else
+            ompLevel = std::static_pointer_cast<openmp::Level>(
+                    std::make_shared<openmp::SingleHostLevel>());
+#endif
+        }
+
+        openmp::setTLS(msg.ompthreadnum(), ompLevel);
+    }
+
 }

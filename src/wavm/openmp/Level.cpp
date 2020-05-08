@@ -1,4 +1,4 @@
-#include <wavm/openmp/Level.h>
+#include "wavm/openmp/Level.h"
 
 #include <openmp/ThreadState.h>
 #include <util/config.h>

@@ -6,7 +6,6 @@
 #include <util/func.h>
 #include <util/locks.h>
 #include <sys/uio.h>
-#include <wavm/openmp/ThreadState.h>
 
 #include <boost/filesystem.hpp>
 #include <sstream>
@@ -192,23 +191,6 @@ namespace wasm {
         for (const auto &thisArg : argv) {
             argvBufferSize += thisArg.size() + 1;
         }
-    }
-
-    void WasmModule::prepareOpenMPContext(const message::Message &msg) {
-        std::shared_ptr<openmp::Level> ompLevel;
-
-        if (msg.has_ompdepth()) {
-            ompLevel = std::static_pointer_cast<openmp::Level>(
-                    std::make_shared<openmp::MultiHostSumLevel>(msg.ompdepth(),
-                                                                msg.ompeffdepth(),
-                                                                msg.ompmal(),
-                                                                msg.ompnumthreads()));
-        } else {
-            ompLevel = std::static_pointer_cast<openmp::Level>(
-                    std::make_shared<openmp::SingleHostLevel>());
-        }
-
-        openmp::setTLS(msg.ompthreadnum(), ompLevel);
     }
 
 }

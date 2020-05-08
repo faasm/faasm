@@ -1,10 +1,11 @@
 #pragma once
 
-#include <wavm/openmp/ClangTypes.h>
 #include <mutex>
+
 #include <proto/faasm.pb.h>
 #include <util/barrier.h>
 #include <util/environment.h>
+#include <wavm/openmp/ClangTypes.h>
 
 namespace wasm {
     namespace openmp {
@@ -20,6 +21,7 @@ namespace wasm {
         // Global variables controlled by level master
         class Level {
         public:
+            // Defaults set to mimic Clang 9.0.1 behaviour
             const int depth = 0; // Number of nested OpenMP constructs, 0 for serial code
             const int effectiveDepth = 0; // Number of parallel regions (> 1 thread) above this level
             int maxActiveLevel = 1; // Max number of effective parallel regions allowed from the top
@@ -29,9 +31,13 @@ namespace wasm {
             // TODO - This implementation limits to one lock for all critical sections at a level.
             // Mention in report (maybe fix looking at the lck address and doing a lookup on it though?)
             std::mutex criticalSection; // Mutex used in critical sections.
+#ifdef OMP_PTS
+            std::vector<std::uint32_t> stackTops; // Pre-allocated stacks for the level
 
-            // Defaults set to mimic Clang 9.0.1 behaviour
+            Level(std::vector<std::uint32_t> &&stackTops) : stackTops(stackTops) {}
+#else
             Level() = default;
+#endif
 
             // Local constructor
             Level(const std::shared_ptr<Level> &parent, int num_threads);
@@ -54,9 +60,16 @@ namespace wasm {
 
         class SingleHostLevel : public Level {
         public:
-            SingleHostLevel() = default;
 
-            SingleHostLevel(const std::shared_ptr<Level>& parent, int numThreads);
+#ifdef OMP_PTS
+            SingleHostLevel(std::vector<std::uint32_t>&& stackTops) : Level(std::move(stackTops)) {}
+#else
+
+            SingleHostLevel() = default;
+#endif
+
+            SingleHostLevel(const std::shared_ptr<Level> &parent, int numThreads);
+
             ReduceTypes reductionMethod() override;
 
             ~SingleHostLevel() = default;
