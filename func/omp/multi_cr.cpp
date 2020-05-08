@@ -1,9 +1,7 @@
 #include <omp.h>
 #include <cstdio>
 #include <random>
-#ifdef __wasm__
-#include "faasmp/faasmp.h"
-#else
+#ifndef __wasm__
 #import <chrono>
 typedef std::chrono::system_clock::time_point TimePoint;
 #endif
@@ -35,18 +33,13 @@ int main(int argc, char **argv) {
 
     omp_set_default_device(num_devices);
 
-//#ifdef __wasm__
-//    int a = 0;
-//    __faasmp_debug_copy(&a, &a);
-//#endif
-
     std::vector<uint32_t> accs;
     accs.reserve(num_times);
     for (int i = 0; i < num_times; i++) {
 #ifndef __wasm__
         TimePoint t1 = std::chrono::system_clock::now();
 #endif
-        result(0);
+        i64 result(0);
         #pragma omp parallel num_threads(num_threads) default(none) reduction(+:result)
         {
             result += omp_get_thread_num();
@@ -71,7 +64,4 @@ int main(int argc, char **argv) {
             break;
         }
     }
-//#ifdef __wasm__
-//    __faasmp_debug_copy(&a, &a);
-//#endif
 }

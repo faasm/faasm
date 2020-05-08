@@ -1,3 +1,6 @@
+// This file is a copy of multi_cr and only exists because I choose to have
+// the i64 behing the __wasm__ var which forces WasmMP to use it and here I
+// wanted to use int64_t as the reduce type.
 #include <omp.h>
 #include <cstdio>
 #include <random>
