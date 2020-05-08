@@ -396,7 +396,6 @@ namespace wasm {
 
 #ifdef FAASM_OPENMP_FORK_PROFILE
         const long distributedIterationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now() - iterationTp).count();// util::getTimeDiffNanos(iterationTp);
-//        logger->error("It's been {}", distributedIterationTime);
         redis.rpushLong(fmt::format("{}_fork_times", parentModule->getBoundFunction()), distributedIterationTime);
 #endif
     }
