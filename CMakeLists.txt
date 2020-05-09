@@ -51,9 +51,10 @@ else ()
     endfunction()
 endif ()
 
-option(OMP_PTS "PREALLOCATE THREAD STACK: Only available for local WasmMP and non recursive levels" FALSE)
-if (OMP_PTS)
-    add_compile_definitions(-DOMP_PTS)
+option(FAASM_OMP_PTS "PREALLOCATE THREAD STACK: Only available for local WasmMP and non recursive levels")
+if (${FAASM_OMP_PTS})
+    message("-- Activated OMP_PTS: OpenMP Thread stack preallocation feature")
+    add_compile_definitions(OMP_PTS)
 endif ()
 
 # Switch on WAVM stack traces in debug (potential performance gain?)
@@ -69,11 +70,14 @@ add_definitions(-DDLL_EXPORT=)
 add_definitions(-DDLL_IMPORT=)
 
 # Faasm profiling
-add_definitions(-DFAASM_PROFILE_ON=0)
+option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md")
+option(FAASM_SELF_PROFILING "Turn on system profiling logged at tracing level")
 
-# Custom LLVM build (also for profiling)
-set(FAASM_CUSTOM_LLVM 0)
-if (${FAASM_CUSTOM_LLVM})
+if (${FAASM_SELF_PROFILING})
+    add_compile_definitions(PROFILE_ALL)
+endif ()
+
+if (${FAASM_PERF_PROFILING})
     # In accordance with bin/build_llvm_perf.sh and LLVM version for WAVM
     set(LLVM_DIR /usr/local/code/llvm-perf/build/lib/cmake/llvm)
     message(STATUS "Using custom LLVM at ${LLVM_DIR} for profiling")

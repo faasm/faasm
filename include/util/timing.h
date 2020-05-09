@@ -3,7 +3,7 @@
 #include <util/clock.h>
 #include <string>
 
-#ifdef FAASM_PROFILE_ON
+#ifdef PROFILE_ALL
 #define PROF_START(name) const util::TimePoint name = util::startTimer();
 #define PROF_END(name) util::logEndTimer(#name, name);
 #else

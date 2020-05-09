@@ -5,8 +5,10 @@
 As Faasm functions are compiled to WebAssembly and executed using [WAVM](https://github.com/WAVM/WAVM/),
 any general tips that apply in WAVM also apply to Faasm.
 
-The instructions below assume that you're building Faasm locally as per the [local dev](local_dev.md) 
-instructions and that Faasm's built executables are on your `PATH`.
+The instructions below assume that 
+- you're building Faasm locally as per the [local dev](local_dev.md) instructions,
+- that you built the `func_sym` target,
+- that Faasm's built executables are on your `PATH`.
 
 ### Symbols
 
@@ -53,8 +55,8 @@ To set things up you need to do the following:
 
 - Run the `perf.yml` Ansible playbook to set up `perf`
 - Create a build of LLVM with perf support by running `./bin/build/llvm_perf` (this takes ages)
-- Modify the top-level `CMakeLists.txt` to set `FAASM_CUSTOM_LLVM` to `1`
-- Rebuild the target you want to profile
+- Turn on the `FAASM_PERF_PROFILING` option in you CMake build configuration. (`ccmake <build_dir>` makes this easy).
+- Rebuild `codegen_func`, and your runner to build and run the target you want to profile, 
 
 Once this is done you can use perf as described [here](https://lwn.net/Articles/633846/), i.e.:
 
