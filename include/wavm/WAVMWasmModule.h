@@ -1,11 +1,10 @@
 #pragma once
 
-#include <wasm/WasmModule.h>
-
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Linker.h>
 #include <WAVM/Runtime/Runtime.h>
-#include <wavm/openmp/ThreadState.h>
+
+#include <wasm/WasmModule.h>
 
 using namespace WAVM;
 
@@ -17,6 +16,8 @@ namespace wasm {
     WAVM_DECLARE_INTRINSIC_MODULE(tsenv)
 
     struct WasmThreadSpec;
+
+    class PlatformThreadPool;
 
     class WAVMWasmModule : public WasmModule, Runtime::Resolver {
     public:
@@ -115,6 +116,8 @@ namespace wasm {
 
         U32 allocateThreadStack();
 
+        std::unique_ptr<PlatformThreadPool> &getPool();
+
     protected:
         void doSnapshot(std::ostream &outStream) override;
 
@@ -177,6 +180,8 @@ namespace wasm {
         void executeRemoteOMP(message::Message &msg);
 
         void prepareOpenMPContext(const message::Message &msg);
+
+        std::unique_ptr<PlatformThreadPool> ompPool;
     };
 
     WAVMWasmModule *getExecutingModule();
