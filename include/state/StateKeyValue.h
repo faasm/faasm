@@ -14,7 +14,7 @@
 
 
 constexpr int REMOTE_LOCK_TIMEOUT_SECS(1);
-constexpr int REMOTE_LOCK_MAX_RETRIES(10);
+constexpr int REMOTE_LOCK_MAX_RETRIES(100);
 
 
 namespace state {
