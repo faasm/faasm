@@ -236,7 +236,7 @@ namespace wasm {
         Runtime::Function *func = Runtime::asFunction(
                 Runtime::getTableElement(getExecutingModule()->defaultTable, microtaskPtr));
 
-#ifdef FAASM_OPENMP_FORK_PROFILE
+#ifdef OPENMP_FORK_REDIS_TRACE
         const std::chrono::time_point iterationTp = std::chrono::system_clock::now();
         redis::Redis &redis = redis::Redis::getState();
 #endif
@@ -322,7 +322,6 @@ namespace wasm {
                 throw std::runtime_error(fmt::format("{} OMP threads have exited with errors", numErrors));
             }
 
-            redis.del("omp_" + activeSnapshotKey);
             logger->debug("Distributed Fork finished successfully");
         } else { // Single host
 
@@ -388,7 +387,7 @@ namespace wasm {
             }
         }
 
-#ifdef FAASM_OPENMP_FORK_PROFILE
+#ifdef OPENMP_FORK_REDIS_TRACE
         const long distributedIterationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now() - iterationTp).count();// util::getTimeDiffNanos(iterationTp);
         redis.rpushLong(fmt::format("{}_fork_times", parentModule->getBoundFunction()), distributedIterationTime);
 #endif
