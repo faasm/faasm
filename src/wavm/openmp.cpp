@@ -237,7 +237,7 @@ namespace wasm {
                 Runtime::getTableElement(getExecutingModule()->defaultTable, microtaskPtr));
 
 #ifdef OPENMP_FORK_REDIS_TRACE
-        const std::chrono::time_point iterationTp = std::chrono::system_clock::now();
+        const util::TimePoint iterationTp = util::startTimer();
         redis::Redis &redis = redis::Redis::getState();
 #endif
 
@@ -388,7 +388,7 @@ namespace wasm {
         }
 
 #ifdef OPENMP_FORK_REDIS_TRACE
-        const long distributedIterationTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now() - iterationTp).count();// util::getTimeDiffNanos(iterationTp);
+        const long distributedIterationTime = util::getTimeDiffMillis(iterationTp);
         redis.rpushLong(fmt::format("{}_fork_times", parentModule->getBoundFunction()), distributedIterationTime);
 #endif
     }
