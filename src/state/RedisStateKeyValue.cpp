@@ -25,17 +25,16 @@ namespace state {
         }
     }
 
-    /* FIXME - To prevent threads not holding the local lock from competing for the global lock
-     * we need to lock from lockGlobal to unlockGlobal and therefore to make the lock recursive
-     */
+    // TODO - the remote locking here is quite primitive since we ignore the fact threads can run
+    // on the same machine. Redis is also aware of scheduling and so we could optimise this.
     void RedisStateKeyValue::lockGlobal() {
-        valueMutex.lock();
+        util::FullLock lock(valueMutex);
         lastRemoteLockId = waitOnRedisRemoteLock(joinedKey);
     }
 
     void RedisStateKeyValue::unlockGlobal() {
+        util::FullLock lock(valueMutex);
         redis.releaseLock(joinedKey, lastRemoteLockId);
-        valueMutex.unlock();
     }
 
     void RedisStateKeyValue::pullFromRemote() {

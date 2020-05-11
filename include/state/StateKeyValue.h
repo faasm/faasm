@@ -108,7 +108,7 @@ namespace state {
 
         const std::shared_ptr<spdlog::logger> logger;
 
-        std::recursive_mutex valueMutex;
+        std::shared_mutex valueMutex;
         std::atomic<bool> _fullyAllocated;
 
         size_t valueSize;
