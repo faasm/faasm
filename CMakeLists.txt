@@ -65,7 +65,7 @@ add_definitions(-DDLL_IMPORT=)
 
 # Faasm profiling
 add_definitions(-DFAASM_PROFILE_ON=0)
-option(FAASM_OPENMP_TRACING "Trace OpenMP forks in Redis")
+option(FAASM_OPENMP_TRACING "Trace OpenMP forks in Redis" ON)
 
 if (${FAASM_OPENMP_TRACING})
     add_compile_definitions(OPENMP_FORK_REDIS_TRACE)
