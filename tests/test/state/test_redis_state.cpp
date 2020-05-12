@@ -35,7 +35,7 @@ namespace tests {
         util::getSystemConfig().stateMode = originalStateMode;
     }
 
-    std::shared_ptr<StateKeyValue> setupKV(size_t size) {
+    static std::shared_ptr<StateKeyValue> setupKV(size_t size) {
         // We have to make sure emulator is using the right user
         const std::string user = getEmulatorUser();
 
@@ -282,12 +282,9 @@ namespace tests {
         std::vector<double> actualPostPush(postPushDoublePtr, postPushDoublePtr + nDoubles);
         REQUIRE(expected == actualPostPush);
 
-        // Also check redis
-        if(stateMode == "redis") {
-            std::vector<double> actualFromRedis(nDoubles);
-            redisState.get(key, BYTES(actualFromRedis.data()), nBytes);
-            REQUIRE(expected == actualFromRedis);
-        }
+        std::vector<double> actualFromRedis(nDoubles);
+        redisState.get(key, BYTES(actualFromRedis.data()), nBytes);
+        REQUIRE(expected == actualFromRedis);
 
         resetStateMode();
     }
@@ -424,7 +421,7 @@ namespace tests {
         resetStateMode();
     }
 
-    TEST_CASE("Test pushing only happens when dirty", "[state]") {
+    TEST_CASE("Test redis pushing only happens when dirty", "[state]") {
         setUpStateMode("redis");
 
         redis::Redis &redisState = redis::Redis::getState();
@@ -453,7 +450,7 @@ namespace tests {
         resetStateMode();
     }
 
-    TEST_CASE("Test mapping shared memory pulls if not initialised", "[state]") {
+    TEST_CASE("Test redis mapping shared memory pulls if not initialised", "[state]") {
         setUpStateMode("redis");
 
         // Set up the KV
@@ -516,8 +513,8 @@ namespace tests {
         kv->pushFull();
         REQUIRE(redisState.get(actualKey) == values);
 
-        kv->deleteGlobal();
-        redisState.get(actualKey);
+        state::getGlobalState().deleteKV(kv->user, kv->key);
+        REQUIRE(redisState.get(actualKey).size() == 0);
 
         resetStateMode();
     }

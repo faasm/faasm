@@ -155,14 +155,14 @@ namespace tests {
         std::string expectedOutput;
         int expectedReturnValue = 0;
         message::Message_MessageType expectedType;
-        std::string expectedNodeId = util::getNodeId();
+        std::string expectedHost = util::getSystemConfig().endpointHost;
 
         message::Message msg;
         SECTION("Running") {
             msg = util::messageFactory("demo", "echo");
             expectedReturnValue = 0;
             expectedType = message::Message_MessageType_EMPTY;
-            expectedNodeId = "";
+            expectedHost = "";
         }
 
         SECTION("Failure") {
@@ -195,6 +195,6 @@ namespace tests {
         REQUIRE(result.returnvalue() == expectedReturnValue);
         REQUIRE(result.type() == expectedType);
         REQUIRE(result.outputdata() == expectedOutput);
-        REQUIRE(result.executednode() == expectedNodeId);
+        REQUIRE(result.executedhost() == expectedHost);
     }
 }

@@ -23,6 +23,7 @@ namespace wasm {
         message::Message *parentCall;
         WasmThreadSpec spec;
     };
+
     /**
      * Performs actual static assignment
      */
@@ -311,8 +312,9 @@ namespace wasm {
                 const std::string chainedStr = util::funcToString(call, false);
                 sch.callFunction(call);
 
-                logger->info("Forked thread {} ({}) -> {} {}(*{}) ({})", origStr, util::getNodeId(), chainedStr,
-                             microtaskPtr, argsPtr, call.schedulednode());
+                logger->info("Forked thread {} ({}) -> {} {}(*{}) ({})", origStr, util::getSystemConfig().endpointHost,
+                             chainedStr,
+                             microtaskPtr, argsPtr, call.scheduledhost());
                 chainedThreads[threadNum] = call.id();
             }
 

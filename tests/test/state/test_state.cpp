@@ -17,7 +17,7 @@ using namespace state;
 namespace tests {
     static int staticCount = 0;
 
-    void setUpDummyServer(DummyStateServer &server, const std::vector<uint8_t> &values) {
+    static void setUpDummyServer(DummyStateServer &server, const std::vector<uint8_t> &values) {
         staticCount++;
         const std::string stateKey = "state_key_" + std::to_string(staticCount);
 
@@ -27,7 +27,7 @@ namespace tests {
         server.dummyData = values;
     }
 
-    std::shared_ptr<StateKeyValue> setupKV(size_t size) {
+    static std::shared_ptr<StateKeyValue> setupKV(size_t size) {
         // We have to make sure emulator is using the right user
         const std::string user = getEmulatorUser();
 

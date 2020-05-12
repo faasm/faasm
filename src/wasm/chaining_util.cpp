@@ -29,7 +29,8 @@ namespace wasm {
         return returnCode;
     }
 
-    int makeChainedCall(const std::string &functionName, int idx, const char* pyFuncName, const std::vector<uint8_t> &inputData) {
+    int makeChainedCall(const std::string &functionName, int idx, const char *pyFuncName,
+                        const std::vector<uint8_t> &inputData) {
         scheduler::Scheduler &sch = scheduler::getScheduler();
         message::Message *originalCall = getExecutingCall();
 
@@ -41,7 +42,7 @@ namespace wasm {
 
         call.set_pythonuser(originalCall->pythonuser());
         call.set_pythonfunction(originalCall->pythonfunction());
-        if(pyFuncName != nullptr) {
+        if (pyFuncName != nullptr) {
             call.set_pythonentry(pyFuncName);
         }
         call.set_ispython(originalCall->ispython());
@@ -50,8 +51,12 @@ namespace wasm {
         const std::string chainedStr = util::funcToString(call, false);
 
         sch.callFunction(call);
-        util::getLogger()->debug("Chained {} ({}) -> {} ({})", origStr, util::getNodeId(), chainedStr,
-                                 call.schedulednode());
+        util::getLogger()->debug("Chained {} ({}) -> {} ({})",
+                                 origStr,
+                                 util::getSystemConfig().endpointHost,
+                                 chainedStr,
+                                 call.scheduledhost()
+        );
 
         return call.id();
     }
@@ -78,27 +83,31 @@ namespace wasm {
 
         // Schedule the call
         sch.callFunction(call);
-        util::getLogger()->debug("Chained thread {} ({}) -> {} {}({}) ({})", origStr, util::getNodeId(), chainedStr,
-                                 funcPtr, argsPtr, call.schedulednode());
+        util::getLogger()->debug("Chained thread {} ({}) -> {} {}({}) ({})",
+                                 origStr,
+                                 util::getSystemConfig().endpointHost,
+                                 chainedStr,
+                                 funcPtr, argsPtr, call.scheduledhost()
+        );
 
         return call.id();
     }
 
-    int awaitChainedCallOutput(unsigned int messageId, uint8_t* buffer, int bufferLen) {
+    int awaitChainedCallOutput(unsigned int messageId, uint8_t *buffer, int bufferLen) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         int callTimeoutMs = util::getSystemConfig().chainedCallTimeout;
 
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
         const message::Message result = globalBus.getFunctionResult(messageId, callTimeoutMs);
 
-        if(result.type() == message::Message_MessageType_EMPTY) {
+        if (result.type() == message::Message_MessageType_EMPTY) {
             logger->error("Cannot find output for {}", messageId);
         }
 
         std::vector<uint8_t> outputData = util::stringToBytes(result.outputdata());
         int outputLen = util::safeCopyToBuffer(outputData, buffer, bufferLen);
 
-        if(outputLen < outputData.size()) {
+        if (outputLen < outputData.size()) {
             logger->warn("Undersized output buffer: {} for {} output", bufferLen, outputLen);
         }
 

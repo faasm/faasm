@@ -7,7 +7,7 @@
 #define SHARING_QUEUE_PREFIX "sharing_"
 
 namespace scheduler {
-    std::string getSharingQueueNameForNode(const std::string &nodeId);
+    std::string getSharingQueueNameForHost(const std::string &host);
 
     class SharingMessageBus {
     public:
@@ -15,16 +15,16 @@ namespace scheduler {
 
         static SharingMessageBus &getInstance();
 
-        message::Message nextMessageForNode(const std::string &nodeId);
+        message::Message nextMessageForHost(const std::string &host);
 
-        message::Message nextMessageForThisNode();
+        message::Message nextMessageForThisHost();
 
-        void shareMessageWithNode(const std::string &nodeId, const message::Message &msg);
+        void shareMessageWithHost(const std::string &host, const message::Message &msg);
 
         void broadcastMessage(const message::Message &msg);
     private:
         util::SystemConfig &conf;
-        std::string thisNodeId;
+        std::string thisHost;
         redis::Redis &redis;
     };
 }

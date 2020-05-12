@@ -27,7 +27,7 @@ namespace tests {
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.clear();
-        sch.addNodeToGlobalSet();
+        sch.addHostToGlobalSet();
 
         // Network ns requires root
         originalNsMode = util::setEnvVar("NETNS_MODE", "off");
@@ -239,7 +239,7 @@ namespace tests {
         FaasletPool pool(5);
 
         Faaslet w(1);
-        std::string nodeId = util::getNodeId();
+        std::string thisHost = util::getSystemConfig().endpointHost;
 
         message::Message call = util::messageFactory("demo", "noop");
         setEmulatedMessage(call);
@@ -259,7 +259,7 @@ namespace tests {
         REQUIRE(sch.getFunctionInFlightCount(call) == 1);
         REQUIRE(sch.getFunctionThreadCount(call) == 1);
         REQUIRE(bindQueue->size() == 1);
-        REQUIRE(redis.sismember(warmSetName, nodeId));
+        REQUIRE(redis.sismember(warmSetName, thisHost));
 
         // Bind the thread and check it's now registered but in-flight decreased
         w.processNextMessage();
@@ -281,6 +281,6 @@ namespace tests {
         REQUIRE(sch.getFunctionThreadCount(call) == 0);
         REQUIRE(sch.getFunctionInFlightRatio(call) == 0);
         REQUIRE(bindQueue->size() == 0);
-        REQUIRE(!redis.sismember(warmSetName, nodeId));
+        REQUIRE(!redis.sismember(warmSetName, thisHost));
     }
 }

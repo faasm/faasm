@@ -35,7 +35,7 @@ namespace tests {
         // Reset scheduler
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.clear();
-        sch.addNodeToGlobalSet();
+        sch.addHostToGlobalSet();
 
         // Clear out global message bus
         scheduler::getGlobalMessageBus().clear();

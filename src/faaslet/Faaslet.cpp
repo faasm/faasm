@@ -17,8 +17,8 @@ namespace faaslet {
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // Prepare node-specific variables
-        id = util::getNodeId() + "_" + std::to_string(threadIdx);
+        // Set an ID for this Faaslet
+        id = util::getSystemConfig().endpointHost + "_" + std::to_string(threadIdx);
 
         logger->debug("Starting worker thread {}", id);
 

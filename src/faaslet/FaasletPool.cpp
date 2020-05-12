@@ -57,14 +57,14 @@ namespace faaslet {
             scheduler::SharingMessageBus &sharingBus = scheduler::SharingMessageBus::getInstance();
             scheduler::Scheduler &sch = scheduler::getScheduler();
 
-            const std::string nodeId = util::getNodeId();
+            const std::string host = util::getSystemConfig().endpointHost;
 
             while (!this->isShutdown()) {
                 const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
                 try {
-                    message::Message msg = sharingBus.nextMessageForThisNode();
+                    message::Message msg = sharingBus.nextMessageForThisHost();
 
-                    // Clear out this worker node if we've received a flush message
+                    // Clear out this worker host if we've received a flush message
                     if (msg.isflushrequest()) {
                         flushFaasletHost();
 
@@ -77,8 +77,8 @@ namespace faaslet {
                     // to execute locally. However, if not possible, this will
                     // again share the message, increasing the hops
                     const std::string funcStr = util::funcToString(msg, true);
-                    logger->debug("{} received shared call {} (scheduled for {})", nodeId, funcStr,
-                                  msg.schedulednode());
+                    logger->debug("{} received shared call {} (scheduled for {})", host, funcStr,
+                                  msg.scheduledhost());
 
                     sch.callFunction(msg);
                 }
@@ -97,11 +97,11 @@ namespace faaslet {
 
         mpiThread = std::thread([this] {
             mpi::MpiGlobalBus &bus = mpi::getMpiGlobalBus();
-            const std::string nodeId = util::getNodeId();
+            const std::string host = util::getSystemConfig().endpointHost;
             
             while (!this->isShutdown()) {
                 try {
-                    bus.next(nodeId);
+                    bus.next(host);
                 } catch (redis::RedisNoResponseException &ex) {
                     continue;
                 }

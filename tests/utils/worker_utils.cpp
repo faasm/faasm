@@ -115,7 +115,7 @@ namespace tests {
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.clear();
-        sch.addNodeToGlobalSet();
+        sch.addHostToGlobalSet();
         sch.setMessageIdLogging(true);
 
         // Modify system config (network ns requires root)
