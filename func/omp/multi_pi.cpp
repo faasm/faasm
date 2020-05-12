@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
         double x, y;
 
         #pragma omp for nowait
-        for (std::int32_t i = 0; i < iterations; i++) {
+        for (std::int64_t i = 0; i < iterations; i++) {
             x = unif(generator);
             y = unif(generator);
             if (x * x + y * y <= 1.0) {
@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    double pi = (4.0 * (double) result) / iterations;
+    double pi = (4.0 * (double) result) / (iterations);
 
     if (pi - 3.14 > 0.01) {
         printf("Low accuracy. Expected pi got %f\n", pi);

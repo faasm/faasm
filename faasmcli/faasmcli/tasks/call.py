@@ -33,8 +33,8 @@ def multi_cr(ctx, debug=False, num_times=6):
     func = "multi_pi"
 
     sizes = {
-        "Small": 20000000,
-        "Huge": 20000000000,
+        "Small": 20_000_000,
+        "Huge": 20_000_000_000,
     }
 
     threads = list(range(2, 41, 2))
