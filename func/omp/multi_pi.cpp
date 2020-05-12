@@ -21,10 +21,11 @@ int main(int argc, char **argv) {
         return 5;
     }
 
+    omp_set_num_threads(num_threads);
     omp_set_default_device(num_devices);
 
     i64 result(0);
-    #pragma omp parallel num_threads(num_threads) default(none) firstprivate(iterations) reduction(+:result)
+    #pragma omp parallel default(none) firstprivate(iterations) reduction(+:result)
     {
         std::uniform_real_distribution<double> unif(0, 1);
         std::mt19937_64 generator(thread_seed());

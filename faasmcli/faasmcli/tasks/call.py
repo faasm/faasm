@@ -33,11 +33,10 @@ def multi_cr(ctx, debug=False, num_times=6):
     func = "multi_pi"
 
     sizes = {
-        "Small": 20_000_000,
         "Huge": 20_000_000_000,
     }
 
-    threads = list(range(2, 41, 2))
+    threads = list(range(2, 61, 4))[::-1]
 
     r = redis.Redis(host="localhost")
     rkey = f"{func}_fork_times"

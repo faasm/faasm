@@ -3,14 +3,16 @@
 
 #include <cstdint>
 
-#ifdef __wasm__
+//#ifdef __wasm__
 
+#include <omp.h>
 #include <cstdio>
 #include <cstring>
 #include <string>
 #include <random>
 #include "faasm/core.h"
 #include "faasm/random.h"
+#include <faasm/array.h>
 
 template<typename T>
 class FaasmCounter {
@@ -42,13 +44,13 @@ public:
     }
 
     static int incrby(const char *counterKey, T increment) {
-        faasmLockStateGlobal(counterKey);
+//        faasmLockStateGlobal(counterKey);
 
         union State val = readState(counterKey);
         val.x += increment;
         writeState(counterKey, val);
 
-        faasmUnlockStateGlobal(counterKey);
+//        faasmUnlockStateGlobal(counterKey);
 
         return val.x;
     }
@@ -67,6 +69,7 @@ private:
     // which we need to have no overhead compared to a raw arithmetic type
     // For now we keep this shorter than small string optimisations, could do cache line optimisation too.
     std::string reductionKey;
+    std::int32_t numThreads;
 
     explicit i64() = default;
 
@@ -82,12 +85,17 @@ public:
     }
 
     // Used by user on initialisation
-    explicit i64(int64_t x) : x(x), reductionKey(faasm::randomString(11)) {
-        FaasmCounter<int64_t>::init(reductionKey.c_str(), x);
+    explicit i64(int64_t x) : x(x), reductionKey(faasm::randomString(11)), numThreads(omp_get_max_threads())  {
+        faasm::AsyncArray<std::int64_t> arr(reductionKey.c_str(), numThreads);
+        arr.zero();
     }
 
     void redisSum(i64 &threadResult) {
-        FaasmCounter<int64_t>::incrby(reductionKey.c_str(), threadResult.x);
+        faasm::AsyncArray<std::int64_t> arr(reductionKey.c_str(), numThreads);
+        arr.pullLazy();
+        arr[omp_get_thread_num()] = threadResult;
+        arr.push();
+//        FaasmCounter<int64_t>::incrby(reductionKey.c_str(), threadResult.x);
     }
 
     /*
@@ -119,7 +127,13 @@ public:
     }
 
     operator double() const {
-        return (double) FaasmCounter<int64_t>::getCounter(reductionKey.c_str());
+        faasm::AsyncArray<std::int64_t> arr(reductionKey.c_str(), numThreads);
+        arr.pull();
+        int64_t acc = 0;
+        for (int i = 0; i < numThreads; i++) {
+            acc += arr[i];
+        }
+        return (double) acc;
     }
 
     operator int64_t() const {
@@ -132,10 +146,10 @@ public:
 (+: i64: omp_out.redisSum(omp_in)) \
 initializer(omp_priv=i64::threadNew())
 
-#else // i.e not __wasm__
-
-using i64 = int64_t;
-
-#endif // __wasm__
+//#else // i.e not __wasm__
+//
+//using i64 = int64_t;
+//
+//#endif // __wasm__
 
 #endif //FAASM_REDUCTION_H
