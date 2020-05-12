@@ -88,12 +88,7 @@ namespace state {
     std::string getMasterIPForOtherMaster(const std::string &userIn, const std::string &keyIn,
                                           const std::string &thisIP) {
         // Get the master IP
-        std::string masterIP;
-        try {
-            masterIP = getMasterIP(userIn, keyIn, thisIP, false);
-        } catch (StateKeyValueException &ex) {
-            return 0;
-        }
+        std::string masterIP = getMasterIP(userIn, keyIn, thisIP, false);
 
         // Sanity check that the master is *not* this machine
         if (masterIP == thisIP) {
@@ -106,7 +101,13 @@ namespace state {
     size_t InMemoryStateKeyValue::getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn,
                                                          const std::string &thisIP) {
 
-        std::string masterIP = getMasterIPForOtherMaster(userIn, keyIn, thisIP);
+        std::string masterIP;
+
+        try {
+            masterIP = getMasterIPForOtherMaster(userIn, keyIn, thisIP);
+        } catch (StateKeyValueException &ex) {
+            return 0;
+        }
 
         // TODO - avoid creating a TCP client on every request
         tcp::TCPMessage *msg = buildStateSizeRequest(userIn, keyIn);
@@ -114,7 +115,7 @@ namespace state {
         client.sendMessage(msg);
         tcp::freeTcpMessage(msg);
 
-        // TODO - we know the size here
+        // TODO - we know the size here, use it to receive message in one go
         tcp::TCPMessage *response = client.recvMessage();
         size_t stateSize = extractSizeResponse(response);
         tcp::freeTcpMessage(response);
@@ -122,11 +123,12 @@ namespace state {
         return stateSize;
     }
 
-    void InMemoryStateKeyValue::deleteFromRemote(const std::string &userIn, const std::string &keyIn, const std::string &thisIPIn) {
+    void InMemoryStateKeyValue::deleteFromRemote(const std::string &userIn, const std::string &keyIn,
+                                                 const std::string &thisIPIn) {
         std::string masterIP = getMasterIP(userIn, keyIn, thisIPIn, false);
 
         // Ignore if we're the master
-        if(masterIP == thisIPIn) {
+        if (masterIP == thisIPIn) {
             return;
         }
 
@@ -136,7 +138,7 @@ namespace state {
         tcp::freeTcpMessage(msg);
 
         tcp::TCPMessage *response = client.recvMessage();
-        if(response->type != state::StateMessageType::OK_RESPONSE) {
+        if (response->type != state::StateMessageType::OK_RESPONSE) {
             throw std::runtime_error("Failed to delete from remote");
         }
 
@@ -648,7 +650,7 @@ namespace state {
     void InMemoryStateKeyValue::awaitOkResponse() {
         tcp::TCPMessage *response = masterClient->recvMessage();
 
-        if(response->type != StateMessageType::OK_RESPONSE) {
+        if (response->type != StateMessageType::OK_RESPONSE) {
             throw StateKeyValueException("Error response");
         }
 

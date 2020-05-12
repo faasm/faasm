@@ -49,6 +49,8 @@ namespace state {
             size_t dataSize
     );
 
+    size_t getStateTcpMessageSize(const std::string &user, const std::string &key,size_t dataSize);
+
     std::pair<std::string, std::string> getUserKeyFromStateMessage(tcp::TCPMessage *msg);
 
     tcp::TCPMessage *buildStateSizeRequest(const std::string &user, const std::string &key);

@@ -10,6 +10,7 @@
 #include <emulator/emulator.h>
 #include <faasm/state.h>
 #include <util/state.h>
+#include <state/InMemoryStateKeyValue.h>
 
 using namespace state;
 
@@ -678,5 +679,63 @@ namespace tests {
         kv->getAppended(actualMulti.data(), actualSize, 4);
 
         REQUIRE(actualMulti == expectedMulti);
+
+        // Clear, then check again
+        kv->clearAppended();
+        kv->append(valuesB.data(), valuesB.size());
+        kv->append(valuesC.data(), valuesC.size());
+
+        size_t afterClearSize = valuesB.size() + valuesC.size();
+        std::vector<uint8_t> actualAfterClear(afterClearSize, 0);
+        std::vector<uint8_t> expectedAfterClear = {5, 6, 6, 5, 4, 3, 2, 1};
+        kv->getAppended(actualAfterClear.data(), afterClearSize, 2);
+
+        REQUIRE(actualAfterClear == expectedAfterClear);
+    }
+
+    TEST_CASE("Test remote appended state", "[state]") {
+        DummyStateServer server;
+        std::vector<uint8_t> empty;
+        setUpDummyServer(server, empty);
+        
+        // One appends, two retrievals, one clear
+        server.start(4);
+
+        std::vector<uint8_t> valuesA = {0, 1, 2, 3, 4};
+        std::vector<uint8_t> valuesB = {3, 3, 5, 5};
+
+        // Append some data remotely
+        const std::shared_ptr<state::StateKeyValue> &remoteKv = server.getRemoteKv();
+        remoteKv->append(valuesA.data(), valuesA.size());
+
+        // Append locally
+        const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
+        auto localInMemKv = std::static_pointer_cast<InMemoryStateKeyValue>(localKv);
+        REQUIRE(!localInMemKv->isMaster());
+        localKv->append(valuesB.data(), valuesB.size());
+
+        // Check data is pushed remotely
+        std::vector<uint8_t> expectedRemote = {0, 1, 2, 3, 4, 3, 3, 5, 5};
+        std::vector<uint8_t> actualRemote(expectedRemote.size(), 0);
+        remoteKv->getAppended(actualRemote.data(), actualRemote.size(), 2);
+        REQUIRE(actualRemote == expectedRemote);
+
+        // Append more data remotely
+        remoteKv->append(valuesA.data(), valuesA.size());
+
+        // Check locally
+        std::vector<uint8_t> expectedLocal = {0, 1, 2, 3, 4, 3, 3, 5, 5, 0, 1, 2, 3, 4};
+        std::vector<uint8_t> actualLocal(expectedLocal.size(), 0);
+        localKv->getAppended(actualLocal.data(), actualLocal.size(), 3);
+        REQUIRE(actualLocal == expectedLocal);
+
+        // Clear and check again
+        localKv->clearAppended();
+        remoteKv->append(valuesB.data(), valuesB.size());
+        std::vector<uint8_t> actualLocalAfterClear(valuesB.size(), 0);
+        localKv->getAppended(actualLocalAfterClear.data(), actualLocalAfterClear.size(), 1);
+        REQUIRE(actualLocalAfterClear == valuesB);
+
+        server.wait();
     }
 }

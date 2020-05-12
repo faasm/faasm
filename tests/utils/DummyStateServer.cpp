@@ -11,13 +11,19 @@ namespace tests {
     }
 
     std::shared_ptr<StateKeyValue> DummyStateServer::getRemoteKv() {
-        auto ptr = remoteState.getKV(dummyUser, dummyKey, dummyData.size());
-        return ptr;
+        if(dummyData.empty()) {
+            return remoteState.getKV(dummyUser, dummyKey);
+        } else {
+            return remoteState.getKV(dummyUser, dummyKey, dummyData.size());
+        }
     }
 
     std::shared_ptr<StateKeyValue> DummyStateServer::getLocalKv() {
-        auto ptr = state::getGlobalState().getKV(dummyUser, dummyKey, dummyData.size());
-        return ptr;
+        if(dummyData.empty()) {
+            return state::getGlobalState().getKV(dummyUser, dummyKey);
+        } else {
+            return state::getGlobalState().getKV(dummyUser, dummyKey, dummyData.size());
+        }
     }
 
     std::vector<uint8_t> DummyStateServer::getRemoteKvValue() {

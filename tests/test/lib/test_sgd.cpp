@@ -149,7 +149,8 @@ namespace tests {
         REQUIRE(actualWeights(0, 3) == weightsCopy(0, 3));
     }
 
-    void checkAppendOnlyInState(const std::string &user, const char *key, long nDoubles, const std::vector<double> &expected) {
+    void checkAppendOnlyInState(const std::string &user, const char *key, long nDoubles,
+                                const std::vector<double> &expected) {
         size_t bufferSize = nDoubles * sizeof(double);
         std::vector<uint8_t> actualBytes(bufferSize, 0);
 
@@ -195,7 +196,7 @@ namespace tests {
         p.nBatches = 3;
         p.nTrain = 20;
 
-        // Write the error for two of the three batches
+        // Write the error for three batches
         MatrixXd a = randomDenseMatrix(1, 5);
         MatrixXd b = randomDenseMatrix(1, 5);
         double expected = calculateHingeError(a, b);
@@ -203,21 +204,15 @@ namespace tests {
         // Write errors
         writeHingeError(p, a, b);
         writeHingeError(p, a, b);
-
-        checkAppendOnlyInState(user, ERRORS_KEY, 2, {expected, expected});
-
-        // Error should just include the 2 written
-        double expectedRmse1 = sqrt((2 * expected) / p.nTrain);
-        double actual1 = faasm::readRootMeanSquaredError(p);
-        REQUIRE(abs(actual1 - expectedRmse1) < 0.0000001);
-
-        // Now write error for a third batch
         writeHingeError(p, a, b);
-        checkAppendOnlyInState(user, ERRORS_KEY, 3, {expected, expected, expected});
+
+        // Check
+        std::vector<double> expectedStateB = {expected, expected, expected};
+        checkAppendOnlyInState(user, ERRORS_KEY, 3, expectedStateB);
 
         // Work out what the result should be
-        double expectedRmse2 = sqrt((3 * expected) / p.nTrain);
-        double actual2 = faasm::readRootMeanSquaredError(p);
-        REQUIRE(abs(actual2 - expectedRmse2) < 0.0000001);
+        double expectedRmse = sqrt((3 * expected) / p.nTrain);
+        double actual = faasm::readRootMeanSquaredError(p);
+        REQUIRE(abs(actual - expectedRmse) < 0.0000001);
     }
 }
