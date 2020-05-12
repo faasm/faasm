@@ -31,6 +31,7 @@ int main(int argc, char **argv) {
         return 6;
     }
 
+    omp_set_num_threads(num_threads);
     omp_set_default_device(num_devices);
 
     std::vector<uint32_t> accs;
@@ -40,7 +41,7 @@ int main(int argc, char **argv) {
         TimePoint t1 = std::chrono::system_clock::now();
 #endif
         i64 result(0);
-        #pragma omp parallel num_threads(num_threads) default(none) reduction(+:result)
+        #pragma omp parallel default(none) reduction(+:result)
         {
             result += omp_get_thread_num();
         }

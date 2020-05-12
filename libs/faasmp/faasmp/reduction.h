@@ -44,13 +44,13 @@ public:
     }
 
     static int incrby(const char *counterKey, T increment) {
-//        faasmLockStateGlobal(counterKey);
+        faasmLockStateGlobal(counterKey);
 
         union State val = readState(counterKey);
         val.x += increment;
         writeState(counterKey, val);
 
-//        faasmUnlockStateGlobal(counterKey);
+        faasmUnlockStateGlobal(counterKey);
 
         return val.x;
     }
@@ -72,6 +72,16 @@ private:
     std::int32_t numThreads;
 
     explicit i64() = default;
+
+    int64_t accumulate() const {
+        faasm::AsyncArray<std::int64_t> arr(reductionKey.c_str(), numThreads);
+        arr.pull();
+        int64_t acc = 0;
+        for (int i = 0; i < numThreads; i++) {
+            acc += arr[i];
+        }
+        return acc;
+    }
 
 public:
 
@@ -95,7 +105,6 @@ public:
         arr.pullLazy();
         arr[omp_get_thread_num()] = threadResult;
         arr.push();
-//        FaasmCounter<int64_t>::incrby(reductionKey.c_str(), threadResult.x);
     }
 
     /*
@@ -127,17 +136,11 @@ public:
     }
 
     operator double() const {
-        faasm::AsyncArray<std::int64_t> arr(reductionKey.c_str(), numThreads);
-        arr.pull();
-        int64_t acc = 0;
-        for (int i = 0; i < numThreads; i++) {
-            acc += arr[i];
-        }
-        return (double) acc;
+        return (double) accumulate();
     }
 
     operator int64_t() const {
-        return FaasmCounter<int64_t>::getCounter(reductionKey.c_str());
+        return accumulate();
     }
 };
 
@@ -146,10 +149,10 @@ public:
 (+: i64: omp_out.redisSum(omp_in)) \
 initializer(omp_priv=i64::threadNew())
 
-//#else // i.e not __wasm__
-//
-//using i64 = int64_t;
-//
-//#endif // __wasm__
+#else // i.e not __wasm__
+
+using i64 = int64_t;
+
+#endif // __wasm__
 
 #endif //FAASM_REDUCTION_H

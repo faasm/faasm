@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13.0)
+cmake_minimum_required(VERSION 3.8.0)
 project(faasm)
 
 # Top-level CMake config
@@ -68,7 +68,7 @@ add_definitions(-DFAASM_PROFILE_ON=0)
 option(FAASM_OPENMP_TRACING "Trace OpenMP forks in Redis" ON)
 
 if (${FAASM_OPENMP_TRACING})
-    add_compile_definitions(OPENMP_FORK_REDIS_TRACE)
+    add_definitions(-DOPENMP_FORK_REDIS_TRACE=1)
 endif ()
 
 # Custom LLVM build (also for profiling)

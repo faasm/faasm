@@ -59,7 +59,6 @@ omp_func(multi_sum multi_sum.cpp)
 omp_func(multi_pi multi_pi.cpp)
 omp_func(mt_pi mt_pi.cpp)
 omp_func(multi_cr multi_cr.cpp)
-omp_func(multi_cr_local multi_cr_local.cpp)
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
     omp_func(stack_debug stack_debug.cpp)
