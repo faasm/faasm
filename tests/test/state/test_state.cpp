@@ -258,7 +258,6 @@ namespace tests {
 
         // Check remote
         std::vector<uint8_t> remoteValue = server.getRemoteKvValue();
-        auto postPushDoublePtrRemote = reinterpret_cast<double *>(remoteValue.data());
         std::vector<double> actualPostPushRemote(postPushDoublePtr, postPushDoublePtr + nDoubles);
         REQUIRE(expected == actualPostPushRemote);
 

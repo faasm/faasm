@@ -6,28 +6,22 @@
 #include <util/random.h>
 
 static std::atomic_int counter = 0;
-
-static std::string gidKey;
-static std::size_t gidKeyHash;
+static std::size_t gidKeyHash = 0;
 static std::mutex gidMx;
+
 
 #define GID_LEN 20
 
 namespace util {
-
-    void _setGidKey() {
-        if (gidKey.empty()) {
+    unsigned int generateGid() {
+        if (gidKeyHash == 0) {
             util::UniqueLock lock(gidMx);
-            if (gidKey.empty()) {
-                // Generate random string and hash
-                gidKey = util::randomString(GID_LEN);
+            if (gidKeyHash == 0) {
+                // Generate random hash
+                std::string gidKey = util::randomString(GID_LEN);
                 gidKeyHash = std::hash<std::string>{}(gidKey);
             }
         }
-    }
-
-    unsigned int generateGid() {
-        _setGidKey();
 
         unsigned int intHash = gidKeyHash % INT32_MAX;
         unsigned int result = intHash + counter.fetch_add(1);

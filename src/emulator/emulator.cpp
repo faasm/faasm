@@ -182,7 +182,7 @@ void __faasm_write_state(const char *key, const uint8_t *data, long dataLen) {
 
 void __faasm_append_state(const char *key, const uint8_t *data, long dataLen) {
     util::getLogger()->debug("E - append_state {} {}", key, dataLen);
-    auto kv = getKv(key, dataLen);
+    auto kv = getKv(key);
     kv->append(data, dataLen);
 }
 
@@ -190,8 +190,7 @@ void __faasm_read_appended_state(const char *key, unsigned char *buffer, long bu
     util::getLogger()->debug("E - read_appended_state {} {} {}", key, bufferLen, nElems);
 
     const std::string user = getEmulatorUser();
-    size_t stateSize = state::getGlobalState().getStateSize(user, key);
-    auto kv = getKv(key, stateSize);
+    auto kv = getKv(key);
     kv->getAppended(buffer, bufferLen, nElems);
 }
 
