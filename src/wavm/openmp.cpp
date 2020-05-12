@@ -322,6 +322,9 @@ namespace wasm {
                 throw std::runtime_error(fmt::format("{} OMP threads have exited with errors", numErrors));
             }
 
+#ifdef OPENMP_FORK_REDIS_TRACE
+            redis.del(activeSnapshotKey);
+#endif
             logger->debug("Distributed Fork finished successfully");
         } else { // Single host
 
