@@ -56,7 +56,7 @@ namespace state {
     void StateKeyValue::get(uint8_t *buffer) {
         pullImpl(true);
 
-        LockRecursive lock(valueMutex);
+        SharedLock lock(valueMutex);
 
         auto bytePtr = BYTES(sharedMemory);
         std::copy(bytePtr, bytePtr + valueSize, buffer);
@@ -65,7 +65,7 @@ namespace state {
     uint8_t *StateKeyValue::get() {
         pullImpl(true);
 
-        LockRecursive lock(valueMutex);
+        SharedLock lock(valueMutex);
 
         return BYTES(sharedMemory);
     }
@@ -73,7 +73,7 @@ namespace state {
     void StateKeyValue::getSegment(long offset, uint8_t *buffer, size_t length) {
         pullSegmentImpl(true, offset, length);
 
-        LockRecursive lock(valueMutex);
+        SharedLock lock(valueMutex);
 
         // Return just the required segment
         if ((offset + length) > valueSize) {
@@ -89,7 +89,7 @@ namespace state {
     uint8_t *StateKeyValue::getSegment(long offset, long len) {
         pullSegmentImpl(true, offset, len);
 
-        LockRecursive lock(valueMutex);
+        SharedLock lock(valueMutex);
 
         uint8_t *segmentPtr = BYTES(sharedMemory) + offset;
         return segmentPtr;
@@ -97,7 +97,7 @@ namespace state {
 
     void StateKeyValue::set(const uint8_t *buffer) {
         // Unique lock for setting the whole value
-        LockRecursive lock(valueMutex);
+        FullLock lock(valueMutex);
 
         doSet(buffer);
 
@@ -114,19 +114,19 @@ namespace state {
     }
 
     void StateKeyValue::append(uint8_t *buffer, size_t length) {
-        LockRecursive lock(valueMutex);
+        FullLock lock(valueMutex);
 
         appendToRemote(buffer, length);
     }
 
     void StateKeyValue::getAppended(uint8_t *buffer, size_t length, long nValues) {
-        LockRecursive lock(valueMutex);
+        SharedLock lock(valueMutex);
 
         pullAppendedFromRemote(buffer, length, nValues);
     }
 
     void StateKeyValue::setSegment(long offset, const uint8_t *buffer, size_t length) {
-        LockRecursive lock(valueMutex);
+        FullLock lock(valueMutex);
 
         doSetSegment(offset, buffer, length);
 
@@ -170,7 +170,7 @@ namespace state {
     }
 
     void StateKeyValue::zeroValue() {
-        LockRecursive lock(valueMutex);
+        util::FullLock lock(valueMutex);
 
         memset(sharedMemory, 0, valueSize);
     }
@@ -179,7 +179,7 @@ namespace state {
         // This is accessible publicly but also called internally when a
         // lock is already held, hence we need to split the locking and
         // marking of the segment.
-        LockRecursive lock(valueMutex);
+        util::SharedLock lock(valueMutex);
         markDirtySegment(offset, len);
     }
 
@@ -193,7 +193,7 @@ namespace state {
     }
 
     void StateKeyValue::clear() {
-        LockRecursive lock(valueMutex);
+        FullLock lock(valueMutex);
 
         logger->debug("Clearing value {}/{}", user, key);
 
@@ -226,7 +226,7 @@ namespace state {
             pullImpl(true);
         }
 
-        LockRecursive lock(valueMutex);
+        FullLock lock(valueMutex);
 
         // Remap the relevant pages of shared memory onto the new region
         auto sharedMemoryBytes = BYTES(sharedMemory);
@@ -247,7 +247,7 @@ namespace state {
     }
 
     void StateKeyValue::unmapSharedMemory(void *mappedAddr) {
-        LockRecursive lock(valueMutex);
+        FullLock lock(valueMutex);
 
         if (!isPageAligned(mappedAddr)) {
             logger->error("Attempting to unmap non-page-aligned memory at {} for {}", mappedAddr, key);
@@ -349,7 +349,7 @@ namespace state {
         }
 
         // Get full lock for complete push
-        LockRecursive fullLock(valueMutex);
+        util::FullLock fullLock(valueMutex);
 
         // Double check condition
         if (!isDirty) {
@@ -362,14 +362,14 @@ namespace state {
     void StateKeyValue::pullImpl(bool onlyIfEmpty) {
         // Drop out if we already have the data and we don't care about updating
         {
-            LockRecursive lock(valueMutex);
+            util::SharedLock lock(valueMutex);
             if (onlyIfEmpty && _fullyAllocated) {
                 return;
             }
         }
 
         // Unique lock on the whole value
-        LockRecursive lock(valueMutex);
+        util::FullLock lock(valueMutex);
 
         if (onlyIfEmpty && _fullyAllocated) {
             return;
@@ -386,14 +386,14 @@ namespace state {
     void StateKeyValue::pullSegmentImpl(bool onlyIfEmpty, long offset, size_t length) {
         // Drop out if we already have the data and we don't care about updating
         {
-            LockRecursive lock(valueMutex);
+            util::SharedLock lock(valueMutex);
             if (onlyIfEmpty && (_fullyAllocated || isSegmentAllocated(offset, length))) {
                 return;
             }
         }
 
         // Unique lock
-        LockRecursive lock(valueMutex);
+        util::FullLock lock(valueMutex);
 
         // Check condition again
         bool segmentAllocated = isSegmentAllocated(offset, length);
@@ -417,7 +417,7 @@ namespace state {
 
         // We need a full lock while doing this, mainly to ensure no other threads start
         // the same process
-        LockRecursive lock(valueMutex);
+        util::FullLock lock(valueMutex);
 
         // Double check condition
         if (!isDirty) {
@@ -453,7 +453,7 @@ namespace state {
                 break;
             }
 
-            std::this_thread::sleep_for(std::chrono::microseconds (500 + rand() % 2500));
+            std::this_thread::sleep_for(std::chrono::milliseconds (1));
 
             remoteLockId = redis.acquireLock(redisKey, REMOTE_LOCK_TIMEOUT_SECS);
             retryCount++;
@@ -469,16 +469,16 @@ namespace state {
         clear();
 
         // Delete remote
-        LockRecursive lock(valueMutex);
+        util::FullLock lock(valueMutex);
         deleteFromRemote();
     }
 
     void StateKeyValue::lockRead() {
-        valueMutex.lock();
+        valueMutex.lock_shared();
     }
 
     void StateKeyValue::unlockRead() {
-        valueMutex.unlock();
+        valueMutex.unlock_shared();
     }
 
     void StateKeyValue::lockWrite() {
