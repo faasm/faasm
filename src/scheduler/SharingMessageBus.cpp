@@ -10,18 +10,18 @@ namespace scheduler {
         return mb;
     }
 
-    std::string getSharingQueueNameForNode(const std::string &nodeId) {
-        return SHARING_QUEUE_PREFIX + nodeId;
+    std::string getSharingQueueNameForHost(const std::string &host) {
+        return SHARING_QUEUE_PREFIX + host;
     }
 
     SharingMessageBus::SharingMessageBus() : conf(util::getSystemConfig()),
-                                             thisNodeId(util::getNodeId()),
+                                             thisHost(util::getSystemConfig().endpointHost),
                                              redis(redis::Redis::getQueue()) {
 
     }
 
-    message::Message SharingMessageBus::nextMessageForNode(const std::string &nodeId) {
-        std::string queueName = getSharingQueueNameForNode(nodeId);
+    message::Message SharingMessageBus::nextMessageForHost(const std::string &host) {
+        std::string queueName = getSharingQueueNameForHost(host);
         std::vector<uint8_t> dequeueResult = redis.dequeueBytes(queueName, conf.globalMessageTimeout);
 
         message::Message msg;
@@ -30,21 +30,21 @@ namespace scheduler {
         return msg;
     }
 
-    message::Message SharingMessageBus::nextMessageForThisNode() {
-        return this->nextMessageForNode(thisNodeId);
+    message::Message SharingMessageBus::nextMessageForThisHost() {
+        return this->nextMessageForHost(thisHost);
     }
 
-    void SharingMessageBus::shareMessageWithNode(const std::string &nodeId, const message::Message &msg) {
-        std::string queueName = getSharingQueueNameForNode(nodeId);
+    void SharingMessageBus::shareMessageWithHost(const std::string &host, const message::Message &msg) {
+        std::string queueName = getSharingQueueNameForHost(host);
         std::vector<uint8_t> msgBytes = util::messageToBytes(msg);
         redis.enqueueBytes(queueName, msgBytes);
     }
 
     void SharingMessageBus::broadcastMessage(const message::Message &msg) {
-        std::unordered_set<std::string> allOptions = redis.smembers(GLOBAL_NODE_SET);
+        std::unordered_set<std::string> allOptions = redis.smembers(AVAILABLE_HOST_SET);
 
-        for(auto &nodeId : allOptions) {
-            shareMessageWithNode(nodeId, msg);
+        for(auto &host : allOptions) {
+            shareMessageWithHost(host, msg);
         }
     }
 }

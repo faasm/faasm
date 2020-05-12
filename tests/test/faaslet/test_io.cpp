@@ -12,7 +12,7 @@ extern "C" {
 using namespace faaslet;
 
 namespace tests {
-    TEST_CASE("Test fixed input with colon", "[worker]") {
+    TEST_CASE("Test fixed input with colon", "[faaslet]") {
         cleanSystem();
         message::Message call = util::messageFactory("demo", "check_input");
         call.set_inputdata("http://www.foobar.com");
@@ -20,7 +20,7 @@ namespace tests {
         execFunction(call);
     }
 
-    TEST_CASE("Test execution of echo function", "[worker]") {
+    TEST_CASE("Test execution of echo function", "[faaslet]") {
         cleanSystem();
         message::Message call = util::messageFactory("demo", "echo");
         std::string inputData = "http://www.testinput/foo.com";
@@ -30,7 +30,7 @@ namespace tests {
         REQUIRE(actual == inputData);
     }
 
-    TEST_CASE("Test capturing stdout", "[worker]") {
+    TEST_CASE("Test capturing stdout", "[faaslet]") {
         cleanSystem();
 
         util::SystemConfig &conf = util::getSystemConfig();

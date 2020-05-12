@@ -7,7 +7,6 @@ extern "C" {
 
 #include "utils.h"
 
-#include <redis/Redis.h>
 #include <emulator/emulator.h>
 #include <faasm/core.h>
 #include <util/state.h>
@@ -21,8 +20,6 @@ namespace tests {
         util::SystemConfig &conf = util::getSystemConfig();
         std::string oldHostType = conf.hostType;
         conf.hostType = hostType;
-
-        redis::Redis &redisState = redis::Redis::getState();
 
         std::vector<uint8_t> dummyBytes = {0, 1, 2, 3, 4, 5, 6, 7, 8};
         long dummyLen = dummyBytes.size();
@@ -56,11 +53,6 @@ namespace tests {
             faasmWriteState(key.c_str(), dummyBytes.data(), dummyLen);
             faasmPushState(key.c_str());
 
-            // Check written to Redis
-            const std::string actualKey = util::keyForUser(getEmulatorUser(), key);
-            const std::vector<uint8_t> actualRedis = redisState.get(actualKey);
-            REQUIRE(actualRedis == dummyBytes);
-
             // Check reading from state
             std::vector<uint8_t> actual(dummyLen);
             faasmReadState(key.c_str(), actual.data(), dummyLen);
@@ -76,12 +68,6 @@ namespace tests {
             long dataLen = 3;
             faasmWriteStateOffset(key.c_str(), dummyLen, offset, offsetData.data(), dataLen);
             faasmPushState(key.c_str());
-
-            // Check written to Redis
-            const std::string actualKey = util::keyForUser(getEmulatorUser(), key);
-            std::vector<uint8_t> actualRedis(dataLen);
-            redisState.getRange(actualKey, actualRedis.data(), dataLen, offset, offset + dataLen - 1);
-            REQUIRE(actualRedis == offsetData);
 
             // Check reading from state
             std::vector<uint8_t> actual(dataLen);

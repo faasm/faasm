@@ -26,19 +26,19 @@ namespace tests {
         conf.threadMode = initialMode;
     }
 
-    TEST_CASE("Test local-only threading", "[worker]") {
+    TEST_CASE("Test local-only threading", "[faaslet]") {
         checkThreadedFunction("local", "threads_local", false);
     }
 
-    TEST_CASE("Run thread checks locally", "[worker]") {
+    TEST_CASE("Run thread checks locally", "[faaslet]") {
         checkThreadedFunction("local", "threads_check", false);
     }
 
-    TEST_CASE("Run thread checks with chaining", "[worker]") {
+    TEST_CASE("Run thread checks with chaining", "[faaslet]") {
         checkThreadedFunction("chain", "threads_check", true);
     }
 
-    TEST_CASE("Run distributed threading check", "[worker]") {
+    TEST_CASE("Run distributed threading check", "[faaslet]") {
         checkThreadedFunction("chain", "threads_dist", true);
     }
 }

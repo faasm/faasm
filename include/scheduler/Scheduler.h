@@ -10,7 +10,7 @@
 #include <shared_mutex>
 #include <redis/Redis.h>
 
-#define GLOBAL_NODE_SET "available_workers"
+#define AVAILABLE_HOST_SET "available_workers"
 
 
 namespace scheduler {
@@ -29,7 +29,7 @@ namespace scheduler {
 
         SchedulerOpinion getOpinion(const message::Message &msg);
 
-        std::string getBestNodeForFunction(const message::Message &msg);
+        std::string getBestHostForFunction(const message::Message &msg);
 
         void enqueueMessage(const message::Message &msg);
 
@@ -59,22 +59,22 @@ namespace scheduler {
 
         long getFunctionInFlightCount(const message::Message &msg);
 
-        void addNodeToGlobalSet(const std::string &node);
+        void addHostToGlobalSet(const std::string &host);
 
-        void addNodeToGlobalSet();
+        void addHostToGlobalSet();
 
-        void removeNodeFromGlobalSet();
+        void removeHostFromGlobalSet();
 
-        void addNodeToWarmSet(const std::string &funcStr);
+        void addHostToWarmSet(const std::string &funcStr);
 
-        void removeNodeFromWarmSet(const std::string &funcStr);
+        void removeHostFromWarmSet(const std::string &funcStr);
 
         void setMessageIdLogging(bool val);
 
         std::vector<unsigned int> getScheduledMessageIds();
 
     private:
-        const std::string &nodeId;
+        const std::string &thisHost;
 
         void updateOpinion(const message::Message &msg);
 

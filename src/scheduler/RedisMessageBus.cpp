@@ -48,8 +48,8 @@ namespace scheduler {
     }
 
     void RedisMessageBus::setFunctionResult(message::Message &msg) {
-        // Record which node did the execution
-        msg.set_executednode(util::getNodeId());
+        // Record which host did the execution
+        msg.set_executedhost(util::getSystemConfig().endpointHost);
 
         std::string key = msg.resultkey();
         if (key.empty()) {

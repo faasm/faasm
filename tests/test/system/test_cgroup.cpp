@@ -18,7 +18,7 @@ using namespace isolation;
 namespace tests {
     static int cgroupCheckSuccessful = 0;
 
-    TEST_CASE("Test cgroup on/ off", "[worker]") {
+    TEST_CASE("Test cgroup on/ off", "[faaslet]") {
         util::SystemConfig &conf = util::getSystemConfig();
         std::string original = conf.cgroupMode;
 
@@ -80,7 +80,7 @@ namespace tests {
         cgroupCheckSuccessful = 1;
     }
 
-    TEST_CASE("Test adding thread to cpu controller", "[worker]") {
+    TEST_CASE("Test adding thread to cpu controller", "[faaslet]") {
         util::SystemConfig &conf = util::getSystemConfig();
 
         // Ignore this test in CI, not able to run privileged hence can't create cgroups

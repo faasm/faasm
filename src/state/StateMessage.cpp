@@ -57,9 +57,25 @@ namespace state {
         return msg;
     }
 
+    size_t getStateTcpMessageSize(const std::string &user, const std::string &key, size_t dataSize) {
+        size_t bufferSize = getTCPMessageDataOffset(user, key) + dataSize;
+        size_t messageSize = sizeof(tcp::TCPMessage);
+        return messageSize + bufferSize;
+    }
+
     tcp::TCPMessage *buildStateSizeRequest(const std::string &user, const std::string &key) {
         tcp::TCPMessage *msg = buildStateTCPMessage(
                 StateMessageType::STATE_SIZE,
+                user,
+                key,
+                0);
+
+        return msg;
+    }
+
+    tcp::TCPMessage *buildStateDeleteRequest(const std::string &user, const std::string &key) {
+        tcp::TCPMessage *msg = buildStateTCPMessage(
+                StateMessageType::STATE_DELETE,
                 user,
                 key,
                 0);

@@ -147,7 +147,7 @@ namespace faasm {
         );
     }
 
-    double readTotalError(const SgdParams &sgdParams) {
+    double readRootMeanSquaredError(const SgdParams &sgdParams) {
         // Load errors from state
         auto *errors = new double[sgdParams.nBatches];
         size_t sizeErrors = sgdParams.nBatches * sizeof(double);
@@ -168,14 +168,8 @@ namespace faasm {
             totalError += errors[i];
         }
 
-        return totalError;
-    }
-
-    double readRootMeanSquaredError(const SgdParams &sgdParams) {
-        double totalSquaredError = readTotalError(sgdParams);
-
         // Calculate the mean squared error across all batches
-        double rmse = std::sqrt(totalSquaredError) / std::sqrt(sgdParams.nTrain);
+        double rmse = std::sqrt(totalError) / std::sqrt(sgdParams.nTrain);
         return rmse;
     }
 

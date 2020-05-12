@@ -95,11 +95,6 @@ namespace tests {
         bool pushPull = !async;
         faasm::writeMatrixToState(stateKey, mat, pushPull);
 
-        if (pushPull) {
-            // Flush everything locally to force it to do a partial pull
-            state::getGlobalState().forceClearAll(false);
-        }
-
         // Read a subset of columns (exclusive)
         long startCol = 1;
         long endCol = 4;
@@ -246,20 +241,9 @@ namespace tests {
         // Check subsection
         SparseMatrix<double> expected = mat.block(0, colStart, rows, colEnd - colStart);
 
-        // Nuke everything locally
-        if (pushPull) {
-            state::getGlobalState().forceClearAll(false);
-        }
-
         // Read a subsection
-        Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixColumnsFromState(key, colStart, colEnd,
-                                                                                         pushPull);
+        Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixColumnsFromState(key, colStart, colEnd, pushPull);
         checkSparseMatrixEquality(actual, expected);
-
-        // Nuke everything locally
-        if (pushPull) {
-            state::getGlobalState().forceClearAll(false);
-        }
 
         // Read the whole thing and check
         Map<const SparseMatrix<double>> actualFull = faasm::readSparseMatrixFromState(key, pushPull);

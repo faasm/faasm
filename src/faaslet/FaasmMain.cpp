@@ -7,7 +7,7 @@
 namespace faaslet {
     void flushFaasletHost() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->warn("Flushing host {}", util::getNodeId());
+        logger->warn("Flushing host {}", util::getSystemConfig().endpointHost);
 
         // Clear out any cached state
         state::getGlobalState().forceClearAll(false);
@@ -18,7 +18,7 @@ namespace faaslet {
         // Reset scheduler
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.clear();
-        sch.addNodeToGlobalSet();
+        sch.addHostToGlobalSet();
 
         // Clear out global message bus
         scheduler::getGlobalMessageBus().clear();
@@ -35,7 +35,7 @@ namespace faaslet {
     }
 
     void FaasmMain::startBackground() {
-        scheduler.addNodeToGlobalSet();
+        scheduler.addHostToGlobalSet();
 
         conf.print();
 

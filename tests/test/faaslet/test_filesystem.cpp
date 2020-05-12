@@ -8,7 +8,7 @@
 
 
 namespace tests {
-    TEST_CASE("Test getdents", "[worker]") {
+    TEST_CASE("Test getdents", "[faaslet]") {
         cleanSystem();
 
         // Note, our test function adds an extra comma, hence the blank
@@ -37,33 +37,33 @@ namespace tests {
         }
     }
 
-    TEST_CASE("Test listdir", "[worker]") {
+    TEST_CASE("Test listdir", "[faaslet]") {
         cleanSystem();
 
         message::Message msg = util::messageFactory("demo", "listdir");
         execFunction(msg);
     }
 
-    TEST_CASE("Test fcntl", "[worker]") {
+    TEST_CASE("Test fcntl", "[faaslet]") {
         cleanSystem();
         message::Message msg = util::messageFactory("demo", "fcntl");
         execFunction(msg);
     }
 
-    TEST_CASE("Test fread", "[worker]") {
+    TEST_CASE("Test fread", "[faaslet]") {
         cleanSystem();
         message::Message msg = util::messageFactory("demo", "fread");
         execFunction(msg);
     }
 
-    TEST_CASE("Test fstat", "[worker]") {
+    TEST_CASE("Test fstat", "[faaslet]") {
         cleanSystem();
 
         message::Message msg = util::messageFactory("demo", "fstat");
         execFunction(msg);
     }
 
-    TEST_CASE("Test file operations", "[worker]") {
+    TEST_CASE("Test file operations", "[faaslet]") {
         cleanSystem();
 
         message::Message msg = util::messageFactory("demo", "file");

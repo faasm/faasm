@@ -24,9 +24,9 @@ message Message {
     optional string resultKey = 10;
     optional string statusKey = 11;
 
-    optional string scheduledNode = 12;
+    optional string scheduledHost = 12;
     optional int32 hops = 13 [default = 0];
-    optional string executedNode = 14;
+    optional string executedHost = 14;
 
     optional bool isAsync = 15;
     optional bool isPython = 16;

@@ -220,6 +220,8 @@ namespace wasm {
 
     std::shared_ptr<state::StateKeyValue> getStateKV(I32 keyPtr, size_t size);
 
+    std::shared_ptr<state::StateKeyValue> getStateKV(I32 keyPtr);
+
     // Syscalls
 
     int executeSyscall(int syscallNumber, int a, int b, int c, int d, int e, int f, int g);

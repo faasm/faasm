@@ -9,11 +9,11 @@
 #include <module_cache/WasmModuleCache.h>
 
 namespace tests {
-    TEST_CASE("Test flushing empty worker", "[worker]") {
+    TEST_CASE("Test flushing empty worker", "[faaslet]") {
         faaslet::flushFaasletHost();
     }
 
-    TEST_CASE("Test flushing worker clears state", "[worker]") {
+    TEST_CASE("Test flushing worker clears state", "[faaslet]") {
         // Set up some state
         state::State &state = state::getGlobalState();
         state.getKV("demo", "blah", 10);
@@ -26,7 +26,7 @@ namespace tests {
         REQUIRE(state.getKVCount() == 0);
     }
 
-    TEST_CASE("Test flushing worker clears shared files", "[worker]") {
+    TEST_CASE("Test flushing worker clears shared files", "[faaslet]") {
         util::SystemConfig &conf = util::getSystemConfig();
 
         std::string relativePath = "flush-test.txt";
@@ -48,7 +48,7 @@ namespace tests {
         REQUIRE(!boost::filesystem::exists(sharedPath));
     }
 
-    TEST_CASE("Test flushing worker clears zygotes", "[worker]") {
+    TEST_CASE("Test flushing worker clears zygotes", "[faaslet]") {
         const message::Message msgA = util::messageFactory("demo", "echo");
         const message::Message msgB = util::messageFactory("demo", "dummy");
 
@@ -62,7 +62,7 @@ namespace tests {
         REQUIRE(reg.getTotalCachedModuleCount() == 0);
     }
     
-    TEST_CASE("Test flushing worker clears scheduler", "[worker]") {
+    TEST_CASE("Test flushing worker clears scheduler", "[faaslet]") {
         message::Message msgA = util::messageFactory("demo", "echo");
         message::Message msgB = util::messageFactory("demo", "dummy");
 

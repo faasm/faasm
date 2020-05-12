@@ -18,15 +18,15 @@ namespace tests {
         execFunction(call);
     }
 
-    TEST_CASE("Test python conformance", "[worker]") {
+    TEST_CASE("Test python conformance", "[faaslet]") {
         checkPythonFunction("lang_test");
     }
 
-    TEST_CASE("Test numpy conformance", "[worker]") {
+    TEST_CASE("Test numpy conformance", "[faaslet]") {
         checkPythonFunction("numpy_test");
     }
 
-    TEST_CASE("Test repeated numpy execution", "[worker]") {
+    TEST_CASE("Test repeated numpy execution", "[faaslet]") {
         cleanSystem();
 
         message::Message call = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
@@ -37,7 +37,7 @@ namespace tests {
         checkMultipleExecutions(call, 3);
     }
 
-    TEST_CASE("Test python echo", "[worker]") {
+    TEST_CASE("Test python echo", "[faaslet]") {
         cleanSystem();
 
         std::string input = "foobar blah blah";
@@ -51,7 +51,7 @@ namespace tests {
         REQUIRE(result == input);
     }
 
-    TEST_CASE("Test python state write/ read", "[worker]") {
+    TEST_CASE("Test python state write/ read", "[faaslet]") {
         cleanSystem();
 
         // Run the state write function
@@ -78,7 +78,7 @@ namespace tests {
         REQUIRE(result.returnvalue() == 0);
     }
 
-    TEST_CASE("Test python chaining", "[worker]") {
+    TEST_CASE("Test python chaining", "[faaslet]") {
         message::Message call = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
         call.set_pythonuser("python");
         call.set_pythonfunction("chain");
@@ -87,7 +87,7 @@ namespace tests {
         execFuncWithPool(call, true, 1);
     }
 
-    TEST_CASE("Test python sharing dict", "[worker]") {
+    TEST_CASE("Test python sharing dict", "[faaslet]") {
         message::Message call = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
         call.set_pythonuser("python");
         call.set_pythonfunction("dict_state");

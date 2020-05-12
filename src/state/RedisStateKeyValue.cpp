@@ -12,14 +12,25 @@ namespace state {
 
     };
 
+    RedisStateKeyValue::RedisStateKeyValue(const std::string &userIn, const std::string &keyIn)
+            : RedisStateKeyValue(userIn, keyIn, 0) {
+
+    };
+
     size_t RedisStateKeyValue::getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn) {
         std::string actualKey = util::keyForUser(userIn, keyIn);
         redis::Redis &redis = redis::Redis::getState();
         return redis.strlen(actualKey);
     }
 
+    void RedisStateKeyValue::deleteFromRemote(const std::string &userIn, const std::string &keyIn) {
+        redis::Redis &redis = redis::Redis::getState();
+        std::string actualKey = util::keyForUser(userIn, keyIn);
+        redis.del(actualKey);
+    }
+
     void RedisStateKeyValue::clearAll(bool global) {
-        if(global) {
+        if (global) {
             redis::Redis &redis = redis::Redis::getState();
             redis.flushAll();
         }
@@ -107,7 +118,7 @@ namespace state {
         redis.dequeueMultiple(joinedKey, data, length, nValues);
     }
 
-    void RedisStateKeyValue::deleteFromRemote() {
+    void RedisStateKeyValue::clearAppendedFromRemote() {
         redis.del(joinedKey);
     }
 }
