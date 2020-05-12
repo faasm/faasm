@@ -131,6 +131,12 @@ std::shared_ptr<state::StateKeyValue> getKv(const char *key, size_t size) {
     return s.getKV(emulatedUser, key, size);
 }
 
+std::shared_ptr<state::StateKeyValue> getKv(const char *key) {
+    state::State &s = state::getGlobalState();
+    const std::string &emulatedUser = getEmulatedUser();
+    return s.getKV(emulatedUser, key);
+}
+
 void __faasm_write_output(const unsigned char *output, long outputLen) {
     util::getLogger()->debug("E - write_output {} {}", output, outputLen);
     _emulatedCall.set_outputdata(output, outputLen);
@@ -191,8 +197,8 @@ void __faasm_read_appended_state(const char *key, unsigned char *buffer, long bu
 
 void __faasm_clear_appended_state(const char *key) {
     util::getLogger()->debug("E - clear_appended_state {}", key);
-    state::State &state = state::getGlobalState();
-    state.deleteKV(getEmulatorUser(), key);
+    auto kv = getKv(key);
+    kv->clearAppended();
 }
 
 void __faasm_write_state_offset(const char *key, long totalLen, long offset, const unsigned char *data, long dataLen) {

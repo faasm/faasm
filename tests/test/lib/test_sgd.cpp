@@ -149,12 +149,12 @@ namespace tests {
         REQUIRE(actualWeights(0, 3) == weightsCopy(0, 3));
     }
 
-    void checkAppendOnlyInState(const std::string &user, const char *key, long nDoubles, std::vector<double> expected) {
+    void checkAppendOnlyInState(const std::string &user, const char *key, long nDoubles, const std::vector<double> &expected) {
         size_t bufferSize = nDoubles * sizeof(double);
         std::vector<uint8_t> actualBytes(bufferSize, 0);
 
-        const std::shared_ptr<state::StateKeyValue> &kv = state::getGlobalState().getKV(user, key, bufferSize);
-        kv->get(actualBytes.data());
+        const std::shared_ptr<state::StateKeyValue> &kv = state::getGlobalState().getKV(user, key);
+        kv->getAppended(actualBytes.data(), bufferSize, nDoubles);
         REQUIRE(!actualBytes.empty());
 
         auto actualPtr = reinterpret_cast<double *>(actualBytes.data());
