@@ -9,7 +9,6 @@
     - linux
     - llvm10
     - protobuf
-    - perf
     - code
     - python
     - spdlog
@@ -18,5 +17,4 @@
     - capacity
     - pistache
     - rapidjson
-    - docker
     - runtime_fs

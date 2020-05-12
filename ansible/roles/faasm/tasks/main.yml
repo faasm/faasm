@@ -29,6 +29,7 @@
 - name: "Create faasm home dir"
   file:
     path: "{{ ansible_env.HOME }}/faasm"
+    state: directory
 
 - name: "Put Faasm config in place"
   template:
