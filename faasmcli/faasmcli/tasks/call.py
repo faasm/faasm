@@ -56,6 +56,9 @@ def multi_cr(ctx, debug=False, num_times=6):
                     wasm_line = f"{num_threads},{iter_name},{t_wasm}\n"
                     csv.write(wasm_line)
                     rindex += 1
+                r.flushall()
+                rindex = 0
+
 
 @task
 def status(ctx, call_id, host=None, port=None):
