@@ -5,9 +5,6 @@
 #include <util/func.h>
 
 namespace tests {
-    // -------------------------------------------
-    // TODO - WASI - get commented-out functions working
-    // -------------------------------------------
 
     TEST_CASE("Test static for scheduling", "[wasm][openmp]") {
         cleanSystem();
@@ -72,6 +69,12 @@ namespace tests {
     TEST_CASE("Test critical section", "[wasm][openmp]") {
         cleanSystem();
         message::Message msg = util::messageFactory("omp", "simple_critical");
+        execFunction(msg);
+    }
+
+    TEST_CASE("Test single section", "[wasm][openmp]") {
+        cleanSystem();
+        message::Message msg = util::messageFactory("omp", "simple_single");
         execFunction(msg);
     }
 
