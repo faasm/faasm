@@ -17,10 +17,15 @@ namespace tests {
         state::State &state = state::getGlobalState();
         std::string user = getEmulatorUser();
 
+        // Create the array and check it makes a KV in the background
+        REQUIRE(state.getKVCount() == 0);
+
         const char *key = "test_array";
         int arraySize = 10;
         faasm::AsyncArray<int> arrayA(key, arraySize);
         arrayA.zero();
+
+        REQUIRE(state.getKVCount() == 1);
 
         // Check state and array point to the same thing
         auto stateKv = state.getKV(user, key, arraySize * sizeof(int));
@@ -53,8 +58,7 @@ namespace tests {
         arrayB[3] = 33;
         arrayB.push();
 
-        // Clear the local state, reload and check first instance
-        stateKv->clear();
+        // Check it's reflected by the first
         arrayA.pullLazy();
         REQUIRE(arrayA[5] == 55);
         REQUIRE(arrayA[2] == 22);

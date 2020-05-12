@@ -145,23 +145,23 @@ namespace tests {
 
     }
     
-    void checkFlushMessageShared(const std::string &node, const message::Message &msg) {
+    void checkFlushMessageShared(const std::string &host, const message::Message &msg) {
         scheduler::SharingMessageBus &sharingBus = scheduler::SharingMessageBus::getInstance();
-        const message::Message actual = sharingBus.nextMessageForNode(node);
+        const message::Message actual = sharingBus.nextMessageForHost(host);
         REQUIRE(actual.isflushrequest());
     }
     
     TEST_CASE("Test broadcasting flush message", "[knative]") {
         cleanSystem();
 
-        // Set up some dummy nodes and add to global set
-        std::string thisNode = util::getNodeId();
-        std::string nodeA = "node_a";
-        std::string nodeB = "node_b";
+        // Set up some dummy hosts and add to global set
+        std::string thisHost = util::getSystemConfig().endpointHost;
+        std::string hostA = "host_a";
+        std::string hostB = "host_b";
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        sch.addNodeToGlobalSet(nodeA);
-        sch.addNodeToGlobalSet(nodeB);
+        sch.addHostToGlobalSet(hostA);
+        sch.addHostToGlobalSet(hostB);
         
         message::Message msg;
         msg.set_isflushrequest(true);
@@ -170,8 +170,8 @@ namespace tests {
         const std::string &requestStr = util::messageToJson(msg);
         std::string actual = handler.handleFunction(requestStr);
 
-        checkFlushMessageShared(thisNode, msg);
-        checkFlushMessageShared(nodeA, msg);
-        checkFlushMessageShared(nodeB, msg);
+        checkFlushMessageShared(thisHost, msg);
+        checkFlushMessageShared(hostA, msg);
+        checkFlushMessageShared(hostB, msg);
     }
 }

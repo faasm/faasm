@@ -1,7 +1,7 @@
 #include "KnativeEndpoint.h"
 
 #include <util/logging.h>
-#include <worker/WorkerMain.h>
+#include <faaslet/FaasmMain.h>
 
 using namespace knative;
 
@@ -12,7 +12,7 @@ int main() {
 
     // Start the worker pool
     logger->info("Starting worker pool in the background");
-    worker::WorkerMain w;
+    faaslet::FaasmMain w;
     w.startBackground();
 
     // Start endpoint (will also have multiple threads)

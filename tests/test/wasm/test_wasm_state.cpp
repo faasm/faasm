@@ -57,11 +57,9 @@ namespace tests {
         const std::string user = getEmulatorUser();
         const std::string key = "wasm_state_test";
         auto kv = s.getKV(user, key, stateSize);
-        std::string actualKey = util::keyForUser(kv->user, kv->key);
 
-        // Write the value to redis
-        redis::Redis &redis = redis::Redis::getState();
-        redis.set(actualKey, value);
+        // Write the value to the key-value
+        kv->set(value.data());
 
         // Check mapping the whole region
         _checkMapping(moduleA, kv, 0, stateSize, value);

@@ -52,9 +52,9 @@ namespace ibm {
     }
 
     void IBMEndpoint::stop() {
-        workerMain->shutdown();
+        faasmMain->shutdown();
 
-        delete workerMain;
+        delete faasmMain;
     }
 
     void IBMEndpoint::setupRoutes() {
@@ -129,8 +129,8 @@ namespace ibm {
 
                 conf.print();
 
-                workerMain = new worker::WorkerMain();
-                workerMain->startBackground();
+                faasmMain = new faaslet::FaasmMain();
+                faasmMain->startBackground();
 
                 started = true;
             }

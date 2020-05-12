@@ -12,7 +12,7 @@ namespace scheduler {
     const std::string WARM_SET_PREFIX = "w_";
 
     Scheduler::Scheduler() :
-            nodeId(util::getNodeId()),
+            thisHost(util::getSystemConfig().endpointHost),
             conf(util::getSystemConfig()),
             sharingBus(SharingMessageBus::getInstance()),
             logMessageIds(false) {
@@ -20,37 +20,37 @@ namespace scheduler {
         bindQueue = std::make_shared<InMemoryMessageQueue>();
     }
 
-    void Scheduler::addNodeToGlobalSet(const std::string &node) {
+    void Scheduler::addHostToGlobalSet(const std::string &host) {
         redis::Redis &redis = redis::Redis::getQueue();
-        redis.sadd(GLOBAL_NODE_SET, node);
+        redis.sadd(AVAILABLE_HOST_SET, host);
     }
 
-    void Scheduler::addNodeToGlobalSet() {
+    void Scheduler::addHostToGlobalSet() {
         redis::Redis &redis = redis::Redis::getQueue();
-        redis.sadd(GLOBAL_NODE_SET, nodeId);
+        redis.sadd(AVAILABLE_HOST_SET, thisHost);
     }
 
-    void Scheduler::removeNodeFromGlobalSet() {
+    void Scheduler::removeHostFromGlobalSet() {
         redis::Redis &redis = redis::Redis::getQueue();
-        redis.srem(GLOBAL_NODE_SET, nodeId);
+        redis.srem(AVAILABLE_HOST_SET, thisHost);
     }
 
-    void Scheduler::addNodeToWarmSet(const std::string &funcStr) {
+    void Scheduler::addHostToWarmSet(const std::string &funcStr) {
         const std::string &warmSetName = getFunctionWarmSetNameFromStr(funcStr);
         redis::Redis &redis = redis::Redis::getQueue();
-        redis.sadd(warmSetName, nodeId);
+        redis.sadd(warmSetName, thisHost);
     }
 
-    void Scheduler::removeNodeFromWarmSet(const std::string &funcStr) {
+    void Scheduler::removeHostFromWarmSet(const std::string &funcStr) {
         const std::string &warmSetName = getFunctionWarmSetNameFromStr(funcStr);
         redis::Redis &redis = redis::Redis::getQueue();
-        redis.srem(warmSetName, nodeId);
+        redis.srem(warmSetName, thisHost);
     }
 
     void Scheduler::clear() {
-        // Remove this node from all the global warm sets
+        // Remove this host from all the global warm sets
         for (const auto &iter: queueMap) {
-            this->removeNodeFromWarmSet(iter.first);
+            this->removeHostFromWarmSet(iter.first);
         }
 
         // Clear all queues and data
@@ -63,7 +63,7 @@ namespace scheduler {
 
         setMessageIdLogging(false);
 
-        this->removeNodeFromGlobalSet();
+        this->removeHostFromGlobalSet();
     }
 
     void Scheduler::enqueueMessage(const message::Message &msg) {
@@ -193,17 +193,17 @@ namespace scheduler {
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // Get the best node
-        std::string bestNode;
+        // Get the best host
+        std::string bestHost;
         if (forceLocal) {
-            bestNode = nodeId;
+            bestHost = thisHost;
         } else {
-            bestNode = this->getBestNodeForFunction(msg);
+            bestHost = this->getBestHostForFunction(msg);
         }
 
         // Mark if this is the first scheduling decision made on this message
-        if (msg.schedulednode().empty()) {
-            msg.set_schedulednode(bestNode);
+        if (msg.scheduledhost().empty()) {
+            msg.set_scheduledhost(bestHost);
         }
 
         // Log this call if needed
@@ -214,7 +214,7 @@ namespace scheduler {
         const std::string funcStrWithId = util::funcToString(msg, true);
         const std::string funcStrNoId = util::funcToString(msg, false);
 
-        if (bestNode == nodeId) {
+        if (bestHost == thisHost) {
             // Run locally if we're the best choice
             logger->debug("Executing {} locally", funcStrWithId);
             this->enqueueMessage(msg);
@@ -231,12 +231,12 @@ namespace scheduler {
             // Increment the number of hops
             msg.set_hops(msg.hops() + 1);
 
-            // Share with other node
-            logger->debug("Node {} sharing {} with {} ({} hops)",
-                          nodeId, funcStrWithId,
-                          bestNode, msg.hops());
+            // Share with other host
+            logger->debug("Host {} sharing {} with {} ({} hops)",
+                          thisHost, funcStrWithId,
+                          bestHost, msg.hops());
 
-            sharingBus.shareMessageWithNode(bestNode, msg);
+            sharingBus.shareMessageWithHost(bestHost, msg);
         }
 
         PROF_END(scheduleCall)
@@ -332,7 +332,7 @@ namespace scheduler {
 
             logger->debug(
                     "{} updating {} from {} to {} (threads={} ({}), IF ratio={} ({}))",
-                    nodeId,
+                    thisHost,
                     funcStr,
                     currentOpinionStr,
                     newOpinionStr,
@@ -344,21 +344,21 @@ namespace scheduler {
 
             if (newOpinion == SchedulerOpinion::NO) {
                 // Moving to no means we want to switch off from all decisions
-                removeNodeFromWarmSet(funcStr);
-                removeNodeFromGlobalSet();
+                removeHostFromWarmSet(funcStr);
+                removeHostFromGlobalSet();
             } else if (newOpinion == SchedulerOpinion::MAYBE && currentOpinion == SchedulerOpinion::NO) {
                 // Rejoin the global set if we're now a maybe when previously a no
-                addNodeToGlobalSet();
+                addHostToGlobalSet();
             } else if (newOpinion == SchedulerOpinion::MAYBE && currentOpinion == SchedulerOpinion::YES) {
                 // Stay in the global set, but not in the warm if we've gone back to maybe from yes
-                removeNodeFromWarmSet(funcStr);
+                removeHostFromWarmSet(funcStr);
             } else if (newOpinion == SchedulerOpinion::YES && currentOpinion == SchedulerOpinion::NO) {
                 // Rejoin everything if we're into a yes state from a no
-                addNodeToWarmSet(funcStr);
-                addNodeToGlobalSet();
+                addHostToWarmSet(funcStr);
+                addHostToGlobalSet();
             } else if (newOpinion == SchedulerOpinion::YES && currentOpinion == SchedulerOpinion::MAYBE) {
                 // Join the warm set if we've become yes from maybe
-                addNodeToWarmSet(funcStr);
+                addHostToWarmSet(funcStr);
             } else {
                 throw std::logic_error("Should not be able to reach this point");
             }
@@ -373,20 +373,20 @@ namespace scheduler {
         return opinionMap[funcStr];
     }
 
-    std::string Scheduler::getBestNodeForFunction(const message::Message &msg) {
+    std::string Scheduler::getBestHostForFunction(const message::Message &msg) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
-        // If we're ignoring the scheduling, just put it on this node regardless
+        // If we're ignoring the scheduling, just put it on this host regardless
         if (conf.noScheduler == 1) {
             logger->debug("Ignoring scheduler and queueing {} locally", util::funcToString(msg, true));
-            return nodeId;
+            return thisHost;
         }
 
         // Accept if we have capacity
         const std::string funcStrNoId = util::funcToString(msg, false);
         SchedulerOpinion thisOpinion = opinionMap[funcStrNoId];
         if (thisOpinion == SchedulerOpinion::YES) {
-            return nodeId;
+            return thisHost;
         }
 
         // Get options from the warm set
@@ -394,33 +394,33 @@ namespace scheduler {
         redis::Redis &redis = redis::Redis::getQueue();
         std::unordered_set<std::string> warmOptions = redis.smembers(warmSet);
 
-        // Remove this node from the warm options
-        warmOptions.erase(nodeId);
+        // Remove this host from the warm options
+        warmOptions.erase(thisHost);
 
         // If we have warm options, pick a random one
         if (!warmOptions.empty()) {
             return util::randomStringFromSet(warmOptions);
         }
 
-        // If there are no other warm options and we're a maybe, accept on this node
+        // If there are no other warm options and we're a maybe, accept on this host
         if (thisOpinion == SchedulerOpinion::MAYBE) {
-            return nodeId;
+            return thisHost;
         }
 
         // Now there's no warm options we're rejecting, so check all options
-        std::unordered_set<std::string> allOptions = redis.smembers(GLOBAL_NODE_SET);
-        allOptions.erase(nodeId);
+        std::unordered_set<std::string> allOptions = redis.smembers(AVAILABLE_HOST_SET);
+        allOptions.erase(thisHost);
 
         if (!allOptions.empty()) {
-            // Pick a random option from all nodes
+            // Pick a random option from all hosts
             return util::randomStringFromSet(allOptions);
         } else {
             // Give up and try to execute locally
             double inFlightRatio = getFunctionInFlightRatio(msg);
             const std::string oStr = opinionStr(thisOpinion);
-            logger->warn("{} overloaded for {}. IF ratio {}, opinion {}", nodeId, funcStrNoId, inFlightRatio,
+            logger->warn("{} overloaded for {}. IF ratio {}, opinion {}", thisHost, funcStrNoId, inFlightRatio,
                          oStr);
-            return nodeId;
+            return thisHost;
         }
     }
 

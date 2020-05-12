@@ -66,6 +66,14 @@ namespace wasm {
         return kv;
     }
 
+    std::shared_ptr<state::StateKeyValue> getStateKV(I32 keyPtr) {
+        const std::pair<std::string, std::string> userKey = getUserKeyPairFromWasm(keyPtr);
+        state::State &s = state::getGlobalState();
+        auto kv = s.getKV(userKey.first, userKey.second);
+
+        return kv;
+    }
+
     I32 doMmap(I32 addr, I32 length, I32 prot, I32 flags, I32 fd, I32 offset) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - mmap - {} {} {} {} {} {}", addr, length, prot, flags, fd, offset);

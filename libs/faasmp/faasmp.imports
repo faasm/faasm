@@ -8,6 +8,8 @@ __kmpc_global_thread_num
 __kmpc_push_num_threads
 __kmpc_barrier
 __kmpc_flush
+__kmpc_single
+__kmpc_end_single
 
 # OpenMP loops
 __kmpc_for_static_init_4

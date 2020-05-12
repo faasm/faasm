@@ -2,22 +2,23 @@
 #include <module_cache/WasmModuleCache.h>
 #include <emulator/emulator.h>
 #include <util/environment.h>
+#include <util/bytes.h>
 
 #include "utils.h"
 
-using namespace worker;
+using namespace faaslet;
 
 namespace tests {
 
-    WorkerThread execFunction(message::Message &call, const std::string &expectedOutput) {
+    Faaslet execFunction(message::Message &call, const std::string &expectedOutput) {
         // Turn off python preloading
         util::SystemConfig &conf = util::getSystemConfig();
         std::string originalPreload = conf.pythonPreload;
         conf.pythonPreload = "off";
 
         // Set up worker to listen for relevant function
-        WorkerThreadPool pool(1);
-        WorkerThread w(1);
+        FaasletPool pool(1);
+        Faaslet w(1);
         REQUIRE(!w.isBound());
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
@@ -63,8 +64,8 @@ namespace tests {
         conf.pythonPreload = "off";
 
         // Set up worker to listen for relevant function
-        WorkerThreadPool pool(1);
-        WorkerThread w(1);
+        FaasletPool pool(1);
+        Faaslet w(1);
         REQUIRE(!w.isBound());
 
         // Call the function
@@ -114,7 +115,7 @@ namespace tests {
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.clear();
-        sch.addNodeToGlobalSet();
+        sch.addHostToGlobalSet();
         sch.setMessageIdLogging(true);
 
         // Modify system config (network ns requires root)
@@ -129,7 +130,7 @@ namespace tests {
         // Set up a real worker pool to execute the function
         conf.threadsPerWorker = nThreads;
         conf.maxWorkersPerFunction = nThreads;
-        WorkerThreadPool pool(nThreads);
+        FaasletPool pool(nThreads);
         pool.startThreadPool();
 
         unsigned int mainFuncId;
@@ -174,6 +175,37 @@ namespace tests {
         conf.pythonPreload = originalPreload;
 
         cleanSystem();
+    }
+
+    void checkCallingFunctionGivesBoolOutput(const std::string &user, const std::string &funcName, bool expected) {
+        message::Message call = util::messageFactory("demo", funcName);
+        setEmulatedMessage(call);
+
+        FaasletPool pool(1);
+        Faaslet w(1);
+
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        sch.callFunction(call);
+
+        // Bind and execute
+        w.processNextMessage();
+        w.processNextMessage();
+
+        // Check output is true
+        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
+        message::Message result = globalBus.getFunctionResult(call.id(), 1);
+        REQUIRE(result.returnvalue() == 0);
+        std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
+
+        std::vector<uint8_t> expectedOutput;
+
+        if (expected) {
+            expectedOutput = {1};
+        } else {
+            expectedOutput = {0};
+        }
+
+        REQUIRE(outputBytes == expectedOutput);
     }
 }
 

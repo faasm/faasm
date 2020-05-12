@@ -9,10 +9,6 @@
 #include <util/random.h>
 #include <util/network.h>
 
-static std::string nodeId;
-static std::size_t nodeIdHash;
-static std::mutex nodeIdMx;
-
 
 namespace util {
     SystemConfig &getSystemConfig() {
@@ -41,7 +37,7 @@ namespace util {
         logLevel = getEnvVar("LOG_LEVEL", "info");
         pythonPreload = getEnvVar("PYTHON_PRELOAD", "off");
         captureStdout = getEnvVar("CAPTURE_STDOUT", "off");
-        stateMode = getEnvVar("STATE_MODE", "redis");
+        stateMode = getEnvVar("STATE_MODE", "inmemory");
         wasmVm = getEnvVar("WASM_VM", "wavm");
 
         // Redis
@@ -53,7 +49,6 @@ namespace util {
         irCacheMode = getEnvVar("IR_CACHE_MODE", "on");
 
         // Scheduling
-        maxNodes = this->getSystemConfIntParam("MAX_NODES", "4");
         noScheduler = this->getSystemConfIntParam("NO_SCHEDULER", "0");
         maxInFlightRatio = this->getSystemConfIntParam("MAX_IN_FLIGHT_RATIO", "3");
         maxWorkersPerFunction = this->getSystemConfIntParam("MAX_WORKERS_PER_FUNCTION", "10");
@@ -84,7 +79,7 @@ namespace util {
         endpointPort = this->getSystemConfIntParam("ENDPOINT_PORT", "8080");
         endpointNumThreads = this->getSystemConfIntParam("ENDPOINT_NUM_THREADS", "4");
 
-        if(endpointHost.empty()) {
+        if (endpointHost.empty()) {
             // Get the IP for this host
             endpointHost = util::getPrimaryIPForThisHost(endpointInterface);
         }
@@ -128,7 +123,6 @@ namespace util {
         logger->info("IR_CACHE_MODE              {}", irCacheMode);
 
         logger->info("--- Scheduling ---");
-        logger->info("MAX_NODES                  {}", maxNodes);
         logger->info("THREADS_PER_WORKER         {}", threadsPerWorker);
         logger->info("NO_SCHEDULER               {}", noScheduler);
         logger->info("MAX_IN_FLIGHT_RATIO        {}", maxInFlightRatio);
@@ -159,29 +153,5 @@ namespace util {
         logger->info("ENDPOINT_HOST              {}", endpointHost);
         logger->info("ENDPOINT_PORT              {}", endpointPort);
         logger->info("ENDPOINT_NUM_THREADS       {}", endpointNumThreads);
-    }
-
-    void _setNodeId() {
-        // This needs to be thread-safe to get a consistent nodeId for all threads on the same host
-        // We assume cross-host collisions are not going to happen (depends on random string function)
-        if(nodeId.empty()) {
-            util::UniqueLock lock(nodeIdMx);
-            if(nodeId.empty()) {
-                // Generate random node ID
-                nodeId = util::randomString(NODE_ID_LEN);
-                // Set the node ID and store the hash for unique ints
-                nodeIdHash = std::hash<std::string>{}(nodeId);
-            }
-        }
-    }
-
-    std::string& getNodeId() {
-        _setNodeId();
-        return nodeId;
-    }
-
-    std::size_t getNodeIdHash() {
-        _setNodeId();
-        return nodeIdHash;
     }
 }

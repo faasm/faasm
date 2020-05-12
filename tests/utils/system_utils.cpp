@@ -11,8 +11,6 @@ extern "C" {
 #include <scheduler/Scheduler.h>
 #include <emulator/emulator.h>
 #include <module_cache/WasmModuleCache.h>
-#include <boost/filesystem.hpp>
-#include <worker/worker.h>
 
 
 namespace tests {
@@ -23,8 +21,13 @@ namespace tests {
         redis::Redis::getState().flushAll();
         redis::Redis::getQueue().flushAll();
 
-        // Clear out any cached state
+        // Clear out any cached state, do so for both modes
+        std::string &originalStateMode = conf.stateMode;
+        conf.stateMode = "inmemory";
         state::getGlobalState().forceClearAll(true);
+        conf.stateMode = "redis";
+        state::getGlobalState().forceClearAll(true);
+        conf.stateMode = originalStateMode;
 
         // Clear shared files
         storage::FileSystem::clearSharedFiles();
@@ -32,7 +35,7 @@ namespace tests {
         // Reset scheduler
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.clear();
-        sch.addNodeToGlobalSet();
+        sch.addHostToGlobalSet();
 
         // Clear out global message bus
         scheduler::getGlobalMessageBus().clear();

@@ -15,6 +15,7 @@ from . import prk
 from . import python
 from . import redis
 from . import run
+from . import state
 from . import tensorflow
 from . import toolchain
 from . import upload
@@ -34,6 +35,7 @@ ns = Collection(
     python,
     redis,
     run,
+    state,
     toolchain,
     upload,
     wast,

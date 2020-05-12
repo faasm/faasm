@@ -6,7 +6,7 @@
 #define MPI_MESSAGE_TIMEOUT_MS 1000
 
 namespace mpi {
-    MpiGlobalBus::MpiGlobalBus() : thisNodeId(util::getNodeId()), redis(redis::Redis::getQueue()) {
+    MpiGlobalBus::MpiGlobalBus() : thisHost(util::getSystemConfig().endpointHost), redis(redis::Redis::getQueue()) {
 
     }
 
@@ -16,34 +16,33 @@ namespace mpi {
         return mb;
     }
 
-    std::string getMpiQueueNameForNode(const std::string &nodeId) {
-        return "mpi_queue_" + nodeId;
+    std::string getMpiQueueNameForHost(const std::string &host) {
+        return "mpi_queue_" + host;
     }
 
-
-    void MpiGlobalBus::sendMessageToNode(const std::string &otherNodeId, MpiMessage *m) {
-        std::string queueName = getMpiQueueNameForNode(otherNodeId);
+    void MpiGlobalBus::sendMessageToHost(const std::string &otherHost, MpiMessage *m) {
+        std::string queueName = getMpiQueueNameForHost(otherHost);
         redis.enqueueBytes(queueName, BYTES(m), sizeof(MpiMessage));
     }
 
-    MpiMessage *MpiGlobalBus::dequeueForNode(const std::string &otherNodeId) {
-        std::string queueName = getMpiQueueNameForNode(otherNodeId);
+    MpiMessage *MpiGlobalBus::dequeueForHost(const std::string &otherHost) {
+        std::string queueName = getMpiQueueNameForHost(otherHost);
         auto m = new MpiMessage;
         redis.dequeueBytes(queueName, BYTES(m), sizeof(MpiMessage), MPI_MESSAGE_TIMEOUT_MS);
         
         return m;
     }
     
-    void MpiGlobalBus::next(const std::string &otherNodeId) {
-        MpiMessage *m = dequeueForNode(otherNodeId);
+    void MpiGlobalBus::next(const std::string &otherHost) {
+        MpiMessage *m = dequeueForHost(otherHost);
 
         MpiWorldRegistry &registry = getMpiWorldRegistry();
         MpiWorld &world = registry.getWorld(m->worldId);
         world.enqueueMessage(m);
     }
 
-    long MpiGlobalBus::getQueueSize(const std::string &otherNodeId) {
-        std::string queueName = getMpiQueueNameForNode(otherNodeId);
+    long MpiGlobalBus::getQueueSize(const std::string &otherHost) {
+        std::string queueName = getMpiQueueNameForHost(otherHost);
         return redis.listLength(queueName);
     }
 }

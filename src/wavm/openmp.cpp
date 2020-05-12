@@ -23,6 +23,7 @@ namespace wasm {
         message::Message *parentCall;
         WasmThreadSpec spec;
     };
+
     /**
      * Performs actual static assignment
      */
@@ -180,7 +181,31 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_master", void, __kmpc_end_master, I32 loc, I32 globalTid) {
         util::getLogger()->debug("S - __kmpc_end_master {} {}", loc, globalTid);
-        WAVM_ASSERT(globalTid == 0 && thisThreadNumber == 0)
+        WAVM_ASSERT(thisThreadNumber == 0)
+    }
+
+    /**
+     * Test whether to execute a single construct. There are no implicit barriers in the two "single" calls,
+     rather the compiler should introduce an explicit barrier if it is required.
+     * @param loc
+     * @param globalTid
+     * @return 1 if this thread should execute the single construct, zero otherwise.
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_single", I32, __kmpc_single, I32 loc, I32 globalTid) {
+        util::getLogger()->debug("S - __kmpc_single {} {}", loc, globalTid);
+        return thisThreadNumber == 0 ? 1 : 0;
+    }
+
+    /**
+     * Test whether to execute a single construct. There are no implicit barriers in the two "single" calls,
+     rather the compiler should introduce an explicit barrier if it is required.
+     * @param loc
+     * @param globalTid
+     * @return 1 if this thread should execute the single construct, zero otherwise.
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_single", void, __kmpc_end_single, I32 loc, I32 globalTid) {
+        util::getLogger()->debug("S - __kmpc_end_single {} {}", loc, globalTid);
+        WAVM_ASSERT(thisThreadNumber == 0)
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_push_num_threads", void, __kmpc_push_num_threads,
@@ -283,8 +308,8 @@ namespace wasm {
                 const std::string chainedStr = util::funcToString(call, false);
                 sch.callFunction(call);
 
-                logger->debug("Forked thread {} ({}) -> {} {}(*{}) ({})", origStr, util::getNodeId(), chainedStr,
-                              microtaskPtr, argsPtr, call.schedulednode());
+                logger->debug("Forked thread {} ({}) -> {} {}(*{}) ({})", origStr, util::getSystemConfig().endpointHost, chainedStr,
+                              microtaskPtr, argsPtr, call.scheduledhost());
                 chainedThreads[threadNum] = call.id();
             }
 

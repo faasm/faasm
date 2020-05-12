@@ -42,9 +42,9 @@ namespace tests {
             REQUIRE(actualCall.mpirank() == i);
         }
 
-        // Check that this node is registered as the master
-        const std::string actualNodeId = world.getNodeForRank(0);
-        REQUIRE(actualNodeId == util::getNodeId());
+        // Check that this host is registered as the master
+        const std::string actualHost = world.getHostForRank(0);
+        REQUIRE(actualHost == util::getSystemConfig().endpointHost);
     }
 
     TEST_CASE("Test world loading from state", "[mpi]") {
@@ -68,34 +68,36 @@ namespace tests {
     TEST_CASE("Test registering a rank", "[mpi]") {
         cleanSystem();
 
-        std::string nodeIdA = util::randomString(NODE_ID_LEN);
-        std::string nodeIdB = util::randomString(NODE_ID_LEN);
+        // Note, we deliberately make the host names different lengths,
+        // shorter than the buffer
+        std::string hostA = util::randomString(MPI_HOST_STATE_LEN - 5);
+        std::string hostB = util::randomString(MPI_HOST_STATE_LEN - 10);
 
         // Create a world
         const message::Message &msg = util::messageFactory(user, func);
         mpi::MpiWorld worldA;
-        worldA.overrideNodeId(nodeIdA);
+        worldA.overrideHost(hostA);
         worldA.create(msg, worldId, worldSize);
 
-        // Register a rank to this node and check
+        // Register a rank to this host and check
         int rankA = 5;
         worldA.registerRank(5);
-        const std::string actualNodeId = worldA.getNodeForRank(0);
-        REQUIRE(actualNodeId == nodeIdA);
+        const std::string actualHost = worldA.getHostForRank(0);
+        REQUIRE(actualHost == hostA);
 
-        // Create a new instance of the world with a new node ID
+        // Create a new instance of the world with a new host ID
         mpi::MpiWorld worldB;
-        worldB.overrideNodeId(nodeIdB);
+        worldB.overrideHost(hostB);
         worldB.initialiseFromState(msg, worldId);
 
         int rankB = 4;
         worldB.registerRank(4);
 
         // Now check both world instances report the same mappings
-        REQUIRE(worldA.getNodeForRank(rankA) == nodeIdA);
-        REQUIRE(worldA.getNodeForRank(rankB) == nodeIdB);
-        REQUIRE(worldB.getNodeForRank(rankA) == nodeIdA);
-        REQUIRE(worldB.getNodeForRank(rankB) == nodeIdB);
+        REQUIRE(worldA.getHostForRank(rankA) == hostA);
+        REQUIRE(worldA.getHostForRank(rankB) == hostB);
+        REQUIRE(worldB.getHostForRank(rankA) == hostA);
+        REQUIRE(worldB.getHostForRank(rankB) == hostB);
     }
 
     void checkMessage(MpiMessage *actualMessage, int senderRank, int destRank, const std::vector<int> &data) {
@@ -116,7 +118,7 @@ namespace tests {
         REQUIRE(actualData == data);
     }
 
-    TEST_CASE("Test send and recv on same node", "[mpi]") {
+    TEST_CASE("Test send and recv on same host", "[mpi]") {
         cleanSystem();
 
         const message::Message &msg = util::messageFactory(user, func);
@@ -197,18 +199,19 @@ namespace tests {
         REQUIRE(actualB == messageDataB);
     }
 
-    TEST_CASE("Test send across nodes", "[mpi]") {
+    TEST_CASE("Test send across hosts", "[mpi]") {
         cleanSystem();
-        std::string nodeIdA = util::randomString(NODE_ID_LEN);
-        std::string nodeIdB = util::randomString(NODE_ID_LEN);
+
+        std::string hostA = util::randomString(MPI_HOST_STATE_LEN - 3);
+        std::string hostB = util::randomString(MPI_HOST_STATE_LEN - 5);
 
         const message::Message &msg = util::messageFactory(user, func);
         mpi::MpiWorld worldA;
-        worldA.overrideNodeId(nodeIdA);
+        worldA.overrideHost(hostA);
         worldA.create(msg, worldId, worldSize);
 
         mpi::MpiWorld worldB;
-        worldB.overrideNodeId(nodeIdB);
+        worldB.overrideHost(hostB);
         worldB.initialiseFromState(msg, worldId);
 
         // Register two ranks
@@ -219,25 +222,25 @@ namespace tests {
 
         std::vector<int> messageData = {0, 1, 2};
 
-        // Send a message between the ranks on different nodes
+        // Send a message between the ranks on different hosts
         worldA.send(rankA, rankB, BYTES(messageData.data()), MPI_INT, messageData.size());
 
         MpiGlobalBus &bus = mpi::getMpiGlobalBus();
 
         SECTION("Check queueing") {
             // Check it's on the right queue
-            REQUIRE(bus.getQueueSize(nodeIdA) == 0);
-            REQUIRE(bus.getQueueSize(nodeIdB) == 1);
+            REQUIRE(bus.getQueueSize(hostA) == 0);
+            REQUIRE(bus.getQueueSize(hostB) == 1);
 
             // Check message content
-            MpiMessage *actualMessage = bus.dequeueForNode(nodeIdB);
+            MpiMessage *actualMessage = bus.dequeueForHost(hostB);
             checkMessage(actualMessage, rankA, rankB, messageData);
             delete actualMessage;
         }
 
         SECTION("Check recv") {
             // Pull message from global queue
-            MpiMessage *message = bus.dequeueForNode(nodeIdB);
+            MpiMessage *message = bus.dequeueForHost(hostB);
             worldB.enqueueMessage(message);
 
             // Receive the message for the given rank
@@ -379,19 +382,19 @@ namespace tests {
     TEST_CASE("Test can't get in-memory queue for non-local ranks", "[mpi]") {
         cleanSystem();
 
-        std::string nodeIdA = util::randomString(NODE_ID_LEN);
-        std::string nodeIdB = util::randomString(NODE_ID_LEN);
+        std::string hostA = util::randomString(MPI_HOST_STATE_LEN - 5);
+        std::string hostB = util::randomString(MPI_HOST_STATE_LEN - 3);
 
         const message::Message &msg = util::messageFactory(user, func);
         mpi::MpiWorld worldA;
-        worldA.overrideNodeId(nodeIdA);
+        worldA.overrideHost(hostA);
         worldA.create(msg, worldId, worldSize);
 
         mpi::MpiWorld worldB;
-        worldB.overrideNodeId(nodeIdB);
+        worldB.overrideHost(hostB);
         worldB.initialiseFromState(msg, worldId);
 
-        // Register one rank on each node
+        // Register one rank on each host
         int rankA = 1;
         int rankB = 2;
         worldA.registerRank(rankA);
@@ -401,11 +404,11 @@ namespace tests {
         REQUIRE_THROWS(worldA.getLocalQueue(0, 3));
         REQUIRE_THROWS(worldB.getLocalQueue(0, 3));
 
-        // Check that we can't access rank on another node locally
+        // Check that we can't access rank on another host locally
         REQUIRE_THROWS(worldA.getLocalQueue(0, rankB));
 
         // Double check even when we've retrieved the rank
-        REQUIRE(worldA.getNodeForRank(rankB) == nodeIdB);
+        REQUIRE(worldA.getHostForRank(rankB) == hostB);
         REQUIRE_THROWS(worldA.getLocalQueue(0, rankB));
     }
 
@@ -434,24 +437,24 @@ namespace tests {
         REQUIRE_THROWS(world.send(0, destRank, BYTES(input.data()), MPI_INT, 2));
     }
 
-    TEST_CASE("Test collective messaging locally and across nodes", "[mpi]") {
+    TEST_CASE("Test collective messaging locally and across hosts", "[mpi]") {
         cleanSystem();
 
-        std::string nodeIdA = util::randomString(NODE_ID_LEN);
-        std::string nodeIdB = util::randomString(NODE_ID_LEN);
+        std::string hostA = "0.1.2.3";
+        std::string hostB = "123.45.67.8";
 
         int thisWorldSize = 6;
 
         const message::Message &msg = util::messageFactory(user, func);
         mpi::MpiWorld worldA;
-        worldA.overrideNodeId(nodeIdA);
+        worldA.overrideHost(hostA);
         worldA.create(msg, worldId, thisWorldSize);
 
         mpi::MpiWorld worldB;
-        worldB.overrideNodeId(nodeIdB);
+        worldB.overrideHost(hostB);
         worldB.initialiseFromState(msg, worldId);
 
-        // Register ranks on both nodes
+        // Register ranks on both hosts
         int rankA1 = 1;
         int rankA2 = 2;
         int rankA3 = 3;
@@ -475,7 +478,7 @@ namespace tests {
             std::vector<int> messageData = {0, 1, 2};
             worldA.broadcast(rankA2, BYTES(messageData.data()), MPI_INT, messageData.size());
 
-            // Check the node that the root is on
+            // Check the host that the root is on
             for (int rank : worldARanks) {
                 if (rank == rankA2) continue;
 
@@ -484,8 +487,8 @@ namespace tests {
                 REQUIRE(actual == messageData);
             }
 
-            worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
-            worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
+            worldB.enqueueMessage(bus.dequeueForHost(hostB));
+            worldB.enqueueMessage(bus.dequeueForHost(hostB));
 
             for (int rank : worldBRanks) {
                 std::vector<int> actual(3, -1);
@@ -524,9 +527,9 @@ namespace tests {
                            BYTES(actual.data()), MPI_INT, nPerRank);
             REQUIRE(actual == std::vector<int>({12, 13, 14, 15}));
 
-            // Pull both messages for the other node
-            worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
-            worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
+            // Pull both messages for the other host
+            worldB.enqueueMessage(bus.dequeueForHost(hostB));
+            worldB.enqueueMessage(bus.dequeueForHost(hostB));
 
             worldB.scatter(rankA2, rankB2, nullptr, MPI_INT, nPerRank,
                            BYTES(actual.data()), MPI_INT, nPerRank);
@@ -575,8 +578,8 @@ namespace tests {
                 }
 
                 // Ensure remote messages have been processed
-                worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
-                worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
+                worldA.enqueueMessage(bus.dequeueForHost(hostA));
+                worldA.enqueueMessage(bus.dequeueForHost(hostA));
 
                 // Call gather for root
                 worldA.gather(root, root,
@@ -621,8 +624,8 @@ namespace tests {
                 }
 
                 // Make sure messages from other world have been queued
-                worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
-                worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
+                worldA.enqueueMessage(bus.dequeueForHost(hostA));
+                worldA.enqueueMessage(bus.dequeueForHost(hostA));
 
                 // Now call allgather in the root rank
                 threads.emplace_back([&] {
@@ -634,8 +637,8 @@ namespace tests {
                 });
 
                 // Make sure messages to other world have been queued
-                worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
-                worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
+                worldB.enqueueMessage(bus.dequeueForHost(hostB));
+                worldB.enqueueMessage(bus.dequeueForHost(hostB));
 
                 // All threads should now be able to resolve themselves
                 for (auto &t: threads) {
@@ -655,16 +658,16 @@ namespace tests {
             std::thread threadB1([&worldB, &rankB1] { worldB.barrier(rankB1); });
             std::thread threadB2([&worldB, &rankB2] { worldB.barrier(rankB2); });
 
-            // Make sure the messages on other nodes are dequeued
-            worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
-            worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
+            // Make sure the messages on other hosts are dequeued
+            worldA.enqueueMessage(bus.dequeueForHost(hostA));
+            worldA.enqueueMessage(bus.dequeueForHost(hostA));
 
             // Call barrier with master (should not block)
             worldA.barrier(0);
 
             // Check messages dispatched to other ranks
-            worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
-            worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
+            worldB.enqueueMessage(bus.dequeueForHost(hostB));
+            worldB.enqueueMessage(bus.dequeueForHost(hostB));
 
             // Join all threads
             if (threadA1.joinable()) threadA1.join();
@@ -961,18 +964,18 @@ namespace tests {
 
     }
 
-    TEST_CASE("Test RMA across nodes", "[mpi]") {
+    TEST_CASE("Test RMA across hosts", "[mpi]") {
         cleanSystem();
-        std::string nodeIdA = util::randomString(NODE_ID_LEN);
-        std::string nodeIdB = util::randomString(NODE_ID_LEN);
+        std::string hostA = "0.0.0.0";
+        std::string hostB = "192.168.9.2";
 
         const message::Message &msg = util::messageFactory(user, func);
         mpi::MpiWorld worldA;
-        worldA.overrideNodeId(nodeIdA);
+        worldA.overrideHost(hostA);
         worldA.create(msg, worldId, worldSize);
 
         mpi::MpiWorld worldB;
-        worldB.overrideNodeId(nodeIdB);
+        worldB.overrideHost(hostB);
         worldB.initialiseFromState(msg, worldId);
 
         // Register four ranks
@@ -1000,7 +1003,7 @@ namespace tests {
         worldA.createWindow(&winA1, BYTES(dataA1.data()));
 
         SECTION("RMA Get from another world") {
-            // Get the window on another node
+            // Get the window on another host
             std::vector<int> actual = {0, 0, 0, 0};
             worldB.rmaGet(rankA1, MPI_INT, dataCount, BYTES(actual.data()), MPI_INT, dataCount);
             REQUIRE(actual == dataA1);
@@ -1012,7 +1015,7 @@ namespace tests {
             worldB.rmaPut(rankB1, BYTES(putData.data()), MPI_INT, dataCount, rankA1, MPI_INT, dataCount);
 
             // Resolve the notification
-            worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
+            worldA.enqueueMessage(bus.dequeueForHost(hostA));
 
             // Make sure it's been copied to the memory location
             REQUIRE(dataA1 == putData);

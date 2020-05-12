@@ -13,7 +13,7 @@ This functionality is accessed in C/C++ through pthreads and [OpenMP](openmp.md)
 Faasm intercepts normal threading calls and chains a new serverless function to execute
 the thread, potentially on another host. Shared data is managed with 
 [shared state](state.md) and the process memory is migrated across hosts with
-[proto-functions](proto_functions.md).
+[Proto-Faaslets](proto_faaslets.md).
 
 ## pthreads
  
@@ -44,7 +44,7 @@ may or may not execute on the same host.
 
 ### Migrating threads across hosts
 
-Threads are migrated across hosts using a version of [proto-functions](proto_functions.md), 
+Threads are migrated across hosts using a version of [Proto-Faaslets](proto_faaslets.md), 
 which duplicate a function's memory and execution state on another host. This provides
 the function on the other host with a copy of the heap, stack and data from its parent 
 function, thus letting it continue thread-like execution and read any shared data. 

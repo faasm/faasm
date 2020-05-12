@@ -2,16 +2,12 @@
 
 #include <string>
 
-#define NODE_ID_LEN 20
+#define MPI_HOST_STATE_LEN 20
 
 #define DEFAULT_TIMEOUT 60000
 #define RESULT_KEY_EXPIRY 30000
 
 namespace util {
-    std::string& getNodeId();
-
-    std::size_t getNodeIdHash();
-
     class SystemConfig {
 
     public:
@@ -40,7 +36,6 @@ namespace util {
         std::string irCacheMode;
 
         // Scheduling
-        int maxNodes;
         int threadsPerWorker;
         int noScheduler;
         int maxInFlightRatio;

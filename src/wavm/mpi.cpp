@@ -508,9 +508,9 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Get_processor_name", I32, MPI_Get_processor_name, I32 buf, I32 bufLen) {
         util::getLogger()->debug("S - MPI_Get_processor_name {} {}", buf, bufLen);
 
-        const std::string nodeName = util::getNodeId();
+        const std::string host = util::getSystemConfig().endpointHost;
         char *key = &Runtime::memoryRef<char>(getExecutingModule()->defaultMemory, (Uptr) buf);
-        strcpy(key, nodeName.c_str());
+        strcpy(key, host.c_str());
 
         return MPI_SUCCESS;
     }

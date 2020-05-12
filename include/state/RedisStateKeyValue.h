@@ -12,7 +12,11 @@ namespace state {
     public:
         RedisStateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn);
 
+        RedisStateKeyValue(const std::string &userIn, const std::string &keyIn);
+
         static size_t getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn);
+
+        static void deleteFromRemote(const std::string &userIn, const std::string &keyIn);
 
         static void clearAll(bool global);
     private:
@@ -36,6 +40,6 @@ namespace state {
 
         void pullAppendedFromRemote(uint8_t *data, size_t length, long nValues) override;
 
-        void deleteFromRemote() override;
+        void clearAppendedFromRemote() override;
     };
 }

@@ -11,7 +11,8 @@
 
 
 namespace mpi {
-    MpiWorld::MpiWorld() : id(-1), size(-1), thisNodeId(util::getNodeId()), creationTime(util::startTimer()) {
+    MpiWorld::MpiWorld() : id(-1), size(-1), thisHost(util::getSystemConfig().endpointHost),
+                           creationTime(util::startTimer()) {
 
     }
 
@@ -50,10 +51,10 @@ namespace mpi {
         }
     }
 
-    std::shared_ptr<state::StateKeyValue> MpiWorld::getRankNodeState(int rank) {
+    std::shared_ptr<state::StateKeyValue> MpiWorld::getRankHostState(int rank) {
         state::State &state = state::getGlobalState();
         std::string stateKey = getRankStateKey(id, rank);
-        return state.getKV(user, stateKey, NODE_ID_LEN);
+        return state.getKV(user, stateKey, MPI_HOST_STATE_LEN);
     }
 
     std::shared_ptr<state::StateKeyValue>
@@ -94,10 +95,11 @@ namespace mpi {
 
     void MpiWorld::destroy() {
         setUpStateKV();
-        stateKV->deleteGlobal();
+        state::getGlobalState().deleteKV(stateKV->user, stateKV->key);
 
-        for (auto &s: rankNodeMap) {
-            getRankNodeState(s.first)->deleteGlobal();
+        for (auto &s: rankHostMap) {
+            const std::shared_ptr<state::StateKeyValue> &rankState = getRankHostState(s.first);
+            state::getGlobalState().deleteKV(rankState->user, rankState->key);
         }
 
         localQueueMap.clear();
@@ -130,37 +132,43 @@ namespace mpi {
     void MpiWorld::registerRank(int rank) {
         {
             util::FullLock lock(worldMutex);
-            rankNodeMap[rank] = thisNodeId;
+            rankHostMap[rank] = thisHost;
         }
 
-        // Set the value remotely
-        const std::shared_ptr<state::StateKeyValue> &kv = getRankNodeState(rank);
-        kv->set(reinterpret_cast<const uint8_t *>(thisNodeId.c_str()));
+        // Note that the host name may be shorter than the buffer, so we need to pad with nulls
+        uint8_t hostBytesBuffer[MPI_HOST_STATE_LEN];
+        memset(hostBytesBuffer, '\0', MPI_HOST_STATE_LEN);
+        ::strcpy((char *) hostBytesBuffer, thisHost.c_str());
+
+        const std::shared_ptr<state::StateKeyValue> &kv = getRankHostState(rank);
+        kv->set(hostBytesBuffer);
         kv->pushFull();
     }
 
-    std::string MpiWorld::getNodeForRank(int rank) {
+    std::string MpiWorld::getHostForRank(int rank) {
         // Pull from state if not present
-        if (rankNodeMap.count(rank) == 0) {
+        if (rankHostMap.count(rank) == 0) {
             util::FullLock lock(worldMutex);
 
-            if (rankNodeMap.count(rank) == 0) {
-                auto buffer = new uint8_t[NODE_ID_LEN];
-                const std::shared_ptr<state::StateKeyValue> &kv = getRankNodeState(rank);
+            if (rankHostMap.count(rank) == 0) {
+                auto buffer = new uint8_t[MPI_HOST_STATE_LEN];
+                const std::shared_ptr<state::StateKeyValue> &kv = getRankHostState(rank);
                 kv->get(buffer);
 
                 char *bufferChar = reinterpret_cast<char *>(buffer);
                 if (bufferChar[0] == '\0') {
                     // No entry for other rank
-                    throw std::runtime_error(fmt::format("No node entry for rank {}", rank));
+                    throw std::runtime_error(fmt::format("No host entry for rank {}", rank));
                 }
 
-                std::string otherNodeId(bufferChar, bufferChar + NODE_ID_LEN);
-                rankNodeMap[rank] = otherNodeId;
+                // Note - we rely on C strings detecting the null terminator here, assuming
+                // the host will either be an IP or string of alphanumeric characters and dots
+                std::string otherHost(bufferChar);
+                rankHostMap[rank] = otherHost;
             }
         }
 
-        return rankNodeMap[rank];
+        return rankHostMap[rank];
     }
 
     int MpiWorld::isend(int sendRank, int recvRank, const uint8_t *buffer, faasmpi_datatype_t *dataType, int count) {
@@ -209,9 +217,9 @@ namespace mpi {
         m->count = count;
         m->messageType = messageType;
 
-        // Work out whether the message is sent locally or to another node
-        const std::string otherNodeId = getNodeForRank(recvRank);
-        bool isLocal = otherNodeId == thisNodeId;
+        // Work out whether the message is sent locally or to another host
+        const std::string otherHost = getHostForRank(recvRank);
+        bool isLocal = otherHost == thisHost;
 
         // Set up message data in state (must obviously be done before dispatching)
         if (count > 0 && buffer != nullptr) {
@@ -236,7 +244,7 @@ namespace mpi {
         } else {
             logger->trace("MPI - send remote {} -> {}", sendRank, recvRank);
             MpiGlobalBus &bus = mpi::getMpiGlobalBus();
-            bus.sendMessageToNode(otherNodeId, m);
+            bus.sendMessageToHost(otherHost, m);
         }
     }
 
@@ -611,7 +619,7 @@ namespace mpi {
     }
 
     std::shared_ptr<InMemoryMpiQueue> MpiWorld::getLocalQueue(int sendRank, int recvRank) {
-        checkRankOnThisNode(recvRank);
+        checkRankOnThisHost(recvRank);
 
         std::string key = std::to_string(sendRank) + "_" + std::to_string(recvRank);
         if (localQueueMap.count(key) == 0) {
@@ -637,7 +645,7 @@ namespace mpi {
         const std::shared_ptr<state::StateKeyValue> &kv = state.getKV(user, stateKey, buffLen);
 
         // If it's remote, do a pull too
-        if (getNodeForRank(sendRank) != thisNodeId) {
+        if (getHostForRank(sendRank) != thisHost) {
             kv->pull();
         }
 
@@ -659,7 +667,7 @@ namespace mpi {
         kv->set(sendBuffer);
 
         // If it's remote, do a push too
-        if (getNodeForRank(recvRank) != thisNodeId) {
+        if (getHostForRank(recvRank) != thisHost) {
             kv->pushFull();
         }
 
@@ -692,15 +700,15 @@ namespace mpi {
         return queue->size();
     }
 
-    void MpiWorld::checkRankOnThisNode(int rank) {
+    void MpiWorld::checkRankOnThisHost(int rank) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // Check if we know about this rank on this node
-        if (rankNodeMap.count(rank) == 0) {
-            logger->error("No mapping found for rank {} on this node", rank);
+        // Check if we know about this rank on this host
+        if (rankHostMap.count(rank) == 0) {
+            logger->error("No mapping found for rank {} on this host", rank);
             throw std::runtime_error("No mapping found for rank");
-        } else if (rankNodeMap[rank] != thisNodeId) {
-            logger->error("Trying to access rank {} on {} but it's on {}", rank, thisNodeId, rankNodeMap[rank]);
+        } else if (rankHostMap[rank] != thisHost) {
+            logger->error("Trying to access rank {} on {} but it's on {}", rank, thisHost, rankHostMap[rank]);
             throw std::runtime_error("Accessing in-memory queue for remote rank");
         }
     }
@@ -742,7 +750,7 @@ namespace mpi {
         return size;
     }
 
-    void MpiWorld::overrideNodeId(const std::string &newNodeId) {
-        thisNodeId = newNodeId;
+    void MpiWorld::overrideHost(const std::string &newHost) {
+        thisHost = newHost;
     }
 }

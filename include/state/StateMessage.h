@@ -15,6 +15,7 @@ namespace state {
         ERROR_RESPONSE,
         OK_RESPONSE,
         STATE_APPEND,
+        STATE_CLEAR_APPENDED,
         STATE_DELETE,
         STATE_LOCK,
         STATE_PULL,
@@ -48,11 +49,15 @@ namespace state {
             size_t dataSize
     );
 
+    size_t getStateTcpMessageSize(const std::string &user, const std::string &key,size_t dataSize);
+
     std::pair<std::string, std::string> getUserKeyFromStateMessage(tcp::TCPMessage *msg);
 
     tcp::TCPMessage *buildStateSizeRequest(const std::string &user, const std::string &key);
 
     tcp::TCPMessage *buildStateSizeResponse(const std::string &user, const std::string &key, size_t stateSize);
+
+    tcp::TCPMessage *buildStateDeleteRequest(const std::string &user, const std::string &key);
 
     size_t extractSizeResponse(const tcp::TCPMessage *msg);
 
