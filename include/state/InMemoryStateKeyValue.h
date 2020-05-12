@@ -30,6 +30,8 @@ namespace state {
         InMemoryStateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn,
                               const std::string &thisIPIn);
 
+        InMemoryStateKeyValue(const std::string &userIn, const std::string &keyIn, const std::string &thisIPIn);
+
         static size_t
         getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn, const std::string &thisIPIn);
 
@@ -72,6 +74,8 @@ namespace state {
 
         tcp::TCPMessage *buildPullAppendedResponse(tcp::TCPMessage *request);
 
+        tcp::TCPMessage *buildClearAppendedRequest();
+
         tcp::TCPMessage *buildStateLockRequest();
 
         tcp::TCPMessage *buildStateUnlockRequest();
@@ -104,5 +108,7 @@ namespace state {
         void appendToRemote(const uint8_t *data, size_t length) override;
 
         void pullAppendedFromRemote(uint8_t *data, size_t length, long nValues) override;
+
+        void clearAppendedFromRemote() override;
     };
 }

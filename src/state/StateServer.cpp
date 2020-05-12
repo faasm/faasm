@@ -60,6 +60,11 @@ namespace state {
             kv->extractStateAppendData(recvMessage);
             response = kv->buildOkResponse();
 
+        } else if (requestType == StateMessageType::STATE_CLEAR_APPENDED) {
+            logger->debug("State clear appended {}", key);
+            kv->clearAppended();
+            response = kv->buildOkResponse();
+
         } else if (requestType == StateMessageType::STATE_PULL_APPENDED) {
             logger->debug("State pull appended {}", key);
             response = kv->buildPullAppendedResponse(recvMessage);

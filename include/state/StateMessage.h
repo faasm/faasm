@@ -15,6 +15,7 @@ namespace state {
         ERROR_RESPONSE,
         OK_RESPONSE,
         STATE_APPEND,
+        STATE_CLEAR_APPENDED,
         STATE_DELETE,
         STATE_LOCK,
         STATE_PULL,

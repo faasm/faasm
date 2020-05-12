@@ -67,6 +67,8 @@ namespace state {
 
         void getAppended(uint8_t *buffer, size_t length, long nValues);
 
+        void clearAppended();
+
         void mapSharedMemory(void *destination, long pagesOffset, long nPages);
 
         void unmapSharedMemory(void *mappedAddr);
@@ -133,6 +135,8 @@ namespace state {
         virtual void appendToRemote(const uint8_t *data, size_t length) = 0;
 
         virtual void pullAppendedFromRemote(uint8_t *data, size_t length, long nValues) = 0;
+
+        virtual void clearAppendedFromRemote() = 0;
 
         virtual void pushPartialToRemote(const std::vector<StateChunk> &dirtyChunks) = 0;
 

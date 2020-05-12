@@ -70,7 +70,6 @@ namespace state {
     }
 
     void State::deleteKV(const std::string &userIn, const std::string &keyIn) {
-        // Remove from master
         std::string stateMode = util::getSystemConfig().stateMode;
         if (stateMode == "redis") {
             RedisStateKeyValue::deleteFromRemote(userIn, keyIn);
@@ -80,15 +79,29 @@ namespace state {
             throw std::runtime_error("Unrecognised state mode: " + stateMode);
         }
 
-        // Remove locally
+        deleteKVLocally(userIn, keyIn);
+    }
+
+    void State::deleteKVLocally(const std::string &userIn, const std::string &keyIn) {
         FullLock fullLock(mapMutex);
         std::string lookupKey = util::keyForUser(userIn, keyIn);
         kvMap.erase(lookupKey);
     }
 
+    std::shared_ptr<StateKeyValue> State::getKV(const std::string &user, const std::string &key) {
+        return doGetKV(user, key, true, 0);
+    }
+
+
     std::shared_ptr<StateKeyValue> State::getKV(const std::string &user, const std::string &key, size_t size) {
-        if (user.empty()) {
-            throw std::runtime_error("Attempting to access state with empty user");
+        return doGetKV(user, key, false, size);
+    }
+
+    std::shared_ptr<StateKeyValue> State::doGetKV(const std::string &user, const std::string &key, bool sizeless, size_t size) {
+        if (user.empty() || key.empty()) {
+            throw std::runtime_error(
+                    fmt::format("Attempting to access state with empty user or key ({}/{})", user, key)
+            );
         }
 
         std::string lookupKey = util::keyForUser(user, key);
@@ -109,20 +122,30 @@ namespace state {
             return kvMap[lookupKey];
         }
 
-        // Sanity check on size
-        if (size == 0) {
-            throw StateKeyValueException("Attempting to get uninitialised value for key " + lookupKey);
+        // Sanity check on size if not sizeless
+        if (!sizeless && size == 0) {
+            throw StateKeyValueException("Must specify size for creating key-value " + lookupKey);
         }
 
         // Create new KV
         std::string stateMode = util::getSystemConfig().stateMode;
         if (stateMode == "redis") {
-            auto kv = new RedisStateKeyValue(user, key, size);
-            kvMap.emplace(lookupKey, kv);
+            if(sizeless) {
+                auto kv = new RedisStateKeyValue(user, key);
+                kvMap.emplace(lookupKey, kv);
+            } else {
+                auto kv = new RedisStateKeyValue(user, key, size);
+                kvMap.emplace(lookupKey, kv);
+            }
         } else if (stateMode == "inmemory") {
             // NOTE - passing IP here is crucial for testing
-            auto kv = new InMemoryStateKeyValue(user, key, size, thisIP);
-            kvMap.emplace(lookupKey, kv);
+            if(sizeless) {
+                auto kv = new InMemoryStateKeyValue(user, key, thisIP);
+                kvMap.emplace(lookupKey, kv);
+            } else {
+                auto kv = new InMemoryStateKeyValue(user, key, size, thisIP);
+                kvMap.emplace(lookupKey, kv);
+            }
         } else {
             throw std::runtime_error("Unrecognised state mode: " + stateMode);
         }

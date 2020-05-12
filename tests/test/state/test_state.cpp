@@ -15,23 +15,8 @@ using namespace state;
 
 namespace tests {
     static int staticCount = 0;
-    static std::string originalStateMode;
-
-    static void setUpStateMode(const std::string &newMode) {
-        cleanSystem();
-
-        util::SystemConfig &conf = util::getSystemConfig();
-        originalStateMode = conf.stateMode;
-        conf.stateMode = newMode;
-    }
-
-    static void resetStateMode() {
-        util::getSystemConfig().stateMode = originalStateMode;
-    }
 
     void setUpDummyServer(DummyStateServer &server, const std::vector<uint8_t> &values) {
-        setUpStateMode("inmemory");
-
         staticCount++;
         const std::string stateKey = "state_key_" + std::to_string(staticCount);
 
@@ -55,9 +40,7 @@ namespace tests {
         return kv;
     }
 
-    static void doStateSizeCheck(const std::string &stateMode) {
-        setUpStateMode(stateMode);
-
+    TEST_CASE("Test in-memory state sizes", "[state]") {
         State &s = getGlobalState();
         std::string user = "alpha";
         std::string key = "beta";
@@ -74,23 +57,9 @@ namespace tests {
 
         // Get size
         REQUIRE(s.getStateSize(user, key) == bytes.size());
-
-        resetStateMode();
     }
 
-    TEST_CASE("Test Redis state sizes", "[state]") {
-        doStateSizeCheck("redis");
-    }
-
-    TEST_CASE("Test in-memory state sizes", "[state]") {
-        doStateSizeCheck("inmemory");
-    }
-
-    static void doGetSetCheck(const std::string &stateMode) {
-        setUpStateMode(stateMode);
-
-        redis::Redis &redisState = redis::Redis::getState();
-
+    TEST_CASE("Test simple in memory state get/set", "[state]") {
         auto kv = setupKV(5);
 
         std::vector<uint8_t> actual(5);
@@ -107,30 +76,9 @@ namespace tests {
         kv->get(actual.data());
         REQUIRE(actual == values);
 
-        // Check that the underlying key in Redis isn't changed
-        std::string actualKey = util::keyForUser(kv->user, kv->key);
-        if (stateMode == "redis") {
-            REQUIRE(redisState.get(actualKey).empty());
-        }
-
         kv->pushFull();
         kv->get(actual.data());
         REQUIRE(actual == values);
-
-        // Check that when pushed, the update is pushed to redis
-        if (stateMode == "redis") {
-            REQUIRE(redisState.get(actualKey) == values);
-        }
-
-        resetStateMode();
-    }
-
-    TEST_CASE("Test simple redis state get/set", "[state]") {
-        doGetSetCheck("redis");
-    }
-
-    TEST_CASE("Test simple in memory state get/set", "[state]") {
-        doGetSetCheck("inmemory");
     }
 
     TEST_CASE("Test in memory get/ set segment", "[state]") {
@@ -168,8 +116,6 @@ namespace tests {
 
         // Wait for server to finish
         server.wait();
-
-        resetStateMode();
     }
 
     TEST_CASE("Test in memory marking segments dirty", "[state]") {
@@ -201,8 +147,6 @@ namespace tests {
         REQUIRE(actualMemory == values);
 
         server.wait();
-
-        resetStateMode();
     }
 
     TEST_CASE("Test overlaps with multiple segments dirty", "[state]") {
@@ -261,8 +205,6 @@ namespace tests {
         REQUIRE(server.getRemoteKvValue() == expected);
 
         server.wait();
-
-        resetStateMode();
     }
 
     TEST_CASE("Test in memory partial update of doubles in state", "[state]") {
@@ -320,8 +262,6 @@ namespace tests {
         REQUIRE(expected == actualPostPushRemote);
 
         server.wait();
-
-        resetStateMode();
     }
 
     TEST_CASE("Test set segment cannot be out of bounds", "[state]") {
@@ -366,8 +306,6 @@ namespace tests {
         REQUIRE(server.getRemoteKvValue() == expected);
 
         server.wait();
-
-        resetStateMode();
     }
 
     TEST_CASE("Test push partial with mask", "[state]") {
@@ -436,8 +374,6 @@ namespace tests {
         REQUIRE(actualDoubles2 == expected);
 
         server.wait();
-
-        resetStateMode();
     }
 
     void checkPulling(bool doPull) {
@@ -476,8 +412,6 @@ namespace tests {
         }
 
         server.wait();
-
-        resetStateMode();
     }
 
     TEST_CASE("Test updates pulled from remote", "[state]") {
@@ -515,8 +449,6 @@ namespace tests {
         REQUIRE(server.getRemoteKvValue() == newValues2);
 
         server.wait();
-
-        resetStateMode();
     }
 
     TEST_CASE("Test mapping shared memory", "[state]") {
@@ -593,8 +525,6 @@ namespace tests {
         REQUIRE(actualValue == values);
 
         server.wait();
-
-        resetStateMode();
     }
 
     TEST_CASE("Test mapping small shared memory offsets", "[state]") {
@@ -684,8 +614,6 @@ namespace tests {
         REQUIRE(segmentB[9] == 9);
 
         server.wait();
-
-        resetStateMode();
     }
 
     TEST_CASE("Test deletion", "[state]") {
@@ -693,30 +621,38 @@ namespace tests {
         DummyStateServer server;
         setUpDummyServer(server, values);
 
-        // One push, one deletion
+        // One pull, one deletion
         server.start(2);
         
         // Check data remotely and locally
         REQUIRE(server.getLocalKvValue() == values);
         REQUIRE(server.getRemoteKvValue() == values);
         
-        // Delete
+        // Delete from state
         getGlobalState().deleteKV(server.dummyUser, server.dummyKey);
 
         // Check it's gone
         REQUIRE(server.remoteState.getKVCount() == 0);
 
-        resetStateMode();
+        server.wait();
     }
 
     TEST_CASE("Test appended state with KV", "[state]") {
         cleanSystem();
 
         // Set up the KV
-        std::vector<uint8_t> values(1, 0);
         State &s = getGlobalState();
-        auto kv = s.getKV(getEmulatorUser(), "appending_test", values.size());
-        kv->set(values.data());
+        std::shared_ptr<StateKeyValue> kv;
+
+        SECTION("Sizeless") {
+            kv = s.getKV(getEmulatorUser(), "appending_test");
+        }
+
+        SECTION("With size") {
+            std::vector<uint8_t> values(1, 0);
+            kv = s.getKV(getEmulatorUser(), "appending_test", values.size());
+            kv->set(values.data());
+        }
 
         std::vector<uint8_t> valuesA = {0, 1, 2, 3, 4};
         std::vector<uint8_t> valuesB = {5, 6};

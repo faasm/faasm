@@ -147,6 +147,12 @@ namespace state {
         pullAppendedFromRemote(buffer, length, nValues);
     }
 
+    void StateKeyValue::clearAppended() {
+        SharedLock lock(valueMutex);
+
+        clearAppendedFromRemote();
+    }
+
     void StateKeyValue::setSegment(long offset, const uint8_t *buffer, size_t length) {
         checkSizeConfigured();
 

@@ -169,6 +169,12 @@ namespace state {
         }
     }
 
+    InMemoryStateKeyValue::InMemoryStateKeyValue(
+            const std::string &userIn, const std::string &keyIn,
+            const std::string &thisIPIn) : InMemoryStateKeyValue(userIn, keyIn, 0, thisIPIn) {
+
+    }
+
     bool InMemoryStateKeyValue::isMaster() {
         return status == InMemoryStateKeyStatus::MASTER;
     }
@@ -311,6 +317,21 @@ namespace state {
             tcp::TCPMessage *response = masterClient->recvMessage();
             extractPullAppendedData(response, data);
             tcp::freeTcpMessage(response);
+        }
+    }
+
+    void InMemoryStateKeyValue::clearAppendedFromRemote() {
+        if (status == InMemoryStateKeyStatus::MASTER) {
+            // Clear appended
+            appendedData.clear();
+        } else {
+            // Request from remote
+            tcp::TCPMessage *msg = buildClearAppendedRequest();
+            masterClient->sendMessage(msg);
+            tcp::freeTcpMessage(msg);
+
+            // Await the response
+            awaitOkResponse();
         }
     }
 
@@ -523,6 +544,16 @@ namespace state {
         getAppended(response->buffer, length, nValues);
 
         return response;
+    }
+
+    tcp::TCPMessage *InMemoryStateKeyValue::buildClearAppendedRequest() {
+        tcp::TCPMessage *msg = buildStateTCPMessage(
+                StateMessageType::STATE_CLEAR_APPENDED,
+                user,
+                key,
+                0
+        );
+        return msg;
     }
 
     tcp::TCPMessage *InMemoryStateKeyValue::buildStateLockRequest() {
