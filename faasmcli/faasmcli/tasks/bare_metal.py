@@ -41,7 +41,7 @@ def setup(ctx):
     """
     Run the initial machine set-up
     """
-    _ansible_playbook_command("benchmark.yml")
+    _ansible_playbook_command("bare_metal_base.yml")
 
 
 @task
