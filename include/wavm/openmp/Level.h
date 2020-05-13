@@ -31,13 +31,7 @@ namespace wasm {
             // TODO - This implementation limits to one lock for all critical sections at a level.
             // Mention in report (maybe fix looking at the lck address and doing a lookup on it though?)
             std::mutex criticalSection; // Mutex used in critical sections.
-#ifdef OMP_PTS
-            std::vector<std::uint32_t> stackTops; // Pre-allocated stacks for the level
-
-            Level(std::vector<std::uint32_t> &&stackTops) : stackTops(stackTops) {}
-#else
             Level() = default;
-#endif
 
             // Local constructor
             Level(const std::shared_ptr<Level> &parent, int num_threads);
@@ -61,12 +55,7 @@ namespace wasm {
         class SingleHostLevel : public Level {
         public:
 
-#ifdef OMP_PTS
-            SingleHostLevel(std::vector<std::uint32_t>&& stackTops) : Level(std::move(stackTops)) {}
-#else
-
             SingleHostLevel() = default;
-#endif
 
             SingleHostLevel(const std::shared_ptr<Level> &parent, int numThreads);
 
