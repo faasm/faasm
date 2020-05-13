@@ -29,7 +29,7 @@ namespace state {
         tcp::TCPMessage *response = nullptr;
         int requestType = recvMessage->type;
         if (requestType == StateMessageType::STATE_SIZE) {
-            logger->debug("State size: {}", key);
+            logger->debug("State size: {} ({})", key, stateSize);
             response = buildStateSizeResponse(user, key, stateSize);
 
         } else if (requestType == StateMessageType::STATE_PULL) {

@@ -21,7 +21,7 @@ namespace state {
     static std::shared_mutex masterMapMutex;
 
     static std::string getMasterKey(const std::string &user, const std::string &key) {
-        const std::string masterKey = MASTER_KEY_PREFIX + user + "_" + key;
+        std::string masterKey = MASTER_KEY_PREFIX + user + "_" + key;
         return masterKey;
     }
 

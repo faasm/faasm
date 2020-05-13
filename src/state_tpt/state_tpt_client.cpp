@@ -24,7 +24,6 @@ int main() {
         }
 
         for(int i = 0; i < N_OPS_PER_KEY; i++) {
-
             const std::shared_ptr<state::StateKeyValue> thisKv = state.getKV(STATE_USER, thisKey, expected.size());
             thisKv->pull();
 
