@@ -13,7 +13,7 @@
 
 #include <util/exception.h>
 
-#define POLL_COUNT 50
+#define POLL_COUNT 1000
 
 namespace tcp {
     class TCPServer {

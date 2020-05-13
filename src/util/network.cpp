@@ -55,11 +55,6 @@ namespace util {
 
             std::string ifaceName(ifa->ifa_name);
 
-            // Skip loopback
-            if (ifaceName == "lo") {
-                continue;
-            }
-
             if (interface.empty()) {
                 // If interface not specified, attempt to work it out
                 if (util::startsWith(ifaceName, "eth") ||

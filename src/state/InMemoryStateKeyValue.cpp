@@ -110,6 +110,7 @@ namespace state {
     size_t InMemoryStateKeyValue::getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn,
                                                          const std::string &thisIP) {
 
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         std::string masterIP;
 
         try {
@@ -119,12 +120,14 @@ namespace state {
         }
 
         // TODO - avoid creating a TCP client on every request
+        logger->debug("Requesting size of {}/{} from master {} (this {})", userIn, keyIn, masterIP, thisIP);
         tcp::TCPMessage *msg = buildStateSizeRequest(userIn, keyIn);
         tcp::TCPClient client(masterIP, STATE_PORT);
         client.sendMessage(msg);
         tcp::freeTcpMessage(msg);
 
         // TODO - we know the size here, use it to receive message in one go
+        logger->debug("Awaiting size response for {}/{} from master {} (this {})", userIn, keyIn, masterIP, thisIP);
         tcp::TCPMessage *response = client.recvMessage();
         size_t stateSize = extractSizeResponse(response);
         tcp::freeTcpMessage(response);

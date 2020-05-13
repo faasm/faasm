@@ -81,13 +81,17 @@ namespace tcp {
             // Ignore those with no events
             if (thisFd.revents == 0) {
                 continue;
-            }
-
-            if(thisFd.revents == POLLHUP) {
+            } else if (thisFd.revents == POLLHUP) {
                 logger->warn("Client hung up: {}", thisFd.fd);
                 ::close(thisFd.fd);
-            }
-            if (thisFd.revents != POLLIN) {
+                continue;
+            } else if (thisFd.revents == POLLERR) {
+                logger->warn("Poll err: {}", thisFd.fd);
+                throw TCPFailedException("Poll error");
+            } else if (thisFd.revents == POLLNVAL) {
+                logger->warn("Socket not open: {}", thisFd.fd);
+                continue;
+            } else if (thisFd.revents != POLLIN) {
                 // Some unexpected event
                 logger->error("Unexpected poll event: {}", thisFd.revents);
                 throw TCPFailedException("Unexpected poll event");
@@ -167,7 +171,8 @@ namespace tcp {
                     bytesReceived += nRecv;
 
                     if (bytesReceived >= msg->len) {
-                        logger->debug("Finished message type {} len {} ({} packets)", msg->type, bytesReceived, packetCount);
+                        logger->debug("Finished message type {} len {} ({} packets)", msg->type, bytesReceived,
+                                      packetCount);
                         break;
                     } else {
                         logger->debug("TCP packet {} = {} bytes", packetCount, nRecv);

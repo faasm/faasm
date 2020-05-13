@@ -16,39 +16,62 @@ namespace tcp {
         server.sin_port = htons(port);
 
         int connectRes = ::connect(clientSocket, (struct sockaddr *) &server, sizeof(server));
-        if (connectRes < 0) {
-            if (errno != EINPROGRESS) {
-                util::getLogger()->error("Failed to connect: {} ({})", errno, strerror(errno));
+        if (connectRes < 0 && errno != EINPROGRESS) {
+            util::getLogger()->error("Failed to connect: {} ({})", errno, strerror(errno));
+            throw std::runtime_error("Failed connecting TCP client");
+        }
+
+        if (connectRes == 0) {
+            util::getLogger()->debug("TCP client connected to {}:{}", host, portIn);
+        } else {
+            int sockOptRes;
+            socklen_t sockOptSize = sizeof(sockOptRes);
+            if (getsockopt(connectRes, SOL_SOCKET, SO_ERROR, &sockOptRes, &sockOptSize) < 0) {
+                util::getLogger()->error("Failed after waiting to : {} ({})", errno, strerror(errno));
                 throw std::runtime_error("Failed connecting TCP client");
             }
 
-            timeval tv{
-                    .tv_sec = CONNECT_TIMEOUT_SECS,
-                    .tv_usec = 0
-            };
-
-
-            fd_set writeFds;
-            fd_set errorFds;
-
-            FD_ZERO(&writeFds);
-            FD_SET(clientSocket, &writeFds);
-
-            FD_ZERO(&errorFds);
-            FD_SET(clientSocket, &errorFds);
-
-            int selectRes = select(clientSocket + 1, nullptr, &writeFds, &errorFds, &tv);
-            if (selectRes < 0) {
-                util::getLogger()->error("Failed to select: {} ({})", errno, strerror(errno));
-                throw std::runtime_error("Failed select with TCP client");
-            } else if (selectRes == 0) {
-                util::getLogger()->error("Connect timed out: {} ({})", errno, strerror(errno));
-                close(clientSocket);
-                return;
-            } else {
-                util::getLogger()->debug("TCP client connected to {}:{}", hostIn, portIn);
+            if (sockOptRes != 0) {
+                util::getLogger()->error("Failed to connect with error: {}", sockOptRes);
+                throw std::runtime_error("Failed connecting TCP client");
             }
+
+            util::getLogger()->debug("TCP client connected to {}:{} (after wait)", host, portIn);
         }
+
+//        if (connectRes < 0) {
+//            if (errno != EINPROGRESS) {
+//                util::getLogger()->error("Failed to connect: {} ({})", errno, strerror(errno));
+//                throw std::runtime_error("Failed connecting TCP client");
+//            }
+//
+//            timeval tv{
+//                    .tv_sec = CONNECT_TIMEOUT_SECS,
+//                    .tv_usec = 0
+//            };
+//
+//
+//            fd_set writeFds;
+//            fd_set errorFds;
+//
+//            FD_ZERO(&writeFds);
+//            FD_SET(clientSocket, &writeFds);
+//
+//            FD_ZERO(&errorFds);
+//            FD_SET(clientSocket, &errorFds);
+//
+//            int selectRes = select(clientSocket + 1, nullptr, &writeFds, &errorFds, &tv);
+//            if (selectRes < 0) {
+//                util::getLogger()->error("Failed to select: {} ({})", errno, strerror(errno));
+//                throw std::runtime_error("Failed select with TCP client");
+//            } else if (selectRes == 0) {
+//                util::getLogger()->error("Connect timed out: {} ({})", errno, strerror(errno));
+//                close(clientSocket);
+//                return;
+//            } else {
+//                util::getLogger()->debug("TCP client connected to {}:{}", hostIn, portIn);
+//            }
+//        }
     }
 
     void TCPClient::sendMessage(TCPMessage *msg) const {
