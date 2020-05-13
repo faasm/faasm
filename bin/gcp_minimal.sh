@@ -9,12 +9,20 @@ echo ""
 
 # Create a few instances
 function create_vm() {
-    echo "Provisioning ${1}"
+    echo "Provisioning ${1} VM"
     gcloud compute instances create ${1}    \
         --image-project ubuntu-os-cloud     \
         --image-family ubuntu-1804-lts      \
-        --boot-disk-size 20GB             \
         --machine-type e2-standard-4
+
+#    echo "Attaching ${1}-disk to ${1} VM"
+#    gcloud compute instances attach-disk ${1} \
+#        --disk ${1}-disk
+#
+#    echo "Provisioning ${1} disk"
+#    gcloud compute disks create ${1}-disk \
+#        --size 20GB \
+#        --type pd-ssd
 }
 
 # Worker machines
