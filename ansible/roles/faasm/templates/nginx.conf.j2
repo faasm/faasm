@@ -1,6 +1,6 @@
 upstream faasm {
     {% for worker_host in groups['worker'] %}
-    server {{ worker_host }}:8080;
+    server {{ hostvars[worker_host]['internal_host'] }}:8080;
     {% endfor %}
 }
 
