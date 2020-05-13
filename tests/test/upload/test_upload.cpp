@@ -9,7 +9,7 @@
 
 #include <boost/filesystem.hpp>
 #include <storage/FileLoader.h>
-#include <util/state.h>
+#include <state/State.h>
 
 
 using namespace web::http::experimental::listener;
@@ -91,14 +91,23 @@ namespace tests {
             edge::UploadServer::handlePut(requestA2);
             edge::UploadServer::handlePut(requestB);
 
-            // Check states uploaded with usernames prefixed
-            std::string realKeyA1 = util::keyForUser("foo", "bar");
-            std::string realKeyA2 = util::keyForUser("foo", "baz");
-            std::string realKeyB = util::keyForUser("bat", "qux");
+            // Check set in state
+            state::State &globalState = state::getGlobalState();
+            std::shared_ptr<state::StateKeyValue> kvA1 = globalState.getKV("foo", "bar", stateA1.size());
+            std::shared_ptr<state::StateKeyValue> kvA2 = globalState.getKV("foo", "baz", stateA2.size());
+            std::shared_ptr<state::StateKeyValue> kvB = globalState.getKV("bat", "qux", stateB.size());
 
-            REQUIRE(redisQueue.get(realKeyA1) == stateA1);
-            REQUIRE(redisQueue.get(realKeyA2) == stateA2);
-            REQUIRE(redisQueue.get(realKeyB) == stateB);
+            std::vector<uint8_t> actualA1(stateA1.size(), 0);
+            std::vector<uint8_t> actualA2(stateA2.size(), 0);
+            std::vector<uint8_t> actualB(stateB.size(), 0);
+
+            kvA1->get(actualA1.data());
+            kvA2->get(actualA2.data());
+            kvB->get(actualB.data());
+
+            REQUIRE(actualA1 == stateA1);
+            REQUIRE(actualA2 == stateA2);
+            REQUIRE(actualB == stateB);
         }
 
         SECTION("Test uploading and downloading state") {
@@ -108,9 +117,6 @@ namespace tests {
 
             // Submit request
             edge::UploadServer::handlePut(request);
-
-            // Check state uploaded
-            std::string realKey = "foo_bar";
 
             // Retrieve the state
             const std::vector<uint8_t> actual = edge::UploadServer::getState(request);

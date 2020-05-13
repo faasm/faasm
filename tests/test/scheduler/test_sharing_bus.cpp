@@ -8,20 +8,20 @@ using namespace scheduler;
 using namespace redis;
 
 namespace tests {
-    void checkMessageSharingQueueEmpty(const std::string &node) {
+    void checkMessageSharingQueueEmpty(const std::string &host) {
         Redis &redis = Redis::getQueue();
-        std::string queueName = "sharing_" + node;
+        std::string queueName = "sharing_" + host;
         REQUIRE(redis.listLength(queueName) == 0);
     }
 
-    void checkMessageOnSharingQueue(const std::string &node, const message::Message &msg) {
+    void checkMessageOnSharingQueue(const std::string &host, const message::Message &msg) {
         SharingMessageBus &bus = SharingMessageBus::getInstance();
         Redis &redis = Redis::getQueue();
 
-        std::string queueName = "sharing_" + node;
+        std::string queueName = "sharing_" + host;
         REQUIRE(redis.listLength(queueName) == 1);
 
-        const message::Message &actual = bus.nextMessageForNode(node);
+        const message::Message &actual = bus.nextMessageForHost(host);
         checkMessageEquality(actual, msg);
     }
 
@@ -31,12 +31,12 @@ namespace tests {
         SharingMessageBus &bus = SharingMessageBus::getInstance();
         Scheduler &sch = scheduler::getScheduler();
 
-        std::string thisNode = util::getNodeId();
-        std::string otherNodeA = "node_other_a";
-        std::string otherNodeB = "node_other_b";
+        std::string thisHost = util::getSystemConfig().endpointHost;
+        std::string otherHostA = "host_other_a";
+        std::string otherHostB = "host_other_b";
 
-        sch.addNodeToGlobalSet(otherNodeA);
-        sch.addNodeToGlobalSet(otherNodeB);
+        sch.addHostToGlobalSet(otherHostA);
+        sch.addHostToGlobalSet(otherHostB);
 
         std::string inputData = "this is input";
 
@@ -47,19 +47,19 @@ namespace tests {
         msg.set_inputdata(inputData);
 
         SECTION("Check sharing message with a host puts on relevant queue") {
-            bus.shareMessageWithNode(otherNodeA, msg);
+            bus.shareMessageWithHost(otherHostA, msg);
 
-            checkMessageSharingQueueEmpty(thisNode);
-            checkMessageSharingQueueEmpty(otherNodeB);
-            checkMessageOnSharingQueue(otherNodeA, msg);
+            checkMessageSharingQueueEmpty(thisHost);
+            checkMessageSharingQueueEmpty(otherHostB);
+            checkMessageOnSharingQueue(otherHostA, msg);
         }
 
         SECTION("Check broadcast message") {
             bus.broadcastMessage(msg);
 
-            checkMessageOnSharingQueue(thisNode, msg);
-            checkMessageOnSharingQueue(otherNodeB, msg);
-            checkMessageOnSharingQueue(otherNodeA, msg);
+            checkMessageOnSharingQueue(thisHost, msg);
+            checkMessageOnSharingQueue(otherHostB, msg);
+            checkMessageOnSharingQueue(otherHostA, msg);
         }
     }
 

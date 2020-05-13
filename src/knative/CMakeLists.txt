@@ -11,7 +11,7 @@ set(LIB_FILES
 
 faasm_private_lib(worker_knative_lib "${LIB_FILES}")
 
-target_link_libraries(worker_knative_lib endpoint worker_lib)
+target_link_libraries(worker_knative_lib endpoint faaslet_lib)
 
 add_executable(worker_knative worker_knative.cpp)
 

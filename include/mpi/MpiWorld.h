@@ -31,7 +31,7 @@ namespace mpi {
 
         void registerRank(int rank);
 
-        std::string getNodeForRank(int rank);
+        std::string getHostForRank(int rank);
 
         std::string getUser();
 
@@ -99,7 +99,7 @@ namespace mpi {
 
         long getLocalQueueSize(int sendRank, int recvRank);
 
-        void overrideNodeId(const std::string &newNodeId);
+        void overrideHost(const std::string &newHost);
 
         void createWindow(const faasmpi_win_t *window, uint8_t *windowPtr);
 
@@ -110,7 +110,7 @@ namespace mpi {
     private:
         int id;
         int size;
-        std::string thisNodeId;
+        std::string thisHost;
         util::TimePoint creationTime;
 
         std::shared_mutex worldMutex;
@@ -119,7 +119,7 @@ namespace mpi {
         std::string function;
 
         std::shared_ptr<state::StateKeyValue> stateKV;
-        std::unordered_map<int, std::string> rankNodeMap;
+        std::unordered_map<int, std::string> rankHostMap;
 
         std::unordered_map<std::string, uint8_t *> windowPointerMap;
 
@@ -128,11 +128,11 @@ namespace mpi {
 
         void setUpStateKV();
 
-        std::shared_ptr<state::StateKeyValue> getRankNodeState(int rank);
+        std::shared_ptr<state::StateKeyValue> getRankHostState(int rank);
 
         std::shared_ptr<state::StateKeyValue> getMessageState(int messageId, faasmpi_datatype_t *datatype, int count);
 
-        void checkRankOnThisNode(int rank);
+        void checkRankOnThisHost(int rank);
 
         int doISendRecv(int sendRank, int recvRank, const uint8_t *sendBuffer, uint8_t *recvBuffer,
                          faasmpi_datatype_t *dataType, int count);

@@ -40,8 +40,6 @@ namespace faasm {
 
     void writeHingeError(const SgdParams &sgdParams, const MatrixXd &actual, const MatrixXd &prediction);
 
-    double readTotalError(const SgdParams &sgdParams);
-
     double readRootMeanSquaredError(const SgdParams &sgdParams);
 
     void setUpDummyProblem(const SgdParams &params);

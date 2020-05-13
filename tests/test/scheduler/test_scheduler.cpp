@@ -18,28 +18,28 @@ namespace tests {
         call.set_function("some function");
         std::string funcSet;
 
-        std::string nodeId = util::getNodeId();
+        std::string thisHost = util::getSystemConfig().endpointHost;
         Redis &redis = Redis::getQueue();
 
         Scheduler s;
         funcSet = s.getFunctionWarmSetName(call);
 
         // Check initial set-up
-        REQUIRE(redis.sismember(GLOBAL_NODE_SET, nodeId));
-        REQUIRE(!redis.sismember(funcSet, nodeId));
+        REQUIRE(redis.sismember(AVAILABLE_HOST_SET, thisHost));
+        REQUIRE(!redis.sismember(funcSet, thisHost));
 
         // Call the function and check it's added to the function's warm set
         s.callFunction(call);
 
-        REQUIRE(redis.sismember(GLOBAL_NODE_SET, nodeId));
-        REQUIRE(redis.sismember(funcSet, nodeId));
+        REQUIRE(redis.sismember(AVAILABLE_HOST_SET, thisHost));
+        REQUIRE(redis.sismember(funcSet, thisHost));
 
         // Run clear-up
         s.clear();
 
-        // After clear-up has run this node should no longer be part of either set
-        REQUIRE(!redis.sismember(GLOBAL_NODE_SET, nodeId));
-        REQUIRE(!redis.sismember(funcSet, nodeId));
+        // After clear-up has run this host should no longer be part of either set
+        REQUIRE(!redis.sismember(AVAILABLE_HOST_SET, thisHost));
+        REQUIRE(!redis.sismember(funcSet, thisHost));
     }
 
     TEST_CASE("Test scheduler operations", "[scheduler]") {
@@ -48,8 +48,8 @@ namespace tests {
         Scheduler &sch = scheduler::getScheduler();
         Redis &redis = Redis::getQueue();
 
-        std::string nodeId = util::getNodeId();
-        std::string otherNodeA = "node A";
+        std::string thisHost = util::getSystemConfig().endpointHost;
+        std::string otherHostA = "host A";
         SharingMessageBus &sharingBus = SharingMessageBus::getInstance();
 
         message::Message call = util::messageFactory("user a", "function a");
@@ -60,11 +60,11 @@ namespace tests {
         int originalMaxInFlightRatio = conf.maxInFlightRatio;
         conf.maxInFlightRatio = 8;
 
-        SECTION("Test worker finishing and node removal") {
-            // Sanity check to see that the node is in the global set but not the set for the function
+        SECTION("Test worker finishing and host removal") {
+            // Sanity check to see that the host is in the global set but not the set for the function
             std::string funcSet = sch.getFunctionWarmSetName(call);
-            REQUIRE(redis.sismember(GLOBAL_NODE_SET, nodeId));
-            REQUIRE(!redis.sismember(funcSet, nodeId));
+            REQUIRE(redis.sismember(AVAILABLE_HOST_SET, thisHost));
+            REQUIRE(!redis.sismember(funcSet, thisHost));
 
             // Call the function enough to get multiple workers set up
             int requiredCalls = (conf.maxInFlightRatio * 2) - 3;
@@ -72,22 +72,22 @@ namespace tests {
                 sch.callFunction(call);
             }
 
-            // Check node is now part of function's set
-            REQUIRE(redis.sismember(funcSet, nodeId));
+            // Check host is now part of function's set
+            REQUIRE(redis.sismember(funcSet, thisHost));
             REQUIRE(sch.getFunctionInFlightCount(call) == requiredCalls);
             REQUIRE(sch.getBindQueue()->size() == 2);
 
             // Notify that a worker has finished, count decremented by one and worker is still member of function set
             sch.notifyThreadFinished(call);
-            REQUIRE(redis.sismember(funcSet, nodeId));
+            REQUIRE(redis.sismember(funcSet, thisHost));
             REQUIRE(sch.getFunctionInFlightCount(call) == requiredCalls);
             REQUIRE(sch.getFunctionThreadCount(call) == 1);
 
-            // Notify that another worker has finished, check count is decremented and node removed from function set
+            // Notify that another worker has finished, check count is decremented and host removed from function set
             // (but still in global set)
             sch.notifyThreadFinished(call);
-            REQUIRE(redis.sismember(GLOBAL_NODE_SET, nodeId));
-            REQUIRE(!redis.sismember(funcSet, nodeId));
+            REQUIRE(redis.sismember(AVAILABLE_HOST_SET, thisHost));
+            REQUIRE(!redis.sismember(funcSet, thisHost));
             REQUIRE(sch.getFunctionInFlightCount(call) == requiredCalls);
             REQUIRE(sch.getFunctionThreadCount(call) == 0);
         }
@@ -120,8 +120,8 @@ namespace tests {
             callB.set_user("demo");
             callB.set_function("x2");
 
-            // Add a worker node to the global set
-            redis.sadd(GLOBAL_NODE_SET, "foo");
+            // Add a worker host to the global set
+            redis.sadd(AVAILABLE_HOST_SET, "foo");
 
             // Call each function
             sch.callFunction(callA);
@@ -205,8 +205,8 @@ namespace tests {
             REQUIRE(sch.getFunctionInFlightCount(msg) == 0);
         }
 
-        SECTION("Node choice checks") {
-            redis.sadd(GLOBAL_NODE_SET, otherNodeA);
+        SECTION("Host choice checks") {
+            redis.sadd(AVAILABLE_HOST_SET, otherHostA);
 
             SECTION("Test function which breaches in-flight ratio but has no capacity fails over") {
                 // Make calls up to just below the limit
@@ -216,7 +216,7 @@ namespace tests {
                 }
 
                 // Check we're still the best option
-                REQUIRE(sch.getBestNodeForFunction(call) == nodeId);
+                REQUIRE(sch.getBestHostForFunction(call) == thisHost);
 
                 // Check local workers requested
                 auto bindQueue = sch.getBindQueue();
@@ -226,20 +226,20 @@ namespace tests {
                 // Check calls have been queued
                 REQUIRE(sch.getFunctionInFlightCount(call) == nCalls);
 
-                // Make another call and check best node is now different
+                // Make another call and check best host is now different
                 sch.callFunction(call);
-                REQUIRE(sch.getBestNodeForFunction(call) != nodeId);
+                REQUIRE(sch.getBestHostForFunction(call) != thisHost);
                 REQUIRE(sch.getFunctionInFlightCount(call) == nCalls + 1);
 
                 // Call more and check calls are shared elsewhere
                 sch.callFunction(call);
                 sch.callFunction(call);
 
-                const std::string sharingQueue = getSharingQueueNameForNode(otherNodeA);
+                const std::string sharingQueue = getSharingQueueNameForHost(otherHostA);
                 REQUIRE(redis.listLength(sharingQueue) == 2);
 
-                message::Message actualA = sharingBus.nextMessageForNode(otherNodeA);
-                message::Message actualB = sharingBus.nextMessageForNode(otherNodeA);
+                message::Message actualA = sharingBus.nextMessageForHost(otherHostA);
+                message::Message actualB = sharingBus.nextMessageForHost(otherHostA);
 
                 REQUIRE(actualA.function() == call.function());
                 REQUIRE(actualA.user() == call.user());
@@ -255,33 +255,33 @@ namespace tests {
                 redis.flushAll();
             }
 
-            SECTION("Test scheduler adds node ID to global set when starting up") {
-                REQUIRE(!nodeId.empty());
-                REQUIRE(redis.sismember(GLOBAL_NODE_SET, nodeId));
+            SECTION("Test scheduler adds host ID to global set when starting up") {
+                REQUIRE(!thisHost.empty());
+                REQUIRE(redis.sismember(AVAILABLE_HOST_SET, thisHost));
             }
 
-            SECTION("Test current node chosen when no warm alternatives") {
-                REQUIRE(sch.getBestNodeForFunction(call) == nodeId);
+            SECTION("Test current host chosen when no warm alternatives") {
+                REQUIRE(sch.getBestHostForFunction(call) == thisHost);
             }
 
             SECTION("Test other warm option chosen when available") {
-                // Add another node to the warm set for the given function
+                // Add another host to the warm set for the given function
                 const std::string warmSet = sch.getFunctionWarmSetName(call);
-                redis.sadd(warmSet, otherNodeA);
+                redis.sadd(warmSet, otherHostA);
 
-                REQUIRE(sch.getBestNodeForFunction(call) == otherNodeA);
+                REQUIRE(sch.getBestHostForFunction(call) == otherHostA);
             }
 
-            SECTION("Test this node chosen when scheduler off even though warm option available") {
+            SECTION("Test this host chosen when scheduler off even though warm option available") {
                 // Switch off scheduler
                 int originalNoScheduler = conf.noScheduler;
                 conf.noScheduler = 1;
 
-                // Add another node to warm 
+                // Add another host to warm
                 const std::string warmSet = sch.getFunctionWarmSetName(call);
-                redis.sadd(warmSet, otherNodeA);
+                redis.sadd(warmSet, otherHostA);
 
-                REQUIRE(sch.getBestNodeForFunction(call) == nodeId);
+                REQUIRE(sch.getBestHostForFunction(call) == thisHost);
 
                 conf.noScheduler = originalNoScheduler;
             }
@@ -289,33 +289,33 @@ namespace tests {
             SECTION("Test other warm option *not* chosen when in no scheduler mode") {
                 conf.noScheduler = 1;
 
-                // Add another node to the warm set for the given function
+                // Add another host to the warm set for the given function
                 const std::string warmSet = sch.getFunctionWarmSetName(call);
-                redis.sadd(warmSet, otherNodeA);
+                redis.sadd(warmSet, otherHostA);
 
                 // Check it's ignored
-                REQUIRE(sch.getBestNodeForFunction(call) == nodeId);
+                REQUIRE(sch.getBestHostForFunction(call) == thisHost);
 
                 conf.noScheduler = 0;
             }
 
-            SECTION("Test current node chosen when already warm even if alternatives") {
-                // Ensure a warm worker exists on this node
+            SECTION("Test current host chosen when already warm even if alternatives") {
+                // Ensure a warm worker exists on this host
                 sch.callFunction(call);
                 REQUIRE(sch.getFunctionThreadCount(call) == 1);
 
-                // Check this node is in the warm set
+                // Check this host is in the warm set
                 const std::string warmSet = sch.getFunctionWarmSetName(call);
-                REQUIRE(redis.sismember(warmSet, nodeId));
+                REQUIRE(redis.sismember(warmSet, thisHost));
 
-                // Add another node to the warm set
-                redis.sadd(warmSet, otherNodeA);
+                // Add another host to the warm set
+                redis.sadd(warmSet, otherHostA);
 
                 // Run a few times to make sure
-                REQUIRE(sch.getBestNodeForFunction(call) == nodeId);
-                REQUIRE(sch.getBestNodeForFunction(call) == nodeId);
-                REQUIRE(sch.getBestNodeForFunction(call) == nodeId);
-                REQUIRE(sch.getBestNodeForFunction(call) == nodeId);
+                REQUIRE(sch.getBestHostForFunction(call) == thisHost);
+                REQUIRE(sch.getBestHostForFunction(call) == thisHost);
+                REQUIRE(sch.getBestHostForFunction(call) == thisHost);
+                REQUIRE(sch.getBestHostForFunction(call) == thisHost);
             }
         }
 
@@ -327,43 +327,43 @@ namespace tests {
         Scheduler &sch = scheduler::getScheduler();
         SharingMessageBus &sharingBus = SharingMessageBus::getInstance();
 
-        std::string thisNodeId = util::getNodeId();
-        std::string otherNodeA = "node A";
+        std::string thisHostId = util::getSystemConfig().endpointHost;
+        std::string otherHostA = "host A";
 
         util::SystemConfig &conf = util::getSystemConfig();
         int maxInFlightRatio = conf.maxInFlightRatio;
         int maxWorkers = conf.maxWorkersPerFunction;
 
-        // Add calls to saturate the first node
+        // Add calls to saturate the first host
         int requiredCalls = maxInFlightRatio * maxWorkers;
         for (int i = 0; i < requiredCalls; i++) {
             message::Message msgA = util::messageFactory("demo", "chain_simple");
             sch.callFunction(msgA);
 
             // Check scheduling info
-            REQUIRE(msgA.schedulednode() == thisNodeId);
+            REQUIRE(msgA.scheduledhost() == thisHostId);
             REQUIRE(msgA.hops() == 0);
-            REQUIRE(msgA.executednode().empty());
+            REQUIRE(msgA.executedhost().empty());
         }
 
-        // Now add the other node to the warm set and make
+        // Now add the other host to the warm set and make
         // sure calls are sent there
         message::Message msgB = util::messageFactory("demo", "chain_simple");
         const std::string warmSet = sch.getFunctionWarmSetName(msgB);
         Redis &redis = redis::Redis::getQueue();
-        redis.sadd(warmSet, otherNodeA);
+        redis.sadd(warmSet, otherHostA);
 
         for (int i = 0; i < 3; i++) {
             message::Message msgC = util::messageFactory("demo", "chain_simple");
             sch.callFunction(msgC);
 
             // Check scheduling info
-            REQUIRE(msgC.schedulednode() == otherNodeA);
+            REQUIRE(msgC.scheduledhost() == otherHostA);
             REQUIRE(msgC.hops() == 1);
-            REQUIRE(msgC.executednode().empty());
+            REQUIRE(msgC.executedhost().empty());
 
             // Check actual message bus
-            message::Message actualShare = sharingBus.nextMessageForNode(otherNodeA);
+            message::Message actualShare = sharingBus.nextMessageForHost(otherHostA);
         }
     }
 
@@ -371,33 +371,33 @@ namespace tests {
         cleanSystem();
         Scheduler &sch = scheduler::getScheduler();
 
-        std::string thisNodeId = util::getNodeId();
-        std::string otherNodeA = "node A";
+        std::string thisHostId = util::getSystemConfig().endpointHost;
+        std::string otherHostA = "host A";
 
         message::Message msg = util::messageFactory("demo", "chain_simple");
 
-        // Add calls to saturate the first node
+        // Add calls to saturate the first host
         util::SystemConfig &conf = util::getSystemConfig();
         int requiredCalls = conf.maxInFlightRatio * conf.maxWorkersPerFunction;
         for (int i = 0; i < requiredCalls; i++) {
             sch.callFunction(msg);
         }
 
-        // Add other node to warm set
+        // Add other host to warm set
         const std::string warmSet = sch.getFunctionWarmSetName(msg);
         Redis &redis = redis::Redis::getQueue();
-        redis.sadd(warmSet, otherNodeA);
+        redis.sadd(warmSet, otherHostA);
 
-        // Now create a message that's already got a scheduled node and hops
+        // Now create a message that's already got a scheduled host and hops
         message::Message msgWithHops = util::messageFactory("demo", "chain_simple");
-        msgWithHops.set_schedulednode("Some other node");
+        msgWithHops.set_scheduledhost("Some other host");
         msgWithHops.set_hops(5);
 
         // Schedule the call
         sch.callFunction(msgWithHops);
 
         // Check host not changes and hops increased
-        REQUIRE(msgWithHops.schedulednode() == "Some other node");
+        REQUIRE(msgWithHops.scheduledhost() == "Some other host");
         REQUIRE(msgWithHops.hops() == 6);
     }
 
@@ -405,19 +405,19 @@ namespace tests {
         cleanSystem();
         Scheduler &sch = scheduler::getScheduler();
 
-        std::string thisNodeId = util::getNodeId();
-        std::string otherNode = "other node";
+        std::string thisHost = util::getSystemConfig().endpointHost;
+        std::string otherHost = "other host";
         message::Message msg = util::messageFactory("demo", "chain_simple");
 
         // Add both to the global set
         Redis &redis = redis::Redis::getQueue();
-        redis.sadd(GLOBAL_NODE_SET, thisNodeId);
-        redis.sadd(GLOBAL_NODE_SET, otherNode);
+        redis.sadd(AVAILABLE_HOST_SET, thisHost);
+        redis.sadd(AVAILABLE_HOST_SET, otherHost);
 
         // Add a call and make sure we're in the warm set
         sch.callFunction(msg);
         const std::string warmSetName = sch.getFunctionWarmSetName(msg);
-        REQUIRE(redis.sismember(warmSetName, thisNodeId));
+        REQUIRE(redis.sismember(warmSetName, thisHost));
 
         // Now saturate up to the point we're about to fail over
         util::SystemConfig &conf = util::getSystemConfig();
@@ -426,16 +426,16 @@ namespace tests {
             sch.callFunction(msg);
         }
 
-        // Check we're still the best node
-        REQUIRE(sch.getBestNodeForFunction(msg) == thisNodeId);
+        // Check we're still the best host
+        REQUIRE(sch.getBestHostForFunction(msg) == thisHost);
 
         // Add another call, check we're no longer the best
         sch.callFunction(msg);
-        REQUIRE(sch.getBestNodeForFunction(msg) == otherNode);
+        REQUIRE(sch.getBestHostForFunction(msg) == otherHost);
 
         // Make another call and check we're no longer in the warm set
         sch.callFunction(msg);
-        REQUIRE(!redis.sismember(warmSetName, thisNodeId));
+        REQUIRE(!redis.sismember(warmSetName, thisHost));
     }
 
     TEST_CASE("Test awaiting/ finished awaiting", "[scheduler]") {

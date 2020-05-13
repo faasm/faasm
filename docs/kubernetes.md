@@ -74,7 +74,7 @@ Which should print out something like:
 
 ```
 [Faasm]
-invoke_host = ...   # Usually the IP of your master node
+invoke_host = ...   # Usually the IP of your master host
 inoke_port = ...    # E.g. 31380
 upload_host = ...   # IP of the upload service
 upload_port = ...   # Usually 8002

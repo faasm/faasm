@@ -9,20 +9,20 @@ namespace mpi {
     public:
         MpiGlobalBus();
 
-        void sendMessageToNode(const std::string &otherNodeId, MpiMessage *msg);
+        void sendMessageToHost(const std::string &otherHost, MpiMessage *msg);
 
-        MpiMessage *dequeueForNode(const std::string &otherNodeId);
+        MpiMessage *dequeueForHost(const std::string &otherHost);
 
-        void next(const std::string &otherNodeId);
+        void next(const std::string &otherHost);
 
-        long getQueueSize(const std::string &otherNodeId);
+        long getQueueSize(const std::string &otherHost);
     private:
-        std::string thisNodeId;
+        std::string thisHost;
         redis::Redis &redis;
     };
 
     MpiGlobalBus &getMpiGlobalBus();
 
-    std::string getMpiQueueNameForNode(const std::string &nodeId);
+    std::string getMpiQueueNameForHost(const std::string &host);
 
 }
