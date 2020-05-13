@@ -83,6 +83,10 @@ namespace tcp {
                 continue;
             }
 
+            if(thisFd.revents == POLLHUP) {
+                logger->warn("Client hung up: {}", thisFd.fd);
+                ::close(thisFd.fd);
+            }
             if (thisFd.revents != POLLIN) {
                 // Some unexpected event
                 logger->error("Unexpected poll event: {}", thisFd.revents);
@@ -112,7 +116,7 @@ namespace tcp {
                 bool closeSocket = false;
 
                 // Set up TCP message to hold data
-                TCPMessage *msg = new TCPMessage();
+                auto msg = new TCPMessage();
                 int packetCount = 0;
                 size_t bytesReceived = 0;
 

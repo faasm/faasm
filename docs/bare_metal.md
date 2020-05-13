@@ -14,16 +14,17 @@ machines into their roles in Faasm.
 To avoid ambiguity on machines with multiple network interfaces, you must explicitly 
 specify the hostname or IP to be used by Faasm with `internal_host=...`. If the 
 machines only have a single network interface, this is just the machine's normal 
-hostname or IP.
+hostname or IP. If there is more than one network interface, you can optionally specify 
+the network interface.
 
 The file will look something like:
 
 ```ini
 [all]
-host1  internal_host=<host1/ IP1>
-host2  internal_host=<host2/ IP2>
-host3  internal_host=<host3/ IP3>
-host4  internal_host=<host4/ IP4>
+host1  internal_host=<host1/ IP1> internal_iface=eth1
+host2  internal_host=<host2/ IP2> internal_iface=eth1
+host3  internal_host=<host3/ IP3> internal_iface=eth1
+host4  internal_host=<host4/ IP4> internal_iface=eth1
 
 [worker]
 # Can be one or more hosts
