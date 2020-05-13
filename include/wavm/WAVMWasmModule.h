@@ -1,10 +1,10 @@
 #pragma once
 
+#include <wasm/WasmModule.h>
+
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Linker.h>
 #include <WAVM/Runtime/Runtime.h>
-
-#include <wasm/WasmModule.h>
 
 using namespace WAVM;
 

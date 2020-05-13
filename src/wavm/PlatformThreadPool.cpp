@@ -9,8 +9,6 @@ using namespace util;
 namespace wasm {
     using namespace openmp;
 
-//    I64 ompThreadEntryFunc(void *threadArgsPtr);
-
     I64 workerEntryFunc(void *_args) {
         auto args = reinterpret_cast<WorkerArgs *>(_args);
         U32 stackTop = args->stackTop;

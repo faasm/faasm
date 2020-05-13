@@ -331,11 +331,8 @@ namespace wasm {
             // Set up new level
             auto nextLevel = std::make_shared<SingleHostLevel>(thisLevel, nextNumThreads);
 
-            // Note - must ensure thread arguments are outside loop scope otherwise they do
-            // may not exist by the time the thread actually consumes them
-//            std::vector<LocalThreadArgs> threadArgs;
-//            threadArgs.reserve(nextNumThreads);
-
+            // Safety - must ensure thread arguments lifetime is longer than the threads
+            // And that this container is not moved (reserve).
             std::vector<std::vector<IR::UntaggedValue>> microtaskArgs;
             microtaskArgs.reserve(nextNumThreads);
 
