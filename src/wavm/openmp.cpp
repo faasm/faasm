@@ -210,7 +210,6 @@ namespace wasm {
     static std::string activeSnapshotKey;
     static size_t threadSnapshotSize;
 
-    static std::atomic_int64_t num_threads = 0;
     /**
      * The "real" version of this function is implemented in the openmp source at
      * openmp/runtime/src/kmp_csupport.cpp. This in turn calls __kmp_fork_call which
@@ -245,10 +244,6 @@ namespace wasm {
         // Set up number of threads for next level
         int nextNumThreads = thisLevel->get_next_level_num_threads();
         pushedNumThreads = -1; // Resets for next push
-
-        num_threads.fetch_add(nextNumThreads);
-        logger->error("total num_threads {}, nnt {} at depth {}, ED {}", num_threads, nextNumThreads, thisLevel->depth,
-                      thisLevel->effectiveDepth);
 
         if (0 > userDefaultDevice) {
 

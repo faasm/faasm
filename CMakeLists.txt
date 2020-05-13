@@ -51,12 +51,6 @@ else ()
     endfunction()
 endif ()
 
-option(FAASM_OMP_PTS "PREALLOCATE THREAD STACK: Only available for local WasmMP and non recursive levels")
-if (${FAASM_OMP_PTS})
-    message("-- Activated OMP_PTS: OpenMP Thread stack preallocation feature")
-    add_compile_definitions(OMP_PTS)
-endif ()
-
 # Switch on WAVM stack traces in debug (potential performance gain?)
 set(WAVM_ENABLE_UNWIND ON CACHE BOOL "WAVM unwind")
 #if(CMAKE_BUILD_TYPE MATCHES Debug)
@@ -71,10 +65,11 @@ add_definitions(-DDLL_IMPORT=)
 
 # Faasm profiling
 option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md")
-option(FAASM_SELF_PROFILING "Turn on system profiling logged at tracing level")
+option(FAASM_SELF_TRACING "Turn on system tracing using the logger")
 
-if (${FAASM_SELF_PROFILING})
-    add_compile_definitions(PROFILE_ALL)
+if (${FAASM_SELF_TRACING})
+    message("-- Activated FAASM tracing")
+    add_definitions(-DTRACE_ALL=1)
 endif ()
 
 if (${FAASM_PERF_PROFILING})

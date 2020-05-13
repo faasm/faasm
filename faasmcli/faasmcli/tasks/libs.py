@@ -70,11 +70,10 @@ def _build_faasm_lib(dir_name, clean, verbose):
 
     clean_dir(build_dir, clean)
 
-    verbose_str = "-s" if verbose else ""
+    verbose_str = "VERBOSE=1" if verbose else ""
     build_cmd = [
         verbose_str,
         "cmake",
-        "-G Ninja"
         "-DFAASM_BUILD_TYPE=wasm",
         "-DCMAKE_BUILD_TYPE=Release",
         "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
@@ -88,9 +87,14 @@ def _build_faasm_lib(dir_name, clean, verbose):
     if res != 0:
         exit(1)
 
-    res = call("ninja {} install".format(verbose_str), shell=True, cwd=build_dir)
+    res = call("{} make".format(verbose_str), shell=True, cwd=build_dir)
     if res != 0:
         exit(1)
+
+    res = call("make install", shell=True, cwd=build_dir)
+    if res != 0:
+        exit(1)
+
 
 @task
 def faasm(ctx, clean=False, lib=None, verbose=False):
@@ -142,7 +146,6 @@ def malloc(ctx, clean=False):
 
     build_cmd = [
         "cmake",
-        "-G Ninja",
         "-DCMAKE_BUILD_TYPE=Release",
         "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
         work_dir,
@@ -152,7 +155,7 @@ def malloc(ctx, clean=False):
     print(build_cmd_str)
 
     call(build_cmd_str, shell=True, cwd=build_dir)
-    call("ninja install", shell=True, cwd=build_dir)
+    call("make install", shell=True, cwd=build_dir)
 
 
 @task
