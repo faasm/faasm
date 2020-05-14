@@ -2,7 +2,6 @@
 
 #include <cstring>
 #include <util/logging.h>
-#include <util/macros.h>
 #include <sys/ioctl.h>
 #include <set>
 

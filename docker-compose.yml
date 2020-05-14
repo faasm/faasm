@@ -19,7 +19,7 @@ services:
       - ./wasm/:/usr/local/code/faasm/wasm/
     environment:
       - FUNCTION_STORAGE=local
-      - LOG_LEVEL=debug
+      - LOG_LEVEL=info
       - REDIS_STATE_HOST=redis-state
       - REDIS_QUEUE_HOST=redis-queue
       - TF_CODEGEN=off
@@ -37,7 +37,7 @@ services:
     environment:
       - FUNCTION_STORAGE=fileserver
       - FILESERVER_URL=http://upload:8002
-      - LOG_LEVEL=debug
+      - LOG_LEVEL=info
       - CGROUP_MODE=on
       - NETNS_MODE=off
       - REDIS_STATE_HOST=redis-state

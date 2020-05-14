@@ -52,7 +52,7 @@ namespace state {
             return masterMap[lookupKey];
         }
 
-        logger->debug("Checking master for state {}", lookupKey);
+        logger->trace("Checking master for state {}", lookupKey);
 
         // Query Redis
         const std::string masterKey = getMasterKey(user, key);
@@ -61,7 +61,7 @@ namespace state {
 
         if (masterIPBytes.empty() && !claim) {
             // No master found and not claiming
-            logger->debug("No master found for {}", lookupKey);
+            logger->trace("No master found for {}", lookupKey);
             throw StateKeyValueException("Found no master for state " + masterKey);
         }
 

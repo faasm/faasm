@@ -42,7 +42,7 @@ namespace faaslet {
         pool.startThreadPool();
 
         // In-memory state
-//        pool.startStateServer();
+        pool.startStateServer();
 
         // Work sharing
         pool.startSharingThread();
