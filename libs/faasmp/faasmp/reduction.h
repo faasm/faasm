@@ -3,14 +3,16 @@
 
 #include <cstdint>
 
-#ifdef __wasm__
+//#ifdef __wasm__
 
+#include <omp.h>
 #include <cstdio>
 #include <cstring>
 #include <string>
 #include <random>
 #include "faasm/core.h"
 #include "faasm/random.h"
+#include <faasm/array.h>
 
 template<typename T>
 class FaasmCounter {
@@ -67,8 +69,19 @@ private:
     // which we need to have no overhead compared to a raw arithmetic type
     // For now we keep this shorter than small string optimisations, could do cache line optimisation too.
     std::string reductionKey;
+    std::int32_t numThreads;
 
     explicit i64() = default;
+
+    int64_t accumulate() const {
+        faasm::AsyncArray<std::int64_t> arr(reductionKey.c_str(), numThreads);
+        arr.pull();
+        int64_t acc = 0;
+        for (int i = 0; i < numThreads; i++) {
+            acc += arr[i];
+        }
+        return acc;
+    }
 
 public:
 
@@ -82,12 +95,16 @@ public:
     }
 
     // Used by user on initialisation
-    explicit i64(int64_t x) : x(x), reductionKey(faasm::randomString(11)) {
-        FaasmCounter<int64_t>::init(reductionKey.c_str(), x);
+    explicit i64(int64_t x) : x(x), reductionKey(faasm::randomString(11)), numThreads(omp_get_max_threads())  {
+        faasm::AsyncArray<std::int64_t> arr(reductionKey.c_str(), numThreads);
+        arr.zero();
     }
 
     void redisSum(i64 &threadResult) {
-        FaasmCounter<int64_t>::incrby(reductionKey.c_str(), threadResult.x);
+        faasm::AsyncArray<std::int64_t> arr(reductionKey.c_str(), numThreads);
+        arr.pullLazy();
+        arr[omp_get_thread_num()] = threadResult;
+        arr.push();
     }
 
     /*
@@ -119,11 +136,11 @@ public:
     }
 
     operator double() const {
-        return (double) FaasmCounter<int64_t>::getCounter(reductionKey.c_str());
+        return (double) accumulate();
     }
 
     operator int64_t() const {
-        return FaasmCounter<int64_t>::getCounter(reductionKey.c_str());
+        return accumulate();
     }
 };
 

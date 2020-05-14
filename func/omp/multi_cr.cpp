@@ -1,6 +1,10 @@
 #include <omp.h>
 #include <cstdio>
 #include <random>
+#ifndef __wasm__
+#import <chrono>
+typedef std::chrono::system_clock::time_point TimePoint;
+#endif
 #include "faasmp/reduction.h"
 
 unsigned long thread_seed() {
@@ -9,40 +13,56 @@ unsigned long thread_seed() {
 }
 
 int main(int argc, char **argv) {
-    long iterations = 1000L;
-    long num_threads = 1;
-    long num_devices = 0;
+    uint32_t num_threads = 1;
+    int32_t num_devices = 0;
+    uint32_t num_times = 1;
     if (argc == 4) {
-        num_threads = std::stol(argv[1]);
-        iterations = std::stol(argv[2]);
+        num_threads = std::stoul(argv[1]);
+        num_times = std::stoul(argv[2]);
         num_devices = std::stol(argv[3]);
     } else if (argc != 1) {
-        printf("Usage: mt_pi [num_threads num_iterations num_devices]");
+        printf("Usage: multi_cr [num_threads num_times num_devices]");
         return 5;
     }
 
-    omp_set_default_device(num_devices);
-
-    i64 result(0);
-    #pragma omp parallel num_threads(num_threads) default(none) firstprivate(iterations) reduction(+:result)
-    {
-        std::uniform_real_distribution<double> unif(0, 1);
-        std::mt19937_64 generator(thread_seed());
-        double x, y;
-
-        #pragma omp for nowait
-        for (long long i = 0; i < iterations; ++i) {
-            x = unif(generator);
-            y = unif(generator);
-            if (x * x + y * y <= 1.0) {
-                ++result;
-            }
-        }
+    // I'm boolean impaired, this is bad even for me writing this, sorry :)
+    if (num_times == 0 || num_threads == 0 || (num_devices != 0 && num_devices != -1)) {
+        printf("Bad args value");
+        return 6;
     }
 
-    double pi = (4.0 * (double) result) / iterations;
+    omp_set_num_threads(num_threads);
+    omp_set_default_device(num_devices);
 
-    if (abs(pi - 3.14) > 0.01) {
-        printf("Low accuracy Expected pi got %f\n", pi);
+    std::vector<uint32_t> accs;
+    accs.reserve(num_times);
+    for (int i = 0; i < num_times; i++) {
+#ifndef __wasm__
+        TimePoint t1 = std::chrono::system_clock::now();
+#endif
+        i64 result(0);
+        #pragma omp parallel default(none) reduction(+:result)
+        {
+            result += omp_get_thread_num();
+        }
+        accs.emplace_back((int64_t ) result);
+#ifndef __wasm__
+        TimePoint t2 = std::chrono::system_clock::now();
+        long diff = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
+        if (i == 0) {
+            printf("%d,native-realistic,%ld\n",num_threads, diff);
+        } else {
+            printf("%d,native-warm,%ld\n",num_threads, diff);
+        }
+#endif
+    }
+
+    uint32_t expected = num_threads * (num_threads - 1) / 2;
+    for (int i = 0; i < accs.size(); i++) {
+        uint32_t acc = accs[i];
+        if (acc != expected) {
+            printf("Expected %d, got %d at %d\n", expected, acc, i);
+            break;
+        }
     }
 }

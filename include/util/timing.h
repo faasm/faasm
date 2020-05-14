@@ -14,6 +14,8 @@
 namespace util {
     util::TimePoint startTimer();
 
+    long getTimeDiffNanos(const util::TimePoint &begin);
+
     long getTimeDiffMicros(const util::TimePoint &begin);
 
     double getTimeDiffMillis(const util::TimePoint &begin);

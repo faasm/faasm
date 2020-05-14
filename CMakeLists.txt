@@ -64,12 +64,17 @@ add_definitions(-DDLL_EXPORT=)
 add_definitions(-DDLL_IMPORT=)
 
 # Faasm profiling
-option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md")
 option(FAASM_SELF_TRACING "Turn on system tracing using the logger")
+option(FAASM_OPENMP_TRACING "Trace OpenMP forks in Redis")
+option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md")
 
 if (${FAASM_SELF_TRACING})
     message("-- Activated FAASM tracing")
     add_definitions(-DTRACE_ALL=1)
+endif ()
+
+if (${FAASM_OPENMP_TRACING})
+    add_definitions(-DOPENMP_FORK_REDIS_TRACE=1)
 endif ()
 
 if (${FAASM_PERF_PROFILING})
