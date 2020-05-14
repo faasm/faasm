@@ -154,7 +154,7 @@ namespace tcp {
                         if (sendRes < 0) {
                             logger->warn("[TCP] - sending response to {} failed", thisFd.fd);
                             clientsToRemove.insert(thisFd.fd);
-                        } else if (sendRes < bufferLen) {
+                        } else if (sendRes < (int) bufferLen) {
                             logger->warn("[TCP] - did not send full buffer ({}/{})", sendRes, bufferLen);
                         }
 
