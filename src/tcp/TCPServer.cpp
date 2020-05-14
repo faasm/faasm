@@ -243,10 +243,9 @@ namespace tcp {
         }
 
         // Close any fds we've finished with.
-        for (auto pollFdIdx : clientsToRemove) {
-            int fdToClose = pollFds[pollFdIdx].fd;
-            ::close(fdToClose);
-            logger->trace("[TCP] - closed client {}", fdToClose);
+        for (auto clientFdToClose : clientsToRemove) {
+            ::close(clientFdToClose);
+            logger->trace("[TCP] - closed client socket {}", clientFdToClose);
         }
 
         // Remove closed fds from the list
@@ -260,6 +259,8 @@ namespace tcp {
                     pollFds.end()
             );
         }
+
+        logger->trace("[TCP] - {} clients remain connected", pollFds.size() - 1);
 
         return nMessagesProcessed;
     }
