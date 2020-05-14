@@ -233,14 +233,6 @@ namespace wasm {
         return thisThreadNumber; // Might be wrong if called at depth 1 while another thread at depths 1 has forked
     }
 
-    int userDefaultDevice = 0;
-    int userMaxNumDevices = 3; // Number of devices available to each user by default
-    // Map of tid to message ID for chained calls
-
-    // Flag to say whether we've spawned a thread
-    static std::string activeSnapshotKey;
-    static size_t threadSnapshotSize;
-
     /**
      * The "real" version of this function is implemented in the openmp source at
      * openmp/runtime/src/kmp_csupport.cpp. This in turn calls __kmp_fork_call which
@@ -269,24 +261,28 @@ namespace wasm {
         Runtime::Function *func = Runtime::asFunction(
                 Runtime::getTableElement(getExecutingModule()->defaultTable, microtaskPtr));
 
+#ifdef OPENMP_FORK_REDIS_TRACE
         const util::TimePoint iterationTp = util::startTimer();
         redis::Redis &redis = redis::Redis::getState();
+#endif
 
         // Set up number of threads for next level
         int nextNumThreads = thisLevel->get_next_level_num_threads();
         pushedNumThreads = -1; // Resets for next push
 
-        if (0 > userDefaultDevice) {
+        if (0 > thisLevel->userDefaultDevice) {
 
             std::vector<int> chainedThreads;
             chainedThreads.reserve(nextNumThreads);
 
-            // TODO - Implement redo
-            if (activeSnapshotKey.empty()) {
-                int callId = getExecutingCall()->id();
-                activeSnapshotKey = fmt::format("omp_snapshot_{}", callId);
-                threadSnapshotSize = parentModule->snapshotToState(activeSnapshotKey);
-            }
+            std::string activeSnapshotKey;
+            size_t threadSnapshotSize;
+
+            // TODO - Implement different cases like calling parallel section in a loop
+            // Or calling several parallel sections to cache snapshots as much as possible
+            int32_t callId = std::rand() % 100'000;
+            activeSnapshotKey = fmt::format("fork_{}", callId);
+            threadSnapshotSize = parentModule->snapshotToState(activeSnapshotKey);
 
             scheduler::Scheduler &sch = scheduler::getScheduler();
 
@@ -312,9 +308,8 @@ namespace wasm {
                 const std::string chainedStr = util::funcToString(call, false);
                 sch.callFunction(call);
 
-                logger->info("Forked thread {} ({}) -> {} {}(*{}) ({})", origStr, util::getSystemConfig().endpointHost,
-                             chainedStr,
-                             microtaskPtr, argsPtr, call.scheduledhost());
+                logger->debug("Forked thread {} ({}) -> {} {}(*{}) ({})", origStr, util::getSystemConfig().endpointHost, chainedStr,
+                              microtaskPtr, argsPtr, call.scheduledhost());
                 chainedThreads[threadNum] = call.id();
             }
 
@@ -352,6 +347,9 @@ namespace wasm {
                 throw std::runtime_error(fmt::format("{} OMP threads have exited with errors", numErrors));
             }
 
+#ifdef OPENMP_FORK_REDIS_TRACE
+            redis.del(activeSnapshotKey);
+#endif
             logger->debug("Distributed Fork finished successfully");
         } else { // Single host
 
@@ -417,11 +415,13 @@ namespace wasm {
             }
         }
 
-        const long distributedIterationTime = util::getTimeDiffMicros(iterationTp);
-        redis.rpushLong("multi_pi_times", distributedIterationTime);
+#ifdef OPENMP_FORK_REDIS_TRACE
+        const long distributedIterationTime = util::getTimeDiffMillis(iterationTp);
+        redis.rpushLong(fmt::format("{}_fork_times", parentModule->getBoundFunction()), distributedIterationTime);
+#endif
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasmp_incryby", I64, __faasmp_incrby, I32 keyPtr, I64 value) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "faasmp_incrby", I64, __faasmp_incrby, I32 keyPtr, I64 value) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __faasmp_incryby {} {}", keyPtr, value);
 
@@ -555,7 +555,7 @@ namespace wasm {
      *  Called immediately after running the reduction section before exiting the `reduce` construct.
      */
     void endReduction() {
-        if (0 <= userDefaultDevice) {
+        if (0 <= thisLevel->userDefaultDevice) {
             // Unlocking not owned mutex is UB
             if (thisLevel->numThreads > 1) {
                 util::getLogger()->debug("Thread {} unlocking reduction", thisThreadNumber);
@@ -630,25 +630,24 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_num_devices", int, omp_get_num_devices) {
         util::getLogger()->debug("S - omp_get_num_devices");
-        return userDefaultDevice;
+        return thisLevel->userDefaultDevice;
     }
 
     /**
-     *
+     * Switches between local and remote threads.
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_set_default_device", void, omp_set_default_device,
                                    int defaultDeviceNumber) {
         auto logger = util::getLogger();
         logger->debug("S - omp_set_default_device {}", defaultDeviceNumber);
-        if (abs(defaultDeviceNumber) > userMaxNumDevices) {
+        if (abs(defaultDeviceNumber) > 1) {
             util::getLogger()->warn(
-                    "Given default device index ({}) is bigger than num of available devices ({}), ignoring",
-                    defaultDeviceNumber, userMaxNumDevices);
+                    "Given default device index ({}) is bigger than num of available devices (1), ignoring",
+                    defaultDeviceNumber);
             return;
         }
-        // Use negative device number to indicate using multiple devices in parallel
-        // TODO - flag with the specialisation of Level instead
-        userDefaultDevice = defaultDeviceNumber;
+        // TODO - flag negative with the specialisation of Level instead
+        thisLevel->userDefaultDevice = defaultDeviceNumber;
     }
 
     template<typename T>

@@ -65,6 +65,11 @@ add_definitions(-DDLL_IMPORT=)
 
 # Faasm profiling
 add_definitions(-DFAASM_PROFILE_ON=0)
+option(FAASM_OPENMP_TRACING "Trace OpenMP forks in Redis")
+
+if (${FAASM_OPENMP_TRACING})
+    add_definitions(-DOPENMP_FORK_REDIS_TRACE=1)
+endif ()
 
 # Custom LLVM build (also for profiling)
 set(FAASM_CUSTOM_LLVM 0)
