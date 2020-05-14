@@ -102,7 +102,7 @@ namespace tcp {
                 bytesReceived += nRecv;
 
                 if (bytesReceived >= msg->len) {
-                    logger->trace("[TCP] - finished message type {} ({} across {} packets) from {}",
+                    logger->trace("[TCP] - completed message type {} ({} bytes across {} packets) from {}",
                                   msg->type, bytesReceived, packetCount + 1, fd);
                     break;
                 } else {
