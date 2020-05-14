@@ -53,6 +53,7 @@ namespace util {
         maxInFlightRatio = this->getSystemConfIntParam("MAX_IN_FLIGHT_RATIO", "3");
         maxWorkersPerFunction = this->getSystemConfIntParam("MAX_WORKERS_PER_FUNCTION", "10");
         threadMode = getEnvVar("THREAD_MODE", "local");
+        ompThreadPoolSize = this->getSystemConfIntParam("OMP_THREAD_POOL_SIZE", "4");
 
         // Worker-related timeouts (all in seconds)
         globalMessageTimeout = this->getSystemConfIntParam("GLOBAL_MESSAGE_TIMEOUT", "60000");
@@ -128,6 +129,7 @@ namespace util {
         logger->info("MAX_IN_FLIGHT_RATIO        {}", maxInFlightRatio);
         logger->info("MAX_WORKERS_PER_FUNCTION   {}", maxWorkersPerFunction);
         logger->info("THREAD_MODE                {}", threadMode);
+        logger->info("OMP_THREAD_POOL_SIZE       {}", ompThreadPoolSize);
 
         logger->info("--- Timeouts ---");
         logger->info("GLOBAL_MESSAGE_TIMEOUT     {}", globalMessageTimeout);

@@ -10,7 +10,7 @@
 #include <util/timing.h>
 #include <wavm/openmp/Level.h>
 #include <wavm/openmp/ThreadState.h>
-#include <wavm/PlatformThreadPool.h>
+#include <wavm/OMPThreadPool.h>
 #include <wavm/WAVMWasmModule.h>
 
 
@@ -386,7 +386,7 @@ namespace wasm {
                         }
                 };
 
-                threadsFutures.emplace_back(parentModule->getPool()->runThread(std::move(threadArgs)));
+                threadsFutures.emplace_back(parentModule->getOMPPool()->runThread(std::move(threadArgs)));
             }
 
             // Await all threads

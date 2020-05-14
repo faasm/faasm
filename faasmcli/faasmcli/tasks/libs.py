@@ -135,30 +135,6 @@ def rust(ctx, clean=False, verbose=False):
     _build_faasm_lib("rust", clean, verbose)
 
 @task
-def malloc(ctx, clean=False):
-    """
-    Compile and install dlmalloc
-    """
-    work_dir = join(PROJ_ROOT, "third-party", "malloc")
-    build_dir = join(PROJ_ROOT, "build", "malloc")
-
-    clean_dir(build_dir, clean)
-
-    build_cmd = [
-        "cmake",
-        "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
-        work_dir,
-    ]
-
-    build_cmd_str = " ".join(build_cmd)
-    print(build_cmd_str)
-
-    call(build_cmd_str, shell=True, cwd=build_dir)
-    call("make install", shell=True, cwd=build_dir)
-
-
-@task
 def fake(ctx, clean=False):
     """
     Compile and install the fake library used for testing

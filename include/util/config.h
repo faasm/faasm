@@ -41,6 +41,7 @@ namespace util {
         int maxInFlightRatio;
         int maxWorkersPerFunction;
         std::string threadMode;
+        int ompThreadPoolSize;
 
         // Worker-related timeouts
         int globalMessageTimeout;

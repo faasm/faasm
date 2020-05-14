@@ -162,9 +162,6 @@ else ()
     add_subdirectory(libs/pyinit)
     add_subdirectory(libs/rust)
 
-    # Custom malloc
-    add_subdirectory(third-party/malloc)
-
     # Faasm runtime
     add_subdirectory(src/codegen)
     add_subdirectory(src/emulator)

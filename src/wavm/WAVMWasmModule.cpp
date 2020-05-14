@@ -24,7 +24,7 @@
 #include <Runtime/RuntimePrivate.h>
 #include <WASI/WASIPrivate.h>
 #include <wavm/openmp/ThreadState.h>
-#include <wavm/PlatformThreadPool.h>
+#include <wavm/OMPThreadPool.h>
 
 constexpr int THREAD_STACK_SIZE(2 * ONE_MB_BYTES);
 
@@ -1281,7 +1281,7 @@ namespace wasm {
                                                                 msg.ompmal(),
                                                                 msg.ompnumthreads()));
         } else {
-            ompPool = std::make_unique<PlatformThreadPool>(util::getSystemConfig().maxWorkersPerFunction, this);
+            OMPPool = std::make_unique<openmp::PlatformThreadPool>(util::getSystemConfig().ompThreadPoolSize, this);
             ompLevel = std::static_pointer_cast<openmp::Level>(
                     std::make_shared<openmp::SingleHostLevel>());
         }
@@ -1289,8 +1289,8 @@ namespace wasm {
         openmp::setTLS(msg.ompthreadnum(), ompLevel);
     }
 
-    std::unique_ptr<PlatformThreadPool> &WAVMWasmModule::getPool() {
-        return ompPool;
+    std::unique_ptr<openmp::PlatformThreadPool> &WAVMWasmModule::getOMPPool() {
+        return OMPPool;
     }
 
 }

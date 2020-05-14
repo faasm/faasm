@@ -17,7 +17,9 @@ namespace wasm {
 
     struct WasmThreadSpec;
 
-    class PlatformThreadPool;
+    namespace openmp {
+        class PlatformThreadPool;
+    }
 
     class WAVMWasmModule : public WasmModule, Runtime::Resolver {
     public:
@@ -116,7 +118,7 @@ namespace wasm {
 
         U32 allocateThreadStack();
 
-        std::unique_ptr<PlatformThreadPool> &getPool();
+        std::unique_ptr<openmp::PlatformThreadPool> &getOMPPool();
 
     protected:
         void doSnapshot(std::ostream &outStream) override;
@@ -181,7 +183,7 @@ namespace wasm {
 
         void prepareOpenMPContext(const message::Message &msg);
 
-        std::unique_ptr<PlatformThreadPool> ompPool;
+        std::unique_ptr<openmp::PlatformThreadPool> OMPPool;
     };
 
     WAVMWasmModule *getExecutingModule();
