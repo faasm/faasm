@@ -4,7 +4,7 @@
 #include <sys/socket.h>
 #include "TCPMessage.h"
 
-#define RECV_BUF_SIZE 256
+#define RECV_BUF_SIZE 1024
 
 namespace tcp {
     void freeTcpMessage(TCPMessage *msg) {
@@ -106,8 +106,6 @@ namespace tcp {
                                   msg->type, bytesReceived, packetCount + 1, fd);
                     break;
                 } else {
-                    logger->trace("[TCP] - processed packet {} of {} bytes from {}", packetCount, nRecv,
-                                  fd);
                     packetCount++;
                 }
             }
