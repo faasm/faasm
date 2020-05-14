@@ -6,6 +6,7 @@
     name:
       - cmake
       - git
+  when: not quick_deploy
 
 - name: "Check out code"
   git:
@@ -19,6 +20,7 @@
   file:
     path: "/usr/local/code"
     state: directory
+  when: not quick_deploy
 
 - name: "Create symbolic link to repo in local code directory"
   become: yes
@@ -30,6 +32,7 @@
     owner: "{{ ansible_user_id }}"
     group: "{{ ansible_user_id }}"
     mode: 0755
+  when: not quick_deploy
 
 - name: "Set up filesystem directories"
   become: yes
@@ -39,3 +42,4 @@
     owner: "{{ ansible_user_id }}"
     group: "{{ ansible_user_id }}"
     recurse: yes
+  when: not quick_deploy

@@ -17,12 +17,18 @@ def _call_ansible_command(cmd):
         exit(1)
 
 
-def _ansible_playbook_command(playbook, inventory=DEFAULT_INVENTORY):
+def _ansible_playbook_command(playbook, inventory=DEFAULT_INVENTORY, extra_vars=None):
     shell_cmd = [
         "ansible-playbook",
         "-i", inventory,
         playbook
     ]
+
+    if extra_vars:
+        shell_cmd.append("--extra-vars")
+        for var_name, var_value in extra_vars.items():
+            shell_cmd.append("{}={}".format(var_name, var_value))
+
     _call_ansible_command(shell_cmd)
 
 
@@ -45,11 +51,18 @@ def setup(ctx):
 
 
 @task
-def deploy(ctx):
+def deploy(ctx, quick=False):
     """
     Run bare metal deploy
     """
-    _ansible_playbook_command("faasm_bare.yml")
+    if quick:
+        extra_vars = {
+            "quick_deploy": "on"
+        }
+    else:
+        extra_vars = None
+
+    _ansible_playbook_command("faasm_bare.yml", extra_vars=extra_vars)
 
 
 @task
