@@ -29,8 +29,7 @@ namespace faaslet {
 
     FaasmMain::FaasmMain() : conf(util::getSystemConfig()),
                                pool(conf.threadsPerWorker),
-                               scheduler(scheduler::getScheduler()),
-                               stateServer(state::getGlobalState()) {
+                               scheduler(scheduler::getScheduler()) {
 
     }
 

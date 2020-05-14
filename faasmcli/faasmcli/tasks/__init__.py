@@ -47,11 +47,3 @@ ns.add_collection(ns.from_module(call), name="invoke")
 ns.add_collection(ns.from_module(docker_tasks), name="docker")
 ns.add_collection(ns.from_module(tensorflow), name="tf")
 
-# Can only generate matrix data with things installed
-try:
-    import pyfaasm
-    from . import matrix_data
-
-    ns.add_collection(ns.from_module(matrix_data))
-except:
-    pass

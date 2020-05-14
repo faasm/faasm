@@ -12,18 +12,19 @@ First you need to create a file at `ansible/inventory/bare_metal.yml` which grou
 machines into their roles in Faasm.
 
 To avoid ambiguity on machines with multiple network interfaces, you must explicitly 
-specify the hostname or IP to be used by Faasm with `faasm_hostname=...`. If the 
+specify the hostname or IP to be used by Faasm with `internal_host=...`. If the 
 machines only have a single network interface, this is just the machine's normal 
-hostname or IP.
+hostname or IP. If there is more than one network interface, you can optionally specify 
+the network interface.
 
 The file will look something like:
 
 ```ini
 [all]
-host1  faasm_hostname=<hostname/ IP>
-host2  faasm_hostname=<hostname/ IP>
-host3  faasm_hostname=<hostname/ IP>
-host4  faasm_hostname=<hostname/ IP>
+host1  internal_host=<host1/ IP1> internal_iface=eth1
+host2  internal_host=<host2/ IP2> internal_iface=eth1
+host3  internal_host=<host3/ IP3> internal_iface=eth1
+host4  internal_host=<host4/ IP4> internal_iface=eth1
 
 [worker]
 # Can be one or more hosts
@@ -66,6 +67,35 @@ source workon.sh
 
 inv upload demo hello
 inv invoke demo hello --input="hello!"
+```
+
+## Google Cloud 
+
+Faasm can be run in "bare metal" mode on a collection of standard GCP VMs. Once 
+set up, you can follow the instructions above to install Faasm.
+
+You can set up Faasm on as VMs as you want, but [this script](../bin/gcp_minimal.sh)
+sets up the minimum recommended configuration (assumes you've set up the 
+[Cloud SDK](https://cloud.google.com/sdk)).
+
+To SSH into the instances:
+
+```bash
+# Using the GCP CLI to get into worker 1
+gcloud compute ssh faasm-worker-1
+
+# Or using standard ssh with the default GCP SSH config
+ssh -i ~/.ssh/google_compute_engine <instance_ip>
+```
+
+You can create the inventory file as described above, but make sure you specify the 
+**internal IPs** for comms between the hosts, this will look something like:
+
+```ini
+[all]
+<host1_public_ip>  internal_host=<host1_internal_ip>
+<host2_public_ip>  internal_host=<host2_internal_ip>
+...  
 ```
 
 ## Troubleshooting

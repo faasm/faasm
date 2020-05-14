@@ -21,7 +21,7 @@ namespace state {
     static std::shared_mutex masterMapMutex;
 
     static std::string getMasterKey(const std::string &user, const std::string &key) {
-        const std::string masterKey = MASTER_KEY_PREFIX + user + "_" + key;
+        std::string masterKey = MASTER_KEY_PREFIX + user + "_" + key;
         return masterKey;
     }
 
@@ -30,6 +30,8 @@ namespace state {
             const std::string &thisIP,
             bool claim
     ) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         std::string lookupKey = util::keyForUser(user, key);
 
         // See if we already have the master
@@ -50,6 +52,8 @@ namespace state {
             return masterMap[lookupKey];
         }
 
+        logger->trace("Checking master for state {}", lookupKey);
+
         // Query Redis
         const std::string masterKey = getMasterKey(user, key);
         redis::Redis &redis = redis::Redis::getState();
@@ -57,6 +61,7 @@ namespace state {
 
         if (masterIPBytes.empty() && !claim) {
             // No master found and not claiming
+            logger->trace("No master found for {}", lookupKey);
             throw StateKeyValueException("Found no master for state " + masterKey);
         }
 
@@ -64,9 +69,11 @@ namespace state {
         if (masterIPBytes.empty()) {
             uint32_t masterLockId = StateKeyValue::waitOnRedisRemoteLock(masterKey);
             if (masterLockId == 0) {
-                util::getLogger()->error("Unable to acquire remote lock for {}", masterKey);
+                logger->error("Unable to acquire remote lock for {}", masterKey);
                 throw std::runtime_error("Unable to get remote lock");
             }
+
+            logger->debug("Claiming master for {} (this host {})", lookupKey, thisIP);
 
             // Check there's still no master, if so, claim
             masterIPBytes = redis.get(masterKey);
@@ -80,6 +87,8 @@ namespace state {
 
         // Cache the result locally
         std::string masterIP = util::bytesToString(masterIPBytes);
+        logger->debug("Caching master for {} as {} (this host {})", lookupKey, masterIP, thisIP);
+
         masterMap[lookupKey] = masterIP;
 
         return masterIP;
@@ -101,6 +110,7 @@ namespace state {
     size_t InMemoryStateKeyValue::getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn,
                                                          const std::string &thisIP) {
 
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         std::string masterIP;
 
         try {
@@ -110,12 +120,13 @@ namespace state {
         }
 
         // TODO - avoid creating a TCP client on every request
+        logger->debug("Requesting size of {}/{} from master {} (this {})", userIn, keyIn, masterIP, thisIP);
         tcp::TCPMessage *msg = buildStateSizeRequest(userIn, keyIn);
         tcp::TCPClient client(masterIP, STATE_PORT);
         client.sendMessage(msg);
         tcp::freeTcpMessage(msg);
 
-        // TODO - we know the size here, use it to receive message in one go
+        logger->debug("Awaiting size response for {}/{} from master {} (this {})", userIn, keyIn, masterIP, thisIP);
         tcp::TCPMessage *response = client.recvMessage();
         size_t stateSize = extractSizeResponse(response);
         tcp::freeTcpMessage(response);
@@ -219,12 +230,15 @@ namespace state {
         }
 
         // Send the message
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Pulling {} from {}", key, masterIP);
         tcp::TCPMessage *msg = buildStatePullRequest();
         masterClient->sendMessage(msg);
         tcp::freeTcpMessage(msg);
 
         // Await the response
         tcp::TCPMessage *response = masterClient->recvMessage();
+        util::getLogger()->debug("Got pull response (size {})", response->len);
         extractPullResponse(response);
         tcp::freeTcpMessage(response);
     }
@@ -366,9 +380,12 @@ namespace state {
     }
 
     void InMemoryStateKeyValue::extractPullResponse(const tcp::TCPMessage *msg) {
-        util::getLogger()->debug("Got pull response type {} ({})", msg->type, msg->len);
-
         if (msg->type == StateMessageType::STATE_PULL_RESPONSE) {
+            if(msg->len != size()) {
+                util::getLogger()->error("Size of pull response {} not equal to KV size {}", msg->len, size());
+                throw std::runtime_error("Mismatched pulled state and size");
+            }
+
             // Set without locking and setting dirty
             doSet(msg->buffer);
         } else {

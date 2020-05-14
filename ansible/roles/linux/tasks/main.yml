@@ -3,6 +3,7 @@
 - name: "Install deps with apt"
   become: yes
   apt:
+    update_cache: yes
     name:
       - cmake
       - software-properties-common

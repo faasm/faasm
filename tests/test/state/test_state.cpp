@@ -737,4 +737,34 @@ namespace tests {
 
         server.wait();
     }
+
+    TEST_CASE("Test pushing pulling large state", "[state]") {
+        size_t oneMb = 1024 * 1024;
+        std::vector<uint8_t> valuesA(oneMb, 1);
+        std::vector<uint8_t> valuesB(oneMb, 2);
+
+        DummyStateServer server;
+        setUpDummyServer(server, valuesA);
+
+        // One pull, one push
+        server.start(2);
+
+        // Pull locally
+        const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
+        localKv->pull();
+
+        // Check equality
+        const std::vector<uint8_t> &actualLocal = server.getLocalKvValue();
+        REQUIRE(actualLocal == valuesA);
+
+        // Push
+        localKv->set(valuesB.data());
+        localKv->pushFull();
+
+        // Check equality of remote
+        const std::vector<uint8_t> &actualRemote = server.getRemoteKvValue();
+        REQUIRE(actualRemote == valuesB);
+
+        server.wait();
+    }
 }

@@ -6,6 +6,6 @@ stderr_logfile=/var/log/faasm_upload.log
 stdout_logfile=/var/log/faasm_upload.log
 user={{ ansible_env.USER }}
 environment=LOG_LEVEL=info,
-  REDIS_STATE_HOST="{{ groups['redis'][0] }}",
-  REDIS_QUEUE_HOST="{{ groups['redis'][0] }}",
-  ENDPOINT_INTERFACE=eth0,
+  REDIS_STATE_HOST="{{ hostvars[groups['redis'][0]].internal_host }}",
+  REDIS_QUEUE_HOST="{{ hostvars[groups['redis'][0]].internal_host }}",
+  ENDPOINT_INTERFACE="{{ internal_iface | default('eth0') }}",

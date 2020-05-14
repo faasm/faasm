@@ -1,5 +1,0 @@
----
-
-- template:
-    src: hostfile.j2
-    dest: "{{ ansible_env.HOME }}/mpi_hostfile"

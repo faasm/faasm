@@ -41,7 +41,7 @@ def setup(ctx):
     """
     Run the initial machine set-up
     """
-    _ansible_playbook_command("benchmark.yml")
+    _ansible_playbook_command("bare_metal_base.yml")
 
 
 @task
@@ -68,3 +68,21 @@ def restart(ctx):
     _ansible_command("redis", "redis-cli flushall")
     _ansible_command("worker", "sudo supervisorctl restart faasm_worker")
     _ansible_command("upload", "sudo supervisorctl restart faasm_upload")
+
+
+@task
+def stop(ctx):
+    """
+    Stops the Faasm bare metal application
+    """
+    _ansible_command("all", "sudo supervisorctl stop all")
+
+
+@task
+def uninstall(ctx):
+    """
+    Uninstalls the Faasm bare metal application
+    """
+    _ansible_command("all", "sudo supervisorctl stop all")
+    _ansible_command("all", "sudo rm -rf /etc/supervisor/conf.d/*")
+    _ansible_command("all", "sudo supervisorctl update all")
