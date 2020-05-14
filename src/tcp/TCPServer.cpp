@@ -4,6 +4,7 @@
 #include <util/logging.h>
 #include <util/macros.h>
 #include <sys/ioctl.h>
+#include <set>
 
 #define BUF_SIZE 256
 #define BACKLOG 5
@@ -14,7 +15,7 @@ namespace tcp {
 
         // Set up the socket
         serverSocket = ::socket(AF_INET, SOCK_STREAM, 0);
-        if(serverSocket < 0) {
+        if (serverSocket < 0) {
             logger->error("[TCP] - failed to create server socket: {} ({})", errno, strerror(errno));
             throw std::runtime_error("Failed to create server socket");
         }
@@ -58,10 +59,12 @@ namespace tcp {
             throw std::runtime_error("Failed to listen with TCP server");
         }
 
-        // Zero the poll fds and set up the server socket
-        memset(pollFds, 0, sizeof(pollFds));
-        pollFds[0].fd = serverSocket;
-        pollFds[0].events = POLLIN;
+        // Set up an initial capacity for the pollfds
+        pollFds.reserve(INITIAL_POLLFD_CAPACITY);
+
+        // Create the pollfd for the server socket
+        pollfd serverPollFd{.fd = serverSocket, .events = POLLIN};
+        pollFds.push_back(serverPollFd);
 
         logger->trace("[TCP] - server listening on {}", port);
     }
@@ -73,7 +76,7 @@ namespace tcp {
 
         // Wait for input
         logger->trace("[TCP] - server polling on {}", port);
-        int pollCount = ::poll(pollFds, nFds, timeoutMillis);
+        int pollCount = ::poll(pollFds.data(), pollFds.size(), timeoutMillis);
         if (pollCount < 0) {
             logger->error("[TCP] - error with polling: {} ({})", errno, strerror(errno));
             throw TCPFailedException("Error with polling");
@@ -82,8 +85,11 @@ namespace tcp {
         }
 
         // Process poll events by iterating through each socket
-        int currentFds = nFds;
-        for (int i = 0; i < currentFds; i++) {
+        // Note that we may append fds to the list, but we must defer
+        // removal until after the loop.
+        std::set<int> clientsToRemove;
+        int initialPollFdCount = pollFds.size();
+        for (int i = 0; i < initialPollFdCount; i++) {
             pollfd thisFd = pollFds[i];
 
             // Ignore those with no events
@@ -91,7 +97,7 @@ namespace tcp {
                 continue;
             } else if (thisFd.revents == POLLHUP) {
                 logger->warn("[TCP] - client hung up: {}", thisFd.fd);
-                ::close(thisFd.fd);
+                clientsToRemove.insert(thisFd.fd);
                 continue;
             } else if (thisFd.revents == POLLERR) {
                 logger->warn("[TCP] - poll error: {}", thisFd.fd);
@@ -126,9 +132,8 @@ namespace tcp {
 
                 // Add the new client fd
                 logger->trace("[TCP] - adding new client on {}", socket);
-                pollFds[nFds].fd = socket;
-                pollFds[nFds].events = POLLIN;
-                nFds++;
+                pollfd newPollFd{.fd = socket, .events = POLLIN};
+                pollFds.push_back(newPollFd);
             } else {
                 logger->trace("[TCP] - handling client event on {}", port);
 
@@ -142,91 +147,118 @@ namespace tcp {
                     uint8_t buffer[BUF_SIZE];
                     int nRecv = ::recv(thisFd.fd, buffer, BUF_SIZE, 0);
 
-                    // Connection closed
-                    if (nRecv == 0) {
-                        logger->trace("[TCP] - client closed {}", thisFd.fd);
-                        freeTcpMessage(msg);
-                        ::close(thisFd.fd);
-                        continue;
-                    }
-
-                    // Error
-                    if (nRecv < 0) {
-                        if (errno != EWOULDBLOCK) {
-                            logger->error("Failed to recv on {}. Errno {} ({})", port, errno, strerror(errno));
-                            throw TCPFailedException("Recv error");
+                    if (nRecv <= 0) {
+                        // Connection closed
+                        if (nRecv == 0) {
+                            logger->trace("[TCP] - client closed {}", thisFd.fd);
+                            clientsToRemove.insert(thisFd.fd);
+                            break;
                         }
 
-                        logger->trace("[TCP] - poll would block for client {}", thisFd.fd);
-                        break;
-                    }
+                        // Error
+                        if (nRecv < 0) {
+                            if (errno != EWOULDBLOCK) {
+                                logger->error("Failed to recv on {}. Errno {} ({})", port, errno, strerror(errno));
+                                throw TCPFailedException("Recv error");
+                            }
 
-                    uint8_t *bufferStart;
-                    if (packetCount == 0) {
-                        // First packet contains the main struct
-                        size_t messageHeaderSize = sizeof(TCPMessage);
-                        std::copy(buffer, buffer + messageHeaderSize, BYTES(msg));
+                            logger->trace("[TCP] - poll would block for client {}", thisFd.fd);
+                            break;
+                        }
+                    } else {
+                        uint8_t *bufferStart;
 
-                        // Provision the message buffer
-                        if (msg->len > 0) {
-                            msg->buffer = new uint8_t[msg->len];
+                        if (packetCount == 0) {
+                            // First packet contains the main struct
+                            size_t messageHeaderSize = sizeof(TCPMessage);
+                            std::copy(buffer, buffer + messageHeaderSize, BYTES(msg));
+
+                            // Provision the message buffer
+                            if (msg->len > 0) {
+                                msg->buffer = new uint8_t[msg->len];
+                            }
+
+                            // Offset the rest of the buffer
+                            bufferStart = buffer + messageHeaderSize;
+                            nRecv -= messageHeaderSize;
+                        } else {
+                            bufferStart = buffer;
                         }
 
-                        // Offset the rest of the buffer
-                        bufferStart = buffer + messageHeaderSize;
-                        nRecv -= messageHeaderSize;
-                    } else {
-                        bufferStart = buffer;
-                    }
+                        // Insert the data from this packet
+                        if (nRecv > 0) {
+                            uint8_t *msgBufferPosition = msg->buffer + bytesReceived;
+                            std::copy(bufferStart, bufferStart + nRecv, msgBufferPosition);
+                        }
 
-                    // Insert the data from this packet
-                    if (nRecv > 0) {
-                        uint8_t *msgBufferPosition = msg->buffer + bytesReceived;
-                        std::copy(bufferStart, bufferStart + nRecv, msgBufferPosition);
-                    }
+                        bytesReceived += nRecv;
 
-                    bytesReceived += nRecv;
-
-                    if (bytesReceived >= msg->len) {
-                        logger->trace("[TCP] - finished message type {} ({} across {} packets) from {}",
-                                msg->type, bytesReceived, packetCount, thisFd.fd);
-                        break;
-                    } else {
-                        logger->trace("[TCP] - processed packet {} of {} bytes from {}", packetCount, nRecv, thisFd.fd);
-                        packetCount++;
+                        if (bytesReceived >= msg->len) {
+                            logger->trace("[TCP] - finished message type {} ({} across {} packets) from {}",
+                                          msg->type, bytesReceived, packetCount + 1, thisFd.fd);
+                            break;
+                        } else {
+                            logger->trace("[TCP] - processed packet {} of {} bytes from {}", packetCount, nRecv,
+                                          thisFd.fd);
+                            packetCount++;
+                        }
                     }
                 }
 
-                if (bytesReceived != msg->len) {
-                    logger->warn("[TCP] - did not receive exactly the bytes (expected {}, got {})", msg->len,
-                                 bytesReceived);
-                }
-
-                // Record that we've now received a message
-                nMessagesProcessed++;
-
-                // Allow subclass to handle the message and respond
-                TCPMessage *response = handleMessage(msg);
-                if (response) {
-                    size_t bufferLen = tcpMessageLen(response);
-                    uint8_t *buffer = tcpMessageToBuffer(response);
-
-                    int sendRes = ::send(thisFd.fd, buffer, bufferLen, 0);
-
-                    // Close if response failed
-                    if (sendRes < 0) {
-                        logger->warn("[TCP] - sending response to {} failed", thisFd.fd);
-                        ::close(thisFd.fd);
+                // Process any received messages
+                if (bytesReceived > 0) {
+                    // Check we've received what we expected
+                    if (bytesReceived != msg->len) {
+                        logger->warn("[TCP] - did not receive exactly the bytes (expected {}, got {})", msg->len,
+                                     bytesReceived);
                     }
-                    logger->trace("[TCP] - sent response to {} (size {})", thisFd.fd, bufferLen);
 
-                    // Tidy the response
-                    freeTcpMessage(response);
+                    // Record that we've now received a message
+                    nMessagesProcessed++;
+
+                    // Allow subclass to handle the message and respond
+                    TCPMessage *response = handleMessage(msg);
+                    if (response) {
+                        size_t bufferLen = tcpMessageLen(response);
+                        uint8_t *buffer = tcpMessageToBuffer(response);
+
+                        // Do the send
+                        int sendRes = ::send(thisFd.fd, buffer, bufferLen, 0);
+
+                        // Close if response failed
+                        if (sendRes < 0) {
+                            logger->warn("[TCP] - sending response to {} failed", thisFd.fd);
+                            clientsToRemove.insert(thisFd.fd);
+                        }
+                        logger->trace("[TCP] - sent response to {} (size {})", thisFd.fd, bufferLen);
+
+                        // Tidy the response
+                        freeTcpMessage(response);
+                    }
                 }
 
                 // Tidy the original message
                 freeTcpMessage(msg);
             }
+        }
+
+        // Close any fds we've finished with.
+        for (auto pollFdIdx : clientsToRemove) {
+            int fdToClose = pollFds[pollFdIdx].fd;
+            ::close(fdToClose);
+            logger->trace("[TCP] - closed client {}", fdToClose);
+        }
+
+        // Remove closed fds from the list
+        if (!clientsToRemove.empty()) {
+            pollFds.erase(
+                    std::remove_if(pollFds.begin(), pollFds.end(),
+                                   [&clientsToRemove](const pollfd &p) {
+                                       return clientsToRemove.find(p.fd) != clientsToRemove.end();
+                                   }
+                    ),
+                    pollFds.end()
+            );
         }
 
         return nMessagesProcessed;

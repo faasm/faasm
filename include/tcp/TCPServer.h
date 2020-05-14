@@ -13,7 +13,7 @@
 
 #include <util/exception.h>
 
-#define POLL_COUNT 1000
+#define INITIAL_POLLFD_CAPACITY 1000
 
 namespace tcp {
     class TCPServer {
@@ -30,8 +30,13 @@ namespace tcp {
         int port;
         int serverSocket;
         struct sockaddr_in serverAddress{};
-        struct pollfd pollFds[POLL_COUNT];
-        int nFds = 1;
+
+        // TODO - more performant to have a vector or a list here?
+        // Need to reguarly pass a pointer to the underlying data to poll()
+        // but also need to remove elements at arbitrary locations. We
+        // assume that the ability to access a pointer to the underlying data
+        // (which must happen on every poll) takes precedence.
+        std::vector<pollfd> pollFds;
 
         long timeoutMillis;
     };
