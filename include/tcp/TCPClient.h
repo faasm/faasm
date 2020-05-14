@@ -22,8 +22,6 @@ namespace tcp {
 
         TCPMessage *recvMessage() const;
 
-        TCPMessage *recvMessage(size_t dataSize) const;
-
         void exit();
 
     private:

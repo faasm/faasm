@@ -126,7 +126,6 @@ namespace state {
         client.sendMessage(msg);
         tcp::freeTcpMessage(msg);
 
-        // TODO - we know the size here, use it to receive message in one go
         logger->debug("Awaiting size response for {}/{} from master {} (this {})", userIn, keyIn, masterIP, thisIP);
         tcp::TCPMessage *response = client.recvMessage();
         size_t stateSize = extractSizeResponse(response);

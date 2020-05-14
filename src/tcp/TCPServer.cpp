@@ -6,7 +6,6 @@
 #include <sys/ioctl.h>
 #include <set>
 
-#define BUF_SIZE 256
 #define BACKLOG 5
 
 namespace tcp {
@@ -137,81 +136,8 @@ namespace tcp {
             } else {
                 logger->trace("[TCP] - handling client event on {}", port);
 
-                // Set up TCP message to hold data
-                auto msg = new TCPMessage();
-                int packetCount = 0;
-                size_t bytesReceived = 0;
-
-                while (true) {
-                    // Receive the data
-                    uint8_t buffer[BUF_SIZE];
-                    int nRecv = ::recv(thisFd.fd, buffer, BUF_SIZE, 0);
-
-                    if (nRecv <= 0) {
-                        // Connection closed
-                        if (nRecv == 0) {
-                            logger->trace("[TCP] - client closed {}", thisFd.fd);
-                            clientsToRemove.insert(thisFd.fd);
-                            break;
-                        }
-
-                        // Error
-                        if (nRecv < 0) {
-                            if (errno != EWOULDBLOCK) {
-                                logger->error("Failed to recv on {}. Errno {} ({})", port, errno, strerror(errno));
-                                throw TCPFailedException("Recv error");
-                            }
-
-                            logger->trace("[TCP] - poll would block for client {}", thisFd.fd);
-                            break;
-                        }
-                    } else {
-                        uint8_t *bufferStart;
-
-                        if (packetCount == 0) {
-                            // First packet contains the main struct
-                            size_t messageHeaderSize = sizeof(TCPMessage);
-                            std::copy(buffer, buffer + messageHeaderSize, BYTES(msg));
-
-                            // Provision the message buffer
-                            if (msg->len > 0) {
-                                msg->buffer = new uint8_t[msg->len];
-                            }
-
-                            // Offset the rest of the buffer
-                            bufferStart = buffer + messageHeaderSize;
-                            nRecv -= messageHeaderSize;
-                        } else {
-                            bufferStart = buffer;
-                        }
-
-                        // Insert the data from this packet
-                        if (nRecv > 0) {
-                            uint8_t *msgBufferPosition = msg->buffer + bytesReceived;
-                            std::copy(bufferStart, bufferStart + nRecv, msgBufferPosition);
-                        }
-
-                        bytesReceived += nRecv;
-
-                        if (bytesReceived >= msg->len) {
-                            logger->trace("[TCP] - finished message type {} ({} across {} packets) from {}",
-                                          msg->type, bytesReceived, packetCount + 1, thisFd.fd);
-                            break;
-                        } else {
-                            logger->trace("[TCP] - processed packet {} of {} bytes from {}", packetCount, nRecv,
-                                          thisFd.fd);
-                            packetCount++;
-                        }
-                    }
-                }
-
-                // Process any received messages
-                if (bytesReceived > 0) {
-                    // Check we've received what we expected
-                    if (bytesReceived != msg->len) {
-                        logger->warn("[TCP] - did not receive exactly the bytes (expected {}, got {})", msg->len,
-                                     bytesReceived);
-                    }
+                try {
+                    auto msg = receiveTcpMessage(thisFd.fd);
 
                     // Record that we've now received a message
                     nMessagesProcessed++;
@@ -229,16 +155,22 @@ namespace tcp {
                         if (sendRes < 0) {
                             logger->warn("[TCP] - sending response to {} failed", thisFd.fd);
                             clientsToRemove.insert(thisFd.fd);
+                        } else if (sendRes < bufferLen) {
+                            logger->warn("[TCP] - did not send full buffer ({}/{})", sendRes, bufferLen);
                         }
-                        logger->trace("[TCP] - sent response to {} (size {})", thisFd.fd, bufferLen);
+
+                        logger->trace("[TCP] - sent response to {} ({}/{})", thisFd.fd, sendRes, bufferLen);
 
                         // Tidy the response
                         freeTcpMessage(response);
                     }
-                }
 
-                // Tidy the original message
-                freeTcpMessage(msg);
+                    // Tidy the original message
+                    freeTcpMessage(msg);
+                } catch (TCPSenderClosedException &ex) {
+                    // Remove client if it's closed
+                    clientsToRemove.insert(thisFd.fd);
+                }
             }
         }
 

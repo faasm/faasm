@@ -45,40 +45,6 @@ namespace tcp {
 
             logger->trace("[TCP] client connected to {}:{} (after wait)", host, portIn);
         }
-
-//        if (connectRes < 0) {
-//            if (errno != EINPROGRESS) {
-//                util::getLogger()->error("Failed to connect: {} ({})", errno, strerror(errno));
-//                throw std::runtime_error("Failed connecting TCP client");
-//            }
-//
-//            timeval tv{
-//                    .tv_sec = CONNECT_TIMEOUT_SECS,
-//                    .tv_usec = 0
-//            };
-//
-//
-//            fd_set writeFds;
-//            fd_set errorFds;
-//
-//            FD_ZERO(&writeFds);
-//            FD_SET(clientSocket, &writeFds);
-//
-//            FD_ZERO(&errorFds);
-//            FD_SET(clientSocket, &errorFds);
-//
-//            int selectRes = select(clientSocket + 1, nullptr, &writeFds, &errorFds, &tv);
-//            if (selectRes < 0) {
-//                util::getLogger()->error("Failed to select: {} ({})", errno, strerror(errno));
-//                throw std::runtime_error("Failed select with TCP client");
-//            } else if (selectRes == 0) {
-//                util::getLogger()->error("Connect timed out: {} ({})", errno, strerror(errno));
-//                close(clientSocket);
-//                return;
-//            } else {
-//                util::getLogger()->debug("TCP client connected to {}:{}", hostIn, portIn);
-//            }
-//        }
     }
 
     void TCPClient::sendMessage(TCPMessage *msg) const {
@@ -95,49 +61,8 @@ namespace tcp {
 
     TCPMessage *TCPClient::recvMessage() const {
         // Receive the message header
-        auto m = new TCPMessage();
-        size_t headerRecvSize = sizeof(TCPMessage);
-        int headerRecvRes = ::recv(clientSocket, BYTES(m), headerRecvSize, 0);
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        if (headerRecvRes < 0) {
-            logger->error("[TCP] Failed to recv message header: {} ({})", errno, strerror(errno));
-            throw std::runtime_error("Failed receiving TCP message header");
-        }
-        logger->trace("[TCP] received message header ({}/{})", headerRecvRes, headerRecvSize);
-
-        // Receive the message data
-        size_t bodyRecvSize = m->len;
-        if (bodyRecvSize > 0) {
-            m->buffer = new uint8_t[bodyRecvSize];
-            int bodyRecvRes = ::recv(clientSocket, m->buffer, bodyRecvSize, 0);
-            if (bodyRecvRes < 0) {
-                logger->error("[TCP] Failed to recv message body: {} ({})", errno, strerror(errno));
-                throw std::runtime_error("Failed receiving TCP message body");
-            }
-            logger->trace("[TCP] received message body ({}/{})", bodyRecvRes, bodyRecvSize);
-        } else {
-            m->buffer = nullptr;
-        }
-
-        return m;
-    }
-
-    TCPMessage *TCPClient::recvMessage(size_t dataSize) const {
-        // Receive the full message
-        size_t recvSize = sizeof(TCPMessage) + dataSize;
-        auto buffer = new uint8_t[recvSize];
-        int recvRes = ::recv(clientSocket, buffer, recvSize, 0);
-
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        if (recvRes < 0) {
-            logger->error("[TCP] Failed to recv: {} ({})", errno, strerror(errno));
-            throw std::runtime_error("Failed receiving TCP message");
-        }
-        logger->error("[TCP] received full message ({}/{})", recvRes, recvSize);
-
-        TCPMessage *m = tcpMessageFromBuffer(buffer);
-        return m;
+        TCPMessage *msg = receiveTcpMessage(clientSocket);
+        return msg;
     }
 
     void TCPClient::exit() {

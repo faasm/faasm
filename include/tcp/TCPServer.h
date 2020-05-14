@@ -41,17 +41,4 @@ namespace tcp {
         long timeoutMillis;
     };
 
-    class TCPFailedException : public util::FaasmException {
-    public:
-        explicit TCPFailedException(std::string message) : FaasmException(std::move(message)) {
-
-        }
-    };
-
-    class TCPTimeoutException : public util::FaasmException {
-    public:
-        explicit TCPTimeoutException(std::string message) : FaasmException(std::move(message)) {
-
-        }
-    };
 }
