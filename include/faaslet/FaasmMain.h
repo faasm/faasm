@@ -23,6 +23,5 @@ namespace faaslet {
         util::SystemConfig &conf;
         faaslet::FaasletPool pool;
         scheduler::Scheduler &scheduler;
-        state::StateServer stateServer;
     };
 }

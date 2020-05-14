@@ -14,6 +14,10 @@ namespace tcp {
 
         // Set up the socket
         serverSocket = ::socket(AF_INET, SOCK_STREAM, 0);
+        if(serverSocket < 0) {
+            logger->error("[TCP] - failed to create server socket: {} ({})", errno, strerror(errno));
+            throw std::runtime_error("Failed to create server socket");
+        }
 
         memset(&serverAddress, 0, sizeof(serverAddress));
         serverAddress.sin_family = AF_INET;
@@ -24,30 +28,33 @@ namespace tcp {
         int onFlag = 1;
         int addrRes = setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, (const char *) &onFlag, sizeof(onFlag));
         if (addrRes < 0) {
+            logger->error("[TCP] - cannot reuse address on {}", port);
             throw std::runtime_error("Failed to reuse address");
         }
 
         int portRes = setsockopt(serverSocket, SOL_SOCKET, SO_REUSEPORT, (const char *) &onFlag, sizeof(onFlag));
         if (portRes < 0) {
+            logger->error("[TCP] - cannot reuse port on {}", port);
             throw std::runtime_error("Failed to reuse port");
         }
 
         // Set to non-blocking
         int nonBlockRes = ioctl(serverSocket, FIONBIO, (const char *) &onFlag);
         if (nonBlockRes < 0) {
+            logger->error("[TCP] - cannot set to non-blocking on {}", port);
             throw std::runtime_error("Failed to set non-blocking");
         }
 
         // Bind and listen
         int bindRes = ::bind(serverSocket, (struct sockaddr *) &serverAddress, sizeof(serverAddress));
         if (bindRes < 0) {
-            logger->error("Failed to bind to {}. Errno {} ({})", port, errno, strerror(errno));
+            logger->error("[TCP] - failed to bind to {}. Errno {} ({})", port, errno, strerror(errno));
             throw std::runtime_error("Failed to bind TCP server");
         }
 
         int listenRes = ::listen(serverSocket, BACKLOG);
         if (listenRes < 0) {
-            logger->error("Failed to listen on {}. Errno {} ({})", port, errno, strerror(errno));
+            logger->error("[TCP] - failed to listen on {}. Errno {} ({})", port, errno, strerror(errno));
             throw std::runtime_error("Failed to listen with TCP server");
         }
 
@@ -56,7 +63,7 @@ namespace tcp {
         pollFds[0].fd = serverSocket;
         pollFds[0].events = POLLIN;
 
-        logger->debug("Listening on {}", port);
+        logger->trace("[TCP] - server listening on {}", port);
     }
 
     int TCPServer::poll() {
@@ -65,9 +72,10 @@ namespace tcp {
         int nMessagesProcessed = 0;
 
         // Wait for input
+        logger->trace("[TCP] - server polling on {}", port);
         int pollCount = ::poll(pollFds, nFds, timeoutMillis);
         if (pollCount < 0) {
-            logger->error("Error with polling: {} ({})", errno, strerror(errno));
+            logger->error("[TCP] - error with polling: {} ({})", errno, strerror(errno));
             throw TCPFailedException("Error with polling");
         } else if (pollCount == 0) {
             throw TCPTimeoutException("Polling timed out");
@@ -82,23 +90,25 @@ namespace tcp {
             if (thisFd.revents == 0) {
                 continue;
             } else if (thisFd.revents == POLLHUP) {
-                logger->warn("Client hung up: {}", thisFd.fd);
+                logger->warn("[TCP] - client hung up: {}", thisFd.fd);
                 ::close(thisFd.fd);
                 continue;
             } else if (thisFd.revents == POLLERR) {
-                logger->warn("Poll err: {}", thisFd.fd);
+                logger->warn("[TCP] - poll error: {}", thisFd.fd);
                 throw TCPFailedException("Poll error");
             } else if (thisFd.revents == POLLNVAL) {
-                logger->warn("Socket not open: {}", thisFd.fd);
+                logger->warn("[TCP] - socket not open: {}", thisFd.fd);
                 continue;
             } else if (thisFd.revents != POLLIN) {
                 // Some unexpected event
-                logger->error("Unexpected poll event: {}", thisFd.revents);
+                logger->error("[TCP] - unexpected poll event: {}", thisFd.revents);
                 throw TCPFailedException("Unexpected poll event");
             }
 
             // Server event
             if (thisFd.fd == serverSocket) {
+                logger->trace("[TCP] - handling server event on {}", port);
+
                 struct sockaddr_in clientAddress{};
                 socklen_t addrSize = sizeof(clientAddress);
 
@@ -109,15 +119,18 @@ namespace tcp {
                         logger->error("Failed to accept {}. Errno {} ({})", port, errno, strerror(errno));
                         throw TCPFailedException("Failed to accept");
                     }
+
+                    logger->trace("[TCP] - ignoring accept, would block");
                     continue;
                 }
 
                 // Add the new client fd
+                logger->trace("[TCP] - adding new client on {}", socket);
                 pollFds[nFds].fd = socket;
                 pollFds[nFds].events = POLLIN;
                 nFds++;
             } else {
-                bool closeSocket = false;
+                logger->trace("[TCP] - handling client event on {}", port);
 
                 // Set up TCP message to hold data
                 auto msg = new TCPMessage();
@@ -131,8 +144,10 @@ namespace tcp {
 
                     // Connection closed
                     if (nRecv == 0) {
-                        closeSocket = true;
-                        break;
+                        logger->trace("[TCP] - client closed {}", thisFd.fd);
+                        freeTcpMessage(msg);
+                        ::close(thisFd.fd);
+                        continue;
                     }
 
                     // Error
@@ -141,6 +156,8 @@ namespace tcp {
                             logger->error("Failed to recv on {}. Errno {} ({})", port, errno, strerror(errno));
                             throw TCPFailedException("Recv error");
                         }
+
+                        logger->trace("[TCP] - poll would block for client {}", thisFd.fd);
                         break;
                     }
 
@@ -171,20 +188,18 @@ namespace tcp {
                     bytesReceived += nRecv;
 
                     if (bytesReceived >= msg->len) {
-                        logger->debug("Finished message type {} len {} ({} packets)", msg->type, bytesReceived,
-                                      packetCount);
+                        logger->trace("[TCP] - finished message type {} ({} across {} packets) from {}",
+                                msg->type, bytesReceived, packetCount, thisFd.fd);
                         break;
                     } else {
-                        logger->debug("TCP packet {} = {} bytes", packetCount, nRecv);
+                        logger->trace("[TCP] - processed packet {} of {} bytes from {}", packetCount, nRecv, thisFd.fd);
                         packetCount++;
                     }
                 }
 
                 if (bytesReceived != msg->len) {
-                    logger->warn("Did not receive exactly the right TCP data (expected {}, got {})", msg->len,
+                    logger->warn("[TCP] - did not receive exactly the bytes (expected {}, got {})", msg->len,
                                  bytesReceived);
-                } else {
-                    logger->debug("TCP got {} bytes as expected", bytesReceived);
                 }
 
                 // Record that we've now received a message
@@ -195,12 +210,15 @@ namespace tcp {
                 if (response) {
                     size_t bufferLen = tcpMessageLen(response);
                     uint8_t *buffer = tcpMessageToBuffer(response);
+
                     int sendRes = ::send(thisFd.fd, buffer, bufferLen, 0);
 
                     // Close if response failed
                     if (sendRes < 0) {
-                        closeSocket = true;
+                        logger->warn("[TCP] - sending response to {} failed", thisFd.fd);
+                        ::close(thisFd.fd);
                     }
+                    logger->trace("[TCP] - sent response to {} (size {})", thisFd.fd, bufferLen);
 
                     // Tidy the response
                     freeTcpMessage(response);
@@ -208,11 +226,6 @@ namespace tcp {
 
                 // Tidy the original message
                 freeTcpMessage(msg);
-
-                // Close this connection if necessary
-                if (closeSocket) {
-                    ::close(thisFd.fd);
-                }
             }
         }
 
@@ -220,7 +233,7 @@ namespace tcp {
     }
 
     void TCPServer::close() const {
-        util::getLogger()->debug("Shutting down server");
+        util::getLogger()->debug("[TCP] - shutting down server on {}", port);
 
         for (auto &p : pollFds) {
             if (p.fd > 0) {
