@@ -79,6 +79,8 @@ namespace faasm {
     /**
      * State
      */
+    size_t getMatrixStateSize(const MatrixXd &matrix);
+
     Map<const SparseMatrix<double>> readSparseMatrixFromState(const char *key, bool pull);
 
     void writeSparseMatrixToState(const char *key, const SparseMatrix<double> &mat, bool push);

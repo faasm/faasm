@@ -298,13 +298,18 @@ namespace faasm {
     }
 
 
+    size_t getMatrixStateSize(const MatrixXd &matrix) {
+        size_t nBytes = matrix.rows() * matrix.cols() * sizeof(double);
+        return nBytes;
+    }
+
     /**
      * Writes a matrix to state
      */
     void writeMatrixToState(const char *key, const MatrixXd &matrix, bool push) {
-        size_t nBytes = matrix.rows() * matrix.cols() * sizeof(double);
         auto byteArray = reinterpret_cast<const uint8_t *>(matrix.data());
 
+        size_t nBytes = getMatrixStateSize(matrix);
         faasmWriteState(key, byteArray, nBytes);
 
         if (push) {

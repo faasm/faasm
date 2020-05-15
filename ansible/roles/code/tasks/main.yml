@@ -6,13 +6,13 @@
     name:
       - cmake
       - git
-  when: not quick_deploy
+  when: quick_deploy is not defined
 
 - name: "Check out code"
   git:
     repo: "{{ remote_url | default('https://github.com/lsds/Faasm.git') }}"
     dest: "{{ ansible_env.HOME }}/faasm-bm"
-    version: "{{ repo_version | default('master') }}"
+    version: "{{ repo_version | default('experiments') }}"
     update: yes
 
 - name: "Set up local code directory"
@@ -20,7 +20,7 @@
   file:
     path: "/usr/local/code"
     state: directory
-  when: not quick_deploy
+  when: quick_deploy is not defined
 
 - name: "Create symbolic link to repo in local code directory"
   become: yes
@@ -32,7 +32,7 @@
     owner: "{{ ansible_user_id }}"
     group: "{{ ansible_user_id }}"
     mode: 0755
-  when: not quick_deploy
+  when: quick_deploy is not defined
 
 - name: "Set up filesystem directories"
   become: yes
@@ -42,4 +42,4 @@
     owner: "{{ ansible_user_id }}"
     group: "{{ ansible_user_id }}"
     recurse: yes
-  when: not quick_deploy
+  when: quick_deploy is not defined

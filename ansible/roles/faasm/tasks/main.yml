@@ -6,7 +6,7 @@
   apt:
     name:
       - supervisor
-  when: not quick_deploy
+  when: quick_deploy is not defined
 
 - name: "Create build dir"
   file:
@@ -15,7 +15,7 @@
     owner: "{{ ansible_env.USER }}"
     group: "{{ ansible_env.USER }}"
     mode: 0775
-  when: not quick_deploy
+  when: quick_deploy is not defined
 
 - name: "Prepare out-of-tree build"
   shell: >
@@ -32,13 +32,13 @@
   file:
     path: "{{ ansible_env.HOME }}/faasm"
     state: directory
-  when: not quick_deploy
+  when: quick_deploy is not defined
 
 - name: "Put Faasm config in place"
   template:
     src: "faasm.ini.j2"
     dest: "{{ ansible_env.HOME }}/faasm/faasm.ini"
-  when: not quick_deploy
+  when: quick_deploy is not defined
 
 - include_tasks: "worker.yml"
   when: "'worker' in group_names"
@@ -47,14 +47,14 @@
   when: "'upload' in group_names"
 
 - include_tasks: "edge.yml"
-  when: "('edge' in group_names) and not quick_deploy"
+  when: "('edge' in group_names) and quick_deploy is not defined"
 
 - include_tasks: "redis.yml"
-  when: "('redis' in group_names) and not quick_deploy"
+  when: "('redis' in group_names) and quick_deploy is not defined"
 
 - name: "Reload supervisor"
   become: yes
   shell: "supervisorctl {{ item }}"
   with_items:
-   - reread
-   - update
+   - reread all
+   - update all
