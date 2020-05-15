@@ -186,8 +186,10 @@ namespace faasm {
         auto sizes = reinterpret_cast<SparseSizes *>(sizeBuffer);
 
         if (sizes->cols == 0 || sizes->rows == 0) {
-            throw std::runtime_error("Loaded sparse matrix size zero");
+            printf("ERROR: loaded sparse matrix size as zero\n");
+            exit(1);
         }
+
         return *sizes;
     }
 
