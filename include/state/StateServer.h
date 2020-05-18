@@ -10,7 +10,7 @@ namespace state {
     public:
         explicit StateServer(State &stateIn);
 
-        tcp::TCPMessage * handleMessage(tcp::TCPMessage *) override;
+        tcp::TCPMessage * handleMessage(tcp::TCPMessage *request) override;
     private:
         State &state;
     };

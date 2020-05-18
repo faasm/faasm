@@ -31,7 +31,9 @@ namespace tcp {
         std::copy(bytes, bytes + structSize, buffer);
 
         // Copy data buffer after
-        std::copy(msg->buffer, msg->buffer + msg->len, buffer + structSize);
+        if(msg->len > 0) {
+            std::copy(msg->buffer, msg->buffer + msg->len, buffer + structSize);
+        }
 
         return buffer;
     }
@@ -49,7 +51,9 @@ namespace tcp {
         // Set up TCP message to hold data
         auto msg = new TCPMessage();
         int packetCount = 0;
-        size_t bytesReceived = 0;
+
+        size_t totalBytesReceived = 0;
+        size_t totalBodyBytesReceived = 0;
 
         while (true) {
             // Receive the data
@@ -76,10 +80,13 @@ namespace tcp {
             } else {
                 uint8_t *bufferStart;
 
+                totalBytesReceived += nRecv;
+                int bodyBytesReceived = nRecv;
+
                 if (packetCount == 0) {
                     // First packet contains the main struct
-                    size_t messageHeaderSize = sizeof(TCPMessage);
-                    std::copy(buffer, buffer + messageHeaderSize, BYTES(msg));
+                    size_t headerSize = sizeof(TCPMessage);
+                    std::copy(buffer, buffer + headerSize, BYTES(msg));
 
                     // Provision the message buffer
                     if (msg->len > 0) {
@@ -87,23 +94,24 @@ namespace tcp {
                     }
 
                     // Offset the rest of the buffer
-                    bufferStart = buffer + messageHeaderSize;
-                    nRecv -= messageHeaderSize;
+                    bufferStart = buffer + headerSize;
+                    bodyBytesReceived -= headerSize;
                 } else {
                     bufferStart = buffer;
                 }
 
-                // Insert the data from this packet
-                if (nRecv > 0) {
-                    uint8_t *msgBufferPosition = msg->buffer + bytesReceived;
-                    std::copy(bufferStart, bufferStart + nRecv, msgBufferPosition);
+                if (bodyBytesReceived > 0) {
+                    // Copy in the data from the buffer
+                    uint8_t *msgBufferPosition = msg->buffer + totalBodyBytesReceived;
+                    std::copy(bufferStart, bufferStart + bodyBytesReceived, msgBufferPosition);
+
+                    // Step forward
+                    totalBodyBytesReceived += bodyBytesReceived;
                 }
 
-                bytesReceived += nRecv;
-
-                if (bytesReceived >= msg->len) {
-                    logger->trace("[TCP] - completed message type {} ({} bytes across {} packets) from {}",
-                                  msg->type, bytesReceived, packetCount + 1, fd);
+                if (totalBodyBytesReceived >= msg->len) {
+                    logger->trace("[TCP] - received message ({} bytes across {} packets) from {}",
+                                  totalBytesReceived, packetCount + 1, fd);
                     break;
                 } else {
                     packetCount++;
@@ -112,9 +120,9 @@ namespace tcp {
         }
 
         // Check we've received what we expected
-        if (bytesReceived != msg->len) {
+        if (totalBodyBytesReceived != msg->len) {
             logger->warn("[TCP] - did not receive exactly the bytes (expected {}, got {})", msg->len,
-                         bytesReceived);
+                         totalBodyBytesReceived);
         }
 
         return msg;

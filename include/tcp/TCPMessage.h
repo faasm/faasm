@@ -8,8 +8,8 @@
 namespace tcp {
     struct TCPMessage {
         int type;
-        size_t len;
-        uint8_t *buffer;
+        size_t len = 0;
+        uint8_t *buffer = nullptr;
     };
 
     void freeTcpMessage(TCPMessage *msg);
@@ -39,6 +39,13 @@ namespace tcp {
     class TCPTimeoutException : public util::FaasmException {
     public:
         explicit TCPTimeoutException(std::string message) : FaasmException(std::move(message)) {
+
+        }
+    };
+
+    class TCPShutdownException : public util::FaasmException {
+    public:
+        explicit TCPShutdownException(std::string message) : FaasmException(std::move(message)) {
 
         }
     };

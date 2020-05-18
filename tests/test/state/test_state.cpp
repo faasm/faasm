@@ -739,9 +739,11 @@ namespace tests {
     }
 
     TEST_CASE("Test pushing pulling large state", "[state]") {
-        size_t oneMb = 1024 * 1024;
-        std::vector<uint8_t> valuesA(oneMb, 1);
-        std::vector<uint8_t> valuesB(oneMb, 2);
+
+        // Make sure value size finishes in the middle of a packet
+        size_t valueSize = (1024 * 1024) + 123;
+        std::vector<uint8_t> valuesA(valueSize, 1);
+        std::vector<uint8_t> valuesB(valueSize, 2);
 
         DummyStateServer server;
         setUpDummyServer(server, valuesA);

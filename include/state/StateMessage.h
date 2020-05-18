@@ -14,6 +14,7 @@ namespace state {
     enum StateMessageType {
         ERROR_RESPONSE,
         OK_RESPONSE,
+        SHUTDOWN,
         STATE_APPEND,
         STATE_CLEAR_APPENDED,
         STATE_DELETE,

@@ -27,6 +27,7 @@ extern "C" {
 
 // Note thread-locality here
 static thread_local message::Message _emulatedCall = message::Message();
+static thread_local state::State *_emulatedState = nullptr;
 
 static std::mutex threadsMutex;
 static std::unordered_map<int, std::thread> threads;
@@ -60,7 +61,6 @@ std::string getEmulatorOutputDataString() {
     return outputStr;
 }
 
-
 std::string getEmulatorUser() {
     return _emulatedCall.user();
 }
@@ -69,11 +69,16 @@ void setEmulatorUser(const char *newUser) {
     _emulatedCall.set_user(newUser);
 }
 
-char *emulatorGetAsyncResponse() {
-    const std::string responseStr = util::buildAsyncResponse(_emulatedCall);
-    char *responseData = new char[responseStr.size()];
-    strcpy(responseData, responseStr.c_str());
-    return responseData;
+state::State *getEmulatorState() {
+    if (_emulatedState == nullptr) {
+        return &state::getGlobalState();
+    } else {
+        return _emulatedState;
+    }
+}
+
+void setEmulatorState(state::State *state) {
+    _emulatedState = state;
 }
 
 void emulatorSetCallStatus(bool success) {
@@ -126,15 +131,15 @@ std::string getEmulatedUser() {
 // --------------------------------------------------------------
 
 std::shared_ptr<state::StateKeyValue> getKv(const char *key, size_t size) {
-    state::State &s = state::getGlobalState();
+    state::State *s = getEmulatorState();
     const std::string &emulatedUser = getEmulatedUser();
-    return s.getKV(emulatedUser, key, size);
+    return s->getKV(emulatedUser, key, size);
 }
 
 std::shared_ptr<state::StateKeyValue> getKv(const char *key) {
-    state::State &s = state::getGlobalState();
+    state::State *s = getEmulatorState();
     const std::string &emulatedUser = getEmulatedUser();
-    return s.getKV(emulatedUser, key);
+    return s->getKV(emulatedUser, key);
 }
 
 void __faasm_write_output(const unsigned char *output, long outputLen) {
@@ -144,11 +149,11 @@ void __faasm_write_output(const unsigned char *output, long outputLen) {
 
 long __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen) {
     util::getLogger()->debug("E - read_state {} {}", key, bufferLen);
-    state::State &s = state::getGlobalState();
+    state::State *s = getEmulatorState();
     std::string emulatedUser = getEmulatedUser();
 
     if (bufferLen == 0) {
-        return s.getStateSize(emulatedUser, key);
+        return s->getStateSize(emulatedUser, key);
     }
 
     auto kv = getKv(key, bufferLen);
@@ -215,7 +220,8 @@ unsigned int __faasm_write_state_from_file(const char *key, const char *filePath
     unsigned long fileLength = bytes.size();
 
     // Write to state
-    auto kv = state::getGlobalState().getKV(getEmulatorUser(), key, fileLength);
+    state::State *s = getEmulatorState();
+    auto kv = s->getKV(getEmulatorUser(), key, fileLength);
     kv->set(bytes.data());
     kv->pushFull();
 

@@ -362,11 +362,6 @@ namespace wasm {
         throw std::runtime_error("Should not be calling emulator functions from wasm");
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "emulatorGetAsyncResponse", I32, emulatorGetAsyncResponse) {
-        util::getLogger()->debug("S - emulatorGetAsyncResponse");
-        throw std::runtime_error("Should not be calling emulator functions from wasm");
-    }
-
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "emulatorSetCallStatus", void, emulatorSetCallStatus, I32 success) {
         util::getLogger()->debug("S - emulatorSetCallStatus {}", success);
         throw std::runtime_error("Should not be calling emulator functions from wasm");

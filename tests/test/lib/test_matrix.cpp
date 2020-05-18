@@ -10,6 +10,7 @@
 #include <emulator/emulator.h>
 #include <util/state.h>
 #include <state/StateServer.h>
+#include <tcp/TCPClient.h>
 
 using namespace Eigen;
 
@@ -284,23 +285,30 @@ namespace tests {
     void doRemoteSparseMatrixRoundTripCheck(int rows, int cols, int colStart, int colEnd) {
         cleanSystem();
 
-        int nMessages = 8;
-
         const char *key = "sparse_trip_offset_test";
         SparseMatrix<double> mat = faasm::randomSparseMatrix(rows, cols, 0.7);
+
+        std::string emulatorUser = getEmulatorUser();
         state::State remoteState(LOCALHOST);
 
         // Run state server in the background
-        std::thread serverThread([&key, &mat, &remoteState, nMessages] {
+        std::thread serverThread([&emulatorUser, &key, &mat, &remoteState] {
+            // Make sure emulator set up properly in this thread
+            setEmulatorUser(emulatorUser.c_str());
+            setEmulatorState(&remoteState);
+
             state::StateServer stateServer(remoteState);
 
-            // Write matrix to state to master in this thread
+            // Write matrix to state to set master as this thread
             faasm::writeSparseMatrixToState(key, mat, false);
 
             // Process enough messages
-            int processedMessages = 0;
-            while (processedMessages < nMessages) {
-                processedMessages += stateServer.poll();
+            while (true) {
+                try {
+                    stateServer.poll();
+                } catch (tcp::TCPShutdownException &ex) {
+                    break;
+                }
             }
 
             // Shut down
@@ -308,7 +316,7 @@ namespace tests {
         });
 
         // Give it time to start
-        ::usleep(1000 * 500);
+        ::usleep(0.5 * 1000 * 1000);
 
         // Get subsection from the matrix
         SparseMatrix<double> expected = mat.block(0, colStart, rows, colEnd - colStart);
@@ -320,6 +328,12 @@ namespace tests {
         // Read the whole thing and check
         Map<const SparseMatrix<double>> actualFull = faasm::readSparseMatrixFromState(key, true);
         checkSparseMatrixEquality(actualFull, mat);
+
+        // Send shutdown message
+        tcp::TCPClient client(LOCALHOST, STATE_PORT);
+        tcp::TCPMessage msg;
+        msg.type = state::StateMessageType::SHUTDOWN;
+        client.sendMessage(&msg);
 
         // Wait for server
         if (serverThread.joinable()) {

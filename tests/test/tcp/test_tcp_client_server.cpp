@@ -1,5 +1,7 @@
 #include <catch/catch.hpp>
 
+#include "utils.h"
+
 #include <tcp/EchoServer.h>
 #include <tcp/TCPClient.h>
 
@@ -7,10 +9,25 @@ using namespace tcp;
 
 namespace tests {
     TEST_CASE("Test send and receive on echo server", "[tcp]") {
+        cleanSystem();
+
         int port = 8006;
         std::string host = "127.0.0.1";
 
-        std::vector<uint8_t> requestBytes = {0, 1, 2, 3, 4};
+        std::vector<uint8_t> requestBytes;
+
+        TCPMessage m;
+        m.type = 1;
+
+        SECTION("Some data") {
+            requestBytes = {0, 1, 2, 3, 4};
+            m.len = requestBytes.size();
+            m.buffer = requestBytes.data();
+        }
+
+        SECTION("No data") {
+            // Explicitly don't set other fields on message
+        }
 
         // Run an echo server in a thread
         std::thread serverThread([port] {
@@ -26,10 +43,6 @@ namespace tests {
 
         // Send request with client
         TCPClient client(host, port);
-        TCPMessage m;
-        m.type = 1;
-        m.len = requestBytes.size();
-        m.buffer = requestBytes.data();
         client.sendMessage(&m);
 
         // Receive response
