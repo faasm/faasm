@@ -57,4 +57,4 @@
   shell: "supervisorctl {{ item }}"
   with_items:
    - reread all
-   - update all
+   - restart all
