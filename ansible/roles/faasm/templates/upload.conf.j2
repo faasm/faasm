@@ -5,7 +5,7 @@ autorestart=true
 stderr_logfile=/var/log/faasm_upload.log
 stdout_logfile=/var/log/faasm_upload.log
 user={{ ansible_env.USER }}
-environment=LOG_LEVEL=info,
+environment=LOG_LEVEL=trace,
   REDIS_STATE_HOST="{{ hostvars[groups['redis'][0]].internal_host }}",
   REDIS_QUEUE_HOST="{{ hostvars[groups['redis'][0]].internal_host }}",
   ENDPOINT_INTERFACE="{{ internal_iface | default('eth0') }}",

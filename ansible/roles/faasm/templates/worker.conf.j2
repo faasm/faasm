@@ -5,7 +5,7 @@ autorestart=true
 stderr_logfile=/var/log/faasm_worker.log
 stdout_logfile=/var/log/faasm_worker.log
 user={{ ansible_env.USER }}
-environment=LOG_LEVEL=debug,
+environment=LOG_LEVEL=trace,
   FUNCTION_STORAGE=fileserver,
   FILESERVER_URL="http://{{ hostvars[groups['upload'][0]].internal_host }}:8002",
   THREADS_PER_WORKER=19,

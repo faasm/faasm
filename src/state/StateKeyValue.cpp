@@ -167,9 +167,9 @@ namespace state {
         checkSizeConfigured();
 
         // Check we're in bounds
-        size_t end = offset + length;
-        if (end > valueSize) {
-            logger->error("Trying to write segment to {} finishing at {} (value length {})", key, end, valueSize);
+        size_t segmentEnd = offset + length;
+        if (segmentEnd > valueSize) {
+            logger->error("Trying to write segment to {} finishing at {} (value length {})", key, segmentEnd, valueSize);
             throw std::runtime_error("Attempting to set segment out of bounds");
         }
 
