@@ -6,7 +6,6 @@
 #include <redis/Redis.h>
 #include <state/State.h>
 
-#include <iostream>
 #include <emulator/emulator.h>
 #include <util/state.h>
 #include <state/StateServer.h>

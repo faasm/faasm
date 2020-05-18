@@ -1,10 +1,10 @@
+#include "TCPMessage.h"
+
 #include <algorithm>
 #include <util/macros.h>
 #include <util/logging.h>
 #include <sys/socket.h>
-#include "TCPMessage.h"
 
-#define RECV_BUF_SIZE 1024
 
 namespace tcp {
     void freeTcpMessage(TCPMessage *msg) {
@@ -57,8 +57,8 @@ namespace tcp {
 
         while (true) {
             // Receive the data
-            uint8_t buffer[RECV_BUF_SIZE];
-            int nRecv = ::recv(fd, buffer, RECV_BUF_SIZE, 0);
+            uint8_t buffer[TCP_RECV_BUF_SIZE];
+            int nRecv = ::recv(fd, buffer, TCP_RECV_BUF_SIZE, 0);
 
             if (nRecv <= 0) {
                 // Connection closed

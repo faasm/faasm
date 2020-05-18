@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <util/exception.h>
 
+#define TCP_RECV_BUF_SIZE 1024
 
 namespace tcp {
     struct TCPMessage {

@@ -739,9 +739,8 @@ namespace tests {
     }
 
     TEST_CASE("Test pushing pulling large state", "[state]") {
-
         // Make sure value size finishes in the middle of a packet
-        size_t valueSize = (1024 * 1024) + 123;
+        size_t valueSize = (10 * TCP_RECV_BUF_SIZE) + 123;
         std::vector<uint8_t> valuesA(valueSize, 1);
         std::vector<uint8_t> valuesB(valueSize, 2);
 
@@ -766,6 +765,61 @@ namespace tests {
         // Check equality of remote
         const std::vector<uint8_t> &actualRemote = server.getRemoteKvValue();
         REQUIRE(actualRemote == valuesB);
+
+        server.wait();
+    }
+
+    TEST_CASE("Test pushing pulling segments of large state", "[state]") {
+        // Set up a big chunk of state
+        size_t valueSize = 10 * TCP_RECV_BUF_SIZE + 123;
+        std::vector<uint8_t> values(valueSize, 1);
+        DummyStateServer server;
+        setUpDummyServer(server, values);
+
+        // Two segment pulls, one push partial
+        server.start(3);
+
+        // Set a segment in the remote value
+        int offsetA = 3 * TCP_RECV_BUF_SIZE + 5;
+        std::vector<uint8_t> segA = {4, 4};
+        std::shared_ptr<state::StateKeyValue> remoteKv = server.getRemoteKv();
+        remoteKv->setSegment(offsetA, segA.data(), segA.size());
+
+        // Set a segment at the end of the remote value
+        std::vector<uint8_t> segB = {5, 5, 5, 5, 5};
+        int offsetB = valueSize - 1 - segB.size();
+        remoteKv->setSegment(offsetB, segB.data(), segB.size());
+
+        // Get only these chunks locally
+        std::shared_ptr<state::StateKeyValue> localKv = server.getLocalKv();
+        std::vector<uint8_t> actualSegA(segA.size(), 0);
+        localKv->getSegment(offsetA, actualSegA.data(), segA.size());
+        REQUIRE(actualSegA == segA);
+
+        std::vector<uint8_t> actualSegB(segB.size(), 0);
+        localKv->getSegment(offsetB, actualSegB.data(), segB.size());
+        REQUIRE(actualSegB == segB);
+
+        // Now modify a different chunk locally
+        int offsetC = 2 * TCP_RECV_BUF_SIZE + 2;
+        std::vector<uint8_t> segC = {0, 1, 2, 3, 4};
+        localKv->setSegment(offsetC, segC.data(), segC.size());
+
+        // Modify a chunk right at the end
+        std::vector<uint8_t> segD = {3, 3, 3};
+        int offsetD = valueSize - 1 - segD.size();
+        localKv->setSegment(offsetD, segD.data(), segD.size());
+        
+        // Push the changes
+        localKv->pushPartial();
+        
+        // Check the segments in the remote value
+        std::vector<uint8_t> actualAfterPush = server.getRemoteKvValue();
+        std::vector<uint8_t> actualSegC(actualAfterPush.begin() + offsetC, actualAfterPush.begin() + offsetC + segC.size());
+        std::vector<uint8_t> actualSegD(actualAfterPush.begin() + offsetD, actualAfterPush.begin() + offsetD + segD.size());
+
+        REQUIRE(actualSegC == segC);
+        REQUIRE(actualSegD == segD);
 
         server.wait();
     }
