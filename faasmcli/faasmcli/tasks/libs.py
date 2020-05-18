@@ -134,7 +134,6 @@ def rust(ctx, clean=False, verbose=False):
     """
     _build_faasm_lib("rust", clean, verbose)
 
-
 @task
 def fake(ctx, clean=False):
     """
@@ -181,11 +180,11 @@ def fake(ctx, clean=False):
 
 
 @task
-def lulesh(ctx, mpi=False, omp=False, clean=True, debug=False, cp=True):
+def lulesh(ctx, lulesh_dir, mpi=False, omp=False, clean=True, debug=False, cp=True):
     """
     Compile and install the LULESH code
     """
-    work_dir = join(THIRD_PARTY_DIR, "LULESH")
+    work_dir = lulesh_dir
 
     if omp and mpi:
         build_dir = "ompi"

@@ -1,4 +1,4 @@
-#include <wavm/openmp/Level.h>
+#include "wavm/openmp/Level.h"
 
 #include <openmp/ThreadState.h>
 #include <util/config.h>
@@ -25,6 +25,7 @@ namespace wasm {
             }
         }
 
+        // TODO - max out at thread pool capacity. If TP capacity is reached then don't spawn thread
         int Level::get_next_level_num_threads() const {
             // Limits to one thread if we have exceeded maximum parallelism depth
             if (effectiveDepth >= maxActiveLevel) {
@@ -35,7 +36,7 @@ namespace wasm {
             int nextWanted = pushedNumThreads > 0 ? pushedNumThreads : wantedNumThreads;
 
             // Returns user preference if set or device's maximum
-            return nextWanted > 0 ? nextWanted : (int) util::getSystemConfig().maxWorkersPerFunction;
+            return nextWanted > 0 ? nextWanted : (int) util::getSystemConfig().threadsPerWorker;
         }
 
         void Level::snapshot_parent(message::Message &msg) const {

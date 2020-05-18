@@ -12,8 +12,8 @@ void run_once_only() {
 
 int main() {
 
-    #pragma omp parallel num_threads(10)
-    #pragma omp single
+    #pragma omp parallel num_threads(4)
+    #pragma omp single nowait
     run_once_only();
 
 }

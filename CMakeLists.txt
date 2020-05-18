@@ -31,7 +31,7 @@ if (FAASM_WAMR_SUPPORT)
     set(WAMR_BUILD_AOT 0)
     set(WAMR_BUILD_LIBC_WASI 1)
     set(WAMR_BUILD_LIBC_BUILTIN 0)
-endif()
+endif ()
 
 # Library type (for shared libraries)
 if (FAASM_STATIC_LIBS)
@@ -64,16 +64,20 @@ add_definitions(-DDLL_EXPORT=)
 add_definitions(-DDLL_IMPORT=)
 
 # Faasm profiling
-add_definitions(-DFAASM_PROFILE_ON=0)
+option(FAASM_SELF_TRACING "Turn on system tracing using the logger")
 option(FAASM_OPENMP_TRACING "Trace OpenMP forks in Redis")
+option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md")
+
+if (${FAASM_SELF_TRACING})
+    message("-- Activated FAASM tracing")
+    add_definitions(-DTRACE_ALL=1)
+endif ()
 
 if (${FAASM_OPENMP_TRACING})
     add_definitions(-DOPENMP_FORK_REDIS_TRACE=1)
 endif ()
 
-# Custom LLVM build (also for profiling)
-set(FAASM_CUSTOM_LLVM 0)
-if (${FAASM_CUSTOM_LLVM})
+if (${FAASM_PERF_PROFILING})
     # In accordance with bin/build_llvm_perf.sh and LLVM version for WAVM
     set(LLVM_DIR /usr/local/code/llvm-perf/build/lib/cmake/llvm)
     message(STATUS "Using custom LLVM at ${LLVM_DIR} for profiling")
@@ -148,10 +152,10 @@ else ()
     # WAVM
     add_subdirectory(third-party/WAVM)
 
-    if(FAASM_WAMR_SUPPORT)
-    include (${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
-    add_library(libwamr ${WAMR_RUNTIME_LIB_SOURCE})
-    endif()
+    if (FAASM_WAMR_SUPPORT)
+        include(${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
+        add_library(libwamr ${WAMR_RUNTIME_LIB_SOURCE})
+    endif ()
 
     # Faasm functions
     add_subdirectory(func)
@@ -162,9 +166,6 @@ else ()
     add_subdirectory(libs/faasmpi)
     add_subdirectory(libs/pyinit)
     add_subdirectory(libs/rust)
-
-    # Custom malloc
-    add_subdirectory(third-party/malloc)
 
     # Faasm runtime
     add_subdirectory(src/codegen)

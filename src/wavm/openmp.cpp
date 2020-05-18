@@ -1,28 +1,21 @@
-#include "WAVMWasmModule.h"
+#include "wavm/openmp/openmp.h"
 
-#include <wavm/openmp/Level.h>
-#include <wavm/openmp/ThreadState.h>
-
+#include <future>
 #include <WAVM/Platform/Thread.h>
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
 
-#include <faasm/array.h>
 #include <state/StateKeyValue.h>
 #include <scheduler/Scheduler.h>
-
 #include <util/timing.h>
+#include <wavm/openmp/Level.h>
+#include <wavm/openmp/ThreadState.h>
+#include <wavm/OMPThreadPool.h>
+#include <wavm/WAVMWasmModule.h>
+
 
 namespace wasm {
     using namespace openmp;
-
-    struct LocalThreadArgs {
-        int tid = 0;
-        std::shared_ptr<openmp::Level> level = nullptr;
-        wasm::WAVMWasmModule *parentModule;
-        message::Message *parentCall;
-        WasmThreadSpec spec;
-    };
 
     /**
      * Performs actual static assignment
@@ -356,16 +349,13 @@ namespace wasm {
             // Set up new level
             auto nextLevel = std::make_shared<SingleHostLevel>(thisLevel, nextNumThreads);
 
-            // Note - must ensure thread arguments are outside loop scope otherwise they do
-            // may not exist by the time the thread actually consumes them
-            std::vector<LocalThreadArgs> threadArgs;
-            threadArgs.reserve(nextNumThreads);
-
+            // Safety - must ensure thread arguments lifetime is longer than the threads
+            // And that this container is not moved (reserve).
             std::vector<std::vector<IR::UntaggedValue>> microtaskArgs;
             microtaskArgs.reserve(nextNumThreads);
 
-            std::vector<WAVM::Platform::Thread *> platformThreads;
-            platformThreads.reserve(nextNumThreads);
+            std::vector<std::future<I64>> threadsFutures;
+            threadsFutures.reserve(nextNumThreads);
 
             // Build up arguments
             for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
@@ -382,32 +372,25 @@ namespace wasm {
 
                 // Arguments for spawning the thread
                 // NOTE - CLion auto-format insists on this layout... and clangd really hates C99 extensions
-                threadArgs.push_back({
-                                             .tid = threadNum,
-                                             .level = nextLevel,
-                                             .parentModule = parentModule,
-                                             .parentCall = parentCall,
-                                             .spec = {
-                                                     .contextRuntimeData = contextRuntimeData,
-                                                     .func = func,
-                                                     .funcArgs = microtaskArgs[threadNum].data(),
-                                             }
-                                     });
-            }
+                LocalThreadArgs threadArgs = {
+                        .tid = threadNum,
+                        .level = nextLevel,
+                        .parentModule = parentModule,
+                        .parentCall = parentCall,
+                        .spec = {
+                                .contextRuntimeData = contextRuntimeData,
+                                .func = func,
+                                .funcArgs = microtaskArgs[threadNum].data(),
+                        }
+                };
 
-            // Create the threads themselves
-            for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
-                platformThreads.emplace_back(Platform::createThread(
-                        0,
-                        ompThreadEntryFunc,
-                        &threadArgs[threadNum]
-                ));
+                threadsFutures.emplace_back(parentModule->getOMPPool()->runThread(std::move(threadArgs)));
             }
 
             // Await all threads
             I64 numErrors = 0;
-            for (auto t: platformThreads) {
-                numErrors += Platform::joinThread(t);
+            for (auto &f : threadsFutures) {
+                numErrors += f.get();
             }
 
             if (numErrors) {

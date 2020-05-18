@@ -38,13 +38,9 @@
 [submodule "third-party/ParResKernels"]
 	path = third-party/ParResKernels
 	url = https://github.com/Shillaker/Kernels.git
-[submodule "third-party/LULESH"]
-	path = third-party/LULESH
-	url = https://github.com/mfournial/LULESH.git
 [submodule "third-party/wasi-libc"]
-    path = third-party/wasi-libc
-    url = https://github.com/Shillaker/wasi-libc
-
+	path = third-party/wasi-libc
+	url = https://github.com/Shillaker/wasi-libc
 [submodule "third-party/wamr"]
 	path = third-party/wamr
 	url = https://github.com/bytecodealliance/wasm-micro-runtime.git

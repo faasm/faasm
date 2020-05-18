@@ -4,6 +4,7 @@ include_directories(
 )
 
 set(HEADERS
+        "${FAASM_INCLUDE_DIR}/wavm/OMPThreadPool.h"
         "${FAASM_INCLUDE_DIR}/wavm/WAVMWasmModule.h"
         )
 
@@ -24,6 +25,7 @@ set(LIB_FILES
         mpi.cpp
         network.cpp
         openmp.cpp
+        OMPThreadPool.cpp
         process.cpp
         rust.cpp
         scheduling.cpp

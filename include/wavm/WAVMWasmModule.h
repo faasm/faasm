@@ -17,6 +17,10 @@ namespace wasm {
 
     struct WasmThreadSpec;
 
+    namespace openmp {
+        class PlatformThreadPool;
+    }
+
     class WAVMWasmModule : public WasmModule, Runtime::Resolver {
     public:
         WAVMWasmModule();
@@ -112,6 +116,10 @@ namespace wasm {
 
         int getDataOffsetFromGOT(const std::string &name);
 
+        U32 allocateThreadStack();
+
+        std::unique_ptr<openmp::PlatformThreadPool> &getOMPPool();
+
     protected:
         void doSnapshot(std::ostream &outStream) override;
 
@@ -172,6 +180,10 @@ namespace wasm {
         void syncPythonFunctionFile(const message::Message &msg);
 
         void executeRemoteOMP(message::Message &msg);
+
+        void prepareOpenMPContext(const message::Message &msg);
+
+        std::unique_ptr<openmp::PlatformThreadPool> OMPPool;
     };
 
     WAVMWasmModule *getExecutingModule();
@@ -182,5 +194,6 @@ namespace wasm {
         Runtime::ContextRuntimeData *contextRuntimeData;
         Runtime::Function *func;
         IR::UntaggedValue *funcArgs;
+        U32 stackTop;
     };
 }
