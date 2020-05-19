@@ -249,7 +249,6 @@ namespace state {
         }
 
         // Send the message
-        logger->trace("[TCP] - PULL CHUNK {} - {}/{}", key, offset, length);
         tcp::TCPMessage *msg = buildStatePullChunkRequest(offset, length);
         masterClient->sendMessage(msg);
         tcp::freeTcpMessage(msg);
@@ -417,8 +416,6 @@ namespace state {
         uint8_t *requestData = request->buffer + dataOffset;
         int32_t chunkOffset = *(reinterpret_cast<int32_t *>(requestData));
         int32_t chunkLen = *(reinterpret_cast<int32_t *>(requestData + sizeof(int32_t)));
-
-        logger->trace("[TCP] - CHUNK {} - {}/{}", key, chunkOffset, chunkLen);
 
         // Check bounds - note we need to check against the allocated memory size, not the value
         int32_t chunkEnd = chunkOffset + chunkLen;

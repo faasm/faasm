@@ -264,13 +264,14 @@ namespace tests {
         server.wait();
     }
 
-    TEST_CASE("Test set segment cannot be out of bounds", "[state]") {
+    TEST_CASE("Test set segment cannot be over the size of the allocated memory", "[state]") {
         auto kv = setupKV(2);
 
         // Set a segment offset
         std::vector<uint8_t> update = {8, 8, 8};
 
-        REQUIRE_THROWS(kv->setSegment(5, update.data(), 3));
+        long offset = util::HOST_PAGE_SIZE - 2;
+        REQUIRE_THROWS(kv->setSegment(offset, update.data(), 3));
     }
 
     TEST_CASE("Test partially setting just first/ last element", "[state]") {
