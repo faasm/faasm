@@ -201,7 +201,6 @@ namespace wasm {
         // Map shared memory
         WAVMWasmModule *module = getExecutingModule();
         U32 wasmPtr = module->mmapKey(kv, 0, totalLen);
-
         return wasmPtr;
     }
 
@@ -359,6 +358,11 @@ namespace wasm {
     // Emulator API, should not be called from wasm but needs to be present for linking
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "setEmulatedMessageFromJson", I32, setEmulatedMessageFromJson, I32 msgPtr) {
         util::getLogger()->debug("S - setEmulatedMessageFromJson - {}", msgPtr);
+        throw std::runtime_error("Should not be calling emulator functions from wasm");
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "emulatorGetAsyncResponse", I32, emulatorGetAsyncResponse) {
+        util::getLogger()->debug("S - emulatorGetAsyncResponse");
         throw std::runtime_error("Should not be calling emulator functions from wasm");
     }
 

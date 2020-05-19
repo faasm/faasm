@@ -420,6 +420,14 @@ namespace state {
 
         logger->trace("[TCP] - CHUNK {} - {}/{}", key, chunkOffset, chunkLen);
 
+        // Check bounds - note we need to check against the allocated memory size, not the value
+        int32_t chunkEnd = chunkOffset + chunkLen;
+        if(chunkEnd > sharedMemSize) {
+            logger->error("Pull chunk request larger than allocated memory (chunk end {}, allocated {})",
+                          chunkEnd, sharedMemSize);
+            throw std::runtime_error("Pull chunk request exceeds allocated memory");
+        }
+
         auto response = new tcp::TCPMessage();
         response->type = StateMessageType::STATE_PULL_CHUNK_RESPONSE;
         response->len = chunkLen;
@@ -427,7 +435,7 @@ namespace state {
         // TODO - can we do this without copying?
         response->buffer = new uint8_t[chunkLen];
         auto bytePtr = BYTES(sharedMemory);
-        std::copy(bytePtr + chunkOffset, bytePtr + chunkOffset + chunkLen, response->buffer);
+        std::copy(bytePtr + chunkOffset, bytePtr + chunkEnd, response->buffer);
 
         return response;
     }

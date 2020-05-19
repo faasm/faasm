@@ -166,9 +166,9 @@ namespace state {
     void StateKeyValue::doSetSegment(long offset, const uint8_t *buffer, size_t length) {
         checkSizeConfigured();
 
-        // Check we're in bounds
+        // Check we're in bounds - note that we permit chunks within the _allocated_ memory
         size_t segmentEnd = offset + length;
-        if (segmentEnd > valueSize) {
+        if (segmentEnd > sharedMemSize) {
             logger->error("Trying to write segment to {} finishing at {} (value length {})", key, segmentEnd, valueSize);
             throw std::runtime_error("Attempting to set segment out of bounds");
         }
@@ -176,12 +176,6 @@ namespace state {
         // If necessary, allocate the memory
         if (!isSegmentAllocated(offset, length)) {
             allocateSegment(offset, length);
-        }
-
-        // Check size
-        if (offset + length > valueSize) {
-            logger->error("Segment length {} at offset {} too big for size {}", length, offset, valueSize);
-            throw std::runtime_error("Setting state segment too big for container");
         }
 
         // Do the copy
@@ -234,6 +228,10 @@ namespace state {
 
     size_t StateKeyValue::size() const {
         return valueSize;
+    }
+
+    size_t StateKeyValue::getSharedMemorySize() const {
+        return sharedMemSize;
     }
 
     void StateKeyValue::mapSharedMemory(void *destination, long pagesOffset, long nPages) {

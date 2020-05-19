@@ -766,8 +766,8 @@ namespace wasm {
 
     U32 WAVMWasmModule::mmapMemory(U32 length) {
         // Round up to page boundary
-        Uptr pagesRequested = getNumberOfPagesForBytes(length);
-        return mmapPages(pagesRequested);
+        Uptr nWasmPages = getNumberOfWasmPagesForBytes(length);
+        return mmapPages(nWasmPages);
     }
 
     U32 WAVMWasmModule::mmapPages(U32 pages) {
@@ -810,31 +810,48 @@ namespace wasm {
         return mappedRangePtr;
     }
 
+    /**
+     * Maps the given state into module memory.
+     *
+     * If we are dealing with a chunk of a larger state value, we will still
+     * allocate enough shared process memory for the full value, but only map
+     * enough wasm memory for the chunk. This is minimise the amount of wasm
+     * memory we allocate.
+     *
+     * If many chunks of the same value are loaded, this leads to fragmentation,
+     * but usually only one or two chunks are loaded per module.
+     *
+     * To perform the mapping we need to ensure allocated memory is page-aligned,
+     * hence there must be some extra arithmetic to handle the appropriate offsetting.
+     */
     U32 WAVMWasmModule::mmapKey(const std::shared_ptr<state::StateKeyValue> &kv, long offset, U32 length) {
-        // Create a key for this specific offset and length and cache the pointer once done
+        // Create a key for this chunk so we can cache the mapped pointer
         std::string segmentKey = kv->user + "_" + kv->key + "_" + std::to_string(offset) + "_" + std::to_string(length);
 
-        // See if this is the first time the module has seen this key
+        // See if we have a mapping to this segment
         if (sharedMemWasmPtrs.count(segmentKey) == 0) {
-            size_t alignedOffset = util::alignOffsetDown(offset);
-            size_t offsetFromStart = offset - alignedOffset;
+            // Lock and double check
+            util::UniqueLock lock(sharedMemWasmPtrsMx);
+            if (sharedMemWasmPtrs.count(segmentKey) == 0) {
+                // Calculate the page range aligned down at the bottom and up at the top
+                size_t nPagesOffset = util::getRequiredHostPagesRoundDown(offset);
+                size_t nPagesLength = util::getRequiredHostPages(length);
 
-            // Work out how many bytes are needed to contain the result once it's been page aligned
-            size_t bytesLength = offsetFromStart + length;
+                // Create the wasm memory region
+                long wasmBytesRequired = nPagesLength * util::HOST_PAGE_SIZE;
+                U32 wasmMemoryRegion = this->mmapMemory(wasmBytesRequired);
+                U8 *wasmMemoryRegionPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmMemoryRegion);
 
-            // Create new memory region that's big enough
-            U32 wasmMemoryRegion = this->mmapMemory(bytesLength);
-            U8 *hostMemPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmMemoryRegion);
+                // Map the wasm memory onto the pages of state
+                kv->mapSharedMemory(static_cast<void *>(wasmMemoryRegionPtr), nPagesOffset, nPagesLength);
 
-            // Map the WASM memory to the shared value
-            void *voidPtr = static_cast<void *>(hostMemPtr);
-            long offsetPages = util::getRequiredHostPagesRoundDown(offset);
-            long nPages = util::getRequiredHostPages(bytesLength);
-            kv->mapSharedMemory(voidPtr, offsetPages, nPages);
+                // Get the pointer to the start of the required chunk
+                size_t offsetFromStartOfWasmMemory = offset - (nPagesOffset * util::HOST_PAGE_SIZE);
+                U32 wasmPtr = wasmMemoryRegion + offsetFromStartOfWasmMemory;
 
-            // Remember the kv and pointer
-            U32 wasmPtr = wasmMemoryRegion + offsetFromStart;
-            sharedMemWasmPtrs.insert(std::pair<std::string, I32>(segmentKey, wasmPtr));
+                // Cache this pointer
+                sharedMemWasmPtrs.insert(std::pair<std::string, I32>(segmentKey, wasmPtr));
+            }
         }
 
         // Return the wasm pointer

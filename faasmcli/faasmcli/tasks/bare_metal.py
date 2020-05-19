@@ -79,8 +79,8 @@ def restart(ctx):
     Restart whole bare metal deployment
     """
     _ansible_command("redis", "redis-cli flushall")
-    _ansible_command("worker", "sudo supervisorctl restart faasm_worker")
     _ansible_command("upload", "sudo supervisorctl restart faasm_upload")
+    _ansible_command("worker", "sudo supervisorctl restart faasm_worker")
 
 
 @task

@@ -125,7 +125,7 @@ namespace wasm {
     void setExecutingCall(message::Message *other);
 
     // Convenience function
-    size_t getNumberOfPagesForBytes(uint32_t nBytes);
+    size_t getNumberOfWasmPagesForBytes(uint32_t nBytes);
 
     /*
      * Exception thrown when wasm module terminates

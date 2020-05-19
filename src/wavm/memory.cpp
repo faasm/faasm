@@ -131,7 +131,7 @@ namespace wasm {
 //        }
 //
 //        const Uptr addrPageBase = addr / IR::numBytesPerPage;
-//        const Uptr numPages = getNumberOfPagesForBytes(length);
+//        const Uptr numPages = getNumberOfWasmPagesForBytes(length);
 //
 //        // Drop out if we're munmapping over the max page boundary
 //        if (addrPageBase + numPages > getMemoryType(memory).size.max) {
@@ -187,7 +187,7 @@ namespace wasm {
             return currentBreak;
         }
 
-        Uptr targetPageCount = getNumberOfPagesForBytes(addr);
+        Uptr targetPageCount = getNumberOfWasmPagesForBytes(addr);
         Uptr maxPages = getMemoryType(memory).size.max;
 
         // Check if expanding too far

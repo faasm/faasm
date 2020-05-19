@@ -95,14 +95,7 @@ namespace state {
 
 
     std::shared_ptr<StateKeyValue> State::getKV(const std::string &user, const std::string &key, size_t size) {
-        const std::shared_ptr<StateKeyValue> &kv = doGetKV(user, key, false, size);
-
-        if (size > 0 && size != kv->size()) {
-            util::getLogger()->error("Reading kv into buffer of wrong length (kv={}, buffer={})", kv->size(), size);
-            throw std::runtime_error("Mismatched buffer and state size");
-        }
-
-        return kv;
+        return doGetKV(user, key, false, size);
     }
 
     std::shared_ptr<StateKeyValue>

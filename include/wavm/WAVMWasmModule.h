@@ -135,6 +135,7 @@ namespace wasm {
         bool boundIsTypescript = false;
 
         // Shared memory regions
+        std::mutex sharedMemWasmPtrsMx;
         std::unordered_map<std::string, I32> sharedMemWasmPtrs;
 
         // Map of dynamically loaded modules

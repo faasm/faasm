@@ -95,6 +95,8 @@ namespace state {
 
         size_t size() const;
 
+        size_t getSharedMemorySize() const;
+
         void pushFull();
 
         virtual void lockGlobal() = 0;
