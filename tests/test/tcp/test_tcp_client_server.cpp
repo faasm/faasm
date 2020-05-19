@@ -11,7 +11,8 @@ namespace tests {
     TEST_CASE("Test send and receive on echo server", "[tcp]") {
         cleanSystem();
 
-        int port = 8006;
+        // Use different ports to make sure there's no conflicts
+        int port;
         std::string host = "127.0.0.1";
 
         std::vector<uint8_t> requestBytes;
@@ -20,22 +21,30 @@ namespace tests {
         m.type = 1;
 
         SECTION("Some data") {
+            port = 8006;
+
             requestBytes = {0, 1, 2, 3, 4};
             m.len = requestBytes.size();
             m.buffer = requestBytes.data();
         }
 
         SECTION("No data") {
-            // Explicitly don't set other fields on message
+            port = 8007;
+
+            // Don't set other fields on message to check defaults
         }
 
         // Run an echo server in a thread
         std::thread serverThread([port] {
+            util::getLogger()->debug("Starting echo server thread");
             EchoServer server(port);
+
             int nMsgs = 0;
             while (nMsgs == 0) {
                 nMsgs += server.poll();
             }
+
+            server.close();
         });
 
         // Let the server start
