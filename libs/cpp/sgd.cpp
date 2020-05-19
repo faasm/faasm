@@ -174,7 +174,7 @@ namespace faasm {
     }
 
     void setUpDummyProblem(const SgdParams &params) {
-        // Persis the parameters
+        // Persist the parameters
         writeParamsToState(PARAMS_KEY, params, true);
 
         // Create fake training data as dot product of the matrix of training input data and the real weight vector
@@ -189,6 +189,16 @@ namespace faasm {
         writeSparseMatrixToState(INPUTS_KEY, inputs, true);
         writeMatrixToState(OUTPUTS_KEY, outputs, true);
         writeMatrixToState(WEIGHTS_KEY, weights, true);
+
+        // Set up fake feature counts
+        std::vector<int> featureCounts(params.nWeights, 1);
+        for(int i = 0; i < featureCounts.size(); i++) {
+            featureCounts[i] = randomInteger(0, 200);
+        }
+
+        // Write feature counts to state
+        uint8_t *featureBytes = BYTES(featureCounts.data());
+        faasmWriteState(FEATURE_COUNTS_KEY, featureBytes, featureCounts.size() * sizeof(int));
     }
 }
 

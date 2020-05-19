@@ -19,7 +19,7 @@ SgdParams setUpReutersParams(int nBatches, int syncInterval, int epochs) {
     p.nEpochs = epochs;
     p.mu = 1.0;
 
-    // Round up number of batches
+    // Round up batch size
     p.nBatches = nBatches;
     p.batchSize = (REUTERS_N_EXAMPLES + nBatches - 1) / nBatches;
 

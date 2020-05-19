@@ -9,6 +9,8 @@
 #include <util/environment.h>
 #include <emulator/emulator.h>
 #include <util/state.h>
+#include <state/StateServer.h>
+#include <tcp/TCPClient.h>
 
 
 using namespace faasm;
@@ -214,5 +216,73 @@ namespace tests {
         double expectedRmse = sqrt((3 * expected) / p.nTrain);
         double actual = faasm::readRootMeanSquaredError(p);
         REQUIRE(abs(actual - expectedRmse) < 0.0000001);
+    }
+
+    TEST_CASE("Run SGD Reuters smoke test", "[sgd]") {
+        // Run some dummy data through full SGD of the size of the
+        // Reuters dataset to make sure nothing breaks. Ensure this
+        // uses a remote state server.
+
+        cleanSystem();
+        std::string emulatorUser = getEmulatorUser();
+
+        std::thread serverThread([emulatorUser] {
+            // Set up remote state
+            state::State remoteState(LOCALHOST);
+            setEmulatorUser(emulatorUser.c_str());
+            setEmulatorState(&remoteState);
+
+            // Set up the state server
+            state::StateServer stateServer(remoteState);
+
+            // Set up the params for the reuters dataset
+            SgdParams p;
+            p.nWeights = REUTERS_N_FEATURES;
+            p.nTrain = REUTERS_N_EXAMPLES;
+            p.learningRate = REUTERS_LEARNING_RATE;
+            p.learningDecay = REUTERS_LEARNING_DECAY;
+            p.nEpochs = 20;
+            p.mu = 1.0;
+
+            // Round up batch size
+            p.nBatches = 4;
+            p.batchSize = (REUTERS_N_EXAMPLES + p.nBatches - 1) / p.nBatches;
+            p.syncInterval = 60000;
+
+            // Set up dummy data
+            setUpDummyProblem(p);
+
+            // Process incoming messages
+            while (true) {
+                try {
+                    stateServer.poll();
+                } catch (tcp::TCPShutdownException &ex) {
+                    break;
+                }
+            }
+
+            stateServer.close();
+        });
+
+        // Give it time to start
+        ::usleep(0.5 * 1000 * 1000);
+
+        // Set up the SVM function
+        message::Message call = util::messageFactory("sgd", "reuters_svm");
+        call.set_inputdata("4 60000");
+
+        // Invoke the function with a pool
+        execFuncWithPool(call, false, 1, true, 10);
+
+        // Send shutdown message
+        tcp::TCPClient client(LOCALHOST, STATE_PORT);
+        tcp::TCPMessage tcpMsg;
+        tcpMsg.type = state::StateMessageType::SHUTDOWN;
+        client.sendMessage(&tcpMsg);
+
+        // Wait for server
+        if (serverThread.joinable()) {
+            serverThread.join();
+        }
     }
 }
