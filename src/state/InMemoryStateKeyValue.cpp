@@ -243,12 +243,13 @@ namespace state {
         tcp::freeTcpMessage(response);
     }
 
-    void InMemoryStateKeyValue::pullRangeFromRemote(long offset, size_t length) {
+    void InMemoryStateKeyValue::pullChunkFromRemote(long offset, size_t length) {
         if (status == InMemoryStateKeyStatus::MASTER) {
             return;
         }
 
         // Send the message
+        logger->trace("[TCP] - PULL CHUNK {} - {}/{}", key, offset, length);
         tcp::TCPMessage *msg = buildStatePullChunkRequest(offset, length);
         masterClient->sendMessage(msg);
         tcp::freeTcpMessage(msg);
@@ -416,6 +417,8 @@ namespace state {
         uint8_t *requestData = request->buffer + dataOffset;
         int32_t chunkOffset = *(reinterpret_cast<int32_t *>(requestData));
         int32_t chunkLen = *(reinterpret_cast<int32_t *>(requestData + sizeof(int32_t)));
+
+        logger->trace("[TCP] - CHUNK {} - {}/{}", key, chunkOffset, chunkLen);
 
         auto response = new tcp::TCPMessage();
         response->type = StateMessageType::STATE_PULL_CHUNK_RESPONSE;

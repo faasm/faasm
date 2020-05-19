@@ -35,60 +35,60 @@ namespace state {
         // Construct appropriate response
         tcp::TCPMessage *response = nullptr;
         if (requestType == StateMessageType::STATE_SIZE) {
-            logger->debug("State size: {} ({})", key, stateSize);
             response = buildStateSizeResponse(user, key, stateSize);
+            logger->debug("State size: {} (size {})", key, stateSize);
 
         } else if (requestType == StateMessageType::STATE_PULL) {
-            logger->debug("State pull: {}", key);
             response = kv->buildStatePullResponse();
+            logger->debug("State pull: {} (buffer len {})", key, response->len);
 
         } else if (requestType == StateMessageType::STATE_PULL_CHUNK) {
-            logger->debug("State pull chunk: {}", key);
             response = kv->buildStatePullChunkResponse(request);
+            logger->debug("State pull chunk: {} (buffer len {})", key, response->len);
 
         } else if (requestType == StateMessageType::STATE_PUSH) {
-            logger->debug("State push: {}", key);
             kv->extractStatePushData(request);
             response = kv->buildOkResponse();
+            logger->debug("State push: {} OK", key);
 
         } else if (requestType == StateMessageType::STATE_PUSH_CHUNK) {
-            logger->debug("State push chunk {}", key);
             kv->extractStatePushChunkData(request);
             response = kv->buildOkResponse();
+            logger->debug("State push chunk {} OK", key);
 
         } else if (requestType == StateMessageType::STATE_PUSH_MANY_CHUNK) {
-            logger->debug("State push many chunk {}", key);
             kv->extractStatePushMultiChunkData(request);
             response = kv->buildOkResponse();
+            logger->debug("State push many chunk {} OK", key);
 
         } else if (requestType == StateMessageType::STATE_APPEND) {
-            logger->debug("State append {}", key);
             kv->extractStateAppendData(request);
             response = kv->buildOkResponse();
+            logger->debug("State append {} OK", key);
 
         } else if (requestType == StateMessageType::STATE_CLEAR_APPENDED) {
-            logger->debug("State clear appended {}", key);
             kv->clearAppended();
             response = kv->buildOkResponse();
+            logger->debug("State clear appended {} OK", key);
 
         } else if (requestType == StateMessageType::STATE_PULL_APPENDED) {
-            logger->debug("State pull appended {}", key);
             response = kv->buildPullAppendedResponse(request);
+            logger->debug("State pull appended {} (buffer len {})", key, response->len);
 
         } else if (requestType == StateMessageType::STATE_LOCK) {
-            logger->debug("State lock: {}", key);
             localKv->lockGlobal();
             response = kv->buildOkResponse();
+            logger->debug("State lock: {} OK", key);
 
         } else if (requestType == StateMessageType::STATE_UNLOCK) {
-            logger->debug("State unlock: {}", key);
             localKv->unlockGlobal();
             response = kv->buildOkResponse();
+            logger->debug("State unlock: {} OK", key);
 
         } else if (requestType == StateMessageType::STATE_DELETE) {
-            logger->debug("State delete: {}", key);
-            response = kv->buildOkResponse();
             state.deleteKV(user, key);
+            response = kv->buildOkResponse();
+            logger->debug("State delete: {} OK", key);
         } else {
             logger->error("Unrecognised request {}", requestType);
             throw std::runtime_error("Unrecognised state request type");

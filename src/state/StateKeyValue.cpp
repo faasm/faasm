@@ -449,7 +449,7 @@ namespace state {
             allocateSegment(offset, length);
         }
 
-        pullRangeFromRemote(offset, length);
+        pullChunkFromRemote(offset, length);
     }
 
     void StateKeyValue::doPushPartial(const uint8_t *dirtyMaskBytes) {

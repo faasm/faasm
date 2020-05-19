@@ -99,7 +99,7 @@ namespace state {
 
         void pullFromRemote() override;
 
-        void pullRangeFromRemote(long offset, size_t length) override;
+        void pullChunkFromRemote(long offset, size_t length) override;
 
         void pushToRemote() override;
 

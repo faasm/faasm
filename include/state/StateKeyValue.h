@@ -128,7 +128,7 @@ namespace state {
 
         virtual void pullFromRemote() = 0;
 
-        virtual void pullRangeFromRemote(long offset, size_t length) = 0;
+        virtual void pullChunkFromRemote(long offset, size_t length) = 0;
 
         virtual void pushToRemote() = 0;
 

@@ -59,7 +59,7 @@ namespace state {
         PROF_END(statePull)
     }
 
-    void RedisStateKeyValue::pullRangeFromRemote(long offset, size_t length) {
+    void RedisStateKeyValue::pullChunkFromRemote(long offset, size_t length) {
         PROF_START(stateSegmentPull)
 
         // Note - redis ranges are inclusive, so we need to knock one off
