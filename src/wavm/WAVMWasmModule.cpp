@@ -814,9 +814,9 @@ namespace wasm {
      * Maps the given state into module memory.
      *
      * If we are dealing with a chunk of a larger state value, we will still
-     * allocate enough shared process memory for the full value, but only map
-     * enough wasm memory for the chunk. This is minimise the amount of wasm
-     * memory we allocate.
+     * allocate enough shared process memory for the full value, but only pull
+     * and map enough wasm memory for the chunk. This minimises the amount of
+     * wasm memory we allocate.
      *
      * If many chunks of the same value are loaded, this leads to fragmentation,
      * but usually only one or two chunks are loaded per module.
@@ -828,7 +828,7 @@ namespace wasm {
         // Create a key for this chunk so we can cache the mapped pointer
         std::string segmentKey = kv->user + "_" + kv->key + "_" + std::to_string(offset) + "_" + std::to_string(length);
 
-        // See if we have a mapping to this segment
+        // See if we have a mapping to this segment already cached
         if (sharedMemWasmPtrs.count(segmentKey) == 0) {
             // Lock and double check
             util::UniqueLock lock(sharedMemWasmPtrsMx);
