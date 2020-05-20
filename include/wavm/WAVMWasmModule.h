@@ -136,7 +136,7 @@ namespace wasm {
 
         // Shared memory regions
         std::mutex sharedMemWasmPtrsMx;
-        std::unordered_map<std::string, I32> sharedMemWasmPtrs;
+        std::unordered_map<std::string, U32> sharedMemWasmPtrs;
 
         // Map of dynamically loaded modules
         std::unordered_map<std::string, int> dynamicPathToHandleMap;

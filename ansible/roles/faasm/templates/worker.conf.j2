@@ -19,5 +19,6 @@ environment=LOG_LEVEL=trace,
   REDIS_STATE_HOST="{{ hostvars[groups['redis'][0]].internal_host }}",
   REDIS_QUEUE_HOST="{{ hostvars[groups['redis'][0]].internal_host }}",
   CAPTURE_STDOUT=on,
+  STATE_MODE=redis,
   ENDPOINT_INTERFACE="{{ internal_iface | default('eth0') }}",
 

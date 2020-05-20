@@ -8,4 +8,5 @@ user={{ ansible_env.USER }}
 environment=LOG_LEVEL=trace,
   REDIS_STATE_HOST="{{ hostvars[groups['redis'][0]].internal_host }}",
   REDIS_QUEUE_HOST="{{ hostvars[groups['redis'][0]].internal_host }}",
+  STATE_MODE=redis,
   ENDPOINT_INTERFACE="{{ internal_iface | default('eth0') }}",

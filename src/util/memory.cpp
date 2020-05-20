@@ -8,8 +8,8 @@ namespace util {
     }
 
     size_t getRequiredHostPages(size_t nBytes) {
+        // Rounding up
         size_t nHostPages = (nBytes + util::HOST_PAGE_SIZE - 1) / util::HOST_PAGE_SIZE;
-
         return nHostPages;
     }
 
