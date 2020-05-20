@@ -191,14 +191,15 @@ namespace faasm {
         writeMatrixToState(WEIGHTS_KEY, weights, true);
 
         // Set up fake feature counts
-        std::vector<int> featureCounts(params.nWeights, 1);
-        for(int i = 0; i < featureCounts.size(); i++) {
-            featureCounts[i] = randomInteger(0, 200);
+        auto featureCounts = new int[params.nWeights];
+        for(int i = 0; i < params.nWeights; i++) {
+            featureCounts[i] = randomInteger(1, 200);
         }
 
         // Write feature counts to state
-        auto featureBytes = BYTES(featureCounts.data());
-        faasmWriteState(FEATURE_COUNTS_KEY, featureBytes, featureCounts.size() * sizeof(int));
+        auto featureBytes = BYTES(featureCounts);
+        faasmWriteState(FEATURE_COUNTS_KEY, featureBytes, params.nWeights * sizeof(int));
+        delete[] featureCounts;
     }
 }
 

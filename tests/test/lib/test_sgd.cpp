@@ -229,8 +229,6 @@ namespace tests {
         int syncInterval = 100;
         int nWorkers = 4;
         call.set_inputdata(std::to_string(nWorkers) + " " + std::to_string(syncInterval));
-        setEmulatedMessage(call);
-        setEmulatorUser(call.user().c_str());
 
         std::thread serverThread([nWorkers, syncInterval, &call] {
             // Set up remote state
@@ -245,14 +243,14 @@ namespace tests {
             // Set up the params
             SgdParams p;
             p.nWeights = 100;
-            p.nTrain = 1000;
+            p.nTrain = 10000;
             p.learningRate = 0.1;
             p.learningDecay = 0.8;
-            p.nEpochs = 3;
+            p.nEpochs = 5;
             p.mu = 1.0;
 
             p.nBatches = nWorkers;
-            p.batchSize = 250;
+            p.batchSize = p.nTrain / nWorkers;
             p.syncInterval = syncInterval;
 
             // Set up dummy data
@@ -274,7 +272,9 @@ namespace tests {
         ::usleep(500 * 1000);
 
         // Invoke the function with a pool
-        execFuncWithPool(call, false, 1, true, 5, false);
+        // Note - the function itself implicitly checks the chained calls,
+        // so we don't have to
+        execFuncWithPool(call, false, 1, false, 5, false);
 
         // Send shutdown message
         tcp::TCPClient client(LOCALHOST, STATE_PORT);

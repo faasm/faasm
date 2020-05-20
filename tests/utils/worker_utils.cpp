@@ -161,9 +161,14 @@ namespace tests {
                     continue;
                 }
 
-                const message::Message &result = bus.getFunctionResult(messageId, 1);
-                if (result.returnvalue() != 0) {
-                    FAIL(fmt::format("Message ID {} failed", messageId));
+                try {
+                    const message::Message &result = bus.getFunctionResult(messageId, 1);
+
+                    if (result.returnvalue() != 0) {
+                        FAIL(fmt::format("Message ID {} failed", messageId));
+                    }
+                } catch(redis::RedisNoResponseException &ex) {
+                    FAIL(fmt::format("No result for message ID {}", messageId));
                 }
             }
         }
