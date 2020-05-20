@@ -112,14 +112,14 @@ namespace redis {
         return resultData;
     }
 
-    void getBytesFromReply(redisReply *reply, uint8_t *buffer, size_t bufferLen) {
+    void getBytesFromReply(const std::string &key, redisReply *reply, uint8_t *buffer, size_t bufferLen) {
         // We have to be careful here to handle the bytes properly
         char *resultArray = reply->str;
         int resultLen = reply->len;
 
         if (resultLen > (int) bufferLen) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-            logger->error("Value ({}) too big for buffer ({})", resultLen, bufferLen);
+            logger->error("Value ({}) too big for buffer ({}) - key {}", resultLen, bufferLen, key);
             throw std::runtime_error("Reading value too big for buffer");
         }
 
@@ -174,7 +174,7 @@ namespace redis {
     void Redis::get(const std::string &key, uint8_t *buffer, size_t size) {
         auto reply = (redisReply *) redisCommand(context, "GET %s", key.c_str());
 
-        getBytesFromReply(reply, buffer, size);
+        getBytesFromReply(key, reply, buffer, size);
         freeReplyObject(reply);
     }
 
@@ -415,7 +415,7 @@ namespace redis {
         auto reply = (redisReply *) redisCommand(context, "GETRANGE %s %li %li", key.c_str(), start, end);
 
         // Importantly getrange is inclusive so we need to be checking the buffer length
-        getBytesFromReply(reply, buffer, bufferLen);
+        getBytesFromReply(key, reply, buffer, bufferLen);
         freeReplyObject(reply);
     }
 
