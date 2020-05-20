@@ -825,15 +825,13 @@ namespace wasm {
      * hence there must be some extra arithmetic to handle the appropriate offsetting.
      */
     U32 WAVMWasmModule::mmapKey(const std::shared_ptr<state::StateKeyValue> &kv, long offset, U32 length) {
-        // Create a key for this chunk so we can cache the mapped pointer
+        // See if we already have this segment mapped into memory
         std::string segmentKey = kv->user + "_" + kv->key + "_" + std::to_string(offset) + "_" + std::to_string(length);
-
-        // See if we have a mapping to this segment already cached
         if (sharedMemWasmPtrs.count(segmentKey) == 0) {
             // Lock and double check
             util::UniqueLock lock(sharedMemWasmPtrsMx);
             if (sharedMemWasmPtrs.count(segmentKey) == 0) {
-
+                // Align this chunk to host pages
                 util::AlignedChunk chunk = util::getPageAlignedChunk(offset, length);
 
                 // Create the wasm memory region and get pointer to original offset
@@ -841,7 +839,7 @@ namespace wasm {
                 U32 wasmPtr = wasmMemoryRegion + chunk.offsetRemainder;
 
                 // Map the wasm memory onto the pages of state
-                U8 *wasmMemoryRegionPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmMemoryRegion);
+                auto wasmMemoryRegionPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmMemoryRegion);
                 kv->mapSharedMemory(static_cast<void *>(wasmMemoryRegionPtr), chunk.nPagesOffset, chunk.nPagesLength);
 
                 // Cache the wasm pointer

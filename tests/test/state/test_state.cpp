@@ -770,7 +770,7 @@ namespace tests {
         server.wait();
     }
 
-    TEST_CASE("Test pushing pulling segments of large state", "[state]") {
+    TEST_CASE("Test pushing pulling segments over multiple requests", "[state]") {
         // Set up a big chunk of state
         size_t valueSize = 10 * TCP_RECV_BUF_SIZE + 123;
         std::vector<uint8_t> values(valueSize, 1);
@@ -821,6 +821,39 @@ namespace tests {
 
         REQUIRE(actualSegC == segC);
         REQUIRE(actualSegD == segD);
+
+        server.wait();
+    }
+    
+    TEST_CASE("Test pulling multiple overlapping segments of the same value", "[state]") {
+        // Set up state
+        size_t valueSize = 20 * util::HOST_PAGE_SIZE + 123;
+        std::vector<uint8_t> values(valueSize, 1);
+        DummyStateServer server;
+        setUpDummyServer(server, values);
+
+        // Two segment pulls
+        server.start(3);
+
+        // Set up two segments both from the same page of memory but not overlapping
+        long offsetA = 2 * util::HOST_PAGE_SIZE + 10;
+        long offsetB = 2 * util::HOST_PAGE_SIZE + 20;
+        long lenA = 5;
+        long lenB = 10;
+
+        std::vector<uint8_t> actualA(lenA, 0);
+        std::vector<uint8_t> expectedA(lenA, 1);
+        std::vector<uint8_t> actualB(lenA, 0);
+        std::vector<uint8_t> expectedB(lenA, 1);
+
+        const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
+        localKv->getSegment(offsetA, actualA.data(), lenA);
+        localKv->getSegment(offsetB, actualB.data(), lenB);
+
+        // Check both are as expected, and that local KV as the right size
+        REQUIRE(localKv->getSharedMemorySize() == 21 * util::HOST_PAGE_SIZE);
+        REQUIRE(actualA == expectedA);
+        REQUIRE(actualB == expectedB);
 
         server.wait();
     }
