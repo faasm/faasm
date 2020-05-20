@@ -833,32 +833,18 @@ namespace wasm {
             // Lock and double check
             util::UniqueLock lock(sharedMemWasmPtrsMx);
             if (sharedMemWasmPtrs.count(segmentKey) == 0) {
-                const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-                // Calculate the page boundaries
-                auto pageBoundaryLow = (long) util::getRequiredHostPagesRoundDown(offset);
-                auto pageBoundaryHigh = (long) util::getRequiredHostPages(offset + length);
-                long nHostPages = pageBoundaryHigh - pageBoundaryLow;
+                util::AlignedChunk chunk = util::getPageAlignedChunk(offset, length);
 
-                long pageBoundaryLowOffset = pageBoundaryLow * util::HOST_PAGE_SIZE;
-                long offsetFromPageBoundaryLow = offset - pageBoundaryLowOffset;
-                long bytesRequired = nHostPages * util::HOST_PAGE_SIZE;
-
-                logger->debug("MAPPING STATE {}/{} from {}+{} ({}) -> {}+{} ({}), i.e. {} pages", kv->user, kv->key,
-                              offset, length, offset + length,
-                              pageBoundaryLowOffset, bytesRequired, pageBoundaryLowOffset + bytesRequired, nHostPages);
-
-                // Create the wasm memory region
-                U32 wasmMemoryRegion = this->mmapMemory(bytesRequired);
-                U8 *wasmMemoryRegionPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmMemoryRegion);
+                // Create the wasm memory region and get pointer to original offset
+                U32 wasmMemoryRegion = this->mmapMemory(chunk.nBytesLength);
+                U32 wasmPtr = wasmMemoryRegion + chunk.offsetRemainder;
 
                 // Map the wasm memory onto the pages of state
-                kv->mapSharedMemory(static_cast<void *>(wasmMemoryRegionPtr), pageBoundaryLow, nHostPages);
+                U8 *wasmMemoryRegionPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmMemoryRegion);
+                kv->mapSharedMemory(static_cast<void *>(wasmMemoryRegionPtr), chunk.nPagesOffset, chunk.nPagesLength);
 
-                // Get the pointer to the start of the required chunk
-                U32 wasmPtr = wasmMemoryRegion + offsetFromPageBoundaryLow;
-
-                // Cache this pointer
+                // Cache the wasm pointer
                 sharedMemWasmPtrs.insert(std::pair<std::string, I32>(segmentKey, wasmPtr));
             }
         }

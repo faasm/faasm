@@ -149,4 +149,44 @@ namespace tests {
         REQUIRE(regionBInt[0] == 55);
         REQUIRE(regionBInt[1] == 66);
     }
+    
+    TEST_CASE("Test small aligned memory chunk", "[util]") {
+        AlignedChunk actual = getPageAlignedChunk(0, 10);
+
+        REQUIRE(actual.originalOffset == 0);
+        REQUIRE(actual.originalLength == 10);
+        REQUIRE(actual.nBytesOffset == 0);
+        REQUIRE(actual.nBytesLength == util::HOST_PAGE_SIZE);
+        REQUIRE(actual.nPagesOffset == 0);
+        REQUIRE(actual.nPagesLength == 1);
+        REQUIRE(actual.offsetRemainder == 0);
+    }
+
+    TEST_CASE("Test large offset memory chunk", "[util]") {
+        long originalOffset = 2 * util::HOST_PAGE_SIZE + 33;
+        long originalLength = 5 * util::HOST_PAGE_SIZE + 123;
+
+        AlignedChunk actual = getPageAlignedChunk(originalOffset, originalLength);
+        REQUIRE(actual.originalOffset == originalOffset);
+        REQUIRE(actual.originalLength == originalLength);
+        REQUIRE(actual.nPagesOffset == 2);
+        REQUIRE(actual.nPagesLength == 6);
+        REQUIRE(actual.nBytesOffset == 2 * util::HOST_PAGE_SIZE);
+        REQUIRE(actual.nBytesLength == 6 * util::HOST_PAGE_SIZE);
+        REQUIRE(actual.offsetRemainder == 33);
+    }
+
+    TEST_CASE("Test already aligned memory chunk", "[util]") {
+        long originalOffset = 10 * util::HOST_PAGE_SIZE;
+        long originalLength = 5 * util::HOST_PAGE_SIZE;
+
+        AlignedChunk actual = getPageAlignedChunk(originalOffset, originalLength);
+        REQUIRE(actual.originalOffset == originalOffset);
+        REQUIRE(actual.originalLength == originalLength);
+        REQUIRE(actual.nPagesOffset == 10);
+        REQUIRE(actual.nPagesLength == 5);
+        REQUIRE(actual.nBytesOffset == 10 * util::HOST_PAGE_SIZE);
+        REQUIRE(actual.nBytesLength == 5 * util::HOST_PAGE_SIZE);
+        REQUIRE(actual.offsetRemainder == 0);
+    }
 }

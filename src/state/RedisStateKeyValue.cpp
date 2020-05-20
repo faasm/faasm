@@ -62,13 +62,15 @@ namespace state {
     void RedisStateKeyValue::pullChunkFromRemote(long offset, size_t length) {
         PROF_START(stateSegmentPull)
 
+        logger->debug("Pulling remote segment ({}-{}) for {}", offset, offset + length, joinedKey);
+
         // Note - redis ranges are inclusive, so we need to knock one off
+        size_t rangeStart = offset;
         size_t rangeEnd = offset + length - 1;
 
         // Read from the remote
-        logger->debug("Pulling remote segment ({}-{}) for {}", offset, offset + length, joinedKey);
-        auto memoryBytes = static_cast<uint8_t *>(sharedMemory);
-        redis.getRange(joinedKey, memoryBytes + offset, length, offset, rangeEnd);
+        auto buffer = BYTES(sharedMemory) + offset;
+        redis.getRange(joinedKey, buffer, length, rangeStart, rangeEnd);
 
         PROF_END(stateSegmentPull)
     }

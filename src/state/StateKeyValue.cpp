@@ -12,8 +12,8 @@
 using namespace util;
 
 namespace state {
-    StateKeyValue::StateKeyValue(const std::string &userIn, const std::string &keyIn):
-             StateKeyValue(userIn, keyIn, 0) {
+    StateKeyValue::StateKeyValue(const std::string &userIn, const std::string &keyIn) :
+            StateKeyValue(userIn, keyIn, 0) {
         // If using this constructor, we don't know the size, hence cannot use
         // a number of operations.
     }
@@ -48,7 +48,7 @@ namespace state {
     }
 
     void StateKeyValue::checkSizeConfigured() {
-        if(valueSize <= 0) {
+        if (valueSize <= 0) {
             throw StateKeyValueException(fmt::format("{}/{} has no size set", user, key));
         }
     }
@@ -169,7 +169,8 @@ namespace state {
         // Check we're in bounds - note that we permit chunks within the _allocated_ memory
         size_t segmentEnd = offset + length;
         if (segmentEnd > sharedMemSize) {
-            logger->error("Trying to write segment to {} finishing at {} (value length {})", key, segmentEnd, valueSize);
+            logger->error("Trying to write segment to {} finishing at {} (value length {})", key, segmentEnd,
+                          valueSize);
             throw std::runtime_error("Attempting to set segment out of bounds");
         }
 
@@ -298,12 +299,11 @@ namespace state {
     void StateKeyValue::allocateSegment(long offset, size_t length) {
         initialiseStorage(false);
 
-        // Work out the aligned region to allocate
-        long alignedOffset = util::alignOffsetDown(offset);
-        long alignedLength = (offset - alignedOffset) + (long) length;
+        // Page-align this chunk
+        AlignedChunk chunk = getPageAlignedChunk(offset, length);
 
         auto memBytes = BYTES(sharedMemory);
-        int res = mprotect(memBytes + alignedOffset, alignedLength, PROT_WRITE);
+        int res = mprotect(memBytes + chunk.nBytesOffset, chunk.nBytesLength, PROT_WRITE);
         if (res != 0) {
             logger->debug("Mmapping of storage size {} failed. errno: {}", sharedMemSize, errno);
 
@@ -311,7 +311,7 @@ namespace state {
         }
 
         // Flag the segment as allocated
-        markAllocatedSegment(alignedOffset, alignedLength);
+        markAllocatedSegment(chunk.nBytesOffset, chunk.nBytesLength);
     }
 
     void StateKeyValue::initialiseStorage(bool allocate) {
@@ -494,7 +494,7 @@ namespace state {
                 break;
             }
 
-            std::this_thread::sleep_for(std::chrono::milliseconds (1));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
             remoteLockId = redis.acquireLock(redisKey, REMOTE_LOCK_TIMEOUT_SECS);
             retryCount++;
