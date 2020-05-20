@@ -218,36 +218,42 @@ namespace tests {
         REQUIRE(abs(actual - expectedRmse) < 0.0000001);
     }
 
-    TEST_CASE("Run SGD Reuters smoke test", "[sgd]") {
-        // Run some dummy data through full SGD of the size of the
-        // Reuters dataset to make sure nothing breaks. Ensure this
-        // uses a remote state server.
+    TEST_CASE("Run SGD smoke test", "[sgd]") {
+        // Run some dummy data through the SGD function with a
+        // remote state server to check nothing breaks.
 
         cleanSystem();
-        std::string emulatorUser = getEmulatorUser();
 
-        std::thread serverThread([emulatorUser] {
+        // Set up the SVM function
+        message::Message call = util::messageFactory("sgd", "reuters_svm");
+        int syncInterval = 100;
+        int nWorkers = 4;
+        call.set_inputdata(std::to_string(nWorkers) + " " + std::to_string(syncInterval));
+        setEmulatedMessage(call);
+        setEmulatorUser(call.user().c_str());
+
+        std::thread serverThread([nWorkers, syncInterval, &call] {
             // Set up remote state
             state::State remoteState(LOCALHOST);
-            setEmulatorUser(emulatorUser.c_str());
+            setEmulatorUser(call.user().c_str());
             setEmulatorState(&remoteState);
+            setEmulatedMessage(call);
 
             // Set up the state server
             state::StateServer stateServer(remoteState);
 
-            // Set up the params for the reuters dataset
+            // Set up the params
             SgdParams p;
-            p.nWeights = REUTERS_N_FEATURES;
-            p.nTrain = REUTERS_N_EXAMPLES;
-            p.learningRate = REUTERS_LEARNING_RATE;
-            p.learningDecay = REUTERS_LEARNING_DECAY;
-            p.nEpochs = 20;
+            p.nWeights = 100;
+            p.nTrain = 1000;
+            p.learningRate = 0.1;
+            p.learningDecay = 0.8;
+            p.nEpochs = 3;
             p.mu = 1.0;
 
-            // Round up batch size
-            p.nBatches = 4;
-            p.batchSize = (REUTERS_N_EXAMPLES + p.nBatches - 1) / p.nBatches;
-            p.syncInterval = 60000;
+            p.nBatches = nWorkers;
+            p.batchSize = 250;
+            p.syncInterval = syncInterval;
 
             // Set up dummy data
             setUpDummyProblem(p);
@@ -265,14 +271,10 @@ namespace tests {
         });
 
         // Give it time to start
-        ::usleep(0.5 * 1000 * 1000);
-
-        // Set up the SVM function
-        message::Message call = util::messageFactory("sgd", "reuters_svm");
-        call.set_inputdata("4 60000");
+        ::usleep(500 * 1000);
 
         // Invoke the function with a pool
-        execFuncWithPool(call, false, 1, true, 10);
+        execFuncWithPool(call, false, 1, true, 5, false);
 
         // Send shutdown message
         tcp::TCPClient client(LOCALHOST, STATE_PORT);

@@ -197,7 +197,7 @@ namespace faasm {
         }
 
         // Write feature counts to state
-        uint8_t *featureBytes = BYTES(featureCounts.data());
+        auto featureBytes = BYTES(featureCounts.data());
         faasmWriteState(FEATURE_COUNTS_KEY, featureBytes, featureCounts.size() * sizeof(int));
     }
 }

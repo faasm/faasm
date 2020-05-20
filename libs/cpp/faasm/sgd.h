@@ -14,11 +14,6 @@ using namespace Eigen;
 #define PARAMS_KEY "params"
 #define ERRORS_KEY "errors"
 
-#define REUTERS_LEARNING_RATE 0.1
-#define REUTERS_LEARNING_DECAY 0.8
-#define REUTERS_N_FEATURES 47236
-#define REUTERS_N_EXAMPLES 781265
-
 namespace faasm {
     struct SgdParams {
         int nBatches;
