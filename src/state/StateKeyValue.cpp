@@ -462,7 +462,7 @@ namespace state {
 
         // Double check condition
         if (!isDirty) {
-            logger->debug("Ignoring partial push on {}", key);
+            logger->debug("No need for partial push on {}", key);
             return;
         }
 

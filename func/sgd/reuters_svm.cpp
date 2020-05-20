@@ -79,7 +79,6 @@ FAASM_MAIN_FUNC() {
     printf("Initialising weights with zeros\n");
     Eigen::MatrixXd zeros = zeroMatrix(1, p.nWeights);
     writeMatrixToState(WEIGHTS_KEY, zeros, true);
-    writeMatrixToState(MASK_KEY, zeros, true);
 
     // Prepare string for output
     auto losses = new double[epochs];

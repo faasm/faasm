@@ -34,7 +34,7 @@ namespace faasm {
 
     void hingeLossWeightUpdate(const SgdParams &sgdParams, int startIdx, int endIdx) {
         /* Note this is always asynchronous with pushes decided based on the params */
-
+        
         // Load this batch of inputs (read-only)
         printf("Loading inputs %i - %i\n", startIdx, endIdx);
         Map<const SparseMatrix<double>> inputs = readSparseMatrixColumnsFromState(INPUTS_KEY, startIdx, endIdx, false);
@@ -49,16 +49,18 @@ namespace faasm {
         uint8_t *featureCountByteBuffer = faasmReadStatePtr(FEATURE_COUNTS_KEY, nFeatureCountBytes);
         auto featureCountBuffer = reinterpret_cast<int *>(featureCountByteBuffer);
 
-        // Get pointers to the weights and mask
+        // Get pointers to the weights and mask (note that the mask state will only ever exist locally
+        // and is create if not already present).
         size_t nWeightBytes = sgdParams.nWeights * sizeof(double);
         uint8_t *weightDataByteBuffer = faasmReadStatePtr(WEIGHTS_KEY, nWeightBytes);
-        uint8_t *weightMaskBytes = faasmReadStatePtr(MASK_KEY, nWeightBytes);
         auto weightDataBuffer = reinterpret_cast<double *>(weightDataByteBuffer);
-        auto weightMask = reinterpret_cast<unsigned int *>(weightMaskBytes);
+
+        // uint8_t *weightMaskBytes = faasmReadStatePtr(MASK_KEY, nWeightBytes);
+        // auto weightMask = reinterpret_cast<unsigned int *>(weightMaskBytes);
 
         // TODO - async conflict
         // Zero the mask
-        memset(weightMaskBytes, 0, nWeightBytes);
+        // memset(weightMaskBytes, 0, nWeightBytes);
 
         // Shuffle examples in this batch
         int *cols = randomIntRange(inputs.outerSize());
@@ -103,17 +105,20 @@ namespace faasm {
                     continue;
                 }
 
-                // Set mask for this value being dirty
-                faasm::maskDouble(weightMask, thisFeature);
+                // Flag this chunk as dirty
+                faasmFlagStateOffsetDirty(WEIGHTS_KEY, nWeightBytes, thisFeature * sizeof(double), sizeof(double));
+                // faasm::maskDouble(weightMask, thisFeature);
 
                 // Increment the update count and work out if we need to do a sync
                 updateCount++;
                 bool syncNeeded = (updateCount > 0) && (updateCount % sgdParams.syncInterval) == 0;
                 if (syncNeeded) {
                     // TODO - Async conflict
+                    faasmPushStatePartial(WEIGHTS_KEY);
+
                     // Sync the updates
-                    faasmFlagStateDirty(WEIGHTS_KEY, nWeightBytes);
-                    faasmPushStatePartialMask(WEIGHTS_KEY, MASK_KEY);
+                    // faasmFlagStateDirty(WEIGHTS_KEY, nWeightBytes);
+                    // faasmPushStatePartialMask(WEIGHTS_KEY, MASK_KEY);
                 } else {
                     // No sync required
                     continue;
@@ -124,8 +129,9 @@ namespace faasm {
         // TODO - Async conflict
         // Final sync if we're doing syncs
         if (sgdParams.syncInterval >= 0) {
-            faasmFlagStateDirty(WEIGHTS_KEY, nWeightBytes);
-            faasmPushStatePartialMask(WEIGHTS_KEY, MASK_KEY);
+            faasmPushStatePartial(WEIGHTS_KEY);
+            // faasmFlagStateDirty(WEIGHTS_KEY, nWeightBytes);
+            // faasmPushStatePartialMask(WEIGHTS_KEY, MASK_KEY);
         }
 
         // Recalculate all predictions
