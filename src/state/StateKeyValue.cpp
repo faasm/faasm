@@ -151,7 +151,7 @@ namespace state {
         // Check we're in bounds - note that we permit chunks within the _allocated_ memory
         size_t chunkEnd = offset + length;
         if (chunkEnd > sharedMemSize) {
-            logger->error("Out of bounds chunk {}/{} ({} > {})", user, key, chunkEnd, valueSize);
+            logger->error("Setting chunk out of bounds on {}/{} ({} > {})", user, key, chunkEnd, valueSize);
             throw std::runtime_error("Attempting to set chunk out of bounds");
         }
 
@@ -379,7 +379,7 @@ namespace state {
         // Check bounds
         size_t chunkEnd = offset + length;
         if (chunkEnd > valueSize) {
-            logger->error("Out of bounds on {}/{} ({} > {})", user, key, chunkEnd, valueSize);
+            logger->error("Pulling chunk out of bounds on {}/{} ({} > {})", user, key, chunkEnd, valueSize);
             throw std::runtime_error("Out of bounds chunk");
         }
 

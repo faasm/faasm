@@ -91,10 +91,8 @@ namespace faasm {
 
     void writeMatrixToState(const char *key, const MatrixXd &matrix, bool push);
 
-    void writeMatrixToStateElement(const char *key, const MatrixXd &matrix, long row, long col, bool push);
-
     Map<const MatrixXd> readMatrixColumnsFromState(const char *key, long totalCols, long colStart,
-                                                   long colEnd, long nRows, bool pull);
+                                                   long colEnd, long totalRows, bool pull);
 
     Map<const SparseMatrix<double>> readSparseMatrixColumnsFromState(const char *key, long colStart, long colEnd,
             bool pull);
@@ -108,7 +106,7 @@ namespace faasm {
 
     SparseMatrix<double> randomSparseMatrix(int rows, int cols, double threshold);
 
-    long matrixByteIndex(long row, long col, long nRows);
+    long getChunkSizeUpToMatrixElement(long row, long col, long totalRows);
 
     void shuffleMatrixColumns(MatrixXd &matrix);
 

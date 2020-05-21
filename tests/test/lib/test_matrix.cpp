@@ -14,6 +14,26 @@
 using namespace Eigen;
 
 namespace tests {
+    TEST_CASE("Test byte offsets for matrix elements", "[matrix]") {
+        // 0,0 should always be zero
+        REQUIRE(faasm::getChunkSizeUpToMatrixElement(0, 0, 10) == 0);
+        REQUIRE(faasm::getChunkSizeUpToMatrixElement(0, 0, 1000) == 0);
+
+        // Second element of first column should always be one element off
+        REQUIRE(faasm::getChunkSizeUpToMatrixElement(1, 0, 10) == sizeof(double));
+        REQUIRE(faasm::getChunkSizeUpToMatrixElement(1, 0, 1000) == sizeof(double));
+
+        // First element of second column should always be one column length off
+        REQUIRE(faasm::getChunkSizeUpToMatrixElement(0, 1, 10) == 10 * sizeof(double));
+        REQUIRE(faasm::getChunkSizeUpToMatrixElement(0, 1, 1000) == 1000 * sizeof(double));
+
+        // Check an arbitrary offset
+        REQUIRE(faasm::getChunkSizeUpToMatrixElement(5, 6, 1000) == (6 * 1000 + 5) * sizeof(double));
+
+        // Check for a row matrix
+        REQUIRE(faasm::getChunkSizeUpToMatrixElement(0, 2, 1) == 2 * sizeof(double));
+    }
+
     TEST_CASE("Test sparse matrix generation", "[matrix]") {
         const SparseMatrix<double> actual = faasm::randomSparseMatrix(10, 5, 0.4);
 
@@ -51,8 +71,7 @@ namespace tests {
         MatrixXd mat = buildDummyMatrix();
         size_t nBytes = setUpDummyStateServer(server, stateKey, mat);
 
-        // One push, one pull
-        server.start(2);
+        server.start(3);
 
         // Write locally and push
         faasm::writeMatrixToState(stateKey, mat, true);
@@ -74,46 +93,6 @@ namespace tests {
         REQUIRE(afterState.rows() == 2);
         REQUIRE(afterState.cols() == 3);
         REQUIRE(afterState == mat);
-
-        server.wait();
-    }
-
-    TEST_CASE("Test updating matrix element in state", "[matrix]") {
-        cleanSystem();
-
-        MatrixXd mat = buildDummyMatrix();
-        DummyStateServer server;
-        const char *stateKey = "test_matrix_elem_state";
-
-        // Set up remote server with matrix
-        size_t nBytes = setUpDummyStateServer(server, stateKey, mat);
-
-        // Two pushes, one chunked push (implicit pull)
-        server.start(4);
-
-        // Write to state locally
-        faasm::writeMatrixToState(stateKey, mat, true);
-
-        // Update the matrix in memory
-        mat(0, 2) = 3.3;
-        mat(1, 1) = 10.5;
-
-        // Write a couple of elements
-        faasm::writeMatrixToStateElement(stateKey, mat, 0, 2, false);
-        faasm::writeMatrixToStateElement(stateKey, mat, 1, 1, true);
-
-        // Retrieve remote state into a new memory location
-        MatrixXd afterState(2, 3);
-        faasm::readMatrixFromState(stateKey, afterState.data(), 2, 3, true);
-
-        // Check things match up
-        REQUIRE(afterState.rows() == 2);
-        REQUIRE(afterState.cols() == 3);
-        REQUIRE(afterState == mat);
-
-        // Explicitly check set values
-        REQUIRE(afterState(0, 2) == 3.3);
-        REQUIRE(afterState(1, 1) == 10.5);
 
         server.wait();
     }

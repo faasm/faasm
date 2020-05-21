@@ -78,6 +78,7 @@ namespace tests {
 
         int nWeights = 4;
         SgdParams params;
+        params.nTrain = 2;
         params.nWeights = nWeights;
         params.learningRate = 0.1;
         params.nBatches = 1;
@@ -92,9 +93,8 @@ namespace tests {
         writeMatrixToState(WEIGHTS_KEY, weights, true);
 
         // Set up some dummy feature counts
-        std::vector<int> featureCounts(4);
-        std::fill(featureCounts.begin(), featureCounts.end(), 1);
-        uint8_t *featureBytes = BYTES(featureCounts.data());
+        std::vector<int> featureCounts(4, 1);
+        auto featureBytes = BYTES(featureCounts.data());
         faasmWriteState(FEATURE_COUNTS_KEY, featureBytes, 4 * sizeof(int));
         faasmPushState(FEATURE_COUNTS_KEY);
 
