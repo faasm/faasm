@@ -116,6 +116,9 @@ namespace state {
 
         // Copy data into shared region
         std::copy(buffer, buffer + valueSize, BYTES(sharedMemory));
+
+        // Make sure we flag that this value has now been set
+        fullyPulled = true;
     }
 
     void StateKeyValue::append(const uint8_t *buffer, size_t length) {

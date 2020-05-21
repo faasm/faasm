@@ -71,7 +71,8 @@ namespace tests {
         MatrixXd mat = buildDummyMatrix();
         size_t nBytes = setUpDummyStateServer(server, stateKey, mat);
 
-        server.start(3);
+        // One pull, one push
+        server.start(2);
 
         // Write locally and push
         faasm::writeMatrixToState(stateKey, mat, true);

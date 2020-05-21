@@ -244,7 +244,7 @@ namespace tests {
 
             // Set up the params
             SgdParams p;
-            p.nWeights = 200;
+            p.nWeights = 100;
             p.nTrain = 10000;
             p.learningRate = 0.1;
             p.learningDecay = 0.8;

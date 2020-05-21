@@ -450,7 +450,7 @@ namespace tests {
         resetStateMode();
     }
 
-    TEST_CASE("Test redis mapping shared memory pulls if not initialised", "[state]") {
+    TEST_CASE("Test redis mapping shared memory does not pull if not initialised", "[state]") {
         setUpStateMode("redis");
 
         // Set up the KV
@@ -467,6 +467,10 @@ namespace tests {
         void *mappedRegion = mmap(nullptr, util::HOST_PAGE_SIZE, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         kv->mapSharedMemory(mappedRegion, 0, 1);
 
+        // Get to ensure the value is present
+        kv->get();
+
+        // Check
         auto byteRegion = static_cast<uint8_t *>(mappedRegion);
         std::vector<uint8_t> actualValue(byteRegion, byteRegion + length);
         REQUIRE(actualValue == value);
