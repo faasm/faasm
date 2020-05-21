@@ -170,13 +170,13 @@ unsigned char *__faasm_read_state_ptr(const char *key, long totalLen) {
 void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsigned char *buffer, long bufferLen) {
     util::getLogger()->debug("E - read_state_offset {} {} {} {}", key, totalLen, offset, bufferLen);
     auto kv = getKv(key, totalLen);
-    kv->getSegment(offset, buffer, bufferLen);
+    kv->getChunk(offset, buffer, bufferLen);
 }
 
 unsigned char *__faasm_read_state_offset_ptr(const char *key, long totalLen, long offset, long len) {
     util::getLogger()->debug("E - read_state_offset_ptr {} {} {} {}", key, totalLen, offset, len);
     auto kv = getKv(key, totalLen);
-    return kv->getSegment(offset, len);
+    return kv->getChunk(offset, len);
 }
 
 void __faasm_write_state(const char *key, const uint8_t *data, long dataLen) {
@@ -209,7 +209,7 @@ void __faasm_write_state_offset(const char *key, long totalLen, long offset, con
     // Avoid excessive logging
     // util::getLogger()->debug("E - write_state_offset {} {} {} {}", key, totalLen, offset, dataLen);
     auto kv = getKv(key, totalLen);
-    kv->setSegment(offset, data, dataLen);
+    kv->setChunk(offset, data, dataLen);
 }
 
 unsigned int __faasm_write_state_from_file(const char *key, const char *filePath) {
@@ -239,7 +239,7 @@ void __faasm_flag_state_offset_dirty(const char *key, long totalLen, long offset
     // Avoid excessive logging
     // util::getLogger()->debug("E - flag_state_offset_dirty {} {} {} {}", key, totalLen, offset, dataLen);
     auto kv = getKv(key, totalLen);
-    kv->flagSegmentDirty(offset, dataLen);
+    kv->flagChunkDirty(offset, dataLen);
 }
 
 

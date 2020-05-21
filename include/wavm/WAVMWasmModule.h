@@ -45,7 +45,7 @@ namespace wasm {
 
         uint32_t mmapFile(uint32_t fp, uint32_t length);
 
-        uint32_t mmapKey(const std::shared_ptr<state::StateKeyValue> &kv, long offset, uint32_t length);
+        uint32_t mapSharedStateMemory(const std::shared_ptr<state::StateKeyValue> &kv, long offset, uint32_t length);
 
         // ----- Environment variables
         void writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer) override;

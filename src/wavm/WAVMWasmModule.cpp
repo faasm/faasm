@@ -811,34 +811,32 @@ namespace wasm {
     }
 
     /**
-     * Maps the given state into module memory.
+     * Maps the given state into the module's memory.
      *
-     * If we are dealing with a chunk of a larger state value, we will still
-     * allocate enough shared process memory for the full value, but only pull
-     * and map enough wasm memory for the chunk. This minimises the amount of
-     * wasm memory we allocate.
-     *
-     * If many chunks of the same value are loaded, this leads to fragmentation,
+     * If we are dealing with a chunk of a larger state value, the host memory
+     * will be reserved for the full value, but only the necessary wasm pages
+     * will be created. Loading many chunks of the same value leads to fragmentation,
      * but usually only one or two chunks are loaded per module.
      *
-     * To perform the mapping we need to ensure allocated memory is page-aligned,
-     * hence there must be some extra arithmetic to handle the appropriate offsetting.
+     * To perform the mapping we need to ensure allocated memory is page-aligned.
      */
-    U32 WAVMWasmModule::mmapKey(const std::shared_ptr<state::StateKeyValue> &kv, long offset, U32 length) {
+    U32 WAVMWasmModule::mapSharedStateMemory(const std::shared_ptr<state::StateKeyValue> &kv, long offset, U32 length) {
         // See if we already have this segment mapped into memory
-        std::string segmentKey = kv->user + "_" + kv->key + "_" + std::to_string(offset) + "_" + std::to_string(length);
+        std::string segmentKey = kv->user + "_" + kv->key + "__" + std::to_string(offset) + "__" + std::to_string(length);
         if (sharedMemWasmPtrs.count(segmentKey) == 0) {
             // Lock and double check
             util::UniqueLock lock(sharedMemWasmPtrsMx);
             if (sharedMemWasmPtrs.count(segmentKey) == 0) {
-                // Align this chunk to host pages
+                // Page-align the chunk
                 util::AlignedChunk chunk = util::getPageAlignedChunk(offset, length);
 
-                // Create the wasm memory region and get pointer to original offset
+                // Create the wasm memory region and work out the offset to the start of the
+                // desired chunk in this region (this will be zero if the offset is already
+                // zero, or if the offset is page-aligned already).
                 U32 wasmMemoryRegion = this->mmapMemory(chunk.nBytesLength);
                 U32 wasmPtr = wasmMemoryRegion + chunk.offsetRemainder;
 
-                // Map the wasm memory onto the pages of state
+                // Map the shared memory
                 auto wasmMemoryRegionPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmMemoryRegion);
                 kv->mapSharedMemory(static_cast<void *>(wasmMemoryRegionPtr), chunk.nPagesOffset, chunk.nPagesLength);
 

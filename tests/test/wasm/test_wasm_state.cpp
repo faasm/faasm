@@ -5,7 +5,6 @@
 #include <wavm/WAVMWasmModule.h>
 #include <util/func.h>
 #include <emulator/emulator.h>
-#include <redis/Redis.h>
 #include <util/memory.h>
 #include <util/state.h>
 
@@ -19,7 +18,7 @@ namespace tests {
     ) {
         // Check mapped whole region
 
-        U32 wasmPtr = module.mmapKey(kv, offset, size);
+        U32 wasmPtr = module.mapSharedStateMemory(kv, offset, size);
         U8 *hostPtr = Runtime::memoryArrayPtr<U8>(module.defaultMemory, (Uptr) wasmPtr, (Uptr) size);
 
         std::vector<uint8_t> actual(hostPtr, hostPtr + size);
@@ -96,6 +95,7 @@ namespace tests {
         values[chunkOffset] = 4;
         values[chunkOffset + 1] = 5;
         std::vector<uint8_t> expected = {4, 5, 3, 3, 3};
+        std::vector<uint8_t> zeroes(expected.size(), 0);
 
         std::string user = getEmulatorUser();
         std::string key = "chunk_map";
@@ -121,11 +121,15 @@ namespace tests {
 
         // Map the chunk locally
         const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
-        uint32_t wasmPtr = module.mmapKey(localKv, chunkOffset, chunkSize);
+        uint32_t wasmPtr = module.mapSharedStateMemory(localKv, chunkOffset, chunkSize);
 
-        // Check wasm memory
+        // Check that this is still zeroed
         U8 *hostPtr = Runtime::memoryArrayPtr<U8>(module.defaultMemory, (Uptr) wasmPtr, (Uptr) chunkSize);
         std::vector<uint8_t> actual(hostPtr, hostPtr + chunkSize);
+        REQUIRE(actual == zeroes);
+
+        // Check that the value is pulled when we get the chunk
+        localKv->getChunk(chunkOffset, actual.data(), chunkSize);
         REQUIRE(actual == expected);
 
         // Allow the server to shut down

@@ -287,7 +287,7 @@ namespace state {
             awaitOkResponse();
 
             // Read the latest full value
-            if (_fullyAllocated) {
+            if (fullyAllocated) {
                 pullFromRemote();
             }
         }
@@ -440,7 +440,7 @@ namespace state {
     void InMemoryStateKeyValue::extractPullChunkResponse(const tcp::TCPMessage *msg, long offset, size_t length) {
         if (msg->type == StateMessageType::STATE_PULL_CHUNK_RESPONSE) {
             // Set the chunk with the response data without locking
-            doSetSegment(offset, msg->buffer, length);
+            doSetChunk(offset, msg->buffer, length);
         } else {
             util::getLogger()->error("Unexpected response from pull chunk {}", msg->type);
             throw std::runtime_error("Pull range failed");

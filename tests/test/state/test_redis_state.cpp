@@ -129,7 +129,7 @@ namespace tests {
 
         // Update a subsection
         std::vector<uint8_t> update = {8, 8, 8};
-        kv->setSegment(3, update.data(), 3);
+        kv->setChunk(3, update.data(), 3);
 
         std::vector<uint8_t> expected = {0, 0, 1, 8, 8, 8, 3, 3, 4, 4};
         kv->get(actual.data());
@@ -140,7 +140,7 @@ namespace tests {
 
         // Try getting a segment
         std::vector<uint8_t> actualSegment(3);
-        kv->getSegment(3, actualSegment.data(), 3);
+        kv->getChunk(3, actualSegment.data(), 3);
         REQUIRE(actualSegment == update);
 
         // Run push and check redis updated
@@ -167,7 +167,7 @@ namespace tests {
         ptr[5] = 7;
 
         // Mark one region as dirty and do push partial
-        kv->flagSegmentDirty(0, 2);
+        kv->flagChunkDirty(0, 2);
         kv->pushPartial();
 
         // Update expectation
@@ -214,9 +214,9 @@ namespace tests {
         statePtr[17] = 7;
 
         // Mark regions as dirty
-        kv->flagSegmentDirty(1, 3);
-        kv->flagSegmentDirty(10, 2);
-        kv->flagSegmentDirty(14, 4);
+        kv->flagChunkDirty(1, 3);
+        kv->flagChunkDirty(10, 2);
+        kv->flagChunkDirty(14, 4);
 
         // Update one non-overlapping value in state
         std::vector<uint8_t> directA = {2, 2};
@@ -262,19 +262,19 @@ namespace tests {
         auto expectedPtr = expected.data();
         actualPtr[0] = 123.456;
         expectedPtr[0] = 123.456;
-        kv->flagSegmentDirty(0, sizeof(double));
+        kv->flagChunkDirty(0, sizeof(double));
 
         actualPtr[1] = -100304.223;
         expectedPtr[1] = -100304.223;
-        kv->flagSegmentDirty(1 * sizeof(double), sizeof(double));
+        kv->flagChunkDirty(1 * sizeof(double), sizeof(double));
 
         actualPtr[9] = 6090293.222;
         expectedPtr[9] = 6090293.222;
-        kv->flagSegmentDirty(9 * sizeof(double), sizeof(double));
+        kv->flagChunkDirty(9 * sizeof(double), sizeof(double));
 
         actualPtr[13] = -123.444;
         expectedPtr[13] = -123.444;
-        kv->flagSegmentDirty(13 * sizeof(double), sizeof(double));
+        kv->flagChunkDirty(13 * sizeof(double), sizeof(double));
 
         // Push and check that with no pull we're up to date
         kv->pushPartial();
@@ -303,14 +303,14 @@ namespace tests {
 
         // Update just the last
         std::vector<uint8_t> update = {8};
-        kv->setSegment(4, update.data(), 1);
+        kv->setChunk(4, update.data(), 1);
 
         kv->pushPartial();
         std::vector<uint8_t> expected = {0, 1, 2, 3, 8};
         REQUIRE(redisState.get(actualKey) == expected);
 
         // Update the first
-        kv->setSegment(0, update.data(), 1);
+        kv->setChunk(0, update.data(), 1);
 
         kv->pushPartial();
         expected = {8, 1, 2, 3, 8};
@@ -318,8 +318,8 @@ namespace tests {
 
         // Update both
         update = {6};
-        kv->setSegment(0, update.data(), 1);
-        kv->setSegment(4, update.data(), 1);
+        kv->setChunk(0, update.data(), 1);
+        kv->setChunk(4, update.data(), 1);
 
         kv->pushPartial();
         expected = {6, 1, 2, 3, 6};

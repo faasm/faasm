@@ -36,15 +36,11 @@ namespace state {
         sharedMemSize = nHostPages * HOST_PAGE_SIZE;
         sharedMemory = nullptr;
 
-        // Set up flags and masks
-        isDirty = false;
-        _fullyAllocated = false;
-
         dirtyMask = new uint8_t[sharedMemSize];
         zeroDirtyMask();
 
-        allocatedMask = new uint8_t[sharedMemSize];
-        zeroAllocatedMask();
+        pulledMask = new uint8_t[sharedMemSize];
+        memset(pulledMask, 0, valueSize);
     }
 
     void StateKeyValue::checkSizeConfigured() {
@@ -55,62 +51,51 @@ namespace state {
 
     void StateKeyValue::pull() {
         logger->debug("Pulling state for {}/{}", user, key);
-        pullImpl(false);
+        doPull(false);
     }
 
-    bool StateKeyValue::isSegmentAllocated(long offset, size_t length) {
+    bool StateKeyValue::isChunkPulled(long offset, size_t length) {
         checkSizeConfigured();
 
+        if (fullyPulled) {
+            return true;
+        }
+
         // TODO - more efficient way of checking this
-        auto allocatedMaskBytes = BYTES(allocatedMask);
+        auto pulledMaskBytes = BYTES(pulledMask);
         for (size_t i = 0; i < length; i++) {
-            if (allocatedMaskBytes[offset + i] == 0) {
+            if (pulledMaskBytes[offset + i] == 0) {
                 return false;
             }
         }
+
         return true;
     }
 
     void StateKeyValue::get(uint8_t *buffer) {
-        pullImpl(true);
+        doPull(true);
 
         SharedLock lock(valueMutex);
-
         auto bytePtr = BYTES(sharedMemory);
         std::copy(bytePtr, bytePtr + valueSize, buffer);
     }
 
     uint8_t *StateKeyValue::get() {
-        pullImpl(true);
-
-        SharedLock lock(valueMutex);
-
+        doPull(true);
         return BYTES(sharedMemory);
     }
 
-    void StateKeyValue::getSegment(long offset, uint8_t *buffer, size_t length) {
-        pullSegmentImpl(true, offset, length);
+    void StateKeyValue::getChunk(long offset, uint8_t *buffer, size_t length) {
+        doPullChunk(true, offset, length);
 
         SharedLock lock(valueMutex);
-
-        // Return just the required segment
-        if ((offset + length) > valueSize) {
-            logger->error("Out of bounds read at {} on {}/{} with length {}",
-                          offset + length, user, key, valueSize);
-            throw std::runtime_error("Out of bounds read");
-        }
-
         auto bytePtr = BYTES(sharedMemory);
         std::copy(bytePtr + offset, bytePtr + offset + length, buffer);
     }
 
-    uint8_t *StateKeyValue::getSegment(long offset, long len) {
-        pullSegmentImpl(true, offset, len);
-
-        SharedLock lock(valueMutex);
-
-        uint8_t *segmentPtr = BYTES(sharedMemory) + offset;
-        return segmentPtr;
+    uint8_t *StateKeyValue::getChunk(long offset, long len) {
+        doPullChunk(true, offset, len);
+        return BYTES(sharedMemory) + offset;
     }
 
     void StateKeyValue::set(const uint8_t *buffer) {
@@ -118,18 +103,16 @@ namespace state {
 
         // Unique lock for setting the whole value
         FullLock lock(valueMutex);
-
         doSet(buffer);
-
         isDirty = true;
     }
 
     void StateKeyValue::doSet(const uint8_t *buffer) {
         checkSizeConfigured();
 
-        if (sharedMemory == nullptr) {
-            initialiseStorage(true);
-        }
+        // Set up storage
+        reserveStorage();
+        allocateFull();
 
         // Copy data into shared region
         std::copy(buffer, buffer + valueSize, BYTES(sharedMemory));
@@ -153,35 +136,30 @@ namespace state {
         clearAppendedFromRemote();
     }
 
-    void StateKeyValue::setSegment(long offset, const uint8_t *buffer, size_t length) {
+    void StateKeyValue::setChunk(long offset, const uint8_t *buffer, size_t length) {
         checkSizeConfigured();
 
         FullLock lock(valueMutex);
 
-        doSetSegment(offset, buffer, length);
-
-        markDirtySegment(offset, length);
+        doSetChunk(offset, buffer, length);
+        markDirtyChunk(offset, length);
     }
 
-    void StateKeyValue::doSetSegment(long offset, const uint8_t *buffer, size_t length) {
+    void StateKeyValue::doSetChunk(long offset, const uint8_t *buffer, size_t length) {
         checkSizeConfigured();
 
         // Check we're in bounds - note that we permit chunks within the _allocated_ memory
-        size_t segmentEnd = offset + length;
-        if (segmentEnd > sharedMemSize) {
-            logger->error("Trying to write segment to {} finishing at {} (value length {})", key, segmentEnd,
-                          valueSize);
-            throw std::runtime_error("Attempting to set segment out of bounds");
+        size_t chunkEnd = offset + length;
+        if (chunkEnd > sharedMemSize) {
+            logger->error("Out of bounds chunk {}/{} ({} > {})", user, key, chunkEnd, valueSize);
+            throw std::runtime_error("Attempting to set chunk out of bounds");
         }
 
         // If necessary, allocate the memory
-        if (!isSegmentAllocated(offset, length)) {
-            allocateSegment(offset, length);
-        }
+        allocateChunk(offset, length);
 
         // Do the copy
-        auto bytePtr = BYTES(sharedMemory);
-        std::copy(buffer, buffer + length, bytePtr + offset);
+        std::copy(buffer, buffer + length, BYTES(sharedMemory) + offset);
     }
 
     void StateKeyValue::flagDirty() {
@@ -194,37 +172,16 @@ namespace state {
         memset(dirtyMask, 0, valueSize);
     }
 
-    void StateKeyValue::zeroAllocatedMask() {
+    void StateKeyValue::flagChunkDirty(long offset, long len) {
         checkSizeConfigured();
 
-        memset(allocatedMask, 0, valueSize);
-    }
-
-    void StateKeyValue::zeroValue() {
-        checkSizeConfigured();
-
-        util::FullLock lock(valueMutex);
-
-        memset(sharedMemory, 0, valueSize);
-    }
-
-    void StateKeyValue::flagSegmentDirty(long offset, long len) {
-        checkSizeConfigured();
-
-        // This is accessible publicly but also called internally when a
-        // lock is already held, hence we need to split the locking and
-        // marking of the segment.
         util::SharedLock lock(valueMutex);
-        markDirtySegment(offset, len);
+        markDirtyChunk(offset, len);
     }
 
-    void StateKeyValue::markDirtySegment(long offset, long len) {
+    void StateKeyValue::markDirtyChunk(long offset, long len) {
         isDirty |= true;
         memset(((uint8_t *) dirtyMask) + offset, 0b11111111, len);
-    }
-
-    void StateKeyValue::markAllocatedSegment(long offset, long len) {
-        memset(((uint8_t *) allocatedMask) + offset, 0b11111111, len);
     }
 
     size_t StateKeyValue::size() const {
@@ -245,22 +202,18 @@ namespace state {
             throw std::runtime_error("Mapping misaligned shared memory");
         }
 
-        // Check everything lines up first of all
+        // Ensure the underlying memory is allocated
         size_t offset = pagesOffset * util::HOST_PAGE_SIZE;
         size_t length = nPages * util::HOST_PAGE_SIZE;
+        allocateChunk(offset, length);
 
-        // Pull the value
-        if (pagesOffset > 0 || length < valueSize) {
-            pullSegmentImpl(true, offset, length);
-        } else {
-            pullImpl(true);
-        }
-
+        // Full lock on the key-value
         FullLock lock(valueMutex);
 
-        // Remap the relevant pages of shared memory onto the new region
-        auto sharedMemoryBytes = BYTES(sharedMemory);
-        void *result = mremap(sharedMemoryBytes + offset, 0, length, MREMAP_FIXED | MREMAP_MAYMOVE, destination);
+        // Add a mapping of the relevant pages of shared memory onto the new region
+        void *result = mremap(BYTES(sharedMemory) + offset, 0, length, MREMAP_FIXED | MREMAP_MAYMOVE, destination);
+
+        // Handle failure
         if (result == MAP_FAILED) {
             logger->error("Failed mapping for {} at {} with size {}. errno: {} ({})",
                           key, offset, length, errno, strerror(errno));
@@ -268,8 +221,9 @@ namespace state {
             throw std::runtime_error("Failed mapping shared memory");
         }
 
+        // Check the mapping is where we expect it to be
         if (destination != result) {
-            logger->error("New mapped addr doesn't match required {} != {}", destination, result);
+            logger->error("New mapped addr for {} doesn't match required {} != {}", key, destination, result);
             throw std::runtime_error("Misaligned shared memory mapping");
         }
 
@@ -277,8 +231,6 @@ namespace state {
     }
 
     void StateKeyValue::unmapSharedMemory(void *mappedAddr) {
-        checkSizeConfigured();
-
         FullLock lock(valueMutex);
 
         if (!isPageAligned(mappedAddr)) {
@@ -296,46 +248,53 @@ namespace state {
         }
     }
 
-    void StateKeyValue::allocateSegment(long offset, size_t length) {
-        initialiseStorage(false);
-
-        // Page-align this chunk
-        AlignedChunk chunk = getPageAlignedChunk(offset, length);
-
-        auto memBytes = BYTES(sharedMemory);
-        int res = mprotect(memBytes + chunk.nBytesOffset, chunk.nBytesLength, PROT_WRITE);
-        if (res != 0) {
-            logger->debug("Mmapping of storage size {} failed. errno: {}", sharedMemSize, errno);
-
-            throw std::runtime_error("Failed mapping memory for KV");
+    void StateKeyValue::allocateChunk(long offset, size_t length) {
+        // Can skip if the whole thing is already allocated
+        if (fullyAllocated) {
+            return;
         }
 
-        // Flag the segment as allocated
-        markAllocatedSegment(chunk.nBytesOffset, chunk.nBytesLength);
+        // Ensure storage is reserved
+        reserveStorage();
+
+        // Page-align the chunk
+        AlignedChunk chunk = getPageAlignedChunk(offset, length);
+
+        // Make sure all the pages involved are writable
+        int res = mprotect(BYTES(sharedMemory) + chunk.nBytesOffset, chunk.nBytesLength, PROT_WRITE);
+        if (res != 0) {
+            logger->debug("Allocating memory for {}/{} of size {} failed: {} ({})", user, key, length, errno, strerror(errno));
+            throw std::runtime_error("Failed allocating memory for KV");
+        }
     }
 
-    void StateKeyValue::initialiseStorage(bool allocate) {
+    void StateKeyValue::allocateFull() {
+        // Skip if already done
+        if (fullyAllocated) {
+            return;
+        }
+
+        allocateChunk(0, sharedMemSize);
+
+        fullyAllocated = true;
+    }
+
+    void StateKeyValue::reserveStorage() {
         checkSizeConfigured();
 
-        PROF_START(initialiseStorage)
+        PROF_START(reserveStorage)
 
-        // Don't need to initialise twice
+        // Check if already reserved
         if (sharedMemory != nullptr) {
             return;
         }
 
         if (sharedMemSize == 0) {
-            throw StateKeyValueException("Initialising storage without a size for " + key);
+            throw StateKeyValueException("Reserving storage with no size for " + key);
         }
 
-        // Note - only make memory writable if we want to allocate it fully up-front
-        int prot = PROT_NONE;
-        if (allocate) {
-            prot = PROT_WRITE;
-        }
-
-        // Create shared memory region for the value
-        sharedMemory = mmap(nullptr, sharedMemSize, prot, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+        // Create shared memory region with no permissions
+        sharedMemory = mmap(nullptr, sharedMemSize, PROT_NONE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
         if (sharedMemory == MAP_FAILED) {
             logger->debug("Mmapping of storage size {} failed. errno: {}", sharedMemSize, errno);
 
@@ -343,18 +302,9 @@ namespace state {
         }
 
         size_t nPages = sharedMemSize / HOST_PAGE_SIZE;
-        if (allocate) {
-            logger->debug("Allocated {} pages of shared storage for {}", nPages, key);
-        } else {
-            logger->debug("Reserved {} pages of shared storage for {}", nPages, key);
-        }
+        logger->debug("Reserved {} pages of shared storage for {}", nPages, key);
 
-        // Flag that allocation has happened
-        if (allocate) {
-            _fullyAllocated = true;
-        }
-
-        PROF_END(initialiseStorage)
+        PROF_END(reserveStorage)
     }
 
     void StateKeyValue::pushPartialMask(const std::shared_ptr<StateKeyValue> &maskKv) {
@@ -396,13 +346,13 @@ namespace state {
         pushToRemote();
     }
 
-    void StateKeyValue::pullImpl(bool onlyIfEmpty) {
+    void StateKeyValue::doPull(bool lazy) {
         checkSizeConfigured();
 
         // Drop out if we already have the data and we don't care about updating
         {
             util::SharedLock lock(valueMutex);
-            if (onlyIfEmpty && _fullyAllocated) {
+            if (lazy && fullyPulled) {
                 return;
             }
         }
@@ -410,25 +360,33 @@ namespace state {
         // Unique lock on the whole value
         util::FullLock lock(valueMutex);
 
-        if (onlyIfEmpty && _fullyAllocated) {
+        // Check again if we need to do this
+        if (lazy && fullyPulled) {
             return;
         }
 
-        // Initialise storage if necessary
-        if (!_fullyAllocated) {
-            initialiseStorage(true);
-        }
+        // Make sure storage is allocated
+        allocateFull();
 
+        // Do the pull
         pullFromRemote();
+        fullyPulled = true;
     }
 
-    void StateKeyValue::pullSegmentImpl(bool onlyIfEmpty, long offset, size_t length) {
+    void StateKeyValue::doPullChunk(bool lazy, long offset, size_t length) {
         checkSizeConfigured();
+
+        // Check bounds
+        size_t chunkEnd = offset + length;
+        if (chunkEnd > valueSize) {
+            logger->error("Out of bounds on {}/{} ({} > {})", user, key, chunkEnd, valueSize);
+            throw std::runtime_error("Out of bounds chunk");
+        }
 
         // Drop out if we already have the data and we don't care about updating
         {
             util::SharedLock lock(valueMutex);
-            if (onlyIfEmpty && (_fullyAllocated || isSegmentAllocated(offset, length))) {
+            if (lazy && (fullyAllocated || isChunkPulled(offset, length))) {
                 return;
             }
         }
@@ -437,17 +395,17 @@ namespace state {
         util::FullLock lock(valueMutex);
 
         // Check condition again
-        bool segmentAllocated = isSegmentAllocated(offset, length);
-        if (onlyIfEmpty && (_fullyAllocated || segmentAllocated)) {
+        bool chunkPulled = isChunkPulled(offset, length);
+        if (lazy && (fullyAllocated || chunkPulled)) {
             return;
         }
 
-        // Initialise the storage if empty
-        if (!segmentAllocated) {
-            allocateSegment(offset, length);
-        }
-
+        // Allocate this chunk
+        allocateChunk(offset, length);
         pullChunkFromRemote(offset, length);
+
+        // Mark the chunk as pulled
+        memset(((uint8_t *) pulledMask) + offset, 0b11111111, length);
     }
 
     void StateKeyValue::doPushPartial(const uint8_t *dirtyMaskBytes) {
@@ -530,7 +488,7 @@ namespace state {
         // Iterate through looking for dirty chunks
         for (size_t i = 0; i < valueSize; i++) {
             if (dirtyMaskBytes[i] == 0) {
-                // If we encounter an "off" mask and we're "on", switch off and write the segment
+                // If we encounter an "off" mask and we're "on", switch off and write the chunk
                 if (isOn) {
                     isOn = false;
 

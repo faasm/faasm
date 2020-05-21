@@ -102,7 +102,7 @@ namespace state {
         redis.flushPipeline(chunks.size());
 
         // Read the latest value
-        if (_fullyAllocated) {
+        if (fullyAllocated) {
             logger->debug("Pulling from remote on partial push for {}", joinedKey);
             auto sharedMemoryBytes = BYTES(sharedMemory);
             redis.get(joinedKey, sharedMemoryBytes, valueSize);

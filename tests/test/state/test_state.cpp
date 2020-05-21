@@ -82,7 +82,7 @@ namespace tests {
         REQUIRE(actual == values);
     }
 
-    TEST_CASE("Test in memory get/ set segment", "[state]") {
+    TEST_CASE("Test in memory get/ set chunk", "[state]") {
         DummyStateServer server;
         std::vector<uint8_t> values = {0, 0, 1, 1, 2, 2, 3, 3, 4, 4};
         setUpDummyServer(server, values);
@@ -97,7 +97,7 @@ namespace tests {
         // Update a subsection
         std::vector<uint8_t> update = {8, 8, 8};
         std::shared_ptr<state::StateKeyValue> localKv = server.getLocalKv();
-        localKv->setSegment(3, update.data(), 3);
+        localKv->setChunk(3, update.data(), 3);
 
         std::vector<uint8_t> expected = {0, 0, 1, 8, 8, 8, 3, 3, 4, 4};
         localKv->get(actual.data());
@@ -106,10 +106,10 @@ namespace tests {
         // Check remote is unchanged
         REQUIRE(server.getRemoteKvValue() == values);
 
-        // Try getting a segment locally
-        std::vector<uint8_t> actualSegment(3);
-        localKv->getSegment(3, actualSegment.data(), 3);
-        REQUIRE(actualSegment == update);
+        // Try getting a chunk locally
+        std::vector<uint8_t> actualChunk(3);
+        localKv->getChunk(3, actualChunk.data(), 3);
+        REQUIRE(actualChunk == update);
 
         // Run push and check remote is updated
         localKv->pushPartial();
@@ -119,7 +119,7 @@ namespace tests {
         server.wait();
     }
 
-    TEST_CASE("Test in memory marking segments dirty", "[state]") {
+    TEST_CASE("Test in memory marking chunks dirty", "[state]") {
         std::vector<uint8_t> values = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
         DummyStateServer server;
         setUpDummyServer(server, values);
@@ -134,7 +134,7 @@ namespace tests {
         ptr[5] = 7;
 
         // Mark one region as dirty and do push partial
-        localKv->flagSegmentDirty(0, 2);
+        localKv->flagChunkDirty(0, 2);
         localKv->pushPartial();
 
         // Update expectation
@@ -150,7 +150,7 @@ namespace tests {
         server.wait();
     }
 
-    TEST_CASE("Test overlaps with multiple segments dirty", "[state]") {
+    TEST_CASE("Test overlaps with multiple chunks dirty", "[state]") {
         std::vector<uint8_t> values = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
         DummyStateServer server;
         setUpDummyServer(server, values);
@@ -176,18 +176,18 @@ namespace tests {
         statePtr[17] = 7;
 
         // Mark regions as dirty
-        localKv->flagSegmentDirty(1, 3);
-        localKv->flagSegmentDirty(10, 2);
-        localKv->flagSegmentDirty(14, 4);
+        localKv->flagChunkDirty(1, 3);
+        localKv->flagChunkDirty(10, 2);
+        localKv->flagChunkDirty(14, 4);
 
         // Update one non-overlapping value remotely
         std::vector<uint8_t> directA = {2, 2};
         const std::shared_ptr<state::StateKeyValue> &remoteKv = server.getRemoteKv();
-        remoteKv->setSegment(6, directA.data(), 2);
+        remoteKv->setChunk(6, directA.data(), 2);
 
         // Update one overlapping value remotely
         std::vector<uint8_t> directB = {6, 6, 6, 6, 6};
-        remoteKv->setSegment(0, directB.data(), 5);
+        remoteKv->setChunk(0, directB.data(), 5);
 
         // Check expectations before push
         std::vector<uint8_t> expectedLocal = {0, 1, 2, 3, 0, 0, 0, 0, 0, 0, 4, 5, 0, 0, 7, 7, 7, 7, 0, 0};
@@ -231,22 +231,22 @@ namespace tests {
         auto expectedPtr = expected.data();
         actualPtr[0] = 123.456;
         expectedPtr[0] = 123.456;
-        localKv->flagSegmentDirty(0, sizeof(double));
+        localKv->flagChunkDirty(0, sizeof(double));
 
         // Update another value
         actualPtr[1] = -100304.223;
         expectedPtr[1] = -100304.223;
-        localKv->flagSegmentDirty(1 * sizeof(double), sizeof(double));
+        localKv->flagChunkDirty(1 * sizeof(double), sizeof(double));
 
         // And another
         actualPtr[9] = 6090293.222;
         expectedPtr[9] = 6090293.222;
-        localKv->flagSegmentDirty(9 * sizeof(double), sizeof(double));
+        localKv->flagChunkDirty(9 * sizeof(double), sizeof(double));
 
         // And another
         actualPtr[13] = -123.444;
         expectedPtr[13] = -123.444;
-        localKv->flagSegmentDirty(13 * sizeof(double), sizeof(double));
+        localKv->flagChunkDirty(13 * sizeof(double), sizeof(double));
 
         // Push
         localKv->pushPartial();
@@ -264,14 +264,14 @@ namespace tests {
         server.wait();
     }
 
-    TEST_CASE("Test set segment cannot be over the size of the allocated memory", "[state]") {
+    TEST_CASE("Test set chunk cannot be over the size of the allocated memory", "[state]") {
         auto kv = setupKV(2);
 
-        // Set a segment offset
+        // Set a chunk offset
         std::vector<uint8_t> update = {8, 8, 8};
 
         long offset = util::HOST_PAGE_SIZE - 2;
-        REQUIRE_THROWS(kv->setSegment(offset, update.data(), 3));
+        REQUIRE_THROWS(kv->setChunk(offset, update.data(), 3));
     }
 
     TEST_CASE("Test partially setting just first/ last element", "[state]") {
@@ -285,22 +285,22 @@ namespace tests {
         // Update just the last element
         std::vector<uint8_t> update = {8};
         const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
-        localKv->setSegment(4, update.data(), 1);
+        localKv->setChunk(4, update.data(), 1);
 
         localKv->pushPartial();
         std::vector<uint8_t> expected = {0, 1, 2, 3, 8};
         REQUIRE(server.getRemoteKvValue() == expected);
 
         // Update the first
-        localKv->setSegment(0, update.data(), 1);
+        localKv->setChunk(0, update.data(), 1);
         localKv->pushPartial();
         expected = {8, 1, 2, 3, 8};
         REQUIRE(server.getRemoteKvValue() == expected);
 
         // Update two
         update = {6};
-        localKv->setSegment(0, update.data(), 1);
-        localKv->setSegment(4, update.data(), 1);
+        localKv->setChunk(0, update.data(), 1);
+        localKv->setChunk(4, update.data(), 1);
 
         localKv->pushPartial();
         expected = {6, 1, 2, 3, 6};
@@ -504,8 +504,9 @@ namespace tests {
         }
     }
 
-    TEST_CASE("Test mapping shared memory pulls if not initialised", "[state]") {
+    TEST_CASE("Test mapping shared memory does not pull", "[state]") {
         std::vector<uint8_t> values = {0, 1, 2, 3, 4};
+        std::vector<uint8_t> zeroes(values.size(), 0);
         DummyStateServer server;
         setUpDummyServer(server, values);
 
@@ -516,14 +517,20 @@ namespace tests {
         const std::shared_ptr<state::StateKeyValue> &remoteKv = server.getRemoteKv();
         remoteKv->set(values.data());
 
-        // Try to map the kv locally
+        // Map the KV locally
         void *mappedRegion = mmap(nullptr, util::HOST_PAGE_SIZE, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
         localKv->mapSharedMemory(mappedRegion, 0, 1);
 
+        // Check it's zeroed
         auto byteRegion = static_cast<uint8_t *>(mappedRegion);
         std::vector<uint8_t> actualValue(byteRegion, byteRegion + values.size());
-        REQUIRE(actualValue == values);
+        REQUIRE(actualValue == zeroes);
+
+        // Now get the value and check it's implicitly pulled
+        localKv->get();
+        std::vector<uint8_t> actualValueAfterGet(byteRegion, byteRegion + values.size());
+        REQUIRE(actualValueAfterGet == values);
 
         server.wait();
     }
@@ -541,20 +548,20 @@ namespace tests {
         void *mappedRegionA = mmap(nullptr, util::HOST_PAGE_SIZE, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         void *mappedRegionB = mmap(nullptr, util::HOST_PAGE_SIZE, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
-        // Map them to small segments of the shared memory
+        // Map them to small chunks of the shared memory
         kv->mapSharedMemory(mappedRegionA, 0, 1);
         kv->mapSharedMemory(mappedRegionB, 0, 1);
 
         auto byteRegionA = static_cast<uint8_t *>(mappedRegionA);
         auto byteRegionB = static_cast<uint8_t *>(mappedRegionB);
 
-        // Update segments and check changes reflected
+        // Update chunks and check changes reflected
         uint8_t *full = kv->get();
-        uint8_t *segmentA = kv->getSegment(1, 2);
-        uint8_t *segmentB = kv->getSegment(4, 3);
+        uint8_t *chunkA = kv->getChunk(1, 2);
+        uint8_t *chunkB = kv->getChunk(4, 3);
 
-        segmentA[1] = 8;
-        segmentB[2] = 8;
+        chunkA[1] = 8;
+        chunkB[2] = 8;
 
         std::vector<uint8_t> expected = {0, 1, 8, 3, 4, 5, 8};
         for (int i = 0; i < 5; i++) {
@@ -563,12 +570,12 @@ namespace tests {
             REQUIRE(byteRegionB[i] == expected.at(i));
         }
 
-        // Update shared regions and check reflected in segments
+        // Update shared regions and check reflected in chunks
         byteRegionB[1] = 9;
-        REQUIRE(segmentA[0] == 9);
+        REQUIRE(chunkA[0] == 9);
 
         byteRegionA[5] = 1;
-        REQUIRE(segmentB[1] == 1);
+        REQUIRE(chunkB[1] == 1);
     }
 
     TEST_CASE("Test mapping bigger uninitialized shared memory offsets", "[state]") {
@@ -586,11 +593,11 @@ namespace tests {
         // Expecting two implicit pulls
         server.start(2);
 
-        // Map a couple of segments in host memory (as would be done by the wasm module)
+        // Map a couple of chunks in host memory (as would be done by the wasm module)
         void *mappedRegionA = mmap(nullptr, mappingSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         void *mappedRegionB = mmap(nullptr, mappingSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
-        // Do the mapping and check they're reporting the correct offset
+        // Do the mapping
         const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
         localKv->mapSharedMemory(mappedRegionA, 6, 3);
         localKv->mapSharedMemory(mappedRegionB, 2, 3);
@@ -599,20 +606,20 @@ namespace tests {
         auto byteRegionA = static_cast<uint8_t *>(mappedRegionA);
         auto byteRegionB = static_cast<uint8_t *>(mappedRegionB);
 
+        // Get direct pointers to these chunks (will implicitly pull)
+        size_t offsetA = (6 * util::HOST_PAGE_SIZE);
+        size_t offsetB = (2 * util::HOST_PAGE_SIZE);
+        uint8_t *chunkA = localKv->getChunk(offsetA, 10);
+        uint8_t *chunkB = localKv->getChunk(offsetB, 10);
+
         // Write something to each one
         byteRegionA[5] = 5;
         byteRegionB[9] = 9;
 
-        // Get pointers to these segments
-        size_t offsetA = (6 * util::HOST_PAGE_SIZE);
-        size_t offsetB = (2 * util::HOST_PAGE_SIZE);
-        uint8_t *segmentA = localKv->getSegment(offsetA, 10);
-        uint8_t *segmentB = localKv->getSegment(offsetB, 10);
-
-        REQUIRE(segmentA[0] == 1);
-        REQUIRE(segmentB[0] == 1);
-        REQUIRE(segmentA[5] == 5);
-        REQUIRE(segmentB[9] == 9);
+        REQUIRE(chunkA[0] == 1);
+        REQUIRE(chunkB[0] == 1);
+        REQUIRE(chunkA[5] == 5);
+        REQUIRE(chunkB[9] == 9);
 
         server.wait();
     }
@@ -770,51 +777,51 @@ namespace tests {
         server.wait();
     }
 
-    TEST_CASE("Test pushing pulling segments over multiple requests", "[state]") {
+    TEST_CASE("Test pushing pulling chunks over multiple requests", "[state]") {
         // Set up a big chunk of state
         size_t valueSize = 10 * TCP_RECV_BUF_SIZE + 123;
         std::vector<uint8_t> values(valueSize, 1);
         DummyStateServer server;
         setUpDummyServer(server, values);
 
-        // Two segment pulls, one push partial
+        // Two chunk pulls, one push partial
         server.start(3);
 
-        // Set a segment in the remote value
+        // Set a chunk in the remote value
         int offsetA = 3 * TCP_RECV_BUF_SIZE + 5;
         std::vector<uint8_t> segA = {4, 4};
         std::shared_ptr<state::StateKeyValue> remoteKv = server.getRemoteKv();
-        remoteKv->setSegment(offsetA, segA.data(), segA.size());
+        remoteKv->setChunk(offsetA, segA.data(), segA.size());
 
-        // Set a segment at the end of the remote value
+        // Set a chunk at the end of the remote value
         std::vector<uint8_t> segB = {5, 5, 5, 5, 5};
         int offsetB = valueSize - 1 - segB.size();
-        remoteKv->setSegment(offsetB, segB.data(), segB.size());
+        remoteKv->setChunk(offsetB, segB.data(), segB.size());
 
         // Get only these chunks locally
         std::shared_ptr<state::StateKeyValue> localKv = server.getLocalKv();
         std::vector<uint8_t> actualSegA(segA.size(), 0);
-        localKv->getSegment(offsetA, actualSegA.data(), segA.size());
+        localKv->getChunk(offsetA, actualSegA.data(), segA.size());
         REQUIRE(actualSegA == segA);
 
         std::vector<uint8_t> actualSegB(segB.size(), 0);
-        localKv->getSegment(offsetB, actualSegB.data(), segB.size());
+        localKv->getChunk(offsetB, actualSegB.data(), segB.size());
         REQUIRE(actualSegB == segB);
 
         // Now modify a different chunk locally
         int offsetC = 2 * TCP_RECV_BUF_SIZE + 2;
         std::vector<uint8_t> segC = {0, 1, 2, 3, 4};
-        localKv->setSegment(offsetC, segC.data(), segC.size());
+        localKv->setChunk(offsetC, segC.data(), segC.size());
 
         // Modify a chunk right at the end
         std::vector<uint8_t> segD = {3, 3, 3};
         int offsetD = valueSize - 1 - segD.size();
-        localKv->setSegment(offsetD, segD.data(), segD.size());
+        localKv->setChunk(offsetD, segD.data(), segD.size());
         
         // Push the changes
         localKv->pushPartial();
         
-        // Check the segments in the remote value
+        // Check the chunks in the remote value
         std::vector<uint8_t> actualAfterPush = server.getRemoteKvValue();
         std::vector<uint8_t> actualSegC(actualAfterPush.begin() + offsetC, actualAfterPush.begin() + offsetC + segC.size());
         std::vector<uint8_t> actualSegD(actualAfterPush.begin() + offsetD, actualAfterPush.begin() + offsetD + segD.size());
@@ -825,17 +832,17 @@ namespace tests {
         server.wait();
     }
     
-    TEST_CASE("Test pulling multiple overlapping segments of the same value", "[state]") {
+    TEST_CASE("Test pulling disjoint chunks of the same value which share pages", "[state]") {
         // Set up state
         size_t valueSize = 20 * util::HOST_PAGE_SIZE + 123;
         std::vector<uint8_t> values(valueSize, 1);
         DummyStateServer server;
         setUpDummyServer(server, values);
 
-        // Two segment pulls
-        server.start(3);
+        // Expect two chunk pulls
+        server.start(2);
 
-        // Set up two segments both from the same page of memory but not overlapping
+        // Set up two chunks both from the same page of memory but not overlapping
         long offsetA = 2 * util::HOST_PAGE_SIZE + 10;
         long offsetB = 2 * util::HOST_PAGE_SIZE + 20;
         long lenA = 5;
@@ -847,11 +854,13 @@ namespace tests {
         std::vector<uint8_t> expectedB(lenA, 1);
 
         const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
-        localKv->getSegment(offsetA, actualA.data(), lenA);
-        localKv->getSegment(offsetB, actualB.data(), lenB);
+        localKv->getChunk(offsetA, actualA.data(), lenA);
+        localKv->getChunk(offsetB, actualB.data(), lenB);
 
-        // Check both are as expected, and that local KV as the right size
+        // Check the local KV has been initialised to the right size
         REQUIRE(localKv->getSharedMemorySize() == 21 * util::HOST_PAGE_SIZE);
+
+        // Check both chunks are as expected
         REQUIRE(actualA == expectedA);
         REQUIRE(actualB == expectedB);
 
