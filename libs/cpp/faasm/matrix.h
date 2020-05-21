@@ -29,14 +29,6 @@ namespace faasm {
         char *outerKey;
         char *sizeKey;
         char *nonZeroKey;
-
-        ~SparseKeys() {
-            delete[] valueKey;
-            delete[] innerKey;
-            delete[] outerKey;
-            delete[] sizeKey;
-            delete[] nonZeroKey;
-        }
     };
 
     SparseKeys getSparseKeys(const char *key);

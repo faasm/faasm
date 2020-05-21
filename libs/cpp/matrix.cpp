@@ -163,10 +163,6 @@ namespace faasm {
         return mat;
     }
 
-    SparseMatrixSerialiser::~SparseMatrixSerialiser() {
-        delete[] nonZeroCounts;
-    }
-
     void writeSparseMatrixToState(const char *key,
                                   const SparseMatrix<double> &mat,
                                   bool push) {
