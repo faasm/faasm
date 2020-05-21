@@ -841,7 +841,7 @@ namespace wasm {
                 kv->mapSharedMemory(static_cast<void *>(wasmMemoryRegionPtr), chunk.nPagesOffset, chunk.nPagesLength);
 
                 // Cache the wasm pointer
-                sharedMemWasmPtrs.insert(std::pair<std::string, I32>(segmentKey, wasmPtr));
+                sharedMemWasmPtrs[segmentKey] = wasmPtr;
             }
         }
 

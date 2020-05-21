@@ -65,9 +65,11 @@ namespace faasm {
         // memset(weightMaskBytes, 0, nWeightBytes);
 
         // Shuffle examples in this batch
+        printf("Shuffling cols\n");
         int *cols = randomIntRange(inputs.outerSize());
 
         // Iterate through all training examples (i.e. columns)
+        printf("Iterating on SGD\n");
         int updateCount = 0;
         for (int c = 0; c < inputs.outerSize(); ++c) {
             int col = cols[c];

@@ -149,7 +149,7 @@ namespace tests {
         REQUIRE(regionBInt[0] == 55);
         REQUIRE(regionBInt[1] == 66);
     }
-    
+
     TEST_CASE("Test small aligned memory chunk", "[util]") {
         AlignedChunk actual = getPageAlignedChunk(0, 10);
 
@@ -160,6 +160,20 @@ namespace tests {
         REQUIRE(actual.nPagesOffset == 0);
         REQUIRE(actual.nPagesLength == 1);
         REQUIRE(actual.offsetRemainder == 0);
+    }
+
+    TEST_CASE("Test aligned memory chunks near page boundaries", "[util]") {
+        long originalOffset = 2 * util::HOST_PAGE_SIZE - 1;
+        long originalLength = 3;
+
+        AlignedChunk actual = getPageAlignedChunk(originalOffset, originalLength);
+        REQUIRE(actual.originalOffset == originalOffset);
+        REQUIRE(actual.originalLength == originalLength);
+        REQUIRE(actual.nPagesOffset == 1);
+        REQUIRE(actual.nPagesLength == 2);
+        REQUIRE(actual.nBytesOffset == 1 * util::HOST_PAGE_SIZE);
+        REQUIRE(actual.nBytesLength == 2 * util::HOST_PAGE_SIZE);
+        REQUIRE(actual.offsetRemainder == util::HOST_PAGE_SIZE - 1);
     }
 
     TEST_CASE("Test large offset memory chunk", "[util]") {
