@@ -45,12 +45,14 @@ namespace faasm {
                                                                  false);
 
         // Read in the feature counts (will be constant)
+        printf("Loading feature counts\n");
         size_t nFeatureCountBytes = sgdParams.nWeights * sizeof(int);
         uint8_t *featureCountByteBuffer = faasmReadStatePtr(FEATURE_COUNTS_KEY, nFeatureCountBytes);
         auto featureCountBuffer = reinterpret_cast<int *>(featureCountByteBuffer);
 
         // Get pointers to the weights and mask (note that the mask state will only ever exist locally
         // and is create if not already present).
+        printf("Loading weights\n");
         size_t nWeightBytes = sgdParams.nWeights * sizeof(double);
         uint8_t *weightDataByteBuffer = faasmReadStatePtr(WEIGHTS_KEY, nWeightBytes);
         auto weightDataBuffer = reinterpret_cast<double *>(weightDataByteBuffer);

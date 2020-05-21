@@ -70,6 +70,10 @@ def restart_workers(ctx):
     """
     Restart bare metal workers
     """
+    # Clear out machine code
+    _ansible_command("worker", "rm -rf /usr/local/faasm/object")
+
+    # Restart
     _ansible_command("worker", "sudo supervisorctl restart faasm_worker")
 
 
@@ -78,7 +82,14 @@ def restart(ctx):
     """
     Restart whole bare metal deployment
     """
+
+    # Flush redis
     _ansible_command("redis", "redis-cli flushall")
+
+    # Clear out any function machine code
+    _ansible_command("worker", "rm -rf /usr/local/faasm/object")
+
+    # Restart the application
     _ansible_command("upload", "sudo supervisorctl restart faasm_upload")
     _ansible_command("worker", "sudo supervisorctl restart faasm_worker")
 

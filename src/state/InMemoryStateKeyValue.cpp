@@ -275,8 +275,7 @@ namespace state {
 
     void InMemoryStateKeyValue::pushPartialToRemote(const std::vector<StateChunk> &chunks) {
         if (status == InMemoryStateKeyStatus::MASTER) {
-            // Just need to reset dirty mask as there's no work to be done
-            zeroDirtyMask();
+            // Nothing to be done
         } else {
             // Send the request
             tcp::TCPMessage *msg = buildStatePushMultiChunkRequest(chunks);
@@ -285,11 +284,6 @@ namespace state {
 
             // Wait for response
             awaitOkResponse();
-
-            // Read the latest full value
-            if (fullyAllocated) {
-                pullFromRemote();
-            }
         }
     }
 

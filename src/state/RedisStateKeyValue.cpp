@@ -60,9 +60,9 @@ namespace state {
     }
 
     void RedisStateKeyValue::pullChunkFromRemote(long offset, size_t length) {
-        PROF_START(stateSegmentPull)
+        PROF_START(stateChunkPull)
 
-        logger->debug("Pulling remote segment ({}-{}) for {}", offset, offset + length, joinedKey);
+        logger->debug("Pulling remote chunk ({}-{}) for {}", offset, offset + length, joinedKey);
 
         // Note - redis ranges are inclusive, so we need to knock one off
         size_t rangeStart = offset;
@@ -72,7 +72,7 @@ namespace state {
         auto buffer = BYTES(sharedMemory) + offset;
         redis.getRange(joinedKey, buffer, length, rangeStart, rangeEnd);
 
-        PROF_END(stateSegmentPull)
+        PROF_END(stateChunkPull)
     }
 
     void RedisStateKeyValue::pushToRemote() {
@@ -81,10 +81,6 @@ namespace state {
         logger->debug("Pushing whole value for {}", joinedKey);
 
         redis.set(joinedKey, static_cast<uint8_t *>(sharedMemory), valueSize);
-
-        // Remove any dirty flags
-        isDirty = false;
-        zeroDirtyMask();
 
         PROF_END(pushFull)
     }
@@ -100,13 +96,6 @@ namespace state {
         // Flush the pipeline
         logger->debug("Pipelined {} updates on {}", chunks.size(), joinedKey);
         redis.flushPipeline(chunks.size());
-
-        // Read the latest value
-        if (fullyAllocated) {
-            logger->debug("Pulling from remote on partial push for {}", joinedKey);
-            auto sharedMemoryBytes = BYTES(sharedMemory);
-            redis.get(joinedKey, sharedMemoryBytes, valueSize);
-        }
 
         PROF_END(pushPartial)
     }

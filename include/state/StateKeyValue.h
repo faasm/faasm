@@ -102,26 +102,16 @@ namespace state {
         virtual void unlockGlobal() = 0;
 
     protected:
-        bool isDirty = false;
-
         redis::Redis &redis;
 
         const std::shared_ptr<spdlog::logger> logger;
 
         std::shared_mutex valueMutex;
 
-        // Flags for tracking allocation and initial pull
-        std::atomic<bool> fullyAllocated = false;
-        std::atomic<bool> fullyPulled = false;
-        void *pulledMask = nullptr;
-
         size_t valueSize;
         size_t sharedMemSize;
 
         void *sharedMemory = nullptr;
-        void *dirtyMask = nullptr;
-
-        void zeroDirtyMask();
 
         void doSet(const uint8_t *data);
 
@@ -142,6 +132,15 @@ namespace state {
         virtual void pushPartialToRemote(const std::vector<StateChunk> &dirtyChunks) = 0;
 
     private:
+        // Flags for tracking allocation and initial pull
+        std::atomic<bool> fullyAllocated = false;
+        std::atomic<bool> fullyPulled = false;
+        void *pulledMask = nullptr;
+        void *dirtyMask = nullptr;
+        bool isDirty = false;
+
+        void zeroDirtyMask();
+
         void configureSize();
 
         void checkSizeConfigured();

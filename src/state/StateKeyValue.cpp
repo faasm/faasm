@@ -11,6 +11,8 @@
 
 using namespace util;
 
+#define ONES_BITMASK 0b11111111
+
 namespace state {
     StateKeyValue::StateKeyValue(const std::string &userIn, const std::string &keyIn) :
             StateKeyValue(userIn, keyIn, 0) {
@@ -36,10 +38,10 @@ namespace state {
         sharedMemSize = nHostPages * HOST_PAGE_SIZE;
         sharedMemory = nullptr;
 
-        dirtyMask = new uint8_t[sharedMemSize];
+        dirtyMask = new uint8_t[valueSize];
         zeroDirtyMask();
 
-        pulledMask = new uint8_t[sharedMemSize];
+        pulledMask = new uint8_t[valueSize];
         memset(pulledMask, 0, valueSize);
     }
 
@@ -111,7 +113,6 @@ namespace state {
         checkSizeConfigured();
 
         // Set up storage
-        reserveStorage();
         allocateFull();
 
         // Copy data into shared region
@@ -163,12 +164,12 @@ namespace state {
     }
 
     void StateKeyValue::flagDirty() {
+        util::SharedLock lock(valueMutex);
         isDirty = true;
     }
 
     void StateKeyValue::zeroDirtyMask() {
         checkSizeConfigured();
-
         memset(dirtyMask, 0, valueSize);
     }
 
@@ -181,7 +182,7 @@ namespace state {
 
     void StateKeyValue::markDirtyChunk(long offset, long len) {
         isDirty |= true;
-        memset(((uint8_t *) dirtyMask) + offset, 0b11111111, len);
+        memset(BYTES(dirtyMask) + offset, ONES_BITMASK, len);
     }
 
     size_t StateKeyValue::size() const {
@@ -274,6 +275,7 @@ namespace state {
             return;
         }
 
+        // Allocate full memory (i.e. a chunk from zero to max)
         allocateChunk(0, sharedMemSize);
 
         fullyAllocated = true;
@@ -344,6 +346,10 @@ namespace state {
         }
 
         pushToRemote();
+
+        // Remove any dirty flags
+        isDirty = false;
+        zeroDirtyMask();
     }
 
     void StateKeyValue::doPull(bool lazy) {
@@ -405,7 +411,7 @@ namespace state {
         pullChunkFromRemote(offset, length);
 
         // Mark the chunk as pulled
-        memset(((uint8_t *) pulledMask) + offset, 0b11111111, length);
+        memset(((uint8_t *) pulledMask) + offset, ONES_BITMASK, length);
     }
 
     void StateKeyValue::doPushPartial(const uint8_t *dirtyMaskBytes) {
@@ -430,8 +436,13 @@ namespace state {
         // Zero the mask now that we're finished with it
         memset((void *) dirtyMaskBytes, 0, valueSize);
 
-        // Do the write
+        // Push
         pushPartialToRemote(chunks);
+
+        // Update if necessary
+        if(fullyAllocated) {
+            pullFromRemote();
+        }
 
         // Mark as no longer dirty
         isDirty = false;

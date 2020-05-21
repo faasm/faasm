@@ -165,7 +165,7 @@ namespace wasm {
         // Write to state
         auto kv = getStateKV(keyPtr, fileLength);
         kv->set(bytes.data());
-        
+
         return fileLength;
     }
 
@@ -173,7 +173,7 @@ namespace wasm {
                                    I32 keyPtr, I32 bufferPtr, I32 bufferLen) {
 
         // If buffer len is zero, just need the state size
-        if(bufferLen == 0) {
+        if (bufferLen == 0) {
             std::string user = getExecutingCall()->user();
             std::string key = getStringFromWasm(keyPtr);
             util::getLogger()->debug("S - read_state - {} {} {}", key, bufferPtr, bufferLen);
@@ -246,10 +246,9 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_flag_state_offset_dirty", void, __faasm_flag_state_offset_dirty,
                                    I32 keyPtr, I32 totalLen, I32 offset, I32 len) {
         auto kv = getStateKV(keyPtr, totalLen);
-        // Avoid heavy logging
-        //        util::getLogger()->debug("S - __faasm_flag_state_offset_dirty - {} {} {} {}", keyPtr, totalLen, offset,
-        //                                 len);
 
+        // Avoid heavy logging
+        util::getLogger()->debug("S - __faasm_flag_state_offset_dirty - {} {} {} {}", keyPtr, totalLen, offset, len);
         kv->flagChunkDirty(offset, len);
     }
 
