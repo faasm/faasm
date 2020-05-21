@@ -9,7 +9,7 @@ using namespace faasm;
 namespace storage {
     class SparseMatrixFileSerialiser : public SparseMatrixSerialiser {
     public:
-        using SparseMatrixSerialiser::SparseMatrixSerialiser;
+        explicit SparseMatrixFileSerialiser(const SparseMatrix<double> &matIn);
 
         void writeToFile(const std::string &directory);
 

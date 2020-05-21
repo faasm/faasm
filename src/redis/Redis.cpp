@@ -335,33 +335,36 @@ namespace redis {
             retValue.insert(reply->element[i]->str);
         }
 
-        freeReplyObject(reply);
-
         return retValue;
     }
 
     std::unordered_set<std::string> Redis::smembers(const std::string &key) {
         auto reply = (redisReply *) redisCommand(context, "SMEMBERS %s", key.c_str());
+        freeReplyObject(reply);
         return extractStringSetFromReply(reply);
     }
 
     std::unordered_set<std::string> Redis::sinter(const std::string &keyA, const std::string &keyB) {
         auto reply = (redisReply *) redisCommand(context, "SINTER %s %s", keyA.c_str(), keyB.c_str());
+        freeReplyObject(reply);
         return extractStringSetFromReply(reply);
     }
 
     std::unordered_set<std::string> Redis::sdiff(const std::string &keyA, const std::string &keyB) {
         auto reply = (redisReply *) redisCommand(context, "SDIFF %s %s", keyA.c_str(), keyB.c_str());
+        freeReplyObject(reply);
         return extractStringSetFromReply(reply);
     }
 
     int Redis::lpushLong(const std::string &key, long value) {
         auto reply = (redisReply *) redisCommand(context, "LPUSH %s %i", key.c_str(), value);
+        freeReplyObject(reply);
         return reply->integer;
     }
 
     int Redis::rpushLong(const std::string &key, long value) {
         auto reply = (redisReply *) redisCommand(context, "RPUSH %s %i", key.c_str(), value);
+        freeReplyObject(reply);
         return reply->integer;
     }
 

@@ -44,8 +44,6 @@ namespace faasm {
                                                              uint8_t *innerBytes,
                                                              uint8_t *valuesBytes);
 
-        ~SparseMatrixSerialiser();
-
         const SparseMatrix<double> &mat;
 
         const uint8_t *valueBytes;
