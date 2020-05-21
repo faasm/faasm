@@ -11,6 +11,8 @@ FAASM_FUNC(scaleWorker, 1) {
     printf("Executing scale worker\n");
 
     faasm::AtomicInt counter;
+    printf("Adding 1 to counter %i\n", counter.get());
+    
     counter += 1;
 
     return 0;
