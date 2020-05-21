@@ -102,8 +102,6 @@ namespace state {
         virtual void unlockGlobal() = 0;
 
     protected:
-        redis::Redis &redis;
-
         const std::shared_ptr<spdlog::logger> logger;
 
         std::shared_mutex valueMutex;

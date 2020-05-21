@@ -23,7 +23,6 @@ namespace state {
     StateKeyValue::StateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn) :
             user(userIn),
             key(keyIn),
-            redis(redis::Redis::getState()),
             logger(util::getLogger()),
             valueSize(sizeIn) {
 
