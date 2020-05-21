@@ -229,7 +229,7 @@ namespace tests {
         int syncInterval = 100;
 
         // Deliberately try to cause contention with lots of worker
-        int nWorkers = 20;
+        int nWorkers = 30;
         call.set_inputdata(std::to_string(nWorkers) + " " + std::to_string(syncInterval));
 
         std::thread serverThread([nWorkers, syncInterval, &call] {

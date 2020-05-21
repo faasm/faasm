@@ -89,6 +89,8 @@ namespace state {
         std::string masterIP;
         InMemoryStateKeyStatus status;
 
+        std::shared_mutex globalLock;
+
         std::vector<AppendedInMemoryState> appendedData;
 
         std::unique_ptr<tcp::TCPClient> masterClient;

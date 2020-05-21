@@ -198,7 +198,7 @@ namespace state {
 
     void InMemoryStateKeyValue::lockGlobal() {
         if (status == InMemoryStateKeyStatus::MASTER) {
-            lockWrite();
+            globalLock.lock();
         } else {
             // Send message to master
             tcp::TCPMessage *msg = buildStateLockRequest();
@@ -212,7 +212,7 @@ namespace state {
 
     void InMemoryStateKeyValue::unlockGlobal() {
         if (status == InMemoryStateKeyStatus::MASTER) {
-            unlockWrite();
+            globalLock.unlock();
         } else {
             // Send message to master
             tcp::TCPMessage *msg = buildStateUnlockRequest();
