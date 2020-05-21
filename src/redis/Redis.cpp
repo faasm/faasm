@@ -6,6 +6,7 @@
 
 #include <thread>
 #include <util/gids.h>
+#include <util/bytes.h>
 
 namespace redis {
 
@@ -288,6 +289,12 @@ namespace redis {
 
     void Redis::sadd(const std::string &key, const std::string &value) {
         auto reply = (redisReply *) redisCommand(context, "SADD %s %s", key.c_str(), value.c_str());
+        if(reply->type == REDIS_REPLY_ERROR) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->error("Failed to add {} to set {}", value, key);
+            throw std::runtime_error("Failed to add element to set");
+        }
+
         freeReplyObject(reply);
     }
 
@@ -340,32 +347,41 @@ namespace redis {
 
     std::unordered_set<std::string> Redis::smembers(const std::string &key) {
         auto reply = (redisReply *) redisCommand(context, "SMEMBERS %s", key.c_str());
+        std::unordered_set<std::string> result = extractStringSetFromReply(reply);
+
         freeReplyObject(reply);
-        return extractStringSetFromReply(reply);
+        return result;
     }
 
     std::unordered_set<std::string> Redis::sinter(const std::string &keyA, const std::string &keyB) {
         auto reply = (redisReply *) redisCommand(context, "SINTER %s %s", keyA.c_str(), keyB.c_str());
+        std::unordered_set<std::string> result = extractStringSetFromReply(reply);
+
         freeReplyObject(reply);
-        return extractStringSetFromReply(reply);
+        return result;
     }
 
     std::unordered_set<std::string> Redis::sdiff(const std::string &keyA, const std::string &keyB) {
         auto reply = (redisReply *) redisCommand(context, "SDIFF %s %s", keyA.c_str(), keyB.c_str());
+        std::unordered_set<std::string> result = extractStringSetFromReply(reply);
+
         freeReplyObject(reply);
-        return extractStringSetFromReply(reply);
+        return result;
     }
 
     int Redis::lpushLong(const std::string &key, long value) {
         auto reply = (redisReply *) redisCommand(context, "LPUSH %s %i", key.c_str(), value);
+        long long int result = reply->integer;
+
         freeReplyObject(reply);
-        return reply->integer;
+        return result;
     }
 
     int Redis::rpushLong(const std::string &key, long value) {
         auto reply = (redisReply *) redisCommand(context, "RPUSH %s %i", key.c_str(), value);
+        long long int result = reply->integer;
         freeReplyObject(reply);
-        return reply->integer;
+        return result;
     }
 
     void Redis::flushAll() {

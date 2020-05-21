@@ -345,9 +345,10 @@ namespace tests {
         std::string setA = "set_a";
         std::string setB = "set_b";
 
-        std::string valueA = "val_a";
+        // NOTE - we need to check Redis can store odd strings like IPs
+        std::string valueA = "12.45.67.89";
         std::string valueB = "val_b";
-        std::string valueC = "val_c";
+        std::string valueC = "192.168.3.4";
 
         // Check cardinality is zero for both initially
         REQUIRE(redisQueue.scard(setA) == 0);
@@ -370,6 +371,10 @@ namespace tests {
         REQUIRE(redisQueue.sismember(setA, valueB));
         REQUIRE(redisQueue.sismember(setB, valueC));
         REQUIRE(redisQueue.scard(setB) == 1);
+
+        // Check members
+        std::unordered_set<std::string> expectedA = {valueA, valueB};
+        REQUIRE(redisQueue.smembers(setA) == expectedA);
 
         // Remove and check
         redisQueue.srem(setA, valueB);
@@ -409,8 +414,8 @@ namespace tests {
         const std::unordered_set<std::string> actualA = redisQueue.sdiff(setA, setB);
         REQUIRE(actualA.empty());
 
-        std::string valueA = "val_a";
-        std::string valueB = "val_b";
+        std::string valueA = "123.45.67.8";
+        std::string valueB = "123.45.67.9";
         std::string valueC = "val_c";
         std::string valueD = "val_d";
 
