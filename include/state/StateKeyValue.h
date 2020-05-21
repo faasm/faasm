@@ -151,8 +151,6 @@ namespace state {
 
         void allocateChunk(long offset, size_t length);
 
-        void allocateFull();
-
         void reserveStorage();
 
         void doPull(bool lazy);

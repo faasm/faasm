@@ -833,15 +833,15 @@ namespace wasm {
                 // Create the wasm memory region and work out the offset to the start of the
                 // desired chunk in this region (this will be zero if the offset is already
                 // zero, or if the offset is page-aligned already).
-                U32 wasmMemoryRegion = this->mmapMemory(chunk.nBytesLength);
-                U32 wasmPtr = wasmMemoryRegion + chunk.offsetRemainder;
+                U32 wasmBasePtr = this->mmapMemory(chunk.nBytesLength);
+                U32 wasmOffsetPtr = wasmBasePtr + chunk.offsetRemainder;
 
                 // Map the shared memory
-                auto wasmMemoryRegionPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmMemoryRegion);
+                auto wasmMemoryRegionPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmBasePtr);
                 kv->mapSharedMemory(static_cast<void *>(wasmMemoryRegionPtr), chunk.nPagesOffset, chunk.nPagesLength);
 
                 // Cache the wasm pointer
-                sharedMemWasmPtrs[segmentKey] = wasmPtr;
+                sharedMemWasmPtrs[segmentKey] = wasmOffsetPtr;
             }
         }
 

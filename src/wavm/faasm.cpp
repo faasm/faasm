@@ -248,7 +248,8 @@ namespace wasm {
         auto kv = getStateKV(keyPtr, totalLen);
 
         // Avoid heavy logging
-        util::getLogger()->debug("S - __faasm_flag_state_offset_dirty - {} {} {} {}", keyPtr, totalLen, offset, len);
+        // util::getLogger()->debug("S - __faasm_flag_state_offset_dirty - {} {} {} {}", keyPtr, totalLen, offset, len);
+
         kv->flagChunkDirty(offset, len);
     }
 

@@ -113,7 +113,7 @@ namespace state {
         checkSizeConfigured();
 
         // Set up storage
-        allocateFull();
+        allocateChunk(0, sharedMemSize);
 
         // Copy data into shared region
         std::copy(buffer, buffer + valueSize, BYTES(sharedMemory));
@@ -203,13 +203,13 @@ namespace state {
             throw std::runtime_error("Mapping misaligned shared memory");
         }
 
+        // Full lock to perform the shared mapping
+        FullLock lock(valueMutex);
+
         // Ensure the underlying memory is allocated
         size_t offset = pagesOffset * util::HOST_PAGE_SIZE;
         size_t length = nPages * util::HOST_PAGE_SIZE;
         allocateChunk(offset, length);
-
-        // Full lock on the key-value
-        FullLock lock(valueMutex);
 
         // Add a mapping of the relevant pages of shared memory onto the new region
         void *result = mremap(BYTES(sharedMemory) + offset, 0, length, MREMAP_FIXED | MREMAP_MAYMOVE, destination);
@@ -267,29 +267,22 @@ namespace state {
             logger->debug("Allocating memory for {}/{} of size {} failed: {} ({})", user, key, length, errno, strerror(errno));
             throw std::runtime_error("Failed allocating memory for KV");
         }
-    }
 
-    void StateKeyValue::allocateFull() {
-        // Skip if already done
-        if (fullyAllocated) {
-            return;
+        // Flag if we've now allocated the whole value
+        if(offset == 0 && length == sharedMemSize) {
+            fullyAllocated = true;
         }
-
-        // Allocate full memory (i.e. a chunk from zero to max)
-        allocateChunk(0, sharedMemSize);
-
-        fullyAllocated = true;
     }
 
     void StateKeyValue::reserveStorage() {
         checkSizeConfigured();
 
-        PROF_START(reserveStorage)
-
         // Check if already reserved
         if (sharedMemory != nullptr) {
             return;
         }
+
+        PROF_START(reserveStorage)
 
         if (sharedMemSize == 0) {
             throw StateKeyValueException("Reserving storage with no size for " + key);
@@ -372,7 +365,7 @@ namespace state {
         }
 
         // Make sure storage is allocated
-        allocateFull();
+        allocateChunk(0, sharedMemSize);
 
         // Do the pull
         pullFromRemote();
@@ -406,12 +399,14 @@ namespace state {
             return;
         }
 
-        // Allocate this chunk
+        // Allocate the required memory
         allocateChunk(offset, length);
+
+        // Pull from remote
         pullChunkFromRemote(offset, length);
 
         // Mark the chunk as pulled
-        memset(((uint8_t *) pulledMask) + offset, ONES_BITMASK, length);
+        memset(BYTES(pulledMask) + offset, ONES_BITMASK, length);
     }
 
     void StateKeyValue::doPushPartial(const uint8_t *dirtyMaskBytes) {

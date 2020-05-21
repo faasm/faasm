@@ -227,7 +227,9 @@ namespace tests {
         // Set up the SVM function
         message::Message call = util::messageFactory("sgd", "reuters_svm");
         int syncInterval = 100;
-        int nWorkers = 4;
+
+        // Deliberately try to cause contention with lots of worker
+        int nWorkers = 20;
         call.set_inputdata(std::to_string(nWorkers) + " " + std::to_string(syncInterval));
 
         std::thread serverThread([nWorkers, syncInterval, &call] {
@@ -242,7 +244,7 @@ namespace tests {
 
             // Set up the params
             SgdParams p;
-            p.nWeights = 100;
+            p.nWeights = 200;
             p.nTrain = 10000;
             p.learningRate = 0.1;
             p.learningDecay = 0.8;
