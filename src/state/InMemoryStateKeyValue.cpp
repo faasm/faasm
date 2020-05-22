@@ -413,7 +413,7 @@ namespace state {
 
         // Check bounds - note we need to check against the allocated memory size, not the value
         int32_t chunkEnd = chunkOffset + chunkLen;
-        if((uint8_t) chunkEnd > sharedMemSize) {
+        if((uint32_t) chunkEnd > sharedMemSize) {
             logger->error("Pull chunk request larger than allocated memory (chunk end {}, allocated {})",
                           chunkEnd, sharedMemSize);
             throw std::runtime_error("Pull chunk request exceeds allocated memory");
