@@ -111,7 +111,7 @@ namespace tests {
         DummyStateServer server;
         bool pushPull = !local;
         if (pushPull) {
-            size_t nBytes = setUpDummyStateServer(server, stateKey, mat);
+            setUpDummyStateServer(server, stateKey, mat);
             server.start(2);
         }
 
