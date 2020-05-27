@@ -9,6 +9,8 @@
 #include <util/environment.h>
 #include <emulator/emulator.h>
 #include <util/state.h>
+#include <state/StateServer.h>
+#include <tcp/TCPClient.h>
 
 
 using namespace faasm;
@@ -76,6 +78,7 @@ namespace tests {
 
         int nWeights = 4;
         SgdParams params;
+        params.nTrain = 2;
         params.nWeights = nWeights;
         params.learningRate = 0.1;
         params.nBatches = 1;
@@ -90,9 +93,8 @@ namespace tests {
         writeMatrixToState(WEIGHTS_KEY, weights, true);
 
         // Set up some dummy feature counts
-        std::vector<int> featureCounts(4);
-        std::fill(featureCounts.begin(), featureCounts.end(), 1);
-        uint8_t *featureBytes = BYTES(featureCounts.data());
+        std::vector<int> featureCounts(4, 1);
+        auto featureBytes = BYTES(featureCounts.data());
         faasmWriteState(FEATURE_COUNTS_KEY, featureBytes, 4 * sizeof(int));
         faasmPushState(FEATURE_COUNTS_KEY);
 
@@ -214,5 +216,77 @@ namespace tests {
         double expectedRmse = sqrt((3 * expected) / p.nTrain);
         double actual = faasm::readRootMeanSquaredError(p);
         REQUIRE(abs(actual - expectedRmse) < 0.0000001);
+    }
+
+    TEST_CASE("Run SGD smoke test", "[sgd]") {
+        // Run some dummy data through the SGD function with a
+        // remote state server to check nothing breaks.
+
+        cleanSystem();
+
+        // Set up the SVM function
+        message::Message call = util::messageFactory("sgd", "reuters_svm");
+        int syncInterval = 100;
+
+        // Deliberately try to cause contention with lots of worker
+        int nWorkers = 30;
+        call.set_inputdata(std::to_string(nWorkers) + " " + std::to_string(syncInterval));
+
+        std::thread serverThread([nWorkers, syncInterval, &call] {
+            // Set up remote state
+            state::State remoteState(LOCALHOST);
+            setEmulatorUser(call.user().c_str());
+            setEmulatorState(&remoteState);
+            setEmulatedMessage(call);
+
+            // Set up the state server
+            state::StateServer stateServer(remoteState);
+
+            // Set up the params
+            SgdParams p;
+            p.nWeights = 100;
+            p.nTrain = 10000;
+            p.learningRate = 0.1;
+            p.learningDecay = 0.8;
+            p.nEpochs = 5;
+            p.mu = 1.0;
+
+            p.nBatches = nWorkers;
+            p.batchSize = p.nTrain / nWorkers;
+            p.syncInterval = syncInterval;
+
+            // Set up dummy data
+            setUpDummyProblem(p);
+
+            // Process incoming messages
+            while (true) {
+                try {
+                    stateServer.poll();
+                } catch (tcp::TCPShutdownException &ex) {
+                    break;
+                }
+            }
+
+            stateServer.close();
+        });
+
+        // Give it time to start
+        ::usleep(500 * 1000);
+
+        // Invoke the function with a pool
+        // Note - the function itself implicitly checks the chained calls,
+        // so we don't have to
+        execFuncWithPool(call, false, 1, false, 5, false);
+
+        // Send shutdown message
+        tcp::TCPClient client(LOCALHOST, STATE_PORT);
+        tcp::TCPMessage tcpMsg;
+        tcpMsg.type = state::StateMessageType::SHUTDOWN;
+        client.sendMessage(&tcpMsg);
+
+        // Wait for server
+        if (serverThread.joinable()) {
+            serverThread.join();
+        }
     }
 }

@@ -198,7 +198,7 @@ namespace state {
 
     void InMemoryStateKeyValue::lockGlobal() {
         if (status == InMemoryStateKeyStatus::MASTER) {
-            lockWrite();
+            globalLock.lock();
         } else {
             // Send message to master
             tcp::TCPMessage *msg = buildStateLockRequest();
@@ -212,7 +212,7 @@ namespace state {
 
     void InMemoryStateKeyValue::unlockGlobal() {
         if (status == InMemoryStateKeyStatus::MASTER) {
-            unlockWrite();
+            globalLock.unlock();
         } else {
             // Send message to master
             tcp::TCPMessage *msg = buildStateUnlockRequest();
@@ -243,7 +243,7 @@ namespace state {
         tcp::freeTcpMessage(response);
     }
 
-    void InMemoryStateKeyValue::pullRangeFromRemote(long offset, size_t length) {
+    void InMemoryStateKeyValue::pullChunkFromRemote(long offset, size_t length) {
         if (status == InMemoryStateKeyStatus::MASTER) {
             return;
         }
@@ -275,8 +275,7 @@ namespace state {
 
     void InMemoryStateKeyValue::pushPartialToRemote(const std::vector<StateChunk> &chunks) {
         if (status == InMemoryStateKeyStatus::MASTER) {
-            // Just need to reset dirty mask as there's no work to be done
-            zeroDirtyMask();
+            // Nothing to be done
         } else {
             // Send the request
             tcp::TCPMessage *msg = buildStatePushMultiChunkRequest(chunks);
@@ -285,11 +284,6 @@ namespace state {
 
             // Wait for response
             awaitOkResponse();
-
-            // Read the latest full value
-            if (_fullyAllocated) {
-                pullFromRemote();
-            }
         }
     }
 
@@ -417,6 +411,14 @@ namespace state {
         int32_t chunkOffset = *(reinterpret_cast<int32_t *>(requestData));
         int32_t chunkLen = *(reinterpret_cast<int32_t *>(requestData + sizeof(int32_t)));
 
+        // Check bounds - note we need to check against the allocated memory size, not the value
+        int32_t chunkEnd = chunkOffset + chunkLen;
+        if((uint32_t) chunkEnd > sharedMemSize) {
+            logger->error("Pull chunk request larger than allocated memory (chunk end {}, allocated {})",
+                          chunkEnd, sharedMemSize);
+            throw std::runtime_error("Pull chunk request exceeds allocated memory");
+        }
+
         auto response = new tcp::TCPMessage();
         response->type = StateMessageType::STATE_PULL_CHUNK_RESPONSE;
         response->len = chunkLen;
@@ -424,7 +426,7 @@ namespace state {
         // TODO - can we do this without copying?
         response->buffer = new uint8_t[chunkLen];
         auto bytePtr = BYTES(sharedMemory);
-        std::copy(bytePtr + chunkOffset, bytePtr + chunkOffset + chunkLen, response->buffer);
+        std::copy(bytePtr + chunkOffset, bytePtr + chunkEnd, response->buffer);
 
         return response;
     }
@@ -432,7 +434,7 @@ namespace state {
     void InMemoryStateKeyValue::extractPullChunkResponse(const tcp::TCPMessage *msg, long offset, size_t length) {
         if (msg->type == StateMessageType::STATE_PULL_CHUNK_RESPONSE) {
             // Set the chunk with the response data without locking
-            doSetSegment(offset, msg->buffer, length);
+            doSetChunk(offset, msg->buffer, length);
         } else {
             util::getLogger()->error("Unexpected response from pull chunk {}", msg->type);
             throw std::runtime_error("Pull range failed");

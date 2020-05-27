@@ -2,6 +2,7 @@
 
 #include <state/InMemoryStateKeyValue.h>
 #include <state/StateServer.h>
+#include <emulator/emulator.h>
 
 using namespace state;
 
@@ -49,6 +50,9 @@ namespace tests {
         serverThread = std::thread([this, nMessages] {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
+            // Make sure any emulated state actions use this remote state
+            setEmulatorState(&remoteState);
+
             // Override the host endpoint for the server thread. Must be localhost
             util::getSystemConfig().endpointHost = LOCALHOST;
 
@@ -72,8 +76,15 @@ namespace tests {
             StateServer server(remoteState);
             logger->debug("Running test state server for {} messages", nMessages);
             int processedMessages = 0;
+
             while (processedMessages < nMessages) {
-                processedMessages += server.poll();
+                try {
+                    processedMessages += server.poll();
+                } catch (tcp::TCPShutdownException &ex) {
+                    logger->debug("Shutting down test state server after {} messages", processedMessages);
+                    break;
+                }
+
                 logger->debug("Test state server processed {} messages", processedMessages);
             }
 

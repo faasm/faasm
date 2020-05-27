@@ -55,13 +55,13 @@ namespace state {
 
         uint8_t *get();
 
-        void getSegment(long offset, uint8_t *buffer, size_t length);
+        void getChunk(long offset, uint8_t *buffer, size_t length);
 
-        uint8_t *getSegment(long offset, long len);
+        uint8_t *getChunk(long offset, long len);
 
         void set(const uint8_t *buffer);
 
-        void setSegment(long offset, const uint8_t *buffer, size_t length);
+        void setChunk(long offset, const uint8_t *buffer, size_t length);
 
         void append(const uint8_t *buffer, size_t length);
 
@@ -89,11 +89,11 @@ namespace state {
 
         void flagDirty();
 
-        void zeroValue();
-
-        void flagSegmentDirty(long offset, long len);
+        void flagChunkDirty(long offset, long len);
 
         size_t size() const;
+
+        size_t getSharedMemorySize() const;
 
         void pushFull();
 
@@ -102,33 +102,22 @@ namespace state {
         virtual void unlockGlobal() = 0;
 
     protected:
-        bool isDirty;
-
-        redis::Redis &redis;
-
         const std::shared_ptr<spdlog::logger> logger;
 
         std::shared_mutex valueMutex;
-        std::atomic<bool> _fullyAllocated;
 
         size_t valueSize;
         size_t sharedMemSize;
 
         void *sharedMemory = nullptr;
-        void *dirtyMask = nullptr;
-        void *allocatedMask = nullptr;
-
-        void zeroDirtyMask();
-
-        void zeroAllocatedMask();
 
         void doSet(const uint8_t *data);
 
-        void doSetSegment(long offset, const uint8_t *buffer, size_t length);
+        void doSetChunk(long offset, const uint8_t *buffer, size_t length);
 
         virtual void pullFromRemote() = 0;
 
-        virtual void pullRangeFromRemote(long offset, size_t length) = 0;
+        virtual void pullChunkFromRemote(long offset, size_t length) = 0;
 
         virtual void pushToRemote() = 0;
 
@@ -141,23 +130,30 @@ namespace state {
         virtual void pushPartialToRemote(const std::vector<StateChunk> &dirtyChunks) = 0;
 
     private:
+        // Flags for tracking allocation and initial pull
+        std::atomic<bool> fullyAllocated = false;
+        std::atomic<bool> fullyPulled = false;
+        void *pulledMask = nullptr;
+        void *dirtyMask = nullptr;
+        bool isDirty = false;
+
+        void zeroDirtyMask();
+
         void configureSize();
 
         void checkSizeConfigured();
 
-        void markDirtySegment(long offset, long len);
+        void markDirtyChunk(long offset, long len);
 
-        void markAllocatedSegment(long offset, long len);
+        bool isChunkPulled(long offset, size_t length);
 
-        bool isSegmentAllocated(long offset, size_t length);
+        void allocateChunk(long offset, size_t length);
 
-        void allocateSegment(long offset, size_t length);
+        void reserveStorage();
 
-        void initialiseStorage(bool allocate);
+        void doPull(bool lazy);
 
-        void pullImpl(bool onlyIfEmpty);
-
-        void pullSegmentImpl(bool onlyIfEmpty, long offset, size_t length);
+        void doPullChunk(bool lazy, long offset, size_t length);
 
         void doPushPartial(const uint8_t *dirtyMaskBytes);
 

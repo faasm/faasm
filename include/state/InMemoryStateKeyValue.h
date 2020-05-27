@@ -89,6 +89,8 @@ namespace state {
         std::string masterIP;
         InMemoryStateKeyStatus status;
 
+        std::shared_mutex globalLock;
+
         std::vector<AppendedInMemoryState> appendedData;
 
         std::unique_ptr<tcp::TCPClient> masterClient;
@@ -99,7 +101,7 @@ namespace state {
 
         void pullFromRemote() override;
 
-        void pullRangeFromRemote(long offset, size_t length) override;
+        void pullChunkFromRemote(long offset, size_t length) override;
 
         void pushToRemote() override;
 

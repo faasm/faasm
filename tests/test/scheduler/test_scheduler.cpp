@@ -49,7 +49,7 @@ namespace tests {
         Redis &redis = Redis::getQueue();
 
         std::string thisHost = util::getSystemConfig().endpointHost;
-        std::string otherHostA = "host A";
+        std::string otherHostA = "192.168.0.10";
         SharingMessageBus &sharingBus = SharingMessageBus::getInstance();
 
         message::Message call = util::messageFactory("user a", "function a");
@@ -121,7 +121,7 @@ namespace tests {
             callB.set_function("x2");
 
             // Add a worker host to the global set
-            redis.sadd(AVAILABLE_HOST_SET, "foo");
+            redis.sadd(AVAILABLE_HOST_SET, "192.168.3.45");
 
             // Call each function
             sch.callFunction(callA);
@@ -328,7 +328,7 @@ namespace tests {
         SharingMessageBus &sharingBus = SharingMessageBus::getInstance();
 
         std::string thisHostId = util::getSystemConfig().endpointHost;
-        std::string otherHostA = "host A";
+        std::string otherHostA = "192.168.3.3";
 
         util::SystemConfig &conf = util::getSystemConfig();
         int maxInFlightRatio = conf.maxInFlightRatio;
@@ -372,7 +372,7 @@ namespace tests {
         Scheduler &sch = scheduler::getScheduler();
 
         std::string thisHostId = util::getSystemConfig().endpointHost;
-        std::string otherHostA = "host A";
+        std::string otherHostA = "192.168.4.5";
 
         message::Message msg = util::messageFactory("demo", "chain_simple");
 
@@ -406,7 +406,7 @@ namespace tests {
         Scheduler &sch = scheduler::getScheduler();
 
         std::string thisHost = util::getSystemConfig().endpointHost;
-        std::string otherHost = "other host";
+        std::string otherHost = "192.168.111.23";
         message::Message msg = util::messageFactory("demo", "chain_simple");
 
         // Add both to the global set

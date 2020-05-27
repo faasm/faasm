@@ -5,6 +5,13 @@
 #include <util/macros.h>
 #include <util/state.h>
 
+/**
+ * WARNING - key-value objects are shared between threads, BUT
+ * hiredis is not thread-safe, so make sure you always retrieve
+ * the reference to Redis inline rather than sharing a reference
+ * within the class.
+ */
+
 namespace state {
     RedisStateKeyValue::RedisStateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn)
             : StateKeyValue(userIn, keyIn, sizeIn),
@@ -19,20 +26,17 @@ namespace state {
 
     size_t RedisStateKeyValue::getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn) {
         std::string actualKey = util::keyForUser(userIn, keyIn);
-        redis::Redis &redis = redis::Redis::getState();
-        return redis.strlen(actualKey);
+        return redis::Redis::getState().strlen(actualKey);
     }
 
     void RedisStateKeyValue::deleteFromRemote(const std::string &userIn, const std::string &keyIn) {
-        redis::Redis &redis = redis::Redis::getState();
         std::string actualKey = util::keyForUser(userIn, keyIn);
-        redis.del(actualKey);
+        redis::Redis::getState().del(actualKey);
     }
 
     void RedisStateKeyValue::clearAll(bool global) {
         if (global) {
-            redis::Redis &redis = redis::Redis::getState();
-            redis.flushAll();
+            redis::Redis::getState().flushAll();
         }
     }
 
@@ -45,7 +49,7 @@ namespace state {
 
     void RedisStateKeyValue::unlockGlobal() {
         util::FullLock lock(valueMutex);
-        redis.releaseLock(joinedKey, lastRemoteLockId);
+        redis::Redis::getState().releaseLock(joinedKey, lastRemoteLockId);
     }
 
     void RedisStateKeyValue::pullFromRemote() {
@@ -54,23 +58,25 @@ namespace state {
         // Read from the remote
         logger->debug("Pulling remote value for {}", joinedKey);
         auto memoryBytes = static_cast<uint8_t *>(sharedMemory);
-        redis.get(joinedKey, memoryBytes, valueSize);
+        redis::Redis::getState().get(joinedKey, memoryBytes, valueSize);
 
         PROF_END(statePull)
     }
 
-    void RedisStateKeyValue::pullRangeFromRemote(long offset, size_t length) {
-        PROF_START(stateSegmentPull)
+    void RedisStateKeyValue::pullChunkFromRemote(long offset, size_t length) {
+        PROF_START(stateChunkPull)
+
+        logger->debug("Pulling remote chunk ({}-{}) for {}", offset, offset + length, joinedKey);
 
         // Note - redis ranges are inclusive, so we need to knock one off
+        size_t rangeStart = offset;
         size_t rangeEnd = offset + length - 1;
 
         // Read from the remote
-        logger->debug("Pulling remote segment ({}-{}) for {}", offset, offset + length, joinedKey);
-        auto memoryBytes = static_cast<uint8_t *>(sharedMemory);
-        redis.getRange(joinedKey, memoryBytes + offset, length, offset, rangeEnd);
+        auto buffer = BYTES(sharedMemory) + offset;
+        redis::Redis::getState().getRange(joinedKey, buffer, length, rangeStart, rangeEnd);
 
-        PROF_END(stateSegmentPull)
+        PROF_END(stateChunkPull)
     }
 
     void RedisStateKeyValue::pushToRemote() {
@@ -78,11 +84,7 @@ namespace state {
 
         logger->debug("Pushing whole value for {}", joinedKey);
 
-        redis.set(joinedKey, static_cast<uint8_t *>(sharedMemory), valueSize);
-
-        // Remove any dirty flags
-        isDirty = false;
-        zeroDirtyMask();
+        redis::Redis::getState().set(joinedKey, static_cast<uint8_t *>(sharedMemory), valueSize);
 
         PROF_END(pushFull)
     }
@@ -90,6 +92,8 @@ namespace state {
     void RedisStateKeyValue::pushPartialToRemote(const std::vector<StateChunk> &chunks) {
         PROF_START(pushPartial)
 
+        redis::Redis &redis = redis::Redis::getState();
+        
         // Pipeline the updates
         for (auto &c : chunks) {
             redis.setRangePipeline(joinedKey, c.offset, c.data, c.length);
@@ -99,25 +103,18 @@ namespace state {
         logger->debug("Pipelined {} updates on {}", chunks.size(), joinedKey);
         redis.flushPipeline(chunks.size());
 
-        // Read the latest value
-        if (_fullyAllocated) {
-            logger->debug("Pulling from remote on partial push for {}", joinedKey);
-            auto sharedMemoryBytes = BYTES(sharedMemory);
-            redis.get(joinedKey, sharedMemoryBytes, valueSize);
-        }
-
         PROF_END(pushPartial)
     }
 
     void RedisStateKeyValue::appendToRemote(const uint8_t *data, size_t length) {
-        redis.enqueueBytes(joinedKey, data, length);
+        redis::Redis::getState().enqueueBytes(joinedKey, data, length);
     }
 
     void RedisStateKeyValue::pullAppendedFromRemote(uint8_t *data, size_t length, long nValues) {
-        redis.dequeueMultiple(joinedKey, data, length, nValues);
+        redis::Redis::getState().dequeueMultiple(joinedKey, data, length, nValues);
     }
 
     void RedisStateKeyValue::clearAppendedFromRemote() {
-        redis.del(joinedKey);
+        redis::Redis::getState().del(joinedKey);
     }
 }

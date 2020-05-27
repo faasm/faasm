@@ -50,6 +50,11 @@ namespace storage {
         util::writeBytesToFile(filePath.string(), bytes);
     }
 
+    SparseMatrixFileSerialiser::SparseMatrixFileSerialiser(const SparseMatrix<double> &matIn) :
+            SparseMatrixSerialiser(matIn) {
+
+    }
+
     void SparseMatrixFileSerialiser::writeToFile(const std::string &directory) {
         path dir(directory);
         SparseFiles files = getSparseFiles(dir);

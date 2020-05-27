@@ -147,9 +147,9 @@ namespace tests {
             sch.callFunction(call);
 
             // Await the result of the main function
-            // NOTE - this timeout needs to be long enough for the function to
-            // finish executing
-            message::Message result = bus.getFunctionResult(mainFuncId, 10000);
+            // NOTE - this timeout will only get hit when things have failed.
+            // It also needs to be long enough to let longer tests complete
+            message::Message result = bus.getFunctionResult(mainFuncId, 30000);
             REQUIRE(result.returnvalue() == 0);
         }
 
@@ -161,9 +161,14 @@ namespace tests {
                     continue;
                 }
 
-                const message::Message &result = bus.getFunctionResult(messageId, 1);
-                if (result.returnvalue() != 0) {
-                    FAIL(fmt::format("Message ID {} failed", messageId));
+                try {
+                    const message::Message &result = bus.getFunctionResult(messageId, 1);
+
+                    if (result.returnvalue() != 0) {
+                        FAIL(fmt::format("Message ID {} failed", messageId));
+                    }
+                } catch(redis::RedisNoResponseException &ex) {
+                    FAIL(fmt::format("No result for message ID {}", messageId));
                 }
             }
         }

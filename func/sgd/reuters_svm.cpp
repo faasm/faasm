@@ -8,6 +8,12 @@
 
 using namespace faasm;
 
+// Params specific to Reuters dataset
+#define REUTERS_LEARNING_RATE 0.1
+#define REUTERS_LEARNING_DECAY 0.8
+#define REUTERS_N_FEATURES 47236
+#define REUTERS_N_EXAMPLES 781265
+
 
 SgdParams setUpReutersParams(int nBatches, int syncInterval, int epochs) {
     // Set up reuters params
@@ -19,7 +25,7 @@ SgdParams setUpReutersParams(int nBatches, int syncInterval, int epochs) {
     p.nEpochs = epochs;
     p.mu = 1.0;
 
-    // Round up number of batches
+    // Round up batch size
     p.nBatches = nBatches;
     p.batchSize = (REUTERS_N_EXAMPLES + nBatches - 1) / nBatches;
 
@@ -51,19 +57,28 @@ FAASM_MAIN_FUNC() {
 
     int nWorkers = intInput[0];
     int syncInterval = intInput[1];
-    int epochs = 20;
-    printf("SVM running %i epochs with %i workers and sync interval %i \n", epochs, nWorkers, syncInterval);
 
     // Prepare params
-    printf("Writing SVM params to state\n");
-    faasm::SgdParams p = setUpReutersParams(nWorkers, syncInterval, epochs);
-    writeParamsToState(PARAMS_KEY, p, true);
+    int epochs;
+    size_t paramsSize = faasmReadStateSize(PARAMS_KEY);
+    faasm::SgdParams p;
+    if(paramsSize == 0) {
+        printf("Writing SVM params to state\n");
+        epochs = 20;
+        p = setUpReutersParams(nWorkers, syncInterval, epochs);
+        writeParamsToState(PARAMS_KEY, p, true);
+    } else {
+        printf("Using SVM params already in state\n");
+        p = readParamsFromState(PARAMS_KEY, true);
+        epochs = p.nEpochs;
+    }
+
+    printf("SVM running %i epochs with %i workers and sync interval %i \n", epochs, nWorkers, syncInterval);
 
     // Initialise weights and mask
     printf("Initialising weights with zeros\n");
     Eigen::MatrixXd zeros = zeroMatrix(1, p.nWeights);
     writeMatrixToState(WEIGHTS_KEY, zeros, true);
-    writeMatrixToState(MASK_KEY, zeros, true);
 
     // Prepare string for output
     auto losses = new double[epochs];

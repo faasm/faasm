@@ -163,10 +163,6 @@ namespace faasm {
         return mat;
     }
 
-    SparseMatrixSerialiser::~SparseMatrixSerialiser() {
-        delete[] nonZeroCounts;
-    }
-
     void writeSparseMatrixToState(const char *key,
                                   const SparseMatrix<double> &mat,
                                   bool push) {
@@ -186,8 +182,10 @@ namespace faasm {
         auto sizes = reinterpret_cast<SparseSizes *>(sizeBuffer);
 
         if (sizes->cols == 0 || sizes->rows == 0) {
-            throw std::runtime_error("Loaded sparse matrix size zero");
+            printf("ERROR: loaded sparse matrix size as zero\n");
+            exit(1);
         }
+
         return *sizes;
     }
 
@@ -296,13 +294,18 @@ namespace faasm {
     }
 
 
+    size_t getMatrixStateSize(const MatrixXd &matrix) {
+        size_t nBytes = matrix.rows() * matrix.cols() * sizeof(double);
+        return nBytes;
+    }
+
     /**
      * Writes a matrix to state
      */
     void writeMatrixToState(const char *key, const MatrixXd &matrix, bool push) {
-        size_t nBytes = matrix.rows() * matrix.cols() * sizeof(double);
         auto byteArray = reinterpret_cast<const uint8_t *>(matrix.data());
 
+        size_t nBytes = getMatrixStateSize(matrix);
         faasmWriteState(key, byteArray, nBytes);
 
         if (push) {
@@ -337,59 +340,45 @@ namespace faasm {
         faasmReadState(key, byteBuffer, nBytes);
     }
 
-
-    long matrixByteIndex(long row, long col, long nRows) {
-        // Work out the position of this element
-        // Note that matrices are stored in column-major order by default
-        long byteIdx = ((col * nRows) + row) * sizeof(double);
-
-        return byteIdx;
-    }
-
-    /** 
-     * Updates a specific element in state 
+    /**
+     * Gives the chunk size required to hold *up to* a specific matrix element.
+     * Elements are specified by (row,col) and the total size of a column is also
+     * required (i.e. the total number of rows).
+     *
+     * Matrices are assumed to be made up of doubles stored in column-major order.
      */
-    void writeMatrixToStateElement(const char *key, const MatrixXd &matrix, long row, long col, bool push) {
-        // Work out total size of this matrix
-        size_t totalBytes = matrix.rows() * matrix.cols() * sizeof(double);
-
-        // Work out the position of this element
-        // Note that matrices are stored in column-major order by default
-        long byteIdx = matrixByteIndex(row, col, matrix.rows());
-
-        double value = matrix.coeff(row, col);
-        auto byteValue = BYTES(&value);
-        size_t nBytes = sizeof(double);
-
-        faasmWriteStateOffset(key, totalBytes, (size_t) byteIdx, byteValue, nBytes);
-
-        if (push) {
-            faasmPushStatePartial(key);
-        }
+    long getChunkSizeUpToMatrixElement(long row, long col, long totalRows) {
+        long nElements = (col * totalRows) + row;
+        return nElements * (long) sizeof(double);
     }
 
     /**
      * Reads a subset of full columns from state. Columns are *exclusive*
      */
     Map<const MatrixXd> readMatrixColumnsFromState(const char *key, long totalCols, long colStart,
-                                                   long colEnd, long nRows, bool pull) {
+                                                   long colEnd, long totalRows, bool pull) {
         long nCols = colEnd - colStart;
 
-        long startIdx = matrixByteIndex(0, colStart, nRows);
-        long endIdx = matrixByteIndex(nRows, colEnd, nRows);
+        // Note - row indexes are zero-based
+        long lastRowIdx = totalRows - 1;
 
-        long bufferLen = endIdx - startIdx;
-        long totalLen = totalCols * nRows * sizeof(double);
+        // Get byte range from first element of first column, to last element of last column
+        long startOffset = getChunkSizeUpToMatrixElement(0, colStart, totalRows);
+        long endOffset = getChunkSizeUpToMatrixElement(lastRowIdx, colEnd, totalRows);
+
+        // Total length is the chunk size up to the last element
+        long totalLen = getChunkSizeUpToMatrixElement(lastRowIdx, totalCols, totalRows);
 
         // Ensure full state is pulled
         if (pull) {
             faasmPullState(key, totalLen);
         }
 
-        uint8_t *buffer = faasmReadStateOffsetPtr(key, totalLen, startIdx, bufferLen);
+        long bufferLen = endOffset - startOffset;
+        uint8_t *buffer = faasmReadStateOffsetPtr(key, totalLen, startOffset, bufferLen);
 
         auto doubleArray = reinterpret_cast<double *>(buffer);
-        Map<const MatrixXd> result(doubleArray, nRows, nCols);
+        Map<const MatrixXd> result(doubleArray, totalRows, nCols);
 
         return result;
     }

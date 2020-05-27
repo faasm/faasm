@@ -147,7 +147,7 @@ namespace wasm {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
 
-        kv->setSegment(offset, data, dataLen);
+        kv->setChunk(offset, data, dataLen);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state_from_file", I32, __faasm_write_state_from_file,
@@ -165,7 +165,7 @@ namespace wasm {
         // Write to state
         auto kv = getStateKV(keyPtr, fileLength);
         kv->set(bytes.data());
-        
+
         return fileLength;
     }
 
@@ -173,7 +173,7 @@ namespace wasm {
                                    I32 keyPtr, I32 bufferPtr, I32 bufferLen) {
 
         // If buffer len is zero, just need the state size
-        if(bufferLen == 0) {
+        if (bufferLen == 0) {
             std::string user = getExecutingCall()->user();
             std::string key = getStringFromWasm(keyPtr);
             util::getLogger()->debug("S - read_state - {} {} {}", key, bufferPtr, bufferLen);
@@ -200,7 +200,10 @@ namespace wasm {
 
         // Map shared memory
         WAVMWasmModule *module = getExecutingModule();
-        U32 wasmPtr = module->mmapKey(kv, 0, totalLen);
+        U32 wasmPtr = module->mapSharedStateMemory(kv, 0, totalLen);
+
+        // Call get to make sure the value is pulled
+        kv->get();
 
         return wasmPtr;
     }
@@ -214,7 +217,7 @@ namespace wasm {
         // Copy to straight to buffer
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
-        kv->getSegment(offset, buffer, bufferLen);
+        kv->getChunk(offset, buffer, bufferLen);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset_ptr", I32, __faasm_read_state_offset_ptr,
@@ -224,7 +227,11 @@ namespace wasm {
 
         // Map whole key in shared memory
         WAVMWasmModule *module = getExecutingModule();
-        U32 wasmPtr = module->mmapKey(kv, offset, len);
+        U32 wasmPtr = module->mapSharedStateMemory(kv, offset, len);
+
+        // Call get to make sure the value is there
+        kv->getChunk(offset, len);
+
         return wasmPtr;
     }
 
@@ -239,11 +246,11 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_flag_state_offset_dirty", void, __faasm_flag_state_offset_dirty,
                                    I32 keyPtr, I32 totalLen, I32 offset, I32 len) {
         auto kv = getStateKV(keyPtr, totalLen);
-        // Avoid heavy logging
-        //        util::getLogger()->debug("S - __faasm_flag_state_offset_dirty - {} {} {} {}", keyPtr, totalLen, offset,
-        //                                 len);
 
-        kv->flagSegmentDirty(offset, len);
+        // Avoid heavy logging
+        // util::getLogger()->debug("S - __faasm_flag_state_offset_dirty - {} {} {} {}", keyPtr, totalLen, offset, len);
+
+        kv->flagChunkDirty(offset, len);
     }
 
     I32 _readInputImpl(I32 bufferPtr, I32 bufferLen) {

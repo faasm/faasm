@@ -24,7 +24,7 @@ namespace wasm {
         executingCall = other;
     }
 
-    Uptr getNumberOfPagesForBytes(U32 nBytes) {
+    Uptr getNumberOfWasmPagesForBytes(U32 nBytes) {
         // Round up to nearest page
         Uptr pageCount = (Uptr(nBytes) + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
 

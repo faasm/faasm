@@ -771,8 +771,8 @@ namespace wasm {
 
     U32 WAVMWasmModule::mmapMemory(U32 length) {
         // Round up to page boundary
-        Uptr pagesRequested = getNumberOfPagesForBytes(length);
-        return mmapPages(pagesRequested);
+        Uptr nWasmPages = getNumberOfWasmPagesForBytes(length);
+        return mmapPages(nWasmPages);
     }
 
     U32 WAVMWasmModule::mmapPages(U32 pages) {
@@ -815,31 +815,39 @@ namespace wasm {
         return mappedRangePtr;
     }
 
-    U32 WAVMWasmModule::mmapKey(const std::shared_ptr<state::StateKeyValue> &kv, long offset, U32 length) {
-        // Create a key for this specific offset and length and cache the pointer once done
-        std::string segmentKey = kv->user + "_" + kv->key + "_" + std::to_string(offset) + "_" + std::to_string(length);
-
-        // See if this is the first time the module has seen this key
+    /**
+     * Maps the given state into the module's memory.
+     *
+     * If we are dealing with a chunk of a larger state value, the host memory
+     * will be reserved for the full value, but only the necessary wasm pages
+     * will be created. Loading many chunks of the same value leads to fragmentation,
+     * but usually only one or two chunks are loaded per module.
+     *
+     * To perform the mapping we need to ensure allocated memory is page-aligned.
+     */
+    U32 WAVMWasmModule::mapSharedStateMemory(const std::shared_ptr<state::StateKeyValue> &kv, long offset, U32 length) {
+        // See if we already have this segment mapped into memory
+        std::string segmentKey = kv->user + "_" + kv->key + "__" + std::to_string(offset) + "__" + std::to_string(length);
         if (sharedMemWasmPtrs.count(segmentKey) == 0) {
-            size_t alignedOffset = util::alignOffsetDown(offset);
-            size_t offsetFromStart = offset - alignedOffset;
+            // Lock and double check
+            util::UniqueLock lock(sharedMemWasmPtrsMx);
+            if (sharedMemWasmPtrs.count(segmentKey) == 0) {
+                // Page-align the chunk
+                util::AlignedChunk chunk = util::getPageAlignedChunk(offset, length);
 
-            // Work out how many bytes are needed to contain the result once it's been page aligned
-            size_t bytesLength = offsetFromStart + length;
+                // Create the wasm memory region and work out the offset to the start of the
+                // desired chunk in this region (this will be zero if the offset is already
+                // zero, or if the offset is page-aligned already).
+                U32 wasmBasePtr = this->mmapMemory(chunk.nBytesLength);
+                U32 wasmOffsetPtr = wasmBasePtr + chunk.offsetRemainder;
 
-            // Create new memory region that's big enough
-            U32 wasmMemoryRegion = this->mmapMemory(bytesLength);
-            U8 *hostMemPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmMemoryRegion);
+                // Map the shared memory
+                auto wasmMemoryRegionPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmBasePtr);
+                kv->mapSharedMemory(static_cast<void *>(wasmMemoryRegionPtr), chunk.nPagesOffset, chunk.nPagesLength);
 
-            // Map the WASM memory to the shared value
-            void *voidPtr = static_cast<void *>(hostMemPtr);
-            long offsetPages = util::getRequiredHostPagesRoundDown(offset);
-            long nPages = util::getRequiredHostPages(bytesLength);
-            kv->mapSharedMemory(voidPtr, offsetPages, nPages);
-
-            // Remember the kv and pointer
-            U32 wasmPtr = wasmMemoryRegion + offsetFromStart;
-            sharedMemWasmPtrs.insert(std::pair<std::string, I32>(segmentKey, wasmPtr));
+                // Cache the wasm pointer
+                sharedMemWasmPtrs[segmentKey] = wasmOffsetPtr;
+            }
         }
 
         // Return the wasm pointer

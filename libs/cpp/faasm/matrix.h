@@ -29,14 +29,6 @@ namespace faasm {
         char *outerKey;
         char *sizeKey;
         char *nonZeroKey;
-
-        ~SparseKeys() {
-            delete[] valueKey;
-            delete[] innerKey;
-            delete[] outerKey;
-            delete[] sizeKey;
-            delete[] nonZeroKey;
-        }
     };
 
     SparseKeys getSparseKeys(const char *key);
@@ -51,8 +43,6 @@ namespace faasm {
                                                              uint8_t *outerBytes,
                                                              uint8_t *innerBytes,
                                                              uint8_t *valuesBytes);
-
-        ~SparseMatrixSerialiser();
 
         const SparseMatrix<double> &mat;
 
@@ -79,6 +69,8 @@ namespace faasm {
     /**
      * State
      */
+    size_t getMatrixStateSize(const MatrixXd &matrix);
+
     Map<const SparseMatrix<double>> readSparseMatrixFromState(const char *key, bool pull);
 
     void writeSparseMatrixToState(const char *key, const SparseMatrix<double> &mat, bool push);
@@ -89,10 +81,8 @@ namespace faasm {
 
     void writeMatrixToState(const char *key, const MatrixXd &matrix, bool push);
 
-    void writeMatrixToStateElement(const char *key, const MatrixXd &matrix, long row, long col, bool push);
-
     Map<const MatrixXd> readMatrixColumnsFromState(const char *key, long totalCols, long colStart,
-                                                   long colEnd, long nRows, bool pull);
+                                                   long colEnd, long totalRows, bool pull);
 
     Map<const SparseMatrix<double>> readSparseMatrixColumnsFromState(const char *key, long colStart, long colEnd,
             bool pull);
@@ -106,7 +96,7 @@ namespace faasm {
 
     SparseMatrix<double> randomSparseMatrix(int rows, int cols, double threshold);
 
-    long matrixByteIndex(long row, long col, long nRows);
+    long getChunkSizeUpToMatrixElement(long row, long col, long totalRows);
 
     void shuffleMatrixColumns(MatrixXd &matrix);
 

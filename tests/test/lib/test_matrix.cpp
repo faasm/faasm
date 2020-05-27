@@ -6,13 +6,34 @@
 #include <redis/Redis.h>
 #include <state/State.h>
 
-#include <iostream>
 #include <emulator/emulator.h>
 #include <util/state.h>
+#include <state/StateServer.h>
+#include <tcp/TCPClient.h>
 
 using namespace Eigen;
 
 namespace tests {
+    TEST_CASE("Test byte offsets for matrix elements", "[matrix]") {
+        // 0,0 should always be zero
+        REQUIRE(faasm::getChunkSizeUpToMatrixElement(0, 0, 10) == 0);
+        REQUIRE(faasm::getChunkSizeUpToMatrixElement(0, 0, 1000) == 0);
+
+        // Second element of first column should always be one element off
+        REQUIRE(faasm::getChunkSizeUpToMatrixElement(1, 0, 10) == sizeof(double));
+        REQUIRE(faasm::getChunkSizeUpToMatrixElement(1, 0, 1000) == sizeof(double));
+
+        // First element of second column should always be one column length off
+        REQUIRE(faasm::getChunkSizeUpToMatrixElement(0, 1, 10) == 10 * sizeof(double));
+        REQUIRE(faasm::getChunkSizeUpToMatrixElement(0, 1, 1000) == 1000 * sizeof(double));
+
+        // Check an arbitrary offset
+        REQUIRE(faasm::getChunkSizeUpToMatrixElement(5, 6, 1000) == (6 * 1000 + 5) * sizeof(double));
+
+        // Check for a row matrix
+        REQUIRE(faasm::getChunkSizeUpToMatrixElement(0, 2, 1) == 2 * sizeof(double));
+    }
+
     TEST_CASE("Test sparse matrix generation", "[matrix]") {
         const SparseMatrix<double> actual = faasm::randomSparseMatrix(10, 5, 0.4);
 
@@ -31,68 +52,75 @@ namespace tests {
         return mat;
     }
 
-    TEST_CASE("Test matrix to redis round trip", "[matrix]") {
-        state::getGlobalState().forceClearAll(true);
+    static size_t setUpDummyStateServer(DummyStateServer &server, const char *stateKey, const MatrixXd &mat) {
+        size_t nBytes = getMatrixStateSize(mat);
 
-        MatrixXd mat = buildDummyMatrix();
+        std::vector<uint8_t> remoteValue(nBytes, 0);
+        server.dummyUser = getEmulatorUser();
+        server.dummyKey = stateKey;
+        server.dummyData = remoteValue;
 
-        // Write to a dummy key
-        const char *stateKey = "test_matrix_state";
-        faasm::writeMatrixToState(stateKey, mat, true);
-
-        // Retrieve from redis and check it's still the same
-        Map<const MatrixXd> afterState = faasm::readMatrixFromState(stateKey, 2, 3, true);
-
-        REQUIRE(afterState.rows() == 2);
-        REQUIRE(afterState.cols() == 3);
-        REQUIRE(afterState == mat);
+        return nBytes;
     }
 
-    TEST_CASE("Test updating matrix element in state", "[matrix]") {
+    TEST_CASE("Test matrix to remote state round trip", "[matrix]") {
         cleanSystem();
 
+        DummyStateServer server;
+        const char *stateKey = "test_matrix_state";
         MatrixXd mat = buildDummyMatrix();
+        size_t nBytes = setUpDummyStateServer(server, stateKey, mat);
 
-        // Write full matrix to some key
-        const char *stateKey = "test_matrix_elem_state";
+        // One pull, one push
+        server.start(2);
+
+        // Write locally and push
         faasm::writeMatrixToState(stateKey, mat, true);
 
-        // Update the matrix in memory
-        mat(0, 2) = 3.3;
-        mat(1, 1) = 10.5;
+        // Check it exists locally
+        state::State &localState = state::getGlobalState();
+        REQUIRE(localState.getKVCount() == 1);
+        REQUIRE(server.getLocalKvValue().size() == nBytes);
 
-        // Push single elements
-        faasm::writeMatrixToStateElement(stateKey, mat, 0, 2, false);
-        faasm::writeMatrixToStateElement(stateKey, mat, 1, 1, true);
+        // Delete locally
+        localState.deleteKVLocally(server.dummyUser, server.dummyKey);
+        REQUIRE(localState.getKVCount() == 0);
 
-        // Retrieve from redis into a new memory location
-        MatrixXd afterState(2, 3);
-        faasm::readMatrixFromState(stateKey, afterState.data(), 2, 3, true);
+        // Retrieve from state and make sure it's pulled
+        Map<const MatrixXd> afterState = faasm::readMatrixFromState(stateKey, 2, 3, true);
+        REQUIRE(localState.getKVCount() == 1);
 
-        // Check things match up
+        // Check the matrix
         REQUIRE(afterState.rows() == 2);
         REQUIRE(afterState.cols() == 3);
         REQUIRE(afterState == mat);
 
-        // Explicitly check set values
-        REQUIRE(afterState(0, 2) == 3.3);
-        REQUIRE(afterState(1, 1) == 10.5);
+        server.wait();
     }
 
-    void checkReadingMatrixColumnsFromState(bool async) {
-        state::getGlobalState().forceClearAll(true);
+    void checkReadingMatrixColumnsFromState(bool local) {
+        cleanSystem();
+
+        const char *stateKey = "test_matrix_cols_state";
 
         long nRows = 4;
         long nCols = 5;
         MatrixXd mat(nRows, nCols);
+
+        // If async, more messages
+        DummyStateServer server;
+        bool pushPull = !local;
+        if (pushPull) {
+            setUpDummyStateServer(server, stateKey, mat);
+            server.start(2);
+        }
+
         mat << 1, 2, 3, 4, 5,
                 6, 7, 8, 9, 10,
                 11, 12, 13, 14, 15,
                 16, 17, 18, 19, 20;
 
         // Write full state to a dummy key
-        const char *stateKey = "test_matrix_cols_state";
-        bool pushPull = !async;
         faasm::writeMatrixToState(stateKey, mat, pushPull);
 
         // Read a subset of columns (exclusive)
@@ -111,13 +139,17 @@ namespace tests {
                 17, 18, 19;
 
         REQUIRE(actual == expected);
+
+        if (pushPull) {
+            server.wait();
+        }
     }
 
-    TEST_CASE("Test reading columns from state", "[matrix]") {
+    TEST_CASE("Test reading columns from state remotely", "[matrix]") {
         checkReadingMatrixColumnsFromState(false);
     }
 
-    TEST_CASE("Test reading columns from state async", "[matrix]") {
+    TEST_CASE("Test reading columns from state locally", "[matrix]") {
         checkReadingMatrixColumnsFromState(true);
     }
 
@@ -130,7 +162,7 @@ namespace tests {
         REQUIRE(mat.rows() == 10);
         REQUIRE(mat.cols() == 20);
 
-        // Not technically true but high probability
+        // Not technically always true but high probability
         REQUIRE(copy != mat);
     }
 
@@ -229,31 +261,90 @@ namespace tests {
         checkSparseMatrixEquality(mat, actual);
     }
 
-    void doSparseMatrixRoundTripCheck(int rows, int cols, int colStart, int colEnd, bool async) {
+    void doRemoteSparseMatrixRoundTripCheck(int rows, int cols, int colStart, int colEnd) {
         cleanSystem();
 
         const char *key = "sparse_trip_offset_test";
-
         SparseMatrix<double> mat = faasm::randomSparseMatrix(rows, cols, 0.7);
-        bool pushPull = !async;
-        faasm::writeSparseMatrixToState(key, mat, pushPull);
 
-        // Check subsection
+        std::string emulatorUser = getEmulatorUser();
+        state::State remoteState(LOCALHOST);
+
+        // Run state server in the background
+        std::thread serverThread([&emulatorUser, &key, &mat, &remoteState] {
+            // Make sure emulator set up properly in this thread
+            setEmulatorUser(emulatorUser.c_str());
+            setEmulatorState(&remoteState);
+
+            state::StateServer stateServer(remoteState);
+
+            // Write matrix to state to set master as this thread
+            faasm::writeSparseMatrixToState(key, mat, false);
+
+            // Process enough messages
+            while (true) {
+                try {
+                    stateServer.poll();
+                } catch (tcp::TCPShutdownException &ex) {
+                    break;
+                }
+            }
+
+            // Shut down
+            stateServer.close();
+        });
+
+        // Give it time to start
+        ::usleep(0.5 * 1000 * 1000);
+
+        // Get subsection from the matrix
         SparseMatrix<double> expected = mat.block(0, colStart, rows, colEnd - colStart);
 
-        // Read a subsection
-        Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixColumnsFromState(key, colStart, colEnd, pushPull);
+        // Get from state
+        Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixColumnsFromState(key, colStart, colEnd, true);
         checkSparseMatrixEquality(actual, expected);
 
         // Read the whole thing and check
-        Map<const SparseMatrix<double>> actualFull = faasm::readSparseMatrixFromState(key, pushPull);
+        Map<const SparseMatrix<double>> actualFull = faasm::readSparseMatrixFromState(key, true);
+        checkSparseMatrixEquality(actualFull, mat);
+
+        // Send shutdown message
+        tcp::TCPClient client(LOCALHOST, STATE_PORT);
+        tcp::TCPMessage msg;
+        msg.type = state::StateMessageType::SHUTDOWN;
+        client.sendMessage(&msg);
+
+        // Wait for server
+        if (serverThread.joinable()) {
+            serverThread.join();
+        }
+    }
+
+    void doLocalSparseMatrixRoundTripCheck(int rows, int cols, int colStart, int colEnd) {
+        cleanSystem();
+
+        const char *key = "sparse_trip_offset_test";
+        SparseMatrix<double> mat = faasm::randomSparseMatrix(rows, cols, 0.7);
+
+        // Write matrix to state to master in this thread
+        faasm::writeSparseMatrixToState(key, mat, false);
+
+        // Get subsection from the matrix
+        SparseMatrix<double> expected = mat.block(0, colStart, rows, colEnd - colStart);
+
+        // Get from state
+        Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixColumnsFromState(key, colStart, colEnd, false);
+        checkSparseMatrixEquality(actual, expected);
+
+        // Read the whole thing and check
+        Map<const SparseMatrix<double>> actualFull = faasm::readSparseMatrixFromState(key, false);
         checkSparseMatrixEquality(actualFull, mat);
     }
 
     void checkSparseMatrixRoundTrip(int rows, int cols, int colStart, int colEnd) {
-        // Do both sync and async
-        doSparseMatrixRoundTripCheck(rows, cols, colStart, colEnd, false);
-        doSparseMatrixRoundTripCheck(rows, cols, colStart, colEnd, true);
+        // Do both locally and remotely
+        doRemoteSparseMatrixRoundTripCheck(rows, cols, colStart, colEnd);
+        doLocalSparseMatrixRoundTripCheck(rows, cols, colStart, colEnd);
     }
 
     TEST_CASE("Test sparse matrix offset multiple columns", "[matrix]") {

@@ -7,6 +7,7 @@
 #include <util/state.h>
 
 #include <unistd.h>
+#include <util/logging.h>
 
 using namespace util;
 
@@ -97,7 +98,8 @@ namespace state {
         return doGetKV(user, key, false, size);
     }
 
-    std::shared_ptr<StateKeyValue> State::doGetKV(const std::string &user, const std::string &key, bool sizeless, size_t size) {
+    std::shared_ptr<StateKeyValue>
+    State::doGetKV(const std::string &user, const std::string &key, bool sizeless, size_t size) {
         if (user.empty() || key.empty()) {
             throw std::runtime_error(
                     fmt::format("Attempting to access state with empty user or key ({}/{})", user, key)
@@ -130,7 +132,7 @@ namespace state {
         // Create new KV
         std::string stateMode = util::getSystemConfig().stateMode;
         if (stateMode == "redis") {
-            if(sizeless) {
+            if (sizeless) {
                 auto kv = new RedisStateKeyValue(user, key);
                 kvMap.emplace(lookupKey, kv);
             } else {
@@ -139,7 +141,7 @@ namespace state {
             }
         } else if (stateMode == "inmemory") {
             // NOTE - passing IP here is crucial for testing
-            if(sizeless) {
+            if (sizeless) {
                 auto kv = new InMemoryStateKeyValue(user, key, thisIP);
                 kvMap.emplace(lookupKey, kv);
             } else {

@@ -6,6 +6,7 @@
 
 #include <thread>
 #include <util/gids.h>
+#include <util/bytes.h>
 
 namespace redis {
 
@@ -112,14 +113,14 @@ namespace redis {
         return resultData;
     }
 
-    void getBytesFromReply(redisReply *reply, uint8_t *buffer, size_t bufferLen) {
+    void getBytesFromReply(const std::string &key, redisReply *reply, uint8_t *buffer, size_t bufferLen) {
         // We have to be careful here to handle the bytes properly
         char *resultArray = reply->str;
         int resultLen = reply->len;
 
         if (resultLen > (int) bufferLen) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-            logger->error("Value ({}) too big for buffer ({})", resultLen, bufferLen);
+            logger->error("Value ({}) too big for buffer ({}) - key {}", resultLen, bufferLen, key);
             throw std::runtime_error("Reading value too big for buffer");
         }
 
@@ -174,7 +175,7 @@ namespace redis {
     void Redis::get(const std::string &key, uint8_t *buffer, size_t size) {
         auto reply = (redisReply *) redisCommand(context, "GET %s", key.c_str());
 
-        getBytesFromReply(reply, buffer, size);
+        getBytesFromReply(key, reply, buffer, size);
         freeReplyObject(reply);
     }
 
@@ -288,6 +289,12 @@ namespace redis {
 
     void Redis::sadd(const std::string &key, const std::string &value) {
         auto reply = (redisReply *) redisCommand(context, "SADD %s %s", key.c_str(), value.c_str());
+        if(reply->type == REDIS_REPLY_ERROR) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->error("Failed to add {} to set {}", value, key);
+            throw std::runtime_error("Failed to add element to set");
+        }
+
         freeReplyObject(reply);
     }
 
@@ -335,34 +342,46 @@ namespace redis {
             retValue.insert(reply->element[i]->str);
         }
 
-        freeReplyObject(reply);
-
         return retValue;
     }
 
     std::unordered_set<std::string> Redis::smembers(const std::string &key) {
         auto reply = (redisReply *) redisCommand(context, "SMEMBERS %s", key.c_str());
-        return extractStringSetFromReply(reply);
+        std::unordered_set<std::string> result = extractStringSetFromReply(reply);
+
+        freeReplyObject(reply);
+        return result;
     }
 
     std::unordered_set<std::string> Redis::sinter(const std::string &keyA, const std::string &keyB) {
         auto reply = (redisReply *) redisCommand(context, "SINTER %s %s", keyA.c_str(), keyB.c_str());
-        return extractStringSetFromReply(reply);
+        std::unordered_set<std::string> result = extractStringSetFromReply(reply);
+
+        freeReplyObject(reply);
+        return result;
     }
 
     std::unordered_set<std::string> Redis::sdiff(const std::string &keyA, const std::string &keyB) {
         auto reply = (redisReply *) redisCommand(context, "SDIFF %s %s", keyA.c_str(), keyB.c_str());
-        return extractStringSetFromReply(reply);
+        std::unordered_set<std::string> result = extractStringSetFromReply(reply);
+
+        freeReplyObject(reply);
+        return result;
     }
 
     int Redis::lpushLong(const std::string &key, long value) {
         auto reply = (redisReply *) redisCommand(context, "LPUSH %s %i", key.c_str(), value);
-        return reply->integer;
+        long long int result = reply->integer;
+
+        freeReplyObject(reply);
+        return result;
     }
 
     int Redis::rpushLong(const std::string &key, long value) {
         auto reply = (redisReply *) redisCommand(context, "RPUSH %s %i", key.c_str(), value);
-        return reply->integer;
+        long long int result = reply->integer;
+        freeReplyObject(reply);
+        return result;
     }
 
     void Redis::flushAll() {
@@ -415,7 +434,7 @@ namespace redis {
         auto reply = (redisReply *) redisCommand(context, "GETRANGE %s %li %li", key.c_str(), start, end);
 
         // Importantly getrange is inclusive so we need to be checking the buffer length
-        getBytesFromReply(reply, buffer, bufferLen);
+        getBytesFromReply(key, reply, buffer, bufferLen);
         freeReplyObject(reply);
     }
 

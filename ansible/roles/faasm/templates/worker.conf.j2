@@ -5,12 +5,12 @@ autorestart=true
 stderr_logfile=/var/log/faasm_worker.log
 stdout_logfile=/var/log/faasm_worker.log
 user={{ ansible_env.USER }}
-environment=LOG_LEVEL=debug,
+environment=LOG_LEVEL=info,
   FUNCTION_STORAGE=fileserver,
   FILESERVER_URL="http://{{ hostvars[groups['upload'][0]].internal_host }}:8002",
-  THREADS_PER_WORKER=19,
+  THREADS_PER_WORKER=10,
   MAX_IN_FLIGHT_RATIO=1,
-  MAX_WORKERS_PER_FUNCTION=18,
+  MAX_WORKERS_PER_FUNCTION=6,
   BOUND_TIMEOUT=60000,
   UNBOUND_TIMEOUT=600000,
   GLOBAL_MESSAGE_TIMEOUT=600000,
