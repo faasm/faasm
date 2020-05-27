@@ -5,7 +5,7 @@ autorestart=true
 stderr_logfile=/var/log/faasm_worker.log
 stdout_logfile=/var/log/faasm_worker.log
 user={{ ansible_env.USER }}
-environment=LOG_LEVEL=trace,
+environment=LOG_LEVEL=info,
   FUNCTION_STORAGE=fileserver,
   FILESERVER_URL="http://{{ hostvars[groups['upload'][0]].internal_host }}:8002",
   THREADS_PER_WORKER=10,
@@ -19,6 +19,5 @@ environment=LOG_LEVEL=trace,
   REDIS_STATE_HOST="{{ hostvars[groups['redis'][0]].internal_host }}",
   REDIS_QUEUE_HOST="{{ hostvars[groups['redis'][0]].internal_host }}",
   CAPTURE_STDOUT=on,
-  STATE_MODE=inmemory,
   ENDPOINT_INTERFACE="{{ internal_iface | default('eth0') }}",
 

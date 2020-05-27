@@ -45,31 +45,23 @@ namespace faasm {
                                                                  false);
 
         // Read in the feature counts (will be constant)
-        printf("Loading feature counts\n");
         size_t nFeatureCountBytes = sgdParams.nWeights * sizeof(int);
         uint8_t *featureCountByteBuffer = faasmReadStatePtr(FEATURE_COUNTS_KEY, nFeatureCountBytes);
         auto featureCountBuffer = reinterpret_cast<int *>(featureCountByteBuffer);
 
         // Get pointers to the weights and mask (note that the mask state will only ever exist locally
         // and is create if not already present).
-        printf("Loading weights\n");
         size_t nWeightBytes = sgdParams.nWeights * sizeof(double);
         uint8_t *weightDataByteBuffer = faasmReadStatePtr(WEIGHTS_KEY, nWeightBytes);
         auto weightDataBuffer = reinterpret_cast<double *>(weightDataByteBuffer);
 
-        // uint8_t *weightMaskBytes = faasmReadStatePtr(MASK_KEY, nWeightBytes);
-        // auto weightMask = reinterpret_cast<unsigned int *>(weightMaskBytes);
-
-        // TODO - async conflict
-        // Zero the mask
-        // memset(weightMaskBytes, 0, nWeightBytes);
+        uint8_t *weightMaskBytes = faasmReadStatePtr(MASK_KEY, nWeightBytes);
+        auto weightMask = reinterpret_cast<unsigned int *>(weightMaskBytes);
 
         // Shuffle examples in this batch
-        printf("Shuffling cols\n");
         int *cols = randomIntRange(inputs.outerSize());
 
         // Iterate through all training examples (i.e. columns)
-        printf("Iterating on SGD\n");
         int updateCount = 0;
         for (int c = 0; c < inputs.outerSize(); ++c) {
             int col = cols[c];
@@ -110,19 +102,15 @@ namespace faasm {
                 }
 
                 // Flag this chunk as dirty
-                faasmFlagStateOffsetDirty(WEIGHTS_KEY, nWeightBytes, thisFeature * sizeof(double), sizeof(double));
-                // faasm::maskDouble(weightMask, thisFeature);
+                faasm::maskDouble(weightMask, thisFeature);
 
                 // Increment the update count and work out if we need to do a sync
                 updateCount++;
                 bool syncNeeded = (updateCount > 0) && (updateCount % sgdParams.syncInterval) == 0;
                 if (syncNeeded) {
-                    // TODO - Async conflict
-                    faasmPushStatePartial(WEIGHTS_KEY);
-
                     // Sync the updates
-                    // faasmFlagStateDirty(WEIGHTS_KEY, nWeightBytes);
-                    // faasmPushStatePartialMask(WEIGHTS_KEY, MASK_KEY);
+                    faasmFlagStateDirty(WEIGHTS_KEY, nWeightBytes);
+                    faasmPushStatePartialMask(WEIGHTS_KEY, MASK_KEY);
                 } else {
                     // No sync required
                     continue;
@@ -130,12 +118,10 @@ namespace faasm {
             }
         }
 
-        // TODO - Async conflict
         // Final sync if we're doing syncs
         if (sgdParams.syncInterval >= 0) {
-            faasmPushStatePartial(WEIGHTS_KEY);
-            // faasmFlagStateDirty(WEIGHTS_KEY, nWeightBytes);
-            // faasmPushStatePartialMask(WEIGHTS_KEY, MASK_KEY);
+            faasmFlagStateDirty(WEIGHTS_KEY, nWeightBytes);
+            faasmPushStatePartialMask(WEIGHTS_KEY, MASK_KEY);
         }
 
         // Recalculate all predictions

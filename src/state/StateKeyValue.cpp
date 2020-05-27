@@ -396,8 +396,7 @@ namespace state {
         util::FullLock lock(valueMutex);
 
         // Check condition again
-        bool chunkPulled = isChunkPulled(offset, length);
-        if (lazy && (fullyAllocated || chunkPulled)) {
+        if (lazy && (fullyAllocated || isChunkPulled(offset, length))) {
             return;
         }
 

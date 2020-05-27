@@ -12,7 +12,7 @@
   git:
     repo: "{{ remote_url | default('https://github.com/lsds/Faasm.git') }}"
     dest: "{{ ansible_env.HOME }}/faasm-bm"
-    version: "{{ repo_version | default('experiments') }}"
+    version: "{{ repo_version | default('master') }}"
     update: yes
 
 - name: "Set up local code directory"
