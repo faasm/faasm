@@ -155,6 +155,10 @@ namespace wasm {
         std::unordered_map<std::string, int> globalOffsetMemoryMap;
         std::unordered_map<std::string, int> missingGlobalOffsetEntries;
 
+        static Runtime::Instance* getEnvModule();
+
+        static Runtime::Instance* getWasiModule();
+
         void doBindToFunction(const message::Message &msg, bool executeZygote);
 
         void writeStringArrayToMemory(const std::vector<std::string> &strings, uint32_t strPoitners, uint32_t strBuffer);

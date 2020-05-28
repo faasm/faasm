@@ -33,6 +33,52 @@ using namespace WAVM;
 namespace wasm {
     static thread_local WAVMWasmModule *executingModule;
 
+    static Runtime::Instance *baseEnvModule = nullptr;
+    static Runtime::Instance *baseWasiModule = nullptr;
+    
+    std::mutex baseModuleMx;
+    
+    static void instantiateBaseModules() {
+        if(baseEnvModule != nullptr) {
+            return;
+        }
+
+        util::UniqueLock lock(baseModuleMx);
+
+        // Double check
+        if(baseEnvModule != nullptr) {
+            return;
+        }
+
+        // Set up the basic modules common to all functions
+        Runtime::Compartment *compartment = Runtime::createCompartment("baseModules");
+        PROF_START(BaseEnvModule)
+        baseEnvModule = Intrinsics::instantiateModule(
+                compartment,
+                {WAVM_INTRINSIC_MODULE_REF(env)},
+                "env"
+        );
+        PROF_END(BaseEnvModule)
+
+        PROF_START(BaseWasiModule)
+        baseWasiModule = Intrinsics::instantiateModule(
+                compartment,
+                {WAVM_INTRINSIC_MODULE_REF(wasi)},
+                "env"
+        );
+        PROF_END(BaseWasiModule)
+    }
+    
+    Runtime::Instance* WAVMWasmModule::getEnvModule() {
+        instantiateBaseModules();
+        return baseEnvModule;
+    }
+
+    Runtime::Instance* WAVMWasmModule::getWasiModule() {
+        instantiateBaseModules();
+        return baseWasiModule;
+    }
+
     WAVMWasmModule *getExecutingModule() {
         return executingModule;
     }
@@ -399,12 +445,16 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         PROF_START(wasmCreateModule)
+
         IRModuleCache &moduleRegistry = wasm::getIRModuleCache();
         bool isMainModule = sharedModulePath.empty();
 
         // Warning: be very careful here to stick to *references* to the same shared modules
         // rather than creating copies.
+        PROF_START(MODULEGetFromReg)
         IR::Module &irModule = moduleRegistry.getModule(boundUser, boundFunction, sharedModulePath);
+        PROF_END(MODULEGetFromReg)
+
         if (isMainModule) {
             // Set up intrinsics
             if (boundIsTypescript) {
@@ -416,18 +466,10 @@ namespace wasm {
                 );
             } else {
                 // Normal (C/C++) env
-                envModule = Intrinsics::instantiateModule(
-                        compartment,
-                        {WAVM_INTRINSIC_MODULE_REF(env)},
-                        "env"
-                );
+                envModule = Runtime::cloneInstance(getEnvModule(), compartment);
 
                 // WASI
-                wasiModule = Intrinsics::instantiateModule(
-                        compartment,
-                        {WAVM_INTRINSIC_MODULE_REF(wasi)},
-                        "env"
-                );
+                wasiModule = Runtime::cloneInstance(getWasiModule(), compartment);
             }
 
             // Make sure the stack top is as expected
@@ -469,30 +511,39 @@ namespace wasm {
         }
 
         // Add module to GOT before linking
+        PROF_START(MODULEToGOT)
         addModuleToGOT(irModule, isMainModule);
+        PROF_END(MODULEToGOT)
 
         // Do the linking
+        PROF_START(MODULELink)
         Runtime::LinkResult linkResult = linkModule(irModule, *this);
         if (!linkResult.success) {
             logger->error("Failed to link module");
             throw std::runtime_error("Failed linking module");
         }
+        PROF_END(MODULELink)
 
+        PROF_START(MODULEGetCompiled)
         Runtime::ModuleRef compiledModule = moduleRegistry.getCompiledModule(boundUser, boundFunction,
                                                                              sharedModulePath);
+        PROF_END(MODULEGetCompiled)
 
         logger->info("Instantiating module {}/{}  {}", boundUser, boundFunction, sharedModulePath);
+        PROF_START(MODULEInstantiate)
         Runtime::Instance *instance = instantiateModule(
                 compartment,
                 compiledModule,
                 std::move(linkResult.resolvedImports),
                 name.c_str()
         );
+        PROF_END(MODULEInstantiate)
         logger->info("Finished instantiating module {}/{}  {}", boundUser, boundFunction, sharedModulePath);
 
         // Here there may be some entries missing from the GOT that we need to patch up. They may
         // be exported from the dynamic module itself. I don't know how this happens but occasionally
         // it does
+        PROF_START(MODULEGOT)
         if (!missingGlobalOffsetEntries.empty()) {
             for (auto e : missingGlobalOffsetEntries) {
                 // Check if it's an export of the module we're currently importing
@@ -514,6 +565,7 @@ namespace wasm {
 
         // Empty the missing entries now that they're populated
         missingGlobalOffsetEntries.clear();
+        PROF_END(MODULEGOT)
 
         PROF_END(wasmCreateModule)
 
@@ -530,7 +582,7 @@ namespace wasm {
         const IR::Value &value = Runtime::getGlobalValue(context, globalPtr);
         return value.i32;
     }
-
+    
     int WAVMWasmModule::dynamicLoadModule(const std::string &path, Runtime::Context *context) {
         // This function is essentially dlopen. See the comments around the GOT function
         // for more detail on the dynamic linking approach.
