@@ -265,6 +265,13 @@ namespace wasm {
         IR::DisassemblyNames disassemblyNames;
         getDisassemblyNames(mod, disassemblyNames);
 
+        // If we add all table elements this map gets very large, therefore we just want
+        // to include functions that the module explicitly exports.
+        std::unordered_set<std::string> moduleExports;
+        for(auto &e : mod.exports) {
+            moduleExports.insert(e.name);
+        }
+
         // ----------------------------
         // Table elems
         // ----------------------------
@@ -289,8 +296,11 @@ namespace wasm {
                 unsigned long elemIdx = es.contents->elemIndices[i];
                 // Work out the function's name, then add it to our GOT
                 std::string &elemName = disassemblyNames.functions[elemIdx].name;
-                Uptr tableIdx = offset + i;
-                globalOffsetTableMap.insert({elemName, tableIdx});
+
+                if(moduleExports.find(elemName) != moduleExports.end()) {
+                    Uptr tableIdx = offset + i;
+                    globalOffsetTableMap.insert({elemName, tableIdx});
+                }
             }
         }
 

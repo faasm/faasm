@@ -161,8 +161,8 @@ namespace wasm {
 
         void doBindToFunction(const message::Message &msg, bool executeZygote);
 
-        void
-        writeStringArrayToMemory(const std::vector<std::string> &strings, uint32_t strPoitners, uint32_t strBuffer);
+        void writeStringArrayToMemory(
+                const std::vector<std::string> &strings, uint32_t strPoitners, uint32_t strBuffer);
 
         void clone(const WAVMWasmModule &other);
 

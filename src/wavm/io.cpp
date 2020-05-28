@@ -273,8 +273,8 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_close", I32, wasi_fd_close, I32 fd) {
         util::getLogger()->debug("S - fd_close - {}", fd);
 
-        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileSystem().getFileDescriptor(fd);
-        fileDesc.close();
+        // TODO - actually closing here can close the preopened fds which messes things up
+        // Ignore for now.
 
         return 0;
     }
