@@ -35,18 +35,18 @@ namespace wasm {
 
     static Runtime::Instance *baseEnvModule = nullptr;
     static Runtime::Instance *baseWasiModule = nullptr;
-    
+
     std::mutex baseModuleMx;
-    
+
     static void instantiateBaseModules() {
-        if(baseEnvModule != nullptr) {
+        if (baseEnvModule != nullptr) {
             return;
         }
 
         util::UniqueLock lock(baseModuleMx);
 
         // Double check
-        if(baseEnvModule != nullptr) {
+        if (baseEnvModule != nullptr) {
             return;
         }
 
@@ -68,13 +68,13 @@ namespace wasm {
         );
         PROF_END(BaseWasiModule)
     }
-    
-    Runtime::Instance* WAVMWasmModule::getEnvModule() {
+
+    Runtime::Instance *WAVMWasmModule::getEnvModule() {
         instantiateBaseModules();
         return baseEnvModule;
     }
 
-    Runtime::Instance* WAVMWasmModule::getWasiModule() {
+    Runtime::Instance *WAVMWasmModule::getWasiModule() {
         instantiateBaseModules();
         return baseWasiModule;
     }
@@ -570,7 +570,7 @@ namespace wasm {
         const IR::Value &value = Runtime::getGlobalValue(context, globalPtr);
         return value.i32;
     }
-    
+
     int WAVMWasmModule::dynamicLoadModule(const std::string &path, Runtime::Context *context) {
         // This function is essentially dlopen. See the comments around the GOT function
         // for more detail on the dynamic linking approach.
@@ -648,7 +648,7 @@ namespace wasm {
     /**
      * Executes the given function call
      */
-    bool WAVMWasmModule::execute(message::Message &msg) {
+    bool WAVMWasmModule::execute(message::Message &msg, bool forceNoop) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         if (!_isBound) {
@@ -724,33 +724,39 @@ namespace wasm {
         }
 
         // Call the function
-        PROF_START(doExecution)
         int returnValue = 0;
         bool success = true;
-        try {
-            Runtime::catchRuntimeExceptions([this, &funcInstance, &funcType, &invokeArgs, &returnValue, &logger] {
-                logger->debug("Invoking C/C++ function");
+        PROF_START(doExecution)
+        if (forceNoop) {
+            logger->debug("NOTE: Explicitly forcing a noop");
+        } else {
 
-                IR::UntaggedValue result;
-                executeFunction(
-                        funcInstance,
-                        funcType,
-                        invokeArgs,
-                        result
-                );
+            try {
+                Runtime::catchRuntimeExceptions([this, &funcInstance, &funcType, &invokeArgs, &returnValue, &logger] {
+                    logger->debug("Invoking C/C++ function");
 
-                returnValue = result.i32;
-            }, [&logger, &success, &returnValue](Runtime::Exception *ex) {
-                logger->error("Runtime exception: {}", Runtime::describeException(ex).c_str());
-                Runtime::destroyException(ex);
-                success = false;
-                returnValue = 1;
-            });
-        }
-        catch (wasm::WasmExitException &e) {
-            logger->debug("Caught wasm exit exception (code {})", e.exitCode);
-            returnValue = e.exitCode;
-            success = e.exitCode == 0;
+                    IR::UntaggedValue result;
+
+                    executeFunction(
+                            funcInstance,
+                            funcType,
+                            invokeArgs,
+                            result
+                    );
+
+                    returnValue = result.i32;
+                }, [&logger, &success, &returnValue](Runtime::Exception *ex) {
+                    logger->error("Runtime exception: {}", Runtime::describeException(ex).c_str());
+                    Runtime::destroyException(ex);
+                    success = false;
+                    returnValue = 1;
+                });
+            }
+            catch (wasm::WasmExitException &e) {
+                logger->debug("Caught wasm exit exception (code {})", e.exitCode);
+                returnValue = e.exitCode;
+                success = e.exitCode == 0;
+            }
         }
         PROF_END(doExecution)
 
@@ -876,7 +882,8 @@ namespace wasm {
      */
     U32 WAVMWasmModule::mapSharedStateMemory(const std::shared_ptr<state::StateKeyValue> &kv, long offset, U32 length) {
         // See if we already have this segment mapped into memory
-        std::string segmentKey = kv->user + "_" + kv->key + "__" + std::to_string(offset) + "__" + std::to_string(length);
+        std::string segmentKey =
+                kv->user + "_" + kv->key + "__" + std::to_string(offset) + "__" + std::to_string(length);
         if (sharedMemWasmPtrs.count(segmentKey) == 0) {
             // Lock and double check
             util::UniqueLock lock(sharedMemWasmPtrsMx);

@@ -30,7 +30,9 @@ namespace storage {
         bool success = fileDesc.pathOpen(0, __WASI_O_DIRECTORY, 0);
 
         if (!success) {
-            util::getLogger()->error("Failed on preopened fd {} ({})", path, strerror(fileDesc.getLinuxErrno()));
+            const std::string realSysPath = prependRuntimeRoot(path);
+            util::getLogger()->error("Failed on preopened fd at {} (system path {}). Error: {} ", path, realSysPath,
+                                     strerror(fileDesc.getLinuxErrno()));
             throw std::runtime_error("Problem opening preopened fd");
         } else {
             util::getLogger()->debug("Opened preopened fd at {}", path);
@@ -106,7 +108,7 @@ namespace storage {
     }
 
     void FileSystem::tearDown() {
-        for(auto &f : fileDescriptors) {
+        for (auto &f : fileDescriptors) {
             f.second.close();
         }
     }

@@ -21,7 +21,7 @@ namespace wasm {
         class PlatformThreadPool;
     }
 
-    class WAVMWasmModule : public WasmModule, Runtime::Resolver {
+    class WAVMWasmModule final : public WasmModule, Runtime::Resolver {
     public:
         WAVMWasmModule();
 
@@ -36,7 +36,7 @@ namespace wasm {
 
         void bindToFunctionNoZygote(const message::Message &msg) override;
 
-        bool execute(message::Message &msg) override;
+        bool execute(message::Message &msg, bool forceNoop = false) override;
 
         const bool isBound() override;
 
@@ -155,13 +155,14 @@ namespace wasm {
         std::unordered_map<std::string, int> globalOffsetMemoryMap;
         std::unordered_map<std::string, int> missingGlobalOffsetEntries;
 
-        static Runtime::Instance* getEnvModule();
+        static Runtime::Instance *getEnvModule();
 
-        static Runtime::Instance* getWasiModule();
+        static Runtime::Instance *getWasiModule();
 
         void doBindToFunction(const message::Message &msg, bool executeZygote);
 
-        void writeStringArrayToMemory(const std::vector<std::string> &strings, uint32_t strPoitners, uint32_t strBuffer);
+        void
+        writeStringArrayToMemory(const std::vector<std::string> &strings, uint32_t strPoitners, uint32_t strBuffer);
 
         void clone(const WAVMWasmModule &other);
 
