@@ -203,85 +203,85 @@ namespace wasm {
      */
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_init", I32, pthread_mutex_init, I32 a, I32 b) {
-        util::getLogger()->trace("S - pthread_mutex_init {} {}", a, b);
+        // util::getLogger()->trace("S - pthread_mutex_init {} {}", a, b);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_cond_init", I32, pthread_cond_init, I32 a, I32 b) {
-        util::getLogger()->trace("S - pthread_cond_init {} {}", a, b);
+        // util::getLogger()->trace("S - pthread_cond_init {} {}", a, b);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_lock", I32, pthread_mutex_lock, I32 a) {
-        util::getLogger()->trace("S - pthread_mutex_lock {}", a);
+        // util::getLogger()->trace("S - pthread_mutex_lock {}", a);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_cond_signal", I32, pthread_cond_signal, I32 a) {
-        util::getLogger()->trace("S - pthread_cond_signal {}", a);
+        // util::getLogger()->trace("S - pthread_cond_signal {}", a);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_unlock", I32, pthread_mutex_unlock, I32 a) {
-        util::getLogger()->trace("S - pthread_mutex_unlock {}", a);
+        // util::getLogger()->trace("S - pthread_mutex_unlock {}", a);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_destroy", I32, pthread_mutex_destroy, I32 a) {
-        util::getLogger()->trace("S - pthread_mutex_destroy {}", a);
+        // util::getLogger()->trace("S - pthread_mutex_destroy {}", a);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_self", I32, pthread_self) {
-        util::getLogger()->trace("S - pthread_self");
+        // util::getLogger()->trace("S - pthread_self");
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_key_create", I32, s__pthread_key_create, I32 a, I32 b) {
-        util::getLogger()->trace("S - pthread_key_create {} {}", a, b);
+        // util::getLogger()->trace("S - pthread_key_create {} {}", a, b);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_key_delete", I32, s__pthread_key_delete, I32 a) {
-        util::getLogger()->trace("S - pthread_key_delete {}", a);
+        // util::getLogger()->trace("S - pthread_key_delete {}", a);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_getspecific", I32, s__pthread_getspecific, I32 a) {
-        util::getLogger()->trace("S - pthread_getspecific {}", a);
+        // util::getLogger()->trace("S - pthread_getspecific {}", a);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_setspecific", I32, s__pthread_setspecific, I32 a, I32 b) {
-        util::getLogger()->trace("S - pthread_setspecific {} {}", a, b);
+        // util::getLogger()->trace("S - pthread_setspecific {} {}", a, b);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_trylock", I32, s__pthread_mutex_trylock, I32 a) {
-        util::getLogger()->trace("S - pthread_mutex_trylock {}", a);
+        // util::getLogger()->trace("S - pthread_mutex_trylock {}", a);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_cond_destroy", I32, pthread_cond_destroy, I32 a) {
-        util::getLogger()->trace("S - pthread_cond_destroy {}", a);
+        // util::getLogger()->trace("S - pthread_cond_destroy {}", a);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_cond_broadcast", I32, pthread_cond_broadcast, I32 a) {
-        util::getLogger()->trace("S - pthread_cond_broadcast {}", a);
+        // util::getLogger()->trace("S - pthread_cond_broadcast {}", a);
 
         return 0;
     }

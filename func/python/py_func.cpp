@@ -69,8 +69,8 @@ FAASM_ZYGOTE() {
 
     setUpPyNumpy();
 
-    unsigned int preloadNumpy = getConfFlag("PRELOAD_NUMPY");
-    if (preloadNumpy == 1) {
+    unsigned int preloadLibs = getConfFlag("PYTHON_PRELOAD");
+    if (preloadLibs == 1) {
         // Import numpy up front
         PyObject *numpyModule = PyImport_ImportModule("numpy");
         if (!numpyModule) {
@@ -78,14 +78,14 @@ FAASM_ZYGOTE() {
         } else {
             printf("\nPython initialised numpy\n");
         }
-    }
 
-    // Import pyfaasm
-    PyObject *pyfaasmModule = PyImport_ImportModule("pyfaasm.core");
-    if (!pyfaasmModule) {
-        printf("\nFailed to import pyfaasm\n");
-    } else {
-        printf("\nPython initialised pyfaasm\n");
+        // Import pyfaasm
+        PyObject *pyfaasmModule = PyImport_ImportModule("pyfaasm.core");
+        if (!pyfaasmModule) {
+            printf("\nFailed to import pyfaasm\n");
+        } else {
+            printf("\nPython initialised pyfaasm\n");
+        }
     }
 
     return 0;

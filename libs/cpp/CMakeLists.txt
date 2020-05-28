@@ -43,7 +43,7 @@ set(LIB_FILES
         )
 
 
-if(FAASM_BUILD_TYPE STREQUAL "wasm")
+if (FAASM_BUILD_TYPE STREQUAL "wasm")
     add_library(faasm STATIC ${LIB_FILES})
     set_target_properties(faasm PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
@@ -61,12 +61,17 @@ if(FAASM_BUILD_TYPE STREQUAL "wasm")
             RENAME libfaasm.imports
     )
 else ()
-    add_library(faasm SHARED ${LIB_FILES})
-    set_target_properties(faasm PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
+    faasm_public_lib(faasm ${LIB_FILES})
 
-    install(TARGETS faasm
-            ARCHIVE DESTINATION lib
-            LIBRARY DESTINATION lib
-            PUBLIC_HEADER DESTINATION include/faasm
-            )
-endif()
+    # Install as a shared library if necessary
+    if (FAASM_STATIC_LIBS)
+    else ()
+        set_target_properties(faasm PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
+
+        install(TARGETS faasm
+                ARCHIVE DESTINATION lib
+                LIBRARY DESTINATION lib
+                PUBLIC_HEADER DESTINATION include/faasm
+                )
+    endif ()
+endif ()

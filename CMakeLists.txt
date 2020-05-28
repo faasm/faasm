@@ -132,8 +132,6 @@ elseif (FAASM_BUILD_TYPE STREQUAL "native-tools")
 
     message(STATUS "Running native tools build")
 
-    set(FAASM_LIB_TYPE SHARED)
-
     add_subdirectory(libs/cpp)
     add_subdirectory(libs/faasmp)
     add_subdirectory(src/emulator)

@@ -96,15 +96,21 @@ namespace wasm {
 
         if (other._isBound) {
             if (memoryFd > 0) {
+                PROF_START(cloneCompartmentNoMem)
                 // Clone compartment excluding memory
                 compartment = Runtime::cloneCompartment(other.compartment, "", false);
+                PROF_END(cloneCompartmentNoMem)
             } else {
+                PROF_START(cloneCompartmentWithMem)
                 // Clone compartment including memory
                 compartment = Runtime::cloneCompartment(other.compartment);
+                PROF_END(cloneCompartmentWithMem)
             }
 
             // Clone context
+            PROF_START(cloneContext)
             executionContext = Runtime::cloneContext(other.executionContext, compartment);
+            PROF_END(cloneContext)
 
             // Remap parts we need specific references to
             envModule = Runtime::remapToClonedCompartment(other.envModule, compartment);
@@ -117,7 +123,9 @@ namespace wasm {
 
             // Map memory contents if necessary
             if (memoryFd > 0) {
+                PROF_START(mapMemoryFd)
                 mapMemoryFromFd();
+                PROF_END(mapMemoryFd)
             }
 
             // TODO - double check this works
@@ -126,11 +134,13 @@ namespace wasm {
 
             // Remap dynamic modules
             // TODO - double check this works
+            PROF_START(dynamicPathMap)
             dynamicPathToHandleMap = other.dynamicPathToHandleMap;
             for (auto &p : other.dynamicModuleMap) {
                 Runtime::Instance *newInstance = Runtime::remapToClonedCompartment(p.second, compartment);
                 dynamicModuleMap[p.first] = newInstance;
             }
+            PROF_END(dynamicPathMap)
 
             // Copy dynamic linking stuff
             globalOffsetTableMap = other.globalOffsetTableMap;
