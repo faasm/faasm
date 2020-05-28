@@ -451,9 +451,7 @@ namespace wasm {
 
         // Warning: be very careful here to stick to *references* to the same shared modules
         // rather than creating copies.
-        PROF_START(MODULEGetFromReg)
         IR::Module &irModule = moduleRegistry.getModule(boundUser, boundFunction, sharedModulePath);
-        PROF_END(MODULEGetFromReg)
 
         if (isMainModule) {
             // Set up intrinsics
@@ -511,39 +509,30 @@ namespace wasm {
         }
 
         // Add module to GOT before linking
-        PROF_START(MODULEToGOT)
         addModuleToGOT(irModule, isMainModule);
-        PROF_END(MODULEToGOT)
 
         // Do the linking
-        PROF_START(MODULELink)
         Runtime::LinkResult linkResult = linkModule(irModule, *this);
         if (!linkResult.success) {
             logger->error("Failed to link module");
             throw std::runtime_error("Failed linking module");
         }
-        PROF_END(MODULELink)
 
-        PROF_START(MODULEGetCompiled)
         Runtime::ModuleRef compiledModule = moduleRegistry.getCompiledModule(boundUser, boundFunction,
                                                                              sharedModulePath);
-        PROF_END(MODULEGetCompiled)
 
         logger->info("Instantiating module {}/{}  {}", boundUser, boundFunction, sharedModulePath);
-        PROF_START(MODULEInstantiate)
         Runtime::Instance *instance = instantiateModule(
                 compartment,
                 compiledModule,
                 std::move(linkResult.resolvedImports),
                 name.c_str()
         );
-        PROF_END(MODULEInstantiate)
         logger->info("Finished instantiating module {}/{}  {}", boundUser, boundFunction, sharedModulePath);
 
         // Here there may be some entries missing from the GOT that we need to patch up. They may
         // be exported from the dynamic module itself. I don't know how this happens but occasionally
         // it does
-        PROF_START(MODULEGOT)
         if (!missingGlobalOffsetEntries.empty()) {
             for (auto e : missingGlobalOffsetEntries) {
                 // Check if it's an export of the module we're currently importing
@@ -565,7 +554,6 @@ namespace wasm {
 
         // Empty the missing entries now that they're populated
         missingGlobalOffsetEntries.clear();
-        PROF_END(MODULEGOT)
 
         PROF_END(wasmCreateModule)
 
