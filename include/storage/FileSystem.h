@@ -23,6 +23,8 @@ namespace storage {
 
         int dup(int fd);
 
+        void tearDown();
+
         static void clearSharedFiles();
     private:
         int nextFd;

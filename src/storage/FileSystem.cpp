@@ -30,8 +30,10 @@ namespace storage {
         bool success = fileDesc.pathOpen(0, __WASI_O_DIRECTORY, 0);
 
         if (!success) {
-            util::getLogger()->error("Failed on preopened FD {} ({})", path, strerror(fileDesc.getLinuxErrno()));
+            util::getLogger()->error("Failed on preopened fd {} ({})", path, strerror(fileDesc.getLinuxErrno()));
             throw std::runtime_error("Problem opening preopened fd");
+        } else {
+            util::getLogger()->debug("Opened preopened fd at {}", path);
         }
 
         // Add to this module's fds
@@ -103,6 +105,12 @@ namespace storage {
         return thisFd;
     }
 
+    void FileSystem::tearDown() {
+        for(auto &f : fileDescriptors) {
+            f.second.close();
+        }
+    }
+
     void FileSystem::clearSharedFiles() {
         SharedFiles::clear();
 
@@ -110,4 +118,5 @@ namespace storage {
         util::SystemConfig &conf = util::getSystemConfig();
         boost::filesystem::remove_all(conf.sharedFilesDir);
     }
+
 }

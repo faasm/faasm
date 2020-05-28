@@ -666,10 +666,14 @@ namespace wasm {
         setExecutingCall(&msg);
 
         // Ensure Python function file in place (if necessary)
+        PROF_START(syncPyFile)
         syncPythonFunctionFile(msg);
+        PROF_END(syncPyFile)
 
         // Set up OMP
+        PROF_START(ompContext)
         prepareOpenMPContext(msg);
+        PROF_END(ompContext)
 
         // Executes OMP fork message if necessary
         if (msg.has_ompdepth()) {
@@ -720,6 +724,7 @@ namespace wasm {
         }
 
         // Call the function
+        PROF_START(doExecution)
         int returnValue = 0;
         bool success = true;
         try {
@@ -747,9 +752,13 @@ namespace wasm {
             returnValue = e.exitCode;
             success = e.exitCode == 0;
         }
+        PROF_END(doExecution)
 
         // Record the return value
+        PROF_START(setReturnValue)
         msg.set_returnvalue(returnValue);
+        PROF_END(setReturnValue)
+
         return success;
     }
 
