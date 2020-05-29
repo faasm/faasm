@@ -109,7 +109,10 @@ namespace storage {
 
     void FileSystem::tearDown() {
         for (auto &f : fileDescriptors) {
-            f.second.close();
+            // Only close non-preopened fds
+            if(f.second.wasiPreopenType != __WASI_PREOPENTYPE_DIR) {
+                f.second.close();
+            }
         }
     }
 
