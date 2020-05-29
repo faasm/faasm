@@ -2,13 +2,17 @@
 
 set -e
 
-N_ITERATIONS=$1
+IMAGE=$1
+N_ITERATIONS=$2
 
-echo "Running Docker noop with ${N_ITERATIONS} iterations"
+echo "Running Docker faasm/${IMAGE} with ${N_ITERATIONS} iterations"
 
 for (( i=0; i<$N_ITERATIONS; i++ ))
 do
-    echo "Running Docker noop $i"
-    docker run faasm/noop /faasm/noop
+    echo "Running faasm/${IMAGE} $i"
+    if [[ "$IMAGE" == "pynoop" ]]; then
+      docker run faasm/pynoop
+    else
+      docker run faasm/${IMAGE} /faasm/noop
+    fi
 done
-
