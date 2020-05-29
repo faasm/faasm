@@ -2,7 +2,7 @@ from psutil import process_iter
 
 
 def count_threads_for_name(proc_part, exact=False, exclude_main=False):
-    procs = _get_pids_for_name(proc_part, exact=exact)
+    procs = _get_procs_for_name(proc_part, exact=exact)
 
     n_threads = 0
     for p in procs:
@@ -15,7 +15,7 @@ def count_threads_for_name(proc_part, exact=False, exclude_main=False):
     return n_threads
 
 
-def _get_pids_for_name(proc_part, exact=False):
+def _get_procs_for_name(proc_part, exact=False):
     procs = []
     for p in process_iter(attrs=["pid", "name"]):
         if exact and p.info["name"] == proc_part:
@@ -36,14 +36,14 @@ def get_docker_parent_pids():
     dockerd_pid = get_pid_for_name("dockerd")
 
     # Check if docker-containerd is present
-    docker_containerd_options = _get_pids_for_name("docker-containerd")
+    docker_containerd_options = _get_procs_for_name("docker-containerd")
     if docker_containerd_options:
         print("Found docker-containerd, assuming dockerd is parent")
         return [dockerd_pid]
 
     # Check if containerd is present
     containerd_name = "containerd"
-    containerd_options = _get_pids_for_name(containerd_name, exact=True)
+    containerd_options = _get_procs_for_name(containerd_name, exact=True)
 
     if len(containerd_options) == 1:
         return [dockerd_pid, containerd_options[0].pid]
@@ -55,7 +55,7 @@ def get_docker_parent_pids():
 
 
 def get_pid_for_name(proc_part):
-    procs = _get_pids_for_name(proc_part)
+    procs = _get_procs_for_name(proc_part)
     n_procs = len(procs)
     if n_procs == 0:
         raise RuntimeError("Could not find process {}".format(proc_part))
@@ -65,3 +65,8 @@ def get_pid_for_name(proc_part):
 
     proc = procs[0]
     return proc.pid
+
+
+def get_all_pids_for_name(proc_part):
+    procs = _get_procs_for_name(proc_part)
+    return [p.pid for p in procs]

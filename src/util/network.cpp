@@ -79,8 +79,6 @@ namespace util {
 
         if (ipAddress.empty()) {
             fprintf(stderr, "Unable to detect IP for this host");
-        } else {
-            printf("Detected IP %s\n", ipAddress.c_str());
         }
 
         // Cache and return the result
