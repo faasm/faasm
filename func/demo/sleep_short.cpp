@@ -7,8 +7,7 @@
 #define SLEEP_TIME_SECONDS 25
 
 FAASM_MAIN_FUNC() {
-    const char* input = faasm::getStringInput("No input");
-    printf("Sleep input: %s\n", input);
+    printf("Sleeping for: %is\n", SLEEP_TIME_SECONDS);
 
     sleep(SLEEP_TIME_SECONDS);
     return 0;
