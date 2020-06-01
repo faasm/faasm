@@ -41,7 +41,7 @@ namespace wasm {
 
         virtual void bindToFunctionNoZygote(const message::Message &msg) = 0;
 
-        virtual bool execute(message::Message &msg) = 0;
+        virtual bool execute(message::Message &msg, bool forceNoop = false) = 0;
 
         virtual const bool isBound() = 0;
 

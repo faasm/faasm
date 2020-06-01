@@ -3,6 +3,10 @@
 This guide is only relevant for those wanting to dig deeper or make changes to Faasm itself. 
 If you'd just like to write and run functions, you can refer to the [set-up](setup.md) instructions. 
 
+**NOTE - this dev set-up has only been used in anger on Ubuntu 18.04.** Other 
+distros and versions will work, but may require some tweaks to the installation 
+and set-up scripts. 
+
 ## Checking out the repo
 
 For now, many locations rely on the code being located at `/usr/local/code/faasm`, with the latter 

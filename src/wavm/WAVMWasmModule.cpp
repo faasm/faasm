@@ -33,6 +33,52 @@ using namespace WAVM;
 namespace wasm {
     static thread_local WAVMWasmModule *executingModule;
 
+    static Runtime::Instance *baseEnvModule = nullptr;
+    static Runtime::Instance *baseWasiModule = nullptr;
+
+    std::mutex baseModuleMx;
+
+    static void instantiateBaseModules() {
+        if (baseEnvModule != nullptr) {
+            return;
+        }
+
+        util::UniqueLock lock(baseModuleMx);
+
+        // Double check
+        if (baseEnvModule != nullptr) {
+            return;
+        }
+
+        // Set up the basic modules common to all functions
+        Runtime::Compartment *compartment = Runtime::createCompartment("baseModules");
+        PROF_START(BaseEnvModule)
+        baseEnvModule = Intrinsics::instantiateModule(
+                compartment,
+                {WAVM_INTRINSIC_MODULE_REF(env)},
+                "env"
+        );
+        PROF_END(BaseEnvModule)
+
+        PROF_START(BaseWasiModule)
+        baseWasiModule = Intrinsics::instantiateModule(
+                compartment,
+                {WAVM_INTRINSIC_MODULE_REF(wasi)},
+                "env"
+        );
+        PROF_END(BaseWasiModule)
+    }
+
+    Runtime::Instance *WAVMWasmModule::getEnvModule() {
+        instantiateBaseModules();
+        return baseEnvModule;
+    }
+
+    Runtime::Instance *WAVMWasmModule::getWasiModule() {
+        instantiateBaseModules();
+        return baseWasiModule;
+    }
+
     WAVMWasmModule *getExecutingModule() {
         return executingModule;
     }
@@ -219,6 +265,13 @@ namespace wasm {
         IR::DisassemblyNames disassemblyNames;
         getDisassemblyNames(mod, disassemblyNames);
 
+        // If we add all table elements this map gets very large, therefore we just want
+        // to include functions that the module explicitly exports.
+        std::unordered_set<std::string> moduleExports;
+        for(auto &e : mod.exports) {
+            moduleExports.insert(e.name);
+        }
+
         // ----------------------------
         // Table elems
         // ----------------------------
@@ -243,8 +296,11 @@ namespace wasm {
                 unsigned long elemIdx = es.contents->elemIndices[i];
                 // Work out the function's name, then add it to our GOT
                 std::string &elemName = disassemblyNames.functions[elemIdx].name;
-                Uptr tableIdx = offset + i;
-                globalOffsetTableMap.insert({elemName, tableIdx});
+
+                if(moduleExports.find(elemName) != moduleExports.end()) {
+                    Uptr tableIdx = offset + i;
+                    globalOffsetTableMap.insert({elemName, tableIdx});
+                }
             }
         }
 
@@ -399,12 +455,14 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         PROF_START(wasmCreateModule)
+
         IRModuleCache &moduleRegistry = wasm::getIRModuleCache();
         bool isMainModule = sharedModulePath.empty();
 
         // Warning: be very careful here to stick to *references* to the same shared modules
         // rather than creating copies.
         IR::Module &irModule = moduleRegistry.getModule(boundUser, boundFunction, sharedModulePath);
+
         if (isMainModule) {
             // Set up intrinsics
             if (boundIsTypescript) {
@@ -416,18 +474,10 @@ namespace wasm {
                 );
             } else {
                 // Normal (C/C++) env
-                envModule = Intrinsics::instantiateModule(
-                        compartment,
-                        {WAVM_INTRINSIC_MODULE_REF(env)},
-                        "env"
-                );
+                envModule = Runtime::cloneInstance(getEnvModule(), compartment);
 
                 // WASI
-                wasiModule = Intrinsics::instantiateModule(
-                        compartment,
-                        {WAVM_INTRINSIC_MODULE_REF(wasi)},
-                        "env"
-                );
+                wasiModule = Runtime::cloneInstance(getWasiModule(), compartment);
             }
 
             // Make sure the stack top is as expected
@@ -608,7 +658,7 @@ namespace wasm {
     /**
      * Executes the given function call
      */
-    bool WAVMWasmModule::execute(message::Message &msg) {
+    bool WAVMWasmModule::execute(message::Message &msg, bool forceNoop) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         if (!_isBound) {
@@ -682,34 +732,41 @@ namespace wasm {
         // Call the function
         int returnValue = 0;
         bool success = true;
-        try {
-            Runtime::catchRuntimeExceptions([this, &funcInstance, &funcType, &invokeArgs, &returnValue, &logger] {
-                logger->debug("Invoking C/C++ function");
+        if (forceNoop) {
+            logger->debug("NOTE: Explicitly forcing a noop");
+        } else {
 
-                IR::UntaggedValue result;
-                executeFunction(
-                        funcInstance,
-                        funcType,
-                        invokeArgs,
-                        result
-                );
+            try {
+                Runtime::catchRuntimeExceptions([this, &funcInstance, &funcType, &invokeArgs, &returnValue, &logger] {
+                    logger->debug("Invoking C/C++ function");
 
-                returnValue = result.i32;
-            }, [&logger, &success, &returnValue](Runtime::Exception *ex) {
-                logger->error("Runtime exception: {}", Runtime::describeException(ex).c_str());
-                Runtime::destroyException(ex);
-                success = false;
-                returnValue = 1;
-            });
-        }
-        catch (wasm::WasmExitException &e) {
-            logger->debug("Caught wasm exit exception (code {})", e.exitCode);
-            returnValue = e.exitCode;
-            success = e.exitCode == 0;
+                    IR::UntaggedValue result;
+
+                    executeFunction(
+                            funcInstance,
+                            funcType,
+                            invokeArgs,
+                            result
+                    );
+
+                    returnValue = result.i32;
+                }, [&logger, &success, &returnValue](Runtime::Exception *ex) {
+                    logger->error("Runtime exception: {}", Runtime::describeException(ex).c_str());
+                    Runtime::destroyException(ex);
+                    success = false;
+                    returnValue = 1;
+                });
+            }
+            catch (wasm::WasmExitException &e) {
+                logger->debug("Caught wasm exit exception (code {})", e.exitCode);
+                returnValue = e.exitCode;
+                success = e.exitCode == 0;
+            }
         }
 
         // Record the return value
         msg.set_returnvalue(returnValue);
+
         return success;
     }
 
@@ -827,7 +884,8 @@ namespace wasm {
      */
     U32 WAVMWasmModule::mapSharedStateMemory(const std::shared_ptr<state::StateKeyValue> &kv, long offset, U32 length) {
         // See if we already have this segment mapped into memory
-        std::string segmentKey = kv->user + "_" + kv->key + "__" + std::to_string(offset) + "__" + std::to_string(length);
+        std::string segmentKey =
+                kv->user + "_" + kv->key + "__" + std::to_string(offset) + "__" + std::to_string(length);
         if (sharedMemWasmPtrs.count(segmentKey) == 0) {
             // Lock and double check
             util::UniqueLock lock(sharedMemWasmPtrsMx);

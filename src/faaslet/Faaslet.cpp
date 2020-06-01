@@ -197,6 +197,8 @@ namespace faaslet {
 
                 PROF_END(snapshotOverride)
             }
+
+            // Do the actual execution
             errorMessage = this->executeCall(msg);
         }
 

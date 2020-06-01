@@ -14,6 +14,7 @@ endif ()
 include_directories(${PYTHON_INCLUDE_DIRS})
 
 faasm_dynamic_func(py_func py_func.cpp)
+# faasm_func(py_func py_func.cpp)
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
     target_link_libraries(py_func pyinit ${PYTHON_LIBRARIES})

@@ -8,14 +8,14 @@
 #define HEAP_SIZE_KB 1024
 
 namespace wasm {
-    class WAMRWasmModule : public WasmModule {
+    class WAMRWasmModule final : public WasmModule {
     public:
         // ----- Module lifecycle -----
         void bindToFunction(const message::Message &msg) override;
 
         void bindToFunctionNoZygote(const message::Message &msg) override;
 
-        bool execute(message::Message &msg) override;
+        bool execute(message::Message &msg, bool forceNoop = false) override;
 
         const bool isBound() override;
 

@@ -19,8 +19,8 @@
 
 - name: "Prepare out-of-tree build"
   shell: >
-    cmake
-    -GNinja
+    cmake \
+    -GNinja \
     -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
     -DCMAKE_C_COMPILER=/usr/bin/clang \
     -DCMAKE_BUILD_TYPE=Release \

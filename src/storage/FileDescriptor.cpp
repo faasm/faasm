@@ -70,6 +70,8 @@ namespace storage {
                 return __WASI_EISDIR;
             case EEXIST:
                 return __WASI_EEXIST;
+            case EMFILE:
+                return __WASI_EMFILE;
             default:
                 throw std::runtime_error("Unsupported WASI errno: " + std::to_string(errnoIn));
         }
@@ -295,7 +297,9 @@ namespace storage {
     }
 
     void FileDescriptor::close() {
-
+        if(linuxFd > 0) {
+            ::close(linuxFd);
+        }
     }
 
     bool FileDescriptor::unlink(const std::string &relativePath) {
