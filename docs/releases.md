@@ -4,15 +4,16 @@
 
 Create a new branch for this release, but _not_ a PR.
 
-See what's going into the release in the [Compare view](https://github.com/lsds/Faasm/compare).
+See what's going into the release in the [Compare
+view](https://github.com/lsds/Faasm/compare).
 
 ## 1. Prepare release artifacts
 
-The sysroot, toolchain and runtime root are all tied to a given release. You must create the 
-release versions locally before proceeding. 
+The sysroot, toolchain and runtime root are all tied to a given release. You
+must create the release versions locally before proceeding. 
 
-To do this, you can download the versions from the current release, then apply any changes 
-for this release (if there are any), i.e.:
+To do this, you can download the versions from the current release, then apply
+any changes for this release (if there are any), i.e.:
 
 ```bash
 inv toolchain.download-toolchain
@@ -20,10 +21,11 @@ inv toolchain.download-sysroot
 inv toolchain.download-runtime
 ``` 
 
-To check things are working properly you can run the tests locally with the new versions.
+To check things are working properly you can run the tests locally with the new
+versions.
 
-It's worth reading through the `docs/toolchain.md` notes if you need to change the 
-toolchain/ core libraries themselves.
+It's worth reading through the `docs/toolchain.md` notes if you need to change
+the toolchain/ core libraries themselves.
 
 ## 2. Update version
 
@@ -37,8 +39,8 @@ This can usually be done with a find-and-replace on the current version number.
 
 ## 3. Create the Github release
 
-Run the following to create the new release in Github (this will bundle up the sysroot,
-toolchain and runtime root too).
+Run the following to create the new release in Github (this will bundle up the
+sysroot, toolchain and runtime root too).
 
 ```bash
 inv github.create-release
