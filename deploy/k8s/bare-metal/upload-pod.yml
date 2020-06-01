@@ -26,3 +26,5 @@ spec:
           value: "off"
         - name: NETNS_MODE
           value: "off"
+        - name: STATE_MODE
+          value: "redis"

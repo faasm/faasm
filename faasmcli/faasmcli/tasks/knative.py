@@ -65,6 +65,7 @@ KNATIVE_ENV = {
     "LOG_LEVEL": "info",
     "CGROUP_MODE": "off",
     "NETNS_MODE": "off",
+    "STATE_MODE": "redis",
     "PYTHON_PRELOAD": "off",  # Switch on/ off preloading of Python runtime
     "TF_CODEGEN": "on",  # Switch on/ off up-front codegen for TF
     "SGD_CODEGEN": "off",  # Switch on/ off up-front codegen for SGD
