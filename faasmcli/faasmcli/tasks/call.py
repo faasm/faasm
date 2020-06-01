@@ -9,7 +9,7 @@ def invoke(ctx, user, func,
            port=None,
            input=None,
            py=False,
-           async=False,
+           faasm_async=False,
            knative=True,
            native=False,
            ibm=False,
@@ -20,13 +20,13 @@ def invoke(ctx, user, func,
     """
     Invoke a function
     """
-    invoke_impl(user, func, host=host, port=port, input=input, py=py, async=async,
+    invoke_impl(user, func, host=host, port=port, input=input, py=py, faasm_async=faasm_async,
                 knative=knative, native=native, ibm=ibm, poll=poll, cmdline=cmdline, debug=debug)
 
 @task
 def status(ctx, call_id, host=None, port=None):
     """
-    Get the status of an async function call
+    Get the status of an faasm_async function call
     """
     k8s_host, k8s_port = get_invoke_host_port()
     host = host if host else k8s_host
