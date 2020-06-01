@@ -61,9 +61,9 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
             RENAME libfaasm.imports
     )
 else ()
-    # The Faasm lib has to be SHARED for the weak linking of faasm functions to work in a
-    # native function context.
-    add_library(faasm SHARED ${LIB_FILES})
+    # Note - to properly link Faasm native functions, this must be build with
+    # FAASM_STATIC_LIBS=OFF
+    faasm_public_lib(faasm "${LIB_FILES}")
 
     set_target_properties(faasm PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
