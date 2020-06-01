@@ -61,8 +61,8 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
             RENAME libfaasm.imports
     )
 else ()
-    # Note - to properly link Faasm native functions, this must be build with
-    # FAASM_STATIC_LIBS=OFF
+    # Note - to properly link Faasm native functions, this must be built
+    # with FAASM_STATIC_LIBS=OFF
     faasm_public_lib(faasm "${LIB_FILES}")
 
     set_target_properties(faasm PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
