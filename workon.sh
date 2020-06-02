@@ -8,7 +8,7 @@ pushd ${THIS_DIR} >> /dev/null
 # ----------------------------
 
 if [ ! -d "venv" ]; then
-    python3 -m venv venv
+    python3 -m venv venv --system-site-packages
 fi
 
 export VIRTUAL_ENV_DISABLE_PROMPT=1

@@ -17,8 +17,7 @@ You can either set this directory up directly, or just symlink it.
 Assuming you've checked out this code somewhere, you'll need to make sure submodules are up to date:
 
 ```
-git submodule init
-git submodule update
+git submodule update --init --recursive
 ```
 
 ## Basic local machine set-up
@@ -29,8 +28,8 @@ Most of the local set-up is scripted with Ansible, but you need to have Python 3
 The easiest way to do this is as follows:
 
 ```bash
-# Python stuff
-sudo apt install python3-dev python3-pip
+# Python stuff and other dependencies
+sudo apt install python3-dev python3-pip python3-venv libcairo2-dev libtinfo5
 sudo pip3 install -U pip
 
 # Ansible
@@ -65,6 +64,30 @@ You can look in the following folders and remove any reference to `libprotobuf` 
 
 Avoid trying to do this with `apt` as it can accidentally delete a whole load of other stuff.
 
+Install Protobuf manually:
+```bash
+# Install autoconf (if not present)
+sudo apt-get install autoconf libtool
+
+# Download Protobuf
+https://github.com/protocolbuffers/protobuf/releases/download/v3.11.4/protobuf-all-3.11.4.tar.gz
+
+# Decompress downloaded files
+tar -xvzf protobuf-all-3.11.4.tar.gz
+
+# Make and install Protobuf
+cd protobuf-all-3.11.4
+./autogen
+./configure --prefix=/usr CC=/usr/bin/clang CPP=/usr/bin/clang-cpp CXX=/usr/bin/clang++
+make -j <Your number of threads> && make check -j <Your number of threads>
+sudo make install
+sudo ldconfig
+
+# Check protoc version
+
+protoc --version (should return libprotoc 3.11.4)
+```
+
 ## Toolchain and Runtime Root
 
 The Faasm toolchain and runtime require some prebuilt files which can be downloaded with:
@@ -77,12 +100,38 @@ inv toolchain.download-sysroot
 
 If you want to build the toolchain from scratch, you'll need to look at the `toolchain.md` doc.
 
+## Build Upload and Simple_runner
+
+```bash
+#Source workon.sh if it isn't already sourced
+source workon.sh
+
+# If not existing create build directory in root directory
+mkdir build 
+cd build
+cmake ..
+
+# Build upload and simple_runner
+make upload simple_runner -j <Your number of threads>
+
+# Open an additional console and start upload
+sudo ./bin/upload
+
+# Move back into Faasm root directory
+cd ..
+
+# compile & upload and call demo hello example
+inv compile demo hello
+inv upload demo hello
+./build/bin/simple_runner demo hello
+```
+
 ## Codegen and upload
 
 To run the next parts you'll need to build the following targets with CMake:
 
 - `codegen_func`
-- `codgen_shared_obj`
+- `codegen_shared_obj`
 
 Once finished, you need to add the resulting `bin` dir to your `$PATH`.
 
