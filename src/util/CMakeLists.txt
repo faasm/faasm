@@ -23,7 +23,7 @@ set(LIB_FILES
         queue.cpp
         random.cpp
         state.cpp
-        strings.cpp
+        string_tools.cpp
         timing.cpp
         ${HEADERS}
         )
