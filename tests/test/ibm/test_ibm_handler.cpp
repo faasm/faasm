@@ -9,7 +9,7 @@
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 #include <boost/filesystem.hpp>
-#include <util/strings.h>
+#include <util/string_tools.h>
 
 using namespace Pistache;
 using namespace rapidjson;

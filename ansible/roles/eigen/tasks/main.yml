@@ -2,21 +2,21 @@
 
 - name: "Remove build dir"
   file:
-    path: "/usr/local/code/Faasm/third-party/eigen/native-build"
+    path: "/usr/local/code/faasm/third-party/eigen/native-build"
     state: absent
 
 - name: "Create build dir"
   file:
-    path: "/usr/local/code/Faasm/third-party/eigen/native-build"
+    path: "/usr/local/code/faasm/third-party/eigen/native-build"
     state: directory
 
 - name: "Cmake"
   shell: "cmake -DCMAKE_BUILD_TYPE=Release .."
   args:
-    chdir: "/usr/local/code/Faasm/third-party/eigen/native-build"
+    chdir: "/usr/local/code/faasm/third-party/eigen/native-build"
 
 - name: "Install"
   become: yes
   shell: "make install"
   args:
-    chdir: "/usr/local/code/Faasm/third-party/eigen/native-build"
+    chdir: "/usr/local/code/faasm/third-party/eigen/native-build"

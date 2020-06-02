@@ -29,7 +29,7 @@ def invoke_impl(user, func,
                 port=None,
                 input=None,
                 py=False,
-                faasm_async=False,
+                asynch=False,
                 knative=True,
                 native=False,
                 ibm=False,
@@ -51,9 +51,9 @@ def invoke_impl(user, func,
     host = host if host else "127.0.0.1"
     port = port if port else 8080
 
-    # Polling always requires faasm_async
+    # Polling always requires asynch
     if poll:
-        faasm_async = True
+        asynch = True
 
         # Create URL and message
     url = "http://{}".format(host)
@@ -64,7 +64,7 @@ def invoke_impl(user, func,
         msg = {
             "user": PYTHON_USER,
             "function": PYTHON_FUNC,
-            "faasm_async": faasm_async,
+            "async": asynch,
             "py_user": user,
             "py_func": func,
             "python": True,
@@ -73,7 +73,7 @@ def invoke_impl(user, func,
         msg = {
             "user": user,
             "function": func,
-            "faasm_async": faasm_async,
+            "async": asynch,
         }
 
     if input:
@@ -114,13 +114,13 @@ def invoke_impl(user, func,
     else:
         headers = {}
 
-    if faasm_async:
-        # Submit initial faasm_async call
-        faasm_async_result = do_post(url, msg, headers=headers, quiet=True, json=True)
+    if asynch:
+        # Submit initial asynch call
+        asynch_result = do_post(url, msg, headers=headers, quiet=True, json=True)
         try:
-            call_id = int(faasm_async_result)
+            call_id = int(asynch_result)
         except ValueError:
-            raise RuntimeError("Could not parse faasm_async response to int: {}".format(faasm_async_result))
+            raise RuntimeError("Could not parse async response to int: {}".format(asynch_result))
 
         if not poll:
             # Return the call ID if we're not polling
