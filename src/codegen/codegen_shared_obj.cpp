@@ -3,7 +3,7 @@
 #include <storage/FileLoader.h>
 #include <util/environment.h>
 #include <util/locks.h>
-#include <util/strings.h>
+#include <util/string_tools.h>
 
 using namespace boost::filesystem;
 

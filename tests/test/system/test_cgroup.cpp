@@ -3,7 +3,7 @@
 #include <util/environment.h>
 #include <util/files.h>
 #include <util/config.h>
-#include <util/strings.h>
+#include <util/string_tools.h>
 
 #include <system/CGroup.h>
 
