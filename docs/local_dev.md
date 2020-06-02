@@ -1,16 +1,36 @@
 # Local Development
 
-This guide is only relevant for those wanting to dig deeper or make changes to Faasm itself. 
-If you'd just like to write and run functions, you can refer to the [set-up](setup.md) instructions. 
+This guide is only relevant for those wanting to dig deeper or make changes to
+Faasm itself.  If you'd just like to write and run functions, you can refer to
+the [set-up](setup.md) instructions. 
 
-**NOTE - this dev set-up has only been used in anger on Ubuntu 18.04.** Other 
-distros and versions will work, but may require some tweaks to the installation 
-and set-up scripts. 
+## Prerequisites
+
+The Faasm codebase is all standard C/C++ and Python, however, local dev is only 
+guaranteed to work with the following set-up:
+
+- Ubuntu 18.04
+- Python 3.7
+- Using **clang** to compile the code
+
+All scripted CMake builds also use Ninja, so it's safest to use that too.
+
+This means your CMake commands will look something like:
+
+```
+cmake \
+    -GNinja \
+    -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+    -DCMAKE_C_COMPILER=/usr/bin/clang \
+    ...
+```
 
 ## Checking out the repo
 
-For now, many locations rely on the code being located at `/usr/local/code/faasm`, with the latter 
-two directories _owned_ by the current user. This is something that will be removed in future. 
+For now, many locations rely on the code being located at
+`/usr/local/code/faasm` (note the lowercase "f"), with the latter two 
+directories _owned_ by the current user. This is annoying and something we will 
+fix in future. 
 
 You can either set this directory up directly, or just symlink it.
 
