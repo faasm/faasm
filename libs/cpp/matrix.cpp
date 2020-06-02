@@ -182,7 +182,7 @@ namespace faasm {
         auto sizes = reinterpret_cast<SparseSizes *>(sizeBuffer);
 
         if (sizes->cols == 0 || sizes->rows == 0) {
-            printf("ERROR: loaded sparse matrix size as zero\n");
+            printf("ERROR: loaded sparse matrix size as zero (%ix%i)\n", sizes->cols, sizes->rows);
             exit(1);
         }
 
@@ -249,6 +249,12 @@ namespace faasm {
         int nValues = 0;
         for (int i = 0; i < nCols; i++) {
             nValues += nonZeroCounts[i];
+        }
+
+        if (nValues == 0) {
+            printf("ERROR: trying to read columns from %s (%li-%li) with no values\n", key,
+                   colStart, colEnd);
+            exit(1);
         }
 
         // Load the outer indices (one longer than the number of columns)
