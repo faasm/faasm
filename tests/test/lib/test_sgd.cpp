@@ -230,7 +230,7 @@ namespace tests {
 
         // Deliberately try to cause contention with lots of worker
         int nWorkers = 30;
-        call.set_inputdata(std::to_string(nWorkers) + " " + std::to_string(syncInterval));
+        call.set_inputdata(std::to_string(nWorkers) + " " + std::to_string(syncInterval) + " 0");
 
         std::thread serverThread([nWorkers, syncInterval, &call] {
             // Set up remote state

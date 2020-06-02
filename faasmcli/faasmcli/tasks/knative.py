@@ -74,7 +74,7 @@ KNATIVE_ENV = {
     "NO_SCHEDULER": "0",  # Turn on/ off Faasm scheduler
     "MAX_WORKERS_PER_FUNCTION": "6",  # This limit is per-host. We only want one instance per core
     "THREADS_PER_WORKER": "40",  # This is how many threads are available in total per host (across all functions)
-    "BOUND_TIMEOUT": str(5 * ONE_MIN),  # How long a bound worker sticks around for
+    "BOUND_TIMEOUT": THIRTY_SECS,  # How long a bound worker sticks around for
     "UNBOUND_TIMEOUT": str(10 * ONE_MIN),  # How long an unbound worker sticks around for
     "GLOBAL_MESSAGE_TIMEOUT": str(2 * ONE_MIN),  # How long things wait for messages on global bus
     "ENDPOINT_INTERFACE": "eth0", # Assuming eth0 is accessible to other hosts
