@@ -20,6 +20,7 @@ namespace tests {
         
         std::string syncedPath;
         std::string overridePath;
+
         SECTION("Default location") {
             syncedPath = conf.sharedFilesDir + "/" + relPath;
             overridePath = "";
