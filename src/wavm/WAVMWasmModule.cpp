@@ -837,6 +837,10 @@ namespace wasm {
         U64 maxSize = getMemoryType(defaultMemory).size.max;
         Uptr currentPageCount = Runtime::getMemoryNumPages(defaultMemory);
 
+        if(pages == 0) {
+            throw std::runtime_error("Requesting mapping of zero pages");
+        }
+
         Uptr newPageCount = currentPageCount + pages;
         if (newPageCount > maxSize) {
             logger->error("mmap would exceed max of {} pages (growing by {} from {})", maxSize, pages,

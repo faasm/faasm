@@ -65,14 +65,15 @@ KNATIVE_ENV = {
     "LOG_LEVEL": "info",
     "CGROUP_MODE": "off",
     "NETNS_MODE": "off",
+    "STATE_MODE": "redis",
     "PYTHON_PRELOAD": "off",  # Switch on/ off preloading of Python runtime
     "TF_CODEGEN": "on",  # Switch on/ off up-front codegen for TF
     "SGD_CODEGEN": "off",  # Switch on/ off up-front codegen for SGD
     "PYTHON_CODEGEN": "off",  # Switch on/ off up-front codegen for Python
     "MAX_IN_FLIGHT_RATIO": "1",
-    "NO_SCHEDULER": "1",  # Turn on/ off Faasm scheduler
-    "MAX_WORKERS_PER_FUNCTION": "4",  # This limit is per-host. We only want one instance per core
-    "THREADS_PER_WORKER": "100",  # This is how many threads are available in total per host (across all functions)
+    "NO_SCHEDULER": "0",  # Turn on/ off Faasm scheduler
+    "MAX_WORKERS_PER_FUNCTION": "6",  # This limit is per-host. We only want one instance per core
+    "THREADS_PER_WORKER": "40",  # This is how many threads are available in total per host (across all functions)
     "BOUND_TIMEOUT": str(THIRTY_SECS),  # How long a bound worker sticks around for
     "UNBOUND_TIMEOUT": str(10 * ONE_MIN),  # How long an unbound worker sticks around for
     "GLOBAL_MESSAGE_TIMEOUT": str(2 * ONE_MIN),  # How long things wait for messages on global bus

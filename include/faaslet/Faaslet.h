@@ -35,7 +35,7 @@ namespace faaslet {
 
         message::Message boundMessage;
 
-        int executionCount;
+        int executionCount = 0;
 
         scheduler::Scheduler &scheduler;
 

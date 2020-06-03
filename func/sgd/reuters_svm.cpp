@@ -13,21 +13,24 @@ using namespace faasm;
 #define REUTERS_LEARNING_DECAY 0.8
 #define REUTERS_N_FEATURES 47236
 #define REUTERS_N_EXAMPLES 781265
+#define REUTERS_N_EXAMPLES_MICRO 128
 
 
-SgdParams setUpReutersParams(int nBatches, int syncInterval, int epochs) {
+SgdParams setUpReutersParams(int nExamples, int nBatches, int syncInterval, int epochs) {
     // Set up reuters params
     SgdParams p;
     p.nWeights = REUTERS_N_FEATURES;
-    p.nTrain = REUTERS_N_EXAMPLES;
+    p.nTrain = nExamples;
     p.learningRate = REUTERS_LEARNING_RATE;
     p.learningDecay = REUTERS_LEARNING_DECAY;
     p.nEpochs = epochs;
     p.mu = 1.0;
 
-    // Round up batch size
+    // Round up batch size so that we definitely cover all the examples with _max_
+    // these workers. Note that if nBatches is big relative to nExamples, we may
+    // not be able to divide the work equally across all workers
     p.nBatches = nBatches;
-    p.batchSize = (REUTERS_N_EXAMPLES + nBatches - 1) / nBatches;
+    p.batchSize = (nExamples + nBatches - 1) / nBatches;
 
     // Note that the sync interval determines how often workers will
     // sync with the remote storage. There are just under 60 million updates
@@ -53,19 +56,25 @@ FAASM_MAIN_FUNC() {
     }
 
     const char *input = faasm::getStringInput("");
-    int *intInput = faasm::parseStringToIntArray(input, 2);
+    int *intInput = faasm::parseStringToIntArray(input, 3);
 
     int nWorkers = intInput[0];
     int syncInterval = intInput[1];
+    int microMode = intInput[2];
+
+    int nExamples = REUTERS_N_EXAMPLES;
+    if (microMode > 0) {
+        nExamples = REUTERS_N_EXAMPLES_MICRO;
+    }
 
     // Prepare params
     int epochs;
     size_t paramsSize = faasmReadStateSize(PARAMS_KEY);
     faasm::SgdParams p;
-    if(paramsSize == 0) {
-        printf("Writing SVM params to state\n");
+    if (paramsSize == 0) {
+        printf("Writing SVM params to state (%i examples)\n", nExamples);
         epochs = 20;
-        p = setUpReutersParams(nWorkers, syncInterval, epochs);
+        p = setUpReutersParams(nExamples, nWorkers, syncInterval, epochs);
         writeParamsToState(PARAMS_KEY, p, true);
     } else {
         printf("Using SVM params already in state\n");
@@ -102,6 +111,12 @@ FAASM_MAIN_FUNC() {
 
             // Make sure we don't overshoot
             int endIdx = std::min(startIdx + p.batchSize, p.nTrain - 1);
+
+            // Skip this worker if it would overshoot
+            if (startIdx >= endIdx) {
+                printf("Skipping worker %i, not enough work with batch size %i\n", w, p.batchSize);
+                continue;
+            }
 
             // Chain the call
             int inputData[4] = {w, startIdx, endIdx, thisEpoch};
@@ -147,7 +162,7 @@ FAASM_MAIN_FUNC() {
     size_t outputLen = 0;
     int charWidth = 20;
     auto output = new char[charWidth * epochs];
-    for(int e = 0; e < epochs; e++) {
+    for (int e = 0; e < epochs; e++) {
         outputLen += sprintf(output + outputLen, "\n%.4f %.4f\n", timestamps[e], losses[e]);
     }
 

@@ -261,7 +261,7 @@ namespace tests {
         checkSparseMatrixEquality(mat, actual);
     }
 
-    void doRemoteSparseMatrixRoundTripCheck(int rows, int cols, int colStart, int colEnd) {
+    void doInMemoryStateRoundTripCheck(int rows, int cols, int colStart, int colEnd) {
         cleanSystem();
 
         const char *key = "sparse_trip_offset_test";
@@ -320,6 +320,39 @@ namespace tests {
         }
     }
 
+    void doRedisStateRoundTripCheck(int rows, int cols, int colStart, int colEnd) {
+        cleanSystem();
+
+        const char *key = "sparse_trip_offset_test";
+        SparseMatrix<double> mat = faasm::randomSparseMatrix(rows, cols, 0.7);
+
+        std::string emulatorUser = getEmulatorUser();
+
+        util::SystemConfig &conf = util::getSystemConfig();
+        std::string originalStateMode = conf.stateMode;
+        conf.stateMode = "redis";
+
+        // Write matrix to state
+        faasm::writeSparseMatrixToState(key, mat, true);
+
+        // Remove local copies
+        state::getGlobalState().forceClearAll(false);
+
+        // Get subsection from the matrix
+        SparseMatrix<double> expected = mat.block(0, colStart, rows, colEnd - colStart);
+
+        // Get from state
+        Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixColumnsFromState(key, colStart, colEnd, false);
+        checkSparseMatrixEquality(actual, expected);
+
+        // Read the whole thing and check
+        Map<const SparseMatrix<double>> actualFull = faasm::readSparseMatrixFromState(key, false);
+        checkSparseMatrixEquality(actualFull, mat);
+
+        // Reset state mode
+        conf.stateMode = originalStateMode;
+    }
+
     void doLocalSparseMatrixRoundTripCheck(int rows, int cols, int colStart, int colEnd) {
         cleanSystem();
 
@@ -333,18 +366,26 @@ namespace tests {
         SparseMatrix<double> expected = mat.block(0, colStart, rows, colEnd - colStart);
 
         // Get from state
-        Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixColumnsFromState(key, colStart, colEnd, false);
+        Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixColumnsFromState(key, colStart, colEnd, true);
         checkSparseMatrixEquality(actual, expected);
 
         // Read the whole thing and check
-        Map<const SparseMatrix<double>> actualFull = faasm::readSparseMatrixFromState(key, false);
+        Map<const SparseMatrix<double>> actualFull = faasm::readSparseMatrixFromState(key, true);
         checkSparseMatrixEquality(actualFull, mat);
     }
 
     void checkSparseMatrixRoundTrip(int rows, int cols, int colStart, int colEnd) {
-        // Do both locally and remotely
-        doRemoteSparseMatrixRoundTripCheck(rows, cols, colStart, colEnd);
-        doLocalSparseMatrixRoundTripCheck(rows, cols, colStart, colEnd);
+        SECTION("Redis") {
+            doRedisStateRoundTripCheck(rows, cols, colStart, colEnd);
+        }
+
+        SECTION("In memory") {
+            doInMemoryStateRoundTripCheck(rows, cols, colStart, colEnd);
+        }
+
+        SECTION("Local") {
+            doLocalSparseMatrixRoundTripCheck(rows, cols, colStart, colEnd);
+        }
     }
 
     TEST_CASE("Test sparse matrix offset multiple columns", "[matrix]") {

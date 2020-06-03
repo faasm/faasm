@@ -34,9 +34,6 @@ namespace faaslet {
         // Add this thread to the cgroup
         CGroup cgroup(BASE_CGROUP_NAME);
         cgroup.addCurrentThread();
-
-        // Zero the execution counter
-        executionCount = 0;
     }
 
     const bool Faaslet::isBound() {
@@ -111,13 +108,13 @@ namespace faaslet {
         currentQueue = scheduler.getFunctionQueue(msg);
 
         // Instantiate the module from its snapshot
-        PROF_START(snapshotCreate)
+        PROF_START(snapshotRestore)
 
         module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
         wasm::WAVMWasmModule &snapshot = registry.getCachedModule(msg);
         module = std::make_unique<wasm::WAVMWasmModule>(snapshot);
 
-        PROF_END(snapshotCreate)
+        PROF_END(snapshotRestore)
 
         _isBound = true;
     }
