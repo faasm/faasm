@@ -214,7 +214,7 @@ namespace tests {
 
         // Work out what the result should be
         double expectedRmse = sqrt((3 * expected) / p.nTrain);
-        double actual = faasm::readRootMeanSquaredError(p);
+        double actual = faasm::readRootMeanSquaredError(p.nBatches, p.nTrain);
         REQUIRE(abs(actual - expectedRmse) < 0.0000001);
     }
 

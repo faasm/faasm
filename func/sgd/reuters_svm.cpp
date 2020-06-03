@@ -62,16 +62,17 @@ FAASM_MAIN_FUNC() {
     int syncInterval = intInput[1];
     int microMode = intInput[2];
 
-    int nExamples = REUTERS_N_EXAMPLES;
-    if (microMode > 0) {
-        nExamples = REUTERS_N_EXAMPLES_MICRO;
-    }
 
     // Prepare params
     int epochs;
     size_t paramsSize = faasmReadStateSize(PARAMS_KEY);
     faasm::SgdParams p;
     if (paramsSize == 0) {
+        int nExamples = REUTERS_N_EXAMPLES;
+        if (microMode > 0) {
+            nExamples = REUTERS_N_EXAMPLES_MICRO;
+        }
+        
         printf("Writing SVM params to state (%i examples)\n", nExamples);
         epochs = 20;
         p = setUpReutersParams(nExamples, nWorkers, syncInterval, epochs);
@@ -105,6 +106,7 @@ FAASM_MAIN_FUNC() {
         int *batchNumbers = faasm::randomIntRange(nWorkers);
 
         // Run workers in a loop
+        int nWorkersUsed = 0;
         auto workerCallIds = new unsigned int[nWorkers];
         for (int w = 0; w < nWorkers; w++) {
             int startIdx = batchNumbers[w] * p.batchSize;
@@ -127,10 +129,11 @@ FAASM_MAIN_FUNC() {
             );
             printf("Worker %i [%i-%i] with ID %i\n", w, startIdx, endIdx, workerCallId);
             workerCallIds[w] = workerCallId;
+            nWorkersUsed += 1;
         }
 
         // Wait for all workers to finish
-        for (int w = 0; w < nWorkers; w++) {
+        for (int w = 0; w < nWorkersUsed; w++) {
             unsigned int res = faasmAwaitCall(workerCallIds[w]);
             if (res != 0) {
                 printf("Chained call %i failed\n", res);
@@ -150,7 +153,7 @@ FAASM_MAIN_FUNC() {
         ts -= tsZero;
 
         // Read loss
-        double loss = faasm::readRootMeanSquaredError(p);
+        double loss = faasm::readRootMeanSquaredError(nWorkersUsed, p.nTrain);
 
         printf("EPOCH %i (time = %.2f, loss = %.2f)\n", thisEpoch, ts, loss);
 

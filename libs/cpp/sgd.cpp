@@ -143,10 +143,10 @@ namespace faasm {
         );
     }
 
-    double readRootMeanSquaredError(const SgdParams &sgdParams) {
+    double readRootMeanSquaredError(int nWorkers, int nTraining) {
         // Load errors from state
-        auto *errors = new double[sgdParams.nBatches];
-        size_t sizeErrors = sgdParams.nBatches * sizeof(double);
+        auto *errors = new double[nWorkers];
+        size_t sizeErrors = nWorkers * sizeof(double);
 
         // Make sure filled with zeros
         memset(errors, 0, sizeErrors);
@@ -155,17 +155,17 @@ namespace faasm {
                 ERRORS_KEY,
                 BYTES(errors),
                 sizeErrors,
-                sgdParams.nBatches
+                nWorkers
         );
 
         // Iterate through and sum up
         double totalError = 0.0;
-        for (int i = 0; i < sgdParams.nBatches; i++) {
+        for (int i = 0; i < nWorkers; i++) {
             totalError += errors[i];
         }
 
         // Calculate the mean squared error across all batches
-        double rmse = std::sqrt(totalError) / std::sqrt(sgdParams.nTrain);
+        double rmse = std::sqrt(totalError) / std::sqrt(nTraining);
         return rmse;
     }
 
