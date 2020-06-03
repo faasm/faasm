@@ -82,10 +82,10 @@ namespace faasm {
     void writeMatrixToState(const char *key, const MatrixXd &matrix, bool push);
 
     Map<const MatrixXd> readMatrixColumnsFromState(const char *key, long totalCols, long colStart,
-                                                   long colEnd, long totalRows, bool pull);
+                                                   long colEnd, long totalRows, bool lazyPullFullValue);
 
     Map<const SparseMatrix<double>> readSparseMatrixColumnsFromState(const char *key, long colStart, long colEnd,
-            bool pull);
+            bool lazyPullFullValue);
 
     /**
      * Manipulation

@@ -34,11 +34,8 @@ namespace faasm {
 
     void hingeLossWeightUpdate(const SgdParams &sgdParams, int startIdx, int endIdx) {
         /* Note this is always asynchronous with pushes decided based on the params */
-        
+
         // Load this batch of inputs (read-only)
-        // Note that we want to pull here, as this will load the full inputs onto
-        // this box (if not already present), and so avoid unnecessary fragmentation
-        // and work checking whether individual chunks are present.
         printf("Loading inputs %i - %i\n", startIdx, endIdx);
         Map<const SparseMatrix<double>> inputs = readSparseMatrixColumnsFromState(INPUTS_KEY, startIdx, endIdx, true);
 
@@ -191,7 +188,7 @@ namespace faasm {
 
         // Set up fake feature counts
         auto featureCounts = new int[params.nWeights];
-        for(int i = 0; i < params.nWeights; i++) {
+        for (int i = 0; i < params.nWeights; i++) {
             featureCounts[i] = randomInteger(1, 200);
         }
 

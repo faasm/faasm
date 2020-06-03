@@ -221,7 +221,7 @@ namespace faasm {
      *  Reads a subset of a sparse matrix from state. The start/ end columns are *exclusive*
      */
     Map<const SparseMatrix<double>> readSparseMatrixColumnsFromState(const char *key, long colStart, long colEnd,
-                                                                     bool pull) {
+                                                                     bool lazyPullFullValue) {
         // This depends heavily on the Eigen sparse matrix representation which is documented here:
         // https://eigen.tuxfamily.org/dox/group__TutorialSparse.html
 
@@ -229,12 +229,13 @@ namespace faasm {
         SparseKeys keys = getSparseKeys(key);
         SparseSizes sizes = readSparseSizes(keys, false);
 
-        // Make sure full state is in memory if need be
-        if (pull) {
-            faasmPullState(keys.innerKey, sizes.innerLen);
-            faasmPullState(keys.outerKey, sizes.outerLen);
-            faasmPullState(keys.valueKey, sizes.valuesLen);
-            faasmPullState(keys.nonZeroKey, sizes.nonZeroLen);
+        // Make sure full state is in memory if need be. By reading the state
+        // and not explicitly pulling, it ensures it's pulled lazily
+        if (lazyPullFullValue) {
+            faasmReadStatePtr(keys.innerKey, sizes.innerLen);
+            faasmReadStatePtr(keys.outerKey, sizes.outerLen);
+            faasmReadStatePtr(keys.valueKey, sizes.valuesLen);
+            faasmReadStatePtr(keys.nonZeroKey, sizes.nonZeroLen);
         }
 
         long nCols = colEnd - colStart;
@@ -362,7 +363,7 @@ namespace faasm {
      * Reads a subset of full columns from state. Columns are *exclusive*
      */
     Map<const MatrixXd> readMatrixColumnsFromState(const char *key, long totalCols, long colStart,
-                                                   long colEnd, long totalRows, bool pull) {
+                                                   long colEnd, long totalRows, bool lazyPullFullValue) {
         long nCols = colEnd - colStart;
 
         // Note - row indexes are zero-based
@@ -376,7 +377,7 @@ namespace faasm {
         long totalLen = getChunkSizeUpToMatrixElement(lastRowIdx, totalCols, totalRows);
 
         // Ensure full state is pulled
-        if (pull) {
+        if (lazyPullFullValue) {
             faasmPullState(key, totalLen);
         }
 
