@@ -204,10 +204,10 @@ function:
 
 ```bash
 # Normal CMake set-up
-mkdir -p build 
+mkdir build 
 cd build
 cmake -GNinja \
-  -DCMAKE_C_COMPILER=/usr/bin/clang \ 
+  -DCMAKE_C_COMPILER=/usr/bin/clang \
   -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
   .. 
 
