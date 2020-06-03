@@ -72,7 +72,7 @@ FAASM_MAIN_FUNC() {
         if (microMode > 0) {
             nExamples = REUTERS_N_EXAMPLES_MICRO;
         }
-        
+
         printf("Writing SVM params to state (%i examples)\n", nExamples);
         epochs = 20;
         p = setUpReutersParams(nExamples, nWorkers, syncInterval, epochs);
