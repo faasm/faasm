@@ -20,7 +20,7 @@ namespace tests {
 
     TEST_CASE("Test reading from a URL", "[util]") {
         std::string localPath = "/usr/local/code/faasm/LICENSE.md";
-        std::string url = "https://raw.githubusercontent.com/lsds/Faasm/master/LICENSE.md";
+        std::string url = "https://raw.githubusercontent.com/lsds/faasm/master/LICENSE.md";
 
         std::vector<uint8_t> expectedBytes = util::readFileToBytes(localPath);
         std::vector<uint8_t> actualBytes = util::readFileFromUrl(url);
