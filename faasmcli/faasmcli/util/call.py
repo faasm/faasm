@@ -154,7 +154,7 @@ def invoke_impl(user, func,
                 prefix = "FAILED:"
                 success = False
 
-            output = result.replace(prefix, "")
+            output = output.replace(prefix, "")
             return success, output
     else:
         if ibm or knative:
