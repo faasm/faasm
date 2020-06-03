@@ -232,7 +232,7 @@ namespace tests {
         message::Message call = util::messageFactory(user, "reuters_svm");
         int syncInterval = 100;
 
-        // Deliberately try to cause contention with lots of worker
+        // Deliberately try to cause contention with lots of workers
         int nWorkers = 30;
         call.set_inputdata(std::to_string(nWorkers) + " " + std::to_string(syncInterval) + " 0");
 

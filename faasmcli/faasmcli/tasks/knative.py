@@ -67,8 +67,8 @@ KNATIVE_ENV = {
     "NETNS_MODE": "off",
     "STATE_MODE": "redis",
     "PYTHON_PRELOAD": "off",  # Switch on/ off preloading of Python runtime
-    "TF_CODEGEN": "on",  # Switch on/ off up-front codegen for TF
-    "SGD_CODEGEN": "off",  # Switch on/ off up-front codegen for SGD
+    "TF_CODEGEN": "off",  # Switch on/ off up-front codegen for TF
+    "SGD_CODEGEN": "on",  # Switch on/ off up-front codegen for SGD
     "PYTHON_CODEGEN": "off",  # Switch on/ off up-front codegen for Python
     "MAX_IN_FLIGHT_RATIO": "1",
     "NO_SCHEDULER": "0",  # Turn on/ off Faasm scheduler
