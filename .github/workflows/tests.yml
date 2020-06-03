@@ -1,7 +1,7 @@
 name: Tests
 
 # Note - the credentials for Docker in here are pulled from the repo's secrets
-# https://github.com/lsds/Faasm/settings/secrets
+# https://github.com/lsds/faasm/settings/secrets
 
 on:
   push:

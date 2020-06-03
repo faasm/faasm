@@ -5,7 +5,7 @@ from faasmcli.util.config import get_faasm_config
 from faasmcli.util.release import tar_toolchain, tar_sysroot, tar_runtime_root
 from faasmcli.util.version import get_faasm_version
 
-REPO_NAME = "lsds/Faasm"
+REPO_NAME = "lsds/faasm"
 
 
 def _tag_name(version):
