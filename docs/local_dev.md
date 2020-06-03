@@ -105,32 +105,6 @@ inv toolchain.download-sysroot
 
 If you want to build the toolchain from scratch, you'll need to look at the `toolchain.md` doc.
 
-## Build Upload and Simple_runner
-
-```bash
-#Source workon.sh if it isn't already sourced
-source workon.sh
-
-# If not existing create build directory in root directory
-mkdir build 
-cd build
-cmake ..
-
-# Build upload and simple_runner
-make upload simple_runner -j <Your number of threads>
-
-# Open an additional console and start upload
-sudo ./bin/upload
-
-# Move back into Faasm root directory
-cd ..
-
-# compile & upload and call demo hello example
-inv compile demo hello
-inv upload demo hello
-./build/bin/simple_runner demo hello
-```
-
 ## Codegen and upload
 
 To run the next parts you'll need to build the following targets with CMake:
@@ -267,3 +241,4 @@ pip install setuptools wheel
 #Install faasmcli requirements
 pip install -r faasmcli/requirements.txt
 ```
+
