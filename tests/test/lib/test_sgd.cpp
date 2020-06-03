@@ -224,69 +224,102 @@ namespace tests {
 
         cleanSystem();
 
+        // This is important to ensure code matches up with emulated stuff
+        std::string user = "sgd";
+        setEmulatorUser(user.c_str());
+
         // Set up the SVM function
-        message::Message call = util::messageFactory("sgd", "reuters_svm");
+        message::Message call = util::messageFactory(user, "reuters_svm");
         int syncInterval = 100;
 
         // Deliberately try to cause contention with lots of worker
-        int nWorkers = 30;
-        call.set_inputdata(std::to_string(nWorkers) + " " + std::to_string(syncInterval));
+        int nWorkers = 1;
+        call.set_inputdata(std::to_string(nWorkers) + " " + std::to_string(syncInterval) + " 0");
 
-        std::thread serverThread([nWorkers, syncInterval, &call] {
-            // Set up remote state
-            state::State remoteState(LOCALHOST);
-            setEmulatorUser(call.user().c_str());
-            setEmulatorState(&remoteState);
-            setEmulatedMessage(call);
+        // Set up the params
+        SgdParams p;
+        p.nWeights = 100;
+        p.nTrain = 10000;
+        p.learningRate = 0.1;
+        p.learningDecay = 0.8;
+        p.nEpochs = 5;
+        p.mu = 1.0;
 
-            // Set up the state server
-            state::StateServer stateServer(remoteState);
+        p.nBatches = nWorkers;
+        p.batchSize = p.nTrain / nWorkers;
+        p.syncInterval = syncInterval;
 
-            // Set up the params
-            SgdParams p;
-            p.nWeights = 100;
-            p.nTrain = 10000;
-            p.learningRate = 0.1;
-            p.learningDecay = 0.8;
-            p.nEpochs = 5;
-            p.mu = 1.0;
+        SECTION("In-memory state") {
+            std::thread serverThread([&call, &p] {
+                // Set up remote state
+                state::State remoteState(LOCALHOST);
+                setEmulatorUser(call.user().c_str());
+                setEmulatorState(&remoteState);
+                setEmulatedMessage(call);
 
-            p.nBatches = nWorkers;
-            p.batchSize = p.nTrain / nWorkers;
-            p.syncInterval = syncInterval;
+                // Set up the state server
+                state::StateServer stateServer(remoteState);
+
+                // Set up dummy data
+                setUpDummyProblem(p);
+
+                // Process incoming messages
+                while (true) {
+                    try {
+                        stateServer.poll();
+                    } catch (tcp::TCPShutdownException &ex) {
+                        break;
+                    }
+                }
+
+                stateServer.close();
+            });
+
+            // Give it time to start
+            ::usleep(500 * 1000);
+
+            // Invoke the function with a pool
+            // Note - the function itself implicitly checks the chained calls,
+            // so we don't have to
+            execFuncWithPool(call, false, 1, false, 5, false);
+
+            // Send shutdown message
+            tcp::TCPClient client(LOCALHOST, STATE_PORT);
+            tcp::TCPMessage tcpMsg;
+            tcpMsg.type = state::StateMessageType::SHUTDOWN;
+            client.sendMessage(&tcpMsg);
+
+            // Wait for server
+            if (serverThread.joinable()) {
+                serverThread.join();
+            }
+        }
+
+        SECTION("Redis state") {
+            util::SystemConfig &conf = util::getSystemConfig();
+            std::string originalState = conf.stateMode;
+            conf.stateMode = "redis";
+
+            const std::string &expectedKey = util::keyForUser(user, "inputs_vals");
 
             // Set up dummy data
             setUpDummyProblem(p);
 
-            // Process incoming messages
-            while (true) {
-                try {
-                    stateServer.poll();
-                } catch (tcp::TCPShutdownException &ex) {
-                    break;
-                }
-            }
+            // Remove any local state
+            state::State &globalState = state::getGlobalState();
+            globalState.forceClearAll(false);
+            REQUIRE(globalState.getKVCount() == 0);
 
-            stateServer.close();
-        });
+            // Sanity check in Redis
+            redis::Redis &redisState = redis::Redis::getState();
+            std::vector<uint8_t> actualInputVals = redisState.get(expectedKey);
+            REQUIRE(actualInputVals.size() > 0);
 
-        // Give it time to start
-        ::usleep(500 * 1000);
+            // Invoke the function with a pool
+            execFuncWithPool(call, false, 1, false, 5, false);
 
-        // Invoke the function with a pool
-        // Note - the function itself implicitly checks the chained calls,
-        // so we don't have to
-        execFuncWithPool(call, false, 1, false, 5, false);
-
-        // Send shutdown message
-        tcp::TCPClient client(LOCALHOST, STATE_PORT);
-        tcp::TCPMessage tcpMsg;
-        tcpMsg.type = state::StateMessageType::SHUTDOWN;
-        client.sendMessage(&tcpMsg);
-
-        // Wait for server
-        if (serverThread.joinable()) {
-            serverThread.join();
+            // If we get to here, it's worked
+            conf.stateMode = originalState;
         }
     }
 }

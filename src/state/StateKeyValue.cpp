@@ -387,7 +387,7 @@ namespace state {
         // Drop out if we already have the data and we don't care about updating
         {
             util::SharedLock lock(valueMutex);
-            if (lazy && (fullyAllocated || isChunkPulled(offset, length))) {
+            if (lazy && isChunkPulled(offset, length)) {
                 return;
             }
         }
@@ -396,7 +396,7 @@ namespace state {
         util::FullLock lock(valueMutex);
 
         // Check condition again
-        if (lazy && (fullyAllocated || isChunkPulled(offset, length))) {
+        if (lazy && isChunkPulled(offset, length)) {
             return;
         }
 

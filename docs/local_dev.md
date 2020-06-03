@@ -1,16 +1,36 @@
 # Local Development
 
-This guide is only relevant for those wanting to dig deeper or make changes to Faasm itself. 
-If you'd just like to write and run functions, you can refer to the [set-up](setup.md) instructions. 
+This guide is only relevant for those wanting to dig deeper or make changes to
+Faasm itself.  If you'd just like to write and run functions, you can refer to
+the [set-up](setup.md) instructions. 
 
-**NOTE - this dev set-up has only been used in anger on Ubuntu 18.04.** Other 
-distros and versions will work, but may require some tweaks to the installation 
-and set-up scripts. 
+## Recommended Set-up
+
+The Faasm codebase is all standard C/C++ and Python, so should work on a range 
+of set-ups, however, the only one that is recommended and well tested is:
+
+- Ubuntu 18.04
+- Python 3.7
+- Clang, not GCC
+
+All scripted CMake builds also use Ninja, so it's safest to use that too.
+
+This means your CMake commands will look something like:
+
+```
+cmake \
+    -GNinja \
+    -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+    -DCMAKE_C_COMPILER=/usr/bin/clang \
+    ...
+```
 
 ## Checking out the repo
 
-For now, many locations rely on the code being located at `/usr/local/code/faasm`, with the latter 
-two directories _owned_ by the current user. This is something that will be removed in future. 
+For now, many locations rely on the code being located at
+`/usr/local/code/faasm` (note the lowercase "f"), with the latter two 
+directories _owned_ by the current user. This is annoying and something we will 
+fix in future. 
 
 You can either set this directory up directly, or just symlink it.
 
@@ -53,6 +73,8 @@ If you want to tweak things yourself, look inside the `local_dev.yml` playbook t
 
 Faasm depends on protobuf which should be installed with the playbook described above.
 
+You can probably get away with using whatever protobuf you already have installed too.
+
 If there are any issue you need to remove every trace of any existing protobuf installation on your system before 
 reinstalling.
 
@@ -64,28 +86,11 @@ You can look in the following folders and remove any reference to `libprotobuf` 
 
 Avoid trying to do this with `apt` as it can accidentally delete a whole load of other stuff.
 
-Install Protobuf manually:
-```bash
-# Install autoconf (if not present)
-sudo apt-get install autoconf libtool
+To rerun just the protobuf part of the install:
 
-# Download Protobuf
-https://github.com/protocolbuffers/protobuf/releases/download/v3.11.4/protobuf-all-3.11.4.tar.gz
-
-# Decompress downloaded files
-tar -xvzf protobuf-all-3.11.4.tar.gz
-
-# Make and install Protobuf
-cd protobuf-all-3.11.4
-./autogen
-./configure --prefix=/usr CC=/usr/bin/clang CPP=/usr/bin/clang-cpp CXX=/usr/bin/clang++
-make -j <Your number of threads> && make check -j <Your number of threads>
-sudo make install
-sudo ldconfig
-
-# Check protoc version
-
-protoc --version (should return libprotoc 3.11.4)
+```
+cd ansible
+ansible-playbook protobuf.yml --ask-become-pass
 ```
 
 ## Toolchain and Runtime Root
@@ -192,6 +197,34 @@ To use cgroup isolation, you'll need to run:
 sudo ./bin/cgroup.sh
 ```
 
+# Out-of-tree build example
+
+This is a simple example of running an out-of-tree build to execute a 
+function:
+
+```bash
+# Normal CMake set-up
+mkdir -p build 
+cd build
+cmake -GNinja \
+  -DCMAKE_C_COMPILER=/usr/bin/clang \ 
+  -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+  .. 
+
+# Build upload and simple_runner and codegen function
+cmake --build . --target simple_runner
+cmake --build . --target codegen_func
+
+# Set up the shell environment in the top-level directory
+cd ..
+source workon.sh
+
+# Compile, codegen and run the code
+inv compile demo hello
+inv codegen demo hello
+inv run demo hello
+```
+
 # CLion/ JetBrains
 
 ## Python
@@ -217,3 +250,20 @@ I do **not** recommend setting a WASM/FAASM CMake profile because it will confus
 
 Assuming you've gone through the steps outlined above _within the VM_, you should be able to call the 
 `inv` commands as normal (rather than needing to use the Faasm CLI container within the VM).
+
+# Troubleshooting the local dev set-up
+
+This section consists of issues that may occure during installation and possible solutions.
+
+## Error 'bdist_wheel' can't be found after invoking pip install -r faasmcli/requirements.txt
+
+```bash
+# Remove installed requirements
+pip uninstall -r faasmcli/requirements.txt
+
+# Install setuptools and wheel 
+pip install setuptools wheel
+
+#Install faasmcli requirements
+pip install -r faasmcli/requirements.txt
+```

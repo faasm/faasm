@@ -15,8 +15,8 @@ using namespace state;
 
 
 /**
- * NOTE - there's some copy-pasting in here because we just want to keep
- * these tests around as long as the RedisStateKeyValue exists.
+ * NOTE - there's some copy-pasting in here because we want to run
+ * the same tests on in-memory and Redis versions.
  */
 
 namespace tests {
@@ -106,8 +106,7 @@ namespace tests {
 
         resetStateMode();
     }
-
-
+    
     TEST_CASE("Test redis get/ set segment", "[state]") {
         setUpStateMode("redis");
 
@@ -146,6 +145,39 @@ namespace tests {
         // Run push and check redis updated
         kv->pushPartial();
             REQUIRE(redisState.get(actualKey) == expected);
+
+        resetStateMode();
+    }
+
+    TEST_CASE("Test redis pulls segment even when already allocated", "[state]") {
+        setUpStateMode("redis");
+
+        std::vector<uint8_t> values = {0, 0, 1, 1, 2, 2, 3, 3, 4, 4};
+        
+        // Set up a value in Redis
+        redis::Redis &redisState = redis::Redis::getState();
+        auto kv = setupKV(values.size());
+        kv->set(values.data());
+        kv->pushFull();
+
+        std::string user = kv->user;
+        std::string key = kv->key;
+        
+        // Clear locally
+        State &globalState = state::getGlobalState();
+        globalState.forceClearAll(false);
+        
+        // Check it's in Redis
+        std::string actualKey = util::keyForUser(user, key);
+        REQUIRE(redisState.get(actualKey) == values);
+        
+        // Access a chunk and check it's implicitly pulled
+        auto kvAfter = globalState.getKV(user, key, values.size());
+        std::vector<uint8_t> actualChunk(3, 0);
+        std::vector<uint8_t> expectedChunk = {2, 2, 3};
+        kvAfter->getChunk(4, actualChunk.data(), actualChunk.size());
+
+        REQUIRE(actualChunk == expectedChunk);
 
         resetStateMode();
     }
