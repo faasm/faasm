@@ -233,7 +233,7 @@ namespace tests {
         int syncInterval = 100;
 
         // Deliberately try to cause contention with lots of worker
-        int nWorkers = 1;
+        int nWorkers = 30;
         call.set_inputdata(std::to_string(nWorkers) + " " + std::to_string(syncInterval) + " 0");
 
         // Set up the params

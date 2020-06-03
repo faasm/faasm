@@ -16,7 +16,7 @@ using namespace faasm;
 #define REUTERS_N_EXAMPLES_MICRO 128
 
 
-SgdParams setUpReutersParams(int nExamples, int nBatches, int syncInterval, int epochs) {
+SgdParams setUpReutersParams(int nExamples, int nWorkers, int syncInterval, int epochs) {
     // Set up reuters params
     SgdParams p;
     p.nWeights = REUTERS_N_FEATURES;
@@ -26,11 +26,15 @@ SgdParams setUpReutersParams(int nExamples, int nBatches, int syncInterval, int 
     p.nEpochs = epochs;
     p.mu = 1.0;
 
-    // Round up batch size so that we definitely cover all the examples with _max_
-    // these workers. Note that if nBatches is big relative to nExamples, we may
-    // not be able to divide the work equally across all workers
-    p.nBatches = nBatches;
-    p.batchSize = (nExamples + nBatches - 1) / nBatches;
+    // We want to divide the work up with an equal batch size over as many of the workers
+    // as possible. However, if nWorkers is larger compared to nExamples, this may not
+    // be possible, and we can only divide equally over a subset of the workers.
+
+    // Calculate the batch size that can definitely be covered by these workers
+    p.batchSize = (nExamples + nWorkers - 1) / nWorkers;
+
+    // Now work out whether how many workers we actually use
+    p.nBatches = (nExamples + p.batchSize - 1) / p.batchSize;
 
     // Note that the sync interval determines how often workers will
     // sync with the remote storage. There are just under 60 million updates
@@ -62,7 +66,6 @@ FAASM_MAIN_FUNC() {
     int syncInterval = intInput[1];
     int microMode = intInput[2];
 
-
     // Prepare params
     int epochs;
     size_t paramsSize = faasmReadStateSize(PARAMS_KEY);
@@ -83,7 +86,8 @@ FAASM_MAIN_FUNC() {
         epochs = p.nEpochs;
     }
 
-    printf("SVM running %i epochs with %i workers and sync interval %i \n", epochs, nWorkers, syncInterval);
+    printf("SVM: %i epochs, %i workers (%i requested). Sync every %i \n",
+           epochs, p.nBatches, nWorkers, syncInterval);
 
     // Initialise weights and mask
     printf("Initialising weights with zeros\n");
@@ -103,20 +107,19 @@ FAASM_MAIN_FUNC() {
         faasmClearAppendedState(ERRORS_KEY);
 
         // Shuffle start indices for each batch
-        int *batchNumbers = faasm::randomIntRange(nWorkers);
+        int *batchNumbers = faasm::randomIntRange(p.nBatches);
 
         // Run workers in a loop
-        int nWorkersUsed = 0;
-        auto workerCallIds = new unsigned int[nWorkers];
-        for (int w = 0; w < nWorkers; w++) {
+        auto workerCallIds = new unsigned int[p.nBatches];
+        for (int w = 0; w < p.nBatches; w++) {
             int startIdx = batchNumbers[w] * p.batchSize;
 
             // Make sure we don't overshoot
             int endIdx = std::min(startIdx + p.batchSize, p.nTrain - 1);
 
-            // Skip this worker if it would overshoot
+            // Error if this worker would overshoot
             if (startIdx >= endIdx) {
-                printf("Skipping worker %i, not enough work with batch size %i\n", w, p.batchSize);
+                printf("ERROR: worker %i asking for range [%i-%i]\n", w, startIdx, endIdx);
                 continue;
             }
 
@@ -129,11 +132,10 @@ FAASM_MAIN_FUNC() {
             );
             printf("Worker %i [%i-%i] with ID %i\n", w, startIdx, endIdx, workerCallId);
             workerCallIds[w] = workerCallId;
-            nWorkersUsed += 1;
         }
 
         // Wait for all workers to finish
-        for (int w = 0; w < nWorkersUsed; w++) {
+        for (int w = 0; w < p.nBatches; w++) {
             unsigned int res = faasmAwaitCall(workerCallIds[w]);
             if (res != 0) {
                 printf("Chained call %i failed\n", res);
@@ -153,7 +155,7 @@ FAASM_MAIN_FUNC() {
         ts -= tsZero;
 
         // Read loss
-        double loss = faasm::readRootMeanSquaredError(nWorkersUsed, p.nTrain);
+        double loss = faasm::readRootMeanSquaredError(p.nBatches, p.nTrain);
 
         printf("EPOCH %i (time = %.2f, loss = %.2f)\n", thisEpoch, ts, loss);
 
