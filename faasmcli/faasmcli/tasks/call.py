@@ -9,7 +9,7 @@ def invoke(ctx, user, func,
            port=None,
            input=None,
            py=False,
-           async=False,
+           asynch=False,
            knative=True,
            native=False,
            ibm=False,
@@ -20,7 +20,7 @@ def invoke(ctx, user, func,
     """
     Invoke a function
     """
-    invoke_impl(user, func, host=host, port=port, input=input, py=py, async=async,
+    invoke_impl(user, func, host=host, port=port, input=input, py=py, asynch=asynch,
                 knative=knative, native=native, ibm=ibm, poll=poll, cmdline=cmdline, debug=debug)
 
 @task

@@ -8,7 +8,7 @@ COPY . /usr/local/code/faasm
 
 # Get the runtime root
 WORKDIR /usr/local/faasm
-RUN wget -q https://github.com/lsds/Faasm/releases/download/v${FAASM_VERSION}/faasm-runtime-root-${FAASM_VERSION}.tar.gz
+RUN wget -q https://github.com/lsds/faasm/releases/download/v${FAASM_VERSION}/faasm-runtime-root-${FAASM_VERSION}.tar.gz
 RUN tar --no-same-owner -xf faasm-runtime-root-${FAASM_VERSION}.tar.gz
 RUN rm faasm-runtime-root-${FAASM_VERSION}.tar.gz
 

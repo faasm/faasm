@@ -1,24 +1,43 @@
 # Local Development
 
-This guide is only relevant for those wanting to dig deeper or make changes to Faasm itself. 
-If you'd just like to write and run functions, you can refer to the [set-up](setup.md) instructions. 
+This guide is only relevant for those wanting to dig deeper or make changes to
+Faasm itself.  If you'd just like to write and run functions, you can refer to
+the [set-up](setup.md) instructions. 
 
-**NOTE - this dev set-up has only been used in anger on Ubuntu 18.04.** Other 
-distros and versions will work, but may require some tweaks to the installation 
-and set-up scripts. 
+## Recommended Set-up
+
+The Faasm codebase is all standard C/C++ and Python, so should work on a range 
+of set-ups, however, the only one that is recommended and well tested is:
+
+- Ubuntu 18.04
+- Python 3.7
+- Clang, not GCC
+
+All scripted CMake builds also use Ninja, so it's safest to use that too.
+
+This means your CMake commands will look something like:
+
+```
+cmake \
+    -GNinja \
+    -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+    -DCMAKE_C_COMPILER=/usr/bin/clang \
+    ...
+```
 
 ## Checking out the repo
 
-For now, many locations rely on the code being located at `/usr/local/code/faasm`, with the latter 
-two directories _owned_ by the current user. This is something that will be removed in future. 
+For now, many locations rely on the code being located at
+`/usr/local/code/faasm` (note the lowercase "f"), with the latter two 
+directories _owned_ by the current user. This is annoying and something we will 
+fix in future. 
 
 You can either set this directory up directly, or just symlink it.
 
 Assuming you've checked out this code somewhere, you'll need to make sure submodules are up to date:
 
 ```
-git submodule init
-git submodule update
+git submodule update --init --recursive
 ```
 
 ## Basic local machine set-up
@@ -29,8 +48,8 @@ Most of the local set-up is scripted with Ansible, but you need to have Python 3
 The easiest way to do this is as follows:
 
 ```bash
-# Python stuff
-sudo apt install python3-dev python3-pip
+# Python stuff and other dependencies
+sudo apt install python3-dev python3-pip python3-venv libcairo2-dev libtinfo5
 sudo pip3 install -U pip
 
 # Ansible
@@ -54,6 +73,8 @@ If you want to tweak things yourself, look inside the `local_dev.yml` playbook t
 
 Faasm depends on protobuf which should be installed with the playbook described above.
 
+You can probably get away with using whatever protobuf you already have installed too.
+
 If there are any issue you need to remove every trace of any existing protobuf installation on your system before 
 reinstalling.
 
@@ -64,6 +85,13 @@ You can look in the following folders and remove any reference to `libprotobuf` 
 - `/usr/include/google`
 
 Avoid trying to do this with `apt` as it can accidentally delete a whole load of other stuff.
+
+To rerun just the protobuf part of the install:
+
+```
+cd ansible
+ansible-playbook protobuf.yml --ask-become-pass
+```
 
 ## Toolchain and Runtime Root
 
@@ -82,7 +110,7 @@ If you want to build the toolchain from scratch, you'll need to look at the `too
 To run the next parts you'll need to build the following targets with CMake:
 
 - `codegen_func`
-- `codgen_shared_obj`
+- `codegen_shared_obj`
 
 Once finished, you need to add the resulting `bin` dir to your `$PATH`.
 
@@ -143,6 +171,34 @@ To use cgroup isolation, you'll need to run:
 sudo ./bin/cgroup.sh
 ```
 
+# Out-of-tree build example
+
+This is a simple example of running an out-of-tree build to execute a 
+function:
+
+```bash
+# Normal CMake set-up
+mkdir -p build 
+cd build
+cmake -GNinja \
+  -DCMAKE_C_COMPILER=/usr/bin/clang \ 
+  -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+  .. 
+
+# Build upload and simple_runner and codegen function
+cmake --build . --target simple_runner
+cmake --build . --target codegen_func
+
+# Set up the shell environment in the top-level directory
+cd ..
+source workon.sh
+
+# Compile, codegen and run the code
+inv compile demo hello
+inv codegen demo hello
+inv run demo hello
+```
+
 # CLion/ JetBrains
 
 ## Python
@@ -168,3 +224,20 @@ I do **not** recommend setting a WASM/FAASM CMake profile because it will confus
 
 Assuming you've gone through the steps outlined above _within the VM_, you should be able to call the 
 `inv` commands as normal (rather than needing to use the Faasm CLI container within the VM).
+
+# Troubleshooting the local dev set-up
+
+This section consists of issues that may occure during installation and possible solutions.
+
+## Error 'bdist_wheel' can't be found after invoking pip install -r faasmcli/requirements.txt
+
+```bash
+# Remove installed requirements
+pip uninstall -r faasmcli/requirements.txt
+
+# Install setuptools and wheel 
+pip install setuptools wheel
+
+#Install faasmcli requirements
+pip install -r faasmcli/requirements.txt
+```

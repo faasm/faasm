@@ -5,7 +5,7 @@
 Create a new branch for this release, but _not_ a PR.
 
 See what's going into the release in the [Compare
-view](https://github.com/lsds/Faasm/compare).
+view](https://github.com/lsds/faasm/compare).
 
 ## 1. Prepare release artifacts
 
