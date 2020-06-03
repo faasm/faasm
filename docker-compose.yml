@@ -22,7 +22,6 @@ services:
       - LOG_LEVEL=info
       - REDIS_STATE_HOST=redis-state
       - REDIS_QUEUE_HOST=redis-queue
-      - TF_CODEGEN=off
       - PYTHON_CODEGEN=off
 
   worker:

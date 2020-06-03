@@ -21,11 +21,9 @@ typescript
 venv
 machine-code
 
-# WebAssembly - benchmark functions have special status
+# Ignore all WebAssembly other than Python function, which has special status
 wasm
 !wasm/python/py_func/function.wasm
-!wasm/sgd/reuters_svm/function.wasm
-!wasm/tf/image/function.wasm
 
 # Benchmarking
 perf
