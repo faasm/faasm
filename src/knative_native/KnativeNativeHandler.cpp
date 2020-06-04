@@ -41,7 +41,7 @@ namespace knative_native {
     ) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // See of cold starts have been requested
+        // See if cold starts have been requested
         bool coldStartRequired = false;
         const std::string requestStr = request.body();
         std::string coldStartIntervalStr = util::getValueFromJsonString("cold_start_interval", requestStr);
@@ -85,7 +85,10 @@ namespace knative_native {
         logger->debug("Native request: {}", requestStr);
 
         std::string outputStr;
-        if (msg.isasync()) {
+        if (msg.isstatusrequest()) {
+            scheduler::GlobalMessageBus &msgBus = scheduler::getGlobalMessageBus();
+            outputStr = msgBus.getMessageStatus(msg.id());
+        } else if (msg.isasync()) {
             logger->debug("Executing function index {} async", msg.idx());
 
             // Execute async message in detached thread
