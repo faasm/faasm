@@ -82,7 +82,7 @@ namespace knative_native {
         // Make sure the message ID is set for potentially passing into a thread
         msg.set_id(messageId);
 
-        logger->debug("Knative native request: {}", requestStr);
+        logger->debug("Native request: {}", requestStr);
 
         std::string outputStr;
         if (msg.isasync()) {

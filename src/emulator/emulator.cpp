@@ -325,7 +325,7 @@ unsigned int _chain_local(int idx, const char *pyName, const unsigned char *buff
 unsigned int _chain_knative(const std::string &funcName, int idx, const char *pyName, const unsigned char *buffer,
                             long bufferLen) {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-    logger->debug("E - chain_this_knative idx {} input len {}", idx, bufferLen);
+    logger->debug("E - chain_this_knative idx {} input length {}", idx, bufferLen);
 
     const std::string host = util::getEnvVar("FAASM_INVOKE_HOST", "");
     const std::string port = util::getEnvVar("FAASM_INVOKE_PORT", "");
