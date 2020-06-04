@@ -16,6 +16,7 @@ RUN ./bin/build_tflite_native.sh
 # Build the function
 WORKDIR /faasm/build
 
+RUN cmake --build . --target emulator
 RUN cmake --build . --target ${FAASM_FUNC}-knative
 
 CMD /faasm/build/bin/${FAASM_FUNC}-knative

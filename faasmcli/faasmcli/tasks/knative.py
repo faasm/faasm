@@ -392,13 +392,17 @@ def _do_knative_native_local(img_name):
     faasm_ver = get_faasm_version()
     img_name = "{}:{}".format(img_name, faasm_ver)
 
+    # Run on host network for access to Redis
     cmd = [
         "docker", "run",
-        "-p 8080:8080",
+        "--network=host",
         "--env LOG_LEVEL=debug",
-        "--env FAASM_INVOKE_HOST=0.0.0.0",
+        "--env STATE_MODE=redis",
+        "--env FAASM_INVOKE_HOST=127.0.0.1",
         "--env FAASM_INVOKE_PORT=8080",
         "--env HOST_TYPE=knative",
+        "--env FUNCTION_STORAGE=fileserver",
+        "--env FILESERVER_URL=http://127.0.0.1:8002",
         img_name
     ]
 
