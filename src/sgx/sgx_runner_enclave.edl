@@ -1,3 +1,7 @@
+//
+// Created by Joshua Heinemann on 04.06.20.
+// TU-Braunschweig (heineman@ibr.cs.tu-bs.de)
+//
 enclave{
     trusted{
         public void enclave_main(void);

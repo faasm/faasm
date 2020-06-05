@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <sgx.h>
 #include <sgx_urts.h>
+
 extern "C"{
 void ocall_printf(char* message){
     printf("[Enclave] %s\n",message);
@@ -28,7 +29,7 @@ int main(int argc, char** argv){
         return 0;
     }
     if((enclave_ret_val = enclave_main(enclave_id)) != SGX_SUCCESS){
-        printf("[Error] Unable to enter enclave (%d).\n");
+        printf("[Error] Unable to enter enclave (%d).\n",enclave_ret_val);
     }
     return 0;
 }

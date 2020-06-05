@@ -33,6 +33,9 @@ if (FAASM_WAMR_SUPPORT)
     set(WAMR_BUILD_LIBC_BUILTIN 0)
 endif ()
 
+# SGX configuration
+option(FAASM_SGX_SUPPORT "Support for SGX" ON)
+
 # Library type (for shared libraries)
 if (FAASM_STATIC_LIBS)
     function(faasm_public_lib lib_name lib_deps)
@@ -155,6 +158,11 @@ else ()
         add_library(libwamr ${WAMR_RUNTIME_LIB_SOURCE})
     endif ()
 
+    # SGX
+    if(FAASM_SGX_SUPPORT)
+        add_subdirectory(src/sgx)
+    endif()
+
     # Faasm functions
     add_subdirectory(func)
 
@@ -180,7 +188,6 @@ else ()
     add_subdirectory(src/redis)
     add_subdirectory(src/runner)
     add_subdirectory(src/scheduler)
-    add_subdirectory(src/sgx)
     add_subdirectory(src/state)
     add_subdirectory(src/storage)
     add_subdirectory(src/system)

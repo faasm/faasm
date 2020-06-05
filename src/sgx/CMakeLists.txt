@@ -61,4 +61,3 @@ add_custom_command(TARGET sgx_runner PRE_BUILD COMMAND ${SGX_SDK_ENCLAVE_EDGER8R
 add_custom_command(TARGET sgx_runner_enclave PRE_BUILD COMMAND gcc ${SGX_RUNNER_ENCLAVE_C_FLAGS} -I${SGX_SDK_PATH}/include -I${SGX_SDK_PATH}/include/tlibc -c sgx_runner_enclave_t.c -o sgx_runner_enclave_t.o)
 add_custom_command(TARGET sgx_runner PRE_BUILD COMMAND gcc ${SGX_RUNNER_C_FLAGS} -I${SGX_SDK_PATH}/include -c sgx_runner_enclave_u.c -o sgx_runner_enclave_u.o)
 add_custom_command(TARGET sgx_runner_enclave POST_BUILD COMMAND ${SGX_SDK_ENCLAVE_SIGNER} sign -key ${CMAKE_CURRENT_SOURCE_DIR}/sgx_runner_enclave.pem -enclave ${CMAKE_BINARY_DIR}/lib/sgx_runner_enclave.so -out ${CMAKE_BINARY_DIR}/bin/sgx_runner_enclave.sign.so -config ${CMAKE_CURRENT_SOURCE_DIR}/sgx_runner_enclave.config)
-#target_link_libraries(simple_runner ${RUNNER_LIBS})
