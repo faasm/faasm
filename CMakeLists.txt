@@ -18,9 +18,23 @@ set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/WAVM/Lib)
 
 option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
 
+# SGX configuration
+option(FAASM_SGX_SUPPORT "Support for SGX" ON)
+
 # WAMR configuration
 option(FAASM_WAMR_SUPPORT "Support for WAMR" ON)
-if (FAASM_WAMR_SUPPORT)
+if (FAASM_WAMR_SUPPORT AND FAASM_SGX_SUPPORT)
+    set(WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
+    set(WAMR_INCLUDE_DIR ${WAMR_ROOT_DIR}/core/iwasm/include)
+    set(WAMR_BUILD_TARGET X86_64)
+    set(WAMR_BUILD_PLATFORM linux-sgx)
+    set(WAMR_BUILD_INTERP 1)
+    set(WAMR_BUILD_FAST_INTERP 0)
+    set(WAMR_BUILD_JIT 0)
+    set(WAMR_BUILD_AOT 0)
+    set(WAMR_BUILD_LIBC_WASI 0)
+    set(WAMR_BUILD_LIBC_BUILTIN 0)
+elseif(FAASM_WAMR_SUPPORT)
     set(WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
     set(WAMR_INCLUDE_DIR ${WAMR_ROOT_DIR}/core/iwasm/include)
     set(WAMR_BUILD_TARGET X86_64)
@@ -32,9 +46,6 @@ if (FAASM_WAMR_SUPPORT)
     set(WAMR_BUILD_LIBC_WASI 1)
     set(WAMR_BUILD_LIBC_BUILTIN 0)
 endif ()
-
-# SGX configuration
-option(FAASM_SGX_SUPPORT "Support for SGX" ON)
 
 # Library type (for shared libraries)
 if (FAASM_STATIC_LIBS)
@@ -153,6 +164,7 @@ else ()
     # WAVM
     add_subdirectory(third-party/WAVM)
 
+    # WAMR
     if (FAASM_WAMR_SUPPORT)
         include(${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
         add_library(libwamr ${WAMR_RUNTIME_LIB_SOURCE})
