@@ -3,6 +3,7 @@ from invoke import task
 from faasmcli.util.call import invoke_impl, status_call_impl, flush_call_impl
 from faasmcli.util.endpoints import get_invoke_host_port
 
+
 @task(default=True)
 def invoke(ctx, user, func,
            host=None,
@@ -32,7 +33,7 @@ def status(ctx, call_id, host=None, port=None):
     host = host if host else k8s_host
     port = port if port else k8s_port
 
-    status_call_impl(call_id, host, port)
+    status_call_impl(None, None, call_id, host, port, quiet=False, native=False)
 
 
 @task

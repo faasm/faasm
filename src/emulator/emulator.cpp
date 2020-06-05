@@ -325,7 +325,7 @@ unsigned int _chain_local(int idx, const char *pyName, const unsigned char *buff
 unsigned int _chain_knative(const std::string &funcName, int idx, const char *pyName, const unsigned char *buffer,
                             long bufferLen) {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-    logger->debug("E - chain_this_knative idx {} input len {}", idx, bufferLen);
+    logger->debug("E - chain_this_knative idx {} input length {}", idx, bufferLen);
 
     const std::string host = util::getEnvVar("FAASM_INVOKE_HOST", "");
     const std::string port = util::getEnvVar("FAASM_INVOKE_PORT", "");
@@ -339,19 +339,21 @@ unsigned int _chain_knative(const std::string &funcName, int idx, const char *py
 
     // Build the message to dispatch
     message::Message msg = util::messageFactory(_emulatedCall.user(), funcName);
-    util::setMessageId(msg);
-
     msg.set_idx(idx);
     msg.set_inputdata(buffer, bufferLen);
     msg.set_ispython(_emulatedCall.ispython());
     msg.set_pythonuser(_emulatedCall.pythonuser());
     msg.set_pythonfunction(_emulatedCall.pythonfunction());
-    msg.set_pythonentry(pyName);
+
+    if(pyName != nullptr) {
+        msg.set_pythonentry(pyName);
+    }
 
     // Chained calls are always async and can be awaited by the caller
     msg.set_isasync(true);
 
-    logger->debug("POST {}:{} ({})", host, portInt, util::messageToJson(msg));
+    std::string msgJson = util::messageToJson(msg);
+    logger->debug("POST {}:{} ({})", host, portInt, msgJson);
 
     // Flush stdout before chaining
     fflush(stdout);

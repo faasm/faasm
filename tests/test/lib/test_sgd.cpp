@@ -214,7 +214,7 @@ namespace tests {
 
         // Work out what the result should be
         double expectedRmse = sqrt((3 * expected) / p.nTrain);
-        double actual = faasm::readRootMeanSquaredError(p);
+        double actual = faasm::readRootMeanSquaredError(p.nBatches, p.nTrain);
         REQUIRE(abs(actual - expectedRmse) < 0.0000001);
     }
 
@@ -232,8 +232,8 @@ namespace tests {
         message::Message call = util::messageFactory(user, "reuters_svm");
         int syncInterval = 100;
 
-        // Deliberately try to cause contention with lots of worker
-        int nWorkers = 1;
+        // Deliberately try to cause contention with lots of workers
+        int nWorkers = 30;
         call.set_inputdata(std::to_string(nWorkers) + " " + std::to_string(syncInterval) + " 0");
 
         // Set up the params

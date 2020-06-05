@@ -141,7 +141,7 @@ def invoke_impl(user, func,
                 interval = float(poll_interval_ms) / 1000
                 sleep(interval)
 
-                result, output = status_call_impl(call_id, host, port, quiet=True)
+                result, output = status_call_impl(user, func, call_id, host, port, quiet=True, native=native)
                 print("\nPOLL {} - {}".format(count, result))
 
             print("\n---- Finished {} ----\n".format(call_id))
@@ -154,7 +154,7 @@ def invoke_impl(user, func,
                 prefix = "FAILED:"
                 success = False
 
-            output = result.replace(prefix, "")
+            output = output.replace(prefix, "")
             return success, output
     else:
         if ibm or knative:
@@ -167,15 +167,15 @@ def flush_call_impl(host, port):
     msg = {
         "flush": True,
     }
-    return _do_single_call(host, port, msg, False)
+    return _do_single_call(None, None, host, port, msg, False, native=False)
 
 
-def status_call_impl(call_id, host, port, quiet=False):
+def status_call_impl(user, func, call_id, host, port, quiet=False, native=False):
     msg = {
         "status": True,
         "id": call_id,
     }
-    call_result = _do_single_call(host, port, msg, quiet)
+    call_result = _do_single_call(user, func, host, port, msg, quiet, native=native)
 
     if call_result.startswith("SUCCESS"):
         return STATUS_SUCCESS, call_result
@@ -185,11 +185,15 @@ def status_call_impl(call_id, host, port, quiet=False):
         return STATUS_RUNNING, call_result
 
 
-def _do_single_call(host, port, msg, quiet):
+def _do_single_call(user, func, host, port, msg, quiet, native=False):
     url = "http://{}".format(host)
     if port != 80:
         url += ":{}/".format(port)
 
-    # Can always use the faasm worker for getting status
-    headers = _get_knative_headers("worker")
+    # If wasm, can always use the faasm worker for getting status
+    if native:
+        headers = _get_knative_headers(func)
+    else:
+        headers = _get_knative_headers("worker")
+
     return do_post(url, msg, headers=headers, quiet=quiet, json=True)
