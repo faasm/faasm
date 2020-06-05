@@ -1,0 +1,8 @@
+enclave{
+    trusted{
+        public void enclave_main(void);
+    };
+    untrusted{
+        void ocall_printf([user_check]char* message);
+    };
+};
