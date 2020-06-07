@@ -20,6 +20,9 @@ option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
 
 # SGX configuration
 option(FAASM_SGX_SUPPORT "Support for SGX" ON)
+if(FAASM_SGX_SUPPORT)
+    set(SGX_SIM_MODE 1)
+endif()
 
 # WAMR configuration
 option(FAASM_WAMR_SUPPORT "Support for WAMR" ON)
