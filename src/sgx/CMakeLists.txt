@@ -21,6 +21,15 @@ set(SGX_RUNNER_SOURCE_FILES sgx_runner.cpp)
 set(SGX_RUNNER_ENCLAVE_SOURCE_FILES sgx_runner_enclave.cpp)
 set(SGX_RUNNER_URTS_OBJECTS ${CMAKE_CURRENT_BINARY_DIR}/sgx_runner_enclave_u.o)
 set(SGX_RUNNER_ENCLAVE_TRTS_OBJECTS ${CMAKE_CURRENT_BINARY_DIR}/sgx_runner_enclave_t.o)
+if(FAASM_WAMR_SUPPORT)
+message ("-- SGX-WAMR Configuration:
+     FAASM_SGX_WAMR_HEAP_SIZE: ${FAASM_SGX_WAMR_HEAP_SIZE}KB
+     FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE: ${FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE}B
+     FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE: ${FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE}B
+     FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE: ${FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE}B")
+    add_definitions(-DFAASM_SGX_WAMR_HEAP_SIZE=${FAASM_SGX_WAMR_HEAP_SIZE} -DFAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE=${FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE}
+            -DFAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE=${FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE} -DFAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE=${FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE})
+endif()
 find_package(Threads REQUIRED)
 if(EXISTS ${SGX_SDK_PATH})
     message(STATUS "Found SGX-SDK: TRUE")
@@ -58,7 +67,7 @@ else(NOT SGX_SIM_MODE)
 endif()
 add_library(sgx_runner_enclave SHARED ${SGX_RUNNER_ENCLAVE_SOURCE_FILES})
 set_target_properties(sgx_runner_enclave PROPERTIES PREFIX "")
-target_include_directories(sgx_runner_enclave PRIVATE ${SGX_SDK_PATH}/include ${SGX_SDK_PATH}/include/tlibc ${SGX_SDK_PATH}/include/libcxx ${WAMR_ROOT_DIR}/core/iwasm/include)
+target_include_directories(sgx_runner_enclave PRIVATE ${SGX_SDK_PATH}/include ${SGX_SDK_PATH}/include/tlibc ${SGX_SDK_PATH}/include/libcxx ${WAMR_ROOT_DIR}/core/iwasm/include ${WAMR_ROOT_DIR}/core/iwasm/aot)
 target_compile_options(sgx_runner_enclave PRIVATE ${SGX_RUNNER_ENCLAVE_C_FLAGS} -std=c++11 -nostdinc++)
 target_link_options(sgx_runner_enclave PRIVATE ${SGX_RUNNER_ENCLAVE_TRTS_OBJECTS} ${SGX_C_GLOBAL_FLAGS} -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -Bstatic -Bsymbolic -Wl,-pie,-eenclave_entry -Wl,--export-dynamic -Wl,--defsym,__ImageBase=0 -Wl,--gc-sections -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/sgx_runner_enclave.lds)
 if(SGX_SIM_MODE)

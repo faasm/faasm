@@ -6,32 +6,25 @@
 #include <sgx.h>
 #include <sgx_defs.h>
 #include <sgx/faasm_sgx_error.h>
-#include <string.h>
 #include <wasm_export.h>
-
-#ifndef FAASM_SGX_WAMR_HEAP_SIZE
-#define FAASM_SGX_WAMR_HEAP_SIZE 256 //Default: 256KB
+#include <string.h>
+#if(WASM_ENABLE_INTERP != 0)
+#include <wasm_runtime.h>
 #endif
-
-#ifndef FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE
-#define FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE 128
-#endif
-
-#ifndef FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE
-#define FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE 8196
-#endif
-
-#ifndef FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE
-#define FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE 8196
+#if(WASM_ENABLE_AOT != 1)
+#include <aot_runtime.h>
 #endif
 
 extern "C"{
+    typedef void(*os_print_function_t)(const char* message);
+    extern void os_set_print_function(os_print_function_t pf);
+    extern int os_printf(const char* message, ...);
     extern sgx_status_t SGX_CDECL ocall_printf(const char* message);
     static char wamr_global_heap_buffer[FAASM_SGX_WAMR_HEAP_SIZE * 1024];
     static wasm_exec_env_t wamr_global_exec_env;
     static wasm_module_inst_t wamr_global_module_instance;
-    void ocall_printf_wrapper(wasm_exec_env_t exec_env, const char* msg){
-        ocall_printf(msg); //TODO: IMPROVE PRINTF
+    void printf_wrapper(wasm_exec_env_t exec_env, const char* msg){
+        os_printf(msg);
     }
     faasm_sgx_status_t enclave_call_function(const char* wasm_function_name, uint32_t wasm_function_argc, uint32_t* wasm_function_argv){
         wasm_function_inst_t wasm_function;
@@ -40,8 +33,13 @@ extern "C"{
         if(!(wasm_function = wasm_runtime_lookup_function(wamr_global_module_instance,wasm_function_name,NULL)))
             return FAASM_SGX_WAMR_FUNCTION_NOT_FOUND;
         if(!(wasm_runtime_call_wasm(wamr_global_exec_env,wasm_function,wasm_function_argc,wasm_function_argv))){
-            const char* error = wasm_runtime_get_exception(wamr_global_module_instance); //TODO: MAKE THIS MORE PRETTY
-            ocall_printf(error);
+#if(WASM_ENABLE_INTERP == 1 && WASM_ENABLE_AOT == 0)
+            ocall_printf(((WASMModuleInstance*) wamr_global_module_instance)->cur_exception);
+#elif(WASM_ENABLE_INTERP == 0 && WASM_ENABLE_AOT == 1)
+            ocall_printf(((AOTModuleInstance*) wamr_global_module_instance)->cur_exception);
+#else
+            ocall_printf(wamr_global_module_instance->module_type == Wasm_Module_Bytecode? ((WASMModuleInstance*)wamr_global_module_instance)->cur_exception : ((AOTModuleInstance*)wamr_global_module_instance)->cur_exception);
+#endif
             return FAASM_SGX_WAMR_FUNCTION_UNABLE_TO_CALL;
         }
         return FAASM_SGX_SUCCESS;
@@ -66,8 +64,9 @@ extern "C"{
         return FAASM_SGX_SUCCESS;
     }
     faasm_sgx_status_t enclave_init_wamr(void) {
+        os_set_print_function((os_print_function_t)ocall_printf);
         static NativeSymbol wamr_runtime_symbols[] = {
-                {"printf",(void*)ocall_printf_wrapper,"($)"}
+                {"printf",(void*)printf_wrapper,"($)"}
         };
         RuntimeInitArgs wamr_runtime_init_args;
         memset(&wamr_runtime_init_args, 0x0, sizeof(wamr_runtime_init_args));
