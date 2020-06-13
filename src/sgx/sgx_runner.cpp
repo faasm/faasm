@@ -11,10 +11,9 @@
 #include <sgx.h>
 #include <sgx_urts.h>
 #include <sgx/faasm_sgx_error.h>
-#include <fcntl.h>
-#include <string.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
+#include <storage/FileSystem.h>
+#include <storage/FileLoader.h>
+#include <util/func.h>
 
 extern "C"{
 void ocall_printf(const char* message){
@@ -30,51 +29,45 @@ int main(int argc, char** argv){
     int sgx_launch_token_updated = 0;
     sgx_status_t enclave_ret_val;
     //!!! TEST CODE !!!/////!!! TEST CODE !!!/////!!! TEST CODE !!!/////!!! TEST CODE !!!/////!!! TEST CODE !!!/////!!! TEST CODE !!!///
-    int fd;
-    struct stat hello_world_fstat;
     faasm_sgx_status_t ret_val;
-    memset(&hello_world_fstat,0x0,sizeof(struct stat));
-    if((fd = open("bin/hello_world.wasm",O_RDONLY)) == -1){
-        perror("open");
-        return -1;
-    }
-    fstat(fd,&hello_world_fstat);
-    void* hello_world_ptr = NULL;
-    if((hello_world_ptr = mmap(NULL,hello_world_fstat.st_size,PROT_READ|PROT_WRITE|PROT_EXEC,MAP_PRIVATE,fd,0x0)) == (void*)-1){
-        perror("mmap");
-        return -1;
-    }
-    printf("[Info] Hello World from sgx_runner\n");
+    std::string user = "wamr";
+    std::string function = "hello_world";
+    message::Message msg = util::messageFactory(user, function);
+    storage::FileSystem fs;
+    storage::FileLoader &fl = storage::getFileLoader();
+    std::vector<uint8_t> wasm_opcode;
+    uint32_t dummy_argv[] = {
+            0x0,
+            0x0
+    };
+    fs.prepareFilesystem();
+    wasm_opcode = fl.loadFunctionWasm(msg);
+    printf("Wasm Opcode Size: %d\n", wasm_opcode.size());
     if((enclave_ret_val = sgx_create_enclave(SGX_RUNNER_ENCLAVE_PATH,SGX_DEBUG_FLAG,&enclave_token,&sgx_launch_token_updated,&enclave_id,NULL)) != SGX_SUCCESS){
-        printf("[Error] Unable to create enclave (%d).\n",enclave_ret_val);
-        return 0;
+        printf("[Error] Unable to create enclave (%d)\n",enclave_ret_val);
+        return -1;
     }
     if((enclave_ret_val = enclave_init_wamr(enclave_id,&ret_val)) != SGX_SUCCESS){
-        printf("[Error] enclave_init_wamr (%d)\n",enclave_ret_val);
+        CANT_ENTER_ENCLAVE:
+        printf("[Error] Unable to enter enclave (%d)\n",enclave_ret_val);
         return -1;
     }
     if(ret_val != FAASM_SGX_SUCCESS){
-        printf("GRande error\n");
-    }
-    if((enclave_ret_val = enclave_load_module(enclave_id,&ret_val,hello_world_ptr,hello_world_fstat.st_size)) != SGX_SUCCESS){
-        printf("[Error] Unable to enter enclave (%d).\n",enclave_ret_val);
+        printf("[Error] Can't initialize WAMR RTE (%d)\n",ret_val);
         return -1;
+    }
+    if((enclave_ret_val = enclave_load_module(enclave_id,&ret_val,(void*)wasm_opcode.data(), wasm_opcode.size())) != SGX_SUCCESS)
+        goto CANT_ENTER_ENCLAVE;
+    if(ret_val != FAASM_SGX_SUCCESS){
+        printf("[Error] Can't load wasm module (%d)\n",ret_val);
+        return -1;
+    }
+    if((enclave_ret_val = enclave_call_function(enclave_id,&ret_val,"main",2,dummy_argv)) != SGX_SUCCESS){
+        goto CANT_ENTER_ENCLAVE;
     }
     if(ret_val != FAASM_SGX_SUCCESS){
-        printf("Error %d\n",ret_val);
+        printf("[Error] Unable to call desired function (%d)\n",ret_val);
         return -1;
     }
-    uint32_t func_parameter[] ={
-            {NULL},
-            {NULL}
-    };
-    if((enclave_ret_val = enclave_call_function(enclave_id,&ret_val,"main",2,func_parameter)) != SGX_SUCCESS){
-        printf("[Error] Unable to enter enclave (%d).\n",enclave_ret_val);
-    }
-    if(ret_val != FAASM_SGX_SUCCESS){
-        printf("Error %d\n",ret_val);
-        return -1;
-    }
-    return 0;
     //!!! TEST CODE !!!/////!!! TEST CODE !!!/////!!! TEST CODE !!!/////!!! TEST CODE !!!/////!!! TEST CODE !!!/////!!! TEST CODE !!!///
 }

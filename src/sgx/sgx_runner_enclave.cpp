@@ -23,8 +23,9 @@ extern "C"{
     static char wamr_global_heap_buffer[FAASM_SGX_WAMR_HEAP_SIZE * 1024];
     static wasm_exec_env_t wamr_global_exec_env;
     static wasm_module_inst_t wamr_global_module_instance;
-    void printf_wrapper(wasm_exec_env_t exec_env, const char* msg){
+    int printf_wrapper(wasm_exec_env_t exec_env, const char* msg){
         os_printf(msg);
+        return 0;
     }
     faasm_sgx_status_t enclave_call_function(const char* wasm_function_name, uint32_t wasm_function_argc, uint32_t* wasm_function_argv){
         wasm_function_inst_t wasm_function;
@@ -66,7 +67,7 @@ extern "C"{
     faasm_sgx_status_t enclave_init_wamr(void) {
         os_set_print_function((os_print_function_t)ocall_printf);
         static NativeSymbol wamr_runtime_symbols[] = {
-                {"printf",(void*)printf_wrapper,"($)"}
+                {"printf",(void*)printf_wrapper,"($)i"},
         };
         RuntimeInitArgs wamr_runtime_init_args;
         memset(&wamr_runtime_init_args, 0x0, sizeof(wamr_runtime_init_args));

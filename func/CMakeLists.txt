@@ -32,7 +32,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
         -Xlinker --export=__data_end \
         -Xlinker --export=__wasm_call_ctors \
         -Xlinker --max-memory=4294901760 \
-        -Wl,-z,stack-size=4194304 -Wl, \
+        -Wl,-z,stack-size=4194304 \
     ")
 
     SET(CMAKE_EXECUTABLE_SUFFIX ".wasm")
@@ -116,6 +116,7 @@ add_subdirectory(polybench)
 add_subdirectory(python)
 add_subdirectory(sgd)
 add_subdirectory(tf)
+add_subdirectory(wamr)
 
 # Skip some builds for Knative native
 if(FAASM_BUILD_TYPE STREQUAL "knative-native")
