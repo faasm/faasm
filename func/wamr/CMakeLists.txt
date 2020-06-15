@@ -1,3 +1,7 @@
+#
+# Created by Joshua Heinemann on 13.06.20.
+# TU-Braunschweig (heineman@ibr.cs.tu-bs.de)
+#
 set(FAASM_USER demo)
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--allow-undefined -Wl,--no-entry -Wl,--export=main -nostdlib")
