@@ -8,18 +8,20 @@
 
 #include <sgx.h>
 #include <sgx_urts.h>
-#include <wasm/WasmModule.h>
 #include <sgx/faasm_sgx_error.h>
+#include <storage/FileSystem.h>
+#include <storage/FileLoader.h>
+#include <wasm/WasmModule.h>
+
 
 namespace wasm{
     class SGXWAMRWasmModule final: public WasmModule{
     public:
+        SGXWAMRWasmModule(sgx_enclave_id_t* enclave_id);
         void bindToFunction(const message::Message& msg) override;
         void bindToFunctionNoZygote(const message::Message &msg) override;
         bool execute(message::Message &msg, bool force_noop = false) override;
         const bool isBound() override;
-        faasm_sgx_status_t destroy_runtime(void);
-        faasm_sgx_status_t destroy_enclave(void);
         void writeWasmEnvToMemory(uint32_t env_ptr, uint32_t env_buffer) override;
         void writeMemoryToFd(int fd) override;
         void mapMemoryFromFd() override;
@@ -30,7 +32,7 @@ namespace wasm{
     private:
         bool _is_bound = false;
         std::vector<uint8_t> wasm_opcode;
-        sgx_enclave_id_t enclave_id;
+        sgx_enclave_id_t* enclave_id_ptr;
     };
 }
 
