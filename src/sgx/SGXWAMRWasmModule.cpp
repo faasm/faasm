@@ -47,7 +47,7 @@ namespace wasm{
         faasm_sgx_status_t ret_val;
         uint32_t dummy_argv[] = {
                 0x0,0x0
-        };//TODO: Change main to _start if stdlib support is available
+        };
         if((sgx_ret_val = enclave_call_function(*enclave_id_ptr,&ret_val,"main",2,dummy_argv)) != SGX_SUCCESS){
             printf("[Error] Unable to enter enclave (%d)\n",sgx_ret_val);
             return false;
