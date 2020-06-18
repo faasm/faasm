@@ -14,5 +14,6 @@ enclave{
     };
     untrusted{
         void ocall_printf([in, string] const char* message);
+        int ocall_puts([in, string] const char* msg);
     };
 };

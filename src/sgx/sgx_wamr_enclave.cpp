@@ -5,6 +5,7 @@
 
 #include <sgx.h>
 #include <sgx_defs.h>
+#include <sgx_wamr_native_symbols_wrapper.h>
 #include <sgx/faasm_sgx_error.h>
 #include <wasm_export.h>
 #include <string.h>
@@ -68,6 +69,7 @@ extern "C"{
         os_set_print_function((os_print_function_t)ocall_printf);
         static NativeSymbol wamr_runtime_symbols[] = {
                 {"printf",(void*)printf_wrapper,"($)i"},
+                {"puts",(void*)puts_wrapper,"($)i"}
         };
         RuntimeInitArgs wamr_runtime_init_args;
         memset(&wamr_runtime_init_args, 0x0, sizeof(wamr_runtime_init_args));

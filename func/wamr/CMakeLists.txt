@@ -12,3 +12,4 @@ function(demo_wamr_func func_name source_file)
 endfunction(demo_wamr_func)
 
 demo_wamr_func(hello_world hello_world.cpp)
+demo_wamr_func(puts puts.cpp)
