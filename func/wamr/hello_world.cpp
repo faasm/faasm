@@ -3,9 +3,13 @@
 // TU-Braunschweig (heineman@ibr.cs.tu-bs.de)
 //
 
-extern "C"{
-       	int printf(const char* message);
+#include <stdio.h>
+static int __attribute__((optnone)) calc(const int a, const int b){
+    printf("[Info] Entering calc()\n");
+    return a+b;
 }
 int __attribute__((optnone)) main(int argc, char** argv){ //Disable O3 optimization specified in WasiToolchain.cmake
-	printf("Hello World.\n");
+    int a = 1, b = 2;
+	printf("[Info] Calculate %d + %d = %d\n",a,b,calc(a,b));
+	return 0;
 }

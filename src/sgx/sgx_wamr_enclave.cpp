@@ -68,8 +68,8 @@ extern "C"{
     faasm_sgx_status_t enclave_init_wamr(void) {
         os_set_print_function((os_print_function_t)ocall_printf);
         static NativeSymbol wamr_runtime_symbols[] = {
-                {"printf",(void*)printf_wrapper,"($)i"},
-                {"puts",(void*)puts_wrapper,"($)i"}
+                //{"printf",(void*)printf_wrapper,"($)i"},
+                {"my_puts",(void*)puts_wrapper,"($)i"}
         };
         RuntimeInitArgs wamr_runtime_init_args;
         memset(&wamr_runtime_init_args, 0x0, sizeof(wamr_runtime_init_args));

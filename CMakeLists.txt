@@ -36,7 +36,7 @@ if (FAASM_WAMR_SUPPORT AND FAASM_SGX_SUPPORT)
     set(WAMR_BUILD_JIT 0)
     set(WAMR_BUILD_AOT 0)
     set(WAMR_BUILD_LIBC_WASI 0)
-    set(WAMR_BUILD_LIBC_BUILTIN 0)
+    set(WAMR_BUILD_LIBC_BUILTIN 1)
     set(FAASM_SGX_WAMR_HEAP_SIZE 8192)
     set(FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE 128)
     set(FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE 8196)
@@ -172,10 +172,10 @@ else ()
     add_subdirectory(third-party/WAVM)
 
     # WAMR
-    if (FAASM_WAMR_SUPPORT)
-        include(${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
-        add_library(libwamr ${WAMR_RUNTIME_LIB_SOURCE})
-    endif ()
+    #if (FAASM_WAMR_SUPPORT)
+    #    include(${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
+    #    add_library(libwamr ${WAMR_RUNTIME_LIB_SOURCE})
+    #endif ()
 
     # SGX
     if(FAASM_SGX_SUPPORT)
