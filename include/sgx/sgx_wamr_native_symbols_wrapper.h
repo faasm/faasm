@@ -9,9 +9,4 @@
 #include <sgx_defs.h>
 #include <wasm_export.h>
 
-extern "C"{
-    sgx_status_t SGX_CDECL ocall_puts(int* ret_val, const char* msg);
-};
-int puts_wrapper(wasm_exec_env_t exec_env, const char* msg);
-
 #endif //FAASM_SGX_WAMR_NATIVE_SYMBOLS_WRAPPER_H

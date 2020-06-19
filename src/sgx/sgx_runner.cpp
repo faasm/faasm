@@ -13,10 +13,6 @@
 #include <sgx/SGXWAMRWasmModule.h>
 #include <util/func.h>
 
-extern "C"{
-void ocall_printf(const char* message){
-    printf("%s",message);
-}};
 int main(int argc, char** argv){
     sgx_enclave_id_t enclave_id;
     sgx_launch_token_t enclave_token = {0};

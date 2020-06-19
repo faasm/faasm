@@ -13,6 +13,9 @@
 #include <storage/FileLoader.h>
 #include <wasm/WasmModule.h>
 
+extern "C"{
+    void ocall_printf(const char* msg);
+};
 
 namespace wasm{
     class SGXWAMRWasmModule final: public WasmModule{

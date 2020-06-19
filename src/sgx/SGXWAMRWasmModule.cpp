@@ -7,8 +7,11 @@
 
 extern "C"{
 extern sgx_status_t enclave_call_function(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val, const char* wasm_function_name, uint32_t wasm_function_argc, uint32_t* wasm_function_argv);
-extern sgx_status_t enclave_load_module(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val, void* wasm_opcode_ptr, uint32_t wasm_opcode_size);
+extern sgx_status_t enclave_load_module(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val, const void* wasm_opcode_ptr, uint32_t wasm_opcode_size);
 extern sgx_status_t enclave_init_wamr(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val);
+void ocall_printf(const char* msg){
+    printf(msg);
+}
 }
 
 namespace wasm{
