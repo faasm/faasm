@@ -33,9 +33,9 @@ extern "C"{
             return FAASM_SGX_WAMR_FUNCTION_NOT_FOUND;
         if(!(wasm_runtime_call_wasm(wamr_global_exec_env,wasm_function,wasm_function_argc,wasm_function_argv))){
 #if(WASM_ENABLE_INTERP == 1 && WASM_ENABLE_AOT == 0)
-            ocall_puts(((WASMModuleInstance*) wamr_global_module_instance)->cur_exception);
+            ocall_printf(((WASMModuleInstance*) wamr_global_module_instance)->cur_exception);
 #elif(WASM_ENABLE_INTERP == 0 && WASM_ENABLE_AOT == 1)
-            ocall_puts(((AOTModuleInstance*) wamr_global_module_instance)->cur_exception);
+            ocall_printf(((AOTModuleInstance*) wamr_global_module_instance)->cur_exception);
 #else
             ocall_printf(wamr_global_module_instance->module_type == Wasm_Module_Bytecode? ((WASMModuleInstance*)wamr_global_module_instance)->cur_exception : ((AOTModuleInstance*)wamr_global_module_instance)->cur_exception);
 #endif
