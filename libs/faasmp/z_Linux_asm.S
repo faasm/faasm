@@ -9,6 +9,7 @@
 // We only include it too to satify the linker and avoid to modify the codegen in Clang
 // It is therefore only named and not used because we do not care about
 // compatibility with any runtime
+
 	.hidden	.gomp_critical_user_.reduction.var # @.gomp_critical_user_.reduction.var
 	.type	.gomp_critical_user_.reduction.var,@object
 	.section	.data..gomp_critical_user_.reduction.var,"",@
