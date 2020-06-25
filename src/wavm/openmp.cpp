@@ -251,7 +251,9 @@ namespace wasm {
         Runtime::Function *func = Runtime::asFunction(
                 Runtime::getTableElement(getExecutingModule()->defaultTable, microtaskPtr));
 
+#ifdef OPENMP_FORK_REDIS_TRACE
         const util::TimePoint iterationTp = util::startTimer();
+#endif
 
         // Set up number of threads for next level
         int nextNumThreads = thisLevel->get_next_level_num_threads();
