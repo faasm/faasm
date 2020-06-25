@@ -780,10 +780,7 @@ namespace wasm {
         int threadNum = msg.ompthreadnum();
         int argc = msg.ompfunctionargs_size();
 
-        auto logger = util::getLogger();
-        logger->info("GERE");
-        logger->warn("Running OMP thread #{} for function{} with argType argc = {})", threadNum, funcPtr, argc);
-        logger->info("GERE");
+        util::getLogger()->info("Running OMP thread #{} for function{} with argType argc = {})", threadNum, funcPtr, argc);
 
         invokeArgs.emplace_back(threadNum);
         invokeArgs.emplace_back(argc);

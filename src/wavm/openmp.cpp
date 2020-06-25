@@ -146,9 +146,6 @@ namespace wasm {
 
         // Full memory fence, a bit overkill maybe for Wasm
         __sync_synchronize();
-
-        // Prevent busy waiting like while(flag) #pragma omp flush(flag)
-        WAVM::Platform::yieldToAnotherThread();
     }
 
     /**
