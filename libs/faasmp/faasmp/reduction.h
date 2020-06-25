@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-#ifdef __wasm__
+//#ifdef __wasm__
 
 #include <omp.h>
 #include <cstdio>
@@ -74,7 +74,7 @@ private:
     explicit i64() = default;
 
     int64_t accumulate() const {
-        faasm::AsyncArray<std::int64_t> arr("MAYEUL", numThreads);
+        faasm::AsyncArray<std::int64_t> arr(reductionKey.c_str(), numThreads);
         arr.pull();
         int64_t acc = 0;
         for (int i = 0; i < numThreads; i++) {
@@ -96,14 +96,12 @@ public:
 
     // Used by user on initialisation
     explicit i64(int64_t x) : x(x), reductionKey(faasm::randomString(11)), numThreads(omp_get_max_threads())  {
-//        printf("MAYEUL TEST%s\n", reductionKey.c_str());
-        faasm::AsyncArray<std::int64_t> arr("MAYEUL", numThreads);
+        faasm::AsyncArray<std::int64_t> arr(reductionKey.c_str(), numThreads);
         arr.zero();
-//        printf("MAYEUL KEY %s\n", reductionKey.c_str());
     }
 
     void redisSum(i64 &threadResult) {
-        faasm::AsyncArray<std::int64_t> arr("MAYEUL", numThreads);
+        faasm::AsyncArray<std::int64_t> arr(reductionKey.c_str(), numThreads);
         arr.pullLazy();
         arr[omp_get_thread_num()] = threadResult;
         arr.push();

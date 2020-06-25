@@ -67,7 +67,6 @@ HISTORY: Written by Tim Mattson, April 1999.
 
 #include "./intel_includes/par-res-kern_general.h"
 #include "./intel_includes/par-res-kern_omp.h"
-//#include <faasm/faasm.h>
 
 #define A(i,j)    A[i+order*(j)]
 #define B(i,j)    B[i+order*(j)]

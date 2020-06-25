@@ -34,24 +34,20 @@ int main(int argc, char **argv) {
     std::vector<uint32_t> accs;
     accs.reserve(num_times);
     for (int i = 0; i < num_times; i++) {
-//#ifndef __wasm__
         TimePoint t1 = std::chrono::system_clock::now();
-//#endif
         int result(0);
         #pragma omp parallel default(none) reduction(+:result)
         {
             result += omp_get_thread_num();
         }
         accs.emplace_back((int64_t ) result);
-//#ifndef __wasm__
         TimePoint t2 = std::chrono::system_clock::now();
         long diff = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
 #ifdef __wasm__
-//        printf("%d,Wasm local,%ld\n",num_threads, diff);
+        printf("%d,Wasm local,%ld\n",num_threads, diff);
 #else
         printf("%d,Native,%ld\n",num_threads, diff);
 #endif
-//#endif
     }
 
     uint32_t expected = num_threads * (num_threads - 1) / 2;
