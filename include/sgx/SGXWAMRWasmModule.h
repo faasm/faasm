@@ -15,6 +15,7 @@
 
 extern "C"{
     void ocall_printf(const char* msg);
+    faasm_sgx_status_t faasm_sgx_get_sgx_support(void);
 };
 
 namespace wasm{
