@@ -198,7 +198,6 @@ namespace faaslet {
             // Do the actual execution
             errorMessage = this->executeCall(msg);
         }
-
         return errorMessage;
     }
 

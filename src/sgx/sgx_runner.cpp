@@ -17,9 +17,7 @@ int main(int argc, char** argv){
     sgx_enclave_id_t enclave_id;
     sgx_launch_token_t enclave_token = {0};
     sgx_status_t sgx_ret_val;
-#if(SGX_SIM_MODE == 0)
     faasm_sgx_status_t ret_val;
-#endif
     int enclave_token_updated = 0;
     message::Message msg;
     wasm::SGXWAMRWasmModule module(&enclave_id);
@@ -44,6 +42,14 @@ int main(int argc, char** argv){
             printf("[Error] Unable to create enclave (%#010x)\n", sgx_ret_val);
             return -1;
         }
+    }
+    if((sgx_ret_val = sgx_wamr_enclave_init_wamr(enclave_id,&ret_val)) != SGX_SUCCESS){
+        printf("[Error] Unable to enter enclave (%#010x)\n",sgx_ret_val);
+        return -1;
+    }
+    if(ret_val != FAASM_SGX_SUCCESS){
+        printf("[Error] Unable to initialize WAMR (%#010x)\n",ret_val);
+        return -1;
     }
     module.bindToFunction(msg);
     module.execute(msg);

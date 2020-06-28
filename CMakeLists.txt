@@ -19,13 +19,19 @@ set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/WAVM/Lib)
 option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
 
 # SGX configuration
-option(FAASM_SGX_SUPPORT "Support for SGX" ON)
+set(FAASM_SGX_SUPPORT ON)
 if(FAASM_SGX_SUPPORT)
+    add_definitions(-DFAASM_SGX=1)
     set(SGX_SIM_MODE 1)
+    if(SGX_SIM_MODE)
+        add_definitions(-DSGX_SIM_MODE=1)
+    elseif()
+        add_definitions(-DSGX_SIM_MODE=0)
+    endif()
 endif()
 
 # WAMR configuration
-option(FAASM_WAMR_SUPPORT "Support for WAMR" ON)
+set(FAASM_WAMR_SUPPORT ON)
 if (FAASM_WAMR_SUPPORT AND FAASM_SGX_SUPPORT)
     set(WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
     set(WAMR_INCLUDE_DIR ${WAMR_ROOT_DIR}/core/iwasm/include)

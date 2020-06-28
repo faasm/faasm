@@ -25,7 +25,7 @@ extern "C"{
     static char wamr_global_heap_buffer[FAASM_SGX_WAMR_HEAP_SIZE * 1024];
     static wasm_exec_env_t wamr_global_exec_env;
     static wasm_module_inst_t wamr_global_module_instance;
-    faasm_sgx_status_t enclave_call_function(const char* wasm_function_name, uint32_t wasm_function_argc, uint32_t* wasm_function_argv){
+    faasm_sgx_status_t sgx_wamr_enclave_call_function(const char* wasm_function_name, uint32_t wasm_function_argc, uint32_t* wasm_function_argv){
         wasm_function_inst_t wasm_function;
         if(!wasm_function_name)
             return FAASM_SGX_INVALID_PTR;
@@ -43,7 +43,7 @@ extern "C"{
         }
         return FAASM_SGX_SUCCESS;
     }
-    faasm_sgx_status_t enclave_load_module(const void* wasm_opcode_ptr, uint32_t wasm_opcode_size){
+    faasm_sgx_status_t sgx_wamr_enclave_load_module(const void* wasm_opcode_ptr, uint32_t wasm_opcode_size){
         wasm_module_t wasm_module;
         char module_error_buffer[FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE];
         memset(module_error_buffer, 0x0, sizeof(module_error_buffer));
@@ -62,7 +62,7 @@ extern "C"{
         }
         return FAASM_SGX_SUCCESS;
     }
-    faasm_sgx_status_t enclave_init_wamr(void) {
+    faasm_sgx_status_t sgx_wamr_enclave_init_wamr(void) {
         os_set_print_function((os_print_function_t)ocall_printf);
         NativeSymbol* native_symbol_ptr = NULL;
         RuntimeInitArgs wamr_runtime_init_args;
