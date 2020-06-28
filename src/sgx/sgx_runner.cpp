@@ -29,19 +29,19 @@ int main(int argc, char** argv){
     }
 #if(SGX_SIM_MODE == 0)
     if((ret_val = faasm_sgx_get_sgx_support()) != FAASM_SGX_SUCCESS){
-        printf("[Error] Missing sgx support (%d)\n",ret_val);
+        printf("[Error] Missing sgx support (%#010x)\n",ret_val);
         return -1;
     }
 #endif
     msg = util::messageFactory(argv[1],argv[2]);
     if(argc > 3){
         if((sgx_ret_val = sgx_create_enclave(argv[3],SGX_DEBUG_FLAG,&enclave_token,&enclave_token_updated,&enclave_id,NULL)) != SGX_SUCCESS){
-            printf("[Error] Unable to create enclave (%d)\n", sgx_ret_val);
+            printf("[Error] Unable to create enclave (%#010x)\n", sgx_ret_val);
             return -1;
         }
     }else{
         if((sgx_ret_val = sgx_create_enclave(SGX_RUNNER_ENCLAVE_PATH,SGX_DEBUG_FLAG,&enclave_token,&enclave_token_updated,&enclave_id,NULL)) != SGX_SUCCESS){
-            printf("[Error] Unable to create enclave (%d)\n", sgx_ret_val);
+            printf("[Error] Unable to create enclave (%#010x)\n", sgx_ret_val);
             return -1;
         }
     }

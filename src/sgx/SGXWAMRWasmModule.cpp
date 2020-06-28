@@ -10,7 +10,7 @@ extern sgx_status_t enclave_call_function(sgx_enclave_id_t enclave_id, faasm_sgx
 extern sgx_status_t enclave_load_module(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val, const void* wasm_opcode_ptr, uint32_t wasm_opcode_size);
 extern sgx_status_t enclave_init_wamr(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val);
 void ocall_printf(const char* msg){
-    printf(msg);
+    printf("%s",msg);
 }
 }
 
@@ -28,17 +28,17 @@ namespace wasm{
         wasm_opcode = fl.loadFunctionWasm(msg);
         if((sgx_ret_val = enclave_init_wamr(*enclave_id_ptr,&ret_val)) != SGX_SUCCESS){
             UNABLE_TO_ENTER_ENCLAVE:
-            printf("[Error] Unable to enter enclave (%d)\n",sgx_ret_val);
+            printf("[Error] Unable to enter enclave (%#010x)\n",sgx_ret_val);
             return;
         }
         if((ret_val != FAASM_SGX_SUCCESS)){
-            printf("[Error] Unable to initialize WAMR-RTE (%d)\n",ret_val);
+            printf("[Error] Unable to initialize WAMR-RTE (%#010x)\n",ret_val);
             return;
         }
         if((sgx_ret_val = enclave_load_module(*enclave_id_ptr,&ret_val,(void*)wasm_opcode.data(),(uint32_t)wasm_opcode.size())) != SGX_SUCCESS)
             goto UNABLE_TO_ENTER_ENCLAVE;
         if(ret_val != FAASM_SGX_SUCCESS){
-            printf("[Error] Unable to load WASM module (%d)\n",ret_val);
+            printf("[Error] Unable to load WASM module (%#010x)\n",ret_val);
         }
         _is_bound = true;
     }
@@ -52,11 +52,11 @@ namespace wasm{
                 0x0,0x0
         };//TODO: Change main to _start if stdlib support is available
         if((sgx_ret_val = enclave_call_function(*enclave_id_ptr,&ret_val,"main",2,dummy_argv)) != SGX_SUCCESS){
-            printf("[Error] Unable to enter enclave (%d)\n",sgx_ret_val);
+            printf("[Error] Unable to enter enclave (%#010x)\n",sgx_ret_val);
             return false;
         }
         if(ret_val != FAASM_SGX_SUCCESS){
-            printf("[Error] Unable to call desired function (%d)\n",ret_val);
+            printf("[Error] Unable to call desired function (%#010x)\n",ret_val);
             return false;
         }
         return true;
