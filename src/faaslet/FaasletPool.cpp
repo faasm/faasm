@@ -241,6 +241,11 @@ namespace faaslet {
             poolThread.join();
         }
 
+        if(mpiThread.joinable()){
+            logger->info("Waiting for mpi thread to finish");
+            mpiThread.join();
+        }
+
         logger->info("Worker pool successfully shut down");
     }
 }
