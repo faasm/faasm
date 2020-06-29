@@ -43,7 +43,7 @@ int main(int argc, char** argv){
             return -1;
         }
     }
-    if((sgx_ret_val = sgx_wamr_enclave_init_wamr(enclave_id,&ret_val)) != SGX_SUCCESS){
+    if((sgx_ret_val = sgx_wamr_enclave_init_wamr(enclave_id,&ret_val, 1)) != SGX_SUCCESS){
         printf("[Error] Unable to enter enclave (%#010x)\n",sgx_ret_val);
         return -1;
     }

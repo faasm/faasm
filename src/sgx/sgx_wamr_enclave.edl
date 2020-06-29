@@ -8,9 +8,9 @@ enclave{
     include "../../../third-party/wamr/core/iwasm/include/wasm_export.h"
     from "sgx_tstdc.edl" import *;
     trusted{
-        public faasm_sgx_status_t sgx_wamr_enclave_call_function([in, string] const char* wasm_function_name, uint32_t wasm_function_argc, [in, size=4, count=wasm_function_argc] uint32_t* wasm_function_argv);
-        public faasm_sgx_status_t sgx_wamr_enclave_load_module([user_check] const void* wasm_opcode_ptr, uint32_t wasm_opcode_size);
-        public faasm_sgx_status_t sgx_wamr_enclave_init_wamr();
+        public faasm_sgx_status_t sgx_wamr_enclave_call_function([in, string] const char* wasm_function_name, uint32_t wasm_function_argc, [in, size=4, count=wasm_function_argc] uint32_t* wasm_function_argv, unsigned int thread_id);
+        public faasm_sgx_status_t sgx_wamr_enclave_load_module([user_check] const void* wasm_opcode_ptr, uint32_t wasm_opcode_size, [out] unsigned int* thread_id);
+        public faasm_sgx_status_t sgx_wamr_enclave_init_wamr(unsigned int thread_number);
     };
     untrusted{
         void ocall_printf([in, string] const char* msg);

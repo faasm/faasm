@@ -39,7 +39,7 @@ namespace faaslet {
             printf("[Error] Unable to create enclave (%#010x)\n",sgx_ret_val);
             exit(0);
         }
-        if((sgx_ret_val = sgx_wamr_enclave_init_wamr(enclave_id,&ret_val)) != SGX_SUCCESS){
+        if((sgx_ret_val = sgx_wamr_enclave_init_wamr(enclave_id,&ret_val, nThreads)) != SGX_SUCCESS){
             printf("[Error] Unable to enter enclave (%#010x)\n",sgx_ret_val);
             exit(0);
         }
