@@ -14,11 +14,11 @@
 #include <wasm/WasmModule.h>
 
 extern "C"{
-    void ocall_printf(const char* msg);
-    faasm_sgx_status_t faasm_sgx_get_sgx_support(void);
-    sgx_status_t sgx_wamr_enclave_init_wamr(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val, const unsigned int thread_number);
-    sgx_status_t sgx_wamr_enclave_load_module(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val, const void* wasm_opcode_ptr, uint32_t wasm_opcode_size, unsigned int* thread_id);
-    sgx_status_t sgx_wamr_enclave_call_function(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val, const char* wasm_function_name, uint32_t wasm_function_argc, uint32_t* wasm_function_argv, unsigned int thread_id);
+    extern void ocall_printf(const char* msg);
+    extern faasm_sgx_status_t faasm_sgx_get_sgx_support(void);
+    extern sgx_status_t sgx_wamr_enclave_init_wamr(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val, const unsigned int thread_number);
+    extern sgx_status_t sgx_wamr_enclave_load_module(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val, const void* wasm_opcode_ptr, uint32_t wasm_opcode_size, unsigned int* thread_id);
+    extern sgx_status_t sgx_wamr_enclave_call_function(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val, const char* wasm_function_name, uint32_t wasm_function_argc, uint32_t* wasm_function_argv, unsigned int thread_id);
 };
 
 namespace wasm{
@@ -38,6 +38,7 @@ namespace wasm{
         void doRestore(std::istream &in_stream) override;
     private:
         bool _is_bound = false;
+        unsigned int thread_id;
         std::vector<uint8_t> wasm_opcode;
         sgx_enclave_id_t* enclave_id_ptr;
     };

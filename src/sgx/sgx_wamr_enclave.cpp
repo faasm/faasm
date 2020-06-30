@@ -11,10 +11,10 @@
 #include <wasm_export.h>
 #include <string.h>
 #include <sgx_thread.h>
-#if(WASM_ENABLE_INTERP != 0)//TODO: Inspect this
+#if(WASM_ENABLE_INTERP == 1)
 #include <wasm_runtime.h>
 #endif
-#if(WASM_ENABLE_AOT != 1)
+#if(WASM_ENABLE_AOT == 1)
 #include <aot_runtime.h>
 #endif
 _sgx_wamr_tcs_t* sgx_wamr_tcs = NULL;
@@ -27,8 +27,6 @@ extern "C"{
     extern sgx_status_t SGX_CDECL ocall_printf(const char* msg);
     static unsigned int sgx_wamr_tcs_len;
     static char wamr_global_heap_buffer[FAASM_SGX_WAMR_HEAP_SIZE * 1024];
-    //static wasm_exec_env_t wamr_global_exec_env;
-    //static wasm_module_inst_t wamr_global_module_instance;
     static inline faasm_sgx_status_t _get_tcs_slot(unsigned int* thread_id){
         for(int i = 0; i < sgx_wamr_tcs_len; i++){
             if(sgx_wamr_tcs[i].module == NULL){
@@ -58,8 +56,7 @@ extern "C"{
         }
         return FAASM_SGX_SUCCESS;
     }
-    faasm_sgx_status_t sgx_wamr_enclave_load_module(const void* wasm_opcode_ptr, uint32_t wasm_opcode_size, unsigned int* thread_id){
-        //wasm_module_t wasm_module;
+    faasm_sgx_status_t sgx_wamr_enclave_load_module(const void* wasm_opcode_ptr, uint32_t wasm_opcode_size, unsigned int* thread_id){//TODO: CODE SIZE
         char module_error_buffer[FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE];
         faasm_sgx_status_t ret_val;
         memset(module_error_buffer, 0x0, sizeof(module_error_buffer));
@@ -67,7 +64,7 @@ extern "C"{
             return FAASM_SGX_INVALID_PTR;
         sgx_thread_mutex_lock(&mutex_sgx_wamr_tcs);
         if((ret_val = _get_tcs_slot(thread_id)) != FAASM_SGX_SUCCESS)
-            return ret_val;
+            return ret_val;//TODO: REALLOC
         sgx_wamr_tcs[*thread_id].module = (WASMModuleCommon*) 0x1;
         sgx_thread_mutex_unlock(&mutex_sgx_wamr_tcs);
         if(!(sgx_wamr_tcs[*thread_id].module = wasm_runtime_load((uint8_t*)wasm_opcode_ptr,wasm_opcode_size,module_error_buffer,sizeof(module_error_buffer)))){
@@ -101,5 +98,8 @@ extern "C"{
         if(!wasm_runtime_full_init(&wamr_runtime_init_args))
             return FAASM_SGX_WAMR_RTE_INIT_FAILED;
         return FAASM_SGX_SUCCESS;
+#if(WASM_ENABLE_INTERP != 0)
+        __asm("ud2");
+#endif
     }
 };

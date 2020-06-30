@@ -21,7 +21,7 @@ option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
 # SGX configuration
 set(FAASM_SGX_SUPPORT ON)
 if(FAASM_SGX_SUPPORT)
-    add_definitions(-DFAASM_SGX=1)
+    add_definitions(-DFAASM_SGX=1 -DFAASM_SGX_FUNC_SUFFIX="_sgx_wamr")
     set(SGX_SIM_MODE 1)
     if(SGX_SIM_MODE)
         add_definitions(-DSGX_SIM_MODE=1)
