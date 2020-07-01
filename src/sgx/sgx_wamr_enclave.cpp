@@ -98,8 +98,5 @@ extern "C"{
         if(!wasm_runtime_full_init(&wamr_runtime_init_args))
             return FAASM_SGX_WAMR_RTE_INIT_FAILED;
         return FAASM_SGX_SUCCESS;
-#if(WASM_ENABLE_INTERP != 0)
-        __asm("ud2");
-#endif
     }
 };
