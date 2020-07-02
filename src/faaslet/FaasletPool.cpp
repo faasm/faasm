@@ -252,6 +252,9 @@ namespace faaslet {
 
     void FaasletPool::shutdown() {
         _shutdown = true;
+#if(FAASM_SGX == 1)
+        sgx_status_t sgx_ret_val;
+#endif
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -281,5 +284,12 @@ namespace faaslet {
         }
 
         logger->info("Worker pool successfully shut down");
+
+#if(FAASM_SGX == 1)
+        printf("[Info] Destroying enclave\n");
+        if((sgx_ret_val = sgx_destroy_enclave(enclave_id)) != SGX_SUCCESS){
+            printf("[Info] Unable to destroy enclave (%#010x)\n",sgx_ret_val);
+        }
+#endif
     }
 }

@@ -16,6 +16,10 @@ namespace faaslet {
     public:
         explicit Faaslet(int threadIdx);
 
+#if(FAASM_SGX == 1)
+        ~Faaslet(void);
+#endif
+
         void bindToFunction(const message::Message &msg, bool force = false);
 
         void run();

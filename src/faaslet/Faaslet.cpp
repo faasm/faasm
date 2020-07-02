@@ -41,7 +41,13 @@ namespace faaslet {
         CGroup cgroup(BASE_CGROUP_NAME);
         cgroup.addCurrentThread();
     }
-
+#if(FAASM_SGX == 1)
+    Faaslet::~Faaslet(void){
+        if(module_sgx_wamr && !module_sgx_wamr->unbindFunction()){
+            printf("[Error] Faaslet destruction failed\n");
+        }
+    }
+#endif
     const bool Faaslet::isBound() {
         return _isBound;
     }
