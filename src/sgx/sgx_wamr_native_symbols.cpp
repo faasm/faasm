@@ -6,7 +6,5 @@
 #include <stdio.h>
 
 extern "C"{
-int ocall_puts(const char* msg){
-    return puts(msg);
-}
+
 };
