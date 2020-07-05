@@ -6,5 +6,7 @@
 #include <stdio.h>
 
 extern "C"{
-
+    void ocall_sgx_wamr_example_native_symbol(const char* message){
+        printf("sgx_wamr_example_native_symbol: %s \n", message);
+    }
 };

@@ -15,5 +15,6 @@ enclave{
     };
     untrusted{
         void ocall_printf([in, string] const char* msg);
+        void ocall_sgx_wamr_example_native_symbol([in, string] const char* msg);
     };
 };

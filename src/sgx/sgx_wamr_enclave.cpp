@@ -8,14 +8,14 @@
 #include <sgx/sgx_wamr_enclave_types.h>
 #include <sgx_wamr_native_symbols_wrapper.h>
 #include <sgx/faasm_sgx_error.h>
-#include <wasm_export.h>
+#include <iwasm/include/wasm_export.h>
 #include <string.h>
 #include <sgx_thread.h>
 #if(WASM_ENABLE_INTERP == 1)
-#include <wasm_runtime.h>
+#include <iwasm/interpreter/wasm_runtime.h>
 #endif
 #if(WASM_ENABLE_AOT == 1)
-#include <aot_runtime.h>
+#include <iwasm/aot/aot_runtime.h>
 #endif
 _sgx_wamr_tcs_t* sgx_wamr_tcs = NULL;
 static unsigned int sgx_wamr_tcs_len;
@@ -27,7 +27,7 @@ extern "C"{
     extern uint32_t get_libc_builtin_export_apis(NativeSymbol** native_symbol_ptr);
     extern sgx_status_t SGX_CDECL ocall_printf(const char* msg);
     static char wamr_global_heap_buffer[FAASM_SGX_WAMR_HEAP_SIZE * 1024];
-    static faasm_sgx_status_t _get_native_symbols(NativeSymbol** native_symbol_ptr, uint32_t* native_symbol_num){
+    static faasm_sgx_status_t _get_native_symbols(NativeSymbol** native_symbol_ptr, uint32_t* native_symbol_num){//TODO: Performance Improvement e.g. extern
         NativeSymbol* libc_buildin_ptr, *sgx_wamr_ptr;
         uint32_t libc_buildin_num = get_libc_builtin_export_apis(&libc_buildin_ptr), sgx_wamr_num = get_sgx_wamr_native_symbols(&sgx_wamr_ptr);
         *native_symbol_num = libc_buildin_num + sgx_wamr_num;
@@ -128,7 +128,6 @@ extern "C"{
     faasm_sgx_status_t sgx_wamr_enclave_init_wamr(const unsigned int thread_number){
         faasm_sgx_status_t ret_val;
         os_set_print_function((os_print_function_t)ocall_printf);
-        NativeSymbol* native_symbol_ptr = NULL;
         RuntimeInitArgs wamr_runtime_init_args;
         if((sgx_wamr_tcs = (_sgx_wamr_tcs_t*) calloc(thread_number, sizeof(_sgx_wamr_tcs_t))) == NULL){
             return FAASM_SGX_OUT_OF_MEMORY;
@@ -139,8 +138,6 @@ extern "C"{
         wamr_runtime_init_args.mem_alloc_option.pool.heap_buf = wamr_global_heap_buffer;
         wamr_runtime_init_args.mem_alloc_option.pool.heap_size = sizeof(wamr_global_heap_buffer);
         wamr_runtime_init_args.native_module_name = "env";
-        /*wamr_runtime_init_args.n_native_symbols = get_libc_builtin_export_apis(&native_symbol_ptr);
-        wamr_runtime_init_args.native_symbols = native_symbol_ptr;*/
         if((ret_val = _get_native_symbols(&wamr_runtime_init_args.native_symbols, &wamr_runtime_init_args.n_native_symbols)) != FAASM_SGX_SUCCESS){
             return ret_val;
         }
