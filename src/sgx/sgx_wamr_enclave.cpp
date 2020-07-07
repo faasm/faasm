@@ -8,6 +8,7 @@
 #include <sgx/sgx_wamr_enclave_types.h>
 #include <sgx_wamr_native_symbols_wrapper.h>
 #include <sgx/faasm_sgx_error.h>
+#include <tlibc/mbusafecrt.h>
 #include <iwasm/include/wasm_export.h>
 #include <string.h>
 #include <sgx_thread.h>
@@ -60,15 +61,16 @@ extern "C"{
         sgx_thread_mutex_unlock(&mutex_sgx_wamr_tcs_realloc);
         return FAASM_SGX_OUT_OF_MEMORY;
     }
-    faasm_sgx_status_t sgx_wamr_enclave_call_function(const char* wasm_function_name, uint32_t wasm_function_argc, uint32_t* wasm_function_argv, const unsigned int thread_id){
+    faasm_sgx_status_t sgx_wamr_enclave_call_function(const unsigned int thread_id, const uint32_t func_id){
         wasm_function_inst_t wasm_function;
-        if(!wasm_function_name)
-            return FAASM_SGX_INVALID_PTR;
+        char func_id_str[33];
+        if(_itoa_s(func_id,func_id_str,sizeof(func_id_str),10))
+            return FAASM_SGX_INVALID_FUNC_ID;
         if(thread_id >= sgx_wamr_tcs_len)
             return FAASM_SGX_INVALID_THREAD_ID;
-        if(!(wasm_function = wasm_runtime_lookup_function(sgx_wamr_tcs[thread_id].module_inst,wasm_function_name,NULL)))
+        if(!(wasm_function = wasm_runtime_lookup_function(sgx_wamr_tcs[thread_id].module_inst,func_id_str,NULL)))
             return FAASM_SGX_WAMR_FUNCTION_NOT_FOUND;
-        if(!(wasm_runtime_call_wasm(sgx_wamr_tcs[thread_id].exev_env,wasm_function,wasm_function_argc,wasm_function_argv))){
+        if(!(wasm_runtime_call_wasm(sgx_wamr_tcs[thread_id].exev_env,wasm_function,0,0x0))){
 #if(WASM_ENABLE_INTERP == 1 && WASM_ENABLE_AOT == 0)
             ocall_printf(((WASMModuleInstance*) sgx_wamr_tcs[thread_id].module_inst)->cur_exception);
 #elif(WASM_ENABLE_INTERP == 0 && WASM_ENABLE_AOT == 1)

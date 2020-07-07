@@ -32,6 +32,7 @@ namespace wasm{
             return;
         }
         _is_bound = true;
+        wasm::setExecutingCall(const_cast<message::Message*>(&msg));
     }
     void SGXWAMRWasmModule::bindToFunctionNoZygote(const message::Message &msg) {
         bindToFunction(msg); //See src/wamr/WAMRWasmModule.cpp:48
@@ -59,8 +60,8 @@ namespace wasm{
         faasm_sgx_status_t ret_val;
         uint32_t dummy_argv[] = {
                 0x0,0x0
-        };//TODO: Change main to _start if stdlib support is available
-        if((sgx_ret_val = sgx_wamr_enclave_call_function(*enclave_id_ptr,&ret_val,"main",2,dummy_argv,thread_id)) != SGX_SUCCESS){
+        };
+        if((sgx_ret_val = sgx_wamr_enclave_call_function(*enclave_id_ptr,&ret_val,thread_id, msg.idx())) != SGX_SUCCESS){
             printf("[Error] Unable to enter enclave (%#010x)\n",sgx_ret_val);
             msg.set_returnvalue(FAASM_SGX_UNABLE_TO_ENTER_ENCLAVE);
             return false;

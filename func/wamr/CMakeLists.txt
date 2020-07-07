@@ -4,7 +4,7 @@
 #
 set(FAASM_USER wamr)
 
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--allow-undefined -Wl,--no-entry -Wl,--export=main -nostdlib")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--allow-undefined -Wl,--no-entry -nostdlib")
 
 function(demo_wamr_func func_name source_file)
     add_executable(${func_name} ${source_file})

@@ -4,12 +4,14 @@
 //
 
 #include <stdio.h>
+#include <sgx/faasm_sgx_wamr.h>
+
 static int __attribute__((optnone)) calc(const int a, const int b){
     printf("[Info] Entering calc()\n");
     return a+b;
 }
-int __attribute__((optnone)) main(int argc, char** argv){ //Disable O3 optimization specified in WasiToolchain.cmake
+void FAASM_MAIN(main_){ //Disable O3 optimization specified in WasiToolchain.cmake
     int a = 1, b = 2;
 	printf("[Info] Calculate %d + %d = %d\n",a,b,calc(a,b));
-	return 0;
+	return;
 }
