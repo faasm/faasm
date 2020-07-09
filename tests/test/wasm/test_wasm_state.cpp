@@ -8,6 +8,8 @@
 #include <util/memory.h>
 #include <util/state.h>
 
+using namespace WAVM;
+
 namespace tests {
     void _checkMapping(
             wasm::WAVMWasmModule &module,

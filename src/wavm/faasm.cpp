@@ -8,6 +8,7 @@
 #include <util/files.h>
 #include <util/state.h>
 
+using namespace WAVM;
 
 namespace wasm {
     void faasmLink() {

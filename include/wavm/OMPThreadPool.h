@@ -15,9 +15,6 @@
 #include <wavm/OMPThreadPool.h>
 
 namespace wasm {
-
-    using namespace WAVM;
-
     class WAVMWasmModule;
 
     namespace openmp {
@@ -27,14 +24,14 @@ namespace wasm {
         public:
             PlatformThreadPool(size_t numThreads, WAVMWasmModule *module);
 
-            friend I64 workerEntryFunc(void *_args);
+            friend WAVM::I64 workerEntryFunc(void *_args);
 
-            std::future<I64> runThread(openmp::LocalThreadArgs &&threadArgs);
+            std::future<WAVM::I64> runThread(openmp::LocalThreadArgs &&threadArgs);
 
             ~PlatformThreadPool();
 
         private:
-            std::queue<std::pair<std::promise<I64>, openmp::LocalThreadArgs>> tasks;
+            std::queue<std::pair<std::promise<WAVM::I64>, openmp::LocalThreadArgs>> tasks;
             std::vector<WAVM::Platform::Thread *> workers;
 
             std::mutex mutexQueue;
@@ -46,8 +43,5 @@ namespace wasm {
             U32 stackTop;
             PlatformThreadPool *pool;
         };
-
     }
-
 }
-

@@ -56,4 +56,6 @@ message Message {
     optional int32 ompNumThreads = 35;
 
     optional string cmdline = 36;
+
+    optional bool isSgx = 37;
 }

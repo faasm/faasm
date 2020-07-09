@@ -11,31 +11,31 @@ namespace wasm {
     class WAMRWasmModule final : public WasmModule {
     public:
         // ----- Module lifecycle -----
-        void bindToFunction(const message::Message &msg) override;
+        void bindToFunction(const message::Message &msg);
 
-        void bindToFunctionNoZygote(const message::Message &msg) override;
+        void bindToFunctionNoZygote(const message::Message &msg);
 
-        bool execute(message::Message &msg, bool forceNoop = false) override;
+        bool execute(message::Message &msg, bool forceNoop = false);
 
-        const bool isBound() override;
+        const bool isBound();
 
         void tearDown();
 
         // ----- Environment variables
-        void writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer) override;
+        void writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer);
 
         // ----- CoW memory -----
-        void writeMemoryToFd(int fd) override;
+        void writeMemoryToFd(int fd);
 
-        void mapMemoryFromFd() override;
+        void mapMemoryFromFd();
 
         // ----- Argc/argv -----
-        void writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer) override;
+        void writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer);
 
     protected:
-        void doSnapshot(std::ostream &outStream) override;
+        void doSnapshot(std::ostream &outStream);
 
-        void doRestore(std::istream &inStream) override;
+        void doRestore(std::istream &inStream);
 
     private:
         bool _isBound;

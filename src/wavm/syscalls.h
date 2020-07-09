@@ -17,15 +17,15 @@
 
 
 namespace wasm {
-    void getBytesFromWasm(I32 dataPtr, I32 dataLen, uint8_t *buffer);
+    void getBytesFromWasm(int32_t dataPtr, int32_t dataLen, uint8_t *buffer);
 
-    std::vector<uint8_t> getBytesFromWasm(I32 dataPtr, I32 dataLen);
+    std::vector<uint8_t> getBytesFromWasm(int32_t dataPtr, int32_t dataLen);
 
-    std::string getStringFromWasm(I32 strPtr);
+    std::string getStringFromWasm(int32_t strPtr);
 
-    std::pair<std::string, std::string> getUserKeyPairFromWasm(I32 keyPtr);
+    std::pair<std::string, std::string> getUserKeyPairFromWasm(int32_t keyPtr);
 
-    std::string getMaskedPathFromWasm(I32 strPtr);
+    std::string getMaskedPathFromWasm(int32_t strPtr);
 
     int awaitChainedCall(unsigned int messageId);
 
@@ -44,78 +44,78 @@ namespace wasm {
      * Any structs passed as arguments must be re-implemented here with the following mappings
      * (respecting signed/ unsigned):
      *
-     * int64_t = I64/U64
-     * short = I16/U16
-     * long = I32/U32
-     * int = I32/U32
-     * char = U8
+     * int64_t = int64_t/uint64_t
+     * short = int16_t/uint16_t
+     * long = int32_t/uint32_t
+     * int = int32_t/uint32_t
+     * char = uint8_t
      * pointers = Uptr
-     * size_t = I32
-     * time_t = I64
+     * size_t = int32_t
+     * time_t = int64_t
      *
      * You need to look at include/bits/alltypes.h in the relevant sysroot to get a lot of the types
     */
 
     // Timing
     struct wasm_timespec {
-        I64 tv_sec;
-        I32 tv_nsec;
+        int64_t tv_sec;
+        int32_t tv_nsec;
     };
 
     // Timing
     struct wasm_timeval {
-        I64 tv_sec;
-        I32 tv_usec;
+        int64_t tv_sec;
+        int32_t tv_usec;
     };
 
     // I/O
     struct wasm_iovec {
-        U32 iov_base;
-        U32 iov_len;
+        uint32_t iov_base;
+        uint32_t iov_len;
     };
 
     /** Socket-related struct (see https://beej.us/guide/bgnet/html/multi/sockaddr_inman.html) */
     struct wasm_sockaddr {
-        U16 sa_family;
-        U8 sa_data[14];
+        uint16_t sa_family;
+        uint8_t sa_data[14];
     };
 
     // Taken from arch/wasm32/bits/stat.h
     struct wasm_stat {
-        U64 st_dev;
-        U64 st_ino;
-        U64 st_nlink;
+        uint64_t st_dev;
+        uint64_t st_ino;
+        uint64_t st_nlink;
 
-        U32 st_mode;
-        U32 st_uid;
-        U32 st_gid;
-        U32 __pad0;
-        U64 st_rdev;
-        I64 st_size;
+        uint32_t st_mode;
+        uint32_t st_uid;
+        uint32_t st_gid;
+        uint32_t __pad0;
+        uint64_t st_rdev;
+        int64_t st_size;
 
-        I32 st_blksize;
-        I64 st_blocks;
+        int32_t st_blksize;
+        int64_t st_blocks;
 
         struct wasm_timespec st_atim;
         struct wasm_timespec st_mtim;
         struct wasm_timespec st_ctim;
 
-        I64 __unused[3];
+        int64_t __unused[3];
     };
 
     /**
      * Found in pwd.h.
      *
-     * Note that char pointers are U32
+     * Note that char pointers are uint32_t
      */
     struct wasm_passwd {
-        U32 pw_name; // char*
-        U32 pw_passwd; // char*
-        U32 pw_uid;
-        U32 pw_gid;
-        U32 pw_gecos; // char*
-        U32 pw_dir; // char*
-        U32 pw_shell; // char*
+        uint32_t pw_name; // char*
+        uint32_t pw_passwd; // char*
+        uint32_t pw_uid;
+        uint32_t pw_gid;
+        uint32_t pw_gecos; // char*
+        uint32_t pw_dir; // char*
+        uint32_t pw_shell; // char*
     };
 
     /**
@@ -131,9 +131,9 @@ namespace wasm {
      * };
      */
     struct wasm_dirent64 {
-        U64 d_ino;
-        U8 d_type;
-        U8 d_name[];
+        uint64_t d_ino;
+        uint8_t d_type;
+        uint8_t d_name[];
     };
 
     /**
@@ -142,9 +142,9 @@ namespace wasm {
      * or to get details about the existing
      */
     struct wasm_stack_t {
-        U32 ss_sp;  // void*
-        I32 ss_flags;
-        I32 ss_size;  // size_t
+        uint32_t ss_sp;  // void*
+        int32_t ss_flags;
+        int32_t ss_size;  // size_t
     };
 
     /**
@@ -165,10 +165,10 @@ namespace wasm {
      * Used to communicate size of the window we're operating in
      */
     struct wasm_winsize {
-        U16 ws_row;
-        U16 ws_col;
-        U16 ws_xpixel;
-        U16 ws_ypixel;
+        uint16_t ws_row;
+        uint16_t ws_col;
+        uint16_t ws_xpixel;
+        uint16_t ws_ypixel;
     };
 
     /**
@@ -179,11 +179,11 @@ namespace wasm {
      * be treated like pointers.
      */
     struct wasm_pthread {
-        I32 selfPtr;
+        int32_t selfPtr;
     };
 
     // Sockets/ network
-    enum SocketCalls : U32 {
+    enum SocketCalls : uint32_t {
         sc_socket = 1,
         sc_bind,
         sc_connect,
@@ -208,107 +208,107 @@ namespace wasm {
 
     // Struct conversion
 
-    sockaddr getSockAddr(I32 addrPtr);
+    sockaddr getSockAddr(int32_t addrPtr);
 
-    void writeNativeStatToWasmStat(struct stat64 *nativeStatPtr, I32 wasmStatPtr);
+    void writeNativeStatToWasmStat(struct stat64 *nativeStatPtr, int32_t wasmStatPtr);
 
-    iovec *wasmIovecsToNativeIovecs(I32 wasmIovecPtr, I32 wasmIovecCount);
+    iovec *wasmIovecsToNativeIovecs(int32_t wasmIovecPtr, int32_t wasmIovecCount);
 
-    iovec *wasiIovecsToNativeIovecs(I32 wasiIovecPtr, I32 wasiIovecCount);
+    iovec *wasiIovecsToNativeIovecs(int32_t wasiIovecPtr, int32_t wasiIovecCount);
 
     // Faasm
 
-    std::shared_ptr<state::StateKeyValue> getStateKV(I32 keyPtr, size_t size);
+    std::shared_ptr<state::StateKeyValue> getStateKV(int32_t keyPtr, size_t size);
 
-    std::shared_ptr<state::StateKeyValue> getStateKV(I32 keyPtr);
+    std::shared_ptr<state::StateKeyValue> getStateKV(int32_t keyPtr);
 
     // Syscalls
 
     int executeSyscall(int syscallNumber, int a, int b, int c, int d, int e, int f, int g);
 
-    I32 s__access(I32 pathPtr, I32 mode);
+    int32_t s__access(int32_t pathPtr, int32_t mode);
 
-    I32 s__brk(I32 addr);
+    int32_t s__brk(int32_t addr);
 
-    I32 s__clock_gettime(I32 clockId, I32 timespecPtr);
+    int32_t s__clock_gettime(int32_t clockId, int32_t timespecPtr);
 
-    I32 s__close(I32 fd);
+    int32_t s__close(int32_t fd);
 
-    I32 s__dup(I32 oldFd);
+    int32_t s__dup(int32_t oldFd);
 
-    I32 s__exit(I32 a, I32 b);
+    int32_t s__exit(int32_t a, int32_t b);
 
-    I32 s__fcntl64(I32 fd, I32 cmd, I32 c);
+    int32_t s__fcntl64(int32_t fd, int32_t cmd, int32_t c);
 
-    I32 s__fork();
+    int32_t s__fork();
 
-    I32 s__fstat64(I32 fd, I32 statBufPtr);
+    int32_t s__fstat64(int32_t fd, int32_t statBufPtr);
 
-    I32 s__futex(I32 uaddrPtr, I32 futex_op, I32 val, I32 timeoutPtr, I32 uaddr2Ptr, I32 other);
+    int32_t s__futex(int32_t uaddrPtr, int32_t futex_op, int32_t val, int32_t timeoutPtr, int32_t uaddr2Ptr, int32_t other);
 
-    I32 s__getdents64(I32 fd, I32 wasmDirentBuf, I32 wasmDirentBufLen);
+    int32_t s__getdents64(int32_t fd, int32_t wasmDirentBuf, int32_t wasmDirentBufLen);
 
-    I32 s__gettid();
+    int32_t s__gettid();
 
-    I32 s__getrandom(I32 bufPtr, I32 bufLen, I32 flags);
+    int32_t s__getrandom(int32_t bufPtr, int32_t bufLen, int32_t flags);
 
-    I32 s__gettimeofday(I32 tvPtr, I32 tzPtr);
+    int32_t s__gettimeofday(int32_t tvPtr, int32_t tzPtr);
 
-    I32 s__ioctl(I32 fd, I32 request, I32 argPtr, I32 d, I32 e, I32 f);
+    int32_t s__ioctl(int32_t fd, int32_t request, int32_t argPtr, int32_t d, int32_t e, int32_t f);
 
-    I32 s__llseek(I32 fd, I32 offsetHigh, I32 offsetLow, I32 resultPtr, I32 whence);
+    int32_t s__llseek(int32_t fd, int32_t offsetHigh, int32_t offsetLow, int32_t resultPtr, int32_t whence);
 
-    I32 s__lstat64(I32 pathPtr, I32 statBufPtr);
+    int32_t s__lstat64(int32_t pathPtr, int32_t statBufPtr);
 
-    I32 s__madvise(I32 address, I32 numBytes, I32 advice);
+    int32_t s__madvise(int32_t address, int32_t numBytes, int32_t advice);
 
-    I32 s__membarrier(I32 a);
+    int32_t s__membarrier(int32_t a);
 
-    I32 s__mkdir(I32 pathPtr, I32 mode);
+    int32_t s__mkdir(int32_t pathPtr, int32_t mode);
 
-    I32 s__mmap(I32 addr, I32 length, I32 prot, I32 flags, I32 fd, I32 offset);
+    int32_t s__mmap(int32_t addr, int32_t length, int32_t prot, int32_t flags, int32_t fd, int32_t offset);
 
-    I32 s__mprotect(I32 addrPtr, I32 len, I32 prot);
+    int32_t s__mprotect(int32_t addrPtr, int32_t len, int32_t prot);
 
-    I32 s__munmap(I32 addr, I32 length);
+    int32_t s__munmap(int32_t addr, int32_t length);
 
-    I32 s__nanosleep(I32 reqPtr, I32 remPtr);
+    int32_t s__nanosleep(int32_t reqPtr, int32_t remPtr);
 
-    I32 s__open(I32 pathPtr, I32 flags, I32 mode);
+    int32_t s__open(int32_t pathPtr, int32_t flags, int32_t mode);
 
-    I32 s__poll(I32 fdsPtr, I32 nfds, I32 timeout);
+    int32_t s__poll(int32_t fdsPtr, int32_t nfds, int32_t timeout);
 
-    I32 s__read(I32 fd, I32 bufPtr, I32 bufLen);
+    int32_t s__read(int32_t fd, int32_t bufPtr, int32_t bufLen);
 
-    I32 s__readlink(I32 pathPtr, I32 bufPtr, I32 bufLen);
+    int32_t s__readlink(int32_t pathPtr, int32_t bufPtr, int32_t bufLen);
 
-    I32 s__readv(I32 fd, I32 iovecPtr, I32 iovecCount);
+    int32_t s__readv(int32_t fd, int32_t iovecPtr, int32_t iovecCount);
 
-    I32 s__rename(I32 srcPtr, I32 destPtr);
+    int32_t s__rename(int32_t srcPtr, int32_t destPtr);
 
-    I32 s__rt_sigprocmask(I32 how, I32 sigSetPtr, I32 oldSetPtr, I32 sigsetsize);
+    int32_t s__rt_sigprocmask(int32_t how, int32_t sigSetPtr, int32_t oldSetPtr, int32_t sigsetsize);
 
-    I32 s__sbrk(I32 addr);
+    int32_t s__sbrk(int32_t addr);
 
-    I32 s__sched_getaffinity(I32 pid, I32 cpuSetSize, I32 maskPtr);
+    int32_t s__sched_getaffinity(int32_t pid, int32_t cpuSetSize, int32_t maskPtr);
 
-    I32 s__sigaction(I32 a, I32 b, I32 c);
+    int32_t s__sigaction(int32_t a, int32_t b, int32_t c);
 
-    I32 s__sigaltstack(I32 ssPtr, I32 oldSsPtr);
+    int32_t s__sigaltstack(int32_t ssPtr, int32_t oldSsPtr);
 
-    I32 s__sigemptyset(I32 a);
+    int32_t s__sigemptyset(int32_t a);
 
-    I32 s__siginterrupt(I32 a, I32 b);
+    int32_t s__siginterrupt(int32_t a, int32_t b);
 
-    I32 s__socketcall(I32 call, I32 argsPtr);
+    int32_t s__socketcall(int32_t call, int32_t argsPtr);
 
-    I32 s__stat64(I32 pathPtr, I32 statBufPtr);
+    int32_t s__stat64(int32_t pathPtr, int32_t statBufPtr);
 
-    I32 s__unlink(I32 pathPtr);
+    int32_t s__unlink(int32_t pathPtr);
 
-    I32 s__write(I32 fd, I32 bufPtr, I32 bufLen);
+    int32_t s__write(int32_t fd, int32_t bufPtr, int32_t bufLen);
 
-    I32 s__writev(I32 fd, I32 iov, I32 iovcnt);
+    int32_t s__writev(int32_t fd, int32_t iov, int32_t iovcnt);
 
     // Hack to include other files
     void chainLink();

@@ -1,21 +1,18 @@
-//
-// Created by Joshua Heinemann on 15.06.20.
-// TU-Braunschweig (heineman@ibr.cs.tu-bs.de)
-//
+#include <cstdio>
 
 #include <sgx/SGXWAMRWasmModule.h>
 
 extern "C"{
-void ocall_printf(const char* msg){
-    printf("%s",msg);
-}
+    void ocall_printf(const char* msg){
+        printf("%s",msg);
+    }
 }
 
 namespace wasm{
-     SGXWAMRWasmModule::SGXWAMRWasmModule(sgx_enclave_id_t* enclave_id)
-    :enclave_id_ptr{enclave_id}{
+    SGXWAMRWasmModule::SGXWAMRWasmModule(sgx_enclave_id_t* enclave_id):enclave_id_ptr{enclave_id}{
 
     }
+
     void SGXWAMRWasmModule::bindToFunction(const message::Message& msg) {
         sgx_status_t sgx_ret_val;
         faasm_sgx_status_t ret_val;

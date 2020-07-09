@@ -6,6 +6,8 @@
 
 using namespace util;
 
+using namespace WAVM;
+
 namespace wasm {
     namespace openmp {
 

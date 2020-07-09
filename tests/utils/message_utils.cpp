@@ -42,6 +42,8 @@ namespace tests {
         REQUIRE(msgA.mpiworldsize() == msgB.mpiworldsize());
 
         REQUIRE(msgA.cmdline() == msgB.cmdline());
+
+        REQUIRE(msgA.issgx() == msgB.issgx());
     }
 }
 

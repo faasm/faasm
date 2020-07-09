@@ -1,15 +1,3 @@
-#
-# Created by Joshua Heinemann on 18.06.20.
-# TU-Braunschweig (heineman@ibr.cs.tu-bs.de)
-#
-#set(RUNNER_LIBS
-#        faaslet_lib
-#        wasm
-#        wavmmodule
-#        util
-#        module_cache
-#        system
-#        )
 
 # NASM configuration
 enable_language(ASM_NASM)
@@ -47,6 +35,15 @@ if (FAASM_WAMR_SUPPORT)
             -DFAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE=${FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE}
             -DFAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE=${FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE}
     )
+
+    set(SGX_WAMR_ENCLAVE_C_FLAGS ${SGX_C_GLOBAL_FLAGS}
+            -nostdinc
+            -fvisibility=hidden
+            -fpie
+            -ffunction-sections
+            -fdata-sections
+            -fstack-protector-strong
+    )
 endif ()
 
 # Check for SGX SDK
@@ -66,16 +63,15 @@ elseif (NOT SGX_SIM_MODE)
 endif ()
 
 # Check for SGX debug
+
 if (SGX_DEBUG_MODE)
     message(STATUS "Enclave will be build with debug information and -O0 optimization")
     set(SGX_C_GLOBAL_FLAGS ${SGX_C_GLOBAL_FLAGS} -O0 -g)
     set(SGX_WAMR_C_FLAGS ${SGX_C_GLOBAL_FLAGS} -fPIC -Wno-attributes -DDEBUG -UNDEBUG -UEDEBUG)
-    set(SGX_WAMR_ENCLAVE_C_FLAGS ${SGX_C_GLOBAL_FLAGS} -nostdinc -fvisibility=hidden -fpie -ffunction-sections -fdata-sections -fstack-protector-strong)
-elseif (NOT SGX_DEBUG_MODE)
+else()
     message(STATUS "Enclave will be build without debug information and -O2 optimization")
     set(SGX_C_GLOBAL_FLAGS ${SGX_C_GLOBAL_FLAGS} -O2)
     set(SGX_WAMR_C_FLAGS ${SGX_C_GLOBAL_FLAGS} -fPIC -Wno-attributes)
-    set(SGX_WAMR_ENCLAVE_C_FLAGS ${SGX_C_GLOBAL_FLAGS} -nostdinc -fvisibility=hidden -fpie -ffunction-sections -fdata-sections -fstack-protector-strong)
 endif ()
 
 # SGX runner
@@ -88,6 +84,7 @@ target_link_libraries(sgx_runner PRIVATE sgx_wamr)
 # SGX WAMR library
 add_library(sgx_wamr STATIC ${SGX_WAMR_SOURCE_FILES} ${SGX_WAMR_ASM_SOURCE_FILES})
 add_dependencies(sgx_wamr sgx_wamr_enclave storage wasm)
+
 target_include_directories(sgx_wamr PUBLIC ${SGX_SDK_PATH}/include)
 target_link_directories(sgx_wamr INTERFACE ${SGX_SDK_LIB_PATH})
 target_compile_options(sgx_wamr PRIVATE ${SGX_WAMR_C_FLAGS} -std=c++11)
@@ -117,12 +114,29 @@ endif ()
 
 # SGX WAMR enclave library
 add_library(sgx_wamr_enclave SHARED ${SGX_WAMR_ENCLAVE_SOURCE_FILES})
-add_dependencies(sgx_wamr_enclave wamr)
+add_dependencies(sgx_wamr_enclave libwamr)
+
 set_target_properties(sgx_wamr_enclave PROPERTIES PREFIX "")
-target_include_directories(sgx_wamr_enclave PRIVATE ${SGX_SDK_PATH}/include ${SGX_SDK_PATH}/include/tlibc ${SGX_SDK_PATH}/include/libcxx ${WAMR_ROOT_DIR}/core ${WAMR_ROOT_DIR}/core/shared/utils ${WAMR_ROOT_DIR}/core/shared/platform/linux-sgx)
+target_include_directories(sgx_wamr_enclave PRIVATE
+        ${SGX_SDK_PATH}/include
+        ${SGX_SDK_PATH}/include/tlibc
+        ${SGX_SDK_PATH}/include/libcxx
+        ${WAMR_ROOT_DIR}/core
+        ${WAMR_ROOT_DIR}/core/shared/utils
+        ${WAMR_ROOT_DIR}/core/shared/platform/linux-sgx)
+
 target_link_directories(sgx_wamr_enclave PRIVATE ${SGX_SDK_LIB_PATH})
 target_compile_options(sgx_wamr_enclave PRIVATE ${SGX_WAMR_ENCLAVE_C_FLAGS} -std=c++11 -nostdinc++)
-target_link_options(sgx_wamr_enclave PRIVATE ${SGX_WAMR_ENCLAVE_TRTS_OBJECTS} ${SGX_C_GLOBAL_FLAGS} -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -Bstatic -Bsymbolic -Wl,-pie,-eenclave_entry -Wl,--export-dynamic -Wl,--defsym,__ImageBase=0 -Wl,--gc-sections -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/sgx_wamr_enclave.lds)
+
+target_link_options(sgx_wamr_enclave PRIVATE
+        ${SGX_WAMR_ENCLAVE_TRTS_OBJECTS} ${SGX_C_GLOBAL_FLAGS}
+        -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -Bstatic -Bsymbolic
+        -Wl,-pie,-eenclave_entry
+        -Wl,--export-dynamic
+        -Wl,--defsym,__ImageBase=0
+        -Wl,--gc-sections
+        -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/sgx_wamr_enclave.lds
+    )
 
 if (SGX_SIM_MODE)
     target_link_libraries(sgx_wamr_enclave -Wl,--whole-archive sgx_trts_sim -Wl,--no-whole-archive -Wl,--start-group sgx_tstdc sgx_tcxx sgx_tcrypto sgx_tservice_sim wamr -Wl,--end-group)
@@ -132,7 +146,11 @@ endif ()
 
 # Custom commands
 add_custom_command(TARGET sgx_wamr_enclave PRE_BUILD COMMAND ${SGX_SDK_ENCLAVE_EDGER8R} --trusted sgx_wamr_enclave.edl --search-path /usr/local/code/faasm/src/sgx --search-path ${SGX_SDK_PATH}/include)
+
 add_custom_command(TARGET sgx_wamr PRE_BUILD COMMAND ${SGX_SDK_ENCLAVE_EDGER8R} --untrusted sgx_wamr_enclave.edl --search-path /usr/local/code/faasm/src/sgx --search-path ${SGX_SDK_PATH}/include)
+
 add_custom_command(TARGET sgx_wamr_enclave PRE_BUILD COMMAND gcc ${SGX_WAMR_ENCLAVE_C_FLAGS} -I${SGX_SDK_PATH}/include -I${SGX_SDK_PATH}/include/tlibc -c sgx_wamr_enclave_t.c -o sgx_wamr_enclave_t.o)
+
 add_custom_command(TARGET sgx_wamr PRE_BUILD COMMAND gcc ${SGX_WAMR_C_FLAGS} -I${SGX_SDK_PATH}/include -c sgx_wamr_enclave_u.c -o sgx_wamr_enclave_u.o)
+
 add_custom_command(TARGET sgx_wamr_enclave POST_BUILD COMMAND ${SGX_SDK_ENCLAVE_SIGNER} sign -key ${CMAKE_CURRENT_SOURCE_DIR}/sgx_wamr_enclave.pem -enclave ${CMAKE_BINARY_DIR}/lib/sgx_wamr_enclave.so -out ${CMAKE_BINARY_DIR}/bin/sgx_wamr_enclave.sign.so -config ${CMAKE_CURRENT_SOURCE_DIR}/sgx_wamr_enclave.config)

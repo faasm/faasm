@@ -1,12 +1,7 @@
-//
-// Created by Joshua Heinemann on 10.06.20.
-// TU-Braunschweig (heineman@ibr.cs.tu-bs.de)
-//
-
-#ifndef FAASM_SGX_FAASM_ERROR_H
-#define FAASM_SGX_FAASM_ERROR_H
+#pragma once
 
 #define FAASM_SGX_ERROR(X) (0x00000000|(X))
+
 typedef enum _error{
     FAASM_SGX_SUCCESS = FAASM_SGX_ERROR(0x0),
     FAASM_SGX_INVALID_PTR = FAASM_SGX_ERROR(0x1),
@@ -27,6 +22,4 @@ typedef enum _error{
     FAASM_SGX_UNABLE_TO_ENTER_ENCLAVE = FAASM_SGX_ERROR(0x10),
     FAASM_SGX_MODULE_NOT_LOADED = FAASM_SGX_ERROR(0x11),
     FAASM_SGX_INVALID_FUNC_ID = FAASM_SGX_ERROR(0x12)
-}faasm_sgx_status_t;
-
-#endif //FAASM_SGX_FAASM_ERROR_H
+} faasm_sgx_status_t;

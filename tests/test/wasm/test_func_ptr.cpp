@@ -1,6 +1,6 @@
 #include <catch/catch.hpp>
 
-#include <wasm/WasmModule.h>
+#include <wavm/WAVMWasmModule.h>
 #include <utils.h>
 
 using namespace wasm;

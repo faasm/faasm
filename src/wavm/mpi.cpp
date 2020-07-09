@@ -9,6 +9,7 @@
 #include <mpi/MpiContext.h>
 #include <util/gids.h>
 
+using namespace WAVM;
 
 namespace wasm {
     static thread_local mpi::MpiContext executingContext;

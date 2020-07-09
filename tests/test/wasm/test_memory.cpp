@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <util/files.h>
 
+using namespace WAVM;
 
 namespace tests {
     TEST_CASE("Test mmapping a file", "[wasm]") {

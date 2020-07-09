@@ -1,9 +1,4 @@
-//
-// Created by Joshua Heinemann on 18.06.20.
-// TU-Braunschweig (heineman@ibr.cs.tu-bs.de)
-//
-#ifndef FAASM_SGX_WAMR_NATIVE_SYMBOLS_WRAPPER_H
-#define FAASM_SGX_WAMR_NATIVE_SYMBOLS_WRAPPER_H
+#pragma once
 
 #include <sgx.h>
 #include <sgx_defs.h>
@@ -21,5 +16,3 @@ extern "C"{
     static unsigned int faasm_await_call(wasm_exec_env_t exec_env, unsigned int call_id);
     uint32_t get_sgx_wamr_native_symbols(NativeSymbol** native_symbol_ptr);
 };
-
-#endif //FAASM_SGX_WAMR_NATIVE_SYMBOLS_WRAPPER_H

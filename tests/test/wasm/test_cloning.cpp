@@ -3,9 +3,9 @@
 #include <util/func.h>
 #include <util/config.h>
 #include <WAVM/Runtime/Intrinsics.h>
-#include <utils.h>
 
 using namespace wasm;
+using namespace WAVM;
 
 namespace tests {
     void convertMsgToPython(message::Message &msg) {

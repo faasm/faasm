@@ -15,7 +15,7 @@ set(LIB_FILES
         )
 
 faasm_private_lib(wamrmodule "${LIB_FILES}")
-target_link_libraries(wamrmodule wasm wamr)
+target_link_libraries(wamrmodule wasm libwamr)
 
 # Temporary runner
 add_executable(wamr_runner wamr_runner.cpp)

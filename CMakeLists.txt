@@ -1,8 +1,19 @@
 cmake_minimum_required(VERSION 3.8.0)
 project(faasm)
 
+# Optional functionality
+option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
+option(FAASM_WAMR_SUPPORT "Add support for WAMR" ON)
+option(FAASM_SGX_SUPPORT "Add support for SGX" OFF)
+
+# Switch off Werror only when in SGX mode
+if(FAASM_SGX_SUPPORT)
+    set(CMAKE_CXX_FLAGS "-Wall")
+else()
+    set(CMAKE_CXX_FLAGS "-Wall -Werror")
+endif()
+
 # Top-level CMake config
-set(CMAKE_CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -15,10 +26,6 @@ set(FAASM_LIB_CPP_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/cpp)
 set(FAASM_LIB_FAASMP_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/faasmp)
 set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/pyinit)
 set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/WAVM/Lib)
-
-option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
-option(FAASM_WAMR_SUPPORT "Add support for WAMR" ON)
-option(FAASM_SGX_SUPPORT "Add support for WAMR" OFF)
 
 # SGX configuration
 if(FAASM_SGX_SUPPORT)

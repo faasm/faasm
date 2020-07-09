@@ -13,6 +13,7 @@
 #include <wavm/OMPThreadPool.h>
 #include <wavm/WAVMWasmModule.h>
 
+using namespace WAVM;
 
 namespace wasm {
     using namespace openmp;
