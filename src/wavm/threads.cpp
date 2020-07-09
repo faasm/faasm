@@ -9,6 +9,7 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Platform/Thread.h>
 
+using namespace WAVM;
 
 namespace wasm {
     struct PThreadArgs {

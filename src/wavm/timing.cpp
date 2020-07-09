@@ -7,6 +7,8 @@
 #include <WAVM/WASI/WASIABI.h>
 #include <util/timing.h>
 
+using namespace WAVM;
+
 namespace wasm {
     //TODO - make timing functions more secure
     I32 s__clock_gettime(I32 clockId, I32 timespecPtr) {

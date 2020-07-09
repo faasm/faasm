@@ -7,6 +7,8 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <util/bytes.h>
 
+using namespace WAVM;
+
 namespace wasm {
     void chainLink() {
 

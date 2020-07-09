@@ -15,11 +15,6 @@ of set-ups, however, the only one that is recommended and well tested is:
 
 All scripted CMake builds also use Ninja, so it's safest to use that too.
 
-If you want to use the sgx-wamr implementation, then you have to install nasm
-```
-sudo apt-get install nasm
-```
-
 This means your CMake commands will look something like:
 
 ```

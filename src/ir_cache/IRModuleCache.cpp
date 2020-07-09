@@ -11,7 +11,6 @@
 #include <storage/FileLoader.h>
 #include <util/func.h>
 
-using namespace WAVM;
 
 namespace wasm {
     IRModuleCache::IRModuleCache() : conf(util::getSystemConfig()) {

@@ -3,6 +3,8 @@
 
 #include <WAVM/Runtime/Intrinsics.h>
 
+using namespace WAVM;
+
 namespace wasm {
     I32 s__fork() {
         util::getLogger()->debug("S - fork");

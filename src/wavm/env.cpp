@@ -11,6 +11,8 @@
 #include <util/macros.h>
 #include <WAVM/WASI/WASIABI.h>
 
+using namespace WAVM;
+
 namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "args_sizes_get", I32, wasi_args_sizes_get, I32 argcPtr, I32 argvBufSize) {

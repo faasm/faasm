@@ -5,6 +5,10 @@
 #include <wasm_export.h>
 
 namespace wasm {
+    WAMRWasmModule::~WAMRWasmModule() {
+        tearDown();
+    }
+
     // ----- Module lifecycle -----
     void WAMRWasmModule::bindToFunction(const message::Message &msg) {
         // Set up the module
@@ -89,33 +93,5 @@ namespace wasm {
         wasm_runtime_unload(wasmModule);
 
         wasm_runtime_destroy();
-    }
-
-    // ----- Environment variables
-    void WAMRWasmModule::writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer) {
-
-    }
-
-    // ----- CoW memory -----
-    void WAMRWasmModule::writeMemoryToFd(int fd) {
-
-    }
-
-    void WAMRWasmModule::mapMemoryFromFd() {
-
-    }
-
-    // ----- Argc/ argv -----
-    void WAMRWasmModule::writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer) {
-
-    };
-
-    // ----- Snapshot/ restore -----
-    void WAMRWasmModule::doSnapshot(std::ostream &outStream) {
-
-    }
-
-    void WAMRWasmModule::doRestore(std::istream &inStream) {
-
     }
 }

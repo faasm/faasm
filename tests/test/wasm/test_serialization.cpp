@@ -1,5 +1,6 @@
 #include <catch/catch.hpp>
-#include <wasm/WasmModule.h>
+
+#include <wavm/WAVMWasmModule.h>
 #include <boost/filesystem.hpp>
 #include <util/func.h>
 #include <utils.h>

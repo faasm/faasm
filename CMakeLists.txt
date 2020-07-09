@@ -1,8 +1,19 @@
 cmake_minimum_required(VERSION 3.8.0)
 project(faasm)
 
+# Optional functionality
+option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
+option(FAASM_WAMR_SUPPORT "Add support for WAMR" ON)
+option(FAASM_SGX_SUPPORT "Add support for SGX" OFF)
+
+# Switch off Werror only when in SGX mode
+if(FAASM_SGX_SUPPORT)
+    set(CMAKE_CXX_FLAGS "-Wall")
+else()
+    set(CMAKE_CXX_FLAGS "-Wall -Werror")
+endif()
+
 # Top-level CMake config
-set(CMAKE_CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -16,13 +27,11 @@ set(FAASM_LIB_FAASMP_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/faasmp)
 set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/pyinit)
 set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/WAVM/Lib)
 
-option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
-
 # SGX configuration
-set(FAASM_SGX_SUPPORT ON)
 if(FAASM_SGX_SUPPORT)
     add_definitions(-DFAASM_SGX=1 -DFAASM_SGX_FUNC_SUFFIX="_sgx_wamr")
     set(SGX_SIM_MODE 1)
+
     if(SGX_SIM_MODE)
         add_definitions(-DSGX_SIM_MODE=1)
     elseif()
@@ -31,33 +40,35 @@ if(FAASM_SGX_SUPPORT)
 endif()
 
 # WAMR configuration
-set(FAASM_WAMR_SUPPORT ON)
-if (FAASM_WAMR_SUPPORT AND FAASM_SGX_SUPPORT)
+if (FAASM_WAMR_SUPPORT)
     set(WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
     set(WAMR_INCLUDE_DIR ${WAMR_ROOT_DIR}/core/iwasm/include)
     set(WAMR_BUILD_TARGET X86_64)
-    set(WAMR_BUILD_PLATFORM linux-sgx)
     set(WAMR_BUILD_INTERP 1)
-    set(WAMR_BUILD_FAST_INTERP 0)
-    set(WAMR_BUILD_JIT 0)
-    set(WAMR_BUILD_AOT 0)
-    set(WAMR_BUILD_LIBC_WASI 0)
-    set(WAMR_BUILD_LIBC_BUILTIN 1)
-    set(FAASM_SGX_WAMR_HEAP_SIZE 32768)
-    set(FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE 128)
-    set(FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE 8192)
-    set(FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE 8192)
-elseif(FAASM_WAMR_SUPPORT)
-    set(WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
-    set(WAMR_INCLUDE_DIR ${WAMR_ROOT_DIR}/core/iwasm/include)
-    set(WAMR_BUILD_TARGET X86_64)
-    set(WAMR_BUILD_PLATFORM linux)
-    set(WAMR_BUILD_INTERP 1)
-    set(WAMR_BUILD_FAST_INTERP 1)
-    set(WAMR_BUILD_JIT 1)
-    set(WAMR_BUILD_AOT 0)
-    set(WAMR_BUILD_LIBC_WASI 1)
-    set(WAMR_BUILD_LIBC_BUILTIN 0)
+
+    # WAMR SGX-specific config
+    if(FAASM_SGX_SUPPORT)
+        set(WAMR_BUILD_PLATFORM linux-sgx)
+        set(WAMR_BUILD_FAST_INTERP 0)
+        set(WAMR_BUILD_JIT 0)
+        set(WAMR_BUILD_AOT 0)
+        set(WAMR_BUILD_LIBC_WASI 0)
+        set(WAMR_BUILD_LIBC_BUILTIN 1)
+
+        set(FAASM_SGX_WAMR_HEAP_SIZE 32768)
+        set(FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE 128)
+        set(FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE 8192)
+        set(FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE 8192)
+
+    # Non-SGX WAMR config
+    else(FAASM_WAMR_SUPPORT)
+        set(WAMR_BUILD_PLATFORM linux)
+        set(WAMR_BUILD_FAST_INTERP 1)
+        set(WAMR_BUILD_JIT 1)
+        set(WAMR_BUILD_AOT 0)
+        set(WAMR_BUILD_LIBC_WASI 1)
+        set(WAMR_BUILD_LIBC_BUILTIN 0)
+    endif()
 endif ()
 
 # Library type (for shared libraries)
@@ -178,10 +189,10 @@ else ()
     add_subdirectory(third-party/WAVM)
 
     # WAMR
-    #if (FAASM_WAMR_SUPPORT)
-    #    include(${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
-    #    add_library(libwamr ${WAMR_RUNTIME_LIB_SOURCE})
-    #endif ()
+    if (FAASM_WAMR_SUPPORT)
+        include(${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
+        add_library(libwamr ${WAMR_RUNTIME_LIB_SOURCE})
+    endif ()
 
     # SGX
     if(FAASM_SGX_SUPPORT)

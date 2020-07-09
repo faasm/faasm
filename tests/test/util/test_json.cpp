@@ -37,6 +37,8 @@ namespace tests {
 
         msg.set_cmdline("some cmdline");
 
+        msg.set_issgx(true);
+
         SECTION("Dodgy characters") {
             msg.set_inputdata("[0], %$ 2233 9");
         }

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <wavm/openmp/Level.h>
 #include "WasmEnvironment.h"
 
 #include <util/logging.h>
@@ -36,14 +35,16 @@
 namespace wasm {
     class WasmModule {
     public:
+        virtual ~WasmModule();
+
         // ----- Module lifecycle -----
-        virtual void bindToFunction(const message::Message &msg) = 0;
+        virtual void bindToFunction(const message::Message &msg);
 
-        virtual void bindToFunctionNoZygote(const message::Message &msg) = 0;
+        virtual void bindToFunctionNoZygote(const message::Message &msg);
 
-        virtual bool execute(message::Message &msg, bool forceNoop = false) = 0;
+        virtual bool execute(message::Message &msg, bool forceNoop = false);
 
-        virtual const bool isBound() = 0;
+        virtual const bool isBound();
 
         std::string getBoundUser();
 
@@ -54,10 +55,10 @@ namespace wasm {
 
         uint32_t getArgvBufferSize();
 
-        virtual void writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer) = 0;
+        virtual void writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer);
 
         // ----- Environment variables
-        virtual void writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer) = 0;
+        virtual void writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer);
 
         WasmEnvironment &getWasmEnvironment();
 
@@ -74,9 +75,9 @@ namespace wasm {
         void clearCapturedStdout();
 
         // ----- CoW memory -----
-        virtual void writeMemoryToFd(int fd) = 0;
+        virtual void writeMemoryToFd(int fd);
 
-        virtual void mapMemoryFromFd() = 0;
+        virtual void mapMemoryFromFd();
 
         // ----- Snapshot/ restore -----
         void snapshotToFile(const std::string &filePath);
@@ -110,9 +111,9 @@ namespace wasm {
 
         int getStdoutFd();
 
-        virtual void doSnapshot(std::ostream &outStream) = 0;
+        virtual void doSnapshot(std::ostream &outStream);
 
-        virtual void doRestore(std::istream &inStream) = 0;
+        virtual void doRestore(std::istream &inStream);
 
         void prepareArgcArgv(const message::Message &msg);
     };

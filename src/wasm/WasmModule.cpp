@@ -31,6 +31,10 @@ namespace wasm {
         return pageCount;
     }
 
+    WasmModule::~WasmModule() {
+        // Does nothing
+    }
+
     storage::FileSystem &WasmModule::getFileSystem() {
         return filesystem;
     }
@@ -193,4 +197,47 @@ namespace wasm {
         }
     }
 
+    // ------------------------------------------
+    // Functions to be implemented by subclasses
+    // ------------------------------------------
+
+    void WasmModule::bindToFunction(const message::Message &msg) {
+        throw std::runtime_error("bindToFunction not implemented");
+    }
+
+    void WasmModule::bindToFunctionNoZygote(const message::Message &msg) {
+        throw std::runtime_error("bindToFunctionNoZygote not implemented");
+    }
+
+    bool WasmModule::execute(message::Message &msg, bool forceNoop) {
+        throw std::runtime_error("execute not implemented");
+    }
+
+    const bool WasmModule::isBound() {
+        throw std::runtime_error("isBound not implemented");
+    }
+
+    void WasmModule::writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer) {
+        throw std::runtime_error("writeArgvToMemory not implemented");
+    }
+
+    void WasmModule::writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer) {
+        throw std::runtime_error("writeWasmEnvToMemory not implemented");
+    }
+
+    void WasmModule::writeMemoryToFd(int fd) {
+        throw std::runtime_error("writeMemoryToFd not implemented");
+    }
+
+    void WasmModule::mapMemoryFromFd() {
+        throw std::runtime_error("mapMemoryFromFd not implemented");
+    }
+
+    void WasmModule::doSnapshot(std::ostream &outStream) {
+        throw std::runtime_error("doSnapshot not implemented");
+    }
+
+    void WasmModule::doRestore(std::istream &inStream) {
+        throw std::runtime_error("doRestore not implemented");
+    }
 }

@@ -10,6 +10,8 @@
 namespace wasm {
     class WAMRWasmModule final : public WasmModule {
     public:
+        ~WAMRWasmModule();
+
         // ----- Module lifecycle -----
         void bindToFunction(const message::Message &msg) override;
 
@@ -20,23 +22,6 @@ namespace wasm {
         const bool isBound() override;
 
         void tearDown();
-
-        // ----- Environment variables
-        void writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer) override;
-
-        // ----- CoW memory -----
-        void writeMemoryToFd(int fd) override;
-
-        void mapMemoryFromFd() override;
-
-        // ----- Argc/argv -----
-        void writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer) override;
-
-    protected:
-        void doSnapshot(std::ostream &outStream) override;
-
-        void doRestore(std::istream &inStream) override;
-
     private:
         bool _isBound;
 

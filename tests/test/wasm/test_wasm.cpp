@@ -1,9 +1,10 @@
 #include <catch/catch.hpp>
-#include <wasm/WasmModule.h>
 #include <util/bytes.h>
 #include <util/func.h>
 #include <util/config.h>
 #include <module_cache/WasmModuleCache.h>
+
+using namespace WAVM;
 
 namespace tests {
 
@@ -45,7 +46,7 @@ namespace tests {
         call.set_function("x2");
 
         // Build input as byte stream
-        U8 inputValues[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+        uint8_t inputValues[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
         call.set_inputdata(inputValues, 10);
 
         // Make the call

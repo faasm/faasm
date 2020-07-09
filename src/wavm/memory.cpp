@@ -8,6 +8,8 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <util/config.h>
 
+using namespace WAVM;
+
 namespace wasm {
     bool isPageAligned(I32 address) {
         Uptr addrPtr = (Uptr) address;

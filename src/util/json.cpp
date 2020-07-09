@@ -52,6 +52,8 @@ namespace util {
 
         d.AddMember("cmdline", Value(msg.cmdline().c_str(), msg.cmdline().size()).Move(), a);
 
+        d.AddMember("sgx", msg.issgx(), a);
+
         StringBuffer sb;
         Writer<StringBuffer> writer(sb);
         d.Accept(writer);
@@ -131,6 +133,8 @@ namespace util {
         msg.set_mpiworldsize(getIntFromJson(d, "mpi_world_size", -1));
 
         msg.set_cmdline(getStringFromJson(d, "cmdline", ""));
+
+        msg.set_issgx(getBoolFromJson(d, "sgx", false));
 
         PROF_END(jsonDecode)
 

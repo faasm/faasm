@@ -1,8 +1,3 @@
-//
-// Created by Joshua Heinemann on 04.06.20.
-// TU-Braunschweig (heineman@ibr.cs.tu-bs.de)
-//
-
 enclave{
     include "../../../include/sgx/faasm_sgx_error.h"
     include "../../../third-party/wamr/core/iwasm/include/wasm_export.h"

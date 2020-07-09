@@ -6,8 +6,6 @@
 #include <WAVM/Runtime/Linker.h>
 #include <WAVM/Runtime/Runtime.h>
 
-using namespace WAVM;
-
 namespace wasm {
     WAVM_DECLARE_INTRINSIC_MODULE(env)
 
@@ -21,7 +19,7 @@ namespace wasm {
         class PlatformThreadPool;
     }
 
-    class WAVMWasmModule final : public WasmModule, Runtime::Resolver {
+    class WAVMWasmModule final : public WasmModule, WAVM::Runtime::Resolver {
     public:
         WAVMWasmModule();
 
@@ -29,7 +27,7 @@ namespace wasm {
 
         WAVMWasmModule &operator=(const WAVMWasmModule &other);
 
-        ~WAVMWasmModule() override;
+        ~WAVMWasmModule();
 
         // ----- Module lifecycle -----
         void bindToFunction(const message::Message &msg) override;
@@ -60,36 +58,36 @@ namespace wasm {
         void mapMemoryFromFd() override;
 
         // ----- Internals -----
-        Runtime::GCPointer<Runtime::Memory> defaultMemory;
+        WAVM::Runtime::GCPointer<WAVM::Runtime::Memory> defaultMemory;
 
-        Runtime::GCPointer<Runtime::Table> defaultTable;
+        WAVM::Runtime::GCPointer<WAVM::Runtime::Table> defaultTable;
 
-        Runtime::GCPointer<Runtime::Context> executionContext;
+        WAVM::Runtime::GCPointer<WAVM::Runtime::Context> executionContext;
 
-        Runtime::GCPointer<Runtime::Compartment> compartment;
+        WAVM::Runtime::GCPointer<WAVM::Runtime::Compartment> compartment;
 
         // ----- Execution -----
         void executeFunction(
-                Runtime::Function *func,
-                IR::FunctionType funcType,
-                const std::vector<IR::UntaggedValue> &arguments,
-                IR::UntaggedValue &result
+                WAVM::Runtime::Function *func,
+                WAVM::IR::FunctionType funcType,
+                const std::vector<WAVM::IR::UntaggedValue> &arguments,
+                WAVM::IR::UntaggedValue &result
         );
 
         void writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer) override;
 
         // ----- Resolution/ linking -----
 
-        Runtime::Function *getFunction(Runtime::Instance *module, const std::string &funcName, bool strict);
+        WAVM::Runtime::Function *getFunction(WAVM::Runtime::Instance *module, const std::string &funcName, bool strict);
 
-        Runtime::Function *getFunctionFromPtr(int funcPtr);
+        WAVM::Runtime::Function *getFunctionFromPtr(int funcPtr);
 
         bool resolve(const std::string &moduleName,
                      const std::string &name,
-                     IR::ExternType type,
-                     Runtime::Object *&resolved) override;
+                     WAVM::IR::ExternType type,
+                     WAVM::Runtime::Object *&resolved) override;
 
-        int32_t getGlobalI32(const std::string &globalName, Runtime::Context *context);
+        int32_t getGlobalI32(const std::string &globalName, WAVM::Runtime::Context *context);
 
         // ----- Threading -----
         int64_t executeThreadLocally(WasmThreadSpec &spec);
@@ -98,13 +96,13 @@ namespace wasm {
         std::map<std::string, std::string> buildDisassemblyMap();
 
         // ----- Dynamic linking -----
-        int dynamicLoadModule(const std::string &path, Runtime::Context *context);
+        int dynamicLoadModule(const std::string &path, WAVM::Runtime::Context *context);
 
         uint32_t getDynamicModuleFunction(int handle, const std::string &funcName);
 
         int getDynamicModuleCount();
 
-        uint32_t addFunctionToTable(Runtime::Object *exportedFunc);
+        uint32_t addFunctionToTable(WAVM::Runtime::Object *exportedFunc);
 
         int getNextMemoryBase();
 
@@ -126,9 +124,9 @@ namespace wasm {
         void doRestore(std::istream &inStream) override;
 
     private:
-        Runtime::GCPointer<Runtime::Instance> envModule;
-        Runtime::GCPointer<Runtime::Instance> wasiModule;
-        Runtime::GCPointer<Runtime::Instance> moduleInstance;
+        WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> envModule;
+        WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> wasiModule;
+        WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> moduleInstance;
 
         // Dynamic modules
         int dynamicModuleCount = 0;
@@ -148,16 +146,16 @@ namespace wasm {
 
         // Map of dynamically loaded modules
         std::unordered_map<std::string, int> dynamicPathToHandleMap;
-        std::unordered_map<int, Runtime::GCPointer<Runtime::Instance>> dynamicModuleMap;
+        std::unordered_map<int, WAVM::Runtime::GCPointer<WAVM::Runtime::Instance>> dynamicModuleMap;
 
         // Dynamic linking tables and memories
-        std::unordered_map<std::string, Uptr> globalOffsetTableMap;
+        std::unordered_map<std::string, WAVM::Uptr> globalOffsetTableMap;
         std::unordered_map<std::string, int> globalOffsetMemoryMap;
         std::unordered_map<std::string, int> missingGlobalOffsetEntries;
 
-        static Runtime::Instance *getEnvModule();
+        static WAVM::Runtime::Instance *getEnvModule();
 
-        static Runtime::Instance *getWasiModule();
+        static WAVM::Runtime::Instance *getWasiModule();
 
         void doBindToFunction(const message::Message &msg, bool executeZygote);
 
@@ -166,22 +164,22 @@ namespace wasm {
 
         void clone(const WAVMWasmModule &other);
 
-        void addModuleToGOT(IR::Module &mod, bool isMainModule);
+        void addModuleToGOT(WAVM::IR::Module &mod, bool isMainModule);
 
         void executeZygoteFunction();
 
-        void executeWasmConstructorsFunction(Runtime::Instance *module);
+        void executeWasmConstructorsFunction(WAVM::Runtime::Instance *module);
 
-        Runtime::Instance *createModuleInstance(
+        WAVM::Runtime::Instance *createModuleInstance(
                 const std::string &name,
                 const std::string &sharedModulePath
         );
 
-        Runtime::Function *getMainFunction(Runtime::Instance *module);
+        WAVM::Runtime::Function *getMainFunction(WAVM::Runtime::Instance *module);
 
-        Runtime::Function *getDefaultZygoteFunction(Runtime::Instance *module);
+        WAVM::Runtime::Function *getDefaultZygoteFunction(WAVM::Runtime::Instance *module);
 
-        Runtime::Function *getWasmConstructorsFunction(Runtime::Instance *module);
+        WAVM::Runtime::Function *getWasmConstructorsFunction(WAVM::Runtime::Instance *module);
 
         void syncPythonFunctionFile(const message::Message &msg);
 
@@ -197,9 +195,9 @@ namespace wasm {
     void setExecutingModule(WAVMWasmModule *executingModule);
 
     struct WasmThreadSpec {
-        Runtime::ContextRuntimeData *contextRuntimeData;
-        Runtime::Function *func;
-        IR::UntaggedValue *funcArgs;
+        WAVM::Runtime::ContextRuntimeData *contextRuntimeData;
+        WAVM::Runtime::Function *func;
+        WAVM::IR::UntaggedValue *funcArgs;
         U32 stackTop;
     };
 }

@@ -9,6 +9,7 @@
 
 #include <WAVM/WASI/WASIABI.h>
 
+using namespace WAVM;
 
 namespace wasm {
     void getBytesFromWasm(I32 dataPtr, I32 dataLen, uint8_t *buffer) {

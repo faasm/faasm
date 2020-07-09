@@ -13,8 +13,10 @@ extern "C" {
 #include <faaslet/FaasletPool.h>
 #include <faaslet/Faaslet.h>
 #include <emulator/emulator.h>
+#include <wavm/WAVMWasmModule.h>
 
 using namespace faaslet;
+using namespace WAVM;
 
 namespace tests {
     static std::string originalNsMode;
@@ -181,7 +183,6 @@ namespace tests {
         setEmulatedMessage(call);
 
         // Call function
-        FaasletPool pool(1);
         Faaslet w(1);
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
@@ -191,13 +192,14 @@ namespace tests {
         w.processNextMessage();
 
         // Check initial pages
-        Uptr initialPages = Runtime::getMemoryNumPages(w.module->defaultMemory);
+        wasm::WAVMWasmModule *modulePtr = static_cast<wasm::WAVMWasmModule *>(w.module.get());
+        Uptr initialPages = Runtime::getMemoryNumPages(modulePtr->defaultMemory);
 
         // Exec the function
         w.processNextMessage();
 
         // Check page count is equal
-        Uptr afterPages = Runtime::getMemoryNumPages(w.module->defaultMemory);
+        Uptr afterPages = Runtime::getMemoryNumPages(modulePtr->defaultMemory);
         REQUIRE(afterPages == initialPages);
     }
 

@@ -1,53 +1,23 @@
+#include "FaasletPool.h"
+
 #include <faaslet/Faaslet.h>
 #include <faaslet/FaasmMain.h>
-
-#include "FaasletPool.h"
 
 #include <scheduler/GlobalMessageBus.h>
 #include <scheduler/SharingMessageBus.h>
 #include <state/StateServer.h>
 #include <mpi/MpiGlobalBus.h>
-
-#if(FAASM_SGX == 1)
-#define SGX_WAMR_ENCLAVE_PATH "sgx_wamr_enclave.sign.so"
-#include <sgx.h>
-#include <sgx_urts.h>
-#include <sgx/faasm_sgx_error.h>
-#include <sgx/SGXWAMRWasmModule.h>
-extern "C"{
-sgx_enclave_id_t enclave_id;
-};
-#endif
+#include <system/SGX.h>
 
 namespace faaslet {
     FaasletPool::FaasletPool(int nThreads) :
             _shutdown(false),
             scheduler(scheduler::getScheduler()),
             threadTokenPool(nThreads) {
-#if(FAASM_SGX == 1)
-        faasm_sgx_status_t ret_val;
-        sgx_status_t sgx_ret_val;
-        sgx_launch_token_t sgx_enclave_token = {0};
-        uint32_t sgx_enclave_token_updated = 0;
-#if(SGX_SIM_MODE == 0)
-        if((ret_val = faasm_sgx_get_sgx_support()) != FAASM_SGX_SUCCESS){
-            printf("[Error] Machine doesn't support sgx (%#010x)\n",ret_val);
-            exit(0);
-        }
-#endif
-        if((sgx_ret_val = sgx_create_enclave(SGX_WAMR_ENCLAVE_PATH,SGX_DEBUG_FLAG,&sgx_enclave_token,(int*)&sgx_enclave_token_updated,&enclave_id,NULL)) != SGX_SUCCESS){
-            printf("[Error] Unable to create enclave (%#010x)\n",sgx_ret_val);
-            exit(0);
-        }
-        if((sgx_ret_val = sgx_wamr_enclave_init_wamr(enclave_id,&ret_val, nThreads)) != SGX_SUCCESS){
-            printf("[Error] Unable to enter enclave (%#010x)\n",sgx_ret_val);
-            exit(0);
-        }
-        if(ret_val != FAASM_SGX_SUCCESS){
-            printf("[Error] Unable to initialize WAMR (%#010x)\n",ret_val);
-            exit(0);
-        }
-#endif
+
+        // Check SGX (will do nothing if not enabled)
+        isolation::checkSgxSetup();
+
         // Ensure we can ping both redis instances
         redis::Redis::getQueue().ping();
         redis::Redis::getState().ping();
@@ -252,9 +222,6 @@ namespace faaslet {
 
     void FaasletPool::shutdown() {
         _shutdown = true;
-#if(FAASM_SGX == 1)
-        sgx_status_t sgx_ret_val;
-#endif
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -285,11 +252,7 @@ namespace faaslet {
 
         logger->info("Worker pool successfully shut down");
 
-#if(FAASM_SGX == 1)
-        printf("[Info] Destroying enclave\n");
-        if((sgx_ret_val = sgx_destroy_enclave(enclave_id)) != SGX_SUCCESS){
-            printf("[Info] Unable to destroy enclave (%#010x)\n",sgx_ret_val);
-        }
-#endif
+        // Tear down SGX enclave (will do nothing if not enabled)
+        isolation::tearDownEnclave();
     }
 }

@@ -3,6 +3,8 @@
 
 #include <cstdio>
 
+using namespace WAVM;
+
 namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__println", void, __println, I32 strPtr) {
