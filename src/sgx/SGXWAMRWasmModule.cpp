@@ -15,6 +15,12 @@ namespace wasm {
 
     }
 
+    SGXWAMRWasmModule::~SGXWAMRWasmModule() {
+        if(!module_sgx_wamr->unbindFunction()){
+            printf("[Error] SGX Faaslet destruction failed\n");
+        }
+    }
+
     void SGXWAMRWasmModule::bindToFunction(const message::Message &msg) {
         sgx_status_t sgx_ret_val;
         faasm_sgx_status_t ret_val;
@@ -81,29 +87,4 @@ namespace wasm {
     const bool SGXWAMRWasmModule::isBound() {
         return _is_bound;
     }
-
-    void SGXWAMRWasmModule::writeWasmEnvToMemory(uint32_t env_ptr, uint32_t env_buffer) {
-
-    }
-
-    void SGXWAMRWasmModule::writeMemoryToFd(int fd) {
-
-    }
-
-    void SGXWAMRWasmModule::mapMemoryFromFd() {
-
-    }
-
-    void SGXWAMRWasmModule::writeArgvToMemory(uint32_t wasm_argv_ptr, uint32_t wasm_argv_buffer) {
-
-    }
-
-    void SGXWAMRWasmModule::doSnapshot(std::ostream &out_stream) {
-
-    }
-
-    void SGXWAMRWasmModule::doRestore(std::istream &in_stream) {
-
-    }
 }
-

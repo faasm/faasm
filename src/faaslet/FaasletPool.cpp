@@ -1,7 +1,7 @@
+#include "FaasletPool.h"
+
 #include <faaslet/Faaslet.h>
 #include <faaslet/FaasmMain.h>
-
-#include "FaasletPool.h"
 
 #include <scheduler/GlobalMessageBus.h>
 #include <scheduler/SharingMessageBus.h>

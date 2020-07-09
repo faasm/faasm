@@ -30,13 +30,13 @@ namespace wasm {
         ~WAVMWasmModule();
 
         // ----- Module lifecycle -----
-        void bindToFunction(const message::Message &msg);
+        void bindToFunction(const message::Message &msg) override;
 
-        void bindToFunctionNoZygote(const message::Message &msg);
+        void bindToFunctionNoZygote(const message::Message &msg) override;
 
-        bool execute(message::Message &msg, bool forceNoop = false);
+        bool execute(message::Message &msg, bool forceNoop = false) override;
 
-        const bool isBound();
+        const bool isBound() override;
 
         bool tearDown();
 
@@ -50,12 +50,12 @@ namespace wasm {
         uint32_t mapSharedStateMemory(const std::shared_ptr<state::StateKeyValue> &kv, long offset, uint32_t length);
 
         // ----- Environment variables
-        void writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer);
+        void writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer) override;
 
         // ----- CoW memory -----
-        void writeMemoryToFd(int fd);
+        void writeMemoryToFd(int fd) override;
 
-        void mapMemoryFromFd();
+        void mapMemoryFromFd() override;
 
         // ----- Internals -----
         WAVM::Runtime::GCPointer<WAVM::Runtime::Memory> defaultMemory;
@@ -74,7 +74,7 @@ namespace wasm {
                 WAVM::IR::UntaggedValue &result
         );
 
-        void writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer);
+        void writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer) override;
 
         // ----- Resolution/ linking -----
 
@@ -85,7 +85,7 @@ namespace wasm {
         bool resolve(const std::string &moduleName,
                      const std::string &name,
                      WAVM::IR::ExternType type,
-                     WAVM::Runtime::Object *&resolved);
+                     WAVM::Runtime::Object *&resolved) override;
 
         int32_t getGlobalI32(const std::string &globalName, WAVM::Runtime::Context *context);
 
@@ -119,9 +119,9 @@ namespace wasm {
         std::unique_ptr<openmp::PlatformThreadPool> &getOMPPool();
 
     protected:
-        void doSnapshot(std::ostream &outStream);
+        void doSnapshot(std::ostream &outStream) override;
 
-        void doRestore(std::istream &inStream);
+        void doRestore(std::istream &inStream) override;
 
     private:
         WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> envModule;

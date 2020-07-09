@@ -35,14 +35,16 @@
 namespace wasm {
     class WasmModule {
     public:
+        virtual ~WasmModule();
+
         // ----- Module lifecycle -----
-        void bindToFunction(const message::Message &msg);
+        virtual void bindToFunction(const message::Message &msg);
 
-        void bindToFunctionNoZygote(const message::Message &msg);
+        virtual void bindToFunctionNoZygote(const message::Message &msg);
 
-        bool execute(message::Message &msg, bool forceNoop = false);
+        virtual bool execute(message::Message &msg, bool forceNoop = false);
 
-        const bool isBound();
+        virtual const bool isBound();
 
         std::string getBoundUser();
 
@@ -53,10 +55,10 @@ namespace wasm {
 
         uint32_t getArgvBufferSize();
 
-        void writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer);
+        virtual void writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer);
 
         // ----- Environment variables
-        void writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer);
+        virtual void writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer);
 
         WasmEnvironment &getWasmEnvironment();
 
@@ -73,9 +75,9 @@ namespace wasm {
         void clearCapturedStdout();
 
         // ----- CoW memory -----
-        void writeMemoryToFd(int fd);
+        virtual void writeMemoryToFd(int fd);
 
-        void mapMemoryFromFd();
+        virtual void mapMemoryFromFd();
 
         // ----- Snapshot/ restore -----
         void snapshotToFile(const std::string &filePath);
@@ -109,9 +111,9 @@ namespace wasm {
 
         int getStdoutFd();
 
-        void doSnapshot(std::ostream &outStream);
+        virtual void doSnapshot(std::ostream &outStream);
 
-        void doRestore(std::istream &inStream);
+        virtual void doRestore(std::istream &inStream);
 
         void prepareArgcArgv(const message::Message &msg);
     };

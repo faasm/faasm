@@ -21,7 +21,6 @@ extern "C"{
 namespace wasm{
     class SGXWAMRWasmModule final: public WasmModule{
     public:
-
         SGXWAMRWasmModule(sgx_enclave_id_t* enclave_id);
 
         ~SGXWAMRWasmModule();
@@ -35,20 +34,6 @@ namespace wasm{
         bool execute(message::Message &msg, bool force_noop = false);
 
         const bool isBound();
-
-        void writeWasmEnvToMemory(uint32_t env_ptr, uint32_t env_buffer);
-
-        void writeMemoryToFd(int fd);
-
-        void mapMemoryFromFd();
-
-        void writeArgvToMemory(uint32_t wasm_argv_ptr, uint32_t wasm_argv_buffer);
-
-    protected:
-        void doSnapshot(std::ostream &out_stream);
-
-        void doRestore(std::istream &in_stream);
-
     private:
         bool _is_bound = false;
         unsigned int thread_id;

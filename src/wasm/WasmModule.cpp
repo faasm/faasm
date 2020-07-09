@@ -31,6 +31,10 @@ namespace wasm {
         return pageCount;
     }
 
+    WasmModule::~WasmModule() {
+        // Does nothing
+    }
+
     storage::FileSystem &WasmModule::getFileSystem() {
         return filesystem;
     }
@@ -236,5 +240,4 @@ namespace wasm {
     void WasmModule::doRestore(std::istream &inStream) {
         throw std::runtime_error("doRestore not implemented");
     }
-
 }
