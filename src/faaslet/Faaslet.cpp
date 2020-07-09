@@ -8,11 +8,12 @@
 #include <util/timing.h>
 #include <module_cache/WasmModuleCache.h>
 
-#include <sgx/SGXWAMRWasmModule.h>
 #include <wamr/WAMRWasmModule.h>
 #include <wavm/WAVMWasmModule.h>
 
 #if(FAASM_SGX == 1)
+#include <sgx/SGXWAMRWasmModule.h>
+
 extern "C"{
 extern sgx_enclave_id_t enclave_id;
 };
@@ -121,15 +122,13 @@ namespace faaslet {
 
         util::SystemConfig &conf = util::getSystemConfig();
 
-        if(conf.wasmVm == "wamr-sgx") {
+        if(conf.wasmVm == "wamr") {
 #if(FAASM_SGX == 1)
             module = std::make_unique<wasm::SGXWAMRWasmModule>(&enclave_id);
 #else
-            module = std::make_unique<wasm::SGXWAMRWasmModule>();
+            module = std::make_unique<wasm::WAMRWasmModule>();
 #endif
             module->bindToFunction(msg);
-        } else if(conf.wasmVm == "wamr") {
-            module = std::make_unique<wasm::WAMRWasmModule>();
         } else {
             // Instantiate the module from its snapshot
             PROF_START(snapshotRestore)

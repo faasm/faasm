@@ -4,8 +4,6 @@
 #include <storage/FileLoader.h>
 #include <wasm/WasmModule.h>
 
-#if(FAASM_SGX == 1)
-
 #include <sgx.h>
 #include <sgx_urts.h>
 #include <sgx/faasm_sgx_error.h>
@@ -19,17 +17,15 @@ extern "C"{
     extern sgx_status_t sgx_wamr_enclave_call_function(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val, const unsigned int thread_id, const uint32_t func_id);
 };
 
-#endif
 
 namespace wasm{
     class SGXWAMRWasmModule final: public WasmModule{
     public:
 
-#if(FAASM_SGX == 1)
         SGXWAMRWasmModule(sgx_enclave_id_t* enclave_id);
 
         ~SGXWAMRWasmModule();
-#endif
+
         void bindToFunction(const message::Message& msg);
 
         void bindToFunctionNoZygote(const message::Message &msg);
@@ -58,8 +54,6 @@ namespace wasm{
         unsigned int thread_id;
         std::vector<uint8_t> wasm_opcode;
 
-        #if(FAASM_SGX == 1)
         sgx_enclave_id_t* enclave_id_ptr;
-        #endif
     };
 }
