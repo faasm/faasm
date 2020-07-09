@@ -91,12 +91,14 @@ namespace faaslet {
         logger->debug("Setting function result for {}", funcStr);
         globalBus.setFunctionResult(call);
 
-        if (!call.issgx()) {
+        if (conf.wasmVm == "wavm") {
             // Restore from zygote
             logger->debug("Resetting module {} from zygote", funcStr);
             module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
             wasm::WAVMWasmModule &cachedModule = registry.getCachedModule(call);
-            *module = cachedModule;
+
+            wasm::WAVMWasmModule *wavmModulePtr = static_cast<wasm::WAVMWasmModule *>(module.get());
+            *wavmModulePtr = cachedModule;
         }
 
         // Increment the execution counter

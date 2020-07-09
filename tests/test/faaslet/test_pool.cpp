@@ -183,7 +183,6 @@ namespace tests {
         setEmulatedMessage(call);
 
         // Call function
-        FaasletPool pool(1);
         Faaslet w(1);
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
