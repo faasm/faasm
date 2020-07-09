@@ -146,9 +146,6 @@ namespace wasm {
 
         // Full memory fence, a bit overkill maybe for Wasm
         __sync_synchronize();
-
-        // Prevent busy waiting like while(flag) #pragma omp flush(flag)
-        WAVM::Platform::yieldToAnotherThread();
     }
 
     /**
@@ -256,7 +253,6 @@ namespace wasm {
 
 #ifdef OPENMP_FORK_REDIS_TRACE
         const util::TimePoint iterationTp = util::startTimer();
-        redis::Redis &redis = redis::Redis::getState();
 #endif
 
         // Set up number of threads for next level
@@ -340,9 +336,6 @@ namespace wasm {
                 throw std::runtime_error(fmt::format("{} OMP threads have exited with errors", numErrors));
             }
 
-#ifdef OPENMP_FORK_REDIS_TRACE
-            redis.del(activeSnapshotKey);
-#endif
             logger->debug("Distributed Fork finished successfully");
         } else { // Single host
 
@@ -399,8 +392,8 @@ namespace wasm {
         }
 
 #ifdef OPENMP_FORK_REDIS_TRACE
-        const long distributedIterationTime = util::getTimeDiffMillis(iterationTp);
-        redis.rpushLong(fmt::format("{}_fork_times", parentModule->getBoundFunction()), distributedIterationTime);
+        const long distributedIterationTime = util::getTimeDiffNanos(iterationTp);
+        logger->warn("{}, Wasm local,{}", nextNumThreads, distributedIterationTime);
 #endif
     }
 
