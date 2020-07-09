@@ -15,8 +15,12 @@ enclave{
     };
     untrusted{
         void ocall_printf([in, string] const char* msg);
+        unsigned int ocall_faasm_get_input_size(void);
+        void ocall_faasm_get_input([in,out, size=buffer_size] uint8_t* buffer, unsigned int buffer_size);
+        void ocall_faasm_set_output([in, size=output_size] uint8_t* output, unsigned int output_size);
         unsigned int ocall_faasm_chain_function_input([in, string] const char* name, [in, size=input_size] uint8_t* input, long input_size);
         unsigned int ocall_faasm_chain_this_input(int idx, [in, size=input_size] uint8_t* input, long input_size);
         unsigned int ocall_faasm_await_call(unsigned int call_id);
+        unsigned int ocall_faasm_await_call_output(unsigned int call_id, [out, size=buffer_size] uint8_t* buffer, unsigned int buffer_size);
     };
 };

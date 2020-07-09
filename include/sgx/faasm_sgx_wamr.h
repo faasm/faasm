@@ -15,9 +15,13 @@ extern "C" {
 #endif
 
 int faasmGetCurrentIdx();
-unsigned int faasmChainFunctionInput(const char *name, const uint8_t *inputData, long inputDataSize);
-unsigned int faasmChainThisInput(int idx, const uint8_t *inputData, long inputDataSize);
+unsigned int faasmGetInputSize();
+void faasmGetInput(uint8_t* buffer, unsigned int buffer_size);
+void faasmSetOutput(const uint8_t* output, unsigned int output_size);
+unsigned int faasmChainFunctionInput(const char* name, const uint8_t* input, unsigned int input_size);
+unsigned int faasmChainThisInput(int idx, const uint8_t* input, unsigned int input_size);
 unsigned int faasmAwaitCall(unsigned int call_id);
+unsigned int faasmAwaitCallOutput(unsigned int call_id, uint8_t* buffer, unsigned int buffer_size);
 
 #ifdef __cplusplus
 };
