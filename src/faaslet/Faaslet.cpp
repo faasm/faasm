@@ -8,6 +8,12 @@
 #include <util/timing.h>
 #include <module_cache/WasmModuleCache.h>
 
+#if(FAASM_SGX == 1)
+extern "C"{
+extern sgx_enclave_id_t enclave_id;
+};
+#endif
+
 using namespace isolation;
 
 namespace faaslet {
@@ -35,7 +41,13 @@ namespace faaslet {
         CGroup cgroup(BASE_CGROUP_NAME);
         cgroup.addCurrentThread();
     }
-
+#if(FAASM_SGX == 1)
+    Faaslet::~Faaslet(void){
+        if(module_sgx_wamr && !module_sgx_wamr->unbindFunction()){
+            printf("[Error] Faaslet destruction failed\n");
+        }
+    }
+#endif
     const bool Faaslet::isBound() {
         return _isBound;
     }
@@ -53,20 +65,23 @@ namespace faaslet {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         const std::string funcStr = util::funcToString(call, true);
         logger->info("Finished {}", funcStr);
-
         if (!success) {
             call.set_outputdata(errorMsg);
         }
 
         // Add captured stdout if necessary
         util::SystemConfig &conf = util::getSystemConfig();
+#if(FAASM_SGX == 1)
+        if(conf.captureStdout == "on" && call.function().find(FAASM_SGX_FUNC_SUFFIX,0) == std::string::npos){
+#else
         if (conf.captureStdout == "on") {
-            std::string moduleStdout = module->getCapturedStdout();
+#endif
+            std::string moduleStdout = module_wavm->getCapturedStdout();
             if (!moduleStdout.empty()) {
                 std::string newOutput = moduleStdout + "\n" + call.outputdata();
                 call.set_outputdata(newOutput);
 
-                module->clearCapturedStdout();
+                module_wavm->clearCapturedStdout();
             }
         }
 
@@ -79,13 +94,17 @@ namespace faaslet {
         // Set result
         logger->debug("Setting function result for {}", funcStr);
         globalBus.setFunctionResult(call);
-
-        // Restore from zygote
-        logger->debug("Resetting module {} from zygote", funcStr);
-        module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
-        wasm::WAVMWasmModule &cachedModule = registry.getCachedModule(call);
-        *module = cachedModule;
-
+#if(FAASM_SGX == 1)
+        if(call.function().find(FAASM_SGX_FUNC_SUFFIX,0) == std::string::npos){
+#endif
+            // Restore from zygote
+            logger->debug("Resetting module {} from zygote", funcStr);
+            module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
+            wasm::WAVMWasmModule &cachedModule = registry.getCachedModule(call);
+            *module_wavm = cachedModule;
+#if(FAASM_SGX == 1)
+        }
+#endif
         // Increment the execution counter
         executionCount++;
     }
@@ -107,15 +126,24 @@ namespace faaslet {
         // Get queue from the scheduler
         currentQueue = scheduler.getFunctionQueue(msg);
 
-        // Instantiate the module from its snapshot
-        PROF_START(snapshotRestore)
+#if(FAASM_SGX == 1)
+        if(msg.function().find(FAASM_SGX_FUNC_SUFFIX,0) != std::string::npos){
+            wasm::SGXWAMRWasmModule sgx_wamr_module(&enclave_id);
+            sgx_wamr_module.bindToFunction(msg);
+            module_sgx_wamr = std::make_unique<wasm::SGXWAMRWasmModule>(sgx_wamr_module);
+        }else{
+#endif
+            // Instantiate the module from its snapshot
+            PROF_START(snapshotRestore)
 
-        module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
-        wasm::WAVMWasmModule &snapshot = registry.getCachedModule(msg);
-        module = std::make_unique<wasm::WAVMWasmModule>(snapshot);
+            module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
+            wasm::WAVMWasmModule &snapshot = registry.getCachedModule(msg);
+            module_wavm = std::make_unique<wasm::WAVMWasmModule>(snapshot);
 
-        PROF_END(snapshotRestore)
-
+            PROF_END(snapshotRestore)
+#if(FAASM_SGX == 1)
+        }
+#endif
         _isBound = true;
     }
 
@@ -185,12 +213,16 @@ namespace faaslet {
 
             // Check if we need to restore from a different snapshot
             const std::string snapshotKey = msg.snapshotkey();
-            if (!snapshotKey.empty()) {
+#if(FAASM_SGX == 1)
+            if(!snapshotKey.empty() && msg.function().find(FAASM_SGX_FUNC_SUFFIX,0) == std::string::npos){
+#else
+            if(!snapshotKey.empty()){
+#endif
                 PROF_START(snapshotOverride)
 
                 module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
                 wasm::WAVMWasmModule &snapshot = registry.getCachedModule(msg);
-                module = std::make_unique<wasm::WAVMWasmModule>(snapshot);
+                module_wavm = std::make_unique<wasm::WAVMWasmModule>(snapshot);
 
                 PROF_END(snapshotOverride)
             }
@@ -198,7 +230,6 @@ namespace faaslet {
             // Do the actual execution
             errorMessage = this->executeCall(msg);
         }
-
         return errorMessage;
     }
 
@@ -211,9 +242,16 @@ namespace faaslet {
         // Create and execute the module
         bool success;
         std::string errorMessage;
-
         try {
-            success = module->execute(call);
+#if(FAASM_SGX == 1)
+            if(call.function().find(FAASM_SGX_FUNC_SUFFIX,0) != std::string::npos){
+                success = module_sgx_wamr->execute(call);
+            }else{
+#endif
+                success = module_wavm->execute(call);
+#if(FAASM_SGX == 1)
+            }
+#endif
         }
         catch (const std::exception &e) {
             errorMessage = "Error: " + std::string(e.what());

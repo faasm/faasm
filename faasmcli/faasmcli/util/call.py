@@ -50,11 +50,9 @@ def invoke_impl(user, func,
     # Defaults
     host = host if host else "127.0.0.1"
     port = port if port else 8080
-
     # Polling always requires asynch
     if poll:
         asynch = True
-
         # Create URL and message
     url = "http://{}".format(host)
     if not port == "80":
@@ -113,7 +111,6 @@ def invoke_impl(user, func,
         headers = _get_knative_headers("worker")
     else:
         headers = {}
-
     if asynch:
         # Submit initial asynch call
         asynch_result = do_post(url, msg, headers=headers, quiet=True, json=True)

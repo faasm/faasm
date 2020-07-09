@@ -15,6 +15,11 @@ of set-ups, however, the only one that is recommended and well tested is:
 
 All scripted CMake builds also use Ninja, so it's safest to use that too.
 
+If you want to use the sgx-wamr implementation, then you have to install nasm
+```
+sudo apt-get install nasm
+```
+
 This means your CMake commands will look something like:
 
 ```
@@ -178,10 +183,10 @@ function:
 
 ```bash
 # Normal CMake set-up
-mkdir -p build 
+mkdir build 
 cd build
 cmake -GNinja \
-  -DCMAKE_C_COMPILER=/usr/bin/clang \ 
+  -DCMAKE_C_COMPILER=/usr/bin/clang \
   -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
   .. 
 
@@ -241,3 +246,4 @@ pip install setuptools wheel
 #Install faasmcli requirements
 pip install -r faasmcli/requirements.txt
 ```
+
