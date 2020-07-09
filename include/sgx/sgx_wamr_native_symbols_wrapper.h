@@ -10,7 +10,6 @@
 #include <iwasm/include/wasm_export.h>
 
 extern "C"{
-    extern sgx_status_t SGX_CDECL ocall_sgx_wamr_example_native_symbol(const char* message);
     extern sgx_status_t SGX_CDECL ocall_faasm_chain_function_input(unsigned int* ret_val, const char* name, const uint8_t* input, long input_size);
     extern sgx_status_t SGX_CDECL ocall_faasm_chain_this_input(unsigned int* ret_val, const int idx, const uint8_t* input, long input_size);
     extern sgx_status_t SGX_CDECL ocall_faasm_await_call(unsigned int* ret_val, unsigned int call_id);

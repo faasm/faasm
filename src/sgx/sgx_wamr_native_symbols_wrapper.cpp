@@ -10,9 +10,6 @@
 
 extern "C"{
     extern int os_printf(const char* message, ...);
-    static void sgx_wamr_example_native_symbol_wrapper(wasm_exec_env_t exec_env, const char* message){
-        ocall_sgx_wamr_example_native_symbol(message);
-    }
     static void faasmGetCurrentIdx(wasm_exec_env_t exec_env){
         if(exec_env->module_inst->module_type == Wasm_Module_Bytecode){
             WASMModuleInstance* module_instance = (WASMModuleInstance*) exec_env->module_inst;
@@ -44,7 +41,6 @@ extern "C"{
         return ret_val;
     }
     static NativeSymbol sgx_wamr_native_symbols[] = {
-            {"sgx_wamr_example_native_symbol",(void*)sgx_wamr_example_native_symbol_wrapper,"($)",0x0},
             {"faasmGetCurrentIdx",(void*)faasmGetCurrentIdx,"",0x0},
             {"faasmChainFunctionInput",(void*)faasm_chain_function_input,"($*~)i",0x0},
             {"faasmChainThisInput",(void*)faasm_chain_this_input_wrapper,"(i*~)i",0x0},

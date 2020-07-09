@@ -12,12 +12,10 @@ namespace wasm{
     extern int awaitChainedCall(unsigned int messageId);
 }
 extern "C"{
-    void ocall_sgx_wamr_example_native_symbol(const char* message){
-        printf("sgx_wamr_example_native_symbols: %s \n", message);
-    }
     unsigned int ocall_faasm_chain_function_input(const char* name, const uint8_t* input, long input_size){
         std::vector<uint8_t>_input(input, input+input_size);
         return wasm::makeChainedCall(std::string(name),0,NULL,_input);
+        int a = 0;
     }
     unsigned int ocall_faasm_chain_this_input(const int idx, uint8_t* input, long input_size){
         message::Message* bounded_message = wasm::getExecutingCall();
