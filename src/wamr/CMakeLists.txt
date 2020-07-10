@@ -1,6 +1,5 @@
 include_directories(
         ${FAASM_INCLUDE_DIR}/wamr
-        ${WAMR_INCLUDE_DIR}
 )
 
 set(HEADERS

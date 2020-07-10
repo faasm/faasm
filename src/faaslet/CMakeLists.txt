@@ -18,6 +18,12 @@ set(LIB_FILES
 faasm_private_lib(faaslet_lib "${LIB_FILES}")
 target_link_libraries(faaslet_lib wasm wavmmodule module_cache system)
 
+# Have to include WAMR stuff here
+set(BUILD_UNTRUST_PART 1)
+include(${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
+
+target_link_libraries(faaslet_lib wamrmodule)
+
 # Extra SGX WAMR support
 if(FAASM_SGX_SUPPORT)
     target_link_libraries(faaslet_lib sgx_wamr)
