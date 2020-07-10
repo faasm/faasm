@@ -84,20 +84,6 @@ else ()
     set(SGX_WAMR_C_FLAGS ${SGX_C_GLOBAL_FLAGS} -fPIC -Wno-attributes)
 endif ()
 
-# WAMR interpreter
-if (WAMR_BUILD_INTERP)
-    add_definitions(-DWASM_ENABLE_INTERP=1)
-else ()
-    add_definitions(-DWASM_ENABLE_INTERP=0)
-endif ()
-
-# WAMR AOT
-if (WAMR_BUILD_AOT)
-    add_definitions(-DWASM_ENABLE_AOT=1)
-else ()
-    add_definitions(-DWASM_ENABLE_AOT=0)
-endif ()
-
 # --------------------------------------------------------
 # ENCLAVE BUILD
 # --------------------------------------------------------
@@ -136,7 +122,7 @@ if (SGX_SIM_MODE)
             sgx_tcxx
             sgx_tcrypto
             sgx_tservice_sim
-            libwamr
+            wamr
             -Wl,--end-group
             )
 elseif (NOT SGX_SIM_MODE)
@@ -148,7 +134,7 @@ elseif (NOT SGX_SIM_MODE)
             sgx_tcxx
             sgx_tcrypto
             sgx_tservice
-            libwamr
+            wamr
             -Wl,--end-group
             )
 endif ()
