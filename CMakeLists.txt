@@ -46,10 +46,6 @@ if (FAASM_WAMR_SUPPORT)
 
     # WAMR SGX-specific config
     if(FAASM_SGX_SUPPORT)
-        # NOTE: this is really important to ensure WAMR DOES include the SGX libc and libcxx
-        # See third-party/wamr/core/shared/platform/linux-sgx/shared_platform.cmake
-        set(BUILD_UNTRUST_PART 0)
-
         set(WAMR_BUILD_PLATFORM linux-sgx)
         set(WAMR_BUILD_FAST_INTERP 0)
         set(WAMR_BUILD_INTERP 1)
@@ -65,10 +61,6 @@ if (FAASM_WAMR_SUPPORT)
 
     # Non-SGX WAMR config
     else(FAASM_WAMR_SUPPORT)
-        # NOTE: this is really important to ensure WAMR DOES NOT include the SGX libc and libcxx
-        # See third-party/wamr/core/shared/platform/linux-sgx/shared_platform.cmake
-        set(BUILD_UNTRUST_PART 1)
-
         set(WAMR_BUILD_PLATFORM linux)
         set(WAMR_BUILD_FAST_INTERP 1)
         set(WAMR_BUILD_INTERP 1)
@@ -210,20 +202,17 @@ else ()
     # WAVM
     add_subdirectory(third-party/WAVM)
 
-    # WAMR
-    if (FAASM_WAMR_SUPPORT)
-        include(${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
-        add_library(wamr ${WAMR_RUNTIME_LIB_SOURCE})
-    endif ()
+    # Faasm functions
+    if(FAASM_WAMR_SUPPORT)
+        add_subdirectory(src/wamr)
+    endif()
 
     # SGX
     if(FAASM_SGX_SUPPORT)
         add_subdirectory(src/sgx)
     endif()
 
-    # Faasm functions
     add_subdirectory(func)
-
     # Faasm libraries
     add_subdirectory(libs/cpp)
     add_subdirectory(libs/faasmp)
@@ -252,7 +241,6 @@ else ()
     add_subdirectory(src/tcp)
     add_subdirectory(src/upload)
     add_subdirectory(src/util)
-    add_subdirectory(src/wamr)
     add_subdirectory(src/wasm)
     add_subdirectory(src/wavm)
 
