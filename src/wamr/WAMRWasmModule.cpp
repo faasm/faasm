@@ -55,6 +55,8 @@ namespace wasm {
     }
 
     bool WAMRWasmModule::execute(message::Message &msg, bool forceNoop) {
+        setExecutingCall(&msg);
+
         executionEnv = wasm_runtime_create_exec_env(moduleInstance, STACK_SIZE);
 
         // Run wasm initialisers

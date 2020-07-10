@@ -1,11 +1,13 @@
 #include <wasm/WasmModule.h>
 
 #include <util/config.h>
-#include <util/timing.h>
 #include <util/func.h>
-#include <module_cache/WasmModuleCache.h>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+
+#include <module_cache/WasmModuleCache.h>
+#include <wamr/WAMRWasmModule.h>
+
 #include <util/files.h>
 
 bool runFunction(std::string &user, std::string &function, int runCount);
@@ -63,6 +65,48 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
+bool runWithWamr(message::Message &m, int runCount) {
+    wasm::WAMRWasmModule module;
+    module.bindToFunction(m);
+
+    bool success = true;
+    for (int i = 0; i < runCount; i++) {
+        success = module.execute(m);
+        if (!success) {
+            break;
+        }
+    }
+
+    return success;
+}
+
+
+bool runWithWavm(message::Message &m, int runCount) {
+    const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+    bool success = true;
+
+    // Create the module
+    module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
+    wasm::WAVMWasmModule &cachedModule = registry.getCachedModule(m);
+
+    // Create new module from cache
+    wasm::WAVMWasmModule module(cachedModule);
+
+    // Run repeated executions
+    for (int i = 0; i < runCount; i++) {
+        success = module.execute(m);
+        if (!success) {
+            logger->error("Execution failed");
+            break;
+        }
+
+        // Reset using cached module
+        module = cachedModule;
+    }
+
+    return success;
+}
+
 bool runFunction(std::string &user, std::string &function, int runCount) {
     const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
@@ -80,31 +124,19 @@ bool runFunction(std::string &user, std::string &function, int runCount) {
         m.set_function(PYTHON_FUNC);
     }
 
-    // Create the module
-    module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
-    wasm::WAVMWasmModule &cachedModule = registry.getCachedModule(m);
-
-    // Create new module from cache
-    wasm::WAVMWasmModule module(cachedModule);
-
-    // Run repeated executions
+    util::SystemConfig &conf = util::getSystemConfig();
     bool success = true;
-    for (int i = 0; i < runCount; i++) {
-        logger->info("Run {} - {}/{} ", i, user, function);
 
-        PROF_START(execution)
-        success = module.execute(m);
-        PROF_END(execution)
-
-        if (!success) {
-            logger->error("Execution failed");
-            break;
-        }
-
-        // Reset using cached module
-        module = cachedModule;
-        logger->info("DONE Run {} - {}/{} ", i, user, function);
+    if (conf.wasmVm == "wavm") {
+        logger->info("Running {}/{} with WAVM", m.user(), m.function());
+        success = runWithWavm(m, runCount);
+    } else if (conf.wasmVm == "wamr") {
+        logger->info("Running {}/{} with WAMR", m.user(), m.function());
+        success = runWithWamr(m, runCount);
+    } else {
+        throw std::runtime_error("Invalid wasm VM: " + conf.wasmVm);
     }
 
     return success;
 }
+
