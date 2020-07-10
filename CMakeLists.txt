@@ -41,7 +41,6 @@ endif()
 # WAMR configuration
 if (FAASM_WAMR_SUPPORT)
     set(WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
-    set(WAMR_INCLUDE_DIR ${WAMR_ROOT_DIR}/core/iwasm/include)
     set(WAMR_BUILD_TARGET X86_64)
 
     # WAMR SGX-specific config

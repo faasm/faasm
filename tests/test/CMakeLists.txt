@@ -13,4 +13,7 @@ add_executable(
 
 target_link_libraries(tests test_utils)
 
+set(BUILD_UNTRUST_PART 1)
+include(${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
+
 add_test(NAME tests COMMAND "tests/test/tests")
