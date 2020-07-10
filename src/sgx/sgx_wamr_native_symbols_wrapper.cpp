@@ -13,7 +13,8 @@ static void sgx_wamr_example_native_symbol_wrapper(wasm_exec_env_t exec_env, con
 
 static void faasmGetCurrentIdx(wasm_exec_env_t exec_env) {
     if (exec_env->module_inst->module_type == Wasm_Module_Bytecode) {
-        WASMModuleInstance *module_instance = (WASMModuleInstance *) exec_env->module_inst;
+        auto module_instance = (WASMModuleInstance *) exec_env->module_inst;
+
         for (uint32_t i = 0; i < module_instance->export_func_count; i++) {
             os_printf("%s\n", module_instance->export_functions[i].name);
         }
