@@ -43,7 +43,7 @@ if (FAASM_WAMR_SUPPORT)
             -ffunction-sections
             -fdata-sections
             -fstack-protector-strong
-    )
+            )
 endif ()
 
 # Check for SGX SDK
@@ -68,7 +68,7 @@ if (SGX_DEBUG_MODE)
     message(STATUS "Enclave will be build with debug information and -O0 optimization")
     set(SGX_C_GLOBAL_FLAGS ${SGX_C_GLOBAL_FLAGS} -O0 -g)
     set(SGX_WAMR_C_FLAGS ${SGX_C_GLOBAL_FLAGS} -fPIC -Wno-attributes -DDEBUG -UNDEBUG -UEDEBUG)
-else()
+else ()
     message(STATUS "Enclave will be build without debug information and -O2 optimization")
     set(SGX_C_GLOBAL_FLAGS ${SGX_C_GLOBAL_FLAGS} -O2)
     set(SGX_WAMR_C_FLAGS ${SGX_C_GLOBAL_FLAGS} -fPIC -Wno-attributes)
@@ -136,21 +136,65 @@ target_link_options(sgx_wamr_enclave PRIVATE
         -Wl,--defsym,__ImageBase=0
         -Wl,--gc-sections
         -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/sgx_wamr_enclave.lds
-    )
+        )
 
 if (SGX_SIM_MODE)
-    target_link_libraries(sgx_wamr_enclave -Wl,--whole-archive sgx_trts_sim -Wl,--no-whole-archive -Wl,--start-group sgx_tstdc sgx_tcxx sgx_tcrypto sgx_tservice_sim wamr -Wl,--end-group)
+    target_link_libraries(sgx_wamr_enclave
+            -Wl,--whole-archive sgx_trts_sim
+            -Wl,--no-whole-archive
+            -Wl,--start-group sgx_tstdc
+            sgx_tcxx
+            sgx_tcrypto
+            sgx_tservice_sim
+            libwamr
+            -Wl,--end-group
+            )
 elseif (NOT SGX_SIM_MODE)
-    target_link_libraries(sgx_wamr_enclave -Wl,--whole-archive sgx_trts -Wl,--no-whole-archive -Wl,--start-group sgx_tstdc sgx_tcxx sgx_tcrypto sgx_tservice wamr -Wl,--end-group)
+    target_link_libraries(sgx_wamr_enclave
+            -Wl,--whole-archive sgx_trts
+            -Wl,--no-whole-archive
+            -Wl,--start-group
+            sgx_tstdc
+            sgx_tcxx
+            sgx_tcrypto
+            sgx_tservice
+            libwamr
+            -Wl,--end-group
+            )
 endif ()
 
 # Custom commands
-add_custom_command(TARGET sgx_wamr_enclave PRE_BUILD COMMAND ${SGX_SDK_ENCLAVE_EDGER8R} --trusted sgx_wamr_enclave.edl --search-path /usr/local/code/faasm/src/sgx --search-path ${SGX_SDK_PATH}/include)
+add_custom_command(TARGET sgx_wamr_enclave PRE_BUILD
+        COMMAND ${SGX_SDK_ENCLAVE_EDGER8R} --trusted sgx_wamr_enclave.edl
+        --search-path /usr/local/code/faasm/src/sgx
+        --search-path ${SGX_SDK_PATH}/include
+        )
 
-add_custom_command(TARGET sgx_wamr PRE_BUILD COMMAND ${SGX_SDK_ENCLAVE_EDGER8R} --untrusted sgx_wamr_enclave.edl --search-path /usr/local/code/faasm/src/sgx --search-path ${SGX_SDK_PATH}/include)
+add_custom_command(TARGET sgx_wamr PRE_BUILD
+        COMMAND ${SGX_SDK_ENCLAVE_EDGER8R} --untrusted sgx_wamr_enclave.edl
+        --search-path /usr/local/code/faasm/src/sgx
+        --search-path ${SGX_SDK_PATH}/include
+        )
 
-add_custom_command(TARGET sgx_wamr_enclave PRE_BUILD COMMAND gcc ${SGX_WAMR_ENCLAVE_C_FLAGS} -I${SGX_SDK_PATH}/include -I${SGX_SDK_PATH}/include/tlibc -c sgx_wamr_enclave_t.c -o sgx_wamr_enclave_t.o)
+add_custom_command(TARGET sgx_wamr_enclave PRE_BUILD
+        COMMAND gcc ${SGX_WAMR_ENCLAVE_C_FLAGS}
+        -I${SGX_SDK_PATH}/include
+        -I${SGX_SDK_PATH}/include/tlibc
+        -c sgx_wamr_enclave_t.c
+        -o sgx_wamr_enclave_t.o
+        )
 
-add_custom_command(TARGET sgx_wamr PRE_BUILD COMMAND gcc ${SGX_WAMR_C_FLAGS} -I${SGX_SDK_PATH}/include -c sgx_wamr_enclave_u.c -o sgx_wamr_enclave_u.o)
+add_custom_command(TARGET sgx_wamr PRE_BUILD
+        COMMAND gcc ${SGX_WAMR_C_FLAGS}
+        -I${SGX_SDK_PATH}/include
+        -c sgx_wamr_enclave_u.c
+        -o sgx_wamr_enclave_u.o
+        )
 
-add_custom_command(TARGET sgx_wamr_enclave POST_BUILD COMMAND ${SGX_SDK_ENCLAVE_SIGNER} sign -key ${CMAKE_CURRENT_SOURCE_DIR}/sgx_wamr_enclave.pem -enclave ${CMAKE_BINARY_DIR}/lib/sgx_wamr_enclave.so -out ${CMAKE_BINARY_DIR}/bin/sgx_wamr_enclave.sign.so -config ${CMAKE_CURRENT_SOURCE_DIR}/sgx_wamr_enclave.config)
+add_custom_command(TARGET sgx_wamr_enclave POST_BUILD
+        COMMAND ${SGX_SDK_ENCLAVE_SIGNER} sign
+        -key ${CMAKE_CURRENT_SOURCE_DIR}/sgx_wamr_enclave.pem
+        -enclave ${CMAKE_BINARY_DIR}/lib/sgx_wamr_enclave.so
+        -out ${CMAKE_BINARY_DIR}/bin/sgx_wamr_enclave.sign.so
+        -config ${CMAKE_CURRENT_SOURCE_DIR}/sgx_wamr_enclave.config
+        )

@@ -46,7 +46,7 @@ sgx_wamr_enclave_call_function(
 namespace wasm {
     class SGXWAMRWasmModule final : public WasmModule {
     public:
-        SGXWAMRWasmModule(sgx_enclave_id_t *enclave_id);
+        SGXWAMRWasmModule(sgx_enclave_id_t *enclaveId);
 
         ~SGXWAMRWasmModule();
 

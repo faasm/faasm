@@ -6,13 +6,6 @@ option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
 option(FAASM_WAMR_SUPPORT "Add support for WAMR" ON)
 option(FAASM_SGX_SUPPORT "Add support for SGX" ON)
 
-# Switch off Werror only when in SGX mode
-if(FAASM_SGX_SUPPORT)
-    set(CMAKE_CXX_FLAGS "-Wall")
-else()
-    set(CMAKE_CXX_FLAGS "-Wall -Werror")
-endif()
-
 # Top-level CMake config
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_STANDARD 17)
@@ -29,6 +22,10 @@ set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/WAVM/Lib)
 
 # SGX configuration
 if(FAASM_SGX_SUPPORT)
+    # Switch off Werror only when in SGX mode
+    set(CMAKE_CXX_FLAGS "-Wall")
+
+    # Set up SGX definitions
     add_definitions(-DFAASM_SGX=1 -DFAASM_SGX_FUNC_SUFFIX="_sgx_wamr")
     set(SGX_SIM_MODE 1)
 
@@ -37,6 +34,8 @@ if(FAASM_SGX_SUPPORT)
     elseif()
         add_definitions(-DSGX_SIM_MODE=0)
     endif()
+else()
+    set(CMAKE_CXX_FLAGS "-Wall -Werror")
 endif()
 
 # WAMR configuration

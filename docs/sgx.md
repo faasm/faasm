@@ -30,3 +30,7 @@ sudo /tmp/sgx_linux_x64_sdk_2.10.100.2.bin
 
 # Enter "yes" 
 ```
+
+## Build
+
+To build with SGX support, you need to set `-DFAASM_SGX_SUPPORT=ON`.
