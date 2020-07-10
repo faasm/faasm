@@ -4,7 +4,7 @@ project(faasm)
 # Optional functionality
 option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
 option(FAASM_WAMR_SUPPORT "Add support for WAMR" ON)
-option(FAASM_SGX_SUPPORT "Add support for SGX" ON)
+option(FAASM_SGX_SUPPORT "Add support for SGX" OFF)
 
 # Top-level CMake config
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
