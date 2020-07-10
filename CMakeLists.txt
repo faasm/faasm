@@ -3,7 +3,6 @@ project(faasm)
 
 # Optional functionality
 option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
-option(FAASM_WAMR_SUPPORT "Add support for WAMR" ON)
 option(FAASM_SGX_SUPPORT "Add support for SGX" OFF)
 
 # Top-level CMake config
@@ -39,49 +38,47 @@ else()
 endif()
 
 # WAMR configuration
-if (FAASM_WAMR_SUPPORT)
-    set(WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
-    set(WAMR_BUILD_TARGET X86_64)
+set(WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
+set(WAMR_BUILD_TARGET X86_64)
 
-    # WAMR SGX-specific config
-    if(FAASM_SGX_SUPPORT)
-        set(WAMR_BUILD_PLATFORM linux-sgx)
-        set(WAMR_BUILD_FAST_INTERP 0)
-        set(WAMR_BUILD_INTERP 1)
-        set(WAMR_BUILD_JIT 0)
-        set(WAMR_BUILD_AOT 0)
-        set(WAMR_BUILD_LIBC_WASI 0)
-        set(WAMR_BUILD_LIBC_BUILTIN 1)
+# WAMR SGX-specific config
+if(FAASM_SGX_SUPPORT)
+    set(WAMR_BUILD_PLATFORM linux-sgx)
+    set(WAMR_BUILD_FAST_INTERP 0)
+    set(WAMR_BUILD_INTERP 1)
+    set(WAMR_BUILD_JIT 0)
+    set(WAMR_BUILD_AOT 0)
+    set(WAMR_BUILD_LIBC_WASI 0)
+    set(WAMR_BUILD_LIBC_BUILTIN 1)
 
-        set(FAASM_SGX_WAMR_HEAP_SIZE 32768)
-        set(FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE 128)
-        set(FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE 8192)
-        set(FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE 8192)
+    set(FAASM_SGX_WAMR_HEAP_SIZE 32768)
+    set(FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE 128)
+    set(FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE 8192)
+    set(FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE 8192)
 
-    # Non-SGX WAMR config
-    else(FAASM_WAMR_SUPPORT)
-        set(WAMR_BUILD_PLATFORM linux)
-        set(WAMR_BUILD_FAST_INTERP 1)
-        set(WAMR_BUILD_INTERP 1)
-        set(WAMR_BUILD_JIT 1)
-        set(WAMR_BUILD_AOT 0)
-        set(WAMR_BUILD_LIBC_WASI 1)
-        set(WAMR_BUILD_LIBC_BUILTIN 0)
-    endif()
+# Non-SGX WAMR config
+else()
+    set(WAMR_BUILD_PLATFORM linux)
+    set(WAMR_BUILD_FAST_INTERP 1)
+    set(WAMR_BUILD_INTERP 1)
+    set(WAMR_BUILD_JIT 1)
+    set(WAMR_BUILD_AOT 0)
+    set(WAMR_BUILD_LIBC_WASI 1)
+    set(WAMR_BUILD_LIBC_BUILTIN 0)
+endif()
 
-    # WAMR interpreter
-    if (WAMR_BUILD_INTERP)
-        add_definitions(-DWASM_ENABLE_INTERP=1)
-    else ()
-        add_definitions(-DWASM_ENABLE_INTERP=0)
-    endif ()
+# WAMR interpreter
+if (WAMR_BUILD_INTERP)
+    add_definitions(-DWASM_ENABLE_INTERP=1)
+else ()
+    add_definitions(-DWASM_ENABLE_INTERP=0)
+endif ()
 
-    # WAMR AOT
-    if (WAMR_BUILD_AOT)
-        add_definitions(-DWASM_ENABLE_AOT=1)
-    else ()
-        add_definitions(-DWASM_ENABLE_AOT=0)
-    endif ()
+# WAMR AOT
+if (WAMR_BUILD_AOT)
+    add_definitions(-DWASM_ENABLE_AOT=1)
+else ()
+    add_definitions(-DWASM_ENABLE_AOT=0)
 endif ()
 
 # Library type (for shared libraries)
@@ -201,17 +198,14 @@ else ()
     # WAVM
     add_subdirectory(third-party/WAVM)
 
-    # Faasm functions
-    if(FAASM_WAMR_SUPPORT)
-        add_subdirectory(src/wamr)
-    endif()
-
     # SGX
     if(FAASM_SGX_SUPPORT)
         add_subdirectory(src/sgx)
     endif()
 
+    # Faasm functions
     add_subdirectory(func)
+
     # Faasm libraries
     add_subdirectory(libs/cpp)
     add_subdirectory(libs/faasmp)
@@ -240,6 +234,7 @@ else ()
     add_subdirectory(src/tcp)
     add_subdirectory(src/upload)
     add_subdirectory(src/util)
+    add_subdirectory(src/wamr)
     add_subdirectory(src/wasm)
     add_subdirectory(src/wavm)
 

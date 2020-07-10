@@ -51,12 +51,6 @@ set(SGX_WAMR_ENCLAVE_C_FLAGS ${SGX_C_GLOBAL_FLAGS}
 # INITIAL CHECKS
 # --------------------------------------------------------
 
-if (FAASM_WAMR_SUPPORT)
-else ()
-    # Currently don't support SGX in non-WAMR builds
-    message(FATAL_ERROR "Cannot build for SGX without WAMR suppor turned on")
-endif ()
-
 # Check for SGX SDK
 find_package(Threads REQUIRED)
 if (EXISTS ${SGX_SDK_PATH})
