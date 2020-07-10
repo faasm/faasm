@@ -3,11 +3,13 @@
 #define SGX_RUNNER_ENCLAVE_PATH "sgx_wamr_enclave.sign.so"
 #endif
 
-#include <stdio.h>
 #include <sgx.h>
 #include <sgx_urts.h>
 #include <sgx/SGXWAMRWasmModule.h>
+
 #include <util/func.h>
+#include <cstdio>
+
 
 int main(int argc, char **argv) {
     sgx_launch_token_t enclave_token = {0};

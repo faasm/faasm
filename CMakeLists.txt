@@ -6,13 +6,6 @@ option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
 option(FAASM_WAMR_SUPPORT "Add support for WAMR" ON)
 option(FAASM_SGX_SUPPORT "Add support for SGX" OFF)
 
-# Switch off Werror only when in SGX mode
-if(FAASM_SGX_SUPPORT)
-    set(CMAKE_CXX_FLAGS "-Wall")
-else()
-    set(CMAKE_CXX_FLAGS "-Wall -Werror")
-endif()
-
 # Top-level CMake config
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_STANDARD 17)
@@ -29,6 +22,10 @@ set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/WAVM/Lib)
 
 # SGX configuration
 if(FAASM_SGX_SUPPORT)
+    # Switch off Werror only when in SGX mode
+    set(CMAKE_CXX_FLAGS "-Wall")
+
+    # Set up SGX definitions
     add_definitions(-DFAASM_SGX=1 -DFAASM_SGX_FUNC_SUFFIX="_sgx_wamr")
     set(SGX_SIM_MODE 1)
 
@@ -37,6 +34,8 @@ if(FAASM_SGX_SUPPORT)
     elseif()
         add_definitions(-DSGX_SIM_MODE=0)
     endif()
+else()
+    set(CMAKE_CXX_FLAGS "-Wall -Werror")
 endif()
 
 # WAMR configuration
@@ -44,12 +43,16 @@ if (FAASM_WAMR_SUPPORT)
     set(WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
     set(WAMR_INCLUDE_DIR ${WAMR_ROOT_DIR}/core/iwasm/include)
     set(WAMR_BUILD_TARGET X86_64)
-    set(WAMR_BUILD_INTERP 1)
 
     # WAMR SGX-specific config
     if(FAASM_SGX_SUPPORT)
+        # NOTE: this is really important to ensure WAMR DOES include the SGX libc and libcxx
+        # See third-party/wamr/core/shared/platform/linux-sgx/shared_platform.cmake
+        set(BUILD_UNTRUST_PART 0)
+
         set(WAMR_BUILD_PLATFORM linux-sgx)
         set(WAMR_BUILD_FAST_INTERP 0)
+        set(WAMR_BUILD_INTERP 1)
         set(WAMR_BUILD_JIT 0)
         set(WAMR_BUILD_AOT 0)
         set(WAMR_BUILD_LIBC_WASI 0)
@@ -62,13 +65,32 @@ if (FAASM_WAMR_SUPPORT)
 
     # Non-SGX WAMR config
     else(FAASM_WAMR_SUPPORT)
+        # NOTE: this is really important to ensure WAMR DOES NOT include the SGX libc and libcxx
+        # See third-party/wamr/core/shared/platform/linux-sgx/shared_platform.cmake
+        set(BUILD_UNTRUST_PART 1)
+
         set(WAMR_BUILD_PLATFORM linux)
         set(WAMR_BUILD_FAST_INTERP 1)
+        set(WAMR_BUILD_INTERP 1)
         set(WAMR_BUILD_JIT 1)
         set(WAMR_BUILD_AOT 0)
         set(WAMR_BUILD_LIBC_WASI 1)
         set(WAMR_BUILD_LIBC_BUILTIN 0)
     endif()
+
+    # WAMR interpreter
+    if (WAMR_BUILD_INTERP)
+        add_definitions(-DWASM_ENABLE_INTERP=1)
+    else ()
+        add_definitions(-DWASM_ENABLE_INTERP=0)
+    endif ()
+
+    # WAMR AOT
+    if (WAMR_BUILD_AOT)
+        add_definitions(-DWASM_ENABLE_AOT=1)
+    else ()
+        add_definitions(-DWASM_ENABLE_AOT=0)
+    endif ()
 endif ()
 
 # Library type (for shared libraries)
@@ -191,7 +213,7 @@ else ()
     # WAMR
     if (FAASM_WAMR_SUPPORT)
         include(${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
-        add_library(libwamr ${WAMR_RUNTIME_LIB_SOURCE})
+        add_library(wamr ${WAMR_RUNTIME_LIB_SOURCE})
     endif ()
 
     # SGX
