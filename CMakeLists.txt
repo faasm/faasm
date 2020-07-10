@@ -38,6 +38,7 @@ else()
 endif()
 
 # WAMR configuration
+# See https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/build_wamr.md
 set(WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
 set(WAMR_BUILD_TARGET X86_64)
 
@@ -65,6 +66,9 @@ else()
     set(WAMR_BUILD_AOT 0)
     set(WAMR_BUILD_LIBC_WASI 1)
     set(WAMR_BUILD_LIBC_BUILTIN 0)
+
+    # Local pthread support
+    set(WAMR_BUILD_LIB_PTHREAD 1)
 endif()
 
 # WAMR interpreter
