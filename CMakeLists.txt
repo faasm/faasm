@@ -44,12 +44,12 @@ if (FAASM_WAMR_SUPPORT)
     set(WAMR_INCLUDE_DIR ${WAMR_ROOT_DIR}/core/iwasm/include)
     set(WAMR_BUILD_TARGET X86_64)
 
-    # NOTE: this is really important to avoid WAMR including the SGX libc and libcxx
-    # See third-party/wamr/core/shared/platform/linux-sgx/shared_platform.cmake
-    set(BUILD_UNTRUST_PART 1)
-
     # WAMR SGX-specific config
     if(FAASM_SGX_SUPPORT)
+        # NOTE: this is really important to ensure WAMR DOES include the SGX libc and libcxx
+        # See third-party/wamr/core/shared/platform/linux-sgx/shared_platform.cmake
+        set(BUILD_UNTRUST_PART 0)
+
         set(WAMR_BUILD_PLATFORM linux-sgx)
         set(WAMR_BUILD_FAST_INTERP 0)
         set(WAMR_BUILD_INTERP 1)
@@ -65,6 +65,10 @@ if (FAASM_WAMR_SUPPORT)
 
     # Non-SGX WAMR config
     else(FAASM_WAMR_SUPPORT)
+        # NOTE: this is really important to ensure WAMR DOES NOT include the SGX libc and libcxx
+        # See third-party/wamr/core/shared/platform/linux-sgx/shared_platform.cmake
+        set(BUILD_UNTRUST_PART 1)
+
         set(WAMR_BUILD_PLATFORM linux)
         set(WAMR_BUILD_FAST_INTERP 1)
         set(WAMR_BUILD_INTERP 1)
