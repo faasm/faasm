@@ -70,7 +70,8 @@ extern "C"{
             return FAASM_SGX_INVALID_THREAD_ID;
         if(!(wasm_function = wasm_runtime_lookup_function(sgx_wamr_tcs[thread_id].module_inst,func_id_str,NULL)))
             return FAASM_SGX_WAMR_FUNCTION_NOT_FOUND;
-        if(!(wasm_runtime_call_wasm(sgx_wamr_tcs[thread_id].exev_env,wasm_function,0,0x0))){
+        //if(!(wasm_runtime_call_wasm(sgx_wamr_tcs[thread_id].exev_env,wasm_function,0,0x0))){
+        if(!(wasm_create_exec_env_and_call_function((WASMModuleInstance*)sgx_wamr_tcs[thread_id].module_inst,(WASMFunctionInstance*)wasm_function,0,0x0))){//<-----------DEBUG
 #if(WASM_ENABLE_INTERP == 1 && WASM_ENABLE_AOT == 0)
             ocall_printf(((WASMModuleInstance*) sgx_wamr_tcs[thread_id].module_inst)->cur_exception);
 #elif(WASM_ENABLE_INTERP == 0 && WASM_ENABLE_AOT == 1)
@@ -91,16 +92,24 @@ extern "C"{
         wasm_runtime_unload(sgx_wamr_tcs[thread_id].module);
         wasm_runtime_deinstantiate(sgx_wamr_tcs[thread_id].module_inst);
         wasm_runtime_destroy_exec_env(sgx_wamr_tcs[thread_id].exev_env);
+        free(sgx_wamr_tcs[thread_id].wasm_opcode);
         sgx_wamr_tcs[thread_id].module = 0x0;
         sgx_thread_mutex_unlock(&mutex_sgx_wamr_tcs_realloc);
         return FAASM_SGX_SUCCESS;
     }
     faasm_sgx_status_t sgx_wamr_enclave_load_module(const void* wasm_opcode_ptr, const uint32_t wasm_opcode_size, unsigned int* thread_id){//TODO: CODE SIZE
+        uint8_t* opcode_ptr;
         char module_error_buffer[FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE];
         faasm_sgx_status_t ret_val;
         memset(module_error_buffer, 0x0, sizeof(module_error_buffer));
+        if(wasm_opcode_size <= 0)
+            return FAASM_SGX_INVALID_OPCODE_SIZE;
         if(!wasm_opcode_ptr)
             return FAASM_SGX_INVALID_PTR;
+        if(!(opcode_ptr = (uint8_t*) calloc(wasm_opcode_size,sizeof(uint8_t)))){
+            return FAASM_SGX_OUT_OF_MEMORY;
+        }
+        memcpy(opcode_ptr,wasm_opcode_ptr,wasm_opcode_size);
         sgx_thread_mutex_lock(&mutex_sgx_wamr_tcs);
         if((ret_val = _get_tcs_slot(thread_id)) != FAASM_SGX_SUCCESS){
             sgx_thread_mutex_unlock(&mutex_sgx_wamr_tcs);
@@ -108,7 +117,8 @@ extern "C"{
         }
         sgx_wamr_tcs[*thread_id].module = (WASMModuleCommon*) 0x1;
         sgx_thread_mutex_unlock(&mutex_sgx_wamr_tcs);
-        if(!(sgx_wamr_tcs[*thread_id].module = wasm_runtime_load((uint8_t*)wasm_opcode_ptr,wasm_opcode_size,module_error_buffer,sizeof(module_error_buffer)))){
+        sgx_wamr_tcs[*thread_id].wasm_opcode = opcode_ptr;
+        if(!(sgx_wamr_tcs[*thread_id].module = wasm_runtime_load((uint8_t*)sgx_wamr_tcs[*thread_id].wasm_opcode,wasm_opcode_size,module_error_buffer,sizeof(module_error_buffer)))){
             sgx_wamr_tcs[*thread_id].module = 0x0;
             ocall_printf(module_error_buffer);
             return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;

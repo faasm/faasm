@@ -12,6 +12,7 @@ typedef struct __sgx_wamr_tcs{
     wasm_module_t module;
     wasm_module_inst_t module_inst;
     wasm_exec_env_t exev_env;
+    uint8_t* wasm_opcode;
 } _sgx_wamr_tcs_t;
 
 #endif //FAASM_SGX_WAMR_ENCLAVE_TYPES_H

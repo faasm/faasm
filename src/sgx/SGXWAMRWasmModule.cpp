@@ -20,6 +20,7 @@ namespace wasm{
         sgx_status_t sgx_ret_val;
         faasm_sgx_status_t ret_val;
         storage::FileSystem fs;
+        std::vector<uint8_t> wasm_opcode;
         storage::FileLoader& fl = storage::getFileLoader();
         fs.prepareFilesystem();
         wasm_opcode = fl.loadFunctionWasm(msg);

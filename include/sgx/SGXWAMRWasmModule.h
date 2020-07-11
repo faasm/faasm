@@ -41,7 +41,6 @@ namespace wasm{
     private:
         bool _is_bound = false;
         unsigned int thread_id;
-        std::vector<uint8_t> wasm_opcode;
         sgx_enclave_id_t* enclave_id_ptr;
     };
 }
