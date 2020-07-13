@@ -8,6 +8,7 @@ set(HEADERS
 
 set(LIB_FILES
         WAMRWasmModule.cpp
+        dynlink.cpp
         faasm.cpp
         native.cpp
         pthread.cpp

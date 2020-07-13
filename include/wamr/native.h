@@ -32,4 +32,6 @@ namespace wasm {
     uint32_t getFaasmPthreadApi(NativeSymbol **nativeSymbols);
 
     uint32_t getFaasmStubs(NativeSymbol **nativeSymbols);
+
+    uint32_t getFaasmDynlinkApi(NativeSymbol **nativeSymbols);
 }

@@ -10,6 +10,7 @@ namespace wasm {
     }
 
     void initialiseWAMRNatives() {
+        doSymbolRegistration(getFaasmDynlinkApi);
         doSymbolRegistration(getFaasmNativeApi);
         doSymbolRegistration(getFaasmPthreadApi);
         doSymbolRegistration(getFaasmStubs);
