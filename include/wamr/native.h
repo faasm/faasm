@@ -10,7 +10,8 @@
  * -- WAMR native signatures --
  *
  * When defining WAMR native functions you have to specify the function
- * signature. This uses the following scheme:
+ * signature. This uses the following scheme, where capitals mean a 64-bit
+ * version:
  *
  * - $ = string
  * - * = pointer
@@ -19,19 +20,24 @@
  *
  * For example:
  *
- * int myFunc(int i, char* s) = "(i$)i"
- * void fooBar(*int i, char* s, float f) = "(*$f)"
+ * int32_t myFunc(int32_t i, char* s) = "(i$)i"
+ * int32_t myBigIntFunc(int64_t i, char* s) = "(I$)i"
+ * void fooBar(*int32_t i, char* s, float32_t f) = "(*$f)"
  * void nothing() = "()"
  */
 
 namespace wasm {
     void initialiseWAMRNatives();
 
-    uint32_t getFaasmNativeApi(NativeSymbol **nativeSymbols);
+    uint32_t getFaasmDynlinkApi(NativeSymbol **nativeSymbols);
+
+    uint32_t getFaasmFilesystemApi(NativeSymbol **nativeSymbols);
+
+    uint32_t getFaasmFunctionsApi(NativeSymbol **nativeSymbols);
 
     uint32_t getFaasmPthreadApi(NativeSymbol **nativeSymbols);
 
-    uint32_t getFaasmStubs(NativeSymbol **nativeSymbols);
+    uint32_t getFaasmStateApi(NativeSymbol **nativeSymbols);
 
-    uint32_t getFaasmDynlinkApi(NativeSymbol **nativeSymbols);
+    uint32_t getFaasmStubs(NativeSymbol **nativeSymbols);
 }

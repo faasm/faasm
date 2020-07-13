@@ -9,9 +9,11 @@ set(HEADERS
 set(LIB_FILES
         WAMRWasmModule.cpp
         dynlink.cpp
-        faasm.cpp
+        filesystem.cpp
+        funcs.cpp
         native.cpp
         pthread.cpp
+        state.cpp
         stubs.cpp
         ${HEADERS}
         )

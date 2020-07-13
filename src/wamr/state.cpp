@@ -6,28 +6,6 @@
 
 namespace wasm {
     /**
-     * Returns the index of the current function (this is zero unless it's a
-     * function chained from within the same module).
-     */
-    static int32_t __faasm_get_idx_wrapper(wasm_exec_env_t exec_env) {
-        util::getLogger()->debug("S - faasm_get_idx");
-
-        message::Message *call = getExecutingCall();
-        int idx = call->idx();
-        return idx;
-    }
-
-    /**
-     * Set the function output
-     */
-    static void __faasm_write_output_wrapper(wasm_exec_env_t exec_env, char* outBuff, int32_t outLen) {
-        util::getLogger()->debug("S - faasm_write_output {} {}", outBuff, outLen);
-
-        message::Message *call = getExecutingCall();
-        call->set_outputdata(outBuff, outLen);
-    }
-
-    /**
      * Read state for the given key into the buffer provided.
      *
      * Returns size of the state if buffer length is zero.
@@ -48,6 +26,25 @@ namespace wasm {
 
             return kv->size();
         }
+
+        return 0;
+    }
+
+    /**
+     * Create a new memory region, read the state for the given key into it,
+     * then return a pointer to the new memory.
+     */
+    static int32_t __faasm_read_state_ptr(wasm_exec_env_t exec_env, char* key, int32_t bufferLen) {
+        util::getLogger()->debug("S - faasm_read_state_ptr {} {}", key, bufferLen);
+
+        std::string user = getExecutingCall()->user();
+        auto kv = state::getGlobalState().getKV(user, key, bufferLen);
+
+        // TODO - create new memory region
+
+        // TODO - write state to new memory region
+
+        // TODO - convert this into a pointer
 
         return 0;
     }
@@ -76,14 +73,12 @@ namespace wasm {
     }
 
     static NativeSymbol ns[] = {
-            REG_NATIVE_FUNC(__faasm_get_idx, "()i"),
-            REG_NATIVE_FUNC(__faasm_write_output, "($i)"),
             REG_NATIVE_FUNC(__faasm_read_state, "($$i)i"),
             REG_NATIVE_FUNC(__faasm_write_state, "($$i)"),
             REG_NATIVE_FUNC(__faasm_push_state, "($)"),
     };
 
-    uint32_t getFaasmNativeApi(NativeSymbol **nativeSymbols) {
+    uint32_t getFaasmStateApi(NativeSymbol **nativeSymbols) {
         *nativeSymbols = ns;
         return sizeof(ns) / sizeof(NativeSymbol);
     }
