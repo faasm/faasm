@@ -15,7 +15,7 @@ namespace wasm {
      * networking syscalls that receive responses and modify arguments in place */
     void setSockAddr(sockaddr nativeSockAddr, I32 addrPtr) {
         // Get pointer to wasm address
-        wasm_sockaddr *wasmAddrPtr = &Runtime::memoryRef<wasm_sockaddr>(getExecutingModule()->defaultMemory,
+        wasm_sockaddr *wasmAddrPtr = &Runtime::memoryRef<wasm_sockaddr>(getExecutingWAVMModule()->defaultMemory,
                                                                         (Uptr) addrPtr);
 
         // Modify in place
@@ -25,7 +25,7 @@ namespace wasm {
 
     void setSockLen(socklen_t nativeValue, I32 wasmPtr) {
         // Get pointer to wasm address
-        I32 *wasmAddrPtr = &Runtime::memoryRef<I32>(getExecutingModule()->defaultMemory, (Uptr) wasmPtr);
+        I32 *wasmAddrPtr = &Runtime::memoryRef<I32>(getExecutingWAVMModule()->defaultMemory, (Uptr) wasmPtr);
         std::copy(&nativeValue, &nativeValue + 1, wasmAddrPtr);
     }
 
@@ -35,7 +35,7 @@ namespace wasm {
      * straight through.
      */
     I32 s__socketcall(I32 call, I32 argsPtr) {
-        WAVMWasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingWAVMModule();
         Runtime::Memory *memoryPtr = module->defaultMemory;
 
         // NOTE

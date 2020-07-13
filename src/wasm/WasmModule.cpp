@@ -10,6 +10,7 @@
 #include <boost/filesystem.hpp>
 #include <sstream>
 #include <sys/mman.h>
+#include <util/memory.h>
 
 
 namespace wasm {
@@ -197,6 +198,46 @@ namespace wasm {
         }
     }
 
+    /**
+     * Maps the given state into the module's memory.
+     *
+     * If we are dealing with a chunk of a larger state value, the host memory
+     * will be reserved for the full value, but only the necessary wasm pages
+     * will be created. Loading many chunks of the same value leads to fragmentation,
+     * but usually only one or two chunks are loaded per module.
+     *
+     * To perform the mapping we need to ensure allocated memory is page-aligned.
+     */
+    uint32_t WasmModule::mapSharedStateMemory(const std::shared_ptr<state::StateKeyValue> &kv, long offset, U32 length) {
+        // See if we already have this segment mapped into memory
+        std::string segmentKey =
+                kv->user + "_" + kv->key + "__" + std::to_string(offset) + "__" + std::to_string(length);
+        if (sharedMemWasmPtrs.count(segmentKey) == 0) {
+            // Lock and double check
+            util::UniqueLock lock(sharedMemWasmPtrsMx);
+            if (sharedMemWasmPtrs.count(segmentKey) == 0) {
+                // Page-align the chunk
+                util::AlignedChunk chunk = util::getPageAlignedChunk(offset, length);
+
+                // Create the wasm memory region and work out the offset to the start of the
+                // desired chunk in this region (this will be zero if the offset is already
+                // zero, or if the offset is page-aligned already).
+                U32 wasmBasePtr = this->mmapMemory(chunk.nBytesLength);
+                U32 wasmOffsetPtr = wasmBasePtr + chunk.offsetRemainder;
+
+                // Map the shared memory
+                uint8_t *wasmMemoryRegionPtr = wasmPointerToNative(wasmBasePtr);
+                kv->mapSharedMemory(static_cast<void *>(wasmMemoryRegionPtr), chunk.nPagesOffset, chunk.nPagesLength);
+
+                // Cache the wasm pointer
+                sharedMemWasmPtrs[segmentKey] = wasmOffsetPtr;
+            }
+        }
+
+        // Return the wasm pointer
+        return sharedMemWasmPtrs[segmentKey];
+    }
+
     // ------------------------------------------
     // Functions to be implemented by subclasses
     // ------------------------------------------
@@ -239,5 +280,21 @@ namespace wasm {
 
     void WasmModule::doRestore(std::istream &inStream) {
         throw std::runtime_error("doRestore not implemented");
+    }
+
+    uint32_t WasmModule::mmapMemory(uint32_t length) {
+        throw std::runtime_error("mmapMemory not implemented");
+    }
+
+    uint32_t WasmModule::mmapPages(uint32_t pages) {
+        throw std::runtime_error("mmapPages not implemented");
+    }
+
+    uint32_t WasmModule::mmapFile(uint32_t fp, uint32_t length) {
+        throw std::runtime_error("mmapFile not implemented");
+    }
+
+    uint8_t* WasmModule::wasmPointerToNative(int32_t wasmPtr) {
+        throw std::runtime_error("wasmPointerToNative not implemented");
     }
 }

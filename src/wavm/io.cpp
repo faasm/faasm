@@ -37,7 +37,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_prestat_get", I32, wasi_fd_prestat_get, I32 fd, I32 prestatPtr) {
         util::getLogger()->debug("S - fd_prestat_get - {} {}", fd, prestatPtr);
 
-        WAVMWasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingWAVMModule();
         if (!module->getFileSystem().fileDescriptorExists(fd)) {
             return __WASI_EBADF;
         }
@@ -55,7 +55,7 @@ namespace wasm {
                                    I32 resPathLen) {
         util::getLogger()->debug("S - fd_prestat_dir_name - {} {}", fd, resPathPtr, resPathLen);
 
-        WAVMWasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingWAVMModule();
         if (!module->getFileSystem().fileDescriptorExists(fd)) {
             return __WASI_EBADF;
         }
@@ -87,7 +87,7 @@ namespace wasm {
 
         // Open a new file descriptor
         // Returns a negative wasi errno if fails
-        int fdRes = getExecutingModule()->getFileSystem().openFileDescriptor(
+        int fdRes = getExecutingWAVMModule()->getFileSystem().openFileDescriptor(
                 rootFd, pathStr, rightsBase, rightsInheriting, lookupFlags, openFlags, fdFlags
         );
 
@@ -95,13 +95,13 @@ namespace wasm {
             return -1 * fdRes;
         } else {
             // Write result to memory location
-            Runtime::memoryRef<int>(getExecutingModule()->defaultMemory, resFdPtr) = fdRes;
+            Runtime::memoryRef<int>(getExecutingWAVMModule()->defaultMemory, resFdPtr) = fdRes;
             return __WASI_ESUCCESS;
         }
     }
 
     int doWasiDup(I32 fd) {
-        storage::FileSystem &fs = getExecutingModule()->getFileSystem();
+        storage::FileSystem &fs = getExecutingWAVMModule()->getFileSystem();
         int newFd = fs.dup(fd);
 
         return newFd;
@@ -116,7 +116,7 @@ namespace wasm {
         util::getLogger()->debug("S - fd_dup - {}", fd, resFdPtr);
 
         int newFd = doWasiDup(fd);
-        Runtime::memoryRef<I32>(getExecutingModule()->defaultMemory, resFdPtr) = newFd;
+        Runtime::memoryRef<I32>(getExecutingWAVMModule()->defaultMemory, resFdPtr) = newFd;
 
         return __WASI_ESUCCESS;
     }
@@ -137,7 +137,7 @@ namespace wasm {
     ) {
         util::getLogger()->debug("S - fd_readdir - {} {} {} {} {}", fd, buf, bufLen, startCookie, resSizePtr);
 
-        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileSystem().getFileDescriptor(fd);
+        storage::FileDescriptor &fileDesc = getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
         bool isStartCookie = startCookie == __WASI_DIRCOOKIE_START;
 
         if (fileDesc.iterStarted && isStartCookie) {
@@ -146,7 +146,7 @@ namespace wasm {
             throw std::runtime_error("No directory iterator exists, and this is not the start cookie");
         }
 
-        U8 *buffer = Runtime::memoryArrayPtr<U8>(getExecutingModule()->defaultMemory, buf, bufLen);
+        U8 *buffer = Runtime::memoryArrayPtr<U8>(getExecutingWAVMModule()->defaultMemory, buf, bufLen);
         size_t bytesCopied = 0;
         size_t bytesLeft = bufLen;
 
@@ -185,7 +185,7 @@ namespace wasm {
         }
 
         // Set the result
-        Runtime::memoryRef<U32>(getExecutingModule()->defaultMemory, resSizePtr) = bytesCopied;
+        Runtime::memoryRef<U32>(getExecutingWAVMModule()->defaultMemory, resSizePtr) = bytesCopied;
 
         return 0;
     }
@@ -204,7 +204,7 @@ namespace wasm {
     I32 s__getdents64(I32 fd, I32 wasmDirentBuf, I32 wasmDirentBufLen) {
         util::getLogger()->debug("S - getdents64 - {} {} {}", fd, wasmDirentBuf, wasmDirentBufLen);
 
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         U8 *hostWasmDirentBuf = &Runtime::memoryRef<U8>(memoryPtr, (Uptr) wasmDirentBuf);
 
         // Work out how many dirents we can fit (rounding down)
@@ -287,7 +287,7 @@ namespace wasm {
         // Catpure stdout if necessary, otherwise write as normal
         util::SystemConfig &conf = util::getSystemConfig();
         if (fd == STDOUT_FILENO && conf.captureStdout == "on") {
-            getExecutingModule()->captureStdout(nativeIovecs, iovecCount);
+            getExecutingWAVMModule()->captureStdout(nativeIovecs, iovecCount);
         }
 
         delete[] nativeIovecs;
@@ -299,12 +299,12 @@ namespace wasm {
                                    I32 resBytesWrittenPtr) {
         util::getLogger()->debug("S - fd_write - {} {} {} {}", fd, iovecsPtr, iovecCount, resBytesWrittenPtr);
 
-        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileSystem().getFileDescriptor(fd);
+        storage::FileDescriptor &fileDesc = getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
 
         iovec *nativeIovecs = wasiIovecsToNativeIovecs(iovecsPtr, iovecCount);
         ssize_t bytesWritten = doWritev(fileDesc.getLinuxFd(), nativeIovecs, iovecCount);
 
-        Runtime::memoryRef<int>(getExecutingModule()->defaultMemory, resBytesWrittenPtr) = (int) bytesWritten;
+        Runtime::memoryRef<int>(getExecutingWAVMModule()->defaultMemory, resBytesWrittenPtr) = (int) bytesWritten;
 
         return __WASI_ESUCCESS;
     }
@@ -312,11 +312,11 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_read", I32, wasi_fd_read, I32 fd, I32 iovecsPtr, I32 iovecCount,
                                    I32 resBytesRead) {
         util::getLogger()->debug("S - fd_read - {} {} {}", fd, iovecsPtr, iovecCount);
-        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileSystem().getFileDescriptor(fd);
+        storage::FileDescriptor &fileDesc = getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
         iovec *nativeIovecs = wasiIovecsToNativeIovecs(iovecsPtr, iovecCount);
 
         int bytesRead = readv(fileDesc.getLinuxFd(), nativeIovecs, iovecCount);
-        Runtime::memoryRef<int>(getExecutingModule()->defaultMemory, resBytesRead) = (int) bytesRead;
+        Runtime::memoryRef<int>(getExecutingWAVMModule()->defaultMemory, resBytesRead) = (int) bytesRead;
 
         return __WASI_ESUCCESS;
     }
@@ -341,7 +341,7 @@ namespace wasm {
         const std::string &pathStr = getStringFromWasm(path);
         util::getLogger()->debug("S - path_create_directory - {} {}", fd, pathStr);
 
-        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileSystem().getFileDescriptor(fd);
+        storage::FileDescriptor &fileDesc = getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
         bool success = fileDesc.mkdir(pathStr);
 
         if(!success) {
@@ -379,7 +379,7 @@ namespace wasm {
 
         util::getLogger()->debug("S - path_rename - {} {} {} {}", fd, oldPathStr, newFd, newPathStr);
 
-        WAVMWasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingWAVMModule();
         storage::FileDescriptor &oldFileDesc = module->getFileSystem().getFileDescriptor(fd);
         storage::FileDescriptor &newFileDesc = module->getFileSystem().getFileDescriptor(newFd);
 
@@ -398,7 +398,7 @@ namespace wasm {
         util::getLogger()->debug("S - path_unlink_file - {} {}", rootFd, pathPtr);
 
         std::string pathStr = getStringFromWasm(pathPtr);
-        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileSystem().getFileDescriptor(rootFd);
+        storage::FileDescriptor &fileDesc = getExecutingWAVMModule()->getFileSystem().getFileDescriptor(rootFd);
         bool success = fileDesc.unlink(pathStr);
 
         if (!success) {
@@ -461,7 +461,7 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - fd_fdstat_get - {} {}", fd, statPtr);
 
-        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileSystem().getFileDescriptor(fd);
+        storage::FileDescriptor &fileDesc = getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
         storage::Stat statResult = fileDesc.stat();
 
         if (statResult.failed) {
@@ -469,7 +469,7 @@ namespace wasm {
             return statResult.wasiErrno;
         }
 
-        auto wasiFdStat = &Runtime::memoryRef<__wasi_fdstat_t>(getExecutingModule()->defaultMemory, statPtr);
+        auto wasiFdStat = &Runtime::memoryRef<__wasi_fdstat_t>(getExecutingWAVMModule()->defaultMemory, statPtr);
         wasiFdStat->fs_filetype = statResult.wasiFiletype;
         wasiFdStat->fs_rights_base = fileDesc.getActualRightsBase();
         wasiFdStat->fs_rights_inheriting = fileDesc.getActualRightsInheriting();
@@ -481,7 +481,7 @@ namespace wasm {
     }
 
     I32 doFileStat(int fd, const std::string &relativePath, I32 statPtr) {
-        WAVMWasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingWAVMModule();
         storage::FileDescriptor &fileDesc = module->getFileSystem().getFileDescriptor(fd);
         auto wasiFileStat = &Runtime::memoryRef<__wasi_filestat_t>(module->defaultMemory, statPtr);
 
@@ -519,7 +519,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_tell", I32, wasi_fd_tell, I32 fd, I32 resOffsetPtr) {
         util::getLogger()->debug("S - fd_tell - {} {}", fd, resOffsetPtr);
 
-        WAVMWasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingWAVMModule();
 
         storage::FileDescriptor &fileDesc = module->getFileSystem().getFileDescriptor(fd);
         uint64_t offset = fileDesc.tell();
@@ -532,9 +532,9 @@ namespace wasm {
         util::getLogger()->debug("S - fd_seek - {} {} {} {}", fd, offset, whence, newOffsetPtr);
 
         // Get pointer to result in memory
-        uint64_t *newOffsetHostPtr = &Runtime::memoryRef<uint64_t>(getExecutingModule()->defaultMemory, newOffsetPtr);
+        uint64_t *newOffsetHostPtr = &Runtime::memoryRef<uint64_t>(getExecutingWAVMModule()->defaultMemory, newOffsetPtr);
 
-        storage::FileDescriptor &fileDesc = getExecutingModule()->getFileSystem().getFileDescriptor(fd);
+        storage::FileDescriptor &fileDesc = getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
 
         uint16_t wasiErrno = fileDesc.seek(offset, whence, newOffsetHostPtr);
 
@@ -552,7 +552,7 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "puts", I32, puts, I32 strPtr) {
         util::getLogger()->debug("S - puts - {}", strPtr);
-        WAVMWasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingWAVMModule();
         Runtime::Memory *memoryPtr = module->defaultMemory;
         char *hostStr = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
 
@@ -569,7 +569,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "putc", I32, putc, I32 c, I32 streamPtr) {
         util::getLogger()->debug("S - putc - {} {}", c, streamPtr);
 
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         FILE *stream = &Runtime::memoryRef<FILE>(memoryPtr, (Uptr) streamPtr);
 
         putc(c, stream);
@@ -581,14 +581,14 @@ namespace wasm {
      * fprintf can provide some useful debugging info so we can just spit it to stdout
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "vfprintf", I32, vfprintf, I32 fd, U32 formatPtr, I32 argList) {
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         const char *format = &Runtime::memoryRef<char>(memoryPtr, (Uptr) formatPtr);
         std::cout << "S - vfprintf - " << format << std::endl;
         return 0;
     }
 
     I32 s__readlink(I32 pathPtr, I32 bufPtr, I32 bufLen) {
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         char *path = &Runtime::memoryRef<char>(memoryPtr, (Uptr) pathPtr);
 
         util::getLogger()->debug("S - readlink - {} {} {}", path, bufPtr, bufLen);
@@ -605,7 +605,7 @@ namespace wasm {
         std::string pathStr = getStringFromWasm(pathPtr);
         util::getLogger()->debug("S - path_readlink - {} {} {} {} {}", rootFd, pathStr, buffPtr, buffLen, resBytesUsed);
 
-        WAVMWasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingWAVMModule();
         storage::FileDescriptor &fileDesc = module->getFileSystem().getFileDescriptor(rootFd);
 
         char *buffer = Runtime::memoryArrayPtr<char>(module->defaultMemory, buffPtr, buffLen);

@@ -13,7 +13,7 @@ using namespace WAVM;
 
 namespace wasm {
     void getBytesFromWasm(I32 dataPtr, I32 dataLen, uint8_t *buffer) {
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
 
         std::copy(data, data + dataLen, buffer);
@@ -26,7 +26,7 @@ namespace wasm {
     }
 
     std::string getStringFromWasm(I32 strPtr) {
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
         std::string str(key);
 
@@ -34,7 +34,7 @@ namespace wasm {
     }
 
     std::pair<std::string, std::string> getUserKeyPairFromWasm(I32 keyPtr) {
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
 
         const message::Message *call = getExecutingCall();
@@ -48,7 +48,7 @@ namespace wasm {
 
     /** Translates a wasm sockaddr into a native sockaddr */
     sockaddr getSockAddr(I32 addrPtr) {
-        auto addr = &Runtime::memoryRef<wasm_sockaddr>(getExecutingModule()->defaultMemory, (Uptr) addrPtr);
+        auto addr = &Runtime::memoryRef<wasm_sockaddr>(getExecutingWAVMModule()->defaultMemory, (Uptr) addrPtr);
 
         sockaddr sa = {.sa_family = addr->sa_family};
 
@@ -58,7 +58,7 @@ namespace wasm {
 
     /** Translates a native stat to a wasm stat */
     void writeNativeStatToWasmStat(struct stat64 *nativeStatPtr, I32 wasmStatPtr) {
-        auto wasmHostPtr = &Runtime::memoryRef<wasm_stat>(getExecutingModule()->defaultMemory, (Uptr) wasmStatPtr);
+        auto wasmHostPtr = &Runtime::memoryRef<wasm_stat>(getExecutingWAVMModule()->defaultMemory, (Uptr) wasmStatPtr);
 
         // Support *some* details from the host but not all
         wasmHostPtr->st_dev = nativeStatPtr->st_dev;
@@ -89,7 +89,7 @@ namespace wasm {
 
     iovec *wasmIovecsToNativeIovecs(I32 wasmIovecPtr, I32 wasmIovecCount) {
         // Get array of wasm iovecs from memory
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         auto wasmIovecs = Runtime::memoryArrayPtr<wasm_iovec>(memoryPtr, wasmIovecPtr, wasmIovecCount);
 
         // Convert to native iovecs
@@ -111,7 +111,7 @@ namespace wasm {
 
     iovec *wasiIovecsToNativeIovecs(I32 wasiIovecPtr, I32 wasiIovecCount) {
         // Get array of wasi iovecs from memory
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         auto wasmIovecs = Runtime::memoryArrayPtr<__wasi_ciovec_t>(memoryPtr, wasiIovecPtr, wasiIovecCount);
 
         // Convert to native iovecs

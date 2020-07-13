@@ -2,6 +2,7 @@
 #include <wasm_export.h>
 #include <proto/faasm.pb.h>
 #include <wasm/WasmModule.h>
+#include <wamr/WAMRWasmModule.h>
 
 
 namespace wasm {
@@ -10,7 +11,7 @@ namespace wasm {
      *
      * Returns size of the state if buffer length is zero.
      */
-    static int32_t __faasm_read_state_wrapper(wasm_exec_env_t exec_env, char* key, char* buffer, int32_t bufferLen) {
+    static int32_t __faasm_read_state_wrapper(wasm_exec_env_t exec_env, char *key, char *buffer, int32_t bufferLen) {
         util::getLogger()->debug("S - faasm_read_state {} <buffer> {}", key, bufferLen);
 
         std::string user = getExecutingCall()->user();
@@ -22,7 +23,7 @@ namespace wasm {
         } else {
             // Write state to buffer
             auto kv = state::getGlobalState().getKV(user, key, bufferLen);
-            kv->get(reinterpret_cast<uint8_t*>(buffer));
+            kv->get(reinterpret_cast<uint8_t *>(buffer));
 
             return kv->size();
         }
@@ -34,37 +35,38 @@ namespace wasm {
      * Create a new memory region, read the state for the given key into it,
      * then return a pointer to the new memory.
      */
-    static int32_t __faasm_read_state_ptr(wasm_exec_env_t exec_env, char* key, int32_t bufferLen) {
-        util::getLogger()->debug("S - faasm_read_state_ptr {} {}", key, bufferLen);
-
+    static int32_t __faasm_read_state_ptr_wrapper(wasm_exec_env_t exec_env, char *key, int32_t bufferLen) {
         std::string user = getExecutingCall()->user();
         auto kv = state::getGlobalState().getKV(user, key, bufferLen);
 
-        // TODO - create new memory region
+        util::getLogger()->debug("S - faasm_read_state_ptr - {} {}", kv->key, bufferLen);
 
-        // TODO - write state to new memory region
+        // Map shared memory
+        WAMRWasmModule *module = getExecutingWAMRModule();
+        uint32_t wasmPtr = module->mapSharedStateMemory(kv, 0, bufferLen);
 
-        // TODO - convert this into a pointer
+        // Call get to make sure the value is pulled
+        kv->get();
 
-        return 0;
+        return wasmPtr;
     }
 
     /**
      * Writes the given data buffer to the state referenced by the given key.
      */
-    static void __faasm_write_state_wrapper(wasm_exec_env_t exec_env, char* key, char* buffer, int32_t bufferLen) {
+    static void __faasm_write_state_wrapper(wasm_exec_env_t exec_env, char *key, char *buffer, int32_t bufferLen) {
         std::string user = getExecutingCall()->user();
         auto kv = state::getGlobalState().getKV(user, key, bufferLen);
 
         util::getLogger()->debug("S - faasm_write_state - {} <data> {}", kv->key, bufferLen);
 
-        kv->set(reinterpret_cast<uint8_t*>(buffer));
+        kv->set(reinterpret_cast<uint8_t *>(buffer));
     }
 
     /**
      * Pushes the state for the given key
      */
-    static void __faasm_push_state_wrapper(wasm_exec_env_t exec_env, char* key) {
+    static void __faasm_push_state_wrapper(wasm_exec_env_t exec_env, char *key) {
         util::getLogger()->debug("S - faasm_push_state - {}", key);
 
         std::string user = getExecutingCall()->user();
@@ -74,6 +76,7 @@ namespace wasm {
 
     static NativeSymbol ns[] = {
             REG_NATIVE_FUNC(__faasm_read_state, "($$i)i"),
+            REG_NATIVE_FUNC(__faasm_read_state_ptr, "($i)i"),
             REG_NATIVE_FUNC(__faasm_write_state, "($$i)"),
             REG_NATIVE_FUNC(__faasm_push_state, "($)"),
     };

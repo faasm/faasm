@@ -41,13 +41,13 @@ namespace wasm {
         bool tearDown();
 
         // ----- Memory management -----
-        uint32_t mmapMemory(uint32_t length);
+        uint32_t mmapMemory(uint32_t length) override;
 
-        uint32_t mmapPages(uint32_t pages);
+        uint32_t mmapPages(uint32_t pages) override;
 
-        uint32_t mmapFile(uint32_t fp, uint32_t length);
+        uint32_t mmapFile(uint32_t fp, uint32_t length) override;
 
-        uint32_t mapSharedStateMemory(const std::shared_ptr<state::StateKeyValue> &kv, long offset, uint32_t length);
+        uint8_t* wasmPointerToNative(int32_t wasmPtr) override;
 
         // ----- Environment variables
         void writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer) override;
@@ -140,10 +140,6 @@ namespace wasm {
         bool _isBound = false;
         bool boundIsTypescript = false;
 
-        // Shared memory regions
-        std::mutex sharedMemWasmPtrsMx;
-        std::unordered_map<std::string, U32> sharedMemWasmPtrs;
-
         // Map of dynamically loaded modules
         std::unordered_map<std::string, int> dynamicPathToHandleMap;
         std::unordered_map<int, WAVM::Runtime::GCPointer<WAVM::Runtime::Instance>> dynamicModuleMap;
@@ -190,7 +186,7 @@ namespace wasm {
         std::unique_ptr<openmp::PlatformThreadPool> OMPPool;
     };
 
-    WAVMWasmModule *getExecutingModule();
+    WAVMWasmModule *getExecutingWAVMModule();
 
     void setExecutingModule(WAVMWasmModule *executingModule);
 

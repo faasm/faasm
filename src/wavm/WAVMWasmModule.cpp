@@ -79,7 +79,7 @@ namespace wasm {
         return baseWasiModule;
     }
 
-    WAVMWasmModule *getExecutingModule() {
+    WAVMWasmModule *getExecutingWAVMModule() {
         return executingModule;
     }
 
@@ -792,7 +792,7 @@ namespace wasm {
                 getContextRuntimeData(executionContext),
                 funcInstance,
                 invokeArgs.data(),
-                getExecutingModule()->allocateThreadStack(),
+                getExecutingWAVMModule()->allocateThreadStack(),
         };
 
         // Record the return value
@@ -875,44 +875,9 @@ namespace wasm {
         return mappedRangePtr;
     }
 
-    /**
-     * Maps the given state into the module's memory.
-     *
-     * If we are dealing with a chunk of a larger state value, the host memory
-     * will be reserved for the full value, but only the necessary wasm pages
-     * will be created. Loading many chunks of the same value leads to fragmentation,
-     * but usually only one or two chunks are loaded per module.
-     *
-     * To perform the mapping we need to ensure allocated memory is page-aligned.
-     */
-    U32 WAVMWasmModule::mapSharedStateMemory(const std::shared_ptr<state::StateKeyValue> &kv, long offset, U32 length) {
-        // See if we already have this segment mapped into memory
-        std::string segmentKey =
-                kv->user + "_" + kv->key + "__" + std::to_string(offset) + "__" + std::to_string(length);
-        if (sharedMemWasmPtrs.count(segmentKey) == 0) {
-            // Lock and double check
-            util::UniqueLock lock(sharedMemWasmPtrsMx);
-            if (sharedMemWasmPtrs.count(segmentKey) == 0) {
-                // Page-align the chunk
-                util::AlignedChunk chunk = util::getPageAlignedChunk(offset, length);
-
-                // Create the wasm memory region and work out the offset to the start of the
-                // desired chunk in this region (this will be zero if the offset is already
-                // zero, or if the offset is page-aligned already).
-                U32 wasmBasePtr = this->mmapMemory(chunk.nBytesLength);
-                U32 wasmOffsetPtr = wasmBasePtr + chunk.offsetRemainder;
-
-                // Map the shared memory
-                auto wasmMemoryRegionPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmBasePtr);
-                kv->mapSharedMemory(static_cast<void *>(wasmMemoryRegionPtr), chunk.nPagesOffset, chunk.nPagesLength);
-
-                // Cache the wasm pointer
-                sharedMemWasmPtrs[segmentKey] = wasmOffsetPtr;
-            }
-        }
-
-        // Return the wasm pointer
-        return sharedMemWasmPtrs[segmentKey];
+    uint8_t* WAVMWasmModule::wasmPointerToNative(int32_t wasmPtr) {
+        auto wasmMemoryRegionPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmPtr);
+        return wasmMemoryRegionPtr;
     }
 
     bool WAVMWasmModule::resolve(const std::string &moduleName,

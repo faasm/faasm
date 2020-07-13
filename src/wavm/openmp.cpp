@@ -34,7 +34,7 @@ namespace wasm {
         setTLS(args.tid, args.level);
         setExecutingModule(args.parentModule);
         setExecutingCall(args.parentCall);
-        return getExecutingModule()->executeThreadLocally(args.spec);
+        return getExecutingWAVMModule()->executeThreadLocally(args.spec);
     }
 
     /**
@@ -244,13 +244,13 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __kmpc_fork_call {} {} {} {}", locPtr, argc, microtaskPtr, argsPtr);
 
-        WAVMWasmModule *parentModule = getExecutingModule();
+        WAVMWasmModule *parentModule = getExecutingWAVMModule();
         Runtime::Memory *memoryPtr = parentModule->defaultMemory;
         message::Message *parentCall = getExecutingCall();
 
         // Retrieve the microtask function from the table
         Runtime::Function *func = Runtime::asFunction(
-                Runtime::getTableElement(getExecutingModule()->defaultTable, microtaskPtr));
+                Runtime::getTableElement(getExecutingWAVMModule()->defaultTable, microtaskPtr));
 
 #ifdef OPENMP_FORK_REDIS_TRACE
         const util::TimePoint iterationTp = util::startTimer();
@@ -402,7 +402,7 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __faasmp_incryby {} {}", keyPtr, value);
 
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         std::string key{&Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr)};
         redis::Redis &redis = redis::Redis::getState();
         return redis.incrByLong(key, value);
@@ -412,7 +412,7 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __faasmp_getLong {}", keyPtr);
 
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         std::string key{&Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr)};
         redis::Redis &redis = redis::Redis::getState();
         return redis.getLong(key);
@@ -426,7 +426,7 @@ namespace wasm {
         logger->debug("S - __faasmp_debug_copy {} {}", src, dest);
 
         // Get pointers on host to both src and dest
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         int *hostSrc = &Runtime::memoryRef<int>(memoryPtr, src);
         int *hostDest = &Runtime::memoryRef<int>(memoryPtr, dest);
 
@@ -461,7 +461,7 @@ namespace wasm {
                       loc, gtid, schedule, lastIterPtr, lowerPtr, upperPtr, stridePtr, incr, chunk);
 
         // Get host pointers for the things we need to write
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         I32 *lastIter = &Runtime::memoryRef<I32>(memoryPtr, lastIterPtr);
         I32 *lower = &Runtime::memoryRef<I32>(memoryPtr, lowerPtr);
         I32 *upper = &Runtime::memoryRef<I32>(memoryPtr, upperPtr);
@@ -483,7 +483,7 @@ namespace wasm {
                       loc, gtid, schedule, lastIterPtr, lowerPtr, upperPtr, stridePtr, incr, chunk);
 
         // Get host pointers for the things we need to write
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         I32 *lastIter = &Runtime::memoryRef<I32>(memoryPtr, lastIterPtr);
         I64 *lower = &Runtime::memoryRef<I64>(memoryPtr, lowerPtr);
         I64 *upper = &Runtime::memoryRef<I64>(memoryPtr, upperPtr);

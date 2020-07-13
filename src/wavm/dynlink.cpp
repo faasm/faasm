@@ -26,7 +26,7 @@ namespace wasm {
 
         util::getLogger()->debug("S - dlopen - {} {}", filePath, flags);
 
-        int handle = getExecutingModule()->dynamicLoadModule(filePath, context);
+        int handle = getExecutingWAVMModule()->dynamicLoadModule(filePath, context);
 
         return handle;
     }
@@ -35,7 +35,7 @@ namespace wasm {
         const std::string symbol = getStringFromWasm(symbolPtr);
         util::getLogger()->debug("S - dlsym - {} {}", handle, symbol);
 
-        Uptr tableIdx = getExecutingModule()->getDynamicModuleFunction(handle, symbol);
+        Uptr tableIdx = getExecutingWAVMModule()->getDynamicModuleFunction(handle, symbol);
 
         return (I32) tableIdx;
     }
