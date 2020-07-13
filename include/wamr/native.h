@@ -28,4 +28,8 @@ namespace wasm {
     void initialiseWAMRNatives();
 
     uint32_t getFaasmNativeApi(NativeSymbol **nativeSymbols);
+
+    uint32_t getFaasmPthreadApi(NativeSymbol **nativeSymbols);
+
+    uint32_t getFaasmStubs(NativeSymbol **nativeSymbols);
 }

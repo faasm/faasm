@@ -10,6 +10,8 @@ set(LIB_FILES
         WAMRWasmModule.cpp
         faasm.cpp
         native.cpp
+        pthread.cpp
+        stubs.cpp
         ${HEADERS}
         )
 

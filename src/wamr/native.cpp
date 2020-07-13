@@ -3,11 +3,15 @@
 #include <wasm_native.h>
 
 namespace wasm {
-    void initialiseWAMRNatives() {
-        NativeSymbol *nativeSymbols;
+    void doSymbolRegistration(uint32_t (*f)(NativeSymbol **ns)) {
+        NativeSymbol *symbols;
+        uint32_t nSymbols = f(&symbols);
+        wasm_native_register_natives("env", symbols, nSymbols);
+    }
 
-        // Register Faasm native symbols
-        uint32_t nSymbols = getFaasmNativeApi(&nativeSymbols);
-        wasm_native_register_natives("env", nativeSymbols, nSymbols);
+    void initialiseWAMRNatives() {
+        doSymbolRegistration(getFaasmNativeApi);
+        doSymbolRegistration(getFaasmPthreadApi);
+        doSymbolRegistration(getFaasmStubs);
     }
 }
