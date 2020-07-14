@@ -40,7 +40,7 @@ namespace wasm {
         };
 
         struct WorkerArgs {
-            U32 stackTop;
+            uint32_t stackTop;
             PlatformThreadPool *pool;
         };
     }

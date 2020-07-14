@@ -114,7 +114,7 @@ namespace wasm {
 
         int getDataOffsetFromGOT(const std::string &name);
 
-        U32 allocateThreadStack();
+        uint32_t allocateThreadStack();
 
         std::unique_ptr<openmp::PlatformThreadPool> &getOMPPool();
 
@@ -194,6 +194,6 @@ namespace wasm {
         WAVM::Runtime::ContextRuntimeData *contextRuntimeData;
         WAVM::Runtime::Function *func;
         WAVM::IR::UntaggedValue *funcArgs;
-        U32 stackTop;
+        uint32_t stackTop;
     };
 }
