@@ -29,6 +29,9 @@ wasi-libc fork [here](https://github.com/Shillaker/wasi-libc/blob/master/libc-bo
 
 This is possible thanks to [WAVM's SIMD support](https://github.com/WAVM/WAVM).
 
+I've hacked about with Eigen on a [fork](https://github.com/Shillaker/eigen-git-mirror) to add WebAssembly
+SIMD support. This seems to work but is definitely experimental.
+
 # Downloading
  
 The toolchain is packaged as part of the 
