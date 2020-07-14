@@ -128,9 +128,9 @@ namespace faaslet {
 
 #if(FAASM_SGX == 1)
         if(msg.function().find(FAASM_SGX_FUNC_SUFFIX,0) != std::string::npos){
-            wasm::SGXWAMRWasmModule sgx_wamr_module(&enclave_id);
-            sgx_wamr_module.bindToFunction(msg);
-            module_sgx_wamr = std::make_unique<wasm::SGXWAMRWasmModule>(sgx_wamr_module);
+            //wasm::SGXWAMRWasmModule sgx_wamr_module(&enclave_id);
+            module_sgx_wamr = std::make_unique<wasm::SGXWAMRWasmModule>(&enclave_id);
+            module_sgx_wamr->bindToFunction(msg);
         }else{
 #endif
             // Instantiate the module from its snapshot
