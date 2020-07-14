@@ -46,7 +46,7 @@ inv toolchain.download-toolchain
 inv toolchain.download-sysroot
 ```
 
-This repo also contains a [Faasm CMake toolchain](../toolchain/FaasmToolchain.cmake),
+This repo also contains a corresponding [CMake toolchain](../toolchain/WasiToolchain.cmake),
 that's used under the hood to build functions and libraries.
 
 # Building

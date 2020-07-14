@@ -9,12 +9,15 @@ from faasmcli.util.env import FAASM_RUNTIME_ROOT, FAASM_LOCAL_DIR
 
 
 @task(default=True)
-def codegen(ctx, user, function):
+def codegen(ctx, user, function, wamr=False):
     """
     Generates machine code for the given function
     """
-    binary = find_codegen_func()
-    check_output("{} {} {}".format(binary, user, function), shell=True)
+    if wamr:
+        pass
+    else:
+        binary = find_codegen_func()
+        check_output("{} {} {}".format(binary, user, function), shell=True)
 
 
 @task
