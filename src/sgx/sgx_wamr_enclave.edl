@@ -15,6 +15,7 @@ enclave{
     };
     untrusted{
         void ocall_printf([in, string] const char* msg);
+        faasm_sgx_status_t ocall_init_crt(void); //TODO: FAASM_SGX_ATTESTATION
         unsigned int ocall_faasm_get_input_size(void);
         void ocall_faasm_get_input([in,out, size=buffer_size] uint8_t* buffer, unsigned int buffer_size);
         void ocall_faasm_set_output([in, size=output_size] uint8_t* output, unsigned int output_size);

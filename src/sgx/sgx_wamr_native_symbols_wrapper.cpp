@@ -10,17 +10,6 @@
 
 extern "C"{
     extern int os_printf(const char* message, ...);
-    static void faasmGetCurrentIdx(wasm_exec_env_t exec_env){//TODO: Remove this function
-        if(exec_env->module_inst->module_type == Wasm_Module_Bytecode){
-            WASMModuleInstance* module_instance = (WASMModuleInstance*) exec_env->module_inst;
-            for(uint32_t i = 0; i < module_instance->export_func_count; i++){
-                os_printf("%s\n",module_instance->export_functions[i].name);
-            }
-        }else {
-            //AOT currently not supported, abort
-            __asm("ud2");
-        }
-    }
     static unsigned int faasm_get_input_size_wrapper(wasm_exec_env_t exec_env){
         sgx_status_t sgx_ret_val;
         unsigned int ret_val;
@@ -63,7 +52,6 @@ extern "C"{
         return ret_val;
     }
     static NativeSymbol sgx_wamr_native_symbols[] = {
-            {"faasmGetCurrentIdx",(void*)faasmGetCurrentIdx,"",0x0},
             {"faasmGetInputSize",(void*)faasm_get_input_size_wrapper,"()i",0x0},
             {"faasmGetInput",(void*)faasm_get_input_wrapper,"(*~)",0x0},
             {"faasmSetOutput",(void*)faasm_set_output_wrapper,"(*~)",0x0},

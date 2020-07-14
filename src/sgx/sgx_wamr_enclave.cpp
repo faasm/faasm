@@ -27,6 +27,9 @@ extern "C"{
     extern int os_printf(const char* message, ...);
     extern uint32_t get_libc_builtin_export_apis(NativeSymbol** native_symbol_ptr);
     extern sgx_status_t SGX_CDECL ocall_printf(const char* msg);
+#if(FAASM_SGX_ATTESTATION)
+    extern sgx_status_t SGX_CDECL ocall_init_crt(faasm_sgx_status_t* ret_val);
+#endif
     static char wamr_global_heap_buffer[FAASM_SGX_WAMR_HEAP_SIZE * 1024];
     static faasm_sgx_status_t _get_native_symbols(NativeSymbol** native_symbol_ptr, uint32_t* native_symbol_num){//TODO: Performance Improvement e.g. extern
         NativeSymbol* libc_buildin_ptr, *sgx_wamr_ptr;
@@ -138,6 +141,7 @@ extern "C"{
         return FAASM_SGX_SUCCESS;
     }
     faasm_sgx_status_t sgx_wamr_enclave_init_wamr(const unsigned int thread_number){
+        sgx_status_t sgx_ret_val;
         faasm_sgx_status_t ret_val;
         os_set_print_function((os_print_function_t)ocall_printf);
         RuntimeInitArgs wamr_runtime_init_args;
@@ -155,6 +159,12 @@ extern "C"{
         }
         if(!wasm_runtime_full_init(&wamr_runtime_init_args))
             return FAASM_SGX_WAMR_RTE_INIT_FAILED;
+#if(FAASM_SGX_ATTESTATION)
+        if((sgx_ret_val = ocall_init_crt(&ret_val)) != SGX_SUCCESS)
+            return FAASM_SGX_OCALL_ERROR(sgx_ret_val);
+        if(ret_val != FAASM_SGX_SUCCESS)
+            return FAASM_SGX_UNABLE_TO_CREATE_CRT;
+#endif
         return FAASM_SGX_SUCCESS;
     }
 };

@@ -44,7 +44,7 @@ namespace faaslet {
             exit(0);
         }
         if(ret_val != FAASM_SGX_SUCCESS){
-            printf("[Error] Unable to initialize WAMR (%#010x)\n",ret_val);
+            printf("[Error] Unable to initialize runtime (%#010x)\n",FAASM_SGX_OCALL_GET_SGX_ERROR(ret_val));
             exit(0);
         }
 #endif

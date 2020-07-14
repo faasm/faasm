@@ -17,7 +17,6 @@ extern "C"{
     extern sgx_status_t SGX_CDECL ocall_faasm_chain_this_input(unsigned int* ret_val, const int idx, const uint8_t* input, unsigned int input_size);
     extern sgx_status_t SGX_CDECL ocall_faasm_await_call(unsigned int* ret_val, unsigned int call_id);
     extern sgx_status_t SGX_CDECL ocall_faasm_await_call_output(unsigned int* ret_val, unsigned int call_id, uint8_t* buffer, unsigned int buffer_size);
-    static void faasmGetCurrentIdx(wasm_exec_env_t exec_env);
     static unsigned int faasm_get_input_size_wrapper(wasm_exec_env_t exec_env);
     static void faasm_get_input_wrapper(wasm_exec_env_t exec_env, uint8_t* buffer, unsigned int buffer_size);
     static void faasm_set_output_wrapper(wasm_exec_env_t exec_env, uint8_t* output, unsigned int output_size);

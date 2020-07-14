@@ -58,9 +58,6 @@ namespace wasm{
          }
         sgx_status_t sgx_ret_val;
         faasm_sgx_status_t ret_val;
-        uint32_t dummy_argv[] = {
-                0x0,0x0
-        };
         wasm::setExecutingCall(const_cast<message::Message*>(&msg));
         if((sgx_ret_val = sgx_wamr_enclave_call_function(*enclave_id_ptr,&ret_val,thread_id, msg.idx())) != SGX_SUCCESS){
             printf("[Error] Unable to enter enclave (%#010x)\n",sgx_ret_val);

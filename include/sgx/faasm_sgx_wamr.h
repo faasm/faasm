@@ -14,7 +14,6 @@
 extern "C" {
 #endif
 
-int faasmGetCurrentIdx();
 unsigned int faasmGetInputSize();
 void faasmGetInput(uint8_t* buffer, unsigned int buffer_size);
 void faasmSetOutput(const uint8_t* output, unsigned int output_size);
