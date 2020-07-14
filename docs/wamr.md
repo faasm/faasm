@@ -18,10 +18,9 @@ To support code generation and AOT WebAssembly with WAMR we need to build
 the `wamrc` compiler. This process is outlined 
 [in the WAMR README](https://github.com/bytecodealliance/wasm-micro-runtime#build-wamrc-aot-compiler). Note that this requires building LLVM so takes a while.
 
-To continue you must make sure that `wamrc` is now on your path.
-
-Once done, you can compile and generate machine code for Faasm functions as normal, 
-passing the `--wamr` flag to the codegen:
+To continue you must make sure that `wamrc` is on your path. If so, you can compile 
+and generate machine code for Faasm functions as normal, passing the `--wamr` flag 
+to the codegen:
 
 ```bash
 inv compile demo hello

@@ -71,6 +71,10 @@ namespace storage {
         return _doLoad(url, "", objectFilePath);
     }
 
+    std::vector<uint8_t> FileserverFileLoader::loadFunctionWamrAotFile(const message::Message &msg) {
+        throw std::runtime_error("Not yet implemented WAMR AOT file loading from fileserver");
+    }
+
     std::vector<uint8_t> FileserverFileLoader::loadSharedObjectObjectFile(const std::string &path) {
         std::string url = util::getSharedObjectObjectUrl();
         std::string objFilePath = util::getSharedObjectObjectFile(path);

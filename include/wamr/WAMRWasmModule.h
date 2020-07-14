@@ -36,7 +36,6 @@ namespace wasm {
     private:
         bool _isBound;
 
-        std::vector<uint8_t> wasmFileBytes;
         std::vector<char> errorBuffer;
 
         WASMModuleCommon *wasmModule;

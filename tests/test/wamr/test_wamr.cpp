@@ -2,7 +2,6 @@
 #include <wamr/WAMRWasmModule.h>
 #include <util/func.h>
 #include <util/config.h>
-#include <utils.h>
 
 using namespace wasm;
 

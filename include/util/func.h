@@ -43,6 +43,8 @@ namespace util {
 
     std::string getFunctionObjectFile(const message::Message &msg);
 
+    std::string getFunctionWamrAotFile(const message::Message &msg);
+
     std::string getSharedObjectObjectFile(const std::string &realPath);
 
     std::string getSharedFileFile(const std::string &path);

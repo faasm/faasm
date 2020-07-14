@@ -12,6 +12,8 @@ namespace storage {
 
         std::vector<uint8_t> loadFunctionObjectFile(const message::Message &msg) override;
 
+        std::vector<uint8_t> loadFunctionWamrAotFile(const message::Message &msg) override;
+
         std::vector<uint8_t> loadSharedObjectObjectFile(const std::string &path) override;
 
         std::vector<uint8_t> loadSharedFile(const std::string &path) override;

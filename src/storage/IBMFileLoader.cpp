@@ -33,6 +33,10 @@ namespace storage {
         return this->loadFileBytes(key);
     }
 
+    std::vector<uint8_t> IBMFileLoader::loadFunctionWamrAotFile(const message::Message &msg) {
+        throw std::runtime_error("Not yet implemented WAMR AOT file loading from IBMFileLoader");
+    }
+
     std::vector<uint8_t> IBMFileLoader::loadSharedObjectObjectFile(const std::string &path) {
         throw std::runtime_error("Not implemented for IBM function loader");
     }

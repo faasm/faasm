@@ -33,7 +33,7 @@ namespace wasm {
 
         // Load the wasm file
         storage::FileLoader &functionLoader = storage::getFileLoader();
-        wasmFileBytes = functionLoader.loadFunctionWasm(msg);
+        std::vector<uint8_t> aotFileBytes = functionLoader.loadFunctionWamrAotFile(msg);
 
         // Initialise WAMR
         wasm_runtime_init();
@@ -44,8 +44,8 @@ namespace wasm {
         // Load wasm
         errorBuffer.reserve(ERROR_BUFFER_SIZE);
         wasmModule = wasm_runtime_load(
-                wasmFileBytes.data(),
-                wasmFileBytes.size(),
+                aotFileBytes.data(),
+                aotFileBytes.size(),
                 errorBuffer.data(),
                 ERROR_BUFFER_SIZE
         );
@@ -64,6 +64,10 @@ namespace wasm {
                 errorBuffer.data(),
                 ERROR_BUFFER_SIZE
         );
+
+        if(moduleInstance->module_type != Wasm_Module_AoT) {
+            throw std::runtime_error("WAMR module had unexpected type: " + std::to_string(moduleInstance->module_type));
+        }
     }
 
     void WAMRWasmModule::bindToFunctionNoZygote(const message::Message &msg) {
