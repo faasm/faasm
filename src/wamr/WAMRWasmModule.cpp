@@ -8,11 +8,15 @@ namespace wasm {
     static thread_local WAMRWasmModule *executingModule;
 
     void initialiseWAMRGlobally() {
-        // Looks like we don't actually need to do anything...
+        // Initialise runtime
+        wasm_runtime_init();
+
+        // Initialise native functions
+        initialiseWAMRNatives();
     }
 
     void tearDownWAMRGlobally() {
-        // wasm_runtime_destroy();
+        wasm_runtime_destroy();
     }
 
     WAMRWasmModule *getExecutingWAMRModule() {
@@ -42,12 +46,6 @@ namespace wasm {
         // Load the wasm file
         storage::FileLoader &functionLoader = storage::getFileLoader();
         std::vector<uint8_t> aotFileBytes = functionLoader.loadFunctionWamrAotFile(msg);
-
-        // Initialise WAMR
-        wasm_runtime_init();
-
-        // Initialise natives
-        initialiseWAMRNatives();
 
         // Load wasm
         errorBuffer.reserve(ERROR_BUFFER_SIZE);
@@ -109,7 +107,7 @@ namespace wasm {
         // Invoke the function
         bool success = wasm_runtime_call_wasm(executionEnv, func, 0, nullptr);
         if (success) {
-            logger->info("{} success", funcName);
+            logger->debug("{} finished", funcName);
         } else {
             std::string errorMessage(errorBuffer.data());
             logger->error("Function failed: {}", errorMessage);
