@@ -66,16 +66,21 @@ int main(int argc, char *argv[]) {
 }
 
 bool runWithWamr(message::Message &m, int runCount) {
-    wasm::WAMRWasmModule module;
-    module.bindToFunction(m);
+    wasm::initialiseWAMRGlobally();
 
     bool success = true;
+
     for (int i = 0; i < runCount; i++) {
+        wasm::WAMRWasmModule module;
+        module.bindToFunction(m);
+
         success = module.execute(m);
         if (!success) {
             break;
         }
     }
+
+    wasm::tearDownWAMRGlobally();
 
     return success;
 }

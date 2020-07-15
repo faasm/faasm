@@ -45,6 +45,10 @@ namespace wasm {
         void executeFunction(const std::string &funcName);
     };
 
+    void initialiseWAMRGlobally();
+
+    void tearDownWAMRGlobally();
+
     WAMRWasmModule *getExecutingWAMRModule();
 
     void setExecutingModule(WAMRWasmModule *executingModuleIn);

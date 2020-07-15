@@ -68,6 +68,9 @@ else()
     set(WAMR_BUILD_LIBC_WASI 1)
     set(WAMR_BUILD_LIBC_BUILTIN 0)
 
+    # Support running multiple modules
+    set(WAMR_BUILD_MULTI_MODULE 1)
+
     # Local pthread support
     set(WAMR_BUILD_LIB_PTHREAD 1)
 endif()

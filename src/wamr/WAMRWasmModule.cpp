@@ -7,6 +7,14 @@
 namespace wasm {
     static thread_local WAMRWasmModule *executingModule;
 
+    void initialiseWAMRGlobally() {
+        // Looks like we don't actually need to do anything...
+    }
+
+    void tearDownWAMRGlobally() {
+        // wasm_runtime_destroy();
+    }
+
     WAMRWasmModule *getExecutingWAMRModule() {
         return executingModule;
     }
@@ -115,9 +123,6 @@ namespace wasm {
     void WAMRWasmModule::tearDown() {
         wasm_runtime_destroy_exec_env(executionEnv);
         wasm_runtime_deinstantiate(moduleInstance);
-        wasm_runtime_unload(wasmModule);
-
-        wasm_runtime_destroy();
     }
 
     uint32_t WAMRWasmModule::mmapMemory(uint32_t length) {
