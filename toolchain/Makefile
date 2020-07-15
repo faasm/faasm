@@ -11,7 +11,7 @@ PREFIX=$(FAASM_LOCAL_DIR)/toolchain
 FAASM_SYSROOT=/usr/local/faasm/llvm-sysroot
 
 # NOTE - upgrading LLVM itself is done by updating the submodule in this project
-CLANG_VERSION=10.0.0
+CLANG_VERSION=10.0.1
 
 BUILD_DIR=$(LLVM_PROJ_DIR)/build
 LLVM_CONFIG=$(BUILD_DIR)/llvm/bin/llvm-config

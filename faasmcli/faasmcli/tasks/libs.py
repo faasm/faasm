@@ -1,4 +1,4 @@
-from os import makedirs, mkdir
+from os import makedirs, mkdir, cpu_count
 from os.path import exists
 from os.path import join
 from shutil import rmtree, copy
@@ -345,8 +345,11 @@ def tflite(ctx, clean=False):
         download_script = join(tf_make_dir, "download_dependencies.sh")
         check_output(download_script, shell=True)
 
+    cores = cpu_count()
+    make_cores = int(cores) - 1
+
     make_target = "lib"
-    make_cmd = ["make"]
+    make_cmd = ["make -j {}".format(make_cores)]
     make_cmd.extend(BASE_CONFIG_CMD)
     make_cmd.extend([
         "CFLAGS=\"{} -ftls-model=local-exec\"".format(WASM_CFLAGS),

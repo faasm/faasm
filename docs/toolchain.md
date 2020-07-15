@@ -87,17 +87,18 @@ git checkout <tag-name>
 Once done, check the [toolchain Makefile](../toolchain/Makefile) for any references to LLVM 
 versions and update accordingly.
 
-You can then follow the steps below as normal, making sure you start with `make clean-all`.
+You can then follow the steps below as normal.
 
 ## Building From Scratch
 
 To build from scratch you just need to be in the `toolchain` directory, then run:
 
 ```bash
+make clean-all
 make
 ```
 
-This a while (perhaps 30/40 mins) as it builds a lot of the LLVM toolchain from scratch.
+This a while as it builds a lot of the LLVM toolchain from scratch.
 
 When it finishes, check things are up to the new version with:
 
@@ -121,7 +122,7 @@ make clean-libs
 make
 ```
 
-The final option is to rebuild EVERYTHING, including Clang. This takes ages and is only necessary if you need to change the underlying LLVM or Clang configuration (rare):
+The final option is to rebuild _everything_, including Clang. This only necessary if you need to change the underlying LLVM or Clang configuration:
 
 ```bash
 make clean-all
