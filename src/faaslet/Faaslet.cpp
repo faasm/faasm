@@ -124,7 +124,7 @@ namespace faaslet {
 
         util::SystemConfig &conf = util::getSystemConfig();
 
-        // Instatiate the right wasm module for our chosen runtime
+        // Instantiate the right wasm module for our chosen runtime
         if(conf.wasmVm == "wamr") {
 #if(FAASM_SGX == 1)
             module = std::make_unique<wasm::SGXWAMRWasmModule>(&enclave_id);

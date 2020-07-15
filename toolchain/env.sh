@@ -17,7 +17,6 @@ export WASM_HOST=wasm32-unknown-wasi
 export WASM_HOST_UNKNOWN=wasm32-unknown-unknown
 
 # 14th July 2020 - temporarily disabling SIMD
-# export WASM_CFLAGS="-O3 --sysroot=${WASM_SYSROOT} -msimd128 -mno-atomics -D__faasm"
-export WASM_CFLAGS="-O3 --sysroot=${WASM_SYSROOT} -fno-vectorize -mno-atomics -D__faasm"
+export WASM_CFLAGS="-O3 --sysroot=${WASM_SYSROOT} -msimd128 -mno-atomics -D__faasm"
 export WASM_CXXFLAGS=${WASM_CFLAGS}
 

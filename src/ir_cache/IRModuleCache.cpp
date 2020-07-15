@@ -109,7 +109,7 @@ namespace wasm {
                 logger->debug("Loading compiled shared module {}", key);
 
                 IR::Module &module = moduleMap[key];
-                // module.featureSpec.simd = true;
+                module.featureSpec.simd = true;
                 module.featureSpec.atomics = true;
 
                 storage::FileLoader &functionLoader = storage::getFileLoader();
@@ -139,7 +139,7 @@ namespace wasm {
                 std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionWasm(msg);
 
                 IR::Module &module = moduleMap[key];
-                // module.featureSpec.simd = true;
+                module.featureSpec.simd = true;
                 module.featureSpec.atomics = true;
 
                 if (functionLoader.isWasm(wasmBytes)) {
@@ -182,7 +182,7 @@ namespace wasm {
                 std::vector<uint8_t> wasmBytes = functionLoader.loadSharedObjectWasm(path);
 
                 IR::Module &module = moduleMap[key];
-                // module.featureSpec.simd = true;
+                module.featureSpec.simd = true;
                 module.featureSpec.atomics = true;
 
                 WASM::LoadError loadError;
