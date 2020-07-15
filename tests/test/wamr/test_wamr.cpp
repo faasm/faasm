@@ -12,7 +12,5 @@ namespace tests {
         wasm::WAMRWasmModule module;
         module.bindToFunction(call);
         module.execute(call);
-
-        module.tearDown();
     }
 }
