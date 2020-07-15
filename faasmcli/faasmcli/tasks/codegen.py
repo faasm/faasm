@@ -6,7 +6,7 @@ from subprocess import check_output
 from invoke import task
 
 from faasmcli.util.codegen import find_codegen_func, find_codegen_shared_lib
-from faasmcli.util.env import FAASM_RUNTIME_ROOT, FAASM_LOCAL_DIR, PROJ_ROOT, WASM_DIR, FAASM_MACHINE_CODE_DIR
+from faasmcli.util.env import FAASM_RUNTIME_ROOT, WASM_DIR, FAASM_MACHINE_CODE_DIR, THIRD_PARTY_DIR
 from faasmcli.util.shell import find_command
 
 
@@ -14,7 +14,7 @@ from faasmcli.util.shell import find_command
 def _do_wamr_codegen(user, function):
     print("Running WAMR codegen for {}/{}".format(user, function))
 
-    binary = find_command("wamrc", dirs=None)
+    binary = find_command("wamrc", dirs=[THIRD_PARTY_DIR, "wamr", "wamr-compiler", "build"])
     func_file = join(WASM_DIR, user, function, "function.wasm")
     output_file = join(FAASM_MACHINE_CODE_DIR, user, function, "function.aot")
 
