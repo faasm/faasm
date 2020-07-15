@@ -51,7 +51,7 @@ add_definitions(-D__faasm)
 # https://reviews.llvm.org/D59281
 # 14th July 2020 - temporarily disabling SIMD
 # set(FAASM_COMPILER_FLAGS "-O3 -msimd128 -mno-atomics --sysroot=${FAASM_SYSROOT}")
-set(FAASM_COMPILER_FLAGS "-O3 -mno-atomics --sysroot=${FAASM_SYSROOT}")
+set(FAASM_COMPILER_FLAGS "-O3 -fno-vectorize -mno-atomics --sysroot=${FAASM_SYSROOT}")
 
 set(CMAKE_SYSROOT ${FAASM_SYSROOT} CACHE STRING "faasm build")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${FAASM_COMPILER_FLAGS}" CACHE STRING "faasm build")

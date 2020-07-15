@@ -23,11 +23,12 @@ You will need to set this target explicitly in any relevant CMakeLists/ Makefile
 SIMD support is switched on using the standard Clang flags, `-msimd128` and `-munimplemented-simd128`.
 This is done by default for all Faasm functions and libraries. 
 
-We use a modified version of the SIMD header found in Clang 
-[here](https://github.com/llvm/llvm-project/blob/master/clang/lib/Headers/wasm_simd128.h), which lives in our 
-wasi-libc fork [here](https://github.com/Shillaker/wasi-libc/blob/master/libc-bottom-half/headers/public/wasm_simd128.h). 
+At time of writing the 
+[Clang WASM SIMD header](https://github.com/llvm/llvm-project/blob/master/clang/lib/Headers/wasm_simd128.h) 
+was not found in Clang, so we put our own copy into our wasi-libc fork 
+[here](https://github.com/Shillaker/wasi-libc/blob/master/libc-bottom-half/headers/public/wasm_simd128.h). 
 
-This is possible thanks to [WAVM's SIMD support](https://github.com/WAVM/WAVM).
+Use of SIMD relies on [WAVM's SIMD support](https://github.com/WAVM/WAVM).
 
 I've hacked about with Eigen on a [fork](https://github.com/Shillaker/eigen-git-mirror) to add WebAssembly
 SIMD support. This seems to work but is definitely experimental.

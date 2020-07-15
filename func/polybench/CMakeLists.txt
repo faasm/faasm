@@ -9,6 +9,8 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # 14th July 2020 - temporarily disabling SIMD
     # set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -munimplemented-simd128")
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -munimplemented-simd128")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-vectorize")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-vectorize")
 endif()
 
 # Define the polybench data type here

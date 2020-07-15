@@ -20,7 +20,7 @@ WASM_HOST_UNKNOWN = "wasm32-unknown-unknown"
 
 # 14th July 2020 - temporarily disabling SIMD
 # WASM_CFLAGS = "-O3 --sysroot={} -msimd128 -D__faasm".format(WASM_SYSROOT)
-WASM_CFLAGS = "-O3 --sysroot={} -D__faasm".format(WASM_SYSROOT)
+WASM_CFLAGS = "-O3 --sysroot={} -fno-vectorize -D__faasm".format(WASM_SYSROOT)
 WASM_CXXFLAGS = WASM_CFLAGS
 
 BASE_CONFIG_CMD = [

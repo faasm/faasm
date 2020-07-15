@@ -78,7 +78,8 @@ namespace wasm {
             util::FullLock registryLock(registryMutex);
             if (compiledModuleMap.count(key) == 0) {
                 IR::Module &module = moduleMap[key];
-                module.featureSpec.simd = true;
+                // 14th July 2020 - temporarily disabling SIMD
+                // module.featureSpec.simd = true;
                 module.featureSpec.atomics = true;
 
                 storage::FileLoader &functionLoader = storage::getFileLoader();
@@ -109,7 +110,7 @@ namespace wasm {
                 logger->debug("Loading compiled shared module {}", key);
 
                 IR::Module &module = moduleMap[key];
-                module.featureSpec.simd = true;
+                // module.featureSpec.simd = true;
                 module.featureSpec.atomics = true;
 
                 storage::FileLoader &functionLoader = storage::getFileLoader();
@@ -139,7 +140,7 @@ namespace wasm {
                 std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionWasm(msg);
 
                 IR::Module &module = moduleMap[key];
-                module.featureSpec.simd = true;
+                // module.featureSpec.simd = true;
                 module.featureSpec.atomics = true;
 
                 if (functionLoader.isWasm(wasmBytes)) {
@@ -182,7 +183,7 @@ namespace wasm {
                 std::vector<uint8_t> wasmBytes = functionLoader.loadSharedObjectWasm(path);
 
                 IR::Module &module = moduleMap[key];
-                module.featureSpec.simd = true;
+                // module.featureSpec.simd = true;
                 module.featureSpec.atomics = true;
 
                 WASM::LoadError loadError;
