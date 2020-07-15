@@ -33,7 +33,7 @@ namespace wasm {
         auto pArg = reinterpret_cast<PThreadArgs *>(threadSpecPtr);
         setExecutingModule(pArg->parentModule);
         setExecutingCall(pArg->parentCall);
-        I64 res = getExecutingModule()->executeThreadLocally(*pArg->spec);
+        I64 res = getExecutingWAVMModule()->executeThreadLocally(*pArg->spec);
 
         // Delete the spec, no longer needed
         delete[] pArg->spec->funcArgs;
@@ -67,7 +67,7 @@ namespace wasm {
 
         // Set the bits we care about on the pthread struct
         // NOTE - setting the initial pointer is crucial for inter-operation with existing C code
-        WAVMWasmModule *thisModule = getExecutingModule();
+        WAVMWasmModule *thisModule = getExecutingWAVMModule();
         wasm_pthread *pthreadHost = &Runtime::memoryRef<wasm_pthread>(thisModule->defaultMemory, pthreadPtr);
         pthreadHost->selfPtr = pthreadPtr;
 
@@ -149,7 +149,7 @@ namespace wasm {
 
         // This function is passed a pointer to a pointer for the result,
         // so we dereference it once and are writing an integer (i.e. a wasm pointer)
-        auto resPtr = &Runtime::memoryRef<I32>(getExecutingModule()->defaultMemory, resPtrPtr);
+        auto resPtr = &Runtime::memoryRef<I32>(getExecutingWAVMModule()->defaultMemory, resPtrPtr);
         *resPtr = returnValue;
 
         return 0;
@@ -167,7 +167,7 @@ namespace wasm {
 
         // Reference to uaddr
         // The value pointed to by uaddr is always a four byte integer
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         I32 *actualValPtr = &Runtime::memoryRef<I32>(memoryPtr, (Uptr) uaddrPtr);
         I32 actualVal = *actualValPtr;
 

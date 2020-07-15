@@ -47,7 +47,7 @@ namespace wasm {
     I32 s__sigaltstack(I32 ssPtr, I32 oldSsPtr) {
         util::getLogger()->debug("S - sigaltstack - {} {}", ssPtr, oldSsPtr);
 
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
 
         // Extract struct pointers from wasm memory
         // wasm_stack_t *ss = &Runtime::memoryRef<wasm_stack_t>(memoryPtr, (Uptr) ssPtr);
@@ -91,7 +91,7 @@ namespace wasm {
             logger->warn("WARNING: ignoring mmap hint at {}", addr);
         }
 
-        WAVMWasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingWAVMModule();
 
         if (fd != -1) {
             // If fd is provided, we're mapping a file into memory
@@ -120,7 +120,7 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - munmap - {} {} (IGNORED)", addr, length);
 
-//        WasmModule *executingModule = getExecutingModule();
+//        WasmModule *executingModule = getExecutingWAVMModule();
 //        Runtime::Memory *memory = executingModule->defaultMemory;
 //
 //        // If not aligned or zero length, drop out
@@ -178,7 +178,7 @@ namespace wasm {
             throw std::runtime_error("brk not page-aligned");
         }
 
-        WAVMWasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingWAVMModule();
         Runtime::Memory *memory = module->defaultMemory;
 
         Uptr currentPageCount = getMemoryNumPages(memory);
@@ -225,7 +225,7 @@ namespace wasm {
     I32 s__sbrk(I32 increment) {
         util::getLogger()->debug("S - sbrk - {}", increment);
 
-        WAVMWasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingWAVMModule();
         Runtime::Memory *memory = module->defaultMemory;
 
         Uptr currentPageCount = getMemoryNumPages(memory);

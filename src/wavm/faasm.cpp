@@ -92,7 +92,7 @@ namespace wasm {
         auto kv = getStateKV(keyPtr, dataLen);
         logger->debug("S - write_state - {} {} {}", kv->key, dataPtr, dataLen);
 
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
 
         logger->debug("Writing state length {} to key {}", dataLen, kv->key);
@@ -103,7 +103,7 @@ namespace wasm {
                                    I32 keyPtr, I32 dataPtr, I32 dataLen) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
 
@@ -115,7 +115,7 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_appended_state", void, __faasm_read_appended_state,
                                    I32 keyPtr, I32 bufferPtr, I32 bufferLen, I32 nElems) {
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
 
@@ -129,7 +129,7 @@ namespace wasm {
                                    I32 keyPtr) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
 
         logger->debug("S - clear_appended_state - {}", key);
@@ -145,7 +145,7 @@ namespace wasm {
         util::getLogger()->debug("S - write_state_offset - {} {} {} {} {}", kv->key, totalLen, offset, dataPtr,
                                  dataLen);
 
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
 
         kv->setChunk(offset, data, dataLen);
@@ -186,7 +186,7 @@ namespace wasm {
             util::getLogger()->debug("S - read_state - {} {} {}", kv->key, bufferPtr, bufferLen);
 
             // Copy to straight to buffer
-            Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+            Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
             U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
             kv->get(buffer);
             return kv->size();
@@ -200,7 +200,7 @@ namespace wasm {
         util::getLogger()->debug("S - read_state_ptr - {} {}", kv->key, totalLen);
 
         // Map shared memory
-        WAVMWasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingWAVMModule();
         U32 wasmPtr = module->mapSharedStateMemory(kv, 0, totalLen);
 
         // Call get to make sure the value is pulled
@@ -216,7 +216,7 @@ namespace wasm {
                                  bufferLen);
 
         // Copy to straight to buffer
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
         kv->getChunk(offset, buffer, bufferLen);
     }
@@ -227,7 +227,7 @@ namespace wasm {
         util::getLogger()->debug("S - read_state_offset_ptr - {} {} {} {}", kv->key, totalLen, offset, len);
 
         // Map whole key in shared memory
-        WAVMWasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingWAVMModule();
         U32 wasmPtr = module->mapSharedStateMemory(kv, offset, len);
 
         // Call get to make sure the value is there
@@ -265,7 +265,7 @@ namespace wasm {
         }
 
         // Write to the wasm buffer
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
 
         int inputSize = util::safeCopyToBuffer(inputBytes, buffer, bufferLen);
@@ -305,7 +305,7 @@ namespace wasm {
 
     void _readPythonInput(I32 buffPtr, I32 buffLen, const std::string &value) {
         // Get wasm buffer
-        U8 *buffer = Runtime::memoryArrayPtr<U8>(getExecutingModule()->defaultMemory, (Uptr) buffPtr, (Uptr) buffLen);
+        U8 *buffer = Runtime::memoryArrayPtr<U8>(getExecutingWAVMModule()->defaultMemory, (Uptr) buffPtr, (Uptr) buffLen);
 
         if (value.empty()) {
             // If nothing, just write a null terminator

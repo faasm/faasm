@@ -58,6 +58,9 @@ fi
 # Native MPI
 export PATH=/usr/local/faasm/openmpi/bin:$PATH
 
+# WAMRC
+export PATH=${FAASM_ROOT}/third-party/wamr/wamr-compiler/build:$PATH
+
 echo ""
 echo "----------------------------------"
 echo "Faasm CLI"

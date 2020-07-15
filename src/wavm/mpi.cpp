@@ -29,7 +29,7 @@ namespace wasm {
      */
     class ContextWrapper {
     public:
-        explicit ContextWrapper(I32 commPtr) : module(getExecutingModule()),
+        explicit ContextWrapper(I32 commPtr) : module(getExecutingWAVMModule()),
                                                memory(module->defaultMemory),
                                                world(getExecutingWorld()),
                                                rank(executingContext.getRank()) {
@@ -72,7 +72,7 @@ namespace wasm {
          * This uses the same trick, where we read the value of the pointer as the request ID.
          */
         I32 getFaasmRequestId(I32 requestPtrPtr) {
-            I32 requestId = Runtime::memoryRef<I32>(getExecutingModule()->defaultMemory, requestPtrPtr);
+            I32 requestId = Runtime::memoryRef<I32>(getExecutingWAVMModule()->defaultMemory, requestPtrPtr);
             return requestId;
         }
 
@@ -510,7 +510,7 @@ namespace wasm {
         util::getLogger()->debug("S - MPI_Get_processor_name {} {}", buf, bufLen);
 
         const std::string host = util::getSystemConfig().endpointHost;
-        char *key = &Runtime::memoryRef<char>(getExecutingModule()->defaultMemory, (Uptr) buf);
+        char *key = &Runtime::memoryRef<char>(getExecutingWAVMModule()->defaultMemory, (Uptr) buf);
         strcpy(key, host.c_str());
 
         return MPI_SUCCESS;
@@ -542,7 +542,7 @@ namespace wasm {
         }
 
         // Create the new memory region
-        WAVMWasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingWAVMModule();
         U32 mappedWasmPtr = module->mmapMemory(memSize);
 
         // Write the result to the wasm memory (note that the argument passed to the
@@ -573,7 +573,7 @@ namespace wasm {
         win->rank = ctx.rank;
         win->wasmPtr = basePtr;
 
-        U8 *hostPtr = &Runtime::memoryRef<U8>(getExecutingModule()->defaultMemory, basePtr);
+        U8 *hostPtr = &Runtime::memoryRef<U8>(getExecutingWAVMModule()->defaultMemory, basePtr);
         ctx.world.createWindow(win, hostPtr);
 
         return MPI_SUCCESS;
@@ -677,7 +677,7 @@ namespace wasm {
         } else {
             // The result is a pointer to a pointer, so for everything other than MPI_WIN_BASE
             // we need to doubly translate it
-            Runtime::GCPointer<Runtime::Memory> &memPtr = getExecutingModule()->defaultMemory;
+            Runtime::GCPointer<Runtime::Memory> &memPtr = getExecutingWAVMModule()->defaultMemory;
             I32 attrResPtr = Runtime::memoryRef<I32>(memPtr, attrResPtrPtr);
 
             if (attrKey == MPI_WIN_SIZE) {

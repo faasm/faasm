@@ -5,12 +5,24 @@
 #include <wasm_export.h>
 
 namespace wasm {
+    static thread_local WAMRWasmModule *executingModule;
+
+    WAMRWasmModule *getExecutingWAMRModule() {
+        return executingModule;
+    }
+
+    void setExecutingModule(WAMRWasmModule *executingModuleIn) {
+        executingModule = executingModuleIn;
+    }
+
     WAMRWasmModule::~WAMRWasmModule() {
         tearDown();
     }
 
     // ----- Module lifecycle -----
     void WAMRWasmModule::bindToFunction(const message::Message &msg) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        
         // Set up the module
         boundUser = msg.user();
         boundFunction = msg.function();
@@ -21,7 +33,7 @@ namespace wasm {
 
         // Load the wasm file
         storage::FileLoader &functionLoader = storage::getFileLoader();
-        wasmFileBytes = functionLoader.loadFunctionWasm(msg);
+        std::vector<uint8_t> aotFileBytes = functionLoader.loadFunctionWamrAotFile(msg);
 
         // Initialise WAMR
         wasm_runtime_init();
@@ -32,12 +44,18 @@ namespace wasm {
         // Load wasm
         errorBuffer.reserve(ERROR_BUFFER_SIZE);
         wasmModule = wasm_runtime_load(
-                wasmFileBytes.data(),
-                wasmFileBytes.size(),
+                aotFileBytes.data(),
+                aotFileBytes.size(),
                 errorBuffer.data(),
                 ERROR_BUFFER_SIZE
         );
 
+        if(wasmModule == nullptr) {
+            std::string errorMsg = std::string(errorBuffer.data());
+            logger->error("Failed to instantiate WAMR module: \n{}", errorMsg);
+            throw std::runtime_error("Failed to instantiate WAMR module");
+        }
+        
         // Instantiate module
         moduleInstance = wasm_runtime_instantiate(
                 wasmModule,
@@ -46,6 +64,10 @@ namespace wasm {
                 errorBuffer.data(),
                 ERROR_BUFFER_SIZE
         );
+
+        if(moduleInstance->module_type != Wasm_Module_AoT) {
+            throw std::runtime_error("WAMR module had unexpected type: " + std::to_string(moduleInstance->module_type));
+        }
     }
 
     void WAMRWasmModule::bindToFunctionNoZygote(const message::Message &msg) {
@@ -55,6 +77,9 @@ namespace wasm {
     }
 
     bool WAMRWasmModule::execute(message::Message &msg, bool forceNoop) {
+        setExecutingCall(&msg);
+        setExecutingModule(this);
+
         executionEnv = wasm_runtime_create_exec_env(moduleInstance, STACK_SIZE);
 
         // Run wasm initialisers
@@ -93,5 +118,27 @@ namespace wasm {
         wasm_runtime_unload(wasmModule);
 
         wasm_runtime_destroy();
+    }
+
+    uint32_t WAMRWasmModule::mmapMemory(uint32_t length) {
+        void *nativePtr;
+        wasm_runtime_module_malloc(moduleInstance, length, &nativePtr);
+        int32 wasmPtr = wasm_runtime_addr_native_to_app(moduleInstance, nativePtr);
+        return wasmPtr;
+    }
+
+    uint32_t WAMRWasmModule::mmapPages(uint32_t pages) {
+        uint32_t bytes = pages * WASM_BYTES_PER_PAGE;
+        return mmapMemory(bytes);
+    }
+
+    uint8_t* WAMRWasmModule::wasmPointerToNative(int32_t wasmPtr) {
+        void *nativePtr = wasm_runtime_addr_app_to_native(moduleInstance, wasmPtr);
+        return static_cast<uint8_t *>(nativePtr);
+    }
+
+    uint32_t WAMRWasmModule::mmapFile(uint32_t fp, uint32_t length) {
+        // TODO - implement
+        return 0;
     }
 }

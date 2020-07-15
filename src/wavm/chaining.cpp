@@ -34,7 +34,7 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - await_call_output - {} {} {}", messageId, bufferPtr, bufferLen);
 
-        auto buffer = &Runtime::memoryRef<uint8_t>(getExecutingModule()->defaultMemory, bufferPtr);
+        auto buffer = &Runtime::memoryRef<uint8_t>(getExecutingWAVMModule()->defaultMemory, bufferPtr);
 
         return awaitChainedCallOutput(messageId, buffer, bufferLen);
     }
