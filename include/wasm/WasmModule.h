@@ -74,6 +74,18 @@ namespace wasm {
 
         void clearCapturedStdout();
 
+        // ----- Memory management -----
+
+        virtual uint32_t mmapMemory(uint32_t length);
+
+        virtual uint32_t mmapPages(uint32_t pages);
+
+        virtual uint32_t mmapFile(uint32_t fp, uint32_t length);
+
+        virtual uint32_t mapSharedStateMemory(const std::shared_ptr<state::StateKeyValue> &kv, long offset, uint32_t length);
+
+        virtual uint8_t* wasmPointerToNative(int32_t wasmPtr);
+
         // ----- CoW memory -----
         virtual void writeMemoryToFd(int fd);
 
@@ -116,6 +128,10 @@ namespace wasm {
         virtual void doRestore(std::istream &inStream);
 
         void prepareArgcArgv(const message::Message &msg);
+
+        // Shared memory regions
+        std::mutex sharedMemWasmPtrsMx;
+        std::unordered_map<std::string, uint32_t> sharedMemWasmPtrs;
     };
 
     // ----- Global functions -----

@@ -50,6 +50,5 @@ jobs:
           -e REDIS_QUEUE_HOST=redis
           -e LOG_LEVEL=info
           -e THREADS_PER_WORKER=5
-          -e OMP_THREAD_POOL_SIZE=10
           faasm/testing:${{ steps.get_tag.outputs.tag }}
           /usr/local/code/faasm/bin/ci_run.sh

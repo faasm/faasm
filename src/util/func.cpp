@@ -18,6 +18,7 @@ namespace util {
     const static std::string funcFile = "function.wasm";
     const static std::string symFile = "function.symbols";
     const static std::string objFile = "function.wasm.o";
+    const static std::string wamrAotFile = "function.aot";
     const static std::string confFile = "conf.json";
 
     std::string getRootUrl() {
@@ -185,6 +186,13 @@ namespace util {
     std::string getFunctionObjectFile(const message::Message &msg) {
         auto path = getObjectDir(msg);
         path.append(objFile);
+
+        return path.string();
+    }
+
+    std::string getFunctionWamrAotFile(const message::Message &msg) {
+        auto path = getObjectDir(msg);
+        path.append(wamrAotFile);
 
         return path.string();
     }

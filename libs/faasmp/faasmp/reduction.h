@@ -3,7 +3,6 @@
 
 #include <cstdint>
 
-
 #include <omp.h>
 #include <cstdio>
 #include <cstring>

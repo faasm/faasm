@@ -20,6 +20,11 @@ namespace storage {
         return loadFileBytes(objectFilePath);
     }
 
+    std::vector<uint8_t> LocalFileLoader::loadFunctionWamrAotFile(const message::Message &msg) {
+        std::string objectFilePath = util::getFunctionWamrAotFile(msg);
+        return loadFileBytes(objectFilePath);
+    }
+
     std::vector<uint8_t> LocalFileLoader::loadSharedObjectObjectFile(const std::string &path) {
         std::string objFilePath = util::getSharedObjectObjectFile(path);
         return loadFileBytes(objFilePath);

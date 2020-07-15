@@ -124,6 +124,7 @@ namespace faaslet {
 
         util::SystemConfig &conf = util::getSystemConfig();
 
+        // Instantiate the right wasm module for our chosen runtime
         if(conf.wasmVm == "wamr") {
 #if(FAASM_SGX == 1)
             module = std::make_unique<wasm::SGXWAMRWasmModule>(&enclave_id);
@@ -132,7 +133,7 @@ namespace faaslet {
 #endif
             module->bindToFunction(msg);
         } else {
-            // Instantiate the module from its snapshot
+            // Instantiate a WAVM module from its snapshot
             PROF_START(snapshotRestore)
 
             module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
@@ -210,15 +211,17 @@ namespace faaslet {
             }
 
             // Check if we need to restore from a different snapshot
-            const std::string snapshotKey = msg.snapshotkey();
-            if (!snapshotKey.empty() && !msg.issgx()) {
-                PROF_START(snapshotOverride)
+            if(conf.wasmVm == "wavm") {
+                const std::string snapshotKey = msg.snapshotkey();
+                if (!snapshotKey.empty() && !msg.issgx()) {
+                    PROF_START(snapshotOverride)
 
-                module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
-                wasm::WAVMWasmModule &snapshot = registry.getCachedModule(msg);
-                module = std::make_unique<wasm::WAVMWasmModule>(snapshot);
+                    module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
+                    wasm::WAVMWasmModule &snapshot = registry.getCachedModule(msg);
+                    module = std::make_unique<wasm::WAVMWasmModule>(snapshot);
 
-                PROF_END(snapshotOverride)
+                    PROF_END(snapshotOverride)
+                }
             }
 
             // Do the actual execution

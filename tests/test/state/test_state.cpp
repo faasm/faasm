@@ -9,7 +9,6 @@
 #include <sys/mman.h>
 #include <emulator/emulator.h>
 #include <faasm/state.h>
-#include <util/state.h>
 #include <state/InMemoryStateKeyValue.h>
 
 using namespace state;

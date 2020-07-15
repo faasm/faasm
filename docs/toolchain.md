@@ -2,14 +2,42 @@
 
 Faasm aims to support a range of legacy applications, so requires a toolchain
 capable of compiling large projects that may require threading, C++ exceptions 
-and dynamic linking. Unfortunately these features are not covered by the 
-[wasi-sdk](https://github.com/WebAssembly/wasi-sdk) and 
-[wasi-libc](https://github.com/WebAssembly/wasi-libc) at this time, therefore
-we need to use a custom LLVM toolchain and musl fork. The musl fork is based
-off the now-archived project found [here](https://github.com/jfbastien/musl). 
+and dynamic linking. To do this we have to use a custom 
+[fork of wasi-libc](https://github.com/Shillaker/wasi-libc), and our own build of 
+the LLVM toolchain via [this Makefile](../toolchain/Makefile).  
 
-Fortunately we only rarely need to build the toolchain, and it can be downloaded
-by running:
+# Usage
+
+## Dynamic Linking
+
+Faasm implements dynamic linking according to the 
+[WebAssembly tool conventions](https://github.com/WebAssembly/tool-conventions/blob/master/DynamicLinking.md). 
+
+Shared libraries must be built with `-fPIC`, but this is only supported with 
+`--target wasm32-unknown-emscripten` as per this [LLVM bug](https://bugs.llvm.org/show_bug.cgi?id=42714).
+
+You will need to set this target explicitly in any relevant CMakeLists/ Makefiles (as the default is `wasm32`).
+
+## SIMD
+
+SIMD support is switched on using the standard Clang flags, `-msimd128` and `-munimplemented-simd128`.
+This is done by default for all Faasm functions and libraries. 
+
+At time of writing the 
+[Clang WASM SIMD header](https://github.com/llvm/llvm-project/blob/master/clang/lib/Headers/wasm_simd128.h) 
+was not found in Clang, so we put our own copy into our wasi-libc fork 
+[here](https://github.com/Shillaker/wasi-libc/blob/master/libc-bottom-half/headers/public/wasm_simd128.h). 
+
+Use of SIMD relies on [WAVM's SIMD support](https://github.com/WAVM/WAVM).
+
+I've hacked about with Eigen on a [fork](https://github.com/Shillaker/eigen-git-mirror) to add WebAssembly
+SIMD support. This seems to work but is definitely experimental.
+
+# Downloading
+ 
+The toolchain is packaged as part of the 
+[Faasm releases](https://github.com/lsds/faasm/releases), and can be downloaded using 
+[the CLI](setup.md):
 
 ```bash
 # Toolchain - clang, clang++, wasm-ld etc.
@@ -19,8 +47,8 @@ inv toolchain.download-toolchain
 inv toolchain.download-sysroot
 ```
 
-This repo contains a [Faasm CMake toolchain](../toolchain/FaasmToolchain.cmake),
-file that's used under the hood to build functions and libraries.
+This repo also contains a corresponding [CMake toolchain](../toolchain/WasiToolchain.cmake),
+that's used under the hood to build functions and libraries.
 
 # Building
 
@@ -61,7 +89,7 @@ versions and update accordingly.
 
 You can then follow the steps below as normal.
 
-## Building Toolchain
+## Building From Scratch
 
 To build from scratch you just need to be in the `toolchain` directory, then run:
 
@@ -78,7 +106,7 @@ When it finishes, check things are up to the new version with:
 inv toolchain.version
 ```
 
-## Rebuilding Toolchain
+### Rebuilding
 
 To rebuild, there different options. The first is just rebuilding libc:
 
@@ -103,20 +131,10 @@ make
 
 ## Troubleshooting the build
 
-If a given project fails you need to go to the build dir (e.g. for `libcxx` this would be `third-party/llvm-project/build/libcxx`) then look at `CMakeFiles/CMakeError.log` and `CMakeFiles/CMakeOutput.log`.
+If a given project fails you need to go to the build dir (e.g. for `libcxx` this would 
+be `third-party/llvm-project/build/libcxx`) then look at `CMakeFiles/CMakeError.log` and 
+`CMakeFiles/CMakeOutput.log`.
 
-One thing to check for is the magic `libclang_rt.builtins-wasm32.tar.gz` file. This should get built by the build process but if you need to fiddle with it you can download it as part of the [WASI SDK Release](https://github.com/CraneStation/wasi-sdk/releases).
-
-# Usage
-
-## Shared Libraries
-
-Note that at the time of writing the state of shared libraries and dynamic linking was also in flux. 
-
-Shared libraries must be built with `-fPIC`, but this is only supported with `--target wasm32-unknown-emscripten` as per this [LLVM bug](https://bugs.llvm.org/show_bug.cgi?id=42714).
-
-You will need to set this target explicitly the relevant CMake/ Makefile (as the default is `wasm32`).
-
-## SIMD
-
-SIMD support is also in flux but possible to switch on with `-msimd128` and `-munimplemented-simd128`.
+One thing to check for is the magic `libclang_rt.builtins-wasm32.tar.gz` file. This should get 
+built by the build process but if you need to fiddle with it you can download it as part of the 
+[WASI SDK Release](https://github.com/CraneStation/wasi-sdk/releases).

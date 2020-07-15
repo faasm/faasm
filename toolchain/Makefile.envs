@@ -22,7 +22,7 @@ export WASM_HOST=wasm32-unknown-wasi
 export WASM_HOST_UNKNOWN=wasm32-unknown-unknown
 
 # Note potential performance gains from unimplemented-simd128 here.
-# May not be necessary in future. 
+# May not be necessary in future.
 export WASM_CFLAGS_NO_QUOTES=-O3 --sysroot=$(WASM_SYSROOT) -msimd128 -munimplemented-simd128 -mno-atomics -D__faasm
 export WASM_CXXFLAGS_NO_QUOTES=$(WASM_CFLAGS_NO_QUOTES)
 export WASM_CFLAGS="$(WASM_CFLAGS_NO_QUOTES)"

@@ -8,17 +8,18 @@ set(HEADERS
 
 set(LIB_FILES
         WAMRWasmModule.cpp
-        faasm.cpp
+        dynlink.cpp
+        filesystem.cpp
+        funcs.cpp
         native.cpp
+        pthread.cpp
+        state.cpp
+        stubs.cpp
         ${HEADERS}
         )
 
 faasm_private_lib(wamrmodule "${LIB_FILES}")
 target_link_libraries(wamrmodule wasm wamr)
-
-# Temporary runner
-add_executable(wamr_runner wamr_runner.cpp)
-target_link_libraries(wamr_runner wamrmodule)
 
 # ----------------------------------------------------
 # WAMR CONTAINMENT ZONE

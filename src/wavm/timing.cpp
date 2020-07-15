@@ -22,7 +22,7 @@ namespace wasm {
             return -systemErrno;
         }
 
-        auto result = &Runtime::memoryRef<wasm_timespec>(getExecutingModule()->defaultMemory, (Uptr) timespecPtr);
+        auto result = &Runtime::memoryRef<wasm_timespec>(getExecutingWAVMModule()->defaultMemory, (Uptr) timespecPtr);
         result->tv_sec = I64(ts.tv_sec);
         result->tv_nsec = I32(ts.tv_nsec);
 
@@ -38,7 +38,7 @@ namespace wasm {
         timeval tv{};
         gettimeofday(&tv, nullptr);
 
-        auto result = &Runtime::memoryRef<wasm_timeval>(getExecutingModule()->defaultMemory, (Uptr) tvPtr);
+        auto result = &Runtime::memoryRef<wasm_timeval>(getExecutingWAVMModule()->defaultMemory, (Uptr) tvPtr);
         result->tv_sec = I32(tv.tv_sec);
         result->tv_usec = I32(tv.tv_usec);
 
@@ -51,7 +51,7 @@ namespace wasm {
     I32 s__nanosleep(I32 reqPtr, I32 remPtr) {
         util::getLogger()->debug("S - nanosleep - {} {}", reqPtr, remPtr);
 
-        auto request = &Runtime::memoryRef<wasm_timespec>(getExecutingModule()->defaultMemory, (Uptr) reqPtr);
+        auto request = &Runtime::memoryRef<wasm_timespec>(getExecutingWAVMModule()->defaultMemory, (Uptr) reqPtr);
 
         // TODO - is this ok? Should we allow?
         // Round up
@@ -64,7 +64,7 @@ namespace wasm {
                                    I32 nSubs,
                                    I32 resNEvents) {
         util::getLogger()->debug("S - poll_oneoff - {} {} {} {}", subscriptionsPtr, eventsPtr, nSubs, resNEvents);
-        WAVMWasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingWAVMModule();
 
         auto inEvents = Runtime::memoryArrayPtr<__wasi_subscription_t>(module->defaultMemory, subscriptionsPtr, nSubs);
         auto outEvents = Runtime::memoryArrayPtr<__wasi_event_t>(module->defaultMemory, eventsPtr, nSubs);
@@ -137,7 +137,7 @@ namespace wasm {
         }
 
         uint64_t result = util::timespecToNanos(&ts);
-        Runtime::memoryRef<uint64_t>(getExecutingModule()->defaultMemory, resultPtr) = result;
+        Runtime::memoryRef<uint64_t>(getExecutingWAVMModule()->defaultMemory, resultPtr) = result;
 
         return __WASI_ESUCCESS;
     }
