@@ -43,8 +43,8 @@ namespace tests {
     std::string dataA = "PyArray_API";
     std::string dataB = "PyUFunc_API";
     int mainDataOffset = 6316112;
-    int dataAOffset = 10460832;
-    int dataBOffset = 41746432;
+    int dataAOffset = 41918112;
+    int dataBOffset = 73203712;
 
     // NOTE - extra table entries are created for each module loaded (not sure from where)
     int extraFuncsPerModule = 6;
