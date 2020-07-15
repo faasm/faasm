@@ -12,7 +12,9 @@ namespace tests {
         if(conf.hostType == "ci") {
             return;
         }
-        
+
+        wasm::initialiseWAMRGlobally();
+
         message::Message call = util::messageFactory("demo", "hello");
 
         wasm::WAMRWasmModule module;
