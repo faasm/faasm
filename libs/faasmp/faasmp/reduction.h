@@ -151,4 +151,5 @@ initializer(omp_priv=i64::threadNew())
 
 using i64 = int64_t;
 
-#endif //FAASM_REDUCTION_H
+#endif
+
