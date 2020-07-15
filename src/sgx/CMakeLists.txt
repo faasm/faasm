@@ -28,7 +28,8 @@ set(SGX_WAMR_ENCLAVE_TRTS_OBJECTS ${CMAKE_CURRENT_BINARY_DIR}/sgx_wamr_enclave_t
 set_source_files_properties(${SGX_WAMR_ASM_SOURCE_FILES} PROPERTIES LANGUAGE ASM_NASM)
 if(FAASM_SGX_ATTESTATION)
     add_definitions(-DFAASM_SGX_ATTESTATION=1)
-    add_definitions(-DFAASM_SGX_ATTESTATION_HOST="127.0.0.1" -DFAASM_SGX_ATTESTATION_PORT=1337)
+    add_definitions(-DFAASM_SGX_ATTESTATION_HOST="FaasmVM" -DFAASM_SGX_ATTESTATION_PORT=1337)
+    add_definitions(-DFAASM_SGX_ATTESTATION_KEY_SIZE=2048 -DFAASM_SGX_ATTESTATION_CALLBACK_STORE_INIT_SIZE=4)
 endif()
 if(FAASM_WAMR_SUPPORT)
 message ("-- SGX-WAMR Configuration:
@@ -105,3 +106,6 @@ add_custom_command(TARGET sgx_wamr PRE_BUILD COMMAND ${SGX_SDK_ENCLAVE_EDGER8R} 
 add_custom_command(TARGET sgx_wamr_enclave PRE_BUILD COMMAND gcc ${SGX_WAMR_ENCLAVE_C_FLAGS} -I${SGX_SDK_PATH}/include -I${SGX_SDK_PATH}/include/tlibc -c sgx_wamr_enclave_t.c -o sgx_wamr_enclave_t.o)
 add_custom_command(TARGET sgx_wamr PRE_BUILD COMMAND gcc ${SGX_WAMR_C_FLAGS} -I${SGX_SDK_PATH}/include -c sgx_wamr_enclave_u.c -o sgx_wamr_enclave_u.o)
 add_custom_command(TARGET sgx_wamr_enclave POST_BUILD COMMAND ${SGX_SDK_ENCLAVE_SIGNER} sign -key ${CMAKE_CURRENT_SOURCE_DIR}/sgx_wamr_enclave.pem -enclave ${CMAKE_BINARY_DIR}/lib/sgx_wamr_enclave.so -out ${CMAKE_BINARY_DIR}/bin/sgx_wamr_enclave.sign.so -config ${CMAKE_CURRENT_SOURCE_DIR}/sgx_wamr_enclave.config)
+add_executable(demo_keymgr demo_keymgr.c)
+target_compile_options(demo_keymgr PRIVATE -O3)
+target_link_options(demo_keymgr PRIVATE -pthread)

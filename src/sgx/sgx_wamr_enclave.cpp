@@ -6,6 +6,9 @@
 #include <sgx.h>
 #include <sgx_defs.h>
 #include <sgx/sgx_wamr_enclave_types.h>
+#if(FAASM_SGX_ATTESTATION)
+#include <sgx/sgx_wamr_attestation.h>
+#endif
 #include <sgx_wamr_native_symbols_wrapper.h>
 #include <sgx/faasm_sgx_error.h>
 #include <tlibc/mbusafecrt.h>
@@ -29,6 +32,7 @@ extern "C"{
     extern sgx_status_t SGX_CDECL ocall_printf(const char* msg);
 #if(FAASM_SGX_ATTESTATION)
     extern sgx_status_t SGX_CDECL ocall_init_crt(faasm_sgx_status_t* ret_val);
+    extern sgx_status_t SGX_CDECL ocall_send_msg(faasm_sgx_status_t* ret_val, _sgx_wamr_attestation_msg_enc msg, _sgx_wamr_attestation_msg_enc* response);
 #endif
     static char wamr_global_heap_buffer[FAASM_SGX_WAMR_HEAP_SIZE * 1024];
     static faasm_sgx_status_t _get_native_symbols(NativeSymbol** native_symbol_ptr, uint32_t* native_symbol_num){//TODO: Performance Improvement e.g. extern
@@ -55,9 +59,9 @@ extern "C"{
         sgx_thread_mutex_lock(&mutex_sgx_wamr_tcs_realloc);
         if((temp_ptr = realloc(sgx_wamr_tcs,(temp_len * sizeof(_sgx_wamr_tcs_t)))) != NULL){
             sgx_wamr_tcs = (_sgx_wamr_tcs_t*) temp_ptr;
-            sgx_thread_mutex_unlock(&mutex_sgx_wamr_tcs_realloc);
-            memset(&sgx_wamr_tcs[i],0x0,(temp_len - sgx_wamr_tcs_len) * sizeof(_sgx_wamr_tcs_t)); //Have to zero out new memory because realloc can refer to already used memory
             sgx_wamr_tcs_len = temp_len;
+            memset(&sgx_wamr_tcs[i],0x0,(temp_len - sgx_wamr_tcs_len) * sizeof(_sgx_wamr_tcs_t)); //Have to zero out new memory because realloc can refer to already used memory
+            sgx_thread_mutex_unlock(&mutex_sgx_wamr_tcs_realloc);
             *thread_id = i;
             return FAASM_SGX_SUCCESS;
         }
@@ -163,7 +167,7 @@ extern "C"{
         if((sgx_ret_val = ocall_init_crt(&ret_val)) != SGX_SUCCESS)
             return FAASM_SGX_OCALL_ERROR(sgx_ret_val);
         if(ret_val != FAASM_SGX_SUCCESS)
-            return FAASM_SGX_UNABLE_TO_CREATE_CRT;
+            return ret_val;
 #endif
         return FAASM_SGX_SUCCESS;
     }

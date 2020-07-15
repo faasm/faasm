@@ -6,28 +6,86 @@
 #if(FAASM_SGX_ATTESTATION)
 
 #include <faasm_sgx_error.h>
-#include <stdio.h>
-#include <string.h>
+#include <sgx_wamr_attestation.h>
+#include <netdb.h>
 #include <pthread.h>
+#include <string.h>
+#include <stdlib.h>
+#include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+#include <stdio.h>
+
 extern "C"{
+
+typedef struct __thread_callback{
+    uint8_t msg_id;
+    pthread_cond_t con = PTHREAD_COND_INITIALIZER;
+    void* payload;
+} _sgx_wamr_thread_callback;
+
     pthread_t crt;
-    int kvs_socket;
+    int keymgr_socket;
+    _sgx_wamr_thread_callback* callback_store;
+    uint32_t callback_store_size = FAASM_SGX_ATTESTATION_CALLBACK_STORE_INIT_SIZE;
+    pthread_mutex_t callback_store_mutex = PTHREAD_MUTEX_INITIALIZER, callback_store_ptr_mutex = PTHREAD_MUTEX_INITIALIZER;
+    static inline faasm_sgx_status_t _find_callback_store_slot(uint32_t* id){
+        void* temp_ptr;
+        uint32_t temp_size,i ;
+        pthread_mutex_lock(&callback_store_mutex);
+        for(; i < callback_store_size; i++){
+            if(!callback_store[i].payload){
+                callback_store[i].payload = (void*) 0x1;
+                *id = i;
+                return FAASM_SGX_SUCCESS;
+            }
+        }
+        temp_size = callback_store_size << 1;
+        pthread_mutex_lock(&callback_store_ptr_mutex);
+        if((temp_ptr = realloc((void*)callback_store, (temp_size * sizeof(_sgx_wamr_thread_callback)))) == NULL){
+            pthread_mutex_unlock(&callback_store_ptr_mutex);
+            pthread_mutex_unlock(&callback_store_mutex);
+            return FAASM_SGX_OUT_OF_MEMORY;
+        }
+        pthread_mutex_unlock(&callback_store_ptr_mutex);
+        memset((void*)(((char*)temp_ptr) + callback_store_size + 1), 0x0, (temp_size - callback_store_size - 1) * sizeof(_sgx_wamr_thread_callback));
+        callback_store = (_sgx_wamr_thread_callback*) temp_ptr;
+        callback_store_size = temp_size;
+        pthread_mutex_unlock(&callback_store_mutex);
+        return FAASM_SGX_SUCCESS;
+    }
+    faasm_sgx_status_t ocall_send_msg(_sgx_wamr_attestation_msg_enc msg, _sgx_wamr_attestation_msg_enc* response){
+        //DO MORE THAN HELLO WORLD
+    }
     void* handle_messages(void* args){
+        _sgx_wamr_attestation_msg_enc recv_buffer;
+        while(recv(keymgr_socket,(void*) &recv_buffer, sizeof(_sgx_wamr_attestation_msg_enc), 0) > 0){
+            pthread_mutex_lock(&callback_store_ptr_mutex);
+            //DO STUFF
+            pthread_mutex_unlock(&callback_store_ptr_mutex);
+        }
         return NULL;
     }
     faasm_sgx_status_t ocall_init_crt(void){
-        struct sockaddr_in kvs_sockaddr;
-        if((kvs_socket = socket(AF_INET,SOCK_STREAM,0)) == -1)
+        struct sockaddr_in keymgr_sockaddr;
+        if((keymgr_socket = socket(AF_INET,SOCK_STREAM,0)) == -1)
             return FAASM_SGX_CRT_SOCKET_FAILED;
-        memset((void*)&kvs_sockaddr, 0x0, sizeof(struct sockaddr_in));
-        kvs_sockaddr.sin_family = AF_INET;
-        kvs_sockaddr.sin_port = htons(FAASM_SGX_ATTESTATION_PORT);
-
-        /*if(!pthread_create(&crt,NULL,handle_messages,NULL))
-            return FAASM_SGX_CRT_THREAD_FAILED;*/
+        memset((void*)&keymgr_sockaddr, 0x0, sizeof(struct sockaddr_in));
+        keymgr_sockaddr.sin_family = AF_INET;
+        keymgr_sockaddr.sin_port = htons(FAASM_SGX_ATTESTATION_PORT);
+        if(inet_pton(AF_INET,FAASM_SGX_ATTESTATION_HOST,&keymgr_sockaddr.sin_addr) != 1){
+            struct hostent* resolved_addr;
+            if(!(resolved_addr = gethostbyname(FAASM_SGX_ATTESTATION_HOST)))
+                return FAASM_SGX_CRT_INVALID_ADDR;
+            memcpy((void*)&keymgr_sockaddr.sin_addr, (void*)resolved_addr->h_addr_list[0],sizeof(struct in_addr));
+        }
+        if(connect(keymgr_socket,(struct sockaddr*) &keymgr_sockaddr,sizeof(struct sockaddr_in)))
+            return FAASM_SGX_CRT_CONNECT_FAILED;
+        if((callback_store = (_sgx_wamr_thread_callback*) calloc(callback_store_size,sizeof(_sgx_wamr_thread_callback))) == NULL)
+            return FAASM_SGX_OUT_OF_MEMORY;
+        if(pthread_create(&crt,NULL,handle_messages,NULL))
+            return FAASM_SGX_CRT_THREAD_FAILED;
         return FAASM_SGX_SUCCESS;
     }
 };
