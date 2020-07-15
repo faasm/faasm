@@ -43,8 +43,8 @@ namespace tests {
     std::string dataA = "PyArray_API";
     std::string dataB = "PyUFunc_API";
     int mainDataOffset = 6316112;
-    int dataAOffset = 41918112;
-    int dataBOffset = 73203712;
+    int dataAOffset = 10460832;
+    int dataBOffset = 41746432;
 
     // NOTE - extra table entries are created for each module loaded (not sure from where)
     int extraFuncsPerModule = 6;
@@ -72,7 +72,7 @@ namespace tests {
         std::string modulePathA = getPythonModuleA();
         int handleA = module.dynamicLoadModule(modulePathA, module.executionContext);
         REQUIRE(handleA >= 2);
-        REQUIRE(module.getDynamicModuleCount() == 2);
+        REQUIRE(module.getDynamicModuleCount() == 1);
 
         U64 moduleTableSizeA = registry.getSharedModuleTableSize(PYTHON_USER, PYTHON_FUNC, modulePathA);
 
@@ -111,7 +111,7 @@ namespace tests {
         std::string modulePathB = getPythonModuleB();
         int handleB = module.dynamicLoadModule(modulePathB, module.executionContext);
         REQUIRE(handleB == handleA + 1);
-        REQUIRE(module.getDynamicModuleCount() == 3);
+        REQUIRE(module.getDynamicModuleCount() == 2);
 
         U64 moduleTableSizeB = registry.getSharedModuleTableSize(PYTHON_USER, PYTHON_FUNC, modulePathB);
 
