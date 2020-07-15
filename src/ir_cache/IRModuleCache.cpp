@@ -78,8 +78,7 @@ namespace wasm {
             util::FullLock registryLock(registryMutex);
             if (compiledModuleMap.count(key) == 0) {
                 IR::Module &module = moduleMap[key];
-                // 14th July 2020 - temporarily disabling SIMD
-                // module.featureSpec.simd = true;
+                module.featureSpec.simd = true;
                 module.featureSpec.atomics = true;
 
                 storage::FileLoader &functionLoader = storage::getFileLoader();
