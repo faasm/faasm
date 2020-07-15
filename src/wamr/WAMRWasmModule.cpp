@@ -9,7 +9,12 @@ namespace wasm {
 
     void initialiseWAMRGlobally() {
         // Initialise runtime
-        wasm_runtime_init();
+        bool success = wasm_runtime_init();
+        if(!success) {
+            throw std::runtime_error("Failed to initialise WAMR");
+        }
+
+        util::getLogger()->debug("Successfully initialised WAMR");
 
         // Initialise native functions
         initialiseWAMRNatives();
