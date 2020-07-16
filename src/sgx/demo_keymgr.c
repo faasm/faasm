@@ -5,6 +5,7 @@
 
 #include <pthread.h>
 #include <stdio.h>
+#include <sgx_wamr_attestation.h>
 #include <string.h>
 #include <unistd.h>
 #include <netinet/in.h>
@@ -13,15 +14,17 @@
 
 
 void* handle_message(void* args){
-    uint8_t input_buffer[32];
     int client_socket = (int) args;
-    printf("[Info] Sending hello_msg to %d\n",client_socket);
-    if(send(client_socket,"Hello",sizeof("Hello"),0) <= 0){
-        printf("[Error] Unable to send message\n");
-        close(client_socket);
-        return -1;
+    _sgx_wamr_attestation_msg_enc recv_msg;
+    while(recv(client_socket,(void*)&recv_msg,sizeof(_sgx_wamr_attestation_msg_enc),0) > 0){
+        printf("[Info/%d] Received msg with msg_id %d\n Waiting 5 sec then sending back same message\n", client_socket, recv_msg.msg_id);
+        sleep(5);
+        if(send(client_socket, (void*)&recv_msg,sizeof(_sgx_wamr_attestation_msg_enc),0) <= 0 ){
+            printf("[Error/%d] Send failed\n",client_socket);
+            close(client_socket);
+            return 0;
+        }
     }
-    recv(client_socket,(char*) input_buffer,sizeof(input_buffer),0);//Just for blocking
     return 0;
 }
 int main(int argc, char** argv){

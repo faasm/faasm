@@ -33,6 +33,7 @@ extern "C"{
 #if(FAASM_SGX_ATTESTATION)
     extern sgx_status_t SGX_CDECL ocall_init_crt(faasm_sgx_status_t* ret_val);
     extern sgx_status_t SGX_CDECL ocall_send_msg(faasm_sgx_status_t* ret_val, _sgx_wamr_attestation_msg_enc msg, _sgx_wamr_attestation_msg_enc* response);
+    static uint8_t _sgx_wamr_msg_id = 0;
 #endif
     static char wamr_global_heap_buffer[FAASM_SGX_WAMR_HEAP_SIZE * 1024];
     static faasm_sgx_status_t _get_native_symbols(NativeSymbol** native_symbol_ptr, uint32_t* native_symbol_num){//TODO: Performance Improvement e.g. extern
@@ -47,8 +48,7 @@ extern "C"{
     }
     static inline faasm_sgx_status_t _get_tcs_slot(unsigned int* thread_id){
         void* temp_ptr;
-        unsigned int temp_len;
-        int i = 0;
+        unsigned int temp_len, i = 0;
         for(;i < sgx_wamr_tcs_len; i++){
             if(sgx_wamr_tcs[i].module == NULL){
                 *thread_id = i;
@@ -169,6 +169,21 @@ extern "C"{
         if(ret_val != FAASM_SGX_SUCCESS)
             return ret_val;
 #endif
+        ///////TEST///////<-Will be removed in next commit
+        _sgx_wamr_attestation_msg_enc msg, response;
+        msg.msg_id = _sgx_wamr_msg_id;
+        msg.msg_enc.flags = 0x0;
+        memcpy(msg.msg_enc.payload,(void*)"1337",sizeof("1337"));
+        if((sgx_ret_val = ocall_send_msg(&ret_val,msg,&response)) != SGX_SUCCESS){
+            return FAASM_SGX_OCALL_ERROR(sgx_ret_val);
+        }
+        if(ret_val != FAASM_SGX_SUCCESS){
+            return ret_val;
+        }
+        if(memcmp((void*)&msg,(void*)&response,sizeof(_sgx_wamr_attestation_msg_enc))){
+            __asm("ud2");
+        }
+        ///////TEST///////
         return FAASM_SGX_SUCCESS;
     }
 };
