@@ -33,6 +33,9 @@ namespace wasm {
         uint32_t mmapFile(uint32_t fp, uint32_t length) override;
 
         uint8_t* wasmPointerToNative(int32_t wasmPtr) override;
+
+        // ----- Codegen -----
+        std::vector<uint8_t> codegen(std::vector<uint8_t> &bytes) override;
     private:
         bool _isBound;
 

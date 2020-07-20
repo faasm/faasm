@@ -76,6 +76,9 @@ namespace wasm {
 
         void writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer) override;
 
+        // ----- Codegen -----
+        std::vector<uint8_t> codegen(std::vector<uint8_t> &bytes) override;
+
         // ----- Resolution/ linking -----
 
         WAVM::Runtime::Function *getFunction(WAVM::Runtime::Instance *module, const std::string &funcName, bool strict);

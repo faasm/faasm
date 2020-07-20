@@ -20,6 +20,8 @@ namespace util {
             const std::string &url,
             const std::string &header);
 
+    bool isWasm(const std::vector<uint8_t> &bytes);
+
     class FileNotFoundAtUrlException : public util::FaasmException {
     public:
         explicit FileNotFoundAtUrlException(std::string message): FaasmException(std::move(message)) {

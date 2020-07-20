@@ -297,4 +297,8 @@ namespace wasm {
     uint8_t* WasmModule::wasmPointerToNative(int32_t wasmPtr) {
         throw std::runtime_error("wasmPointerToNative not implemented");
     }
+
+    std::vector<uint8_t> WasmModule::codegen(std::vector<uint8_t> &bytes) {
+        throw std::runtime_error("codegen not implemented");
+    }
 }

@@ -20,7 +20,7 @@ set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/pyinit)
 set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/WAVM/Lib)
 
 # SGX configuration
-if(FAASM_SGX_SUPPORT)
+if (FAASM_SGX_SUPPORT)
     # Switch off Werror only when in SGX mode
     set(CMAKE_CXX_FLAGS "-Wall")
 
@@ -28,14 +28,14 @@ if(FAASM_SGX_SUPPORT)
     add_definitions(-DFAASM_SGX=1 -DFAASM_SGX_FUNC_SUFFIX="_sgx_wamr")
     set(SGX_SIM_MODE 1)
 
-    if(SGX_SIM_MODE)
+    if (SGX_SIM_MODE)
         add_definitions(-DSGX_SIM_MODE=1)
-    elseif()
+    elseif ()
         add_definitions(-DSGX_SIM_MODE=0)
-    endif()
-else()
+    endif ()
+else ()
     set(CMAKE_CXX_FLAGS "-Wall -Werror")
-endif()
+endif ()
 
 # WAMR configuration
 # See https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/build_wamr.md
@@ -43,7 +43,7 @@ set(WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
 set(WAMR_BUILD_TARGET X86_64)
 
 # WAMR SGX-specific config
-if(FAASM_SGX_SUPPORT)
+if (FAASM_SGX_SUPPORT)
     set(WAMR_BUILD_PLATFORM linux-sgx)
     set(WAMR_BUILD_FAST_INTERP 0)
     set(WAMR_BUILD_INTERP 1)
@@ -57,8 +57,8 @@ if(FAASM_SGX_SUPPORT)
     set(FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE 8192)
     set(FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE 8192)
 
-# Non-SGX WAMR config
-else()
+    # Non-SGX WAMR config
+else ()
     #  We only use AOT in non-SGX mode
     set(WAMR_BUILD_PLATFORM linux)
     set(WAMR_BUILD_FAST_INTERP 0)
@@ -73,7 +73,7 @@ else()
 
     # Local pthread support
     set(WAMR_BUILD_LIB_PTHREAD 1)
-endif()
+endif ()
 
 # WAMR interpreter
 if (WAMR_BUILD_INTERP)
@@ -88,6 +88,28 @@ if (WAMR_BUILD_AOT)
 else ()
     add_definitions(-DWASM_ENABLE_AOT=0)
 endif ()
+
+# Support WAMR linking
+# Note that the BUILD_UNTRUST_PART variable causes WAMR to either
+# include/ not include the SGX libc and libcxx.
+#
+# NOTE: it is NOT SAFE to include the WAMR CMake files directly at this
+# high level as they modify top-level variables (e.g. using include_directories).
+#
+# Instead we must include WAMR CMake files at the end of CMakeLists.txt files
+# lower down in the directory hierarchy.
+#
+# See third-party/wamr/core/shared/platform/linux-sgx/shared_platform.cmake for an
+# example of why this problem exists.
+function(include_wamr_sgx)
+    set(BUILD_UNTRUST_PART 0)
+    include(${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
+endfunction()
+
+function(include_wamr_non_sgx)
+    set(BUILD_UNTRUST_PART 1)
+    include(${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
+endfunction()
 
 # Library type (for shared libraries)
 if (FAASM_STATIC_LIBS)
@@ -207,9 +229,9 @@ else ()
     add_subdirectory(third-party/WAVM)
 
     # SGX
-    if(FAASM_SGX_SUPPORT)
+    if (FAASM_SGX_SUPPORT)
         add_subdirectory(src/sgx)
-    endif()
+    endif ()
 
     # Faasm functions
     add_subdirectory(func)

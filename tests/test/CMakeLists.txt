@@ -13,8 +13,7 @@ add_executable(
 
 target_link_libraries(tests test_utils)
 
-# Have to include WAMR stuff here
-set(BUILD_UNTRUST_PART 1)
-include(${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
+include_wamr_non_sgx()
 
 add_test(NAME tests COMMAND "tests/test/tests")
+
