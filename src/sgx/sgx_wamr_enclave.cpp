@@ -169,21 +169,6 @@ extern "C"{
         if(ret_val != FAASM_SGX_SUCCESS)
             return ret_val;
 #endif
-        ///////TEST///////<-Will be removed in next commit
-        _sgx_wamr_attestation_msg_enc msg, response;
-        msg.msg_id = _sgx_wamr_msg_id;
-        msg.msg_enc.flags = 0x0;
-        memcpy(msg.msg_enc.payload,(void*)"1337",sizeof("1337"));
-        if((sgx_ret_val = ocall_send_msg(&ret_val,msg,&response)) != SGX_SUCCESS){
-            return FAASM_SGX_OCALL_ERROR(sgx_ret_val);
-        }
-        if(ret_val != FAASM_SGX_SUCCESS){
-            return ret_val;
-        }
-        if(memcmp((void*)&msg,(void*)&response,sizeof(_sgx_wamr_attestation_msg_enc))){
-            __asm("ud2");
-        }
-        ///////TEST///////
         return FAASM_SGX_SUCCESS;
     }
 };

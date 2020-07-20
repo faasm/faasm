@@ -35,7 +35,7 @@ namespace faaslet {
             exit(0);
         }
 #endif
-        if((sgx_ret_val = sgx_create_enclave(SGX_WAMR_ENCLAVE_PATH,SGX_DEBUG_FLAG,&sgx_enclave_token,(int*)&sgx_enclave_token_updated,&enclave_id,NULL)) != SGX_SUCCESS){
+        if((sgx_ret_val = sgx_create_enclave(SGX_WAMR_ENCLAVE_PATH,1,&sgx_enclave_token,(int*)&sgx_enclave_token_updated,&enclave_id,NULL)) != SGX_SUCCESS){
             printf("[Error] Unable to create enclave (%#010x)\n",sgx_ret_val);
             exit(0);
         }
