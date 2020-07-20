@@ -16,18 +16,16 @@
 #include <wasm/serialisation.h>
 
 #include <WAVM/WASM/WASM.h>
-#include <WAVM/IR/Types.h>
 #include <WAVM/Platform/Memory.h>
+#include <WAVM/IR/Types.h>
 #include <WAVM/IR/Module.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 #include <Runtime/RuntimePrivate.h>
 #include <WASI/WASIPrivate.h>
-#include <WAVM/WASTParse/WASTParse.h>
 
 #include <wavm/openmp/ThreadState.h>
 #include <wavm/OMPThreadPool.h>
-#include <util/files.h>
 
 constexpr int THREAD_STACK_SIZE(2 * ONE_MB_BYTES);
 
@@ -679,7 +677,7 @@ namespace wasm {
         setExecutingCall(&msg);
 
         // Ensure Python function file in place (if necessary)
-        syncPythonFunctionFile(msg);
+        storage::SharedFiles::syncPythonFunctionFile(msg);
 
         // Set up OMP
         prepareOpenMPContext(msg);
@@ -1297,17 +1295,6 @@ namespace wasm {
         return Runtime::asFunction(funcObj);
     }
 
-    void WAVMWasmModule::syncPythonFunctionFile(const message::Message &msg) {
-        if (!msg.ispython()) {
-            return;
-        }
-
-        std::string sharedPath = util::getPythonFunctionFileSharedPath(msg);
-        std::string runtimeFilePath = util::getPythonRuntimeFunctionFile(msg);
-
-        storage::SharedFiles::syncSharedFile(sharedPath, runtimeFilePath);
-    }
-
     void WAVMWasmModule::prepareOpenMPContext(const message::Message &msg) {
         std::shared_ptr<openmp::Level> ompLevel;
 
@@ -1328,35 +1315,5 @@ namespace wasm {
 
     std::unique_ptr<openmp::PlatformThreadPool> &WAVMWasmModule::getOMPPool() {
         return OMPPool;
-    }
-
-    std::vector<uint8_t> WAVMWasmModule::codegen(std::vector<uint8_t> &bytes) {
-        IR::Module moduleIR;
-
-        // Explicitly allow simd support
-        moduleIR.featureSpec.simd = true;
-        moduleIR.featureSpec.atomics = true;
-
-        if (util::isWasm(bytes)) {
-            // Handle WASM
-            WASM::LoadError loadError;
-            bool success = WASM::loadBinaryModule(bytes.data(), bytes.size(), moduleIR, &loadError);
-            if (!success) {
-                throw std::runtime_error("Failed to parse wasm binary: " + loadError.message);
-            }
-        } else {
-            std::vector<WAST::Error> parseErrors;
-            bool success = WAST::parseModule((const char *) bytes.data(), bytes.size(), moduleIR, parseErrors);
-            WAST::reportParseErrors("wast_file", (const char*)bytes.data(), parseErrors);
-
-            if (!success) {
-                throw std::runtime_error("Failed to parse wast file");
-            }
-        }
-
-        // Compile the module to object code
-        Runtime::ModuleRef module = Runtime::compileModule(moduleIR);
-        std::vector<uint8_t> objBytes = Runtime::getObjectCode(module);
-        return objBytes;
     }
 }

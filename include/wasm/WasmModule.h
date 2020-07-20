@@ -104,8 +104,6 @@ namespace wasm {
 
         void restoreFromState(const std::string &stateKey, size_t stateSize);
 
-        // ----- Codegen -----
-        virtual std::vector<uint8_t> codegen(std::vector<uint8_t> &bytes);
     protected:
         std::string boundUser;
 

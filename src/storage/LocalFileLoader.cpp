@@ -21,7 +21,7 @@ namespace storage {
     }
 
     std::vector<uint8_t> LocalFileLoader::loadFunctionWamrAotFile(const message::Message &msg) {
-        std::string objectFilePath = util::getFunctionWamrAotFile(msg);
+        std::string objectFilePath = util::getFunctionAotFile(msg);
         return loadFileBytes(objectFilePath);
     }
 
@@ -95,9 +95,18 @@ namespace storage {
         util::writeBytesToFile(objFilePath, objBytes);
     }
 
+    void LocalFileLoader::uploadFunctionAotFile(const message::Message &msg, const std::vector<uint8_t> &objBytes) {
+        std::string objFilePath = util::getFunctionAotFile(msg);
+        util::writeBytesToFile(objFilePath, objBytes);
+    }
+
     void LocalFileLoader::uploadSharedObjectObjectFile(const std::string &path, const std::vector<uint8_t> &objBytes) {
         std::string outputPath = util::getSharedObjectObjectFile(path);
         util::writeBytesToFile(outputPath, objBytes);
+    }
+
+    void LocalFileLoader::uploadSharedObjectAotFile(const std::string &path, const std::vector<uint8_t> &objBytes) {
+        throw std::runtime_error("Not yet implemented WAMR shared objects");
     }
 
     void LocalFileLoader::uploadSharedFile(const std::string &path, const std::vector<uint8_t> &objBytes) {

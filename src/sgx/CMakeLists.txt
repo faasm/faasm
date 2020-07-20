@@ -139,7 +139,7 @@ endif ()
 
 # SGX WAMR library
 add_library(sgx_wamr STATIC ${SGX_WAMR_SOURCE_FILES} ${SGX_WAMR_ASM_SOURCE_FILES})
-add_dependencies(sgx_wamr sgx_wamr_enclave storage wasm)
+add_dependencies(sgx_wamr sgx_wamr_enclave wasm)
 
 target_include_directories(sgx_wamr PUBLIC ${SGX_SDK_PATH}/include)
 target_link_directories(sgx_wamr INTERFACE ${SGX_SDK_LIB_PATH})
@@ -154,7 +154,6 @@ if (SGX_SIM_MODE)
             sgx_urts_sim
             sgx_uae_service_sim
             Threads::Threads
-            storage
             wasm
             )
 else (NOT SGX_SIM_MODE)
@@ -162,7 +161,6 @@ else (NOT SGX_SIM_MODE)
             sgx_urts
             sgx_uae_service
             Threads::Threads
-            storage
             wasm
             )
 endif ()

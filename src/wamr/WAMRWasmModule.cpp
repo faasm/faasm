@@ -149,10 +149,4 @@ namespace wasm {
         // TODO - implement
         return 0;
     }
-
-    std::vector<uint8_t> WAMRWasmModule::codegen(std::vector<uint8_t> &bytes)  {
-        std::vector<uint8_t> objBytes;
-
-        return objBytes;
-    }
 }

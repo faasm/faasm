@@ -42,8 +42,8 @@ endif ()
 set(WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
 set(WAMR_BUILD_TARGET X86_64)
 
-# WAMR SGX-specific config
 if (FAASM_SGX_SUPPORT)
+    # WAMR SGX config
     set(WAMR_BUILD_PLATFORM linux-sgx)
     set(WAMR_BUILD_FAST_INTERP 0)
     set(WAMR_BUILD_INTERP 1)
@@ -57,14 +57,17 @@ if (FAASM_SGX_SUPPORT)
     set(FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE 8192)
     set(FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE 8192)
 
-    # Non-SGX WAMR config
 else ()
-    #  We only use AOT in non-SGX mode
+    # Non-SGX WAMR config
     set(WAMR_BUILD_PLATFORM linux)
     set(WAMR_BUILD_FAST_INTERP 0)
+
+    # Turn on AOT and JIT (for codegen) and disable interpreter
     set(WAMR_BUILD_INTERP 0)
-    set(WAMR_BUILD_JIT 0)
     set(WAMR_BUILD_AOT 1)
+    set(WAMR_BUILD_JIT 1)
+
+    # Use WASI libc
     set(WAMR_BUILD_LIBC_WASI 1)
     set(WAMR_BUILD_LIBC_BUILTIN 0)
 
@@ -75,19 +78,19 @@ else ()
     set(WAMR_BUILD_LIB_PTHREAD 1)
 endif ()
 
-# WAMR interpreter
-if (WAMR_BUILD_INTERP)
-    add_definitions(-DWASM_ENABLE_INTERP=1)
-else ()
-    add_definitions(-DWASM_ENABLE_INTERP=0)
-endif ()
-
-# WAMR AOT
-if (WAMR_BUILD_AOT)
-    add_definitions(-DWASM_ENABLE_AOT=1)
-else ()
-    add_definitions(-DWASM_ENABLE_AOT=0)
-endif ()
+## WAMR interpreter
+#if (WAMR_BUILD_INTERP)
+#    add_definitions(-DWASM_ENABLE_INTERP=1)
+#else ()
+#    add_definitions(-DWASM_ENABLE_INTERP=0)
+#endif ()
+#
+## WAMR AOT
+#if (WAMR_BUILD_AOT)
+#    add_definitions(-DWASM_ENABLE_AOT=1)
+#else ()
+#    add_definitions(-DWASM_ENABLE_AOT=0)
+#endif ()
 
 # Support WAMR linking
 # Note that the BUILD_UNTRUST_PART variable causes WAMR to either
@@ -169,6 +172,7 @@ endif ()
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 include_directories(${LLVM_INCLUDE_DIRS})
+add_definitions(${LLVM_DEFINITIONS})
 
 # Eigen parallelisation
 # add_definitions(-DEIGEN_DONT_PARALLELIZE)
@@ -244,7 +248,6 @@ else ()
     add_subdirectory(libs/rust)
 
     # Faasm runtime
-    add_subdirectory(src/codegen)
     add_subdirectory(src/emulator)
     add_subdirectory(src/endpoint)
     add_subdirectory(src/faaslet)

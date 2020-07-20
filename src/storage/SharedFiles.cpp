@@ -128,6 +128,17 @@ namespace storage {
         return getReturnValueForSharedFileState(sharedPath);
     }
 
+    void SharedFiles::syncPythonFunctionFile(const message::Message &msg) {
+        if (!msg.ispython()) {
+            return;
+        }
+
+        std::string sharedPath = util::getPythonFunctionFileSharedPath(msg);
+        std::string runtimeFilePath = util::getPythonRuntimeFunctionFile(msg);
+
+        syncSharedFile(sharedPath, runtimeFilePath);
+    }
+
     void SharedFiles::clear() {
         sharedFileMap.clear();
     }
