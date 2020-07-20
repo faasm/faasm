@@ -21,9 +21,19 @@
 #if(WASM_ENABLE_AOT == 1)
 #include <iwasm/aot/aot_runtime.h>
 #endif
-_sgx_wamr_tcs_t* sgx_wamr_tcs = NULL;
-static unsigned int sgx_wamr_tcs_len;
-sgx_thread_mutex_t mutex_sgx_wamr_tcs = SGX_THREAD_MUTEX_INITIALIZER, mutex_sgx_wamr_tcs_realloc = SGX_THREAD_MUTEX_INITIALIZER;
+#define INCREMENT_REALLOC_COUNTER                       \
+sgx_thread_mutex_lock(&mutex_sgx_wamr_realloc_count);   \
+sgx_wamr_realloc_count++;                               \
+sgx_thread_mutex_unlock(&mutex_sgx_wamr_realloc_count);
+#define DECREMENT_REALLOC_COUNTER                       \
+sgx_thread_mutex_lock(&mutex_sgx_wamr_realloc_count);   \
+sgx_wamr_realloc_count--;                               \
+if(!sgx_wamr_realloc_count)                             \
+    sgx_thread_mutex_unlock(&mutex_sgx_wamr_tcs_realloc)\
+sgx_thread_mutex_unlock(&mutex_sgx_wamr_realloc_count);
+static _sgx_wamr_tcs_t* sgx_wamr_tcs = NULL;
+static uint32_t sgx_wamr_tcs_len, sgx_wamr_realloc_count = 0;
+static sgx_thread_mutex_t mutex_sgx_wamr_tcs = SGX_THREAD_MUTEX_INITIALIZER, mutex_sgx_wamr_tcs_realloc = SGX_THREAD_MUTEX_INITIALIZER, mutex_sgx_wamr_realloc_count = SGX_THREAD_MUTEX_INITIALIZER;
 extern "C"{
     typedef void(*os_print_function_t)(const char* msg);
     extern void os_set_print_function(os_print_function_t pf);
@@ -55,7 +65,6 @@ extern "C"{
                 return FAASM_SGX_SUCCESS;
             }
         }
-        ocall_printf("REALLOC\n");
         temp_len = (sgx_wamr_tcs_len << 1);
         sgx_thread_mutex_lock(&mutex_sgx_wamr_tcs_realloc);
         if((temp_ptr = (_sgx_wamr_tcs_t*) realloc(sgx_wamr_tcs,(temp_len * sizeof(_sgx_wamr_tcs_t)))) != NULL){
@@ -116,7 +125,6 @@ extern "C"{
             sgx_thread_mutex_unlock(&mutex_sgx_wamr_tcs);
             return ret_val;
         }
-        os_printf("ID: %d\n",*thread_id);
         sgx_wamr_tcs[*thread_id].module = (WASMModuleCommon*) 0x1;
         sgx_thread_mutex_unlock(&mutex_sgx_wamr_tcs);
         if(!(sgx_wamr_tcs[*thread_id].wasm_opcode = (uint8_t*) calloc(wasm_opcode_size, sizeof(uint8_t)))){
@@ -139,7 +147,7 @@ extern "C"{
         }
         return FAASM_SGX_SUCCESS;
     }
-    faasm_sgx_status_t sgx_wamr_enclave_init_wamr(const unsigned int thread_number){
+    faasm_sgx_status_t sgx_wamr_enclave_init_wamr(const uint32_t thread_number){
         sgx_status_t sgx_ret_val;
         faasm_sgx_status_t ret_val;
         os_set_print_function((os_print_function_t)ocall_printf);
