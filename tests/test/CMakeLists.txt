@@ -13,7 +13,5 @@ add_executable(
 
 target_link_libraries(tests test_utils)
 
-include_wamr_non_sgx()
-
 add_test(NAME tests COMMAND "tests/test/tests")
 

@@ -18,6 +18,7 @@ set(FAASM_LIB_CPP_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/cpp)
 set(FAASM_LIB_FAASMP_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/faasmp)
 set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/pyinit)
 set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/WAVM/Lib)
+set(FAASM_WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
 
 # SGX configuration
 if (FAASM_SGX_SUPPORT)
@@ -37,72 +38,41 @@ else ()
     set(CMAKE_CXX_FLAGS "-Wall -Werror")
 endif ()
 
+# ----------------------------------------
 # WAMR configuration
+# ----------------------------------------
+
 # See https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/build_wamr.md
 set(WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
+set(WAMR_SHARED_DIR ${WAMR_ROOT_DIR}/core/shared)
+set(WAMR_IWASM_DIR ${WAMR_ROOT_DIR}/core/iwasm)
+set(WAMR_BUILD_TARGET X86_64)
 set(WAMR_BUILD_TARGET X86_64)
 
+# Enable ASM
+enable_language(ASM)
+
+# WAMR SGX config
 if (FAASM_SGX_SUPPORT)
-    # WAMR SGX config
     set(WAMR_BUILD_PLATFORM linux-sgx)
-    set(WAMR_BUILD_FAST_INTERP 0)
-    set(WAMR_BUILD_INTERP 1)
-    set(WAMR_BUILD_JIT 0)
-    set(WAMR_BUILD_AOT 0)
-    set(WAMR_BUILD_LIBC_WASI 0)
-    set(WAMR_BUILD_LIBC_BUILTIN 1)
 
     set(FAASM_SGX_WAMR_HEAP_SIZE 32768)
     set(FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE 128)
     set(FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE 8192)
     set(FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE 8192)
-
-else ()
-    # Non-SGX WAMR config
+else()
     set(WAMR_BUILD_PLATFORM linux)
-    set(WAMR_BUILD_FAST_INTERP 0)
-
-    # Turn on AOT and JIT (for codegen) and disable interpreter
-    set(WAMR_BUILD_INTERP 0)
-    set(WAMR_BUILD_AOT 1)
-    set(WAMR_BUILD_JIT 1)
-
-    # Looks like we need to define this ourselves
-    # See wamr/wamr-compiler/CMakeLists.txt
-    add_definitions(-DWASM_ENABLE_WAMR_COMPILER=1)
-
-    # Use WASI libc
-    set(WAMR_BUILD_LIBC_WASI 1)
-    set(WAMR_BUILD_LIBC_BUILTIN 0)
-
-    # Support running multiple modules
-    set(WAMR_BUILD_MULTI_MODULE 1)
-
-    # Local pthread support
-    set(WAMR_BUILD_LIB_PTHREAD 1)
 endif ()
 
-# Support WAMR linking
-# Note that the BUILD_UNTRUST_PART variable causes WAMR to either
-# include/ not include the SGX libc and libcxx.
-#
-# NOTE: it is NOT SAFE to include the WAMR CMake files directly at this
-# high level as they modify top-level variables (e.g. using include_directories).
-#
-# Instead we must include WAMR CMake files at the end of CMakeLists.txt files
-# lower down in the directory hierarchy.
-#
-# See third-party/wamr/core/shared/platform/linux-sgx/shared_platform.cmake for an
-# example of why this problem exists.
-function(include_wamr_sgx)
-    set(BUILD_UNTRUST_PART 0)
-    include(${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
-endfunction()
+# WAMR includes
+include_directories(
+        ${WAMR_SHARED_DIR}/include
+        ${WAMR_SHARED_DIR}/utils
+        ${WAMR_SHARED_DIR}/platform/${WAMR_BUILD_PLATFORM}/
+        ${WAMR_IWASM_DIR}/include
+        ${WAMR_IWASM_DIR}/common
+)
 
-function(include_wamr_non_sgx)
-    set(BUILD_UNTRUST_PART 1)
-    include(${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
-endfunction()
 
 # Library type (for shared libraries)
 if (FAASM_STATIC_LIBS)

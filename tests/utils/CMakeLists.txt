@@ -11,8 +11,6 @@ set(LIB_FILES
 
 faasm_private_lib(test_utils "${LIB_FILES}")
 
-include_wamr_non_sgx()
-
 target_link_libraries(test_utils
         catch
         faasm

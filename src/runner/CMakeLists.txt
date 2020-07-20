@@ -7,8 +7,6 @@ set(RUNNER_LIBS
         system
         )
 
-include_wamr_non_sgx()
-
 add_executable(func_runner func_runner.cpp)
 target_link_libraries(func_runner ${RUNNER_LIBS})
 

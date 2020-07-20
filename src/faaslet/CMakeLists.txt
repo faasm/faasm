@@ -16,11 +16,7 @@ set(LIB_FILES
         )
 
 faasm_private_lib(faaslet_lib "${LIB_FILES}")
-target_link_libraries(faaslet_lib wasm wavmmodule module_cache system)
-
-# Have to include WAMR stuff here
-include_wamr_non_sgx()
-target_link_libraries(faaslet_lib wamrmodule)
+target_link_libraries(faaslet_lib wasm wavmmodule wamrmodule module_cache system)
 
 # Extra SGX WAMR support
 if(FAASM_SGX_SUPPORT)
