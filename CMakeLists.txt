@@ -67,6 +67,10 @@ else ()
     set(WAMR_BUILD_AOT 1)
     set(WAMR_BUILD_JIT 1)
 
+    # Looks like we need to define this ourselves
+    # See wamr/wamr-compiler/CMakeLists.txt
+    add_definitions(-DWASM_ENABLE_WAMR_COMPILER=1)
+
     # Use WASI libc
     set(WAMR_BUILD_LIBC_WASI 1)
     set(WAMR_BUILD_LIBC_BUILTIN 0)
@@ -77,20 +81,6 @@ else ()
     # Local pthread support
     set(WAMR_BUILD_LIB_PTHREAD 1)
 endif ()
-
-## WAMR interpreter
-#if (WAMR_BUILD_INTERP)
-#    add_definitions(-DWASM_ENABLE_INTERP=1)
-#else ()
-#    add_definitions(-DWASM_ENABLE_INTERP=0)
-#endif ()
-#
-## WAMR AOT
-#if (WAMR_BUILD_AOT)
-#    add_definitions(-DWASM_ENABLE_AOT=1)
-#else ()
-#    add_definitions(-DWASM_ENABLE_AOT=0)
-#endif ()
 
 # Support WAMR linking
 # Note that the BUILD_UNTRUST_PART variable causes WAMR to either
@@ -132,13 +122,8 @@ else ()
     endfunction()
 endif ()
 
-# Switch on WAVM stack traces in debug (potential performance gain?)
+# Switch on WAVM stack traces
 set(WAVM_ENABLE_UNWIND ON CACHE BOOL "WAVM unwind")
-#if(CMAKE_BUILD_TYPE MATCHES Debug)
-#    set(WAVM_ENABLE_UNWIND ON CACHE BOOL "WAVM unwind")
-#else()
-#    set(WAVM_ENABLE_UNWIND OFF CACHE BOOL "WAVM unwind")
-#endif()
 
 # Stops WAVM compilation complaining
 add_definitions(-DDLL_EXPORT=)
@@ -171,6 +156,14 @@ else ()
 endif ()
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+#message(STATUS "LLVM LLVM_AVAILABLE_LIBS: ${LLVM_AVAILABLE_LIBS}")
+#
+#get_cmake_property(_variableNames VARIABLES)
+#list (SORT _variableNames)
+#foreach (_variableName ${_variableNames})
+#    message(STATUS "${_variableName}=${${_variableName}}")
+#endforeach()
+
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
