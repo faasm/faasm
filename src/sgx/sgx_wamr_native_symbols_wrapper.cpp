@@ -6,7 +6,6 @@
 #include <sgx_wamr_native_symbols_wrapper.h>
 #include <iwasm/common/wasm_exec_env.h>
 #include <iwasm/common/wasm_runtime_common.h>
-#include <iwasm/interpreter/wasm_runtime.h>
 
 extern "C"{
     extern int os_printf(const char* message, ...);

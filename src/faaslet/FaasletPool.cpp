@@ -30,7 +30,7 @@ namespace faaslet {
         sgx_launch_token_t sgx_enclave_token = {0};
         uint32_t sgx_enclave_token_updated = 0;
 #if(SGX_SIM_MODE == 0)
-        if((ret_val = faasm_sgx_get_sgx_support()) != FAASM_SGX_SUCCESS){
+        if((ret_val = faasm_sgx_get_sgx_support()) != FAASM_SGX_SUCCESS && ret_val != FAASM_SGX_CPU_SGX_V2_LEAF_NOT_AVAILABLE){
             printf("[Error] Machine doesn't support sgx (%#010x)\n",ret_val);
             exit(0);
         }

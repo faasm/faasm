@@ -18,6 +18,8 @@
 
 #include <stdio.h>
 
+#include <sgx_quote.h>
+
 extern "C"{
 
 typedef struct __thread_callback{
@@ -94,6 +96,7 @@ typedef struct __thread_callback{
         return NULL;
     }
     faasm_sgx_status_t ocall_init_crt(void){
+        printf("Quote: %d\n",sizeof(sgx_quote_t));
         struct sockaddr_in keymgr_sockaddr;
         if((callback_store = (_sgx_wamr_thread_callback*) calloc(callback_store_size,sizeof(_sgx_wamr_thread_callback))) == NULL)
             return FAASM_SGX_OUT_OF_MEMORY;

@@ -17,7 +17,7 @@ enclave{
     untrusted{
         void ocall_printf([in, string] const char* msg);
 #if(FAASM_SGX_ATTESTATION)
-        faasm_sgx_status_t ocall_init_crt(void); //TODO: FAASM_SGX_ATTESTATION
+        faasm_sgx_status_t ocall_init_crt(void);
         faasm_sgx_status_t ocall_send_msg(_sgx_wamr_attestation_msg_enc msg, [out]_sgx_wamr_attestation_msg_enc* response);
 #endif
         unsigned int ocall_faasm_get_input_size(void);

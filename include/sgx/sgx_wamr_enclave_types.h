@@ -11,7 +11,6 @@
 typedef struct __sgx_wamr_tcs{
     wasm_module_t module;
     wasm_module_inst_t module_inst;
-    wasm_exec_env_t exev_env;//TODO:REMOVE EXEC ENV
     uint8_t* wasm_opcode;
 } _sgx_wamr_tcs_t;
 
