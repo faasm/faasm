@@ -25,7 +25,7 @@
 static _sgx_wamr_tcs_t* sgx_wamr_tcs = NULL;
 static uint32_t sgx_wamr_tcs_len;
 static sgx_thread_mutex_t mutex_sgx_wamr_tcs = SGX_THREAD_MUTEX_INITIALIZER;
-static rwlock_t rwlock_sgx_wamr_tcs_realloc;
+static rwlock_t rwlock_sgx_wamr_tcs_realloc = {0};
 extern "C"{
     typedef void(*os_print_function_t)(const char* msg);
     extern void os_set_print_function(os_print_function_t pf);
@@ -34,7 +34,7 @@ extern "C"{
     extern sgx_status_t SGX_CDECL ocall_printf(const char* msg);
 #if(FAASM_SGX_ATTESTATION)
     extern sgx_status_t SGX_CDECL ocall_init_crt(faasm_sgx_status_t* ret_val);
-    extern sgx_status_t SGX_CDECL ocall_send_msg(faasm_sgx_status_t* ret_val, _sgx_wamr_attestation_msg_enc msg, _sgx_wamr_attestation_msg_enc* response);
+    extern sgx_status_t SGX_CDECL ocall_send_msg(faasm_sgx_status_t* ret_val, sgx_wamr_msg_t msg, uint32_t msg_len, sgx_wamr_msg_t* response, uint32_t* response_len);
     static uint8_t _sgx_wamr_msg_id = 0;
 #endif
     static char wamr_global_heap_buffer[FAASM_SGX_WAMR_HEAP_SIZE * 1024];

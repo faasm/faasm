@@ -59,7 +59,7 @@ typedef struct __thread_callback{
         pthread_mutex_unlock(&callback_store_mutex);
         return FAASM_SGX_SUCCESS;
     }
-    faasm_sgx_status_t ocall_send_msg(_sgx_wamr_attestation_msg_enc msg, _sgx_wamr_attestation_msg_enc* response){
+    faasm_sgx_status_t ocall_send_msg(sgx_wamr_msg_t msg, uint32_t msg_len, sgx_wamr_msg_t* response, uint32_t* response_len){
         faasm_sgx_status_t ret_val;
         uint32_t callback_store_id;
         if((ret_val = _find_callback_store_slot(&callback_store_id)) != FAASM_SGX_SUCCESS)
@@ -67,7 +67,7 @@ typedef struct __thread_callback{
         callback_store[callback_store_id].msg_id = msg.msg_id;
         callback_store[callback_store_id].payload = response;
         pthread_mutex_lock(&callback_store[callback_store_id].mutex);
-        if(send(keymgr_socket,(void*)&msg, sizeof(_sgx_wamr_attestation_msg_enc),0) <= 0){
+        if(send(keymgr_socket,(void*)&msg, msg_len,0) <= 0){
             pthread_mutex_unlock(&callback_store[callback_store_id].mutex);
             callback_store[callback_store_id].payload = 0x0;
             return FAASM_SGX_CRT_SEND_FAILED;
@@ -78,12 +78,12 @@ typedef struct __thread_callback{
         return FAASM_SGX_SUCCESS;
     }
     void* handle_messages(void* args){
-        _sgx_wamr_attestation_msg_enc recv_buffer;
-        while(recv(keymgr_socket,(void*) &recv_buffer, sizeof(_sgx_wamr_attestation_msg_enc), 0) > 0){
+        sgx_wamr_msg_t recv_buffer;
+        while(recv(keymgr_socket,(void*) &recv_buffer, sizeof(sgx_wamr_msg_t), 0) > 0){ //TODO
             pthread_mutex_lock(&callback_store_ptr_mutex);
             for(int i = 0; i < callback_store_size; i++){
                 if(callback_store[i].msg_id == recv_buffer.msg_id){
-                    memcpy(callback_store[i].payload, (void*)&recv_buffer, sizeof(_sgx_wamr_attestation_msg_enc));
+                    //memcpy(callback_store[i].payload, (void*)&recv_buffer, sizeof(_sgx_wamr_attestation_msg_enc));
                     pthread_cond_signal(&callback_store[i].cond);
                     break;
                 }
