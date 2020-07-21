@@ -21,19 +21,9 @@
 #if(WASM_ENABLE_AOT == 1)
 #include <iwasm/aot/aot_runtime.h>
 #endif
-#define INCREMENT_REALLOC_COUNTER                       \
-sgx_thread_mutex_lock(&mutex_sgx_wamr_realloc_count);   \
-sgx_wamr_realloc_count++;                               \
-sgx_thread_mutex_unlock(&mutex_sgx_wamr_realloc_count);
-#define DECREMENT_REALLOC_COUNTER                       \
-sgx_thread_mutex_lock(&mutex_sgx_wamr_realloc_count);   \
-sgx_wamr_realloc_count--;                               \
-if(!sgx_wamr_realloc_count)                             \
-    sgx_thread_mutex_unlock(&mutex_sgx_wamr_tcs_realloc)\
-sgx_thread_mutex_unlock(&mutex_sgx_wamr_realloc_count);
 static _sgx_wamr_tcs_t* sgx_wamr_tcs = NULL;
 static uint32_t sgx_wamr_tcs_len, sgx_wamr_realloc_count = 0;
-static sgx_thread_mutex_t mutex_sgx_wamr_tcs = SGX_THREAD_MUTEX_INITIALIZER, mutex_sgx_wamr_tcs_realloc = SGX_THREAD_MUTEX_INITIALIZER, mutex_sgx_wamr_realloc_count = SGX_THREAD_MUTEX_INITIALIZER;
+static sgx_thread_mutex_t mutex_sgx_wamr_tcs = SGX_THREAD_MUTEX_INITIALIZER, mutex_sgx_wamr_tcs_realloc = SGX_THREAD_MUTEX_INITIALIZER;
 extern "C"{
     typedef void(*os_print_function_t)(const char* msg);
     extern void os_set_print_function(os_print_function_t pf);
