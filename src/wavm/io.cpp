@@ -615,6 +615,21 @@ namespace wasm {
         return __WASI_ESUCCESS;
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_fdstat_set_flags", I32, wasi_fd_fdstat_set_flags,
+            I32 fd, I32 fdFlags) {
+        util::getLogger()->debug("S - fd_fdstat_set_flags - {} {}", fd, fdFlags);
+
+        WAVMWasmModule *module = getExecutingWAVMModule();
+        storage::FileDescriptor &fileDesc = module->getFileSystem().getFileDescriptor(fd);
+
+        bool success = fileDesc.updateFlags(fdFlags);
+        if(!success) {
+            return fileDesc.getWasiErrno();
+        } else {
+            return __WASI_ESUCCESS;
+        }
+    }
+
     // -----------------------------
     // Unsupported
     // -----------------------------
@@ -655,9 +670,6 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_advise", I32, wasi_fd_advise, I32 a, I64 b, I64 c, I32 d) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_fdstat_set_flags", I32, wasi_fd_fdstat_set_flags, I32 a,
-                                   I32 b) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_filestat_set_times", I32, fd_filestat_set_times, I32 a, I64 b, I64 c,
                                    I32 d) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
