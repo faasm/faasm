@@ -2,14 +2,6 @@
 # Created by Joshua Heinemann on 18.06.20.
 # TU-Braunschweig (heineman@ibr.cs.tu-bs.de)
 #
-#set(RUNNER_LIBS
-#        faaslet_lib
-#        wasm
-#        wavmmodule
-#        util
-#        module_cache
-#        system
-#        )
 enable_language(ASM_NASM)
 set(CMAKE_ASM_NASM_FLAGS -felf64)
 set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <INCLUDES> ${CMAKE_ASM_NASM_FLAGS} -o <OBJECT> <SOURCE>")
@@ -22,7 +14,7 @@ set(SGX_C_GLOBAL_FLAGS -m64)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 set(SGX_WAMR_SOURCE_FILES SGXWAMRWasmModule.cpp sgx_wamr_native_symbols.cpp sgx_wamr_attestation.cpp)
 file(GLOB SGX_WAMR_ASM_SOURCE_FILES SGXWAMRWasmModule.S)
-set(SGX_WAMR_ENCLAVE_SOURCE_FILES sgx_wamr_enclave.cpp sgx_wamr_native_symbols_wrapper.cpp)
+set(SGX_WAMR_ENCLAVE_SOURCE_FILES sgx_wamr_enclave.cpp sgx_wamr_native_symbols_wrapper.cpp ../util/rw_lock.cpp)
 set(SGX_WAMR_URTS_OBJECTS ${CMAKE_CURRENT_BINARY_DIR}/sgx_wamr_enclave_u.o)
 set(SGX_WAMR_ENCLAVE_TRTS_OBJECTS ${CMAKE_CURRENT_BINARY_DIR}/sgx_wamr_enclave_t.o)
 set_source_files_properties(${SGX_WAMR_ASM_SOURCE_FILES} PROPERTIES LANGUAGE ASM_NASM)
