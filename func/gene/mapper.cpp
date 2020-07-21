@@ -14,7 +14,7 @@
  */
 FAASM_MAIN_FUNC() {
     std::string stringInput = faasm::getStringInput("");
-    if (stringInput == "") {
+    if (stringInput.empty()) {
         printf("Must provide function with read chunk index as input.\n");
         return 1;
     }
