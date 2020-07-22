@@ -29,7 +29,7 @@ namespace storage {
             }
         }
 
-        logger->debug("Loading from fileserver at {}", url);
+        logger->debug("Loading from fileserver: {} at {}", path, url);
 
         if (!path.empty()) {
             header = std::string(FILE_PATH_HEADER) + ":" + path;
@@ -47,7 +47,7 @@ namespace storage {
         }
 
         if (fileBytes.empty()) {
-            std::string errMsg ="Empty response for file at " + url;
+            std::string errMsg ="Empty response for file " + path + " at " + url;
             logger->error(errMsg);
             throw util::InvalidFunctionException(errMsg);
         }
