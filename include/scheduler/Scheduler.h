@@ -80,6 +80,8 @@ namespace scheduler {
 
         void addWarmThreads(const message::Message &msg);
 
+        long getTotalThreadCount();
+
         util::SystemConfig &conf;
 
         std::shared_ptr<InMemoryMessageQueue> bindQueue;

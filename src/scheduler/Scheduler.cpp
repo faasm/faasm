@@ -242,6 +242,15 @@ namespace scheduler {
         PROF_END(scheduleCall)
     }
 
+    long Scheduler::getTotalThreadCount() {
+        long totalCount = 0;
+        for(auto p : threadCountMap) {
+            totalCount += p.second;
+        }
+
+        return totalCount;
+    }
+
     void Scheduler::addWarmThreads(const message::Message &msg) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
@@ -301,6 +310,10 @@ namespace scheduler {
         bool hasWarmThreads = threadCount > 0;
         bool atMaxThreads = threadCount >= conf.maxWorkersPerFunction;
 
+        // Check the host's overall capacity
+        long totalThreadCount = getTotalThreadCount();
+        bool hostCapacityReached = totalThreadCount >= conf.threadsPerWorker;
+
         // Check the in-flight ratio
         double inFlightRatio = this->getFunctionInFlightRatio(msg);
         int maxInFlightRatio = this->getFunctionMaxInFlightRatio(msg);
@@ -309,8 +322,9 @@ namespace scheduler {
         SchedulerOpinion newOpinion;
 
         if (isInFlightRatioBreached) {
-            if (atMaxThreads) {
-                // If in-flight ratio is breached and we're at the max, we're a definite NO
+            if (atMaxThreads || hostCapacityReached) {
+                // If in-flight ratio is breached and we're at the max for this function or the host,
+                // we're a definite NO
                 newOpinion = SchedulerOpinion::NO;
             } else {
                 // If in-flight ratio is breached but we can add more threads, we're a YES
@@ -319,8 +333,11 @@ namespace scheduler {
         } else if (hasWarmThreads) {
             // If we've not breached the in-flight ratio and we have some warm threads, we're a YES
             newOpinion = SchedulerOpinion::YES;
+        } else if(hostCapacityReached) {
+            // If the host has reached capacity, it's a NO
+            newOpinion = SchedulerOpinion::NO;
         } else {
-            // If we have no threads we're a maybe
+            // In all other scenarios we're a MAYBE
             newOpinion = SchedulerOpinion::MAYBE;
         }
 
@@ -343,9 +360,14 @@ namespace scheduler {
             );
 
             if (newOpinion == SchedulerOpinion::NO) {
-                // Moving to no means we want to switch off from all decisions
+                // Moving to NO means we want to remove ourself from the set for this function
                 removeHostFromWarmSet(funcStr);
-                removeHostFromGlobalSet();
+
+                // If we've also reached this host's capacity, we want to drop out from all
+                // other scheduling decisions
+                if(hostCapacityReached) {
+                    removeHostFromGlobalSet();
+                }
             } else if (newOpinion == SchedulerOpinion::MAYBE && currentOpinion == SchedulerOpinion::NO) {
                 // Rejoin the global set if we're now a maybe when previously a no
                 addHostToGlobalSet();
