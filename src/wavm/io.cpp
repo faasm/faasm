@@ -541,6 +541,14 @@ namespace wasm {
         return wasiErrno;
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_advise", I32, wasi_fd_advise, I32 fd, I64 offset, I64 len, I32 advice) {
+        util::getLogger()->debug("S - fd_advise - {} {} {} {}", fd, offset, len, advice);
+
+        // Ignore fadvise, can't do anything useful with it.
+
+        return __WASI_ESUCCESS;
+    }
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "ioctl", I32, ioctl, I32 a, I32 b, I32 c) {
         util::getLogger()->debug("S - ioctl - {} {} {}", a, b, c);
 
@@ -664,10 +672,6 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_allocate", I32, wasi_fd_allocate, I32 a, I64 b, I64 c) {
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_advise", I32, wasi_fd_advise, I32 a, I64 b, I64 c, I32 d) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
