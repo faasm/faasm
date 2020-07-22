@@ -34,7 +34,7 @@ extern "C"{
     extern sgx_status_t SGX_CDECL ocall_printf(const char* msg);
 #if(FAASM_SGX_ATTESTATION)
     extern sgx_status_t SGX_CDECL ocall_init_crt(faasm_sgx_status_t* ret_val);
-    extern sgx_status_t SGX_CDECL ocall_send_msg(faasm_sgx_status_t* ret_val, sgx_wamr_msg_t msg, uint32_t msg_len, sgx_wamr_msg_t* response, uint32_t* response_len);
+    extern sgx_status_t SGX_CDECL ocall_send_msg(faasm_sgx_status_t* ret_val, sgx_wamr_msg_t* msg, uint32_t msg_len, sgx_wamr_msg_t** response);
     static uint8_t _sgx_wamr_msg_id = 0;
 #endif
     static char wamr_global_heap_buffer[FAASM_SGX_WAMR_HEAP_SIZE * 1024];
