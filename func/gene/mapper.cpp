@@ -43,6 +43,6 @@ FAASM_MAIN_FUNC() {
     }
 
     printf("Finished mapping read index %i.\n", readIdx);
-    
+
     return 0;
 }
