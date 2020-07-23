@@ -20,4 +20,5 @@ environment=LOG_LEVEL=debug,
   REDIS_QUEUE_HOST="{{ hostvars[groups['redis'][0]].internal_host }}",
   CAPTURE_STDOUT=on,
   ENDPOINT_INTERFACE="{{ internal_iface | default('eth0') }}",
+  STATE_MODE=redis,
 
