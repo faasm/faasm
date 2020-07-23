@@ -152,7 +152,7 @@ namespace faaslet {
         // Wait for next message
         while (true) {
             try {
-                logger->debug("Worker {} waiting for next message", this->id);
+                logger->debug("Faaslet {} waiting for next message", this->id);
                 std::string errorMessage = this->processNextMessage();
 
                 // Drop out if there's some issue
@@ -162,7 +162,7 @@ namespace faaslet {
             }
             catch (util::QueueTimeoutException &e) {
                 // At this point we've received no message, so die off
-                logger->debug("Worker {} got no messages. Finishing", this->id);
+                logger->debug("Faaslet {} got no messages. Finishing", this->id);
                 break;
             }
         }
@@ -189,7 +189,7 @@ namespace faaslet {
         std::string errorMessage;
         if (msg.type() == message::Message_MessageType_BIND) {
             const std::string funcStr = util::funcToString(msg, false);
-            logger->info("Worker {} binding to {}", id, funcStr);
+            logger->info("Faaslet {} binding to {}", id, funcStr);
 
             try {
                 this->bindToFunction(msg);
