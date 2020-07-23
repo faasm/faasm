@@ -39,9 +39,9 @@ namespace scheduler {
 
         void notifyFaasletFinished(const message::Message &msg);
 
-        void notifyAwaiting(const message::Message &msg);
+        // void notifyAwaiting(const message::Message &msg);
 
-        void notifyFinishedAwaiting(const message::Message &msg);
+        // void notifyFinishedAwaiting(const message::Message &msg);
 
         std::shared_ptr<InMemoryMessageQueue> getBindQueue();
 

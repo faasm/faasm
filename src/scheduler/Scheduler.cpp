@@ -132,24 +132,24 @@ namespace scheduler {
         decrementWarmFaasletCount(msg);
     }
 
-    void Scheduler::notifyAwaiting(const message::Message &msg) {
-        // When a faaslet is awaiting a call, it's paused in the background,
-        // so we can rebalance the warm faaslet and in-flight count for that
-        // function
-        util::FullLock lock(mx);
-        decrementInFlightCount(msg);
-        decrementWarmFaasletCount(msg);
-    }
+    // void Scheduler::notifyAwaiting(const message::Message &msg) {
+    //     // When a faaslet is awaiting a call, it's paused in the background,
+    //     // so we can rebalance the warm faaslet and in-flight count for that
+    //     // function
+    //     util::FullLock lock(mx);
+    //     decrementInFlightCount(msg);
+    //     decrementWarmFaasletCount(msg);
+    // }
 
-    void Scheduler::notifyFinishedAwaiting(const message::Message &msg) {
-        // When a faaslet returns from awaiting, we can increase the faaslet and
-        // in-flight counts again
-        util::FullLock lock(mx);
-
-        // Note that we must re-add the Faaslet before increasing the in-flight count
-        incrementWarmFaasletCount(msg);
-        incrementInFlightCount(msg);
-    }
+    // void Scheduler::notifyFinishedAwaiting(const message::Message &msg) {
+    //     // When a faaslet returns from awaiting, we can increase the faaslet and
+    //     // in-flight counts again
+    //     util::FullLock lock(mx);
+    //
+    //     // Note that we must re-add the Faaslet before increasing the in-flight count
+    //     incrementWarmFaasletCount(msg);
+    //     incrementInFlightCount(msg);
+    // }
 
     std::string Scheduler::getFunctionWarmSetName(const message::Message &msg) {
         std::string funcStr = util::funcToString(msg, false);
