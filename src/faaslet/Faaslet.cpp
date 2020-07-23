@@ -56,7 +56,7 @@ namespace faaslet {
 
         if (_isBound) {
             // Notify scheduler if this thread was bound to a function
-            scheduler.notifyThreadFinished(boundMessage);
+            scheduler.notifyFaasletFinished(boundMessage);
         }
     }
 

@@ -36,10 +36,10 @@ namespace util {
         std::string irCacheMode;
 
         // Scheduling
-        int threadsPerWorker;
+        int maxFaaslets;
         int noScheduler;
         int maxInFlightRatio;
-        int maxWorkersPerFunction;
+        int maxFaasletsPerFunction;
         std::string threadMode;
         int ompThreadPoolSize;
 

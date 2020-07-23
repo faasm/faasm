@@ -36,7 +36,7 @@ namespace wasm {
             int nextWanted = pushedNumThreads > 0 ? pushedNumThreads : wantedNumThreads;
 
             // Returns user preference if set or device's maximum
-            return nextWanted > 0 ? nextWanted : (int) util::getSystemConfig().threadsPerWorker;
+            return nextWanted > 0 ? nextWanted : (int) util::getSystemConfig().maxFaaslets;
         }
 
         void Level::snapshot_parent(message::Message &msg) const {

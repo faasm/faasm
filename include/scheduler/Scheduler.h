@@ -10,7 +10,7 @@
 #include <shared_mutex>
 #include <redis/Redis.h>
 
-#define AVAILABLE_HOST_SET "available_workers"
+#define AVAILABLE_HOST_SET "available_faaslets"
 
 
 namespace scheduler {
@@ -27,7 +27,7 @@ namespace scheduler {
 
         void callFunction(message::Message &msg, bool forceLocal=false);
 
-        SchedulerOpinion getOpinion(const message::Message &msg);
+        SchedulerOpinion getLatestOpinion(const message::Message &msg);
 
         std::string getBestHostForFunction(const message::Message &msg);
 
@@ -37,7 +37,7 @@ namespace scheduler {
 
         void notifyCallFinished(const message::Message &msg);
 
-        void notifyThreadFinished(const message::Message &msg);
+        void notifyFaasletFinished(const message::Message &msg);
 
         void notifyAwaiting(const message::Message &msg);
 
@@ -51,11 +51,11 @@ namespace scheduler {
 
         void clear();
 
-        long getFunctionThreadCount(const message::Message &msg);
+        long getFunctionWarmFaasletCount(const message::Message &msg);
+
+        long getTotalWarmFaasletCount();
 
         double getFunctionInFlightRatio(const message::Message &msg);
-
-        int getFunctionMaxInFlightRatio(const message::Message &msg);
 
         long getFunctionInFlightCount(const message::Message &msg);
 
@@ -73,14 +73,10 @@ namespace scheduler {
 
         std::vector<unsigned int> getScheduledMessageIds();
 
+        bool hasHostCapacity();
+
     private:
         const std::string &thisHost;
-
-        void updateOpinion(const message::Message &msg);
-
-        void addWarmThreads(const message::Message &msg);
-
-        long getTotalThreadCount();
 
         util::SystemConfig &conf;
 
@@ -88,14 +84,27 @@ namespace scheduler {
 
         std::shared_mutex mx;
         std::unordered_map<std::string, std::shared_ptr<InMemoryMessageQueue>> queueMap;
-        std::unordered_map<std::string, long> threadCountMap;
+        std::unordered_map<std::string, long> faasletCountMap;
         std::unordered_map<std::string, long> inFlightCountMap;
         std::unordered_map<std::string, SchedulerOpinion> opinionMap;
+        bool _hasHostCapacity = true;
 
         SharingMessageBus &sharingBus;
 
         bool logMessageIds = false;
         std::vector<unsigned int> loggedMessageIds;
+
+        void updateOpinion(const message::Message &msg);
+
+        void incrementInFlightCount(const message::Message &msg);
+
+        void decrementInFlightCount(const message::Message &msg);
+
+        void incrementWarmFaasletCount(const message::Message &msg);
+
+        void decrementWarmFaasletCount(const message::Message &msg);
+
+        int getFunctionMaxInFlightRatio(const message::Message &msg);
     };
 
     Scheduler &getScheduler();
