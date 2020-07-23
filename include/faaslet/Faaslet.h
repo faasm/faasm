@@ -7,8 +7,12 @@
 #include <scheduler/Scheduler.h>
 
 #include <string>
-#if(FAASM_SGX == 1)
+
+#if(FAASM_SGX)
 #include <sgx/SGXWAMRWasmModule.h>
+#if(FAASM_SGX_ATTESTATION)
+#include <sgx/sgx_wamr_attestation.h>
+#endif
 #endif
 
 namespace faaslet {
@@ -32,8 +36,11 @@ namespace faaslet {
 
         std::string id;
         std::unique_ptr<wasm::WAVMWasmModule> module_wavm;
-#if(FAASM_SGX == 1)
+#if(FAASM_SGX)
         std::unique_ptr<wasm::SGXWAMRWasmModule> module_sgx_wamr;
+#if(FAASM_SGX_ATTESTATION)
+        faaslet_sgx_msg_buffer_t sgx_wamr_msg_response;
+#endif
 #endif
 
         const int threadIdx;

@@ -10,7 +10,16 @@
 
 #if(FAASM_SGX == 1)
 extern "C"{
-extern sgx_enclave_id_t enclave_id;
+    extern sgx_enclave_id_t enclave_id;
+#if(FAASM_SGX_ATTESTATION)
+    static thread_local faaslet_sgx_msg_buffer_t* _faasm_sgx_msg_buffer_ptr;
+    static inline void _set_sgx_msg_buffer(faaslet_sgx_msg_buffer_t* buffer_ptr) {
+        _faasm_sgx_msg_buffer_ptr = buffer_ptr;
+    }
+    faaslet_sgx_msg_buffer_t* get_sgx_msg_buffer(void){
+        return _faasm_sgx_msg_buffer_ptr;
+    }
+#endif
 };
 #endif
 
@@ -20,7 +29,13 @@ namespace faaslet {
     Faaslet::Faaslet(int threadIdxIn) : threadIdx(threadIdxIn),
                                                   scheduler(scheduler::getScheduler()),
                                                   globalBus(scheduler::getGlobalMessageBus()) {
-
+#if(FAASM_SGX_ATTESTATION)
+        sgx_wamr_msg_response.buffer_len = (sizeof(sgx_wamr_msg_t) + sizeof(sgx_wamr_msg_hdr_t));
+        if(!(sgx_wamr_msg_response.buffer_ptr = (sgx_wamr_msg_t*) calloc(sgx_wamr_msg_response.buffer_len, sizeof(uint8_t)))){
+            //TODO: Error handling
+        }
+        _set_sgx_msg_buffer(&sgx_wamr_msg_response);
+#endif
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Set an ID for this Faaslet
@@ -46,7 +61,10 @@ namespace faaslet {
         if(module_sgx_wamr && !module_sgx_wamr->unbindFunction()){
             printf("[Error] Faaslet destruction failed\n");
         }
+#if(FAASM_SGX_ATTESTATION)
+        free(sgx_wamr_msg_response.buffer_ptr);
     }
+#endif
 #endif
     const bool Faaslet::isBound() {
         return _isBound;

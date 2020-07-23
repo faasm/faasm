@@ -21,12 +21,13 @@
 
 extern "C"{
 
-typedef struct __thread_callback{
-    uint8_t msg_id;
-    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-    pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
-    sgx_wamr_msg_t** response;
-} _sgx_wamr_thread_callback;
+    extern faaslet_sgx_msg_buffer_t* get_sgx_msg_buffer(void);
+    typedef struct __thread_callback{
+        uint8_t msg_id;
+        pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+        pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+        faaslet_sgx_msg_buffer_t* response_ptr;
+    } _sgx_wamr_thread_callback;
 
     static pthread_t _crt;
     static int _keymgr_socket;
@@ -34,14 +35,14 @@ typedef struct __thread_callback{
     static uint32_t _callback_store_len = FAASM_SGX_ATTESTATION_CALLBACK_STORE_INIT_LEN;
     static pthread_mutex_t mutex_callback_store = PTHREAD_MUTEX_INITIALIZER;
     static rwlock_t _rwlock_callback_store_realloc;
-    static inline faasm_sgx_status_t _find_callback_store_slot(uint32_t* id, sgx_wamr_msg_t** response){
+    static inline faasm_sgx_status_t _find_callback_store_slot(uint32_t* id, faaslet_sgx_msg_buffer_t* response_ptr){
         _sgx_wamr_thread_callback* temp_ptr;
         uint32_t temp_size,i = 0;
         pthread_mutex_lock(&mutex_callback_store);
         read_lock(&_rwlock_callback_store_realloc);
         for(; i < _callback_store_len; i++){
-            if(!_callback_store[i].response){
-                _callback_store[i].response = response;
+            if(!_callback_store[i].response_ptr){
+                _callback_store[i].response_ptr = response_ptr;
                 pthread_mutex_unlock(&mutex_callback_store);
                 read_unlock(&_rwlock_callback_store_realloc);
                 *id = i;
@@ -59,34 +60,34 @@ typedef struct __thread_callback{
         memset((void*)(temp_ptr + _callback_store_len), 0x0, (temp_size - _callback_store_len) * sizeof(_sgx_wamr_thread_callback));
         _callback_store = temp_ptr;
         _callback_store_len = temp_size;
-        _callback_store[i].response = response;
+        _callback_store[i].response_ptr = response_ptr;
         write_unlock(&_rwlock_callback_store_realloc);
         pthread_mutex_unlock(&mutex_callback_store);
         *id = i;
         return FAASM_SGX_SUCCESS;
     }
-    faasm_sgx_status_t ocall_send_msg(sgx_wamr_msg_t* msg, uint32_t msg_len, sgx_wamr_msg_t** response){
+    faasm_sgx_status_t ocall_send_msg(sgx_wamr_msg_t* msg, uint32_t msg_len){
         faasm_sgx_status_t ret_val;
         uint32_t cb_store_id;
-        if((ret_val = _find_callback_store_slot(&cb_store_id, response)) != FAASM_SGX_SUCCESS)
+        if((ret_val = _find_callback_store_slot(&cb_store_id,get_sgx_msg_buffer())) != FAASM_SGX_SUCCESS)
             return ret_val;
         read_lock(&_rwlock_callback_store_realloc);
         _callback_store[cb_store_id].msg_id = msg->msg_id;
         pthread_mutex_lock(&_callback_store[cb_store_id].mutex);
         if(send(_keymgr_socket, (void*)msg, msg_len, 0) <= 0){
             pthread_mutex_unlock(&_callback_store[cb_store_id].mutex);
-            _callback_store[cb_store_id].response = 0x0;
+            _callback_store[cb_store_id].response_ptr = 0x0;
             read_unlock(&_rwlock_callback_store_realloc);
             return FAASM_SGX_CRT_SEND_FAILED;
         }
         pthread_cond_wait(&_callback_store[cb_store_id].cond, &_callback_store[cb_store_id].mutex);
         pthread_mutex_unlock(&_callback_store[cb_store_id].mutex);
-        if(!(*_callback_store[cb_store_id].response)){
-            _callback_store[cb_store_id].response = 0x0;
+        if(!(_callback_store[cb_store_id].response_ptr->buffer_ptr)){
+            _callback_store[cb_store_id].response_ptr = 0x0;
             read_unlock(&_rwlock_callback_store_realloc);
             return FAASM_SGX_CRT_RECV_FAILED;
         }
-        _callback_store[cb_store_id].response = 0x0;
+        _callback_store[cb_store_id].response_ptr = 0x0;
         read_unlock(&_rwlock_callback_store_realloc);
         return FAASM_SGX_SUCCESS;
     }
@@ -96,13 +97,19 @@ typedef struct __thread_callback{
             read_lock(&_rwlock_callback_store_realloc);
             for(int i = 0; i < _callback_store_len; i++){
                 if(_callback_store[i].msg_id == recv_buffer.msg_id){
-                    if((*_callback_store[i].response = (sgx_wamr_msg_t*) calloc(sizeof(sgx_wamr_msg_t) + recv_buffer.payload_len,sizeof(uint8_t)))){
-                        memcpy(*_callback_store[i].response, &recv_buffer,sizeof(sgx_wamr_msg_t));
-                        if(recv(_keymgr_socket, (void*) ((uint8_t*)*_callback_store[i].response + sizeof(sgx_wamr_msg_t)), recv_buffer.payload_len, 0) <= 0){
-                            free(*_callback_store[i].response);
-                            *_callback_store[i].response = 0x0;
+                    if(_callback_store[i].response_ptr->buffer_len < sizeof(sgx_wamr_msg_t) + recv_buffer.payload_len){
+                        uint32_t temp_len = sizeof(sgx_wamr_msg_t) + recv_buffer.payload_len;
+                        if(!(_callback_store[i].response_ptr->buffer_ptr = (sgx_wamr_msg_t*) realloc(_callback_store[i].response_ptr->buffer_ptr,temp_len))){
+                            //TODO: Discard recv
+                            goto __WAKE_UP_SEND_THREAD;
                         }
+                        _callback_store[i].response_ptr->buffer_len = temp_len;
                     }
+                    memcpy(_callback_store[i].response_ptr->buffer_ptr,(void*)&recv_buffer, sizeof(sgx_wamr_msg_t));
+                    if(recv(_keymgr_socket,(uint8_t*)_callback_store[i].response_ptr->buffer_ptr + sizeof(sgx_wamr_msg_t),recv_buffer.payload_len,0) <= 0){
+                        //TODO: Error Handling
+                    }
+                    __WAKE_UP_SEND_THREAD:
                     pthread_cond_signal(&_callback_store[i].cond);
                     break;
                 }

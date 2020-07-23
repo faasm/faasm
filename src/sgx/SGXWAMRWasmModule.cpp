@@ -4,11 +4,15 @@
 //
 
 #include <sgx/SGXWAMRWasmModule.h>
+#if(FAASM_SGX_ATTESTATION)
+#include <faaslet/Faaslet.h>
+#include <sgx/sgx_wamr_attestation.h>
+#endif
 
 extern "C"{
-void ocall_printf(const char* msg){
-    printf("%s",msg);
-}
+    void ocall_printf(const char* msg){
+        printf("%s",msg);
+    }
 }
 
 namespace wasm{
@@ -24,9 +28,13 @@ namespace wasm{
         storage::FileLoader& fl = storage::getFileLoader();
         fs.prepareFilesystem();
         wasm_opcode = fl.loadFunctionWasm(msg);
-        if((sgx_ret_val = sgx_wamr_enclave_load_module(*enclave_id_ptr,&ret_val,(void*)wasm_opcode.data(),(uint32_t)wasm_opcode.size(),&thread_id)) != SGX_SUCCESS){
-            printf("[Error] Unable to enter enclave (%#010x)\n",sgx_ret_val);
-            return;
+#if(FAASM_SGX_ATTESTATION)
+        if((sgx_ret_val = sgx_wamr_enclave_load_module(*enclave_id_ptr,&ret_val,(void*)wasm_opcode.data(),(uint32_t)wasm_opcode.size(),&thread_id, &get_sgx_msg_buffer()->buffer_ptr)) != SGX_SUCCESS){
+#else
+        if((sgx_ret_val = sgx_wamr_enclave_load_module(*enclave_id_ptr,&ret_val,(void*)wasm_opcode.data(),(uint32_t)wasm_opcode.size(),&thread_id, ((faasm_sgx_msg_buffer_t*)pthread_getspecific(faaslet_faasm_sgx_msg_buffer_key))->buffer_ptr)) != SGX_SUCCESS){
+#endif
+                printf("[Error] Unable to enter enclave (%#010x)\n",sgx_ret_val);
+                return;
         }
         if(ret_val != FAASM_SGX_SUCCESS){
             printf("[Error] Unable to load WASM module (%#010x)\n",ret_val);

@@ -11,14 +11,18 @@ enclave{
     trusted{
         public faasm_sgx_status_t sgx_wamr_enclave_unload_module(unsigned int thread_id);
         public faasm_sgx_status_t sgx_wamr_enclave_call_function(unsigned int thread_id, uint32_t func_id);
+#if(FAASM_SGX_ATTESTATION)
+        public faasm_sgx_status_t sgx_wamr_enclave_load_module([user_check] const void* wasm_opcode_ptr, uint32_t wasm_opcode_size, [out] unsigned int* thread_id, [user_check] sgx_wamr_msg_t** response_ptr);
+#else
         public faasm_sgx_status_t sgx_wamr_enclave_load_module([user_check] const void* wasm_opcode_ptr, uint32_t wasm_opcode_size, [out] unsigned int* thread_id);
+#endif
         public faasm_sgx_status_t sgx_wamr_enclave_init_wamr(unsigned int thread_number);
     };
     untrusted{
         void ocall_printf([in, string] const char* msg);
 #if(FAASM_SGX_ATTESTATION)
         faasm_sgx_status_t ocall_init_crt(void);
-        faasm_sgx_status_t ocall_send_msg([in, size=msg_len]sgx_wamr_msg_t* msg, uint32_t msg_len, [in, out]sgx_wamr_msg_t** response);
+        faasm_sgx_status_t ocall_send_msg([in, size=msg_len]sgx_wamr_msg_t* msg, uint32_t msg_len);
 #endif
         unsigned int ocall_faasm_get_input_size(void);
         void ocall_faasm_get_input([in,out, size=buffer_size] uint8_t* buffer, unsigned int buffer_size);

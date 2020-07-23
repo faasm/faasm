@@ -34,8 +34,8 @@ extern "C"{
     extern sgx_status_t SGX_CDECL ocall_printf(const char* msg);
 #if(FAASM_SGX_ATTESTATION)
     extern sgx_status_t SGX_CDECL ocall_init_crt(faasm_sgx_status_t* ret_val);
-    extern sgx_status_t SGX_CDECL ocall_send_msg(faasm_sgx_status_t* ret_val, sgx_wamr_msg_t* msg, uint32_t msg_len, sgx_wamr_msg_t** response);
-    static uint8_t _sgx_wamr_msg_id = 0;
+    extern sgx_status_t SGX_CDECL ocall_send_msg(faasm_sgx_status_t* ret_val, sgx_wamr_msg_t* msg, uint32_t msg_len);
+    static uint8_t _sgx_wamr_msg_id = 0; //TODO: Increment threadsafe
 #endif
     static char wamr_global_heap_buffer[FAASM_SGX_WAMR_HEAP_SIZE * 1024];
     static faasm_sgx_status_t _get_native_symbols(NativeSymbol** native_symbol_ptr, uint32_t* native_symbol_num){//TODO: Performance Improvement e.g. extern
@@ -120,17 +120,33 @@ extern "C"{
         read_unlock(&rwlock_sgx_wamr_tcs_realloc);
         return FAASM_SGX_SUCCESS;
     }
+#if(FAASM_SGX_ATTESTATION)
+    faasm_sgx_status_t sgx_wamr_enclave_load_module(const void* wasm_opcode_ptr, const uint32_t wasm_opcode_size, unsigned int* thread_id, sgx_wamr_msg_t** response_ptr){
+#else
     faasm_sgx_status_t sgx_wamr_enclave_load_module(const void* wasm_opcode_ptr, const uint32_t wasm_opcode_size, unsigned int* thread_id){
+#endif
         char module_error_buffer[FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE];
         faasm_sgx_status_t ret_val;
         memset(module_error_buffer, 0x0, sizeof(module_error_buffer));
         if(!wasm_opcode_size)
             return FAASM_SGX_INVALID_OPCODE_SIZE;
-        if(!wasm_opcode_ptr)
+        if(!wasm_opcode_ptr || !response_ptr)
             return FAASM_SGX_INVALID_PTR;
         if((ret_val = _get_tcs_slot(thread_id)) != FAASM_SGX_SUCCESS)
             return ret_val;
         read_lock(&rwlock_sgx_wamr_tcs_realloc);
+#if(FAASM_SGX_ATTESTATION)
+        sgx_wamr_tcs[*thread_id].response_ptr = response_ptr;
+#endif
+        //////////////WILL_BE_REMOVED_IN_NEXT_COMMMIT//////////////
+        sgx_wamr_msg_t* msg = (sgx_wamr_msg_t*) malloc(sizeof(sgx_wamr_msg_t) + sizeof("Der große Schlichtmeister")), *tmp;
+        msg->msg_id = 0;
+        msg->payload_len = sizeof("Der große Schlichtmeister");
+        strcpy_s((char*)msg->payload,sizeof("Der große Schlichtmeister"),"Der große Schlichtmeister");
+        ocall_send_msg(&ret_val,msg,sizeof(sgx_wamr_msg_t) + sizeof("Der große Schlichtmeister"));
+        tmp = *sgx_wamr_tcs[*thread_id].response_ptr;
+        os_printf("Msg_id: %d Payload_len: %d Payload: %s\n",tmp->msg_id, tmp->payload_len, tmp->payload);
+        //////////////WILL_BE_REMOVED_IN_NEXT_COMMMIT//////////////
         if(!(sgx_wamr_tcs[*thread_id].wasm_opcode = (uint8_t*) calloc(wasm_opcode_size, sizeof(uint8_t)))){
             sgx_wamr_tcs[*thread_id].module = 0x0;
             read_unlock(&rwlock_sgx_wamr_tcs_realloc);

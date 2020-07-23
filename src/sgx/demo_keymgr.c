@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <sgx_wamr_attestation.h>
 #include <string.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -15,15 +16,20 @@
 
 void* handle_message(void* args){
     int client_socket = (int) args;
-    _sgx_wamr_attestation_msg_enc recv_msg;
-    while(recv(client_socket,(void*)&recv_msg,sizeof(_sgx_wamr_attestation_msg_enc),0) > 0){
-        printf("[Info/%d] Received msg with msg_id %d\n Waiting 5 sec then sending back same message\n", client_socket, recv_msg.msg_id);
+    sgx_wamr_msg_t recv_msg, *tmp;
+    while(recv(client_socket,(void*)&recv_msg,sizeof(sgx_wamr_msg_t),0) > 0){
+        tmp = calloc(sizeof(sgx_wamr_msg_t) + recv_msg.payload_len, sizeof(uint8_t));
+        memcpy(tmp, &recv_msg, sizeof(sgx_wamr_msg_t));
+        recv(client_socket, (uint8_t*)tmp + sizeof(sgx_wamr_msg_t), recv_msg.payload_len,0);
+        printf("Msg_id: %d Payload_len: %d Payload: %s Msg_len: %d\n",tmp->msg_id, tmp->payload_len, tmp->payload,sizeof(sgx_wamr_msg_t) + tmp->payload_len);
+        printf("[Info/%d] Received msg with msg_id %d\n Waiting 5 sec then sending same message back\n", client_socket, recv_msg.msg_id);
         sleep(5);
-        if(send(client_socket, (void*)&recv_msg,sizeof(_sgx_wamr_attestation_msg_enc),0) <= 0 ){
+        if(send(client_socket, (void*)tmp,sizeof(sgx_wamr_msg_t) + tmp->payload_len,0) <= 0 ){
             printf("[Error/%d] Send failed\n",client_socket);
             close(client_socket);
             return 0;
         }
+        free(tmp);
     }
     return 0;
 }
