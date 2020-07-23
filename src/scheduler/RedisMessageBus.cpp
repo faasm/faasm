@@ -73,14 +73,13 @@ namespace scheduler {
 
         std::string resultKey = util::resultKeyFromMessageId(messageId);
 
+        message::Message msgResult;
+
         if (isBlocking) {
             // Blocking version will throw an exception when timing out which is handled
             // by the caller.
             std::vector<uint8_t> result = redis.dequeueBytes(resultKey, timeoutMs);
-            message::Message msgResult;
             msgResult.ParseFromArray(result.data(), (int) result.size());
-
-            return msgResult;
         } else {
             // Non-blocking version will tolerate empty responses, therefore we handle
             // the exception here
@@ -91,7 +90,6 @@ namespace scheduler {
                 // Ok for no response when not blocking
             }
 
-            message::Message msgResult;
             if (result.empty()) {
                 // Empty result has special type
                 msgResult.set_type(message::Message_MessageType_EMPTY);
@@ -100,8 +98,15 @@ namespace scheduler {
                 msgResult.ParseFromArray(result.data(), (int) result.size());
             }
 
-            return msgResult;
         }
+
+        if(msgResult.type()!= message::Message_MessageType_EMPTY
+            && conf.execGraphMode == "on") {
+            // Set graph result for given message
+
+        }
+
+        return msgResult;
     }
 
 

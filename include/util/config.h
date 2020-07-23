@@ -26,6 +26,7 @@ namespace util {
         std::string captureStdout;
         std::string stateMode;
         std::string wasmVm;
+        std::string execGraphMode;
 
         // Redis
         std::string redisStateHost;
@@ -40,6 +41,8 @@ namespace util {
         int noScheduler;
         int maxInFlightRatio;
         int maxWorkersPerFunction;
+
+        // Threading
         std::string threadMode;
         int ompThreadPoolSize;
 

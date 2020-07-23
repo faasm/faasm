@@ -39,6 +39,7 @@ namespace util {
         captureStdout = getEnvVar("CAPTURE_STDOUT", "off");
         stateMode = getEnvVar("STATE_MODE", "inmemory");
         wasmVm = getEnvVar("WASM_VM", "wavm");
+        execGraphMode = getEnvVar("EXEC_GRAPH_MODE", "off");
 
         // Redis
         redisStateHost = getEnvVar("REDIS_STATE_HOST", "localhost");
@@ -114,6 +115,7 @@ namespace util {
         logger->info("CAPTURE_STDOUT             {}", captureStdout);
         logger->info("STATE_MODE                 {}", stateMode);
         logger->info("WASM_VM                    {}", wasmVm);
+        logger->info("EXEC_GRAPH_MODE            {}", execGraphMode);
 
         logger->info("--- Redis ---");
         logger->info("REDIS_STATE_HOST           {}", redisStateHost);
