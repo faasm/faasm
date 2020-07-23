@@ -596,7 +596,6 @@ namespace tests {
 
         std::string thisHost = util::getSystemConfig().endpointHost;
         std::string otherHost = "192.168.0.10";
-        SharingMessageBus &sharingBus = SharingMessageBus::getInstance();
 
         message::Message callA = util::messageFactory("user a", "function a1");
         message::Message callB = util::messageFactory("user a", "function a2");
