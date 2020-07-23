@@ -94,16 +94,24 @@ namespace storage {
         switch (errnoIn) {
             case EPERM:
                 return __WASI_EPERM;
-            case EBADF:
-                return __WASI_EBADF;
-            case EINVAL:
-                return __WASI_EINVAL;
             case ENOENT:
                 return __WASI_ENOENT;
-            case EISDIR:
-                return __WASI_EISDIR;
+            case EIO:
+                return __WASI_EIO;
+            case EBADF:
+                return __WASI_EBADF;
+            case ENOMEM:
+                return __WASI_ENOMEM;
+            case EACCES:
+                return __WASI_EACCES;
             case EEXIST:
                 return __WASI_EEXIST;
+            case ENOTDIR:
+                return __WASI_ENOTDIR;
+            case EISDIR:
+                return __WASI_EISDIR;
+            case EINVAL:
+                return __WASI_EINVAL;
             case EMFILE:
                 return __WASI_EMFILE;
             default:
