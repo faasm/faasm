@@ -43,7 +43,7 @@ def upload_shared_file(host, local_path, shared_path, quiet=False):
     url = "http://{}:8002/file/".format(host)
 
     local_filename = basename(local_path)
-    print("Uploading {} to {}", local_filename, shared_path)
+    print("Uploading {} to {}".format(local_filename, shared_path))
 
     curl_file(url, local_path, headers={
         "FilePath": shared_path,

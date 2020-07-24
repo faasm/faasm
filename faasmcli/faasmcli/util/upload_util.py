@@ -104,7 +104,7 @@ def curl_file(url, file_path, headers=None, quiet=False):
 
     res = subprocess.call(cmd, shell=True)
 
-    if res == 0:
+    if res == 0 and not quiet:
         print("Successfully PUT file {} to {}".format(file_path, url))
     else:
         raise RuntimeError("Failed PUTting file {} to {}".format(file_path, url))
