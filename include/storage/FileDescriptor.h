@@ -81,6 +81,8 @@ namespace storage {
 
         bool pathOpen(uint32_t lookupFlags, uint32_t openFlags, int32_t fdFlags);
 
+        bool updateFlags(int32_t fdFlags);
+
         void close();
 
         bool mkdir(const std::string &dirPath);

@@ -11,6 +11,7 @@ export WASM_LD=${WASM_TOOLCHAIN_BIN}/wasm-ld
 export WASM_LDSHARED=${WASM_TOOLCHAIN_BIN}/wasm-ld
 
 export WASM_LDFLAGS="-Xlinker --stack-first -Xlinker --no-check-features"
+export WASM_FUNC_LDFLAGS="-Xlinker --export=_faasm_zygote -Xlinker --export=__wasm_call_ctors -Xlinker --max-memory=4294901760 -Wl,-z,stack-size=4194304 -Wl,"
 
 export WASM_BUILD=wasm32
 export WASM_HOST=wasm32-unknown-wasi

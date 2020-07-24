@@ -4,9 +4,6 @@
 [submodule "third-party/eigen"]
 	path = third-party/eigen
 	url = https://github.com/Shillaker/eigen-git-mirror
-[submodule "third-party/gem3-mapper"]
-	path = third-party/gem3-mapper
-	url = https://github.com/Shillaker/gem3-mapper.git
 [submodule "third-party/WAVM"]
 	path = third-party/WAVM
 	url = https://github.com/Shillaker/WAVM.git

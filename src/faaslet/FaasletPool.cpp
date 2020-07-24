@@ -250,7 +250,7 @@ namespace faaslet {
             mpiThread.join();
         }
 
-        logger->info("Worker pool successfully shut down");
+        logger->info("Faaslet pool successfully shut down");
 
         // Tear down SGX enclave (will do nothing if not enabled)
         isolation::tearDownEnclave();
