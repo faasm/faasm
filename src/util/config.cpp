@@ -21,9 +21,6 @@ namespace util {
     }
 
     void SystemConfig::initialise() {
-        // TODO - max cannot exceed the underlying number of available namespaces. Good to decouple?
-        threadsPerWorker = this->getSystemConfIntParam("THREADS_PER_WORKER", "5");
-
         // System
         hostType = getEnvVar("HOST_TYPE", "default");
         globalMessageBus = getEnvVar("GLOBAL_MESSAGE_BUS", "redis");
@@ -51,8 +48,11 @@ namespace util {
 
         // Scheduling
         noScheduler = this->getSystemConfIntParam("NO_SCHEDULER", "0");
-        maxInFlightRatio = this->getSystemConfIntParam("MAX_IN_FLIGHT_RATIO", "3");
-        maxWorkersPerFunction = this->getSystemConfIntParam("MAX_WORKERS_PER_FUNCTION", "10");
+        maxFaaslets = this->getSystemConfIntParam("MAX_FAASLETS", "5");
+        maxInFlightRatio = this->getSystemConfIntParam("MAX_IN_FLIGHT_RATIO", "1");
+        maxFaasletsPerFunction = this->getSystemConfIntParam("MAX_FAASLETS_PER_FUNCTION", "5");
+
+        // Threading
         threadMode = getEnvVar("THREAD_MODE", "local");
         ompThreadPoolSize = this->getSystemConfIntParam("OMP_THREAD_POOL_SIZE", "0");
 
@@ -126,10 +126,12 @@ namespace util {
         logger->info("IR_CACHE_MODE              {}", irCacheMode);
 
         logger->info("--- Scheduling ---");
-        logger->info("THREADS_PER_WORKER         {}", threadsPerWorker);
         logger->info("NO_SCHEDULER               {}", noScheduler);
+        logger->info("MAX_FAASLETS               {}", maxFaaslets);
         logger->info("MAX_IN_FLIGHT_RATIO        {}", maxInFlightRatio);
-        logger->info("MAX_WORKERS_PER_FUNCTION   {}", maxWorkersPerFunction);
+        logger->info("MAX_FAASLETS_PER_FUNCTION  {}", maxFaasletsPerFunction);
+
+        logger->info("--- Threading ---");
         logger->info("THREAD_MODE                {}", threadMode);
         logger->info("OMP_THREAD_POOL_SIZE       {}", ompThreadPoolSize);
 

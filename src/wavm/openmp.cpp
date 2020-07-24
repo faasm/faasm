@@ -307,14 +307,14 @@ namespace wasm {
 
             for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
                 scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
-                scheduler::Scheduler &scheduler = scheduler::getScheduler();
                 int callTimeoutMs = util::getSystemConfig().chainedCallTimeout;
                 logger->info("Waiting for thread #{} with call id {} with a timeout of {}", threadNum,
                              chainedThreads[threadNum], callTimeoutMs);
 
                 // Free this thread
-                message::Message *msg = getExecutingCall();
-                scheduler.notifyAwaiting(*msg);
+                // message::Message *msg = getExecutingCall();
+                // scheduler::Scheduler &scheduler = scheduler::getScheduler();
+                // scheduler.notifyAwaiting(*msg);
 
                 int returnCode = 1;
                 try {
@@ -326,7 +326,7 @@ namespace wasm {
                     util::getLogger()->error("Non-timeout exception waiting for chained call: {}", ex.what());
                 }
 
-                scheduler.notifyFinishedAwaiting(*msg);
+                // scheduler.notifyFinishedAwaiting(*msg);
 
                 if (returnCode) {
                     numErrors++;

@@ -28,7 +28,7 @@ namespace faaslet {
     }
 
     FaasmMain::FaasmMain() : conf(util::getSystemConfig()),
-                               pool(conf.threadsPerWorker),
+                               pool(conf.maxFaaslets),
                                scheduler(scheduler::getScheduler()) {
 
     }

@@ -310,15 +310,33 @@ namespace wasm {
         return 0;
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "gethostname", I32, gethostname, I32 buffer, I32 bufferLen) {
+        util::getLogger()->debug("S - gethostname {} {}", buffer, bufferLen);
+
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
+        char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) buffer);
+        std::strcpy(key, FAKE_HOSTNAME);
+
+        return 0;
+    }
+
+    // ------------------------------------------------------
+    // NOT SUPPORTED
+    // ------------------------------------------------------
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "socket", I32, socket, I32 a, I32 b, I32 c) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "sock_send", I32, wasi_sock_send, I32 a, I32 b, I32 c, I32 d,
-                                   I32 e) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
+                                   I32 e) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "sock_recv", I32, wasi_sock_recv, I32 a, I32 b, I32 c, I32 d, I32 e,
-                                   I32 f) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
+                                   I32 f) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "sock_shutdown", I32, wasi_sock_shutdown, I32 a, I32 b) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
@@ -333,7 +351,9 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "setsockopt", I32, setsockopt, I32 a, I32 b, I32 c, I32 d,
-                                   I32 e) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
+                                   I32 e) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "accept", I32, accept, I32 a, I32 b, I32 c) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
@@ -348,17 +368,16 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "recvfrom", I32, recvfrom, I32 a, I32 b, I32 c, I32 d, I32 e,
-                                   I32 f) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "sendto", I32, sendto, I32 a, I32 b, I32 c, I32 d, I32 e,
-                                   I32 f) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "inet_ntoa", I32, inet_ntoa, I32 a) {
+                                   I32 f) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "sendto", I32, sendto, I32 a, I32 b, I32 c, I32 d, I32 e,
+                                   I32 f) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "gethostname", I32, gethostname, I32 a, I32 b) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "inet_ntoa", I32, inet_ntoa, I32 a) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
@@ -373,7 +392,6 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "gethostbyaddr", I32, s__gethostbyaddr, I32 a, I32 b, I32 c) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
-
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getservbyport", I32, s__getservbyport, I32 a, I32 b) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);

@@ -4,17 +4,20 @@
 #include <stdio.h>
 #include <string>
 
-// Hard-coded for human genome split into chromosomes for now
-// TEMPORARY - hack to be low
-//#define N_INDEX_CHUNKS 24
-#define N_INDEX_CHUNKS 2
+// Index chunks
+#define N_CHUNKS 24
+static int indexChunks[N_CHUNKS] = {
+	1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 
+	11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 
+	21, 22, 23, 24
+};
 
 /*
  * This function fans out the mapping for a given chunk of reads and awaits the results.
  */
 FAASM_MAIN_FUNC() {
     std::string stringInput = faasm::getStringInput("");
-    if (stringInput == "") {
+    if (stringInput.empty()) {
         printf("Must provide function with read chunk index as input.\n");
         return 1;
     }
@@ -24,51 +27,26 @@ FAASM_MAIN_FUNC() {
 
     // Dispatch a call to the mapper for each index chunk and this read chunk
     // NOTE - the range of mapper_index functions is 1-based
-    unsigned int callIds[N_INDEX_CHUNKS];
-    for (int i = 1; i <= N_INDEX_CHUNKS; i++) {
-        int input[2] = {readIdx, i};
+    unsigned int callIds[N_CHUNKS];
+    for (int i = 0; i < N_CHUNKS; i++) {
+        // Prepare function input
+        int chunkIdx = indexChunks[i];
+        int input[2] = {readIdx, chunkIdx};
         auto inputBytes = (unsigned char *) input;
 
-        std::string funcName = "mapper_index" + std::to_string(i);
+        // Dispatch the function
+        std::string funcName = "mapper_index" + std::to_string(chunkIdx);
         unsigned int callId = faasmChainFunctionInput(funcName.c_str(), inputBytes, 2 * sizeof(int));
         printf("Chained call %u\n", callId);
         callIds[i] = callId;
     }
 
     // Await all finishing
-    for (int i = 1; i <= N_INDEX_CHUNKS; i++) {
+    for (int i = 0; i < N_CHUNKS; i++) {
         faasmAwaitCall(callIds[i]);
     }
 
-    // Read the lengths of all the outputs
-    const char *lengthsKey = "output_lengths";
-    size_t lengthsSize = N_INDEX_CHUNKS * sizeof(int);
-    int lengthsArray[N_INDEX_CHUNKS];
-    faasmReadState(lengthsKey, BYTES(lengthsArray), lengthsSize);
-
-    // Read in results for this read chunk and write them to a temporary file
-    std::string tempFilePath = "/tmp/output_read_" + std::to_string(readIdx);
-    FILE *fp = fopen(tempFilePath.c_str(), "ab+");
-    for (int i = 1; i <= N_INDEX_CHUNKS; i++) {
-        // Build key as created by mapper function
-        std::string key = "map_out_" + std::to_string(readIdx) + "_" + std::to_string(i);
-
-        // Load the output for this chunk
-        size_t thisLength = (size_t) lengthsArray[i];
-        uint8_t *resultBuf = new uint8_t[thisLength];
-        faasmReadState(key.c_str(), resultBuf, thisLength);
-
-        // Append to the output file
-        fwrite(resultBuf, 1, thisLength, fp);
-        delete[] resultBuf;
-    }
-
-    // Close the open file
-    fclose(fp);
-
-    // Write the file to state
-    std::string resultKey = "output_read_" + std::to_string(readIdx);
-    faasmWriteStateFromFile(resultKey.c_str(), tempFilePath.c_str());
+    printf("Finished mapping read index %i.\n", readIdx);
 
     return 0;
 }
