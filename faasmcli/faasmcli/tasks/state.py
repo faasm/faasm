@@ -21,7 +21,7 @@ def shared_file(ctx, in_path, shared_path):
     """
     host, _ = get_upload_host_port(None, None)
 
-    upload_shared_file(host, in_path, shared_path)
+    upload_shared_file(host, in_path, shared_path, quiet=True)
 
 
 @task
