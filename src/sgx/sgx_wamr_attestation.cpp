@@ -98,14 +98,16 @@ extern "C"{
             for(int i = 0; i < _callback_store_len; i++){
                 if(_callback_store[i].msg_id == recv_buffer.msg_id){
                     if(_callback_store[i].response_ptr->buffer_len < sizeof(sgx_wamr_msg_t) + recv_buffer.payload_len){
+                        sgx_wamr_msg_t* temp_ptr;
                         uint32_t temp_len = sizeof(sgx_wamr_msg_t) + recv_buffer.payload_len;
-                        if(!(_callback_store[i].response_ptr->buffer_ptr = (sgx_wamr_msg_t*) realloc(_callback_store[i].response_ptr->buffer_ptr,temp_len))){
+                        if(!(temp_ptr = (sgx_wamr_msg_t*) realloc(_callback_store[i].response_ptr->buffer_ptr,temp_len))){
                             uint8_t clear_socket[recv_buffer.payload_len];
                             if(recv(_keymgr_socket,(void*) clear_socket,recv_buffer.payload_len,0) <= 0){
                                 //TODO: Error Handling
                             }
                             goto __WAKE_UP_SEND_THREAD;
                         }
+                        _callback_store[i].response_ptr->buffer_ptr = temp_ptr;
                         _callback_store[i].response_ptr->buffer_len = temp_len;
                     }
                     memcpy(_callback_store[i].response_ptr->buffer_ptr,(void*)&recv_buffer, sizeof(sgx_wamr_msg_t));
