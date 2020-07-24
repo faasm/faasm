@@ -6,6 +6,7 @@
 
 #define DEFAULT_TIMEOUT 60000
 #define RESULT_KEY_EXPIRY 30000
+#define STATUS_KEY_EXPIRY 300000
 
 namespace util {
     class SystemConfig {

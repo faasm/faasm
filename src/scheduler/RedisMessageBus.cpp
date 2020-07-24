@@ -73,6 +73,7 @@ namespace scheduler {
         // Set long-lived result for function too
         if (conf.execGraphMode == "on") {
             redis.set(msg.statuskey(), inputData);
+            redis.expire(key, STATUS_KEY_EXPIRY);
         }
     }
 
@@ -130,6 +131,7 @@ namespace scheduler {
     void RedisMessageBus::logChainedFunction(unsigned int parentMessageId, unsigned int chainedMessageId) {
         const std::string &key = getChainedKey(parentMessageId);
         redis.sadd(key, std::to_string(chainedMessageId));
+        redis.expire(key, STATUS_KEY_EXPIRY);
     }
 
     std::vector<unsigned int> RedisMessageBus::getChainedFunctions(unsigned int msgId) {
