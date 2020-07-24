@@ -3,8 +3,15 @@
 #include <util/logging.h>
 #include <util/json.h>
 #include <util/timing.h>
+#include <util/bytes.h>
+
+#define CHAINED_SET_PREFIX "chained_"
 
 namespace scheduler {
+    std::string getChainedKey(unsigned int msgId) {
+        return std::string(CHAINED_SET_PREFIX) + std::to_string(msgId);
+    }
+
     RedisMessageBus::RedisMessageBus() : redis(redis::Redis::getQueue()) {
 
     }
@@ -62,6 +69,11 @@ namespace scheduler {
 
         // Set the result key to expire
         redis.expire(key, RESULT_KEY_EXPIRY);
+
+        // Set long-lived result for function too
+        if (conf.execGraphMode == "on") {
+            redis.set(msg.statuskey(), inputData);
+        }
     }
 
     message::Message RedisMessageBus::getFunctionResult(unsigned int messageId, int timeoutMs) {
@@ -97,13 +109,6 @@ namespace scheduler {
                 // Normal response if we get something from redis
                 msgResult.ParseFromArray(result.data(), (int) result.size());
             }
-
-        }
-
-        if(msgResult.type()!= message::Message_MessageType_EMPTY
-            && conf.execGraphMode == "on") {
-            // Set graph result for given message
-
         }
 
         return msgResult;
@@ -120,6 +125,23 @@ namespace scheduler {
         } else {
             return "FAILED: " + result.outputdata();
         }
+    }
+
+    void RedisMessageBus::logChainedFunction(unsigned int parentMessageId, unsigned int chainedMessageId) {
+        const std::string &key = getChainedKey(parentMessageId);
+        redis.sadd(key, std::to_string(chainedMessageId));
+    }
+
+    std::vector<unsigned int> RedisMessageBus::getChainedFunctions(unsigned int msgId) {
+        const std::string &key = getChainedKey(msgId);
+        const std::unordered_set<std::string> chainedCalls = redis.smembers(key);
+
+        std::vector<unsigned int> chainedIds;
+        for(auto i : chainedCalls) {
+            chainedIds.emplace_back(std::stoi(i));
+        }
+
+        return chainedIds;
     }
 
     void RedisMessageBus::clear() {

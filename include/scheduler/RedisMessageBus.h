@@ -21,8 +21,11 @@ namespace scheduler {
 
         message::Message getFunctionResult(unsigned int messageId, int timeoutMs) override;
 
-        void clear() override;
+        void logChainedFunction(unsigned int parentMessageId, unsigned int chainedMessageId) override;
 
+        std::vector<unsigned int> getChainedFunctions(unsigned int msgId) override;
+
+        void clear() override;
     private:
         redis::Redis &redis;
     };

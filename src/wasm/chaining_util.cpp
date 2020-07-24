@@ -50,14 +50,21 @@ namespace wasm {
         const std::string origStr = util::funcToString(*originalCall, false);
         const std::string chainedStr = util::funcToString(call, false);
 
+        util::SystemConfig &conf = util::getSystemConfig();
         sch.callFunction(call);
         util::getLogger()->debug("Chained {} ({}) -> {} ({})",
                                  origStr,
-                                 util::getSystemConfig().endpointHost,
+                                 conf.endpointHost,
                                  chainedStr,
                                  call.scheduledhost()
         );
 
+        // Check if we need to log this
+        if(conf.execGraphMode == "on") {
+            scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
+            bus.logChainedFunction(originalCall->id(), call.id());
+        }
+        
         return call.id();
     }
 

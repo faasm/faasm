@@ -20,6 +20,10 @@ namespace scheduler {
 
         virtual message::Message getFunctionResult(unsigned int messageId, int timeout) = 0;
 
+        virtual void logChainedFunction(unsigned int parentMessageId, unsigned int chainedMessageId) = 0;
+
+        virtual std::vector<unsigned int> getChainedFunctions(unsigned int msgId) = 0;
+
         virtual void clear() = 0;
     protected:
         GlobalMessageBus() : conf(util::getSystemConfig()){
