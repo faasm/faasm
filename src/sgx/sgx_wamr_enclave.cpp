@@ -22,6 +22,10 @@
 #if(WASM_ENABLE_AOT == 1)
 #include <iwasm/aot/aot_runtime.h>
 #endif
+#if(FAASM_SGX_ATTESTATION)
+#define INCREMENT_MSG_ID() \
+__sync_fetch_and_add(&_sgx_wamr_msg_id, 1)
+#endif
 static _sgx_wamr_tcs_t* sgx_wamr_tcs = NULL;
 static uint32_t sgx_wamr_tcs_len;
 static sgx_thread_mutex_t mutex_sgx_wamr_tcs = SGX_THREAD_MUTEX_INITIALIZER;
@@ -35,9 +39,47 @@ extern "C"{
 #if(FAASM_SGX_ATTESTATION)
     extern sgx_status_t SGX_CDECL ocall_init_crt(faasm_sgx_status_t* ret_val);
     extern sgx_status_t SGX_CDECL ocall_send_msg(faasm_sgx_status_t* ret_val, sgx_wamr_msg_t* msg, uint32_t msg_len);
-    static uint8_t _sgx_wamr_msg_id = 0; //TODO: Increment threadsafe
+    static uint8_t _sgx_wamr_msg_id = 0;
 #endif
     static char wamr_global_heap_buffer[FAASM_SGX_WAMR_HEAP_SIZE * 1024];
+#if(FAASM_SGX_ATTESTATION)
+    static inline faasm_sgx_status_t _get_response_msg(const uint32_t thread_id, sgx_wamr_msg_t** response_ptr){
+        if(!response_ptr)
+            return FAASM_SGX_INVALID_PTR;
+        if(thread_id >= sgx_wamr_tcs_len)
+            return FAASM_SGX_INVALID_THREAD_ID;
+        read_lock(&rwlock_sgx_wamr_tcs_realloc);
+        *response_ptr = *sgx_wamr_tcs[thread_id].response_ptr;
+        read_unlock(&rwlock_sgx_wamr_tcs_realloc);
+        return FAASM_SGX_SUCCESS;
+    }
+    static faasm_sgx_status_t send_msg(const void* payload_ptr, const uint32_t payload_len){
+        sgx_wamr_msg_t* msg_ptr;
+        sgx_status_t sgx_ret_val;
+        faasm_sgx_status_t ret_val;
+        if(!payload_ptr)
+            return FAASM_SGX_INVALID_PTR;
+        if(!payload_len)
+            return FAASM_SGX_INVALID_PAYLOAD_LEN;
+        if(!(msg_ptr = (sgx_wamr_msg_t*) calloc((sizeof(sgx_wamr_msg_t) + payload_len), sizeof(uint8_t)))){
+            return FAASM_SGX_OUT_OF_MEMORY;
+        }
+        msg_ptr->msg_id = INCREMENT_MSG_ID();
+        ///////////ENCRYPTION///////////
+        //Implement me :P
+        ///////////ENCRYPTION///////////
+        ///////////REMOVE IF ENCRYPTION WORKS///////////
+        msg_ptr->payload_len = payload_len;
+        memcpy(((uint8_t*)msg_ptr->payload),payload_ptr, payload_len);
+        ///////////REMOVE IF ENCRYPTION WORKS///////////
+        if((sgx_ret_val = ocall_send_msg(&ret_val,msg_ptr,sizeof(sgx_wamr_msg_t) + msg_ptr->payload_len)) != SGX_SUCCESS){
+            free(msg_ptr);
+            //TODO: SGX ERROR HANDLING
+        }
+        free(msg_ptr);
+        return ret_val;
+    }
+#endif
     static faasm_sgx_status_t _get_native_symbols(NativeSymbol** native_symbol_ptr, uint32_t* native_symbol_num){//TODO: Performance Improvement e.g. extern
         NativeSymbol* libc_buildin_ptr, *sgx_wamr_ptr;
         uint32_t libc_buildin_num = get_libc_builtin_export_apis(&libc_buildin_ptr), sgx_wamr_num = get_sgx_wamr_native_symbols(&sgx_wamr_ptr);
@@ -138,15 +180,6 @@ extern "C"{
 #if(FAASM_SGX_ATTESTATION)
         sgx_wamr_tcs[*thread_id].response_ptr = response_ptr;
 #endif
-        //////////////WILL_BE_REMOVED_IN_NEXT_COMMMIT//////////////
-        sgx_wamr_msg_t* msg = (sgx_wamr_msg_t*) malloc(sizeof(sgx_wamr_msg_t) + sizeof("Der große Schlichtmeister")), *tmp;
-        msg->msg_id = 0;
-        msg->payload_len = sizeof("Der große Schlichtmeister");
-        strcpy_s((char*)msg->payload,sizeof("Der große Schlichtmeister"),"Der große Schlichtmeister");
-        ocall_send_msg(&ret_val,msg,sizeof(sgx_wamr_msg_t) + sizeof("Der große Schlichtmeister"));
-        tmp = *sgx_wamr_tcs[*thread_id].response_ptr;
-        os_printf("Msg_id: %d Payload_len: %d Payload: %s\n",tmp->msg_id, tmp->payload_len, tmp->payload);
-        //////////////WILL_BE_REMOVED_IN_NEXT_COMMMIT//////////////
         if(!(sgx_wamr_tcs[*thread_id].wasm_opcode = (uint8_t*) calloc(wasm_opcode_size, sizeof(uint8_t)))){
             sgx_wamr_tcs[*thread_id].module = 0x0;
             read_unlock(&rwlock_sgx_wamr_tcs_realloc);

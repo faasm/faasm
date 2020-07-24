@@ -100,7 +100,10 @@ extern "C"{
                     if(_callback_store[i].response_ptr->buffer_len < sizeof(sgx_wamr_msg_t) + recv_buffer.payload_len){
                         uint32_t temp_len = sizeof(sgx_wamr_msg_t) + recv_buffer.payload_len;
                         if(!(_callback_store[i].response_ptr->buffer_ptr = (sgx_wamr_msg_t*) realloc(_callback_store[i].response_ptr->buffer_ptr,temp_len))){
-                            //TODO: Discard recv
+                            uint8_t clear_socket[recv_buffer.payload_len];
+                            if(recv(_keymgr_socket,(void*) clear_socket,recv_buffer.payload_len,0) <= 0){
+                                //TODO: Error Handling
+                            }
                             goto __WAKE_UP_SEND_THREAD;
                         }
                         _callback_store[i].response_ptr->buffer_len = temp_len;

@@ -51,27 +51,27 @@ typedef struct __attribute__((packed)) _msg_hdr{
     }flags;
 } sgx_wamr_msg_hdr_t;
 typedef struct __attribute__((packed)) _msg_pkey_quote{
-    sgx_wamr_msg_hdr_t flags;
+    sgx_wamr_msg_hdr_t hdr;
     uint8_t public_key[2 * SGX_ECP256_KEY_SIZE];
     uint8_t quote[];
 } sgx_wamr_msg_pkey_quote_t;
 typedef struct __attribute__((packed)) _msg_pkey_mkey{
-    sgx_wamr_msg_hdr_t flags;
+    sgx_wamr_msg_hdr_t hdr;
     uint8_t public_key[2 * SGX_ECP256_KEY_SIZE];
     uint8_t enclave_master_key[SGX_AESGCM_KEY_SIZE];
 } sgx_wamr_msg_pkey_mkey_t;
 typedef struct __attribute__((packed)) _msg_hash_sid{
-    sgx_wamr_msg_hdr_t flags;
+    sgx_wamr_msg_hdr_t hdr;
     uint8_t opcode_enc_hash[SGX_SHA256_HASH_SIZE];
     uint32_t session_id;
 } sgx_wamr_hash_sid_t;
 typedef struct __attribute((packed)) _msg_okey_policy{
-    sgx_wamr_msg_hdr_t flags;
+    sgx_wamr_msg_hdr_t hdr;
     uint8_t opcode_key[SGX_AESGCM_KEY_SIZE];
     uint8_t policy[];
 } sgx_wamr_okey_policy_t;
 typedef struct __attribute((packed)) _msg_hash_fct{
-    sgx_wamr_msg_hdr_t flags;
+    sgx_wamr_msg_hdr_t hdr;
     uint8_t opcode_enc_hash[SGX_SHA256_HASH_SIZE];
     uint8_t fct_name[];
 } sgx_wamr_msg_hash_fct_t;
