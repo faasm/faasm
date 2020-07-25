@@ -74,7 +74,7 @@ extern "C"{
         ///////////REMOVE IF ENCRYPTION WORKS///////////
         if((sgx_ret_val = ocall_send_msg(&ret_val,msg_ptr,sizeof(sgx_wamr_msg_t) + msg_ptr->payload_len)) != SGX_SUCCESS){
             free(msg_ptr);
-            //TODO: SGX ERROR HANDLING
+            return FAASM_SGX_OCALL_ERROR(sgx_ret_val);
         }
         free(msg_ptr);
         return ret_val;

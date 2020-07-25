@@ -74,7 +74,7 @@ extern "C"{
         read_lock(&_rwlock_callback_store_realloc);
         _callback_store[cb_store_id].msg_id = msg->msg_id;
         pthread_mutex_lock(&_callback_store[cb_store_id].mutex);
-        if(send(_keymgr_socket, (void*)msg, msg_len, 0) <= 0){
+        if(send(_keymgr_socket, (void*)msg, msg_len, 0) <= 0){ //Todo: Check if socket is closed
             pthread_mutex_unlock(&_callback_store[cb_store_id].mutex);
             _callback_store[cb_store_id].response_ptr = 0x0;
             read_unlock(&_rwlock_callback_store_realloc);
@@ -95,33 +95,41 @@ extern "C"{
         sgx_wamr_msg_t recv_buffer;
         while(recv(_keymgr_socket, (void*) &recv_buffer, sizeof(sgx_wamr_msg_t), 0) > 0){
             read_lock(&_rwlock_callback_store_realloc);
-            for(int i = 0; i < _callback_store_len; i++){
+            for(uint32_t i = 0; i < _callback_store_len; i++){
                 if(_callback_store[i].msg_id == recv_buffer.msg_id){
                     if(_callback_store[i].response_ptr->buffer_len < sizeof(sgx_wamr_msg_t) + recv_buffer.payload_len){
                         sgx_wamr_msg_t* temp_ptr;
                         uint32_t temp_len = sizeof(sgx_wamr_msg_t) + recv_buffer.payload_len;
                         if(!(temp_ptr = (sgx_wamr_msg_t*) realloc(_callback_store[i].response_ptr->buffer_ptr,temp_len))){
-                            uint8_t clear_socket[recv_buffer.payload_len];
-                            if(recv(_keymgr_socket,(void*) clear_socket,recv_buffer.payload_len,0) <= 0){
-                                //TODO: Error Handling
-                            }
-                            goto __WAKE_UP_SEND_THREAD;
+                            memset((void*)(((uint8_t*) _callback_store[i].response_ptr->buffer_ptr) + sizeof(sgx_wamr_msg_t)),0x0, _callback_store[i].response_ptr->buffer_ptr->payload_len);
+                            pthread_cond_signal(&_callback_store[i].cond);
+                            goto __CLEAR_SOCKET;
                         }
                         _callback_store[i].response_ptr->buffer_ptr = temp_ptr;
                         _callback_store[i].response_ptr->buffer_len = temp_len;
                     }
-                    memcpy(_callback_store[i].response_ptr->buffer_ptr,(void*)&recv_buffer, sizeof(sgx_wamr_msg_t));
+                    memcpy((void*)_callback_store[i].response_ptr->buffer_ptr,(void*)&recv_buffer, sizeof(sgx_wamr_msg_t));
                     if(recv(_keymgr_socket,(uint8_t*)_callback_store[i].response_ptr->buffer_ptr + sizeof(sgx_wamr_msg_t),recv_buffer.payload_len,0) <= 0){
-                        //TODO: Error Handling
+                        memset((void*)(((uint8_t*) _callback_store[i].response_ptr->buffer_ptr) + sizeof(sgx_wamr_msg_t)),0x0, recv_buffer.payload_len);
+                        pthread_cond_signal(&_callback_store[i].cond);
+                        read_unlock(&_rwlock_callback_store_realloc);
+                        goto __CLOSE_SOCKET_AND_RETURN;
                     }
-                    __WAKE_UP_SEND_THREAD:
                     pthread_cond_signal(&_callback_store[i].cond);
                     break;
                 }
             }
+            continue;
+            __CLEAR_SOCKET:
             read_unlock(&_rwlock_callback_store_realloc);
+            uint8_t dev_null[recv_buffer.payload_len];
+            if(recv(_keymgr_socket,(void*)dev_null,recv_buffer.payload_len,0) <= 0){
+                goto __CLOSE_SOCKET_AND_RETURN;
+            }
         }
+        __CLOSE_SOCKET_AND_RETURN:
         close(_keymgr_socket);
+        printf("CLOSE\n");
         return NULL;
     }
     faasm_sgx_status_t ocall_init_crt(void){
