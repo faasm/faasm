@@ -18,16 +18,16 @@
 
 extern "C"{
     extern void ocall_printf(const char* msg);
-    extern faasm_sgx_status_t faasm_sgx_get_sgx_support(void);//Todo: Change const unsigned int to uint32_t
+    extern faasm_sgx_status_t faasm_sgx_get_sgx_support(void);
     extern sgx_status_t sgx_wamr_enclave_init_wamr(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val, uint32_t thread_number);
 #if(FAASM_SGX_ATTESTATION)
     extern faaslet_sgx_msg_buffer_t* get_sgx_msg_buffer(void);
-    extern sgx_status_t sgx_wamr_enclave_load_module(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val, const void* wasm_opcode_ptr, const uint32_t wasm_opcode_size, unsigned int* thread_id, sgx_wamr_msg_t** response_ptr);
+    extern sgx_status_t sgx_wamr_enclave_load_module(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val, const void* wasm_opcode_ptr, const uint32_t wasm_opcode_size, uint32_t* thread_id, sgx_wamr_msg_t** response_ptr);
 #else
-    extern sgx_status_t sgx_wamr_enclave_load_module(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val, const void* wasm_opcode_ptr, const uint32_t wasm_opcode_size, unsigned int* thread_id);
+    extern sgx_status_t sgx_wamr_enclave_load_module(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val, const void* wasm_opcode_ptr, const uint32_t wasm_opcode_size, uint32_t* thread_id);
 #endif
-    extern sgx_status_t sgx_wamr_enclave_unload_module(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val, const unsigned int thread_id);
-    extern sgx_status_t sgx_wamr_enclave_call_function(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val, const unsigned int thread_id, const uint32_t func_id);
+    extern sgx_status_t sgx_wamr_enclave_unload_module(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val, const uint32_t thread_id);
+    extern sgx_status_t sgx_wamr_enclave_call_function(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val, const uint32_t thread_id, const uint32_t func_id);
 };
 
 namespace wasm{
@@ -48,7 +48,7 @@ namespace wasm{
         void doRestore(std::istream &in_stream) override;
     private:
         bool _is_bound = false;
-        unsigned int thread_id;
+        uint32_t thread_id;
         sgx_enclave_id_t* enclave_id_ptr;
     };
 }
