@@ -20,7 +20,7 @@ message Message {
 
     optional MessageType type = 8 [default = CALL];
 
-    optional int32 timestamp = 9;
+    optional int64 timestamp = 9;
     optional int32 id = 10;
     optional string resultKey = 11;
     optional string statusKey = 12;
@@ -28,7 +28,7 @@ message Message {
     optional string scheduledHost = 13;
     optional int32 hops = 14 [default = 0];
     optional string executedHost = 15;
-    repeated uint32 chainedCalls = 16;
+    optional int64 finishTimestamp = 16;
 
     optional bool isAsync = 17;
     optional bool isPython = 18;

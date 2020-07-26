@@ -1,3 +1,6 @@
+from json import loads
+from pprint import pprint
+
 from invoke import task
 
 from faasmcli.util.call import invoke_impl, status_call_impl, flush_call_impl, exec_graph_call_impl
@@ -21,8 +24,11 @@ def invoke(ctx, user, func,
     """
     Invoke a function
     """
-    invoke_impl(user, func, host=host, port=port, input=input, py=py, asynch=asynch,
+    res = invoke_impl(user, func, host=host, port=port, input=input, py=py, asynch=asynch,
                 knative=knative, native=native, ibm=ibm, poll=poll, cmdline=cmdline, debug=debug)
+
+    if asynch:
+        print("Call ID: " + str(res))
 
 
 @task
@@ -46,7 +52,10 @@ def exec_graph(ctx, call_id, host=None, port=None):
     host = host if host else k8s_host
     port = port if port else k8s_port
 
-    exec_graph_call_impl(None, None, call_id, host, port, quiet=False, native=False)
+    json_str = exec_graph_call_impl(None, None, call_id, host, port, quiet=True, native=False)
+
+    graph_dict = loads(json_str)
+    pprint(graph_dict)
 
 
 @task

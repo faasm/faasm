@@ -12,11 +12,8 @@ namespace tests {
         REQUIRE(msgA.function() == msgB.function());
         REQUIRE(msgA.idx() == msgB.idx());
         REQUIRE(msgA.hops() == msgB.hops());
-
-        REQUIRE(msgA.chainedcalls_size() == msgB.chainedcalls_size());
-        for(int i = 0; i < msgA.chainedcalls_size(); i++) {
-            REQUIRE(msgA.chainedcalls(i) == msgB.chainedcalls(i));
-        }
+        REQUIRE(msgA.executedhost() == msgB.executedhost());
+        REQUIRE(msgA.finishtimestamp() == msgB.finishtimestamp());
 
         REQUIRE(msgA.timestamp() == msgB.timestamp());
         REQUIRE(msgA.snapshotkey() == msgB.snapshotkey());

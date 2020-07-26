@@ -13,6 +13,8 @@ namespace tests {
         msg.set_function("great function");
         msg.set_idx(50);
         msg.set_hops(34);
+        msg.set_executedhost("blah.host.blah");
+        msg.set_finishtimestamp(123456543);
 
         msg.set_pythonuser("py user");
         msg.set_pythonfunction("py func");
@@ -43,12 +45,6 @@ namespace tests {
         SECTION("Bytes") {
             std::vector<uint8_t> bytes = {0, 0, 1, 1, 0, 2, 2, 3, 3, 4, 4};
             msg.set_inputdata(bytes.data(), bytes.size());
-        }
-
-        SECTION("Chained calls") {
-            msg.add_chainedcalls(11111111);
-            msg.add_chainedcalls(22222);
-            msg.add_chainedcalls(33333333);
         }
 
         util::setMessageId(msg);

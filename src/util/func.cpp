@@ -289,9 +289,9 @@ namespace util {
         }
 
         // Set the timestamp if it doesn't have one
-        if(!msg.has_timestamp()) {
+        if(!msg.has_timestamp() || msg.timestamp() <= 0) {
             Clock &clock = util::getGlobalClock();
-            msg.set_timestamp((int32_t) clock.epochNow());
+            msg.set_timestamp(clock.epochMillis());
         }
 
         std::string resultKey = resultKeyFromMessageId(messageId);

@@ -170,7 +170,7 @@ def flush_call_impl(host, port):
 def status_call_impl(user, func, call_id, host, port, quiet=False, native=False):
     msg = {
         "status": True,
-        "id": call_id,
+        "id": int(call_id),
     }
     call_result = _do_single_call(user, func, host, port, msg, quiet, native=native)
 
@@ -185,7 +185,7 @@ def status_call_impl(user, func, call_id, host, port, quiet=False, native=False)
 def exec_graph_call_impl(user, func, call_id, host, port, quiet=False, native=False):
     msg = {
         "exec_graph": True,
-        "id": call_id,
+        "id": int(call_id),
     }
     call_result = _do_single_call(user, func, host, port, msg, quiet, native=native)
 

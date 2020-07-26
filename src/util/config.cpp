@@ -36,7 +36,7 @@ namespace util {
         captureStdout = getEnvVar("CAPTURE_STDOUT", "off");
         stateMode = getEnvVar("STATE_MODE", "inmemory");
         wasmVm = getEnvVar("WASM_VM", "wavm");
-        execGraphMode = getEnvVar("EXEC_GRAPH_MODE", "off");
+        execGraphMode = getEnvVar("EXEC_GRAPH_MODE", "on");
 
         // Redis
         redisStateHost = getEnvVar("REDIS_STATE_HOST", "localhost");

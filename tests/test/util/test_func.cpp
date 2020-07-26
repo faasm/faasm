@@ -144,6 +144,13 @@ namespace tests {
             msg.set_timestamp(expectedTimestamp);
         }
 
+        SECTION("Zero existing timestamp") {
+            msg.set_timestamp(0);
+            expectedTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
+                    fixedTimePoint.time_since_epoch()
+            ).count();
+        }
+
         SECTION("No existing timestamp") {
             expectedTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
                     fixedTimePoint.time_since_epoch()

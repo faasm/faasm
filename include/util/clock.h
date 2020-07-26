@@ -11,7 +11,7 @@ namespace util {
 
         const TimePoint now();
 
-        const long epochNow();
+        const long epochMillis();
 
         const long timeDiff(const TimePoint &t1, const TimePoint &t2);
 

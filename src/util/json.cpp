@@ -15,52 +15,47 @@ namespace util {
 
         // Need to be explicit with strings here to make a copy _and_ make sure we specify the length
         // to include any null-terminators from bytes
-        d.AddMember("timestamp", msg.timestamp(), a);
         d.AddMember("id", msg.id(), a);
         d.AddMember("user", Value(msg.user().c_str(), msg.user().size(), a).Move(), a);
         d.AddMember("function", Value(msg.function().c_str(), msg.function().size(), a).Move(), a);
         d.AddMember("index", msg.idx(), a);
         d.AddMember("hops", msg.hops(), a);
+        if(msg.has_executedhost())      d.AddMember("exec_host", Value(msg.executedhost().c_str(), msg.executedhost().size(), a).Move(), a);
+        if(msg.has_finishtimestamp())   d.AddMember("finished", msg.finishtimestamp(), a);
 
-        if(msg.chainedcalls_size() > 0) {
-            rapidjson::Value idArray(rapidjson::kArrayType);
-            for(auto msgId: msg.chainedcalls()) {
-                idArray.PushBack(msgId, a);
-            }
-            d.AddMember("chained_calls", idArray, a);
-        }
+        if(msg.has_timestamp())         d.AddMember("timestamp", msg.timestamp(), a);
 
-        d.AddMember("snapshot_key", Value(msg.snapshotkey().c_str(), msg.snapshotkey().size(), a).Move(), a);
-        d.AddMember("snapshot_size", msg.snapshotsize(), a);
-        d.AddMember("func_ptr", msg.funcptr(), a);
+        if(msg.has_snapshotkey())       d.AddMember("snapshot_key", Value(msg.snapshotkey().c_str(), msg.snapshotkey().size(), a).Move(), a);
+        if(msg.has_snapshotsize())      d.AddMember("snapshot_size", msg.snapshotsize(), a);
+        if(msg.has_funcptr())           d.AddMember("func_ptr", msg.funcptr(), a);
 
-        d.AddMember("py_user", Value(msg.pythonuser().c_str(), msg.pythonuser().size(), a).Move(), a);
-        d.AddMember("py_func", Value(msg.pythonfunction().c_str(), msg.pythonfunction().size(), a).Move(), a);
-        d.AddMember("py_entry", Value(msg.pythonentry().c_str(), msg.pythonentry().size(), a).Move(), a);
+        if(msg.has_pythonuser())        d.AddMember("py_user", Value(msg.pythonuser().c_str(), msg.pythonuser().size(), a).Move(), a);
+        if(msg.has_pythonfunction())    d.AddMember("py_func", Value(msg.pythonfunction().c_str(), msg.pythonfunction().size(), a).Move(), a);
+        if(msg.has_pythonentry())       d.AddMember("py_entry", Value(msg.pythonentry().c_str(), msg.pythonentry().size(), a).Move(), a);
 
-        d.AddMember("input_data", Value(msg.inputdata().c_str(), msg.inputdata().size(), a).Move(), a);
-        d.AddMember("output_data", Value(msg.outputdata().c_str(), msg.outputdata().size(), a).Move(), a);
+        if(msg.has_inputdata())         d.AddMember("input_data", Value(msg.inputdata().c_str(), msg.inputdata().size(), a).Move(), a);
+        if(msg.has_outputdata())        d.AddMember("output_data", Value(msg.outputdata().c_str(), msg.outputdata().size(), a).Move(), a);
 
-        d.AddMember("async", msg.isasync(), a);
-        d.AddMember("python", msg.ispython(), a);
-        d.AddMember("typescript", msg.istypescript(), a);
-        d.AddMember("status", msg.isstatusrequest(), a);
-        d.AddMember("exec_graph", msg.isexecgraphrequest(), a);
-        d.AddMember("flush", msg.isflushrequest(), a);
+        if(msg.isasync())               d.AddMember("async", msg.isasync(), a);
+        if(msg.ispython())              d.AddMember("python", msg.ispython(), a);
+        if(msg.istypescript())          d.AddMember("typescript", msg.istypescript(), a);
+        if(msg.isstatusrequest())       d.AddMember("status", msg.isstatusrequest(), a);
+        if(msg.isexecgraphrequest())    d.AddMember("exec_graph", msg.isexecgraphrequest(), a);
+        if(msg.isflushrequest())        d.AddMember("flush", msg.isflushrequest(), a);
 
-        d.AddMember("result_key", Value(msg.resultkey().c_str(), msg.resultkey().size()).Move(), a);
-        d.AddMember("status_key", Value(msg.statuskey().c_str(), msg.statuskey().size()).Move(), a);
+        if(msg.has_resultkey())         d.AddMember("result_key", Value(msg.resultkey().c_str(), msg.resultkey().size()).Move(), a);
+        if(msg.has_statuskey())         d.AddMember("status_key", Value(msg.statuskey().c_str(), msg.statuskey().size()).Move(), a);
 
-        d.AddMember("cold_start_interval", msg.coldstartinterval(), a);
+        if(msg.has_coldstartinterval()) d.AddMember("cold_start_interval", msg.coldstartinterval(), a);
 
-        d.AddMember("mpi", msg.ismpi(), a);
-        d.AddMember("mpi_world_id", msg.mpiworldid(), a);
-        d.AddMember("mpi_rank", msg.mpirank(), a);
-        d.AddMember("mpi_world_size", msg.mpiworldsize(), a);
+        if(msg.ismpi())                 d.AddMember("mpi", msg.ismpi(), a);
+        if(msg.has_mpiworldid())        d.AddMember("mpi_world_id", msg.mpiworldid(), a);
+        if(msg.has_mpirank())           d.AddMember("mpi_rank", msg.mpirank(), a);
+        if(msg.has_mpiworldsize())      d.AddMember("mpi_world_size", msg.mpiworldsize(), a);
 
-        d.AddMember("cmdline", Value(msg.cmdline().c_str(), msg.cmdline().size()).Move(), a);
+        if(msg.has_cmdline())           d.AddMember("cmdline", Value(msg.cmdline().c_str(), msg.cmdline().size()).Move(), a);
 
-        d.AddMember("sgx", msg.issgx(), a);
+        if(msg.issgx())                 d.AddMember("sgx", msg.issgx(), a);
 
         StringBuffer sb;
         Writer<StringBuffer> writer(sb);
@@ -101,6 +96,15 @@ namespace util {
         return it->value.GetInt();
     }
 
+    int64_t getInt64FromJson(Document &doc, const std::string &key, int dflt) {
+        Value::MemberIterator it = doc.FindMember(key.c_str());
+        if (it == doc.MemberEnd()) {
+            return dflt;
+        }
+
+        return it->value.GetInt64();
+    }
+
     std::string getStringFromJson(Document &doc, const std::string &key, const std::string &dflt) {
         Value::MemberIterator it = doc.FindMember(key.c_str());
         if (it == doc.MemberEnd()) {
@@ -119,17 +123,14 @@ namespace util {
         d.ParseStream(ms);
 
         message::Message msg;
-        msg.set_timestamp(getIntFromJson(d, "timestamp", 0));
+        msg.set_timestamp(getInt64FromJson(d, "timestamp", 0));
         msg.set_id(getIntFromJson(d, "id", 0));
         msg.set_user(getStringFromJson(d, "user", ""));
         msg.set_function(getStringFromJson(d, "function", ""));
         msg.set_idx(getIntFromJson(d, "index", 0));
         msg.set_hops(getIntFromJson(d, "hops", 0));
-
-        const std::vector<uint32_t> chainedCalls = getUintArrayFromJson(d, "chained_calls");
-        for(auto c : chainedCalls) {
-            msg.add_chainedcalls(c);
-        }
+        msg.set_executedhost(getStringFromJson(d, "exec_host", ""));
+        msg.set_finishtimestamp(getInt64FromJson(d, "finished", 0));
 
         msg.set_snapshotkey(getStringFromJson(d, "snapshot_key", ""));
         msg.set_snapshotsize(getIntFromJson(d, "snapshot_size", 0));

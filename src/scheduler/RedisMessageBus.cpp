@@ -58,6 +58,9 @@ namespace scheduler {
         // Record which host did the execution
         msg.set_executedhost(util::getSystemConfig().endpointHost);
 
+        // Set finish timestamp
+        msg.set_finishtimestamp(util::getGlobalClock().epochMillis());
+
         std::string key = msg.resultkey();
         if (key.empty()) {
             throw std::runtime_error("Result key empty. Cannot publish result");

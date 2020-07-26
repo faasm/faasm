@@ -1,25 +1,27 @@
 #include "clock.h"
 
 namespace util {
-    Clock& getGlobalClock() {
+    Clock &getGlobalClock() {
         static Clock instance;
         return instance;
     }
 
-    Clock::Clock()  = default;
+    Clock::Clock() = default;
 
     const TimePoint Clock::now() {
-        if(isFake) {
+        if (isFake) {
             return fakeNow;
-        }
-        else {
+        } else {
             return std::chrono::steady_clock::now();
         }
     }
 
-    const long Clock::epochNow() {
-        TimePoint tp = now();
-        return std::chrono::duration_cast<std::chrono::seconds>(tp.time_since_epoch()).count();
+    const long Clock::epochMillis() {
+        long millis = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()
+        ).count();
+
+        return millis;
     }
 
     const long Clock::timeDiff(const TimePoint &t1, const TimePoint &t2) {

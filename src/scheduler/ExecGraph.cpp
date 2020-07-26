@@ -31,21 +31,21 @@ namespace scheduler {
         std::stringstream res;
 
         // Add the message
-        res << "{ " << std::endl << "\"msg\": " << util::messageToJson(node.msg);
+        res << "{ \"msg\": " << util::messageToJson(node.msg);
 
         // Add the children
         if (!node.children.empty()) {
-            res << ", \"chained\": {" << std::endl;
+            res << ", " << std::endl << "\"chained\": [" << std::endl;
 
             for (int i = 0; i < node.children.size(); i++) {
-                res << execNodeToJson(node);
+                res << execNodeToJson(node.children.at(i));
 
                 if (i < node.children.size() - 1) {
                     res << ", " << std::endl;
                 }
             }
 
-            res << "}";
+            res << std::endl << "]";
         }
 
         res << "}";
