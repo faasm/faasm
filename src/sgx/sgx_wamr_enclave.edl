@@ -24,6 +24,9 @@ enclave{
         faasm_sgx_status_t ocall_init_crt(void);
         faasm_sgx_status_t ocall_send_msg([in, size=msg_len]sgx_wamr_msg_t* msg, uint32_t msg_len);
 #endif
+        uint64_t ocall_faasm_read_state_size([in, string] char* key);
+        uint64_t ocall_faasm_read_state([in, string] char* key, [out, size=buffer_len] uint8_t* buffer_ptr, uint32_t buffer_len);
+        void ocall_faasm_write_state([in, string] char* key, [in, size=buffer_len] uint8_t* buffer_ptr, uint32_t buffer_len);
         unsigned int ocall_faasm_get_input_size(void);
         void ocall_faasm_get_input([in,out, size=buffer_size] uint8_t* buffer, unsigned int buffer_size);
         void ocall_faasm_set_output([in, size=output_size] uint8_t* output, unsigned int output_size);

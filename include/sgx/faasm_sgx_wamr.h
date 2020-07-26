@@ -13,7 +13,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+uint64_t faasmReadStateSize(const char* key);
+uint64_t faasmReadState(const char* key, uint8_t* buffer_ptr, const uint32_t buffer_len);
+void faasmWriteState(const char* key, const uint8_t* buffer_ptr, const uint32_t buffer_len);
 unsigned int faasmGetInputSize();
 void faasmGetInput(uint8_t* buffer, unsigned int buffer_size);
 void faasmSetOutput(const uint8_t* output, unsigned int output_size);

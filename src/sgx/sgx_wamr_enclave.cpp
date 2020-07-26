@@ -45,21 +45,19 @@ extern "C"{
     static char _wamr_global_heap_buffer[FAASM_SGX_WAMR_HEAP_SIZE * 1024];
 #if(FAASM_SGX_ATTESTATION)
     static inline faasm_sgx_status_t _get_response_msg(const uint32_t thread_id, sgx_wamr_msg_t** response_ptr){
-        if(!response_ptr)
-            return FAASM_SGX_INVALID_PTR;
-        if(thread_id >= _sgx_wamr_tcs_len)
-            return FAASM_SGX_INVALID_THREAD_ID;
         read_lock(&_rwlock_sgx_wamr_tcs_realloc);
         *response_ptr = *sgx_wamr_tcs[thread_id].response_ptr;
         read_unlock(&_rwlock_sgx_wamr_tcs_realloc);
         return FAASM_SGX_SUCCESS;
     }
     static faasm_sgx_status_t recv_msg(uint32_t thread_id, void** payload_ptr, uint32_t* payload_len){//TODO: Maybe replace thread_id with __thread
+        if(thread_id >= _sgx_wamr_tcs_len)
+            return FAASM_SGX_INVALID_THREAD_ID;
         if(!payload_ptr || !payload_len)
             return FAASM_SGX_INVALID_PTR;
         faasm_sgx_status_t ret_val;
         sgx_wamr_msg_t* response_ptr;
-        if((ret_val = _get_response_msg(thread_id,&response_ptr)))
+        if((ret_val = _get_response_msg(thread_id,&response_ptr)) != FAASM_SGX_SUCCESS)
             return ret_val;
         //DO DECRYPTION STUFF
         //IMPLEMENT ME:P

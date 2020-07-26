@@ -15,6 +15,29 @@ extern "C"{
 #endif
 extern "C"{
     extern int os_printf(const char* message, ...);
+    static uint64_t faasm_read_state_size_wrapper(wasm_exec_env_t exec_env, const char* key){
+        sgx_status_t sgx_ret_val;
+        uint64_t ret_val;
+        if((sgx_ret_val = ocall_faasm_read_state_size(&ret_val,key)) != SGX_SUCCESS){
+            //Todo: Error Handling
+        }
+        return ret_val;
+    }
+    static uint64_t faasm_read_state_wrapper(wasm_exec_env_t exec_env, const char* key, uint8_t* buffer_ptr, const uint32_t buffer_len){
+        sgx_status_t sgx_ret_val;
+        uint64_t ret_val;
+        if((sgx_ret_val = ocall_faasm_read_state(&ret_val, key, buffer_ptr, buffer_len)) != SGX_SUCCESS){
+            //Todo Error Handling
+        }
+        return ret_val;
+    }
+    static void faasm_write_state_wrapper(wasm_exec_env_t exec_env, const char* key, const uint8_t* buffer_ptr, const uint32_t buffer_len){
+        sgx_status_t sgx_ret_val;
+        if((sgx_ret_val = ocall_faasm_write_state(key, buffer_ptr, buffer_len)) != SGX_SUCCESS){
+            //Todo: Error Handling
+        }
+        return;
+    }
     static unsigned int faasm_get_input_size_wrapper(wasm_exec_env_t exec_env){
         sgx_status_t sgx_ret_val;
         unsigned int ret_val;
@@ -33,7 +56,6 @@ extern "C"{
     }
     static unsigned int faasm_chain_function_input_wrapper(wasm_exec_env_t exec_env, const char *name, const uint8_t* input, unsigned int input_size){
         //Todo: sgx_ret_val
-        os_printf("PTR: %p\n", sgx_wamr_tcs[tls_thread_id].response_ptr);
         sgx_status_t sgx_ret_val;
         unsigned int ret_val;
         ocall_faasm_chain_function_input(&ret_val, name, input, input_size);
@@ -46,6 +68,7 @@ extern "C"{
         return ret_val;
     }
     static unsigned int faasm_await_call_wrapper(wasm_exec_env_t exec_env, unsigned int call_id){
+        os_printf("PTR: %p\n", sgx_wamr_tcs[tls_thread_id].response_ptr);
         sgx_status_t sgx_ret_val;
         unsigned int ret_val;
         ocall_faasm_await_call(&ret_val, call_id);
@@ -58,6 +81,9 @@ extern "C"{
         return ret_val;
     }
     static NativeSymbol sgx_wamr_native_symbols[] = {
+            {"faasmReadStateSize",(void*)faasm_read_state_size_wrapper,"($)I"},
+            {"faasmReadState",(void*)faasm_read_state_wrapper,"($*~)I"},
+            {"faasmWriteState",(void*)faasm_write_state_wrapper,"($*~)"},
             {"faasmGetInputSize",(void*)faasm_get_input_size_wrapper,"()i",0x0},
             {"faasmGetInput",(void*)faasm_get_input_wrapper,"(*~)",0x0},
             {"faasmSetOutput",(void*)faasm_set_output_wrapper,"(*~)",0x0},
