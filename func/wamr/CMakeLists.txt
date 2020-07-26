@@ -20,3 +20,4 @@ demo_wamr_func(chaining_external_func_sgx_wamr chaining_external_func_sgx_wamr.c
 demo_wamr_func(get_input_sgx_wamr get_input_sgx_wamr.cpp)
 demo_wamr_func(set_output_sgx_wamr set_output_sgx_wamr.cpp)
 demo_wamr_func(state_read_write_sgx_wamr state_read_write_sgx_wamr.cpp)
+demo_wamr_func(echo_sgx_wamr echo_sgx_wamr.cpp)
