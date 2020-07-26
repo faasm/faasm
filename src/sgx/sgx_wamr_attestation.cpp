@@ -33,17 +33,17 @@ extern "C"{
     static int _keymgr_socket;
     static _sgx_wamr_thread_callback* _callback_store;
     static uint32_t _callback_store_len = FAASM_SGX_ATTESTATION_CALLBACK_STORE_INIT_LEN;
-    static pthread_mutex_t mutex_callback_store = PTHREAD_MUTEX_INITIALIZER;
+    static pthread_mutex_t _mutex_callback_store = PTHREAD_MUTEX_INITIALIZER, _mutex_keymgr_socket = PTHREAD_MUTEX_INITIALIZER;
     static rwlock_t _rwlock_callback_store_realloc;
     static inline faasm_sgx_status_t _find_callback_store_slot(uint32_t* id, faaslet_sgx_msg_buffer_t* response_ptr){
         _sgx_wamr_thread_callback* temp_ptr;
         uint32_t temp_size,i = 0;
-        pthread_mutex_lock(&mutex_callback_store);
+        pthread_mutex_lock(&_mutex_callback_store);
         read_lock(&_rwlock_callback_store_realloc);
         for(; i < _callback_store_len; i++){
             if(!_callback_store[i].response_ptr){
                 _callback_store[i].response_ptr = response_ptr;
-                pthread_mutex_unlock(&mutex_callback_store);
+                pthread_mutex_unlock(&_mutex_callback_store);
                 read_unlock(&_rwlock_callback_store_realloc);
                 *id = i;
                 return FAASM_SGX_SUCCESS;
@@ -54,7 +54,7 @@ extern "C"{
         temp_size = _callback_store_len << 1;
         if(!(temp_ptr = (_sgx_wamr_thread_callback*) realloc((void*)_callback_store, (temp_size * sizeof(_sgx_wamr_thread_callback))))){
             write_unlock(&_rwlock_callback_store_realloc);
-            pthread_mutex_unlock(&mutex_callback_store);
+            pthread_mutex_unlock(&_mutex_callback_store);
             return FAASM_SGX_OUT_OF_MEMORY;
         }
         memset((void*)(temp_ptr + _callback_store_len), 0x0, (temp_size - _callback_store_len) * sizeof(_sgx_wamr_thread_callback));
@@ -62,7 +62,7 @@ extern "C"{
         _callback_store_len = temp_size;
         _callback_store[i].response_ptr = response_ptr;
         write_unlock(&_rwlock_callback_store_realloc);
-        pthread_mutex_unlock(&mutex_callback_store);
+        pthread_mutex_unlock(&_mutex_callback_store);
         *id = i;
         return FAASM_SGX_SUCCESS;
     }
@@ -74,12 +74,15 @@ extern "C"{
         read_lock(&_rwlock_callback_store_realloc);
         _callback_store[cb_store_id].msg_id = msg->msg_id;
         pthread_mutex_lock(&_callback_store[cb_store_id].mutex);
-        if(send(_keymgr_socket, (void*)msg, msg_len, 0) <= 0){ //Todo: Check if socket is closed
+        pthread_mutex_lock(&_mutex_keymgr_socket);
+        if(send(_keymgr_socket, (void*)msg, msg_len, MSG_NOSIGNAL) <= 0){
+            pthread_mutex_unlock(&_mutex_keymgr_socket);
             pthread_mutex_unlock(&_callback_store[cb_store_id].mutex);
             _callback_store[cb_store_id].response_ptr = 0x0;
             read_unlock(&_rwlock_callback_store_realloc);
             return FAASM_SGX_CRT_SEND_FAILED;
         }
+        pthread_mutex_unlock(&_mutex_keymgr_socket);
         pthread_cond_wait(&_callback_store[cb_store_id].cond, &_callback_store[cb_store_id].mutex);
         pthread_mutex_unlock(&_callback_store[cb_store_id].mutex);
         if(!(_callback_store[cb_store_id].response_ptr->buffer_ptr)){
@@ -128,8 +131,9 @@ extern "C"{
             }
         }
         __CLOSE_SOCKET_AND_RETURN:
-        close(_keymgr_socket);
-        printf("CLOSE\n");
+        pthread_mutex_lock(&_mutex_keymgr_socket);
+        shutdown(_keymgr_socket, SHUT_RDWR);
+        pthread_mutex_unlock(&_mutex_keymgr_socket);
         return NULL;
     }
     faasm_sgx_status_t ocall_init_crt(void){

@@ -46,17 +46,20 @@ namespace wasm{
         bindToFunction(msg); //See src/wamr/WAMRWasmModule.cpp:48
     }
     const bool SGXWAMRWasmModule::unbindFunction(void){
-         sgx_status_t sgx_ret_val;
-         faasm_sgx_status_t ret_val;
-         if((sgx_ret_val = sgx_wamr_enclave_unload_module(*enclave_id_ptr,&ret_val,thread_id)) != SGX_SUCCESS){
-             printf("[Error] Unable to enter enclave (%#010x)\n",sgx_ret_val);
-             return false;
-         }
-         if(ret_val != FAASM_SGX_SUCCESS){
-             printf("[Error] Unable to unbind function (%#010x)\n",ret_val);
-             return false;
-         }
-         return true;
+            if(_is_bound){
+                sgx_status_t sgx_ret_val;
+                faasm_sgx_status_t ret_val;
+                if((sgx_ret_val = sgx_wamr_enclave_unload_module(*enclave_id_ptr,&ret_val,thread_id)) != SGX_SUCCESS){
+                    printf("[Error] Unable to enter enclave (%#010x)\n",sgx_ret_val);
+                    return false;
+                }
+                if(ret_val != FAASM_SGX_SUCCESS){
+                    printf("[Error] Unable to unbind function (%#010x)\n",ret_val);
+                    return false;
+                }
+                return true;
+            }
+            return true;
      }
     bool SGXWAMRWasmModule::execute(message::Message &msg, bool force_noop) {
          if(!_is_bound){
