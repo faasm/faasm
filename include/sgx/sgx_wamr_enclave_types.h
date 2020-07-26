@@ -17,6 +17,7 @@ typedef struct __sgx_wamr_tcs{
     uint8_t* wasm_opcode;
 #if(FAASM_SGX_ATTESTATION)
     sgx_wamr_msg_t** response_ptr;
+    _sgx_wamr_attestation_env_t env;
 #endif
 } _sgx_wamr_tcs_t;
 

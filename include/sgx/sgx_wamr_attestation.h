@@ -77,4 +77,7 @@ typedef struct _faaslet_sgx_msg_buffer{
     uint32_t buffer_len;
     sgx_wamr_msg_t* buffer_ptr;
 } faaslet_sgx_msg_buffer_t;
+typedef struct _attestation_env{
+    uint32_t test;
+} _sgx_wamr_attestation_env_t;
 #endif //FAASM_SGX_WAMR_ATTESTATION_H
