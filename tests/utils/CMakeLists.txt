@@ -2,6 +2,7 @@ include_directories(${CMAKE_CURRENT_LIST_DIR})
 
 set(LIB_FILES
         DummyStateServer.cpp
+        exec_graph_utils.cpp
         matrix_utils.cpp
         message_utils.cpp
         system_utils.cpp

@@ -1,6 +1,6 @@
 from invoke import task
 
-from faasmcli.util.call import invoke_impl, status_call_impl, flush_call_impl
+from faasmcli.util.call import invoke_impl, status_call_impl, flush_call_impl, exec_graph_call_impl
 from faasmcli.util.endpoints import get_invoke_host_port
 
 
@@ -35,6 +35,18 @@ def status(ctx, call_id, host=None, port=None):
     port = port if port else k8s_port
 
     status_call_impl(None, None, call_id, host, port, quiet=False, native=False)
+
+
+@task
+def exec_graph(ctx, call_id, host=None, port=None):
+    """
+    Get the execution graph for the given call ID
+    """
+    k8s_host, k8s_port = get_invoke_host_port()
+    host = host if host else k8s_host
+    port = port if port else k8s_port
+
+    exec_graph_call_impl(None, None, call_id, host, port, quiet=False, native=False)
 
 
 @task

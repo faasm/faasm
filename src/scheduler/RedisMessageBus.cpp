@@ -117,8 +117,9 @@ namespace scheduler {
 
     ExecGraph RedisMessageBus::getFunctionExecGraph(unsigned int messageId) {
         ExecGraphNode rootNode = getFunctionExecGraphNode(messageId);
-        ExecGraph graph;
-        graph.rootNode = rootNode;
+        ExecGraph graph {
+            .rootNode = rootNode
+        };
 
         return graph;
     }
@@ -126,7 +127,7 @@ namespace scheduler {
     ExecGraphNode RedisMessageBus::getFunctionExecGraphNode(unsigned int messageId) {
         // Get the result for this message
         std::string statusKey = util::statusKeyFromMessageId(messageId);
-        std::vector<uint8_t> messageBytes = redis.dequeueBytes(statusKey, DEFAULT_TIMEOUT);
+        std::vector<uint8_t> messageBytes = redis.get(statusKey);
         message::Message result;
         result.ParseFromArray(messageBytes.data(), (int) messageBytes.size());
 
@@ -138,9 +139,10 @@ namespace scheduler {
         }
 
         // Build the node
-        ExecGraphNode node;
-        node.msg = result;
-        node.children = children;
+        ExecGraphNode node {
+            .msg = result,
+            .children = children
+        };
 
         return node;
     }

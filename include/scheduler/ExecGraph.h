@@ -4,18 +4,18 @@
 #include <proto/faasm.pb.h>
 
 namespace scheduler {
-    class ExecGraphNode {
-    public:
-        ExecGraphNode() = default;
-
+    struct ExecGraphNode {
         message::Message msg;
         std::vector<ExecGraphNode> children;
     };
 
-    class ExecGraph {
-    public:
-        ExecGraph() = default;
-
+    struct ExecGraph {
         ExecGraphNode rootNode;
     };
+
+    int countExecGraphNodes(const ExecGraph &graph);
+
+    std::string execNodeToJson(const ExecGraphNode &node);
+
+    std::string execGraphToJson(const ExecGraph &graph);
 }

@@ -5,8 +5,6 @@
 #include <rapidjson/writer.h>
 #include <rapidjson/stringbuffer.h>
 
-#include <iostream>
-
 using namespace rapidjson;
 
 namespace util {
