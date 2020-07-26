@@ -6,7 +6,13 @@
 #include <sgx/sgx_wamr_native_symbols_wrapper.h>
 #include <iwasm/common/wasm_exec_env.h>
 #include <iwasm/common/wasm_runtime_common.h>
-
+#if(FAASM_SGX_ATTESTATION)
+#include <sgx/sgx_wamr_enclave_types.h>
+extern "C"{
+    extern _sgx_wamr_tcs_t* sgx_wamr_tcs;
+    extern __thread uint32_t tls_thread_id;
+};
+#endif
 extern "C"{
     extern int os_printf(const char* message, ...);
     static unsigned int faasm_get_input_size_wrapper(wasm_exec_env_t exec_env){
@@ -27,6 +33,7 @@ extern "C"{
     }
     static unsigned int faasm_chain_function_input_wrapper(wasm_exec_env_t exec_env, const char *name, const uint8_t* input, unsigned int input_size){
         //Todo: sgx_ret_val
+        os_printf("PTR: %p\n", sgx_wamr_tcs[tls_thread_id].response_ptr);
         sgx_status_t sgx_ret_val;
         unsigned int ret_val;
         ocall_faasm_chain_function_input(&ret_val, name, input, input_size);
