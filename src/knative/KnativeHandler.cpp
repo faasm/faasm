@@ -50,6 +50,9 @@ namespace knative {
             if (msg.isstatusrequest()) {
                 scheduler::GlobalMessageBus &msgBus = scheduler::getGlobalMessageBus();
                 responseStr = msgBus.getMessageStatus(msg.id());
+            } else if(msg.isexecgraphrequest()) {
+                scheduler::GlobalMessageBus &msgBus = scheduler::getGlobalMessageBus();
+
             } else if (msg.isflushrequest()) {
                 const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
                 logger->debug("Broadcasting flush request");

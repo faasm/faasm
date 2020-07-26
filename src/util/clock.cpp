@@ -17,6 +17,11 @@ namespace util {
         }
     }
 
+    const long Clock::epochNow() {
+        TimePoint tp = now();
+        return std::chrono::duration_cast<std::chrono::seconds>(tp.time_since_epoch()).count();
+    }
+
     const long Clock::timeDiff(const TimePoint &t1, const TimePoint &t2) {
         long age = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t2).count();
         return age;

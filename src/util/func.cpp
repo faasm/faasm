@@ -11,6 +11,7 @@
 #include <boost/algorithm/string.hpp>
 #include <util/logging.h>
 #include <util/json.h>
+#include <util/clock.h>
 
 
 namespace util {
@@ -20,7 +21,7 @@ namespace util {
     const static std::string objFile = "function.wasm.o";
     const static std::string wamrAotFile = "function.aot";
     const static std::string confFile = "conf.json";
-
+    
     std::string getRootUrl() {
         std::string rootUrl = util::getEnvVar("FILESERVER_URL", "");
         if (rootUrl.empty()) {
@@ -285,6 +286,12 @@ namespace util {
             // Generate a random ID
             messageId = util::generateGid();
             msg.set_id(messageId);
+        }
+
+        // Set the timestamp if it doesn't have one
+        if(!msg.has_timestamp()) {
+            Clock &clock = util::getGlobalClock();
+            msg.set_timestamp((int32_t) clock.epochNow());
         }
 
         std::string resultKey = resultKeyFromMessageId(messageId);

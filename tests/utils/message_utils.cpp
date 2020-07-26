@@ -13,6 +13,12 @@ namespace tests {
         REQUIRE(msgA.idx() == msgB.idx());
         REQUIRE(msgA.hops() == msgB.hops());
 
+        REQUIRE(msgA.chainedcalls_size() == msgB.chainedcalls_size());
+        for(int i = 0; i < msgA.chainedcalls_size(); i++) {
+            REQUIRE(msgA.chainedcalls(i) == msgB.chainedcalls(i));
+        }
+
+        REQUIRE(msgA.timestamp() == msgB.timestamp());
         REQUIRE(msgA.snapshotkey() == msgB.snapshotkey());
         REQUIRE(msgA.snapshotsize() == msgB.snapshotsize());
         REQUIRE(msgA.funcptr() == msgB.funcptr());
@@ -24,6 +30,7 @@ namespace tests {
         REQUIRE(msgA.ispython() == msgB.ispython());
         REQUIRE(msgA.istypescript() == msgB.istypescript());
         REQUIRE(msgA.isstatusrequest() == msgB.isstatusrequest());
+        REQUIRE(msgA.isexecgraphrequest() == msgB.isexecgraphrequest());
         REQUIRE(msgA.isflushrequest() == msgB.isflushrequest());
 
         REQUIRE(msgA.returnvalue() == msgB.returnvalue());

@@ -115,6 +115,35 @@ namespace scheduler {
         return msgResult;
     }
 
+    ExecGraph RedisMessageBus::getFunctionExecGraph(unsigned int messageId) {
+        ExecGraphNode rootNode = getFunctionExecGraphNode(messageId);
+        ExecGraph graph;
+        graph.rootNode = rootNode;
+
+        return graph;
+    }
+
+    ExecGraphNode RedisMessageBus::getFunctionExecGraphNode(unsigned int messageId) {
+        // Get the result for this message
+        std::string statusKey = util::statusKeyFromMessageId(messageId);
+        std::vector<uint8_t> messageBytes = redis.dequeueBytes(statusKey, DEFAULT_TIMEOUT);
+        message::Message result;
+        result.ParseFromArray(messageBytes.data(), (int) messageBytes.size());
+
+        // Recurse through chained calls
+        std::unordered_set<unsigned int> chainedMsgIds = getChainedFunctions(messageId);
+        std::vector<ExecGraphNode> children;
+        for (auto c : chainedMsgIds) {
+            children.emplace_back(getFunctionExecGraphNode(c));
+        }
+
+        // Build the node
+        ExecGraphNode node;
+        node.msg = result;
+        node.children = children;
+
+        return node;
+    }
 
     std::string RedisMessageBus::getMessageStatus(unsigned int messageId) {
         const message::Message result = getFunctionResult(messageId, 0);
@@ -134,13 +163,13 @@ namespace scheduler {
         redis.expire(key, STATUS_KEY_EXPIRY);
     }
 
-    std::vector<unsigned int> RedisMessageBus::getChainedFunctions(unsigned int msgId) {
+    std::unordered_set<unsigned int> RedisMessageBus::getChainedFunctions(unsigned int msgId) {
         const std::string &key = getChainedKey(msgId);
         const std::unordered_set<std::string> chainedCalls = redis.smembers(key);
 
-        std::vector<unsigned int> chainedIds;
-        for(auto i : chainedCalls) {
-            chainedIds.emplace_back(std::stoi(i));
+        std::unordered_set<unsigned int> chainedIds;
+        for (auto i : chainedCalls) {
+            chainedIds.insert(std::stoi(i));
         }
 
         return chainedIds;

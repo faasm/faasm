@@ -3,6 +3,7 @@
 #include <util/func.h>
 #include <util/config.h>
 #include <boost/filesystem.hpp>
+#include <util/clock.h>
 
 using namespace boost::filesystem;
 
@@ -96,7 +97,7 @@ namespace tests {
         REQUIRE(msgA.id() > 0);
         REQUIRE(msgB.id() > 0);
         REQUIRE(msgB.id() > msgA.id());
-        
+
         std::string expectedResultKeyA = std::string("result_" + std::to_string(msgA.id()));
         std::string expectedStatusKeyA = std::string("status_" + std::to_string(msgA.id()));
         REQUIRE(msgA.resultkey() == expectedResultKeyA);
@@ -107,7 +108,7 @@ namespace tests {
         REQUIRE(msgB.resultkey() == expectedResultKeyB);
         REQUIRE(msgB.statuskey() == expectedStatusKeyB);
     }
-    
+
     TEST_CASE("Test adding ID to message with an existing ID") {
         message::Message msg;
         util::setMessageId(msg);
@@ -124,6 +125,33 @@ namespace tests {
         REQUIRE(afterId == originalId);
         REQUIRE(afterStatusKey == originalStatusKey);
         REQUIRE(afterResultKey == originalResultKey);
+    }
+
+
+    TEST_CASE("Test timestamp added to message") {
+        util::Clock &clock = util::getGlobalClock();
+        const util::TimePoint &fixedTimePoint = clock.now();
+        clock.setFakeNow(fixedTimePoint);
+
+        message::Message msg;
+        unsigned int msgId = 1234;
+
+        msg.set_id(msgId);
+        int expectedTimestamp;
+
+        SECTION("Existing timestamp") {
+            expectedTimestamp = 999888;
+            msg.set_timestamp(expectedTimestamp);
+        }
+
+        SECTION("No existing timestamp") {
+            expectedTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
+                    fixedTimePoint.time_since_epoch()
+            ).count();
+        }
+
+        util::setMessageId(msg);
+        REQUIRE(msg.timestamp() == expectedTimestamp);
     }
 
     TEST_CASE("Check message with ID already set still gets result key and status key", "[util]") {

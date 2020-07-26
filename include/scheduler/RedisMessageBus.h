@@ -23,7 +23,11 @@ namespace scheduler {
 
         void logChainedFunction(unsigned int parentMessageId, unsigned int chainedMessageId) override;
 
-        std::vector<unsigned int> getChainedFunctions(unsigned int msgId) override;
+        std::unordered_set<unsigned int> getChainedFunctions(unsigned int msgId) override;
+
+        ExecGraph getFunctionExecGraph(unsigned int msgId) override;
+
+        ExecGraphNode getFunctionExecGraphNode(unsigned int msgId) override;
 
         void clear() override;
     private:

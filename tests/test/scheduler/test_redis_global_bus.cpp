@@ -232,4 +232,31 @@ namespace tests {
 
         conf.execGraphMode = originalExecGraph;
     }
+
+    TEST_CASE("Check logging chained functions", "[scheduler]") {
+        cleanSystem();
+
+        GlobalMessageBus &bus = getGlobalMessageBus();
+        redis::Redis &redis = redis::Redis::getQueue();
+
+        message::Message msg = util::messageFactory("demo", "echo");
+        unsigned int chainedMsgIdA = 1234;
+        unsigned int chainedMsgIdB = 5678;
+        unsigned int chainedMsgIdC = 9876;
+
+        // Check empty initially
+        REQUIRE(bus.getChainedFunctions(msg.id()).empty());
+
+        // Log and check this shows up in the result
+        bus.logChainedFunction(msg.id(), chainedMsgIdA);
+        std::unordered_set<unsigned int> expected = {chainedMsgIdA};
+        REQUIRE(bus.getChainedFunctions(msg.id()) == expected);
+
+        // Log some more and check
+        bus.logChainedFunction(msg.id(), chainedMsgIdA);
+        bus.logChainedFunction(msg.id(), chainedMsgIdB);
+        bus.logChainedFunction(msg.id(), chainedMsgIdC);
+        expected = {chainedMsgIdA, chainedMsgIdB, chainedMsgIdC};
+        REQUIRE(bus.getChainedFunctions(msg.id()) == expected);
+    }
 }

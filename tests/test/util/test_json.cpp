@@ -9,7 +9,6 @@ using namespace util;
 namespace tests {
     TEST_CASE("Test message to JSON round trip", "[util]") {
         message::Message msg;
-        msg.set_id(1234465);
         msg.set_user("user 1");
         msg.set_function("great function");
         msg.set_idx(50);
@@ -23,10 +22,8 @@ namespace tests {
         msg.set_ispython(true);
         msg.set_istypescript(true);
         msg.set_isstatusrequest(true);
+        msg.set_isexecgraphrequest(true);
         msg.set_isflushrequest(true);
-
-        msg.set_resultkey("this is a result");
-        msg.set_statuskey("this is a status");
 
         msg.set_coldstartinterval(4);
 
@@ -42,12 +39,22 @@ namespace tests {
         SECTION("Dodgy characters") {
             msg.set_inputdata("[0], %$ 2233 9");
         }
+
         SECTION("Bytes") {
             std::vector<uint8_t> bytes = {0, 0, 1, 1, 0, 2, 2, 3, 3, 4, 4};
             msg.set_inputdata(bytes.data(), bytes.size());
         }
 
+        SECTION("Chained calls") {
+            msg.add_chainedcalls(11111111);
+            msg.add_chainedcalls(22222);
+            msg.add_chainedcalls(33333333);
+        }
+
         util::setMessageId(msg);
+
+        REQUIRE(msg.has_id());
+        REQUIRE(msg.has_timestamp());
 
         std::string jsonString = util::messageToJson(msg);
 

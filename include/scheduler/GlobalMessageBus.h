@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ExecGraph.h"
+
 #include <util/config.h>
 #include <util/exception.h>
 #include <util/func.h>
@@ -22,7 +24,9 @@ namespace scheduler {
 
         virtual void logChainedFunction(unsigned int parentMessageId, unsigned int chainedMessageId) = 0;
 
-        virtual std::vector<unsigned int> getChainedFunctions(unsigned int msgId) = 0;
+        virtual std::unordered_set<unsigned int> getChainedFunctions(unsigned int msgId) = 0;
+
+        virtual ExecGraph getFunctionExecGraph(unsigned int msgId) = 0;
 
         virtual void clear() = 0;
     protected:
@@ -30,6 +34,8 @@ namespace scheduler {
         }
 
         const util::SystemConfig &conf;
+
+        virtual ExecGraphNode getFunctionExecGraphNode(unsigned int msgId) = 0;
     };
 
     class GlobalMessageBusNoMessageException : public util::FaasmException {

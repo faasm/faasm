@@ -5,7 +5,6 @@
 #include <util/environment.h>
 
 #include <faaslet/FaasletPool.h>
-#include <faaslet/Faaslet.h>
 #include <emulator/emulator.h>
 
 using namespace faaslet;

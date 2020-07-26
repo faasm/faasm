@@ -17,11 +17,20 @@ namespace util {
 
         // Need to be explicit with strings here to make a copy _and_ make sure we specify the length
         // to include any null-terminators from bytes
+        d.AddMember("timestamp", msg.timestamp(), a);
         d.AddMember("id", msg.id(), a);
         d.AddMember("user", Value(msg.user().c_str(), msg.user().size(), a).Move(), a);
         d.AddMember("function", Value(msg.function().c_str(), msg.function().size(), a).Move(), a);
         d.AddMember("index", msg.idx(), a);
         d.AddMember("hops", msg.hops(), a);
+
+        if(msg.chainedcalls_size() > 0) {
+            rapidjson::Value idArray(rapidjson::kArrayType);
+            for(auto msgId: msg.chainedcalls()) {
+                idArray.PushBack(msgId, a);
+            }
+            d.AddMember("chained_calls", idArray, a);
+        }
 
         d.AddMember("snapshot_key", Value(msg.snapshotkey().c_str(), msg.snapshotkey().size(), a).Move(), a);
         d.AddMember("snapshot_size", msg.snapshotsize(), a);
@@ -38,6 +47,7 @@ namespace util {
         d.AddMember("python", msg.ispython(), a);
         d.AddMember("typescript", msg.istypescript(), a);
         d.AddMember("status", msg.isstatusrequest(), a);
+        d.AddMember("exec_graph", msg.isexecgraphrequest(), a);
         d.AddMember("flush", msg.isflushrequest(), a);
 
         d.AddMember("result_key", Value(msg.resultkey().c_str(), msg.resultkey().size()).Move(), a);
@@ -70,6 +80,20 @@ namespace util {
         return it->value.GetBool();
     }
 
+    std::vector<uint32_t> getUintArrayFromJson(Document &doc, const std::string &key) {
+        Value::MemberIterator it = doc.FindMember(key.c_str());
+        std::vector<uint32_t> result;
+        if (it == doc.MemberEnd()) {
+            return result;
+        }
+
+        for(const auto &i : it->value.GetArray()) {
+            result.emplace_back(i.GetUint());
+        }
+
+        return result;
+    }
+    
     int getIntFromJson(Document &doc, const std::string &key, int dflt) {
         Value::MemberIterator it = doc.FindMember(key.c_str());
         if (it == doc.MemberEnd()) {
@@ -97,11 +121,17 @@ namespace util {
         d.ParseStream(ms);
 
         message::Message msg;
+        msg.set_timestamp(getIntFromJson(d, "timestamp", 0));
         msg.set_id(getIntFromJson(d, "id", 0));
         msg.set_user(getStringFromJson(d, "user", ""));
         msg.set_function(getStringFromJson(d, "function", ""));
         msg.set_idx(getIntFromJson(d, "index", 0));
         msg.set_hops(getIntFromJson(d, "hops", 0));
+
+        const std::vector<uint32_t> chainedCalls = getUintArrayFromJson(d, "chained_calls");
+        for(auto c : chainedCalls) {
+            msg.add_chainedcalls(c);
+        }
 
         msg.set_snapshotkey(getStringFromJson(d, "snapshot_key", ""));
         msg.set_snapshotsize(getIntFromJson(d, "snapshot_size", 0));
@@ -118,6 +148,7 @@ namespace util {
         msg.set_ispython(getBoolFromJson(d, "python", false));
         msg.set_istypescript(getBoolFromJson(d, "typescript", false));
         msg.set_isstatusrequest(getBoolFromJson(d, "status", false));
+        msg.set_isexecgraphrequest(getBoolFromJson(d, "exec_graph", false));
         msg.set_isflushrequest(getBoolFromJson(d, "flush", false));
 
         msg.set_resultkey(getStringFromJson(d, "result_key", ""));
