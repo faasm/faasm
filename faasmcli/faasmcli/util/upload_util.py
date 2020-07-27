@@ -106,5 +106,5 @@ def curl_file(url, file_path, headers=None, quiet=False):
 
     if res == 0 and not quiet:
         print("Successfully PUT file {} to {}".format(file_path, url))
-    else:
+    elif res != 0:
         raise RuntimeError("Failed PUTting file {} to {}".format(file_path, url))
