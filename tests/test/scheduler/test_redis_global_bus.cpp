@@ -237,7 +237,6 @@ namespace tests {
         cleanSystem();
 
         GlobalMessageBus &bus = getGlobalMessageBus();
-        redis::Redis &redis = redis::Redis::getQueue();
 
         message::Message msg = util::messageFactory("demo", "echo");
         unsigned int chainedMsgIdA = 1234;
