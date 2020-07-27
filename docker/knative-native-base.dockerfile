@@ -14,8 +14,8 @@ COPY . /usr/local/code/faasm
 WORKDIR /faasm/build
 RUN cmake \
     -GNinja \
-    -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
-    -DCMAKE_C_COMPILER=/usr/bin/clang \
+    -DCMAKE_CXX_COMPILER=/usr/bin/clang++-10 \
+    -DCMAKE_C_COMPILER=/usr/bin/clang-10 \
     -DFAASM_BUILD_TYPE=knative-native \
     -DFAASM_STATIC_LIBS=OFF \
     -DCMAKE_BUILD_TYPE=Release \

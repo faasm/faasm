@@ -31,7 +31,7 @@
   args:
     chdir: "/tmp/protobuf-3.6.0"
   with_items:
-    - "./configure --prefix=/usr CC=/usr/bin/clang CPP=/usr/bin/clang-cpp CXX=/usr/bin/clang++"
+    - "./configure --prefix=/usr CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10"
     - "make -j"
     - "make install"
     - "ldconfig"

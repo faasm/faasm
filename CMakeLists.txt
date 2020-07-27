@@ -5,6 +5,10 @@ project(faasm)
 option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
 option(FAASM_SGX_SUPPORT "Add support for SGX" OFF)
 
+option(FAASM_SELF_TRACING "Turn on system tracing using the logger" OFF)
+option(FAASM_OPENMP_TRACING "Trace OpenMP forks in Redis" OFF)
+option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md" OFF)
+
 # Top-level CMake config
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_STANDARD 17)
@@ -47,7 +51,8 @@ set(WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
 set(WAMR_SHARED_DIR ${WAMR_ROOT_DIR}/core/shared)
 set(WAMR_IWASM_DIR ${WAMR_ROOT_DIR}/core/iwasm)
 set(WAMR_BUILD_TARGET X86_64)
-set(WAMR_BUILD_TARGET X86_64)
+set(WAMR_NO_LLVM_IMPORT ON)
+add_definitions(-DBUILD_TARGET_X86_64)
 
 # Enable ASM
 enable_language(ASM)
@@ -72,7 +77,6 @@ include_directories(
         ${WAMR_IWASM_DIR}/include
         ${WAMR_IWASM_DIR}/common
 )
-
 
 # Library type (for shared libraries)
 if (FAASM_STATIC_LIBS)
@@ -100,10 +104,6 @@ add_definitions(-DDLL_EXPORT=)
 add_definitions(-DDLL_IMPORT=)
 
 # Faasm profiling
-option(FAASM_SELF_TRACING "Turn on system tracing using the logger")
-option(FAASM_OPENMP_TRACING "Trace OpenMP forks in Redis")
-option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md")
-
 if (${FAASM_SELF_TRACING})
     message("-- Activated FAASM tracing")
     add_definitions(-DTRACE_ALL=1)
@@ -126,20 +126,16 @@ else ()
 endif ()
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
-#message(STATUS "LLVM LLVM_AVAILABLE_LIBS: ${LLVM_AVAILABLE_LIBS}")
-#
-#get_cmake_property(_variableNames VARIABLES)
-#list (SORT _variableNames)
-#foreach (_variableName ${_variableNames})
-#    message(STATUS "${_variableName}=${${_variableName}}")
-#endforeach()
-
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
-# Eigen parallelisation
-# add_definitions(-DEIGEN_DONT_PARALLELIZE)
-# add_definitions(-DEIGEN_NO_MALLOC)
+message(STATUS "LLVM LLVM_AVAILABLE_LIBS: ${LLVM_AVAILABLE_LIBS}")
+
+get_cmake_property(_variableNames VARIABLES)
+list (SORT _variableNames)
+foreach (_variableName ${_variableNames})
+    message(STATUS "${_variableName}=${${_variableName}}")
+endforeach()
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
