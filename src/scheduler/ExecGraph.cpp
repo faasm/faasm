@@ -37,7 +37,7 @@ namespace scheduler {
         if (!node.children.empty()) {
             res << ", " << std::endl << "\"chained\": [" << std::endl;
 
-            for (int i = 0; i < node.children.size(); i++) {
+            for (unsigned int i = 0; i < node.children.size(); i++) {
                 res << execNodeToJson(node.children.at(i));
 
                 if (i < node.children.size() - 1) {
