@@ -100,9 +100,8 @@ def _add_node_to_graph(node, graph, host_colour_map):
     return node_id
 
 
-def plot_exec_graph(graph, headless=True):
+def plot_exec_graph(graph, headless=True, output_file="/tmp/faasm_exec_graph.png"):
     dot_file = "/tmp/faasm_exec_graph.dot"
-    png_file = "/tmp/faasm_exec_graph.png"
 
     write_dot(graph, dot_file)
 
@@ -112,12 +111,12 @@ def plot_exec_graph(graph, headless=True):
     ]
     png_data = run(cmd, check=True, stdout=PIPE, stderr=PIPE)
 
-    with open(png_file, "wb") as fh:
+    with open(output_file, "wb") as fh:
         fh.write(png_data.stdout)
 
     if not headless:
-        run("xdg-open {}".format(png_file), shell=True)
+        run("xdg-open {}".format(output_file), shell=True)
     else:
-        print("Output at {}".format(png_file))
+        print("Output at {}".format(output_file))
 
-    return png_file
+    return output_file

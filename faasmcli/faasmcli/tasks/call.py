@@ -50,7 +50,7 @@ def status(ctx, call_id, host=None, port=None):
 
 
 @task
-def exec_graph(ctx, call_id=None, host=None, port=None, headless=False):
+def exec_graph(ctx, call_id=None, host=None, port=None, headless=False, output_file=None):
     """
     Get the execution graph for the given call ID
     """
@@ -69,7 +69,7 @@ def exec_graph(ctx, call_id=None, host=None, port=None, headless=False):
     json_str = exec_graph_call_impl(None, None, call_id, host, port, quiet=True, native=False)
 
     graph = parse_exec_graph_json(json_str)
-    plot_exec_graph(graph, headless=headless)
+    plot_exec_graph(graph, headless=headless, output_file=output_file)
 
 
 @task
