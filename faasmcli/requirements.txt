@@ -18,6 +18,7 @@ matplotlib
 networkx
 numpy
 packaging
+pydot
 pyperformance
 psutil
 pyaes

@@ -1,10 +1,14 @@
 from json import loads
 from pprint import pprint
+from subprocess import run
 
 from invoke import task
 
 from faasmcli.util.call import invoke_impl, status_call_impl, flush_call_impl, exec_graph_call_impl
 from faasmcli.util.endpoints import get_invoke_host_port
+from faasmcli.util.exec_graph import parse_exec_graph_json, plot_exec_graph
+
+LAST_CALL_ID_FILE = "/tmp/faasm_last_call.txt"
 
 
 @task(default=True)
@@ -29,6 +33,8 @@ def invoke(ctx, user, func,
 
     if asynch:
         print("Call ID: " + str(res))
+        with open(LAST_CALL_ID_FILE, "w") as fh:
+            fh.write(str(res))
 
 
 @task
@@ -44,18 +50,28 @@ def status(ctx, call_id, host=None, port=None):
 
 
 @task
-def exec_graph(ctx, call_id, host=None, port=None):
+def exec_graph(ctx, call_id=None, host=None, port=None, headless=False):
     """
     Get the execution graph for the given call ID
     """
-    k8s_host, k8s_port = get_invoke_host_port()
-    host = host if host else k8s_host
-    port = port if port else k8s_port
+    # k8s_host, k8s_port = get_invoke_host_port()
+    # host = host if host else k8s_host
+    # port = port if port else k8s_port
+    #
+    # if not call_id:
+    #     with open(LAST_CALL_ID_FILE) as fh:
+    #         call_id = fh.read()
+    #
+    #     if not call_id:
+    #         print("No call ID provided and no last call ID found")
+    #         exit(1)
+    #
+    # json_str = exec_graph_call_impl(None, None, call_id, host, port, quiet=True, native=False)
+    json_str = None
 
-    json_str = exec_graph_call_impl(None, None, call_id, host, port, quiet=True, native=False)
+    graph = parse_exec_graph_json(json_str)
+    png_file = plot_exec_graph(graph, headless=headless)
 
-    graph_dict = loads(json_str)
-    pprint(graph_dict)
 
 
 @task
