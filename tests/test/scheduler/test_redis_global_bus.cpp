@@ -227,6 +227,11 @@ namespace tests {
 
             message::Message actualMsg;
             actualMsg.ParseFromArray(actual.data(), (int) actual.size());
+
+            // We can't predict the finish timestamp, so have to manually copy here
+            REQUIRE(actualMsg.finishtimestamp() > 0);
+            expected.set_finishtimestamp(actualMsg.finishtimestamp());
+
             checkMessageEquality(actualMsg, expected);
         }
 

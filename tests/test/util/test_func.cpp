@@ -130,11 +130,12 @@ namespace tests {
 
     TEST_CASE("Test timestamp added to message") {
         util::Clock &clock = util::getGlobalClock();
-        const util::TimePoint &fixedTimePoint = clock.now();
-        clock.setFakeNow(fixedTimePoint);
 
         message::Message msg;
         unsigned int msgId = 1234;
+
+        // Epoch millis on 27/07/2020
+        long baselineTimestamp = 1595862090240;
 
         msg.set_id(msgId);
         int expectedTimestamp;
@@ -142,23 +143,21 @@ namespace tests {
         SECTION("Existing timestamp") {
             expectedTimestamp = 999888;
             msg.set_timestamp(expectedTimestamp);
+
+            util::setMessageId(msg);
+            REQUIRE(msg.timestamp() == expectedTimestamp);
         }
 
         SECTION("Zero existing timestamp") {
             msg.set_timestamp(0);
-            expectedTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
-                    fixedTimePoint.time_since_epoch()
-            ).count();
+            util::setMessageId(msg);
+            REQUIRE(msg.timestamp() > baselineTimestamp);
         }
 
         SECTION("No existing timestamp") {
-            expectedTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
-                    fixedTimePoint.time_since_epoch()
-            ).count();
+            util::setMessageId(msg);
+            REQUIRE(msg.timestamp() > baselineTimestamp);
         }
-
-        util::setMessageId(msg);
-        REQUIRE(msg.timestamp() == expectedTimestamp);
     }
 
     TEST_CASE("Check message with ID already set still gets result key and status key", "[util]") {

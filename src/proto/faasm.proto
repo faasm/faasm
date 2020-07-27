@@ -47,9 +47,9 @@ message Message {
     optional int32 coldStartInterval = 28;
 
     optional bool isMpi = 29;
-    optional int32 mpiWorldId = 30;
-    optional int32 mpiRank = 31;
-    optional int32 mpiWorldSize = 32;
+    optional int32 mpiWorldId = 30 [default = -1];
+    optional int32 mpiRank = 31 [default = -1];
+    optional int32 mpiWorldSize = 32 [default = -1];
 
     optional int32 ompThreadNum = 33 [default = 0];
     repeated uint32 ompFunctionArgs = 34;
