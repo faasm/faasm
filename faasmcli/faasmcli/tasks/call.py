@@ -54,24 +54,22 @@ def exec_graph(ctx, call_id=None, host=None, port=None, headless=False):
     """
     Get the execution graph for the given call ID
     """
-    # k8s_host, k8s_port = get_invoke_host_port()
-    # host = host if host else k8s_host
-    # port = port if port else k8s_port
-    #
-    # if not call_id:
-    #     with open(LAST_CALL_ID_FILE) as fh:
-    #         call_id = fh.read()
-    #
-    #     if not call_id:
-    #         print("No call ID provided and no last call ID found")
-    #         exit(1)
-    #
-    # json_str = exec_graph_call_impl(None, None, call_id, host, port, quiet=True, native=False)
-    json_str = None
+    k8s_host, k8s_port = get_invoke_host_port()
+    host = host if host else k8s_host
+    port = port if port else k8s_port
+
+    if not call_id:
+        with open(LAST_CALL_ID_FILE) as fh:
+            call_id = fh.read()
+
+        if not call_id:
+            print("No call ID provided and no last call ID found")
+            exit(1)
+
+    json_str = exec_graph_call_impl(None, None, call_id, host, port, quiet=True, native=False)
 
     graph = parse_exec_graph_json(json_str)
-    png_file = plot_exec_graph(graph, headless=headless)
-
+    plot_exec_graph(graph, headless=headless)
 
 
 @task
