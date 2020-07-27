@@ -15,21 +15,48 @@ namespace wasm{
 }
 extern "C"{
     uint64_t ocall_faasm_read_state_size(const char* key){
-        std::string user = wasm::getExecutingCall()->user();
         state::State &state = state::getGlobalState();
-        return (uint64_t) state.getStateSize(user,std::string(key));
+        return (uint64_t) state.getStateSize(wasm::getExecutingCall()->user(),std::string(key));
     }
     uint64_t ocall_faasm_read_state(const char* key, uint8_t* buffer_ptr, const uint32_t buffer_len){
-        //std::pair<std::string, std::string>user_key = std::pair<std::string, std::string>(std::string(wasm::getExecutingCall()->user()),std::string(key));
         state::State &state = state::getGlobalState();
         std::shared_ptr<state::StateKeyValue> state_ptr = state.getKV(wasm::getExecutingCall()->user(),std::string(key),buffer_len);
         state_ptr->get(buffer_ptr);
         return state_ptr->size();
     }
+    void ocall_faasm_read_appended_state(const char* key, uint8_t* buffer_ptr, const uint32_t buffer_len, const uint32_t element_num){
+        state::State &state = state::getGlobalState();
+        std::shared_ptr<state::StateKeyValue> state_ptr = state.getKV(std::string(wasm::getExecutingCall()->user()),std::string(key),buffer_len);
+        state_ptr->getAppended(buffer_ptr,buffer_len,element_num);
+        return;
+    }
+    void ocall_faasm_read_state_offset(const char* key, const uint64_t total_len, const uint64_t offset, uint8_t* buffer_ptr, const uint32_t buffer_len){
+        state::State &state = state::getGlobalState();
+        std::shared_ptr<state::StateKeyValue> state_ptr = state.getKV(wasm::getExecutingCall()->user(),std::string(key),total_len);
+        state_ptr->getChunk(offset,buffer_ptr, buffer_len);
+    }
     void ocall_faasm_write_state(const char* key, const uint8_t* buffer_ptr, const uint32_t buffer_len){
         state::State &state = state::getGlobalState();
         std::shared_ptr<state::StateKeyValue> state_ptr = state.getKV(wasm::getExecutingCall()->user(),std::string(key),buffer_len);
         state_ptr->set(buffer_ptr);
+        return;
+    }
+    void ocall_faasm_append_state(const char* key, const uint8_t* buffer_ptr, const uint32_t buffer_len){
+        state::State &state = state::getGlobalState();
+        std::shared_ptr<state::StateKeyValue> state_ptr = state.getKV(wasm::getExecutingCall()->user(),std::string(key),buffer_len);
+        state_ptr->append(buffer_ptr, buffer_len);
+        return;
+    }
+    void ocall_faasm_clear_appended_state(const char* key){
+        state::State &state = state::getGlobalState();
+        std::shared_ptr<state::StateKeyValue> state_ptr = state.getKV(wasm::getExecutingCall()->user(),std::string(key));
+        state_ptr->clearAppended();
+        return;
+    }
+    void ocall_faasm_write_state_offset(const char* key, const uint64_t total_len, const uint64_t offset, const uint8_t* buffer_ptr, const uint32_t buffer_len){
+        state::State &state = state::getGlobalState();
+        std::shared_ptr<state::StateKeyValue> state_ptr = state.getKV(wasm::getExecutingCall()->user(),std::string(key),total_len);
+        state_ptr->setChunk(offset,buffer_ptr,buffer_len);
         return;
     }
     unsigned int ocall_faasm_get_input_size(void){

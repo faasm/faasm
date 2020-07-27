@@ -15,7 +15,12 @@ extern "C" {
 #endif
 uint64_t faasmReadStateSize(const char* key);
 uint64_t faasmReadState(const char* key, uint8_t* buffer_ptr, const uint32_t buffer_len);
+void faasmReadAppendedState(const char* key, uint8_t* buffer_ptr, const uint32_t buffer_len, const uint32_t element_num);
+void faasmReadStateOffset(const char* key, const uint64_t total_len, const uint64_t offset, uint8_t* buffer_ptr, const uint32_t buffer_len);
 void faasmWriteState(const char* key, const uint8_t* buffer_ptr, const uint32_t buffer_len);
+void faasmAppendState(const char* key, const uint8_t* buffer_ptr, const uint32_t buffer_len);
+void faasmClearAppendedState(const char* key);
+void faasmWriteStateOffset(const char* key, const uint64_t total_len, const uint64_t offset, const uint8_t* buffer_ptr, const uint32_t buffer_len);
 unsigned int faasmGetInputSize();
 void faasmGetInput(uint8_t* buffer, unsigned int buffer_size);
 void faasmSetOutput(const uint8_t* output, unsigned int output_size);

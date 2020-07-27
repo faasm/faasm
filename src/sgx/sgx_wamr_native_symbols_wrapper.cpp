@@ -27,13 +27,48 @@ extern "C"{
         sgx_status_t sgx_ret_val;
         uint64_t ret_val;
         if((sgx_ret_val = ocall_faasm_read_state(&ret_val, key, buffer_ptr, buffer_len)) != SGX_SUCCESS){
-            //Todo Error Handling
+            //Todo: Error Handling
         }
         return ret_val;
+    }
+    static void faasm_read_appended_state_wrapper(wasm_exec_env_t exec_env, const char* key, uint8_t* buffer_ptr, const uint32_t buffer_len, const uint32_t element_num){
+        sgx_status_t sgx_ret_val;
+        if((sgx_ret_val = ocall_faasm_read_appended_state(key, buffer_ptr, buffer_len, element_num)) != SGX_SUCCESS){
+            //Todo: Error handling
+        }
+        return;
+    }
+    static void faasm_read_state_offset_wrapper(wasm_exec_env_t exec_env, const char* key, const uint64_t total_len, const uint64_t offset, uint8_t* buffer_ptr, const uint32_t buffer_len){
+        sgx_status_t sgx_ret_val;
+        if((sgx_ret_val = ocall_faasm_read_state_offset(key,total_len,offset,buffer_ptr,buffer_len)) != SGX_SUCCESS){
+            //Todo: Error Handling
+        }
+        return;
     }
     static void faasm_write_state_wrapper(wasm_exec_env_t exec_env, const char* key, const uint8_t* buffer_ptr, const uint32_t buffer_len){
         sgx_status_t sgx_ret_val;
         if((sgx_ret_val = ocall_faasm_write_state(key, buffer_ptr, buffer_len)) != SGX_SUCCESS){
+            //Todo: Error Handling
+        }
+        return;
+    }
+    static void faasm_append_state_wrapper(wasm_exec_env_t exec_env, const char* key, const uint8_t* buffer_ptr, const uint32_t buffer_len){
+        sgx_status_t sgx_ret_val;
+        if((sgx_ret_val = ocall_faasm_append_state(key,buffer_ptr, buffer_len)) != SGX_SUCCESS){
+            //Todo: Error Handling
+        }
+        return;
+    }
+    static void faasm_clear_appended_state_wrapper(const char* key){
+        sgx_status_t sgx_ret_val;
+        if((sgx_ret_val = ocall_faasm_clear_appended_state(key)) != SGX_SUCCESS){
+            //Todo: Error Handling
+        }
+        return;
+    }
+    static void faasm_write_state_offset_wrapper(wasm_exec_env_t exec_env, const char* key, const uint64_t total_len, const uint64_t offset, const uint8_t* buffer_ptr, const uint32_t buffer_len){
+        sgx_status_t sgx_ret_val;
+        if((sgx_ret_val = ocall_faasm_write_state_offset(key,total_len,offset,buffer_ptr,buffer_len)) != SGX_SUCCESS){
             //Todo: Error Handling
         }
         return;
@@ -68,7 +103,6 @@ extern "C"{
         return ret_val;
     }
     static unsigned int faasm_await_call_wrapper(wasm_exec_env_t exec_env, unsigned int call_id){
-        os_printf("PTR: %p\n", sgx_wamr_tcs[tls_thread_id].response_ptr);
         sgx_status_t sgx_ret_val;
         unsigned int ret_val;
         ocall_faasm_await_call(&ret_val, call_id);
@@ -83,7 +117,12 @@ extern "C"{
     static NativeSymbol sgx_wamr_native_symbols[] = {
             {"faasmReadStateSize",(void*)faasm_read_state_size_wrapper,"($)I"},
             {"faasmReadState",(void*)faasm_read_state_wrapper,"($*~)I"},
+            {"faasmReadAppendedState",(void*)faasm_read_appended_state_wrapper,"($*~i)"},
+            {"faasmReadStateOffset",(void*)faasm_read_state_offset_wrapper,"($II*~)"},
             {"faasmWriteState",(void*)faasm_write_state_wrapper,"($*~)"},
+            {"faasmAppendState",(void*)faasm_append_state_wrapper,"($*~)"},
+            {"faasmClearAppendedState",(void*)faasm_clear_appended_state_wrapper,"($)"},
+            {"faasmWriteStateOffset",(void*)faasm_write_state_offset_wrapper,"($II*~)"},
             {"faasmGetInputSize",(void*)faasm_get_input_size_wrapper,"()i",0x0},
             {"faasmGetInput",(void*)faasm_get_input_wrapper,"(*~)",0x0},
             {"faasmSetOutput",(void*)faasm_set_output_wrapper,"(*~)",0x0},
