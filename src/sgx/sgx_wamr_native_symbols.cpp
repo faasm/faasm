@@ -59,6 +59,78 @@ extern "C"{
         state_ptr->setChunk(offset,buffer_ptr,buffer_len);
         return;
     }
+    void ocall_faasm_flag_state_dirty(const char* key, const uint64_t total_len){
+        state::State &state = state::getGlobalState();
+        std::shared_ptr<state::StateKeyValue> state_ptr = state.getKV(wasm::getExecutingCall()->user(),std::string(key),total_len);
+        state_ptr->flagDirty();
+        return;
+    }
+    void ocall_faasm_flag_state_offset_dirty(const char* key, const uint64_t total_len, const uint64_t offset, const uint64_t len){
+        state::State &state = state::getGlobalState();
+        std::shared_ptr<state::StateKeyValue> state_ptr = state.getKV(wasm::getExecutingCall()->user(),std::string(key),total_len);
+        state_ptr->flagChunkDirty(offset,len);
+        return;
+    }
+    void ocall_faasm_push_state(const char* key){
+        state::State &state = state::getGlobalState();
+        std::shared_ptr<state::StateKeyValue> state_ptr = state.getKV(wasm::getExecutingCall()->user(),std::string(key),0);
+        state_ptr->pushFull();
+        return;
+    }
+    void ocall_faasm_push_state_partial(const char* key){
+        state::State &state = state::getGlobalState();
+        std::shared_ptr<state::StateKeyValue> state_ptr = state.getKV(wasm::getExecutingCall()->user(),std::string(key),0);
+        state_ptr->pushPartial();
+        return;
+    }
+    void ocall_faasm_push_state_partial_mask(const char* key, const char* mask_key){
+        state::State &state = state::getGlobalState();
+        std::shared_ptr<state::StateKeyValue> state_ptr = state.getKV(wasm::getExecutingCall()->user(),std::string(key),0),mask_ptr = state.getKV(wasm::getExecutingCall()->user(),std::string(mask_key),0);
+        state_ptr->pushPartialMask(mask_ptr);
+        return;
+    }
+    void ocall_faasm_pull_state(const char* key, const uint64_t state_len){
+        state::State &state = state::getGlobalState();
+        std::shared_ptr<state::StateKeyValue> state_ptr = state.getKV(wasm::getExecutingCall()->user(),std::string(key),state_len);
+        state_ptr->pull();
+        return;
+    }
+    void ocall_faasm_lock_state_global(const char* key){
+        state::State &state = state::getGlobalState();
+        std::shared_ptr<state::StateKeyValue> state_ptr = state.getKV(wasm::getExecutingCall()->user(),std::string(key),0);
+        state_ptr->lockGlobal();
+        return;
+    }
+    void ocall_faasm_unlock_state_global(const char* key){
+        state::State &state = state::getGlobalState();
+        std::shared_ptr<state::StateKeyValue> state_ptr = state.getKV(wasm::getExecutingCall()->user(),std::string(key),0);
+        state_ptr->unlockGlobal();
+        return;
+    }
+    void ocall_faasm_lock_state_read(const char* key){
+        state::State &state = state::getGlobalState();
+        std::shared_ptr<state::StateKeyValue> state_ptr = state.getKV(wasm::getExecutingCall()->user(),std::string(key),0);
+        state_ptr->lockRead();
+        return;
+    }
+    void ocall_faasm_unlock_state_read(const char* key){
+        state::State &state = state::getGlobalState();
+        std::shared_ptr<state::StateKeyValue> state_ptr = state.getKV(wasm::getExecutingCall()->user(),std::string(key),0);
+        state_ptr->unlockRead();
+        return;
+    }
+    void ocall_faasm_lock_state_write(const char* key){
+        state::State &state = state::getGlobalState();
+        std::shared_ptr<state::StateKeyValue> state_ptr = state.getKV(wasm::getExecutingCall()->user(),std::string(key),0);
+        state_ptr->lockWrite();
+        return;
+    }
+    void ocall_faasm_unlock_state_write(const char* key){
+        state::State &state = state::getGlobalState();
+        std::shared_ptr<state::StateKeyValue> state_ptr = state.getKV(wasm::getExecutingCall()->user(),std::string(key),0);
+        state_ptr->unlockWrite();
+        return;
+    }
     unsigned int ocall_faasm_get_input_size(void){
         message::Message* bounded_message = wasm::getExecutingCall();
         return bounded_message->inputdata().size();
@@ -94,5 +166,8 @@ extern "C"{
     }
     unsigned int ocall_faasm_await_call_output(unsigned int call_id, uint8_t* buffer, unsigned int buffer_size){
         return wasm::awaitChainedCallOutput(call_id,buffer,buffer_size);
+    }
+    int ocall_faasm_get_current_idx(void){
+        return wasm::getExecutingCall()->idx();
     }
 };

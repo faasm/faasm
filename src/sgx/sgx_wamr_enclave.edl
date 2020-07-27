@@ -32,6 +32,18 @@ enclave{
         void ocall_faasm_append_state([in, string] char* key, [in, size=buffer_len] uint8_t* buffer_ptr, uint32_t buffer_len);
         void ocall_faasm_clear_appended_state([in, string] char* key);
         void ocall_faasm_write_state_offset([in, string] char* key, uint64_t total_len, uint64_t offset, [in, size=buffer_len] uint8_t* buffer_ptr, uint32_t buffer_len);
+        void ocall_faasm_flag_state_dirty([in, string] char* key, uint64_t total_len);
+        void ocall_faasm_flag_state_offset_dirty([in, string] char* key, uint64_t total_len, uint64_t offset, uint64_t len);
+        void ocall_faasm_push_state([in, string] char* key);
+        void ocall_faasm_push_state_partial([in, string] char* key);
+        void ocall_faasm_push_state_partial_mask([in, string] char* key, [in, string] char* mask_key);
+        void ocall_faasm_pull_state([in, string] char* key, uint64_t state_len);
+        void ocall_faasm_lock_state_global([in, string] char* key);
+        void ocall_faasm_unlock_state_global([in, string] char* key);
+        void ocall_faasm_lock_state_read([in, string] char* key);
+        void ocall_faasm_unlock_state_read([in, string] char* key);
+        void ocall_faasm_lock_state_write([in, string] char* key);
+        void ocall_faasm_unlock_state_write([in, string] char* key);
         unsigned int ocall_faasm_get_input_size(void);
         void ocall_faasm_get_input([in,out, size=buffer_size] uint8_t* buffer, unsigned int buffer_size);
         void ocall_faasm_set_output([in, size=output_size] uint8_t* output, unsigned int output_size);
@@ -39,5 +51,6 @@ enclave{
         unsigned int ocall_faasm_chain_this_input(int idx, [in, size=input_size] uint8_t* input, long input_size);
         unsigned int ocall_faasm_await_call(unsigned int call_id);
         unsigned int ocall_faasm_await_call_output(unsigned int call_id, [out, size=buffer_size] uint8_t* buffer, unsigned int buffer_size);
+        int ocall_faasm_get_current_idx(void);
     };
 };
