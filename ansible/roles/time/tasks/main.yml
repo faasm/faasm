@@ -1,0 +1,25 @@
+---
+
+- name: "Set timezone to ensure uniform system time"
+  become: yes
+  shell: "timedatectl set-timezone Etc/GMT"
+  when: quick_deploy is not defined
+
+- name: "Stop ntp service"
+  become: yes
+  service:
+    name: "ntp"
+    state: stopped
+  when: quick_deploy is not defined
+
+- name: "Stop ntp service"
+  become: yes
+  shell: "ntpd -gq"
+  when: quick_deploy is not defined
+
+- name: "Start ntp service"
+  become: yes
+  service:
+    name: "ntp"
+    state: started
+  when: quick_deploy is not defined

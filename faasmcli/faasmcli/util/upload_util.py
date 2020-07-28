@@ -85,7 +85,7 @@ def copy_object_in_s3(s3_bucket, src_key, dest_key, public=False):
     )
 
 
-def curl_file(url, file_path, headers=None):
+def curl_file(url, file_path, headers=None, quiet=False):
     cmd = [
         "curl",
         "-X", "PUT",
@@ -98,10 +98,13 @@ def curl_file(url, file_path, headers=None):
         cmd.append("-H \"{}: {}\"".format(key, value))
 
     cmd = " ".join(cmd)
-    print(cmd)
+
+    if not quiet:
+        print(cmd)
+
     res = subprocess.call(cmd, shell=True)
 
-    if res == 0:
+    if res == 0 and not quiet:
         print("Successfully PUT file {} to {}".format(file_path, url))
-    else:
+    elif res != 0:
         raise RuntimeError("Failed PUTting file {} to {}".format(file_path, url))

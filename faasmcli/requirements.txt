@@ -15,8 +15,10 @@ ibm-cos-sdk
 invoke
 Jinja2
 matplotlib
+networkx
 numpy
 packaging
+pydot
 pyperformance
 psutil
 pyaes

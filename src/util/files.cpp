@@ -9,6 +9,8 @@
 #include <sstream>
 #include <cstring>
 
+#define HTTP_FILE_TIMEOUT 20000
+
 namespace util {
     std::string readFileToString(const std::string &path) {
         std::ifstream stream(path);
@@ -75,7 +77,7 @@ namespace util {
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeDataCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &out);
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 1000);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, HTTP_FILE_TIMEOUT);
 
         // Add header
         if (!header.empty()) {

@@ -7,12 +7,12 @@
 namespace wasm {
     int awaitChainedCall(unsigned int messageId) {
         scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
-        scheduler::Scheduler &scheduler = scheduler::getScheduler();
         int callTimeoutMs = util::getSystemConfig().chainedCallTimeout;
 
         // Free this thread
-        message::Message *msg = getExecutingCall();
-        scheduler.notifyAwaiting(*msg);
+        // message::Message *msg = getExecutingCall();
+        // scheduler::Scheduler &scheduler = scheduler::getScheduler();
+        // scheduler.notifyAwaiting(*msg);
 
         int returnCode = 1;
         try {
@@ -24,7 +24,7 @@ namespace wasm {
             util::getLogger()->error("Non-timeout exception waiting for chained call: {}", ex.what());
         }
 
-        scheduler.notifyFinishedAwaiting(*msg);
+        // scheduler.notifyFinishedAwaiting(*msg);
 
         return returnCode;
     }
@@ -50,14 +50,21 @@ namespace wasm {
         const std::string origStr = util::funcToString(*originalCall, false);
         const std::string chainedStr = util::funcToString(call, false);
 
+        util::SystemConfig &conf = util::getSystemConfig();
         sch.callFunction(call);
         util::getLogger()->debug("Chained {} ({}) -> {} ({})",
                                  origStr,
-                                 util::getSystemConfig().endpointHost,
+                                 conf.endpointHost,
                                  chainedStr,
                                  call.scheduledhost()
         );
 
+        // Check if we need to log this
+        if(conf.execGraphMode == "on") {
+            scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
+            bus.logChainedFunction(originalCall->id(), call.id());
+        }
+        
         return call.id();
     }
 

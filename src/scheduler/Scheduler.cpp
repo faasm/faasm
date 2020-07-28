@@ -53,12 +53,23 @@ namespace scheduler {
             this->removeHostFromWarmSet(iter.first);
         }
 
-        // Clear all queues and data
-        bindQueue->reset();
+        // Reset host
+        thisHost = util::getSystemConfig().endpointHost;
+
+        // Clear all queues
+        for (const auto &p: queueMap) {
+            p.second->reset();
+        }
         queueMap.clear();
-        threadCountMap.clear();
+        bindQueue->reset();
+
+        // Reset all state
+        faasletCountMap.clear();
         inFlightCountMap.clear();
         opinionMap.clear();
+        _hasHostCapacity = true;
+
+        // Message IDs
         loggedMessageIds.clear();
 
         setMessageIdLogging(false);
@@ -75,22 +86,22 @@ namespace scheduler {
         }
     }
 
-    long Scheduler::getFunctionThreadCount(const message::Message &msg) {
+    long Scheduler::getFunctionWarmFaasletCount(const message::Message &msg) {
         std::string funcStr = util::funcToString(msg, false);
-        return threadCountMap[funcStr];
+        return faasletCountMap[funcStr];
     }
 
     double Scheduler::getFunctionInFlightRatio(const message::Message &msg) {
         std::string funcStr = util::funcToString(msg, false);
 
-        long threadCount = threadCountMap[funcStr];
+        long faasletCount = faasletCountMap[funcStr];
         long inFlightCount = getFunctionInFlightCount(msg);
 
-        if (threadCount == 0) {
+        if (faasletCount == 0) {
             return 0;
         }
 
-        return ((double) inFlightCount) / threadCount;
+        return ((double) inFlightCount) / faasletCount;
     }
 
     int Scheduler::getFunctionMaxInFlightRatio(const message::Message &msg) {
@@ -103,7 +114,8 @@ namespace scheduler {
     }
 
     long Scheduler::getFunctionInFlightCount(const message::Message &msg) {
-        return inFlightCountMap[util::funcToString(msg, false)];
+        const std::string funcStr = util::funcToString(msg, false);
+        return inFlightCountMap[funcStr];
     }
 
     std::shared_ptr<InMemoryMessageQueue> Scheduler::getFunctionQueue(const message::Message &msg) {
@@ -122,51 +134,32 @@ namespace scheduler {
 
     void Scheduler::notifyCallFinished(const message::Message &msg) {
         util::FullLock lock(mx);
-
-        // Decrement the in-flight count
-        const std::string funcStr = util::funcToString(msg, false);
-        inFlightCountMap[funcStr] = std::max(inFlightCountMap[funcStr] - 1, 0L);
-
-        updateOpinion(msg);
+        decrementInFlightCount(msg);
     }
 
-    void Scheduler::notifyThreadFinished(const message::Message &msg) {
-        std::string funcStr = util::funcToString(msg, false);
-
-        {
-            util::FullLock lock(mx);
-            threadCountMap[funcStr] = std::max(threadCountMap[funcStr] - 1, 0L);
-
-            updateOpinion(msg);
-        }
+    void Scheduler::notifyFaasletFinished(const message::Message &msg) {
+        util::FullLock lock(mx);
+        decrementWarmFaasletCount(msg);
     }
 
-    void Scheduler::notifyAwaiting(const message::Message &msg) {
-        std::string funcStr = util::funcToString(msg, false);
+    // void Scheduler::notifyAwaiting(const message::Message &msg) {
+    //     // When a faaslet is awaiting a call, it's paused in the background,
+    //     // so we can rebalance the warm faaslet and in-flight count for that
+    //     // function
+    //     util::FullLock lock(mx);
+    //     decrementInFlightCount(msg);
+    //     decrementWarmFaasletCount(msg);
+    // }
 
-        // When a thread is awaiting a call, we can reduce the thread count
-        // as it's doing a non-blocking wait, then we can potentially add more
-        {
-            util::FullLock lock(mx);
-            threadCountMap[funcStr] = std::max(threadCountMap[funcStr] - 1, 0L);
-
-            addWarmThreads(msg);
-
-            updateOpinion(msg);
-        }
-    }
-
-    void Scheduler::notifyFinishedAwaiting(const message::Message &msg) {
-        std::string funcStr = util::funcToString(msg, false);
-
-        // When a thread returns from awaiting, we can increase the thread count again
-        {
-            util::FullLock lock(mx);
-            threadCountMap[funcStr]++;
-
-            updateOpinion(msg);
-        }
-    }
+    // void Scheduler::notifyFinishedAwaiting(const message::Message &msg) {
+    //     // When a faaslet returns from awaiting, we can increase the faaslet and
+    //     // in-flight counts again
+    //     util::FullLock lock(mx);
+    //
+    //     // Note that we must re-add the Faaslet before increasing the in-flight count
+    //     incrementWarmFaasletCount(msg);
+    //     incrementInFlightCount(msg);
+    // }
 
     std::string Scheduler::getFunctionWarmSetName(const message::Message &msg) {
         std::string funcStr = util::funcToString(msg, false);
@@ -182,7 +175,7 @@ namespace scheduler {
     }
 
     Scheduler &getScheduler() {
-        // This is *global* and must be shared across threads
+        // This is *global* and must be shared across faaslets
         static Scheduler scheduler;
         return scheduler;
     }
@@ -191,13 +184,15 @@ namespace scheduler {
         util::FullLock lock(mx);
         PROF_START(scheduleCall)
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr <spdlog::logger> &logger = util::getLogger();
 
         // Get the best host
         std::string bestHost;
         if (forceLocal) {
             bestHost = thisHost;
         } else {
+            // Make sure our opinion is up to date
+            updateOpinion(msg);
             bestHost = this->getBestHostForFunction(msg);
         }
 
@@ -207,26 +202,17 @@ namespace scheduler {
         }
 
         // Log this call if needed
-        if(logMessageIds) {
+        if (logMessageIds) {
             loggedMessageIds.push_back(msg.id());
         }
 
         const std::string funcStrWithId = util::funcToString(msg, true);
-        const std::string funcStrNoId = util::funcToString(msg, false);
-
         if (bestHost == thisHost) {
             // Run locally if we're the best choice
             logger->debug("Executing {} locally", funcStrWithId);
             this->enqueueMessage(msg);
 
-            // Increment the in-flight count
-            inFlightCountMap[funcStrNoId]++;
-
-            // Add more threads if necessary
-            this->addWarmThreads(msg);
-
-            // Update our opinion
-            updateOpinion(msg);
+            incrementInFlightCount(msg);
         } else {
             // Increment the number of hops
             msg.set_hops(msg.hops() + 1);
@@ -242,38 +228,13 @@ namespace scheduler {
         PROF_END(scheduleCall)
     }
 
-    void Scheduler::addWarmThreads(const message::Message &msg) {
-        const std::shared_ptr<spdlog::logger> logger = util::getLogger();
-
-        int maxInFlightRatio = getFunctionMaxInFlightRatio(msg);
-        double inFlightRatio = getFunctionInFlightRatio(msg);
-        long nThreads = getFunctionThreadCount(msg);
-
-        const std::string funcStr = util::funcToString(msg, false);
-        logger->debug("{} IF ratio = {} (max {}) threads = {}", funcStr, inFlightRatio, maxInFlightRatio, nThreads);
-
-        // If we have no threads OR if we've got threads and are at or over the in-flight ratio
-        // and have capacity, then we need to scale up
-        bool needToScale = false;
-        needToScale |= (nThreads == 0);
-        needToScale |= (inFlightRatio >= maxInFlightRatio && nThreads < conf.maxWorkersPerFunction);
-
-        if (needToScale) {
-            logger->debug("Scaling up {} to {} threads", funcStr, nThreads + 1);
-
-            // Increment thread count here
-            threadCountMap[funcStr]++;
-
-            // Send bind message (i.e. request a thread)
-            message::Message bindMsg = util::messageFactory(msg.user(), msg.function());
-            bindMsg.set_type(message::Message_MessageType_BIND);
-            bindMsg.set_ispython(msg.ispython());
-            bindMsg.set_istypescript(msg.istypescript());
-            bindMsg.set_pythonuser(msg.pythonuser());
-            bindMsg.set_pythonfunction(msg.pythonfunction());
-
-            this->enqueueMessage(bindMsg);
+    long Scheduler::getTotalWarmFaasletCount() {
+        long totalCount = 0;
+        for (auto p : faasletCountMap) {
+            totalCount += p.second;
         }
+
+        return totalCount;
     }
 
     std::string opinionStr(const SchedulerOpinion &o) {
@@ -293,59 +254,71 @@ namespace scheduler {
     }
 
     void Scheduler::updateOpinion(const message::Message &msg) {
-        // Lock-free, should be called when lock held
+        // Note this function is lock-free, should be called when lock held
         const std::string funcStr = util::funcToString(msg, false);
+        SchedulerOpinion currentOpinion = opinionMap[funcStr];
 
-        // Check the thread capacity
-        long threadCount = this->getFunctionThreadCount(msg);
-        bool hasWarmThreads = threadCount > 0;
-        bool atMaxThreads = threadCount >= conf.maxWorkersPerFunction;
+        // Check per-function limits
+        long faasletCount = getFunctionWarmFaasletCount(msg);
+        bool hasWarmFaaslets = faasletCount > 0;
+        bool hasFunctionCapacity = faasletCount < conf.maxFaasletsPerFunction;
+
+        // Check the overall host capacity
+        long totalFaasletCount = getTotalWarmFaasletCount();
+        _hasHostCapacity = totalFaasletCount < conf.maxFaaslets;
 
         // Check the in-flight ratio
-        double inFlightRatio = this->getFunctionInFlightRatio(msg);
-        int maxInFlightRatio = this->getFunctionMaxInFlightRatio(msg);
+        double inFlightRatio = getFunctionInFlightRatio(msg);
+        int maxInFlightRatio = getFunctionMaxInFlightRatio(msg);
         bool isInFlightRatioBreached = inFlightRatio >= maxInFlightRatio;
 
         SchedulerOpinion newOpinion;
 
         if (isInFlightRatioBreached) {
-            if (atMaxThreads) {
-                // If in-flight ratio is breached and we're at the max, we're a definite NO
-                newOpinion = SchedulerOpinion::NO;
-            } else {
-                // If in-flight ratio is breached but we can add more threads, we're a YES
+            // If in-flight ratio breached, we need more capacity.
+            // If both the function and host have capacity, it's YES, otherwise NO.
+            if (hasFunctionCapacity && _hasHostCapacity) {
                 newOpinion = SchedulerOpinion::YES;
+            } else {
+                newOpinion = SchedulerOpinion::NO;
             }
-        } else if (hasWarmThreads) {
-            // If we've not breached the in-flight ratio and we have some warm threads, we're a YES
+        } else if (hasWarmFaaslets) {
+            // If we've not breached the in-flight ratio and we have some warm faaslets, it's YES
             newOpinion = SchedulerOpinion::YES;
+        } else if (!_hasHostCapacity) {
+            // If we have no warm faaslets and no host capacity, it's NO
+            newOpinion = SchedulerOpinion::NO;
         } else {
-            // If we have no threads we're a maybe
+            // In all other scenarios it's MAYBE
             newOpinion = SchedulerOpinion::MAYBE;
         }
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        SchedulerOpinion currentOpinion = opinionMap[funcStr];
+        const std::shared_ptr <spdlog::logger> &logger = util::getLogger();
         if (newOpinion != currentOpinion) {
             std::string newOpinionStr = opinionStr(newOpinion);
             std::string currentOpinionStr = opinionStr(currentOpinion);
 
             logger->debug(
-                    "{} updating {} from {} to {} (threads={} ({}), IF ratio={} ({}))",
+                    "{} updating {} from {} to {} (faaslets={} ({}), IF ratio={} ({}))",
                     thisHost,
                     funcStr,
                     currentOpinionStr,
                     newOpinionStr,
-                    threadCount,
-                    conf.maxWorkersPerFunction,
+                    faasletCount,
+                    conf.maxFaasletsPerFunction,
                     inFlightRatio,
                     maxInFlightRatio
             );
 
             if (newOpinion == SchedulerOpinion::NO) {
-                // Moving to no means we want to switch off from all decisions
+                // Moving to NO means we want to remove ourself from the set for this function
                 removeHostFromWarmSet(funcStr);
-                removeHostFromGlobalSet();
+
+                // If we've also reached this host's capacity, we want to drop out from all
+                // other scheduling decisions
+                if (!_hasHostCapacity) {
+                    removeHostFromGlobalSet();
+                }
             } else if (newOpinion == SchedulerOpinion::MAYBE && currentOpinion == SchedulerOpinion::NO) {
                 // Rejoin the global set if we're now a maybe when previously a no
                 addHostToGlobalSet();
@@ -368,13 +341,13 @@ namespace scheduler {
         }
     }
 
-    SchedulerOpinion Scheduler::getOpinion(const message::Message &msg) {
+    SchedulerOpinion Scheduler::getLatestOpinion(const message::Message &msg) {
         const std::string funcStr = funcToString(msg, false);
         return opinionMap[funcStr];
     }
 
     std::string Scheduler::getBestHostForFunction(const message::Message &msg) {
-        const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+        const std::shared_ptr <spdlog::logger> logger = util::getLogger();
 
         // If we're ignoring the scheduling, just put it on this host regardless
         if (conf.noScheduler == 1) {
@@ -392,7 +365,7 @@ namespace scheduler {
         // Get options from the warm set
         std::string warmSet = this->getFunctionWarmSetName(msg);
         redis::Redis &redis = redis::Redis::getQueue();
-        std::unordered_set<std::string> warmOptions = redis.smembers(warmSet);
+        std::unordered_set <std::string> warmOptions = redis.smembers(warmSet);
 
         // Remove this host from the warm options
         warmOptions.erase(thisHost);
@@ -408,7 +381,7 @@ namespace scheduler {
         }
 
         // Now there's no warm options we're rejecting, so check all options
-        std::unordered_set<std::string> allOptions = redis.smembers(AVAILABLE_HOST_SET);
+        std::unordered_set <std::string> allOptions = redis.smembers(AVAILABLE_HOST_SET);
         allOptions.erase(thisHost);
 
         if (!allOptions.empty()) {
@@ -430,5 +403,70 @@ namespace scheduler {
 
     std::vector<unsigned int> Scheduler::getScheduledMessageIds() {
         return loggedMessageIds;
+    }
+
+    bool Scheduler::hasHostCapacity() {
+        return _hasHostCapacity;
+    }
+
+    void Scheduler::incrementInFlightCount(const message::Message &msg) {
+        const std::shared_ptr <spdlog::logger> logger = util::getLogger();
+
+        // Increment the in-flight count
+        const std::string funcStr = util::funcToString(msg, false);
+        inFlightCountMap[funcStr]++;
+
+        // Check ratios
+        double inFlightRatio = getFunctionInFlightRatio(msg);
+        int maxInFlightRatio = getFunctionMaxInFlightRatio(msg);
+        long nFaaslets = getFunctionWarmFaasletCount(msg);
+        logger->debug("{} IF ratio = {} (max {}) faaslets = {}", funcStr, inFlightRatio, maxInFlightRatio, nFaaslets);
+
+        // If we have no faaslets OR if we've got faaslets and are over the in-flight ratio
+        // and have capacity, then we need to scale up
+        bool needToScale = false;
+        needToScale |= (nFaaslets == 0);
+        needToScale |= (inFlightRatio > maxInFlightRatio && nFaaslets < conf.maxFaasletsPerFunction);
+
+        if (needToScale) {
+            logger->debug("Scaling up {} to {} faaslets", funcStr, nFaaslets + 1);
+
+            // Increment faaslet count here
+            incrementWarmFaasletCount(msg);
+
+            // Send bind message (i.e. request a faaslet)
+            message::Message bindMsg = util::messageFactory(msg.user(), msg.function());
+            bindMsg.set_type(message::Message_MessageType_BIND);
+            bindMsg.set_ispython(msg.ispython());
+            bindMsg.set_istypescript(msg.istypescript());
+            bindMsg.set_pythonuser(msg.pythonuser());
+            bindMsg.set_pythonfunction(msg.pythonfunction());
+
+            this->enqueueMessage(bindMsg);
+        }
+
+        // Update our opinion
+        updateOpinion(msg);
+    }
+
+    void Scheduler::decrementInFlightCount(const message::Message &msg) {
+        const std::string funcStr = util::funcToString(msg, false);
+        inFlightCountMap[funcStr] = std::max(inFlightCountMap[funcStr] - 1, 0L);
+
+        updateOpinion(msg);
+    }
+
+    void Scheduler::incrementWarmFaasletCount(const message::Message &msg) {
+        std::string funcStr = util::funcToString(msg, false);
+        faasletCountMap[funcStr]++;
+
+        updateOpinion(msg);
+    }
+
+    void Scheduler::decrementWarmFaasletCount(const message::Message &msg) {
+        const std::string funcStr = util::funcToString(msg, false);
+        faasletCountMap[funcStr] = std::max(faasletCountMap[funcStr] - 1, 0L);
+
+        updateOpinion(msg);
     }
 }

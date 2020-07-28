@@ -10,8 +10,6 @@ namespace tests {
         SystemConfig conf;
         conf.reset();
 
-        REQUIRE(conf.threadsPerWorker == 5);
-
         // CI has to override some stuff
         if (conf.hostType == "ci") {
             REQUIRE(conf.redisStateHost == "redis");
@@ -38,9 +36,12 @@ namespace tests {
         REQUIRE(conf.redisPort == "6379");
 
         REQUIRE(conf.noScheduler == 0);
-        REQUIRE(conf.maxInFlightRatio == 3);
-        REQUIRE(conf.maxWorkersPerFunction == 10);
+        REQUIRE(conf.maxFaaslets == 5);
+        REQUIRE(conf.maxInFlightRatio == 1);
+        REQUIRE(conf.maxFaasletsPerFunction == 5);
+
         REQUIRE(conf.threadMode == "local");
+        REQUIRE(conf.ompThreadPoolSize == 0);
 
         REQUIRE(conf.globalMessageTimeout == 60000);
         REQUIRE(conf.boundTimeout == 30000);
@@ -52,8 +53,6 @@ namespace tests {
 
     TEST_CASE("Test overriding system config initialisation", "[util]") {
         std::string originalHostType = getSystemConfig().hostType;
-
-        std::string threads = setEnvVar("THREADS_PER_WORKER", "50");
 
         std::string hostType = setEnvVar("HOST_TYPE", "magic");
         std::string messageBus = setEnvVar("GLOBAL_MESSAGE_BUS", "blah");
@@ -76,9 +75,12 @@ namespace tests {
         std::string irCacheMode = setEnvVar("IR_CACHE_MODE", "foo-ir-cache");
 
         std::string noScheduler = setEnvVar("NO_SCHEDULER", "1");
+        std::string threads = setEnvVar("MAX_FAASLETS", "50");
         std::string inFlightRatio = setEnvVar("MAX_IN_FLIGHT_RATIO", "8888");
-        std::string workers = setEnvVar("MAX_WORKERS_PER_FUNCTION", "7777");
+        std::string workers = setEnvVar("MAX_FAASLETS_PER_FUNCTION", "7777");
+
         std::string threadMode = setEnvVar("THREAD_MODE", "threadfoo");
+        std::string ompPoolSize = setEnvVar("OMP_THREAD_POOL_SIZE", "1234");
 
         std::string globalTimeout = setEnvVar("GLOBAL_MESSAGE_TIMEOUT", "9876");
         std::string boundTimeout = setEnvVar("BOUND_TIMEOUT", "6666");
@@ -97,7 +99,6 @@ namespace tests {
 
         // Create new conf for test
         SystemConfig conf;
-        REQUIRE(conf.threadsPerWorker == 50);
 
         REQUIRE(conf.hostType == "magic");
         REQUIRE(conf.globalMessageBus == "blah");
@@ -120,9 +121,12 @@ namespace tests {
         REQUIRE(conf.irCacheMode == "foo-ir-cache");
 
         REQUIRE(conf.noScheduler == 1);
+        REQUIRE(conf.maxFaaslets == 50);
         REQUIRE(conf.maxInFlightRatio == 8888);
-        REQUIRE(conf.maxWorkersPerFunction == 7777);
+        REQUIRE(conf.maxFaasletsPerFunction == 7777);
+
         REQUIRE(conf.threadMode == "threadfoo");
+        REQUIRE(conf.ompThreadPoolSize == 1234);
 
         REQUIRE(conf.globalMessageTimeout == 9876);
         REQUIRE(conf.boundTimeout == 6666);
@@ -141,8 +145,6 @@ namespace tests {
 
         // Be careful with host type
         setEnvVar("HOST_TYPE", originalHostType);
-
-        setEnvVar("THREADS_PER_WORKER", threads);
 
         setEnvVar("GLOBAL_MESSAGE_BUS", messageBus);
         setEnvVar("FUNCTION_STORAGE", funcStorage);
@@ -164,9 +166,12 @@ namespace tests {
         setEnvVar("IR_CACHE_MODE", irCacheMode);
 
         setEnvVar("NO_SCHEDULER", noScheduler);
+        setEnvVar("MAX_FAASLETS", threads);
         setEnvVar("MAX_IN_FLIGHT_RATIO", inFlightRatio);
-        setEnvVar("MAX_WORKERS_PER_FUNCTION", workers);
+        setEnvVar("MAX_FAASLETS_PER_FUNCTION", workers);
+
         setEnvVar("THREAD_MODE", threadMode);
+        setEnvVar("OMP_THREAD_POOL_SIZE", threadMode);
 
         setEnvVar("GLOBAL_MESSAGE_TIMEOUT", globalTimeout);
         setEnvVar("BOUND_TIMEOUT", boundTimeout);

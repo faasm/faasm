@@ -26,8 +26,8 @@ int main(int argc, char *argv[]) {
     // Make sure we have enough space for chained calls
     int nThreads = 10;
     conf.defaultMpiWorldSize = 5;
-    conf.threadsPerWorker = nThreads;
-    conf.maxWorkersPerFunction = nThreads;
+    conf.maxFaaslets = nThreads;
+    conf.maxFaasletsPerFunction = nThreads;
 
     // Clear out redis
     redis::Redis &redis = redis::Redis::getQueue();

@@ -27,20 +27,20 @@ namespace tests {
         // Call the function, checking that everything is set up
         sch.callFunction(call);
         REQUIRE(sch.getFunctionInFlightCount(call) == 1);
-        REQUIRE(sch.getFunctionThreadCount(call) == 1);
+        REQUIRE(sch.getFunctionWarmFaasletCount(call) == 1);
         REQUIRE(bindQueue->size() == 1);
 
         // Process the bind message
         w.processNextMessage();
         REQUIRE(w.isBound());
         REQUIRE(sch.getFunctionInFlightCount(call) == 1);
-        REQUIRE(sch.getFunctionThreadCount(call) == 1);
+        REQUIRE(sch.getFunctionWarmFaasletCount(call) == 1);
         REQUIRE(bindQueue->size() == 0);
 
         // Now execute the function
         w.processNextMessage();
         REQUIRE(sch.getFunctionInFlightCount(call) == 0);
-        REQUIRE(sch.getFunctionThreadCount(call) == 1);
+        REQUIRE(sch.getFunctionWarmFaasletCount(call) == 1);
         REQUIRE(bindQueue->size() == 0);
 
         // Check success
@@ -128,8 +128,8 @@ namespace tests {
         conf.pythonPreload = pythonPreload ? "on" : "off";
 
         // Set up a real worker pool to execute the function
-        conf.threadsPerWorker = nThreads;
-        conf.maxWorkersPerFunction = nThreads;
+        conf.maxFaaslets = nThreads;
+        conf.maxFaasletsPerFunction = nThreads;
         FaasletPool pool(nThreads);
         pool.startThreadPool();
 

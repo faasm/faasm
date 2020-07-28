@@ -70,8 +70,8 @@ KNATIVE_ENV = {
     "PYTHON_CODEGEN": "off",  # Switch on/ off up-front codegen for Python
     "MAX_IN_FLIGHT_RATIO": "1",
     "NO_SCHEDULER": "0",  # Turn on/ off Faasm scheduler
-    "MAX_WORKERS_PER_FUNCTION": "6",  # This limit is per-host. We only want one instance per core
-    "THREADS_PER_WORKER": "40",  # This is how many threads are available in total per host (across all functions)
+    "MAX_FAASLETS_PER_FUNCTION": "6",  # This limit is per-host. We only want one instance per core
+    "MAX_FAASLETS": "40",  # This is how many threads are available in total per host (across all functions)
     "BOUND_TIMEOUT": str(THIRTY_SECS),  # How long a bound worker sticks around for
     "UNBOUND_TIMEOUT": str(10 * ONE_MIN),  # How long an unbound worker sticks around for
     "GLOBAL_MESSAGE_TIMEOUT": str(2 * ONE_MIN),  # How long things wait for messages on global bus

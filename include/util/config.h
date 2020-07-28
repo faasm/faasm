@@ -6,6 +6,7 @@
 
 #define DEFAULT_TIMEOUT 60000
 #define RESULT_KEY_EXPIRY 30000
+#define STATUS_KEY_EXPIRY 300000
 
 namespace util {
     class SystemConfig {
@@ -26,6 +27,7 @@ namespace util {
         std::string captureStdout;
         std::string stateMode;
         std::string wasmVm;
+        std::string execGraphMode;
 
         // Redis
         std::string redisStateHost;
@@ -36,10 +38,12 @@ namespace util {
         std::string irCacheMode;
 
         // Scheduling
-        int threadsPerWorker;
+        int maxFaaslets;
         int noScheduler;
         int maxInFlightRatio;
-        int maxWorkersPerFunction;
+        int maxFaasletsPerFunction;
+
+        // Threading
         std::string threadMode;
         int ompThreadPoolSize;
 

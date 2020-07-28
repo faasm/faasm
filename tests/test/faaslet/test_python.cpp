@@ -59,7 +59,7 @@ namespace tests {
         writeCall.set_pythonuser("python");
         writeCall.set_pythonfunction("state_test_write");
         writeCall.set_ispython(true);
-        faaslet::Faaslet worker = execFunction(writeCall);
+        faaslet::Faaslet faaslet = execFunction(writeCall);
 
         // Now run the state read function
         message::Message readCall = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
@@ -70,7 +70,7 @@ namespace tests {
         // Schedule and execute the next call
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.callFunction(readCall);
-        worker.processNextMessage();
+        faaslet.processNextMessage();
 
         // Check success
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
