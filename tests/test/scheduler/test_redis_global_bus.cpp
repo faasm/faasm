@@ -5,6 +5,8 @@
 #include <scheduler/Scheduler.h>
 
 #include <util/queue.h>
+#include <util/bytes.h>
+#include <util/json.h>
 
 using namespace scheduler;
 
@@ -92,7 +94,7 @@ namespace tests {
 
         // Sanity check
         REQUIRE((nWaiters * nWaiterMessages) == (nWorkers * nWorkerMessages));
-        
+
         std::vector<std::thread> waiterThreads;
         std::vector<std::thread> workerThreads;
 
@@ -105,7 +107,7 @@ namespace tests {
                 message::Message msg = util::messageFactory("demo", "echo");
 
                 // Put invocation on local queue and await global result
-                for(int m = 0; m < nWaiterMessages; m++) {
+                for (int m = 0; m < nWaiterMessages; m++) {
                     sch.enqueueMessage(msg);
                     bus.getFunctionResult(msg.id(), 5000);
                 }
@@ -122,7 +124,7 @@ namespace tests {
                 const std::shared_ptr<InMemoryMessageQueue> &queue = sch.getFunctionQueue(dummyMsg);
 
                 // Listen to local queue, set result on global bus
-                for(int m = 0; m < nWorkerMessages; m++) {
+                for (int m = 0; m < nWorkerMessages; m++) {
                     message::Message msg = queue->dequeue(5000);
                     bus.setFunctionResult(msg);
                 }
@@ -130,14 +132,14 @@ namespace tests {
         }
 
         // Wait for all the threads to finish
-        for(auto &w : waiterThreads) {
-            if(w.joinable()) {
+        for (auto &w : waiterThreads) {
+            if (w.joinable()) {
                 w.join();
             }
         }
 
-        for(auto &w : workerThreads) {
-            if(w.joinable()) {
+        for (auto &w : workerThreads) {
+            if (w.joinable()) {
                 w.join();
             }
         }
@@ -147,10 +149,8 @@ namespace tests {
 
     TEST_CASE("Check getting function status", "[scheduler]") {
         cleanSystem();
-        
+
         GlobalMessageBus &bus = getGlobalMessageBus();
-        
-        // Create a message
 
         std::string expectedOutput;
         int expectedReturnValue = 0;
@@ -196,5 +196,71 @@ namespace tests {
         REQUIRE(result.type() == expectedType);
         REQUIRE(result.outputdata() == expectedOutput);
         REQUIRE(result.executedhost() == expectedHost);
+    }
+
+    TEST_CASE("Check setting long-lived function status", "[scheduler]") {
+        cleanSystem();
+        GlobalMessageBus &bus = getGlobalMessageBus();
+        util::SystemConfig &conf = util::getSystemConfig();
+        redis::Redis &redis = redis::Redis::getQueue();
+
+        std::string originalExecGraph = conf.execGraphMode;
+
+        // Create a message
+        message::Message msg = util::messageFactory("demo", "echo");
+        message::Message expected = msg;
+        expected.set_executedhost(util::getSystemConfig().endpointHost);
+
+        SECTION("With exec graph switched off") {
+            conf.execGraphMode = "off";
+            bus.setFunctionResult(msg);
+
+            REQUIRE(redis.get(msg.statuskey()).empty());
+        }
+
+        SECTION("With exec graph switched on") {
+            conf.execGraphMode = "on";
+            bus.setFunctionResult(msg);
+
+            std::vector<uint8_t> actual = redis.get(msg.statuskey());
+            REQUIRE(!actual.empty());
+
+            message::Message actualMsg;
+            actualMsg.ParseFromArray(actual.data(), (int) actual.size());
+
+            // We can't predict the finish timestamp, so have to manually copy here
+            REQUIRE(actualMsg.finishtimestamp() > 0);
+            expected.set_finishtimestamp(actualMsg.finishtimestamp());
+
+            checkMessageEquality(actualMsg, expected);
+        }
+
+        conf.execGraphMode = originalExecGraph;
+    }
+
+    TEST_CASE("Check logging chained functions", "[scheduler]") {
+        cleanSystem();
+
+        GlobalMessageBus &bus = getGlobalMessageBus();
+
+        message::Message msg = util::messageFactory("demo", "echo");
+        unsigned int chainedMsgIdA = 1234;
+        unsigned int chainedMsgIdB = 5678;
+        unsigned int chainedMsgIdC = 9876;
+
+        // Check empty initially
+        REQUIRE(bus.getChainedFunctions(msg.id()).empty());
+
+        // Log and check this shows up in the result
+        bus.logChainedFunction(msg.id(), chainedMsgIdA);
+        std::unordered_set<unsigned int> expected = {chainedMsgIdA};
+        REQUIRE(bus.getChainedFunctions(msg.id()) == expected);
+
+        // Log some more and check
+        bus.logChainedFunction(msg.id(), chainedMsgIdA);
+        bus.logChainedFunction(msg.id(), chainedMsgIdB);
+        bus.logChainedFunction(msg.id(), chainedMsgIdC);
+        expected = {chainedMsgIdA, chainedMsgIdB, chainedMsgIdC};
+        REQUIRE(bus.getChainedFunctions(msg.id()) == expected);
     }
 }

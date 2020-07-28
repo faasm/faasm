@@ -20,42 +20,45 @@ message Message {
 
     optional MessageType type = 8 [default = CALL];
 
-    optional int32 id = 9;
-    optional string resultKey = 10;
-    optional string statusKey = 11;
+    optional int64 timestamp = 9;
+    optional int32 id = 10;
+    optional string resultKey = 11;
+    optional string statusKey = 12;
 
-    optional string scheduledHost = 12;
-    optional int32 hops = 13 [default = 0];
-    optional string executedHost = 14;
+    optional string scheduledHost = 13;
+    optional int32 hops = 14 [default = 0];
+    optional string executedHost = 15;
+    optional int64 finishTimestamp = 16;
 
-    optional bool isAsync = 15;
-    optional bool isPython = 16;
-    optional bool isTypescript = 17;
-    optional bool isStatusRequest = 18;
-    optional bool isFlushRequest = 19;
+    optional bool isAsync = 17;
+    optional bool isPython = 18;
+    optional bool isTypescript = 19;
+    optional bool isStatusRequest = 20;
+    optional bool isExecGraphRequest = 21;
+    optional bool isFlushRequest = 22;
 
-    optional bytes inputData = 20;
-    optional bytes outputData = 21;
+    optional bytes inputData = 23;
+    optional bytes outputData = 24;
 
-    optional string pythonUser = 22;
-    optional string pythonFunction = 23;
-    optional string pythonEntry = 24;
+    optional string pythonUser = 25;
+    optional string pythonFunction = 26;
+    optional string pythonEntry = 27;
 
-    optional int32 coldStartInterval = 25;
+    optional int32 coldStartInterval = 28;
 
-    optional bool isMpi = 26;
-    optional int32 mpiWorldId = 27;
-    optional int32 mpiRank = 28;
-    optional int32 mpiWorldSize = 29;
+    optional bool isMpi = 29;
+    optional int32 mpiWorldId = 30 [default = -1];
+    optional int32 mpiRank = 31 [default = -1];
+    optional int32 mpiWorldSize = 32 [default = -1];
 
-    optional int32 ompThreadNum = 30 [default = 0];
-    repeated uint32 ompFunctionArgs = 31;
-    optional int32 ompDepth = 32;
-    optional int32 ompEffDepth = 33;
-    optional int32 ompMAL = 34;
-    optional int32 ompNumThreads = 35;
+    optional int32 ompThreadNum = 33 [default = 0];
+    repeated uint32 ompFunctionArgs = 34;
+    optional int32 ompDepth = 35;
+    optional int32 ompEffDepth = 36;
+    optional int32 ompMAL = 37;
+    optional int32 ompNumThreads = 38;
 
-    optional string cmdline = 36;
+    optional string cmdline = 39;
 
-    optional bool isSgx = 37;
+    optional bool isSgx = 40;
 }

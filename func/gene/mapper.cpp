@@ -12,6 +12,10 @@ static int indexChunks[N_CHUNKS] = {
 	21, 22, 23, 24
 };
 
+// Variable to control whether we invoke a different function per index chunk
+// or just the same function each time
+static bool mapperPerIndex = false;
+
 /*
  * This function fans out the mapping for a given chunk of reads and awaits the results.
  */
@@ -35,7 +39,13 @@ FAASM_MAIN_FUNC() {
         auto inputBytes = (unsigned char *) input;
 
         // Dispatch the function
-        std::string funcName = "mapper_index" + std::to_string(chunkIdx);
+        std::string funcName;
+        if(mapperPerIndex) {
+            funcName = "mapper_index" + std::to_string(chunkIdx);
+        } else {
+            funcName = "mapper_index";
+        }
+
         unsigned int callId = faasmChainFunctionInput(funcName.c_str(), inputBytes, 2 * sizeof(int));
         printf("Chained call %u\n", callId);
         callIds[i] = callId;

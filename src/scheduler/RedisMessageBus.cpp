@@ -3,8 +3,15 @@
 #include <util/logging.h>
 #include <util/json.h>
 #include <util/timing.h>
+#include <util/bytes.h>
+
+#define CHAINED_SET_PREFIX "chained_"
 
 namespace scheduler {
+    std::string getChainedKey(unsigned int msgId) {
+        return std::string(CHAINED_SET_PREFIX) + std::to_string(msgId);
+    }
+
     RedisMessageBus::RedisMessageBus() : redis(redis::Redis::getQueue()) {
 
     }
@@ -51,6 +58,9 @@ namespace scheduler {
         // Record which host did the execution
         msg.set_executedhost(util::getSystemConfig().endpointHost);
 
+        // Set finish timestamp
+        msg.set_finishtimestamp(util::getGlobalClock().epochMillis());
+
         std::string key = msg.resultkey();
         if (key.empty()) {
             throw std::runtime_error("Result key empty. Cannot publish result");
@@ -62,6 +72,12 @@ namespace scheduler {
 
         // Set the result key to expire
         redis.expire(key, RESULT_KEY_EXPIRY);
+
+        // Set long-lived result for function too
+        if (conf.execGraphMode == "on") {
+            redis.set(msg.statuskey(), inputData);
+            redis.expire(key, STATUS_KEY_EXPIRY);
+        }
     }
 
     message::Message RedisMessageBus::getFunctionResult(unsigned int messageId, int timeoutMs) {
@@ -73,14 +89,13 @@ namespace scheduler {
 
         std::string resultKey = util::resultKeyFromMessageId(messageId);
 
+        message::Message msgResult;
+
         if (isBlocking) {
             // Blocking version will throw an exception when timing out which is handled
             // by the caller.
             std::vector<uint8_t> result = redis.dequeueBytes(resultKey, timeoutMs);
-            message::Message msgResult;
             msgResult.ParseFromArray(result.data(), (int) result.size());
-
-            return msgResult;
         } else {
             // Non-blocking version will tolerate empty responses, therefore we handle
             // the exception here
@@ -91,7 +106,6 @@ namespace scheduler {
                 // Ok for no response when not blocking
             }
 
-            message::Message msgResult;
             if (result.empty()) {
                 // Empty result has special type
                 msgResult.set_type(message::Message_MessageType_EMPTY);
@@ -99,11 +113,42 @@ namespace scheduler {
                 // Normal response if we get something from redis
                 msgResult.ParseFromArray(result.data(), (int) result.size());
             }
-
-            return msgResult;
         }
+
+        return msgResult;
     }
 
+    ExecGraph RedisMessageBus::getFunctionExecGraph(unsigned int messageId) {
+        ExecGraphNode rootNode = getFunctionExecGraphNode(messageId);
+        ExecGraph graph {
+            .rootNode = rootNode
+        };
+
+        return graph;
+    }
+
+    ExecGraphNode RedisMessageBus::getFunctionExecGraphNode(unsigned int messageId) {
+        // Get the result for this message
+        std::string statusKey = util::statusKeyFromMessageId(messageId);
+        std::vector<uint8_t> messageBytes = redis.get(statusKey);
+        message::Message result;
+        result.ParseFromArray(messageBytes.data(), (int) messageBytes.size());
+
+        // Recurse through chained calls
+        std::unordered_set<unsigned int> chainedMsgIds = getChainedFunctions(messageId);
+        std::vector<ExecGraphNode> children;
+        for (auto c : chainedMsgIds) {
+            children.emplace_back(getFunctionExecGraphNode(c));
+        }
+
+        // Build the node
+        ExecGraphNode node {
+            .msg = result,
+            .children = children
+        };
+
+        return node;
+    }
 
     std::string RedisMessageBus::getMessageStatus(unsigned int messageId) {
         const message::Message result = getFunctionResult(messageId, 0);
@@ -115,6 +160,24 @@ namespace scheduler {
         } else {
             return "FAILED: " + result.outputdata();
         }
+    }
+
+    void RedisMessageBus::logChainedFunction(unsigned int parentMessageId, unsigned int chainedMessageId) {
+        const std::string &key = getChainedKey(parentMessageId);
+        redis.sadd(key, std::to_string(chainedMessageId));
+        redis.expire(key, STATUS_KEY_EXPIRY);
+    }
+
+    std::unordered_set<unsigned int> RedisMessageBus::getChainedFunctions(unsigned int msgId) {
+        const std::string &key = getChainedKey(msgId);
+        const std::unordered_set<std::string> chainedCalls = redis.smembers(key);
+
+        std::unordered_set<unsigned int> chainedIds;
+        for (auto i : chainedCalls) {
+            chainedIds.insert(std::stoi(i));
+        }
+
+        return chainedIds;
     }
 
     void RedisMessageBus::clear() {
