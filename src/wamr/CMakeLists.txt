@@ -91,6 +91,7 @@ set(LIB_FILES
 # Link the specific LLVM libraries that WAMR needs
 llvm_map_components_to_libnames(
         WAMR_LLVM_LIBRARIES
+	core
         lto
         executionengine
         mcjit
