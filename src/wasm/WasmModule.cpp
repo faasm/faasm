@@ -1,6 +1,5 @@
 #include "WasmModule.h"
 
-#include <ir_cache/IRModuleCache.h>
 #include <util/bytes.h>
 #include <util/config.h>
 #include <util/func.h>
@@ -25,9 +24,9 @@ namespace wasm {
         executingCall = other;
     }
 
-    Uptr getNumberOfWasmPagesForBytes(U32 nBytes) {
+    size_t getNumberOfWasmPagesForBytes(uint32_t nBytes) {
         // Round up to nearest page
-        Uptr pageCount = (Uptr(nBytes) + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
+        size_t pageCount = (size_t(nBytes) + WASM_BYTES_PER_PAGE - 1) / WASM_BYTES_PER_PAGE;
 
         return pageCount;
     }
@@ -175,11 +174,11 @@ namespace wasm {
         stdoutSize = 0;
     }
 
-    U32 WasmModule::getArgc() {
+    uint32_t WasmModule::getArgc() {
         return argc;
     }
 
-    U32 WasmModule::getArgvBufferSize() {
+    uint32_t WasmModule::getArgvBufferSize() {
         return argvBufferSize;
     }
 
@@ -208,7 +207,7 @@ namespace wasm {
      *
      * To perform the mapping we need to ensure allocated memory is page-aligned.
      */
-    uint32_t WasmModule::mapSharedStateMemory(const std::shared_ptr<state::StateKeyValue> &kv, long offset, U32 length) {
+    uint32_t WasmModule::mapSharedStateMemory(const std::shared_ptr<state::StateKeyValue> &kv, long offset, uint32_t length) {
         // See if we already have this segment mapped into memory
         std::string segmentKey =
                 kv->user + "_" + kv->key + "__" + std::to_string(offset) + "__" + std::to_string(length);
@@ -222,8 +221,8 @@ namespace wasm {
                 // Create the wasm memory region and work out the offset to the start of the
                 // desired chunk in this region (this will be zero if the offset is already
                 // zero, or if the offset is page-aligned already).
-                U32 wasmBasePtr = this->mmapMemory(chunk.nBytesLength);
-                U32 wasmOffsetPtr = wasmBasePtr + chunk.offsetRemainder;
+                uint32_t wasmBasePtr = this->mmapMemory(chunk.nBytesLength);
+                uint32_t wasmOffsetPtr = wasmBasePtr + chunk.offsetRemainder;
 
                 // Map the shared memory
                 uint8_t *wasmMemoryRegionPtr = wasmPointerToNative(wasmBasePtr);

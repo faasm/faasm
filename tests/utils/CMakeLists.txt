@@ -20,5 +20,4 @@ target_link_libraries(test_utils
         tcp
         worker_knative_lib
         worker_ibm_lib
-        wamrmodule
         )

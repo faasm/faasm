@@ -13,7 +13,7 @@ using namespace WAVM;
 namespace wasm {
     bool isPageAligned(I32 address) {
         Uptr addrPtr = (Uptr) address;
-        if (addrPtr & (IR::numBytesPerPage - 1)) {
+        if (addrPtr & (WASM_BYTES_PER_PAGE - 1)) {
             return false;
         } else {
             return true;
@@ -182,7 +182,7 @@ namespace wasm {
         Runtime::Memory *memory = module->defaultMemory;
 
         Uptr currentPageCount = getMemoryNumPages(memory);
-        const U32 currentBreak = (U32) (currentPageCount * IR::numBytesPerPage);
+        const U32 currentBreak = (U32) (currentPageCount * WASM_BYTES_PER_PAGE);
 
         // Return current break if addr is zero
         if (addr == 0) {
@@ -229,7 +229,7 @@ namespace wasm {
         Runtime::Memory *memory = module->defaultMemory;
 
         Uptr currentPageCount = getMemoryNumPages(memory);
-        const U32 currentBreak = (U32) (currentPageCount * IR::numBytesPerPage);
+        const U32 currentBreak = (U32) (currentPageCount * WASM_BYTES_PER_PAGE);
 
         // Calling sbrk with zero is the same as calling brk with zero
         if (increment == 0) {

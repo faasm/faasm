@@ -16,6 +16,8 @@
 
 #define ONE_MB_BYTES 1024 * 1024
 
+#define WASM_BYTES_PER_PAGE 65536
+
 // Note: this is *not* controlling the size provisioned by the linker, that is hard-coded in the build.
 // This variable is just here for reference and must be updated to match the value in the build.
 #define STACK_SIZE 4 * ONE_MB_BYTES

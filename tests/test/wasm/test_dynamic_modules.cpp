@@ -66,7 +66,7 @@ namespace tests {
 
         // Get initial sizes
         Uptr initialTableSize = Runtime::getTableNumElements(module.defaultTable);
-        Uptr initialMemSize = Runtime::getMemoryNumPages(module.defaultMemory) * IR::numBytesPerPage;
+        Uptr initialMemSize = Runtime::getMemoryNumPages(module.defaultMemory) * WASM_BYTES_PER_PAGE;
 
         // --- Module One ---
         std::string modulePathA = getPythonModuleA();
@@ -85,8 +85,8 @@ namespace tests {
         REQUIRE(tableBaseA == initialTableSize);
 
         // Check the memory has grown sufficiently
-        Uptr memSizeAfterA = Runtime::getMemoryNumPages(module.defaultMemory) * IR::numBytesPerPage;
-        Uptr heapSize = DYNAMIC_MODULE_HEAP_PAGES * IR::numBytesPerPage;
+        Uptr memSizeAfterA = Runtime::getMemoryNumPages(module.defaultMemory) * WASM_BYTES_PER_PAGE;
+        Uptr heapSize = DYNAMIC_MODULE_HEAP_PAGES * WASM_BYTES_PER_PAGE;
         REQUIRE(memSizeAfterA == initialMemSize + heapSize);
 
         // Check the stack is at the bottom of this region, and the heap is just above it
@@ -123,7 +123,7 @@ namespace tests {
         REQUIRE(tableBaseB == tableSizeAfterAFunc);
 
         // Check the memory
-        Uptr memSizeAfterB = Runtime::getMemoryNumPages(module.defaultMemory) * IR::numBytesPerPage;
+        Uptr memSizeAfterB = Runtime::getMemoryNumPages(module.defaultMemory) * WASM_BYTES_PER_PAGE;
         REQUIRE(memSizeAfterB == memSizeAfterA + heapSize);
 
         int heapBaseB = module.getNextMemoryBase();
