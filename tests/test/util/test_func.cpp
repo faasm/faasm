@@ -136,12 +136,10 @@ namespace tests {
 
         // Epoch millis on 27/07/2020
         long baselineTimestamp = 1595862090240;
-
         msg.set_id(msgId);
-        int expectedTimestamp;
 
         SECTION("Existing timestamp") {
-            expectedTimestamp = 999888;
+            long expectedTimestamp = 999888;
             msg.set_timestamp(expectedTimestamp);
 
             util::setMessageId(msg);

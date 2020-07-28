@@ -53,14 +53,24 @@ namespace scheduler {
             this->removeHostFromWarmSet(iter.first);
         }
 
-        // Clear all queues and data
-        bindQueue->reset();
+        // Reset host
+        thisHost = util::getSystemConfig().endpointHost;
+
+        // Clear all queues
+        for (const auto &p: queueMap) {
+            p.second->reset();
+        }
         queueMap.clear();
+        bindQueue->reset();
+
+        // Reset all state
         faasletCountMap.clear();
         inFlightCountMap.clear();
         opinionMap.clear();
-        loggedMessageIds.clear();
         _hasHostCapacity = true;
+
+        // Message IDs
+        loggedMessageIds.clear();
 
         setMessageIdLogging(false);
 
@@ -174,7 +184,7 @@ namespace scheduler {
         util::FullLock lock(mx);
         PROF_START(scheduleCall)
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr <spdlog::logger> &logger = util::getLogger();
 
         // Get the best host
         std::string bestHost;
@@ -192,7 +202,7 @@ namespace scheduler {
         }
 
         // Log this call if needed
-        if(logMessageIds) {
+        if (logMessageIds) {
             loggedMessageIds.push_back(msg.id());
         }
 
@@ -220,7 +230,7 @@ namespace scheduler {
 
     long Scheduler::getTotalWarmFaasletCount() {
         long totalCount = 0;
-        for(auto p : faasletCountMap) {
+        for (auto p : faasletCountMap) {
             totalCount += p.second;
         }
 
@@ -267,7 +277,7 @@ namespace scheduler {
         if (isInFlightRatioBreached) {
             // If in-flight ratio breached, we need more capacity.
             // If both the function and host have capacity, it's YES, otherwise NO.
-            if(hasFunctionCapacity && _hasHostCapacity) {
+            if (hasFunctionCapacity && _hasHostCapacity) {
                 newOpinion = SchedulerOpinion::YES;
             } else {
                 newOpinion = SchedulerOpinion::NO;
@@ -275,7 +285,7 @@ namespace scheduler {
         } else if (hasWarmFaaslets) {
             // If we've not breached the in-flight ratio and we have some warm faaslets, it's YES
             newOpinion = SchedulerOpinion::YES;
-        } else if(!_hasHostCapacity) {
+        } else if (!_hasHostCapacity) {
             // If we have no warm faaslets and no host capacity, it's NO
             newOpinion = SchedulerOpinion::NO;
         } else {
@@ -283,7 +293,7 @@ namespace scheduler {
             newOpinion = SchedulerOpinion::MAYBE;
         }
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr <spdlog::logger> &logger = util::getLogger();
         if (newOpinion != currentOpinion) {
             std::string newOpinionStr = opinionStr(newOpinion);
             std::string currentOpinionStr = opinionStr(currentOpinion);
@@ -306,7 +316,7 @@ namespace scheduler {
 
                 // If we've also reached this host's capacity, we want to drop out from all
                 // other scheduling decisions
-                if(!_hasHostCapacity) {
+                if (!_hasHostCapacity) {
                     removeHostFromGlobalSet();
                 }
             } else if (newOpinion == SchedulerOpinion::MAYBE && currentOpinion == SchedulerOpinion::NO) {
@@ -337,7 +347,7 @@ namespace scheduler {
     }
 
     std::string Scheduler::getBestHostForFunction(const message::Message &msg) {
-        const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+        const std::shared_ptr <spdlog::logger> logger = util::getLogger();
 
         // If we're ignoring the scheduling, just put it on this host regardless
         if (conf.noScheduler == 1) {
@@ -355,7 +365,7 @@ namespace scheduler {
         // Get options from the warm set
         std::string warmSet = this->getFunctionWarmSetName(msg);
         redis::Redis &redis = redis::Redis::getQueue();
-        std::unordered_set<std::string> warmOptions = redis.smembers(warmSet);
+        std::unordered_set <std::string> warmOptions = redis.smembers(warmSet);
 
         // Remove this host from the warm options
         warmOptions.erase(thisHost);
@@ -371,7 +381,7 @@ namespace scheduler {
         }
 
         // Now there's no warm options we're rejecting, so check all options
-        std::unordered_set<std::string> allOptions = redis.smembers(AVAILABLE_HOST_SET);
+        std::unordered_set <std::string> allOptions = redis.smembers(AVAILABLE_HOST_SET);
         allOptions.erase(thisHost);
 
         if (!allOptions.empty()) {
@@ -400,7 +410,7 @@ namespace scheduler {
     }
 
     void Scheduler::incrementInFlightCount(const message::Message &msg) {
-        const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+        const std::shared_ptr <spdlog::logger> logger = util::getLogger();
 
         // Increment the in-flight count
         const std::string funcStr = util::funcToString(msg, false);
