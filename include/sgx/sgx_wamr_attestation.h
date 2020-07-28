@@ -2,6 +2,7 @@
 // Created by Joshua Heinemann on 15.07.20.
 // TU-Braunschweig (heineman@ibr.cs.tu-bs.de)
 //
+
 #ifndef FAASM_SGX_WAMR_ATTESTATION_H
 #define FAASM_SGX_WAMR_ATTESTATION_H
 
