@@ -19,4 +19,4 @@ RUN cmake \
     /usr/local/code/faasm
 
 RUN cmake --build . --target libWAVM
-RUN cmake --build . --target wamr
+RUN cmake --build . --target wamrlib
