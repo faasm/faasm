@@ -33,8 +33,8 @@ WORKDIR /faasm/native_tools
 COPY . /usr/local/code/faasm
 RUN cmake \
     -GNinja \
-    -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
-    -DCMAKE_C_COMPILER=/usr/bin/clang \
+    -DCMAKE_CXX_COMPILER=/usr/bin/clang++-10 \
+    -DCMAKE_C_COMPILER=/usr/bin/clang-10 \
     -DFAASM_BUILD_TYPE=native-tools \
     -DCMAKE_BUILD_TYPE=Release \
     -DFAASM_STATIC_LIBS=OFF \

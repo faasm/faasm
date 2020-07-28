@@ -5,6 +5,10 @@ project(faasm)
 option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
 option(FAASM_SGX_SUPPORT "Add support for SGX" OFF)
 
+option(FAASM_SELF_TRACING "Turn on system tracing using the logger" OFF)
+option(FAASM_OPENMP_TRACING "Trace OpenMP forks in Redis" OFF)
+option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md" OFF)
+
 # Top-level CMake config
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_STANDARD 17)
@@ -18,9 +22,10 @@ set(FAASM_LIB_CPP_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/cpp)
 set(FAASM_LIB_FAASMP_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/faasmp)
 set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/pyinit)
 set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/WAVM/Lib)
+set(FAASM_WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
 
 # SGX configuration
-if(FAASM_SGX_SUPPORT)
+if (FAASM_SGX_SUPPORT)
     # Switch off Werror only when in SGX mode
     set(CMAKE_CXX_FLAGS "-Wall")
 
@@ -28,66 +33,50 @@ if(FAASM_SGX_SUPPORT)
     add_definitions(-DFAASM_SGX=1 -DFAASM_SGX_FUNC_SUFFIX="_sgx_wamr")
     set(SGX_SIM_MODE 1)
 
-    if(SGX_SIM_MODE)
+    if (SGX_SIM_MODE)
         add_definitions(-DSGX_SIM_MODE=1)
-    elseif()
+    elseif ()
         add_definitions(-DSGX_SIM_MODE=0)
-    endif()
-else()
+    endif ()
+else ()
     set(CMAKE_CXX_FLAGS "-Wall -Werror")
-endif()
+endif ()
 
+# ----------------------------------------
 # WAMR configuration
+# ----------------------------------------
+
 # See https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/build_wamr.md
 set(WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
+set(WAMR_SHARED_DIR ${WAMR_ROOT_DIR}/core/shared)
+set(WAMR_IWASM_DIR ${WAMR_ROOT_DIR}/core/iwasm)
 set(WAMR_BUILD_TARGET X86_64)
+set(WAMR_NO_LLVM_IMPORT ON)
+add_definitions(-DBUILD_TARGET_X86_64)
 
-# WAMR SGX-specific config
-if(FAASM_SGX_SUPPORT)
+# Enable ASM
+enable_language(ASM)
+
+# WAMR SGX config
+if (FAASM_SGX_SUPPORT)
     set(WAMR_BUILD_PLATFORM linux-sgx)
-    set(WAMR_BUILD_FAST_INTERP 0)
-    set(WAMR_BUILD_INTERP 1)
-    set(WAMR_BUILD_JIT 0)
-    set(WAMR_BUILD_AOT 0)
-    set(WAMR_BUILD_LIBC_WASI 0)
-    set(WAMR_BUILD_LIBC_BUILTIN 1)
 
     set(FAASM_SGX_WAMR_HEAP_SIZE 32768)
     set(FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE 128)
     set(FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE 8192)
     set(FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE 8192)
-
-# Non-SGX WAMR config
 else()
-    #  We only use AOT in non-SGX mode
     set(WAMR_BUILD_PLATFORM linux)
-    set(WAMR_BUILD_FAST_INTERP 0)
-    set(WAMR_BUILD_INTERP 0)
-    set(WAMR_BUILD_JIT 0)
-    set(WAMR_BUILD_AOT 1)
-    set(WAMR_BUILD_LIBC_WASI 1)
-    set(WAMR_BUILD_LIBC_BUILTIN 0)
-
-    # Support running multiple modules
-    set(WAMR_BUILD_MULTI_MODULE 1)
-
-    # Local pthread support
-    set(WAMR_BUILD_LIB_PTHREAD 1)
-endif()
-
-# WAMR interpreter
-if (WAMR_BUILD_INTERP)
-    add_definitions(-DWASM_ENABLE_INTERP=1)
-else ()
-    add_definitions(-DWASM_ENABLE_INTERP=0)
 endif ()
 
-# WAMR AOT
-if (WAMR_BUILD_AOT)
-    add_definitions(-DWASM_ENABLE_AOT=1)
-else ()
-    add_definitions(-DWASM_ENABLE_AOT=0)
-endif ()
+# WAMR includes
+include_directories(
+        ${WAMR_SHARED_DIR}/include
+        ${WAMR_SHARED_DIR}/utils
+        ${WAMR_SHARED_DIR}/platform/${WAMR_BUILD_PLATFORM}/
+        ${WAMR_IWASM_DIR}/include
+        ${WAMR_IWASM_DIR}/common
+)
 
 # Library type (for shared libraries)
 if (FAASM_STATIC_LIBS)
@@ -107,23 +96,14 @@ else ()
     endfunction()
 endif ()
 
-# Switch on WAVM stack traces in debug (potential performance gain?)
+# Switch on WAVM stack traces
 set(WAVM_ENABLE_UNWIND ON CACHE BOOL "WAVM unwind")
-#if(CMAKE_BUILD_TYPE MATCHES Debug)
-#    set(WAVM_ENABLE_UNWIND ON CACHE BOOL "WAVM unwind")
-#else()
-#    set(WAVM_ENABLE_UNWIND OFF CACHE BOOL "WAVM unwind")
-#endif()
 
 # Stops WAVM compilation complaining
 add_definitions(-DDLL_EXPORT=)
 add_definitions(-DDLL_IMPORT=)
 
 # Faasm profiling
-option(FAASM_SELF_TRACING "Turn on system tracing using the logger")
-option(FAASM_OPENMP_TRACING "Trace OpenMP forks in Redis")
-option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md")
-
 if (${FAASM_SELF_TRACING})
     message("-- Activated FAASM tracing")
     add_definitions(-DTRACE_ALL=1)
@@ -133,6 +113,7 @@ if (${FAASM_OPENMP_TRACING})
     add_definitions(-DOPENMP_FORK_REDIS_TRACE=1)
 endif ()
 
+# LLVM config
 if (${FAASM_PERF_PROFILING})
     # In accordance with bin/build_llvm_perf.sh and LLVM version for WAVM
     set(LLVM_DIR /usr/local/code/llvm-perf/build/lib/cmake/llvm)
@@ -147,15 +128,14 @@ endif ()
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 include_directories(${LLVM_INCLUDE_DIRS})
+add_definitions(${LLVM_DEFINITIONS})
 
-# Eigen parallelisation
-# add_definitions(-DEIGEN_DONT_PARALLELIZE)
-# add_definitions(-DEIGEN_NO_MALLOC)
-
+# Output directories
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+# Include directories
 include_directories(
         ${FAASM_INCLUDE_DIR}
         ${FAASM_LIB_CPP_DIR}
@@ -207,9 +187,9 @@ else ()
     add_subdirectory(third-party/WAVM)
 
     # SGX
-    if(FAASM_SGX_SUPPORT)
+    if (FAASM_SGX_SUPPORT)
         add_subdirectory(src/sgx)
-    endif()
+    endif ()
 
     # Faasm functions
     add_subdirectory(func)
@@ -222,7 +202,6 @@ else ()
     add_subdirectory(libs/rust)
 
     # Faasm runtime
-    add_subdirectory(src/codegen)
     add_subdirectory(src/emulator)
     add_subdirectory(src/endpoint)
     add_subdirectory(src/faaslet)

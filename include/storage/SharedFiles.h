@@ -1,5 +1,7 @@
 #pragma once
 
+#include <proto/faasm.pb.h>
+
 #include <string>
 
 namespace storage {
@@ -12,6 +14,8 @@ namespace storage {
         static std::string stripSharedPrefix(const std::string &sharedPath);
 
         static bool isPathShared(const std::string &p);
+
+        static void syncPythonFunctionFile(const message::Message &msg);
 
         static void clear();
     private:

@@ -10,6 +10,7 @@
 
 #include <storage/FileLoader.h>
 #include <util/func.h>
+#include <util/files.h>
 
 
 namespace wasm {
@@ -142,7 +143,7 @@ namespace wasm {
                 module.featureSpec.simd = true;
                 module.featureSpec.atomics = true;
 
-                if (functionLoader.isWasm(wasmBytes)) {
+                if (util::isWasm(wasmBytes)) {
                     WASM::LoadError loadError;
                     WASM::loadBinaryModule(wasmBytes.data(), wasmBytes.size(), module, &loadError);
                 } else {

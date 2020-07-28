@@ -37,7 +37,15 @@ namespace storage {
             throw std::runtime_error("Not implemented for fileserver function loader");
         }
 
+        void uploadFunctionAotFile(const message::Message &msg, const std::vector<uint8_t> &objBytes) override {
+            throw std::runtime_error("Not implemented for fileserver function loader");
+        }
+
         void uploadSharedObjectObjectFile(const std::string &path, const std::vector<uint8_t> &objBytes) override {
+            throw std::runtime_error("Not implemented for fileserver function loader");
+        }
+
+        void uploadSharedObjectAotFile(const std::string &path, const std::vector<uint8_t> &objBytes) override {
             throw std::runtime_error("Not implemented for fileserver function loader");
         }
 

@@ -469,4 +469,8 @@ namespace scheduler {
 
         updateOpinion(msg);
     }
+
+    std::string Scheduler::getThisHost() {
+        return thisHost;
+    }
 }

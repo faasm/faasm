@@ -66,8 +66,6 @@ int main(int argc, char *argv[]) {
 }
 
 bool runWithWamr(message::Message &m, int runCount) {
-    wasm::initialiseWAMRGlobally();
-
     bool success = true;
 
     for (int i = 0; i < runCount; i++) {

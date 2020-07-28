@@ -25,7 +25,10 @@ RUN cmake --build . --target tests
 WORKDIR /usr/local/code/faasm
 RUN inv -r faasmcli/faasmcli toolchain.download-sysroot
 RUN inv -r faasmcli/faasmcli toolchain.download-runtime --nocodegen
+
+# Run codegen required for tests
 RUN inv -r faasmcli/faasmcli codegen.local
+RUN inv -r faasmcli/faasmcli codegen demo echo --wamr
 
 # Compile test library
 RUN inv -r faasmcli/faasmcli libs.fake

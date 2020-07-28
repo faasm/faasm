@@ -20,8 +20,8 @@ This means your CMake commands will look something like:
 ```
 cmake \
     -GNinja \
-    -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
-    -DCMAKE_C_COMPILER=/usr/bin/clang \
+    -DCMAKE_CXX_COMPILER=/usr/bin/clang++-10 \
+    -DCMAKE_C_COMPILER=/usr/bin/clang-10 \
     ...
 ```
 
@@ -118,7 +118,7 @@ You can do this via your chosen IDE or with something like:
 
 ```bash
 mkdir -p build/faasm && cd build/faasm
-cmake -GNinja -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ ../..
+cmake -GNinja -DCMAKE_C_COMPILER=/usr/bin/clang-10 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-10 ../..
 cmake --build . --target codegen_func
 cmake --build . --target codegen_shared_obj
 
@@ -181,8 +181,8 @@ function:
 mkdir build 
 cd build
 cmake -GNinja \
-  -DCMAKE_C_COMPILER=/usr/bin/clang \
-  -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+  -DCMAKE_C_COMPILER=/usr/bin/clang-10 \
+  -DCMAKE_CXX_COMPILER=/usr/bin/clang++-10 \
   .. 
 
 # Build upload and simple_runner and codegen function
@@ -218,7 +218,9 @@ code to a temporary location in the remote environment (`/tmp/tmp.XXX`), which y
 to `/usr/local/code/faasm` as described above. 
 
 Ensure the toolchain within CLion is pointing at the correct remote version of Clang that is installed 
-as part of the Faasm Ansible playbook (i.e. `/usr/bin/clang(++)`), and possibly recent CMake.
+as part of the Faasm Ansible playbook (i.e. `/usr/bin/clang(++)-10`). 
+ 
+ Also install the most recent CMake you can.
 
 I do **not** recommend setting a WASM/FAASM CMake profile because it will confuse your IDE a lot. 
 

@@ -191,7 +191,7 @@ namespace util {
         return path.string();
     }
 
-    std::string getFunctionWamrAotFile(const message::Message &msg) {
+    std::string getFunctionAotFile(const message::Message &msg) {
         auto path = getObjectDir(msg);
         path.append(wamrAotFile);
 

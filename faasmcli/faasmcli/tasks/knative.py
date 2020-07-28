@@ -257,8 +257,8 @@ def build_native(ctx, user, func, host=False, clean=False, nopush=False):
 
         cmd = [
             "cmake",
-            "-DCMAKE_CXX_COMPILER=/usr/bin/clang++",
-            "-DCMAKE_C_COMPILER=/usr/bin/clang",
+            "-DCMAKE_CXX_COMPILER=/usr/bin/clang++-10",
+            "-DCMAKE_C_COMPILER=/usr/bin/clang-10",
             "-DFAASM_BUILD_TYPE=knative-native",
             "-DCMAKE_BUILD_TYPE=Debug",
             PROJ_ROOT

@@ -13,8 +13,8 @@ WORKDIR /faasm/build
 # Build WAVM and WAMR to avoid repetition in other dockerfiles
 RUN cmake \
     -GNinja \
-    -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
-    -DCMAKE_C_COMPILER=/usr/bin/clang \
+    -DCMAKE_CXX_COMPILER=/usr/bin/clang++-10 \
+    -DCMAKE_C_COMPILER=/usr/bin/clang-10 \
     -DCMAKE_BUILD_TYPE=Release \
     /usr/local/code/faasm
 

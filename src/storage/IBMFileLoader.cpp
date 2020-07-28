@@ -65,11 +65,20 @@ namespace storage {
         storageWrapper.addKeyBytes(conf.bucketName, key, objBytes);
     }
 
+    void IBMFileLoader::uploadFunctionAotFile(const message::Message &msg, const std::vector<uint8_t> &objBytes) {
+        throw std::runtime_error("Not yet implemented WAMR on IBM");
+    }
+
     void IBMFileLoader::uploadSharedObjectObjectFile(const std::string &path, const std::vector<uint8_t> &objBytes) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("Uploading shared object object bytes to {}/{}", conf.bucketName, path);
 
         storageWrapper.addKeyBytes(conf.bucketName, path, objBytes);
     }
+
+    void IBMFileLoader::uploadSharedObjectAotFile(const std::string &path, const std::vector<uint8_t> &objBytes) {
+        throw std::runtime_error("Not yet implemented WAMR on IBM");
+    }
+
 
 }

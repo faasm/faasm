@@ -24,7 +24,11 @@ namespace storage {
 
         void uploadFunctionObjectFile(const message::Message &msg, const std::vector<uint8_t> &objBytes) override;
 
+        void uploadFunctionAotFile(const message::Message &msg, const std::vector<uint8_t> &objBytes) override;
+
         void uploadSharedObjectObjectFile(const std::string &path, const std::vector<uint8_t> &objBytes) override;
+
+        void uploadSharedObjectAotFile(const std::string &path, const std::vector<uint8_t> &objBytes) override;
 
         void uploadSharedFile(const std::string &path, const std::vector<uint8_t> &fileBytes) override;
     };

@@ -17,8 +17,11 @@
       - llvm-10
       - llvm-10-dev
       - llvm-10-tools
+      - llvm-10-runtime
       - lld-10
       - lldb-10
+      - libc++-10-dev
+      - libc++abi-10-dev
     update_cache: yes
 
 - name: "Install Clang"
@@ -29,21 +32,33 @@
       - clangd-10
       - clang-tools-10
       - libclang-10-dev
+      - libclang-common-10-dev
+      - libclangcpp-10
+      - libclangcpp-10-dev
     update_cache: yes
 
-- name: "Default symlinks"
+- name: "Install OpenMP"
   become: yes
-  file:
-    state: link
-    src: "/usr/bin/{{ item }}-10"
-    dest: "/usr/bin/{{ item }}"
-  with_items:
-    - "clang"
-    - "clang++"
-    - "clang-cpp"
-    - "wasm-ld"
-    - "lld"
-    - "llvm-ar"
-    - "llvm-config"
-    - "llvm-nm"
-    - "llvm-ranlib"
+  apt:
+    name:
+      - libomp-10-dev
+      - libomp5
+      - libomp-dev
+    update_cache: yes
+
+#- name: "Default symlinks"
+#  become: yes
+#  file:
+#    state: link
+#    src: "/usr/bin/{{ item }}-10"
+#    dest: "/usr/bin/{{ item }}"
+#  with_items:
+#    - "clang"
+#    - "clang++"
+#    - "clang-cpp"
+#    - "wasm-ld"
+#    - "lld"
+#    - "llvm-ar"
+#    - "llvm-config"
+#    - "llvm-nm"
+#    - "llvm-ranlib"

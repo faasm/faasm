@@ -19,6 +19,8 @@ namespace wasm {
         class PlatformThreadPool;
     }
 
+    std::vector<uint8_t> wavmCodegen(std::vector<uint8_t> &wasmBytes);
+
     class WAVMWasmModule final : public WasmModule, WAVM::Runtime::Resolver {
     public:
         WAVMWasmModule();
@@ -176,8 +178,6 @@ namespace wasm {
         WAVM::Runtime::Function *getDefaultZygoteFunction(WAVM::Runtime::Instance *module);
 
         WAVM::Runtime::Function *getWasmConstructorsFunction(WAVM::Runtime::Instance *module);
-
-        void syncPythonFunctionFile(const message::Message &msg);
 
         void executeRemoteOMP(message::Message &msg);
 

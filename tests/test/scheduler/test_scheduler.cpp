@@ -594,7 +594,7 @@ namespace tests {
         Scheduler &sch = scheduler::getScheduler();
         Redis &redis = Redis::getQueue();
 
-        std::string thisHost = util::getSystemConfig().endpointHost;
+        std::string thisHost = sch.getThisHost();
         std::string otherHost = "192.168.0.10";
 
         message::Message callA = util::messageFactory("user a", "function a1");
@@ -704,6 +704,5 @@ namespace tests {
         conf.maxFaaslets = originalMaxFaaslet;
         conf.maxFaasletsPerFunction = originalMaxFaasletsPerFunction;
         conf.maxInFlightRatio = originalMaxInFlightRatio;
-
     }
 }

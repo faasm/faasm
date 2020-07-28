@@ -16,13 +16,14 @@
 #include <wasm/serialisation.h>
 
 #include <WAVM/WASM/WASM.h>
-#include <WAVM/IR/Types.h>
 #include <WAVM/Platform/Memory.h>
+#include <WAVM/IR/Types.h>
 #include <WAVM/IR/Module.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 #include <Runtime/RuntimePrivate.h>
 #include <WASI/WASIPrivate.h>
+
 #include <wavm/openmp/ThreadState.h>
 #include <wavm/OMPThreadPool.h>
 
@@ -411,7 +412,7 @@ namespace wasm {
             }
 
             Uptr initialTableSize = Runtime::getTableNumElements(defaultTable);
-            Uptr initialMemorySize = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
+            Uptr initialMemorySize = Runtime::getMemoryNumPages(defaultMemory) * WASM_BYTES_PER_PAGE;
             Uptr initialMemoryPages = Runtime::getMemoryNumPages(defaultMemory);
 
             logger->debug("heap_top={} initial_pages={} initial_table={}", initialMemorySize, initialMemoryPages,
@@ -676,7 +677,7 @@ namespace wasm {
         setExecutingCall(&msg);
 
         // Ensure Python function file in place (if necessary)
-        syncPythonFunctionFile(msg);
+        storage::SharedFiles::syncPythonFunctionFile(msg);
 
         // Set up OMP
         prepareOpenMPContext(msg);
@@ -870,7 +871,7 @@ namespace wasm {
         logger->debug("mmap - Growing memory from {} to {} pages", currentPageCount, newPageCount);
 
         // Get pointer to mapped range
-        auto mappedRangePtr = (U32) (Uptr(pageCountOut) * IR::numBytesPerPage);
+        auto mappedRangePtr = (U32) (Uptr(pageCountOut) * WASM_BYTES_PER_PAGE);
 
         return mappedRangePtr;
     }
@@ -1103,7 +1104,7 @@ namespace wasm {
         logger->debug("Writing memory for {}/{} to fd {}", this->boundUser, this->boundFunction, memoryFd);
 
         Uptr numPages = Runtime::getMemoryNumPages(defaultMemory);
-        Uptr numBytes = numPages * IR::numBytesPerPage;
+        Uptr numBytes = numPages * WASM_BYTES_PER_PAGE;
         U8 *memoryBase = Runtime::getMemoryBaseAddress(defaultMemory);
 
         // Make the fd big enough
@@ -1135,7 +1136,7 @@ namespace wasm {
         // Serialise memory
         Uptr numPages = Runtime::getMemoryNumPages(defaultMemory);
         U8 *memBase = Runtime::getMemoryBaseAddress(defaultMemory);
-        U8 *memEnd = memBase + (numPages * IR::numBytesPerPage);
+        U8 *memEnd = memBase + (numPages * WASM_BYTES_PER_PAGE);
 
         wasm::MemorySerialised mem;
         mem.numPages = numPages;
@@ -1160,7 +1161,7 @@ namespace wasm {
         }
 
         U8 *memBase = Runtime::getMemoryBaseAddress(defaultMemory);
-        size_t memSize = mem.numPages * IR::numBytesPerPage;
+        size_t memSize = mem.numPages * WASM_BYTES_PER_PAGE;
         memcpy(memBase, mem.data.data(), memSize);
     }
 
@@ -1294,17 +1295,6 @@ namespace wasm {
         return Runtime::asFunction(funcObj);
     }
 
-    void WAVMWasmModule::syncPythonFunctionFile(const message::Message &msg) {
-        if (!msg.ispython()) {
-            return;
-        }
-
-        std::string sharedPath = util::getPythonFunctionFileSharedPath(msg);
-        std::string runtimeFilePath = util::getPythonRuntimeFunctionFile(msg);
-
-        storage::SharedFiles::syncSharedFile(sharedPath, runtimeFilePath);
-    }
-
     void WAVMWasmModule::prepareOpenMPContext(const message::Message &msg) {
         std::shared_ptr<openmp::Level> ompLevel;
 
@@ -1326,5 +1316,4 @@ namespace wasm {
     std::unique_ptr<openmp::PlatformThreadPool> &WAVMWasmModule::getOMPPool() {
         return OMPPool;
     }
-
 }

@@ -3,21 +3,35 @@
 #include <wamr/native.h>
 #include <storage/FileLoader.h>
 #include <wasm_export.h>
+#include <util/locks.h>
 
 namespace wasm {
+    static bool wamrInitialised = false;
+    std::mutex wamrInitMx;
+
     static thread_local WAMRWasmModule *executingModule;
 
-    void initialiseWAMRGlobally() {
-        // Initialise runtime
-        bool success = wasm_runtime_init();
-        if(!success) {
-            throw std::runtime_error("Failed to initialise WAMR");
+    void WAMRWasmModule::initialiseWAMRGlobally() {
+        if(wamrInitialised) {
+            return;
+        } else {
+            util::UniqueLock lock(wamrInitMx);
+
+            if(wamrInitialised) {
+                return;
+            }
+
+            // Initialise runtime
+            bool success = wasm_runtime_init();
+            if(!success) {
+                throw std::runtime_error("Failed to initialise WAMR");
+            }
+
+            util::getLogger()->debug("Successfully initialised WAMR");
+
+            // Initialise native functions
+            initialiseWAMRNatives();
         }
-
-        util::getLogger()->debug("Successfully initialised WAMR");
-
-        // Initialise native functions
-        initialiseWAMRNatives();
     }
 
     void tearDownWAMRGlobally() {
@@ -30,6 +44,11 @@ namespace wasm {
 
     void setExecutingModule(WAMRWasmModule *executingModuleIn) {
         executingModule = executingModuleIn;
+    }
+
+    WAMRWasmModule::WAMRWasmModule() {
+        // Lazily initialise WAMR
+        initialiseWAMRGlobally();
     }
 
     WAMRWasmModule::~WAMRWasmModule() {

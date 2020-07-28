@@ -28,11 +28,13 @@ namespace storage {
 
         virtual void uploadFunctionObjectFile(const message::Message &msg, const std::vector<uint8_t> &objBytes) = 0;
 
+        virtual void uploadFunctionAotFile(const message::Message &msg, const std::vector<uint8_t> &objBytes) = 0;
+
         virtual void uploadSharedObjectObjectFile(const std::string &path, const std::vector<uint8_t> &objBytes) = 0;
 
-        virtual void uploadSharedFile(const std::string &path, const std::vector<uint8_t> &fileBytes) = 0;
+        virtual void uploadSharedObjectAotFile(const std::string &path, const std::vector<uint8_t> &objBytes) = 0;
 
-        bool isWasm(const std::vector<uint8_t> &bytes);
+        virtual void uploadSharedFile(const std::string &path, const std::vector<uint8_t> &fileBytes) = 0;
 
         void codegenForFunction(message::Message &msg);
 

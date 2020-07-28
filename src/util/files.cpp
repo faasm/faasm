@@ -7,6 +7,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <cstring>
 
 #define HTTP_FILE_TIMEOUT 20000
 
@@ -109,10 +110,19 @@ namespace util {
             throw FileNotFoundAtUrlException(msg);
         }
 
-        if(out.str() == "IS_DIR") {
+        if (out.str() == "IS_DIR") {
             throw util::FileAtUrlIsDirectoryException(url + " is a directory");
         }
 
         return util::stringToBytes(out.str());
+    }
+
+    bool isWasm(const std::vector<uint8_t> &bytes) {
+        static const uint8_t wasmMagicNumber[4] = {0x00, 0x61, 0x73, 0x6d};
+        if (bytes.size() >= 4 && !memcmp(bytes.data(), wasmMagicNumber, 4)) {
+            return true;
+        } else {
+            return false;
+        }
     }
 }

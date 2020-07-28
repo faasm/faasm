@@ -14,6 +14,7 @@ set(LIB_FILES
         WAVMWasmModule.cpp
         syscalls.h
         chaining.cpp
+        codegen.cpp
         dynlink.cpp
         env.cpp
         faasm.cpp

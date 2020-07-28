@@ -16,16 +16,19 @@ from faasmcli.util.version import get_faasm_version
 RELEASE_CONTAINERS = [
     "base",
     "base-test",
+    "redis",
     "worker",
     "upload",
     "knative-worker",
-    "knative-native-base",
-    "knative-native-python",
-    "redis",
     "toolchain",
 ]
 
-FAASM_CONTAINERS = ["cpp-root"] + RELEASE_CONTAINERS
+ALL_CONTAINERS = [
+    "cpp-root",
+    "knative-native-base",
+    "knative-native-python",
+]
+ALL_CONTAINERS += RELEASE_CONTAINERS
 
 
 @task
@@ -173,7 +176,7 @@ def push_release(ctx):
 
 @task
 def build_all(ctx, nocache=False, push=False):
-    build(ctx, FAASM_CONTAINERS, nocache, push)
+    build(ctx, ALL_CONTAINERS, nocache, push)
 
 
 @task

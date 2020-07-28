@@ -43,8 +43,8 @@ clean-all:
 $(BUILD_DIR)/llvm.BUILT:
 	mkdir -p $(BUILD_DIR)/llvm
 	cd $(BUILD_DIR)/llvm; cmake -G Ninja \
-		-DCMAKE_C_COMPILER=/usr/bin/clang \
-		-DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+		-DCMAKE_C_COMPILER=/usr/bin/clang-10 \
+		-DCMAKE_CXX_COMPILER=/usr/bin/clang++-10 \
 		-DCMAKE_BUILD_TYPE=MinSizeRel \
 		-DCMAKE_INSTALL_PREFIX=$(PREFIX) \
 		-DLLVM_TARGETS_TO_BUILD=WebAssembly \

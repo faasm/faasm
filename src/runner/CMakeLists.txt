@@ -1,14 +1,11 @@
 set(RUNNER_LIBS
         faaslet_lib
-        wasm
         wavmmodule
+        wamrmodule
         util
         module_cache
         system
         )
-
-set(BUILD_UNTRUST_PART 1)
-include(${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
 
 add_executable(func_runner func_runner.cpp)
 target_link_libraries(func_runner ${RUNNER_LIBS})
@@ -18,3 +15,9 @@ target_link_libraries(simple_runner ${RUNNER_LIBS})
 
 add_executable(func_sym func_sym.cpp)
 target_link_libraries(func_sym ${RUNNER_LIBS})
+
+add_executable(codegen_shared_obj codegen_shared_obj.cpp)
+target_link_libraries(codegen_shared_obj ${RUNNER_LIBS})
+
+add_executable(codegen_func codegen_func.cpp)
+target_link_libraries(codegen_func ${RUNNER_LIBS})
