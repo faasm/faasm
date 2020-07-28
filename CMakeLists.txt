@@ -24,6 +24,7 @@ if(FAASM_SGX_SUPPORT)
     add_definitions(-DFAASM_SGX=1 -DFAASM_SGX_FUNC_SUFFIX="_sgx_wamr")
     set(SGX_SIM_MODE 1)
     set(FAASM_SGX_ATTESTATION 1)
+    set(SGX_XRA 1)
     if(SGX_SIM_MODE)
         add_definitions(-DSGX_SIM_MODE=1)
     else()
@@ -192,6 +193,9 @@ else ()
     # SGX
     if(FAASM_SGX_SUPPORT)
         add_subdirectory(src/sgx)
+        if(SGX_XRA)
+            add_subdirectory(third-party/xra)
+        endif()
     endif()
 
     # Faasm functions
