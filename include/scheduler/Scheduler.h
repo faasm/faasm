@@ -75,6 +75,8 @@ namespace scheduler {
 
         bool hasHostCapacity();
 
+        std::string getThisHost();
+
     private:
         std::string thisHost;
 
