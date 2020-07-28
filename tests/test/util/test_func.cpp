@@ -129,8 +129,6 @@ namespace tests {
 
 
     TEST_CASE("Test timestamp added to message") {
-        util::Clock &clock = util::getGlobalClock();
-
         message::Message msg;
         unsigned int msgId = 1234;
 
