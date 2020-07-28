@@ -113,6 +113,7 @@ if (${FAASM_OPENMP_TRACING})
     add_definitions(-DOPENMP_FORK_REDIS_TRACE=1)
 endif ()
 
+# LLVM config
 if (${FAASM_PERF_PROFILING})
     # In accordance with bin/build_llvm_perf.sh and LLVM version for WAVM
     set(LLVM_DIR /usr/local/code/llvm-perf/build/lib/cmake/llvm)
@@ -129,18 +130,12 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
-message(STATUS "LLVM LLVM_AVAILABLE_LIBS: ${LLVM_AVAILABLE_LIBS}")
-
-get_cmake_property(_variableNames VARIABLES)
-list (SORT _variableNames)
-foreach (_variableName ${_variableNames})
-    message(STATUS "${_variableName}=${${_variableName}}")
-endforeach()
-
+# Output directories
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+# Include directories
 include_directories(
         ${FAASM_INCLUDE_DIR}
         ${FAASM_LIB_CPP_DIR}

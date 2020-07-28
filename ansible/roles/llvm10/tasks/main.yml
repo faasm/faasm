@@ -20,8 +20,6 @@
       - llvm-10-runtime
       - lld-10
       - lldb-10
-      - libllvm10
-      - libomp-10-dev
       - libc++-10-dev
       - libc++abi-10-dev
     update_cache: yes
@@ -37,6 +35,15 @@
       - libclang-common-10-dev
       - libclangcpp-10
       - libclangcpp-10-dev
+    update_cache: yes
+
+- name: "Install OpenMP"
+  become: yes
+  apt:
+    name:
+      - libomp-10-dev
+      - libomp5
+      - libomp-dev
     update_cache: yes
 
 #- name: "Default symlinks"

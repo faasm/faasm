@@ -88,10 +88,18 @@ set(LIB_FILES
         ${HEADERS}
         )
 
+# Link the specific LLVM libraries that WAMR needs
+llvm_map_components_to_libnames(
+        WAMR_LLVM_LIBRARIES
+        lto
+        executionengine
+        mcjit
+)
+
 # Link everything together
 faasm_private_lib(wamrmodule "${LIB_FILES}")
 target_link_libraries(wamrmodule
         ${EXTRA_LINK} wamrlib
-        ${LLVM_AVAILABLE_LIBS}
+        ${WAMR_LLVM_LIBRARIES}
         wasm
         )
