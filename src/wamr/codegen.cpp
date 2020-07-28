@@ -22,38 +22,37 @@ namespace wasm {
         }
 
         // Load the module
-        char error_buf[128];
-        wasm_module_t wasm_module = wasm_runtime_load(
+        char errorBuffer[128];
+        wasm_module_t wasmModule = wasm_runtime_load(
                 wasmBytes.data(), wasmBytes.size(),
-                error_buf, sizeof(error_buf)
+                errorBuffer, sizeof(errorBuffer)
         );
 
-        if (wasm_module == nullptr) {
-            logger->error("Failed to import module: {}", error_buf);
+        if (wasmModule == nullptr) {
+            logger->error("Failed to import module: {}", errorBuffer);
             throw std::runtime_error("Failed to load module");
         }
 
-        aot_comp_data_t comp_data = aot_create_comp_data(wasm_module);
-        if(comp_data == nullptr) {
+        aot_comp_data_t compileData = aot_create_comp_data(wasmModule);
+        if(compileData == nullptr) {
             logger->error("Failed to generat AOT data: {}", aot_get_last_error());
             throw std::runtime_error("Failed to generate AOT data");
         }
 
         AOTCompOption option = { 0 };
-
         option.opt_level = 3;
         option.size_level = 3;
         option.output_format = AOT_FORMAT_FILE;
         option.bounds_checks = 2;
 
-        aot_comp_context_t comp_ctx =  aot_create_comp_context(comp_data, &option);
+        aot_comp_context_t compileContext =  aot_create_comp_context(compileData, &option);
             
-        if(comp_ctx == nullptr) {
+        if(compileContext == nullptr) {
             logger->error("Failed to generat AOT context: {}", aot_get_last_error());
                 throw std::runtime_error("Failed to generate AOT context");
         }
 
-        bool compileSuccess = aot_compile_wasm(comp_ctx);
+        bool compileSuccess = aot_compile_wasm(compileContext);
         if(!compileSuccess) {
             logger->error("Failed to run codegen on wasm: {}", aot_get_last_error());
             throw std::runtime_error("Failed to run codegen");
@@ -63,7 +62,7 @@ namespace wasm {
         // Note - WAMR doesn't let us generate an array of bytes, so we have to
         // write to a temp file, then load the bytes again
         boost::filesystem::path temp = boost::filesystem::unique_path();
-        bool aotSuccess = aot_emit_aot_file(comp_ctx, comp_data, temp.c_str());
+        bool aotSuccess = aot_emit_aot_file(compileContext, compileData, temp.c_str());
         if(!aotSuccess) {
             logger->error("Failed to write AOT file to {}", temp.string());
             throw std::runtime_error("Failed to emit AOT file");
