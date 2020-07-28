@@ -16,10 +16,10 @@ from faasmcli.util.version import get_faasm_version
 RELEASE_CONTAINERS = [
     "base",
     "base-test",
+    "redis",
     "worker",
     "upload",
     "knative-worker",
-    "redis",
     "toolchain",
 ]
 
