@@ -13,8 +13,6 @@ namespace tests {
             return;
         }
 
-        wasm::initialiseWAMRGlobally();
-
         message::Message call = util::messageFactory("demo", "hello");
 
         wasm::WAMRWasmModule module;

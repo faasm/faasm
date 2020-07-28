@@ -14,6 +14,10 @@ namespace wasm {
 
     class WAMRWasmModule final : public WasmModule {
     public:
+        static void initialiseWAMRGlobally();
+
+        WAMRWasmModule();
+
         ~WAMRWasmModule();
 
         // ----- Module lifecycle -----
@@ -46,8 +50,6 @@ namespace wasm {
 
         void executeFunction(const std::string &funcName);
     };
-
-    void initialiseWAMRGlobally();
 
     void tearDownWAMRGlobally();
 

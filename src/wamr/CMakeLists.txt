@@ -99,7 +99,8 @@ llvm_map_components_to_libnames(
 # Link everything together
 faasm_private_lib(wamrmodule "${LIB_FILES}")
 target_link_libraries(wamrmodule
-        ${EXTRA_LINK} wamrlib
-        ${WAMR_LLVM_LIBRARIES}
         wasm
+        ${EXTRA_LINK}
+        wamrlib
+        ${WAMR_LLVM_LIBRARIES}
         )

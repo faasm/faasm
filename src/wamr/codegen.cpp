@@ -14,9 +14,10 @@ namespace wasm {
     std::vector<uint8_t> wamrCodegen(std::vector<uint8_t> &wasmBytes) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        if (util::isWasm(wasmBytes)) {
+        // Make sure WAMR is initialised
+        WAMRWasmModule::initialiseWAMRGlobally();
 
-        } else {
+        if (!util::isWasm(wasmBytes)) {
             throw std::runtime_error("File is not a wasm binary");
         }
 
