@@ -78,7 +78,7 @@ def ibm_deploy_worker(ctx, update=False):
         "--concurrency 20",
         "faasm-worker",
         "--docker",
-        "faasm/ibm-worker:0.2.4"
+        "faasm/ibm-worker:0.2.5"
     ]
 
     cmd_string = " ".join(cmd)
