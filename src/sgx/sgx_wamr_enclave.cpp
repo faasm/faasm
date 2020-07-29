@@ -3,6 +3,8 @@
 // TU-Braunschweig (heineman@ibr.cs.tu-bs.de)
 //
 
+#include <xra.h>
+#include <xra_error.h>
 #include <sgx.h>
 #include <sgx_defs.h>
 #include <sgx/sgx_wamr_enclave_types.h>
@@ -245,6 +247,34 @@ extern "C"{
         if(ret_val != FAASM_SGX_SUCCESS)
             return ret_val;
 #endif
+
+        //TESTBENCH//
+        xra_status_t xra_ret_val;
+        sgx_target_info_t target_info;
+        sgx_report_data_t report_data;
+        sgx_report_t sgx_report;
+        xra_report_t xra_report;
+        sgx_sha256_hash_t xra_hash;
+        memcpy((void*)&report_data.d,"0x8F_T",sizeof("0x8F_T"));
+        if((sgx_ret_val != sgx_self_target(&target_info)) != SGX_SUCCESS)
+            __asm("ud2");
+        if((xra_ret_val = xra_create_report(&target_info,&report_data,&xra_report,&sgx_report)) != XRA_SUCCESS){
+            __asm("ud2");
+        }
+        if((sgx_ret_val != sgx_sha256_msg((const uint8_t*)&xra_report, sizeof(xra_report_t),&xra_hash)) != SGX_SUCCESS){
+            __asm("ud2");
+        }
+        if(memcmp((void*)&xra_hash,(void*)&sgx_report.body.report_data,sizeof(sgx_sha256_hash_t)))
+            __asm("ud2");
+        if((sgx_ret_val = sgx_verify_report(&sgx_report)) != SGX_SUCCESS){
+            os_printf("SGX-REPORT: FAILED\n");
+            __asm("ud2");
+        }
+        os_printf("SGX-REPORT: OKAY\n");
+        os_printf("XRA_REPORT_DATA: %s\n",xra_report.report_data.d);
+        os_printf("Finished\n");
+        __asm("ud2");
+        //END_TESTBENCH//
         return FAASM_SGX_SUCCESS;
     }
 };

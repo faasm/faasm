@@ -7,7 +7,7 @@
 #define FAASM_SGX_FAASM_ERROR_H
 
 #define FAASM_SGX_ERROR(X) (0x00000000|(X))
-typedef enum _error{
+typedef enum _faasm_error{
     FAASM_SGX_SUCCESS = FAASM_SGX_ERROR(0x0),
     FAASM_SGX_INVALID_PTR = FAASM_SGX_ERROR(0x1),
     FAASM_SGX_WAMR_RTE_INIT_FAILED = FAASM_SGX_ERROR(0x2),
