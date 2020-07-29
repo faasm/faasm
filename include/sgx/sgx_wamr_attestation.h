@@ -67,7 +67,8 @@ typedef struct __attribute((packed)) _msg_okey_policy{
     uint8_t opcode_key[SGX_AESGCM_KEY_SIZE];
     uint8_t mac[SGX_AESGCM_MAC_SIZE];
     uint8_t nonce[SGX_AESGCM_IV_SIZE];
-    uint8_t policy[];
+    uint32_t policy_len; //Uint32_t because the policy can be really large
+    uint8_t policy_whitelist[];
 } sgx_wamr_okey_policy_t;
 typedef struct __attribute((packed)) _msg_hash_fct{
     sgx_wamr_msg_hdr_t hdr;
