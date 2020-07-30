@@ -6,6 +6,7 @@
   roles:
     - linux
     - llvm10
+    - arrow
     - eigen
     - pistache
     - protobuf

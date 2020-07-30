@@ -1,0 +1,14 @@
+---
+
+- name: "Download Arrow deb file"
+  get_url:
+    url: "http://apache.bintray.com/arrow/{{ ansible_distribution|lower }}/apache-arrow-archive-keyring-latest-{{ ansible_distribution_release }}.deb"
+    dest: "/tmp/arrow.deb"
+
+- name: "Set up Arrow"
+  become: yes
+  shell: "{{ item }}"
+  with_items:
+    - "apt install -y -V /tmp/arrow.deb"
+    - "apt update"
+    - "apt install -y libarrow-dev"
