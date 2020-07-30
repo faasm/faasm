@@ -4,9 +4,9 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--allow-undefined -Wl,
 
 function(demo_sgx_func func_name source_file)
     add_executable(${func_name} ${source_file})
-    target_link_libraries(${func_name})
+
     target_compile_options(${func_name} PRIVATE "-fvisibility=hidden" "-I/usr/local/code/faasm/include") #TODO: Improve include path, just for testing purpose
-    target_link_options(${func_name} PRIVATE "-Wl,-export-dynamic")
+    target_link_libraries(${func_name} INTERFACE "-Wl,-export-dynamic")
 endfunction(demo_sgx_func)
 
 demo_sgx_func(hello_world hello_world.cpp)
