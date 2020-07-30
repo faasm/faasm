@@ -202,7 +202,7 @@ else ()
     add_subdirectory(libs/rust)
 
     # Faasm runtime
-    add_subdirectory(src/arrow)
+    add_subdirectory(src/arrow_state)
     add_subdirectory(src/emulator)
     add_subdirectory(src/endpoint)
     add_subdirectory(src/faaslet)
