@@ -17,6 +17,8 @@ set(LIB_FILES
 
 faasm_private_lib(faaslet_lib "${LIB_FILES}")
 
+target_link_libraries(faaslet_lib module_cache system)
+
 # WAMR module depends on SGX support
 if(FAASM_SGX_SUPPORT)
     target_link_libraries(faaslet_lib sgx_wamr)
