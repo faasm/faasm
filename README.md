@@ -65,7 +65,9 @@ More detail on some key features and implementations can be found below:
 - [Faasm.js](https://github.com/Shillaker/faasmjs) - executing Faasm functions in the browser and on the server. 
 - [Threading](docs/threads.md) - executing multi-threaded applications.
 - [Proto-Faaslets](docs/proto_faaslets.md) - snapshot-and-restore to reduce cold starts.
- 
+- [WAMR support](docs/wamr.md) - support for the [wasm-micro-runtime](https://github.com/bytecodealliance/wasm-micro-runtime) (WIP).
+- [SGX](docs/sgx.md) - information on executing functions with [SGX](https://software.intel.com/content/www/us/en/develop/topics/software-guard-extensions.html) (WIP).
+
 ## Experiments and benchmarks
 
 Faasm experiments and benchmarks live in the 
