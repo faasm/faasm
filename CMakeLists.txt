@@ -3,7 +3,7 @@ project(faasm)
 
 # Optional functionality
 option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
-option(FAASM_SGX_SUPPORT "Add support for SGX" ON)
+option(FAASM_SGX_SUPPORT "Add support for SGX" OFF)
 
 option(FAASM_SELF_TRACING "Turn on system tracing using the logger" OFF)
 option(FAASM_OPENMP_TRACING "Trace OpenMP forks in Redis" OFF)
