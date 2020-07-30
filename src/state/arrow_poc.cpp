@@ -1,4 +1,4 @@
-#include <arrow_state/ArrowMemoryWrapper.h>
+#include <state/ArrowMemoryWrapper.h>
 #include <util/logging.h>
 
 
@@ -6,7 +6,7 @@ int main() {
     util::initLogging();
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-    arrow_state::ArrowMemoryWrapper memoryWrapper(4096);
+    state::ArrowMemoryWrapper memoryWrapper(4096);
     uint8_t *rawPtr = memoryWrapper.getMutablePointer();
 
     std::memcpy(rawPtr, "hello world", 11);

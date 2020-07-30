@@ -2,7 +2,7 @@
 
 #include <util/logging.h>
 
-namespace arrow_state {
+namespace state {
     ArrowMemoryWrapper::ArrowMemoryWrapper(size_t memSize) : size(memSize) {
         arrow::Result<std::unique_ptr<arrow::Buffer>> interimBuffer = arrow::AllocateBuffer(size);
 

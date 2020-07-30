@@ -1,6 +1,7 @@
 #pragma once
 
 #include "StateKeyValue.h"
+#include "InMemoryStateRegistry.h"
 
 #include <util/clock.h>
 
@@ -88,6 +89,8 @@ namespace state {
         std::string thisIP;
         std::string masterIP;
         InMemoryStateKeyStatus status;
+
+        InMemoryStateRegistry &stateRegistry;
 
         std::shared_mutex globalLock;
 

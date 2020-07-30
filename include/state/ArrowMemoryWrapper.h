@@ -1,6 +1,6 @@
 #include <arrow/api.h>
 
-namespace arrow_state {
+namespace state {
 
     class ArrowMemoryWrapper {
     public:

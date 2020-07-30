@@ -4,108 +4,15 @@
 
 #include <memory>
 #include <state/StateMessage.h>
-#include <util/locks.h>
 #include <util/state.h>
 #include <util/logging.h>
 #include <util/macros.h>
-
-#define MASTER_KEY_PREFIX "master_"
 
 
 namespace state {
     // --------------------------------------------
     // Static properties and methods
     // --------------------------------------------
-
-    static std::unordered_map<std::string, std::string> masterMap;
-    static std::shared_mutex masterMapMutex;
-
-    static std::string getMasterKey(const std::string &user, const std::string &key) {
-        std::string masterKey = MASTER_KEY_PREFIX + user + "_" + key;
-        return masterKey;
-    }
-
-    static std::string getMasterIP(
-            const std::string &user, const std::string &key,
-            const std::string &thisIP,
-            bool claim
-    ) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        std::string lookupKey = util::keyForUser(user, key);
-
-        // See if we already have the master
-        {
-            util::SharedLock lock(masterMapMutex);
-            if (masterMap.count(lookupKey) > 0) {
-                return masterMap[lookupKey];
-            }
-        }
-
-        // No master found, need to establish
-
-        // Acquire lock
-        util::FullLock lock(masterMapMutex);
-
-        // Double check condition
-        if (masterMap.count(lookupKey) > 0) {
-            return masterMap[lookupKey];
-        }
-
-        logger->trace("Checking master for state {}", lookupKey);
-
-        // Query Redis
-        const std::string masterKey = getMasterKey(user, key);
-        redis::Redis &redis = redis::Redis::getState();
-        std::vector<uint8_t> masterIPBytes = redis.get(masterKey);
-
-        if (masterIPBytes.empty() && !claim) {
-            // No master found and not claiming
-            logger->trace("No master found for {}", lookupKey);
-            throw StateKeyValueException("Found no master for state " + masterKey);
-        }
-
-        // If no master and we want to claim, attempt to do so
-        if (masterIPBytes.empty()) {
-            uint32_t masterLockId = StateKeyValue::waitOnRedisRemoteLock(masterKey);
-            if (masterLockId == 0) {
-                logger->error("Unable to acquire remote lock for {}", masterKey);
-                throw std::runtime_error("Unable to get remote lock");
-            }
-
-            logger->debug("Claiming master for {} (this host {})", lookupKey, thisIP);
-
-            // Check there's still no master, if so, claim
-            masterIPBytes = redis.get(masterKey);
-            if (masterIPBytes.empty()) {
-                masterIPBytes = util::stringToBytes(thisIP);
-                redis.set(masterKey, masterIPBytes);
-            }
-
-            redis.releaseLock(masterKey, masterLockId);
-        }
-
-        // Cache the result locally
-        std::string masterIP = util::bytesToString(masterIPBytes);
-        logger->debug("Caching master for {} as {} (this host {})", lookupKey, masterIP, thisIP);
-
-        masterMap[lookupKey] = masterIP;
-
-        return masterIP;
-    }
-
-    std::string getMasterIPForOtherMaster(const std::string &userIn, const std::string &keyIn,
-                                          const std::string &thisIP) {
-        // Get the master IP
-        std::string masterIP = getMasterIP(userIn, keyIn, thisIP, false);
-
-        // Sanity check that the master is *not* this machine
-        if (masterIP == thisIP) {
-            throw std::runtime_error("Attempting to pull state size on master");
-        }
-
-        return masterIP;
-    }
 
     size_t InMemoryStateKeyValue::getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn,
                                                          const std::string &thisIP) {
@@ -114,7 +21,8 @@ namespace state {
         std::string masterIP;
 
         try {
-            masterIP = getMasterIPForOtherMaster(userIn, keyIn, thisIP);
+            InMemoryStateRegistry &reg = getInMemoryStateRegistry();
+            masterIP = reg.getMasterIPForOtherMaster(userIn, keyIn, thisIP);
         } catch (StateKeyValueException &ex) {
             return 0;
         }
@@ -136,7 +44,8 @@ namespace state {
 
     void InMemoryStateKeyValue::deleteFromRemote(const std::string &userIn, const std::string &keyIn,
                                                  const std::string &thisIPIn) {
-        std::string masterIP = getMasterIP(userIn, keyIn, thisIPIn, false);
+        InMemoryStateRegistry &reg = getInMemoryStateRegistry();
+        std::string masterIP = reg.getMasterIP(userIn, keyIn, thisIPIn, false);
 
         // Ignore if we're the master
         if (masterIP == thisIPIn) {
@@ -157,8 +66,8 @@ namespace state {
     }
 
     void InMemoryStateKeyValue::clearAll(bool global) {
-        util::FullLock lock(masterMapMutex);
-        masterMap.clear();
+        InMemoryStateRegistry &reg = state::getInMemoryStateRegistry();
+        reg.clear();
     }
 
     // --------------------------------------------
@@ -168,10 +77,11 @@ namespace state {
     InMemoryStateKeyValue::InMemoryStateKeyValue(
             const std::string &userIn, const std::string &keyIn,
             size_t sizeIn, const std::string &thisIPIn) : StateKeyValue(userIn, keyIn, sizeIn),
-                                                          thisIP(thisIPIn) {
+                                                          thisIP(thisIPIn),
+                                                          stateRegistry(getInMemoryStateRegistry()) {
 
         // Retrieve the master IP for this key
-        masterIP = getMasterIP(user, key, thisIP, true);
+        masterIP = stateRegistry.getMasterIP(user, key, thisIP, true);
 
         // Mark whether we're master
         status = masterIP == thisIP ? InMemoryStateKeyStatus::MASTER : InMemoryStateKeyStatus::NOT_MASTER;
@@ -375,7 +285,7 @@ namespace state {
 
     void InMemoryStateKeyValue::extractPullResponse(const tcp::TCPMessage *msg) {
         if (msg->type == StateMessageType::STATE_PULL_RESPONSE) {
-            if(msg->len != size()) {
+            if (msg->len != size()) {
                 util::getLogger()->error("Size of pull response {} not equal to KV size {}", msg->len, size());
                 throw std::runtime_error("Mismatched pulled state and size");
             }
@@ -413,7 +323,7 @@ namespace state {
 
         // Check bounds - note we need to check against the allocated memory size, not the value
         int32_t chunkEnd = chunkOffset + chunkLen;
-        if((uint32_t) chunkEnd > sharedMemSize) {
+        if ((uint32_t) chunkEnd > sharedMemSize) {
             logger->error("Pull chunk request larger than allocated memory (chunk end {}, allocated {})",
                           chunkEnd, sharedMemSize);
             throw std::runtime_error("Pull chunk request exceeds allocated memory");

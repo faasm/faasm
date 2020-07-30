@@ -3,10 +3,18 @@ include_directories(
         ${FAASM_WAVM_SOURCE_DIR}
 )
 
+# Arrow set-up
+find_package(Arrow REQUIRED)
+message(STATUS "Found Arrow ${ARROW_VERSION}")
+
 file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/state/*.h")
 
 set(LIB_FILES
+        ArrowMemoryWrapper.cpp
+        ArrowStateClient.cpp
+        ArrowStateServer.cpp
         InMemoryStateKeyValue.cpp
+        InMemoryStateRegistry.cpp
         State.cpp
         StateKeyValue.cpp
         StateMessage.cpp
@@ -16,4 +24,8 @@ set(LIB_FILES
     )
 
 faasm_private_lib(state "${LIB_FILES}")
-target_link_libraries(state proto tcp redis)
+target_link_libraries(state proto tcp redis arrow_shared)
+
+# Arrow PoC
+add_executable(arrow_poc arrow_poc.cpp)
+target_link_libraries(arrow_poc state)
