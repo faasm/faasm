@@ -67,7 +67,9 @@ extern "C"{
     static unsigned int faasm_await_call_wrapper(wasm_exec_env_t exec_env, unsigned int call_id);
     static unsigned int faasm_await_call_output_wrapper(wasm_exec_env_t exec_env, unsigned int call_id, uint8_t* buffer, unsigned int buffer_size);
     static int faasm_get_current_idx_wrapper(wasm_exec_env_t exec_env);
-    uint32_t get_sgx_wamr_native_symbols(NativeSymbol** native_symbol_ptr);
+#if(FAASM_SGX_WHITELISTING)
+    void sgx_wamr_function_not_whitelisted_wrapper(wasm_exec_env_t exec_env);
+#endif
 };
 
 #endif //FAASM_SGX_WAMR_NATIVE_SYMBOLS_WRAPPER_H

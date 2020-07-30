@@ -16,7 +16,7 @@ void FAASM_FUNC(func_1,1){
     printf("[Info/func_1] Input: %s\n",(char*)buffer);
     return;
 }
-void FAASM_MAIN(main_){
+FAASM_MAIN(){
     char func_1_input[] = {"Hello"};
     unsigned int call_id;
     printf("[Info/main_] Calling func_1 with input %s\n",func_1_input);

@@ -9,11 +9,10 @@
 #define STATE_KEY "my_secret"
 #define SECRET_MESSAGE "Hello World"
 
-void FAASM_MAIN(main_){
+FAASM_MAIN(){
     uint8_t buffer_ptr[sizeof(SECRET_MESSAGE)];
     uint32_t secret_size;
     printf("[Info/main_] Placing secret message %s into a state\n", SECRET_MESSAGE);
-    //faasmWriteState(STATE_KEY,(uint8_t*)SECRET_MESSAGE,(uint64_t)sizeof(SECRET_MESSAGE));
     faasmWriteState(STATE_KEY,(uint8_t*)SECRET_MESSAGE, sizeof(SECRET_MESSAGE));
     printf("[Info/main_] Now fetching the secret\n");
     secret_size = faasmReadStateSize(STATE_KEY);

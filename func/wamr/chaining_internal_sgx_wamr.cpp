@@ -19,7 +19,7 @@ void FAASM_FUNC(func_1,1){
     printf("[Info/func_1] Hello World from func_1\n");
     return;
 }
-void FAASM_MAIN(main_){
+FAASM_MAIN(){
     unsigned int call_id;
     uint8_t func_2_input[] = {0xFF, 0x00};
     printf("[Info/main_] Calling func_1 without await.\n");

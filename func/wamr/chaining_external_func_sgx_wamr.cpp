@@ -13,7 +13,7 @@ void FAASM_FUNC(func_1,1){
     printf("[Info/func_1] Hello World from func_1\n");
     return;
 }
-void FAASM_MAIN(main_){
+FAASM_MAIN(){
     unsigned int call_id;
     printf("[Info] chaining_external_func_sgx_wamr invoked\n");
     printf("[Info] Calling func_1 with await\n");

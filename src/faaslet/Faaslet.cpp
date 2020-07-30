@@ -63,8 +63,8 @@ namespace faaslet {
         }
 #if(FAASM_SGX_ATTESTATION)
         free(sgx_wamr_msg_response.buffer_ptr);
-    }
 #endif
+    }
 #endif
     const bool Faaslet::isBound() {
         return _isBound;

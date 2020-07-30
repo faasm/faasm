@@ -206,7 +206,13 @@ extern "C"{
         }
         return ret_val;
     }
-    static NativeSymbol sgx_wamr_native_symbols[] = {
+#if(FAASM_SGX_WHITELISTING)
+    void sgx_wamr_function_not_whitelisted_wrapper(wasm_exec_env_t exec_env){
+        os_printf("Function is not whitelisted!\n");
+        return;
+    }
+#endif
+NativeSymbol sgx_wamr_native_symbols[28] = {
             {"faasmReadStateSize",(void*)faasm_read_state_size_wrapper,"($)I",0x0},
             {"faasmReadState",(void*)faasm_read_state_wrapper,"($*~)I",0x0},
             {"faasmReadAppendedState",(void*)faasm_read_appended_state_wrapper,"($*~i)",0x0},
@@ -236,8 +242,4 @@ extern "C"{
             {"faasmAwaitCallOutput",(void*)faasm_await_call_output_wrapper,"(i*~)i",0x0},
             {"faasmGetCurrentIdx",(void*)faasm_get_current_idx_wrapper,"()i",0x0}
     };
-    uint32_t get_sgx_wamr_native_symbols(NativeSymbol** native_symbol_ptr){
-        *native_symbol_ptr = sgx_wamr_native_symbols;
-        return sizeof(sgx_wamr_native_symbols)/sizeof(NativeSymbol);
-    }
 };

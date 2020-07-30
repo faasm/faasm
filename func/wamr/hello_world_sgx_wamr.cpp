@@ -6,6 +6,6 @@
 #include <stdio.h>
 #include <sgx/faasm_sgx_wamr.h>
 
-void __attribute__((optnone)) FAASM_MAIN(main_){
+FAASM_MAIN(){
     printf("[Info] Hello World from sgx_wamr\n");
 }

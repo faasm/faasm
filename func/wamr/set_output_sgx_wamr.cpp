@@ -17,7 +17,7 @@ void FAASM_FUNC(add,1){
     faasmSetOutput(buffer,1);
     return;
 }
-void FAASM_MAIN(main_){
+FAASM_MAIN(){
     uint32_t call_id;
     uint8_t input[2] = {0x1, 0x2};
     char return_value[] = {"Result: X"};

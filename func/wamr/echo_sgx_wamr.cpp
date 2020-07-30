@@ -8,7 +8,7 @@
 /**
  * Writes the input to the output
  */
-void FAASM_MAIN(main_) {
+FAASM_MAIN() {
     uint32_t input_size = faasmGetInputSize();
     uint8_t input[input_size];
     faasmGetInput(input, input_size);

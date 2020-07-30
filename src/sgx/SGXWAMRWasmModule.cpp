@@ -31,7 +31,7 @@ namespace wasm{
 #if(FAASM_SGX_ATTESTATION)
         if((sgx_ret_val = sgx_wamr_enclave_load_module(*enclave_id_ptr,&ret_val,(void*)wasm_opcode.data(),(uint32_t)wasm_opcode.size(),&thread_id, &get_sgx_msg_buffer()->buffer_ptr)) != SGX_SUCCESS){
 #else
-        if((sgx_ret_val = sgx_wamr_enclave_load_module(*enclave_id_ptr,&ret_val,(void*)wasm_opcode.data(),(uint32_t)wasm_opcode.size(),&thread_id, ((faasm_sgx_msg_buffer_t*)pthread_getspecific(faaslet_faasm_sgx_msg_buffer_key))->buffer_ptr)) != SGX_SUCCESS){
+        if((sgx_ret_val = sgx_wamr_enclave_load_module(*enclave_id_ptr,&ret_val,(void*)wasm_opcode.data(),(uint32_t)wasm_opcode.size(),&thread_id)) != SGX_SUCCESS){
 #endif
                 printf("[Error] Unable to enter enclave (%#010x)\n",sgx_ret_val);
                 return;

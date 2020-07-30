@@ -9,7 +9,7 @@
 #include <stdint.h>
 
 #define FAASM_FUNC(name, id) __attribute__((visibility("default"))) __attribute__((export_name(#id))) name()
-#define FAASM_MAIN(name) FAASM_FUNC(name,0)
+#define FAASM_MAIN() void FAASM_FUNC(_main,0)
 
 #ifdef __cplusplus
 extern "C" {

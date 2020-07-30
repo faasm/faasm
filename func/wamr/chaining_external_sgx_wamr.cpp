@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <sgx/faasm_sgx_wamr.h>
 
-void FAASM_MAIN(main_){
+FAASM_MAIN(){
     unsigned int call_id;
     printf("[Info/main_] Calling chaining_external_func_sgx_wamr\n");
     call_id = faasmChainFunctionInput("chaining_external_func_sgx_wamr",0x0,0x0);

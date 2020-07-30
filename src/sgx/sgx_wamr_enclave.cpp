@@ -3,21 +3,21 @@
 // TU-Braunschweig (heineman@ibr.cs.tu-bs.de)
 //
 
-#include <xra.h>
-#include <xra_error.h>
 #include <sgx.h>
 #include <sgx_defs.h>
 #include <sgx/sgx_wamr_enclave_types.h>
-#if(FAASM_SGX_ATTESTATION)
-#include <sgx/sgx_wamr_attestation.h>
 #include <util/rw_lock.h>
-#endif
-#include <sgx_wamr_native_symbols_wrapper.h>
 #include <sgx/faasm_sgx_error.h>
 #include <tlibc/mbusafecrt.h>
 #include <iwasm/include/wasm_export.h>
 #include <string.h>
 #include <sgx_thread.h>
+#if(FAASM_SGX_ATTESTATION)
+#include <sgx/sgx_wamr_attestation.h>
+#endif
+#if(FAASM_SGX_WHITELISTING)
+#include <sgx/sgx_wamr_whitelisting.h>
+#endif
 #if(WASM_ENABLE_INTERP == 1)
 #include <iwasm/interpreter/wasm_runtime.h>
 #endif
@@ -32,8 +32,8 @@ extern "C"{
     typedef void(*os_print_function_t)(const char* msg);
     extern void os_set_print_function(os_print_function_t pf);
     extern int os_printf(const char* message, ...);
-    extern uint32_t get_libc_builtin_export_apis(NativeSymbol** native_symbol_ptr);
     extern sgx_status_t SGX_CDECL ocall_printf(const char* msg);
+    extern NativeSymbol sgx_wamr_native_symbols[28];
 #if(FAASM_SGX_ATTESTATION)
     extern sgx_status_t SGX_CDECL ocall_init_crt(faasm_sgx_status_t* ret_val);
     extern sgx_status_t SGX_CDECL ocall_send_msg(faasm_sgx_status_t* ret_val, sgx_wamr_msg_t* msg, uint32_t msg_len);
@@ -46,7 +46,7 @@ extern "C"{
     static rwlock_t _rwlock_sgx_wamr_tcs_realloc = {0};
     static char _wamr_global_heap_buffer[FAASM_SGX_WAMR_HEAP_SIZE * 1024];
 #if(FAASM_SGX_ATTESTATION)
-    static inline faasm_sgx_status_t _get_response_msg(const uint32_t thread_id, sgx_wamr_msg_t** response_ptr){
+    static inline faasm_sgx_status_t __get_response_msg(const uint32_t thread_id, sgx_wamr_msg_t** response_ptr){
         read_lock(&_rwlock_sgx_wamr_tcs_realloc);
         *response_ptr = *sgx_wamr_tcs[thread_id].response_ptr;
         read_unlock(&_rwlock_sgx_wamr_tcs_realloc);
@@ -59,7 +59,7 @@ extern "C"{
             return FAASM_SGX_INVALID_PTR;
         faasm_sgx_status_t ret_val;
         sgx_wamr_msg_t* response_ptr;
-        if((ret_val = _get_response_msg(thread_id,&response_ptr)) != FAASM_SGX_SUCCESS)
+        if((ret_val = __get_response_msg(thread_id, &response_ptr)) != FAASM_SGX_SUCCESS)
             return ret_val;
         //DO DECRYPTION STUFF
         //IMPLEMENT ME:P
@@ -95,17 +95,7 @@ extern "C"{
         return ret_val;
     }
 #endif
-    static faasm_sgx_status_t _get_native_symbols(NativeSymbol** native_symbol_ptr, uint32_t* native_symbol_num){//TODO: Performance Improvement e.g. extern
-        NativeSymbol* libc_buildin_ptr, *sgx_wamr_ptr;
-        uint32_t libc_buildin_num = get_libc_builtin_export_apis(&libc_buildin_ptr), sgx_wamr_num = get_sgx_wamr_native_symbols(&sgx_wamr_ptr);
-        *native_symbol_num = libc_buildin_num + sgx_wamr_num;
-        if((*native_symbol_ptr = (NativeSymbol*) calloc(*native_symbol_num, sizeof(NativeSymbol))) == NULL)
-            return FAASM_SGX_OUT_OF_MEMORY;
-        memcpy(*native_symbol_ptr, libc_buildin_ptr, libc_buildin_num * sizeof(NativeSymbol));
-        memcpy((*native_symbol_ptr + libc_buildin_num), sgx_wamr_ptr, sgx_wamr_num * sizeof(NativeSymbol));
-        return FAASM_SGX_SUCCESS;
-    }
-    static inline faasm_sgx_status_t _get_tcs_slot(uint32_t* thread_id){
+    static inline faasm_sgx_status_t __get_tcs_slot(uint32_t* thread_id){
         _sgx_wamr_tcs_t* temp_ptr;
         uint32_t temp_len, i = 0;
         sgx_thread_mutex_lock(&_mutex_sgx_wamr_tcs);
@@ -190,9 +180,13 @@ extern "C"{
         memset(module_error_buffer, 0x0, sizeof(module_error_buffer));
         if(!wasm_opcode_size)
             return FAASM_SGX_INVALID_OPCODE_SIZE;
+#if(FAASM_SGX_ATTESTATION)
         if(!wasm_opcode_ptr || !response_ptr)
+#else
+        if(!wasm_opcode_ptr)
+#endif
             return FAASM_SGX_INVALID_PTR;
-        if((ret_val = _get_tcs_slot(thread_id)) != FAASM_SGX_SUCCESS)
+        if((ret_val = __get_tcs_slot(thread_id)) != FAASM_SGX_SUCCESS)
             return ret_val;
         read_lock(&_rwlock_sgx_wamr_tcs_realloc);
 #if(FAASM_SGX_ATTESTATION)
@@ -236,9 +230,8 @@ extern "C"{
         wamr_runtime_init_args.mem_alloc_option.pool.heap_buf = _wamr_global_heap_buffer;
         wamr_runtime_init_args.mem_alloc_option.pool.heap_size = sizeof(_wamr_global_heap_buffer);
         wamr_runtime_init_args.native_module_name = "env";
-        if((ret_val = _get_native_symbols(&wamr_runtime_init_args.native_symbols, &wamr_runtime_init_args.n_native_symbols)) != FAASM_SGX_SUCCESS){
-            return ret_val;
-        }
+        wamr_runtime_init_args.native_symbols = sgx_wamr_native_symbols;
+        wamr_runtime_init_args.n_native_symbols = (sizeof(sgx_wamr_native_symbols) / sizeof(NativeSymbol));
         if(!wasm_runtime_full_init(&wamr_runtime_init_args))
             return FAASM_SGX_WAMR_RTE_INIT_FAILED;
 #if(FAASM_SGX_ATTESTATION)
@@ -247,43 +240,11 @@ extern "C"{
         if(ret_val != FAASM_SGX_SUCCESS)
             return ret_val;
 #endif
-
         //TESTBENCH//
-        xra_status_t xra_ret_val;
-        sgx_target_info_t target_info;
-        sgx_report_data_t report_data;
-        sgx_report_t sgx_report;
-        xra_report_t xra_report;
-        sgx_sha256_hash_t xra_hash;
-        uint8_t pseudo_wasm_opcode[] = {0x1, 0x2, 0x3, 0x4, 0x5};
-        memcpy((void*)report_data.d,"0x8F_T",sizeof("0x8F_T"));
-        if((sgx_ret_val != sgx_self_target(&target_info)) != SGX_SUCCESS)
-            __asm("ud2");
-        if((xra_ret_val = xra_create_report(&target_info,&report_data,pseudo_wasm_opcode,sizeof(pseudo_wasm_opcode),&xra_report,&sgx_report)) != XRA_SUCCESS){
-            return (faasm_sgx_status_t)xra_ret_val;
-        }
-        os_printf("REPORT: CREATED\n");
-        if((sgx_ret_val != sgx_sha256_msg((const uint8_t*)&xra_report, sizeof(xra_report_t),&xra_hash)) != SGX_SUCCESS){
-            __asm("ud2");
-        }
-        if(memcmp((void*)&xra_hash,(void*)&sgx_report.body.report_data,sizeof(sgx_sha256_hash_t)))
-            __asm("ud2");
-        os_printf("HASH XRA: SAME\n");
-        if((sgx_ret_val != sgx_sha256_msg((const uint8_t*)pseudo_wasm_opcode, sizeof(pseudo_wasm_opcode),&xra_hash)) != SGX_SUCCESS){
-            __asm("ud2");
-        }
-        if(memcmp((void*)&xra_hash,(void*)&xra_report.wasm_opcode_hash,sizeof(sgx_sha256_hash_t)))
-                __asm("ud2");
-        os_printf("HASH WASM_OPCODE: SAME\n");
-        if((sgx_ret_val = sgx_verify_report(&sgx_report)) != SGX_SUCCESS){
-            os_printf("SGX-REPORT: FAILED\n");
-            __asm("ud2");
-        }
-        os_printf("SGX-REPORT: OKAY\n");
-        os_printf("XRA_REPORT_DATA: %s\n",xra_report.report_data.d);
-        os_printf("Finished\n");
-        __asm("ud2");
-        //END_TESTBENCH//
+        char* whitelist = (char*) malloc(sizeof("printf|puts"));
+        memcpy(whitelist,"printf|puts",sizeof("printf|puts"));
+        _register_whitelist(whitelist,'|');
+        //ENDTESTBENCH//
         return FAASM_SGX_SUCCESS;
     }
 };
