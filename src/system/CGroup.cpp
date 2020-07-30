@@ -7,7 +7,6 @@
 #include <mutex>
 
 #include <syscall.h>
-#include <sys/types.h>
 #include <boost/filesystem.hpp>
 
 using namespace boost::filesystem;

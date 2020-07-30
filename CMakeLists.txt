@@ -3,7 +3,7 @@ project(faasm)
 
 # Optional functionality
 option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
-option(FAASM_SGX_SUPPORT "Add support for SGX" OFF)
+option(FAASM_SGX_SUPPORT "Add support for SGX" ON)
 
 option(FAASM_SELF_TRACING "Turn on system tracing using the logger" OFF)
 option(FAASM_OPENMP_TRACING "Trace OpenMP forks in Redis" OFF)
@@ -26,6 +26,10 @@ set(FAASM_WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
 
 # SGX configuration
 if (FAASM_SGX_SUPPORT)
+    # SGX includes
+    set(SGX_SDK_PATH /opt/intel/sgxsdk)
+    include_directories(${SGX_SDK_PATH}/include)
+
     # Switch off Werror only when in SGX mode
     set(CMAKE_CXX_FLAGS "-Wall")
 
@@ -57,26 +61,19 @@ add_definitions(-DBUILD_TARGET_X86_64)
 # Enable ASM
 enable_language(ASM)
 
-# WAMR SGX config
-if (FAASM_SGX_SUPPORT)
-    set(WAMR_BUILD_PLATFORM linux-sgx)
-
-    set(FAASM_SGX_WAMR_HEAP_SIZE 32768)
-    set(FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE 128)
-    set(FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE 8192)
-    set(FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE 8192)
-else()
-    set(WAMR_BUILD_PLATFORM linux)
-endif ()
-
 # WAMR includes
 include_directories(
         ${WAMR_SHARED_DIR}/include
         ${WAMR_SHARED_DIR}/utils
-        ${WAMR_SHARED_DIR}/platform/${WAMR_BUILD_PLATFORM}/
         ${WAMR_IWASM_DIR}/include
         ${WAMR_IWASM_DIR}/common
 )
+
+# WAMR platform header, will break SGX build to include normal linux header
+if(FAASM_SGX_SUPPORT)
+else()
+    include_directories(${WAMR_SHARED_DIR}/platform/linux/)
+endif()
 
 # Library type (for shared libraries)
 if (FAASM_STATIC_LIBS)
@@ -186,11 +183,6 @@ else ()
     # WAVM
     add_subdirectory(third-party/WAVM)
 
-    # SGX
-    if (FAASM_SGX_SUPPORT)
-        add_subdirectory(src/sgx)
-    endif ()
-
     # Faasm functions
     add_subdirectory(func)
 
@@ -221,9 +213,16 @@ else ()
     add_subdirectory(src/tcp)
     add_subdirectory(src/upload)
     add_subdirectory(src/util)
-    add_subdirectory(src/wamr)
     add_subdirectory(src/wasm)
     add_subdirectory(src/wavm)
+
+    # SGX
+    if (FAASM_SGX_SUPPORT)
+        add_subdirectory(src/sgx_wamr)
+        add_subdirectory(src/sgx)
+    else()
+        add_subdirectory(src/wamr)
+    endif ()
 
     # Tests
     add_library(catch INTERFACE)

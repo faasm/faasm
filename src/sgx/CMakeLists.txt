@@ -2,6 +2,13 @@
 # BUILD CONFIGURATION
 # --------------------------------------------------------
 
+# Include WAMR SGX platform
+include_directories(${WAMR_SHARED_DIR}/platform/linux-sgx/)
+
+# Flags to switch on/ off WAMR interpreter and AOT
+add_definitions("-DWASM_ENABLE_INTERP=1")
+add_definitions("-DWASM_ENABLE_AOT=1")
+
 # NASM configuration
 enable_language(ASM_NASM)
 set(CMAKE_ASM_NASM_FLAGS -felf64)
@@ -9,7 +16,6 @@ set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <INCLUDES> ${CMAKE_
 
 # SGX config
 set(SGX_DEBUG_MODE 1)
-set(SGX_SDK_PATH /opt/intel/sgxsdk)
 set(SGX_SDK_LIB_PATH ${SGX_SDK_PATH}/lib64)
 set(SGX_SDK_ENCLAVE_SIGNER ${SGX_SDK_PATH}/bin/x64/sgx_sign)
 set(SGX_SDK_ENCLAVE_EDGER8R ${SGX_SDK_PATH}/bin/x64/sgx_edger8r)
@@ -23,6 +29,12 @@ set(SGX_WAMR_ENCLAVE_SOURCE_FILES sgx_wamr_enclave.cpp sgx_wamr_native_symbols_w
 set(SGX_WAMR_URTS_OBJECTS ${CMAKE_CURRENT_BINARY_DIR}/sgx_wamr_enclave_u.o)
 set(SGX_WAMR_ENCLAVE_TRTS_OBJECTS ${CMAKE_CURRENT_BINARY_DIR}/sgx_wamr_enclave_t.o)
 set_source_files_properties(${SGX_WAMR_ASM_SOURCE_FILES} PROPERTIES LANGUAGE ASM_NASM)
+
+# Memory sizes
+set(FAASM_SGX_WAMR_HEAP_SIZE 32768)
+set(FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE 128)
+set(FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE 8192)
+set(FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE 8192)
 
 # Debug message
 message("-- SGX-WAMR Configuration:
@@ -116,7 +128,7 @@ if (SGX_SIM_MODE)
             sgx_tcxx
             sgx_tcrypto
             sgx_tservice_sim
-            wamr
+            wamrlib_sgx
             -Wl,--end-group
             )
 elseif (NOT SGX_SIM_MODE)
@@ -128,13 +140,13 @@ elseif (NOT SGX_SIM_MODE)
             sgx_tcxx
             sgx_tcrypto
             sgx_tservice
-            wamr
+            wamrlib_sgx
             -Wl,--end-group
             )
 endif ()
 
 # --------------------------------------------------------
-# SGX WAMR SUPPORT
+# FAASM SGX WAMR MODULE
 # --------------------------------------------------------
 
 # SGX WAMR library

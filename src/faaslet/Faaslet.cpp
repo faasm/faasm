@@ -8,7 +8,6 @@
 #include <util/timing.h>
 #include <module_cache/WasmModuleCache.h>
 
-#include <wamr/WAMRWasmModule.h>
 #include <wavm/WAVMWasmModule.h>
 
 #if(FAASM_SGX == 1)
@@ -17,6 +16,8 @@
 extern "C"{
 extern sgx_enclave_id_t enclave_id;
 };
+#else
+#include <wamr/WAMRWasmModule.h>
 #endif
 
 using namespace isolation;
@@ -97,7 +98,7 @@ namespace faaslet {
             module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
             wasm::WAVMWasmModule &cachedModule = registry.getCachedModule(call);
 
-            wasm::WAVMWasmModule *wavmModulePtr = static_cast<wasm::WAVMWasmModule *>(module.get());
+            auto *wavmModulePtr = dynamic_cast<wasm::WAVMWasmModule *>(module.get());
             *wavmModulePtr = cachedModule;
         }
 
