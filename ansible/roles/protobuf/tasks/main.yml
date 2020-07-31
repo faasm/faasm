@@ -10,6 +10,7 @@
     - curl
     - make
     - unzip
+    - zlib1g-dev
 
 - name: "Check if protobuf installed"
   stat:
@@ -21,15 +22,15 @@
   args:
     chdir: "/tmp/"
   with_items:
-    - "curl -O -L https://github.com/google/protobuf/releases/download/v3.6.0/protobuf-cpp-3.6.0.tar.gz"
-    - "tar --no-same-owner -xf protobuf-cpp-3.6.0.tar.gz"
+    - "curl -O -L https://github.com/google/protobuf/releases/download/v3.12.4/protobuf-cpp-3.12.4.tar.gz"
+    - "tar --no-same-owner -xf protobuf-cpp-3.12.4.tar.gz"
   when: pb_stat.stat.exists == False
 
 - name: "Build and install"
   become: yes
   shell: "{{ item }}"
   args:
-    chdir: "/tmp/protobuf-3.6.0"
+    chdir: "/tmp/protobuf-3.12.4"
   with_items:
     - "./configure --prefix=/usr CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10"
     - "make -j"
@@ -42,5 +43,5 @@
     state: absent
     path: "{{ item }}"
   with_items:
-    - "/tmp/protobuf-cpp-3.6.0.tar.gz"
-    - "/tmp/protobuf-cpp-3.6.0"
+    - "/tmp/protobuf-cpp-3.12.4.tar.gz"
+    - "/tmp/protobuf-cpp-3.12.4"

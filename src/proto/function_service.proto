@@ -2,6 +2,20 @@ syntax = "proto3";
 
 package message;
 
+service FunctionRPCService {
+    rpc ShareFunction (Message) returns (FunctionStatusResponse) {
+    }
+}
+
+enum FunctionStatus {
+    OK = 0;
+    ERROR = 1;
+}
+
+message FunctionStatusResponse {
+    FunctionStatus status = 1;
+}
+
 message Message {
     string user = 1;
     string function = 2;

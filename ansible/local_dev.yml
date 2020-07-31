@@ -6,10 +6,10 @@
   roles:
     - linux
     - llvm10
-    - arrow
+    - protobuf
+    - grpc
     - eigen
     - pistache
-    - protobuf
     - perf
     - spdlog
     - cereal

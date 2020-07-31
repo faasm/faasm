@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package message;
 
-service StateService {
+service StateRPCService {
     rpc Pull (StateRequest) returns (StateResponse) {
     }
     rpc PullChunk (StateChunkRequest) returns (StateChunkResponse) {

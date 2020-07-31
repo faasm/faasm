@@ -3,10 +3,10 @@
 #include "State.h"
 #include "StateMessage.h"
 
-#include <tcp/TCPServer.h>
+#include <proto/state_service.pb.h>
 
 namespace state {
-    class StateServer final : public tcp::TCPServer {
+class StateServer final : public StateRPCService::Service {
     public:
         explicit StateServer(State &stateIn);
 
