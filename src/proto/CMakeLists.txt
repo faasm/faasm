@@ -2,10 +2,14 @@ include(FindProtobuf)
 
 set(protobuf_MODULE_COMPATIBLE TRUE)
 
-find_package(gRPC CONFIG REQUIRED)
-find_package(Protobuf CONFIG REQUIRED)
+find_package(Protobuf REQUIRED)
+message(STATUS "Using protobuf  \
+${PROTOBUF_LIBRARY} \
+${PROTOBUF_PROTOC_LIBRARY} \
+${PROTOBUF_PROTOC_EXECUTABLE} \
+")
 
-message(STATUS "Using protobuf ${protobuf_VERSION}")
+find_package(gRPC CONFIG REQUIRED)
 message(STATUS "Using gRPC ${gRPC_VERSION}")
 
 include_directories(${PROTOBUF_INCLUDE_DIR})

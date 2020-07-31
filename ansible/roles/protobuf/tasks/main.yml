@@ -14,34 +14,35 @@
 
 - name: "Check if protobuf installed"
   stat:
-    path: /usr/lib/libprotobuf.so
+    path: /usr/local/lib/libprotobuf.a
   register: pb_stat
 
-- name: "Download protobuf source"
-  shell: "{{ item }}"
-  args:
-    chdir: "/tmp/"
-  with_items:
-    - "curl -O -L https://github.com/google/protobuf/releases/download/v3.12.4/protobuf-cpp-3.12.4.tar.gz"
-    - "tar --no-same-owner -xf protobuf-cpp-3.12.4.tar.gz"
+- name: "Clone Protobuf"
+  git:
+    repo: "https://github.com/protocolbuffers/protobuf.git"
+    dest: "/tmp/protobuf"
+    version: "v3.12.4"
   when: pb_stat.stat.exists == False
 
-- name: "Build and install"
+- name: "Set up build"
+  shell: "mkdir -p build"
+  args:
+    chdir: "/tmp/protobuf/cmake"
+  when: pb_stat.stat.exists == False
+
+# Note - compiling with clang avoids excessing warnings
+- name: "Build"
+  shell: "{{ item }}"
+  args:
+    chdir: "/tmp/protobuf/cmake/build"
+  with_items:
+    - "cmake -GNinja -Dprotobuf_BUILD_TESTS=OFF -DCMAKE_CXX_COMPILER=/usr/bin/clang++-10 -DCMAKE_C_COMPILER=/usr/bin/clang-10 -DCMAKE_BUILD_TYPE=Release .."
+    - "ninja"
+  when: pb_stat.stat.exists == False
+
+- name: "Install"
   become: yes
-  shell: "{{ item }}"
+  shell: "ninja install"
   args:
-    chdir: "/tmp/protobuf-3.12.4"
-  with_items:
-    - "./configure --prefix=/usr CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10"
-    - "make -j"
-    - "make install"
-    - "ldconfig"
+    chdir: "/tmp/protobuf/cmake/build"
   when: pb_stat.stat.exists == False
-
-- name: "Clean up"
-  file:
-    state: absent
-    path: "{{ item }}"
-  with_items:
-    - "/tmp/protobuf-cpp-3.12.4.tar.gz"
-    - "/tmp/protobuf-cpp-3.12.4"
