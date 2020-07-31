@@ -1,17 +1,18 @@
 #pragma once
 
 #include "StateKeyValue.h"
+#include "InMemoryStateRegistry.h"
 
 #include <util/clock.h>
 #include <util/locks.h>
 
 
 namespace state {
-    class RedisStateKeyValue final : public StateKeyValue {
+    class ArrowStateKeyValue final : public StateKeyValue {
     public:
-        RedisStateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn);
+        ArrowStateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn);
 
-        RedisStateKeyValue(const std::string &userIn, const std::string &keyIn);
+        ArrowStateKeyValue(const std::string &userIn, const std::string &keyIn);
 
         static size_t getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn);
 
@@ -19,10 +20,6 @@ namespace state {
 
         static void clearAll(bool global);
     private:
-        const std::string joinedKey;
-
-        uint32_t lastRemoteLockId = 0;
-
         void lockGlobal() override;
 
         void unlockGlobal() override;

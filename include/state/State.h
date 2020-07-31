@@ -23,6 +23,8 @@ namespace state {
         void deleteKVLocally(const std::string &userIn, const std::string &keyIn);
 
         size_t getKVCount();
+
+        std::string getThisIP();
     private:
         const std::string thisIP;
 

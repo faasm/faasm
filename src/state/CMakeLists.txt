@@ -13,6 +13,7 @@ set(LIB_FILES
         ArrowMemoryWrapper.cpp
         ArrowStateClient.cpp
         ArrowStateServer.cpp
+        ArrowStateKeyValue.cpp
         InMemoryStateKeyValue.cpp
         InMemoryStateRegistry.cpp
         State.cpp

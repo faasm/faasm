@@ -1,64 +1,64 @@
-syntax = "proto2";
+syntax = "proto3";
 
 package message;
 
 message Message {
-    optional string user = 1;
-    optional string function = 2;
-    optional int32 idx = 3;
-    optional string snapshotKey = 4;
-    optional int32 snapshotSize = 5;
-    optional int32 funcPtr = 6;
-    optional int32 returnValue = 7;
+    string user = 1;
+    string function = 2;
+    int32 idx = 3;
+    string snapshotKey = 4;
+    int32 snapshotSize = 5;
+    int32 funcPtr = 6;
+    int32 returnValue = 7;
 
     enum MessageType {
+        CALL = 0;
         BIND = 1;
-        CALL = 2;
-        KILL = 3;
-        EMPTY = 4;
+        KILL = 2;
+        EMPTY = 3;
     }
 
-    optional MessageType type = 8 [default = CALL];
+    MessageType type = 8;
 
-    optional int64 timestamp = 9;
-    optional int32 id = 10;
-    optional string resultKey = 11;
-    optional string statusKey = 12;
+    int64 timestamp = 9;
+    int32 id = 10;
+    string resultKey = 11;
+    string statusKey = 12;
 
-    optional string scheduledHost = 13;
-    optional int32 hops = 14 [default = 0];
-    optional string executedHost = 15;
-    optional int64 finishTimestamp = 16;
+    string scheduledHost = 13;
+    int32 hops = 14;
+    string executedHost = 15;
+    int64 finishTimestamp = 16;
 
-    optional bool isAsync = 17;
-    optional bool isPython = 18;
-    optional bool isTypescript = 19;
-    optional bool isStatusRequest = 20;
-    optional bool isExecGraphRequest = 21;
-    optional bool isFlushRequest = 22;
+    bool isAsync = 17;
+    bool isPython = 18;
+    bool isTypescript = 19;
+    bool isStatusRequest = 20;
+    bool isExecGraphRequest = 21;
+    bool isFlushRequest = 22;
 
-    optional bytes inputData = 23;
-    optional bytes outputData = 24;
+    bytes inputData = 23;
+    bytes outputData = 24;
 
-    optional string pythonUser = 25;
-    optional string pythonFunction = 26;
-    optional string pythonEntry = 27;
+    string pythonUser = 25;
+    string pythonFunction = 26;
+    string pythonEntry = 27;
 
-    optional int32 coldStartInterval = 28;
+    int32 coldStartInterval = 28;
 
-    optional bool isMpi = 29;
-    optional int32 mpiWorldId = 30 [default = -1];
-    optional int32 mpiRank = 31 [default = -1];
-    optional int32 mpiWorldSize = 32 [default = -1];
+    bool isMpi = 29;
+    int32 mpiWorldId = 30;
+    int32 mpiRank = 31;
+    int32 mpiWorldSize = 32;
 
-    optional int32 ompThreadNum = 33 [default = 0];
+    int32 ompThreadNum = 33;
     repeated uint32 ompFunctionArgs = 34;
-    optional int32 ompDepth = 35;
-    optional int32 ompEffDepth = 36;
-    optional int32 ompMAL = 37;
-    optional int32 ompNumThreads = 38;
+    int32 ompDepth = 35;
+    int32 ompEffDepth = 36;
+    int32 ompMAL = 37;
+    int32 ompNumThreads = 38;
 
-    optional string cmdline = 39;
+    string cmdline = 39;
 
-    optional bool isSgx = 40;
+    bool isSgx = 40;
 }

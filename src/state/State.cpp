@@ -158,4 +158,8 @@ namespace state {
     size_t State::getKVCount() {
         return kvMap.size();
     }
+
+    std::string State::getThisIP() {
+        return thisIP;
+    }
 }
