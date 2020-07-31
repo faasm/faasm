@@ -24,7 +24,7 @@
 # Note the issues with the grpc build discussed here:
 # https://github.com/grpc/grpc/issues/13841
 # By specifying "package" we're telling grpc to use the
-# existing install of the given libraries
+# existing install of certain libraries.
 - name: "CMake Build"
   shell: >
     cmake -GNinja -DgRPC_INSTALL=ON  \
