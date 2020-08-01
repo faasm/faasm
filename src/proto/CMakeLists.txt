@@ -39,4 +39,8 @@ add_custom_command(
         )
 
 faasm_private_lib(proto ${OUTPUT_FILES})
-target_link_libraries(proto ${Protobuf_LIBRARIES} gRPC::grpc++)
+target_link_libraries(proto
+        ${Protobuf_LIBRARIES}
+        gRPC::grpc++
+        gRPC::grpc++_reflection
+        )

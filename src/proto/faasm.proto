@@ -128,41 +128,20 @@ message StateManyChunkRequest {
 }
 
 message StateResponse {
-    enum Status {
-        OK = 0;
-        ERROR = 1;
-        TIMEOUT = 2;
-    }
-    Status status = 1;
-
-    string user = 2;
-    string key = 3;
-    bytes data = 4;
+    string user = 1;
+    string key = 2;
+    bytes data = 3;
 }
 
 message StateChunkResponse {
-    enum Status {
-        OK = 0;
-        ERROR = 1;
-        TIMEOUT = 2;
-    }
-    Status status = 1;
-
-    string user = 2;
-    string key = 3;
-    int64 offset = 4;
-    bytes data = 5;
+    string user = 1;
+    string key = 2;
+    int64 offset = 3;
+    bytes data = 4;
 }
 
 message StateSizeResponse {
-    enum Status {
-        OK = 0;
-        ERROR = 1;
-        TIMEOUT = 2;
-    }
-    Status status = 1;
-
-    string user = 2;
-    string key = 3;
-    bytes size = 4;
+    string user = 1;
+    string key = 2;
+    int64 stateSize = 3;
 }

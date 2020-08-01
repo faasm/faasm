@@ -268,19 +268,18 @@ namespace state {
         return msg;
     }
 
-    tcp::TCPMessage *InMemoryStateKeyValue::buildStatePullResponse() {
-        size_t stateSize = size();
-
-        auto response = new tcp::TCPMessage();
-        response->type = StateMessageType::STATE_PULL_RESPONSE;
-        response->len = stateSize;
+    void InMemoryStateKeyValue::buildStatePullResponse(message::StateResponse *response) {
+        response->set_user(user);
+        response->set_key(key);
 
         // TODO - can we do this without copying?
-        response->buffer = new uint8_t[stateSize];
-        auto bytePtr = BYTES(sharedMemory);
-        std::copy(bytePtr, bytePtr + valueSize, response->buffer);
+        response->set_data(reinterpret_cast<char*>(sharedMemory), valueSize);
+    }
 
-        return response;
+    void InMemoryStateKeyValue::buildStateSizeResponse(message::StateSizeResponse *response) {
+        response->set_user(user);
+        response->set_key(key);
+        response->set_statesize(valueSize);
     }
 
     void InMemoryStateKeyValue::extractPullResponse(const tcp::TCPMessage *msg) {

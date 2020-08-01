@@ -3,6 +3,9 @@
 #include "StateKeyValue.h"
 #include "InMemoryStateRegistry.h"
 
+#include <proto/faasm.pb.h>
+#include <proto/faasm.grpc.pb.h>
+
 #include <util/clock.h>
 
 #include <redis/Redis.h>
@@ -45,8 +48,10 @@ namespace state {
         // Functions related to TCP messages
         tcp::TCPMessage *buildStatePullRequest();
 
-        tcp::TCPMessage *buildStatePullResponse();
+        void buildStatePullResponse(message::StateResponse *response);
 
+        void buildStateSizeResponse(message::StateSizeResponse *response);
+        
         void extractPullResponse(const tcp::TCPMessage *msg);
 
         tcp::TCPMessage *buildStatePullChunkRequest(long offset, size_t length);

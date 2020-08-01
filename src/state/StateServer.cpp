@@ -5,32 +5,115 @@
 #include <state/State.h>
 #include <state/InMemoryStateKeyValue.h>
 
-namespace state {
-    StateServer::StateServer(State &stateIn) : tcp::TCPServer(STATE_PORT, -1),
-                                               state(stateIn) {
+#include <grpcpp/health_check_service_interface.h>
+#include <grpcpp/ext/proto_server_reflection_plugin.h>
+#include <grpcpp/grpcpp.h>
 
+namespace state {
+    StateServer::StateServer(State &stateIn, const std::string &hostIn, int portIn) :
+            state(stateIn), host(hostIn), port(portIn) {
+
+    }
+
+    void StateServer::start() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        std::string serverAddr = host + ":" + std::to_string(port);
+
+        // Build the server
+        EnableDefaultHealthCheckService(true);
+        reflection::InitProtoReflectionServerBuilderPlugin();
+        ServerBuilder builder;
+        builder.AddListeningPort(serverAddr, InsecureServerCredentials());
+        builder.RegisterService(this);
+
+        // Start it
+        server = builder.BuildAndStart();
+        logger->info("State server listening on {}", serverAddr);
+
+        server->Wait();
+    }
+
+    std::shared_ptr<StateKeyValue> StateServer::getKv(const message::StateRequest *request) {
+        // This state should be mastered on this host, hence we don't need
+        // to specify size (will error if not the case).
+        std::shared_ptr<StateKeyValue> localKv = state.getKV(
+                request->user(),
+                request->key(),
+                0
+        );
+
+        return localKv;
+    }
+
+    Status StateServer::Pull(
+            ServerContext *context,
+            const message::StateRequest *request,
+            message::StateResponse *response) {
+
+        auto kv = std::static_pointer_cast<InMemoryStateKeyValue>(getKv(request));
+        kv->buildStatePullResponse(response);
+
+        return Status::OK;
+    }
+
+    Status StateServer::PullChunk(
+            ServerContext *context,
+            const message::StateChunkRequest *request,
+            message::StateChunkResponse *response) {
+
+    }
+
+    Status StateServer::Push(
+            ServerContext *context,
+            const message::StateRequest *request,
+            message::StateResponse *response) {
+
+    }
+
+    Status StateServer::Size(
+            ServerContext *context,
+            const message::StateRequest *request,
+            message::StateSizeResponse *response) {
+
+        auto kv = std::static_pointer_cast<InMemoryStateKeyValue>(getKv(request));
+        kv->buildStateSizeResponse(response);
+
+        return Status::OK;
+    }
+
+    Status StateServer::PushChunk(
+            ServerContext *context,
+            const message::StateChunkRequest *request,
+            message::StateResponse *response) {
+
+    }
+
+    Status StateServer::PushManyChunk(
+            ServerContext *context,
+            const message::StateManyChunkRequest *request,
+            message::StateResponse *response) {
+
+    }
+
+    Status StateServer::Append(
+            ServerContext *context,
+            const message::StateRequest *request,
+            message::StateResponse *response) {
+
+    }
+
+    Status StateServer::Shutdown(
+            ServerContext *context,
+            const message::StateRequest *request,
+            message::StateResponse *response) {
+        // TODO - can we have the server shut itself down like this?
+        server->Shutdown();
+
+        return Status::OK;
     }
 
     tcp::TCPMessage *StateServer::handleMessage(tcp::TCPMessage *request) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        // Check for shutdowm
-        int requestType = request->type;
-        if (requestType == StateMessageType::SHUTDOWN) {
-            logger->debug("State server shutdown request received");
-            throw tcp::TCPShutdownException("Received shutdown request");
-        }
-
-        std::pair<std::string, std::string> userKeyPair = getUserKeyFromStateMessage(request);
-        const std::string &user = userKeyPair.first;
-        const std::string &key = userKeyPair.second;
-
-        // Get the size. State should be mastered on this host, hence we don't need
-        // to specify size (will error if not the case).
-        std::shared_ptr<StateKeyValue> localKv = state.getKV(user, key, 0);
-        std::shared_ptr<InMemoryStateKeyValue> kv = std::static_pointer_cast<InMemoryStateKeyValue>(localKv);
-
-        size_t stateSize = kv->size();
 
         // Construct appropriate response
         tcp::TCPMessage *response = nullptr;
