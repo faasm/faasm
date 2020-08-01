@@ -1,6 +1,5 @@
 #include <upload/UploadServer.h>
 
-
 #include <util/logging.h>
 #include <util/config.h>
 #include <state/StateServer.h>
@@ -17,10 +16,10 @@ int main() {
     std::thread stateThread([] {
         state::StateServer server(state::getGlobalState());
         while (!isShutdown.load()) {
-            server.poll();
+            server.start();
         }
 
-        server.close();
+        server.stop();
     });
 
     // Start the upload server in the main thread

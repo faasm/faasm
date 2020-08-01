@@ -398,14 +398,14 @@ namespace state {
     void InMemoryStateKeyValue::extractStatePushChunkData(
             const message::StateChunkRequest *request,
             message::StateResponse *response
-            ) {
+    ) {
         uint8_t *valueBytes = get();
         size_t chunkOffset = request->offset();
         auto chunkData = BYTES_CONST(request->data().c_str());
         size_t chunkSize = request->data().size();
-        
+
         std::copy(chunkData, chunkData + chunkSize, valueBytes + chunkOffset);
-        
+
         response->set_user(user);
         response->set_key(key);
     }
@@ -429,13 +429,15 @@ namespace state {
         return msg;
     }
 
-    void InMemoryStateKeyValue::extractStateAppendData(const tcp::TCPMessage *msg) {
-        size_t dataOffset = getTCPMessageDataOffset(user, key);
-        uint8_t *msgBuffer = msg->buffer + dataOffset;
+    void InMemoryStateKeyValue::extractStateAppendData(const message::StateRequest *request,
+                                                       message::StateResponse *response) {
 
-        int32_t length = *(reinterpret_cast<int32_t *>(msgBuffer));
-        uint8_t *data = msgBuffer + sizeof(int32_t);
-        append(data, length);
+        auto data = BYTES_CONST(request->data().c_str());
+        uint64_t dataLen = request->data().size();
+        append(data, dataLen);
+
+        response->set_user(user);
+        response->set_key(key);
     }
 
     tcp::TCPMessage *InMemoryStateKeyValue::buildPullAppendedRequest(size_t length, long nValues) {
@@ -457,22 +459,17 @@ namespace state {
         return msg;
     }
 
-    tcp::TCPMessage *InMemoryStateKeyValue::buildPullAppendedResponse(tcp::TCPMessage *request) {
-        size_t bufferOffset = getTCPMessageDataOffset(user, key);
+    void InMemoryStateKeyValue::buildPullAppendedResponse(
+            const ::message::StateAppendedRequest *request,
+            message::StateAppendedResponse *response
+    ) {
+        response->set_user(user);
+        response->set_key(key);
 
-        uint8_t *requestData = request->buffer + bufferOffset;
-        int32_t length = *(reinterpret_cast<int32_t *>(requestData));
-        int32_t nValues = *(reinterpret_cast<int32_t *>(requestData + sizeof(int32_t)));
-
-        auto response = new tcp::TCPMessage();
-        response->type = StateMessageType::STATE_PULL_CHUNK_RESPONSE;
-        response->len = length;
-        response->buffer = new uint8_t[length];
-
-        // Copy appended data into response
-        getAppended(response->buffer, length, nValues);
-
-        return response;
+        for(uint32_t i =0 ; i < request->nvalues(); i++) {
+            AppendedInMemoryState &value = appendedData.at(i);
+            response->set_values(i, reinterpret_cast<char*>(value.data.get()), value.length);
+        }
     }
 
     tcp::TCPMessage *InMemoryStateKeyValue::buildClearAppendedRequest() {
@@ -541,30 +538,25 @@ namespace state {
         return msg;
     }
 
-    void InMemoryStateKeyValue::extractStatePushMultiChunkData(const tcp::TCPMessage *msg) {
-        size_t dataOffset = getTCPMessageDataOffset(user, key);
-
+    void InMemoryStateKeyValue::extractStatePushMultiChunkData(const message::StateManyChunkRequest *request,
+                                                               message::StateResponse *response) {
         // Get direct pointer to kv data
         uint8_t *kvMemory = get();
 
-        // Prepare to iterate through chunks
-        size_t chunkBufferLen = msg->len - dataOffset;
-        uint8_t *chunkBuffer = msg->buffer + dataOffset;
-        size_t offset = 0;
+        // Lock the value
         lockWrite();
 
-        // Iterate through chunk buffer and copy values into kv memory
-        while (offset < chunkBufferLen) {
-            int32_t chunkOffset = *(reinterpret_cast<int32_t *>(chunkBuffer + offset));
-            int32_t chunkLength = *(reinterpret_cast<int32_t *>(chunkBuffer + offset + sizeof(int32_t)));
-            uint8_t *chunkData = chunkBuffer + offset + (2 * sizeof(int32_t));
-
-            std::copy(chunkData, chunkData + chunkLength, kvMemory + chunkOffset);
-
-            offset += (2 * sizeof(int32_t)) + chunkLength;
+        for (auto &chunk : request->chunks()) {
+            uint64_t chunkOffset = chunk.offset();
+            auto chunkData = BYTES_CONST(chunk.data().c_str());
+            std::copy(chunkData, chunkData + chunkOffset, kvMemory + chunkOffset);
         }
 
+        // Unlock the value
         unlockWrite();
+
+        response->set_user(user);
+        response->set_key(key);
     }
 
     tcp::TCPMessage *InMemoryStateKeyValue::buildOkResponse() {

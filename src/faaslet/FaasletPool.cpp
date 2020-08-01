@@ -102,7 +102,7 @@ namespace faaslet {
         mpiThread = std::thread([this] {
             mpi::MpiGlobalBus &bus = mpi::getMpiGlobalBus();
             const std::string host = util::getSystemConfig().endpointHost;
-            
+
             while (!this->isShutdown()) {
                 try {
                     bus.next(host);
@@ -120,7 +120,7 @@ namespace faaslet {
 
         // Start the state worker if necessary
         util::SystemConfig &conf = util::getSystemConfig();
-        if(conf.stateMode != "inmemory") {
+        if (conf.stateMode != "inmemory") {
             logger->info("Not starting state server in state mode {}", conf.stateMode);
             return;
         }
@@ -130,10 +130,10 @@ namespace faaslet {
         stateThread = std::thread([this] {
             state::StateServer server(state::getGlobalState());
             while (!this->isShutdown()) {
-                server.poll();
+                server.start();
             }
 
-            server.close();
+            server.stop();
         });
     }
 
@@ -245,7 +245,7 @@ namespace faaslet {
             poolThread.join();
         }
 
-        if(mpiThread.joinable()){
+        if (mpiThread.joinable()) {
             logger->info("Waiting for mpi thread to finish");
             mpiThread.join();
         }

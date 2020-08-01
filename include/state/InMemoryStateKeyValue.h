@@ -75,15 +75,18 @@ namespace state {
 
         tcp::TCPMessage *buildStatePushMultiChunkRequest(const std::vector<StateChunk> &chunks);
 
-        void extractStatePushMultiChunkData(const tcp::TCPMessage *msg);
+        void extractStatePushMultiChunkData(const message::StateManyChunkRequest *request,
+                                            message::StateResponse *response);
 
         tcp::TCPMessage *buildStateAppendRequest(size_t length, const uint8_t *data);
 
-        void extractStateAppendData(const tcp::TCPMessage *msg);
+        void extractStateAppendData(const message::StateRequest *request,
+                                    message::StateResponse *response);
 
         tcp::TCPMessage *buildPullAppendedRequest(size_t length, long nValues);
 
-        tcp::TCPMessage *buildPullAppendedResponse(tcp::TCPMessage *request);
+        void buildPullAppendedResponse(const ::message::StateAppendedRequest *request,
+                                                   message::StateAppendedResponse *response);
 
         tcp::TCPMessage *buildClearAppendedRequest();
 

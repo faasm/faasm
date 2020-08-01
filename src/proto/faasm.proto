@@ -100,6 +100,16 @@ service StateRPCService {
     }
     rpc Append (StateRequest) returns (StateResponse) {
     }
+    rpc ClearAppended (StateRequest) returns (StateResponse) {
+    }
+    rpc PullAppended (StateAppendedRequest) returns (StateAppendedResponse) {
+    }
+    rpc Lock (StateRequest) returns (StateResponse) {
+    }
+    rpc Unlock (StateRequest) returns (StateResponse) {
+    }
+    rpc Delete (StateRequest) returns (StateResponse) {
+    }
     rpc Shutdown (StateRequest) returns (StateResponse) {
     }
 }
@@ -108,6 +118,12 @@ message StateRequest {
     string user = 1;
     string key = 2;
     bytes data = 3;
+}
+
+message StateAppendedRequest {
+    string user = 1;
+    string key = 2;
+    uint32 nValues = 3;
 }
 
 message StateChunkRequest {
@@ -120,7 +136,7 @@ message StateChunkRequest {
 
 message StateManyChunkRequest {
     message StateChunk {
-        int64 offset = 1;
+        uint64 offset = 1;
         bytes data = 2;
     }
     string user = 1;
@@ -145,4 +161,10 @@ message StateSizeResponse {
     string user = 1;
     string key = 2;
     uint64 stateSize = 3;
+}
+
+message StateAppendedResponse {
+    string user = 1;
+    string key = 2;
+    repeated bytes values = 3;
 }

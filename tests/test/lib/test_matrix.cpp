@@ -284,14 +284,14 @@ namespace tests {
             // Process enough messages
             while (true) {
                 try {
-                    stateServer.poll();
+                    stateServer.start();
                 } catch (tcp::TCPShutdownException &ex) {
                     break;
                 }
             }
 
             // Shut down
-            stateServer.close();
+            stateServer.stop();
         });
 
         // Give it time to start

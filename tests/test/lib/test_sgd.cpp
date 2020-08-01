@@ -266,13 +266,13 @@ namespace tests {
                 // Process incoming messages
                 while (true) {
                     try {
-                        stateServer.poll();
+                        stateServer.start();
                     } catch (tcp::TCPShutdownException &ex) {
                         break;
                     }
                 }
 
-                stateServer.close();
+                stateServer.stop();
             });
 
             // Give it time to start

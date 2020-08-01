@@ -8,6 +8,7 @@
 #include <tcp/TCPMessage.h>
 
 
+#define STATE_HOST "0.0.0.0"
 #define STATE_PORT 8003
 
 namespace state {

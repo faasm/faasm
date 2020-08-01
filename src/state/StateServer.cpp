@@ -9,9 +9,13 @@
 #include <grpcpp/ext/proto_server_reflection_plugin.h>
 #include <grpcpp/grpcpp.h>
 
+#define KV_FROM_REQUEST(request) auto kv = std::static_pointer_cast<InMemoryStateKeyValue>( \
+    state.getKV(request->user(), request->key()) \
+    );
+
 namespace state {
-    StateServer::StateServer(State &stateIn, const std::string &hostIn, int portIn) :
-            state(stateIn), host(hostIn), port(portIn) {
+    StateServer::StateServer(State &stateIn) :
+            state(stateIn), host(STATE_HOST), port(STATE_PORT) {
 
     }
 
@@ -33,34 +37,16 @@ namespace state {
         server->Wait();
     }
 
-    std::shared_ptr<StateKeyValue> StateServer::getKv(const message::StateRequest *request) {
-        // This state should be mastered on this host, hence we don't need
-        // to specify size (will error if not the case).
-        std::shared_ptr<StateKeyValue> localKv = state.getKV(
-                request->user(),
-                request->key(),
-                0
-        );
-
-        return localKv;
-    }
-
-    std::shared_ptr<StateKeyValue> StateServer::getKv(const message::StateChunkRequest *request) {
-        std::shared_ptr<StateKeyValue> localKv = state.getKV(
-                request->user(),
-                request->key(),
-                0
-        );
-
-        return localKv;
+    void StateServer::stop() {
+        util::getLogger()->info("State server stopping");
+        server->Shutdown();
     }
 
     Status StateServer::Pull(
             ServerContext *context,
             const message::StateRequest *request,
             message::StateResponse *response) {
-
-        auto kv = std::static_pointer_cast<InMemoryStateKeyValue>(getKv(request));
+        KV_FROM_REQUEST(request)
         kv->buildStatePullResponse(response);
 
         return Status::OK;
@@ -70,8 +56,7 @@ namespace state {
             ServerContext *context,
             const message::StateChunkRequest *request,
             message::StateChunkResponse *response) {
-
-        auto kv = std::static_pointer_cast<InMemoryStateKeyValue>(getKv(request));
+        KV_FROM_REQUEST(request)
         kv->buildStatePullChunkResponse(request, response);
 
         return Status::OK;
@@ -81,7 +66,7 @@ namespace state {
             ServerContext *context,
             const message::StateRequest *request,
             message::StateResponse *response) {
-        auto kv = std::static_pointer_cast<InMemoryStateKeyValue>(getKv(request));
+        KV_FROM_REQUEST(request)
         kv->extractStatePushData(request, response);
 
         return Status::OK;
@@ -91,8 +76,7 @@ namespace state {
             ServerContext *context,
             const message::StateRequest *request,
             message::StateSizeResponse *response) {
-
-        auto kv = std::static_pointer_cast<InMemoryStateKeyValue>(getKv(request));
+        KV_FROM_REQUEST(request)
         kv->buildStateSizeResponse(response);
 
         return Status::OK;
@@ -102,7 +86,7 @@ namespace state {
             ServerContext *context,
             const message::StateChunkRequest *request,
             message::StateResponse *response) {
-        auto kv = std::static_pointer_cast<InMemoryStateKeyValue>(getKv(request));
+        KV_FROM_REQUEST(request)
         kv->extractStatePushChunkData(request, response);
 
         return Status::OK;
@@ -112,14 +96,20 @@ namespace state {
             ServerContext *context,
             const message::StateManyChunkRequest *request,
             message::StateResponse *response) {
+        KV_FROM_REQUEST(request)
+        kv->extractStatePushMultiChunkData(request, response);
 
+        return Status::OK;
     }
 
     Status StateServer::Append(
             ServerContext *context,
             const message::StateRequest *request,
             message::StateResponse *response) {
+        KV_FROM_REQUEST(request)
+        kv->extractStateAppendData(request, response);
 
+        return Status::OK;
     }
 
     Status StateServer::Shutdown(
@@ -132,61 +122,48 @@ namespace state {
         return Status::OK;
     }
 
-    tcp::TCPMessage *StateServer::handleMessage(tcp::TCPMessage *request) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+    Status StateServer::ClearAppended(
+            ServerContext *context,
+            const ::message::StateRequest *request,
+            message::StateResponse *response) {
+        KV_FROM_REQUEST(request)
 
-        // Construct appropriate response
-        tcp::TCPMessage *response = nullptr;
+        kv->clearAppended();
+        return Status::OK;
+    }
 
+    Status StateServer::PullAppended(
+            grpc::ServerContext *context,
+            const ::message::StateAppendedRequest *request,
+            message::StateAppendedResponse *response) {
+        KV_FROM_REQUEST(request)
 
-        } else if (requestType == StateMessageType::STATE_PUSH) {
-            kv->extractStatePushData(request);
-            response = kv->buildOkResponse();
-            logger->debug("State push: {} OK", key);
+        kv->buildPullAppendedResponse(request, response);
 
-        } else if (requestType == StateMessageType::STATE_PUSH_CHUNK) {
-            kv->extractStatePushChunkData(request);
-            response = kv->buildOkResponse();
-            logger->debug("State push chunk {} OK", key);
+        return Status::OK;
+    }
 
-        } else if (requestType == StateMessageType::STATE_PUSH_MANY_CHUNK) {
-            kv->extractStatePushMultiChunkData(request);
-            response = kv->buildOkResponse();
-            logger->debug("State push many chunk {} OK", key);
+    Status StateServer::Lock(
+            grpc::ServerContext *context,
+            const message::StateRequest *request,
+            message::StateResponse *response) {
+        KV_FROM_REQUEST(request)
+        kv->lockWrite();
+        return Status::OK;
+    }
 
-        } else if (requestType == StateMessageType::STATE_APPEND) {
-            kv->extractStateAppendData(request);
-            response = kv->buildOkResponse();
-            logger->debug("State append {} OK", key);
+    Status StateServer::Unlock(
+            grpc::ServerContext *context,
+            const message::StateRequest *request,
+            message::StateResponse *response) {
+        KV_FROM_REQUEST(request)
+        kv->unlockWrite();
+        return Status::OK;
+    }
 
-        } else if (requestType == StateMessageType::STATE_CLEAR_APPENDED) {
-            kv->clearAppended();
-            response = kv->buildOkResponse();
-            logger->debug("State clear appended {} OK", key);
-
-        } else if (requestType == StateMessageType::STATE_PULL_APPENDED) {
-            response = kv->buildPullAppendedResponse(request);
-            logger->debug("State pull appended {} (buffer len {})", key, response->len);
-
-        } else if (requestType == StateMessageType::STATE_LOCK) {
-            localKv->lockGlobal();
-            response = kv->buildOkResponse();
-            logger->debug("State lock: {} OK", key);
-
-        } else if (requestType == StateMessageType::STATE_UNLOCK) {
-            localKv->unlockGlobal();
-            response = kv->buildOkResponse();
-            logger->debug("State unlock: {} OK", key);
-
-        } else if (requestType == StateMessageType::STATE_DELETE) {
-            state.deleteKV(user, key);
-            response = kv->buildOkResponse();
-            logger->debug("State delete: {} OK", key);
-        } else {
-            logger->error("Unrecognised request {}", requestType);
-            throw std::runtime_error("Unrecognised state request type");
-        }
-
-        return response;
+    Status StateServer::Delete(grpc::ServerContext *context, const message::StateRequest *request,
+                               message::StateResponse *response) {
+        state.deleteKV(request->user(), request->key());
+        return Status::OK;
     }
 }

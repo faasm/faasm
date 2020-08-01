@@ -12,9 +12,11 @@ using namespace grpc;
 namespace state {
     class StateServer final : public message::StateRPCService::Service {
     public:
-        StateServer(State &stateIn, const std::string &hostIn, int portIn);
+        explicit StateServer(State &stateIn);
 
         void start();
+
+        void stop();
 
         Status Pull(
                 ServerContext *context,
@@ -51,6 +53,31 @@ namespace state {
                 const message::StateRequest *request,
                 message::StateResponse *response) override;
 
+        Status ClearAppended(
+                ServerContext *context,
+                const ::message::StateRequest *request,
+                message::StateResponse *response) override;
+
+        Status PullAppended(
+                grpc::ServerContext *context,
+                const ::message::StateAppendedRequest *request,
+                message::StateAppendedResponse *response) override;
+
+        Status Lock(
+                grpc::ServerContext *context,
+                const message::StateRequest *request,
+                message::StateResponse *response) override;
+
+        Status Unlock(
+                grpc::ServerContext *context,
+                const message::StateRequest *request,
+                message::StateResponse *response) override;
+
+        Status Delete(
+                grpc::ServerContext *context,
+                const message::StateRequest *request,
+                message::StateResponse *response) override;
+
         Status Shutdown(
                 ServerContext *context,
                 const message::StateRequest *request,
@@ -62,8 +89,5 @@ namespace state {
         const int port;
 
         std::unique_ptr<Server> server;
-
-        std::shared_ptr<StateKeyValue> getKv(const message::StateRequest *request);
-        std::shared_ptr<StateKeyValue> getKv(const message::StateChunkRequest *request);
     };
 }
