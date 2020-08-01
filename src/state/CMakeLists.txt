@@ -17,4 +17,4 @@ set(LIB_FILES
     )
 
 faasm_private_lib(state "${LIB_FILES}")
-target_link_libraries(state proto tcp redis grpc)
+target_link_libraries(state proto redis grpc)
