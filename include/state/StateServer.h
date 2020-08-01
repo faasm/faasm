@@ -13,8 +13,6 @@ namespace state {
     public:
         explicit StateServer(State &stateIn);
 
-        StateServer(State &stateIn, int messageLimitIn);
-
         void start();
 
         void stop();
@@ -89,9 +87,11 @@ namespace state {
         const std::string host;
         const int port;
 
-        const int messageLimit = 0;
-        std::atomic<int> messageCount = 0;
-
         std::unique_ptr<Server> server;
+
+        std::thread shutdownThread;
+        std::condition_variable shutdownCond;
+        std::mutex shutdownMutex;
+        bool isShutdown = false;
     };
 }

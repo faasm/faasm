@@ -208,9 +208,9 @@ namespace tests {
             s.PullAppended(&context, &requestD, &responseD);
 
             REQUIRE(responseD.values().size() == 3);
-            std::vector<uint8_t> actualA = util::stringToBytes(responseD.values(0));
-            std::vector<uint8_t> actualB = util::stringToBytes(responseD.values(1));
-            std::vector<uint8_t> actualC = util::stringToBytes(responseD.values(2));
+            std::vector<uint8_t> actualA = util::stringToBytes(responseD.values(0).data());
+            std::vector<uint8_t> actualB = util::stringToBytes(responseD.values(1).data());
+            std::vector<uint8_t> actualC = util::stringToBytes(responseD.values(2).data());
 
             REQUIRE(actualA == chunkA);
             REQUIRE(actualB == chunkB);
@@ -273,14 +273,11 @@ namespace tests {
         State &globalState = state::getGlobalState();
         REQUIRE(globalState.getKVCount() == 0);
 
-        int nMessages = 2;
-
         DummyStateServer server;
         server.dummyData = dataA;
         server.dummyUser = userA;
         server.dummyKey = keyA;
-
-        server.start(nMessages);
+        server.start();
 
         // Get the state size before accessing the value locally
         size_t actualSize = globalState.getStateSize(userA, keyA);
@@ -308,6 +305,7 @@ namespace tests {
         actualRemote = server.getRemoteKvValue();
         REQUIRE(actualRemote == dataB);
 
+        DummyStateServer::stop();
         server.wait();
 
         resetStateMode();

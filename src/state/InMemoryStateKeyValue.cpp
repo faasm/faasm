@@ -380,7 +380,8 @@ namespace state {
         for (auto &chunk : request->chunks()) {
             uint64_t chunkOffset = chunk.offset();
             auto chunkData = BYTES_CONST(chunk.data().c_str());
-            std::copy(chunkData, chunkData + chunkOffset, BYTES(sharedMemory) + chunkOffset);
+            size_t chunkLen = chunk.data().size();
+            std::copy(chunkData, chunkData + chunkLen, BYTES(sharedMemory) + chunkOffset);
         }
 
         unlockWrite();

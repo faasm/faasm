@@ -109,7 +109,7 @@ namespace tests {
         server.dummyData = values;
 
         // Expect one pull
-        server.start(1);
+        server.start();
 
         // Check allocated memory is aligned up to a page boundary
         const std::shared_ptr<state::StateKeyValue> &remoteKv = server.getRemoteKv();
@@ -135,6 +135,7 @@ namespace tests {
         REQUIRE(actual == expected);
 
         // Allow the server to shut down
+        DummyStateServer::stop();
         server.wait();
     }
 }

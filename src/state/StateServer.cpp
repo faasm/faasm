@@ -9,22 +9,34 @@
 #include <grpcpp/ext/proto_server_reflection_plugin.h>
 #include <grpcpp/grpcpp.h>
 
-#define COUNT_MESSAGE if(messageLimit > 0) messageCount++;
-
 #define KV_FROM_REQUEST(request) auto kv = std::static_pointer_cast<InMemoryStateKeyValue>( \
     state.getKV(request->user(), request->key()) \
     );
 
 namespace state {
     StateServer::StateServer(State &stateIn) :
-            StateServer(stateIn, 0) {
+            state(stateIn), host(STATE_HOST), port(STATE_PORT) {
 
-    }
+        // Start a background thread waiting to shut down the server
+        shutdownThread = std::thread([this] {
+            do {
+                std::unique_lock<std::mutex> lock{shutdownMutex};
 
-    StateServer::StateServer(State &stateIn, int messageLimitIn) :
-            state(stateIn), host(STATE_HOST), port(STATE_PORT),
-            messageLimit(messageLimitIn) {
+                // Acquire the lock only when shutdown
+                shutdownCond.wait(lock, [&]() {
+                    return isShutdown;
+                });
 
+                if (isShutdown) {
+                    util::getLogger()->debug("Shutting down state server");
+                    server->Shutdown();
+                    break;
+                }
+            } while(true);
+
+            // Wait for server to drain
+            server->Wait();
+        });
     }
 
     void StateServer::start() {
@@ -47,15 +59,21 @@ namespace state {
 
     void StateServer::stop() {
         util::getLogger()->info("State server stopping");
-        server->Shutdown();
+
+        std::lock_guard<std::mutex> L{shutdownMutex};
+        isShutdown = true;
+        shutdownCond.notify_one();
+
+        if(shutdownThread.joinable()) {
+            shutdownThread.join();
+        }
     }
 
     Status StateServer::Pull(
             ServerContext *context,
             const message::StateRequest *request,
             message::StateResponse *response) {
-        COUNT_MESSAGE;
-
+        util::getLogger()->debug("Pull {}/{}", request->user(), request->key());
         KV_FROM_REQUEST(request)
         kv->buildStatePullResponse(response);
 
@@ -66,8 +84,7 @@ namespace state {
             ServerContext *context,
             const message::StateChunkRequest *request,
             message::StateChunkResponse *response) {
-        COUNT_MESSAGE;
-
+        util::getLogger()->debug("Pull chunk {}/{}", request->user(), request->key());
         KV_FROM_REQUEST(request)
         kv->buildStatePullChunkResponse(request, response);
 
@@ -78,8 +95,7 @@ namespace state {
             ServerContext *context,
             const message::StateRequest *request,
             message::StateResponse *response) {
-        COUNT_MESSAGE;
-
+        util::getLogger()->debug("Push {}/{}", request->user(), request->key());
         KV_FROM_REQUEST(request)
         kv->extractStatePushData(request, response);
 
@@ -90,8 +106,7 @@ namespace state {
             ServerContext *context,
             const message::StateRequest *request,
             message::StateSizeResponse *response) {
-        COUNT_MESSAGE;
-
+        util::getLogger()->debug("Size {}/{}", request->user(), request->key());
         KV_FROM_REQUEST(request)
         kv->buildStateSizeResponse(response);
 
@@ -102,8 +117,7 @@ namespace state {
             ServerContext *context,
             const message::StateChunkRequest *request,
             message::StateResponse *response) {
-        COUNT_MESSAGE;
-
+        util::getLogger()->debug("Push chunk {}/{}", request->user(), request->key());
         KV_FROM_REQUEST(request)
         kv->extractStatePushChunkData(request, response);
 
@@ -114,8 +128,7 @@ namespace state {
             ServerContext *context,
             const message::StateManyChunkRequest *request,
             message::StateResponse *response) {
-        COUNT_MESSAGE;
-
+        util::getLogger()->debug("Push many chunk {}/{}", request->user(), request->key());
         KV_FROM_REQUEST(request)
         kv->extractStatePushMultiChunkData(request, response);
 
@@ -126,8 +139,7 @@ namespace state {
             ServerContext *context,
             const message::StateRequest *request,
             message::StateResponse *response) {
-        COUNT_MESSAGE;
-
+        util::getLogger()->debug("Append {}/{}", request->user(), request->key());
         KV_FROM_REQUEST(request)
         kv->extractStateAppendData(request, response);
 
@@ -138,10 +150,9 @@ namespace state {
             ServerContext *context,
             const message::StateRequest *request,
             message::StateResponse *response) {
-        COUNT_MESSAGE;
-
-        // TODO - can we have the server shut itself down like this?
-        server->Shutdown();
+        std::lock_guard<std::mutex> lock{shutdownMutex};
+        isShutdown = true;
+        shutdownCond.notify_one();
 
         return Status::OK;
     }
@@ -150,11 +161,12 @@ namespace state {
             ServerContext *context,
             const ::message::StateRequest *request,
             message::StateResponse *response) {
-        COUNT_MESSAGE;
+        util::getLogger()->debug("Clear appended {}/{}", request->user(), request->key());
 
         KV_FROM_REQUEST(request)
 
         kv->clearAppended();
+
         return Status::OK;
     }
 
@@ -162,7 +174,7 @@ namespace state {
             grpc::ServerContext *context,
             const ::message::StateAppendedRequest *request,
             message::StateAppendedResponse *response) {
-        COUNT_MESSAGE;
+        util::getLogger()->debug("Pull appended {}/{}", request->user(), request->key());
 
         KV_FROM_REQUEST(request)
 
@@ -175,10 +187,11 @@ namespace state {
             grpc::ServerContext *context,
             const message::StateRequest *request,
             message::StateResponse *response) {
-        COUNT_MESSAGE;
+        util::getLogger()->debug("Lock {}/{}", request->user(), request->key());
 
         KV_FROM_REQUEST(request)
         kv->lockWrite();
+
         return Status::OK;
     }
 
@@ -186,18 +199,22 @@ namespace state {
             grpc::ServerContext *context,
             const message::StateRequest *request,
             message::StateResponse *response) {
-        COUNT_MESSAGE;
+        util::getLogger()->debug("Unlock {}/{}", request->user(), request->key());
 
         KV_FROM_REQUEST(request)
         kv->unlockWrite();
+
         return Status::OK;
     }
 
     Status StateServer::Delete(grpc::ServerContext *context, const message::StateRequest *request,
                                message::StateResponse *response) {
-        COUNT_MESSAGE;
+
+        util::getLogger()->debug("Delete {}/{}", request->user(), request->key());
 
         state.deleteKV(request->user(), request->key());
+
+
         return Status::OK;
     }
 }

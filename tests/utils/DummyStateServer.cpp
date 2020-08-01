@@ -40,10 +40,6 @@ namespace tests {
     }
 
     void DummyStateServer::start() {
-        start(1000);
-    }
-
-    void DummyStateServer::start(int nMessages) {
         // NOTE - in a real deployment each server would be running in its own
         // process on a separate host. To run it in a thread like this we need to
         // be careful to avoid sharing any global variables with the main thread.
@@ -51,7 +47,7 @@ namespace tests {
         // We force the server thread to have localhost IP, and the main thread
         // to be the "client" with a junk IP.
 
-        serverThread = std::thread([this, nMessages] {
+        serverThread = std::thread([this] {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
             // Make sure any emulated state actions use this remote state
@@ -77,8 +73,8 @@ namespace tests {
             }
             
             // Process the required number of messages
-            StateServer server(remoteState, nMessages);
-            logger->debug("Running test state server for {} messages", nMessages);
+            StateServer server(remoteState);
+            logger->debug("Running test state server");
 
             // Server will only process the requested number of messages
             server.start();
