@@ -1,6 +1,7 @@
 #pragma once
 
 #include <scheduler/Scheduler.h>
+#include <state/StateServer.h>
 #include <util/queue.h>
 
 namespace faaslet {
@@ -33,6 +34,7 @@ namespace faaslet {
         std::atomic<bool> _shutdown;
         scheduler::Scheduler &scheduler;
         util::TokenPool threadTokenPool;
+        state::StateServer server;
 
         std::thread stateThread;
         std::thread globalQueueThread;

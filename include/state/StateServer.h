@@ -13,6 +13,8 @@ namespace state {
     public:
         explicit StateServer(State &stateIn);
 
+        StateServer(State &stateIn, int messageLimitIn);
+
         void start();
 
         void stop();
@@ -86,6 +88,9 @@ namespace state {
         State &state;
         const std::string host;
         const int port;
+
+        const int messageLimit = 0;
+        std::atomic<int> messageCount = 0;
 
         std::unique_ptr<Server> server;
     };

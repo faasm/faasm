@@ -8,6 +8,7 @@
 #include <state/InMemoryStateKeyValue.h>
 
 #include <wait.h>
+#include <util/bytes.h>
 
 using namespace state;
 
@@ -57,50 +58,62 @@ namespace tests {
         kvADuplicate.set(dataB.data());
 
         // Create server
+        ServerContext context;
         StateServer s(state::getGlobalState());
 
-        tcp::TCPMessage *request = nullptr;
-        tcp::TCPMessage *response = nullptr;
-
         SECTION("State size") {
-            request = buildStateSizeRequest(userA, keyA);
-            response = s.handleMessage(request);
-            size_t actualSize = extractSizeResponse(response);
-            REQUIRE(actualSize == dataA.size());
+            message::StateRequest request;
+            request.set_user(userA);
+            request.set_key(keyA);
+            message::StateSizeResponse response;
+            s.Size(&context, &request, &response);
+
+            REQUIRE(response.statesize() == dataA.size());
         }
 
         SECTION("State pull") {
-            request = kvA->buildStatePullRequest();
-            response = s.handleMessage(request);
-            kvB->extractPullResponse(response);
-            kvB->get(actual.data());
+            message::StateRequest request;
+            request.set_user(userA);
+            request.set_key(keyA);
+            message::StateResponse response;
+            s.Pull(&context, &request, &response);
 
-            REQUIRE(actual == dataA);
+            std::vector<uint8_t> actualData = util::stringToBytes(response.data());
+            REQUIRE(actualData == dataA);
         }
 
         SECTION("State pull chunk") {
             long offset = 2;
             size_t chunkSize = 3;
 
-            request = kvA->buildStatePullChunkRequest(offset, chunkSize);
+            message::StateChunkRequest request;
+            request.set_user(userA);
+            request.set_key(keyA);
+            request.set_offset(offset);
+            request.set_chunksize(chunkSize);
 
-            response = s.handleMessage(request);
-            kvB->extractPullChunkResponse(response, offset, chunkSize);
-            kvB->get(actual.data());
+            message::StateChunkResponse response;
+
+            s.PullChunk(&context, &request, &response);
+            std::vector<uint8_t> actualData = util::stringToBytes(response.data());
 
             std::vector<uint8_t> expected(dataA.size(), 0);
             std::copy(dataA.begin() + offset, dataA.begin() + offset + chunkSize, expected.begin() + offset);
 
-            REQUIRE(actual == expected);
+            REQUIRE(actualData == expected);
         }
 
         SECTION("State push") {
-            request = kvADuplicate.buildStatePushRequest();
-            response = s.handleMessage(request);
+            message::StateRequest request;
+            request.set_user(userA);
+            request.set_key(keyA);
+            request.set_data(kvADuplicate.get(), kvADuplicate.size());
 
-            REQUIRE(response->type == StateMessageType::OK_RESPONSE);
+            message::StateResponse response;
 
-            // Get the data from the key-value registered for that user/key
+            s.Push(&context, &request, &response);
+
+            // Check data updated
             kvA->get(actual.data());
             REQUIRE(actual == dataB);
         }
@@ -108,17 +121,24 @@ namespace tests {
         SECTION("State push chunk") {
             long offset = 1;
             size_t chunkSize = 3;
-            request = kvADuplicate.buildStatePushChunkRequest(offset, chunkSize);
-            response = s.handleMessage(request);
 
-            REQUIRE(response->type == StateMessageType::OK_RESPONSE);
+            message::StateChunkRequest request;
+            request.set_user(userA);
+            request.set_key(keyA);
+            request.set_offset(offset);
+            request.set_chunksize(3);
+            request.set_data(kvADuplicate.getChunk(offset, chunkSize), chunkSize);
+
+            message::StateResponse response;
+
+            s.PushChunk(&context, &request, &response);
 
             // Create expected - a chunk written into existing data
             std::vector<uint8_t> expected(dataA.begin(), dataA.end());
             std::copy(dataB.begin() + offset, dataB.begin() + offset + chunkSize, expected.begin() + offset);
 
-            kvA->get(actual.data());
-            REQUIRE(actual == expected);
+            std::vector<uint8_t> actualData = util::stringToBytes(response.data());
+            REQUIRE(actualData == expected);
         }
 
         SECTION("State push multi chunk") {
@@ -133,10 +153,16 @@ namespace tests {
 
             std::vector<StateChunk> chunks = {chunkA, chunkB, chunkC};
 
-            // Make the request
-            request = kvADuplicate.buildStatePushMultiChunkRequest(chunks);
-            response = s.handleMessage(request);
-            REQUIRE(response->type == StateMessageType::OK_RESPONSE);
+            message::StateManyChunkRequest request;
+            request.set_user(userA);
+            request.set_key(keyA);
+            for (uint i = 0; i < chunks.size(); i++) {
+                request.mutable_chunks(i)->set_data(chunks[i].data, chunks[i].length);
+                request.mutable_chunks(i)->set_offset(chunks[i].offset);
+            }
+
+            message::StateResponse response;
+            s.PushManyChunk(&context, &request, &response);
 
             // Check expectation
             std::vector<uint8_t> expected = {7, 9, 9, 9, 4, 5, 8, 7};
@@ -151,32 +177,44 @@ namespace tests {
             std::vector<uint8_t> chunkC = {2, 2};
             std::vector<uint8_t> expected = {3, 2, 1, 5, 5, 2, 2};
 
-            tcp::TCPMessage *requestA = kvA->buildStateAppendRequest(chunkA.size(), chunkA.data());
-            tcp::TCPMessage *requestB = kvA->buildStateAppendRequest(chunkB.size(), chunkB.data());
-            tcp::TCPMessage *requestC = kvA->buildStateAppendRequest(chunkC.size(), chunkC.data());
+            message::StateRequest requestA;
+            requestA.set_user(userA);
+            requestA.set_key(keyA);
+            requestA.set_data(chunkA.data(), chunkA.size());
 
-            s.handleMessage(requestA);
-            s.handleMessage(requestB);
-            s.handleMessage(requestC);
+            message::StateRequest requestB;
+            requestB.set_user(userA);
+            requestB.set_key(keyA);
+            requestB.set_data(chunkB.data(), chunkB.size());
 
-            size_t totalLength = chunkA.size() + chunkB.size() + chunkC.size();
-            tcp::TCPMessage *pullRequest = kvA->buildPullAppendedRequest(totalLength, 3);
-            tcp::TCPMessage *pullResponse = s.handleMessage(pullRequest);
+            message::StateRequest requestC;
+            requestC.set_user(userA);
+            requestC.set_key(keyA);
+            requestC.set_data(chunkC.data(), chunkC.size());
 
-            std::vector<uint8_t> actualAll(expected.size(), 0);
-            extractPullAppendedData(pullResponse, actualAll.data());
-            REQUIRE(actualAll == expected);
+            message::StateResponse response;
 
-            tcp::freeTcpMessage(requestA);
-            tcp::freeTcpMessage(requestB);
-            tcp::freeTcpMessage(requestC);
-            tcp::freeTcpMessage(pullResponse);
+            s.Append(&context, &requestA, &response);
+            s.Append(&context, &requestB, &response);
+            s.Append(&context, &requestC, &response);
+
+            message::StateAppendedRequest requestD;
+            requestD.set_user(userA);
+            requestD.set_key(keyA);
+            requestD.set_nvalues(3);
+
+            message::StateAppendedResponse responseD;
+            s.PullAppended(&context, &requestD, &responseD);
+
+            REQUIRE(responseD.values().size() == 3);
+            std::vector<uint8_t> actualA = util::stringToBytes(responseD.values(0));
+            std::vector<uint8_t> actualB = util::stringToBytes(responseD.values(1));
+            std::vector<uint8_t> actualC = util::stringToBytes(responseD.values(2));
+
+            REQUIRE(actualA == chunkA);
+            REQUIRE(actualB == chunkB);
+            REQUIRE(actualC == chunkC);
         }
-
-        s.close();
-
-        tcp::freeTcpMessage(request);
-        tcp::freeTcpMessage(response);
 
         resetStateMode();
     }
@@ -227,13 +265,13 @@ namespace tests {
 
         resetStateMode();
     }
-    
+
     TEST_CASE("Test state server as remote master", "[state]") {
         setUpStateMode();
 
         State &globalState = state::getGlobalState();
         REQUIRE(globalState.getKVCount() == 0);
-        
+
         int nMessages = 2;
 
         DummyStateServer server;
@@ -285,7 +323,7 @@ namespace tests {
 
         // Modify locally
         localKv->set(dataB.data());
-        
+
         // Pull
         State &state = state::getGlobalState();
         const std::shared_ptr<StateKeyValue> &kv = state.getKV(userA, keyA, dataA.size());

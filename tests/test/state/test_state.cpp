@@ -746,8 +746,7 @@ namespace tests {
     }
 
     TEST_CASE("Test pushing pulling large state", "[state]") {
-        // Make sure value size finishes in the middle of a packet
-        size_t valueSize = (10 * TCP_RECV_BUF_SIZE) + 123;
+        size_t valueSize = (1024 * 1024 * 1024) + 123;
         std::vector<uint8_t> valuesA(valueSize, 1);
         std::vector<uint8_t> valuesB(valueSize, 2);
 
@@ -777,8 +776,9 @@ namespace tests {
     }
 
     TEST_CASE("Test pushing pulling chunks over multiple requests", "[state]") {
-        // Set up a big chunk of state
-        size_t valueSize = 10 * TCP_RECV_BUF_SIZE + 123;
+        // Set up a chunk of state
+        size_t chunkSize = 1024;
+        size_t valueSize = 10 * chunkSize + 123;
         std::vector<uint8_t> values(valueSize, 1);
         DummyStateServer server;
         setUpDummyServer(server, values);
@@ -787,7 +787,7 @@ namespace tests {
         server.start(3);
 
         // Set a chunk in the remote value
-        int offsetA = 3 * TCP_RECV_BUF_SIZE + 5;
+        size_t offsetA = 3 * chunkSize + 5;
         std::vector<uint8_t> segA = {4, 4};
         std::shared_ptr<state::StateKeyValue> remoteKv = server.getRemoteKv();
         remoteKv->setChunk(offsetA, segA.data(), segA.size());
@@ -808,7 +808,7 @@ namespace tests {
         REQUIRE(actualSegB == segB);
 
         // Now modify a different chunk locally
-        int offsetC = 2 * TCP_RECV_BUF_SIZE + 2;
+        size_t offsetC = 2 * chunkSize + 2;
         std::vector<uint8_t> segC = {0, 1, 2, 3, 4};
         localKv->setChunk(offsetC, segC.data(), segC.size());
 

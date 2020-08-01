@@ -25,8 +25,8 @@ namespace state {
         void clear();
 
     private:
-        static std::unordered_map<std::string, std::string> masterMap;
-        static std::shared_mutex masterMapMutex;
+        std::unordered_map<std::string, std::string> masterMap;
+        std::shared_mutex masterMapMutex;
     };
 
     InMemoryStateRegistry &getInMemoryStateRegistry();

@@ -17,6 +17,8 @@ using namespace faasm;
 namespace tests {
     class DummyStateServer {
     public:
+        static void stop();
+
         DummyStateServer();
 
         std::shared_ptr<state::StateKeyValue> getRemoteKv();
@@ -30,6 +32,8 @@ namespace tests {
         std::vector<uint8_t> dummyData;
         std::string dummyUser;
         std::string dummyKey;
+
+        void start();
 
         void start(int nMessages);
 

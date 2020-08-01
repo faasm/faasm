@@ -71,8 +71,7 @@ namespace tests {
         MatrixXd mat = buildDummyMatrix();
         size_t nBytes = setUpDummyStateServer(server, stateKey, mat);
 
-        // One pull, one push
-        server.start(2);
+        server.start();
 
         // Write locally and push
         faasm::writeMatrixToState(stateKey, mat, true);
@@ -95,6 +94,7 @@ namespace tests {
         REQUIRE(afterState.cols() == 3);
         REQUIRE(afterState == mat);
 
+        DummyStateServer::stop();
         server.wait();
     }
 
@@ -112,7 +112,7 @@ namespace tests {
         bool pushPull = !local;
         if (pushPull) {
             setUpDummyStateServer(server, stateKey, mat);
-            server.start(2);
+            server.start();
         }
 
         mat << 1, 2, 3, 4, 5,
@@ -141,6 +141,7 @@ namespace tests {
         REQUIRE(actual == expected);
 
         if (pushPull) {
+            DummyStateServer::stop();
             server.wait();
         }
     }
@@ -281,17 +282,8 @@ namespace tests {
             // Write matrix to state to set master as this thread
             faasm::writeSparseMatrixToState(key, mat, false);
 
-            // Process enough messages
-            while (true) {
-                try {
-                    stateServer.start();
-                } catch (tcp::TCPShutdownException &ex) {
-                    break;
-                }
-            }
-
-            // Shut down
-            stateServer.stop();
+            // Process messages
+            stateServer.start();
         });
 
         // Give it time to start
@@ -309,10 +301,7 @@ namespace tests {
         checkSparseMatrixEquality(actualFull, mat);
 
         // Send shutdown message
-        tcp::TCPClient client(LOCALHOST, STATE_PORT);
-        tcp::TCPMessage msg;
-        msg.type = state::StateMessageType::SHUTDOWN;
-        client.sendMessage(&msg);
+        DummyStateServer::stop();
 
         // Wait for server
         if (serverThread.joinable()) {

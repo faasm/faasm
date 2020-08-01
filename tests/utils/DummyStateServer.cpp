@@ -38,7 +38,11 @@ namespace tests {
         getLocalKv()->get(actual.data());
         return actual;
     }
-    
+
+    void DummyStateServer::start() {
+        start(1000);
+    }
+
     void DummyStateServer::start(int nMessages) {
         // NOTE - in a real deployment each server would be running in its own
         // process on a separate host. To run it in a thread like this we need to
@@ -73,27 +77,20 @@ namespace tests {
             }
             
             // Process the required number of messages
-            StateServer server(remoteState);
+            StateServer server(remoteState, nMessages);
             logger->debug("Running test state server for {} messages", nMessages);
-            int processedMessages = 0;
 
-            while (processedMessages < nMessages) {
-                try {
-                    processedMessages += server.poll();
-                } catch (tcp::TCPShutdownException &ex) {
-                    logger->debug("Shutting down test state server after {} messages", processedMessages);
-                    break;
-                }
-
-                logger->debug("Test state server processed {} messages", processedMessages);
-            }
-
-            // Close the server
-            server.close();
+            // Server will only process the requested number of messages
+            server.start();
         });
 
         // Give it time to start
         usleep(500 * 1000);
+    }
+
+    void DummyStateServer::stop() {
+        StateClient client(LOCALHOST);
+        client.sendShutdownRequestToServer();
     }
 
     void DummyStateServer::wait() {

@@ -21,6 +21,8 @@ namespace state {
         explicit StateClient(const std::string &hostIn);
         std::unique_ptr<message::StateRPCService::Stub> stub;
 
+        void sendShutdownRequestToServer();
+
         ClientContext *getContext();
     private:
         ClientContext context;

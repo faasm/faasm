@@ -11,6 +11,7 @@
 #include <util/state.h>
 #include <state/StateServer.h>
 #include <tcp/TCPClient.h>
+#include <state/StateClient.h>
 
 
 using namespace faasm;
@@ -284,10 +285,8 @@ namespace tests {
             execFuncWithPool(call, false, 1, false, 5, false);
 
             // Send shutdown message
-            tcp::TCPClient client(LOCALHOST, STATE_PORT);
-            tcp::TCPMessage tcpMsg;
-            tcpMsg.type = state::StateMessageType::SHUTDOWN;
-            client.sendMessage(&tcpMsg);
+            state::StateClient client(LOCALHOST);
+            client.sendShutdownRequestToServer();
 
             // Wait for server
             if (serverThread.joinable()) {

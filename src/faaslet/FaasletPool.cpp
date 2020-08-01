@@ -5,15 +5,16 @@
 
 #include <scheduler/GlobalMessageBus.h>
 #include <scheduler/SharingMessageBus.h>
-#include <state/StateServer.h>
 #include <mpi/MpiGlobalBus.h>
 #include <system/SGX.h>
+
 
 namespace faaslet {
     FaasletPool::FaasletPool(int nThreads) :
             _shutdown(false),
             scheduler(scheduler::getScheduler()),
-            threadTokenPool(nThreads) {
+            threadTokenPool(nThreads),
+            server(state::getGlobalState()) {
 
         // Check SGX (will do nothing if not enabled)
         isolation::checkSgxSetup();
@@ -128,12 +129,7 @@ namespace faaslet {
         logger->info("Starting state server");
 
         stateThread = std::thread([this] {
-            state::StateServer server(state::getGlobalState());
-            while (!this->isShutdown()) {
-                server.start();
-            }
-
-            server.stop();
+            server.start();
         });
     }
 
@@ -224,6 +220,9 @@ namespace faaslet {
         _shutdown = true;
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        // Stop the state server
+        server.stop();
 
         if (globalQueueThread.joinable()) {
             logger->info("Waiting for global queue thread to finish");

@@ -13,6 +13,18 @@ namespace state {
                     host + ":" + std::to_string(STATE_PORT),
                     grpc::InsecureChannelCredentials()
             )) {
+    }
 
+    void StateClient::sendShutdownRequestToServer() {
+        message::StateRequest request;
+        message::StateResponse response;
+        Status status = stub->Shutdown(getContext(), request, &response);
+        if(!status.ok()) {
+            throw std::runtime_error("Failed to send shutdown message");
+        }
+    }
+
+    ClientContext *StateClient::getContext() {
+        return &context;
     }
 }

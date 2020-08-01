@@ -9,13 +9,21 @@
 #include <grpcpp/ext/proto_server_reflection_plugin.h>
 #include <grpcpp/grpcpp.h>
 
+#define COUNT_MESSAGE if(messageLimit > 0) messageCount++;
+
 #define KV_FROM_REQUEST(request) auto kv = std::static_pointer_cast<InMemoryStateKeyValue>( \
     state.getKV(request->user(), request->key()) \
     );
 
 namespace state {
     StateServer::StateServer(State &stateIn) :
-            state(stateIn), host(STATE_HOST), port(STATE_PORT) {
+            StateServer(stateIn, 0) {
+
+    }
+
+    StateServer::StateServer(State &stateIn, int messageLimitIn) :
+            state(stateIn), host(STATE_HOST), port(STATE_PORT),
+            messageLimit(messageLimitIn) {
 
     }
 
@@ -46,6 +54,8 @@ namespace state {
             ServerContext *context,
             const message::StateRequest *request,
             message::StateResponse *response) {
+        COUNT_MESSAGE;
+
         KV_FROM_REQUEST(request)
         kv->buildStatePullResponse(response);
 
@@ -56,6 +66,8 @@ namespace state {
             ServerContext *context,
             const message::StateChunkRequest *request,
             message::StateChunkResponse *response) {
+        COUNT_MESSAGE;
+
         KV_FROM_REQUEST(request)
         kv->buildStatePullChunkResponse(request, response);
 
@@ -66,6 +78,8 @@ namespace state {
             ServerContext *context,
             const message::StateRequest *request,
             message::StateResponse *response) {
+        COUNT_MESSAGE;
+
         KV_FROM_REQUEST(request)
         kv->extractStatePushData(request, response);
 
@@ -76,6 +90,8 @@ namespace state {
             ServerContext *context,
             const message::StateRequest *request,
             message::StateSizeResponse *response) {
+        COUNT_MESSAGE;
+
         KV_FROM_REQUEST(request)
         kv->buildStateSizeResponse(response);
 
@@ -86,6 +102,8 @@ namespace state {
             ServerContext *context,
             const message::StateChunkRequest *request,
             message::StateResponse *response) {
+        COUNT_MESSAGE;
+
         KV_FROM_REQUEST(request)
         kv->extractStatePushChunkData(request, response);
 
@@ -96,6 +114,8 @@ namespace state {
             ServerContext *context,
             const message::StateManyChunkRequest *request,
             message::StateResponse *response) {
+        COUNT_MESSAGE;
+
         KV_FROM_REQUEST(request)
         kv->extractStatePushMultiChunkData(request, response);
 
@@ -106,6 +126,8 @@ namespace state {
             ServerContext *context,
             const message::StateRequest *request,
             message::StateResponse *response) {
+        COUNT_MESSAGE;
+
         KV_FROM_REQUEST(request)
         kv->extractStateAppendData(request, response);
 
@@ -116,6 +138,8 @@ namespace state {
             ServerContext *context,
             const message::StateRequest *request,
             message::StateResponse *response) {
+        COUNT_MESSAGE;
+
         // TODO - can we have the server shut itself down like this?
         server->Shutdown();
 
@@ -126,6 +150,8 @@ namespace state {
             ServerContext *context,
             const ::message::StateRequest *request,
             message::StateResponse *response) {
+        COUNT_MESSAGE;
+
         KV_FROM_REQUEST(request)
 
         kv->clearAppended();
@@ -136,6 +162,8 @@ namespace state {
             grpc::ServerContext *context,
             const ::message::StateAppendedRequest *request,
             message::StateAppendedResponse *response) {
+        COUNT_MESSAGE;
+
         KV_FROM_REQUEST(request)
 
         kv->buildPullAppendedResponse(request, response);
@@ -147,6 +175,8 @@ namespace state {
             grpc::ServerContext *context,
             const message::StateRequest *request,
             message::StateResponse *response) {
+        COUNT_MESSAGE;
+
         KV_FROM_REQUEST(request)
         kv->lockWrite();
         return Status::OK;
@@ -156,6 +186,8 @@ namespace state {
             grpc::ServerContext *context,
             const message::StateRequest *request,
             message::StateResponse *response) {
+        COUNT_MESSAGE;
+
         KV_FROM_REQUEST(request)
         kv->unlockWrite();
         return Status::OK;
@@ -163,6 +195,8 @@ namespace state {
 
     Status StateServer::Delete(grpc::ServerContext *context, const message::StateRequest *request,
                                message::StateResponse *response) {
+        COUNT_MESSAGE;
+
         state.deleteKV(request->user(), request->key());
         return Status::OK;
     }
