@@ -23,8 +23,8 @@ set(GRPC_PLUGIN /usr/local/bin/grpc_cpp_plugin)
 set(OUTPUT_FILES
         ${CMAKE_CURRENT_BINARY_DIR}/faasm.pb.cc
         ${CMAKE_CURRENT_BINARY_DIR}/faasm.pb.h
-        ${CMAKE_CURRENT_BINARY_DIR}/faasm.pb.grpc.cc
-        ${CMAKE_CURRENT_BINARY_DIR}/faasm.pb.grpc.h
+        ${CMAKE_CURRENT_BINARY_DIR}/faasm.grpc.pb.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/faasm.grpc.pb.h
         )
 
 add_custom_command(
@@ -38,7 +38,7 @@ add_custom_command(
         DEPENDS faasm.proto
         )
 
-faasm_private_lib(proto ${OUTPUT_FILES})
+faasm_private_lib(proto "${OUTPUT_FILES}")
 target_link_libraries(proto
         ${Protobuf_LIBRARIES}
         gRPC::grpc++

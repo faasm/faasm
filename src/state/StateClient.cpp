@@ -6,20 +6,20 @@
 
 namespace state {
     StateClient::StateClient(const std::string &hostIn) :
-            stub(message::StateRPCService::NewStub(channel)),
             host(hostIn),
             reg(state::getInMemoryStateRegistry()),
             channel(grpc::CreateChannel(
                     host + ":" + std::to_string(STATE_PORT),
                     grpc::InsecureChannelCredentials()
-            )) {
+            )),
+            stub(message::StateRPCService::NewStub(channel)) {
     }
 
     void StateClient::sendShutdownRequestToServer() {
         message::StateRequest request;
         message::StateResponse response;
         Status status = stub->Shutdown(getContext(), request, &response);
-        if(!status.ok()) {
+        if (!status.ok()) {
             throw std::runtime_error("Failed to send shutdown message");
         }
     }

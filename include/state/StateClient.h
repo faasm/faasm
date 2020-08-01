@@ -19,15 +19,17 @@ namespace state {
     class StateClient {
     public:
         explicit StateClient(const std::string &hostIn);
+
+        const std::string host;
+        InMemoryStateRegistry &reg;
+        std::shared_ptr<Channel> channel;
         std::unique_ptr<message::StateRPCService::Stub> stub;
 
         void sendShutdownRequestToServer();
 
         ClientContext *getContext();
+
     private:
         ClientContext context;
-        const std::string host;
-        InMemoryStateRegistry &reg;
-        std::shared_ptr<Channel> channel;
     };
 }
