@@ -1,7 +1,6 @@
 #pragma once
 
 #include "State.h"
-#include "StateMessage.h"
 
 #include <grpcpp/server.h>
 #include <proto/faasm.pb.h>

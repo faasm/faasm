@@ -5,6 +5,10 @@
 #include <string>
 #include <shared_mutex>
 
+#define STATE_HOST "0.0.0.0"
+#define STATE_PORT 8003
+
+
 namespace state {
     class State {
     public:

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "StateClient.h"
 #include "StateKeyValue.h"
 #include "InMemoryStateRegistry.h"
 
@@ -8,15 +9,11 @@
 
 #include <util/clock.h>
 
-#include <redis/Redis.h>
-#include <tcp/TCPClient.h>
-
 
 namespace state {
     enum InMemoryStateKeyStatus {
-        NO_MASTER,
-        MASTER,
         NOT_MASTER,
+        MASTER,
     };
 
     class AppendedInMemoryState {
@@ -45,62 +42,10 @@ namespace state {
 
         bool isMaster();
 
-        // Functions related to TCP messages
-        tcp::TCPMessage *buildStatePullRequest();
-
-        void buildStatePullResponse(message::StateResponse *response);
-
-        void buildStateSizeResponse(message::StateSizeResponse *response);
-
-        void extractPullResponse(const tcp::TCPMessage *msg);
-
-        tcp::TCPMessage *buildStatePullChunkRequest(long offset, size_t length);
-
-        void buildStatePullChunkResponse(
-                const message::StateChunkRequest *request,
-                message::StateChunkResponse *response
-        );
-
-        void extractPullChunkResponse(const tcp::TCPMessage *msg, long offset, size_t length);
-
-        tcp::TCPMessage *buildStatePushRequest();
-
-        void extractStatePushData(const message::StateRequest *request,
-                                  message::StateResponse *response);
-
-        tcp::TCPMessage *buildStatePushChunkRequest(long offset, size_t length);
-
-        void extractStatePushChunkData(const message::StateChunkRequest *request,
-                                       message::StateResponse *response);
-
-        tcp::TCPMessage *buildStatePushMultiChunkRequest(const std::vector<StateChunk> &chunks);
-
-        void extractStatePushMultiChunkData(const message::StateManyChunkRequest *request,
-                                            message::StateResponse *response);
-
-        tcp::TCPMessage *buildStateAppendRequest(size_t length, const uint8_t *data);
-
-        void extractStateAppendData(const message::StateRequest *request,
-                                    message::StateResponse *response);
-
-        tcp::TCPMessage *buildPullAppendedRequest(size_t length, long nValues);
-
-        void buildPullAppendedResponse(const ::message::StateAppendedRequest *request,
-                                                   message::StateAppendedResponse *response);
-
-        tcp::TCPMessage *buildClearAppendedRequest();
-
-        tcp::TCPMessage *buildStateLockRequest();
-
-        tcp::TCPMessage *buildStateUnlockRequest();
-
-        tcp::TCPMessage *buildOkResponse();
-
-        void awaitOkResponse();
-
     private:
-        std::string thisIP;
-        std::string masterIP;
+        const std::string thisIP;
+        const std::string masterIP;
+        StateClient masterClient;
         InMemoryStateKeyStatus status;
 
         InMemoryStateRegistry &stateRegistry;
@@ -108,8 +53,6 @@ namespace state {
         std::shared_mutex globalLock;
 
         std::vector<AppendedInMemoryState> appendedData;
-
-        std::unique_ptr<tcp::TCPClient> masterClient;
 
         void lockGlobal() override;
 

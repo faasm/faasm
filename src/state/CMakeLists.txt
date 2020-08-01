@@ -9,8 +9,8 @@ set(LIB_FILES
         InMemoryStateKeyValue.cpp
         InMemoryStateRegistry.cpp
         State.cpp
+        StateClient.cpp
         StateKeyValue.cpp
-        StateMessage.cpp
         StateServer.cpp
         RedisStateKeyValue.cpp
         ${HEADERS}

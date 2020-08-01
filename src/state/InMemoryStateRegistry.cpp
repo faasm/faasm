@@ -102,6 +102,7 @@ namespace state {
 
         // Sanity check that the master is *not* this machine
         if (masterIP == thisIP) {
+            util::getLogger()->error("Attempting to pull state size on master ({}/{} on {})", userIn, keyIn, thisIP);
             throw std::runtime_error("Attempting to pull state size on master");
         }
 
