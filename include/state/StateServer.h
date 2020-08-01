@@ -3,14 +3,14 @@
 #include "State.h"
 #include "StateMessage.h"
 
-#include <proto/state_service.pb.h>
+#include <proto/faasm.pb.h>
+#include <proto/faasm.grpc.pb.h>
+
 
 namespace state {
-class StateServer final : public StateRPCService::Service {
+class StateServer final : public message::StateRPCService::Service {
     public:
         explicit StateServer(State &stateIn);
-
-        tcp::TCPMessage * handleMessage(tcp::TCPMessage *request) override;
     private:
         State &state;
     };

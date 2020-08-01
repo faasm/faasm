@@ -17,28 +17,26 @@ message(STATUS "Using gRPC ${gRPC_VERSION}")
 
 include_directories(${PROTOBUF_INCLUDE_DIR})
 
-set(_PROTOBUF_LIBPROTOBUF protobuf::libprotobuf)
-set(_REFLECTION gRPC::grpc++_reflection)
-set(_PROTOBUF_PROTOC $<TARGET_FILE:protobuf::protoc>)
-set(_GRPC_GRPCPP gRPC::grpc++)
-set(_GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:gRPC::grpc_cpp_plugin>)
+set(PROTOC_EXE /usr/local/bin/protoc)
+set(GRPC_PLUGIN /usr/local/bin/grpc_cpp_plugin)
 
-set(LIB_FILES
-        ${CMAKE_CURRENT_BINARY_DIR}/faasm_func.pb.cc
-        ${CMAKE_CURRENT_BINARY_DIR}/faasm_func.pb.h
-        ${CMAKE_CURRENT_BINARY_DIR}/faasm_state.pb.cc
-        ${CMAKE_CURRENT_BINARY_DIR}/faasm_state.pb.h
-    )
+set(OUTPUT_FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/faasm.pb.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/faasm.pb.h
+        ${CMAKE_CURRENT_BINARY_DIR}/faasm.pb.grpc.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/faasm.pb.grpc.h
+        )
 
 add_custom_command(
-        OUTPUT ${LIB_FILES}
-        COMMAND ${_PROTOBUF_PROTOC}
+        OUTPUT ${OUTPUT_FILES}
+        COMMAND protoc
         ARGS --grpc_out "${CMAKE_CURRENT_BINARY_DIR}"
         --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
         -I "${CMAKE_CURRENT_LIST_DIR}"
-        --plugin=protoc-gen-grpc="${_GRPC_CPP_PLUGIN_EXECUTABLE}"
-        "${CMAKE_CURRENT_LIST_DIR}"
+        --plugin=protoc-gen-grpc=${GRPC_PLUGIN}
+        faasm.proto
+        DEPENDS faasm.proto
         )
 
-faasm_private_lib(proto ${LIB_FILES})
+faasm_private_lib(proto ${OUTPUT_FILES})
 target_link_libraries(proto ${Protobuf_LIBRARIES} gRPC::grpc++)

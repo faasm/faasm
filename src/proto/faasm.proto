@@ -1,0 +1,168 @@
+syntax = "proto3";
+
+package message;
+
+// ---------------------------------------------
+// FUNCTION SERVICE
+// ---------------------------------------------
+
+service FunctionRPCService {
+    rpc ShareFunction (Message) returns (FunctionStatusResponse) {
+    }
+}
+
+message FunctionStatusResponse {
+    enum FunctionStatus {
+        OK = 0;
+        ERROR = 1;
+    }
+
+    FunctionStatus status = 1;
+}
+
+message Message {
+    string user = 1;
+    string function = 2;
+    int32 idx = 3;
+    string snapshotKey = 4;
+    int32 snapshotSize = 5;
+    int32 funcPtr = 6;
+    int32 returnValue = 7;
+
+    enum MessageType {
+        CALL = 0;
+        BIND = 1;
+        KILL = 2;
+        EMPTY = 3;
+    }
+
+    MessageType type = 8;
+
+    int64 timestamp = 9;
+    int32 id = 10;
+    string resultKey = 11;
+    string statusKey = 12;
+
+    string scheduledHost = 13;
+    int32 hops = 14;
+    string executedHost = 15;
+    int64 finishTimestamp = 16;
+
+    bool isAsync = 17;
+    bool isPython = 18;
+    bool isTypescript = 19;
+    bool isStatusRequest = 20;
+    bool isExecGraphRequest = 21;
+    bool isFlushRequest = 22;
+
+    bytes inputData = 23;
+    bytes outputData = 24;
+
+    string pythonUser = 25;
+    string pythonFunction = 26;
+    string pythonEntry = 27;
+
+    int32 coldStartInterval = 28;
+
+    bool isMpi = 29;
+    int32 mpiWorldId = 30;
+    int32 mpiRank = 31;
+    int32 mpiWorldSize = 32;
+
+    int32 ompThreadNum = 33;
+    repeated uint32 ompFunctionArgs = 34;
+    int32 ompDepth = 35;
+    int32 ompEffDepth = 36;
+    int32 ompMAL = 37;
+    int32 ompNumThreads = 38;
+
+    string cmdline = 39;
+
+    bool isSgx = 40;
+}
+
+// ---------------------------------------------
+// STATE SERVICE
+// ---------------------------------------------
+
+service StateRPCService {
+    rpc Pull (StateRequest) returns (StateResponse) {
+    }
+    rpc PullChunk (StateChunkRequest) returns (StateChunkResponse) {
+    }
+    rpc Push (StateRequest) returns (StateResponse) {
+    }
+    rpc Size(StateRequest) returns (StateSizeResponse) {
+    }
+    rpc PushChunk (StateChunkRequest) returns (StateResponse) {
+    }
+    rpc PushManyChunk (StateManyChunkRequest) returns (StateResponse) {
+    }
+    rpc Append (StateRequest) returns (StateResponse) {
+    }
+    rpc Shutdown (StateRequest) returns (StateResponse) {
+    }
+}
+
+message StateRequest {
+    string user = 1;
+    string key = 2;
+    bytes data = 3;
+}
+
+message StateChunkRequest {
+    string user = 1;
+    string key = 2;
+    int64 offset = 3;
+    bytes data = 4;
+}
+
+message StateManyChunkRequest {
+    message StateChunk {
+        int64 offset = 1;
+        bytes data = 2;
+    }
+    string user = 1;
+    string key = 2;
+    repeated StateChunk chunks = 3;
+}
+
+message StateResponse {
+    enum Status {
+        OK = 0;
+        ERROR = 1;
+        TIMEOUT = 2;
+    }
+    Status status = 1;
+
+    string user = 2;
+    string key = 3;
+    bytes data = 4;
+}
+
+message StateChunkResponse {
+    enum Status {
+        OK = 0;
+        ERROR = 1;
+        TIMEOUT = 2;
+    }
+    Status status = 1;
+
+    string user = 2;
+    string key = 3;
+    int64 offset = 4;
+    bytes data = 5;
+}
+
+message StateSizeResponse {
+    enum Status {
+        OK = 0;
+        ERROR = 1;
+        TIMEOUT = 2;
+    }
+    Status status = 1;
+
+    string user = 2;
+    string key = 3;
+    bytes size = 4;
+}
