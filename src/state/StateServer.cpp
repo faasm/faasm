@@ -45,6 +45,16 @@ namespace state {
         return localKv;
     }
 
+    std::shared_ptr<StateKeyValue> StateServer::getKv(const message::StateChunkRequest *request) {
+        std::shared_ptr<StateKeyValue> localKv = state.getKV(
+                request->user(),
+                request->key(),
+                0
+        );
+
+        return localKv;
+    }
+
     Status StateServer::Pull(
             ServerContext *context,
             const message::StateRequest *request,
@@ -61,13 +71,20 @@ namespace state {
             const message::StateChunkRequest *request,
             message::StateChunkResponse *response) {
 
+        auto kv = std::static_pointer_cast<InMemoryStateKeyValue>(getKv(request));
+        kv->buildStatePullChunkResponse(request, response);
+
+        return Status::OK;
     }
 
     Status StateServer::Push(
             ServerContext *context,
             const message::StateRequest *request,
             message::StateResponse *response) {
+        auto kv = std::static_pointer_cast<InMemoryStateKeyValue>(getKv(request));
+        kv->extractStatePushData(request, response);
 
+        return Status::OK;
     }
 
     Status StateServer::Size(
@@ -85,7 +102,10 @@ namespace state {
             ServerContext *context,
             const message::StateChunkRequest *request,
             message::StateResponse *response) {
+        auto kv = std::static_pointer_cast<InMemoryStateKeyValue>(getKv(request));
+        kv->extractStatePushChunkData(request, response);
 
+        return Status::OK;
     }
 
     Status StateServer::PushManyChunk(
@@ -117,17 +137,7 @@ namespace state {
 
         // Construct appropriate response
         tcp::TCPMessage *response = nullptr;
-        if (requestType == StateMessageType::STATE_SIZE) {
-            response = buildStateSizeResponse(user, key, stateSize);
-            logger->debug("State size: {} (size {})", key, stateSize);
 
-        } else if (requestType == StateMessageType::STATE_PULL) {
-            response = kv->buildStatePullResponse();
-            logger->debug("State pull: {} (buffer len {})", key, response->len);
-
-        } else if (requestType == StateMessageType::STATE_PULL_CHUNK) {
-            response = kv->buildStatePullChunkResponse(request);
-            logger->debug("State pull chunk: {} (buffer len {})", key, response->len);
 
         } else if (requestType == StateMessageType::STATE_PUSH) {
             kv->extractStatePushData(request);

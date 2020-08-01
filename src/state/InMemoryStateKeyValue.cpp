@@ -273,7 +273,7 @@ namespace state {
         response->set_key(key);
 
         // TODO - can we do this without copying?
-        response->set_data(reinterpret_cast<char*>(sharedMemory), valueSize);
+        response->set_data(reinterpret_cast<char *>(sharedMemory), valueSize);
     }
 
     void InMemoryStateKeyValue::buildStateSizeResponse(message::StateSizeResponse *response) {
@@ -312,32 +312,26 @@ namespace state {
         return msg;
     }
 
-    tcp::TCPMessage *InMemoryStateKeyValue::buildStatePullChunkResponse(tcp::TCPMessage *request) {
-        unsigned long dataOffset = getTCPMessageDataOffset(user, key);
-
-        // Extract offset and length from request
-        uint8_t *requestData = request->buffer + dataOffset;
-        int32_t chunkOffset = *(reinterpret_cast<int32_t *>(requestData));
-        int32_t chunkLen = *(reinterpret_cast<int32_t *>(requestData + sizeof(int32_t)));
+    void InMemoryStateKeyValue::buildStatePullChunkResponse(const message::StateChunkRequest *request,
+                                                            message::StateChunkResponse *response) {
+        uint64_t chunkOffset = request->offset();
+        uint64_t chunkLen = request->chunksize();
 
         // Check bounds - note we need to check against the allocated memory size, not the value
-        int32_t chunkEnd = chunkOffset + chunkLen;
-        if ((uint32_t) chunkEnd > sharedMemSize) {
+        uint64_t chunkEnd = chunkOffset + chunkLen;
+        if (chunkEnd > sharedMemSize) {
             logger->error("Pull chunk request larger than allocated memory (chunk end {}, allocated {})",
                           chunkEnd, sharedMemSize);
             throw std::runtime_error("Pull chunk request exceeds allocated memory");
         }
 
-        auto response = new tcp::TCPMessage();
-        response->type = StateMessageType::STATE_PULL_CHUNK_RESPONSE;
-        response->len = chunkLen;
+        response->set_user(user);
+        response->set_key(key);
+        response->set_offset(chunkOffset);
 
-        // TODO - can we do this without copying?
-        response->buffer = new uint8_t[chunkLen];
-        auto bytePtr = BYTES(sharedMemory);
-        std::copy(bytePtr + chunkOffset, bytePtr + chunkEnd, response->buffer);
-
-        return response;
+        // TODO: avoid copying here
+        char *chunkStart = reinterpret_cast<char *>(sharedMemory) + chunkOffset;
+        response->set_data(chunkStart, chunkLen);
     }
 
     void InMemoryStateKeyValue::extractPullChunkResponse(const tcp::TCPMessage *msg, long offset, size_t length) {
@@ -369,14 +363,16 @@ namespace state {
         return msg;
     }
 
-    void InMemoryStateKeyValue::extractStatePushData(const tcp::TCPMessage *msg) {
-        // Extract data from request (data is preceded by its length)
-        size_t dataOffset = getTCPMessageDataOffset(user, key);
-        uint8_t *data = msg->buffer + dataOffset + sizeof(int32_t);
+    void InMemoryStateKeyValue::extractStatePushData(const message::StateRequest *request,
+                                                     message::StateResponse *response) {
 
-        // Copy directly (do not need to lock etc.)
+        // Copy directly
+        // TODO - add locking here?
         uint8_t *valueBytes = get();
-        std::copy(data, data + size(), valueBytes);
+        std::copy(request->data().begin(), request->data().end(), valueBytes);
+
+        response->set_user(user);
+        response->set_key(key);
     }
 
     tcp::TCPMessage *InMemoryStateKeyValue::buildStatePushChunkRequest(long offset, size_t length) {
@@ -399,16 +395,19 @@ namespace state {
         return msg;
     }
 
-    void InMemoryStateKeyValue::extractStatePushChunkData(const tcp::TCPMessage *msg) {
-        size_t dataOffset = getTCPMessageDataOffset(user, key);
-        uint8_t *msgBuffer = msg->buffer + dataOffset;
-
-        int32_t offset = *(reinterpret_cast<int32_t *>(msgBuffer));
-        int32_t length = *(reinterpret_cast<int32_t *>(msgBuffer + sizeof(int32_t)));
-        uint8_t *data = msgBuffer + (2 * sizeof(int32_t));
-
+    void InMemoryStateKeyValue::extractStatePushChunkData(
+            const message::StateChunkRequest *request,
+            message::StateResponse *response
+            ) {
         uint8_t *valueBytes = get();
-        std::copy(data, data + length, valueBytes + offset);
+        size_t chunkOffset = request->offset();
+        auto chunkData = BYTES_CONST(request->data().c_str());
+        size_t chunkSize = request->data().size();
+        
+        std::copy(chunkData, chunkData + chunkSize, valueBytes + chunkOffset);
+        
+        response->set_user(user);
+        response->set_key(key);
     }
 
     tcp::TCPMessage *InMemoryStateKeyValue::buildStateAppendRequest(size_t length, const uint8_t *data) {

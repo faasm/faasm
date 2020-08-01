@@ -51,22 +51,27 @@ namespace state {
         void buildStatePullResponse(message::StateResponse *response);
 
         void buildStateSizeResponse(message::StateSizeResponse *response);
-        
+
         void extractPullResponse(const tcp::TCPMessage *msg);
 
         tcp::TCPMessage *buildStatePullChunkRequest(long offset, size_t length);
 
-        tcp::TCPMessage *buildStatePullChunkResponse(tcp::TCPMessage *request);
+        void buildStatePullChunkResponse(
+                const message::StateChunkRequest *request,
+                message::StateChunkResponse *response
+        );
 
         void extractPullChunkResponse(const tcp::TCPMessage *msg, long offset, size_t length);
 
         tcp::TCPMessage *buildStatePushRequest();
 
-        void extractStatePushData(const tcp::TCPMessage *msg);
+        void extractStatePushData(const message::StateRequest *request,
+                                  message::StateResponse *response);
 
         tcp::TCPMessage *buildStatePushChunkRequest(long offset, size_t length);
 
-        void extractStatePushChunkData(const tcp::TCPMessage *msg);
+        void extractStatePushChunkData(const message::StateChunkRequest *request,
+                                       message::StateResponse *response);
 
         tcp::TCPMessage *buildStatePushMultiChunkRequest(const std::vector<StateChunk> &chunks);
 

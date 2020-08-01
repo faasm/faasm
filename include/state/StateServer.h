@@ -64,5 +64,6 @@ namespace state {
         std::unique_ptr<Server> server;
 
         std::shared_ptr<StateKeyValue> getKv(const message::StateRequest *request);
+        std::shared_ptr<StateKeyValue> getKv(const message::StateChunkRequest *request);
     };
 }
