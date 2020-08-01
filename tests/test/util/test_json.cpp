@@ -49,8 +49,8 @@ namespace tests {
 
         util::setMessageId(msg);
 
-        REQUIRE(msg.has_id());
-        REQUIRE(msg.has_timestamp());
+        REQUIRE(msg.id() > 0);
+        REQUIRE(msg.timestamp() > 0);
 
         std::string jsonString = util::messageToJson(msg);
 

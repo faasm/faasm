@@ -20,21 +20,21 @@ namespace util {
         d.AddMember("function", Value(msg.function().c_str(), msg.function().size(), a).Move(), a);
         d.AddMember("index", msg.idx(), a);
         d.AddMember("hops", msg.hops(), a);
-        if(msg.has_executedhost())      d.AddMember("exec_host", Value(msg.executedhost().c_str(), msg.executedhost().size(), a).Move(), a);
-        if(msg.has_finishtimestamp())   d.AddMember("finished", msg.finishtimestamp(), a);
+        if(!msg.executedhost().empty()) d.AddMember("exec_host", Value(msg.executedhost().c_str(), msg.executedhost().size(), a).Move(), a);
+        if(msg.finishtimestamp() > 0)   d.AddMember("finished", msg.finishtimestamp(), a);
 
-        if(msg.has_timestamp())         d.AddMember("timestamp", msg.timestamp(), a);
+        if(msg.timestamp() > 0)         d.AddMember("timestamp", msg.timestamp(), a);
 
-        if(msg.has_snapshotkey())       d.AddMember("snapshot_key", Value(msg.snapshotkey().c_str(), msg.snapshotkey().size(), a).Move(), a);
-        if(msg.has_snapshotsize())      d.AddMember("snapshot_size", msg.snapshotsize(), a);
-        if(msg.has_funcptr())           d.AddMember("func_ptr", msg.funcptr(), a);
+        if(!msg.snapshotkey().empty())  d.AddMember("snapshot_key", Value(msg.snapshotkey().c_str(), msg.snapshotkey().size(), a).Move(), a);
+        if(msg.snapshotsize() > 0)      d.AddMember("snapshot_size", msg.snapshotsize(), a);
+        if(msg.funcptr() > 0)           d.AddMember("func_ptr", msg.funcptr(), a);
 
-        if(msg.has_pythonuser())        d.AddMember("py_user", Value(msg.pythonuser().c_str(), msg.pythonuser().size(), a).Move(), a);
-        if(msg.has_pythonfunction())    d.AddMember("py_func", Value(msg.pythonfunction().c_str(), msg.pythonfunction().size(), a).Move(), a);
-        if(msg.has_pythonentry())       d.AddMember("py_entry", Value(msg.pythonentry().c_str(), msg.pythonentry().size(), a).Move(), a);
+        if(!msg.pythonuser().empty())       d.AddMember("py_user", Value(msg.pythonuser().c_str(), msg.pythonuser().size(), a).Move(), a);
+        if(!msg.pythonfunction().empty())   d.AddMember("py_func", Value(msg.pythonfunction().c_str(), msg.pythonfunction().size(), a).Move(), a);
+        if(!msg.pythonentry().empty())      d.AddMember("py_entry", Value(msg.pythonentry().c_str(), msg.pythonentry().size(), a).Move(), a);
 
-        if(msg.has_inputdata())         d.AddMember("input_data", Value(msg.inputdata().c_str(), msg.inputdata().size(), a).Move(), a);
-        if(msg.has_outputdata())        d.AddMember("output_data", Value(msg.outputdata().c_str(), msg.outputdata().size(), a).Move(), a);
+        if(!msg.inputdata().empty())    d.AddMember("input_data", Value(msg.inputdata().c_str(), msg.inputdata().size(), a).Move(), a);
+        if(!msg.outputdata().empty())   d.AddMember("output_data", Value(msg.outputdata().c_str(), msg.outputdata().size(), a).Move(), a);
 
         if(msg.isasync())               d.AddMember("async", msg.isasync(), a);
         if(msg.ispython())              d.AddMember("python", msg.ispython(), a);
@@ -43,17 +43,17 @@ namespace util {
         if(msg.isexecgraphrequest())    d.AddMember("exec_graph", msg.isexecgraphrequest(), a);
         if(msg.isflushrequest())        d.AddMember("flush", msg.isflushrequest(), a);
 
-        if(msg.has_resultkey())         d.AddMember("result_key", Value(msg.resultkey().c_str(), msg.resultkey().size()).Move(), a);
-        if(msg.has_statuskey())         d.AddMember("status_key", Value(msg.statuskey().c_str(), msg.statuskey().size()).Move(), a);
+        if(!msg.resultkey().empty())    d.AddMember("result_key", Value(msg.resultkey().c_str(), msg.resultkey().size()).Move(), a);
+        if(!msg.statuskey().empty())    d.AddMember("status_key", Value(msg.statuskey().c_str(), msg.statuskey().size()).Move(), a);
 
-        if(msg.has_coldstartinterval()) d.AddMember("cold_start_interval", msg.coldstartinterval(), a);
+        if(msg.coldstartinterval() > 0) d.AddMember("cold_start_interval", msg.coldstartinterval(), a);
 
         if(msg.ismpi())                 d.AddMember("mpi", msg.ismpi(), a);
-        if(msg.has_mpiworldid())        d.AddMember("mpi_world_id", msg.mpiworldid(), a);
-        if(msg.has_mpirank())           d.AddMember("mpi_rank", msg.mpirank(), a);
-        if(msg.has_mpiworldsize())      d.AddMember("mpi_world_size", msg.mpiworldsize(), a);
+        if(msg.mpiworldid() > 0)        d.AddMember("mpi_world_id", msg.mpiworldid(), a);
+        if(msg.mpirank() > 0)           d.AddMember("mpi_rank", msg.mpirank(), a);
+        if(msg.mpiworldsize() > 0)      d.AddMember("mpi_world_size", msg.mpiworldsize(), a);
 
-        if(msg.has_cmdline())           d.AddMember("cmdline", Value(msg.cmdline().c_str(), msg.cmdline().size()).Move(), a);
+        if(!msg.cmdline().empty())      d.AddMember("cmdline", Value(msg.cmdline().c_str(), msg.cmdline().size()).Move(), a);
 
         if(msg.issgx())                 d.AddMember("sgx", msg.issgx(), a);
 

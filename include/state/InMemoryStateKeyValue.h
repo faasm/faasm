@@ -42,6 +42,30 @@ namespace state {
 
         bool isMaster();
 
+        void buildStatePullResponse(message::StateResponse *response);
+
+        void buildStateSizeResponse(message::StateSizeResponse *response);
+
+        void buildStatePullChunkResponse(
+                const message::StateChunkRequest *request,
+                message::StateChunkResponse *response
+        );
+
+        void extractStatePushData(const message::StateRequest *request,
+                                  message::StateResponse *response);
+
+        void extractStatePushChunkData(const message::StateChunkRequest *request,
+                                       message::StateResponse *response);
+
+
+        void extractStatePushMultiChunkData(const message::StateManyChunkRequest *request,
+                                            message::StateResponse *response);
+
+        void extractStateAppendData(const message::StateRequest *request,
+                                    message::StateResponse *response);
+
+        void buildPullAppendedResponse(const ::message::StateAppendedRequest *request,
+                                       message::StateAppendedResponse *response);
     private:
         const std::string thisIP;
         const std::string masterIP;

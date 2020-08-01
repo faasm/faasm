@@ -683,7 +683,7 @@ namespace wasm {
         prepareOpenMPContext(msg);
 
         // Executes OMP fork message if necessary
-        if (msg.has_ompdepth()) {
+        if (msg.ompdepth() > 0) {
             executeRemoteOMP(msg);
             return true;
         }
@@ -1298,7 +1298,7 @@ namespace wasm {
     void WAVMWasmModule::prepareOpenMPContext(const message::Message &msg) {
         std::shared_ptr<openmp::Level> ompLevel;
 
-        if (msg.has_ompdepth()) {
+        if (msg.ompdepth() > 0) {
             ompLevel = std::static_pointer_cast<openmp::Level>(
                     std::make_shared<openmp::MultiHostSumLevel>(msg.ompdepth(),
                                                                 msg.ompeffdepth(),

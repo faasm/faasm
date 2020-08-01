@@ -269,4 +269,126 @@ namespace state {
                       masterClient.stub->ClearAppended(masterClient.getContext(), request, &response))
         }
     }
+
+    // ----------------------------------------
+    // RCP Messages
+    // ----------------------------------------
+
+    void InMemoryStateKeyValue::buildStatePullResponse(
+            message::StateResponse *response
+    ) {
+        response->set_user(user);
+        response->set_key(key);
+
+        // TODO - can we do this without copying?
+        response->set_data(reinterpret_cast<char *>(sharedMemory), valueSize);
+    }
+
+    void InMemoryStateKeyValue::buildStateSizeResponse(
+            message::StateSizeResponse *response
+    ) {
+        response->set_user(user);
+        response->set_key(key);
+        response->set_statesize(valueSize);
+    }
+
+    void InMemoryStateKeyValue::buildStatePullChunkResponse(
+            const message::StateChunkRequest *request,
+            message::StateChunkResponse *response
+    ) {
+        uint64_t chunkOffset = request->offset();
+        uint64_t chunkLen = request->chunksize();
+
+        // Check bounds - note we need to check against the allocated memory size, not the value
+        uint64_t chunkEnd = chunkOffset + chunkLen;
+        if (chunkEnd > sharedMemSize) {
+            logger->error("Pull chunk request larger than allocated memory (chunk end {}, allocated {})",
+                          chunkEnd, sharedMemSize);
+            throw std::runtime_error("Pull chunk request exceeds allocated memory");
+        }
+
+        response->set_user(user);
+        response->set_key(key);
+        response->set_offset(chunkOffset);
+
+        // TODO: avoid copying here
+        char *chunkStart = reinterpret_cast<char *>(sharedMemory) + chunkOffset;
+        response->set_data(chunkStart, chunkLen);
+    }
+
+    void InMemoryStateKeyValue::extractStatePushData(
+            const message::StateRequest *request,
+            message::StateResponse *response
+    ) {
+
+        // Copy directly
+        // TODO - add locking here?
+        uint8_t *valueBytes = get();
+        std::copy(request->data().begin(), request->data().end(), valueBytes);
+
+        response->set_user(user);
+        response->set_key(key);
+    }
+
+    void InMemoryStateKeyValue::extractStatePushChunkData(
+            const message::StateChunkRequest *request,
+            message::StateResponse *response
+    ) {
+        uint8_t *valueBytes = get();
+        size_t chunkOffset = request->offset();
+        auto chunkData = BYTES_CONST(request->data().c_str());
+        size_t chunkSize = request->data().size();
+
+        std::copy(chunkData, chunkData + chunkSize, valueBytes + chunkOffset);
+
+        response->set_user(user);
+        response->set_key(key);
+    }
+
+    void InMemoryStateKeyValue::extractStateAppendData(const message::StateRequest *request,
+                                                       message::StateResponse *response) {
+
+        auto data = BYTES_CONST(request->data().c_str());
+        uint64_t dataLen = request->data().size();
+        append(data, dataLen);
+
+        response->set_user(user);
+        response->set_key(key);
+    }
+
+    void InMemoryStateKeyValue::buildPullAppendedResponse(
+            const ::message::StateAppendedRequest *request,
+            message::StateAppendedResponse *response
+    ) {
+        response->set_user(user);
+        response->set_key(key);
+
+        for (uint32_t i = 0; i < request->nvalues(); i++) {
+            AppendedInMemoryState &value = appendedData.at(i);
+            response->set_values(i, reinterpret_cast<char *>(value.data.get()), value.length);
+        }
+    }
+
+    void InMemoryStateKeyValue::extractStatePushMultiChunkData(
+            const message::StateManyChunkRequest *request,
+            message::StateResponse *response
+    ) {
+        // Get direct pointer to kv data
+        uint8_t *kvMemory = get();
+
+        // Lock the value
+        lockWrite();
+
+        for (auto &chunk : request->chunks()) {
+            uint64_t chunkOffset = chunk.offset();
+            auto chunkData = BYTES_CONST(chunk.data().c_str());
+            std::copy(chunkData, chunkData + chunkOffset, kvMemory + chunkOffset);
+        }
+
+        // Unlock the value
+        unlockWrite();
+
+        response->set_user(user);
+        response->set_key(key);
+    }
 }
