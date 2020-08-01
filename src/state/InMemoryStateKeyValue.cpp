@@ -189,9 +189,10 @@ namespace state {
             request.set_key(key);
 
             // Populate the request
-            for (uint32_t i = 0; i < chunks.size(); i++) {
-                request.mutable_chunks(i)->set_data(reinterpret_cast<char *>(chunks[i].data), chunks[i].length);
-                request.mutable_chunks(i)->set_offset(chunks[i].offset);
+            for (const auto &chunk : chunks) {
+                auto msgChunk = request.add_chunks();
+                msgChunk->set_data(reinterpret_cast<char *>(chunk.data), chunk.length);
+                msgChunk->set_offset(chunk.offset);
             }
 
             CHECK_RPC("state_multi_chunk",
@@ -241,15 +242,15 @@ namespace state {
                       masterClient.stub->PullAppended(masterClient.getContext(), request, &response))
 
             size_t offset = 0;
-            for (auto &chunk : response.values()) {
+            for (auto &value : response.values()) {
                 if (offset > length) {
                     logger->error("Buffer not large enough for appended data (offset={}, length={})", offset, length);
                     throw std::runtime_error("Buffer not large enough for appended data");
                 }
 
-                auto chunkData = BYTES_CONST(chunk.data());
-                std::copy(chunkData, chunkData + chunk.length(), data + offset);
-                offset += chunk.length();
+                auto valueData = BYTES_CONST(value.data().c_str());
+                std::copy(valueData, valueData + value.data().size(), data + offset);
+                offset += value.data().size();
             }
         }
     }
@@ -365,7 +366,8 @@ namespace state {
 
         for (uint32_t i = 0; i < request->nvalues(); i++) {
             AppendedInMemoryState &value = appendedData.at(i);
-            response->set_values(i, reinterpret_cast<char *>(value.data.get()), value.length);
+            auto appendedValue = response->add_values();
+            appendedValue->set_data(reinterpret_cast<char *>(value.data.get()), value.length);
         }
     }
 
@@ -373,19 +375,14 @@ namespace state {
             const message::StateManyChunkRequest *request,
             message::StateResponse *response
     ) {
-        // Get direct pointer to kv data
-        uint8_t *kvMemory = get();
-
-        // Lock the value
         lockWrite();
 
         for (auto &chunk : request->chunks()) {
             uint64_t chunkOffset = chunk.offset();
             auto chunkData = BYTES_CONST(chunk.data().c_str());
-            std::copy(chunkData, chunkData + chunkOffset, kvMemory + chunkOffset);
+            std::copy(chunkData, chunkData + chunkOffset, BYTES(sharedMemory) + chunkOffset);
         }
 
-        // Unlock the value
         unlockWrite();
 
         response->set_user(user);

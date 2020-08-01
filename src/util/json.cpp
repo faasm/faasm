@@ -158,9 +158,9 @@ namespace util {
         msg.set_type(message::Message_MessageType_CALL);
 
         msg.set_ismpi(getBoolFromJson(d, "mpi", false));
-        msg.set_mpiworldid(getIntFromJson(d, "mpi_world_id", -1));
-        msg.set_mpirank(getIntFromJson(d, "mpi_rank", -1));
-        msg.set_mpiworldsize(getIntFromJson(d, "mpi_world_size", -1));
+        msg.set_mpiworldid(getIntFromJson(d, "mpi_world_id", 0));
+        msg.set_mpirank(getIntFromJson(d, "mpi_rank", 0));
+        msg.set_mpiworldsize(getIntFromJson(d, "mpi_world_size", 0));
 
         msg.set_cmdline(getStringFromJson(d, "cmdline", ""));
 

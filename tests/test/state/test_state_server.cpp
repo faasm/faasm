@@ -97,8 +97,8 @@ namespace tests {
             s.PullChunk(&context, &request, &response);
             std::vector<uint8_t> actualData = util::stringToBytes(response.data());
 
-            std::vector<uint8_t> expected(dataA.size(), 0);
-            std::copy(dataA.begin() + offset, dataA.begin() + offset + chunkSize, expected.begin() + offset);
+            std::vector<uint8_t> expected(chunkSize, 0);
+            std::copy(dataA.begin() + offset, dataA.begin() + offset + chunkSize, expected.begin());
 
             REQUIRE(actualData == expected);
         }
@@ -137,8 +137,8 @@ namespace tests {
             std::vector<uint8_t> expected(dataA.begin(), dataA.end());
             std::copy(dataB.begin() + offset, dataB.begin() + offset + chunkSize, expected.begin() + offset);
 
-            std::vector<uint8_t> actualData = util::stringToBytes(response.data());
-            REQUIRE(actualData == expected);
+            kvA->get(actual.data());
+            REQUIRE(actual == expected);
         }
 
         SECTION("State push multi chunk") {
@@ -156,9 +156,10 @@ namespace tests {
             message::StateManyChunkRequest request;
             request.set_user(userA);
             request.set_key(keyA);
-            for (uint i = 0; i < chunks.size(); i++) {
-                request.mutable_chunks(i)->set_data(chunks[i].data, chunks[i].length);
-                request.mutable_chunks(i)->set_offset(chunks[i].offset);
+            for (auto & chunk : chunks) {
+                auto msgChunk = request.add_chunks();
+                msgChunk->set_data(chunk.data, chunk.length);
+                msgChunk->set_offset(chunk.offset);
             }
 
             message::StateResponse response;

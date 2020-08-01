@@ -164,7 +164,10 @@ message StateSizeResponse {
 }
 
 message StateAppendedResponse {
+    message AppendedValue {
+        bytes data = 2;
+    }
     string user = 1;
     string key = 2;
-    repeated bytes values = 3;
+    repeated AppendedValue values = 3;
 }
