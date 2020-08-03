@@ -5,6 +5,7 @@
 #include <util/config.h>
 #include <state/State.h>
 #include <state/StateServer.h>
+#include <state/StateClient.h>
 #include <state/InMemoryStateKeyValue.h>
 
 #include <wait.h>
@@ -156,7 +157,7 @@ namespace tests {
             message::StateManyChunkRequest request;
             request.set_user(userA);
             request.set_key(keyA);
-            for (auto & chunk : chunks) {
+            for (auto &chunk : chunks) {
                 auto msgChunk = request.add_chunks();
                 msgChunk->set_data(chunk.data, chunk.length);
                 msgChunk->set_offset(chunk.offset);
@@ -305,8 +306,7 @@ namespace tests {
         actualRemote = server.getRemoteKvValue();
         REQUIRE(actualRemote == dataB);
 
-        DummyStateServer::stop();
-        server.wait();
+        server.stop();
 
         resetStateMode();
     }
@@ -331,6 +331,59 @@ namespace tests {
         // Check it's still the same locally set value
         std::vector<uint8_t> actual(kv->get(), kv->get() + dataA.size());
         REQUIRE(actual == dataB);
+
+        resetStateMode();
+    }
+
+    TEST_CASE("Test some simple client operations", "[state]") {
+        setUpStateMode();
+
+        State &globalState = state::getGlobalState();
+        REQUIRE(globalState.getKVCount() == 0);
+
+        DummyStateServer server;
+        server.dummyData = dataA;
+        server.dummyUser = userA;
+        server.dummyKey = keyA;
+        server.start();
+
+        StateClient client(LOCALHOST);
+
+        // Initial pull
+        message::StateRequest pullRequestA;
+        pullRequestA.set_user(userA);
+        pullRequestA.set_key(keyA);
+
+        message::StateResponse pullResponseA;
+        Status status = client.stub->Pull(client.getContext().get(), pullRequestA, &pullResponseA);
+        REQUIRE(status.ok());
+
+        std::vector<uint8_t> actualInitial = util::stringToBytes(pullResponseA.data());
+        REQUIRE(actualInitial == dataA);
+
+        // Push different data
+        message::StateRequest pushRequest;
+        pushRequest.set_user(userA);
+        pushRequest.set_key(keyA);
+        pushRequest.set_data(dataB.data(), dataB.size());
+
+        message::StateResponse pushResponse;
+        Status statusB = client.stub->Push(client.getContext().get(), pushRequest, &pushResponse);
+        REQUIRE(statusB.ok());
+
+        // Pull again
+        message::StateRequest pullRequestB;
+        pullRequestB.set_user(userA);
+        pullRequestB.set_key(keyA);
+
+        message::StateResponse pullResponseB;
+        Status statusC = client.stub->Pull(client.getContext().get(), pullRequestB, &pullResponseB);
+        REQUIRE(statusC.ok());
+
+        std::vector<uint8_t> actualAfterChange = util::stringToBytes(pullResponseB.data());
+        REQUIRE(actualAfterChange == dataB);
+
+        server.stop();
 
         resetStateMode();
     }

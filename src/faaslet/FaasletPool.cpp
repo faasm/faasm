@@ -14,7 +14,7 @@ namespace faaslet {
             _shutdown(false),
             scheduler(scheduler::getScheduler()),
             threadTokenPool(nThreads),
-            server(state::getGlobalState()) {
+            stateServer(state::getGlobalState()) {
 
         // Check SGX (will do nothing if not enabled)
         isolation::checkSgxSetup();
@@ -119,18 +119,16 @@ namespace faaslet {
     void FaasletPool::startStateServer() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // Start the state worker if necessary
+        // Skip state server if not in inmemory mode
         util::SystemConfig &conf = util::getSystemConfig();
         if (conf.stateMode != "inmemory") {
             logger->info("Not starting state server in state mode {}", conf.stateMode);
             return;
         }
 
+        // Note that the state server spawns its own background thread
         logger->info("Starting state server");
-
-        stateThread = std::thread([this] {
-            server.start();
-        });
+        stateServer.start();
     }
 
     void FaasletPool::startThreadPool() {
@@ -221,18 +219,14 @@ namespace faaslet {
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // Stop the state server
-        server.stop();
 
         if (globalQueueThread.joinable()) {
             logger->info("Waiting for global queue thread to finish");
             globalQueueThread.join();
         }
 
-        if (stateThread.joinable()) {
-            logger->info("Waiting for state thread to finish");
-            stateThread.join();
-        }
+        logger->info("Waiting for the state server to finish");
+        stateServer.stop();
 
         if (sharingQueueThread.joinable()) {
             logger->info("Waiting for sharing queue thread to finish");

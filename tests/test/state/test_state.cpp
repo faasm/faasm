@@ -86,7 +86,7 @@ namespace tests {
         std::vector<uint8_t> values = {0, 0, 1, 1, 2, 2, 3, 3, 4, 4};
         setUpDummyServer(server, values);
 
-        // Get, push, pull
+        // Start the server
         server.start();
 
         // Get locally
@@ -115,8 +115,7 @@ namespace tests {
         REQUIRE(server.getRemoteKvValue() == expected);
 
         // Wait for server to finish
-        DummyStateServer::stop();
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test in memory marking chunks dirty", "[state]") {
@@ -147,8 +146,7 @@ namespace tests {
         std::vector<uint8_t> actualMemory(ptr, ptr + values.size());
         REQUIRE(actualMemory == values);
 
-        DummyStateServer::stop();
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test overlaps with multiple chunks dirty", "[state]") {
@@ -206,8 +204,7 @@ namespace tests {
         REQUIRE(server.getLocalKvValue() == expected);
         REQUIRE(server.getRemoteKvValue() == expected);
 
-        DummyStateServer::stop();
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test in memory partial update of doubles in state", "[state]") {
@@ -263,8 +260,7 @@ namespace tests {
         std::vector<double> actualPostPushRemote(postPushDoublePtr, postPushDoublePtr + nDoubles);
         REQUIRE(expected == actualPostPushRemote);
 
-        DummyStateServer::stop();
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test set chunk cannot be over the size of the allocated memory", "[state]") {
@@ -309,8 +305,7 @@ namespace tests {
         expected = {6, 1, 2, 3, 6};
         REQUIRE(server.getRemoteKvValue() == expected);
 
-        DummyStateServer::stop();
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test push partial with mask", "[state]") {
@@ -378,8 +373,7 @@ namespace tests {
         std::vector<double> actualDoubles2(actualDoublesPtr, actualDoublesPtr + 4);
         REQUIRE(actualDoubles2 == expected);
 
-        DummyStateServer::stop();
-        server.wait();
+        server.stop();
     }
 
     void checkPulling(bool doPull) {
@@ -417,8 +411,7 @@ namespace tests {
             REQUIRE(actual == values);
         }
 
-        DummyStateServer::stop();
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test updates pulled from remote", "[state]") {
@@ -455,8 +448,7 @@ namespace tests {
         localKv->pushFull();
         REQUIRE(server.getRemoteKvValue() == newValues2);
 
-        DummyStateServer::stop();
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test mapping shared memory", "[state]") {
@@ -539,8 +531,7 @@ namespace tests {
         std::vector<uint8_t> actualValueAfterGet(byteRegion, byteRegion + values.size());
         REQUIRE(actualValueAfterGet == values);
 
-        DummyStateServer::stop();
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test mapping small shared memory offsets", "[state]") {
@@ -629,8 +620,7 @@ namespace tests {
         REQUIRE(chunkA[5] == 5);
         REQUIRE(chunkB[9] == 9);
 
-        DummyStateServer::stop();
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test deletion", "[state]") {
@@ -651,8 +641,7 @@ namespace tests {
         // Check it's gone
         REQUIRE(server.remoteState.getKVCount() == 0);
 
-        DummyStateServer::stop();
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test appended state with KV", "[state]") {
@@ -753,8 +742,7 @@ namespace tests {
         localKv->getAppended(actualLocalAfterClear.data(), actualLocalAfterClear.size(), 1);
         REQUIRE(actualLocalAfterClear == valuesB);
 
-        DummyStateServer::stop();
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test pushing pulling large state", "[state]") {
@@ -784,8 +772,7 @@ namespace tests {
         const std::vector<uint8_t> &actualRemote = server.getRemoteKvValue();
         REQUIRE(actualRemote == valuesB);
 
-        DummyStateServer::stop();
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test pushing pulling chunks over multiple requests", "[state]") {
@@ -843,8 +830,7 @@ namespace tests {
         REQUIRE(actualSegC == segC);
         REQUIRE(actualSegD == segD);
 
-        DummyStateServer::stop();
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test pulling disjoint chunks of the same value which share pages", "[state]") {
@@ -879,7 +865,6 @@ namespace tests {
         REQUIRE(actualA == expectedA);
         REQUIRE(actualB == expectedB);
 
-        DummyStateServer::stop();
-        server.wait();
+        server.stop();
     }
 }

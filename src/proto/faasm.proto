@@ -110,8 +110,6 @@ service StateRPCService {
     }
     rpc Delete (StateRequest) returns (StateResponse) {
     }
-    rpc Shutdown (StateRequest) returns (StateResponse) {
-    }
 }
 
 message StateRequest {

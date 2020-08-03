@@ -76,22 +76,12 @@ namespace state {
                 grpc::ServerContext *context,
                 const message::StateRequest *request,
                 message::StateResponse *response) override;
-
-        Status Shutdown(
-                ServerContext *context,
-                const message::StateRequest *request,
-                message::StateResponse *response) override;
-
     private:
         State &state;
         const std::string host;
         const int port;
 
         std::unique_ptr<Server> server;
-
-        std::thread shutdownThread;
-        std::condition_variable shutdownCond;
-        std::mutex shutdownMutex;
-        bool isShutdown = false;
+        std::thread servingThread;
     };
 }

@@ -15,16 +15,7 @@ namespace state {
             stub(message::StateRPCService::NewStub(channel)) {
     }
 
-    void StateClient::sendShutdownRequestToServer() {
-        message::StateRequest request;
-        message::StateResponse response;
-        Status status = stub->Shutdown(getContext(), request, &response);
-        if (!status.ok()) {
-            throw std::runtime_error("Failed to send shutdown message");
-        }
-    }
-
-    ClientContext *StateClient::getContext() {
-        return &context;
+    std::unique_ptr<ClientContext> StateClient::getContext() {
+        return std::make_unique<ClientContext>();
     }
 }

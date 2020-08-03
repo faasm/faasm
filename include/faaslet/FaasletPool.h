@@ -34,9 +34,8 @@ namespace faaslet {
         std::atomic<bool> _shutdown;
         scheduler::Scheduler &scheduler;
         util::TokenPool threadTokenPool;
-        state::StateServer server;
+        state::StateServer stateServer;
 
-        std::thread stateThread;
         std::thread globalQueueThread;
         std::thread sharingQueueThread;
         std::thread mpiThread;

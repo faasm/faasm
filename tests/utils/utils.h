@@ -17,8 +17,6 @@ using namespace faasm;
 namespace tests {
     class DummyStateServer {
     public:
-        static void stop();
-
         DummyStateServer();
 
         std::shared_ptr<state::StateKeyValue> getRemoteKv();
@@ -35,12 +33,11 @@ namespace tests {
 
         void start();
 
-        void start(int nMessages);
-
-        void wait();
+        void stop();
 
         std::thread serverThread;
         state::State remoteState;
+        state::StateServer stateServer;
     };
 
     void cleanSystem();

@@ -16,56 +16,36 @@
 namespace state {
     StateServer::StateServer(State &stateIn) :
             state(stateIn), host(STATE_HOST), port(STATE_PORT) {
+    }
 
-        // Start a background thread waiting to shut down the server
-        shutdownThread = std::thread([this] {
-            do {
-                std::unique_lock<std::mutex> lock{shutdownMutex};
+    void StateServer::start() {
+        // Run the serving thread in the background. This is necessary to
+        // be able to kill it from the main thread.
+        servingThread = std::thread([this] {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            std::string serverAddr = host + ":" + std::to_string(port);
 
-                // Acquire the lock only when shutdown
-                shutdownCond.wait(lock, [&]() {
-                    return isShutdown;
-                });
+            // Build the server
+            EnableDefaultHealthCheckService(true);
+            reflection::InitProtoReflectionServerBuilderPlugin();
+            ServerBuilder builder;
+            builder.AddListeningPort(serverAddr, InsecureServerCredentials());
+            builder.RegisterService(this);
 
-                if (isShutdown) {
-                    util::getLogger()->debug("Shutting down state server");
-                    server->Shutdown();
-                    break;
-                }
-            } while(true);
+            // Start it
+            server = builder.BuildAndStart();
+            logger->info("State server listening on {}", serverAddr);
 
-            // Wait for server to drain
             server->Wait();
         });
     }
 
-    void StateServer::start() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        std::string serverAddr = host + ":" + std::to_string(port);
-
-        // Build the server
-        EnableDefaultHealthCheckService(true);
-        reflection::InitProtoReflectionServerBuilderPlugin();
-        ServerBuilder builder;
-        builder.AddListeningPort(serverAddr, InsecureServerCredentials());
-        builder.RegisterService(this);
-
-        // Start it
-        server = builder.BuildAndStart();
-        logger->info("State server listening on {}", serverAddr);
-
-        server->Wait();
-    }
-
     void StateServer::stop() {
         util::getLogger()->info("State server stopping");
+        server->Shutdown();
 
-        std::lock_guard<std::mutex> L{shutdownMutex};
-        isShutdown = true;
-        shutdownCond.notify_one();
-
-        if(shutdownThread.joinable()) {
-            shutdownThread.join();
+        if (servingThread.joinable()) {
+            servingThread.join();
         }
     }
 
@@ -142,17 +122,6 @@ namespace state {
         util::getLogger()->debug("Append {}/{}", request->user(), request->key());
         KV_FROM_REQUEST(request)
         kv->extractStateAppendData(request, response);
-
-        return Status::OK;
-    }
-
-    Status StateServer::Shutdown(
-            ServerContext *context,
-            const message::StateRequest *request,
-            message::StateResponse *response) {
-        std::lock_guard<std::mutex> lock{shutdownMutex};
-        isShutdown = true;
-        shutdownCond.notify_one();
 
         return Status::OK;
     }

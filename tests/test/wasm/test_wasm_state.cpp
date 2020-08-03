@@ -135,7 +135,6 @@ namespace tests {
         REQUIRE(actual == expected);
 
         // Allow the server to shut down
-        DummyStateServer::stop();
-        server.wait();
+        server.stop();
     }
 }

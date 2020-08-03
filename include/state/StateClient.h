@@ -25,11 +25,6 @@ namespace state {
         std::shared_ptr<Channel> channel;
         std::unique_ptr<message::StateRPCService::Stub> stub;
 
-        void sendShutdownRequestToServer();
-
-        ClientContext *getContext();
-
-    private:
-        ClientContext context;
+        std::unique_ptr<ClientContext> getContext();
     };
 }

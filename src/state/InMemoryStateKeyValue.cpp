@@ -33,7 +33,7 @@ namespace state {
         request.set_key(keyIn);
 
         message::StateSizeResponse response;
-        CHECK_RPC("state_size", stateClient.stub->Size(stateClient.getContext(), request, &response))
+        CHECK_RPC("state_size", stateClient.stub->Size(stateClient.getContext().get(), request, &response))
         return response.statesize();
     }
 
@@ -55,7 +55,7 @@ namespace state {
 
         StateClient stateClient(masterIP);
 
-        CHECK_RPC("state_delete", stateClient.stub->Delete(stateClient.getContext(), request, &response))
+        CHECK_RPC("state_delete", stateClient.stub->Delete(stateClient.getContext().get(), request, &response))
     }
 
     void InMemoryStateKeyValue::clearAll(bool global) {
@@ -104,7 +104,7 @@ namespace state {
             request.set_user(user);
             request.set_key(key);
 
-            CHECK_RPC("state_lock", masterClient.stub->Lock(masterClient.getContext(), request, &response))
+            CHECK_RPC("state_lock", masterClient.stub->Lock(masterClient.getContext().get(), request, &response))
         }
     }
 
@@ -118,7 +118,7 @@ namespace state {
             request.set_user(user);
             request.set_key(key);
 
-            CHECK_RPC("state_unlock", masterClient.stub->Unlock(masterClient.getContext(), request, &response))
+            CHECK_RPC("state_unlock", masterClient.stub->Unlock(masterClient.getContext().get(), request, &response))
         }
     }
 
@@ -133,7 +133,7 @@ namespace state {
         request.set_user(user);
         request.set_key(key);
 
-        CHECK_RPC("state_pull", masterClient.stub->Pull(masterClient.getContext(), request, &response))
+        CHECK_RPC("state_pull", masterClient.stub->Pull(masterClient.getContext().get(), request, &response))
 
         if (response.data().size() != size()) {
             util::getLogger()->error("Size of pull response {} not equal to KV size {}", response.data().size(),
@@ -158,7 +158,7 @@ namespace state {
         request.set_offset(offset);
         request.set_chunksize(length);
 
-        CHECK_RPC("state_pull_chunk", masterClient.stub->PullChunk(masterClient.getContext(), request, &response))
+        CHECK_RPC("state_pull_chunk", masterClient.stub->PullChunk(masterClient.getContext().get(), request, &response))
 
         doSetChunk(offset, BYTES_CONST(response.data().data()), length);
     }
@@ -175,7 +175,7 @@ namespace state {
         request.set_key(key);
         request.set_data(reinterpret_cast<char *>(sharedMemory), valueSize);
 
-        CHECK_RPC("state_push", masterClient.stub->Push(masterClient.getContext(), request, &response))
+        CHECK_RPC("state_push", masterClient.stub->Push(masterClient.getContext().get(), request, &response))
     }
 
     void InMemoryStateKeyValue::pushPartialToRemote(const std::vector<StateChunk> &chunks) {
@@ -196,7 +196,7 @@ namespace state {
             }
 
             CHECK_RPC("state_multi_chunk",
-                      masterClient.stub->PushManyChunk(masterClient.getContext(), request, &response))
+                      masterClient.stub->PushManyChunk(masterClient.getContext().get(), request, &response))
         }
     }
 
@@ -216,7 +216,7 @@ namespace state {
             request.set_key(key);
             request.set_data(reinterpret_cast<const char *>(data), length);
 
-            CHECK_RPC("state_append", masterClient.stub->Append(masterClient.getContext(), request, &response))
+            CHECK_RPC("state_append", masterClient.stub->Append(masterClient.getContext().get(), request, &response))
         }
     }
 
@@ -239,7 +239,7 @@ namespace state {
             request.set_nvalues(nValues);
 
             CHECK_RPC("state_pull_appended",
-                      masterClient.stub->PullAppended(masterClient.getContext(), request, &response))
+                      masterClient.stub->PullAppended(masterClient.getContext().get(), request, &response))
 
             size_t offset = 0;
             for (auto &value : response.values()) {
@@ -267,7 +267,7 @@ namespace state {
             request.set_key(key);
 
             CHECK_RPC("state_clear_appended",
-                      masterClient.stub->ClearAppended(masterClient.getContext(), request, &response))
+                      masterClient.stub->ClearAppended(masterClient.getContext().get(), request, &response))
         }
     }
 

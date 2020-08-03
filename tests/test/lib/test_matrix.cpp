@@ -94,8 +94,7 @@ namespace tests {
         REQUIRE(afterState.cols() == 3);
         REQUIRE(afterState == mat);
 
-        DummyStateServer::stop();
-        server.wait();
+        server.stop();
     }
 
     void checkReadingMatrixColumnsFromState(bool local) {
@@ -141,8 +140,7 @@ namespace tests {
         REQUIRE(actual == expected);
 
         if (pushPull) {
-            DummyStateServer::stop();
-            server.wait();
+            server.stop();
         }
     }
 
@@ -270,14 +268,13 @@ namespace tests {
 
         std::string emulatorUser = getEmulatorUser();
         state::State remoteState(LOCALHOST);
+        state::StateServer stateServer(remoteState);
 
         // Run state server in the background
-        std::thread serverThread([&emulatorUser, &key, &mat, &remoteState] {
+        std::thread serverThread([&emulatorUser, &key, &mat, &remoteState, &stateServer] {
             // Make sure emulator set up properly in this thread
             setEmulatorUser(emulatorUser.c_str());
             setEmulatorState(&remoteState);
-
-            state::StateServer stateServer(remoteState);
 
             // Write matrix to state to set master as this thread
             faasm::writeSparseMatrixToState(key, mat, false);
@@ -301,7 +298,7 @@ namespace tests {
         checkSparseMatrixEquality(actualFull, mat);
 
         // Send shutdown message
-        DummyStateServer::stop();
+        stateServer.stop();
 
         // Wait for server
         if (serverThread.joinable()) {
