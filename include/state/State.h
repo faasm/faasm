@@ -7,8 +7,6 @@
 
 #define STATE_HOST "0.0.0.0"
 #define STATE_PORT 8003
-#define __ONE_MB 1024 * 1024
-#define MAX_STATE_MESSAGE_SIZE (1024 * __ONE_MB)
 
 namespace state {
     class State {

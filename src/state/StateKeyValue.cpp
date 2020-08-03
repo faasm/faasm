@@ -99,6 +99,21 @@ namespace state {
         return BYTES(sharedMemory) + offset;
     }
 
+    std::vector<StateChunk> StateKeyValue::getAllChunks() {
+        // Divide the whole value up into chunks
+        auto nChunks = uint32_t((valueSize + STATE_STREAMING_CHUNK_SIZE - 1) / STATE_STREAMING_CHUNK_SIZE);
+
+        std::vector<StateChunk> chunks;
+        for (uint32_t i = 0; i < nChunks; i++) {
+            uint32_t previousChunkEnd = i * STATE_STREAMING_CHUNK_SIZE;
+            uint8_t *chunkStart = BYTES(sharedMemory) + previousChunkEnd;
+            size_t chunkSize = std::min((size_t) STATE_STREAMING_CHUNK_SIZE, valueSize - previousChunkEnd);
+            chunks.emplace_back(previousChunkEnd, chunkSize, chunkStart);
+        }
+
+        return chunks;
+    }
+
     void StateKeyValue::set(const uint8_t *buffer) {
         checkSizeConfigured();
 

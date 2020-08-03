@@ -131,22 +131,41 @@ namespace state {
             return;
         }
 
-        message::StateRequest request;
-        message::StateResponse response;
+        auto twoWayStream = masterClient.stub->Pull(masterClient.getContext().get());
+        std::vector<StateChunk> allChunks = getAllChunks();
+    }
 
-        request.set_user(user);
-        request.set_key(key);
+    void InMemoryStateKeyValue::doPullChunks(
+            const std::vector<StateChunk> &chunks,
+            ClientReaderWriter<message::StateChunkRequest, message::StateChunk> *stream) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        CHECK_RPC("state_pull", masterClient.stub->Pull(masterClient.getContext().get(), request, &response))
+        for (const auto &chunk : chunks) {
+            message::StateChunkRequest request;
+            request.set_user(user);
+            request.set_key(key);
+            request.set_offset(chunk.offset);
+            request.set_chunksize(chunk.length);
 
-        if (response.data().size() != size()) {
-            util::getLogger()->error("Size of pull response {} not equal to KV size {}", response.data().size(),
-                                     size());
-            throw std::runtime_error("Mismatched pulled state and size");
+            bool writeSuccess = stream->Write(request);
+            if (!writeSuccess) {
+                logger->error("Failed to request {}/{} ({} -> {})", user, key, chunk.offset,
+                              chunk.offset + chunk.length);
+                throw std::runtime_error("Failed to request pull chunk");
+            }
+
+            message::StateChunk response;
+            bool readSuccess = stream->Read(&response);
+            if (!readSuccess) {
+                logger->error("Failed to pull {}/{} ({} -> {})", user, key, chunk.offset, chunk.offset + chunk.length);
+                throw std::runtime_error("Failed to pull chunk");
+            }
+
+            // Set the chunk
+            doSetChunk(response.offset(), BYTES_CONST(response.data().data()), response.data().size());
         }
 
-        // Set without locking and setting dirty
-        doSet(BYTES_CONST(response.data().data()));
+        CHECK_RPC("pull_chunks", stream->Finish())
     }
 
     void InMemoryStateKeyValue::pullChunkFromRemote(long offset, size_t length) {
@@ -154,17 +173,10 @@ namespace state {
             return;
         }
 
-        message::StateChunkRequest request;
-        message::StateChunkResponse response;
-
-        request.set_user(user);
-        request.set_key(key);
-        request.set_offset(offset);
-        request.set_chunksize(length);
-
-        CHECK_RPC("state_pull_chunk", masterClient.stub->PullChunk(masterClient.getContext().get(), request, &response))
-
-        doSetChunk(offset, BYTES_CONST(response.data().data()), length);
+        uint8_t *chunkStart = BYTES(sharedMemory) + offset;
+        std::vector<StateChunk> chunks = {StateChunk(offset, length, chunkStart)};
+        auto stream = masterClient.stub->Pull(masterClient.getContext().get());
+        doPullChunks(chunks, stream.get());
     }
 
     void InMemoryStateKeyValue::pushToRemote() {
@@ -172,35 +184,41 @@ namespace state {
             return;
         }
 
-        message::StateRequest request;
         message::StateResponse response;
+        auto stream = masterClient.stub->Push(masterClient.getContext().get(), &response);
+        std::vector<StateChunk> allChunks = getAllChunks();
+        doPushChunks(allChunks, stream.get());
+    }
 
-        request.set_user(user);
-        request.set_key(key);
-        request.set_data(reinterpret_cast<char *>(sharedMemory), valueSize);
+    void InMemoryStateKeyValue::doPushChunks(const std::vector<StateChunk> &chunks,
+                                             ClientWriter<message::StateChunk> *stream) {
+        for (const auto &chunk : chunks) {
+            message::StateChunk request;
 
-        CHECK_RPC("state_push", masterClient.stub->Push(masterClient.getContext().get(), request, &response))
+            request.set_user(user);
+            request.set_key(key);
+            request.set_offset(chunk.offset);
+            request.set_data(chunk.data, chunk.length);
+
+            bool success = stream->Write(request);
+            if (!success) {
+                util::getLogger()->error("Failed to push {}/{} ({} -> {})", user, key, chunk.offset,
+                                         chunk.offset + chunk.length);
+                throw std::runtime_error("Push chunk failed");
+            }
+        }
+
+        // Finish the stream
+        CHECK_RPC("push_chunks", stream->Finish());
     }
 
     void InMemoryStateKeyValue::pushPartialToRemote(const std::vector<StateChunk> &chunks) {
         if (status == InMemoryStateKeyStatus::MASTER) {
             // Nothing to be done
         } else {
-            message::StateManyChunkRequest request;
             message::StateResponse response;
-
-            request.set_user(user);
-            request.set_key(key);
-
-            // Populate the request
-            for (const auto &chunk : chunks) {
-                auto msgChunk = request.add_chunks();
-                msgChunk->set_data(reinterpret_cast<char *>(chunk.data), chunk.length);
-                msgChunk->set_offset(chunk.offset);
-            }
-
-            CHECK_RPC("state_multi_chunk",
-                      masterClient.stub->PushManyChunk(masterClient.getContext().get(), request, &response))
+            auto stream = masterClient.stub->Push(masterClient.getContext().get(), &response);
+            doPushChunks(chunks, stream.get());
         }
     }
 
@@ -276,18 +294,8 @@ namespace state {
     }
 
     // ----------------------------------------
-    // RCP Messages
+    // RPC Messages
     // ----------------------------------------
-
-    void InMemoryStateKeyValue::buildStatePullResponse(
-            message::StateResponse *response
-    ) {
-        response->set_user(user);
-        response->set_key(key);
-
-        // TODO - can we do this without copying?
-        response->set_data(reinterpret_cast<char *>(sharedMemory), valueSize);
-    }
 
     void InMemoryStateKeyValue::buildStateSizeResponse(
             message::StateSizeResponse *response
@@ -299,7 +307,7 @@ namespace state {
 
     void InMemoryStateKeyValue::buildStatePullChunkResponse(
             const message::StateChunkRequest *request,
-            message::StateChunkResponse *response
+            message::StateChunk *response
     ) {
         uint64_t chunkOffset = request->offset();
         uint64_t chunkLen = request->chunksize();
@@ -321,23 +329,8 @@ namespace state {
         response->set_data(chunkStart, chunkLen);
     }
 
-    void InMemoryStateKeyValue::extractStatePushData(
-            const message::StateRequest *request,
-            message::StateResponse *response
-    ) {
-
-        // Copy directly
-        // TODO - add locking here?
-        uint8_t *valueBytes = get();
-        std::copy(request->data().begin(), request->data().end(), valueBytes);
-
-        response->set_user(user);
-        response->set_key(key);
-    }
-
     void InMemoryStateKeyValue::extractStatePushChunkData(
-            const message::StateChunkRequest *request,
-            message::StateResponse *response
+            const message::StateChunk *request
     ) {
         uint8_t *valueBytes = get();
         size_t chunkOffset = request->offset();
@@ -345,9 +338,6 @@ namespace state {
         size_t chunkSize = request->data().size();
 
         std::copy(chunkData, chunkData + chunkSize, valueBytes + chunkOffset);
-
-        response->set_user(user);
-        response->set_key(key);
     }
 
     void InMemoryStateKeyValue::extractStateAppendData(const message::StateRequest *request,
@@ -373,24 +363,5 @@ namespace state {
             auto appendedValue = response->add_values();
             appendedValue->set_data(reinterpret_cast<char *>(value.data.get()), value.length);
         }
-    }
-
-    void InMemoryStateKeyValue::extractStatePushMultiChunkData(
-            const message::StateManyChunkRequest *request,
-            message::StateResponse *response
-    ) {
-        lockWrite();
-
-        for (auto &chunk : request->chunks()) {
-            uint64_t chunkOffset = chunk.offset();
-            auto chunkData = BYTES_CONST(chunk.data().c_str());
-            size_t chunkLen = chunk.data().size();
-            std::copy(chunkData, chunkData + chunkLen, BYTES(sharedMemory) + chunkOffset);
-        }
-
-        unlockWrite();
-
-        response->set_user(user);
-        response->set_key(key);
     }
 }

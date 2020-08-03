@@ -7,8 +7,9 @@
 namespace state {
     ChannelArguments getChannelArgs() {
         ChannelArguments channelArgs;
-        channelArgs.SetMaxSendMessageSize(MAX_STATE_MESSAGE_SIZE);
-        channelArgs.SetMaxReceiveMessageSize(MAX_STATE_MESSAGE_SIZE);
+
+        // Can set channel properties here if need be
+
         return channelArgs;
     }
 

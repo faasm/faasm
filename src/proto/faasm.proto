@@ -86,17 +86,11 @@ message Message {
 // ---------------------------------------------
 
 service StateRPCService {
-    rpc Pull (StateRequest) returns (StateResponse) {
+    rpc Pull (stream StateChunkRequest) returns (stream StateChunk) {
     }
-    rpc PullChunk (StateChunkRequest) returns (StateChunkResponse) {
-    }
-    rpc Push (StateRequest) returns (StateResponse) {
+    rpc Push (stream StateChunk) returns (StateResponse) {
     }
     rpc Size(StateRequest) returns (StateSizeResponse) {
-    }
-    rpc PushChunk (StateChunkRequest) returns (StateResponse) {
-    }
-    rpc PushManyChunk (StateManyChunkRequest) returns (StateResponse) {
     }
     rpc Append (StateRequest) returns (StateResponse) {
     }
@@ -118,29 +112,22 @@ message StateRequest {
     bytes data = 3;
 }
 
-message StateAppendedRequest {
-    string user = 1;
-    string key = 2;
-    uint32 nValues = 3;
-}
-
 message StateChunkRequest {
     string user = 1;
     string key = 2;
     uint64 offset = 3;
     uint64 chunkSize = 4;
-    bytes data = 5;
 }
 
-message StateManyChunkRequest {
-    message StateChunk {
-        uint64 offset = 1;
-        bytes data = 2;
-    }
-    string user = 1;
-    string key = 2;
-    repeated StateChunk chunks = 3;
-}
+//message StateManyChunkRequest {
+//    message StateChunk {
+//        uint64 offset = 1;
+//        bytes data = 2;
+//    }
+//    string user = 1;
+//    string key = 2;
+//    repeated StateChunk chunks = 3;
+//}
 
 message StateResponse {
     string user = 1;
@@ -148,7 +135,7 @@ message StateResponse {
     bytes data = 3;
 }
 
-message StateChunkResponse {
+message StateChunk {
     string user = 1;
     string key = 2;
     uint64 offset = 3;
@@ -159,6 +146,12 @@ message StateSizeResponse {
     string user = 1;
     string key = 2;
     uint64 stateSize = 3;
+}
+
+message StateAppendedRequest {
+    string user = 1;
+    string key = 2;
+    uint32 nValues = 3;
 }
 
 message StateAppendedResponse {

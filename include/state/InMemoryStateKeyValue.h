@@ -42,30 +42,21 @@ namespace state {
 
         bool isMaster();
 
-        void buildStatePullResponse(message::StateResponse *response);
-
         void buildStateSizeResponse(message::StateSizeResponse *response);
 
         void buildStatePullChunkResponse(
                 const message::StateChunkRequest *request,
-                message::StateChunkResponse *response
+                message::StateChunk *response
         );
 
-        void extractStatePushData(const message::StateRequest *request,
-                                  message::StateResponse *response);
-
-        void extractStatePushChunkData(const message::StateChunkRequest *request,
-                                       message::StateResponse *response);
-
-
-        void extractStatePushMultiChunkData(const message::StateManyChunkRequest *request,
-                                            message::StateResponse *response);
+        void extractStatePushChunkData(const message::StateChunk *request);
 
         void extractStateAppendData(const message::StateRequest *request,
                                     message::StateResponse *response);
 
         void buildPullAppendedResponse(const ::message::StateAppendedRequest *request,
                                        message::StateAppendedResponse *response);
+
     private:
         const std::string thisIP;
         const std::string masterIP;
@@ -77,6 +68,16 @@ namespace state {
         std::shared_mutex globalLock;
 
         std::vector<AppendedInMemoryState> appendedData;
+
+        void doPullChunks(
+                const std::vector<StateChunk> &chunks,
+                ClientReaderWriter<message::StateChunkRequest, message::StateChunk> *stream
+        );
+
+        void doPushChunks(
+                const std::vector<StateChunk> &chunks,
+                ClientWriter<message::StateChunk> *stream
+        );
 
         void lockGlobal() override;
 

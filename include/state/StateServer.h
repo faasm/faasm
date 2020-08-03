@@ -19,33 +19,17 @@ namespace state {
 
         Status Pull(
                 ServerContext *context,
-                const message::StateRequest *request,
-                message::StateResponse *response) override;
-
-        Status PullChunk(
-                ServerContext *context,
-                const message::StateChunkRequest *request,
-                message::StateChunkResponse *response) override;
+                ServerReaderWriter<message::StateChunk, message::StateChunkRequest> *stream) override;
 
         Status Push(
                 ServerContext *context,
-                const message::StateRequest *request,
+                ServerReader<message::StateChunk> *reader,
                 message::StateResponse *response) override;
 
         Status Size(
                 ServerContext *context,
                 const message::StateRequest *request,
                 message::StateSizeResponse *response) override;
-
-        Status PushChunk(
-                ServerContext *context,
-                const message::StateChunkRequest *request,
-                message::StateResponse *response) override;
-
-        Status PushManyChunk(
-                ServerContext *context,
-                const message::StateManyChunkRequest *request,
-                message::StateResponse *response) override;
 
         Status Append(
                 ServerContext *context,

@@ -26,7 +26,6 @@ namespace state {
         EnableDefaultHealthCheckService(true);
         reflection::InitProtoReflectionServerBuilderPlugin();
         ServerBuilder builder;
-        builder.SetMaxMessageSize(MAX_STATE_MESSAGE_SIZE);
         builder.AddListeningPort(serverAddr, InsecureServerCredentials());
         builder.RegisterService(this);
 
@@ -42,7 +41,7 @@ namespace state {
     void StateServer::start(bool background) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        if(background) {
+        if (background) {
             logger->debug("Starting state server in background thread");
             // Run the serving thread in the background. This is necessary to
             // be able to kill it from the main thread.
@@ -64,7 +63,7 @@ namespace state {
             logger->info("State server stopping");
             server->Shutdown();
 
-            if(_isBackground) {
+            if (_isBackground) {
                 logger->debug("Waiting for state server background thread");
                 if (servingThread.joinable()) {
                     servingThread.join();
@@ -77,33 +76,56 @@ namespace state {
 
     Status StateServer::Pull(
             ServerContext *context,
-            const message::StateRequest *request,
-            message::StateResponse *response) {
-        util::getLogger()->debug("Pull {}/{}", request->user(), request->key());
-        KV_FROM_REQUEST(request)
-        kv->buildStatePullResponse(response);
+            ServerReaderWriter<message::StateChunk, message::StateChunkRequest> *stream) {
 
-        return Status::OK;
-    }
+        // Iterate through streamed requests
+        message::StateChunkRequest request;
+        auto requestPtr = &request;
+        while (stream->Read(requestPtr)) {
+            util::getLogger()->debug(
+                    "Pull {}/{} ({}->{})",
+                    request.user(), request.key(),
+                    request.offset(), request.offset() + request.chunksize()
+            );
 
-    Status StateServer::PullChunk(
-            ServerContext *context,
-            const message::StateChunkRequest *request,
-            message::StateChunkResponse *response) {
-        util::getLogger()->debug("Pull chunk {}/{}", request->user(), request->key());
-        KV_FROM_REQUEST(request)
-        kv->buildStatePullChunkResponse(request, response);
+            KV_FROM_REQUEST(requestPtr)
+            message::StateChunk response;
+            kv->buildStatePullChunkResponse(requestPtr, &response);
+        }
 
         return Status::OK;
     }
 
     Status StateServer::Push(
             ServerContext *context,
-            const message::StateRequest *request,
+            ServerReader<message::StateChunk> *reader,
             message::StateResponse *response) {
-        util::getLogger()->debug("Push {}/{}", request->user(), request->key());
-        KV_FROM_REQUEST(request)
-        kv->extractStatePushData(request, response);
+
+        message::StateChunk request;
+        auto requestPtr = &request;
+
+        // Assume user and key are same throughout
+        std::string user;
+        std::string key;
+
+        while (reader->Read(requestPtr)) {
+            util::getLogger()->debug(
+                    "Push {}/{} ({}->{})",
+                    request.user(), request.key(),
+                    request.offset(), request.offset() + request.data().size()
+                    );
+
+            KV_FROM_REQUEST(requestPtr)
+            kv->extractStatePushChunkData(requestPtr);
+
+            if(user.empty()) {
+                user = kv->user;
+                key = kv->key;
+            }
+        }
+
+        response->set_user(user);
+        response->set_key(key);
 
         return Status::OK;
     }
@@ -115,28 +137,6 @@ namespace state {
         util::getLogger()->debug("Size {}/{}", request->user(), request->key());
         KV_FROM_REQUEST(request)
         kv->buildStateSizeResponse(response);
-
-        return Status::OK;
-    }
-
-    Status StateServer::PushChunk(
-            ServerContext *context,
-            const message::StateChunkRequest *request,
-            message::StateResponse *response) {
-        util::getLogger()->debug("Push chunk {}/{}", request->user(), request->key());
-        KV_FROM_REQUEST(request)
-        kv->extractStatePushChunkData(request, response);
-
-        return Status::OK;
-    }
-
-    Status StateServer::PushManyChunk(
-            ServerContext *context,
-            const message::StateManyChunkRequest *request,
-            message::StateResponse *response) {
-        util::getLogger()->debug("Push many chunk {}/{}", request->user(), request->key());
-        KV_FROM_REQUEST(request)
-        kv->extractStatePushMultiChunkData(request, response);
 
         return Status::OK;
     }

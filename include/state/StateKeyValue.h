@@ -16,6 +16,9 @@
 constexpr int REMOTE_LOCK_TIMEOUT_SECS(1);
 constexpr int REMOTE_LOCK_MAX_RETRIES(100);
 
+#define __ONE_MB 1024 * 1024
+#define STATE_STREAMING_CHUNK_SIZE __ONE_MB
+
 
 namespace state {
     class StateChunk {
@@ -58,6 +61,8 @@ namespace state {
         void getChunk(long offset, uint8_t *buffer, size_t length);
 
         uint8_t *getChunk(long offset, long len);
+
+        std::vector<StateChunk> getAllChunks();
 
         void set(const uint8_t *buffer);
 
