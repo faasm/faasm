@@ -61,6 +61,7 @@ namespace tests {
         // Create server
         ServerContext context;
         StateServer s(state::getGlobalState());
+        StateClient client(LOCALHOST);
 
         SECTION("State size") {
             message::StateRequest request;
@@ -72,77 +73,48 @@ namespace tests {
             REQUIRE(response.statesize() == dataA.size());
         }
 
-        SECTION("State pull") {
-            message::StateRequest request;
-            request.set_user(userA);
-            request.set_key(keyA);
-            message::StateResponse response;
-            s.Pull(&context, &request, &response);
+        SECTION("State pull multi chunk") {
+            s.start();
 
-            std::vector<uint8_t> actualData = util::stringToBytes(response.data());
-            REQUIRE(actualData == dataA);
-        }
+            std::vector<uint8_t> expectedA = {1, 2, 3};
+            std::vector<uint8_t> expectedB = {2, 3, 4, 5};
+            std::vector<uint8_t> expectedC = {7};
 
-        SECTION("State pull chunk") {
-            long offset = 2;
-            size_t chunkSize = 3;
+            // Deliberately overlap chunks
+            state::StateChunk chunkA(0, 3, nullptr);
+            state::StateChunk chunkB(2, 4, nullptr);
+            state::StateChunk chunkC(6, 1, nullptr);
 
-            message::StateChunkRequest request;
-            request.set_user(userA);
-            request.set_key(keyA);
-            request.set_offset(offset);
-            request.set_chunksize(chunkSize);
+            std::vector<StateChunk> chunks = {chunkA, chunkB, chunkC};
+            std::vector<std::vector<uint8_t>> expected = {expectedA, expectedB, expectedC};
 
-            message::StateChunkResponse response;
+            auto stream = client.stub->Pull(client.getContext().get());
 
-            s.PullChunk(&context, &request, &response);
-            std::vector<uint8_t> actualData = util::stringToBytes(response.data());
+            for(int i = 0; i < chunks.size(); i++) {
+                message::StateChunkRequest request;
+                request.set_user(userA);
+                request.set_key(keyA);
+                request.set_offset(chunks[i].offset);
+                request.set_chunksize(chunks[i].length);
 
-            std::vector<uint8_t> expected(chunkSize, 0);
-            std::copy(dataA.begin() + offset, dataA.begin() + offset + chunkSize, expected.begin());
+                stream->Write(request);
 
-            REQUIRE(actualData == expected);
-        }
+                message::StateChunk response;
+                stream->Read(&response);
 
-        SECTION("State push") {
-            message::StateRequest request;
-            request.set_user(userA);
-            request.set_key(keyA);
-            request.set_data(kvADuplicate.get(), kvADuplicate.size());
+                REQUIRE(util::stringToBytes(response.data()) == expected[i]);
+            }
 
-            message::StateResponse response;
+            stream->WritesDone();
+            const Status streamStatus = stream->Finish();
+            REQUIRE(streamStatus.ok());
 
-            s.Push(&context, &request, &response);
-
-            // Check data updated
-            kvA->get(actual.data());
-            REQUIRE(actual == dataB);
-        }
-
-        SECTION("State push chunk") {
-            long offset = 1;
-            size_t chunkSize = 3;
-
-            message::StateChunkRequest request;
-            request.set_user(userA);
-            request.set_key(keyA);
-            request.set_offset(offset);
-            request.set_chunksize(3);
-            request.set_data(kvADuplicate.getChunk(offset, chunkSize), chunkSize);
-
-            message::StateResponse response;
-
-            s.PushChunk(&context, &request, &response);
-
-            // Create expected - a chunk written into existing data
-            std::vector<uint8_t> expected(dataA.begin(), dataA.end());
-            std::copy(dataB.begin() + offset, dataB.begin() + offset + chunkSize, expected.begin() + offset);
-
-            kvA->get(actual.data());
-            REQUIRE(actual == expected);
+            s.stop();
         }
 
         SECTION("State push multi chunk") {
+            s.start();
+
             std::vector<uint8_t> chunkDataA = {7, 7};
             std::vector<uint8_t> chunkDataB = {8};
             std::vector<uint8_t> chunkDataC = {9, 9, 9};
@@ -154,22 +126,26 @@ namespace tests {
 
             std::vector<StateChunk> chunks = {chunkA, chunkB, chunkC};
 
-            message::StateManyChunkRequest request;
-            request.set_user(userA);
-            request.set_key(keyA);
-            for (auto &chunk : chunks) {
-                auto msgChunk = request.add_chunks();
-                msgChunk->set_data(chunk.data, chunk.length);
-                msgChunk->set_offset(chunk.offset);
+            message::StateResponse response;
+            auto stream = client.stub->Push(client.getContext().get(), &response);
+
+            for(auto chunk: chunks) {
+                message::StateChunk c;
+                c.set_offset(chunk.offset);
+                c.set_data(chunk.data, chunk.length);
+                REQUIRE(stream->Write(c));
             }
 
-            message::StateResponse response;
-            s.PushManyChunk(&context, &request, &response);
+            stream->WritesDone();
+            Status streamStatus = stream->Finish();
+            REQUIRE(streamStatus.ok());
 
             // Check expectation
             std::vector<uint8_t> expected = {7, 9, 9, 9, 4, 5, 8, 7};
             kvA->get(actual.data());
             REQUIRE(actual == expected);
+
+            s.stop();
         }
 
         SECTION("State append") {
@@ -331,59 +307,6 @@ namespace tests {
         // Check it's still the same locally set value
         std::vector<uint8_t> actual(kv->get(), kv->get() + dataA.size());
         REQUIRE(actual == dataB);
-
-        resetStateMode();
-    }
-
-    TEST_CASE("Test some simple client operations", "[state]") {
-        setUpStateMode();
-
-        State &globalState = state::getGlobalState();
-        REQUIRE(globalState.getKVCount() == 0);
-
-        DummyStateServer server;
-        server.dummyData = dataA;
-        server.dummyUser = userA;
-        server.dummyKey = keyA;
-        server.start();
-
-        StateClient client(LOCALHOST);
-
-        // Initial pull
-        message::StateRequest pullRequestA;
-        pullRequestA.set_user(userA);
-        pullRequestA.set_key(keyA);
-
-        message::StateResponse pullResponseA;
-        Status status = client.stub->Pull(client.getContext().get(), pullRequestA, &pullResponseA);
-        REQUIRE(status.ok());
-
-        std::vector<uint8_t> actualInitial = util::stringToBytes(pullResponseA.data());
-        REQUIRE(actualInitial == dataA);
-
-        // Push different data
-        message::StateRequest pushRequest;
-        pushRequest.set_user(userA);
-        pushRequest.set_key(keyA);
-        pushRequest.set_data(dataB.data(), dataB.size());
-
-        message::StateResponse pushResponse;
-        Status statusB = client.stub->Push(client.getContext().get(), pushRequest, &pushResponse);
-        REQUIRE(statusB.ok());
-
-        // Pull again
-        message::StateRequest pullRequestB;
-        pullRequestB.set_user(userA);
-        pullRequestB.set_key(keyA);
-
-        message::StateResponse pullResponseB;
-        Status statusC = client.stub->Pull(client.getContext().get(), pullRequestB, &pullResponseB);
-        REQUIRE(statusC.ok());
-
-        std::vector<uint8_t> actualAfterChange = util::stringToBytes(pullResponseB.data());
-        REQUIRE(actualAfterChange == dataB);
-
-        server.stop();
 
         resetStateMode();
     }

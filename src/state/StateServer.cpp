@@ -88,9 +88,11 @@ namespace state {
                     request.offset(), request.offset() + request.chunksize()
             );
 
+            // Write the response
             KV_FROM_REQUEST(requestPtr)
             message::StateChunk response;
             kv->buildStatePullChunkResponse(requestPtr, &response);
+            stream->Write(response);
         }
 
         return Status::OK;

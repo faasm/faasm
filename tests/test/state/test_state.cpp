@@ -749,7 +749,7 @@ namespace tests {
     }
 
     TEST_CASE("Test pushing pulling large state", "[state]") {
-        size_t valueSize = MAX_STATE_MESSAGE_SIZE - 123;
+        size_t valueSize = (3 * STATE_STREAMING_CHUNK_SIZE) + 123;
         std::vector<uint8_t> valuesA(valueSize, 1);
         std::vector<uint8_t> valuesB(valueSize, 2);
 
