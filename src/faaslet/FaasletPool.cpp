@@ -219,7 +219,6 @@ namespace faaslet {
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-
         if (globalQueueThread.joinable()) {
             logger->info("Waiting for global queue thread to finish");
             globalQueueThread.join();

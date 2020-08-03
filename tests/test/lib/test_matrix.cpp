@@ -10,6 +10,7 @@
 #include <util/state.h>
 #include <state/StateServer.h>
 #include <tcp/TCPClient.h>
+#include <state/InMemoryStateKeyValue.h>
 
 using namespace Eigen;
 
@@ -267,8 +268,11 @@ namespace tests {
         SparseMatrix<double> mat = faasm::randomSparseMatrix(rows, cols, 0.7);
 
         std::string emulatorUser = getEmulatorUser();
+        state::State &globalState = state::getGlobalState();
         state::State remoteState(LOCALHOST);
         state::StateServer stateServer(remoteState);
+
+        REQUIRE(globalState.getThisIP() != remoteState.getThisIP());
 
         // Run state server in the background
         std::thread serverThread([&emulatorUser, &key, &mat, &remoteState, &stateServer] {
@@ -279,8 +283,8 @@ namespace tests {
             // Write matrix to state to set master as this thread
             faasm::writeSparseMatrixToState(key, mat, false);
 
-            // Process messages
-            stateServer.start();
+            // Process messages. Run the server in _this_ thread.
+            stateServer.start(false);
         });
 
         // Give it time to start
@@ -288,6 +292,12 @@ namespace tests {
 
         // Get subsection from the matrix
         SparseMatrix<double> expected = mat.block(0, colStart, rows, colEnd - colStart);
+
+        // Check the state is mastered in other thread
+//        SparseKeys keys = getSparseKeys(key);
+//        const std::shared_ptr<state::StateKeyValue> &valuesKv = globalState.getKV(emulatorUser, keys.valueKey);
+//        auto kv = std::static_pointer_cast<state::InMemoryStateKeyValue>(valuesKv);
+//        REQUIRE(!kv->isMaster());
 
         // Get from state
         Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixColumnsFromState(key, colStart, colEnd, true);

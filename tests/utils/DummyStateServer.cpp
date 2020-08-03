@@ -70,9 +70,10 @@ namespace tests {
                 logger->debug("Finished setting master for test {}/{}", kv->user, kv->key);
             }
             
-            // Start the state server
+            // Start the state server in this thread
+            // (as it's already in a background thread)
             logger->debug("Running state server");
-            stateServer.start();
+            stateServer.start(false);
         });
 
         // Give it time to start

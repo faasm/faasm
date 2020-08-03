@@ -5,6 +5,7 @@
 
 #include <grpcpp/client_context.h>
 #include <grpcpp/channel.h>
+#include <grpcpp/support/channel_arguments.h>
 
 #include <proto/faasm.pb.h>
 #include <proto/faasm.grpc.pb.h>
@@ -16,12 +17,15 @@ using grpc::ClientContext;
 using grpc::Status;
 
 namespace state {
+    ChannelArguments getChannelArgs();
+
     class StateClient {
     public:
         explicit StateClient(const std::string &hostIn);
 
         const std::string host;
         InMemoryStateRegistry &reg;
+
         std::shared_ptr<Channel> channel;
         std::unique_ptr<message::StateRPCService::Stub> stub;
 

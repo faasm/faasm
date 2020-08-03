@@ -218,92 +218,96 @@ namespace tests {
         REQUIRE(abs(actual - expectedRmse) < 0.0000001);
     }
 
-//    TEST_CASE("Run SGD smoke test", "[sgd]") {
-//        // Run some dummy data through the SGD function with a
-//        // remote state server to check nothing breaks.
-//
-//        cleanSystem();
-//
-//        // This is important to ensure code matches up with emulated stuff
-//        std::string user = "sgd";
-//        setEmulatorUser(user.c_str());
-//
-//        // Set up the SVM function
-//        message::Message call = util::messageFactory(user, "reuters_svm");
-//        int syncInterval = 100;
-//
-//        // Deliberately try to cause contention with lots of workers
-//        int nWorkers = 30;
-//        call.set_inputdata(std::to_string(nWorkers) + " " + std::to_string(syncInterval) + " 0");
-//
-//        // Set up the params
-//        SgdParams p;
-//        p.nWeights = 100;
-//        p.nTrain = 10000;
-//        p.learningRate = 0.1;
-//        p.learningDecay = 0.8;
-//        p.nEpochs = 5;
-//        p.mu = 1.0;
-//
-//        p.nBatches = nWorkers;
-//        p.batchSize = p.nTrain / nWorkers;
-//        p.syncInterval = syncInterval;
-//
-//        // Set up the state server
-//        state::State remoteState(LOCALHOST);
-//        state::StateServer stateServer(remoteState);
-//
-//        SECTION("In-memory state") {
-//            std::thread serverThread([&stateServer, &remoteState, &call, &p] {
-//                // Set up remote state (uses TLS)
-//                setEmulatorUser(call.user().c_str());
-//                setEmulatorState(&remoteState);
-//                setEmulatedMessage(call);
-//
-//                // Set up dummy data
-//                setUpDummyProblem(p);
-//
-//                // Process incoming messages
-//                stateServer.start();
-//            });
-//
-//            // Give it time to start
-//            ::usleep(500 * 1000);
-//
-//            // Invoke the function with a pool
-//            // Note - the function itself implicitly checks the chained calls,
-//            // so we don't have to
-//            execFuncWithPool(call, false, 1, false, 5, false);
-//
-//            // Shut down the server
-//            stateServer.stop();
-//        }
-//
-//        SECTION("Redis state") {
-//            util::SystemConfig &conf = util::getSystemConfig();
-//            std::string originalState = conf.stateMode;
-//            conf.stateMode = "redis";
-//
-//            const std::string &expectedKey = util::keyForUser(user, "inputs_vals");
-//
-//            // Set up dummy data
-//            setUpDummyProblem(p);
-//
-//            // Remove any local state
-//            state::State &globalState = state::getGlobalState();
-//            globalState.forceClearAll(false);
-//            REQUIRE(globalState.getKVCount() == 0);
-//
-//            // Sanity check in Redis
-//            redis::Redis &redisState = redis::Redis::getState();
-//            std::vector<uint8_t> actualInputVals = redisState.get(expectedKey);
-//            REQUIRE(actualInputVals.size() > 0);
-//
-//            // Invoke the function with a pool
-//            execFuncWithPool(call, false, 1, false, 5, false);
-//
-//            // If we get to here, it's worked
-//            conf.stateMode = originalState;
-//        }
-//    }
+    TEST_CASE("Run SGD smoke test", "[sgd]") {
+        // Run some dummy data through the SGD function with a
+        // remote state server to check nothing breaks.
+
+        cleanSystem();
+
+        // This is important to ensure code matches up with emulated stuff
+        std::string user = "sgd";
+        setEmulatorUser(user.c_str());
+
+        // Set up the SVM function
+        message::Message call = util::messageFactory(user, "reuters_svm");
+        int syncInterval = 100;
+
+        // Deliberately try to cause contention with lots of workers
+        int nWorkers = 30;
+        call.set_inputdata(std::to_string(nWorkers) + " " + std::to_string(syncInterval) + " 0");
+
+        // Set up the params
+        SgdParams p;
+        p.nWeights = 100;
+        p.nTrain = 10000;
+        p.learningRate = 0.1;
+        p.learningDecay = 0.8;
+        p.nEpochs = 5;
+        p.mu = 1.0;
+
+        p.nBatches = nWorkers;
+        p.batchSize = p.nTrain / nWorkers;
+        p.syncInterval = syncInterval;
+
+        // Set up the state server
+        state::State remoteState(LOCALHOST);
+        state::StateServer stateServer(remoteState);
+
+        SECTION("In-memory state") {
+            std::thread serverThread([&stateServer, &remoteState, &call, &p] {
+                // Set up remote state (uses TLS)
+                setEmulatorUser(call.user().c_str());
+                setEmulatorState(&remoteState);
+                setEmulatedMessage(call);
+
+                // Set up dummy data
+                setUpDummyProblem(p);
+
+                // Process incoming messages
+                stateServer.start(false);
+            });
+
+            // Give it time to start
+            ::usleep(500 * 1000);
+
+            // Invoke the function with a pool
+            // Note - the function itself implicitly checks the chained calls,
+            // so we don't have to
+            execFuncWithPool(call, false, 1, false, 5, false);
+
+            // Shut down the server
+            stateServer.stop();
+
+            if(serverThread.joinable()) {
+                serverThread.join();
+            }
+        }
+
+        SECTION("Redis state") {
+            util::SystemConfig &conf = util::getSystemConfig();
+            std::string originalState = conf.stateMode;
+            conf.stateMode = "redis";
+
+            const std::string &expectedKey = util::keyForUser(user, "inputs_vals");
+
+            // Set up dummy data
+            setUpDummyProblem(p);
+
+            // Remove any local state
+            state::State &globalState = state::getGlobalState();
+            globalState.forceClearAll(false);
+            REQUIRE(globalState.getKVCount() == 0);
+
+            // Sanity check in Redis
+            redis::Redis &redisState = redis::Redis::getState();
+            std::vector<uint8_t> actualInputVals = redisState.get(expectedKey);
+            REQUIRE(actualInputVals.size() > 0);
+
+            // Invoke the function with a pool
+            execFuncWithPool(call, false, 1, false, 5, false);
+
+            // If we get to here, it's worked
+            conf.stateMode = originalState;
+        }
+    }
 }

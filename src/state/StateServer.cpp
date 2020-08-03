@@ -18,34 +18,60 @@ namespace state {
             state(stateIn), host(STATE_HOST), port(STATE_PORT) {
     }
 
-    void StateServer::start() {
-        // Run the serving thread in the background. This is necessary to
-        // be able to kill it from the main thread.
-        servingThread = std::thread([this] {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-            std::string serverAddr = host + ":" + std::to_string(port);
+    void StateServer::doStart() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        std::string serverAddr = host + ":" + std::to_string(port);
 
-            // Build the server
-            EnableDefaultHealthCheckService(true);
-            reflection::InitProtoReflectionServerBuilderPlugin();
-            ServerBuilder builder;
-            builder.AddListeningPort(serverAddr, InsecureServerCredentials());
-            builder.RegisterService(this);
+        // Build the server
+        EnableDefaultHealthCheckService(true);
+        reflection::InitProtoReflectionServerBuilderPlugin();
+        ServerBuilder builder;
+        builder.SetMaxMessageSize(MAX_STATE_MESSAGE_SIZE);
+        builder.AddListeningPort(serverAddr, InsecureServerCredentials());
+        builder.RegisterService(this);
 
-            // Start it
-            server = builder.BuildAndStart();
-            logger->info("State server listening on {}", serverAddr);
+        // Start it
+        server = builder.BuildAndStart();
+        logger->info("State server listening on {}", serverAddr);
 
-            server->Wait();
-        });
+        _started = true;
+
+        server->Wait();
+    }
+
+    void StateServer::start(bool background) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        if(background) {
+            logger->debug("Starting state server in background thread");
+            // Run the serving thread in the background. This is necessary to
+            // be able to kill it from the main thread.
+            servingThread = std::thread([this] {
+                doStart();
+            });
+
+            _isBackground = true;
+        } else {
+            logger->debug("Starting state server in this thread");
+            doStart();
+            _isBackground = false;
+        }
     }
 
     void StateServer::stop() {
-        util::getLogger()->info("State server stopping");
-        server->Shutdown();
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        if (_started) {
+            logger->info("State server stopping");
+            server->Shutdown();
 
-        if (servingThread.joinable()) {
-            servingThread.join();
+            if(_isBackground) {
+                logger->debug("Waiting for state server background thread");
+                if (servingThread.joinable()) {
+                    servingThread.join();
+                }
+            }
+        } else {
+            logger->info("Not stopping state server, never started");
         }
     }
 

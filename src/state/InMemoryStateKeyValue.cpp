@@ -1,6 +1,7 @@
 #include "InMemoryStateKeyValue.h"
 
 #include <util/bytes.h>
+#include <cstdio>
 
 #include <memory>
 #include <util/state.h>
@@ -9,7 +10,10 @@
 
 
 #define CHECK_RPC(label, op)  Status __status = op; \
-        if(!__status.ok()) throw std::runtime_error("RPC error " + std::string(label));
+        if(!__status.ok()) {   \
+            printf("RPC error %s: %s\n", std::string(label).c_str(),  __status.error_message().c_str());    \
+            throw std::runtime_error("RPC error " + std::string(label));    \
+        }
 
 
 namespace state {

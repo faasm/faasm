@@ -13,7 +13,7 @@ namespace state {
     public:
         explicit StateServer(State &stateIn);
 
-        void start();
+        void start(bool background = true);
 
         void stop();
 
@@ -81,7 +81,12 @@ namespace state {
         const std::string host;
         const int port;
 
+        bool _started = false;
+        bool _isBackground = false;
+
         std::unique_ptr<Server> server;
         std::thread servingThread;
+
+        void doStart();
     };
 }

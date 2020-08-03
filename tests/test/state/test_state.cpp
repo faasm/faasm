@@ -17,6 +17,8 @@ namespace tests {
     static int staticCount = 0;
 
     static void setUpDummyServer(DummyStateServer &server, const std::vector<uint8_t> &values) {
+        cleanSystem();
+
         staticCount++;
         const std::string stateKey = "state_key_" + std::to_string(staticCount);
 
@@ -41,6 +43,7 @@ namespace tests {
     }
 
     TEST_CASE("Test in-memory state sizes", "[state]") {
+        cleanSystem();
         State &s = getGlobalState();
         std::string user = "alpha";
         std::string key = "beta";
@@ -60,6 +63,7 @@ namespace tests {
     }
 
     TEST_CASE("Test simple in memory state get/set", "[state]") {
+        cleanSystem();
         auto kv = setupKV(5);
 
         std::vector<uint8_t> actual(5);
@@ -122,8 +126,6 @@ namespace tests {
         std::vector<uint8_t> values = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
         DummyStateServer server;
         setUpDummyServer(server, values);
-
-        // Get, push, pull
         server.start();
 
         // Get pointer to local and update in memory only
@@ -264,6 +266,7 @@ namespace tests {
     }
 
     TEST_CASE("Test set chunk cannot be over the size of the allocated memory", "[state]") {
+        cleanSystem();
         auto kv = setupKV(2);
 
         // Set a chunk offset
@@ -746,7 +749,7 @@ namespace tests {
     }
 
     TEST_CASE("Test pushing pulling large state", "[state]") {
-        size_t valueSize = (1024 * 1024 * 1024) + 123;
+        size_t valueSize = MAX_STATE_MESSAGE_SIZE - 123;
         std::vector<uint8_t> valuesA(valueSize, 1);
         std::vector<uint8_t> valuesB(valueSize, 2);
 
