@@ -119,16 +119,6 @@ message StateChunkRequest {
     uint64 chunkSize = 4;
 }
 
-//message StateManyChunkRequest {
-//    message StateChunk {
-//        uint64 offset = 1;
-//        bytes data = 2;
-//    }
-//    string user = 1;
-//    string key = 2;
-//    repeated StateChunk chunks = 3;
-//}
-
 message StateResponse {
     string user = 1;
     string key = 2;

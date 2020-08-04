@@ -4,8 +4,6 @@
 #include <util/config.h>
 #include <state/StateServer.h>
 
-static std::atomic<bool> isShutdown = false;
-
 int main() {
     util::initLogging();
 
@@ -13,26 +11,15 @@ int main() {
     config.print();
 
     // Add a state server in the background
-    std::thread stateThread([] {
-        state::StateServer server(state::getGlobalState());
-        while (!isShutdown.load()) {
-            server.start();
-        }
-
-        server.stop();
-    });
+    state::StateServer stateServer(state::getGlobalState());
+    stateServer.start();
 
     // Start the upload server in the main thread
     edge::UploadServer server;
     server.listen(UPLOAD_PORT);
 
-    // Flag the state server to shut down
-    isShutdown.store(true);
-
-    // Wait for state server to shut down
-    if(stateThread.joinable()) {
-        stateThread.join();
-    }
+    // Stop the state server
+    stateServer.stop();
 
     return 0;
 }

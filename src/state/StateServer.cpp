@@ -56,7 +56,7 @@ namespace state {
 
     void StateServer::stop() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        if(!_started) {
+        if (!_started) {
             logger->info("Not stopping state server, never started");
             return;
         }
@@ -99,7 +99,7 @@ namespace state {
 
             // TODO: avoid copying here
             response.set_data(chunk, chunkLen);
-            
+
             stream->Write(response);
         }
 
@@ -121,12 +121,12 @@ namespace state {
                     "Push {}/{} ({}->{})",
                     request.user(), request.key(),
                     request.offset(), request.offset() + request.data().size()
-                    );
+            );
 
             KV_FROM_REQUEST((&request))
             kv->setChunk(request.offset(), BYTES_CONST(request.data().c_str()), request.data().size());
 
-            if(user.empty()) {
+            if (user.empty()) {
                 user = kv->user;
                 key = kv->key;
             }
@@ -191,7 +191,7 @@ namespace state {
 
         response->set_user(request->user());
         response->set_key(request->key());
-        
+
         for (uint32_t i = 0; i < request->nvalues(); i++) {
             AppendedInMemoryState &value = kv->getAppendedValue(i);
             auto appendedValue = response->add_values();
@@ -231,7 +231,6 @@ namespace state {
         util::getLogger()->debug("Delete {}/{}", request->user(), request->key());
 
         state.deleteKV(request->user(), request->key());
-
 
         return Status::OK;
     }

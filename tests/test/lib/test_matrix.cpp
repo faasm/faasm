@@ -293,12 +293,6 @@ namespace tests {
         // Get subsection from the matrix
         SparseMatrix<double> expected = mat.block(0, colStart, rows, colEnd - colStart);
 
-        // Check the state is mastered in other thread
-//        SparseKeys keys = getSparseKeys(key);
-//        const std::shared_ptr<state::StateKeyValue> &valuesKv = globalState.getKV(emulatorUser, keys.valueKey);
-//        auto kv = std::static_pointer_cast<state::InMemoryStateKeyValue>(valuesKv);
-//        REQUIRE(!kv->isMaster());
-
         // Get from state
         Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixColumnsFromState(key, colStart, colEnd, true);
         checkSparseMatrixEquality(actual, expected);

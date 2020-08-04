@@ -56,16 +56,6 @@ namespace state {
 
         std::vector<AppendedInMemoryState> appendedData;
 
-        void doPullChunks(
-                const std::vector<StateChunk> &chunks,
-                ClientReaderWriter<message::StateChunkRequest, message::StateChunk> *stream
-        );
-
-        void doPushChunks(
-                const std::vector<StateChunk> &chunks,
-                ClientWriter<message::StateChunk> *stream
-        );
-
         void lockGlobal() override;
 
         void unlockGlobal() override;
