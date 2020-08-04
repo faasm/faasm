@@ -31,14 +31,11 @@ def invoke_impl(user, func,
                 py=False,
                 asynch=False,
                 knative=True,
-                native=False,
                 poll=False,
                 cmdline=None,
                 mpi_world_size=None,
                 debug=False,
                 poll_interval_ms=1000):
-    faasm_config = get_faasm_config()
-
     # Provider-specific stuff
     if knative:
         host, port = get_invoke_host_port()
@@ -80,12 +77,7 @@ def invoke_impl(user, func,
         msg["mpi_world_size"] = mpi_world_size
 
     # Knative must pass custom headers
-    if knative and native:
-        if py:
-            headers = _get_knative_headers("python")
-        else:
-            headers = _get_knative_headers(func)
-    elif knative:
+    if knative:
         headers = _get_knative_headers("worker")
     else:
         headers = {}
@@ -116,7 +108,7 @@ def invoke_impl(user, func,
                 interval = float(poll_interval_ms) / 1000
                 sleep(interval)
 
-                result, output = status_call_impl(user, func, call_id, host, port, quiet=True, native=native)
+                result, output = status_call_impl(user, func, call_id, host, port, quiet=True)
                 print("\nPOLL {} - {}".format(count, result))
 
             print("\n---- Finished {} ----\n".format(call_id))
@@ -142,15 +134,15 @@ def flush_call_impl(host, port):
     msg = {
         "flush": True,
     }
-    return _do_single_call(None, None, host, port, msg, False, native=False)
+    return _do_single_call(None, None, host, port, msg, False)
 
 
-def status_call_impl(user, func, call_id, host, port, quiet=False, native=False):
+def status_call_impl(user, func, call_id, host, port, quiet=False):
     msg = {
         "status": True,
         "id": int(call_id),
     }
-    call_result = _do_single_call(user, func, host, port, msg, quiet, native=native)
+    call_result = _do_single_call(user, func, host, port, msg, quiet)
 
     if call_result.startswith("SUCCESS"):
         return STATUS_SUCCESS, call_result
@@ -160,12 +152,12 @@ def status_call_impl(user, func, call_id, host, port, quiet=False, native=False)
         return STATUS_RUNNING, call_result
 
 
-def exec_graph_call_impl(user, func, call_id, host, port, quiet=False, native=False):
+def exec_graph_call_impl(user, func, call_id, host, port, quiet=False):
     msg = {
         "exec_graph": True,
         "id": int(call_id),
     }
-    call_result = _do_single_call(user, func, host, port, msg, quiet, native=native)
+    call_result = _do_single_call(user, func, host, port, msg, quiet)
 
     if not quiet:
         print(call_result)
@@ -173,15 +165,12 @@ def exec_graph_call_impl(user, func, call_id, host, port, quiet=False, native=Fa
     return call_result
 
 
-def _do_single_call(user, func, host, port, msg, quiet, native=False):
+def _do_single_call(user, func, host, port, msg, quiet):
     url = "http://{}".format(host)
     if port != 80:
         url += ":{}/".format(port)
 
     # If wasm, can always use the faasm worker for getting status
-    if native:
-        headers = _get_knative_headers(func)
-    else:
-        headers = _get_knative_headers("worker")
+    headers = _get_knative_headers("worker")
 
     return do_post(url, msg, headers=headers, quiet=quiet, json=True)
