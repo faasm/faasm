@@ -16,7 +16,6 @@ message FunctionStatusResponse {
         OK = 0;
         ERROR = 1;
     }
-
     FunctionStatus status = 1;
 }
 

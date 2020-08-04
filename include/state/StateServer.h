@@ -2,20 +2,16 @@
 
 #include "State.h"
 
-#include <grpcpp/server.h>
+#include <proto/RPCServer.h>
 #include <proto/faasm.pb.h>
 #include <proto/faasm.grpc.pb.h>
 
 using namespace grpc;
 
 namespace state {
-    class StateServer final : public message::StateRPCService::Service {
+class StateServer final : public rpc::RPCServer, public message::StateRPCService::Service {
     public:
         explicit StateServer(State &stateIn);
-
-        void start(bool background = true);
-
-        void stop();
 
         Status Pull(
                 ServerContext *context,
@@ -60,17 +56,9 @@ namespace state {
                 grpc::ServerContext *context,
                 const message::StateRequest *request,
                 message::StateResponse *response) override;
+    protected:
+        void doStart(const std::string &serverAddr) override;
     private:
         State &state;
-        const std::string host;
-        const int port;
-
-        bool _started = false;
-        bool _isBackground = false;
-
-        std::unique_ptr<Server> server;
-        std::thread servingThread;
-
-        void doStart();
     };
 }

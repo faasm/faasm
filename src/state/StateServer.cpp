@@ -5,9 +5,9 @@
 #include <state/State.h>
 #include <state/InMemoryStateKeyValue.h>
 
-#include <grpcpp/ext/proto_server_reflection_plugin.h>
 #include <grpcpp/grpcpp.h>
 #include <util/macros.h>
+#include <proto/macros.h>
 
 #define KV_FROM_REQUEST(request) auto kv = std::static_pointer_cast<InMemoryStateKeyValue>( \
     state.getKV(request->user(), request->key()) \
@@ -15,13 +15,11 @@
 
 namespace state {
     StateServer::StateServer(State &stateIn) :
-            state(stateIn), host(STATE_HOST), port(STATE_PORT) {
+            RPCServer(DEFAULT_RPC_HOST, STATE_PORT),
+            state(stateIn) {
     }
 
-    void StateServer::doStart() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        std::string serverAddr = host + ":" + std::to_string(port);
-
+    void StateServer::doStart(const std::string &serverAddr) {
         // Build the server
         ServerBuilder builder;
         builder.AddListeningPort(serverAddr, InsecureServerCredentials());
@@ -29,47 +27,9 @@ namespace state {
 
         // Start it
         server = builder.BuildAndStart();
-        logger->info("State server listening on {}", serverAddr);
+        util::getLogger()->info("State server listening on {}", serverAddr);
 
         server->Wait();
-    }
-
-    void StateServer::start(bool background) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        _started = true;
-        _isBackground = background;
-
-        if (background) {
-            logger->debug("Starting state server in background thread");
-            // Run the serving thread in the background. This is necessary to
-            // be able to kill it from the main thread.
-            servingThread = std::thread([this] {
-                doStart();
-            });
-
-        } else {
-            logger->debug("Starting state server in this thread");
-            doStart();
-        }
-    }
-
-    void StateServer::stop() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        if (!_started) {
-            logger->info("Not stopping state server, never started");
-            return;
-        }
-
-        logger->info("State server stopping");
-        server->Shutdown();
-
-        if (_isBackground) {
-            logger->debug("Waiting for state server background thread");
-            if (servingThread.joinable()) {
-                servingThread.join();
-            }
-        }
     }
 
     Status StateServer::Pull(
