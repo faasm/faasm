@@ -1,22 +1,25 @@
 ---
 
-- name: "Set up dir"
-  become: yes
-  file:
-    path: "/usr/local/lib/cmake-3.15"
-    state: directory
+- name: "Download file"
+  get_url:
+    url: https://github.com/Kitware/CMake/releases/download/v3.16.5/cmake-3.16.5.tar.gz
+    dest: /tmp/cmake-3.16.5.tar.gz
 
-- name: "Download script"
-  become: yes
+- name: "Extract"
+  shell: "tar -zxvf cmake-3.16.5.tar.gz"
+  args:
+    chdir: /tmp
+
+- name: "Set up"
   shell: "{{ item }}"
   args:
-    chdir: /usr/local/lib/cmake-3.15
+    chdir: /tmp/cmake-3.16.5
   with_items:
-    - "wget https://github.com/Kitware/CMake/releases/download/v3.15.0/cmake-3.15.0-Linux-x86_64.sh"
-    - "chmod +x cmake-3.15.0-Linux-x86_64.sh"
+    - "./bootstrap"
+    - "make"
 
-- name: "Execute script"
+- name: "Install"
   become: yes
-  shell: "./cmake-3.15.0-Linux-x86_64.sh --skip-license"
+  shell: "make install"
   args:
-    chdir: /usr/local/lib/cmake-3.15
+    chdir: /tmp/cmake-3.16.5

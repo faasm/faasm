@@ -1,0 +1,58 @@
+---
+
+- name: "Check if grpc is installed"
+  stat:
+    path: /usr/local/include/grpcpp/
+  register: g_stat
+
+- name: "Clone gRPC repo"
+  git:
+    repo: "https://github.com/grpc/grpc"
+    dest: "/tmp/grpc"
+    version: "v1.30.0"
+  when: g_stat.stat.exists == False
+
+- name: "Update submodules"
+  shell: "git submodule update --init"
+  args:
+    chdir: "/tmp/grpc"
+
+- name: "Set up build"
+  shell: "mkdir -p /tmp/grpc/build"
+  when: g_stat.stat.exists == False
+
+# Note the issues with the grpc build discussed here:
+# https://github.com/grpc/grpc/issues/13841
+# By specifying "package" we're telling grpc to use the
+# existing install of certain libraries.
+- name: "CMake Build"
+  shell: >
+    cmake -GNinja -DgRPC_INSTALL=ON  \
+    -DgRPC_BUILD_TESTS=OFF \
+    -DgRPC_ABSL_PROVIDER=module \
+    -DgRPC_PROTOBUF_PROVIDER=package \
+    -DgRPC_ZLIB_PROVIDER=package \
+    -DgRPC_CARES_PROVIDER=package \
+    -DgRPC_SSL_PROVIDER=package \
+    -DCMAKE_CXX_COMPILER=/usr/bin/clang++-10 \
+    -DCMAKE_C_COMPILER=/usr/bin/clang-10 \
+    -DCMAKE_BUILD_TYPE=Release ..
+  args:
+    chdir: "/tmp/grpc/build"
+
+- name: "CMake Build"
+  shell: "ninja"
+  args:
+    chdir: "/tmp/grpc/build"
+  when: g_stat.stat.exists == False
+
+- name: "Install"
+  become: yes
+  shell: "ninja install"
+  args:
+    chdir: "/tmp/grpc/build"
+  when: g_stat.stat.exists == False
+
+- name: "Clean up"
+  shell: "rm -rf /tmp/grpc"
+  when: g_stat.stat.exists == False

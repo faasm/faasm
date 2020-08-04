@@ -1,7 +1,5 @@
 #include "func.h"
 
-#include <iomanip>
-#include <sstream>
 #include <boost/filesystem.hpp>
 
 #include <util/environment.h>
@@ -10,7 +8,6 @@
 #include <util/config.h>
 #include <boost/algorithm/string.hpp>
 #include <util/logging.h>
-#include <util/json.h>
 #include <util/clock.h>
 
 
@@ -289,7 +286,7 @@ namespace util {
         }
 
         // Set the timestamp if it doesn't have one
-        if(!msg.has_timestamp() || msg.timestamp() <= 0) {
+        if(msg.timestamp() <= 0) {
             Clock &clock = util::getGlobalClock();
             msg.set_timestamp(clock.epochMillis());
         }

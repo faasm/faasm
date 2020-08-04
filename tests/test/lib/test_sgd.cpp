@@ -10,7 +10,6 @@
 #include <emulator/emulator.h>
 #include <util/state.h>
 #include <state/StateServer.h>
-#include <tcp/TCPClient.h>
 
 
 using namespace faasm;
@@ -249,30 +248,22 @@ namespace tests {
         p.batchSize = p.nTrain / nWorkers;
         p.syncInterval = syncInterval;
 
+        // Set up the state server
+        state::State remoteState(LOCALHOST);
+        state::StateServer stateServer(remoteState);
+
         SECTION("In-memory state") {
-            std::thread serverThread([&call, &p] {
-                // Set up remote state
-                state::State remoteState(LOCALHOST);
+            std::thread serverThread([&stateServer, &remoteState, &call, &p] {
+                // Set up remote state (uses TLS)
                 setEmulatorUser(call.user().c_str());
                 setEmulatorState(&remoteState);
                 setEmulatedMessage(call);
-
-                // Set up the state server
-                state::StateServer stateServer(remoteState);
 
                 // Set up dummy data
                 setUpDummyProblem(p);
 
                 // Process incoming messages
-                while (true) {
-                    try {
-                        stateServer.poll();
-                    } catch (tcp::TCPShutdownException &ex) {
-                        break;
-                    }
-                }
-
-                stateServer.close();
+                stateServer.start(false);
             });
 
             // Give it time to start
@@ -283,14 +274,10 @@ namespace tests {
             // so we don't have to
             execFuncWithPool(call, false, 1, false, 5, false);
 
-            // Send shutdown message
-            tcp::TCPClient client(LOCALHOST, STATE_PORT);
-            tcp::TCPMessage tcpMsg;
-            tcpMsg.type = state::StateMessageType::SHUTDOWN;
-            client.sendMessage(&tcpMsg);
+            // Shut down the server
+            stateServer.stop();
 
-            // Wait for server
-            if (serverThread.joinable()) {
+            if(serverThread.joinable()) {
                 serverThread.join();
             }
         }

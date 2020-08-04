@@ -1,6 +1,7 @@
 ---
 
 - hosts: localhost
-  gather_facts: no
+  gather_facts: yes
   roles:
     - protobuf
+    - grpc

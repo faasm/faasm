@@ -18,7 +18,6 @@ target_link_libraries(test_utils
         upload_lib
         faaslet_lib
         emulator
-        tcp
         worker_knative_lib
         worker_ibm_lib
         )

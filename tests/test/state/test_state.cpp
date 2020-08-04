@@ -17,6 +17,8 @@ namespace tests {
     static int staticCount = 0;
 
     static void setUpDummyServer(DummyStateServer &server, const std::vector<uint8_t> &values) {
+        cleanSystem();
+
         staticCount++;
         const std::string stateKey = "state_key_" + std::to_string(staticCount);
 
@@ -41,6 +43,7 @@ namespace tests {
     }
 
     TEST_CASE("Test in-memory state sizes", "[state]") {
+        cleanSystem();
         State &s = getGlobalState();
         std::string user = "alpha";
         std::string key = "beta";
@@ -60,6 +63,7 @@ namespace tests {
     }
 
     TEST_CASE("Test simple in memory state get/set", "[state]") {
+        cleanSystem();
         auto kv = setupKV(5);
 
         std::vector<uint8_t> actual(5);
@@ -85,9 +89,9 @@ namespace tests {
         DummyStateServer server;
         std::vector<uint8_t> values = {0, 0, 1, 1, 2, 2, 3, 3, 4, 4};
         setUpDummyServer(server, values);
-        
-        // Get, push, pull
-        server.start(3);
+
+        // Start the server
+        server.start();
 
         // Get locally
         std::vector<uint8_t> actual = server.getLocalKvValue();
@@ -115,17 +119,15 @@ namespace tests {
         REQUIRE(server.getRemoteKvValue() == expected);
 
         // Wait for server to finish
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test in memory marking chunks dirty", "[state]") {
         std::vector<uint8_t> values = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
         DummyStateServer server;
         setUpDummyServer(server, values);
+        server.start();
 
-        // Get, push, pull
-        server.start(3);
-        
         // Get pointer to local and update in memory only
         const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
         uint8_t *ptr = localKv->get();
@@ -146,7 +148,7 @@ namespace tests {
         std::vector<uint8_t> actualMemory(ptr, ptr + values.size());
         REQUIRE(actualMemory == values);
 
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test overlaps with multiple chunks dirty", "[state]") {
@@ -155,8 +157,8 @@ namespace tests {
         setUpDummyServer(server, values);
 
         // Get, push, pull
-        server.start(3);
-        
+        server.start();
+
         // Get pointer to local data
         const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
         uint8_t *statePtr = localKv->get();
@@ -204,7 +206,7 @@ namespace tests {
         REQUIRE(server.getLocalKvValue() == expected);
         REQUIRE(server.getRemoteKvValue() == expected);
 
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test in memory partial update of doubles in state", "[state]") {
@@ -216,14 +218,14 @@ namespace tests {
         setUpDummyServer(server, values);
 
         // Get, push, pull
-        server.start(3);
-        
+        server.start();
+
         // Set up both with zeroes initially
         std::vector<double> expected(nDoubles);
         std::vector<uint8_t> actualBytes(nBytes);
         memset(expected.data(), 0, nBytes);
         memset(actualBytes.data(), 0, nBytes);
-        
+
         // Update a value locally and flag dirty
         const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
         auto actualPtr = reinterpret_cast<double *>(localKv->get());
@@ -260,10 +262,11 @@ namespace tests {
         std::vector<double> actualPostPushRemote(postPushDoublePtr, postPushDoublePtr + nDoubles);
         REQUIRE(expected == actualPostPushRemote);
 
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test set chunk cannot be over the size of the allocated memory", "[state]") {
+        cleanSystem();
         auto kv = setupKV(2);
 
         // Set a chunk offset
@@ -279,8 +282,8 @@ namespace tests {
         setUpDummyServer(server, values);
 
         // Only 3 push-partial messages as kv not fully allocated
-        server.start(3);
-        
+        server.start();
+
         // Update just the last element
         std::vector<uint8_t> update = {8};
         const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
@@ -305,7 +308,7 @@ namespace tests {
         expected = {6, 1, 2, 3, 6};
         REQUIRE(server.getRemoteKvValue() == expected);
 
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test push partial with mask", "[state]") {
@@ -315,12 +318,12 @@ namespace tests {
         setUpDummyServer(server, values);
 
         // Get, full push, push partial
-        server.start(4);
-        
+        server.start();
+
         // Create another local KV of same size
         State &state = getGlobalState();
         auto maskKv = state.getKV(getEmulatorUser(), "dummy_mask", stateSize);
-        
+
         // Set up value locally
         const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
         uint8_t *dataBytePtr = localKv->get();
@@ -373,7 +376,7 @@ namespace tests {
         std::vector<double> actualDoubles2(actualDoublesPtr, actualDoublesPtr + 4);
         REQUIRE(actualDoubles2 == expected);
 
-        server.wait();
+        server.stop();
     }
 
     void checkPulling(bool doPull) {
@@ -385,11 +388,11 @@ namespace tests {
 
         // Get, with optional pull
         int nMessages = 1;
-        if(doPull) {
+        if (doPull) {
             nMessages = 2;
         }
 
-        server.start(nMessages);
+        server.start();
 
         // Initial pull
         const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
@@ -400,7 +403,7 @@ namespace tests {
         std::vector<uint8_t> newValues = {5, 5, 5, 5};
         remoteKv->set(newValues.data());
 
-        if(doPull) {
+        if (doPull) {
             // Check locak changed with another pull
             localKv->pull();
             localKv->get(actual.data());
@@ -411,7 +414,7 @@ namespace tests {
             REQUIRE(actual == values);
         }
 
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test updates pulled from remote", "[state]") {
@@ -427,7 +430,7 @@ namespace tests {
         DummyStateServer server;
         setUpDummyServer(server, values);
 
-        server.start(2);
+        server.start();
 
         // Pull locally
         const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
@@ -448,7 +451,7 @@ namespace tests {
         localKv->pushFull();
         REQUIRE(server.getRemoteKvValue() == newValues2);
 
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test mapping shared memory", "[state]") {
@@ -510,8 +513,8 @@ namespace tests {
         setUpDummyServer(server, values);
 
         // One implicit pull
-        server.start(1);
-        
+        server.start();
+
         // Write value to remote
         const std::shared_ptr<state::StateKeyValue> &remoteKv = server.getRemoteKv();
         remoteKv->set(values.data());
@@ -531,7 +534,7 @@ namespace tests {
         std::vector<uint8_t> actualValueAfterGet(byteRegion, byteRegion + values.size());
         REQUIRE(actualValueAfterGet == values);
 
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test mapping small shared memory offsets", "[state]") {
@@ -590,7 +593,7 @@ namespace tests {
         setUpDummyServer(server, values);
 
         // Expecting two implicit pulls
-        server.start(2);
+        server.start();
 
         // Map a couple of chunks in host memory (as would be done by the wasm module)
         void *mappedRegionA = mmap(nullptr, mappingSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -620,7 +623,7 @@ namespace tests {
         REQUIRE(chunkA[5] == 5);
         REQUIRE(chunkB[9] == 9);
 
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test deletion", "[state]") {
@@ -629,19 +632,19 @@ namespace tests {
         setUpDummyServer(server, values);
 
         // One pull, one deletion
-        server.start(2);
-        
+        server.start();
+
         // Check data remotely and locally
         REQUIRE(server.getLocalKvValue() == values);
         REQUIRE(server.getRemoteKvValue() == values);
-        
+
         // Delete from state
         getGlobalState().deleteKV(server.dummyUser, server.dummyKey);
 
         // Check it's gone
         REQUIRE(server.remoteState.getKVCount() == 0);
 
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test appended state with KV", "[state]") {
@@ -703,9 +706,9 @@ namespace tests {
         DummyStateServer server;
         std::vector<uint8_t> empty;
         setUpDummyServer(server, empty);
-        
+
         // One appends, two retrievals, one clear
-        server.start(4);
+        server.start();
 
         std::vector<uint8_t> valuesA = {0, 1, 2, 3, 4};
         std::vector<uint8_t> valuesB = {3, 3, 5, 5};
@@ -742,12 +745,11 @@ namespace tests {
         localKv->getAppended(actualLocalAfterClear.data(), actualLocalAfterClear.size(), 1);
         REQUIRE(actualLocalAfterClear == valuesB);
 
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test pushing pulling large state", "[state]") {
-        // Make sure value size finishes in the middle of a packet
-        size_t valueSize = (10 * TCP_RECV_BUF_SIZE) + 123;
+        size_t valueSize = (3 * STATE_STREAMING_CHUNK_SIZE) + 123;
         std::vector<uint8_t> valuesA(valueSize, 1);
         std::vector<uint8_t> valuesB(valueSize, 2);
 
@@ -755,7 +757,7 @@ namespace tests {
         setUpDummyServer(server, valuesA);
 
         // One pull, one push
-        server.start(2);
+        server.start();
 
         // Pull locally
         const std::shared_ptr<state::StateKeyValue> &localKv = server.getLocalKv();
@@ -773,21 +775,22 @@ namespace tests {
         const std::vector<uint8_t> &actualRemote = server.getRemoteKvValue();
         REQUIRE(actualRemote == valuesB);
 
-        server.wait();
+        server.stop();
     }
 
     TEST_CASE("Test pushing pulling chunks over multiple requests", "[state]") {
-        // Set up a big chunk of state
-        size_t valueSize = 10 * TCP_RECV_BUF_SIZE + 123;
+        // Set up a chunk of state
+        size_t chunkSize = 1024;
+        size_t valueSize = 10 * chunkSize + 123;
         std::vector<uint8_t> values(valueSize, 1);
         DummyStateServer server;
         setUpDummyServer(server, values);
 
         // Two chunk pulls, one push partial
-        server.start(3);
+        server.start();
 
         // Set a chunk in the remote value
-        int offsetA = 3 * TCP_RECV_BUF_SIZE + 5;
+        size_t offsetA = 3 * chunkSize + 5;
         std::vector<uint8_t> segA = {4, 4};
         std::shared_ptr<state::StateKeyValue> remoteKv = server.getRemoteKv();
         remoteKv->setChunk(offsetA, segA.data(), segA.size());
@@ -808,7 +811,7 @@ namespace tests {
         REQUIRE(actualSegB == segB);
 
         // Now modify a different chunk locally
-        int offsetC = 2 * TCP_RECV_BUF_SIZE + 2;
+        size_t offsetC = 2 * chunkSize + 2;
         std::vector<uint8_t> segC = {0, 1, 2, 3, 4};
         localKv->setChunk(offsetC, segC.data(), segC.size());
 
@@ -816,21 +819,23 @@ namespace tests {
         std::vector<uint8_t> segD = {3, 3, 3};
         int offsetD = valueSize - 1 - segD.size();
         localKv->setChunk(offsetD, segD.data(), segD.size());
-        
+
         // Push the changes
         localKv->pushPartial();
-        
+
         // Check the chunks in the remote value
         std::vector<uint8_t> actualAfterPush = server.getRemoteKvValue();
-        std::vector<uint8_t> actualSegC(actualAfterPush.begin() + offsetC, actualAfterPush.begin() + offsetC + segC.size());
-        std::vector<uint8_t> actualSegD(actualAfterPush.begin() + offsetD, actualAfterPush.begin() + offsetD + segD.size());
+        std::vector<uint8_t> actualSegC(actualAfterPush.begin() + offsetC,
+                                        actualAfterPush.begin() + offsetC + segC.size());
+        std::vector<uint8_t> actualSegD(actualAfterPush.begin() + offsetD,
+                                        actualAfterPush.begin() + offsetD + segD.size());
 
         REQUIRE(actualSegC == segC);
         REQUIRE(actualSegD == segD);
 
-        server.wait();
+        server.stop();
     }
-    
+
     TEST_CASE("Test pulling disjoint chunks of the same value which share pages", "[state]") {
         // Set up state
         size_t valueSize = 20 * util::HOST_PAGE_SIZE + 123;
@@ -839,7 +844,7 @@ namespace tests {
         setUpDummyServer(server, values);
 
         // Expect two chunk pulls
-        server.start(2);
+        server.start();
 
         // Set up two chunks both from the same page of memory but not overlapping
         long offsetA = 2 * util::HOST_PAGE_SIZE + 10;
@@ -863,6 +868,6 @@ namespace tests {
         REQUIRE(actualA == expectedA);
         REQUIRE(actualB == expectedB);
 
-        server.wait();
+        server.stop();
     }
 }

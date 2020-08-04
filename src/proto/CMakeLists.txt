@@ -1,13 +1,46 @@
 include(FindProtobuf)
+
+# See the example in the gRPC repo here:
+# https://github.com/grpc/grpc/blob/master/examples/cpp/helloworld/CMakeLists.txt
+
+set(protobuf_MODULE_COMPATIBLE TRUE)
+
 find_package(Protobuf REQUIRED)
+message(STATUS "Using protobuf  \
+    ${PROTOBUF_LIBRARY} \
+    ${PROTOBUF_PROTOC_LIBRARY} \
+    ${PROTOBUF_PROTOC_EXECUTABLE} \
+")
+
+find_package(gRPC CONFIG REQUIRED)
+message(STATUS "Using gRPC ${gRPC_VERSION}")
 
 include_directories(${PROTOBUF_INCLUDE_DIR})
 
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS faasm.proto)
+set(PROTOC_EXE /usr/local/bin/protoc)
+set(GRPC_PLUGIN /usr/local/bin/grpc_cpp_plugin)
 
-message(STATUS "Protobuf_LIBRARIES=${Protobuf_LIBRARIES}")
+set(OUTPUT_FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/faasm.pb.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/faasm.pb.h
+        ${CMAKE_CURRENT_BINARY_DIR}/faasm.grpc.pb.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/faasm.grpc.pb.h
+        )
 
-set(LIB_FILES ${PROTO_SRCS} ${PROTO_HDRS})
+add_custom_command(
+        OUTPUT ${OUTPUT_FILES}
+        COMMAND protoc
+        ARGS --grpc_out "${CMAKE_CURRENT_BINARY_DIR}"
+        --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
+        -I "${CMAKE_CURRENT_LIST_DIR}"
+        --plugin=protoc-gen-grpc=${GRPC_PLUGIN}
+        faasm.proto
+        DEPENDS faasm.proto
+        )
 
-faasm_private_lib(proto ${LIB_FILES})
-target_link_libraries(proto ${Protobuf_LIBRARIES})
+faasm_private_lib(proto "${OUTPUT_FILES}")
+target_link_libraries(proto
+        ${Protobuf_LIBRARIES}
+        gRPC::grpc++
+        gRPC::grpc++_reflection
+        )

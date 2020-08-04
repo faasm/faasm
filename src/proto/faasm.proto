@@ -1,64 +1,154 @@
-syntax = "proto2";
+syntax = "proto3";
 
 package message;
 
-message Message {
-    optional string user = 1;
-    optional string function = 2;
-    optional int32 idx = 3;
-    optional string snapshotKey = 4;
-    optional int32 snapshotSize = 5;
-    optional int32 funcPtr = 6;
-    optional int32 returnValue = 7;
+// ---------------------------------------------
+// FUNCTION SERVICE
+// ---------------------------------------------
 
-    enum MessageType {
-        BIND = 1;
-        CALL = 2;
-        KILL = 3;
-        EMPTY = 4;
+service FunctionRPCService {
+    rpc ShareFunction (Message) returns (FunctionStatusResponse) {
+    }
+}
+
+message FunctionStatusResponse {
+    enum FunctionStatus {
+        OK = 0;
+        ERROR = 1;
     }
 
-    optional MessageType type = 8 [default = CALL];
+    FunctionStatus status = 1;
+}
 
-    optional int64 timestamp = 9;
-    optional int32 id = 10;
-    optional string resultKey = 11;
-    optional string statusKey = 12;
+message Message {
+    string user = 1;
+    string function = 2;
+    int32 idx = 3;
+    string snapshotKey = 4;
+    int32 snapshotSize = 5;
+    int32 funcPtr = 6;
+    int32 returnValue = 7;
 
-    optional string scheduledHost = 13;
-    optional int32 hops = 14 [default = 0];
-    optional string executedHost = 15;
-    optional int64 finishTimestamp = 16;
+    enum MessageType {
+        CALL = 0;
+        BIND = 1;
+        KILL = 2;
+        EMPTY = 3;
+    }
 
-    optional bool isAsync = 17;
-    optional bool isPython = 18;
-    optional bool isTypescript = 19;
-    optional bool isStatusRequest = 20;
-    optional bool isExecGraphRequest = 21;
-    optional bool isFlushRequest = 22;
+    MessageType type = 8;
 
-    optional bytes inputData = 23;
-    optional bytes outputData = 24;
+    int64 timestamp = 9;
+    int32 id = 10;
+    string resultKey = 11;
+    string statusKey = 12;
 
-    optional string pythonUser = 25;
-    optional string pythonFunction = 26;
-    optional string pythonEntry = 27;
+    string scheduledHost = 13;
+    int32 hops = 14;
+    string executedHost = 15;
+    int64 finishTimestamp = 16;
 
-    optional int32 coldStartInterval = 28;
+    bool isAsync = 17;
+    bool isPython = 18;
+    bool isTypescript = 19;
+    bool isStatusRequest = 20;
+    bool isExecGraphRequest = 21;
+    bool isFlushRequest = 22;
 
-    optional bool isMpi = 29;
-    optional int32 mpiWorldId = 30 [default = -1];
-    optional int32 mpiRank = 31 [default = -1];
-    optional int32 mpiWorldSize = 32 [default = -1];
+    bytes inputData = 23;
+    bytes outputData = 24;
 
-    optional int32 ompThreadNum = 33 [default = 0];
+    string pythonUser = 25;
+    string pythonFunction = 26;
+    string pythonEntry = 27;
+
+    int32 coldStartInterval = 28;
+
+    bool isMpi = 29;
+    int32 mpiWorldId = 30;
+    int32 mpiRank = 31;
+    int32 mpiWorldSize = 32;
+
+    int32 ompThreadNum = 33;
     repeated uint32 ompFunctionArgs = 34;
-    optional int32 ompDepth = 35;
-    optional int32 ompEffDepth = 36;
-    optional int32 ompMAL = 37;
-    optional int32 ompNumThreads = 38;
+    int32 ompDepth = 35;
+    int32 ompEffDepth = 36;
+    int32 ompMAL = 37;
+    int32 ompNumThreads = 38;
 
-    optional string cmdline = 39;
+    string cmdline = 39;
 
-    optional bool isSgx = 40;
+    bool isSgx = 40;
+}
+
+// ---------------------------------------------
+// STATE SERVICE
+// ---------------------------------------------
+
+service StateRPCService {
+    rpc Pull (stream StateChunkRequest) returns (stream StateChunk) {
+    }
+    rpc Push (stream StateChunk) returns (StateResponse) {
+    }
+    rpc Size(StateRequest) returns (StateSizeResponse) {
+    }
+    rpc Append (StateRequest) returns (StateResponse) {
+    }
+    rpc ClearAppended (StateRequest) returns (StateResponse) {
+    }
+    rpc PullAppended (StateAppendedRequest) returns (StateAppendedResponse) {
+    }
+    rpc Lock (StateRequest) returns (StateResponse) {
+    }
+    rpc Unlock (StateRequest) returns (StateResponse) {
+    }
+    rpc Delete (StateRequest) returns (StateResponse) {
+    }
+}
+
+message StateRequest {
+    string user = 1;
+    string key = 2;
+    bytes data = 3;
+}
+
+message StateChunkRequest {
+    string user = 1;
+    string key = 2;
+    uint64 offset = 3;
+    uint64 chunkSize = 4;
+}
+
+message StateResponse {
+    string user = 1;
+    string key = 2;
+    bytes data = 3;
+}
+
+message StateChunk {
+    string user = 1;
+    string key = 2;
+    uint64 offset = 3;
+    bytes data = 4;
+}
+
+message StateSizeResponse {
+    string user = 1;
+    string key = 2;
+    uint64 stateSize = 3;
+}
+
+message StateAppendedRequest {
+    string user = 1;
+    string key = 2;
+    uint32 nValues = 3;
+}
+
+message StateAppendedResponse {
+    message AppendedValue {
+        bytes data = 2;
+    }
+    string user = 1;
+    string key = 2;
+    repeated AppendedValue values = 3;
 }

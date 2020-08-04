@@ -31,12 +31,13 @@ namespace tests {
         std::string dummyUser;
         std::string dummyKey;
 
-        void start(int nMessages);
+        void start();
 
-        void wait();
+        void stop();
 
         std::thread serverThread;
         state::State remoteState;
+        state::StateServer stateServer;
     };
 
     void cleanSystem();

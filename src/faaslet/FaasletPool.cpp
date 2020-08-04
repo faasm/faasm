@@ -5,15 +5,16 @@
 
 #include <scheduler/GlobalMessageBus.h>
 #include <scheduler/SharingMessageBus.h>
-#include <state/StateServer.h>
 #include <mpi/MpiGlobalBus.h>
 #include <system/SGX.h>
+
 
 namespace faaslet {
     FaasletPool::FaasletPool(int nThreads) :
             _shutdown(false),
             scheduler(scheduler::getScheduler()),
-            threadTokenPool(nThreads) {
+            threadTokenPool(nThreads),
+            stateServer(state::getGlobalState()) {
 
         // Check SGX (will do nothing if not enabled)
         isolation::checkSgxSetup();
@@ -102,7 +103,7 @@ namespace faaslet {
         mpiThread = std::thread([this] {
             mpi::MpiGlobalBus &bus = mpi::getMpiGlobalBus();
             const std::string host = util::getSystemConfig().endpointHost;
-            
+
             while (!this->isShutdown()) {
                 try {
                     bus.next(host);
@@ -118,23 +119,16 @@ namespace faaslet {
     void FaasletPool::startStateServer() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // Start the state worker if necessary
+        // Skip state server if not in inmemory mode
         util::SystemConfig &conf = util::getSystemConfig();
-        if(conf.stateMode != "inmemory") {
+        if (conf.stateMode != "inmemory") {
             logger->info("Not starting state server in state mode {}", conf.stateMode);
             return;
         }
 
+        // Note that the state server spawns its own background thread
         logger->info("Starting state server");
-
-        stateThread = std::thread([this] {
-            state::StateServer server(state::getGlobalState());
-            while (!this->isShutdown()) {
-                server.poll();
-            }
-
-            server.close();
-        });
+        stateServer.start();
     }
 
     void FaasletPool::startThreadPool() {
@@ -230,10 +224,8 @@ namespace faaslet {
             globalQueueThread.join();
         }
 
-        if (stateThread.joinable()) {
-            logger->info("Waiting for state thread to finish");
-            stateThread.join();
-        }
+        logger->info("Waiting for the state server to finish");
+        stateServer.stop();
 
         if (sharingQueueThread.joinable()) {
             logger->info("Waiting for sharing queue thread to finish");
@@ -245,7 +237,7 @@ namespace faaslet {
             poolThread.join();
         }
 
-        if(mpiThread.joinable()){
+        if (mpiThread.joinable()) {
             logger->info("Waiting for mpi thread to finish");
             mpiThread.join();
         }
