@@ -37,7 +37,7 @@ RUN cmake \
     -DCMAKE_C_COMPILER=/usr/bin/clang-10 \
     -DFAASM_BUILD_TYPE=native-tools \
     -DCMAKE_BUILD_TYPE=Release \
-    -DFAASM_STATIC_LIBS=ON \
+    -DFAASM_STATIC_LIBS=OFF \
     -DCMAKE_INSTALL_PREFIX=/usr/local \
     /usr/local/code/faasm
 

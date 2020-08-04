@@ -38,8 +38,13 @@ add_custom_command(
         DEPENDS faasm.proto
         )
 
-faasm_private_lib(proto "${OUTPUT_FILES}")
-target_link_libraries(proto
+if (FAASM_BUILD_TYPE STREQUAL "native-tools")
+    faasm_public_lib(proto "${OUTPUT_FILES}")
+else()
+    faasm_private_lib(proto "${OUTPUT_FILES}")
+endif()
+
+target_link_libraries(proto PRIVATE
         ${Protobuf_LIBRARIES}
         gRPC::grpc++
         gRPC::grpc++_reflection
