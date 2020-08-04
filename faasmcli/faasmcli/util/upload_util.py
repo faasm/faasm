@@ -23,17 +23,6 @@ def upload_file_to_s3(file_path, s3_bucket, s3_key, public=False):
     s3.Bucket(s3_bucket).upload_file(file_path, s3_key, **kwargs)
 
 
-def upload_file_to_ibm(file_path, bucket_name, key):
-    cmd = [
-        "ibmcloud", "cos", "put-object",
-        "--bucket", bucket_name,
-        "--key", key,
-        "--body", file_path,
-    ]
-
-    call(" ".join(cmd), shell=True)
-
-
 def list_files_s3(s3_bucket, prefix):
     s3 = _get_s3()
     b = s3.Bucket(s3_bucket)

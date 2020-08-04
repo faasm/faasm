@@ -1,5 +1,4 @@
 #include <util/config.h>
-#include <storage/IBMFileLoader.h>
 
 #include "LocalFileLoader.h"
 #include "FileserverFileLoader.h"
@@ -11,9 +10,6 @@ namespace storage {
 
         if (conf.functionStorage == "local") {
             static thread_local LocalFileLoader fl;
-            return fl;
-        } else if(conf.functionStorage == "ibm") {
-            static thread_local IBMFileLoader fl;
             return fl;
         } else if (conf.functionStorage == "fileserver") {
             static thread_local FileserverFileLoader fl;

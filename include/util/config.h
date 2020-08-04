@@ -60,9 +60,6 @@ namespace util {
         std::string sharedFilesDir;
         std::string sharedFilesStorageDir;
 
-        // IBM
-        std::string ibmApiKey;
-
         // MPI
         int defaultMpiWorldSize;
 

@@ -32,7 +32,6 @@ def invoke_impl(user, func,
                 asynch=False,
                 knative=True,
                 native=False,
-                ibm=False,
                 poll=False,
                 cmdline=None,
                 mpi_world_size=None,
@@ -41,10 +40,7 @@ def invoke_impl(user, func,
     faasm_config = get_faasm_config()
 
     # Provider-specific stuff
-    if ibm:
-        host = faasm_config["IBM"]["k8s_subdomain"]
-        port = 8080
-    elif knative:
+    if knative:
         host, port = get_invoke_host_port()
 
     # Defaults
@@ -82,24 +78,6 @@ def invoke_impl(user, func,
 
     if mpi_world_size:
         msg["mpi_world_size"] = mpi_world_size
-
-    # IBM-specific message format
-    if ibm:
-        faasm_conf = get_faasm_config()
-        msg.update({
-            "IBM_API_KEY": faasm_conf["IBM"]["api_key"],
-            "REDIS_QUEUE_HOST": faasm_conf["IBM"]["redis_host_public"],
-            "REDIS_STATE_HOST": faasm_conf["IBM"]["redis_host_public"],
-        })
-
-        # Message needs to be nested
-        msg = {
-            "value": msg,
-        }
-
-    # IBM must call init first
-    if ibm:
-        do_post("http://{}:{}/init/".format(host, port), msg, json=True)
 
     # Knative must pass custom headers
     if knative and native:
@@ -154,10 +132,10 @@ def invoke_impl(user, func,
             output = output.replace(prefix, "")
             return success, output
     else:
-        if ibm or knative:
+        if knative:
             return do_post(url, msg, headers=headers, json=True, debug=debug)
         else:
-            raise RuntimeError("Must specify knative or ibm")
+            raise RuntimeError("Must specify knative")
 
 
 def flush_call_impl(host, port):

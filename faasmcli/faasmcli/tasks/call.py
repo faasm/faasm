@@ -20,7 +20,6 @@ def invoke(ctx, user, func,
            asynch=False,
            knative=True,
            native=False,
-           ibm=False,
            poll=False,
            cmdline=None,
            debug=False,
@@ -29,7 +28,7 @@ def invoke(ctx, user, func,
     Invoke a function
     """
     res = invoke_impl(user, func, host=host, port=port, input=input, py=py, asynch=asynch,
-                knative=knative, native=native, ibm=ibm, poll=poll, cmdline=cmdline, debug=debug)
+                knative=knative, native=native, poll=poll, cmdline=cmdline, debug=debug)
 
     if asynch:
         print("Call ID: " + str(res))
