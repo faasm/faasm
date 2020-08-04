@@ -141,23 +141,7 @@ include_directories(
         ${CMAKE_CURRENT_BINARY_DIR}/src # Required for protobuf
 )
 
-if (FAASM_BUILD_TYPE STREQUAL "knative-native")
-    message(STATUS "Running knative native build")
-
-    add_subdirectory(func)
-    add_subdirectory(libs/cpp)
-    add_subdirectory(libs/pyinit)
-
-    add_subdirectory(src/emulator)
-    add_subdirectory(src/endpoint)
-    add_subdirectory(src/knative_native)
-    add_subdirectory(src/proto)
-    add_subdirectory(src/redis)
-    add_subdirectory(src/scheduler)
-    add_subdirectory(src/state)
-    add_subdirectory(src/util)
-
-elseif (FAASM_BUILD_TYPE STREQUAL "native-tools")
+if (FAASM_BUILD_TYPE STREQUAL "native-tools")
     # ------------------
     # Native tools for porting code
     # ------------------
@@ -197,7 +181,6 @@ else ()
     add_subdirectory(src/faaslet)
     add_subdirectory(src/ir_cache)
     add_subdirectory(src/knative)
-    add_subdirectory(src/knative_native)
     add_subdirectory(src/module_cache)
     add_subdirectory(src/mpi)
     add_subdirectory(src/proto)
@@ -224,5 +207,4 @@ else ()
     add_library(catch INTERFACE)
     add_subdirectory(tests/test)
     add_subdirectory(tests/utils)
-    add_subdirectory(tests/knative)
 endif ()

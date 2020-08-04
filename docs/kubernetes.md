@@ -100,68 +100,6 @@ When workers die or are killed, you'll need to clear the queue:
 inv redis.clear-queue --knative
 ```
 
-## Uploading and running native functions
-
-### C++
-
-For benchmarking we need to run the functions in a more "normal" serverless way (i.e. natively 
-in a container). To build the relevant container:
-
-```
-inv knative.build-native <user> <function>
-```
-
-This will use a parameterised Dockerfile to create a container that runs the given function 
-natively. You can test locally with:
-
-```
-# Build the container
-inv knative.build-native <user> <function> --nopush
-
-# Start the container
-inv knative.native-local <user> <function>
-
-# Submit a request
-inv invoke <user> <function> --native
-```
-
-Once you're happy you can run the following on your machine with knative access:
-
-```
-inv knative.deploy-native <user> <function>
-
-inv invoke --native <user> <function>
-```
-
-**Note** For anything that requires chaining we must run it asynchronously so that things 
-don't get clogged up. To do this:
-
-```
-inv invoke --native --poll <user> <function>
-```
-
-### Python
-
-To run Python functions natively we use pyfaasm and a standard Flask-based knative Python 
-executor. This can be found at `func/knative_native.py`. We can build the container with:
-
-```
-inv docker.build -c knative-native-python --push
-```
-
-To check things locally:
-
-```
-inv knative.native-python-local
-inv invoke python hello --py
-```
-
-To deploy, from the machine with k8s access:
-
-```
-inv knative.deploy-native-python
-```
-
 ## Troubleshooting
 
 To look at the logs for the faasm containers:

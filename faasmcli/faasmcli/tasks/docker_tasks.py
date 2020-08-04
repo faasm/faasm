@@ -25,8 +25,6 @@ RELEASE_CONTAINERS = [
 
 ALL_CONTAINERS = [
     "cpp-root",
-    "knative-native-base",
-    "knative-native-python",
 ]
 ALL_CONTAINERS += RELEASE_CONTAINERS
 
