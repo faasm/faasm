@@ -44,7 +44,7 @@ def native(ctx, clean=False):
     build_cmd = [
         "cmake",
         "-DFAASM_BUILD_TYPE=native-tools",
-        "-DFAASM_STATIC_LIBS=OFF",
+        "-DFAASM_STATIC_LIBS=ON",
         "-DCMAKE_BUILD_TYPE=Release",
         "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_INSTALL_DIR),
         PROJ_ROOT,
