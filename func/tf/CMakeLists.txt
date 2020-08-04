@@ -42,8 +42,4 @@ target_link_libraries(tf_img_lib ${TF_LIB})
 faasm_func(image image.cc)
 
 # Link with library
-if(FAASM_BUILD_TYPE STREQUAL "knative-native")
-    target_link_libraries(image-knative tf_img_lib)
-else()
-    target_link_libraries(image tf_img_lib)
-endif()
+target_link_libraries(image tf_img_lib)

@@ -19,7 +19,6 @@ def invoke(ctx, user, func,
            py=False,
            asynch=False,
            knative=True,
-           native=False,
            poll=False,
            cmdline=None,
            debug=False,
@@ -28,7 +27,7 @@ def invoke(ctx, user, func,
     Invoke a function
     """
     res = invoke_impl(user, func, host=host, port=port, input=input, py=py, asynch=asynch,
-                knative=knative, native=native, poll=poll, cmdline=cmdline, debug=debug)
+                knative=knative, poll=poll, cmdline=cmdline, debug=debug)
 
     if asynch:
         print("Call ID: " + str(res))
@@ -45,7 +44,7 @@ def status(ctx, call_id, host=None, port=None):
     host = host if host else k8s_host
     port = port if port else k8s_port
 
-    status_call_impl(None, None, call_id, host, port, quiet=False, native=False)
+    status_call_impl(None, None, call_id, host, port, quiet=False)
 
 
 @task
@@ -65,7 +64,7 @@ def exec_graph(ctx, call_id=None, host=None, port=None, headless=False, output_f
             print("No call ID provided and no last call ID found")
             exit(1)
 
-    json_str = exec_graph_call_impl(None, None, call_id, host, port, quiet=True, native=False)
+    json_str = exec_graph_call_impl(None, None, call_id, host, port, quiet=True)
 
     graph = parse_exec_graph_json(json_str)
     plot_exec_graph(graph, headless=headless, output_file=output_file)

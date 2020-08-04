@@ -22,7 +22,7 @@ extern "C" {
 /**
  * Used to emulate Faasm in native applications (i.e. anything that's not WebAssembly)
  *
- * This will make use of the existing state key-value abstraction where possible.
+ * This will make use of the Faasm state abstractions where possible.
  */
 
 // Note thread-locality here
