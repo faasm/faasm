@@ -5,7 +5,6 @@
 #include <state/State.h>
 #include <state/InMemoryStateKeyValue.h>
 
-#include <grpcpp/health_check_service_interface.h>
 #include <grpcpp/ext/proto_server_reflection_plugin.h>
 #include <grpcpp/grpcpp.h>
 
@@ -23,8 +22,6 @@ namespace state {
         std::string serverAddr = host + ":" + std::to_string(port);
 
         // Build the server
-        EnableDefaultHealthCheckService(true);
-        reflection::InitProtoReflectionServerBuilderPlugin();
         ServerBuilder builder;
         builder.AddListeningPort(serverAddr, InsecureServerCredentials());
         builder.RegisterService(this);
@@ -33,13 +30,14 @@ namespace state {
         server = builder.BuildAndStart();
         logger->info("State server listening on {}", serverAddr);
 
-        _started = true;
-
         server->Wait();
     }
 
     void StateServer::start(bool background) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        _started = true;
+        _isBackground = background;
 
         if (background) {
             logger->debug("Starting state server in background thread");
@@ -49,28 +47,27 @@ namespace state {
                 doStart();
             });
 
-            _isBackground = true;
         } else {
             logger->debug("Starting state server in this thread");
             doStart();
-            _isBackground = false;
         }
     }
 
     void StateServer::stop() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        if (_started) {
-            logger->info("State server stopping");
-            server->Shutdown();
-
-            if (_isBackground) {
-                logger->debug("Waiting for state server background thread");
-                if (servingThread.joinable()) {
-                    servingThread.join();
-                }
-            }
-        } else {
+        if(!_started) {
             logger->info("Not stopping state server, never started");
+            return;
+        }
+
+        logger->info("State server stopping");
+        server->Shutdown();
+
+        if (_isBackground) {
+            logger->debug("Waiting for state server background thread");
+            if (servingThread.joinable()) {
+                servingThread.join();
+            }
         }
     }
 
@@ -80,8 +77,7 @@ namespace state {
 
         // Iterate through streamed requests
         message::StateChunkRequest request;
-        auto requestPtr = &request;
-        while (stream->Read(requestPtr)) {
+        while (stream->Read(&request)) {
             util::getLogger()->debug(
                     "Pull {}/{} ({}->{})",
                     request.user(), request.key(),
@@ -89,9 +85,9 @@ namespace state {
             );
 
             // Write the response
-            KV_FROM_REQUEST(requestPtr)
+            KV_FROM_REQUEST((&request))
             message::StateChunk response;
-            kv->buildStatePullChunkResponse(requestPtr, &response);
+            kv->buildStatePullChunkResponse(&request, &response);
             stream->Write(response);
         }
 
@@ -103,22 +99,20 @@ namespace state {
             ServerReader<message::StateChunk> *reader,
             message::StateResponse *response) {
 
-        message::StateChunk request;
-        auto requestPtr = &request;
-
         // Assume user and key are same throughout
         std::string user;
         std::string key;
 
-        while (reader->Read(requestPtr)) {
+        message::StateChunk request;
+        while (reader->Read(&request)) {
             util::getLogger()->debug(
                     "Push {}/{} ({}->{})",
                     request.user(), request.key(),
                     request.offset(), request.offset() + request.data().size()
                     );
 
-            KV_FROM_REQUEST(requestPtr)
-            kv->extractStatePushChunkData(requestPtr);
+            KV_FROM_REQUEST((&request))
+            kv->extractStatePushChunkData(&request);
 
             if(user.empty()) {
                 user = kv->user;

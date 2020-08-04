@@ -176,8 +176,10 @@ namespace state {
         // If necessary, allocate the memory
         allocateChunk(offset, length);
 
-        // Do the copy
-        std::copy(buffer, buffer + length, BYTES(sharedMemory) + offset);
+        // Do the copy if necessary
+        if(buffer != nullptr) {
+            std::copy(buffer, buffer + length, BYTES(sharedMemory) + offset);
+        }
     }
 
     void StateKeyValue::flagDirty() {

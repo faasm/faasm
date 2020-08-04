@@ -59,8 +59,10 @@ namespace tests {
         kvADuplicate.set(dataB.data());
 
         // Create server
-        ServerContext context;
+        ServerContext serverContext;
         StateServer s(state::getGlobalState());
+        s.start();
+
         StateClient client(LOCALHOST);
 
         SECTION("State size") {
@@ -68,53 +70,27 @@ namespace tests {
             request.set_user(userA);
             request.set_key(keyA);
             message::StateSizeResponse response;
-            s.Size(&context, &request, &response);
+            s.Size(&serverContext, &request, &response);
 
             REQUIRE(response.statesize() == dataA.size());
         }
 
         SECTION("State pull multi chunk") {
-            s.start();
-
             std::vector<uint8_t> expectedA = {1, 2, 3};
             std::vector<uint8_t> expectedB = {2, 3, 4, 5};
             std::vector<uint8_t> expectedC = {7};
 
             // Deliberately overlap chunks
-            state::StateChunk chunkA(0, 3, nullptr);
+            state::StateChunk chunkA(1, 3, nullptr);
             state::StateChunk chunkB(2, 4, nullptr);
-            state::StateChunk chunkC(6, 1, nullptr);
+            state::StateChunk chunkC(7, 1, nullptr);
 
             std::vector<StateChunk> chunks = {chunkA, chunkB, chunkC};
-            std::vector<std::vector<uint8_t>> expected = {expectedA, expectedB, expectedC};
-
-            auto stream = client.stub->Pull(client.getContext().get());
-
-            for(int i = 0; i < chunks.size(); i++) {
-                message::StateChunkRequest request;
-                request.set_user(userA);
-                request.set_key(keyA);
-                request.set_offset(chunks[i].offset);
-                request.set_chunksize(chunks[i].length);
-
-                stream->Write(request);
-
-                message::StateChunk response;
-                stream->Read(&response);
-
-                REQUIRE(util::stringToBytes(response.data()) == expected[i]);
-            }
-
-            stream->WritesDone();
-            const Status streamStatus = stream->Finish();
-            REQUIRE(streamStatus.ok());
-
-            s.stop();
+            std::vector<uint8_t> expected = {0, 1, 2, 3, 4, 5, 0, 7};
+            client.pullChunks(userA, keyA, chunks, actual.data());
         }
 
         SECTION("State push multi chunk") {
-            s.start();
-
             std::vector<uint8_t> chunkDataA = {7, 7};
             std::vector<uint8_t> chunkDataB = {8};
             std::vector<uint8_t> chunkDataC = {9, 9, 9};
@@ -125,27 +101,12 @@ namespace tests {
             state::StateChunk chunkC(1, chunkDataC);
 
             std::vector<StateChunk> chunks = {chunkA, chunkB, chunkC};
-
-            message::StateResponse response;
-            auto stream = client.stub->Push(client.getContext().get(), &response);
-
-            for(auto chunk: chunks) {
-                message::StateChunk c;
-                c.set_offset(chunk.offset);
-                c.set_data(chunk.data, chunk.length);
-                REQUIRE(stream->Write(c));
-            }
-
-            stream->WritesDone();
-            Status streamStatus = stream->Finish();
-            REQUIRE(streamStatus.ok());
+            client.pushChunks(userA, keyA, chunks);
 
             // Check expectation
             std::vector<uint8_t> expected = {7, 9, 9, 9, 4, 5, 8, 7};
             kvA->get(actual.data());
             REQUIRE(actual == expected);
-
-            s.stop();
         }
 
         SECTION("State append") {
@@ -172,9 +133,9 @@ namespace tests {
 
             message::StateResponse response;
 
-            s.Append(&context, &requestA, &response);
-            s.Append(&context, &requestB, &response);
-            s.Append(&context, &requestC, &response);
+            s.Append(&serverContext, &requestA, &response);
+            s.Append(&serverContext, &requestB, &response);
+            s.Append(&serverContext, &requestC, &response);
 
             message::StateAppendedRequest requestD;
             requestD.set_user(userA);
@@ -182,7 +143,7 @@ namespace tests {
             requestD.set_nvalues(3);
 
             message::StateAppendedResponse responseD;
-            s.PullAppended(&context, &requestD, &responseD);
+            s.PullAppended(&serverContext, &requestD, &responseD);
 
             REQUIRE(responseD.values().size() == 3);
             std::vector<uint8_t> actualA = util::stringToBytes(responseD.values(0).data());
@@ -193,6 +154,8 @@ namespace tests {
             REQUIRE(actualB == chunkB);
             REQUIRE(actualC == chunkC);
         }
+
+        s.stop();
 
         resetStateMode();
     }

@@ -16,6 +16,13 @@ using grpc::Channel;
 using grpc::ClientContext;
 using grpc::Status;
 
+#define CHECK_RPC(label, op)  Status __status = op; \
+        if(!__status.ok()) {   \
+            printf("RPC error %s: %s\n", std::string(label).c_str(),  __status.error_message().c_str());    \
+            throw std::runtime_error("RPC error " + std::string(label));    \
+        }
+
+
 namespace state {
     ChannelArguments getChannelArgs();
 
@@ -29,6 +36,9 @@ namespace state {
         std::shared_ptr<Channel> channel;
         std::unique_ptr<message::StateRPCService::Stub> stub;
 
-        std::unique_ptr<ClientContext> getContext();
+        void pushChunks(const std::string &user, const std::string &key, const std::vector<StateChunk> &chunks);
+
+        void pullChunks(const std::string &user, const std::string &key, const std::vector<StateChunk> &chunks,
+                        uint8_t* bufferStart);
     };
 }

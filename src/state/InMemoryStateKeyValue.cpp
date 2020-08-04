@@ -5,15 +5,7 @@
 
 #include <memory>
 #include <util/state.h>
-#include <util/logging.h>
 #include <util/macros.h>
-
-
-#define CHECK_RPC(label, op)  Status __status = op; \
-        if(!__status.ok()) {   \
-            printf("RPC error %s: %s\n", std::string(label).c_str(),  __status.error_message().c_str());    \
-            throw std::runtime_error("RPC error " + std::string(label));    \
-        }
 
 
 namespace state {
@@ -37,7 +29,8 @@ namespace state {
         request.set_key(keyIn);
 
         message::StateSizeResponse response;
-        CHECK_RPC("state_size", stateClient.stub->Size(stateClient.getContext().get(), request, &response))
+        ClientContext context;
+        CHECK_RPC("state_size", stateClient.stub->Size(&context, request, &response))
         return response.statesize();
     }
 
@@ -58,8 +51,8 @@ namespace state {
         request.set_key(keyIn);
 
         StateClient stateClient(masterIP);
-
-        CHECK_RPC("state_delete", stateClient.stub->Delete(stateClient.getContext().get(), request, &response))
+        ClientContext context;
+        CHECK_RPC("state_delete", stateClient.stub->Delete(&context, request, &response))
     }
 
     void InMemoryStateKeyValue::clearAll(bool global) {
@@ -108,7 +101,8 @@ namespace state {
             request.set_user(user);
             request.set_key(key);
 
-            CHECK_RPC("state_lock", masterClient.stub->Lock(masterClient.getContext().get(), request, &response))
+            ClientContext context;
+            CHECK_RPC("state_lock", masterClient.stub->Lock(&context, request, &response))
         }
     }
 
@@ -122,7 +116,8 @@ namespace state {
             request.set_user(user);
             request.set_key(key);
 
-            CHECK_RPC("state_unlock", masterClient.stub->Unlock(masterClient.getContext().get(), request, &response))
+            ClientContext context;
+            CHECK_RPC("state_unlock", masterClient.stub->Unlock(&context, request, &response))
         }
     }
 
@@ -131,41 +126,8 @@ namespace state {
             return;
         }
 
-        auto twoWayStream = masterClient.stub->Pull(masterClient.getContext().get());
-        std::vector<StateChunk> allChunks = getAllChunks();
-    }
-
-    void InMemoryStateKeyValue::doPullChunks(
-            const std::vector<StateChunk> &chunks,
-            ClientReaderWriter<message::StateChunkRequest, message::StateChunk> *stream) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        for (const auto &chunk : chunks) {
-            message::StateChunkRequest request;
-            request.set_user(user);
-            request.set_key(key);
-            request.set_offset(chunk.offset);
-            request.set_chunksize(chunk.length);
-
-            bool writeSuccess = stream->Write(request);
-            if (!writeSuccess) {
-                logger->error("Failed to request {}/{} ({} -> {})", user, key, chunk.offset,
-                              chunk.offset + chunk.length);
-                throw std::runtime_error("Failed to request pull chunk");
-            }
-
-            message::StateChunk response;
-            bool readSuccess = stream->Read(&response);
-            if (!readSuccess) {
-                logger->error("Failed to pull {}/{} ({} -> {})", user, key, chunk.offset, chunk.offset + chunk.length);
-                throw std::runtime_error("Failed to pull chunk");
-            }
-
-            // Set the chunk
-            doSetChunk(response.offset(), BYTES_CONST(response.data().data()), response.data().size());
-        }
-
-        CHECK_RPC("pull_chunks", stream->Finish())
+        std::vector<StateChunk> chunks = getAllChunks();
+        masterClient.pullChunks(user, key, chunks, BYTES(sharedMemory));
     }
 
     void InMemoryStateKeyValue::pullChunkFromRemote(long offset, size_t length) {
@@ -175,8 +137,7 @@ namespace state {
 
         uint8_t *chunkStart = BYTES(sharedMemory) + offset;
         std::vector<StateChunk> chunks = {StateChunk(offset, length, chunkStart)};
-        auto stream = masterClient.stub->Pull(masterClient.getContext().get());
-        doPullChunks(chunks, stream.get());
+        masterClient.pullChunks(user, key, chunks, BYTES(sharedMemory));
     }
 
     void InMemoryStateKeyValue::pushToRemote() {
@@ -184,41 +145,15 @@ namespace state {
             return;
         }
 
-        message::StateResponse response;
-        auto stream = masterClient.stub->Push(masterClient.getContext().get(), &response);
         std::vector<StateChunk> allChunks = getAllChunks();
-        doPushChunks(allChunks, stream.get());
-    }
-
-    void InMemoryStateKeyValue::doPushChunks(const std::vector<StateChunk> &chunks,
-                                             ClientWriter<message::StateChunk> *stream) {
-        for (const auto &chunk : chunks) {
-            message::StateChunk request;
-
-            request.set_user(user);
-            request.set_key(key);
-            request.set_offset(chunk.offset);
-            request.set_data(chunk.data, chunk.length);
-
-            bool success = stream->Write(request);
-            if (!success) {
-                util::getLogger()->error("Failed to push {}/{} ({} -> {})", user, key, chunk.offset,
-                                         chunk.offset + chunk.length);
-                throw std::runtime_error("Push chunk failed");
-            }
-        }
-
-        // Finish the stream
-        CHECK_RPC("push_chunks", stream->Finish());
+        masterClient.pushChunks(user, key, allChunks);
     }
 
     void InMemoryStateKeyValue::pushPartialToRemote(const std::vector<StateChunk> &chunks) {
         if (status == InMemoryStateKeyStatus::MASTER) {
             // Nothing to be done
         } else {
-            message::StateResponse response;
-            auto stream = masterClient.stub->Push(masterClient.getContext().get(), &response);
-            doPushChunks(chunks, stream.get());
+            masterClient.pushChunks(user, key, chunks);
         }
     }
 
@@ -238,7 +173,8 @@ namespace state {
             request.set_key(key);
             request.set_data(reinterpret_cast<const char *>(data), length);
 
-            CHECK_RPC("state_append", masterClient.stub->Append(masterClient.getContext().get(), request, &response))
+            ClientContext context;
+            CHECK_RPC("state_append", masterClient.stub->Append(&context, request, &response))
         }
     }
 
@@ -260,8 +196,8 @@ namespace state {
             request.set_key(key);
             request.set_nvalues(nValues);
 
-            CHECK_RPC("state_pull_appended",
-                      masterClient.stub->PullAppended(masterClient.getContext().get(), request, &response))
+            ClientContext context;
+            CHECK_RPC("state_pull_appended", masterClient.stub->PullAppended(&context, request, &response))
 
             size_t offset = 0;
             for (auto &value : response.values()) {
@@ -288,8 +224,8 @@ namespace state {
             request.set_user(user);
             request.set_key(key);
 
-            CHECK_RPC("state_clear_appended",
-                      masterClient.stub->ClearAppended(masterClient.getContext().get(), request, &response))
+            ClientContext context;
+            CHECK_RPC("state_clear_appended", masterClient.stub->ClearAppended(&context, request, &response))
         }
     }
 
