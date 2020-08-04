@@ -10,7 +10,6 @@
 #include <emulator/emulator.h>
 #include <util/state.h>
 #include <state/StateServer.h>
-#include <tcp/TCPClient.h>
 
 
 using namespace faasm;
