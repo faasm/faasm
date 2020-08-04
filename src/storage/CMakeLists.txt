@@ -10,8 +10,6 @@ set(LIB_FILES
         FileLoader.cpp
         FileSystem.cpp
         FileserverFileLoader.cpp
-        IBMFileLoader.cpp
-        IBMStorageWrapper.cpp
         LocalFileLoader.cpp
         SharedFiles.cpp
         SparseMatrixFileSerialiser.cpp

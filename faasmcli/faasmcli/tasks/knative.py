@@ -8,7 +8,6 @@ from invoke import task
 from faasmcli.util.config import get_faasm_config
 from faasmcli.util.env import PROJ_ROOT, FUNC_DIR
 from faasmcli.util.files import clean_dir
-from faasmcli.util.ibm import get_ibm_kubeconfig
 from faasmcli.util.endpoints import get_invoke_host_port
 from faasmcli.util.version import get_faasm_version
 
@@ -17,7 +16,6 @@ BARE_METAL_CONF = join(K8S_DIR, "bare-metal")
 BARE_METAL_REMOTE_CONF = join(K8S_DIR, "bare-metal-remote")
 LOCAL_CONF = join(K8S_DIR, "local")
 COMMON_CONF = join(K8S_DIR, "common")
-IBM_CONF = join(K8S_DIR, "ibm")
 
 KNATIVE_VERSION = "0.13.0"
 
@@ -126,30 +124,18 @@ def delete_worker(ctx, hard=False):
 
 
 @task
-def deploy(ctx, replicas=DEFAULT_REPLICAS, local=False, ibm=False, gke=False):
+def deploy(ctx, replicas=DEFAULT_REPLICAS, local=False, gke=False):
     """
     Deploy Faasm to knative
     """
-    faasm_conf = get_faasm_config()
-
-    shell_env = {}
-    if ibm:
-        # IBM requires specifying custom kubeconfig
-        shell_env["KUBECONFIG"] = get_ibm_kubeconfig()
-
-        extra_env = {
-            "FUNCTION_STORAGE": "ibm",
-            "IBM_API_KEY": faasm_conf["IBM"]["api_key"],
-        }
-    else:
-        extra_env = {
-            "FUNCTION_STORAGE": "fileserver",
-            "FILESERVER_URL": "http://upload:8002",
-        }
+    extra_env = {
+        "FUNCTION_STORAGE": "fileserver",
+        "FILESERVER_URL": "http://upload:8002",
+    }
 
     # Deploy the other K8s stuff (e.g. redis)
-    _kubectl_apply(join(COMMON_CONF, "namespace.yml"), env=shell_env)
-    _kubectl_apply(COMMON_CONF, env=shell_env)
+    _kubectl_apply(join(COMMON_CONF, "namespace.yml"))
+    _kubectl_apply(COMMON_CONF)
     _kubectl_apply(BARE_METAL_CONF)
 
     if local:
