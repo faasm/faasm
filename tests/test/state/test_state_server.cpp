@@ -62,17 +62,13 @@ namespace tests {
         ServerContext serverContext;
         StateServer s(state::getGlobalState());
         s.start();
+        usleep(1000 * 100);
 
-        StateClient client(LOCALHOST);
+        StateClient client(userA, keyA, STATE_HOST);
 
         SECTION("State size") {
-            message::StateRequest request;
-            request.set_user(userA);
-            request.set_key(keyA);
-            message::StateSizeResponse response;
-            s.Size(&serverContext, &request, &response);
-
-            REQUIRE(response.statesize() == dataA.size());
+            size_t actualSize = client.stateSize();
+            REQUIRE(actualSize == dataA.size());
         }
 
         SECTION("State pull multi chunk") {
@@ -87,7 +83,7 @@ namespace tests {
 
             std::vector<StateChunk> chunks = {chunkA, chunkB, chunkC};
             std::vector<uint8_t> expected = {0, 1, 2, 3, 4, 5, 0, 7};
-            client.pullChunks(userA, keyA, chunks, actual.data());
+            client.pullChunks(chunks, actual.data());
         }
 
         SECTION("State push multi chunk") {
@@ -101,7 +97,7 @@ namespace tests {
             state::StateChunk chunkC(1, chunkDataC);
 
             std::vector<StateChunk> chunks = {chunkA, chunkB, chunkC};
-            client.pushChunks(userA, keyA, chunks);
+            client.pushChunks(chunks);
 
             // Check expectation
             std::vector<uint8_t> expected = {7, 9, 9, 9, 4, 5, 8, 7};
@@ -116,43 +112,14 @@ namespace tests {
             std::vector<uint8_t> chunkC = {2, 2};
             std::vector<uint8_t> expected = {3, 2, 1, 5, 5, 2, 2};
 
-            message::StateRequest requestA;
-            requestA.set_user(userA);
-            requestA.set_key(keyA);
-            requestA.set_data(chunkA.data(), chunkA.size());
+            client.append(chunkA.data(), chunkA.size());
+            client.append(chunkB.data(), chunkB.size());
+            client.append(chunkC.data(), chunkC.size());
 
-            message::StateRequest requestB;
-            requestB.set_user(userA);
-            requestB.set_key(keyA);
-            requestB.set_data(chunkB.data(), chunkB.size());
+            std::vector<uint8_t> actualAppended(expected.size(), 0);
+            client.pullAppended(actualAppended.data(), actualAppended.size(), 3);
 
-            message::StateRequest requestC;
-            requestC.set_user(userA);
-            requestC.set_key(keyA);
-            requestC.set_data(chunkC.data(), chunkC.size());
-
-            message::StateResponse response;
-
-            s.Append(&serverContext, &requestA, &response);
-            s.Append(&serverContext, &requestB, &response);
-            s.Append(&serverContext, &requestC, &response);
-
-            message::StateAppendedRequest requestD;
-            requestD.set_user(userA);
-            requestD.set_key(keyA);
-            requestD.set_nvalues(3);
-
-            message::StateAppendedResponse responseD;
-            s.PullAppended(&serverContext, &requestD, &responseD);
-
-            REQUIRE(responseD.values().size() == 3);
-            std::vector<uint8_t> actualA = util::stringToBytes(responseD.values(0).data());
-            std::vector<uint8_t> actualB = util::stringToBytes(responseD.values(1).data());
-            std::vector<uint8_t> actualC = util::stringToBytes(responseD.values(2).data());
-
-            REQUIRE(actualA == chunkA);
-            REQUIRE(actualB == chunkB);
-            REQUIRE(actualC == chunkC);
+            REQUIRE(actualAppended == expected);
         }
 
         s.stop();

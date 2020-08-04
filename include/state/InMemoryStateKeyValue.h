@@ -42,20 +42,7 @@ namespace state {
 
         bool isMaster();
 
-        void buildStateSizeResponse(message::StateSizeResponse *response);
-
-        void buildStatePullChunkResponse(
-                const message::StateChunkRequest *request,
-                message::StateChunk *response
-        );
-
-        void extractStatePushChunkData(const message::StateChunk *request);
-
-        void extractStateAppendData(const message::StateRequest *request,
-                                    message::StateResponse *response);
-
-        void buildPullAppendedResponse(const ::message::StateAppendedRequest *request,
-                                       message::StateAppendedResponse *response);
+        AppendedInMemoryState &getAppendedValue(uint idx);
 
     private:
         const std::string thisIP;

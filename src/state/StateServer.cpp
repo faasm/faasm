@@ -7,6 +7,7 @@
 
 #include <grpcpp/ext/proto_server_reflection_plugin.h>
 #include <grpcpp/grpcpp.h>
+#include <util/macros.h>
 
 #define KV_FROM_REQUEST(request) auto kv = std::static_pointer_cast<InMemoryStateKeyValue>( \
     state.getKV(request->user(), request->key()) \
@@ -87,7 +88,18 @@ namespace state {
             // Write the response
             KV_FROM_REQUEST((&request))
             message::StateChunk response;
-            kv->buildStatePullChunkResponse(&request, &response);
+
+            uint64_t chunkOffset = request.offset();
+            uint64_t chunkLen = request.chunksize();
+            uint8_t *chunk = kv->getChunk(chunkOffset, chunkLen);
+
+            response.set_user(request.user());
+            response.set_key(request.key());
+            response.set_offset(chunkOffset);
+
+            // TODO: avoid copying here
+            response.set_data(chunk, chunkLen);
+            
             stream->Write(response);
         }
 
@@ -112,7 +124,7 @@ namespace state {
                     );
 
             KV_FROM_REQUEST((&request))
-            kv->extractStatePushChunkData(&request);
+            kv->setChunk(request.offset(), BYTES_CONST(request.data().c_str()), request.data().size());
 
             if(user.empty()) {
                 user = kv->user;
@@ -132,7 +144,9 @@ namespace state {
             message::StateSizeResponse *response) {
         util::getLogger()->debug("Size {}/{}", request->user(), request->key());
         KV_FROM_REQUEST(request)
-        kv->buildStateSizeResponse(response);
+        response->set_user(kv->user);
+        response->set_key(kv->key);
+        response->set_statesize(kv->size());
 
         return Status::OK;
     }
@@ -143,7 +157,13 @@ namespace state {
             message::StateResponse *response) {
         util::getLogger()->debug("Append {}/{}", request->user(), request->key());
         KV_FROM_REQUEST(request)
-        kv->extractStateAppendData(request, response);
+
+        auto data = BYTES_CONST(request->data().c_str());
+        uint64_t dataLen = request->data().size();
+        kv->append(data, dataLen);
+
+        response->set_user(request->user());
+        response->set_key(request->key());
 
         return Status::OK;
     }
@@ -169,7 +189,14 @@ namespace state {
 
         KV_FROM_REQUEST(request)
 
-        kv->buildPullAppendedResponse(request, response);
+        response->set_user(request->user());
+        response->set_key(request->key());
+        
+        for (uint32_t i = 0; i < request->nvalues(); i++) {
+            AppendedInMemoryState &value = kv->getAppendedValue(i);
+            auto appendedValue = response->add_values();
+            appendedValue->set_data(reinterpret_cast<char *>(value.data.get()), value.length);
+        }
 
         return Status::OK;
     }

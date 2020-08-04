@@ -3,7 +3,6 @@
 #include <util/bytes.h>
 #include <cstdio>
 
-#include <memory>
 #include <util/state.h>
 #include <util/macros.h>
 
@@ -22,16 +21,8 @@ namespace state {
             return 0;
         }
 
-        StateClient stateClient(masterIP);
-
-        message::StateRequest request;
-        request.set_user(userIn);
-        request.set_key(keyIn);
-
-        message::StateSizeResponse response;
-        ClientContext context;
-        CHECK_RPC("state_size", stateClient.stub->Size(&context, request, &response))
-        return response.statesize();
+        StateClient stateClient(userIn, keyIn, masterIP);
+        return stateClient.stateSize();
     }
 
     void InMemoryStateKeyValue::deleteFromRemote(const std::string &userIn, const std::string &keyIn,
@@ -44,15 +35,8 @@ namespace state {
             return;
         }
 
-        message::StateRequest request;
-        message::StateResponse response;
-
-        request.set_user(userIn);
-        request.set_key(keyIn);
-
-        StateClient stateClient(masterIP);
-        ClientContext context;
-        CHECK_RPC("state_delete", stateClient.stub->Delete(&context, request, &response))
+        StateClient stateClient(userIn, keyIn, masterIP);
+        stateClient.deleteState();
     }
 
     void InMemoryStateKeyValue::clearAll(bool global) {
@@ -71,7 +55,7 @@ namespace state {
                                                           masterIP(getInMemoryStateRegistry().getMasterIP(user, key,
                                                                                                           thisIP,
                                                                                                           true)),
-                                                          masterClient(masterIP),
+                                                          masterClient(userIn, keyIn, masterIP),
                                                           status(masterIP == thisIP ? InMemoryStateKeyStatus::MASTER
                                                                                     : InMemoryStateKeyStatus::NOT_MASTER),
                                                           stateRegistry(getInMemoryStateRegistry()) {
@@ -95,14 +79,7 @@ namespace state {
         if (status == InMemoryStateKeyStatus::MASTER) {
             globalLock.lock();
         } else {
-            message::StateRequest request;
-            message::StateResponse response;
-
-            request.set_user(user);
-            request.set_key(key);
-
-            ClientContext context;
-            CHECK_RPC("state_lock", masterClient.stub->Lock(&context, request, &response))
+            masterClient.lock();
         }
     }
 
@@ -110,14 +87,7 @@ namespace state {
         if (status == InMemoryStateKeyStatus::MASTER) {
             globalLock.unlock();
         } else {
-            message::StateRequest request;
-            message::StateResponse response;
-
-            request.set_user(user);
-            request.set_key(key);
-
-            ClientContext context;
-            CHECK_RPC("state_unlock", masterClient.stub->Unlock(&context, request, &response))
+            masterClient.unlock();
         }
     }
 
@@ -127,7 +97,7 @@ namespace state {
         }
 
         std::vector<StateChunk> chunks = getAllChunks();
-        masterClient.pullChunks(user, key, chunks, BYTES(sharedMemory));
+        masterClient.pullChunks(chunks, BYTES(sharedMemory));
     }
 
     void InMemoryStateKeyValue::pullChunkFromRemote(long offset, size_t length) {
@@ -137,7 +107,7 @@ namespace state {
 
         uint8_t *chunkStart = BYTES(sharedMemory) + offset;
         std::vector<StateChunk> chunks = {StateChunk(offset, length, chunkStart)};
-        masterClient.pullChunks(user, key, chunks, BYTES(sharedMemory));
+        masterClient.pullChunks(chunks, BYTES(sharedMemory));
     }
 
     void InMemoryStateKeyValue::pushToRemote() {
@@ -146,14 +116,14 @@ namespace state {
         }
 
         std::vector<StateChunk> allChunks = getAllChunks();
-        masterClient.pushChunks(user, key, allChunks);
+        masterClient.pushChunks(allChunks);
     }
 
     void InMemoryStateKeyValue::pushPartialToRemote(const std::vector<StateChunk> &chunks) {
         if (status == InMemoryStateKeyStatus::MASTER) {
             // Nothing to be done
         } else {
-            masterClient.pushChunks(user, key, chunks);
+            masterClient.pushChunks(chunks);
         }
     }
 
@@ -166,15 +136,7 @@ namespace state {
             // Add to list
             appendedData.emplace_back(length, dataCopy);
         } else {
-            message::StateRequest request;
-            message::StateResponse response;
-
-            request.set_user(user);
-            request.set_key(key);
-            request.set_data(reinterpret_cast<const char *>(data), length);
-
-            ClientContext context;
-            CHECK_RPC("state_append", masterClient.stub->Append(&context, request, &response))
+            masterClient.append(data, length);
         }
     }
 
@@ -189,27 +151,7 @@ namespace state {
                 offset += appended.length;
             }
         } else {
-            message::StateAppendedRequest request;
-            message::StateAppendedResponse response;
-
-            request.set_user(user);
-            request.set_key(key);
-            request.set_nvalues(nValues);
-
-            ClientContext context;
-            CHECK_RPC("state_pull_appended", masterClient.stub->PullAppended(&context, request, &response))
-
-            size_t offset = 0;
-            for (auto &value : response.values()) {
-                if (offset > length) {
-                    logger->error("Buffer not large enough for appended data (offset={}, length={})", offset, length);
-                    throw std::runtime_error("Buffer not large enough for appended data");
-                }
-
-                auto valueData = BYTES_CONST(value.data().c_str());
-                std::copy(valueData, valueData + value.data().size(), data + offset);
-                offset += value.data().size();
-            }
+            masterClient.pullAppended(data, length, nValues);
         }
     }
 
@@ -218,86 +160,11 @@ namespace state {
             // Clear appended locally
             appendedData.clear();
         } else {
-            message::StateRequest request;
-            message::StateResponse response;
-
-            request.set_user(user);
-            request.set_key(key);
-
-            ClientContext context;
-            CHECK_RPC("state_clear_appended", masterClient.stub->ClearAppended(&context, request, &response))
+            masterClient.clearAppended();
         }
     }
 
-    // ----------------------------------------
-    // RPC Messages
-    // ----------------------------------------
-
-    void InMemoryStateKeyValue::buildStateSizeResponse(
-            message::StateSizeResponse *response
-    ) {
-        response->set_user(user);
-        response->set_key(key);
-        response->set_statesize(valueSize);
-    }
-
-    void InMemoryStateKeyValue::buildStatePullChunkResponse(
-            const message::StateChunkRequest *request,
-            message::StateChunk *response
-    ) {
-        uint64_t chunkOffset = request->offset();
-        uint64_t chunkLen = request->chunksize();
-
-        // Check bounds - note we need to check against the allocated memory size, not the value
-        uint64_t chunkEnd = chunkOffset + chunkLen;
-        if (chunkEnd > sharedMemSize) {
-            logger->error("Pull chunk request larger than allocated memory (chunk end {}, allocated {})",
-                          chunkEnd, sharedMemSize);
-            throw std::runtime_error("Pull chunk request exceeds allocated memory");
-        }
-
-        response->set_user(user);
-        response->set_key(key);
-        response->set_offset(chunkOffset);
-
-        // TODO: avoid copying here
-        char *chunkStart = reinterpret_cast<char *>(sharedMemory) + chunkOffset;
-        response->set_data(chunkStart, chunkLen);
-    }
-
-    void InMemoryStateKeyValue::extractStatePushChunkData(
-            const message::StateChunk *request
-    ) {
-        uint8_t *valueBytes = get();
-        size_t chunkOffset = request->offset();
-        auto chunkData = BYTES_CONST(request->data().c_str());
-        size_t chunkSize = request->data().size();
-
-        std::copy(chunkData, chunkData + chunkSize, valueBytes + chunkOffset);
-    }
-
-    void InMemoryStateKeyValue::extractStateAppendData(const message::StateRequest *request,
-                                                       message::StateResponse *response) {
-
-        auto data = BYTES_CONST(request->data().c_str());
-        uint64_t dataLen = request->data().size();
-        append(data, dataLen);
-
-        response->set_user(user);
-        response->set_key(key);
-    }
-
-    void InMemoryStateKeyValue::buildPullAppendedResponse(
-            const ::message::StateAppendedRequest *request,
-            message::StateAppendedResponse *response
-    ) {
-        response->set_user(user);
-        response->set_key(key);
-
-        for (uint32_t i = 0; i < request->nvalues(); i++) {
-            AppendedInMemoryState &value = appendedData.at(i);
-            auto appendedValue = response->add_values();
-            appendedValue->set_data(reinterpret_cast<char *>(value.data.get()), value.length);
-        }
+    AppendedInMemoryState& InMemoryStateKeyValue::getAppendedValue(uint idx) {
+        return appendedData.at(idx);
     }
 }

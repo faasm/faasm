@@ -28,17 +28,33 @@ namespace state {
 
     class StateClient {
     public:
-        explicit StateClient(const std::string &hostIn);
+        explicit StateClient(const std::string &userIn, const std::string &keyIn, const std::string &hostIn);
 
+        const std::string user;
+        const std::string key;
         const std::string host;
+
         InMemoryStateRegistry &reg;
 
         std::shared_ptr<Channel> channel;
         std::unique_ptr<message::StateRPCService::Stub> stub;
 
-        void pushChunks(const std::string &user, const std::string &key, const std::vector<StateChunk> &chunks);
+        void pushChunks(const std::vector<StateChunk> &chunks);
 
-        void pullChunks(const std::string &user, const std::string &key, const std::vector<StateChunk> &chunks,
-                        uint8_t* bufferStart);
+        void pullChunks(const std::vector<StateChunk> &chunks, uint8_t *bufferStart);
+
+        void append(const uint8_t *data, size_t length);
+
+        void pullAppended(uint8_t *buffer, size_t length, long nValues);
+
+        void clearAppended();
+
+        size_t stateSize();
+
+        void deleteState();
+
+        void lock();
+
+        void unlock();
     };
 }
