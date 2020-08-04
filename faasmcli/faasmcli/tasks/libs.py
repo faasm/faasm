@@ -43,6 +43,8 @@ def native(ctx, clean=False):
 
     build_cmd = [
         "cmake",
+        "-DCMAKE_CXX_COMPILER=/usr/bin/clang++-10",
+        "-DCMAKE_C_COMPILER=/usr/bin/clang-10",
         "-DFAASM_BUILD_TYPE=native-tools",
         "-DFAASM_STATIC_LIBS=OFF",
         "-DCMAKE_BUILD_TYPE=Release",
@@ -133,6 +135,7 @@ def rust(ctx, clean=False, verbose=False):
     Install Rust library
     """
     _build_faasm_lib("rust", clean, verbose)
+
 
 @task
 def fake(ctx, clean=False):

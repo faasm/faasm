@@ -1,4 +1,4 @@
-FROM faasm/cpp-root:0.1.5
+FROM faasm/cpp-root:0.3.0
 
 # Put code in place
 COPY . /usr/local/code/faasm

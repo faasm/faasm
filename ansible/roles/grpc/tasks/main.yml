@@ -1,5 +1,11 @@
 ---
 
+- name: "gRPC system deps"
+  become: yes
+  apt:
+    name:
+      - libc-ares-dev
+
 - name: "Check if grpc is installed"
   stat:
     path: /usr/local/include/grpcpp/
@@ -28,6 +34,7 @@
 - name: "CMake Build"
   shell: >
     cmake -GNinja -DgRPC_INSTALL=ON  \
+    -DgRPC_BUILD_SHARED_LIBS=ON \
     -DgRPC_BUILD_TESTS=OFF \
     -DgRPC_ABSL_PROVIDER=module \
     -DgRPC_PROTOBUF_PROVIDER=package \

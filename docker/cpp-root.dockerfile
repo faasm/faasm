@@ -55,9 +55,10 @@ WORKDIR /usr/local/code/faasm/ansible
 RUN ansible-playbook llvm10.yml
 
 RUN ansible-playbook cmake.yml
-RUN ln -s /usr/local/lib/cmake-3.15/bin/cmake /bin/cmake
 
 RUN ansible-playbook protobuf.yml
+
+RUN ansible-playbook grpc.yml
 
 RUN ansible-playbook spdlog.yml
 
