@@ -76,7 +76,12 @@ namespace wasm{
             return false;
         }
         if(ret_val != FAASM_SGX_SUCCESS){
-            printf("[Error] Unable to call desired function (%#010x)\n",ret_val);
+            if((sgx_ret_val = (sgx_status_t) FAASM_SGX_OCALL_GET_SGX_ERROR(ret_val))){
+                printf("[Error] An OCALL failed (%#010x)\n",sgx_ret_val);
+                msg.set_returnvalue(FAASM_SGX_OCALL_FAILED);
+                return false;
+            }
+            printf("[Error] An error occurred during function execution (%#010x)\n",ret_val);
             msg.set_returnvalue(ret_val);
             return false;
         }

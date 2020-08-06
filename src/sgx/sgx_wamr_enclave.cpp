@@ -150,6 +150,11 @@ extern "C"{
 #endif
         if(!(wasm_create_exec_env_and_call_function((WASMModuleInstance*)sgx_wamr_tcs[thread_id].module_inst, (WASMFunctionInstance*)wasm_function, 0, 0x0))){
 #if(WASM_ENABLE_INTERP == 1 && WASM_ENABLE_AOT == 0)
+            if(!memcmp(((WASMModuleInstance*)sgx_wamr_tcs[thread_id].module_inst)->cur_exception,_WRAPPER_ERROR_PREFIX,sizeof(_WRAPPER_ERROR_PREFIX))){
+                faasm_sgx_status_t ret_val = *(faasm_sgx_status_t*)&(((WASMModuleInstance*)sgx_wamr_tcs[thread_id].module_inst)->cur_exception[sizeof(_WRAPPER_ERROR_PREFIX)]);
+                read_unlock(&_rwlock_sgx_wamr_tcs_realloc);
+                return ret_val;
+            }
             ocall_printf(((WASMModuleInstance*) sgx_wamr_tcs[thread_id].module_inst)->cur_exception);
 #elif(WASM_ENABLE_INTERP == 0 && WASM_ENABLE_AOT == 1)
             ocall_printf(((AOTModuleInstance*) sgx_wamr_tcs[thread_id].module_inst)->cur_exception);
@@ -221,9 +226,13 @@ extern "C"{
             whitelist = (char*) malloc(sizeof("puts|printf"));
             memcpy(whitelist, "puts|printf",sizeof("puts|printf"));
             counter++;
-        }else{
+        }else if(counter == 2 || counter == 3){
             whitelist = (char*) malloc(sizeof("*"));
             memcpy(whitelist, "*",sizeof("*"));
+            counter++;
+        }else{
+        whitelist = (char*) malloc(sizeof(""));
+            memcpy(whitelist,"",sizeof(""));
         }
         _register_whitelist(whitelist,'|');
         if((xra_ret_val = xra_create_report(sgx_wamr_tcs[*thread_id].wasm_opcode,wasm_opcode_size,(uint8_t*)whitelist,&xra_report)) != XRA_SUCCESS)

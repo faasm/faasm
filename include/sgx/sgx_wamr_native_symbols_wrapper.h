@@ -45,7 +45,7 @@ extern "C"{
     static void faasm_read_state_offset_wrapper(wasm_exec_env_t exec_env, const char* key, const uint64_t total_len, const uint64_t offset, uint8_t* buffer_ptr, const uint32_t buffer_len);
     static void faasm_write_state_wrapper(wasm_exec_env_t exec_env, const char* key, const uint8_t* buffer_ptr, const uint32_t buffer_len);
     static void faasm_append_state_wrapper(wasm_exec_env_t exec_env, const char* key, const uint8_t* buffer_ptr, const uint32_t buffer_len);
-    static void faasm_clear_appended_state_wrapper(const char* key);
+    static void faasm_clear_appended_state_wrapper(wasm_exec_env_t exec_env, const char* key);
     static void faasm_write_state_offset_wrapper(wasm_exec_env_t exec_env, const char* key, const uint64_t total_len, const uint64_t offset, const uint8_t* buffer_ptr, const uint32_t buffer_len);
     static void faasm_flag_state_dirty_wrapper(wasm_exec_env_t exec_env, const char* key, const uint64_t total_len);
     static void faasm_flag_state_offset_dirty_wrapper(wasm_exec_env_t exec_env, const char* key, const uint64_t total_len, const uint64_t offset, const uint64_t len);
