@@ -14,8 +14,6 @@
 #include <sgx/sgx_wamr_whitelisting.h>
 #endif
 
-#define _WRAPPER_ERROR_PREFIX "FAASM_SGX_ERROR:"
-
 typedef struct __sgx_wamr_tcs{
     wasm_module_t module;
     wasm_module_inst_t module_inst;
