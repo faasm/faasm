@@ -156,9 +156,9 @@ extern "C"{
             }
             ocall_printf(wasm_module_inst_ptr->cur_exception);
 #elif(WASM_ENABLE_INTERP == 0 && WASM_ENABLE_AOT == 1)
-            ocall_printf(((AOTModuleInstance*) sgx_wamr_tcs[thread_id].module_inst)->cur_exception);
+            ocall_printf(((AOTModuleInstance*) wasm_module_inst_ptr)->cur_exception);
 #else
-            ocall_printf(sgx_wamr_tcs[thread_id].module_inst->module_type == Wasm_Module_Bytecode? ((WASMModuleInstance*)sgx_wamr_tcs[thread_id].module_inst)->cur_exception : ((AOTModuleInstance*)sgx_wamr_tcs[thread_id].module_inst)->cur_exception);
+            ocall_printf(((WASMModuleInstanceCommon*)wasm_module_inst_ptr)->module_type == Wasm_Module_Bytecode? ((WASMModuleInstance*)wasm_module_inst_ptr)->cur_exception : ((AOTModuleInstance*)wasm_module_inst_ptr)->cur_exception);
 #endif
             return FAASM_SGX_WAMR_FUNCTION_UNABLE_TO_CALL;
         }
