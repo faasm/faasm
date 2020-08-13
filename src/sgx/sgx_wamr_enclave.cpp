@@ -135,36 +135,33 @@ extern "C"{
     }
     faasm_sgx_status_t sgx_wamr_enclave_call_function(const uint32_t thread_id, const uint32_t func_id){
         wasm_function_inst_t wasm_function;
+        read_lock(&_rwlock_sgx_wamr_tcs_realloc);
+        WASMModuleInstance* wasm_module_inst_ptr = (WASMModuleInstance*) sgx_wamr_tcs[thread_id].module_inst;
+        read_unlock(&_rwlock_sgx_wamr_tcs_realloc);
         char func_id_str[33];
         if(_itoa_s(func_id,func_id_str,sizeof(func_id_str),10))
             return FAASM_SGX_INVALID_FUNC_ID;
         if(thread_id >= _sgx_wamr_tcs_len)
             return FAASM_SGX_INVALID_THREAD_ID;
-        read_lock(&_rwlock_sgx_wamr_tcs_realloc);
-        if(!(wasm_function = wasm_runtime_lookup_function(sgx_wamr_tcs[thread_id].module_inst, func_id_str, NULL))){
-            read_unlock(&_rwlock_sgx_wamr_tcs_realloc);
+        if(!(wasm_function = wasm_runtime_lookup_function((WASMModuleInstanceCommon*) wasm_module_inst_ptr, func_id_str, NULL)))
             return FAASM_SGX_WAMR_FUNCTION_NOT_FOUND;
-        }
 #if(FAASM_SGX_ATTESTATION)
         tls_thread_id = thread_id;
 #endif
-        if(!(wasm_create_exec_env_and_call_function((WASMModuleInstance*)sgx_wamr_tcs[thread_id].module_inst, (WASMFunctionInstance*)wasm_function, 0, 0x0))){
+        if(!(wasm_create_exec_env_and_call_function(wasm_module_inst_ptr, (WASMFunctionInstance*)wasm_function, 0, 0x0))){
 #if(WASM_ENABLE_INTERP == 1 && WASM_ENABLE_AOT == 0)
-            if(!memcmp(((WASMModuleInstance*)sgx_wamr_tcs[thread_id].module_inst)->cur_exception,_WRAPPER_ERROR_PREFIX,sizeof(_WRAPPER_ERROR_PREFIX))){
-                faasm_sgx_status_t ret_val = *(faasm_sgx_status_t*)&(((WASMModuleInstance*)sgx_wamr_tcs[thread_id].module_inst)->cur_exception[sizeof(_WRAPPER_ERROR_PREFIX)]);
-                read_unlock(&_rwlock_sgx_wamr_tcs_realloc);
+            if(!memcmp(wasm_module_inst_ptr->cur_exception,_WRAPPER_ERROR_PREFIX,sizeof(_WRAPPER_ERROR_PREFIX))){
+                faasm_sgx_status_t ret_val = *(faasm_sgx_status_t*)&(wasm_module_inst_ptr->cur_exception[sizeof(_WRAPPER_ERROR_PREFIX)]);
                 return ret_val;
             }
-            ocall_printf(((WASMModuleInstance*) sgx_wamr_tcs[thread_id].module_inst)->cur_exception);
+            ocall_printf(wasm_module_inst_ptr->cur_exception);
 #elif(WASM_ENABLE_INTERP == 0 && WASM_ENABLE_AOT == 1)
             ocall_printf(((AOTModuleInstance*) sgx_wamr_tcs[thread_id].module_inst)->cur_exception);
 #else
             ocall_printf(sgx_wamr_tcs[thread_id].module_inst->module_type == Wasm_Module_Bytecode? ((WASMModuleInstance*)sgx_wamr_tcs[thread_id].module_inst)->cur_exception : ((AOTModuleInstance*)sgx_wamr_tcs[thread_id].module_inst)->cur_exception);
 #endif
-            read_unlock(&_rwlock_sgx_wamr_tcs_realloc);
             return FAASM_SGX_WAMR_FUNCTION_UNABLE_TO_CALL;
         }
-        read_unlock(&_rwlock_sgx_wamr_tcs_realloc);
         return FAASM_SGX_SUCCESS;
     }
     faasm_sgx_status_t sgx_wamr_enclave_unload_module(const uint32_t thread_id){
