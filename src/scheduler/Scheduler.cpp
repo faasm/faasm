@@ -14,7 +14,7 @@ namespace scheduler {
     Scheduler::Scheduler() :
             thisHost(util::getSystemConfig().endpointHost),
             conf(util::getSystemConfig()),
-            keepRecords(false) {
+            isTestMode(false) {
 
         bindQueue = std::make_shared<InMemoryMessageQueue>();
     }
@@ -69,7 +69,7 @@ namespace scheduler {
         _hasHostCapacity = true;
 
         // Records
-        setRecordKeeping(false);
+        setTestMode(false);
         recordedMessagesAll.clear();
         recordedMessagesLocal.clear();
         recordedMessagesShared.clear();
@@ -213,23 +213,30 @@ namespace scheduler {
             // Increment the number of hops
             msg.set_hops(msg.hops() + 1);
 
-            // Share with other host
-            logger->debug("Host {} sharing {} with {} ({} hops)",
-                          thisHost, funcStrWithId,
-                          bestHost, msg.hops());
+            // Share with other host (or just log in test mode)
+            if(isTestMode) {
+                logger->debug("TEST MODE - {} not sharing {} with {} ({} hops)",
+                              thisHost, funcStrWithId,
+                              bestHost, msg.hops());
+            } else {
+                logger->debug("Host {} sharing {} with {} ({} hops)",
+                              thisHost, funcStrWithId,
+                              bestHost, msg.hops());
 
-            FunctionCallClient c(bestHost);
-            c.shareFunctionCall(msg);
+                FunctionCallClient c(bestHost);
+                c.shareFunctionCall(msg);
+            }
+
             executedLocally = false;
         }
 
         // Add this message to records if necessary
-        if (keepRecords) {
+        if (isTestMode) {
             recordedMessagesAll.push_back(msg.id());
             if(executedLocally) {
                 recordedMessagesLocal.push_back(msg.id());
             } else {
-                recordedMessagesShared.push_back({bestHost, msg.id()});
+                recordedMessagesShared.emplace_back(bestHost, msg.id());
             }
         }
 
@@ -405,8 +412,8 @@ namespace scheduler {
         }
     }
 
-    void Scheduler::setRecordKeeping(bool val) {
-        keepRecords = val;
+    void Scheduler::setTestMode(bool val) {
+        isTestMode = val;
     }
 
     std::vector<unsigned int> Scheduler::getRecordedMessagesAll() {

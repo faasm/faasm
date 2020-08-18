@@ -10,6 +10,7 @@
 
 #include <wait.h>
 #include <util/bytes.h>
+#include <proto/macros.h>
 
 using namespace state;
 

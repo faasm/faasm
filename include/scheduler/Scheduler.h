@@ -68,7 +68,7 @@ namespace scheduler {
 
         void removeHostFromWarmSet(const std::string &funcStr);
 
-        void setRecordKeeping(bool val);
+        void setTestMode(bool val);
 
         std::vector<unsigned int> getRecordedMessagesAll();
 
@@ -97,7 +97,7 @@ namespace scheduler {
         std::unordered_map<std::string, SchedulerOpinion> opinionMap;
         bool _hasHostCapacity = true;
 
-        bool keepRecords = false;
+        bool isTestMode = false;
         std::vector<unsigned int> recordedMessagesAll;
         std::vector<unsigned int> recordedMessagesLocal;
         std::vector<std::pair<std::string, unsigned int>> recordedMessagesShared;

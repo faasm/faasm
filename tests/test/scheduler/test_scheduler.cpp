@@ -46,11 +46,11 @@ namespace tests {
         cleanSystem();
 
         Scheduler &sch = scheduler::getScheduler();
+        sch.setTestMode(true);
         Redis &redis = Redis::getQueue();
 
         std::string thisHost = util::getSystemConfig().endpointHost;
         std::string otherHostA = "192.168.0.10";
-        SharingMessageBus &sharingBus = SharingMessageBus::getInstance();
 
         message::Message call = util::messageFactory("user a", "function a");
         message::Message chainedCall = util::messageFactory("user a", "function a");
@@ -232,21 +232,22 @@ namespace tests {
                 REQUIRE(sch.getFunctionInFlightCount(call) == nCalls + 1);
 
                 // Call more and check calls are shared elsewhere
-                sch.callFunction(call);
-                sch.callFunction(call);
+                message::Message otherCallA;
+                message::Message otherCallB;
+                otherCallA.set_id(1234);
+                otherCallB.set_id(1235);
+                sch.callFunction(otherCallA);
+                sch.callFunction(otherCallB);
 
-                const std::string sharingQueue = getSharingQueueNameForHost(otherHostA);
-                REQUIRE(redis.listLength(sharingQueue) == 2);
+                std::vector<std::pair<std::string, unsigned int>> sharedMessages = sch.getRecordedMessagesShared();
+                REQUIRE(sharedMessages.size() == 2);
 
-                message::Message actualA = sharingBus.nextMessageForHost(otherHostA);
-                message::Message actualB = sharingBus.nextMessageForHost(otherHostA);
+                REQUIRE(sharedMessages[0].first == otherHostA);
+                REQUIRE(sharedMessages[0].second == otherCallA.id());
 
-                REQUIRE(actualA.function() == call.function());
-                REQUIRE(actualA.user() == call.user());
-
-                REQUIRE(actualB.function() == call.function());
-                REQUIRE(actualB.user() == call.user());
-
+                REQUIRE(sharedMessages[1].first == otherHostA);
+                REQUIRE(sharedMessages[1].second == otherCallB.id());
+                
                 // Check not added to local queues
                 REQUIRE(bindQueue->size() == conf.maxFaasletsPerFunction);
                 REQUIRE(sch.getFunctionWarmFaasletCount(call) == conf.maxFaasletsPerFunction);
@@ -325,7 +326,7 @@ namespace tests {
     TEST_CASE("Test message recording of scheduling decisions", "[scheduler]") {
         cleanSystem();
         Scheduler &sch = scheduler::getScheduler();
-        SharingMessageBus &sharingBus = SharingMessageBus::getInstance();
+        sch.setTestMode(true);
 
         std::string thisHostId = util::getSystemConfig().endpointHost;
         std::string otherHostA = "192.168.3.3";
@@ -355,6 +356,9 @@ namespace tests {
 
         for (int i = 0; i < 3; i++) {
             message::Message msgC = util::messageFactory("demo", "chain_simple");
+            unsigned int msgId = 111 + i;
+            msgC.set_id(msgId);
+
             sch.callFunction(msgC);
 
             // Check scheduling info
@@ -363,13 +367,16 @@ namespace tests {
             REQUIRE(msgC.executedhost().empty());
 
             // Check actual message bus
-            message::Message actualShare = sharingBus.nextMessageForHost(otherHostA);
+            std::vector<std::pair<std::string, unsigned int>> actualShared = sch.getRecordedMessagesShared();
+            REQUIRE(actualShared[i].first == otherHostA);
+            REQUIRE(actualShared[i].second == msgId);
         }
     }
 
     TEST_CASE("Test multiple hops", "[scheduler]") {
         cleanSystem();
         Scheduler &sch = scheduler::getScheduler();
+        sch.setTestMode(true);
 
         std::string thisHostId = util::getSystemConfig().endpointHost;
         std::string otherHostA = "192.168.4.5";
@@ -404,6 +411,7 @@ namespace tests {
     TEST_CASE("Test faaslet removes itself from warm set when sharing") {
         cleanSystem();
         Scheduler &sch = scheduler::getScheduler();
+        sch.setTestMode(true);
 
         std::string thisHost = util::getSystemConfig().endpointHost;
         std::string otherHost = "192.168.111.23";
@@ -452,18 +460,6 @@ namespace tests {
         REQUIRE(sch.getFunctionWarmFaasletCount(msg) == 1);
         REQUIRE(sch.getFunctionInFlightCount(msg) == 1);
         REQUIRE(sch.getLatestOpinion(msg) == SchedulerOpinion::YES);
-
-//        // Check notifying of awaiting reduces the faaslet and in-flight count
-//        sch.notifyAwaiting(msg);
-//        REQUIRE(sch.getFunctionWarmFaasletCount(msg) == 0);
-//        REQUIRE(sch.getFunctionInFlightCount(msg) == 0);
-//        REQUIRE(sch.getLatestOpinion(msg) == SchedulerOpinion::MAYBE);
-//
-//        // Check notifying of awaiting finished puts this up again
-//        sch.notifyFinishedAwaiting(msg);
-//        REQUIRE(sch.getFunctionWarmFaasletCount(msg) == 1);
-//        REQUIRE(sch.getFunctionInFlightCount(msg) == 1);
-//        REQUIRE(sch.getLatestOpinion(msg) == SchedulerOpinion::YES);
     }
 
     TEST_CASE("Test opinion still YES when nothing in flight", "[scheduler]") {
@@ -556,7 +552,7 @@ namespace tests {
         conf.maxFaasletsPerFunction = originalFaasletsPerFunc;
     }
 
-    TEST_CASE("Test logging message IDs", "[scheduler]") {
+    TEST_CASE("Check test mode", "[scheduler]") {
         cleanSystem();
 
         Scheduler &sch = scheduler::getScheduler();
@@ -565,8 +561,8 @@ namespace tests {
         message::Message msgB = util::messageFactory("demo", "echo");
         message::Message msgC = util::messageFactory("demo", "echo");
 
-        SECTION("No logging") {
-            sch.setRecordKeeping(false);
+        SECTION("No test mode") {
+            sch.setTestMode(false);
 
             sch.callFunction(msgA);
             sch.callFunction(msgB);
@@ -574,8 +570,8 @@ namespace tests {
             REQUIRE(sch.getRecordedMessagesAll().empty());
         }
 
-        SECTION("Logging") {
-            sch.setRecordKeeping(true);
+        SECTION("Test mode") {
+            sch.setTestMode(true);
 
             sch.callFunction(msgA);
             sch.callFunction(msgB);
@@ -592,6 +588,8 @@ namespace tests {
         cleanSystem();
 
         Scheduler &sch = scheduler::getScheduler();
+        sch.setTestMode(true);
+
         Redis &redis = Redis::getQueue();
 
         std::string thisHost = sch.getThisHost();
@@ -642,8 +640,7 @@ namespace tests {
         REQUIRE(!sch.hasHostCapacity());
 
         // Check that no sharing has been done yet
-        const std::string sharingQueue = getSharingQueueNameForHost(otherHost);
-        REQUIRE(redis.listLength(sharingQueue) == 0);
+        REQUIRE(sch.getRecordedMessagesShared().size() == 0);
 
         // Now check that subsequent calls are shared even though they still don't
         // breach per function limits
@@ -655,7 +652,7 @@ namespace tests {
         REQUIRE(sch.getLatestOpinion(callB) == SchedulerOpinion::NO);
         REQUIRE(sch.getLatestOpinion(callC) == SchedulerOpinion::NO);
         REQUIRE(sch.getTotalWarmFaasletCount() == 10);
-        REQUIRE(redis.listLength(sharingQueue) == 3);
+        REQUIRE(sch.getRecordedMessagesShared().size() == 3);
         REQUIRE(!sch.hasHostCapacity());
 
         // Notify that a call has finished

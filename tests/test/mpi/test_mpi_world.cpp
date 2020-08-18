@@ -18,7 +18,7 @@ namespace tests {
         cleanSystem();
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        sch.setRecordKeeping(true);
+        sch.setTestMode(true);
 
         // Create the world
         const message::Message &msg = util::messageFactory(user, func);
