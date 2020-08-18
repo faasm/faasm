@@ -7,7 +7,6 @@
 #include <util/queue.h>
 
 #include <shared_mutex>
-#include <redis/Redis.h>
 
 #define AVAILABLE_HOST_SET "available_faaslets"
 
@@ -37,10 +36,6 @@ namespace scheduler {
         void notifyCallFinished(const message::Message &msg);
 
         void notifyFaasletFinished(const message::Message &msg);
-
-        // void notifyAwaiting(const message::Message &msg);
-
-        // void notifyFinishedAwaiting(const message::Message &msg);
 
         std::shared_ptr<InMemoryMessageQueue> getBindQueue();
 

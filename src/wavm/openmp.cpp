@@ -311,11 +311,6 @@ namespace wasm {
                 logger->info("Waiting for thread #{} with call id {} with a timeout of {}", threadNum,
                              chainedThreads[threadNum], callTimeoutMs);
 
-                // Free this thread
-                // message::Message *msg = getExecutingCall();
-                // scheduler::Scheduler &scheduler = scheduler::getScheduler();
-                // scheduler.notifyAwaiting(*msg);
-
                 int returnCode = 1;
                 try {
                     const message::Message result = bus.getFunctionResult(chainedThreads[threadNum], callTimeoutMs);
@@ -325,8 +320,6 @@ namespace wasm {
                 } catch (std::exception &ex) {
                     util::getLogger()->error("Non-timeout exception waiting for chained call: {}", ex.what());
                 }
-
-                // scheduler.notifyFinishedAwaiting(*msg);
 
                 if (returnCode) {
                     numErrors++;

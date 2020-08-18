@@ -9,11 +9,6 @@ namespace wasm {
         scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
         int callTimeoutMs = util::getSystemConfig().chainedCallTimeout;
 
-        // Free this thread
-        // message::Message *msg = getExecutingCall();
-        // scheduler::Scheduler &scheduler = scheduler::getScheduler();
-        // scheduler.notifyAwaiting(*msg);
-
         int returnCode = 1;
         try {
             const message::Message result = bus.getFunctionResult(messageId, callTimeoutMs);
@@ -23,8 +18,6 @@ namespace wasm {
         } catch (std::exception &ex) {
             util::getLogger()->error("Non-timeout exception waiting for chained call: {}", ex.what());
         }
-
-        // scheduler.notifyFinishedAwaiting(*msg);
 
         return returnCode;
     }

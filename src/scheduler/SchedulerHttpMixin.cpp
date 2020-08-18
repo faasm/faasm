@@ -3,6 +3,7 @@
 
 #include <util/logging.h>
 #include <util/timing.h>
+#include <redis/Redis.h>
 
 namespace scheduler {
     std::string SchedulerHttpMixin::executeFunction(message::Message &msg) {
