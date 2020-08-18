@@ -6,10 +6,6 @@
 #include <scheduler/Scheduler.h>
 
 namespace knative {
-    KnativeHandler::KnativeHandler() : conf(util::getSystemConfig()) {
-
-    }
-
     void KnativeHandler::onTimeout(const Pistache::Http::Request &request, Pistache::Http::ResponseWriter writer) {
         writer.send(Pistache::Http::Code::No_Content);
     }
@@ -31,6 +27,7 @@ namespace knative {
         PROF_START(knativeRoundTrip)
 
         // Set response timeout
+        util::SystemConfig &conf = util::getSystemConfig();
         response.timeoutAfter(std::chrono::milliseconds(conf.globalMessageTimeout));
 
         // Parse message from JSON in request
@@ -47,20 +44,19 @@ namespace knative {
             responseStr = "Empty request";
         } else {
             message::Message msg = util::jsonToMessage(requestStr);
+            scheduler::Scheduler &sched = scheduler::getScheduler();
+
             if (msg.isstatusrequest()) {
-                scheduler::GlobalMessageBus &msgBus = scheduler::getGlobalMessageBus();
-                responseStr = msgBus.getMessageStatus(msg.id());
+                responseStr = sched.getMessageStatus(msg.id());
 
             } else if(msg.isexecgraphrequest()) {
-                scheduler::GlobalMessageBus &msgBus = scheduler::getGlobalMessageBus();
-                scheduler::ExecGraph execGraph = msgBus.getFunctionExecGraph(msg.id());
+                scheduler::ExecGraph execGraph = sched.getFunctionExecGraph(msg.id());
                 responseStr = scheduler::execGraphToJson(execGraph);
 
             } else if (msg.isflushrequest()) {
                 const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
                 logger->debug("Broadcasting flush request");
 
-                scheduler::Scheduler &sched = scheduler::getScheduler();
                 sched.broadcastFlush(msg);
             } else {
                 responseStr = executeFunction(msg);

@@ -126,8 +126,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check output from first invocation
-        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message resultA = globalBus.getFunctionResult(call.id(), 1);
+        message::Message resultA = sch.getFunctionResult(call.id(), 1);
         REQUIRE(resultA.outputdata() == "first input");
         REQUIRE(resultA.returnvalue() == 0);
 
@@ -142,7 +141,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check output from second invocation
-        message::Message resultB = globalBus.getFunctionResult(call.id(), 1);
+        message::Message resultB = sch.getFunctionResult(call.id(), 1);
         REQUIRE(resultB.outputdata() == "second input");
         REQUIRE(resultB.returnvalue() == 0);
 

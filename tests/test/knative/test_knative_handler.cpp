@@ -3,7 +3,6 @@
 #include "utils.h"
 #include <knative/KnativeHandler.h>
 
-#include <scheduler/GlobalMessageBus.h>
 #include <util/json.h>
 
 using namespace Pistache;
@@ -107,7 +106,7 @@ namespace tests {
     TEST_CASE("Check getting function status from knative", "[knative]") {
         cleanSystem();
 
-        scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
+        scheduler::Scheduler &sch = scheduler::getScheduler();
 
         // Create a message
         message::Message msg = util::messageFactory("demo", "echo");
@@ -121,7 +120,7 @@ namespace tests {
             std::string errorMsg = "I have failed";
             msg.set_outputdata(errorMsg);
             msg.set_returnvalue(1);
-            bus.setFunctionResult(msg);
+            sch.setFunctionResult(msg);
 
             expectedOutput = "FAILED: " + errorMsg;
         }
@@ -130,7 +129,7 @@ namespace tests {
             std::string errorMsg = "I have succeeded";
             msg.set_outputdata(errorMsg);
             msg.set_returnvalue(0);
-            bus.setFunctionResult(msg);
+            sch.setFunctionResult(msg);
 
             expectedOutput = "SUCCESS: " + errorMsg;
         }

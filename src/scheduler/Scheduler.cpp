@@ -6,12 +6,18 @@
 #include <scheduler/FunctionCallClient.h>
 #include <redis/Redis.h>
 
+#define CHAINED_SET_PREFIX "chained_"
+
 
 using namespace util;
 
 namespace scheduler {
     const std::string WARM_SET_PREFIX = "w_";
 
+    std::string getChainedKey(unsigned int msgId) {
+        return std::string(CHAINED_SET_PREFIX) + std::to_string(msgId);
+    }
+    
     Scheduler::Scheduler() :
             thisHost(util::getSystemConfig().endpointHost),
             conf(util::getSystemConfig()),
@@ -514,5 +520,141 @@ namespace scheduler {
         callFunction(msg, true);
 
         logger->info("Python runtime prepared");
+    }
+
+    void Scheduler::setFunctionResult(message::Message &msg) {
+        redis::Redis &redis = redis::Redis::getQueue();
+
+        // Record which host did the execution
+        msg.set_executedhost(util::getSystemConfig().endpointHost);
+
+        // Set finish timestamp
+        msg.set_finishtimestamp(util::getGlobalClock().epochMillis());
+
+        std::string key = msg.resultkey();
+        if (key.empty()) {
+            throw std::runtime_error("Result key empty. Cannot publish result");
+        }
+
+        // Write the successful result to the result queue
+        std::vector<uint8_t> inputData = util::messageToBytes(msg);
+        redis.enqueueBytes(key, inputData);
+
+        // Set the result key to expire
+        redis.expire(key, RESULT_KEY_EXPIRY);
+
+        // Set long-lived result for function too
+        if (conf.execGraphMode == "on") {
+            redis.set(msg.statuskey(), inputData);
+            redis.expire(key, STATUS_KEY_EXPIRY);
+        }
+    }
+
+    message::Message Scheduler::getFunctionResult(unsigned int messageId, int timeoutMs) {
+        if (messageId == 0) {
+            throw std::runtime_error("Must provide non-zero message ID");
+        }
+
+        redis::Redis &redis = redis::Redis::getQueue();
+
+        bool isBlocking = timeoutMs > 0;
+
+        std::string resultKey = util::resultKeyFromMessageId(messageId);
+
+        message::Message msgResult;
+
+        if (isBlocking) {
+            // Blocking version will throw an exception when timing out which is handled
+            // by the caller.
+            std::vector<uint8_t> result = redis.dequeueBytes(resultKey, timeoutMs);
+            msgResult.ParseFromArray(result.data(), (int) result.size());
+        } else {
+            // Non-blocking version will tolerate empty responses, therefore we handle
+            // the exception here
+            std::vector<uint8_t> result;
+            try {
+                result = redis.dequeueBytes(resultKey, timeoutMs);
+            } catch (redis::RedisNoResponseException &ex) {
+                // Ok for no response when not blocking
+            }
+
+            if (result.empty()) {
+                // Empty result has special type
+                msgResult.set_type(message::Message_MessageType_EMPTY);
+            } else {
+                // Normal response if we get something from redis
+                msgResult.ParseFromArray(result.data(), (int) result.size());
+            }
+        }
+
+        return msgResult;
+    }
+
+    ExecGraph Scheduler::getFunctionExecGraph(unsigned int messageId) {
+        ExecGraphNode rootNode = getFunctionExecGraphNode(messageId);
+        ExecGraph graph{
+                .rootNode = rootNode
+        };
+
+        return graph;
+    }
+
+    ExecGraphNode Scheduler::getFunctionExecGraphNode(unsigned int messageId) {
+        redis::Redis &redis = redis::Redis::getQueue();
+
+        // Get the result for this message
+        std::string statusKey = util::statusKeyFromMessageId(messageId);
+        std::vector<uint8_t> messageBytes = redis.get(statusKey);
+        message::Message result;
+        result.ParseFromArray(messageBytes.data(), (int) messageBytes.size());
+
+        // Recurse through chained calls
+        std::unordered_set<unsigned int> chainedMsgIds = getChainedFunctions(messageId);
+        std::vector<ExecGraphNode> children;
+        for (auto c : chainedMsgIds) {
+            children.emplace_back(getFunctionExecGraphNode(c));
+        }
+
+        // Build the node
+        ExecGraphNode node{
+                .msg = result,
+                .children = children
+        };
+
+        return node;
+    }
+
+    std::string Scheduler::getMessageStatus(unsigned int messageId) {
+        const message::Message result = getFunctionResult(messageId, 0);
+
+        if (result.type() == message::Message_MessageType_EMPTY) {
+            return "RUNNING";
+        } else if (result.returnvalue() == 0) {
+            return "SUCCESS: " + result.outputdata();
+        } else {
+            return "FAILED: " + result.outputdata();
+        }
+    }
+
+    void Scheduler::logChainedFunction(unsigned int parentMessageId, unsigned int chainedMessageId) {
+        redis::Redis &redis = redis::Redis::getQueue();
+
+        const std::string &key = getChainedKey(parentMessageId);
+        redis.sadd(key, std::to_string(chainedMessageId));
+        redis.expire(key, STATUS_KEY_EXPIRY);
+    }
+
+    std::unordered_set<unsigned int> Scheduler::getChainedFunctions(unsigned int msgId) {
+        redis::Redis &redis = redis::Redis::getQueue();
+
+        const std::string &key = getChainedKey(msgId);
+        const std::unordered_set<std::string> chainedCalls = redis.smembers(key);
+
+        std::unordered_set<unsigned int> chainedIds;
+        for (auto i : chainedCalls) {
+            chainedIds.insert(std::stoi(i));
+        }
+
+        return chainedIds;
     }
 }

@@ -6,8 +6,6 @@ set(LIB_FILES
         ExecGraph.cpp
         FunctionCallClient.cpp
         FunctionCallServer.cpp
-        GlobalMessageBus.cpp
-        RedisMessageBus.cpp
         Scheduler.cpp
         SchedulerHttpMixin.cpp
         ${HEADERS}

@@ -17,7 +17,9 @@ extern "C"{
 extern sgx_enclave_id_t enclave_id;
 };
 #else
+
 #include <wamr/WAMRWasmModule.h>
+
 #endif
 
 using namespace isolation;
@@ -38,16 +40,12 @@ namespace faaslet {
         sch.clear();
         sch.addHostToGlobalSet();
 
-        // Clear out global message bus
-        scheduler::getGlobalMessageBus().clear();
-
         // Clear zygotes
         module_cache::getWasmModuleCache().clear();
     }
 
     Faaslet::Faaslet(int threadIdxIn) : threadIdx(threadIdxIn),
-                                        scheduler(scheduler::getScheduler()),
-                                        globalBus(scheduler::getGlobalMessageBus()) {
+                                        scheduler(scheduler::getScheduler()) {
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -112,7 +110,7 @@ namespace faaslet {
 
         // Set result
         logger->debug("Setting function result for {}", funcStr);
-        globalBus.setFunctionResult(call);
+        scheduler.setFunctionResult(call);
 
         if (conf.wasmVm == "wavm") {
             // Restore from zygote
@@ -148,7 +146,7 @@ namespace faaslet {
         util::SystemConfig &conf = util::getSystemConfig();
 
         // Instantiate the right wasm module for our chosen runtime
-        if(conf.wasmVm == "wamr") {
+        if (conf.wasmVm == "wamr") {
 #if(FAASM_SGX == 1)
             module = std::make_unique<wasm::SGXWAMRWasmModule>(&enclave_id);
 #else
@@ -239,7 +237,7 @@ namespace faaslet {
             }
 
             // Check if we need to restore from a different snapshot
-            if(conf.wasmVm == "wavm") {
+            if (conf.wasmVm == "wavm") {
                 const std::string snapshotKey = msg.snapshotkey();
                 if (!snapshotKey.empty() && !msg.issgx()) {
                     PROF_START(snapshotOverride)

@@ -10,8 +10,6 @@ namespace faaslet {
     public:
         explicit FaasletPool(int nThreads);
 
-        void startGlobalQueueThread();
-
         void startFunctionCallServer();
 
         void startMpiThread();
@@ -36,7 +34,6 @@ namespace faaslet {
         state::StateServer stateServer;
         scheduler::FunctionCallServer functionServer;
 
-        std::thread globalQueueThread;
         std::thread mpiThread;
         std::thread poolThread;
         std::vector<std::thread> poolThreads;

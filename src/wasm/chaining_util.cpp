@@ -6,12 +6,12 @@
 
 namespace wasm {
     int awaitChainedCall(unsigned int messageId) {
-        scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
         int callTimeoutMs = util::getSystemConfig().chainedCallTimeout;
 
         int returnCode = 1;
         try {
-            const message::Message result = bus.getFunctionResult(messageId, callTimeoutMs);
+            scheduler::Scheduler &sch = scheduler::getScheduler();
+            const message::Message result = sch.getFunctionResult(messageId, callTimeoutMs);
             returnCode = result.returnvalue();
         } catch (redis::RedisNoResponseException &ex) {
             util::getLogger()->error("Timed out waiting for chained call: {}", messageId);
@@ -54,8 +54,7 @@ namespace wasm {
 
         // Check if we need to log this
         if(conf.execGraphMode == "on") {
-            scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
-            bus.logChainedFunction(originalCall->id(), call.id());
+            sch.logChainedFunction(originalCall->id(), call.id());
         }
         
         return call.id();
@@ -97,8 +96,8 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         int callTimeoutMs = util::getSystemConfig().chainedCallTimeout;
 
-        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        const message::Message result = globalBus.getFunctionResult(messageId, callTimeoutMs);
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        const message::Message result = sch.getFunctionResult(messageId, callTimeoutMs);
 
         if (result.type() == message::Message_MessageType_EMPTY) {
             logger->error("Cannot find output for {}", messageId);

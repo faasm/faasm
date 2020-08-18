@@ -34,8 +34,7 @@ namespace scheduler {
             logger->debug("Worker thread {} awaiting {}", tid, funcStr);
 
             try {
-                scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-                const message::Message result = globalBus.getFunctionResult(msg.id(), conf.globalMessageTimeout);
+                const message::Message result = sch.getFunctionResult(msg.id(), conf.globalMessageTimeout);
                 logger->debug("Worker thread {} result {}", tid, funcStr);
 
                 return result.outputdata() + "\n";

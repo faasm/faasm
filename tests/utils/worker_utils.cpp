@@ -44,8 +44,7 @@ namespace tests {
         REQUIRE(bindQueue->size() == 0);
 
         // Check success
-        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(call.id(), 1);
+        message::Message result = sch.getFunctionResult(call.id(), 1);
         REQUIRE(result.returnvalue() == 0);
 
         if (!expectedOutput.empty()) {
@@ -75,9 +74,8 @@ namespace tests {
         // Process the bind and execute messages
         w.processNextMessage();
         w.processNextMessage();
-
-        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        const message::Message result = globalBus.getFunctionResult(call.id(), 1);
+        
+        const message::Message result = sch.getFunctionResult(call.id(), 1);
         if (result.returnvalue() != 0) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("Function failed: {}", result.outputdata());
@@ -134,7 +132,6 @@ namespace tests {
         pool.startThreadPool();
 
         unsigned int mainFuncId;
-        scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
         for (int i = 0; i < repeatCount; i++) {
             // Reset call ID
             call.set_id(0);
@@ -149,7 +146,7 @@ namespace tests {
             // Await the result of the main function
             // NOTE - this timeout will only get hit when things have failed.
             // It also needs to be long enough to let longer tests complete
-            message::Message result = bus.getFunctionResult(mainFuncId, 30000);
+            message::Message result = sch.getFunctionResult(mainFuncId, 30000);
             REQUIRE(result.returnvalue() == 0);
         }
 
@@ -162,7 +159,7 @@ namespace tests {
                 }
 
                 try {
-                    const message::Message &result = bus.getFunctionResult(messageId, 1);
+                    const message::Message &result = sch.getFunctionResult(messageId, 1);
 
                     if (result.returnvalue() != 0) {
                         FAIL(fmt::format("Message ID {} failed", messageId));
@@ -197,8 +194,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check output is true
-        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(call.id(), 1);
+        message::Message result = sch.getFunctionResult(call.id(), 1);
         REQUIRE(result.returnvalue() == 0);
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
 

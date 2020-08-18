@@ -45,8 +45,6 @@ namespace faaslet {
 
         std::shared_ptr<scheduler::InMemoryMessageQueue> currentQueue;
 
-        scheduler::GlobalMessageBus &globalBus;
-
         std::string executeCall(message::Message &msg);
 
         void finishCall(message::Message &msg, bool success, const std::string &errorMsg);

@@ -21,7 +21,6 @@ namespace tests {
         }
 
         REQUIRE(conf.cgroupMode == "on");
-        REQUIRE(conf.globalMessageBus == "redis");
         REQUIRE(conf.functionStorage == "local");
         REQUIRE(conf.fileserverUrl == "");
         REQUIRE(conf.serialisation == "json");
@@ -55,7 +54,6 @@ namespace tests {
         std::string originalHostType = getSystemConfig().hostType;
 
         std::string hostType = setEnvVar("HOST_TYPE", "magic");
-        std::string messageBus = setEnvVar("GLOBAL_MESSAGE_BUS", "blah");
         std::string funcStorage = setEnvVar("FUNCTION_STORAGE", "foobar");
         std::string fileserver = setEnvVar("FILESERVER_URL", "www.foo.com");
         std::string serialisation = setEnvVar("SERIALISATION", "proto");
@@ -99,7 +97,6 @@ namespace tests {
         SystemConfig conf;
 
         REQUIRE(conf.hostType == "magic");
-        REQUIRE(conf.globalMessageBus == "blah");
         REQUIRE(conf.functionStorage == "foobar");
         REQUIRE(conf.fileserverUrl == "www.foo.com");
         REQUIRE(conf.serialisation == "proto");
@@ -142,7 +139,6 @@ namespace tests {
         // Be careful with host type
         setEnvVar("HOST_TYPE", originalHostType);
 
-        setEnvVar("GLOBAL_MESSAGE_BUS", messageBus);
         setEnvVar("FUNCTION_STORAGE", funcStorage);
         setEnvVar("FILESERVER_URL", fileserver);
         setEnvVar("SERIALISATION", serialisation);

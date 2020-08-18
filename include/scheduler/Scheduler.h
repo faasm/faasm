@@ -1,15 +1,15 @@
 #pragma once
 
 #include "InMemoryMessageQueue.h"
-#include "GlobalMessageBus.h"
+#include "ExecGraph.h"
 
 #include <util/func.h>
+#include <util/config.h>
 #include <util/queue.h>
 
 #include <shared_mutex>
 
 #define AVAILABLE_HOST_SET "available_faaslets"
-
 
 namespace scheduler {
     // Note - default opinion when zero initialised should be maybe
@@ -78,6 +78,18 @@ namespace scheduler {
         void broadcastFlush(const message::Message &msg);
 
         void preflightPythonCall();
+
+        std::string getMessageStatus(unsigned int messageId);
+
+        void setFunctionResult(message::Message &msg);
+
+        message::Message getFunctionResult(unsigned int messageId, int timeout);
+
+        void logChainedFunction(unsigned int parentMessageId, unsigned int chainedMessageId);
+
+        std::unordered_set<unsigned int> getChainedFunctions(unsigned int msgId);
+
+        ExecGraph getFunctionExecGraph(unsigned int msgId);
     private:
         std::string thisHost;
 
@@ -108,9 +120,9 @@ namespace scheduler {
         void decrementWarmFaasletCount(const message::Message &msg);
 
         int getFunctionMaxInFlightRatio(const message::Message &msg);
+
+        ExecGraphNode getFunctionExecGraphNode(unsigned int msgId);
     };
 
     Scheduler &getScheduler();
-
-    GlobalMessageBus &getGlobalMessageBus();
 }

@@ -71,8 +71,7 @@ int main(int argc, char *argv[]) {
     sch.callFunction(call);
 
     // Await the result
-    scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
-    const message::Message &result = bus.getFunctionResult(call.id(), conf.globalMessageTimeout);
+    const message::Message &result = sch.getFunctionResult(call.id(), conf.globalMessageTimeout);
     if (result.returnvalue() != 0) {
         logger->error("Execution failed: {}", result.outputdata());
         throw std::runtime_error("Executing function failed");

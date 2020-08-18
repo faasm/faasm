@@ -1,7 +1,6 @@
 #include "FaasletPool.h"
 
 #include <faaslet/Faaslet.h>
-#include <scheduler/GlobalMessageBus.h>
 #include <mpi/MpiGlobalBus.h>
 #include <system/SGX.h>
 
@@ -19,36 +18,6 @@ namespace faaslet {
         // Ensure we can ping both redis instances
         redis::Redis::getQueue().ping();
         redis::Redis::getState().ping();
-    }
-
-    void FaasletPool::startGlobalQueueThread() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        util::SystemConfig &conf = util::getSystemConfig();
-
-        logger->info("Starting global queue listener on {}", conf.queueName);
-
-        globalQueueThread = std::thread([this, &conf, &logger] {
-            scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
-            scheduler::Scheduler &sch = scheduler::getScheduler();
-
-            while (!this->isShutdown()) {
-                try {
-                    message::Message msg = bus.nextMessage(conf.globalMessageTimeout);
-
-                    logger->debug("Got invocation for {} on {}", util::funcToString(msg, true), conf.queueName);
-                    sch.callFunction(msg);
-                }
-                catch (scheduler::GlobalMessageBusNoMessageException &ex) {
-                    logger->info("No message from global bus in {}ms, dropping out", conf.globalMessageTimeout);
-                    return;
-                }
-            }
-
-            // Will die gracefully at this point
-        });
-
-        // Waits for the queue to time out
-        globalQueueThread.join();
     }
 
     void FaasletPool::startFunctionCallServer() {
@@ -158,11 +127,6 @@ namespace faaslet {
         _shutdown = true;
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        if (globalQueueThread.joinable()) {
-            logger->info("Waiting for global queue thread to finish");
-            globalQueueThread.join();
-        }
 
         logger->info("Waiting for the state server to finish");
         stateServer.stop();

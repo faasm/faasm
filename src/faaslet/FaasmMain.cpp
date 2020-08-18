@@ -29,11 +29,6 @@ namespace faaslet {
         pool.startMpiThread();
     }
 
-    void FaasmMain::awaitGlobalQueue() {
-        // Global queue listener (blocks until message received or timeout)
-        pool.startGlobalQueueThread();
-    }
-
     void FaasmMain::shutdown() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->info("Removing from global working set");

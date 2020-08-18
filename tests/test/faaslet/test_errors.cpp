@@ -31,9 +31,8 @@ namespace tests {
         execErrorFunction(call);
 
         // Get result
-        scheduler::GlobalMessageBus &messageQueue = scheduler::getGlobalMessageBus();
-
-        message::Message result = messageQueue.getFunctionResult(call.id(), 1);
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        message::Message result = sch.getFunctionResult(call.id(), 1);
         REQUIRE(result.returnvalue() > 0);
 
         if(expectedMsg.empty()) {
