@@ -144,34 +144,4 @@ namespace tests {
         REQUIRE(actual == expectedOutput);
 
     }
-    
-    void checkFlushMessageShared(const std::string &host, const message::Message &msg) {
-        scheduler::SharingMessageBus &sharingBus = scheduler::SharingMessageBus::getInstance();
-        const message::Message actual = sharingBus.nextMessageForHost(host);
-        REQUIRE(actual.isflushrequest());
-    }
-    
-    TEST_CASE("Test broadcasting flush message", "[knative]") {
-        cleanSystem();
-
-        // Set up some dummy hosts and add to global set
-        std::string thisHost = util::getSystemConfig().endpointHost;
-        std::string hostA = "host_a";
-        std::string hostB = "host_b";
-
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        sch.addHostToGlobalSet(hostA);
-        sch.addHostToGlobalSet(hostB);
-        
-        message::Message msg;
-        msg.set_isflushrequest(true);
-        
-        knative::KnativeHandler handler;
-        const std::string &requestStr = util::messageToJson(msg);
-        std::string actual = handler.handleFunction(requestStr);
-
-        checkFlushMessageShared(thisHost, msg);
-        checkFlushMessageShared(hostA, msg);
-        checkFlushMessageShared(hostB, msg);
-    }
 }

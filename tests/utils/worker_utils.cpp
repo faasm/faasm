@@ -116,7 +116,7 @@ namespace tests {
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.clear();
         sch.addHostToGlobalSet();
-        sch.setMessageIdLogging(true);
+        sch.setRecordKeeping(true);
 
         // Modify system config (network ns requires root)
         util::SystemConfig &conf = util::getSystemConfig();
@@ -155,7 +155,7 @@ namespace tests {
 
         // Get all call statuses
         if (checkChained) {
-            for (auto messageId : sch.getScheduledMessageIds()) {
+            for (auto messageId : sch.getRecordedMessagesAll()) {
                 if (messageId == mainFuncId) {
                     // Already checked the main message ID
                     continue;

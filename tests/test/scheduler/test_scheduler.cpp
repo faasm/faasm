@@ -566,16 +566,16 @@ namespace tests {
         message::Message msgC = util::messageFactory("demo", "echo");
 
         SECTION("No logging") {
-            sch.setMessageIdLogging(false);
+            sch.setRecordKeeping(false);
 
             sch.callFunction(msgA);
             sch.callFunction(msgB);
             sch.callFunction(msgC);
-            REQUIRE(sch.getScheduledMessageIds().empty());
+            REQUIRE(sch.getRecordedMessagesAll().empty());
         }
 
         SECTION("Logging") {
-            sch.setMessageIdLogging(true);
+            sch.setRecordKeeping(true);
 
             sch.callFunction(msgA);
             sch.callFunction(msgB);
@@ -583,7 +583,7 @@ namespace tests {
 
             std::vector<unsigned int> expected = {(unsigned int) msgA.id(), (unsigned int) msgB.id(),
                                                   (unsigned int) msgC.id()};
-            std::vector<unsigned int> actual = sch.getScheduledMessageIds();
+            std::vector<unsigned int> actual = sch.getRecordedMessagesAll();
             REQUIRE(actual == expected);
         }
     }

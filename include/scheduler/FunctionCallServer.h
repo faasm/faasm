@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Scheduler.h"
+
 #include <proto/RPCServer.h>
 #include <proto/faasm.pb.h>
 #include <proto/faasm.grpc.pb.h>
@@ -18,5 +20,8 @@ namespace scheduler {
 
     protected:
         void doStart(const std::string &serverAddr) override;
+
+    private:
+        Scheduler &scheduler;
     };
 }

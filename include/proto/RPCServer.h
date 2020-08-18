@@ -1,3 +1,5 @@
+#pragma once
+
 #include <grpcpp/server.h>
 
 #include <thread>

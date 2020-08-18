@@ -10,7 +10,6 @@ set(LIB_FILES
         RedisMessageBus.cpp
         Scheduler.cpp
         SchedulerHttpMixin.cpp
-        SharingMessageBus.cpp
         ${HEADERS}
 )
 

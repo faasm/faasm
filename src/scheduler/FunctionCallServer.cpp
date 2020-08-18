@@ -8,7 +8,9 @@
 
 
 namespace scheduler {
-    FunctionCallServer::FunctionCallServer() : RPCServer(DEFAULT_RPC_HOST, FUNCTION_CALL_PORT) {
+    FunctionCallServer::FunctionCallServer() :
+        RPCServer(DEFAULT_RPC_HOST, FUNCTION_CALL_PORT),
+        scheduler(getScheduler()) {
 
     }
 
@@ -29,8 +31,20 @@ namespace scheduler {
             ServerContext *context,
             const message::Message *request,
             message::FunctionStatusResponse *response) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
+        // TODO - avoiding having to copy the message here
+        message::Message msg = *request;
 
+        // This calls the scheduler, which will always attempt
+        // to execute locally. However, if not possible, this will
+        // again share the message, increasing the hops
+        const std::string funcStr = util::funcToString(msg, true);
+        logger->debug("{} received shared call {} (scheduled for {})", host, funcStr,
+                      msg.scheduledhost());
 
+        scheduler.callFunction(msg);
+
+        return Status::OK;
     }
 }

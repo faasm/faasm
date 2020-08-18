@@ -2,7 +2,6 @@
 
 #include "InMemoryMessageQueue.h"
 #include "GlobalMessageBus.h"
-#include "SharingMessageBus.h"
 
 #include <util/func.h>
 #include <util/queue.h>
@@ -69,14 +68,21 @@ namespace scheduler {
 
         void removeHostFromWarmSet(const std::string &funcStr);
 
-        void setMessageIdLogging(bool val);
+        void setRecordKeeping(bool val);
 
-        std::vector<unsigned int> getScheduledMessageIds();
+        std::vector<unsigned int> getRecordedMessagesAll();
+
+        std::vector<unsigned int> getRecordedMessagesLocal();
+
+        std::vector<std::pair<std::string, unsigned int>> getRecordedMessagesShared();
 
         bool hasHostCapacity();
 
         std::string getThisHost();
 
+        void broadcastFlush(const message::Message &msg);
+
+        void preflightPythonCall();
     private:
         std::string thisHost;
 
@@ -91,10 +97,10 @@ namespace scheduler {
         std::unordered_map<std::string, SchedulerOpinion> opinionMap;
         bool _hasHostCapacity = true;
 
-        SharingMessageBus &sharingBus;
-
-        bool logMessageIds = false;
-        std::vector<unsigned int> loggedMessageIds;
+        bool keepRecords = false;
+        std::vector<unsigned int> recordedMessagesAll;
+        std::vector<unsigned int> recordedMessagesLocal;
+        std::vector<std::pair<std::string, unsigned int>> recordedMessagesShared;
 
         void updateOpinion(const message::Message &msg);
 

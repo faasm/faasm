@@ -3,7 +3,7 @@
 #include <util/logging.h>
 #include <util/random.h>
 #include <util/timing.h>
-#include <scheduler/SharingMessageBus.h>
+#include <scheduler/FunctionCallClient.h>
 
 
 using namespace util;
@@ -14,8 +14,7 @@ namespace scheduler {
     Scheduler::Scheduler() :
             thisHost(util::getSystemConfig().endpointHost),
             conf(util::getSystemConfig()),
-            sharingBus(SharingMessageBus::getInstance()),
-            logMessageIds(false) {
+            keepRecords(false) {
 
         bindQueue = std::make_shared<InMemoryMessageQueue>();
     }
@@ -69,10 +68,11 @@ namespace scheduler {
         opinionMap.clear();
         _hasHostCapacity = true;
 
-        // Message IDs
-        loggedMessageIds.clear();
-
-        setMessageIdLogging(false);
+        // Records
+        setRecordKeeping(false);
+        recordedMessagesAll.clear();
+        recordedMessagesLocal.clear();
+        recordedMessagesShared.clear();
 
         this->removeHostFromGlobalSet();
     }
@@ -201,11 +201,7 @@ namespace scheduler {
             msg.set_scheduledhost(bestHost);
         }
 
-        // Log this call if needed
-        if (logMessageIds) {
-            loggedMessageIds.push_back(msg.id());
-        }
-
+        bool executedLocally = true;
         const std::string funcStrWithId = util::funcToString(msg, true);
         if (bestHost == thisHost) {
             // Run locally if we're the best choice
@@ -222,7 +218,19 @@ namespace scheduler {
                           thisHost, funcStrWithId,
                           bestHost, msg.hops());
 
-            sharingBus.shareMessageWithHost(bestHost, msg);
+            FunctionCallClient c(bestHost);
+            c.shareFunctionCall(msg);
+            executedLocally = false;
+        }
+
+        // Add this message to records if necessary
+        if (keepRecords) {
+            recordedMessagesAll.push_back(msg.id());
+            if(executedLocally) {
+                recordedMessagesLocal.push_back(msg.id());
+            } else {
+                recordedMessagesShared.push_back({bestHost, msg.id()});
+            }
         }
 
         PROF_END(scheduleCall)
@@ -397,12 +405,20 @@ namespace scheduler {
         }
     }
 
-    void Scheduler::setMessageIdLogging(bool val) {
-        logMessageIds = val;
+    void Scheduler::setRecordKeeping(bool val) {
+        keepRecords = val;
     }
 
-    std::vector<unsigned int> Scheduler::getScheduledMessageIds() {
-        return loggedMessageIds;
+    std::vector<unsigned int> Scheduler::getRecordedMessagesAll() {
+        return recordedMessagesAll;
+    }
+
+    std::vector<unsigned int> Scheduler::getRecordedMessagesLocal() {
+        return recordedMessagesLocal;
+    }
+
+    std::vector<std::pair<std::string, unsigned int>> Scheduler::getRecordedMessagesShared() {
+        return recordedMessagesShared;
     }
 
     bool Scheduler::hasHostCapacity() {
@@ -472,5 +488,42 @@ namespace scheduler {
 
     std::string Scheduler::getThisHost() {
         return thisHost;
+    }
+
+    void Scheduler::broadcastFlush(const message::Message &msg) {
+        redis::Redis &redis = redis::Redis::getQueue();
+        std::unordered_set<std::string> allOptions = redis.smembers(AVAILABLE_HOST_SET);
+
+        message::Message newMessage;
+        newMessage.set_user(msg.user());
+        newMessage.set_function(msg.function());
+        newMessage.set_isflushrequest(true);
+
+        // This is pretty inefficient but flush isn't a particularly important operation
+        for(auto &otherHost : allOptions) {
+            FunctionCallClient c(otherHost);
+            c.shareFunctionCall(newMessage);
+        }
+    }
+
+    void Scheduler::preflightPythonCall() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        if (conf.pythonPreload != "on") {
+            logger->info("Not preloading python runtime");
+            return;
+        }
+
+        logger->info("Preparing python runtime");
+
+        message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+        msg.set_ispython(true);
+        msg.set_pythonuser("python");
+        msg.set_pythonfunction("noop");
+        util::setMessageId(msg);
+
+        callFunction(msg, true);
+
+        logger->info("Python runtime prepared");
     }
 }

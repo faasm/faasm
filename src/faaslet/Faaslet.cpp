@@ -23,6 +23,28 @@ extern sgx_enclave_id_t enclave_id;
 using namespace isolation;
 
 namespace faaslet {
+    void flushFaasletHost() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->warn("Flushing host {}", util::getSystemConfig().endpointHost);
+
+        // Clear out any cached state
+        state::getGlobalState().forceClearAll(false);
+
+        // Clear shared files
+        storage::FileSystem::clearSharedFiles();
+
+        // Reset scheduler
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        sch.clear();
+        sch.addHostToGlobalSet();
+
+        // Clear out global message bus
+        scheduler::getGlobalMessageBus().clear();
+
+        // Clear zygotes
+        module_cache::getWasmModuleCache().clear();
+    }
+
     Faaslet::Faaslet(int threadIdxIn) : threadIdx(threadIdxIn),
                                         scheduler(scheduler::getScheduler()),
                                         globalBus(scheduler::getGlobalMessageBus()) {
@@ -188,7 +210,12 @@ namespace faaslet {
 
         // Handle the message
         std::string errorMessage;
-        if (msg.type() == message::Message_MessageType_BIND) {
+        if (msg.isflushrequest()) {
+            // Clear out this worker host if we've received a flush message
+            flushFaasletHost();
+
+            scheduler.preflightPythonCall();
+        } else if (msg.type() == message::Message_MessageType_BIND) {
             const std::string funcStr = util::funcToString(msg, false);
             logger->info("Faaslet {} binding to {}", id, funcStr);
 

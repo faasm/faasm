@@ -8,8 +8,6 @@
 #include <util/config.h>
 
 namespace faaslet {
-    void flushFaasletHost();
-
     class FaasmMain {
     public:
         FaasmMain();

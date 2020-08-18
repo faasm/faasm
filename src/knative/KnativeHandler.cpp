@@ -60,14 +60,10 @@ namespace knative {
                 const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
                 logger->debug("Broadcasting flush request");
 
-                message::Message flushMsg;
-                flushMsg.set_isflushrequest(true);
-
-                scheduler::SharingMessageBus &sharingBus = scheduler::SharingMessageBus::getInstance();
-                sharingBus.broadcastMessage(flushMsg);
+                scheduler::Scheduler &sched = scheduler::getScheduler();
+                sched.broadcastFlush(msg);
             } else {
                 responseStr = executeFunction(msg);
-
             }
         }
 

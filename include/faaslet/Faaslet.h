@@ -10,6 +10,8 @@
 #include <string>
 
 namespace faaslet {
+    void flushFaasletHost();
+
     class Faaslet {
     public:
         explicit Faaslet(int threadIdx);
