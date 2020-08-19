@@ -9,8 +9,8 @@
 
 namespace scheduler {
     FunctionCallServer::FunctionCallServer() :
-        RPCServer(DEFAULT_RPC_HOST, FUNCTION_CALL_PORT),
-        scheduler(getScheduler()) {
+            RPCServer(DEFAULT_RPC_HOST, FUNCTION_CALL_PORT),
+            scheduler(getScheduler()) {
 
     }
 
@@ -22,7 +22,7 @@ namespace scheduler {
 
         // Start it
         server = builder.BuildAndStart();
-        util::getLogger()->info("State server listening on {}", serverAddr);
+        util::getLogger()->info("Function call server listening on {}", serverAddr);
 
         server->Wait();
     }
@@ -46,5 +46,12 @@ namespace scheduler {
         scheduler.callFunction(msg);
 
         return Status::OK;
+    }
+
+    Status FunctionCallServer::MPICall(
+            ServerContext *context,
+            const message::MPIMessage *request,
+            message::FunctionStatusResponse *response) {
+
     }
 }

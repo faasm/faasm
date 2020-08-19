@@ -1,11 +1,10 @@
 #include <catch/catch.hpp>
-#include <mpi/MpiWorldRegistry.h>
+#include <scheduler/MpiWorldRegistry.h>
 #include <util/random.h>
 #include <faasmpi/mpi.h>
-#include <mpi/MpiGlobalBus.h>
 #include "utils.h"
 
-using namespace mpi;
+using namespace scheduler;
 
 namespace tests {
 
@@ -22,7 +21,7 @@ namespace tests {
 
         // Create the world
         const message::Message &msg = util::messageFactory(user, func);
-        mpi::MpiWorld world;
+        scheduler::MpiWorld world;
         world.create(msg, worldId, worldSize);
 
         REQUIRE(world.getSize() == worldSize);
@@ -52,11 +51,11 @@ namespace tests {
 
         // Create a world
         const message::Message &msg = util::messageFactory(user, func);
-        mpi::MpiWorld worldA;
+        scheduler::MpiWorld worldA;
         worldA.create(msg, worldId, worldSize);
 
         // Create another copy from state
-        mpi::MpiWorld worldB;
+        scheduler::MpiWorld worldB;
         worldB.initialiseFromState(msg, worldId);
 
         REQUIRE(worldB.getSize() == worldSize);
@@ -75,7 +74,7 @@ namespace tests {
 
         // Create a world
         const message::Message &msg = util::messageFactory(user, func);
-        mpi::MpiWorld worldA;
+        scheduler::MpiWorld worldA;
         worldA.overrideHost(hostA);
         worldA.create(msg, worldId, worldSize);
 
@@ -86,7 +85,7 @@ namespace tests {
         REQUIRE(actualHost == hostA);
 
         // Create a new instance of the world with a new host ID
-        mpi::MpiWorld worldB;
+        scheduler::MpiWorld worldB;
         worldB.overrideHost(hostB);
         worldB.initialiseFromState(msg, worldId);
 
@@ -122,7 +121,7 @@ namespace tests {
         cleanSystem();
 
         const message::Message &msg = util::messageFactory(user, func);
-        mpi::MpiWorld world;
+        scheduler::MpiWorld world;
         world.create(msg, worldId, worldSize);
 
         // Register two ranks
@@ -168,7 +167,7 @@ namespace tests {
         cleanSystem();
 
         const message::Message &msg = util::messageFactory(user, func);
-        mpi::MpiWorld world;
+        scheduler::MpiWorld world;
         world.create(msg, worldId, worldSize);
 
         // Register two ranks
@@ -206,11 +205,11 @@ namespace tests {
         std::string hostB = util::randomString(MPI_HOST_STATE_LEN - 5);
 
         const message::Message &msg = util::messageFactory(user, func);
-        mpi::MpiWorld worldA;
+        scheduler::MpiWorld worldA;
         worldA.overrideHost(hostA);
         worldA.create(msg, worldId, worldSize);
 
-        mpi::MpiWorld worldB;
+        scheduler::MpiWorld worldB;
         worldB.overrideHost(hostB);
         worldB.initialiseFromState(msg, worldId);
 
@@ -225,7 +224,7 @@ namespace tests {
         // Send a message between the ranks on different hosts
         worldA.send(rankA, rankB, BYTES(messageData.data()), MPI_INT, messageData.size());
 
-        MpiGlobalBus &bus = mpi::getMpiGlobalBus();
+        MpiGlobalBus &bus = scheduler::getMpiGlobalBus();
 
         SECTION("Check queueing") {
             // Check it's on the right queue
@@ -261,7 +260,7 @@ namespace tests {
         cleanSystem();
 
         const message::Message &msg = util::messageFactory(user, func);
-        mpi::MpiWorld world;
+        scheduler::MpiWorld world;
         world.create(msg, worldId, worldSize);
 
         // Register two ranks
@@ -308,7 +307,7 @@ namespace tests {
         cleanSystem();
 
         const message::Message &msg = util::messageFactory(user, func);
-        mpi::MpiWorld world;
+        scheduler::MpiWorld world;
         world.create(msg, worldId, worldSize);
 
         world.registerRank(1);
@@ -335,7 +334,7 @@ namespace tests {
         cleanSystem();
 
         const message::Message &msg = util::messageFactory(user, func);
-        mpi::MpiWorld world;
+        scheduler::MpiWorld world;
         world.create(msg, worldId, worldSize);
 
         world.registerRank(1);
@@ -386,11 +385,11 @@ namespace tests {
         std::string hostB = util::randomString(MPI_HOST_STATE_LEN - 3);
 
         const message::Message &msg = util::messageFactory(user, func);
-        mpi::MpiWorld worldA;
+        scheduler::MpiWorld worldA;
         worldA.overrideHost(hostA);
         worldA.create(msg, worldId, worldSize);
 
-        mpi::MpiWorld worldB;
+        scheduler::MpiWorld worldB;
         worldB.overrideHost(hostB);
         worldB.initialiseFromState(msg, worldId);
 
@@ -416,7 +415,7 @@ namespace tests {
         cleanSystem();
 
         const message::Message &msg = util::messageFactory(user, func);
-        mpi::MpiWorld world;
+        scheduler::MpiWorld world;
         world.create(msg, worldId, worldSize);
 
         std::vector<int> input = {0, 1, 2, 3};
@@ -428,7 +427,7 @@ namespace tests {
         cleanSystem();
 
         const message::Message &msg = util::messageFactory(user, func);
-        mpi::MpiWorld world;
+        scheduler::MpiWorld world;
         world.create(msg, worldId, worldSize);
 
         // Rank hasn't yet been registered
@@ -446,11 +445,11 @@ namespace tests {
         int thisWorldSize = 6;
 
         const message::Message &msg = util::messageFactory(user, func);
-        mpi::MpiWorld worldA;
+        scheduler::MpiWorld worldA;
         worldA.overrideHost(hostA);
         worldA.create(msg, worldId, thisWorldSize);
 
-        mpi::MpiWorld worldB;
+        scheduler::MpiWorld worldB;
         worldB.overrideHost(hostB);
         worldB.initialiseFromState(msg, worldId);
 
@@ -471,7 +470,7 @@ namespace tests {
         std::vector<int> worldARanks = {rankA2, rankA3, rankA1, 0};
         std::vector<int> worldBRanks = {rankB2, rankB1};
 
-        MpiGlobalBus &bus = mpi::getMpiGlobalBus();
+        MpiGlobalBus &bus = scheduler::getMpiGlobalBus();
 
         SECTION("Broadcast") {
             // Broadcast a message
@@ -679,7 +678,7 @@ namespace tests {
     }
 
     template<typename T>
-    void doReduceTest(mpi::MpiWorld &world, int root, MPI_Op op, MPI_Datatype datatype,
+    void doReduceTest(scheduler::MpiWorld &world, int root, MPI_Op op, MPI_Datatype datatype,
                       std::vector<std::vector<T>> rankData,
                       std::vector<T> &expected) {
         int thisWorldSize = world.getSize();
@@ -738,17 +737,17 @@ namespace tests {
         }
     }
 
-    template void doReduceTest<int>(mpi::MpiWorld &world, int root, MPI_Op op, MPI_Datatype datatype,
+    template void doReduceTest<int>(scheduler::MpiWorld &world, int root, MPI_Op op, MPI_Datatype datatype,
                                     std::vector<std::vector<int>> rankData, std::vector<int> &expected);
 
-    template void doReduceTest<double>(mpi::MpiWorld &world, int root, MPI_Op op, MPI_Datatype datatype,
+    template void doReduceTest<double>(scheduler::MpiWorld &world, int root, MPI_Op op, MPI_Datatype datatype,
                                        std::vector<std::vector<double>> rankData, std::vector<double> &expected);
 
     TEST_CASE("Test reduce", "[mpi]") {
         cleanSystem();
 
         const message::Message &msg = util::messageFactory(user, func);
-        mpi::MpiWorld world;
+        scheduler::MpiWorld world;
         int thisWorldSize = 5;
         world.create(msg, worldId, thisWorldSize);
 
@@ -825,7 +824,7 @@ namespace tests {
         cleanSystem();
 
         const message::Message &msg = util::messageFactory(user, func);
-        mpi::MpiWorld world;
+        scheduler::MpiWorld world;
         int thisWorldSize = 5;
         int root = 3;
 
@@ -921,7 +920,7 @@ namespace tests {
         cleanSystem();
 
         const message::Message &msg = util::messageFactory(user, func);
-        mpi::MpiWorld world;
+        scheduler::MpiWorld world;
         int thisWorldSize = 4;
         world.create(msg, worldId, thisWorldSize);
 
@@ -970,11 +969,11 @@ namespace tests {
         std::string hostB = "192.168.9.2";
 
         const message::Message &msg = util::messageFactory(user, func);
-        mpi::MpiWorld worldA;
+        scheduler::MpiWorld worldA;
         worldA.overrideHost(hostA);
         worldA.create(msg, worldId, worldSize);
 
-        mpi::MpiWorld worldB;
+        scheduler::MpiWorld worldB;
         worldB.overrideHost(hostB);
         worldB.initialiseFromState(msg, worldId);
 
@@ -992,7 +991,7 @@ namespace tests {
         int dataCount = (int) dataA1.size();
         int bufferSize = dataCount * sizeof(int);
 
-        MpiGlobalBus &bus = mpi::getMpiGlobalBus();
+        MpiGlobalBus &bus = scheduler::getMpiGlobalBus();
 
         // Create a window
         faasmpi_win_t winA1{

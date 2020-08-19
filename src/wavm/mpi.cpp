@@ -6,21 +6,21 @@
 
 #include <faasmpi/mpi.h>
 #include <scheduler/Scheduler.h>
-#include <mpi/MpiContext.h>
+#include <scheduler/MpiContext.h>
 #include <util/gids.h>
 
 using namespace WAVM;
 
 namespace wasm {
-    static thread_local mpi::MpiContext executingContext;
+    static thread_local scheduler::MpiContext executingContext;
 
     bool isInPlace(U8 wasmPtr) {
         return wasmPtr == FAASMPI_IN_PLACE;
     }
 
-    mpi::MpiWorld &getExecutingWorld() {
+    scheduler::MpiWorld &getExecutingWorld() {
         int worldId = executingContext.getWorldId();
-        mpi::MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
+        scheduler::MpiWorldRegistry &reg = scheduler::getMpiWorldRegistry();
         return reg.getOrInitialiseWorld(*getExecutingCall(), worldId);
     }
 
@@ -107,7 +107,7 @@ namespace wasm {
 
         WAVMWasmModule *module;
         Runtime::Memory *memory;
-        mpi::MpiWorld &world;
+        scheduler::MpiWorld &world;
         int rank;
     };
 
@@ -134,7 +134,7 @@ namespace wasm {
 
         // We want to synchronise everyone here on a barrier
         int thisRank = executingContext.getRank();
-        mpi::MpiWorld &world = getExecutingWorld();
+        scheduler::MpiWorld &world = getExecutingWorld();
         world.barrier(thisRank);
 
         return 0;
@@ -257,7 +257,7 @@ namespace wasm {
 
     int terminateMpi() {
         if (executingContext.getRank() <= 0) {
-            mpi::MpiWorld &world = getExecutingWorld();
+            scheduler::MpiWorld &world = getExecutingWorld();
             world.destroy();
         }
 

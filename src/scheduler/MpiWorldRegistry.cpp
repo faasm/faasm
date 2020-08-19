@@ -1,15 +1,15 @@
 #include <util/locks.h>
 #include <util/config.h>
 
-#include "mpi/MpiWorldRegistry.h"
+#include "scheduler/MpiWorldRegistry.h"
 
-namespace mpi {
+namespace scheduler {
     MpiWorldRegistry &getMpiWorldRegistry() {
         static MpiWorldRegistry r;
         return r;
     }
 
-    mpi::MpiWorld &MpiWorldRegistry::createWorld(const message::Message &msg, int worldId) {
+    scheduler::MpiWorld &MpiWorldRegistry::createWorld(const message::Message &msg, int worldId) {
         if(worldMap.count(worldId) > 0) {
             throw std::runtime_error("World already exists");
         }

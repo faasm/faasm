@@ -1,16 +1,16 @@
-#include "mpi/MpiWorld.h"
-#include "mpi/MpiMessage.h"
+#include "MpiWorld.h"
+
+#include <faasmpi/mpi.h>
 
 #include <scheduler/Scheduler.h>
 #include <state/State.h>
 #include <util/gids.h>
-#include <mpi/MpiGlobalBus.h>
 #include <util/logging.h>
 #include <util/macros.h>
 #include <util/timing.h>
 
 
-namespace mpi {
+namespace scheduler {
     MpiWorld::MpiWorld() : id(-1), size(-1), thisHost(util::getSystemConfig().endpointHost),
                            creationTime(util::startTimer()) {
 
@@ -243,7 +243,7 @@ namespace mpi {
             }
         } else {
             logger->trace("MPI - send remote {} -> {}", sendRank, recvRank);
-            MpiGlobalBus &bus = mpi::getMpiGlobalBus();
+            MpiGlobalBus &bus = scheduler::getMpiGlobalBus();
             bus.sendMessageToHost(otherHost, m);
         }
     }

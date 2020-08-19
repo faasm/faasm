@@ -1,7 +1,7 @@
 #include "FaasletPool.h"
 
 #include <faaslet/Faaslet.h>
-#include <mpi/MpiGlobalBus.h>
+#include <scheduler/MpiGlobalBus.h>
 #include <system/SGX.h>
 
 
@@ -31,7 +31,7 @@ namespace faaslet {
         logger->info("Starting MPI queue listener");
 
         mpiThread = std::thread([this] {
-            mpi::MpiGlobalBus &bus = mpi::getMpiGlobalBus();
+            scheduler::MpiGlobalBus &bus = scheduler::getMpiGlobalBus();
             const std::string host = util::getSystemConfig().endpointHost;
 
             while (!this->isShutdown()) {

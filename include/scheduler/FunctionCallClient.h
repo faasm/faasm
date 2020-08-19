@@ -24,5 +24,7 @@ namespace scheduler {
         std::unique_ptr<message::FunctionRPCService::Stub> stub;
 
         void shareFunctionCall(const message::Message &call);
+
+        void sendMPIMessage(const message::MPIMessage &msg);
     };
 }

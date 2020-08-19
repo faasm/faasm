@@ -7,6 +7,10 @@ set(LIB_FILES
         FunctionCallClient.cpp
         FunctionCallServer.cpp
         Scheduler.cpp
+        MpiContext.cpp
+        MpiGlobalBus.cpp
+        MpiWorldRegistry.cpp
+        MpiWorld.cpp
         ${HEADERS}
 )
 

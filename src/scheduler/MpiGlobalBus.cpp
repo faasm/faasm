@@ -1,11 +1,11 @@
 #include <util/macros.h>
-#include "mpi/MpiGlobalBus.h"
-#include "mpi/MpiWorldRegistry.h"
+#include "scheduler/MpiGlobalBus.h"
+#include "scheduler/MpiWorldRegistry.h"
 
 
 #define MPI_MESSAGE_TIMEOUT_MS 1000
 
-namespace mpi {
+namespace scheduler {
     MpiGlobalBus::MpiGlobalBus() : thisHost(util::getSystemConfig().endpointHost), redis(redis::Redis::getQueue()) {
 
     }

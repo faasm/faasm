@@ -1,14 +1,14 @@
 #pragma once
 
-#include "mpi/MpiMessage.h"
+#include <faasmpi/mpi.h>
 
 #include <thread>
 #include <proto/faasm.pb.h>
 #include <state/StateKeyValue.h>
 #include <scheduler/InMemoryMessageQueue.h>
 
-namespace mpi {
-    typedef util::Queue<MpiMessage *> InMemoryMpiQueue;
+namespace scheduler {
+    typedef util::Queue<message::MPIMessage *> InMemoryMpiQueue;
     typedef util::Queue<int> InMemoryIntQueue;
 
     struct MpiWorldState {
@@ -43,22 +43,22 @@ namespace mpi {
 
         void destroy();
 
-        void enqueueMessage(MpiMessage *msg);
+        void enqueueMessage(message::MPIMessage *msg);
 
         void send(int sendRank, int recvRank,
                   const uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
-                  MpiMessageType messageType = MpiMessageType::NORMAL);
+                  message::MPIMessage::MPIMessageType messageType = message::MPIMessage::NORMAL);
 
         int isend(int sendRank, int recvRank,
                    const uint8_t *buffer, faasmpi_datatype_t *dataType, int count);
 
         void broadcast(int sendRank,
                        const uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
-                       MpiMessageType messageType = MpiMessageType::NORMAL);
+                       message::MPIMessage::MPIMessageType messageType = message::MPIMessage::NORMAL);
 
         void recv(int sendRank, int recvRank,
                   uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
-                  MPI_Status *status, MpiMessageType messageType = MpiMessageType::NORMAL);
+                  MPI_Status *status, message::MPIMessage::MPIMessageType messageType = message::MPIMessage::NORMAL);
 
         int irecv(int sendRank, int recvRank,
                    uint8_t *buffer, faasmpi_datatype_t *dataType, int count);
@@ -103,7 +103,7 @@ namespace mpi {
 
         void createWindow(const faasmpi_win_t *window, uint8_t *windowPtr);
 
-        void synchronizeRmaWrite(const MpiMessage *msg, bool isRemote);
+        void synchronizeRmaWrite(const message::MPIMessage *msg, bool isRemote);
 
         double getWTime();
 
