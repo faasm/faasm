@@ -19,7 +19,6 @@ RELEASE_CONTAINERS = [
     "redis",
     "worker",
     "upload",
-    "knative-worker",
     "toolchain",
 ]
 

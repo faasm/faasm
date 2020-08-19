@@ -1,7 +1,7 @@
 #include <catch/catch.hpp>
 
 #include "utils.h"
-#include <knative/KnativeHandler.h>
+#include <knative/FaasletEndpointHandler.h>
 
 #include <util/json.h>
 
@@ -54,7 +54,7 @@ namespace tests {
         const std::string &requestStr = util::messageToJson(call);
 
         // Handle the function
-        knative::KnativeHandler handler;
+        faaslet::FaasletEndpointHandler handler;
         const std::string responseStr = handler.handleFunction(requestStr);
 
         // Check function count has increased and bind message sent
@@ -74,7 +74,7 @@ namespace tests {
     }
 
     TEST_CASE("Test empty knative invocation", "[knative]") {
-        knative::KnativeHandler handler;
+        faaslet::FaasletEndpointHandler handler;
         std::string actual = handler.handleFunction("");
 
         REQUIRE(actual == "Empty request");
@@ -96,7 +96,7 @@ namespace tests {
             call.set_user("demo");
         }
 
-        knative::KnativeHandler handler;
+        faaslet::FaasletEndpointHandler handler;
         const std::string &requestStr = util::messageToJson(call);
         std::string actual = handler.handleFunction(requestStr);
 
@@ -136,7 +136,7 @@ namespace tests {
 
         msg.set_isstatusrequest(true);
 
-        knative::KnativeHandler handler;
+        faaslet::FaasletEndpointHandler handler;
         const std::string &requestStr = util::messageToJson(msg);
         std::string actual = handler.handleFunction(requestStr);
 

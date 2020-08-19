@@ -7,7 +7,6 @@ set(LIB_FILES
         FunctionCallClient.cpp
         FunctionCallServer.cpp
         Scheduler.cpp
-        SchedulerHttpMixin.cpp
         ${HEADERS}
 )
 

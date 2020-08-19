@@ -25,7 +25,7 @@ services:
       - PYTHON_CODEGEN=off
 
   worker:
-    image: faasm/knative-worker:${FAASM_VERSION}
+    image: faasm/worker:${FAASM_VERSION}
     depends_on:
       - upload
     expose:

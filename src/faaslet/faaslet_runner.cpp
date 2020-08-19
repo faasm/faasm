@@ -1,9 +1,9 @@
-#include "KnativeEndpoint.h"
+#include "FaasletEndpoint.h"
 
 #include <util/logging.h>
 #include <faaslet/FaasmMain.h>
 
-using namespace knative;
+using namespace faaslet;
 
 int main() {
     util::initLogging();
@@ -16,7 +16,7 @@ int main() {
 
     // Start endpoint (will also have multiple threads)
     logger->info("Starting knative endpoint");
-    KnativeEndpoint endpoint;
+    FaasletEndpoint endpoint;
     endpoint.start();
 
     logger->info("Shutting down knative endpoint");
