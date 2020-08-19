@@ -44,6 +44,7 @@ message MPIMessage {
     int32 destination = 5;
     int32 type = 6;
     int32 count = 7;
+    bytes buffer = 8;
 }
 
 message Message {

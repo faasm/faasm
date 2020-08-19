@@ -33,13 +33,6 @@ namespace scheduler {
         return "mpi_rank_" + std::to_string(worldId) + "_" + std::to_string(rankId);
     }
 
-    std::string getMessageStateKey(int messageId) {
-        if (messageId <= 0) {
-            throw std::runtime_error(fmt::format("Message ID must be bigger than zero ({})", messageId));
-        }
-        return "mpi_msg_" + std::to_string(messageId);
-    }
-
     std::string getWindowStateKey(int worldId, int rank, size_t size) {
         return "mpi_win_" + std::to_string(worldId) + "_" + std::to_string(rank) + "_" + std::to_string(size);
     }
@@ -56,14 +49,6 @@ namespace scheduler {
         state::State &state = state::getGlobalState();
         std::string stateKey = getRankStateKey(id, rank);
         return state.getKV(user, stateKey, MPI_HOST_STATE_LEN);
-    }
-
-    std::shared_ptr<state::StateKeyValue>
-    MpiWorld::getMessageState(int messageId, faasmpi_datatype_t *datatype, int count) {
-        std::string stateKey = getMessageStateKey(messageId);
-        state::State &state = state::getGlobalState();
-        size_t bufferLen = count * datatype->size;
-        return state.getKV(user, stateKey, bufferLen);
     }
 
     void MpiWorld::create(const message::Message &call, int newId, int newSize) {
@@ -222,15 +207,9 @@ namespace scheduler {
         const std::string otherHost = getHostForRank(recvRank);
         bool isLocal = otherHost == thisHost;
 
-        // Set up message data in state (must obviously be done before dispatching)
+        // Set up message data
         if (count > 0 && buffer != nullptr) {
-            const std::shared_ptr<state::StateKeyValue> &kv = getMessageState(msgId, dataType, count);
-            kv->set(buffer);
-
-            // Push to global state if not local
-            if (!isLocal) {
-                kv->pushFull();
-            }
+            m.set_buffer(buffer, dataType->size * count);
         }
 
         // Dispatch the message locally or globally
@@ -398,9 +377,10 @@ namespace scheduler {
             throw std::runtime_error("Message too long");
         }
 
+        // TODO - avoid copy here
+        // Copy message data
         if (m.count() > 0) {
-            const std::shared_ptr<state::StateKeyValue> &kv = getMessageState(m.id(), dataType, m.count());
-            kv->get(buffer);
+            std::copy(m.buffer().begin(), m.buffer().end(), buffer);
         }
 
         // Set status values if required

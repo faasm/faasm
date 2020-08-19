@@ -1,8 +1,10 @@
 #include <catch/catch.hpp>
+#include "utils.h"
+
 #include <scheduler/MpiWorldRegistry.h>
 #include <util/random.h>
 #include <faasmpi/mpi.h>
-#include "utils.h"
+#include <util/bytes.h>
 
 using namespace scheduler;
 
@@ -107,13 +109,10 @@ namespace tests {
         REQUIRE(actualMessage.sender() == senderRank);
         REQUIRE(actualMessage.type() == FAASMPI_INT);
 
-        // Check data written to state
-        const std::string messageStateKey = getMessageStateKey(actualMessage.id());
-        state::State &state = state::getGlobalState();
-        const std::shared_ptr<state::StateKeyValue> &kv = state.getKV(user, messageStateKey, sizeof(MpiWorldState));
-        int *actualDataPtr = reinterpret_cast<int *>(kv->get());
-        std::vector<int> actualData(actualDataPtr, actualDataPtr + data.size());
-
+        // Check data
+        auto *rawInts = reinterpret_cast<const int *>(actualMessage.buffer().c_str());
+        size_t nInts = actualMessage.buffer().size() / sizeof(int);
+        std::vector<int> actualData(rawInts, rawInts + nInts);
         REQUIRE(actualData == data);
     }
 

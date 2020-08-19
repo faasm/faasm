@@ -19,8 +19,6 @@ namespace scheduler {
 
     std::string getRankStateKey(int worldId, int rankId);
 
-    std::string getMessageStateKey(int messageId);
-
     class MpiWorld {
     public:
         MpiWorld();
@@ -129,8 +127,6 @@ namespace scheduler {
         void setUpStateKV();
 
         std::shared_ptr<state::StateKeyValue> getRankHostState(int rank);
-
-        std::shared_ptr<state::StateKeyValue> getMessageState(int messageId, faasmpi_datatype_t *datatype, int count);
 
         void checkRankOnThisHost(int rank);
 
