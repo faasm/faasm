@@ -36,13 +36,23 @@ add_custom_command(
         --plugin=protoc-gen-grpc=${GRPC_PLUGIN}
         faasm.proto
         DEPENDS faasm.proto
+)
+
+include_directories(${FAASM_INCLUDE_DIR}/proto/)
+
+file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/proto/*.h")
+
+set(LIB_FILES
+        RPCServer.cpp
+        ${HEADERS}
+        ${OUTPUT_FILES}
         )
 
 if (FAASM_BUILD_TYPE STREQUAL "native-tools")
-    faasm_public_lib(proto "${OUTPUT_FILES}")
-else()
-    faasm_private_lib(proto "${OUTPUT_FILES}")
-endif()
+    faasm_public_lib(proto "${LIB_FILES}")
+else ()
+    faasm_private_lib(proto "${LIB_FILES}")
+endif ()
 
 target_link_libraries(proto PRIVATE
         ${Protobuf_LIBRARIES}

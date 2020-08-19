@@ -5,28 +5,6 @@
 #include <module_cache/WasmModuleCache.h>
 
 namespace faaslet {
-    void flushFaasletHost() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->warn("Flushing host {}", util::getSystemConfig().endpointHost);
-
-        // Clear out any cached state
-        state::getGlobalState().forceClearAll(false);
-
-        // Clear shared files
-        storage::FileSystem::clearSharedFiles();
-
-        // Reset scheduler
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        sch.clear();
-        sch.addHostToGlobalSet();
-
-        // Clear out global message bus
-        scheduler::getGlobalMessageBus().clear();
-
-        // Clear zygotes
-        module_cache::getWasmModuleCache().clear();
-    }
-
     FaasmMain::FaasmMain() : conf(util::getSystemConfig()),
                                pool(conf.maxFaaslets),
                                scheduler(scheduler::getScheduler()) {
@@ -45,15 +23,10 @@ namespace faaslet {
         pool.startStateServer();
 
         // Work sharing
-        pool.startSharingThread();
+        pool.startFunctionCallServer();
 
         // Start MPI thread in background
         pool.startMpiThread();
-    }
-
-    void FaasmMain::awaitGlobalQueue() {
-        // Global queue listener (blocks until message received or timeout)
-        pool.startGlobalQueueThread();
     }
 
     void FaasmMain::shutdown() {

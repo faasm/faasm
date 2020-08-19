@@ -23,7 +23,6 @@ namespace util {
     void SystemConfig::initialise() {
         // System
         hostType = getEnvVar("HOST_TYPE", "default");
-        globalMessageBus = getEnvVar("GLOBAL_MESSAGE_BUS", "redis");
         functionStorage = getEnvVar("FUNCTION_STORAGE", "local");
         fileserverUrl = getEnvVar("FILESERVER_URL", "");
         serialisation = getEnvVar("SERIALISATION", "json");
@@ -99,7 +98,6 @@ namespace util {
 
         logger->info("--- System ---");
         logger->info("HOST_TYPE                  {}", hostType);
-        logger->info("GLOBAL_MESSAGE_BUS         {}", globalMessageBus);
         logger->info("FUNCTION_STORAGE           {}", functionStorage);
         logger->info("FILESERVER_URL             {}", fileserverUrl);
         logger->info("SERIALISATION              {}", serialisation);

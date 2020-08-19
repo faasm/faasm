@@ -1,17 +1,15 @@
 #pragma once
 
 #include "InMemoryMessageQueue.h"
-#include "GlobalMessageBus.h"
-#include "SharingMessageBus.h"
+#include "ExecGraph.h"
 
 #include <util/func.h>
+#include <util/config.h>
 #include <util/queue.h>
 
 #include <shared_mutex>
-#include <redis/Redis.h>
 
 #define AVAILABLE_HOST_SET "available_faaslets"
-
 
 namespace scheduler {
     // Note - default opinion when zero initialised should be maybe
@@ -39,10 +37,6 @@ namespace scheduler {
 
         void notifyFaasletFinished(const message::Message &msg);
 
-        // void notifyAwaiting(const message::Message &msg);
-
-        // void notifyFinishedAwaiting(const message::Message &msg);
-
         std::shared_ptr<InMemoryMessageQueue> getBindQueue();
 
         std::string getFunctionWarmSetName(const message::Message &msg);
@@ -69,14 +63,33 @@ namespace scheduler {
 
         void removeHostFromWarmSet(const std::string &funcStr);
 
-        void setMessageIdLogging(bool val);
+        void setTestMode(bool val);
 
-        std::vector<unsigned int> getScheduledMessageIds();
+        std::vector<unsigned int> getRecordedMessagesAll();
+
+        std::vector<unsigned int> getRecordedMessagesLocal();
+
+        std::vector<std::pair<std::string, unsigned int>> getRecordedMessagesShared();
 
         bool hasHostCapacity();
 
         std::string getThisHost();
 
+        void broadcastFlush(const message::Message &msg);
+
+        void preflightPythonCall();
+
+        std::string getMessageStatus(unsigned int messageId);
+
+        void setFunctionResult(message::Message &msg);
+
+        message::Message getFunctionResult(unsigned int messageId, int timeout);
+
+        void logChainedFunction(unsigned int parentMessageId, unsigned int chainedMessageId);
+
+        std::unordered_set<unsigned int> getChainedFunctions(unsigned int msgId);
+
+        ExecGraph getFunctionExecGraph(unsigned int msgId);
     private:
         std::string thisHost;
 
@@ -91,10 +104,10 @@ namespace scheduler {
         std::unordered_map<std::string, SchedulerOpinion> opinionMap;
         bool _hasHostCapacity = true;
 
-        SharingMessageBus &sharingBus;
-
-        bool logMessageIds = false;
-        std::vector<unsigned int> loggedMessageIds;
+        bool isTestMode = false;
+        std::vector<unsigned int> recordedMessagesAll;
+        std::vector<unsigned int> recordedMessagesLocal;
+        std::vector<std::pair<std::string, unsigned int>> recordedMessagesShared;
 
         void updateOpinion(const message::Message &msg);
 
@@ -107,9 +120,9 @@ namespace scheduler {
         void decrementWarmFaasletCount(const message::Message &msg);
 
         int getFunctionMaxInFlightRatio(const message::Message &msg);
+
+        ExecGraphNode getFunctionExecGraphNode(unsigned int msgId);
     };
 
     Scheduler &getScheduler();
-
-    GlobalMessageBus &getGlobalMessageBus();
 }

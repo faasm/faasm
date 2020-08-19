@@ -24,24 +24,24 @@ namespace tests {
         message::Message msgD = util::messageFactory("demo", "echo");
 
         // Set all execution results
-        GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
-        bus.setFunctionResult(msgA);
-        bus.setFunctionResult(msgB1);
-        bus.setFunctionResult(msgB2);
-        bus.setFunctionResult(msgC1);
-        bus.setFunctionResult(msgC2);
-        bus.setFunctionResult(msgC3);
-        bus.setFunctionResult(msgD);
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        sch.setFunctionResult(msgA);
+        sch.setFunctionResult(msgB1);
+        sch.setFunctionResult(msgB2);
+        sch.setFunctionResult(msgC1);
+        sch.setFunctionResult(msgC2);
+        sch.setFunctionResult(msgC3);
+        sch.setFunctionResult(msgD);
 
         // Set up chaining relationships
-        bus.logChainedFunction(msgA.id(), msgB1.id());
-        bus.logChainedFunction(msgA.id(), msgB2.id());
-        bus.logChainedFunction(msgB1.id(), msgC1.id());
-        bus.logChainedFunction(msgB2.id(), msgC2.id());
-        bus.logChainedFunction(msgB2.id(), msgC3.id());
-        bus.logChainedFunction(msgC2.id(), msgD.id());
+        sch.logChainedFunction(msgA.id(), msgB1.id());
+        sch.logChainedFunction(msgA.id(), msgB2.id());
+        sch.logChainedFunction(msgB1.id(), msgC1.id());
+        sch.logChainedFunction(msgB2.id(), msgC2.id());
+        sch.logChainedFunction(msgB2.id(), msgC3.id());
+        sch.logChainedFunction(msgC2.id(), msgD.id());
 
-        ExecGraph actual = bus.getFunctionExecGraph(msgA.id());
+        ExecGraph actual = sch.getFunctionExecGraph(msgA.id());
 
         ExecGraphNode nodeD = {
                 .msg = msgD,

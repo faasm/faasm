@@ -3,7 +3,10 @@
 #include <util/logging.h>
 #include <util/random.h>
 #include <util/timing.h>
-#include <scheduler/SharingMessageBus.h>
+#include <scheduler/FunctionCallClient.h>
+#include <redis/Redis.h>
+
+#define CHAINED_SET_PREFIX "chained_"
 
 
 using namespace util;
@@ -11,11 +14,14 @@ using namespace util;
 namespace scheduler {
     const std::string WARM_SET_PREFIX = "w_";
 
+    std::string getChainedKey(unsigned int msgId) {
+        return std::string(CHAINED_SET_PREFIX) + std::to_string(msgId);
+    }
+    
     Scheduler::Scheduler() :
             thisHost(util::getSystemConfig().endpointHost),
             conf(util::getSystemConfig()),
-            sharingBus(SharingMessageBus::getInstance()),
-            logMessageIds(false) {
+            isTestMode(false) {
 
         bindQueue = std::make_shared<InMemoryMessageQueue>();
     }
@@ -69,10 +75,11 @@ namespace scheduler {
         opinionMap.clear();
         _hasHostCapacity = true;
 
-        // Message IDs
-        loggedMessageIds.clear();
-
-        setMessageIdLogging(false);
+        // Records
+        setTestMode(false);
+        recordedMessagesAll.clear();
+        recordedMessagesLocal.clear();
+        recordedMessagesShared.clear();
 
         this->removeHostFromGlobalSet();
     }
@@ -142,25 +149,6 @@ namespace scheduler {
         decrementWarmFaasletCount(msg);
     }
 
-    // void Scheduler::notifyAwaiting(const message::Message &msg) {
-    //     // When a faaslet is awaiting a call, it's paused in the background,
-    //     // so we can rebalance the warm faaslet and in-flight count for that
-    //     // function
-    //     util::FullLock lock(mx);
-    //     decrementInFlightCount(msg);
-    //     decrementWarmFaasletCount(msg);
-    // }
-
-    // void Scheduler::notifyFinishedAwaiting(const message::Message &msg) {
-    //     // When a faaslet returns from awaiting, we can increase the faaslet and
-    //     // in-flight counts again
-    //     util::FullLock lock(mx);
-    //
-    //     // Note that we must re-add the Faaslet before increasing the in-flight count
-    //     incrementWarmFaasletCount(msg);
-    //     incrementInFlightCount(msg);
-    // }
-
     std::string Scheduler::getFunctionWarmSetName(const message::Message &msg) {
         std::string funcStr = util::funcToString(msg, false);
         return this->getFunctionWarmSetNameFromStr(funcStr);
@@ -201,11 +189,7 @@ namespace scheduler {
             msg.set_scheduledhost(bestHost);
         }
 
-        // Log this call if needed
-        if (logMessageIds) {
-            loggedMessageIds.push_back(msg.id());
-        }
-
+        bool executedLocally = true;
         const std::string funcStrWithId = util::funcToString(msg, true);
         if (bestHost == thisHost) {
             // Run locally if we're the best choice
@@ -217,12 +201,31 @@ namespace scheduler {
             // Increment the number of hops
             msg.set_hops(msg.hops() + 1);
 
-            // Share with other host
-            logger->debug("Host {} sharing {} with {} ({} hops)",
-                          thisHost, funcStrWithId,
-                          bestHost, msg.hops());
+            // Share with other host (or just log in test mode)
+            if(isTestMode) {
+                logger->debug("TEST MODE - {} not sharing {} with {} ({} hops)",
+                              thisHost, funcStrWithId,
+                              bestHost, msg.hops());
+            } else {
+                logger->debug("Host {} sharing {} with {} ({} hops)",
+                              thisHost, funcStrWithId,
+                              bestHost, msg.hops());
 
-            sharingBus.shareMessageWithHost(bestHost, msg);
+                FunctionCallClient c(bestHost);
+                c.shareFunctionCall(msg);
+            }
+
+            executedLocally = false;
+        }
+
+        // Add this message to records if necessary
+        if (isTestMode) {
+            recordedMessagesAll.push_back(msg.id());
+            if(executedLocally) {
+                recordedMessagesLocal.push_back(msg.id());
+            } else {
+                recordedMessagesShared.emplace_back(bestHost, msg.id());
+            }
         }
 
         PROF_END(scheduleCall)
@@ -397,12 +400,20 @@ namespace scheduler {
         }
     }
 
-    void Scheduler::setMessageIdLogging(bool val) {
-        logMessageIds = val;
+    void Scheduler::setTestMode(bool val) {
+        isTestMode = val;
     }
 
-    std::vector<unsigned int> Scheduler::getScheduledMessageIds() {
-        return loggedMessageIds;
+    std::vector<unsigned int> Scheduler::getRecordedMessagesAll() {
+        return recordedMessagesAll;
+    }
+
+    std::vector<unsigned int> Scheduler::getRecordedMessagesLocal() {
+        return recordedMessagesLocal;
+    }
+
+    std::vector<std::pair<std::string, unsigned int>> Scheduler::getRecordedMessagesShared() {
+        return recordedMessagesShared;
     }
 
     bool Scheduler::hasHostCapacity() {
@@ -472,5 +483,178 @@ namespace scheduler {
 
     std::string Scheduler::getThisHost() {
         return thisHost;
+    }
+
+    void Scheduler::broadcastFlush(const message::Message &msg) {
+        redis::Redis &redis = redis::Redis::getQueue();
+        std::unordered_set<std::string> allOptions = redis.smembers(AVAILABLE_HOST_SET);
+
+        message::Message newMessage;
+        newMessage.set_user(msg.user());
+        newMessage.set_function(msg.function());
+        newMessage.set_isflushrequest(true);
+
+        // This is pretty inefficient but flush isn't a particularly important operation
+        for(auto &otherHost : allOptions) {
+            FunctionCallClient c(otherHost);
+            c.shareFunctionCall(newMessage);
+        }
+    }
+
+    void Scheduler::preflightPythonCall() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        if (conf.pythonPreload != "on") {
+            logger->info("Not preloading python runtime");
+            return;
+        }
+
+        logger->info("Preparing python runtime");
+
+        message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+        msg.set_ispython(true);
+        msg.set_pythonuser("python");
+        msg.set_pythonfunction("noop");
+        util::setMessageId(msg);
+
+        callFunction(msg, true);
+
+        logger->info("Python runtime prepared");
+    }
+
+    void Scheduler::setFunctionResult(message::Message &msg) {
+        redis::Redis &redis = redis::Redis::getQueue();
+
+        // Record which host did the execution
+        msg.set_executedhost(util::getSystemConfig().endpointHost);
+
+        // Set finish timestamp
+        msg.set_finishtimestamp(util::getGlobalClock().epochMillis());
+
+        std::string key = msg.resultkey();
+        if (key.empty()) {
+            throw std::runtime_error("Result key empty. Cannot publish result");
+        }
+
+        // Write the successful result to the result queue
+        std::vector<uint8_t> inputData = util::messageToBytes(msg);
+        redis.enqueueBytes(key, inputData);
+
+        // Set the result key to expire
+        redis.expire(key, RESULT_KEY_EXPIRY);
+
+        // Set long-lived result for function too
+        if (conf.execGraphMode == "on") {
+            redis.set(msg.statuskey(), inputData);
+            redis.expire(key, STATUS_KEY_EXPIRY);
+        }
+    }
+
+    message::Message Scheduler::getFunctionResult(unsigned int messageId, int timeoutMs) {
+        if (messageId == 0) {
+            throw std::runtime_error("Must provide non-zero message ID");
+        }
+
+        redis::Redis &redis = redis::Redis::getQueue();
+
+        bool isBlocking = timeoutMs > 0;
+
+        std::string resultKey = util::resultKeyFromMessageId(messageId);
+
+        message::Message msgResult;
+
+        if (isBlocking) {
+            // Blocking version will throw an exception when timing out which is handled
+            // by the caller.
+            std::vector<uint8_t> result = redis.dequeueBytes(resultKey, timeoutMs);
+            msgResult.ParseFromArray(result.data(), (int) result.size());
+        } else {
+            // Non-blocking version will tolerate empty responses, therefore we handle
+            // the exception here
+            std::vector<uint8_t> result;
+            try {
+                result = redis.dequeueBytes(resultKey, timeoutMs);
+            } catch (redis::RedisNoResponseException &ex) {
+                // Ok for no response when not blocking
+            }
+
+            if (result.empty()) {
+                // Empty result has special type
+                msgResult.set_type(message::Message_MessageType_EMPTY);
+            } else {
+                // Normal response if we get something from redis
+                msgResult.ParseFromArray(result.data(), (int) result.size());
+            }
+        }
+
+        return msgResult;
+    }
+
+    ExecGraph Scheduler::getFunctionExecGraph(unsigned int messageId) {
+        ExecGraphNode rootNode = getFunctionExecGraphNode(messageId);
+        ExecGraph graph{
+                .rootNode = rootNode
+        };
+
+        return graph;
+    }
+
+    ExecGraphNode Scheduler::getFunctionExecGraphNode(unsigned int messageId) {
+        redis::Redis &redis = redis::Redis::getQueue();
+
+        // Get the result for this message
+        std::string statusKey = util::statusKeyFromMessageId(messageId);
+        std::vector<uint8_t> messageBytes = redis.get(statusKey);
+        message::Message result;
+        result.ParseFromArray(messageBytes.data(), (int) messageBytes.size());
+
+        // Recurse through chained calls
+        std::unordered_set<unsigned int> chainedMsgIds = getChainedFunctions(messageId);
+        std::vector<ExecGraphNode> children;
+        for (auto c : chainedMsgIds) {
+            children.emplace_back(getFunctionExecGraphNode(c));
+        }
+
+        // Build the node
+        ExecGraphNode node{
+                .msg = result,
+                .children = children
+        };
+
+        return node;
+    }
+
+    std::string Scheduler::getMessageStatus(unsigned int messageId) {
+        const message::Message result = getFunctionResult(messageId, 0);
+
+        if (result.type() == message::Message_MessageType_EMPTY) {
+            return "RUNNING";
+        } else if (result.returnvalue() == 0) {
+            return "SUCCESS: " + result.outputdata();
+        } else {
+            return "FAILED: " + result.outputdata();
+        }
+    }
+
+    void Scheduler::logChainedFunction(unsigned int parentMessageId, unsigned int chainedMessageId) {
+        redis::Redis &redis = redis::Redis::getQueue();
+
+        const std::string &key = getChainedKey(parentMessageId);
+        redis.sadd(key, std::to_string(chainedMessageId));
+        redis.expire(key, STATUS_KEY_EXPIRY);
+    }
+
+    std::unordered_set<unsigned int> Scheduler::getChainedFunctions(unsigned int msgId) {
+        redis::Redis &redis = redis::Redis::getQueue();
+
+        const std::string &key = getChainedKey(msgId);
+        const std::unordered_set<std::string> chainedCalls = redis.smembers(key);
+
+        std::unordered_set<unsigned int> chainedIds;
+        for (auto i : chainedCalls) {
+            chainedIds.insert(std::stoi(i));
+        }
+
+        return chainedIds;
     }
 }

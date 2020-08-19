@@ -1,7 +1,3 @@
-from json import loads
-from pprint import pprint
-from subprocess import run
-
 from invoke import task
 
 from faasmcli.util.call import invoke_impl, status_call_impl, flush_call_impl, exec_graph_call_impl
@@ -71,7 +67,7 @@ def exec_graph(ctx, call_id=None, host=None, port=None, headless=False, output_f
 
 
 @task
-def flush(ctx):
+def flush(ctx, user, function):
     """
     Flush workers
     """
@@ -79,4 +75,4 @@ def flush(ctx):
     host = host if host else "127.0.0.1"
     port = port if port else 8080
 
-    flush_call_impl(host, port)
+    flush_call_impl(host, port, user, function)

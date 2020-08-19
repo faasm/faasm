@@ -37,9 +37,6 @@ namespace tests {
         sch.clear();
         sch.addHostToGlobalSet();
 
-        // Clear out global message bus
-        scheduler::getGlobalMessageBus().clear();
-
         // Clear zygotes
         module_cache::getWasmModuleCache().clear();
 

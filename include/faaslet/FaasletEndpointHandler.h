@@ -1,15 +1,12 @@
 #pragma once
 
 #include <pistache/http.h>
-#include <scheduler/GlobalMessageBus.h>
-#include <scheduler/SchedulerHttpMixin.h>
+#include <proto/faasm.pb.h>
 
-namespace knative {
-    class KnativeHandler : public Pistache::Http::Handler, scheduler::SchedulerHttpMixin {
+namespace faaslet {
+    class FaasletEndpointHandler : public Pistache::Http::Handler {
     public:
-        KnativeHandler();
-
-        HTTP_PROTOTYPE(KnativeHandler)
+        HTTP_PROTOTYPE(FaasletEndpointHandler)
 
         void onTimeout(const Pistache::Http::Request &request, Pistache::Http::ResponseWriter writer) override;
 
@@ -18,6 +15,6 @@ namespace knative {
         std::string handleFunction(const std::string &requestStr);
 
     private:
-        util::SystemConfig &conf;
+        std::string executeFunction(message::Message &msg);
     };
 }

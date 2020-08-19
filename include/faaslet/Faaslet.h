@@ -10,6 +10,8 @@
 #include <string>
 
 namespace faaslet {
+    void flushFaasletHost();
+
     class Faaslet {
     public:
         explicit Faaslet(int threadIdx);
@@ -42,8 +44,6 @@ namespace faaslet {
         scheduler::Scheduler &scheduler;
 
         std::shared_ptr<scheduler::InMemoryMessageQueue> currentQueue;
-
-        scheduler::GlobalMessageBus &globalBus;
 
         std::string executeCall(message::Message &msg);
 

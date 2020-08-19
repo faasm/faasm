@@ -95,9 +95,9 @@ void emulatorSetCallStatus(bool success) {
         resultMsg.set_returnvalue(1);
     }
 
-    scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
+    scheduler::Scheduler &sch = scheduler::getScheduler();
     resultMsg.set_outputdata(getEmulatorOutputDataString());
-    globalBus.setFunctionResult(resultMsg);
+    sch.setFunctionResult(resultMsg);
 }
 
 unsigned int setEmulatedMessageFromJson(const char *messageJson) {
@@ -395,10 +395,10 @@ int _await_call_knative(unsigned int callId) {
     logger->debug("E - await_call_knative {}", callId);
     int timeoutMs = util::getSystemConfig().chainedCallTimeout;
 
-    scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
+    scheduler::Scheduler &sch = scheduler::getScheduler();
     int returnCode = 1;
     try {
-        const message::Message result = bus.getFunctionResult(callId, timeoutMs);
+        const message::Message result = sch.getFunctionResult(callId, timeoutMs);
         returnCode = result.returnvalue();
     } catch (redis::RedisNoResponseException &ex) {
         logger->error("Timed out waiting for chained call: {}", callId);

@@ -4,6 +4,7 @@
 #include <grpcpp/create_channel.h>
 #include <util/logging.h>
 #include <util/macros.h>
+#include <proto/macros.h>
 
 
 namespace state {

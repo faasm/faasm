@@ -130,19 +130,23 @@ def invoke_impl(user, func,
             raise RuntimeError("Must specify knative")
 
 
-def flush_call_impl(host, port):
+def flush_call_impl(host, port, user, function):
     msg = {
+        "user": user,
+        "function": function,
         "flush": True,
     }
-    return _do_single_call(None, None, host, port, msg, False)
+    return _do_single_call(host, port, msg, False)
 
 
 def status_call_impl(user, func, call_id, host, port, quiet=False):
     msg = {
+        "user": user,
+        "function": func,
         "status": True,
         "id": int(call_id),
     }
-    call_result = _do_single_call(user, func, host, port, msg, quiet)
+    call_result = _do_single_call(host, port, msg, quiet)
 
     if call_result.startswith("SUCCESS"):
         return STATUS_SUCCESS, call_result
@@ -154,10 +158,12 @@ def status_call_impl(user, func, call_id, host, port, quiet=False):
 
 def exec_graph_call_impl(user, func, call_id, host, port, quiet=False):
     msg = {
+        "user": user,
+        "function": func,
         "exec_graph": True,
         "id": int(call_id),
     }
-    call_result = _do_single_call(user, func, host, port, msg, quiet)
+    call_result = _do_single_call(host, port, msg, quiet)
 
     if not quiet:
         print(call_result)
@@ -165,7 +171,7 @@ def exec_graph_call_impl(user, func, call_id, host, port, quiet=False):
     return call_result
 
 
-def _do_single_call(user, func, host, port, msg, quiet):
+def _do_single_call(host, port, msg, quiet):
     url = "http://{}".format(host)
     if port != 80:
         url += ":{}/".format(port)

@@ -18,5 +18,4 @@ target_link_libraries(test_utils
         upload_lib
         faaslet_lib
         emulator
-        worker_knative_lib
         )

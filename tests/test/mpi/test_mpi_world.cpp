@@ -18,7 +18,7 @@ namespace tests {
         cleanSystem();
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        sch.setMessageIdLogging(true);
+        sch.setTestMode(true);
 
         // Create the world
         const message::Message &msg = util::messageFactory(user, func);
@@ -31,7 +31,7 @@ namespace tests {
         REQUIRE(world.getFunction() == func);
 
         // Check that chained function calls are made as expected
-        REQUIRE(sch.getScheduledMessageIds().size() == worldSize - 1);
+        REQUIRE(sch.getRecordedMessagesAll().size() == worldSize - 1);
 
         for (int i = 1; i < worldSize; i++) {
             message::Message actualCall = sch.getFunctionQueue(msg)->dequeue();

@@ -1,9 +1,8 @@
 #include <catch/catch.hpp>
 
 #include "utils.h"
-#include <knative/KnativeHandler.h>
+#include <faaslet/FaasletEndpointHandler.h>
 
-#include <scheduler/GlobalMessageBus.h>
 #include <util/json.h>
 
 using namespace Pistache;
@@ -55,7 +54,7 @@ namespace tests {
         const std::string &requestStr = util::messageToJson(call);
 
         // Handle the function
-        knative::KnativeHandler handler;
+        faaslet::FaasletEndpointHandler handler;
         const std::string responseStr = handler.handleFunction(requestStr);
 
         // Check function count has increased and bind message sent
@@ -75,7 +74,7 @@ namespace tests {
     }
 
     TEST_CASE("Test empty knative invocation", "[knative]") {
-        knative::KnativeHandler handler;
+        faaslet::FaasletEndpointHandler handler;
         std::string actual = handler.handleFunction("");
 
         REQUIRE(actual == "Empty request");
@@ -97,7 +96,7 @@ namespace tests {
             call.set_user("demo");
         }
 
-        knative::KnativeHandler handler;
+        faaslet::FaasletEndpointHandler handler;
         const std::string &requestStr = util::messageToJson(call);
         std::string actual = handler.handleFunction(requestStr);
 
@@ -107,7 +106,7 @@ namespace tests {
     TEST_CASE("Check getting function status from knative", "[knative]") {
         cleanSystem();
 
-        scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
+        scheduler::Scheduler &sch = scheduler::getScheduler();
 
         // Create a message
         message::Message msg = util::messageFactory("demo", "echo");
@@ -121,7 +120,7 @@ namespace tests {
             std::string errorMsg = "I have failed";
             msg.set_outputdata(errorMsg);
             msg.set_returnvalue(1);
-            bus.setFunctionResult(msg);
+            sch.setFunctionResult(msg);
 
             expectedOutput = "FAILED: " + errorMsg;
         }
@@ -130,48 +129,18 @@ namespace tests {
             std::string errorMsg = "I have succeeded";
             msg.set_outputdata(errorMsg);
             msg.set_returnvalue(0);
-            bus.setFunctionResult(msg);
+            sch.setFunctionResult(msg);
 
             expectedOutput = "SUCCESS: " + errorMsg;
         }
 
         msg.set_isstatusrequest(true);
 
-        knative::KnativeHandler handler;
+        faaslet::FaasletEndpointHandler handler;
         const std::string &requestStr = util::messageToJson(msg);
         std::string actual = handler.handleFunction(requestStr);
 
         REQUIRE(actual == expectedOutput);
 
-    }
-    
-    void checkFlushMessageShared(const std::string &host, const message::Message &msg) {
-        scheduler::SharingMessageBus &sharingBus = scheduler::SharingMessageBus::getInstance();
-        const message::Message actual = sharingBus.nextMessageForHost(host);
-        REQUIRE(actual.isflushrequest());
-    }
-    
-    TEST_CASE("Test broadcasting flush message", "[knative]") {
-        cleanSystem();
-
-        // Set up some dummy hosts and add to global set
-        std::string thisHost = util::getSystemConfig().endpointHost;
-        std::string hostA = "host_a";
-        std::string hostB = "host_b";
-
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        sch.addHostToGlobalSet(hostA);
-        sch.addHostToGlobalSet(hostB);
-        
-        message::Message msg;
-        msg.set_isflushrequest(true);
-        
-        knative::KnativeHandler handler;
-        const std::string &requestStr = util::messageToJson(msg);
-        std::string actual = handler.handleFunction(requestStr);
-
-        checkFlushMessageShared(thisHost, msg);
-        checkFlushMessageShared(hostA, msg);
-        checkFlushMessageShared(hostB, msg);
     }
 }

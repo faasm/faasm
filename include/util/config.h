@@ -14,7 +14,6 @@ namespace util {
     public:
         // System
         std::string hostType;
-        std::string globalMessageBus;
         std::string functionStorage;
         std::string fileserverUrl;
         std::string serialisation;

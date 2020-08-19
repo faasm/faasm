@@ -73,8 +73,7 @@ namespace tests {
         faaslet.processNextMessage();
 
         // Check success
-        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(readCall.id(), 1);
+        message::Message result = sch.getFunctionResult(readCall.id(), 1);
         REQUIRE(result.returnvalue() == 0);
     }
 

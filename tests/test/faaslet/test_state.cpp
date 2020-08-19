@@ -29,8 +29,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check result
-        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message resultA = globalBus.getFunctionResult(call.id(), 1);
+        message::Message resultA = sch.getFunctionResult(call.id(), 1);
         REQUIRE(resultA.returnvalue() == 0);
         REQUIRE(resultA.outputdata() == "Counter: 001");
 
@@ -42,7 +41,7 @@ namespace tests {
         sch.callFunction(call);
         w.processNextMessage();
 
-        message::Message resultB = globalBus.getFunctionResult(call.id(), 1);
+        message::Message resultB = sch.getFunctionResult(call.id(), 1);
         REQUIRE(resultB.returnvalue() == 0);
         REQUIRE(resultB.outputdata() == "Counter: 002");
     }
@@ -68,8 +67,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check result
-        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(call.id(), 1);
+        message::Message result = sch.getFunctionResult(call.id(), 1);
         REQUIRE(result.returnvalue() == 0);
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
 

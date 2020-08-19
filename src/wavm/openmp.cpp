@@ -306,27 +306,19 @@ namespace wasm {
             I64 numErrors = 0;
 
             for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
-                scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
                 int callTimeoutMs = util::getSystemConfig().chainedCallTimeout;
                 logger->info("Waiting for thread #{} with call id {} with a timeout of {}", threadNum,
                              chainedThreads[threadNum], callTimeoutMs);
 
-                // Free this thread
-                // message::Message *msg = getExecutingCall();
-                // scheduler::Scheduler &scheduler = scheduler::getScheduler();
-                // scheduler.notifyAwaiting(*msg);
-
                 int returnCode = 1;
                 try {
-                    const message::Message result = bus.getFunctionResult(chainedThreads[threadNum], callTimeoutMs);
+                    const message::Message result = sch.getFunctionResult(chainedThreads[threadNum], callTimeoutMs);
                     returnCode = result.returnvalue();
                 } catch (redis::RedisNoResponseException &ex) {
                     util::getLogger()->error("Timed out waiting for chained call: {}", chainedThreads[threadNum]);
                 } catch (std::exception &ex) {
                     util::getLogger()->error("Non-timeout exception waiting for chained call: {}", ex.what());
                 }
-
-                // scheduler.notifyFinishedAwaiting(*msg);
 
                 if (returnCode) {
                     numErrors++;

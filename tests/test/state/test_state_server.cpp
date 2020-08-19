@@ -10,6 +10,7 @@
 
 #include <wait.h>
 #include <util/bytes.h>
+#include <proto/macros.h>
 
 using namespace state;
 
@@ -64,7 +65,7 @@ namespace tests {
         s.start();
         usleep(1000 * 100);
 
-        StateClient client(userA, keyA, STATE_HOST);
+        StateClient client(userA, keyA, DEFAULT_RPC_HOST);
 
         SECTION("State size") {
             size_t actualSize = client.stateSize();

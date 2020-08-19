@@ -46,11 +46,11 @@ namespace tests {
         cleanSystem();
 
         Scheduler &sch = scheduler::getScheduler();
+        sch.setTestMode(true);
         Redis &redis = Redis::getQueue();
 
         std::string thisHost = util::getSystemConfig().endpointHost;
         std::string otherHostA = "192.168.0.10";
-        SharingMessageBus &sharingBus = SharingMessageBus::getInstance();
 
         message::Message call = util::messageFactory("user a", "function a");
         message::Message chainedCall = util::messageFactory("user a", "function a");
@@ -232,21 +232,22 @@ namespace tests {
                 REQUIRE(sch.getFunctionInFlightCount(call) == nCalls + 1);
 
                 // Call more and check calls are shared elsewhere
-                sch.callFunction(call);
-                sch.callFunction(call);
+                message::Message otherCallA;
+                message::Message otherCallB;
+                otherCallA.set_id(1234);
+                otherCallB.set_id(1235);
+                sch.callFunction(otherCallA);
+                sch.callFunction(otherCallB);
 
-                const std::string sharingQueue = getSharingQueueNameForHost(otherHostA);
-                REQUIRE(redis.listLength(sharingQueue) == 2);
+                std::vector<std::pair<std::string, unsigned int>> sharedMessages = sch.getRecordedMessagesShared();
+                REQUIRE(sharedMessages.size() == 2);
 
-                message::Message actualA = sharingBus.nextMessageForHost(otherHostA);
-                message::Message actualB = sharingBus.nextMessageForHost(otherHostA);
+                REQUIRE(sharedMessages[0].first == otherHostA);
+                REQUIRE(sharedMessages[0].second == otherCallA.id());
 
-                REQUIRE(actualA.function() == call.function());
-                REQUIRE(actualA.user() == call.user());
-
-                REQUIRE(actualB.function() == call.function());
-                REQUIRE(actualB.user() == call.user());
-
+                REQUIRE(sharedMessages[1].first == otherHostA);
+                REQUIRE(sharedMessages[1].second == otherCallB.id());
+                
                 // Check not added to local queues
                 REQUIRE(bindQueue->size() == conf.maxFaasletsPerFunction);
                 REQUIRE(sch.getFunctionWarmFaasletCount(call) == conf.maxFaasletsPerFunction);
@@ -325,7 +326,7 @@ namespace tests {
     TEST_CASE("Test message recording of scheduling decisions", "[scheduler]") {
         cleanSystem();
         Scheduler &sch = scheduler::getScheduler();
-        SharingMessageBus &sharingBus = SharingMessageBus::getInstance();
+        sch.setTestMode(true);
 
         std::string thisHostId = util::getSystemConfig().endpointHost;
         std::string otherHostA = "192.168.3.3";
@@ -355,6 +356,9 @@ namespace tests {
 
         for (int i = 0; i < 3; i++) {
             message::Message msgC = util::messageFactory("demo", "chain_simple");
+            unsigned int msgId = 111 + i;
+            msgC.set_id(msgId);
+
             sch.callFunction(msgC);
 
             // Check scheduling info
@@ -363,13 +367,16 @@ namespace tests {
             REQUIRE(msgC.executedhost().empty());
 
             // Check actual message bus
-            message::Message actualShare = sharingBus.nextMessageForHost(otherHostA);
+            std::vector<std::pair<std::string, unsigned int>> actualShared = sch.getRecordedMessagesShared();
+            REQUIRE(actualShared[i].first == otherHostA);
+            REQUIRE(actualShared[i].second == msgId);
         }
     }
 
     TEST_CASE("Test multiple hops", "[scheduler]") {
         cleanSystem();
         Scheduler &sch = scheduler::getScheduler();
+        sch.setTestMode(true);
 
         std::string thisHostId = util::getSystemConfig().endpointHost;
         std::string otherHostA = "192.168.4.5";
@@ -404,6 +411,7 @@ namespace tests {
     TEST_CASE("Test faaslet removes itself from warm set when sharing") {
         cleanSystem();
         Scheduler &sch = scheduler::getScheduler();
+        sch.setTestMode(true);
 
         std::string thisHost = util::getSystemConfig().endpointHost;
         std::string otherHost = "192.168.111.23";
@@ -452,18 +460,6 @@ namespace tests {
         REQUIRE(sch.getFunctionWarmFaasletCount(msg) == 1);
         REQUIRE(sch.getFunctionInFlightCount(msg) == 1);
         REQUIRE(sch.getLatestOpinion(msg) == SchedulerOpinion::YES);
-
-//        // Check notifying of awaiting reduces the faaslet and in-flight count
-//        sch.notifyAwaiting(msg);
-//        REQUIRE(sch.getFunctionWarmFaasletCount(msg) == 0);
-//        REQUIRE(sch.getFunctionInFlightCount(msg) == 0);
-//        REQUIRE(sch.getLatestOpinion(msg) == SchedulerOpinion::MAYBE);
-//
-//        // Check notifying of awaiting finished puts this up again
-//        sch.notifyFinishedAwaiting(msg);
-//        REQUIRE(sch.getFunctionWarmFaasletCount(msg) == 1);
-//        REQUIRE(sch.getFunctionInFlightCount(msg) == 1);
-//        REQUIRE(sch.getLatestOpinion(msg) == SchedulerOpinion::YES);
     }
 
     TEST_CASE("Test opinion still YES when nothing in flight", "[scheduler]") {
@@ -556,7 +552,7 @@ namespace tests {
         conf.maxFaasletsPerFunction = originalFaasletsPerFunc;
     }
 
-    TEST_CASE("Test logging message IDs", "[scheduler]") {
+    TEST_CASE("Check test mode", "[scheduler]") {
         cleanSystem();
 
         Scheduler &sch = scheduler::getScheduler();
@@ -565,17 +561,17 @@ namespace tests {
         message::Message msgB = util::messageFactory("demo", "echo");
         message::Message msgC = util::messageFactory("demo", "echo");
 
-        SECTION("No logging") {
-            sch.setMessageIdLogging(false);
+        SECTION("No test mode") {
+            sch.setTestMode(false);
 
             sch.callFunction(msgA);
             sch.callFunction(msgB);
             sch.callFunction(msgC);
-            REQUIRE(sch.getScheduledMessageIds().empty());
+            REQUIRE(sch.getRecordedMessagesAll().empty());
         }
 
-        SECTION("Logging") {
-            sch.setMessageIdLogging(true);
+        SECTION("Test mode") {
+            sch.setTestMode(true);
 
             sch.callFunction(msgA);
             sch.callFunction(msgB);
@@ -583,7 +579,7 @@ namespace tests {
 
             std::vector<unsigned int> expected = {(unsigned int) msgA.id(), (unsigned int) msgB.id(),
                                                   (unsigned int) msgC.id()};
-            std::vector<unsigned int> actual = sch.getScheduledMessageIds();
+            std::vector<unsigned int> actual = sch.getRecordedMessagesAll();
             REQUIRE(actual == expected);
         }
     }
@@ -592,6 +588,8 @@ namespace tests {
         cleanSystem();
 
         Scheduler &sch = scheduler::getScheduler();
+        sch.setTestMode(true);
+
         Redis &redis = Redis::getQueue();
 
         std::string thisHost = sch.getThisHost();
@@ -642,8 +640,7 @@ namespace tests {
         REQUIRE(!sch.hasHostCapacity());
 
         // Check that no sharing has been done yet
-        const std::string sharingQueue = getSharingQueueNameForHost(otherHost);
-        REQUIRE(redis.listLength(sharingQueue) == 0);
+        REQUIRE(sch.getRecordedMessagesShared().size() == 0);
 
         // Now check that subsequent calls are shared even though they still don't
         // breach per function limits
@@ -655,7 +652,7 @@ namespace tests {
         REQUIRE(sch.getLatestOpinion(callB) == SchedulerOpinion::NO);
         REQUIRE(sch.getLatestOpinion(callC) == SchedulerOpinion::NO);
         REQUIRE(sch.getTotalWarmFaasletCount() == 10);
-        REQUIRE(redis.listLength(sharingQueue) == 3);
+        REQUIRE(sch.getRecordedMessagesShared().size() == 3);
         REQUIRE(!sch.hasHostCapacity());
 
         // Notify that a call has finished
@@ -704,5 +701,218 @@ namespace tests {
         conf.maxFaaslets = originalMaxFaaslet;
         conf.maxFaasletsPerFunction = originalMaxFaasletsPerFunction;
         conf.maxInFlightRatio = originalMaxInFlightRatio;
+    }
+
+
+    TEST_CASE("Global message queue tests", "[scheduler]") {
+        cleanSystem();
+
+        redis::Redis &redis = redis::Redis::getQueue();
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        util::SystemConfig &conf = util::getSystemConfig();
+
+        // Request function
+        std::string funcName = "my func";
+        std::string userName = "some user";
+        std::string inputData = "blahblah";
+        message::Message call = util::messageFactory(userName, funcName);
+        call.set_inputdata(inputData);
+
+        std::string originalSerialisation = conf.serialisation;
+
+        sch.setFunctionResult(call);
+
+        // Check result has been written to the right key
+        REQUIRE(redis.listLength(call.resultkey()) == 1);
+
+        // Check that some expiry has been set
+        long ttl = redis.getTtl(call.resultkey());
+        REQUIRE(ttl > 10);
+
+        // Check retrieval method gets the same call out again
+        message::Message actualCall2 = sch.getFunctionResult(call.id(), 1);
+
+        checkMessageEquality(call, actualCall2);
+
+        conf.serialisation = originalSerialisation;
+    }
+
+    TEST_CASE("Check multithreaded function results", "[scheduler]") {
+        cleanSystem();
+
+        int nWorkers = 5;
+        int nWorkerMessages = 8;
+
+        int nWaiters = 10;
+        int nWaiterMessages = 4;
+
+        // Sanity check
+        REQUIRE((nWaiters * nWaiterMessages) == (nWorkers * nWorkerMessages));
+
+        std::vector<std::thread> waiterThreads;
+        std::vector<std::thread> workerThreads;
+
+        // Create waiters that will submit messages and await their results
+        for (int i = 0; i < nWaiters; i++) {
+            waiterThreads.emplace_back([nWaiterMessages] {
+                Scheduler &sch = scheduler::getScheduler();
+
+                message::Message msg = util::messageFactory("demo", "echo");
+
+                // Put invocation on local queue and await global result
+                for (int m = 0; m < nWaiterMessages; m++) {
+                    sch.enqueueMessage(msg);
+                    sch.getFunctionResult(msg.id(), 5000);
+                }
+            });
+        }
+
+        // Create workers that will dequeue messages and set success
+        for (int i = 0; i < nWorkers; i++) {
+            workerThreads.emplace_back([nWorkerMessages] {
+                Scheduler &sch = scheduler::getScheduler();
+
+                message::Message dummyMsg = util::messageFactory("demo", "echo");
+                const std::shared_ptr<InMemoryMessageQueue> &queue = sch.getFunctionQueue(dummyMsg);
+
+                // Listen to local queue, set result on global bus
+                for (int m = 0; m < nWorkerMessages; m++) {
+                    message::Message msg = queue->dequeue(5000);
+                    sch.setFunctionResult(msg);
+                }
+            });
+        }
+
+        // Wait for all the threads to finish
+        for (auto &w : waiterThreads) {
+            if (w.joinable()) {
+                w.join();
+            }
+        }
+
+        for (auto &w : workerThreads) {
+            if (w.joinable()) {
+                w.join();
+            }
+        }
+
+        // If we get here then things work properly
+    }
+
+    TEST_CASE("Check getting function status", "[scheduler]") {
+        cleanSystem();
+
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+
+        std::string expectedOutput;
+        int expectedReturnValue = 0;
+        message::Message_MessageType expectedType;
+        std::string expectedHost = util::getSystemConfig().endpointHost;
+
+        message::Message msg;
+        SECTION("Running") {
+            msg = util::messageFactory("demo", "echo");
+            expectedReturnValue = 0;
+            expectedType = message::Message_MessageType_EMPTY;
+            expectedHost = "";
+        }
+
+        SECTION("Failure") {
+            msg = util::messageFactory("demo", "echo");
+
+            expectedOutput = "I have failed";
+            msg.set_outputdata(expectedOutput);
+            msg.set_returnvalue(1);
+            sch.setFunctionResult(msg);
+
+            expectedReturnValue = 1;
+            expectedType = message::Message_MessageType_CALL;
+        }
+
+        SECTION("Success") {
+            msg = util::messageFactory("demo", "echo");
+
+            expectedOutput = "I have succeeded";
+            msg.set_outputdata(expectedOutput);
+            msg.set_returnvalue(0);
+            sch.setFunctionResult(msg);
+
+            expectedReturnValue = 0;
+            expectedType = message::Message_MessageType_CALL;
+        }
+
+        // Check status when nothing has been written
+        const message::Message result = sch.getFunctionResult(msg.id(), 0);
+
+        REQUIRE(result.returnvalue() == expectedReturnValue);
+        REQUIRE(result.type() == expectedType);
+        REQUIRE(result.outputdata() == expectedOutput);
+        REQUIRE(result.executedhost() == expectedHost);
+    }
+
+    TEST_CASE("Check setting long-lived function status", "[scheduler]") {
+        cleanSystem();
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        util::SystemConfig &conf = util::getSystemConfig();
+        redis::Redis &redis = redis::Redis::getQueue();
+
+        std::string originalExecGraph = conf.execGraphMode;
+
+        // Create a message
+        message::Message msg = util::messageFactory("demo", "echo");
+        message::Message expected = msg;
+        expected.set_executedhost(util::getSystemConfig().endpointHost);
+
+        SECTION("With exec graph switched off") {
+            conf.execGraphMode = "off";
+            sch.setFunctionResult(msg);
+
+            REQUIRE(redis.get(msg.statuskey()).empty());
+        }
+
+        SECTION("With exec graph switched on") {
+            conf.execGraphMode = "on";
+            sch.setFunctionResult(msg);
+
+            std::vector<uint8_t> actual = redis.get(msg.statuskey());
+            REQUIRE(!actual.empty());
+
+            message::Message actualMsg;
+            actualMsg.ParseFromArray(actual.data(), (int) actual.size());
+
+            // We can't predict the finish timestamp, so have to manually copy here
+            REQUIRE(actualMsg.finishtimestamp() > 0);
+            expected.set_finishtimestamp(actualMsg.finishtimestamp());
+
+            checkMessageEquality(actualMsg, expected);
+        }
+
+        conf.execGraphMode = originalExecGraph;
+    }
+
+    TEST_CASE("Check logging chained functions", "[scheduler]") {
+        cleanSystem();
+
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+
+        message::Message msg = util::messageFactory("demo", "echo");
+        unsigned int chainedMsgIdA = 1234;
+        unsigned int chainedMsgIdB = 5678;
+        unsigned int chainedMsgIdC = 9876;
+
+        // Check empty initially
+        REQUIRE(sch.getChainedFunctions(msg.id()).empty());
+
+        // Log and check this shows up in the result
+        sch.logChainedFunction(msg.id(), chainedMsgIdA);
+        std::unordered_set<unsigned int> expected = {chainedMsgIdA};
+        REQUIRE(sch.getChainedFunctions(msg.id()) == expected);
+
+        // Log some more and check
+        sch.logChainedFunction(msg.id(), chainedMsgIdA);
+        sch.logChainedFunction(msg.id(), chainedMsgIdB);
+        sch.logChainedFunction(msg.id(), chainedMsgIdC);
+        expected = {chainedMsgIdA, chainedMsgIdB, chainedMsgIdC};
+        REQUIRE(sch.getChainedFunctions(msg.id()) == expected);
     }
 }
