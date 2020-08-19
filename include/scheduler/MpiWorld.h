@@ -9,7 +9,6 @@
 
 namespace scheduler {
     typedef util::Queue<message::MPIMessage> InMemoryMpiQueue;
-    typedef util::Queue<int> InMemoryIntQueue;
 
     struct MpiWorldState {
         int worldSize;
