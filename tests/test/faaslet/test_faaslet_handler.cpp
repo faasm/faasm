@@ -1,7 +1,7 @@
 #include <catch/catch.hpp>
 
 #include "utils.h"
-#include <knative/FaasletEndpointHandler.h>
+#include <faaslet/FaasletEndpointHandler.h>
 
 #include <util/json.h>
 
