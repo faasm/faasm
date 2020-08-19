@@ -1,7 +1,6 @@
 #include "FaasletPool.h"
 
 #include <faaslet/Faaslet.h>
-#include <scheduler/MpiGlobalBus.h>
 #include <system/SGX.h>
 
 
@@ -24,26 +23,6 @@ namespace faaslet {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->info("Starting function call server");
         functionServer.start();
-    }
-
-    void FaasletPool::startMpiThread() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->info("Starting MPI queue listener");
-
-        mpiThread = std::thread([this] {
-            scheduler::MpiGlobalBus &bus = scheduler::getMpiGlobalBus();
-            const std::string host = util::getSystemConfig().endpointHost;
-
-            while (!this->isShutdown()) {
-                try {
-                    bus.next(host);
-                } catch (redis::RedisNoResponseException &ex) {
-                    continue;
-                }
-            }
-
-            // Will die gracefully at this point
-        });
     }
 
     void FaasletPool::startStateServer() {

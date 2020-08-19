@@ -99,16 +99,16 @@ namespace tests {
         REQUIRE(worldB.getHostForRank(rankB) == hostB);
     }
 
-    void checkMessage(MpiMessage *actualMessage, int senderRank, int destRank, const std::vector<int> &data) {
+    void checkMessage(message::MPIMessage &actualMessage, int senderRank, int destRank, const std::vector<int> &data) {
         // Check the message contents
-        REQUIRE(actualMessage->worldId == worldId);
-        REQUIRE(actualMessage->count == data.size());
-        REQUIRE(actualMessage->destination == destRank);
-        REQUIRE(actualMessage->sender == senderRank);
-        REQUIRE(actualMessage->type == FAASMPI_INT);
+        REQUIRE(actualMessage.worldid() == worldId);
+        REQUIRE(actualMessage.count() == data.size());
+        REQUIRE(actualMessage.destination() == destRank);
+        REQUIRE(actualMessage.sender() == senderRank);
+        REQUIRE(actualMessage.type() == FAASMPI_INT);
 
         // Check data written to state
-        const std::string messageStateKey = getMessageStateKey(actualMessage->id);
+        const std::string messageStateKey = getMessageStateKey(actualMessage.id());
         state::State &state = state::getGlobalState();
         const std::shared_ptr<state::StateKeyValue> &kv = state.getKV(user, messageStateKey, sizeof(MpiWorldState));
         int *actualDataPtr = reinterpret_cast<int *>(kv->get());
@@ -143,9 +143,8 @@ namespace tests {
 
             // Check message content
             const std::shared_ptr<InMemoryMpiQueue> &queueA2 = world.getLocalQueue(rankA1, rankA2);
-            MpiMessage *actualMessage = queueA2->dequeue();
+            message::MPIMessage actualMessage = queueA2->dequeue();
             checkMessage(actualMessage, rankA1, rankA2, messageData);
-            delete actualMessage;
         }
 
         SECTION("Test recv") {
@@ -201,51 +200,49 @@ namespace tests {
     TEST_CASE("Test send across hosts", "[mpi]") {
         cleanSystem();
 
-        std::string hostA = util::randomString(MPI_HOST_STATE_LEN - 3);
-        std::string hostB = util::randomString(MPI_HOST_STATE_LEN - 5);
+        // Start a server on this host
+        FunctionCallServer server;
+        server.start();
+        usleep(1000 * 100);
 
-        const message::Message &msg = util::messageFactory(user, func);
-        scheduler::MpiWorld worldA;
-        worldA.overrideHost(hostA);
-        worldA.create(msg, worldId, worldSize);
+        // Set up the world on this host
+        message::Message msg = util::messageFactory(user, func);
+        msg.set_mpiworldid(worldId);
+        msg.set_mpiworldsize(worldSize);
 
-        scheduler::MpiWorld worldB;
-        worldB.overrideHost(hostB);
-        worldB.initialiseFromState(msg, worldId);
+        scheduler::MpiWorld &localWorld = getMpiWorldRegistry().createWorld(msg, worldId, LOCALHOST);
 
-        // Register two ranks
+        // Set up a world on the "remote" host
+        std::string otherHost = util::randomString(MPI_HOST_STATE_LEN - 3);
+        scheduler::MpiWorld remoteWorld;
+        remoteWorld.overrideHost(otherHost);
+        remoteWorld.initialiseFromState(msg, worldId);
+
+        // Register two ranks (one on each host)
         int rankA = 1;
         int rankB = 2;
-        worldA.registerRank(rankA);
-        worldB.registerRank(rankB);
+        remoteWorld.registerRank(rankA);
+        localWorld.registerRank(rankB);
 
         std::vector<int> messageData = {0, 1, 2};
 
-        // Send a message between the ranks on different hosts
-        worldA.send(rankA, rankB, BYTES(messageData.data()), MPI_INT, messageData.size());
-
-        MpiGlobalBus &bus = scheduler::getMpiGlobalBus();
-
+        // Send a message that should get sent to this host
+        remoteWorld.send(rankA, rankB, BYTES(messageData.data()), MPI_INT, messageData.size());
+        
         SECTION("Check queueing") {
-            // Check it's on the right queue
-            REQUIRE(bus.getQueueSize(hostA) == 0);
-            REQUIRE(bus.getQueueSize(hostB) == 1);
-
+            REQUIRE(remoteWorld.getLocalQueueSize(rankA, rankB) == 0);
+            REQUIRE(localWorld.getLocalQueueSize(rankA, rankB) == 1);
+            
             // Check message content
-            MpiMessage *actualMessage = bus.dequeueForHost(hostB);
+            message::MPIMessage actualMessage = remoteWorld.getLocalQueue(rankA, rankB)->dequeue();
             checkMessage(actualMessage, rankA, rankB, messageData);
-            delete actualMessage;
         }
 
         SECTION("Check recv") {
-            // Pull message from global queue
-            MpiMessage *message = bus.dequeueForHost(hostB);
-            worldB.enqueueMessage(message);
-
             // Receive the message for the given rank
             MPI_Status status{};
             auto buffer = new int[messageData.size()];
-            worldB.recv(rankA, rankB, BYTES(buffer), MPI_INT, messageData.size(), &status);
+            localWorld.recv(rankA, rankB, BYTES(buffer), MPI_INT, messageData.size(), &status);
 
             std::vector<int> actual(buffer, buffer + messageData.size());
             REQUIRE(actual == messageData);
@@ -254,6 +251,8 @@ namespace tests {
             REQUIRE(status.MPI_ERROR == MPI_SUCCESS);
             REQUIRE(status.bytesSize == messageData.size() * sizeof(int));
         }
+
+        server.stop();
     }
 
     TEST_CASE("Test send/recv message with no data", "[mpi]") {
@@ -279,15 +278,12 @@ namespace tests {
 
         SECTION("Check on queue") {
             // Check message content
-            const std::shared_ptr<InMemoryMpiQueue> &queueA2 = world.getLocalQueue(rankA1, rankA2);
-            MpiMessage *actualMessage = queueA2->dequeue();
-            REQUIRE(actualMessage->count == 0);
-            REQUIRE(actualMessage->type == FAASMPI_INT);
+            message::MPIMessage actualMessage = world.getLocalQueue(rankA1, rankA2)->dequeue();
+            REQUIRE(actualMessage.count() == 0);
+            REQUIRE(actualMessage.type() == FAASMPI_INT);
 
             // Check no extra data in state
             REQUIRE(state.getKVCount() == 4);
-
-            delete actualMessage;
         }
 
         SECTION("Check receiving with null ptr") {
@@ -439,59 +435,60 @@ namespace tests {
     TEST_CASE("Test collective messaging locally and across hosts", "[mpi]") {
         cleanSystem();
 
-        std::string hostA = "0.1.2.3";
-        std::string hostB = "123.45.67.8";
+        FunctionCallServer server;
+        server.start();
+        usleep(1000 * 100);
+
+        std::string otherHost = "123.45.67.8";
 
         int thisWorldSize = 6;
 
-        const message::Message &msg = util::messageFactory(user, func);
-        scheduler::MpiWorld worldA;
-        worldA.overrideHost(hostA);
-        worldA.create(msg, worldId, thisWorldSize);
+        message::Message msg = util::messageFactory(user, func);
+        msg.set_mpiworldid(worldId);
+        msg.set_mpiworldsize(thisWorldSize);
 
-        scheduler::MpiWorld worldB;
-        worldB.overrideHost(hostB);
-        worldB.initialiseFromState(msg, worldId);
+        MpiWorld &localWorld = getMpiWorldRegistry().createWorld(msg, worldId, LOCALHOST);
+
+        scheduler::MpiWorld remoteWorld;
+        remoteWorld.initialiseFromState(msg, worldId);
+        remoteWorld.overrideHost(otherHost);
 
         // Register ranks on both hosts
-        int rankA1 = 1;
-        int rankA2 = 2;
-        int rankA3 = 3;
-        worldA.registerRank(rankA1);
-        worldA.registerRank(rankA2);
-        worldA.registerRank(rankA3);
+        int remoteRankA = 1;
+        int remoteRankB = 2;
+        int remoteRankC = 3;
+        remoteWorld.registerRank(remoteRankA);
+        remoteWorld.registerRank(remoteRankB);
+        remoteWorld.registerRank(remoteRankC);
 
-        int rankB1 = 4;
-        int rankB2 = 5;
-        worldB.registerRank(rankB1);
-        worldB.registerRank(rankB2);
+        int localRankA = 4;
+        int localRankB = 5;
+        localWorld.registerRank(localRankA);
+        localWorld.registerRank(localRankB);
 
-        // Ranks deliberately out of order
-        std::vector<int> worldARanks = {rankA2, rankA3, rankA1, 0};
-        std::vector<int> worldBRanks = {rankB2, rankB1};
-
-        MpiGlobalBus &bus = scheduler::getMpiGlobalBus();
+        // Note that ranks are deliberately out of order
+        std::vector<int> remoteWorldRanks = {remoteRankB, remoteRankC, remoteRankA};
+        std::vector<int> localWorldRanks = {localRankB, localRankA, 0};
 
         SECTION("Broadcast") {
             // Broadcast a message
             std::vector<int> messageData = {0, 1, 2};
-            worldA.broadcast(rankA2, BYTES(messageData.data()), MPI_INT, messageData.size());
+            remoteWorld.broadcast(remoteRankB, BYTES(messageData.data()), MPI_INT, messageData.size());
 
             // Check the host that the root is on
-            for (int rank : worldARanks) {
-                if (rank == rankA2) continue;
+            for (int rank : remoteWorldRanks) {
+                if (rank == remoteRankB) continue;
 
                 std::vector<int> actual(3, -1);
-                worldA.recv(rankA2, rank, BYTES(actual.data()), MPI_INT, 3, nullptr);
+                remoteWorld.recv(remoteRankB, rank, BYTES(actual.data()), MPI_INT, 3, nullptr);
                 REQUIRE(actual == messageData);
             }
 
-            worldB.enqueueMessage(bus.dequeueForHost(hostB));
-            worldB.enqueueMessage(bus.dequeueForHost(hostB));
-
-            for (int rank : worldBRanks) {
+            // Check the local host
+            for (int rank : localWorldRanks) {
                 std::vector<int> actual(3, -1);
-                worldB.recv(rankA2, rank, BYTES(actual.data()), MPI_INT, 3, nullptr);
+                localWorld.recv(remoteRankB, rank, BYTES(actual.data()), MPI_INT, 3, nullptr);
+                REQUIRE(actual == messageData);
             }
         }
 
@@ -499,43 +496,39 @@ namespace tests {
             // Build the data
             int nPerRank = 4;
             int dataSize = nPerRank * worldSize;
-            std::vector<int> messageData;
-            messageData.reserve(dataSize);
+            std::vector<int> messageData(dataSize, 0);
             for (int i = 0; i < dataSize; i++) {
                 messageData[i] = i;
             }
 
             // Do the scatter
             std::vector<int> actual(nPerRank, -1);
-            worldA.scatter(rankA2, rankA2, BYTES(messageData.data()), MPI_INT, nPerRank,
-                           BYTES(actual.data()), MPI_INT, nPerRank);
+            remoteWorld.scatter(remoteRankB, remoteRankB, BYTES(messageData.data()), MPI_INT, nPerRank,
+                                BYTES(actual.data()), MPI_INT, nPerRank);
 
             // Check for root
             REQUIRE(actual == std::vector<int>({8, 9, 10, 11}));
 
-            // Check for other ranks out of order
-            worldA.scatter(rankA2, rankA1, nullptr, MPI_INT, nPerRank,
-                           BYTES(actual.data()), MPI_INT, nPerRank);
+            // Check for other remote ranks
+            remoteWorld.scatter(remoteRankB, remoteRankA, nullptr, MPI_INT, nPerRank,
+                                BYTES(actual.data()), MPI_INT, nPerRank);
             REQUIRE(actual == std::vector<int>({4, 5, 6, 7}));
 
-            worldA.scatter(rankA2, 0, nullptr, MPI_INT, nPerRank,
-                           BYTES(actual.data()), MPI_INT, nPerRank);
+            remoteWorld.scatter(remoteRankB, 0, nullptr, MPI_INT, nPerRank,
+                                BYTES(actual.data()), MPI_INT, nPerRank);
             REQUIRE(actual == std::vector<int>({0, 1, 2, 3}));
 
-            worldA.scatter(rankA2, rankA3, nullptr, MPI_INT, nPerRank,
-                           BYTES(actual.data()), MPI_INT, nPerRank);
+            remoteWorld.scatter(remoteRankB, remoteRankC, nullptr, MPI_INT, nPerRank,
+                                BYTES(actual.data()), MPI_INT, nPerRank);
             REQUIRE(actual == std::vector<int>({12, 13, 14, 15}));
 
-            // Pull both messages for the other host
-            worldB.enqueueMessage(bus.dequeueForHost(hostB));
-            worldB.enqueueMessage(bus.dequeueForHost(hostB));
-
-            worldB.scatter(rankA2, rankB2, nullptr, MPI_INT, nPerRank,
-                           BYTES(actual.data()), MPI_INT, nPerRank);
+            // Check for local ranks
+            localWorld.scatter(remoteRankB, localRankB, nullptr, MPI_INT, nPerRank,
+                               BYTES(actual.data()), MPI_INT, nPerRank);
             REQUIRE(actual == std::vector<int>({20, 21, 22, 23}));
 
-            worldB.scatter(rankA2, rankB1, nullptr, MPI_INT, nPerRank,
-                           BYTES(actual.data()), MPI_INT, nPerRank);
+            localWorld.scatter(remoteRankB, localRankA, nullptr, MPI_INT, nPerRank,
+                               BYTES(actual.data()), MPI_INT, nPerRank);
             REQUIRE(actual == std::vector<int>({16, 17, 18, 19}));
         }
 
@@ -562,28 +555,24 @@ namespace tests {
                 std::vector<int> actual(thisWorldSize * nPerRank, -1);
 
                 // Call gather for each rank other than the root (out of order)
-                int root = rankA3;
-                for (int rank : worldARanks) {
+                int root = remoteRankC;
+                for (int rank : remoteWorldRanks) {
                     if (rank == root) continue;
-                    worldA.gather(rank, root,
-                                  BYTES(rankData[rank].data()), MPI_INT, nPerRank,
-                                  nullptr, MPI_INT, nPerRank);
+                    remoteWorld.gather(rank, root,
+                                       BYTES(rankData[rank].data()), MPI_INT, nPerRank,
+                                       nullptr, MPI_INT, nPerRank);
                 }
 
-                for (int rank : worldBRanks) {
-                    worldB.gather(rank, root,
-                                  BYTES(rankData[rank].data()), MPI_INT, nPerRank,
-                                  nullptr, MPI_INT, nPerRank);
+                for (int rank : localWorldRanks) {
+                    localWorld.gather(rank, root,
+                                      BYTES(rankData[rank].data()), MPI_INT, nPerRank,
+                                      nullptr, MPI_INT, nPerRank);
                 }
-
-                // Ensure remote messages have been processed
-                worldA.enqueueMessage(bus.dequeueForHost(hostA));
-                worldA.enqueueMessage(bus.dequeueForHost(hostA));
 
                 // Call gather for root
-                worldA.gather(root, root,
-                              BYTES(rankData[root].data()), MPI_INT, nPerRank,
-                              BYTES(actual.data()), MPI_INT, nPerRank
+                remoteWorld.gather(root, root,
+                                   BYTES(rankData[root].data()), MPI_INT, nPerRank,
+                                   BYTES(actual.data()), MPI_INT, nPerRank
                 );
 
                 // Check data
@@ -595,7 +584,7 @@ namespace tests {
 
                 // Call allgather for ranks on the first world
                 std::vector<std::thread> threads;
-                for (int rank : worldARanks) {
+                for (int rank : remoteWorldRanks) {
                     if (rank == 0) {
                         continue;
                     }
@@ -603,41 +592,33 @@ namespace tests {
                     threads.emplace_back([&, rank] {
                         std::vector actual(fullSize, -1);
 
-                        worldA.allGather(rank, BYTES(rankData[rank].data()), MPI_INT, nPerRank,
-                                         BYTES(actual.data()), MPI_INT, nPerRank);
+                        remoteWorld.allGather(rank, BYTES(rankData[rank].data()), MPI_INT, nPerRank,
+                                              BYTES(actual.data()), MPI_INT, nPerRank);
 
                         REQUIRE(actual == expected);
                     });
                 }
 
                 // Call allgather for the threads in the other world
-                for (int rank : worldBRanks) {
+                for (int rank : localWorldRanks) {
                     threads.emplace_back([&, rank] {
                         std::vector actual(fullSize, -1);
 
-                        worldB.allGather(rank, BYTES(rankData[rank].data()), MPI_INT, nPerRank,
-                                         BYTES(actual.data()), MPI_INT, nPerRank);
+                        localWorld.allGather(rank, BYTES(rankData[rank].data()), MPI_INT, nPerRank,
+                                             BYTES(actual.data()), MPI_INT, nPerRank);
 
                         REQUIRE(actual == expected);
                     });
                 }
 
-                // Make sure messages from other world have been queued
-                worldA.enqueueMessage(bus.dequeueForHost(hostA));
-                worldA.enqueueMessage(bus.dequeueForHost(hostA));
-
                 // Now call allgather in the root rank
                 threads.emplace_back([&] {
                     std::vector actual(fullSize, -1);
-                    worldA.allGather(0, BYTES(rankData[0].data()), MPI_INT, nPerRank,
-                                     BYTES(actual.data()), MPI_INT, nPerRank);
+                    remoteWorld.allGather(0, BYTES(rankData[0].data()), MPI_INT, nPerRank,
+                                          BYTES(actual.data()), MPI_INT, nPerRank);
 
                     REQUIRE(actual == expected);
                 });
-
-                // Make sure messages to other world have been queued
-                worldB.enqueueMessage(bus.dequeueForHost(hostB));
-                worldB.enqueueMessage(bus.dequeueForHost(hostB));
 
                 // All threads should now be able to resolve themselves
                 for (auto &t: threads) {
@@ -650,23 +631,15 @@ namespace tests {
 
         SECTION("Barrier") {
             // Call barrier with all the ranks
-            std::thread threadA1([&worldA, &rankA1] { worldA.barrier(rankA1); });
-            std::thread threadA2([&worldA, &rankA2] { worldA.barrier(rankA2); });
-            std::thread threadA3([&worldA, &rankA3] { worldA.barrier(rankA3); });
+            std::thread threadA1([&remoteWorld, &remoteRankA] { remoteWorld.barrier(remoteRankA); });
+            std::thread threadA2([&remoteWorld, &remoteRankB] { remoteWorld.barrier(remoteRankB); });
+            std::thread threadA3([&remoteWorld, &remoteRankC] { remoteWorld.barrier(remoteRankC); });
 
-            std::thread threadB1([&worldB, &rankB1] { worldB.barrier(rankB1); });
-            std::thread threadB2([&worldB, &rankB2] { worldB.barrier(rankB2); });
-
-            // Make sure the messages on other hosts are dequeued
-            worldA.enqueueMessage(bus.dequeueForHost(hostA));
-            worldA.enqueueMessage(bus.dequeueForHost(hostA));
+            std::thread threadB1([&localWorld, &localRankA] { localWorld.barrier(localRankA); });
+            std::thread threadB2([&localWorld, &localRankB] { localWorld.barrier(localRankB); });
 
             // Call barrier with master (should not block)
-            worldA.barrier(0);
-
-            // Check messages dispatched to other ranks
-            worldB.enqueueMessage(bus.dequeueForHost(hostB));
-            worldB.enqueueMessage(bus.dequeueForHost(hostB));
+            remoteWorld.barrier(0);
 
             // Join all threads
             if (threadA1.joinable()) threadA1.join();
@@ -675,6 +648,8 @@ namespace tests {
             if (threadB1.joinable()) threadB1.join();
             if (threadB2.joinable()) threadB2.join();
         }
+
+        server.stop();
     }
 
     template<typename T>
@@ -965,64 +940,67 @@ namespace tests {
 
     TEST_CASE("Test RMA across hosts", "[mpi]") {
         cleanSystem();
-        std::string hostA = "0.0.0.0";
-        std::string hostB = "192.168.9.2";
 
-        const message::Message &msg = util::messageFactory(user, func);
-        scheduler::MpiWorld worldA;
-        worldA.overrideHost(hostA);
-        worldA.create(msg, worldId, worldSize);
+        std::string otherHost = "192.168.9.2";
 
-        scheduler::MpiWorld worldB;
-        worldB.overrideHost(hostB);
-        worldB.initialiseFromState(msg, worldId);
+        message::Message msg = util::messageFactory(user, func);
+        msg.set_mpiworldid(worldId);
+        msg.set_mpiworldsize(worldSize);
+
+        MpiWorldRegistry &registry = getMpiWorldRegistry();
+        scheduler::MpiWorld &localWorld = registry.createWorld(msg, worldId, LOCALHOST);
+
+        scheduler::MpiWorld remoteWorld;
+        remoteWorld.overrideHost(otherHost);
+        remoteWorld.initialiseFromState(msg, worldId);
+
+        FunctionCallServer server;
+        server.start();
+        usleep(1000 * 100);
 
         // Register four ranks
         int rankA1 = 1;
         int rankA2 = 2;
         int rankB1 = 3;
         int rankB2 = 4;
-        worldA.registerRank(rankA1);
-        worldA.registerRank(rankA2);
-        worldB.registerRank(rankB1);
-        worldB.registerRank(rankB2);
+        localWorld.registerRank(rankA1);
+        localWorld.registerRank(rankA2);
+        remoteWorld.registerRank(rankB1);
+        remoteWorld.registerRank(rankB2);
 
         std::vector<int> dataA1 = {0, 1, 2, 3};
         int dataCount = (int) dataA1.size();
         int bufferSize = dataCount * sizeof(int);
 
-        MpiGlobalBus &bus = scheduler::getMpiGlobalBus();
-
         // Create a window
         faasmpi_win_t winA1{
-                .worldId=worldA.getId(),
+                .worldId=localWorld.getId(),
                 .rank = rankA1,
                 .size = bufferSize,
         };
-        worldA.createWindow(&winA1, BYTES(dataA1.data()));
+        localWorld.createWindow(&winA1, BYTES(dataA1.data()));
 
         SECTION("RMA Get from another world") {
             // Get the window on another host
             std::vector<int> actual = {0, 0, 0, 0};
-            worldB.rmaGet(rankA1, MPI_INT, dataCount, BYTES(actual.data()), MPI_INT, dataCount);
+            remoteWorld.rmaGet(rankA1, MPI_INT, dataCount, BYTES(actual.data()), MPI_INT, dataCount);
             REQUIRE(actual == dataA1);
         }
 
         SECTION("RMA Put to another world") {
             // Do the put
             std::vector<int> putData = {10, 11, 12, 13};
-            worldB.rmaPut(rankB1, BYTES(putData.data()), MPI_INT, dataCount, rankA1, MPI_INT, dataCount);
-
-            // Resolve the notification
-            worldA.enqueueMessage(bus.dequeueForHost(hostA));
+            remoteWorld.rmaPut(rankB1, BYTES(putData.data()), MPI_INT, dataCount, rankA1, MPI_INT, dataCount);
 
             // Make sure it's been copied to the memory location
             REQUIRE(dataA1 == putData);
 
             // Check that getting still works
             std::vector<int> actual = {0, 0, 0, 0};
-            worldA.rmaGet(rankA1, MPI_INT, dataCount, BYTES(actual.data()), MPI_INT, dataCount);
+            localWorld.rmaGet(rankA1, MPI_INT, dataCount, BYTES(actual.data()), MPI_INT, dataCount);
             REQUIRE(actual == putData);
         }
+
+        server.stop();
     }
 }

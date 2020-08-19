@@ -8,7 +8,7 @@
 #include <scheduler/InMemoryMessageQueue.h>
 
 namespace scheduler {
-    typedef util::Queue<message::MPIMessage *> InMemoryMpiQueue;
+    typedef util::Queue<message::MPIMessage> InMemoryMpiQueue;
     typedef util::Queue<int> InMemoryIntQueue;
 
     struct MpiWorldState {
@@ -43,7 +43,7 @@ namespace scheduler {
 
         void destroy();
 
-        void enqueueMessage(message::MPIMessage *msg);
+        void enqueueMessage(message::MPIMessage &msg);
 
         void send(int sendRank, int recvRank,
                   const uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
@@ -103,7 +103,7 @@ namespace scheduler {
 
         void createWindow(const faasmpi_win_t *window, uint8_t *windowPtr);
 
-        void synchronizeRmaWrite(const message::MPIMessage *msg, bool isRemote);
+        void synchronizeRmaWrite(const message::MPIMessage &msg, bool isRemote);
 
         double getWTime();
 

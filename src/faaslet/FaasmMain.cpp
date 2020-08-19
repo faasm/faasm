@@ -24,9 +24,6 @@ namespace faaslet {
 
         // Work sharing
         pool.startFunctionCallServer();
-
-        // Start MPI thread in background
-        pool.startMpiThread();
     }
 
     void FaasmMain::shutdown() {

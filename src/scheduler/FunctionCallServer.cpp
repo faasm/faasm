@@ -1,4 +1,5 @@
 #include "FunctionCallServer.h"
+#include "MpiWorldRegistry.h"
 
 #include <util/logging.h>
 #include <util/config.h>
@@ -53,5 +54,13 @@ namespace scheduler {
             const message::MPIMessage *request,
             message::FunctionStatusResponse *response) {
 
+        // TODO - avoid copying message
+        message::MPIMessage m = *request;
+
+        MpiWorldRegistry &registry = getMpiWorldRegistry();
+        MpiWorld &world = registry.getWorld(m.worldid());
+        world.enqueueMessage(m);
+
+        return Status::OK;
     }
 }

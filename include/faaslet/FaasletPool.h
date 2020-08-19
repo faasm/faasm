@@ -12,8 +12,6 @@ namespace faaslet {
 
         void startFunctionCallServer();
 
-        void startMpiThread();
-
         void startThreadPool();
 
         void startStateServer();

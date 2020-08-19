@@ -11,6 +11,7 @@ extern "C" {
 #include <scheduler/Scheduler.h>
 #include <emulator/emulator.h>
 #include <module_cache/WasmModuleCache.h>
+#include <scheduler/MpiWorldRegistry.h>
 
 
 namespace tests {
@@ -43,6 +44,10 @@ namespace tests {
         // Reset system config
         conf.reset();
 
+        // Clear out MPI worlds
+        scheduler::MpiWorldRegistry &mpiRegistry = scheduler::getMpiWorldRegistry();
+        mpiRegistry.clear();
+        
         // Set emulator user
         resetEmulator();
         setEmulatorUser("tester");
