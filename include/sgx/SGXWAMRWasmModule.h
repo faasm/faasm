@@ -21,7 +21,6 @@ extern "C"{
     extern faasm_sgx_status_t faasm_sgx_get_sgx_support(void);
     extern sgx_status_t sgx_wamr_enclave_init_wamr(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val, uint32_t thread_number);
 #if(FAASM_SGX_ATTESTATION)
-    extern faaslet_sgx_msg_buffer_t* get_sgx_msg_buffer(void);
     extern sgx_status_t sgx_wamr_enclave_load_module(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val, const void* wasm_opcode_ptr, const uint32_t wasm_opcode_size, uint32_t* thread_id, sgx_wamr_msg_t** response_ptr);
 #else
     extern sgx_status_t sgx_wamr_enclave_load_module(sgx_enclave_id_t enclave_id, faasm_sgx_status_t* ret_val, const void* wasm_opcode_ptr, const uint32_t wasm_opcode_size, uint32_t* thread_id);

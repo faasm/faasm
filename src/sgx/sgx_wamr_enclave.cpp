@@ -211,6 +211,18 @@ extern "C"{
         }
         memcpy(sgx_wamr_tcs[*thread_id].wasm_opcode, wasm_opcode_ptr, wasm_opcode_size);
         //TESTBENCH//
+        char demo_payload[] = {"Hello World"}, *demo_recv;
+        uint32_t demo_recv_len_ptr;
+        if(send_msg((void*) demo_payload,sizeof(demo_payload)) != FAASM_SGX_SUCCESS){
+            asm("ud2");
+        }
+        if(recv_msg(*thread_id,(void**)&demo_recv,&demo_recv_len_ptr) != FAASM_SGX_SUCCESS){
+            asm("ud2");
+        }
+        if(memcmp((const void*) demo_payload,(const void*) demo_recv,demo_recv_len_ptr)){
+            asm("ud2");
+        }
+        os_printf("demo_payload: %s \t demo_recv: %s\n",demo_payload,demo_recv);
         xra_report_t xra_report;
         xra_status_t xra_ret_val;
         sgx_status_t sgx_ret_val;

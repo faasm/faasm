@@ -12,13 +12,7 @@
 extern "C"{
     extern sgx_enclave_id_t enclave_id;
 #if(FAASM_SGX_ATTESTATION)
-    static thread_local faaslet_sgx_msg_buffer_t* _faasm_sgx_msg_buffer_ptr;
-    static inline void _set_sgx_msg_buffer(faaslet_sgx_msg_buffer_t* buffer_ptr) {
-        _faasm_sgx_msg_buffer_ptr = buffer_ptr;
-    }
-    faaslet_sgx_msg_buffer_t* get_sgx_msg_buffer(void){
-        return _faasm_sgx_msg_buffer_ptr;
-    }
+    __thread faaslet_sgx_msg_buffer_t* faaslet_sgx_msg_buffer_ptr;
 #endif
 };
 #endif
@@ -34,7 +28,7 @@ namespace faaslet {
         if(!(sgx_wamr_msg_response.buffer_ptr = (sgx_wamr_msg_t*) calloc(sgx_wamr_msg_response.buffer_len, sizeof(uint8_t)))){
             //TODO: Error handling
         }
-        _set_sgx_msg_buffer(&sgx_wamr_msg_response);
+        faaslet_sgx_msg_buffer_ptr = &sgx_wamr_msg_response;
 #endif
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
