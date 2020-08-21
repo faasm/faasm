@@ -141,27 +141,17 @@ include_directories(
         ${CMAKE_CURRENT_BINARY_DIR}/src # Required for protobuf
 )
 
+# Directories common to all builds
+add_subdirectory(third-party/faabric)
+
+add_subdirectory(libs/cpp)
+add_subdirectory(libs/faasmp)
+add_subdirectory(src/emulator)
+add_subdirectory(src/util)
+
 if (FAASM_BUILD_TYPE STREQUAL "native-tools")
-    # ------------------
-    # Native tools for porting code
-    # ------------------
-
-    message(STATUS "Running native tools build")
-
-    add_subdirectory(libs/cpp)
-    add_subdirectory(libs/faasmp)
-    add_subdirectory(src/emulator)
-    add_subdirectory(src/proto)
-    add_subdirectory(src/redis)
-    add_subdirectory(src/scheduler)
-    add_subdirectory(src/state)
-    add_subdirectory(src/util)
-
+    # Ignore the rest if just doing a native tools build
 else ()
-    # ------------------
-    # Standard build
-    # ------------------
-
     # WAVM
     add_subdirectory(third-party/WAVM)
 
@@ -169,27 +159,19 @@ else ()
     add_subdirectory(func)
 
     # Faasm libraries
-    add_subdirectory(libs/cpp)
-    add_subdirectory(libs/faasmp)
     add_subdirectory(libs/faasmpi)
     add_subdirectory(libs/pyinit)
     add_subdirectory(libs/rust)
 
     # Faasm runtime
-    add_subdirectory(src/emulator)
     add_subdirectory(src/endpoint)
     add_subdirectory(src/faaslet)
     add_subdirectory(src/ir_cache)
     add_subdirectory(src/module_cache)
-    add_subdirectory(src/proto)
-    add_subdirectory(src/redis)
     add_subdirectory(src/runner)
-    add_subdirectory(src/scheduler)
-    add_subdirectory(src/state)
     add_subdirectory(src/storage)
     add_subdirectory(src/system)
     add_subdirectory(src/upload)
-    add_subdirectory(src/util)
     add_subdirectory(src/wasm)
     add_subdirectory(src/wavm)
 
