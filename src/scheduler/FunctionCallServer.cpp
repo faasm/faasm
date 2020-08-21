@@ -1,4 +1,5 @@
 #include "FunctionCallServer.h"
+#include "MpiWorldRegistry.h"
 
 #include <util/logging.h>
 #include <util/config.h>
@@ -9,8 +10,8 @@
 
 namespace scheduler {
     FunctionCallServer::FunctionCallServer() :
-        RPCServer(DEFAULT_RPC_HOST, FUNCTION_CALL_PORT),
-        scheduler(getScheduler()) {
+            RPCServer(DEFAULT_RPC_HOST, FUNCTION_CALL_PORT),
+            scheduler(getScheduler()) {
 
     }
 
@@ -22,7 +23,7 @@ namespace scheduler {
 
         // Start it
         server = builder.BuildAndStart();
-        util::getLogger()->info("State server listening on {}", serverAddr);
+        util::getLogger()->info("Function call server listening on {}", serverAddr);
 
         server->Wait();
     }
@@ -44,6 +45,21 @@ namespace scheduler {
                       msg.scheduledhost());
 
         scheduler.callFunction(msg);
+
+        return Status::OK;
+    }
+
+    Status FunctionCallServer::MPICall(
+            ServerContext *context,
+            const message::MPIMessage *request,
+            message::FunctionStatusResponse *response) {
+
+        // TODO - avoid copying message
+        message::MPIMessage m = *request;
+
+        MpiWorldRegistry &registry = getMpiWorldRegistry();
+        MpiWorld &world = registry.getWorld(m.worldid());
+        world.enqueueMessage(m);
 
         return Status::OK;
     }

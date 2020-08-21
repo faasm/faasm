@@ -23,4 +23,10 @@ namespace scheduler {
         message::FunctionStatusResponse response;
         CHECK_RPC("function_share", stub->ShareFunction(&context, call, &response));
     }
+
+    void  FunctionCallClient::sendMPIMessage(const message::MPIMessage &msg) {
+        ClientContext context;
+        message::FunctionStatusResponse response;
+        CHECK_RPC("mpi_message", stub->MPICall(&context, msg, &response));
+    }
 }

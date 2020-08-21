@@ -7,8 +7,11 @@ set(LIB_FILES
         FunctionCallClient.cpp
         FunctionCallServer.cpp
         Scheduler.cpp
+        MpiContext.cpp
+        MpiWorldRegistry.cpp
+        MpiWorld.cpp
         ${HEADERS}
 )
 
 faasm_private_lib(scheduler "${LIB_FILES}")
-target_link_libraries(scheduler redis)
+target_link_libraries(scheduler faasmpi redis)

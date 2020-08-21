@@ -18,6 +18,11 @@ namespace scheduler {
                 const message::Message *request,
                 message::FunctionStatusResponse *response) override;
 
+        Status MPICall(
+                ServerContext *context,
+                const message::MPIMessage *request,
+                message::FunctionStatusResponse *response) override;
+
     protected:
         void doStart(const std::string &serverAddr) override;
 

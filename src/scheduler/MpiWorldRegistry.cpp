@@ -1,16 +1,18 @@
 #include <util/locks.h>
 #include <util/config.h>
+#include <util/logging.h>
 
-#include "mpi/MpiWorldRegistry.h"
+#include "scheduler/MpiWorldRegistry.h"
 
-namespace mpi {
+namespace scheduler {
     MpiWorldRegistry &getMpiWorldRegistry() {
         static MpiWorldRegistry r;
         return r;
     }
 
-    mpi::MpiWorld &MpiWorldRegistry::createWorld(const message::Message &msg, int worldId) {
+    scheduler::MpiWorld &MpiWorldRegistry::createWorld(const message::Message &msg, int worldId, std::string hostOverride) {
         if(worldMap.count(worldId) > 0) {
+            util::getLogger()->error("World {} already exists", worldId);
             throw std::runtime_error("World already exists");
         }
 
@@ -22,6 +24,11 @@ namespace mpi {
 
         util::FullLock lock(registryMutex);
         MpiWorld &world = worldMap[worldId];
+
+        if(!hostOverride.empty()) {
+            world.overrideHost(hostOverride);
+        }
+
         world.create(msg, worldId, worldSize);
 
         return worldMap[worldId];
@@ -42,9 +49,15 @@ namespace mpi {
 
     MpiWorld &MpiWorldRegistry::getWorld(int worldId) {
         if(worldMap.count(worldId) == 0) {
-            throw std::runtime_error("World not initialised: " + std::to_string(worldId));
+            util::getLogger()->error("World {} not initialised", worldId);
+            throw std::runtime_error("World not initialised");
         }
 
         return worldMap[worldId];
+    }
+
+    void MpiWorldRegistry::clear() {
+        util::FullLock lock(registryMutex);
+        worldMap.clear();
     }
 }

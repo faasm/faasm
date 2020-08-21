@@ -59,9 +59,6 @@ int main(int argc, char *argv[]) {
     // Set up a worker pool
     faaslet::FaasletPool pool(nThreads);
 
-    // Switch on MPI
-    pool.startMpiThread();
-
     // Start the workers
     pool.startThreadPool();
 

@@ -1,10 +1,10 @@
 #include <catch/catch.hpp>
-#include <mpi/MpiContext.h>
+#include <scheduler/MpiContext.h>
 #include <faasmpi/mpi.h>
 #include <util/random.h>
 #include "utils.h"
 
-using namespace mpi;
+using namespace scheduler;
 
 namespace tests {
 
@@ -26,7 +26,7 @@ namespace tests {
         REQUIRE(c.getRank() == 0);
         
         // Get the world and check it is set up
-        MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
+        MpiWorldRegistry &reg = scheduler::getMpiWorldRegistry();
         MpiWorld &world = reg.getOrInitialiseWorld(msg, worldId);
         REQUIRE(world.getId() == worldId);
         REQUIRE(world.getSize() == 10);
@@ -76,7 +76,7 @@ namespace tests {
         int worldId = c.getWorldId();
 
         // Check that the size is set to the default
-        MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
+        MpiWorldRegistry &reg = scheduler::getMpiWorldRegistry();
         MpiWorld &world = reg.getOrInitialiseWorld(msg, worldId);
         REQUIRE(world.getSize() == defaultWorldSize);
 
@@ -116,7 +116,7 @@ namespace tests {
         REQUIRE(cB.getRank() == 1);
 
         // Check rank is registered to this host
-        MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
+        MpiWorldRegistry &reg = scheduler::getMpiWorldRegistry();
         MpiWorld &world = reg.getOrInitialiseWorld(msgB, worldId);
         const std::string actualHost = world.getHostForRank(1);
     }

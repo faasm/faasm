@@ -1,9 +1,9 @@
 #pragma once
 
-#include <mpi/MpiWorldRegistry.h>
+#include <scheduler/MpiWorldRegistry.h>
 #include <proto/faasm.pb.h>
 
-namespace mpi {
+namespace scheduler {
     class MpiContext {
     public:
         MpiContext();

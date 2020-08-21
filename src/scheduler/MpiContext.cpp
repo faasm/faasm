@@ -1,11 +1,11 @@
-#include "mpi/MpiContext.h"
-#include "mpi/MpiWorldRegistry.h"
+#include "scheduler/MpiContext.h"
+#include "scheduler/MpiWorldRegistry.h"
 
 #include <util/gids.h>
 #include <proto/faasm.pb.h>
 #include <util/logging.h>
 
-namespace mpi {
+namespace scheduler {
     MpiContext::MpiContext() : isMpi(false), rank(-1), worldId(-1) {
 
     }
@@ -22,7 +22,7 @@ namespace mpi {
         logger->debug("Initialising world {}", worldId);
 
         // Create the MPI world
-        mpi::MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
+        scheduler::MpiWorldRegistry &reg = scheduler::getMpiWorldRegistry();
         reg.createWorld(msg, worldId);
 
         // Set up this context

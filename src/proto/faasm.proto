@@ -9,6 +9,9 @@ package message;
 service FunctionRPCService {
     rpc ShareFunction (Message) returns (FunctionStatusResponse) {
     }
+
+    rpc MPICall (MPIMessage) returns (FunctionStatusResponse) {
+    }
 }
 
 message FunctionStatusResponse {
@@ -17,6 +20,31 @@ message FunctionStatusResponse {
         ERROR = 1;
     }
     FunctionStatus status = 1;
+}
+
+message MPIMessage {
+    enum MPIMessageType {
+        NORMAL = 0;
+        BARRIER_JOIN = 1;
+        BARRIER_DONE = 2;
+        SCATTER = 3;
+        GATHER = 4;
+        ALLGATHER = 5;
+        REDUCE = 6;
+        ALLREDUCE = 7;
+        ALLTOALL = 8;
+        RMA_WRITE = 9;
+    };
+
+    MPIMessageType messageType = 1;
+
+    int32 id = 2;
+    int32 worldId = 3;
+    int32 sender = 4;
+    int32 destination = 5;
+    int32 type = 6;
+    int32 count = 7;
+    bytes buffer = 8;
 }
 
 message Message {
