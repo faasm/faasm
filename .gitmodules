@@ -44,6 +44,7 @@
 [submodule "third-party/wamr"]
 	path = third-party/wamr
 	url = https://github.com/J-Heinemann/wasm-micro-runtime 
+	branch = faasm
 [submodule "third-party/xra"]
 	path = third-party/xra
-	url = git@gitlab.ibr.cs.tu-bs.de:tfaas/extended-remote-attestation.git
+	url = https://github.com/J-Heinemann/eXtended-Remote-Attestation

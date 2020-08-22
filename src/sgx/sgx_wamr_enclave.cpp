@@ -2,18 +2,17 @@
 // Created by Joshua Heinemann on 04.06.20.
 // TU-Braunschweig (heineman@ibr.cs.tu-bs.de)
 //
-//TESTBENCH//
-#include <xra.h>
-//ENDTESTBENCH//
+
 #include <sgx.h>
 #include <sgx_defs.h>
-#include <sgx/sgx_wamr_enclave_types.h>
-#include <util/rw_lock.h>
-#include <sgx/faasm_sgx_error.h>
-#include <tlibc/mbusafecrt.h>
-#include <iwasm/include/wasm_export.h>
-#include <string.h>
 #include <sgx_thread.h>
+#include <string.h>
+#include <xra.h>
+#include <iwasm/include/wasm_export.h>
+#include <sgx/faasm_sgx_error.h>
+#include <sgx/sgx_wamr_enclave_types.h>
+#include <tlibc/mbusafecrt.h>
+#include <util/rw_lock.h>
 #if(FAASM_SGX_ATTESTATION)
 #include <sgx/sgx_wamr_attestation.h>
 #endif
@@ -31,9 +30,6 @@
 __sync_fetch_and_add(&_sgx_wamr_msg_id, 1)
 #endif
 extern "C"{
-    //TESTBENCH//
-    uint32_t counter = 0;
-    //ENDTESTBENCH
     typedef void(*os_print_function_t)(const char* msg);
     extern void os_set_print_function(os_print_function_t pf);
     extern int os_printf(const char* message, ...);
@@ -68,9 +64,9 @@ extern "C"{
         sgx_wamr_msg_t* response_ptr;
         if((ret_val = __get_response_msg(thread_id, &response_ptr)) != FAASM_SGX_SUCCESS)
             return ret_val;
-        //DO DECRYPTION STUFF
-        //IMPLEMENT ME:P
-        //
+        ///////////ENCRYPTION///////////
+        //Implement me :P
+        ///////////ENCRYPTION///////////
         *payload_ptr = (void*)response_ptr->payload;
         *payload_len = response_ptr->payload_len;
         return FAASM_SGX_SUCCESS;
@@ -210,52 +206,6 @@ extern "C"{
             return FAASM_SGX_OUT_OF_MEMORY;
         }
         memcpy(sgx_wamr_tcs[*thread_id].wasm_opcode, wasm_opcode_ptr, wasm_opcode_size);
-        //TESTBENCH//
-        char demo_payload[] = {"Hello World"}, *demo_recv;
-        uint32_t demo_recv_len_ptr;
-        if(send_msg((void*) demo_payload,sizeof(demo_payload)) != FAASM_SGX_SUCCESS){
-            asm("ud2");
-        }
-        if(recv_msg(*thread_id,(void**)&demo_recv,&demo_recv_len_ptr) != FAASM_SGX_SUCCESS){
-            asm("ud2");
-        }
-        if(memcmp((const void*) demo_payload,(const void*) demo_recv,demo_recv_len_ptr)){
-            asm("ud2");
-        }
-        os_printf("demo_payload: %s \t demo_recv: %s\n",demo_payload,demo_recv);
-        xra_report_t xra_report;
-        xra_status_t xra_ret_val;
-        sgx_status_t sgx_ret_val;
-        char* whitelist;
-        if(!counter){
-            whitelist = (char*) malloc(sizeof("puts"));
-            memcpy(whitelist, "puts",sizeof("puts"));
-            counter++;
-        }else if(counter == 1){
-            whitelist = (char*) malloc(sizeof("puts|printf"));
-            memcpy(whitelist, "puts|printf",sizeof("puts|printf"));
-            counter++;
-        }else if(counter == 2 || counter == 3){
-            whitelist = (char*) malloc(sizeof("*"));
-            memcpy(whitelist, "*",sizeof("*"));
-            counter++;
-        }else{
-        whitelist = (char*) malloc(sizeof(""));
-            memcpy(whitelist,"",sizeof(""));
-        }
-        _register_whitelist(whitelist,'|');
-        if((xra_ret_val = xra_create_report(sgx_wamr_tcs[*thread_id].wasm_opcode,wasm_opcode_size,(uint8_t*)whitelist,&xra_report)) != XRA_SUCCESS)
-            __asm("ud2");
-        sgx_sha256_hash_t wasm_opcode_hash, whitelist_hash;
-        if((sgx_ret_val = sgx_sha256_msg(sgx_wamr_tcs[*thread_id].wasm_opcode,wasm_opcode_size,&wasm_opcode_hash)) != SGX_SUCCESS)
-            __asm("ud2");
-        if((sgx_ret_val = sgx_sha256_msg((uint8_t*)whitelist,strlen(whitelist) + 1,&whitelist_hash)) != SGX_SUCCESS)
-            __asm("ud2");
-        if(memcmp(xra_report.wasm_opcode_hash,&wasm_opcode_hash,SGX_SHA256_HASH_SIZE))
-            __asm("ud2");
-        if(memcmp(xra_report.whitelist_hash,&whitelist_hash,SGX_SHA256_HASH_SIZE))
-            __asm("ud2");
-        //ENDTESTBENCH//
         if(!(sgx_wamr_tcs[*thread_id].module = wasm_runtime_load((uint8_t*)sgx_wamr_tcs[*thread_id].wasm_opcode, wasm_opcode_size, module_error_buffer, sizeof(module_error_buffer)))){
             free(sgx_wamr_tcs[*thread_id].wasm_opcode);
             sgx_wamr_tcs[*thread_id].module = 0x0;
@@ -263,10 +213,6 @@ extern "C"{
             ocall_printf(module_error_buffer);
             return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
         }
-        //TESTBENCH//
-        _free_whitelist();
-        os_printf("Test was successful\n");
-        //ENDTESTBENCH//
         if(!(sgx_wamr_tcs[*thread_id].module_inst = wasm_runtime_instantiate(sgx_wamr_tcs[*thread_id].module, (uint32_t)FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE, (uint32_t)FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE, module_error_buffer, sizeof(module_error_buffer)))){
             free(sgx_wamr_tcs[*thread_id].wasm_opcode);
             wasm_runtime_unload(sgx_wamr_tcs[*thread_id].module);
