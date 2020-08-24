@@ -150,6 +150,7 @@ if (FAASM_BUILD_TYPE STREQUAL "native-tools")
 
     add_subdirectory(libs/cpp)
     add_subdirectory(libs/faasmp)
+    add_subdirectory(libs/faasmpi)
     add_subdirectory(src/emulator)
     add_subdirectory(src/proto)
     add_subdirectory(src/redis)
