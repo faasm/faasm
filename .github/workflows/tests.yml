@@ -16,39 +16,36 @@ jobs:
   build:
     runs-on: ubuntu-18.04
     env:
-      DOCKER_BUILDKIT: 1
+      CGROUP_MODE: on
+      HOST_TYPE: ci
+      REDIS_STATE_HOST: redis
+      REDIS_QUEUE_HOST: redis
+      LOG_LEVEL: info
+      MAX_FAASLETS: 5
+    container:
+      faasm/base-test:0.3.0
+    services:
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
     steps:
       - uses: actions/checkout@v2
-      - name: "Set up docker tag"
-        shell: bash
-        run: echo "##[set-output name=tag;]$(echo ${GITHUB_REF//\//-})"
-        id: get_tag
-      - name: "Print Docker tag"
-        run: echo "DOCKER TAG = ${{ steps.get_tag.outputs.tag }}"
-      - uses: docker/build-push-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: faasm/testing
-          dockerfile: docker/testing.dockerfile
-          always_pull: true
-          push: ${{ secrets.DOCKER_PASSWORD != '' }} # Only attempt push if secret is present
-          tags: ${{ steps.get_tag.outputs.tag }}
-          build_args: FAASM_VERSION=0.3.0
-      - name: "Create a docker network"
-        run: docker network create -d bridge test-net
-      - name: "Stop redis container"
-        run: docker stop redis | true
-      - name: "Run the redis container"
-        run: docker run -d --name redis --net=test-net --rm faasm/redis:0.3.0
-      - name: "Run the testing container"
-        run: >
-          docker run --privileged --net=test-net
-          -e CGROUP_MODE=on
-          -e HOST_TYPE=ci
-          -e REDIS_STATE_HOST=redis
-          -e REDIS_QUEUE_HOST=redis
-          -e LOG_LEVEL=info
-          -e MAX_FAASLETS=5
-          faasm/testing:${{ steps.get_tag.outputs.tag }}
-          /usr/local/code/faasm/bin/ci_run.sh
+      - run: ./bin/cgroup.sh
+      - run: ./bin/netns.sh 5
+      - run: inv -r faasmcli/faasmcli libs.native
+      - run: mkdir build
+      - run: cmake --build . --target tests
+        working-directory: build
+      - run: inv -r faasmcli/faasmcli toolchain.download-sysroot
+      - run: inv -r faasmcli/faasmcli toolchain.download-runtime --nocodegen
+      - run: inv -r faasmcli/faasmcli codegen.local
+      - run: inv -r faasmcli/faasmcli codegen demo echo --wamr
+      - run: inv -r faasmcli/faasmcli libs.fake
+      - run: inv -r faasmcli/faasmcli tf.upload --local-copy
+      - run: chown -R root:root /usr/local/faasm
+      - run: pip3 install pyfaasm
+      - run: inv -r faasmcli/faasmcli upload.user python --py --local-copy
+      - run: groupadd -g 1000 faasm
+      - run: useradd -u 1000 -g 1000 faasm
+      - run: /faasm/build/bin/tests
