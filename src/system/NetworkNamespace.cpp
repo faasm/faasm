@@ -2,10 +2,10 @@
 
 #include <boost/filesystem.hpp>
 
-#include <util/environment.h>
-#include <util/logging.h>
-#include <util/timing.h>
-#include <util/config.h>
+#include <faabric/util/environment.h>
+#include <faabric/util/logging.h>
+#include <faabric/util/timing.h>
+#include <faabric/util/config.h>
 
 #include <errno.h>
 #include <fcntl.h>
@@ -14,7 +14,7 @@
 namespace isolation {
     NetworkNamespace::NetworkNamespace(const std::string &name) : name(name) {
         // Get which mode we're operating in
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
 
         if (conf.netNsMode == "on") {
             mode = NetworkIsolationMode::ns_on;
@@ -33,7 +33,7 @@ namespace isolation {
 
     /** Joins the namespace at the given path */
     void joinNamespace(const boost::filesystem::path &nsPath) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
 
         logger->debug("Setting network ns to {}", nsPath.string());
 
@@ -55,7 +55,7 @@ namespace isolation {
     }
 
     void NetworkNamespace::addCurrentThread() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
 
         if (mode == NetworkIsolationMode::ns_off) {
             logger->debug("Not using network ns, support off");
@@ -74,7 +74,7 @@ namespace isolation {
     };
 
     void NetworkNamespace::removeCurrentThread() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
 
         if (mode == NetworkIsolationMode::ns_off) {
             logger->debug("Not using network ns, support off");

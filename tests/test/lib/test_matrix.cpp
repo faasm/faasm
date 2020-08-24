@@ -3,13 +3,13 @@
 
 #include "faasm/matrix.h"
 
-#include <redis/Redis.h>
-#include <state/State.h>
+#include <faabric/redis/Redis.h>
+#include <faabric/state/State.h>
 
 #include <emulator/emulator.h>
-#include <util/state.h>
-#include <state/StateServer.h>
-#include <state/InMemoryStateKeyValue.h>
+#include <faabric/util/state.h>
+#include <faabric/state/StateServer.h>
+#include <faabric/state/InMemoryStateKeyValue.h>
 
 using namespace Eigen;
 
@@ -317,7 +317,7 @@ namespace tests {
 
         std::string emulatorUser = getEmulatorUser();
 
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
         std::string originalStateMode = conf.stateMode;
         conf.stateMode = "redis";
 

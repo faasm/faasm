@@ -12,7 +12,7 @@ namespace wasm {
      * Returns size of the state if buffer length is zero.
      */
     static int32_t __faasm_read_state_wrapper(wasm_exec_env_t exec_env, char *key, char *buffer, int32_t bufferLen) {
-        util::getLogger()->debug("S - faasm_read_state {} <buffer> {}", key, bufferLen);
+        faabric::utilgetLogger()->debug("S - faasm_read_state {} <buffer> {}", key, bufferLen);
 
         std::string user = getExecutingCall()->user();
 
@@ -39,7 +39,7 @@ namespace wasm {
         std::string user = getExecutingCall()->user();
         auto kv = state::getGlobalState().getKV(user, key, bufferLen);
 
-        util::getLogger()->debug("S - faasm_read_state_ptr - {} {}", kv->key, bufferLen);
+        faabric::utilgetLogger()->debug("S - faasm_read_state_ptr - {} {}", kv->key, bufferLen);
 
         // Map shared memory
         WAMRWasmModule *module = getExecutingWAMRModule();
@@ -58,7 +58,7 @@ namespace wasm {
         std::string user = getExecutingCall()->user();
         auto kv = state::getGlobalState().getKV(user, key, bufferLen);
 
-        util::getLogger()->debug("S - faasm_write_state - {} <data> {}", kv->key, bufferLen);
+        faabric::utilgetLogger()->debug("S - faasm_write_state - {} <data> {}", kv->key, bufferLen);
 
         kv->set(reinterpret_cast<uint8_t *>(buffer));
     }
@@ -67,7 +67,7 @@ namespace wasm {
      * Pushes the state for the given key
      */
     static void __faasm_push_state_wrapper(wasm_exec_env_t exec_env, char *key) {
-        util::getLogger()->debug("S - faasm_push_state - {}", key);
+        faabric::utilgetLogger()->debug("S - faasm_push_state - {}", key);
 
         std::string user = getExecutingCall()->user();
         auto kv = state::getGlobalState().getKV(user, key, 0);

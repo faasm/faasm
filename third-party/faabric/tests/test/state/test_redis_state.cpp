@@ -1,18 +1,18 @@
 #include <catch/catch.hpp>
 
-#include "utils.h"
+#include "faabric_utils.h"
 
-#include <redis/Redis.h>
-#include <util/memory.h>
-#include <util/config.h>
-#include <state/State.h>
-#include <sys/mman.h>
-#include <emulator/emulator.h>
+#include <faabric/redis/Redis.h>
+#include <faabric/util/memory.h>
+#include <faabric/util/config.h>
+#include <faabric/state/State.h>
 #include <faasm/state.h>
-#include <util/state.h>
+#include <faabric/util/state.h>
+
+#include <sys/mman.h>
+#include <faabric/util/macros.h>
 
 using namespace state;
-
 
 /**
  * NOTE - there's some copy-pasting in here because we want to run
@@ -24,7 +24,7 @@ namespace tests {
     static std::string originalStateMode;
 
     static void setUpStateMode(const std::string &newMode) {
-        cleanSystem();
+        cleanFaabric();
 
         util::SystemConfig &conf = util::getSystemConfig();
         originalStateMode = conf.stateMode;
@@ -37,7 +37,7 @@ namespace tests {
 
     static std::shared_ptr<StateKeyValue> setupKV(size_t size) {
         // We have to make sure emulator is using the right user
-        const std::string user = getEmulatorUser();
+        const std::string user = "demo";
 
         staticCount++;
 

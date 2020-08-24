@@ -1,8 +1,8 @@
-#include "util/random.h"
+#include "faabric/util/random.h"
 
 #include <random>
 
-namespace util {
+namespace faabric::util {
     std::string randomString(int len) {
         char result[len];
 

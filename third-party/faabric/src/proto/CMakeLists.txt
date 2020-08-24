@@ -38,9 +38,9 @@ add_custom_command(
         DEPENDS faabric.proto
 )
 
-include_directories(${FAABRIC_INCLUDE_DIR}/proto/)
+include_directories(${FAABRIC_INCLUDE_DIR}/faabric/proto/)
 
-file(GLOB HEADERS "${FAABRIC_INCLUDE_DIR}/proto/*.h")
+file(GLOB HEADERS "${FAABRIC_INCLUDE_DIR}/faabric/proto/*.h")
 
 set(LIB_FILES
         RPCServer.cpp

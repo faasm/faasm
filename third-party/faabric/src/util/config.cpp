@@ -1,16 +1,12 @@
 #include "config.h"
 #include "environment.h"
 #include "logging.h"
-#include "random.h"
 #include "locks.h"
 
-#include <functional>
-#include <mutex>
-#include <util/random.h>
-#include <util/network.h>
+#include <faabric/util/network.h>
 
 
-namespace util {
+namespace faabric::util {
     SystemConfig &getSystemConfig() {
         static SystemConfig conf;
         return conf;
@@ -73,7 +69,7 @@ namespace util {
 
         if (endpointHost.empty()) {
             // Get the IP for this host
-            endpointHost = util::getPrimaryIPForThisHost(endpointInterface);
+            endpointHost = faabric::utilgetPrimaryIPForThisHost(endpointInterface);
         }
     }
 

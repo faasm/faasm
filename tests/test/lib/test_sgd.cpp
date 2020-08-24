@@ -5,11 +5,11 @@
 #include <faasm/sgd.h>
 #include <faasm/matrix.h>
 
-#include <redis/Redis.h>
-#include <util/environment.h>
+#include <faabric/redis/Redis.h>
+#include <faabric/util/environment.h>
 #include <emulator/emulator.h>
-#include <util/state.h>
-#include <state/StateServer.h>
+#include <faabric/util/state.h>
+#include <faabric/state/StateServer.h>
 
 
 using namespace faasm;
@@ -228,7 +228,7 @@ namespace tests {
         setEmulatorUser(user.c_str());
 
         // Set up the SVM function
-        faabric::Message call = util::messageFactory(user, "reuters_svm");
+        faabric::Message call = faabric::utilmessageFactory(user, "reuters_svm");
         int syncInterval = 100;
 
         // Deliberately try to cause contention with lots of workers
@@ -283,11 +283,11 @@ namespace tests {
         }
 
         SECTION("Redis state") {
-            util::SystemConfig &conf = util::getSystemConfig();
+            faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
             std::string originalState = conf.stateMode;
             conf.stateMode = "redis";
 
-            const std::string &expectedKey = util::keyForUser(user, "inputs_vals");
+            const std::string &expectedKey = faabric::utilkeyForUser(user, "inputs_vals");
 
             // Set up dummy data
             setUpDummyProblem(p);

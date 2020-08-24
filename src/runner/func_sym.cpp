@@ -2,15 +2,15 @@
 
 #include <fstream>
 
-#include <util/logging.h>
-#include <util/files.h>
+#include <faabric/util/logging.h>
+#include <faabric/util/files.h>
 #include <iomanip>
-#include <util/func.h>
+#include <faabric/util/func.h>
 #include <wavm/WAVMWasmModule.h>
 
 int main(int argc, char *argv[]) {
-    util::initLogging();
-    const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+    faabric::utilinitLogging();
+    const std::shared_ptr<spdlog::logger> logger = faabric::utilgetLogger();
 
     if (argc < 3) {
         logger->error("Must provide user and function name");
@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
 
     std::map<std::string, std::string> disasMap = module.buildDisassemblyMap();
 
-    std::string outPath = util::getFunctionSymbolsFile(call);
+    std::string outPath = faabric::utilgetFunctionSymbolsFile(call);
     std::ofstream outfile;
     outfile.open(outPath, std::ios::out);
 

@@ -3,10 +3,10 @@
 #include "utils.h"
 
 #include <wavm/WAVMWasmModule.h>
-#include <util/func.h>
+#include <faabric/util/func.h>
 #include <emulator/emulator.h>
-#include <util/memory.h>
-#include <util/state.h>
+#include <faabric/util/memory.h>
+#include <faabric/util/state.h>
 
 using namespace WAVM;
 
@@ -33,20 +33,20 @@ namespace tests {
         wasm::WAVMWasmModule moduleA;
         wasm::WAVMWasmModule moduleB;
 
-        const faabric::Message call = util::messageFactory("demo", "echo");
+        const faabric::Message call = faabric::utilmessageFactory("demo", "echo");
         moduleA.bindToFunction(call);
         moduleB.bindToFunction(call);
 
         // Set up some state value
-        long stateSize = 5 * util::HOST_PAGE_SIZE;
+        long stateSize = 5 * faabric::utilHOST_PAGE_SIZE;
         std::vector<uint8_t> value(stateSize);
         std::fill(value.data(), value.data() + stateSize, 1);
 
         // Write significant values at known points
         long offsetA1 = 10;
-        long offsetA2 = util::HOST_PAGE_SIZE + 2;
-        long offsetB1 = 2 * util::HOST_PAGE_SIZE - 5;
-        long offsetB2 = 3 * util::HOST_PAGE_SIZE - 5;
+        long offsetA2 = faabric::utilHOST_PAGE_SIZE + 2;
+        long offsetB1 = 2 * faabric::utilHOST_PAGE_SIZE - 5;
+        long offsetB2 = 3 * faabric::utilHOST_PAGE_SIZE - 5;
 
         uint8_t markerA1 = 6;
         uint8_t markerA2 = 7;
@@ -87,8 +87,8 @@ namespace tests {
         cleanSystem();
 
         // Set up a non-page-aligned size
-        long stateSize = (util::HOST_PAGE_SIZE * 2) + 23;
-        long expectedAllocatedSize = util::HOST_PAGE_SIZE * 3;
+        long stateSize = (faabric::utilHOST_PAGE_SIZE * 2) + 23;
+        long expectedAllocatedSize = faabric::utilHOST_PAGE_SIZE * 3;
         std::vector<uint8_t> values(stateSize, 3);
 
         // Set up a chunk at the end
@@ -118,7 +118,7 @@ namespace tests {
 
         // Create a wasm module
         wasm::WAVMWasmModule module;
-        const faabric::Message call = util::messageFactory("demo", "echo");
+        const faabric::Message call = faabric::utilmessageFactory("demo", "echo");
         module.bindToFunction(call);
 
         // Map the chunk locally

@@ -1,18 +1,18 @@
-#include <util/logging.h>
+#include <faabric/util/logging.h>
 #include <boost/filesystem.hpp>
-#include <util/func.h>
+#include <faabric/util/func.h>
 #include <storage/FileLoader.h>
-#include <util/config.h>
-#include <util/environment.h>
-#include <util/locks.h>
+#include <faabric/util/config.h>
+#include <faabric/util/environment.h>
+#include <faabric/util/locks.h>
 
 using namespace boost::filesystem;
 
 void codegenForFunc(const std::string &user, const std::string &func) {
-    const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+    const std::shared_ptr<spdlog::logger> logger = faabric::utilgetLogger();
 
-    faabric::Message msg = util::messageFactory(user, func);
-    if (!util::isValidFunction(msg)) {
+    faabric::Message msg = faabric::utilmessageFactory(user, func);
+    if (!faabric::utilisValidFunction(msg)) {
         logger->warn("Invalid function: {}/{}", user, func);
         return;
     }
@@ -23,8 +23,8 @@ void codegenForFunc(const std::string &user, const std::string &func) {
 }
 
 int main(int argc, char *argv[]) {
-    util::initLogging();
-    const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+    faabric::utilinitLogging();
+    const std::shared_ptr<spdlog::logger> logger = faabric::utilgetLogger();
 
     if (argc == 3) {
         std::string user = argv[1];
@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
     } else if (argc == 2) {
         std::string user = argv[1];
 
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
         logger->info("Running codegen for user {} on dir {}", user, conf.functionDir);
 
         boost::filesystem::path path(conf.functionDir);
@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
         boost::filesystem::directory_iterator iter(path), end;
         std::mutex mx;
 
-        unsigned int nThreads = util::getUsableCores();
+        unsigned int nThreads = faabric::utilgetUsableCores();
         std::vector<std::thread> threads;
 
         for (unsigned int i = 0; i < nThreads; i++) {
@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
 
                     {
                         // Get lock
-                        util::UniqueLock lock(mx);
+                        faabric::utilUniqueLock lock(mx);
 
                         // Check if we've got more to do
                         if (iter == end) {

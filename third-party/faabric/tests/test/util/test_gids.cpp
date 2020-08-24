@@ -2,11 +2,11 @@
 
 #include <set>
 #include <thread>
-#include <util/logging.h>
-#include <util/gids.h>
-#include <util/locks.h>
+#include <faabric/util/logging.h>
+#include <faabric/util/gids.h>
+#include <faabric/util/locks.h>
 
-using namespace util;
+using namespace faabric::util;
 
 namespace tests {
     TEST_CASE("Test multithreaded gid generation", "[util]") {
@@ -21,8 +21,8 @@ namespace tests {
         for (int i = 0; i < nThreads; i++) {
             threads.emplace_back(std::thread([&generated, &mx, nLoops] {
                 for (int j = 0; j < nLoops; j++) {
-                    util::UniqueLock lock(mx);
-                    generated.push_back(util::generateGid());
+                    faabric::utilUniqueLock lock(mx);
+                    generated.push_back(faabric::utilgenerateGid());
                 }
             }));
         }
@@ -39,7 +39,7 @@ namespace tests {
         std::set<unsigned int> uniques;
         for (auto g : generated) {
             if (uniques.count(g) > 0) {
-                const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+                const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
                 logger->error("Found duplicate gid - {}", g);
                 FAIL();
             } else {

@@ -1,17 +1,17 @@
 #include "Redis.h"
 
-#include <util/network.h>
-#include <util/logging.h>
-#include <util/random.h>
+#include <faabric/util/network.h>
+#include <faabric/util/logging.h>
+#include <faabric/util/random.h>
 
 #include <thread>
-#include <util/gids.h>
-#include <util/bytes.h>
+#include <faabric/util/gids.h>
+#include <faabric/util/bytes.h>
 
-namespace redis {
+namespace faabric::redis {
 
     RedisInstance::RedisInstance(RedisRole roleIn) : role(roleIn) {
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
 
         if (role == STATE) {
             hostname = conf.redisStateHost;
@@ -19,7 +19,7 @@ namespace redis {
             hostname = conf.redisQueueHost;
         }
 
-        ip = util::getIPFromHostname(hostname);
+        ip = faabric::utilgetIPFromHostname(hostname);
 
         std::string portStr = conf.redisPort;
         port = std::stoi(portStr);
@@ -119,7 +119,7 @@ namespace redis {
         int resultLen = reply->len;
 
         if (resultLen > (int) bufferLen) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
             logger->error("Value ({}) too big for buffer ({}) - key {}", resultLen, bufferLen, key);
             throw std::runtime_error("Reading value too big for buffer");
         }
@@ -147,7 +147,7 @@ namespace redis {
      */
 
     void Redis::ping() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
 
         logger->debug("Pinging redis at {}", instance.hostname);
         auto reply = (redisReply *) redisCommand(context, "PING");
@@ -243,7 +243,7 @@ namespace redis {
         auto reply = (redisReply *) redisCommand(context, "SET %s %b", key.c_str(), value, size);
 
         if (reply->type == REDIS_REPLY_ERROR) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
             logger->error("Failed to SET {} - {}", key.c_str(), reply->str);
         }
 
@@ -260,7 +260,7 @@ namespace redis {
                                                  size);
 
         if (reply->type != REDIS_REPLY_INTEGER) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
             logger->error("Failed SETRANGE {}", key);
             throw std::runtime_error("Failed SETRANGE " + key);
         }
@@ -278,7 +278,7 @@ namespace redis {
             redisGetReply(context, &reply);
 
             if (reply == nullptr || ((redisReply *) reply)->type == REDIS_REPLY_ERROR) {
-                const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+                const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
                 logger->error("Failed pipeline call {}", p);
                 throw std::runtime_error("Failed pipeline call " + std::to_string(p));
             }
@@ -290,7 +290,7 @@ namespace redis {
     void Redis::sadd(const std::string &key, const std::string &value) {
         auto reply = (redisReply *) redisCommand(context, "SADD %s %s", key.c_str(), value.c_str());
         if(reply->type == REDIS_REPLY_ERROR) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
             logger->error("Failed to add {} to set {}", value, key);
             throw std::runtime_error("Failed to add element to set");
         }
@@ -445,7 +445,7 @@ namespace redis {
     uint32_t Redis::acquireLock(const std::string &key, int expirySeconds) {
         // Implementation of single host redlock algorithm
         // https://redis.io/topics/distlock
-        uint32_t lockId = util::generateGid();
+        uint32_t lockId = faabric::utilgenerateGid();
 
         std::string lockKey = key + "_lock";
         bool result = this->setnxex(lockKey, lockId, expirySeconds);
@@ -483,7 +483,7 @@ namespace redis {
 
         bool success = false;
         if (reply->type == REDIS_REPLY_ERROR) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
             logger->error("Failed to SET {} - {}", key.c_str(), reply->str);
         } else if (reply->type == REDIS_REPLY_STATUS) {
             success = true;

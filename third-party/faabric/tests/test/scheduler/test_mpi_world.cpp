@@ -1,12 +1,15 @@
 #include <catch/catch.hpp>
-#include "utils.h"
+#include "faabric_utils.h"
 
-#include <scheduler/MpiWorldRegistry.h>
-#include <util/random.h>
+#include <faabric/scheduler/MpiWorldRegistry.h>
+#include <faabric/util/random.h>
 #include <faasmpi/mpi.h>
-#include <util/bytes.h>
+#include <faabric/util/bytes.h>
+#include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/macros.h>
+#include <faabric/scheduler/FunctionCallServer.h>
 
-using namespace scheduler;
+using namespace faabric::scheduler;
 
 namespace tests {
 
@@ -16,9 +19,9 @@ namespace tests {
     static const char *func = "hellompi";
 
     TEST_CASE("Test world creation", "[mpi]") {
-        cleanSystem();
+        cleanFaabric();
 
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+        Scheduler &sch = getScheduler();
         sch.setTestMode(true);
 
         // Create the world
@@ -49,7 +52,7 @@ namespace tests {
     }
 
     TEST_CASE("Test world loading from state", "[mpi]") {
-        cleanSystem();
+        cleanFaabric();
 
         // Create a world
         const faabric::Message &msg = util::messageFactory(user, func);
@@ -67,7 +70,7 @@ namespace tests {
     }
 
     TEST_CASE("Test registering a rank", "[mpi]") {
-        cleanSystem();
+        cleanFaabric();
 
         // Note, we deliberately make the host names different lengths,
         // shorter than the buffer
@@ -117,7 +120,7 @@ namespace tests {
     }
 
     TEST_CASE("Test send and recv on same host", "[mpi]") {
-        cleanSystem();
+        cleanFaabric();
 
         const faabric::Message &msg = util::messageFactory(user, func);
         scheduler::MpiWorld world;
@@ -162,7 +165,7 @@ namespace tests {
     }
 
     TEST_CASE("Test async send and recv", "[mpi]") {
-        cleanSystem();
+        cleanFaabric();
 
         const faabric::Message &msg = util::messageFactory(user, func);
         scheduler::MpiWorld world;
@@ -197,7 +200,7 @@ namespace tests {
     }
 
     TEST_CASE("Test send across hosts", "[mpi]") {
-        cleanSystem();
+        cleanFaabric();
 
         // Start a server on this host
         FunctionCallServer server;
@@ -254,7 +257,7 @@ namespace tests {
     }
 
     TEST_CASE("Test send/recv message with no data", "[mpi]") {
-        cleanSystem();
+        cleanFaabric();
 
         const faabric::Message &msg = util::messageFactory(user, func);
         scheduler::MpiWorld world;
@@ -298,7 +301,7 @@ namespace tests {
     }
 
     TEST_CASE("Test recv with partial data", "[mpi]") {
-        cleanSystem();
+        cleanFaabric();
 
         const faabric::Message &msg = util::messageFactory(user, func);
         scheduler::MpiWorld world;
@@ -325,7 +328,7 @@ namespace tests {
     }
 
     TEST_CASE("Test probe", "[mpi]") {
-        cleanSystem();
+        cleanFaabric();
 
         const faabric::Message &msg = util::messageFactory(user, func);
         scheduler::MpiWorld world;
@@ -373,7 +376,7 @@ namespace tests {
     }
 
     TEST_CASE("Test can't get in-memory queue for non-local ranks", "[mpi]") {
-        cleanSystem();
+        cleanFaabric();
 
         std::string hostA = util::randomString(MPI_HOST_STATE_LEN - 5);
         std::string hostB = util::randomString(MPI_HOST_STATE_LEN - 3);
@@ -406,7 +409,7 @@ namespace tests {
     }
 
     TEST_CASE("Check sending to invalid rank", "[mpi]") {
-        cleanSystem();
+        cleanFaabric();
 
         const faabric::Message &msg = util::messageFactory(user, func);
         scheduler::MpiWorld world;
@@ -418,7 +421,7 @@ namespace tests {
     }
 
     TEST_CASE("Check sending to unregistered rank", "[mpi]") {
-        cleanSystem();
+        cleanFaabric();
 
         const faabric::Message &msg = util::messageFactory(user, func);
         scheduler::MpiWorld world;
@@ -431,7 +434,7 @@ namespace tests {
     }
 
     TEST_CASE("Test collective messaging locally and across hosts", "[mpi]") {
-        cleanSystem();
+        cleanFaabric();
 
         FunctionCallServer server;
         server.start();
@@ -718,7 +721,7 @@ namespace tests {
                                        std::vector<std::vector<double>> rankData, std::vector<double> &expected);
 
     TEST_CASE("Test reduce", "[mpi]") {
-        cleanSystem();
+        cleanFaabric();
 
         const faabric::Message &msg = util::messageFactory(user, func);
         scheduler::MpiWorld world;
@@ -795,7 +798,7 @@ namespace tests {
     }
 
     TEST_CASE("Test gather and allgather", "[mpi]") {
-        cleanSystem();
+        cleanFaabric();
 
         const faabric::Message &msg = util::messageFactory(user, func);
         scheduler::MpiWorld world;
@@ -891,7 +894,7 @@ namespace tests {
     }
 
     TEST_CASE("Test all-to-all", "[mpi]") {
-        cleanSystem();
+        cleanFaabric();
 
         const faabric::Message &msg = util::messageFactory(user, func);
         scheduler::MpiWorld world;
@@ -938,7 +941,7 @@ namespace tests {
     }
 
     TEST_CASE("Test RMA across hosts", "[mpi]") {
-        cleanSystem();
+        cleanFaabric();
 
         std::string otherHost = "192.168.9.2";
 

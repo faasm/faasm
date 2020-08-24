@@ -1,6 +1,6 @@
 #include "clock.h"
 
-namespace util {
+namespace faabric::util {
     Clock &getGlobalClock() {
         static Clock instance;
         return instance;

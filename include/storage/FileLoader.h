@@ -4,7 +4,7 @@
 
 #include <string>
 #include <vector>
-#include <util/exception.h>
+#include <faabric/util/exception.h>
 
 
 namespace storage {
@@ -49,7 +49,7 @@ namespace storage {
 
     std::vector<uint8_t> loadFileBytes(const std::string &path);
 
-    class SharedFileIsDirectoryException : public util::FaasmException {
+    class SharedFileIsDirectoryException : public faabric::utilFaasmException {
     public:
         explicit SharedFileIsDirectoryException(const std::string& filePath): FaasmException(filePath + " is a directory") {
 

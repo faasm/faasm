@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <storage/LocalFileLoader.h>
 #include <boost/filesystem.hpp>
-#include <util/files.h>
+#include <faabric/util/files.h>
 
 using namespace storage;
 
@@ -20,11 +20,11 @@ namespace tests {
         REQUIRE(actual == expected);
         
         // Check it's written where we expect it to be too
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
         boost::filesystem::path fullPath(conf.sharedFilesStorageDir);
         fullPath.append(relativePath);
 
-        const std::vector<uint8_t> actualBytes = util::readFileToBytes(fullPath.string());
+        const std::vector<uint8_t> actualBytes = faabric::utilreadFileToBytes(fullPath.string());
         REQUIRE(actualBytes == expected);
     }
 }

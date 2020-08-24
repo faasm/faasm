@@ -4,12 +4,13 @@ set(LIB_FILES
         DummyStateServer.cpp
         exec_graph_utils.cpp
         message_utils.cpp
-        utils.h
+        system_utils.cpp
+        faabric_utils.h
         )
 
 faasm_private_lib(faabric_test_utils "${LIB_FILES}")
 
 target_link_libraries(faabric_test_utils
     catch
-    scheduler
+    faabric
 )

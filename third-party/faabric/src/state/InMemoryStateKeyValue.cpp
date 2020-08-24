@@ -1,13 +1,13 @@
 #include "InMemoryStateKeyValue.h"
 
-#include <util/bytes.h>
 #include <cstdio>
 
-#include <util/state.h>
-#include <util/macros.h>
+#include <faabric/util/bytes.h>
+#include <faabric/util/state.h>
+#include <faabric/util/macros.h>
 
 
-namespace state {
+namespace faabric::state {
     // --------------------------------------------
     // Static properties and methods
     // --------------------------------------------

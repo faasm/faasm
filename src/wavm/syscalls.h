@@ -1,7 +1,7 @@
 #pragma once
 
 #include <sys/socket.h>
-#include <scheduler/MpiContext.h>
+#include <faabric/scheduler/MpiContext.h>
 #include <WAVM/WASI/WASIABI.h>
 
 #define FAKE_NAME "faasm"

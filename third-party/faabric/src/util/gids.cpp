@@ -2,8 +2,9 @@
 
 #include <atomic>
 #include <mutex>
-#include <util/locks.h>
-#include <util/random.h>
+
+#include <faabric/util/locks.h>
+#include <faabric/util/random.h>
 
 static std::atomic_int counter = 0;
 static std::size_t gidKeyHash = 0;
@@ -12,13 +13,13 @@ static std::mutex gidMx;
 
 #define GID_LEN 20
 
-namespace util {
+namespace faabric::util {
     unsigned int generateGid() {
         if (gidKeyHash == 0) {
-            util::UniqueLock lock(gidMx);
+            faabric::utilUniqueLock lock(gidMx);
             if (gidKeyHash == 0) {
                 // Generate random hash
-                std::string gidKey = util::randomString(GID_LEN);
+                std::string gidKey = faabric::utilrandomString(GID_LEN);
                 gidKeyHash = std::hash<std::string>{}(gidKey);
             }
         }

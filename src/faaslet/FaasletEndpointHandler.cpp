@@ -1,10 +1,10 @@
 #include "FaasletEndpointHandler.h"
 
-#include <util/logging.h>
-#include <util/timing.h>
-#include <util/json.h>
-#include <scheduler/Scheduler.h>
-#include <redis/Redis.h>
+#include <faabric/util/logging.h>
+#include <faabric/util/timing.h>
+#include <faabric/util/json.h>
+#include <faabric/scheduler/Scheduler.h>
+#include <faabric/redis/Redis.h>
 
 namespace faaslet {
     void FaasletEndpointHandler::onTimeout(const Pistache::Http::Request &request, Pistache::Http::ResponseWriter writer) {
@@ -12,7 +12,7 @@ namespace faaslet {
     }
 
     void FaasletEndpointHandler::onRequest(const Pistache::Http::Request &request, Pistache::Http::ResponseWriter response) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
         logger->debug("Knative handler received request");
 
         // Very permissive CORS
@@ -28,7 +28,7 @@ namespace faaslet {
         PROF_START(knativeRoundTrip)
 
         // Set response timeout
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
         response.timeoutAfter(std::chrono::milliseconds(conf.globalMessageTimeout));
 
         // Parse message from JSON in request
@@ -44,7 +44,7 @@ namespace faaslet {
         if (requestStr.empty()) {
             responseStr = "Empty request";
         } else {
-            faabric::Message msg = util::jsonToMessage(requestStr);
+            faabric::Message msg = faabric::utiljsonToMessage(requestStr);
             scheduler::Scheduler &sched = scheduler::getScheduler();
 
             if (msg.isstatusrequest()) {
@@ -55,7 +55,7 @@ namespace faaslet {
                 responseStr = scheduler::execGraphToJson(execGraph);
 
             } else if (msg.isflushrequest()) {
-                const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+                const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
                 logger->debug("Broadcasting flush request");
 
                 sched.broadcastFlush(msg);
@@ -68,8 +68,8 @@ namespace faaslet {
     }
 
     std::string FaasletEndpointHandler::executeFunction(faabric::Message &msg) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        util::SystemConfig &conf = util::getSystemConfig();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
 
         if (msg.user().empty()) {
             return "Empty user";
@@ -77,11 +77,11 @@ namespace faaslet {
             return "Empty function";
         }
 
-        util::setMessageId(msg);
+        faabric::utilsetMessageId(msg);
 
         auto tid = (pid_t) syscall(SYS_gettid);
 
-        const std::string funcStr = util::funcToString(msg, true);
+        const std::string funcStr = faabric::utilfuncToString(msg, true);
         logger->debug("Worker HTTP thread {} scheduling {}", tid, funcStr);
 
         // Schedule it
@@ -90,7 +90,7 @@ namespace faaslet {
 
         // Await result on global bus (may have been executed on a different worker)
         if (msg.isasync()) {
-            return util::buildAsyncResponse(msg);
+            return faabric::utilbuildAsyncResponse(msg);
         } else {
             logger->debug("Worker thread {} awaiting {}", tid, funcStr);
 

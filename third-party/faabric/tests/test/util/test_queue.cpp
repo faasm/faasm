@@ -1,10 +1,10 @@
 #include <catch/catch.hpp>
-#include <util/bytes.h>
-#include <util/queue.h>
+#include <faabric/util/bytes.h>
+#include <faabric/util/queue.h>
 
-using namespace util;
+using namespace faabric::util;
 
-typedef util::Queue<int> IntQueue;
+typedef faabric::utilQueue<int> IntQueue;
 
 namespace tests {
     TEST_CASE("Test queue operations", "[util]") {

@@ -7,10 +7,10 @@
 
 #include <wavm/WAVMWasmModule.h>
 
-#include <util/config.h>
-#include <util/func.h>
-#include <util/files.h>
-#include <util/logging.h>
+#include <faabric/util/config.h>
+#include <faabric/util/func.h>
+#include <faabric/util/files.h>
+#include <faabric/util/logging.h>
 
 #include <boost/filesystem.hpp>
 
@@ -18,7 +18,7 @@
 namespace storage {
 
     std::vector<uint8_t> FileLoader::doCodegen(std::vector<uint8_t> &bytes) {
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
         if (conf.wasmVm == "wamr") {
 #if(FAASM_SGX == 1)
             throw std::runtime_error("WAMR codegen not supported in SGX mode yet");
@@ -34,13 +34,13 @@ namespace storage {
         std::vector<uint8_t> bytes = loadFunctionWasm(msg);
 
         if (bytes.empty()) {
-            const std::string funcStr = util::funcToString(msg, false);
+            const std::string funcStr = faabric::utilfuncToString(msg, false);
             throw std::runtime_error("Loaded empty bytes for " + funcStr);
         }
 
         std::vector<uint8_t> objBytes = doCodegen(bytes);
 
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
         if (conf.wasmVm == "wamr") {
             uploadFunctionAotFile(msg, objBytes);
         } else {
@@ -54,7 +54,7 @@ namespace storage {
         std::vector<uint8_t> objBytes = doCodegen(bytes);
 
         // Do the upload
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
         if (conf.wasmVm == "wamr") {
             uploadSharedObjectAotFile(inputPath, objBytes);
         } else {
@@ -64,7 +64,7 @@ namespace storage {
 
     void checkFileExists(const std::string &path) {
         if (!boost::filesystem::exists(path)) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
             logger->error("File {} does not exist", path);
             throw std::runtime_error("Expected file does not exist");
         }
@@ -72,6 +72,6 @@ namespace storage {
 
     std::vector<uint8_t> loadFileBytes(const std::string &path) {
         checkFileExists(path);
-        return util::readFileToBytes(path);
+        return faabric::utilreadFileToBytes(path);
     }
 }

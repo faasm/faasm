@@ -1,18 +1,17 @@
 #include "chaining.h"
 
-#include <util/bytes.h>
-
 #include <curl/curl.h>
 #include <curl/easy.h>
 
 #include <sstream>
-#include <util/logging.h>
-#include <util/json.h>
-#include <util/func.h>
-#include <util/config.h>
+
+#include <faabric/util/logging.h>
+#include <faabric/util/json.h>
+#include <faabric/util/func.h>
+#include <faabric/util/config.h>
 
 
-namespace util {
+namespace faabric::util {
     size_t dataCallback(void *ptr, size_t size, size_t nmemb, void *stream) {
         std::string data((const char *) ptr, (size_t) size * nmemb);
         *((std::stringstream *) stream) << data;
@@ -31,9 +30,9 @@ namespace util {
         std::string url = "http://" + host + ":" + std::to_string(port);
         // std::string url = "http://faasm-" + cleanedFuncName + ".faasm.svc.cluster.local";
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        const std::string funcStr = util::funcToString(msg, true);
-        int callTimeoutMs = util::getSystemConfig().chainedCallTimeout;
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
+        const std::string funcStr = faabric::utilfuncToString(msg, true);
+        int callTimeoutMs = faabric::utilgetSystemConfig().chainedCallTimeout;
         
         void *curl = curl_easy_init();
 
@@ -53,7 +52,7 @@ namespace util {
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
 
         // Add the message as JSON
-        const std::string msgJson = util::messageToJson(msg);
+        const std::string msgJson = faabric::utilmessageToJson(msg);
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, msgJson.c_str());
         curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, -1L);
 

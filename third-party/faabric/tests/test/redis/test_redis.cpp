@@ -1,9 +1,9 @@
 #include <catch/catch.hpp>
 
-#include "utils.h"
+#include "faabric_utils.h"
 
-#include <redis/Redis.h>
-#include <util/bytes.h>
+#include <faabric/redis/Redis.h>
+#include <faabric/util/bytes.h>
 
 #include <algorithm>
 

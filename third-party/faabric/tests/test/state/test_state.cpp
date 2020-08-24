@@ -1,15 +1,15 @@
 #include <catch/catch.hpp>
 
-#include "utils.h"
+#include "faabric_utils.h"
 
-#include <redis/Redis.h>
-#include <util/memory.h>
-#include <util/config.h>
-#include <state/State.h>
+#include <faabric/redis/Redis.h>
+#include <faabric/util/memory.h>
+#include <faabric/util/config.h>
+#include <faabric/state/State.h>
 #include <sys/mman.h>
 #include <emulator/emulator.h>
 #include <faasm/state.h>
-#include <state/InMemoryStateKeyValue.h>
+#include <faabric/state/InMemoryStateKeyValue.h>
 
 using namespace state;
 
@@ -17,7 +17,7 @@ namespace tests {
     static int staticCount = 0;
 
     static void setUpDummyServer(DummyStateServer &server, const std::vector<uint8_t> &values) {
-        cleanSystem();
+        cleanFaabric();
 
         staticCount++;
         const std::string stateKey = "state_key_" + std::to_string(staticCount);
@@ -43,7 +43,7 @@ namespace tests {
     }
 
     TEST_CASE("Test in-memory state sizes", "[state]") {
-        cleanSystem();
+        cleanFaabric();
         State &s = getGlobalState();
         std::string user = "alpha";
         std::string key = "beta";
@@ -63,7 +63,7 @@ namespace tests {
     }
 
     TEST_CASE("Test simple in memory state get/set", "[state]") {
-        cleanSystem();
+        cleanFaabric();
         auto kv = setupKV(5);
 
         std::vector<uint8_t> actual(5);
@@ -266,7 +266,7 @@ namespace tests {
     }
 
     TEST_CASE("Test set chunk cannot be over the size of the allocated memory", "[state]") {
-        cleanSystem();
+        cleanFaabric();
         auto kv = setupKV(2);
 
         // Set a chunk offset
@@ -455,7 +455,7 @@ namespace tests {
     }
 
     TEST_CASE("Test mapping shared memory", "[state]") {
-        cleanSystem();
+        cleanFaabric();
 
         // Set up the KV
         State &s = getGlobalState();
@@ -538,7 +538,7 @@ namespace tests {
     }
 
     TEST_CASE("Test mapping small shared memory offsets", "[state]") {
-        cleanSystem();
+        cleanFaabric();
 
         // Set up the KV
         std::vector<uint8_t> values = {0, 1, 2, 3, 4, 5, 6};
@@ -648,7 +648,7 @@ namespace tests {
     }
 
     TEST_CASE("Test appended state with KV", "[state]") {
-        cleanSystem();
+        cleanFaabric();
 
         // Set up the KV
         State &s = getGlobalState();

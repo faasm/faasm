@@ -1,9 +1,9 @@
 #include "ExecGraph.h"
 
 #include <sstream>
-#include <util/json.h>
+#include <faabric/util/json.h>
 
-namespace scheduler {
+namespace faabric::scheduler {
 
     int countExecGraphNode(const ExecGraphNode &node) {
         int count = 1;
@@ -31,7 +31,7 @@ namespace scheduler {
         std::stringstream res;
 
         // Add the message
-        res << "{ \"msg\": " << util::messageToJson(node.msg);
+        res << "{ \"msg\": " << faabric::utilmessageToJson(node.msg);
 
         // Add the children
         if (!node.children.empty()) {

@@ -1,6 +1,6 @@
-#include <util/queue.h>
+#include "queue.h"
 
-namespace util {
+namespace faabric::util {
     TokenPool::TokenPool(int nTokens) : _size(nTokens) {
         // Initialise all tokens as available
         for (int i = 0; i < nTokens; i++) {

@@ -1,15 +1,15 @@
 #include "WasmModule.h"
 
-#include <util/bytes.h>
-#include <util/config.h>
-#include <util/func.h>
-#include <util/locks.h>
+#include <faabric/util/bytes.h>
+#include <faabric/util/config.h>
+#include <faabric/util/func.h>
+#include <faabric/util/locks.h>
 #include <sys/uio.h>
 
 #include <boost/filesystem.hpp>
 #include <sstream>
 #include <sys/mman.h>
-#include <util/memory.h>
+#include <faabric/util/memory.h>
 
 
 namespace wasm {
@@ -114,7 +114,7 @@ namespace wasm {
     int WasmModule::getStdoutFd() {
         if (stdoutMemFd == 0) {
             stdoutMemFd = memfd_create("stdoutfd", 0);
-            util::getLogger()->debug("Capturing stdout: fd={}", stdoutMemFd);
+            faabric::utilgetLogger()->debug("Capturing stdout: fd={}", stdoutMemFd);
         }
 
         return stdoutMemFd;
@@ -125,12 +125,12 @@ namespace wasm {
         ssize_t writtenSize = ::writev(memFd, iovecs, iovecCount);
 
         if (writtenSize < 0) {
-            util::getLogger()->error("Failed capturing stdout: {}", strerror(errno));
+            faabric::utilgetLogger()->error("Failed capturing stdout: {}", strerror(errno));
             throw std::runtime_error(std::string("Failed capturing stdout: ")
                                      + strerror(errno));
         }
 
-        util::getLogger()->debug("Captured {} bytes of formatted stdout", writtenSize);
+        faabric::utilgetLogger()->debug("Captured {} bytes of formatted stdout", writtenSize);
         stdoutSize += writtenSize;
         return writtenSize;
     }
@@ -141,11 +141,11 @@ namespace wasm {
         ssize_t writtenSize = dprintf(memFd, "%s\n", reinterpret_cast<const char *>(buffer));
 
         if (writtenSize < 0) {
-            util::getLogger()->error("Failed capturing stdout: {}", strerror(errno));
+            faabric::utilgetLogger()->error("Failed capturing stdout: {}", strerror(errno));
             throw std::runtime_error("Failed capturing stdout");
         }
 
-        util::getLogger()->debug("Captured {} bytes of unformatted stdout", writtenSize);
+        faabric::utilgetLogger()->debug("Captured {} bytes of unformatted stdout", writtenSize);
         stdoutSize += writtenSize;
         return writtenSize;
     }
@@ -163,7 +163,7 @@ namespace wasm {
         char *buf = new char[stdoutSize];
         read(memFd, buf, stdoutSize);
         std::string stdoutString(buf, stdoutSize);
-        util::getLogger()->debug("Read stdout length {}:\n{}", stdoutSize, stdoutString);
+        faabric::utilgetLogger()->debug("Read stdout length {}:\n{}", stdoutSize, stdoutString);
 
         return stdoutString;
     }
@@ -186,7 +186,7 @@ namespace wasm {
         // Here we set up the arguments to main(), i.e. argc and argv
         // We allow passing of arbitrary commandline arguments via the invocation message.
         // These are passed as a string with a space separating each argument.
-        argv = util::getArgvForMessage(msg);
+        argv = faabric::utilgetArgvForMessage(msg);
         argc = argv.size();
 
         // Work out the size of the buffer to hold the strings (allowing
@@ -213,10 +213,10 @@ namespace wasm {
                 kv->user + "_" + kv->key + "__" + std::to_string(offset) + "__" + std::to_string(length);
         if (sharedMemWasmPtrs.count(segmentKey) == 0) {
             // Lock and double check
-            util::UniqueLock lock(sharedMemWasmPtrsMx);
+            faabric::utilUniqueLock lock(sharedMemWasmPtrsMx);
             if (sharedMemWasmPtrs.count(segmentKey) == 0) {
                 // Page-align the chunk
-                util::AlignedChunk chunk = util::getPageAlignedChunk(offset, length);
+                faabric::utilAlignedChunk chunk = faabric::utilgetPageAlignedChunk(offset, length);
 
                 // Create the wasm memory region and work out the offset to the start of the
                 // desired chunk in this region (this will be zero if the offset is already

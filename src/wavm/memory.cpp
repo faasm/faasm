@@ -1,12 +1,12 @@
 #include "WAVMWasmModule.h"
 #include "syscalls.h"
 
-#include <util/bytes.h>
+#include <faabric/util/bytes.h>
 #include <linux/membarrier.h>
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
-#include <util/config.h>
+#include <faabric/util/config.h>
 
 using namespace WAVM;
 
@@ -21,13 +21,13 @@ namespace wasm {
     }
 
     I32 s__madvise(I32 address, I32 numBytes, I32 advice) {
-        util::getLogger()->debug("S - madvise - {} {} {}", address, numBytes, advice);
+        faabric::utilgetLogger()->debug("S - madvise - {} {} {}", address, numBytes, advice);
 
         return 0;
     }
 
     I32 s__membarrier(I32 a) {
-        util::getLogger()->debug("S - membarrier - {}", a);
+        faabric::utilgetLogger()->debug("S - membarrier - {}", a);
 
         int res;
         if (a == MEMBARRIER_CMD_QUERY) {
@@ -37,7 +37,7 @@ namespace wasm {
             // We can ignore all non-query membarrier operations
             res = 0;
         } else {
-            util::getLogger()->error("Unexpected membarrier argument {}", a);
+            faabric::utilgetLogger()->error("Unexpected membarrier argument {}", a);
             throw std::runtime_error("Invalid membarrier command");
         }
 
@@ -45,7 +45,7 @@ namespace wasm {
     }
 
     I32 s__sigaltstack(I32 ssPtr, I32 oldSsPtr) {
-        util::getLogger()->debug("S - sigaltstack - {} {}", ssPtr, oldSsPtr);
+        faabric::utilgetLogger()->debug("S - sigaltstack - {} {}", ssPtr, oldSsPtr);
 
         Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
 
@@ -77,7 +77,7 @@ namespace wasm {
     }
 
     I32 doMmap(I32 addr, I32 length, I32 prot, I32 flags, I32 fd, I32 offset) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
         logger->debug("S - mmap - {} {} {} {} {} {}", addr, length, prot, flags, fd, offset);
 
         // Although we are ignoring the offset we should probably
@@ -117,7 +117,7 @@ namespace wasm {
     }
 
     I32 doMunmap(I32 addr, I32 length) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
         logger->debug("S - munmap - {} {} (IGNORED)", addr, length);
 
 //        WasmModule *executingModule = getExecutingWAVMModule();
@@ -172,7 +172,7 @@ namespace wasm {
      * Note that we don't assume the address is page-aligned and just do nothing if there's already space
     */
     I32 _do_brk(I32 addr) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
         if (!isPageAligned(addr)) {
             logger->error("brk address not page-aligned ({})", addr);
             throw std::runtime_error("brk not page-aligned");
@@ -216,14 +216,14 @@ namespace wasm {
     }
 
     I32 s__brk(I32 addr) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
         logger->debug("S - brk - {}", addr);
 
         return _do_brk(addr);
     }
 
     I32 s__sbrk(I32 increment) {
-        util::getLogger()->debug("S - sbrk - {}", increment);
+        faabric::utilgetLogger()->debug("S - sbrk - {}", increment);
 
         WAVMWasmModule *module = getExecutingWAVMModule();
         Runtime::Memory *memory = module->defaultMemory;
@@ -250,13 +250,13 @@ namespace wasm {
     // mprotect is usually called as part of thread creation, in which
     // case we can ignore it.
     I32 s__mprotect(I32 addrPtr, I32 len, I32 prot) {
-        util::getLogger()->debug("S - mprotect - {} {} {}", addrPtr, len, prot);
+        faabric::utilgetLogger()->debug("S - mprotect - {} {} {}", addrPtr, len, prot);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "shm_open", I32, shm_open, I32 a, I32 b, I32 c) {
-        util::getLogger()->debug("S - shm_open - {} {} {}", a, b, c);
+        faabric::utilgetLogger()->debug("S - shm_open - {} {} {}", a, b, c);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 

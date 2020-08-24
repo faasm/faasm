@@ -1,17 +1,17 @@
 #include <catch/catch.hpp>
-#include <util/string_tools.h>
-#include <util/bytes.h>
+#include <faabric/util/string_tools.h>
+#include <faabric/util/bytes.h>
 
-using namespace util;
+using namespace faabric::util;
 
 namespace tests {
     TEST_CASE("Test bytes to string round trip", "[util]") {
         std::string inputStr = "abcdefghijkl12345";
 
-        const std::vector<uint8_t> bytes = util::stringToBytes(inputStr);
+        const std::vector<uint8_t> bytes = faabric::utilstringToBytes(inputStr);
         REQUIRE(bytes.size() == inputStr.size());
 
-        std::string actual = util::bytesToString(bytes);
+        std::string actual = faabric::utilbytesToString(bytes);
         REQUIRE(actual.size() == inputStr.size());
 
         REQUIRE(actual == inputStr);

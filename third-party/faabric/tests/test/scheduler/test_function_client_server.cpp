@@ -1,12 +1,12 @@
 #include <catch/catch.hpp>
 
-#include "utils.h"
+#include "faabric_utils.h"
 
-#include <scheduler/FunctionCallClient.h>
-#include <scheduler/FunctionCallServer.h>
-#include <util/config.h>
-#include <scheduler/MpiWorld.h>
-#include <scheduler/MpiWorldRegistry.h>
+#include <faabric/scheduler/FunctionCallClient.h>
+#include <faabric/scheduler/FunctionCallServer.h>
+#include <faabric/util/config.h>
+#include <faabric/scheduler/MpiWorld.h>
+#include <faabric/scheduler/MpiWorldRegistry.h>
 
 using namespace scheduler;
 

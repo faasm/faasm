@@ -3,10 +3,10 @@
 #include <grpcpp/security/credentials.h>
 #include <grpcpp/create_channel.h>
 
-#include <proto/macros.h>
+#include <faabric/proto/macros.h>
 
 
-namespace scheduler {
+namespace faabric::scheduler {
     FunctionCallClient::FunctionCallClient(
             const std::string &hostIn
     ) :

@@ -113,9 +113,9 @@ message Message {
 // ---------------------------------------------
 
 service StateRPCService {
-    rpc Pull (stream StateChunkRequest) returns (stream StateChunk) {
+    rpc Pull (stream StateChunkRequest) returns (stream StatePart) {
     }
-    rpc Push (stream StateChunk) returns (StateResponse) {
+    rpc Push (stream StatePart) returns (StateResponse) {
     }
     rpc Size(StateRequest) returns (StateSizeResponse) {
     }
@@ -152,7 +152,7 @@ message StateResponse {
     bytes data = 3;
 }
 
-message StateChunk {
+message StatePart {
     string user = 1;
     string key = 2;
     uint64 offset = 3;

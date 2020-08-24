@@ -1,9 +1,9 @@
-#include <util/string_tools.h>
+#include <faabric/util/string_tools.h>
 
 #include <string>
 #include <boost/algorithm/string.hpp>
 
-namespace util {
+namespace faabric::util {
     std::vector<std::string> splitString(const std::string &input, char delimiter) {
         std::vector<std::string> results;
 

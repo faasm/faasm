@@ -1,22 +1,22 @@
 #include "FileserverFileLoader.h"
 
-#include <util/func.h>
-#include <util/bytes.h>
-#include <util/files.h>
-#include <util/logging.h>
-#include <util/config.h>
+#include <faabric/util/func.h>
+#include <faabric/util/bytes.h>
+#include <faabric/util/files.h>
+#include <faabric/util/logging.h>
+#include <faabric/util/config.h>
 
 #include <boost/filesystem.hpp>
 
 
 namespace storage {
     std::string FileserverFileLoader::getFileserverUrl() {
-        return util::getSystemConfig().fileserverUrl;
+        return faabric::utilgetSystemConfig().fileserverUrl;
     }
 
     std::vector<uint8_t> _doLoad(const std::string &url, const std::string &path, const std::string &storagePath) {
         std::string header;
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
 
 
         // Shortcut if already exists
@@ -25,7 +25,7 @@ namespace storage {
                 throw SharedFileIsDirectoryException(storagePath);
             } else {
                 logger->debug("Loading from filesystem at {}", storagePath);
-                return util::readFileToBytes(storagePath);
+                return faabric::utilreadFileToBytes(storagePath);
             }
         }
 
@@ -38,10 +38,10 @@ namespace storage {
         std::vector<uint8_t> fileBytes;
 
         try {
-            fileBytes = util::readFileFromUrlWithHeader(url, header);
-        } catch(util::FileNotFoundAtUrlException &e) {
+            fileBytes = faabric::utilreadFileFromUrlWithHeader(url, header);
+        } catch(faabric::utilFileNotFoundAtUrlException &e) {
             // Leave empty if file not found
-        } catch(util::FileAtUrlIsDirectoryException &e) {
+        } catch(faabric::utilFileAtUrlIsDirectoryException &e) {
             // Throw exception if we're dealing with a directory
             throw SharedFileIsDirectoryException(path);
         }
@@ -49,25 +49,25 @@ namespace storage {
         if (fileBytes.empty()) {
             std::string errMsg ="Empty response for file " + path + " at " + url;
             logger->error(errMsg);
-            throw util::InvalidFunctionException(errMsg);
+            throw faabric::utilInvalidFunctionException(errMsg);
         }
 
         // Write to file
         logger->debug("Writing file to filesystem at {}", storagePath);
-        util::writeBytesToFile(storagePath, fileBytes);
+        faabric::utilwriteBytesToFile(storagePath, fileBytes);
 
         return fileBytes;
     }
 
     std::vector<uint8_t> FileserverFileLoader::loadFunctionWasm(const faabric::Message &msg) {
-        std::string url = util::getFunctionUrl(msg);
-        std::string filePath = util::getFunctionFile(msg);
+        std::string url = faabric::utilgetFunctionUrl(msg);
+        std::string filePath = faabric::utilgetFunctionFile(msg);
         return _doLoad(url, "", filePath);
     }
 
     std::vector<uint8_t> FileserverFileLoader::loadFunctionObjectFile(const faabric::Message &msg) {
-        std::string url = util::getFunctionObjectUrl(msg);
-        std::string objectFilePath = util::getFunctionObjectFile(msg);
+        std::string url = faabric::utilgetFunctionObjectUrl(msg);
+        std::string objectFilePath = faabric::utilgetFunctionObjectFile(msg);
         return _doLoad(url, "", objectFilePath);
     }
 
@@ -76,19 +76,19 @@ namespace storage {
     }
 
     std::vector<uint8_t> FileserverFileLoader::loadSharedObjectObjectFile(const std::string &path) {
-        std::string url = util::getSharedObjectObjectUrl();
-        std::string objFilePath = util::getSharedObjectObjectFile(path);
+        std::string url = faabric::utilgetSharedObjectObjectUrl();
+        std::string objFilePath = faabric::utilgetSharedObjectObjectFile(path);
         return _doLoad(url, path, objFilePath);
     }
 
     std::vector<uint8_t> FileserverFileLoader::loadSharedObjectWasm(const std::string &path) {
-        std::string url = util::getSharedObjectUrl();
+        std::string url = faabric::utilgetSharedObjectUrl();
         return _doLoad(url, path, path);
     }
 
     std::vector<uint8_t> FileserverFileLoader::loadSharedFile(const std::string &path) {
-        std::string url = util::getSharedFileUrl();
-        const std::string fullPath = util::getSharedFileFile(path);
+        std::string url = faabric::utilgetSharedFileUrl();
+        const std::string fullPath = faabric::utilgetSharedFileFile(path);
         return _doLoad(url, path, fullPath);
     }
 }

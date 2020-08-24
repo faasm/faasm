@@ -1,19 +1,19 @@
 #include "StateKeyValue.h"
 
-#include <util/config.h>
-#include <util/memory.h>
-#include <util/locks.h>
-#include <util/logging.h>
-#include <util/timing.h>
+#include <faabric/util/config.h>
+#include <faabric/util/memory.h>
+#include <faabric/util/locks.h>
+#include <faabric/util/logging.h>
+#include <faabric/util/timing.h>
+#include <faabric/util/macros.h>
 
 #include <sys/mman.h>
-#include <util/macros.h>
 
-using namespace util;
+using namespace faabric::util;
 
 #define ONES_BITMASK 0b11111111
 
-namespace state {
+namespace faabric::state {
     StateKeyValue::StateKeyValue(const std::string &userIn, const std::string &keyIn) :
             StateKeyValue(userIn, keyIn, 0) {
         // If using this constructor, we don't know the size, hence cannot use
@@ -23,7 +23,7 @@ namespace state {
     StateKeyValue::StateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn) :
             user(userIn),
             key(keyIn),
-            logger(util::getLogger()),
+            logger(faabric::utilgetLogger()),
             valueSize(sizeIn) {
 
         if (sizeIn > 0) {
@@ -183,7 +183,7 @@ namespace state {
     }
 
     void StateKeyValue::flagDirty() {
-        util::SharedLock lock(valueMutex);
+        faabric::utilSharedLock lock(valueMutex);
         isDirty = true;
     }
 
@@ -195,7 +195,7 @@ namespace state {
     void StateKeyValue::flagChunkDirty(long offset, long len) {
         checkSizeConfigured();
 
-        util::SharedLock lock(valueMutex);
+        faabric::utilSharedLock lock(valueMutex);
         markDirtyChunk(offset, len);
     }
 
@@ -226,8 +226,8 @@ namespace state {
         FullLock lock(valueMutex);
 
         // Ensure the underlying memory is allocated
-        size_t offset = pagesOffset * util::HOST_PAGE_SIZE;
-        size_t length = nPages * util::HOST_PAGE_SIZE;
+        size_t offset = pagesOffset * faabric::utilHOST_PAGE_SIZE;
+        size_t length = nPages * faabric::utilHOST_PAGE_SIZE;
         allocateChunk(offset, length);
 
         // Add a mapping of the relevant pages of shared memory onto the new region
@@ -350,7 +350,7 @@ namespace state {
         }
 
         // Get full lock for complete push
-        util::FullLock fullLock(valueMutex);
+        faabric::utilFullLock fullLock(valueMutex);
 
         // Double check condition
         if (!isDirty) {
@@ -369,14 +369,14 @@ namespace state {
 
         // Drop out if we already have the data and we don't care about updating
         {
-            util::SharedLock lock(valueMutex);
+            faabric::utilSharedLock lock(valueMutex);
             if (lazy && fullyPulled) {
                 return;
             }
         }
 
         // Unique lock on the whole value
-        util::FullLock lock(valueMutex);
+        faabric::utilFullLock lock(valueMutex);
 
         // Check again if we need to do this
         if (lazy && fullyPulled) {
@@ -403,14 +403,14 @@ namespace state {
 
         // Drop out if we already have the data and we don't care about updating
         {
-            util::SharedLock lock(valueMutex);
+            faabric::utilSharedLock lock(valueMutex);
             if (lazy && isChunkPulled(offset, length)) {
                 return;
             }
         }
 
         // Unique lock
-        util::FullLock lock(valueMutex);
+        faabric::utilFullLock lock(valueMutex);
 
         // Check condition again
         if (lazy && isChunkPulled(offset, length)) {
@@ -435,7 +435,7 @@ namespace state {
 
         // We need a full lock while doing this, mainly to ensure no other threads start
         // the same process
-        util::FullLock lock(valueMutex);
+        faabric::utilFullLock lock(valueMutex);
 
         // Double check condition
         if (!isDirty) {
@@ -468,7 +468,7 @@ namespace state {
         uint32_t remoteLockId = redis.acquireLock(redisKey, REMOTE_LOCK_TIMEOUT_SECS);
         unsigned int retryCount = 0;
         while (remoteLockId == 0) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
             logger->debug("Waiting on remote lock for {} (loop {})", redisKey, retryCount);
 
             if (retryCount >= REMOTE_LOCK_MAX_RETRIES) {

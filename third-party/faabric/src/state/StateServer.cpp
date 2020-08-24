@@ -1,19 +1,19 @@
 #include "StateServer.h"
 
-#include <util/logging.h>
-#include <util/config.h>
-#include <state/State.h>
-#include <state/InMemoryStateKeyValue.h>
+#include <faabric/util/logging.h>
+#include <faabric/util/config.h>
+#include <faabric/state/State.h>
+#include <faabric/state/InMemoryStateKeyValue.h>
+#include <faabric/util/macros.h>
+#include <faabric/proto/macros.h>
 
 #include <grpcpp/grpcpp.h>
-#include <util/macros.h>
-#include <proto/macros.h>
 
 #define KV_FROM_REQUEST(request) auto kv = std::static_pointer_cast<InMemoryStateKeyValue>( \
     state.getKV(request->user(), request->key()) \
     );
 
-namespace state {
+namespace faabric::state {
     StateServer::StateServer(State &stateIn) :
             RPCServer(DEFAULT_RPC_HOST, STATE_PORT),
             state(stateIn) {
@@ -27,19 +27,19 @@ namespace state {
 
         // Start it
         server = builder.BuildAndStart();
-        util::getLogger()->info("State server listening on {}", serverAddr);
+        faabric::utilgetLogger()->info("State server listening on {}", serverAddr);
 
         server->Wait();
     }
 
     Status StateServer::Pull(
             ServerContext *context,
-            ServerReaderWriter<faabric::StateChunk, faabric::StateChunkRequest> *stream) {
+            ServerReaderWriter<faabric::StatePart, faabric::StateChunkRequest> *stream) {
 
         // Iterate through streamed requests
         faabric::StateChunkRequest request;
         while (stream->Read(&request)) {
-            util::getLogger()->debug(
+            faabric::utilgetLogger()->debug(
                     "Pull {}/{} ({}->{})",
                     request.user(), request.key(),
                     request.offset(), request.offset() + request.chunksize()
@@ -47,7 +47,7 @@ namespace state {
 
             // Write the response
             KV_FROM_REQUEST((&request))
-            faabric::StateChunk response;
+            faabric::StatePart response;
 
             uint64_t chunkOffset = request.offset();
             uint64_t chunkLen = request.chunksize();
@@ -68,16 +68,16 @@ namespace state {
 
     Status StateServer::Push(
             ServerContext *context,
-            ServerReader<faabric::StateChunk> *reader,
+            ServerReader<faabric::StatePart> *reader,
             faabric::StateResponse *response) {
 
         // Assume user and key are same throughout
         std::string user;
         std::string key;
 
-        faabric::StateChunk request;
+        faabric::StatePart request;
         while (reader->Read(&request)) {
-            util::getLogger()->debug(
+            faabric::utilgetLogger()->debug(
                     "Push {}/{} ({}->{})",
                     request.user(), request.key(),
                     request.offset(), request.offset() + request.data().size()
@@ -102,7 +102,7 @@ namespace state {
             ServerContext *context,
             const faabric::StateRequest *request,
             faabric::StateSizeResponse *response) {
-        util::getLogger()->debug("Size {}/{}", request->user(), request->key());
+        faabric::utilgetLogger()->debug("Size {}/{}", request->user(), request->key());
         KV_FROM_REQUEST(request)
         response->set_user(kv->user);
         response->set_key(kv->key);
@@ -115,7 +115,7 @@ namespace state {
             ServerContext *context,
             const faabric::StateRequest *request,
             faabric::StateResponse *response) {
-        util::getLogger()->debug("Append {}/{}", request->user(), request->key());
+        faabric::utilgetLogger()->debug("Append {}/{}", request->user(), request->key());
         KV_FROM_REQUEST(request)
 
         auto data = BYTES_CONST(request->data().c_str());
@@ -132,7 +132,7 @@ namespace state {
             ServerContext *context,
             const ::faabric::StateRequest *request,
             faabric::StateResponse *response) {
-        util::getLogger()->debug("Clear appended {}/{}", request->user(), request->key());
+        faabric::utilgetLogger()->debug("Clear appended {}/{}", request->user(), request->key());
 
         KV_FROM_REQUEST(request)
 
@@ -145,7 +145,7 @@ namespace state {
             grpc::ServerContext *context,
             const ::faabric::StateAppendedRequest *request,
             faabric::StateAppendedResponse *response) {
-        util::getLogger()->debug("Pull appended {}/{}", request->user(), request->key());
+        faabric::utilgetLogger()->debug("Pull appended {}/{}", request->user(), request->key());
 
         KV_FROM_REQUEST(request)
 
@@ -165,7 +165,7 @@ namespace state {
             grpc::ServerContext *context,
             const faabric::StateRequest *request,
             faabric::StateResponse *response) {
-        util::getLogger()->debug("Lock {}/{}", request->user(), request->key());
+        faabric::utilgetLogger()->debug("Lock {}/{}", request->user(), request->key());
 
         KV_FROM_REQUEST(request)
         kv->lockWrite();
@@ -177,7 +177,7 @@ namespace state {
             grpc::ServerContext *context,
             const faabric::StateRequest *request,
             faabric::StateResponse *response) {
-        util::getLogger()->debug("Unlock {}/{}", request->user(), request->key());
+        faabric::utilgetLogger()->debug("Unlock {}/{}", request->user(), request->key());
 
         KV_FROM_REQUEST(request)
         kv->unlockWrite();
@@ -188,7 +188,7 @@ namespace state {
     Status StateServer::Delete(grpc::ServerContext *context, const faabric::StateRequest *request,
                                faabric::StateResponse *response) {
 
-        util::getLogger()->debug("Delete {}/{}", request->user(), request->key());
+        faabric::utilgetLogger()->debug("Delete {}/{}", request->user(), request->key());
 
         state.deleteKV(request->user(), request->key());
 

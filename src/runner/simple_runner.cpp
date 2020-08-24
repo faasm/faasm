@@ -1,20 +1,20 @@
 #include <wasm/WasmModule.h>
 
-#include <util/config.h>
-#include <util/func.h>
+#include <faabric/util/config.h>
+#include <faabric/util/func.h>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 
 #include <module_cache/WasmModuleCache.h>
 #include <wamr/WAMRWasmModule.h>
 
-#include <util/files.h>
+#include <faabric/util/files.h>
 
 bool runFunction(std::string &user, std::string &function, int runCount);
 
 int main(int argc, char *argv[]) {
-    util::initLogging();
-    const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+    faabric::utilinitLogging();
+    const std::shared_ptr<spdlog::logger> logger = faabric::utilgetLogger();
 
     int runCount;
     std::string user;
@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
     std::vector<std::string> functions;
 
     if (function == "all") {
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
         boost::filesystem::path path(conf.functionDir);
         path.append(user);
 
@@ -85,7 +85,7 @@ bool runWithWamr(faabric::Message &m, int runCount) {
 
 
 bool runWithWavm(faabric::Message &m, int runCount) {
-    const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+    const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
     bool success = true;
 
     // Create the module
@@ -111,10 +111,10 @@ bool runWithWavm(faabric::Message &m, int runCount) {
 }
 
 bool runFunction(std::string &user, std::string &function, int runCount) {
-    const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+    const std::shared_ptr<spdlog::logger> logger = faabric::utilgetLogger();
 
     // Set up function call
-    faabric::Message m = util::messageFactory(user, function);
+    faabric::Message m = faabric::utilmessageFactory(user, function);
 
     if (user == "ts") {
         m.set_istypescript(true);
@@ -127,7 +127,7 @@ bool runFunction(std::string &user, std::string &function, int runCount) {
         m.set_function(PYTHON_FUNC);
     }
 
-    util::SystemConfig &conf = util::getSystemConfig();
+    faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
     bool success = true;
 
     if (conf.wasmVm == "wavm") {

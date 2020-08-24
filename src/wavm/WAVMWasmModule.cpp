@@ -7,12 +7,12 @@
 
 #include <ir_cache/IRModuleCache.h>
 #include <storage/SharedFiles.h>
-#include <util/bytes.h>
-#include <util/func.h>
-#include <util/memory.h>
-#include <util/timing.h>
-#include <util/config.h>
-#include <util/locks.h>
+#include <faabric/util/bytes.h>
+#include <faabric/util/func.h>
+#include <faabric/util/memory.h>
+#include <faabric/util/timing.h>
+#include <faabric/util/config.h>
+#include <faabric/util/locks.h>
 #include <wasm/serialisation.h>
 
 #include <WAVM/WASM/WASM.h>
@@ -44,7 +44,7 @@ namespace wasm {
             return;
         }
 
-        util::UniqueLock lock(baseModuleMx);
+        faabric::utilUniqueLock lock(baseModuleMx);
 
         // Double check
         if (baseEnvModule != nullptr) {
@@ -193,7 +193,7 @@ namespace wasm {
     bool WAVMWasmModule::tearDown() {
         PROF_START(wasmTearDown)
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
 
         // --- Faasm stuff ---
         sharedMemWasmPtrs.clear();
@@ -242,7 +242,7 @@ namespace wasm {
 
     Runtime::Function *
     WAVMWasmModule::getFunction(Runtime::Instance *module, const std::string &funcName, bool strict) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
 
         // Look up the function
         Runtime::Function *func = asFunctionNullable(getInstanceExport(module, funcName));
@@ -359,7 +359,7 @@ namespace wasm {
          * but in order to work it needs the memory etc. to be set up.
          */
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
         if (_isBound) {
             throw std::runtime_error("Cannot bind a module twice");
         }
@@ -378,7 +378,7 @@ namespace wasm {
         PROF_END(wasmContext)
 
         // Create the module instance
-        moduleInstance = createModuleInstance(util::funcToString(msg, false), "");
+        moduleInstance = createModuleInstance(faabric::utilfuncToString(msg, false), "");
 
         PROF_START(wasmBind)
 
@@ -453,7 +453,7 @@ namespace wasm {
 
     Runtime::Instance *
     WAVMWasmModule::createModuleInstance(const std::string &name, const std::string &sharedModulePath) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
 
         PROF_START(wasmCreateModule)
 
@@ -586,7 +586,7 @@ namespace wasm {
         // This function is essentially dlopen. See the comments around the GOT function
         // for more detail on the dynamic linking approach.
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
 
         // Return the handle if we've already loaded this module
         if (dynamicPathToHandleMap.count(path) > 0) {
@@ -615,7 +615,7 @@ namespace wasm {
     }
 
     uint32_t WAVMWasmModule::getDynamicModuleFunction(int handle, const std::string &funcName) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
 
         // Check the handle is valid
         if (dynamicModuleMap.count(handle) == 0) {
@@ -639,7 +639,7 @@ namespace wasm {
     }
 
     uint32_t WAVMWasmModule::addFunctionToTable(Runtime::Object *exportedFunc) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
 
         // Add function to the table
         Uptr prevIdx;
@@ -660,13 +660,13 @@ namespace wasm {
      * Executes the given function call
      */
     bool WAVMWasmModule::execute(faabric::Message &msg, bool forceNoop) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
 
         if (!_isBound) {
             throw std::runtime_error("WasmModule must be bound before executing function");
         } else {
             if (boundUser != msg.user() || boundFunction != msg.function()) {
-                const std::string funcStr = util::funcToString(msg, true);
+                const std::string funcStr = faabric::utilfuncToString(msg, true);
                 logger->error("Cannot execute {} on module bound to {}/{}",
                               funcStr, boundUser, boundFunction);
                 throw std::runtime_error("Cannot execute function on module bound to another");
@@ -781,7 +781,7 @@ namespace wasm {
         int threadNum = msg.ompthreadnum();
         int argc = msg.ompfunctionargs_size();
 
-        util::getLogger()->debug("Running OMP thread #{} for function{} (argc = {})", threadNum, funcPtr, argc);
+        faabric::utilgetLogger()->debug("Running OMP thread #{} for function{} (argc = {})", threadNum, funcPtr, argc);
 
         invokeArgs.emplace_back(threadNum);
         invokeArgs.emplace_back(argc);
@@ -801,7 +801,7 @@ namespace wasm {
     }
 
     U32 WAVMWasmModule::mmapFile(U32 fd, U32 length) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
 
         // mmap the memory region
         U32 wasmPtr = mmapMemory(length);
@@ -833,7 +833,7 @@ namespace wasm {
     }
 
     U32 WAVMWasmModule::mmapPages(U32 pages) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
         U64 maxSize = getMemoryType(defaultMemory).size.max;
         Uptr currentPageCount = Runtime::getMemoryNumPages(defaultMemory);
 
@@ -886,7 +886,7 @@ namespace wasm {
                                  IR::ExternType type,
                                  Runtime::Object *&resolved) {
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
 
         bool isMainModule = moduleInstance == nullptr;
 
@@ -1079,7 +1079,7 @@ namespace wasm {
 
     int WAVMWasmModule::getFunctionOffsetFromGOT(const std::string &funcName) {
         if (globalOffsetTableMap.count(funcName) == 0) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
             logger->error("Function not found in GOT - {}", funcName);
             throw std::runtime_error("Function not found in GOT");
         }
@@ -1089,7 +1089,7 @@ namespace wasm {
 
     int WAVMWasmModule::getDataOffsetFromGOT(const std::string &name) {
         if (globalOffsetMemoryMap.count(name) == 0) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
             logger->error("Data not found in GOT - {}", name);
             throw std::runtime_error("Memory not found in GOT");
         }
@@ -1100,7 +1100,7 @@ namespace wasm {
     void WAVMWasmModule::writeMemoryToFd(int fd) {
         memoryFd = fd;
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
         logger->debug("Writing memory for {}/{} to fd {}", this->boundUser, this->boundFunction, memoryFd);
 
         Uptr numPages = Runtime::getMemoryNumPages(defaultMemory);
@@ -1122,7 +1122,7 @@ namespace wasm {
     }
 
     void WAVMWasmModule::mapMemoryFromFd() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
         logger->debug("Mapping memory for {}/{} from fd {}", this->boundUser, this->boundFunction, memoryFd);
 
         U8 *memoryBase = Runtime::getMemoryBaseAddress(defaultMemory);
@@ -1171,7 +1171,7 @@ namespace wasm {
      * Assumes the worker module TLS was set up already
      */
     I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec &spec) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
         // Create a new region for this thread's stack
         U32 thisStackBase = spec.stackTop;
         U32 stackTop = thisStackBase + THREAD_STACK_SIZE - 1;
@@ -1184,7 +1184,7 @@ namespace wasm {
         // Set the stack pointer in this context
         IR::UntaggedValue &stackGlobal = threadContext->runtimeData->mutableGlobals[0];
         if (stackGlobal.u32 != STACK_SIZE) {
-            util::getLogger()->error("Expected first mutable global in context to be stack pointer ({})",
+            faabric::utilgetLogger()->error("Expected first mutable global in context to be stack pointer ({})",
                                      stackGlobal.u32);
             throw std::runtime_error("Unexpected mutable global format");
         }
@@ -1243,7 +1243,7 @@ namespace wasm {
     }
 
     void WAVMWasmModule::executeZygoteFunction() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
         Runtime::Function *zygoteFunc = getDefaultZygoteFunction(moduleInstance);
         if (zygoteFunc) {
             IR::UntaggedValue result;

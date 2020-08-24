@@ -4,7 +4,7 @@
 
 #include <faaslet/FaasletPool.h>
 #include <faaslet/Faaslet.h>
-#include <scheduler/InMemoryMessageQueue.h>
+#include <faabric/scheduler/InMemoryMessageQueue.h>
 
 using namespace faaslet;
 
@@ -26,7 +26,7 @@ namespace tests {
     void checkError(const std::string &funcName, const std::string &expectedMsg) {
         cleanSystem();
 
-        faabric::Message call = util::messageFactory("errors", funcName);
+        faabric::Message call = faabric::utilmessageFactory("errors", funcName);
 
         execErrorFunction(call);
 

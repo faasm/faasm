@@ -1,12 +1,10 @@
 #include <catch/catch.hpp>
-#include <iostream>
 
 #include <proto/faabric.pb.h>
-#include <util/bytes.h>
-#include <utils.h>
+#include <faabric/util/bytes.h>
+#include <faabric_utils.h>
 
 namespace tests {
-
     std::vector<uint8_t> createInput(int start, int length) {
         std::vector<uint8_t> result;
         result.reserve((unsigned long) length);

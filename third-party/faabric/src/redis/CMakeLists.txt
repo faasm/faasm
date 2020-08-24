@@ -1,8 +1,8 @@
-include_directories(${FAABRIC_INCLUDE_DIR}/redis)
+include_directories(${FAABRIC_INCLUDE_DIR}/faabric/redis)
 
 set(LIB_FILES
         Redis.cpp
-        ${FAABRIC_INCLUDE_DIR}/redis/Redis.h
+        ${FAABRIC_INCLUDE_DIR}/faabric/redis/Redis.h
     )
 
 faasm_private_lib(redis ${LIB_FILES})

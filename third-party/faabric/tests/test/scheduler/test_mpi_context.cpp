@@ -1,15 +1,17 @@
 #include <catch/catch.hpp>
-#include <scheduler/MpiContext.h>
-#include <faasmpi/mpi.h>
-#include <util/random.h>
-#include "utils.h"
+#include "faabric_utils.h"
 
-using namespace scheduler;
+#include <faabric/scheduler/MpiContext.h>
+#include <faabric/scheduler/Scheduler.h>
+#include <faasmpi/mpi.h>
+#include <faabric/util/random.h>
+
+using namespace faabric::scheduler;
 
 namespace tests {
 
     TEST_CASE("Check world creation", "[mpi]") {
-        cleanSystem();
+        cleanFaabric();
 
         faabric::Message msg = util::messageFactory("mpi", "hellompi");
         msg.set_mpiworldsize(10);
@@ -26,7 +28,7 @@ namespace tests {
         REQUIRE(c.getRank() == 0);
         
         // Get the world and check it is set up
-        MpiWorldRegistry &reg = scheduler::getMpiWorldRegistry();
+        MpiWorldRegistry &reg = getMpiWorldRegistry();
         MpiWorld &world = reg.getOrInitialiseWorld(msg, worldId);
         REQUIRE(world.getId() == worldId);
         REQUIRE(world.getSize() == 10);
@@ -35,7 +37,7 @@ namespace tests {
     }
 
     TEST_CASE("Check world cannot be created for non-zero rank", "[mpi]") {
-        cleanSystem();
+        cleanFaabric();
 
         // Create message with non-zero rank
         faabric::Message msg = util::messageFactory("mpi", "hellompi");
@@ -48,7 +50,7 @@ namespace tests {
     }
 
     TEST_CASE("Check default world size is set", "[mpi]") {
-        cleanSystem();
+        cleanFaabric();
 
         // Create message with non-zero rank
         faabric::Message msg = util::messageFactory("mpi", "hellompi");
@@ -76,7 +78,7 @@ namespace tests {
         int worldId = c.getWorldId();
 
         // Check that the size is set to the default
-        MpiWorldRegistry &reg = scheduler::getMpiWorldRegistry();
+        MpiWorldRegistry &reg = getMpiWorldRegistry();
         MpiWorld &world = reg.getOrInitialiseWorld(msg, worldId);
         REQUIRE(world.getSize() == defaultWorldSize);
 
@@ -85,7 +87,7 @@ namespace tests {
     }
 
     TEST_CASE("Check joining world", "[mpi]") {
-        cleanSystem();
+        cleanFaabric();
 
         const std::string expectedHost = util::getSystemConfig().endpointHost;
         
@@ -99,7 +101,7 @@ namespace tests {
         int worldId = cA.getWorldId();
 
         // Get one message formed by world creation
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+        Scheduler &sch = getScheduler();
         faabric::Message msgB = sch.getFunctionQueue(msgA)->dequeue();
 
         // Create another context and make sure it's not initialised
@@ -116,7 +118,7 @@ namespace tests {
         REQUIRE(cB.getRank() == 1);
 
         // Check rank is registered to this host
-        MpiWorldRegistry &reg = scheduler::getMpiWorldRegistry();
+        MpiWorldRegistry &reg = getMpiWorldRegistry();
         MpiWorld &world = reg.getOrInitialiseWorld(msgB, worldId);
         const std::string actualHost = world.getHostForRank(1);
     }

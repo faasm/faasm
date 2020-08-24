@@ -9,22 +9,22 @@ extern "C" {
 
 #include <emulator/emulator.h>
 #include <faasm/core.h>
-#include <util/state.h>
-#include <util/json.h>
+#include <faabric/util/state.h>
+#include <faabric/util/json.h>
 
 
 namespace tests {
     void _doEmulationTest(const std::string &hostType) {
         cleanSystem();
 
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
         std::string oldHostType = conf.hostType;
         conf.hostType = hostType;
 
         std::vector<uint8_t> dummyBytes = {0, 1, 2, 3, 4, 5, 6, 7, 8};
         long dummyLen = dummyBytes.size();
 
-        faabric::Message call = util::messageFactory("demo", "echo");
+        faabric::Message call = faabric::utilmessageFactory("demo", "echo");
         
         SECTION("Output data") {
             setEmulatedMessage(call);
@@ -88,10 +88,10 @@ namespace tests {
     }
     
     TEST_CASE("Test emulator setting function result", "[emulator]") {
-        faabric::Message call = util::messageFactory("demo", "echo");
-        util::setMessageId(call);
+        faabric::Message call = faabric::utilmessageFactory("demo", "echo");
+        faabric::utilsetMessageId(call);
 
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
         std::string originalHostType = conf.hostType;
         conf.hostType = "knative";
 
@@ -121,7 +121,7 @@ namespace tests {
 
         unsigned int messageId = 0;
         if(useJson) {
-            const std::string jsonStr = util::messageToJson(call);
+            const std::string jsonStr = faabric::utilmessageToJson(call);
             messageId = setEmulatedMessageFromJson(jsonStr.c_str());
         } else {
             messageId = setEmulatedMessage(call);

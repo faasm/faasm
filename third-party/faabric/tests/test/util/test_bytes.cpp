@@ -1,7 +1,7 @@
 #include <catch/catch.hpp>
-#include <util/bytes.h>
+#include <faabric/util/bytes.h>
 
-using namespace util;
+using namespace faabric::util;
 
 namespace tests {
 
@@ -20,7 +20,7 @@ namespace tests {
     TEST_CASE("Test removing trailing zeros", "[util]") {
         std::vector<uint8_t> input = {0, 2, 10, 0, 32, 0, 0, 0, 0};
 
-        util::trimTrailingZeros(input);
+        trimTrailingZeros(input);
 
         REQUIRE(input.size() == 5);
         std::vector<uint8_t> expected = {0, 2, 10, 0, 32};
@@ -30,7 +30,7 @@ namespace tests {
     TEST_CASE("Test removing trailing zeros on all zeros", "[util]") {
         std::vector<uint8_t> input = {0, 0, 0, 0, 0};
 
-        util::trimTrailingZeros(input);
+        trimTrailingZeros(input);
 
         REQUIRE(input.empty());
     }
@@ -69,7 +69,7 @@ namespace tests {
 
     TEST_CASE("Test safe copy with long buffer and other chars", "[util]") {
         std::string input = "abc/def.com";
-        const std::vector<uint8_t> inputBytes = util::stringToBytes(input);
+        const std::vector<uint8_t> inputBytes = stringToBytes(input);
 
         uint8_t buffer[20];
         safeCopyToBuffer(inputBytes, buffer, 20);

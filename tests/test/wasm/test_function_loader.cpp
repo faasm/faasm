@@ -1,17 +1,17 @@
 #include <catch/catch.hpp>
 #include <storage/FileLoader.h>
 
-#include <util/bytes.h>
-#include <util/environment.h>
-#include <util/func.h>
-#include <util/files.h>
+#include <faabric/util/bytes.h>
+#include <faabric/util/environment.h>
+#include <faabric/util/func.h>
+#include <faabric/util/files.h>
 #include <storage/FileserverFileLoader.h>
-#include <util/config.h>
+#include <faabric/util/config.h>
 
 namespace tests {
     void checkResult(const std::string &filePath, const std::vector<uint8_t> &expected,
                      const std::vector<uint8_t> &actualBytes) {
-        std::vector<uint8_t> actualBytesFromFile = util::readFileToBytes(filePath);
+        std::vector<uint8_t> actualBytesFromFile = faabric::utilreadFileToBytes(filePath);
 
         REQUIRE(actualBytesFromFile == actualBytes);
         REQUIRE(actualBytes == expected);
@@ -20,7 +20,7 @@ namespace tests {
     TEST_CASE("Test function round trip", "[wasm]") {
         storage::FileLoader &loader = storage::getFileLoader();
 
-        faabric::Message call = util::messageFactory("test", "junk");
+        faabric::Message call = faabric::utilmessageFactory("test", "junk");
 
         std::string filePath;
         std::vector<uint8_t> actualBytes;
@@ -28,15 +28,15 @@ namespace tests {
 
         SECTION("Function file") {
             // Need to upload valid data so use real function file
-            faabric::Message realMsg = util::messageFactory("demo", "x2");
-            const std::string realFuncFile = util::getFunctionFile(realMsg);
+            faabric::Message realMsg = faabric::utilmessageFactory("demo", "x2");
+            const std::string realFuncFile = faabric::utilgetFunctionFile(realMsg);
 
-            expectedBytes = util::readFileToBytes(realFuncFile);
-            call.set_inputdata(util::bytesToString(expectedBytes));
+            expectedBytes = faabric::utilreadFileToBytes(realFuncFile);
+            call.set_inputdata(faabric::utilbytesToString(expectedBytes));
 
             loader.uploadFunction(call);
 
-            filePath = util::getFunctionFile(call);
+            filePath = faabric::utilgetFunctionFile(call);
             actualBytes = loader.loadFunctionWasm(call);
         }
 
@@ -45,7 +45,7 @@ namespace tests {
 
             loader.uploadFunctionObjectFile(call, expectedBytes);
 
-            filePath = util::getFunctionObjectFile(call);
+            filePath = faabric::utilgetFunctionObjectFile(call);
             actualBytes = loader.loadFunctionObjectFile(call);
         }
 
@@ -53,35 +53,35 @@ namespace tests {
     }
 
     TEST_CASE("Test invalid storage mode", "[wasm]") {
-        const std::string original = util::setEnvVar("FUNCTION_STORAGE", "junk");
-        util::SystemConfig &conf = util::getSystemConfig();
+        const std::string original = faabric::utilsetEnvVar("FUNCTION_STORAGE", "junk");
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
         conf.reset();
 
         REQUIRE_THROWS(storage::getFileLoader());
 
-        util::setEnvVar("FUNCTION_STORAGE", original);
+        faabric::utilsetEnvVar("FUNCTION_STORAGE", original);
         conf.reset();
     }
 
     TEST_CASE("Test fileserver function loader requires fileserver URL", "[wasm]") {
         // Instantiate with no url set
-        const std::string originalDir = util::setEnvVar("FUNCTION_STORAGE", "fileserver");
-        util::unsetEnvVar("FILESERVER_URL");
-        util::SystemConfig &conf = util::getSystemConfig();
+        const std::string originalDir = faabric::utilsetEnvVar("FUNCTION_STORAGE", "fileserver");
+        faabric::utilunsetEnvVar("FILESERVER_URL");
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
         conf.reset();
 
         REQUIRE_THROWS(storage::getFileLoader());
 
         // Set up a URL
-        util::setEnvVar("FILESERVER_URL", "www.foo.com");
+        faabric::utilsetEnvVar("FILESERVER_URL", "www.foo.com");
         conf.reset();
 
         // Check no error
         auto loader = (storage::FileserverFileLoader &) storage::getFileLoader();
         REQUIRE(loader.getFileserverUrl() == "www.foo.com");
 
-        util::setEnvVar("FUNCTION_STORAGE", originalDir);
-        util::unsetEnvVar("FILESERVER_URL");
+        faabric::utilsetEnvVar("FUNCTION_STORAGE", originalDir);
+        faabric::utilunsetEnvVar("FILESERVER_URL");
         conf.reset();
     }
 }

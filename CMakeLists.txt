@@ -23,6 +23,7 @@ set(FAASM_LIB_FAASMP_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/faasmp)
 set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/pyinit)
 set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/WAVM/Lib)
 set(FAASM_WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
+set(FAASM_FAABRIC_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/faabric)
 
 # SGX configuration
 if (FAASM_SGX_SUPPORT)
@@ -138,6 +139,7 @@ include_directories(
         ${FAASM_LIB_CPP_DIR}
         ${FAASM_LIB_FAASMP_DIR}
         ${FAASM_PYTHON_LIB_DIR}
+        ${CMAKE_CURRENT_BINARY_DIR}/third-party/faabric/include
         ${CMAKE_CURRENT_BINARY_DIR}/third-party/faabric/src # Required for protobuf
 )
 
@@ -182,7 +184,7 @@ else ()
     endif ()
 
     # Tests
-    add_library(catch INTERFACE)
+#    add_library(catch INTERFACE)
     add_subdirectory(tests/test)
     add_subdirectory(tests/utils)
 endif ()

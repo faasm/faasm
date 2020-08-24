@@ -1,7 +1,7 @@
 #include <catch/catch.hpp>
-#include <util/bytes.h>
-#include <util/func.h>
-#include <util/config.h>
+#include <faabric/util/bytes.h>
+#include <faabric/util/func.h>
+#include <faabric/util/config.h>
 #include <module_cache/WasmModuleCache.h>
 
 using namespace WAVM;
@@ -9,7 +9,7 @@ using namespace WAVM;
 namespace tests {
 
     TEST_CASE("Test executing WASM module with no input", "[wasm]") {
-        faabric::Message call = util::messageFactory("demo", "dummy");
+        faabric::Message call = faabric::utilmessageFactory("demo", "dummy");
 
         wasm::WAVMWasmModule module;
         module.bindToFunction(call);
@@ -19,7 +19,7 @@ namespace tests {
         REQUIRE(success);
 
         std::string outputData = call.outputdata();
-        const std::vector<uint8_t> outputBytes = util::stringToBytes(outputData);
+        const std::vector<uint8_t> outputBytes = faabric::utilstringToBytes(outputData);
 
         // Check output data
         REQUIRE(outputBytes[0] == 0);
@@ -54,7 +54,7 @@ namespace tests {
         REQUIRE(success);
 
         std::string outputData = call.outputdata();
-        const std::vector<uint8_t> outputBytes = util::stringToBytes(outputData);
+        const std::vector<uint8_t> outputBytes = faabric::utilstringToBytes(outputData);
 
         // Check the results
         std::vector<uint8_t> expected = {0, 2, 4, 6, 8, 10, 12, 14, 16, 18};
@@ -118,8 +118,8 @@ namespace tests {
     }
 
     TEST_CASE("Test repeat execution with different function fails", "[wasm]") {
-        faabric::Message callA = util::messageFactory("demo", "dummy");
-        faabric::Message callB = util::messageFactory("demo", "x2");
+        faabric::Message callA = faabric::utilmessageFactory("demo", "dummy");
+        faabric::Message callB = faabric::utilmessageFactory("demo", "x2");
 
         wasm::WAVMWasmModule module;
         module.bindToFunction(callA);
@@ -128,7 +128,7 @@ namespace tests {
     }
 
     TEST_CASE("Test reclaiming memory", "[wasm]") {
-        faabric::Message call = util::messageFactory("demo", "heap");
+        faabric::Message call = faabric::utilmessageFactory("demo", "heap");
 
         module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
         wasm::WAVMWasmModule &cachedModule = registry.getCachedModule(call);
@@ -148,7 +148,7 @@ namespace tests {
 
     TEST_CASE("Test GC", "[wasm]") {
         wasm::WAVMWasmModule module;
-        faabric::Message call = util::messageFactory("demo", "malloc");
+        faabric::Message call = faabric::utilmessageFactory("demo", "malloc");
 
         SECTION("Plain module"){
             // Do nothing
@@ -166,7 +166,7 @@ namespace tests {
     }
 
     TEST_CASE("Test disassemble module", "[wasm]") {
-        faabric::Message call = util::messageFactory("demo", "echo");
+        faabric::Message call = faabric::utilmessageFactory("demo", "echo");
         wasm::WAVMWasmModule module;
         module.bindToFunction(call);
 

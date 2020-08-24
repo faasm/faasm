@@ -1,7 +1,7 @@
 #include <catch/catch.hpp>
 #include "utils.h"
 
-#include <util/func.h>
+#include <faabric/util/func.h>
 #include <module_cache/WasmModuleCache.h>
 
 
@@ -9,8 +9,8 @@ namespace tests {
     TEST_CASE("Test creating zygotes", "[zygote]") {
         cleanSystem();
 
-        faabric::Message msgA = util::messageFactory("demo", "chain");
-        faabric::Message msgB = util::messageFactory("demo", "chain");
+        faabric::Message msgA = faabric::utilmessageFactory("demo", "chain");
+        faabric::Message msgB = faabric::utilmessageFactory("demo", "chain");
 
         // Want to check things with chained calls, so need to fake up input to a chained func
         msgA.set_idx(1);

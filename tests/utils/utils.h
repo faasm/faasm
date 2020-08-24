@@ -1,6 +1,6 @@
 #pragma once
 
-#include <util/func.h>
+#include <faabric/util/func.h>
 #include <faaslet/FaasletPool.h>
 #include <faaslet/Faaslet.h>
 

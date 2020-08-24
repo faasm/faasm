@@ -1,9 +1,9 @@
 #include "RedisStateKeyValue.h"
 
-#include <util/logging.h>
-#include <util/timing.h>
-#include <util/macros.h>
-#include <util/state.h>
+#include <faabric/util/logging.h>
+#include <faabric/util/timing.h>
+#include <faabric/util/macros.h>
+#include <faabric/util/state.h>
 
 /**
  * WARNING - key-value objects are shared between threads, BUT
@@ -12,10 +12,10 @@
  * within the class.
  */
 
-namespace state {
+namespace faabric::state {
     RedisStateKeyValue::RedisStateKeyValue(const std::string &userIn, const std::string &keyIn, size_t sizeIn)
             : StateKeyValue(userIn, keyIn, sizeIn),
-              joinedKey(util::keyForUser(user, key)) {
+              joinedKey(faabric::utilkeyForUser(user, key)) {
 
     };
 
@@ -25,12 +25,12 @@ namespace state {
     };
 
     size_t RedisStateKeyValue::getStateSizeFromRemote(const std::string &userIn, const std::string &keyIn) {
-        std::string actualKey = util::keyForUser(userIn, keyIn);
+        std::string actualKey = faabric::utilkeyForUser(userIn, keyIn);
         return redis::Redis::getState().strlen(actualKey);
     }
 
     void RedisStateKeyValue::deleteFromRemote(const std::string &userIn, const std::string &keyIn) {
-        std::string actualKey = util::keyForUser(userIn, keyIn);
+        std::string actualKey = faabric::utilkeyForUser(userIn, keyIn);
         redis::Redis::getState().del(actualKey);
     }
 
@@ -43,12 +43,12 @@ namespace state {
     // TODO - the remote locking here is quite primitive since we ignore the fact threads can run
     // on the same machine. Redis is also aware of scheduling and so we could optimise this.
     void RedisStateKeyValue::lockGlobal() {
-        util::FullLock lock(valueMutex);
+        faabric::utilFullLock lock(valueMutex);
         lastRemoteLockId = waitOnRedisRemoteLock(joinedKey);
     }
 
     void RedisStateKeyValue::unlockGlobal() {
-        util::FullLock lock(valueMutex);
+        faabric::utilFullLock lock(valueMutex);
         redis::Redis::getState().releaseLock(joinedKey, lastRemoteLockId);
     }
 

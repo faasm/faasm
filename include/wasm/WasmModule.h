@@ -2,8 +2,8 @@
 
 #include "WasmEnvironment.h"
 
-#include <util/logging.h>
-#include <state/State.h>
+#include <faabric/util/logging.h>
+#include <faabric/state/State.h>
 #include <proto/faabric.pb.h>
 
 #include <exception>

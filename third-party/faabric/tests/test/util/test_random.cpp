@@ -1,10 +1,10 @@
 #include <catch/catch.hpp>
 
-#include <util/random.h>
+#include <faabric/util/random.h>
 
 #include <set>
 
-using namespace util;
+using namespace faabric::util;
 
 namespace tests {
     TEST_CASE("Test random string generation", "[util]") {
@@ -22,7 +22,7 @@ namespace tests {
         std::unordered_set<std::string> s;
 
         // Should return empty string if nothing
-        REQUIRE(util::randomStringFromSet(s).empty());
+        REQUIRE(faabric::utilrandomStringFromSet(s).empty());
 
         s.insert("foo");
         s.insert("bar");
@@ -31,7 +31,7 @@ namespace tests {
 
         std::unordered_set<std::string> actual;
         for(int i = 0; i < 1000; i++) {
-            actual.insert(util::randomStringFromSet(s));
+            actual.insert(faabric::utilrandomStringFromSet(s));
         }
 
         REQUIRE(actual.size() == 4);

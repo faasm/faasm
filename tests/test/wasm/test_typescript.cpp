@@ -1,14 +1,14 @@
 #include <catch/catch.hpp>
 #include <wasm/WasmModule.h>
-#include <util/bytes.h>
-#include <util/func.h>
-#include <util/config.h>
+#include <faabric/util/bytes.h>
+#include <faabric/util/func.h>
+#include <faabric/util/config.h>
 
 
 namespace tests {
 
     TEST_CASE("Test executing Typescript module with input and output", "[wasm]") {
-        faabric::Message call = util::messageFactory("ts", "echo");
+        faabric::Message call = faabric::utilmessageFactory("ts", "echo");
         call.set_istypescript(true);
 
         // TODO - fix typescript

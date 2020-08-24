@@ -1,14 +1,14 @@
 #include "FunctionCallServer.h"
 #include "MpiWorldRegistry.h"
 
-#include <util/logging.h>
-#include <util/config.h>
+#include <faabric/util/logging.h>
+#include <faabric/util/config.h>
 
 #include <grpcpp/grpcpp.h>
-#include <proto/macros.h>
+#include <faabric/proto/macros.h>
 
 
-namespace scheduler {
+namespace faabric::scheduler {
     FunctionCallServer::FunctionCallServer() :
             RPCServer(DEFAULT_RPC_HOST, FUNCTION_CALL_PORT),
             scheduler(getScheduler()) {
@@ -23,7 +23,7 @@ namespace scheduler {
 
         // Start it
         server = builder.BuildAndStart();
-        util::getLogger()->info("Function call server listening on {}", serverAddr);
+        faabric::utilgetLogger()->info("Function call server listening on {}", serverAddr);
 
         server->Wait();
     }
@@ -32,7 +32,7 @@ namespace scheduler {
             ServerContext *context,
             const faabric::Message *request,
             faabric::FunctionStatusResponse *response) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
 
         // TODO - avoiding having to copy the message here
         faabric::Message msg = *request;
@@ -40,7 +40,7 @@ namespace scheduler {
         // This calls the scheduler, which will always attempt
         // to execute locally. However, if not possible, this will
         // again share the message, increasing the hops
-        const std::string funcStr = util::funcToString(msg, true);
+        const std::string funcStr = faabric::utilfuncToString(msg, true);
         logger->debug("{} received shared call {} (scheduled for {})", host, funcStr,
                       msg.scheduledhost());
 

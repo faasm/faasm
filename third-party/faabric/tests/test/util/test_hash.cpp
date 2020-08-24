@@ -1,7 +1,7 @@
 #include <catch/catch.hpp>
-#include <util/hash.h>
+#include <faabric/util/hash.h>
 
-using namespace util;
+using namespace faabric::util;
 
 namespace tests {
     TEST_CASE("Test hashing a string", "[util]") {

@@ -1,8 +1,8 @@
 #include <catch/catch.hpp>
 #include <module_cache/WasmModuleCache.h>
 #include <emulator/emulator.h>
-#include <util/environment.h>
-#include <util/bytes.h>
+#include <faabric/util/environment.h>
+#include <faabric/util/bytes.h>
 
 #include "utils.h"
 
@@ -12,7 +12,7 @@ namespace tests {
 
     Faaslet execFunction(faabric::Message &call, const std::string &expectedOutput) {
         // Turn off python preloading
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
         std::string originalPreload = conf.pythonPreload;
         conf.pythonPreload = "off";
 
@@ -58,7 +58,7 @@ namespace tests {
 
     std::string execFunctionWithStringResult(faabric::Message &call) {
         // Turn off python preloading
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
         std::string originalPreload = conf.pythonPreload;
         conf.pythonPreload = "off";
 
@@ -77,7 +77,7 @@ namespace tests {
         
         const faabric::Message result = sch.getFunctionResult(call.id(), 1);
         if (result.returnvalue() != 0) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
             logger->error("Function failed: {}", result.outputdata());
             FAIL();
         }
@@ -117,7 +117,7 @@ namespace tests {
         sch.setTestMode(true);
 
         // Modify system config (network ns requires root)
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
         std::string originalNsMode = conf.netNsMode;
         std::string originalPreload = conf.pythonPreload;
         conf.boundTimeout = 1000;
@@ -135,7 +135,7 @@ namespace tests {
         for (int i = 0; i < repeatCount; i++) {
             // Reset call ID
             call.set_id(0);
-            util::setMessageId(call);
+            faabric::utilsetMessageId(call);
 
             mainFuncId = call.id();
             setEmulatedMessage(call);
@@ -180,7 +180,7 @@ namespace tests {
     }
 
     void checkCallingFunctionGivesBoolOutput(const std::string &user, const std::string &funcName, bool expected) {
-        faabric::Message call = util::messageFactory("demo", funcName);
+        faabric::Message call = faabric::utilmessageFactory("demo", funcName);
         setEmulatedMessage(call);
 
         FaasletPool pool(1);
@@ -196,7 +196,7 @@ namespace tests {
         // Check output is true
         faabric::Message result = sch.getFunctionResult(call.id(), 1);
         REQUIRE(result.returnvalue() == 0);
-        std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
+        std::vector<uint8_t> outputBytes = faabric::utilstringToBytes(result.outputdata());
 
         std::vector<uint8_t> expectedOutput;
 

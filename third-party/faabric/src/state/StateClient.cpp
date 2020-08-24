@@ -2,12 +2,12 @@
 
 #include <grpcpp/security/credentials.h>
 #include <grpcpp/create_channel.h>
-#include <util/logging.h>
-#include <util/macros.h>
-#include <proto/macros.h>
+#include <faabric/util/logging.h>
+#include <faabric/util/macros.h>
+#include <faabric/proto/macros.h>
 
 
-namespace state {
+namespace faabric::state {
     ChannelArguments getChannelArgs() {
         ChannelArguments channelArgs;
 
@@ -39,7 +39,7 @@ namespace state {
         auto stream = stub->Push(&clientContext, &response);
 
         for (auto chunk: chunks) {
-            faabric::StateChunk c;
+            faabric::StatePart c;
             c.set_user(user);
             c.set_key(key);
             c.set_offset(chunk.offset);
@@ -69,7 +69,7 @@ namespace state {
                 request.set_chunksize(chunk.length);
 
                 if (!stream->Write(request)) {
-                    util::getLogger()->error("Failed to request {}/{} ({} -> {})", user, key, chunk.offset,
+                    faabric::utilgetLogger()->error("Failed to request {}/{} ({} -> {})", user, key, chunk.offset,
                                              chunk.offset + chunk.length);
                     break;
                 }
@@ -79,7 +79,7 @@ namespace state {
         });
 
         // Read responses in this thread
-        faabric::StateChunk response;
+        faabric::StatePart response;
         while (stream->Read(&response)) {
             std::copy(response.data().begin(), response.data().end(), bufferStart + response.offset());
         }
@@ -118,7 +118,7 @@ namespace state {
         size_t offset = 0;
         for (auto &value : response.values()) {
             if (offset > length) {
-                util::getLogger()->error("Buffer not large enough for appended data (offset={}, length={})", offset,
+                faabric::utilgetLogger()->error("Buffer not large enough for appended data (offset={}, length={})", offset,
                                          length);
                 throw std::runtime_error("Buffer not large enough for appended data");
             }

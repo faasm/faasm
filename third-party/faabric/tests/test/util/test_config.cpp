@@ -1,9 +1,9 @@
 #include <catch/catch.hpp>
 
-#include <util/config.h>
-#include <util/environment.h>
+#include <faabric/util/config.h>
+#include <faabric/util/environment.h>
 
-using namespace util;
+using namespace faabric::util;
 
 namespace tests {
     TEST_CASE("Test default system config initialisation", "[util]") {

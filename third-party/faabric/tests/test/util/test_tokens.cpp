@@ -1,10 +1,10 @@
 #include <catch/catch.hpp>
-#include <util/queue.h>
+#include <faabric/util/queue.h>
 #include <thread>
 
 #include <iostream>
 
-using namespace util;
+using namespace faabric::util;
 
 namespace tests {
     TEST_CASE("Test basic token pool operation", "[util]") {

@@ -35,3 +35,8 @@ target_link_libraries(faabric
         state
         util
         )
+
+# Tests
+add_library(catch INTERFACE)
+add_subdirectory(tests/test)
+add_subdirectory(tests/utils)

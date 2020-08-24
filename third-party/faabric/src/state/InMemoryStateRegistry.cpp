@@ -1,17 +1,19 @@
 #include "InMemoryStateRegistry.h"
 
 #include <vector>
-#include <util/logging.h>
-#include <util/state.h>
-#include <util/locks.h>
-#include <redis/Redis.h>
-#include <state/StateKeyValue.h>
-#include <util/bytes.h>
+
+#include <faabric/util/logging.h>
+#include <faabric/util/state.h>
+#include <faabric/util/locks.h>
+#include <faabric/redis/Redis.h>
+#include <faabric/state/StateKeyValue.h>
+#include <faabric/util/bytes.h>
 
 
 #define MASTER_KEY_PREFIX "master_"
 
-namespace state {
+
+namespace faabric::state {
     InMemoryStateRegistry &getInMemoryStateRegistry() {
         static InMemoryStateRegistry reg;
         return reg;
@@ -31,13 +33,13 @@ namespace state {
             const std::string &thisIP,
             bool claim
     ) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
 
-        std::string lookupKey = util::keyForUser(user, key);
+        std::string lookupKey = faabric::utilkeyForUser(user, key);
 
         // See if we already have the master
         {
-            util::SharedLock lock(masterMapMutex);
+            faabric::utilSharedLock lock(masterMapMutex);
             if (masterMap.count(lookupKey) > 0) {
                 return masterMap[lookupKey];
             }
@@ -46,7 +48,7 @@ namespace state {
         // No master found, need to establish
 
         // Acquire lock
-        util::FullLock lock(masterMapMutex);
+        faabric::utilFullLock lock(masterMapMutex);
 
         // Double check condition
         if (masterMap.count(lookupKey) > 0) {
@@ -79,7 +81,7 @@ namespace state {
             // Check there's still no master, if so, claim
             masterIPBytes = redis.get(masterKey);
             if (masterIPBytes.empty()) {
-                masterIPBytes = util::stringToBytes(thisIP);
+                masterIPBytes = faabric::utilstringToBytes(thisIP);
                 redis.set(masterKey, masterIPBytes);
             }
 
@@ -87,7 +89,7 @@ namespace state {
         }
 
         // Cache the result locally
-        std::string masterIP = util::bytesToString(masterIPBytes);
+        std::string masterIP = faabric::utilbytesToString(masterIPBytes);
         logger->debug("Caching master for {} as {} (this host {})", lookupKey, masterIP, thisIP);
 
         masterMap[lookupKey] = masterIP;
@@ -102,7 +104,7 @@ namespace state {
 
         // Sanity check that the master is *not* this machine
         if (masterIP == thisIP) {
-            util::getLogger()->error("Attempting to pull state size on master ({}/{} on {})", userIn, keyIn, thisIP);
+            faabric::utilgetLogger()->error("Attempting to pull state size on master ({}/{} on {})", userIn, keyIn, thisIP);
             throw std::runtime_error("Attempting to pull state size on master");
         }
 
@@ -110,7 +112,7 @@ namespace state {
     }
 
     void InMemoryStateRegistry::clear() {
-        util::FullLock lock(masterMapMutex);
+        faabric::utilFullLock lock(masterMapMutex);
         masterMap.clear();
     }
 

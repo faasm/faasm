@@ -1,4 +1,7 @@
-include_directories(${CMAKE_CURRENT_LIST_DIR})
+include_directories(
+        ${CMAKE_CURRENT_LIST_DIR}
+        ${FAASM_FAABRIC_ROOT_DIR}/tests/utils
+)
 
 set(LIB_FILES
         matrix_utils.cpp

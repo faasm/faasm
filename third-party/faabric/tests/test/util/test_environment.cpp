@@ -1,9 +1,9 @@
 #include <catch/catch.hpp>
 
-#include <util/config.h>
-#include <util/environment.h>
+#include <faabric/util/config.h>
+#include <faabric/util/environment.h>
 
-using namespace util;
+using namespace faabric::util;
 
 namespace tests {
 
@@ -18,7 +18,7 @@ namespace tests {
     }
 
     TEST_CASE("Test setting environment variables", "[util]") {
-        util::unsetEnvVar("MY_VAR");
+        unsetEnvVar("MY_VAR");
 
         // Sanity check for empty string when env var set to empty
         char *currentValue = getenv("MY_VAR");

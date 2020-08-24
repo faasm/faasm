@@ -1,11 +1,11 @@
 #include <catch/catch.hpp>
-#include <util/bytes.h>
-#include <util/barrier.h>
+#include <faabric/util/bytes.h>
+#include <faabric/util/barrier.h>
 #include <thread>
 #include <unistd.h>
 
 
-using namespace util;
+using namespace faabric::util;
 
 namespace tests {
     TEST_CASE("Test barrier operation", "[util]") {

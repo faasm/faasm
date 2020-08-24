@@ -1,10 +1,11 @@
-#include <util/locks.h>
-#include <util/config.h>
-#include <util/logging.h>
+#include "MpiWorldRegistry.h"
 
-#include "scheduler/MpiWorldRegistry.h"
+#include <faabric/util/locks.h>
+#include <faabric/util/config.h>
+#include <faabric/util/logging.h>
 
-namespace scheduler {
+
+namespace faabric::scheduler {
     MpiWorldRegistry &getMpiWorldRegistry() {
         static MpiWorldRegistry r;
         return r;
@@ -12,17 +13,17 @@ namespace scheduler {
 
     scheduler::MpiWorld &MpiWorldRegistry::createWorld(const faabric::Message &msg, int worldId, std::string hostOverride) {
         if(worldMap.count(worldId) > 0) {
-            util::getLogger()->error("World {} already exists", worldId);
+            faabric::utilgetLogger()->error("World {} already exists", worldId);
             throw std::runtime_error("World already exists");
         }
 
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
         int worldSize = msg.mpiworldsize();
         if(worldSize <= 0) {
             worldSize = conf.defaultMpiWorldSize;
         }
 
-        util::FullLock lock(registryMutex);
+        faabric::utilFullLock lock(registryMutex);
         MpiWorld &world = worldMap[worldId];
 
         if(!hostOverride.empty()) {
@@ -37,7 +38,7 @@ namespace scheduler {
     MpiWorld &MpiWorldRegistry::getOrInitialiseWorld(const faabric::Message &msg, int worldId) {
         // Create world locally if not exists
         if(worldMap.count(worldId) == 0) {
-            util::FullLock lock(registryMutex);
+            faabric::utilFullLock lock(registryMutex);
             if(worldMap.count(worldId) == 0) {
                 MpiWorld &world = worldMap[worldId];
                 world.initialiseFromState(msg, worldId);
@@ -49,7 +50,7 @@ namespace scheduler {
 
     MpiWorld &MpiWorldRegistry::getWorld(int worldId) {
         if(worldMap.count(worldId) == 0) {
-            util::getLogger()->error("World {} not initialised", worldId);
+            faabric::utilgetLogger()->error("World {} not initialised", worldId);
             throw std::runtime_error("World not initialised");
         }
 
@@ -57,7 +58,7 @@ namespace scheduler {
     }
 
     void MpiWorldRegistry::clear() {
-        util::FullLock lock(registryMutex);
+        faabric::utilFullLock lock(registryMutex);
         worldMap.clear();
     }
 }

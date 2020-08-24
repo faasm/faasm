@@ -1,6 +1,6 @@
 #pragma once
 
-#include <util/func.h>
+#include <faabric/util/func.h>
 
 #include <cpprest/http_listener.h>
 
@@ -38,7 +38,7 @@ namespace edge {
         static void handleSharedFileUpload(const http_request &request);
     };
 
-    class InvalidPathException : public util::FaasmException {
+    class InvalidPathException : public faabric::utilFaasmException {
     public:
         explicit InvalidPathException(std::string message): FaasmException(std::move(message)) {
 

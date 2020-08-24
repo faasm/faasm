@@ -1,8 +1,8 @@
 #include "WAVMWasmModule.h"
 #include "syscalls.h"
 
-#include <util/bytes.h>
-#include <util/config.h>
+#include <faabric/util/bytes.h>
+#include <faabric/util/config.h>
 
 #include <storage/FileDescriptor.h>
 
@@ -17,7 +17,7 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/WASI/WASIABI.h>
 #include <storage/FileLoader.h>
-#include <util/macros.h>
+#include <faabric/util/macros.h>
 
 /**
  * WASI filesystem handling

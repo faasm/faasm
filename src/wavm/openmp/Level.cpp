@@ -1,7 +1,7 @@
 #include "wavm/openmp/Level.h"
 
 #include <openmp/ThreadState.h>
-#include <util/config.h>
+#include <faabric/util/config.h>
 
 namespace wasm {
     namespace openmp {

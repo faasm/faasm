@@ -1,6 +1,6 @@
-#include "utils.h"
+#include "faabric_utils.h"
 
-#include <state/InMemoryStateKeyValue.h>
+#include <faabric/state/InMemoryStateKeyValue.h>
 #include <emulator/emulator.h>
 
 using namespace state;

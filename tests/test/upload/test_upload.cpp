@@ -1,15 +1,15 @@
 #include <catch/catch.hpp>
 
-#include <util/bytes.h>
-#include <util/environment.h>
-#include <util/files.h>
-#include <redis/Redis.h>
+#include <faabric/util/bytes.h>
+#include <faabric/util/environment.h>
+#include <faabric/util/files.h>
+#include <faabric/redis/Redis.h>
 
 #include <upload/UploadServer.h>
 
 #include <boost/filesystem.hpp>
 #include <storage/FileLoader.h>
-#include <state/State.h>
+#include <faabric/state/State.h>
 
 
 using namespace web::http::experimental::listener;
@@ -38,7 +38,7 @@ namespace tests {
         REQUIRE(boost::filesystem::exists(expectedFile));
 
         // Check contents
-        std::vector<uint8_t> actualBytes = util::readFileToBytes(expectedFile);
+        std::vector<uint8_t> actualBytes = faabric::utilreadFileToBytes(expectedFile);
         REQUIRE(actualBytes == bytes);
     }
 
@@ -55,7 +55,7 @@ namespace tests {
     }
 
     TEST_CASE("Check upload overrides fileserver storage", "[upload]") {
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
         std::string original = conf.functionStorage;
         conf.functionStorage = "fileserver";
 
@@ -125,7 +125,7 @@ namespace tests {
 
         SECTION("Test uploading wasm file") {
             // Override the function directory with junk
-            util::SystemConfig &conf = util::getSystemConfig();
+            faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
             std::string origFuncDir = conf.functionDir;
             std::string origObjDir = conf.objectFileDir;
             conf.functionDir = "/tmp/func";
@@ -139,7 +139,7 @@ namespace tests {
 
             // Load some valid dummy wasm bytes
             // TODO - hard-coded file path is a bad idea
-            std::vector<uint8_t> wasmBytes = util::readFileToBytes("/usr/local/code/faasm/tests/test/upload/dummy.wasm");
+            std::vector<uint8_t> wasmBytes = faabric::utilreadFileToBytes("/usr/local/code/faasm/tests/test/upload/dummy.wasm");
 
             // Check putting the file
             std::string url = "/f/gamma/delta";
@@ -148,7 +148,7 @@ namespace tests {
             // Check object file is generated
             bool isObjFilePresent = boost::filesystem::exists(expectedObjFile);
             REQUIRE(isObjFilePresent);
-            std::vector<uint8_t> objBytes = util::readFileToBytes(expectedObjFile);
+            std::vector<uint8_t> objBytes = faabric::utilreadFileToBytes(expectedObjFile);
 
             // Check getting the file
             checkGet(url, wasmBytes);
@@ -162,11 +162,11 @@ namespace tests {
 
         SECTION("Test uploading shared file") {
             const char *realPath = "/usr/local/code/faasm/tests/test/upload/dummy_file.txt";
-            std::vector<uint8_t> fileBytes = util::readFileToBytes(realPath);
+            std::vector<uint8_t> fileBytes = faabric::utilreadFileToBytes(realPath);
 
             // Clear out any existing
             const char *relativePath = "test/dummy_file.txt";
-            std::string fullPath = util::getSharedFileFile(relativePath);
+            std::string fullPath = faabric::utilgetSharedFileFile(relativePath);
             if (boost::filesystem::exists(fullPath)) {
                 boost::filesystem::remove(fullPath);
             }
@@ -180,7 +180,7 @@ namespace tests {
 
             // Check file
             REQUIRE(boost::filesystem::exists(fullPath));
-            std::vector<uint8_t> actualBytes = util::readFileToBytes(fullPath);
+            std::vector<uint8_t> actualBytes = faabric::utilreadFileToBytes(fullPath);
             REQUIRE(actualBytes == fileBytes);
         }
     }
@@ -201,7 +201,7 @@ namespace tests {
         }
 
         std::string url = urlPath + "/" + user + "/" + funcName;
-        const std::vector<uint8_t> &expected = util::readFileToBytes(expectedFilePath);
+        const std::vector<uint8_t> &expected = faabric::utilreadFileToBytes(expectedFilePath);
         checkGet(url, expected);
     }
 
@@ -212,17 +212,17 @@ namespace tests {
 
         // Upload a dummy function
         std::vector<uint8_t> expected = {0, 2, 4, 1, 3};
-        faabric::Message msg = util::messageFactory(user, funcName);
-        msg.set_inputdata(util::bytesToString(expected));
+        faabric::Message msg = faabric::utilmessageFactory(user, funcName);
+        msg.set_inputdata(faabric::utilbytesToString(expected));
 
         storage::FileLoader &loader = storage::getFileLoader();
         loader.uploadPythonFunction(msg);
 
         // Check file exists as expected
-        faabric::Message tempMsg = util::messageFactory("python", "foobar");
-        util::convertMessageToPython(tempMsg);
-        const std::string filePath = util::getPythonFunctionFile(tempMsg);
-        const std::vector<uint8_t> actualBytes = util::readFileToBytes(filePath);
+        faabric::Message tempMsg = faabric::utilmessageFactory("python", "foobar");
+        faabric::utilconvertMessageToPython(tempMsg);
+        const std::string filePath = faabric::utilgetPythonFunctionFile(tempMsg);
+        const std::vector<uint8_t> actualBytes = faabric::utilreadFileToBytes(filePath);
         REQUIRE(actualBytes == expected);
     }
 
@@ -249,7 +249,7 @@ namespace tests {
         http_response response = request.get_response().get();
         const utility::string_t responseStr = response.to_string();
 
-        const std::vector<uint8_t> &expected = util::readFileToBytes(expectedFilePath);
+        const std::vector<uint8_t> &expected = faabric::utilreadFileToBytes(expectedFilePath);
 
         const std::vector<unsigned char> responseBytes = response.extract_vector().get();
         REQUIRE(responseBytes == expected);
@@ -259,7 +259,7 @@ namespace tests {
         std::string relativePath = "test/fileserver.txt";
         std::vector<uint8_t> fileBytes = {3, 4, 5, 0, 1, 2, 3};
 
-        std::string fullPath = util::getSharedFileFile(relativePath);
+        std::string fullPath = faabric::utilgetSharedFileFile(relativePath);
         if (boost::filesystem::exists(fullPath)) {
             boost::filesystem::remove(fullPath);
         }

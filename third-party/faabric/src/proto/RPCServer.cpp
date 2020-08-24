@@ -1,15 +1,15 @@
 #include "RPCServer.h"
 
-#include <util/logging.h>
+#include <faabric/util/logging.h>
 #include <grpcpp/grpcpp.h>
 
-namespace rpc {
+namespace faabric::rpc {
     RPCServer::RPCServer(const std::string &hostIn, int portIn) :
             host(hostIn), port(portIn) {
     }
 
     void RPCServer::start(bool background) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
         std::string serverAddr = host + ":" + std::to_string(port);
 
         _started = true;
@@ -30,7 +30,7 @@ namespace rpc {
     }
 
     void RPCServer::stop() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
         if (!_started) {
             logger->info("Not stopping state server, never started");
             return;
@@ -46,5 +46,4 @@ namespace rpc {
             }
         }
     }
-
 }

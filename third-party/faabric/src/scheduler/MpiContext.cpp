@@ -1,24 +1,24 @@
-#include "scheduler/MpiContext.h"
-#include "scheduler/MpiWorldRegistry.h"
+#include "MpiContext.h"
+#include "MpiWorldRegistry.h"
 
-#include <util/gids.h>
+#include <faabric/util/gids.h>
 #include <proto/faabric.pb.h>
-#include <util/logging.h>
+#include <faabric/util/logging.h>
 
-namespace scheduler {
+namespace faabric::scheduler {
     MpiContext::MpiContext() : isMpi(false), rank(-1), worldId(-1) {
 
     }
 
     void MpiContext::createWorld(const faabric::Message &msg) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
 
         if(msg.mpirank() > 0) {
             logger->error("Attempting to initialise world for non-zero rank {}", msg.mpirank());
             throw std::runtime_error("Initialising world on non-zero rank");
         }
 
-        worldId = (int) util::generateGid();
+        worldId = (int) faabric::utilgenerateGid();
         logger->debug("Initialising world {}", worldId);
 
         // Create the MPI world

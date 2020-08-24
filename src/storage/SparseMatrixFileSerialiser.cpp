@@ -1,7 +1,7 @@
 #include "SparseMatrixFileSerialiser.h"
 
-#include <util/files.h>
-#include <util/logging.h>
+#include <faabric/util/files.h>
+#include <faabric/util/logging.h>
 
 #include <faasm/matrix.h>
 
@@ -42,12 +42,12 @@ namespace storage {
     }
 
     void _doWriteToFile(const path &filePath, const uint8_t *bytesPtr, size_t bytesLen) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
         const std::vector<uint8_t> bytes = std::vector<uint8_t>(bytesPtr, bytesPtr + bytesLen);
 
         logger->info("Writing {} bytes to {}", bytes.size(), filePath.c_str());
 
-        util::writeBytesToFile(filePath.string(), bytes);
+        faabric::utilwriteBytesToFile(filePath.string(), bytes);
     }
 
     SparseMatrixFileSerialiser::SparseMatrixFileSerialiser(const SparseMatrix<double> &matIn) :
@@ -72,12 +72,12 @@ namespace storage {
         path dir(directory);
         SparseFiles files = getSparseFiles(dir);
 
-        std::vector<uint8_t> sizeBytes = util::readFileToBytes(files.sizePath.string());
+        std::vector<uint8_t> sizeBytes = faabric::utilreadFileToBytes(files.sizePath.string());
         auto sizes = reinterpret_cast<faasm::SparseSizes *>(sizeBytes.data());
 
-        std::vector<uint8_t> valueBytes = util::readFileToBytes(files.valuesPath.string());
-        std::vector<uint8_t> innerBytes = util::readFileToBytes(files.innersPath.string());
-        std::vector<uint8_t> outerBytes = util::readFileToBytes(files.outerPath.string());
+        std::vector<uint8_t> valueBytes = faabric::utilreadFileToBytes(files.valuesPath.string());
+        std::vector<uint8_t> innerBytes = faabric::utilreadFileToBytes(files.innersPath.string());
+        std::vector<uint8_t> outerBytes = faabric::utilreadFileToBytes(files.outerPath.string());
 
         return SparseMatrixSerialiser::readFromBytes(
                 *sizes,

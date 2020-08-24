@@ -1,15 +1,15 @@
-#include <util/logging.h>
+#include <faabric/util/logging.h>
 #include <boost/filesystem.hpp>
 #include <storage/FileLoader.h>
-#include <util/environment.h>
-#include <util/locks.h>
-#include <util/string_tools.h>
+#include <faabric/util/environment.h>
+#include <faabric/util/locks.h>
+#include <faabric/util/string_tools.h>
 
 using namespace boost::filesystem;
 
 
 void codegenForDirectory(std::string &inputPath) {
-    const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+    const std::shared_ptr<spdlog::logger> logger = faabric::utilgetLogger();
     logger->info("Running codegen on directory {}", inputPath);
     storage::FileLoader &loader = storage::getFileLoader();
 
@@ -19,7 +19,7 @@ void codegenForDirectory(std::string &inputPath) {
     std::mutex mx;
 
     // Run multiple threads to do codegen
-    unsigned int nThreads = util::getUsableCores();
+    unsigned int nThreads = faabric::utilgetUsableCores();
     std::vector<std::thread> threads;
 
     for (unsigned int i = 0; i < nThreads; i++) {
@@ -31,7 +31,7 @@ void codegenForDirectory(std::string &inputPath) {
 
                 {
                     // Get lock
-                    util::UniqueLock lock(mx);
+                    faabric::utilUniqueLock lock(mx);
 
                     // Check if we've got more to do
                     if (iter == end) {
@@ -46,7 +46,7 @@ void codegenForDirectory(std::string &inputPath) {
 
                 directory_entry f(thisPath);
                 const std::string fileName = f.path().filename().string();
-                if (util::endsWith(fileName, ".so") || util::endsWith(fileName, ".wasm")) {
+                if (faabric::utilendsWith(fileName, ".so") || faabric::utilendsWith(fileName, ".wasm")) {
                     logger->info("Generating machine code for {}", thisPath);
                     loader.codegenForSharedObject(thisPath);
                 }
@@ -62,8 +62,8 @@ void codegenForDirectory(std::string &inputPath) {
 }
 
 int main(int argc, char *argv[]) {
-    util::initLogging();
-    const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+    faabric::utilinitLogging();
+    const std::shared_ptr<spdlog::logger> logger = faabric::utilgetLogger();
 
     if (argc < 2) {
         logger->error("Must provide path to shared object dir");

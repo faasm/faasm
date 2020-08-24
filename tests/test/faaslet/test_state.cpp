@@ -2,19 +2,19 @@
 
 #include "utils.h"
 
-#include <util/environment.h>
+#include <faabric/util/environment.h>
 
 #include <faaslet/FaasletPool.h>
 #include <faaslet/Faaslet.h>
 #include <emulator/emulator.h>
-#include <util/bytes.h>
+#include <faabric/util/bytes.h>
 
 using namespace faaslet;
 
 namespace tests {
     TEST_CASE("Test repeat invocation with state", "[faaslet]") {
         // Set up the function call
-        faabric::Message call = util::messageFactory("demo", "increment");
+        faabric::Message call = faabric::utilmessageFactory("demo", "increment");
         setEmulatedMessage(call);
 
         // Call function
@@ -35,7 +35,7 @@ namespace tests {
 
         // Call the function a second time, the state should have been incremented
         call.set_id(0);
-        util::setMessageId(call);
+        faabric::utilsetMessageId(call);
         setEmulatedMessage(call);
 
         sch.callFunction(call);
@@ -52,7 +52,7 @@ namespace tests {
         cleanSystem();
 
         // Set up the function call
-        faabric::Message call = util::messageFactory("demo", funcName);
+        faabric::Message call = faabric::utilmessageFactory("demo", funcName);
         setEmulatedMessage(call);
 
         // Call function
@@ -69,7 +69,7 @@ namespace tests {
         // Check result
         faabric::Message result = sch.getFunctionResult(call.id(), 1);
         REQUIRE(result.returnvalue() == 0);
-        std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
+        std::vector<uint8_t> outputBytes = faabric::utilstringToBytes(result.outputdata());
 
         REQUIRE(outputBytes == expectedOutput);
 
@@ -99,7 +99,7 @@ namespace tests {
     }
 
     TEST_CASE("Test state size", "[faaslet]") {
-        faabric::Message msg = util::messageFactory("demo", "state_size");
+        faabric::Message msg = faabric::utilmessageFactory("demo", "state_size");
         execFunction(msg);
     }
 
@@ -121,7 +121,7 @@ namespace tests {
 
     TEST_CASE("Test writing file to state", "[faaslet]") {
         cleanSystem();
-        faabric::Message msg = util::messageFactory("demo", "state_file");
+        faabric::Message msg = faabric::utilmessageFactory("demo", "state_file");
         execFunction(msg);
     }
 }

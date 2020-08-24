@@ -5,9 +5,9 @@
 #include <WAVM/Runtime/Intrinsics.h>
 
 #include <faasmpi/mpi.h>
-#include <scheduler/Scheduler.h>
-#include <scheduler/MpiContext.h>
-#include <util/gids.h>
+#include <faabric/scheduler/Scheduler.h>
+#include <faabric/scheduler/MpiContext.h>
+#include <faabric/util/gids.h>
 
 using namespace WAVM;
 
@@ -47,7 +47,7 @@ namespace wasm {
             faasmpi_communicator_t *hostComm = &Runtime::memoryRef<faasmpi_communicator_t>(memory, wasmPtr);
 
             if (hostComm->id != FAASMPI_COMM_WORLD) {
-                const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+                const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
                 logger->error("Unrecognised communicator type {}", hostComm->id);
                 return false;
             }
@@ -115,7 +115,7 @@ namespace wasm {
      * Sets up the MPI world. Arguments are argc/argv which are NULL, NULL in our case
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Init", I32, MPI_Init, I32 a, I32 b) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
 
         faabric::Message *call = getExecutingCall();
 
@@ -144,7 +144,7 @@ namespace wasm {
      * Returns the number of ranks in the given communicator
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Comm_size", I32, MPI_Comm_size, I32 comm, I32 resPtr) {
-        util::getLogger()->debug("S - MPI_Comm_size {} {}", comm, resPtr);
+        faabric::utilgetLogger()->debug("S - MPI_Comm_size {} {}", comm, resPtr);
         ContextWrapper ctx(comm);
         ctx.writeMpiResult<int>(resPtr, ctx.world.getSize());
 
@@ -155,7 +155,7 @@ namespace wasm {
      * Returns the rank of the caller
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Comm_rank", I32, MPI_Comm_rank, I32 comm, I32 resPtr) {
-        util::getLogger()->debug("S - MPI_Comm_rank {} {}", comm, resPtr);
+        faabric::utilgetLogger()->debug("S - MPI_Comm_rank {} {}", comm, resPtr);
         ContextWrapper ctx(comm);
         ctx.writeMpiResult<int>(resPtr, ctx.rank);
 
@@ -167,7 +167,7 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Send", I32, MPI_Send,
                                    I32 buffer, I32 count, I32 datatype, I32 destRank, I32 tag, I32 comm) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
         logger->debug("S - MPI_Send {} {} {} {} {} {}", buffer, count, datatype, destRank, tag, comm);
 
         ContextWrapper ctx(comm);
@@ -183,7 +183,7 @@ namespace wasm {
     */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Isend", I32, MPI_Isend,
                                    I32 buffer, I32 count, I32 datatype, I32 destRank, I32 tag, I32 comm, I32 requestPtrPtr) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
         logger->debug("S - MPI_Isend {} {} {} {} {} {} {}", buffer, count, datatype, destRank, tag, comm, requestPtrPtr);
 
         ContextWrapper ctx(comm);
@@ -202,7 +202,7 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Get_count", I32, MPI_Get_count, I32 statusPtr, I32 datatype,
                                    I32 countPtr) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
         logger->debug("S - MPI_Get_count {} {} {}", statusPtr, datatype, countPtr);
         ContextWrapper ctx;
 
@@ -224,7 +224,7 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Recv", I32, MPI_Recv, I32 buffer, I32 count,
                                    I32 datatype, I32 sourceRank, I32 tag, I32 comm, I32 statusPtr) {
-        util::getLogger()->debug("S - MPI_Recv {} {} {} {} {} {} {}",
+        faabric::utilgetLogger()->debug("S - MPI_Recv {} {} {} {} {} {} {}",
                                  buffer, count, datatype, sourceRank, tag, comm, statusPtr);
 
         ContextWrapper ctx;
@@ -242,7 +242,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Irecv", I32, MPI_Irecv, I32 buffer, I32 count,
                                    I32 datatype, I32 sourceRank, I32 tag, I32 comm, I32 requestPtrPtr) {
 
-        util::getLogger()->debug("S - MPI_Irecv {} {} {} {} {} {} {}",
+        faabric::utilgetLogger()->debug("S - MPI_Irecv {} {} {} {} {} {} {}",
                                  buffer, count, datatype, sourceRank, tag, comm, requestPtrPtr);
 
         ContextWrapper ctx;
@@ -268,7 +268,7 @@ namespace wasm {
      * Waits for the asynchronous request to complete
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Wait", I32, MPI_Wait, I32 requestPtrPtr, I32 status) {
-        util::getLogger()->debug("S - MPI_Wait {} {}", requestPtrPtr, status);
+        faabric::utilgetLogger()->debug("S - MPI_Wait {} {}", requestPtrPtr, status);
 
         ContextWrapper ctx;
         int requestId = ctx.getFaasmRequestId(requestPtrPtr);
@@ -278,13 +278,13 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Abort", I32, MPI_Abort, I32 a, I32 b) {
-        util::getLogger()->debug("S - MPI_Abort {} {}", a, b);
+        faabric::utilgetLogger()->debug("S - MPI_Abort {} {}", a, b);
 //        return terminateMpi();
         return MPI_SUCCESS;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Finalize", I32, MPI_Finalize) {
-        util::getLogger()->debug("S - MPI_Finalize");
+        faabric::utilgetLogger()->debug("S - MPI_Finalize");
 //        return terminateMpi();
         return MPI_SUCCESS;
     }
@@ -293,7 +293,7 @@ namespace wasm {
      * Populates the given status with info about an incoming message.
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Probe", I32, MPI_Probe, I32 source, I32 tag, I32 comm, I32 statusPtr) {
-        util::getLogger()->debug("S - MPI_Probe {} {} {} {}", source, tag, comm, statusPtr);
+        faabric::utilgetLogger()->debug("S - MPI_Probe {} {} {} {}", source, tag, comm, statusPtr);
         ContextWrapper ctx(comm);
         MPI_Status *status = &Runtime::memoryRef<MPI_Status>(ctx.memory, statusPtr);
         ctx.world.probe(source, ctx.rank, status);

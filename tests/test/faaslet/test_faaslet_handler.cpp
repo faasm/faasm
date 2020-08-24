@@ -3,7 +3,7 @@
 #include "utils.h"
 #include <faaslet/FaasletEndpointHandler.h>
 
-#include <util/json.h>
+#include <faabric/util/json.h>
 
 using namespace Pistache;
 
@@ -51,7 +51,7 @@ namespace tests {
         call.set_user(user);
         call.set_function(function);
 
-        const std::string &requestStr = util::messageToJson(call);
+        const std::string &requestStr = faabric::utilmessageToJson(call);
 
         // Handle the function
         faaslet::FaasletEndpointHandler handler;
@@ -97,7 +97,7 @@ namespace tests {
         }
 
         faaslet::FaasletEndpointHandler handler;
-        const std::string &requestStr = util::messageToJson(call);
+        const std::string &requestStr = faabric::utilmessageToJson(call);
         std::string actual = handler.handleFunction(requestStr);
 
         REQUIRE(actual == expected);
@@ -109,7 +109,7 @@ namespace tests {
         scheduler::Scheduler &sch = scheduler::getScheduler();
 
         // Create a message
-        faabric::Message msg = util::messageFactory("demo", "echo");
+        faabric::Message msg = faabric::utilmessageFactory("demo", "echo");
 
         std::string expectedOutput;
         SECTION("Running") {
@@ -137,7 +137,7 @@ namespace tests {
         msg.set_isstatusrequest(true);
 
         faaslet::FaasletEndpointHandler handler;
-        const std::string &requestStr = util::messageToJson(msg);
+        const std::string &requestStr = faabric::utilmessageToJson(msg);
         std::string actual = handler.handleFunction(requestStr);
 
         REQUIRE(actual == expectedOutput);

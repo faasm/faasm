@@ -6,18 +6,18 @@ extern "C" {
 }
 
 #include <emulator/emulator.h>
-#include <util/locks.h>
-#include <util/logging.h>
-#include <state/State.h>
+#include <faabric/util/locks.h>
+#include <faabric/util/logging.h>
+#include <faabric/state/State.h>
 #include <thread>
-#include <util/state.h>
-#include <util/func.h>
-#include <util/chaining.h>
-#include <util/environment.h>
-#include <util/json.h>
-#include <util/bytes.h>
-#include <scheduler/Scheduler.h>
-#include <util/files.h>
+#include <faabric/util/state.h>
+#include <faabric/util/func.h>
+#include <faabric/util/chaining.h>
+#include <faabric/util/environment.h>
+#include <faabric/util/json.h>
+#include <faabric/util/bytes.h>
+#include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/files.h>
 
 /**
  * Used to emulate Faasm in native applications (i.e. anything that's not WebAssembly)

@@ -1,9 +1,9 @@
 #include "bytes.h"
 
 #include <vector>
-#include <cstring>
 
-namespace util {
+
+namespace faabric::util {
 
     std::vector<uint8_t> stringToBytes(const std::string &str) {
         if (str.empty()) {

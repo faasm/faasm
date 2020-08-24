@@ -11,7 +11,7 @@
 
 #define HTTP_FILE_TIMEOUT 20000
 
-namespace util {
+namespace faabric::util {
     std::string readFileToString(const std::string &path) {
         std::ifstream stream(path);
         std::stringstream buffer;
@@ -111,10 +111,10 @@ namespace util {
         }
 
         if (out.str() == "IS_DIR") {
-            throw util::FileAtUrlIsDirectoryException(url + " is a directory");
+            throw faabric::utilFileAtUrlIsDirectoryException(url + " is a directory");
         }
 
-        return util::stringToBytes(out.str());
+        return faabric::utilstringToBytes(out.str());
     }
 
     bool isWasm(const std::vector<uint8_t> &bytes) {

@@ -1,18 +1,18 @@
 #include <catch/catch.hpp>
 
-#include "utils.h"
+#include "faabric_utils.h"
 
-#include <util/config.h>
-#include <state/State.h>
-#include <state/StateServer.h>
-#include <state/StateClient.h>
-#include <state/InMemoryStateKeyValue.h>
+#include <faabric/util/config.h>
+#include <faabric/state/State.h>
+#include <faabric/state/StateServer.h>
+#include <faabric/state/StateClient.h>
+#include <faabric/state/InMemoryStateKeyValue.h>
+#include <faabric/util/bytes.h>
+#include <faabric/proto/macros.h>
 
 #include <wait.h>
-#include <util/bytes.h>
-#include <proto/macros.h>
 
-using namespace state;
+using namespace faabric::state;
 
 namespace tests {
     static const char *userA = "foo";
@@ -26,7 +26,7 @@ namespace tests {
     static void setUpStateMode() {
         util::SystemConfig &conf = util::getSystemConfig();
         originalStateMode = conf.stateMode;
-        cleanSystem();
+        cleanFaabric();
     }
 
     static void resetStateMode() {
@@ -34,7 +34,7 @@ namespace tests {
     }
 
     std::shared_ptr<InMemoryStateKeyValue> getKv(const std::string &user, const std::string &key, size_t stateSize) {
-        State &state = state::getGlobalState();
+        State &state = getGlobalState();
 
         std::shared_ptr<StateKeyValue> localKv = state.getKV(user, key, stateSize);
         std::shared_ptr<InMemoryStateKeyValue> inMemLocalKv = std::static_pointer_cast<InMemoryStateKeyValue>(localKv);
@@ -61,7 +61,7 @@ namespace tests {
 
         // Create server
         ServerContext serverContext;
-        StateServer s(state::getGlobalState());
+        StateServer s(getGlobalState());
         s.start();
         usleep(1000 * 100);
 
@@ -78,9 +78,9 @@ namespace tests {
             std::vector<uint8_t> expectedC = {7};
 
             // Deliberately overlap chunks
-            state::StateChunk chunkA(1, 3, nullptr);
-            state::StateChunk chunkB(2, 4, nullptr);
-            state::StateChunk chunkC(7, 1, nullptr);
+            StateChunk chunkA(1, 3, nullptr);
+            StateChunk chunkB(2, 4, nullptr);
+            StateChunk chunkC(7, 1, nullptr);
 
             std::vector<StateChunk> chunks = {chunkA, chunkB, chunkC};
             std::vector<uint8_t> expected = {0, 1, 2, 3, 4, 5, 0, 7};
@@ -93,9 +93,9 @@ namespace tests {
             std::vector<uint8_t> chunkDataC = {9, 9, 9};
 
             // Deliberately overlap chunks
-            state::StateChunk chunkA(0, chunkDataA);
-            state::StateChunk chunkB(6, chunkDataB);
-            state::StateChunk chunkC(1, chunkDataC);
+            StateChunk chunkA(0, chunkDataA);
+            StateChunk chunkB(6, chunkDataB);
+            StateChunk chunkC(1, chunkDataC);
 
             std::vector<StateChunk> chunks = {chunkA, chunkB, chunkC};
             client.pushChunks(chunks);
@@ -142,7 +142,7 @@ namespace tests {
         localKv->pushFull();
 
         // Check that we get the expected size
-        State &state = state::getGlobalState();
+        State &state = getGlobalState();
         REQUIRE(state.getStateSize(userA, keyA) == dataA.size());
 
         resetStateMode();
@@ -178,7 +178,7 @@ namespace tests {
     TEST_CASE("Test state server as remote master", "[state]") {
         setUpStateMode();
 
-        State &globalState = state::getGlobalState();
+        State &globalState = getGlobalState();
         REQUIRE(globalState.getKVCount() == 0);
 
         DummyStateServer server;
@@ -196,7 +196,7 @@ namespace tests {
         REQUIRE(!localKv->isMaster());
 
         // Set the state locally and check
-        State &state = state::getGlobalState();
+        State &state = getGlobalState();
         const std::shared_ptr<StateKeyValue> &kv = state.getKV(userA, keyA, dataA.size());
         kv->set(dataB.data());
 
@@ -231,7 +231,7 @@ namespace tests {
         localKv->set(dataB.data());
 
         // Pull
-        State &state = state::getGlobalState();
+        State &state = getGlobalState();
         const std::shared_ptr<StateKeyValue> &kv = state.getKV(userA, keyA, dataA.size());
         kv->pull();
 

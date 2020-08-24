@@ -1,13 +1,13 @@
 #include <catch/catch.hpp>
 #include <wamr/WAMRWasmModule.h>
-#include <util/func.h>
-#include <util/config.h>
+#include <faabric/util/func.h>
+#include <faabric/util/config.h>
 
 using namespace wasm;
 
 namespace tests {
     TEST_CASE("Test executing echo function with WAMR", "[wasm]") {
-        faabric::Message call = util::messageFactory("demo", "echo");
+        faabric::Message call = faabric::utilmessageFactory("demo", "echo");
         std::string inputData = "hello there";
         call.set_inputdata(inputData);
 

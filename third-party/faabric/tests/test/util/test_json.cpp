@@ -1,10 +1,10 @@
 #include <catch/catch.hpp>
 
-#include "utils.h"
+#include "faabric_utils.h"
 
-#include <util/json.h>
+#include <faabric/util/json.h>
 
-using namespace util;
+using namespace faabric::util;
 
 namespace tests {
     TEST_CASE("Test message to JSON round trip", "[util]") {
@@ -47,14 +47,14 @@ namespace tests {
             msg.set_inputdata(bytes.data(), bytes.size());
         }
 
-        util::setMessageId(msg);
+        faabric::utilsetMessageId(msg);
 
         REQUIRE(msg.id() > 0);
         REQUIRE(msg.timestamp() > 0);
 
-        std::string jsonString = util::messageToJson(msg);
+        std::string jsonString = faabric::utilmessageToJson(msg);
 
-        faabric::Message actual = util::jsonToMessage(jsonString);
+        faabric::Message actual = faabric::utiljsonToMessage(jsonString);
 
         checkMessageEquality(msg, actual);
     }

@@ -2,7 +2,7 @@
 
 #include <thread>
 
-namespace util {
+namespace faabric::util {
     std::string getEnvVar(std::string const &key, std::string const &deflt) {
         char const *val = getenv(key.c_str());
 

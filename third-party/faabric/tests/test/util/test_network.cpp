@@ -1,7 +1,7 @@
 #include <catch/catch.hpp>
-#include <util/network.h>
+#include <faabric/util/network.h>
 
-using namespace util;
+using namespace faabric::util;
 
 namespace tests {
     TEST_CASE("Test getting primary IP", "[util]") {

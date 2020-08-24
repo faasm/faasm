@@ -20,16 +20,16 @@ namespace faaslet {
     }
 
     void FaasletPool::startFunctionCallServer() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
         logger->info("Starting function call server");
         functionServer.start();
     }
 
     void FaasletPool::startStateServer() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
 
         // Skip state server if not in inmemory mode
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
         if (conf.stateMode != "inmemory") {
             logger->info("Not starting state server in state mode {}", conf.stateMode);
             return;
@@ -41,13 +41,13 @@ namespace faaslet {
     }
 
     void FaasletPool::startThreadPool() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
         logger->info("Starting worker thread pool");
 
         // Spawn worker threads until we've hit the worker limit, thus creating a pool
         // that will replenish when one releases its token
         poolThread = std::thread([this] {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
 
             while (!this->isShutdown()) {
                 // Try to get an available slot (blocks if none available)
@@ -105,7 +105,7 @@ namespace faaslet {
     void FaasletPool::shutdown() {
         _shutdown = true;
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
 
         logger->info("Waiting for the state server to finish");
         stateServer.stop();

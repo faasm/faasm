@@ -1,6 +1,6 @@
 #pragma once
 
-#include <util/config.h>
+#include <faabric/util/config.h>
 #include "FileLoader.h"
 
 namespace storage {

@@ -1,7 +1,7 @@
-#include "util/barrier.h"
-#include "util/locks.h"
+#include "barrier.h"
+#include "locks.h"
 
-namespace util {
+namespace faabric::util {
     Barrier::Barrier(int count): threadCount(count), slotCount(count), uses(0) {
 
     }

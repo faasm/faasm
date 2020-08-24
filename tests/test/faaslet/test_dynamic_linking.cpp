@@ -2,7 +2,7 @@
 
 #include "utils.h"
 
-#include <util/func.h>
+#include <faabric/util/func.h>
 #include <boost/filesystem/operations.hpp>
 
 namespace tests {
@@ -13,7 +13,7 @@ namespace tests {
         const char *filePath = "/usr/local/faasm/runtime_root/lib/libfakeLibA.so";
         REQUIRE(boost::filesystem::exists(filePath));
 
-        faabric::Message msg = util::messageFactory("demo", "dynlink");
+        faabric::Message msg = faabric::utilmessageFactory("demo", "dynlink");
 
         SECTION("Single execution") {
             execFunction(msg);

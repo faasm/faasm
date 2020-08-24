@@ -1,10 +1,10 @@
 #include <catch/catch.hpp>
 
-#include "utils.h"
+#include "faabric_utils.h"
 
-#include <util/environment.h>
-#include <scheduler/Scheduler.h>
-#include <redis/Redis.h>
+#include <faabric/util/environment.h>
+#include <faabric/scheduler/Scheduler.h>
+#include <faabric/redis/Redis.h>
 
 using namespace scheduler;
 

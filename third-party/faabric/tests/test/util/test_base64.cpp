@@ -1,11 +1,11 @@
 #include <catch/catch.hpp>
 
-#include "utils.h"
+#include "faabric_utils.h"
 
-#include <util/base64.h>
-#include <util/func.h>
+#include <faabric/util/base64.h>
+#include <faabric/util/func.h>
 
-using namespace util;
+using namespace faabric::util;
 
 namespace tests {
     std::string checkStringRoundTrip(const std::string &input) {

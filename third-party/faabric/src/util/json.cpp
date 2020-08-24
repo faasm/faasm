@@ -7,7 +7,7 @@
 
 using namespace rapidjson;
 
-namespace util {
+namespace faabric::util {
     std::string messageToJson(const faabric::Message &msg) {
         Document d;
         d.SetObject();

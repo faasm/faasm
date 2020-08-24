@@ -2,8 +2,8 @@
 
 #include "utils.h"
 
-#include <redis/Redis.h>
-#include <state/State.h>
+#include <faabric/redis/Redis.h>
+#include <faabric/state/State.h>
 
 #include <faasm/array.h>
 #include <emulator/emulator.h>

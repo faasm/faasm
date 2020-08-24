@@ -1,7 +1,7 @@
 #include <catch/catch.hpp>
-#include <util/files.h>
+#include <faabric/util/files.h>
 
-using namespace util;
+using namespace faabric::util;
 
 namespace tests {
     TEST_CASE("Test writing to a file", "[util]") {
@@ -9,10 +9,10 @@ namespace tests {
 
         // Write to the file
         std::vector<uint8_t> bytesIn = {0, 1, 2, 10, 20};
-        util::writeBytesToFile(dummyFile, bytesIn);
+        faabric::utilwriteBytesToFile(dummyFile, bytesIn);
 
         // Read in
-        std::vector<uint8_t> actual = util::readFileToBytes(dummyFile);
+        std::vector<uint8_t> actual = faabric::utilreadFileToBytes(dummyFile);
 
         // Check they match
         REQUIRE(actual == bytesIn);
@@ -22,8 +22,8 @@ namespace tests {
         std::string localPath = "/usr/local/code/faasm/LICENSE.md";
         std::string url = "https://raw.githubusercontent.com/lsds/faasm/master/LICENSE.md";
 
-        std::vector<uint8_t> expectedBytes = util::readFileToBytes(localPath);
-        std::vector<uint8_t> actualBytes = util::readFileFromUrl(url);
+        std::vector<uint8_t> expectedBytes = faabric::utilreadFileToBytes(localPath);
+        std::vector<uint8_t> actualBytes = faabric::utilreadFileFromUrl(url);
 
         REQUIRE(actualBytes == expectedBytes);
     }
@@ -47,8 +47,8 @@ namespace tests {
 
         bool exceptionThrown = false;
         try {
-            util::readFileFromUrl(url);
-        } catch (util::FileNotFoundAtUrlException &ex) {
+            faabric::utilreadFileFromUrl(url);
+        } catch (faabric::utilFileNotFoundAtUrlException &ex) {
             exceptionThrown = true;
         }
         REQUIRE(exceptionThrown);

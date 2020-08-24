@@ -5,11 +5,12 @@
 #include <arpa/inet.h>
 #include <net/if.h>
 #include <ifaddrs.h>
-#include <util/string_tools.h>
 #include <unordered_map>
 
+#include <faabric/util/string_tools.h>
 
-namespace util {
+
+namespace faabric::util {
     static std::unordered_map<std::string, std::string> ipMap;
 
     std::string getIPFromHostname(const std::string &hostname) {
@@ -57,9 +58,9 @@ namespace util {
 
             if (interface.empty()) {
                 // If interface not specified, attempt to work it out
-                if (util::startsWith(ifaceName, "eth") ||
-                    util::startsWith(ifaceName, "wl") ||
-                    util::startsWith(ifaceName, "en")
+                if (faabric::utilstartsWith(ifaceName, "eth") ||
+                    faabric::utilstartsWith(ifaceName, "wl") ||
+                    faabric::utilstartsWith(ifaceName, "en")
                         ) {
                     ipAddress = addressBuffer;
                     break;

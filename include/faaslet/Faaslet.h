@@ -2,8 +2,8 @@
 
 #include <system/NetworkNamespace.h>
 
-#include <util/func.h>
-#include <scheduler/Scheduler.h>
+#include <faabric/util/func.h>
+#include <faabric/scheduler/Scheduler.h>
 
 #include <wasm/WasmModule.h>
 

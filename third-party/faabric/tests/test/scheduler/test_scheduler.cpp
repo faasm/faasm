@@ -1,24 +1,24 @@
 #include <catch/catch.hpp>
 
-#include "utils.h"
+#include "faabric_utils.h"
 
-#include <util/environment.h>
-#include <scheduler/Scheduler.h>
-#include <redis/Redis.h>
+#include <faabric/util/environment.h>
+#include <faabric/scheduler/Scheduler.h>
+#include <faabric/redis/Redis.h>
 
 using namespace scheduler;
 using namespace redis;
 
 namespace tests {
     TEST_CASE("Test scheduler clear-up", "[scheduler]") {
-        cleanSystem();
+        cleanFaabric();
 
         faabric::Message call;
         call.set_user("some user");
         call.set_function("some function");
         std::string funcSet;
 
-        std::string thisHost = util::getSystemConfig().endpointHost;
+        std::string thisHost = faabric::utilgetSystemConfig().endpointHost;
         Redis &redis = Redis::getQueue();
 
         Scheduler s;
@@ -43,20 +43,20 @@ namespace tests {
     }
 
     TEST_CASE("Test scheduler operations", "[scheduler]") {
-        cleanSystem();
+        cleanFaabric();
 
         Scheduler &sch = scheduler::getScheduler();
         sch.setTestMode(true);
         Redis &redis = Redis::getQueue();
 
-        std::string thisHost = util::getSystemConfig().endpointHost;
+        std::string thisHost = faabric::utilgetSystemConfig().endpointHost;
         std::string otherHostA = "192.168.0.10";
 
-        faabric::Message call = util::messageFactory("user a", "function a");
-        faabric::Message chainedCall = util::messageFactory("user a", "function a");
+        faabric::Message call = faabric::utilmessageFactory("user a", "function a");
+        faabric::Message chainedCall = faabric::utilmessageFactory("user a", "function a");
         chainedCall.set_idx(3);
 
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
         int originalMaxInFlightRatio = conf.maxInFlightRatio;
         conf.maxInFlightRatio = 8;
 
@@ -191,7 +191,7 @@ namespace tests {
         }
 
         SECTION("Test counts can't go below zero") {
-            faabric::Message msg = util::messageFactory("demo", "echo");
+            faabric::Message msg = faabric::utilmessageFactory("demo", "echo");
 
             sch.notifyFaasletFinished(msg);
             sch.notifyFaasletFinished(msg);
@@ -324,21 +324,21 @@ namespace tests {
     }
 
     TEST_CASE("Test message recording of scheduling decisions", "[scheduler]") {
-        cleanSystem();
+        cleanFaabric();
         Scheduler &sch = scheduler::getScheduler();
         sch.setTestMode(true);
 
-        std::string thisHostId = util::getSystemConfig().endpointHost;
+        std::string thisHostId = faabric::utilgetSystemConfig().endpointHost;
         std::string otherHostA = "192.168.3.3";
 
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
         int maxInFlightRatio = conf.maxInFlightRatio;
         int maxFaaslets = conf.maxFaasletsPerFunction;
 
         // Add calls to saturate the first host
         int requiredCalls = maxInFlightRatio * maxFaaslets;
         for (int i = 0; i < requiredCalls; i++) {
-            faabric::Message msgA = util::messageFactory("demo", "chain_simple");
+            faabric::Message msgA = faabric::utilmessageFactory("demo", "chain_simple");
             sch.callFunction(msgA);
 
             // Check scheduling info
@@ -349,13 +349,13 @@ namespace tests {
 
         // Now add the other host to the warm set and make
         // sure calls are sent there
-        faabric::Message msgB = util::messageFactory("demo", "chain_simple");
+        faabric::Message msgB = faabric::utilmessageFactory("demo", "chain_simple");
         const std::string warmSet = sch.getFunctionWarmSetName(msgB);
         Redis &redis = redis::Redis::getQueue();
         redis.sadd(warmSet, otherHostA);
 
         for (int i = 0; i < 3; i++) {
-            faabric::Message msgC = util::messageFactory("demo", "chain_simple");
+            faabric::Message msgC = faabric::utilmessageFactory("demo", "chain_simple");
             unsigned int msgId = 111 + i;
             msgC.set_id(msgId);
 
@@ -374,17 +374,17 @@ namespace tests {
     }
 
     TEST_CASE("Test multiple hops", "[scheduler]") {
-        cleanSystem();
+        cleanFaabric();
         Scheduler &sch = scheduler::getScheduler();
         sch.setTestMode(true);
 
-        std::string thisHostId = util::getSystemConfig().endpointHost;
+        std::string thisHostId = faabric::utilgetSystemConfig().endpointHost;
         std::string otherHostA = "192.168.4.5";
 
-        faabric::Message msg = util::messageFactory("demo", "chain_simple");
+        faabric::Message msg = faabric::utilmessageFactory("demo", "chain_simple");
 
         // Add calls to saturate the first host
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
         int requiredCalls = conf.maxInFlightRatio * conf.maxFaasletsPerFunction;
         for (int i = 0; i < requiredCalls; i++) {
             sch.callFunction(msg);
@@ -396,7 +396,7 @@ namespace tests {
         redis.sadd(warmSet, otherHostA);
 
         // Now create a message that's already got a scheduled host and hops
-        faabric::Message msgWithHops = util::messageFactory("demo", "chain_simple");
+        faabric::Message msgWithHops = faabric::utilmessageFactory("demo", "chain_simple");
         msgWithHops.set_scheduledhost("Some other host");
         msgWithHops.set_hops(5);
 
@@ -409,13 +409,13 @@ namespace tests {
     }
 
     TEST_CASE("Test faaslet removes itself from warm set when sharing") {
-        cleanSystem();
+        cleanFaabric();
         Scheduler &sch = scheduler::getScheduler();
         sch.setTestMode(true);
 
-        std::string thisHost = util::getSystemConfig().endpointHost;
+        std::string thisHost = faabric::utilgetSystemConfig().endpointHost;
         std::string otherHost = "192.168.111.23";
-        faabric::Message msg = util::messageFactory("demo", "chain_simple");
+        faabric::Message msg = faabric::utilmessageFactory("demo", "chain_simple");
 
         // Add both to the global set
         Redis &redis = redis::Redis::getQueue();
@@ -428,7 +428,7 @@ namespace tests {
         REQUIRE(redis.sismember(warmSetName, thisHost));
 
         // Now saturate up to the point we're about to fail over
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
         int requiredCalls = conf.maxInFlightRatio * conf.maxFaasletsPerFunction - 2;
         for (int i = 0; i < requiredCalls; i++) {
             sch.callFunction(msg);
@@ -447,9 +447,9 @@ namespace tests {
     }
 
     TEST_CASE("Test awaiting/ finished awaiting", "[scheduler]") {
-        cleanSystem();
+        cleanFaabric();
         Scheduler &sch = scheduler::getScheduler();
-        faabric::Message msg = util::messageFactory("demo", "chain_simple");
+        faabric::Message msg = faabric::utilmessageFactory("demo", "chain_simple");
 
         // Initial conditions
         REQUIRE(sch.getFunctionWarmFaasletCount(msg) == 0);
@@ -463,9 +463,9 @@ namespace tests {
     }
 
     TEST_CASE("Test opinion still YES when nothing in flight", "[scheduler]") {
-        cleanSystem();
+        cleanFaabric();
         Scheduler &sch = scheduler::getScheduler();
-        faabric::Message msg = util::messageFactory("demo", "chain_simple");
+        faabric::Message msg = faabric::utilmessageFactory("demo", "chain_simple");
 
         // Check opinion is maybe initially
         REQUIRE(sch.getLatestOpinion(msg) == SchedulerOpinion::MAYBE);
@@ -485,10 +485,10 @@ namespace tests {
     }
 
     TEST_CASE("Test opinion still YES when nothing in flight and at max faaslets", "[scheduler]") {
-        cleanSystem();
-        util::SystemConfig &conf = util::getSystemConfig();
+        cleanFaabric();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
         Scheduler &sch = scheduler::getScheduler();
-        faabric::Message msg = util::messageFactory("demo", "chain_simple");
+        faabric::Message msg = faabric::utilmessageFactory("demo", "chain_simple");
 
         // Check opinion is maybe initially
         REQUIRE(sch.getLatestOpinion(msg) == SchedulerOpinion::MAYBE);
@@ -513,9 +513,9 @@ namespace tests {
     }
 
     TEST_CASE("Test special case scheduling of MPI functions", "[mpi]") {
-        cleanSystem();
+        cleanFaabric();
 
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
         int originalInFlight = conf.maxInFlightRatio;
         int originalFaasletsPerFunc = conf.maxFaasletsPerFunction;
 
@@ -525,7 +525,7 @@ namespace tests {
         conf.maxInFlightRatio = inFlightRatio;
         conf.maxFaasletsPerFunction = faasletsPerFunc;
 
-        faabric::Message msg = util::messageFactory("mpi", "hellompi");
+        faabric::Message msg = faabric::utilmessageFactory("mpi", "hellompi");
         msg.set_ismpi(true);
 
         Scheduler &sch = getScheduler();
@@ -553,13 +553,13 @@ namespace tests {
     }
 
     TEST_CASE("Check test mode", "[scheduler]") {
-        cleanSystem();
+        cleanFaabric();
 
         Scheduler &sch = scheduler::getScheduler();
 
-        faabric::Message msgA = util::messageFactory("demo", "echo");
-        faabric::Message msgB = util::messageFactory("demo", "echo");
-        faabric::Message msgC = util::messageFactory("demo", "echo");
+        faabric::Message msgA = faabric::utilmessageFactory("demo", "echo");
+        faabric::Message msgB = faabric::utilmessageFactory("demo", "echo");
+        faabric::Message msgC = faabric::utilmessageFactory("demo", "echo");
 
         SECTION("No test mode") {
             sch.setTestMode(false);
@@ -585,7 +585,7 @@ namespace tests {
     }
 
     TEST_CASE("Test max Faaslet limit with multiple functions", "[scheduler]") {
-        cleanSystem();
+        cleanFaabric();
 
         Scheduler &sch = scheduler::getScheduler();
         sch.setTestMode(true);
@@ -595,9 +595,9 @@ namespace tests {
         std::string thisHost = sch.getThisHost();
         std::string otherHost = "192.168.0.10";
 
-        faabric::Message callA = util::messageFactory("user a", "function a1");
-        faabric::Message callB = util::messageFactory("user a", "function a2");
-        faabric::Message callC = util::messageFactory("user b", "function b1");
+        faabric::Message callA = faabric::utilmessageFactory("user a", "function a1");
+        faabric::Message callB = faabric::utilmessageFactory("user a", "function a2");
+        faabric::Message callC = faabric::utilmessageFactory("user b", "function b1");
 
         util::SystemConfig &conf = util::getSystemConfig();
         int originalMaxInFlightRatio = conf.maxInFlightRatio;
@@ -705,7 +705,7 @@ namespace tests {
 
 
     TEST_CASE("Global message queue tests", "[scheduler]") {
-        cleanSystem();
+        cleanFaabric();
 
         redis::Redis &redis = redis::Redis::getQueue();
         scheduler::Scheduler &sch = scheduler::getScheduler();
@@ -733,7 +733,7 @@ namespace tests {
     }
 
     TEST_CASE("Check multithreaded function results", "[scheduler]") {
-        cleanSystem();
+        cleanFaabric();
 
         int nWorkers = 5;
         int nWorkerMessages = 8;
@@ -795,7 +795,7 @@ namespace tests {
     }
 
     TEST_CASE("Check getting function status", "[scheduler]") {
-        cleanSystem();
+        cleanFaabric();
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
 
@@ -846,7 +846,7 @@ namespace tests {
     }
 
     TEST_CASE("Check setting long-lived function status", "[scheduler]") {
-        cleanSystem();
+        cleanFaabric();
         scheduler::Scheduler &sch = scheduler::getScheduler();
         redis::Redis &redis = redis::Redis::getQueue();
 
@@ -871,7 +871,7 @@ namespace tests {
     }
 
     TEST_CASE("Check logging chained functions", "[scheduler]") {
-        cleanSystem();
+        cleanFaabric();
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
 

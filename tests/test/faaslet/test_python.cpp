@@ -1,16 +1,16 @@
 #include <catch/catch.hpp>
 
-#include <util/config.h>
+#include <faabric/util/config.h>
 
 #include <wasm/WasmModule.h>
-#include <util/func.h>
-#include <utils.h>
+#include <faabric/util/func.h>
+#include <faabric/utils.h>
 
 namespace tests {
     void checkPythonFunction(const std::string &funcName) {
         cleanSystem();
 
-        faabric::Message call = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+        faabric::Message call = faabric::utilmessageFactory(PYTHON_USER, PYTHON_FUNC);
         call.set_pythonuser("python");
         call.set_pythonfunction(funcName);
         call.set_ispython(true);
@@ -29,7 +29,7 @@ namespace tests {
     TEST_CASE("Test repeated numpy execution", "[faaslet]") {
         cleanSystem();
 
-        faabric::Message call = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+        faabric::Message call = faabric::utilmessageFactory(PYTHON_USER, PYTHON_FUNC);
         call.set_pythonuser("python");
         call.set_pythonfunction("numpy_test");
         call.set_ispython(true);
@@ -41,7 +41,7 @@ namespace tests {
         cleanSystem();
 
         std::string input = "foobar blah blah";
-        faabric::Message call = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+        faabric::Message call = faabric::utilmessageFactory(PYTHON_USER, PYTHON_FUNC);
         call.set_pythonuser("python");
         call.set_pythonfunction("echo");
         call.set_ispython(true);
@@ -55,14 +55,14 @@ namespace tests {
         cleanSystem();
 
         // Run the state write function
-        faabric::Message writeCall = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+        faabric::Message writeCall = faabric::utilmessageFactory(PYTHON_USER, PYTHON_FUNC);
         writeCall.set_pythonuser("python");
         writeCall.set_pythonfunction("state_test_write");
         writeCall.set_ispython(true);
         faaslet::Faaslet faaslet = execFunction(writeCall);
 
         // Now run the state read function
-        faabric::Message readCall = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+        faabric::Message readCall = faabric::utilmessageFactory(PYTHON_USER, PYTHON_FUNC);
         readCall.set_pythonuser("python");
         readCall.set_pythonfunction("state_test_read");
         readCall.set_ispython(true);
@@ -78,7 +78,7 @@ namespace tests {
     }
 
     TEST_CASE("Test python chaining", "[faaslet]") {
-        faabric::Message call = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+        faabric::Message call = faabric::utilmessageFactory(PYTHON_USER, PYTHON_FUNC);
         call.set_pythonuser("python");
         call.set_pythonfunction("chain");
         call.set_ispython(true);
@@ -87,7 +87,7 @@ namespace tests {
     }
 
     TEST_CASE("Test python sharing dict", "[faaslet]") {
-        faabric::Message call = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+        faabric::Message call = faabric::utilmessageFactory(PYTHON_USER, PYTHON_FUNC);
         call.set_pythonuser("python");
         call.set_pythonfunction("dict_state");
         call.set_ispython(true);

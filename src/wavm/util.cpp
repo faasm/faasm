@@ -1,9 +1,9 @@
 #include "WAVMWasmModule.h"
 #include "syscalls.h"
 
-#include <util/bytes.h>
-#include <util/logging.h>
-#include <util/config.h>
+#include <faabric/util/bytes.h>
+#include <faabric/util/logging.h>
+#include <faabric/util/config.h>
 
 #include <boost/filesystem.hpp>
 

@@ -4,7 +4,7 @@
 #include <string>
 #include <proto/faabric.pb.h>
 
-#include <state/State.h>
+#include <faabric/state/State.h>
 
 unsigned int setEmulatedMessage(const faabric::Message &msg);
 
