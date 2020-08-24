@@ -23,8 +23,8 @@ namespace tests {
         std::string funcA = "echo";
         std::string funcB = "x2";
 
-        message::Message msgA = util::messageFactory(user, funcA);
-        message::Message msgB = util::messageFactory(user, funcB);
+        faabric::Message msgA = util::messageFactory(user, funcA);
+        faabric::Message msgB = util::messageFactory(user, funcB);
 
         // Get once via both means
         IR::Module &moduleRefA1 = registry.getModule(user, funcA, "");

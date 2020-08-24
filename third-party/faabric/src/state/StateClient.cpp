@@ -30,16 +30,16 @@ namespace state {
                     grpc::InsecureChannelCredentials(),
                     getChannelArgs()
             )),
-            stub(message::StateRPCService::NewStub(channel)) {
+            stub(faabric::StateRPCService::NewStub(channel)) {
     }
 
     void StateClient::pushChunks(const std::vector<StateChunk> &chunks) {
-        message::StateResponse response;
+        faabric::StateResponse response;
         ClientContext clientContext;
         auto stream = stub->Push(&clientContext, &response);
 
         for (auto chunk: chunks) {
-            message::StateChunk c;
+            faabric::StateChunk c;
             c.set_user(user);
             c.set_key(key);
             c.set_offset(chunk.offset);
@@ -62,7 +62,7 @@ namespace state {
         // Writer thread in background
         std::thread writer([this, &chunks, &stream] {
             for (const auto &chunk : chunks) {
-                message::StateChunkRequest request;
+                faabric::StateChunkRequest request;
                 request.set_user(user);
                 request.set_key(key);
                 request.set_offset(chunk.offset);
@@ -79,7 +79,7 @@ namespace state {
         });
 
         // Read responses in this thread
-        message::StateChunk response;
+        faabric::StateChunk response;
         while (stream->Read(&response)) {
             std::copy(response.data().begin(), response.data().end(), bufferStart + response.offset());
         }
@@ -93,8 +93,8 @@ namespace state {
     }
 
     void StateClient::append(const uint8_t *data, size_t length) {
-        message::StateRequest request;
-        message::StateResponse response;
+        faabric::StateRequest request;
+        faabric::StateResponse response;
 
         request.set_user(user);
         request.set_key(key);
@@ -105,8 +105,8 @@ namespace state {
     }
 
     void StateClient::pullAppended(uint8_t *buffer, size_t length, long nValues) {
-        message::StateAppendedRequest request;
-        message::StateAppendedResponse response;
+        faabric::StateAppendedRequest request;
+        faabric::StateAppendedResponse response;
 
         request.set_user(user);
         request.set_key(key);
@@ -130,8 +130,8 @@ namespace state {
     }
 
     void StateClient::clearAppended() {
-        message::StateRequest request;
-        message::StateResponse response;
+        faabric::StateRequest request;
+        faabric::StateResponse response;
 
         request.set_user(user);
         request.set_key(key);
@@ -141,19 +141,19 @@ namespace state {
     }
 
     size_t StateClient::stateSize() {
-        message::StateRequest request;
+        faabric::StateRequest request;
         request.set_user(user);
         request.set_key(key);
 
-        message::StateSizeResponse response;
+        faabric::StateSizeResponse response;
         ClientContext context;
         CHECK_RPC("state_size", stub->Size(&context, request, &response))
         return response.statesize();
     }
 
     void StateClient::deleteState() {
-        message::StateRequest request;
-        message::StateResponse response;
+        faabric::StateRequest request;
+        faabric::StateResponse response;
 
         request.set_user(user);
         request.set_key(key);
@@ -163,8 +163,8 @@ namespace state {
     }
 
     void StateClient::lock() {
-        message::StateRequest request;
-        message::StateResponse response;
+        faabric::StateRequest request;
+        faabric::StateResponse response;
 
         request.set_user(user);
         request.set_key(key);
@@ -174,8 +174,8 @@ namespace state {
     }
 
     void StateClient::unlock() {
-        message::StateRequest request;
-        message::StateResponse response;
+        faabric::StateRequest request;
+        faabric::StateResponse response;
 
         request.set_user(user);
         request.set_key(key);

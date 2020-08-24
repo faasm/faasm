@@ -2,11 +2,11 @@
 
 #include <vector>
 #include <string>
-#include <proto/faasm.pb.h>
+#include <proto/faabric.pb.h>
 
 #include <state/State.h>
 
-unsigned int setEmulatedMessage(const message::Message &msg);
+unsigned int setEmulatedMessage(const faabric::Message &msg);
 
 void resetEmulator();
 

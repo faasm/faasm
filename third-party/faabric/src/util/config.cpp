@@ -26,8 +26,6 @@ namespace util {
         functionStorage = getEnvVar("FUNCTION_STORAGE", "local");
         fileserverUrl = getEnvVar("FILESERVER_URL", "");
         serialisation = getEnvVar("SERIALISATION", "json");
-        bucketName = getEnvVar("BUCKET_NAME", "");
-        queueName = getEnvVar("QUEUE_NAME", "faasm-messages");
         cgroupMode = getEnvVar("CGROUP_MODE", "on");
         netNsMode = getEnvVar("NETNS_MODE", "off");
         logLevel = getEnvVar("LOG_LEVEL", "info");
@@ -35,15 +33,11 @@ namespace util {
         captureStdout = getEnvVar("CAPTURE_STDOUT", "off");
         stateMode = getEnvVar("STATE_MODE", "inmemory");
         wasmVm = getEnvVar("WASM_VM", "wavm");
-        execGraphMode = getEnvVar("EXEC_GRAPH_MODE", "on");
 
         // Redis
         redisStateHost = getEnvVar("REDIS_STATE_HOST", "localhost");
         redisQueueHost = getEnvVar("REDIS_QUEUE_HOST", "localhost");
         redisPort = getEnvVar("REDIS_PORT", "6379");
-
-        // Caching
-        irCacheMode = getEnvVar("IR_CACHE_MODE", "on");
 
         // Scheduling
         noScheduler = this->getSystemConfIntParam("NO_SCHEDULER", "0");
@@ -101,8 +95,6 @@ namespace util {
         logger->info("FUNCTION_STORAGE           {}", functionStorage);
         logger->info("FILESERVER_URL             {}", fileserverUrl);
         logger->info("SERIALISATION              {}", serialisation);
-        logger->info("BUCKET_NAME                {}", bucketName);
-        logger->info("QUEUE_NAME                 {}", queueName);
         logger->info("CGROUP_MODE                {}", cgroupMode);
         logger->info("NETNS_MODE                 {}", netNsMode);
         logger->info("LOG_LEVEL                  {}", logLevel);
@@ -110,15 +102,11 @@ namespace util {
         logger->info("CAPTURE_STDOUT             {}", captureStdout);
         logger->info("STATE_MODE                 {}", stateMode);
         logger->info("WASM_VM                    {}", wasmVm);
-        logger->info("EXEC_GRAPH_MODE            {}", execGraphMode);
 
         logger->info("--- Redis ---");
         logger->info("REDIS_STATE_HOST           {}", redisStateHost);
         logger->info("REDIS_QUEUE_HOST           {}", redisQueueHost);
         logger->info("REDIS_PORT                 {}", redisPort);
-
-        logger->info("--- Caching ---");
-        logger->info("IR_CACHE_MODE              {}", irCacheMode);
 
         logger->info("--- Scheduling ---");
         logger->info("NO_SCHEDULER               {}", noScheduler);

@@ -256,7 +256,7 @@ namespace wasm {
 
     I32 _readInputImpl(I32 bufferPtr, I32 bufferLen) {
         // Get the input
-        message::Message *call = getExecutingCall();
+        faabric::Message *call = getExecutingCall();
         std::vector<uint8_t> inputBytes = util::stringToBytes(call->inputdata());
 
         // If nothing, return nothing
@@ -287,7 +287,7 @@ namespace wasm {
 
     void _writeOutputImpl(I32 outputPtr, I32 outputLen) {
         std::vector<uint8_t> outputData = getBytesFromWasm(outputPtr, outputLen);
-        message::Message *call = getExecutingCall();
+        faabric::Message *call = getExecutingCall();
         call->set_outputdata(outputData.data(), outputData.size());
     }
 

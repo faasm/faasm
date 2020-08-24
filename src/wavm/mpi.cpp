@@ -117,7 +117,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Init", I32, MPI_Init, I32 a, I32 b) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        message::Message *call = getExecutingCall();
+        faabric::Message *call = getExecutingCall();
 
         // Note - only want to initialise the world on rank zero (or when rank isn't set yet)
         if (call->mpirank() <= 0) {

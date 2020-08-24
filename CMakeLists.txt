@@ -138,16 +138,14 @@ include_directories(
         ${FAASM_LIB_CPP_DIR}
         ${FAASM_LIB_FAASMP_DIR}
         ${FAASM_PYTHON_LIB_DIR}
-        ${CMAKE_CURRENT_BINARY_DIR}/src # Required for protobuf
+        ${CMAKE_CURRENT_BINARY_DIR}/third-party/faabric/src # Required for protobuf
 )
 
 # Directories common to all builds
 add_subdirectory(third-party/faabric)
-
 add_subdirectory(libs/cpp)
 add_subdirectory(libs/faasmp)
 add_subdirectory(src/emulator)
-add_subdirectory(src/util)
 
 if (FAASM_BUILD_TYPE STREQUAL "native-tools")
     # Ignore the rest if just doing a native tools build

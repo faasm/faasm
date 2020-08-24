@@ -33,7 +33,7 @@ namespace tests {
         wasm::WAVMWasmModule moduleA;
         wasm::WAVMWasmModule moduleB;
 
-        const message::Message call = util::messageFactory("demo", "echo");
+        const faabric::Message call = util::messageFactory("demo", "echo");
         moduleA.bindToFunction(call);
         moduleB.bindToFunction(call);
 
@@ -118,7 +118,7 @@ namespace tests {
 
         // Create a wasm module
         wasm::WAVMWasmModule module;
-        const message::Message call = util::messageFactory("demo", "echo");
+        const faabric::Message call = util::messageFactory("demo", "echo");
         module.bindToFunction(call);
 
         // Map the chunk locally

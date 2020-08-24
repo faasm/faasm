@@ -4,7 +4,7 @@
 
 namespace faabric {
     namespace tests {
-        void checkMessageEquality(const message::Message &msgA, const message::Message &msgB) {
+        void checkMessageEquality(const faabric::Message &msgA, const faabric::Message &msgB) {
             REQUIRE(msgA.id() == msgB.id());
 
             REQUIRE(msgA.user() == msgB.user());

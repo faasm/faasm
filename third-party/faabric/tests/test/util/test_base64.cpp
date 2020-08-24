@@ -24,7 +24,7 @@ namespace tests {
     }
 
     TEST_CASE("Test base64 encoding protobuf object", "[util]") {
-        message::Message msg;
+        faabric::Message msg;
         msg.set_user("user 1");
         msg.set_function("great function");
         msg.set_isasync(true);
@@ -33,12 +33,12 @@ namespace tests {
         msg.set_returnvalue(1234);
         msg.set_inputdata("[0], %$ 2233 9");
         msg.set_resultkey("blahblah");
-        msg.set_type(message::Message_MessageType_BIND);
+        msg.set_type(faabric::Message_MessageType_BIND);
 
         const std::string &msgBytes = msg.SerializeAsString();
 
         const std::string &decoded = checkStringRoundTrip(msgBytes);
-        message::Message actual;
+        faabric::Message actual;
         actual.ParseFromString(decoded);
         checkMessageEquality(msg, actual);
     }

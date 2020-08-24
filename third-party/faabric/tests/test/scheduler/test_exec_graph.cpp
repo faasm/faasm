@@ -11,17 +11,13 @@ using namespace scheduler;
 
 namespace tests {
     TEST_CASE("Test execution graph", "[scheduler]") {
-        util::SystemConfig &conf = util::getSystemConfig();
-        std::string &originMode = conf.execGraphMode;
-        conf.execGraphMode = "on";
-
-        message::Message msgA = util::messageFactory("demo", "echo");
-        message::Message msgB1 = util::messageFactory("demo", "echo");
-        message::Message msgB2 = util::messageFactory("demo", "echo");
-        message::Message msgC1 = util::messageFactory("demo", "echo");
-        message::Message msgC2 = util::messageFactory("demo", "echo");
-        message::Message msgC3 = util::messageFactory("demo", "echo");
-        message::Message msgD = util::messageFactory("demo", "echo");
+        faabric::Message msgA = util::messageFactory("demo", "echo");
+        faabric::Message msgB1 = util::messageFactory("demo", "echo");
+        faabric::Message msgB2 = util::messageFactory("demo", "echo");
+        faabric::Message msgC1 = util::messageFactory("demo", "echo");
+        faabric::Message msgC2 = util::messageFactory("demo", "echo");
+        faabric::Message msgC3 = util::messageFactory("demo", "echo");
+        faabric::Message msgD = util::messageFactory("demo", "echo");
 
         // Set all execution results
         scheduler::Scheduler &sch = scheduler::getScheduler();
@@ -84,7 +80,5 @@ namespace tests {
         REQUIRE(countExecGraphNodes(expected) == 7);
 
         checkExecGraphEquality(expected, actual);
-
-        conf.execGraphMode = originMode;
     }
 }

@@ -3,12 +3,12 @@
 #include <faasmpi/mpi.h>
 
 #include <thread>
-#include <proto/faasm.pb.h>
+#include <proto/faabric.pb.h>
 #include <state/StateKeyValue.h>
 #include <scheduler/InMemoryMessageQueue.h>
 
 namespace scheduler {
-    typedef util::Queue<message::MPIMessage> InMemoryMpiQueue;
+    typedef util::Queue<faabric::MPIMessage> InMemoryMpiQueue;
 
     struct MpiWorldState {
         int worldSize;
@@ -22,9 +22,9 @@ namespace scheduler {
     public:
         MpiWorld();
 
-        void create(const message::Message &call, int newId, int newSize);
+        void create(const faabric::Message &call, int newId, int newSize);
 
-        void initialiseFromState(const message::Message &msg, int worldId);
+        void initialiseFromState(const faabric::Message &msg, int worldId);
 
         void registerRank(int rank);
 
@@ -40,22 +40,22 @@ namespace scheduler {
 
         void destroy();
 
-        void enqueueMessage(message::MPIMessage &msg);
+        void enqueueMessage(faabric::MPIMessage &msg);
 
         void send(int sendRank, int recvRank,
                   const uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
-                  message::MPIMessage::MPIMessageType messageType = message::MPIMessage::NORMAL);
+                  faabric::MPIMessage::MPIMessageType messageType = faabric::MPIMessage::NORMAL);
 
         int isend(int sendRank, int recvRank,
                    const uint8_t *buffer, faasmpi_datatype_t *dataType, int count);
 
         void broadcast(int sendRank,
                        const uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
-                       message::MPIMessage::MPIMessageType messageType = message::MPIMessage::NORMAL);
+                       faabric::MPIMessage::MPIMessageType messageType = faabric::MPIMessage::NORMAL);
 
         void recv(int sendRank, int recvRank,
                   uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
-                  MPI_Status *status, message::MPIMessage::MPIMessageType messageType = message::MPIMessage::NORMAL);
+                  MPI_Status *status, faabric::MPIMessage::MPIMessageType messageType = faabric::MPIMessage::NORMAL);
 
         int irecv(int sendRank, int recvRank,
                    uint8_t *buffer, faasmpi_datatype_t *dataType, int count);
@@ -100,7 +100,7 @@ namespace scheduler {
 
         void createWindow(const faasmpi_win_t *window, uint8_t *windowPtr);
 
-        void synchronizeRmaWrite(const message::MPIMessage &msg, bool isRemote);
+        void synchronizeRmaWrite(const faabric::MPIMessage &msg, bool isRemote);
 
         double getWTime();
 

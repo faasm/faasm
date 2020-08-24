@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
     std::string user = argv[1];
     std::string function = argv[2];
 
-    message::Message call;
+    faabric::Message call;
     call.set_user(user);
     call.set_function(function);
 

@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
     // Set up the call
     std::string user = argv[1];
     std::string function = argv[2];
-    message::Message call = util::messageFactory(user, function);
+    faabric::Message call = util::messageFactory(user, function);
 
     if (user == "ts") {
         call.set_istypescript(true);
@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
     sch.callFunction(call);
 
     // Await the result
-    const message::Message &result = sch.getFunctionResult(call.id(), conf.globalMessageTimeout);
+    const faabric::Message &result = sch.getFunctionResult(call.id(), conf.globalMessageTimeout);
     if (result.returnvalue() != 0) {
         logger->error("Execution failed: {}", result.outputdata());
         throw std::runtime_error("Executing function failed");

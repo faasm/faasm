@@ -1,6 +1,6 @@
 #pragma once
 
-#include <proto/faasm.pb.h>
+#include <proto/faabric.pb.h>
 
 #include <string>
 
@@ -15,7 +15,7 @@ namespace storage {
 
         static bool isPathShared(const std::string &p);
 
-        static void syncPythonFunctionFile(const message::Message &msg);
+        static void syncPythonFunctionFile(const faabric::Message &msg);
 
         static void clear();
     private:

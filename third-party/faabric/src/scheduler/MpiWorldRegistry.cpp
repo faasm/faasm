@@ -10,7 +10,7 @@ namespace scheduler {
         return r;
     }
 
-    scheduler::MpiWorld &MpiWorldRegistry::createWorld(const message::Message &msg, int worldId, std::string hostOverride) {
+    scheduler::MpiWorld &MpiWorldRegistry::createWorld(const faabric::Message &msg, int worldId, std::string hostOverride) {
         if(worldMap.count(worldId) > 0) {
             util::getLogger()->error("World {} already exists", worldId);
             throw std::runtime_error("World already exists");
@@ -34,7 +34,7 @@ namespace scheduler {
         return worldMap[worldId];
     }
 
-    MpiWorld &MpiWorldRegistry::getOrInitialiseWorld(const message::Message &msg, int worldId) {
+    MpiWorld &MpiWorldRegistry::getOrInitialiseWorld(const faabric::Message &msg, int worldId) {
         // Create world locally if not exists
         if(worldMap.count(worldId) == 0) {
             util::FullLock lock(registryMutex);

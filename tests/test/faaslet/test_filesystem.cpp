@@ -18,7 +18,7 @@ namespace tests {
                 "hosts", "passwd", "resolv.conf"
         };
 
-        message::Message msg = util::messageFactory("demo", "getdents");
+        faabric::Message msg = util::messageFactory("demo", "getdents");
 
         const std::string result = execFunctionWithStringResult(msg);
         std::vector<std::string> actual = util::splitString(result, ',');
@@ -40,33 +40,33 @@ namespace tests {
     TEST_CASE("Test listdir", "[faaslet]") {
         cleanSystem();
 
-        message::Message msg = util::messageFactory("demo", "listdir");
+        faabric::Message msg = util::messageFactory("demo", "listdir");
         execFunction(msg);
     }
 
     TEST_CASE("Test fcntl", "[faaslet]") {
         cleanSystem();
-        message::Message msg = util::messageFactory("demo", "fcntl");
+        faabric::Message msg = util::messageFactory("demo", "fcntl");
         execFunction(msg);
     }
 
     TEST_CASE("Test fread", "[faaslet]") {
         cleanSystem();
-        message::Message msg = util::messageFactory("demo", "fread");
+        faabric::Message msg = util::messageFactory("demo", "fread");
         execFunction(msg);
     }
 
     TEST_CASE("Test fstat", "[faaslet]") {
         cleanSystem();
 
-        message::Message msg = util::messageFactory("demo", "fstat");
+        faabric::Message msg = util::messageFactory("demo", "fstat");
         execFunction(msg);
     }
 
     TEST_CASE("Test file operations", "[faaslet]") {
         cleanSystem();
 
-        message::Message msg = util::messageFactory("demo", "file");
+        faabric::Message msg = util::messageFactory("demo", "file");
         execFunction(msg);
     }
 }

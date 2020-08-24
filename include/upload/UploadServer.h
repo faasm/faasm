@@ -22,7 +22,7 @@ namespace edge {
 
         static void handleOptions(const http_request &request);
 
-        static message::Message buildMessageFromRequest(const http_request &request);
+        static faabric::Message buildMessageFromRequest(const http_request &request);
 
         static std::vector<std::string> getPathParts(const http_request &request);
 

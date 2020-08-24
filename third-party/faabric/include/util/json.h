@@ -1,12 +1,12 @@
 #pragma once
 
-#include <proto/faasm.pb.h>
+#include <proto/faabric.pb.h>
 #include "exception.h"
 
 namespace util {
-    std::string messageToJson(const message::Message &msg);
+    std::string messageToJson(const faabric::Message &msg);
 
-    message::Message jsonToMessage(const std::string &jsonIn);
+    faabric::Message jsonToMessage(const std::string &jsonIn);
 
     class JsonFieldNotFound : public util::FaasmException {
     public:

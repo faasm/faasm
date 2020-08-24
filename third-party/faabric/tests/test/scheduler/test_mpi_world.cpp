@@ -22,7 +22,7 @@ namespace tests {
         sch.setTestMode(true);
 
         // Create the world
-        const message::Message &msg = util::messageFactory(user, func);
+        const faabric::Message &msg = util::messageFactory(user, func);
         scheduler::MpiWorld world;
         world.create(msg, worldId, worldSize);
 
@@ -35,7 +35,7 @@ namespace tests {
         REQUIRE(sch.getRecordedMessagesAll().size() == worldSize - 1);
 
         for (int i = 1; i < worldSize; i++) {
-            message::Message actualCall = sch.getFunctionQueue(msg)->dequeue();
+            faabric::Message actualCall = sch.getFunctionQueue(msg)->dequeue();
             REQUIRE(actualCall.user() == user);
             REQUIRE(actualCall.function() == func);
             REQUIRE(actualCall.ismpi());
@@ -52,7 +52,7 @@ namespace tests {
         cleanSystem();
 
         // Create a world
-        const message::Message &msg = util::messageFactory(user, func);
+        const faabric::Message &msg = util::messageFactory(user, func);
         scheduler::MpiWorld worldA;
         worldA.create(msg, worldId, worldSize);
 
@@ -75,7 +75,7 @@ namespace tests {
         std::string hostB = util::randomString(MPI_HOST_STATE_LEN - 10);
 
         // Create a world
-        const message::Message &msg = util::messageFactory(user, func);
+        const faabric::Message &msg = util::messageFactory(user, func);
         scheduler::MpiWorld worldA;
         worldA.overrideHost(hostA);
         worldA.create(msg, worldId, worldSize);
@@ -101,7 +101,7 @@ namespace tests {
         REQUIRE(worldB.getHostForRank(rankB) == hostB);
     }
 
-    void checkMessage(message::MPIMessage &actualMessage, int senderRank, int destRank, const std::vector<int> &data) {
+    void checkMessage(faabric::MPIMessage &actualMessage, int senderRank, int destRank, const std::vector<int> &data) {
         // Check the message contents
         REQUIRE(actualMessage.worldid() == worldId);
         REQUIRE(actualMessage.count() == data.size());
@@ -119,7 +119,7 @@ namespace tests {
     TEST_CASE("Test send and recv on same host", "[mpi]") {
         cleanSystem();
 
-        const message::Message &msg = util::messageFactory(user, func);
+        const faabric::Message &msg = util::messageFactory(user, func);
         scheduler::MpiWorld world;
         world.create(msg, worldId, worldSize);
 
@@ -142,7 +142,7 @@ namespace tests {
 
             // Check message content
             const std::shared_ptr<InMemoryMpiQueue> &queueA2 = world.getLocalQueue(rankA1, rankA2);
-            message::MPIMessage actualMessage = queueA2->dequeue();
+            faabric::MPIMessage actualMessage = queueA2->dequeue();
             checkMessage(actualMessage, rankA1, rankA2, messageData);
         }
 
@@ -164,7 +164,7 @@ namespace tests {
     TEST_CASE("Test async send and recv", "[mpi]") {
         cleanSystem();
 
-        const message::Message &msg = util::messageFactory(user, func);
+        const faabric::Message &msg = util::messageFactory(user, func);
         scheduler::MpiWorld world;
         world.create(msg, worldId, worldSize);
 
@@ -205,7 +205,7 @@ namespace tests {
         usleep(1000 * 100);
 
         // Set up the world on this host
-        message::Message msg = util::messageFactory(user, func);
+        faabric::Message msg = util::messageFactory(user, func);
         msg.set_mpiworldid(worldId);
         msg.set_mpiworldsize(worldSize);
 
@@ -232,7 +232,7 @@ namespace tests {
             REQUIRE(localWorld.getLocalQueueSize(rankA, rankB) == 1);
             
             // Check message content
-            message::MPIMessage actualMessage = localWorld.getLocalQueue(rankA, rankB)->dequeue();
+            faabric::MPIMessage actualMessage = localWorld.getLocalQueue(rankA, rankB)->dequeue();
             checkMessage(actualMessage, rankA, rankB, messageData);
         }
 
@@ -256,7 +256,7 @@ namespace tests {
     TEST_CASE("Test send/recv message with no data", "[mpi]") {
         cleanSystem();
 
-        const message::Message &msg = util::messageFactory(user, func);
+        const faabric::Message &msg = util::messageFactory(user, func);
         scheduler::MpiWorld world;
         world.create(msg, worldId, worldSize);
 
@@ -276,7 +276,7 @@ namespace tests {
 
         SECTION("Check on queue") {
             // Check message content
-            message::MPIMessage actualMessage = world.getLocalQueue(rankA1, rankA2)->dequeue();
+            faabric::MPIMessage actualMessage = world.getLocalQueue(rankA1, rankA2)->dequeue();
             REQUIRE(actualMessage.count() == 0);
             REQUIRE(actualMessage.type() == FAASMPI_INT);
 
@@ -300,7 +300,7 @@ namespace tests {
     TEST_CASE("Test recv with partial data", "[mpi]") {
         cleanSystem();
 
-        const message::Message &msg = util::messageFactory(user, func);
+        const faabric::Message &msg = util::messageFactory(user, func);
         scheduler::MpiWorld world;
         world.create(msg, worldId, worldSize);
 
@@ -327,7 +327,7 @@ namespace tests {
     TEST_CASE("Test probe", "[mpi]") {
         cleanSystem();
 
-        const message::Message &msg = util::messageFactory(user, func);
+        const faabric::Message &msg = util::messageFactory(user, func);
         scheduler::MpiWorld world;
         world.create(msg, worldId, worldSize);
 
@@ -378,7 +378,7 @@ namespace tests {
         std::string hostA = util::randomString(MPI_HOST_STATE_LEN - 5);
         std::string hostB = util::randomString(MPI_HOST_STATE_LEN - 3);
 
-        const message::Message &msg = util::messageFactory(user, func);
+        const faabric::Message &msg = util::messageFactory(user, func);
         scheduler::MpiWorld worldA;
         worldA.overrideHost(hostA);
         worldA.create(msg, worldId, worldSize);
@@ -408,7 +408,7 @@ namespace tests {
     TEST_CASE("Check sending to invalid rank", "[mpi]") {
         cleanSystem();
 
-        const message::Message &msg = util::messageFactory(user, func);
+        const faabric::Message &msg = util::messageFactory(user, func);
         scheduler::MpiWorld world;
         world.create(msg, worldId, worldSize);
 
@@ -420,7 +420,7 @@ namespace tests {
     TEST_CASE("Check sending to unregistered rank", "[mpi]") {
         cleanSystem();
 
-        const message::Message &msg = util::messageFactory(user, func);
+        const faabric::Message &msg = util::messageFactory(user, func);
         scheduler::MpiWorld world;
         world.create(msg, worldId, worldSize);
 
@@ -441,7 +441,7 @@ namespace tests {
 
         int thisWorldSize = 6;
 
-        message::Message msg = util::messageFactory(user, func);
+        faabric::Message msg = util::messageFactory(user, func);
         msg.set_mpiworldid(worldId);
         msg.set_mpiworldsize(thisWorldSize);
 
@@ -720,7 +720,7 @@ namespace tests {
     TEST_CASE("Test reduce", "[mpi]") {
         cleanSystem();
 
-        const message::Message &msg = util::messageFactory(user, func);
+        const faabric::Message &msg = util::messageFactory(user, func);
         scheduler::MpiWorld world;
         int thisWorldSize = 5;
         world.create(msg, worldId, thisWorldSize);
@@ -797,7 +797,7 @@ namespace tests {
     TEST_CASE("Test gather and allgather", "[mpi]") {
         cleanSystem();
 
-        const message::Message &msg = util::messageFactory(user, func);
+        const faabric::Message &msg = util::messageFactory(user, func);
         scheduler::MpiWorld world;
         int thisWorldSize = 5;
         int root = 3;
@@ -893,7 +893,7 @@ namespace tests {
     TEST_CASE("Test all-to-all", "[mpi]") {
         cleanSystem();
 
-        const message::Message &msg = util::messageFactory(user, func);
+        const faabric::Message &msg = util::messageFactory(user, func);
         scheduler::MpiWorld world;
         int thisWorldSize = 4;
         world.create(msg, worldId, thisWorldSize);
@@ -942,7 +942,7 @@ namespace tests {
 
         std::string otherHost = "192.168.9.2";
 
-        message::Message msg = util::messageFactory(user, func);
+        faabric::Message msg = util::messageFactory(user, func);
         msg.set_mpiworldid(worldId);
         msg.set_mpiworldsize(worldSize);
 

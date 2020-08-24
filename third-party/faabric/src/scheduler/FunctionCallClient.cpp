@@ -15,18 +15,18 @@ namespace scheduler {
                     host + ":" + std::to_string(FUNCTION_CALL_PORT),
                     grpc::InsecureChannelCredentials()
             )),
-            stub(message::FunctionRPCService::NewStub(channel)) {
+            stub(faabric::FunctionRPCService::NewStub(channel)) {
     }
 
-    void FunctionCallClient::shareFunctionCall(const message::Message &call) {
+    void FunctionCallClient::shareFunctionCall(const faabric::Message &call) {
         ClientContext context;
-        message::FunctionStatusResponse response;
+        faabric::FunctionStatusResponse response;
         CHECK_RPC("function_share", stub->ShareFunction(&context, call, &response));
     }
 
-    void  FunctionCallClient::sendMPIMessage(const message::MPIMessage &msg) {
+    void  FunctionCallClient::sendMPIMessage(const faabric::MPIMessage &msg) {
         ClientContext context;
-        message::FunctionStatusResponse response;
+        faabric::FunctionStatusResponse response;
         CHECK_RPC("mpi_message", stub->MPICall(&context, msg, &response));
     }
 }

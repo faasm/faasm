@@ -81,7 +81,7 @@ namespace faaslet {
         }
     }
 
-    void Faaslet::finishCall(message::Message &call, bool success, const std::string &errorMsg) {
+    void Faaslet::finishCall(faabric::Message &call, bool success, const std::string &errorMsg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         const std::string funcStr = util::funcToString(call, true);
         logger->info("Finished {}", funcStr);
@@ -126,7 +126,7 @@ namespace faaslet {
         executionCount++;
     }
 
-    void Faaslet::bindToFunction(const message::Message &msg, bool force) {
+    void Faaslet::bindToFunction(const faabric::Message &msg, bool force) {
         // If already bound, will be an error, unless forced to rebind to the same message
         if (_isBound) {
             if (force) {
@@ -204,7 +204,7 @@ namespace faaslet {
         }
 
         // Wait for next message (note, timeout in ms)
-        message::Message msg = currentQueue->dequeue(timeoutMs);
+        faabric::Message msg = currentQueue->dequeue(timeoutMs);
 
         // Handle the message
         std::string errorMessage;
@@ -213,7 +213,7 @@ namespace faaslet {
             flushFaasletHost();
 
             scheduler.preflightPythonCall();
-        } else if (msg.type() == message::Message_MessageType_BIND) {
+        } else if (msg.type() == faabric::Message_MessageType_BIND) {
             const std::string funcStr = util::funcToString(msg, false);
             logger->info("Faaslet {} binding to {}", id, funcStr);
 
@@ -256,7 +256,7 @@ namespace faaslet {
         return errorMessage;
     }
 
-    std::string Faaslet::executeCall(message::Message &call) {
+    std::string Faaslet::executeCall(faabric::Message &call) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         const std::string funcStr = util::funcToString(call, true);

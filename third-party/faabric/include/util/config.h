@@ -17,8 +17,6 @@ namespace util {
         std::string functionStorage;
         std::string fileserverUrl;
         std::string serialisation;
-        std::string bucketName;
-        std::string queueName;
         std::string cgroupMode;
         std::string netNsMode;
         std::string logLevel;
@@ -26,15 +24,11 @@ namespace util {
         std::string captureStdout;
         std::string stateMode;
         std::string wasmVm;
-        std::string execGraphMode;
 
         // Redis
         std::string redisStateHost;
         std::string redisQueueHost;
         std::string redisPort;
-
-        // Caching
-        std::string irCacheMode;
 
         // Scheduling
         int maxFaaslets;

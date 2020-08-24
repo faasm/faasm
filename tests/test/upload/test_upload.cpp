@@ -212,14 +212,14 @@ namespace tests {
 
         // Upload a dummy function
         std::vector<uint8_t> expected = {0, 2, 4, 1, 3};
-        message::Message msg = util::messageFactory(user, funcName);
+        faabric::Message msg = util::messageFactory(user, funcName);
         msg.set_inputdata(util::bytesToString(expected));
 
         storage::FileLoader &loader = storage::getFileLoader();
         loader.uploadPythonFunction(msg);
 
         // Check file exists as expected
-        message::Message tempMsg = util::messageFactory("python", "foobar");
+        faabric::Message tempMsg = util::messageFactory("python", "foobar");
         util::convertMessageToPython(tempMsg);
         const std::string filePath = util::getPythonFunctionFile(tempMsg);
         const std::vector<uint8_t> actualBytes = util::readFileToBytes(filePath);

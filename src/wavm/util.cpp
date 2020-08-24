@@ -37,7 +37,7 @@ namespace wasm {
         Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
 
-        const message::Message *call = getExecutingCall();
+        const faabric::Message *call = getExecutingCall();
         return std::pair<std::string, std::string>(call->user(), key);
     }
 

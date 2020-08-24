@@ -4,7 +4,7 @@
 
 #include <util/logging.h>
 #include <state/State.h>
-#include <proto/faasm.pb.h>
+#include <proto/faabric.pb.h>
 
 #include <exception>
 #include <string>
@@ -40,11 +40,11 @@ namespace wasm {
         virtual ~WasmModule();
 
         // ----- Module lifecycle -----
-        virtual void bindToFunction(const message::Message &msg);
+        virtual void bindToFunction(const faabric::Message &msg);
 
-        virtual void bindToFunctionNoZygote(const message::Message &msg);
+        virtual void bindToFunctionNoZygote(const faabric::Message &msg);
 
-        virtual bool execute(message::Message &msg, bool forceNoop = false);
+        virtual bool execute(faabric::Message &msg, bool forceNoop = false);
 
         virtual const bool isBound();
 
@@ -129,7 +129,7 @@ namespace wasm {
 
         virtual void doRestore(std::istream &inStream);
 
-        void prepareArgcArgv(const message::Message &msg);
+        void prepareArgcArgv(const faabric::Message &msg);
 
         // Shared memory regions
         std::mutex sharedMemWasmPtrsMx;
@@ -137,9 +137,9 @@ namespace wasm {
     };
 
     // ----- Global functions -----
-    message::Message *getExecutingCall();
+    faabric::Message *getExecutingCall();
 
-    void setExecutingCall(message::Message *other);
+    void setExecutingCall(faabric::Message *other);
 
     // Convenience function
     size_t getNumberOfWasmPagesForBytes(uint32_t nBytes);

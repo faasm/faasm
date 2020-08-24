@@ -8,7 +8,7 @@ using namespace wasm;
 namespace tests {
 
     TEST_CASE("Test executing function given specific pointer", "[wasm]") {
-        message::Message call = util::messageFactory("demo", "threads_check");
+        faabric::Message call = util::messageFactory("demo", "threads_check");
 
         wasm::WAVMWasmModule module;
         module.bindToFunction(call);

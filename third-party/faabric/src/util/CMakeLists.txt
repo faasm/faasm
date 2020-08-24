@@ -1,12 +1,11 @@
-include_directories(${FAASM_INCLUDE_DIR}/util)
+include_directories(${FAABRIC_INCLUDE_DIR}/util)
 
 find_package(RapidJSON)
 
-file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/util/*.h")
+file(GLOB HEADERS "${FAABRIC_INCLUDE_DIR}/util/*.h")
 
 set(LIB_FILES
         barrier.cpp
-        base64.cpp
         bytes.cpp
         chaining.cpp
         config.cpp
@@ -15,7 +14,6 @@ set(LIB_FILES
         files.cpp
         func.cpp
         gids.cpp
-        hash.cpp
         json.cpp
         logging.cpp
         memory.cpp

@@ -128,7 +128,7 @@ namespace storage {
         return getReturnValueForSharedFileState(sharedPath);
     }
 
-    void SharedFiles::syncPythonFunctionFile(const message::Message &msg) {
+    void SharedFiles::syncPythonFunctionFile(const faabric::Message &msg) {
         if (!msg.ispython()) {
             return;
         }

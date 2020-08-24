@@ -17,7 +17,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_get_idx", I32, __faasm_get_idx) {
         util::getLogger()->debug("S - get_idx");
 
-        message::Message *call = getExecutingCall();
+        faabric::Message *call = getExecutingCall();
         int idx = call->idx();
 
         return idx;
@@ -53,7 +53,7 @@ namespace wasm {
                                    I32 idx, I32 inputDataPtr, I32 inputDataLen) {
         util::getLogger()->debug("S - chain_this - {} {} {}", idx, inputDataPtr, inputDataLen);
 
-        message::Message *call = getExecutingCall();
+        faabric::Message *call = getExecutingCall();
         const std::vector<uint8_t> inputData = getBytesFromWasm(inputDataPtr, inputDataLen);
 
         return makeChainedCall(call->function(), idx, nullptr, inputData);
@@ -64,7 +64,7 @@ namespace wasm {
         const std::string pyFuncName = getStringFromWasm(namePtr);
         util::getLogger()->debug("S - chain_py - {} {} {}", pyFuncName, inputDataPtr, inputDataLen);
 
-        message::Message *call = getExecutingCall();
+        faabric::Message *call = getExecutingCall();
         const std::vector<uint8_t> inputData = getBytesFromWasm(inputDataPtr, inputDataLen);
 
         return makeChainedCall(call->function(), 0, pyFuncName.c_str(), inputData);

@@ -16,7 +16,7 @@ namespace faaslet {
     public:
         explicit Faaslet(int threadIdx);
 
-        void bindToFunction(const message::Message &msg, bool force = false);
+        void bindToFunction(const faabric::Message &msg, bool force = false);
 
         void run();
 
@@ -37,7 +37,7 @@ namespace faaslet {
         int isolationIdx;
         std::unique_ptr<isolation::NetworkNamespace> ns;
 
-        message::Message boundMessage;
+        faabric::Message boundMessage;
 
         int executionCount = 0;
 
@@ -45,8 +45,8 @@ namespace faaslet {
 
         std::shared_ptr<scheduler::InMemoryMessageQueue> currentQueue;
 
-        std::string executeCall(message::Message &msg);
+        std::string executeCall(faabric::Message &msg);
 
-        void finishCall(message::Message &msg, bool success, const std::string &errorMsg);
+        void finishCall(faabric::Message &msg, bool success, const std::string &errorMsg);
     };
 }

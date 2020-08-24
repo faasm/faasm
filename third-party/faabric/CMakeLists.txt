@@ -25,3 +25,13 @@ add_subdirectory(src/redis)
 add_subdirectory(src/scheduler)
 add_subdirectory(src/state)
 add_subdirectory(src/util)
+
+add_library(faabric faabric.cpp)
+
+target_link_libraries(faabric
+        proto
+        redis
+        scheduler
+        state
+        util
+        )

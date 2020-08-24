@@ -59,19 +59,19 @@ namespace storage {
         return fileBytes;
     }
 
-    std::vector<uint8_t> FileserverFileLoader::loadFunctionWasm(const message::Message &msg) {
+    std::vector<uint8_t> FileserverFileLoader::loadFunctionWasm(const faabric::Message &msg) {
         std::string url = util::getFunctionUrl(msg);
         std::string filePath = util::getFunctionFile(msg);
         return _doLoad(url, "", filePath);
     }
 
-    std::vector<uint8_t> FileserverFileLoader::loadFunctionObjectFile(const message::Message &msg) {
+    std::vector<uint8_t> FileserverFileLoader::loadFunctionObjectFile(const faabric::Message &msg) {
         std::string url = util::getFunctionObjectUrl(msg);
         std::string objectFilePath = util::getFunctionObjectFile(msg);
         return _doLoad(url, "", objectFilePath);
     }
 
-    std::vector<uint8_t> FileserverFileLoader::loadFunctionWamrAotFile(const message::Message &msg) {
+    std::vector<uint8_t> FileserverFileLoader::loadFunctionWamrAotFile(const faabric::Message &msg) {
         throw std::runtime_error("Not yet implemented WAMR AOT file loading from fileserver");
     }
 

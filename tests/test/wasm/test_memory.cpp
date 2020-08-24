@@ -13,7 +13,7 @@ using namespace WAVM;
 
 namespace tests {
     TEST_CASE("Test mmapping a file", "[wasm]") {
-        message::Message call;
+        faabric::Message call;
         call.set_user("demo");
         call.set_function("echo");
 

@@ -23,9 +23,6 @@ namespace tests {
         REQUIRE(conf.cgroupMode == "on");
         REQUIRE(conf.functionStorage == "local");
         REQUIRE(conf.fileserverUrl == "");
-        REQUIRE(conf.serialisation == "json");
-        REQUIRE(conf.bucketName == "");
-        REQUIRE(conf.queueName == "faasm-messages");
         REQUIRE(conf.netNsMode == "off");
         REQUIRE(conf.pythonPreload == "off");
         REQUIRE(conf.captureStdout == "off");
@@ -56,9 +53,6 @@ namespace tests {
         std::string hostType = setEnvVar("HOST_TYPE", "magic");
         std::string funcStorage = setEnvVar("FUNCTION_STORAGE", "foobar");
         std::string fileserver = setEnvVar("FILESERVER_URL", "www.foo.com");
-        std::string serialisation = setEnvVar("SERIALISATION", "proto");
-        std::string bucket = setEnvVar("BUCKET_NAME", "foo-bucket");
-        std::string queue = setEnvVar("QUEUE_NAME", "dummy-queue");
         std::string cgMode = setEnvVar("CGROUP_MODE", "off");
         std::string nsMode = setEnvVar("NETNS_MODE", "on");
         std::string pythonPre = setEnvVar("PYTHON_PRELOAD", "on");
@@ -69,8 +63,6 @@ namespace tests {
         std::string redisState = setEnvVar("REDIS_STATE_HOST", "not-localhost");
         std::string redisQueue = setEnvVar("REDIS_QUEUE_HOST", "other-host");
         std::string redisPort = setEnvVar("REDIS_PORT", "1234");
-
-        std::string irCacheMode = setEnvVar("IR_CACHE_MODE", "foo-ir-cache");
 
         std::string noScheduler = setEnvVar("NO_SCHEDULER", "1");
         std::string threads = setEnvVar("MAX_FAASLETS", "50");
@@ -99,9 +91,6 @@ namespace tests {
         REQUIRE(conf.hostType == "magic");
         REQUIRE(conf.functionStorage == "foobar");
         REQUIRE(conf.fileserverUrl == "www.foo.com");
-        REQUIRE(conf.serialisation == "proto");
-        REQUIRE(conf.bucketName == "foo-bucket");
-        REQUIRE(conf.queueName == "dummy-queue");
         REQUIRE(conf.cgroupMode == "off");
         REQUIRE(conf.netNsMode == "on");
         REQUIRE(conf.pythonPreload == "on");
@@ -112,8 +101,6 @@ namespace tests {
         REQUIRE(conf.redisStateHost == "not-localhost");
         REQUIRE(conf.redisQueueHost == "other-host");
         REQUIRE(conf.redisPort == "1234");
-
-        REQUIRE(conf.irCacheMode == "foo-ir-cache");
 
         REQUIRE(conf.noScheduler == 1);
         REQUIRE(conf.maxFaaslets == 50);
@@ -141,9 +128,6 @@ namespace tests {
 
         setEnvVar("FUNCTION_STORAGE", funcStorage);
         setEnvVar("FILESERVER_URL", fileserver);
-        setEnvVar("SERIALISATION", serialisation);
-        setEnvVar("BUCKET_NAME", bucket);
-        setEnvVar("QUEUE_NAME", queue);
         setEnvVar("CGROUP_MODE", cgMode);
         setEnvVar("NETNS_MODE", nsMode);
         setEnvVar("PYTHON_PRELOAD", pythonPre);
@@ -154,8 +138,6 @@ namespace tests {
         setEnvVar("REDIS_STATE_HOST", redisState);
         setEnvVar("REDIS_QUEUE_HOST", redisQueue);
         setEnvVar("REDIS_PORT", redisPort);
-
-        setEnvVar("IR_CACHE_MODE", irCacheMode);
 
         setEnvVar("NO_SCHEDULER", noScheduler);
         setEnvVar("MAX_FAASLETS", threads);

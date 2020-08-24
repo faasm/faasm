@@ -23,35 +23,35 @@ namespace scheduler {
     public:
         Scheduler();
 
-        void callFunction(message::Message &msg, bool forceLocal=false);
+        void callFunction(faabric::Message &msg, bool forceLocal=false);
 
-        SchedulerOpinion getLatestOpinion(const message::Message &msg);
+        SchedulerOpinion getLatestOpinion(const faabric::Message &msg);
 
-        std::string getBestHostForFunction(const message::Message &msg);
+        std::string getBestHostForFunction(const faabric::Message &msg);
 
-        void enqueueMessage(const message::Message &msg);
+        void enqueueMessage(const faabric::Message &msg);
 
-        std::shared_ptr<InMemoryMessageQueue> getFunctionQueue(const message::Message &msg);
+        std::shared_ptr<InMemoryMessageQueue> getFunctionQueue(const faabric::Message &msg);
 
-        void notifyCallFinished(const message::Message &msg);
+        void notifyCallFinished(const faabric::Message &msg);
 
-        void notifyFaasletFinished(const message::Message &msg);
+        void notifyFaasletFinished(const faabric::Message &msg);
 
         std::shared_ptr<InMemoryMessageQueue> getBindQueue();
 
-        std::string getFunctionWarmSetName(const message::Message &msg);
+        std::string getFunctionWarmSetName(const faabric::Message &msg);
 
         std::string getFunctionWarmSetNameFromStr(const std::string &funcStr);
 
         void clear();
 
-        long getFunctionWarmFaasletCount(const message::Message &msg);
+        long getFunctionWarmFaasletCount(const faabric::Message &msg);
 
         long getTotalWarmFaasletCount();
 
-        double getFunctionInFlightRatio(const message::Message &msg);
+        double getFunctionInFlightRatio(const faabric::Message &msg);
 
-        long getFunctionInFlightCount(const message::Message &msg);
+        long getFunctionInFlightCount(const faabric::Message &msg);
 
         void addHostToGlobalSet(const std::string &host);
 
@@ -75,15 +75,15 @@ namespace scheduler {
 
         std::string getThisHost();
 
-        void broadcastFlush(const message::Message &msg);
+        void broadcastFlush(const faabric::Message &msg);
 
         void preflightPythonCall();
 
         std::string getMessageStatus(unsigned int messageId);
 
-        void setFunctionResult(message::Message &msg);
+        void setFunctionResult(faabric::Message &msg);
 
-        message::Message getFunctionResult(unsigned int messageId, int timeout);
+        faabric::Message getFunctionResult(unsigned int messageId, int timeout);
 
         void logChainedFunction(unsigned int parentMessageId, unsigned int chainedMessageId);
 
@@ -109,17 +109,17 @@ namespace scheduler {
         std::vector<unsigned int> recordedMessagesLocal;
         std::vector<std::pair<std::string, unsigned int>> recordedMessagesShared;
 
-        void updateOpinion(const message::Message &msg);
+        void updateOpinion(const faabric::Message &msg);
 
-        void incrementInFlightCount(const message::Message &msg);
+        void incrementInFlightCount(const faabric::Message &msg);
 
-        void decrementInFlightCount(const message::Message &msg);
+        void decrementInFlightCount(const faabric::Message &msg);
 
-        void incrementWarmFaasletCount(const message::Message &msg);
+        void incrementWarmFaasletCount(const faabric::Message &msg);
 
-        void decrementWarmFaasletCount(const message::Message &msg);
+        void decrementWarmFaasletCount(const faabric::Message &msg);
 
-        int getFunctionMaxInFlightRatio(const message::Message &msg);
+        int getFunctionMaxInFlightRatio(const faabric::Message &msg);
 
         ExecGraphNode getFunctionExecGraphNode(unsigned int msgId);
     };

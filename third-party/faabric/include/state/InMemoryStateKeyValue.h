@@ -4,8 +4,8 @@
 #include "StateKeyValue.h"
 #include "InMemoryStateRegistry.h"
 
-#include <proto/faasm.pb.h>
-#include <proto/faasm.grpc.pb.h>
+#include <proto/faabric.pb.h>
+#include <proto/faabric.grpc.pb.h>
 
 #include <util/clock.h>
 

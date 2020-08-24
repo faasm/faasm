@@ -1,7 +1,7 @@
 #pragma once
 
 #include <pistache/http.h>
-#include <proto/faasm.pb.h>
+#include <proto/faabric.pb.h>
 
 namespace faaslet {
     class FaasletEndpointHandler : public Pistache::Http::Handler {
@@ -15,6 +15,6 @@ namespace faaslet {
         std::string handleFunction(const std::string &requestStr);
 
     private:
-        std::string executeFunction(message::Message &msg);
+        std::string executeFunction(faabric::Message &msg);
     };
 }

@@ -51,7 +51,7 @@ namespace scheduler {
         return state.getKV(user, stateKey, MPI_HOST_STATE_LEN);
     }
 
-    void MpiWorld::create(const message::Message &call, int newId, int newSize) {
+    void MpiWorld::create(const faabric::Message &call, int newId, int newSize) {
         id = newId;
         user = call.user();
         function = call.function();
@@ -70,7 +70,7 @@ namespace scheduler {
         // (size - 1) new functions starting with rank 1
         scheduler::Scheduler &sch = scheduler::getScheduler();
         for (int i = 1; i < size; i++) {
-            message::Message msg = util::messageFactory(user, function);
+            faabric::Message msg = util::messageFactory(user, function);
             msg.set_ismpi(true);
             msg.set_mpiworldid(id);
             msg.set_mpirank(i);
@@ -91,7 +91,7 @@ namespace scheduler {
         localQueueMap.clear();
     }
 
-    void MpiWorld::initialiseFromState(const message::Message &msg, int worldId) {
+    void MpiWorld::initialiseFromState(const faabric::Message &msg, int worldId) {
         id = worldId;
         user = msg.user();
         function = msg.function();
@@ -183,7 +183,7 @@ namespace scheduler {
     }
 
     void MpiWorld::send(int sendRank, int recvRank, const uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
-                        message::MPIMessage::MPIMessageType messageType) {
+                        faabric::MPIMessage::MPIMessageType messageType) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         if (recvRank > this->size - 1) {
@@ -194,7 +194,7 @@ namespace scheduler {
         int msgId = (int) util::generateGid();
 
         // Create the message
-        message::MPIMessage m;
+        faabric::MPIMessage m;
         m.set_id(msgId);
         m.set_worldid(id);
         m.set_sender(sendRank);
@@ -214,7 +214,7 @@ namespace scheduler {
 
         // Dispatch the message locally or globally
         if (isLocal) {
-            if (messageType == message::MPIMessage::RMA_WRITE) {
+            if (messageType == faabric::MPIMessage::RMA_WRITE) {
                 logger->trace("MPI - local RMA write {} -> {}", sendRank, recvRank);
                 synchronizeRmaWrite(m, false);
             } else {
@@ -231,7 +231,7 @@ namespace scheduler {
     }
 
     void MpiWorld::broadcast(int sendRank, const uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
-                             message::MPIMessage::MPIMessageType messageType) {
+                             faabric::MPIMessage::MPIMessageType messageType) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->trace("MPI - bcast {} -> all", sendRank);
 
@@ -276,12 +276,12 @@ namespace scheduler {
                     const uint8_t *endPtr = startPtr + sendOffset;
                     std::copy(startPtr, endPtr, recvBuffer);
                 } else {
-                    send(sendRank, r, startPtr, sendType, sendCount, message::MPIMessage::SCATTER);
+                    send(sendRank, r, startPtr, sendType, sendCount, faabric::MPIMessage::SCATTER);
                 }
             }
         } else {
             // Do the receiving
-            recv(sendRank, recvRank, recvBuffer, recvType, recvCount, nullptr, message::MPIMessage::SCATTER);
+            recv(sendRank, recvRank, recvBuffer, recvType, recvCount, nullptr, faabric::MPIMessage::SCATTER);
         }
     }
 
@@ -313,7 +313,7 @@ namespace scheduler {
                     std::copy(sendBuffer, sendBuffer + sendOffset, recvChunk);
                 } else {
                     // Receive data from rank if it's not the root
-                    recv(r, recvRank, recvChunk, recvType, recvCount, nullptr, message::MPIMessage::GATHER);
+                    recv(r, recvRank, recvChunk, recvType, recvCount, nullptr, faabric::MPIMessage::GATHER);
                 }
             }
         } else {
@@ -325,10 +325,10 @@ namespace scheduler {
                 // rank's data already in place. Therefore we need to send _only_ the part of the send
                 // buffer relating to this rank.
                 const uint8_t *sendChunk = sendBuffer + (sendRank * sendOffset);
-                send(sendRank, recvRank, sendChunk, sendType, sendCount, message::MPIMessage::GATHER);
+                send(sendRank, recvRank, sendChunk, sendType, sendCount, faabric::MPIMessage::GATHER);
             } else {
                 // Normal sending
-                send(sendRank, recvRank, sendBuffer, sendType, sendCount, message::MPIMessage::GATHER);
+                send(sendRank, recvRank, sendBuffer, sendType, sendCount, faabric::MPIMessage::GATHER);
             }
         }
     }
@@ -346,10 +346,10 @@ namespace scheduler {
         int fullCount = recvCount * size;
         if (rank == root) {
             // Broadcast the result
-            broadcast(root, recvBuffer, recvType, fullCount, message::MPIMessage::ALLGATHER);
+            broadcast(root, recvBuffer, recvType, fullCount, faabric::MPIMessage::ALLGATHER);
         } else {
             // Await the broadcast from the master
-            recv(root, rank, recvBuffer, recvType, fullCount, nullptr, message::MPIMessage::ALLGATHER);
+            recv(root, rank, recvBuffer, recvType, fullCount, nullptr, faabric::MPIMessage::ALLGATHER);
         }
     }
 
@@ -359,12 +359,12 @@ namespace scheduler {
 
     void MpiWorld::recv(int sendRank, int recvRank,
                         uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
-                        MPI_Status *status, message::MPIMessage::MPIMessageType messageType) {
+                        MPI_Status *status, faabric::MPIMessage::MPIMessageType messageType) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Listen to the in-memory queue for this rank and message type
         logger->trace("MPI - recv {} -> {}", sendRank, recvRank);
-        message::MPIMessage m = getLocalQueue(sendRank, recvRank)->dequeue();
+        faabric::MPIMessage m = getLocalQueue(sendRank, recvRank)->dequeue();
 
         if (messageType != m.messagetype()) {
             logger->error("Message types mismatched on {}->{} (expected={}, got={})", sendRank, recvRank, messageType,
@@ -440,7 +440,7 @@ namespace scheduler {
                 } else {
                     // If we're receiving from another rank, call recv
                     rankData = new uint8_t[bufferSize];
-                    recv(r, recvRank, rankData, datatype, count, nullptr, message::MPIMessage::REDUCE);
+                    recv(r, recvRank, rankData, datatype, count, nullptr, faabric::MPIMessage::REDUCE);
                 }
 
                 if (operation->id == faasmpi_op_sum.id) {
@@ -490,7 +490,7 @@ namespace scheduler {
 
         } else {
             // Do the sending
-            send(sendRank, recvRank, sendBuffer, datatype, count, message::MPIMessage::REDUCE);
+            send(sendRank, recvRank, sendBuffer, datatype, count, faabric::MPIMessage::REDUCE);
         }
     }
 
@@ -502,13 +502,13 @@ namespace scheduler {
             reduce(0, 0, sendBuffer, recvBuffer, datatype, count, operation);
 
             // Broadcast the result
-            broadcast(0, recvBuffer, datatype, count, message::MPIMessage::ALLREDUCE);
+            broadcast(0, recvBuffer, datatype, count, faabric::MPIMessage::ALLREDUCE);
         } else {
             // Run the standard reduce
             reduce(rank, 0, sendBuffer, recvBuffer, datatype, count, operation);
 
             // Await the broadcast from the master
-            recv(0, rank, recvBuffer, datatype, count, nullptr, message::MPIMessage::ALLREDUCE);
+            recv(0, rank, recvBuffer, datatype, count, nullptr, faabric::MPIMessage::ALLREDUCE);
         }
     }
 
@@ -529,7 +529,7 @@ namespace scheduler {
                 std::copy(sendChunk, sendChunk + sendOffset, recvBuffer + rankOffset);
             } else {
                 // Send message to other rank
-                send(rank, r, sendChunk, sendType, sendCount, message::MPIMessage::ALLTOALL);
+                send(rank, r, sendChunk, sendType, sendCount, faabric::MPIMessage::ALLTOALL);
             }
         }
 
@@ -543,13 +543,13 @@ namespace scheduler {
             uint8_t *recvChunk = recvBuffer + (r * sendOffset);
 
             // Do the receive
-            recv(r, rank, recvChunk, recvType, recvCount, nullptr, message::MPIMessage::ALLTOALL);
+            recv(r, rank, recvChunk, recvType, recvCount, nullptr, faabric::MPIMessage::ALLTOALL);
         }
     }
 
     void MpiWorld::probe(int sendRank, int recvRank, MPI_Status *status) {
         const std::shared_ptr<InMemoryMpiQueue> &queue = getLocalQueue(sendRank, recvRank);
-        message::MPIMessage m = queue->peek();
+        faabric::MPIMessage m = queue->peek();
 
         faasmpi_datatype_t *datatype = getFaasmDatatypeFromId(m.type());
         status->bytesSize = m.count() * datatype->size;
@@ -566,24 +566,24 @@ namespace scheduler {
             // Await messages from all others
             for (int r = 1; r < size; r++) {
                 MPI_Status s{};
-                recv(r, 0, nullptr, MPI_INT, 0, &s, message::MPIMessage::BARRIER_JOIN);
+                recv(r, 0, nullptr, MPI_INT, 0, &s, faabric::MPIMessage::BARRIER_JOIN);
                 logger->trace("MPI - recv barrier join {}", s.MPI_SOURCE);
             }
 
             // Broadcast that the barrier is done
-            broadcast(0, nullptr, MPI_INT, 0, message::MPIMessage::BARRIER_DONE);
+            broadcast(0, nullptr, MPI_INT, 0, faabric::MPIMessage::BARRIER_DONE);
         } else {
             // Tell the root that we're waiting
             logger->trace("MPI - barrier join {}", thisRank);
-            send(thisRank, 0, nullptr, MPI_INT, 0, message::MPIMessage::BARRIER_JOIN);
+            send(thisRank, 0, nullptr, MPI_INT, 0, faabric::MPIMessage::BARRIER_JOIN);
 
             // Receive a message saying the barrier is done
-            recv(0, thisRank, nullptr, MPI_INT, 0, nullptr, message::MPIMessage::BARRIER_DONE);
+            recv(0, thisRank, nullptr, MPI_INT, 0, nullptr, faabric::MPIMessage::BARRIER_DONE);
             logger->trace("MPI - barrier done {}", thisRank);
         }
     }
 
-    void MpiWorld::enqueueMessage(message::MPIMessage &msg) {
+    void MpiWorld::enqueueMessage(faabric::MPIMessage &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         if (msg.worldid() != id) {
@@ -591,7 +591,7 @@ namespace scheduler {
             throw std::runtime_error("Queueing message not for this world");
         }
 
-        if (msg.messagetype() == message::MPIMessage::RMA_WRITE) {
+        if (msg.messagetype() == faabric::MPIMessage::RMA_WRITE) {
             // NOTE - RMA notifications must be processed synchronously to ensure ordering
             synchronizeRmaWrite(msg, true);
         } else {
@@ -655,10 +655,10 @@ namespace scheduler {
 
         // Notify the receiver of the push
         // NOTE - must specify a count here to say how big the change is
-        send(sendRank, recvRank, nullptr, MPI_INT, sendCount, message::MPIMessage::RMA_WRITE);
+        send(sendRank, recvRank, nullptr, MPI_INT, sendCount, faabric::MPIMessage::RMA_WRITE);
     }
 
-    void MpiWorld::synchronizeRmaWrite(const message::MPIMessage &msg, bool isRemote) {
+    void MpiWorld::synchronizeRmaWrite(const faabric::MPIMessage &msg, bool isRemote) {
         faasmpi_datatype_t *datatype = getFaasmDatatypeFromId(msg.type());
         int winSize = msg.count() * datatype->size;
         const std::string key = getWindowStateKey(id, msg.destination(), winSize);

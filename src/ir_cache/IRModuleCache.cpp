@@ -83,7 +83,7 @@ namespace wasm {
                 module.featureSpec.atomics = true;
 
                 storage::FileLoader &functionLoader = storage::getFileLoader();
-                message::Message msg = util::messageFactory(user, func);
+                faabric::Message msg = util::messageFactory(user, func);
                 std::vector<uint8_t> objectFileBytes = functionLoader.loadFunctionObjectFile(msg);
 
                 if (!objectFileBytes.empty()) {
@@ -136,7 +136,7 @@ namespace wasm {
 
                 storage::FileLoader &functionLoader = storage::getFileLoader();
 
-                message::Message msg = util::messageFactory(user, func);
+                faabric::Message msg = util::messageFactory(user, func);
                 std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionWasm(msg);
 
                 IR::Module &module = moduleMap[key];

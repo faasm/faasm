@@ -10,17 +10,17 @@
 #include <boost/filesystem.hpp>
 
 namespace storage {
-    std::vector<uint8_t> LocalFileLoader::loadFunctionWasm(const message::Message &msg) {
+    std::vector<uint8_t> LocalFileLoader::loadFunctionWasm(const faabric::Message &msg) {
         std::string filePath = util::getFunctionFile(msg);
         return loadFileBytes(filePath);
     }
 
-    std::vector<uint8_t> LocalFileLoader::loadFunctionObjectFile(const message::Message &msg) {
+    std::vector<uint8_t> LocalFileLoader::loadFunctionObjectFile(const faabric::Message &msg) {
         std::string objectFilePath = util::getFunctionObjectFile(msg);
         return loadFileBytes(objectFilePath);
     }
 
-    std::vector<uint8_t> LocalFileLoader::loadFunctionWamrAotFile(const message::Message &msg) {
+    std::vector<uint8_t> LocalFileLoader::loadFunctionWamrAotFile(const faabric::Message &msg) {
         std::string objectFilePath = util::getFunctionAotFile(msg);
         return loadFileBytes(objectFilePath);
     }
@@ -51,7 +51,7 @@ namespace storage {
         return loadFileBytes(fullPath);
     }
 
-    void LocalFileLoader::uploadFunction(message::Message &msg) {
+    void LocalFileLoader::uploadFunction(faabric::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         const std::string funcStr = util::funcToString(msg, false);
 
@@ -74,7 +74,7 @@ namespace storage {
         codegenForFunction(msg);
     }
 
-    void LocalFileLoader::uploadPythonFunction(message::Message &msg) {
+    void LocalFileLoader::uploadPythonFunction(faabric::Message &msg) {
         const std::string &fileBody = msg.inputdata();
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -90,12 +90,12 @@ namespace storage {
         out.close();
     }
 
-    void LocalFileLoader::uploadFunctionObjectFile(const message::Message &msg, const std::vector<uint8_t> &objBytes) {
+    void LocalFileLoader::uploadFunctionObjectFile(const faabric::Message &msg, const std::vector<uint8_t> &objBytes) {
         std::string objFilePath = util::getFunctionObjectFile(msg);
         util::writeBytesToFile(objFilePath, objBytes);
     }
 
-    void LocalFileLoader::uploadFunctionAotFile(const message::Message &msg, const std::vector<uint8_t> &objBytes) {
+    void LocalFileLoader::uploadFunctionAotFile(const faabric::Message &msg, const std::vector<uint8_t> &objBytes) {
         std::string objFilePath = util::getFunctionAotFile(msg);
         util::writeBytesToFile(objFilePath, objBytes);
     }

@@ -24,7 +24,7 @@ namespace tests {
         std::vector<uint8_t> dummyBytes = {0, 1, 2, 3, 4, 5, 6, 7, 8};
         long dummyLen = dummyBytes.size();
 
-        message::Message call = util::messageFactory("demo", "echo");
+        faabric::Message call = util::messageFactory("demo", "echo");
         
         SECTION("Output data") {
             setEmulatedMessage(call);
@@ -88,7 +88,7 @@ namespace tests {
     }
     
     TEST_CASE("Test emulator setting function result", "[emulator]") {
-        message::Message call = util::messageFactory("demo", "echo");
+        faabric::Message call = util::messageFactory("demo", "echo");
         util::setMessageId(call);
 
         util::SystemConfig &conf = util::getSystemConfig();

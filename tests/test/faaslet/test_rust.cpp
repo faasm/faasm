@@ -9,7 +9,7 @@ namespace tests {
         cleanSystem();
 
         // TODO - WASI - get Rust working again
-        // message::Message call = util::messageFactory("rust", "hello");
+        // faabric::Message call = util::messageFactory("rust", "hello");
         // execFunction(call);
     }
 }

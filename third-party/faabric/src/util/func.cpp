@@ -28,7 +28,7 @@ namespace util {
         return rootUrl;
     }
 
-    std::string getUrl(const message::Message &msg, const std::string &urlPart) {
+    std::string getUrl(const faabric::Message &msg, const std::string &urlPart) {
         std::string rootUrl = getRootUrl();
 
         std::string funcUrl = rootUrl + "/" + urlPart + "/" + msg.user() + "/" + msg.function();
@@ -51,19 +51,19 @@ namespace util {
         return rootUrl + "/file";
     }
 
-    std::string getFunctionUrl(const message::Message &msg) {
+    std::string getFunctionUrl(const faabric::Message &msg) {
         return getUrl(msg, "f");
     }
 
-    std::string getFunctionObjectUrl(const message::Message &msg) {
+    std::string getFunctionObjectUrl(const faabric::Message &msg) {
         return getUrl(msg, "fo");
     }
 
-    std::string getPythonFunctionUrl(const message::Message &msg) {
+    std::string getPythonFunctionUrl(const faabric::Message &msg) {
         return getUrl(msg, "p");
     }
 
-    std::string _doGetPythonFunctionFile(const message::Message &msg, const std::string &parentDir, bool createDirs) {
+    std::string _doGetPythonFunctionFile(const faabric::Message &msg, const std::string &parentDir, bool createDirs) {
         if (!msg.ispython()) {
             throw std::runtime_error(
                     "Getting python function file for non-Python function " + funcToString(msg, false)
@@ -89,7 +89,7 @@ namespace util {
         return path.string();
     }
 
-    boost::filesystem::path _doGetDir(std::string baseDir, const message::Message &msg, bool create) {
+    boost::filesystem::path _doGetDir(std::string baseDir, const faabric::Message &msg, bool create) {
         boost::filesystem::path path(baseDir);
         path.append(msg.user());
         path.append(msg.function());
@@ -102,17 +102,17 @@ namespace util {
         return path;
     }
 
-    boost::filesystem::path getFunctionDir(const message::Message &msg, bool create = true) {
+    boost::filesystem::path getFunctionDir(const faabric::Message &msg, bool create = true) {
         SystemConfig &conf = util::getSystemConfig();
         return _doGetDir(conf.functionDir, msg, create);
     }
 
-    boost::filesystem::path getObjectDir(const message::Message &msg, bool create = true) {
+    boost::filesystem::path getObjectDir(const faabric::Message &msg, bool create = true) {
         SystemConfig &conf = util::getSystemConfig();
         return _doGetDir(conf.objectFileDir, msg, create);
     }
 
-    bool isValidFunction(const message::Message &msg) {
+    bool isValidFunction(const faabric::Message &msg) {
         if (msg.user().empty() || msg.function().empty()) {
             return false;
         }
@@ -124,7 +124,7 @@ namespace util {
         return isValid;
     }
 
-    std::string getFunctionKey(const message::Message &msg) {
+    std::string getFunctionKey(const faabric::Message &msg) {
         std::string key = "wasm";
 
         key += "/";
@@ -137,7 +137,7 @@ namespace util {
         return key;
     }
 
-    std::string getFunctionObjectKey(const message::Message &msg) {
+    std::string getFunctionObjectKey(const faabric::Message &msg) {
         std::string key = "wasm";
 
         key += "/";
@@ -150,45 +150,45 @@ namespace util {
         return key;
     }
 
-    std::string getPythonFunctionFile(const message::Message &msg) {
+    std::string getPythonFunctionFile(const faabric::Message &msg) {
         // Python functions are stored as shared files to make it easier to
         // share them through the system
         return _doGetPythonFunctionFile(msg, util::getSystemConfig().sharedFilesStorageDir, true);
     }
 
-    std::string getPythonFunctionFileSharedPath(const message::Message &msg) {
+    std::string getPythonFunctionFileSharedPath(const faabric::Message &msg) {
         // This is the shared path of the form faasm:// used to access the Python file
         return _doGetPythonFunctionFile(msg, SHARED_FILE_PREFIX, false);
     }
 
-    std::string getPythonRuntimeFunctionFile(const message::Message &msg) {
+    std::string getPythonRuntimeFunctionFile(const faabric::Message &msg) {
         // This is the path where the file is placed at runtime to be
         // accessible to the function
         return _doGetPythonFunctionFile(msg, util::getSystemConfig().runtimeFilesDir, true);
     }
 
-    std::string getFunctionFile(const message::Message &msg) {
+    std::string getFunctionFile(const faabric::Message &msg) {
         auto path = getFunctionDir(msg);
         path.append(funcFile);
 
         return path.string();
     }
 
-    std::string getFunctionSymbolsFile(const message::Message &msg) {
+    std::string getFunctionSymbolsFile(const faabric::Message &msg) {
         auto path = getFunctionDir(msg);
         path.append(symFile);
 
         return path.string();
     }
 
-    std::string getFunctionObjectFile(const message::Message &msg) {
+    std::string getFunctionObjectFile(const faabric::Message &msg) {
         auto path = getObjectDir(msg);
         path.append(objFile);
 
         return path.string();
     }
 
-    std::string getFunctionAotFile(const message::Message &msg) {
+    std::string getFunctionAotFile(const faabric::Message &msg) {
         auto path = getObjectDir(msg);
         path.append(wamrAotFile);
 
@@ -229,7 +229,7 @@ namespace util {
         return p.string();
     }
 
-    std::vector<uint8_t> messageToBytes(const message::Message &msg) {
+    std::vector<uint8_t> messageToBytes(const faabric::Message &msg) {
         size_t byteSize = msg.ByteSizeLong();
         uint8_t buffer[byteSize];
         msg.SerializeToArray(buffer, (int) byteSize);
@@ -239,7 +239,7 @@ namespace util {
         return inputData;
     }
 
-    std::string funcToString(const message::Message &msg, bool includeId) {
+    std::string funcToString(const faabric::Message &msg, bool includeId) {
         std::string str = msg.user() + "/" + msg.function();
 
         if (includeId) {
@@ -248,7 +248,7 @@ namespace util {
         return str;
     }
 
-    std::string buildAsyncResponse(const message::Message &msg) {
+    std::string buildAsyncResponse(const faabric::Message &msg) {
         if (msg.id() == 0) {
             throw std::runtime_error("Message must have id to build async response");
         }
@@ -256,8 +256,8 @@ namespace util {
         return std::to_string(msg.id());
     }
 
-    message::Message messageFactory(const std::string &user, const std::string &function) {
-        message::Message msg;
+    faabric::Message messageFactory(const std::string &user, const std::string &function) {
+        faabric::Message msg;
         msg.set_user(user);
         msg.set_function(function);
         setMessageId(msg);
@@ -265,7 +265,7 @@ namespace util {
         return msg;
     }
 
-    void convertMessageToPython(message::Message &msg) {
+    void convertMessageToPython(faabric::Message &msg) {
         msg.set_ispython(true);
         msg.set_pythonfunction(msg.function());
         msg.set_pythonuser(msg.user());
@@ -274,7 +274,7 @@ namespace util {
         msg.set_function(PYTHON_FUNC);
     }
 
-    unsigned int setMessageId(message::Message &msg) {
+    unsigned int setMessageId(faabric::Message &msg) {
         // If message already has an ID, just make sure the keys are set up
         unsigned int messageId;
         if (msg.id() > 0) {
@@ -312,7 +312,7 @@ namespace util {
         return k;
     }
 
-    std::vector<std::string> getArgvForMessage(const message::Message &msg) {
+    std::vector<std::string> getArgvForMessage(const faabric::Message &msg) {
         // We always have some arbitrary script name as argv[0]
         std::vector<std::string> argv = {"function.wasm"};
 

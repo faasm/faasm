@@ -1,8 +1,8 @@
 include_directories(
-        ${FAASM_INCLUDE_DIR}/state
+        ${FAABRIC_INCLUDE_DIR}/state
 )
 
-file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/state/*.h")
+file(GLOB HEADERS "${FAABRIC_INCLUDE_DIR}/state/*.h")
 
 set(LIB_FILES
         InMemoryStateKeyValue.cpp

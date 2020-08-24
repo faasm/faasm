@@ -21,10 +21,10 @@ set(PROTOC_EXE /usr/local/bin/protoc)
 set(GRPC_PLUGIN /usr/local/bin/grpc_cpp_plugin)
 
 set(OUTPUT_FILES
-        ${CMAKE_CURRENT_BINARY_DIR}/faasm.pb.cc
-        ${CMAKE_CURRENT_BINARY_DIR}/faasm.pb.h
-        ${CMAKE_CURRENT_BINARY_DIR}/faasm.grpc.pb.cc
-        ${CMAKE_CURRENT_BINARY_DIR}/faasm.grpc.pb.h
+        ${CMAKE_CURRENT_BINARY_DIR}/faabric.pb.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/faabric.pb.h
+        ${CMAKE_CURRENT_BINARY_DIR}/faabric.grpc.pb.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/faabric.grpc.pb.h
         )
 
 add_custom_command(
@@ -34,13 +34,13 @@ add_custom_command(
         --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
         -I "${CMAKE_CURRENT_LIST_DIR}"
         --plugin=protoc-gen-grpc=${GRPC_PLUGIN}
-        faasm.proto
-        DEPENDS faasm.proto
+        faabric.proto
+        DEPENDS faabric.proto
 )
 
-include_directories(${FAASM_INCLUDE_DIR}/proto/)
+include_directories(${FAABRIC_INCLUDE_DIR}/proto/)
 
-file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/proto/*.h")
+file(GLOB HEADERS "${FAABRIC_INCLUDE_DIR}/proto/*.h")
 
 set(LIB_FILES
         RPCServer.cpp

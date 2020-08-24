@@ -30,7 +30,7 @@ namespace storage {
         }
     }
 
-    void FileLoader::codegenForFunction(message::Message &msg) {
+    void FileLoader::codegenForFunction(faabric::Message &msg) {
         std::vector<uint8_t> bytes = loadFunctionWasm(msg);
 
         if (bytes.empty()) {

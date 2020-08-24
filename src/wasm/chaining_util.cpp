@@ -11,7 +11,7 @@ namespace wasm {
         int returnCode = 1;
         try {
             scheduler::Scheduler &sch = scheduler::getScheduler();
-            const message::Message result = sch.getFunctionResult(messageId, callTimeoutMs);
+            const faabric::Message result = sch.getFunctionResult(messageId, callTimeoutMs);
             returnCode = result.returnvalue();
         } catch (redis::RedisNoResponseException &ex) {
             util::getLogger()->error("Timed out waiting for chained call: {}", messageId);
@@ -25,10 +25,10 @@ namespace wasm {
     int makeChainedCall(const std::string &functionName, int idx, const char *pyFuncName,
                         const std::vector<uint8_t> &inputData) {
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        message::Message *originalCall = getExecutingCall();
+        faabric::Message *originalCall = getExecutingCall();
 
         // Chained calls should be asynchronous as we will wait for the result on the message queue
-        message::Message call = util::messageFactory(originalCall->user(), functionName);
+        faabric::Message call = util::messageFactory(originalCall->user(), functionName);
         call.set_inputdata(inputData.data(), inputData.size());
         call.set_idx(idx);
         call.set_isasync(true);
@@ -52,10 +52,7 @@ namespace wasm {
                                  call.scheduledhost()
         );
 
-        // Check if we need to log this
-        if(conf.execGraphMode == "on") {
-            sch.logChainedFunction(originalCall->id(), call.id());
-        }
+        sch.logChainedFunction(originalCall->id(), call.id());
         
         return call.id();
     }
@@ -63,8 +60,8 @@ namespace wasm {
     int spawnChainedThread(const std::string &snapshotKey, size_t snapshotSize, int funcPtr, int argsPtr) {
         scheduler::Scheduler &sch = scheduler::getScheduler();
 
-        message::Message *originalCall = getExecutingCall();
-        message::Message call = util::messageFactory(originalCall->user(), originalCall->function());
+        faabric::Message *originalCall = getExecutingCall();
+        faabric::Message call = util::messageFactory(originalCall->user(), originalCall->function());
         call.set_isasync(true);
 
         // Snapshot details
@@ -97,9 +94,9 @@ namespace wasm {
         int callTimeoutMs = util::getSystemConfig().chainedCallTimeout;
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        const message::Message result = sch.getFunctionResult(messageId, callTimeoutMs);
+        const faabric::Message result = sch.getFunctionResult(messageId, callTimeoutMs);
 
-        if (result.type() == message::Message_MessageType_EMPTY) {
+        if (result.type() == faabric::Message_MessageType_EMPTY) {
             logger->error("Cannot find output for {}", messageId);
         }
 

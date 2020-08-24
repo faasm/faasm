@@ -44,7 +44,7 @@ namespace faaslet {
         if (requestStr.empty()) {
             responseStr = "Empty request";
         } else {
-            message::Message msg = util::jsonToMessage(requestStr);
+            faabric::Message msg = util::jsonToMessage(requestStr);
             scheduler::Scheduler &sched = scheduler::getScheduler();
 
             if (msg.isstatusrequest()) {
@@ -67,7 +67,7 @@ namespace faaslet {
         return responseStr;
     }
 
-    std::string FaasletEndpointHandler::executeFunction(message::Message &msg) {
+    std::string FaasletEndpointHandler::executeFunction(faabric::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         util::SystemConfig &conf = util::getSystemConfig();
 
@@ -95,7 +95,7 @@ namespace faaslet {
             logger->debug("Worker thread {} awaiting {}", tid, funcStr);
 
             try {
-                const message::Message result = sch.getFunctionResult(msg.id(), conf.globalMessageTimeout);
+                const faabric::Message result = sch.getFunctionResult(msg.id(), conf.globalMessageTimeout);
                 logger->debug("Worker thread {} result {}", tid, funcStr);
 
                 return result.outputdata() + "\n";

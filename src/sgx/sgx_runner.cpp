@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
     }
 #endif
 
-    message::Message msg = util::messageFactory(argv[1], argv[2]);
+    faabric::Message msg = util::messageFactory(argv[1], argv[2]);
     msg.set_issgx(true);
 
     if (argc > 3) {

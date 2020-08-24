@@ -24,7 +24,7 @@ namespace tests {
         stateKv->set(modelBytes.data());
 
         // Invoke the function
-        message::Message call = util::messageFactory(user, func);
+        faabric::Message call = util::messageFactory(user, func);
 
         // Hard-coded expected output (also not ideal)
         std::string expectedOutput = "0.901477: 653 653:military uniform\n"

@@ -1,7 +1,7 @@
 #include <catch/catch.hpp>
 #include <iostream>
 
-#include <proto/faasm.pb.h>
+#include <proto/faabric.pb.h>
 #include <util/bytes.h>
 #include <utils.h>
 
@@ -19,7 +19,7 @@ namespace tests {
     }
 
     TEST_CASE("Test protobuf classes", "[proto]") {
-        message::Message funcCall;
+        faabric::Message funcCall;
 
         std::string user = "foobar user";
         std::string func = "foobar func";
@@ -53,11 +53,11 @@ namespace tests {
         funcCall.set_isstatusrequest(true);
         funcCall.set_isflushrequest(true);
 
-        funcCall.set_type(message::Message_MessageType_BIND);
+        funcCall.set_type(faabric::Message_MessageType_BIND);
 
         funcCall.set_cmdline(cmdline);
 
-        REQUIRE(funcCall.type() == message::Message_MessageType_BIND);
+        REQUIRE(funcCall.type() == faabric::Message_MessageType_BIND);
         REQUIRE(user == funcCall.user());
         REQUIRE(func == funcCall.function());
         REQUIRE(resultKey == funcCall.resultkey());
@@ -66,13 +66,13 @@ namespace tests {
         // Check serialisation round trip
         std::string serialised = funcCall.SerializeAsString();
 
-        message::Message newFuncCall;
+        faabric::Message newFuncCall;
         newFuncCall.ParseFromString(serialised);
 
         REQUIRE(user == newFuncCall.user());
         REQUIRE(func == newFuncCall.function());
         REQUIRE(resultKey == newFuncCall.resultkey());
-        REQUIRE(message::Message_MessageType_BIND == newFuncCall.type());
+        REQUIRE(faabric::Message_MessageType_BIND == newFuncCall.type());
 
         REQUIRE(pyUser == newFuncCall.pythonuser());
         REQUIRE(pyFunc == newFuncCall.pythonfunction());
@@ -99,11 +99,11 @@ namespace tests {
 
     TEST_CASE("Test protobuf byte handling", "[proto]") {
         // One message with null terminators, one without
-        message::Message msgA;
+        faabric::Message msgA;
         std::vector<uint8_t> bytesA = {0, 0, 1, 1, 0, 0, 2, 2};
         msgA.set_inputdata(bytesA.data(), bytesA.size());
 
-        message::Message msgB;
+        faabric::Message msgB;
         std::vector<uint8_t> bytesB = {1, 1, 1, 1, 1, 1, 2, 2};
         msgB.set_inputdata(bytesB.data(), bytesB.size());
 
@@ -112,10 +112,10 @@ namespace tests {
 
         REQUIRE(serialisedA.size() == serialisedB.size());
 
-        message::Message newMsgA;
+        faabric::Message newMsgA;
         newMsgA.ParseFromString(serialisedA);
 
-        message::Message newMsgB;
+        faabric::Message newMsgB;
         newMsgB.ParseFromString(serialisedB);
 
         checkMessageEquality(msgA, newMsgA);

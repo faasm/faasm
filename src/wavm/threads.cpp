@@ -14,7 +14,7 @@ using namespace WAVM;
 namespace wasm {
     struct PThreadArgs {
         wasm::WAVMWasmModule *parentModule;
-        message::Message *parentCall;
+        faabric::Message *parentCall;
         WasmThreadSpec *spec;
     };
 

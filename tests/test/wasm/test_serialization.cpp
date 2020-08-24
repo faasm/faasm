@@ -13,7 +13,7 @@ namespace tests {
 
         std::string user = "demo";
         std::string function = "zygote_check";
-        message::Message m = util::messageFactory(user, function);
+        faabric::Message m = util::messageFactory(user, function);
 
         std::string mode;
         SECTION("In memory") {

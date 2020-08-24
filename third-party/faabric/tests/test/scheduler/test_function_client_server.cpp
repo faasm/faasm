@@ -19,7 +19,7 @@ namespace tests {
         usleep(1000 * 100);
 
         // Create a message
-        message::Message msg;
+        faabric::Message msg;
         msg.set_user("demo");
         msg.set_function("echo");
         msg.set_inputdata("foobarbaz");
@@ -37,7 +37,7 @@ namespace tests {
 
         // Check the message is on the queue
         REQUIRE(funcQueue->size() == 1);
-        message::Message actual = funcQueue->dequeue();
+        faabric::Message actual = funcQueue->dequeue();
         REQUIRE(actual.user() == msg.user());
         REQUIRE(actual.function() == msg.function());
         REQUIRE(actual.inputdata() == msg.inputdata());
@@ -58,7 +58,7 @@ namespace tests {
 
         const char *user = "mpi";
         const char *func = "hellompi";
-        const message::Message &msg = util::messageFactory(user, func);
+        const faabric::Message &msg = util::messageFactory(user, func);
         int worldId = 123;
         int worldSize = 2;
 
@@ -78,7 +78,7 @@ namespace tests {
         remoteWorld.registerRank(rankRemote);
         
         // Create a message
-        message::MPIMessage mpiMsg;
+        faabric::MPIMessage mpiMsg;
         mpiMsg.set_worldid(worldId);
         mpiMsg.set_sender(rankRemote);
         mpiMsg.set_destination(rankLocal);
@@ -90,7 +90,7 @@ namespace tests {
         // Make sure the message has been put on the right queue locally
         std::shared_ptr<InMemoryMpiQueue> queue = localWorld.getLocalQueue(rankRemote, rankLocal);
         REQUIRE(queue->size() == 1);
-        const message::MPIMessage &actualMessage = queue->dequeue();
+        const faabric::MPIMessage &actualMessage = queue->dequeue();
 
         REQUIRE(actualMessage.worldid() == worldId);
         REQUIRE(actualMessage.sender() == rankRemote);

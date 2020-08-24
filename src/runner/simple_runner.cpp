@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-bool runWithWamr(message::Message &m, int runCount) {
+bool runWithWamr(faabric::Message &m, int runCount) {
     bool success = true;
 
     for (int i = 0; i < runCount; i++) {
@@ -84,7 +84,7 @@ bool runWithWamr(message::Message &m, int runCount) {
 }
 
 
-bool runWithWavm(message::Message &m, int runCount) {
+bool runWithWavm(faabric::Message &m, int runCount) {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
     bool success = true;
 
@@ -114,7 +114,7 @@ bool runFunction(std::string &user, std::string &function, int runCount) {
     const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
     // Set up function call
-    message::Message m = util::messageFactory(user, function);
+    faabric::Message m = util::messageFactory(user, function);
 
     if (user == "ts") {
         m.set_istypescript(true);

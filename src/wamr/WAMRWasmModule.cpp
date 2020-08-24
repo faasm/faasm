@@ -56,7 +56,7 @@ namespace wasm {
     }
 
     // ----- Module lifecycle -----
-    void WAMRWasmModule::bindToFunction(const message::Message &msg) {
+    void WAMRWasmModule::bindToFunction(const faabric::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         
         // Set up the module
@@ -100,13 +100,13 @@ namespace wasm {
         }
     }
 
-    void WAMRWasmModule::bindToFunctionNoZygote(const message::Message &msg) {
+    void WAMRWasmModule::bindToFunctionNoZygote(const faabric::Message &msg) {
         // WAMR does not support zygotes yet so it's
         // equivalent to binding with zygote
         bindToFunction(msg);
     }
 
-    bool WAMRWasmModule::execute(message::Message &msg, bool forceNoop) {
+    bool WAMRWasmModule::execute(faabric::Message &msg, bool forceNoop) {
         setExecutingCall(&msg);
         setExecutingModule(this);
 

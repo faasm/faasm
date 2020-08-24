@@ -10,7 +10,7 @@ using namespace faaslet;
 
 namespace tests {
 
-    Faaslet execFunction(message::Message &call, const std::string &expectedOutput) {
+    Faaslet execFunction(faabric::Message &call, const std::string &expectedOutput) {
         // Turn off python preloading
         util::SystemConfig &conf = util::getSystemConfig();
         std::string originalPreload = conf.pythonPreload;
@@ -44,7 +44,7 @@ namespace tests {
         REQUIRE(bindQueue->size() == 0);
 
         // Check success
-        message::Message result = sch.getFunctionResult(call.id(), 1);
+        faabric::Message result = sch.getFunctionResult(call.id(), 1);
         REQUIRE(result.returnvalue() == 0);
 
         if (!expectedOutput.empty()) {
@@ -56,7 +56,7 @@ namespace tests {
         return w;
     }
 
-    std::string execFunctionWithStringResult(message::Message &call) {
+    std::string execFunctionWithStringResult(faabric::Message &call) {
         // Turn off python preloading
         util::SystemConfig &conf = util::getSystemConfig();
         std::string originalPreload = conf.pythonPreload;
@@ -75,7 +75,7 @@ namespace tests {
         w.processNextMessage();
         w.processNextMessage();
         
-        const message::Message result = sch.getFunctionResult(call.id(), 1);
+        const faabric::Message result = sch.getFunctionResult(call.id(), 1);
         if (result.returnvalue() != 0) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("Function failed: {}", result.outputdata());
@@ -88,7 +88,7 @@ namespace tests {
         return result.outputdata();
     }
 
-    void checkMultipleExecutions(message::Message &msg, int nExecs) {
+    void checkMultipleExecutions(faabric::Message &msg, int nExecs) {
         module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
         wasm::WAVMWasmModule &cachedModule = registry.getCachedModule(msg);
 
@@ -103,7 +103,7 @@ namespace tests {
         }
     }
 
-    void execFuncWithPool(message::Message &call, bool pythonPreload, int repeatCount,
+    void execFuncWithPool(faabric::Message &call, bool pythonPreload, int repeatCount,
                           bool checkChained, int nThreads, bool clean) {
         if(clean) {
             cleanSystem();
@@ -146,7 +146,7 @@ namespace tests {
             // Await the result of the main function
             // NOTE - this timeout will only get hit when things have failed.
             // It also needs to be long enough to let longer tests complete
-            message::Message result = sch.getFunctionResult(mainFuncId, 30000);
+            faabric::Message result = sch.getFunctionResult(mainFuncId, 30000);
             REQUIRE(result.returnvalue() == 0);
         }
 
@@ -159,7 +159,7 @@ namespace tests {
                 }
 
                 try {
-                    const message::Message &result = sch.getFunctionResult(messageId, 1);
+                    const faabric::Message &result = sch.getFunctionResult(messageId, 1);
 
                     if (result.returnvalue() != 0) {
                         FAIL(fmt::format("Message ID {} failed", messageId));
@@ -180,7 +180,7 @@ namespace tests {
     }
 
     void checkCallingFunctionGivesBoolOutput(const std::string &user, const std::string &funcName, bool expected) {
-        message::Message call = util::messageFactory("demo", funcName);
+        faabric::Message call = util::messageFactory("demo", funcName);
         setEmulatedMessage(call);
 
         FaasletPool pool(1);
@@ -194,7 +194,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check output is true
-        message::Message result = sch.getFunctionResult(call.id(), 1);
+        faabric::Message result = sch.getFunctionResult(call.id(), 1);
         REQUIRE(result.returnvalue() == 0);
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
 

@@ -9,7 +9,7 @@
 using namespace faaslet;
 
 namespace tests {
-    void execErrorFunction(message::Message &call) {
+    void execErrorFunction(faabric::Message &call) {
         FaasletPool pool(1);
         Faaslet w(1);
 
@@ -26,13 +26,13 @@ namespace tests {
     void checkError(const std::string &funcName, const std::string &expectedMsg) {
         cleanSystem();
 
-        message::Message call = util::messageFactory("errors", funcName);
+        faabric::Message call = util::messageFactory("errors", funcName);
 
         execErrorFunction(call);
 
         // Get result
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        message::Message result = sch.getFunctionResult(call.id(), 1);
+        faabric::Message result = sch.getFunctionResult(call.id(), 1);
         REQUIRE(result.returnvalue() > 0);
 
         if(expectedMsg.empty()) {

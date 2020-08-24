@@ -9,7 +9,7 @@ using namespace boost::filesystem;
 
 namespace tests {
     TEST_CASE("Test message factory", "[util]") {
-        const message::Message msg = util::messageFactory("demo", "echo");
+        const faabric::Message msg = util::messageFactory("demo", "echo");
         REQUIRE(msg.user() == "demo");
         REQUIRE(msg.function() == "echo");
         REQUIRE(msg.id() > 0);
@@ -22,7 +22,7 @@ namespace tests {
 
         std::string funcName = "beta";
 
-        message::Message call;
+        faabric::Message call;
         call.set_user("alpha");
         call.set_function(funcName);
 
@@ -56,7 +56,7 @@ namespace tests {
 
     TEST_CASE("Test valid function check returns false for invalid function", "[util]") {
         // Check false for uninitialised call
-        message::Message invalidCall;
+        faabric::Message invalidCall;
         REQUIRE(!util::isValidFunction(invalidCall));
 
         // Check false for call initialised with invalid values
@@ -72,7 +72,7 @@ namespace tests {
 
     TEST_CASE("Test valid function check returns true for valid function", "[util]") {
         // Check true for valid call
-        message::Message validCall;
+        faabric::Message validCall;
         validCall.set_user("demo");
         validCall.set_function("echo");
 
@@ -80,8 +80,8 @@ namespace tests {
     }
 
     TEST_CASE("Test adding id to message", "[util]") {
-        message::Message msgA;
-        message::Message msgB;
+        faabric::Message msgA;
+        faabric::Message msgB;
 
         REQUIRE(msgA.id() == 0);
         REQUIRE(msgA.resultkey().empty());
@@ -110,7 +110,7 @@ namespace tests {
     }
 
     TEST_CASE("Test adding ID to message with an existing ID") {
-        message::Message msg;
+        faabric::Message msg;
         util::setMessageId(msg);
 
         int originalId = msg.id();
@@ -129,7 +129,7 @@ namespace tests {
 
 
     TEST_CASE("Test timestamp added to message") {
-        message::Message msg;
+        faabric::Message msg;
         unsigned int msgId = 1234;
 
         // Epoch millis on 27/07/2020
@@ -157,7 +157,7 @@ namespace tests {
     }
 
     TEST_CASE("Check message with ID already set still gets result key and status key", "[util]") {
-        message::Message msg;
+        faabric::Message msg;
         int msgId = 1234;
         msg.set_id(msgId);
         msg.set_statuskey("");
@@ -169,7 +169,7 @@ namespace tests {
     }
 
     TEST_CASE("Test creating async response") {
-        message::Message msg = util::messageFactory("foo", "bar");
+        faabric::Message msg = util::messageFactory("foo", "bar");
 
         const std::string expected = std::to_string(msg.id());
         const std::string actual = util::buildAsyncResponse(msg);

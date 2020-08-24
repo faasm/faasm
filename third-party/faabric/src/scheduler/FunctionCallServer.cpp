@@ -30,12 +30,12 @@ namespace scheduler {
 
     Status FunctionCallServer::ShareFunction(
             ServerContext *context,
-            const message::Message *request,
-            message::FunctionStatusResponse *response) {
+            const faabric::Message *request,
+            faabric::FunctionStatusResponse *response) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // TODO - avoiding having to copy the message here
-        message::Message msg = *request;
+        faabric::Message msg = *request;
 
         // This calls the scheduler, which will always attempt
         // to execute locally. However, if not possible, this will
@@ -51,11 +51,11 @@ namespace scheduler {
 
     Status FunctionCallServer::MPICall(
             ServerContext *context,
-            const message::MPIMessage *request,
-            message::FunctionStatusResponse *response) {
+            const faabric::MPIMessage *request,
+            faabric::FunctionStatusResponse *response) {
 
         // TODO - avoid copying message
-        message::MPIMessage m = *request;
+        faabric::MPIMessage m = *request;
 
         MpiWorldRegistry &registry = getMpiWorldRegistry();
         MpiWorld &world = registry.getWorld(m.worldid());

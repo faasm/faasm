@@ -10,7 +10,7 @@ namespace wasm {
             int tid = 0;
             std::shared_ptr<Level> level = nullptr;
             WAVMWasmModule *parentModule;
-            message::Message *parentCall;
+            faabric::Message *parentCall;
             WasmThreadSpec spec;
         };
     }

@@ -17,7 +17,7 @@ namespace tests {
         conf.threadMode = "local";
         conf.ompThreadPoolSize = 10;
 
-        message::Message msg = util::messageFactory("omp", function);
+        faabric::Message msg = util::messageFactory("omp", function);
         execFunction(msg);
 
         // Reset config

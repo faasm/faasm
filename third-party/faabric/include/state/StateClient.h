@@ -7,8 +7,8 @@
 #include <grpcpp/channel.h>
 #include <grpcpp/support/channel_arguments.h>
 
-#include <proto/faasm.pb.h>
-#include <proto/faasm.grpc.pb.h>
+#include <proto/faabric.pb.h>
+#include <proto/faabric.grpc.pb.h>
 
 using namespace grpc;
 
@@ -31,7 +31,7 @@ namespace state {
         InMemoryStateRegistry &reg;
 
         std::shared_ptr<Channel> channel;
-        std::unique_ptr<message::StateRPCService::Stub> stub;
+        std::unique_ptr<faabric::StateRPCService::Stub> stub;
 
         void pushChunks(const std::vector<StateChunk> &chunks);
 

@@ -13,7 +13,7 @@ namespace tests {
     TEST_CASE("Test scheduler clear-up", "[scheduler]") {
         cleanSystem();
 
-        message::Message call;
+        faabric::Message call;
         call.set_user("some user");
         call.set_function("some function");
         std::string funcSet;
@@ -52,8 +52,8 @@ namespace tests {
         std::string thisHost = util::getSystemConfig().endpointHost;
         std::string otherHostA = "192.168.0.10";
 
-        message::Message call = util::messageFactory("user a", "function a");
-        message::Message chainedCall = util::messageFactory("user a", "function a");
+        faabric::Message call = util::messageFactory("user a", "function a");
+        faabric::Message chainedCall = util::messageFactory("user a", "function a");
         chainedCall.set_idx(3);
 
         util::SystemConfig &conf = util::getSystemConfig();
@@ -102,7 +102,7 @@ namespace tests {
             // Check function count has increased and bind message sent
             REQUIRE(sch.getFunctionInFlightCount(call) == 1);
             REQUIRE(sch.getBindQueue()->size() == 1);
-            message::Message actual = sch.getBindQueue()->dequeue();
+            faabric::Message actual = sch.getBindQueue()->dequeue();
 
             REQUIRE(actual.user() == "user a");
             REQUIRE(actual.function() == "function a");
@@ -112,11 +112,11 @@ namespace tests {
 
         SECTION("Test sending bind messages") {
             // Set up calls
-            message::Message callA;
+            faabric::Message callA;
             callA.set_user("demo");
             callA.set_function("echo");
 
-            message::Message callB;
+            faabric::Message callB;
             callB.set_user("demo");
             callB.set_function("x2");
 
@@ -136,16 +136,16 @@ namespace tests {
 
             // Check that bind messages have been sent
             auto bindQueue = sch.getBindQueue();
-            message::Message bindA = bindQueue->dequeue();
-            message::Message bindB = bindQueue->dequeue();
+            faabric::Message bindA = bindQueue->dequeue();
+            faabric::Message bindB = bindQueue->dequeue();
 
             REQUIRE(bindA.user() == callA.user());
             REQUIRE(bindA.function() == callA.function());
-            REQUIRE(bindA.type() == message::Message_MessageType_BIND);
+            REQUIRE(bindA.type() == faabric::Message_MessageType_BIND);
 
             REQUIRE(bindB.user() == callB.user());
             REQUIRE(bindB.function() == callB.function());
-            REQUIRE(bindB.type() == message::Message_MessageType_BIND);
+            REQUIRE(bindB.type() == faabric::Message_MessageType_BIND);
 
             redis.flushAll();
         }
@@ -191,7 +191,7 @@ namespace tests {
         }
 
         SECTION("Test counts can't go below zero") {
-            message::Message msg = util::messageFactory("demo", "echo");
+            faabric::Message msg = util::messageFactory("demo", "echo");
 
             sch.notifyFaasletFinished(msg);
             sch.notifyFaasletFinished(msg);
@@ -232,8 +232,8 @@ namespace tests {
                 REQUIRE(sch.getFunctionInFlightCount(call) == nCalls + 1);
 
                 // Call more and check calls are shared elsewhere
-                message::Message otherCallA;
-                message::Message otherCallB;
+                faabric::Message otherCallA;
+                faabric::Message otherCallB;
                 otherCallA.set_id(1234);
                 otherCallB.set_id(1235);
                 sch.callFunction(otherCallA);
@@ -338,7 +338,7 @@ namespace tests {
         // Add calls to saturate the first host
         int requiredCalls = maxInFlightRatio * maxFaaslets;
         for (int i = 0; i < requiredCalls; i++) {
-            message::Message msgA = util::messageFactory("demo", "chain_simple");
+            faabric::Message msgA = util::messageFactory("demo", "chain_simple");
             sch.callFunction(msgA);
 
             // Check scheduling info
@@ -349,13 +349,13 @@ namespace tests {
 
         // Now add the other host to the warm set and make
         // sure calls are sent there
-        message::Message msgB = util::messageFactory("demo", "chain_simple");
+        faabric::Message msgB = util::messageFactory("demo", "chain_simple");
         const std::string warmSet = sch.getFunctionWarmSetName(msgB);
         Redis &redis = redis::Redis::getQueue();
         redis.sadd(warmSet, otherHostA);
 
         for (int i = 0; i < 3; i++) {
-            message::Message msgC = util::messageFactory("demo", "chain_simple");
+            faabric::Message msgC = util::messageFactory("demo", "chain_simple");
             unsigned int msgId = 111 + i;
             msgC.set_id(msgId);
 
@@ -381,7 +381,7 @@ namespace tests {
         std::string thisHostId = util::getSystemConfig().endpointHost;
         std::string otherHostA = "192.168.4.5";
 
-        message::Message msg = util::messageFactory("demo", "chain_simple");
+        faabric::Message msg = util::messageFactory("demo", "chain_simple");
 
         // Add calls to saturate the first host
         util::SystemConfig &conf = util::getSystemConfig();
@@ -396,7 +396,7 @@ namespace tests {
         redis.sadd(warmSet, otherHostA);
 
         // Now create a message that's already got a scheduled host and hops
-        message::Message msgWithHops = util::messageFactory("demo", "chain_simple");
+        faabric::Message msgWithHops = util::messageFactory("demo", "chain_simple");
         msgWithHops.set_scheduledhost("Some other host");
         msgWithHops.set_hops(5);
 
@@ -415,7 +415,7 @@ namespace tests {
 
         std::string thisHost = util::getSystemConfig().endpointHost;
         std::string otherHost = "192.168.111.23";
-        message::Message msg = util::messageFactory("demo", "chain_simple");
+        faabric::Message msg = util::messageFactory("demo", "chain_simple");
 
         // Add both to the global set
         Redis &redis = redis::Redis::getQueue();
@@ -449,7 +449,7 @@ namespace tests {
     TEST_CASE("Test awaiting/ finished awaiting", "[scheduler]") {
         cleanSystem();
         Scheduler &sch = scheduler::getScheduler();
-        message::Message msg = util::messageFactory("demo", "chain_simple");
+        faabric::Message msg = util::messageFactory("demo", "chain_simple");
 
         // Initial conditions
         REQUIRE(sch.getFunctionWarmFaasletCount(msg) == 0);
@@ -465,7 +465,7 @@ namespace tests {
     TEST_CASE("Test opinion still YES when nothing in flight", "[scheduler]") {
         cleanSystem();
         Scheduler &sch = scheduler::getScheduler();
-        message::Message msg = util::messageFactory("demo", "chain_simple");
+        faabric::Message msg = util::messageFactory("demo", "chain_simple");
 
         // Check opinion is maybe initially
         REQUIRE(sch.getLatestOpinion(msg) == SchedulerOpinion::MAYBE);
@@ -488,7 +488,7 @@ namespace tests {
         cleanSystem();
         util::SystemConfig &conf = util::getSystemConfig();
         Scheduler &sch = scheduler::getScheduler();
-        message::Message msg = util::messageFactory("demo", "chain_simple");
+        faabric::Message msg = util::messageFactory("demo", "chain_simple");
 
         // Check opinion is maybe initially
         REQUIRE(sch.getLatestOpinion(msg) == SchedulerOpinion::MAYBE);
@@ -525,7 +525,7 @@ namespace tests {
         conf.maxInFlightRatio = inFlightRatio;
         conf.maxFaasletsPerFunction = faasletsPerFunc;
 
-        message::Message msg = util::messageFactory("mpi", "hellompi");
+        faabric::Message msg = util::messageFactory("mpi", "hellompi");
         msg.set_ismpi(true);
 
         Scheduler &sch = getScheduler();
@@ -557,9 +557,9 @@ namespace tests {
 
         Scheduler &sch = scheduler::getScheduler();
 
-        message::Message msgA = util::messageFactory("demo", "echo");
-        message::Message msgB = util::messageFactory("demo", "echo");
-        message::Message msgC = util::messageFactory("demo", "echo");
+        faabric::Message msgA = util::messageFactory("demo", "echo");
+        faabric::Message msgB = util::messageFactory("demo", "echo");
+        faabric::Message msgC = util::messageFactory("demo", "echo");
 
         SECTION("No test mode") {
             sch.setTestMode(false);
@@ -595,9 +595,9 @@ namespace tests {
         std::string thisHost = sch.getThisHost();
         std::string otherHost = "192.168.0.10";
 
-        message::Message callA = util::messageFactory("user a", "function a1");
-        message::Message callB = util::messageFactory("user a", "function a2");
-        message::Message callC = util::messageFactory("user b", "function b1");
+        faabric::Message callA = util::messageFactory("user a", "function a1");
+        faabric::Message callB = util::messageFactory("user a", "function a2");
+        faabric::Message callC = util::messageFactory("user b", "function b1");
 
         util::SystemConfig &conf = util::getSystemConfig();
         int originalMaxInFlightRatio = conf.maxInFlightRatio;
@@ -709,16 +709,13 @@ namespace tests {
 
         redis::Redis &redis = redis::Redis::getQueue();
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        util::SystemConfig &conf = util::getSystemConfig();
 
         // Request function
         std::string funcName = "my func";
         std::string userName = "some user";
         std::string inputData = "blahblah";
-        message::Message call = util::messageFactory(userName, funcName);
+        faabric::Message call = util::messageFactory(userName, funcName);
         call.set_inputdata(inputData);
-
-        std::string originalSerialisation = conf.serialisation;
 
         sch.setFunctionResult(call);
 
@@ -730,11 +727,9 @@ namespace tests {
         REQUIRE(ttl > 10);
 
         // Check retrieval method gets the same call out again
-        message::Message actualCall2 = sch.getFunctionResult(call.id(), 1);
+        faabric::Message actualCall2 = sch.getFunctionResult(call.id(), 1);
 
         checkMessageEquality(call, actualCall2);
-
-        conf.serialisation = originalSerialisation;
     }
 
     TEST_CASE("Check multithreaded function results", "[scheduler]") {
@@ -757,7 +752,7 @@ namespace tests {
             waiterThreads.emplace_back([nWaiterMessages] {
                 Scheduler &sch = scheduler::getScheduler();
 
-                message::Message msg = util::messageFactory("demo", "echo");
+                faabric::Message msg = util::messageFactory("demo", "echo");
 
                 // Put invocation on local queue and await global result
                 for (int m = 0; m < nWaiterMessages; m++) {
@@ -772,12 +767,12 @@ namespace tests {
             workerThreads.emplace_back([nWorkerMessages] {
                 Scheduler &sch = scheduler::getScheduler();
 
-                message::Message dummyMsg = util::messageFactory("demo", "echo");
+                faabric::Message dummyMsg = util::messageFactory("demo", "echo");
                 const std::shared_ptr<InMemoryMessageQueue> &queue = sch.getFunctionQueue(dummyMsg);
 
                 // Listen to local queue, set result on global bus
                 for (int m = 0; m < nWorkerMessages; m++) {
-                    message::Message msg = queue->dequeue(5000);
+                    faabric::Message msg = queue->dequeue(5000);
                     sch.setFunctionResult(msg);
                 }
             });
@@ -806,14 +801,14 @@ namespace tests {
 
         std::string expectedOutput;
         int expectedReturnValue = 0;
-        message::Message_MessageType expectedType;
+        faabric::Message_MessageType expectedType;
         std::string expectedHost = util::getSystemConfig().endpointHost;
 
-        message::Message msg;
+        faabric::Message msg;
         SECTION("Running") {
             msg = util::messageFactory("demo", "echo");
             expectedReturnValue = 0;
-            expectedType = message::Message_MessageType_EMPTY;
+            expectedType = faabric::Message_MessageType_EMPTY;
             expectedHost = "";
         }
 
@@ -826,7 +821,7 @@ namespace tests {
             sch.setFunctionResult(msg);
 
             expectedReturnValue = 1;
-            expectedType = message::Message_MessageType_CALL;
+            expectedType = faabric::Message_MessageType_CALL;
         }
 
         SECTION("Success") {
@@ -838,11 +833,11 @@ namespace tests {
             sch.setFunctionResult(msg);
 
             expectedReturnValue = 0;
-            expectedType = message::Message_MessageType_CALL;
+            expectedType = faabric::Message_MessageType_CALL;
         }
 
         // Check status when nothing has been written
-        const message::Message result = sch.getFunctionResult(msg.id(), 0);
+        const faabric::Message result = sch.getFunctionResult(msg.id(), 0);
 
         REQUIRE(result.returnvalue() == expectedReturnValue);
         REQUIRE(result.type() == expectedType);
@@ -853,41 +848,26 @@ namespace tests {
     TEST_CASE("Check setting long-lived function status", "[scheduler]") {
         cleanSystem();
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        util::SystemConfig &conf = util::getSystemConfig();
         redis::Redis &redis = redis::Redis::getQueue();
 
-        std::string originalExecGraph = conf.execGraphMode;
-
         // Create a message
-        message::Message msg = util::messageFactory("demo", "echo");
-        message::Message expected = msg;
+        faabric::Message msg = util::messageFactory("demo", "echo");
+        faabric::Message expected = msg;
         expected.set_executedhost(util::getSystemConfig().endpointHost);
 
-        SECTION("With exec graph switched off") {
-            conf.execGraphMode = "off";
-            sch.setFunctionResult(msg);
+        sch.setFunctionResult(msg);
 
-            REQUIRE(redis.get(msg.statuskey()).empty());
-        }
+        std::vector<uint8_t> actual = redis.get(msg.statuskey());
+        REQUIRE(!actual.empty());
 
-        SECTION("With exec graph switched on") {
-            conf.execGraphMode = "on";
-            sch.setFunctionResult(msg);
+        faabric::Message actualMsg;
+        actualMsg.ParseFromArray(actual.data(), (int) actual.size());
 
-            std::vector<uint8_t> actual = redis.get(msg.statuskey());
-            REQUIRE(!actual.empty());
+        // We can't predict the finish timestamp, so have to manually copy here
+        REQUIRE(actualMsg.finishtimestamp() > 0);
+        expected.set_finishtimestamp(actualMsg.finishtimestamp());
 
-            message::Message actualMsg;
-            actualMsg.ParseFromArray(actual.data(), (int) actual.size());
-
-            // We can't predict the finish timestamp, so have to manually copy here
-            REQUIRE(actualMsg.finishtimestamp() > 0);
-            expected.set_finishtimestamp(actualMsg.finishtimestamp());
-
-            checkMessageEquality(actualMsg, expected);
-        }
-
-        conf.execGraphMode = originalExecGraph;
+        checkMessageEquality(actualMsg, expected);
     }
 
     TEST_CASE("Check logging chained functions", "[scheduler]") {
@@ -895,7 +875,7 @@ namespace tests {
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
 
-        message::Message msg = util::messageFactory("demo", "echo");
+        faabric::Message msg = util::messageFactory("demo", "echo");
         unsigned int chainedMsgIdA = 1234;
         unsigned int chainedMsgIdB = 5678;
         unsigned int chainedMsgIdC = 9876;

@@ -7,7 +7,7 @@ using namespace wasm;
 
 namespace tests {
     TEST_CASE("Test executing echo function with WAMR", "[wasm]") {
-        message::Message call = util::messageFactory("demo", "echo");
+        faabric::Message call = util::messageFactory("demo", "echo");
         std::string inputData = "hello there";
         call.set_inputdata(inputData);
 

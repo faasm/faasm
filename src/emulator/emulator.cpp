@@ -26,7 +26,7 @@ extern "C" {
  */
 
 // Note thread-locality here
-static thread_local message::Message _emulatedCall = message::Message();
+static thread_local faabric::Message _emulatedCall = faabric::Message();
 static thread_local state::State *_emulatedState = nullptr;
 
 static std::mutex threadsMutex;
@@ -40,7 +40,7 @@ static int threadCount = 1;
 // --------------------------------------------------------------
 
 void resetEmulator() {
-    _emulatedCall = message::Message();
+    _emulatedCall = faabric::Message();
     threads.clear();
     threadCount = 1;
 }
@@ -83,7 +83,7 @@ void setEmulatorState(state::State *state) {
 
 void emulatorSetCallStatus(bool success) {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-    message::Message resultMsg = _emulatedCall;
+    faabric::Message resultMsg = _emulatedCall;
 
     const std::string funcStr = util::funcToString(resultMsg, true);
 
@@ -101,11 +101,11 @@ void emulatorSetCallStatus(bool success) {
 }
 
 unsigned int setEmulatedMessageFromJson(const char *messageJson) {
-    const message::Message msg = util::jsonToMessage(messageJson);
+    const faabric::Message msg = util::jsonToMessage(messageJson);
     return setEmulatedMessage(msg);
 }
 
-unsigned int setEmulatedMessage(const message::Message &msg) {
+unsigned int setEmulatedMessage(const faabric::Message &msg) {
     _emulatedCall = msg;
     unsigned int msgId = util::setMessageId(_emulatedCall);
 
@@ -338,7 +338,7 @@ unsigned int _chain_knative(const std::string &funcName, int idx, const char *py
     int portInt = std::stoi(port);
 
     // Build the message to dispatch
-    message::Message msg = util::messageFactory(_emulatedCall.user(), funcName);
+    faabric::Message msg = util::messageFactory(_emulatedCall.user(), funcName);
     msg.set_idx(idx);
     msg.set_inputdata(buffer, bufferLen);
     msg.set_ispython(_emulatedCall.ispython());
@@ -398,7 +398,7 @@ int _await_call_knative(unsigned int callId) {
     scheduler::Scheduler &sch = scheduler::getScheduler();
     int returnCode = 1;
     try {
-        const message::Message result = sch.getFunctionResult(callId, timeoutMs);
+        const faabric::Message result = sch.getFunctionResult(callId, timeoutMs);
         returnCode = result.returnvalue();
     } catch (redis::RedisNoResponseException &ex) {
         logger->error("Timed out waiting for chained call: {}", callId);

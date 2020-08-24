@@ -32,11 +32,11 @@ namespace wasm {
         ~WAVMWasmModule();
 
         // ----- Module lifecycle -----
-        void bindToFunction(const message::Message &msg) override;
+        void bindToFunction(const faabric::Message &msg) override;
 
-        void bindToFunctionNoZygote(const message::Message &msg) override;
+        void bindToFunctionNoZygote(const faabric::Message &msg) override;
 
-        bool execute(message::Message &msg, bool forceNoop = false) override;
+        bool execute(faabric::Message &msg, bool forceNoop = false) override;
 
         const bool isBound() override;
 
@@ -155,7 +155,7 @@ namespace wasm {
 
         static WAVM::Runtime::Instance *getWasiModule();
 
-        void doBindToFunction(const message::Message &msg, bool executeZygote);
+        void doBindToFunction(const faabric::Message &msg, bool executeZygote);
 
         void writeStringArrayToMemory(
                 const std::vector<std::string> &strings, uint32_t strPoitners, uint32_t strBuffer);
@@ -179,9 +179,9 @@ namespace wasm {
 
         WAVM::Runtime::Function *getWasmConstructorsFunction(WAVM::Runtime::Instance *module);
 
-        void executeRemoteOMP(message::Message &msg);
+        void executeRemoteOMP(faabric::Message &msg);
 
-        void prepareOpenMPContext(const message::Message &msg);
+        void prepareOpenMPContext(const faabric::Message &msg);
 
         std::unique_ptr<openmp::PlatformThreadPool> OMPPool;
     };

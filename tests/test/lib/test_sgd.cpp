@@ -228,7 +228,7 @@ namespace tests {
         setEmulatorUser(user.c_str());
 
         // Set up the SVM function
-        message::Message call = util::messageFactory(user, "reuters_svm");
+        faabric::Message call = util::messageFactory(user, "reuters_svm");
         int syncInterval = 100;
 
         // Deliberately try to cause contention with lots of workers

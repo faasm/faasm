@@ -11,7 +11,7 @@ using namespace boost::filesystem;
 void codegenForFunc(const std::string &user, const std::string &func) {
     const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
-    message::Message msg = util::messageFactory(user, func);
+    faabric::Message msg = util::messageFactory(user, func);
     if (!util::isValidFunction(msg)) {
         logger->warn("Invalid function: {}/{}", user, func);
         return;

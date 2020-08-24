@@ -34,7 +34,7 @@ namespace faabric {
 
         void cleanFaabric();
 
-        void checkMessageEquality(const message::Message &msgA, const message::Message &msgB);
+        void checkMessageEquality(const faabric::Message &msgA, const faabric::Message &msgB);
 
         void checkExecGraphNodeEquality(const scheduler::ExecGraphNode &nodeA, const scheduler::ExecGraphNode &nodeB);
 

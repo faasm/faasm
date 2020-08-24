@@ -39,7 +39,7 @@ namespace wasm {
             return nextWanted > 0 ? nextWanted : (int) util::getSystemConfig().maxFaaslets;
         }
 
-        void Level::snapshot_parent(message::Message &msg) const {
+        void Level::snapshot_parent(faabric::Message &msg) const {
             msg.set_ompdepth(depth);
             msg.set_ompeffdepth(effectiveDepth);
             msg.set_ompmal(maxActiveLevel);

@@ -21,11 +21,11 @@ namespace wasm {
         ~WAMRWasmModule();
 
         // ----- Module lifecycle -----
-        void bindToFunction(const message::Message &msg) override;
+        void bindToFunction(const faabric::Message &msg) override;
 
-        void bindToFunctionNoZygote(const message::Message &msg) override;
+        void bindToFunctionNoZygote(const faabric::Message &msg) override;
 
-        bool execute(message::Message &msg, bool forceNoop = false) override;
+        bool execute(faabric::Message &msg, bool forceNoop = false) override;
 
         const bool isBound() override;
 

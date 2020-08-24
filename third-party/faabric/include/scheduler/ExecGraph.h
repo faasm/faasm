@@ -1,11 +1,11 @@
 #pragma once
 
 #include <vector>
-#include <proto/faasm.pb.h>
+#include <proto/faabric.pb.h>
 
 namespace scheduler {
     struct ExecGraphNode {
-        message::Message msg;
+        faabric::Message msg;
         std::vector<ExecGraphNode> children;
     };
 

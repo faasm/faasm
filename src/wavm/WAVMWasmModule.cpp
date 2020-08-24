@@ -344,15 +344,15 @@ namespace wasm {
         Runtime::invokeFunction(executionContext, func, funcType, arguments.data(), &result);
     }
 
-    void WAVMWasmModule::bindToFunction(const message::Message &msg) {
+    void WAVMWasmModule::bindToFunction(const faabric::Message &msg) {
         doBindToFunction(msg, true);
     }
 
-    void WAVMWasmModule::bindToFunctionNoZygote(const message::Message &msg) {
+    void WAVMWasmModule::bindToFunctionNoZygote(const faabric::Message &msg) {
         doBindToFunction(msg, false);
     }
 
-    void WAVMWasmModule::doBindToFunction(const message::Message &msg, bool executeZygote) {
+    void WAVMWasmModule::doBindToFunction(const faabric::Message &msg, bool executeZygote) {
         /*
          * NOTE - the order things happen in this function is important.
          * The zygote function may execute non-trivial code and modify the memory,
@@ -659,7 +659,7 @@ namespace wasm {
     /**
      * Executes the given function call
      */
-    bool WAVMWasmModule::execute(message::Message &msg, bool forceNoop) {
+    bool WAVMWasmModule::execute(faabric::Message &msg, bool forceNoop) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         if (!_isBound) {
@@ -771,7 +771,7 @@ namespace wasm {
         return success;
     }
 
-    void WAVMWasmModule::executeRemoteOMP(message::Message &msg) {
+    void WAVMWasmModule::executeRemoteOMP(faabric::Message &msg) {
         int funcPtr = msg.funcptr();
         std::vector<IR::UntaggedValue> invokeArgs;
         Runtime::Function *funcInstance;
@@ -1295,7 +1295,7 @@ namespace wasm {
         return Runtime::asFunction(funcObj);
     }
 
-    void WAVMWasmModule::prepareOpenMPContext(const message::Message &msg) {
+    void WAVMWasmModule::prepareOpenMPContext(const faabric::Message &msg) {
         std::shared_ptr<openmp::Level> ompLevel;
 
         if (msg.ompdepth() > 0) {

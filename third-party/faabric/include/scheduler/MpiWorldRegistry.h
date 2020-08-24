@@ -7,9 +7,9 @@ namespace scheduler {
     public:
         MpiWorldRegistry() = default;
 
-        scheduler::MpiWorld &createWorld(const message::Message &msg, int worldId, std::string hostOverride = "");
+        scheduler::MpiWorld &createWorld(const faabric::Message &msg, int worldId, std::string hostOverride = "");
 
-        scheduler::MpiWorld &getOrInitialiseWorld(const message::Message &msg, int worldId);
+        scheduler::MpiWorld &getOrInitialiseWorld(const faabric::Message &msg, int worldId);
 
         scheduler::MpiWorld &getWorld(int worldId);
 

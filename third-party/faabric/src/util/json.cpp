@@ -8,7 +8,7 @@
 using namespace rapidjson;
 
 namespace util {
-    std::string messageToJson(const message::Message &msg) {
+    std::string messageToJson(const faabric::Message &msg) {
         Document d;
         d.SetObject();
         Document::AllocatorType &a = d.GetAllocator();
@@ -115,14 +115,14 @@ namespace util {
         return std::string(valuePtr, valuePtr + it->value.GetStringLength());
     }
 
-    message::Message jsonToMessage(const std::string &jsonIn) {
+    faabric::Message jsonToMessage(const std::string &jsonIn) {
         PROF_START(jsonDecode)
 
         MemoryStream ms(jsonIn.c_str(), jsonIn.size());
         Document d;
         d.ParseStream(ms);
 
-        message::Message msg;
+        faabric::Message msg;
         msg.set_timestamp(getInt64FromJson(d, "timestamp", 0));
         msg.set_id(getIntFromJson(d, "id", 0));
         msg.set_user(getStringFromJson(d, "user", ""));
@@ -155,7 +155,7 @@ namespace util {
 
         msg.set_coldstartinterval(getIntFromJson(d, "cold_start_interval", 0));
 
-        msg.set_type(message::Message_MessageType_CALL);
+        msg.set_type(faabric::Message_MessageType_CALL);
 
         msg.set_ismpi(getBoolFromJson(d, "mpi", false));
         msg.set_mpiworldid(getIntFromJson(d, "mpi_world_id", 0));

@@ -26,7 +26,7 @@ namespace tests {
         util::writeBytesToFile(fullPath, util::stringToBytes(expected));
 
         // Set up the function
-        message::Message call = util::messageFactory("demo", "shared_file");
+        faabric::Message call = util::messageFactory("demo", "shared_file");
         std::string sharedPath = std::string(SHARED_FILE_PREFIX) + relativePath;
         call.set_inputdata(sharedPath);
 

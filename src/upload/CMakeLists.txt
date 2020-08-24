@@ -10,7 +10,7 @@ faasm_private_lib(upload_lib "${LIB_FILES}")
 target_link_libraries(upload_lib
         wasm
         wavmmodule
-        proto
+        faabric
         ssl
         crypto
         cpprest

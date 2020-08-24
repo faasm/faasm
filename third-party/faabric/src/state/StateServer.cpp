@@ -34,10 +34,10 @@ namespace state {
 
     Status StateServer::Pull(
             ServerContext *context,
-            ServerReaderWriter<message::StateChunk, message::StateChunkRequest> *stream) {
+            ServerReaderWriter<faabric::StateChunk, faabric::StateChunkRequest> *stream) {
 
         // Iterate through streamed requests
-        message::StateChunkRequest request;
+        faabric::StateChunkRequest request;
         while (stream->Read(&request)) {
             util::getLogger()->debug(
                     "Pull {}/{} ({}->{})",
@@ -47,7 +47,7 @@ namespace state {
 
             // Write the response
             KV_FROM_REQUEST((&request))
-            message::StateChunk response;
+            faabric::StateChunk response;
 
             uint64_t chunkOffset = request.offset();
             uint64_t chunkLen = request.chunksize();
@@ -68,14 +68,14 @@ namespace state {
 
     Status StateServer::Push(
             ServerContext *context,
-            ServerReader<message::StateChunk> *reader,
-            message::StateResponse *response) {
+            ServerReader<faabric::StateChunk> *reader,
+            faabric::StateResponse *response) {
 
         // Assume user and key are same throughout
         std::string user;
         std::string key;
 
-        message::StateChunk request;
+        faabric::StateChunk request;
         while (reader->Read(&request)) {
             util::getLogger()->debug(
                     "Push {}/{} ({}->{})",
@@ -100,8 +100,8 @@ namespace state {
 
     Status StateServer::Size(
             ServerContext *context,
-            const message::StateRequest *request,
-            message::StateSizeResponse *response) {
+            const faabric::StateRequest *request,
+            faabric::StateSizeResponse *response) {
         util::getLogger()->debug("Size {}/{}", request->user(), request->key());
         KV_FROM_REQUEST(request)
         response->set_user(kv->user);
@@ -113,8 +113,8 @@ namespace state {
 
     Status StateServer::Append(
             ServerContext *context,
-            const message::StateRequest *request,
-            message::StateResponse *response) {
+            const faabric::StateRequest *request,
+            faabric::StateResponse *response) {
         util::getLogger()->debug("Append {}/{}", request->user(), request->key());
         KV_FROM_REQUEST(request)
 
@@ -130,8 +130,8 @@ namespace state {
 
     Status StateServer::ClearAppended(
             ServerContext *context,
-            const ::message::StateRequest *request,
-            message::StateResponse *response) {
+            const ::faabric::StateRequest *request,
+            faabric::StateResponse *response) {
         util::getLogger()->debug("Clear appended {}/{}", request->user(), request->key());
 
         KV_FROM_REQUEST(request)
@@ -143,8 +143,8 @@ namespace state {
 
     Status StateServer::PullAppended(
             grpc::ServerContext *context,
-            const ::message::StateAppendedRequest *request,
-            message::StateAppendedResponse *response) {
+            const ::faabric::StateAppendedRequest *request,
+            faabric::StateAppendedResponse *response) {
         util::getLogger()->debug("Pull appended {}/{}", request->user(), request->key());
 
         KV_FROM_REQUEST(request)
@@ -163,8 +163,8 @@ namespace state {
 
     Status StateServer::Lock(
             grpc::ServerContext *context,
-            const message::StateRequest *request,
-            message::StateResponse *response) {
+            const faabric::StateRequest *request,
+            faabric::StateResponse *response) {
         util::getLogger()->debug("Lock {}/{}", request->user(), request->key());
 
         KV_FROM_REQUEST(request)
@@ -175,8 +175,8 @@ namespace state {
 
     Status StateServer::Unlock(
             grpc::ServerContext *context,
-            const message::StateRequest *request,
-            message::StateResponse *response) {
+            const faabric::StateRequest *request,
+            faabric::StateResponse *response) {
         util::getLogger()->debug("Unlock {}/{}", request->user(), request->key());
 
         KV_FROM_REQUEST(request)
@@ -185,8 +185,8 @@ namespace state {
         return Status::OK;
     }
 
-    Status StateServer::Delete(grpc::ServerContext *context, const message::StateRequest *request,
-                               message::StateResponse *response) {
+    Status StateServer::Delete(grpc::ServerContext *context, const faabric::StateRequest *request,
+                               faabric::StateResponse *response) {
 
         util::getLogger()->debug("Delete {}/{}", request->user(), request->key());
 

@@ -1,6 +1,6 @@
-include_directories(${FAASM_INCLUDE_DIR}/scheduler)
+include_directories(${FAABRIC_INCLUDE_DIR}/scheduler)
 
-file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/scheduler/*.h")
+file(GLOB HEADERS "${FAABRIC_INCLUDE_DIR}/scheduler/*.h")
 
 set(LIB_FILES
         ExecGraph.cpp

@@ -111,7 +111,7 @@ namespace edge {
         } else {
             logger->debug("GET request to {}", uri);
 
-            message::Message msg = UploadServer::buildMessageFromRequest(request);
+            faabric::Message msg = UploadServer::buildMessageFromRequest(request);
 
             if (pathType == "s") {
                 returnBytes = getState(request);
@@ -211,7 +211,7 @@ namespace edge {
     void UploadServer::handlePythonFunctionUpload(const http_request &request) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        message::Message msg = UploadServer::buildMessageFromRequest(request);
+        faabric::Message msg = UploadServer::buildMessageFromRequest(request);
         logger->info("Uploading Python function {}", util::funcToString(msg, false));
 
         // Do the upload
@@ -244,7 +244,7 @@ namespace edge {
     void UploadServer::handleFunctionUpload(const http_request &request) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        message::Message msg = UploadServer::buildMessageFromRequest(request);
+        faabric::Message msg = UploadServer::buildMessageFromRequest(request);
         logger->info("Uploading {}", util::funcToString(msg, false));
 
         // Do the upload
@@ -254,7 +254,7 @@ namespace edge {
         request.reply(status_codes::OK, "Function upload complete\n");
     }
 
-    message::Message UploadServer::buildMessageFromRequest(const http_request &request) {
+    faabric::Message UploadServer::buildMessageFromRequest(const http_request &request) {
         const std::vector<std::string> pathParts = UploadServer::getPathParts(request);
 
         if (pathParts.size() != 3) {
@@ -264,7 +264,7 @@ namespace edge {
         }
 
         // Check URI
-        message::Message msg;
+        faabric::Message msg;
         msg.set_user(pathParts[1]);
         msg.set_function(pathParts[2]);
         msg.set_isasync(pathParts[0] == "fa" || pathParts[0] == "pa");

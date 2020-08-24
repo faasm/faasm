@@ -20,7 +20,7 @@ unsigned int ocall_faasm_chain_function_input(const char *name, const uint8_t *i
 }
 
 unsigned int ocall_faasm_chain_this_input(const int idx, uint8_t *input, long input_size) {
-    message::Message *bounded_message = wasm::getExecutingCall();
+    faabric::Message *bounded_message = wasm::getExecutingCall();
     const std::vector<uint8_t> _input(input, input + input_size);
     return wasm::makeChainedCall(bounded_message->function(), idx, NULL, _input);
 }

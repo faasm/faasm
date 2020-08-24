@@ -19,7 +19,7 @@ namespace util {
         return size * nmemb;
     }
 
-    std::string postJsonFunctionCall(const std::string &host, int port, const message::Message &msg) {
+    std::string postJsonFunctionCall(const std::string &host, int port, const faabric::Message &msg) {
         std::string cleanedFuncName;
         if(msg.ispython()) {
             cleanedFuncName = "python";

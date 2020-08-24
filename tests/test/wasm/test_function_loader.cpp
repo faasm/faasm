@@ -20,7 +20,7 @@ namespace tests {
     TEST_CASE("Test function round trip", "[wasm]") {
         storage::FileLoader &loader = storage::getFileLoader();
 
-        message::Message call = util::messageFactory("test", "junk");
+        faabric::Message call = util::messageFactory("test", "junk");
 
         std::string filePath;
         std::vector<uint8_t> actualBytes;
@@ -28,7 +28,7 @@ namespace tests {
 
         SECTION("Function file") {
             // Need to upload valid data so use real function file
-            message::Message realMsg = util::messageFactory("demo", "x2");
+            faabric::Message realMsg = util::messageFactory("demo", "x2");
             const std::string realFuncFile = util::getFunctionFile(realMsg);
 
             expectedBytes = util::readFileToBytes(realFuncFile);

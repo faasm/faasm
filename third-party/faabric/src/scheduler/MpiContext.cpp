@@ -2,7 +2,7 @@
 #include "scheduler/MpiWorldRegistry.h"
 
 #include <util/gids.h>
-#include <proto/faasm.pb.h>
+#include <proto/faabric.pb.h>
 #include <util/logging.h>
 
 namespace scheduler {
@@ -10,7 +10,7 @@ namespace scheduler {
 
     }
 
-    void MpiContext::createWorld(const message::Message &msg) {
+    void MpiContext::createWorld(const faabric::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         if(msg.mpirank() > 0) {
@@ -30,7 +30,7 @@ namespace scheduler {
         rank = 0;
     }
 
-    void MpiContext::joinWorld(const message::Message &msg) {
+    void MpiContext::joinWorld(const faabric::Message &msg) {
         if (!msg.ismpi()) {
             // Not an MPI call
             return;

@@ -2,7 +2,7 @@
 
 #include <mutex>
 
-#include <proto/faasm.pb.h>
+#include <proto/faabric.pb.h>
 #include <util/barrier.h>
 #include <util/environment.h>
 #include <wavm/openmp/ClangTypes.h>
@@ -42,7 +42,7 @@ namespace wasm {
 
             // Distribued message construction. Calling the distributed constructor with the message
             // arguments set in this function should be equivalent to calling the local constructor
-            void snapshot_parent(message::Message &msg) const;
+            void snapshot_parent(faabric::Message &msg) const;
 
             int get_next_level_num_threads() const;
 

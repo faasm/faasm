@@ -14,7 +14,7 @@ namespace tests {
         conf.threadMode = threadMode;
 
         // Run the function
-        message::Message msg = util::messageFactory("demo", threadFunc);
+        faabric::Message msg = util::messageFactory("demo", threadFunc);
 
         if (runPool) {
             execFuncWithPool(msg, false, 1, false, 4, false);

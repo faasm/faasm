@@ -60,7 +60,7 @@ namespace tests {
         wasm::IRModuleCache &registry = wasm::getIRModuleCache();
 
         // Bind to Python function
-        message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+        faabric::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
         wasm::WAVMWasmModule module;
         module.bindToFunction(msg);
 
@@ -167,7 +167,7 @@ namespace tests {
         conf.pythonPreload = "off";
 
         // Bind to Python function
-        message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+        faabric::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
         wasm::WAVMWasmModule module;
         module.bindToFunction(msg);
 
@@ -231,7 +231,7 @@ namespace tests {
         conf.pythonPreload = "off";
 
         // Bind to Python function
-        message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+        faabric::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
         wasm::WAVMWasmModule module;
         module.bindToFunction(msg);
 

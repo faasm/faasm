@@ -49,8 +49,8 @@ namespace tests {
     }
 
     TEST_CASE("Test flushing worker clears zygotes", "[faaslet]") {
-        const message::Message msgA = util::messageFactory("demo", "echo");
-        const message::Message msgB = util::messageFactory("demo", "dummy");
+        const faabric::Message msgA = util::messageFactory("demo", "echo");
+        const faabric::Message msgB = util::messageFactory("demo", "dummy");
 
         module_cache::WasmModuleCache &reg = module_cache::getWasmModuleCache();
         reg.getCachedModule(msgA);
@@ -63,8 +63,8 @@ namespace tests {
     }
     
     TEST_CASE("Test flushing worker clears scheduler", "[faaslet]") {
-        message::Message msgA = util::messageFactory("demo", "echo");
-        message::Message msgB = util::messageFactory("demo", "dummy");
+        faabric::Message msgA = util::messageFactory("demo", "echo");
+        faabric::Message msgB = util::messageFactory("demo", "dummy");
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.callFunction(msgA);

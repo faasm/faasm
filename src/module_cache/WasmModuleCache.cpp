@@ -21,12 +21,12 @@ namespace module_cache {
         return count;
     }
 
-    std::string WasmModuleCache::getBaseCachedModuleKey(const message::Message &msg) {
+    std::string WasmModuleCache::getBaseCachedModuleKey(const faabric::Message &msg) {
         std::string key = msg.user() + "/" + msg.function();
         return key;
     }
 
-    std::string WasmModuleCache::getCachedModuleKey(const message::Message &msg) {
+    std::string WasmModuleCache::getCachedModuleKey(const faabric::Message &msg) {
         std::string key;
         if (!msg.snapshotkey().empty()) {
             return msg.snapshotkey();
@@ -41,7 +41,7 @@ namespace module_cache {
      * or one of many "special" cached modules, those restored from snapshots captured at
      * arbitrary points (e.g. when spawning a thread).
      */
-    wasm::WAVMWasmModule &WasmModuleCache::getCachedModule(const message::Message &msg) {
+    wasm::WAVMWasmModule &WasmModuleCache::getCachedModule(const faabric::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Get the keys for both types of cached module

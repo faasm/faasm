@@ -50,13 +50,13 @@ namespace wasm {
 
         ~SGXWAMRWasmModule();
 
-        void bindToFunction(const message::Message &msg);
+        void bindToFunction(const faabric::Message &msg);
 
-        void bindToFunctionNoZygote(const message::Message &msg);
+        void bindToFunctionNoZygote(const faabric::Message &msg);
 
         const bool unbindFunction(void);
 
-        bool execute(message::Message &msg, bool forceNoop = false);
+        bool execute(faabric::Message &msg, bool forceNoop = false);
 
         const bool isBound();
 

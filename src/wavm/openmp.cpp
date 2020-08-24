@@ -246,7 +246,7 @@ namespace wasm {
 
         WAVMWasmModule *parentModule = getExecutingWAVMModule();
         Runtime::Memory *memoryPtr = parentModule->defaultMemory;
-        message::Message *parentCall = getExecutingCall();
+        faabric::Message *parentCall = getExecutingCall();
 
         // Retrieve the microtask function from the table
         Runtime::Function *func = Runtime::asFunction(
@@ -276,13 +276,13 @@ namespace wasm {
 
             scheduler::Scheduler &sch = scheduler::getScheduler();
 
-            const message::Message *originalCall = getExecutingCall();
+            const faabric::Message *originalCall = getExecutingCall();
             const std::string origStr = util::funcToString(*originalCall, false);
 
             U32 *nativeArgs = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
             // Create the threads (messages) themselves
             for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
-                message::Message call = util::messageFactory(originalCall->user(), originalCall->function());
+                faabric::Message call = util::messageFactory(originalCall->user(), originalCall->function());
                 call.set_isasync(true);
                 for (int argIdx = argc - 1; argIdx >= 0; argIdx--) {
                     call.add_ompfunctionargs(nativeArgs[argIdx]);
@@ -312,7 +312,7 @@ namespace wasm {
 
                 int returnCode = 1;
                 try {
-                    const message::Message result = sch.getFunctionResult(chainedThreads[threadNum], callTimeoutMs);
+                    const faabric::Message result = sch.getFunctionResult(chainedThreads[threadNum], callTimeoutMs);
                     returnCode = result.returnvalue();
                 } catch (redis::RedisNoResponseException &ex) {
                     util::getLogger()->error("Timed out waiting for chained call: {}", chainedThreads[threadNum]);

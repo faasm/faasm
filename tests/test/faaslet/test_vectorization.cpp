@@ -7,7 +7,7 @@
 namespace tests {
     TEST_CASE("Test eigen vectorization", "[faaslet]") {
         cleanSystem();
-        message::Message msg = util::messageFactory("demo", "eigen_vec");
+        faabric::Message msg = util::messageFactory("demo", "eigen_vec");
         execFunction(msg);
     }
 }

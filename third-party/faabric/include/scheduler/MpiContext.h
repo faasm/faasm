@@ -1,16 +1,16 @@
 #pragma once
 
 #include <scheduler/MpiWorldRegistry.h>
-#include <proto/faasm.pb.h>
+#include <proto/faabric.pb.h>
 
 namespace scheduler {
     class MpiContext {
     public:
         MpiContext();
 
-        void createWorld(const message::Message &msg);
+        void createWorld(const faabric::Message &msg);
 
-        void joinWorld(const message::Message &msg);
+        void joinWorld(const faabric::Message &msg);
 
         bool getIsMpi();
 

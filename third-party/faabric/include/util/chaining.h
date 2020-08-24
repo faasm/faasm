@@ -1,10 +1,10 @@
 #pragma once
 
-#include <proto/faasm.pb.h>
+#include <proto/faabric.pb.h>
 #include "exception.h"
 
 namespace util {
-    std::string postJsonFunctionCall(const std::string &host, int port, const message::Message &msg);
+    std::string postJsonFunctionCall(const std::string &host, int port, const faabric::Message &msg);
 
     class ChainedCallFailedException : public util::FaasmException {
     public:

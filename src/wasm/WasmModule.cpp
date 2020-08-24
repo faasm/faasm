@@ -14,13 +14,13 @@
 
 namespace wasm {
     // Using TLS here to isolate between executing functions
-    static thread_local message::Message *executingCall;
+    static thread_local faabric::Message *executingCall;
 
-    message::Message *getExecutingCall() {
+    faabric::Message *getExecutingCall() {
         return executingCall;
     }
 
-    void setExecutingCall(message::Message *other) {
+    void setExecutingCall(faabric::Message *other) {
         executingCall = other;
     }
 
@@ -182,7 +182,7 @@ namespace wasm {
         return argvBufferSize;
     }
 
-    void WasmModule::prepareArgcArgv(const message::Message &msg) {
+    void WasmModule::prepareArgcArgv(const faabric::Message &msg) {
         // Here we set up the arguments to main(), i.e. argc and argv
         // We allow passing of arbitrary commandline arguments via the invocation message.
         // These are passed as a string with a space separating each argument.
@@ -241,15 +241,15 @@ namespace wasm {
     // Functions to be implemented by subclasses
     // ------------------------------------------
 
-    void WasmModule::bindToFunction(const message::Message &msg) {
+    void WasmModule::bindToFunction(const faabric::Message &msg) {
         throw std::runtime_error("bindToFunction not implemented");
     }
 
-    void WasmModule::bindToFunctionNoZygote(const message::Message &msg) {
+    void WasmModule::bindToFunctionNoZygote(const faabric::Message &msg) {
         throw std::runtime_error("bindToFunctionNoZygote not implemented");
     }
 
-    bool WasmModule::execute(message::Message &msg, bool forceNoop) {
+    bool WasmModule::execute(faabric::Message &msg, bool forceNoop) {
         throw std::runtime_error("execute not implemented");
     }
 

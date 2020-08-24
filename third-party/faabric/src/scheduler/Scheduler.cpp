@@ -84,8 +84,8 @@ namespace scheduler {
         this->removeHostFromGlobalSet();
     }
 
-    void Scheduler::enqueueMessage(const message::Message &msg) {
-        if (msg.type() == message::Message_MessageType_BIND) {
+    void Scheduler::enqueueMessage(const faabric::Message &msg) {
+        if (msg.type() == faabric::Message_MessageType_BIND) {
             bindQueue->enqueue(msg);
         } else {
             auto q = this->getFunctionQueue(msg);
@@ -93,12 +93,12 @@ namespace scheduler {
         }
     }
 
-    long Scheduler::getFunctionWarmFaasletCount(const message::Message &msg) {
+    long Scheduler::getFunctionWarmFaasletCount(const faabric::Message &msg) {
         std::string funcStr = util::funcToString(msg, false);
         return faasletCountMap[funcStr];
     }
 
-    double Scheduler::getFunctionInFlightRatio(const message::Message &msg) {
+    double Scheduler::getFunctionInFlightRatio(const faabric::Message &msg) {
         std::string funcStr = util::funcToString(msg, false);
 
         long faasletCount = faasletCountMap[funcStr];
@@ -111,7 +111,7 @@ namespace scheduler {
         return ((double) inFlightCount) / faasletCount;
     }
 
-    int Scheduler::getFunctionMaxInFlightRatio(const message::Message &msg) {
+    int Scheduler::getFunctionMaxInFlightRatio(const faabric::Message &msg) {
         int maxInFlightRatio = conf.maxInFlightRatio;
         if (msg.ismpi()) {
             util::getLogger()->debug("Overriding max in-flight ratio for MPI function ({} -> {})", maxInFlightRatio, 1);
@@ -120,12 +120,12 @@ namespace scheduler {
         return maxInFlightRatio;
     }
 
-    long Scheduler::getFunctionInFlightCount(const message::Message &msg) {
+    long Scheduler::getFunctionInFlightCount(const faabric::Message &msg) {
         const std::string funcStr = util::funcToString(msg, false);
         return inFlightCountMap[funcStr];
     }
 
-    std::shared_ptr<InMemoryMessageQueue> Scheduler::getFunctionQueue(const message::Message &msg) {
+    std::shared_ptr<InMemoryMessageQueue> Scheduler::getFunctionQueue(const faabric::Message &msg) {
         std::string funcStr = util::funcToString(msg, false);
 
         // This will be called from within something holding the lock
@@ -139,17 +139,17 @@ namespace scheduler {
         return queueMap[funcStr];
     }
 
-    void Scheduler::notifyCallFinished(const message::Message &msg) {
+    void Scheduler::notifyCallFinished(const faabric::Message &msg) {
         util::FullLock lock(mx);
         decrementInFlightCount(msg);
     }
 
-    void Scheduler::notifyFaasletFinished(const message::Message &msg) {
+    void Scheduler::notifyFaasletFinished(const faabric::Message &msg) {
         util::FullLock lock(mx);
         decrementWarmFaasletCount(msg);
     }
 
-    std::string Scheduler::getFunctionWarmSetName(const message::Message &msg) {
+    std::string Scheduler::getFunctionWarmSetName(const faabric::Message &msg) {
         std::string funcStr = util::funcToString(msg, false);
         return this->getFunctionWarmSetNameFromStr(funcStr);
     }
@@ -168,7 +168,7 @@ namespace scheduler {
         return scheduler;
     }
 
-    void Scheduler::callFunction(message::Message &msg, bool forceLocal) {
+    void Scheduler::callFunction(faabric::Message &msg, bool forceLocal) {
         util::FullLock lock(mx);
         PROF_START(scheduleCall)
 
@@ -256,7 +256,7 @@ namespace scheduler {
         }
     }
 
-    void Scheduler::updateOpinion(const message::Message &msg) {
+    void Scheduler::updateOpinion(const faabric::Message &msg) {
         // Note this function is lock-free, should be called when lock held
         const std::string funcStr = util::funcToString(msg, false);
         SchedulerOpinion currentOpinion = opinionMap[funcStr];
@@ -344,12 +344,12 @@ namespace scheduler {
         }
     }
 
-    SchedulerOpinion Scheduler::getLatestOpinion(const message::Message &msg) {
+    SchedulerOpinion Scheduler::getLatestOpinion(const faabric::Message &msg) {
         const std::string funcStr = funcToString(msg, false);
         return opinionMap[funcStr];
     }
 
-    std::string Scheduler::getBestHostForFunction(const message::Message &msg) {
+    std::string Scheduler::getBestHostForFunction(const faabric::Message &msg) {
         const std::shared_ptr <spdlog::logger> logger = util::getLogger();
 
         // If we're ignoring the scheduling, just put it on this host regardless
@@ -420,7 +420,7 @@ namespace scheduler {
         return _hasHostCapacity;
     }
 
-    void Scheduler::incrementInFlightCount(const message::Message &msg) {
+    void Scheduler::incrementInFlightCount(const faabric::Message &msg) {
         const std::shared_ptr <spdlog::logger> logger = util::getLogger();
 
         // Increment the in-flight count
@@ -446,8 +446,8 @@ namespace scheduler {
             incrementWarmFaasletCount(msg);
 
             // Send bind message (i.e. request a faaslet)
-            message::Message bindMsg = util::messageFactory(msg.user(), msg.function());
-            bindMsg.set_type(message::Message_MessageType_BIND);
+            faabric::Message bindMsg = util::messageFactory(msg.user(), msg.function());
+            bindMsg.set_type(faabric::Message_MessageType_BIND);
             bindMsg.set_ispython(msg.ispython());
             bindMsg.set_istypescript(msg.istypescript());
             bindMsg.set_pythonuser(msg.pythonuser());
@@ -460,21 +460,21 @@ namespace scheduler {
         updateOpinion(msg);
     }
 
-    void Scheduler::decrementInFlightCount(const message::Message &msg) {
+    void Scheduler::decrementInFlightCount(const faabric::Message &msg) {
         const std::string funcStr = util::funcToString(msg, false);
         inFlightCountMap[funcStr] = std::max(inFlightCountMap[funcStr] - 1, 0L);
 
         updateOpinion(msg);
     }
 
-    void Scheduler::incrementWarmFaasletCount(const message::Message &msg) {
+    void Scheduler::incrementWarmFaasletCount(const faabric::Message &msg) {
         std::string funcStr = util::funcToString(msg, false);
         faasletCountMap[funcStr]++;
 
         updateOpinion(msg);
     }
 
-    void Scheduler::decrementWarmFaasletCount(const message::Message &msg) {
+    void Scheduler::decrementWarmFaasletCount(const faabric::Message &msg) {
         const std::string funcStr = util::funcToString(msg, false);
         faasletCountMap[funcStr] = std::max(faasletCountMap[funcStr] - 1, 0L);
 
@@ -485,11 +485,11 @@ namespace scheduler {
         return thisHost;
     }
 
-    void Scheduler::broadcastFlush(const message::Message &msg) {
+    void Scheduler::broadcastFlush(const faabric::Message &msg) {
         redis::Redis &redis = redis::Redis::getQueue();
         std::unordered_set<std::string> allOptions = redis.smembers(AVAILABLE_HOST_SET);
 
-        message::Message newMessage;
+        faabric::Message newMessage;
         newMessage.set_user(msg.user());
         newMessage.set_function(msg.function());
         newMessage.set_isflushrequest(true);
@@ -511,7 +511,7 @@ namespace scheduler {
 
         logger->info("Preparing python runtime");
 
-        message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+        faabric::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
         msg.set_ispython(true);
         msg.set_pythonuser("python");
         msg.set_pythonfunction("noop");
@@ -522,7 +522,7 @@ namespace scheduler {
         logger->info("Python runtime prepared");
     }
 
-    void Scheduler::setFunctionResult(message::Message &msg) {
+    void Scheduler::setFunctionResult(faabric::Message &msg) {
         redis::Redis &redis = redis::Redis::getQueue();
 
         // Record which host did the execution
@@ -544,13 +544,11 @@ namespace scheduler {
         redis.expire(key, RESULT_KEY_EXPIRY);
 
         // Set long-lived result for function too
-        if (conf.execGraphMode == "on") {
-            redis.set(msg.statuskey(), inputData);
-            redis.expire(key, STATUS_KEY_EXPIRY);
-        }
+        redis.set(msg.statuskey(), inputData);
+        redis.expire(key, STATUS_KEY_EXPIRY);
     }
 
-    message::Message Scheduler::getFunctionResult(unsigned int messageId, int timeoutMs) {
+    faabric::Message Scheduler::getFunctionResult(unsigned int messageId, int timeoutMs) {
         if (messageId == 0) {
             throw std::runtime_error("Must provide non-zero message ID");
         }
@@ -561,7 +559,7 @@ namespace scheduler {
 
         std::string resultKey = util::resultKeyFromMessageId(messageId);
 
-        message::Message msgResult;
+        faabric::Message msgResult;
 
         if (isBlocking) {
             // Blocking version will throw an exception when timing out which is handled
@@ -580,7 +578,7 @@ namespace scheduler {
 
             if (result.empty()) {
                 // Empty result has special type
-                msgResult.set_type(message::Message_MessageType_EMPTY);
+                msgResult.set_type(faabric::Message_MessageType_EMPTY);
             } else {
                 // Normal response if we get something from redis
                 msgResult.ParseFromArray(result.data(), (int) result.size());
@@ -605,7 +603,7 @@ namespace scheduler {
         // Get the result for this message
         std::string statusKey = util::statusKeyFromMessageId(messageId);
         std::vector<uint8_t> messageBytes = redis.get(statusKey);
-        message::Message result;
+        faabric::Message result;
         result.ParseFromArray(messageBytes.data(), (int) messageBytes.size());
 
         // Recurse through chained calls
@@ -625,9 +623,9 @@ namespace scheduler {
     }
 
     std::string Scheduler::getMessageStatus(unsigned int messageId) {
-        const message::Message result = getFunctionResult(messageId, 0);
+        const faabric::Message result = getFunctionResult(messageId, 0);
 
-        if (result.type() == message::Message_MessageType_EMPTY) {
+        if (result.type() == faabric::Message_MessageType_EMPTY) {
             return "RUNNING";
         } else if (result.returnvalue() == 0) {
             return "SUCCESS: " + result.outputdata();

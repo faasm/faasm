@@ -14,7 +14,7 @@ using namespace faaslet;
 namespace tests {
     TEST_CASE("Test repeat invocation with state", "[faaslet]") {
         // Set up the function call
-        message::Message call = util::messageFactory("demo", "increment");
+        faabric::Message call = util::messageFactory("demo", "increment");
         setEmulatedMessage(call);
 
         // Call function
@@ -29,7 +29,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check result
-        message::Message resultA = sch.getFunctionResult(call.id(), 1);
+        faabric::Message resultA = sch.getFunctionResult(call.id(), 1);
         REQUIRE(resultA.returnvalue() == 0);
         REQUIRE(resultA.outputdata() == "Counter: 001");
 
@@ -41,7 +41,7 @@ namespace tests {
         sch.callFunction(call);
         w.processNextMessage();
 
-        message::Message resultB = sch.getFunctionResult(call.id(), 1);
+        faabric::Message resultB = sch.getFunctionResult(call.id(), 1);
         REQUIRE(resultB.returnvalue() == 0);
         REQUIRE(resultB.outputdata() == "Counter: 002");
     }
@@ -52,7 +52,7 @@ namespace tests {
         cleanSystem();
 
         // Set up the function call
-        message::Message call = util::messageFactory("demo", funcName);
+        faabric::Message call = util::messageFactory("demo", funcName);
         setEmulatedMessage(call);
 
         // Call function
@@ -67,7 +67,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check result
-        message::Message result = sch.getFunctionResult(call.id(), 1);
+        faabric::Message result = sch.getFunctionResult(call.id(), 1);
         REQUIRE(result.returnvalue() == 0);
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
 
@@ -99,7 +99,7 @@ namespace tests {
     }
 
     TEST_CASE("Test state size", "[faaslet]") {
-        message::Message msg = util::messageFactory("demo", "state_size");
+        faabric::Message msg = util::messageFactory("demo", "state_size");
         execFunction(msg);
     }
 
@@ -121,7 +121,7 @@ namespace tests {
 
     TEST_CASE("Test writing file to state", "[faaslet]") {
         cleanSystem();
-        message::Message msg = util::messageFactory("demo", "state_file");
+        faabric::Message msg = util::messageFactory("demo", "state_file");
         execFunction(msg);
     }
 }

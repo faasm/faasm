@@ -14,14 +14,14 @@ namespace tests {
 
     void checkSparseMatrixEquality(const SparseMatrix<double> &a, const SparseMatrix<double> &b);
 
-    faaslet::Faaslet execFunction(message::Message &msg, const std::string &expectedOutput = "");
+    faaslet::Faaslet execFunction(faabric::Message &msg, const std::string &expectedOutput = "");
 
-    std::string execFunctionWithStringResult(message::Message &msg);
+    std::string execFunctionWithStringResult(faabric::Message &msg);
 
-    void execFuncWithPool(message::Message &call, bool pythonPreload = false, int repeatCount = 1,
+    void execFuncWithPool(faabric::Message &call, bool pythonPreload = false, int repeatCount = 1,
             bool checkChained = false, int nThreads = 4, bool clean = true);
 
-    void checkMultipleExecutions(message::Message &msg, int nExecs);
+    void checkMultipleExecutions(faabric::Message &msg, int nExecs);
 
     void checkCallingFunctionGivesBoolOutput(const std::string &user, const std::string &funcName, bool expected);
 }

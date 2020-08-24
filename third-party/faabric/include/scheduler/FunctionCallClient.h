@@ -4,8 +4,8 @@
 #include <grpcpp/channel.h>
 #include <grpcpp/support/channel_arguments.h>
 
-#include <proto/faasm.pb.h>
-#include <proto/faasm.grpc.pb.h>
+#include <proto/faabric.pb.h>
+#include <proto/faabric.grpc.pb.h>
 
 using namespace grpc;
 
@@ -21,10 +21,10 @@ namespace scheduler {
         const std::string host;
 
         std::shared_ptr<Channel> channel;
-        std::unique_ptr<message::FunctionRPCService::Stub> stub;
+        std::unique_ptr<faabric::FunctionRPCService::Stub> stub;
 
-        void shareFunctionCall(const message::Message &call);
+        void shareFunctionCall(const faabric::Message &call);
 
-        void sendMPIMessage(const message::MPIMessage &msg);
+        void sendMPIMessage(const faabric::MPIMessage &msg);
     };
 }

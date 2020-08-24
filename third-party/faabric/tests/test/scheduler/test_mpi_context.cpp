@@ -11,7 +11,7 @@ namespace tests {
     TEST_CASE("Check world creation", "[mpi]") {
         cleanSystem();
 
-        message::Message msg = util::messageFactory("mpi", "hellompi");
+        faabric::Message msg = util::messageFactory("mpi", "hellompi");
         msg.set_mpiworldsize(10);
 
         MpiContext c;
@@ -38,7 +38,7 @@ namespace tests {
         cleanSystem();
 
         // Create message with non-zero rank
-        message::Message msg = util::messageFactory("mpi", "hellompi");
+        faabric::Message msg = util::messageFactory("mpi", "hellompi");
         msg.set_mpirank(2);
         msg.set_mpiworldsize(10);
 
@@ -51,7 +51,7 @@ namespace tests {
         cleanSystem();
 
         // Create message with non-zero rank
-        message::Message msg = util::messageFactory("mpi", "hellompi");
+        faabric::Message msg = util::messageFactory("mpi", "hellompi");
         msg.set_mpirank(0);
 
         // Set a new world size
@@ -89,7 +89,7 @@ namespace tests {
 
         const std::string expectedHost = util::getSystemConfig().endpointHost;
         
-        message::Message msgA = util::messageFactory("mpi", "hellompi");
+        faabric::Message msgA = util::messageFactory("mpi", "hellompi");
         int worldSize = 6;
         msgA.set_mpiworldsize(worldSize);
 
@@ -100,7 +100,7 @@ namespace tests {
 
         // Get one message formed by world creation
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        message::Message msgB = sch.getFunctionQueue(msgA)->dequeue();
+        faabric::Message msgB = sch.getFunctionQueue(msgA)->dequeue();
 
         // Create another context and make sure it's not initialised
         MpiContext cB;
