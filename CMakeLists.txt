@@ -159,7 +159,6 @@ else ()
     add_subdirectory(func)
 
     # Faasm libraries
-    add_subdirectory(libs/faasmpi)
     add_subdirectory(libs/pyinit)
     add_subdirectory(libs/rust)
 
