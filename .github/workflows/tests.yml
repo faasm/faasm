@@ -13,7 +13,8 @@ jobs:
   build:
     runs-on: ubuntu-18.04
     env:
-      CGROUP_MODE: on
+      CGROUP_MODE: off
+      NETNS_MODE: off
       HOST_TYPE: ci
       REDIS_STATE_HOST: redis
       REDIS_QUEUE_HOST: redis
@@ -34,10 +35,6 @@ jobs:
         run: groupadd -g 1000 faasm
       - name: "Add faasm user"
         run: useradd -u 1000 -g 1000 faasm
-      - name: "Set up cgroup"
-        run: ./bin/cgroup.sh
-      - name: "Set up namespaces"
-        run: ./bin/netns.sh 5
       - name: "Create build dir"
         run: mkdir build
       - name: "Build tests"
