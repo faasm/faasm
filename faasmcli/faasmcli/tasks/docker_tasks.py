@@ -14,9 +14,9 @@ from faasmcli.util.version import get_faasm_version
 
 # Order matters here
 RELEASE_CONTAINERS = [
+    "redis",
     "base",
     "base-test",
-    "redis",
     "worker",
     "upload",
     "toolchain",
