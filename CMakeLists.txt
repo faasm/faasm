@@ -183,7 +183,6 @@ else ()
     endif ()
 
     # Tests
-#    add_library(catch INTERFACE)
     add_subdirectory(tests/test)
     add_subdirectory(tests/utils)
 endif ()
