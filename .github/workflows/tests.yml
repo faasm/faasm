@@ -20,7 +20,7 @@ jobs:
       LOG_LEVEL: info
       MAX_FAASLETS: 5
     container:
-      faasm/base-test:0.3.0
+      faasm/base-test:0.3.2
     services:
       redis:
         image: redis
