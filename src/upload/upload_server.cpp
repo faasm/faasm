@@ -5,13 +5,13 @@
 #include <faabric/state/StateServer.h>
 
 int main() {
-    faabric::utilinitLogging();
+    faabric::util::initLogging();
 
-    faabric::utilSystemConfig &config = faabric::utilgetSystemConfig();
+    faabric::util::SystemConfig &config = faabric::util::getSystemConfig();
     config.print();
 
     // Add a state server in the background
-    state::StateServer stateServer(state::getGlobalState());
+    faabric::state::StateServer stateServer(faabric::state::getGlobalState());
     stateServer.start();
 
     // Start the upload server in the main thread

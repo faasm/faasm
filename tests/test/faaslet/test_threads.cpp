@@ -9,12 +9,12 @@ namespace tests {
         cleanSystem();
 
         // Set the thread mode
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string initialMode = conf.threadMode;
         conf.threadMode = threadMode;
 
         // Run the function
-        faabric::Message msg = faabric::utilmessageFactory("demo", threadFunc);
+        faabric::Message msg = faabric::util::messageFactory("demo", threadFunc);
 
         if (runPool) {
             execFuncWithPool(msg, false, 1, false, 4, false);

@@ -39,6 +39,7 @@ namespace storage {
         void codegenForFunction(faabric::Message &msg);
 
         void codegenForSharedObject(const std::string &inputPath);
+
     protected:
         std::vector<uint8_t> doCodegen(std::vector<uint8_t> &bytes);
     };
@@ -49,9 +50,10 @@ namespace storage {
 
     std::vector<uint8_t> loadFileBytes(const std::string &path);
 
-    class SharedFileIsDirectoryException : public faabric::utilFaasmException {
+    class SharedFileIsDirectoryException : public faabric::util::FaabricException {
     public:
-        explicit SharedFileIsDirectoryException(const std::string& filePath): FaasmException(filePath + " is a directory") {
+        explicit SharedFileIsDirectoryException(const std::string &filePath) :
+                faabric::util::FaabricException(filePath + " is a directory") {
 
         }
     };

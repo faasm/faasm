@@ -13,8 +13,8 @@
 bool runFunction(std::string &user, std::string &function, int runCount);
 
 int main(int argc, char *argv[]) {
-    faabric::utilinitLogging();
-    const std::shared_ptr<spdlog::logger> logger = faabric::utilgetLogger();
+    faabric::util::initLogging();
+    const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
 
     int runCount;
     std::string user;
@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
     std::vector<std::string> functions;
 
     if (function == "all") {
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         boost::filesystem::path path(conf.functionDir);
         path.append(user);
 
@@ -85,7 +85,7 @@ bool runWithWamr(faabric::Message &m, int runCount) {
 
 
 bool runWithWavm(faabric::Message &m, int runCount) {
-    const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
+    const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
     bool success = true;
 
     // Create the module
@@ -111,10 +111,10 @@ bool runWithWavm(faabric::Message &m, int runCount) {
 }
 
 bool runFunction(std::string &user, std::string &function, int runCount) {
-    const std::shared_ptr<spdlog::logger> logger = faabric::utilgetLogger();
+    const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
 
     // Set up function call
-    faabric::Message m = faabric::utilmessageFactory(user, function);
+    faabric::Message m = faabric::util::messageFactory(user, function);
 
     if (user == "ts") {
         m.set_istypescript(true);
@@ -127,7 +127,7 @@ bool runFunction(std::string &user, std::string &function, int runCount) {
         m.set_function(PYTHON_FUNC);
     }
 
-    faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+    faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
     bool success = true;
 
     if (conf.wasmVm == "wavm") {

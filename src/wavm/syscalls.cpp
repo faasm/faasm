@@ -29,13 +29,13 @@ namespace wasm {
                 // gettid
                 return executeSyscall(224, 0, 0, 0, 0, 0, 0, 0);
             default:
-                faabric::utilgetLogger()->error("Called unsupported syscall format {} {}", syscallNo, argsPtr);
+                faabric::util::getLogger()->error("Called unsupported syscall format {} {}", syscallNo, argsPtr);
                 throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
         }
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__syscall", I32, __syscall, I32 syscallNo, I32 argsPtr) {
-        faabric::utilgetLogger()->error("Called unsupported syscall format {} {}", syscallNo, argsPtr);
+        faabric::util::getLogger()->error("Called unsupported syscall format {} {}", syscallNo, argsPtr);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 

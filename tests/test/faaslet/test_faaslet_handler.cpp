@@ -51,14 +51,14 @@ namespace tests {
         call.set_user(user);
         call.set_function(function);
 
-        const std::string &requestStr = faabric::utilmessageToJson(call);
+        const std::string &requestStr = faabric::util::messageToJson(call);
 
         // Handle the function
         faaslet::FaasletEndpointHandler handler;
         const std::string responseStr = handler.handleFunction(requestStr);
 
         // Check function count has increased and bind message sent
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
         REQUIRE(sch.getFunctionInFlightCount(call) == 1);
         REQUIRE(sch.getBindQueue()->size() == 1);
 
@@ -97,7 +97,7 @@ namespace tests {
         }
 
         faaslet::FaasletEndpointHandler handler;
-        const std::string &requestStr = faabric::utilmessageToJson(call);
+        const std::string &requestStr = faabric::util::messageToJson(call);
         std::string actual = handler.handleFunction(requestStr);
 
         REQUIRE(actual == expected);
@@ -106,10 +106,10 @@ namespace tests {
     TEST_CASE("Check getting function status from knative", "[knative]") {
         cleanSystem();
 
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
 
         // Create a message
-        faabric::Message msg = faabric::utilmessageFactory("demo", "echo");
+        faabric::Message msg = faabric::util::messageFactory("demo", "echo");
 
         std::string expectedOutput;
         SECTION("Running") {
@@ -137,7 +137,7 @@ namespace tests {
         msg.set_isstatusrequest(true);
 
         faaslet::FaasletEndpointHandler handler;
-        const std::string &requestStr = faabric::utilmessageToJson(msg);
+        const std::string &requestStr = faabric::util::messageToJson(msg);
         std::string actual = handler.handleFunction(requestStr);
 
         REQUIRE(actual == expectedOutput);

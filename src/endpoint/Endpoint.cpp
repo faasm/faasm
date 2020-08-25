@@ -11,7 +11,7 @@ namespace endpoint {
     }
 
     void Endpoint::start() {
-        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         logger->info("Starting HTTP endpoint");
 

@@ -47,8 +47,8 @@ namespace wasm {
         const std::vector<uint8_t> snapData = snapshotToMemory();
         unsigned long stateSize = snapData.size();
 
-        state::State &state = state::getGlobalState();
-        const std::shared_ptr<state::StateKeyValue> &stateKv = state.getKV(
+        faabric::state::State &state = faabric::state::getGlobalState();
+        const std::shared_ptr<faabric::state::StateKeyValue> &stateKv = state.getKV(
                 getBoundUser(),
                 stateKey,
                 stateSize
@@ -84,8 +84,8 @@ namespace wasm {
             throw std::runtime_error("Module must be bound before restoring from state");
         }
 
-        state::State &state = state::getGlobalState();
-        const std::shared_ptr<state::StateKeyValue> &stateKv = state.getKV(
+        faabric::state::State &state = faabric::state::getGlobalState();
+        const std::shared_ptr<faabric::state::StateKeyValue> &stateKv = state.getKV(
                 boundUser,
                 stateKey,
                 stateSize
@@ -114,7 +114,7 @@ namespace wasm {
     int WasmModule::getStdoutFd() {
         if (stdoutMemFd == 0) {
             stdoutMemFd = memfd_create("stdoutfd", 0);
-            faabric::utilgetLogger()->debug("Capturing stdout: fd={}", stdoutMemFd);
+            faabric::util::getLogger()->debug("Capturing stdout: fd={}", stdoutMemFd);
         }
 
         return stdoutMemFd;
@@ -125,12 +125,12 @@ namespace wasm {
         ssize_t writtenSize = ::writev(memFd, iovecs, iovecCount);
 
         if (writtenSize < 0) {
-            faabric::utilgetLogger()->error("Failed capturing stdout: {}", strerror(errno));
+            faabric::util::getLogger()->error("Failed capturing stdout: {}", strerror(errno));
             throw std::runtime_error(std::string("Failed capturing stdout: ")
                                      + strerror(errno));
         }
 
-        faabric::utilgetLogger()->debug("Captured {} bytes of formatted stdout", writtenSize);
+        faabric::util::getLogger()->debug("Captured {} bytes of formatted stdout", writtenSize);
         stdoutSize += writtenSize;
         return writtenSize;
     }
@@ -141,11 +141,11 @@ namespace wasm {
         ssize_t writtenSize = dprintf(memFd, "%s\n", reinterpret_cast<const char *>(buffer));
 
         if (writtenSize < 0) {
-            faabric::utilgetLogger()->error("Failed capturing stdout: {}", strerror(errno));
+            faabric::util::getLogger()->error("Failed capturing stdout: {}", strerror(errno));
             throw std::runtime_error("Failed capturing stdout");
         }
 
-        faabric::utilgetLogger()->debug("Captured {} bytes of unformatted stdout", writtenSize);
+        faabric::util::getLogger()->debug("Captured {} bytes of unformatted stdout", writtenSize);
         stdoutSize += writtenSize;
         return writtenSize;
     }
@@ -163,7 +163,7 @@ namespace wasm {
         char *buf = new char[stdoutSize];
         read(memFd, buf, stdoutSize);
         std::string stdoutString(buf, stdoutSize);
-        faabric::utilgetLogger()->debug("Read stdout length {}:\n{}", stdoutSize, stdoutString);
+        faabric::util::getLogger()->debug("Read stdout length {}:\n{}", stdoutSize, stdoutString);
 
         return stdoutString;
     }
@@ -186,7 +186,7 @@ namespace wasm {
         // Here we set up the arguments to main(), i.e. argc and argv
         // We allow passing of arbitrary commandline arguments via the invocation message.
         // These are passed as a string with a space separating each argument.
-        argv = faabric::utilgetArgvForMessage(msg);
+        argv = faabric::util::getArgvForMessage(msg);
         argc = argv.size();
 
         // Work out the size of the buffer to hold the strings (allowing
@@ -207,16 +207,16 @@ namespace wasm {
      *
      * To perform the mapping we need to ensure allocated memory is page-aligned.
      */
-    uint32_t WasmModule::mapSharedStateMemory(const std::shared_ptr<state::StateKeyValue> &kv, long offset, uint32_t length) {
+    uint32_t WasmModule::mapSharedStateMemory(const std::shared_ptr<faabric::state::StateKeyValue> &kv, long offset, uint32_t length) {
         // See if we already have this segment mapped into memory
         std::string segmentKey =
                 kv->user + "_" + kv->key + "__" + std::to_string(offset) + "__" + std::to_string(length);
         if (sharedMemWasmPtrs.count(segmentKey) == 0) {
             // Lock and double check
-            faabric::utilUniqueLock lock(sharedMemWasmPtrsMx);
+            faabric::util::UniqueLock lock(sharedMemWasmPtrsMx);
             if (sharedMemWasmPtrs.count(segmentKey) == 0) {
                 // Page-align the chunk
-                faabric::utilAlignedChunk chunk = faabric::utilgetPageAlignedChunk(offset, length);
+                faabric::util::AlignedChunk chunk = faabric::util::getPageAlignedChunk(offset, length);
 
                 // Create the wasm memory region and work out the offset to the start of the
                 // desired chunk in this region (this will be zero if the offset is already

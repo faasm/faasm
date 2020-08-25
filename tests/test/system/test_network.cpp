@@ -10,7 +10,7 @@ using namespace isolation;
 namespace tests {
 
     TEST_CASE("Test basic network properties", "[faaslet]") {
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string original = conf.netNsMode;
         
         std::string envValue;
@@ -26,7 +26,7 @@ namespace tests {
         }
 
         // Reset config
-        faabric::utilsetEnvVar("NETNS_MODE", envValue);
+        faabric::util::setEnvVar("NETNS_MODE", envValue);
         conf.reset();
 
         // Create and check namespace
@@ -35,7 +35,7 @@ namespace tests {
         REQUIRE(ns.getName() == "foo");
 
         // Reset conf
-        faabric::utilsetEnvVar("NETNS_MODE", original);
+        faabric::util::setEnvVar("NETNS_MODE", original);
         conf.reset();
     }
 }

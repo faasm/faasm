@@ -20,7 +20,7 @@ namespace isolation {
     static std::mutex groupMutex;
 
     CGroup::CGroup(const std::string &name) : name(name) {
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
 
         if (conf.cgroupMode == "on") {
             mode = CgroupMode::cg_on;
@@ -43,7 +43,7 @@ namespace isolation {
     }
 
     void addCurrentThreadToTasks(const path &tasksPath) {
-        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         pid_t threadId = getCurrentTid();
 
@@ -56,7 +56,7 @@ namespace isolation {
     }
 
     void CGroup::addCurrentThread() {
-        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         if (mode == CgroupMode::cg_off) {
             logger->debug("Not adding thread. cgroup support off");

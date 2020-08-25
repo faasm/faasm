@@ -9,8 +9,8 @@ namespace tests {
     TEST_CASE("Test creating zygotes", "[zygote]") {
         cleanSystem();
 
-        faabric::Message msgA = faabric::utilmessageFactory("demo", "chain");
-        faabric::Message msgB = faabric::utilmessageFactory("demo", "chain");
+        faabric::Message msgA = faabric::util::messageFactory("demo", "chain");
+        faabric::Message msgB = faabric::util::messageFactory("demo", "chain");
 
         // Want to check things with chained calls, so need to fake up input to a chained func
         msgA.set_idx(1);

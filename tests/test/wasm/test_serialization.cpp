@@ -3,7 +3,7 @@
 #include <wavm/WAVMWasmModule.h>
 #include <boost/filesystem.hpp>
 #include <faabric/util/func.h>
-#include <faabric/utils.h>
+#include "utils.h"
 
 using namespace wasm;
 
@@ -13,7 +13,7 @@ namespace tests {
 
         std::string user = "demo";
         std::string function = "zygote_check";
-        faabric::Message m = faabric::utilmessageFactory(user, function);
+        faabric::Message m = faabric::util::messageFactory(user, function);
 
         std::string mode;
         SECTION("In memory") {

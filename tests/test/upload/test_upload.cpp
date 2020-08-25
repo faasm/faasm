@@ -38,7 +38,7 @@ namespace tests {
         REQUIRE(boost::filesystem::exists(expectedFile));
 
         // Check contents
-        std::vector<uint8_t> actualBytes = faabric::utilreadFileToBytes(expectedFile);
+        std::vector<uint8_t> actualBytes = faabric::util::readFileToBytes(expectedFile);
         REQUIRE(actualBytes == bytes);
     }
 
@@ -55,7 +55,7 @@ namespace tests {
     }
 
     TEST_CASE("Check upload overrides fileserver storage", "[upload]") {
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string original = conf.functionStorage;
         conf.functionStorage = "fileserver";
 
@@ -67,7 +67,7 @@ namespace tests {
     }
 
     TEST_CASE("Upload tests", "[upload]") {
-        redis::Redis &redisQueue = redis::Redis::getQueue();
+        faabric::redis::Redis &redisQueue = faabric::redis::Redis::getQueue();
         redisQueue.flushAll();
 
         std::vector<uint8_t> empty;
@@ -92,10 +92,10 @@ namespace tests {
             edge::UploadServer::handlePut(requestB);
 
             // Check set in state
-            state::State &globalState = state::getGlobalState();
-            std::shared_ptr<state::StateKeyValue> kvA1 = globalState.getKV("foo", "bar", stateA1.size());
-            std::shared_ptr<state::StateKeyValue> kvA2 = globalState.getKV("foo", "baz", stateA2.size());
-            std::shared_ptr<state::StateKeyValue> kvB = globalState.getKV("bat", "qux", stateB.size());
+            faabric::state::State &globalState = faabric::state::getGlobalState();
+            std::shared_ptr<faabric::state::StateKeyValue> kvA1 = globalState.getKV("foo", "bar", stateA1.size());
+            std::shared_ptr<faabric::state::StateKeyValue> kvA2 = globalState.getKV("foo", "baz", stateA2.size());
+            std::shared_ptr<faabric::state::StateKeyValue> kvB = globalState.getKV("bat", "qux", stateB.size());
 
             std::vector<uint8_t> actualA1(stateA1.size(), 0);
             std::vector<uint8_t> actualA2(stateA2.size(), 0);
@@ -125,7 +125,7 @@ namespace tests {
 
         SECTION("Test uploading wasm file") {
             // Override the function directory with junk
-            faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+            faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
             std::string origFuncDir = conf.functionDir;
             std::string origObjDir = conf.objectFileDir;
             conf.functionDir = "/tmp/func";
@@ -139,7 +139,7 @@ namespace tests {
 
             // Load some valid dummy wasm bytes
             // TODO - hard-coded file path is a bad idea
-            std::vector<uint8_t> wasmBytes = faabric::utilreadFileToBytes("/usr/local/code/faasm/tests/test/upload/dummy.wasm");
+            std::vector<uint8_t> wasmBytes = faabric::util::readFileToBytes("/usr/local/code/faasm/tests/test/upload/dummy.wasm");
 
             // Check putting the file
             std::string url = "/f/gamma/delta";
@@ -148,7 +148,7 @@ namespace tests {
             // Check object file is generated
             bool isObjFilePresent = boost::filesystem::exists(expectedObjFile);
             REQUIRE(isObjFilePresent);
-            std::vector<uint8_t> objBytes = faabric::utilreadFileToBytes(expectedObjFile);
+            std::vector<uint8_t> objBytes = faabric::util::readFileToBytes(expectedObjFile);
 
             // Check getting the file
             checkGet(url, wasmBytes);
@@ -162,11 +162,11 @@ namespace tests {
 
         SECTION("Test uploading shared file") {
             const char *realPath = "/usr/local/code/faasm/tests/test/upload/dummy_file.txt";
-            std::vector<uint8_t> fileBytes = faabric::utilreadFileToBytes(realPath);
+            std::vector<uint8_t> fileBytes = faabric::util::readFileToBytes(realPath);
 
             // Clear out any existing
             const char *relativePath = "test/dummy_file.txt";
-            std::string fullPath = faabric::utilgetSharedFileFile(relativePath);
+            std::string fullPath = faabric::util::getSharedFileFile(relativePath);
             if (boost::filesystem::exists(fullPath)) {
                 boost::filesystem::remove(fullPath);
             }
@@ -180,7 +180,7 @@ namespace tests {
 
             // Check file
             REQUIRE(boost::filesystem::exists(fullPath));
-            std::vector<uint8_t> actualBytes = faabric::utilreadFileToBytes(fullPath);
+            std::vector<uint8_t> actualBytes = faabric::util::readFileToBytes(fullPath);
             REQUIRE(actualBytes == fileBytes);
         }
     }
@@ -201,7 +201,7 @@ namespace tests {
         }
 
         std::string url = urlPath + "/" + user + "/" + funcName;
-        const std::vector<uint8_t> &expected = faabric::utilreadFileToBytes(expectedFilePath);
+        const std::vector<uint8_t> &expected = faabric::util::readFileToBytes(expectedFilePath);
         checkGet(url, expected);
     }
 
@@ -212,17 +212,17 @@ namespace tests {
 
         // Upload a dummy function
         std::vector<uint8_t> expected = {0, 2, 4, 1, 3};
-        faabric::Message msg = faabric::utilmessageFactory(user, funcName);
-        msg.set_inputdata(faabric::utilbytesToString(expected));
+        faabric::Message msg = faabric::util::messageFactory(user, funcName);
+        msg.set_inputdata(faabric::util::bytesToString(expected));
 
         storage::FileLoader &loader = storage::getFileLoader();
         loader.uploadPythonFunction(msg);
 
         // Check file exists as expected
-        faabric::Message tempMsg = faabric::utilmessageFactory("python", "foobar");
-        faabric::utilconvertMessageToPython(tempMsg);
-        const std::string filePath = faabric::utilgetPythonFunctionFile(tempMsg);
-        const std::vector<uint8_t> actualBytes = faabric::utilreadFileToBytes(filePath);
+        faabric::Message tempMsg = faabric::util::messageFactory("python", "foobar");
+        faabric::util::convertMessageToPython(tempMsg);
+        const std::string filePath = faabric::util::getPythonFunctionFile(tempMsg);
+        const std::vector<uint8_t> actualBytes = faabric::util::readFileToBytes(filePath);
         REQUIRE(actualBytes == expected);
     }
 
@@ -249,7 +249,7 @@ namespace tests {
         http_response response = request.get_response().get();
         const utility::string_t responseStr = response.to_string();
 
-        const std::vector<uint8_t> &expected = faabric::utilreadFileToBytes(expectedFilePath);
+        const std::vector<uint8_t> &expected = faabric::util::readFileToBytes(expectedFilePath);
 
         const std::vector<unsigned char> responseBytes = response.extract_vector().get();
         REQUIRE(responseBytes == expected);
@@ -259,7 +259,7 @@ namespace tests {
         std::string relativePath = "test/fileserver.txt";
         std::vector<uint8_t> fileBytes = {3, 4, 5, 0, 1, 2, 3};
 
-        std::string fullPath = faabric::utilgetSharedFileFile(relativePath);
+        std::string fullPath = faabric::util::getSharedFileFile(relativePath);
         if (boost::filesystem::exists(fullPath)) {
             boost::filesystem::remove(fullPath);
         }

@@ -11,7 +11,7 @@ namespace wasm {
      * function chained from within the same module).
      */
     static int32_t __faasm_get_idx_wrapper(wasm_exec_env_t exec_env) {
-        faabric::utilgetLogger()->debug("S - faasm_get_idx");
+        faabric::util::getLogger()->debug("S - faasm_get_idx");
 
         faabric::Message *call = getExecutingCall();
         int idx = call->idx();
@@ -22,10 +22,10 @@ namespace wasm {
      * Read the function input
      */
     static int32_t __faasm_read_input_wrapper(wasm_exec_env_t exec_env, char* inBuff, int32_t inLen) {
-        faabric::utilgetLogger()->debug("S - faasm_read_input {} {}", inBuff, inLen);
+        faabric::util::getLogger()->debug("S - faasm_read_input {} {}", inBuff, inLen);
 
         faabric::Message *call = getExecutingCall();
-        std::vector<uint8_t> inputBytes = faabric::utilstringToBytes(call->inputdata());
+        std::vector<uint8_t> inputBytes = faabric::util::stringToBytes(call->inputdata());
 
         // If nothing, return nothing
         if (inputBytes.empty()) {
@@ -33,7 +33,7 @@ namespace wasm {
         }
 
         // Write to the wasm buffer
-        int inputSize = faabric::utilsafeCopyToBuffer(inputBytes, reinterpret_cast<uint8_t *>(inBuff), inLen);
+        int inputSize = faabric::util::safeCopyToBuffer(inputBytes, reinterpret_cast<uint8_t *>(inBuff), inLen);
         return inputSize;
     }
 
@@ -41,7 +41,7 @@ namespace wasm {
      * Set the function output
      */
     static void __faasm_write_output_wrapper(wasm_exec_env_t exec_env, char* outBuff, int32_t outLen) {
-        faabric::utilgetLogger()->debug("S - faasm_write_output {} {}", outBuff, outLen);
+        faabric::util::getLogger()->debug("S - faasm_write_output {} {}", outBuff, outLen);
 
         faabric::Message *call = getExecutingCall();
         call->set_outputdata(outBuff, outLen);

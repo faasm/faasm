@@ -37,7 +37,7 @@ namespace wasm {
         std::unordered_map<std::string, Runtime::ModuleRef> compiledModuleMap;
         std::unordered_map<std::string, int> originalTableSizes;
 
-        faabric::utilSystemConfig &conf;
+        faabric::util::SystemConfig &conf;
 
         int getModuleCount(const std::string &key);
 

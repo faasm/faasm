@@ -23,7 +23,7 @@ namespace tests {
 
         std::string dummyDir = "fs_test_dir";
 
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string realDir = conf.runtimeFilesDir + "/" + dummyDir;
         if (boost::filesystem::exists(realDir)) {
             boost::filesystem::remove_all(realDir);
@@ -59,7 +59,7 @@ namespace tests {
         std::string dummyPath = dummyDir + "/dummy_file.txt";
 
         // Set up the directory
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string realDir = conf.runtimeFilesDir + "/" + dummyDir;
         if (!boost::filesystem::exists(realDir)) {
             boost::filesystem::create_directories(realDir);
@@ -123,7 +123,7 @@ namespace tests {
 
         int rootFd = 4;
 
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string dummyPath;
         std::string realPath;
         std::string contentPath;
@@ -134,12 +134,12 @@ namespace tests {
             dummyPath = "dummy_test_file.txt";
             realPath = conf.runtimeFilesDir + "/" + dummyPath;
             contentPath = realPath;
-            faabric::utilwriteBytesToFile(realPath, contents);
+            faabric::util::writeBytesToFile(realPath, contents);
         }
 
         SECTION("Shared file") {
             dummyPath = "faasm://dummy_test_file.txt";
-            contentPath = faabric::utilgetSharedFileFile("dummy_test_file.txt");
+            contentPath = faabric::util::getSharedFileFile("dummy_test_file.txt");
 
             // This is the path where the file should end up after being synced
             realPath = SharedFiles::realPathForSharedFile(dummyPath);
@@ -149,7 +149,7 @@ namespace tests {
         if (boost::filesystem::exists(realPath)) {
             boost::filesystem::remove(realPath);
         }
-        faabric::utilwriteBytesToFile(contentPath, contents);
+        faabric::util::writeBytesToFile(contentPath, contents);
 
         // Open file descriptor for the file
         int newFd = fs.openFileDescriptor(rootFd, dummyPath, 0, 0, 0, __WASI_O_CREAT, 0);
@@ -194,13 +194,13 @@ namespace tests {
 
         // Set up the shared file
         std::string relativePath = "test/shared-file-stat.txt";
-        std::string fullPath = faabric::utilgetSharedFileFile(relativePath);
+        std::string fullPath = faabric::util::getSharedFileFile(relativePath);
         if (boost::filesystem::exists(fullPath)) {
             boost::filesystem::remove(fullPath);
         }
 
         std::vector<uint8_t> contents = {0, 1, 2, 3, 4, 5};
-        faabric::utilwriteBytesToFile(fullPath, contents);
+        faabric::util::writeBytesToFile(fullPath, contents);
 
         // Stat it as a relative path
         std::string sharedPath = std::string(SHARED_FILE_PREFIX) + relativePath;
@@ -224,7 +224,7 @@ namespace tests {
         REQUIRE(fileFileDesc.getPath() == sharedPath);
 
         const std::string &realPath = storage::SharedFiles::realPathForSharedFile(sharedPath);
-        const std::vector<uint8_t> &actualContents = faabric::utilreadFileToBytes(realPath);
+        const std::vector<uint8_t> &actualContents = faabric::util::readFileToBytes(realPath);
         REQUIRE(actualContents == contents);
     }
 }

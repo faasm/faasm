@@ -21,7 +21,7 @@ namespace storage {
     static std::unordered_map<std::string, FileState> sharedFileMap;
 
     std::string SharedFiles::prependSharedRoot(const std::string &originalPath) {
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         boost::filesystem::path p(conf.sharedFilesDir);
         p.append(originalPath);
         return p.string();
@@ -33,12 +33,12 @@ namespace storage {
     }
 
     std::string SharedFiles::stripSharedPrefix(const std::string &sharedPath) {
-        std::string strippedPath = faabric::utilremoveSubstr(sharedPath, SHARED_FILE_PREFIX);
+        std::string strippedPath = faabric::util::removeSubstr(sharedPath, SHARED_FILE_PREFIX);
         return strippedPath;
     }
 
     bool SharedFiles::isPathShared(const std::string &p) {
-        return faabric::utilstartsWith(p, SHARED_FILE_PREFIX);
+        return faabric::util::startsWith(p, SHARED_FILE_PREFIX);
     }
 
     int getReturnValueForSharedFileState(const std::string &sharedPath) {
@@ -60,7 +60,7 @@ namespace storage {
     int SharedFiles::syncSharedFile(const std::string &sharedPath, const std::string &localPath) {
         // See if file already synced
         {
-            faabric::utilSharedLock lock(sharedFileMapMutex);
+            faabric::util::SharedLock lock(sharedFileMapMutex);
 
             if (sharedFileMap.count(sharedPath) > 0) {
                 return getReturnValueForSharedFileState(sharedPath);
@@ -68,7 +68,7 @@ namespace storage {
         }
 
         // At this point, file has not been synced, therefore need a lock
-        faabric::utilFullLock fullLock(sharedFileMapMutex);
+        faabric::util::FullLock fullLock(sharedFileMapMutex);
 
         // Check again
         if (sharedFileMap.count(sharedPath) > 0) {
@@ -76,7 +76,7 @@ namespace storage {
         }
 
         // Work out the real path
-        std::string strippedPath = faabric::utilremoveSubstr(sharedPath, SHARED_FILE_PREFIX);
+        std::string strippedPath = faabric::util::removeSubstr(sharedPath, SHARED_FILE_PREFIX);
         std::string realPath;
         if (localPath.empty()) {
             realPath = prependSharedRoot(strippedPath);
@@ -120,7 +120,7 @@ namespace storage {
                 }
 
                 // Write to file
-                faabric::utilwriteBytesToFile(realPath, bytes);
+                faabric::util::writeBytesToFile(realPath, bytes);
                 sharedFileMap[sharedPath] = EXISTS;
             }
         }
@@ -133,8 +133,8 @@ namespace storage {
             return;
         }
 
-        std::string sharedPath = util::getPythonFunctionFileSharedPath(msg);
-        std::string runtimeFilePath = util::getPythonRuntimeFunctionFile(msg);
+        std::string sharedPath = faabric::util::getPythonFunctionFileSharedPath(msg);
+        std::string runtimeFilePath = faabric::util::getPythonRuntimeFunctionFile(msg);
 
         syncSharedFile(sharedPath, runtimeFilePath);
     }

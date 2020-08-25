@@ -13,7 +13,7 @@ namespace tests {
         const char *filePath = "/usr/local/faasm/runtime_root/lib/libfakeLibA.so";
         REQUIRE(boost::filesystem::exists(filePath));
 
-        faabric::Message msg = faabric::utilmessageFactory("demo", "dynlink");
+        faabric::Message msg = faabric::util::messageFactory("demo", "dynlink");
 
         SECTION("Single execution") {
             execFunction(msg);

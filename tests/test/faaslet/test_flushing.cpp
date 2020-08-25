@@ -15,7 +15,7 @@ namespace tests {
 
     TEST_CASE("Test flushing worker clears state", "[faaslet]") {
         // Set up some state
-        state::State &state = state::getGlobalState();
+        faabric::state::State &state = faabric::state::getGlobalState();
         state.getKV("demo", "blah", 10);
         state.getKV("other", "foo", 30);
 
@@ -27,7 +27,7 @@ namespace tests {
     }
 
     TEST_CASE("Test flushing worker clears shared files", "[faaslet]") {
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
 
         std::string relativePath = "flush-test.txt";
         boost::filesystem::path sharedPath(conf.sharedFilesDir);
@@ -40,7 +40,7 @@ namespace tests {
 
         // Enter some data
         std::vector<uint8_t> bytes = {0, 1, 2, 3};
-        faabric::utilwriteBytesToFile(sharedPath.string(), bytes);
+        faabric::util::writeBytesToFile(sharedPath.string(), bytes);
         REQUIRE(boost::filesystem::exists(sharedPath));
 
         // Flush and check file is gone
@@ -49,8 +49,8 @@ namespace tests {
     }
 
     TEST_CASE("Test flushing worker clears zygotes", "[faaslet]") {
-        const faabric::Message msgA = faabric::utilmessageFactory("demo", "echo");
-        const faabric::Message msgB = faabric::utilmessageFactory("demo", "dummy");
+        const faabric::Message msgA = faabric::util::messageFactory("demo", "echo");
+        const faabric::Message msgB = faabric::util::messageFactory("demo", "dummy");
 
         module_cache::WasmModuleCache &reg = module_cache::getWasmModuleCache();
         reg.getCachedModule(msgA);
@@ -63,10 +63,10 @@ namespace tests {
     }
     
     TEST_CASE("Test flushing worker clears scheduler", "[faaslet]") {
-        faabric::Message msgA = faabric::utilmessageFactory("demo", "echo");
-        faabric::Message msgB = faabric::utilmessageFactory("demo", "dummy");
+        faabric::Message msgA = faabric::util::messageFactory("demo", "echo");
+        faabric::Message msgB = faabric::util::messageFactory("demo", "dummy");
 
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
         sch.callFunction(msgA);
         sch.callFunction(msgB);
 

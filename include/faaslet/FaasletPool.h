@@ -27,10 +27,10 @@ namespace faaslet {
         void shutdown();
     private:
         std::atomic<bool> _shutdown;
-        scheduler::Scheduler &scheduler;
-        faabric::utilTokenPool threadTokenPool;
-        state::StateServer stateServer;
-        scheduler::FunctionCallServer functionServer;
+        faabric::scheduler::Scheduler &scheduler;
+        faabric::util::TokenPool threadTokenPool;
+        faabric::state::StateServer stateServer;
+        faabric::scheduler::FunctionCallServer functionServer;
 
         std::thread mpiThread;
         std::thread poolThread;

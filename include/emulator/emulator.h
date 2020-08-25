@@ -12,9 +12,9 @@ void resetEmulator();
 
 void setEmulatorUser(const char *user);
 
-state::State *getEmulatorState();
+faabric::state::State *getEmulatorState();
 
-void setEmulatorState(state::State *state);
+void setEmulatorState(faabric::state::State *state);
 
 std::vector<uint8_t> getEmulatorOutputData();
 

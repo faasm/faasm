@@ -14,14 +14,14 @@ using namespace faaslet;
 namespace tests {
     TEST_CASE("Test repeat invocation with state", "[faaslet]") {
         // Set up the function call
-        faabric::Message call = faabric::utilmessageFactory("demo", "increment");
+        faabric::Message call = faabric::util::messageFactory("demo", "increment");
         setEmulatedMessage(call);
 
         // Call function
         FaasletPool pool(1);
         Faaslet w(1);
 
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
         sch.callFunction(call);
 
         // Bind and exec
@@ -35,7 +35,7 @@ namespace tests {
 
         // Call the function a second time, the state should have been incremented
         call.set_id(0);
-        faabric::utilsetMessageId(call);
+         faabric::util::setMessageId(call);
         setEmulatedMessage(call);
 
         sch.callFunction(call);
@@ -52,14 +52,14 @@ namespace tests {
         cleanSystem();
 
         // Set up the function call
-        faabric::Message call = faabric::utilmessageFactory("demo", funcName);
+        faabric::Message call = faabric::util::messageFactory("demo", funcName);
         setEmulatedMessage(call);
 
         // Call function
         FaasletPool pool(1);
         Faaslet w(1);
 
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
         sch.callFunction(call);
 
         // Bind and exec
@@ -69,11 +69,11 @@ namespace tests {
         // Check result
         faabric::Message result = sch.getFunctionResult(call.id(), 1);
         REQUIRE(result.returnvalue() == 0);
-        std::vector<uint8_t> outputBytes = faabric::utilstringToBytes(result.outputdata());
+        std::vector<uint8_t> outputBytes = faabric::util::stringToBytes(result.outputdata());
 
         REQUIRE(outputBytes == expectedOutput);
 
-        const std::shared_ptr<state::StateKeyValue> &kv = state::getGlobalState().getKV("demo", keyName, 0);
+        const std::shared_ptr<faabric::state::StateKeyValue> &kv = faabric::state::getGlobalState().getKV("demo", keyName, 0);
         REQUIRE(kv->size() == expectedState.size());
         std::vector<uint8_t> actual(kv->size(), 0);
         kv->get(actual.data());
@@ -99,7 +99,7 @@ namespace tests {
     }
 
     TEST_CASE("Test state size", "[faaslet]") {
-        faabric::Message msg = faabric::utilmessageFactory("demo", "state_size");
+        faabric::Message msg = faabric::util::messageFactory("demo", "state_size");
         execFunction(msg);
     }
 
@@ -121,7 +121,7 @@ namespace tests {
 
     TEST_CASE("Test writing file to state", "[faaslet]") {
         cleanSystem();
-        faabric::Message msg = faabric::utilmessageFactory("demo", "state_file");
+        faabric::Message msg = faabric::util::messageFactory("demo", "state_file");
         execFunction(msg);
     }
 }

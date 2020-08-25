@@ -9,7 +9,7 @@
 
 namespace tests {
     void checkObjCode(const Runtime::ModuleRef moduleRef, const std::string &path) {
-        const std::vector<uint8_t> fileBytes = faabric::utilreadFileToBytes(path);
+        const std::vector<uint8_t> fileBytes = faabric::util::readFileToBytes(path);
         const std::vector<U8> moduleBytes = Runtime::getObjectCode(moduleRef);
 
         REQUIRE(moduleBytes == fileBytes);
@@ -23,8 +23,8 @@ namespace tests {
         std::string funcA = "echo";
         std::string funcB = "x2";
 
-        faabric::Message msgA = faabric::utilmessageFactory(user, funcA);
-        faabric::Message msgB = faabric::utilmessageFactory(user, funcB);
+        faabric::Message msgA = faabric::util::messageFactory(user, funcA);
+        faabric::Message msgB = faabric::util::messageFactory(user, funcB);
 
         // Get once via both means
         IR::Module &moduleRefA1 = registry.getModule(user, funcA, "");
@@ -65,8 +65,8 @@ namespace tests {
         REQUIRE(std::addressof(moduleRefA1) != std::addressof(moduleRefB1));
         REQUIRE(objRefA1 != objRefB1);
 
-        const std::string objPathA = faabric::utilgetFunctionObjectFile(msgA);
-        const std::string objPathB = faabric::utilgetFunctionObjectFile(msgB);
+        const std::string objPathA = faabric::util::getFunctionObjectFile(msgA);
+        const std::string objPathB = faabric::util::getFunctionObjectFile(msgB);
 
         checkObjCode(objRefA1, objPathA);
         checkObjCode(objRefB1, objPathB);
@@ -123,8 +123,8 @@ namespace tests {
         REQUIRE(objRefA1 != objRefB1);
 
         // Check object code loaded matches file
-        std::string objPathA = faabric::utilgetSharedObjectObjectFile(pathA);
-        std::string objPathB = faabric::utilgetSharedObjectObjectFile(pathB);
+        std::string objPathA = faabric::util::getSharedObjectObjectFile(pathA);
+        std::string objPathB = faabric::util::getSharedObjectObjectFile(pathB);
         
         checkObjCode(objRefA1, objPathA);
         checkObjCode(objRefB1, objPathB);

@@ -13,7 +13,7 @@ namespace tests {
         FaasletPool pool(1);
         Faaslet w(1);
 
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
         sch.callFunction(call);
 
         // Bind message
@@ -26,12 +26,12 @@ namespace tests {
     void checkError(const std::string &funcName, const std::string &expectedMsg) {
         cleanSystem();
 
-        faabric::Message call = faabric::utilmessageFactory("errors", funcName);
+        faabric::Message call = faabric::util::messageFactory("errors", funcName);
 
         execErrorFunction(call);
 
         // Get result
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
         faabric::Message result = sch.getFunctionResult(call.id(), 1);
         REQUIRE(result.returnvalue() > 0);
 

@@ -13,10 +13,10 @@ namespace tests {
     TEST_CASE("Check sync shared file", "[storage]") {
         SharedFiles::clear();
 
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string relPath = "shared_test_dir/dummy_file.txt";
         std::string sharedPath = "faasm://" + relPath;
-        std::string realPath = faabric::utilgetSharedFileFile(relPath);
+        std::string realPath = faabric::util::getSharedFileFile(relPath);
         
         std::string syncedPath;
         std::string overridePath;
@@ -37,7 +37,7 @@ namespace tests {
         if(boost::filesystem::exists(realPath)) {
             boost::filesystem::remove(realPath);
         }
-        faabric::utilwriteBytesToFile(realPath, bytes);
+        faabric::util::writeBytesToFile(realPath, bytes);
 
         if(boost::filesystem::exists(syncedPath)) {
             boost::filesystem::remove(syncedPath);
@@ -48,7 +48,7 @@ namespace tests {
         
         // Check the file is now present and contents match
         REQUIRE(boost::filesystem::exists(syncedPath));
-        std::vector<uint8_t> actualBytes = faabric::utilreadFileToBytes(syncedPath);
+        std::vector<uint8_t> actualBytes = faabric::util::readFileToBytes(syncedPath);
         REQUIRE(actualBytes == bytes);
     }
 }

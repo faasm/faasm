@@ -18,7 +18,7 @@
 namespace storage {
 
     std::vector<uint8_t> FileLoader::doCodegen(std::vector<uint8_t> &bytes) {
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         if (conf.wasmVm == "wamr") {
 #if(FAASM_SGX == 1)
             throw std::runtime_error("WAMR codegen not supported in SGX mode yet");
@@ -34,13 +34,13 @@ namespace storage {
         std::vector<uint8_t> bytes = loadFunctionWasm(msg);
 
         if (bytes.empty()) {
-            const std::string funcStr = faabric::utilfuncToString(msg, false);
+            const std::string funcStr = faabric::util::funcToString(msg, false);
             throw std::runtime_error("Loaded empty bytes for " + funcStr);
         }
 
         std::vector<uint8_t> objBytes = doCodegen(bytes);
 
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         if (conf.wasmVm == "wamr") {
             uploadFunctionAotFile(msg, objBytes);
         } else {
@@ -54,7 +54,7 @@ namespace storage {
         std::vector<uint8_t> objBytes = doCodegen(bytes);
 
         // Do the upload
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         if (conf.wasmVm == "wamr") {
             uploadSharedObjectAotFile(inputPath, objBytes);
         } else {
@@ -64,7 +64,7 @@ namespace storage {
 
     void checkFileExists(const std::string &path) {
         if (!boost::filesystem::exists(path)) {
-            const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
+            const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
             logger->error("File {} does not exist", path);
             throw std::runtime_error("Expected file does not exist");
         }
@@ -72,6 +72,6 @@ namespace storage {
 
     std::vector<uint8_t> loadFileBytes(const std::string &path) {
         checkFileExists(path);
-        return faabric::utilreadFileToBytes(path);
+        return faabric::util::readFileToBytes(path);
     }
 }

@@ -11,7 +11,7 @@ namespace tests {
         std::string path("/etc/hosts");
 
         // Read with utils function
-        std::string expected = faabric::utilreadFileToString(path);
+        std::string expected = faabric::util::readFileToString(path);
 
         // Check length is being reported properly
         long actualLength = faasm::getFileLength(path.c_str());

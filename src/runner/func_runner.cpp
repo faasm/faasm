@@ -7,15 +7,15 @@
 
 
 int main(int argc, char *argv[]) {
-    faabric::utilinitLogging();
-    const std::shared_ptr<spdlog::logger> logger = faabric::utilgetLogger();
+    faabric::util::initLogging();
+    const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
 
     if (argc < 3) {
         logger->error("Must provide user and function name");
         return 1;
     }
 
-    faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+    faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
 
     // Set short timeouts to die quickly
     conf.boundTimeout = 60000;
@@ -30,20 +30,20 @@ int main(int argc, char *argv[]) {
     conf.maxFaasletsPerFunction = nThreads;
 
     // Clear out redis
-    redis::Redis &redis = redis::Redis::getQueue();
+    faabric::redis::Redis &redis = faabric::redis::Redis::getQueue();
     redis.flushAll();
 
     // Set up the call
     std::string user = argv[1];
     std::string function = argv[2];
-    faabric::Message call = faabric::utilmessageFactory(user, function);
+    faabric::Message call = faabric::util::messageFactory(user, function);
 
     if (user == "ts") {
         call.set_istypescript(true);
     }
 
     if (user == "python") {
-        faabric::utilconvertMessageToPython(call);
+        faabric::util::convertMessageToPython(call);
         logger->info("Running Python function {}/{}", call.pythonuser(), call.pythonfunction());
     } else {
         logger->info("Running function {}/{}", user, function);
@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
 
     // Submit the invocation
     PROF_START(roundTrip)
-    scheduler::Scheduler &sch = scheduler::getScheduler();
+    faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
     sch.callFunction(call);
 
     // Await the result

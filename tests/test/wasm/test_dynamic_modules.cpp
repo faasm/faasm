@@ -12,7 +12,7 @@ namespace tests {
      * way though.
      */
     std::string getBaseModulePath() {
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string basePath = conf.runtimeFilesDir + "/lib/python3.7/site-packages/numpy/core";
         return basePath;
     }
@@ -53,14 +53,14 @@ namespace tests {
         cleanSystem();
 
         // Need to force python function _not_ to load numpy up front
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string preloadBefore = conf.pythonPreload;
         conf.pythonPreload = "off";
 
         wasm::IRModuleCache &registry = wasm::getIRModuleCache();
 
         // Bind to Python function
-        faabric::Message msg = faabric::utilmessageFactory(PYTHON_USER, PYTHON_FUNC);
+        faabric::Message msg = faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
         wasm::WAVMWasmModule module;
         module.bindToFunction(msg);
 
@@ -162,12 +162,12 @@ namespace tests {
     TEST_CASE("Test GOT population", "[wasm]") {
         cleanSystem();
 
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string preloadBefore = conf.pythonPreload;
         conf.pythonPreload = "off";
 
         // Bind to Python function
-        faabric::Message msg = faabric::utilmessageFactory(PYTHON_USER, PYTHON_FUNC);
+        faabric::Message msg = faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
         wasm::WAVMWasmModule module;
         module.bindToFunction(msg);
 
@@ -226,12 +226,12 @@ namespace tests {
     }
 
     TEST_CASE("Test resolving dynamic module imports", "[wasm]") {
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string preloadBefore = conf.pythonPreload;
         conf.pythonPreload = "off";
 
         // Bind to Python function
-        faabric::Message msg = faabric::utilmessageFactory(PYTHON_USER, PYTHON_FUNC);
+        faabric::Message msg = faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
         wasm::WAVMWasmModule module;
         module.bindToFunction(msg);
 

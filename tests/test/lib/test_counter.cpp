@@ -11,7 +11,7 @@ using namespace faasm;
 
 namespace tests {
     TEST_CASE("Test normal counter operation", "[counter]") {
-        state::getGlobalState().forceClearAll(true);
+        faabric::state::getGlobalState().forceClearAll(true);
 
         const char *key = "test_counter";
         initCounter(key);

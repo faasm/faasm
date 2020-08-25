@@ -6,8 +6,8 @@
 using namespace faaslet;
 
 int main() {
-    faabric::utilinitLogging();
-    const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
+    faabric::util::initLogging();
+    const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
     // Start the worker pool
     logger->info("Starting faaslet pool in the background");

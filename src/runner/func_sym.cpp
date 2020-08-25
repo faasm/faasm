@@ -9,8 +9,8 @@
 #include <wavm/WAVMWasmModule.h>
 
 int main(int argc, char *argv[]) {
-    faabric::utilinitLogging();
-    const std::shared_ptr<spdlog::logger> logger = faabric::utilgetLogger();
+    faabric::util::initLogging();
+    const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
 
     if (argc < 3) {
         logger->error("Must provide user and function name");
@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
 
     std::map<std::string, std::string> disasMap = module.buildDisassemblyMap();
 
-    std::string outPath = faabric::utilgetFunctionSymbolsFile(call);
+    std::string outPath = faabric::util::getFunctionSymbolsFile(call);
     std::ofstream outfile;
     outfile.open(outPath, std::ios::out);
 

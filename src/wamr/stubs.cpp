@@ -13,7 +13,7 @@ namespace wasm {
         switch (syscallNo) {
             case 224:
                 // We only support gettid here
-                faabric::utilgetLogger()->warn("Using syscall to call gettid (syscall no. {})", syscallNo);
+                faabric::util::getLogger()->warn("Using syscall to call gettid (syscall no. {})", syscallNo);
                 return 0;
             default:
                 throw std::runtime_error("Native syscall not implemented");

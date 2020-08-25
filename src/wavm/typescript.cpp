@@ -15,7 +15,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_MODULE(tsenv)
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(tsenv, "abort", void, __ts_abort, I32 a, I32 b, I32 c, I32 d) {
-        faabric::utilgetLogger()->debug("TS - abort");
+        faabric::util::getLogger()->debug("TS - abort");
         throw (wasm::WasmExitException(0));
     }
 }

@@ -8,7 +8,7 @@
 namespace tests {
 
     TEST_CASE("Test executing Typescript module with input and output", "[wasm]") {
-        faabric::Message call = faabric::utilmessageFactory("ts", "echo");
+        faabric::Message call = faabric::util::messageFactory("ts", "echo");
         call.set_istypescript(true);
 
         // TODO - fix typescript

@@ -33,8 +33,8 @@ namespace tests {
     _doChecks(wasm::WAVMWasmModule &moduleA, wasm::WAVMWasmModule &moduleB, const std::string &user, const std::string &func,
               const std::string &inputA,              const std::string &inputB, bool isTypescript, bool isPython) {
 
-        faabric::Message msgA = faabric::utilmessageFactory(user, func);
-        faabric::Message msgB = faabric::utilmessageFactory(user, func);
+        faabric::Message msgA = faabric::util::messageFactory(user, func);
+        faabric::Message msgB = faabric::util::messageFactory(user, func);
 
         msgA.set_inputdata(inputA);
         msgB.set_inputdata(inputB);
@@ -154,7 +154,7 @@ namespace tests {
 
     void _checkCopyConstructor(const std::string &user, const std::string &func, const std::string &inputA,
                                const std::string &inputB, bool isTypescript, bool isPython) {
-        faabric::Message msgA = faabric::utilmessageFactory(user, func);
+        faabric::Message msgA = faabric::util::messageFactory(user, func);
 
         if(isPython) {
             convertMsgToPython(msgA);
@@ -173,7 +173,7 @@ namespace tests {
 
     void _checkAssignmentOperator(const std::string &user, const std::string &func, const std::string &inputA,
                                   const std::string &inputB, bool isTypescript, bool isPython) {
-        faabric::Message msgA = faabric::utilmessageFactory(user, func);
+        faabric::Message msgA = faabric::util::messageFactory(user, func);
         msgA.set_istypescript(isTypescript);
 
         if(isPython) {
@@ -219,7 +219,7 @@ namespace tests {
 //    }
 
     TEST_CASE("Test cloned execution on complex module", "[wasm]") {
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string preloadVal = conf.pythonPreload;
         conf.pythonPreload = "off";
         
@@ -238,7 +238,7 @@ namespace tests {
     }
 
     TEST_CASE("Test GC on cloned modules without execution") {
-        faabric::Message msg = faabric::utilmessageFactory("demo", "echo");
+        faabric::Message msg = faabric::util::messageFactory("demo", "echo");
 
         WAVMWasmModule moduleA;
         moduleA.bindToFunction(msg);
@@ -253,7 +253,7 @@ namespace tests {
     }
 
     TEST_CASE("Test GC on cloned modules with execution") {
-        faabric::Message msg = faabric::utilmessageFactory("demo", "echo");
+        faabric::Message msg = faabric::util::messageFactory("demo", "echo");
 
         WAVMWasmModule moduleA;
         moduleA.bindToFunction(msg);

@@ -9,10 +9,10 @@
 using namespace boost::filesystem;
 
 void codegenForFunc(const std::string &user, const std::string &func) {
-    const std::shared_ptr<spdlog::logger> logger = faabric::utilgetLogger();
+    const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
 
-    faabric::Message msg = faabric::utilmessageFactory(user, func);
-    if (!faabric::utilisValidFunction(msg)) {
+    faabric::Message msg = faabric::util::messageFactory(user, func);
+    if (!faabric::util::isValidFunction(msg)) {
         logger->warn("Invalid function: {}/{}", user, func);
         return;
     }
@@ -23,8 +23,8 @@ void codegenForFunc(const std::string &user, const std::string &func) {
 }
 
 int main(int argc, char *argv[]) {
-    faabric::utilinitLogging();
-    const std::shared_ptr<spdlog::logger> logger = faabric::utilgetLogger();
+    faabric::util::initLogging();
+    const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
 
     if (argc == 3) {
         std::string user = argv[1];
@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
     } else if (argc == 2) {
         std::string user = argv[1];
 
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         logger->info("Running codegen for user {} on dir {}", user, conf.functionDir);
 
         boost::filesystem::path path(conf.functionDir);
@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
         boost::filesystem::directory_iterator iter(path), end;
         std::mutex mx;
 
-        unsigned int nThreads = faabric::utilgetUsableCores();
+        unsigned int nThreads = faabric::util::getUsableCores();
         std::vector<std::thread> threads;
 
         for (unsigned int i = 0; i < nThreads; i++) {
@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
 
                     {
                         // Get lock
-                        faabric::utilUniqueLock lock(mx);
+                        faabric::util::UniqueLock lock(mx);
 
                         // Check if we've got more to do
                         if (iter == end) {

@@ -7,29 +7,29 @@
 namespace faaslet {
     FaasletPool::FaasletPool(int nThreads) :
             _shutdown(false),
-            scheduler(scheduler::getScheduler()),
+            scheduler(faabric::scheduler::getScheduler()),
             threadTokenPool(nThreads),
-            stateServer(state::getGlobalState()) {
+            stateServer(faabric::state::getGlobalState()) {
 
         // Check SGX (will do nothing if not enabled)
         isolation::checkSgxSetup();
 
         // Ensure we can ping both redis instances
-        redis::Redis::getQueue().ping();
-        redis::Redis::getState().ping();
+        faabric::redis::Redis::getQueue().ping();
+        faabric::redis::Redis::getState().ping();
     }
 
     void FaasletPool::startFunctionCallServer() {
-        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         logger->info("Starting function call server");
         functionServer.start();
     }
 
     void FaasletPool::startStateServer() {
-        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         // Skip state server if not in inmemory mode
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         if (conf.stateMode != "inmemory") {
             logger->info("Not starting state server in state mode {}", conf.stateMode);
             return;
@@ -41,13 +41,13 @@ namespace faaslet {
     }
 
     void FaasletPool::startThreadPool() {
-        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         logger->info("Starting worker thread pool");
 
         // Spawn worker threads until we've hit the worker limit, thus creating a pool
         // that will replenish when one releases its token
         poolThread = std::thread([this] {
-            const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
+            const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
             while (!this->isShutdown()) {
                 // Try to get an available slot (blocks if none available)
@@ -105,7 +105,7 @@ namespace faaslet {
     void FaasletPool::shutdown() {
         _shutdown = true;
 
-        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         logger->info("Waiting for the state server to finish");
         stateServer.stop();

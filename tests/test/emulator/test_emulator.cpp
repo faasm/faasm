@@ -17,15 +17,15 @@ namespace tests {
     void _doEmulationTest(const std::string &hostType) {
         cleanSystem();
 
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string oldHostType = conf.hostType;
         conf.hostType = hostType;
 
         std::vector<uint8_t> dummyBytes = {0, 1, 2, 3, 4, 5, 6, 7, 8};
         long dummyLen = dummyBytes.size();
 
-        faabric::Message call = faabric::utilmessageFactory("demo", "echo");
-        
+        faabric::Message call = faabric::util::messageFactory("demo", "echo");
+
         SECTION("Output data") {
             setEmulatedMessage(call);
             faasmSetOutput(dummyBytes.data(), dummyLen);
@@ -86,12 +86,12 @@ namespace tests {
     TEST_CASE("Test state emulation complex", "[emulator]") {
         _doEmulationTest("default");
     }
-    
-    TEST_CASE("Test emulator setting function result", "[emulator]") {
-        faabric::Message call = faabric::utilmessageFactory("demo", "echo");
-        faabric::utilsetMessageId(call);
 
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+    TEST_CASE("Test emulator setting function result", "[emulator]") {
+        faabric::Message call = faabric::util::messageFactory("demo", "echo");
+        faabric::util::setMessageId(call);
+
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string originalHostType = conf.hostType;
         conf.hostType = "knative";
 
@@ -120,8 +120,8 @@ namespace tests {
         }
 
         unsigned int messageId = 0;
-        if(useJson) {
-            const std::string jsonStr = faabric::utilmessageToJson(call);
+        if (useJson) {
+            const std::string jsonStr = faabric::util::messageToJson(call);
             messageId = setEmulatedMessageFromJson(jsonStr.c_str());
         } else {
             messageId = setEmulatedMessage(call);
@@ -133,7 +133,7 @@ namespace tests {
         // Call the await call function directly
         int resultCode = __faasm_await_call(call.id());
 
-        if(success) {
+        if (success) {
             REQUIRE(resultCode == 0);
         } else {
             REQUIRE(resultCode == 1);

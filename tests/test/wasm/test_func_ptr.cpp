@@ -1,14 +1,14 @@
 #include <catch/catch.hpp>
 
 #include <wavm/WAVMWasmModule.h>
-#include <faabric/utils.h>
+#include "utils.h"
 
 using namespace wasm;
 
 namespace tests {
 
     TEST_CASE("Test executing function given specific pointer", "[wasm]") {
-        faabric::Message call = faabric::utilmessageFactory("demo", "threads_check");
+        faabric::Message call = faabric::util::messageFactory("demo", "threads_check");
 
         wasm::WAVMWasmModule module;
         module.bindToFunction(call);

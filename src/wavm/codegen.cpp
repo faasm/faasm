@@ -19,7 +19,7 @@ namespace wasm {
         moduleIR.featureSpec.simd = true;
         moduleIR.featureSpec.atomics = true;
 
-        if (faabric::utilisWasm(bytes)) {
+        if (faabric::util::isWasm(bytes)) {
             // Handle WASM
             WASM::LoadError loadError;
             bool success = WASM::loadBinaryModule(bytes.data(), bytes.size(), moduleIR, &loadError);

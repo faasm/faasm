@@ -100,7 +100,7 @@ namespace wasm {
                     }
                 }
 
-                faabric::utilgetLogger()->debug("S - socket - {} {} {}", domain, type, protocol);
+                faabric::util::getLogger()->debug("S - socket - {} {} {}", domain, type, protocol);
                 I32 sock = (int) syscall(SYS_socket, domain, type, protocol);
 
                 if (sock < 0) {
@@ -117,7 +117,7 @@ namespace wasm {
                 I32 addrPtr = subCallArgs[1];
                 I32 addrLen = subCallArgs[2];
 
-                faabric::utilgetLogger()->debug("S - connect - {} {} {}", sockfd, addrPtr, addrLen);
+                faabric::util::getLogger()->debug("S - connect - {} {} {}", sockfd, addrPtr, addrLen);
 
                 sockaddr addr = getSockAddr(addrPtr);
                 int result = connect(sockfd, &addr, sizeof(sockaddr));
@@ -147,12 +147,12 @@ namespace wasm {
 
                 ssize_t result = 0;
                 if (call == SocketCalls::sc_send) {
-                    faabric::utilgetLogger()->debug("S - send - {} {} {} {}", sockfd, bufPtr, bufLen, flags);
+                    faabric::util::getLogger()->debug("S - send - {} {} {} {}", sockfd, bufPtr, bufLen, flags);
 
                     result = send(sockfd, buf, bufLen, flags);
 
                 } else if (call == SocketCalls::sc_recv) {
-                    faabric::utilgetLogger()->debug("S - recv - {} {} {} {}", sockfd, bufPtr, bufLen, flags);
+                    faabric::util::getLogger()->debug("S - recv - {} {} {} {}", sockfd, bufPtr, bufLen, flags);
 
                     result = recv(sockfd, buf, bufLen, flags);
 
@@ -163,7 +163,7 @@ namespace wasm {
                     socklen_t addrLen = subCallArgs[5];
 
                     if (call == SocketCalls::sc_sendto) {
-                        faabric::utilgetLogger()->debug("S - sendto - {} {} {} {} {} {}", sockfd, bufPtr, bufLen, flags,
+                        faabric::util::getLogger()->debug("S - sendto - {} {} {} {} {} {}", sockfd, bufPtr, bufLen, flags,
                                                  sockAddrPtr,
                                                  addrLen);
 
@@ -171,7 +171,7 @@ namespace wasm {
 
                     } else {
                         // Note, addrLen here is actually a pointer
-                        faabric::utilgetLogger()->debug("S - recvfrom - {} {} {} {} {} {}", sockfd, bufPtr, bufLen, flags,
+                        faabric::util::getLogger()->debug("S - recvfrom - {} {} {} {} {} {}", sockfd, bufPtr, bufLen, flags,
                                                  sockAddrPtr,
                                                  addrLen);
 
@@ -197,7 +197,7 @@ namespace wasm {
 
                 I32 addrLen = subCallArgs[2];
 
-                faabric::utilgetLogger()->debug("S - bind - {} {} {}", sockfd, addrPtr, addrLen);
+                faabric::util::getLogger()->debug("S - bind - {} {} {}", sockfd, addrPtr, addrLen);
 
                 int bindResult = bind(sockfd, &addr, sizeof(addr));
 
@@ -210,7 +210,7 @@ namespace wasm {
                 I32 addrPtr = subCallArgs[1];
                 I32 addrLenPtr = subCallArgs[2];
 
-                faabric::utilgetLogger()->debug("S - getsockname - {} {} {}", sockfd, addrPtr, addrLenPtr);
+                faabric::util::getLogger()->debug("S - getsockname - {} {} {}", sockfd, addrPtr, addrLenPtr);
 
                 sockaddr nativeAddr = getSockAddr(addrPtr);
                 socklen_t nativeAddrLen = sizeof(nativeAddr);
@@ -229,51 +229,51 @@ namespace wasm {
                 // ----------------------------
 
             case (SocketCalls::sc_getpeername): {
-                faabric::utilgetLogger()->debug("S - getpeername - {} {}", call, argsPtr);
+                faabric::util::getLogger()->debug("S - getpeername - {} {}", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_socketpair): {
-                faabric::utilgetLogger()->debug("S - socketpair - {} {}", call, argsPtr);
+                faabric::util::getLogger()->debug("S - socketpair - {} {}", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_shutdown): {
-                faabric::utilgetLogger()->debug("S - shutdown - {} {}", call, argsPtr);
+                faabric::util::getLogger()->debug("S - shutdown - {} {}", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_setsockopt): {
-                faabric::utilgetLogger()->debug("S - setsockopt - {} {}", call, argsPtr);
+                faabric::util::getLogger()->debug("S - setsockopt - {} {}", call, argsPtr);
                 return 0;
             }
             case (SocketCalls::sc_getsockopt): {
-                faabric::utilgetLogger()->debug("S - getsockopt - {} {}", call, argsPtr);
+                faabric::util::getLogger()->debug("S - getsockopt - {} {}", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_sendmsg): {
-                faabric::utilgetLogger()->debug("S - sendmsg - {} {}", call, argsPtr);
+                faabric::util::getLogger()->debug("S - sendmsg - {} {}", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_recvmsg): {
-                faabric::utilgetLogger()->debug("S - recvmsg - {} {}", call, argsPtr);
+                faabric::util::getLogger()->debug("S - recvmsg - {} {}", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_accept4): {
-                faabric::utilgetLogger()->debug("S - accept4 - {} {}", call, argsPtr);
+                faabric::util::getLogger()->debug("S - accept4 - {} {}", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_recvmmsg): {
-                faabric::utilgetLogger()->debug("S - recvmmsg - {} {}", call, argsPtr);
+                faabric::util::getLogger()->debug("S - recvmmsg - {} {}", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_sendmmsg): {
-                faabric::utilgetLogger()->debug("S - sendmmsg - {} {}", call, argsPtr);
+                faabric::util::getLogger()->debug("S - sendmmsg - {} {}", call, argsPtr);
                 return 0;
             }
 
@@ -283,13 +283,13 @@ namespace wasm {
 
             case (SocketCalls::sc_accept):
                 // Server-side
-                faabric::utilgetLogger()->debug("S - accept - {} {}", call, argsPtr);
+                faabric::util::getLogger()->debug("S - accept - {} {}", call, argsPtr);
 
                 throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 
             case (SocketCalls::sc_listen): {
                 // Server-side
-                faabric::utilgetLogger()->debug("S - listen - {} {}", call, argsPtr);
+                faabric::util::getLogger()->debug("S - listen - {} {}", call, argsPtr);
 
                 throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
             }
@@ -305,13 +305,13 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "gethostbyname", I32, _gethostbyname, I32 hostnamePtr) {
         const std::string hostname = getStringFromWasm(hostnamePtr);
-        faabric::utilgetLogger()->debug("S - gethostbyname {}", hostname);
+        faabric::util::getLogger()->debug("S - gethostbyname {}", hostname);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "gethostname", I32, gethostname, I32 buffer, I32 bufferLen) {
-        faabric::utilgetLogger()->debug("S - gethostname {} {}", buffer, bufferLen);
+        faabric::util::getLogger()->debug("S - gethostname {} {}", buffer, bufferLen);
 
         Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) buffer);

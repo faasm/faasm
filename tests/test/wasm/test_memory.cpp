@@ -42,7 +42,7 @@ namespace tests {
         close(fd);
         
         // Read in by other means
-        std::vector<uint8_t> full = faabric::utilreadFileToBytes(fileName);
+        std::vector<uint8_t> full = faabric::util::readFileToBytes(fileName);
         std::vector<uint8_t> expected(full.data(), full.data() + byteLen);
 
         // Check the bytes match

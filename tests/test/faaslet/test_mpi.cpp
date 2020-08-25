@@ -6,7 +6,7 @@
 
 namespace tests {
     void checkMpiFunc(const char* funcName) {
-        faabric::Message msg = faabric::utilmessageFactory("mpi", funcName);
+        faabric::Message msg = faabric::util::messageFactory("mpi", funcName);
         execFuncWithPool(msg, false, 1, true, 10);
     }
 

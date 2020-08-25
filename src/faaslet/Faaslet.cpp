@@ -26,17 +26,17 @@ using namespace isolation;
 
 namespace faaslet {
     void flushFaasletHost() {
-        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
-        logger->warn("Flushing host {}", faabric::utilgetSystemConfig().endpointHost);
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
+        logger->warn("Flushing host {}", faabric::util::getSystemConfig().endpointHost);
 
         // Clear out any cached state
-        state::getGlobalState().forceClearAll(false);
+        faabric::state::getGlobalState().forceClearAll(false);
 
         // Clear shared files
         storage::FileSystem::clearSharedFiles();
 
         // Reset scheduler
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
         sch.clear();
         sch.addHostToGlobalSet();
 
@@ -45,12 +45,12 @@ namespace faaslet {
     }
 
     Faaslet::Faaslet(int threadIdxIn) : threadIdx(threadIdxIn),
-                                        scheduler(scheduler::getScheduler()) {
+                                        scheduler(faabric::scheduler::getScheduler()) {
 
-        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         // Set an ID for this Faaslet
-        id = faabric::utilgetSystemConfig().endpointHost + "_" + std::to_string(threadIdx);
+        id = faabric::util::getSystemConfig().endpointHost + "_" + std::to_string(threadIdx);
 
         logger->debug("Starting worker thread {}", id);
 
@@ -82,15 +82,15 @@ namespace faaslet {
     }
 
     void Faaslet::finishCall(faabric::Message &call, bool success, const std::string &errorMsg) {
-        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
-        const std::string funcStr = faabric::utilfuncToString(call, true);
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
+        const std::string funcStr = faabric::util::funcToString(call, true);
         logger->info("Finished {}", funcStr);
         if (!success) {
             call.set_outputdata(errorMsg);
         }
 
         // Add captured stdout if necessary
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
 
         if (conf.captureStdout == "on") {
             std::string moduleStdout = module->getCapturedStdout();
@@ -143,7 +143,7 @@ namespace faaslet {
         // Get queue from the scheduler
         currentQueue = scheduler.getFunctionQueue(msg);
 
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
 
         // Instantiate the right wasm module for our chosen runtime
         if (conf.wasmVm == "wamr") {
@@ -168,7 +168,7 @@ namespace faaslet {
     }
 
     void Faaslet::run() {
-        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         // Wait for next message
         while (true) {
@@ -181,7 +181,7 @@ namespace faaslet {
                     break;
                 }
             }
-            catch (faabric::utilQueueTimeoutException &e) {
+            catch (faabric::util::QueueTimeoutException &e) {
                 // At this point we've received no message, so die off
                 logger->debug("Faaslet {} got no messages. Finishing", this->id);
                 break;
@@ -192,11 +192,11 @@ namespace faaslet {
     }
 
     std::string Faaslet::processNextMessage() {
-        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         // Work out which timeout
         int timeoutMs;
-        faabric::utilSystemConfig conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig conf = faabric::util::getSystemConfig();
         if (_isBound) {
             timeoutMs = conf.boundTimeout;
         } else {
@@ -214,12 +214,12 @@ namespace faaslet {
 
             scheduler.preflightPythonCall();
         } else if (msg.type() == faabric::Message_MessageType_BIND) {
-            const std::string funcStr = faabric::utilfuncToString(msg, false);
+            const std::string funcStr = faabric::util::funcToString(msg, false);
             logger->info("Faaslet {} binding to {}", id, funcStr);
 
             try {
                 this->bindToFunction(msg);
-            } catch (faabric::utilInvalidFunctionException &e) {
+            } catch (faabric::util::InvalidFunctionException &e) {
                 errorMessage = "Invalid function: " + funcStr;
             }
         } else {
@@ -229,7 +229,7 @@ namespace faaslet {
                                executionCount % coldStartInterval == 0;
 
             if (isColdStart) {
-                const std::string funcStr = faabric::utilfuncToString(msg, true);
+                const std::string funcStr = faabric::util::funcToString(msg, true);
                 logger->debug("Forcing cold start of {} ({}/{})", funcStr, executionCount, coldStartInterval);
 
                 // Bind to function again
@@ -257,9 +257,9 @@ namespace faaslet {
     }
 
     std::string Faaslet::executeCall(faabric::Message &call) {
-        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
-        const std::string funcStr = faabric::utilfuncToString(call, true);
+        const std::string funcStr = faabric::util::funcToString(call, true);
         logger->info("Faaslet executing {}", funcStr);
 
         // Create and execute the module

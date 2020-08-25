@@ -20,11 +20,11 @@ namespace tests {
         REQUIRE(actual == expected);
         
         // Check it's written where we expect it to be too
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         boost::filesystem::path fullPath(conf.sharedFilesStorageDir);
         fullPath.append(relativePath);
 
-        const std::vector<uint8_t> actualBytes = faabric::utilreadFileToBytes(fullPath.string());
+        const std::vector<uint8_t> actualBytes = faabric::util::readFileToBytes(fullPath.string());
         REQUIRE(actualBytes == expected);
     }
 }

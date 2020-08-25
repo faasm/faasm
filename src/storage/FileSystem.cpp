@@ -31,11 +31,11 @@ namespace storage {
 
         if (!success) {
             const std::string realSysPath = prependRuntimeRoot(path);
-            faabric::utilgetLogger()->error("Failed on preopened fd at {} (system path {}). Error: {} ", path, realSysPath,
+            faabric::util::getLogger()->error("Failed on preopened fd at {} (system path {}). Error: {} ", path, realSysPath,
                                      strerror(fileDesc.getLinuxErrno()));
             throw std::runtime_error("Problem opening preopened fd");
         } else {
-            faabric::utilgetLogger()->debug("Opened preopened fd at {}", path);
+            faabric::util::getLogger()->debug("Opened preopened fd at {}", path);
         }
 
         // Add to this module's fds
@@ -120,7 +120,7 @@ namespace storage {
         SharedFiles::clear();
 
         // Just nuke the whole shared directory
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         boost::filesystem::remove_all(conf.sharedFilesDir);
     }
 

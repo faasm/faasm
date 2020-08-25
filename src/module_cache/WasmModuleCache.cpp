@@ -16,7 +16,7 @@ namespace module_cache {
     }
 
     int WasmModuleCache::getCachedModuleCount(const std::string &key) {
-        faabric::utilSharedLock lock(mx);
+        faabric::util::SharedLock lock(mx);
         int count = cachedModuleMap.count(key);
         return count;
     }
@@ -42,7 +42,7 @@ namespace module_cache {
      * arbitrary points (e.g. when spawning a thread).
      */
     wasm::WAVMWasmModule &WasmModuleCache::getCachedModule(const faabric::Message &msg) {
-        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         // Get the keys for both types of cached module
         const std::string baseKey = getBaseCachedModuleKey(msg);
@@ -50,7 +50,7 @@ namespace module_cache {
 
         // Check for the base cached module
         if (getCachedModuleCount(baseKey) == 0) {
-            faabric::utilFullLock lock(mx);
+            faabric::util::FullLock lock(mx);
             if (cachedModuleMap.count(baseKey) == 0) {
                 // Instantiate the base module
                 logger->debug("Creating new base zygote: {}", baseKey);
@@ -70,7 +70,7 @@ namespace module_cache {
 
         // See if we already have the special cached module
         if (getCachedModuleCount(specialKey) == 0) {
-            faabric::utilFullLock lock(mx);
+            faabric::util::FullLock lock(mx);
             if (cachedModuleMap.count(specialKey) == 0) {
                 // Get the base module and the special module
                 logger->debug("Creating new special zygote: {}", specialKey);

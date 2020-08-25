@@ -5,7 +5,7 @@
 #include "utils.h"
 
 int main(int argc, char *argv[]) {
-    faabric::utilinitLogging();
+    faabric::util::initLogging();
 
     // Clean the system
     tests::cleanSystem();

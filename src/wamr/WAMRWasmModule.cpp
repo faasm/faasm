@@ -15,7 +15,7 @@ namespace wasm {
         if(wamrInitialised) {
             return;
         } else {
-            faabric::utilUniqueLock lock(wamrInitMx);
+            faabric::util::UniqueLock lock(wamrInitMx);
 
             if(wamrInitialised) {
                 return;
@@ -27,7 +27,7 @@ namespace wasm {
                 throw std::runtime_error("Failed to initialise WAMR");
             }
 
-            faabric::utilgetLogger()->debug("Successfully initialised WAMR");
+            faabric::util::getLogger()->debug("Successfully initialised WAMR");
 
             // Initialise native functions
             initialiseWAMRNatives();
@@ -57,7 +57,7 @@ namespace wasm {
 
     // ----- Module lifecycle -----
     void WAMRWasmModule::bindToFunction(const faabric::Message &msg) {
-        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         
         // Set up the module
         boundUser = msg.user();
@@ -122,7 +122,7 @@ namespace wasm {
     }
 
     void WAMRWasmModule::executeFunction(const std::string &funcName) {
-        const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         WASMFunctionInstanceCommon *func = wasm_runtime_lookup_function(
                 moduleInstance, funcName.c_str(), nullptr

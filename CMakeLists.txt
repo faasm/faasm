@@ -139,7 +139,7 @@ include_directories(
         ${FAASM_LIB_CPP_DIR}
         ${FAASM_LIB_FAASMP_DIR}
         ${FAASM_PYTHON_LIB_DIR}
-        ${CMAKE_CURRENT_BINARY_DIR}/third-party/faabric/include
+        ${FAASM_FAABRIC_ROOT_DIR}/include
         ${CMAKE_CURRENT_BINARY_DIR}/third-party/faabric/src # Required for protobuf
 )
 

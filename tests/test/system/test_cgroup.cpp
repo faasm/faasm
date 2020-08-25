@@ -19,7 +19,7 @@ namespace tests {
     static int cgroupCheckSuccessful = 0;
 
     TEST_CASE("Test cgroup on/ off", "[faaslet]") {
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string original = conf.cgroupMode;
 
         // Ignore this test in CI, not able to run privileged hence can't create cgroups
@@ -41,7 +41,7 @@ namespace tests {
         }
 
         // Update the config
-        faabric::utilsetEnvVar("CGROUP_MODE", envValue);
+        faabric::util::setEnvVar("CGROUP_MODE", envValue);
         conf.reset();
 
         // Create and check
@@ -50,7 +50,7 @@ namespace tests {
         REQUIRE(cg.getName() == "foo");
 
         // Reset config
-        faabric::utilsetEnvVar("CGROUP_MODE", original);
+        faabric::util::setEnvVar("CGROUP_MODE", original);
         conf.reset();
     }
 
@@ -72,16 +72,16 @@ namespace tests {
         // Check this thread is in the cgroup
         cgroupPath.append("tasks");
         std::string tid = std::to_string((pid_t) syscall(SYS_gettid));
-        std::string fileContents = faabric::utilreadFileToString(cgroupPath.string());
+        std::string fileContents = faabric::util::readFileToString(cgroupPath.string());
 
-        REQUIRE(faabric::utilcontains(fileContents, tid));
+        REQUIRE(faabric::util::contains(fileContents, tid));
 
         // Set success
         cgroupCheckSuccessful = 1;
     }
 
     TEST_CASE("Test adding thread to cpu controller", "[faaslet]") {
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
 
         // Ignore this test in CI, not able to run privileged hence can't create cgroups
         if(conf.hostType == "ci") {

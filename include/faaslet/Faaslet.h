@@ -41,9 +41,9 @@ namespace faaslet {
 
         int executionCount = 0;
 
-        scheduler::Scheduler &scheduler;
+        faabric::scheduler::Scheduler &scheduler;
 
-        std::shared_ptr<scheduler::InMemoryMessageQueue> currentQueue;
+        std::shared_ptr<faabric::scheduler::InMemoryMessageQueue> currentQueue;
 
         std::string executeCall(faabric::Message &msg);
 

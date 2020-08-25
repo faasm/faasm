@@ -18,8 +18,8 @@ namespace faaslet {
 
         void shutdown();
     private:
-        faabric::utilSystemConfig &conf;
+        faabric::util::SystemConfig &conf;
         faaslet::FaasletPool pool;
-        scheduler::Scheduler &scheduler;
+        faabric::scheduler::Scheduler &scheduler;
     };
 }

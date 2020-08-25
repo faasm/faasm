@@ -9,7 +9,7 @@ namespace tests {
     void doOmpTest(const std::string &function) {
         cleanSystem();
 
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string &originalThreadMode = conf.threadMode;
         int originalThreadPoolSize = conf.ompThreadPoolSize;
 
@@ -17,7 +17,7 @@ namespace tests {
         conf.threadMode = "local";
         conf.ompThreadPoolSize = 10;
 
-        faabric::Message msg = faabric::utilmessageFactory("omp", function);
+        faabric::Message msg = faabric::util::messageFactory("omp", function);
         execFunction(msg);
 
         // Reset config

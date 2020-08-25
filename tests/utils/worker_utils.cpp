@@ -12,7 +12,7 @@ namespace tests {
 
     Faaslet execFunction(faabric::Message &call, const std::string &expectedOutput) {
         // Turn off python preloading
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string originalPreload = conf.pythonPreload;
         conf.pythonPreload = "off";
 
@@ -21,7 +21,7 @@ namespace tests {
         Faaslet w(1);
         REQUIRE(!w.isBound());
 
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
         auto bindQueue = sch.getBindQueue();
 
         // Call the function, checking that everything is set up
@@ -58,7 +58,7 @@ namespace tests {
 
     std::string execFunctionWithStringResult(faabric::Message &call) {
         // Turn off python preloading
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string originalPreload = conf.pythonPreload;
         conf.pythonPreload = "off";
 
@@ -68,7 +68,7 @@ namespace tests {
         REQUIRE(!w.isBound());
 
         // Call the function
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
         sch.callFunction(call);
 
         // Process the bind and execute messages
@@ -77,7 +77,7 @@ namespace tests {
         
         const faabric::Message result = sch.getFunctionResult(call.id(), 1);
         if (result.returnvalue() != 0) {
-            const std::shared_ptr<spdlog::logger> &logger = faabric::utilgetLogger();
+            const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
             logger->error("Function failed: {}", result.outputdata());
             FAIL();
         }
@@ -111,13 +111,13 @@ namespace tests {
 
         setEmulatedMessage(call);
 
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
         sch.clear();
         sch.addHostToGlobalSet();
         sch.setTestMode(true);
 
         // Modify system config (network ns requires root)
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string originalNsMode = conf.netNsMode;
         std::string originalPreload = conf.pythonPreload;
         conf.boundTimeout = 1000;
@@ -135,7 +135,7 @@ namespace tests {
         for (int i = 0; i < repeatCount; i++) {
             // Reset call ID
             call.set_id(0);
-            faabric::utilsetMessageId(call);
+            faabric::util::setMessageId(call);
 
             mainFuncId = call.id();
             setEmulatedMessage(call);
@@ -164,7 +164,7 @@ namespace tests {
                     if (result.returnvalue() != 0) {
                         FAIL(fmt::format("Message ID {} failed", messageId));
                     }
-                } catch(redis::RedisNoResponseException &ex) {
+                } catch(faabric::redis::RedisNoResponseException &ex) {
                     FAIL(fmt::format("No result for message ID {}", messageId));
                 }
             }
@@ -180,13 +180,13 @@ namespace tests {
     }
 
     void checkCallingFunctionGivesBoolOutput(const std::string &user, const std::string &funcName, bool expected) {
-        faabric::Message call = faabric::utilmessageFactory("demo", funcName);
+        faabric::Message call = faabric::util::messageFactory("demo", funcName);
         setEmulatedMessage(call);
 
         FaasletPool pool(1);
         Faaslet w(1);
 
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
         sch.callFunction(call);
 
         // Bind and execute
@@ -196,7 +196,7 @@ namespace tests {
         // Check output is true
         faabric::Message result = sch.getFunctionResult(call.id(), 1);
         REQUIRE(result.returnvalue() == 0);
-        std::vector<uint8_t> outputBytes = faabric::utilstringToBytes(result.outputdata());
+        std::vector<uint8_t> outputBytes = faabric::util::stringToBytes(result.outputdata());
 
         std::vector<uint8_t> expectedOutput;
 

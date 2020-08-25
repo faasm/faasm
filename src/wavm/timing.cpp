@@ -12,13 +12,13 @@ using namespace WAVM;
 namespace wasm {
     //TODO - make timing functions more secure
     I32 s__clock_gettime(I32 clockId, I32 timespecPtr) {
-        faabric::utilgetLogger()->debug("S - clock_gettime - {} {}", clockId, timespecPtr);
+        faabric::util::getLogger()->debug("S - clock_gettime - {} {}", clockId, timespecPtr);
 
         timespec ts{};
         int retVal = clock_gettime(clockId, &ts);
         if (retVal == -1) {
             int systemErrno = errno;
-            faabric::utilgetLogger()->error("Clock type not supported - {} ({})\n", systemErrno, strerror(systemErrno));
+            faabric::util::getLogger()->error("Clock type not supported - {} ({})\n", systemErrno, strerror(systemErrno));
             return -systemErrno;
         }
 
@@ -33,7 +33,7 @@ namespace wasm {
      * As specified in the gettimeofday man page, use of the timezone struct is obsolete and hence not supported here
      */
     I32 s__gettimeofday(int tvPtr, int tzPtr) {
-        faabric::utilgetLogger()->debug("S - gettimeofday - {} {}", tvPtr, tzPtr);
+        faabric::util::getLogger()->debug("S - gettimeofday - {} {}", tvPtr, tzPtr);
 
         timeval tv{};
         gettimeofday(&tv, nullptr);
@@ -49,7 +49,7 @@ namespace wasm {
      * Allow sleep for now
      */
     I32 s__nanosleep(I32 reqPtr, I32 remPtr) {
-        faabric::utilgetLogger()->debug("S - nanosleep - {} {}", reqPtr, remPtr);
+        faabric::util::getLogger()->debug("S - nanosleep - {} {}", reqPtr, remPtr);
 
         auto request = &Runtime::memoryRef<wasm_timespec>(getExecutingWAVMModule()->defaultMemory, (Uptr) reqPtr);
 
@@ -63,7 +63,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "poll_oneoff", I32, wasi_poll_oneoff, I32 subscriptionsPtr, I32 eventsPtr,
                                    I32 nSubs,
                                    I32 resNEvents) {
-        faabric::utilgetLogger()->debug("S - poll_oneoff - {} {} {} {}", subscriptionsPtr, eventsPtr, nSubs, resNEvents);
+        faabric::util::getLogger()->debug("S - poll_oneoff - {} {} {} {}", subscriptionsPtr, eventsPtr, nSubs, resNEvents);
         WAVMWasmModule *module = getExecutingWAVMModule();
 
         auto inEvents = Runtime::memoryArrayPtr<__wasi_subscription_t>(module->defaultMemory, subscriptionsPtr, nSubs);
@@ -86,7 +86,7 @@ namespace wasm {
 
                 // Do the sleep
                 timespec t{};
-                faabric::utilnanosToTimespec(timeoutNanos, &t);
+                faabric::util::nanosToTimespec(timeoutNanos, &t);
                 clock_nanosleep(clockType, 0, &t, nullptr);
             } else {
                 throw std::runtime_error("Unimplemented event type");
@@ -110,7 +110,7 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "clock_time_get", I32, wasi_clock_time_get, I32 clockId, I64 precision,
                                    I32 resultPtr) {
-        faabric::utilgetLogger()->debug("S - clock_time_get - {} {} {}", clockId, precision, resultPtr);
+        faabric::util::getLogger()->debug("S - clock_time_get - {} {} {}", clockId, precision, resultPtr);
 
         timespec ts{};
 
@@ -136,7 +136,7 @@ namespace wasm {
             }
         }
 
-        uint64_t result = faabric::utiltimespecToNanos(&ts);
+        uint64_t result = faabric::util::timespecToNanos(&ts);
         Runtime::memoryRef<uint64_t>(getExecutingWAVMModule()->defaultMemory, resultPtr) = result;
 
         return __WASI_ESUCCESS;

@@ -84,7 +84,7 @@ namespace wasm {
 
         virtual uint32_t mmapFile(uint32_t fp, uint32_t length);
 
-        virtual uint32_t mapSharedStateMemory(const std::shared_ptr<state::StateKeyValue> &kv, long offset, uint32_t length);
+        virtual uint32_t mapSharedStateMemory(const std::shared_ptr<faabric::state::StateKeyValue> &kv, long offset, uint32_t length);
 
         virtual uint8_t* wasmPointerToNative(int32_t wasmPtr);
 

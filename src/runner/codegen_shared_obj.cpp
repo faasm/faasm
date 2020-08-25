@@ -9,7 +9,7 @@ using namespace boost::filesystem;
 
 
 void codegenForDirectory(std::string &inputPath) {
-    const std::shared_ptr<spdlog::logger> logger = faabric::utilgetLogger();
+    const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
     logger->info("Running codegen on directory {}", inputPath);
     storage::FileLoader &loader = storage::getFileLoader();
 
@@ -19,7 +19,7 @@ void codegenForDirectory(std::string &inputPath) {
     std::mutex mx;
 
     // Run multiple threads to do codegen
-    unsigned int nThreads = faabric::utilgetUsableCores();
+    unsigned int nThreads = faabric::util::getUsableCores();
     std::vector<std::thread> threads;
 
     for (unsigned int i = 0; i < nThreads; i++) {
@@ -31,7 +31,7 @@ void codegenForDirectory(std::string &inputPath) {
 
                 {
                     // Get lock
-                    faabric::utilUniqueLock lock(mx);
+                    faabric::util::UniqueLock lock(mx);
 
                     // Check if we've got more to do
                     if (iter == end) {
@@ -46,7 +46,7 @@ void codegenForDirectory(std::string &inputPath) {
 
                 directory_entry f(thisPath);
                 const std::string fileName = f.path().filename().string();
-                if (faabric::utilendsWith(fileName, ".so") || faabric::utilendsWith(fileName, ".wasm")) {
+                if (faabric::util::endsWith(fileName, ".so") || faabric::util::endsWith(fileName, ".wasm")) {
                     logger->info("Generating machine code for {}", thisPath);
                     loader.codegenForSharedObject(thisPath);
                 }
@@ -62,8 +62,8 @@ void codegenForDirectory(std::string &inputPath) {
 }
 
 int main(int argc, char *argv[]) {
-    faabric::utilinitLogging();
-    const std::shared_ptr<spdlog::logger> logger = faabric::utilgetLogger();
+    faabric::util::initLogging();
+    const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
 
     if (argc < 2) {
         logger->error("Must provide path to shared object dir");

@@ -1,8 +1,5 @@
 name: Tests
 
-# Note - the credentials for Docker in here are pulled from the repo's secrets
-# https://github.com/lsds/faasm/settings/secrets
-
 on:
   push:
     branches:
@@ -31,21 +28,38 @@ jobs:
           - 6379:6379
     steps:
       - uses: actions/checkout@v2
-      - run: ./bin/cgroup.sh
-      - run: ./bin/netns.sh 5
-      - run: inv -r faasmcli/faasmcli libs.native
-      - run: mkdir build
-      - run: cmake --build . --target tests
+      - name: "File perms"
+        run: chown -R root:root /usr/local/faasm
+      - name: "Add faasm group"
+        run: groupadd -g 1000 faasm
+      - name: "Add faasm user"
+        run: useradd -u 1000 -g 1000 faasm
+      - name: "Set up cgroup"
+        run: ./bin/cgroup.sh
+      - name: "Set up namespaces"
+        run: ./bin/netns.sh 5
+      - name: "Create build dir"
+        run: mkdir build
+      - name: "Build tests"
+        run: cmake --build . --target tests
         working-directory: build
-      - run: inv -r faasmcli/faasmcli toolchain.download-sysroot
-      - run: inv -r faasmcli/faasmcli toolchain.download-runtime --nocodegen
-      - run: inv -r faasmcli/faasmcli codegen.local
-      - run: inv -r faasmcli/faasmcli codegen demo echo --wamr
-      - run: inv -r faasmcli/faasmcli libs.fake
-      - run: inv -r faasmcli/faasmcli tf.upload --local-copy
-      - run: chown -R root:root /usr/local/faasm
-      - run: pip3 install pyfaasm
-      - run: inv -r faasmcli/faasmcli upload.user python --py --local-copy
-      - run: groupadd -g 1000 faasm
-      - run: useradd -u 1000 -g 1000 faasm
-      - run: /faasm/build/bin/tests
+      - name: "Set up native libs"
+        run: inv -r faasmcli/faasmcli libs.native
+      - name: "Set up test lib"
+        run: inv -r faasmcli/faasmcli libs.fake
+      - name: "Download sysroot"
+        run: inv -r faasmcli/faasmcli toolchain.download-sysroot
+      - name: "Download runtime root"
+        run: inv -r faasmcli/faasmcli toolchain.download-runtime --nocodegen
+      - name: "Run codegen"
+        run: inv -r faasmcli/faasmcli codegen.local
+      - name: "Run WAMR codegen"
+        run: inv -r faasmcli/faasmcli codegen demo echo --wamr
+      - name: "Set up Tensorflow test files"
+        run: inv -r faasmcli/faasmcli tf.upload --local-copy
+      - name: "Install pyfaasm"
+        run: pip3 install pyfaasm
+      - name: "Copy Python functions into place"
+        run: inv -r faasmcli/faasmcli upload.user python --py --local-copy
+      - name: "Run the tests"
+        run: /faasm/build/bin/tests

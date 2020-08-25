@@ -6,7 +6,7 @@
 
 namespace storage {
     FileLoader &getFileLoader() {
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
 
         if (conf.functionStorage == "local") {
             static thread_local LocalFileLoader fl;

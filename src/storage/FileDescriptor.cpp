@@ -18,7 +18,7 @@
 
 namespace storage {
     std::string prependRuntimeRoot(const std::string &originalPath) {
-        faabric::utilSystemConfig &conf = faabric::utilgetSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         boost::filesystem::path p(conf.runtimeFilesDir);
         p.append(originalPath);
         return p.string();
@@ -450,9 +450,9 @@ namespace storage {
         statResult.st_nlink = nativeStat.st_nlink;
         statResult.st_size = nativeStat.st_size;
         statResult.st_mode = nativeStat.st_mode;
-        statResult.st_atim = faabric::utiltimespecToNanos(&nativeStat.st_atim);
-        statResult.st_mtim = faabric::utiltimespecToNanos(&nativeStat.st_mtim);
-        statResult.st_ctim = faabric::utiltimespecToNanos(&nativeStat.st_ctim);
+        statResult.st_atim = faabric::util::timespecToNanos(&nativeStat.st_atim);
+        statResult.st_mtim = faabric::util::timespecToNanos(&nativeStat.st_mtim);
+        statResult.st_ctim = faabric::util::timespecToNanos(&nativeStat.st_ctim);
 
         return statResult;
     }
@@ -461,7 +461,7 @@ namespace storage {
         std::string linkPath = prependRuntimeRoot(absPath(relativePath));
 
         if (SharedFiles::isPathShared(linkPath)) {
-            faabric::utilgetLogger()->error("Readlink on shared not yet supported ({})", path);
+            faabric::util::getLogger()->error("Readlink on shared not yet supported ({})", path);
             throw std::runtime_error("Readlink on shared file not supported");
         }
 
