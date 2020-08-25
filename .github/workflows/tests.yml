@@ -29,7 +29,8 @@ jobs:
           - 6379:6379
     steps:
       - uses: actions/checkout@v2
-        submodules: true
+        with:
+          submodules: true
       - name: "File perms"
         run: chown -R root:root /usr/local/faasm
       - name: "Add faasm group"
