@@ -30,7 +30,8 @@ Our paper from Usenix ATC '20 on Faasm can be found [here](https://www.usenix.or
 
 # Quick start
 
-You can start a Faasm cluster locally using the `docker-compose.yml` file in the root of the project:
+You can start a Faasm cluster locally using the `docker-compose.yml` file in the
+root of the project:
 
 ```bash
 docker-compose up --scale worker=2
@@ -49,9 +50,9 @@ inv upload demo hello
 inv invoke demo hello
 ```
 
-Note that the first time you run the local set-up it will generate some machine code specific 
-to your host. This is stored in the `machine-code` directory in the root of the project and reused 
-on subsequent runs.
+Note that the first time you run the local set-up it will generate some machine
+code specific to your host. This is stored in the `machine-code` directory in
+the root of the project and reused on subsequent runs.
 
 ## More information
 
