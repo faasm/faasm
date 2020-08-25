@@ -29,6 +29,12 @@ jobs:
           - 6379:6379
     steps:
       - uses: actions/checkout@v2
+      - name: "Faabric submodule"
+        run: git submodule update --init -- third-party/faabric
+      - name: "WAVM submodule"
+        run: git submodule update --init -- third-party/WAVM
+      - name: "WAMR submodule"
+        run: git submodule update --init -- third-party/wamr
       - name: "File perms"
         run: chown -R root:root /usr/local/faasm
       - name: "Add faasm group"
