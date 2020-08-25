@@ -37,6 +37,15 @@ jobs:
         run: useradd -u 1000 -g 1000 faasm
       - name: "Create build dir"
         run: mkdir build
+      - name: "Configure build"
+        run: >
+            cmake
+            -GNinja
+            -DCMAKE_CXX_COMPILER=/usr/bin/clang++-10
+            -DCMAKE_C_COMPILER=/usr/bin/clang-10
+            -DCMAKE_BUILD_TYPE=Release
+            ..
+        working-directory: build
       - name: "Build tests"
         run: cmake --build . --target tests
         working-directory: build
