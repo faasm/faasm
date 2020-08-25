@@ -12,7 +12,7 @@ echo "Running release type ${RELEASE_TYPE}"
 
 THIS_DIR=$(dirname $(readlink -f $0))
 PROJ_ROOT=${THIS_DIR}/..
-TOOLCHAIN=${PROJ_ROOT}/toolchain/ClangNativeToolchain.cmake
+TOOLCHAIN=${PROJ_ROOT}/third-party/faasm-toolchain/ClangNativeToolchain.cmake
 
 BUILD_DIR=${PROJ_ROOT}/build/polybench_native
 rm -rf ${BUILD_DIR}

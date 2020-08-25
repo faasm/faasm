@@ -1,5 +1,5 @@
 from os import makedirs, listdir
-from os.path import exists, join, splitext
+from os.path import join, splitext
 from shutil import copy
 from subprocess import call
 
