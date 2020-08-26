@@ -7,7 +7,7 @@ using namespace WAVM;
 
 namespace wasm {
     I32 s__fork() {
-        util::getLogger()->debug("S - fork");
+        faabric::util::getLogger()->debug("S - fork");
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
@@ -48,12 +48,12 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "openpty", I32, openpty, I32 a, I32 b, I32 c, I32 d, I32 e) {
-        util::getLogger()->debug("S - openpty - {} {} {} {} {}", a, b, c, d, e);
+        faabric::util::getLogger()->debug("S - openpty - {} {} {} {} {}", a, b, c, d, e);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "forkpty", I32, forkpty, I32 a, I32 b, I32 c, I32 d) {
-        util::getLogger()->debug("S - forkpty - {} {} {} {}", a, b, c, d);
+        faabric::util::getLogger()->debug("S - forkpty - {} {} {} {}", a, b, c, d);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 

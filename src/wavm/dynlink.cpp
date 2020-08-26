@@ -1,7 +1,7 @@
 #include "WAVMWasmModule.h"
 #include "syscalls.h"
 
-#include <util/bytes.h>
+#include <faabric/util/bytes.h>
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
@@ -24,7 +24,7 @@ namespace wasm {
         Runtime::Context *context = Runtime::getContextFromRuntimeData(contextRuntimeData);
         const std::string filePath = getMaskedPathFromWasm(fileNamePtr);
 
-        util::getLogger()->debug("S - dlopen - {} {}", filePath, flags);
+        faabric::util::getLogger()->debug("S - dlopen - {} {}", filePath, flags);
 
         int handle = getExecutingWAVMModule()->dynamicLoadModule(filePath, context);
 
@@ -33,7 +33,7 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "dlsym", I32, dlsym, I32 handle, I32 symbolPtr) {
         const std::string symbol = getStringFromWasm(symbolPtr);
-        util::getLogger()->debug("S - dlsym - {} {}", handle, symbol);
+        faabric::util::getLogger()->debug("S - dlsym - {} {}", handle, symbol);
 
         Uptr tableIdx = getExecutingWAVMModule()->getDynamicModuleFunction(handle, symbol);
 
@@ -41,14 +41,14 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "dlerror", I32, dlerror) {
-        util::getLogger()->debug("S - _dlerror");
+        faabric::util::getLogger()->debug("S - _dlerror");
 
         // Ignore
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "dlclose", I32, dlclose, I32 handle) {
-        util::getLogger()->debug("S - _dlclose {}", handle);
+        faabric::util::getLogger()->debug("S - _dlclose {}", handle);
 
         // Ignore
         return 0;

@@ -2,10 +2,10 @@
 
 #include "FaasletPool.h"
 
-#include <state/StateServer.h>
+#include <faabric/state/StateServer.h>
 #include <wasm/WasmModule.h>
 
-#include <util/config.h>
+#include <faabric/util/config.h>
 
 namespace faaslet {
     class FaasmMain {
@@ -18,8 +18,8 @@ namespace faaslet {
 
         void shutdown();
     private:
-        util::SystemConfig &conf;
+        faabric::util::SystemConfig &conf;
         faaslet::FaasletPool pool;
-        scheduler::Scheduler &scheduler;
+        faabric::scheduler::Scheduler &scheduler;
     };
 }

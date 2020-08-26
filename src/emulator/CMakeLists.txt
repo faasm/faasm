@@ -11,9 +11,9 @@ set_target_properties(emulator PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
 
 if (FAASM_BUILD_TYPE STREQUAL "native-tools")
-    target_link_libraries(emulator faasm scheduler state)
+    target_link_libraries(emulator faasm faabric)
 else ()
-    target_link_libraries(emulator scheduler state)
+    target_link_libraries(emulator faabric)
 endif ()
 
 install(TARGETS emulator

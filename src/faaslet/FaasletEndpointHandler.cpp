@@ -1,10 +1,10 @@
 #include "FaasletEndpointHandler.h"
 
-#include <util/logging.h>
-#include <util/timing.h>
-#include <util/json.h>
-#include <scheduler/Scheduler.h>
-#include <redis/Redis.h>
+#include <faabric/util/logging.h>
+#include <faabric/util/timing.h>
+#include <faabric/util/json.h>
+#include <faabric/scheduler/Scheduler.h>
+#include <faabric/redis/Redis.h>
 
 namespace faaslet {
     void FaasletEndpointHandler::onTimeout(const Pistache::Http::Request &request, Pistache::Http::ResponseWriter writer) {
@@ -12,7 +12,7 @@ namespace faaslet {
     }
 
     void FaasletEndpointHandler::onRequest(const Pistache::Http::Request &request, Pistache::Http::ResponseWriter response) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         logger->debug("Knative handler received request");
 
         // Very permissive CORS
@@ -28,7 +28,7 @@ namespace faaslet {
         PROF_START(knativeRoundTrip)
 
         // Set response timeout
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         response.timeoutAfter(std::chrono::milliseconds(conf.globalMessageTimeout));
 
         // Parse message from JSON in request
@@ -44,18 +44,18 @@ namespace faaslet {
         if (requestStr.empty()) {
             responseStr = "Empty request";
         } else {
-            message::Message msg = util::jsonToMessage(requestStr);
-            scheduler::Scheduler &sched = scheduler::getScheduler();
+            faabric::Message msg = faabric::util::jsonToMessage(requestStr);
+            faabric::scheduler::Scheduler &sched = faabric::scheduler::getScheduler();
 
             if (msg.isstatusrequest()) {
                 responseStr = sched.getMessageStatus(msg.id());
 
             } else if(msg.isexecgraphrequest()) {
-                scheduler::ExecGraph execGraph = sched.getFunctionExecGraph(msg.id());
-                responseStr = scheduler::execGraphToJson(execGraph);
+                faabric::scheduler::ExecGraph execGraph = sched.getFunctionExecGraph(msg.id());
+                responseStr = faabric::scheduler::execGraphToJson(execGraph);
 
             } else if (msg.isflushrequest()) {
-                const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+                const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
                 logger->debug("Broadcasting flush request");
 
                 sched.broadcastFlush(msg);
@@ -67,9 +67,9 @@ namespace faaslet {
         return responseStr;
     }
 
-    std::string FaasletEndpointHandler::executeFunction(message::Message &msg) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        util::SystemConfig &conf = util::getSystemConfig();
+    std::string FaasletEndpointHandler::executeFunction(faabric::Message &msg) {
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
 
         if (msg.user().empty()) {
             return "Empty user";
@@ -77,29 +77,29 @@ namespace faaslet {
             return "Empty function";
         }
 
-        util::setMessageId(msg);
+        faabric::util::setMessageId(msg);
 
         auto tid = (pid_t) syscall(SYS_gettid);
 
-        const std::string funcStr = util::funcToString(msg, true);
+        const std::string funcStr = faabric::util::funcToString(msg, true);
         logger->debug("Worker HTTP thread {} scheduling {}", tid, funcStr);
 
         // Schedule it
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
         sch.callFunction(msg);
 
         // Await result on global bus (may have been executed on a different worker)
         if (msg.isasync()) {
-            return util::buildAsyncResponse(msg);
+            return faabric::util::buildAsyncResponse(msg);
         } else {
             logger->debug("Worker thread {} awaiting {}", tid, funcStr);
 
             try {
-                const message::Message result = sch.getFunctionResult(msg.id(), conf.globalMessageTimeout);
+                const faabric::Message result = sch.getFunctionResult(msg.id(), conf.globalMessageTimeout);
                 logger->debug("Worker thread {} result {}", tid, funcStr);
 
                 return result.outputdata() + "\n";
-            } catch (redis::RedisNoResponseException &ex) {
+            } catch (faabric::redis::RedisNoResponseException &ex) {
                 return "No response from function\n";
             }
         }

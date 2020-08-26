@@ -1,9 +1,9 @@
 #include "WAVMWasmModule.h"
 #include "syscalls.h"
 
-#include <util/bytes.h>
-#include <util/logging.h>
-#include <util/config.h>
+#include <faabric/util/bytes.h>
+#include <faabric/util/logging.h>
+#include <faabric/util/config.h>
 
 #include <boost/filesystem.hpp>
 
@@ -37,7 +37,7 @@ namespace wasm {
         Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
 
-        const message::Message *call = getExecutingCall();
+        const faabric::Message *call = getExecutingCall();
         return std::pair<std::string, std::string>(call->user(), key);
     }
 

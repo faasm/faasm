@@ -18,7 +18,7 @@ set(LIB_FILES
         )
 
 faasm_private_lib(storage "${LIB_FILES}")
-target_link_libraries(storage faasm emulator util wavmmodule)
+target_link_libraries(storage faasm emulator wavmmodule)
 
 # WAMR module depends on SGX support
 if(FAASM_SGX_SUPPORT)

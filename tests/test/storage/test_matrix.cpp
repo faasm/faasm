@@ -5,8 +5,8 @@
 #include <storage/SparseMatrixFileSerialiser.h>
 
 #include <boost/filesystem.hpp>
-#include <util/state.h>
-#include <util/files.h>
+#include <faabric/util/state.h>
+#include <faabric/util/files.h>
 #include <emulator/emulator.h>
 
 using namespace boost::filesystem;
@@ -26,11 +26,11 @@ namespace tests {
         // Read in from file
         path filePath = dummyDir;
         filePath.append(matrixPart);
-        const std::vector<uint8_t> fileBytes = util::readFileToBytes(filePath.string());
+        const std::vector<uint8_t> fileBytes = faabric::util::readFileToBytes(filePath.string());
 
         // Write to state
         const std::string user = getEmulatorUser();
-        const std::shared_ptr<state::StateKeyValue> kv = state::getGlobalState().getKV(user, key, fileBytes.size());
+        const std::shared_ptr<faabric::state::StateKeyValue> kv = faabric::state::getGlobalState().getKV(user, key, fileBytes.size());
         kv->set(fileBytes.data());
         kv->pushFull();
     }
@@ -45,7 +45,7 @@ namespace tests {
         // Load sizes and check they still match
         path sizePath = dummyDir;
         sizePath.append("size");
-        const std::vector<uint8_t> &sizeBytes = util::readFileToBytes(sizePath.string());
+        const std::vector<uint8_t> &sizeBytes = faabric::util::readFileToBytes(sizePath.string());
         auto sizes = reinterpret_cast<const SparseSizes *>(sizeBytes.data());
 
         REQUIRE(sizes->rows == 5);

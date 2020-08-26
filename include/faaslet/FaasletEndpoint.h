@@ -1,7 +1,7 @@
 #pragma once
 
 #include <endpoint/Endpoint.h>
-#include <util/config.h>
+#include <faabric/util/config.h>
 
 namespace faaslet {
     class FaasletEndpoint : public endpoint::Endpoint {

@@ -1,13 +1,13 @@
 #include "FaasmMain.h"
 
-#include <util/config.h>
-#include <util/logging.h>
+#include <faabric/util/config.h>
+#include <faabric/util/logging.h>
 #include <module_cache/WasmModuleCache.h>
 
 namespace faaslet {
-    FaasmMain::FaasmMain() : conf(util::getSystemConfig()),
+    FaasmMain::FaasmMain() : conf(faabric::util::getSystemConfig()),
                                pool(conf.maxFaaslets),
-                               scheduler(scheduler::getScheduler()) {
+                               scheduler(faabric::scheduler::getScheduler()) {
 
     }
 
@@ -27,7 +27,7 @@ namespace faaslet {
     }
 
     void FaasmMain::shutdown() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         logger->info("Removing from global working set");
 
         scheduler.clear();

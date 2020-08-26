@@ -2,19 +2,19 @@
 
 #include "utils.h"
 
-#include <util/func.h>
+#include <faabric/util/func.h>
 
 namespace tests {
     void checkThreadedFunction(const char *threadMode, const char *threadFunc, bool runPool) {
         cleanSystem();
 
         // Set the thread mode
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string initialMode = conf.threadMode;
         conf.threadMode = threadMode;
 
         // Run the function
-        message::Message msg = util::messageFactory("demo", threadFunc);
+        faabric::Message msg = faabric::util::messageFactory("demo", threadFunc);
 
         if (runPool) {
             execFuncWithPool(msg, false, 1, false, 4, false);

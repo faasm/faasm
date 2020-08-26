@@ -10,8 +10,8 @@
 #include <WAVM/Inline/BasicTypes.h>
 #include <WAVM/Platform/Thread.h>
 
-#include <util/locks.h>
-#include <util/locks.h>
+#include <faabric/util/locks.h>
+#include <faabric/util/locks.h>
 #include <wavm/OMPThreadPool.h>
 
 namespace wasm {

@@ -1,17 +1,17 @@
 #include <upload/UploadServer.h>
 
-#include <util/logging.h>
-#include <util/config.h>
-#include <state/StateServer.h>
+#include <faabric/util/logging.h>
+#include <faabric/util/config.h>
+#include <faabric/state/StateServer.h>
 
 int main() {
-    util::initLogging();
+    faabric::util::initLogging();
 
-    util::SystemConfig &config = util::getSystemConfig();
+    faabric::util::SystemConfig &config = faabric::util::getSystemConfig();
     config.print();
 
     // Add a state server in the background
-    state::StateServer stateServer(state::getGlobalState());
+    faabric::state::StateServer stateServer(faabric::state::getGlobalState());
     stateServer.start();
 
     // Start the upload server in the main thread

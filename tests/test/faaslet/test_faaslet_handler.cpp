@@ -3,7 +3,7 @@
 #include "utils.h"
 #include <faaslet/FaasletEndpointHandler.h>
 
-#include <util/json.h>
+#include <faabric/util/json.h>
 
 using namespace Pistache;
 
@@ -12,7 +12,7 @@ namespace tests {
         cleanSystem();
 
         // Note - must be async to avoid needing a result
-        message::Message call;
+        faabric::Message call;
         call.set_isasync(true);
         std::string user;
         std::string function;
@@ -51,23 +51,23 @@ namespace tests {
         call.set_user(user);
         call.set_function(function);
 
-        const std::string &requestStr = util::messageToJson(call);
+        const std::string &requestStr = faabric::util::messageToJson(call);
 
         // Handle the function
         faaslet::FaasletEndpointHandler handler;
         const std::string responseStr = handler.handleFunction(requestStr);
 
         // Check function count has increased and bind message sent
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
         REQUIRE(sch.getFunctionInFlightCount(call) == 1);
         REQUIRE(sch.getBindQueue()->size() == 1);
 
-        message::Message actualBind = sch.getBindQueue()->dequeue();
+        faabric::Message actualBind = sch.getBindQueue()->dequeue();
         REQUIRE(actualBind.user() == call.user());
         REQUIRE(actualBind.function() == call.function());
 
         // Check actual call has right details including the ID returned to the caller
-        message::Message actualCall = sch.getFunctionQueue(call)->dequeue();
+        faabric::Message actualCall = sch.getFunctionQueue(call)->dequeue();
         REQUIRE(actualCall.user() == call.user());
         REQUIRE(actualCall.function() == call.function());
         REQUIRE(actualCall.id() == std::stoi(responseStr));
@@ -81,7 +81,7 @@ namespace tests {
     }
 
     TEST_CASE("Test empty JSON knative invocation", "[knative]") {
-        message::Message call;
+        faabric::Message call;
         call.set_isasync(true);
 
         std::string expected;
@@ -97,7 +97,7 @@ namespace tests {
         }
 
         faaslet::FaasletEndpointHandler handler;
-        const std::string &requestStr = util::messageToJson(call);
+        const std::string &requestStr = faabric::util::messageToJson(call);
         std::string actual = handler.handleFunction(requestStr);
 
         REQUIRE(actual == expected);
@@ -106,10 +106,10 @@ namespace tests {
     TEST_CASE("Check getting function status from knative", "[knative]") {
         cleanSystem();
 
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
 
         // Create a message
-        message::Message msg = util::messageFactory("demo", "echo");
+        faabric::Message msg = faabric::util::messageFactory("demo", "echo");
 
         std::string expectedOutput;
         SECTION("Running") {
@@ -137,7 +137,7 @@ namespace tests {
         msg.set_isstatusrequest(true);
 
         faaslet::FaasletEndpointHandler handler;
-        const std::string &requestStr = util::messageToJson(msg);
+        const std::string &requestStr = faabric::util::messageToJson(msg);
         std::string actual = handler.handleFunction(requestStr);
 
         REQUIRE(actual == expectedOutput);

@@ -35,6 +35,7 @@ perf.*
 # Submodules
 third-party
 !third-party/eigen
+!third-party/faabric
 !third-party/WAVM
 !third-party/wamr
 

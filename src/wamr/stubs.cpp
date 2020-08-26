@@ -1,7 +1,7 @@
 #include <wamr/native.h>
 #include <wasm_export.h>
 #include <stdexcept>
-#include <util/logging.h>
+#include <faabric/util/logging.h>
 
 namespace wasm {
     // ------------------------------------------
@@ -13,7 +13,7 @@ namespace wasm {
         switch (syscallNo) {
             case 224:
                 // We only support gettid here
-                util::getLogger()->warn("Using syscall to call gettid (syscall no. {})", syscallNo);
+                faabric::util::getLogger()->warn("Using syscall to call gettid (syscall no. {})", syscallNo);
                 return 0;
             default:
                 throw std::runtime_error("Native syscall not implemented");

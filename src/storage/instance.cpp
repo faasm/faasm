@@ -1,4 +1,4 @@
-#include <util/config.h>
+#include <faabric/util/config.h>
 
 #include "LocalFileLoader.h"
 #include "FileserverFileLoader.h"
@@ -6,7 +6,7 @@
 
 namespace storage {
     FileLoader &getFileLoader() {
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
 
         if (conf.functionStorage == "local") {
             static thread_local LocalFileLoader fl;

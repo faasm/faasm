@@ -1,14 +1,14 @@
 #include "WAVMWasmModule.h"
 #include "syscalls.h"
 
-#include <util/bytes.h>
-#include <util/config.h>
+#include <faabric/util/bytes.h>
+#include <faabric/util/config.h>
 
 #include <sys/random.h>
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
-#include <util/macros.h>
+#include <faabric/util/macros.h>
 #include <WAVM/WASI/WASIABI.h>
 
 using namespace WAVM;
@@ -16,7 +16,7 @@ using namespace WAVM;
 namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "args_sizes_get", I32, wasi_args_sizes_get, I32 argcPtr, I32 argvBufSize) {
-        util::getLogger()->debug("S - args_sizes_get - {} {}", argcPtr, argvBufSize);
+        faabric::util::getLogger()->debug("S - args_sizes_get - {} {}", argcPtr, argvBufSize);
         WAVMWasmModule *module = getExecutingWAVMModule();
 
         Runtime::memoryRef<U32>(module->defaultMemory, argcPtr) = module->getArgc();
@@ -26,7 +26,7 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "args_get", I32, wasi_args_get, I32 argvPtr, I32 argvBufPtr) {
-        util::getLogger()->debug("S - args_get - {} {}", argvPtr, argvBufPtr);
+        faabric::util::getLogger()->debug("S - args_get - {} {}", argvPtr, argvBufPtr);
         WAVMWasmModule *module = getExecutingWAVMModule();
         module->writeArgvToMemory(argvPtr, argvBufPtr);
 
@@ -34,22 +34,22 @@ namespace wasm {
     }
 
     I32 s__gettid() {
-        util::getLogger()->debug("S - gettid");
+        faabric::util::getLogger()->debug("S - gettid");
         return FAKE_TID;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "geteuid", I32, geteuid) {
-        util::getLogger()->debug("S - geteuid");
+        faabric::util::getLogger()->debug("S - geteuid");
         return FAKE_UID;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getegid", I32, getegid) {
-        util::getLogger()->debug("S - getegid");
+        faabric::util::getLogger()->debug("S - getegid");
         return FAKE_GID;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getpwuid", I32, getpwuid, I32 uid) {
-        util::getLogger()->debug("S - getpwuid {}", uid);
+        faabric::util::getLogger()->debug("S - getpwuid {}", uid);
 
         if(uid != FAKE_UID) {
             throw std::runtime_error("Attempting to get pwd for non fake UID");
@@ -84,17 +84,17 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getuid", I32, getuid) {
-        util::getLogger()->debug("S - getuid");
+        faabric::util::getLogger()->debug("S - getuid");
         return FAKE_UID;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getgid", I32, getgid) {
-        util::getLogger()->debug("S - getgid");
+        faabric::util::getLogger()->debug("S - getgid");
         return FAKE_GID;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getpid", I32, getpid) {
-        util::getLogger()->debug("S - getpid");
+        faabric::util::getLogger()->debug("S - getpid");
         return FAKE_PID;
     }
 
@@ -103,17 +103,17 @@ namespace wasm {
     }
 
     I32 s__exit(I32 a, I32 b) {
-        util::getLogger()->debug("S - exit - {} {}", a, b);
+        faabric::util::getLogger()->debug("S - exit - {} {}", a, b);
         throw (wasm::WasmExitException(a));
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "proc_exit", void, wasi_proc_exit, I32 retCode) {
-        util::getLogger()->debug("S - proc_exit - {}", retCode);
+        faabric::util::getLogger()->debug("S - proc_exit - {}", retCode);
         throw (wasm::WasmExitException(retCode));
     }
 
     I32 s__sched_getaffinity(I32 pid, I32 cpuSetSize, I32 maskPtr) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         logger->debug("S - sched_getaffinity - {} {} {}", pid, cpuSetSize, maskPtr);
 
         // Native pointer to buffer
@@ -127,24 +127,24 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "confstr", I32, confstr, I32 a, I32 b, I32 c) {
-        util::getLogger()->debug("S - confstr - {} {} {}", a, b, c);
+        faabric::util::getLogger()->debug("S - confstr - {} {} {}", a, b, c);
 
         // Return zero as if no confstr variables have a value set
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "abort", void, abort) {
-        util::getLogger()->debug("S - abort");
+        faabric::util::getLogger()->debug("S - abort");
         throw (wasm::WasmExitException(0));
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "exit", void, exit, I32 a) {
-        util::getLogger()->debug("S - exit - {}", a);
+        faabric::util::getLogger()->debug("S - exit - {}", a);
         throw (wasm::WasmExitException(a));
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "_Exit", void, _Exit, I32 a) {
-        util::getLogger()->debug("S - _Exit - {}", a);
+        faabric::util::getLogger()->debug("S - _Exit - {}", a);
         throw (wasm::WasmExitException(a));
     }
 
@@ -152,7 +152,7 @@ namespace wasm {
      * Allowing straight-through access to sysconf my not be wise. Should revisit this.
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "sysconf", I32, _sysconf, I32 a) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         logger->debug("S - _sysconf - {}", a);
 
         if (a == _SC_NPROCESSORS_ONLN) {
@@ -164,7 +164,7 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "uname", I32, uname, I32 bufPtr) {
-        util::getLogger()->debug("S - uname - {}", bufPtr);
+        faabric::util::getLogger()->debug("S - uname - {}", bufPtr);
 
         // Native pointer to buffer
         Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
@@ -191,7 +191,7 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "environ_sizes_get", I32, wasi_environ_sizes_get,
                                    I32 environCountPtr, I32 environBuffSizePtr) {
-        util::getLogger()->debug("S - environ_sizes_get - {} {}", environCountPtr, environBuffSizePtr);
+        faabric::util::getLogger()->debug("S - environ_sizes_get - {} {}", environCountPtr, environBuffSizePtr);
 
         WAVMWasmModule *module = getExecutingWAVMModule();
         WasmEnvironment &wasmEnv = module->getWasmEnvironment();
@@ -203,7 +203,7 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "environ_get", I32, wasi_environ_get, I32 environPtrs, I32 environBuf) {
-        util::getLogger()->debug("S - environ_get - {} {}", environPtrs, environBuf);
+        faabric::util::getLogger()->debug("S - environ_get - {} {}", environPtrs, environBuf);
 
         WAVMWasmModule *module = getExecutingWAVMModule();
         module->writeWasmEnvToMemory(environPtrs, environBuf);
@@ -214,7 +214,7 @@ namespace wasm {
 
     // Random
     I32 s__getrandom(I32 bufPtr, I32 bufLen, I32 flags) {
-        util::getLogger()->debug("S - getrandom - {} {} {}", bufPtr, bufLen, flags);
+        faabric::util::getLogger()->debug("S - getrandom - {} {} {}", bufPtr, bufLen, flags);
 
         auto hostBuf = &Runtime::memoryRef<U8>(getExecutingWAVMModule()->defaultMemory, (Uptr) bufPtr);
 
@@ -222,7 +222,7 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "random_get", I32, wasi_random_get, I32 bufPtr, I32 bufLen) {
-        util::getLogger()->debug("S - random_get - {} {}", bufPtr, bufLen);
+        faabric::util::getLogger()->debug("S - random_get - {} {}", bufPtr, bufLen);
 
         auto hostBuf = &Runtime::memoryRef<U8>(getExecutingWAVMModule()->defaultMemory, (Uptr) bufPtr);
 
@@ -232,7 +232,7 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getcwd", I32, getcwd, I32 bufPtr, I32 bufLen) {
-        util::getLogger()->debug("S - getcwd - {} {}", bufPtr, bufLen);
+        faabric::util::getLogger()->debug("S - getcwd - {} {}", bufPtr, bufLen);
 
         Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         char *hostBuf = Runtime::memoryArrayPtr<char>(memoryPtr, (Uptr) bufPtr, (Uptr) bufLen);
@@ -262,37 +262,37 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getresuid", I32, getresuid, I32 a, I32 b, I32 c) {
-        util::getLogger()->debug("S - getresuid - {} {} {}", a, b, c);
+        faabric::util::getLogger()->debug("S - getresuid - {} {} {}", a, b, c);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getresgid", I32, getresgid, I32 a, I32 b, I32 c) {
-        util::getLogger()->debug("S - getresgid - {} {} {}", a, b, c);
+        faabric::util::getLogger()->debug("S - getresgid - {} {} {}", a, b, c);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getrusage", I32, getrusage, I32 a, I32 b) {
-        util::getLogger()->debug("S - getrusage - {} {}", a, b);
+        faabric::util::getLogger()->debug("S - getrusage - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getrlimit", I32, getrlimit, I32 a, I32 b) {
-        util::getLogger()->debug("S - getrlimit - {} {}", a, b);
+        faabric::util::getLogger()->debug("S - getrlimit - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "setrlimit", I32, setrlimit, I32 a, I32 b) {
-        util::getLogger()->debug("S - setrlimit - {} {}", a, b);
+        faabric::util::getLogger()->debug("S - setrlimit - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "longjmp", void, longjmp, I32 a, U32 b) {
-        util::getLogger()->debug("S - longjmp - {} {}", a, b);
+        faabric::util::getLogger()->debug("S - longjmp - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "setjmp", I32, setjmp, I32 a) {
-        util::getLogger()->debug("S - setjmp - {}", a);
+        faabric::util::getLogger()->debug("S - setjmp - {}", a);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 

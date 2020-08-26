@@ -1,8 +1,8 @@
 #include "WAMRWasmModule.h"
 
-#include <util/files.h>
+#include <faabric/util/files.h>
 #include <stdexcept>
-#include <util/logging.h>
+#include <faabric/util/logging.h>
 
 #include <wasm_export.h>
 #include <aot_export.h>
@@ -12,12 +12,12 @@
 
 namespace wasm {
     std::vector<uint8_t> wamrCodegen(std::vector<uint8_t> &wasmBytes) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         // Make sure WAMR is initialised
         WAMRWasmModule::initialiseWAMRGlobally();
 
-        if (!util::isWasm(wasmBytes)) {
+        if (!faabric::util::isWasm(wasmBytes)) {
             throw std::runtime_error("File is not a wasm binary");
         }
 
@@ -69,7 +69,7 @@ namespace wasm {
         }
 
         // Read object bytes back in
-        std::vector<uint8_t> objBytes = util::readFileToBytes(temp.c_str());
+        std::vector<uint8_t> objBytes = faabric::util::readFileToBytes(temp.c_str());
         return objBytes;
     }
 }

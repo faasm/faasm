@@ -3,7 +3,7 @@
 #include <wamr/native.h>
 #include <storage/FileLoader.h>
 #include <wasm_export.h>
-#include <util/locks.h>
+#include <faabric/util/locks.h>
 
 namespace wasm {
     static bool wamrInitialised = false;
@@ -15,7 +15,7 @@ namespace wasm {
         if(wamrInitialised) {
             return;
         } else {
-            util::UniqueLock lock(wamrInitMx);
+            faabric::util::UniqueLock lock(wamrInitMx);
 
             if(wamrInitialised) {
                 return;
@@ -27,7 +27,7 @@ namespace wasm {
                 throw std::runtime_error("Failed to initialise WAMR");
             }
 
-            util::getLogger()->debug("Successfully initialised WAMR");
+            faabric::util::getLogger()->debug("Successfully initialised WAMR");
 
             // Initialise native functions
             initialiseWAMRNatives();
@@ -56,8 +56,8 @@ namespace wasm {
     }
 
     // ----- Module lifecycle -----
-    void WAMRWasmModule::bindToFunction(const message::Message &msg) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+    void WAMRWasmModule::bindToFunction(const faabric::Message &msg) {
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         
         // Set up the module
         boundUser = msg.user();
@@ -100,13 +100,13 @@ namespace wasm {
         }
     }
 
-    void WAMRWasmModule::bindToFunctionNoZygote(const message::Message &msg) {
+    void WAMRWasmModule::bindToFunctionNoZygote(const faabric::Message &msg) {
         // WAMR does not support zygotes yet so it's
         // equivalent to binding with zygote
         bindToFunction(msg);
     }
 
-    bool WAMRWasmModule::execute(message::Message &msg, bool forceNoop) {
+    bool WAMRWasmModule::execute(faabric::Message &msg, bool forceNoop) {
         setExecutingCall(&msg);
         setExecutingModule(this);
 
@@ -122,7 +122,7 @@ namespace wasm {
     }
 
     void WAMRWasmModule::executeFunction(const std::string &funcName) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         WASMFunctionInstanceCommon *func = wasm_runtime_lookup_function(
                 moduleInstance, funcName.c_str(), nullptr

@@ -38,12 +38,10 @@ export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 export LOG_LEVEL=debug
 export FAASM_ROOT=$(pwd)
 export FAASM_VERSION=$(cat VERSION)
-export FAASM_CMAKE_TOOLCHAIN=$FAASM_ROOT/toolchain/FaasmToolchain.cmake
-export FAASM_BASH_TOOLCHAIN=$FAASM_ROOT/toolchain/env.sh
 
 export PS1="(faasm) $PS1"
 
-alias fm="inv"
+alias rgrep="grep --exclude-dir={third-party,.git,venv} -rnw -e"
 
 # Container builds
 if [[ -d /faasm/build ]]; then

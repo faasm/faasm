@@ -2,8 +2,8 @@
 
 #include <system/NetworkNamespace.h>
 
-#include <util/func.h>
-#include <scheduler/Scheduler.h>
+#include <faabric/util/func.h>
+#include <faabric/scheduler/Scheduler.h>
 
 #include <wasm/WasmModule.h>
 
@@ -16,7 +16,7 @@ namespace faaslet {
     public:
         explicit Faaslet(int threadIdx);
 
-        void bindToFunction(const message::Message &msg, bool force = false);
+        void bindToFunction(const faabric::Message &msg, bool force = false);
 
         void run();
 
@@ -37,16 +37,16 @@ namespace faaslet {
         int isolationIdx;
         std::unique_ptr<isolation::NetworkNamespace> ns;
 
-        message::Message boundMessage;
+        faabric::Message boundMessage;
 
         int executionCount = 0;
 
-        scheduler::Scheduler &scheduler;
+        faabric::scheduler::Scheduler &scheduler;
 
-        std::shared_ptr<scheduler::InMemoryMessageQueue> currentQueue;
+        std::shared_ptr<faabric::scheduler::InMemoryMessageQueue> currentQueue;
 
-        std::string executeCall(message::Message &msg);
+        std::string executeCall(faabric::Message &msg);
 
-        void finishCall(message::Message &msg, bool success, const std::string &errorMsg);
+        void finishCall(faabric::Message &msg, bool success, const std::string &errorMsg);
     };
 }

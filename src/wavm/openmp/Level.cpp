@@ -1,7 +1,7 @@
 #include "wavm/openmp/Level.h"
 
 #include <openmp/ThreadState.h>
-#include <util/config.h>
+#include <faabric/util/config.h>
 
 namespace wasm {
     namespace openmp {
@@ -11,7 +11,7 @@ namespace wasm {
                 maxActiveLevel(parent->maxActiveLevel),
                 numThreads(numThreads) {
             if (numThreads > 1) {
-                barrier = std::make_unique<util::Barrier>(numThreads);
+                barrier = std::make_unique<faabric::util::Barrier>(numThreads);
             }
         }
 
@@ -21,7 +21,7 @@ namespace wasm {
                 maxActiveLevel(maxActiveLevel),
                 numThreads(numThreads) {
             if (numThreads > 1) {
-                barrier = std::make_unique<util::Barrier>(numThreads);
+                barrier = std::make_unique<faabric::util::Barrier>(numThreads);
             }
         }
 
@@ -36,10 +36,10 @@ namespace wasm {
             int nextWanted = pushedNumThreads > 0 ? pushedNumThreads : wantedNumThreads;
 
             // Returns user preference if set or device's maximum
-            return nextWanted > 0 ? nextWanted : (int) util::getSystemConfig().maxFaaslets;
+            return nextWanted > 0 ? nextWanted : (int) faabric::util::getSystemConfig().maxFaaslets;
         }
 
-        void Level::snapshot_parent(message::Message &msg) const {
+        void Level::snapshot_parent(faabric::Message &msg) const {
             msg.set_ompdepth(depth);
             msg.set_ompeffdepth(effectiveDepth);
             msg.set_ompmal(maxActiveLevel);

@@ -5,11 +5,12 @@
 #include <faasm/sgd.h>
 #include <faasm/matrix.h>
 
-#include <redis/Redis.h>
-#include <util/environment.h>
+#include <faabric/redis/Redis.h>
+#include <faabric/util/environment.h>
 #include <emulator/emulator.h>
-#include <util/state.h>
-#include <state/StateServer.h>
+#include <faabric/util/state.h>
+#include <faabric/util/network.h>
+#include <faabric/state/StateServer.h>
 
 
 using namespace faasm;
@@ -155,7 +156,7 @@ namespace tests {
         size_t bufferSize = nDoubles * sizeof(double);
         std::vector<uint8_t> actualBytes(bufferSize, 0);
 
-        const std::shared_ptr<state::StateKeyValue> &kv = state::getGlobalState().getKV(user, key);
+        const std::shared_ptr<faabric::state::StateKeyValue> &kv = faabric::state::getGlobalState().getKV(user, key);
         kv->getAppended(actualBytes.data(), bufferSize, nDoubles);
         REQUIRE(!actualBytes.empty());
 
@@ -228,7 +229,7 @@ namespace tests {
         setEmulatorUser(user.c_str());
 
         // Set up the SVM function
-        message::Message call = util::messageFactory(user, "reuters_svm");
+        faabric::Message call = faabric::util::messageFactory(user, "reuters_svm");
         int syncInterval = 100;
 
         // Deliberately try to cause contention with lots of workers
@@ -249,8 +250,8 @@ namespace tests {
         p.syncInterval = syncInterval;
 
         // Set up the state server
-        state::State remoteState(LOCALHOST);
-        state::StateServer stateServer(remoteState);
+        faabric::state::State remoteState(LOCALHOST);
+        faabric::state::StateServer stateServer(remoteState);
 
         SECTION("In-memory state") {
             std::thread serverThread([&stateServer, &remoteState, &call, &p] {
@@ -283,22 +284,22 @@ namespace tests {
         }
 
         SECTION("Redis state") {
-            util::SystemConfig &conf = util::getSystemConfig();
+            faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
             std::string originalState = conf.stateMode;
             conf.stateMode = "redis";
 
-            const std::string &expectedKey = util::keyForUser(user, "inputs_vals");
+            const std::string &expectedKey = faabric::util::keyForUser(user, "inputs_vals");
 
             // Set up dummy data
             setUpDummyProblem(p);
 
             // Remove any local state
-            state::State &globalState = state::getGlobalState();
+            faabric::state::State &globalState = faabric::state::getGlobalState();
             globalState.forceClearAll(false);
             REQUIRE(globalState.getKVCount() == 0);
 
             // Sanity check in Redis
-            redis::Redis &redisState = redis::Redis::getState();
+            faabric::redis::Redis &redisState = faabric::redis::Redis::getState();
             std::vector<uint8_t> actualInputVals = redisState.get(expectedKey);
             REQUIRE(actualInputVals.size() > 0);
 

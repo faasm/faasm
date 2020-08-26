@@ -10,3 +10,4 @@
   template:
     src: "worker.conf.j2"
     dest: "/etc/supervisor/conf.d/faasm_worker.conf"
+

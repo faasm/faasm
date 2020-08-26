@@ -7,7 +7,7 @@
 #include <sgx_urts.h>
 #include <sgx/SGXWAMRWasmModule.h>
 
-#include <util/func.h>
+#include <faabric/util/func.h>
 #include <cstdio>
 
 
@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
     }
 #endif
 
-    message::Message msg = util::messageFactory(argv[1], argv[2]);
+    faabric::Message msg = faabric::util::messageFactory(argv[1], argv[2]);
     msg.set_issgx(true);
 
     if (argc > 3) {

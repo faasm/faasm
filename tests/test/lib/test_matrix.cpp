@@ -3,15 +3,16 @@
 
 #include "faasm/matrix.h"
 
-#include <redis/Redis.h>
-#include <state/State.h>
+#include <faabric/redis/Redis.h>
+#include <faabric/state/State.h>
 
 #include <emulator/emulator.h>
-#include <util/state.h>
-#include <state/StateServer.h>
-#include <state/InMemoryStateKeyValue.h>
+#include <faabric/util/state.h>
+#include <faabric/util/network.h>
+#include <faabric/state/DummyStateServer.h>
 
 using namespace Eigen;
+using namespace faabric::state;
 
 namespace tests {
     TEST_CASE("Test byte offsets for matrix elements", "[matrix]") {
@@ -77,7 +78,7 @@ namespace tests {
         faasm::writeMatrixToState(stateKey, mat, true);
 
         // Check it exists locally
-        state::State &localState = state::getGlobalState();
+        faabric::state::State &localState = faabric::state::getGlobalState();
         REQUIRE(localState.getKVCount() == 1);
         REQUIRE(server.getLocalKvValue().size() == nBytes);
 
@@ -267,9 +268,9 @@ namespace tests {
         SparseMatrix<double> mat = faasm::randomSparseMatrix(rows, cols, 0.7);
 
         std::string emulatorUser = getEmulatorUser();
-        state::State &globalState = state::getGlobalState();
-        state::State remoteState(LOCALHOST);
-        state::StateServer stateServer(remoteState);
+        faabric::state::State &globalState = faabric::state::getGlobalState();
+        faabric::state::State remoteState(LOCALHOST);
+        faabric::state::StateServer stateServer(remoteState);
 
         REQUIRE(globalState.getThisIP() != remoteState.getThisIP());
 
@@ -317,7 +318,7 @@ namespace tests {
 
         std::string emulatorUser = getEmulatorUser();
 
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string originalStateMode = conf.stateMode;
         conf.stateMode = "redis";
 
@@ -325,7 +326,7 @@ namespace tests {
         faasm::writeSparseMatrixToState(key, mat, true);
 
         // Remove local copies
-        state::getGlobalState().forceClearAll(false);
+        faabric::state::getGlobalState().forceClearAll(false);
 
         // Get subsection from the matrix
         SparseMatrix<double> expected = mat.block(0, colStart, rows, colEnd - colStart);

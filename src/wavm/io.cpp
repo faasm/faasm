@@ -1,8 +1,8 @@
 #include "WAVMWasmModule.h"
 #include "syscalls.h"
 
-#include <util/bytes.h>
-#include <util/config.h>
+#include <faabric/util/bytes.h>
+#include <faabric/util/config.h>
 
 #include <storage/FileDescriptor.h>
 
@@ -17,7 +17,7 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/WASI/WASIABI.h>
 #include <storage/FileLoader.h>
-#include <util/macros.h>
+#include <faabric/util/macros.h>
 
 /**
  * WASI filesystem handling
@@ -35,7 +35,7 @@ using namespace WAVM;
 namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_prestat_get", I32, wasi_fd_prestat_get, I32 fd, I32 prestatPtr) {
-        util::getLogger()->debug("S - fd_prestat_get - {} {}", fd, prestatPtr);
+        faabric::util::getLogger()->debug("S - fd_prestat_get - {} {}", fd, prestatPtr);
 
         WAVMWasmModule *module = getExecutingWAVMModule();
         if (!module->getFileSystem().fileDescriptorExists(fd)) {
@@ -53,7 +53,7 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_prestat_dir_name", I32, wasi_fd_prestat_dir_name, I32 fd, I32 resPathPtr,
                                    I32 resPathLen) {
-        util::getLogger()->debug("S - fd_prestat_dir_name - {} {}", fd, resPathPtr, resPathLen);
+        faabric::util::getLogger()->debug("S - fd_prestat_dir_name - {} {}", fd, resPathPtr, resPathLen);
 
         WAVMWasmModule *module = getExecutingWAVMModule();
         if (!module->getFileSystem().fileDescriptorExists(fd)) {
@@ -82,7 +82,7 @@ namespace wasm {
                                    I32 resFdPtr) {
 
         const std::string pathStr = getStringFromWasm(path);
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         logger->debug("S - path_open - {} {} {}", rootFd, pathStr, pathLen);
 
         // Open a new file descriptor
@@ -108,12 +108,12 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "dup", I32, dup, I32 fd) {
-        util::getLogger()->debug("S - dup - {}", fd);
+        faabric::util::getLogger()->debug("S - dup - {}", fd);
         return doWasiDup(fd);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__wasi_fd_dup", I32, __wasi_fd_dup, I32 fd, I32 resFdPtr) {
-        util::getLogger()->debug("S - fd_dup - {}", fd, resFdPtr);
+        faabric::util::getLogger()->debug("S - fd_dup - {}", fd, resFdPtr);
 
         int newFd = doWasiDup(fd);
         Runtime::memoryRef<I32>(getExecutingWAVMModule()->defaultMemory, resFdPtr) = newFd;
@@ -135,7 +135,7 @@ namespace wasm {
                                    U64 startCookie,
                                    I32 resSizePtr
     ) {
-        util::getLogger()->debug("S - fd_readdir - {} {} {} {} {}", fd, buf, bufLen, startCookie, resSizePtr);
+        faabric::util::getLogger()->debug("S - fd_readdir - {} {} {} {} {}", fd, buf, bufLen, startCookie, resSizePtr);
 
         storage::FileDescriptor &fileDesc = getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
         bool isStartCookie = startCookie == __WASI_DIRCOOKIE_START;
@@ -167,7 +167,7 @@ namespace wasm {
                 };
 
                 // Copy the dirent itself
-                int direntCopySize = util::safeCopyToBuffer(
+                int direntCopySize = faabric::util::safeCopyToBuffer(
                         BYTES(&wasmDirEnt), sizeof(wasmDirEnt),
                         buffer + bytesCopied, bytesLeft
                 );
@@ -175,7 +175,7 @@ namespace wasm {
                 bytesLeft -= direntCopySize;
 
                 // Copy its name in straight after
-                int pathCopySize = util::safeCopyToBuffer(
+                int pathCopySize = faabric::util::safeCopyToBuffer(
                         BYTES_CONST(dirEnt.path.c_str()), dirEnt.path.size(),
                         buffer + bytesCopied, bytesLeft
                 );
@@ -202,7 +202,7 @@ namespace wasm {
      * as the man pages suggest.
      */
     I32 s__getdents64(I32 fd, I32 wasmDirentBuf, I32 wasmDirentBufLen) {
-        util::getLogger()->debug("S - getdents64 - {} {} {}", fd, wasmDirentBuf, wasmDirentBufLen);
+        faabric::util::getLogger()->debug("S - getdents64 - {} {} {}", fd, wasmDirentBuf, wasmDirentBufLen);
 
         Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         U8 *hostWasmDirentBuf = &Runtime::memoryRef<U8>(memoryPtr, (Uptr) wasmDirentBuf);
@@ -273,7 +273,7 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_close", I32, wasi_fd_close, I32 fd) {
-        util::getLogger()->debug("S - fd_close - {}", fd);
+        faabric::util::getLogger()->debug("S - fd_close - {}", fd);
 
         // TODO - actually closing here can close the preopened fds which messes things up
         // Ignore for now.
@@ -285,7 +285,7 @@ namespace wasm {
         ssize_t bytesWritten = ::writev(fd, nativeIovecs, iovecCount);
 
         // Catpure stdout if necessary, otherwise write as normal
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         if (fd == STDOUT_FILENO && conf.captureStdout == "on") {
             getExecutingWAVMModule()->captureStdout(nativeIovecs, iovecCount);
         }
@@ -297,7 +297,7 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_write", I32, wasi_fd_write, I32 fd, I32 iovecsPtr, I32 iovecCount,
                                    I32 resBytesWrittenPtr) {
-        util::getLogger()->debug("S - fd_write - {} {} {} {}", fd, iovecsPtr, iovecCount, resBytesWrittenPtr);
+        faabric::util::getLogger()->debug("S - fd_write - {} {} {} {}", fd, iovecsPtr, iovecCount, resBytesWrittenPtr);
 
         storage::FileDescriptor &fileDesc = getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
 
@@ -311,7 +311,7 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_read", I32, wasi_fd_read, I32 fd, I32 iovecsPtr, I32 iovecCount,
                                    I32 resBytesRead) {
-        util::getLogger()->debug("S - fd_read - {} {} {}", fd, iovecsPtr, iovecCount);
+        faabric::util::getLogger()->debug("S - fd_read - {} {} {}", fd, iovecsPtr, iovecCount);
         storage::FileDescriptor &fileDesc = getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
         iovec *nativeIovecs = wasiIovecsToNativeIovecs(iovecsPtr, iovecCount);
 
@@ -324,7 +324,7 @@ namespace wasm {
     I32 s__mkdir(I32 pathPtr, I32 mode) {
         const std::string fakePath = getMaskedPathFromWasm(pathPtr);
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         logger->debug("S - mkdir - {} {}", fakePath, mode);
 
         int res = mkdir(fakePath.c_str(), mode);
@@ -339,7 +339,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_create_directory", I32, wasi_path_create_directory, I32 fd, I32 path,
                                    I32 pathLen) {
         const std::string &pathStr = getStringFromWasm(path);
-        util::getLogger()->debug("S - path_create_directory - {} {}", fd, pathStr);
+        faabric::util::getLogger()->debug("S - path_create_directory - {} {}", fd, pathStr);
 
         storage::FileDescriptor &fileDesc = getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
         bool success = fileDesc.mkdir(pathStr);
@@ -356,7 +356,7 @@ namespace wasm {
         const std::string srcPath = getMaskedPathFromWasm(srcPtr);
         const std::string destPath = getMaskedPathFromWasm(destPtr);
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         logger->debug("S - rename - {} {}", srcPath, destPath);
 
         int res = rename(srcPath.c_str(), destPath.c_str());
@@ -377,7 +377,7 @@ namespace wasm {
         std::string oldPathStr = getStringFromWasm(oldPath);
         std::string newPathStr = getStringFromWasm(newPath);
 
-        util::getLogger()->debug("S - path_rename - {} {} {} {}", fd, oldPathStr, newFd, newPathStr);
+        faabric::util::getLogger()->debug("S - path_rename - {} {} {} {}", fd, oldPathStr, newFd, newPathStr);
 
         WAVMWasmModule *module = getExecutingWAVMModule();
         storage::FileDescriptor &oldFileDesc = module->getFileSystem().getFileDescriptor(fd);
@@ -395,7 +395,7 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_unlink_file", I32, wasi_path_unlink_file, I32 rootFd, I32 pathPtr,
                                    I32 pathLen) {
-        util::getLogger()->debug("S - path_unlink_file - {} {}", rootFd, pathPtr);
+        faabric::util::getLogger()->debug("S - path_unlink_file - {} {}", rootFd, pathPtr);
 
         std::string pathStr = getStringFromWasm(pathPtr);
         storage::FileDescriptor &fileDesc = getExecutingWAVMModule()->getFileSystem().getFileDescriptor(rootFd);
@@ -411,7 +411,7 @@ namespace wasm {
     I32 s__unlink(I32 pathPtr) {
         const std::string fakePath = getMaskedPathFromWasm(pathPtr);
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         logger->debug("S - unlink {}", fakePath);
 
         int res = unlink(fakePath.c_str());
@@ -425,13 +425,13 @@ namespace wasm {
 
     I32 s__access(I32 pathPtr, I32 mode) {
         const std::string path = getMaskedPathFromWasm(pathPtr);
-        util::getLogger()->debug("S - access - {} {}", path, mode);
+        faabric::util::getLogger()->debug("S - access - {} {}", path, mode);
 
         return access(path.c_str(), mode);
     }
 
     I32 s__fstat64(I32 fd, I32 statBufPtr) {
-        util::getLogger()->debug("S - fstat64 - {} {}", fd, statBufPtr);
+        faabric::util::getLogger()->debug("S - fstat64 - {} {}", fd, statBufPtr);
 
         struct stat64 nativeStat{};
         int result = fstat64(fd, &nativeStat);
@@ -448,7 +448,7 @@ namespace wasm {
 
     I32 s__lstat64(I32 pathPtr, I32 statBufPtr) {
         const std::string fakePath = getMaskedPathFromWasm(pathPtr);
-        util::getLogger()->debug("S - lstat - {} {}", fakePath, statBufPtr);
+        faabric::util::getLogger()->debug("S - lstat - {} {}", fakePath, statBufPtr);
 
         struct stat64 nativeStat{};
         lstat64(fakePath.c_str(), &nativeStat);
@@ -458,7 +458,7 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_fdstat_get", I32, wasi_fd_fdstat_get, I32 fd, I32 statPtr) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         logger->debug("S - fd_fdstat_get - {} {}", fd, statPtr);
 
         storage::FileDescriptor &fileDesc = getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
@@ -503,7 +503,7 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_filestat_get", I32, wasi_fd_filestat_get, I32 fd, I32 statPtr) {
-        util::getLogger()->debug("S - fd_filestat_get - {} {}", fd, statPtr);
+        faabric::util::getLogger()->debug("S - fd_filestat_get - {} {}", fd, statPtr);
 
         return doFileStat(fd, "", statPtr);
     }
@@ -511,13 +511,13 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_filestat_get", I32, wasi_path_filestat_get,
                                    I32 fd, I32 lookupFlags, I32 path, I32 pathLen, I32 statPtr) {
         const std::string &pathStr = getStringFromWasm(path);
-        util::getLogger()->debug("S - path_filestat_get - {} {} {} {}", fd, lookupFlags, pathStr, statPtr);
+        faabric::util::getLogger()->debug("S - path_filestat_get - {} {} {} {}", fd, lookupFlags, pathStr, statPtr);
 
         return doFileStat(fd, pathStr, statPtr);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_tell", I32, wasi_fd_tell, I32 fd, I32 resOffsetPtr) {
-        util::getLogger()->debug("S - fd_tell - {} {}", fd, resOffsetPtr);
+        faabric::util::getLogger()->debug("S - fd_tell - {} {}", fd, resOffsetPtr);
 
         WAVMWasmModule *module = getExecutingWAVMModule();
 
@@ -529,7 +529,7 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_seek", I32, wasi_fd_seek, I32 fd, I64 offset, I32 whence,
                                    I32 newOffsetPtr) {
-        util::getLogger()->debug("S - fd_seek - {} {} {} {}", fd, offset, whence, newOffsetPtr);
+        faabric::util::getLogger()->debug("S - fd_seek - {} {} {} {}", fd, offset, whence, newOffsetPtr);
 
         // Get pointer to result in memory
         uint64_t *newOffsetHostPtr = &Runtime::memoryRef<uint64_t>(getExecutingWAVMModule()->defaultMemory, newOffsetPtr);
@@ -542,7 +542,7 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_advise", I32, wasi_fd_advise, I32 fd, I64 offset, I64 len, I32 advice) {
-        util::getLogger()->debug("S - fd_advise - {} {} {} {}", fd, offset, len, advice);
+        faabric::util::getLogger()->debug("S - fd_advise - {} {} {} {}", fd, offset, len, advice);
 
         // Ignore fadvise, can't do anything useful with it.
 
@@ -550,7 +550,7 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "ioctl", I32, ioctl, I32 a, I32 b, I32 c) {
-        util::getLogger()->debug("S - ioctl - {} {} {}", a, b, c);
+        faabric::util::getLogger()->debug("S - ioctl - {} {} {}", a, b, c);
 
         return 0;
     }
@@ -559,13 +559,13 @@ namespace wasm {
      * Note here that we assume puts is called on a null-terminated string
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "puts", I32, puts, I32 strPtr) {
-        util::getLogger()->debug("S - puts - {}", strPtr);
+        faabric::util::getLogger()->debug("S - puts - {}", strPtr);
         WAVMWasmModule *module = getExecutingWAVMModule();
         Runtime::Memory *memoryPtr = module->defaultMemory;
         char *hostStr = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
 
         // Capture stdout if necessary
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         if (conf.captureStdout == "on") {
             module->captureStdout(hostStr);
         }
@@ -575,7 +575,7 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "putc", I32, putc, I32 c, I32 streamPtr) {
-        util::getLogger()->debug("S - putc - {} {}", c, streamPtr);
+        faabric::util::getLogger()->debug("S - putc - {} {}", c, streamPtr);
 
         Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         FILE *stream = &Runtime::memoryRef<FILE>(memoryPtr, (Uptr) streamPtr);
@@ -599,7 +599,7 @@ namespace wasm {
         Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         char *path = &Runtime::memoryRef<char>(memoryPtr, (Uptr) pathPtr);
 
-        util::getLogger()->debug("S - readlink - {} {} {}", path, bufPtr, bufLen);
+        faabric::util::getLogger()->debug("S - readlink - {} {} {}", path, bufPtr, bufLen);
 
         char *buf = Runtime::memoryArrayPtr<char>(memoryPtr, (Uptr) bufPtr, (Uptr) bufLen);
 
@@ -611,7 +611,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "path_readlink", I32, wasi_path_readlink, I32 rootFd, I32 pathPtr,
                                    I32 pathLen, I32 buffPtr, I32 buffLen, I32 resBytesUsed) {
         std::string pathStr = getStringFromWasm(pathPtr);
-        util::getLogger()->debug("S - path_readlink - {} {} {} {} {}", rootFd, pathStr, buffPtr, buffLen, resBytesUsed);
+        faabric::util::getLogger()->debug("S - path_readlink - {} {} {} {} {}", rootFd, pathStr, buffPtr, buffLen, resBytesUsed);
 
         WAVMWasmModule *module = getExecutingWAVMModule();
         storage::FileDescriptor &fileDesc = module->getFileSystem().getFileDescriptor(rootFd);
@@ -625,7 +625,7 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_fdstat_set_flags", I32, wasi_fd_fdstat_set_flags,
             I32 fd, I32 fdFlags) {
-        util::getLogger()->debug("S - fd_fdstat_set_flags - {} {}", fd, fdFlags);
+        faabric::util::getLogger()->debug("S - fd_fdstat_set_flags - {} {}", fd, fdFlags);
 
         WAVMWasmModule *module = getExecutingWAVMModule();
         storage::FileDescriptor &fileDesc = module->getFileSystem().getFileDescriptor(fd);
@@ -689,12 +689,12 @@ namespace wasm {
 
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "lockf", I32, lockf, I32 a, I32 b, I64 c) {
-        util::getLogger()->debug("S - lockf - {} {} {}", a, b, c);
+        faabric::util::getLogger()->debug("S - lockf - {} {} {}", a, b, c);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "realpath", I32, realpath, I32 a, U32 b) {
-        util::getLogger()->debug("S - realpath - {} {}", a, b);
+        faabric::util::getLogger()->debug("S - realpath - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 

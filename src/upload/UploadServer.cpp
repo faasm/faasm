@@ -1,12 +1,12 @@
 #include "UploadServer.h"
 
-#include <util/logging.h>
-#include <util/bytes.h>
+#include <faabric/util/logging.h>
+#include <faabric/util/bytes.h>
 
 #include <storage/FileLoader.h>
-#include <util/config.h>
-#include <util/files.h>
-#include <state/State.h>
+#include <faabric/util/config.h>
+#include <faabric/util/files.h>
+#include <faabric/state/State.h>
 
 
 namespace edge {
@@ -26,9 +26,9 @@ namespace edge {
     }
 
     UploadServer::UploadServer() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         if (conf.functionStorage == "fileserver") {
             logger->info("Overriding fileserver storage on upload server (as this is the fileserver)");
             conf.functionStorage = "local";
@@ -61,7 +61,7 @@ namespace edge {
     }
 
     void UploadServer::listen(const std::string &port) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         std::string addr = "http://0.0.0.0:" + port;
         http_listener listener(addr);
@@ -82,7 +82,7 @@ namespace edge {
     }
 
     void UploadServer::handleGet(const http_request &request) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         const std::vector<std::string> pathParts = UploadServer::getPathParts(request);
 
@@ -105,13 +105,13 @@ namespace edge {
                     returnBytes = l.loadSharedFile(filePath);
                 } catch(storage::SharedFileIsDirectoryException &e) {
                     // If shared file is a directory, say so
-                    returnBytes = util::stringToBytes("IS_DIR");
+                    returnBytes = faabric::util::stringToBytes("IS_DIR");
                 }
             }
         } else {
             logger->debug("GET request to {}", uri);
 
-            message::Message msg = UploadServer::buildMessageFromRequest(request);
+            faabric::Message msg = UploadServer::buildMessageFromRequest(request);
 
             if (pathType == "s") {
                 returnBytes = getState(request);
@@ -136,7 +136,7 @@ namespace edge {
     }
 
     void UploadServer::handlePut(const http_request &request) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         logger->debug("PUT request to {}", request.absolute_uri().to_string());
 
         const std::vector<std::string> pathParts = UploadServer::getPathParts(request);
@@ -153,7 +153,7 @@ namespace edge {
     }
 
     void UploadServer::handleOptions(const http_request &request) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         logger->debug("OPTIONS request to {}", request.absolute_uri().to_string());
 
         http_response response(status_codes::OK);
@@ -162,16 +162,16 @@ namespace edge {
     }
 
     std::vector<uint8_t> UploadServer::getState(const http_request &request) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         const std::vector<std::string> pathParts = UploadServer::getPathParts(request);
         std::string user = pathParts[1];
         std::string key = pathParts[2];
         logger->info("Downloading state from ({}/{})", user, key);
 
-        state::State &state = state::getGlobalState();
+        faabric::state::State &state = faabric::state::getGlobalState();
         size_t stateSize = state.getStateSize(user, key);
-        const std::shared_ptr<state::StateKeyValue> &kv = state.getKV(user, key, stateSize);
+        const std::shared_ptr<faabric::state::StateKeyValue> &kv = state.getKV(user, key, stateSize);
         uint8_t *stateValue = kv->get();
         
         const std::vector<uint8_t> value(stateValue, stateValue + stateSize);
@@ -179,7 +179,7 @@ namespace edge {
     }
 
     void UploadServer::handleStateUpload(const http_request &request) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         const std::vector<std::string> pathParts = UploadServer::getPathParts(request);
         std::string user = pathParts[1];
@@ -193,10 +193,10 @@ namespace edge {
         bodyStream.read_to_end(inputStream).then([&inputStream, &user, &key](size_t size) {
             if (size > 0) {
                 std::string s = inputStream.collection();
-                const std::vector<uint8_t> bytesData = util::stringToBytes(s);
+                const std::vector<uint8_t> bytesData = faabric::util::stringToBytes(s);
 
-                state::State &state = state::getGlobalState();
-                const std::shared_ptr<state::StateKeyValue> &kv = state.getKV(user, key, bytesData.size());
+                faabric::state::State &state = faabric::state::getGlobalState();
+                const std::shared_ptr<faabric::state::StateKeyValue> &kv = state.getKV(user, key, bytesData.size());
                 kv->set(bytesData.data());
                 kv->pushFull();
             }
@@ -209,10 +209,10 @@ namespace edge {
     }
 
     void UploadServer::handlePythonFunctionUpload(const http_request &request) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
-        message::Message msg = UploadServer::buildMessageFromRequest(request);
-        logger->info("Uploading Python function {}", util::funcToString(msg, false));
+        faabric::Message msg = UploadServer::buildMessageFromRequest(request);
+        logger->info("Uploading Python function {}", faabric::util::funcToString(msg, false));
 
         // Do the upload
         storage::FileLoader &l = storage::getFileLoader();
@@ -222,7 +222,7 @@ namespace edge {
     }
 
     void UploadServer::handleSharedFileUpload(const http_request &request) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         std::string filePath = getHeaderFromRequest(request, FILE_PATH_HEADER);
         logger->info("Uploading shared file {}", filePath);
 
@@ -231,7 +231,7 @@ namespace edge {
         bodyStream.read_to_end(inputStream).then([&inputStream, &filePath](size_t size) {
             if (size > 0) {
                 std::string s = inputStream.collection();
-                const std::vector<uint8_t> bytesData = util::stringToBytes(s);
+                const std::vector<uint8_t> bytesData = faabric::util::stringToBytes(s);
                 storage::FileLoader &l = storage::getFileLoader();
                 l.uploadSharedFile(filePath, bytesData);
             }
@@ -242,10 +242,10 @@ namespace edge {
     }
 
     void UploadServer::handleFunctionUpload(const http_request &request) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
-        message::Message msg = UploadServer::buildMessageFromRequest(request);
-        logger->info("Uploading {}", util::funcToString(msg, false));
+        faabric::Message msg = UploadServer::buildMessageFromRequest(request);
+        logger->info("Uploading {}", faabric::util::funcToString(msg, false));
 
         // Do the upload
         storage::FileLoader &l = storage::getFileLoader();
@@ -254,7 +254,7 @@ namespace edge {
         request.reply(status_codes::OK, "Function upload complete\n");
     }
 
-    message::Message UploadServer::buildMessageFromRequest(const http_request &request) {
+    faabric::Message UploadServer::buildMessageFromRequest(const http_request &request) {
         const std::vector<std::string> pathParts = UploadServer::getPathParts(request);
 
         if (pathParts.size() != 3) {
@@ -264,7 +264,7 @@ namespace edge {
         }
 
         // Check URI
-        message::Message msg;
+        faabric::Message msg;
         msg.set_user(pathParts[1]);
         msg.set_function(pathParts[2]);
         msg.set_isasync(pathParts[0] == "fa" || pathParts[0] == "pa");

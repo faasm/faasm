@@ -23,6 +23,7 @@ set(FAASM_LIB_FAASMP_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/faasmp)
 set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/pyinit)
 set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/WAVM/Lib)
 set(FAASM_WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
+set(FAASM_FAABRIC_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/faabric)
 
 # SGX configuration
 if (FAASM_SGX_SUPPORT)
@@ -77,6 +78,7 @@ endif()
 
 # Library type (for shared libraries)
 if (FAASM_STATIC_LIBS)
+    set(FAABRIC_STATIC_LIBS ON CACHE BOOL "Faabric static")
     function(faasm_public_lib lib_name lib_deps)
         add_library(${lib_name} STATIC ${lib_deps})
     endfunction()
@@ -84,6 +86,7 @@ if (FAASM_STATIC_LIBS)
         add_library(${lib_name} STATIC ${lib_deps})
     endfunction()
 else ()
+    set(FAABRIC_STATIC_LIBS OFF CACHE BOOL "Faabric static")
     function(faasm_public_lib lib_name lib_deps)
         add_library(${lib_name} SHARED ${lib_deps})
     endfunction()
@@ -138,31 +141,19 @@ include_directories(
         ${FAASM_LIB_CPP_DIR}
         ${FAASM_LIB_FAASMP_DIR}
         ${FAASM_PYTHON_LIB_DIR}
-        ${CMAKE_CURRENT_BINARY_DIR}/src # Required for protobuf
+        ${FAASM_FAABRIC_ROOT_DIR}/include
+        ${CMAKE_CURRENT_BINARY_DIR}/third-party/faabric/src # Required for protobuf
 )
 
+# Directories common to all builds
+add_subdirectory(third-party/faabric)
+add_subdirectory(libs/cpp)
+add_subdirectory(libs/faasmp)
+add_subdirectory(src/emulator)
+
 if (FAASM_BUILD_TYPE STREQUAL "native-tools")
-    # ------------------
-    # Native tools for porting code
-    # ------------------
-
-    message(STATUS "Running native tools build")
-
-    add_subdirectory(libs/cpp)
-    add_subdirectory(libs/faasmp)
-    add_subdirectory(libs/faasmpi)
-    add_subdirectory(src/emulator)
-    add_subdirectory(src/proto)
-    add_subdirectory(src/redis)
-    add_subdirectory(src/scheduler)
-    add_subdirectory(src/state)
-    add_subdirectory(src/util)
-
+    # Ignore the rest if just doing a native tools build
 else ()
-    # ------------------
-    # Standard build
-    # ------------------
-
     # WAVM
     add_subdirectory(third-party/WAVM)
 
@@ -170,27 +161,18 @@ else ()
     add_subdirectory(func)
 
     # Faasm libraries
-    add_subdirectory(libs/cpp)
-    add_subdirectory(libs/faasmp)
-    add_subdirectory(libs/faasmpi)
     add_subdirectory(libs/pyinit)
     add_subdirectory(libs/rust)
 
     # Faasm runtime
-    add_subdirectory(src/emulator)
     add_subdirectory(src/endpoint)
     add_subdirectory(src/faaslet)
     add_subdirectory(src/ir_cache)
     add_subdirectory(src/module_cache)
-    add_subdirectory(src/proto)
-    add_subdirectory(src/redis)
     add_subdirectory(src/runner)
-    add_subdirectory(src/scheduler)
-    add_subdirectory(src/state)
     add_subdirectory(src/storage)
     add_subdirectory(src/system)
     add_subdirectory(src/upload)
-    add_subdirectory(src/util)
     add_subdirectory(src/wasm)
     add_subdirectory(src/wavm)
 
@@ -203,7 +185,6 @@ else ()
     endif ()
 
     # Tests
-    add_library(catch INTERFACE)
     add_subdirectory(tests/test)
     add_subdirectory(tests/utils)
 endif ()

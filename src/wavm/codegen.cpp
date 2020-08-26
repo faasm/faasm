@@ -6,7 +6,7 @@
 #include <WAVM/WASM/WASM.h>
 #include <WAVM/WASTParse/WASTParse.h>
 
-#include <util/files.h>
+#include <faabric/util/files.h>
 
 using namespace WAVM;
 
@@ -19,7 +19,7 @@ namespace wasm {
         moduleIR.featureSpec.simd = true;
         moduleIR.featureSpec.atomics = true;
 
-        if (util::isWasm(bytes)) {
+        if (faabric::util::isWasm(bytes)) {
             // Handle WASM
             WASM::LoadError loadError;
             bool success = WASM::loadBinaryModule(bytes.data(), bytes.size(), moduleIR, &loadError);

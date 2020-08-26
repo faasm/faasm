@@ -6,9 +6,9 @@ extern "C" {
 
 #include "utils.h"
 
-#include <util/environment.h>
-#include <util/bytes.h>
-#include <redis/Redis.h>
+#include <faabric/util/environment.h>
+#include <faabric/util/bytes.h>
+#include <faabric/redis/Redis.h>
 
 #include <faaslet/FaasletPool.h>
 #include <faaslet/Faaslet.h>
@@ -24,19 +24,19 @@ namespace tests {
     static void setUp() {
         cleanSystem();
 
-        message::Message call = util::messageFactory("demo", "chain");
+        faabric::Message call = faabric::util::messageFactory("demo", "chain");
         setEmulatedMessage(call);
 
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
         sch.clear();
         sch.addHostToGlobalSet();
 
         // Network ns requires root
-        originalNsMode = util::setEnvVar("NETNS_MODE", "off");
+        originalNsMode = faabric::util::setEnvVar("NETNS_MODE", "off");
     }
 
     static void tearDown() {
-        util::setEnvVar("NETNS_MODE", originalNsMode);
+        faabric::util::setEnvVar("NETNS_MODE", originalNsMode);
         cleanSystem();
     }
 
@@ -48,7 +48,7 @@ namespace tests {
         REQUIRE(!w.isBound());
     }
 
-    void checkBound(Faaslet &w, message::Message &msg, bool isBound) {
+    void checkBound(Faaslet &w, faabric::Message &msg, bool isBound) {
         REQUIRE(w.isBound() == isBound);
         if (w.module) {
             REQUIRE(w.module->isBound() == isBound);
@@ -60,7 +60,7 @@ namespace tests {
     TEST_CASE("Test binding to function", "[faaslet]") {
         setUp();
 
-        message::Message call = util::messageFactory("demo", "chain");
+        faabric::Message call = faabric::util::messageFactory("demo", "chain");
         setEmulatedMessage(call);
 
         FaasletPool pool(1);
@@ -74,7 +74,7 @@ namespace tests {
     TEST_CASE("Test binding twice causes error unless forced", "[faaslet]") {
         setUp();
 
-        message::Message callA = util::messageFactory("demo", "chain");
+        faabric::Message callA = faabric::util::messageFactory("demo", "chain");
         setEmulatedMessage(callA);
 
         FaasletPool pool(1);
@@ -90,13 +90,13 @@ namespace tests {
         w.bindToFunction(callA, true);
 
         // Forcing bind to another function should fail
-        message::Message callB = util::messageFactory("demo", "echo");
+        faabric::Message callB = faabric::util::messageFactory("demo", "echo");
         REQUIRE_THROWS(w.bindToFunction(callB, true));
     }
 
     TEST_CASE("Test execution of empty echo function", "[faaslet]") {
         setUp();
-        message::Message call = util::messageFactory("demo", "echo");
+        faabric::Message call = faabric::util::messageFactory("demo", "echo");
         setEmulatedMessage(call);
 
         // Run the execution
@@ -108,7 +108,7 @@ namespace tests {
     TEST_CASE("Test repeat execution of WASM module", "[faaslet]") {
         setUp();
 
-        message::Message call = util::messageFactory("demo", "echo");
+        faabric::Message call = faabric::util::messageFactory("demo", "echo");
         call.set_inputdata("first input");
         setEmulatedMessage(call);
 
@@ -117,7 +117,7 @@ namespace tests {
         Faaslet w(1);
 
         // Bind to function
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
         sch.callFunction(call);
         w.processNextMessage();
         REQUIRE(w.isBound());
@@ -126,14 +126,14 @@ namespace tests {
         w.processNextMessage();
 
         // Check output from first invocation
-        message::Message resultA = sch.getFunctionResult(call.id(), 1);
+        faabric::Message resultA = sch.getFunctionResult(call.id(), 1);
         REQUIRE(resultA.outputdata() == "first input");
         REQUIRE(resultA.returnvalue() == 0);
 
         // Execute again
         call.set_inputdata("second input");
         call.set_id(0);
-        util::setMessageId(call);
+         faabric::util::setMessageId(call);
         setEmulatedMessage(call);
 
         sch.callFunction(call);
@@ -141,7 +141,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check output from second invocation
-        message::Message resultB = sch.getFunctionResult(call.id(), 1);
+        faabric::Message resultB = sch.getFunctionResult(call.id(), 1);
         REQUIRE(resultB.outputdata() == "second input");
         REQUIRE(resultB.returnvalue() == 0);
 
@@ -156,10 +156,10 @@ namespace tests {
         Faaslet w(1);
         REQUIRE(!w.isBound());
 
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
 
         // Invoke a new call which will require a worker to bind
-        message::Message call = util::messageFactory("demo", "echo");
+        faabric::Message call = faabric::util::messageFactory("demo", "echo");
         setEmulatedMessage(call);
 
         sch.callFunction(call);
@@ -178,13 +178,13 @@ namespace tests {
     TEST_CASE("Test memory is reset", "[faaslet]") {
         cleanSystem();
 
-        message::Message call = util::messageFactory("demo", "heap");
+        faabric::Message call = faabric::util::messageFactory("demo", "heap");
         setEmulatedMessage(call);
 
         // Call function
         Faaslet w(1);
 
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
         sch.callFunction(call);
 
         // Process bind
@@ -210,7 +210,7 @@ namespace tests {
 
     TEST_CASE("Test big mmap", "[faaslet]") {
         setUp();
-        message::Message msg = util::messageFactory("demo", "mmap_big");
+        faabric::Message msg = faabric::util::messageFactory("demo", "mmap_big");
         execFunction(msg);
     }
 
@@ -220,7 +220,7 @@ namespace tests {
         FaasletPool pool(5);
         REQUIRE(pool.getThreadCount() == 0);
 
-        message::Message call = util::messageFactory("demo", "noop");
+        faabric::Message call = faabric::util::messageFactory("demo", "noop");
         setEmulatedMessage(call);
 
         // Add threads and check tokens are taken
@@ -235,18 +235,18 @@ namespace tests {
 
     TEST_CASE("Test worker lifecycle interacts with scheduler", "[faaslet]") {
         cleanSystem();
-        redis::Redis &redis = redis::Redis::getQueue();
+        faabric::redis::Redis &redis = faabric::redis::Redis::getQueue();
 
         FaasletPool pool(5);
 
         Faaslet w(1);
-        std::string thisHost = util::getSystemConfig().endpointHost;
+        std::string thisHost = faabric::util::getSystemConfig().endpointHost;
 
-        message::Message call = util::messageFactory("demo", "noop");
+        faabric::Message call = faabric::util::messageFactory("demo", "noop");
         setEmulatedMessage(call);
 
         // Sense check initial scheduler set-up
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
         auto bindQueue = sch.getBindQueue();
         REQUIRE(sch.getFunctionInFlightCount(call) == 0);
         REQUIRE(sch.getFunctionWarmFaasletCount(call) == 0);

@@ -1,8 +1,8 @@
 #include "CGroup.h"
 
-#include <util/logging.h>
-#include <util/config.h>
-#include <util/timing.h>
+#include <faabric/util/logging.h>
+#include <faabric/util/config.h>
+#include <faabric/util/timing.h>
 
 #include <mutex>
 
@@ -20,7 +20,7 @@ namespace isolation {
     static std::mutex groupMutex;
 
     CGroup::CGroup(const std::string &name) : name(name) {
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
 
         if (conf.cgroupMode == "on") {
             mode = CgroupMode::cg_on;
@@ -43,7 +43,7 @@ namespace isolation {
     }
 
     void addCurrentThreadToTasks(const path &tasksPath) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         pid_t threadId = getCurrentTid();
 
@@ -56,7 +56,7 @@ namespace isolation {
     }
 
     void CGroup::addCurrentThread() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         if (mode == CgroupMode::cg_off) {
             logger->debug("Not adding thread. cgroup support off");

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <sys/socket.h>
-#include <scheduler/MpiContext.h>
+#include <faabric/scheduler/MpiContext.h>
 #include <WAVM/WASI/WASIABI.h>
 
 #define FAKE_NAME "faasm"
@@ -219,9 +219,9 @@ namespace wasm {
 
     // Faasm
 
-    std::shared_ptr<state::StateKeyValue> getStateKV(int32_t keyPtr, size_t size);
+    std::shared_ptr<faabric::state::StateKeyValue> getStateKV(int32_t keyPtr, size_t size);
 
-    std::shared_ptr<state::StateKeyValue> getStateKV(int32_t keyPtr);
+    std::shared_ptr<faabric::state::StateKeyValue> getStateKV(int32_t keyPtr);
 
     // Syscalls
 

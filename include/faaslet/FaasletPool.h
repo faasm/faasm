@@ -1,9 +1,9 @@
 #pragma once
 
-#include <scheduler/Scheduler.h>
-#include <state/StateServer.h>
-#include <util/queue.h>
-#include <scheduler/FunctionCallServer.h>
+#include <faabric/scheduler/Scheduler.h>
+#include <faabric/state/StateServer.h>
+#include <faabric/util/queue.h>
+#include <faabric/scheduler/FunctionCallServer.h>
 
 namespace faaslet {
     class FaasletPool {
@@ -27,10 +27,10 @@ namespace faaslet {
         void shutdown();
     private:
         std::atomic<bool> _shutdown;
-        scheduler::Scheduler &scheduler;
-        util::TokenPool threadTokenPool;
-        state::StateServer stateServer;
-        scheduler::FunctionCallServer functionServer;
+        faabric::scheduler::Scheduler &scheduler;
+        faabric::util::TokenPool threadTokenPool;
+        faabric::state::StateServer stateServer;
+        faabric::scheduler::FunctionCallServer functionServer;
 
         std::thread mpiThread;
         std::thread poolThread;

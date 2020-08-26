@@ -19,7 +19,7 @@ namespace wasm {
         }
     }
 
-    void SGXWAMRWasmModule::bindToFunction(const message::Message &msg) {
+    void SGXWAMRWasmModule::bindToFunction(const faabric::Message &msg) {
         sgx_status_t sgx_ret_val;
         faasm_sgx_status_t ret_val;
         storage::FileSystem fs;
@@ -47,10 +47,10 @@ namespace wasm {
         }
 
         _isBound = true;
-        wasm::setExecutingCall(const_cast<message::Message *>(&msg));
+        wasm::setExecutingCall(const_cast<faabric::Message *>(&msg));
     }
 
-    void SGXWAMRWasmModule::bindToFunctionNoZygote(const message::Message &msg) {
+    void SGXWAMRWasmModule::bindToFunctionNoZygote(const faabric::Message &msg) {
         bindToFunction(msg); //See src/wamr/WAMRWasmModule.cpp:48
     }
 
@@ -68,7 +68,7 @@ namespace wasm {
         return true;
     }
 
-    bool SGXWAMRWasmModule::execute(message::Message &msg, bool forceNoop) {
+    bool SGXWAMRWasmModule::execute(faabric::Message &msg, bool forceNoop) {
         if (!_isBound) {
             printf("[Error] Unable to call desired function (%#010x)\n", FAASM_SGX_WAMR_MODULE_NOT_BOUNDED);
             msg.set_returnvalue(FAASM_SGX_WAMR_MODULE_NOT_BOUNDED);
