@@ -22,24 +22,15 @@ jobs:
       MAX_FAASLETS: 5
     container:
       faasm/base-test:0.4.1
+    defaults:
+      working-directory: /usr/local/code/faasm
     services:
       redis:
         image: faasm/redis:0.4.1
         ports:
           - 6379:6379
     steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: true
-      - name: "Nuke any existing code"
-        run: rm -r /usr/local/code/faasm
-      - name: "Link this checkout to the standard location"
-        run: ln -s ${GITHUB_WORKSPACE} /usr/local/code/faasm
-      - name: "Check link is correct"
-        run: ls -al /usr/local/code
-      - name: "Build dir contents"
-        run: ls -al
-        working-directory: /faasm/build
+      # --- Machine set-up ---
       - name: "Install tinfo"
         run: apt install libtinfo-dev
       - name: "File perms"
@@ -48,9 +39,21 @@ jobs:
         run: groupadd -g 1000 faasm
       - name: "Add faasm user"
         run: useradd -u 1000 -g 1000 faasm
+      - name: "Working directory"
+        run: pwd
+      - name: "Working directory contents"
+        run: ls -al
+      # --- Code build ---
+      - name: "Fetch repo"
+        run: git fetch --all
+      - name: "Check out code"
+        run: git checkout ${GITHUB_SHA}
+      - name: "Log commits"
+        run: git log -3
       - name: "Build tests"
         run: cmake --build . --target tests
         working-directory: /faasm/build
+      # --- Environment set-up ---
       - name: "Set up native libs"
         run: inv -r faasmcli/faasmcli libs.native
       - name: "Set up test lib"
@@ -69,5 +72,6 @@ jobs:
         run: pip3 install pyfaasm
       - name: "Copy Python functions into place"
         run: inv -r faasmcli/faasmcli upload.user python --py --local-copy
+      # --- Test run ---
       - name: "Run the tests"
         run: /faasm/build/bin/tests
