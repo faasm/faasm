@@ -141,7 +141,8 @@ namespace wasm {
         bool isStartCookie = startCookie == __WASI_DIRCOOKIE_START;
 
         if (fileDesc.iterStarted && isStartCookie) {
-            throw std::runtime_error("Directory iterator already exists, but this is the start cookie");
+            // Reset the iterator if it's already started but we have the start cookie
+            fileDesc.iterReset();
         } else if (!fileDesc.iterStarted && !isStartCookie) {
             throw std::runtime_error("No directory iterator exists, and this is not the start cookie");
         }
@@ -155,7 +156,7 @@ namespace wasm {
                 storage::DirEnt dirEnt = fileDesc.iterNext();
 
                 // Done
-                if (dirEnt.isEnd) {
+                if (fileDesc.iterFinished) {
                     break;
                 }
 

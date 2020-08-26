@@ -165,11 +165,18 @@ namespace storage {
     }
 
     FileDescriptor::FileDescriptor() : iterStarted(false), iterFinished(false),
-                                       dirPtr(nullptr), direntPtr(nullptr),
+                                       dirPtr(nullptr),
                                        rightsSet(false),
                                        linuxFd(-1), linuxMode(-1), linuxFlags(-1), linuxErrno(0),
                                        wasiErrno(0) {
 
+    }
+
+    void FileDescriptor::iterReset() {
+        // Reset iterator state
+        dirPtr = nullptr;
+        iterStarted = false;
+        iterFinished = false;
     }
 
     DirEnt FileDescriptor::iterNext() {
@@ -201,14 +208,14 @@ namespace storage {
         }
 
         // Call readdir to get next dirent
-        direntPtr = ::readdir(dirPtr);
+        struct dirent *direntPtr = ::readdir(dirPtr);
 
         // Build the actual dirent
         DirEnt d;
         if (!direntPtr) {
+            // Close iterator
             closedir(dirPtr);
             iterFinished = true;
-            d.isEnd = true;
         } else {
             d.type = direntPtr->d_type;
             d.ino = direntPtr->d_ino;

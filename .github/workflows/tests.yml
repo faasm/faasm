@@ -52,8 +52,6 @@ jobs:
         run: inv -r faasmcli/faasmcli toolchain.download-sysroot
       - name: "Download runtime root"
         run: inv -r faasmcli/faasmcli toolchain.download-runtime --nocodegen
-#      - name: "Set up native libs"
-#        run: inv -r faasmcli/faasmcli libs.native
       - name: "Set up test lib"
         run: inv -r faasmcli/faasmcli libs.fake
       - name: "Run codegen"
@@ -62,8 +60,6 @@ jobs:
         run: inv -r faasmcli/faasmcli codegen demo echo --wamr
       - name: "Set up Tensorflow test files"
         run: inv -r faasmcli/faasmcli tf.upload --local-copy
-#      - name: "Install pyfaasm"
-#        run: pip3 install pyfaasm
       - name: "Copy Python functions into place"
         run: inv -r faasmcli/faasmcli upload.user python --py --local-copy
       # --- Test run ---
