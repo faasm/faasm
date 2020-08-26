@@ -39,7 +39,7 @@ jobs:
       - name: "Fetch repo"
         run: git fetch --all
       - name: "Check out code"
-        run: git checkout --force ${GITHUB_SHA}
+        run: git checkout --force ${GITHUB_REF}
       - name: "Update submodules"
         run: git submodule update
       - name: "Log commits"
