@@ -29,7 +29,7 @@ using namespace isolation;
 
 namespace faaslet {
     void flushFaasletHost() {
-        const std::shared_ptr <spdlog::logger> &logger = faabric::util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         logger->warn("Flushing host {}", faabric::util::getSystemConfig().endpointHost);
 
         // Clear out any cached state
@@ -59,7 +59,7 @@ namespace faaslet {
         faaslet_sgx_msg_buffer_ptr = &sgx_wamr_msg_response;
 #endif
 
-        const std::shared_ptr <spdlog::logger> &logger = faabric::util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         // Set an ID for this Faaslet
         id = faabric::util::getSystemConfig().endpointHost + "_" + std::to_string(threadIdx);
@@ -105,7 +105,7 @@ namespace faaslet {
     }
 
     void Faaslet::finishCall(faabric::Message &call, bool success, const std::string &errorMsg) {
-        const std::shared_ptr <spdlog::logger> &logger = faabric::util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         const std::string funcStr = faabric::util::funcToString(call, true);
         logger->info("Finished {}", funcStr);
         if (!success) {
@@ -114,9 +114,6 @@ namespace faaslet {
 
         // Add captured stdout if necessary
         faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
-#if(FAASM_SGX == 1)
-        if(conf.captureStdout == "on" && call.function().find(FAASM_SGX_FUNC_SUFFIX,0) == std::string::npos){
-#else
         if (conf.captureStdout == "on") {
             std::string moduleStdout = module->getCapturedStdout();
             if (!moduleStdout.empty()) {
@@ -193,7 +190,7 @@ namespace faaslet {
     }
 
     void Faaslet::run() {
-        const std::shared_ptr <spdlog::logger> &logger = faabric::util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         // Wait for next message
         while (true) {
@@ -217,7 +214,7 @@ namespace faaslet {
     }
 
     std::string Faaslet::processNextMessage() {
-        const std::shared_ptr <spdlog::logger> &logger = faabric::util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         // Work out which timeout
         int timeoutMs;
@@ -282,7 +279,7 @@ namespace faaslet {
     }
 
     std::string Faaslet::executeCall(faabric::Message &call) {
-        const std::shared_ptr <spdlog::logger> &logger = faabric::util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         const std::string funcStr = faabric::util::funcToString(call, true);
         logger->info("Faaslet executing {}", funcStr);
