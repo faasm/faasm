@@ -47,6 +47,7 @@ def native(ctx, clean=False):
         "-DCMAKE_C_COMPILER=/usr/bin/clang-10",
         "-DFAASM_BUILD_TYPE=native-tools",
         "-DFAASM_STATIC_LIBS=OFF",
+        "-DFAABRIC_BUILD_TESTS=OFF",
         "-DCMAKE_BUILD_TYPE=Release",
         "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_INSTALL_DIR),
         PROJ_ROOT,

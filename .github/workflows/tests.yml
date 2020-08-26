@@ -35,6 +35,8 @@ jobs:
         run: rm -r /usr/local/code/faasm
       - name: "Link this checkout to the standard location"
         run: ln -s $GITHUB_WORKSPACE /usr/local/code/faasm
+      - name: "Install tinfo"
+        run: apt install libtinfo-dev
       - name: "File perms"
         run: chown -R root:root /usr/local/faasm
       - name: "Add faasm group"
