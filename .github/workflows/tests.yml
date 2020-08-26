@@ -48,14 +48,14 @@ jobs:
         run: cmake --build . --target tests
         working-directory: /usr/local/code/faasm/build
       # --- Environment set-up ---
-      - name: "Set up native libs"
-        run: inv -r faasmcli/faasmcli libs.native
-      - name: "Set up test lib"
-        run: inv -r faasmcli/faasmcli libs.fake
       - name: "Download sysroot"
         run: inv -r faasmcli/faasmcli toolchain.download-sysroot
       - name: "Download runtime root"
         run: inv -r faasmcli/faasmcli toolchain.download-runtime --nocodegen
+      - name: "Set up native libs"
+        run: inv -r faasmcli/faasmcli libs.native
+      - name: "Set up test lib"
+        run: inv -r faasmcli/faasmcli libs.fake
       - name: "Run codegen"
         run: inv -r faasmcli/faasmcli codegen.local
       - name: "Run WAMR codegen"
