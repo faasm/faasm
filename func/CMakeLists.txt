@@ -25,7 +25,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
         -Xlinker --export=__data_end \
         -Xlinker --export=__wasm_call_ctors \
         -Xlinker --max-memory=4294901760 \
-        -Wl,-z,stack-size=4194304 \
+        -Wl,-z,stack-size=4194304 -Wl, \
     ")
 
     SET(CMAKE_EXECUTABLE_SUFFIX ".wasm")
@@ -90,7 +90,3 @@ add_subdirectory(python)
 add_subdirectory(sgd)
 add_subdirectory(tf)
 add_subdirectory(wamr)
-
-if(FAASM_SGX_SUPPORT)
-    add_subdirectory(sgx)
-endif()

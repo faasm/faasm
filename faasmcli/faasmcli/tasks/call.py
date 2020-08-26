@@ -34,7 +34,7 @@ def invoke(ctx, user, func,
 @task
 def status(ctx, call_id, host=None, port=None):
     """
-    Get the status of an faasm_async function call
+    Get the status of an async function call
     """
     k8s_host, k8s_port = get_invoke_host_port()
     host = host if host else k8s_host
