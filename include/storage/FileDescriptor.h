@@ -37,7 +37,6 @@ namespace storage {
         uint8_t type;
         unsigned int ino;
         std::string path;
-        bool isEnd = false;
     };
 
     class Stat {
@@ -69,6 +68,8 @@ namespace storage {
 
         DirEnt iterNext();
 
+        void iterReset();
+
         Stat stat(const std::string &relativePath = "");
 
         bool unlink(const std::string &relativePath = "");
@@ -80,6 +81,8 @@ namespace storage {
         ssize_t readLink(const std::string &relativePath, char *buffer, size_t bufferLen);
 
         bool pathOpen(uint32_t lookupFlags, uint32_t openFlags, int32_t fdFlags);
+
+        bool updateFlags(int32_t fdFlags);
 
         void close();
 
@@ -117,7 +120,6 @@ namespace storage {
         std::string path;
 
         DIR *dirPtr;
-        struct dirent *direntPtr;
 
         bool rightsSet;
         uint64_t actualRightsBase;

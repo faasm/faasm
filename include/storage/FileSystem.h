@@ -2,7 +2,7 @@
 
 #include "FileDescriptor.h"
 
-#include <proto/faasm.pb.h>
+#include <proto/faabric.pb.h>
 
 #include <unordered_map>
 

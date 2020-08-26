@@ -1,8 +1,5 @@
 name: Tests
 
-# Note - the credentials for Docker in here are pulled from the repo's secrets
-# https://github.com/lsds/faasm/settings/secrets
-
 on:
   push:
     branches:
@@ -10,46 +7,64 @@ on:
   pull_request:
     branches:
       - master
-      - gh-actions
 
 jobs:
   build:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     env:
-      DOCKER_BUILDKIT: 1
+      CGROUP_MODE: off
+      NETNS_MODE: off
+      HOST_TYPE: ci
+      REDIS_STATE_HOST: redis
+      REDIS_QUEUE_HOST: redis
+      LOG_LEVEL: info
+      MAX_FAASLETS: 5
+    container:
+      faasm/base-test:0.4.3
+    defaults:
+      run:
+        working-directory: /usr/local/code/faasm
+    services:
+      redis:
+        image: faasm/redis:0.4.3
+        ports:
+          - 6379:6379
     steps:
-      - uses: actions/checkout@v2
-      - name: "Set up docker tag"
-        shell: bash
-        run: echo "##[set-output name=tag;]$(echo ${GITHUB_REF//\//-})"
-        id: get_tag
-      - name: "Print Docker tag"
-        run: echo "DOCKER TAG = ${{ steps.get_tag.outputs.tag }}"
-      - uses: docker/build-push-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: faasm/testing
-          dockerfile: docker/testing.dockerfile
-          always_pull: true
-          push: ${{ secrets.DOCKER_PASSWORD != '' }} # Only attempt push if secret is present
-          tags: ${{ steps.get_tag.outputs.tag }}
-          build_args: FAASM_VERSION=0.2.2
-      - name: "Create a docker network"
-        run: docker network create -d bridge test-net
-      - name: "Stop redis container"
-        run: docker stop redis | true
-      - name: "Run the redis container"
-        run: docker run -d --name redis --net=test-net --rm faasm/redis:0.2.2
-      - name: "Run the testing container"
-        run: >
-          docker run --privileged --net=test-net
-          -e CGROUP_MODE=on
-          -e HOST_TYPE=ci
-          -e REDIS_STATE_HOST=redis
-          -e REDIS_QUEUE_HOST=redis
-          -e LOG_LEVEL=info
-          -e THREADS_PER_WORKER=5
-          -e OMP_THREAD_POOL_SIZE=10
-          faasm/testing:${{ steps.get_tag.outputs.tag }}
-          /usr/local/code/faasm/bin/ci_run.sh
+      # --- Sanity checks ---
+      - name: "Working directory"
+        run: pwd
+      - name: "Working directory contents"
+        run: ls -al
+      # --- Code build ---
+      - name: "Fetch ref"
+        run: git fetch origin ${GITHUB_REF}:ci-branch
+      - name: "Check out branch"
+        run: git checkout --force ci-branch
+      - name: "Update submodules"
+        run: git submodule update
+      - name: "Log commits"
+        run: git log -3
+      - name: "Build tests"
+        run: cmake --build . --target tests
+        working-directory: /usr/local/code/faasm/build
+      # --- Environment set-up ---
+      - name: "Download sysroot"
+        run: inv -r faasmcli/faasmcli toolchain.download-sysroot
+      - name: "Download runtime root"
+        run: inv -r faasmcli/faasmcli toolchain.download-runtime --nocodegen
+      - name: "Set up test lib"
+        run: inv -r faasmcli/faasmcli libs.fake
+      - name: "Run codegen"
+        run: inv -r faasmcli/faasmcli codegen.local
+      - name: "Run WAMR codegen"
+        run: inv -r faasmcli/faasmcli codegen demo echo --wamr
+      - name: "Set up Tensorflow test files"
+        run: inv -r faasmcli/faasmcli tf.upload --local-copy
+      - name: "Copy Python functions into place"
+        run: inv -r faasmcli/faasmcli upload.user python --py --local-copy
+      - name: "Make sure permissions are properly set"
+        run: chown -R root:root /usr/local/faasm
+      # --- Test run ---
+      - name: "Run the tests"
+        run: ./build/bin/tests
+

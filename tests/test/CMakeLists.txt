@@ -14,3 +14,4 @@ add_executable(
 target_link_libraries(tests test_utils)
 
 add_test(NAME tests COMMAND "tests/test/tests")
+

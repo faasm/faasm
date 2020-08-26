@@ -1,9 +1,9 @@
 #include <catch/catch.hpp>
 
-#include <util/environment.h>
-#include <util/files.h>
-#include <util/config.h>
-#include <util/string_tools.h>
+#include <faabric/util/environment.h>
+#include <faabric/util/files.h>
+#include <faabric/util/config.h>
+#include <faabric/util/string_tools.h>
 
 #include <system/CGroup.h>
 
@@ -19,7 +19,7 @@ namespace tests {
     static int cgroupCheckSuccessful = 0;
 
     TEST_CASE("Test cgroup on/ off", "[faaslet]") {
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string original = conf.cgroupMode;
 
         // Ignore this test in CI, not able to run privileged hence can't create cgroups
@@ -41,7 +41,7 @@ namespace tests {
         }
 
         // Update the config
-        util::setEnvVar("CGROUP_MODE", envValue);
+        faabric::util::setEnvVar("CGROUP_MODE", envValue);
         conf.reset();
 
         // Create and check
@@ -50,7 +50,7 @@ namespace tests {
         REQUIRE(cg.getName() == "foo");
 
         // Reset config
-        util::setEnvVar("CGROUP_MODE", original);
+        faabric::util::setEnvVar("CGROUP_MODE", original);
         conf.reset();
     }
 
@@ -72,16 +72,16 @@ namespace tests {
         // Check this thread is in the cgroup
         cgroupPath.append("tasks");
         std::string tid = std::to_string((pid_t) syscall(SYS_gettid));
-        std::string fileContents = util::readFileToString(cgroupPath.string());
+        std::string fileContents = faabric::util::readFileToString(cgroupPath.string());
 
-        REQUIRE(util::contains(fileContents, tid));
+        REQUIRE(faabric::util::contains(fileContents, tid));
 
         // Set success
         cgroupCheckSuccessful = 1;
     }
 
     TEST_CASE("Test adding thread to cpu controller", "[faaslet]") {
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
 
         // Ignore this test in CI, not able to run privileged hence can't create cgroups
         if(conf.hostType == "ci") {

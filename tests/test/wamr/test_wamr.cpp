@@ -1,19 +1,23 @@
 #include <catch/catch.hpp>
 #include <wamr/WAMRWasmModule.h>
-#include <util/func.h>
-#include <util/config.h>
-#include <utils.h>
+#include <faabric/util/func.h>
+#include <faabric/util/config.h>
 
 using namespace wasm;
 
 namespace tests {
-    TEST_CASE("Test executing a function with WAMR doesn't break", "[wasm]") {
-        message::Message call = util::messageFactory("demo", "hello");
+    TEST_CASE("Test executing echo function with WAMR", "[wasm]") {
+        faabric::Message call = faabric::util::messageFactory("demo", "echo");
+        std::string inputData = "hello there";
+        call.set_inputdata(inputData);
 
         wasm::WAMRWasmModule module;
         module.bindToFunction(call);
-        module.execute(call);
+        
+        bool success = module.execute(call);
+        REQUIRE(success);
 
-        module.tearDown();
+        std::string outputData = call.outputdata();
+        REQUIRE(outputData == inputData);
     }
 }

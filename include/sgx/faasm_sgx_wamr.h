@@ -1,15 +1,8 @@
-//
-// Created by Joshua Heinemann on 05.07.20.
-// TU-Braunschweig (heineman@ibr.cs.tu-bs.de)
-//
-
-#ifndef FAASM_FAASM_SGX_WAMR_H
-#define FAASM_FAASM_SGX_WAMR_H
-
+#pragma once
 #include <stdint.h>
 
 #define FAASM_FUNC(name, id) __attribute__((visibility("default"))) __attribute__((export_name(#id))) name()
-#define FAASM_MAIN() void FAASM_FUNC(_main,0)
+#define FAASM_MAIN() FAASM_FUNC(_main,0)
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,4 +39,4 @@ int faasmGetCurrentIdx(void);
 #ifdef __cplusplus
 };
 #endif
-#endif //FAASM_FAASM_SGX_WAMR_H
+

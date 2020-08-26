@@ -1,7 +1,7 @@
 #pragma once
 #include <pistache/http.h>
 #include <pistache/endpoint.h>
-#include <util/config.h>
+#include <faabric/util/config.h>
 
 namespace endpoint {
     class Endpoint {
@@ -13,7 +13,7 @@ namespace endpoint {
 
         virtual std::shared_ptr<Pistache::Http::Handler> getHandler() = 0;
     private:
-        int port = util::getSystemConfig().endpointPort;
-        int threadCount = util::getSystemConfig().endpointNumThreads;
+        int port = faabric::util::getSystemConfig().endpointPort;
+        int threadCount = faabric::util::getSystemConfig().endpointNumThreads;
     };
 }

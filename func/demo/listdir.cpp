@@ -46,14 +46,15 @@ FAASM_MAIN_FUNC() {
     std::vector<std::string> vecA = listDir(dirA);
     if (vecA.empty()) {
         printf("Error listing dir %s\n", dirA);
+        return 1;
     }
+    printf("vecA = %lu\n", vecA.size());
 
     std::vector<std::string> vecB = listDir(dirB);
     if (vecB.empty()) {
         printf("Error listing dir %s\n", dirB);
+        return 1;
     }
-
-    printf("vecA = %lu\n", vecA.size());
     printf("vecB = %lu\n", vecB.size());
 
     return 0;

@@ -7,22 +7,23 @@
 
 #include <ir_cache/IRModuleCache.h>
 #include <storage/SharedFiles.h>
-#include <util/bytes.h>
-#include <util/func.h>
-#include <util/memory.h>
-#include <util/timing.h>
-#include <util/config.h>
-#include <util/locks.h>
+#include <faabric/util/bytes.h>
+#include <faabric/util/func.h>
+#include <faabric/util/memory.h>
+#include <faabric/util/timing.h>
+#include <faabric/util/config.h>
+#include <faabric/util/locks.h>
 #include <wasm/serialisation.h>
 
 #include <WAVM/WASM/WASM.h>
-#include <WAVM/IR/Types.h>
 #include <WAVM/Platform/Memory.h>
+#include <WAVM/IR/Types.h>
 #include <WAVM/IR/Module.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 #include <Runtime/RuntimePrivate.h>
 #include <WASI/WASIPrivate.h>
+
 #include <wavm/openmp/ThreadState.h>
 #include <wavm/OMPThreadPool.h>
 
@@ -43,7 +44,7 @@ namespace wasm {
             return;
         }
 
-        util::UniqueLock lock(baseModuleMx);
+        faabric::util::UniqueLock lock(baseModuleMx);
 
         // Double check
         if (baseEnvModule != nullptr) {
@@ -79,7 +80,7 @@ namespace wasm {
         return baseWasiModule;
     }
 
-    WAVMWasmModule *getExecutingModule() {
+    WAVMWasmModule *getExecutingWAVMModule() {
         return executingModule;
     }
 
@@ -192,7 +193,7 @@ namespace wasm {
     bool WAVMWasmModule::tearDown() {
         PROF_START(wasmTearDown)
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         // --- Faasm stuff ---
         sharedMemWasmPtrs.clear();
@@ -241,7 +242,7 @@ namespace wasm {
 
     Runtime::Function *
     WAVMWasmModule::getFunction(Runtime::Instance *module, const std::string &funcName, bool strict) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         // Look up the function
         Runtime::Function *func = asFunctionNullable(getInstanceExport(module, funcName));
@@ -268,7 +269,7 @@ namespace wasm {
         // If we add all table elements this map gets very large, therefore we just want
         // to include functions that the module explicitly exports.
         std::unordered_set<std::string> moduleExports;
-        for(auto &e : mod.exports) {
+        for (auto &e : mod.exports) {
             moduleExports.insert(e.name);
         }
 
@@ -297,7 +298,7 @@ namespace wasm {
                 // Work out the function's name, then add it to our GOT
                 std::string &elemName = disassemblyNames.functions[elemIdx].name;
 
-                if(moduleExports.find(elemName) != moduleExports.end()) {
+                if (moduleExports.find(elemName) != moduleExports.end()) {
                     Uptr tableIdx = offset + i;
                     globalOffsetTableMap.insert({elemName, tableIdx});
                 }
@@ -343,22 +344,22 @@ namespace wasm {
         Runtime::invokeFunction(executionContext, func, funcType, arguments.data(), &result);
     }
 
-    void WAVMWasmModule::bindToFunction(const message::Message &msg) {
+    void WAVMWasmModule::bindToFunction(const faabric::Message &msg) {
         doBindToFunction(msg, true);
     }
 
-    void WAVMWasmModule::bindToFunctionNoZygote(const message::Message &msg) {
+    void WAVMWasmModule::bindToFunctionNoZygote(const faabric::Message &msg) {
         doBindToFunction(msg, false);
     }
 
-    void WAVMWasmModule::doBindToFunction(const message::Message &msg, bool executeZygote) {
+    void WAVMWasmModule::doBindToFunction(const faabric::Message &msg, bool executeZygote) {
         /*
          * NOTE - the order things happen in this function is important.
          * The zygote function may execute non-trivial code and modify the memory,
          * but in order to work it needs the memory etc. to be set up.
          */
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         if (_isBound) {
             throw std::runtime_error("Cannot bind a module twice");
         }
@@ -377,7 +378,7 @@ namespace wasm {
         PROF_END(wasmContext)
 
         // Create the module instance
-        moduleInstance = createModuleInstance(util::funcToString(msg, false), "");
+        moduleInstance = createModuleInstance(faabric::util::funcToString(msg, false), "");
 
         PROF_START(wasmBind)
 
@@ -411,7 +412,7 @@ namespace wasm {
             }
 
             Uptr initialTableSize = Runtime::getTableNumElements(defaultTable);
-            Uptr initialMemorySize = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
+            Uptr initialMemorySize = Runtime::getMemoryNumPages(defaultMemory) * WASM_BYTES_PER_PAGE;
             Uptr initialMemoryPages = Runtime::getMemoryNumPages(defaultMemory);
 
             logger->debug("heap_top={} initial_pages={} initial_table={}", initialMemorySize, initialMemoryPages,
@@ -452,7 +453,7 @@ namespace wasm {
 
     Runtime::Instance *
     WAVMWasmModule::createModuleInstance(const std::string &name, const std::string &sharedModulePath) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         PROF_START(wasmCreateModule)
 
@@ -585,7 +586,7 @@ namespace wasm {
         // This function is essentially dlopen. See the comments around the GOT function
         // for more detail on the dynamic linking approach.
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         // Return the handle if we've already loaded this module
         if (dynamicPathToHandleMap.count(path) > 0) {
@@ -614,7 +615,7 @@ namespace wasm {
     }
 
     uint32_t WAVMWasmModule::getDynamicModuleFunction(int handle, const std::string &funcName) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         // Check the handle is valid
         if (dynamicModuleMap.count(handle) == 0) {
@@ -638,7 +639,7 @@ namespace wasm {
     }
 
     uint32_t WAVMWasmModule::addFunctionToTable(Runtime::Object *exportedFunc) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         // Add function to the table
         Uptr prevIdx;
@@ -658,14 +659,14 @@ namespace wasm {
     /**
      * Executes the given function call
      */
-    bool WAVMWasmModule::execute(message::Message &msg, bool forceNoop) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+    bool WAVMWasmModule::execute(faabric::Message &msg, bool forceNoop) {
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         if (!_isBound) {
             throw std::runtime_error("WasmModule must be bound before executing function");
         } else {
             if (boundUser != msg.user() || boundFunction != msg.function()) {
-                const std::string funcStr = util::funcToString(msg, true);
+                const std::string funcStr = faabric::util::funcToString(msg, true);
                 logger->error("Cannot execute {} on module bound to {}/{}",
                               funcStr, boundUser, boundFunction);
                 throw std::runtime_error("Cannot execute function on module bound to another");
@@ -676,13 +677,13 @@ namespace wasm {
         setExecutingCall(&msg);
 
         // Ensure Python function file in place (if necessary)
-        syncPythonFunctionFile(msg);
+        storage::SharedFiles::syncPythonFunctionFile(msg);
 
         // Set up OMP
         prepareOpenMPContext(msg);
 
         // Executes OMP fork message if necessary
-        if (msg.has_ompdepth()) {
+        if (msg.ompdepth() > 0) {
             executeRemoteOMP(msg);
             return true;
         }
@@ -770,7 +771,7 @@ namespace wasm {
         return success;
     }
 
-    void WAVMWasmModule::executeRemoteOMP(message::Message &msg) {
+    void WAVMWasmModule::executeRemoteOMP(faabric::Message &msg) {
         int funcPtr = msg.funcptr();
         std::vector<IR::UntaggedValue> invokeArgs;
         Runtime::Function *funcInstance;
@@ -780,8 +781,8 @@ namespace wasm {
         int threadNum = msg.ompthreadnum();
         int argc = msg.ompfunctionargs_size();
 
-        util::getLogger()->debug("Running OMP thread #{} for function{} with argType {} (argc = {})", threadNum,
-                                 funcPtr, argc);
+        faabric::util::getLogger()->debug("Running OMP thread #{} for function{} (argc = {})", threadNum, funcPtr,
+                                          argc);
 
         invokeArgs.emplace_back(threadNum);
         invokeArgs.emplace_back(argc);
@@ -793,7 +794,7 @@ namespace wasm {
                 getContextRuntimeData(executionContext),
                 funcInstance,
                 invokeArgs.data(),
-                getExecutingModule()->allocateThreadStack(),
+                getExecutingWAVMModule()->allocateThreadStack(),
         };
 
         // Record the return value
@@ -801,7 +802,7 @@ namespace wasm {
     }
 
     U32 WAVMWasmModule::mmapFile(U32 fd, U32 length) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         // mmap the memory region
         U32 wasmPtr = mmapMemory(length);
@@ -833,11 +834,11 @@ namespace wasm {
     }
 
     U32 WAVMWasmModule::mmapPages(U32 pages) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         U64 maxSize = getMemoryType(defaultMemory).size.max;
         Uptr currentPageCount = Runtime::getMemoryNumPages(defaultMemory);
 
-        if(pages == 0) {
+        if (pages == 0) {
             throw std::runtime_error("Requesting mapping of zero pages");
         }
 
@@ -871,49 +872,14 @@ namespace wasm {
         logger->debug("mmap - Growing memory from {} to {} pages", currentPageCount, newPageCount);
 
         // Get pointer to mapped range
-        auto mappedRangePtr = (U32) (Uptr(pageCountOut) * IR::numBytesPerPage);
+        auto mappedRangePtr = (U32) (Uptr(pageCountOut) * WASM_BYTES_PER_PAGE);
 
         return mappedRangePtr;
     }
 
-    /**
-     * Maps the given state into the module's memory.
-     *
-     * If we are dealing with a chunk of a larger state value, the host memory
-     * will be reserved for the full value, but only the necessary wasm pages
-     * will be created. Loading many chunks of the same value leads to fragmentation,
-     * but usually only one or two chunks are loaded per module.
-     *
-     * To perform the mapping we need to ensure allocated memory is page-aligned.
-     */
-    U32 WAVMWasmModule::mapSharedStateMemory(const std::shared_ptr<state::StateKeyValue> &kv, long offset, U32 length) {
-        // See if we already have this segment mapped into memory
-        std::string segmentKey =
-                kv->user + "_" + kv->key + "__" + std::to_string(offset) + "__" + std::to_string(length);
-        if (sharedMemWasmPtrs.count(segmentKey) == 0) {
-            // Lock and double check
-            util::UniqueLock lock(sharedMemWasmPtrsMx);
-            if (sharedMemWasmPtrs.count(segmentKey) == 0) {
-                // Page-align the chunk
-                util::AlignedChunk chunk = util::getPageAlignedChunk(offset, length);
-
-                // Create the wasm memory region and work out the offset to the start of the
-                // desired chunk in this region (this will be zero if the offset is already
-                // zero, or if the offset is page-aligned already).
-                U32 wasmBasePtr = this->mmapMemory(chunk.nBytesLength);
-                U32 wasmOffsetPtr = wasmBasePtr + chunk.offsetRemainder;
-
-                // Map the shared memory
-                auto wasmMemoryRegionPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmBasePtr);
-                kv->mapSharedMemory(static_cast<void *>(wasmMemoryRegionPtr), chunk.nPagesOffset, chunk.nPagesLength);
-
-                // Cache the wasm pointer
-                sharedMemWasmPtrs[segmentKey] = wasmOffsetPtr;
-            }
-        }
-
-        // Return the wasm pointer
-        return sharedMemWasmPtrs[segmentKey];
+    uint8_t *WAVMWasmModule::wasmPointerToNative(int32_t wasmPtr) {
+        auto wasmMemoryRegionPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmPtr);
+        return wasmMemoryRegionPtr;
     }
 
     bool WAVMWasmModule::resolve(const std::string &moduleName,
@@ -921,7 +887,7 @@ namespace wasm {
                                  IR::ExternType type,
                                  Runtime::Object *&resolved) {
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         bool isMainModule = moduleInstance == nullptr;
 
@@ -1114,7 +1080,7 @@ namespace wasm {
 
     int WAVMWasmModule::getFunctionOffsetFromGOT(const std::string &funcName) {
         if (globalOffsetTableMap.count(funcName) == 0) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
             logger->error("Function not found in GOT - {}", funcName);
             throw std::runtime_error("Function not found in GOT");
         }
@@ -1124,7 +1090,7 @@ namespace wasm {
 
     int WAVMWasmModule::getDataOffsetFromGOT(const std::string &name) {
         if (globalOffsetMemoryMap.count(name) == 0) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
             logger->error("Data not found in GOT - {}", name);
             throw std::runtime_error("Memory not found in GOT");
         }
@@ -1135,11 +1101,11 @@ namespace wasm {
     void WAVMWasmModule::writeMemoryToFd(int fd) {
         memoryFd = fd;
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         logger->debug("Writing memory for {}/{} to fd {}", this->boundUser, this->boundFunction, memoryFd);
 
         Uptr numPages = Runtime::getMemoryNumPages(defaultMemory);
-        Uptr numBytes = numPages * IR::numBytesPerPage;
+        Uptr numBytes = numPages * WASM_BYTES_PER_PAGE;
         U8 *memoryBase = Runtime::getMemoryBaseAddress(defaultMemory);
 
         // Make the fd big enough
@@ -1157,7 +1123,7 @@ namespace wasm {
     }
 
     void WAVMWasmModule::mapMemoryFromFd() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         logger->debug("Mapping memory for {}/{} from fd {}", this->boundUser, this->boundFunction, memoryFd);
 
         U8 *memoryBase = Runtime::getMemoryBaseAddress(defaultMemory);
@@ -1171,7 +1137,7 @@ namespace wasm {
         // Serialise memory
         Uptr numPages = Runtime::getMemoryNumPages(defaultMemory);
         U8 *memBase = Runtime::getMemoryBaseAddress(defaultMemory);
-        U8 *memEnd = memBase + (numPages * IR::numBytesPerPage);
+        U8 *memEnd = memBase + (numPages * WASM_BYTES_PER_PAGE);
 
         wasm::MemorySerialised mem;
         mem.numPages = numPages;
@@ -1196,7 +1162,7 @@ namespace wasm {
         }
 
         U8 *memBase = Runtime::getMemoryBaseAddress(defaultMemory);
-        size_t memSize = mem.numPages * IR::numBytesPerPage;
+        size_t memSize = mem.numPages * WASM_BYTES_PER_PAGE;
         memcpy(memBase, mem.data.data(), memSize);
     }
 
@@ -1206,7 +1172,7 @@ namespace wasm {
      * Assumes the worker module TLS was set up already
      */
     I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec &spec) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         // Create a new region for this thread's stack
         U32 thisStackBase = spec.stackTop;
         U32 stackTop = thisStackBase + THREAD_STACK_SIZE - 1;
@@ -1219,8 +1185,8 @@ namespace wasm {
         // Set the stack pointer in this context
         IR::UntaggedValue &stackGlobal = threadContext->runtimeData->mutableGlobals[0];
         if (stackGlobal.u32 != STACK_SIZE) {
-            util::getLogger()->error("Expected first mutable global in context to be stack pointer ({})",
-                                     stackGlobal.u32);
+            faabric::util::getLogger()->error("Expected first mutable global in context to be stack pointer ({})",
+                                              stackGlobal.u32);
             throw std::runtime_error("Unexpected mutable global format");
         }
 
@@ -1278,7 +1244,7 @@ namespace wasm {
     }
 
     void WAVMWasmModule::executeZygoteFunction() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         Runtime::Function *zygoteFunc = getDefaultZygoteFunction(moduleInstance);
         if (zygoteFunc) {
             IR::UntaggedValue result;
@@ -1300,7 +1266,7 @@ namespace wasm {
     }
 
     void WAVMWasmModule::executeWasmConstructorsFunction(Runtime::Instance *module) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         Runtime::Function *wasmCtorsFunction = getWasmConstructorsFunction(module);
         if (!wasmCtorsFunction) {
@@ -1330,28 +1296,18 @@ namespace wasm {
         return Runtime::asFunction(funcObj);
     }
 
-    void WAVMWasmModule::syncPythonFunctionFile(const message::Message &msg) {
-        if (!msg.ispython()) {
-            return;
-        }
-
-        std::string sharedPath = util::getPythonFunctionFileSharedPath(msg);
-        std::string runtimeFilePath = util::getPythonRuntimeFunctionFile(msg);
-
-        storage::SharedFiles::syncSharedFile(sharedPath, runtimeFilePath);
-    }
-
-    void WAVMWasmModule::prepareOpenMPContext(const message::Message &msg) {
+    void WAVMWasmModule::prepareOpenMPContext(const faabric::Message &msg) {
         std::shared_ptr<openmp::Level> ompLevel;
 
-        if (msg.has_ompdepth()) {
+        if (msg.ompdepth() > 0) {
             ompLevel = std::static_pointer_cast<openmp::Level>(
                     std::make_shared<openmp::MultiHostSumLevel>(msg.ompdepth(),
                                                                 msg.ompeffdepth(),
                                                                 msg.ompmal(),
                                                                 msg.ompnumthreads()));
         } else {
-            OMPPool = std::make_unique<openmp::PlatformThreadPool>(util::getSystemConfig().ompThreadPoolSize, this);
+            OMPPool = std::make_unique<openmp::PlatformThreadPool>(faabric::util::getSystemConfig().ompThreadPoolSize,
+                                                                   this);
             ompLevel = std::static_pointer_cast<openmp::Level>(
                     std::make_shared<openmp::SingleHostLevel>());
         }
@@ -1362,5 +1318,4 @@ namespace wasm {
     std::unique_ptr<openmp::PlatformThreadPool> &WAVMWasmModule::getOMPPool() {
         return OMPPool;
     }
-
 }

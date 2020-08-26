@@ -1,11 +1,8 @@
 #include <omp.h>
 #include <cstdio>
 #include <random>
-#ifndef __wasm__
 #import <chrono>
 typedef std::chrono::system_clock::time_point TimePoint;
-#endif
-#include "faasmp/reduction.h"
 
 unsigned long thread_seed() {
     int threadNum = omp_get_thread_num();
@@ -15,7 +12,7 @@ unsigned long thread_seed() {
 int main(int argc, char **argv) {
     uint32_t num_threads = 1;
     int32_t num_devices = 0;
-    uint32_t num_times = 1;
+    uint32_t num_times = 20;
     if (argc == 4) {
         num_threads = std::stoul(argv[1]);
         num_times = std::stoul(argv[2]);
@@ -37,23 +34,19 @@ int main(int argc, char **argv) {
     std::vector<uint32_t> accs;
     accs.reserve(num_times);
     for (int i = 0; i < num_times; i++) {
-#ifndef __wasm__
         TimePoint t1 = std::chrono::system_clock::now();
-#endif
-        i64 result(0);
+        int result(0);
         #pragma omp parallel default(none) reduction(+:result)
         {
             result += omp_get_thread_num();
         }
         accs.emplace_back((int64_t ) result);
-#ifndef __wasm__
         TimePoint t2 = std::chrono::system_clock::now();
         long diff = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
-        if (i == 0) {
-            printf("%d,native-realistic,%ld\n",num_threads, diff);
-        } else {
-            printf("%d,native-warm,%ld\n",num_threads, diff);
-        }
+#ifdef __wasm__
+        printf("%d,Wasm local,%ld\n",num_threads, diff);
+#else
+        printf("%d,Native,%ld\n",num_threads, diff);
 #endif
     }
 

@@ -3,15 +3,16 @@
 
 #include "faasm/matrix.h"
 
-#include <redis/Redis.h>
-#include <state/State.h>
+#include <faabric/redis/Redis.h>
+#include <faabric/state/State.h>
 
 #include <emulator/emulator.h>
-#include <util/state.h>
-#include <state/StateServer.h>
-#include <tcp/TCPClient.h>
+#include <faabric/util/state.h>
+#include <faabric/util/network.h>
+#include <faabric/state/DummyStateServer.h>
 
 using namespace Eigen;
+using namespace faabric::state;
 
 namespace tests {
     TEST_CASE("Test byte offsets for matrix elements", "[matrix]") {
@@ -71,14 +72,13 @@ namespace tests {
         MatrixXd mat = buildDummyMatrix();
         size_t nBytes = setUpDummyStateServer(server, stateKey, mat);
 
-        // One pull, one push
-        server.start(2);
+        server.start();
 
         // Write locally and push
         faasm::writeMatrixToState(stateKey, mat, true);
 
         // Check it exists locally
-        state::State &localState = state::getGlobalState();
+        faabric::state::State &localState = faabric::state::getGlobalState();
         REQUIRE(localState.getKVCount() == 1);
         REQUIRE(server.getLocalKvValue().size() == nBytes);
 
@@ -95,7 +95,7 @@ namespace tests {
         REQUIRE(afterState.cols() == 3);
         REQUIRE(afterState == mat);
 
-        server.wait();
+        server.stop();
     }
 
     void checkReadingMatrixColumnsFromState(bool local) {
@@ -112,7 +112,7 @@ namespace tests {
         bool pushPull = !local;
         if (pushPull) {
             setUpDummyStateServer(server, stateKey, mat);
-            server.start(2);
+            server.start();
         }
 
         mat << 1, 2, 3, 4, 5,
@@ -141,7 +141,7 @@ namespace tests {
         REQUIRE(actual == expected);
 
         if (pushPull) {
-            server.wait();
+            server.stop();
         }
     }
 
@@ -268,30 +268,23 @@ namespace tests {
         SparseMatrix<double> mat = faasm::randomSparseMatrix(rows, cols, 0.7);
 
         std::string emulatorUser = getEmulatorUser();
-        state::State remoteState(LOCALHOST);
+        faabric::state::State &globalState = faabric::state::getGlobalState();
+        faabric::state::State remoteState(LOCALHOST);
+        faabric::state::StateServer stateServer(remoteState);
+
+        REQUIRE(globalState.getThisIP() != remoteState.getThisIP());
 
         // Run state server in the background
-        std::thread serverThread([&emulatorUser, &key, &mat, &remoteState] {
+        std::thread serverThread([&emulatorUser, &key, &mat, &remoteState, &stateServer] {
             // Make sure emulator set up properly in this thread
             setEmulatorUser(emulatorUser.c_str());
             setEmulatorState(&remoteState);
 
-            state::StateServer stateServer(remoteState);
-
             // Write matrix to state to set master as this thread
             faasm::writeSparseMatrixToState(key, mat, false);
 
-            // Process enough messages
-            while (true) {
-                try {
-                    stateServer.poll();
-                } catch (tcp::TCPShutdownException &ex) {
-                    break;
-                }
-            }
-
-            // Shut down
-            stateServer.close();
+            // Process messages. Run the server in _this_ thread.
+            stateServer.start(false);
         });
 
         // Give it time to start
@@ -309,10 +302,7 @@ namespace tests {
         checkSparseMatrixEquality(actualFull, mat);
 
         // Send shutdown message
-        tcp::TCPClient client(LOCALHOST, STATE_PORT);
-        tcp::TCPMessage msg;
-        msg.type = state::StateMessageType::SHUTDOWN;
-        client.sendMessage(&msg);
+        stateServer.stop();
 
         // Wait for server
         if (serverThread.joinable()) {
@@ -328,7 +318,7 @@ namespace tests {
 
         std::string emulatorUser = getEmulatorUser();
 
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string originalStateMode = conf.stateMode;
         conf.stateMode = "redis";
 
@@ -336,7 +326,7 @@ namespace tests {
         faasm::writeSparseMatrixToState(key, mat, true);
 
         // Remove local copies
-        state::getGlobalState().forceClearAll(false);
+        faabric::state::getGlobalState().forceClearAll(false);
 
         // Get subsection from the matrix
         SparseMatrix<double> expected = mat.block(0, colStart, rows, colEnd - colStart);

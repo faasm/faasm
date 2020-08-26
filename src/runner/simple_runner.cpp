@@ -1,18 +1,20 @@
 #include <wasm/WasmModule.h>
 
-#include <util/config.h>
-#include <util/timing.h>
-#include <util/func.h>
-#include <module_cache/WasmModuleCache.h>
+#include <faabric/util/config.h>
+#include <faabric/util/func.h>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
-#include <util/files.h>
+
+#include <module_cache/WasmModuleCache.h>
+#include <wamr/WAMRWasmModule.h>
+
+#include <faabric/util/files.h>
 
 bool runFunction(std::string &user, std::string &function, int runCount);
 
 int main(int argc, char *argv[]) {
-    util::initLogging();
-    const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+    faabric::util::initLogging();
+    const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
 
     int runCount;
     std::string user;
@@ -33,7 +35,7 @@ int main(int argc, char *argv[]) {
     std::vector<std::string> functions;
 
     if (function == "all") {
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         boost::filesystem::path path(conf.functionDir);
         path.append(user);
 
@@ -63,11 +65,56 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
+bool runWithWamr(faabric::Message &m, int runCount) {
+    bool success = true;
+
+    for (int i = 0; i < runCount; i++) {
+        wasm::WAMRWasmModule module;
+        module.bindToFunction(m);
+
+        success = module.execute(m);
+        if (!success) {
+            break;
+        }
+    }
+
+    wasm::tearDownWAMRGlobally();
+
+    return success;
+}
+
+
+bool runWithWavm(faabric::Message &m, int runCount) {
+    const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
+    bool success = true;
+
+    // Create the module
+    module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
+    wasm::WAVMWasmModule &cachedModule = registry.getCachedModule(m);
+
+    // Create new module from cache
+    wasm::WAVMWasmModule module(cachedModule);
+
+    // Run repeated executions
+    for (int i = 0; i < runCount; i++) {
+        success = module.execute(m);
+        if (!success) {
+            logger->error("Execution failed");
+            break;
+        }
+
+        // Reset using cached module
+        module = cachedModule;
+    }
+
+    return success;
+}
+
 bool runFunction(std::string &user, std::string &function, int runCount) {
-    const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+    const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
 
     // Set up function call
-    message::Message m = util::messageFactory(user, function);
+    faabric::Message m = faabric::util::messageFactory(user, function);
 
     if (user == "ts") {
         m.set_istypescript(true);
@@ -80,31 +127,19 @@ bool runFunction(std::string &user, std::string &function, int runCount) {
         m.set_function(PYTHON_FUNC);
     }
 
-    // Create the module
-    module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
-    wasm::WAVMWasmModule &cachedModule = registry.getCachedModule(m);
-
-    // Create new module from cache
-    wasm::WAVMWasmModule module(cachedModule);
-
-    // Run repeated executions
+    faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
     bool success = true;
-    for (int i = 0; i < runCount; i++) {
-        logger->info("Run {} - {}/{} ", i, user, function);
 
-        PROF_START(execution)
-        success = module.execute(m);
-        PROF_END(execution)
-
-        if (!success) {
-            logger->error("Execution failed");
-            break;
-        }
-
-        // Reset using cached module
-        module = cachedModule;
-        logger->info("DONE Run {} - {}/{} ", i, user, function);
+    if (conf.wasmVm == "wavm") {
+        logger->info("Running {}/{} with WAVM", m.user(), m.function());
+        success = runWithWavm(m, runCount);
+    } else if (conf.wasmVm == "wamr") {
+        logger->info("Running {}/{} with WAMR", m.user(), m.function());
+        success = runWithWamr(m, runCount);
+    } else {
+        throw std::runtime_error("Invalid wasm VM: " + conf.wasmVm);
     }
 
     return success;
 }
+

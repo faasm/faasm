@@ -3,17 +3,18 @@
 
 #include <linux/futex.h>
 
-#include <util/config.h>
+#include <faabric/util/config.h>
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Platform/Thread.h>
 
+using namespace WAVM;
 
 namespace wasm {
     struct PThreadArgs {
         wasm::WAVMWasmModule *parentModule;
-        message::Message *parentCall;
+        faabric::Message *parentCall;
         WasmThreadSpec *spec;
     };
 
@@ -32,7 +33,7 @@ namespace wasm {
         auto pArg = reinterpret_cast<PThreadArgs *>(threadSpecPtr);
         setExecutingModule(pArg->parentModule);
         setExecutingCall(pArg->parentCall);
-        I64 res = getExecutingModule()->executeThreadLocally(*pArg->spec);
+        I64 res = getExecutingWAVMModule()->executeThreadLocally(*pArg->spec);
 
         // Delete the spec, no longer needed
         delete[] pArg->spec->funcArgs;
@@ -61,16 +62,16 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_create", I32, pthread_create, I32 pthreadPtr, I32 attrPtr,
                                    I32 entryFunc, I32 argsPtr) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         logger->debug("S - pthread_create - {} {} {} {}", pthreadPtr, attrPtr, entryFunc, argsPtr);
 
         // Set the bits we care about on the pthread struct
         // NOTE - setting the initial pointer is crucial for inter-operation with existing C code
-        WAVMWasmModule *thisModule = getExecutingModule();
+        WAVMWasmModule *thisModule = getExecutingWAVMModule();
         wasm_pthread *pthreadHost = &Runtime::memoryRef<wasm_pthread>(thisModule->defaultMemory, pthreadPtr);
         pthreadHost->selfPtr = pthreadPtr;
 
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         if (conf.threadMode == "local") {
             // Spawn a local thread
             Runtime::Object *funcObj = Runtime::getTableElement(thisModule->defaultTable, entryFunc);
@@ -117,10 +118,10 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_join", I32, pthread_join, I32 pthreadPtr, I32 resPtrPtr) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         logger->debug("S - pthread_join - {} {}", pthreadPtr, resPtrPtr);
 
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         int returnValue;
         if (conf.threadMode == "local") {
             // Get the local thread and remove it from the local map
@@ -148,25 +149,25 @@ namespace wasm {
 
         // This function is passed a pointer to a pointer for the result,
         // so we dereference it once and are writing an integer (i.e. a wasm pointer)
-        auto resPtr = &Runtime::memoryRef<I32>(getExecutingModule()->defaultMemory, resPtrPtr);
+        auto resPtr = &Runtime::memoryRef<I32>(getExecutingWAVMModule()->defaultMemory, resPtrPtr);
         *resPtr = returnValue;
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_exit", void, pthread_exit, I32 code) {
-        util::getLogger()->debug("S - pthread_exit - {}", code);
+        faabric::util::getLogger()->debug("S - pthread_exit - {}", code);
 
     }
 
     I32 s__futex(I32 uaddrPtr, I32 futex_op, I32 val, I32 timeoutPtr, I32 uaddr2Ptr, I32 other) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         std::string opStr;
         int returnValue = 0;
 
         // Reference to uaddr
         // The value pointed to by uaddr is always a four byte integer
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         I32 *actualValPtr = &Runtime::memoryRef<I32>(memoryPtr, (Uptr) uaddrPtr);
         I32 actualVal = *actualValPtr;
 
@@ -203,85 +204,85 @@ namespace wasm {
      */
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_init", I32, pthread_mutex_init, I32 a, I32 b) {
-        // util::getLogger()->trace("S - pthread_mutex_init {} {}", a, b);
+        // faabric::util::getLogger()->trace("S - pthread_mutex_init {} {}", a, b);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_cond_init", I32, pthread_cond_init, I32 a, I32 b) {
-        // util::getLogger()->trace("S - pthread_cond_init {} {}", a, b);
+        // faabric::util::getLogger()->trace("S - pthread_cond_init {} {}", a, b);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_lock", I32, pthread_mutex_lock, I32 a) {
-        // util::getLogger()->trace("S - pthread_mutex_lock {}", a);
+        // faabric::util::getLogger()->trace("S - pthread_mutex_lock {}", a);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_cond_signal", I32, pthread_cond_signal, I32 a) {
-        // util::getLogger()->trace("S - pthread_cond_signal {}", a);
+        // faabric::util::getLogger()->trace("S - pthread_cond_signal {}", a);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_unlock", I32, pthread_mutex_unlock, I32 a) {
-        // util::getLogger()->trace("S - pthread_mutex_unlock {}", a);
+        // faabric::util::getLogger()->trace("S - pthread_mutex_unlock {}", a);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_destroy", I32, pthread_mutex_destroy, I32 a) {
-        // util::getLogger()->trace("S - pthread_mutex_destroy {}", a);
+        // faabric::util::getLogger()->trace("S - pthread_mutex_destroy {}", a);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_self", I32, pthread_self) {
-        // util::getLogger()->trace("S - pthread_self");
+        // faabric::util::getLogger()->trace("S - pthread_self");
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_key_create", I32, s__pthread_key_create, I32 a, I32 b) {
-        // util::getLogger()->trace("S - pthread_key_create {} {}", a, b);
+        // faabric::util::getLogger()->trace("S - pthread_key_create {} {}", a, b);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_key_delete", I32, s__pthread_key_delete, I32 a) {
-        // util::getLogger()->trace("S - pthread_key_delete {}", a);
+        // faabric::util::getLogger()->trace("S - pthread_key_delete {}", a);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_getspecific", I32, s__pthread_getspecific, I32 a) {
-        // util::getLogger()->trace("S - pthread_getspecific {}", a);
+        // faabric::util::getLogger()->trace("S - pthread_getspecific {}", a);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_setspecific", I32, s__pthread_setspecific, I32 a, I32 b) {
-        // util::getLogger()->trace("S - pthread_setspecific {} {}", a, b);
+        // faabric::util::getLogger()->trace("S - pthread_setspecific {} {}", a, b);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_trylock", I32, s__pthread_mutex_trylock, I32 a) {
-        // util::getLogger()->trace("S - pthread_mutex_trylock {}", a);
+        // faabric::util::getLogger()->trace("S - pthread_mutex_trylock {}", a);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_cond_destroy", I32, pthread_cond_destroy, I32 a) {
-        // util::getLogger()->trace("S - pthread_cond_destroy {}", a);
+        // faabric::util::getLogger()->trace("S - pthread_cond_destroy {}", a);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_cond_broadcast", I32, pthread_cond_broadcast, I32 a) {
-        // util::getLogger()->trace("S - pthread_cond_broadcast {}", a);
+        // faabric::util::getLogger()->trace("S - pthread_cond_broadcast {}", a);
 
         return 0;
     }
@@ -293,7 +294,7 @@ namespace wasm {
      */
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_equal", I32, pthread_equal, I32 a, I32 b) {
-        util::getLogger()->trace("S - pthread_equal {} {}", a, b);
+        faabric::util::getLogger()->trace("S - pthread_equal {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 

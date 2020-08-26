@@ -1,17 +1,19 @@
 #include "WAVMWasmModule.h"
 #include "syscalls.h"
 
-#include <util/bytes.h>
+#include <faabric/util/bytes.h>
 #include <linux/membarrier.h>
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
-#include <util/config.h>
+#include <faabric/util/config.h>
+
+using namespace WAVM;
 
 namespace wasm {
     bool isPageAligned(I32 address) {
         Uptr addrPtr = (Uptr) address;
-        if (addrPtr & (IR::numBytesPerPage - 1)) {
+        if (addrPtr & (WASM_BYTES_PER_PAGE - 1)) {
             return false;
         } else {
             return true;
@@ -19,13 +21,13 @@ namespace wasm {
     }
 
     I32 s__madvise(I32 address, I32 numBytes, I32 advice) {
-        util::getLogger()->debug("S - madvise - {} {} {}", address, numBytes, advice);
+        faabric::util::getLogger()->debug("S - madvise - {} {} {}", address, numBytes, advice);
 
         return 0;
     }
 
     I32 s__membarrier(I32 a) {
-        util::getLogger()->debug("S - membarrier - {}", a);
+        faabric::util::getLogger()->debug("S - membarrier - {}", a);
 
         int res;
         if (a == MEMBARRIER_CMD_QUERY) {
@@ -35,7 +37,7 @@ namespace wasm {
             // We can ignore all non-query membarrier operations
             res = 0;
         } else {
-            util::getLogger()->error("Unexpected membarrier argument {}", a);
+            faabric::util::getLogger()->error("Unexpected membarrier argument {}", a);
             throw std::runtime_error("Invalid membarrier command");
         }
 
@@ -43,9 +45,9 @@ namespace wasm {
     }
 
     I32 s__sigaltstack(I32 ssPtr, I32 oldSsPtr) {
-        util::getLogger()->debug("S - sigaltstack - {} {}", ssPtr, oldSsPtr);
+        faabric::util::getLogger()->debug("S - sigaltstack - {} {}", ssPtr, oldSsPtr);
 
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
 
         // Extract struct pointers from wasm memory
         // wasm_stack_t *ss = &Runtime::memoryRef<wasm_stack_t>(memoryPtr, (Uptr) ssPtr);
@@ -58,24 +60,24 @@ namespace wasm {
         return 0;
     }
 
-    std::shared_ptr<state::StateKeyValue> getStateKV(I32 keyPtr, size_t size) {
+    std::shared_ptr<faabric::state::StateKeyValue> getStateKV(I32 keyPtr, size_t size) {
         const std::pair<std::string, std::string> userKey = getUserKeyPairFromWasm(keyPtr);
-        state::State &s = state::getGlobalState();
+        faabric::state::State &s = faabric::state::getGlobalState();
         auto kv = s.getKV(userKey.first, userKey.second, size);
 
         return kv;
     }
 
-    std::shared_ptr<state::StateKeyValue> getStateKV(I32 keyPtr) {
+    std::shared_ptr<faabric::state::StateKeyValue> getStateKV(I32 keyPtr) {
         const std::pair<std::string, std::string> userKey = getUserKeyPairFromWasm(keyPtr);
-        state::State &s = state::getGlobalState();
+        faabric::state::State &s = faabric::state::getGlobalState();
         auto kv = s.getKV(userKey.first, userKey.second);
 
         return kv;
     }
 
     I32 doMmap(I32 addr, I32 length, I32 prot, I32 flags, I32 fd, I32 offset) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         logger->debug("S - mmap - {} {} {} {} {} {}", addr, length, prot, flags, fd, offset);
 
         // Although we are ignoring the offset we should probably
@@ -89,7 +91,7 @@ namespace wasm {
             logger->warn("WARNING: ignoring mmap hint at {}", addr);
         }
 
-        WAVMWasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingWAVMModule();
 
         if (fd != -1) {
             // If fd is provided, we're mapping a file into memory
@@ -115,10 +117,10 @@ namespace wasm {
     }
 
     I32 doMunmap(I32 addr, I32 length) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         logger->debug("S - munmap - {} {} (IGNORED)", addr, length);
 
-//        WasmModule *executingModule = getExecutingModule();
+//        WasmModule *executingModule = getExecutingWAVMModule();
 //        Runtime::Memory *memory = executingModule->defaultMemory;
 //
 //        // If not aligned or zero length, drop out
@@ -170,17 +172,17 @@ namespace wasm {
      * Note that we don't assume the address is page-aligned and just do nothing if there's already space
     */
     I32 _do_brk(I32 addr) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         if (!isPageAligned(addr)) {
             logger->error("brk address not page-aligned ({})", addr);
             throw std::runtime_error("brk not page-aligned");
         }
 
-        WAVMWasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingWAVMModule();
         Runtime::Memory *memory = module->defaultMemory;
 
         Uptr currentPageCount = getMemoryNumPages(memory);
-        const U32 currentBreak = (U32) (currentPageCount * IR::numBytesPerPage);
+        const U32 currentBreak = (U32) (currentPageCount * WASM_BYTES_PER_PAGE);
 
         // Return current break if addr is zero
         if (addr == 0) {
@@ -214,20 +216,20 @@ namespace wasm {
     }
 
     I32 s__brk(I32 addr) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         logger->debug("S - brk - {}", addr);
 
         return _do_brk(addr);
     }
 
     I32 s__sbrk(I32 increment) {
-        util::getLogger()->debug("S - sbrk - {}", increment);
+        faabric::util::getLogger()->debug("S - sbrk - {}", increment);
 
-        WAVMWasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingWAVMModule();
         Runtime::Memory *memory = module->defaultMemory;
 
         Uptr currentPageCount = getMemoryNumPages(memory);
-        const U32 currentBreak = (U32) (currentPageCount * IR::numBytesPerPage);
+        const U32 currentBreak = (U32) (currentPageCount * WASM_BYTES_PER_PAGE);
 
         // Calling sbrk with zero is the same as calling brk with zero
         if (increment == 0) {
@@ -248,13 +250,13 @@ namespace wasm {
     // mprotect is usually called as part of thread creation, in which
     // case we can ignore it.
     I32 s__mprotect(I32 addrPtr, I32 len, I32 prot) {
-        util::getLogger()->debug("S - mprotect - {} {} {}", addrPtr, len, prot);
+        faabric::util::getLogger()->debug("S - mprotect - {} {} {}", addrPtr, len, prot);
 
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "shm_open", I32, shm_open, I32 a, I32 b, I32 c) {
-        util::getLogger()->debug("S - shm_open - {} {} {}", a, b, c);
+        faabric::util::getLogger()->debug("S - shm_open - {} {} {}", a, b, c);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 

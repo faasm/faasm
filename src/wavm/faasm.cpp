@@ -4,10 +4,11 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
 
-#include <util/bytes.h>
-#include <util/files.h>
-#include <util/state.h>
+#include <faabric/util/bytes.h>
+#include <faabric/util/files.h>
+#include <faabric/util/state.h>
 
+using namespace WAVM;
 
 namespace wasm {
     void faasmLink() {
@@ -16,20 +17,20 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_push_state", void, __faasm_push_state, I32 keyPtr) {
         auto kv = getStateKV(keyPtr, 0);
-        util::getLogger()->debug("S - push_state - {}", kv->key);
+        faabric::util::getLogger()->debug("S - push_state - {}", kv->key);
         kv->pushFull();
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_push_state_partial", void, __faasm_push_state_partial, I32 keyPtr) {
         auto kv = getStateKV(keyPtr, 0);
-        util::getLogger()->debug("S - push_state_partial - {}", kv->key);
+        faabric::util::getLogger()->debug("S - push_state_partial - {}", kv->key);
         kv->pushPartial();
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_push_state_partial_mask", void, __faasm_push_state_partial_mask,
                                    I32 keyPtr, I32 maskKeyPtr) {
         auto kv = getStateKV(keyPtr, 0);
-        util::getLogger()->debug("S - push_state_partial_mask - {} {}", kv->key, maskKeyPtr);
+        faabric::util::getLogger()->debug("S - push_state_partial_mask - {} {}", kv->key, maskKeyPtr);
 
         auto maskKv = getStateKV(maskKeyPtr, 0);
         kv->pushPartialMask(maskKv);
@@ -37,61 +38,61 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_pull_state", void, __faasm_pull_state, I32 keyPtr, I32 stateLen) {
         auto kv = getStateKV(keyPtr, stateLen);
-        util::getLogger()->debug("S - pull_state - {} {}", kv->key, stateLen);
+        faabric::util::getLogger()->debug("S - pull_state - {} {}", kv->key, stateLen);
 
         kv->pull();
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_lock_state_global", void, __faasm_lock_state_global, I32 keyPtr) {
         auto kv = getStateKV(keyPtr, 0);
-        util::getLogger()->debug("S - lock_state_global - {}", kv->key);
+        faabric::util::getLogger()->debug("S - lock_state_global - {}", kv->key);
 
         kv->lockGlobal();
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_unlock_state_global", void, __faasm_unlock_state_global, I32 keyPtr) {
         auto kv = getStateKV(keyPtr, 0);
-        util::getLogger()->debug("S - unlock_state_global - {}", kv->key);
+        faabric::util::getLogger()->debug("S - unlock_state_global - {}", kv->key);
 
         kv->unlockGlobal();
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_lock_state_read", void, __faasm_lock_state_read, I32 keyPtr) {
         auto kv = getStateKV(keyPtr, 0);
-        util::getLogger()->debug("S - lock_state_read - {}", kv->key);
+        faabric::util::getLogger()->debug("S - lock_state_read - {}", kv->key);
 
         kv->lockRead();
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_unlock_state_read", void, __faasm_unlock_state_read, I32 keyPtr) {
         auto kv = getStateKV(keyPtr, 0);
-        util::getLogger()->debug("S - unlock_state_read - {}", kv->key);
+        faabric::util::getLogger()->debug("S - unlock_state_read - {}", kv->key);
 
         kv->unlockRead();
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_lock_state_write", void, __faasm_lock_state_write, I32 keyPtr) {
         auto kv = getStateKV(keyPtr, 0);
-        util::getLogger()->debug("S - lock_state_write - {}", kv->key);
+        faabric::util::getLogger()->debug("S - lock_state_write - {}", kv->key);
 
         kv->lockWrite();
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_unlock_state_write", void, __faasm_unlock_state_write, I32 keyPtr) {
         auto kv = getStateKV(keyPtr, 0);
-        util::getLogger()->debug("S - unlock_state_write - {}", keyPtr, kv->key);
+        faabric::util::getLogger()->debug("S - unlock_state_write - {}", keyPtr, kv->key);
 
         kv->unlockWrite();
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state", void, __faasm_write_state,
                                    I32 keyPtr, I32 dataPtr, I32 dataLen) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         auto kv = getStateKV(keyPtr, dataLen);
         logger->debug("S - write_state - {} {} {}", kv->key, dataPtr, dataLen);
 
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
 
         logger->debug("Writing state length {} to key {}", dataLen, kv->key);
@@ -100,9 +101,9 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_append_state", void, __faasm_append_state,
                                    I32 keyPtr, I32 dataPtr, I32 dataLen) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
 
@@ -114,11 +115,11 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_appended_state", void, __faasm_read_appended_state,
                                    I32 keyPtr, I32 bufferPtr, I32 bufferLen, I32 nElems) {
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
 
-        util::getLogger()->debug("S - read_appended_state - {} {} {} {}", key, bufferPtr, bufferLen, nElems);
+        faabric::util::getLogger()->debug("S - read_appended_state - {} {} {} {}", key, bufferPtr, bufferLen, nElems);
 
         auto kv = getStateKV(keyPtr, bufferLen);
         kv->getAppended(buffer, bufferLen, nElems);
@@ -126,9 +127,9 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_clear_appended_state", void, __faasm_clear_appended_state,
                                    I32 keyPtr) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
 
         logger->debug("S - clear_appended_state - {}", key);
@@ -141,10 +142,10 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state_offset", void, __faasm_write_state_offset,
                                    I32 keyPtr, I32 totalLen, I32 offset, I32 dataPtr, I32 dataLen) {
         auto kv = getStateKV(keyPtr, totalLen);
-        util::getLogger()->debug("S - write_state_offset - {} {} {} {} {}", kv->key, totalLen, offset, dataPtr,
+        faabric::util::getLogger()->debug("S - write_state_offset - {} {} {} {} {}", kv->key, totalLen, offset, dataPtr,
                                  dataLen);
 
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
 
         kv->setChunk(offset, data, dataLen);
@@ -155,11 +156,11 @@ namespace wasm {
         const std::string key = getStringFromWasm(keyPtr);
         const std::string path = getStringFromWasm(pathPtr);
 
-        util::getLogger()->debug("S - write_state_from_file - {} {}", key, path);
+        faabric::util::getLogger()->debug("S - write_state_from_file - {} {}", key, path);
 
         // Read file into bytes
         const std::string maskedPath = storage::prependRuntimeRoot(path);
-        const std::vector<uint8_t> bytes = util::readFileToBytes(maskedPath);
+        const std::vector<uint8_t> bytes = faabric::util::readFileToBytes(maskedPath);
         unsigned long fileLength = bytes.size();
 
         // Write to state
@@ -176,16 +177,16 @@ namespace wasm {
         if (bufferLen == 0) {
             std::string user = getExecutingCall()->user();
             std::string key = getStringFromWasm(keyPtr);
-            util::getLogger()->debug("S - read_state - {} {} {}", key, bufferPtr, bufferLen);
+            faabric::util::getLogger()->debug("S - read_state - {} {} {}", key, bufferPtr, bufferLen);
 
-            state::State &state = state::getGlobalState();
+            faabric::state::State &state = faabric::state::getGlobalState();
             return (I32) state.getStateSize(user, key);
         } else {
             auto kv = getStateKV(keyPtr, bufferLen);
-            util::getLogger()->debug("S - read_state - {} {} {}", kv->key, bufferPtr, bufferLen);
+            faabric::util::getLogger()->debug("S - read_state - {} {} {}", kv->key, bufferPtr, bufferLen);
 
             // Copy to straight to buffer
-            Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+            Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
             U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
             kv->get(buffer);
             return kv->size();
@@ -196,10 +197,10 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_ptr", I32, __faasm_read_state_ptr,
                                    I32 keyPtr, I32 totalLen) {
         auto kv = getStateKV(keyPtr, totalLen);
-        util::getLogger()->debug("S - read_state_ptr - {} {}", kv->key, totalLen);
+        faabric::util::getLogger()->debug("S - read_state_ptr - {} {}", kv->key, totalLen);
 
         // Map shared memory
-        WAVMWasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingWAVMModule();
         U32 wasmPtr = module->mapSharedStateMemory(kv, 0, totalLen);
 
         // Call get to make sure the value is pulled
@@ -211,11 +212,11 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset", void, __faasm_read_state_offset,
                                    I32 keyPtr, I32 totalLen, I32 offset, I32 bufferPtr, I32 bufferLen) {
         auto kv = getStateKV(keyPtr, totalLen);
-        util::getLogger()->debug("S - read_state_offset - {} {} {} {} {}", kv->key, totalLen, offset, bufferPtr,
+        faabric::util::getLogger()->debug("S - read_state_offset - {} {} {} {} {}", kv->key, totalLen, offset, bufferPtr,
                                  bufferLen);
 
         // Copy to straight to buffer
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
         kv->getChunk(offset, buffer, bufferLen);
     }
@@ -223,10 +224,10 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset_ptr", I32, __faasm_read_state_offset_ptr,
                                    I32 keyPtr, I32 totalLen, I32 offset, I32 len) {
         auto kv = getStateKV(keyPtr, totalLen);
-        util::getLogger()->debug("S - read_state_offset_ptr - {} {} {} {}", kv->key, totalLen, offset, len);
+        faabric::util::getLogger()->debug("S - read_state_offset_ptr - {} {} {} {}", kv->key, totalLen, offset, len);
 
         // Map whole key in shared memory
-        WAVMWasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingWAVMModule();
         U32 wasmPtr = module->mapSharedStateMemory(kv, offset, len);
 
         // Call get to make sure the value is there
@@ -238,7 +239,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_flag_state_dirty", void, __faasm_flag_state_dirty,
                                    I32 keyPtr, I32 totalLen) {
         auto kv = getStateKV(keyPtr, totalLen);
-        util::getLogger()->debug("S - __faasm_flag_state_dirty - {} {}", kv->key, totalLen);
+        faabric::util::getLogger()->debug("S - __faasm_flag_state_dirty - {} {}", kv->key, totalLen);
 
         kv->flagDirty();
     }
@@ -248,15 +249,15 @@ namespace wasm {
         auto kv = getStateKV(keyPtr, totalLen);
 
         // Avoid heavy logging
-        // util::getLogger()->debug("S - __faasm_flag_state_offset_dirty - {} {} {} {}", keyPtr, totalLen, offset, len);
+        // faabric::util::getLogger()->debug("S - __faasm_flag_state_offset_dirty - {} {} {} {}", keyPtr, totalLen, offset, len);
 
         kv->flagChunkDirty(offset, len);
     }
 
     I32 _readInputImpl(I32 bufferPtr, I32 bufferLen) {
         // Get the input
-        message::Message *call = getExecutingCall();
-        std::vector<uint8_t> inputBytes = util::stringToBytes(call->inputdata());
+        faabric::Message *call = getExecutingCall();
+        std::vector<uint8_t> inputBytes = faabric::util::stringToBytes(call->inputdata());
 
         // If nothing, return nothing
         if (inputBytes.empty()) {
@@ -264,54 +265,54 @@ namespace wasm {
         }
 
         // Write to the wasm buffer
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
 
-        int inputSize = util::safeCopyToBuffer(inputBytes, buffer, bufferLen);
+        int inputSize = faabric::util::safeCopyToBuffer(inputBytes, buffer, bufferLen);
         return inputSize;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_input", I32, __faasm_read_input, I32 bufferPtr, I32 bufferLen) {
-        util::getLogger()->debug("S - read_input - {} {}", bufferPtr, bufferLen);
+        faabric::util::getLogger()->debug("S - read_input - {} {}", bufferPtr, bufferLen);
 
         return _readInputImpl(bufferPtr, bufferLen);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(tsenv, "__faasm_read_input", I32, __ts_faasm_read_input, I32 bufferPtr,
                                    I32 bufferLen) {
-        util::getLogger()->debug("TS - read_input - {} {}", bufferPtr, bufferLen);
+        faabric::util::getLogger()->debug("TS - read_input - {} {}", bufferPtr, bufferLen);
 
         return _readInputImpl(bufferPtr, bufferLen);
     }
 
     void _writeOutputImpl(I32 outputPtr, I32 outputLen) {
         std::vector<uint8_t> outputData = getBytesFromWasm(outputPtr, outputLen);
-        message::Message *call = getExecutingCall();
+        faabric::Message *call = getExecutingCall();
         call->set_outputdata(outputData.data(), outputData.size());
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_output", void, __faasm_write_output, I32 outputPtr,
                                    I32 outputLen) {
-        util::getLogger()->debug("S - write_output - {} {}", outputPtr, outputLen);
+        faabric::util::getLogger()->debug("S - write_output - {} {}", outputPtr, outputLen);
         _writeOutputImpl(outputPtr, outputLen);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(tsenv, "__faasm_write_output", void, __ts_faasm_write_output, I32 outputPtr,
                                    I32 outputLen) {
-        util::getLogger()->debug("TS - write_output - {} {}", outputPtr, outputLen);
+        faabric::util::getLogger()->debug("TS - write_output - {} {}", outputPtr, outputLen);
         _writeOutputImpl(outputPtr, outputLen);
     }
 
     void _readPythonInput(I32 buffPtr, I32 buffLen, const std::string &value) {
         // Get wasm buffer
-        U8 *buffer = Runtime::memoryArrayPtr<U8>(getExecutingModule()->defaultMemory, (Uptr) buffPtr, (Uptr) buffLen);
+        U8 *buffer = Runtime::memoryArrayPtr<U8>(getExecutingWAVMModule()->defaultMemory, (Uptr) buffPtr, (Uptr) buffLen);
 
         if (value.empty()) {
             // If nothing, just write a null terminator
             buffer[0] = '\0';
         } else {
             // Copy value into WASM
-            std::vector<uint8_t> bytes = util::stringToBytes(value);
+            std::vector<uint8_t> bytes = faabric::util::stringToBytes(value);
             std::copy(bytes.begin(), bytes.end(), buffer);
 
             // Add null terminator
@@ -321,31 +322,31 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_get_py_user", void, __faasm_get_py_user, I32 bufferPtr,
                                    I32 bufferLen) {
-        util::getLogger()->debug("S - get_py_user - {} {}", bufferPtr, bufferLen);
+        faabric::util::getLogger()->debug("S - get_py_user - {} {}", bufferPtr, bufferLen);
         std::string value = getExecutingCall()->pythonuser();
         _readPythonInput(bufferPtr, bufferLen, value);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_get_py_func", void, __faasm_get_py_func, I32 bufferPtr,
                                    I32 bufferLen) {
-        util::getLogger()->debug("S - get_py_func - {} {}", bufferPtr, bufferLen);
+        faabric::util::getLogger()->debug("S - get_py_func - {} {}", bufferPtr, bufferLen);
         std::string value = getExecutingCall()->pythonfunction();
         _readPythonInput(bufferPtr, bufferLen, value);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_get_py_entry", void, __faasm_get_py_entry, I32 bufferPtr,
                                    I32 bufferLen) {
-        util::getLogger()->debug("S - get_py_entry - {} {}", bufferPtr, bufferLen);
+        faabric::util::getLogger()->debug("S - get_py_entry - {} {}", bufferPtr, bufferLen);
         std::string value = getExecutingCall()->pythonentry();
         _readPythonInput(bufferPtr, bufferLen, value);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_conf_flag", U32, __faasm_conf_flag, I32 keyPtr) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         const std::string key = getStringFromWasm(keyPtr);
         logger->debug("S - conf_flag - {}", key);
 
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
 
         if (key == "PYTHON_PRELOAD") {
             int res = conf.pythonPreload == "on" ? 1 : 0;
@@ -365,17 +366,17 @@ namespace wasm {
 
     // Emulator API, should not be called from wasm but needs to be present for linking
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "setEmulatedMessageFromJson", I32, setEmulatedMessageFromJson, I32 msgPtr) {
-        util::getLogger()->debug("S - setEmulatedMessageFromJson - {}", msgPtr);
+        faabric::util::getLogger()->debug("S - setEmulatedMessageFromJson - {}", msgPtr);
         throw std::runtime_error("Should not be calling emulator functions from wasm");
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "emulatorGetAsyncResponse", I32, emulatorGetAsyncResponse) {
-        util::getLogger()->debug("S - emulatorGetAsyncResponse");
+        faabric::util::getLogger()->debug("S - emulatorGetAsyncResponse");
         throw std::runtime_error("Should not be calling emulator functions from wasm");
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "emulatorSetCallStatus", void, emulatorSetCallStatus, I32 success) {
-        util::getLogger()->debug("S - emulatorSetCallStatus {}", success);
+        faabric::util::getLogger()->debug("S - emulatorSetCallStatus {}", success);
         throw std::runtime_error("Should not be calling emulator functions from wasm");
     }
 }

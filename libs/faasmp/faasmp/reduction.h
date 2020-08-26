@@ -3,8 +3,6 @@
 
 #include <cstdint>
 
-//#ifdef __wasm__
-
 #include <omp.h>
 #include <cstdio>
 #include <cstring>
@@ -153,6 +151,5 @@ initializer(omp_priv=i64::threadNew())
 
 using i64 = int64_t;
 
-#endif // __wasm__
+#endif
 
-#endif //FAASM_REDUCTION_H

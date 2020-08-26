@@ -1,5 +1,5 @@
 #include <catch/catch.hpp>
-#include <util/files.h>
+#include <faabric/util/files.h>
 #include "utils.h"
 
 #include "faasm/files.h"
@@ -11,7 +11,7 @@ namespace tests {
         std::string path("/etc/hosts");
 
         // Read with utils function
-        std::string expected = util::readFileToString(path);
+        std::string expected = faabric::util::readFileToString(path);
 
         // Check length is being reported properly
         long actualLength = faasm::getFileLength(path.c_str());

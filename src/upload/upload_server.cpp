@@ -1,39 +1,25 @@
 #include <upload/UploadServer.h>
 
-
-#include <util/logging.h>
-#include <util/config.h>
-#include <state/StateServer.h>
-
-static std::atomic<bool> isShutdown = false;
+#include <faabric/util/logging.h>
+#include <faabric/util/config.h>
+#include <faabric/state/StateServer.h>
 
 int main() {
-    util::initLogging();
+    faabric::util::initLogging();
 
-    util::SystemConfig &config = util::getSystemConfig();
+    faabric::util::SystemConfig &config = faabric::util::getSystemConfig();
     config.print();
 
     // Add a state server in the background
-    std::thread stateThread([] {
-        state::StateServer server(state::getGlobalState());
-        while (!isShutdown.load()) {
-            server.poll();
-        }
-
-        server.close();
-    });
+    faabric::state::StateServer stateServer(faabric::state::getGlobalState());
+    stateServer.start();
 
     // Start the upload server in the main thread
     edge::UploadServer server;
     server.listen(UPLOAD_PORT);
 
-    // Flag the state server to shut down
-    isShutdown.store(true);
-
-    // Wait for state server to shut down
-    if(stateThread.joinable()) {
-        stateThread.join();
-    }
+    // Stop the state server
+    stateServer.stop();
 
     return 0;
 }

@@ -1,12 +1,7 @@
-//
-// Created by Joshua Heinemann on 10.06.20.
-// TU-Braunschweig (heineman@ibr.cs.tu-bs.de)
-//
-
-#ifndef FAASM_SGX_FAASM_ERROR_H
-#define FAASM_SGX_FAASM_ERROR_H
+#pragma once
 
 #define FAASM_SGX_ERROR(X) (0x00000000|(X))
+
 typedef enum _faasm_error{
     FAASM_SGX_SUCCESS = FAASM_SGX_ERROR(0x0),
     FAASM_SGX_INVALID_PTR = FAASM_SGX_ERROR(0x1),
@@ -37,10 +32,9 @@ typedef enum _faasm_error{
     FAASM_SGX_CRT_RECV_FAILED = FAASM_SGX_ERROR(0x1A),
     FAASM_SGX_INVALID_PAYLOAD_LEN = FAASM_SGX_ERROR(0x1B),
     FAASM_SGX_FUNCTION_NOT_WHITELISTED = FAASM_SGX_ERROR(0x1C)
-}faasm_sgx_status_t;
+} faasm_sgx_status_t;
 
 #define FAASM_SGX_OCALL_ERROR(X) (faasm_sgx_status_t)((X) << 16|(FAASM_SGX_OCALL_FAILED))
 #define FAASM_SGX_OCALL_GET_SGX_ERROR(X) ((0xFFFF0000 & (X)) >> 16)
 #define _WRAPPER_ERROR_PREFIX "FAASM_SGX_ERROR:"
 
-#endif //FAASM_SGX_FAASM_ERROR_H

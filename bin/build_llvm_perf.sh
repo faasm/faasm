@@ -31,8 +31,8 @@ fi
 # Enable JIT profiling features of LLVM
 cmake \
 	-G Ninja \
-	-DCMAKE_C_COMPILER=/usr/bin/clang \
-	-DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+	-DCMAKE_C_COMPILER=/usr/bin/clang-10 \
+	-DCMAKE_CXX_COMPILER=/usr/bin/clang++-10 \
 	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
 	-DLLVM_USE_PERF=1 \
 	-DLLVM_USE_INTEL_JITEVENTS=1 \

@@ -10,8 +10,6 @@ set(LIB_FILES
         FileLoader.cpp
         FileSystem.cpp
         FileserverFileLoader.cpp
-        IBMFileLoader.cpp
-        IBMStorageWrapper.cpp
         LocalFileLoader.cpp
         SharedFiles.cpp
         SparseMatrixFileSerialiser.cpp
@@ -20,4 +18,11 @@ set(LIB_FILES
         )
 
 faasm_private_lib(storage "${LIB_FILES}")
-target_link_libraries(storage faasm emulator util libWAVM)
+target_link_libraries(storage faasm emulator wavmmodule)
+
+# WAMR module depends on SGX support
+if(FAASM_SGX_SUPPORT)
+    target_link_libraries(storage sgx_wamr)
+else()
+    target_link_libraries(storage wamrmodule)
+endif()

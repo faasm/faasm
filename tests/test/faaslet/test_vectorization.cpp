@@ -2,12 +2,12 @@
 
 #include "utils.h"
 
-#include <util/func.h>
+#include <faabric/util/func.h>
 
 namespace tests {
     TEST_CASE("Test eigen vectorization", "[faaslet]") {
         cleanSystem();
-        message::Message msg = util::messageFactory("demo", "eigen_vec");
+        faabric::Message msg = faabric::util::messageFactory("demo", "eigen_vec");
         execFunction(msg);
     }
 }

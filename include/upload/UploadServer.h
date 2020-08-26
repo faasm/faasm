@@ -1,6 +1,6 @@
 #pragma once
 
-#include <util/func.h>
+#include <faabric/util/func.h>
 
 #include <cpprest/http_listener.h>
 
@@ -22,7 +22,7 @@ namespace edge {
 
         static void handleOptions(const http_request &request);
 
-        static message::Message buildMessageFromRequest(const http_request &request);
+        static faabric::Message buildMessageFromRequest(const http_request &request);
 
         static std::vector<std::string> getPathParts(const http_request &request);
 
@@ -38,9 +38,10 @@ namespace edge {
         static void handleSharedFileUpload(const http_request &request);
     };
 
-    class InvalidPathException : public util::FaasmException {
+    class InvalidPathException : public faabric::util::FaabricException {
     public:
-        explicit InvalidPathException(std::string message): FaasmException(std::move(message)) {
+        explicit InvalidPathException(std::string message) :
+                faabric::util::FaabricException(std::move(message)) {
 
         }
     };

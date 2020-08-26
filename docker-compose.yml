@@ -22,11 +22,10 @@ services:
       - LOG_LEVEL=info
       - REDIS_STATE_HOST=redis-state
       - REDIS_QUEUE_HOST=redis-queue
-      - TF_CODEGEN=off
       - PYTHON_CODEGEN=off
 
   worker:
-    image: faasm/knative-worker:${FAASM_VERSION}
+    image: faasm/worker:${FAASM_VERSION}
     depends_on:
       - upload
     expose:
@@ -42,9 +41,9 @@ services:
       - NETNS_MODE=off
       - REDIS_STATE_HOST=redis-state
       - REDIS_QUEUE_HOST=redis-queue
-      - THREADS_PER_WORKER=20
+      - MAX_FAASLETS=20
       - MAX_IN_FLIGHT_RATIO=1
-      - MAX_WORKERS_PER_FUNCTION=4
+      - MAX_FAASLETS_PER_FUNCTION=4
       - GLOBAL_MESSAGE_TIMEOUT=600000
       - CAPTURE_STDOUT=on
 

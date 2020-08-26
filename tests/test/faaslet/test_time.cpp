@@ -5,7 +5,7 @@
 namespace tests {
     TEST_CASE("Test time progresses", "[faaslet]") {
         cleanSystem();
-        message::Message msg = util::messageFactory("demo", "gettime");
+        faabric::Message msg = faabric::util::messageFactory("demo", "gettime");
         execFunction(msg);
     }
 }

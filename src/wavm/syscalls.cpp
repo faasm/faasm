@@ -1,7 +1,7 @@
 #include "WAVMWasmModule.h"
 #include "syscalls.h"
 
-#include <util/logging.h>
+#include <faabric/util/logging.h>
 
 #include <stdio.h>
 
@@ -29,13 +29,13 @@ namespace wasm {
                 // gettid
                 return executeSyscall(224, 0, 0, 0, 0, 0, 0, 0);
             default:
-                util::getLogger()->error("Called unsupported syscall format {} {}", syscallNo, argsPtr);
+                faabric::util::getLogger()->error("Called unsupported syscall format {} {}", syscallNo, argsPtr);
                 throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
         }
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__syscall", I32, __syscall, I32 syscallNo, I32 argsPtr) {
-        util::getLogger()->error("Called unsupported syscall format {} {}", syscallNo, argsPtr);
+        faabric::util::getLogger()->error("Called unsupported syscall format {} {}", syscallNo, argsPtr);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 

@@ -3,10 +3,62 @@
 #include <wamr/native.h>
 #include <storage/FileLoader.h>
 #include <wasm_export.h>
+#include <faabric/util/locks.h>
 
 namespace wasm {
+    static bool wamrInitialised = false;
+    std::mutex wamrInitMx;
+
+    static thread_local WAMRWasmModule *executingModule;
+
+    void WAMRWasmModule::initialiseWAMRGlobally() {
+        if(wamrInitialised) {
+            return;
+        } else {
+            faabric::util::UniqueLock lock(wamrInitMx);
+
+            if(wamrInitialised) {
+                return;
+            }
+
+            // Initialise runtime
+            bool success = wasm_runtime_init();
+            if(!success) {
+                throw std::runtime_error("Failed to initialise WAMR");
+            }
+
+            faabric::util::getLogger()->debug("Successfully initialised WAMR");
+
+            // Initialise native functions
+            initialiseWAMRNatives();
+        }
+    }
+
+    void tearDownWAMRGlobally() {
+        wasm_runtime_destroy();
+    }
+
+    WAMRWasmModule *getExecutingWAMRModule() {
+        return executingModule;
+    }
+
+    void setExecutingModule(WAMRWasmModule *executingModuleIn) {
+        executingModule = executingModuleIn;
+    }
+
+    WAMRWasmModule::WAMRWasmModule() {
+        // Lazily initialise WAMR
+        initialiseWAMRGlobally();
+    }
+
+    WAMRWasmModule::~WAMRWasmModule() {
+        tearDown();
+    }
+
     // ----- Module lifecycle -----
-    void WAMRWasmModule::bindToFunction(const message::Message &msg) {
+    void WAMRWasmModule::bindToFunction(const faabric::Message &msg) {
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
+        
         // Set up the module
         boundUser = msg.user();
         boundFunction = msg.function();
@@ -17,23 +69,23 @@ namespace wasm {
 
         // Load the wasm file
         storage::FileLoader &functionLoader = storage::getFileLoader();
-        wasmFileBytes = functionLoader.loadFunctionWasm(msg);
-
-        // Initialise WAMR
-        wasm_runtime_init();
-
-        // Initialise natives
-        initialiseWAMRNatives();
+        std::vector<uint8_t> aotFileBytes = functionLoader.loadFunctionWamrAotFile(msg);
 
         // Load wasm
         errorBuffer.reserve(ERROR_BUFFER_SIZE);
         wasmModule = wasm_runtime_load(
-                wasmFileBytes.data(),
-                wasmFileBytes.size(),
+                aotFileBytes.data(),
+                aotFileBytes.size(),
                 errorBuffer.data(),
                 ERROR_BUFFER_SIZE
         );
 
+        if(wasmModule == nullptr) {
+            std::string errorMsg = std::string(errorBuffer.data());
+            logger->error("Failed to instantiate WAMR module: \n{}", errorMsg);
+            throw std::runtime_error("Failed to instantiate WAMR module");
+        }
+        
         // Instantiate module
         moduleInstance = wasm_runtime_instantiate(
                 wasmModule,
@@ -42,15 +94,22 @@ namespace wasm {
                 errorBuffer.data(),
                 ERROR_BUFFER_SIZE
         );
+
+        if(moduleInstance->module_type != Wasm_Module_AoT) {
+            throw std::runtime_error("WAMR module had unexpected type: " + std::to_string(moduleInstance->module_type));
+        }
     }
 
-    void WAMRWasmModule::bindToFunctionNoZygote(const message::Message &msg) {
+    void WAMRWasmModule::bindToFunctionNoZygote(const faabric::Message &msg) {
         // WAMR does not support zygotes yet so it's
         // equivalent to binding with zygote
         bindToFunction(msg);
     }
 
-    bool WAMRWasmModule::execute(message::Message &msg, bool forceNoop) {
+    bool WAMRWasmModule::execute(faabric::Message &msg, bool forceNoop) {
+        setExecutingCall(&msg);
+        setExecutingModule(this);
+
         executionEnv = wasm_runtime_create_exec_env(moduleInstance, STACK_SIZE);
 
         // Run wasm initialisers
@@ -63,7 +122,7 @@ namespace wasm {
     }
 
     void WAMRWasmModule::executeFunction(const std::string &funcName) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         WASMFunctionInstanceCommon *func = wasm_runtime_lookup_function(
                 moduleInstance, funcName.c_str(), nullptr
@@ -72,7 +131,7 @@ namespace wasm {
         // Invoke the function
         bool success = wasm_runtime_call_wasm(executionEnv, func, 0, nullptr);
         if (success) {
-            logger->info("{} success", funcName);
+            logger->debug("{} finished", funcName);
         } else {
             std::string errorMessage(errorBuffer.data());
             logger->error("Function failed: {}", errorMessage);
@@ -86,36 +145,27 @@ namespace wasm {
     void WAMRWasmModule::tearDown() {
         wasm_runtime_destroy_exec_env(executionEnv);
         wasm_runtime_deinstantiate(moduleInstance);
-        wasm_runtime_unload(wasmModule);
-
-        wasm_runtime_destroy();
     }
 
-    // ----- Environment variables
-    void WAMRWasmModule::writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer) {
-
+    uint32_t WAMRWasmModule::mmapMemory(uint32_t length) {
+        void *nativePtr;
+        wasm_runtime_module_malloc(moduleInstance, length, &nativePtr);
+        int32 wasmPtr = wasm_runtime_addr_native_to_app(moduleInstance, nativePtr);
+        return wasmPtr;
     }
 
-    // ----- CoW memory -----
-    void WAMRWasmModule::writeMemoryToFd(int fd) {
-
+    uint32_t WAMRWasmModule::mmapPages(uint32_t pages) {
+        uint32_t bytes = pages * WASM_BYTES_PER_PAGE;
+        return mmapMemory(bytes);
     }
 
-    void WAMRWasmModule::mapMemoryFromFd() {
-
+    uint8_t* WAMRWasmModule::wasmPointerToNative(int32_t wasmPtr) {
+        void *nativePtr = wasm_runtime_addr_app_to_native(moduleInstance, wasmPtr);
+        return static_cast<uint8_t *>(nativePtr);
     }
 
-    // ----- Argc/ argv -----
-    void WAMRWasmModule::writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer) {
-
-    };
-
-    // ----- Snapshot/ restore -----
-    void WAMRWasmModule::doSnapshot(std::ostream &outStream) {
-
-    }
-
-    void WAMRWasmModule::doRestore(std::istream &inStream) {
-
+    uint32_t WAMRWasmModule::mmapFile(uint32_t fp, uint32_t length) {
+        // TODO - implement
+        return 0;
     }
 }

@@ -67,14 +67,13 @@ HISTORY: Written by Tim Mattson, April 1999.
 
 #include "./intel_includes/par-res-kern_general.h"
 #include "./intel_includes/par-res-kern_omp.h"
-#include <faasm/faasm.h>
 
 #define A(i,j)    A[i+order*(j)]
 #define B(i,j)    B[i+order*(j)]
 static double test_results (int, double*, int);
 
 // int main(int argc, char ** argv) {
-FAASM_MAIN_FUNC() {
+int main() {
 
     int order;         /* order of a the matrix                           */
     int i, j, it, jt;  /* matrix/tile indices                             */
@@ -101,7 +100,7 @@ FAASM_MAIN_FUNC() {
     printf("Parallel Research Kernels version %s\n", PRKVERSION);
     printf("OpenMP Matrix transpose: B = A^T\n");
 
-    nthread_input = 4;
+    nthread_input = 20;
     iterations    = 300;
     order         = 2000;
     /* Faasm - Hardcode the default

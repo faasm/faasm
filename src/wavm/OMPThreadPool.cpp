@@ -4,7 +4,9 @@
 #include <wavm/openmp/openmp.h>
 #include <wavm/WAVMWasmModule.h>
 
-using namespace util;
+using namespace faabric::util;
+
+using namespace WAVM;
 
 namespace wasm {
     namespace openmp {

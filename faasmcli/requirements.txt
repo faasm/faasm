@@ -11,12 +11,13 @@ flask
 genshi
 gunicorn
 hiredis
-ibm-cos-sdk
 invoke
 Jinja2
 matplotlib
+networkx
 numpy
 packaging
+pydot
 pyperformance
 psutil
 pyaes
@@ -24,7 +25,6 @@ PyGithub
 pycairo
 # Explicitly don't put pyfaasm here, install separately
 PyOpenSSL
-pywren-ibm-cloud
 redis
 requests
 setuptools

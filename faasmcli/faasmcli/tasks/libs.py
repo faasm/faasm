@@ -1,4 +1,4 @@
-from os import makedirs, mkdir
+from os import makedirs, mkdir, cpu_count
 from os.path import exists
 from os.path import join
 from shutil import rmtree, copy
@@ -43,8 +43,12 @@ def native(ctx, clean=False):
 
     build_cmd = [
         "cmake",
+        "-GNinja",
+        "-DCMAKE_CXX_COMPILER=/usr/bin/clang++-10",
+        "-DCMAKE_C_COMPILER=/usr/bin/clang-10",
         "-DFAASM_BUILD_TYPE=native-tools",
         "-DFAASM_STATIC_LIBS=OFF",
+        "-DFAABRIC_BUILD_TESTS=OFF",
         "-DCMAKE_BUILD_TYPE=Release",
         "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_INSTALL_DIR),
         PROJ_ROOT,
@@ -57,11 +61,11 @@ def native(ctx, clean=False):
     if res != 0:
         raise RuntimeError("Failed to build native tools")
 
-    res = call("make -j", shell=True, cwd=build_dir)
+    res = call("ninja", shell=True, cwd=build_dir)
     if res != 0:
         raise RuntimeError("Failed to make native tools")
 
-    call("sudo make install", shell=True, cwd=build_dir)
+    call("sudo ninja install", shell=True, cwd=build_dir)
 
 
 def _build_faasm_lib(dir_name, clean, verbose):
@@ -74,6 +78,7 @@ def _build_faasm_lib(dir_name, clean, verbose):
     build_cmd = [
         verbose_str,
         "cmake",
+        "-GNinja",
         "-DFAASM_BUILD_TYPE=wasm",
         "-DCMAKE_BUILD_TYPE=Release",
         "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
@@ -87,11 +92,11 @@ def _build_faasm_lib(dir_name, clean, verbose):
     if res != 0:
         exit(1)
 
-    res = call("{} make".format(verbose_str), shell=True, cwd=build_dir)
+    res = call("{} ninja".format(verbose_str), shell=True, cwd=build_dir)
     if res != 0:
         exit(1)
 
-    res = call("make install", shell=True, cwd=build_dir)
+    res = call("ninja install", shell=True, cwd=build_dir)
     if res != 0:
         exit(1)
 
@@ -134,6 +139,7 @@ def rust(ctx, clean=False, verbose=False):
     """
     _build_faasm_lib("rust", clean, verbose)
 
+
 @task
 def fake(ctx, clean=False):
     """
@@ -146,6 +152,7 @@ def fake(ctx, clean=False):
 
     build_cmd = [
         "cmake",
+        "-GNinja",
         "-DFAASM_BUILD_TYPE=wasm",
         "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE=Release",
@@ -154,8 +161,8 @@ def fake(ctx, clean=False):
     ]
 
     call(" ".join(build_cmd), shell=True, cwd=build_dir)
-    call("make VERBOSE=1 ", shell=True, cwd=build_dir)
-    call("make install", shell=True, cwd=build_dir)
+    call("ninja VERBOSE=1 ", shell=True, cwd=build_dir)
+    call("ninja install", shell=True, cwd=build_dir)
 
     # Copy shared object into place
     sysroot_files = join(SYSROOT_INSTALL_PREFIX, "lib", "wasm32-wasi", "libfake*.so")
@@ -345,8 +352,11 @@ def tflite(ctx, clean=False):
         download_script = join(tf_make_dir, "download_dependencies.sh")
         check_output(download_script, shell=True)
 
+    cores = cpu_count()
+    make_cores = int(cores) - 1
+
     make_target = "lib"
-    make_cmd = ["make"]
+    make_cmd = ["make -j {}".format(make_cores)]
     make_cmd.extend(BASE_CONFIG_CMD)
     make_cmd.extend([
         "CFLAGS=\"{} -ftls-model=local-exec\"".format(WASM_CFLAGS),

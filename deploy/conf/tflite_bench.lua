@@ -9,13 +9,7 @@ print("BENCH_MODE=" .. bench_mode .. " DELAY=" .. delay_ms .. " COLD_START_INTER
 wrk.method = "POST"
 wrk.body   = string.format('{"user": "tf", "function": "image", "cold_start_interval": "%s"}', cold_start_interval)
 wrk.headers["Content-Type"] = "application/json"
-
--- Different headers for native/ wasm
-if bench_mode == "NATIVE" then
-    wrk.headers["Host"] = "faasm-image.faasm.example.com"
-else
-    wrk.headers["Host"] = "faasm-worker.faasm.example.com"
-end
+wrk.headers["Host"] = "faasm-worker.faasm.example.com"
 
 -- Delay function (must return ms)
 -- To avoid bursts of requests, stagger them over this delay

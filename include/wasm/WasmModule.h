@@ -1,11 +1,10 @@
 #pragma once
 
-#include <wavm/openmp/Level.h>
 #include "WasmEnvironment.h"
 
-#include <util/logging.h>
-#include <state/State.h>
-#include <proto/faasm.pb.h>
+#include <faabric/util/logging.h>
+#include <faabric/state/State.h>
+#include <proto/faabric.pb.h>
 
 #include <exception>
 #include <string>
@@ -16,6 +15,8 @@
 #include <storage/FileSystem.h>
 
 #define ONE_MB_BYTES 1024 * 1024
+
+#define WASM_BYTES_PER_PAGE 65536
 
 // Note: this is *not* controlling the size provisioned by the linker, that is hard-coded in the build.
 // This variable is just here for reference and must be updated to match the value in the build.
@@ -36,14 +37,16 @@
 namespace wasm {
     class WasmModule {
     public:
+        virtual ~WasmModule();
+
         // ----- Module lifecycle -----
-        virtual void bindToFunction(const message::Message &msg) = 0;
+        virtual void bindToFunction(const faabric::Message &msg);
 
-        virtual void bindToFunctionNoZygote(const message::Message &msg) = 0;
+        virtual void bindToFunctionNoZygote(const faabric::Message &msg);
 
-        virtual bool execute(message::Message &msg, bool forceNoop = false) = 0;
+        virtual bool execute(faabric::Message &msg, bool forceNoop = false);
 
-        virtual const bool isBound() = 0;
+        virtual const bool isBound();
 
         std::string getBoundUser();
 
@@ -54,10 +57,10 @@ namespace wasm {
 
         uint32_t getArgvBufferSize();
 
-        virtual void writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer) = 0;
+        virtual void writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer);
 
         // ----- Environment variables
-        virtual void writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer) = 0;
+        virtual void writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer);
 
         WasmEnvironment &getWasmEnvironment();
 
@@ -73,10 +76,22 @@ namespace wasm {
 
         void clearCapturedStdout();
 
-        // ----- CoW memory -----
-        virtual void writeMemoryToFd(int fd) = 0;
+        // ----- Memory management -----
 
-        virtual void mapMemoryFromFd() = 0;
+        virtual uint32_t mmapMemory(uint32_t length);
+
+        virtual uint32_t mmapPages(uint32_t pages);
+
+        virtual uint32_t mmapFile(uint32_t fp, uint32_t length);
+
+        virtual uint32_t mapSharedStateMemory(const std::shared_ptr<faabric::state::StateKeyValue> &kv, long offset, uint32_t length);
+
+        virtual uint8_t* wasmPointerToNative(int32_t wasmPtr);
+
+        // ----- CoW memory -----
+        virtual void writeMemoryToFd(int fd);
+
+        virtual void mapMemoryFromFd();
 
         // ----- Snapshot/ restore -----
         void snapshotToFile(const std::string &filePath);
@@ -110,17 +125,21 @@ namespace wasm {
 
         int getStdoutFd();
 
-        virtual void doSnapshot(std::ostream &outStream) = 0;
+        virtual void doSnapshot(std::ostream &outStream);
 
-        virtual void doRestore(std::istream &inStream) = 0;
+        virtual void doRestore(std::istream &inStream);
 
-        void prepareArgcArgv(const message::Message &msg);
+        void prepareArgcArgv(const faabric::Message &msg);
+
+        // Shared memory regions
+        std::mutex sharedMemWasmPtrsMx;
+        std::unordered_map<std::string, uint32_t> sharedMemWasmPtrs;
     };
 
     // ----- Global functions -----
-    message::Message *getExecutingCall();
+    faabric::Message *getExecutingCall();
 
-    void setExecutingCall(message::Message *other);
+    void setExecutingCall(faabric::Message *other);
 
     // Convenience function
     size_t getNumberOfWasmPagesForBytes(uint32_t nBytes);
