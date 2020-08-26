@@ -37,7 +37,6 @@ namespace storage {
         uint8_t type;
         unsigned int ino;
         std::string path;
-        bool isEnd = false;
     };
 
     class Stat {
@@ -68,6 +67,8 @@ namespace storage {
         FileDescriptor();
 
         DirEnt iterNext();
+
+        void iterReset();
 
         Stat stat(const std::string &relativePath = "");
 
@@ -119,7 +120,6 @@ namespace storage {
         std::string path;
 
         DIR *dirPtr;
-        struct dirent *direntPtr;
 
         bool rightsSet;
         uint64_t actualRightsBase;

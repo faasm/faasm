@@ -7,11 +7,10 @@ on:
   pull_request:
     branches:
       - master
-      - gh-actions
 
 jobs:
   build:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     env:
       CGROUP_MODE: off
       NETNS_MODE: off
@@ -21,58 +20,51 @@ jobs:
       LOG_LEVEL: info
       MAX_FAASLETS: 5
     container:
-      faasm/base-test:0.4.1
+      faasm/base-test:0.4.3
     defaults:
       run:
         working-directory: /usr/local/code/faasm
     services:
       redis:
-        image: faasm/redis:0.4.1
+        image: faasm/redis:0.4.3
         ports:
           - 6379:6379
     steps:
-      # --- Machine set-up ---
-      - name: "Install tinfo"
-        run: apt install libtinfo-dev
-      - name: "File perms"
-        run: chown -R root:root /usr/local/faasm
-      - name: "Add faasm group"
-        run: groupadd -g 1000 faasm
-      - name: "Add faasm user"
-        run: useradd -u 1000 -g 1000 faasm
+      # --- Sanity checks ---
       - name: "Working directory"
         run: pwd
       - name: "Working directory contents"
         run: ls -al
       # --- Code build ---
-      - name: "Fetch repo"
-        run: git fetch --all
-      - name: "Check out code"
-        run: git checkout ${GITHUB_SHA}
+      - name: "Fetch ref"
+        run: git fetch origin ${GITHUB_REF}:ci-branch
+      - name: "Check out branch"
+        run: git checkout --force ci-branch
+      - name: "Update submodules"
+        run: git submodule update
       - name: "Log commits"
         run: git log -3
       - name: "Build tests"
         run: cmake --build . --target tests
-        working-directory: /faasm/build
+        working-directory: /usr/local/code/faasm/build
       # --- Environment set-up ---
-      - name: "Set up native libs"
-        run: inv -r faasmcli/faasmcli libs.native
-      - name: "Set up test lib"
-        run: inv -r faasmcli/faasmcli libs.fake
       - name: "Download sysroot"
         run: inv -r faasmcli/faasmcli toolchain.download-sysroot
       - name: "Download runtime root"
         run: inv -r faasmcli/faasmcli toolchain.download-runtime --nocodegen
+      - name: "Set up test lib"
+        run: inv -r faasmcli/faasmcli libs.fake
       - name: "Run codegen"
         run: inv -r faasmcli/faasmcli codegen.local
       - name: "Run WAMR codegen"
         run: inv -r faasmcli/faasmcli codegen demo echo --wamr
       - name: "Set up Tensorflow test files"
         run: inv -r faasmcli/faasmcli tf.upload --local-copy
-      - name: "Install pyfaasm"
-        run: pip3 install pyfaasm
       - name: "Copy Python functions into place"
         run: inv -r faasmcli/faasmcli upload.user python --py --local-copy
+      - name: "Make sure permissions are properly set"
+        run: chown -R root:root /usr/local/faasm
       # --- Test run ---
       - name: "Run the tests"
-        run: /faasm/build/bin/tests
+        run: ./build/bin/tests
+
