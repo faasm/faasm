@@ -43,5 +43,8 @@ WORKDIR /faasm/build
 RUN cmake --build . --target codegen_shared_obj
 RUN cmake --build . --target codegen_func
 
+# Remove the code
+RUN rm -r /usr/local/code/faasm
+
 # Clear out
 RUN rm -rf /tmp/*

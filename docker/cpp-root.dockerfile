@@ -1,4 +1,4 @@
-FROM faabric/base:0.0.1
+FROM faabric/base:0.0.2
 
 # -------------------------------------------------------------
 # NOTE - extensive use of Ansible in this Dockerfile makes it
@@ -8,8 +8,6 @@ FROM faabric/base:0.0.1
 # that already exists in the Ansible playbooks.
 # -------------------------------------------------------------
 
-# Ansible repo
-RUN apt-add-repository -y ppa:ansible/ansible
 RUN apt-get update
 
 # All apt packages
@@ -17,7 +15,6 @@ RUN apt-get install -y \
     ansible \
     autoconf \
     automake \
-    cgroup-bin \
     cgroup-tools \
     curl \
     iproute2 \
