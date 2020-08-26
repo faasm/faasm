@@ -81,6 +81,8 @@ RUN cmake --build . --target codegen_shared_obj
 RUN cmake --build . --target codegen_func
 RUN cmake --build . --target tests
 
+# Note - all codegen must be left to the build environment
+
 # Clear out
 RUN rm -rf /tmp/*
 
