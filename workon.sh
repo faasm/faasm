@@ -41,7 +41,7 @@ export FAASM_VERSION=$(cat VERSION)
 
 export PS1="(faasm) $PS1"
 
-alias fm="inv"
+alias rgrep="grep --exclude-dir={third-party,.git,venv} -rnw -e"
 
 # Container builds
 if [[ -d /faasm/build ]]; then
