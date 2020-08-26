@@ -36,10 +36,10 @@ jobs:
       - name: "Working directory contents"
         run: ls -al
       # --- Code build ---
-      - name: "Fetch repo"
-        run: git fetch --all
-      - name: "Check out code"
-        run: git checkout --force ${GITHUB_REF}
+      - name: "Fetch ref"
+        run: git fetch origin ${GITHUB_REF}:ci-branch
+      - name: "Check out branch"
+        run: git checkout --force ci-branch
       - name: "Update submodules"
         run: git submodule update
       - name: "Log commits"
