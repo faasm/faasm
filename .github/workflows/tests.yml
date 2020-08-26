@@ -21,13 +21,13 @@ jobs:
       LOG_LEVEL: info
       MAX_FAASLETS: 5
     container:
-      faasm/base-test:0.4.1
+      faasm/base-test:0.4.3
     defaults:
       run:
         working-directory: /usr/local/code/faasm
     services:
       redis:
-        image: faasm/redis:0.4.1
+        image: faasm/redis:0.4.3
         ports:
           - 6379:6379
     steps:
