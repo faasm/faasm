@@ -30,15 +30,7 @@ jobs:
         ports:
           - 6379:6379
     steps:
-      # --- Machine set-up ---
-      - name: "Install tinfo"
-        run: apt install libtinfo-dev
-      - name: "File perms"
-        run: chown -R root:root /usr/local/faasm
-      - name: "Add faasm group"
-        run: groupadd -g 1000 faasm
-      - name: "Add faasm user"
-        run: useradd -u 1000 -g 1000 faasm
+      # --- Sanity checks ---
       - name: "Working directory"
         run: pwd
       - name: "Working directory contents"

@@ -22,11 +22,6 @@ RUN apt-get install -y \
     python3-dev \
     python3-venv
 
-# Set up Catch
-WORKDIR /usr/local/code/faasm/ansible
-COPY ansible/catch.yml catch.yml
-RUN ansible-playbook catch.yml
-
 # Set up requests
 RUN apt-get install -y python3-dev python3-pip
 RUN pip3 install invoke requests
@@ -45,8 +40,15 @@ WORKDIR /usr/local/code/faasm
 RUN git fetch --all
 RUN git checkout v${FAASM_VERSION}
 
-# Install Eigen
+# Submodules
+RUN git submodule update --init third-party/eigen
+RUN git submodule update --init third-party/faabric
+RUN git submodule update --init third-party/WAVM
+RUN git submodule update --init third-party/wamr
+
+# Set up deps
 WORKDIR /usr/local/code/faasm/ansible
+RUN ansible-playbook catch.yml
 RUN ansible-playbook eigen.yml
 
 # Install the CLI
@@ -62,9 +64,16 @@ RUN cmake \
     -DCMAKE_BUILD_TYPE=Release \
     ..
 
-# Run codegen builds
+# Run builds
 RUN cmake --build . --target codegen_shared_obj
 RUN cmake --build . --target codegen_func
+RUN cmake --build . --target tests
+
+# User and permissions
+RUN mkdir /usr/local/faasm
+RUN chown -R root:root /usr/local/faasm
+RUN groupadd -g 1000 faasm
+RUN useradd -u 1000 -g 1000 faasm
 
 # Clear out
 RUN rm -rf /tmp/*
