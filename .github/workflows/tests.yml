@@ -66,4 +66,5 @@ jobs:
         run: inv -r faasmcli/faasmcli upload.user python --py --local-copy
       # --- Test run ---
       - name: "Run the tests"
-        run: /faasm/build/bin/tests
+        run: ./build/bin/tests
+
