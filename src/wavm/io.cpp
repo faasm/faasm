@@ -141,8 +141,8 @@ namespace wasm {
         bool isStartCookie = startCookie == __WASI_DIRCOOKIE_START;
 
         if (fileDesc.iterStarted && isStartCookie) {
-            // Reset the iterator if it's already started but we have the start cookie
-            fileDesc.iterReset();
+            // Return invalid if we've already started the iterator but also get the start cookie
+            return __WASI_EINVAL;
         } else if (!fileDesc.iterStarted && !isStartCookie) {
             throw std::runtime_error("No directory iterator exists, and this is not the start cookie");
         }
@@ -188,7 +188,7 @@ namespace wasm {
         // Set the result
         Runtime::memoryRef<U32>(getExecutingWAVMModule()->defaultMemory, resSizePtr) = bytesCopied;
 
-        return 0;
+        return __WASI_ESUCCESS;
     }
 
     /**

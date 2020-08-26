@@ -62,6 +62,8 @@ jobs:
         run: inv -r faasmcli/faasmcli tf.upload --local-copy
       - name: "Copy Python functions into place"
         run: inv -r faasmcli/faasmcli upload.user python --py --local-copy
+      - name: "Make sure permissions are properly set"
+        run: chown -R root:root /usr/local/faasm
       # --- Test run ---
       - name: "Run the tests"
         run: ./build/bin/tests
