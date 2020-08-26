@@ -19,10 +19,10 @@
 	url = https://github.com/Shillaker/Kernels.git
 [submodule "third-party/wamr"]
 	path = third-party/wamr
-	url = https://github.com/bytecodealliance/wasm-micro-runtime 
+	url = https://github.com/bytecodealliance/wasm-micro-runtime.git
 [submodule "third-party/faabric"]
 	path = third-party/faabric
-	url = https://github.com/Shillaker/faabric
+	url = https://github.com/Shillaker/faabric.git
 [submodule "third-party/faasm-toolchain"]
 	path = third-party/faasm-toolchain
 	url = https://github.com/Shillaker/faasm-toolchain.git
