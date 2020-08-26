@@ -46,7 +46,7 @@ jobs:
         run: git log -3
       - name: "Build tests"
         run: cmake --build . --target tests
-        working-directory: /faasm/build
+        working-directory: /usr/local/code/faasm/build
       # --- Environment set-up ---
       - name: "Set up native libs"
         run: inv -r faasmcli/faasmcli libs.native
