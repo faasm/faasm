@@ -1,8 +1,3 @@
-//
-// Created by Joshua Heinemann on 15.07.20.
-// TU-Braunschweig (heineman@ibr.cs.tu-bs.de)
-//
-
 #include <pthread.h>
 #include <stdio.h>
 #include <sgx_wamr_attestation.h>

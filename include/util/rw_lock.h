@@ -1,11 +1,5 @@
-//
-// Created by Joshua Heinemann on 21.07.20.
-// TU-Braunschweig (heineman@ibr.cs.tu-bs.de)
-//
-// Taken and modified from https://github.com/ibr-ds/sgx-perf/blob/master/common/rwlock.h
+#pragma once
 
-#ifndef FAASM_RW_LOCK_H
-#define FAASM_RW_LOCK_H
 #ifdef __cplusplus
 extern"C"{
 #endif
@@ -26,4 +20,4 @@ void read_unlock(rwlock_t *l);
 #ifdef __cplusplus
 };
 #endif
-#endif //FAASM_RW_LOCK_H
+

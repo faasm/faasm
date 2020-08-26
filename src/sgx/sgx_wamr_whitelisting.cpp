@@ -1,8 +1,3 @@
-//
-// Created by Joshua Heinemann on 30.07.20.
-// TU-Braunschweig (heineman@ibr.cs.tu-bs.de)
-//
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>

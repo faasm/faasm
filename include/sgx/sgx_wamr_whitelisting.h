@@ -1,10 +1,5 @@
-//
-// Created by Joshua Heinemann on 30.07.20.
-// TU-Braunschweig (heineman@ibr.cs.tu-bs.de)
-//
+#pragma once
 
-#ifndef FAASM_SGX_WAMR_WHITELISTING_H
-#define FAASM_SGX_WAMR_WHITELISTING_H
 #include <sgx/faasm_sgx_error.h>
 typedef struct _whitelist{
     uint32_t entry_len;
@@ -19,4 +14,4 @@ extern "C"{
 #ifdef __cplusplus
 };
 #endif
-#endif //FAASM_SGX_WAMR_WHITELISTING_H
+

@@ -1,8 +1,3 @@
-//
-// Created by Joshua Heinemann on 14.07.20.
-// TU-Braunschweig (heineman@ibr.cs.tu-bs.de)
-//
-
 #if(FAASM_SGX_ATTESTATION)
 
 #include <faasm_sgx_error.h>

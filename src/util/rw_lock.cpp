@@ -1,9 +1,3 @@
-//
-// Created by Joshua Heinemann on 21.07.20.
-// TU-Braunschweig (heineman@ibr.cs.tu-bs.de)
-//
-// Taken from https://github.com/ibr-ds/sgx-perf/blob/master/common/rwlock.cpp
-
 #include <util/rw_lock.h>
 #define atomic_xadd(P, V) __sync_fetch_and_add((P), (V))
 #define atomic_inc(P) __sync_add_and_fetch((P), 1)
