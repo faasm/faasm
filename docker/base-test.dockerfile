@@ -1,9 +1,13 @@
 ARG FAASM_VERSION
-FROM faasm/base:${FAASM_VERSION}
+FROM faasm/cpp-root:0.4.0
+ARG FAASM_VERSION
 
 # ------------------------------------------------------
 # This image should contain everything needed for tests
 # that doesn't need to rebuilt for every run.
+#
+# Note that it must be based on Git to work with the CI
+# (rather than a COPY command)
 # ------------------------------------------------------
 
 RUN apt-get update
@@ -31,20 +35,37 @@ RUN pip3 install invoke requests
 COPY faasmcli/requirements.txt /tmp/requirements.txt
 RUN pip3 install -r /tmp/requirements.txt
 
+# Check out code
+WORKDIR /usr/local/code
+RUN rm -r faasm
+RUN git clone https://github.com/lsds/faasm
+
+# Check out latest tag
+WORKDIR /usr/local/code/faasm
+RUN git fetch --all
+RUN git checkout v${FAASM_VERSION}
+
+# Install Eigen
+WORKDIR /usr/local/code/faasm/ansible
+RUN ansible-playbook eigen.yml
+
 # Install the CLI
 WORKDIR /usr/local/code/faasm
 RUN pip3 install -e faasmcli/
 
-# Download the toolchain
-RUN inv -r faasmcli/faasmcli toolchain.download-toolchain
+# Create out of tree build
+WORKDIR /usr/local/code/faasm/build
+RUN cmake \
+    -GNinja \
+    -DCMAKE_CXX_COMPILER=/usr/bin/clang++-10 \
+    -DCMAKE_C_COMPILER=/usr/bin/clang-10 \
+    -DCMAKE_BUILD_TYPE=Release \
+    ..
 
-# Build codegen binaries
-WORKDIR /faasm/build
+# Run codegen builds
 RUN cmake --build . --target codegen_shared_obj
 RUN cmake --build . --target codegen_func
 
-# Remove the code
-RUN rm -r /usr/local/code/faasm
-
 # Clear out
 RUN rm -rf /tmp/*
+

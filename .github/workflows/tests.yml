@@ -7,11 +7,10 @@ on:
   pull_request:
     branches:
       - master
-      - gh-actions
 
 jobs:
   build:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     env:
       CGROUP_MODE: off
       NETNS_MODE: off
