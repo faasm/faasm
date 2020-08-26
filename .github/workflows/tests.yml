@@ -31,26 +31,19 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: true
+      - name: "Nuke any existing code"
+        run: rm -r /usr/local/code/faasm
+      - name: "Link this checkout to the standard location"
+        run: ln -s $GITHUB_WORKSPACE /usr/local/code/faasm
       - name: "File perms"
         run: chown -R root:root /usr/local/faasm
       - name: "Add faasm group"
         run: groupadd -g 1000 faasm
       - name: "Add faasm user"
         run: useradd -u 1000 -g 1000 faasm
-      - name: "Create build dir"
-        run: mkdir build
-      - name: "Configure build"
-        run: >
-            cmake
-            -GNinja
-            -DCMAKE_CXX_COMPILER=/usr/bin/clang++-10
-            -DCMAKE_C_COMPILER=/usr/bin/clang-10
-            -DCMAKE_BUILD_TYPE=Release
-            ..
-        working-directory: build
       - name: "Build tests"
         run: cmake --build . --target tests
-        working-directory: build
+        working-directory: /faasm/build
       - name: "Set up native libs"
         run: inv -r faasmcli/faasmcli libs.native
       - name: "Set up test lib"
