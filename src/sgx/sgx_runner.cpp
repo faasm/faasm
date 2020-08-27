@@ -1,4 +1,3 @@
-
 #ifndef SGX_RUNNER_ENCLAVE_PATH
 #define SGX_RUNNER_ENCLAVE_PATH "sgx_wamr_enclave.sign.so"
 #endif
@@ -12,52 +11,74 @@
 
 
 int main(int argc, char **argv) {
-    sgx_launch_token_t enclave_token = {0};
-    sgx_status_t sgx_ret_val;
-    faasm_sgx_status_t ret_val;
-    int enclave_token_updated = 0;
-
-    sgx_enclave_id_t enclave_id;
-    wasm::SGXWAMRWasmModule module(&enclave_id);
+    // Set up the module
+    sgx_enclave_id_t enclaveId;
+    wasm::SGXWAMRWasmModule module(&enclaveId);
 
     if (argc < 3) {
         printf("[Error] Too few arguments. Please enter user and function\n");
         return -1;
     }
 
+    // Check for SGX support
+    faasm_sgx_status_t returnValue;
 #if(SGX_SIM_MODE == 0)
-    if ((ret_val = faasm_sgx_get_sgx_support()) != FAASM_SGX_SUCCESS) {
-        printf("[Error] Missing sgx support (%#010x)\n", ret_val);
+    returnValue = faasm_sgx_get_sgx_support();
+    if (returnValue != FAASM_SGX_SUCCESS) {
+        printf("[Error] Missing sgx support (%#010x)\n", returnValue);
         return -1;
     }
 #endif
 
-    faabric::Message msg = faabric::util::messageFactory(argv[1], argv[2]);
-    msg.set_issgx(true);
-
+    // Set up the enclave
+    sgx_status_t sgxReturnValue;
+    sgx_launch_token_t enclaveToken = {0};
+    int enclaveTokenUpdated = 0;
     if (argc > 3) {
-        if ((sgx_ret_val = sgx_create_enclave(argv[3], SGX_DEBUG_FLAG, &enclave_token, &enclave_token_updated,
-                                              &enclave_id, NULL)) != SGX_SUCCESS) {
-            printf("[Error] Unable to create enclave (%#010x)\n", sgx_ret_val);
+        sgxReturnValue = sgx_create_enclave(
+                argv[3],
+                SGX_DEBUG_FLAG,
+                &enclaveToken,
+                &enclaveTokenUpdated,
+                &enclaveId,
+                NULL
+        );
+
+        if (sgxReturnValue != SGX_SUCCESS) {
+            printf("[Error] Unable to create enclave (%#010x)\n", sgxReturnValue);
             return -1;
         }
     } else {
-        if ((sgx_ret_val = sgx_create_enclave(SGX_RUNNER_ENCLAVE_PATH, SGX_DEBUG_FLAG, &enclave_token,
-                                              &enclave_token_updated, &enclave_id, NULL)) != SGX_SUCCESS) {
-            printf("[Error] Unable to create enclave (%#010x)\n", sgx_ret_val);
+        sgxReturnValue = sgx_create_enclave(
+                SGX_RUNNER_ENCLAVE_PATH,
+                SGX_DEBUG_FLAG,
+                &enclaveToken,
+                &enclaveTokenUpdated,
+                &enclaveId,
+                NULL
+        );
+
+        if (sgxReturnValue != SGX_SUCCESS) {
+            printf("[Error] Unable to create enclave (%#010x)\n", sgxReturnValue);
             return -1;
         }
     }
 
-    if ((sgx_ret_val = sgx_wamr_enclave_init_wamr(enclave_id, &ret_val, 1)) != SGX_SUCCESS) {
-        printf("[Error] Unable to enter enclave (%#010x)\n", sgx_ret_val);
-        return -1;
-    }
-    if (ret_val != FAASM_SGX_SUCCESS) {
-        printf("[Error] Unable to initialize WAMR (%#010x)\n", ret_val);
+    // Set up WAMR
+    sgxReturnValue = sgx_wamr_enclave_init_wamr(enclaveId, &returnValue, 1);
+    if (sgxReturnValue != SGX_SUCCESS) {
+        printf("[Error] Unable to enter enclave (%#010x)\n", sgxReturnValue);
         return -1;
     }
 
+    if (returnValue != FAASM_SGX_SUCCESS) {
+        printf("[Error] Unable to initialize WAMR (%#010x)\n", returnValue);
+        return -1;
+    }
+
+    // Execute the function
+    faabric::Message msg = faabric::util::messageFactory(argv[1], argv[2]);
+    msg.set_issgx(true);
     module.bindToFunction(msg);
     module.execute(msg);
 }

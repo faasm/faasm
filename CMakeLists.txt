@@ -10,10 +10,10 @@ option(FAASM_OPENMP_TRACING "Trace OpenMP forks in Redis" OFF)
 option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md" OFF)
 
 # SGX functionality
-option(FAASM_SGX_SUPPORT "Add support for SGX" OFF)
-option(FAASM_SGX_ATTESTATION "Add support for attestation" OFF)
-option(FAASM_SGX_WHITELISTING "Add support for whitelisting" OFF)
-option(FAASM_SGX_XRA "Add support for XRA" OFF)
+option(FAASM_SGX_SUPPORT "Add support for SGX" ON)
+option(FAASM_SGX_ATTESTATION "Add support for attestation" ON)
+option(FAASM_SGX_WHITELISTING "Add support for whitelisting" ON)
+option(FAASM_SGX_XRA "Add support for XRA" ON)
 
 # Top-level CMake config
 set(CMAKE_CXX_FLAGS "-Wall")
@@ -31,6 +31,7 @@ set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/pyinit)
 set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/WAVM/Lib)
 set(FAASM_WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
 set(FAASM_FAABRIC_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/faabric)
+set(FAASM_XRA_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/xra)
 
 # SGX configuration
 if (FAASM_SGX_SUPPORT)
@@ -51,6 +52,10 @@ if (FAASM_SGX_SUPPORT)
 
     if(FAASM_SGX_WHITELISTING)
         add_definitions(-DFAASM_SGX_WHITELISTING=1)
+    endif()
+
+    if(FAASM_SGX_XRA)
+        include_directories(${FAASM_XRA_ROOT_DIR}/include)
     endif()
 else ()
     set(CMAKE_CXX_FLAGS "-Wall -Werror")

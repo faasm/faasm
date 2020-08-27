@@ -1,11 +1,26 @@
 #pragma once
 
-#include <iwasm/include/wasm_export.h>
+#if(FAASM_SGX_ATTESTATION)
 
-#define FAASM_SGX_WAMR_TCS_INIT_NUMBER 0x8
+#include <sgx/sgx_wamr_attestation.h>
 
-typedef struct __sgx_wamr_tcs{
+#endif
+#if(FAASM_SGX_WHITELISTING)
+
+#include <sgx/sgx_wamr_whitelisting.h>
+#include <wasm_export.h>
+
+#endif
+
+typedef struct __sgx_wamr_tcs {
     wasm_module_t module;
     wasm_module_inst_t module_inst;
-    wasm_exec_env_t exev_env;
+    uint8_t *wasm_opcode;
+#if(FAASM_SGX_ATTESTATION)
+    sgx_wamr_msg_t **response_ptr;
+    _sgx_wamr_attestation_env_t env;
+#endif
+#if(FAASM_SGX_WHITELISTING)
+    _sgx_wamr_whitelist_t *module_whitelist;
+#endif
 } _sgx_wamr_tcs_t;

@@ -9,20 +9,12 @@
 
 #include <string>
 
-#if(FAASM_SGX_ATTESTATION)
-#include <sgx/sgx_wamr_attestation.h>
-#endif
-
 namespace faaslet {
     void flushFaasletHost();
 
     class Faaslet {
     public:
         explicit Faaslet(int threadIdx);
-
-#if(FAASM_SGX == 1)
-        ~Faaslet(void);
-#endif
 
         void bindToFunction(const faabric::Message &msg, bool force = false);
 
@@ -35,9 +27,6 @@ namespace faaslet {
         void finish();
 
         std::string id;
-#if(FAASM_SGX_ATTESTATION)
-        faaslet_sgx_msg_buffer_t sgx_wamr_msg_response;
-#endif
 
         const int threadIdx;
 

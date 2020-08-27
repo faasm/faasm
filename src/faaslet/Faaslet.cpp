@@ -15,10 +15,7 @@
 
 extern "C"{
 extern sgx_enclave_id_t enclave_id;
-#if(FAASM_SGX_ATTESTATION)
-    __thread faaslet_sgx_msg_buffer_t* faaslet_sgx_msg_buffer_ptr;
-#endif
-};
+}
 #else
 
 #include <wamr/WAMRWasmModule.h>
@@ -49,16 +46,6 @@ namespace faaslet {
 
     Faaslet::Faaslet(int threadIdxIn) : threadIdx(threadIdxIn),
                                         scheduler(faabric::scheduler::getScheduler()) {
-
-#if(FAASM_SGX_ATTESTATION)
-        sgx_wamr_msg_response.buffer_len = (sizeof(sgx_wamr_msg_t) + sizeof(sgx_wamr_msg_hdr_t));
-        if(!(sgx_wamr_msg_response.buffer_ptr = (sgx_wamr_msg_t*) calloc(sgx_wamr_msg_response.buffer_len, sizeof(uint8_t)))){
-            printf("[Error] Unable to allocate space for faaslet message response buffer\n");
-            abort();
-        }
-        faaslet_sgx_msg_buffer_ptr = &sgx_wamr_msg_response;
-#endif
-
         const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         // Set an ID for this Faaslet
@@ -79,17 +66,6 @@ namespace faaslet {
         CGroup cgroup(BASE_CGROUP_NAME);
         cgroup.addCurrentThread();
     }
-
-#if(FAASM_SGX == 1)
-    Faaslet::~Faaslet(void){
-        if(module_sgx_wamr && !module_sgx_wamr->unbindFunction()){
-            printf("[Error] Faaslet destruction failed\n");
-        }
-#if(FAASM_SGX_ATTESTATION)
-        free(sgx_wamr_msg_response.buffer_ptr);
-#endif
-    }
-#endif
 
     const bool Faaslet::isBound() {
         return _isBound;

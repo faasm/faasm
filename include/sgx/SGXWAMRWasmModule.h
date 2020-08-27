@@ -7,6 +7,7 @@
 #include <sgx.h>
 #include <sgx_urts.h>
 #include <sgx/faasm_sgx_error.h>
+#include <sgx/sgx_wamr_attestation.h>
 
 extern "C" {
 extern void ocall_printf(const char *msg);
@@ -19,13 +20,24 @@ extern sgx_status_t sgx_wamr_enclave_init_wamr(
         const unsigned int thread_number
 );
 
+#if(FAASM_SGX_ATTESTATION)
 extern sgx_status_t sgx_wamr_enclave_load_module(
         sgx_enclave_id_t enclave_id,
-        faasm_sgx_status_t *ret_val,
-        const void *wasm_opcode_ptr,
+        faasm_sgx_status_t* ret_val,
+        const void* wasm_opcode_ptr,
         const uint32_t wasm_opcode_size,
-        unsigned int *thread_id
-);
+        uint32_t* thread_id,
+        sgx_wamr_msg_t** response_ptr
+        );
+#else
+extern sgx_status_t sgx_wamr_enclave_load_module(
+        sgx_enclave_id_t enclave_id,
+        faasm_sgx_status_t* ret_val,
+        const void* wasm_opcode_ptr,
+        const uint32_t wasm_opcode_size,
+        uint32_t* thread_id
+        );
+#endif
 
 extern sgx_status_t sgx_wamr_enclave_unload_module(
         sgx_enclave_id_t enclave_id,
@@ -40,26 +52,27 @@ sgx_wamr_enclave_call_function(
         const unsigned int thread_id,
         const uint32_t func_id
 );
-};
+}
 
 
 namespace wasm {
     class SGXWAMRWasmModule final : public WasmModule {
     public:
-        SGXWAMRWasmModule(sgx_enclave_id_t *enclaveId);
+        explicit SGXWAMRWasmModule(sgx_enclave_id_t *enclaveId);
 
-        ~SGXWAMRWasmModule();
+        ~SGXWAMRWasmModule() override;
 
-        void bindToFunction(const faabric::Message &msg);
+        void bindToFunction(const faabric::Message &msg) override;
 
-        void bindToFunctionNoZygote(const faabric::Message &msg);
+        void bindToFunctionNoZygote(const faabric::Message &msg) override;
 
-        const bool unbindFunction(void);
+        bool unbindFunction();
 
-        bool execute(faabric::Message &msg, bool forceNoop = false);
+        bool execute(faabric::Message &msg, bool forceNoop = false) override;
 
-        const bool isBound();
+        bool isBound() override;
 
+        faaslet_sgx_msg_buffer_t sgx_wamr_msg_response;
     private:
         bool _isBound = false;
         unsigned int threadId = 0;
