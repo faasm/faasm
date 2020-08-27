@@ -2,7 +2,7 @@
 #ifndef FAASM_SGX
 
 namespace isolation {
-    void checkSgxSetup() {
+    void checkSgxSetup(const std::string &enclavePath) {
         // Do nothing
     }
 
