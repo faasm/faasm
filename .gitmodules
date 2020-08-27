@@ -10,7 +10,7 @@
 	branch = faasm
 [submodule "third-party/pyodide"]
 	path = third-party/pyodide
-	url = http://github.com/Shillaker/pyodide.git
+	url = https://github.com/Shillaker/pyodide.git
 [submodule "third-party/pyfaasm"]
 	path = third-party/pyfaasm
 	url = https://github.com/Shillaker/pyfaasm.git

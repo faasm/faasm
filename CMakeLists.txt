@@ -3,13 +3,20 @@ project(faasm)
 
 # Optional functionality
 option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
-option(FAASM_SGX_SUPPORT "Add support for SGX" OFF)
 
+# Performance functionality
 option(FAASM_SELF_TRACING "Turn on system tracing using the logger" OFF)
 option(FAASM_OPENMP_TRACING "Trace OpenMP forks in Redis" OFF)
 option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md" OFF)
 
+# SGX functionality
+option(FAASM_SGX_SUPPORT "Add support for SGX" OFF)
+option(FAASM_SGX_ATTESTATION "Add support for attestation" OFF)
+option(FAASM_SGX_WHITELISTING "Add support for whitelisting" OFF)
+option(FAASM_SGX_XRA "Add support for XRA" OFF)
+
 # Top-level CMake config
+set(CMAKE_CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -35,14 +42,16 @@ if (FAASM_SGX_SUPPORT)
     set(CMAKE_CXX_FLAGS "-Wall")
 
     # Set up SGX definitions
-    add_definitions(-DFAASM_SGX=1 -DFAASM_SGX_FUNC_SUFFIX="_sgx_wamr")
-    set(SGX_SIM_MODE 1)
+    add_definitions(-DFAASM_SGX=1)
+    add_definitions(-DSGX_SIM_MODE=1)
 
-    if (SGX_SIM_MODE)
-        add_definitions(-DSGX_SIM_MODE=1)
-    elseif ()
-        add_definitions(-DSGX_SIM_MODE=0)
-    endif ()
+    if(FAASM_SGX_ATTESTATION)
+        add_definitions(-DFAASM_SGX_ATTESTATION=1)
+    endif()
+
+    if(FAASM_SGX_WHITELISTING)
+        add_definitions(-DFAASM_SGX_WHITELISTING=1)
+    endif()
 else ()
     set(CMAKE_CXX_FLAGS "-Wall -Werror")
 endif ()
@@ -180,6 +189,10 @@ else ()
     if (FAASM_SGX_SUPPORT)
         add_subdirectory(src/sgx_wamr)
         add_subdirectory(src/sgx)
+
+        if(FAASM_SGX_XRA)
+            add_subdirectory(third-party/xra)
+        endif()
     else()
         add_subdirectory(src/wamr)
     endif ()
