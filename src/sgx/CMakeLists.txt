@@ -89,9 +89,9 @@ else ()
 endif ()
 
 # Check for SGX simulation
-if (SGX_SIM_MODE)
+if (FAASM_SGX_SIM_MODE)
     message(STATUS "Enclave will be build in simulation mode")
-elseif (NOT SGX_SIM_MODE)
+else ()
     message(STATUS "Enclave will be build in hardware mode")
 endif ()
 
@@ -148,7 +148,7 @@ target_link_options(sgx_wamr_enclave PRIVATE
         -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/sgx_wamr_enclave.lds
         )
 
-if (SGX_SIM_MODE)
+if (FAASM_SGX_SIM_MODE)
     target_link_libraries(sgx_wamr_enclave
             -Wl,--whole-archive sgx_trts_sim
             -Wl,--no-whole-archive
@@ -179,9 +179,9 @@ if (SGX_XRA)
     add_dependencies(sgx_wamr_enclave xra_t)
 
     #    # XRA config
-#    target_include_directories(sgx_wamr_enclave PRIVATE
-#            ${CMAKE_CURRENT_LIST_DIR}/../../third-party/xra/include
-#            )
+    #    target_include_directories(sgx_wamr_enclave PRIVATE
+    #            ${CMAKE_CURRENT_LIST_DIR}/../../third-party/xra/include
+    #            )
 
     target_link_libraries(sgx_wamr_enclave
             -Wl,--no-whole-archive
@@ -236,14 +236,14 @@ set_target_properties(sgx_wamr PROPERTIES STATIC_LIBRARY_FLAGS
         )
 
 # Simulation-specific linking
-if (SGX_SIM_MODE)
+if (FAASM_SGX_SIM_MODE)
     target_link_libraries(sgx_wamr
             sgx_urts_sim
             sgx_uae_service_sim
             Threads::Threads
             wasm
             )
-else (NOT SGX_SIM_MODE)
+else ()
     target_link_libraries(sgx_wamr
             sgx_urts
             sgx_uae_service

@@ -11,6 +11,7 @@ option(FAASM_PERF_PROFILING "Turn on profiling features as described in debuggin
 
 # SGX functionality
 option(FAASM_SGX_SUPPORT "Add support for SGX" ON)
+option(FAASM_SGX_SIM_MODE "SGX sim mode flag" ON)
 option(FAASM_SGX_ATTESTATION "Add support for attestation" ON)
 option(FAASM_SGX_WHITELISTING "Add support for whitelisting" ON)
 option(FAASM_SGX_XRA "Add support for XRA" ON)
@@ -44,7 +45,10 @@ if (FAASM_SGX_SUPPORT)
 
     # Set up SGX definitions
     add_definitions(-DFAASM_SGX=1)
-    add_definitions(-DSGX_SIM_MODE=1)
+
+    if(FAASM_SGX_SIM_MODE)
+        add_definitions(-DSGX_SIM_MODE=1)
+    endif()
 
     if(FAASM_SGX_ATTESTATION)
         add_definitions(-DFAASM_SGX_ATTESTATION=1)
