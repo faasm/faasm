@@ -195,11 +195,6 @@ endif ()
 if (SGX_XRA)
     add_dependencies(sgx_wamr_enclave xra_t)
 
-    #    # XRA config
-    #    target_include_directories(sgx_wamr_enclave PRIVATE
-    #            ${CMAKE_CURRENT_LIST_DIR}/../../third-party/xra/include
-    #            )
-
     target_link_libraries(sgx_wamr_enclave
             -Wl,--no-whole-archive
             -Wl,--start-group xra_t -Wl,--end-group
@@ -248,31 +243,36 @@ target_compile_options(sgx_wamr PRIVATE ${SGX_WAMR_C_FLAGS} -std=c++11)
 
 # Here we need to force sgx_wamr to link with the output of the
 # enclave build.
-set_target_properties(sgx_wamr PROPERTIES STATIC_LIBRARY_FLAGS
+#set_target_properties(sgx_wamr PROPERTIES STATIC_LIBRARY_FLAGS
+#        ${CMAKE_CURRENT_BINARY_DIR}/sgx_wamr_enclave_u.o
+#        )
+
+target_link_options(sgx_wamr PUBLIC
         ${CMAKE_CURRENT_BINARY_DIR}/sgx_wamr_enclave_u.o
         )
 
-# Linking specific to sim/ non-sim mode
+target_link_libraries(sgx_wamr
+        Threads::Threads
+        wamrlib_sgx
+        wasm
+        )
+
 if (FAASM_SGX_SIM_MODE)
     target_link_libraries(sgx_wamr
             sgx_urts_sim
             sgx_uae_service_sim
-            Threads::Threads
-            wasm
             )
 else ()
     target_link_libraries(sgx_wamr
             sgx_urts
             sgx_uae_service
-            Threads::Threads
-            wasm
             )
 endif ()
 
 # SGX runner
 include_directories(${FAASM_INCLUDE_DIR}/sgx)
 add_executable(sgx_runner sgx_runner.cpp)
-
+add_dependencies(sgx_runner sgx_wamr)
 target_compile_options(sgx_runner PRIVATE -O3 -fpic -Wno-attributes)
 target_link_libraries(sgx_runner PRIVATE sgx_wamr)
 
@@ -308,8 +308,8 @@ add_custom_command(TARGET sgx_wamr_enclave
 
 add_custom_command(TARGET sgx_wamr_enclave
         POST_BUILD COMMAND
-        ${SGX_SDK_ENCLAVE_SIGNER}
-        sign -key ${CMAKE_CURRENT_SOURCE_DIR}/sgx_wamr_enclave.pem
+        ${SGX_SDK_ENCLAVE_SIGNER} sign
+        -key ${CMAKE_CURRENT_SOURCE_DIR}/sgx_wamr_enclave.pem
         -enclave ${CMAKE_BINARY_DIR}/lib/sgx_wamr_enclave.so
         -out ${CMAKE_BINARY_DIR}/bin/sgx_wamr_enclave.sign.so
         -config ${CMAKE_CURRENT_SOURCE_DIR}/sgx_wamr_enclave.config
