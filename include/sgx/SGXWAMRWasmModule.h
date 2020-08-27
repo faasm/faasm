@@ -25,9 +25,9 @@ extern sgx_status_t sgx_wamr_enclave_load_module(
         faasm_sgx_status_t *ret_val,
         const void *wasm_opcode_ptr,
         const uint32_t wasm_opcode_size,
-        uint32_t *thread_id,
+        uint32_t *thread_id
 #if(FAASM_SGX_ATTESTATION)
-        sgx_wamr_msg_t **response_ptr
+        , sgx_wamr_msg_t **response_ptr
 #endif
 );
 
