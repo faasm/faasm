@@ -66,15 +66,6 @@ add_definitions(
         -DFAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE=${FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE}
 )
 
-set(SGX_WAMR_ENCLAVE_C_FLAGS ${SGX_C_GLOBAL_FLAGS}
-        -nostdinc
-        -fvisibility=hidden
-        -fpie
-        -ffunction-sections
-        -fdata-sections
-        -fstack-protector-strong
-        )
-
 # --------------------------------------------------------
 # INITIAL CHECKS
 # --------------------------------------------------------
@@ -95,18 +86,38 @@ else ()
     message(STATUS "Enclave will be build in hardware mode")
 endif ()
 
-# Check for SGX debug
+# SGX compilation flags
 if (SGX_DEBUG_MODE)
     message(STATUS "Enclave will be build with debug information and -O0 optimization")
     set(SGX_C_GLOBAL_FLAGS ${SGX_C_GLOBAL_FLAGS} -O0 -g)
-    set(SGX_WAMR_C_FLAGS ${SGX_C_GLOBAL_FLAGS} -fPIC -Wno-attributes -DDEBUG -UNDEBUG -UEDEBUG)
-    set(SGX_WAMR_ENCLAVE_C_FLAGS ${SGX_C_GLOBAL_FLAGS} -nostdinc -fvisibility=hidden -fpie -ffunction-sections -fdata-sections -fstack-protector-strong)
-elseif (NOT SGX_DEBUG_MODE)
+
+    set(SGX_WAMR_C_FLAGS ${SGX_C_GLOBAL_FLAGS}
+            -fPIC
+            -Wno-attributes
+            -DDEBUG
+            -UNDEBUG
+            -UEDEBUG
+            )
+else ()
     message(STATUS "Enclave will be build without debug information and -O2 optimization")
     set(SGX_C_GLOBAL_FLAGS ${SGX_C_GLOBAL_FLAGS} -O2)
-    set(SGX_WAMR_C_FLAGS ${SGX_C_GLOBAL_FLAGS} -fPIC -Wno-attributes)
-    set(SGX_WAMR_ENCLAVE_C_FLAGS ${SGX_C_GLOBAL_FLAGS} -nostdinc -fvisibility=hidden -fpie -ffunction-sections -fdata-sections -fstack-protector-strong)
+
+    set(SGX_WAMR_C_FLAGS ${SGX_C_GLOBAL_FLAGS}
+            -fPIC
+            -Wno-attributes
+            )
+
 endif ()
+
+# Note - these are the same in debug/ non-debug mode
+set(SGX_WAMR_ENCLAVE_C_FLAGS ${SGX_C_GLOBAL_FLAGS}
+        -nostdinc
+        -fvisibility=hidden
+        -fpie
+        -ffunction-sections
+        -fdata-sections
+        -fstack-protector-strong
+        )
 
 # --------------------------------------------------------
 # ENCLAVE BUILD
