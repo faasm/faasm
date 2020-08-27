@@ -273,8 +273,13 @@ endif ()
 include_directories(${FAASM_INCLUDE_DIR}/sgx)
 add_executable(sgx_runner sgx_runner.cpp)
 add_dependencies(sgx_runner sgx_wamr)
+
 target_compile_options(sgx_runner PRIVATE -O3 -fpic -Wno-attributes)
-target_link_libraries(sgx_runner PRIVATE sgx_wamr)
+
+target_link_libraries(sgx_runner PRIVATE
+        sgx_wamr
+        system
+        )
 
 # --------------------------------------------------------
 # DEMO KEY MANAGER
