@@ -37,8 +37,8 @@ set(SGX_SDK_ENCLAVE_EDGER8R ${SGX_SDK_PATH}/bin/x64/sgx_edger8r)
 # Attestation config
 if (FAASM_SGX_ATTESTATION)
     add_definitions(
-            -DFAASM_SGX_ATTESTATION_HOST="FaasmVM"
-            -DFAASM_SGX_ATTESTATION_PORT=1337
+            -DFAASM_SGX_ATTESTATION_HOST="localhost"
+            -DFAASM_SGX_ATTESTATION_PORT=8009
     )
     add_definitions(
             -DFAASM_SGX_ATTESTATION_CALLBACK_STORE_INIT_LEN=4

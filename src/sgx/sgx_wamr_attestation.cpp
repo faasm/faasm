@@ -4,12 +4,14 @@
 
 #include <netdb.h>
 #include <pthread.h>
-#include <string.h>
-#include <stdlib.h>
+#include <cstring>
+#include <cstdlib>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+
+#include <faabric/util/logging.h>
 
 #define WAKEUP_SEND_THREAD() \
 pthread_mutex_lock(&_callback_store[i].mutex); \
@@ -177,6 +179,8 @@ void *handle_messages(void *args) {
 }
 
 faasm_sgx_status_t ocall_init_crt(void) {
+    auto logger = faabric::util::getLogger();
+
     struct sockaddr_in keymgr_sockaddr;
 
     if ((_callback_store = (_sgx_wamr_thread_callback *) calloc(_callback_store_len,
@@ -192,12 +196,15 @@ faasm_sgx_status_t ocall_init_crt(void) {
     keymgr_sockaddr.sin_family = AF_INET;
     keymgr_sockaddr.sin_port = htons(FAASM_SGX_ATTESTATION_PORT);
 
-    if (inet_pton(AF_INET, FAASM_SGX_ATTESTATION_HOST, &keymgr_sockaddr.sin_addr) != 1) {
+    const char* hostname = FAASM_SGX_ATTESTATION_HOST;
+    if (inet_pton(AF_INET, hostname, &keymgr_sockaddr.sin_addr) != 1) {
         struct hostent *resolved_addr;
-        if (!(resolved_addr = gethostbyname(FAASM_SGX_ATTESTATION_HOST))) {
+        if (!(resolved_addr = gethostbyname(hostname))) {
+            logger->error("Unresolved host: {}", hostname);
             close(_keymgr_socket);
             return FAASM_SGX_CRT_INVALID_ADDR;
         }
+        
         memcpy((void *) &keymgr_sockaddr.sin_addr, (void *) resolved_addr->h_addr_list[0], sizeof(struct in_addr));
     }
 

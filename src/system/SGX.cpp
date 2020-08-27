@@ -17,6 +17,7 @@ namespace isolation {
 #include <sgx_urts.h>
 #include <sgx/faasm_sgx_error.h>
 #include <sgx/SGXWAMRWasmModule.h>
+#include <boost/filesystem/operations.hpp>
 
 extern "C" {
 sgx_enclave_id_t enclaveId;
@@ -30,12 +31,19 @@ namespace isolation {
         sgx_launch_token_t sgxEnclaveToken = {0};
         uint32_t sgxEnclaveTokenUpdated = 0;
 
+        auto logger = faabric::util::getLogger();
+        
 #if(SGX_SIM_MODE == 0)
         if((returnValue = faasm_sgx_get_sgx_support()) != FAASM_SGX_SUCCESS){
             printf("[Error] Machine doesn't support sgx (%#010x)\n",ret_val);
             exit(1);
         }
 #endif
+        // Check enclave file exists
+        if (!boost::filesystem::exists(enclavePath)) {
+            logger->error("Enclave file {} does not exist", enclavePath);
+            throw std::runtime_error("Could not find enclave file");
+        }
 
         sgxReturnValue = sgx_create_enclave(
                 enclavePath.c_str(),
