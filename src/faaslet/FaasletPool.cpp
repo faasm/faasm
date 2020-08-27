@@ -12,7 +12,7 @@ namespace faaslet {
             stateServer(faabric::state::getGlobalState()) {
 
         // Check SGX (will do nothing if not enabled)
-        isolation::checkSgxSetup(SGX_WAMR_ENCLAVE_PATH);
+        isolation::checkSgxSetup();
 
         // Ensure we can ping both redis instances
         faabric::redis::Redis::getQueue().ping();

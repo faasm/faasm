@@ -3,7 +3,8 @@
 #ifndef FAASM_SGX
 
 namespace isolation {
-    void checkSgxSetup(const std::string &enclavePath) {
+    void checkSgxSetup(const std::string &enclavePath,
+                       int threadNumber) {
         // Do nothing
     }
 
