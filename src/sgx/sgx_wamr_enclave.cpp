@@ -2,7 +2,6 @@
 #include <sgx_defs.h>
 #include <sgx_thread.h>
 #include <string.h>
-#include <xra.h>
 
 #include <iwasm/include/wasm_export.h>
 #include <sgx/faasm_sgx_error.h>
@@ -17,7 +16,6 @@
 #endif
 #if(FAASM_SGX_WHITELISTING)
 
-#include <sgx/sgx_wamr_whitelisting.h>
 #include <iwasm/interpreter/wasm_runtime.h>
 #include <iwasm/aot/aot_runtime.h>
 
@@ -148,7 +146,7 @@ static inline faasm_sgx_status_t __get_tcs_slot(uint32_t *thread_id) {
 faasm_sgx_status_t sgx_wamr_enclave_call_function(const uint32_t thread_id, const uint32_t func_id) {
     wasm_function_inst_t wasm_function;
     read_lock(&_rwlock_sgx_wamr_tcs_realloc);
-    WASMModuleInstance *wasm_module_inst_ptr = (WASMModuleInstance *) sgx_wamr_tcs[thread_id].module_inst;
+    auto wasm_module_inst_ptr = (WASMModuleInstance *) sgx_wamr_tcs[thread_id].module_inst;
     read_unlock(&_rwlock_sgx_wamr_tcs_realloc);
     char func_id_str[33];
     if (_itoa_s(func_id, func_id_str, sizeof(func_id_str), 10))

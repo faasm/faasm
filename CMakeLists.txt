@@ -194,7 +194,7 @@ else ()
     add_subdirectory(src/wasm)
     add_subdirectory(src/wavm)
 
-    # SGX
+    # WAMR - build SGX or non-SGX version accordingly
     if (FAASM_SGX_SUPPORT)
         add_subdirectory(src/sgx_wamr)
         add_subdirectory(src/sgx)

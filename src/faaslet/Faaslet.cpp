@@ -67,7 +67,7 @@ namespace faaslet {
         cgroup.addCurrentThread();
     }
 
-    const bool Faaslet::isBound() {
+    bool Faaslet::isBound() {
         return _isBound;
     }
 

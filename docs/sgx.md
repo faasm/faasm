@@ -6,6 +6,8 @@ Faasm provides
 You can read the latest SGX Linux developer instructions 
 [here](https://download.01.org/intel-sgx/latest/linux-latest/docs/Intel_SGX_Developer_Guide.pdf).
 
+[@J-Heinemann](https://github.com/J-Heinemann) is responsible for the SGX work, although 
+some messy merging means that certain files don't fully attribute him. 
 
 ## Set-up
 

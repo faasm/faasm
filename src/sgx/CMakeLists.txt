@@ -2,6 +2,8 @@
 # BUILD CONFIGURATION
 # --------------------------------------------------------
 
+message(- "CURRENT BINARY DIR: ${CMAKE_CURRENT_BINARY_DIR}")
+
 # Include WAMR SGX platform
 include_directories(${WAMR_SHARED_DIR}/platform/linux-sgx/)
 
@@ -127,6 +129,7 @@ set(SGX_WAMR_ENCLAVE_C_FLAGS ${SGX_C_GLOBAL_FLAGS}
 set(WAMR_ENCLAVE_SRC
         sgx_wamr_enclave.cpp
         sgx_wamr_native_symbols_wrapper.cpp
+        rw_lock.cpp
         )
 
 if (FAASM_SGX_WHITELISTING)
@@ -146,12 +149,15 @@ target_include_directories(sgx_wamr_enclave PRIVATE
         )
 
 target_link_directories(sgx_wamr_enclave PRIVATE ${SGX_SDK_LIB_PATH})
-target_compile_options(sgx_wamr_enclave PRIVATE ${SGX_WAMR_ENCLAVE_C_FLAGS} -std=c++11 -nostdinc++)
+target_compile_options(sgx_wamr_enclave PRIVATE
+        ${SGX_WAMR_ENCLAVE_C_FLAGS} -std=c++11 -nostdinc++
+        )
 
 target_link_options(sgx_wamr_enclave PRIVATE
         ${CMAKE_CURRENT_BINARY_DIR}/sgx_wamr_enclave_t.o
         ${SGX_C_GLOBAL_FLAGS}
-        -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -Bstatic -Bsymbolic
+        -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles
+        -Bstatic -Bsymbolic
         -Wl,-pie,-eenclave_entry
         -Wl,--export-dynamic
         -Wl,--defsym,__ImageBase=0
@@ -213,6 +219,7 @@ set_source_files_properties(${SGX_WAMR_ASM_SOURCE_FILES} PROPERTIES LANGUAGE ASM
 set(SGX_WAMR_SRC
         SGXWAMRWasmModule.cpp
         sgx_wamr_native_symbols.cpp
+        rw_lock.cpp
         )
 
 if (FAASM_SGX_WHITELISTING)
@@ -224,7 +231,6 @@ endif ()
 if (FAASM_SGX_ATTESTATION)
     set(SGX_WAMR_SRC ${SGX_WAMR_SRC}
             sgx_wamr_attestation.cpp
-            rw_lock.cpp
             )
 endif ()
 
@@ -234,19 +240,19 @@ add_library(sgx_wamr STATIC
         ${SGX_WAMR_ASM_SOURCE_FILES}
         )
 
-add_dependencies(sgx_wamr sgx_wamr_enclave wasm)
+add_dependencies(sgx_wamr sgx_wamr_enclave wamrlib_sgx wasm)
 
 target_include_directories(sgx_wamr PUBLIC ${SGX_SDK_PATH}/include)
 target_link_directories(sgx_wamr INTERFACE ${SGX_SDK_LIB_PATH})
 target_compile_options(sgx_wamr PRIVATE ${SGX_WAMR_C_FLAGS} -std=c++11)
 
-# Because sgx_wamr_enclave_u.o will be generated during sgx_wamr build process,
-# we must set this here.
+# Here we need to force sgx_wamr to link with the output of the
+# enclave build.
 set_target_properties(sgx_wamr PROPERTIES STATIC_LIBRARY_FLAGS
         ${CMAKE_CURRENT_BINARY_DIR}/sgx_wamr_enclave_u.o
         )
 
-# Simulation-specific linking
+# Linking specific to sim/ non-sim mode
 if (FAASM_SGX_SIM_MODE)
     target_link_libraries(sgx_wamr
             sgx_urts_sim

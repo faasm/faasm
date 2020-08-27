@@ -20,7 +20,7 @@ namespace faaslet {
 
         void run();
 
-        const bool isBound();
+        bool isBound();
 
         std::string processNextMessage();
 

@@ -253,7 +253,7 @@ namespace wasm {
         throw std::runtime_error("execute not implemented");
     }
 
-    const bool WasmModule::isBound() {
+    bool WasmModule::isBound() {
         throw std::runtime_error("isBound not implemented");
     }
 
