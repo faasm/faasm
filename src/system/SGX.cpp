@@ -1,3 +1,4 @@
+#include <string>
 
 #ifndef FAASM_SGX
 

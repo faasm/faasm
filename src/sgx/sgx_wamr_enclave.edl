@@ -1,4 +1,4 @@
-#define FAASM_SGX_ATTESTATION 0
+#define FAASM_SGX_ATTESTATION 1
 
 enclave{
     include "../../../include/sgx/faasm_sgx_error.h"

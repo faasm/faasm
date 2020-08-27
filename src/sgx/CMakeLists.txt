@@ -2,8 +2,6 @@
 # BUILD CONFIGURATION
 # --------------------------------------------------------
 
-message(- "CURRENT BINARY DIR: ${CMAKE_CURRENT_BINARY_DIR}")
-
 # Include WAMR SGX platform
 include_directories(${WAMR_SHARED_DIR}/platform/linux-sgx/)
 
@@ -240,12 +238,6 @@ add_dependencies(sgx_wamr sgx_wamr_enclave wamrlib_sgx wasm)
 target_include_directories(sgx_wamr PUBLIC ${SGX_SDK_PATH}/include)
 target_link_directories(sgx_wamr INTERFACE ${SGX_SDK_LIB_PATH})
 target_compile_options(sgx_wamr PRIVATE ${SGX_WAMR_C_FLAGS} -std=c++11)
-
-# Here we need to force sgx_wamr to link with the output of the
-# enclave build.
-#set_target_properties(sgx_wamr PROPERTIES STATIC_LIBRARY_FLAGS
-#        ${CMAKE_CURRENT_BINARY_DIR}/sgx_wamr_enclave_u.o
-#        )
 
 target_link_options(sgx_wamr PUBLIC
         ${CMAKE_CURRENT_BINARY_DIR}/sgx_wamr_enclave_u.o
