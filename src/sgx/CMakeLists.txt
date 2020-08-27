@@ -283,12 +283,10 @@ target_compile_options(demo_keymgr PRIVATE -O3 -DDEMO_KEYMGR=1)
 # CUSTOM COMMANDS
 # --------------------------------------------------------
 
-add_custom_command(TARGET sgx_wamr_enclave PRE_BUILD COMMAND ${SGX_SDK_ENCLAVE_EDGER8R} --trusted sgx_wamr_enclave.edl --search-path ${FAASM_SOURCE_DIR}/sgx --search-path ${SGX_SDK_PATH}/include
-        )
-
-add_custom_command(TARGET sgx_wamr
+# WAMR enclave
+add_custom_command(TARGET sgx_wamr_enclave
         PRE_BUILD COMMAND ${SGX_SDK_ENCLAVE_EDGER8R}
-        --untrusted sgx_wamr_enclave.edl
+        --trusted sgx_wamr_enclave.edl
         --search-path ${FAASM_SOURCE_DIR}/sgx
         --search-path ${SGX_SDK_PATH}/include
         )
@@ -302,14 +300,6 @@ add_custom_command(TARGET sgx_wamr_enclave
         -o sgx_wamr_enclave_t.o
         )
 
-add_custom_command(TARGET sgx_wamr
-        PRE_BUILD COMMAND gcc
-        ${SGX_WAMR_C_FLAGS}
-        -I${SGX_SDK_PATH}/include
-        -c sgx_wamr_enclave_u.c
-        -o sgx_wamr_enclave_u.o
-        )
-
 add_custom_command(TARGET sgx_wamr_enclave
         POST_BUILD COMMAND
         ${SGX_SDK_ENCLAVE_SIGNER}
@@ -317,4 +307,20 @@ add_custom_command(TARGET sgx_wamr_enclave
         -enclave ${CMAKE_BINARY_DIR}/lib/sgx_wamr_enclave.so
         -out ${CMAKE_BINARY_DIR}/bin/sgx_wamr_enclave.sign.so
         -config ${CMAKE_CURRENT_SOURCE_DIR}/sgx_wamr_enclave.config
+        )
+
+# SGX-WAMR
+add_custom_command(TARGET sgx_wamr
+        PRE_BUILD COMMAND ${SGX_SDK_ENCLAVE_EDGER8R}
+        --untrusted sgx_wamr_enclave.edl
+        --search-path ${FAASM_SOURCE_DIR}/sgx
+        --search-path ${SGX_SDK_PATH}/include
+        )
+
+add_custom_command(TARGET sgx_wamr
+        PRE_BUILD COMMAND gcc
+        ${SGX_WAMR_C_FLAGS}
+        -I${SGX_SDK_PATH}/include
+        -c sgx_wamr_enclave_u.c
+        -o sgx_wamr_enclave_u.o
         )
