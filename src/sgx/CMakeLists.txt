@@ -157,7 +157,7 @@ if (FAASM_SGX_SIM_MODE)
             sgx_tcxx
             sgx_tcrypto
             sgx_tservice_sim
-            wamr
+            wamrlib_sgx
             -Wl,--end-group
             )
 else ()
@@ -169,7 +169,7 @@ else ()
             sgx_tcxx
             sgx_tcrypto
             sgx_tservice
-            wamr
+            wamrlib_sgx
             -Wl,--end-group
             )
 endif ()
