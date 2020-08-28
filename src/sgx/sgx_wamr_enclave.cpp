@@ -242,8 +242,10 @@ faasm_sgx_status_t sgx_wamr_enclave_load_module(
     sgx_wamr_tcs[*thread_id].response_ptr = response_ptr;
 #endif
 
-    uint8_t *wasmBuffer = (uint8_t *) calloc(wasm_opcode_size, sizeof(uint8_t));
+    void *wasmBuffer = calloc(wasm_opcode_size, sizeof(uint8_t));
     if (!wasmBuffer) {
+        errno_t errorNumber = errno;
+
         sgx_wamr_tcs[*thread_id].module = 0x0;
         read_unlock(&_rwlock_sgx_wamr_tcs_realloc);
 
@@ -253,7 +255,7 @@ faasm_sgx_status_t sgx_wamr_enclave_load_module(
         return FAASM_SGX_OUT_OF_MEMORY;
     }
 
-    sgx_wamr_tcs[*thread_id].wasm_opcode = wasmBuffer;
+    sgx_wamr_tcs[*thread_id].wasm_opcode = (uint8_t *) wasmBuffer;
     memcpy(sgx_wamr_tcs[*thread_id].wasm_opcode, wasm_opcode_ptr, wasm_opcode_size);
     if (!(sgx_wamr_tcs[*thread_id].module = wasm_runtime_load((uint8_t *) sgx_wamr_tcs[*thread_id].wasm_opcode,
                                                               wasm_opcode_size, module_error_buffer,
