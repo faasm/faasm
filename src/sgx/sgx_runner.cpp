@@ -34,4 +34,11 @@ int main(int argc, char **argv) {
 
     module.bindToFunction(msg);
     module.execute(msg);
+
+    logger->info("SGX run successful");
+    if(msg.outputdata().empty()) {
+        printf("No function output data");
+    } else {
+        printf("Function output data: \n%s\n", msg.outputdata().c_str());
+    }
 }

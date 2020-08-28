@@ -127,7 +127,7 @@ namespace wasm {
 
         // Set up enclave
         faasm_sgx_status_t returnValue;
-        logger->error("Entering enclave {} to execute {}", enclaveId, funcStr);
+        logger->debug("Entering enclave {} to execute {}", enclaveId, funcStr);
         sgx_status_t sgxReturnValue = sgx_wamr_enclave_call_function(
                 enclaveId, &returnValue, threadId, msg.idx()
         );
