@@ -50,19 +50,21 @@ namespace wasm {
     void SGXWAMRWasmModule::bindToFunction(const faabric::Message &msg) {
         auto logger = faabric::util::getLogger();
 
-        // Load the function
+        // Set up filesystem
         storage::FileSystem fs;
-        storage::FileLoader &fl = storage::getFileLoader();
         fs.prepareFilesystem();
-        wasmOpcode = fl.loadFunctionWasm(msg);
+
+        // Load wasm (running WAMR in interpreter mode)
+        storage::FileLoader &fl = storage::getFileLoader();
+        std::vector<uint8_t> wasmBytes = fl.loadFunctionWasm(msg);
 
         // Set up the enclave
         faasm_sgx_status_t returnValue;
         sgx_status_t status = sgx_wamr_enclave_load_module(
                 enclaveId,
                 &returnValue,
-                (void *) wasmOpcode.data(),
-                (uint32_t) wasmOpcode.size(),
+                (void *) wasmBytes.data(),
+                (uint32_t) wasmBytes.size(),
                 &threadId
 #if(FAASM_SGX_ATTESTATION)
                 , &faasletSgxMsgBufferPtr->buffer_ptr

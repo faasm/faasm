@@ -75,13 +75,20 @@ static faasm_sgx_status_t send_msg(const void *payload_ptr, const uint32_t paylo
     sgx_wamr_msg_t *msg_ptr;
     sgx_status_t sgx_ret_val;
     faasm_sgx_status_t ret_val;
-    if (!payload_ptr)
+
+    if (!payload_ptr) {
         return FAASM_SGX_INVALID_PTR;
-    if (!payload_len)
+    }
+
+    if (!payload_len) {
         return FAASM_SGX_INVALID_PAYLOAD_LEN;
+    }
+
     if (!(msg_ptr = (sgx_wamr_msg_t *) calloc((sizeof(sgx_wamr_msg_t) + payload_len), sizeof(uint8_t)))) {
+        ocall_printf("Enclave send_msg failed, OOM\n");
         return FAASM_SGX_OUT_OF_MEMORY;
     }
+
     msg_ptr->msg_id = INCREMENT_MSG_ID();
     ///////////ENCRYPTION///////////
     //Implement me :P
@@ -114,6 +121,7 @@ static inline faasm_sgx_status_t __get_tcs_slot(uint32_t *thread_id) {
             return FAASM_SGX_SUCCESS;
         }
     }
+
     read_unlock(&_rwlock_sgx_wamr_tcs_realloc);
     temp_len = (_sgx_wamr_tcs_len << 1);
     write_lock(&_rwlock_sgx_wamr_tcs_realloc);
@@ -137,6 +145,8 @@ static inline faasm_sgx_status_t __get_tcs_slot(uint32_t *thread_id) {
 
     write_unlock(&_rwlock_sgx_wamr_tcs_realloc);
     sgx_thread_mutex_unlock(&_mutex_sgx_wamr_tcs);
+
+    ocall_printf("OOM on get TCS slot\n");
     return FAASM_SGX_OUT_OF_MEMORY;
 }
 
@@ -194,8 +204,10 @@ faasm_sgx_status_t sgx_wamr_enclave_unload_module(const uint32_t thread_id) {
     return FAASM_SGX_SUCCESS;
 }
 
-faasm_sgx_status_t sgx_wamr_enclave_load_module(const void *wasm_opcode_ptr, const uint32_t wasm_opcode_size,
-                                                uint32_t *thread_id
+faasm_sgx_status_t sgx_wamr_enclave_load_module(
+        const void *wasm_opcode_ptr,
+        const uint32_t wasm_opcode_size,
+        uint32_t *thread_id
 #if(FAASM_SGX_ATTESTATION)
     , sgx_wamr_msg_t **response_ptr
 #endif
@@ -230,12 +242,18 @@ faasm_sgx_status_t sgx_wamr_enclave_load_module(const void *wasm_opcode_ptr, con
     sgx_wamr_tcs[*thread_id].response_ptr = response_ptr;
 #endif
 
-    if (!(sgx_wamr_tcs[*thread_id].wasm_opcode = (uint8_t *) calloc(wasm_opcode_size, sizeof(uint8_t)))) {
+    uint8_t *wasmBuffer = (uint8_t *) calloc(wasm_opcode_size, sizeof(uint8_t));
+    if (!wasmBuffer) {
         sgx_wamr_tcs[*thread_id].module = 0x0;
         read_unlock(&_rwlock_sgx_wamr_tcs_realloc);
+
+        ocall_printf("Error allocating memory for wasm bytes: ");
+        ocall_printf(strerror(errno));
+        ocall_printf("\n");
         return FAASM_SGX_OUT_OF_MEMORY;
     }
 
+    sgx_wamr_tcs[*thread_id].wasm_opcode = wasmBuffer;
     memcpy(sgx_wamr_tcs[*thread_id].wasm_opcode, wasm_opcode_ptr, wasm_opcode_size);
     if (!(sgx_wamr_tcs[*thread_id].module = wasm_runtime_load((uint8_t *) sgx_wamr_tcs[*thread_id].wasm_opcode,
                                                               wasm_opcode_size, module_error_buffer,
@@ -267,9 +285,12 @@ faasm_sgx_status_t sgx_wamr_enclave_load_module(const void *wasm_opcode_ptr, con
 faasm_sgx_status_t sgx_wamr_enclave_init_wamr(const uint32_t thread_number) {
     os_set_print_function((os_print_function_t) ocall_printf);
     RuntimeInitArgs wamr_runtime_init_args;
+
     if ((sgx_wamr_tcs = (_sgx_wamr_tcs_t *) calloc(thread_number, sizeof(_sgx_wamr_tcs_t))) == NULL) {
+        ocall_printf("OOM initialising WAMR\n");
         return FAASM_SGX_OUT_OF_MEMORY;
     }
+
     _sgx_wamr_tcs_len = thread_number;
     memset(&wamr_runtime_init_args, 0x0, sizeof(wamr_runtime_init_args));
     wamr_runtime_init_args.mem_alloc_type = Alloc_With_Pool;

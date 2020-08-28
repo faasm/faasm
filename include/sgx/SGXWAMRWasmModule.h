@@ -68,8 +68,6 @@ namespace wasm {
     private:
         bool _isBound = false;
         unsigned int threadId = 0;
-        std::vector<uint8_t> wasmOpcode;
-
         sgx_enclave_id_t enclaveId;
     };
 }
