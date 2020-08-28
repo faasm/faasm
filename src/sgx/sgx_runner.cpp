@@ -7,10 +7,6 @@
 
 
 int main(int argc, char **argv) {
-    // Set up the module
-    sgx_enclave_id_t enclaveId;
-    wasm::SGXWAMRWasmModule module(&enclaveId);
-
     if (argc < 3) {
         printf("[Error] Too few arguments. Please enter user and function\n");
         return -1;
@@ -23,6 +19,10 @@ int main(int argc, char **argv) {
     } else {
         sgx::checkSgxSetup(SGX_WAMR_ENCLAVE_PATH, threadNumber);
     }
+
+    // Set up the module
+    sgx_enclave_id_t enclaveId = sgx::getGlobalEnclaveId();
+    wasm::SGXWAMRWasmModule module(enclaveId);
 
     // Execute the function
     faabric::Message msg = faabric::util::messageFactory(argv[1], argv[2]);

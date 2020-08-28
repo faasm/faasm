@@ -11,21 +11,30 @@ void ocall_printf(const char *msg) {
 }
 }
 
-__thread faaslet_sgx_msg_buffer_t *faaslet_sgx_msg_buffer_ptr;
+__thread faaslet_sgx_msg_buffer_t *faasletSgxMsgBufferPtr;
 
 using namespace sgx;
 
 namespace wasm {
-    SGXWAMRWasmModule::SGXWAMRWasmModule(sgx_enclave_id_t *enclaveId) : enclaveIdPtr(enclaveId) {
-        sgx_wamr_msg_response.buffer_len = (sizeof(sgx_wamr_msg_t) + sizeof(sgx_wamr_msg_hdr_t));
+    SGXWAMRWasmModule::SGXWAMRWasmModule(sgx_enclave_id_t enclaveIdIn) : enclaveId(enclaveIdIn) {
+        auto logger = faabric::util::getLogger();
 
-        if (!(sgx_wamr_msg_response.buffer_ptr = (sgx_wamr_msg_t *) calloc(sgx_wamr_msg_response.buffer_len,
-                                                                           sizeof(uint8_t)))) {
-            printf("[Error] Unable to allocate space for faaslet message response buffer\n");
-            abort();
+        // Allocate memory for response
+        sgxWamrMsgResponse.buffer_len = (sizeof(sgx_wamr_msg_t) + sizeof(sgx_wamr_msg_hdr_t));
+        sgxWamrMsgResponse.buffer_ptr = (sgx_wamr_msg_t *) calloc(sgxWamrMsgResponse.buffer_len, sizeof(uint8_t));
+        if (!sgxWamrMsgResponse.buffer_ptr) {
+            logger->error("Unable to allocate space for SGX message response buffer");
+            throw std::runtime_error("Unable to allocate space for SGX message response");
         }
 
-        faaslet_sgx_msg_buffer_ptr = &sgx_wamr_msg_response;
+        // Check enclave ID
+        if(enclaveId == 0) {
+            logger->error("Invalid enclave ID passed to WAMR wasm module ({})", enclaveId);
+            throw std::runtime_error("Invalid enclave ID");
+        }
+
+        logger->debug("Created SGX wasm module for enclave {}", enclaveId);
+        faasletSgxMsgBufferPtr = &sgxWamrMsgResponse;
     }
 
     SGXWAMRWasmModule::~SGXWAMRWasmModule() {
@@ -33,8 +42,8 @@ namespace wasm {
             printf("[Error] SGX Faaslet destruction failed\n");
         }
 
-        if (sgx_wamr_msg_response.buffer_ptr) {
-            free(sgx_wamr_msg_response.buffer_ptr);
+        if (sgxWamrMsgResponse.buffer_ptr) {
+            free(sgxWamrMsgResponse.buffer_ptr);
         }
     }
 
@@ -50,13 +59,13 @@ namespace wasm {
         // Set up the enclave
         faasm_sgx_status_t returnValue;
         sgx_status_t status = sgx_wamr_enclave_load_module(
-                *enclaveIdPtr,
+                enclaveId,
                 &returnValue,
                 (void *) wasmOpcode.data(),
                 (uint32_t) wasmOpcode.size(),
                 &threadId
 #if(FAASM_SGX_ATTESTATION)
-                , &faaslet_sgx_msg_buffer_ptr->buffer_ptr
+                , &faasletSgxMsgBufferPtr->buffer_ptr
 #endif
         );
 
@@ -86,7 +95,7 @@ namespace wasm {
 
         faasm_sgx_status_t returnValue;
         sgx_status_t sgxReturnValue = sgx_wamr_enclave_unload_module(
-                *enclaveIdPtr, &returnValue, threadId
+                enclaveId, &returnValue, threadId
         );
 
         if (sgxReturnValue != SGX_SUCCESS) {
@@ -115,7 +124,7 @@ namespace wasm {
         // Set up enclave
         faasm_sgx_status_t returnValue;
         sgx_status_t sgxReturnValue = sgx_wamr_enclave_call_function(
-                *enclaveIdPtr, &returnValue, threadId, msg.idx()
+                enclaveId, &returnValue, threadId, msg.idx()
         );
 
         if (sgxReturnValue != SGX_SUCCESS) {

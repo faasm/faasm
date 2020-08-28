@@ -19,7 +19,7 @@ pthread_cond_signal(&_callback_store[i].cond); \
 pthread_mutex_unlock(&_callback_store[i].mutex)
 
 extern "C" {
-extern __thread faaslet_sgx_msg_buffer_t *faaslet_sgx_msg_buffer_ptr;
+extern __thread faaslet_sgx_msg_buffer_t *faasletSgxMsgBufferPtr;
 
 typedef struct __thread_callback {
     uint8_t msg_id;
@@ -85,7 +85,7 @@ faasm_sgx_status_t ocall_send_msg(sgx_wamr_msg_t *msg, uint32_t msg_len) {
     faasm_sgx_status_t ret_val;
     uint32_t cb_store_id;
 
-    if ((ret_val = _find_callback_store_slot(&cb_store_id, faaslet_sgx_msg_buffer_ptr)) != FAASM_SGX_SUCCESS) {
+    if ((ret_val = _find_callback_store_slot(&cb_store_id, faasletSgxMsgBufferPtr)) != FAASM_SGX_SUCCESS) {
         return ret_val;
     }
 

@@ -3,21 +3,22 @@
 #include "sgx_system.h"
 #include "faasm_sgx_error.h"
 
-#include <sgx.h>
 #include <sgx_urts.h>
 #include <sgx/SGXWAMRWasmModule.h>
 #include <boost/filesystem/operations.hpp>
 
-extern "C" {
-sgx_enclave_id_t enclaveId;
-}
-
+// Global enclave ID
+static sgx_enclave_id_t globalEnclaveId;
 
 #define ERROR_PRINT_CASE(enumVal) case(enumVal): { \
     return std::string(#enumVal); \
 }
 
 namespace sgx {
+    sgx_enclave_id_t getGlobalEnclaveId() {
+        return globalEnclaveId;
+    }
+
     void checkSgxSetup(const std::string &enclavePath,
                        int threadNumber) {
         faasm_sgx_status_t returnValue;
@@ -45,7 +46,7 @@ namespace sgx {
                 SGX_DEBUG_FLAG,
                 &sgxEnclaveToken,
                 (int *) &sgxEnclaveTokenUpdated,
-                &enclaveId,
+                &globalEnclaveId,
                 nullptr
         );
 
@@ -54,24 +55,29 @@ namespace sgx {
             throw std::runtime_error("Unable to create enclave");
         }
 
-        sgxReturnValue = sgx_wamr_enclave_init_wamr(enclaveId, &returnValue, threadNumber);
+        sgxReturnValue = sgx_wamr_enclave_init_wamr(globalEnclaveId, &returnValue, threadNumber);
         if (sgxReturnValue != SGX_SUCCESS) {
             logger->error("Unable to enter enclave: {}", sgxErrorString(sgxReturnValue));
             throw std::runtime_error("Unable to enter enclave");
         }
 
+        logger->debug("Created SGX enclave: {}", globalEnclaveId);
+
         if (returnValue != FAASM_SGX_SUCCESS) {
             logger->error("Unable to initialise WAMR: {}", faasmSgxErrorString(returnValue));
             throw std::runtime_error("Unable to initialise WAMR");
         }
+
+        logger->debug("Initialised WAMR in SGX enclave {}", globalEnclaveId);
     }
 
     void tearDownEnclave() {
-        sgx_status_t sgx_ret_val;
+        auto logger = faabric::util::getLogger();
+        logger->debug("Destroying enclave {}", globalEnclaveId);
 
-        printf("[Info] Destroying enclave\n");
-        if ((sgx_ret_val = sgx_destroy_enclave(enclaveId)) != SGX_SUCCESS) {
-            printf("[Info] Unable to destroy enclave (%#010x)\n", sgx_ret_val);
+        sgx_status_t sgxReturnValue = sgx_destroy_enclave(globalEnclaveId);
+        if (sgxReturnValue != SGX_SUCCESS) {
+            logger->warn("Unable to destroy enclave {}: {}", globalEnclaveId, sgxErrorString(sgxReturnValue));
         }
     }
 

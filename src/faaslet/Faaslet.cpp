@@ -12,10 +12,7 @@
 
 #if(FAASM_SGX == 1)
 #include <sgx/SGXWAMRWasmModule.h>
-
-extern "C"{
-extern sgx_enclave_id_t enclaveId;
-}
+#include <sgx/sgx_system.h>
 #else
 
 #include <wamr/WAMRWasmModule.h>
@@ -146,7 +143,8 @@ namespace faaslet {
         // Instantiate the right wasm module for our chosen runtime
         if (conf.wasmVm == "wamr") {
 #if(FAASM_SGX == 1)
-            module = std::make_unique<wasm::SGXWAMRWasmModule>(&enclaveId);
+            sgx_enclave_id_t enclaveId = sgx::getGlobalEnclaveId();
+            module = std::make_unique<wasm::SGXWAMRWasmModule>(enclaveId);
 #else
             module = std::make_unique<wasm::WAMRWasmModule>();
 #endif

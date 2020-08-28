@@ -50,7 +50,7 @@ sgx_wamr_enclave_call_function(
 namespace wasm {
     class SGXWAMRWasmModule final : public WasmModule {
     public:
-        explicit SGXWAMRWasmModule(sgx_enclave_id_t *enclaveId);
+        explicit SGXWAMRWasmModule(sgx_enclave_id_t enclaveIdIn);
 
         ~SGXWAMRWasmModule() override;
 
@@ -64,12 +64,12 @@ namespace wasm {
 
         bool isBound() override;
 
-        faaslet_sgx_msg_buffer_t sgx_wamr_msg_response;
+        faaslet_sgx_msg_buffer_t sgxWamrMsgResponse;
     private:
         bool _isBound = false;
         unsigned int threadId = 0;
         std::vector<uint8_t> wasmOpcode;
 
-        sgx_enclave_id_t *enclaveIdPtr;
+        sgx_enclave_id_t enclaveId;
     };
 }
