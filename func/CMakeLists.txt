@@ -89,7 +89,3 @@ add_subdirectory(polybench)
 add_subdirectory(python)
 add_subdirectory(sgd)
 add_subdirectory(tf)
-
-if(FAASM_SGX_SUPPORT)
-    add_subdirectory(sgx)
-endif()

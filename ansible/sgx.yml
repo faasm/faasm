@@ -9,6 +9,7 @@
         name:
           - nasm
 
+    # 27/08/20 - currently only Ubuntu 18.04 available
     - name: "Download SGX installers"
       get_url:
         url: "https://download.01.org/intel-sgx/latest/linux-latest/distro/ubuntu18.04-server/{{ item }}"

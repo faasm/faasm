@@ -10,19 +10,23 @@
 	branch = faasm
 [submodule "third-party/pyodide"]
 	path = third-party/pyodide
-	url = http://github.com/Shillaker/pyodide.git
+	url = https://github.com/Shillaker/pyodide.git
 [submodule "third-party/pyfaasm"]
 	path = third-party/pyfaasm
 	url = https://github.com/Shillaker/pyfaasm.git
 [submodule "third-party/ParResKernels"]
 	path = third-party/ParResKernels
 	url = https://github.com/Shillaker/Kernels.git
-[submodule "third-party/wamr"]
-	path = third-party/wamr
-	url = https://github.com/bytecodealliance/wasm-micro-runtime.git
 [submodule "third-party/faabric"]
 	path = third-party/faabric
 	url = https://github.com/Shillaker/faabric.git
 [submodule "third-party/faasm-toolchain"]
 	path = third-party/faasm-toolchain
 	url = https://github.com/Shillaker/faasm-toolchain.git
+[submodule "third-party/wamr"]
+	path = third-party/wamr
+	url = https://github.com/J-Heinemann/wasm-micro-runtime.git
+    branch = faasm
+[submodule "third-party/xra"]
+	path = third-party/xra
+	url = https://github.com/J-Heinemann/eXtended-Remote-Attestation

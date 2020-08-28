@@ -236,7 +236,7 @@ namespace wasm {
         return compartmentCleared;
     }
 
-    const bool WAVMWasmModule::isBound() {
+    bool WAVMWasmModule::isBound() {
         return _isBound;
     }
 

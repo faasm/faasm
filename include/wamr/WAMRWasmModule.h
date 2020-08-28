@@ -27,7 +27,7 @@ namespace wasm {
 
         bool execute(faabric::Message &msg, bool forceNoop = false) override;
 
-        const bool isBound() override;
+        bool isBound() override;
 
         void tearDown();
 

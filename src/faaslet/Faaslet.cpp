@@ -12,10 +12,7 @@
 
 #if(FAASM_SGX == 1)
 #include <sgx/SGXWAMRWasmModule.h>
-
-extern "C"{
-extern sgx_enclave_id_t enclave_id;
-};
+#include <sgx/sgx_system.h>
 #else
 
 #include <wamr/WAMRWasmModule.h>
@@ -46,7 +43,6 @@ namespace faaslet {
 
     Faaslet::Faaslet(int threadIdxIn) : threadIdx(threadIdxIn),
                                         scheduler(faabric::scheduler::getScheduler()) {
-
         const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         // Set an ID for this Faaslet
@@ -68,7 +64,7 @@ namespace faaslet {
         cgroup.addCurrentThread();
     }
 
-    const bool Faaslet::isBound() {
+    bool Faaslet::isBound() {
         return _isBound;
     }
 
@@ -91,7 +87,6 @@ namespace faaslet {
 
         // Add captured stdout if necessary
         faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
-
         if (conf.captureStdout == "on") {
             std::string moduleStdout = module->getCapturedStdout();
             if (!moduleStdout.empty()) {
@@ -148,7 +143,8 @@ namespace faaslet {
         // Instantiate the right wasm module for our chosen runtime
         if (conf.wasmVm == "wamr") {
 #if(FAASM_SGX == 1)
-            module = std::make_unique<wasm::SGXWAMRWasmModule>(&enclave_id);
+            sgx_enclave_id_t enclaveId = sgx::getGlobalEnclaveId();
+            module = std::make_unique<wasm::SGXWAMRWasmModule>(enclaveId);
 #else
             module = std::make_unique<wasm::WAMRWasmModule>();
 #endif

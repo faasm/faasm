@@ -138,7 +138,7 @@ namespace wasm {
         }
     }
 
-    const bool WAMRWasmModule::isBound() {
+    bool WAMRWasmModule::isBound() {
         return _isBound;
     }
 

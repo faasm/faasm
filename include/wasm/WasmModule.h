@@ -46,7 +46,7 @@ namespace wasm {
 
         virtual bool execute(faabric::Message &msg, bool forceNoop = false);
 
-        virtual const bool isBound();
+        virtual bool isBound();
 
         std::string getBoundUser();
 

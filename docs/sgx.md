@@ -6,8 +6,10 @@ Faasm provides
 You can read the latest SGX Linux developer instructions 
 [here](https://download.01.org/intel-sgx/latest/linux-latest/docs/Intel_SGX_Developer_Guide.pdf).
 
+[@J-Heinemann](https://github.com/J-Heinemann) is responsible for the vast majority of the SGX work, 
+but some messy merging means he's not fully attributed on certain files. 
 
-## Set-up
+## SGX Set-up
 
 To set up your machine for SGX you must run the following:
 
@@ -31,6 +33,15 @@ sudo /tmp/sgx_linux_x64_sdk_2.10.100.2.bin
 # Enter "yes" 
 ```
 
-## Build
+## Faasm SGX Build
 
-To build with SGX support, you need to set `-DFAASM_SGX_SUPPORT=ON`.
+The Faasm SGX build is configured with several CMake options of the form `FAASM_SGX_XXX` in the 
+[top-level CMake file](../CMakeLists.txt). 
+
+To use any SGX-related functionality, you must always set `-DFAASM_SGX_SUPPORT=ON`.
+
+To check things are working, you need to:
+
+- Compile with the relevant CMake options switched on
+- Build the `sgx_runner` target
+- Run `sgx_runner demo hello` to run a hello world function

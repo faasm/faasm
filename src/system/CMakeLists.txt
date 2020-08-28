@@ -7,7 +7,6 @@ file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/system/*.h")
 set(LIB_FILES
         CGroup.cpp
         NetworkNamespace.cpp
-        SGX.cpp
         ${HEADERS}
         )
 
