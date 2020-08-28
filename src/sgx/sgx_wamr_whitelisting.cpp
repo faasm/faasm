@@ -8,6 +8,7 @@ extern "C" {
 extern _sgx_wamr_tcs_t *sgx_wamr_tcs;
 extern __thread uint32_t tls_thread_id;
 
+
 faasm_sgx_status_t _register_whitelist(const char *whitelist_ptr, const char separator) {
     _sgx_wamr_whitelist_t **_storage_ptr = &sgx_wamr_tcs[tls_thread_id].module_whitelist;
     uint32_t substring_counter = 1;

@@ -10,8 +10,8 @@ option(FAASM_OPENMP_TRACING "Trace OpenMP forks in Redis" OFF)
 option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md" OFF)
 
 # SGX functionality
-option(FAASM_SGX_SUPPORT "Add support for SGX" ON)
-option(FAASM_SGX_SIM_MODE "SGX sim mode flag" ON)
+option(FAASM_SGX_SUPPORT "Add support for SGX" OFF)
+option(FAASM_SGX_SIM_MODE "SGX sim mode flag" OFF)
 option(FAASM_SGX_ATTESTATION "Add support for attestation" OFF)
 option(FAASM_SGX_WHITELISTING "Add support for whitelisting" OFF)
 option(FAASM_SGX_XRA "Add support for XRA" OFF)
