@@ -3,22 +3,26 @@
 #include <sgx/sgx_system.h>
 
 #include <faabric/util/func.h>
-#include <cstdio>
 
 
 int main(int argc, char **argv) {
+    auto logger = faabric::util::getLogger();
     if (argc < 3) {
-        printf("[Error] Too few arguments. Please enter user and function\n");
+        logger->error("Too few arguments ({}). Please enter user and function", argc);
         return -1;
     }
 
+    std::string user(argv[1]);
+    std::string function(argv[2]);
+    logger->info("Running {}/{} in SGX", user, function);
+
     // Check for SGX support
     int threadNumber = 1;
+    std::string enclavePath = SGX_WAMR_ENCLAVE_PATH;
     if(argc > 3) {
-        sgx::checkSgxSetup(argv[3], threadNumber);
-    } else {
-        sgx::checkSgxSetup(SGX_WAMR_ENCLAVE_PATH, threadNumber);
+        enclavePath = argv[3];
     }
+    sgx::checkSgxSetup(enclavePath, threadNumber);
 
     // Set up the module
     sgx_enclave_id_t enclaveId = sgx::getGlobalEnclaveId();
@@ -27,6 +31,7 @@ int main(int argc, char **argv) {
     // Execute the function
     faabric::Message msg = faabric::util::messageFactory(argv[1], argv[2]);
     msg.set_issgx(true);
+
     module.bindToFunction(msg);
     module.execute(msg);
 
