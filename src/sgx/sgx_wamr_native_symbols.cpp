@@ -20,37 +20,37 @@ namespace wasm {
 
 extern "C" {
 
-uint64_t ocall_faasm_read_state_size(const char *key) {
-    State &state = getGlobalState();
-    return (uint64_t) state.getStateSize(wasm::getExecutingCall()->user(), std::string(key));
-}
+uint64_t ocall_faasm_read_state(const char *key, uint8_t *bufferPtr, const uint32_t bufferLen) {
+    STATE_KV(key, bufferLen)
+    stateKv->get(bufferPtr);
 
-uint64_t ocall_faasm_read_state(const char *key, uint8_t *buffer_ptr, const uint32_t buffer_len) {
-    STATE_KV(key, buffer_len)
-    stateKv->get(buffer_ptr);
+    if (bufferLen == 0) {
+        return (uint64_t) state.getStateSize(wasm::getExecutingCall()->user(), std::string(key));
+    }
+
     return stateKv->size();
 }
 
-void ocall_faasm_read_appended_state(const char *key, uint8_t *buffer_ptr, const uint32_t buffer_len,
+void ocall_faasm_read_appended_state(const char *key, uint8_t *bufferPtr, const uint32_t bufferLen,
                                      const uint32_t element_num) {
-    STATE_KV(key, buffer_len)
-    stateKv->getAppended(buffer_ptr, buffer_len, element_num);
+    STATE_KV(key, bufferLen)
+    stateKv->getAppended(bufferPtr, bufferLen, element_num);
 }
 
-void ocall_faasm_read_state_offset(const char *key, const uint64_t total_len,
-                                   const uint64_t offset, uint8_t *buffer_ptr, const uint32_t buffer_len) {
-    STATE_KV(key, total_len)
-    stateKv->getChunk(offset, buffer_ptr, buffer_len);
+void ocall_faasm_read_state_offset(const char *key, const uint64_t totalLen,
+                                   const uint64_t offset, uint8_t *bufferPtr, const uint32_t bufferLen) {
+    STATE_KV(key, totalLen)
+    stateKv->getChunk(offset, bufferPtr, bufferLen);
 }
 
-void ocall_faasm_write_state(const char *key, const uint8_t *buffer_ptr, const uint32_t buffer_len) {
-    STATE_KV(key, buffer_len)
-    stateKv->set(buffer_ptr);
+void ocall_faasm_write_state(const char *key, const uint8_t *bufferPtr, const uint32_t bufferLen) {
+    STATE_KV(key, bufferLen)
+    stateKv->set(bufferPtr);
 }
 
-void ocall_faasm_append_state(const char *key, const uint8_t *buffer_ptr, const uint32_t buffer_len) {
-    STATE_KV(key, buffer_len)
-    stateKv->append(buffer_ptr, buffer_len);
+void ocall_faasm_append_state(const char *key, const uint8_t *bufferPtr, const uint32_t bufferLen) {
+    STATE_KV(key, bufferLen)
+    stateKv->append(bufferPtr, bufferLen);
 }
 
 void ocall_faasm_clear_appended_state(const char *key) {
@@ -58,20 +58,20 @@ void ocall_faasm_clear_appended_state(const char *key) {
     stateKv->clearAppended();
 }
 
-void ocall_faasm_write_state_offset(const char *key, const uint64_t total_len, const uint64_t offset,
-                                    const uint8_t *buffer_ptr, const uint32_t buffer_len) {
-    STATE_KV(key, total_len)
-    stateKv->setChunk(offset, buffer_ptr, buffer_len);
+void ocall_faasm_write_state_offset(const char *key, const uint64_t totalLen, const uint64_t offset,
+                                    const uint8_t *bufferPtr, const uint32_t bufferLen) {
+    STATE_KV(key, totalLen)
+    stateKv->setChunk(offset, bufferPtr, bufferLen);
 }
 
-void ocall_faasm_flag_state_dirty(const char *key, const uint64_t total_len) {
-    STATE_KV(key, total_len)
+void ocall_faasm_flag_state_dirty(const char *key, const uint64_t totalLen) {
+    STATE_KV(key, totalLen)
     stateKv->flagDirty();
 }
 
-void ocall_faasm_flag_state_offset_dirty(const char *key, const uint64_t total_len, const uint64_t offset,
+void ocall_faasm_flag_state_offset_dirty(const char *key, const uint64_t totalLen, const uint64_t offset,
                                          const uint64_t len) {
-    STATE_KV(key, total_len)
+    STATE_KV(key, totalLen)
     stateKv->flagChunkDirty(offset, len);
 }
 
@@ -85,9 +85,9 @@ void ocall_faasm_push_state_partial(const char *key) {
     stateKv->pushPartial();
 }
 
-void ocall_faasm_push_state_partial_mask(const char *key, const char *mask_key) {
+void ocall_faasm_push_state_partial_mask(const char *key, const char *maskKey) {
     STATE_KV(key, 0)
-    auto maskKv = state.getKV(wasm::getExecutingCall()->user(), std::string(mask_key), 0);
+    auto maskKv = state.getKV(wasm::getExecutingCall()->user(), std::string(maskKey), 0);
     stateKv->pushPartialMask(maskKv);
 }
 
@@ -126,46 +126,52 @@ void ocall_faasm_unlock_state_write(const char *key) {
     stateKv->unlockWrite();
 }
 
-unsigned int ocall_faasm_get_input_size(void) {
-    return wasm::getExecutingCall()->inputdata().size();
-}
-
-void ocall_faasm_get_input(uint8_t *buffer, unsigned int buffer_size) {
+int ocall_faasm_read_input(uint8_t *buffer, unsigned int bufferSize) {
     faabric::Message *msg = wasm::getExecutingCall();
 
-    if (msg->inputdata().size() > 0) {
+    unsigned long inputLen = msg->inputdata().size();
+
+    if (bufferSize == 0) {
+        return (int) inputLen;
+    }
+
+    if (inputLen > 0) {
         const std::string &_input = msg->inputdata();
-        if (_input.size() > buffer_size) {
-            memcpy(buffer, _input.data(), buffer_size);
+        if (_input.size() > bufferSize) {
+            memcpy(buffer, _input.data(), bufferSize);
+            return (int) bufferSize;
         } else {
             memcpy(buffer, _input.data(), _input.size());
+            return (int) inputLen;
         }
     }
+    
+    return 0;
 }
 
-void ocall_faasm_set_output(uint8_t *output, unsigned int output_size) {
-    wasm::getExecutingCall()->set_outputdata((void *) output, output_size);
+void ocall_faasm_write_output(uint8_t *output, unsigned int outputSize) {
+    wasm::getExecutingCall()->set_outputdata((void *) output, outputSize);
 }
 
-unsigned int ocall_faasm_chain_function_input(const char *name, const uint8_t *input, unsigned int input_size) {
-    std::vector<uint8_t> _input(input, input + input_size);
+unsigned int ocall_faasm_chain_function(const char *name, const uint8_t *input, unsigned int inputSize) {
+    std::vector<uint8_t> _input(input, input + inputSize);
     return wasm::makeChainedCall(std::string(name), 0, nullptr, _input);
 }
 
-unsigned int ocall_faasm_chain_this_input(const int idx, uint8_t *input, unsigned int input_size) {
-    const std::vector<uint8_t> _input(input, input + input_size);
+unsigned int ocall_faasm_chain_this(const int idx, uint8_t *input, unsigned int inputSize) {
+    const std::vector<uint8_t> _input(input, input + inputSize);
     return wasm::makeChainedCall(wasm::getExecutingCall()->function(), idx, nullptr, _input);
 }
 
-unsigned int ocall_faasm_await_call(unsigned int call_id) {
-    return wasm::awaitChainedCall(call_id);
+unsigned int ocall_faasm_await_call(unsigned int callId) {
+    return wasm::awaitChainedCall(callId);
 }
 
-unsigned int ocall_faasm_await_call_output(unsigned int call_id, uint8_t *buffer, unsigned int buffer_size) {
-    return wasm::awaitChainedCallOutput(call_id, buffer, buffer_size);
+unsigned int ocall_faasm_await_call_output(unsigned int callId, uint8_t *buffer, unsigned int bufferSize) {
+    return wasm::awaitChainedCallOutput(callId, buffer, bufferSize);
 }
 
-int ocall_faasm_get_current_idx(void) {
+int ocall_faasm_get_idx(void) {
     return wasm::getExecutingCall()->idx();
 }
 

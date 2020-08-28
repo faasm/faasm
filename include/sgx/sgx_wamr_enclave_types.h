@@ -1,5 +1,10 @@
 #pragma once
 
+// This is in a slightly awkward place to avoid having to
+// redefine everywhere
+#define SGX_WAMR_NATIVE_SYMBOL_COUNT 26
+#define SGX_WAMR_WASI_SYMBOL_COUNT 6
+
 #if(FAASM_SGX_ATTESTATION)
 #include <sgx/sgx_wamr_attestation.h>
 #endif

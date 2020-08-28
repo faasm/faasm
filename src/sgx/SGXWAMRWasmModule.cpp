@@ -94,6 +94,7 @@ namespace wasm {
         }
 
         auto logger = faabric::util::getLogger();
+        logger->debug("Unloading enclave {}", enclaveId);
 
         faasm_sgx_status_t returnValue;
         sgx_status_t sgxReturnValue = sgx_wamr_enclave_unload_module(
@@ -101,8 +102,8 @@ namespace wasm {
         );
 
         if (sgxReturnValue != SGX_SUCCESS) {
-            logger->error("Unable to enter enclave on bind: {}", sgxErrorString(sgxReturnValue));
-            throw std::runtime_error("Unable to enter enclave on bind");
+            logger->error("Unable to unload enclave on unbind: {}", sgxErrorString(sgxReturnValue));
+            throw std::runtime_error("Unable to unload enclave");
         }
 
         if (returnValue != FAASM_SGX_SUCCESS) {
@@ -115,8 +116,9 @@ namespace wasm {
 
     bool SGXWAMRWasmModule::execute(faabric::Message &msg, bool forceNoop) {
         auto logger = faabric::util::getLogger();
+        std::string funcStr = faabric::util::funcToString(msg, true);
         if (!_isBound) {
-            logger->error("Function already bound {}", faabric::util::funcToString(msg, true));
+            logger->error("Function already bound {}", funcStr);
             throw std::runtime_error("Function already bound");
         }
 
@@ -125,6 +127,7 @@ namespace wasm {
 
         // Set up enclave
         faasm_sgx_status_t returnValue;
+        logger->error("Entering enclave {} to execute {}", enclaveId, funcStr);
         sgx_status_t sgxReturnValue = sgx_wamr_enclave_call_function(
                 enclaveId, &returnValue, threadId, msg.idx()
         );

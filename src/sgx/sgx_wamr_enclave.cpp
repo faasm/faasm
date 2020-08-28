@@ -12,6 +12,9 @@
 #include <iwasm/interpreter/wasm_runtime.h>
 #include <iwasm/aot/aot_runtime.h>
 
+#define WASM_CTORS_FUNC_NAME "__wasm_call_ctors"
+#define ENTRY_FUNC_NAME "_start"
+
 #if(FAASM_SGX_ATTESTATION)
 
 #include <sgx/sgx_wamr_attestation.h>
@@ -21,17 +24,21 @@ __sync_fetch_and_add(&_sgx_wamr_msg_id, 1)
 
 #endif
 
-
 extern "C" {
+
 typedef void(*os_print_function_t)(const char *msg);
+
 extern void os_set_print_function(os_print_function_t pf);
 extern int os_printf(const char *message, ...);
+
 extern sgx_status_t SGX_CDECL ocall_printf(const char *msg);
-extern NativeSymbol sgx_wamr_native_symbols[28];
+
+extern NativeSymbol sgxWamrNativeSymbols[SGX_WAMR_NATIVE_SYMBOL_COUNT];
+extern NativeSymbol sgxWamrWasiSymbols[SGX_WAMR_WASI_SYMBOL_COUNT];
 
 #if(FAASM_SGX_ATTESTATION)
-extern sgx_status_t SGX_CDECL ocall_init_crt(faasm_sgx_status_t *ret_val);
-extern sgx_status_t SGX_CDECL ocall_send_msg(faasm_sgx_status_t *ret_val, sgx_wamr_msg_t *msg, uint32_t msg_len);
+extern sgx_status_t SGX_CDECL ocall_init_crt(faasm_sgx_status_t *returnValue);
+extern sgx_status_t SGX_CDECL ocall_send_msg(faasm_sgx_status_t *returnValue, sgx_wamr_msg_t *msg, uint32_t msg_len);
 static uint8_t _sgx_wamr_msg_id = 0;
 #endif
 
@@ -59,10 +66,10 @@ recv_msg(uint32_t thread_id, void **payload_ptr, uint32_t *payload_len) {//TODO:
         return FAASM_SGX_INVALID_THREAD_ID;
     if (!payload_ptr || !payload_len)
         return FAASM_SGX_INVALID_PTR;
-    faasm_sgx_status_t ret_val;
+    faasm_sgx_status_t returnValue;
     sgx_wamr_msg_t *response_ptr;
-    if ((ret_val = __get_response_msg(thread_id, &response_ptr)) != FAASM_SGX_SUCCESS)
-        return ret_val;
+    if ((returnValue = __get_response_msg(thread_id, &response_ptr)) != FAASM_SGX_SUCCESS)
+        return returnValue;
     ///////////ENCRYPTION///////////
     //Implement me :P
     ///////////ENCRYPTION///////////
@@ -73,8 +80,8 @@ recv_msg(uint32_t thread_id, void **payload_ptr, uint32_t *payload_len) {//TODO:
 
 static faasm_sgx_status_t send_msg(const void *payload_ptr, const uint32_t payload_len) {
     sgx_wamr_msg_t *msg_ptr;
-    sgx_status_t sgx_ret_val;
-    faasm_sgx_status_t ret_val;
+    sgx_status_t sgxReturnValue;
+    faasm_sgx_status_t returnValue;
 
     if (!payload_ptr) {
         return FAASM_SGX_INVALID_PTR;
@@ -97,13 +104,13 @@ static faasm_sgx_status_t send_msg(const void *payload_ptr, const uint32_t paylo
     msg_ptr->payload_len = payload_len;
     memcpy(((uint8_t *) msg_ptr->payload), payload_ptr, payload_len);
     ///////////REMOVE IF ENCRYPTION WORKS///////////
-    if ((sgx_ret_val = ocall_send_msg(&ret_val, msg_ptr, sizeof(sgx_wamr_msg_t) + msg_ptr->payload_len)) !=
+    if ((sgxReturnValue = ocall_send_msg(&returnValue, msg_ptr, sizeof(sgx_wamr_msg_t) + msg_ptr->payload_len)) !=
         SGX_SUCCESS) {
         free(msg_ptr);
-        return FAASM_SGX_OCALL_ERROR(sgx_ret_val);
+        return FAASM_SGX_OCALL_ERROR(sgxReturnValue);
     }
     free(msg_ptr);
-    return ret_val;
+    return returnValue;
 }
 #endif
 
@@ -151,18 +158,35 @@ static inline faasm_sgx_status_t __get_tcs_slot(uint32_t *thread_id) {
 }
 
 faasm_sgx_status_t sgx_wamr_enclave_call_function(const uint32_t thread_id, const uint32_t func_id) {
-    wasm_function_inst_t wasm_function;
     read_lock(&_rwlock_sgx_wamr_tcs_realloc);
     auto wasm_module_inst_ptr = (WASMModuleInstance *) sgx_wamr_tcs[thread_id].module_inst;
     read_unlock(&_rwlock_sgx_wamr_tcs_realloc);
+
     char func_id_str[33];
-    if (_itoa_s(func_id, func_id_str, sizeof(func_id_str), 10))
-        return FAASM_SGX_INVALID_FUNC_ID;
-    if (thread_id >= _sgx_wamr_tcs_len)
+    if (func_id == 0) {
+        sprintf_s(func_id_str, 33, "%s", ENTRY_FUNC_NAME);
+    } else {
+        sprintf_s(func_id_str, 33, "_faasm_func_%i", func_id);
+    }
+
+    if (thread_id >= _sgx_wamr_tcs_len) {
         return FAASM_SGX_INVALID_THREAD_ID;
-    if (!(wasm_function = wasm_runtime_lookup_function((WASMModuleInstanceCommon *) wasm_module_inst_ptr, func_id_str,
-                                                       NULL)))
+    }
+
+    wasm_function_inst_t wasm_function = wasm_runtime_lookup_function(
+            (WASMModuleInstanceCommon *) wasm_module_inst_ptr,
+            func_id_str,
+            NULL
+    );
+
+    if (!wasm_function) {
+        os_printf("Could not find function: ");
+        os_printf(func_id_str);
+        os_printf("\n");
+
         return FAASM_SGX_WAMR_FUNCTION_NOT_FOUND;
+    }
+
 #if(FAASM_SGX_ATTESTATION)
     tls_thread_id = thread_id;
 #endif
@@ -170,8 +194,8 @@ faasm_sgx_status_t sgx_wamr_enclave_call_function(const uint32_t thread_id, cons
                                                  0x0))) {
 #if(WASM_ENABLE_INTERP == 1 && WASM_ENABLE_AOT == 0)
         if(!memcmp(wasm_module_inst_ptr->cur_exception,_WRAPPER_ERROR_PREFIX,sizeof(_WRAPPER_ERROR_PREFIX))){
-                faasm_sgx_status_t ret_val = *(faasm_sgx_status_t*)&(wasm_module_inst_ptr->cur_exception[sizeof(_WRAPPER_ERROR_PREFIX)]);
-                return ret_val;
+                faasm_sgx_status_t returnValue = *(faasm_sgx_status_t*)&(wasm_module_inst_ptr->cur_exception[sizeof(_WRAPPER_ERROR_PREFIX)]);
+                return returnValue;
             }
             ocall_printf(wasm_module_inst_ptr->cur_exception);
 #elif(WASM_ENABLE_INTERP == 0 && WASM_ENABLE_AOT == 1)
@@ -209,12 +233,12 @@ faasm_sgx_status_t sgx_wamr_enclave_load_module(
         const uint32_t wasm_opcode_size,
         uint32_t *thread_id
 #if(FAASM_SGX_ATTESTATION)
-    , sgx_wamr_msg_t **response_ptr
+        , sgx_wamr_msg_t **response_ptr
 #endif
-    ) {
+) {
 
     char module_error_buffer[FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE];
-    faasm_sgx_status_t ret_val;
+    faasm_sgx_status_t returnValue;
     memset(module_error_buffer, 0x0, sizeof(module_error_buffer));
     if (!wasm_opcode_size) {
         return FAASM_SGX_INVALID_OPCODE_SIZE;
@@ -228,8 +252,8 @@ faasm_sgx_status_t sgx_wamr_enclave_load_module(
         return FAASM_SGX_INVALID_PTR;
     }
 
-    if ((ret_val = __get_tcs_slot(thread_id)) != FAASM_SGX_SUCCESS) {
-        return ret_val;
+    if ((returnValue = __get_tcs_slot(thread_id)) != FAASM_SGX_SUCCESS) {
+        return returnValue;
     }
 
 #if(FAASM_SGX_WHITELISTING)
@@ -244,8 +268,6 @@ faasm_sgx_status_t sgx_wamr_enclave_load_module(
 
     void *wasmBuffer = calloc(wasm_opcode_size, sizeof(uint8_t));
     if (!wasmBuffer) {
-        errno_t errorNumber = errno;
-
         sgx_wamr_tcs[*thread_id].module = 0x0;
         read_unlock(&_rwlock_sgx_wamr_tcs_realloc);
 
@@ -286,33 +308,46 @@ faasm_sgx_status_t sgx_wamr_enclave_load_module(
 
 faasm_sgx_status_t sgx_wamr_enclave_init_wamr(const uint32_t thread_number) {
     os_set_print_function((os_print_function_t) ocall_printf);
-    RuntimeInitArgs wamr_runtime_init_args;
 
+    _sgx_wamr_tcs_len = thread_number;
     if ((sgx_wamr_tcs = (_sgx_wamr_tcs_t *) calloc(thread_number, sizeof(_sgx_wamr_tcs_t))) == NULL) {
         ocall_printf("OOM initialising WAMR\n");
         return FAASM_SGX_OUT_OF_MEMORY;
     }
 
-    _sgx_wamr_tcs_len = thread_number;
-    memset(&wamr_runtime_init_args, 0x0, sizeof(wamr_runtime_init_args));
-    wamr_runtime_init_args.mem_alloc_type = Alloc_With_Pool;
-    wamr_runtime_init_args.mem_alloc_option.pool.heap_buf = _wamr_global_heap_buffer;
-    wamr_runtime_init_args.mem_alloc_option.pool.heap_size = sizeof(_wamr_global_heap_buffer);
-    wamr_runtime_init_args.native_module_name = "env";
-    wamr_runtime_init_args.native_symbols = sgx_wamr_native_symbols;
-    wamr_runtime_init_args.n_native_symbols = (sizeof(sgx_wamr_native_symbols) / sizeof(NativeSymbol));
+    // Initialise the WAMR runtime
+    RuntimeInitArgs wamrRuntimeArgs;
+    memset(&wamrRuntimeArgs, 0x0, sizeof(wamrRuntimeArgs));
+    wamrRuntimeArgs.mem_alloc_type = Alloc_With_Pool;
+    wamrRuntimeArgs.mem_alloc_option.pool.heap_buf = _wamr_global_heap_buffer;
+    wamrRuntimeArgs.mem_alloc_option.pool.heap_size = sizeof(_wamr_global_heap_buffer);
 
-    if (!wasm_runtime_full_init(&wamr_runtime_init_args)) {
+    bool initResult = wasm_runtime_full_init(&wamrRuntimeArgs);
+    if (!initResult) {
         return FAASM_SGX_WAMR_RTE_INIT_FAILED;
     }
 
+    // Set up native symbols
+    wasm_native_register_natives(
+            "env", sgxWamrNativeSymbols, SGX_WAMR_NATIVE_SYMBOL_COUNT
+    );
+
+    wasm_native_register_natives(
+            "wasi_snapshot_preview1", sgxWamrWasiSymbols, SGX_WAMR_WASI_SYMBOL_COUNT
+    );
+
+
 #if(FAASM_SGX_ATTESTATION)
-    sgx_status_t sgx_ret_val;
-    faasm_sgx_status_t ret_val;
-    if ((sgx_ret_val = ocall_init_crt(&ret_val)) != SGX_SUCCESS)
-        return FAASM_SGX_OCALL_ERROR(sgx_ret_val);
-    if (ret_val != FAASM_SGX_SUCCESS)
-        return ret_val;
+    sgx_status_t sgxReturnValue;
+    faasm_sgx_status_t returnValue;
+
+    if ((sgxReturnValue = ocall_init_crt(&returnValue)) != SGX_SUCCESS) {
+        return FAASM_SGX_OCALL_ERROR(sgxReturnValue);
+    }
+    
+    if (returnValue != FAASM_SGX_SUCCESS) {
+        return returnValue;
+    }
 #endif
 
     return FAASM_SGX_SUCCESS;

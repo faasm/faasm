@@ -34,7 +34,4 @@ int main(int argc, char **argv) {
 
     module.bindToFunction(msg);
     module.execute(msg);
-
-    // Tidy up
-    sgx::tearDownEnclave();
 }
