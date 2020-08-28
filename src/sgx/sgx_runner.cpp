@@ -1,9 +1,9 @@
 #include <sgx_urts.h>
 #include <sgx/SGXWAMRWasmModule.h>
+#include <sgx/sgx_system.h>
 
 #include <faabric/util/func.h>
 #include <cstdio>
-#include <system/SGX.h>
 
 
 int main(int argc, char **argv) {
@@ -19,9 +19,9 @@ int main(int argc, char **argv) {
     // Check for SGX support
     int threadNumber = 1;
     if(argc > 3) {
-        isolation::checkSgxSetup(argv[3], threadNumber);
+        sgx::checkSgxSetup(argv[3], threadNumber);
     } else {
-        isolation::checkSgxSetup(SGX_WAMR_ENCLAVE_PATH, threadNumber);
+        sgx::checkSgxSetup(SGX_WAMR_ENCLAVE_PATH, threadNumber);
     }
 
     // Execute the function
@@ -29,4 +29,7 @@ int main(int argc, char **argv) {
     msg.set_issgx(true);
     module.bindToFunction(msg);
     module.execute(msg);
+
+    // Tidy up
+    sgx::tearDownEnclave();
 }

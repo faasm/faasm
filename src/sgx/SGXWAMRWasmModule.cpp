@@ -1,7 +1,9 @@
 #include <cstdio>
 
+#include <faabric/util/func.h>
 #include <sgx/SGXWAMRWasmModule.h>
 #include <sgx/sgx_wamr_attestation.h>
+#include <sgx/sgx_system.h>
 
 extern "C" {
 void ocall_printf(const char *msg) {
@@ -10,6 +12,8 @@ void ocall_printf(const char *msg) {
 }
 
 __thread faaslet_sgx_msg_buffer_t *faaslet_sgx_msg_buffer_ptr;
+
+using namespace sgx;
 
 namespace wasm {
     SGXWAMRWasmModule::SGXWAMRWasmModule(sgx_enclave_id_t *enclaveId) : enclaveIdPtr(enclaveId) {
@@ -35,6 +39,8 @@ namespace wasm {
     }
 
     void SGXWAMRWasmModule::bindToFunction(const faabric::Message &msg) {
+        auto logger = faabric::util::getLogger();
+
         // Load the function
         storage::FileSystem fs;
         storage::FileLoader &fl = storage::getFileLoader();
@@ -55,13 +61,13 @@ namespace wasm {
         );
 
         if (status != SGX_SUCCESS) {
-            printf("[Error] Unable to enter enclave (%#010x)\n", status);
+            logger->error("Unable to enter enclave: {}", sgxErrorString(status));
             throw std::runtime_error("Unable to enter enclave");
         }
 
         if (returnValue != FAASM_SGX_SUCCESS) {
-            printf("[Error] Unable to load WASM module (%#010x)\n", returnValue);
-            throw std::runtime_error("Unable to load SGX WASM module");
+            logger->error("Unable to load WASM module: {}", faasmSgxErrorString(returnValue));
+            throw std::runtime_error("Unable to load WASM module");
         }
 
         _isBound = true;
@@ -76,29 +82,31 @@ namespace wasm {
             return true;
         }
 
+        auto logger = faabric::util::getLogger();
+
         faasm_sgx_status_t returnValue;
         sgx_status_t sgxReturnValue = sgx_wamr_enclave_unload_module(
                 *enclaveIdPtr, &returnValue, threadId
         );
 
         if (sgxReturnValue != SGX_SUCCESS) {
-            printf("[Error] Unable to enter enclave (%#010x)\n", sgxReturnValue);
-            return false;
+            logger->error("Unable to enter enclave on bind: {}", sgxErrorString(sgxReturnValue));
+            throw std::runtime_error("Unable to enter enclave on bind");
         }
 
         if (returnValue != FAASM_SGX_SUCCESS) {
-            printf("[Error] Unable to unbind function (%#010x)\n", returnValue);
-            return false;
+            logger->error("Unable to unbind function: {}", faasmSgxErrorString(returnValue));
+            throw std::runtime_error("Unable to unbind function");
         }
 
         return true;
     }
 
     bool SGXWAMRWasmModule::execute(faabric::Message &msg, bool forceNoop) {
+        auto logger = faabric::util::getLogger();
         if (!_isBound) {
-            printf("[Error] Unable to call desired function (%#010x)\n", FAASM_SGX_WAMR_MODULE_NOT_BOUND);
-            msg.set_returnvalue(FAASM_SGX_WAMR_MODULE_NOT_BOUND);
-            return false;
+            logger->error("Function already bound {}", faabric::util::funcToString(msg, true));
+            throw std::runtime_error("Function already bound");
         }
 
         // Set executing call
@@ -111,24 +119,20 @@ namespace wasm {
         );
 
         if (sgxReturnValue != SGX_SUCCESS) {
-            printf("[Error] Unable to enter enclave (%#010x)\n", sgxReturnValue);
-            msg.set_returnvalue(FAASM_SGX_UNABLE_TO_ENTER_ENCLAVE);
-            return false;
+            logger->error("Unable to enter enclave: {}", sgxErrorString(sgxReturnValue));
+            throw std::runtime_error("Unable to enter enclave");
         }
 
         if (returnValue != FAASM_SGX_SUCCESS) {
             // Check if an ocall has failed
             sgxReturnValue = (sgx_status_t) FAASM_SGX_OCALL_GET_SGX_ERROR(returnValue);
             if (sgxReturnValue) {
-                printf("[Error] An OCALL failed (%#010x)\n", sgxReturnValue);
-                msg.set_returnvalue(FAASM_SGX_OCALL_FAILED);
-                return false;
+                logger->error("An OCALL failed: {}", sgxErrorString(sgxReturnValue));
+                throw std::runtime_error("OCALL failed");
             }
 
-            printf("[Error] An error occurred during function execution (%#010x)\n", returnValue);
-            msg.set_returnvalue(returnValue);
-
-            return false;
+            logger->error("Error occurred during function execution: {}", faasmSgxErrorString(returnValue));
+            throw std::runtime_error("Error during function execution");
         }
 
         return true;

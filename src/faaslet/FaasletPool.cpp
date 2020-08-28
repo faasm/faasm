@@ -1,7 +1,6 @@
 #include "FaasletPool.h"
 
 #include <faaslet/Faaslet.h>
-#include <system/SGX.h>
 
 
 namespace faaslet {
@@ -10,9 +9,6 @@ namespace faaslet {
             scheduler(faabric::scheduler::getScheduler()),
             threadTokenPool(nThreads),
             stateServer(faabric::state::getGlobalState()) {
-
-        // Check SGX (will do nothing if not enabled)
-        isolation::checkSgxSetup();
 
         // Ensure we can ping both redis instances
         faabric::redis::Redis::getQueue().ping();
@@ -124,8 +120,5 @@ namespace faaslet {
         }
 
         logger->info("Faaslet pool successfully shut down");
-
-        // Tear down SGX enclave (will do nothing if not enabled)
-        isolation::tearDownEnclave();
     }
 }

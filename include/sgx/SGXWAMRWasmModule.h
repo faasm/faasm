@@ -6,10 +6,11 @@
 
 #include <sgx.h>
 #include <sgx_urts.h>
-#include <sgx/faasm_sgx_error.h>
 #include <sgx/sgx_wamr_attestation.h>
+#include <sgx/faasm_sgx_error.h>
 
 extern "C" {
+
 extern void ocall_printf(const char *msg);
 
 extern faasm_sgx_status_t faasm_sgx_get_sgx_support(void); //Todo: Change const unsigned int to uint32_t
@@ -45,7 +46,6 @@ sgx_wamr_enclave_call_function(
         const uint32_t func_id
 );
 }
-
 
 namespace wasm {
     class SGXWAMRWasmModule final : public WasmModule {

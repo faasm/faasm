@@ -1,39 +1,26 @@
 #include <sgx.h>
 #include <sgx_defs.h>
 #include <sgx_thread.h>
-#include <string.h>
 
 #include <iwasm/include/wasm_export.h>
 #include <sgx/faasm_sgx_error.h>
 #include <sgx/sgx_wamr_enclave_types.h>
 #include <tlibc/mbusafecrt.h>
 #include <rw_lock.h>
+#include <libcxx/cstdlib>
+
+#include <iwasm/interpreter/wasm_runtime.h>
+#include <iwasm/aot/aot_runtime.h>
 
 #if(FAASM_SGX_ATTESTATION)
 
 #include <sgx/sgx_wamr_attestation.h>
 
-#endif
-
-#if(FAASM_SGX_WHITELISTING)
-
-#include <iwasm/interpreter/wasm_runtime.h>
-#include <iwasm/aot/aot_runtime.h>
-
-#endif
-
-#if(WASM_ENABLE_INTERP == 1)
-#include <iwasm/interpreter/wasm_runtime.h>
-#endif
-
-#if(WASM_ENABLE_AOT == 1)
-#include <iwasm/aot/aot_runtime.h>
-#endif
-
-#if(FAASM_SGX_ATTESTATION)
 #define INCREMENT_MSG_ID() \
 __sync_fetch_and_add(&_sgx_wamr_msg_id, 1)
+
 #endif
+
 
 extern "C" {
 typedef void(*os_print_function_t)(const char *msg);
@@ -132,8 +119,13 @@ static inline faasm_sgx_status_t __get_tcs_slot(uint32_t *thread_id) {
     write_lock(&_rwlock_sgx_wamr_tcs_realloc);
 
     if ((temp_ptr = (_sgx_wamr_tcs_t *) realloc(sgx_wamr_tcs, (temp_len * sizeof(_sgx_wamr_tcs_t)))) != NULL) {
-        memset((void *) (temp_ptr + _sgx_wamr_tcs_len), 0x0, (temp_len - _sgx_wamr_tcs_len) *
-                                                             sizeof(_sgx_wamr_tcs_t)); //Have to zero out new memory because realloc can refer to already used memory
+        //Have to zero out new memory because realloc can refer to already used memory
+        memset(
+                (void *) (temp_ptr + _sgx_wamr_tcs_len),
+                0x0,
+                (temp_len - _sgx_wamr_tcs_len) * sizeof(_sgx_wamr_tcs_t)
+        );
+
         sgx_wamr_tcs = temp_ptr;
         _sgx_wamr_tcs_len = temp_len;
         sgx_wamr_tcs[i].module = (WASMModuleCommon *) 0x1;

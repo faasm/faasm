@@ -207,10 +207,13 @@ endif ()
 set(SGX_WAMR_ASM_SOURCE_FILES
         SGXWAMRWasmModule.S
         )
-set_source_files_properties(${SGX_WAMR_ASM_SOURCE_FILES} PROPERTIES LANGUAGE ASM_NASM)
+set_source_files_properties(${SGX_WAMR_ASM_SOURCE_FILES}
+        PROPERTIES LANGUAGE ASM_NASM
+        )
 
 set(SGX_WAMR_SRC
         SGXWAMRWasmModule.cpp
+        sgx_system.cpp
         sgx_wamr_native_symbols.cpp
         rw_lock.cpp
         )

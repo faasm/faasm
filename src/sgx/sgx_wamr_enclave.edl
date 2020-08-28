@@ -1,4 +1,6 @@
-#define FAASM_SGX_ATTESTATION 1
+// Annoyingly we have to redefine these here
+#define FAASM_SGX 1
+#define FAASM_SGX_ATTESTATION 0
 
 enclave{
     include "../../../include/sgx/faasm_sgx_error.h"
