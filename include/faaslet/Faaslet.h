@@ -3,6 +3,7 @@
 #include <system/NetworkNamespace.h>
 
 #include <faabric/util/func.h>
+#include <faabric/executor/FaabricExecutor.h>
 #include <faabric/scheduler/Scheduler.h>
 
 #include <wasm/WasmModule.h>
@@ -12,41 +13,25 @@
 namespace faaslet {
     void flushFaasletHost();
 
-    class Faaslet {
+    class Faaslet final : public faabric::executor::FaabricExecutor {
     public:
         explicit Faaslet(int threadIdx);
 
-        void bindToFunction(const faabric::Message &msg, bool force = false);
-
-        void run();
-
-        bool isBound();
-
-        std::string processNextMessage();
-
-        void finish();
-
-        std::string id;
-
-        const int threadIdx;
-
         std::unique_ptr<wasm::WasmModule> module;
-    private:
-        bool _isBound = false;
 
+        std::string processNextMessage() override;
+    protected:
+        void postBind() override;
+
+        void doExecute(faabric::Message &call) override;
+
+        void postFinishCall(faabric::Message &call, bool success, const std::string &errorMsg) override;
+
+        void postFinish() override;
+
+        void flush() override;
+    private:
         int isolationIdx;
         std::unique_ptr<isolation::NetworkNamespace> ns;
-
-        faabric::Message boundMessage;
-
-        int executionCount = 0;
-
-        faabric::scheduler::Scheduler &scheduler;
-
-        std::shared_ptr<faabric::scheduler::InMemoryMessageQueue> currentQueue;
-
-        std::string executeCall(faabric::Message &msg);
-
-        void finishCall(faabric::Message &msg, bool success, const std::string &errorMsg);
     };
 }
