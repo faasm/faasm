@@ -5,11 +5,7 @@ include_directories(
 file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/faaslet/*.h")
 
 set(LIB_FILES
-        FaasmMain.cpp
         Faaslet.cpp
-        FaasletPool.cpp
-        FaasletEndpointHandler.cpp
-        FaasletEndpoint.cpp
         ${HEADERS}
         )
 
@@ -23,7 +19,3 @@ if(FAASM_SGX_SUPPORT)
 else()
     target_link_libraries(faaslet_lib wamrmodule)
 endif()
-
-add_executable(faaslet_runner faaslet_runner.cpp)
-
-target_link_libraries(faaslet_runner faaslet_lib)

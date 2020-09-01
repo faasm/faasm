@@ -22,32 +22,13 @@
 using namespace isolation;
 
 namespace faaslet {
-    void flushFaasletHost() {
-        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
-        logger->warn("Flushing host {}", faabric::util::getSystemConfig().endpointHost);
-
-        // Clear out any cached state
-        faabric::state::getGlobalState().forceClearAll(false);
-
-        // Clear shared files
-        storage::FileSystem::clearSharedFiles();
-
-        // Reset scheduler
-        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
-        sch.clear();
-        sch.addHostToGlobalSet();
-
-        // Clear zygotes
+    void Faaslet::postFlush() {
         module_cache::getWasmModuleCache().clear();
-    }
 
-    void Faaslet::flush() {
-        flushFaasletHost();
+        scheduler.preflightPythonCall();
     }
 
     Faaslet::Faaslet(int threadIdxIn) : FaabricExecutor(threadIdxIn) {
-        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
-
         // Set up network namespace
         isolationIdx = threadIdx + 1;
         std::string netnsName = BASE_NETNS_NAME + std::to_string(isolationIdx);
@@ -65,7 +46,7 @@ namespace faaslet {
 
     void Faaslet::postFinishCall(faabric::Message &call, bool success, const std::string &errorMsg) {
         const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
-        const std::string funcStr = faabric::util::funcToString(msg, true);
+        const std::string funcStr = faabric::util::funcToString(call, true);
 
         // Add captured stdout if necessary
         faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
@@ -115,77 +96,40 @@ namespace faaslet {
         }
     }
 
-    /**
-     * NOTE - this is a complete override of the Faabric version
-     */
-    std::string Faaslet::processNextMessage() {
-        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
+    bool Faaslet::doExecute(faabric::Message &msg) {
+        auto logger = faabric::util::getLogger();
 
-        // Work out which timeout
-        int timeoutMs;
-        faabric::util::SystemConfig conf = faabric::util::getSystemConfig();
-        if (_isBound) {
-            timeoutMs = conf.boundTimeout;
-        } else {
-            timeoutMs = conf.unboundTimeout;
+        // Force cold start if necessary
+        int coldStartInterval = msg.coldstartinterval();
+        bool isColdStart = coldStartInterval > 0 &&
+                           executionCount > 0 &&
+                           executionCount % coldStartInterval == 0;
+
+        if (isColdStart) {
+            const std::string funcStr = faabric::util::funcToString(msg, true);
+            logger->debug("Forcing cold start of {} ({}/{})", funcStr, executionCount, coldStartInterval);
+
+            // Bind to function again
+            this->bindToFunction(msg, true);
         }
 
-        // Wait for next message (note, timeout in ms)
-        faabric::Message msg = currentQueue->dequeue(timeoutMs);
+        // Check if we need to restore from a different snapshot
+        auto conf = faabric::util::getSystemConfig();
+        if (conf.wasmVm == "wavm") {
+            const std::string snapshotKey = msg.snapshotkey();
+            if (!snapshotKey.empty() && !msg.issgx()) {
+                PROF_START(snapshotOverride)
 
-        // Handle the message
-        std::string errorMessage;
-        if (msg.isflushrequest()) {
-            // Clear out this worker host if we've received a flush message
-            flushFaasletHost();
+                module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
+                wasm::WAVMWasmModule &snapshot = registry.getCachedModule(msg);
+                module = std::make_unique<wasm::WAVMWasmModule>(snapshot);
 
-            scheduler.preflightPythonCall();
-        } else if (msg.type() == faabric::Message_MessageType_BIND) {
-            const std::string funcStr = faabric::util::funcToString(msg, false);
-            logger->info("Faaslet {} binding to {}", id, funcStr);
-
-            try {
-                this->bindToFunction(msg);
-            } catch (faabric::util::InvalidFunctionException &e) {
-                errorMessage = "Invalid function: " + funcStr;
+                PROF_END(snapshotOverride)
             }
-        } else {
-            int coldStartInterval = msg.coldstartinterval();
-            bool isColdStart = coldStartInterval > 0 &&
-                               executionCount > 0 &&
-                               executionCount % coldStartInterval == 0;
-
-            if (isColdStart) {
-                const std::string funcStr = faabric::util::funcToString(msg, true);
-                logger->debug("Forcing cold start of {} ({}/{})", funcStr, executionCount, coldStartInterval);
-
-                // Bind to function again
-                this->bindToFunction(msg, true);
-            }
-
-            // Check if we need to restore from a different snapshot
-            if (conf.wasmVm == "wavm") {
-                const std::string snapshotKey = msg.snapshotkey();
-                if (!snapshotKey.empty() && !msg.issgx()) {
-                    PROF_START(snapshotOverride)
-
-                    module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
-                    wasm::WAVMWasmModule &snapshot = registry.getCachedModule(msg);
-                    module = std::make_unique<wasm::WAVMWasmModule>(snapshot);
-
-                    PROF_END(snapshotOverride)
-                }
-            }
-
-            // Do the actual execution
-            errorMessage = this->executeCall(msg);
         }
 
-        return errorMessage;
-    }
-
-    std::string Faaslet::doExecute(const faabric::Message &msg) {
-        bool success = module->execute(call);
+        // Execute the function
+        bool success = module->execute(msg);
         return success;
     }
 }
