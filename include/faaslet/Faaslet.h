@@ -21,7 +21,7 @@ namespace faaslet {
 
         bool doExecute(faabric::Message &call) override;
 
-        void postFinishCall(faabric::Message &call, bool success, const std::string &errorMsg) override;
+        void preFinishCall(faabric::Message &call, bool success, const std::string &errorMsg) override;
 
         void postFinish() override;
 

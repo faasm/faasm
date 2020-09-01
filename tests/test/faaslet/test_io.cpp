@@ -6,7 +6,7 @@ extern "C" {
 }
 
 #include <faabric/util/config.h>
-#include <faaslet/FaasletPool.h>
+#include <faabric/executor/FaabricPool.h>
 #include <emulator/emulator.h>
 
 using namespace faaslet;

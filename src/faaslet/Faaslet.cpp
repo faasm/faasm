@@ -23,8 +23,13 @@ using namespace isolation;
 
 namespace faaslet {
     void Faaslet::postFlush() {
+        // Clear shared files
+        storage::FileSystem::clearSharedFiles();
+
+        // Clear module cache
         module_cache::getWasmModuleCache().clear();
 
+        // Prepare python runtime if necessary
         scheduler.preflightPythonCall();
     }
 
@@ -44,7 +49,7 @@ namespace faaslet {
         ns->removeCurrentThread();
     }
 
-    void Faaslet::postFinishCall(faabric::Message &call, bool success, const std::string &errorMsg) {
+    void Faaslet::preFinishCall(faabric::Message &call, bool success, const std::string &errorMsg) {
         const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         const std::string funcStr = faabric::util::funcToString(call, true);
 
