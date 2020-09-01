@@ -183,7 +183,6 @@ else ()
     add_subdirectory(libs/rust)
 
     # Faasm runtime
-    add_subdirectory(src/endpoint)
     add_subdirectory(src/faaslet)
     add_subdirectory(src/ir_cache)
     add_subdirectory(src/module_cache)

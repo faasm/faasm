@@ -1,10 +1,12 @@
 #pragma once
 
-#include <endpoint/Endpoint.h>
+#include <faabric/endpoint/Endpoint.h>
 #include <faabric/util/config.h>
 
+using namespace faabric::endpoint;
+
 namespace faaslet {
-    class FaasletEndpoint : public endpoint::Endpoint {
+    class FaasletEndpoint : public Endpoint {
     public:
         FaasletEndpoint();
 
