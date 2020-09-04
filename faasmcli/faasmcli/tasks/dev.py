@@ -11,7 +11,10 @@ _BIN_DIR = join(_BUILD_DIR, "bin")
 
 
 @task
-def cmake(ctx):
+def cmake(ctx, clean=False):
+    if clean and exists(_BUILD_DIR):
+        rmtree(_BUILD_DIR)
+
     if not exists(_BUILD_DIR):
         makedirs(_BUILD_DIR)
 
