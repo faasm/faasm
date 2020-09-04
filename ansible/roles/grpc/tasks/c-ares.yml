@@ -1,0 +1,31 @@
+---
+
+- name: "Make sure existing c-ares is purged"
+  become: yes
+  shell: "apt remove --purge libc-ares-dev libc-ares2 -y"
+
+- name: "Clone c-ares repo"
+  git:
+    repo: "https://github.com/c-ares/c-ares/"
+    dest: "/tmp/c-ares"
+    version: "cares-1_16_1"
+
+- name: "Create build dir"
+  file:
+    path: "/tmp/c-ares/build"
+    state: "directory"
+
+- name: "CMake build c-ares"
+  shell: "{{ item }}"
+  args:
+    chdir: "/tmp/c-ares/build"
+  with_items: 
+    - "cmake -GNinja -DCMAKE_BUILD_TYPE=Release .."
+    - "ninja"
+
+- name: "Install c-ares"
+  become: yes
+  shell: "ninja install"
+  args:
+    chdir: "/tmp/c-ares/build"
+  
