@@ -5,6 +5,7 @@ from . import call
 from . import codegen
 from . import compile
 from . import config
+from . import dev
 from . import disas
 from . import docker_tasks
 from . import github
@@ -25,6 +26,7 @@ ns = Collection(
     codegen,
     compile,
     config,
+    dev,
     disas,
     github,
     knative,

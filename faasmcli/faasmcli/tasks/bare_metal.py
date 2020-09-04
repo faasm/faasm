@@ -109,3 +109,4 @@ def uninstall(ctx):
     _ansible_command("all", "sudo supervisorctl stop all")
     _ansible_command("all", "sudo rm -rf /etc/supervisor/conf.d/*")
     _ansible_command("all", "sudo supervisorctl update all")
+
