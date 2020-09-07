@@ -1,10 +1,11 @@
 from os import makedirs
 from os.path import join, exists
+from shutil import rmtree
 from subprocess import run
 
 from invoke import task
 
-from faasmcli.util.env import ANSIBLE_ROOT, PROJ_ROOT
+from faasmcli.util.env import PROJ_ROOT
 
 _BUILD_DIR = join(PROJ_ROOT, "build", "cmake")
 _BIN_DIR = join(_BUILD_DIR, "bin")

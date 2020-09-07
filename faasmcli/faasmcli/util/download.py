@@ -13,7 +13,9 @@ def download_proj(url, filename, extension="tar.gz", tar_args="-xf", extract_fil
     if not exists(FAASM_HOME):
         makedirs(FAASM_HOME)
 
-    extract_dir = join(FAASM_HOME, extract_file) if extract_file else join(FAASM_HOME, filename)
+    extract_dir = (
+        join(FAASM_HOME, extract_file) if extract_file else join(FAASM_HOME, filename)
+    )
     tar_filename = "{}.{}".format(filename, extension)
     tar_file = join(FAASM_HOME, tar_filename)
 
@@ -40,12 +42,7 @@ def download_proj(url, filename, extension="tar.gz", tar_args="-xf", extract_fil
 
 
 def get_file(url, output_path):
-    cmd = [
-        "curl",
-        "-X", "GET",
-        url,
-        "-o", output_path
-    ]
+    cmd = ["curl", "-X", "GET", url, "-o", output_path]
 
     cmd = " ".join(cmd)
     print(cmd)
@@ -55,4 +52,3 @@ def get_file(url, output_path):
         print("Successful GET file from {} to {}".format(url, output_path))
     else:
         raise RuntimeError("Failed GETting file from {} to {}".format(url, output_path))
-

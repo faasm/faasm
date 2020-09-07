@@ -20,7 +20,11 @@ def _get_release():
 
     rel = rels[0]
     if rel.tag_name != tag_name:
-        print("Expected latest release to have tag {} but had {}".format(tag_name, rel.tag_name))
+        print(
+            "Expected latest release to have tag {} but had {}".format(
+                tag_name, rel.tag_name
+            )
+        )
         exit(1)
 
     return rel
@@ -67,7 +71,7 @@ def create_release(ctx):
         tag_name,
         "Faasm {}".format(faasm_ver),
         "Release {}\n".format(faasm_ver),
-        draft=True
+        draft=True,
     )
 
 

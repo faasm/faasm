@@ -30,7 +30,7 @@ BASE_CONFIG_CMD = [
 ]
 
 BASE_CONFIG_FLAGS = [
-    "CFLAGS=\"{}\"".format(WASM_CFLAGS),
-    "CXXFLAGS=\"{}\"".format(WASM_CXXFLAGS),
-    "LDFLAGS=\"{}\"".format(WASM_LDFLAGS),
+    'CFLAGS="{}"'.format(WASM_CFLAGS),
+    'CXXFLAGS="{}"'.format(WASM_CXXFLAGS),
+    'LDFLAGS="{}"'.format(WASM_LDFLAGS),
 ]

@@ -49,7 +49,9 @@ def get_docker_parent_pids():
         return [dockerd_pid, containerd_options[0].pid]
 
     elif len(containerd_options) > 1:
-        raise RuntimeError("Found more than one process matching {}".format(containerd_name))
+        raise RuntimeError(
+            "Found more than one process matching {}".format(containerd_name)
+        )
 
     raise RuntimeError("Could not work out parent docker process")
 

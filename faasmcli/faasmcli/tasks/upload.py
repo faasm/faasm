@@ -7,8 +7,14 @@ from shutil import copy, rmtree
 from invoke import task
 
 from faasmcli.util.endpoints import get_upload_host_port
-from faasmcli.util.env import PROJ_ROOT, RUNTIME_S3_BUCKET, FUNC_DIR, \
-        WASM_DIR, FAASM_SHARED_STORAGE_ROOT, FAASM_RUNTIME_ROOT
+from faasmcli.util.env import (
+    PROJ_ROOT,
+    RUNTIME_S3_BUCKET,
+    FUNC_DIR,
+    WASM_DIR,
+    FAASM_SHARED_STORAGE_ROOT,
+    FAASM_RUNTIME_ROOT,
+)
 from faasmcli.util.upload_util import curl_file
 
 PYTHON_FUNC_DIR = join(FUNC_DIR, "python")
@@ -19,8 +25,9 @@ def _get_s3_key(user, func):
     return s3_key
 
 
-def _upload_function(user, func, port=None, host=None, py=False, ts=False, 
-        file=None, local_copy=False):
+def _upload_function(
+    user, func, port=None, host=None, py=False, ts=False, file=None, local_copy=False
+):
     host, port = get_upload_host_port(host, port)
 
     if py and local_copy:
@@ -71,18 +78,18 @@ def user(ctx, user, host=None, py=False, local_copy=False):
         # Filter in only functions that exist
         funcs = [f for f in funcs if exists(join(WASM_DIR, user, f, "function.wasm"))]
 
-    upload_partial = partial(_upload_function, user, host=host, py=py,
-            local_copy=local_copy)
+    upload_partial = partial(
+        _upload_function, user, host=host, py=py, local_copy=local_copy
+    )
     p = multiprocessing.Pool(multiprocessing.cpu_count() - 1)
     p.starmap(upload_partial, [(f,) for f in funcs])
 
 
 @task(default=True)
-def upload(ctx, user, func, host=None, py=False, ts=False, file=None, 
-        local_copy=False):
+def upload(ctx, user, func, host=None, py=False, ts=False, file=None, local_copy=False):
     """
     Upload a function
     """
-    _upload_function(user, func, host=host, py=py, ts=ts, file=file,
-            local_copy=local_copy)
-
+    _upload_function(
+        user, func, host=host, py=py, ts=ts, file=file, local_copy=local_copy
+    )

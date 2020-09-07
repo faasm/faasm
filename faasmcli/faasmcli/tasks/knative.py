@@ -62,9 +62,13 @@ KNATIVE_ENV = {
     "MAX_FAASLETS_PER_FUNCTION": "6",  # This limit is per-host. We only want one instance per core
     "MAX_FAASLETS": "40",  # This is how many threads are available in total per host (across all functions)
     "BOUND_TIMEOUT": str(THIRTY_SECS),  # How long a bound worker sticks around for
-    "UNBOUND_TIMEOUT": str(10 * ONE_MIN),  # How long an unbound worker sticks around for
-    "GLOBAL_MESSAGE_TIMEOUT": str(2 * ONE_MIN),  # How long things wait for messages on global bus
-    "ENDPOINT_INTERFACE": "eth0", # Assuming eth0 is accessible to other hosts
+    "UNBOUND_TIMEOUT": str(
+        10 * ONE_MIN
+    ),  # How long an unbound worker sticks around for
+    "GLOBAL_MESSAGE_TIMEOUT": str(
+        2 * ONE_MIN
+    ),  # How long things wait for messages on global bus
+    "ENDPOINT_INTERFACE": "eth0",  # Assuming eth0 is accessible to other hosts
 }
 
 
@@ -73,9 +77,7 @@ def _fn_name(function):
 
 
 def _kubectl_cmd(path, action, env=None):
-    cmd = [
-        "kubectl", action, "-f", path
-    ]
+    cmd = ["kubectl", action, "-f", path]
 
     shell_env_dict = os.environ.copy()
     if env:
@@ -162,9 +164,7 @@ def delete_full(ctx, local=False):
 def _delete_knative_fn(name, hard):
     func_name = _fn_name(name)
     if hard:
-        cmd = [
-            "kn", "service", "delete", func_name, "--namespace=faasm"
-        ]
+        cmd = ["kn", "service", "delete", func_name, "--namespace=faasm"]
 
         cmd_str = " ".join(cmd)
         print(cmd_str)
@@ -176,22 +176,31 @@ def _delete_knative_fn(name, hard):
         call(cmd, shell=True)
 
 
-def _deploy_knative_fn(name, image, replicas, concurrency, annotations, extra_env=None, shell_env=None):
+def _deploy_knative_fn(
+    name, image, replicas, concurrency, annotations, extra_env=None, shell_env=None
+):
     faasm_ver = get_faasm_version()
     image = "{}:{}".format(image, faasm_ver)
 
     cmd = [
-        "kn", "service", "create", name,
-        "--image", image,
-        "--namespace", "faasm",
+        "kn",
+        "service",
+        "create",
+        name,
+        "--image",
+        image,
+        "--namespace",
+        "faasm",
         "--force",
     ]
 
-    cmd.extend({
-        "--min-scale={}".format(replicas),
-        "--max-scale={}".format(replicas),
-        "--concurrency-limit={}".format(concurrency) if concurrency else "",
-    })
+    cmd.extend(
+        {
+            "--min-scale={}".format(replicas),
+            "--max-scale={}".format(replicas),
+            "--concurrency-limit={}".format(concurrency) if concurrency else "",
+        }
+    )
 
     # Add annotations
     for annotation in annotations:
@@ -225,4 +234,8 @@ def install(ctx):
     ]
 
     for s in specs:
-        _kubectl_apply("https://github.com/knative/serving/releases/download/v{}/{}".format(KNATIVE_VERSION, s))
+        _kubectl_apply(
+            "https://github.com/knative/serving/releases/download/v{}/{}".format(
+                KNATIVE_VERSION, s
+            )
+        )

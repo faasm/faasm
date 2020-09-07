@@ -46,4 +46,3 @@ ns.add_collection(ns.from_module(bare_metal), name="bm")
 ns.add_collection(ns.from_module(call), name="invoke")
 ns.add_collection(ns.from_module(docker_tasks), name="docker")
 ns.add_collection(ns.from_module(tensorflow), name="tf")
-

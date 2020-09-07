@@ -1,7 +1,11 @@
 from invoke import task
 
 from faasmcli.util.endpoints import get_upload_host_port
-from faasmcli.util.state import download_binary_state, upload_binary_state, upload_shared_file
+from faasmcli.util.state import (
+    download_binary_state,
+    upload_binary_state,
+    upload_shared_file,
+)
 
 
 @task
