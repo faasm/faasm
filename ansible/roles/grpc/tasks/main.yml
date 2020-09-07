@@ -16,6 +16,7 @@
   shell: "git submodule update --init"
   args:
     chdir: "/tmp/grpc"
+  when: g_stat.stat.exists == False
 
 - name: "Set up build"
   shell: "mkdir -p /tmp/grpc/cmake/build"
@@ -42,6 +43,6 @@
   when: g_stat.stat.exists == False
 
 - name: "Clean up"
+  become: yes
   shell: "rm -rf /tmp/grpc"
-  when: g_stat.stat.exists == False
 

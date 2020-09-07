@@ -6,6 +6,7 @@
     dest: "{{ ansible_env.HOME }}/faasm-bm"
     version: "{{ repo_version | default('master') }}"
     update: yes
+    recursive: no
 
 - name: "Set up local code directory"
   become: yes
@@ -26,6 +27,11 @@
     mode: 0755
   when: quick_deploy is not defined
 
+- name: "Submodules"
+  shell: "git submodule update --init"
+  args:
+    chdir: "/usr/local/code/faasm"
+
 - name: "Set up filesystem directories"
   become: yes
   file:
@@ -35,3 +41,4 @@
     group: "{{ ansible_user_id }}"
     recurse: yes
   when: quick_deploy is not defined
+

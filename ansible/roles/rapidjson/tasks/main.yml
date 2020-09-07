@@ -30,6 +30,7 @@
     - "ninja install"
 
 - name: "Clean up"
+  become: yes
   file:
     state: absent
     path: "/tmp/rapidjson"

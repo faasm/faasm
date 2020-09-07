@@ -5,6 +5,7 @@
     repo: "https://github.com/oktal/pistache.git"
     dest: "/tmp/pistache"
     version: "2ef937c434810858e05d446e97acbdd6cc1a5a36"
+    update: yes
 
 - name: "Set up build"
   shell: "{{ item }}"
@@ -25,4 +26,6 @@
     - "ninja install"
 
 - name: "Clean up"
+  become: yes
   shell: "rm -rf /tmp/pistache"
+
