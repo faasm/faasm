@@ -1,13 +1,5 @@
 ---
 
-- name: "Install system deps"
-  become: yes
-  apt:
-    name:
-      - cmake
-      - git
-  when: quick_deploy is not defined
-
 - name: "Check out code"
   git:
     repo: "{{ remote_url | default('https://github.com/lsds/faasm.git') }}"
@@ -28,7 +20,7 @@
     src: "{{ ansible_env.HOME }}/faasm-bm"
     dest: "/usr/local/code/faasm"
     state: link
-    force: yes #unlinks other users
+    force: yes 
     owner: "{{ ansible_user_id }}"
     group: "{{ ansible_user_id }}"
     mode: 0755

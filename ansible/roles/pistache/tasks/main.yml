@@ -15,21 +15,14 @@
     - "mkdir -p build"
 
 - name: "Build"
-  shell: "{{ item }}"
-  args:
-    chdir: "/tmp/pistache/build"
-  with_items:
-    - 'cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ..'
-    - "make -j"
-
-- name: "Install"
   become: yes
   shell: "{{ item }}"
   args:
     chdir: "/tmp/pistache/build"
   with_items:
-    - "sudo make install"
-    - "ldconfig"
+    - "cmake -G Ninja -DCMAKE_BUILD_TYPE=Release .."
+    - "ninja"
+    - "ninja install"
 
 - name: "Clean up"
   shell: "rm -rf /tmp/pistache"

@@ -19,23 +19,15 @@
   when: rj_stat.stat.exists == False
 
 - name: "Prepare build"
-  shell: "cmake .."
-  args:
-    chdir: "/tmp/rapidjson/build"
-  when: rj_stat.stat.exists == False
-
-- name: "Build components"
-  shell: "make -j"
-  args:
-    chdir: "/tmp/rapidjson/build"
-  when: rj_stat.stat.exists == False
-
-- name: "Install"
   become: yes
-  shell: "sudo make install"
+  shell: "{{ item }}"
   args:
-    chdir: "/tmp/rapidjson/build"
+    chdir: "/tmp/rapidjson/build"    
   when: rj_stat.stat.exists == False
+  with_items:
+    - "cmake -GNinja .."
+    - "ninja"
+    - "ninja install"
 
 - name: "Clean up"
   file:
