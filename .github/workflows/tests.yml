@@ -44,6 +44,12 @@ jobs:
         run: git submodule update
       - name: "Log commits"
         run: git log -3
+      - name: "Build codegen"
+        run: cmake --build . --target codegen_func
+        working-directory: /usr/local/code/faasm/build
+      - name: "Build tests"
+        run: cmake --build . --target codegen_shared_obj
+        working-directory: /usr/local/code/faasm/build
       - name: "Build tests"
         run: cmake --build . --target tests
         working-directory: /usr/local/code/faasm/build
