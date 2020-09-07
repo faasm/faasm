@@ -34,10 +34,11 @@ fix in future.
 
 You can either set this directory up directly, or just symlink it.
 
-Assuming you've checked out this code somewhere, you'll need to make sure submodules are up to date:
+Assuming you've checked out this code somewhere, you'll need to make sure
+submodules are up to date:
 
 ```
-git submodule update --init --recursive
+git submodule update --init
 ```
 
 ## Basic local machine set-up
@@ -67,24 +68,29 @@ cd ansible
 ansible-playbook local_dev.yml --ask-become-pass
 ```
 
-If you want to tweak things yourself, look inside the `local_dev.yml` playbook to see what's required.
+If you want to tweak things yourself, look inside the `local_dev.yml` playbook
+to see what's required.
 
 ### Protobuf
 
-Faasm depends on protobuf which should be installed with the playbook described above.
+Faasm depends on protobuf which should be installed with the playbook described
+above.
 
-You can probably get away with using whatever protobuf you already have installed too.
+You can probably get away with using whatever protobuf you already have
+installed too.
 
-If there are any issue you need to remove every trace of any existing protobuf installation on your system before 
-reinstalling.
+If there are any issue you need to remove every trace of any existing protobuf
+installation on your system before reinstalling.
 
-You can look in the following folders and remove any reference to `libprotobuf` or `protobuf`:
+You can look in the following folders and remove any reference to `libprotobuf`
+or `protobuf`:
 
 - `/usr/lib/x86_64-linux-gnu/`
 - `/usr/lib/`
 - `/usr/include/google`
 
-Avoid trying to do this with `apt` as it can accidentally delete a whole load of other stuff.
+Avoid trying to do this with `apt` as it can accidentally delete a whole load of
+other stuff.
 
 To rerun just the protobuf part of the install:
 
@@ -95,7 +101,8 @@ ansible-playbook protobuf.yml --ask-become-pass
 
 ## Toolchain and Runtime Root
 
-The Faasm toolchain and runtime require some prebuilt files which can be downloaded with:
+The Faasm toolchain and runtime require some prebuilt files which can be
+downloaded with:
 
 ```bash
 source workon.sh
@@ -103,7 +110,8 @@ inv toolchain.download-toolchain
 inv toolchain.download-sysroot
 ```
 
-If you want to build the toolchain from scratch, you'll need to look at the `toolchain.md` doc.
+If you want to build the toolchain from scratch, you'll need to look at the
+`toolchain.md` doc.
 
 ## Codegen and upload
 
@@ -149,9 +157,10 @@ inv upload.user python --py --local-copy
 
 ## Networking
 
-If you want to switch on network isolation locally, you need to set up network namespaces. To do this we need to
-ensure consistent interface naming (`eth0` for main public interface). If your public interface is already called
-`eth0` then you can skip this step.
+If you want to switch on network isolation locally, you need to set up network
+namespaces. To do this we need to ensure consistent interface naming (`eth0` for
+main public interface). If your public interface is already called `eth0` then
+you can skip this step.
 
 - Edit `/etc/default/grub` and add `net.ifnames=0 biosdevname=0` to `GRUB_CMDLINE_LINUX_DEFAULT`
 - Run `sudo update-grub`
@@ -203,29 +212,12 @@ inv run demo hello
 
 ## Python
 
-The Python files for Faasm are all contained in the nested `faasmcli` project. To get JetBrains IDEs
-to correctly resolve imports, you can do one of:
+The Python files for Faasm are all contained in the nested `faasmcli` project.
+To get JetBrains IDEs to correctly resolve imports, you can do one of:
 
 - Mark the top-level `faasmcli` directory as a "Project sources" or equivalent in your IDE
 - [Add an interpreter path](https://www.jetbrains.com/help/pycharm/installing-uninstalling-and-reloading-interpreter-paths.html#add). 
 - Open the IDE directly in the `faasmcli` directory
-
-## Remote development using CLion
-
-CLion supports [remote development](https://www.jetbrains.com/help/clion/remote-development.html) which 
-can be useful for developing Faasm inside a VM (or some other remote location). CLion will upload the 
-code to a temporary location in the remote environment (`/tmp/tmp.XXX`), which you must then symlink 
-to `/usr/local/code/faasm` as described above. 
-
-Ensure the toolchain within CLion is pointing at the correct remote version of Clang that is installed 
-as part of the Faasm Ansible playbook (i.e. `/usr/bin/clang(++)-10`). 
- 
- Also install the most recent CMake you can.
-
-I do **not** recommend setting a WASM/FAASM CMake profile because it will confuse your IDE a lot. 
-
-Assuming you've gone through the steps outlined above _within the VM_, you should be able to call the 
-`inv` commands as normal (rather than needing to use the Faasm CLI container within the VM).
 
 # Troubleshooting the local dev set-up
 
