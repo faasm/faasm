@@ -57,7 +57,9 @@ def _check_valid_containers(containers):
 
 
 def _do_push(container, version):
-    res = call("docker push faasm/{}:{}".format(container, version), shell=True, cwd=PROJ_ROOT)
+    res = call(
+        "docker push faasm/{}:{}".format(container, version), shell=True, cwd=PROJ_ROOT
+    )
     if res != 0:
         raise RuntimeError("Failed docker push for {}:{}".format(container, version))
 
@@ -95,7 +97,9 @@ def build(ctx, c, nocache=False, push=False):
         # Check if we need to template a special dockerignore file
         # It seems the dockerignore file needs to be at <dockerfile_path>.dockerignore
         dockerfile = join("docker", "{}.dockerfile".format(container))
-        dockerignore_template_path = join("docker", "{}.dockerignore.j2".format(container))
+        dockerignore_template_path = join(
+            "docker", "{}.dockerignore.j2".format(container)
+        )
         dockerignore_target_path = "{}.dockerignore".format(dockerfile)
 
         if exists(join(PROJ_ROOT, dockerignore_template_path)):
@@ -115,8 +119,9 @@ def build(ctx, c, nocache=False, push=False):
 
         faasm_ver = get_faasm_version()
 
-        cmd = "docker build {} -t {} --build-arg FAASM_VERSION={} -f {} .".format(no_cache_str, tag_name, faasm_ver,
-                                                                                  dockerfile)
+        cmd = "docker build {} -t {} --build-arg FAASM_VERSION={} -f {} .".format(
+            no_cache_str, tag_name, faasm_ver, dockerfile
+        )
         print(cmd)
         res = call(cmd, shell=True, cwd=PROJ_ROOT, env=shell_env)
         if res != 0:
@@ -149,7 +154,11 @@ def pull(ctx, c):
     _check_valid_containers(c)
 
     for container in c:
-        res = call("docker pull faasm/{}:{}".format(container, faasm_ver), shell=True, cwd=PROJ_ROOT)
+        res = call(
+            "docker pull faasm/{}:{}".format(container, faasm_ver),
+            shell=True,
+            cwd=PROJ_ROOT,
+        )
         if res != 0:
             raise RuntimeError("Failed docker pull for {}".format(container))
 

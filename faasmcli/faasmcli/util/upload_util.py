@@ -51,7 +51,9 @@ def download_tar_from_s3(s3_bucket, tar_name, tar_dir, boto=True):
     download_file_from_s3(s3_bucket, tar_name, tar_path, boto=boto)
 
     print("Extracting file {} (at {})".format(tar_name, tar_dir))
-    subprocess.check_output("tar --no-same-owner -xf {}".format(tar_name), shell=True, cwd=tar_dir)
+    subprocess.check_output(
+        "tar --no-same-owner -xf {}".format(tar_name), shell=True, cwd=tar_dir
+    )
 
 
 def download_tar_from_url(url, tar_name, tar_dir):
@@ -62,29 +64,25 @@ def download_tar_from_url(url, tar_name, tar_dir):
     subprocess.check_output(cmd, shell=True)
 
     print("Extracting file {} (at {})".format(tar_name, tar_dir))
-    subprocess.check_output("tar --no-same-owner -xf {}".format(tar_name), shell=True, cwd=tar_dir)
+    subprocess.check_output(
+        "tar --no-same-owner -xf {}".format(tar_name), shell=True, cwd=tar_dir
+    )
 
 
 def copy_object_in_s3(s3_bucket, src_key, dest_key, public=False):
     s3 = _get_s3()
     kwargs = {"ACL": "public-read"} if public else {}
     s3.Object(s3_bucket, dest_key).copy_from(
-        CopySource="{}/{}".format(s3_bucket, src_key),
-        **kwargs
+        CopySource="{}/{}".format(s3_bucket, src_key), **kwargs
     )
 
 
 def curl_file(url, file_path, headers=None, quiet=False):
-    cmd = [
-        "curl",
-        "-X", "PUT",
-        url,
-        "-T", file_path
-    ]
+    cmd = ["curl", "-X", "PUT", url, "-T", file_path]
 
     headers = headers if headers else {}
     for key, value in headers.items():
-        cmd.append("-H \"{}: {}\"".format(key, value))
+        cmd.append('-H "{}: {}"'.format(key, value))
 
     cmd = " ".join(cmd)
 

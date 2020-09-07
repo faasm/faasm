@@ -24,4 +24,3 @@ def do_post(url, input, headers=None, quiet=False, json=False, debug=False):
         print("Empty response")
 
     return response.text
-

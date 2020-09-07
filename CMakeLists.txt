@@ -22,6 +22,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Faasm directories
 set(FAASM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
@@ -183,7 +184,6 @@ else ()
     add_subdirectory(libs/rust)
 
     # Faasm runtime
-    add_subdirectory(src/endpoint)
     add_subdirectory(src/faaslet)
     add_subdirectory(src/ir_cache)
     add_subdirectory(src/module_cache)

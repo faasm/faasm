@@ -16,7 +16,7 @@ COPY . /usr/local/code/faasm
 WORKDIR /faasm/build
 RUN cmake --build . --target codegen_shared_obj
 RUN cmake --build . --target codegen_func
-RUN cmake --build . --target faaslet_runner
+RUN cmake --build . --target pool_runner
 
 # Set up entrypoint (for cgroups, namespaces etc.)
 COPY bin/entrypoint_codegen.sh /entrypoint_codegen.sh
@@ -28,5 +28,5 @@ RUN groupadd -g 1000 faasm
 RUN useradd -u 1000 -g 1000 faasm
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD "/faasm/build/bin/faaslet_runner"
+CMD "/faasm/build/bin/pool_runner"
 

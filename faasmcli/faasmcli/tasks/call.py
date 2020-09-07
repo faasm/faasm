@@ -1,6 +1,11 @@
 from invoke import task
 
-from faasmcli.util.call import invoke_impl, status_call_impl, flush_call_impl, exec_graph_call_impl
+from faasmcli.util.call import (
+    invoke_impl,
+    status_call_impl,
+    flush_call_impl,
+    exec_graph_call_impl,
+)
 from faasmcli.util.endpoints import get_invoke_host_port
 from faasmcli.util.exec_graph import parse_exec_graph_json, plot_exec_graph
 
@@ -8,22 +13,36 @@ LAST_CALL_ID_FILE = "/tmp/faasm_last_call.txt"
 
 
 @task(default=True)
-def invoke(ctx, user, func,
-           host=None,
-           port=None,
-           input=None,
-           py=False,
-           asynch=False,
-           knative=True,
-           poll=False,
-           cmdline=None,
-           debug=False,
-           ):
+def invoke(
+    ctx,
+    user,
+    func,
+    host=None,
+    port=None,
+    input=None,
+    py=False,
+    asynch=False,
+    knative=True,
+    poll=False,
+    cmdline=None,
+    debug=False,
+):
     """
     Invoke a function
     """
-    res = invoke_impl(user, func, host=host, port=port, input=input, py=py, asynch=asynch,
-                knative=knative, poll=poll, cmdline=cmdline, debug=debug)
+    res = invoke_impl(
+        user,
+        func,
+        host=host,
+        port=port,
+        input=input,
+        py=py,
+        asynch=asynch,
+        knative=knative,
+        poll=poll,
+        cmdline=cmdline,
+        debug=debug,
+    )
 
     if asynch:
         print("Call ID: " + str(res))
@@ -44,7 +63,9 @@ def status(ctx, call_id, host=None, port=None):
 
 
 @task
-def exec_graph(ctx, call_id=None, host=None, port=None, headless=False, output_file=None):
+def exec_graph(
+    ctx, call_id=None, host=None, port=None, headless=False, output_file=None
+):
     """
     Get the execution graph for the given call ID
     """

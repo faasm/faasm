@@ -32,14 +32,20 @@ SPARSE_GRID_SIZE = pow(2, SPARSE_GRID_SIZE_2LOG)
 # $MPIRUN -np $NUMPROCS MPI1/Transpose/transpose       $NUMITERS 50000 64;       echo $SEPLINE
 #
 PRK_CMDLINE = {
-    "dgemm": "{} 500 32 1".format(ITERATIONS),  # iterations, matrix order, outer block size (?)
+    "dgemm": "{} 500 32 1".format(
+        ITERATIONS
+    ),  # iterations, matrix order, outer block size (?)
     "nstream": "{} 2000000 0".format(ITERATIONS),  # iterations, vector length, offset
     "random": "16 16",  # update ratio, table size
     "reduce": "{} 2000000".format(ITERATIONS),  # iterations, vector length
-    "sparse": "{} {} 4".format(ITERATIONS, SPARSE_GRID_SIZE_2LOG),  # iterations, log2 grid size, stencil radius
+    "sparse": "{} {} 4".format(
+        ITERATIONS, SPARSE_GRID_SIZE_2LOG
+    ),  # iterations, log2 grid size, stencil radius
     "stencil": "{} 1000".format(ITERATIONS),  # iterations, array dimension
     "global": "{} 10000".format(ITERATIONS),  # iterations, scramble string length
-    "p2p": "{} 1000 100".format(ITERATIONS),  # iterations, 1st array dimension, 2nd array dimension
+    "p2p": "{} 1000 100".format(
+        ITERATIONS
+    ),  # iterations, 1st array dimension, 2nd array dimension
     "transpose": "{} 2000 64".format(ITERATIONS),  # iterations, matrix order, tile size
 }
 
@@ -85,8 +91,11 @@ def invoke(ctx, func, native=False, iface=None, np=8):
         print("Must have a power of two number of processes for random")
         exit(1)
     elif func == "sparse" and not (SPARSE_GRID_SIZE % np == 0):
-        print("To run sparse, grid size must be a multiple of --np (currently grid_size={} and np={})"
-              .format(SPARSE_GRID_SIZE, np))
+        print(
+            "To run sparse, grid size must be a multiple of --np (currently grid_size={} and np={})".format(
+                SPARSE_GRID_SIZE, np
+            )
+        )
         exit(1)
 
     if native:
@@ -96,7 +105,9 @@ def invoke(ctx, func, native=False, iface=None, np=8):
         print(cmd_out)
     else:
         host, port = get_invoke_host_port()
-        cmd_out = invoke_impl(FAASM_USER, func, cmdline=cmdline, host=host, port=port, mpi_world_size=np)
+        cmd_out = invoke_impl(
+            FAASM_USER, func, cmdline=cmdline, host=host, port=port, mpi_world_size=np
+        )
 
     _parse_prk_out(func, cmd_out)
 
@@ -119,7 +130,7 @@ def _parse_prk_out(func, cmd_out):
             continue
 
         stat_val = stat_val[1]
-        stat_val = re.split('\s+', stat_val)[0]
+        stat_val = re.split("\s+", stat_val)[0]
         stat_val = stat_val.rstrip(",")
         stat_val = float(stat_val)
 

@@ -7,12 +7,28 @@ from subprocess import check_output, call
 from invoke import task
 
 from faasmcli.util.codegen import find_codegen_shared_lib
-from faasmcli.util.env import PROJ_ROOT, FAASM_TOOLCHAIN_FILE, SYSROOT_INSTALL_PREFIX, FAASM_INSTALL_DIR, \
-    FAASM_RUNTIME_ROOT, WASM_DIR
+from faasmcli.util.env import (
+    PROJ_ROOT,
+    FAASM_TOOLCHAIN_FILE,
+    SYSROOT_INSTALL_PREFIX,
+    FAASM_INSTALL_DIR,
+    FAASM_RUNTIME_ROOT,
+    WASM_DIR,
+)
 from faasmcli.util.env import THIRD_PARTY_DIR
 from faasmcli.util.files import clean_dir
-from faasmcli.util.toolchain import WASM_HOST, BASE_CONFIG_CMD, WASM_CFLAGS, WASM_CXXFLAGS, WASM_LDFLAGS, WASM_CC, \
-    WASM_CXX, WASM_RANLIB, WASM_AR, WASM_LD
+from faasmcli.util.toolchain import (
+    WASM_HOST,
+    BASE_CONFIG_CMD,
+    WASM_CFLAGS,
+    WASM_CXXFLAGS,
+    WASM_LDFLAGS,
+    WASM_CC,
+    WASM_CXX,
+    WASM_RANLIB,
+    WASM_AR,
+    WASM_LD,
+)
 from faasmcli.util.toolchain import WASM_SYSROOT, WASM_BUILD, BASE_CONFIG_FLAGS
 
 PRK_DIR = join(THIRD_PARTY_DIR, "ParResKernels")
@@ -112,7 +128,6 @@ def faasm(ctx, clean=False, lib=None, verbose=False):
         _build_faasm_lib("cpp", clean, verbose)
         _build_faasm_lib("pyinit", clean, verbose)
         _build_faasm_lib("faasmp", clean, verbose)
-        _build_faasm_lib("faasmpi", clean, verbose)
         _build_faasm_lib("rust", clean, verbose)
 
 
@@ -122,14 +137,6 @@ def faasmp(ctx, clean=False, verbose=False):
     Compile and install the Faasm OpenMP library
     """
     _build_faasm_lib("faasmp", clean, verbose)
-
-
-@task
-def faasmpi(ctx, clean=False, verbose=False):
-    """
-    Compile and install the Faasm MPI library
-    """
-    _build_faasm_lib("faasmpi", clean, verbose)
 
 
 @task
@@ -214,29 +221,33 @@ def lulesh(ctx, lulesh_dir, mpi=False, omp=False, clean=True, debug=False, cp=Tr
     if not exists(build_dir):
         makedirs(build_dir)
 
-    cmd = " ".join([
-        "cmake",
-        "-G Ninja",
-        "-DWITH_MPI={}".format("TRUE" if mpi else "FALSE"),
-        "-DWITH_OPENMP={}".format("TRUE" if omp else "FALSE"),
-        "-DWITH_SILO=FALSE",
-        "-DFAASM_BUILD_TYPE=wasm",
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
-        "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_INSTALL_PREFIX={}".format(SYSROOT_INSTALL_PREFIX),
-        work_dir
-    ])
+    cmd = " ".join(
+        [
+            "cmake",
+            "-G Ninja",
+            "-DWITH_MPI={}".format("TRUE" if mpi else "FALSE"),
+            "-DWITH_OPENMP={}".format("TRUE" if omp else "FALSE"),
+            "-DWITH_SILO=FALSE",
+            "-DFAASM_BUILD_TYPE=wasm",
+            "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DCMAKE_INSTALL_PREFIX={}".format(SYSROOT_INSTALL_PREFIX),
+            work_dir,
+        ]
+    )
     if debug:
         print("Running {}".format(cmd))
     res = call(cmd, shell=True, cwd=build_dir)
     if res != 0:
         raise RuntimeError("Failed on cmake init for {}".format(target))
 
-    cmd = " ".join([
-        "cmake",
-        "--build {}".format(build_dir),
-        "--target {}".format(target),
-    ])
+    cmd = " ".join(
+        [
+            "cmake",
+            "--build {}".format(build_dir),
+            "--target {}".format(target),
+        ]
+    )
     if debug:
         print("Running {}".format(cmd))
     res = call(cmd, shell=True)
@@ -251,11 +262,13 @@ def lulesh(ctx, lulesh_dir, mpi=False, omp=False, clean=True, debug=False, cp=Tr
         if not exists(dest_dir):
             makedirs(dest_dir)
 
-        cmd = " ".join([
-            "cp",
-            "{}.wasm".format(target),
-            join(dest_dir, "function.wasm"),
-        ])
+        cmd = " ".join(
+            [
+                "cp",
+                "{}.wasm".format(target),
+                join(dest_dir, "function.wasm"),
+            ]
+        )
         if debug:
             print("Running {}".format(cmd))
         res = call(cmd, shell=True, cwd=build_dir)
@@ -284,7 +297,7 @@ def eigen(ctx, verbose=False):
         "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE=Release",
         "-DCMAKE_INSTALL_PREFIX={}".format(SYSROOT_INSTALL_PREFIX),
-        work_dir
+        work_dir,
     ]
     cmd_string = " ".join(cmd)
 
@@ -306,12 +319,14 @@ def png(ctx):
 
     config_cmd = BASE_CONFIG_CMD
     config_cmd.extend(BASE_CONFIG_FLAGS)
-    config_cmd.extend([
-        "./configure",
-        "--build={}".format(WASM_BUILD),
-        "--host={}".format(WASM_HOST),
-        "--prefix={}".format(WASM_SYSROOT),
-    ])
+    config_cmd.extend(
+        [
+            "./configure",
+            "--build={}".format(WASM_BUILD),
+            "--host={}".format(WASM_HOST),
+            "--prefix={}".format(WASM_SYSROOT),
+        ]
+    )
 
     check_output(" ".join(config_cmd), shell=True, cwd=workdir)
     check_output("make", shell=True, cwd=workdir)
@@ -327,11 +342,13 @@ def zlib(ctx, clean=False):
 
     config_cmd = BASE_CONFIG_CMD
     config_cmd.extend(BASE_CONFIG_FLAGS)
-    config_cmd.extend([
-        "./configure",
-        "--static",
-        "--prefix={}".format(WASM_SYSROOT),
-    ])
+    config_cmd.extend(
+        [
+            "./configure",
+            "--static",
+            "--prefix={}".format(WASM_SYSROOT),
+        ]
+    )
 
     check_output(" ".join(config_cmd), shell=True, cwd=workdir)
     check_output("make", shell=True, cwd=workdir)
@@ -358,17 +375,19 @@ def tflite(ctx, clean=False):
     make_target = "lib"
     make_cmd = ["make -j {}".format(make_cores)]
     make_cmd.extend(BASE_CONFIG_CMD)
-    make_cmd.extend([
-        "CFLAGS=\"{} -ftls-model=local-exec\"".format(WASM_CFLAGS),
-        "CXXFLAGS=\"{}\"".format(WASM_CXXFLAGS),
-        "LDFLAGS=\"{} -Xlinker --max-memory=4294967296\"".format(WASM_LDFLAGS),
-        "MINIMAL_SRCS=",
-        "TARGET={}".format(WASM_HOST),
-        "BUILD_WITH_MMAP=false",
-        "LIBS=\"-lstdc++\"",
-        "-C \"{}\"".format(tf_dir),
-        "-f tensorflow/lite/tools/make/Makefile",
-    ])
+    make_cmd.extend(
+        [
+            'CFLAGS="{} -ftls-model=local-exec"'.format(WASM_CFLAGS),
+            'CXXFLAGS="{}"'.format(WASM_CXXFLAGS),
+            'LDFLAGS="{} -Xlinker --max-memory=4294967296"'.format(WASM_LDFLAGS),
+            "MINIMAL_SRCS=",
+            "TARGET={}".format(WASM_HOST),
+            "BUILD_WITH_MMAP=false",
+            'LIBS="-lstdc++"',
+            '-C "{}"'.format(tf_dir),
+            "-f tensorflow/lite/tools/make/Makefile",
+        ]
+    )
 
     make_cmd.append(make_target)
 
@@ -413,7 +432,9 @@ def prk(ctx, clean=False):
         res = call(make_cmd, shell=True, cwd=make_dir)
 
         if res != 0:
-            print("Making kernel in {} with target {} failed".format(subdir, make_target))
+            print(
+                "Making kernel in {} with target {} failed".format(subdir, make_target)
+            )
             has_failed = True
 
         print("Built kernel {}".format(make_target))
@@ -450,16 +471,21 @@ def mpi_bench(ctx, clean=False):
         call("make clean", shell=True, cwd=bench_dir)
 
     make_cmd = "make -j {}".format(make_target)
-    res = call(make_cmd, shell=True, cwd=bench_dir, env={
-        "CC": WASM_CC,
-        "CXX": WASM_CXX,
-        "CFLAGS": WASM_CFLAGS,
-        "CXXFLAGS": WASM_CXXFLAGS,
-        "AR": WASM_AR,
-        "RANLIB": WASM_RANLIB,
-        "LD": WASM_LD,
-        "LDFLAGS": "{} -lmpi".format(WASM_LDFLAGS),
-    })
+    res = call(
+        make_cmd,
+        shell=True,
+        cwd=bench_dir,
+        env={
+            "CC": WASM_CC,
+            "CXX": WASM_CXX,
+            "CFLAGS": WASM_CFLAGS,
+            "CXXFLAGS": WASM_CXXFLAGS,
+            "AR": WASM_AR,
+            "RANLIB": WASM_RANLIB,
+            "LD": WASM_LD,
+            "LDFLAGS": "{} -lmpi".format(WASM_LDFLAGS),
+        },
+    )
 
     if res != 0:
         raise RuntimeError("Failed to compile MPI benchmarks")

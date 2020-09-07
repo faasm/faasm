@@ -9,9 +9,17 @@ from invoke import task
 from . import python as this_python
 from faasmcli.util.env import FAASM_RUNTIME_ROOT, FAASM_LOCAL_DIR
 from faasmcli.util.env import FAASM_SYSROOT
-from faasmcli.util.release import get_runtime_tar_name, get_runtime_tar_path, \
-    get_sysroot_tar_name, get_toolchain_tar_name, get_toolchain_tar_path, get_sysroot_tar_path, get_toolchain_url, \
-    get_runtime_url, get_sysroot_url
+from faasmcli.util.release import (
+    get_runtime_tar_name,
+    get_runtime_tar_path,
+    get_sysroot_tar_name,
+    get_toolchain_tar_name,
+    get_toolchain_tar_path,
+    get_sysroot_tar_path,
+    get_toolchain_url,
+    get_runtime_url,
+    get_sysroot_url,
+)
 from faasmcli.util.upload_util import download_tar_from_url
 
 TOOLCHAIN_INSTALL = join(FAASM_LOCAL_DIR, "toolchain")
@@ -128,11 +136,7 @@ def _do_scp(is_from, user, host, dir_name):
         # so the remote dir is one level higher
         to_dir = "{}@{}:{}".format(user, host, FAASM_LOCAL_DIR)
 
-    scp_cmd = [
-        "rsync", "-av",
-        from_dir,
-        to_dir
-    ]
+    scp_cmd = ["rsync", "-av", from_dir, to_dir]
     scp_cmd = " ".join(scp_cmd)
     print(scp_cmd)
 

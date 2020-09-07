@@ -1,10 +1,6 @@
 ---
 
-- name: "gRPC system deps"
-  become: yes
-  apt:
-    name:
-      - libc-ares-dev
+- include_tasks: "c-ares.yml"
 
 - name: "Check if grpc is installed"
   stat:

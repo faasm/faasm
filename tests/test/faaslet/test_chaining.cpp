@@ -3,8 +3,6 @@
 #include "utils.h"
 
 #include <faabric/util/environment.h>
-
-#include <faaslet/FaasletPool.h>
 #include <emulator/emulator.h>
 
 using namespace faaslet;

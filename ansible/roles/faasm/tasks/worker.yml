@@ -1,7 +1,7 @@
 ---
 
 - name: "Run worker build"
-  shell: "cmake --build . --target faaslet_runner"
+  shell: "cmake --build . --target pool_runner"
   args:
     chdir: "/usr/local/code/faasm/build"
 

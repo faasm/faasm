@@ -8,10 +8,10 @@ def remove_from_zip(zip_path, *filenames):
     tempdir = tempfile.mkdtemp()
 
     try:
-        temp_path = os.path.join(tempdir, 'new.zip')
+        temp_path = os.path.join(tempdir, "new.zip")
 
-        with zipfile.ZipFile(zip_path, 'r') as zip_read:
-            with zipfile.ZipFile(temp_path, 'w') as zip_write:
+        with zipfile.ZipFile(zip_path, "r") as zip_read:
+            with zipfile.ZipFile(temp_path, "w") as zip_write:
                 for item in zip_read.infolist():
                     if item.filename not in filenames:
                         data = zip_read.read(item.filename)
@@ -26,5 +26,5 @@ def remove_from_zip(zip_path, *filenames):
 def replace_in_zip(zip_path, filename, replacement_path):
     remove_from_zip(zip_path, filename)
 
-    with zipfile.ZipFile(zip_path, 'a') as z:
+    with zipfile.ZipFile(zip_path, "a") as z:
         z.write(replacement_path, arcname=filename)
