@@ -11,12 +11,12 @@
     state: directory
 
 - name: "Cmake"
-  shell: "cmake -DCMAKE_BUILD_TYPE=Release .."
+  shell: "cmake -GNinja -DCMAKE_BUILD_TYPE=Release .."
   args:
     chdir: "/usr/local/code/faasm/third-party/eigen/native-build"
 
 - name: "Install"
   become: yes
-  shell: "make install"
+  shell: "ninja install"
   args:
     chdir: "/usr/local/code/faasm/third-party/eigen/native-build"

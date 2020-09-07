@@ -50,6 +50,11 @@ if [[ -d "${THIS_DIR}/build" ]]; then
   export PATH=${THIS_DIR}/build/bin:$PATH
 fi
 
+# Dev
+if [[ -d "${THIS_DIR}/build/cmake" ]]; then
+  export PATH=${THIS_DIR}/build/cmake/bin:$PATH
+fi
+
 # Native MPI
 export PATH=/usr/local/faasm/openmpi/bin:$PATH
 

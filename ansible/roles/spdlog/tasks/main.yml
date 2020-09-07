@@ -5,29 +5,32 @@
     path: /usr/local/include/spdlog
   register: sl_stat
 
-- name: "Download the spdlog release"
-  shell: "{{ item }}"
-  args:
-    chdir: "/tmp"
-  with_items:
-    - "wget https://github.com/gabime/spdlog/archive/v1.2.1.tar.gz"
-    - "tar -xf v1.2.1.tar.gz"
-    - "mkdir spdlog-1.2.1/build"
+- name: "Clone spdlog repo"
+  git:
+    repo: "https://github.com/gabime/spdlog"
+    dest: "/tmp/spdlog"
+    version: "v1.8.0"
+  when: sl_stat.stat.exists == False
+
+- name: "Create build dir"
+  file:
+    path: "/tmp/spdlog/build"
+    state: directory
   when: sl_stat.stat.exists == False
 
 - name: "Make and install"
   become: yes
   shell: "{{ item }}"
   args:
-    chdir: "/tmp/spdlog-1.2.1/build"
+    chdir: "/tmp/spdlog/build"
   with_items:
-    - "cmake .."
-    - "make -j"
-    - "make install"
+    - "cmake -GNinja .."
+    - "ninja"
+    - "ninja install"
   when: sl_stat.stat.exists == False
 
 - name: "Clean up"
   become: yes
   file:
     state: absent
-    path: "/tmp/spdlog-1.2.1"
+    path: "/tmp/spdlog"
