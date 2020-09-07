@@ -112,7 +112,6 @@ def faasm(ctx, clean=False, lib=None, verbose=False):
         _build_faasm_lib("cpp", clean, verbose)
         _build_faasm_lib("pyinit", clean, verbose)
         _build_faasm_lib("faasmp", clean, verbose)
-        _build_faasm_lib("faasmpi", clean, verbose)
         _build_faasm_lib("rust", clean, verbose)
 
 
@@ -122,14 +121,6 @@ def faasmp(ctx, clean=False, verbose=False):
     Compile and install the Faasm OpenMP library
     """
     _build_faasm_lib("faasmp", clean, verbose)
-
-
-@task
-def faasmpi(ctx, clean=False, verbose=False):
-    """
-    Compile and install the Faasm MPI library
-    """
-    _build_faasm_lib("faasmpi", clean, verbose)
 
 
 @task
