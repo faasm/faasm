@@ -80,5 +80,7 @@ More detail on some key features and implementations can be found below:
 Faasm experiments and benchmarks live in the 
 [Faasm experiments repo](https://github.com/lsds/faasm-experiments/):
 
-- [Tensorflow Lite](https://github.com/lsds/faasm-experiments/docs/tensorflow.md) - performing inference in Faasm with TF Lite.
+- [Tensorflow Lite](https://github.com/lsds/faasm-experiments/docs/tensorflow.md) - performing inference in Faasm with [Tensorflow Lite](https://www.tensorflow.org/lite/)
+- [Polybench](https://github.com/lsds/faasm-experiments/docs/polybench.md) - benchmarking with [Polybench/C](http://web.cse.ohio-state.edu/~pouchet.2/software/polybench/)
+- [ParRes Kernels](https://github.com/lsds/faasm-experiments/docs/prk.md) - benchmarking with the [ParRes Kernels](https://github.com/ParRes/Kernels)
 
