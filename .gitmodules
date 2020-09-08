@@ -1,6 +1,3 @@
-[submodule "third-party/tensorflow"]
-	path = third-party/tensorflow
-	url = https://github.com/Shillaker/tensorflow.git
 [submodule "third-party/eigen"]
 	path = third-party/eigen
 	url = https://github.com/Shillaker/eigen-git-mirror
@@ -14,9 +11,6 @@
 [submodule "third-party/pyfaasm"]
 	path = third-party/pyfaasm
 	url = https://github.com/Shillaker/pyfaasm.git
-[submodule "third-party/ParResKernels"]
-	path = third-party/ParResKernels
-	url = https://github.com/Shillaker/Kernels.git
 [submodule "third-party/faabric"]
 	path = third-party/faabric
 	url = https://github.com/Shillaker/faabric.git
