@@ -11,12 +11,10 @@ from . import docker_tasks
 from . import github
 from . import knative
 from . import libs
-from . import prk
 from . import python
 from . import redis
 from . import run
 from . import state
-from . import tensorflow
 from . import toolchain
 from . import upload
 from . import wast
@@ -31,7 +29,6 @@ ns = Collection(
     github,
     knative,
     libs,
-    prk,
     python,
     redis,
     run,
@@ -45,4 +42,3 @@ ns = Collection(
 ns.add_collection(ns.from_module(bare_metal), name="bm")
 ns.add_collection(ns.from_module(call), name="invoke")
 ns.add_collection(ns.from_module(docker_tasks), name="docker")
-ns.add_collection(ns.from_module(tensorflow), name="tf")

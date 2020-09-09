@@ -34,24 +34,6 @@ Once you've built a native executable linked against this, you can then use `mpi
 /usr/local/faasm/openmpi/bin/mpirun -n 2 <your native mpi func> 
 ```
 
-## ParRes Kernels
-
-We can benchmark Faasm's MPI implementation using the [ParRes Kernels](https://github.com/ParRes/Kernels)
-modified slightly in the fork found in `third-party/ParResKernels`.
-
-To compile and upload you can run the following:
-
-```bash
-inv libs.prk
-inv upload.user prk
-```
-
-This uploads a number of the kernels written for MPI, e.g. `nstream`. These can be invoked using:
-
-```bash
-inv prk.invoke nstream
-```
-
 ## Extending the Faasm MPI implementation
 
 The MPI interface declarations live in `libs/faasmpi` and the definitions in `src/wasm/mpi.cpp`.

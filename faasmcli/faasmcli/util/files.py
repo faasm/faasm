@@ -1,5 +1,5 @@
 import glob
-from os import makedirs, remove, makedirs
+from os import makedirs, remove
 from os.path import exists
 from shutil import rmtree
 

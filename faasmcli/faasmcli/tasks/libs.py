@@ -1,7 +1,7 @@
-from os import makedirs, mkdir, cpu_count
+from os import makedirs
 from os.path import exists
 from os.path import join
-from shutil import rmtree, copy
+from shutil import rmtree
 from subprocess import check_output, call
 
 from invoke import task
@@ -13,25 +13,14 @@ from faasmcli.util.env import (
     SYSROOT_INSTALL_PREFIX,
     FAASM_INSTALL_DIR,
     FAASM_RUNTIME_ROOT,
-    WASM_DIR,
 )
 from faasmcli.util.env import THIRD_PARTY_DIR
 from faasmcli.util.files import clean_dir
 from faasmcli.util.toolchain import (
     WASM_HOST,
     BASE_CONFIG_CMD,
-    WASM_CFLAGS,
-    WASM_CXXFLAGS,
-    WASM_LDFLAGS,
-    WASM_CC,
-    WASM_CXX,
-    WASM_RANLIB,
-    WASM_AR,
-    WASM_LD,
 )
 from faasmcli.util.toolchain import WASM_SYSROOT, WASM_BUILD, BASE_CONFIG_FLAGS
-
-PRK_DIR = join(THIRD_PARTY_DIR, "ParResKernels")
 
 
 @task
@@ -42,8 +31,6 @@ def toolchain(ctx, clean=False):
     eigen(ctx)
     faasm(ctx, clean=clean)
     fake(ctx, clean=clean)
-    # zlib(ctx)
-    tflite(ctx, clean=clean)
 
 
 @task
@@ -194,89 +181,6 @@ def fake(ctx, clean=False):
 
 
 @task
-def lulesh(ctx, lulesh_dir, mpi=False, omp=False, clean=True, debug=False, cp=True):
-    """
-    Compile and install the LULESH code
-    """
-    work_dir = lulesh_dir
-
-    if omp and mpi:
-        build_dir = "ompi"
-        target = "lulesh_ompi"
-    elif omp:
-        build_dir = "omp-only"
-        target = "lulesh_omp"
-    elif mpi:
-        build_dir = "mpi-only"
-        target = "lulesh_mpi"
-    else:
-        build_dir = "bare"
-        target = "lulesh_bare"
-    build_dir = join(work_dir, "build", build_dir)
-
-    if clean and exists(build_dir):
-        print("rm {}".format(build_dir))
-        rmtree(build_dir)
-
-    if not exists(build_dir):
-        makedirs(build_dir)
-
-    cmd = " ".join(
-        [
-            "cmake",
-            "-G Ninja",
-            "-DWITH_MPI={}".format("TRUE" if mpi else "FALSE"),
-            "-DWITH_OPENMP={}".format("TRUE" if omp else "FALSE"),
-            "-DWITH_SILO=FALSE",
-            "-DFAASM_BUILD_TYPE=wasm",
-            "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
-            "-DCMAKE_BUILD_TYPE=Release",
-            "-DCMAKE_INSTALL_PREFIX={}".format(SYSROOT_INSTALL_PREFIX),
-            work_dir,
-        ]
-    )
-    if debug:
-        print("Running {}".format(cmd))
-    res = call(cmd, shell=True, cwd=build_dir)
-    if res != 0:
-        raise RuntimeError("Failed on cmake init for {}".format(target))
-
-    cmd = " ".join(
-        [
-            "cmake",
-            "--build {}".format(build_dir),
-            "--target {}".format(target),
-        ]
-    )
-    if debug:
-        print("Running {}".format(cmd))
-    res = call(cmd, shell=True)
-    if res != 0:
-        raise RuntimeError("Failed on make for {}".format(target))
-
-    if cp:
-        dest_dir = join(WASM_DIR, "lulesh", target)
-        if clean and exists(dest_dir):
-            rmtree(dest_dir)
-
-        if not exists(dest_dir):
-            makedirs(dest_dir)
-
-        cmd = " ".join(
-            [
-                "cp",
-                "{}.wasm".format(target),
-                join(dest_dir, "function.wasm"),
-            ]
-        )
-        if debug:
-            print("Running {}".format(cmd))
-        res = call(cmd, shell=True, cwd=build_dir)
-        if res != 0:
-            raise RuntimeError("Failed to copy {}".format(target))
-
-
-@task
 def eigen(ctx, verbose=False):
     """
     Compile and install Eigen
@@ -354,138 +258,3 @@ def zlib(ctx, clean=False):
     check_output("make", shell=True, cwd=workdir)
     check_output("make install", shell=True, cwd=workdir)
 
-
-@task
-def tflite(ctx, clean=False):
-    """
-    Compile and install Tensorflow Lite
-    """
-    tf_dir = join(THIRD_PARTY_DIR, "tensorflow")
-    tf_lite_dir = join(tf_dir, "tensorflow", "lite")
-    tf_make_dir = join(tf_lite_dir, "tools", "make")
-
-    download_check_dir = join(tf_make_dir, "downloads", "absl")
-    if not exists(download_check_dir):
-        download_script = join(tf_make_dir, "download_dependencies.sh")
-        check_output(download_script, shell=True)
-
-    cores = cpu_count()
-    make_cores = int(cores) - 1
-
-    make_target = "lib"
-    make_cmd = ["make -j {}".format(make_cores)]
-    make_cmd.extend(BASE_CONFIG_CMD)
-    make_cmd.extend(
-        [
-            'CFLAGS="{} -ftls-model=local-exec"'.format(WASM_CFLAGS),
-            'CXXFLAGS="{}"'.format(WASM_CXXFLAGS),
-            'LDFLAGS="{} -Xlinker --max-memory=4294967296"'.format(WASM_LDFLAGS),
-            "MINIMAL_SRCS=",
-            "TARGET={}".format(WASM_HOST),
-            "BUILD_WITH_MMAP=false",
-            'LIBS="-lstdc++"',
-            '-C "{}"'.format(tf_dir),
-            "-f tensorflow/lite/tools/make/Makefile",
-        ]
-    )
-
-    make_cmd.append(make_target)
-
-    clean_dir = join(tf_make_dir, "gen", "wasm32-unknown-wasi_x86_64")
-    if clean and exists(clean_dir):
-        rmtree(clean_dir)
-
-    res = call(" ".join(make_cmd), shell=True, cwd=tf_lite_dir)
-    if res != 0:
-        raise RuntimeError("Failed to compile Tensorflow lite")
-
-
-@task
-def prk(ctx, clean=False):
-    """
-    Compile and install the ParRes Kernels
-    """
-
-    # Pairs of (directory, make target). See top-level ParResKernels
-    # Makefile for more examples
-    make_targets = [
-        ("MPI1/Synch_global", "global"),
-        ("MPI1/Synch_p2p", "p2p"),
-        ("MPI1/Sparse", "sparse"),
-        ("MPI1/Transpose", "transpose"),
-        ("MPI1/Stencil", "stencil"),
-        ("MPI1/DGEMM", "dgemm"),
-        ("MPI1/Nstream", "nstream"),
-        ("MPI1/Reduce", "reduce"),
-        ("MPI1/Random", "random"),
-        # ("MPI1/PIC-static", "pic"),
-        # ("MPI1/AMR", "amr"),
-    ]
-
-    if clean:
-        call("make clean", shell=True, cwd=PRK_DIR)
-
-    has_failed = False
-    for subdir, make_target in make_targets:
-        make_cmd = "make {}".format(make_target)
-        make_dir = join(PRK_DIR, subdir)
-        res = call(make_cmd, shell=True, cwd=make_dir)
-
-        if res != 0:
-            print(
-                "Making kernel in {} with target {} failed".format(subdir, make_target)
-            )
-            has_failed = True
-
-        print("Built kernel {}".format(make_target))
-
-    if has_failed:
-        print("At least one kernel failed")
-        exit(1)
-
-    # Make sure wasm dir exists
-    prk_wasm_dest = join(WASM_DIR, "prk")
-    if not exists(prk_wasm_dest):
-        mkdir(prk_wasm_dest)
-
-    # Copy the functions into place
-    prk_wasm_src = join(PRK_DIR, "wasm")
-    for target in [t[1] for t in make_targets]:
-        wasm_src = join(prk_wasm_src, "{}.wasm".format(target))
-        wasm_dest = join(prk_wasm_dest, target)
-        if not exists(wasm_dest):
-            mkdir(wasm_dest)
-
-        copy(wasm_src, join(wasm_dest, "function.wasm"))
-
-
-@task
-def mpi_bench(ctx, clean=False):
-    """
-    Compile and install the Intel MPI benchmarks
-    """
-    bench_dir = join(THIRD_PARTY_DIR, "mpi-benchmarks")
-    make_target = "IMB-MPI1"
-
-    if clean:
-        call("make clean", shell=True, cwd=bench_dir)
-
-    make_cmd = "make -j {}".format(make_target)
-    res = call(
-        make_cmd,
-        shell=True,
-        cwd=bench_dir,
-        env={
-            "CC": WASM_CC,
-            "CXX": WASM_CXX,
-            "CFLAGS": WASM_CFLAGS,
-            "CXXFLAGS": WASM_CXXFLAGS,
-            "AR": WASM_AR,
-            "RANLIB": WASM_RANLIB,
-            "LD": WASM_LD,
-            "LDFLAGS": "{} -lmpi".format(WASM_LDFLAGS),
-        },
-    )
-
-    if res != 0:
-        raise RuntimeError("Failed to compile MPI benchmarks")

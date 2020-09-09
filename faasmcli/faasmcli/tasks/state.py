@@ -36,3 +36,4 @@ def download(ctx, user, key, out_path):
     host, port = get_upload_host_port(None, None)
 
     download_binary_state(user, key, out_path, host=host, port=port)
+

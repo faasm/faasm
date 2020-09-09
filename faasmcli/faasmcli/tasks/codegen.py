@@ -48,11 +48,10 @@ def local(ctx, wamr=False):
     _do_codegen_user("rust", wamr=wamr)
 
     # Run these in parallel
-    p = Pool(3)
+    p = Pool(2)
     users = [
         ("python", wamr),
         ("sgd", wamr),
-        ("tf", wamr),
     ]
     p.starmap(_do_codegen_user, users)
 
@@ -60,3 +59,4 @@ def local(ctx, wamr=False):
     binary = find_codegen_shared_lib()
     shared_obj_dir = join(FAASM_RUNTIME_ROOT, "lib", "python3.7")
     check_output("{} {}".format(binary, shared_obj_dir), shell=True)
+
