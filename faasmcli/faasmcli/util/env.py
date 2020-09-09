@@ -62,7 +62,9 @@ POSSIBLE_BUILD_BINS = [
     "/faasm/build/bin/",  # Containers
     "/faasm/build/third-party/WAVM/bin/",  # Containers
     join(PROJ_ROOT, "build", "bin"),  # Local builds
+    join(PROJ_ROOT, "build", "cmake", "bin"),  # Local builds
     join(PROJ_ROOT, "build", "third-party", "WAVM", "bin"),  # Local builds
+    join(PROJ_ROOT, "build", "cmake", "third-party", "WAVM", "bin"),  # Local builds
     join(PROJ_ROOT, "cmake-build-debug", "bin"),  # CLion
     join(PROJ_ROOT, "cmake-build-debug", "third-party", "WAVM", "bin"),  # CLion
     join(HOME_DIR, "faasm", "bench", "bin"),  # Benchmark
