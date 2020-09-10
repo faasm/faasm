@@ -83,9 +83,7 @@ def _build_faasm_lib(dir_name, clean, verbose, target=None):
 
     clean_dir(build_dir, clean)
 
-    verbose_str = "VERBOSE=1" if verbose else ""
     build_cmd = [
-        verbose_str,
         "cmake",
         "-GNinja",
         "-DFAASM_BUILD_TYPE=wasm",
@@ -102,7 +100,6 @@ def _build_faasm_lib(dir_name, clean, verbose, target=None):
         exit(1)
 
     build_cmd = [
-        verbose_str,
         "ninja",
         target if target else ""
     ]
@@ -185,7 +182,7 @@ def fake(ctx, clean=False):
     ]
 
     call(" ".join(build_cmd), shell=True, cwd=build_dir)
-    call("ninja VERBOSE=1 ", shell=True, cwd=build_dir)
+    call("ninja", shell=True, cwd=build_dir)
     call("ninja install", shell=True, cwd=build_dir)
 
     # Copy shared object into place
