@@ -2,7 +2,7 @@
 // Created by Joshua Heinemann on 04.06.20.
 // TU-Braunschweig (heineman@ibr.cs.tu-bs.de)
 //
-#define FAASM_SGX_ATTESTATION 1
+#define FAASM_SGX_ATTESTATION 0
 enclave{
     include "../../../include/sgx/faasm_sgx_error.h"
     include "../../../include/sgx/sgx_wamr_attestation.h"

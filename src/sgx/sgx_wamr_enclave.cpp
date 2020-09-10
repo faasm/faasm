@@ -7,7 +7,6 @@
 #include <sgx_defs.h>
 #include <sgx_thread.h>
 #include <string.h>
-#include <xra.h>
 #include <iwasm/include/wasm_export.h>
 #include <sgx/faasm_sgx_error.h>
 #include <sgx/sgx_wamr_enclave_types.h>
@@ -18,6 +17,9 @@
 #endif
 #if(FAASM_SGX_WHITELISTING)
 #include <sgx/sgx_wamr_whitelisting.h>
+#endif
+#if(FAASM_SGX_XRA)
+#include <xra.h>
 #endif
 #if(WASM_ENABLE_INTERP == 1)
 #include <iwasm/interpreter/wasm_runtime.h>
