@@ -31,7 +31,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
 
     # Add imports
     install(FILES faasmpi.imports DESTINATION 
-        ${CMAKE_SYSROOT}/lib/wasm32-wasi RENAME faasmpi.imports
+        ${CMAKE_SYSROOT}/lib/wasm32-wasi RENAME libfaasmpi.imports
     )
 
     # Symlink header

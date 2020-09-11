@@ -7,7 +7,7 @@ function(mpi_func exec_name dir_path)
     faasm_func(${exec_name} ${dir_path})
 
     if (FAASM_BUILD_TYPE STREQUAL "wasm")
-        set(MPI_LIB "mpi")
+        set(MPI_LIB mpi)
     else ()
         include_directories(/usr/local/faasm/openmpi/include)
         set(MPI_LIB /usr/local/faasm/openmpi/lib/libmpi.so)
