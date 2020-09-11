@@ -29,8 +29,14 @@ def toolchain(ctx, clean=False):
     Compile and install all libs crucial to the toolchain
     """
     eigen(ctx)
+
     faasm(ctx, clean=clean)
+    faasmp(ctx, clean=clean)
+    faasmpi(ctx, clean=clean)
+
     fake(ctx, clean=clean)
+    pyinit(ctx, clean=clean)
+    rust(ctx, clean=clean)
 
 
 @task
@@ -71,15 +77,13 @@ def native(ctx, clean=False):
     call("sudo ninja install", shell=True, cwd=build_dir)
 
 
-def _build_faasm_lib(dir_name, clean, verbose):
-    work_dir = join(PROJ_ROOT, "libs", dir_name)
+def _build_faasm_lib(dir_name, clean, verbose, target=None):
+    work_dir = join(PROJ_ROOT, dir_name)
     build_dir = join(PROJ_ROOT, "build", dir_name)
 
     clean_dir(build_dir, clean)
 
-    verbose_str = "VERBOSE=1" if verbose else ""
     build_cmd = [
-        verbose_str,
         "cmake",
         "-GNinja",
         "-DFAASM_BUILD_TYPE=wasm",
@@ -95,7 +99,12 @@ def _build_faasm_lib(dir_name, clean, verbose):
     if res != 0:
         exit(1)
 
-    res = call("{} ninja".format(verbose_str), shell=True, cwd=build_dir)
+    build_cmd = [
+        "ninja",
+        target if target else ""
+    ]
+
+    res = call(" ".join(build_cmd), shell=True, cwd=build_dir)
     if res != 0:
         exit(1)
 
@@ -105,17 +114,11 @@ def _build_faasm_lib(dir_name, clean, verbose):
 
 
 @task
-def faasm(ctx, clean=False, lib=None, verbose=False):
+def faasm(ctx, clean=False, verbose=False):
     """
-    Compile and install all Faasm libraries
+    Compile and install the Faasm library
     """
-    if lib:
-        _build_faasm_lib(lib, clean, verbose)
-    else:
-        _build_faasm_lib("cpp", clean, verbose)
-        _build_faasm_lib("pyinit", clean, verbose)
-        _build_faasm_lib("faasmp", clean, verbose)
-        _build_faasm_lib("rust", clean, verbose)
+    _build_faasm_lib("libs/faasm", clean, verbose)
 
 
 @task
@@ -123,7 +126,23 @@ def faasmp(ctx, clean=False, verbose=False):
     """
     Compile and install the Faasm OpenMP library
     """
-    _build_faasm_lib("faasmp", clean, verbose)
+    _build_faasm_lib("libs/faasmp", clean, verbose)
+
+
+@task
+def faasmpi(ctx, clean=False, verbose=False):
+    """
+    Compile and install the Faasm MPI library
+    """
+    # Build the Faabric MPI target
+    _build_faasm_lib(
+            "third-party/faabric/src/mpi",
+            clean,
+            verbose,
+    )
+
+    # Build the Faasm wasm wrapper
+    _build_faasm_lib("libs/faasmpi", clean, verbose)
 
 
 @task
@@ -131,7 +150,15 @@ def rust(ctx, clean=False, verbose=False):
     """
     Install Rust library
     """
-    _build_faasm_lib("rust", clean, verbose)
+    _build_faasm_lib("libs/rust", clean, verbose)
+
+
+@task
+def pyinit(ctx, clean=False, verbose=False):
+    """
+    Install pyinit library
+    """
+    _build_faasm_lib("libs/pyinit", clean, verbose)
 
 
 @task
@@ -155,7 +182,7 @@ def fake(ctx, clean=False):
     ]
 
     call(" ".join(build_cmd), shell=True, cwd=build_dir)
-    call("ninja VERBOSE=1 ", shell=True, cwd=build_dir)
+    call("ninja", shell=True, cwd=build_dir)
     call("ninja install", shell=True, cwd=build_dir)
 
     # Copy shared object into place
