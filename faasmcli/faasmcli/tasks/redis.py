@@ -8,22 +8,11 @@ from faasmcli.util.env import PROJ_ROOT
 
 def _do_redis_command(sub_cmd, local, docker, knative):
     if local:
-        cmd = [
-            "redis-cli", sub_cmd
-        ]
+        cmd = ["redis-cli", sub_cmd]
     elif docker:
-        cmd = [
-            "docker-compose", "exec", "redis-queue", "redis-cli", sub_cmd
-        ]
+        cmd = ["docker-compose", "exec", "redis-queue", "redis-cli", sub_cmd]
     elif knative:
-        cmd = [
-            "kubectl",
-            "exec",
-            "-n faasm",
-            "redis-queue",
-            "--",
-            "redis-cli", sub_cmd
-        ]
+        cmd = ["kubectl", "exec", "-n faasm", "redis-queue", "--", "redis-cli", sub_cmd]
     else:
         cmd = ["redis-cli", sub_cmd]
 

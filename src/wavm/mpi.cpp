@@ -4,7 +4,7 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
 
-#include <faabric/faasmpi/mpi.h>
+#include <faabric/mpi/mpi.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/scheduler/MpiContext.h>
 #include <faabric/util/gids.h>
@@ -15,7 +15,7 @@ namespace wasm {
     static thread_local faabric::scheduler::MpiContext executingContext;
 
     bool isInPlace(U8 wasmPtr) {
-        return wasmPtr == FAASMPI_IN_PLACE;
+        return wasmPtr == FAABRIC_IN_PLACE;
     }
 
     faabric::scheduler::MpiWorld &getExecutingWorld() {
@@ -44,9 +44,9 @@ namespace wasm {
         }
 
         bool checkMpiComm(I32 wasmPtr) {
-            faasmpi_communicator_t *hostComm = &Runtime::memoryRef<faasmpi_communicator_t>(memory, wasmPtr);
+            faabric_communicator_t *hostComm = &Runtime::memoryRef<faabric_communicator_t>(memory, wasmPtr);
 
-            if (hostComm->id != FAASMPI_COMM_WORLD) {
+            if (hostComm->id != FAABRIC_COMM_WORLD) {
                 const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
                 logger->error("Unrecognised communicator type {}", hostComm->id);
                 return false;
@@ -55,8 +55,8 @@ namespace wasm {
             return true;
         }
 
-        faasmpi_datatype_t *getFaasmDataType(I32 wasmPtr) {
-            faasmpi_datatype_t *hostDataType = &Runtime::memoryRef<faasmpi_datatype_t>(memory, wasmPtr);
+        faabric_datatype_t *getFaasmDataType(I32 wasmPtr) {
+            faabric_datatype_t *hostDataType = &Runtime::memoryRef<faabric_datatype_t>(memory, wasmPtr);
             return hostDataType;
         }
 
@@ -76,26 +76,26 @@ namespace wasm {
             return requestId;
         }
 
-        faasmpi_info_t *getFaasmInfoType(I32 wasmPtr) {
-            faasmpi_info_t *hostInfoType = &Runtime::memoryRef<faasmpi_info_t>(memory, wasmPtr);
+        faabric_info_t *getFaasmInfoType(I32 wasmPtr) {
+            faabric_info_t *hostInfoType = &Runtime::memoryRef<faabric_info_t>(memory, wasmPtr);
             return hostInfoType;
         }
 
-        faasmpi_win_t *getFaasmWindow(I32 wasmPtr) {
-            faasmpi_win_t *hostWin = &Runtime::memoryRef<faasmpi_win_t>(memory, wasmPtr);
+        faabric_win_t *getFaasmWindow(I32 wasmPtr) {
+            faabric_win_t *hostWin = &Runtime::memoryRef<faabric_win_t>(memory, wasmPtr);
             return hostWin;
         }
 
         /**
          * This function is used for pointers-to-pointers for the window
          */
-        faasmpi_win_t *getFaasmWindowFromPointer(I32 wasmPtrPtr) {
+        faabric_win_t *getFaasmWindowFromPointer(I32 wasmPtrPtr) {
             I32 wasmPtr = Runtime::memoryRef<I32>(memory, wasmPtrPtr);
             return getFaasmWindow(wasmPtr);
         }
 
-        faasmpi_op_t *getFaasmOp(I32 wasmOp) {
-            faasmpi_op_t *hostOpType = &Runtime::memoryRef<faasmpi_op_t>(memory, wasmOp);
+        faabric_op_t *getFaasmOp(I32 wasmOp) {
+            faabric_op_t *hostOpType = &Runtime::memoryRef<faabric_op_t>(memory, wasmOp);
             return hostOpType;
         }
 
@@ -171,7 +171,7 @@ namespace wasm {
         logger->debug("S - MPI_Send {} {} {} {} {} {}", buffer, count, datatype, destRank, tag, comm);
 
         ContextWrapper ctx(comm);
-        faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
+        faabric_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
         auto inputs = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, buffer, count);
         ctx.world.send(ctx.rank, destRank, inputs, hostDtype, count);
 
@@ -187,7 +187,7 @@ namespace wasm {
         logger->debug("S - MPI_Isend {} {} {} {} {} {} {}", buffer, count, datatype, destRank, tag, comm, requestPtrPtr);
 
         ContextWrapper ctx(comm);
-        faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
+        faabric_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
 
         auto inputs = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, buffer, count);
         int requestId = ctx.world.isend(ctx.rank, destRank, inputs, hostDtype, count);
@@ -207,7 +207,7 @@ namespace wasm {
         ContextWrapper ctx;
 
         MPI_Status *status = &Runtime::memoryRef<MPI_Status>(ctx.memory, statusPtr);
-        faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
+        faabric_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
         if (status->bytesSize % hostDtype->size != 0) {
             logger->error("Incomplete message (bytes {}, datatype size {})", status->bytesSize, hostDtype->size);
             return 1;
@@ -229,7 +229,7 @@ namespace wasm {
 
         ContextWrapper ctx;
         MPI_Status *status = &Runtime::memoryRef<MPI_Status>(ctx.memory, statusPtr);
-        faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
+        faabric_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
         auto outputs = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, buffer, count);
         ctx.world.recv(sourceRank, ctx.rank, outputs, hostDtype, count, status);
 
@@ -246,7 +246,7 @@ namespace wasm {
                                  buffer, count, datatype, sourceRank, tag, comm, requestPtrPtr);
 
         ContextWrapper ctx;
-        faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
+        faabric_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
         auto outputs = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, buffer, count);
         int requestId = ctx.world.irecv(sourceRank, ctx.rank, outputs, hostDtype, count);
 
@@ -309,7 +309,7 @@ namespace wasm {
         faabric::util::getLogger()->debug("S - MPI_Bcast {} {} {} {}", buffer, count, datatype, root, comm);
         ContextWrapper ctx(comm);
 
-        faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
+        faabric_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
         auto inputs = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, buffer, count * hostDtype->size);
 
         // See if this is a send broadcast or receive broadcast
@@ -346,8 +346,8 @@ namespace wasm {
                                  sendBuf, sendCount, sendType, recvBuf, recvCount, recvType, root, comm);
         ContextWrapper ctx(comm);
 
-        faasmpi_datatype_t *hostSendDtype = ctx.getFaasmDataType(sendType);
-        faasmpi_datatype_t *hostRecvDtype = ctx.getFaasmDataType(recvType);
+        faabric_datatype_t *hostSendDtype = ctx.getFaasmDataType(sendType);
+        faabric_datatype_t *hostRecvDtype = ctx.getFaasmDataType(recvType);
 
         auto hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, sendBuf, sendCount * hostSendDtype->size);
         auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, recvBuf, recvCount * hostRecvDtype->size);
@@ -371,8 +371,8 @@ namespace wasm {
                                  sendBuf, sendCount, sendType, recvBuf, recvCount, recvType, root, comm);
 
         ContextWrapper ctx(comm);
-        faasmpi_datatype_t *hostSendDtype = ctx.getFaasmDataType(sendType);
-        faasmpi_datatype_t *hostRecvDtype = ctx.getFaasmDataType(recvType);
+        faabric_datatype_t *hostSendDtype = ctx.getFaasmDataType(sendType);
+        faabric_datatype_t *hostRecvDtype = ctx.getFaasmDataType(recvType);
 
         auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, recvBuf, recvCount * hostRecvDtype->size);
         uint8_t *hostSendBuffer;
@@ -402,8 +402,8 @@ namespace wasm {
 
         ContextWrapper ctx(comm);
 
-        faasmpi_datatype_t *hostSendDtype = ctx.getFaasmDataType(sendType);
-        faasmpi_datatype_t *hostRecvDtype = ctx.getFaasmDataType(recvType);
+        faabric_datatype_t *hostSendDtype = ctx.getFaasmDataType(sendType);
+        faabric_datatype_t *hostRecvDtype = ctx.getFaasmDataType(recvType);
 
         auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, recvBuf, recvCount * hostRecvDtype->size);
 
@@ -431,7 +431,7 @@ namespace wasm {
                                  sendBuf, recvBuf, count, datatype, op, root, comm);
 
         ContextWrapper ctx(comm);
-        faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
+        faabric_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
 
         auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, recvBuf, count * hostDtype->size);
 
@@ -443,7 +443,7 @@ namespace wasm {
             hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, sendBuf, count * hostDtype->size);
         }
 
-        faasmpi_op_t *hostOp = ctx.getFaasmOp(op);
+        faabric_op_t *hostOp = ctx.getFaasmOp(op);
 
         ctx.world.reduce(ctx.rank, root, hostSendBuffer, hostRecvBuffer, hostDtype, count, hostOp);
 
@@ -462,8 +462,8 @@ namespace wasm {
 
         ContextWrapper ctx(comm);
 
-        faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
-        faasmpi_op_t *hostOp = ctx.getFaasmOp(op);
+        faabric_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
+        faabric_op_t *hostOp = ctx.getFaasmOp(op);
 
         auto *hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, recvBuf, count);
 
@@ -492,8 +492,8 @@ namespace wasm {
 
         ContextWrapper ctx(comm);
 
-        faasmpi_datatype_t *hostSendDtype = ctx.getFaasmDataType(sendType);
-        faasmpi_datatype_t *hostRecvDtype = ctx.getFaasmDataType(recvType);
+        faabric_datatype_t *hostSendDtype = ctx.getFaasmDataType(sendType);
+        faabric_datatype_t *hostRecvDtype = ctx.getFaasmDataType(recvType);
         auto hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, sendBuf, sendCount * hostSendDtype->size);
         auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, recvBuf, recvCount * hostRecvDtype->size);
 
@@ -523,7 +523,7 @@ namespace wasm {
         faabric::util::getLogger()->debug("S - MPI_Type_size {} {}", typePtr, res);
 
         ContextWrapper ctx;
-        faasmpi_datatype_t *hostType = ctx.getFaasmDataType(typePtr);
+        faabric_datatype_t *hostType = ctx.getFaasmDataType(typePtr);
         ctx.writeMpiResult<int>(res, hostType->size);
 
         return MPI_SUCCESS;
@@ -536,8 +536,8 @@ namespace wasm {
         faabric::util::getLogger()->debug("S - MPI_Alloc_mem {} {} {}", memSize, info, resPtrPtr);
 
         ContextWrapper ctx;
-        faasmpi_info_t *hostInfo = ctx.getFaasmInfoType(info);
-        if (hostInfo->id != FAASMPI_INFO_NULL) {
+        faabric_info_t *hostInfo = ctx.getFaasmInfoType(info);
+        if (hostInfo->id != FAABRIC_INFO_NULL) {
             throw std::runtime_error("Non-null info not supported");
         }
 
@@ -566,7 +566,7 @@ namespace wasm {
         ContextWrapper ctx(comm);
 
         // Set up the window object in the wasm memory
-        faasmpi_win_t *win = ctx.getFaasmWindowFromPointer(winPtrPtr);
+        faabric_win_t *win = ctx.getFaasmWindowFromPointer(winPtrPtr);
         win->worldId = ctx.world.getId();
         win->size = size;
         win->dispUnit = dispUnit;
@@ -607,8 +607,8 @@ namespace wasm {
         // TODO - check window
 
         ContextWrapper ctx;
-        faasmpi_datatype_t *hostRecvDtype = ctx.getFaasmDataType(recvType);
-        faasmpi_datatype_t *hostSendDtype = ctx.getFaasmDataType(sendType);
+        faabric_datatype_t *hostRecvDtype = ctx.getFaasmDataType(recvType);
+        faabric_datatype_t *hostSendDtype = ctx.getFaasmDataType(sendType);
         auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, recvBuff, recvCount * hostRecvDtype->size);
 
         ctx.world.rmaGet(sendRank, hostSendDtype, sendCount, hostRecvBuffer, hostRecvDtype, recvCount);
@@ -632,8 +632,8 @@ namespace wasm {
         // TODO - check window
 
         ContextWrapper ctx;
-        faasmpi_datatype_t *hostRecvDtype = ctx.getFaasmDataType(recvType);
-        faasmpi_datatype_t *hostSendDtype = ctx.getFaasmDataType(sendType);
+        faabric_datatype_t *hostRecvDtype = ctx.getFaasmDataType(recvType);
+        faabric_datatype_t *hostSendDtype = ctx.getFaasmDataType(sendType);
         auto hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, sendBuff, sendCount * hostSendDtype->size);
 
         ctx.world.rmaPut(ctx.rank, hostSendBuffer, hostSendDtype, sendCount, recvRank, hostRecvDtype, recvCount);
@@ -666,7 +666,7 @@ namespace wasm {
         faabric::util::getLogger()->debug("S - MPI_Win_get_attr {} {} {} {}", winPtr, attrKey, attrResPtrPtr, flagResPtr);
 
         ContextWrapper ctx;
-        faasmpi_win_t *window = ctx.getFaasmWindow(winPtr);
+        faabric_win_t *window = ctx.getFaasmWindow(winPtr);
 
         // This flag must be 1 if the attribute is set (which we always assume it is)
         ctx.writeMpiResult<int>(flagResPtr, 1);

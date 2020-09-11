@@ -18,7 +18,8 @@ alias inv="inv -r faasmcli/faasmcli"
 alias invoke="invoke -r faasmcli/faasmcli"
 
 # ----------------------------
-# Invoke tab-completion (http://docs.pyinvoke.org/en/stable/invoke.html#shell-tab-completion)
+# Invoke tab-completion
+# (http://docs.pyinvoke.org/en/stable/invoke.html#shell-tab-completion)
 # ----------------------------
 
 _complete_invoke() {
@@ -33,15 +34,11 @@ complete -F _complete_invoke -o default invoke inv
 # Environment vars
 # ----------------------------
 
-export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-
 export LOG_LEVEL=debug
 export FAASM_ROOT=$(pwd)
 export FAASM_VERSION=$(cat VERSION)
 
 export PS1="(faasm) $PS1"
-
-alias rgrep="grep --exclude-dir={third-party,.git,venv} -rnw -e"
 
 # Container builds
 if [[ -d /faasm/build ]]; then
@@ -53,11 +50,13 @@ if [[ -d "${THIS_DIR}/build" ]]; then
   export PATH=${THIS_DIR}/build/bin:$PATH
 fi
 
+# Dev
+if [[ -d "${THIS_DIR}/build/cmake" ]]; then
+  export PATH=${THIS_DIR}/build/cmake/bin:$PATH
+fi
+
 # Native MPI
 export PATH=/usr/local/faasm/openmpi/bin:$PATH
-
-# WAMRC
-export PATH=${FAASM_ROOT}/third-party/wamr/wamr-compiler/build:$PATH
 
 echo ""
 echo "----------------------------------"

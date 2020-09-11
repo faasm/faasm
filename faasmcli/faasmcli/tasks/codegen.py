@@ -13,9 +13,7 @@ def codegen(ctx, user, function, wamr=False):
     """
     Generates machine code for the given function
     """
-    env = {
-        "WASM_VM": "wamr" if wamr else "wavm"
-    }
+    env = {"WASM_VM": "wamr" if wamr else "wavm"}
 
     binary = find_codegen_func()
     run("{} {} {}".format(binary, user, function), shell=True, env=env, check=True)
@@ -33,9 +31,7 @@ def _do_codegen_user(user, wamr=False):
     print("Running codegen for user {}".format(user))
 
     binary = find_codegen_func()
-    env = {
-        "WASM_VM": "wamr" if wamr else "wavm"
-    }
+    env = {"WASM_VM": "wamr" if wamr else "wavm"}
 
     run("{} {}".format(binary, user), shell=True, env=env, check=True)
 
@@ -52,11 +48,10 @@ def local(ctx, wamr=False):
     _do_codegen_user("rust", wamr=wamr)
 
     # Run these in parallel
-    p = Pool(3)
+    p = Pool(2)
     users = [
         ("python", wamr),
         ("sgd", wamr),
-        ("tf", wamr),
     ]
     p.starmap(_do_codegen_user, users)
 
@@ -64,3 +59,4 @@ def local(ctx, wamr=False):
     binary = find_codegen_shared_lib()
     shared_obj_dir = join(FAASM_RUNTIME_ROOT, "lib", "python3.7")
     check_output("{} {}".format(binary, shared_obj_dir), shell=True)
+

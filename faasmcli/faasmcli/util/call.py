@@ -13,9 +13,7 @@ STATUS_RUNNING = "RUNNING"
 def _get_knative_headers(func_name):
     func_name = func_name.replace("_", "-")
 
-    return {
-        "Host": "faasm-{}.faasm.example.com".format(func_name)
-    }
+    return {"Host": "faasm-{}.faasm.example.com".format(func_name)}
 
 
 def _do_invoke(user, func, host, port, func_type, input=None):
@@ -24,18 +22,21 @@ def _do_invoke(user, func, host, port, func_type, input=None):
     do_post(url, input, json=True)
 
 
-def invoke_impl(user, func,
-                host=None,
-                port=None,
-                input=None,
-                py=False,
-                asynch=False,
-                knative=True,
-                poll=False,
-                cmdline=None,
-                mpi_world_size=None,
-                debug=False,
-                poll_interval_ms=1000):
+def invoke_impl(
+    user,
+    func,
+    host=None,
+    port=None,
+    input=None,
+    py=False,
+    asynch=False,
+    knative=True,
+    poll=False,
+    cmdline=None,
+    mpi_world_size=None,
+    debug=False,
+    poll_interval_ms=1000,
+):
     # Provider-specific stuff
     if knative:
         host, port = get_invoke_host_port()
@@ -87,7 +88,9 @@ def invoke_impl(user, func,
         try:
             call_id = int(asynch_result)
         except ValueError:
-            raise RuntimeError("Could not parse async response to int: {}".format(asynch_result))
+            raise RuntimeError(
+                "Could not parse async response to int: {}".format(asynch_result)
+            )
 
         if not poll:
             # Return the call ID if we're not polling
@@ -108,7 +111,9 @@ def invoke_impl(user, func,
                 interval = float(poll_interval_ms) / 1000
                 sleep(interval)
 
-                result, output = status_call_impl(user, func, call_id, host, port, quiet=True)
+                result, output = status_call_impl(
+                    user, func, call_id, host, port, quiet=True
+                )
                 print("\nPOLL {} - {}".format(count, result))
 
             print("\n---- Finished {} ----\n".format(call_id))

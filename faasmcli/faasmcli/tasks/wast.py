@@ -58,3 +58,4 @@ def _do_wast(wasm_path, wast_path, cwd=None):
 
     # call("head -40 {}".format(wast_path), shell=True)
     print("vim {}".format(wast_path))
+

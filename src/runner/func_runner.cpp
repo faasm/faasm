@@ -1,9 +1,10 @@
 #include <wasm/WasmModule.h>
 
+#include <faaslet/FaasletPool.h>
+
 #include <faabric/redis/Redis.h>
 #include <faabric/util/config.h>
 #include <faabric/util/timing.h>
-#include <faaslet/FaasletPool.h>
 
 
 int main(int argc, char *argv[]) {
@@ -26,8 +27,8 @@ int main(int argc, char *argv[]) {
     // Make sure we have enough space for chained calls
     int nThreads = 10;
     conf.defaultMpiWorldSize = 5;
-    conf.maxFaaslets = nThreads;
-    conf.maxFaasletsPerFunction = nThreads;
+    conf.maxNodes = nThreads;
+    conf.maxNodesPerFunction = nThreads;
 
     // Clear out redis
     faabric::redis::Redis &redis = faabric::redis::Redis::getQueue();

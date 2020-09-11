@@ -7,11 +7,9 @@ extern "C" {
 #include "utils.h"
 
 #include <faabric/util/environment.h>
-#include <faabric/util/bytes.h>
 #include <faabric/redis/Redis.h>
 
 #include <faaslet/FaasletPool.h>
-#include <faaslet/Faaslet.h>
 #include <emulator/emulator.h>
 #include <wavm/WAVMWasmModule.h>
 
@@ -249,7 +247,7 @@ namespace tests {
         faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
         auto bindQueue = sch.getBindQueue();
         REQUIRE(sch.getFunctionInFlightCount(call) == 0);
-        REQUIRE(sch.getFunctionWarmFaasletCount(call) == 0);
+        REQUIRE(sch.getFunctionWarmNodeCount(call) == 0);
         REQUIRE(bindQueue->size() == 0);
 
         // Call the function
@@ -258,7 +256,7 @@ namespace tests {
         // Check scheduler set-up
         const std::string warmSetName = sch.getFunctionWarmSetName(call);
         REQUIRE(sch.getFunctionInFlightCount(call) == 1);
-        REQUIRE(sch.getFunctionWarmFaasletCount(call) == 1);
+        REQUIRE(sch.getFunctionWarmNodeCount(call) == 1);
         REQUIRE(bindQueue->size() == 1);
         REQUIRE(redis.sismember(warmSetName, thisHost));
 
@@ -266,20 +264,20 @@ namespace tests {
         w.processNextMessage();
         REQUIRE(w.isBound());
         REQUIRE(sch.getFunctionInFlightCount(call) == 1);
-        REQUIRE(sch.getFunctionWarmFaasletCount(call) == 1);
+        REQUIRE(sch.getFunctionWarmNodeCount(call) == 1);
         REQUIRE(bindQueue->size() == 0);
 
         // Execute function and check thread still registered
         w.processNextMessage();
         REQUIRE(sch.getFunctionInFlightCount(call) == 0);
-        REQUIRE(sch.getFunctionWarmFaasletCount(call) == 1);
+        REQUIRE(sch.getFunctionWarmNodeCount(call) == 1);
         REQUIRE(sch.getFunctionInFlightRatio(call) == 0);
         REQUIRE(bindQueue->size() == 0);
 
         // Finish thread and check things are reset
         w.finish();
         REQUIRE(sch.getFunctionInFlightCount(call) == 0);
-        REQUIRE(sch.getFunctionWarmFaasletCount(call) == 0);
+        REQUIRE(sch.getFunctionWarmNodeCount(call) == 0);
         REQUIRE(sch.getFunctionInFlightRatio(call) == 0);
         REQUIRE(bindQueue->size() == 0);
         REQUIRE(!redis.sismember(warmSetName, thisHost));

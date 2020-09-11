@@ -6,9 +6,6 @@ set(CMAKE_CXX_STANDARD 17)
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
     message(STATUS "Detected wasm build (sysroot=${CMAKE_SYSROOT})")
 
-    # Eigen definitions
-    # add_definitions(-DEIGEN_VECTORIZE_SSE2=1)
-
     # NOTE: we have to set the max memory here but want it to be as close to the
     # max (4GB) as possible. If we set it to the max though, this input is ignored
     # and the function is set with no maximum memory size.
@@ -82,10 +79,8 @@ endif ()
 add_subdirectory(errors)
 add_subdirectory(demo)
 add_subdirectory(dynlink)
-add_subdirectory(gene)
 add_subdirectory(mpi)
 add_subdirectory(omp)
-add_subdirectory(polybench)
 add_subdirectory(python)
 add_subdirectory(sgd)
-add_subdirectory(tf)
+

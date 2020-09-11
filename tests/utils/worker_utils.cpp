@@ -4,6 +4,8 @@
 #include <faabric/util/environment.h>
 #include <faabric/util/bytes.h>
 
+#include <faaslet/FaasletPool.h>
+
 #include "utils.h"
 
 using namespace faaslet;
@@ -27,20 +29,20 @@ namespace tests {
         // Call the function, checking that everything is set up
         sch.callFunction(call);
         REQUIRE(sch.getFunctionInFlightCount(call) == 1);
-        REQUIRE(sch.getFunctionWarmFaasletCount(call) == 1);
+        REQUIRE(sch.getFunctionWarmNodeCount(call) == 1);
         REQUIRE(bindQueue->size() == 1);
 
         // Process the bind message
         w.processNextMessage();
         REQUIRE(w.isBound());
         REQUIRE(sch.getFunctionInFlightCount(call) == 1);
-        REQUIRE(sch.getFunctionWarmFaasletCount(call) == 1);
+        REQUIRE(sch.getFunctionWarmNodeCount(call) == 1);
         REQUIRE(bindQueue->size() == 0);
 
         // Now execute the function
         w.processNextMessage();
         REQUIRE(sch.getFunctionInFlightCount(call) == 0);
-        REQUIRE(sch.getFunctionWarmFaasletCount(call) == 1);
+        REQUIRE(sch.getFunctionWarmNodeCount(call) == 1);
         REQUIRE(bindQueue->size() == 0);
 
         // Check success
@@ -126,9 +128,9 @@ namespace tests {
         conf.pythonPreload = pythonPreload ? "on" : "off";
 
         // Set up a real worker pool to execute the function
-        conf.maxFaaslets = nThreads;
-        conf.maxFaasletsPerFunction = nThreads;
-        FaasletPool pool(nThreads);
+        conf.maxNodes = nThreads;
+        conf.maxNodesPerFunction = nThreads;
+        faaslet::FaasletPool pool(nThreads);
         pool.startThreadPool();
 
         unsigned int mainFuncId;

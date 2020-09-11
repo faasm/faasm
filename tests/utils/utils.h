@@ -1,7 +1,6 @@
 #pragma once
 
 #include <faabric/util/func.h>
-#include <faaslet/FaasletPool.h>
 #include <faaslet/Faaslet.h>
 
 #include "faasm/matrix.h"

@@ -36,7 +36,7 @@ namespace wasm {
             int nextWanted = pushedNumThreads > 0 ? pushedNumThreads : wantedNumThreads;
 
             // Returns user preference if set or device's maximum
-            return nextWanted > 0 ? nextWanted : (int) faabric::util::getSystemConfig().maxFaaslets;
+            return nextWanted > 0 ? nextWanted : (int) faabric::util::getSystemConfig().maxNodes;
         }
 
         void Level::snapshot_parent(faabric::Message &msg) const {

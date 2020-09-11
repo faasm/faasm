@@ -19,9 +19,7 @@ class MemTotal:
         self.dirty = 0
 
     def get_labels(self):
-        return [
-            "VSS", "USS", "PSS", "RSS", "Shared", "Text", "Lib", "Data", "Dirty"
-        ]
+        return ["VSS", "USS", "PSS", "RSS", "Shared", "Text", "Lib", "Data", "Dirty"]
 
     def add_mem_info(self, mi):
         self.vss += mi.vms
@@ -35,11 +33,21 @@ class MemTotal:
         self.dirty += mi.dirty
 
     def get_data(self):
-        return [self.vss, self.uss, self.pss, self.rss, self.shared, self.text, self.lib, self.data, self.dirty]
+        return [
+            self.vss,
+            self.uss,
+            self.pss,
+            self.rss,
+            self.shared,
+            self.text,
+            self.lib,
+            self.data,
+            self.dirty,
+        ]
 
     def print(self):
         for label, datum in zip(self.get_labels(), self.get_data()):
-            datum /= (1024 * 1024)
+            datum /= 1024 * 1024
             print("{}={:.2f}MB".format(label, datum))
 
     def plot(self, exclude_vss=True):
@@ -53,7 +61,7 @@ class MemTotal:
         y_pos = np.arange(len(labels))
         data = [d / (1024 * 1024) for d in data]
 
-        plt.bar(y_pos, data, align='center', alpha=0.5)
+        plt.bar(y_pos, data, align="center", alpha=0.5)
 
         plt.xticks(y_pos, labels)
         plt.ylabel("MB")

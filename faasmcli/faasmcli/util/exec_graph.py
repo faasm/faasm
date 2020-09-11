@@ -82,7 +82,9 @@ def _add_node_to_graph(node, graph, host_colour_map):
 
     node_attrs = dict()
     node_attrs["style"] = "filled"
-    node_attrs["fillcolor"] = host_colour_map[node_host] if node_host else HOST_COLOURS[0]
+    node_attrs["fillcolor"] = (
+        host_colour_map[node_host] if node_host else HOST_COLOURS[0]
+    )
     node_attrs["label"] = _format_node_to_html(node_msg)
     node_attrs["shape"] = "box"
     node_attrs["fontname"] = GRAPH_FONT
@@ -106,7 +108,8 @@ def plot_exec_graph(graph, headless=True, output_file="/tmp/faasm_exec_graph.png
     write_dot(graph, dot_file)
 
     cmd = [
-        "dot", "-Tpng",
+        "dot",
+        "-Tpng",
         dot_file,
     ]
     png_data = run(cmd, check=True, stdout=PIPE, stderr=PIPE)

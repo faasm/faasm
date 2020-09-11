@@ -66,7 +66,6 @@ More detail on some key features and implementations can be found below:
 - [Faasm host interface](docs/host_interface.md) - the serverless-specific interface between functions and the underlying host.
 - [Kubernetes and Knative integration](docs/kubernetes.md)- deploying Faasm as part of a full serverless platform.
 - [Bare metal/ VM deployment](docs/bare_metal.md) - deploying Faasm on bare metal or VMs as a stand-alone system.
-- [Tensorflow Lite](docs/tensorflow.md) - performing inference in Faasm functions with TF Lite.  
 - [API](docs/api.md) - invoking and managing functions and state through Faasm's HTTP API.
 - [MPI](docs/mpi.md) and [OpenMP](docs/openmp.md) - executing existing MPI and OpenMP applications in Faasm.
 - [Local development](docs/local_dev.md) - developing and modifying Faasm.
@@ -79,5 +78,9 @@ More detail on some key features and implementations can be found below:
 ## Experiments and benchmarks
 
 Faasm experiments and benchmarks live in the 
-[Faasm experiments repo](https://github.com/lsds/faasm-experiments/).
+[Faasm experiments repo](https://github.com/lsds/faasm-experiments/):
+
+- [Tensorflow Lite](https://github.com/lsds/faasm-experiments/blob/master/docs/tensorflow.md) - performing inference in Faasm with [Tensorflow Lite](https://www.tensorflow.org/lite/)
+- [Polybench](https://github.com/lsds/faasm-experiments/blob/master/docs/polybench.md) - benchmarking with [Polybench/C](http://web.cse.ohio-state.edu/~pouchet.2/software/polybench/)
+- [ParRes Kernels](https://github.com/lsds/faasm-experiments/blob/master/docs/prk.md) - benchmarking with the [ParRes Kernels](https://github.com/ParRes/Kernels)
 

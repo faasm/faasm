@@ -3,7 +3,6 @@
 #include "utils.h"
 
 #include <faaslet/FaasletPool.h>
-#include <faaslet/Faaslet.h>
 #include <faabric/scheduler/InMemoryMessageQueue.h>
 
 using namespace faaslet;

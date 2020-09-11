@@ -1,6 +1,9 @@
 ---
 
-# Common tasks
+# --------------------------------
+# Tasks on all hosts
+# --------------------------------
+
 - name: "Install supervisord"
   become: yes
   apt:
@@ -40,6 +43,10 @@
     dest: "{{ ansible_env.HOME }}/faasm/faasm.ini"
   when: quick_deploy is not defined
 
+# ----------------------------------------
+# host-specific tasks
+# ----------------------------------------
+
 - include_tasks: "worker.yml"
   when: "'worker' in group_names"
 
@@ -58,3 +65,4 @@
   with_items:
    - reread all
    - reload all
+

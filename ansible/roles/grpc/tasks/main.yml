@@ -1,11 +1,5 @@
 ---
 
-- name: "gRPC system deps"
-  become: yes
-  apt:
-    name:
-      - libc-ares-dev
-
 - name: "Check if grpc is installed"
   stat:
     path: /usr/local/include/grpcpp/
@@ -15,51 +9,40 @@
   git:
     repo: "https://github.com/grpc/grpc"
     dest: "/tmp/grpc"
-    version: "v1.30.0"
+    version: "v1.31.0"
   when: g_stat.stat.exists == False
 
 - name: "Update submodules"
   shell: "git submodule update --init"
   args:
     chdir: "/tmp/grpc"
-
-- name: "Set up build"
-  shell: "mkdir -p /tmp/grpc/build"
   when: g_stat.stat.exists == False
 
-# Note the issues with the grpc build discussed here:
-# https://github.com/grpc/grpc/issues/13841
-# By specifying "package" we're telling grpc to use the
-# existing install of certain libraries.
-- name: "CMake Build"
-  shell: >
-    cmake -GNinja -DgRPC_INSTALL=ON  \
-    -DgRPC_BUILD_SHARED_LIBS=ON \
-    -DgRPC_BUILD_TESTS=OFF \
-    -DgRPC_ABSL_PROVIDER=module \
-    -DgRPC_PROTOBUF_PROVIDER=package \
-    -DgRPC_ZLIB_PROVIDER=package \
-    -DgRPC_CARES_PROVIDER=package \
-    -DgRPC_SSL_PROVIDER=package \
-    -DCMAKE_CXX_COMPILER=/usr/bin/clang++-10 \
-    -DCMAKE_C_COMPILER=/usr/bin/clang-10 \
-    -DCMAKE_BUILD_TYPE=Release ..
-  args:
-    chdir: "/tmp/grpc/build"
+- name: "Set up build"
+  shell: "mkdir -p /tmp/grpc/cmake/build"
+  when: g_stat.stat.exists == False
 
 - name: "CMake Build"
-  shell: "ninja"
+  shell: >
+    cmake -GNinja \
+    -DgRPC_INSTALL=ON  \
+    -DgRPC_BUILD_TESTS=OFF \
+    -DCMAKE_INSTALL_PREFIX=/usr/local \
+    -DCMAKE_CXX_COMPILER=/usr/bin/clang++-10 \
+    -DCMAKE_C_COMPILER=/usr/bin/clang-10 \
+    ../..
   args:
-    chdir: "/tmp/grpc/build"
+    chdir: "/tmp/grpc/cmake/build"
   when: g_stat.stat.exists == False
 
 - name: "Install"
   become: yes
   shell: "ninja install"
   args:
-    chdir: "/tmp/grpc/build"
+    chdir: "/tmp/grpc/cmake/build"
   when: g_stat.stat.exists == False
 
 - name: "Clean up"
+  become: yes
   shell: "rm -rf /tmp/grpc"
-  when: g_stat.stat.exists == False
+

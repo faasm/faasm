@@ -1,25 +1,18 @@
 ---
 
-- name: "Download file"
-  get_url:
-    url: https://github.com/Kitware/CMake/releases/download/v3.16.5/cmake-3.16.5.tar.gz
-    dest: /tmp/cmake-3.16.5.tar.gz
-
-- name: "Extract"
-  shell: "tar -zxvf cmake-3.16.5.tar.gz"
-  args:
-    chdir: /tmp
-
-- name: "Set up"
-  shell: "{{ item }}"
-  args:
-    chdir: /tmp/cmake-3.16.5
-  with_items:
-    - "./bootstrap"
-    - "make"
-
-- name: "Install"
+- name: "Remove existing cmake"
   become: yes
-  shell: "make install"
+  shell: "apt remove --purge cmake -y"
+
+- name: "Download cmake script"
+  get_url:
+    url: https://github.com/Kitware/CMake/releases/download/v3.18.2/cmake-3.18.2-Linux-x86_64.sh
+    dest: /tmp/cmake-linux.sh
+    mode: 755
+
+- name: "Run cmake install"
+  become: yes
+  shell: "sh cmake-linux.sh -- --skip-license --prefix=/usr/local"
   args:
-    chdir: /tmp/cmake-3.16.5
+    chdir: "/tmp"
+

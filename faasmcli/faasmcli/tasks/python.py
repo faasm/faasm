@@ -5,8 +5,13 @@ from subprocess import check_output
 from invoke import task
 
 from faasmcli.util import codegen as cg
-from faasmcli.util.env import PYODIDE_INSTALL_DIR, FAASM_RUNTIME_ROOT, PY_RUNTIME_ROOT, PYODIDE_PACKAGES, \
-    FAASM_SHARED_ROOT
+from faasmcli.util.env import (
+    PYODIDE_INSTALL_DIR,
+    FAASM_RUNTIME_ROOT,
+    PY_RUNTIME_ROOT,
+    PYODIDE_PACKAGES,
+    FAASM_SHARED_ROOT,
+)
 from faasmcli.util.files import glob_remove
 
 # TODO - avoid having to hard-code this
@@ -29,9 +34,7 @@ _PACKAGES_INCLUDED = {
     "pyfaasm": {
         "path": "pyfaasm/build/pyfaasm-*/install/lib/python3.7/site-packages/pyfaasm",
     },
-    "six": {
-        "path": "six/build/six-1.12.0/install/lib/python3.7/site-packages/six.py"
-    }
+    "six": {"path": "six/build/six-1.12.0/install/lib/python3.7/site-packages/six.py"},
 }
 
 
@@ -108,7 +111,9 @@ def set_up_runtime(ctx):
         rmtree(funcs_dir)
 
     print("\nPutting CPython libraries in place")
-    check_output("cp -r {}/* {}".format(PYODIDE_INSTALL_DIR, FAASM_RUNTIME_ROOT), shell=True)
+    check_output(
+        "cp -r {}/* {}".format(PYODIDE_INSTALL_DIR, FAASM_RUNTIME_ROOT), shell=True
+    )
 
     # Set up files in runtime root
     runtime_site_packages = join(PY_RUNTIME_ROOT, "site-packages")

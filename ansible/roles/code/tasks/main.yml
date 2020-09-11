@@ -1,19 +1,12 @@
 ---
 
-- name: "Install system deps"
-  become: yes
-  apt:
-    name:
-      - cmake
-      - git
-  when: quick_deploy is not defined
-
 - name: "Check out code"
   git:
     repo: "{{ remote_url | default('https://github.com/lsds/faasm.git') }}"
     dest: "{{ ansible_env.HOME }}/faasm-bm"
     version: "{{ repo_version | default('master') }}"
     update: yes
+    recursive: no
 
 - name: "Set up local code directory"
   become: yes
@@ -28,11 +21,16 @@
     src: "{{ ansible_env.HOME }}/faasm-bm"
     dest: "/usr/local/code/faasm"
     state: link
-    force: yes #unlinks other users
+    force: yes 
     owner: "{{ ansible_user_id }}"
     group: "{{ ansible_user_id }}"
     mode: 0755
   when: quick_deploy is not defined
+
+- name: "Submodules"
+  shell: "git submodule update --init"
+  args:
+    chdir: "/usr/local/code/faasm"
 
 - name: "Set up filesystem directories"
   become: yes
@@ -43,3 +41,4 @@
     group: "{{ ansible_user_id }}"
     recurse: yes
   when: quick_deploy is not defined
+

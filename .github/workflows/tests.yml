@@ -20,13 +20,13 @@ jobs:
       LOG_LEVEL: info
       MAX_FAASLETS: 5
     container:
-      faasm/base-test:0.4.3
+      faasm/base-test:0.4.4
     defaults:
       run:
         working-directory: /usr/local/code/faasm
     services:
       redis:
-        image: faasm/redis:0.4.3
+        image: faasm/redis:0.4.4
         ports:
           - 6379:6379
     steps:
@@ -44,6 +44,12 @@ jobs:
         run: git submodule update
       - name: "Log commits"
         run: git log -3
+      - name: "Build codegen"
+        run: cmake --build . --target codegen_func
+        working-directory: /usr/local/code/faasm/build
+      - name: "Build tests"
+        run: cmake --build . --target codegen_shared_obj
+        working-directory: /usr/local/code/faasm/build
       - name: "Build tests"
         run: cmake --build . --target tests
         working-directory: /usr/local/code/faasm/build
@@ -58,8 +64,6 @@ jobs:
         run: inv -r faasmcli/faasmcli codegen.local
       - name: "Run WAMR codegen"
         run: inv -r faasmcli/faasmcli codegen demo echo --wamr
-      - name: "Set up Tensorflow test files"
-        run: inv -r faasmcli/faasmcli tf.upload --local-copy
       - name: "Copy Python functions into place"
         run: inv -r faasmcli/faasmcli upload.user python --py --local-copy
       - name: "Make sure permissions are properly set"

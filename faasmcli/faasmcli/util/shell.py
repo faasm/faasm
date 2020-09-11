@@ -22,7 +22,11 @@ def find_command(bin_name, dirs):
 
     found_cmd = found_cmds[0]
     if len(found_cmds) > 1:
-        print("WARNING: found multiple candidates for {}, taking {}".format(bin_name, found_cmd))
+        print(
+            "WARNING: found multiple candidates for {}, taking {}".format(
+                bin_name, found_cmd
+            )
+        )
 
     return found_cmd
 
