@@ -1,7 +1,7 @@
 #include "IRModuleCache.h"
 
-#include <util/locks.h>
-#include <util/logging.h>
+#include <faabric/util/locks.h>
+#include <faabric/util/logging.h>
 
 #include <WAVM/IR/Module.h>
 #include <WAVM/WASM/WASM.h>
@@ -9,12 +9,12 @@
 #include <WAVM/WASTParse/WASTParse.h>
 
 #include <storage/FileLoader.h>
-#include <util/func.h>
+#include <faabric/util/func.h>
+#include <faabric/util/files.h>
 
-using namespace WAVM;
 
 namespace wasm {
-    IRModuleCache::IRModuleCache() : conf(util::getSystemConfig()) {
+    IRModuleCache::IRModuleCache() : conf(faabric::util::getSystemConfig()) {
 
     }
 
@@ -29,12 +29,12 @@ namespace wasm {
     }
 
     int IRModuleCache::getModuleCount(const std::string &key) {
-        util::SharedLock lock(registryMutex);
+        faabric::util::SharedLock lock(registryMutex);
         return moduleMap.count(key);
     }
 
     int IRModuleCache::getCompiledModuleCount(const std::string &key) {
-        util::SharedLock lock(registryMutex);
+        faabric::util::SharedLock lock(registryMutex);
         return compiledModuleMap.count(key);
     }
 
@@ -72,18 +72,18 @@ namespace wasm {
     }
 
     Runtime::ModuleRef IRModuleCache::getCompiledMainModule(const std::string &user, const std::string &func) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         const std::string key = getModuleKey(user, func, "");
 
         if (getCompiledModuleCount(key) == 0) {
-            util::FullLock registryLock(registryMutex);
+            faabric::util::FullLock registryLock(registryMutex);
             if (compiledModuleMap.count(key) == 0) {
                 IR::Module &module = moduleMap[key];
                 module.featureSpec.simd = true;
                 module.featureSpec.atomics = true;
 
                 storage::FileLoader &functionLoader = storage::getFileLoader();
-                message::Message msg = util::messageFactory(user, func);
+                faabric::Message msg = faabric::util::messageFactory(user, func);
                 std::vector<uint8_t> objectFileBytes = functionLoader.loadFunctionObjectFile(msg);
 
                 if (!objectFileBytes.empty()) {
@@ -102,10 +102,10 @@ namespace wasm {
     Runtime::ModuleRef IRModuleCache::getCompiledSharedModule(const std::string &user, const std::string &func,
                                                                  const std::string &path) {
         std::string key = getModuleKey(user, func, path);
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         if (getCompiledModuleCount(key) == 0) {
-            util::FullLock registryLock(registryMutex);
+            faabric::util::FullLock registryLock(registryMutex);
             if (compiledModuleMap.count(key) == 0) {
                 logger->debug("Loading compiled shared module {}", key);
 
@@ -125,25 +125,25 @@ namespace wasm {
     }
 
     IR::Module &IRModuleCache::getMainModule(const std::string &user, const std::string &func) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
         const std::string key = getModuleKey(user, func, "");
 
         // Check if initialised
         if (getModuleCount(key) == 0) {
-            util::FullLock registryLock(registryMutex);
+            faabric::util::FullLock registryLock(registryMutex);
             if (moduleMap.count(key) == 0) {
                 logger->debug("Loading main module {}", key);
 
                 storage::FileLoader &functionLoader = storage::getFileLoader();
 
-                message::Message msg = util::messageFactory(user, func);
+                faabric::Message msg = faabric::util::messageFactory(user, func);
                 std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionWasm(msg);
 
                 IR::Module &module = moduleMap[key];
                 module.featureSpec.simd = true;
                 module.featureSpec.atomics = true;
 
-                if (functionLoader.isWasm(wasmBytes)) {
+                if (faabric::util::isWasm(wasmBytes)) {
                     WASM::LoadError loadError;
                     WASM::loadBinaryModule(wasmBytes.data(), wasmBytes.size(), module, &loadError);
                 } else {
@@ -170,11 +170,11 @@ namespace wasm {
     IR::Module &IRModuleCache::getSharedModule(const std::string &user, const std::string &func,
                                                   const std::string &path) {
         std::string key = getModuleKey(user, func, path);
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         // Check if initialised
         if (getModuleCount(key) == 0) {
-            util::FullLock lock(registryMutex);
+            faabric::util::FullLock lock(registryMutex);
             if (moduleMap.count(key) == 0) {
                 logger->debug("Loading shared module {}", key);
 

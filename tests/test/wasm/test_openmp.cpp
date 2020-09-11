@@ -2,103 +2,90 @@
 
 #include "utils.h"
 
-#include <util/func.h>
+#include <faabric/util/func.h>
 
 namespace tests {
 
-    TEST_CASE("Test static for scheduling", "[wasm][openmp]") {
+    void doOmpTest(const std::string &function) {
         cleanSystem();
-        message::Message msg = util::messageFactory("omp", "for_static_schedule");
+
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
+        std::string &originalThreadMode = conf.threadMode;
+        int originalThreadPoolSize = conf.ompThreadPoolSize;
+
+        // Set up local OMP
+        conf.threadMode = "local";
+        conf.ompThreadPoolSize = 10;
+
+        faabric::Message msg = faabric::util::messageFactory("omp", function);
         execFunction(msg);
+
+        // Reset config
+        conf.threadMode = originalThreadMode;
+        conf.ompThreadPoolSize = originalThreadPoolSize;
+    }
+    
+    TEST_CASE("Test static for scheduling", "[wasm][openmp]") {
+        doOmpTest("for_static_schedule");
     }
 
     TEST_CASE("Test OMP header API functions", "[wasm][openmp]") {
-        cleanSystem();
-        message::Message msg = util::messageFactory("omp", "header_api_support");
-        execFunction(msg);
+        doOmpTest("header_api_support");
     }
 
     TEST_CASE("Test running OpenMP checks", "[wasm][openmp]") {
-        cleanSystem();
-        message::Message msg = util::messageFactory("omp", "omp_checks");
-        execFunction(msg);
+        doOmpTest("omp_checks");
     }
 
     TEST_CASE("Test non-nested barrier pragma", "[wasm][openmp]") {
-        cleanSystem();
-        message::Message msg = util::messageFactory("omp", "simple_barrier");
-        execFunction(msg);
+        doOmpTest("simple_barrier");
     }
 
     TEST_CASE("Test basic omp parallel for pragma", "[wasm][openmp]") {
-        cleanSystem();
-        message::Message msg = util::messageFactory("omp", "simple_for");
-        execFunction(msg);
+        doOmpTest("simple_for");
     }
 
     TEST_CASE("Test non-nested master pragma", "[wasm][openmp]") {
-        cleanSystem();
-        message::Message msg = util::messageFactory("omp", "simple_master");
-        execFunction(msg);
+        doOmpTest("simple_master");
     }
 
     TEST_CASE("Test thread stack mapping", "[wasm][openmp]") {
-        cleanSystem();
-        message::Message msg = util::messageFactory("omp", "stack_debug");
-        execFunction(msg);
+        doOmpTest("stack_debug");
     }
 
     TEST_CASE("Test simple reduction function", "[wasm][openmp]") {
-        cleanSystem();
-        message::Message msg = util::messageFactory("omp", "simple_reduce");
-        execFunction(msg);
+        doOmpTest("simple_reduce");
     }
 
     TEST_CASE("Test averaging with different methods (atomic RR and reduction)", "[wasm][openmp]") {
-        cleanSystem();
-        message::Message msg = util::messageFactory("omp", "reduction_average");
-        execFunction(msg);
+        doOmpTest("reduction_average");
     }
 
     TEST_CASE("Test integrating using many OpenMP constructs", "[wasm][openmp]") {
-        cleanSystem();
-        message::Message msg = util::messageFactory("omp", "reduction_integral");
-        execFunction(msg);
+        doOmpTest("reduction_integral");
     }
 
     TEST_CASE("Test critical section", "[wasm][openmp]") {
-        cleanSystem();
-        message::Message msg = util::messageFactory("omp", "simple_critical");
-        execFunction(msg);
+        doOmpTest("simple_critical");
     }
 
     TEST_CASE("Test single section", "[wasm][openmp]") {
-        cleanSystem();
-        message::Message msg = util::messageFactory("omp", "simple_single");
-        execFunction(msg);
+        doOmpTest("simple_single");
     }
 
     TEST_CASE("Test custom reduction function", "[wasm][openmp]") {
-        cleanSystem();
-        message::Message msg = util::messageFactory("omp", "custom_reduce");
-        execFunction(msg);
+        doOmpTest("custom_reduce");
     }
 
-    TEST_CASE("Test similar nested API than Clang 9.0.1", "[wasm][openmp]") {
-        cleanSystem();
-        message::Message msg = util::messageFactory("omp", "nested_levels_test");
-        execFunction(msg);
+    TEST_CASE("Test nested API", "[wasm][openmp]") {
+        doOmpTest("nested_levels_test");
     }
 
     TEST_CASE("Test nested parallel region support", "[wasm][openmp]") {
-        cleanSystem();
-        message::Message msg = util::messageFactory("omp", "nested_parallel");
-        execFunction(msg);
+        doOmpTest("nested_parallel");
     }
 
     TEST_CASE("Test proper handling of getting and setting next level num threads", "[wasm][openmp]") {
-        cleanSystem();
-        message::Message msg = util::messageFactory("omp", "setting_num_threads");
-        execFunction(msg);
+        doOmpTest("setting_num_threads");
     }
 }

@@ -12,7 +12,7 @@ namespace tests {
      * way though.
      */
     std::string getBaseModulePath() {
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string basePath = conf.runtimeFilesDir + "/lib/python3.7/site-packages/numpy/core";
         return basePath;
     }
@@ -43,8 +43,8 @@ namespace tests {
     std::string dataA = "PyArray_API";
     std::string dataB = "PyUFunc_API";
     int mainDataOffset = 6316112;
-    int dataAOffset = 41918112;
-    int dataBOffset = 73203712;
+    int dataAOffset = 10460832;
+    int dataBOffset = 41746432;
 
     // NOTE - extra table entries are created for each module loaded (not sure from where)
     int extraFuncsPerModule = 6;
@@ -53,26 +53,26 @@ namespace tests {
         cleanSystem();
 
         // Need to force python function _not_ to load numpy up front
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string preloadBefore = conf.pythonPreload;
         conf.pythonPreload = "off";
 
         wasm::IRModuleCache &registry = wasm::getIRModuleCache();
 
         // Bind to Python function
-        message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+        faabric::Message msg = faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
         wasm::WAVMWasmModule module;
         module.bindToFunction(msg);
 
         // Get initial sizes
         Uptr initialTableSize = Runtime::getTableNumElements(module.defaultTable);
-        Uptr initialMemSize = Runtime::getMemoryNumPages(module.defaultMemory) * IR::numBytesPerPage;
+        Uptr initialMemSize = Runtime::getMemoryNumPages(module.defaultMemory) * WASM_BYTES_PER_PAGE;
 
         // --- Module One ---
         std::string modulePathA = getPythonModuleA();
         int handleA = module.dynamicLoadModule(modulePathA, module.executionContext);
         REQUIRE(handleA >= 2);
-        REQUIRE(module.getDynamicModuleCount() == 2);
+        REQUIRE(module.getDynamicModuleCount() == 1);
 
         U64 moduleTableSizeA = registry.getSharedModuleTableSize(PYTHON_USER, PYTHON_FUNC, modulePathA);
 
@@ -85,8 +85,8 @@ namespace tests {
         REQUIRE(tableBaseA == initialTableSize);
 
         // Check the memory has grown sufficiently
-        Uptr memSizeAfterA = Runtime::getMemoryNumPages(module.defaultMemory) * IR::numBytesPerPage;
-        Uptr heapSize = DYNAMIC_MODULE_HEAP_PAGES * IR::numBytesPerPage;
+        Uptr memSizeAfterA = Runtime::getMemoryNumPages(module.defaultMemory) * WASM_BYTES_PER_PAGE;
+        Uptr heapSize = DYNAMIC_MODULE_HEAP_PAGES * WASM_BYTES_PER_PAGE;
         REQUIRE(memSizeAfterA == initialMemSize + heapSize);
 
         // Check the stack is at the bottom of this region, and the heap is just above it
@@ -111,7 +111,7 @@ namespace tests {
         std::string modulePathB = getPythonModuleB();
         int handleB = module.dynamicLoadModule(modulePathB, module.executionContext);
         REQUIRE(handleB == handleA + 1);
-        REQUIRE(module.getDynamicModuleCount() == 3);
+        REQUIRE(module.getDynamicModuleCount() == 2);
 
         U64 moduleTableSizeB = registry.getSharedModuleTableSize(PYTHON_USER, PYTHON_FUNC, modulePathB);
 
@@ -123,7 +123,7 @@ namespace tests {
         REQUIRE(tableBaseB == tableSizeAfterAFunc);
 
         // Check the memory
-        Uptr memSizeAfterB = Runtime::getMemoryNumPages(module.defaultMemory) * IR::numBytesPerPage;
+        Uptr memSizeAfterB = Runtime::getMemoryNumPages(module.defaultMemory) * WASM_BYTES_PER_PAGE;
         REQUIRE(memSizeAfterB == memSizeAfterA + heapSize);
 
         int heapBaseB = module.getNextMemoryBase();
@@ -162,12 +162,12 @@ namespace tests {
     TEST_CASE("Test GOT population", "[wasm]") {
         cleanSystem();
 
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string preloadBefore = conf.pythonPreload;
         conf.pythonPreload = "off";
 
         // Bind to Python function
-        message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+        faabric::Message msg = faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
         wasm::WAVMWasmModule module;
         module.bindToFunction(msg);
 
@@ -226,12 +226,12 @@ namespace tests {
     }
 
     TEST_CASE("Test resolving dynamic module imports", "[wasm]") {
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string preloadBefore = conf.pythonPreload;
         conf.pythonPreload = "off";
 
         // Bind to Python function
-        message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+        faabric::Message msg = faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
         wasm::WAVMWasmModule module;
         module.bindToFunction(msg);
 

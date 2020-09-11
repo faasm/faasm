@@ -4,47 +4,29 @@
 [submodule "third-party/eigen"]
 	path = third-party/eigen
 	url = https://github.com/Shillaker/eigen-git-mirror
-[submodule "third-party/gem3-mapper"]
-	path = third-party/gem3-mapper
-	url = https://github.com/Shillaker/gem3-mapper.git
 [submodule "third-party/WAVM"]
 	path = third-party/WAVM
 	url = https://github.com/Shillaker/WAVM.git
 	branch = faasm
-[submodule "third-party/libpng"]
-	path = third-party/libpng
-	url = https://github.com/glennrp/libpng.git
 [submodule "third-party/pyodide"]
 	path = third-party/pyodide
-	url = http://github.com/Shillaker/pyodide.git
-[submodule "third-party/zlib"]
-	path = third-party/zlib
-	url = https://github.com/madler/zlib.git
-[submodule "third-party/musl"]
-	path = third-party/musl
-	url = https://github.com/Shillaker/musl.git
-[submodule "third-party/llvm-project"]
-	path = third-party/llvm-project
-	url = https://github.com/llvm/llvm-project.git
+	url = https://github.com/Shillaker/pyodide.git
 [submodule "third-party/pyfaasm"]
 	path = third-party/pyfaasm
 	url = https://github.com/Shillaker/pyfaasm.git
-[submodule "third-party/faasm-clapack"]
-	path = third-party/faasm-clapack
-	url = https://github.com/Shillaker/faasm-clapack.git
-[submodule "third-party/faasm-demo-c"]
-	path = third-party/faasm-demo-c
-	url = https://github.com/Shillaker/faasm-demo-c.git
 [submodule "third-party/ParResKernels"]
 	path = third-party/ParResKernels
 	url = https://github.com/Shillaker/Kernels.git
-[submodule "third-party/wasi-libc"]
-	path = third-party/wasi-libc
-	url = https://github.com/Shillaker/wasi-libc
+[submodule "third-party/faabric"]
+	path = third-party/faabric
+	url = https://github.com/Shillaker/faabric.git
+[submodule "third-party/faasm-toolchain"]
+	path = third-party/faasm-toolchain
+	url = https://github.com/Shillaker/faasm-toolchain.git
 [submodule "third-party/wamr"]
 	path = third-party/wamr
-	url = https://github.com/J-Heinemann/wasm-micro-runtime 
-	branch = faasm
+	url = https://github.com/J-Heinemann/wasm-micro-runtime.git
+    branch = faasm
 [submodule "third-party/xra"]
 	path = third-party/xra
 	url = https://github.com/J-Heinemann/eXtended-Remote-Attestation

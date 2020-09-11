@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM faabric/base:0.0.2
 
 # -------------------------------------------------------------
 # NOTE - extensive use of Ansible in this Dockerfile makes it
@@ -9,21 +9,14 @@ FROM ubuntu:18.04
 # -------------------------------------------------------------
 
 RUN apt-get update
-RUN apt-get install -y software-properties-common
-
-# Ansible repo
-RUN apt-add-repository -y ppa:ansible/ansible
-RUN apt-get update
 
 # All apt packages
 RUN apt-get install -y \
     ansible \
     autoconf \
     automake \
-    cgroup-bin \
     cgroup-tools \
     curl \
-    git \
     iproute2 \
     iptables \
     libboost-dev \
@@ -38,11 +31,7 @@ RUN apt-get install -y \
     ninja-build \
     redis-tools \
     sudo \
-    unzip \
-    wget 
-
-# Remove any existing cmake 
-RUN apt remove --purge --auto-remove cmake
+    unzip 
 
 # We could be more tactical here, adding only what's required, thus 
 # avoiding invalidating the Docker cache when anything Ansible-related 
@@ -54,16 +43,7 @@ WORKDIR /usr/local/code/faasm/ansible
 
 RUN ansible-playbook llvm10.yml
 
-RUN ansible-playbook cmake.yml
-RUN ln -s /usr/local/lib/cmake-3.15/bin/cmake /bin/cmake
-
-RUN ansible-playbook protobuf.yml
-
-RUN ansible-playbook spdlog.yml
-
 RUN ansible-playbook cereal.yml
-
-RUN ansible-playbook rapidjson.yml
 
 RUN ansible-playbook pistache.yml
 

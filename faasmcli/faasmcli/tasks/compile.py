@@ -1,5 +1,5 @@
 from os import makedirs, listdir
-from os.path import exists, join, splitext
+from os.path import join, splitext
 from shutil import copy
 from subprocess import call
 
@@ -23,7 +23,7 @@ def _copy_built_function(user, func):
     copy(src_file, dest_file)
 
 
-def _do_compile(target, clean, debug):
+def _do_compile(target, clean, debug, sgx=False):
     build_type = "wasm"
     cmake_build_type = "Debug" if debug else "Release"
 
@@ -34,6 +34,7 @@ def _do_compile(target, clean, debug):
         "-DFAASM_BUILD_TYPE={}".format(build_type),
         "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE={}".format(cmake_build_type),
+        "-DFAASM_SGX_SUPPORT=ON" if sgx else "",
         FUNC_DIR,
     ]
 
@@ -53,7 +54,7 @@ def _do_compile(target, clean, debug):
 
 
 @task(default=True, name="compile")
-def compile(ctx, user, func, clean=False, debug=False, ts=False):
+def compile(ctx, user, func, clean=False, debug=False, ts=False, sgx=False):
     """
     Compile a function
     """
@@ -65,7 +66,7 @@ def compile(ctx, user, func, clean=False, debug=False, ts=False):
     # Build the function (gets written to the build dir)
     # Will fail if compilation fails
     target = func
-    _do_compile(target, clean, debug)
+    _do_compile(target, clean, debug, sgx=sgx)
 
     _copy_built_function(user, func)
 

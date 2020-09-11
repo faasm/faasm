@@ -14,6 +14,7 @@ set(LIB_FILES
         WAVMWasmModule.cpp
         syscalls.h
         chaining.cpp
+        codegen.cpp
         dynlink.cpp
         env.cpp
         faasm.cpp
@@ -39,4 +40,4 @@ set(LIB_FILES
         )
 
 faasm_private_lib(wavmmodule "${LIB_FILES}")
-target_link_libraries(wavmmodule wasm ir_cache mpi libWAVM)
+target_link_libraries(wavmmodule wasm ir_cache libWAVM)

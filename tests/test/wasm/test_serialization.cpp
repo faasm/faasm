@@ -1,8 +1,9 @@
 #include <catch/catch.hpp>
-#include <wasm/WasmModule.h>
+
+#include <wavm/WAVMWasmModule.h>
 #include <boost/filesystem.hpp>
-#include <util/func.h>
-#include <utils.h>
+#include <faabric/util/func.h>
+#include "utils.h"
 
 using namespace wasm;
 
@@ -12,7 +13,7 @@ namespace tests {
 
         std::string user = "demo";
         std::string function = "zygote_check";
-        message::Message m = util::messageFactory(user, function);
+        faabric::Message m = faabric::util::messageFactory(user, function);
 
         std::string mode;
         SECTION("In memory") {

@@ -65,8 +65,8 @@ you can SSH onto your `upload` host and run the following:
 cd /usr/local/code/faasm
 source workon.sh
 
-inv upload demo hello
-inv invoke demo hello --input="hello!"
+inv upload demo echo
+inv invoke demo echo --input="hello!"
 ```
 
 ## Google Cloud 

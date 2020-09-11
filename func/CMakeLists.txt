@@ -3,13 +3,6 @@ project(faasm-func)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# Knative native-specific stuff
-if (FAASM_BUILD_TYPE STREQUAL "knative-native")
-    add_definitions(-DKNATIVE_NATIVE=1)
-else ()
-    add_definitions(-DKNATIVE_NATIVE=0)
-endif ()
-
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
     message(STATUS "Detected wasm build (sysroot=${CMAKE_SYSROOT})")
 
@@ -32,14 +25,13 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
         -Xlinker --export=__data_end \
         -Xlinker --export=__wasm_call_ctors \
         -Xlinker --max-memory=4294901760 \
-        -Wl,-z,stack-size=4194304 \
+        -Wl,-z,stack-size=4194304 -Wl, \
     ")
 
     SET(CMAKE_EXECUTABLE_SUFFIX ".wasm")
 endif ()
 
 
-# Define functions for building
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # ----------------------
     # Wasm build
@@ -64,27 +56,6 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
                 LINK_FLAGS "-Xlinker --export-all -Xlinker --no-gc-sections -Xlinker --export-dynamic"
                 )
 
-    endfunction(faasm_dynamic_func)
-
-elseif (FAASM_BUILD_TYPE STREQUAL "knative-native")
-    # ----------------------
-    # Knative native build
-    # ----------------------
-    function(faasm_func_c func_name file_name)
-        add_executable(${func_name}-knative ${file_name})
-        target_link_libraries(
-                ${func_name}-knative
-                faasm
-                knative_native
-        )
-    endfunction(faasm_func_c)
-
-    function(faasm_func func_name file_name)
-        faasm_func_c(${func_name} ${file_name})
-    endfunction(faasm_func)
-
-    function(faasm_dynamic_func func_name file_name)
-        faasm_func(${func_name} ${file_name})
     endfunction(faasm_dynamic_func)
 
 else ()
@@ -112,15 +83,9 @@ add_subdirectory(errors)
 add_subdirectory(demo)
 add_subdirectory(dynlink)
 add_subdirectory(gene)
+add_subdirectory(mpi)
+add_subdirectory(omp)
 add_subdirectory(polybench)
 add_subdirectory(python)
 add_subdirectory(sgd)
 add_subdirectory(tf)
-add_subdirectory(wamr)
-
-# Skip some builds for Knative native
-if(FAASM_BUILD_TYPE STREQUAL "knative-native")
-else()
-    add_subdirectory(omp)
-    add_subdirectory(mpi)
-endif()

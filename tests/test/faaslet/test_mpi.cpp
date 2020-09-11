@@ -2,11 +2,11 @@
 
 #include "utils.h"
 
-#include <util/func.h>
+#include <faabric/util/func.h>
 
 namespace tests {
     void checkMpiFunc(const char* funcName) {
-        message::Message msg = util::messageFactory("mpi", funcName);
+        faabric::Message msg = faabric::util::messageFactory("mpi", funcName);
         execFuncWithPool(msg, false, 1, true, 10);
     }
 

@@ -1,7 +1,7 @@
 #include <catch/catch.hpp>
 
-#include <redis/Redis.h>
-#include <state/State.h>
+#include <faabric/redis/Redis.h>
+#include <faabric/state/State.h>
 #include <emulator/emulator.h>
 
 #include "faasm/counter.h"
@@ -11,7 +11,7 @@ using namespace faasm;
 
 namespace tests {
     TEST_CASE("Test normal counter operation", "[counter]") {
-        state::getGlobalState().forceClearAll(true);
+        faabric::state::getGlobalState().forceClearAll(true);
 
         const char *key = "test_counter";
         initCounter(key);

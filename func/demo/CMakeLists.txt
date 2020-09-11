@@ -38,7 +38,6 @@ demo_func(getpwuid getpwuid.cpp)
 demo_func(gettime gettime.cpp)
 demo_func(heap heap.cpp)
 demo_func(hello hello.cpp)
-demo_func(ibm_test ibm_test.cpp)
 demo_func(increment increment.cpp)
 demo_func(isatty isatty.cpp)
 demo_func(listdir listdir.cpp)
@@ -94,7 +93,7 @@ demo_func(zygote_check zygote_check.cpp)
 
 # WASM-only functions
 if(FAASM_BUILD_TYPE STREQUAL "wasm")
-    demo_func(eigen_vec eigen_vec.cpp)
+  demo_func(eigen_vec eigen_vec.cpp)
 endif()
 
 faasm_dynamic_func(dynlink dynlink.cpp)

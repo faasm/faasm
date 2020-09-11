@@ -4,7 +4,7 @@
 #include <WAVM/IR/Module.h>
 
 #include <shared_mutex>
-#include <util/config.h>
+#include <faabric/util/config.h>
 
 // Note that page size in wasm is 64kiB
 #define ONE_MB_PAGES 16
@@ -37,7 +37,7 @@ namespace wasm {
         std::unordered_map<std::string, Runtime::ModuleRef> compiledModuleMap;
         std::unordered_map<std::string, int> originalTableSizes;
 
-        util::SystemConfig &conf;
+        faabric::util::SystemConfig &conf;
 
         int getModuleCount(const std::string &key);
 

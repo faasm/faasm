@@ -1,14 +1,14 @@
 #include <catch/catch.hpp>
 #include <wavm/WAVMWasmModule.h>
-#include <util/func.h>
-#include <util/config.h>
+#include <faabric/util/func.h>
+#include <faabric/util/config.h>
 #include <WAVM/Runtime/Intrinsics.h>
-#include <utils.h>
 
 using namespace wasm;
+using namespace WAVM;
 
 namespace tests {
-    void convertMsgToPython(message::Message &msg) {
+    void convertMsgToPython(faabric::Message &msg) {
         msg.set_pythonuser(msg.user());
         msg.set_pythonfunction(msg.function());
         msg.set_user(PYTHON_USER);
@@ -33,8 +33,8 @@ namespace tests {
     _doChecks(wasm::WAVMWasmModule &moduleA, wasm::WAVMWasmModule &moduleB, const std::string &user, const std::string &func,
               const std::string &inputA,              const std::string &inputB, bool isTypescript, bool isPython) {
 
-        message::Message msgA = util::messageFactory(user, func);
-        message::Message msgB = util::messageFactory(user, func);
+        faabric::Message msgA = faabric::util::messageFactory(user, func);
+        faabric::Message msgB = faabric::util::messageFactory(user, func);
 
         msgA.set_inputdata(inputA);
         msgB.set_inputdata(inputB);
@@ -154,7 +154,7 @@ namespace tests {
 
     void _checkCopyConstructor(const std::string &user, const std::string &func, const std::string &inputA,
                                const std::string &inputB, bool isTypescript, bool isPython) {
-        message::Message msgA = util::messageFactory(user, func);
+        faabric::Message msgA = faabric::util::messageFactory(user, func);
 
         if(isPython) {
             convertMsgToPython(msgA);
@@ -173,7 +173,7 @@ namespace tests {
 
     void _checkAssignmentOperator(const std::string &user, const std::string &func, const std::string &inputA,
                                   const std::string &inputB, bool isTypescript, bool isPython) {
-        message::Message msgA = util::messageFactory(user, func);
+        faabric::Message msgA = faabric::util::messageFactory(user, func);
         msgA.set_istypescript(isTypescript);
 
         if(isPython) {
@@ -219,7 +219,7 @@ namespace tests {
 //    }
 
     TEST_CASE("Test cloned execution on complex module", "[wasm]") {
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         std::string preloadVal = conf.pythonPreload;
         conf.pythonPreload = "off";
         
@@ -238,7 +238,7 @@ namespace tests {
     }
 
     TEST_CASE("Test GC on cloned modules without execution") {
-        message::Message msg = util::messageFactory("demo", "echo");
+        faabric::Message msg = faabric::util::messageFactory("demo", "echo");
 
         WAVMWasmModule moduleA;
         moduleA.bindToFunction(msg);
@@ -253,7 +253,7 @@ namespace tests {
     }
 
     TEST_CASE("Test GC on cloned modules with execution") {
-        message::Message msg = util::messageFactory("demo", "echo");
+        faabric::Message msg = faabric::util::messageFactory("demo", "echo");
 
         WAVMWasmModule moduleA;
         moduleA.bindToFunction(msg);

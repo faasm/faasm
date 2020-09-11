@@ -21,11 +21,9 @@ typescript
 venv
 machine-code
 
-# WebAssembly - benchmark functions have special status
+# Ignore all WebAssembly other than Python function, which has special status
 wasm
 !wasm/python/py_func/function.wasm
-!wasm/sgd/reuters_svm/function.wasm
-!wasm/tf/image/function.wasm
 
 # Benchmarking
 perf
@@ -36,9 +34,8 @@ perf.*
 
 # Submodules
 third-party
-!third-party/faasm-demo-c
-!third-party/malloc
 !third-party/eigen
+!third-party/faabric
 !third-party/WAVM
 !third-party/wamr
 

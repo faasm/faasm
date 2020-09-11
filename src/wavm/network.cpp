@@ -1,19 +1,21 @@
 #include "WAVMWasmModule.h"
 #include "syscalls.h"
 
-#include <util/bytes.h>
+#include <faabric/util/bytes.h>
 
 #include <netdb.h>
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
 
+using namespace WAVM;
+
 namespace wasm {
     /** Writes changes to a native sockaddr back to a wasm sockaddr. This is important in several
      * networking syscalls that receive responses and modify arguments in place */
     void setSockAddr(sockaddr nativeSockAddr, I32 addrPtr) {
         // Get pointer to wasm address
-        wasm_sockaddr *wasmAddrPtr = &Runtime::memoryRef<wasm_sockaddr>(getExecutingModule()->defaultMemory,
+        wasm_sockaddr *wasmAddrPtr = &Runtime::memoryRef<wasm_sockaddr>(getExecutingWAVMModule()->defaultMemory,
                                                                         (Uptr) addrPtr);
 
         // Modify in place
@@ -23,7 +25,7 @@ namespace wasm {
 
     void setSockLen(socklen_t nativeValue, I32 wasmPtr) {
         // Get pointer to wasm address
-        I32 *wasmAddrPtr = &Runtime::memoryRef<I32>(getExecutingModule()->defaultMemory, (Uptr) wasmPtr);
+        I32 *wasmAddrPtr = &Runtime::memoryRef<I32>(getExecutingWAVMModule()->defaultMemory, (Uptr) wasmPtr);
         std::copy(&nativeValue, &nativeValue + 1, wasmAddrPtr);
     }
 
@@ -33,7 +35,7 @@ namespace wasm {
      * straight through.
      */
     I32 s__socketcall(I32 call, I32 argsPtr) {
-        WAVMWasmModule *module = getExecutingModule();
+        WAVMWasmModule *module = getExecutingWAVMModule();
         Runtime::Memory *memoryPtr = module->defaultMemory;
 
         // NOTE
@@ -98,7 +100,7 @@ namespace wasm {
                     }
                 }
 
-                util::getLogger()->debug("S - socket - {} {} {}", domain, type, protocol);
+                faabric::util::getLogger()->debug("S - socket - {} {} {}", domain, type, protocol);
                 I32 sock = (int) syscall(SYS_socket, domain, type, protocol);
 
                 if (sock < 0) {
@@ -115,7 +117,7 @@ namespace wasm {
                 I32 addrPtr = subCallArgs[1];
                 I32 addrLen = subCallArgs[2];
 
-                util::getLogger()->debug("S - connect - {} {} {}", sockfd, addrPtr, addrLen);
+                faabric::util::getLogger()->debug("S - connect - {} {} {}", sockfd, addrPtr, addrLen);
 
                 sockaddr addr = getSockAddr(addrPtr);
                 int result = connect(sockfd, &addr, sizeof(sockaddr));
@@ -145,12 +147,12 @@ namespace wasm {
 
                 ssize_t result = 0;
                 if (call == SocketCalls::sc_send) {
-                    util::getLogger()->debug("S - send - {} {} {} {}", sockfd, bufPtr, bufLen, flags);
+                    faabric::util::getLogger()->debug("S - send - {} {} {} {}", sockfd, bufPtr, bufLen, flags);
 
                     result = send(sockfd, buf, bufLen, flags);
 
                 } else if (call == SocketCalls::sc_recv) {
-                    util::getLogger()->debug("S - recv - {} {} {} {}", sockfd, bufPtr, bufLen, flags);
+                    faabric::util::getLogger()->debug("S - recv - {} {} {} {}", sockfd, bufPtr, bufLen, flags);
 
                     result = recv(sockfd, buf, bufLen, flags);
 
@@ -161,7 +163,7 @@ namespace wasm {
                     socklen_t addrLen = subCallArgs[5];
 
                     if (call == SocketCalls::sc_sendto) {
-                        util::getLogger()->debug("S - sendto - {} {} {} {} {} {}", sockfd, bufPtr, bufLen, flags,
+                        faabric::util::getLogger()->debug("S - sendto - {} {} {} {} {} {}", sockfd, bufPtr, bufLen, flags,
                                                  sockAddrPtr,
                                                  addrLen);
 
@@ -169,7 +171,7 @@ namespace wasm {
 
                     } else {
                         // Note, addrLen here is actually a pointer
-                        util::getLogger()->debug("S - recvfrom - {} {} {} {} {} {}", sockfd, bufPtr, bufLen, flags,
+                        faabric::util::getLogger()->debug("S - recvfrom - {} {} {} {} {} {}", sockfd, bufPtr, bufLen, flags,
                                                  sockAddrPtr,
                                                  addrLen);
 
@@ -195,7 +197,7 @@ namespace wasm {
 
                 I32 addrLen = subCallArgs[2];
 
-                util::getLogger()->debug("S - bind - {} {} {}", sockfd, addrPtr, addrLen);
+                faabric::util::getLogger()->debug("S - bind - {} {} {}", sockfd, addrPtr, addrLen);
 
                 int bindResult = bind(sockfd, &addr, sizeof(addr));
 
@@ -208,7 +210,7 @@ namespace wasm {
                 I32 addrPtr = subCallArgs[1];
                 I32 addrLenPtr = subCallArgs[2];
 
-                util::getLogger()->debug("S - getsockname - {} {} {}", sockfd, addrPtr, addrLenPtr);
+                faabric::util::getLogger()->debug("S - getsockname - {} {} {}", sockfd, addrPtr, addrLenPtr);
 
                 sockaddr nativeAddr = getSockAddr(addrPtr);
                 socklen_t nativeAddrLen = sizeof(nativeAddr);
@@ -227,51 +229,51 @@ namespace wasm {
                 // ----------------------------
 
             case (SocketCalls::sc_getpeername): {
-                util::getLogger()->debug("S - getpeername - {} {}", call, argsPtr);
+                faabric::util::getLogger()->debug("S - getpeername - {} {}", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_socketpair): {
-                util::getLogger()->debug("S - socketpair - {} {}", call, argsPtr);
+                faabric::util::getLogger()->debug("S - socketpair - {} {}", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_shutdown): {
-                util::getLogger()->debug("S - shutdown - {} {}", call, argsPtr);
+                faabric::util::getLogger()->debug("S - shutdown - {} {}", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_setsockopt): {
-                util::getLogger()->debug("S - setsockopt - {} {}", call, argsPtr);
+                faabric::util::getLogger()->debug("S - setsockopt - {} {}", call, argsPtr);
                 return 0;
             }
             case (SocketCalls::sc_getsockopt): {
-                util::getLogger()->debug("S - getsockopt - {} {}", call, argsPtr);
+                faabric::util::getLogger()->debug("S - getsockopt - {} {}", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_sendmsg): {
-                util::getLogger()->debug("S - sendmsg - {} {}", call, argsPtr);
+                faabric::util::getLogger()->debug("S - sendmsg - {} {}", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_recvmsg): {
-                util::getLogger()->debug("S - recvmsg - {} {}", call, argsPtr);
+                faabric::util::getLogger()->debug("S - recvmsg - {} {}", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_accept4): {
-                util::getLogger()->debug("S - accept4 - {} {}", call, argsPtr);
+                faabric::util::getLogger()->debug("S - accept4 - {} {}", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_recvmmsg): {
-                util::getLogger()->debug("S - recvmmsg - {} {}", call, argsPtr);
+                faabric::util::getLogger()->debug("S - recvmmsg - {} {}", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_sendmmsg): {
-                util::getLogger()->debug("S - sendmmsg - {} {}", call, argsPtr);
+                faabric::util::getLogger()->debug("S - sendmmsg - {} {}", call, argsPtr);
                 return 0;
             }
 
@@ -281,13 +283,13 @@ namespace wasm {
 
             case (SocketCalls::sc_accept):
                 // Server-side
-                util::getLogger()->debug("S - accept - {} {}", call, argsPtr);
+                faabric::util::getLogger()->debug("S - accept - {} {}", call, argsPtr);
 
                 throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 
             case (SocketCalls::sc_listen): {
                 // Server-side
-                util::getLogger()->debug("S - listen - {} {}", call, argsPtr);
+                faabric::util::getLogger()->debug("S - listen - {} {}", call, argsPtr);
 
                 throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
             }
@@ -303,20 +305,38 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "gethostbyname", I32, _gethostbyname, I32 hostnamePtr) {
         const std::string hostname = getStringFromWasm(hostnamePtr);
-        util::getLogger()->debug("S - gethostbyname {}", hostname);
+        faabric::util::getLogger()->debug("S - gethostbyname {}", hostname);
 
         return 0;
     }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "gethostname", I32, gethostname, I32 buffer, I32 bufferLen) {
+        faabric::util::getLogger()->debug("S - gethostname {} {}", buffer, bufferLen);
+
+        Runtime::Memory *memoryPtr = getExecutingWAVMModule()->defaultMemory;
+        char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) buffer);
+        std::strcpy(key, FAKE_HOSTNAME);
+
+        return 0;
+    }
+
+    // ------------------------------------------------------
+    // NOT SUPPORTED
+    // ------------------------------------------------------
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "socket", I32, socket, I32 a, I32 b, I32 c) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "sock_send", I32, wasi_sock_send, I32 a, I32 b, I32 c, I32 d,
-                                   I32 e) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
+                                   I32 e) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "sock_recv", I32, wasi_sock_recv, I32 a, I32 b, I32 c, I32 d, I32 e,
-                                   I32 f) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
+                                   I32 f) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "sock_shutdown", I32, wasi_sock_shutdown, I32 a, I32 b) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
@@ -331,7 +351,9 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "setsockopt", I32, setsockopt, I32 a, I32 b, I32 c, I32 d,
-                                   I32 e) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
+                                   I32 e) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "accept", I32, accept, I32 a, I32 b, I32 c) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
@@ -346,17 +368,16 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "recvfrom", I32, recvfrom, I32 a, I32 b, I32 c, I32 d, I32 e,
-                                   I32 f) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "sendto", I32, sendto, I32 a, I32 b, I32 c, I32 d, I32 e,
-                                   I32 f) { throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic); }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "inet_ntoa", I32, inet_ntoa, I32 a) {
+                                   I32 f) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "sendto", I32, sendto, I32 a, I32 b, I32 c, I32 d, I32 e,
+                                   I32 f) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "gethostname", I32, gethostname, I32 a, I32 b) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "inet_ntoa", I32, inet_ntoa, I32 a) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
@@ -371,7 +392,6 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "gethostbyaddr", I32, s__gethostbyaddr, I32 a, I32 b, I32 c) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
-
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getservbyport", I32, s__getservbyport, I32 a, I32 b) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);

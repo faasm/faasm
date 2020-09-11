@@ -2,8 +2,8 @@
 
 #include "utils.h"
 
-#include <redis/Redis.h>
-#include <state/State.h>
+#include <faabric/redis/Redis.h>
+#include <faabric/state/State.h>
 
 #include <faasm/array.h>
 #include <emulator/emulator.h>
@@ -14,7 +14,7 @@ namespace tests {
     TEST_CASE("Test array operations", "[counter]") {
         cleanSystem();
 
-        state::State &state = state::getGlobalState();
+        faabric::state::State &state = faabric::state::getGlobalState();
         std::string user = getEmulatorUser();
 
         // Create the array and check it makes a KV in the background

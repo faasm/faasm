@@ -6,41 +6,42 @@
 #define ERROR_BUFFER_SIZE 256
 #define STACK_SIZE_KB 1024
 #define HEAP_SIZE_KB 1024
+#define WASM_BYTES_PER_PAGE 65536
+
 
 namespace wasm {
+    std::vector<uint8_t> wamrCodegen(std::vector<uint8_t> &wasmBytes);
+
     class WAMRWasmModule final : public WasmModule {
     public:
+        static void initialiseWAMRGlobally();
+
+        WAMRWasmModule();
+
+        ~WAMRWasmModule();
+
         // ----- Module lifecycle -----
-        void bindToFunction(const message::Message &msg) override;
+        void bindToFunction(const faabric::Message &msg) override;
 
-        void bindToFunctionNoZygote(const message::Message &msg) override;
+        void bindToFunctionNoZygote(const faabric::Message &msg) override;
 
-        bool execute(message::Message &msg, bool forceNoop = false) override;
+        bool execute(faabric::Message &msg, bool forceNoop = false) override;
 
-        const bool isBound() override;
+        bool isBound() override;
 
         void tearDown();
 
-        // ----- Environment variables
-        void writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer) override;
+        // ----- Memory management -----
+        uint32_t mmapMemory(uint32_t length) override;
 
-        // ----- CoW memory -----
-        void writeMemoryToFd(int fd) override;
+        uint32_t mmapPages(uint32_t pages) override;
 
-        void mapMemoryFromFd() override;
+        uint32_t mmapFile(uint32_t fp, uint32_t length) override;
 
-        // ----- Argc/argv -----
-        void writeArgvToMemory(uint32_t wasmArgvPointers, uint32_t wasmArgvBuffer) override;
-
-    protected:
-        void doSnapshot(std::ostream &outStream) override;
-
-        void doRestore(std::istream &inStream) override;
-
+        uint8_t* wasmPointerToNative(int32_t wasmPtr) override;
     private:
         bool _isBound;
 
-        std::vector<uint8_t> wasmFileBytes;
         std::vector<char> errorBuffer;
 
         WASMModuleCommon *wasmModule;
@@ -49,4 +50,10 @@ namespace wasm {
 
         void executeFunction(const std::string &funcName);
     };
+
+    void tearDownWAMRGlobally();
+
+    WAMRWasmModule *getExecutingWAMRModule();
+
+    void setExecutingModule(WAMRWasmModule *executingModuleIn);
 }

@@ -1,15 +1,15 @@
 #include "FileDescriptor.h"
 #include "SharedFiles.h"
 
-#include <util/timing.h>
+#include <faabric/util/timing.h>
 
 #include <dirent.h>
 #include <stdexcept>
 #include <boost/filesystem.hpp>
 #include <WAVM/WASI/WASIABI.h>
 #include <fcntl.h>
-#include <util/config.h>
-#include <util/logging.h>
+#include <faabric/util/config.h>
+#include <faabric/util/logging.h>
 #include <sys/stat.h>
 
 
@@ -18,10 +18,44 @@
 
 namespace storage {
     std::string prependRuntimeRoot(const std::string &originalPath) {
-        util::SystemConfig &conf = util::getSystemConfig();
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         boost::filesystem::path p(conf.runtimeFilesDir);
         p.append(originalPath);
         return p.string();
+    }
+
+    int32_t wasiFdFlagsToLinux(int32_t fdFlags) {
+        int32_t result = 0;
+
+        // More open flags
+        if (fdFlags != 0) {
+            if (fdFlags & WASI_FD_FLAGS) {
+                if (fdFlags & __WASI_FDFLAG_RSYNC) {
+                    result |= O_RSYNC;
+                }
+
+                if (fdFlags & __WASI_FDFLAG_APPEND) {
+                    result |= O_APPEND;
+                }
+
+                if (fdFlags & __WASI_FDFLAG_DSYNC) {
+                    result |= O_DSYNC;
+                }
+
+                if (fdFlags & __WASI_FDFLAG_SYNC) {
+                    result |= O_SYNC;
+                }
+
+                if (fdFlags & __WASI_FDFLAG_NONBLOCK) {
+                    result |= O_NONBLOCK;
+                }
+
+            } else {
+                throw std::runtime_error("Unhandled fd flags");
+            }
+        }
+
+        return result;
     }
 
     OpenMode getOpenMode(uint16_t openFlags) {
@@ -60,16 +94,24 @@ namespace storage {
         switch (errnoIn) {
             case EPERM:
                 return __WASI_EPERM;
-            case EBADF:
-                return __WASI_EBADF;
-            case EINVAL:
-                return __WASI_EINVAL;
             case ENOENT:
                 return __WASI_ENOENT;
-            case EISDIR:
-                return __WASI_EISDIR;
+            case EIO:
+                return __WASI_EIO;
+            case EBADF:
+                return __WASI_EBADF;
+            case ENOMEM:
+                return __WASI_ENOMEM;
+            case EACCES:
+                return __WASI_EACCES;
             case EEXIST:
                 return __WASI_EEXIST;
+            case ENOTDIR:
+                return __WASI_ENOTDIR;
+            case EISDIR:
+                return __WASI_EISDIR;
+            case EINVAL:
+                return __WASI_EINVAL;
             case EMFILE:
                 return __WASI_EMFILE;
             default:
@@ -123,11 +165,18 @@ namespace storage {
     }
 
     FileDescriptor::FileDescriptor() : iterStarted(false), iterFinished(false),
-                                       dirPtr(nullptr), direntPtr(nullptr),
+                                       dirPtr(nullptr),
                                        rightsSet(false),
                                        linuxFd(-1), linuxMode(-1), linuxFlags(-1), linuxErrno(0),
                                        wasiErrno(0) {
 
+    }
+
+    void FileDescriptor::iterReset() {
+        // Reset iterator state
+        dirPtr = nullptr;
+        iterStarted = false;
+        iterFinished = false;
     }
 
     DirEnt FileDescriptor::iterNext() {
@@ -159,18 +208,23 @@ namespace storage {
         }
 
         // Call readdir to get next dirent
-        direntPtr = ::readdir(dirPtr);
+        struct dirent *direntPtr = ::readdir(dirPtr);
 
         // Build the actual dirent
         DirEnt d;
         if (!direntPtr) {
+            // Close iterator
             closedir(dirPtr);
             iterFinished = true;
-            d.isEnd = true;
         } else {
             d.type = direntPtr->d_type;
             d.ino = direntPtr->d_ino;
             d.path = std::string(direntPtr->d_name);
+
+            // We have to set "next" here to specify the offset of this
+            // directory entry. It seems this is only used to be passed
+            // back as the "cookie" value to fd_readdir
+            d.next = direntPtr->d_off;
         }
 
         return d;
@@ -220,33 +274,8 @@ namespace storage {
             throw std::runtime_error("Unrecognised open flags");
         }
 
-        // More open flags
-        if (fdFlags != 0) {
-            if (fdFlags & WASI_FD_FLAGS) {
-                if (fdFlags & __WASI_FDFLAG_RSYNC) {
-                    linuxFlags |= O_RSYNC;
-                }
-
-                if (fdFlags & __WASI_FDFLAG_APPEND) {
-                    linuxFlags |= O_APPEND;
-                }
-
-                if (fdFlags & __WASI_FDFLAG_DSYNC) {
-                    linuxFlags |= O_DSYNC;
-                }
-
-                if (fdFlags & __WASI_FDFLAG_SYNC) {
-                    linuxFlags |= O_SYNC;
-                }
-
-                if (fdFlags & __WASI_FDFLAG_NONBLOCK) {
-                    linuxFlags |= O_NONBLOCK;
-                }
-
-            } else {
-                throw std::runtime_error("Unhandled fd flags");
-            }
-        }
+        // More flags
+        linuxFlags |= wasiFdFlagsToLinux(fdFlags);
 
         bool isShared = SharedFiles::isPathShared(path);
         std::string realPath;
@@ -293,6 +322,21 @@ namespace storage {
             return false;
         }
 
+        return true;
+    }
+
+    bool FileDescriptor::updateFlags(int32_t fdFlags) {
+        // Update underlying file descriptor
+        int32_t newFlags = wasiFdFlagsToLinux(fdFlags);
+
+        int res = fcntl(linuxFd, F_SETFL, newFlags);
+        if (res < 0) {
+            wasiErrno = errnoToWasi(errno);
+            return false;
+        }
+
+        // Update existing Linux flags
+        linuxFlags |= newFlags;
         return true;
     }
 
@@ -418,9 +462,9 @@ namespace storage {
         statResult.st_nlink = nativeStat.st_nlink;
         statResult.st_size = nativeStat.st_size;
         statResult.st_mode = nativeStat.st_mode;
-        statResult.st_atim = util::timespecToNanos(&nativeStat.st_atim);
-        statResult.st_mtim = util::timespecToNanos(&nativeStat.st_mtim);
-        statResult.st_ctim = util::timespecToNanos(&nativeStat.st_ctim);
+        statResult.st_atim = faabric::util::timespecToNanos(&nativeStat.st_atim);
+        statResult.st_mtim = faabric::util::timespecToNanos(&nativeStat.st_mtim);
+        statResult.st_ctim = faabric::util::timespecToNanos(&nativeStat.st_ctim);
 
         return statResult;
     }
@@ -429,7 +473,7 @@ namespace storage {
         std::string linkPath = prependRuntimeRoot(absPath(relativePath));
 
         if (SharedFiles::isPathShared(linkPath)) {
-            util::getLogger()->error("Readlink on shared not yet supported ({})", path);
+            faabric::util::getLogger()->error("Readlink on shared not yet supported ({})", path);
             throw std::runtime_error("Readlink on shared file not supported");
         }
 

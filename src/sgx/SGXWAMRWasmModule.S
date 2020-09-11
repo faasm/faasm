@@ -1,8 +1,3 @@
-;
-; Created by Joshua Heinemann on 26.06.20.
-; TU-Braunschweig (heineman@ibr.cs.tu-bs.de)
-;
-
 %DEFINE CPU_INTEL_ID_EBX "Genu"
 %DEFINE CPU_INTEL_ID_ECX "ntel"
 %DEFINE CPU_INTEL_ID_EDX "ineI"

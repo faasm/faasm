@@ -2,26 +2,26 @@
 
 #include "utils.h"
 
-#include <util/environment.h>
+#include <faabric/util/environment.h>
 
 #include <faaslet/FaasletPool.h>
 #include <faaslet/Faaslet.h>
 #include <emulator/emulator.h>
-#include <util/bytes.h>
+#include <faabric/util/bytes.h>
 
 using namespace faaslet;
 
 namespace tests {
     TEST_CASE("Test repeat invocation with state", "[faaslet]") {
         // Set up the function call
-        message::Message call = util::messageFactory("demo", "increment");
+        faabric::Message call = faabric::util::messageFactory("demo", "increment");
         setEmulatedMessage(call);
 
         // Call function
         FaasletPool pool(1);
         Faaslet w(1);
 
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
         sch.callFunction(call);
 
         // Bind and exec
@@ -29,20 +29,19 @@ namespace tests {
         w.processNextMessage();
 
         // Check result
-        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message resultA = globalBus.getFunctionResult(call.id(), 1);
+        faabric::Message resultA = sch.getFunctionResult(call.id(), 1);
         REQUIRE(resultA.returnvalue() == 0);
         REQUIRE(resultA.outputdata() == "Counter: 001");
 
         // Call the function a second time, the state should have been incremented
         call.set_id(0);
-        util::setMessageId(call);
+         faabric::util::setMessageId(call);
         setEmulatedMessage(call);
 
         sch.callFunction(call);
         w.processNextMessage();
 
-        message::Message resultB = globalBus.getFunctionResult(call.id(), 1);
+        faabric::Message resultB = sch.getFunctionResult(call.id(), 1);
         REQUIRE(resultB.returnvalue() == 0);
         REQUIRE(resultB.outputdata() == "Counter: 002");
     }
@@ -53,14 +52,14 @@ namespace tests {
         cleanSystem();
 
         // Set up the function call
-        message::Message call = util::messageFactory("demo", funcName);
+        faabric::Message call = faabric::util::messageFactory("demo", funcName);
         setEmulatedMessage(call);
 
         // Call function
         FaasletPool pool(1);
         Faaslet w(1);
 
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
         sch.callFunction(call);
 
         // Bind and exec
@@ -68,14 +67,13 @@ namespace tests {
         w.processNextMessage();
 
         // Check result
-        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(call.id(), 1);
+        faabric::Message result = sch.getFunctionResult(call.id(), 1);
         REQUIRE(result.returnvalue() == 0);
-        std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
+        std::vector<uint8_t> outputBytes = faabric::util::stringToBytes(result.outputdata());
 
         REQUIRE(outputBytes == expectedOutput);
 
-        const std::shared_ptr<state::StateKeyValue> &kv = state::getGlobalState().getKV("demo", keyName, 0);
+        const std::shared_ptr<faabric::state::StateKeyValue> &kv = faabric::state::getGlobalState().getKV("demo", keyName, 0);
         REQUIRE(kv->size() == expectedState.size());
         std::vector<uint8_t> actual(kv->size(), 0);
         kv->get(actual.data());
@@ -101,7 +99,7 @@ namespace tests {
     }
 
     TEST_CASE("Test state size", "[faaslet]") {
-        message::Message msg = util::messageFactory("demo", "state_size");
+        faabric::Message msg = faabric::util::messageFactory("demo", "state_size");
         execFunction(msg);
     }
 
@@ -123,7 +121,7 @@ namespace tests {
 
     TEST_CASE("Test writing file to state", "[faaslet]") {
         cleanSystem();
-        message::Message msg = util::messageFactory("demo", "state_file");
+        faabric::Message msg = faabric::util::messageFactory("demo", "state_file");
         execFunction(msg);
     }
 }

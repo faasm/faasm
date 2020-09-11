@@ -12,6 +12,7 @@ PYTHON_FUNC = "py_func"
 FAASM_HOME = join(HOME_DIR, "faasm")
 FAASM_DATA_DIR = join(HOME_DIR, "faasm", "data")
 FAASM_LOCAL_DIR = "/usr/local/faasm"
+FAASM_MACHINE_CODE_DIR = join(FAASM_LOCAL_DIR, "object")
 FAASM_RUNTIME_ROOT = join(FAASM_LOCAL_DIR, "runtime_root")
 FAASM_SHARED_ROOT = join(FAASM_LOCAL_DIR, "shared")
 FAASM_SHARED_STORAGE_ROOT = join(FAASM_LOCAL_DIR, "shared_store")
@@ -49,7 +50,7 @@ PYODIDE_PACKAGES = join(PYODIDE_ROOT, "packages")
 PYODIDE_INSTALL_DIR = join(PYODIDE_ROOT, "cpython", "installs", "python-3.7.0")
 PY_RUNTIME_ROOT = join(FAASM_RUNTIME_ROOT, "lib", "python3.7")
 
-FAASM_TOOLCHAIN_FILE = join(PROJ_ROOT, "toolchain", "WasiToolchain.cmake")
+FAASM_TOOLCHAIN_FILE = join(PROJ_ROOT, "third-party", "faasm-toolchain", "WasiToolchain.cmake")
 FAASM_SYSROOT = join(FAASM_LOCAL_DIR, "llvm-sysroot")
 SYSROOT_INSTALL_PREFIX = FAASM_SYSROOT
 

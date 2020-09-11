@@ -1,18 +1,19 @@
 #include <catch/catch.hpp>
 #include <wavm/WAVMWasmModule.h>
-#include <util/bytes.h>
-#include <util/func.h>
-#include <util/config.h>
+#include <faabric/util/bytes.h>
+#include <faabric/util/func.h>
+#include <faabric/util/config.h>
 
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <util/files.h>
+#include <faabric/util/files.h>
 
+using namespace WAVM;
 
 namespace tests {
     TEST_CASE("Test mmapping a file", "[wasm]") {
-        message::Message call;
+        faabric::Message call;
         call.set_user("demo");
         call.set_function("echo");
 
@@ -41,7 +42,7 @@ namespace tests {
         close(fd);
         
         // Read in by other means
-        std::vector<uint8_t> full = util::readFileToBytes(fileName);
+        std::vector<uint8_t> full = faabric::util::readFileToBytes(fileName);
         std::vector<uint8_t> expected(full.data(), full.data() + byteLen);
 
         // Check the bytes match

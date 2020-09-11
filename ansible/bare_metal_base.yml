@@ -9,6 +9,7 @@
     - linux
     - llvm10
     - protobuf
+    - grpc
     - code
     - python
     - spdlog
@@ -18,3 +19,4 @@
     - pistache
     - rapidjson
     - runtime_fs
+    - time

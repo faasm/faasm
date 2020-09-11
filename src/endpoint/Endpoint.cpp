@@ -1,6 +1,6 @@
 #include "Endpoint.h"
 
-#include <util/logging.h>
+#include <faabric/util/logging.h>
 #include <pistache/listener.h>
 #include <pistache/endpoint.h>
 #include <signal.h>
@@ -11,7 +11,7 @@ namespace endpoint {
     }
 
     void Endpoint::start() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
 
         logger->info("Starting HTTP endpoint");
 

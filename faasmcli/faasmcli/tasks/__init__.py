@@ -1,6 +1,5 @@
 from invoke import Collection
 
-# from . import ibm
 from . import bare_metal
 from . import call
 from . import codegen
@@ -23,7 +22,6 @@ from . import wast
 
 # Default names
 ns = Collection(
-    # ibm,
     codegen,
     compile,
     config,

@@ -25,9 +25,8 @@ def _ansible_playbook_command(playbook, inventory=DEFAULT_INVENTORY, extra_vars=
     ]
 
     if extra_vars:
-        shell_cmd.append("--extra-vars")
         for var_name, var_value in extra_vars.items():
-            shell_cmd.append("{}={}".format(var_name, var_value))
+            shell_cmd.append("--extra-vars {}={}".format(var_name, var_value))
 
     _call_ansible_command(shell_cmd)
 
@@ -51,16 +50,16 @@ def setup(ctx):
 
 
 @task
-def deploy(ctx, quick=False):
+def deploy(ctx, quick=False, branch=None):
     """
     Run bare metal deploy
     """
+    extra_vars = dict()
     if quick:
-        extra_vars = {
-            "quick_deploy": "on"
-        }
-    else:
-        extra_vars = None
+        extra_vars["quick_deploy"] = "on"
+
+    if branch:
+        extra_vars["repo_version"] = branch
 
     _ansible_playbook_command("faasm_bare.yml", extra_vars=extra_vars)
 

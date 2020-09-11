@@ -3,6 +3,8 @@
 
 #include <WAVM/Runtime/Intrinsics.h>
 
+using namespace WAVM;
+
 namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "gettext", I32, s__gettext, I32 a) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);

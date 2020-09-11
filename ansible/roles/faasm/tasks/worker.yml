@@ -1,7 +1,7 @@
 ---
 
 - name: "Run worker build"
-  shell: "cmake --build . --target worker_knative"
+  shell: "cmake --build . --target faaslet_runner"
   args:
     chdir: "/usr/local/code/faasm/build"
 
@@ -10,3 +10,4 @@
   template:
     src: "worker.conf.j2"
     dest: "/etc/supervisor/conf.d/faasm_worker.conf"
+

@@ -5,7 +5,7 @@ extern "C" {
 #include <emulator/emulator_api.h>
 }
 
-#include <util/config.h>
+#include <faabric/util/config.h>
 #include <faaslet/FaasletPool.h>
 #include <emulator/emulator.h>
 
@@ -14,7 +14,7 @@ using namespace faaslet;
 namespace tests {
     TEST_CASE("Test fixed input with colon", "[faaslet]") {
         cleanSystem();
-        message::Message call = util::messageFactory("demo", "check_input");
+        faabric::Message call = faabric::util::messageFactory("demo", "check_input");
         call.set_inputdata("http://www.foobar.com");
 
         execFunction(call);
@@ -22,7 +22,7 @@ namespace tests {
 
     TEST_CASE("Test execution of echo function", "[faaslet]") {
         cleanSystem();
-        message::Message call = util::messageFactory("demo", "echo");
+        faabric::Message call = faabric::util::messageFactory("demo", "echo");
         std::string inputData = "http://www.testinput/foo.com";
         call.set_inputdata(inputData.c_str());
 
@@ -33,8 +33,8 @@ namespace tests {
     TEST_CASE("Test capturing stdout", "[faaslet]") {
         cleanSystem();
 
-        util::SystemConfig &conf = util::getSystemConfig();
-        message::Message call = util::messageFactory("demo", "stdout");
+        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
+        faabric::Message call = faabric::util::messageFactory("demo", "stdout");
 
         std::string expected;
 
