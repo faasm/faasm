@@ -4,6 +4,12 @@
 #include <storage/FileLoader.h>
 #include <wasm_export.h>
 #include <faabric/util/locks.h>
+#if(WAMR_EXECUTION_MODE_INTERP)
+#include <wasm_runtime.h>
+#else
+#include <aot_runtime.h>
+#endif
+
 
 namespace wasm {
     static bool wamrInitialised = false;
@@ -69,35 +75,38 @@ namespace wasm {
 
         // Load the wasm file
         storage::FileLoader &functionLoader = storage::getFileLoader();
-        std::vector<uint8_t> aotFileBytes = functionLoader.loadFunctionWamrAotFile(msg);
+#if(WAMR_EXECUTION_MODE_INTERP)
+        std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionWasm(msg);
+#else
+        std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionWamrAotFile(msg);
+#endif
 
         // Load wasm
-        errorBuffer.reserve(ERROR_BUFFER_SIZE);
         wasmModule = wasm_runtime_load(
-                aotFileBytes.data(),
-                aotFileBytes.size(),
-                errorBuffer.data(),
+                wasmBytes.data(),
+                wasmBytes.size(),
+                errorBuffer,
                 ERROR_BUFFER_SIZE
         );
 
         if(wasmModule == nullptr) {
-            std::string errorMsg = std::string(errorBuffer.data());
-            logger->error("Failed to instantiate WAMR module: \n{}", errorMsg);
-            throw std::runtime_error("Failed to instantiate WAMR module");
+            std::string errorMsg = std::string(errorBuffer);
+            logger->error("Failed to load WAMR module: \n{}", errorMsg);
+            throw std::runtime_error("Failed to load WAMR module");
         }
         
         // Instantiate module
-        moduleInstance = wasm_runtime_instantiate(
+        if(!(moduleInstance = wasm_runtime_instantiate(
                 wasmModule,
                 STACK_SIZE_KB,
                 HEAP_SIZE_KB,
-                errorBuffer.data(),
+                errorBuffer,
                 ERROR_BUFFER_SIZE
-        );
-
-        if(moduleInstance->module_type != Wasm_Module_AoT) {
-            throw std::runtime_error("WAMR module had unexpected type: " + std::to_string(moduleInstance->module_type));
-        }
+        ))){
+            std::string errorMsg = std::string(errorBuffer);
+            logger->error("Failed to load WAMR module: \n{}", errorMsg);
+            throw std::runtime_error("Failed to instantiate WAMR module");
+        };
     }
 
     void WAMRWasmModule::bindToFunctionNoZygote(const faabric::Message &msg) {
@@ -109,14 +118,45 @@ namespace wasm {
     bool WAMRWasmModule::execute(faabric::Message &msg, bool forceNoop) {
         setExecutingCall(&msg);
         setExecutingModule(this);
-
-        executionEnv = wasm_runtime_create_exec_env(moduleInstance, STACK_SIZE);
+        //TESTBENCH Must use this temporary due to a really weired bug(Interpreter failed after first execution)
+        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
+        storage::FileLoader &functionLoader = storage::getFileLoader();
+        std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionWasm(msg);
+        char error_buffer[128];
+        WASMModuleCommon *local_module;
+        WASMModuleInstanceCommon *local_instance;
+        WASMFunctionInstanceCommon *fct;
+        if(!(local_module = wasm_runtime_load(wasmBytes.data(),wasmBytes.size(),error_buffer,sizeof(error_buffer)))){
+            printf("Error: %s\n",error_buffer);
+        }
+        if(!(local_instance = wasm_runtime_instantiate(local_module,STACK_SIZE_KB,HEAP_SIZE_KB,error_buffer,sizeof(error_buffer)))){
+            printf("Error: %s\n",error_buffer);
+        }
+        executionEnv = wasm_runtime_create_exec_env(local_instance, STACK_SIZE);
+        fct = wasm_runtime_lookup_function(local_instance,ENTRY_FUNC_NAME,0x0);
+        bool success = wasm_runtime_call_wasm(executionEnv, fct, 0, nullptr);
+        if (success) {
+            logger->debug(" finished");
+        } else {
+#if(WAMR_EXECUTION_MODE_INTERP)
+            std::string errorMessage(((WASMModuleInstance *) executionEnv->module_inst)->cur_exception);
+#else
+            std::string errorMessage(((AOTModuleInstance *)executionEnv->module_inst)->cur_exception);
+#endif
+            logger->error("Function failed: {}", errorMessage);
+        }
+        //END TESTBENCH
+        //executionEnv = wasm_runtime_create_exec_env(moduleInstance, STACK_SIZE);
 
         // Run wasm initialisers
-        executeFunction(WASM_CTORS_FUNC_NAME);
+        //executeFunction(WASM_CTORS_FUNC_NAME);
 
         // Run the main function
-        executeFunction(ENTRY_FUNC_NAME);
+        //executeFunction(ENTRY_FUNC_NAME);
+
+        wasm_runtime_destroy_exec_env(executionEnv);
+        wasm_runtime_deinstantiate(local_instance);
+        wasm_runtime_unload(local_module);
 
         return true;
     }
@@ -133,7 +173,11 @@ namespace wasm {
         if (success) {
             logger->debug("{} finished", funcName);
         } else {
-            std::string errorMessage(errorBuffer.data());
+#if(WAMR_EXECUTION_MODE_INTERP)
+            std::string errorMessage(((WASMModuleInstance *)executionEnv->module_inst)->cur_exception);
+#else
+            std::string errorMessage(((AOTModuleInstance *)executionEnv->module_inst)->cur_exception);
+#endif
             logger->error("Function failed: {}", errorMessage);
         }
     }

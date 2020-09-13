@@ -10,7 +10,7 @@ option(FAASM_OPENMP_TRACING "Trace OpenMP forks in Redis" OFF)
 option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md" OFF)
 
 # SGX functionality
-option(FAASM_SGX_SUPPORT "Add support for SGX" ON)
+set(FAASM_SGX_SUPPORT 0) #Add support for SGX
 option(FAASM_SGX_SIM_MODE "SGX sim mode flag" ON)
 option(FAASM_SGX_ATTESTATION "Add support for attestation" OFF)
 option(FAASM_SGX_WHITELISTING "Add support for whitelisting" OFF)
@@ -64,6 +64,7 @@ if (FAASM_SGX_SUPPORT)
     endif()
 else ()
     set(CMAKE_CXX_FLAGS "-Wall -Werror")
+    add_definitions(-DFAASM_SGX=0)
 endif ()
 
 # ----------------------------------------
@@ -75,6 +76,7 @@ set(WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
 set(WAMR_SHARED_DIR ${WAMR_ROOT_DIR}/core/shared)
 set(WAMR_IWASM_DIR ${WAMR_ROOT_DIR}/core/iwasm)
 set(WAMR_BUILD_TARGET X86_64)
+set(WAMR_EXECUTION_MODE Interpreter) #AoT or Interpreter
 set(WAMR_NO_LLVM_IMPORT ON)
 add_definitions(-DBUILD_TARGET_X86_64)
 
@@ -88,6 +90,13 @@ include_directories(
         ${WAMR_IWASM_DIR}/include
         ${WAMR_IWASM_DIR}/common
 )
+
+#WAMR Interpreter / AoT Switch
+if(WAMR_EXECUTION_MODE STREQUAL "Interpreter")
+    add_definitions(-DWAMR_EXECUTION_MODE_INTERP=1)
+else()
+    add_definitions(-DWAMR_EXECUTION_MODE_INTERP=0)
+endif()
 
 # WAMR platform header, will break SGX build to include normal linux header
 if(FAASM_SGX_SUPPORT)

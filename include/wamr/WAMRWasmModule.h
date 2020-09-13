@@ -10,8 +10,9 @@
 
 
 namespace wasm {
+#if(!WAMR_EXECUTION_MODE_INTERP)
     std::vector<uint8_t> wamrCodegen(std::vector<uint8_t> &wasmBytes);
-
+#endif
     class WAMRWasmModule final : public WasmModule {
     public:
         static void initialiseWAMRGlobally();
@@ -42,7 +43,7 @@ namespace wasm {
     private:
         bool _isBound;
 
-        std::vector<char> errorBuffer;
+        char errorBuffer[ERROR_BUFFER_SIZE];
 
         WASMModuleCommon *wasmModule;
         WASMModuleInstanceCommon *moduleInstance;

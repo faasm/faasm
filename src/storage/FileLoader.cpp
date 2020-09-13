@@ -20,8 +20,8 @@ namespace storage {
     std::vector<uint8_t> FileLoader::doCodegen(std::vector<uint8_t> &bytes) {
         faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         if (conf.wasmVm == "wamr") {
-#if(FAASM_SGX == 1)
-            throw std::runtime_error("WAMR codegen not supported in SGX mode yet");
+#if(FAASM_SGX || WAMR_EXECUTION_MODE_INTERP)
+            throw std::runtime_error("WAMR codegen not supported in current wasm execution mode");
 #else
             return wasm::wamrCodegen(bytes);
 #endif

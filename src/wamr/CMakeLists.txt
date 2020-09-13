@@ -19,11 +19,20 @@ include(${WAMR_SHARED_DIR}/mem-alloc/mem_alloc.cmake)
 include(${WAMR_SHARED_DIR}/utils/shared_utils.cmake)
 include(${WAMR_SHARED_DIR}/utils/uncommon/shared_uncommon.cmake)
 include(${WAMR_IWASM_DIR}/common/iwasm_common.cmake)
-include(${WAMR_IWASM_DIR}/interpreter/iwasm_interp.cmake)
-include(${WAMR_IWASM_DIR}/aot/iwasm_aot.cmake)
 include(${WAMR_IWASM_DIR}/libraries/libc-wasi/libc_wasi.cmake)
 include(${WAMR_IWASM_DIR}/libraries/lib-pthread/lib_pthread.cmake)
 include(${WAMR_IWASM_DIR}/libraries/thread-mgr/thread_mgr.cmake)
+
+if(WAMR_EXECUTION_MODE STREQUAL "Interpreter")
+    include(${WAMR_IWASM_DIR}/interpreter/iwasm_interp.cmake)
+elseif(WAMR_EXECUTION_MODE STREQUAL "AoT")
+    include(${WAMR_IWASM_DIR}/aot/iwasm_aot.cmake)
+    include(${WAMR_IWASM_DIR}/interpreter/iwasm_interp.cmake)
+    include(${WAMR_IWASM_DIR}/compilation/iwasm_compl.cmake)
+    faasm_private_lib(aotclib "${IWASM_COMPL_SOURCE}")
+else()
+    message(ERROR "Invalid WAMR_EXECUTION_MODE")
+endif()
 
 set(COMMON_WAMR_SRC
         ${PLATFORM_SHARED_SOURCE}
@@ -36,9 +45,6 @@ set(COMMON_WAMR_SRC
         ${LIB_PTHREAD_SOURCE}
         ${THREAD_MGR_SOURCE}
 )
-
-include(${WAMR_IWASM_DIR}/compilation/iwasm_compl.cmake)
-faasm_private_lib(aotclib "${IWASM_COMPL_SOURCE}")
 
 # Build the WAMR lib
 set(ALL_WAMR_SRC ${COMMON_WAMR_SRC} ${EXTRA_WAMR_SRC})
@@ -82,7 +88,12 @@ llvm_map_components_to_libnames(
 faasm_private_lib(wamrmodule "${LIB_FILES}")
 target_link_libraries(wamrmodule
         wasm
-        aotclib
         wamrlib
-        ${WAMR_LLVM_LIBRARIES}
         )
+if(WAMR_EXECUTION_MODE STREQUAL "AoT")
+    target_link_libraries(wamrmodule
+            aotclib
+            ${WAMR_LLVM_LIBRARIES}
+            )
+endif()
+
