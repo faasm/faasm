@@ -45,6 +45,10 @@ namespace wasm {
 
         char errorBuffer[ERROR_BUFFER_SIZE];
 
+#if(WAMR_EXECUTION_MODE_INTERP)
+        std::vector<uint8_t> wasmBytes;
+#endif
+
         WASMModuleCommon *wasmModule;
         WASMModuleInstanceCommon *moduleInstance;
         WASMExecEnv *executionEnv;

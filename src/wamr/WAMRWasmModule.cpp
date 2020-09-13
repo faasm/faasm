@@ -76,12 +76,12 @@ namespace wasm {
         // Load the wasm file
         storage::FileLoader &functionLoader = storage::getFileLoader();
 #if(WAMR_EXECUTION_MODE_INTERP)
-        std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionWasm(msg);
+        wasmBytes = functionLoader.loadFunctionWasm(msg);
 #else
         std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionWamrAotFile(msg);
 #endif
 
-        // Load wasm
+        // Load wasm module
         wasmModule = wasm_runtime_load(
                 wasmBytes.data(),
                 wasmBytes.size(),
@@ -104,7 +104,7 @@ namespace wasm {
                 ERROR_BUFFER_SIZE
         ))){
             std::string errorMsg = std::string(errorBuffer);
-            logger->error("Failed to load WAMR module: \n{}", errorMsg);
+            logger->error("Failed to instantiate WAMR module: \n{}", errorMsg);
             throw std::runtime_error("Failed to instantiate WAMR module");
         };
     }
@@ -118,45 +118,18 @@ namespace wasm {
     bool WAMRWasmModule::execute(faabric::Message &msg, bool forceNoop) {
         setExecutingCall(&msg);
         setExecutingModule(this);
-        //TESTBENCH Must use this temporary due to a really weired bug(Interpreter failed after first execution)
-        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
-        storage::FileLoader &functionLoader = storage::getFileLoader();
-        std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionWasm(msg);
-        char error_buffer[128];
-        WASMModuleCommon *local_module;
-        WASMModuleInstanceCommon *local_instance;
-        WASMFunctionInstanceCommon *fct;
-        if(!(local_module = wasm_runtime_load(wasmBytes.data(),wasmBytes.size(),error_buffer,sizeof(error_buffer)))){
-            printf("Error: %s\n",error_buffer);
-        }
-        if(!(local_instance = wasm_runtime_instantiate(local_module,STACK_SIZE_KB,HEAP_SIZE_KB,error_buffer,sizeof(error_buffer)))){
-            printf("Error: %s\n",error_buffer);
-        }
-        executionEnv = wasm_runtime_create_exec_env(local_instance, STACK_SIZE);
-        fct = wasm_runtime_lookup_function(local_instance,ENTRY_FUNC_NAME,0x0);
-        bool success = wasm_runtime_call_wasm(executionEnv, fct, 0, nullptr);
-        if (success) {
-            logger->debug(" finished");
-        } else {
-#if(WAMR_EXECUTION_MODE_INTERP)
-            std::string errorMessage(((WASMModuleInstance *) executionEnv->module_inst)->cur_exception);
-#else
-            std::string errorMessage(((AOTModuleInstance *)executionEnv->module_inst)->cur_exception);
-#endif
-            logger->error("Function failed: {}", errorMessage);
-        }
-        //END TESTBENCH
-        //executionEnv = wasm_runtime_create_exec_env(moduleInstance, STACK_SIZE);
+
+        // Each function execution gets a fully untouched execution environment
+        executionEnv = wasm_runtime_create_exec_env(moduleInstance, STACK_SIZE);
 
         // Run wasm initialisers
-        //executeFunction(WASM_CTORS_FUNC_NAME);
+        executeFunction(WASM_CTORS_FUNC_NAME);
 
         // Run the main function
-        //executeFunction(ENTRY_FUNC_NAME);
+        executeFunction(ENTRY_FUNC_NAME);
 
+        // Must destroy the execution environment
         wasm_runtime_destroy_exec_env(executionEnv);
-        wasm_runtime_deinstantiate(local_instance);
-        wasm_runtime_unload(local_module);
 
         return true;
     }
@@ -187,8 +160,8 @@ namespace wasm {
     }
 
     void WAMRWasmModule::tearDown() {
-        wasm_runtime_destroy_exec_env(executionEnv);
         wasm_runtime_deinstantiate(moduleInstance);
+        wasm_runtime_unload(wasmModule);
     }
 
     uint32_t WAMRWasmModule::mmapMemory(uint32_t length) {
