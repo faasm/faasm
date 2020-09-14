@@ -63,15 +63,15 @@ A couple of the Python test functions also demonstrate chaining:
 
 Note that this is only relevant for building the Python support from scratch.
 
-## Python 3.7
+## Python 3.8
 
-We need a native version of exactly the right Python 3.7, _not_ necessarily the latest.
-You need to install it with the `python3_7.yml` playbook. It will install a copy of python
-at `/usr/local/faasm/python3.7`
+We need a native version of exactly the right Python 3.8, _not_ necessarily the
+latest.  You need to install it with the `python3_8.yml` playbook. It will
+install a copy of python at `/usr/local/faasm/python3.8`
 
 ```
 cd ansible
-ansible-playbook python3_7.yml
+ansible-playbook python3_8.yml
 ```
 
 ## Building CPython and packages
