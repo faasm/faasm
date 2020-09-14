@@ -647,6 +647,18 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "msync", I32, msync, I32 a, I32 b, I32 c) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+    
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "memfd_create", I32, memfd_create, I32 a, I32 b) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "setgroups", I32, setgroups, I32 a, I32 b) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "fchdir", I32, s__fchdir, I32 a) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
