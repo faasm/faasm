@@ -96,17 +96,19 @@ namespace wasm {
         }
         
         // Instantiate module
-        if(!(moduleInstance = wasm_runtime_instantiate(
+        moduleInstance = wasm_runtime_instantiate(
                 wasmModule,
                 STACK_SIZE_KB,
                 HEAP_SIZE_KB,
                 errorBuffer,
                 ERROR_BUFFER_SIZE
-        ))){
+        );
+
+        if(moduleInstance == nullptr) {
             std::string errorMsg = std::string(errorBuffer);
             logger->error("Failed to instantiate WAMR module: \n{}", errorMsg);
             throw std::runtime_error("Failed to instantiate WAMR module");
-        };
+        }
     }
 
     void WAMRWasmModule::bindToFunctionNoZygote(const faabric::Message &msg) {

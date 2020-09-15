@@ -23,15 +23,13 @@ include(${WAMR_IWASM_DIR}/libraries/libc-wasi/libc_wasi.cmake)
 include(${WAMR_IWASM_DIR}/libraries/lib-pthread/lib_pthread.cmake)
 include(${WAMR_IWASM_DIR}/libraries/thread-mgr/thread_mgr.cmake)
 
-if(WAMR_EXECUTION_MODE STREQUAL "Interpreter")
+if(WAMR_INTERPRETER_MODE)
     include(${WAMR_IWASM_DIR}/interpreter/iwasm_interp.cmake)
-elseif(WAMR_EXECUTION_MODE STREQUAL "AoT")
+else()
     include(${WAMR_IWASM_DIR}/aot/iwasm_aot.cmake)
     include(${WAMR_IWASM_DIR}/interpreter/iwasm_interp.cmake)
     include(${WAMR_IWASM_DIR}/compilation/iwasm_compl.cmake)
     faasm_private_lib(aotclib "${IWASM_COMPL_SOURCE}")
-else()
-    message(ERROR "Invalid WAMR_EXECUTION_MODE")
 endif()
 
 set(COMMON_WAMR_SRC
@@ -90,7 +88,7 @@ target_link_libraries(wamrmodule
         wasm
         wamrlib
         )
-if(WAMR_EXECUTION_MODE STREQUAL "AoT")
+if(NOT WAMR_INTERPRETER_MODE)
     target_link_libraries(wamrmodule
             aotclib
             ${WAMR_LLVM_LIBRARIES}
