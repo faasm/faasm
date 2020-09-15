@@ -27,6 +27,7 @@ BASE_CONFIG_CMD = [
     "CPP={}".format(WASM_CPP),
     "AR={}".format(WASM_AR),
     "RANLIB={}".format(WASM_RANLIB),
+    "LD={}".format(WASM_LD),
 ]
 
 BASE_CONFIG_FLAGS = [
