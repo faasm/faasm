@@ -19,7 +19,7 @@ WASM_BUILD = "wasm32"
 WASM_HOST = "wasm32-unknown-wasi"
 WASM_HOST_UNKNOWN = "wasm32-unknown-unknown"
 
-WASM_CFLAGS = "-O3 --sysroot={} -msimd128 -D__faasm".format(WASM_SYSROOT)
+WASM_CFLAGS = "-O3 --sysroot={} -D__faasm".format(WASM_SYSROOT)
 WASM_CXXFLAGS = WASM_CFLAGS
 
 BASE_CONFIG_CMD = [
