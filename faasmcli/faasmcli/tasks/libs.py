@@ -118,7 +118,7 @@ def faasm(ctx, clean=False, verbose=False):
     """
     Compile and install the Faasm library
     """
-    _build_faasm_lib("libs/faasm", clean, verbose)
+    _build_faasm_lib("libs/cpp", clean, verbose)
 
 
 @task

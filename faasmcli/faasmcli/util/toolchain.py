@@ -1,6 +1,7 @@
 from os.path import join
 
 WASM_SYSROOT = "/usr/local/faasm/llvm-sysroot"
+WASM_LIB_INSTALL = "{}/lib/wasm32-wasi".format(WASM_SYSROOT)
 WASM_TOOLCHAIN_BIN = "/usr/local/faasm/toolchain/bin"
 
 WASM_CC = join(WASM_TOOLCHAIN_BIN, "clang")
@@ -10,7 +11,7 @@ WASM_AR = join(WASM_TOOLCHAIN_BIN, "llvm-ar")
 WASM_NM = join(WASM_TOOLCHAIN_BIN, "llvm.nm")
 WASM_RANLIB = join(WASM_TOOLCHAIN_BIN, "llvm-ranlib")
 WASM_LD = join(WASM_TOOLCHAIN_BIN, "wasm-ld")
-WASM_LDSHARED = join(WASM_TOOLCHAIN_BIN, "wasm-ld")
+WASM_LDSHARED = "{} --no-entry".format(WASM_LD)
 
 WASM_LDFLAGS = "-Xlinker --stack-first -Xlinker --no-check-features"
 
