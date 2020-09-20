@@ -16,7 +16,7 @@ enclave{
 #else
         public faasm_sgx_status_t sgx_wamr_enclave_load_module([user_check] const void* wasm_opcode_ptr, uint32_t wasm_opcode_size, [out] uint32_t* thread_id);
 #endif
-        public faasm_sgx_status_t sgx_wamr_enclave_init_wamr(uint32_t thread_number);
+        public faasm_sgx_status_t sgx_wamr_enclave_init_wamr();
     };
 
     untrusted{

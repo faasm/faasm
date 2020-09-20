@@ -83,8 +83,7 @@ namespace faaslet {
         // Instantiate the right wasm module for our chosen runtime
         if (conf.wasmVm == "wamr") {
 #if(FAASM_SGX)
-            sgx_enclave_id_t enclaveId = sgx::getGlobalEnclaveId();
-            module = std::make_unique<wasm::SGXWAMRWasmModule>(enclaveId);
+            module = std::make_unique<wasm::SGXWAMRWasmModule>();
 #else
             module = std::make_unique<wasm::WAMRWasmModule>();
 #endif

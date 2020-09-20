@@ -16,7 +16,7 @@ __thread faaslet_sgx_msg_buffer_t *faasletSgxMsgBufferPtr;
 using namespace sgx;
 
 namespace wasm {
-    SGXWAMRWasmModule::SGXWAMRWasmModule(sgx_enclave_id_t enclaveIdIn) : enclaveId(enclaveIdIn) {
+    SGXWAMRWasmModule::SGXWAMRWasmModule(){
         auto logger = faabric::util::getLogger();
 
         // Allocate memory for response
@@ -24,17 +24,11 @@ namespace wasm {
         sgxWamrMsgResponse.buffer_ptr = (sgx_wamr_msg_t *) calloc(sgxWamrMsgResponse.buffer_len, sizeof(uint8_t));
         if (!sgxWamrMsgResponse.buffer_ptr) {
             logger->error("Unable to allocate space for SGX message response buffer");
-            throw std::runtime_error("Unable to allocate space for SGX message response");
+            throw std::runtime_error("Unable to allocate space for SGX message response buffer");
         }
-
-        // Check enclave ID
-        if(enclaveId == 0) {
-            logger->error("Invalid enclave ID passed to WAMR wasm module ({})", enclaveId);
-            throw std::runtime_error("Invalid enclave ID");
-        }
-
-        logger->debug("Created SGX wasm module for enclave {}", enclaveId);
         faasletSgxMsgBufferPtr = &sgxWamrMsgResponse;
+
+        logger->debug("Created SGX wasm module for enclave {}", globalEnclaveId);
     }
 
     SGXWAMRWasmModule::~SGXWAMRWasmModule() {
@@ -61,7 +55,7 @@ namespace wasm {
         // Set up the enclave
         faasm_sgx_status_t returnValue;
         sgx_status_t status = sgx_wamr_enclave_load_module(
-                enclaveId,
+                globalEnclaveId,
                 &returnValue,
                 (void *) wasmBytes.data(),
                 (uint32_t) wasmBytes.size(),
@@ -88,17 +82,17 @@ namespace wasm {
         bindToFunction(msg);
     }
 
-    bool SGXWAMRWasmModule::unbindFunction() {
+    bool SGXWAMRWasmModule::unbindFunction() { //TODO
         if (!_isBound) {
             return true;
         }
 
         auto logger = faabric::util::getLogger();
-        logger->debug("Unloading enclave {}", enclaveId);
+        logger->debug("Unloading enclave {}", globalEnclaveId);
 
         faasm_sgx_status_t returnValue;
         sgx_status_t sgxReturnValue = sgx_wamr_enclave_unload_module(
-                enclaveId, &returnValue, threadId
+                globalEnclaveId, &returnValue, threadId
         );
 
         if (sgxReturnValue != SGX_SUCCESS) {
@@ -118,8 +112,8 @@ namespace wasm {
         auto logger = faabric::util::getLogger();
         std::string funcStr = faabric::util::funcToString(msg, true);
         if (!_isBound) {
-            logger->error("Function already bound {}", funcStr);
-            throw std::runtime_error("Function already bound");
+            logger->error("Function not bound {}", funcStr);
+            throw std::runtime_error("Function not bound");
         }
 
         // Set executing call
@@ -127,9 +121,9 @@ namespace wasm {
 
         // Set up enclave
         faasm_sgx_status_t returnValue;
-        logger->debug("Entering enclave {} to execute {}", enclaveId, funcStr);
+        logger->debug("Entering enclave {} to execute {}", globalEnclaveId, funcStr);
         sgx_status_t sgxReturnValue = sgx_wamr_enclave_call_function(
-                enclaveId, &returnValue, threadId, msg.idx()
+                globalEnclaveId, &returnValue, threadId, msg.idx()
         );
 
         if (sgxReturnValue != SGX_SUCCESS) {

@@ -304,11 +304,11 @@ faasm_sgx_status_t sgx_wamr_enclave_load_module(
     return FAASM_SGX_SUCCESS;
 }
 
-faasm_sgx_status_t sgx_wamr_enclave_init_wamr(const uint32_t thread_number) {
+faasm_sgx_status_t sgx_wamr_enclave_init_wamr() {
     os_set_print_function((os_print_function_t) ocall_printf);
 
-    _sgx_wamr_tcs_len = thread_number;
-    if ((sgx_wamr_tcs = (_sgx_wamr_tcs_t *) calloc(thread_number, sizeof(_sgx_wamr_tcs_t))) == NULL) {
+    _sgx_wamr_tcs_len = FAASM_SGX_INIT_TCS_SLOTS;
+    if ((sgx_wamr_tcs = (_sgx_wamr_tcs_t *) calloc(FAASM_SGX_INIT_TCS_SLOTS, sizeof(_sgx_wamr_tcs_t))) == NULL) {
         ocall_printf("OOM initialising WAMR\n");
         return FAASM_SGX_OUT_OF_MEMORY;
     }

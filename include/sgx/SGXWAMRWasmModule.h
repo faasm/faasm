@@ -9,6 +9,8 @@
 #include <sgx/sgx_wamr_attestation.h>
 #include <sgx/faasm_sgx_error.h>
 
+extern sgx_enclave_id_t globalEnclaveId;
+
 extern "C" {
 
 extern void ocall_printf(const char *msg);
@@ -17,8 +19,7 @@ extern faasm_sgx_status_t faasm_sgx_get_sgx_support(void); //Todo: Change const 
 
 extern sgx_status_t sgx_wamr_enclave_init_wamr(
         sgx_enclave_id_t enclave_id,
-        faasm_sgx_status_t *ret_val,
-        const unsigned int thread_number
+        faasm_sgx_status_t *ret_val
 );
 
 extern sgx_status_t sgx_wamr_enclave_load_module(
@@ -50,7 +51,7 @@ sgx_wamr_enclave_call_function(
 namespace wasm {
     class SGXWAMRWasmModule final : public WasmModule {
     public:
-        explicit SGXWAMRWasmModule(sgx_enclave_id_t enclaveIdIn);
+        explicit SGXWAMRWasmModule();
 
         ~SGXWAMRWasmModule() override;
 
@@ -64,10 +65,9 @@ namespace wasm {
 
         bool isBound() override;
 
-        faaslet_sgx_msg_buffer_t sgxWamrMsgResponse;
+        faaslet_sgx_msg_buffer_t sgxWamrMsgResponse; //TODO: Move in gs/fs
     private:
         bool _isBound = false;
         unsigned int threadId = 0;
-        sgx_enclave_id_t enclaveId;
     };
 }
