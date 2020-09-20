@@ -22,46 +22,35 @@ enable_language(ASM_NASM)
 set(CMAKE_ASM_NASM_FLAGS -felf64)
 set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <INCLUDES> ${CMAKE_ASM_NASM_FLAGS} -o <OBJECT> <SOURCE>")
 
-# SGX config
+# SGX configuration
 set(SGX_DEBUG_MODE 1)
 set(SGX_SDK_LIB_PATH ${SGX_SDK_PATH}/lib64)
 set(SGX_SDK_ENCLAVE_SIGNER ${SGX_SDK_PATH}/bin/x64/sgx_sign)
 set(SGX_SDK_ENCLAVE_EDGER8R ${SGX_SDK_PATH}/bin/x64/sgx_edger8r)
-if(FAASM_SGX_XRA)#TODO: CHECK THIS
-    add_definitions(-DFAASM_SGX_XRA=1)
-    set(FAASM_SGX_XRA_INCLUDE_PATH ${CMAKE_CURRENT_LIST_DIR}/../../third-party/xra/include)
-endif()
 set(SGX_C_GLOBAL_FLAGS -m64)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 set(SGX_SDK_ENCLAVE_SIGNER ${SGX_SDK_PATH}/bin/x64/sgx_sign)
 set(SGX_SDK_ENCLAVE_EDGER8R ${SGX_SDK_PATH}/bin/x64/sgx_edger8r)
 
-# Attestation config
+# Attestation configuration
 if (FAASM_SGX_ATTESTATION)
     add_definitions(
-            -DFAASM_SGX_ATTESTATION_HOST="localhost"
+            -DFAASM_SGX_ATTESTATION_HOST="localhost" #IP-address or hostname is possible
             -DFAASM_SGX_ATTESTATION_PORT=8009
-    )
-    add_definitions(
             -DFAASM_SGX_ATTESTATION_CALLBACK_STORE_INIT_LEN=4
     )
 endif ()
 
-# Memory sizes
+# eXtended Remote Attestation XRA configuration
+if(FAASM_SGX_XRA)
+    add_definitions(-DFAASM_SGX_XRA=1)
+endif()
+
+# WAMR Memory sizes
 set(FAASM_SGX_WAMR_HEAP_SIZE 32768)
 set(FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE 128)
 set(FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE 8192)
 set(FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE 8192)
-
-# Debug message
-message("-- SGX-WAMR Configuration:
- FAASM_SGX_WAMR_HEAP_SIZE: ${FAASM_SGX_WAMR_HEAP_SIZE}KB
- FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE: ${FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE}B
- FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE: ${FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE}B
- FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE: ${FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE}B
- FAASM_SGX_ATTESTATION: ${FAASM_SGX_ATTESTATION}
- FAASM_SGX_WHITELISTING: ${FAASM_SGX_WHITELISTING}"
-        )
 
 add_definitions(
         -DFAASM_SGX_WAMR_HEAP_SIZE=${FAASM_SGX_WAMR_HEAP_SIZE}
@@ -69,6 +58,18 @@ add_definitions(
         -DFAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE=${FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE}
         -DFAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE=${FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE}
 )
+
+# Debug message
+message("-- Faasm-SGX Configuration:
+ FAASM-SGX SGX Simulation Mode: ${FAASM_SGX_SIM_MODE}
+ FAASM-SGX ATTESTATION: ${FAASM_SGX_ATTESTATION}
+ FAASM-SGX WHITELISTING: ${FAASM_SGX_WHITELISTING}
+ FAASM-SGX XRA: ${FAASM_SGX_XRA}
+ FAASM-SGX WAMR_HEAP_SIZE: ${FAASM_SGX_WAMR_HEAP_SIZE}KB
+ FAASM-SGX WAMR_MODULE_ERROR_BUFFER_SIZE: ${FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE}B
+ FAASM-SGX WAMR_INSTANCE_DEFAULT_HEAP_SIZE: ${FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE}B
+ FAASM-SGX WAMR_INSTANCE_DEFAULT_STACK_SIZE: ${FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE}B"
+        )
 
 # --------------------------------------------------------
 # INITIAL CHECKS
@@ -81,13 +82,6 @@ if (EXISTS ${SGX_SDK_PATH})
 else ()
     message(STATUS "Found SGX-SDK: FALSE")
     message(FATAL_ERROR "SGX-SDK not installed in ${SGX_SDK_PATH}")
-endif ()
-
-# Check for SGX simulation
-if (FAASM_SGX_SIM_MODE)
-    message(STATUS "Enclave will be build in simulation mode")
-else ()
-    message(STATUS "Enclave will be build in hardware mode")
 endif ()
 
 # SGX compilation flags
@@ -124,6 +118,12 @@ set(SGX_WAMR_ENCLAVE_C_FLAGS ${SGX_C_GLOBAL_FLAGS}
         )
 
 # --------------------------------------------------------
+# Global include for all builds
+# --------------------------------------------------------
+
+include_directories(${FAASM_INCLUDE_DIR}/sgx)
+
+# --------------------------------------------------------
 # ENCLAVE BUILD
 # --------------------------------------------------------
 
@@ -139,6 +139,7 @@ if (FAASM_SGX_WHITELISTING)
 endif ()
 
 add_library(sgx_wamr_enclave SHARED ${WAMR_ENCLAVE_SRC})
+add_dependencies(sgx_wamr_enclave wamrlib_sgx)
 
 set_target_properties(sgx_wamr_enclave PROPERTIES PREFIX "")
 target_include_directories(sgx_wamr_enclave PRIVATE
@@ -149,6 +150,12 @@ target_include_directories(sgx_wamr_enclave PRIVATE
         ${WAMR_ROOT_DIR}/core/shared/utils
         ${WAMR_ROOT_DIR}/core/shared/platform/linux-sgx
         )
+# Set XRA includes if needed
+if(FAASM_SGX_XRA)
+target_include_directories(sgx_wamr_enclave PRIVATE
+        ${FAASM_XRA_ROOT_DIR}/include
+        )
+endif()
 
 target_link_directories(sgx_wamr_enclave PRIVATE ${SGX_SDK_LIB_PATH})
 target_compile_options(sgx_wamr_enclave PRIVATE
@@ -172,11 +179,7 @@ if (FAASM_SGX_SIM_MODE)
             -Wl,--whole-archive sgx_trts_sim
             -Wl,--no-whole-archive
             -Wl,--start-group
-            sgx_tstdc
-            sgx_tcxx
-            sgx_tcrypto
             sgx_tservice_sim
-            wamrlib_sgx
             -Wl,--end-group
             )
 else ()
@@ -184,22 +187,30 @@ else ()
             -Wl,--whole-archive sgx_trts
             -Wl,--no-whole-archive
             -Wl,--start-group
-            sgx_tstdc
-            sgx_tcxx
-            sgx_tcrypto
             sgx_tservice
-            wamrlib_sgx
             -Wl,--end-group
             )
 endif ()
 
+target_link_libraries(sgx_wamr_enclave
+        -Wl,--no-whole-archive
+        -Wl,--start-group
+        sgx_tstdc
+        sgx_tcxx
+        sgx_tcrypto
+        wamrlib_sgx
+        -Wl,--end-group
+        )
+
 # Enclave + XRA
-if (SGX_XRA)
+if (FAASM_SGX_XRA)
     add_dependencies(sgx_wamr_enclave xra_t)
 
     target_link_libraries(sgx_wamr_enclave
             -Wl,--no-whole-archive
-            -Wl,--start-group xra_t -Wl,--end-group
+            -Wl,--start-group
+            xra_t
+            -Wl,--end-group
             )
 endif ()
 
@@ -208,10 +219,10 @@ endif ()
 # --------------------------------------------------------
 
 # SGX WAMR library
-set(SGX_WAMR_ASM_SOURCE_FILES
+set(SGX_WAMR_ASM_SRC
         SGXWAMRWasmModule.S
         )
-set_source_files_properties(${SGX_WAMR_ASM_SOURCE_FILES}
+set_source_files_properties(${SGX_WAMR_ASM_SRC}
         PROPERTIES LANGUAGE ASM_NASM
         )
 
@@ -219,32 +230,29 @@ set(SGX_WAMR_SRC
         SGXWAMRWasmModule.cpp
         sgx_system.cpp
         sgx_wamr_native_symbols.cpp
-        rw_lock.cpp
         )
-
-if (FAASM_SGX_WHITELISTING)
-    set(SGX_WAMR_SRC ${SGX_WAMR_SRC}
-            sgx_wamr_whitelisting.cpp
-            )
-endif ()
 
 if (FAASM_SGX_ATTESTATION)
     set(SGX_WAMR_SRC ${SGX_WAMR_SRC}
             sgx_wamr_attestation.cpp
+            rw_lock.cpp
             )
 endif ()
 
 
 add_library(sgx_wamr STATIC
         ${SGX_WAMR_SRC}
-        ${SGX_WAMR_ASM_SOURCE_FILES}
+        ${SGX_WAMR_ASM_SRC}
         )
 
-add_dependencies(sgx_wamr sgx_wamr_enclave wamrlib_sgx wasm)
+add_dependencies(sgx_wamr sgx_wamr_enclave wasm) #TODO: Maybe storage is missing
 
 target_include_directories(sgx_wamr PUBLIC ${SGX_SDK_PATH}/include)
 target_link_directories(sgx_wamr INTERFACE ${SGX_SDK_LIB_PATH})
-target_compile_options(sgx_wamr PRIVATE ${SGX_WAMR_C_FLAGS} -std=c++11)
+target_compile_options(sgx_wamr PRIVATE #TODO: -ffunction-sections -fdata-sections
+        ${SGX_WAMR_C_FLAGS}
+        -std=c++11
+        )
 
 target_link_options(sgx_wamr PUBLIC
         ${CMAKE_CURRENT_BINARY_DIR}/sgx_wamr_enclave_u.o
@@ -252,7 +260,6 @@ target_link_options(sgx_wamr PUBLIC
 
 target_link_libraries(sgx_wamr
         Threads::Threads
-        wamrlib_sgx
         wasm
         )
 
@@ -268,12 +275,17 @@ else ()
             )
 endif ()
 
-# SGX runner
-include_directories(${FAASM_INCLUDE_DIR}/sgx)
+# --------------------------------------------------------
+# FAASM SGX Runner
+# --------------------------------------------------------
 add_executable(sgx_runner sgx_runner.cpp)
 add_dependencies(sgx_runner sgx_wamr)
 
-target_compile_options(sgx_runner PRIVATE -O3 -fpic -Wno-attributes)
+target_compile_options(sgx_runner PRIVATE
+        -O3
+        -fpic
+        -fpie
+        -Wno-attributes)
 
 target_link_libraries(sgx_runner PRIVATE
         sgx_wamr
@@ -287,7 +299,11 @@ add_executable(demo_keymgr demo_keymgr.c)
 
 target_include_directories(demo_keymgr PRIVATE ${SGX_SDK_PATH}/include)
 target_link_options(demo_keymgr PRIVATE -pthread)
-target_compile_options(demo_keymgr PRIVATE -O3 -DDEMO_KEYMGR=1)
+target_compile_options(demo_keymgr PRIVATE
+        -O3
+        -fpic
+        -fpie
+        -DDEMO_KEYMGR=1)
 
 # --------------------------------------------------------
 # CUSTOM COMMANDS

@@ -13,10 +13,10 @@ option(FAASM_PERF_PROFILING "Turn on profiling features as described in debuggin
 option(WAMR_INTERPRETER_MODE "Turns interpreter on/ off (vs. AoT)" OFF)
 
 # SGX functionality
-option(FAASM_SGX_SUPPORT "Enable/Disable SGX Support" OFF)
+option(FAASM_SGX_SUPPORT "Enable/Disable SGX Support" ON)
 option(FAASM_SGX_SIM_MODE "SGX sim mode flag" ON)
 option(FAASM_SGX_ATTESTATION "Add support for attestation" OFF)
-option(FAASM_SGX_WHITELISTING "Add support for whitelisting" OFF)
+option(FAASM_SGX_WHITELISTING "Add support for whitelisting" OFF) #Currently not working in WAMR AoT mode
 option(FAASM_SGX_XRA "Add support for XRA" OFF)
 
 # Top-level CMake config
@@ -60,10 +60,6 @@ if (FAASM_SGX_SUPPORT)
 
     if(FAASM_SGX_WHITELISTING)
         add_definitions(-DFAASM_SGX_WHITELISTING=1)
-    endif()
-
-    if(FAASM_SGX_XRA)
-        include_directories(${FAASM_XRA_ROOT_DIR}/include)
     endif()
 else ()
     set(CMAKE_CXX_FLAGS "-Wall -Werror")
