@@ -43,3 +43,4 @@ def faasm_main():
     for k, v in d.items():
         print("{}: {} ({})".format(k, v, d[k]))
 
+    return 0

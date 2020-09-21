@@ -33,7 +33,9 @@ def _get_release():
 def _get_github_instance():
     conf = get_faasm_config()
 
-    if not conf.has_section("Github") or not conf.has_option("Github", "access_token"):
+    if not conf.has_section("Github") or not conf.has_option(
+        "Github", "access_token"
+    ):
         print("Must set up Github config with access token")
 
     token = conf["Github"]["access_token"]
@@ -106,7 +108,9 @@ def upload_artifacts(ctx, which=None):
             rel.upload_asset(runtime_path, label=runtime_name)
 
         else:
-            print("Unrecognised artifact: {} (must be {})".format(a, artifacts))
+            print(
+                "Unrecognised artifact: {} (must be {})".format(a, artifacts)
+            )
             exit(1)
 
 

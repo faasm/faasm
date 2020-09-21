@@ -40,8 +40,8 @@ std::vector<std::string> listDir(const char *dirPath) {
 }
 
 FAASM_MAIN_FUNC() {
-    const char *dirA = "/lib/python3.7/multiprocessing/";
-    const char *dirB = "/lib/python3.7/encodings/";
+    const char *dirA = "/lib/python3.8/multiprocessing/";
+    const char *dirB = "/lib/python3.8/encodings/";
 
     std::vector<std::string> vecA = listDir(dirA);
     if (vecA.empty()) {

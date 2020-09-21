@@ -22,3 +22,4 @@ else()
     add_library(pyinit SHARED ${LIB_FILES})
     set_target_properties(pyinit PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 endif()
+

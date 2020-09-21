@@ -47,7 +47,9 @@ def purge(context):
 
 def _check_valid_containers(containers):
     for container in containers:
-        dockerfile = join(PROJ_ROOT, "docker", "{}.dockerfile".format(container))
+        dockerfile = join(
+            PROJ_ROOT, "docker", "{}.dockerfile".format(container)
+        )
 
         if not exists(dockerfile):
             print("Could not find dockerfile at {}".format(dockerfile))
@@ -58,10 +60,14 @@ def _check_valid_containers(containers):
 
 def _do_push(container, version):
     res = call(
-        "docker push faasm/{}:{}".format(container, version), shell=True, cwd=PROJ_ROOT
+        "docker push faasm/{}:{}".format(container, version),
+        shell=True,
+        cwd=PROJ_ROOT,
     )
     if res != 0:
-        raise RuntimeError("Failed docker push for {}:{}".format(container, version))
+        raise RuntimeError(
+            "Failed docker push for {}:{}".format(container, version)
+        )
 
 
 @task
@@ -105,7 +111,9 @@ def build(ctx, c, nocache=False, push=False):
         if exists(join(PROJ_ROOT, dockerignore_template_path)):
             print("Templating new dockerignore file for {}".format(container))
 
-            jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(PROJ_ROOT))
+            jinja_env = jinja2.Environment(
+                loader=jinja2.FileSystemLoader(PROJ_ROOT)
+            )
             template = jinja_env.get_template(dockerignore_template_path)
             with open(join(PROJ_ROOT, dockerignore_target_path), "w") as fh:
                 fh.write(template.render())

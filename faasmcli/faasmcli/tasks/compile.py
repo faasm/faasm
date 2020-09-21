@@ -72,4 +72,3 @@ def _ts_compile(func, optimize=True):
     cmd_string = " ".join(cmd)
     print(cmd_string)
     call(cmd_string, cwd=TS_DIR, shell=True)
-

@@ -706,13 +706,22 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "strncat", I32, strncat, I32 a, I32 b, I32 c) {
+        faabric::util::getLogger()->debug("S - strncat - {} {} {}", a, b, c);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "realpath", I32, realpath, I32 a, U32 b) {
         faabric::util::getLogger()->debug("S - realpath - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    // This is an Emscripten-specific function
+    // Emscripten-specific functions
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "fiprintf", I32, wasi_fiprintf, I32 a, I32 b, I32 c) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "siprintf", I32, wasi_siprintf, I32 a, I32 b, I32 c) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 

@@ -82,8 +82,8 @@ namespace tests {
         registry.getModule(user, func, "");
 
         // Two valid shared libs
-        std::string pathA = "/usr/local/faasm/runtime_root/lib/python3.7/site-packages/numpy/core/multiarray.so";
-        std::string pathB = "/usr/local/faasm/runtime_root/lib/python3.7/site-packages/numpy/core/umath.so";
+        std::string pathA = "/usr/local/faasm/runtime_root/lib/python3.8/site-packages/numpy/core/_multiarray_umath.so";
+        std::string pathB = "/usr/local/faasm/runtime_root/lib/python3.8/site-packages/numpy/linalg/_umath_linalg.so";
 
         // Once
         IR::Module &refA1 = registry.getModule(user, func, pathA);

@@ -17,33 +17,56 @@ namespace wasm {
         return exp2(a);
     }
 
-    // BLAS stuff we've not yet implemented
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "cblas_cdotu_sub", void, cblas_cdotu_sub, I32 N, I32 X, I32 incX, I32 Y,
-                                   I32 incY, I32 dotu) {
-        faabric::util::getLogger()->debug("S - cblas_cdotu_sub");
-
+    // Miscellaneous float stuff
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__fixunstfsi", I32, wasi__fixunstfsi, I64 a, I64 b) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "cblas_cdotc_sub", void, cblas_cdotc_sub, I32 N, I32 X, I32 incX, I32 Y,
-                                   I32 incY, I32 dotu) {
-        faabric::util::getLogger()->debug("S - cblas_cdotc_sub");
-
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "feclearexcept", I32, wasi_feclearexcept, I32 a) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+    
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "feraiseexcept", I32, wasi_feraiseexcept, I32 a) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+    
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "fetestexcept", I32, wasi_fetestexcept, I32 a) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+    
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__fixunstfdi", I64, wasi__fixunstfdi, I64 a, I64 b) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "cblas_zdotu_sub", void, cblas_zdotu_sub, I32 N, I32 X, I32 incX, I32 Y,
-                                   I32 incY, I32 dotu) {
-        faabric::util::getLogger()->debug("S - cblas_zdotu_sub");
-
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__fixtfsi", I32, wasi__fixtfsi, I64 a, I64 b) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "cblas_zdotc_sub", void, cblas_zdotc_sub, I32 N, I32 X, I32 incX, I32 Y,
-                                   I32 incY, I32 dotu) {
-        faabric::util::getLogger()->debug("S - cblas_zdotc_sub");
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__netf2", I32, wasi__netf2, I64 a, I64 b, I64 c, I64 d) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__floatunditf", void, wasi__floatunditf, I32 a, I64 b) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+    
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__floatditf", void, wasi__floatditf, I32 a, I64 b) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+    
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__floatsitf", void, wasi__floatsitf, I32 a, I32 b) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+    
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__floatunsitf", void, wasi__floatunsitf, I32 a, I32 b) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__trunctfsf2", F32, wasi__trunctfsf2, I64 a, I64 b) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__fixtfdi", I64, wasi__fixtfdi, I64 a, I64 b) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 

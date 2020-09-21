@@ -81,3 +81,6 @@ def faasm_main():
     res = np.multiply(x1, x2)
 
     print("\nMultiplied: (sum = {}) \n{}".format(np.sum(res), res))
+
+    return 0
+
