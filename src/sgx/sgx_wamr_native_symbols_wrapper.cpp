@@ -25,8 +25,6 @@ extern __thread uint32_t tls_thread_id;
 
 extern "C" {
 
-extern int os_printf(const char *message, ...);
-
 // ------------------------------------
 // FUNCTIONS
 // ------------------------------------

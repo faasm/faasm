@@ -23,6 +23,7 @@ set(CMAKE_ASM_NASM_FLAGS -felf64)
 set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <INCLUDES> ${CMAKE_ASM_NASM_FLAGS} -o <OBJECT> <SOURCE>")
 
 # FAASM-SGX enclave configuration
+set(FAASM_SGX_DEBUG 1) # Enable(1)/Disable(0) Faasm-SGX specific debug/error messages (Disable for better performance)
 set(FAASM_SGX_INIT_TCS_SLOTS 2)
 set(FAASM_SGX_ENCLAVE_PATH "sgx_wamr_enclave.sign.so")
 
@@ -58,6 +59,7 @@ set(FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE 8192)
 
 # Create definitions if necessary
 add_definitions(
+        -DFAASM_SGX_DEBUG=${FAASM_SGX_DEBUG}
         -DFAASM_SGX_INIT_TCS_SLOTS=${FAASM_SGX_INIT_TCS_SLOTS}
         -DFAASM_SGX_ENCLAVE_PATH="${FAASM_SGX_ENCLAVE_PATH}"
         -DFAASM_SGX_WAMR_HEAP_SIZE=${FAASM_SGX_WAMR_HEAP_SIZE}
@@ -68,6 +70,7 @@ add_definitions(
 
 # Debug message
 message("-- Faasm-SGX Configuration:
+ FAASM-SGX Debug Mode: ${FAASM_SGX_DEBUG}
  FAASM-SGX SGX Simulation Mode: ${FAASM_SGX_SIM_MODE}
  FAASM-SGX ATTESTATION: ${FAASM_SGX_ATTESTATION}
  FAASM-SGX WHITELISTING: ${FAASM_SGX_WHITELISTING}

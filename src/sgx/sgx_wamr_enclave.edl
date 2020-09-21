@@ -12,11 +12,11 @@ enclave{
         public faasm_sgx_status_t sgx_wamr_enclave_unload_module(uint32_t thread_id);
         public faasm_sgx_status_t sgx_wamr_enclave_call_function(uint32_t thread_id, uint32_t func_id);
 #if(FAASM_SGX_ATTESTATION)
-        public faasm_sgx_status_t sgx_wamr_enclave_load_module([user_check] const void* wasm_opcode_ptr, uint32_t wasm_opcode_size, [out] uint32_t* thread_id, [user_check] sgx_wamr_msg_t** response_ptr);
+        public faasm_sgx_status_t faasm_sgx_enclave_load_module([user_check] const void *wasm_opcode_ptr, uint32_t wasm_opcode_size, [out] uint32_t *thread_id, [user_check] sgx_wamr_msg_t **response_ptr);
 #else
-        public faasm_sgx_status_t sgx_wamr_enclave_load_module([user_check] const void* wasm_opcode_ptr, uint32_t wasm_opcode_size, [out] uint32_t* thread_id);
+        public faasm_sgx_status_t faasm_sgx_enclave_load_module([user_check] const void *wasm_opcode_ptr, uint32_t wasm_opcode_size, [out] uint32_t *thread_id);
 #endif
-        public faasm_sgx_status_t sgx_wamr_enclave_init_wamr();
+        public faasm_sgx_status_t faasm_sgx_enclave_init_wamr(void);
     };
 
     untrusted{

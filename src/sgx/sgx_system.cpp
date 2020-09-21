@@ -23,7 +23,7 @@ namespace sgx {
 
         auto logger = faabric::util::getLogger();
 
-#if(SGX_SIM_MODE == 0)
+#if(!SGX_SIM_MODE)
         returnValue = faasm_sgx_get_sgx_support();
         if(returnValue != FAASM_SGX_SUCCESS){
             logger->error("Machine doesn't support SGX {}", faasmSgxErrorString(returnValue));
@@ -52,13 +52,18 @@ namespace sgx {
 
         logger->debug("Created SGX enclave: {}", globalEnclaveId);
 
-        sgxReturnValue = sgx_wamr_enclave_init_wamr(globalEnclaveId, &returnValue);
+        sgxReturnValue = faasm_sgx_enclave_init_wamr(globalEnclaveId, &returnValue);
         if (sgxReturnValue != SGX_SUCCESS) {
             logger->error("Unable to enter enclave: {}", sgxErrorString(sgxReturnValue));
             throw std::runtime_error("Unable to enter enclave");
         }
 
         if (returnValue != FAASM_SGX_SUCCESS) {
+            if(FAASM_SGX_OCALL_GET_SGX_ERROR(returnValue)){
+                logger->error("Unable to initialise WAMR due to an SGX error: {}",
+                        sgxErrorString((sgx_status_t)FAASM_SGX_OCALL_GET_SGX_ERROR(returnValue)));
+                throw std::runtime_error("Unable to initialise WAMR due to an SGX error");
+            }
             logger->error("Unable to initialise WAMR: {}", faasmSgxErrorString(returnValue));
             throw std::runtime_error("Unable to initialise WAMR");
         }

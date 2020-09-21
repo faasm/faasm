@@ -17,12 +17,12 @@ extern void ocall_printf(const char *msg);
 
 extern faasm_sgx_status_t faasm_sgx_get_sgx_support(void); //Todo: Change const unsigned int to uint32_t
 
-extern sgx_status_t sgx_wamr_enclave_init_wamr(
+extern sgx_status_t faasm_sgx_enclave_init_wamr(
         sgx_enclave_id_t enclave_id,
         faasm_sgx_status_t *ret_val
 );
 
-extern sgx_status_t sgx_wamr_enclave_load_module(
+extern sgx_status_t faasm_sgx_enclave_load_module(
         sgx_enclave_id_t enclave_id,
         faasm_sgx_status_t *ret_val,
         const void *wasm_opcode_ptr,

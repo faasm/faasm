@@ -56,6 +56,8 @@ if (FAASM_SGX_SUPPORT)
 
     if(FAASM_SGX_ATTESTATION)
         add_definitions(-DFAASM_SGX_ATTESTATION=1)
+    else()
+        add_definitions(-DFAASM_SGX_ATTESTATION=0)
     endif()
 
     if(FAASM_SGX_WHITELISTING)

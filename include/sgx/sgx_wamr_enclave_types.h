@@ -15,7 +15,7 @@
 
 #include <wasm_export.h>
 
-typedef struct __sgx_wamr_tcs {
+typedef struct __faasm_sgx_tcs {
     wasm_module_t module;
     wasm_module_inst_t module_inst;
     uint8_t *wasm_opcode;
@@ -29,4 +29,4 @@ typedef struct __sgx_wamr_tcs {
     _sgx_wamr_whitelist_t *module_whitelist;
 #endif
 
-} _sgx_wamr_tcs_t;
+} _faasm_sgx_tcs_t;

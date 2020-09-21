@@ -52,9 +52,9 @@ namespace wasm {
         storage::FileLoader &fl = storage::getFileLoader();
         std::vector<uint8_t> wasmBytes = fl.loadFunctionWasm(msg);
 
-        // Set up the enclave
+        // Load the wasm module
         faasm_sgx_status_t returnValue;
-        sgx_status_t status = sgx_wamr_enclave_load_module(
+        sgx_status_t status = faasm_sgx_enclave_load_module(
                 globalEnclaveId,
                 &returnValue,
                 (void *) wasmBytes.data(),
