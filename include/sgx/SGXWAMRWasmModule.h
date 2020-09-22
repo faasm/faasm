@@ -15,7 +15,7 @@ extern "C" {
 
 extern void ocall_printf(const char *msg);
 
-extern faasm_sgx_status_t faasm_sgx_get_sgx_support(void); //Todo: Change const unsigned int to uint32_t
+extern faasm_sgx_status_t faasm_sgx_get_sgx_support(void);
 
 extern sgx_status_t faasm_sgx_enclave_init_wamr(
         sgx_enclave_id_t enclave_id,
@@ -33,7 +33,7 @@ extern sgx_status_t faasm_sgx_enclave_load_module(
 #endif
 );
 
-extern sgx_status_t sgx_wamr_enclave_unload_module(
+extern sgx_status_t faasm_sgx_enclave_unload_module(
         sgx_enclave_id_t enclave_id,
         faasm_sgx_status_t *ret_val,
         const unsigned int thread_id
@@ -43,7 +43,7 @@ extern sgx_status_t
 sgx_wamr_enclave_call_function(
         sgx_enclave_id_t enclave_id,
         faasm_sgx_status_t *ret_val,
-        const unsigned int thread_id,
+        const uint32_t thread_id,
         const uint32_t func_id
 );
 }
@@ -68,6 +68,6 @@ namespace wasm {
         faaslet_sgx_msg_buffer_t sgxWamrMsgResponse; //TODO: Move in gs/fs
     private:
         bool _isBound = false;
-        unsigned int threadId = 0;
+        uint32_t threadId = 0;
     };
 }

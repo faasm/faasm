@@ -219,15 +219,19 @@ faasm_sgx_status_t sgx_wamr_enclave_call_function(const uint32_t thread_id, cons
     return FAASM_SGX_SUCCESS;
 }
 
-faasm_sgx_status_t sgx_wamr_enclave_unload_module(const uint32_t thread_id) {
+faasm_sgx_status_t faasm_sgx_enclave_unload_module(const uint32_t thread_id) {
+    // Important possibility check before unloading a module
     if (thread_id >= _faasm_sgx_tcs_len)
         return FAASM_SGX_INVALID_THREAD_ID;
+
+    // Check if the linked module is already unloaded
     read_lock(&_rwlock_faasm_sgx_tcs_realloc);
     if (faasm_sgx_tcs[thread_id].module == 0x0) {
         read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
         return FAASM_SGX_MODULE_NOT_LOADED;
     }
 
+    // Unload the module and release the TCS slot
     wasm_runtime_unload(faasm_sgx_tcs[thread_id].module);
     wasm_runtime_deinstantiate(faasm_sgx_tcs[thread_id].module_inst);
     free(faasm_sgx_tcs[thread_id].wasm_opcode);
@@ -261,6 +265,7 @@ faasm_sgx_status_t faasm_sgx_enclave_load_module(const void *wasm_opcode_ptr, co
     if ((return_value = __get_tcs_slot(thread_id)) != FAASM_SGX_SUCCESS) {
         return return_value;
     }
+
 #if(FAASM_SGX_WHITELISTING)
     tls_thread_id = *thread_id;
 #endif
@@ -318,7 +323,7 @@ faasm_sgx_status_t faasm_sgx_enclave_load_module(const void *wasm_opcode_ptr, co
     return FAASM_SGX_SUCCESS;
 }
 
-faasm_sgx_status_t faasm_sgx_enclave_init_wamr() {
+faasm_sgx_status_t faasm_sgx_enclave_init_wamr(void) {
 #if(FAASM_SGX_DEBUG)
     // Set our ocall_printf as default printf function if FAASM_SGX_DEBUG == 1
     os_set_print_function((os_print_function_t) ocall_printf);

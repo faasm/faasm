@@ -19,7 +19,7 @@ namespace wasm {
     SGXWAMRWasmModule::SGXWAMRWasmModule(){
         auto logger = faabric::util::getLogger();
 
-        // Allocate memory for response
+        // Allocate memory for response //TODO
         sgxWamrMsgResponse.buffer_len = (sizeof(sgx_wamr_msg_t) + sizeof(sgx_wamr_msg_hdr_t));
         sgxWamrMsgResponse.buffer_ptr = (sgx_wamr_msg_t *) calloc(sgxWamrMsgResponse.buffer_len, sizeof(uint8_t));
         if (!sgxWamrMsgResponse.buffer_ptr) {
@@ -32,9 +32,7 @@ namespace wasm {
     }
 
     SGXWAMRWasmModule::~SGXWAMRWasmModule() {
-        if (!unbindFunction()) {
-            printf("[Error] SGX Faaslet destruction failed\n");
-        }
+        unbindFunction();
 
         if (sgxWamrMsgResponse.buffer_ptr) {
             free(sgxWamrMsgResponse.buffer_ptr);
@@ -61,7 +59,7 @@ namespace wasm {
                 (uint32_t) wasmBytes.size(),
                 &threadId
 #if(FAASM_SGX_ATTESTATION)
-                , &faasletSgxMsgBufferPtr->buffer_ptr
+                , &(faasletSgxMsgBufferPtr->buffer_ptr)
 #endif
         );
 
@@ -82,22 +80,22 @@ namespace wasm {
         bindToFunction(msg);
     }
 
-    bool SGXWAMRWasmModule::unbindFunction() { //TODO
+    bool SGXWAMRWasmModule::unbindFunction() {
         if (!_isBound) {
             return true;
         }
 
         auto logger = faabric::util::getLogger();
-        logger->debug("Unloading enclave {}", globalEnclaveId);
+        logger->debug("Unloading SGX wasm module");
 
         faasm_sgx_status_t returnValue;
-        sgx_status_t sgxReturnValue = sgx_wamr_enclave_unload_module(
+        sgx_status_t sgxReturnValue = faasm_sgx_enclave_unload_module(
                 globalEnclaveId, &returnValue, threadId
         );
 
         if (sgxReturnValue != SGX_SUCCESS) {
-            logger->error("Unable to unload enclave on unbind: {}", sgxErrorString(sgxReturnValue));
-            throw std::runtime_error("Unable to unload enclave");
+            logger->error("Unable to unbind function due to SGX error: {}", sgxErrorString(sgxReturnValue));
+            throw std::runtime_error("Unable to unbind function due to SGX error");
         }
 
         if (returnValue != FAASM_SGX_SUCCESS) {
