@@ -2,6 +2,7 @@
 
 #include <boost/filesystem.hpp>
 #include <cereal/archives/binary.hpp>
+#include <stdexcept>
 #include <sys/mman.h>
 #include <sys/types.h>
 
@@ -916,6 +917,12 @@ namespace wasm {
                 // Create a global to hold the offset value
                 Runtime::Global *gotMemoryOffset = Runtime::createGlobal(compartment, asGlobalType(type),
                                                                          std::string(name));
+
+                if(gotMemoryOffset == nullptr) {
+                    logger->error("Could not create global for {}.{}", moduleName, name);
+                    throw std::runtime_error("Failed to create global");
+                }
+
                 Runtime::initializeGlobal(gotMemoryOffset, memOffset);
                 resolved = asObject(gotMemoryOffset);
 

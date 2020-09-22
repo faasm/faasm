@@ -13,24 +13,44 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "exp2", F64, math_exp2, F64 a) {
-        faabric::util::getLogger()->debug("S - exp2 - {}", a);
         return exp2(a);
     }
-
-    // Miscellaneous float stuff
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__fixunstfsi", I32, wasi__fixunstfsi, I64 a, I64 b) {
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
+    
+    // -----------------------------------
+    // FLOATS
+    // -----------------------------------
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "feclearexcept", I32, wasi_feclearexcept, I32 a) {
+        faabric::util::getLogger()->debug("S - feclearexcept - {}", a);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
     
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "feraiseexcept", I32, wasi_feraiseexcept, I32 a) {
+        faabric::util::getLogger()->debug("S - feraiseexcept - {}", a);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
     
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "fetestexcept", I32, wasi_fetestexcept, I32 a) {
+        faabric::util::getLogger()->debug("S - fetestexcept - {}", a);
+
+        // Here we always say there a no float-related exceptions
+
+        return 0;
+    }
+
+    // ------------------------------------
+    // UNSUPPORTED
+    // ------------------------------------
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "Dragon4_PrintFloat_IEEE_binary128_le", I32, Dragon4_PrintFloat_IEEE_binary128_le, I32 a, I32 b, I32 c) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "fma", F64, fma, F64 a, F64 b, F64 c) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+    
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__fixunstfsi", I32, wasi__fixunstfsi, I64 a, I64 b) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
     

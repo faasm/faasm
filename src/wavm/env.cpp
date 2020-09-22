@@ -48,6 +48,29 @@ namespace wasm {
         return FAKE_GID;
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getgrgid", I32, getgrgid, I32 a) {        
+        faabric::util::getLogger()->debug("S - getgrgid {}", a);
+        return FAKE_GID;
+    }
+    
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getgrnam", I32, getgrnam, I32 a) {        
+        faabric::util::getLogger()->debug("S - getgrnam {}", a);
+        return 0;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "setgrent", void, setgrent) {        
+        faabric::util::getLogger()->debug("S - setgrent");
+    }
+    
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getgrent", I32, getgrent) {        
+        faabric::util::getLogger()->debug("S - getgrent");
+        return 0;
+    }
+    
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "endgrent", void, endgrent) {        
+        faabric::util::getLogger()->debug("S - endgrent");
+    }
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getpwuid", I32, getpwuid, I32 uid) {
         faabric::util::getLogger()->debug("S - getpwuid {}", uid);
 
