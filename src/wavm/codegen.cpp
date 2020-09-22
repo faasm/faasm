@@ -24,7 +24,9 @@ namespace wasm {
             WASM::LoadError loadError;
             bool success = WASM::loadBinaryModule(bytes.data(), bytes.size(), moduleIR, &loadError);
             if (!success) {
-                throw std::runtime_error("Failed to parse wasm binary: " + loadError.message);
+                throw std::runtime_error(
+                        fmt::format("Failed to parse wasm binary: {}", loadError.message)
+                );
             }
         } else {
             std::vector<WAST::Error> parseErrors;

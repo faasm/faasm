@@ -1,4 +1,5 @@
 #include "FileLoader.h"
+#include <stdexcept>
 
 #if(FAASM_SGX == 1)
 #else
@@ -32,13 +33,20 @@ namespace storage {
 
     void FileLoader::codegenForFunction(faabric::Message &msg) {
         std::vector<uint8_t> bytes = loadFunctionWasm(msg);
+        auto logger = faabric::util::getLogger();
+        const std::string funcStr = faabric::util::funcToString(msg, false);
 
         if (bytes.empty()) {
-            const std::string funcStr = faabric::util::funcToString(msg, false);
             throw std::runtime_error("Loaded empty bytes for " + funcStr);
         }
 
-        std::vector<uint8_t> objBytes = doCodegen(bytes);
+        std::vector<uint8_t> objBytes;
+        try {
+            objBytes = doCodegen(bytes);
+        } catch (std::runtime_error &ex) {
+            logger->error("Codegen failed for " + funcStr);
+            throw ex;
+        }
 
         faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
         if (conf.wasmVm == "wamr") {
