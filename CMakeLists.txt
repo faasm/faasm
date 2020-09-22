@@ -9,9 +9,12 @@ option(FAASM_SELF_TRACING "Turn on system tracing using the logger" OFF)
 option(FAASM_OPENMP_TRACING "Trace OpenMP forks in Redis" OFF)
 option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md" OFF)
 
+# WAMR functionality
+option(WAMR_INTERPRETER_MODE "Turns interpreter on/ off (vs. AoT)" OFF)
+
 # SGX functionality
-option(FAASM_SGX_SUPPORT "Add support for SGX" OFF)
-option(FAASM_SGX_SIM_MODE "SGX sim mode flag" OFF)
+option(FAASM_SGX_SUPPORT "Enable/Disable SGX Support" OFF)
+option(FAASM_SGX_SIM_MODE "SGX sim mode flag" ON)
 option(FAASM_SGX_ATTESTATION "Add support for attestation" OFF)
 option(FAASM_SGX_WHITELISTING "Add support for whitelisting" OFF)
 option(FAASM_SGX_XRA "Add support for XRA" OFF)
@@ -64,6 +67,7 @@ if (FAASM_SGX_SUPPORT)
     endif()
 else ()
     set(CMAKE_CXX_FLAGS "-Wall -Werror")
+    add_definitions(-DFAASM_SGX=0)
 endif ()
 
 # ----------------------------------------
@@ -88,6 +92,13 @@ include_directories(
         ${WAMR_IWASM_DIR}/include
         ${WAMR_IWASM_DIR}/common
 )
+
+#WAMR Interpreter / AoT Switch
+if(WAMR_INTERPRETER_MODE)
+    add_definitions(-DWAMR_EXECUTION_MODE_INTERP=1)
+else()
+    add_definitions(-DWAMR_EXECUTION_MODE_INTERP=0)
+endif()
 
 # WAMR platform header, will break SGX build to include normal linux header
 if(FAASM_SGX_SUPPORT)
@@ -193,6 +204,7 @@ else ()
     add_subdirectory(src/system)
     add_subdirectory(src/upload)
     add_subdirectory(src/wasm)
+    add_subdirectory(src/wamr)
     add_subdirectory(src/wavm)
 
     # WAMR - build SGX or non-SGX version accordingly
@@ -203,8 +215,6 @@ else ()
         if(FAASM_SGX_XRA)
             add_subdirectory(third-party/xra)
         endif()
-    else()
-        add_subdirectory(src/wamr)
     endif ()
 
     # Tests
