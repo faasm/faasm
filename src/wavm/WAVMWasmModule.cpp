@@ -915,11 +915,13 @@ namespace wasm {
                 logger->debug("Resolved {}.{} to {}", moduleName, name, memOffset);
 
                 // Create a global to hold the offset value
-                Runtime::Global *gotMemoryOffset = Runtime::createGlobal(compartment, asGlobalType(type),
+                IR::GlobalType globalType = asGlobalType(type); 
+                Runtime::Global *gotMemoryOffset = Runtime::createGlobal(compartment, globalType,
                                                                          std::string(name));
 
                 if(gotMemoryOffset == nullptr) {
-                    logger->error("Could not create global for {}.{}", moduleName, name);
+                    logger->error("Could not create global for {}.{} (offset {})", 
+                            moduleName, name, memOffset);
                     throw std::runtime_error("Failed to create global");
                 }
 
