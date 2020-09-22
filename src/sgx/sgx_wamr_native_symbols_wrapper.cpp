@@ -7,7 +7,7 @@
 
 #if(FAASM_SGX_ATTESTATION)
 extern "C" {
-extern _sgx_wamr_tcs_t *sgx_wamr_tcs;
+extern _faasm_sgx_tcs_t *faasm_sgx_tcs;
 extern __thread uint32_t tls_thread_id;
 }
 #endif
@@ -258,7 +258,7 @@ void sgx_wamr_function_not_whitelisted_wrapper(wasm_exec_env_t exec_env) {
 #endif
 
 // ------------------------------
-// WASI
+// WASI default wrapper
 // ------------------------------
 
 static int args_get_wrapper(wasm_exec_env_t exec_env, int a, int b) {
@@ -284,7 +284,7 @@ static int fd_write_wrapper(wasm_exec_env_t exec_env, int a, int b, int c, int d
 static void proc_exit_wrapper(wasm_exec_env_t exec_env, int returnCode) {
 }
 
-NativeSymbol sgxWamrNativeSymbols[SGX_WAMR_NATIVE_SYMBOL_COUNT] = {
+NativeSymbol faasm_sgx_native_symbols[FAASM_SGX_NATIVE_SYMBOLS_LEN] = {
         NATIVE_FUNC(faasm_read_input, "($i)i"),
         NATIVE_FUNC(faasm_write_output, "($i)"),
         NATIVE_FUNC(faasm_get_idx, "()i"),
@@ -313,7 +313,7 @@ NativeSymbol sgxWamrNativeSymbols[SGX_WAMR_NATIVE_SYMBOL_COUNT] = {
         NATIVE_FUNC(faasm_await_call_output, "(i)i")
 };
 
-NativeSymbol sgxWamrWasiSymbols[SGX_WAMR_WASI_SYMBOL_COUNT] = {
+NativeSymbol faasm_sgx_wasi_symbols[FAASM_SGX_WASI_SYMBOLS_LEN] = {
         WASI_NATIVE_FUNC(args_get, "(ii)i"),
         WASI_NATIVE_FUNC(args_sizes_get, "(ii)i"),
         WASI_NATIVE_FUNC(fd_close, "(i)i"),
@@ -321,5 +321,4 @@ NativeSymbol sgxWamrWasiSymbols[SGX_WAMR_WASI_SYMBOL_COUNT] = {
         WASI_NATIVE_FUNC(fd_write, "(iiii)i"),
         WASI_NATIVE_FUNC(proc_exit, "(i)")
 };
-
 }
