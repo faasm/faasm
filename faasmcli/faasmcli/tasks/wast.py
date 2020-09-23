@@ -10,6 +10,7 @@ from faasmcli.util.files import clean_dir
 WABT_DIR = join(THIRD_PARTY_DIR, "wabt")
 WABT_BUILD_DIR = join(WABT_DIR, "build")
 WASM2WAT_BIN = join(WABT_BUILD_DIR, "wasm2wat")
+DECOMPILE_BIN = join(WABT_BUILD_DIR, "wasm-decompile")
 
 
 @task
@@ -24,7 +25,7 @@ def build_wabt(ctx, clean=False):
 
     run(" ".join(cmake_cmd), shell=True, check=True, cwd=WABT_BUILD_DIR)
 
-    targets = ["wasm2wat"]
+    targets = ["wasm2wat", "wasm-decompile"]
     for target in targets:
         run(
             "ninja {}".format(target),
@@ -52,6 +53,25 @@ def wast(ctx, user, func_name):
     wasm_path = join(func_dir, "function.wasm")
     wast_path = join(func_dir, "function.wast")
     _do_wast(wasm_path, wast_path)
+
+
+@task
+def decompile(ctx, user, func_name):
+    """
+    Decompiles the given function
+    """
+    func_dir = join(PROJ_ROOT, "wasm", user, func_name)
+    wasm_path = join(func_dir, "function.wasm")
+    decomp_file = join(func_dir, "function.dcmp")
+
+    cmd = [
+        DECOMPILE_BIN,
+        wasm_path,
+        "-o {}".format(decomp_file),
+        "--enable-all",
+    ]
+
+    run(" ".join(cmd), shell=True, check=True)
 
 
 def _do_wast(wasm_path, wast_path, cwd=None):
