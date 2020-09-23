@@ -4,8 +4,34 @@ from subprocess import run
 
 from invoke import task
 
-from faasmcli.util.env import PROJ_ROOT, POSSIBLE_BUILD_BINS
-from faasmcli.util.shell import find_command
+from faasmcli.util.env import PROJ_ROOT, THIRD_PARTY_DIR
+from faasmcli.util.files import clean_dir
+
+WABT_DIR = join(THIRD_PARTY_DIR, "wabt")
+WABT_BUILD_DIR = join(WABT_DIR, "build")
+WASM2WAT_BIN = join(WABT_BUILD_DIR, "wasm2wat")
+
+
+@task
+def build_wabt(ctx, clean=False):
+    """
+    Builds wabt
+    """
+
+    clean_dir(WABT_BUILD_DIR, clean)
+
+    cmake_cmd = ["cmake", "-DBUILD_TESTS=OFF", "-GNinja", ".."]
+
+    run(" ".join(cmake_cmd), shell=True, check=True, cwd=WABT_BUILD_DIR)
+
+    targets = ["wasm2wat"]
+    for target in targets:
+        run(
+            "ninja {}".format(target),
+            shell=True,
+            check=True,
+            cwd=WABT_BUILD_DIR,
+        )
 
 
 @task
@@ -36,14 +62,11 @@ def _do_wast(wasm_path, wast_path, cwd=None):
     if exists(wast_path):
         remove(wast_path)
 
-    wavm_bin = find_command("wavm", POSSIBLE_BUILD_BINS)
-
     cmd = [
-        wavm_bin,
-        "disassemble",
+        WASM2WAT_BIN,
+        "--enable-all",
         wasm_path,
-        wast_path,
-        "--enable simd",        
+        "-o {}".format(wast_path),
     ]
 
     extra_kwargs = dict()

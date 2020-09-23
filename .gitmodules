@@ -29,3 +29,6 @@
 [submodule "third-party/faasm-cpython"]
 	path = third-party/faasm-cpython
 	url = https://github.com/Shillaker/faasm-cpython.git
+[submodule "third-party/wabt"]
+	path = third-party/wabt
+	url = https://github.com/WebAssembly/wabt
