@@ -66,5 +66,19 @@ A couple of the Python test functions also demonstrate chaining:
 
 # Building CPython and new modules
 
-See the [Faasm CPython repo](https://github.com/Shillaker/faasm-cpython).
+NOTE: you only need to do this if you're adding new modules or changing
+something about the Python cross-compilation.
+
+To build CPython and its associated modules, see the [Faasm CPython
+repo](https://github.com/Shillaker/faasm-cpython).
+
+Once CPython and the modules are build, you can run:
+
+```
+inv python.runtime
+```
+
+This will copy the cross-compiled Python libraries into place and generate the
+associated machine code, so that they can be accessed by the interpreter at
+runtime.
 
