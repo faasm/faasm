@@ -40,11 +40,9 @@ def cc(ctx, target, clean=False):
 
     if target == "all":
         target = ""
-    else:
-        target = "--target {}".format(target)
         
     run(
-        "cmake --build . {}".format(target),
+        "ninja {}".format(target),
         cwd=_BUILD_DIR,
         shell=True,
     )
