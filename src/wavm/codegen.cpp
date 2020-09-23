@@ -15,9 +15,8 @@ namespace wasm {
     std::vector<uint8_t> wavmCodegen(std::vector<uint8_t> &bytes) {
         IR::Module moduleIR;
 
-        // Explicitly allow simd support
+        // Feature flags
         moduleIR.featureSpec.simd = true;
-        moduleIR.featureSpec.atomics = true;
 
         if (faabric::util::isWasm(bytes)) {
             // Handle WASM

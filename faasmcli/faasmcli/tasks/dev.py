@@ -32,9 +32,19 @@ def cmake(ctx, clean=False):
 
 
 @task
-def cc(ctx, target):
+def cc(ctx, target, clean=False):
+    if clean:
+        cmake(ctx, clean=True)
+        if exists(_BUILD_DIR):
+            rmtree(_BUILD_DIR)
+
+    if target == "all":
+        target = ""
+    else:
+        target = "--target {}".format(target)
+        
     run(
-        "cmake --build . --target {}".format(target),
+        "cmake --build . {}".format(target),
         cwd=_BUILD_DIR,
         shell=True,
     )

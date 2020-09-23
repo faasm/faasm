@@ -33,8 +33,8 @@ def wasm_cmake(
     if res.returncode != 0:
         raise RuntimeError("Failed on cmake for {}".format(target))
 
-    cmd = "ninja {}".format(target) if target else "ninja"
-    cmd = "verbose=1 {}".format(cmd) if debug else cmd
+    cmd = "ninja -vv" if debug else "ninja"
+    cmd = "{} {}".format(cmd, target) if target else cmd    
     res = run(cmd, shell=True, cwd=build_dir)
 
     if res.returncode != 0:

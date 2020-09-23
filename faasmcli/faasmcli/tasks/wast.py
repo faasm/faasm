@@ -1,6 +1,6 @@
 from os import remove
 from os.path import exists, join
-from subprocess import call
+from subprocess import run
 
 from invoke import task
 
@@ -43,18 +43,16 @@ def _do_wast(wasm_path, wast_path, cwd=None):
         "disassemble",
         wasm_path,
         wast_path,
-        "--enable simd",
-        "--enable atomics",
+        "--enable simd",        
     ]
 
-    cmd = " ".join(cmd)
-    kwargs = {
-        "shell": True,
-    }
+    extra_kwargs = dict()
     if cwd:
-        kwargs["cwd"] = cwd
+        extra_kwargs["cwd"] = cwd
 
-    call(cmd, **kwargs)
+    cmd = " ".join(cmd)
+    print(cmd)
+    run(cmd, shell=True, check=True, **extra_kwargs)
 
     # call("head -40 {}".format(wast_path), shell=True)
     print("vim {}".format(wast_path))

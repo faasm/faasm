@@ -91,9 +91,10 @@ demo_func(uname uname.cpp)
 demo_func(x2 x2.cpp)
 demo_func(zygote_check zygote_check.cpp)
 
+# 23/09/2020 - removing simd
 # WASM-only functions
 if(FAASM_BUILD_TYPE STREQUAL "wasm")
-  demo_func(eigen_vec eigen_vec.cpp)
+    # demo_func(eigen_vec eigen_vec.cpp)
 endif()
 
 faasm_dynamic_func(dynlink dynlink.cpp)
