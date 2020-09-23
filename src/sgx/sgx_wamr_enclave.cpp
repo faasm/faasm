@@ -119,44 +119,47 @@ static inline faasm_sgx_status_t __get_tcs_slot(uint32_t *thread_id) {
     _faasm_sgx_tcs_t *temp_ptr;
     uint32_t temp_len, i = 0;
     sgx_thread_mutex_lock(&_mutex_faasm_sgx_tcs);
-    read_lock(&_rwlock_faasm_sgx_tcs_realloc); //TODO: Check threading
+
+    // Search for an unused TCS slot
     for (; i < _faasm_sgx_tcs_len; i++) {
-        if (faasm_sgx_tcs[i].module == NULL) {
+        if (!faasm_sgx_tcs[i].module) {
             faasm_sgx_tcs[i].module = (WASMModuleCommon *) 0x1;
             sgx_thread_mutex_unlock(&_mutex_faasm_sgx_tcs);
-            read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
             *thread_id = i;
             return FAASM_SGX_SUCCESS;
         }
     }
 
-    read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+    // In case that all TCS slots are in use, the existing TCS structure will be dynamically extended
     temp_len = (_faasm_sgx_tcs_len << 1);
     write_lock(&_rwlock_faasm_sgx_tcs_realloc);
 
-    if ((temp_ptr = (_faasm_sgx_tcs_t *) realloc(faasm_sgx_tcs, (temp_len * sizeof(_faasm_sgx_tcs_t)))) != NULL) {
-        //Have to zero out new memory because realloc can refer to already used memory
-        memset(
-                (void *) (temp_ptr + _faasm_sgx_tcs_len),
-                0x0,
-                (temp_len - _faasm_sgx_tcs_len) * sizeof(_faasm_sgx_tcs_t)
-        );
-
-        faasm_sgx_tcs = temp_ptr;
-        _faasm_sgx_tcs_len = temp_len;
-        faasm_sgx_tcs[i].module = (WASMModuleCommon *) 0x1;
+    if (!(temp_ptr = (_faasm_sgx_tcs_t *) realloc(faasm_sgx_tcs, (temp_len * sizeof(_faasm_sgx_tcs_t))))) {
+        // Revert all changes due to an memory-error
         write_unlock(&_rwlock_faasm_sgx_tcs_realloc);
         sgx_thread_mutex_unlock(&_mutex_faasm_sgx_tcs);
-        *thread_id = i;
-        return FAASM_SGX_SUCCESS;
+#if(FAASM_SGX_DEBUG)
+        ocall_printf("OOM on get TCS slot\n");
+#endif
+        return FAASM_SGX_OUT_OF_MEMORY;
     }
 
+    /* Have to zero out new memory because realloc can refer to already used memory,
+       hence faasm_sgx_tcs[X].module might not be zero */
+    memset(
+            (void *) (temp_ptr + _faasm_sgx_tcs_len),
+            0x0,
+            (temp_len - _faasm_sgx_tcs_len) * sizeof(_faasm_sgx_tcs_t)
+    );
+
+    // Update faasm_sgx_tcs ptr & len and reserve a TCS slot
+    faasm_sgx_tcs = temp_ptr;
     write_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+    _faasm_sgx_tcs_len = temp_len;
+    faasm_sgx_tcs[i].module = (WASMModuleCommon *) 0x1;
     sgx_thread_mutex_unlock(&_mutex_faasm_sgx_tcs);
-#if(FAASM_SGX_DEBUG)
-    ocall_printf("OOM on get TCS slot\n");
-#endif
-    return FAASM_SGX_OUT_OF_MEMORY;
+    *thread_id = i;
+    return FAASM_SGX_SUCCESS;
 }
 
 faasm_sgx_status_t sgx_wamr_enclave_call_function(const uint32_t thread_id, const uint32_t func_id) {
