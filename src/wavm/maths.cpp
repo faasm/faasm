@@ -33,7 +33,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "fetestexcept", I32, wasi_fetestexcept, I32 a) {
         faabric::util::getLogger()->debug("S - fetestexcept - {}", a);
 
-        // Here we always say there a no float-related exceptions
+        // Here we always say there are no float-related exceptions
 
         return 0;
     }
@@ -42,14 +42,15 @@ namespace wasm {
     // UNSUPPORTED
     // ------------------------------------
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "fma", F64, fma, F64 a, F64 b, F64 c) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "Dragon4_PrintFloat_IEEE_binary128_le", I32, Dragon4_PrintFloat_IEEE_binary128_le, I32 a, I32 b, I32 c) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "fma", F64, fma, F64 a, F64 b, F64 c) {
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-    
+/*
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__fixunstfsi", I32, wasi__fixunstfsi, I64 a, I64 b) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
@@ -82,15 +83,7 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__trunctfsf2", F32, wasi__trunctfsf2, I64 a, I64 b) {
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__fixtfdi", I64, wasi__fixtfdi, I64 a, I64 b) {
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__trunctfdf2", F64, wasi__trunctfdf2, I64 a, I64 b) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
@@ -145,4 +138,5 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__subtf3", void, wasi__subtf3, I32 a, I64 b, I64 c, I64 d, I64 e) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
+    */
 }
