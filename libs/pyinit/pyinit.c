@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include <string.h>
 #include <locale.h>
@@ -20,13 +21,11 @@ void setUpPyNumpy() {
     fprintf(devNull, "%p", sscanf);
     fprintf(devNull, "%p", fgetc);
 
-    // Strings
-//        const char *string = "3.1415926535898This stopped it";
-//        char *stopstring;
-//        long double x;
-//        x = strtold(string, &stopstring);
-//        fprintf(devNull, "%Lf\n", x);
-//        fprintf(devNull, "string = %s\n", string);
+    // Printing doubles
+    fprintf(devNull, "%p", strtod);
+    fprintf(devNull, "%p", strtold);
+    // fprintf(devNull, "%p", strtod_l);
+    // fprintf(devNull, "%p", strtold_l);
 
     const char *res = strpbrk("aabbcc", "bb");
     fprintf(devNull, "%s", res);
