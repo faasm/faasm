@@ -21,7 +21,7 @@ FAASM_MAIN_FUNC() {
     // Read the state into a buffer
     long stateSize = 123;
     uint8_t *myState = new uint8_t[stateSize];
-    faasmReadState(key, newState, stateSize);
+    faasmReadState(key, myState, stateSize);
 
     // Do something useful, modify state
 
