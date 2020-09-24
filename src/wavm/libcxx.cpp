@@ -30,18 +30,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 // UNSUPPORTED
 // -----------------------------
 
+// Exceptions
+
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__cxa_begin_catch",
                                I32,
                                __cxa_begin_catch,
                                I32 a)
 {
-    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-}
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(env, "strpbrk", I32, strpbrk, I32 a, I32 b)
-{
-    faabric::util::getLogger()->debug("S - strpbrk - {} {}", a, b);
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
@@ -66,6 +62,15 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     faabric::util::getLogger()->debug("S - __cxa_throw - {} {} {}", a, b, c);
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
+
+// Misc
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "strpbrk", I32, strpbrk, I32 a, I32 b)
+{
+    faabric::util::getLogger()->debug("S - strpbrk - {} {}", a, b);
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
 
 void libcxxLink() {}
 }
