@@ -6,9 +6,6 @@
 	path = third-party/WAVM
 	url = https://github.com/Shillaker/WAVM.git
 	branch = faasm
-[submodule "third-party/pyfaasm"]
-	path = third-party/pyfaasm
-	url = https://github.com/Shillaker/pyfaasm.git
 [submodule "third-party/faabric"]
 	path = third-party/faabric
 	url = https://github.com/Shillaker/faabric.git
