@@ -63,14 +63,5 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
-// Misc
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(env, "strpbrk", I32, strpbrk, I32 a, I32 b)
-{
-    faabric::util::getLogger()->debug("S - strpbrk - {} {}", a, b);
-    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-}
-
-
 void libcxxLink() {}
 }

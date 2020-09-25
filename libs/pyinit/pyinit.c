@@ -9,6 +9,7 @@
 #include <math.h>
 #include <setjmp.h>
 #include <string.h>
+#include <fenv.h>
 
 #define FORCE_LINK(func) fprintf(devNull, "%p", func)
 
@@ -87,6 +88,12 @@ void setUpPyNumpy()
     FORCE_LINK_MATHS(l);
 
     FORCE_LINK(abs);
+
+    FORCE_LINK(feclearexcept);
+    FORCE_LINK(fetestexcept);
+    FORCE_LINK(feraiseexcept);
+    FORCE_LINK(fma);
+    FORCE_LINK(exp2);
 
     // I/O
     FORCE_LINK(scanf);
