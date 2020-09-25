@@ -48,6 +48,9 @@ def wast(ctx, user, func_name):
     """
     Generate .wast file for a given function
     """
+    if not exists(WASM2WAT_BIN):
+        print("You must build wasm2wat:\ninv wast.build_wabt\n")
+        raise RuntimeError("Could not find wasm2wat")
 
     func_dir = join(PROJ_ROOT, "wasm", user, func_name)
     wasm_path = join(func_dir, "function.wasm")
