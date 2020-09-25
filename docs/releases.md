@@ -43,7 +43,6 @@ Run the following to create the new release in Github (this will bundle up the
 sysroot, toolchain and runtime root too).
 
 ```bash
-inv github.create-release
 inv github.upload-artifacts
 ```
 

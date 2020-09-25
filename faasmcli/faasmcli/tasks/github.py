@@ -1,5 +1,6 @@
 from github import Github
 from invoke import task
+from subprocess import run, PIPE, STDOUT
 
 from faasmcli.util.config import get_faasm_config
 from faasmcli.util.release import tar_toolchain, tar_sysroot, tar_runtime_root
@@ -10,6 +11,19 @@ REPO_NAME = "lsds/faasm"
 
 def _tag_name(version):
     return "v{}".format(version)
+
+
+def _get_current_branch_name():
+    branch_out = run(
+        "git rev-parse --abbrev-ref HEAD",
+        shell=True,
+        stdout=PIPE,
+        stderr=STDOUT,
+    )
+
+    branch_name = branch_out.stdout.decode()
+    branch_name = branch_name.strip()
+    return branch_name
 
 
 def _get_release():
@@ -53,11 +67,15 @@ def create_release(ctx):
     """
     Create a draft release on Github
     """
-    # Get the head of master
+    # Get the head of the current branch
     r = _get_repo()
-    b = r.get_branch(branch="master")
+    branch_name = _get_current_branch_name()
+    print("Detected current branch {}".format(branch_name))
+
+    b = r.get_branch(branch=branch_name)
     head = b.commit
 
+    print("Creating release from {}/{}".format(b.name, head))
     faasm_ver = get_faasm_version()
 
     # Create a tag from the head
