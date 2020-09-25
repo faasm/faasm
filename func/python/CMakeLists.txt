@@ -14,13 +14,9 @@ endif ()
 include_directories(${PYTHON_INCLUDE_DIRS})
 
 faasm_dynamic_func(py_func py_func.cpp)
-# faasm_func(py_func py_func.cpp)
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
     target_link_libraries(py_func pyinit ${PYTHON_LIBRARIES})
-
-    # Printing long double support
-    target_link_libraries(py_func c-printscan-long-double)
 
     # BLAS
     # target_link_libraries(py_func lapack blas cblas f2c)

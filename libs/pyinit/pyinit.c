@@ -112,18 +112,18 @@ void setUpPyNumpy()
 
     // Conversions _from_ long double
     long double ld = strtold("1.234e100", NULL);
-    printf("%i\n", (int)ld);
-    printf("%li\n", (long)ld);
-    printf("%lli\n", (long long)ld);
-    printf("%u\n", (unsigned int)ld);
-    printf("%lu\n", (unsigned long)ld);
-    printf("%llu\n", (unsigned long long)ld);
+    fprintf(devNull, "%i\n", (int)ld);
+    fprintf(devNull, "%li\n", (long)ld);
+    fprintf(devNull, "%lli\n", (long long)ld);
+    fprintf(devNull, "%u\n", (unsigned int)ld);
+    fprintf(devNull, "%lu\n", (unsigned long)ld);
+    fprintf(devNull, "%llu\n", (unsigned long long)ld);
 
     // Conversions _to_ long double
-    printf("%Le\n", (long double)123);
-    printf("%Le\n", (long double)123l);
-    printf("%Le\n", (long double)strtoll("1e100", NULL, 0));
-    printf("%Le\n", (long double)strtoull("1e100", NULL, 0));
+    fprintf(devNull, "%Le\n", (long double)123);
+    fprintf(devNull, "%Le\n", (long double)123l);
+    fprintf(devNull, "%Le\n", (long double)strtoll("1e100", NULL, 0));
+    fprintf(devNull, "%Le\n", (long double)strtoull("1e100", NULL, 0));
 
     // Strings
     FORCE_LINK(strpbrk);
