@@ -74,8 +74,9 @@ def create_release(ctx):
 
     b = r.get_branch(branch=branch_name)
     head = b.commit
+    commit_sha = head.sha
 
-    print("Creating release from {}/{}".format(b.name, head))
+    print("Creating release from {} ({})".format(b.name, commit_sha))
     faasm_ver = get_faasm_version()
 
     # Create a tag from the head
@@ -83,7 +84,7 @@ def create_release(ctx):
     r.create_git_tag(
         tag_name,
         "Release {}\n".format(faasm_ver),
-        head.sha,
+        commit_sha,
         "commit",
     )
 

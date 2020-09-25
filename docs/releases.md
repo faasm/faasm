@@ -37,12 +37,17 @@ Version needs to be updated in:
 
 This can usually be done with a find-and-replace on the current version number.
 
+Push all the changes to your branch at this point.
+
 ## 3. Create the Github release
 
 Run the following to create the new release in Github (this will bundle up the
 sysroot, toolchain and runtime root too).
 
+NOTE: this will create a tag at the head of your current branch.
+
 ```bash
+inv github.create-release
 inv github.upload-artifacts
 ```
 
@@ -59,6 +64,9 @@ You can rebuild all the containers for the given release with:
 ```bash
 inv docker.release
 ```
+
+Note that the `base-test` container will be built from the tag you just created
+so this is what the CI build will use too.
 
 ## 5. Create a PR
 
