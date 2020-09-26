@@ -40,7 +40,7 @@ extern sgx_status_t faasm_sgx_enclave_unload_module(
 );
 
 extern sgx_status_t
-sgx_wamr_enclave_call_function(
+faasm_sgx_enclave_call_function(
         sgx_enclave_id_t enclave_id,
         faasm_sgx_status_t *ret_val,
         const uint32_t thread_id,

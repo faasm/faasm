@@ -218,20 +218,25 @@ int __attribute__((weak)) _faasm_zygote();
 int _faasm_zygote()
 
 // Macro for extra faasm functions that can be chained
-#define FAASM_FUNC(name, idx)      \
+/*#define FAASM_FUNC(name, idx)      \
 int name() {                       \
     return _faasm_func_##idx();    \
 };                                 \
-int _faasm_func_##idx()
+int _faasm_func_##idx()*/
+
+#define FAASM_FUNC(name, id) __attribute__((visibility("default"))) __attribute__((export_name(#id))) void name(void)
 
 // Shortcut for defining main function
-#define FAASM_MAIN_FUNC()         \
-FAASM_FUNC(faasmMain, 0)
+/*#define FAASM_MAIN_FUNC()         \
+FAASM_FUNC(faasmMain, 0)*/
 
 _FaasmFuncPtr getFaasmFunc(int idx);
 
+#define FAASM_MAIN_FUNC() __attribute__((visibility("default"))) __attribute__((export_name("0"))) int _main(void)
+
 // Faasm entrypoint
-int exec(int idx);
+extern int _main(void);
+int exec(void);
 
 #ifdef __cplusplus
 }

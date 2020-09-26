@@ -13,8 +13,8 @@ extern __thread uint32_t tls_thread_id;
 #endif
 
 #define SET_ERROR(X) \
-    memcpy(((WASMModuleInstance*)exec_env->module_inst)->cur_exception,_WRAPPER_ERROR_PREFIX,sizeof(_WRAPPER_ERROR_PREFIX)); \
-    *((uint32_t*)&((WASMModuleInstance*)exec_env->module_inst)->cur_exception[sizeof(_WRAPPER_ERROR_PREFIX)]) = (X);
+    memcpy(((WASMModuleInstance*)exec_env->module_inst)->cur_exception,_FAASM_SGX_ERROR_PREFIX,sizeof(_FAASM_SGX_ERROR_PREFIX)); \
+    *((uint32_t *)&((WASMModuleInstance*)exec_env->module_inst)->cur_exception[sizeof(_FAASM_SGX_ERROR_PREFIX)]) = (X); //TODO:AOT
 
 #define NATIVE_FUNC(funcName, funcSig) \
    { "__"#funcName, (void *) funcName##_wrapper, funcSig, 0x0 }

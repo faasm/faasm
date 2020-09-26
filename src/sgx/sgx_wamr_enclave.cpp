@@ -17,7 +17,7 @@
 #endif
 
 #define WASM_CTORS_FUNC_NAME "__wasm_call_ctors"
-#define ENTRY_FUNC_NAME "_start"
+#define WASM_ENTRY_FUNC "_start"
 
 extern "C" {
 
@@ -152,7 +152,7 @@ static inline faasm_sgx_status_t __get_tcs_slot(uint32_t *thread_id) {
             (temp_len - _faasm_sgx_tcs_len) * sizeof(_faasm_sgx_tcs_t)
     );
 
-    // Update faasm_sgx_tcs ptr & len and reserve a TCS slot
+    // Update faasm_sgx_tcs ptr & len and reserve a Faasm-SGX TCS slot
     faasm_sgx_tcs = temp_ptr;
     write_unlock(&_rwlock_faasm_sgx_tcs_realloc);
     _faasm_sgx_tcs_len = temp_len;
@@ -162,63 +162,70 @@ static inline faasm_sgx_status_t __get_tcs_slot(uint32_t *thread_id) {
     return FAASM_SGX_SUCCESS;
 }
 
-faasm_sgx_status_t sgx_wamr_enclave_call_function(const uint32_t thread_id, const uint32_t func_id) {
+faasm_sgx_status_t faasm_sgx_enclave_call_function(const uint32_t thread_id, const uint32_t func_id) {
+    // Check if thread_id is in range
+    if (thread_id >= _faasm_sgx_tcs_len)
+        return FAASM_SGX_INVALID_THREAD_ID;
+
+    // Get Faasm-SGX TCS slot using thread_id
     read_lock(&_rwlock_faasm_sgx_tcs_realloc);
-    auto wasm_module_inst_ptr = (WASMModuleInstance *) faasm_sgx_tcs[thread_id].module_inst;
+    WASMModuleInstanceCommon *wasm_module_inst_ptr = faasm_sgx_tcs[thread_id].module_inst;
     read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
 
-    char func_id_str[33];
+    // Lookup for wasm function instance that matches func_id
+    WASMFunctionInstanceCommon *wasm_func;
     if (func_id == 0) {
-        sprintf_s(func_id_str, 33, "%s", ENTRY_FUNC_NAME);
+        if (!(wasm_func = wasm_runtime_lookup_function(wasm_module_inst_ptr,WASM_ENTRY_FUNC,NULL)))
+            goto _WASM_LOOKUP_FUNC_ERROR_HANDLING;
     } else {
-        sprintf_s(func_id_str, 33, "_faasm_func_%i", func_id);
-    }
-
-    if (thread_id >= _faasm_sgx_tcs_len) {
-        return FAASM_SGX_INVALID_THREAD_ID;
-    }
-
-    wasm_function_inst_t wasm_function = wasm_runtime_lookup_function(
-            (WASMModuleInstanceCommon *) wasm_module_inst_ptr,
-            func_id_str,
-            NULL
-    );
-
-    if (!wasm_function) {
+        // Convert func_id (uint32_t) to string because our wasm functions just expose their id
+        char func_id_str[33];
+        if (_itoa_s((int) func_id,func_id_str,sizeof(func_id_str),10)){
 #if(FAASM_SGX_DEBUG)
-        os_printf("Could not find function: %s\n",func_id_str);
+            os_printf("Could not convert func_id %u to string",func_id);
 #endif
+            return FAASM_SGX_INVALID_FUNC_ID;
+        }
 
-        return FAASM_SGX_WAMR_FUNCTION_NOT_FOUND;
+        // Now lookup for the desired wasm function with matching func_id
+        if (!(wasm_func = wasm_runtime_lookup_function(wasm_module_inst_ptr,func_id_str,NULL))){
+            _WASM_LOOKUP_FUNC_ERROR_HANDLING:
+#if(FAASM_SGX_DEBUG)
+            os_printf("Could not find func_id: %u\n",func_id);
+#endif
+            return FAASM_SGX_WAMR_FUNCTION_NOT_FOUND;
+        }
     }
 
 #if(FAASM_SGX_ATTESTATION)
+    // Set thread_id to fs/gs to make it accessible in native symbols
     tls_thread_id = thread_id;
 #endif
-    if (!(wasm_create_exec_env_and_call_function(wasm_module_inst_ptr, (WASMFunctionInstance *) wasm_function, 0,
-                                                 0x0))) {
-#if(WASM_ENABLE_INTERP == 1 && WASM_ENABLE_AOT == 0)
-        if(!memcmp(wasm_module_inst_ptr->cur_exception,_WRAPPER_ERROR_PREFIX,sizeof(_WRAPPER_ERROR_PREFIX))){
-                faasm_sgx_status_t returnValue = *((faasm_sgx_status_t*)&(wasm_module_inst_ptr->cur_exception[sizeof(_WRAPPER_ERROR_PREFIX)]));
-                return returnValue;
-        }
+
+    // Create an execution environment and call the wasm function
+#define WASM_ENABLE_INTERP 1
+#if(WASM_ENABLE_INTERP && !WASM_ENABLE_AOT)
+    if (!(wasm_create_exec_env_and_call_function((WASMModuleInstance *) wasm_module_inst_ptr,
+            (WASMFunctionInstance *) wasm_func,0x0,0x0))) {
+        // Error Handling if an error occurred during execution
+
+        /* Check if exception got a Faasm-SGX error prefix
+         * If so, then obtain and return the provided Faasm-SGX error code
+         */
+        if(!memcmp(((WASMModuleInstance *)wasm_module_inst_ptr)->cur_exception,
+                   _FAASM_SGX_ERROR_PREFIX,
+                sizeof(_FAASM_SGX_ERROR_PREFIX)))
+            return *((faasm_sgx_status_t *)&(((WASMModuleInstance *)wasm_module_inst_ptr)->cur_exception[sizeof(_FAASM_SGX_ERROR_PREFIX)]));
+        // In case that a non Faasm-SGX error occurs just print the error
 #if(FAASM_SGX_DEBUG)
-        ocall_printf(wasm_module_inst_ptr->cur_exception);
+        ocall_printf(((WASMModuleInstance *)wasm_module_inst_ptr)->cur_exception);
 #endif
-#elif(WASM_ENABLE_INTERP == 0 && WASM_ENABLE_AOT == 1)
-#if(FAASM_SGX_DEBUG)
-        ocall_printf(((AOTModuleInstance*) wasm_module_inst_ptr)->cur_exception);
-#endif
-#else
-#if(FAASM_SGX_DEBUG)
-        ocall_printf(((WASMModuleInstanceCommon *) wasm_module_inst_ptr)->module_type == Wasm_Module_Bytecode
-                     ? ((WASMModuleInstance *) wasm_module_inst_ptr)->cur_exception
-                     : ((AOTModuleInstance *) wasm_module_inst_ptr)->cur_exception);
-#endif
-#endif
+
         return FAASM_SGX_WAMR_FUNCTION_UNABLE_TO_CALL;
     }
-
+#elif(!WASM_ENABLE_INTERP && WASM_ENABLE_AOT)
+//AOT STUFF
+#endif
     return FAASM_SGX_SUCCESS;
 }
 

@@ -117,10 +117,10 @@ namespace wasm {
         // Set executing call
         wasm::setExecutingCall(const_cast<faabric::Message *>(&msg));
 
-        // Set up enclave
+        // Enter enclave and call function
         faasm_sgx_status_t returnValue;
         logger->debug("Entering enclave {} to execute {}", globalEnclaveId, funcStr);
-        sgx_status_t sgxReturnValue = sgx_wamr_enclave_call_function(
+        sgx_status_t sgxReturnValue = faasm_sgx_enclave_call_function(
                 globalEnclaveId, &returnValue, threadId, msg.idx()
         );
 
@@ -138,7 +138,7 @@ namespace wasm {
             }
 
             logger->error("Error occurred during function execution: {}", faasmSgxErrorString(returnValue));
-            throw std::runtime_error("Error during function execution");
+            throw std::runtime_error("Error occurred during function execution");
         }
 
         return true;
