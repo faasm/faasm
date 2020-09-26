@@ -7,7 +7,7 @@
 
 #if(FAASM_SGX_ATTESTATION)
 extern "C" {
-extern _faasm_sgx_tcs_t *faasm_sgx_tcs;
+extern _faasm_sgx_tcs_t **faasm_sgx_tcs;
 extern __thread uint32_t tls_thread_id;
 }
 #endif
