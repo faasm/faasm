@@ -12,6 +12,7 @@ of set-ups, however, the recommended configuration is:
 - Ubuntu 20.04
 - Python 3.8
 - Clang 10
+- CMake 3.13+
 - Ninja (rather than Make)
 
 ## Checking out the repo
