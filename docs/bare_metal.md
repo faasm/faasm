@@ -63,7 +63,7 @@ you can SSH onto your `upload` host and run the following:
 
 ```bash
 cd /usr/local/code/faasm
-source workon.sh
+bash workon.sh
 
 inv upload demo echo
 inv invoke demo echo --input="hello!"
