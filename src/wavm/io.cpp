@@ -8,6 +8,7 @@
 
 #include <dirent.h>
 #include <poll.h>
+#include <strings.h>
 #include <sys/uio.h>
 #include <sys/ioctl.h>
 #include <sys/unistd.h>
@@ -639,17 +640,30 @@ namespace wasm {
         }
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "bzero", void, bzero, I32 wasmPtr, I32 len) {
+        auto buffer = Runtime::memoryArrayPtr<U8>(
+                getExecutingWAVMModule()->defaultMemory, 
+                wasmPtr, 
+                len
+                );
+
+        ::bzero(buffer, len);
+    }
+    
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "explicit_bzero", void, 
+            explicit_bzero, I32 wasmPtr, I32 len) {
+        auto buffer = Runtime::memoryArrayPtr<U8>(
+                getExecutingWAVMModule()->defaultMemory, 
+                wasmPtr, 
+                len
+                );
+
+        ::explicit_bzero(buffer, len);
+    }
+
     // -----------------------------
     // Unsupported
     // -----------------------------
-    
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "bzero", I32, bzero, I32 a) {
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-    
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "explicit_bzero", I32, explicit_bzero, I32 a, I32 b) {
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "umask", I32, umask, I32 a) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
