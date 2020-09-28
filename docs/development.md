@@ -47,7 +47,7 @@ sudo pip3 install -U pip
 sudo pip install -U ansible
 
 # Faasm python env 
-bash workon.sh
+source workon.sh
 pip install -r faasmcli/requirements.txt
 
 # Faasm CLI
@@ -74,7 +74,7 @@ The Faasm toolchain and runtime require some prebuilt files which can be
 downloaded with:
 
 ```bash
-bash workon.sh
+source workon.sh
 inv toolchain.download-toolchain
 inv toolchain.download-sysroot
 ```
@@ -143,7 +143,7 @@ function:
 
 ```bash
 # Set up the CLI
-bash workon.sh
+source workon.sh
 
 # Build the project
 inv dev.cmake --clean
