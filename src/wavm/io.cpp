@@ -642,6 +642,14 @@ namespace wasm {
     // -----------------------------
     // Unsupported
     // -----------------------------
+    
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "bzero", I32, bzero, I32 a) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+    
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "explicit_bzero", I32, explicit_bzero, I32 a, I32 b) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "umask", I32, umask, I32 a) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
