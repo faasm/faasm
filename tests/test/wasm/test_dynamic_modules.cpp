@@ -29,22 +29,23 @@ namespace tests {
         return pythonModuleB;
     }
 
-    // These are hard-coded functions whose offsets we know
+    // These are hard-coded functions whose offsets we know within the given 
+    // modules
     std::string mainFunc = "PyInit_array";
     std::string funcA = "PyArray_Max";
     std::string funcB = "random_uniform";
-    int mainFuncOffset = 1433;
-    int funcAOffset = 3242;
-    int funcBOffset = 617;
+    int mainFuncOffset = 1581;
+    int funcAOffset = 3686;
+    int funcBOffset = 39;
 
     // These are hard-coded pointers whose offsets we know.
     // This should only change if we change the toolchain
     std::string mainData = "PyBool_Type";
     std::string dataA = "PyArray_API";
     std::string dataB = "__pyx_module_is_main_numpy__random__mtrand";
-    int mainDataOffset = 6316112;
-    int dataAOffset = 10460832;
-    int dataBOffset = 41746432;
+    int mainDataOffset = 4862276;
+    int dataAOffset = 8760032;
+    int dataBOffset = 40042496;
 
     // NOTE - we don't get perfect pakcing of the indexing, so each module has
     // an arbitrary extra offset.
@@ -145,14 +146,20 @@ namespace tests {
         conf.pythonPreload = preloadBefore;
     }
 
-    void checkFuncInGOT(wasm::WAVMWasmModule &module, const std::string &funcName, int expectedIdx,
-            const std::string &expectedName) {
+    void checkFuncInGOT(
+            wasm::WAVMWasmModule &module, 
+            const std::string &funcName, 
+            int expectedIdx,
+            const std::string &expectedName) {        
         int funcIdx = module.getFunctionOffsetFromGOT(funcName);
-        REQUIRE(funcIdx == expectedIdx);
+        if(funcIdx != expectedIdx) {
+            FAIL(fmt::format(
+               "GOT index {}: {} != {}", funcName, funcIdx, expectedIdx));
+        }
 
         Runtime::Object *tableElem = Runtime::getTableElement(module.defaultTable, funcIdx);
         Runtime::Function *funcObj = Runtime::asFunction(tableElem);
-
+        
         REQUIRE(Runtime::getFunctionDebugName(funcObj) == expectedName);
     }
 
