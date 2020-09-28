@@ -10,11 +10,12 @@ option(FAASM_OPENMP_TRACING "Trace OpenMP forks in Redis" OFF)
 option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md" OFF)
 
 # WAMR functionality
-option(WAMR_INTERPRETER_MODE "Turns interpreter on/ off (vs. AoT)" OFF)
+option(WAMR_INTERPRETER_MODE "Turns interpreter on / off (vs. AoT)" OFF)
 
-# SGX functionality
+# Faasm-SGX functionality
 option(FAASM_SGX_SUPPORT "Enable/Disable SGX Support" ON)
 option(FAASM_SGX_SIM_MODE "SGX sim mode flag" ON)
+option(FAASM_SGX_WAMR_INTERPRETER_MODE "Turns interpreter on / off (vs. AoT) within the enclave" ON)
 option(FAASM_SGX_ATTESTATION "Add support for attestation" OFF)
 option(FAASM_SGX_WHITELISTING "Add support for whitelisting" OFF) #Currently not working in WAMR AoT mode
 option(FAASM_SGX_XRA "Add support for XRA" OFF)
@@ -207,7 +208,6 @@ else ()
 
     # WAMR - build SGX or non-SGX version accordingly
     if (FAASM_SGX_SUPPORT)
-        add_subdirectory(src/sgx_wamr)
         add_subdirectory(src/sgx)
 
         if(FAASM_SGX_XRA)

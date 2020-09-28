@@ -1,21 +1,8 @@
 # --------------------------------------------------------
-# BUILD CONFIGURATION
+# FAASM-SGX CMake configuration file
+# Before modifying please read /docs/sgx.md!
+# This file contains many low level settings for Faasm-SGX
 # --------------------------------------------------------
-
-# Include WAMR SGX platform
-include_directories(${WAMR_SHARED_DIR}/platform/linux-sgx/)
-
-# Flags to switch on/ off WAMR interpreter and AOT
-if (WAMR_BUILD_INTERP)
-    add_definitions(-DWASM_ENABLE_INTERP=1)
-else ()
-    add_definitions(-DWASM_ENABLE_INTERP=0)
-endif ()
-if (WAMR_BUILD_AOT)
-    add_definitions(-DWASM_ENABLE_AOT=1)
-else ()
-    add_definitions(-DWASM_ENABLE_AOT=0)
-endif ()
 
 # NASM configuration
 enable_language(ASM_NASM)
@@ -26,6 +13,8 @@ set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <INCLUDES> ${CMAKE_
 set(FAASM_SGX_DEBUG 1) # Enable(1)/Disable(0) Faasm-SGX specific debug/error messages (Disable for better performance)
 set(FAASM_SGX_INIT_TCS_SLOTS 2)
 set(FAASM_SGX_ENCLAVE_PATH "sgx_wamr_enclave.sign.so")
+set(FAASM_SGX_WAMR_BUILDIN_LIBC 1)
+set(FAASM_SGX_WAMR_WASI_LIBC 0)
 
 # SGX configuration
 set(SGX_DEBUG_MODE 1)
@@ -36,6 +25,44 @@ set(SGX_C_GLOBAL_FLAGS -m64)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 set(SGX_SDK_ENCLAVE_SIGNER ${SGX_SDK_PATH}/bin/x64/sgx_sign)
 set(SGX_SDK_ENCLAVE_EDGER8R ${SGX_SDK_PATH}/bin/x64/sgx_edger8r)
+
+# WAMR Build configuration
+set(WAMR_BUILD_TARGET X86_64)
+
+if(FAASM_SGX_WAMR_INTERPRETER_MODE)
+    include (${WAMR_IWASM_DIR}/interpreter/iwasm_interp.cmake)
+else()
+    include (${WAMR_IWASM_DIR}/aot/iwasm_aot.cmake)
+endif()
+
+if(FAASM_SGX_WAMR_BUILDIN_LIBC)
+    include (${WAMR_IWASM_DIR}/libraries/libc-builtin/libc_builtin.cmake)
+endif()
+
+if(FAASM_SGX_WAMR_WASI_LIBC)
+    set(WAMR_BUILD_LIBC_WASI 1)
+    include (${WAMR_IWASM_DIR}/libraries/libc-wasi/libc_wasi.cmake)
+endif()
+
+include (${WAMR_SHARED_DIR}/platform/linux-sgx/shared_platform.cmake)
+include (${WAMR_SHARED_DIR}/mem-alloc/mem_alloc.cmake)
+include (${WAMR_IWASM_DIR}/common/iwasm_common.cmake)
+include (${WAMR_SHARED_DIR}/utils/shared_utils.cmake)
+
+set(FAASM_SGX_WAMR_SRC
+        ${IWASM_AOT_SOURCE}
+        ${IWASM_COMMON_SOURCE}
+        ${IWASM_INTERP_SOURCE}
+        ${LIBC_BUILTIN_SOURCE}
+        ${LIBC_WASI_SOURCE}
+        ${MEM_ALLOC_SHARED_SOURCE}
+        ${PLATFORM_SHARED_SOURCE}
+        ${UTILS_SHARED_SOURCE}
+        )
+
+set(FAASM_SGX_WAMR_SRC_UNTRUSTED
+        ${PLATFORM_SHARED_SOURCE_UNTRUSTED}
+        )
 
 # Attestation configuration
 if (FAASM_SGX_ATTESTATION)
@@ -72,6 +99,9 @@ add_definitions(
 message("-- Faasm-SGX Configuration:
  FAASM-SGX Debug Mode: ${FAASM_SGX_DEBUG}
  FAASM-SGX SGX Simulation Mode: ${FAASM_SGX_SIM_MODE}
+ FAASM-SGX WAMR Interpreter Mode: ${FAASM_SGX_WAMR_INTERPRETER_MODE}
+ FAASM-SGX WAMR Buildin Libc: ${FAASM_SGX_WAMR_BUILDIN_LIBC}
+ FAASM-SGX WAMR Wasi Libc: ${FAASM_SGX_WAMR_WASI_LIBC}
  FAASM-SGX ATTESTATION: ${FAASM_SGX_ATTESTATION}
  FAASM-SGX WHITELISTING: ${FAASM_SGX_WHITELISTING}
  FAASM-SGX XRA: ${FAASM_SGX_XRA}
@@ -151,7 +181,7 @@ if (FAASM_SGX_WHITELISTING)
 endif ()
 
 add_library(sgx_wamr_enclave SHARED ${WAMR_ENCLAVE_SRC})
-add_dependencies(sgx_wamr_enclave wamrlib_sgx)
+add_dependencies(sgx_wamr_enclave wamr_sgx)
 
 set_target_properties(sgx_wamr_enclave PROPERTIES PREFIX "")
 target_include_directories(sgx_wamr_enclave PRIVATE
@@ -171,7 +201,9 @@ endif()
 
 target_link_directories(sgx_wamr_enclave PRIVATE ${SGX_SDK_LIB_PATH})
 target_compile_options(sgx_wamr_enclave PRIVATE
-        ${SGX_WAMR_ENCLAVE_C_FLAGS} -std=c++11 -nostdinc++
+        ${SGX_WAMR_ENCLAVE_C_FLAGS}
+        -std=c++11
+        -nostdinc++
         )
 
 target_link_options(sgx_wamr_enclave PRIVATE
@@ -204,13 +236,14 @@ else ()
             )
 endif ()
 
+# Common libraries
 target_link_libraries(sgx_wamr_enclave
         -Wl,--no-whole-archive
         -Wl,--start-group
         sgx_tstdc
         sgx_tcxx
         sgx_tcrypto
-        wamrlib_sgx
+        wamr_sgx
         -Wl,--end-group
         )
 
@@ -257,22 +290,20 @@ add_library(sgx_wamr STATIC
         ${SGX_WAMR_ASM_SRC}
         )
 
-add_dependencies(sgx_wamr sgx_wamr_enclave wasm)
+add_dependencies(sgx_wamr sgx_wamr_enclave wamr_sgx_untrusted wasm)
 
 target_include_directories(sgx_wamr PUBLIC ${SGX_SDK_PATH}/include)
 target_link_directories(sgx_wamr INTERFACE ${SGX_SDK_LIB_PATH})
-target_compile_options(sgx_wamr PRIVATE #TODO: -ffunction-sections -fdata-sections
+target_compile_options(sgx_wamr PRIVATE
         ${SGX_WAMR_C_FLAGS}
         -std=c++11
+        -ffunction-sections
+        -fdata-sections
         )
 
 target_link_options(sgx_wamr PUBLIC
         ${CMAKE_CURRENT_BINARY_DIR}/sgx_wamr_enclave_u.o
-        )
-
-target_link_libraries(sgx_wamr
-        Threads::Threads
-        wasm
+        -Wl,--gc-sections
         )
 
 if (FAASM_SGX_SIM_MODE)
@@ -287,6 +318,41 @@ else ()
             )
 endif ()
 
+target_link_libraries(sgx_wamr
+        Threads::Threads
+        wamr_sgx_untrusted
+        wasm
+        )
+
+# --------------------------------------------------------
+# WAMR Runtime Libraries
+# --------------------------------------------------------
+
+add_library(wamr_sgx STATIC
+        ${FAASM_SGX_WAMR_SRC}
+        )
+target_compile_options(wamr_sgx PRIVATE
+        -std=gnu99
+        -fPIC
+        -ffunction-sections
+        -fdata-sections
+        -Wall
+        -Wno-unused-parameter
+        -Wno-pedantic)
+target_include_directories(wamr_sgx PRIVATE
+        ${SGX_SDK_PATH}/include
+        ${SGX_SDK_PATH}/include/tlibc
+        ${SGX_SDK_PATH}/include/libcxx
+        )
+
+add_library(wamr_sgx_untrusted STATIC
+        ${FAASM_SGX_WAMR_SRC_UNTRUSTED}
+        )
+target_compile_options(wamr_sgx_untrusted PRIVATE
+        -fPIC
+        -ffunction-sections
+        -fdata-sections)
+
 # --------------------------------------------------------
 # FAASM SGX Runner
 # --------------------------------------------------------
@@ -297,8 +363,12 @@ target_compile_options(sgx_runner PRIVATE
         -O3
         -fpic
         -fpie
+        -ffunction-sections
+        -fdata-sections
         -Wno-attributes)
 
+target_link_options(sgx_runner PRIVATE
+        --Wl, -gc-sections)
 target_link_libraries(sgx_runner PRIVATE
         sgx_wamr
         system
