@@ -230,10 +230,13 @@ namespace tests {
 
         // Set up the SVM function
         faabric::Message call = faabric::util::messageFactory(user, "reuters_svm");
-        int syncInterval = 100;
 
-        // Deliberately try to cause contention with lots of workers
-        int nWorkers = 30;
+        // Longer sync interval means less intensive interaction with state
+        int syncInterval = 1000;
+
+        // Slightly overload the executor
+        int nCores = faabric::util::getUsableCores();
+        int nWorkers = std::max(nCores + 2, 8);
         call.set_inputdata(std::to_string(nWorkers) + " " + std::to_string(syncInterval) + " 0");
 
         // Set up the params

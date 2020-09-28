@@ -2,13 +2,13 @@ name: Tests
 
 on:
   push:
-    branches:
-      - master
+    branches: [master]
   pull_request:
-    types: [review_requested, ready_for_review]    
+    branches: [master]
 
 jobs:
   build:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     env:
       CGROUP_MODE: off
