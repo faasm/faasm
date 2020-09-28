@@ -7,9 +7,9 @@ non-WebAssembly code.
 
 This is true of CPython, which we can compile to WebAssembly (along with Python
 C-extensions). This is covered in the [Faasm CPython
-repo](https://github.com/Shillaker/faasm-cpython).
+repo](https://github.com/faasm/faasm-cpython).
 
-A separate Python library, [Pyfaasm](https://github.com/Shillaker/pyfaasm),
+A separate Python library, [Pyfaasm](https://github.com/faasm/pyfaasm),
 contains the custom C-extensions and decorators to support the [Faasm host
 interface](host_interface.md). 
 
@@ -70,7 +70,7 @@ NOTE: you only need to do this if you're adding new modules or changing
 something about the Python cross-compilation.
 
 To build CPython and its associated modules, see the [Faasm CPython
-repo](https://github.com/Shillaker/faasm-cpython).
+repo](https://github.com/faasm/faasm-cpython).
 
 Once CPython and the modules are build, you can run:
 
