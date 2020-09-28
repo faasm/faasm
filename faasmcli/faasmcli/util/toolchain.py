@@ -1,6 +1,7 @@
 from os.path import join
 
 WASM_SYSROOT = "/usr/local/faasm/llvm-sysroot"
+WASM_LIB_INSTALL = "{}/lib/wasm32-wasi".format(WASM_SYSROOT)
 WASM_TOOLCHAIN_BIN = "/usr/local/faasm/toolchain/bin"
 
 WASM_CC = join(WASM_TOOLCHAIN_BIN, "clang")
@@ -10,7 +11,7 @@ WASM_AR = join(WASM_TOOLCHAIN_BIN, "llvm-ar")
 WASM_NM = join(WASM_TOOLCHAIN_BIN, "llvm.nm")
 WASM_RANLIB = join(WASM_TOOLCHAIN_BIN, "llvm-ranlib")
 WASM_LD = join(WASM_TOOLCHAIN_BIN, "wasm-ld")
-WASM_LDSHARED = join(WASM_TOOLCHAIN_BIN, "wasm-ld")
+WASM_LDSHARED = "{} --no-entry".format(WASM_LD)
 
 WASM_LDFLAGS = "-Xlinker --stack-first -Xlinker --no-check-features"
 
@@ -18,7 +19,7 @@ WASM_BUILD = "wasm32"
 WASM_HOST = "wasm32-unknown-wasi"
 WASM_HOST_UNKNOWN = "wasm32-unknown-unknown"
 
-WASM_CFLAGS = "-O3 --sysroot={} -msimd128 -D__faasm".format(WASM_SYSROOT)
+WASM_CFLAGS = "-O3 --sysroot={} -D__faasm".format(WASM_SYSROOT)
 WASM_CXXFLAGS = WASM_CFLAGS
 
 BASE_CONFIG_CMD = [
@@ -27,10 +28,12 @@ BASE_CONFIG_CMD = [
     "CPP={}".format(WASM_CPP),
     "AR={}".format(WASM_AR),
     "RANLIB={}".format(WASM_RANLIB),
+    "LD={}".format(WASM_LD),
 ]
 
 BASE_CONFIG_FLAGS = [
     'CFLAGS="{}"'.format(WASM_CFLAGS),
     'CXXFLAGS="{}"'.format(WASM_CXXFLAGS),
+    'CPPFLAGS="{}"'.format(WASM_CXXFLAGS),
     'LDFLAGS="{}"'.format(WASM_LDFLAGS),
 ]

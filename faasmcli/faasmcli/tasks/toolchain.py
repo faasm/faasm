@@ -142,7 +142,9 @@ def _do_scp(is_from, user, host, dir_name):
 
     res = call(scp_cmd, shell=True)
     if res != 0:
-        raise RuntimeError("Failed to copy {}@{}:{}".format(user, host, dir_name))
+        raise RuntimeError(
+            "Failed to copy {}@{}:{}".format(user, host, dir_name)
+        )
 
 
 @task

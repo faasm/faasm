@@ -12,7 +12,15 @@ def _do_redis_command(sub_cmd, local, docker, knative):
     elif docker:
         cmd = ["docker-compose", "exec", "redis-queue", "redis-cli", sub_cmd]
     elif knative:
-        cmd = ["kubectl", "exec", "-n faasm", "redis-queue", "--", "redis-cli", sub_cmd]
+        cmd = [
+            "kubectl",
+            "exec",
+            "-n faasm",
+            "redis-queue",
+            "--",
+            "redis-cli",
+            sub_cmd,
+        ]
     else:
         cmd = ["redis-cli", sub_cmd]
 
@@ -46,4 +54,6 @@ def func_workers(ctx, user, func, local=False, docker=False, knative=True):
     List all warm Faasm instances
     """
     worker_set_name = "w_{}/{}".format(user, func)
-    _do_redis_command("smembers {}".format(worker_set_name), local, docker, knative)
+    _do_redis_command(
+        "smembers {}".format(worker_set_name), local, docker, knative
+    )

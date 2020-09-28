@@ -15,16 +15,17 @@ namespace wasm {
     std::vector<uint8_t> wavmCodegen(std::vector<uint8_t> &bytes) {
         IR::Module moduleIR;
 
-        // Explicitly allow simd support
+        // Feature flags
         moduleIR.featureSpec.simd = true;
-        moduleIR.featureSpec.atomics = true;
 
         if (faabric::util::isWasm(bytes)) {
             // Handle WASM
             WASM::LoadError loadError;
             bool success = WASM::loadBinaryModule(bytes.data(), bytes.size(), moduleIR, &loadError);
             if (!success) {
-                throw std::runtime_error("Failed to parse wasm binary: " + loadError.message);
+                throw std::runtime_error(
+                        fmt::format("Failed to parse wasm binary: {}", loadError.message)
+                );
             }
         } else {
             std::vector<WAST::Error> parseErrors;

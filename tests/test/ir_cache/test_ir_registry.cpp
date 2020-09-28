@@ -44,16 +44,16 @@ namespace tests {
         REQUIRE(moduleRefA1.memories.defs[0].type.size.max == MAX_MEMORY_PAGES);
         REQUIRE(moduleRefA1.tables.defs[0].type.size.max == MAX_TABLE_SIZE);
 
-        // Check features enabled
-        REQUIRE(moduleRefA1.featureSpec.simd);
-        REQUIRE(moduleRefA2.featureSpec.simd);
-        REQUIRE(moduleRefB1.featureSpec.simd);
-        REQUIRE(moduleRefB2.featureSpec.simd);
+        // Check features are as expected
+        REQUIRE(!moduleRefA1.featureSpec.simd);
+        REQUIRE(!moduleRefA2.featureSpec.simd);
+        REQUIRE(!moduleRefB1.featureSpec.simd);
+        REQUIRE(!moduleRefB2.featureSpec.simd);
 
-        REQUIRE(moduleRefA1.featureSpec.atomics);
-        REQUIRE(moduleRefA2.featureSpec.atomics);
-        REQUIRE(moduleRefB1.featureSpec.atomics);
-        REQUIRE(moduleRefB2.featureSpec.atomics);
+        REQUIRE(!moduleRefA1.featureSpec.atomics);
+        REQUIRE(!moduleRefA2.featureSpec.atomics);
+        REQUIRE(!moduleRefB1.featureSpec.atomics);
+        REQUIRE(!moduleRefB2.featureSpec.atomics);
 
         // Check references are equal
         REQUIRE(std::addressof(moduleRefA1) == std::addressof(moduleRefA2));
@@ -82,8 +82,8 @@ namespace tests {
         registry.getModule(user, func, "");
 
         // Two valid shared libs
-        std::string pathA = "/usr/local/faasm/runtime_root/lib/python3.7/site-packages/numpy/core/multiarray.so";
-        std::string pathB = "/usr/local/faasm/runtime_root/lib/python3.7/site-packages/numpy/core/umath.so";
+        std::string pathA = "/usr/local/faasm/runtime_root/lib/python3.8/site-packages/numpy/core/_multiarray_umath.so";
+        std::string pathB = "/usr/local/faasm/runtime_root/lib/python3.8/site-packages/numpy/linalg/_umath_linalg.so";
 
         // Once
         IR::Module &refA1 = registry.getModule(user, func, pathA);
@@ -102,15 +102,15 @@ namespace tests {
         REQUIRE(!refB1.exports.empty());
 
         // Check features enabled
-        REQUIRE(refA1.featureSpec.simd);
-        REQUIRE(refA2.featureSpec.simd);
-        REQUIRE(refB1.featureSpec.simd);
-        REQUIRE(refB2.featureSpec.simd);
+        REQUIRE(!refA1.featureSpec.simd);
+        REQUIRE(!refA2.featureSpec.simd);
+        REQUIRE(!refB1.featureSpec.simd);
+        REQUIRE(!refB2.featureSpec.simd);
 
-        REQUIRE(refA1.featureSpec.atomics);
-        REQUIRE(refA2.featureSpec.atomics);
-        REQUIRE(refB1.featureSpec.atomics);
-        REQUIRE(refB2.featureSpec.atomics);
+        REQUIRE(!refA1.featureSpec.atomics);
+        REQUIRE(!refA2.featureSpec.atomics);
+        REQUIRE(!refB1.featureSpec.atomics);
+        REQUIRE(!refB2.featureSpec.atomics);
 
         // Check references are equal
         REQUIRE(std::addressof(refA1) == std::addressof(refA2));

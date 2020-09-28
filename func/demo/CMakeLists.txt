@@ -43,6 +43,7 @@ demo_func(isatty isatty.cpp)
 demo_func(listdir listdir.cpp)
 demo_func(lock lock.c)
 demo_func(log_difference log_difference.cpp)
+demo_func(long_double long_double.cpp)
 demo_func(malloc malloc.cpp)
 demo_func(matrix matrix.cpp)
 demo_func(memcpy memcpy.cpp)
@@ -91,9 +92,10 @@ demo_func(uname uname.cpp)
 demo_func(x2 x2.cpp)
 demo_func(zygote_check zygote_check.cpp)
 
+# 23/09/2020 - removing simd
 # WASM-only functions
 if(FAASM_BUILD_TYPE STREQUAL "wasm")
-  demo_func(eigen_vec eigen_vec.cpp)
+    # demo_func(eigen_vec eigen_vec.cpp)
 endif()
 
 faasm_dynamic_func(dynlink dynlink.cpp)

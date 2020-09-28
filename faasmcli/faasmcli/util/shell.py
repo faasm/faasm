@@ -9,6 +9,7 @@ def find_command(bin_name, dirs):
     # First check on the path
     found_cmd = shutil.which(bin_name)
     if found_cmd:
+        print("Found {} in PATH".format(bin_name))
         return found_cmd
 
     found_cmds = list()
@@ -28,6 +29,7 @@ def find_command(bin_name, dirs):
             )
         )
 
+    print("Taking {} as {}".format(bin_name, found_cmd))
     return found_cmd
 
 

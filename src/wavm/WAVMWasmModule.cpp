@@ -2,6 +2,7 @@
 
 #include <boost/filesystem.hpp>
 #include <cereal/archives/binary.hpp>
+#include <stdexcept>
 #include <sys/mman.h>
 #include <sys/types.h>
 
@@ -255,19 +256,21 @@ namespace wasm {
     }
 
     void WAVMWasmModule::addModuleToGOT(IR::Module &mod, bool isMainModule) {
-        // This function is **critical** for dynamic linking to work properly, but the underlying
-        // spec is still in flux so it may break. The wasm dynamic linking docs can be found here:
+        // This function is **critical** for dynamic linking to work properly,
+        // but the underlying spec is still in flux so it may break. The wasm
+        // dynamic linking docs can be found here:
         // https://github.com/WebAssembly/tool-conventions/blob/master/DynamicLinking.md
         //
-        // To handle dynamically loaded modules, we need to provide a "global offset table (GOT)" which
-        // holds offsets to all the functions and data the modules may need to access.
+        // To handle dynamically loaded modules, we need to provide a "global
+        // offset table (GOT)" which holds offsets to all the functions and data
+        // the modules may need to access.
 
         // Retrieve the disassembly names to help with building the GOT
         IR::DisassemblyNames disassemblyNames;
         getDisassemblyNames(mod, disassemblyNames);
 
-        // If we add all table elements this map gets very large, therefore we just want
-        // to include functions that the module explicitly exports.
+        // If we add all table elements this map gets very large, therefore we
+        // just want to include functions that the module explicitly exports.
         std::unordered_set<std::string> moduleExports;
         for (auto &e : mod.exports) {
             moduleExports.insert(e.name);
@@ -276,11 +279,11 @@ namespace wasm {
         // ----------------------------
         // Table elems
         // ----------------------------
-        // Here we need to inspect the module's table, and add all the entires along with
-        // their offsets into our GOT.
+        // Here we need to inspect the module's table, and add all the entires
+        // along with their offsets into our GOT.
         //
-        // Here we iterate through the table definition from the module, working out the offsets
-        // as we go.
+        // Here we iterate through the table definition from the module, working
+        // out the offsets as we go.
         for (auto &es : mod.elemSegments) {
             // Work out the offset
             I32 offset;
@@ -292,9 +295,11 @@ namespace wasm {
                 offset = nextTableBase;
             }
 
-            // Go through each elem entry and record where in the table it's getting inserted
+            // Go through each elem entry and record where in the table it's
+            // getting inserted
             for (size_t i = 0; i < es.contents->elemIndices.size(); i++) {
                 unsigned long elemIdx = es.contents->elemIndices[i];
+            
                 // Work out the function's name, then add it to our GOT
                 std::string &elemName = disassemblyNames.functions[elemIdx].name;
 
@@ -308,8 +313,9 @@ namespace wasm {
         // ----------------------------
         // Data entries
         // ----------------------------
-        // The data part of the GOT needs to map exports to their initialised value.
-        // We only look at immutable i32s as this table seems to be mostly used for pointers.
+        // The data part of the GOT needs to map exports to their initialised
+        // value. These may contain pointers to things like global structs or 
+        // flags.
         for (auto &ex : mod.exports) {
             // Ignore non global exports
             if (ex.kind != IR::ExternKind::global) {
@@ -320,14 +326,18 @@ namespace wasm {
             int i = ex.index;
             const IR::GlobalDef &global = mod.globals.getDef(i);
 
-            // Skip if mutable or not I32
-            if (global.type.isMutable || global.initializer.type != IR::InitializerExpression::Type::i32_const) {
+            // Skip if not I32 (this covers pointers which we care about the
+            // most)
+            if(global.initializer.type != 
+                    IR::InitializerExpression::Type::i32_const) {
                 continue;
             }
 
-            // Add the initialised value to the map
-            I32 value = nextMemoryBase + global.initializer.i32;
-            globalOffsetMemoryMap.insert({ex.name, value});
+            // Add the global to the map along with its initialised value
+            I32 value = nextMemoryBase + global.initializer.i32;            
+            globalOffsetMemoryMap.insert(
+                    {ex.name, {value, global.type.isMutable}}
+                    );
         }
     }
 
@@ -541,9 +551,9 @@ namespace wasm {
         );
         logger->info("Finished instantiating module {}/{}  {}", boundUser, boundFunction, sharedModulePath);
 
-        // Here there may be some entries missing from the GOT that we need to patch up. They may
-        // be exported from the dynamic module itself. I don't know how this happens but occasionally
-        // it does
+        // Here there may be some entries missing from the GOT that we need to
+        // patch up. They may be exported from the dynamic module itself. I
+        // don't know how this happens but occasionally it does
         if (!missingGlobalOffsetEntries.empty()) {
             for (auto e : missingGlobalOffsetEntries) {
                 // Check if it's an export of the module we're currently importing
@@ -583,10 +593,10 @@ namespace wasm {
     }
 
     int WAVMWasmModule::dynamicLoadModule(const std::string &path, Runtime::Context *context) {
-        // This function is essentially dlopen. See the comments around the GOT function
-        // for more detail on the dynamic linking approach.
+        // This function is essentially dlopen. See the comments around the GOT
+        // function for more detail on the dynamic linking approach.
 
-        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
+        auto logger = faabric::util::getLogger();
 
         // Return the handle if we've already loaded this module
         if (dynamicPathToHandleMap.count(path) > 0) {
@@ -698,8 +708,9 @@ namespace wasm {
             // Get the function this call is referring to
             funcInstance = getFunctionFromPtr(funcPtr);
 
-            // NOTE - when we've got a function pointer, we assume the args are a single integer
-            // held in the input data (resulting from a chained thread invocation)
+            // NOTE - when we've got a function pointer, we assume the args are
+            // a single integer held in the input data (resulting from a chained
+            // thread invocation)
             if (msg.inputdata().empty()) {
                 invokeArgs = {0};
             } else {
@@ -721,8 +732,8 @@ namespace wasm {
             // Set up main args
             prepareArgcArgv(msg);
 
-            // Get the entrypoint function (this is _start at the time of writing,
-            // which is () -> void)
+            // Get the entrypoint function (this is _start at the time of
+            // writing, which is () -> void)
             funcInstance = getMainFunction(moduleInstance);
             funcType = IR::FunctionType(
                     {},
@@ -906,17 +917,37 @@ namespace wasm {
             if (moduleName == "GOT.mem") {
                 // Handle global offset table memory entries
                 if (globalOffsetMemoryMap.count(name) == 0) {
-                    logger->error("Failed to look up memory offset in GOT: {}.{}", moduleName, name);
+                    logger->error(
+                            "Memory offset not found in GOT: {}.{}", 
+                            moduleName, name
+                            );
                     return false;
                 }
 
-                int memOffset = globalOffsetMemoryMap[name];
-                logger->debug("Resolved {}.{} to {}", moduleName, name, memOffset);
+                std::pair<int, bool> memOffset = globalOffsetMemoryMap[name];
+                logger->debug("Resolved {}.{} to ({}, {})", moduleName, name,
+                        memOffset.first, memOffset.second);
+
+                // Create the type for the global, note that _all_ GOT.mem
+                // imports seem to be mutable, even if the global they 
+                // reference isn't
+                IR::GlobalType globalType = asGlobalType(type); 
+                globalType.isMutable = true;
 
                 // Create a global to hold the offset value
-                Runtime::Global *gotMemoryOffset = Runtime::createGlobal(compartment, asGlobalType(type),
-                                                                         std::string(name));
-                Runtime::initializeGlobal(gotMemoryOffset, memOffset);
+                Runtime::Global *gotMemoryOffset = Runtime::createGlobal(
+                        compartment, globalType, std::string(name));
+
+                if(gotMemoryOffset == nullptr) {
+                    logger->error(
+                            "Could not create global for {}.{} ({}, {})", 
+                            moduleName, name, 
+                            memOffset.first, memOffset.second
+                            );
+                    throw std::runtime_error("Failed to create global");
+                }
+
+                Runtime::initializeGlobal(gotMemoryOffset, memOffset.first);
                 resolved = asObject(gotMemoryOffset);
 
             } else if (moduleName == "GOT.func") {
@@ -968,8 +999,17 @@ namespace wasm {
                 }
 
                 // Create a global to hold the function offset
-                Runtime::Global *gotFunctionOffset = Runtime::createGlobal(compartment, asGlobalType(type),
-                                                                           std::string(name));
+                Runtime::Global *gotFunctionOffset = Runtime::createGlobal(
+                        compartment, asGlobalType(type), std::string(name)
+                        );
+
+                if(gotFunctionOffset == nullptr) {
+                    logger->error("Failed to create global function offset {}.{}",
+                        moduleName, name
+                        );
+                    throw std::runtime_error("Failed to create global function offset");
+                }
+
                 Runtime::initializeGlobal(gotFunctionOffset, tableIdx);
                 resolved = asObject(gotFunctionOffset);
 
@@ -1024,10 +1064,11 @@ namespace wasm {
             if (isA(resolved, type)) {
                 return true;
             } else {
+                IR::ExternType resolvedType = Runtime::getExternType(resolved);
                 logger->error("Resolved import {}.{} to a {}, but was expecting {}",
                               moduleName.c_str(),
                               name.c_str(),
-                              asString(getExternType(resolved)).c_str(),
+                              asString(resolvedType).c_str(),
                               asString(type).c_str());
                 return false;
             }
@@ -1095,7 +1136,7 @@ namespace wasm {
             throw std::runtime_error("Memory not found in GOT");
         }
 
-        return globalOffsetMemoryMap[name];
+        return globalOffsetMemoryMap[name].first;
     }
 
     void WAVMWasmModule::writeMemoryToFd(int fd) {

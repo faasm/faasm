@@ -1,6 +1,10 @@
 # Faasm Python C Library
 
-This is a small library to help initialise Python in Faasm functions. 
+This is a small library to force the static linking of certain parts of libc
+that need to be present to support numpy and other mathematical Python 
+libraries. 
 
-It exposes a couple of simple functions that are used to ensure the right
-imports and env vars are present. 
+Without this library the functions would be stripped from the underlying
+WebAssembly binary (as they're only used by dynamically linked libraries which
+are not known at compile time).
+

@@ -1,11 +1,10 @@
 from multiprocessing.pool import Pool
-from os.path import join
 from subprocess import check_output, run
 
 from invoke import task
 
 from faasmcli.util.codegen import find_codegen_func, find_codegen_shared_lib
-from faasmcli.util.env import FAASM_RUNTIME_ROOT
+from faasmcli.util.env import PY_RUNTIME_ROOT
 
 
 @task(default=True)
@@ -16,7 +15,12 @@ def codegen(ctx, user, function, wamr=False):
     env = {"WASM_VM": "wamr" if wamr else "wavm"}
 
     binary = find_codegen_func()
-    run("{} {} {}".format(binary, user, function), shell=True, env=env, check=True)
+    run(
+        "{} {} {}".format(binary, user, function),
+        shell=True,
+        env=env,
+        check=True,
+    )
 
 
 @task
@@ -57,6 +61,4 @@ def local(ctx, wamr=False):
 
     print("Running codegen on python shared objects")
     binary = find_codegen_shared_lib()
-    shared_obj_dir = join(FAASM_RUNTIME_ROOT, "lib", "python3.7")
-    check_output("{} {}".format(binary, shared_obj_dir), shell=True)
-
+    check_output("{} {}".format(binary, PY_RUNTIME_ROOT), shell=True)

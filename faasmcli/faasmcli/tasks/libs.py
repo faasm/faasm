@@ -99,10 +99,7 @@ def _build_faasm_lib(dir_name, clean, verbose, target=None):
     if res != 0:
         exit(1)
 
-    build_cmd = [
-        "ninja",
-        target if target else ""
-    ]
+    build_cmd = ["ninja", target if target else ""]
 
     res = call(" ".join(build_cmd), shell=True, cwd=build_dir)
     if res != 0:
@@ -118,7 +115,7 @@ def faasm(ctx, clean=False, verbose=False):
     """
     Compile and install the Faasm library
     """
-    _build_faasm_lib("libs/faasm", clean, verbose)
+    _build_faasm_lib("libs/cpp", clean, verbose)
 
 
 @task
@@ -136,9 +133,9 @@ def faasmpi(ctx, clean=False, verbose=False):
     """
     # Build the Faabric MPI target
     _build_faasm_lib(
-            "third-party/faabric/src/mpi",
-            clean,
-            verbose,
+        "third-party/faabric/src/mpi",
+        clean,
+        verbose,
     )
 
     # Build the Faasm wasm wrapper
@@ -186,7 +183,9 @@ def fake(ctx, clean=False):
     call("ninja install", shell=True, cwd=build_dir)
 
     # Copy shared object into place
-    sysroot_files = join(SYSROOT_INSTALL_PREFIX, "lib", "wasm32-wasi", "libfake*.so")
+    sysroot_files = join(
+        SYSROOT_INSTALL_PREFIX, "lib", "wasm32-wasi", "libfake*.so"
+    )
 
     runtime_lib_dir = join(FAASM_RUNTIME_ROOT, "lib")
     if not exists(runtime_lib_dir):
@@ -236,7 +235,9 @@ def eigen(ctx, verbose=False):
     if res != 0:
         exit(1)
 
-    res = call("{} make install".format(verbose_string), shell=True, cwd=build_dir)
+    res = call(
+        "{} make install".format(verbose_string), shell=True, cwd=build_dir
+    )
     if res != 0:
         exit(1)
 
@@ -284,4 +285,3 @@ def zlib(ctx, clean=False):
     check_output(" ".join(config_cmd), shell=True, cwd=workdir)
     check_output("make", shell=True, cwd=workdir)
     check_output("make install", shell=True, cwd=workdir)
-

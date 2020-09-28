@@ -228,7 +228,7 @@ namespace tests {
 
     TEST_CASE("Shared object fileserver test", "[upload]") {
         std::string urlPath;
-        std::string filePath = "/usr/local/faasm/runtime_root/lib/python3.7/site-packages/numpy/core/multiarray.so";
+        std::string filePath = "/usr/local/faasm/runtime_root/lib/python3.8/site-packages/numpy/core/_multiarray_umath.so";
         std::string expectedFilePath;
 
         SECTION("Shared object wasm") {
@@ -237,7 +237,7 @@ namespace tests {
         }
         SECTION("Shared object object file") {
             urlPath = "/sobjobj";
-            expectedFilePath = "/usr/local/faasm/object/usr/local/faasm/runtime_root/lib/python3.7/site-packages/numpy/core/multiarray.so.o";
+            expectedFilePath = "/usr/local/faasm/object/usr/local/faasm/runtime_root/lib/python3.8/site-packages/numpy/core/_multiarray_umath.so.o";
         }
 
         http_request request = createRequest(urlPath);

@@ -8,11 +8,11 @@ from . import config
 from . import dev
 from . import disas
 from . import docker_tasks
-from . import github
 from . import knative
 from . import libs
 from . import python
 from . import redis
+from . import release
 from . import run
 from . import state
 from . import toolchain
@@ -26,11 +26,11 @@ ns = Collection(
     config,
     dev,
     disas,
-    github,
     knative,
     libs,
     python,
     redis,
+    release,
     run,
     state,
     toolchain,

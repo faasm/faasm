@@ -23,6 +23,14 @@ namespace wasm {
         return r;
     }
 
+    IR::Module &IRModuleCache::getModuleFromMap(const std::string &key) {
+        // Here we switch on module features that must always be used.
+        // TODO avoid doing this every time and set on construction
+        IR::Module &module = moduleMap[key];
+        module.featureSpec.simd = true;
+        return module;
+    }
+
     std::string getModuleKey(const std::string &user, const std::string &func, const std::string &path) {
         std::string key = user + "_" + func + "_" + path;
         return key;
@@ -40,11 +48,13 @@ namespace wasm {
 
     IR::Module &IRModuleCache::getModule(const std::string &user, const std::string &func, const std::string &path) {
         /*
-         * Note that shared modules are currently only shared in memory across instances of the *same* function.
-         * If two different functions both load shared module A, it will be loaded into memory twice.
+         * Note that shared modules are currently only shared in memory across
+         * instances of the *same* function.  If two different functions both
+         * load shared module A, it will be loaded into memory twice.
          *
-         * This is currently only to do with needing to modify the table definition to fit with the importing main
-         * module, something which can probably be fixed.
+         * This is currently only to do with needing to modify the table
+         * definition to fit with the importing main module, something which can
+         * probably be fixed.
          *
          * TODO - implement this proper sharing of modules
          */
@@ -78,9 +88,7 @@ namespace wasm {
         if (getCompiledModuleCount(key) == 0) {
             faabric::util::FullLock registryLock(registryMutex);
             if (compiledModuleMap.count(key) == 0) {
-                IR::Module &module = moduleMap[key];
-                module.featureSpec.simd = true;
-                module.featureSpec.atomics = true;
+                IR::Module &module = getModuleFromMap(key);
 
                 storage::FileLoader &functionLoader = storage::getFileLoader();
                 faabric::Message msg = faabric::util::messageFactory(user, func);
@@ -109,9 +117,7 @@ namespace wasm {
             if (compiledModuleMap.count(key) == 0) {
                 logger->debug("Loading compiled shared module {}", key);
 
-                IR::Module &module = moduleMap[key];
-                module.featureSpec.simd = true;
-                module.featureSpec.atomics = true;
+                IR::Module &module = getModuleFromMap(key);
 
                 storage::FileLoader &functionLoader = storage::getFileLoader();
                 std::vector<uint8_t> objectBytes = functionLoader.loadSharedObjectObjectFile(path);
@@ -139,9 +145,7 @@ namespace wasm {
                 faabric::Message msg = faabric::util::messageFactory(user, func);
                 std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionWasm(msg);
 
-                IR::Module &module = moduleMap[key];
-                module.featureSpec.simd = true;
-                module.featureSpec.atomics = true;
+                IR::Module &module = getModuleFromMap(key);
 
                 if (faabric::util::isWasm(wasmBytes)) {
                     WASM::LoadError loadError;
@@ -164,7 +168,7 @@ namespace wasm {
             logger->debug("Using cached main module {}", key);
         }
 
-        return moduleMap[key];
+        return getModuleFromMap(key);
     }
 
     IR::Module &IRModuleCache::getSharedModule(const std::string &user, const std::string &func,
@@ -182,9 +186,7 @@ namespace wasm {
 
                 std::vector<uint8_t> wasmBytes = functionLoader.loadSharedObjectWasm(path);
 
-                IR::Module &module = moduleMap[key];
-                module.featureSpec.simd = true;
-                module.featureSpec.atomics = true;
+                IR::Module &module = getModuleFromMap(key);
 
                 WASM::LoadError loadError;
                 WASM::loadBinaryModule(wasmBytes.data(), wasmBytes.size(), module, &loadError);
@@ -198,14 +200,16 @@ namespace wasm {
                     throw std::runtime_error("Dynamic module trying to define memories");
                 }
 
-                // TODO - better way to handle this? Modify WAVM?
-                // To keep WAVM happy, we have to force the incoming dynamic module to accept the table from the
-                // main module. This modifies the shared reference, therefore we also have to preserve the original
+                // TODO - better way to handle this? Modify WAVM?  To keep WAVM
+                // happy, we have to force the incoming dynamic module to accept
+                // the table from the main module. This modifies the shared
+                // reference, therefore we also have to preserve the original
                 // size and make available to callers.
                 this->originalTableSizes[key] = module.tables.imports[0].type.size.min;
 
                 const std::string mainKey = getModuleKey(user, func, "");
-                IR::Module &mainModule = moduleMap[mainKey];
+                IR::Module &mainModule = getModuleFromMap(mainKey);
+
                 module.tables.imports[0].type.size.min = (U64) mainModule.tables.defs[0].type.size.min;
                 module.tables.imports[0].type.size.max = (U64) mainModule.tables.defs[0].type.size.max;
             }
@@ -213,6 +217,6 @@ namespace wasm {
             logger->debug("Loading cached shared module {}", key);
         }
 
-        return moduleMap[key];
+        return getModuleFromMap(key);
     }
 }

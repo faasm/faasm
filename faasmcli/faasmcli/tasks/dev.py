@@ -32,8 +32,20 @@ def cmake(ctx, clean=False):
 
 
 @task
-def cc(ctx, target):
-    run("cmake --build . --target {}".format(target), cwd=_BUILD_DIR, shell=True)
+def cc(ctx, target, clean=False):
+    if clean:
+        cmake(ctx, clean=True)
+        if exists(_BUILD_DIR):
+            rmtree(_BUILD_DIR)
+
+    if target == "all":
+        target = ""
+        
+    run(
+        "ninja {}".format(target),
+        cwd=_BUILD_DIR,
+        shell=True,
+    )
 
 
 @task

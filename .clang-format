@@ -1,8 +1,13 @@
 ---
 BasedOnStyle: Mozilla
-IndentWidth: 4
 
 ---
 Language: Cpp
 
+# Avoid excessive linebreaks on function definitions
+AlwaysBreakAfterDefinitionReturnType: None
+AlwaysBreakAfterReturnType: None
+
+IndentWidth: 4
+DerivePointerAlignment: false
 ---
