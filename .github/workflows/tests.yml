@@ -5,10 +5,11 @@ on:
     branches:
       - master
   pull_request:
-    types: [review_requested, ready_for_review]    
+    types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
   build:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     env:
       CGROUP_MODE: off
