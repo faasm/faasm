@@ -236,7 +236,7 @@ namespace tests {
 
         // Slightly overload the executor
         int nCores = faabric::util::getUsableCores();
-        int nWorkers = nCores + 2;
+        int nWorkers = std::max(nCores + 2, 8);
         call.set_inputdata(std::to_string(nWorkers) + " " + std::to_string(syncInterval) + " 0");
 
         // Set up the params
