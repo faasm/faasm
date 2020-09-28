@@ -51,7 +51,7 @@ This section of the host interface covers management of state as outlined in
  to support a broader range of legacy applications and libraries (such as 
  [CPython](python.md)).
  
- This is done in part with a modified [wasi-libc](https://github.com/Shillaker/wasi-libc).
+ This is done in part with a modified [wasi-libc](https://github.com/faasm/wasi-libc).
  
  The main additions and modifications are as follows:
  
