@@ -1,17 +1,11 @@
 [submodule "third-party/eigen"]
-	path = third-party/eigen
-	url = https://github.com/Shillaker/eigen-git-mirror
+    path = third-party/eigen
+    url = https://gitlab.com/shillaker/eigen.git
+    branch = faasm
 [submodule "third-party/WAVM"]
 	path = third-party/WAVM
 	url = https://github.com/Shillaker/WAVM.git
 	branch = faasm
-[submodule "third-party/pyodide"]
-	path = third-party/pyodide
-    url = https://github.com/Shillaker/pyodide.git
-    branch = faasm
-[submodule "third-party/pyfaasm"]
-	path = third-party/pyfaasm
-	url = https://github.com/Shillaker/pyfaasm.git
 [submodule "third-party/faabric"]
 	path = third-party/faabric
 	url = https://github.com/Shillaker/faabric.git
@@ -25,3 +19,9 @@
 [submodule "third-party/xra"]
 	path = third-party/xra
 	url = https://github.com/J-Heinemann/eXtended-Remote-Attestation
+[submodule "third-party/faasm-cpython"]
+	path = third-party/faasm-cpython
+	url = https://github.com/Shillaker/faasm-cpython.git
+[submodule "third-party/wabt"]
+	path = third-party/wabt
+	url = https://github.com/WebAssembly/wabt

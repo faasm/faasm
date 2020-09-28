@@ -29,28 +29,37 @@ the toolchain/ core libraries themselves.
 
 ## 2. Update version
 
-Version needs to be updated in:
+Version can be updated with:
 
-- `VERSION` at the project root
-- `FAASM_VERSION` variable in `.env` file at project root
-- Any kubernetes config files in `deploy/k8s` that specify image names
+```
+# Minor 
+inv release.bump
 
-This can usually be done with a find-and-replace on the current version number.
+# Custom
+inv release.bump --ver=1.2.3
+```
+
+Check the diff to make sure this hasn't edited anything we don't expect.
+
+Push all the changes to your branch.
 
 ## 3. Create the Github release
 
 Run the following to create the new release in Github (this will bundle up the
 sysroot, toolchain and runtime root too).
 
+NOTE: this will create a tag at the head of your current branch.
+
 ```bash
-inv github.create-release
-inv github.upload-artifacts
+inv release.tag
+inv release.create
+inv release.upload
 ```
 
 Now check the draft release. If it's ok:
 
 ```bash
-inv github.publish-release
+inv release.publish
 ```
 
 ## 4. Rebuild Docker containers
@@ -60,6 +69,9 @@ You can rebuild all the containers for the given release with:
 ```bash
 inv docker.release
 ```
+
+Note that the `base-test` container will be built from the tag you just created
+so this is what the CI build will use too.
 
 ## 5. Create a PR
 

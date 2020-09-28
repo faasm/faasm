@@ -148,7 +148,7 @@ namespace wasm {
 
         // Dynamic linking tables and memories
         std::unordered_map<std::string, WAVM::Uptr> globalOffsetTableMap;
-        std::unordered_map<std::string, int> globalOffsetMemoryMap;
+        std::unordered_map<std::string, std::pair<int, bool>> globalOffsetMemoryMap;
         std::unordered_map<std::string, int> missingGlobalOffsetEntries;
 
         static WAVM::Runtime::Instance *getEnvModule();

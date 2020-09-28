@@ -26,7 +26,8 @@ Faasm defines a custom [host interface](docs/host_interface.md) which extends
 functions, managing state, accessing the distributed filesystem, dynamic
 linking, pthreads, OpenMP and MPI.   
 
-Our paper from Usenix ATC '20 on Faasm can be found [here](https://www.usenix.org/conference/atc20/presentation/shillaker).
+Our paper from Usenix ATC '20 on Faasm can be found
+[here](https://www.usenix.org/conference/atc20/presentation/shillaker).
 
 # Quick start
 
@@ -83,4 +84,5 @@ Faasm experiments and benchmarks live in the
 - [Tensorflow Lite](https://github.com/lsds/faasm-experiments/blob/master/docs/tensorflow.md) - performing inference in Faasm with [Tensorflow Lite](https://www.tensorflow.org/lite/)
 - [Polybench](https://github.com/lsds/faasm-experiments/blob/master/docs/polybench.md) - benchmarking with [Polybench/C](http://web.cse.ohio-state.edu/~pouchet.2/software/polybench/)
 - [ParRes Kernels](https://github.com/lsds/faasm-experiments/blob/master/docs/prk.md) - benchmarking with the [ParRes Kernels](https://github.com/ParRes/Kernels)
+- [Python performance](https://github.com/lsds/faasm-experiments/blob/master/docs/python.md) - executing the [Python performance benchmarks](https://github.com/python/pyperformance)
 

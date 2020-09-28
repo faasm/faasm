@@ -45,10 +45,7 @@ TEST_S3_BUCKET = "faasm-test"
 AWS_ACCOUNT_ID = "733781933474"
 AWS_REGION = "eu-west-1"
 
-PYODIDE_ROOT = join(PROJ_ROOT, "third-party", "pyodide")
-PYODIDE_PACKAGES = join(PYODIDE_ROOT, "packages")
-PYODIDE_INSTALL_DIR = join(PYODIDE_ROOT, "cpython", "installs", "python-3.7.0")
-PY_RUNTIME_ROOT = join(FAASM_RUNTIME_ROOT, "lib", "python3.7")
+PY_RUNTIME_ROOT = join(FAASM_RUNTIME_ROOT, "lib", "python3.8")
 
 FAASM_TOOLCHAIN_FILE = join(
     PROJ_ROOT, "third-party", "faasm-toolchain", "WasiToolchain.cmake"

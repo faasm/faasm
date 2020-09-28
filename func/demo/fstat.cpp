@@ -188,9 +188,9 @@ FAASM_MAIN_FUNC() {
     struct stat64 s64A{}, s64B{};
 
 #if __wasm__
-    const char *path = "/lib/python3.7/multiprocessing";
+    const char *path = "/lib/python3.8/multiprocessing";
 #else
-    const char *path = "/usr/local/faasm/runtime_root/lib/python3.7/multiprocessing";
+    const char *path = "/usr/local/faasm/runtime_root/lib/python3.8/multiprocessing";
 #endif
 
     // Use fstat

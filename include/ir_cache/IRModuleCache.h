@@ -51,6 +51,8 @@ namespace wasm {
 
         Runtime::ModuleRef getCompiledSharedModule(const std::string &user, const std::string &func,
                 const std::string &path);
+
+        IR::Module &getModuleFromMap(const std::string &key);
     };
 
     IRModuleCache &getIRModuleCache();

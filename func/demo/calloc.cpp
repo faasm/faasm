@@ -1,6 +1,7 @@
+#include "faasm/faasm.h"
+
 #include <malloc.h>
 #include <string.h>
-#include "faasm/faasm.h"
 #include <string>
 #include <sys/mman.h>
 
@@ -50,3 +51,4 @@ FAASM_MAIN_FUNC() {
 
     return 0;
 }
+

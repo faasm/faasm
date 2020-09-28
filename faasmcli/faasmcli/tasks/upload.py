@@ -26,7 +26,14 @@ def _get_s3_key(user, func):
 
 
 def _upload_function(
-    user, func, port=None, host=None, py=False, ts=False, file=None, local_copy=False
+    user,
+    func,
+    port=None,
+    host=None,
+    py=False,
+    ts=False,
+    file=None,
+    local_copy=False,
 ):
     host, port = get_upload_host_port(host, port)
 
@@ -49,7 +56,9 @@ def _upload_function(
         url = "http://{}:{}/p/{}/{}".format(host, port, user, func)
         curl_file(url, func_file)
     elif ts:
-        func_file = join(PROJ_ROOT, "typescript", "build", "{}.wasm".format(func))
+        func_file = join(
+            PROJ_ROOT, "typescript", "build", "{}.wasm".format(func)
+        )
         url = "http://{}:{}/f/ts/{}".format(host, port, func)
         curl_file(url, func_file)
     else:
@@ -76,7 +85,11 @@ def user(ctx, user, host=None, py=False, local_copy=False):
         funcs = listdir(join(WASM_DIR, user))
 
         # Filter in only functions that exist
-        funcs = [f for f in funcs if exists(join(WASM_DIR, user, f, "function.wasm"))]
+        funcs = [
+            f
+            for f in funcs
+            if exists(join(WASM_DIR, user, f, "function.wasm"))
+        ]
 
     upload_partial = partial(
         _upload_function, user, host=host, py=py, local_copy=local_copy
@@ -86,7 +99,9 @@ def user(ctx, user, host=None, py=False, local_copy=False):
 
 
 @task(default=True)
-def upload(ctx, user, func, host=None, py=False, ts=False, file=None, local_copy=False):
+def upload(
+    ctx, user, func, host=None, py=False, ts=False, file=None, local_copy=False
+):
     """
     Upload a function
     """
