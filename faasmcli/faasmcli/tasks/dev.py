@@ -34,9 +34,10 @@ def cmake(ctx, clean=False):
 @task
 def cc(ctx, target, clean=False):
     if clean:
-        cmake(ctx, clean=True)
         if exists(_BUILD_DIR):
             rmtree(_BUILD_DIR)
+
+        cmake(ctx, clean=True)
 
     if target == "all":
         target = ""
