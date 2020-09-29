@@ -1,8 +1,9 @@
 from os import makedirs
+from multiprocessing import cpu_count
 from os.path import exists
 from os.path import join
 from shutil import rmtree
-from subprocess import check_output, call
+from subprocess import run
 
 from invoke import task
 
@@ -16,11 +17,6 @@ from faasmcli.util.env import (
 )
 from faasmcli.util.env import THIRD_PARTY_DIR
 from faasmcli.util.files import clean_dir
-from faasmcli.util.toolchain import (
-    WASM_HOST,
-    BASE_CONFIG_CMD,
-)
-from faasmcli.util.toolchain import WASM_SYSROOT, WASM_BUILD, BASE_CONFIG_FLAGS
 
 
 @task
@@ -66,15 +62,9 @@ def native(ctx, clean=False):
     build_cmd_str = " ".join(build_cmd)
     print(build_cmd_str)
 
-    res = call(build_cmd_str, shell=True, cwd=build_dir)
-    if res != 0:
-        raise RuntimeError("Failed to build native tools")
-
-    res = call("ninja", shell=True, cwd=build_dir)
-    if res != 0:
-        raise RuntimeError("Failed to make native tools")
-
-    call("sudo ninja install", shell=True, cwd=build_dir)
+    run(build_cmd_str, shell=True, cwd=build_dir, check=True)
+    run("ninja", shell=True, cwd=build_dir, check=True)
+    run("sudo ninja install", shell=True, cwd=build_dir, check=True)
 
 
 def _build_faasm_lib(dir_name, clean, verbose, target=None):
@@ -95,19 +85,12 @@ def _build_faasm_lib(dir_name, clean, verbose, target=None):
     build_cmd_str = " ".join(build_cmd)
     print(build_cmd_str)
 
-    res = call(build_cmd_str, shell=True, cwd=build_dir)
-    if res != 0:
-        exit(1)
+    run(build_cmd_str, shell=True, cwd=build_dir, check=True)
 
     build_cmd = ["ninja", target if target else ""]
 
-    res = call(" ".join(build_cmd), shell=True, cwd=build_dir)
-    if res != 0:
-        exit(1)
-
-    res = call("ninja install", shell=True, cwd=build_dir)
-    if res != 0:
-        exit(1)
+    run(" ".join(build_cmd), shell=True, cwd=build_dir, check=True)
+    run("ninja install", shell=True, cwd=build_dir, check=True)
 
 
 @task
@@ -178,9 +161,9 @@ def fake(ctx, clean=False):
         work_dir,
     ]
 
-    call(" ".join(build_cmd), shell=True, cwd=build_dir)
-    call("ninja", shell=True, cwd=build_dir)
-    call("ninja install", shell=True, cwd=build_dir)
+    run(" ".join(build_cmd), shell=True, cwd=build_dir, check=True)
+    run("ninja", shell=True, cwd=build_dir, check=True)
+    run("ninja install", shell=True, cwd=build_dir, check=True)
 
     # Copy shared object into place
     sysroot_files = join(
@@ -191,7 +174,8 @@ def fake(ctx, clean=False):
     if not exists(runtime_lib_dir):
         makedirs(runtime_lib_dir)
 
-    call("cp {} {}".format(sysroot_files, runtime_lib_dir), shell=True)
+    run("cp {} {}".format(sysroot_files, runtime_lib_dir), shell=True,
+            check=True)
 
     # Run codegen
     shared_objs = [
@@ -203,7 +187,7 @@ def fake(ctx, clean=False):
 
     for so in shared_objs:
         print("Running codegen for {}".format(so))
-        check_output("{} {}".format(binary, so), shell=True)
+        run("{} {}".format(binary, so), shell=True, check=True)
 
 
 @task
@@ -231,57 +215,31 @@ def eigen(ctx, verbose=False):
     ]
     cmd_string = " ".join(cmd)
 
-    res = call(cmd_string, shell=True, cwd=build_dir)
-    if res != 0:
-        exit(1)
+    run(cmd_string, shell=True, cwd=build_dir, check=True)
 
-    res = call(
-        "{} make install".format(verbose_string), shell=True, cwd=build_dir
+    run(
+        "{} make install".format(verbose_string), shell=True, cwd=build_dir,
+        check=True
     )
-    if res != 0:
-        exit(1)
 
 
 @task
-def png(ctx):
-    """
-    Compile and install libpng
-    """
-    workdir = join(PROJ_ROOT, "third-party", "libpng")
+def clapack(ctx, clean=False):
+    # See the CLAPACK docs: http://www.netlib.org/clapack/
+    work_dir = join(THIRD_PARTY_DIR, "faasm-clapack")
 
-    config_cmd = BASE_CONFIG_CMD
-    config_cmd.extend(BASE_CONFIG_FLAGS)
-    config_cmd.extend(
-        [
-            "./configure",
-            "--build={}".format(WASM_BUILD),
-            "--host={}".format(WASM_HOST),
-            "--prefix={}".format(WASM_SYSROOT),
-        ]
+    if clean:
+        run("make clean", cwd=work_dir, shell=True)
+
+    n_cpu = int(cpu_count()) - 1
+
+    # Make libf2c first (needed by others)
+    run(
+        "make f2clib -j {}".format(n_cpu), shell=True, cwd=work_dir, check=True
     )
 
-    check_output(" ".join(config_cmd), shell=True, cwd=workdir)
-    check_output("make", shell=True, cwd=workdir)
-    check_output("make install", shell=True, cwd=workdir)
+    # Make the rest
+    run("make -j {}".format(n_cpu), shell=True, cwd=work_dir, check=True)
 
+    run("make install", shell=True, cwd=work_dir, check=True)
 
-@task
-def zlib(ctx, clean=False):
-    """
-    Compile and install zlib
-    """
-    workdir = join(PROJ_ROOT, "third-party", "zlib")
-
-    config_cmd = BASE_CONFIG_CMD
-    config_cmd.extend(BASE_CONFIG_FLAGS)
-    config_cmd.extend(
-        [
-            "./configure",
-            "--static",
-            "--prefix={}".format(WASM_SYSROOT),
-        ]
-    )
-
-    check_output(" ".join(config_cmd), shell=True, cwd=workdir)
-    check_output("make", shell=True, cwd=workdir)
-    check_output("make install", shell=True, cwd=workdir)
