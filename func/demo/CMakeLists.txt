@@ -9,7 +9,6 @@ endfunction(demo_func)
 
 demo_func(argc_argv argc_argv.cpp)
 demo_func(argc_argv_test argc_argv_test.cpp)
-demo_func(blas blas.cpp)
 demo_func(brk brk.cpp)
 demo_func(calloc calloc.cpp)
 demo_func(chain chain.cpp)
@@ -97,6 +96,10 @@ demo_func(zygote_check zygote_check.cpp)
 # WASM-only functions
 if(FAASM_BUILD_TYPE STREQUAL "wasm")
     # demo_func(eigen_vec eigen_vec.cpp)
+
+    include_directories(/usr/local/faasm/llvm-sysroot/include/clapack)
+    demo_func(blas_check blas_check.cpp)
+    target_link_libraries(blas_check blas cblas lapack f2c lapacke)
 endif()
 
 faasm_dynamic_func(dynlink dynlink.cpp)
