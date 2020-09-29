@@ -28,6 +28,11 @@ _complete_invoke() {
     COMPREPLY=( $(compgen -W "${candidates}" -- $2) )
 }
 
+# If running from zsh, run autoload for tab completion
+if [ "$(ps -o comm= -p $$)" = "zsh" ]; then
+    autoload bashcompinit
+    bashcompinit
+fi
 complete -F _complete_invoke -o default invoke inv
 
 # ----------------------------
