@@ -170,7 +170,7 @@ _FaasmFuncPtr getFaasmFunc(int idx) {
     return _faasm_funcs[idx];
 }
 
-int __attribute__((always_inline)) exec(void) {
+/*int __attribute__((always_inline)) exec(void) {
     // If we're in a wasm build, we don't need to invoke the zygote function as it will
     // have been called as part of the initialisation process.
     // In a native context we just execute it for every (main) function invocation
@@ -179,7 +179,7 @@ int __attribute__((always_inline)) exec(void) {
         _faasm_zygote();
     //}
 #endif
-    /*_FaasmFuncPtr f = getFaasmFunc(idx);
-    return f();*/
+    _FaasmFuncPtr f = getFaasmFunc(idx);
+    return f();
     return _main();
-}
+}*/

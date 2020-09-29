@@ -223,8 +223,31 @@ int name() {                       \
     return _faasm_func_##idx();    \
 };                                 \
 int _faasm_func_##idx()*/
+#ifdef __wasm__
 
 #define FAASM_FUNC(name, id) __attribute__((visibility("default"))) __attribute__((export_name(#id))) void name(void)
+
+#define FAASM_MAIN_FUNC() __attribute__((visibility("hidden"))) __attribute__((export_name("0"))) int _main(void)
+
+#else
+
+#define FAASM_FUNC(name,id)                                                                     \
+void _##name##_wrapper(void);                                                                   \
+__attribute__((visibility("default"))) __attribute__((export_name(#id))) void name(void){       \
+    _faasm_zygote();                                                                            \
+    _##name##_wrapper();                                                                        \
+}                                                                                               \
+__attribute__((visibility("hidden"))) __attribute__((always_inline)) void _##name##_wrapper(void)
+
+#define FAASM_MAIN_FUNC()                                                                       \
+int _main_wrapper(void);                                                                        \
+__attribute__((visibility("hidden"))) __attribute__((export_name("0"))) int _main(void){        \
+    _faasm_zygote();                                                                            \
+    _main_wrapper();                                                                            \
+}                                                                                               \
+__attribute__((visibility("hidden"))) __attribute__((always_inline)) int _main_wrapper(void)
+
+#endif
 
 // Shortcut for defining main function
 /*#define FAASM_MAIN_FUNC()         \
@@ -232,11 +255,9 @@ FAASM_FUNC(faasmMain, 0)*/
 
 _FaasmFuncPtr getFaasmFunc(int idx);
 
-#define FAASM_MAIN_FUNC() __attribute__((visibility("default"))) __attribute__((export_name("0"))) int _main(void)
-
 // Faasm entrypoint
 extern int _main(void);
-int exec(void);
+//int exec(void);
 
 #ifdef __cplusplus
 }
