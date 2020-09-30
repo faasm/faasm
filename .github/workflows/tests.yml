@@ -34,7 +34,7 @@ jobs:
         run: pwd
       - name: "Working directory contents"
         run: ls -al
-      # --- Code build ---
+      # --- Check out code ---
       - name: "Fetch ref"
         run: git fetch origin ${GITHUB_REF}:ci-branch
       - name: "Check out branch"
@@ -43,6 +43,15 @@ jobs:
         run: git submodule update
       - name: "Log commits"
         run: git log -3
+      # --- Formatting checks ---
+      - name: "Python formatting check"
+        run: ./bin/check_black.sh
+      # Uncomment when all formatting done
+      #- name: "Run C/C++ formatting"
+      #  run: ./bin/run_clang_format.sh
+      #- name: "Check C/C++ formatting changes"
+      #  run: git diff --exit-code
+      # --- Code build ---
       - name: "Build codegen"
         run: cmake --build . --target codegen_func
         working-directory: /usr/local/code/faasm/build

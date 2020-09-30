@@ -1,5 +1,5 @@
 ARG FAASM_VERSION
-FROM faasm/cpp-root:0.4.0
+FROM faasm/cpp-root:0.4.9
 ARG FAASM_VERSION
 
 # ------------------------------------------------------

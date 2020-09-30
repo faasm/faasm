@@ -257,4 +257,3 @@ def clapack(ctx, clean=False):
     # Make LAPACKE
     run("make -j {}".format(n_cpu), shell=True, cwd=lapacke_dir, check=True)
     run("make install", shell=True, cwd=lapacke_dir, check=True)
-
