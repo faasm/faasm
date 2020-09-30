@@ -1,14 +1,21 @@
-from pyfaasm.core import get_state, get_state_offset, set_state_offset, push_state, pull_state, push_state_partial, \
-    set_state
+from pyfaasm.core import (
+    get_state,
+    get_state_offset,
+    set_state_offset,
+    push_state,
+    pull_state,
+    push_state_partial,
+    set_state,
+)
 
 key = "pyStateTest"
 value_len = 10
-full_value = b'0123456789'
+full_value = b"0123456789"
 
-segment = b'999'
+segment = b"999"
 offset = 2
 segment_len = 3
-modified_value = b'0199956789'
+modified_value = b"0199956789"
 
 
 def _check_full_value(expected):
@@ -38,7 +45,9 @@ def faasm_main():
     # Check just the segment
     actual_segment = get_state_offset(key, value_len, offset, segment_len)
     if actual_segment != segment:
-        msg = "Mismatched segment: actual {}, expected {}".format(actual_segment, segment)
+        msg = "Mismatched segment: actual {}, expected {}".format(
+            actual_segment, segment
+        )
         print(msg)
         exit(1)
 

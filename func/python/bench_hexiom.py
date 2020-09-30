@@ -1,4 +1,9 @@
-from pyperformance.benchmarks.bm_hexiom import LEVELS, DESCENDING, Done, solve_file
+from pyperformance.benchmarks.bm_hexiom import (
+    LEVELS,
+    DESCENDING,
+    Done,
+    solve_file,
+)
 from six.moves import StringIO
 
 level = 25
@@ -17,9 +22,11 @@ def _do_bench():
 
     output = stream.getvalue()
 
-    output = '\n'.join(line.rstrip() for line in output.splitlines())
+    output = "\n".join(line.rstrip() for line in output.splitlines())
     if output != expected:
-        raise AssertionError("Got a wrong answer:\n%s\nexpected: %s" % (output, expected))
+        raise AssertionError(
+            "Got a wrong answer:\n%s\nexpected: %s" % (output, expected)
+        )
 
 
 def faasm_main():
