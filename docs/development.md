@@ -17,11 +17,14 @@ of set-ups, however, the recommended configuration is:
 
 ## Code style
 
+Code style is checked as part of the CI build and uses the following
+configuration:
+
 - **C/C++** - [`clang-format`](https://clang.llvm.org/docs/ClangFormat.html)
-  with the [Mozilla
+  with the [Mozilla C++
   style](https://firefox-source-docs.mozilla.org/code-quality/coding-style/coding_style_cpp.html)
-- **Python** - [Black](https://github.com/psf/black)
-- **Markdown** - wrap to 80 characters
+- **Python** - [Black](https://github.com/psf/black) with an 80 char line limit
+- **Markdown** - wrap to 80 characters where possible (not enforced)
 - **CMake** - TBD
 - **Bash** - TBD
 
