@@ -4,22 +4,25 @@
 #define BASE_CGROUP_NAME "faasm"
 
 namespace isolation {
-    enum CgroupMode {
-        cg_off, cg_on
-    };
+enum CgroupMode
+{
+    cg_off,
+    cg_on
+};
 
-    class CGroup {
-    public:
-        explicit CGroup(const std::string &name);
+class CGroup
+{
+  public:
+    explicit CGroup(const std::string& name);
 
-        void addCurrentThread();
+    void addCurrentThread();
 
-        const std::string getName();
+    const std::string getName();
 
-        const CgroupMode getMode();
+    const CgroupMode getMode();
 
-    private:
-        std::string name;
-        CgroupMode mode;
-    };
+  private:
+    std::string name;
+    CgroupMode mode;
+};
 }
