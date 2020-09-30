@@ -282,6 +282,7 @@ namespace wasm {
 
         return 0;
     }
+    
 
     ssize_t doWritev(int fd, iovec *nativeIovecs, I32 iovecCount) {
         ssize_t bytesWritten = ::writev(fd, nativeIovecs, iovecCount);
@@ -664,6 +665,15 @@ namespace wasm {
     // -----------------------------
     // Unsupported
     // -----------------------------
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_renumber", I32, wasi_fd_renumber, 
+            I32 fdOld, I32 fdNew) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "tmpfile", I32, tmpfile) {
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "umask", I32, umask, I32 a) {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
