@@ -6,7 +6,6 @@ so instead we use [CLAPACK](http://www.netlib.org/clapack/).
 The forked code is found [here](https://github.com/faasm/faasm-clapack) with a 
 couple of changes to cross-compile to wasm.
 
-
 ## Building
 
 The built archives are included in the standard Faasm sysroot so you should
