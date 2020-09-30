@@ -15,6 +15,16 @@ of set-ups, however, the recommended configuration is:
 - CMake 3.13+
 - Ninja (rather than Make)
 
+## Code style
+
+- **C/C++** - [`clang-format`](https://clang.llvm.org/docs/ClangFormat.html)
+  with the [Mozilla
+  style](https://firefox-source-docs.mozilla.org/code-quality/coding-style/coding_style_cpp.html)
+- **Python** - [Black](https://github.com/psf/black)
+- **Markdown** - wrap to 80 characters
+- **CMake** - TBD
+- **Bash** - TBD
+
 ## Checking out the repo
 
 For now, many locations rely on the code being located at
@@ -27,7 +37,7 @@ You can either set this directory up directly, or just symlink it.
 Assuming you've checked out this code somewhere, you'll need to make sure
 submodules are up to date:
 
-```
+```bash
 git submodule update --init
 ```
 
@@ -87,7 +97,7 @@ If you want to build the toolchain from scratch, you'll need to look at the
 To generate machine code for your system you'll need to build a couple of Faasm
 targets with:
 
-```
+```bash
 inv dev.cmake
 inv dev.cc codegen_func
 inv dev.cc codegen_shared_obj
@@ -101,13 +111,13 @@ source](faasmcli/faasmcli/tasks/dev.py).
 You can pull down the prepackaged python runtime and required runtime files
 with:
 
-```
+```bash
 inv toolchain.download-runtime
 ```
 
 You can then put the Python functions in place with:
 
-```
+```bash
 inv upload.user python --py --local-copy
 ```
 
@@ -124,7 +134,7 @@ you can skip this step.
 
 This script will then set up the namespaces
 
-```
+```bash
 sudo ./bin/netns.sh 20
 ```
 
@@ -132,7 +142,7 @@ sudo ./bin/netns.sh 20
 
 To use cgroup isolation, you'll need to run:
 
-```
+```bash
 sudo ./bin/cgroup.sh
 ```
 
