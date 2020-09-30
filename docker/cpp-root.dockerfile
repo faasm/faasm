@@ -41,11 +41,7 @@ RUN apt-get install -y \
 COPY ansible /usr/local/code/faasm/ansible
 WORKDIR /usr/local/code/faasm/ansible
 
-RUN ansible-playbook llvm10.yml
-
-RUN ansible-playbook cereal.yml
-
-RUN ansible-playbook pistache.yml
+RUN ansible-playbook base_container.yml
 
 RUN apt-get clean autoclean
 RUN apt-get autoremove
