@@ -34,6 +34,14 @@ jobs:
         run: pwd
       - name: "Working directory contents"
         run: ls -al
+      # --- Formatting checks ---
+      - name: "Python formatting check"
+        run: ./bin/check_black.sh
+      # Uncomment when all formatting done
+      #- name: "Run C/C++ formatting"
+      #  run: ./bin/run_clang_format.sh
+      #- name: "Check C/C++ formatting changes"
+      #  run: git diff --exit-code
       # --- Code build ---
       - name: "Fetch ref"
         run: git fetch origin ${GITHUB_REF}:ci-branch
