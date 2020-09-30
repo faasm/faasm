@@ -5,10 +5,11 @@
 #include <blaswrap.h>
 #include <f2c.h>
 #include <clapack.h>
-#include <math.h>
 #else
 // TODO - add native CBLAS build
 #endif
+
+#include <math.h>
 
 #define NDIM 4
 
@@ -23,10 +24,13 @@ int main()
     int N, NRHS, LDA, LDB;
     double* A;
     double* B;
+    double* expected;
+    double diff;
     static int IPIV[NDIM], INFO;
 
     A = (double*)malloc(NDIM * NDIM * sizeof(double));
     B = (double*)malloc(NDIM * sizeof(double));
+    expected = (double*)malloc(NDIM * sizeof(double));
 
     N = NDIM;
     NRHS = 1;
@@ -50,28 +54,39 @@ int main()
     A[11] = 4.0;
     A[15] = 3.0;
 
-    // Print matrix A
-    for (i = 0; i < N; i++) {
-        printf("\n");
-        for (j = 0; j < N; j++) {
-            printf("%2.1f,", A[i + N * j]);
-        }
-    }
-    printf("\n");
-
     // Set up vector B
     B[0] = -8.0;
     B[1] = -20.0;
     B[2] = -2.0;
     B[3] = 4.0;
 
+    // Set up expectation
+    expected[0] = -7.0;
+    expected[1] = 3.0;
+    expected[2] = 2.0;
+    expected[3] = 2.0;
+
     dgesv_(&N, &NRHS, A, &LDA, &IPIV, B, &LDB, &INFO);
 
-    printf("Info %d \n", INFO);
-    for (i = 0; i < N; i++) {
-        printf("   %f \n", B[i]);
+    // Hacky equality check here as we know they're ints
+    int success = 1;
+    for(i = 0; i < N; i++) {
+        diff = fabs(B[i] - expected[i]);               
+        if(diff > 0.00000001) {
+            success = 0;
+        }
     }
 
-    return 0;
+    // Error if we don't get what we expect
+    if(success == 0) {
+        printf("BLAS check not producing expected: \n");
+        for(i = 0; i < N; i++) {
+            printf("a[%i] = %2.f   e[%i] = %.2f\n", i, B[i], i, expected[i]);
+        }
+
+        return 1;
+    } else {
+        return 0;
+    }
 }
 

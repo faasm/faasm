@@ -102,7 +102,7 @@ if(FAASM_BUILD_TYPE STREQUAL "wasm")
 
     include_directories(/usr/local/faasm/llvm-sysroot/include/clapack)
     demo_func_c(blas_check blas_check.c)
-    target_link_libraries(blas_check lapack blas f2c)
+    target_link_libraries(blas_check ${FAASM_BLAS_LIBS})
 endif()
 
 faasm_dynamic_func(dynlink dynlink.cpp)
