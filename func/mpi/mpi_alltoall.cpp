@@ -1,10 +1,10 @@
+#include <faasm/compare.h>
+#include <faasm/faasm.h>
 #include <mpi.h>
 #include <stdio.h>
-#include <faasm/faasm.h>
-#include <faasm/compare.h>
 
-
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     MPI_Init(NULL, NULL);
 
     int rank, worldSize;
@@ -15,12 +15,12 @@ FAASM_MAIN_FUNC() {
     int fullSize = worldSize * chunkSize;
 
     // Arrays for sending and receiving
-    int *sendBuf = new int[fullSize];
-    int *expected = new int[fullSize];
-    int *actual = new int[fullSize];
+    int* sendBuf = new int[fullSize];
+    int* expected = new int[fullSize];
+    int* actual = new int[fullSize];
 
     // Populate data
-    for(int i = 0; i < fullSize; i++) {
+    for (int i = 0; i < fullSize; i++) {
         // Send buffer from this rank
         sendBuf[i] = (rank * 10) + i;
 
@@ -30,9 +30,10 @@ FAASM_MAIN_FUNC() {
         expected[i] = (recvRank * 10) + rankOffset;
     }
 
-    MPI_Alltoall(sendBuf, chunkSize, MPI_INT, actual, chunkSize, MPI_INT, MPI_COMM_WORLD);
+    MPI_Alltoall(
+      sendBuf, chunkSize, MPI_INT, actual, chunkSize, MPI_INT, MPI_COMM_WORLD);
 
-    if(!faasm::compareArrays<int>(actual, expected, fullSize)) {
+    if (!faasm::compareArrays<int>(actual, expected, fullSize)) {
         return 1;
     }
 

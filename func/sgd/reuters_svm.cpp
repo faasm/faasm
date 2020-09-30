@@ -1,7 +1,7 @@
 #include <faasm/faasm.h>
-#include <faasm/sgd.h>
 #include <faasm/input.h>
 #include <faasm/matrix.h>
+#include <faasm/sgd.h>
 #include <faasm/time.h>
 
 #include <stdio.h>
@@ -15,8 +15,11 @@ using namespace faasm;
 #define REUTERS_N_EXAMPLES 781265
 #define REUTERS_N_EXAMPLES_MICRO 128
 
-
-SgdParams setUpReutersParams(int nExamples, int nWorkers, int syncInterval, int epochs) {
+SgdParams setUpReutersParams(int nExamples,
+                             int nWorkers,
+                             int syncInterval,
+                             int epochs)
+{
     // Set up reuters params
     SgdParams p;
     p.nWeights = REUTERS_N_FEATURES;
@@ -26,9 +29,10 @@ SgdParams setUpReutersParams(int nExamples, int nWorkers, int syncInterval, int 
     p.nEpochs = epochs;
     p.mu = 1.0;
 
-    // We want to divide the work up with an equal batch size over as many of the workers
-    // as possible. However, if nWorkers is larger compared to nExamples, this may not
-    // be possible, and we can only divide equally over a subset of the workers.
+    // We want to divide the work up with an equal batch size over as many of
+    // the workers as possible. However, if nWorkers is larger compared to
+    // nExamples, this may not be possible, and we can only divide equally over
+    // a subset of the workers.
 
     // Calculate the batch size that can definitely be covered by these workers
     p.batchSize = (nExamples + nWorkers - 1) / nWorkers;
@@ -49,18 +53,19 @@ SgdParams setUpReutersParams(int nExamples, int nWorkers, int syncInterval, int 
     return p;
 }
 
-
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     long inputSize = faasmGetInputSize();
     if (inputSize == 0) {
-        const char *message = "Must provide two ints for input, workers and sync interval";
+        const char* message =
+          "Must provide two ints for input, workers and sync interval";
         setStringOutput(message);
         printf("%s\n", message);
         return 1;
     }
 
-    const char *input = faasm::getStringInput("");
-    int *intInput = faasm::parseStringToIntArray(input, 3);
+    const char* input = faasm::getStringInput("");
+    int* intInput = faasm::parseStringToIntArray(input, 3);
 
     int nWorkers = intInput[0];
     int syncInterval = intInput[1];
@@ -87,7 +92,10 @@ FAASM_MAIN_FUNC() {
     }
 
     printf("SVM: %i epochs, %i workers (%i requested). Sync every %i \n",
-           epochs, p.nBatches, nWorkers, syncInterval);
+           epochs,
+           p.nBatches,
+           nWorkers,
+           syncInterval);
 
     // Initialise weights and mask
     printf("Initialising weights with zeros\n");
@@ -107,7 +115,7 @@ FAASM_MAIN_FUNC() {
         faasmClearAppendedState(ERRORS_KEY);
 
         // Shuffle start indices for each batch
-        int *batchNumbers = faasm::randomIntRange(p.nBatches);
+        int* batchNumbers = faasm::randomIntRange(p.nBatches);
 
         // Run workers in a loop
         auto workerCallIds = new unsigned int[p.nBatches];
@@ -119,18 +127,22 @@ FAASM_MAIN_FUNC() {
 
             // Error if this worker would overshoot
             if (startIdx >= endIdx) {
-                printf("ERROR: worker %i asking for range [%i-%i]\n", w, startIdx, endIdx);
+                printf("ERROR: worker %i asking for range [%i-%i]\n",
+                       w,
+                       startIdx,
+                       endIdx);
                 continue;
             }
 
             // Chain the call
-            int inputData[4] = {w, startIdx, endIdx, thisEpoch};
-            unsigned int workerCallId = faasmChainThisInput(
-                    1,
-                    BYTES(inputData),
-                    4 * sizeof(int)
-            );
-            printf("Worker %i [%i-%i] with ID %i\n", w, startIdx, endIdx, workerCallId);
+            int inputData[4] = { w, startIdx, endIdx, thisEpoch };
+            unsigned int workerCallId =
+              faasmChainThisInput(1, BYTES(inputData), 4 * sizeof(int));
+            printf("Worker %i [%i-%i] with ID %i\n",
+                   w,
+                   startIdx,
+                   endIdx,
+                   workerCallId);
             workerCallIds[w] = workerCallId;
         }
 
@@ -143,9 +155,9 @@ FAASM_MAIN_FUNC() {
             }
         }
 
-        // Decay learning rate (apparently hogwild doesn't actually do this although it takes in the param)
-        // p.learningRate = p.learningRate * p.learningDecay;
-        // writeParamsToState(PARAMS_KEY, p);
+        // Decay learning rate (apparently hogwild doesn't actually do this
+        // although it takes in the param) p.learningRate = p.learningRate *
+        // p.learningDecay; writeParamsToState(PARAMS_KEY, p);
 
         // Rebase timestamp
         double ts = faasm::getSecondsSinceEpoch();
@@ -168,7 +180,8 @@ FAASM_MAIN_FUNC() {
     int charWidth = 20;
     auto output = new char[charWidth * epochs];
     for (int e = 0; e < epochs; e++) {
-        outputLen += sprintf(output + outputLen, "\n%.4f %.4f\n", timestamps[e], losses[e]);
+        outputLen += sprintf(
+          output + outputLen, "\n%.4f %.4f\n", timestamps[e], losses[e]);
     }
 
     // Force null terminator
@@ -179,7 +192,8 @@ FAASM_MAIN_FUNC() {
     return 0;
 }
 
-FAASM_FUNC(step, 1) {
+FAASM_FUNC(step, 1)
+{
     // Read in input
     long inputSize = 4 * sizeof(int);
     auto inputBuffer = new int[4];

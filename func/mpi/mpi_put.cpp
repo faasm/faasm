@@ -1,11 +1,12 @@
-#include <stdio.h>
-#include <mpi.h>
-#include <faasm/faasm.h>
 #include <faasm/compare.h>
+#include <faasm/faasm.h>
+#include <mpi.h>
+#include <stdio.h>
 
 #define NUM_ELEMENT 4
 
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     MPI_Init(NULL, NULL);
 
     int rank;
@@ -15,11 +16,16 @@ FAASM_MAIN_FUNC() {
 
     size_t elemSize = sizeof(int);
 
-    int *sharedData;
+    int* sharedData;
     MPI_Alloc_mem(elemSize * NUM_ELEMENT, MPI_INFO_NULL, &sharedData);
 
     MPI_Win window;
-    MPI_Win_create(sharedData, NUM_ELEMENT * elemSize, 1, MPI_INFO_NULL, MPI_COMM_WORLD, &window);
+    MPI_Win_create(sharedData,
+                   NUM_ELEMENT * elemSize,
+                   1,
+                   MPI_INFO_NULL,
+                   MPI_COMM_WORLD,
+                   &window);
     MPI_Win_fence(0, window);
 
     // Put values from rank 1 to rank 0
@@ -29,7 +35,8 @@ FAASM_MAIN_FUNC() {
             putData[i] = 10 + i;
         }
 
-        MPI_Put(putData, NUM_ELEMENT, MPI_INT, 0, 0, NUM_ELEMENT, MPI_INT, window);
+        MPI_Put(
+          putData, NUM_ELEMENT, MPI_INT, 0, 0, NUM_ELEMENT, MPI_INT, window);
     }
 
     MPI_Win_fence(0, window);
@@ -41,7 +48,8 @@ FAASM_MAIN_FUNC() {
             expected[i] = 10 + i;
         }
 
-        bool asExpected = faasm::compareArrays<int>(sharedData, expected, NUM_ELEMENT);
+        bool asExpected =
+          faasm::compareArrays<int>(sharedData, expected, NUM_ELEMENT);
         if (!asExpected) {
             return 1;
         } else {

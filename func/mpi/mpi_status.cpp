@@ -1,8 +1,9 @@
+#include <faasm/faasm.h>
 #include <mpi.h>
 #include <stdio.h>
-#include <faasm/faasm.h>
 
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     MPI_Init(NULL, NULL);
 
     const int maxCount = 100;
@@ -32,10 +33,15 @@ FAASM_MAIN_FUNC() {
         MPI_Get_count(&status, MPI_INT, &actualCount);
 
         if (actualCount == expectedCount) {
-            printf("As expected, asked for %i values but got %i\n", maxCount, actualCount);
-        } else {
-            printf("Not expected: asked for %i values, expecting %i, but got %i\n", maxCount, expectedCount,
+            printf("As expected, asked for %i values but got %i\n",
+                   maxCount,
                    actualCount);
+        } else {
+            printf(
+              "Not expected: asked for %i values, expecting %i, but got %i\n",
+              maxCount,
+              expectedCount,
+              actualCount);
             returnValue = 1;
         }
     }

@@ -102,7 +102,9 @@ def _add_node_to_graph(node, graph, host_colour_map):
     return node_id
 
 
-def plot_exec_graph(graph, headless=True, output_file="/tmp/faasm_exec_graph.png"):
+def plot_exec_graph(
+    graph, headless=True, output_file="/tmp/faasm_exec_graph.png"
+):
     dot_file = "/tmp/faasm_exec_graph.dot"
 
     write_dot(graph, dot_file)

@@ -5,33 +5,41 @@
 #include <sys/mman.h>
 
 SharedStruct sharedStructInstance = {
-        "Shared struct",
-        10,
-        5,
-        0   // Func pointer
+    "Shared struct",
+    10,
+    5,
+    0 // Func pointer
 };
 
-int sharedFuncInstance(int a) {
+int sharedFuncInstance(int a)
+{
     return a * a;
 }
 
-int multiply(int a, int b) {
+int multiply(int a, int b)
+{
     int result = a * b;
     printf("Multiplying %i and %i to get %i\n", a, b, result);
 
     return result;
 }
 
-int multiplyGlobal() {
+int multiplyGlobal()
+{
     printf("Multiplying struct with name: %s\n", sharedStructInstance.name);
     return sharedStructInstance.alpha * sharedStructInstance.beta;
 }
 
-int checkStack() {
+int checkStack()
+{
     // Provision space on both the heap and stack
     int heapSize = 1200;
-    int *heapStart = (int *) mmap(NULL, heapSize * sizeof(int), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1,
-                                  0);
+    int* heapStart = (int*)mmap(NULL,
+                                heapSize * sizeof(int),
+                                PROT_READ | PROT_WRITE,
+                                MAP_PRIVATE | MAP_ANONYMOUS,
+                                -1,
+                                0);
     for (int i = 0; i < heapSize; i++) {
         heapStart[i] = 10 * i;
     }

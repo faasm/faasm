@@ -1,10 +1,11 @@
-#include <omp.h>
 #include <cstdio>
 #include <faasm/faasm.h>
+#include <omp.h>
 
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     int count = 0;
-    #pragma omp parallel for num_threads(4) default(none) reduction(+:count)
+#pragma omp parallel for num_threads(4) default(none) reduction(+ : count)
     for (int i = 0; i < 400; i++) {
         count += omp_get_thread_num() + 1;
     }

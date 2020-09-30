@@ -1,11 +1,12 @@
-#include <stdio.h>
-#include <mpi.h>
-#include <faasm/faasm.h>
 #include <faasm/compare.h>
+#include <faasm/faasm.h>
+#include <mpi.h>
+#include <stdio.h>
 
 #define NUM_ELEMENT 4
 
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     MPI_Init(NULL, NULL);
 
     int rank;
@@ -40,7 +41,7 @@ FAASM_MAIN_FUNC() {
     int dataSize = sizeof(int);
     MPI_Type_size(MPI_INT, &dataSize);
     MPI_Aint memSize = NUM_ELEMENT * dataSize;
-    int *sharedData;
+    int* sharedData;
     MPI_Alloc_mem(memSize, MPI_INFO_NULL, &sharedData);
 
     int putData[NUM_ELEMENT];
@@ -52,25 +53,39 @@ FAASM_MAIN_FUNC() {
         sharedData[i] = 10 * rank + i;
         putData[i] = 10 * rank + i;
 
-        // Data we expect to get from one rank and have put into our shared mem by another
+        // Data we expect to get from one rank and have put into our shared mem
+        // by another
         expectedGetData[i] = 10 * getRank + i;
         expectedPutData[i] = 10 * putterRank + i;
     }
 
     // Create a window on the shared data
     MPI_Win window;
-    MPI_Win_create(sharedData, NUM_ELEMENT * dataSize, 1, MPI_INFO_NULL, MPI_COMM_WORLD, &window);
+    MPI_Win_create(sharedData,
+                   NUM_ELEMENT * dataSize,
+                   1,
+                   MPI_INFO_NULL,
+                   MPI_COMM_WORLD,
+                   &window);
     MPI_Win_fence(0, window);
 
     // Get data from another rank's shared memory
     int actual[NUM_ELEMENT];
     if (rank < 3) {
-        MPI_Get(actual, NUM_ELEMENT, MPI_INT, getRank, 0, NUM_ELEMENT, MPI_INT, window);
+        MPI_Get(actual,
+                NUM_ELEMENT,
+                MPI_INT,
+                getRank,
+                0,
+                NUM_ELEMENT,
+                MPI_INT,
+                window);
     }
     MPI_Win_fence(0, window);
 
     // Check we've got the data we expected
-    if (rank < 3 && !faasm::compareArrays<int>(actual, expectedGetData, NUM_ELEMENT)) {
+    if (rank < 3 &&
+        !faasm::compareArrays<int>(actual, expectedGetData, NUM_ELEMENT)) {
         return 1;
     } else if (rank < 3) {
         printf("Rank %i - MPI_Get as expected\n", rank);
@@ -78,13 +93,21 @@ FAASM_MAIN_FUNC() {
 
     // Put values to another rank
     if (rank < 3) {
-        MPI_Put(putData, NUM_ELEMENT, MPI_INT, putRank, 0, NUM_ELEMENT, MPI_INT, window);
+        MPI_Put(putData,
+                NUM_ELEMENT,
+                MPI_INT,
+                putRank,
+                0,
+                NUM_ELEMENT,
+                MPI_INT,
+                window);
     }
     MPI_Win_fence(0, window);
 
     // Check we've had the expected data put in our memory
-    if(rank < 3) {
-        bool putDataEqual = faasm::compareArrays<int>(sharedData, expectedPutData, NUM_ELEMENT);
+    if (rank < 3) {
+        bool putDataEqual =
+          faasm::compareArrays<int>(sharedData, expectedPutData, NUM_ELEMENT);
 
         if (!putDataEqual) {
             return 1;

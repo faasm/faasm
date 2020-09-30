@@ -41,7 +41,7 @@ def cc(ctx, target, clean=False):
 
     if target == "all":
         target = ""
-        
+
     run(
         "ninja {}".format(target),
         cwd=_BUILD_DIR,

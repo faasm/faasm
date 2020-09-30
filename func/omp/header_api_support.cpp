@@ -1,19 +1,21 @@
+#include <faasm/faasm.h>
 #include <omp.h>
 #include <stdio.h>
-#include <faasm/faasm.h>
 
 bool failed = false;
 
-struct ThreadInfo {
+struct ThreadInfo
+{
     int32_t thread_num;
     int32_t local_thread_num;
-} __attribute__ ((aligned(64)));
+} __attribute__((aligned(64)));
 
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     int max = omp_get_max_threads();
     auto infos = new ThreadInfo[max];
 
-    #pragma omp parallel num_threads(max) default(none) shared(infos)
+#pragma omp parallel num_threads(max) default(none) shared(infos)
     {
         int thread_num = omp_get_thread_num();
         infos[thread_num].thread_num = thread_num;
@@ -23,11 +25,15 @@ FAASM_MAIN_FUNC() {
     for (int i = 0; i < max; i++) {
         auto thread = infos[i];
         if (thread.thread_num != i) {
-            printf("Expected thread_num to be %d but got %d\n", i, infos[i].thread_num);
+            printf("Expected thread_num to be %d but got %d\n",
+                   i,
+                   infos[i].thread_num);
             failed = true;
         }
         if (thread.local_thread_num != max) {
-            printf("Expected local_thread_num to be %d but got %d\n", max, thread.local_thread_num);
+            printf("Expected local_thread_num to be %d but got %d\n",
+                   max,
+                   thread.local_thread_num);
             failed = true;
         }
     }

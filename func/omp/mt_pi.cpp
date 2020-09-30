@@ -1,13 +1,15 @@
-#include <omp.h>
 #include <cstdio>
+#include <omp.h>
 #include <random>
 
-unsigned long thread_seed() {
+unsigned long thread_seed()
+{
     int threadNum = omp_get_thread_num();
     return threadNum * threadNum * 77 - 22 * threadNum + 1927;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
     long long iterations = 1000LL;
     int num_threads = 1;
     if (argc == 3) {
@@ -18,12 +20,12 @@ int main(int argc, char **argv) {
     }
 
     long long result = 0;
-    #pragma omp parallel num_threads(num_threads) default(none) firstprivate(iterations) reduction(+:result)
+#pragma omp parallel num_threads(num_threads) default(none) firstprivate(iterations) reduction(+:result)
     {
         std::uniform_real_distribution<double> unif(0, 1);
         std::mt19937_64 generator(thread_seed());
         double x, y;
-        #pragma omp for
+#pragma omp for
         for (long i = 0; i < iterations; i++) {
             x = unif(generator);
             y = unif(generator);

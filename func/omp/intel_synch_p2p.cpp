@@ -68,35 +68,36 @@ HISTORY: - Written by Rob Van der Wijngaart, March 2006.
 #include "intel_includes/par-res-kern_omp.h"
 #include <faasm/faasm.h>
 
-/* define shorthand for indexing a multi-dimensional array                       */
-#define ARRAY(i,j) vector[i+(j)*(m)]
-/* define shorthand for flag with cache line padding                             */
-#define LINEWORDS  16
-#define flag(TID,j)    flag[((TID)+(j)*nthread)*LINEWORDS]
+/* define shorthand for indexing a multi-dimensional array */
+#define ARRAY(i, j) vector[i + (j) * (m)]
+/* define shorthand for flag with cache line padding */
+#define LINEWORDS 16
+#define flag(TID, j) flag[((TID) + (j)*nthread) * LINEWORDS]
 
-//int main(int argc, char ** argv) {
-FAASM_MAIN_FUNC() {
+// int main(int argc, char ** argv) {
+FAASM_MAIN_FUNC()
+{
 
-    int    TID;             /* Thread ID                                           */
-    long   m, n;            /* grid dimensions                                     */
-    int    i, j, jj, iter, ID; /* dummies                                          */
-    int    iterations;      /* number of times to run the pipeline algorithm       */
-    int    *flag;           /* used for pairwise synchronizations                  */
-    int    *start, *end;    /* starts and ends of grid slices                      */
-    int    segment_size;
-    double pipeline_time,   /* timing parameters                                   */
-            avgtime;
-    double epsilon = 1.e-8; /* error tolerance                                     */
-    double corner_val;      /* verification value at top right corner of grid      */
-    int    nthread_input,   /* thread parameters                                   */
-            nthread;
-    int    grp;             /* grid line aggregation factor                        */
-    int    jjsize;          /* actual line group size                              */
-    double * RESTRICT vector;/* array holding grid values                          */
-    long   total_length;    /* total required length to store grid values          */
-    int    num_error=0;     /* flag that signals that requested and obtained
-                             numbers of threads are the same                     */
-    int    trueVar, falseVar;     /* toggled booleans used for synchronization           */
+    int TID;   /* Thread ID                                           */
+    long m, n; /* grid dimensions                                     */
+    int i, j, jj, iter, ID; /* dummies */
+    int iterations;   /* number of times to run the pipeline algorithm       */
+    int* flag;        /* used for pairwise synchronizations                  */
+    int *start, *end; /* starts and ends of grid slices                      */
+    int segment_size;
+    double pipeline_time, /* timing parameters */
+      avgtime;
+    double epsilon = 1.e-8; /* error tolerance */
+    double corner_val; /* verification value at top right corner of grid      */
+    int nthread_input, /* thread parameters                                   */
+      nthread;
+    int grp;    /* grid line aggregation factor                        */
+    int jjsize; /* actual line group size                              */
+    double* RESTRICT vector; /* array holding grid values */
+    long total_length; /* total required length to store grid values          */
+    int num_error = 0; /* flag that signals that requested and obtained
+                        numbers of threads are the same                     */
+    int trueVar, falseVar; /* toggled booleans used for synchronization */
 
     /*******************************************************************************
     ** process and test input parameters
@@ -106,20 +107,20 @@ FAASM_MAIN_FUNC() {
     printf("OpenMP pipeline execution on 2D grid\n");
 
     nthread_input = 4;
-    iterations  = 100;
-    m  = 10000;
-    n  = 1000;
+    iterations = 100;
+    m = 10000;
+    n = 1000;
 
-//    if (argc != 5 && argc != 6){
-//        printf("Usage: %s <# threads> <# iterations> <first array dimension> ", *argv);
-//        printf("<second array dimension> [group factor]\n");
-//        return(EXIT_FAILURE);
-//    } else {
-//        nthread_input = atoi(*++argv);
-//        iterations  = atoi(*++argv);
-//        m  = atol(*++argv);
-//        n  = atol(*++argv);
-//    }
+    //    if (argc != 5 && argc != 6){
+    //        printf("Usage: %s <# threads> <# iterations> <first array
+    //        dimension> ", *argv); printf("<second array dimension> [group
+    //        factor]\n"); return(EXIT_FAILURE);
+    //    } else {
+    //        nthread_input = atoi(*++argv);
+    //        iterations  = atoi(*++argv);
+    //        m  = atol(*++argv);
+    //        n  = atol(*++argv);
+    //    }
 
     /* Take number of threads to request from command line */
 
@@ -129,55 +130,60 @@ FAASM_MAIN_FUNC() {
         exit(EXIT_FAILURE);
     }
 
-
-    if (iterations < 1){
-        printf("ERROR: iterations must be >= 1 : %d \n",iterations);
+    if (iterations < 1) {
+        printf("ERROR: iterations must be >= 1 : %d \n", iterations);
         exit(EXIT_FAILURE);
     }
 
-    if (m < 1 || n < 1){
+    if (m < 1 || n < 1) {
         printf("ERROR: grid dimensions must be positive: %ld, %ld \n", m, n);
         exit(EXIT_FAILURE);
     }
 
     grp = 1;
-/* Faasm - no cmd line, default to 1
-    if (argc==6) {
-        grp = atoi(*++argv);
-        if (grp < 1) grp = 1;
-        else if (grp >= n) grp = n-1;
-    }
-    else grp = 1;
-*/
+    /* Faasm - no cmd line, default to 1
+        if (argc==6) {
+            grp = atoi(*++argv);
+            if (grp < 1) grp = 1;
+            else if (grp >= n) grp = n-1;
+        }
+        else grp = 1;
+    */
 
-    total_length = sizeof(double)*m*n;
-    vector = (double *) prk_malloc(total_length);
+    total_length = sizeof(double) * m * n;
+    vector = (double*)prk_malloc(total_length);
     if (!vector) {
-        printf("ERROR: Could not allocate space for vector: %ld\n", total_length);
+        printf("ERROR: Could not allocate space for vector: %ld\n",
+               total_length);
         exit(EXIT_FAILURE);
     }
 
-    if (m<nthread_input) {
-        printf("First grid dimension %ld smaller than number of threads requested: %d\n",
-               m, nthread_input);
+    if (m < nthread_input) {
+        printf("First grid dimension %ld smaller than number of threads "
+               "requested: %d\n",
+               m,
+               nthread_input);
         exit(EXIT_FAILURE);
     }
 
-    start = (int *) prk_malloc(2*nthread_input*sizeof(int));
+    start = (int*)prk_malloc(2 * nthread_input * sizeof(int));
     if (!start) {
-        printf("ERROR: Could not allocate space for array of slice boundaries\n");
+        printf(
+          "ERROR: Could not allocate space for array of slice boundaries\n");
         exit(EXIT_FAILURE);
     }
     end = start + nthread_input;
     start[0] = 0;
-    for (ID=0; ID<nthread_input; ID++) {
-        segment_size = m/nthread_input;
-        if (ID < (m%nthread_input)) segment_size++;
-        if (ID>0) start[ID] = end[ID-1]+1;
-        end[ID] = start[ID]+segment_size-1;
+    for (ID = 0; ID < nthread_input; ID++) {
+        segment_size = m / nthread_input;
+        if (ID < (m % nthread_input))
+            segment_size++;
+        if (ID > 0)
+            start[ID] = end[ID - 1] + 1;
+        end[ID] = start[ID] + segment_size - 1;
     }
 
-    flag = (int *) prk_malloc(sizeof(int)*nthread_input*LINEWORDS*n);
+    flag = (int*)prk_malloc(sizeof(int) * nthread_input * LINEWORDS * n);
     if (!flag) {
         printf("ERROR: COuld not allocate space for synchronization flags\n");
         exit(EXIT_FAILURE);
@@ -194,9 +200,8 @@ FAASM_MAIN_FUNC() {
                 printf("ERROR: number of requested threads %d does not equal ",
                        nthread_input);
                 printf("number of spawned threads %d\n", nthread);
-            }
-            else {
-                printf("Number of threads         = %d\n",nthread_input);
+            } else {
+                printf("Number of threads         = %d\n", nthread_input);
                 printf("Grid sizes                = %ld, %ld\n", m, n);
                 printf("Number of iterations      = %d\n", iterations);
                 if (grp > 1)
@@ -212,28 +217,37 @@ FAASM_MAIN_FUNC() {
 
         TID = omp_get_thread_num();
 
-        /* clear the array, assuming first-touch memory placement                      */
-        for (j=0; j<n; j++) for (i=start[TID]; i<=end[TID]; i++) ARRAY(i,j) = 0.0;
-        /* set boundary values (bottom and left side of grid                           */
-        if (TID==0) for (j=0; j<n; j++) ARRAY(start[TID],j) = (double) j;
-        for (i=start[TID]; i<=end[TID]; i++) ARRAY(i,0) = (double) i;
+        /* clear the array, assuming first-touch memory placement */
+        for (j = 0; j < n; j++)
+            for (i = start[TID]; i <= end[TID]; i++)
+                ARRAY(i, j) = 0.0;
+        /* set boundary values (bottom and left side of grid */
+        if (TID == 0)
+            for (j = 0; j < n; j++)
+                ARRAY(start[TID], j) = (double)j;
+        for (i = start[TID]; i <= end[TID]; i++)
+            ARRAY(i, 0) = (double)i;
 
-        /* set flags to zero to indicate no data is available yet                      */
-        trueVar = 1; falseVar = !trueVar;
-        for (j=0; j<n; j++) flag(TID,j) = falseVar;
+        /* set flags to zero to indicate no data is available yet */
+        trueVar = 1;
+        falseVar = !trueVar;
+        for (j = 0; j < n; j++)
+            flag(TID, j) = falseVar;
 
-        /* we need a barrier after setting the flags, to make sure each is
-           visible to all threads, and to synchronize before the iterations start      */
+            /* we need a barrier after setting the flags, to make sure each is
+               visible to all threads, and to synchronize before the iterations
+               start      */
 #pragma omp barrier
 
-        for (iter = 0; iter<=iterations; iter++){
+        for (iter = 0; iter <= iterations; iter++) {
 
 #if !SYNCHRONOUS
-            /* true and false toggle each iteration                                      */
-            trueVar = (iter+1)%2; falseVar = !trueVar;
+            /* true and false toggle each iteration */
+            trueVar = (iter + 1) % 2;
+            falseVar = !trueVar;
 #endif
 
-            /* start timer after a warmup iteration                                      */
+            /* start timer after a warmup iteration */
             if (iter == 1) {
 #pragma omp barrier
 #pragma omp master
@@ -242,59 +256,65 @@ FAASM_MAIN_FUNC() {
                 }
             }
 
-            if (TID==0) { /* first thread waits for corner value to be copied            */
-                while (flag(0,0) == trueVar) {
+            if (TID ==
+                0) { /* first thread waits for corner value to be copied */
+                while (flag(0, 0) == trueVar) {
 #pragma omp flush
                 }
 #if SYNCHRONOUS
-                flag(0,0)= trueVar;
-      #pragma omp flush
+                flag(0, 0) = trueVar;
+#pragma omp flush
 #endif
             }
 
-            for (j=1; j<n; j+=grp) { /* apply grouping                                   */
+            for (j = 1; j < n; j += grp) { /* apply grouping */
 
-                jjsize = MIN(grp, n-j);
+                jjsize = MIN(grp, n - j);
 
-                /* if not on left boundary,  wait for left neighbor to produce data        */
+                /* if not on left boundary,  wait for left neighbor to produce
+                 * data        */
                 if (TID > 0) {
-                    while (flag(TID-1,j) == falseVar) {
+                    while (flag(TID - 1, j) == falseVar) {
 #pragma omp flush
                     }
 #if SYNCHRONOUS
-                    flag(TID-1,j)= falseVar;
-        #pragma omp flush
+                    flag(TID - 1, j) = falseVar;
+#pragma omp flush
 #endif
                 }
 
-                for (jj=j; jj<j+jjsize; jj++)
-                    for (i=MAX(start[TID],1); i<= end[TID]; i++) {
-                        ARRAY(i,jj) = ARRAY(i-1,jj) + ARRAY(i,jj-1) - ARRAY(i-1,jj-1);
+                for (jj = j; jj < j + jjsize; jj++)
+                    for (i = MAX(start[TID], 1); i <= end[TID]; i++) {
+                        ARRAY(i, jj) = ARRAY(i - 1, jj) + ARRAY(i, jj - 1) -
+                                       ARRAY(i - 1, jj - 1);
                     }
 
-                /* if not on right boundary, signal right neighbor it has new data         */
-                if (TID < nthread-1) {
+                /* if not on right boundary, signal right neighbor it has new
+                 * data         */
+                if (TID < nthread - 1) {
 #if SYNCHRONOUS
-                    while (flag(TID,j) == trueVar) {
-          #pragma omp flush
-        }
+                    while (flag(TID, j) == trueVar) {
+#pragma omp flush
+                    }
 #endif
-                    flag(TID,j) = trueVar;
+                    flag(TID, j) = trueVar;
 #pragma omp flush
                 }
             }
 
-            if (TID==nthread-1) { /* if on right boundary, copy top right corner value
-                to bottom left corner to create dependency and signal completion   */
-                ARRAY(0,0) = -ARRAY(m-1,n-1);
+            if (TID ==
+                nthread -
+                  1) { /* if on right boundary, copy top right corner value
+     to bottom left corner to create dependency and signal completion   */
+                ARRAY(0, 0) = -ARRAY(m - 1, n - 1);
 #if SYNCHRONOUS
-                while (flag(0,0) == falseVar) {
-          #pragma omp flush
-        }
-        flag(0,0) = falseVar;
+                while (flag(0, 0) == falseVar) {
+#pragma omp flush
+                }
+                flag(0, 0) = falseVar;
 #else
 #pragma omp flush
-                flag(0,0) = trueVar;
+                flag(0, 0) = trueVar;
 #endif
 #pragma omp flush
             }
@@ -307,32 +327,35 @@ FAASM_MAIN_FUNC() {
             pipeline_time = wtime() - pipeline_time;
         }
 
-    } /* end of OPENMP parallel region                                             */
+    } /* end of OPENMP parallel region */
 
     /*******************************************************************************
     ** Analyze and output results.
     ********************************************************************************/
 
-    /* verify correctness, using top right value;                                  */
-    corner_val = (double)((iterations+1)*(n+m-2));
-    if (fabs(ARRAY(m-1,n-1)-corner_val)/corner_val > epsilon) {
+    /* verify correctness, using top right value; */
+    corner_val = (double)((iterations + 1) * (n + m - 2));
+    if (fabs(ARRAY(m - 1, n - 1) - corner_val) / corner_val > epsilon) {
         printf("ERROR: checksum %lf does not match verification value %lf\n",
-               ARRAY(m-1,n-1), corner_val);
+               ARRAY(m - 1, n - 1),
+               corner_val);
         exit(EXIT_FAILURE);
     }
 
 #if VERBOSE
     printf("Solution validates; verification value = %lf\n", corner_val);
-  printf("Point-to-point synchronizations/s: %lf\n",
-         ((float)((n-1)*(nthread-1)))/(avgtime));
+    printf("Point-to-point synchronizations/s: %lf\n",
+           ((float)((n - 1) * (nthread - 1))) / (avgtime));
 #else
     printf("Solution validates\n");
 #endif
-    avgtime = pipeline_time/iterations;
-    /* flip the sign of the execution time to indicate cheating                    */
-    if (grp>1) avgtime *= -1.0;
+    avgtime = pipeline_time / iterations;
+    /* flip the sign of the execution time to indicate cheating */
+    if (grp > 1)
+        avgtime *= -1.0;
     printf("Rate (MFlops/s): %lf Avg time (s): %lf\n",
-           1.0E-06 * 2 * ((double)((m-1)*(n-1)))/avgtime, avgtime);
+           1.0E-06 * 2 * ((double)((m - 1) * (n - 1))) / avgtime,
+           avgtime);
 
     exit(EXIT_SUCCESS);
 }

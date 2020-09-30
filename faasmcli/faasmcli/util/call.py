@@ -84,12 +84,16 @@ def invoke_impl(
         headers = {}
     if asynch:
         # Submit initial asynch call
-        asynch_result = do_post(url, msg, headers=headers, quiet=True, json=True)
+        asynch_result = do_post(
+            url, msg, headers=headers, quiet=True, json=True
+        )
         try:
             call_id = int(asynch_result)
         except ValueError:
             raise RuntimeError(
-                "Could not parse async response to int: {}".format(asynch_result)
+                "Could not parse async response to int: {}".format(
+                    asynch_result
+                )
             )
 
         if not poll:
