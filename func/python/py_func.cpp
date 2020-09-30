@@ -4,7 +4,8 @@
 #include <Python.h>
 
 #ifndef __wasm__
-extern "C" {
+extern "C"
+{
 #include <emulator/emulator_api.h>
 }
 #endif
@@ -23,8 +24,9 @@ extern "C" {
  * Returns the relevant Python entry function. We need to invoke different
  * functions depending on which Faasm function index we're dealing with.
  */
-const char *getPythonFunctionName() {
-    char *entryFunc = faasmGetPythonEntry();
+const char* getPythonFunctionName()
+{
+    char* entryFunc = faasmGetPythonEntry();
 
     if (strlen(entryFunc) == 0) {
         return DEFAULT_MAIN_FUNC;
@@ -37,7 +39,8 @@ const char *getPythonFunctionName() {
  * Returns the working dir we need to be in to import the Python module
  * for the required function.
  */
-const char *getPythonWorkingDir(const char *user, const char *funcName) {
+const char* getPythonWorkingDir(const char* user, const char* funcName)
+{
     auto workingDir = new char[60];
 
 #ifdef __wasm__
@@ -53,7 +56,8 @@ const char *getPythonWorkingDir(const char *user, const char *funcName) {
  * Returns the name of the python module to execute. If executing in wasm this
  * will be different to when executing natively.
  */
-const char *getPythonModuleName(const char *funcName) {
+const char* getPythonModuleName(const char* funcName)
+{
 #ifdef __wasm__
     return "function";
 #else
@@ -64,7 +68,8 @@ const char *getPythonModuleName(const char *funcName) {
 /**
  * Initialise CPython using a Faasm zygote to avoid doing so repeatedly
  */
-FAASM_ZYGOTE() {
+FAASM_ZYGOTE()
+{
     Py_InitializeEx(0);
 
     setUpPyNumpy();
@@ -72,7 +77,7 @@ FAASM_ZYGOTE() {
     unsigned int preloadLibs = getConfFlag("PYTHON_PRELOAD");
     if (preloadLibs == 1) {
         // Import numpy up front
-        PyObject *numpyModule = PyImport_ImportModule("numpy");
+        PyObject* numpyModule = PyImport_ImportModule("numpy");
         if (!numpyModule) {
             printf("\nFailed to import numpy\n");
         } else {
@@ -80,7 +85,7 @@ FAASM_ZYGOTE() {
         }
 
         // Import pyfaasm
-        PyObject *pyfaasmModule = PyImport_ImportModule("pyfaasm.core");
+        PyObject* pyfaasmModule = PyImport_ImportModule("pyfaasm.core");
         if (!pyfaasmModule) {
             printf("\nFailed to import pyfaasm\n");
         } else {
@@ -91,34 +96,37 @@ FAASM_ZYGOTE() {
     return 0;
 }
 
-FAASM_MAIN_FUNC() {
-    // With this line uncommented, this file can be run as a normal executable for testing
-    // setEmulatedMessageFromJson(R"({"user": "python", "function": "py_func", "py_user": "python", "py_func": "lang_test", "py_entry": "faasm_main"})");
+FAASM_MAIN_FUNC()
+{
+    // With this line uncommented, this file can be run as a normal executable
+    // for testing setEmulatedMessageFromJson(R"({"user": "python", "function":
+    // "py_func", "py_user": "python", "py_func": "lang_test", "py_entry":
+    // "faasm_main"})");
 
     // Get details of the Faasm call
-    char *user = faasmGetPythonUser();
-    char *funcName = faasmGetPythonFunc();
-    const char *pythonFuncName = getPythonFunctionName();
+    char* user = faasmGetPythonUser();
+    char* funcName = faasmGetPythonFunc();
+    const char* pythonFuncName = getPythonFunctionName();
 
     // Variables related to importing/ executing the Python module
-    const char *workingDir = getPythonWorkingDir(user, funcName);
-    const char *pythonModuleName = getPythonModuleName(funcName);
+    const char* workingDir = getPythonWorkingDir(user, funcName);
+    const char* pythonModuleName = getPythonModuleName(funcName);
 
     // Add the directory to the Python path
-    PyObject *sys = PyImport_ImportModule("sys");
-    PyObject *path = PyObject_GetAttrString(sys, "path");
+    PyObject* sys = PyImport_ImportModule("sys");
+    PyObject* path = PyObject_GetAttrString(sys, "path");
     PyList_Append(path, PyUnicode_FromString(workingDir));
 
     // Import the module
-    PyObject *module = PyImport_ImportModule(pythonModuleName);
+    PyObject* module = PyImport_ImportModule(pythonModuleName);
 
     if (module != nullptr) {
-        PyObject *func = PyObject_GetAttrString(module, pythonFuncName);
+        PyObject* func = PyObject_GetAttrString(module, pythonFuncName);
 
         if (func && PyCallable_Check(func)) {
             // Note that chained functions take their input data as argument
-            PyObject *pythonFuncArgs;
-            PyObject *inputBytes;
+            PyObject* pythonFuncArgs;
+            PyObject* inputBytes;
             if (strcmp(pythonFuncName, DEFAULT_MAIN_FUNC) == 0) {
                 // Default main function takes no argument
                 pythonFuncArgs = nullptr;
@@ -134,7 +142,8 @@ FAASM_MAIN_FUNC() {
                     faasmGetInput(rawInput, inputSize);
 
                     // Convert to python bytes object and build arguments tuple
-                    inputBytes = PyBytes_FromStringAndSize((char *) rawInput, inputSize);
+                    inputBytes =
+                      PyBytes_FromStringAndSize((char*)rawInput, inputSize);
                 }
 
                 pythonFuncArgs = PyTuple_New(1);
@@ -142,17 +151,18 @@ FAASM_MAIN_FUNC() {
             }
 
             // Execute the function
-            PyObject *returnValue = PyObject_CallObject(func, pythonFuncArgs);
+            PyObject* returnValue = PyObject_CallObject(func, pythonFuncArgs);
 
             // Clear up args
-            if(pythonFuncArgs != nullptr) {
+            if (pythonFuncArgs != nullptr) {
                 Py_DECREF(pythonFuncArgs);
                 Py_DECREF(inputBytes);
             }
 
             // Check return value and clear up
             if (returnValue != nullptr) {
-                printf("Python call succeeded (return value = %ld)\n", PyLong_AsLong(returnValue));
+                printf("Python call succeeded (return value = %ld)\n",
+                       PyLong_AsLong(returnValue));
                 Py_DECREF(returnValue);
             } else {
                 // Have to tidy up here as about to return

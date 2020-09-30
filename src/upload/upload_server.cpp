@@ -1,13 +1,14 @@
 #include <upload/UploadServer.h>
 
-#include <faabric/util/logging.h>
-#include <faabric/util/config.h>
 #include <faabric/state/StateServer.h>
+#include <faabric/util/config.h>
+#include <faabric/util/logging.h>
 
-int main() {
+int main()
+{
     faabric::util::initLogging();
 
-    faabric::util::SystemConfig &config = faabric::util::getSystemConfig();
+    faabric::util::SystemConfig& config = faabric::util::getSystemConfig();
     config.print();
 
     // Add a state server in the background

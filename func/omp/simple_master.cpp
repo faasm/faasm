@@ -1,15 +1,16 @@
+#include <faasm/faasm.h>
 #include <omp.h>
 #include <stdio.h>
-#include <faasm/faasm.h>
 
 bool fail = false;
 bool accessed = false; /* racy: should be atomic bool */
 
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     int mainNum = omp_get_thread_num();
-    #pragma omp parallel default(none) shared(mainNum)
+#pragma omp parallel default(none) shared(mainNum)
     {
-        #pragma omp master
+#pragma omp master
         {
             if (accessed) {
                 printf("Master section was entered multiple times\n");
@@ -19,7 +20,9 @@ FAASM_MAIN_FUNC() {
             int localNum = omp_get_thread_num();
             if (mainNum != localNum) {
                 printf("Master section not executed by master thread. "
-                       "Got %d, expected %d\n", localNum, mainNum);
+                       "Got %d, expected %d\n",
+                       localNum,
+                       mainNum);
                 fail = true;
             }
         }

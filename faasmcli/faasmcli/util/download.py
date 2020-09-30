@@ -9,12 +9,16 @@ from requests import get
 from faasmcli.util.env import FAASM_HOME
 
 
-def download_proj(url, filename, extension="tar.gz", tar_args="-xf", extract_file=None):
+def download_proj(
+    url, filename, extension="tar.gz", tar_args="-xf", extract_file=None
+):
     if not exists(FAASM_HOME):
         makedirs(FAASM_HOME)
 
     extract_dir = (
-        join(FAASM_HOME, extract_file) if extract_file else join(FAASM_HOME, filename)
+        join(FAASM_HOME, extract_file)
+        if extract_file
+        else join(FAASM_HOME, filename)
     )
     tar_filename = "{}.{}".format(filename, extension)
     tar_file = join(FAASM_HOME, tar_filename)
@@ -51,4 +55,6 @@ def get_file(url, output_path):
     if res == 0:
         print("Successful GET file from {} to {}".format(url, output_path))
     else:
-        raise RuntimeError("Failed GETting file from {} to {}".format(url, output_path))
+        raise RuntimeError(
+            "Failed GETting file from {} to {}".format(url, output_path)
+        )

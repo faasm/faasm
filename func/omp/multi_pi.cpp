@@ -1,14 +1,16 @@
-#include <omp.h>
-#include <cstdio>
-#include <random>
 #include "faasmp/reduction.h"
+#include <cstdio>
+#include <omp.h>
+#include <random>
 
-unsigned long thread_seed() {
+unsigned long thread_seed()
+{
     int threadNum = omp_get_thread_num();
     return threadNum * threadNum * 77 - 22 * threadNum + 1927;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
     long long iterations = 1000L;
     long num_threads = 1;
     long num_devices = 0;
@@ -25,13 +27,13 @@ int main(int argc, char **argv) {
     omp_set_default_device(num_devices);
 
     i64 result(0);
-    #pragma omp parallel default(none) firstprivate(iterations) reduction(+:result)
+#pragma omp parallel default(none) firstprivate(iterations) reduction(+:result)
     {
         std::uniform_real_distribution<double> unif(0, 1);
         std::mt19937_64 generator(thread_seed());
         double x, y;
 
-        #pragma omp for nowait
+#pragma omp for nowait
         for (std::int64_t i = 0; i < iterations; i++) {
             x = unif(generator);
             y = unif(generator);
@@ -41,7 +43,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    double pi = (4.0 * (double) result) / (iterations);
+    double pi = (4.0 * (double)result) / (iterations);
 
     if (pi - 3.14 > 0.01) {
         printf("Low accuracy. Expected pi got %f\n", pi);

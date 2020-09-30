@@ -2,10 +2,11 @@
 #define FAASM_PYTHON_H
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-void setUpPyNumpy();
+    void setUpPyNumpy();
 
 #ifdef __cplusplus
 }

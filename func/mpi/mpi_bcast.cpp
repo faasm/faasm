@@ -1,11 +1,11 @@
-#include <mpi.h>
-#include <stdio.h>
-#include <faasm/faasm.h>
 #include <cstring>
 #include <faasm/compare.h>
+#include <faasm/faasm.h>
+#include <mpi.h>
+#include <stdio.h>
 
-
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     MPI_Init(NULL, NULL);
 
     int rank;
@@ -19,8 +19,8 @@ FAASM_MAIN_FUNC() {
     }
 
     int root = 2;
-    int expected[4] = {0, 1, 2, 3};
-    int actual[4] = {-1, -1, -1, -1};
+    int expected[4] = { 0, 1, 2, 3 };
+    int actual[4] = { -1, -1, -1, -1 };
 
     if (rank == root) {
         memcpy(actual, expected, 4 * sizeof(int));

@@ -6,42 +6,44 @@
 #include <queue>
 #include <vector>
 
-#include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Inline/BasicTypes.h>
 #include <WAVM/Platform/Thread.h>
+#include <WAVM/Runtime/Runtime.h>
 
-#include <faabric/util/locks.h>
 #include <faabric/util/locks.h>
 #include <wavm/OMPThreadPool.h>
 
 namespace wasm {
-    class WAVMWasmModule;
+class WAVMWasmModule;
 
-    namespace openmp {
-        struct LocalThreadArgs;
+namespace openmp {
+struct LocalThreadArgs;
 
-        class PlatformThreadPool {
-        public:
-            PlatformThreadPool(size_t numThreads, WAVMWasmModule *module);
+class PlatformThreadPool
+{
+  public:
+    PlatformThreadPool(size_t numThreads, WAVMWasmModule* module);
 
-            friend WAVM::I64 workerEntryFunc(void *_args);
+    friend WAVM::I64 workerEntryFunc(void* _args);
 
-            std::future<WAVM::I64> runThread(openmp::LocalThreadArgs &&threadArgs);
+    std::future<WAVM::I64> runThread(openmp::LocalThreadArgs&& threadArgs);
 
-            ~PlatformThreadPool();
+    ~PlatformThreadPool();
 
-        private:
-            std::queue<std::pair<std::promise<WAVM::I64>, openmp::LocalThreadArgs>> tasks;
-            std::vector<WAVM::Platform::Thread *> workers;
+  private:
+    std::queue<std::pair<std::promise<WAVM::I64>, openmp::LocalThreadArgs>>
+      tasks;
+    std::vector<WAVM::Platform::Thread*> workers;
 
-            std::mutex mutexQueue;
-            std::condition_variable condition;
-            bool stop = false;
-        };
+    std::mutex mutexQueue;
+    std::condition_variable condition;
+    bool stop = false;
+};
 
-        struct WorkerArgs {
-            uint32_t stackTop;
-            PlatformThreadPool *pool;
-        };
-    }
+struct WorkerArgs
+{
+    uint32_t stackTop;
+    PlatformThreadPool* pool;
+};
+}
 }

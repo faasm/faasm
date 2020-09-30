@@ -9,8 +9,8 @@ from shutil import copy
 
 
 def wasm_cmake(
-        src_dir, build_dir, target, clean=False, debug=False, sgx=False
-        ):
+    src_dir, build_dir, target, clean=False, debug=False, sgx=False
+):
     build_type = "wasm"
     cmake_build_type = "Debug" if debug else "Release"
 
@@ -34,7 +34,7 @@ def wasm_cmake(
         raise RuntimeError("Failed on cmake for {}".format(target))
 
     cmd = "ninja -vv" if debug else "ninja"
-    cmd = "{} {}".format(cmd, target) if target else cmd    
+    cmd = "{} {}".format(cmd, target) if target else cmd
     res = run(cmd, shell=True, cwd=build_dir)
 
     if res.returncode != 0:
@@ -48,5 +48,3 @@ def wasm_copy_upload(user, func, wasm_file):
     dest_file = join(dest_folder, "function.wasm")
 
     copy(wasm_file, dest_file)
-
-

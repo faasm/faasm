@@ -9,7 +9,9 @@ TOOLCHAIN_INSTALL = join(FAASM_LOCAL_DIR, "toolchain")
 
 def _get_artifact_url(name, version=None):
     version = version if version else get_faasm_version()
-    url = "https://github.com/lsds/faasm/releases/download/v{}/{}".format(version, name)
+    url = "https://github.com/lsds/faasm/releases/download/v{}/{}".format(
+        version, name
+    )
     return url
 
 
@@ -64,7 +66,9 @@ def tar_toolchain():
 
     print("Creating archive of Faasm toolchain")
     check_output(
-        "tar -czf {} toolchain".format(tar_name), shell=True, cwd=FAASM_LOCAL_DIR
+        "tar -czf {} toolchain".format(tar_name),
+        shell=True,
+        cwd=FAASM_LOCAL_DIR,
     )
 
     return tar_name, tar_path
@@ -77,7 +81,9 @@ def tar_runtime_root():
     # Compress
     print("Creating archive of Faasm runtime root")
     check_output(
-        "tar -czf {} runtime_root".format(tar_path), shell=True, cwd=FAASM_LOCAL_DIR
+        "tar -czf {} runtime_root".format(tar_path),
+        shell=True,
+        cwd=FAASM_LOCAL_DIR,
     )
 
     return tar_name, tar_path
@@ -89,7 +95,9 @@ def tar_sysroot():
 
     print("Creating archive of Faasm sysroot")
     check_output(
-        "tar -czf {} llvm-sysroot".format(tar_name), shell=True, cwd=FAASM_LOCAL_DIR
+        "tar -czf {} llvm-sysroot".format(tar_name),
+        shell=True,
+        cwd=FAASM_LOCAL_DIR,
     )
 
     return tar_name, tar_path

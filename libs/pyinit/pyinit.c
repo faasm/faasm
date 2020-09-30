@@ -5,11 +5,11 @@
 #include <stdlib.h>
 
 #include <complex.h>
+#include <fenv.h>
 #include <locale.h>
 #include <math.h>
 #include <setjmp.h>
 #include <string.h>
-#include <fenv.h>
 
 #define FORCE_LINK(func) fprintf(devNull, "%p", func)
 

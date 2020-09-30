@@ -7,7 +7,7 @@ def faasm_main():
 
     paths = [
         "/lib/python3.8/multiprocessing/",
-        "/lib/python3.8/multiprocessing/__pycache__/"
+        "/lib/python3.8/multiprocessing/__pycache__/",
     ]
 
     print("CWD = {}".format(os.getcwd()))

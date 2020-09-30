@@ -19,7 +19,17 @@ class MemTotal:
         self.dirty = 0
 
     def get_labels(self):
-        return ["VSS", "USS", "PSS", "RSS", "Shared", "Text", "Lib", "Data", "Dirty"]
+        return [
+            "VSS",
+            "USS",
+            "PSS",
+            "RSS",
+            "Shared",
+            "Text",
+            "Lib",
+            "Data",
+            "Dirty",
+        ]
 
     def add_mem_info(self, mi):
         self.vss += mi.vms

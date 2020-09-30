@@ -13,7 +13,9 @@ def upload_sparse_matrix(user, key, directory, host=None, s3_bucket=None):
         this_key = "{}_{}".format(key, f)
         file_path = join(directory, f)
 
-        upload_binary_state(user, this_key, file_path, host=host, s3_bucket=s3_bucket)
+        upload_binary_state(
+            user, this_key, file_path, host=host, s3_bucket=s3_bucket
+        )
 
 
 def download_binary_state(user, key, output_path, host="localhost", port=8002):
@@ -31,7 +33,9 @@ def upload_binary_state(user, key, binary_file, host=None, s3_bucket=None):
     if s3_bucket:
         s3_key = "{}/{}".format(user, key)
         print(
-            "Uploading matrix binary to S3 {} -> {}/{}".format(key, s3_bucket, s3_key)
+            "Uploading matrix binary to S3 {} -> {}/{}".format(
+                key, s3_bucket, s3_key
+            )
         )
         upload_file_to_s3(binary_file, s3_bucket, s3_key)
     else:

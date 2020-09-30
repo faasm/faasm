@@ -7,12 +7,13 @@
 using namespace faasm;
 
 namespace storage {
-    class SparseMatrixFileSerialiser : public SparseMatrixSerialiser {
-    public:
-        explicit SparseMatrixFileSerialiser(const SparseMatrix<double> &matIn);
+class SparseMatrixFileSerialiser : public SparseMatrixSerialiser
+{
+  public:
+    explicit SparseMatrixFileSerialiser(const SparseMatrix<double>& matIn);
 
-        void writeToFile(const std::string &directory);
+    void writeToFile(const std::string& directory);
 
-        static SparseMatrix<double> readFromFiles(const std::string &directory);
-    };
+    static SparseMatrix<double> readFromFiles(const std::string& directory);
+};
 }

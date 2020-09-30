@@ -19,46 +19,69 @@ protocol = pickle.HIGHEST_PROTOCOL
 # ---------------------------------
 
 DICT = {
-    'ads_flags': long(0),
-    'age': 18,
-    'birthday': datetime.date(1980, 5, 7),
-    'bulletin_count': long(0),
-    'comment_count': long(0),
-    'country': 'BR',
-    'encrypted_id': 'G9urXXAJwjE',
-    'favorite_count': long(9),
-    'first_name': '',
-    'flags': long(412317970704),
-    'friend_count': long(0),
-    'gender': 'm',
-    'gender_for_display': 'Male',
-    'id': long(302935349),
-    'is_custom_profile_icon': long(0),
-    'last_name': '',
-    'locale_preference': 'pt_BR',
-    'member': long(0),
-    'tags': ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
-    'profile_foo_id': long(827119638),
-    'secure_encrypted_id': 'Z_xxx2dYx3t4YAdnmfgyKw',
-    'session_number': long(2),
-    'signup_id': '201-19225-223',
-    'status': 'A',
-    'theme': 1,
-    'time_created': long(1225237014),
-    'time_updated': long(1233134493),
-    'unread_message_count': long(0),
-    'user_group': '0',
-    'username': 'collinwinter',
-    'play_count': long(9),
-    'view_count': long(7),
-    'zip': ''}
+    "ads_flags": long(0),
+    "age": 18,
+    "birthday": datetime.date(1980, 5, 7),
+    "bulletin_count": long(0),
+    "comment_count": long(0),
+    "country": "BR",
+    "encrypted_id": "G9urXXAJwjE",
+    "favorite_count": long(9),
+    "first_name": "",
+    "flags": long(412317970704),
+    "friend_count": long(0),
+    "gender": "m",
+    "gender_for_display": "Male",
+    "id": long(302935349),
+    "is_custom_profile_icon": long(0),
+    "last_name": "",
+    "locale_preference": "pt_BR",
+    "member": long(0),
+    "tags": ["a", "b", "c", "d", "e", "f", "g"],
+    "profile_foo_id": long(827119638),
+    "secure_encrypted_id": "Z_xxx2dYx3t4YAdnmfgyKw",
+    "session_number": long(2),
+    "signup_id": "201-19225-223",
+    "status": "A",
+    "theme": 1,
+    "time_created": long(1225237014),
+    "time_updated": long(1233134493),
+    "unread_message_count": long(0),
+    "user_group": "0",
+    "username": "collinwinter",
+    "play_count": long(9),
+    "view_count": long(7),
+    "zip": "",
+}
 
 TUPLE = (
-    [long(x) for x in
-     [265867233, 265868503, 265252341, 265243910, 265879514,
-      266219766, 266021701, 265843726, 265592821, 265246784,
-      265853180, 45526486, 265463699, 265848143, 265863062,
-      265392591, 265877490, 265823665, 265828884, 265753032]], 60)
+    [
+        long(x)
+        for x in [
+            265867233,
+            265868503,
+            265252341,
+            265243910,
+            265879514,
+            266219766,
+            266021701,
+            265843726,
+            265592821,
+            265246784,
+            265853180,
+            45526486,
+            265463699,
+            265848143,
+            265863062,
+            265392591,
+            265877490,
+            265823665,
+            265828884,
+            265753032,
+        ]
+    ],
+    60,
+)
 
 
 def mutate_dict(orig_dict, random_source):
@@ -204,14 +227,12 @@ def bench_pickle_dict(loops):
 
 BENCHMARKS = {
     # 20 inner-loops: don't count the 3 pickled objects
-    'pickle': (bench_pickle, 20),
-
+    "pickle": (bench_pickle, 20),
     # 20 inner-loops: don't count the 3 unpickled objects
-    'unpickle': (bench_unpickle, 20),
-
-    'pickle_list': (bench_pickle_list, 10),
-    'unpickle_list': (bench_unpickle_list, 10),
-    'pickle_dict': (bench_pickle_dict, 5),
+    "unpickle": (bench_unpickle, 20),
+    "pickle_list": (bench_pickle_list, 10),
+    "unpickle_list": (bench_unpickle_list, 10),
+    "pickle_dict": (bench_pickle_dict, 5),
 }
 
 

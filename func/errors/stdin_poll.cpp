@@ -3,7 +3,8 @@
 #include <poll.h>
 
 /** Attempts to poll stdin */
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     struct pollfd stdinFd;
     stdinFd.fd = 0;
 

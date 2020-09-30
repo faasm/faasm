@@ -1,33 +1,35 @@
 
-extern "C" {
+extern "C"
+{
+#include <emulator/emulator_api.h>
 #include <faasm/core.h>
 #include <faasm/host_interface.h>
-#include <emulator/emulator_api.h>
 }
 
 #include <emulator/emulator.h>
-#include <faabric/util/locks.h>
-#include <faabric/util/logging.h>
+#include <faabric/scheduler/Scheduler.h>
 #include <faabric/state/State.h>
-#include <thread>
-#include <faabric/util/state.h>
-#include <faabric/util/func.h>
+#include <faabric/util/bytes.h>
 #include <faabric/util/chaining.h>
 #include <faabric/util/environment.h>
-#include <faabric/util/json.h>
-#include <faabric/util/bytes.h>
-#include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/files.h>
+#include <faabric/util/func.h>
+#include <faabric/util/json.h>
+#include <faabric/util/locks.h>
+#include <faabric/util/logging.h>
+#include <faabric/util/state.h>
+#include <thread>
 
 /**
- * Used to emulate Faasm in native applications (i.e. anything that's not WebAssembly)
+ * Used to emulate Faasm in native applications (i.e. anything that's not
+ * WebAssembly)
  *
  * This will make use of the Faasm state abstractions where possible.
  */
 
 // Note thread-locality here
 static thread_local faabric::Message _emulatedCall = faabric::Message();
-static thread_local faabric::state::State *_emulatedState = nullptr;
+static thread_local faabric::state::State* _emulatedState = nullptr;
 
 static std::mutex threadsMutex;
 static std::unordered_map<int, std::thread> threads;
@@ -39,37 +41,44 @@ static int threadCount = 1;
 // EMULATOR-SPECIFIC
 // --------------------------------------------------------------
 
-void resetEmulator() {
+void resetEmulator()
+{
     _emulatedCall = faabric::Message();
     threads.clear();
     threadCount = 1;
 }
 
-std::vector<uint8_t> getEmulatorOutputData() {
+std::vector<uint8_t> getEmulatorOutputData()
+{
     return faabric::util::stringToBytes(_emulatedCall.outputdata());
 }
 
-std::string getEmulatorOutputDataString() {
+std::string getEmulatorOutputDataString()
+{
     const std::vector<uint8_t> outputData = getEmulatorOutputData();
     std::string outputStr;
     if (outputData.empty()) {
         outputStr = "Empty output";
     } else {
-        outputStr = std::string(reinterpret_cast<const char *>(outputData.data()));
+        outputStr =
+          std::string(reinterpret_cast<const char*>(outputData.data()));
     }
 
     return outputStr;
 }
 
-std::string getEmulatorUser() {
+std::string getEmulatorUser()
+{
     return _emulatedCall.user();
 }
 
-void setEmulatorUser(const char *newUser) {
+void setEmulatorUser(const char* newUser)
+{
     _emulatedCall.set_user(newUser);
 }
 
-faabric::state::State *getEmulatorState() {
+faabric::state::State* getEmulatorState()
+{
     if (_emulatedState == nullptr) {
         return &faabric::state::getGlobalState();
     } else {
@@ -77,12 +86,14 @@ faabric::state::State *getEmulatorState() {
     }
 }
 
-void setEmulatorState(faabric::state::State *state) {
+void setEmulatorState(faabric::state::State* state)
+{
     _emulatedState = state;
 }
 
-void emulatorSetCallStatus(bool success) {
-    const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
+void emulatorSetCallStatus(bool success)
+{
+    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
     faabric::Message resultMsg = _emulatedCall;
 
     const std::string funcStr = faabric::util::funcToString(resultMsg, true);
@@ -95,30 +106,35 @@ void emulatorSetCallStatus(bool success) {
         resultMsg.set_returnvalue(1);
     }
 
-    faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
+    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     resultMsg.set_outputdata(getEmulatorOutputDataString());
     sch.setFunctionResult(resultMsg);
 }
 
-unsigned int setEmulatedMessageFromJson(const char *messageJson) {
+unsigned int setEmulatedMessageFromJson(const char* messageJson)
+{
     const faabric::Message msg = faabric::util::jsonToMessage(messageJson);
     return setEmulatedMessage(msg);
 }
 
-unsigned int setEmulatedMessage(const faabric::Message &msg) {
+unsigned int setEmulatedMessage(const faabric::Message& msg)
+{
     _emulatedCall = msg;
     unsigned int msgId = faabric::util::setMessageId(_emulatedCall);
 
-    const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
-    const std::string funcStr = faabric::util::funcToString(_emulatedCall, true);
+    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
+    const std::string funcStr =
+      faabric::util::funcToString(_emulatedCall, true);
     logger->debug("Emulator set to {}", funcStr);
 
     return msgId;
 }
 
-std::string getEmulatedUser() {
+std::string getEmulatedUser()
+{
     if (_emulatedCall.user().empty()) {
-        const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
+        const std::shared_ptr<spdlog::logger>& logger =
+          faabric::util::getLogger();
         logger->debug("Setting dummy emulator user {}", DUMMY_USER);
         setEmulatorUser(DUMMY_USER);
     }
@@ -130,26 +146,32 @@ std::string getEmulatedUser() {
 // FAASM HOST INTERFACE IMPLEMENTATION
 // --------------------------------------------------------------
 
-std::shared_ptr<faabric::state::StateKeyValue> getKv(const char *key, size_t size) {
-    faabric::state::State *s = getEmulatorState();
-    const std::string &emulatedUser = getEmulatedUser();
+std::shared_ptr<faabric::state::StateKeyValue> getKv(const char* key,
+                                                     size_t size)
+{
+    faabric::state::State* s = getEmulatorState();
+    const std::string& emulatedUser = getEmulatedUser();
     return s->getKV(emulatedUser, key, size);
 }
 
-std::shared_ptr<faabric::state::StateKeyValue> getKv(const char *key) {
-    faabric::state::State *s = getEmulatorState();
-    const std::string &emulatedUser = getEmulatedUser();
+std::shared_ptr<faabric::state::StateKeyValue> getKv(const char* key)
+{
+    faabric::state::State* s = getEmulatorState();
+    const std::string& emulatedUser = getEmulatedUser();
     return s->getKV(emulatedUser, key);
 }
 
-void __faasm_write_output(const unsigned char *output, long outputLen) {
-    faabric::util::getLogger()->debug("E - write_output {} {}", output, outputLen);
+void __faasm_write_output(const unsigned char* output, long outputLen)
+{
+    faabric::util::getLogger()->debug(
+      "E - write_output {} {}", output, outputLen);
     _emulatedCall.set_outputdata(output, outputLen);
 }
 
-long __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen) {
+long __faasm_read_state(const char* key, unsigned char* buffer, long bufferLen)
+{
     faabric::util::getLogger()->debug("E - read_state {} {}", key, bufferLen);
-    faabric::state::State *s = getEmulatorState();
+    faabric::state::State* s = getEmulatorState();
     std::string emulatedUser = getEmulatedUser();
 
     if (bufferLen == 0) {
@@ -161,66 +183,96 @@ long __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen) 
     return kv->size();
 }
 
-unsigned char *__faasm_read_state_ptr(const char *key, long totalLen) {
-    faabric::util::getLogger()->debug("E - read_state_ptr {} {}", key, totalLen);
+unsigned char* __faasm_read_state_ptr(const char* key, long totalLen)
+{
+    faabric::util::getLogger()->debug(
+      "E - read_state_ptr {} {}", key, totalLen);
     auto kv = getKv(key, totalLen);
     return kv->get();
 }
 
-void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsigned char *buffer, long bufferLen) {
-    faabric::util::getLogger()->debug("E - read_state_offset {} {} {} {}", key, totalLen, offset, bufferLen);
+void __faasm_read_state_offset(const char* key,
+                               long totalLen,
+                               long offset,
+                               unsigned char* buffer,
+                               long bufferLen)
+{
+    faabric::util::getLogger()->debug(
+      "E - read_state_offset {} {} {} {}", key, totalLen, offset, bufferLen);
     auto kv = getKv(key, totalLen);
     kv->getChunk(offset, buffer, bufferLen);
 }
 
-unsigned char *__faasm_read_state_offset_ptr(const char *key, long totalLen, long offset, long len) {
-    faabric::util::getLogger()->debug("E - read_state_offset_ptr {} {} {} {}", key, totalLen, offset, len);
+unsigned char* __faasm_read_state_offset_ptr(const char* key,
+                                             long totalLen,
+                                             long offset,
+                                             long len)
+{
+    faabric::util::getLogger()->debug(
+      "E - read_state_offset_ptr {} {} {} {}", key, totalLen, offset, len);
     auto kv = getKv(key, totalLen);
     return kv->getChunk(offset, len);
 }
 
-void __faasm_write_state(const char *key, const uint8_t *data, long dataLen) {
+void __faasm_write_state(const char* key, const uint8_t* data, long dataLen)
+{
     faabric::util::getLogger()->debug("E - write_state {} {}", key, dataLen);
     auto kv = getKv(key, dataLen);
     kv->set(data);
 }
 
-void __faasm_append_state(const char *key, const uint8_t *data, long dataLen) {
+void __faasm_append_state(const char* key, const uint8_t* data, long dataLen)
+{
     faabric::util::getLogger()->debug("E - append_state {} {}", key, dataLen);
     auto kv = getKv(key);
     kv->append(data, dataLen);
 }
 
-void __faasm_read_appended_state(const char *key, unsigned char *buffer, long bufferLen, long nElems) {
-    faabric::util::getLogger()->debug("E - read_appended_state {} {} {}", key, bufferLen, nElems);
+void __faasm_read_appended_state(const char* key,
+                                 unsigned char* buffer,
+                                 long bufferLen,
+                                 long nElems)
+{
+    faabric::util::getLogger()->debug(
+      "E - read_appended_state {} {} {}", key, bufferLen, nElems);
 
     const std::string user = getEmulatorUser();
     auto kv = getKv(key);
     kv->getAppended(buffer, bufferLen, nElems);
 }
 
-void __faasm_clear_appended_state(const char *key) {
+void __faasm_clear_appended_state(const char* key)
+{
     faabric::util::getLogger()->debug("E - clear_appended_state {}", key);
     auto kv = getKv(key);
     kv->clearAppended();
 }
 
-void __faasm_write_state_offset(const char *key, long totalLen, long offset, const unsigned char *data, long dataLen) {
+void __faasm_write_state_offset(const char* key,
+                                long totalLen,
+                                long offset,
+                                const unsigned char* data,
+                                long dataLen)
+{
     // Avoid excessive logging
-    // faabric::util::getLogger()->debug("E - write_state_offset {} {} {} {}", key, totalLen, offset, dataLen);
+    // faabric::util::getLogger()->debug("E - write_state_offset {} {} {} {}",
+    // key, totalLen, offset, dataLen);
     auto kv = getKv(key, totalLen);
     kv->setChunk(offset, data, dataLen);
 }
 
-unsigned int __faasm_write_state_from_file(const char *key, const char *filePath) {
-    faabric::util::getLogger()->debug("E - write_state_from_file - {} {}", key, filePath);
+unsigned int __faasm_write_state_from_file(const char* key,
+                                           const char* filePath)
+{
+    faabric::util::getLogger()->debug(
+      "E - write_state_from_file - {} {}", key, filePath);
 
     // Read file into bytes
     const std::vector<uint8_t> bytes = faabric::util::readFileToBytes(filePath);
     unsigned long fileLength = bytes.size();
 
     // Write to state
-    faabric::state::State *s = getEmulatorState();
+    faabric::state::State* s = getEmulatorState();
     auto kv = s->getKV(getEmulatorUser(), key, fileLength);
     kv->set(bytes.data());
     kv->pushFull();
@@ -228,49 +280,61 @@ unsigned int __faasm_write_state_from_file(const char *key, const char *filePath
     return bytes.size();
 }
 
-void __faasm_flag_state_dirty(const char *key, long totalLen) {
+void __faasm_flag_state_dirty(const char* key, long totalLen)
+{
     // Avoid excessive logging
-    // faabric::util::getLogger()->debug("E - flag_state_dirty {} {}", key, totalLen);
+    // faabric::util::getLogger()->debug("E - flag_state_dirty {} {}", key,
+    // totalLen);
     auto kv = getKv(key, totalLen);
     kv->flagDirty();
 }
 
-void __faasm_flag_state_offset_dirty(const char *key, long totalLen, long offset, long dataLen) {
+void __faasm_flag_state_offset_dirty(const char* key,
+                                     long totalLen,
+                                     long offset,
+                                     long dataLen)
+{
     // Avoid excessive logging
-    // faabric::util::getLogger()->debug("E - flag_state_offset_dirty {} {} {} {}", key, totalLen, offset, dataLen);
+    // faabric::util::getLogger()->debug("E - flag_state_offset_dirty {} {} {}
+    // {}", key, totalLen, offset, dataLen);
     auto kv = getKv(key, totalLen);
     kv->flagChunkDirty(offset, dataLen);
 }
 
-
-void __faasm_push_state_partial_mask(const char *key, const char *maskKey) {
+void __faasm_push_state_partial_mask(const char* key, const char* maskKey)
+{
     // Avoid excessive logging
-    // faabric::util::getLogger()->debug("E - push_state_partial_mask {}", key, maskKey);
+    // faabric::util::getLogger()->debug("E - push_state_partial_mask {}", key,
+    // maskKey);
     auto kv = getKv(key, 0);
     auto maskKv = getKv(maskKey, 0);
 
     kv->pushPartialMask(maskKv);
 }
 
-void __faasm_push_state(const char *key) {
+void __faasm_push_state(const char* key)
+{
     faabric::util::getLogger()->debug("E - push_state {}", key);
     auto kv = getKv(key, 0);
     kv->pushFull();
 }
 
-void __faasm_push_state_partial(const char *key) {
+void __faasm_push_state_partial(const char* key)
+{
     faabric::util::getLogger()->debug("E - push_state_partial {}", key);
     auto kv = getKv(key, 0);
     kv->pushPartial();
 }
 
-void __faasm_pull_state(const char *key, long stateLen) {
+void __faasm_pull_state(const char* key, long stateLen)
+{
     faabric::util::getLogger()->debug("E - pull_state {}", key);
     auto kv = getKv(key, stateLen);
     kv->pull();
 }
 
-long __faasm_read_input(unsigned char *buffer, long bufferLen) {
+long __faasm_read_input(unsigned char* buffer, long bufferLen)
+{
     faabric::util::getLogger()->debug("E - read_input len {}", bufferLen);
 
     long inputLen;
@@ -285,14 +349,21 @@ long __faasm_read_input(unsigned char *buffer, long bufferLen) {
         return 0;
     }
 
-    std::copy(_emulatedCall.inputdata().begin(), _emulatedCall.inputdata().end(), buffer);
+    std::copy(_emulatedCall.inputdata().begin(),
+              _emulatedCall.inputdata().end(),
+              buffer);
 
     return bufferLen;
 }
 
-unsigned int _chain_local(int idx, const char *pyName, const unsigned char *buffer, long bufferLen) {
-    faabric::util::getLogger()->debug("E - chain_this_local idx {} input len {}", idx, bufferLen);
-    const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
+unsigned int _chain_local(int idx,
+                          const char* pyName,
+                          const unsigned char* buffer,
+                          long bufferLen)
+{
+    faabric::util::getLogger()->debug(
+      "E - chain_this_local idx {} input len {}", idx, bufferLen);
+    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     if (pyName != nullptr) {
         throw std::runtime_error("Not yet implemented");
@@ -307,45 +378,53 @@ unsigned int _chain_local(int idx, const char *pyName, const unsigned char *buff
         thisCallId = threadCount;
 
         // Spawn a thread to execute the function
-        threads.emplace(std::pair<int, std::thread>(thisCallId, [idx, buffer, bufferLen] {
-            // Set up input data for this thread (thread-local)
-            _emulatedCall.set_inputdata(buffer, bufferLen);
-            _emulatedCall.set_idx(idx);
+        threads.emplace(
+          std::pair<int, std::thread>(thisCallId, [idx, buffer, bufferLen] {
+              // Set up input data for this thread (thread-local)
+              _emulatedCall.set_inputdata(buffer, bufferLen);
+              _emulatedCall.set_idx(idx);
 
-            // Invoke the function
-            _FaasmFuncPtr f = getFaasmFunc(idx);
-            f();
-        }));
+              // Invoke the function
+              _FaasmFuncPtr f = getFaasmFunc(idx);
+              f();
+          }));
     }
 
     logger->debug("Chained local function {} with call ID {}", idx, thisCallId);
     return thisCallId;
 }
 
-unsigned int _chain_knative(const std::string &funcName, int idx, const char *pyName, const unsigned char *buffer,
-                            long bufferLen) {
-    const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
-    logger->debug("E - chain_this_knative idx {} input length {}", idx, bufferLen);
+unsigned int _chain_knative(const std::string& funcName,
+                            int idx,
+                            const char* pyName,
+                            const unsigned char* buffer,
+                            long bufferLen)
+{
+    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
+    logger->debug(
+      "E - chain_this_knative idx {} input length {}", idx, bufferLen);
 
     const std::string host = faabric::util::getEnvVar("FAASM_INVOKE_HOST", "");
     const std::string port = faabric::util::getEnvVar("FAASM_INVOKE_PORT", "");
 
     if (host.empty() || port.empty()) {
-        logger->error("Expected FAASM_INVOKE_HOST and FAASM_INVOKE_PORT to be set");
+        logger->error(
+          "Expected FAASM_INVOKE_HOST and FAASM_INVOKE_PORT to be set");
         throw std::runtime_error("Missing invoke host and port");
     }
 
     int portInt = std::stoi(port);
 
     // Build the message to dispatch
-    faabric::Message msg = faabric::util::messageFactory(_emulatedCall.user(), funcName);
+    faabric::Message msg =
+      faabric::util::messageFactory(_emulatedCall.user(), funcName);
     msg.set_idx(idx);
     msg.set_inputdata(buffer, bufferLen);
     msg.set_ispython(_emulatedCall.ispython());
     msg.set_pythonuser(_emulatedCall.pythonuser());
     msg.set_pythonfunction(_emulatedCall.pythonfunction());
 
-    if(pyName != nullptr) {
+    if (pyName != nullptr) {
         msg.set_pythonentry(pyName);
     }
 
@@ -363,8 +442,11 @@ unsigned int _chain_knative(const std::string &funcName, int idx, const char *py
     return msg.id();
 }
 
-unsigned int __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize) {
-    faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
+unsigned int __faasm_chain_function(const char* name,
+                                    const unsigned char* inputData,
+                                    long inputDataSize)
+{
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     if (conf.hostType == "knative") {
         return _chain_knative(name, 0, 0, inputData, inputDataSize);
     } else {
@@ -372,38 +454,49 @@ unsigned int __faasm_chain_function(const char *name, const unsigned char *input
     }
 }
 
-unsigned int __faasm_chain_this(int idx, const unsigned char *buffer, long bufferLen) {
-    faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
+unsigned int __faasm_chain_this(int idx,
+                                const unsigned char* buffer,
+                                long bufferLen)
+{
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     if (conf.hostType == "knative") {
-        return _chain_knative(_emulatedCall.function(), idx, nullptr, buffer, bufferLen);
+        return _chain_knative(
+          _emulatedCall.function(), idx, nullptr, buffer, bufferLen);
     } else {
         return _chain_local(idx, nullptr, buffer, bufferLen);
     }
 }
 
-unsigned int __faasm_chain_py(const char *name, const unsigned char *buffer, long bufferLen) {
-    faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
+unsigned int __faasm_chain_py(const char* name,
+                              const unsigned char* buffer,
+                              long bufferLen)
+{
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     if (conf.hostType == "knative") {
-        return _chain_knative(_emulatedCall.function(), 0, name, buffer, bufferLen);
+        return _chain_knative(
+          _emulatedCall.function(), 0, name, buffer, bufferLen);
     } else {
         return _chain_local(0, name, buffer, bufferLen);
     }
 }
 
-int _await_call_knative(unsigned int callId) {
-    const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
+int _await_call_knative(unsigned int callId)
+{
+    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
     logger->debug("E - await_call_knative {}", callId);
     int timeoutMs = faabric::util::getSystemConfig().chainedCallTimeout;
 
-    faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
+    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     int returnCode = 1;
     try {
-        const faabric::Message result = sch.getFunctionResult(callId, timeoutMs);
+        const faabric::Message result =
+          sch.getFunctionResult(callId, timeoutMs);
         returnCode = result.returnvalue();
-    } catch (faabric::redis::RedisNoResponseException &ex) {
+    } catch (faabric::redis::RedisNoResponseException& ex) {
         logger->error("Timed out waiting for chained call: {}", callId);
-    } catch (std::exception &ex) {
-        logger->error("Non-timeout exception waiting for chained call: {}", ex.what());
+    } catch (std::exception& ex) {
+        logger->error("Non-timeout exception waiting for chained call: {}",
+                      ex.what());
     }
 
     logger->debug("Await returned {} for {}", returnCode, callId);
@@ -411,8 +504,9 @@ int _await_call_knative(unsigned int callId) {
     return returnCode;
 }
 
-int _await_call_local(unsigned int callId) {
-    const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
+int _await_call_local(unsigned int callId)
+{
+    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
     logger->debug("E - await_call_local {}", callId);
 
     // Check this is valid
@@ -422,7 +516,7 @@ int _await_call_local(unsigned int callId) {
     }
 
     // Join the thread to await its completion
-    std::thread &t = threads[callId];
+    std::thread& t = threads[callId];
     if (t.joinable()) {
         t.join();
     } else {
@@ -433,8 +527,9 @@ int _await_call_local(unsigned int callId) {
     return 0;
 }
 
-int __faasm_await_call(unsigned int callId) {
-    faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
+int __faasm_await_call(unsigned int callId)
+{
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     if (conf.hostType == "knative") {
         return _await_call_knative(callId);
     } else {
@@ -442,54 +537,51 @@ int __faasm_await_call(unsigned int callId) {
     }
 }
 
-int __faasm_await_call_output(unsigned int messageId, unsigned char *buffer, long bufferLen) {
+int __faasm_await_call_output(unsigned int messageId,
+                              unsigned char* buffer,
+                              long bufferLen)
+{
     throw std::runtime_error("Get call output not implemented in emulator");
 }
 
-int __faasm_get_idx() {
+int __faasm_get_idx()
+{
     return _emulatedCall.idx();
 }
 
-void __faasm_lock_state_global(const char *key) {
+void __faasm_lock_state_global(const char* key) {}
 
+void __faasm_unlock_state_global(const char* key) {}
+
+void __faasm_lock_state_read(const char* key) {}
+
+void __faasm_unlock_state_read(const char* key) {}
+
+void __faasm_lock_state_write(const char* key) {}
+
+void __faasm_unlock_state_write(const char* key) {}
+
+void copyStringToBuffer(unsigned char* buffer, const std::string& strIn)
+{
+    ::strcpy(reinterpret_cast<char*>(buffer), strIn.c_str());
 }
 
-void __faasm_unlock_state_global(const char *key) {
-
-}
-
-void __faasm_lock_state_read(const char *key) {
-
-}
-
-void __faasm_unlock_state_read(const char *key) {
-
-}
-
-void __faasm_lock_state_write(const char *key) {
-
-}
-
-void __faasm_unlock_state_write(const char *key) {
-
-}
-
-void copyStringToBuffer(unsigned char *buffer, const std::string &strIn) {
-    ::strcpy(reinterpret_cast<char *>(buffer), strIn.c_str());
-}
-
-void __faasm_get_py_user(unsigned char *buffer, long bufferLen) {
+void __faasm_get_py_user(unsigned char* buffer, long bufferLen)
+{
     copyStringToBuffer(buffer, _emulatedCall.pythonuser());
 }
 
-void __faasm_get_py_func(unsigned char *buffer, long bufferLen) {
+void __faasm_get_py_func(unsigned char* buffer, long bufferLen)
+{
     copyStringToBuffer(buffer, _emulatedCall.pythonfunction());
 }
 
-void __faasm_get_py_entry(unsigned char *buffer, long bufferLen) {
+void __faasm_get_py_entry(unsigned char* buffer, long bufferLen)
+{
     copyStringToBuffer(buffer, _emulatedCall.pythonentry());
 }
 
-unsigned int __faasm_conf_flag(const char *key) {
+unsigned int __faasm_conf_flag(const char* key)
+{
     return 0;
 }

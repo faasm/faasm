@@ -9,7 +9,9 @@ OMPI_INSTALL = "/usr/local/faasm/openmpi"
 MPI_RUN = join(OMPI_INSTALL, "bin", "mpirun")
 
 
-def mpi_run(executable, iface=None, hostfile=FAASM_HOSTFILE, cmdline=None, np=None):
+def mpi_run(
+    executable, iface=None, hostfile=FAASM_HOSTFILE, cmdline=None, np=None
+):
     mpi_cmd = [
         MPI_RUN,
     ]

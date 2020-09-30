@@ -24,7 +24,7 @@ INFOS = [
     "atlas_info",
     "lapack_info",
     "lapack_src_info",
-    "lapack_opt_info"
+    "lapack_opt_info",
 ]
 
 
@@ -32,7 +32,11 @@ def faasm_main():
     for info_name in INFOS:
         this_info = np.__config__.get_info(info_name)
         if this_info:
-            print("Unexpected linalg support: {}:\n{}".format(info_name, this_info))
+            print(
+                "Unexpected linalg support: {}:\n{}".format(
+                    info_name, this_info
+                )
+            )
 
     # Sanity check to see how long this takes
     dim = 1024
