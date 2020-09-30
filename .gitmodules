@@ -25,3 +25,6 @@
 [submodule "third-party/wabt"]
 	path = third-party/wabt
 	url = https://github.com/WebAssembly/wabt
+[submodule "third-party/faasm-clapack"]
+	path = third-party/faasm-clapack
+	url = https://github.com/faasm/faasm-clapack
