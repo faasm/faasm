@@ -1,4 +1,4 @@
-FROM faabric/base:0.0.2
+FROM faabric/base:0.0.4
 
 # -------------------------------------------------------------
 # NOTE - extensive use of Ansible in this Dockerfile makes it
