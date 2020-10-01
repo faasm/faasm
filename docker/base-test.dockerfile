@@ -41,7 +41,7 @@ RUN pip3 install -r /tmp/requirements.txt
 # Check out code
 WORKDIR /usr/local/code
 RUN rm -r faasm
-RUN git clone https://github.com/lsds/faasm
+RUN git clone https://github.com/faasm/faasm
 
 # Check out latest tag
 WORKDIR /usr/local/code/faasm

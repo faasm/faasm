@@ -1,8 +1,8 @@
 <div align="center">
-<img src="https://raw.githubusercontent.com/lsds/faasm/master/faasm_logo.png"></img>
+<img src="https://raw.githubusercontent.com/faasm/faasm/master/faasm_logo.png"></img>
 </div>
 
-# Faasm [![Tests](https://github.com/lsds/faasm/workflows/Tests/badge.svg?branch=master)](https://github.com/lsds/faasm/actions)  [![License](https://img.shields.io/github/license/lsds/faasm.svg)](https://github.com/lsds/faasm/blob/master/LICENSE.md)  [![Release](https://img.shields.io/github/release/lsds/faasm.svg)](https://github.com/lsds/faasm/releases/)  [![Contributors](https://img.shields.io/github/contributors/lsds/faasm.svg)](https://github.com/lsds/faasm/graphs/contributors/)
+# Faasm [![Tests](https://github.com/faasm/faasm/workflows/Tests/badge.svg?branch=master)](https://github.com/faasm/faasm/actions)  [![License](https://img.shields.io/github/license/faasm/faasm.svg)](https://github.com/faasm/faasm/blob/master/LICENSE.md)  [![Release](https://img.shields.io/github/release/faasm/faasm.svg)](https://github.com/faasm/faasm/releases/)  [![Contributors](https://img.shields.io/github/contributors/faasm/faasm.svg)](https://github.com/faasm/faasm/graphs/contributors/)
 
 Faasm is a high-performance stateful serverless runtime. 
 
@@ -79,10 +79,10 @@ More detail on some key features and implementations can be found below:
 ## Experiments and benchmarks
 
 Faasm experiments and benchmarks live in the 
-[Faasm experiments repo](https://github.com/lsds/faasm-experiments/):
+[Faasm experiments repo](https://github.com/faasm/faasm-experiments/):
 
-- [Tensorflow Lite](https://github.com/lsds/faasm-experiments/blob/master/docs/tensorflow.md) - performing inference in Faasm with [Tensorflow Lite](https://www.tensorflow.org/lite/)
-- [Polybench](https://github.com/lsds/faasm-experiments/blob/master/docs/polybench.md) - benchmarking with [Polybench/C](http://web.cse.ohio-state.edu/~pouchet.2/software/polybench/)
-- [ParRes Kernels](https://github.com/lsds/faasm-experiments/blob/master/docs/prk.md) - benchmarking with the [ParRes Kernels](https://github.com/ParRes/Kernels)
-- [Python performance](https://github.com/lsds/faasm-experiments/blob/master/docs/python.md) - executing the [Python performance benchmarks](https://github.com/python/pyperformance)
+- [Tensorflow Lite](https://github.com/faasm/faasm-experiments/blob/master/docs/tensorflow.md) - performing inference in Faasm with [Tensorflow Lite](https://www.tensorflow.org/lite/)
+- [Polybench](https://github.com/faasm/faasm-experiments/blob/master/docs/polybench.md) - benchmarking with [Polybench/C](http://web.cse.ohio-state.edu/~pouchet.2/software/polybench/)
+- [ParRes Kernels](https://github.com/faasm/faasm-experiments/blob/master/docs/prk.md) - benchmarking with the [ParRes Kernels](https://github.com/ParRes/Kernels)
+- [Python performance](https://github.com/faasm/faasm-experiments/blob/master/docs/python.md) - executing the [Python performance benchmarks](https://github.com/python/pyperformance)
 
