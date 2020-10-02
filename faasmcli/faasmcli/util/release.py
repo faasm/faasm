@@ -9,7 +9,7 @@ TOOLCHAIN_INSTALL = join(FAASM_LOCAL_DIR, "toolchain")
 
 def _get_artifact_url(name, version=None):
     version = version if version else get_faasm_version()
-    url = "https://github.com/lsds/faasm/releases/download/v{}/{}".format(
+    url = "https://github.com/faasm/faasm/releases/download/v{}/{}".format(
         version, name
     )
     return url
