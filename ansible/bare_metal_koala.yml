@@ -1,0 +1,19 @@
+[all]
+koala5   internal_host=192.168.10.5     internal_iface=eth10
+koala7   internal_host=192.168.10.7     internal_iface=eth10
+koala8   internal_host=192.168.10.8     internal_iface=eth10
+koala10  internal_host=192.168.10.10    internal_iface=eth10
+
+[worker]
+koala5
+koala7
+koala8
+
+[upload]
+koala10
+
+[edge]
+koala10
+
+[redis]
+koala10
