@@ -8,8 +8,12 @@
 #include <tlibc/mbusafecrt.h>
 #include <libcxx/cstdlib>
 #include <iwasm/include/wasm_export.h>
+
+#if(FAASM_SGX_WAMR_AOT_MODE)
 #include <iwasm/aot/aot_runtime.h>
+#else
 #include <iwasm/interpreter/wasm_runtime.h>
+#endif
 
 
 #if(FAASM_SGX_ATTESTATION)
@@ -201,32 +205,46 @@ faasm_sgx_status_t faasm_sgx_enclave_call_function(const uint32_t thread_id, con
     }
 
 #if(FAASM_SGX_ATTESTATION)
-    // Set thread_id to fs/gs to make it accessible in native symbols
+    // Set thread_id to fs/gs to make it accessible in native symbols wrapper
     tls_thread_id = thread_id;
 #endif
-#define WASM_ENABLE_INTERP 1
     // Create an execution environment and call the wasm function
-#if(WASM_ENABLE_INTERP && !WASM_ENABLE_AOT)
+#if(FAASM_SGX_WAMR_AOT_MODE)
+    // If AoT is enabled, then the WAMR AoT implementation will be invoked
+    if (!(aot_create_exec_env_and_call_function((AOTModuleInstance *) tcs_ptr->module_inst,
+            (AOTFunctionInstance *) wasm_func,0x0,0x0))) {
+        /* Error handling
+         * First, check if the _FAASM_SGX_ERROR_PREFIX is set
+         * If so, then obtain and return the faasm_sgx_status_t error code
+         * If not, just print the exception and return the matching Faasm-SGX error code
+         */
+        if(!memcmp(((AOTModuleInstance *)tcs_ptr->module_inst)->cur_exception,
+                _FAASM_SGX_ERROR_PREFIX, sizeof(_FAASM_SGX_ERROR_PREFIX)))
+            return *((faasm_sgx_status_t *) &(((AOTModuleInstance *)tcs_ptr->module_inst)->cur_exception[sizeof(_FAASM_SGX_ERROR_PREFIX)]));
+
+#if(FAASM_SGX_DEBUG)
+        ocall_printf(((AOTModuleInstance *)tcs_ptr->module_inst)->cur_exception);
+#endif
+        return FAASM_SGX_WAMR_FUNCTION_UNABLE_TO_CALL;
+    }
+#else
+    // If AoT is disabled, then the WAMR interpreter will be invoked
     if (!(wasm_create_exec_env_and_call_function((WASMModuleInstance *) tcs_ptr->module_inst,
             (WASMFunctionInstance *) wasm_func,0x0,0x0))) {
-        // Error Handling if an error occurred during execution
-
-        /* Check if exception got a Faasm-SGX error prefix
-         * If so, then obtain and return the provided Faasm-SGX error code
+        /* Error handling
+         * First, check if the _FAASM_SGX_ERROR_PREFIX is set
+         * If so, then obtain and return the faasm_sgx_status_t error code
+         * If not, just print the exception and return the matching Faasm-SGX error code
          */
         if(!memcmp(((WASMModuleInstance *)tcs_ptr->module_inst)->cur_exception,
-                   _FAASM_SGX_ERROR_PREFIX,
-                sizeof(_FAASM_SGX_ERROR_PREFIX)))
-            return *((faasm_sgx_status_t *)&(((WASMModuleInstance *)tcs_ptr->module_inst)->cur_exception[sizeof(_FAASM_SGX_ERROR_PREFIX)]));
-        // In case that a non Faasm-SGX error occurs just print the error
+                   _FAASM_SGX_ERROR_PREFIX, sizeof(_FAASM_SGX_ERROR_PREFIX)))
+            return *((faasm_sgx_status_t *) &(((WASMModuleInstance *)tcs_ptr->module_inst)->cur_exception[sizeof(_FAASM_SGX_ERROR_PREFIX)]));
+
 #if(FAASM_SGX_DEBUG)
         ocall_printf(((WASMModuleInstance *)tcs_ptr->module_inst)->cur_exception);
 #endif
-
         return FAASM_SGX_WAMR_FUNCTION_UNABLE_TO_CALL;
     }
-#elif(!WASM_ENABLE_INTERP && WASM_ENABLE_AOT)
-//AOT STUFF
 #endif
     return FAASM_SGX_SUCCESS;
 }

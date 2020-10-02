@@ -15,7 +15,7 @@ option(WAMR_INTERPRETER_MODE "Turns interpreter on / off (vs. AoT)" OFF)
 # Faasm-SGX functionality
 option(FAASM_SGX_SUPPORT "Enable/Disable SGX Support" ON)
 option(FAASM_SGX_SIM_MODE "SGX sim mode flag" ON)
-option(FAASM_SGX_WAMR_INTERPRETER_MODE "Turns interpreter on / off (vs. AoT) within the enclave" ON)
+option(FAASM_SGX_WAMR_AOT_MODE "Turns AoT on / off (vs. Interpreter) within the enclave" ON)
 option(FAASM_SGX_ATTESTATION "Add support for attestation" OFF)
 option(FAASM_SGX_WHITELISTING "Add support for whitelisting" OFF) #Currently not working in WAMR AoT mode
 option(FAASM_SGX_XRA "Add support for XRA" OFF)

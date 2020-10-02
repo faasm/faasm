@@ -10,14 +10,14 @@
 
 #include <wavm/WAVMWasmModule.h>
 
-#if(FAASM_SGX == 1)
-#include <sgx/SGXWAMRWasmModule.h>
+
+#if(FAASM_SGX)
 #include <sgx/sgx_system.h>
+#include <sgx/SGXWAMRWasmModule.h>
 #else
-
 #include <wamr/WAMRWasmModule.h>
-
 #endif
+
 
 using namespace isolation;
 
@@ -83,10 +83,13 @@ namespace faaslet {
         // Instantiate the right wasm module for our chosen runtime
         if (conf.wasmVm == "wamr") {
 #if(FAASM_SGX)
-            module = std::make_unique<wasm::SGXWAMRWasmModule>();
+            //if(msg.issgx())
+                module = std::make_unique<wasm::SGXWAMRWasmModule>();
+            //else
 #else
             module = std::make_unique<wasm::WAMRWasmModule>();
 #endif
+
             module->bindToFunction(msg);
         } else {
             // Instantiate a WAVM module from its snapshot

@@ -29,10 +29,12 @@ set(SGX_SDK_ENCLAVE_EDGER8R ${SGX_SDK_PATH}/bin/x64/sgx_edger8r)
 # WAMR Build configuration
 set(WAMR_BUILD_TARGET X86_64)
 
-if(FAASM_SGX_WAMR_INTERPRETER_MODE)
-    include (${WAMR_IWASM_DIR}/interpreter/iwasm_interp.cmake)
-else()
+if(FAASM_SGX_WAMR_AOT_MODE)
+    add_definitions(-DFAASM_SGX_WAMR_AOT_MODE=1)
     include (${WAMR_IWASM_DIR}/aot/iwasm_aot.cmake)
+else()
+    add_definitions(-DFAASM_SGX_WAMR_AOT_MODE=0)
+    include (${WAMR_IWASM_DIR}/interpreter/iwasm_interp.cmake)
 endif()
 
 if(FAASM_SGX_WAMR_BUILDIN_LIBC)
@@ -99,7 +101,7 @@ add_definitions(
 message("-- Faasm-SGX Configuration:
  FAASM-SGX Debug Mode: ${FAASM_SGX_DEBUG}
  FAASM-SGX SGX Simulation Mode: ${FAASM_SGX_SIM_MODE}
- FAASM-SGX WAMR Interpreter Mode: ${FAASM_SGX_WAMR_INTERPRETER_MODE}
+ FAASM-SGX WAMR AoT Mode: ${FAASM_SGX_WAMR_AOT_MODE}
  FAASM-SGX WAMR Buildin Libc: ${FAASM_SGX_WAMR_BUILDIN_LIBC}
  FAASM-SGX WAMR Wasi Libc: ${FAASM_SGX_WAMR_WASI_LIBC}
  FAASM-SGX ATTESTATION: ${FAASM_SGX_ATTESTATION}

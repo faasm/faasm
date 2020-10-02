@@ -2,7 +2,12 @@
 #include <sgx/sgx_wamr_enclave_types.h>
 #include <sgx/faasm_sgx_error.h>
 
+#if(FAASM_SGX_WAMR_AOT_MODE)
+#include <iwasm/aot/aot_runtime.h>
+#else
 #include <iwasm/interpreter/wasm_runtime.h>
+#endif
+
 #include <iwasm/common/wasm_exec_env.h>
 
 #if(FAASM_SGX_ATTESTATION)
@@ -12,9 +17,16 @@ extern __thread uint32_t tls_thread_id;
 }
 #endif
 
+// SET_ERROR definition for AoT and interpreter mode
+#if(FAASM_SGX_WAMR_AOT_MODE)
 #define SET_ERROR(X) \
-    memcpy(((WASMModuleInstance*)exec_env->module_inst)->cur_exception,_FAASM_SGX_ERROR_PREFIX,sizeof(_FAASM_SGX_ERROR_PREFIX)); \
-    *((uint32_t *)&((WASMModuleInstance*)exec_env->module_inst)->cur_exception[sizeof(_FAASM_SGX_ERROR_PREFIX)]) = (X); //TODO:AOT
+    memcpy(((AOTModuleInstance *)exec_env->module_inst)->cur_exception,_FAASM_SGX_ERROR_PREFIX,sizeof(_FAASM_SGX_ERROR_PREFIX)); \
+    *((uint32_t *)&((AOTModuleInstance *)exec_env->module_inst)->cur_exception[sizeof(_FAASM_SGX_ERROR_PREFIX)]) = (X);
+#else
+#define SET_ERROR(X) \
+    memcpy(((WASMModuleInstance *)exec_env->module_inst)->cur_exception,_FAASM_SGX_ERROR_PREFIX,sizeof(_FAASM_SGX_ERROR_PREFIX)); \
+    *((uint32_t *)&((WASMModuleInstance *)exec_env->module_inst)->cur_exception[sizeof(_FAASM_SGX_ERROR_PREFIX)]) = (X);
+#endif
 
 #define NATIVE_FUNC(funcName, funcSig) \
    { "__"#funcName, (void *) funcName##_wrapper, funcSig, 0x0 }

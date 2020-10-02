@@ -46,9 +46,13 @@ namespace wasm {
         storage::FileSystem fs;
         fs.prepareFilesystem();
 
-        // Load wasm (running WAMR in interpreter mode)
+        // Load AoT or wasm opcode
         storage::FileLoader &fl = storage::getFileLoader();
+#if(FAASM_SGX_WAMR_AOT_MODE)
+        std::vector<uint8_t> wasmBytes = fl.loadFunctionWamrAotFile(msg);
+#else
         std::vector<uint8_t> wasmBytes = fl.loadFunctionWasm(msg);
+#endif
 
         // Load the wasm module
         faasm_sgx_status_t returnValue;
