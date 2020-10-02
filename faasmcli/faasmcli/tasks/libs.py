@@ -1,21 +1,17 @@
 from os import makedirs
-from multiprocessing import cpu_count
 from os.path import exists
 from os.path import join
-from shutil import rmtree
 from subprocess import run
 
 from invoke import task
 
 from faasmcli.util.codegen import find_codegen_shared_lib
+from faasmtools.build import CMAKE_TOOLCHAIN_FILE, WASM_SYSROOT
 from faasmcli.util.env import (
     PROJ_ROOT,
-    FAASM_TOOLCHAIN_FILE,
-    SYSROOT_INSTALL_PREFIX,
     FAASM_INSTALL_DIR,
     FAASM_RUNTIME_ROOT,
 )
-from faasmcli.util.env import THIRD_PARTY_DIR
 from faasmcli.util.files import clean_dir
 
 
@@ -24,8 +20,6 @@ def toolchain(ctx, clean=False):
     """
     Compile and install all libs crucial to the toolchain
     """
-    eigen(ctx)
-
     faasm(ctx, clean=clean)
     faasmp(ctx, clean=clean)
     faasmpi(ctx, clean=clean)
@@ -78,7 +72,7 @@ def _build_faasm_lib(dir_name, clean, verbose, target=None):
         "-GNinja",
         "-DFAASM_BUILD_TYPE=wasm",
         "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(CMAKE_TOOLCHAIN_FILE),
         work_dir,
     ]
 
@@ -114,14 +108,6 @@ def faasmpi(ctx, clean=False, verbose=False):
     """
     Compile and install the Faasm MPI library
     """
-    # Build the Faabric MPI target
-    _build_faasm_lib(
-        "third-party/faabric/src/mpi",
-        clean,
-        verbose,
-    )
-
-    # Build the Faasm wasm wrapper
     _build_faasm_lib("libs/faasmpi", clean, verbose)
 
 
@@ -154,10 +140,11 @@ def fake(ctx, clean=False):
     build_cmd = [
         "cmake",
         "-GNinja",
+        "-DFAASM_BUILD_SHARED=ON",
         "-DFAASM_BUILD_TYPE=wasm",
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(CMAKE_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_INSTALL_PREFIX={}".format(SYSROOT_INSTALL_PREFIX),
+        "-DCMAKE_INSTALL_PREFIX={}".format(WASM_SYSROOT),
         work_dir,
     ]
 
@@ -166,9 +153,7 @@ def fake(ctx, clean=False):
     run("ninja install", shell=True, cwd=build_dir, check=True)
 
     # Copy shared object into place
-    sysroot_files = join(
-        SYSROOT_INSTALL_PREFIX, "lib", "wasm32-wasi", "libfake*.so"
-    )
+    sysroot_files = join(WASM_SYSROOT, "lib", "wasm32-wasi", "libfake*.so")
 
     runtime_lib_dir = join(FAASM_RUNTIME_ROOT, "lib")
     if not exists(runtime_lib_dir):
@@ -191,6 +176,7 @@ def fake(ctx, clean=False):
     for so in shared_objs:
         print("Running codegen for {}".format(so))
         run("{} {}".format(binary, so), shell=True, check=True)
+<<<<<<< HEAD
 
 
 @task
@@ -229,31 +215,26 @@ def eigen(ctx, verbose=False):
 
 
 @task
-def clapack(ctx, clean=False):
-    # See the CLAPACK docs: http://www.netlib.org/clapack/
-    proj_dir = join(THIRD_PARTY_DIR, "faasm-clapack")
-    clapack_dir = join(proj_dir, "third-party", "clapack")
-    lapacke_dir = join(proj_dir, "third-party", "lapack", "LAPACKE")
+def eigen_copy(ctx, verbose=False):
+    """
+    Copy eigen's header files rather than recompile them (#321)
+    """
+    work_dir = join(THIRD_PARTY_DIR, "eigen")
+    include_dir = join(SYSROOT_INSTALL_PREFIX, "include", "eigen3")
 
-    # Build clapack
-    if clean:
-        run("make clean", cwd=clapack_dir, shell=True, check=True)
-        run("make clean", cwd=lapacke_dir, shell=True, check=True)
+    if exists(include_dir):
+        rmtree(include_dir)
+    makedirs(include_dir)
 
-    n_cpu = int(cpu_count()) - 1
+    cmd = [
+        "cp",
+        "-r",
+        "{}".format(join(work_dir, "Eigen")),
+        "{}".format(join(work_dir, "unsupported")),
+        include_dir,
+    ]
+    cmd_string = " ".join(cmd)
 
-    # Make libf2c first (needed by others)
-    run(
-        "make f2clib -j {}".format(n_cpu),
-        shell=True,
-        cwd=clapack_dir,
-        check=True,
-    )
-
-    # Make the rest of CLAPACK
-    run("make -j {}".format(n_cpu), shell=True, cwd=clapack_dir, check=True)
-    run("make install", shell=True, cwd=clapack_dir, check=True)
-
-    # Make LAPACKE
-    run("make -j {}".format(n_cpu), shell=True, cwd=lapacke_dir, check=True)
-    run("make install", shell=True, cwd=lapacke_dir, check=True)
+    run(cmd_string, shell=True, cwd=work_dir, check=True)
+=======
+>>>>>>> c0e80179... Update to self-contained toolchain (#322)

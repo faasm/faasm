@@ -770,21 +770,33 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
     IR::FunctionType funcType;
 
     if (funcPtr > 0) {
-        // Get the function this call is referring to
+        // Get the function this pointer refers to
         funcInstance = getFunctionFromPtr(funcPtr);
+        funcType = Runtime::getFunctionType(funcInstance);
+        Uptr nParams = funcType.params().size();
 
-        // NOTE - when we've got a function pointer, we assume the args are
-        // a single integer held in the input data (resulting from a chained
-        // thread invocation)
-        if (msg.inputdata().empty()) {
-            invokeArgs = { 0 };
-        } else {
-            int intArg = std::stoi(msg.inputdata());
-            invokeArgs = { intArg };
+        switch (nParams) {
+            case (0): {
+                break;
+            }
+            case (1): {
+                // NOTE - when we've got a function pointer that takes a single
+                // argument we assume the args, we assume it's a chained thread
+                // invocation.
+                if (msg.inputdata().empty()) {
+                    invokeArgs = { 0 };
+                } else {
+                    int intArg = std::stoi(msg.inputdata());
+                    invokeArgs = { intArg };
+                }
+                break;
+            }
+            default: {
+                logger->error("Unexpected function pointer type with {} params",
+                              nParams);
+                throw std::runtime_error("Unexpected function pointer args");
+            }
         }
-
-        funcType =
-          IR::FunctionType({ IR::ValueType::i32 }, { IR::ValueType::i32 });
     } else if (boundIsTypescript) {
         // Different function signature for typescript
         funcType = IR::FunctionType({ IR::ValueType::i32 }, {});
@@ -792,8 +804,7 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
         // Set up main args
         prepareArgcArgv(msg);
 
-        // Get the entrypoint function (this is _start at the time of
-        // writing, which is () -> void)
+        // Get the main entrypoint function
         funcInstance = getMainFunction(moduleInstance);
         funcType = IR::FunctionType({}, {});
     }

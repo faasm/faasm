@@ -3,8 +3,10 @@
 #include <cstdint>
 #include <lib_export.h>
 
-#define REG_NATIVE_FUNC(func_name, signature)  \
-    { #func_name, (void*) func_name##_wrapper, signature, nullptr }
+#define REG_NATIVE_FUNC(func_name, signature)                                  \
+    {                                                                          \
+#func_name, (void*)func_name##_wrapper, signature, nullptr             \
+    }
 
 /*
  * -- WAMR native signatures --
@@ -27,17 +29,17 @@
  */
 
 namespace wasm {
-    void initialiseWAMRNatives();
+void initialiseWAMRNatives();
 
-    uint32_t getFaasmDynlinkApi(NativeSymbol **nativeSymbols);
+uint32_t getFaasmDynlinkApi(NativeSymbol** nativeSymbols);
 
-    uint32_t getFaasmFilesystemApi(NativeSymbol **nativeSymbols);
+uint32_t getFaasmFilesystemApi(NativeSymbol** nativeSymbols);
 
-    uint32_t getFaasmFunctionsApi(NativeSymbol **nativeSymbols);
+uint32_t getFaasmFunctionsApi(NativeSymbol** nativeSymbols);
 
-    uint32_t getFaasmPthreadApi(NativeSymbol **nativeSymbols);
+uint32_t getFaasmPthreadApi(NativeSymbol** nativeSymbols);
 
-    uint32_t getFaasmStateApi(NativeSymbol **nativeSymbols);
+uint32_t getFaasmStateApi(NativeSymbol** nativeSymbols);
 
-    uint32_t getFaasmStubs(NativeSymbol **nativeSymbols);
+uint32_t getFaasmStubs(NativeSymbol** nativeSymbols);
 }

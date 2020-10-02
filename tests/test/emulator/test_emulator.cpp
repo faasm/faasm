@@ -1,4 +1,4 @@
-#include <catch/catch.hpp>
+#include <catch2/catch.hpp>
 
 extern "C"
 {
@@ -14,13 +14,10 @@ extern "C"
 #include <faasm/core.h>
 
 namespace tests {
-void _doEmulationTest(const std::string& hostType)
+
+TEST_CASE("Test emulation", "[emulator]")
 {
     cleanSystem();
-
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    std::string oldHostType = conf.hostType;
-    conf.hostType = hostType;
 
     std::vector<uint8_t> dummyBytes = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
     long dummyLen = dummyBytes.size();
@@ -82,67 +79,5 @@ void _doEmulationTest(const std::string& hostType)
           key.c_str(), dummyLen, offset, actual.data(), dataLen);
         REQUIRE(actual == offsetData);
     }
-
-    conf.hostType = oldHostType;
-}
-
-TEST_CASE("Test state emulation simple", "[emulator]")
-{
-    _doEmulationTest("knative");
-}
-
-TEST_CASE("Test state emulation complex", "[emulator]")
-{
-    _doEmulationTest("default");
-}
-
-TEST_CASE("Test emulator setting function result", "[emulator]")
-{
-    faabric::Message call = faabric::util::messageFactory("demo", "echo");
-    faabric::util::setMessageId(call);
-
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    std::string originalHostType = conf.hostType;
-    conf.hostType = "knative";
-
-    bool success = 0;
-    bool useJson = false;
-    SECTION("Failure")
-    {
-        success = false;
-
-        SECTION("Failure and JSON") { useJson = true; }
-        SECTION("Failure and not JSON") { useJson = false; }
-    }
-
-    SECTION("Success")
-    {
-        success = true;
-
-        SECTION("Success and JSON") { useJson = true; }
-        SECTION("Success and not JSON") { useJson = false; }
-    }
-
-    unsigned int messageId = 0;
-    if (useJson) {
-        const std::string jsonStr = faabric::util::messageToJson(call);
-        messageId = setEmulatedMessageFromJson(jsonStr.c_str());
-    } else {
-        messageId = setEmulatedMessage(call);
-    }
-
-    REQUIRE(messageId > 0);
-    emulatorSetCallStatus(success);
-
-    // Call the await call function directly
-    int resultCode = __faasm_await_call(call.id());
-
-    if (success) {
-        REQUIRE(resultCode == 0);
-    } else {
-        REQUIRE(resultCode == 1);
-    }
-
-    conf.hostType = originalHostType;
 }
 }

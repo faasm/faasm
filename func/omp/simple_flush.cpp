@@ -5,7 +5,7 @@
 // I think flush is disappearing from OpenMP. Clang doesn't seem to care about
 // argument lists and just implements it as a memory fence. So this example is
 // probably no good to be honest. But at least it exists.
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     int data = 0, flag = 0;
 #pragma omp parallel num_threads(2) default(none) shared(data, flag)

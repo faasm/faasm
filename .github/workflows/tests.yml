@@ -19,13 +19,13 @@ jobs:
       LOG_LEVEL: info
       MAX_FAASLETS: 5
     container:
-      faasm/base-test:0.4.9
+      image: faasm/cli:0.5.0
     defaults:
       run:
         working-directory: /usr/local/code/faasm
     services:
       redis:
-        image: faasm/redis:0.4.9
+        image: faasm/redis:0.5.0
         ports:
           - 6379:6379
     steps:
@@ -39,33 +39,35 @@ jobs:
         run: git fetch origin ${GITHUB_REF}:ci-branch
       - name: "Check out branch"
         run: git checkout --force ci-branch
-      - name: "Update submodules"
-        run: git submodule update
       - name: "Log commits"
         run: git log -3
       # --- Formatting checks ---
       - name: "Python formatting check"
         run: ./bin/check_black.sh
       # Uncomment when all formatting done
-      #- name: "Run C/C++ formatting"
-      #  run: ./bin/run_clang_format.sh
-      #- name: "Check C/C++ formatting changes"
-      #  run: git diff --exit-code
+      - name: "Run C/C++ formatting"
+        run: ./bin/run_clang_format.sh
+      - name: "Check C/C++ formatting changes"
+        run: git diff --exit-code
       # --- Code build ---
-      - name: "Build codegen"
-        run: cmake --build . --target codegen_func
-        working-directory: /usr/local/code/faasm/build
-      - name: "Build tests"
-        run: cmake --build . --target codegen_shared_obj
-        working-directory: /usr/local/code/faasm/build
-      - name: "Build tests"
-        run: cmake --build . --target tests
-        working-directory: /usr/local/code/faasm/build
+      - name: "Rerun cmake"
+        run: inv -r faasmcli/faasmcli dev.cmake
+      - name: "Build dev tools"
+        run: inv -r faasmcli/faasmcli dev.tools
+      # --- WASM compilation ---
+      - name: "Compile libraries"
+        run: inv -r faasmcli/faasmcli libs.toolchain
+      - name: "Compile demo code"
+        run: inv -r faasmcli/faasmcli compile.user demo
+      - name: "Compile errors code"
+        run: inv -r faasmcli/faasmcli compile.user errors
+      - name: "Compile MPI code"
+        run: inv -r faasmcli/faasmcli compile.user mpi
+      - name: "Compile Python function"
+        run: inv -r faasmcli/faasmcli compile python py_func
+      - name: "Compile OMP functions"
+        run: inv -r faasmcli/faasmcli compile.user omp
       # --- Environment set-up ---
-      - name: "Download sysroot"
-        run: inv -r faasmcli/faasmcli toolchain.download-sysroot
-      - name: "Download runtime root"
-        run: inv -r faasmcli/faasmcli toolchain.download-runtime --nocodegen
       - name: "Set up test lib"
         run: inv -r faasmcli/faasmcli libs.fake
       - name: "Run codegen"
@@ -78,5 +80,6 @@ jobs:
         run: chown -R root:root /usr/local/faasm
       # --- Test run ---
       - name: "Run the tests"
-        run: ./build/bin/tests
+        run: ./bin/tests
+        working-directory: /build/faasm
 

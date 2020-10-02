@@ -4,16 +4,19 @@
 #include "stdio.h"
 
 /*
- * Invokes Eigen's config to check which flags are on instruction sets are in use
+ * Invokes Eigen's config to check which flags are on instruction sets are in
+ * use
  */
-FAASM_MAIN_FUNC() {
+int main(int argc, char* argv[])
+{
     const char* eigenInstrSets = Eigen::SimdInstructionSetsInUse();
     printf("Eigen SIMD instruction sets: %s\n", eigenInstrSets);
 
     printf("EIGEN_MAX_ALIGN_BYTES = %i\n", EIGEN_MAX_ALIGN_BYTES);
     printf("EIGEN_IDEAL_MAX_ALIGN_BYTES = %i\n", EIGEN_IDEAL_MAX_ALIGN_BYTES);
     printf("EIGEN_MIN_ALIGN_BYTES = %i\n", EIGEN_MIN_ALIGN_BYTES);
-    printf("EIGEN_ARCH_WANTS_STACK_ALIGNMENT = %i\n", EIGEN_ARCH_WANTS_STACK_ALIGNMENT);
+    printf("EIGEN_ARCH_WANTS_STACK_ALIGNMENT = %i\n",
+           EIGEN_ARCH_WANTS_STACK_ALIGNMENT);
 
 #ifdef __wasm__
     printf("__wasm__\n");
@@ -47,7 +50,7 @@ FAASM_MAIN_FUNC() {
     printf("EIGEN_SSE2_ON_NON_MSVC_BUT_NOT_OLD_GCC\n");
 #endif
 
-#ifdef  EIGEN_SSE2_ON_MSVC_2008_OR_LATER
+#ifdef EIGEN_SSE2_ON_MSVC_2008_OR_LATER
     printf("EIGEN_SSE2_ON_MSVC_2008_OR_LATER\n");
 #endif
 
@@ -172,7 +175,6 @@ FAASM_MAIN_FUNC() {
 #ifndef EIGEN_NO_IO
     printf("EIGEN_NO_IO\n");
 #endif
-
 
 #ifndef EIGEN_PARSED_BY_DOXYGEN
     printf("EIGEN_PARSED_BY_DOXYGEN\n");

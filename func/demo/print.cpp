@@ -2,7 +2,8 @@
 
 #include <stdio.h>
 
-FAASM_MAIN_FUNC() {
+int main(int argc, char* argv[])
+{
     short s = 8;
     printf("s: %i\n", s);
 

@@ -1,18 +1,19 @@
 #include <wasm/WasmModule.h>
 
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/operations.hpp>
 
 #include <module_cache/WasmModuleCache.h>
 #include <wamr/WAMRWasmModule.h>
 
 #include <faabric/util/files.h>
 
-bool runFunction(std::string &user, std::string &function, int runCount);
+bool runFunction(std::string& user, std::string& function, int runCount);
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[])
+{
     faabric::util::initLogging();
     const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
 
@@ -35,7 +36,7 @@ int main(int argc, char *argv[]) {
     std::vector<std::string> functions;
 
     if (function == "all") {
-        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
+        faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
         boost::filesystem::path path(conf.functionDir);
         path.append(user);
 
@@ -44,7 +45,8 @@ int main(int argc, char *argv[]) {
             return 1;
         }
 
-        for (boost::filesystem::directory_iterator iter(path), end; iter != end; iter++) {
+        for (boost::filesystem::directory_iterator iter(path), end; iter != end;
+             iter++) {
             boost::filesystem::directory_entry subPath(iter->path().string());
             functions.push_back(subPath.path().filename().string());
         }
@@ -52,20 +54,20 @@ int main(int argc, char *argv[]) {
         functions.push_back(function);
     }
 
-    for (auto &f : functions) {
+    for (auto& f : functions) {
         logger->info("Running {}/{} for {} runs", user, f, runCount);
         bool success = runFunction(user, f, runCount);
         if (!success) {
-            throw std::runtime_error(fmt::format(
-                    "Function {}/{} failed", user, f)
-            );
+            throw std::runtime_error(
+              fmt::format("Function {}/{} failed", user, f));
         }
     }
 
     return 0;
 }
 
-bool runWithWamr(faabric::Message &m, int runCount) {
+bool runWithWamr(faabric::Message& m, int runCount)
+{
     bool success = true;
 
     for (int i = 0; i < runCount; i++) {
@@ -83,14 +85,15 @@ bool runWithWamr(faabric::Message &m, int runCount) {
     return success;
 }
 
-
-bool runWithWavm(faabric::Message &m, int runCount) {
-    const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
+bool runWithWavm(faabric::Message& m, int runCount)
+{
+    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
     bool success = true;
 
     // Create the module
-    module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
-    wasm::WAVMWasmModule &cachedModule = registry.getCachedModule(m);
+    module_cache::WasmModuleCache& registry =
+      module_cache::getWasmModuleCache();
+    wasm::WAVMWasmModule& cachedModule = registry.getCachedModule(m);
 
     // Create new module from cache
     wasm::WAVMWasmModule module(cachedModule);
@@ -110,7 +113,8 @@ bool runWithWavm(faabric::Message &m, int runCount) {
     return success;
 }
 
-bool runFunction(std::string &user, std::string &function, int runCount) {
+bool runFunction(std::string& user, std::string& function, int runCount)
+{
     const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
 
     // Set up function call
@@ -127,7 +131,7 @@ bool runFunction(std::string &user, std::string &function, int runCount) {
         m.set_function(PYTHON_FUNC);
     }
 
-    faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     bool success = true;
 
     if (conf.wasmVm == "wavm") {
@@ -142,4 +146,3 @@ bool runFunction(std::string &user, std::string &function, int runCount) {
 
     return success;
 }
-

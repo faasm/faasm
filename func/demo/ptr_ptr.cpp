@@ -2,17 +2,17 @@
 
 #include <stdio.h>
 
-class MyClass {
-public:
-    explicit MyClass(int newInt) {
-        myInt = newInt;
-    }
+class MyClass
+{
+  public:
+    explicit MyClass(int newInt) { myInt = newInt; }
 
     int myInt = 0;
 };
 
-void setMyClassPointer(MyClass **ptrPtr, int newInt) {
-    MyClass *newPtr;
+void setMyClassPointer(MyClass** ptrPtr, int newInt)
+{
+    MyClass* newPtr;
     newPtr = new MyClass(newInt);
 
     if (ptrPtr == NULL) {
@@ -26,10 +26,11 @@ void setMyClassPointer(MyClass **ptrPtr, int newInt) {
     }
 }
 
-FAASM_MAIN_FUNC() {
+int main(int argc, char* argv[])
+{
     // Create a pointer and a pointer to a pointer
-    MyClass *aPtr;
-    MyClass **aPtrPtr = &aPtr;
+    MyClass* aPtr;
+    MyClass** aPtrPtr = &aPtr;
 
     setMyClassPointer(aPtrPtr, 2);
 

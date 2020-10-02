@@ -1,9 +1,10 @@
 #include "faasm/faasm.h"
 
-FAASM_MAIN_FUNC() {
-    const char *message = "Hello faasm!";
+int main(int argc, char* argv[])
+{
+    const char* message = "Hello faasm!";
 
-    faasmSetOutput((uint8_t *) message, 12);
+    faasmSetOutput((uint8_t*)message, 12);
 
     return 0;
 }

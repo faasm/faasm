@@ -47,17 +47,13 @@ def local(ctx, wamr=False):
     """
     _do_codegen_user("demo", wamr=wamr)
     _do_codegen_user("errors", wamr=wamr)
-    _do_codegen_user("omp", wamr=wamr)
     _do_codegen_user("mpi", wamr=wamr)
-    _do_codegen_user("rust", wamr=wamr)
+    _do_codegen_user("omp", wamr=wamr)
+    _do_codegen_user("python", wamr)
 
-    # Run these in parallel
-    p = Pool(2)
-    users = [
-        ("python", wamr),
-        ("sgd", wamr),
-    ]
-    p.starmap(_do_codegen_user, users)
+    # Always run the codegen required by the tests
+    codegen(ctx, "demo", "echo", wamr=True)
+    codegen(ctx, "demo", "chain", wamr=True)
 
     print("Running codegen on python shared objects")
     binary = find_codegen_shared_lib()

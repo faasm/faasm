@@ -9,7 +9,7 @@ bool failed = false;
  * The loop must include both globally and locally shared variables.
  */
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     int nThreads = omp_get_max_threads();
     if (nThreads < 2) {

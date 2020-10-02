@@ -11,5 +11,5 @@ pip install -e .
 
 From this directory.
 
-See the [local dev docs](../docs/local_dev.md) for info on using this package 
+See the [local dev docs](../docs/development.md) for info on using this package 
 with IDEs.

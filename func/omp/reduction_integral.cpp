@@ -8,7 +8,7 @@ double integral_reduction();
 double integral_better_reduction();
 bool checkResult(const char* func, double reduction);
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     bool failed = false;
     failed |= checkResult("Atomic", integral_atomic());

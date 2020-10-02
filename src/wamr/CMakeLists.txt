@@ -5,9 +5,6 @@
 # We have our own custom CMake set-up which looks a bit like the wamrc build:
 # https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/wamr-compiler/CMakeLists.txt
 
-# Include WAMR platform header
-include_directories(${WAMR_SHARED_DIR}/platform/linux/)
-
 # Turn on WAMR features
 add_definitions(-DWASM_ENABLE_BULK_MEMORY=1)
 add_definitions(-DWASM_ENABLE_WAMR_COMPILER=1)
@@ -52,9 +49,13 @@ faasm_private_lib(wamrlib "${ALL_WAMR_SRC}")
 # Faasm-specific Non-SGX WAMR module
 # -----------------------------
 
-include_directories(
-        ${FAASM_INCLUDE_DIR}/wamr
-)
+set(PLATFORM_HEADER ${WAMR_SHARED_DIR}/platform/linux)
+
+target_include_directories(
+    wamrlib PUBLIC
+    ${FAASM_INCLUDE_DIR}/wamr
+    ${PLATFORM_HEADER}
+    )
 
 set(HEADERS
         "${FAASM_INCLUDE_DIR}/wamr/WAMRWasmModule.h"
@@ -88,6 +89,7 @@ target_link_libraries(wamrmodule
         wasm
         wamrlib
         )
+
 if(NOT WAMR_INTERPRETER_MODE)
     target_link_libraries(wamrmodule
             aotclib

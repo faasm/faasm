@@ -1,9 +1,10 @@
 #include "faasm/faasm.h"
 
-#include <sys/time.h>
 #include <stdio.h>
+#include <sys/time.h>
 
-FAASM_MAIN_FUNC() {
+int main(int argc, char* argv[])
+{
     timeval tv{};
     gettimeofday(&tv, nullptr);
 

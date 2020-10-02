@@ -2,6 +2,7 @@
 #include "syscalls.h"
 
 #include <faabric/scheduler/Scheduler.h>
+#include <wasm/chaining.h>
 
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
@@ -11,16 +12,6 @@ using namespace WAVM;
 
 namespace wasm {
 void chainLink() {}
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_get_idx", I32, __faasm_get_idx)
-{
-    faabric::util::getLogger()->debug("S - get_idx");
-
-    faabric::Message* call = getExecutingCall();
-    int idx = call->idx();
-
-    return idx;
-}
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__faasm_await_call",
@@ -52,16 +43,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "__faasm_chain_function",
+                               "__faasm_chain_name",
                                U32,
-                               __faasm_chain_function,
+                               __faasm_chain_name,
                                I32 namePtr,
                                I32 inputDataPtr,
                                I32 inputDataLen)
 {
     std::string funcName = getStringFromWasm(namePtr);
     faabric::util::getLogger()->debug(
-      "S - chain_function - {} {} {}", funcName, inputDataPtr, inputDataLen);
+      "S - chain_name - {} {} {}", funcName, inputDataPtr, inputDataLen);
 
     const std::vector<uint8_t> inputData =
       getBytesFromWasm(inputDataPtr, inputDataLen);
@@ -70,21 +61,21 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "__faasm_chain_this",
+                               "__faasm_chain_ptr",
                                U32,
-                               __faasm_chain_this,
-                               I32 idx,
+                               __faasm_chain_ptr,
+                               I32 wasmFuncPtr,
                                I32 inputDataPtr,
                                I32 inputDataLen)
 {
     faabric::util::getLogger()->debug(
-      "S - chain_this - {} {} {}", idx, inputDataPtr, inputDataLen);
+      "S - chain_ptr - {} {} {}", wasmFuncPtr, inputDataPtr, inputDataLen);
 
     faabric::Message* call = getExecutingCall();
     const std::vector<uint8_t> inputData =
       getBytesFromWasm(inputDataPtr, inputDataLen);
 
-    return makeChainedCall(call->function(), idx, nullptr, inputData);
+    return makeChainedCall(call->function(), wasmFuncPtr, nullptr, inputData);
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,

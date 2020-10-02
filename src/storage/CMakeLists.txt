@@ -1,6 +1,6 @@
 include_directories(
         ${FAASM_INCLUDE_DIR}/storage
-        ${FAASM_WAVM_SOURCE_DIR}
+        ${FAASM_WAVM_SOURCE_DIR}/Lib
 )
 
 file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/storage/*.h")
@@ -22,7 +22,7 @@ target_link_libraries(storage faasm emulator wavmmodule)
 
 # WAMR module depends on SGX support
 if(FAASM_SGX_SUPPORT)
-    target_link_libraries(storage sgx_wamr)
+    target_link_libraries(storage faasm_sgx)
 else()
     target_link_libraries(storage wamrmodule)
 endif()

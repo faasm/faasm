@@ -11,7 +11,7 @@ static int result2 = 0;
 static int result3 = 0;
 static int result4 = 0;
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
 #pragma omp parallel num_threads(2) default(none)                              \
   shared(x1, x2, x3, x4, result1, result2, result3, result4)

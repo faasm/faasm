@@ -100,13 +100,14 @@ demo_func(zygote_check zygote_check.cpp)
 if(FAASM_BUILD_TYPE STREQUAL "wasm")
     # demo_func(eigen_vec eigen_vec.cpp)
 
-    include_directories(/usr/local/faasm/llvm-sysroot/include/clapack)
-    demo_func_c(blas_check blas_check.c)
-    target_link_libraries(blas_check ${FAASM_BLAS_LIBS})
+    # TODO - fix BLAS check function
+    # include_directories(/usr/local/faasm/llvm-sysroot/include/clapack)
+    # demo_func_c(blas_check blas_check.c)
+    # target_link_libraries(blas_check ${FAASM_BLAS_LIBS})
 endif()
 
 faasm_dynamic_func(dynlink dynlink.cpp)
-set(ALL_DEMO_FUNCS ${ALL_DEMO_FUNCS} dynlink PARENT_SCOPE)
+set(ALL_DEMO_FUNCS ${ALL_DEMO_FUNCS} dynlink)
 
 # Custom target to group all the demo functions
 add_custom_target(demo_all_funcs DEPENDS ${ALL_DEMO_FUNCS})

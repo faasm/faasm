@@ -24,7 +24,7 @@ int main()
     printf("B: %Le\n", b);
     printf("C: %Le\n", c);
     printf("D: %Le\n", d);
-    
+
     // Conversions _from_ long double
     printf("%i\n", (int)c);
     printf("%li\n", (long)c);
@@ -34,11 +34,10 @@ int main()
     printf("%llu\n", (unsigned long long)c);
 
     // Conversions _to_ long double
-    printf("%Le\n", (long double) 123);
-    printf("%Le\n", (long double) 123l);
-    printf("%Le\n", (long double) strtoll("1e100", nullptr, 0));
-    printf("%Le\n", (long double) strtoull("1e100", nullptr, 0));
+    printf("%Le\n", (long double)123);
+    printf("%Le\n", (long double)123l);
+    printf("%Le\n", (long double)strtoll("1e100", nullptr, 0));
+    printf("%Le\n", (long double)strtoull("1e100", nullptr, 0));
 
     return 0;
 }
-

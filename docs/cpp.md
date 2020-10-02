@@ -17,66 +17,66 @@ You should then see the response `Hello faasm!`.
 
 # Writing functions
 
-Faasm aims to be uninvasive, allowing code to run natively _and_ in a serverless context. 
-To do this in C/ C++ functions we use a set of Faasm macros. These macros allow code to 
-be compiled with a standard toolchain and run natively, and with the Faasm toolchain, 
-and run in a serverless context.
-
-The outline of this looks like:
+Faasm aims to be uninvasive, allowing code to run natively _and_ in a serverless
+context. This means the simplest Faasm function looks like:
 
 ```c++
-#include "faasm/faasm.h"
-
-FAASM_MAIN_FUNC() {
+int main(int argc, char* argv[]) {
     // Do something
 
     return 0;
 }
 ```
 
-Although for very simple functions, a standard `int main()` will also still work.
-
 ## C++ API
 
-Faasm provides a simple C++ wrapper library around the [Faasm host interface](host_interface.md).
-Some of the methods in this wrapper are:
+Faasm provides a simple C++ wrapper library around the [Faasm host
+interface](host_interface.md).  Some of the methods in this wrapper are:
 
 - `faasmGetInput()` - allows functions to retrieve their input data
 - `faasmSetOutput()` - this allows functions to return output data to the caller
-- `faasmChainFunction()` - this allows one function to invoke others
+- `faasmChain()` - this allows one function to invoke others
 - `faasmAwaitCall()` - waits for a chained function invocation to finish
-- `faasmReadState()` and `writeState()` - allows functions to read/ write key/value state
-- `faasmReadStateOffset()` and `faasmWriteStateOffset()` - allows functions to read/ write at specific points in existing state (e.g. updating a subsection of an array)
+- `faasmReadState()` and `writeState()` - allows functions to read/ write
+  key/value state
+- `faasmReadStateOffset()` and `faasmWriteStateOffset()` - allows functions to
+  read/ write at specific points in existing state (e.g. updating a subsection
+  of an array)
+
+They are found in the header `faasm/faasm.h`.
 
 ## Chaining
 
-"Chaining" is when one function makes a call to another function (which must be owned by the same user). 
-There are two supported methods of chaining, one for invoking totally separate Faasm functions, the 
-other for automatically parallelising functions in the same piece of code (useful for porting legacy applications).
+"Chaining" is when one function makes a call to another function (which must be
+owned by the same user).  There are two supported methods of chaining, one for
+invoking totally separate Faasm functions, the other for automatically
+parallelising functions in the same piece of code (useful for porting legacy
+applications).
 
 ### Chaining a function
 
-Multiple functions can be defined in the same file, invoke each other and await results. For example:
+Multiple functions can be defined in the same file, invoke each other and await
+results. For example:
 
 ```c++
 #include "faasm/faasm.h"
 #include <vector>
 
 // Define some function to be chained
-FAASM_FUNC(funcOne, 1) {
+int funcOne() {
     return 0;
 }
 
 // Define another function to be chained
-FAASM_FUNC(funcTwo, 2) {
+int funcTwo() {
     return 0;
 }
 
 // Define the main function
-FAASM_MAIN_FUNC() {
+int main(int argc, char* argv[]) {
     // Chain calls to the other functions
-    int callOneId = faasmChainThis(1);
-    int callTwoId = faasmChainThis(2);
+    int callOneId = faasmChain(funcOne);
+    int callTwoId = faasmChain(funcTwo);
 
     // Await results
     faasmAwaitCall(callOneId);
@@ -86,14 +86,14 @@ FAASM_MAIN_FUNC() {
 }
 ```
 
-Chaining can also be done across functions defined separately, e.g. in C++:
+Chaining can also be done by name across functions defined separately, e.g.:
 
 ```c++
 #include "faasm/faasm.h"
 
-FAASM_MAIN_FUNC() {
+int main(int argc, char* argv[]) {
     // Chain a call to my other function named "other-func"
-    int callId = faasmChainFunction("other-func");
+    int callId = faasmChainNamed("other-func");
     faasmAwaitCall(callId);
 
     return 0;

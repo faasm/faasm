@@ -27,17 +27,6 @@ std::pair<std::string, std::string> getUserKeyPairFromWasm(int32_t keyPtr);
 
 std::string getMaskedPathFromWasm(int32_t strPtr);
 
-int awaitChainedCall(unsigned int messageId);
-
-int awaitChainedCallOutput(unsigned int messageId,
-                           uint8_t* buffer,
-                           int bufferLen);
-
-int makeChainedCall(const std::string& functionName,
-                    int idx,
-                    const char* pyFunc,
-                    const std::vector<uint8_t>& inputData);
-
 int spawnChainedThread(const std::string& snapshotKey,
                        size_t snapshotSize,
                        int funcPtr,

@@ -22,7 +22,7 @@ deploy/k8s
 node_modules
 typescript
 venv
-machine-code
+container
 
 # Ignore all WebAssembly other than Python function, which has special status
 wasm
@@ -31,11 +31,3 @@ wasm
 # Benchmarking
 perf
 perf.*
-
-# Submodules
-third-party
-!third-party/eigen
-!third-party/faabric
-!third-party/WAVM
-!third-party/wamr
-

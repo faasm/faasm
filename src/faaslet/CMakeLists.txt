@@ -11,12 +11,15 @@ set(LIB_FILES
 
 faasm_private_lib(faaslet_lib "${LIB_FILES}")
 
-target_link_libraries(faaslet_lib faabric module_cache system)
+target_link_libraries(faaslet_lib
+        faabric
+        module_cache
+        system
+        wamrmodule
+        )
 
-# WAMR module depends on SGX support
+# Include SGX lib if enabled
 if(FAASM_SGX_SUPPORT)
-    target_link_libraries(faaslet_lib sgx_wamr)
+    target_link_libraries(faaslet_lib faasm_sgx)
     target_include_directories(faaslet_lib PRIVATE ${FAASM_INCLUDE_DIR}/sgx)
-else()
-    target_link_libraries(faaslet_lib wamrmodule)
 endif()

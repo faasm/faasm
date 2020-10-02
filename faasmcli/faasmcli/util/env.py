@@ -1,9 +1,16 @@
 from os import makedirs, environ
 from os.path import dirname, realpath, join, exists, expanduser
 
+from faasmtools.build import FAASM_LOCAL_DIR
+
+
+def _get_dir(variable, default):
+    env_val = environ.get(variable)
+    return env_val if env_val else default
+
+
 HOME_DIR = expanduser("~")
 PROJ_ROOT = dirname(dirname(dirname(dirname(realpath(__file__)))))
-THIRD_PARTY_DIR = join(PROJ_ROOT, "third-party")
 ANSIBLE_ROOT = join(PROJ_ROOT, "ansible")
 
 PYTHON_USER = "python"
@@ -11,13 +18,14 @@ PYTHON_FUNC = "py_func"
 
 FAASM_HOME = join(HOME_DIR, "faasm")
 FAASM_DATA_DIR = join(HOME_DIR, "faasm", "data")
-FAASM_LOCAL_DIR = "/usr/local/faasm"
 FAASM_MACHINE_CODE_DIR = join(FAASM_LOCAL_DIR, "object")
 FAASM_RUNTIME_ROOT = join(FAASM_LOCAL_DIR, "runtime_root")
 FAASM_SHARED_ROOT = join(FAASM_LOCAL_DIR, "shared")
 FAASM_SHARED_STORAGE_ROOT = join(FAASM_LOCAL_DIR, "shared_store")
 FAASM_SHARED_ROOT = join(FAASM_LOCAL_DIR, "shared")
 FAASM_INSTALL_DIR = "/usr/local"
+
+FAASM_BUILD_DIR = _get_dir("FAASM_BUILD_DIR", "/build/faasm")
 
 FAASM_CONFIG_FILE = join(FAASM_HOME, "faasm.ini")
 
@@ -31,7 +39,6 @@ BENCHMARK_ENV = {
 }
 
 FUNC_DIR = join(PROJ_ROOT, "func")
-
 
 WASM_DIR = join(PROJ_ROOT, "wasm")
 WASM_LIB_DIR = join(PROJ_ROOT, "wasm", "lib")
@@ -47,29 +54,7 @@ AWS_REGION = "eu-west-1"
 
 PY_RUNTIME_ROOT = join(FAASM_RUNTIME_ROOT, "lib", "python3.8")
 
-FAASM_TOOLCHAIN_FILE = join(
-    PROJ_ROOT, "third-party", "faasm-toolchain", "WasiToolchain.cmake"
-)
-FAASM_SYSROOT = join(FAASM_LOCAL_DIR, "llvm-sysroot")
-SYSROOT_INSTALL_PREFIX = FAASM_SYSROOT
-
 LATEST_CMAKE = "/usr/local/lib/cmake-3.15/bin/cmake"
-
-POSSIBLE_BUILD_BINS = [
-    "/faasm/build/bin/",  # Containers
-    "/faasm/build/third-party/WAVM/bin/",  # Containers
-    join(PROJ_ROOT, "build", "bin"),  # Local builds
-    join(PROJ_ROOT, "build", "cmake", "bin"),  # Local builds
-    join(PROJ_ROOT, "build", "third-party", "WAVM", "bin"),  # Local builds
-    join(
-        PROJ_ROOT, "build", "cmake", "third-party", "WAVM", "bin"
-    ),  # Local builds
-    join(PROJ_ROOT, "cmake-build-debug", "bin"),  # CLion
-    join(
-        PROJ_ROOT, "cmake-build-debug", "third-party", "WAVM", "bin"
-    ),  # CLion
-    join(HOME_DIR, "faasm", "bench", "bin"),  # Benchmark
-]
 
 
 def get_wasm_func_path(user, func_name):

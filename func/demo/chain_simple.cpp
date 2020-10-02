@@ -3,10 +3,26 @@
 
 #define INPUT_VAL 42
 
-FAASM_MAIN_FUNC() {
+int chainOne()
+{
+    int input = 0;
+    faasmGetInput(BYTES(&input), sizeof(int));
+
+    if (input == INPUT_VAL) {
+        printf("Got expected chained input of %i\n", input);
+        return 0;
+    } else {
+        printf("Got unexpected chained input of %i\n", input);
+        return 1;
+    }
+}
+
+int main(int argc, char* argv[])
+{
     // Make one chained call
     int inputVal = INPUT_VAL;
-    unsigned int callId = faasmChainThisInput(1, (uint8_t *) &inputVal, sizeof(int));
+    unsigned int callId =
+      faasmChain(chainOne, (uint8_t*)&inputVal, sizeof(int));
 
     unsigned int result = faasmAwaitCall(callId);
 
@@ -18,17 +34,4 @@ FAASM_MAIN_FUNC() {
     }
 
     return 0;
-}
-
-FAASM_FUNC(chainOne, 1) {
-    int input = 0;
-    faasmGetInput(BYTES(&input), sizeof(int));
-
-    if (input == INPUT_VAL) {
-        printf("Got expected chained input of %i\n", input);
-        return 0;
-    } else {
-        printf("Got unexpected chained input of %i\n", input);
-        return 1;
-    }
 }

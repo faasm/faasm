@@ -2,18 +2,80 @@
 
 This guide is only relevant for those wanting to dig deeper or make changes to
 Faasm itself. If you'd just like to write and run functions, you can refer to
-the [set-up](setup.md) instructions. 
+the [set-up instructions](setup.md). 
 
-## Recommended Set-up
+## Recommended Set-up - Docker CLI
 
-The Faasm codebase is all standard C/C++ and Python, so should work on a range 
-of set-ups, however, the recommended configuration is:
+Most development can be done using the containerised CLI. To get everything set
+up, you need to run:
 
-- Ubuntu 20.04
-- Python 3.8
-- Clang 10
-- CMake 3.13+
-- Ninja (rather than Make)
+```bash
+# Clone this repo
+git clone https://github.com/faasm/faasm
+cd faasm
+
+# Start the CLI
+./bin/cli.sh
+```
+
+The service orchestration is handled through `docker-compose`. If you want to
+stop all `faasm`-related development services run:
+```bash
+./bin/stop-cli.sh
+```
+
+To build and run the tests, you can then run the following inside the container:
+
+```bash
+# Build the development tools
+inv dev.tools
+
+# Upload the Python functions
+inv upload.user python --local-copy --py
+
+# Run codegen (this may take a while the first time it's run)
+inv codegen.local
+
+# Set up cgroup
+./bin/cgroup.sh
+
+# Run the tests
+tests
+```
+
+### Tooling - editors, IDEs etc.
+
+Several directories (including the project root) are mounted as volumes in the
+CLI container (see
+[`docker-compose-cli.yml`](../docker/docker-compose-cli.yml)).  This means you
+can edit the files directly on your host and compile them inside the container.
+
+You can use remote development tools to develop and debug inside the CLI
+container (e.g.  [CLion remote
+development](https://www.jetbrains.com/help/clion/remote-development.html) or
+[`gdbserver`](https://sourceware.org/gdb/onlinedocs/gdb/Server.html)).
+
+You can also create a new container that inherits from the CLI if you want to
+set up your own. To do this:
+
+```bash
+./bin/cli.sh <your image>
+```
+
+Or set the environment variable `CLI_IMAGE`  before you run the `cli.sh` script.
+
+## Building outside of the container
+
+If you want to build the project outside of the recommended container, or just
+run some of the CLI tasks, you can take a look at the [CLI
+Dockerfile](../docker/cli.dockerfile) to see what's required.
+
+You will most likely need to set up the CLI using:
+
+```bash
+export FAASM_BUILD_DIR=$(pwd)/build
+source bin/workon.sh
+```
 
 ## Code style
 
@@ -28,110 +90,17 @@ configuration:
 - **CMake** - TBD
 - **Bash** - TBD
 
-## Checking out the repo
+## Detailed notes
 
-For now, many locations rely on the code being located at
-`/usr/local/code/faasm` (note the lowercase "f"), with the latter two 
-directories _owned_ by the current user. This is annoying and something we will 
-fix in future. 
-
-You can either set this directory up directly, or just symlink it.
-
-Assuming you've checked out this code somewhere, you'll need to make sure
-submodules are up to date:
-
-```bash
-git submodule update --init
-```
-
-## Basic local machine set-up
-
-Most of the local set-up is scripted with Ansible, but you need to have Python 3
-and [Ansible](https://www.ansible.com/) set up in advance.
-
-The easiest way to do this is as follows:
-
-```bash
-# Python stuff and other dependencies
-sudo apt install python3-dev python3-pip python3-venv libcairo2-dev libtinfo5
-sudo pip3 install -U pip
-
-# Ansible
-sudo pip install -U ansible
-
-# Faasm python env 
-source workon.sh
-pip install -r faasmcli/requirements.txt
-
-# Faasm CLI
-pip install -e faasmcli/
-
-# Faasm playbook
-cd ansible
-ansible-playbook local_dev.yml --ask-become-pass
-```
-
-If you want to tweak things yourself, look inside the `local_dev.yml` playbook
-to see what's required.
-
-### Protobuf and gRPC
-
-Faasm depends on Protobuf and gRPC which are set up with the Ansible `grpc` role
-found [here](ansible/roles/grpc/tasks/main.yml). However, if you want to intsall
-these yourself or use an existing version, make sure you use the full 
-[gRPC C++ build](https://grpc.io/docs/languages/cpp/quickstart/).
-
-## Toolchain and Runtime Root
-
-The Faasm toolchain and runtime require some prebuilt files which can be
-downloaded with:
-
-```bash
-source workon.sh
-inv toolchain.download-toolchain
-inv toolchain.download-sysroot
-```
-
-If you want to build the toolchain from scratch, you'll need to look at the
-`toolchain.md` doc.
-
-## Codegen and upload
-
-To generate machine code for your system you'll need to build a couple of Faasm
-targets with:
-
-```bash
-inv dev.cmake
-inv dev.cc codegen_func
-inv dev.cc codegen_shared_obj
-```
-
-The Python source for these commands can be found in the [CLI
-source](faasmcli/faasmcli/tasks/dev.py).
-
-### Python functions
-
-You can pull down the prepackaged python runtime and required runtime files
-with:
-
-```bash
-inv toolchain.download-runtime
-```
-
-You can then put the Python functions in place with:
-
-```bash
-inv upload.user python --py --local-copy
-```
-
-## Networking
+### Networking
 
 If you want to switch on network isolation you need to set up network
 namespaces. To do this we need to ensure consistent interface naming (`eth0` for
 main public interface). If your public interface is already called `eth0` then
 you can skip this step.
 
-- Edit `/etc/default/grub` and add `net.ifnames=0 biosdevname=0` to `GRUB_CMDLINE_LINUX_DEFAULT`
+- Edit `/etc/default/grub` and add `net.ifnames=0 biosdevname=0` to
+  `GRUB_CMDLINE_LINUX_DEFAULT`
 - Run `sudo update-grub`
 - Restart the machine
 
@@ -141,7 +110,7 @@ This script will then set up the namespaces
 sudo ./bin/netns.sh 20
 ```
 
-## Cgroups
+### Cgroups
 
 To use cgroup isolation, you'll need to run:
 
@@ -156,34 +125,15 @@ function:
 
 ```bash
 # Set up the CLI
-source workon.sh
+export FAASM_BUILD_DIR=<build dir>
+source bin/workon.sh
 
 # Build the project
-inv dev.cmake --clean
-inv dev.cc simple_runner
-inv dev.cc codgen_func
+inv dev.tools
 
 # Compile, codegen and run the code
 inv compile demo hello
 inv codegen demo hello
 inv run demo hello
-```
-
-# Troubleshooting the local dev set-up
-
-This section consists of issues that may occure during installation and possible
-solutions.
-
-## Error 'bdist_wheel' can't be found after invoking pip install -r faasmcli/requirements.txt
-
-```bash
-# Remove installed requirements
-pip uninstall -r faasmcli/requirements.txt
-
-# Install setuptools and wheel 
-pip install setuptools wheel
-
-#Install faasmcli requirements
-pip install -r faasmcli/requirements.txt
 ```
 

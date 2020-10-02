@@ -1,142 +1,147 @@
-#include <catch/catch.hpp>
+#include <catch2/catch.hpp>
 
 #include "utils.h"
 
-#include <wavm/WAVMWasmModule.h>
-#include <faabric/util/func.h>
 #include <emulator/emulator.h>
+#include <faabric/state/DummyStateServer.h>
+#include <faabric/util/func.h>
 #include <faabric/util/memory.h>
 #include <faabric/util/state.h>
-#include <faabric/state/DummyStateServer.h>
-
+#include <wavm/WAVMWasmModule.h>
 
 using namespace WAVM;
 
 namespace tests {
-    void _checkMapping(
-            wasm::WAVMWasmModule &module,
-            std::shared_ptr<faabric::state::StateKeyValue> &kv,
-            long offset,
-            long size,
-            std::vector<uint8_t> &expected
-    ) {
-        // Check mapped whole region
+void _checkMapping(wasm::WAVMWasmModule& module,
+                   std::shared_ptr<faabric::state::StateKeyValue>& kv,
+                   long offset,
+                   long size,
+                   std::vector<uint8_t>& expected)
+{
+    // Check mapped whole region
 
-        U32 wasmPtr = module.mapSharedStateMemory(kv, offset, size);
-        U8 *hostPtr = Runtime::memoryArrayPtr<U8>(module.defaultMemory, (Uptr) wasmPtr, (Uptr) size);
+    U32 wasmPtr = module.mapSharedStateMemory(kv, offset, size);
+    U8* hostPtr = Runtime::memoryArrayPtr<U8>(
+      module.defaultMemory, (Uptr)wasmPtr, (Uptr)size);
 
-        std::vector<uint8_t> actual(hostPtr, hostPtr + size);
-        REQUIRE(actual == expected);
-    }
+    std::vector<uint8_t> actual(hostPtr, hostPtr + size);
+    REQUIRE(actual == expected);
+}
 
-    TEST_CASE("Test loading state into wasm module", "[wasm]") {
-        cleanSystem();
-        
-        wasm::WAVMWasmModule moduleA;
-        wasm::WAVMWasmModule moduleB;
+TEST_CASE("Test loading state into wasm module", "[wasm]")
+{
+    cleanSystem();
 
-        const faabric::Message call = faabric::util::messageFactory("demo", "echo");
-        moduleA.bindToFunction(call);
-        moduleB.bindToFunction(call);
+    wasm::WAVMWasmModule moduleA;
+    wasm::WAVMWasmModule moduleB;
 
-        // Set up some state value
-        long stateSize = 5 * faabric::util::HOST_PAGE_SIZE;
-        std::vector<uint8_t> value(stateSize);
-        std::fill(value.data(), value.data() + stateSize, 1);
+    const faabric::Message call = faabric::util::messageFactory("demo", "echo");
+    moduleA.bindToFunction(call);
+    moduleB.bindToFunction(call);
 
-        // Write significant values at known points
-        long offsetA1 = 10;
-        long offsetA2 = faabric::util::HOST_PAGE_SIZE + 2;
-        long offsetB1 = 2 * faabric::util::HOST_PAGE_SIZE - 5;
-        long offsetB2 = 3 * faabric::util::HOST_PAGE_SIZE - 5;
+    // Set up some state value
+    long stateSize = 5 * faabric::util::HOST_PAGE_SIZE;
+    std::vector<uint8_t> value(stateSize);
+    std::fill(value.data(), value.data() + stateSize, 1);
 
-        uint8_t markerA1 = 6;
-        uint8_t markerA2 = 7;
-        uint8_t markerB1 = 8;
-        uint8_t markerB2 = 9;
+    // Write significant values at known points
+    long offsetA1 = 10;
+    long offsetA2 = faabric::util::HOST_PAGE_SIZE + 2;
+    long offsetB1 = 2 * faabric::util::HOST_PAGE_SIZE - 5;
+    long offsetB2 = 3 * faabric::util::HOST_PAGE_SIZE - 5;
 
-        value[offsetA1] = markerA1;
-        value[offsetA2] = markerA2;
-        value[offsetB1] = markerB1;
-        value[offsetB2] = markerB2;
+    uint8_t markerA1 = 6;
+    uint8_t markerA2 = 7;
+    uint8_t markerB1 = 8;
+    uint8_t markerB2 = 9;
 
-        // Get the kv
-        faabric::state::State &s = faabric::state::getGlobalState();
-        const std::string user = getEmulatorUser();
-        const std::string key = "wasm_state_test";
-        auto kv = s.getKV(user, key, stateSize);
+    value[offsetA1] = markerA1;
+    value[offsetA2] = markerA2;
+    value[offsetB1] = markerB1;
+    value[offsetB2] = markerB2;
 
-        // Write the value to the key-value
-        kv->set(value.data());
+    // Get the kv
+    faabric::state::State& s = faabric::state::getGlobalState();
+    const std::string user = getEmulatorUser();
+    const std::string key = "wasm_state_test";
+    auto kv = s.getKV(user, key, stateSize);
 
-        // Check mapping the whole region
-        _checkMapping(moduleA, kv, 0, stateSize, value);
+    // Write the value to the key-value
+    kv->set(value.data());
 
-        // Map a segment of that module to the same value
-        std::vector<uint8_t> expectedA2 = {1, markerA1, 1, 1};
-        _checkMapping(moduleA, kv, offsetA1 - 1, 4, expectedA2);
+    // Check mapping the whole region
+    _checkMapping(moduleA, kv, 0, stateSize, value);
 
-        // Map a segment of a different module and check
-        std::vector<uint8_t> expectedB1 = {1, 1, 1, markerB1, 1, 1, 1};
-        _checkMapping(moduleB, kv, offsetB1 - 3, 7, expectedB1);
+    // Map a segment of that module to the same value
+    std::vector<uint8_t> expectedA2 = { 1, markerA1, 1, 1 };
+    _checkMapping(moduleA, kv, offsetA1 - 1, 4, expectedA2);
 
-        // Map a segment of a different module and check
-        std::vector<uint8_t> expectedB2 = {1, 1, 1, 1, 1, markerB2, 1};
-        _checkMapping(moduleB, kv, offsetB2 - 5, 7, expectedB2);
-    }
-    
-    TEST_CASE("Test mapping state chunk from remote state", "[state]") {
-        cleanSystem();
+    // Map a segment of a different module and check
+    std::vector<uint8_t> expectedB1 = { 1, 1, 1, markerB1, 1, 1, 1 };
+    _checkMapping(moduleB, kv, offsetB1 - 3, 7, expectedB1);
 
-        // Set up a non-page-aligned size
-        long stateSize = (faabric::util::HOST_PAGE_SIZE * 2) + 23;
-        long expectedAllocatedSize = faabric::util::HOST_PAGE_SIZE * 3;
-        std::vector<uint8_t> values(stateSize, 3);
+    // Map a segment of a different module and check
+    std::vector<uint8_t> expectedB2 = { 1, 1, 1, 1, 1, markerB2, 1 };
+    _checkMapping(moduleB, kv, offsetB2 - 5, 7, expectedB2);
+}
 
-        // Set up a chunk at the end
-        size_t chunkOffset = stateSize - 10;
-        size_t chunkSize = 5;
-        values[chunkOffset] = 4;
-        values[chunkOffset + 1] = 5;
-        std::vector<uint8_t> expected = {4, 5, 3, 3, 3};
-        std::vector<uint8_t> zeroes(expected.size(), 0);
+TEST_CASE("Test mapping state chunk from remote state", "[state]")
+{
+    cleanSystem();
 
-        std::string user = getEmulatorUser();
-        std::string key = "chunk_map";
+    // Set up a non-page-aligned size
+    long stateSize = (faabric::util::HOST_PAGE_SIZE * 2) + 23;
+    long expectedAllocatedSize = faabric::util::HOST_PAGE_SIZE * 3;
+    std::vector<uint8_t> values(stateSize, 3);
 
-        // Set up a remote state server
-        faabric::state::DummyStateServer server;
-        server.dummyUser = user;
-        server.dummyKey = "chunk_map";
-        server.dummyData = values;
+    // Set up a chunk at the end
+    size_t chunkOffset = stateSize - 10;
+    size_t chunkSize = 5;
+    values[chunkOffset] = 4;
+    values[chunkOffset + 1] = 5;
+    std::vector<uint8_t> expected = { 4, 5, 3, 3, 3 };
+    std::vector<uint8_t> zeroes(expected.size(), 0);
 
-        // Expect one pull
-        server.start();
+    std::string user = getEmulatorUser();
+    std::string key = "chunk_map";
 
-        // Check allocated memory is aligned up to a page boundary
-        const std::shared_ptr<faabric::state::StateKeyValue> &remoteKv = server.getRemoteKv();
-        size_t memSize = remoteKv->getSharedMemorySize();
-        REQUIRE(memSize == expectedAllocatedSize);
+    // Set up a remote state server
+    faabric::state::DummyStateServer server;
+    server.dummyUser = user;
+    server.dummyKey = "chunk_map";
+    server.dummyData = values;
 
-        // Create a wasm module
-        wasm::WAVMWasmModule module;
-        const faabric::Message call = faabric::util::messageFactory("demo", "echo");
-        module.bindToFunction(call);
+    // Expect one pull
+    server.start();
 
-        // Map the chunk locally
-        const std::shared_ptr<faabric::state::StateKeyValue> &localKv = server.getLocalKv();
-        uint32_t wasmPtr = module.mapSharedStateMemory(localKv, chunkOffset, chunkSize);
+    // Check allocated memory is aligned up to a page boundary
+    const std::shared_ptr<faabric::state::StateKeyValue>& remoteKv =
+      server.getRemoteKv();
+    size_t memSize = remoteKv->getSharedMemorySize();
+    REQUIRE(memSize == expectedAllocatedSize);
 
-        // Check that this is still zeroed
-        U8 *hostPtr = Runtime::memoryArrayPtr<U8>(module.defaultMemory, (Uptr) wasmPtr, (Uptr) chunkSize);
-        std::vector<uint8_t> actual(hostPtr, hostPtr + chunkSize);
-        REQUIRE(actual == zeroes);
+    // Create a wasm module
+    wasm::WAVMWasmModule module;
+    const faabric::Message call = faabric::util::messageFactory("demo", "echo");
+    module.bindToFunction(call);
 
-        // Check that the value is pulled when we get the chunk
-        localKv->getChunk(chunkOffset, actual.data(), chunkSize);
-        REQUIRE(actual == expected);
+    // Map the chunk locally
+    const std::shared_ptr<faabric::state::StateKeyValue>& localKv =
+      server.getLocalKv();
+    uint32_t wasmPtr =
+      module.mapSharedStateMemory(localKv, chunkOffset, chunkSize);
 
-        // Allow the server to shut down
-        server.stop();
-    }
+    // Check that this is still zeroed
+    U8* hostPtr = Runtime::memoryArrayPtr<U8>(
+      module.defaultMemory, (Uptr)wasmPtr, (Uptr)chunkSize);
+    std::vector<uint8_t> actual(hostPtr, hostPtr + chunkSize);
+    REQUIRE(actual == zeroes);
+
+    // Check that the value is pulled when we get the chunk
+    localKv->getChunk(chunkOffset, actual.data(), chunkSize);
+    REQUIRE(actual == expected);
+
+    // Allow the server to shut down
+    server.stop();
+}
 }

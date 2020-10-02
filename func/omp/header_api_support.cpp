@@ -10,7 +10,7 @@ struct ThreadInfo
     int32_t local_thread_num;
 } __attribute__((aligned(64)));
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     int max = omp_get_max_threads();
     auto infos = new ThreadInfo[max];

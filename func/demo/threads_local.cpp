@@ -7,14 +7,16 @@
  * threading mode.
  */
 
-void *threadFunc(void *arg) {
+void* threadFunc(void* arg)
+{
     // Write to the variable passed in
-    int *intArg = (int *) arg;
+    int* intArg = (int*)arg;
     *intArg = 200;
     return nullptr;
 }
 
-int main() {
+int main()
+{
     int x = 0;
 
     // Spawn a thread
@@ -32,7 +34,7 @@ int main() {
     }
 
     // Check stack variable
-    if(x != 200) {
+    if (x != 200) {
         printf("Thread invocation failed (expected 200 but got %i)\n", x);
         return 1;
     }

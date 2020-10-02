@@ -34,7 +34,7 @@ FAASM_ZYGOTE() {
     return 0;
 }
 
-FAASM_MAIN_FUNC() {
+int main(int argc, char* argv[]) {
     // Context available to all subsequent function calls
     printf("My global = %i\n", myGlobal);
 

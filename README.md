@@ -18,8 +18,8 @@ overheads and fast boot times.
 Faasm is built on [Faabric](http://github.com/faasm/faabric) which provides
 the distributed messaging and state layer. 
 
-The underlying WebAssembly execution and code
-generation is handled by [WAVM](https://github.com/WAVM/WAVM). 
+The underlying WebAssembly execution and code generation is handled by
+[WAVM](https://github.com/WAVM/WAVM). 
 
 Faasm defines a custom [host interface](docs/host_interface.md) which extends
 [WASI](https://wasi.dev/) to include function inputs and outputs, chaining
@@ -44,6 +44,9 @@ Then run the Faasm CLI, from which you can build, deploy and invoke functions:
 # Start the CLI
 ./bin/cli.sh
 
+# Compile the demo function
+inv compile demo hello
+
 # Upload the demo "hello" function
 inv upload demo hello
 
@@ -52,8 +55,8 @@ inv invoke demo hello
 ```
 
 Note that the first time you run the local set-up it will generate some machine
-code specific to your host. This is stored in the `machine-code` directory in
-the root of the project and reused on subsequent runs.
+code specific to your host. This is stored in the `container/machine-code`
+directory in the root of the project and reused on subsequent runs.
 
 ## More information
 

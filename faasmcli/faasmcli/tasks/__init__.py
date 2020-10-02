@@ -15,7 +15,6 @@ from . import redis
 from . import release
 from . import run
 from . import state
-from . import toolchain
 from . import upload
 from . import wast
 
@@ -33,7 +32,6 @@ ns = Collection(
     release,
     run,
     state,
-    toolchain,
     upload,
     wast,
 )
