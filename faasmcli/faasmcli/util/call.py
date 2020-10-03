@@ -36,6 +36,7 @@ def invoke_impl(
     mpi_world_size=None,
     debug=False,
     poll_interval_ms=1000,
+    issgx=False,
 ):
     # Provider-specific stuff
     if knative:
@@ -67,6 +68,8 @@ def invoke_impl(
             "function": func,
             "async": asynch,
         }
+    if issgx:
+        msg["sgx"] = issgx
 
     if input:
         msg["input_data"] = input

@@ -99,11 +99,6 @@ else()
     add_definitions(-DWAMR_EXECUTION_MODE_INTERP=0)
 endif()
 
-# WAMR platform header, will break SGX build to include normal linux header
-if(FAASM_SGX_SUPPORT)
-else()
-    include_directories(${WAMR_SHARED_DIR}/platform/linux/)
-endif()
 
 # Library type (for shared libraries)
 if (FAASM_STATIC_LIBS)
