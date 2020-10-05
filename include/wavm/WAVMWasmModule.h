@@ -19,7 +19,8 @@ namespace openmp {
 class PlatformThreadPool;
 }
 
-std::vector<uint8_t> wavmCodegen(std::vector<uint8_t>& wasmBytes);
+std::vector<uint8_t> wavmCodegen(std::vector<uint8_t>& wasmBytes,
+                                 const std::string& fileName);
 
 class WAVMWasmModule final
   : public WasmModule

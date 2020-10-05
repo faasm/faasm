@@ -17,7 +17,8 @@
 
 namespace storage {
 
-std::vector<uint8_t> FileLoader::doCodegen(std::vector<uint8_t>& bytes)
+std::vector<uint8_t> FileLoader::doCodegen(std::vector<uint8_t>& bytes,
+                                           const std::string& fileName)
 {
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     if (conf.wasmVm == "wamr") {
@@ -28,7 +29,7 @@ std::vector<uint8_t> FileLoader::doCodegen(std::vector<uint8_t>& bytes)
         return wasm::wamrCodegen(bytes);
 #endif
     } else {
-        return wasm::wavmCodegen(bytes);
+        return wasm::wavmCodegen(bytes, fileName);
     }
 }
 
@@ -44,7 +45,7 @@ void FileLoader::codegenForFunction(faabric::Message& msg)
 
     std::vector<uint8_t> objBytes;
     try {
-        objBytes = doCodegen(bytes);
+        objBytes = doCodegen(bytes, funcStr);
     } catch (std::runtime_error& ex) {
         logger->error("Codegen failed for " + funcStr);
         throw ex;
@@ -62,7 +63,7 @@ void FileLoader::codegenForSharedObject(const std::string& inputPath)
 {
     // Generate the machine code
     std::vector<uint8_t> bytes = loadSharedObjectWasm(inputPath);
-    std::vector<uint8_t> objBytes = doCodegen(bytes);
+    std::vector<uint8_t> objBytes = doCodegen(bytes, inputPath);
 
     // Do the upload
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
