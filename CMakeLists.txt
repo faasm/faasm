@@ -53,6 +53,8 @@ if (FAASM_SGX_SUPPORT)
 
     if(FAASM_SGX_SIM_MODE)
         add_definitions(-DSGX_SIM_MODE=1)
+    else()
+	add_definitions(-DSGX_SIM_MODE=0)
     endif()
 
     if(FAASM_SGX_ATTESTATION)
