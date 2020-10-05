@@ -153,6 +153,7 @@ def fake(ctx, clean=False):
     build_cmd = [
         "cmake",
         "-GNinja",
+        "-DFAASM_BUILD_SHARED=ON",
         "-DFAASM_BUILD_TYPE=wasm",
         "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE=Release",
