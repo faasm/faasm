@@ -295,7 +295,20 @@ add_library(sgx_wamr STATIC
 add_dependencies(sgx_wamr sgx_wamr_enclave wamr_sgx_untrusted wasm)
 
 target_include_directories(sgx_wamr PUBLIC ${SGX_SDK_PATH}/include)
-target_link_directories(sgx_wamr INTERFACE ${SGX_SDK_LIB_PATH})
+
+# Necessary in HW sim mode because libsgx_urts and libsgx_uae_service are probably
+# not installed in default lib folder because the build system hasn't sgx support
+if(NOT FAASM_SGX_SIM_MODE)
+    find_library(SGX_URTS_LIB "sgx_urts")
+    find_library(SGX_UAE_SERVICE_LIB "sgx_uae_service")
+    if(SGX_URTS_LIB STREQUAL "SGX_URTS_LIB-NOTFOUND" OR SGX_UAE_SERVICE_LIB STREQUAL "SGX_UAE_SERVICE_LIB-NOTFOUND")
+        message(WARNING "SGX PSW NOT INSTALLED! SET RPATH TO ${SGX_SDK_LIB_PATH}")
+        target_link_directories(sgx_wamr INTERFACE ${SGX_SDK_LIB_PATH})
+    endif()
+else()
+    target_link_directories(sgx_wamr INTERFACE ${SGX_SDK_LIB_PATH})
+endif()
+
 target_compile_options(sgx_wamr PRIVATE
         ${SGX_WAMR_C_FLAGS}
         -std=c++11
