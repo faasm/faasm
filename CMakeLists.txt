@@ -54,7 +54,9 @@ if (FAASM_SGX_SUPPORT)
     if(FAASM_SGX_SIM_MODE)
         add_definitions(-DSGX_SIM_MODE=1)
     else()
-	add_definitions(-DSGX_SIM_MODE=0)
+	    add_definitions(-DSGX_SIM_MODE=0)
+        # Must link protobuf statically because SGX LE probably uses an older version
+        set(Protobuf_USE_STATIC_LIBS 1)
     endif()
 
     if(FAASM_SGX_ATTESTATION)
