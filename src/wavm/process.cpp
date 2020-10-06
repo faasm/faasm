@@ -53,6 +53,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pipe", I32, s__pipe, I32 a)
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "popen", I32, s__popen, I32 a, I32 b)
+{
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "raise", I32, s__raise, I32 a)
 {
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
