@@ -211,6 +211,9 @@ faasm_sgx_status_t faasm_sgx_enclave_call_function(const uint32_t thread_id, con
     // Create an execution environment and call the wasm function
 #if(FAASM_SGX_WAMR_AOT_MODE)
     // If AoT is enabled, then the WAMR AoT implementation will be invoked
+#if(FAASM_SGX_DEBUG)
+    ocall_printf("Faasm-SGX: AoT\n");
+#endif
     if (!(aot_create_exec_env_and_call_function((AOTModuleInstance *) tcs_ptr->module_inst,
             (AOTFunctionInstance *) wasm_func,0x0,0x0))) {
         /* Error handling
@@ -229,6 +232,9 @@ faasm_sgx_status_t faasm_sgx_enclave_call_function(const uint32_t thread_id, con
     }
 #else
     // If AoT is disabled, then the WAMR interpreter will be invoked
+#if(FAASM_SGX_DEBUG)
+    ocall_printf("Faasm-SGX: Interpreter\n");
+#endif
     if (!(wasm_create_exec_env_and_call_function((WASMModuleInstance *) tcs_ptr->module_inst,
             (WASMFunctionInstance *) wasm_func,0x0,0x0))) {
         /* Error handling
