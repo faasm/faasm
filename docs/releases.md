@@ -24,8 +24,9 @@ inv toolchain.download-runtime
 To check things are working properly you can run the tests locally with the new
 versions.
 
-It's worth reading through the `docs/toolchain.md` notes if you need to change
-the toolchain/ core libraries themselves.
+It's worth reading through the
+[toolchain](https://github.com/faasm/faasm-toolchain/README.md)
+notes if you need to change the `faasm-toolchain` core libraries themselves.
 
 ## 2. Update version
 

@@ -93,7 +93,7 @@ inv toolchain.download-sysroot
 ```
 
 If you want to build the toolchain from scratch, you'll need to look at the
-`toolchain.md` doc.
+[toolchain README](https://github.com/faasm/faasm-toolchain/README.md) doc.
 
 ## Codegen and upload
 
