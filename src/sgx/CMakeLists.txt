@@ -242,6 +242,7 @@ endif ()
 target_link_libraries(sgx_wamr_enclave
         -Wl,--no-whole-archive
         -Wl,--start-group
+        sgx_pthread
         sgx_tstdc
         sgx_tcxx
         sgx_tcrypto

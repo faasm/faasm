@@ -7,6 +7,7 @@ enclave{
     include "../../../include/sgx/sgx_wamr_attestation.h"
     include "../../../third-party/wamr/core/iwasm/include/wasm_export.h"
     from "sgx_tstdc.edl" import *;
+    from "sgx_pthread.edl" import *;
 
     trusted{
         public faasm_sgx_status_t faasm_sgx_enclave_unload_module(uint32_t thread_id);
