@@ -226,4 +226,3 @@ def eigen(ctx, verbose=False):
         cwd=build_dir,
         check=True,
     )
-
