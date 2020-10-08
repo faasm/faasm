@@ -1,4 +1,6 @@
+from copy import copy
 from os.path import join
+from subprocess import run
 
 # Directories
 WASM_SYSROOT = "/usr/local/faasm/llvm-sysroot"
@@ -20,6 +22,7 @@ WASM_LDXX = WASM_CXX
 # Host triple
 WASM_BUILD = "wasm32"
 WASM_HOST = "wasm32-unknown-wasi"
+WASM_HOST_SHARED = "wasm32-unknown-emscripten"
 WASM_HOST_UNKNOWN = "wasm32-unknown-unknown"
 
 # CFLAGS
@@ -39,7 +42,7 @@ WASM_CFLAGS_SHARED = [
     "-nostdlib",
     "-nostdlib++",
     "-fPIC",
-    "--target=wasm32-unknown-emscripten",
+    "--target={}".format(WASM_HOST_SHARED),
 ]
 WASM_CXXFLAGS_SHARED = WASM_CFLAGS_SHARED
 
@@ -73,7 +76,7 @@ _BASE_CONFIG_CMD = [
     "RANLIB={}".format(WASM_RANLIB),
     'CFLAGS="{}"'.format(" ".join(WASM_CFLAGS)),
     'CPPFLAGS="{}"'.format(" ".join(WASM_CFLAGS)),
-    'CXXFLAGS="{}"'.format(WASM_CXXFLAGS),
+    'CXXFLAGS="{}"'.format(" ".join(WASM_CXXFLAGS)),
     'CCSHARED="{}"'.format(WASM_CCSHARED),
     'CXXSHARED="{}"'.format(WASM_CXXSHARED),
 ]
@@ -81,6 +84,11 @@ _BASE_CONFIG_CMD = [
 _BASE_CONFIG_ARGS = [
     "--build={}".format(WASM_BUILD),
     "--host={}".format(WASM_HOST),
+]
+
+_BASE_CONFIG_ARGS_SHARED = [
+    "--build={}".format(WASM_BUILD),
+    "--host={}".format(WASM_HOST_SHARED),
 ]
 
 BASE_CONFIG_CMD = _BASE_CONFIG_CMD + [
@@ -106,17 +114,36 @@ BASE_CONFIG_FLAGS_SHARED = [
 ]
 
 
-def build_config_cmd(cmd, shared=False, cxx=False):
+def build_config_cmd(cmd, shared=False, cxx=False, conf_args=True):
     """
     Wraps an autotools command in the relevant environment variables and
     cross-compilation config
     """
-    result = BASE_CONFIG_CMDXX if cxx else BASE_CONFIG_CMD
+    result = copy(BASE_CONFIG_CMDXX if cxx else BASE_CONFIG_CMD)
 
     result += BASE_CONFIG_FLAGS_SHARED if shared else BASE_CONFIG_FLAGS
 
     result += cmd
-
-    result += _BASE_CONFIG_ARGS
+    
+    if conf_args:
+        result += _BASE_CONFIG_ARGS_SHARED if shared else _BASE_CONFIG_ARGS
 
     return result
+
+
+def run_autotools(proj_dir):
+    """
+    Runs through autotools set-up on the given directory
+    """
+
+    def _run_auto_cmd(cmd):
+        print("Running {}".format(cmd))
+        auto_cmd = build_config_cmd([cmd], conf_args=False)
+        auto_cmd = " ".join(auto_cmd)
+        run(auto_cmd, shell=True, check=True, cwd=proj_dir)
+
+    _run_auto_cmd("libtoolize")
+    _run_auto_cmd("aclocal")
+    _run_auto_cmd("autoheader")
+    _run_auto_cmd("autoconf")
+    _run_auto_cmd("automake --add-missing")
