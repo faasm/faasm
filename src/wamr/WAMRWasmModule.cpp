@@ -121,17 +121,11 @@ namespace wasm {
         setExecutingCall(&msg);
         setExecutingModule(this);
 
-        // Each function execution gets a fully untouched execution environment
-        executionEnv = wasm_runtime_create_exec_env(moduleInstance, STACK_SIZE);
-
         // Run wasm initialisers
         executeFunction(WASM_CTORS_FUNC_NAME);
 
         // Run the main function
         executeFunction(ENTRY_FUNC_NAME);
-
-        // Must destroy the execution environment
-        wasm_runtime_destroy_exec_env(executionEnv);
 
         return true;
     }
@@ -144,14 +138,20 @@ namespace wasm {
         );
 
         // Invoke the function
-        bool success = wasm_runtime_call_wasm(executionEnv, func, 0, nullptr);
+#if(WAMR_EXECUTION_MODE_INTERP)
+        bool success = wasm_create_exec_env_and_call_function((WASMModuleInstance *) moduleInstance,
+                (WASMFunctionInstance *) func,0x0,0x0);
+#else
+        bool success = aot_create_exec_env_and_call_function((AOTModuleInstance *) moduleInstance,
+                (AOTFunctionInstance *) func,0x0,0x0);
+#endif
         if (success) {
             logger->debug("{} finished", funcName);
         } else {
 #if(WAMR_EXECUTION_MODE_INTERP)
-            std::string errorMessage(((WASMModuleInstance *)executionEnv->module_inst)->cur_exception);
+            std::string errorMessage(((WASMModuleInstance *)moduleInstance)->cur_exception);
 #else
-            std::string errorMessage(((AOTModuleInstance *)executionEnv->module_inst)->cur_exception);
+            std::string errorMessage(((AOTModuleInstance *)moduleInstance)->cur_exception);
 #endif
             logger->error("Function failed: {}", errorMessage);
         }
