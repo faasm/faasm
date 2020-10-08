@@ -12,7 +12,10 @@ WASM_CPP = join(WASM_TOOLCHAIN_BIN, "clang-cpp")
 WASM_AR = join(WASM_TOOLCHAIN_BIN, "llvm-ar")
 WASM_NM = join(WASM_TOOLCHAIN_BIN, "llvm.nm")
 WASM_RANLIB = join(WASM_TOOLCHAIN_BIN, "llvm-ranlib")
-WASM_LD = join(WASM_TOOLCHAIN_BIN, "wasm-ld")
+
+# Use top-level clang as the linker rather than invoking wasm-ld directly
+WASM_LD = WASM_CC
+WASM_LDXX = WASM_CXX
 
 # Host triple
 WASM_BUILD = "wasm32"
@@ -57,7 +60,12 @@ WASM_LDFLAGS_SHARED = [
     "-Xlinker --no-gc-sections",
 ]
 
-BASE_CONFIG_CMD = [
+WASM_CCSHARED = " ".join([WASM_CC] + WASM_CFLAGS_SHARED)
+WASM_CXXSHARED = " ".join([WASM_CXX] + WASM_CFLAGS_SHARED)
+WASM_LDSHARED = " ".join([WASM_CC] + WASM_LDFLAGS_SHARED)
+WASM_LDXXSHARED = " ".join([WASM_CXX] + WASM_LDFLAGS_SHARED)
+
+_BASE_CONFIG_CMD = [
     "CC={}".format(WASM_CC),
     "CXX={}".format(WASM_CXX),
     "CPP={}".format(WASM_CPP),
@@ -66,6 +74,23 @@ BASE_CONFIG_CMD = [
     'CFLAGS="{}"'.format(" ".join(WASM_CFLAGS)),
     'CPPFLAGS="{}"'.format(" ".join(WASM_CFLAGS)),
     'CXXFLAGS="{}"'.format(WASM_CXXFLAGS),
+    'CCSHARED="{}"'.format(WASM_CCSHARED),
+    'CXXSHARED="{}"'.format(WASM_CXXSHARED),
+]
+
+_BASE_CONFIG_ARGS = [
+    "--build={}".format(WASM_BUILD),
+    "--host={}".format(WASM_HOST),
+]
+
+BASE_CONFIG_CMD = _BASE_CONFIG_CMD + [
+    "LD={}".format(WASM_LD),
+    'LDSHARED="{}"'.format(WASM_LDSHARED),
+]
+
+BASE_CONFIG_CMDXX = _BASE_CONFIG_CMD + [
+    "LD={}".format(WASM_LDXX),
+    'LDSHARED="{}"'.format(WASM_LDXXSHARED),
 ]
 
 BASE_CONFIG_FLAGS = [
@@ -79,3 +104,19 @@ BASE_CONFIG_FLAGS_SHARED = [
     'CPPFLAGS="{}"'.format(" ".join(WASM_CXXFLAGS_SHARED)),
     'LDFLAGS="{}"'.format(" ".join(WASM_LDFLAGS_SHARED)),
 ]
+
+
+def build_config_cmd(cmd, shared=False, cxx=False):
+    """
+    Wraps an autotools command in the relevant environment variables and
+    cross-compilation config
+    """
+    result = BASE_CONFIG_CMDXX if cxx else BASE_CONFIG_CMD
+
+    result += BASE_CONFIG_FLAGS_SHARED if shared else BASE_CONFIG_FLAGS
+
+    result += cmd
+
+    result += _BASE_CONFIG_ARGS
+
+    return result
