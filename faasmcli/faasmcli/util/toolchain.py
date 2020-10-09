@@ -124,7 +124,7 @@ def build_config_cmd(cmd, shared=False, cxx=False, conf_args=True):
     result += BASE_CONFIG_FLAGS_SHARED if shared else BASE_CONFIG_FLAGS
 
     result += cmd
-    
+
     if conf_args:
         result += _BASE_CONFIG_ARGS_SHARED if shared else _BASE_CONFIG_ARGS
 
