@@ -55,7 +55,8 @@ class FileLoader
     void codegenForSharedObject(const std::string& inputPath);
 
   protected:
-    std::vector<uint8_t> doCodegen(std::vector<uint8_t>& bytes);
+    std::vector<uint8_t> doCodegen(std::vector<uint8_t>& bytes,
+                                   const std::string& fileName);
 };
 
 FileLoader& getFileLoader();

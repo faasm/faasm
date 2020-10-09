@@ -1,4 +1,5 @@
 FROM faasm/cpp-root:0.4.9
+# Note - we don't often rebuild cpp-root so this dep may be behind
 
 # Put code in place
 COPY . /usr/local/code/faasm

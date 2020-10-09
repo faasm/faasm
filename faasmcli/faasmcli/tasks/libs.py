@@ -1,5 +1,4 @@
 from os import makedirs
-from multiprocessing import cpu_count
 from os.path import exists
 from os.path import join
 from shutil import rmtree
@@ -154,6 +153,7 @@ def fake(ctx, clean=False):
     build_cmd = [
         "cmake",
         "-GNinja",
+        "-DFAASM_BUILD_SHARED=ON",
         "-DFAASM_BUILD_TYPE=wasm",
         "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE=Release",
@@ -226,34 +226,3 @@ def eigen(ctx, verbose=False):
         cwd=build_dir,
         check=True,
     )
-
-
-@task
-def clapack(ctx, clean=False):
-    # See the CLAPACK docs: http://www.netlib.org/clapack/
-    proj_dir = join(THIRD_PARTY_DIR, "faasm-clapack")
-    clapack_dir = join(proj_dir, "third-party", "clapack")
-    lapacke_dir = join(proj_dir, "third-party", "lapack", "LAPACKE")
-
-    # Build clapack
-    if clean:
-        run("make clean", cwd=clapack_dir, shell=True, check=True)
-        run("make clean", cwd=lapacke_dir, shell=True, check=True)
-
-    n_cpu = int(cpu_count()) - 1
-
-    # Make libf2c first (needed by others)
-    run(
-        "make f2clib -j {}".format(n_cpu),
-        shell=True,
-        cwd=clapack_dir,
-        check=True,
-    )
-
-    # Make the rest of CLAPACK
-    run("make -j {}".format(n_cpu), shell=True, cwd=clapack_dir, check=True)
-    run("make install", shell=True, cwd=clapack_dir, check=True)
-
-    # Make LAPACKE
-    run("make -j {}".format(n_cpu), shell=True, cwd=lapacke_dir, check=True)
-    run("make install", shell=True, cwd=lapacke_dir, check=True)
