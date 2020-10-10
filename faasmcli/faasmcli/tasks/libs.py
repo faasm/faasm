@@ -23,7 +23,7 @@ def toolchain(ctx, clean=False):
     """
     Compile and install all libs crucial to the toolchain
     """
-    eigen(ctx)
+    eigen_copy(ctx) # eigen(ctx)
 
     faasm(ctx, clean=clean)
     faasmp(ctx, clean=clean)
@@ -226,3 +226,23 @@ def eigen(ctx, verbose=False):
         cwd=build_dir,
         check=True,
     )
+
+
+@task
+def eigen_copy(ctx, verbose=False):
+    """
+    Copy eigen's header files rather than recompile them (#321)
+    """
+    work_dir = join(THIRD_PARTY_DIR, "eigen")
+    include_dir = join(SYSROOT_INSTALL_PREFIX, "include", "eigen3")
+
+    cmd = [
+        "cp",
+        "-r",
+        "{}".format(join(work_dir, "Eigen")),
+        "{}".format(join(work_dir, "unsupported")),
+        include_dir,
+    ]
+    cmd_string = " ".join(cmd)
+
+    run(cmd_string, shell=True, cwd=work_dir, check=True)
