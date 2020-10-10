@@ -23,7 +23,7 @@ def toolchain(ctx, clean=False):
     """
     Compile and install all libs crucial to the toolchain
     """
-    eigen_copy(ctx) # eigen(ctx)
+    eigen_copy(ctx)  # eigen(ctx)
 
     faasm(ctx, clean=clean)
     faasmp(ctx, clean=clean)
