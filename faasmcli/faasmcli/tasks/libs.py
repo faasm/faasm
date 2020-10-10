@@ -236,6 +236,10 @@ def eigen_copy(ctx, verbose=False):
     work_dir = join(THIRD_PARTY_DIR, "eigen")
     include_dir = join(SYSROOT_INSTALL_PREFIX, "include", "eigen3")
 
+    if exists(include_dir):
+        rmtree(include_dir)
+    makedirs(include_dir)
+
     cmd = [
         "cp",
         "-r",
