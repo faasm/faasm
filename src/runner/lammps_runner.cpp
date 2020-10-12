@@ -15,8 +15,9 @@ int main()
     msg.set_cmdline("-in faasm://lammps-data/in.viscosity");
 
     // Create the module
-    module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
-    wasm::WAVMWasmModule &cachedModule = registry.getCachedModule(msg);
+    module_cache::WasmModuleCache& registry =
+      module_cache::getWasmModuleCache();
+    wasm::WAVMWasmModule& cachedModule = registry.getCachedModule(msg);
 
     // Create a new module from cache
     wasm::WAVMWasmModule module(cachedModule);
