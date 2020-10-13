@@ -12,7 +12,7 @@ int main()
     auto logger = faabric::util::getLogger();
     // csegarra: messageFactory(<user>, <function>)
     auto msg = faabric::util::messageFactory("lammps", "test");
-    msg.set_cmdline("-in faasm://lammps-data/in.viscosity");
+    msg.set_cmdline("-in faasm://lammps-data/in.balance");
 
     // Create the module
     module_cache::WasmModuleCache& registry =
