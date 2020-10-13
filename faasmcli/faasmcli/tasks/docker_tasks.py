@@ -19,7 +19,7 @@ RELEASE_CONTAINERS = [
     "base-test",
     "worker",
     "upload",
-    "toolchain",
+    "cli",
 ]
 
 ALL_CONTAINERS = [

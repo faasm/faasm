@@ -14,6 +14,6 @@ docker run --entrypoint="/bin/bash" \
     -v $(pwd):/usr/local/code/faasm \
     -w /usr/local/code/faasm \
     -it \
-    faasm/toolchain:${VERSION}
+    faasm/cli:${VERSION}
 
 popd > /dev/null
