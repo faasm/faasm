@@ -1,11 +1,20 @@
 ARG FAASM_VERSION
+
+# Stage for getting toolchain etc.
+FROM faasm/cpython:0.0.2
+
+# Stage for the actual build
 FROM faasm/worker:$FAASM_VERSION
+
+# Copy Faasm local dir
+COPY --from=0 /usr/local/faasm /usr/local/faasm
 
 SHELL ["/bin/bash", "-c"]
 
 # Install various deps
 RUN apt-get update
-RUN apt-get install -y libpython3-dev \
+RUN apt-get install -y \
+    libpython3-dev \
     python3-dev \
     python3-pip \
     python3-venv \
@@ -22,10 +31,6 @@ RUN cmake --build . --target func_sym
 WORKDIR /usr/local/code/faasm
 RUN pip3 install -r faasmcli/requirements.txt
 RUN pip3 install -e faasmcli/
-
-# Download the toolchain
-RUN inv -r faasmcli/faasmcli toolchain.download-toolchain
-RUN inv -r faasmcli/faasmcli toolchain.download-sysroot
 
 # Set up native tools
 RUN inv -r faasmcli/faasmcli libs.native

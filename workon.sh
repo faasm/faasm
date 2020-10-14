@@ -15,7 +15,7 @@ export VIRTUAL_ENV_DISABLE_PROMPT=1
 source venv/bin/activate
 
 # Set up toolchain Python library
-cd third-party/faasm-toolchain && pip3 -q install -e .
+cd ${THIS_DIR}/third-party/faasm-toolchain && pip3 -q install -e .
 
 # Aliases for invoke
 alias inv="inv -r faasmcli/faasmcli"

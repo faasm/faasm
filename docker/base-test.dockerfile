@@ -1,6 +1,12 @@
-ARG FAASM_VERSION
+# Stage to extract toolchain and runtime root
+FROM faasm/cpython:0.0.2
+
+# Stage to do the actual test container build
 FROM faasm/cpp-root:0.4.9
 ARG FAASM_VERSION
+
+# Copy in faasm local dir
+COPY --from=0 /usr/local/faasm /usr/local/faasm
 
 # ------------------------------------------------------
 # This image should contain everything needed for tests
@@ -23,12 +29,6 @@ RUN apt-get install -y \
     python3-dev \
     python3-venv \
     libtinfo5
-
-# User and permissions
-RUN mkdir /usr/local/faasm
-RUN chown -R root:root /usr/local/faasm
-RUN groupadd -g 1000 faasm
-RUN useradd -u 1000 -g 1000 faasm
 
 # Set up requests
 RUN apt-get install -y python3-dev python3-pip
@@ -63,9 +63,6 @@ RUN ansible-playbook eigen.yml
 # Install the CLI
 WORKDIR /usr/local/code/faasm
 RUN pip3 install -e faasmcli/
-
-# Download the toolchain (needed to build libs)
-RUN inv -r faasmcli/faasmcli toolchain.download-toolchain
 
 # Create out of tree build
 WORKDIR /usr/local/code/faasm/build
