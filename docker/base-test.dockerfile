@@ -53,7 +53,6 @@ RUN git submodule update --init third-party/eigen
 RUN git submodule update --init third-party/faabric
 RUN git submodule update --init third-party/WAVM
 RUN git submodule update --init third-party/wamr
-RUN git submodule update --init third-party/faasm-toolchain
 
 # Set up deps
 WORKDIR /usr/local/code/faasm/ansible

@@ -1,7 +1,8 @@
 set(FAASM_USER python)
 
-set(FAASM_CPYTHON "/usr/local/code/faasm/third-party/faasm-cpython")
-set(CPYTHON_INSTALL "${FAASM_CPYTHON}/third-party/cpython/install/wasm/")
+# Note, these are relative to the containerised toolchain
+# https://github.com/faasm/faasm-cpython/blob/master/docker/cpython.dockerfile
+set(CPYTHON_INSTALL "/code/faasm-cpython/third-party/cpython/install/wasm")
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
     set(PYTHON_LIBRARIES ${CPYTHON_INSTALL}/lib/libpython3.8.a)

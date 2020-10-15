@@ -1,22 +1,32 @@
 ---
 
-- name: "Remove build dir"
-  file:
-    path: "/usr/local/code/faasm/third-party/eigen/native-build"
-    state: absent
+- name: "Check if eigen is installed"
+  stat:
+    path: /usr/local/include/eigen3
+  register: e_stat
+
+- name: "Download Eigen"
+  git:
+    repo: "https://gitlab.com/shillaker/eigen.git"
+    dest: /tmp/eigen
+    refspec: faasm
+  when: e_stat.stat.exists == False
 
 - name: "Create build dir"
   file:
-    path: "/usr/local/code/faasm/third-party/eigen/native-build"
+    path: "/tmp/eigen/build"
     state: directory
+  when: e_stat.stat.exists == False
 
 - name: "Cmake"
   shell: "cmake -GNinja -DCMAKE_BUILD_TYPE=Release .."
   args:
-    chdir: "/usr/local/code/faasm/third-party/eigen/native-build"
+    chdir: "/tmp/eigen/build"
+  when: e_stat.stat.exists == False
 
 - name: "Install"
   become: yes
   shell: "ninja install"
   args:
-    chdir: "/usr/local/code/faasm/third-party/eigen/native-build"
+    chdir: "/tmp/eigen/build"
+  when: e_stat.stat.exists == False

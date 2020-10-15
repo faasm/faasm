@@ -1,6 +1,8 @@
 from os import makedirs, environ
 from os.path import dirname, realpath, join, exists, expanduser
 
+from faasmtools.build import FAASM_LOCAL_DIR
+
 HOME_DIR = expanduser("~")
 PROJ_ROOT = dirname(dirname(dirname(dirname(realpath(__file__)))))
 THIRD_PARTY_DIR = join(PROJ_ROOT, "third-party")
@@ -11,7 +13,6 @@ PYTHON_FUNC = "py_func"
 
 FAASM_HOME = join(HOME_DIR, "faasm")
 FAASM_DATA_DIR = join(HOME_DIR, "faasm", "data")
-FAASM_LOCAL_DIR = "/usr/local/faasm"
 FAASM_MACHINE_CODE_DIR = join(FAASM_LOCAL_DIR, "object")
 FAASM_RUNTIME_ROOT = join(FAASM_LOCAL_DIR, "runtime_root")
 FAASM_SHARED_ROOT = join(FAASM_LOCAL_DIR, "shared")
@@ -32,7 +33,6 @@ BENCHMARK_ENV = {
 
 FUNC_DIR = join(PROJ_ROOT, "func")
 
-
 WASM_DIR = join(PROJ_ROOT, "wasm")
 WASM_LIB_DIR = join(PROJ_ROOT, "wasm", "lib")
 
@@ -46,12 +46,6 @@ AWS_ACCOUNT_ID = "733781933474"
 AWS_REGION = "eu-west-1"
 
 PY_RUNTIME_ROOT = join(FAASM_RUNTIME_ROOT, "lib", "python3.8")
-
-FAASM_TOOLCHAIN_FILE = join(
-    PROJ_ROOT, "third-party", "faasm-toolchain", "WasiToolchain.cmake"
-)
-FAASM_SYSROOT = join(FAASM_LOCAL_DIR, "llvm-sysroot")
-SYSROOT_INSTALL_PREFIX = FAASM_SYSROOT
 
 LATEST_CMAKE = "/usr/local/lib/cmake-3.15/bin/cmake"
 

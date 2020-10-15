@@ -1,20 +1,17 @@
 from os import makedirs
 from os.path import exists
 from os.path import join
-from shutil import rmtree
 from subprocess import run
 
 from invoke import task
 
 from faasmcli.util.codegen import find_codegen_shared_lib
+from faasmtools.build import CMAKE_TOOLCHAIN_FILE, WASM_SYSROOT
 from faasmcli.util.env import (
     PROJ_ROOT,
-    FAASM_TOOLCHAIN_FILE,
-    SYSROOT_INSTALL_PREFIX,
     FAASM_INSTALL_DIR,
     FAASM_RUNTIME_ROOT,
 )
-from faasmcli.util.env import THIRD_PARTY_DIR
 from faasmcli.util.files import clean_dir
 
 
@@ -23,8 +20,6 @@ def toolchain(ctx, clean=False):
     """
     Compile and install all libs crucial to the toolchain
     """
-    eigen(ctx)
-
     faasm(ctx, clean=clean)
     faasmp(ctx, clean=clean)
     faasmpi(ctx, clean=clean)
@@ -77,7 +72,7 @@ def _build_faasm_lib(dir_name, clean, verbose, target=None):
         "-GNinja",
         "-DFAASM_BUILD_TYPE=wasm",
         "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(CMAKE_TOOLCHAIN_FILE),
         work_dir,
     ]
 
@@ -155,9 +150,9 @@ def fake(ctx, clean=False):
         "-GNinja",
         "-DFAASM_BUILD_SHARED=ON",
         "-DFAASM_BUILD_TYPE=wasm",
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(CMAKE_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_INSTALL_PREFIX={}".format(SYSROOT_INSTALL_PREFIX),
+        "-DCMAKE_INSTALL_PREFIX={}".format(WASM_SYSROOT),
         work_dir,
     ]
 
@@ -166,9 +161,7 @@ def fake(ctx, clean=False):
     run("ninja install", shell=True, cwd=build_dir, check=True)
 
     # Copy shared object into place
-    sysroot_files = join(
-        SYSROOT_INSTALL_PREFIX, "lib", "wasm32-wasi", "libfake*.so"
-    )
+    sysroot_files = join(WASM_SYSROOT, "lib", "wasm32-wasi", "libfake*.so")
 
     runtime_lib_dir = join(FAASM_RUNTIME_ROOT, "lib")
     if not exists(runtime_lib_dir):
@@ -191,38 +184,3 @@ def fake(ctx, clean=False):
     for so in shared_objs:
         print("Running codegen for {}".format(so))
         run("{} {}".format(binary, so), shell=True, check=True)
-
-
-@task
-def eigen(ctx, verbose=False):
-    """
-    Compile and install Eigen
-    """
-    work_dir = join(THIRD_PARTY_DIR, "eigen")
-    build_dir = join(PROJ_ROOT, "build", "eigen")
-
-    if exists(build_dir):
-        rmtree(build_dir)
-    makedirs(build_dir)
-
-    verbose_string = "VERBOSE=1" if verbose else ""
-
-    cmd = [
-        verbose_string,
-        "cmake",
-        "-DFAASM_BUILD_TYPE=wasm",
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
-        "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_INSTALL_PREFIX={}".format(SYSROOT_INSTALL_PREFIX),
-        work_dir,
-    ]
-    cmd_string = " ".join(cmd)
-
-    run(cmd_string, shell=True, cwd=build_dir, check=True)
-
-    run(
-        "{} make install".format(verbose_string),
-        shell=True,
-        cwd=build_dir,
-        check=True,
-    )
