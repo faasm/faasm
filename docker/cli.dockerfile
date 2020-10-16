@@ -1,13 +1,5 @@
 ARG FAASM_VERSION
-
-# Stage for getting toolchain etc.
-FROM faasm/cpython:0.0.2
-
-# Stage for the actual build
-FROM faasm/worker:$FAASM_VERSION
-
-# Copy Faasm local dir
-COPY --from=0 /usr/local/faasm /usr/local/faasm
+FROM faasm/base:$FAASM_VERSION
 
 SHELL ["/bin/bash", "-c"]
 
@@ -21,6 +13,12 @@ RUN apt-get install -y \
     libcairo2-dev \
     python3-cairo \
     vim
+
+# Install faasm toolchain module
+WORKDIR /usr/local/code
+RUN git clone https://github.com/faasm/faasm-toolchain
+WORKDIR /usr/local/code/faasm-toolchain
+RUN pip3 install -e .
 
 # Build some targets not provided by the worker image
 WORKDIR /faasm/build
@@ -43,7 +41,9 @@ COPY bin/noop-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
+ENV TERM xterm-256color
+
 # Prepare bashrc
-RUN echo ". /usr/local/code/faasm/workon.sh" >> ~/.bashrc
-CMD /bin/bash
+RUN echo ". /usr/local/code/faasm/bin/workon.sh" >> ~/.bashrc
+CMD ["/bin/bash", "-l"]
 

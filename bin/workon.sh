@@ -1,21 +1,21 @@
 #!/bin/bash
 
+# NOTE - this is only designed to be run inside the cli Docker container
+
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-pushd ${THIS_DIR} >> /dev/null
+PROJ_ROOT="${THIS_DIR}/.."
+pushd ${PROJ_ROOT} >> /dev/null
 
 # ----------------------------
 # Virtualenv
 # ----------------------------
 
 if [ ! -d "venv" ]; then
-    python3 -m venv venv --system-site-packages
+    python3 -m venv venv 
 fi
 
 export VIRTUAL_ENV_DISABLE_PROMPT=1
 source venv/bin/activate
-
-# Set up toolchain Python library
-# cd ${THIS_DIR}/third-party/faasm-toolchain && pip3 -q install -e .
 
 # Aliases for invoke
 alias inv="inv -r faasmcli/faasmcli"
@@ -43,36 +43,37 @@ complete -F _complete_invoke -o default invoke inv
 # Environment vars
 # ----------------------------
 
-VERSION_FILE=${THIS_DIR}/VERSION
+VERSION_FILE=${PROJ_ROOT}/VERSION
 export LOG_LEVEL=debug
 export FAASM_ROOT=$(pwd)
 export FAASM_VERSION=$(cat ${VERSION_FILE})
 
-export PS1="(faasm) $PS1"
+export PS1='(faasm) ${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
 
+# ----------------------------
+# Path to builds
+# ----------------------------
 # Container builds
-if [[ -d /faasm/build ]]; then
-  export PATH=/faasm/build/bin:$PATH
-fi
+export PATH=/faasm/build/bin:$PATH
 
 # Bare metal
-if [[ -d "${THIS_DIR}/build" ]]; then
-  export PATH=${THIS_DIR}/build/bin:$PATH
-fi
+export PATH=${PROJ_ROOT}/build/bin:$PATH
 
 # Dev
-if [[ -d "${THIS_DIR}/build/cmake" ]]; then
-  export PATH=${THIS_DIR}/build/cmake/bin:$PATH
-fi
+export PATH=${PROJ_ROOT}/build/cmake/bin:$PATH
 
 # Native MPI
 export PATH=/usr/local/faasm/openmpi/bin:$PATH
+
+# -----------------------------
+# Splash
+# -----------------------------
 
 echo ""
 echo "----------------------------------"
 echo "Faasm CLI"
 echo "Version: ${FAASM_VERSION}"
-echo "Project root: ${THIS_DIR}"
+echo "Project root: ${PROJ_ROOT}"
 echo "----------------------------------"
 echo ""
 

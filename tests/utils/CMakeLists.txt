@@ -3,6 +3,11 @@ include_directories(
         ${FAASM_FAABRIC_ROOT_DIR}/tests/utils
 )
 
+ExternalProject_Add(catch2
+    GIT_REPOSITORY "https://github.com/catchorg/Catch2"
+    GIT_TAG        "v2.13.2"
+)
+
 set(LIB_FILES
         matrix_utils.cpp
         system_utils.cpp

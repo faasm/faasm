@@ -8,6 +8,10 @@ faasm.ini
 perf.data
 perf.data.*
 
+# Clang
+.clangd
+compile_commands.json
+
 # SPEC
 third-party/spec_cpu/
 

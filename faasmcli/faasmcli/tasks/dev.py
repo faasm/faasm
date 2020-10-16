@@ -1,3 +1,4 @@
+import os
 from os import makedirs
 from os.path import join, exists
 from shutil import rmtree
@@ -7,7 +8,12 @@ from invoke import task
 
 from faasmcli.util.env import PROJ_ROOT
 
-_BUILD_DIR = join(PROJ_ROOT, "build", "cmake")
+# Build dir depends on whether we're in the Faasm Docker env
+if os.environ.get("FAASM_DOCKER"):
+    _BUILD_DIR = "/faasm/build"
+else:
+    _BUILD_DIR = join(PROJ_ROOT, "build", "cmake")
+
 _BIN_DIR = join(_BUILD_DIR, "bin")
 
 
@@ -18,14 +24,14 @@ def cmake(ctx, clean=False):
 
     if not exists(_BUILD_DIR):
         makedirs(_BUILD_DIR)
-
+    
     cmd = [
         "cmake",
         "-GNinja",
         "-DCMAKE_BUILD_TYPE=Debug",
         "-DCMAKE_CXX_COMPILER=/usr/bin/clang++-10",
         "-DCMAKE_C_COMPILER=/usr/bin/clang-10",
-        "../..",
+        PROJ_ROOT
     ]
 
     run(" ".join(cmd), shell=True, cwd=_BUILD_DIR)

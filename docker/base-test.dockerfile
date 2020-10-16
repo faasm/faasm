@@ -1,5 +1,6 @@
-# Stage to extract toolchain and runtime root
-FROM faasm/cpython:0.0.2
+# Stages to extract toolchain and sysroot
+FROM faasm/sysroot:0.0.10
+FROM faasm/cpython:0.0.6 
 
 # Stage to do the actual test container build
 FROM faasm/cpp-root:0.4.9
@@ -7,6 +8,7 @@ ARG FAASM_VERSION
 
 # Copy in faasm local dir
 COPY --from=0 /usr/local/faasm /usr/local/faasm
+COPY --from=1 /usr/local/faasm/runtime_root /usr/local/faasm/runtime_root
 
 # ------------------------------------------------------
 # This image should contain everything needed for tests

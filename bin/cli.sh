@@ -3,14 +3,15 @@
 set -e
 
 THIS_DIR=$(dirname $(readlink -f $0))
+PROJ_ROOT=${THIS_DIR}/..
 
-pushd ${THIS_DIR}/.. > /dev/null
+pushd ${PROJ_ROOT} > /dev/null
 
 VERSION=$(cat VERSION)
 
-docker run --entrypoint="/bin/bash" \
+docker run \
+    --entrypoint="/bin/bash" \
     --network="host" \
-    -e "TERM=xterm-256color" \
     -v $(pwd):/usr/local/code/faasm \
     -w /usr/local/code/faasm \
     -it \
