@@ -7,6 +7,7 @@ set(LIB_FILES
         ThreadState.cpp
         ${HEADERS}
         )
-
+  
 faasm_private_lib(openmp "${LIB_FILES}")
-add_dependencies(openmp faabric)
+add_dependencies(openmp faabric_ext)
+

@@ -2,9 +2,6 @@
 	path = third-party/WAVM
 	url = https://github.com/faasm/WAVM.git
 	branch = faasm
-[submodule "third-party/faabric"]
-	path = third-party/faabric
-	url = https://github.com/faasm/faabric.git
 [submodule "third-party/wamr"]
 	path = third-party/wamr
 	url = https://github.com/J-Heinemann/wasm-micro-runtime.git

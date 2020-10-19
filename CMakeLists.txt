@@ -130,13 +130,6 @@ else ()
     endfunction()
 endif ()
 
-# Switch on WAVM stack traces
-set(WAVM_ENABLE_UNWIND ON CACHE BOOL "WAVM unwind")
-
-# Stops WAVM compilation complaining
-add_definitions(-DDLL_EXPORT=)
-add_definitions(-DDLL_IMPORT=)
-
 # Faasm profiling
 if (${FAASM_SELF_TRACING})
     message("-- Activated FAASM tracing")
@@ -164,23 +157,22 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
-# Output directories
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+# Third party deps
+include(cmake/ExternalProjects.cmake)
 
-# Include directories
+# Add Faabric src include for protobuf generated sources
+ExternalProject_Get_property(faabric_ext SOURCE_DIR)
+include_directories(${SOURCE_DIR}/src)
+
+# More include directories
 include_directories(
         ${FAASM_INCLUDE_DIR}
         ${FAASM_LIB_CPP_DIR}
         ${FAASM_LIB_FAASMP_DIR}
         ${FAASM_PYTHON_LIB_DIR}
-        ${FAASM_FAABRIC_ROOT_DIR}/include
-        ${CMAKE_CURRENT_BINARY_DIR}/third-party/faabric/src # Required for protobuf
 )
 
 # Directories common to all builds
-add_subdirectory(third-party/faabric)
 add_subdirectory(libs/cpp)
 add_subdirectory(libs/faasmp)
 add_subdirectory(libs/faasmpi)
@@ -189,9 +181,6 @@ add_subdirectory(src/emulator)
 if (FAASM_BUILD_TYPE STREQUAL "native-tools")
     # Ignore the rest if just doing a native tools build
 else ()
-    # WAVM
-    add_subdirectory(third-party/WAVM)
-
     # Faasm functions
     add_subdirectory(func)
 

@@ -11,4 +11,5 @@ set(LIB_FILES
         )
 
 add_library(system "${LIB_FILES}")
+add_dependencies(system faabric_ext)
 target_link_libraries(system faabric)

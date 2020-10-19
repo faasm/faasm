@@ -8,4 +8,5 @@ set(LIB_FILES
 )
 
 faasm_private_lib(ir_cache "${LIB_FILES}")
+add_dependencies(ir_cache wavm_ext)
 target_link_libraries(ir_cache libWAVM)

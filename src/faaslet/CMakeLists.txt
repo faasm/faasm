@@ -10,7 +10,6 @@ set(LIB_FILES
         )
 
 faasm_private_lib(faaslet_lib "${LIB_FILES}")
-
 target_link_libraries(faaslet_lib faabric module_cache system)
 
 # WAMR module depends on SGX support

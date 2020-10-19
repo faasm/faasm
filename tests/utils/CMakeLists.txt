@@ -3,11 +3,6 @@ include_directories(
         ${FAASM_FAABRIC_ROOT_DIR}/tests/utils
 )
 
-ExternalProject_Add(catch2
-    GIT_REPOSITORY "https://github.com/catchorg/Catch2"
-    GIT_TAG        "v2.13.2"
-)
-
 set(LIB_FILES
         matrix_utils.cpp
         system_utils.cpp
@@ -16,7 +11,7 @@ set(LIB_FILES
         )
 
 faasm_private_lib(test_utils "${LIB_FILES}")
-
+add_dependencies(test_utils catch_ext)
 target_link_libraries(test_utils
         catch
         faabric_test_utils
