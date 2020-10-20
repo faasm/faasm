@@ -33,12 +33,6 @@ docker-compose up
 
 which creates the containers defined in [docker-compose.yml](../docker-compose.yml):
 
-- `worker` - one or more instances of the Faasm runtime
-- `upload` - container exposing the Faasm [HTTP API](api.md)
-- `nginx` - simple load balancer for the Faasm runtime instances 
-- `redis-state` - Redis instance for holding shared state
-- `redis-queue` - Redis instance for handling queueing of messages between Faasm instances
-
 Faasm will generate machine code from all WebAssembly it encounters. This is
 stored in the `machine-code` directory at the root of this project.
 
