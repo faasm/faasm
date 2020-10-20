@@ -14,7 +14,17 @@ RUN apt-get install -y \
     python3-cairo \
     vim
 
-# Install faasm toolchain module
+# Install wabt
+# TODO - pin this to a release
+RUN git clone https://github.com/WebAssembly/wabt/ /tmp/wabt
+WORKDIR /tmp/wabt/build
+RUN cmake -GNinja -DBUILD_TESTS=OFF -DBUILD_LIBWASM=OFF ..
+RUN ninja install
+WORKDIR /
+RUN rm -r /tmp/wabt
+
+# Install faasm toolchain Python module
+# TODO - include this with via multi-stage Docker build
 WORKDIR /usr/local/code
 RUN git clone https://github.com/faasm/faasm-toolchain
 WORKDIR /usr/local/code/faasm-toolchain
