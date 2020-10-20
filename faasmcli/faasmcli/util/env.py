@@ -49,22 +49,6 @@ PY_RUNTIME_ROOT = join(FAASM_RUNTIME_ROOT, "lib", "python3.8")
 
 LATEST_CMAKE = "/usr/local/lib/cmake-3.15/bin/cmake"
 
-POSSIBLE_BUILD_BINS = [
-    "/faasm/build/bin/",  # Containers
-    "/faasm/build/third-party/WAVM/bin/",  # Containers
-    join(PROJ_ROOT, "build", "bin"),  # Local builds
-    join(PROJ_ROOT, "build", "cmake", "bin"),  # Local builds
-    join(PROJ_ROOT, "build", "third-party", "WAVM", "bin"),  # Local builds
-    join(
-        PROJ_ROOT, "build", "cmake", "third-party", "WAVM", "bin"
-    ),  # Local builds
-    join(PROJ_ROOT, "cmake-build-debug", "bin"),  # CLion
-    join(
-        PROJ_ROOT, "cmake-build-debug", "third-party", "WAVM", "bin"
-    ),  # CLion
-    join(HOME_DIR, "faasm", "bench", "bin"),  # Benchmark
-]
-
 
 def get_wasm_func_path(user, func_name):
     func_dir = join(WASM_DIR, user, func_name)

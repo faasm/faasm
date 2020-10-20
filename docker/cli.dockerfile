@@ -20,10 +20,12 @@ RUN git clone https://github.com/faasm/faasm-toolchain
 WORKDIR /usr/local/code/faasm-toolchain
 RUN pip3 install -e .
 
-# Build some targets not provided by the worker image
+# Build some useful targets
 WORKDIR /faasm/build
 RUN cmake --build . --target simple_runner
 RUN cmake --build . --target func_sym
+RUN cmake --build . --target codegen_func
+RUN cmake --build . --target codegen_shared_obj
 
 # Python set-up
 WORKDIR /usr/local/code/faasm
@@ -35,6 +37,9 @@ RUN inv -r faasmcli/faasmcli libs.native
 
 # Install pyfaasm
 RUN pip3 install pyfaasm
+
+# Install common libraries
+RUN inv -r faasmcli/faasmcli libs.toolchain
 
 # Remove worker entrypoint
 COPY bin/noop-entrypoint.sh /entrypoint.sh

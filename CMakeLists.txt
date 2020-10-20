@@ -31,6 +31,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 # Faasm directories
 set(FAASM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(FAASM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
@@ -161,8 +165,8 @@ add_definitions(${LLVM_DEFINITIONS})
 include(cmake/ExternalProjects.cmake)
 
 # Add Faabric src include for protobuf generated sources
-ExternalProject_Get_property(faabric_ext SOURCE_DIR)
-include_directories(${SOURCE_DIR}/src)
+FetchContent_GetProperties(faabric_ext BINARY_DIR FAABRIC_BINARY_DIR)
+include_directories(${FAABRIC_BINARY_DIR}/src)
 
 # More include directories
 include_directories(

@@ -9,8 +9,6 @@ set(LIB_FILES emulator.cpp)
 faasm_public_lib(emulator "${LIB_FILES}")
 set_target_properties(emulator PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
-add_dependencies(emulator faabric_ext)
-
 if (FAASM_BUILD_TYPE STREQUAL "native-tools")
     target_link_libraries(emulator faasm faabric)
 else ()
