@@ -13,7 +13,6 @@ services:
     volumes:
         - .:/usr/local/code/faasm
         - ./container/machine-code:/usr/local/faasm/object
-        - ./container/shared:/usr/local/faasm/shared
         - ./container/shared_store:/usr/local/faasm/shared_store
     working_dir: /usr/local/code/faasm
     privileged: true
