@@ -1,0 +1,22 @@
+version: "3"
+
+# -------------------------------
+# Development set-up for the CLI
+# -------------------------------
+
+services:
+  redis:
+    image: faasm/redis:${FAASM_VERSION}
+
+  cli:
+    image: faasm/cli:${FAASM_VERSION}
+    volumes:
+        - .:/usr/local/code/faasm
+        - ./machine-code:/usr/local/faasm/object
+    working_dir: /usr/local/code/faasm
+    environment:
+      - FUNCTION_STORAGE=local
+      - LOG_LEVEL=debug
+      - REDIS_STATE_HOST=redis
+      - REDIS_QUEUE_HOST=redis
+

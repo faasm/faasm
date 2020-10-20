@@ -22,6 +22,10 @@ FetchContent_Declare(faabric_ext
 
 FetchContent_MakeAvailable(wavm_ext faabric_ext)
 
+# Need access to private WAVM headers
+FetchContent_GetProperties(wavm_ext SOURCE_DIR FAASM_WAVM_SOURCE_DIR)
+message(STATUS FAASM_WAVM_SOURCE_DIR ${FAASM_WAVM_SOURCE_DIR})
+
 # General 3rd party dependencies
 ExternalProject_Add(eigen_ext
     GIT_REPOSITORY "https://gitlab.com/shillaker/eigen"

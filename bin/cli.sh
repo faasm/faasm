@@ -7,14 +7,6 @@ PROJ_ROOT=${THIS_DIR}/..
 
 pushd ${PROJ_ROOT} > /dev/null
 
-VERSION=$(cat VERSION)
-
-docker run \
-    --entrypoint="/bin/bash" \
-    --network="host" \
-    -v $(pwd):/usr/local/code/faasm \
-    -w /usr/local/code/faasm \
-    -it \
-    faasm/cli:${VERSION}
+docker-compose -f docker-compose-cli.yml run cli /bin/bash
 
 popd > /dev/null
