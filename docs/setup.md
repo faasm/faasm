@@ -34,7 +34,7 @@ docker-compose up
 which creates the containers defined in [docker-compose.yml](../docker-compose.yml):
 
 Faasm will generate machine code from all WebAssembly it encounters. This is
-stored in the `machine-code` directory at the root of this project.
+stored in the `container/machine-code` directory at the root of this project.
 
 ## Writing and deploying functions
 

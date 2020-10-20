@@ -22,7 +22,7 @@ deploy/k8s
 node_modules
 typescript
 venv
-machine-code
+container
 
 # Ignore all WebAssembly other than Python function, which has special status
 wasm

@@ -51,15 +51,7 @@ RUN git fetch --all
 RUN git checkout v${FAASM_VERSION}
 
 # Submodules
-RUN git submodule update --init third-party/eigen
-RUN git submodule update --init third-party/faabric
-RUN git submodule update --init third-party/WAVM
 RUN git submodule update --init third-party/wamr
-
-# Set up deps
-WORKDIR /usr/local/code/faasm/ansible
-RUN ansible-playbook catch.yml
-RUN ansible-playbook eigen.yml
 
 # Install the CLI
 WORKDIR /usr/local/code/faasm

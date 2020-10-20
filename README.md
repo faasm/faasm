@@ -52,8 +52,8 @@ inv invoke demo hello
 ```
 
 Note that the first time you run the local set-up it will generate some machine
-code specific to your host. This is stored in the `machine-code` directory in
-the root of the project and reused on subsequent runs.
+code specific to your host. This is stored in the `container/machine-code`
+directory in the root of the project and reused on subsequent runs.
 
 ## More information
 

@@ -6,7 +6,8 @@ the [set-up](setup.md) instructions.
 
 ## Recommended Set-up - Docker CLI
 
-Most development can be done using the containerised CLI:
+Most development can be done using the containerised CLI. To get everything set
+up, you need to run:
 
 ```
 # Clone this repo
@@ -23,7 +24,13 @@ git submodule update --init
 inv dev.cmake
 inv dev.cc tests
 
-# Run codegen (this may take a while but only needs to be done once)
+# Create a cgroup
+./bin/cgroup.sh
+
+# Upload the Python functions (one-off)
+inv upload.user python --local-copy --py
+
+# Run codegen (this may take a while, one-off)
 inv codegen.local
 
 # Run the tests

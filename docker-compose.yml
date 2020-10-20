@@ -15,7 +15,9 @@ services:
       - redis-queue
       - redis-state
     volumes:
-      - ./machine-code/:/usr/local/faasm/object/
+      - ./container/machine-code/:/usr/local/faasm/object/
+      - ./container/shared:/usr/local/faasm/shared
+      - ./container/shared_store:/usr/local/faasm/shared_store
       - ./wasm/:/usr/local/code/faasm/wasm/
     environment:
       - FUNCTION_STORAGE=local
