@@ -36,10 +36,6 @@ WORKDIR /usr/local/code/faasm/ansible
 ENV USER=root
 RUN ansible-playbook runtime_fs.yml
 
-# Set up cgroup
-WORKDIR /usr/local/code/faasm
-RUN ./bin/cgroup.sh
-
 # Out of tree build
 WORKDIR /build/faasm
 

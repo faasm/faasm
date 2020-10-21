@@ -36,6 +36,9 @@ inv upload.user python --local-copy --py
 # Run codegen (this may take a while the first time it's run)
 inv codegen.local
 
+# Set up cgroup
+./bin/cgroup.sh
+
 # Run the tests
 tests
 ```
