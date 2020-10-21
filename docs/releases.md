@@ -23,39 +23,55 @@ Check the diff to make sure this hasn't edited anything we don't expect.
 
 Push all the changes to your branch.
 
-## 2. Create the Github release
+## 2. Tag the release
 
-Run the following to create the new release in Github.
-
-NOTE: this will create a tag at the head of your current branch.
+Each release is built from a tag. Create this with:
 
 ```bash
 inv release.tag
-inv release.create
-inv release.publish
 ```
 
-Note that you can force overwriting of a tag with:
+This will trigger the [container
+build](https://github.com/faasm/faasm/actions?query=workflow%3ARelease).
+
+If there's an issue with the tag (e.g. the container build fails), you can
+update it with:
 
 ```bash
 inv release.tag --force
 ```
 
-## 3. Rebuild Docker containers
+If you're having real issues, see the section below on building containers
+locally.
 
-You can rebuild all the containers for the given release with:
+## 3. Create the Github release
+
+Run the following to create the new release in Github from your tag:
 
 ```bash
-inv docker.release
+inv release.create
+inv release.publish
 ```
-
-Note that the `base-test` container will be built from the tag you just created
-so this is what the CI build will use too.
 
 ## 4. Create a PR
 
 Create a PR from your branch, this will then run through the tests for the new
 release. If it's green, you can merge it into master.
+
+# Building containers locally
+
+Usually we rely on Github to build containers, but if you need to build them
+locally you can use:
+
+```bash
+inv docker.build -c <container>
+```
+
+To build more than one:
+
+```bash
+inv docker.build -c <containerA> <containerB>
+```
 
 # Github config
 
