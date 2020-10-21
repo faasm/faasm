@@ -28,7 +28,7 @@ message(STATUS FAASM_WAVM_SOURCE_DIR ${FAASM_WAVM_SOURCE_DIR})
 
 # General 3rd party dependencies
 ExternalProject_Add(eigen_ext
-    GIT_REPOSITORY "https://gitlab.com/shillaker/eigen"
+    GIT_REPOSITORY "https://gitlab.com/shillaker/eigen.git"
     GIT_TAG "faasm"
     CMAKE_CACHE_ARGS "-DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}"
 )

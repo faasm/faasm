@@ -25,7 +25,7 @@ RUN git submodule update --init
 # Out of tree build
 WORKDIR /build/faasm
 
-# Build WAVM and WAMR to avoid repetition in other dockerfiles
+# Build the basics here to set up the CMake build
 RUN cmake \
     -GNinja \
     -DCMAKE_CXX_COMPILER=/usr/bin/clang++-10 \
@@ -35,3 +35,4 @@ RUN cmake \
 
 RUN cmake --build . --target libWAVM
 RUN cmake --build . --target wamrlib
+RUN cmake --build . --target simple_runner
