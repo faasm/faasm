@@ -112,8 +112,8 @@ int main(int argc, char* argv[])
         printf("Rank %i - MPI_Put as expected\n", rank);
     }
 
-    delete[] expectedPutData;
     delete[] expectedGetData;
+    delete[] expectedPutData;
     delete[] name;
     delete[] putData;
 
