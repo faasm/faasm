@@ -52,9 +52,8 @@ int main(int argc, char* argv[])
           faasm::compareArrays<int>(sharedData, expected, NUM_ELEMENT);
         if (!asExpected) {
             return 1;
-        } else {
-            printf("Rank %i - MPI_Put as expected\n", rank);
         }
+        printf("Rank %i - MPI_Put as expected\n", rank);
     }
 
     MPI_Win_free(&window);

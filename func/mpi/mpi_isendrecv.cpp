@@ -36,9 +36,9 @@ int main(int argc, char* argv[])
                rank,
                recvValue,
                left);
-    } else {
-        printf("Rank %i - async working properly\n", rank);
+        return 1;
     }
+    printf("Rank %i - async working properly\n", rank);
 
     MPI_Finalize();
 

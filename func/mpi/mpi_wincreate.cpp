@@ -37,8 +37,8 @@ int main(int argc, char* argv[])
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     int dataSize = sizeof(int);
-    int sharedData[NUM_ELEMENT];
-    int expectedPutData[NUM_ELEMENT];
+    int* sharedData = new int[NUM_ELEMENT];
+    int* expectedPutData = new int[NUM_ELEMENT];
 
     // Populate some data in shared region and not
     for (int i = 0; i < NUM_ELEMENT; i++) {
@@ -80,11 +80,16 @@ int main(int argc, char* argv[])
         }
 
         // Check size of window
-        checkIntAttr(window, MPI_WIN_SIZE, winSize, "MPI_WIN_SIZE");
-        checkIntAttr(window, MPI_WIN_DISP_UNIT, 1, "MPI_WIN_DISP_UNIT");
+        if (!checkIntAttr(window, MPI_WIN_SIZE, winSize, "MPI_WIN_SIZE"))
+            return 1;
+        if (!checkIntAttr(window, MPI_WIN_DISP_UNIT, 1, "MPI_WIN_DISP_UNIT"))
+            return 1;
 
         printf("Win attr checks complete\n");
     }
+
+    delete[] sharedData;
+    delete[] expectedPutData;
 
     MPI_Win_free(&window);
     MPI_Finalize();
