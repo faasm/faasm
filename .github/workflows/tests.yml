@@ -19,7 +19,7 @@ jobs:
       LOG_LEVEL: info
       MAX_FAASLETS: 5
     container:
-      faasm/base-test:0.4.10
+      image: faasm/cli:0.4.10
     defaults:
       run:
         working-directory: /usr/local/code/faasm
@@ -54,13 +54,13 @@ jobs:
       # --- Code build ---
       - name: "Build codegen"
         run: cmake --build . --target codegen_func
-        working-directory: /usr/local/code/faasm/build
+        working-directory: /build/faasm
       - name: "Build tests"
         run: cmake --build . --target codegen_shared_obj
-        working-directory: /usr/local/code/faasm/build
+        working-directory: /build/faasm
       - name: "Build tests"
         run: cmake --build . --target tests
-        working-directory: /usr/local/code/faasm/build
+        working-directory: /build/faasm
       # --- Environment set-up ---
       - name: "Set up test lib"
         run: inv -r faasmcli/faasmcli libs.fake

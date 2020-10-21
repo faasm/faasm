@@ -78,13 +78,18 @@ def _get_repo():
     return g.get_repo(REPO_NAME)
 
 
-def _create_tag(tag_name):
-    # Create tag
-    run("git tag {}".format(tag_name), shell=True, check=True, cwd=PROJ_ROOT)
+def _create_tag(tag_name, force=False):
+    # Create the tag
+    run(
+        "git tag {} {}".format("--force" if force else "", tag_name),
+        shell=True,
+        check=True,
+        cwd=PROJ_ROOT,
+    )
 
     # Push tag
     run(
-        "git push origin {}".format(tag_name),
+        "git push {} origin {}".format("--force" if force else "", tag_name),
         shell=True,
         check=True,
         cwd=PROJ_ROOT,
@@ -127,7 +132,7 @@ def bump(ctx, ver=None):
 
 
 @task
-def tag(ctx):
+def tag(ctx, force=False):
     """
     Tags the latest commit on the current branch
     """
@@ -140,7 +145,7 @@ def tag(ctx):
         "Creating tag {} from current branch {}".format(tag_name, branch_name)
     )
 
-    _create_tag(tag_name)
+    _create_tag(tag_name, force=force)
 
 
 @task

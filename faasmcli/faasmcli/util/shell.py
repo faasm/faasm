@@ -2,32 +2,7 @@ import shutil
 from os.path import join, exists
 from subprocess import call
 
-from faasmcli.util.env import PROJ_ROOT, HOME_DIR
-
-
-POSSIBLE_BUILD_DIRS = [
-    "/faasm/build/",  # Containers
-    join(PROJ_ROOT, "build"),  # Local builds
-    join(PROJ_ROOT, "build", "cmake"),  # Local builds
-    join(HOME_DIR, "faasm", "bench"),  # Benchmark
-]
-
-
-def get_local_build_dir():
-    existing = [d for d in POSSIBLE_BUILD_DIRS if exists(d)]
-    if len(existing) == 0:
-        raise RuntimeError(
-            "Could not find build dir (checking {})".format(
-                POSSIBLE_BUILD_DIRS
-            )
-        )
-
-    if len(existing) > 1:
-        raise RuntimeError(
-            "Found multiple potential build dirs: {}".format(existing)
-        )
-
-    return existing[0]
+from faasmcli.util.env import FAASM_BUILD_DIR
 
 
 def find_command(bin_name):
@@ -38,7 +13,7 @@ def find_command(bin_name):
         return found_cmd
 
     # If not found on the path, check in build dir
-    bin_path = join(get_local_build_dir(), "bin", bin_name)
+    bin_path = join(FAASM_BUILD_DIR, "bin", bin_name)
     if not exists(bin_path):
         raise RuntimeError(
             "Could not find binary {} at {}".format(bin_name, bin_path)

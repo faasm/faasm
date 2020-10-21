@@ -4,6 +4,7 @@ FROM faasm/cpython:0.0.6
 
 # Note - we don't often rebuild cpp-root so this dep may be behind
 FROM faasm/cpp-root:0.4.11
+ARG FAASM_VERSION
 
 # Flag to say we're in a container
 ENV FAASM_DOCKER="on"
@@ -12,15 +13,17 @@ ENV FAASM_DOCKER="on"
 COPY --from=0 /usr/local/faasm /usr/local/faasm
 COPY --from=1 /usr/local/faasm/runtime_root /usr/local/faasm/runtime_root
 
-# Put code in place
-COPY . /usr/local/code/faasm
-
-# Install Eigen
-WORKDIR /usr/local/code/faasm/ansible
-RUN ansible-playbook eigen.yml
+# Check out code
+WORKDIR /usr/local/code
+RUN rm -rf faasm
+RUN git clone \
+    -b v${FAASM_VERSION} \
+    https://github.com/faasm/faasm
+WORKDIR /usr/local/code/faasm
+RUN git submodule update --init
 
 # Out of tree build
-WORKDIR /faasm/build
+WORKDIR /build/faasm
 
 # Build WAVM and WAMR to avoid repetition in other dockerfiles
 RUN cmake \

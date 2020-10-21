@@ -3,6 +3,12 @@ from os.path import dirname, realpath, join, exists, expanduser
 
 from faasmtools.build import FAASM_LOCAL_DIR
 
+
+def _get_dir(variable, default):
+    env_val = environ.get(variable)
+    return env_val if env_val else default
+
+
 HOME_DIR = expanduser("~")
 PROJ_ROOT = dirname(dirname(dirname(dirname(realpath(__file__)))))
 THIRD_PARTY_DIR = join(PROJ_ROOT, "third-party")
@@ -19,6 +25,8 @@ FAASM_SHARED_ROOT = join(FAASM_LOCAL_DIR, "shared")
 FAASM_SHARED_STORAGE_ROOT = join(FAASM_LOCAL_DIR, "shared_store")
 FAASM_SHARED_ROOT = join(FAASM_LOCAL_DIR, "shared")
 FAASM_INSTALL_DIR = "/usr/local"
+
+FAASM_BUILD_DIR = _get_dir("FAASM_BUILD_DIR", "/build/faasm")
 
 FAASM_CONFIG_FILE = join(FAASM_HOME, "faasm.ini")
 

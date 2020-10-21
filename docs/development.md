@@ -2,14 +2,14 @@
 
 This guide is only relevant for those wanting to dig deeper or make changes to
 Faasm itself. If you'd just like to write and run functions, you can refer to
-the [set-up](setup.md) instructions. 
+the [set-up instructions](setup.md). 
 
 ## Recommended Set-up - Docker CLI
 
 Most development can be done using the containerised CLI. To get everything set
 up, you need to run:
 
-```
+```bash
 # Clone this repo
 git clone https://github.com/faasm/faasm
 cd faasm
@@ -19,10 +19,16 @@ git submodule update --init
 
 # Start the CLI
 ./bin/cli.sh
+```
 
-# Build the tests (inside the CLI)
+To build and run the tests, you can then run the following inside the container:
+
+```bash
+# Build the tests and the codegen targets
 inv dev.cmake
 inv dev.cc tests
+inv dev.cc codegen_func
+inv dev.cc codegen_shared_obj
 
 # Create a cgroup
 ./bin/cgroup.sh
@@ -48,6 +54,12 @@ inside the container.
 If you want to build the project outside of the CLI container, take a look at
 the [CLI Dockerfile](../docker/cli.dockerfile) to see what's required.
 
+You will most likely need to set up the CLI using:
+
+```bash
+source ./bin/workon.sh
+```
+
 ## Code style
 
 Code style is checked as part of the CI build and uses the following
@@ -70,7 +82,8 @@ namespaces. To do this we need to ensure consistent interface naming (`eth0` for
 main public interface). If your public interface is already called `eth0` then
 you can skip this step.
 
-- Edit `/etc/default/grub` and add `net.ifnames=0 biosdevname=0` to `GRUB_CMDLINE_LINUX_DEFAULT`
+- Edit `/etc/default/grub` and add `net.ifnames=0 biosdevname=0` to
+  `GRUB_CMDLINE_LINUX_DEFAULT`
 - Run `sudo update-grub`
 - Restart the machine
 

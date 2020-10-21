@@ -35,6 +35,12 @@ inv release.create
 inv release.publish
 ```
 
+Note that you can force overwriting of a tag with:
+
+```bash
+inv release.tag --force
+```
+
 ## 3. Rebuild Docker containers
 
 You can rebuild all the containers for the given release with:

@@ -4,7 +4,7 @@ FROM faasm/base:${FAASM_VERSION}
 COPY . /usr/local/code/faasm
 
 # Build the upload and codegen targets
-WORKDIR /faasm/build
+WORKDIR /build/faasm
 RUN cmake --build . --target upload
 RUN cmake --build . --target codegen_shared_obj
 RUN cmake --build . --target codegen_func
@@ -18,4 +18,4 @@ COPY bin/entrypoint_upload.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
-CMD "/faasm/build/bin/upload"
+CMD "/build/faasm/bin/upload"

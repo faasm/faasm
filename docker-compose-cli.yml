@@ -12,6 +12,7 @@ services:
     image: faasm/cli:${FAASM_VERSION}
     volumes:
         - .:/usr/local/code/faasm
+        - ./build:/build/faasm
         - ./container/machine-code:/usr/local/faasm/object
         - ./container/shared_store:/usr/local/faasm/shared_store
     working_dir: /usr/local/code/faasm

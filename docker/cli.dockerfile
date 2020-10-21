@@ -31,7 +31,7 @@ WORKDIR /usr/local/code/faasm-toolchain
 RUN pip3 install -e .
 
 # Build some useful targets
-WORKDIR /faasm/build
+WORKDIR /build/faasm
 RUN cmake --build . --target simple_runner
 RUN cmake --build . --target func_sym
 RUN cmake --build . --target codegen_func

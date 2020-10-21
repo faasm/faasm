@@ -2,6 +2,7 @@
 perf/
 work/
 download/
+container/
 build/
 ninja-build/
 faasm.ini

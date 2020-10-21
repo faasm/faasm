@@ -7,6 +7,12 @@ PROJ_ROOT="${THIS_DIR}/.."
 pushd ${PROJ_ROOT} >> /dev/null
 
 # ----------------------------
+# Redis
+# ----------------------------
+
+alias redis-cli="redis-cli -h redis"
+
+# ----------------------------
 # Virtualenv
 # ----------------------------
 
@@ -50,20 +56,8 @@ export FAASM_VERSION=$(cat ${VERSION_FILE})
 
 export PS1='(faasm) ${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
 
-# ----------------------------
-# Path to builds
-# ----------------------------
-# Container builds
-export PATH=/faasm/build/bin:$PATH
-
-# Bare metal
-export PATH=${PROJ_ROOT}/build/bin:$PATH
-
-# Dev
-export PATH=${PROJ_ROOT}/build/cmake/bin:$PATH
-
-# Native MPI
-export PATH=/usr/local/faasm/openmpi/bin:$PATH
+# Build binaries on path
+export PATH=/build/faasm/bin:$PATH
 
 # -----------------------------
 # Splash
