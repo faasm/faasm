@@ -44,19 +44,19 @@ inv release.tag --force
 If you're having real issues, see the section below on building containers
 locally.
 
-## 3. Create the Github release
+## 3. Create a PR
 
-Run the following to create the new release in Github from your tag:
+Create a PR from your branch, this will then run through the tests for the new
+release. If it's green, you can merge it into master.
+
+## 4. Create the Github release
+
+Run the following to create the new release from your tag:
 
 ```bash
 inv release.create
 inv release.publish
 ```
-
-## 4. Create a PR
-
-Create a PR from your branch, this will then run through the tests for the new
-release. If it's green, you can merge it into master.
 
 # Building containers locally
 
