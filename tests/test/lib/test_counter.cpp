@@ -1,4 +1,4 @@
-#include <catch/catch.hpp>
+#include <catch2/catch.hpp>
 
 #include <faabric/redis/Redis.h>
 #include <faabric/state/State.h>
