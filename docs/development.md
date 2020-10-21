@@ -43,22 +43,33 @@ inv codegen.local
 tests
 ```
 
+### Tooling - editors, IDEs etc.
+
 Your checkout will be mounted as a volume in the container, so you can edit the
-files locally and recompile then with the container.
+files locally and recompile them within the container.
 
-You can also use remote development tools (e.g. with IDEs) to develop and debug
-inside the container.
+You can use remote development tools against the running container (e.g. 
+[CLion remote development](https://www.jetbrains.com/help/clion/remote-development.html) or 
+[`gdbserver`](https://sourceware.org/gdb/onlinedocs/gdb/Server.html)).
 
-## Other set-ups
+You can also create a new container that inherits from the CLI if you want to
+set up your customisations. To do this:
 
-If you want to build the project outside of the CLI container, take a look at
-the [CLI Dockerfile](../docker/cli.dockerfile) to see what's required.
+```bash
+./bin/cli.sh <your image>
+```
+
+## Building outside of the container
+
+If you want to build the project outside of the recommended container, or just
+run some of the CLI tasks, you can take a look at the [CLI
+Dockerfile](../docker/cli.dockerfile) to see what's required.
 
 You will most likely need to set up the CLI using:
 
 ```bash
 export FAASM_BUILD_DIR=$(pwd)/build
-source ./bin/workon.sh
+source bin/workon.sh
 ```
 
 ## Code style

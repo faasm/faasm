@@ -9,7 +9,7 @@ services:
     image: faasm/redis:${FAASM_VERSION}
 
   cli:
-    image: faasm/cli:${FAASM_VERSION}
+    image: ${CLI_IMAGE}
     volumes:
         - .:/usr/local/code/faasm
         - ./build:/build/faasm

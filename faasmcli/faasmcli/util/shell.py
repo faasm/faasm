@@ -7,10 +7,10 @@ from faasmcli.util.env import FAASM_BUILD_DIR
 
 def find_command(bin_name):
     # First check on the path
-    found_cmd = shutil.which(bin_name)
-    if found_cmd:
+    bin_path = shutil.which(bin_name)
+    if bin_path:
         print("Found {} in PATH".format(bin_name))
-        return found_cmd
+        return bin_path
 
     # If not found on the path, check in build dir
     bin_path = join(FAASM_BUILD_DIR, "bin", bin_name)
@@ -19,8 +19,8 @@ def find_command(bin_name):
             "Could not find binary {} at {}".format(bin_name, bin_path)
         )
 
-    print("Taking {} as {}".format(bin_name, found_cmd))
-    return found_cmd
+    print("Taking {} as {}".format(bin_name, bin_path))
+    return bin_path
 
 
 def run_command(bin_name, args=None):
