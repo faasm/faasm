@@ -13,9 +13,9 @@ ENV FAASM_DOCKER="on"
 COPY --from=0 /usr/local/faasm /usr/local/faasm
 COPY --from=1 /usr/local/faasm/runtime_root /usr/local/faasm/runtime_root
 
-# Check out code
+# Check out code (clean beforehand just in case)
 WORKDIR /usr/local/code
-RUN rm -rf faasm
+RUN rm -fr faasm
 RUN git clone \
     -b v${FAASM_VERSION} \
     https://github.com/faasm/faasm

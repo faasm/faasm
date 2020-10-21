@@ -57,6 +57,7 @@ the [CLI Dockerfile](../docker/cli.dockerfile) to see what's required.
 You will most likely need to set up the CLI using:
 
 ```bash
+export FAASM_BUILD_DIR=$(pwd)/build
 source ./bin/workon.sh
 ```
 
