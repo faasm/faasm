@@ -80,10 +80,12 @@ int main(int argc, char* argv[])
         }
 
         // Check size of window
-        if (!checkIntAttr(window, MPI_WIN_SIZE, winSize, "MPI_WIN_SIZE"))
+        if (!checkIntAttr(window, MPI_WIN_SIZE, winSize, "MPI_WIN_SIZE")) {
             return 1;
-        if (!checkIntAttr(window, MPI_WIN_DISP_UNIT, 1, "MPI_WIN_DISP_UNIT"))
+        }
+        if (!checkIntAttr(window, MPI_WIN_DISP_UNIT, 1, "MPI_WIN_DISP_UNIT")) {
             return 1;
+        }
 
         printf("Win attr checks complete\n");
     }
