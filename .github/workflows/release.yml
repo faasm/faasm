@@ -31,6 +31,7 @@ jobs:
         with:
           push: true
           file: docker/base.dockerfile
+          build-args: FAASM_VERSION=${{ env.TAG_VERSION }}
           context: .
           tags: faasm/base:${{ env.TAG_VERSION }}
       - name: "Build CLI container"
@@ -38,6 +39,7 @@ jobs:
         with:
           push: true
           file: docker/cli.dockerfile
+          build-args: FAASM_VERSION=${{ env.TAG_VERSION }}
           context: .
           tags: faasm/cli:${{ env.TAG_VERSION }}
       - name: "Build redis container"
@@ -52,6 +54,7 @@ jobs:
         with:
           push: true
           file: docker/worker.dockerfile
+          build-args: FAASM_VERSION=${{ env.TAG_VERSION }}
           context: .
           tags: faasm/worker:${{ env.TAG_VERSION }}
       - name: "Build upload container"
@@ -59,6 +62,7 @@ jobs:
         with:
           push: true
           file: docker/upload.dockerfile
+          build-args: FAASM_VERSION=${{ env.TAG_VERSION }}
           context: .
           tags: faasm/upload:${{ env.TAG_VERSION }}
 
