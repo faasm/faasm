@@ -12,21 +12,6 @@ from invoke import task
 from faasmcli.util.env import PROJ_ROOT
 from faasmcli.util.version import get_faasm_version
 
-# Order matters here
-RELEASE_CONTAINERS = [
-    "redis",
-    "base",
-    "base-test",
-    "worker",
-    "upload",
-    "cli",
-]
-
-ALL_CONTAINERS = [
-    "cpp-root",
-]
-ALL_CONTAINERS += RELEASE_CONTAINERS
-
 
 @task
 def purge(context):
@@ -70,14 +55,6 @@ def _do_push(container, version):
         )
 
 
-@task
-def release(ctx, nocache=False):
-    """
-    Build containers for a release
-    """
-    build(ctx, RELEASE_CONTAINERS, nocache=nocache, push=True)
-
-
 @task(iterable=["c"])
 def build(ctx, c, nocache=False, push=False):
     """
@@ -85,8 +62,8 @@ def build(ctx, c, nocache=False, push=False):
     """
 
     # -----------------------
-    # NOTE - to allow container-specific dockerignore files, we need to switch on DOCKER_BUILDKIT=1
-    # this might change in future:
+    # NOTE - to allow container-specific dockerignore files, we need to switch
+    # on DOCKER_BUILDKIT=1 this might change in future:
     #
     # https://stackoverflow.com/questions/40904409/how-to-specify-different-dockerignore-files-for-different-builds-in-the-same-pr
     # https://github.com/moby/moby/issues/12886#issuecomment-480575928
@@ -100,8 +77,8 @@ def build(ctx, c, nocache=False, push=False):
     faasm_ver = get_faasm_version()
 
     for container in c:
-        # Check if we need to template a special dockerignore file
-        # It seems the dockerignore file needs to be at <dockerfile_path>.dockerignore
+        # Check if we need to template a special dockerignore file It seems the
+        # dockerignore file needs to be at <dockerfile_path>.dockerignore
         dockerfile = join("docker", "{}.dockerfile".format(container))
         dockerignore_template_path = join(
             "docker", "{}.dockerignore.j2".format(container)
@@ -169,28 +146,6 @@ def pull(ctx, c):
         )
         if res != 0:
             raise RuntimeError("Failed docker pull for {}".format(container))
-
-
-@task
-def pull_release(ctx):
-    """
-    Pull container images for a release
-    """
-    pull(ctx, RELEASE_CONTAINERS)
-
-
-@task
-def push_release(ctx):
-    """
-    Push container images for a release
-    """
-
-    push(ctx, RELEASE_CONTAINERS)
-
-
-@task
-def build_all(ctx, nocache=False, push=False):
-    build(ctx, ALL_CONTAINERS, nocache, push)
 
 
 @task
