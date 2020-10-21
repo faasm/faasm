@@ -31,6 +31,14 @@ RUN git clone \
 WORKDIR /usr/local/code/faasm
 RUN git submodule update --init
 
+# Set up runtime filesystem
+WORKDIR /usr/local/code/faasm/ansible
+ENV USER=root
+RUN ansible-playbook runtime_fs.yml
+
+# Set up cgroup
+RUN ./bin/cgroup.sh
+
 # Out of tree build
 WORKDIR /build/faasm
 

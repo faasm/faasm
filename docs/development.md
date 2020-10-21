@@ -30,9 +30,6 @@ inv dev.cc tests
 inv dev.cc codegen_func
 inv dev.cc codegen_shared_obj
 
-# Create a cgroup
-./bin/cgroup.sh
-
 # Upload the Python functions
 inv upload.user python --local-copy --py
 
