@@ -24,7 +24,7 @@ COPY --from=1 \
 
 # Check out code (clean beforehand just in case)
 WORKDIR /usr/local/code
-RUN rm -fr faasm
+RUN rm -rf faasm
 RUN git clone \
     -b v${FAASM_VERSION} \
     https://github.com/faasm/faasm

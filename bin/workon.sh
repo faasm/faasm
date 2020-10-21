@@ -1,16 +1,22 @@
 #!/bin/bash
 
-# NOTE - this is only designed to be run inside the cli Docker container
+# NOTE - this is primary designed to be run inside the cli Docker container
 
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 PROJ_ROOT="${THIS_DIR}/.."
 pushd ${PROJ_ROOT} >> /dev/null
 
 # ----------------------------
-# Redis
+# Container-specific settings
 # ----------------------------
 
-alias redis-cli="redis-cli -h redis"
+if [[ -z "$FAASM_DOCKER" ]]; then
+    # Use containerised redis
+    alias redis-cli="redis-cli -h redis"
+
+    # Build binaries on path
+    export PATH=/build/faasm/bin:$PATH
+fi
 
 # ----------------------------
 # Virtualenv
@@ -55,9 +61,6 @@ export FAASM_ROOT=$(pwd)
 export FAASM_VERSION=$(cat ${VERSION_FILE})
 
 export PS1='(faasm) ${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
-
-# Build binaries on path
-export PATH=/build/faasm/bin:$PATH
 
 # -----------------------------
 # Splash

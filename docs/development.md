@@ -33,10 +33,10 @@ inv dev.cc codegen_shared_obj
 # Create a cgroup
 ./bin/cgroup.sh
 
-# Upload the Python functions (one-off)
+# Upload the Python functions
 inv upload.user python --local-copy --py
 
-# Run codegen (this may take a while, one-off)
+# Run codegen (this may take a while the first time it's run)
 inv codegen.local
 
 # Run the tests
@@ -45,15 +45,18 @@ tests
 
 ### Tooling - editors, IDEs etc.
 
-Your checkout will be mounted as a volume in the container, so you can edit the
-files locally and recompile them within the container.
+Several directories (including the project root) are mounted as volumes in the
+CLI container (see the [CLI `docker-compose.yml`](../docker-compose-cli.yml)). 
+This means you can edit the files directly on your host and compile them inside 
+the container.
 
-You can use remote development tools against the running container (e.g. 
-[CLion remote development](https://www.jetbrains.com/help/clion/remote-development.html) or 
+You can use remote development tools to develop and debug inside the CLI
+container (e.g.  [CLion remote
+development](https://www.jetbrains.com/help/clion/remote-development.html) or
 [`gdbserver`](https://sourceware.org/gdb/onlinedocs/gdb/Server.html)).
 
 You can also create a new container that inherits from the CLI if you want to
-set up your customisations. To do this:
+set up your own. To do this:
 
 ```bash
 ./bin/cli.sh <your image>
