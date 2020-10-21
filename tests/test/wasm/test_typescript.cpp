@@ -1,4 +1,4 @@
-#include <catch/catch.hpp>
+#include <catch2/catch.hpp>
 #include <wasm/WasmModule.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/func.h>
