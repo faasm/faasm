@@ -108,14 +108,6 @@ def faasmpi(ctx, clean=False, verbose=False):
     """
     Compile and install the Faasm MPI library
     """
-    # Build the Faabric MPI target
-    _build_faasm_lib(
-        "third-party/faabric/src/mpi",
-        clean,
-        verbose,
-    )
-
-    # Build the Faasm wasm wrapper
     _build_faasm_lib("libs/faasmpi", clean, verbose)
 
 

@@ -1,10 +1,6 @@
 cmake_minimum_required(VERSION 3.13.0)
 project(faasm)
 
-include(FindGit)
-find_package(Git)
-include (ExternalProject)
-
 # Optional functionality
 option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
 

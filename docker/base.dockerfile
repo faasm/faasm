@@ -9,9 +9,18 @@ ARG FAASM_VERSION
 # Flag to say we're in a container
 ENV FAASM_DOCKER="on"
 
-# Copy Faasm local dir
+# Copy Faasm toolchain
 COPY --from=0 /usr/local/faasm /usr/local/faasm
+
+# Copy Python outputs 
+# TODO - copy these into the toolchain as part of the cpython container build
 COPY --from=1 /usr/local/faasm/runtime_root /usr/local/faasm/runtime_root
+COPY --from=1 \
+    /code/faasm-cpython/third-party/cpython/install/wasm/lib/libpython3.8.a \
+    /usr/local/faasm/llvm-sysroot/lib/wasm32-wasi/libpython3.8.a
+COPY --from=1 \
+    /code/faasm-cpython/third-party/cpython/install/wasm/include/python3.8 \
+    /usr/local/faasm/llvm-sysroot/include/python3.8
 
 # Check out code (clean beforehand just in case)
 WORKDIR /usr/local/code
