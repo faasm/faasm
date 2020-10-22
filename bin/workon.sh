@@ -10,12 +10,18 @@ pushd ${PROJ_ROOT} >> /dev/null
 # Container-specific settings
 # ----------------------------
 
+MODE="undetected"
 if [[ -z "$FAASM_DOCKER" ]]; then
+    # Normal terminal
+    MODE="terminal"
+else
     # Use containerised redis
     alias redis-cli="redis-cli -h redis"
 
     # Build binaries on path
     export PATH=/build/faasm/bin:$PATH
+
+    MODE="container"
 fi
 
 # ----------------------------
@@ -71,6 +77,7 @@ echo "----------------------------------"
 echo "Faasm CLI"
 echo "Version: ${FAASM_VERSION}"
 echo "Project root: ${PROJ_ROOT}"
+echo "Mode: ${MODE}"
 echo "----------------------------------"
 echo ""
 
