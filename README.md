@@ -18,8 +18,8 @@ overheads and fast boot times.
 Faasm is built on [Faabric](http://github.com/faasm/faabric) which provides
 the distributed messaging and state layer. 
 
-The underlying WebAssembly execution and code
-generation is handled by [WAVM](https://github.com/WAVM/WAVM). 
+The underlying WebAssembly execution and code generation is handled by
+[WAVM](https://github.com/WAVM/WAVM). 
 
 Faasm defines a custom [host interface](docs/host_interface.md) which extends
 [WASI](https://wasi.dev/) to include function inputs and outputs, chaining
