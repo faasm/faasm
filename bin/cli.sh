@@ -10,6 +10,7 @@ pushd ${PROJ_ROOT} > /dev/null
 # Default CLI image
 VERSION=$(cat VERSION)
 DEFAULT_IMAGE=faasm/cli:${VERSION}
+INNER_SHELL=${SHELL:-"/bin/bash"}
 export CLI_IMAGE=${1:-${DEFAULT_IMAGE}}
 echo "Running Faasm CLI (${CLI_IMAGE})"
 
@@ -18,6 +19,6 @@ docker-compose \
     -f docker/docker-compose-cli.yml \
     run \
     cli \
-    /bin/bash
+    ${INNER_SHELL}
 
 popd > /dev/null

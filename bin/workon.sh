@@ -66,7 +66,7 @@ export LOG_LEVEL=debug
 export FAASM_ROOT=$(pwd)
 export FAASM_VERSION=$(cat ${VERSION_FILE})
 
-export PS1='(faasm) ${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+export PS1="(faasm) $PS1"
 
 # -----------------------------
 # Splash
