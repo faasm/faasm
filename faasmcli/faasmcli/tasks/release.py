@@ -5,7 +5,6 @@ from os.path import join
 
 from faasmcli.util.env import PROJ_ROOT
 from faasmcli.util.config import get_faasm_config
-from faasmcli.util.release import tar_toolchain, tar_sysroot, tar_runtime_root
 from faasmcli.util.version import get_faasm_version
 
 REPO_NAME = "faasm/faasm"
@@ -79,13 +78,18 @@ def _get_repo():
     return g.get_repo(REPO_NAME)
 
 
-def _create_tag(tag_name):
-    # Create tag
-    run("git tag {}".format(tag_name), shell=True, check=True, cwd=PROJ_ROOT)
+def _create_tag(tag_name, force=False):
+    # Create the tag
+    run(
+        "git tag {} {}".format("--force" if force else "", tag_name),
+        shell=True,
+        check=True,
+        cwd=PROJ_ROOT,
+    )
 
     # Push tag
     run(
-        "git push origin {}".format(tag_name),
+        "git push {} origin {}".format("--force" if force else "", tag_name),
         shell=True,
         check=True,
         cwd=PROJ_ROOT,
@@ -128,7 +132,7 @@ def bump(ctx, ver=None):
 
 
 @task
-def tag(ctx):
+def tag(ctx, force=False):
     """
     Tags the latest commit on the current branch
     """
@@ -141,7 +145,7 @@ def tag(ctx):
         "Creating tag {} from current branch {}".format(tag_name, branch_name)
     )
 
-    _create_tag(tag_name)
+    _create_tag(tag_name, force=force)
 
 
 @task
@@ -161,43 +165,6 @@ def create(ctx):
         "Release {}\n".format(faasm_ver),
         draft=True,
     )
-
-
-@task
-def upload(ctx, which=None):
-    """
-    Upload release artifacts
-    """
-    rel = _get_release()
-
-    artifacts = ["toolchain", "sysroot", "runtime"]
-    if which:
-        artifacts = [which]
-
-    for a in artifacts:
-        if a == "toolchain":
-            toolchain_name, toolchain_path = tar_toolchain()
-
-            print("Uploading toolchain to GH")
-            rel.upload_asset(toolchain_path, label=toolchain_name)
-
-        elif a == "sysroot":
-            sysroot_name, sysroot_path = tar_sysroot()
-
-            print("Uploading sysroot to GH")
-            rel.upload_asset(sysroot_path, label=sysroot_name)
-
-        elif a == "runtime":
-            runtime_name, runtime_path = tar_runtime_root()
-
-            print("Uploading runtime root to GH")
-            rel.upload_asset(runtime_path, label=runtime_name)
-
-        else:
-            print(
-                "Unrecognised artifact: {} (must be {})".format(a, artifacts)
-            )
-            exit(1)
 
 
 @task

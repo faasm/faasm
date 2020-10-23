@@ -1,17 +1,3 @@
-[submodule "third-party/eigen"]
-    path = third-party/eigen
-    url = https://gitlab.com/shillaker/eigen.git
-    branch = faasm
-[submodule "third-party/WAVM"]
-	path = third-party/WAVM
-	url = https://github.com/faasm/WAVM.git
-	branch = faasm
-[submodule "third-party/faabric"]
-	path = third-party/faabric
-	url = https://github.com/faasm/faabric.git
-[submodule "third-party/faasm-toolchain"]
-	path = third-party/faasm-toolchain
-	url = https://github.com/faasm/faasm-toolchain.git
 [submodule "third-party/wamr"]
 	path = third-party/wamr
 	url = https://github.com/J-Heinemann/wasm-micro-runtime.git
@@ -19,12 +5,3 @@
 [submodule "third-party/xra"]
 	path = third-party/xra
 	url = https://github.com/J-Heinemann/eXtended-Remote-Attestation
-[submodule "third-party/faasm-cpython"]
-	path = third-party/faasm-cpython
-	url = https://github.com/faasm/faasm-cpython.git
-[submodule "third-party/wabt"]
-	path = third-party/wabt
-	url = https://github.com/WebAssembly/wabt
-[submodule "third-party/faasm-clapack"]
-	path = third-party/faasm-clapack
-	url = https://github.com/faasm/faasm-clapack

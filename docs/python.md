@@ -15,8 +15,8 @@ interface](host_interface.md).
 
 ## Enabling Python support
 
-Python support is **not enabled by default**. To enable the Python runtime you
-must set up the relevant environment variables:
+Full Python support is **not enabled by default**. To enable the Python runtime
+you must set up the relevant environment variables:
 
 ```bash
 # On the "upload" container/ endpoint (see docker-compose.yml locally)

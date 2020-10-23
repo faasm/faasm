@@ -1,4 +1,4 @@
-#include <catch/catch.hpp>
+#include <catch2/catch.hpp>
 #include <module_cache/WasmModuleCache.h>
 #include <emulator/emulator.h>
 #include <faabric/util/environment.h>

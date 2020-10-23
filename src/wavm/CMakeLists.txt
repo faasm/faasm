@@ -1,12 +1,12 @@
 include_directories(
         ${FAASM_INCLUDE_DIR}/wavm
-        ${FAASM_WAVM_SOURCE_DIR}
+        ${FAASM_WAVM_SOURCE_DIR}/Lib
 )
 
 set(HEADERS
         "${FAASM_INCLUDE_DIR}/wavm/OMPThreadPool.h"
         "${FAASM_INCLUDE_DIR}/wavm/WAVMWasmModule.h"
-        )
+)
 
 add_subdirectory(openmp)
 
@@ -40,4 +40,5 @@ set(LIB_FILES
         )
 
 faasm_private_lib(wavmmodule "${LIB_FILES}")
+add_dependencies(wavmmodule cereal_ext)
 target_link_libraries(wavmmodule wasm ir_cache libWAVM)

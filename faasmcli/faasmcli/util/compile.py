@@ -1,6 +1,7 @@
 from subprocess import run
 
-from faasmcli.util.env import FAASM_TOOLCHAIN_FILE, WASM_DIR
+from faasmtools.build import CMAKE_TOOLCHAIN_FILE
+from faasmcli.util.env import WASM_DIR
 from faasmcli.util.files import clean_dir
 
 from os import makedirs
@@ -20,7 +21,7 @@ def wasm_cmake(
         "cmake",
         "-GNinja",
         "-DFAASM_BUILD_TYPE={}".format(build_type),
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(CMAKE_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE={}".format(cmake_build_type),
         "-DFAASM_SGX_SUPPORT=on" if sgx else "",
         src_dir,
