@@ -13,13 +13,7 @@ DEFAULT_IMAGE=faasm/cli:${VERSION}
 export CLI_IMAGE=${1:-${DEFAULT_IMAGE}}
 echo "Running Faasm CLI (${CLI_IMAGE})"
 
-# Start docker-compose in the background
-docker-compose \
-    -f docker/docker-compose-cli.yml \
-    up \
-    -d
-
-# Run prompt in CLI container
+# Run shell in CLI container
 docker-compose \
     -f docker/docker-compose-cli.yml \
     run \
