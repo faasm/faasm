@@ -46,9 +46,9 @@ tests
 ### Tooling - editors, IDEs etc.
 
 Several directories (including the project root) are mounted as volumes in the
-CLI container (see the [CLI `docker-compose.yml`](../docker-compose-cli.yml)). 
-This means you can edit the files directly on your host and compile them inside 
-the container.
+CLI container (see
+[`docker-compose-cli.yml`](../docker/docker-compose-cli.yml)).  This means you
+can edit the files directly on your host and compile them inside the container.
 
 You can use remote development tools to develop and debug inside the CLI
 container (e.g.  [CLion remote
