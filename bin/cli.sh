@@ -3,17 +3,21 @@
 set -e
 
 THIS_DIR=$(dirname $(readlink -f $0))
+PROJ_ROOT=${THIS_DIR}/..
 
-pushd ${THIS_DIR}/.. > /dev/null
+pushd ${PROJ_ROOT} > /dev/null
 
+# Default CLI image
 VERSION=$(cat VERSION)
+DEFAULT_IMAGE=faasm/cli:${VERSION}
+export CLI_IMAGE=${1:-${DEFAULT_IMAGE}}
+echo "Running Faasm CLI (${CLI_IMAGE})"
 
-docker run --entrypoint="/bin/bash" \
-    --network="host" \
-    -e "TERM=xterm-256color" \
-    -v $(pwd):/usr/local/code/faasm \
-    -w /usr/local/code/faasm \
-    -it \
-    faasm/toolchain:${VERSION}
+# Run shell in CLI container
+docker-compose \
+    -f docker/docker-compose-cli.yml \
+    run \
+    cli \
+    /bin/bash
 
 popd > /dev/null

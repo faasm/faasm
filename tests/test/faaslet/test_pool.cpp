@@ -1,4 +1,4 @@
-#include <catch/catch.hpp>
+#include <catch2/catch.hpp>
 
 extern "C" {
 #include <emulator/emulator_api.h>

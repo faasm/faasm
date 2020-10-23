@@ -1,5 +1,5 @@
 #include "utils.h"
-#include <catch/catch.hpp>
+#include <catch2/catch.hpp>
 
 #include <faabric/util/func.h>
 #include <module_cache/WasmModuleCache.h>

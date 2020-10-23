@@ -1,19 +1,10 @@
 ARG FAASM_VERSION
 FROM faasm/base:${FAASM_VERSION}
 
-# Must restate ARG after FROM
-ARG FAASM_VERSION
-
-# Get the runtime root
-WORKDIR /usr/local/faasm
-RUN wget -q https://github.com/faasm/faasm/releases/download/v${FAASM_VERSION}/faasm-runtime-root-${FAASM_VERSION}.tar.gz
-RUN tar --no-same-owner -xf faasm-runtime-root-${FAASM_VERSION}.tar.gz
-RUN rm faasm-runtime-root-${FAASM_VERSION}.tar.gz
-
 COPY . /usr/local/code/faasm
 
 # Build the worker binary
-WORKDIR /faasm/build
+WORKDIR /build/faasm
 RUN cmake --build . --target codegen_shared_obj
 RUN cmake --build . --target codegen_func
 RUN cmake --build . --target pool_runner
@@ -28,5 +19,5 @@ RUN groupadd -g 1000 faasm
 RUN useradd -u 1000 -g 1000 faasm
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD "/faasm/build/bin/pool_runner"
+CMD "/build/faasm/bin/pool_runner"
 

@@ -2,7 +2,7 @@
 
 set -e
 
-pushd /faasm/build >> /dev/null
+pushd /build/faasm >> /dev/null
 
 OBJ_DIR="/usr/local/faasm/object"
 
