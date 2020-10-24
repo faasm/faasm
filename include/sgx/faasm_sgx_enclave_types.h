@@ -1,11 +1,11 @@
 #pragma once
 
 #if(FAASM_SGX_ATTESTATION)
-#include <sgx/sgx_wamr_attestation.h>
+#include <sgx/faasm_sgx_attestation.h>
 #endif
 
 #if(FAASM_SGX_WHITELISTING)
-#include <sgx/sgx_wamr_whitelisting.h>
+#include <sgx/faasm_sgx_whitelisting.h>
 #endif
 
 #include <wasm_export.h>
@@ -32,7 +32,7 @@ typedef struct __faasm_sgx_tcs {
 #endif
 
 #if(FAASM_SGX_WHITELISTING)
-    _sgx_wamr_whitelist_t *module_whitelist;
+    _faasm_sgx_whitelist_t *module_whitelist;
 #endif
 
 } _faasm_sgx_tcs_t;

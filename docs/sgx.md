@@ -15,7 +15,7 @@ For development:
 Because Intel SGX offers a so-called "Simulation Mode", there is no need to use CPU with SGX capability.
 Just set ` option(FAASM_SGX_SIM_MODE "SGX sim mode flag" ON)` or use `-DFAASM_SGX_SIM_MODE=ON` as additional CMake flag.
 
-Please beware that the hardware-enforced protection mechanism of SGX is NOT active in `-DFAASM_SGX_SIM_MODE=ON`!
+Please be aware that the hardware-enforced protection mechanism of SGX is NOT active in `-DFAASM_SGX_SIM_MODE=ON`!
 
 Active SGX protection:
 The second execution mode of SGX is called "Hardware Mode". In this mode, the hardware-enforced protection mechanism is enabled and requires an Intel CPU with SGX capability.
@@ -73,6 +73,7 @@ Default is on.
 
 #### FAASM_SGX_ATTESTATION
 This option enables the Attestation extension of Faasm-SGX.
+If this option is enabled, please set `#define FAASM_SGX_ATTESTATION 1` in [faasm_sgx_enclave.edl](../src/sgx/faasm_sgx_enclave.edl).
 Default is off.
 
 #### FAASM_SGX_WHITELISTING
@@ -106,7 +107,8 @@ Default is 1 (enabled).
 
 #### FAASM_SGX_WAMR_WASI_LIBC
 This option enables WASI support.
-Default is 0 (disables).
+If this option is enabled, please set `#define FAASM_SGX_WAMR_WASI_LIBC 1` in [faasm_sgx_enclave.edl](../src/sgx/faasm_sgx_enclave.edl).
+Default is 0 (disabled).
 
 #### SGX_DEBUG_MODE
 This option enables or disables the SGX debug mode.

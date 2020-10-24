@@ -1,5 +1,5 @@
-#include <sgx/sgx_wamr_native_symbols_wrapper.h>
-#include <sgx/sgx_wamr_enclave_types.h>
+#include <sgx/faasm_sgx_native_symbols_wrapper.h>
+#include <sgx/faasm_sgx_enclave_types.h>
 #include <sgx/faasm_sgx_error.h>
 
 #if(FAASM_SGX_WAMR_AOT_MODE)

@@ -5,7 +5,7 @@
 typedef struct _whitelist {
     uint32_t entry_len;
     char *entries[];
-} _sgx_wamr_whitelist_t;
+} _faasm_sgx_whitelist_t;
 
 #ifdef __cplusplus
 extern "C" {

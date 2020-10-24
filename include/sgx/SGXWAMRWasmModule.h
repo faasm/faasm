@@ -6,7 +6,7 @@
 
 #include <sgx.h>
 #include <sgx_urts.h>
-#include <sgx/sgx_wamr_attestation.h>
+#include <sgx/faasm_sgx_attestation.h>
 #include <sgx/faasm_sgx_error.h>
 
 extern sgx_enclave_id_t globalEnclaveId;

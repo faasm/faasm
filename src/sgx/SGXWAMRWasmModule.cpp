@@ -2,8 +2,8 @@
 
 #include <faabric/util/func.h>
 #include <sgx/SGXWAMRWasmModule.h>
-#include <sgx/sgx_wamr_attestation.h>
-#include <sgx/sgx_system.h>
+#include <sgx/faasm_sgx_attestation.h>
+#include <sgx/faasm_sgx_system.h>
 
 extern "C" {
 void ocall_printf(const char *msg) {

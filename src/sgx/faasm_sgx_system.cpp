@@ -1,6 +1,6 @@
 #include <string>
 
-#include "sgx_system.h"
+#include "faasm_sgx_system.h"
 #include "faasm_sgx_error.h"
 
 #include <sgx_urts.h>

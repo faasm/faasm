@@ -2,8 +2,8 @@
 #include <sgx_defs.h>
 #include <sgx_thread.h>
 #include <sgx/faasm_sgx_error.h>
-#include <sgx/sgx_wamr_enclave_types.h>
-#include <sgx/sgx_wamr_native_symbols_wrapper.h>
+#include <sgx/faasm_sgx_enclave_types.h>
+#include <sgx/faasm_sgx_native_symbols_wrapper.h>
 #include <sgx/rw_lock.h>
 #include <tlibc/mbusafecrt.h>
 #include <libcxx/cstdlib>
@@ -17,7 +17,7 @@
 
 
 #if(FAASM_SGX_ATTESTATION)
-#include <sgx/sgx_wamr_attestation.h>
+#include <sgx/faasm_sgx_attestation.h>
 #endif
 
 #define WASM_CTORS_FUNC_NAME "__wasm_call_ctors"

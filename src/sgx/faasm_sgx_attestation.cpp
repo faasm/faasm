@@ -1,5 +1,5 @@
 #include <faasm_sgx_error.h>
-#include <sgx_wamr_attestation.h>
+#include <faasm_sgx_attestation.h>
 #include <rw_lock.h>
 
 #include <netdb.h>

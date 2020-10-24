@@ -1,6 +1,6 @@
 #include <pthread.h>
 #include <stdio.h>
-#include <sgx_wamr_attestation.h>
+#include <faasm_sgx_attestation.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>

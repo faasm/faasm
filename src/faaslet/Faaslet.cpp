@@ -13,7 +13,7 @@
 
 
 #if(FAASM_SGX)
-#include <sgx/sgx_system.h>
+#include <sgx/faasm_sgx_system.h>
 #include <sgx/SGXWAMRWasmModule.h>
 #endif
 

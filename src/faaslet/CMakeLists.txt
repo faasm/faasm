@@ -22,6 +22,6 @@ target_include_directories(faaslet_lib PRIVATE
 
 # Include Faasm-SGX Lib if enabled
 if(FAASM_SGX_SUPPORT)
-    target_link_libraries(faaslet_lib sgx_wamr)
+    target_link_libraries(faaslet_lib faasm_sgx)
     target_include_directories(faaslet_lib PRIVATE ${FAASM_INCLUDE_DIR}/sgx)
 endif()

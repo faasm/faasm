@@ -1,6 +1,6 @@
 #include <sgx_urts.h>
 #include <sgx/SGXWAMRWasmModule.h>
-#include <sgx/sgx_system.h>
+#include <sgx/faasm_sgx_system.h>
 
 #include <faabric/util/func.h>
 

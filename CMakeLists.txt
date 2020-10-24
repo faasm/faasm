@@ -53,6 +53,7 @@ if (FAASM_SGX_SUPPORT)
 
     if(FAASM_SGX_SIM_MODE)
         add_definitions(-DSGX_SIM_MODE=1)
+        set(Protobuf_USE_STATIC_LIBS 0)
     else()
 	    add_definitions(-DSGX_SIM_MODE=0)
         # Must link protobuf statically because SGX LE probably uses an older version
@@ -67,6 +68,8 @@ if (FAASM_SGX_SUPPORT)
 
     if(FAASM_SGX_WHITELISTING)
         add_definitions(-DFAASM_SGX_WHITELISTING=1)
+    else()
+        add_definitions(-DFAASM_SGX_WHITELISTING=0)
     endif()
 else ()
     set(CMAKE_CXX_FLAGS "-Wall -Werror")
@@ -205,7 +208,7 @@ else ()
     add_subdirectory(src/wamr)
     add_subdirectory(src/wavm)
 
-    # WAMR - build SGX or non-SGX version accordingly
+    # Faasm-SGX
     if (FAASM_SGX_SUPPORT)
         add_subdirectory(src/sgx)
 
