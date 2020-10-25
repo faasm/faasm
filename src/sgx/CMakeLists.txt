@@ -16,6 +16,12 @@ set(FAASM_SGX_ENCLAVE_PATH "faasm_sgx_enclave.sign.so")
 set(FAASM_SGX_WAMR_BUILDIN_LIBC 1)
 set(FAASM_SGX_WAMR_WASI_LIBC 0)
 
+if(FAASM_SGX_WHITELISTING)
+    add_definitions(-DFAASM_SGX_WHITELISTING=1)
+else()
+    add_definitions(-DFAASM_SGX_WHITELISTING=0)
+endif()
+
 # SGX configuration
 set(SGX_DEBUG_MODE 1)
 set(SGX_SDK_LIB_PATH ${SGX_SDK_PATH}/lib64)

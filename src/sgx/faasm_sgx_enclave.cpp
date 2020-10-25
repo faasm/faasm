@@ -47,12 +47,15 @@ static uint8_t _sgx_wamr_msg_id = 0;
 
 #if(FAASM_SGX_ATTESTATION || FAASM_SGX_WHITELISTING)
 __thread uint32_t tls_thread_id;
+rwlock_t _rwlock_faasm_sgx_tcs_realloc = {0};
+#else
+static rwlock_t _rwlock_faasm_sgx_tcs_realloc = {0};
 #endif
 
 _faasm_sgx_tcs_t **faasm_sgx_tcs = NULL;
 static uint32_t _faasm_sgx_tcs_len;
 static sgx_thread_mutex_t _mutex_faasm_sgx_tcs = SGX_THREAD_MUTEX_INITIALIZER;
-static rwlock_t _rwlock_faasm_sgx_tcs_realloc = {0};
+
 static uint8_t _wamr_global_heap_buffer[FAASM_SGX_WAMR_HEAP_SIZE * 1024];
 
 #if(FAASM_SGX_ATTESTATION)
