@@ -26,6 +26,7 @@ else
     docker-compose \
         -f docker/docker-compose-cli.yml \
         run \
+        --rm \
         --name ${CLI_NAME} \
         cli \
         ${INNER_SHELL}
