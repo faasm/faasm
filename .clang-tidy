@@ -1,4 +1,4 @@
 {
-    Checks: 'readability-braces-around-statements'
+    Checks: 'readability-braces-around-statements,modernize-use-auto,modernize-*'
     CheckOptions:
 }
