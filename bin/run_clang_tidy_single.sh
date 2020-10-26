@@ -12,6 +12,7 @@ CONFIG=${FAASM_ROOT}/faasm/.clang-tidy
 
 # Run clang-tidy on a single file
 run-clang-tidy-10.py \
+    -header-filter '.*' \
     -config '' \
     -p ${BUILD_PATH} \
     $1 
