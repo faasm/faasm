@@ -1,0 +1,4 @@
+{
+    Checks: 'readability-braces-around-statements'
+    CheckOptions:
+}
