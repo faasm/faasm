@@ -301,6 +301,10 @@ add_library(faasm_sgx STATIC
 
 add_dependencies(faasm_sgx faasm_sgx_enclave wamr_sgx_untrusted wasm)
 
+if(FAASM_SGX_ATTESTATION)
+    add_dependencies(faasm_sgx demo_keymgr)
+endif()
+
 target_include_directories(faasm_sgx PUBLIC ${SGX_SDK_PATH}/include)
 
 # Necessary in HW sim mode because libsgx_urts and libsgx_uae_service are probably
@@ -375,40 +379,22 @@ target_compile_options(wamr_sgx_untrusted PRIVATE
         -ffunction-sections
         -fdata-sections)
 
-# --------------------------------------------------------
-# FAASM SGX Runner
-# --------------------------------------------------------
-add_executable(faasm_sgx_runner faasm_sgx_runner.cpp)
-add_dependencies(faasm_sgx_runner faasm_sgx)
 
-target_compile_options(faasm_sgx_runner PRIVATE
-        -O3
-        -fpic
-        -fpie
-        -ffunction-sections
-        -fdata-sections
-        -Wno-attributes)
-
-target_link_options(faasm_sgx_runner PRIVATE
-        --Wl, -gc-sections)
-target_link_libraries(faasm_sgx_runner PRIVATE
-        faasm_sgx
-        system
-        )
 
 # --------------------------------------------------------
 # DEMO KEY MANAGER
 # --------------------------------------------------------
-add_executable(demo_keymgr demo_keymgr.c)
+if(FAASM_SGX_ATTESTATION)
+    add_executable(demo_keymgr demo_keymgr.c)
 
-target_include_directories(demo_keymgr PRIVATE ${SGX_SDK_PATH}/include)
-target_link_options(demo_keymgr PRIVATE -pthread)
-target_compile_options(demo_keymgr PRIVATE
-        -O3
-        -fpic
-        -fpie
-        -DDEMO_KEYMGR=1)
-
+    target_include_directories(demo_keymgr PRIVATE ${SGX_SDK_PATH}/include)
+    target_link_options(demo_keymgr PRIVATE -pthread)
+    target_compile_options(demo_keymgr PRIVATE
+            -O3
+            -fpic
+            -fpie
+            -DDEMO_KEYMGR=1)
+endif()
 # --------------------------------------------------------
 # CUSTOM COMMANDS
 # --------------------------------------------------------
