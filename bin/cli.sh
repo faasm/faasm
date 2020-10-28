@@ -11,25 +11,25 @@ pushd ${PROJ_ROOT} > /dev/null
 VERSION=$(cat VERSION)
 DEFAULT_IMAGE=faasm/cli:${VERSION}
 INNER_SHELL=${SHELL:-"/bin/bash"}
-CLI_NAME="docker_faasm_cli"
 export CLI_IMAGE=${1:-${DEFAULT_IMAGE}}
+export COMPOSE_PROJECT_NAME="faasm-dev"
 echo "Running Faasm CLI (${CLI_IMAGE})"
 
 ## Run shell in CLI container
-# If already running, attach a new shell to it
-# otherwise, spin a new container
-if [[ $(docker ps -q --filter name=${CLI_NAME}) ]]; then
-    docker exec -it \
-        ${CLI_NAME} \
-        ${INNER_SHELL}
-else
+# If service not running, bring it up first.
+# Then attach to it (note we `up` containers in dettached mode).
+if [[ -z $(docker-compose -p ${COMPOSE_PROJECT_NAME} -f \
+    docker/docker-compose-cli.yml ps -aq) ]]; then
     docker-compose \
         -f docker/docker-compose-cli.yml \
-        run \
-        --rm \
-        --name ${CLI_NAME} \
-        cli \
-        ${INNER_SHELL}
+        up \
+        -d
 fi
+docker-compose \
+    -p ${COMPOSE_PROJECT_NAME} \
+    -f docker/docker-compose-cli.yml \
+    exec \
+    cli \
+    ${INNER_SHELL}
 
 popd > /dev/null
