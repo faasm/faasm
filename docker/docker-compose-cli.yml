@@ -17,8 +17,6 @@ services:
         - ../container/machine-code:/usr/local/faasm/object
         - ../container/shared_store:/usr/local/faasm/shared_store
     working_dir: /usr/local/code/faasm
-    stdin_open: true
-    tty: true
     privileged: true
     environment:
       - FUNCTION_STORAGE=local
