@@ -18,7 +18,7 @@ echo "Running Faasm CLI (${CLI_IMAGE})"
 ## Run shell in CLI container
 # If service not running, bring it up first.
 # Then attach to it (note we `up` containers in dettached mode).
-if [[ -z $(docker ps -q) ]]; then
+if [[ -z $(docker ps -q --filter name="faasm-dev_cli_1") ]]; then
     docker-compose \
         -f docker/docker-compose-cli.yml \
         up \
