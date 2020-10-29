@@ -2,19 +2,25 @@
 
 # NOTE - this is primary designed to be run inside the cli Docker container
 
-THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-PROJ_ROOT="${THIS_DIR}/.."
-pushd ${PROJ_ROOT} >> /dev/null
-
 # ----------------------------
 # Container-specific settings
 # ----------------------------
 
 MODE="undetected"
 if [[ -z "$FAASM_DOCKER" ]]; then
+
+    THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+    if [ "$(ps -o comm= -p $$)" = "zsh" ]; then
+        THIS_DIR="$( cd "$( dirname "${ZSH_ARGZERO}" )" >/dev/null 2>&1 && pwd )"
+    fi
+    PROJ_ROOT="${THIS_DIR}/.."
+
     # Normal terminal
     MODE="terminal"
 else
+    # Running inside the container, we know the project root
+    PROJ_ROOT="/usr/local/code/faasm"
+
     # Use containerised redis
     alias redis-cli="redis-cli -h redis"
 
@@ -23,6 +29,8 @@ else
 
     MODE="container"
 fi
+
+pushd ${PROJ_ROOT} >> /dev/null
 
 # ----------------------------
 # Virtualenv

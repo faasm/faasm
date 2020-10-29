@@ -21,6 +21,12 @@ git submodule update --init
 ./bin/cli.sh
 ```
 
+The service orchestration is handled through `docker-compose`. If you want to
+stop all `faasm`-related development services run:
+```bash
+docker-compose -p faasm-dev -f docker/docker-compose-cli.yml stop
+```
+
 To build and run the tests, you can then run the following inside the container:
 
 ```bash
@@ -87,6 +93,15 @@ configuration:
 - **Markdown** - wrap to 80 characters where possible (not enforced)
 - **CMake** - TBD
 - **Bash** - TBD
+
+We also use [`clang-tidy`](https://clang.llvm.org/extra/clang-tidy/) as a
+linter and static analyzer. To set it up for the project, you need to
+generate a compilation database. This can be done as follows:
+```bash
+cd <FAASM_REPO>
+mkdir -p build; cd build
+cmake --DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
+```
 
 ## Detailed notes
 
