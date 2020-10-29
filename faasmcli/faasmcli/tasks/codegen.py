@@ -51,6 +51,9 @@ def local(ctx, wamr=False):
     _do_codegen_user("mpi", wamr=wamr)
     _do_codegen_user("rust", wamr=wamr)
 
+    # Always run the codegen required by the tests
+    codegen(ctx, "demo", "echo", wamr=True)
+
     # Run these in parallel
     p = Pool(2)
     users = [

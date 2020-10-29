@@ -65,6 +65,7 @@ else ()
     # with FAASM_STATIC_LIBS=OFF
     faasm_public_lib(faasm "${LIB_FILES}")
 
+    add_dependencies(faasm eigen_ext)
     set_target_properties(faasm PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
     install(TARGETS faasm

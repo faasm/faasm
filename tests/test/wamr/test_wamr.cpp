@@ -1,4 +1,4 @@
-#include <catch/catch.hpp>
+#include <catch2/catch.hpp>
 #include <wamr/WAMRWasmModule.h>
 #include <faabric/util/func.h>
 #include <faabric/util/config.h>

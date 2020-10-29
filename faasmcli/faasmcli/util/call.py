@@ -39,7 +39,7 @@ def invoke_impl(
 ):
     # Provider-specific stuff
     if knative:
-        host, port = get_invoke_host_port()
+        host, port = get_invoke_host_port(host, port)
 
     # Defaults
     host = host if host else "127.0.0.1"

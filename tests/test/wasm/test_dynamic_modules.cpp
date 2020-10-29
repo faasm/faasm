@@ -1,4 +1,4 @@
-#include <catch/catch.hpp>
+#include <catch2/catch.hpp>
 #include "utils.h"
 #include <wavm/WAVMWasmModule.h>
 #include <ir_cache/IRModuleCache.h>

@@ -4,6 +4,4 @@
   gather_facts: yes    
   roles:               
     - llvm10            
-    - pistache
-    - cereal
 

@@ -2,16 +2,14 @@
 
 ## CLI
 
-All Faasm instances are accessible through the containerised CLI, which 
-can be started with [cli.sh](../bin/cli.sh), i.e.
+Faasm can be accessed from the commandline with the containerised CLI:
 
 ```bash
 ./bin/cli.sh
 ```
 
-This will mount your current project root inside the container and set up the 
-Faasm CLI environment. From inside this container you can perform all
-interactions with a Faasm deployment. 
+This will mount some directories from your local project root inside the 
+container. 
 
 The Faasm CLI uses [Invoke](https://www.pyinvoke.org/), and a list of the 
 available commands can be shown with:
@@ -31,16 +29,11 @@ To start a local deployment, you can run:
 docker-compose up
 ```
 
-which creates the containers defined in [docker-compose.yml](../docker-compose.yml):
-
-- `worker` - one or more instances of the Faasm runtime
-- `upload` - container exposing the Faasm [HTTP API](api.md)
-- `nginx` - simple load balancer for the Faasm runtime instances 
-- `redis-state` - Redis instance for holding shared state
-- `redis-queue` - Redis instance for handling queueing of messages between Faasm instances
+which creates the containers defined in
+[docker-compose.yml](../docker-compose.yml):
 
 Faasm will generate machine code from all WebAssembly it encounters. This is
-stored in the `machine-code` directory at the root of this project.
+stored in the `container/machine-code` directory at the root of this project.
 
 ## Writing and deploying functions
 
