@@ -1,4 +1,4 @@
-#include <catch/catch.hpp>
+#include <catch2/catch.hpp>
 #include <storage/FileLoader.h>
 
 #include <faabric/util/bytes.h>

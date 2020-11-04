@@ -8,7 +8,6 @@ def faasm_main():
 
     py_wasm_env = os.getenv("PYTHONWASM", "NOT SET")
     print("PYTHONWASM={}".format(py_wasm_env))
-    print("MKL_NUM_THREADS={}".format(py_wasm_env))
 
     x = "foo"
     assert x == "foo"
@@ -30,10 +29,7 @@ def faasm_main():
 
     print("List: {}".format(list_a))
 
-    d = {
-        "foo": "bar",
-        "baz": 23
-    }
+    d = {"foo": "bar", "baz": 23}
 
     d["blah"] = Decimal(10)
     d["wah"] = 1.2345
@@ -43,3 +39,4 @@ def faasm_main():
     for k, v in d.items():
         print("{}: {} ({})".format(k, v, d[k]))
 
+    return 0

@@ -1,4 +1,8 @@
-from pyperformance.benchmarks.bm_nbody import bench_nbody, DEFAULT_REFERENCE, DEFAULT_ITERATIONS
+from pyperformance.benchmarks.bm_nbody import (
+    bench_nbody,
+    DEFAULT_REFERENCE,
+    DEFAULT_ITERATIONS,
+)
 
 
 def faasm_main():

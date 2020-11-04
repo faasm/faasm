@@ -1,11 +1,11 @@
-#include <mpi.h>
-#include <stdio.h>
+#include <faasm/compare.h>
 #include <faasm/faasm.h>
 #include <faasm/print.h>
-#include <faasm/compare.h>
+#include <mpi.h>
+#include <stdio.h>
 
-
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     MPI_Init(NULL, NULL);
 
     int rank;
@@ -18,8 +18,8 @@ FAASM_MAIN_FUNC() {
     int n = worldSize * nPerRank;
 
     // Set up containers in root
-    int *expected = nullptr;
-    int *actual = nullptr;
+    int* expected = nullptr;
+    int* actual = nullptr;
     int root = 2;
     if (rank == root) {
         expected = new int[n];
@@ -32,15 +32,22 @@ FAASM_MAIN_FUNC() {
 
     // Build the data chunk for this rank
     int startIdx = rank * nPerRank;
-    int *thisChunk = new int[nPerRank];
+    int* thisChunk = new int[nPerRank];
     for (int i = 0; i < nPerRank; i++) {
         thisChunk[i] = startIdx + i;
     }
 
-    MPI_Gather(thisChunk, nPerRank, MPI_INT, actual, nPerRank, MPI_INT, root, MPI_COMM_WORLD);
+    MPI_Gather(thisChunk,
+               nPerRank,
+               MPI_INT,
+               actual,
+               nPerRank,
+               MPI_INT,
+               root,
+               MPI_COMM_WORLD);
 
     if (rank == root) {
-        if(!faasm::compareArrays<int>(actual, expected, n)) {
+        if (!faasm::compareArrays<int>(actual, expected, n)) {
             return 1;
         }
 

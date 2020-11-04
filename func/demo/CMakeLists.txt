@@ -2,10 +2,13 @@ set(FAASM_USER demo)
 
 function(demo_func exec_name dir_path)
     faasm_func(${exec_name} ${dir_path})
-
-    # Add to list of all demo funcs
     set(ALL_DEMO_FUNCS ${ALL_DEMO_FUNCS} ${exec_name} PARENT_SCOPE)
 endfunction(demo_func)
+
+function(demo_func_c exec_name dir_path)
+    faasm_func_c(${exec_name} ${dir_path})
+    set(ALL_DEMO_FUNCS ${ALL_DEMO_FUNCS} ${exec_name} PARENT_SCOPE)
+endfunction(demo_func_c)
 
 demo_func(argc_argv argc_argv.cpp)
 demo_func(argc_argv_test argc_argv_test.cpp)
@@ -18,7 +21,7 @@ demo_func(chain_named_c chain_named_c.cpp)
 demo_func(chain_output chain_output.cpp)
 demo_func(chain_simple chain_simple.cpp)
 demo_func(check_input check_input.cpp)
-faasm_func_c(c_example c_example.c)
+demo_func_c(c_example c_example.c)
 demo_func(conf_flags conf_flags.cpp)
 demo_func(cpp_example cpp_example.cpp)
 #demo_func(curl_net curl_net.cpp)
@@ -43,6 +46,7 @@ demo_func(isatty isatty.cpp)
 demo_func(listdir listdir.cpp)
 demo_func(lock lock.c)
 demo_func(log_difference log_difference.cpp)
+demo_func(long_double long_double.cpp)
 demo_func(malloc malloc.cpp)
 demo_func(matrix matrix.cpp)
 demo_func(memcpy memcpy.cpp)
@@ -91,9 +95,14 @@ demo_func(uname uname.cpp)
 demo_func(x2 x2.cpp)
 demo_func(zygote_check zygote_check.cpp)
 
+# 23/09/2020 - removing simd
 # WASM-only functions
 if(FAASM_BUILD_TYPE STREQUAL "wasm")
-  demo_func(eigen_vec eigen_vec.cpp)
+    # demo_func(eigen_vec eigen_vec.cpp)
+
+    include_directories(/usr/local/faasm/llvm-sysroot/include/clapack)
+    demo_func_c(blas_check blas_check.c)
+    target_link_libraries(blas_check ${FAASM_BLAS_LIBS})
 endif()
 
 faasm_dynamic_func(dynlink dynlink.cpp)

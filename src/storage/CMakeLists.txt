@@ -1,6 +1,6 @@
 include_directories(
         ${FAASM_INCLUDE_DIR}/storage
-        ${FAASM_WAVM_SOURCE_DIR}
+        ${FAASM_WAVM_SOURCE_DIR}/Lib
 )
 
 file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/storage/*.h")

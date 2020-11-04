@@ -43,36 +43,52 @@ POSSIBILITY OF SUCH DAMAGE.
 #else
 #warning Your compiler - probably Clang - does not support OpenMP, so dummy symbols will be used.
 /* utility API */
-int omp_get_thread_num() { return 0; }
-int omp_get_num_threads() { return 1; }
-void omp_set_num_threads(int i) { return; }
+int omp_get_thread_num()
+{
+    return 0;
+}
+int omp_get_num_threads()
+{
+    return 1;
+}
+void omp_set_num_threads(int i)
+{
+    return;
+}
 /* locks API */
 typedef int omp_lock_t;
-void omp_init_lock(omp_lock_t * l)
+void omp_init_lock(omp_lock_t* l)
 {
-    *l=0;
+    *l = 0;
 }
-void omp_destroy_lock(omp_lock_t * l)
+void omp_destroy_lock(omp_lock_t* l)
 {
-    /* "It is illegal to call this routine with a lock variable that is not initialized." */
-    if (*l==-1) abort();
-    *l=-1;
+    /* "It is illegal to call this routine with a lock variable that is not
+     * initialized." */
+    if (*l == -1)
+        abort();
+    *l = -1;
 }
-void omp_set_lock(omp_lock_t * l)
+void omp_set_lock(omp_lock_t* l)
 {
-    if (*l==-1) abort();
-    if (*l==0) *l=1;
+    if (*l == -1)
+        abort();
+    if (*l == 0)
+        *l = 1;
 }
-void omp_unset_lock(omp_lock_t * l)
+void omp_unset_lock(omp_lock_t* l)
 {
-    if (*l==-1) abort();
-    if (*l==1) l=0;
+    if (*l == -1)
+        abort();
+    if (*l == 1)
+        l = 0;
 }
-int omp_test_lock(omp_lock_t * l)
+int omp_test_lock(omp_lock_t* l)
 {
-    if (*l==-1) abort();
-    if (*l==0) {
-        *l=1;
+    if (*l == -1)
+        abort();
+    if (*l == 0) {
+        *l = 1;
         return 1;
     } else {
         return 0;
@@ -80,15 +96,16 @@ int omp_test_lock(omp_lock_t * l)
 }
 #endif
 
-#if defined(_OPENMP) && (( __STDC_VERSION__ >= 199901L ) || (__cplusplus >= 201103L ))
-#  define PRAGMA(x) _Pragma(#x)
-#  if _OPENMP >= 201307
-#    define PRAGMA_OMP_FOR_SIMD PRAGMA(omp for simd)
-#  else
-#    define PRAGMA_OMP_FOR_SIMD PRAGMA(omp for)
-#  endif
+#if defined(_OPENMP) &&                                                        \
+  ((__STDC_VERSION__ >= 199901L) || (__cplusplus >= 201103L))
+#define PRAGMA(x) _Pragma(#x)
+#if _OPENMP >= 201307
+#define PRAGMA_OMP_FOR_SIMD PRAGMA(omp for simd)
 #else
-#  define PRAGMA_OMP_FOR_SIMD
+#define PRAGMA_OMP_FOR_SIMD PRAGMA(omp for)
+#endif
+#else
+#define PRAGMA_OMP_FOR_SIMD
 #endif
 
 #ifndef MAXTHREADS
@@ -100,7 +117,8 @@ int omp_test_lock(omp_lock_t * l)
 // FAASM original:
 // extern void bail_out(int);
 // FAASM now:
-extern void bail_out(int kool) {
+extern void bail_out(int kool)
+{
     // TODO: panic
     return;
 }

@@ -1,10 +1,10 @@
+#include <faasm/faasm.h>
 #include <mpi.h>
 #include <stdio.h>
-#include <faasm/faasm.h>
 #include <unistd.h>
 
-
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     MPI_Init(NULL, NULL);
 
     int rank;
@@ -17,11 +17,11 @@ FAASM_MAIN_FUNC() {
         return 1;
     }
 
-    const char *keyA = "rank_1";
-    const char *keyB = "rank_2";
+    const char* keyA = "rank_1";
+    const char* keyB = "rank_2";
 
     // Have two functions take ages to write some state
-    uint8_t data[2] = {(uint8_t) rank, (uint8_t) rank};
+    uint8_t data[2] = { (uint8_t)rank, (uint8_t)rank };
     if (rank == 1) {
         sleep(1);
         faasmWriteState(keyA, data, 2);
@@ -38,19 +38,24 @@ FAASM_MAIN_FUNC() {
     MPI_Barrier(MPI_COMM_WORLD);
 
     // Make sure everyone sees the written state
-    uint8_t bufferA[2] = {0, 0};
-    uint8_t bufferB[2] = {0, 0};
+    uint8_t bufferA[2] = { 0, 0 };
+    uint8_t bufferB[2] = { 0, 0 };
     faasmPullState(keyA, 2);
     faasmPullState(keyB, 2);
     faasmReadState(keyA, bufferA, 2);
     faasmReadState(keyB, bufferB, 2);
 
     // Check data is as expected
-    if (bufferA[0] != 1 || bufferA[1] != 1 || bufferB[0] != 2 || bufferB[1] != 2) {
-        printf("Rank %i got unexpected buffers: [%d, %d] and [%d, %d]\n", rank,
-               bufferA[0], bufferA[1], bufferB[0], bufferB[1]);
+    if (bufferA[0] != 1 || bufferA[1] != 1 || bufferB[0] != 2 ||
+        bufferB[1] != 2) {
+        printf("Rank %i got unexpected buffers: [%d, %d] and [%d, %d]\n",
+               rank,
+               bufferA[0],
+               bufferA[1],
+               bufferB[0],
+               bufferB[1]);
         return 1;
-    } else if(rank == 0) {
+    } else if (rank == 0) {
         printf("Barrier check successful\n");
     }
 

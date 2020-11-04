@@ -2,14 +2,13 @@ name: Tests
 
 on:
   push:
-    branches:
-      - master
+    branches: [master]
   pull_request:
-    branches:
-      - master
+    branches: [master]
 
 jobs:
   build:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     env:
       CGROUP_MODE: off
@@ -20,13 +19,13 @@ jobs:
       LOG_LEVEL: info
       MAX_FAASLETS: 5
     container:
-      faasm/base-test:0.4.4
+      image: faasm/cli:0.5.0
     defaults:
       run:
         working-directory: /usr/local/code/faasm
     services:
       redis:
-        image: faasm/redis:0.4.4
+        image: faasm/redis:0.5.0
         ports:
           - 6379:6379
     steps:
@@ -35,7 +34,7 @@ jobs:
         run: pwd
       - name: "Working directory contents"
         run: ls -al
-      # --- Code build ---
+      # --- Check out code ---
       - name: "Fetch ref"
         run: git fetch origin ${GITHUB_REF}:ci-branch
       - name: "Check out branch"
@@ -44,20 +43,25 @@ jobs:
         run: git submodule update
       - name: "Log commits"
         run: git log -3
+      # --- Formatting checks ---
+      - name: "Python formatting check"
+        run: ./bin/check_black.sh
+      # Uncomment when all formatting done
+      #- name: "Run C/C++ formatting"
+      #  run: ./bin/run_clang_format.sh
+      #- name: "Check C/C++ formatting changes"
+      #  run: git diff --exit-code
+      # --- Code build ---
       - name: "Build codegen"
         run: cmake --build . --target codegen_func
-        working-directory: /usr/local/code/faasm/build
+        working-directory: /build/faasm
       - name: "Build tests"
         run: cmake --build . --target codegen_shared_obj
-        working-directory: /usr/local/code/faasm/build
+        working-directory: /build/faasm
       - name: "Build tests"
         run: cmake --build . --target tests
-        working-directory: /usr/local/code/faasm/build
+        working-directory: /build/faasm
       # --- Environment set-up ---
-      - name: "Download sysroot"
-        run: inv -r faasmcli/faasmcli toolchain.download-sysroot
-      - name: "Download runtime root"
-        run: inv -r faasmcli/faasmcli toolchain.download-runtime --nocodegen
       - name: "Set up test lib"
         run: inv -r faasmcli/faasmcli libs.fake
       - name: "Run codegen"
@@ -70,5 +74,6 @@ jobs:
         run: chown -R root:root /usr/local/faasm
       # --- Test run ---
       - name: "Run the tests"
-        run: ./build/bin/tests
+        run: ./bin/tests
+        working-directory: /build/faasm
 

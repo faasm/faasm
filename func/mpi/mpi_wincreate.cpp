@@ -1,29 +1,36 @@
-#include <stdio.h>
-#include <mpi.h>
-#include <faasm/faasm.h>
 #include <faasm/compare.h>
+#include <faasm/faasm.h>
+#include <mpi.h>
+#include <stdio.h>
 #include <string>
-
 
 #define NUM_ELEMENT 4
 
-bool checkIntAttr(MPI_Win window, int attr, long expected, const std::string &name) {
-    void *resPtr;
+bool checkIntAttr(MPI_Win window,
+                  int attr,
+                  long expected,
+                  const std::string& name)
+{
+    void* resPtr;
     int flag;
-    MPI_Win_get_attr(window, attr, (void *) &resPtr, &flag);
+    MPI_Win_get_attr(window, attr, (void*)&resPtr, &flag);
 
-    MPI_Aint actual = *reinterpret_cast<MPI_Aint *>(resPtr);
+    MPI_Aint actual = *reinterpret_cast<MPI_Aint*>(resPtr);
 
     if (actual != expected || flag != 1) {
-        printf("%s not as expected (%li != %li (%i))\n", name.c_str(), actual, expected, flag);
+        printf("%s not as expected (%li != %li (%i))\n",
+               name.c_str(),
+               actual,
+               expected,
+               flag);
         return false;
     }
 
     return true;
 }
 
-
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     MPI_Init(NULL, NULL);
 
     int rank;
@@ -42,11 +49,14 @@ FAASM_MAIN_FUNC() {
     // Create a window
     MPI_Win window;
     int winSize = NUM_ELEMENT * dataSize;
-    MPI_Win_create(sharedData, winSize, 1, MPI_INFO_NULL, MPI_COMM_WORLD, &window);
+    MPI_Win_create(
+      sharedData, winSize, 1, MPI_INFO_NULL, MPI_COMM_WORLD, &window);
 
-    // Check that the memory has not been corrupted (happens when pointer to MPI_Win is handled wrongly)
+    // Check that the memory has not been corrupted (happens when pointer to
+    // MPI_Win is handled wrongly)
     if (rank < 3) {
-        bool putDataEqual = faasm::compareArrays<int>(sharedData, expectedPutData, NUM_ELEMENT);
+        bool putDataEqual =
+          faasm::compareArrays<int>(sharedData, expectedPutData, NUM_ELEMENT);
 
         if (!putDataEqual) {
             printf("Rank %i - stack corrupted by win_create\n", rank);
@@ -58,11 +68,14 @@ FAASM_MAIN_FUNC() {
 
     if (rank == 0) {
         // Check base of window
-        void *actualBase;
+        void* actualBase;
         int baseFlag;
         MPI_Win_get_attr(window, MPI_WIN_BASE, &actualBase, &baseFlag);
         if (actualBase != sharedData || baseFlag != 1) {
-            printf("MPI_WIN_BASE not as expected (%p != %p (%i))\n", actualBase, sharedData, baseFlag);
+            printf("MPI_WIN_BASE not as expected (%p != %p (%i))\n",
+                   actualBase,
+                   sharedData,
+                   baseFlag);
             return 1;
         }
 

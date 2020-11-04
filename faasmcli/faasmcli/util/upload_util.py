@@ -40,7 +40,9 @@ def download_file_from_s3(s3_bucket, s3_key, file_path, boto=True):
         s3 = _get_s3()
         s3.Bucket(s3_bucket).download_file(s3_key, file_path)
     else:
-        url = "https://s3-{}.amazonaws.com/{}/{}".format(AWS_REGION, s3_bucket, s3_key)
+        url = "https://s3-{}.amazonaws.com/{}/{}".format(
+            AWS_REGION, s3_bucket, s3_key
+        )
         cmd = "wget -q {} -O {}".format(url, file_path)
         print(cmd)
         subprocess.check_output(cmd, shell=True)
@@ -94,4 +96,6 @@ def curl_file(url, file_path, headers=None, quiet=False):
     if res == 0 and not quiet:
         print("Successfully PUT file {} to {}".format(file_path, url))
     elif res != 0:
-        raise RuntimeError("Failed PUTting file {} to {}".format(file_path, url))
+        raise RuntimeError(
+            "Failed PUTting file {} to {}".format(file_path, url)
+        )

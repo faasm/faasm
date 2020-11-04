@@ -1,23 +1,23 @@
 from os import makedirs
-from os.path import join, exists
+from os.path import exists
 from shutil import rmtree
 from subprocess import run
 
 from invoke import task
 
-from faasmcli.util.env import PROJ_ROOT
-
-_BUILD_DIR = join(PROJ_ROOT, "build", "cmake")
-_BIN_DIR = join(_BUILD_DIR, "bin")
+from faasmcli.util.env import PROJ_ROOT, FAASM_BUILD_DIR
 
 
 @task
 def cmake(ctx, clean=False):
-    if clean and exists(_BUILD_DIR):
-        rmtree(_BUILD_DIR)
+    """
+    Configures the CMake build
+    """
+    if clean and exists(FAASM_BUILD_DIR):
+        run("rm -rf {}/*".format(FAASM_BUILD_DIR), shell=True, check=True)
 
-    if not exists(_BUILD_DIR):
-        makedirs(_BUILD_DIR)
+    if not exists(FAASM_BUILD_DIR):
+        makedirs(FAASM_BUILD_DIR)
 
     cmd = [
         "cmake",
@@ -25,21 +25,25 @@ def cmake(ctx, clean=False):
         "-DCMAKE_BUILD_TYPE=Debug",
         "-DCMAKE_CXX_COMPILER=/usr/bin/clang++-10",
         "-DCMAKE_C_COMPILER=/usr/bin/clang-10",
-        "../..",
+        PROJ_ROOT,
     ]
 
-    run(" ".join(cmd), shell=True, cwd=_BUILD_DIR)
+    run(" ".join(cmd), shell=True, cwd=FAASM_BUILD_DIR)
 
 
 @task
-def cc(ctx, target):
-    run("cmake --build . --target {}".format(target), cwd=_BUILD_DIR, shell=True)
+def cc(ctx, target, clean=False):
+    """
+    Compiles the given CMake target
+    """
+    if clean:
+        cmake(ctx, clean=True)
 
+    if target == "all":
+        target = ""
 
-@task
-def r(ctx, target):
     run(
-        "./{}".format(target),
-        cwd=_BIN_DIR,
+        "ninja {}".format(target),
+        cwd=FAASM_BUILD_DIR,
         shell=True,
     )

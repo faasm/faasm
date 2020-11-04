@@ -83,7 +83,9 @@ def exec_graph(
             print("No call ID provided and no last call ID found")
             exit(1)
 
-    json_str = exec_graph_call_impl(None, None, call_id, host, port, quiet=True)
+    json_str = exec_graph_call_impl(
+        None, None, call_id, host, port, quiet=True
+    )
 
     graph = parse_exec_graph_json(json_str)
     plot_exec_graph(graph, headless=headless, output_file=output_file)

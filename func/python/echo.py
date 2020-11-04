@@ -7,3 +7,5 @@ def faasm_main():
     print("Got input {}".format(i))
 
     set_output(bytes(i))
+
+    return 0

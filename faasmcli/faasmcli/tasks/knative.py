@@ -61,7 +61,9 @@ KNATIVE_ENV = {
     "NO_SCHEDULER": "0",  # Turn on/ off Faasm scheduler
     "MAX_FAASLETS_PER_FUNCTION": "6",  # This limit is per-host. We only want one instance per core
     "MAX_FAASLETS": "40",  # This is how many threads are available in total per host (across all functions)
-    "BOUND_TIMEOUT": str(THIRTY_SECS),  # How long a bound worker sticks around for
+    "BOUND_TIMEOUT": str(
+        THIRTY_SECS
+    ),  # How long a bound worker sticks around for
     "UNBOUND_TIMEOUT": str(
         10 * ONE_MIN
     ),  # How long an unbound worker sticks around for
@@ -172,12 +174,20 @@ def _delete_knative_fn(name, hard):
     else:
         # Delete the pods (they'll respawn)
         label = "serving.knative.dev/service={}".format(func_name)
-        cmd = "kubectl -n faasm delete pods -l {} --wait=false --now".format(label)
+        cmd = "kubectl -n faasm delete pods -l {} --wait=false --now".format(
+            label
+        )
         call(cmd, shell=True)
 
 
 def _deploy_knative_fn(
-    name, image, replicas, concurrency, annotations, extra_env=None, shell_env=None
+    name,
+    image,
+    replicas,
+    concurrency,
+    annotations,
+    extra_env=None,
+    shell_env=None,
 ):
     faasm_ver = get_faasm_version()
     image = "{}:{}".format(image, faasm_ver)
@@ -198,7 +208,9 @@ def _deploy_knative_fn(
         {
             "--min-scale={}".format(replicas),
             "--max-scale={}".format(replicas),
-            "--concurrency-limit={}".format(concurrency) if concurrency else "",
+            "--concurrency-limit={}".format(concurrency)
+            if concurrency
+            else "",
         }
     )
 

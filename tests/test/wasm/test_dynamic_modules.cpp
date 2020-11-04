@@ -1,4 +1,4 @@
-#include <catch/catch.hpp>
+#include <catch2/catch.hpp>
 #include "utils.h"
 #include <wavm/WAVMWasmModule.h>
 #include <ir_cache/IRModuleCache.h>
@@ -13,41 +13,44 @@ namespace tests {
      */
     std::string getBaseModulePath() {
         faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
-        std::string basePath = conf.runtimeFilesDir + "/lib/python3.7/site-packages/numpy/core";
+        std::string basePath = conf.runtimeFilesDir + "/lib/python3.8/site-packages/numpy/";
         return basePath;
     }
     
     std::string getPythonModuleA() {
         const std::string basePath = getBaseModulePath();
-        std::string pythonModuleA = basePath + "/multiarray.so";
+        std::string pythonModuleA = basePath + "core/_multiarray_umath.so";
         return pythonModuleA;
     }
 
     std::string getPythonModuleB() {
         const std::string basePath = getBaseModulePath();
-        std::string pythonModuleB = basePath + "/umath.so";
+        std::string pythonModuleB = basePath + "random/mtrand.so";
         return pythonModuleB;
     }
 
-    // These are hard-coded functions whose offsets we know
+    // These are hard-coded functions whose offsets we know within the given 
+    // modules
     std::string mainFunc = "PyInit_array";
     std::string funcA = "PyArray_Max";
-    std::string funcB = "LONG_maximum";
-    int mainFuncOffset = 1433;
-    int funcAOffset = 3242;
-    int funcBOffset = 617;
+    std::string funcB = "random_uniform";
+    int mainFuncOffset = 1581;
+    int funcAOffset = 3686;
+    int funcBOffset = 39;
 
     // These are hard-coded pointers whose offsets we know.
     // This should only change if we change the toolchain
     std::string mainData = "PyBool_Type";
     std::string dataA = "PyArray_API";
-    std::string dataB = "PyUFunc_API";
-    int mainDataOffset = 6316112;
-    int dataAOffset = 10460832;
-    int dataBOffset = 41746432;
+    std::string dataB = "__pyx_module_is_main_numpy__random__mtrand";
+    int mainDataOffset = 4862260;
+    int dataAOffset = 8760032;
+    int dataBOffset = 40042496;
 
-    // NOTE - extra table entries are created for each module loaded (not sure from where)
-    int extraFuncsPerModule = 6;
+    // NOTE - we don't get perfect pakcing of the indexing, so each module has
+    // an arbitrary extra offset.
+    int extraTableEntriesModA = 18;
+    int extraTableEntriesModB = 32;
 
     TEST_CASE("Test dynamic load/ function lookup", "[wasm]") {
         cleanSystem();
@@ -78,7 +81,7 @@ namespace tests {
 
         // Check the table size has grown to fit the new functions
         Uptr tableSizeAfterA = Runtime::getTableNumElements(module.defaultTable);
-        REQUIRE(tableSizeAfterA == initialTableSize + moduleTableSizeA + extraFuncsPerModule);
+        REQUIRE(tableSizeAfterA == initialTableSize + moduleTableSizeA + extraTableEntriesModA);
 
         // Check that the new module table starts above the old one
         int tableBaseA = module.getNextTableBase();
@@ -117,7 +120,7 @@ namespace tests {
 
         // Check the table
         Uptr tableSizeAfterB = Runtime::getTableNumElements(module.defaultTable);
-        REQUIRE(tableSizeAfterB == tableSizeAfterAFunc + moduleTableSizeB + (2 * extraFuncsPerModule));
+        REQUIRE(tableSizeAfterB == tableSizeAfterAFunc + moduleTableSizeB + extraTableEntriesModB);
 
         int tableBaseB = module.getNextTableBase();
         REQUIRE(tableBaseB == tableSizeAfterAFunc);
@@ -143,14 +146,20 @@ namespace tests {
         conf.pythonPreload = preloadBefore;
     }
 
-    void checkFuncInGOT(wasm::WAVMWasmModule &module, const std::string &funcName, int expectedIdx,
-            const std::string &expectedName) {
+    void checkFuncInGOT(
+            wasm::WAVMWasmModule &module, 
+            const std::string &funcName, 
+            int expectedIdx,
+            const std::string &expectedName) {        
         int funcIdx = module.getFunctionOffsetFromGOT(funcName);
-        REQUIRE(funcIdx == expectedIdx);
+        if(funcIdx != expectedIdx) {
+            FAIL(fmt::format(
+               "GOT index {}: {} != {}", funcName, funcIdx, expectedIdx));
+        }
 
         Runtime::Object *tableElem = Runtime::getTableElement(module.defaultTable, funcIdx);
         Runtime::Function *funcObj = Runtime::asFunction(tableElem);
-
+        
         REQUIRE(Runtime::getFunctionDebugName(funcObj) == expectedName);
     }
 
@@ -188,8 +197,8 @@ namespace tests {
 
         // Check some known functions
         Uptr expectedMainIdx = mainFuncOffset;
-        Uptr expectedIdxA = initialTableSize + extraFuncsPerModule + funcAOffset;
-        Uptr expectedIdxB = tableSizeAfterA + extraFuncsPerModule + funcBOffset;
+        Uptr expectedIdxA = initialTableSize + extraTableEntriesModA + funcAOffset;
+        Uptr expectedIdxB = tableSizeAfterA + extraTableEntriesModB + funcBOffset;
 
         std::string expectedNameMain = "wasm!python/py_func!" + mainFunc;
         std::string expectedNameA = "wasm!handle_" + std::to_string(handleA) + "!" + funcA;

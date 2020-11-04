@@ -9,16 +9,16 @@ option(FAASM_SELF_TRACING "Turn on system tracing using the logger" OFF)
 option(FAASM_OPENMP_TRACING "Trace OpenMP forks in Redis" OFF)
 option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md" OFF)
 
-# WAMR functionality
+# WAMR and interpreter
 option(WAMR_INTERPRETER_MODE "Turns interpreter on / off (vs. AoT)" OFF)
 
-# Faasm-SGX functionality
+# SGX functionality
 option(FAASM_SGX_SUPPORT "Enable/Disable SGX Support" ON)
 option(FAASM_SGX_SIM_MODE "SGX sim mode flag" ON)
-option(FAASM_SGX_WAMR_AOT_MODE "Turns AoT on / off (vs. Interpreter) within the enclave" ON)
 option(FAASM_SGX_ATTESTATION "Add support for attestation" OFF)
 option(FAASM_SGX_WHITELISTING "Add support for whitelisting" OFF) #Currently not working in WAMR AoT mode
 option(FAASM_SGX_XRA "Add support for XRA" OFF)
+option(FAASM_SGX_WAMR_AOT_MODE "Turns AoT on / off (vs. Interpreter) within the enclave" ON)
 
 # Top-level CMake config
 set(CMAKE_CXX_FLAGS "-Wall")
@@ -28,15 +28,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 # Faasm directories
 set(FAASM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(FAASM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
 set(FAASM_LIB_CPP_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/cpp)
 set(FAASM_LIB_FAASMP_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/faasmp)
 set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/pyinit)
-set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/WAVM/Lib)
 set(FAASM_WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
-set(FAASM_FAABRIC_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/faabric)
 set(FAASM_XRA_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/xra)
 
 # SGX configuration
@@ -125,13 +127,6 @@ else ()
     endfunction()
 endif ()
 
-# Switch on WAVM stack traces
-set(WAVM_ENABLE_UNWIND ON CACHE BOOL "WAVM unwind")
-
-# Stops WAVM compilation complaining
-add_definitions(-DDLL_EXPORT=)
-add_definitions(-DDLL_IMPORT=)
-
 # Faasm profiling
 if (${FAASM_SELF_TRACING})
     message("-- Activated FAASM tracing")
@@ -159,23 +154,22 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
-# Output directories
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+# Third party deps
+include(cmake/ExternalProjects.cmake)
 
-# Include directories
+# Add Faabric src include for protobuf generated sources
+FetchContent_GetProperties(faabric_ext BINARY_DIR FAABRIC_BINARY_DIR)
+include_directories(${FAABRIC_BINARY_DIR}/src)
+
+# More include directories
 include_directories(
         ${FAASM_INCLUDE_DIR}
         ${FAASM_LIB_CPP_DIR}
         ${FAASM_LIB_FAASMP_DIR}
         ${FAASM_PYTHON_LIB_DIR}
-        ${FAASM_FAABRIC_ROOT_DIR}/include
-        ${CMAKE_CURRENT_BINARY_DIR}/third-party/faabric/src # Required for protobuf
 )
 
 # Directories common to all builds
-add_subdirectory(third-party/faabric)
 add_subdirectory(libs/cpp)
 add_subdirectory(libs/faasmp)
 add_subdirectory(libs/faasmpi)
@@ -184,9 +178,6 @@ add_subdirectory(src/emulator)
 if (FAASM_BUILD_TYPE STREQUAL "native-tools")
     # Ignore the rest if just doing a native tools build
 else ()
-    # WAVM
-    add_subdirectory(third-party/WAVM)
-
     # Faasm functions
     add_subdirectory(func)
 

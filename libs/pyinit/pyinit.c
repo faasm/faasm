@@ -1,164 +1,135 @@
 #include "faasm/pyinit.h"
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-#include <string.h>
-#include <locale.h>
-#include <setjmp.h>
-#include <math.h>
 #include <complex.h>
+#include <fenv.h>
+#include <locale.h>
+#include <math.h>
+#include <setjmp.h>
+#include <string.h>
 
-void setUpPyNumpy() {
-    FILE *devNull = fopen("/dev/null", "w");
+#define FORCE_LINK(func) fprintf(devNull, "%p", func)
+
+// Link all trig functions
+#define FORCE_LINK_TRIGONOMETRY(sfx)                                           \
+    fprintf(devNull, "%p", sin##sfx);                                          \
+    fprintf(devNull, "%p", cos##sfx);                                          \
+    fprintf(devNull, "%p", tan##sfx);                                          \
+    fprintf(devNull, "%p", asin##sfx);                                         \
+    fprintf(devNull, "%p", acos##sfx);                                         \
+    fprintf(devNull, "%p", atan##sfx);                                         \
+    fprintf(devNull, "%p", csin##sfx);                                         \
+    fprintf(devNull, "%p", ccos##sfx);                                         \
+    fprintf(devNull, "%p", ctan##sfx);                                         \
+    fprintf(devNull, "%p", casin##sfx);                                        \
+    fprintf(devNull, "%p", cacos##sfx);                                        \
+    fprintf(devNull, "%p", catan##sfx);                                        \
+    fprintf(devNull, "%p", sinh##sfx);                                         \
+    fprintf(devNull, "%p", cosh##sfx);                                         \
+    fprintf(devNull, "%p", tanh##sfx);                                         \
+    fprintf(devNull, "%p", asinh##sfx);                                        \
+    fprintf(devNull, "%p", acosh##sfx);                                        \
+    fprintf(devNull, "%p", atanh##sfx);                                        \
+    fprintf(devNull, "%p", csinh##sfx);                                        \
+    fprintf(devNull, "%p", ccosh##sfx);                                        \
+    fprintf(devNull, "%p", ctanh##sfx);                                        \
+    fprintf(devNull, "%p", casinh##sfx);                                       \
+    fprintf(devNull, "%p", cacosh##sfx);                                       \
+    fprintf(devNull, "%p", catanh##sfx);
+
+// Logs
+#define FORCE_LINK_LOGS(sfx)                                                   \
+    fprintf(devNull, "%p", log##sfx);                                          \
+    fprintf(devNull, "%p", log10##sfx);                                        \
+    fprintf(devNull, "%p", log1p##sfx);                                        \
+    fprintf(devNull, "%p", log2##sfx);                                         \
+    fprintf(devNull, "%p", clog##sfx);
+
+// Misc
+#define FORCE_LINK_MATHS(sfx)                                                  \
+    fprintf(devNull, "%p", modf##sfx);                                         \
+    fprintf(devNull, "%p", fmod##sfx);                                         \
+    fprintf(devNull, "%p", exp##sfx);                                          \
+    fprintf(devNull, "%p", exp2##sfx);                                         \
+    fprintf(devNull, "%p", expm1##sfx);                                        \
+    fprintf(devNull, "%p", frexp##sfx);                                        \
+    fprintf(devNull, "%p", cabs##sfx);                                         \
+    fprintf(devNull, "%p", nextafter##sfx);                                    \
+    fprintf(devNull, "%p", cabs##sfx);                                         \
+    fprintf(devNull, "%p", cpow##sfx);                                         \
+    fprintf(devNull, "%p", csqrt##sfx);                                        \
+    fprintf(devNull, "%p", hypot##sfx);                                        \
+    fprintf(devNull, "%p", ldexp##sfx);                                        \
+    fprintf(devNull, "%p", pow##sfx);                                          \
+    fprintf(devNull, "%p", cbrt##sfx);                                         \
+    fprintf(devNull, "%p", ceil##sfx);                                         \
+    fprintf(devNull, "%p", floor##sfx);                                        \
+    fprintf(devNull, "%p", trunc##sfx);                                        \
+    fprintf(devNull, "%p", rint##sfx);
+
+void setUpPyNumpy()
+{
+    FILE* devNull = fopen("/dev/null", "w");
+
+    // Maths
+    FORCE_LINK_TRIGONOMETRY();
+    FORCE_LINK_TRIGONOMETRY(f);
+    FORCE_LINK_TRIGONOMETRY(l);
+
+    FORCE_LINK_LOGS();
+    FORCE_LINK_LOGS(f);
+    FORCE_LINK_LOGS(l);
+
+    FORCE_LINK_MATHS();
+    FORCE_LINK_MATHS(f);
+    FORCE_LINK_MATHS(l);
+
+    FORCE_LINK(abs);
+
+    FORCE_LINK(feclearexcept);
+    FORCE_LINK(fetestexcept);
+    FORCE_LINK(feraiseexcept);
+    FORCE_LINK(fma);
+    FORCE_LINK(exp2);
 
     // I/O
-    fprintf(devNull, "%p", scanf);
-    fprintf(devNull, "%p", fscanf);
-    fprintf(devNull, "%p", putchar);
-    fprintf(devNull, "%p", sscanf);
-    fprintf(devNull, "%p", fgetc);
+    FORCE_LINK(scanf);
+    FORCE_LINK(fscanf);
+    FORCE_LINK(putchar);
+    FORCE_LINK(sscanf);
+    FORCE_LINK(fgetc);
+
+    // Printing long doubles, long longs etc.
+    FORCE_LINK(strtod);
+    FORCE_LINK(strtold);
+    FORCE_LINK(strtol);
+    FORCE_LINK(strtoul);
+    FORCE_LINK(strtoll);
+    FORCE_LINK(strtoull);
+
+    // Conversions _from_ long double
+    long double ld = strtold("1.234e100", NULL);
+    fprintf(devNull, "%i\n", (int)ld);
+    fprintf(devNull, "%li\n", (long)ld);
+    fprintf(devNull, "%lli\n", (long long)ld);
+    fprintf(devNull, "%u\n", (unsigned int)ld);
+    fprintf(devNull, "%lu\n", (unsigned long)ld);
+    fprintf(devNull, "%llu\n", (unsigned long long)ld);
+
+    // Conversions _to_ long double
+    fprintf(devNull, "%Le\n", (long double)123);
+    fprintf(devNull, "%Le\n", (long double)123l);
+    fprintf(devNull, "%Le\n", (long double)strtoll("1e100", NULL, 0));
+    fprintf(devNull, "%Le\n", (long double)strtoull("1e100", NULL, 0));
 
     // Strings
-//        const char *string = "3.1415926535898This stopped it";
-//        char *stopstring;
-//        long double x;
-//        x = strtold(string, &stopstring);
-//        fprintf(devNull, "%Lf\n", x);
-//        fprintf(devNull, "string = %s\n", string);
-
-    const char *res = strpbrk("aabbcc", "bb");
-    fprintf(devNull, "%s", res);
-    fprintf(devNull, "%p", strcspn);
+    FORCE_LINK(strpbrk);
+    FORCE_LINK(strcspn);
 
     // Locale
-    fprintf(devNull, "%p", newlocale);
-    fprintf(devNull, "%p", freelocale);
-
-    // Floats
-    fprintf(devNull, "%f", nextafter(1.2, 3.4));
-    fprintf(devNull, "%p", nextafterf);
-
-    // Normal trigonometry
-    fprintf(devNull, "%f", sin(0.0));
-    fprintf(devNull, "%f", cos(0.0));
-    fprintf(devNull, "%f", tan(0.0));
-
-    // Trigonometry
-    // Normal
-    fprintf(devNull, "%p", csin);
-    fprintf(devNull, "%p", ccos);
-    fprintf(devNull, "%p", ctan);
-
-    // Float normal
-    fprintf(devNull, "%p", sinf);
-    fprintf(devNull, "%p", cosf);
-    fprintf(devNull, "%p", tanf);
-
-    // Float complex
-    fprintf(devNull, "%p", csinf);
-    fprintf(devNull, "%p", ccosf);
-    fprintf(devNull, "%p", ctanf);
-
-    // Hyperbolic
-    fprintf(devNull, "%f", sinh(0.0));
-    fprintf(devNull, "%f", cosh(0.0));
-    fprintf(devNull, "%f", tanh(0.0));
-
-    // Complex hyperbolic
-    fprintf(devNull, "%p", csinh);
-    fprintf(devNull, "%p", ccosh);
-    fprintf(devNull, "%p", ctanh);
-
-    // Float hyperbolic
-    fprintf(devNull, "%p", sinhf);
-    fprintf(devNull, "%p", coshf);
-    fprintf(devNull, "%p", tanhf);
-
-    // Float complex hyperbolic
-    fprintf(devNull, "%p", csinhf);
-    fprintf(devNull, "%p", ccoshf);
-    fprintf(devNull, "%p", ctanhf);
-
-    // Inverse
-    fprintf(devNull, "%f", asin(0.0));
-    fprintf(devNull, "%f", acos(0.0));
-    fprintf(devNull, "%f", atan(0.0));
-
-    // Complex inverse
-    fprintf(devNull, "%p", casin);
-    fprintf(devNull, "%p", cacos);
-    fprintf(devNull, "%p", catan);
-
-    // Float inverse
-    fprintf(devNull, "%p", asinf);
-    fprintf(devNull, "%p", acosf);
-    fprintf(devNull, "%p", atanf);
-
-    // Complex float inverse
-    fprintf(devNull, "%p", casinf);
-    fprintf(devNull, "%p", cacosf);
-    fprintf(devNull, "%p", catanf);
-
-    // Inverse hyperbolic
-    fprintf(devNull, "%p", asinh);
-    fprintf(devNull, "%p", acosh);
-    fprintf(devNull, "%p", atanh);
-
-    // Float inverse hyperbolic
-    fprintf(devNull, "%p", asinhf);
-    fprintf(devNull, "%p", acoshf);
-    fprintf(devNull, "%p", atanhf);
-
-    // Complex inverse hyperbolic
-    fprintf(devNull, "%p", casinh);
-    fprintf(devNull, "%p", cacosh);
-    fprintf(devNull, "%p", catanh);
-
-    // Float complex inverse hyperbolic
-    fprintf(devNull, "%p", casinhf);
-    fprintf(devNull, "%p", cacoshf);
-    fprintf(devNull, "%p", catanhf);
-
-    fprintf(devNull, "%p", atan2f);
-
-    // Complex
-    fprintf(devNull, "%p", cabsf);
-    fprintf(devNull, "%p", cpow);
-    fprintf(devNull, "%p", cpowf);
-    fprintf(devNull, "%p", csqrt);
-    fprintf(devNull, "%p", csqrtf);
-
-    // Exponentials
-    fprintf(devNull, "%f", exp(1));
-    fprintf(devNull, "%f", expf(1.0));
-    fprintf(devNull, "%p", exp2f);
-    fprintf(devNull, "%f", exp2((double) 2.2));
-    fprintf(devNull, "%f", exp2((float) 3.3));
-    fprintf(devNull, "%p", expm1f);
-    fprintf(devNull, "%p", expf);
-
-    // Powers and roots
-    fprintf(devNull, "%f", pow(2, 1));
-    fprintf(devNull, "%p", powf);
-
-    fprintf(devNull, "%f", cbrt(8.3));
-    fprintf(devNull, "%p", cbrtf);
-
-    // Log
-    fprintf(devNull, "%f", log(10));
-    fprintf(devNull, "%p", log2f);
-    fprintf(devNull, "%p", log1pf);
-    fprintf(devNull, "%p", logf);
-    fprintf(devNull, "%p", log10f);
-
-    // Misc maths
-    fprintf(devNull, "%i", abs(1));
-    fprintf(devNull, "%p", fmodf);
-    fprintf(devNull, "%p", frexpf);
-    fprintf(devNull, "%p", hypotf);
-    fprintf(devNull, "%p", ldexpf);
-    fprintf(devNull, "%p", modff);
-
+    FORCE_LINK(newlocale);
+    FORCE_LINK(freelocale);
 }

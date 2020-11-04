@@ -1,4 +1,7 @@
-from pyperformance.benchmarks.bm_spectral_norm import DEFAULT_N, eval_AtA_times_u
+from pyperformance.benchmarks.bm_spectral_norm import (
+    DEFAULT_N,
+    eval_AtA_times_u,
+)
 
 
 def faasm_main():

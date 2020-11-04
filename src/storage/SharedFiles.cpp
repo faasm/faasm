@@ -1,145 +1,158 @@
 #include "SharedFiles.h"
 
 #include <boost/filesystem.hpp>
-#include <storage/FileLoader.h>
 #include <faabric/util/config.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/string_tools.h>
-
+#include <storage/FileLoader.h>
 
 namespace storage {
-    enum FileState {
-        NOT_CHECKED,
-        NOT_EXISTS,
-        EXISTS_DIR,
-        EXISTS
-    };
+enum FileState
+{
+    NOT_CHECKED,
+    NOT_EXISTS,
+    EXISTS_DIR,
+    EXISTS
+};
 
-    static std::shared_mutex sharedFileMapMutex;
-    static std::unordered_map<std::string, FileState> sharedFileMap;
+static std::shared_mutex sharedFileMapMutex;
+static std::unordered_map<std::string, FileState> sharedFileMap;
 
-    std::string SharedFiles::prependSharedRoot(const std::string &originalPath) {
-        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
-        boost::filesystem::path p(conf.sharedFilesDir);
-        p.append(originalPath);
-        return p.string();
-    }
+std::string SharedFiles::prependSharedRoot(const std::string& originalPath)
+{
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    boost::filesystem::path p(conf.sharedFilesDir);
+    p.append(originalPath);
+    return p.string();
+}
 
-    std::string SharedFiles::realPathForSharedFile(const std::string &sharedPath) {
-        std::string realPath = prependSharedRoot(stripSharedPrefix(sharedPath));
-        return realPath;
-    }
+std::string SharedFiles::realPathForSharedFile(const std::string& sharedPath)
+{
+    std::string realPath = prependSharedRoot(stripSharedPrefix(sharedPath));
+    return realPath;
+}
 
-    std::string SharedFiles::stripSharedPrefix(const std::string &sharedPath) {
-        std::string strippedPath = faabric::util::removeSubstr(sharedPath, SHARED_FILE_PREFIX);
-        return strippedPath;
-    }
+std::string SharedFiles::stripSharedPrefix(const std::string& sharedPath)
+{
+    std::string strippedPath =
+      faabric::util::removeSubstr(sharedPath, SHARED_FILE_PREFIX);
+    return strippedPath;
+}
 
-    bool SharedFiles::isPathShared(const std::string &p) {
-        return faabric::util::startsWith(p, SHARED_FILE_PREFIX);
-    }
+bool SharedFiles::isPathShared(const std::string& p)
+{
+    return faabric::util::startsWith(p, SHARED_FILE_PREFIX);
+}
 
-    int getReturnValueForSharedFileState(const std::string &sharedPath) {
-        FileState &state = sharedFileMap[sharedPath];
-        switch (state) {
-            case (NOT_EXISTS): {
-                return ENOENT;
-            }
-            case (EXISTS_DIR):
-            case (EXISTS): {
-                return 0;
-            }
-            default: {
-                return ENOENT;
-            }
+int getReturnValueForSharedFileState(const std::string& sharedPath)
+{
+    FileState& state = sharedFileMap[sharedPath];
+    switch (state) {
+        case (NOT_EXISTS): {
+            return ENOENT;
+        }
+        case (EXISTS_DIR):
+        case (EXISTS): {
+            return 0;
+        }
+        default: {
+            return ENOENT;
         }
     }
+}
 
-    int SharedFiles::syncSharedFile(const std::string &sharedPath, const std::string &localPath) {
-        // See if file already synced
-        {
-            faabric::util::SharedLock lock(sharedFileMapMutex);
+int SharedFiles::syncSharedFile(const std::string& sharedPath,
+                                const std::string& localPath)
+{
+    // See if file already synced
+    {
+        faabric::util::SharedLock lock(sharedFileMapMutex);
 
-            if (sharedFileMap.count(sharedPath) > 0) {
-                return getReturnValueForSharedFileState(sharedPath);
-            }
-        }
-
-        // At this point, file has not been synced, therefore need a lock
-        faabric::util::FullLock fullLock(sharedFileMapMutex);
-
-        // Check again
         if (sharedFileMap.count(sharedPath) > 0) {
             return getReturnValueForSharedFileState(sharedPath);
         }
+    }
 
-        // Work out the real path
-        std::string strippedPath = faabric::util::removeSubstr(sharedPath, SHARED_FILE_PREFIX);
-        std::string realPath;
-        if (localPath.empty()) {
-            realPath = prependSharedRoot(strippedPath);
-        } else {
-            realPath = localPath;
-        }
+    // At this point, file has not been synced, therefore need a lock
+    faabric::util::FullLock fullLock(sharedFileMapMutex);
 
-        // Check the filesystem
-        sharedFileMap[sharedPath] = NOT_CHECKED;
-        if (boost::filesystem::exists(realPath)) {
-            // If already exists on filesystem, just mark it as such
-            if (boost::filesystem::is_directory(realPath)) {
-                sharedFileMap[sharedPath] = EXISTS_DIR;
-            } else {
-                sharedFileMap[sharedPath] = EXISTS;
-            }
-        } else {
-            boost::filesystem::path p(realPath);
-
-            FileLoader &loader = getFileLoader();
-            std::vector<uint8_t> bytes;
-            bool isDir = false;
-
-            try {
-                bytes = loader.loadSharedFile(strippedPath);
-            } catch (storage::SharedFileIsDirectoryException &e) {
-                isDir = true;
-            }
-
-            // Handle directories and files accordingly
-            if (isDir) {
-                // Create directory if path is a directory
-                boost::filesystem::create_directories(p);
-                sharedFileMap[sharedPath] = EXISTS_DIR;
-            } else if (bytes.empty()) {
-                sharedFileMap[sharedPath] = NOT_EXISTS;
-            } else {
-                // Create parent directory
-                if (p.has_parent_path()) {
-                    boost::filesystem::create_directories(p.parent_path());
-                }
-
-                // Write to file
-                faabric::util::writeBytesToFile(realPath, bytes);
-                sharedFileMap[sharedPath] = EXISTS;
-            }
-        }
-
+    // Check again
+    if (sharedFileMap.count(sharedPath) > 0) {
         return getReturnValueForSharedFileState(sharedPath);
     }
 
-    void SharedFiles::syncPythonFunctionFile(const faabric::Message &msg) {
-        if (!msg.ispython()) {
-            return;
+    // Work out the real path
+    std::string strippedPath =
+      faabric::util::removeSubstr(sharedPath, SHARED_FILE_PREFIX);
+    std::string realPath;
+    if (localPath.empty()) {
+        realPath = prependSharedRoot(strippedPath);
+    } else {
+        realPath = localPath;
+    }
+
+    // Check the filesystem
+    sharedFileMap[sharedPath] = NOT_CHECKED;
+    if (boost::filesystem::exists(realPath)) {
+        // If already exists on filesystem, just mark it as such
+        if (boost::filesystem::is_directory(realPath)) {
+            sharedFileMap[sharedPath] = EXISTS_DIR;
+        } else {
+            sharedFileMap[sharedPath] = EXISTS;
+        }
+    } else {
+        boost::filesystem::path p(realPath);
+
+        FileLoader& loader = getFileLoader();
+        std::vector<uint8_t> bytes;
+        bool isDir = false;
+
+        try {
+            bytes = loader.loadSharedFile(strippedPath);
+        } catch (storage::SharedFileIsDirectoryException& e) {
+            isDir = true;
         }
 
-        std::string sharedPath = faabric::util::getPythonFunctionFileSharedPath(msg);
-        std::string runtimeFilePath = faabric::util::getPythonRuntimeFunctionFile(msg);
+        // Handle directories and files accordingly
+        if (isDir) {
+            // Create directory if path is a directory
+            boost::filesystem::create_directories(p);
+            sharedFileMap[sharedPath] = EXISTS_DIR;
+        } else if (bytes.empty()) {
+            sharedFileMap[sharedPath] = NOT_EXISTS;
+        } else {
+            // Create parent directory
+            if (p.has_parent_path()) {
+                boost::filesystem::create_directories(p.parent_path());
+            }
 
-        syncSharedFile(sharedPath, runtimeFilePath);
+            // Write to file
+            faabric::util::writeBytesToFile(realPath, bytes);
+            sharedFileMap[sharedPath] = EXISTS;
+        }
     }
 
-    void SharedFiles::clear() {
-        sharedFileMap.clear();
+    return getReturnValueForSharedFileState(sharedPath);
+}
+
+void SharedFiles::syncPythonFunctionFile(const faabric::Message& msg)
+{
+    if (!msg.ispython()) {
+        return;
     }
+
+    std::string sharedPath =
+      faabric::util::getPythonFunctionFileSharedPath(msg);
+    std::string runtimeFilePath =
+      faabric::util::getPythonRuntimeFunctionFile(msg);
+
+    syncSharedFile(sharedPath, runtimeFilePath);
+}
+
+void SharedFiles::clear()
+{
+    sharedFileMap.clear();
+}
 }

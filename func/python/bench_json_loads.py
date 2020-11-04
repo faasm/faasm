@@ -1,6 +1,11 @@
 import json
 
-from pyperformance.benchmarks.bm_json_loads import DICT, TUPLE, DICT_GROUP, bench_json_loads
+from pyperformance.benchmarks.bm_json_loads import (
+    DICT,
+    TUPLE,
+    DICT_GROUP,
+    bench_json_loads,
+)
 
 
 def faasm_main():

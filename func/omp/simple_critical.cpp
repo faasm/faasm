@@ -1,16 +1,18 @@
-#include <omp.h>
 #include <cstdio>
 #include <faasm/faasm.h>
+#include <omp.h>
 
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     const int expected = 1;
     int mine = expected; // Only modified in critical section
     bool failed = false;
 
     int veryRandom = 2;
-    #pragma omp parallel for num_threads(4) default(none) shared(veryRandom, mine, expected, failed)
+#pragma omp parallel for num_threads(4) default(none)                          \
+  shared(veryRandom, mine, expected, failed)
     for (int i = 0; i < 1000; i++) {
-        #pragma omp critical
+#pragma omp critical
         {
             if (mine != expected) {
                 printf("Mine is %d, thread %d\n", mine, omp_get_thread_num());

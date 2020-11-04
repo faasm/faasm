@@ -1,4 +1,4 @@
-FROM faabric/base:0.0.2
+FROM faasm/grpc-root:0.0.5
 
 # -------------------------------------------------------------
 # NOTE - extensive use of Ansible in this Dockerfile makes it
@@ -41,11 +41,7 @@ RUN apt-get install -y \
 COPY ansible /usr/local/code/faasm/ansible
 WORKDIR /usr/local/code/faasm/ansible
 
-RUN ansible-playbook llvm10.yml
-
-RUN ansible-playbook cereal.yml
-
-RUN ansible-playbook pistache.yml
+RUN ansible-playbook llvm.yml
 
 RUN apt-get clean autoclean
 RUN apt-get autoremove

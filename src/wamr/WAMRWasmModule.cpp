@@ -4,6 +4,7 @@
 #include <storage/FileLoader.h>
 #include <wasm_export.h>
 #include <faabric/util/locks.h>
+
 #if(WAMR_EXECUTION_MODE_INTERP)
 #include <wasm_runtime.h>
 #else
@@ -126,6 +127,9 @@ namespace wasm {
 
         // Run the main function
         executeFunction(ENTRY_FUNC_NAME);
+
+        // Must destroy the execution environment
+        wasm_runtime_destroy_exec_env(executionEnv);
 
         return true;
     }

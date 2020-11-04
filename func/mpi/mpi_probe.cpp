@@ -1,8 +1,9 @@
+#include <faasm/faasm.h>
 #include <mpi.h>
 #include <stdio.h>
-#include <faasm/faasm.h>
 
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     MPI_Init(NULL, NULL);
 
     int maxNumbers = 100;
@@ -16,7 +17,7 @@ FAASM_MAIN_FUNC() {
 
     if (rank == 0) {
         // Send a number of values
-        for(int i = 0; i < actualNumbers; i++) {
+        for (int i = 0; i < actualNumbers; i++) {
             numbers[i] = i;
         }
 
@@ -29,8 +30,11 @@ FAASM_MAIN_FUNC() {
 
         int probeCount;
         MPI_Get_count(&statusA, MPI_INT, &probeCount);
-        if(probeCount != actualNumbers) {
-            printf("Probe did not return the expected length of message (expected %i, got %i)\n", actualNumbers, probeCount);
+        if (probeCount != actualNumbers) {
+            printf("Probe did not return the expected length of message "
+                   "(expected %i, got %i)\n",
+                   actualNumbers,
+                   probeCount);
             return 1;
         } else {
             printf("Probe gave expected length (%i)\n", probeCount);
@@ -40,9 +44,11 @@ FAASM_MAIN_FUNC() {
         MPI_Status statusB;
         MPI_Recv(numbers, probeCount, MPI_INT, 0, 0, MPI_COMM_WORLD, &statusB);
 
-        for(int i = 0; i < actualNumbers; i++) {
-            if(numbers[i] != i) {
-                printf("Did not get expected value (expected %i but got %i)\n", i, numbers[i]);
+        for (int i = 0; i < actualNumbers; i++) {
+            if (numbers[i] != i) {
+                printf("Did not get expected value (expected %i but got %i)\n",
+                       i,
+                       numbers[i]);
                 return 1;
             }
         }

@@ -1,4 +1,8 @@
-from pyperformance.benchmarks.bm_raytrace import bench_raytrace, DEFAULT_WIDTH, DEFAULT_HEIGHT
+from pyperformance.benchmarks.bm_raytrace import (
+    bench_raytrace,
+    DEFAULT_WIDTH,
+    DEFAULT_HEIGHT,
+)
 
 
 def faasm_main():

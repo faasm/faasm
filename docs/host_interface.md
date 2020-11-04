@@ -35,15 +35,15 @@ This section of the host interface covers management of state as outlined in
 
 | Function | Description  |
 |---|---|
-| `byte* get_state(key, flags)` | Read input data as byte array | 
-| `byte* get_state_offset(key, off, flags)` | Write output data for function |
-| `void set_state(key, val)` | Write output data for function |
-| `void set_state_offset(key, val, len, off)` | Write output data for function |
-| `void push/pull_state(key)` | Write output data for function |
-| `void push/pull_state_offset(key, off)` | Write output data for function |
-| `void append_state(key, val)` | Write output data for function |
-| `void lock_state_read/write(key)` | Write output data for function |
-| `void lock_state_global_read/write(key)` | Write output data for function |
+| `byte* get_state(key, flags)` | Get pointer to state value for `key` | 
+| `byte* get_state_offset(key, off, flags)` | Get pointer to state value for `key` at an offset |
+| `void set_state(key, val)` | Set state value for `key` |
+| `void set_state_offset(key, val, len, off)` | Set `len` bytes of state value at offset for `key` |
+| `void push/pull_state(key)` | Push/pull global state value for `key` |
+| `void push/pull_state_offset(key, off)` | Push/pull global state value for `key` at offset |
+| `void append_state(key, val)` | Append data to state value for `key` |
+| `void lock_state_read/write(key)` | Lock local copy of state value for `key` |
+| `void lock_state_global_read/write(key)` | Lock state value for `key` globally |
  
  ## POSIX-like calls and WASI
  
@@ -51,7 +51,7 @@ This section of the host interface covers management of state as outlined in
  to support a broader range of legacy applications and libraries (such as 
  [CPython](python.md)).
  
- This is done in part with a modified [wasi-libc](https://github.com/Shillaker/wasi-libc).
+ This is done in part with a modified [wasi-libc](https://github.com/faasm/wasi-libc).
  
  The main additions and modifications are as follows:
  

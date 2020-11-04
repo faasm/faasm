@@ -1,6 +1,7 @@
 from subprocess import run
 
-from faasmcli.util.env import FAASM_TOOLCHAIN_FILE, WASM_DIR
+from faasmtools.build import CMAKE_TOOLCHAIN_FILE
+from faasmcli.util.env import WASM_DIR
 from faasmcli.util.files import clean_dir
 
 from os import makedirs
@@ -9,8 +10,8 @@ from shutil import copy
 
 
 def wasm_cmake(
-        src_dir, build_dir, target, clean=False, debug=False, sgx=False
-        ):
+    src_dir, build_dir, target, clean=False, debug=False, sgx=False
+):
     build_type = "wasm"
     cmake_build_type = "Debug" if debug else "Release"
 
@@ -20,7 +21,7 @@ def wasm_cmake(
         "cmake",
         "-GNinja",
         "-DFAASM_BUILD_TYPE={}".format(build_type),
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(CMAKE_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE={}".format(cmake_build_type),
         "-DFAASM_SGX_SUPPORT=on" if sgx else "",
         src_dir,
@@ -33,8 +34,8 @@ def wasm_cmake(
     if res.returncode != 0:
         raise RuntimeError("Failed on cmake for {}".format(target))
 
-    cmd = "ninja {}".format(target) if target else "ninja"
-    cmd = "verbose=1 {}".format(cmd) if debug else cmd
+    cmd = "ninja -vv" if debug else "ninja"
+    cmd = "{} {}".format(cmd, target) if target else cmd
     res = run(cmd, shell=True, cwd=build_dir)
 
     if res.returncode != 0:
@@ -48,5 +49,3 @@ def wasm_copy_upload(user, func, wasm_file):
     dest_file = join(dest_folder, "function.wasm")
 
     copy(wasm_file, dest_file)
-
-

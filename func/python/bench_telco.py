@@ -33,8 +33,8 @@ def rel_path(*path):
 
 def bench_telco(loops, filename):
     getcontext().rounding = ROUND_DOWN
-    rates = list(map(Decimal, ('0.0013', '0.00894')))
-    twodig = Decimal('0.01')
+    rates = list(map(Decimal, ("0.0013", "0.00894")))
+    twodig = Decimal("0.01")
     Banker = Context(rounding=ROUND_HALF_EVEN)
     basictax = Decimal("0.0675")
     disttax = Decimal("0.0341")
@@ -54,9 +54,9 @@ def bench_telco(loops, filename):
 
         for i in xrange(5000):
             datum = infil.read(8)
-            if datum == '':
+            if datum == "":
                 break
-            n, = unpack('>Q', datum)
+            (n,) = unpack(">Q", datum)
 
             calltype = n & 1
             r = rates[calltype]
@@ -84,7 +84,7 @@ def bench_telco(loops, filename):
 
 def faasm_main():
     if os.environ.get("PYTHONWASM") == "1":
-        file_path = "/lib/python3.7/site-packages/pyperformance/benchmarks/data/telco-bench.b"
+        file_path = "/lib/python3.8/site-packages/pyperformance/benchmarks/data/telco-bench.b"
     else:
         file_path = "/usr/local/code/faasm/venv/lib/python3.6/site-packages/pyperformance/benchmarks/data/telco-bench.b"
         if not exists(file_path):

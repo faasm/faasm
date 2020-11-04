@@ -1,9 +1,9 @@
-#include <mpi.h>
 #include <faasm/faasm.h>
+#include <mpi.h>
 #include <stdio.h>
 
-
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     MPI_Init(NULL, NULL);
 
     int rank;
@@ -32,7 +32,10 @@ FAASM_MAIN_FUNC() {
 
     // Check the received value is as expected
     if (recvValue != left) {
-        printf("Rank %i - async not working properly (got %i expected %i)\n", rank, recvValue, left);
+        printf("Rank %i - async not working properly (got %i expected %i)\n",
+               rank,
+               recvValue,
+               left);
     } else {
         printf("Rank %i - async working properly\n", rank);
     }

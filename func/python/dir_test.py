@@ -6,8 +6,8 @@ def faasm_main():
     print("MP version = {}".format(multiprocessing))
 
     paths = [
-        "/lib/python3.7/multiprocessing/",
-        "/lib/python3.7/multiprocessing/__pycache__/"
+        "/lib/python3.8/multiprocessing/",
+        "/lib/python3.8/multiprocessing/__pycache__/",
     ]
 
     print("CWD = {}".format(os.getcwd()))

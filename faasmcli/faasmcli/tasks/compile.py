@@ -1,6 +1,5 @@
-from os import makedirs, listdir
+from os import listdir
 from os.path import join, splitext
-from shutil import copy
 from subprocess import call
 
 from invoke import task
@@ -45,7 +44,8 @@ def user(ctx, user, clean=False, debug=False):
     target = "{}_all_funcs".format(user)
     wasm_cmake(FUNC_DIR, FUNC_BUILD_DIR, target, clean, debug)
 
-    # Work out all the functions for this user (that we assume will have been built)
+    # Work out all the functions for this user (that we assume will have been
+    # built)
     for func_file in listdir(join(FUNC_BUILD_DIR, user)):
         name, ext = splitext(func_file)
         if ext != ".wasm":
@@ -72,4 +72,3 @@ def _ts_compile(func, optimize=True):
     cmd_string = " ".join(cmd)
     print(cmd_string)
     call(cmd_string, cwd=TS_DIR, shell=True)
-

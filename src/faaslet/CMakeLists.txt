@@ -15,12 +15,14 @@ target_link_libraries(faaslet_lib
         faabric
         module_cache
         system
-        wamrmodule)
+        wamrmodule
+        )
 
-target_include_directories(faaslet_lib PRIVATE
-        ${WAMR_SHARED_DIR}/platform/linux)
+target_include_directories(faaslet_lib PRIVATE 
+        ${WAMR_SHARED_DIR}/platform/linux
+        )
 
-# Include Faasm-SGX Lib if enabled
+# Include SGX lib if enabled
 if(FAASM_SGX_SUPPORT)
     target_link_libraries(faaslet_lib faasm_sgx)
     target_include_directories(faaslet_lib PRIVATE ${FAASM_INCLUDE_DIR}/sgx)

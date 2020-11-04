@@ -81,13 +81,13 @@ namespace faaslet {
 
         // Instantiate the right wasm module for the chosen runtime
         if (conf.wasmVm == "wamr") {
+
 #if(FAASM_SGX)
             if(msg.issgx())
                 module = std::make_unique<wasm::SGXWAMRWasmModule>();
             else
 #endif
             module = std::make_unique<wasm::WAMRWasmModule>();
-
 
             module->bindToFunction(msg);
         } else {

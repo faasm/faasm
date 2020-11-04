@@ -1,26 +1,18 @@
 from os import makedirs
 from os.path import exists
 from os.path import join
-from shutil import rmtree
-from subprocess import check_output, call
+from subprocess import run
 
 from invoke import task
 
 from faasmcli.util.codegen import find_codegen_shared_lib
+from faasmtools.build import CMAKE_TOOLCHAIN_FILE, WASM_SYSROOT
 from faasmcli.util.env import (
     PROJ_ROOT,
-    FAASM_TOOLCHAIN_FILE,
-    SYSROOT_INSTALL_PREFIX,
     FAASM_INSTALL_DIR,
     FAASM_RUNTIME_ROOT,
 )
-from faasmcli.util.env import THIRD_PARTY_DIR
 from faasmcli.util.files import clean_dir
-from faasmcli.util.toolchain import (
-    WASM_HOST,
-    BASE_CONFIG_CMD,
-)
-from faasmcli.util.toolchain import WASM_SYSROOT, WASM_BUILD, BASE_CONFIG_FLAGS
 
 
 @task
@@ -28,8 +20,6 @@ def toolchain(ctx, clean=False):
     """
     Compile and install all libs crucial to the toolchain
     """
-    eigen(ctx)
-
     faasm(ctx, clean=clean)
     faasmp(ctx, clean=clean)
     faasmpi(ctx, clean=clean)
@@ -66,15 +56,9 @@ def native(ctx, clean=False):
     build_cmd_str = " ".join(build_cmd)
     print(build_cmd_str)
 
-    res = call(build_cmd_str, shell=True, cwd=build_dir)
-    if res != 0:
-        raise RuntimeError("Failed to build native tools")
-
-    res = call("ninja", shell=True, cwd=build_dir)
-    if res != 0:
-        raise RuntimeError("Failed to make native tools")
-
-    call("sudo ninja install", shell=True, cwd=build_dir)
+    run(build_cmd_str, shell=True, cwd=build_dir, check=True)
+    run("ninja", shell=True, cwd=build_dir, check=True)
+    run("sudo ninja install", shell=True, cwd=build_dir, check=True)
 
 
 def _build_faasm_lib(dir_name, clean, verbose, target=None):
@@ -88,29 +72,19 @@ def _build_faasm_lib(dir_name, clean, verbose, target=None):
         "-GNinja",
         "-DFAASM_BUILD_TYPE=wasm",
         "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(CMAKE_TOOLCHAIN_FILE),
         work_dir,
     ]
 
     build_cmd_str = " ".join(build_cmd)
     print(build_cmd_str)
 
-    res = call(build_cmd_str, shell=True, cwd=build_dir)
-    if res != 0:
-        exit(1)
+    run(build_cmd_str, shell=True, cwd=build_dir, check=True)
 
-    build_cmd = [
-        "ninja",
-        target if target else ""
-    ]
+    build_cmd = ["ninja", target if target else ""]
 
-    res = call(" ".join(build_cmd), shell=True, cwd=build_dir)
-    if res != 0:
-        exit(1)
-
-    res = call("ninja install", shell=True, cwd=build_dir)
-    if res != 0:
-        exit(1)
+    run(" ".join(build_cmd), shell=True, cwd=build_dir, check=True)
+    run("ninja install", shell=True, cwd=build_dir, check=True)
 
 
 @task
@@ -118,7 +92,7 @@ def faasm(ctx, clean=False, verbose=False):
     """
     Compile and install the Faasm library
     """
-    _build_faasm_lib("libs/faasm", clean, verbose)
+    _build_faasm_lib("libs/cpp", clean, verbose)
 
 
 @task
@@ -134,14 +108,6 @@ def faasmpi(ctx, clean=False, verbose=False):
     """
     Compile and install the Faasm MPI library
     """
-    # Build the Faabric MPI target
-    _build_faasm_lib(
-            "third-party/faabric/src/mpi",
-            clean,
-            verbose,
-    )
-
-    # Build the Faasm wasm wrapper
     _build_faasm_lib("libs/faasmpi", clean, verbose)
 
 
@@ -174,25 +140,30 @@ def fake(ctx, clean=False):
     build_cmd = [
         "cmake",
         "-GNinja",
+        "-DFAASM_BUILD_SHARED=ON",
         "-DFAASM_BUILD_TYPE=wasm",
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(CMAKE_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_INSTALL_PREFIX={}".format(SYSROOT_INSTALL_PREFIX),
+        "-DCMAKE_INSTALL_PREFIX={}".format(WASM_SYSROOT),
         work_dir,
     ]
 
-    call(" ".join(build_cmd), shell=True, cwd=build_dir)
-    call("ninja", shell=True, cwd=build_dir)
-    call("ninja install", shell=True, cwd=build_dir)
+    run(" ".join(build_cmd), shell=True, cwd=build_dir, check=True)
+    run("ninja", shell=True, cwd=build_dir, check=True)
+    run("ninja install", shell=True, cwd=build_dir, check=True)
 
     # Copy shared object into place
-    sysroot_files = join(SYSROOT_INSTALL_PREFIX, "lib", "wasm32-wasi", "libfake*.so")
+    sysroot_files = join(WASM_SYSROOT, "lib", "wasm32-wasi", "libfake*.so")
 
     runtime_lib_dir = join(FAASM_RUNTIME_ROOT, "lib")
     if not exists(runtime_lib_dir):
         makedirs(runtime_lib_dir)
 
-    call("cp {} {}".format(sysroot_files, runtime_lib_dir), shell=True)
+    run(
+        "cp {} {}".format(sysroot_files, runtime_lib_dir),
+        shell=True,
+        check=True,
+    )
 
     # Run codegen
     shared_objs = [
@@ -204,84 +175,4 @@ def fake(ctx, clean=False):
 
     for so in shared_objs:
         print("Running codegen for {}".format(so))
-        check_output("{} {}".format(binary, so), shell=True)
-
-
-@task
-def eigen(ctx, verbose=False):
-    """
-    Compile and install Eigen
-    """
-    work_dir = join(THIRD_PARTY_DIR, "eigen")
-    build_dir = join(PROJ_ROOT, "build", "eigen")
-
-    if exists(build_dir):
-        rmtree(build_dir)
-    makedirs(build_dir)
-
-    verbose_string = "VERBOSE=1" if verbose else ""
-
-    cmd = [
-        verbose_string,
-        "cmake",
-        "-DFAASM_BUILD_TYPE=wasm",
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
-        "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_INSTALL_PREFIX={}".format(SYSROOT_INSTALL_PREFIX),
-        work_dir,
-    ]
-    cmd_string = " ".join(cmd)
-
-    res = call(cmd_string, shell=True, cwd=build_dir)
-    if res != 0:
-        exit(1)
-
-    res = call("{} make install".format(verbose_string), shell=True, cwd=build_dir)
-    if res != 0:
-        exit(1)
-
-
-@task
-def png(ctx):
-    """
-    Compile and install libpng
-    """
-    workdir = join(PROJ_ROOT, "third-party", "libpng")
-
-    config_cmd = BASE_CONFIG_CMD
-    config_cmd.extend(BASE_CONFIG_FLAGS)
-    config_cmd.extend(
-        [
-            "./configure",
-            "--build={}".format(WASM_BUILD),
-            "--host={}".format(WASM_HOST),
-            "--prefix={}".format(WASM_SYSROOT),
-        ]
-    )
-
-    check_output(" ".join(config_cmd), shell=True, cwd=workdir)
-    check_output("make", shell=True, cwd=workdir)
-    check_output("make install", shell=True, cwd=workdir)
-
-
-@task
-def zlib(ctx, clean=False):
-    """
-    Compile and install zlib
-    """
-    workdir = join(PROJ_ROOT, "third-party", "zlib")
-
-    config_cmd = BASE_CONFIG_CMD
-    config_cmd.extend(BASE_CONFIG_FLAGS)
-    config_cmd.extend(
-        [
-            "./configure",
-            "--static",
-            "--prefix={}".format(WASM_SYSROOT),
-        ]
-    )
-
-    check_output(" ".join(config_cmd), shell=True, cwd=workdir)
-    check_output("make", shell=True, cwd=workdir)
-    check_output("make install", shell=True, cwd=workdir)
-
+        run("{} {}".format(binary, so), shell=True, check=True)

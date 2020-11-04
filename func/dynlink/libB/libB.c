@@ -3,20 +3,24 @@
 
 #include <stdio.h>
 
-int divide(int a, int b) {
+int divide(int a, int b)
+{
     int result = a / b;
     printf("Dividing %i and %i to get %i\n", a, b, result);
 
     return result;
 }
 
-int divideGlobal() {
+int divideGlobal()
+{
     printf("Dividing struct with name: %s\n", sharedStructInstance.name);
     return divide(sharedStructInstance.alpha, sharedStructInstance.beta);
 }
 
-int invokeSharedFunc() {
-    // Invoking the function in this roundabout way is necessary to force using the GOT
+int invokeSharedFunc()
+{
+    // Invoking the function in this roundabout way is necessary to force using
+    // the GOT
     sharedStructInstance.func = sharedFuncInstance;
 
     int i = 4;

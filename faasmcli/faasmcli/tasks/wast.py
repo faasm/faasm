@@ -1,11 +1,9 @@
 from os import remove
 from os.path import exists, join
-from subprocess import call
+from subprocess import run
 
 from invoke import task
-
-from faasmcli.util.env import PROJ_ROOT, POSSIBLE_BUILD_BINS
-from faasmcli.util.shell import find_command
+from faasmcli.util.env import PROJ_ROOT
 
 
 @task
@@ -21,11 +19,29 @@ def wast(ctx, user, func_name):
     """
     Generate .wast file for a given function
     """
-
     func_dir = join(PROJ_ROOT, "wasm", user, func_name)
     wasm_path = join(func_dir, "function.wasm")
     wast_path = join(func_dir, "function.wast")
     _do_wast(wasm_path, wast_path)
+
+
+@task
+def decompile(ctx, user, func_name):
+    """
+    Decompiles the given function
+    """
+    func_dir = join(PROJ_ROOT, "wasm", user, func_name)
+    wasm_path = join(func_dir, "function.wasm")
+    decomp_file = join(func_dir, "function.dcmp")
+
+    cmd = [
+        "wasm-decompile",
+        wasm_path,
+        "-o {}".format(decomp_file),
+        "--enable-all",
+    ]
+
+    run(" ".join(cmd), shell=True, check=True)
 
 
 def _do_wast(wasm_path, wast_path, cwd=None):
@@ -36,26 +52,20 @@ def _do_wast(wasm_path, wast_path, cwd=None):
     if exists(wast_path):
         remove(wast_path)
 
-    wavm_bin = find_command("wavm", POSSIBLE_BUILD_BINS)
-
     cmd = [
-        wavm_bin,
-        "disassemble",
+        "wasm2wat",
+        "--enable-all",
         wasm_path,
-        wast_path,
-        "--enable simd",
-        "--enable atomics",
+        "-o {}".format(wast_path),
     ]
 
-    cmd = " ".join(cmd)
-    kwargs = {
-        "shell": True,
-    }
+    extra_kwargs = dict()
     if cwd:
-        kwargs["cwd"] = cwd
+        extra_kwargs["cwd"] = cwd
 
-    call(cmd, **kwargs)
+    cmd = " ".join(cmd)
+    print(cmd)
+    run(cmd, shell=True, check=True, **extra_kwargs)
 
     # call("head -40 {}".format(wast_path), shell=True)
     print("vim {}".format(wast_path))
-

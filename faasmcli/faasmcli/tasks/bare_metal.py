@@ -17,7 +17,9 @@ def _call_ansible_command(cmd):
         exit(1)
 
 
-def _ansible_playbook_command(playbook, inventory=DEFAULT_INVENTORY, extra_vars=None):
+def _ansible_playbook_command(
+    playbook, inventory=DEFAULT_INVENTORY, extra_vars=None
+):
     shell_cmd = ["ansible-playbook", "-i", inventory, playbook]
 
     if extra_vars:
@@ -28,7 +30,14 @@ def _ansible_playbook_command(playbook, inventory=DEFAULT_INVENTORY, extra_vars=
 
 
 def _ansible_command(host_group, cmd, inventory=DEFAULT_INVENTORY):
-    shell_cmd = ["ansible", "-i", inventory, host_group, "-a", '"{}"'.format(cmd)]
+    shell_cmd = [
+        "ansible",
+        "-i",
+        inventory,
+        host_group,
+        "-a",
+        '"{}"'.format(cmd),
+    ]
     _call_ansible_command(shell_cmd)
 
 
