@@ -11,8 +11,6 @@ int main(int argc, char *argv[]) {
     faasm_argc = argc;
     faasm_argv = argv;
 
-    //int idx = faasmGetCurrentIdx();
-    //return exec();
     return _main();
 }
 

@@ -1,7 +1,8 @@
 # --------------------------------------------------------
-# FAASM-SGX CMake configuration file
-# Before modifying please read /docs/sgx.md!
-# This file contains many low level settings for Faasm-SGX
+#                        WARNING
+#
+# Before modifying please read /docs/sgx.md
+# This file contains many low level settings 
 # --------------------------------------------------------
 
 # NASM configuration
@@ -10,11 +11,14 @@ set(CMAKE_ASM_NASM_FLAGS -felf64)
 set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <INCLUDES> ${CMAKE_ASM_NASM_FLAGS} -o <OBJECT> <SOURCE>")
 
 # FAASM-SGX enclave configuration
-set(FAASM_SGX_DEBUG 1) # Enable(1)/Disable(0) Faasm-SGX specific debug/error messages (Disable for better performance)
 set(FAASM_SGX_INIT_TCS_SLOTS 2)
 set(FAASM_SGX_ENCLAVE_PATH "faasm_sgx_enclave.sign.so")
 set(FAASM_SGX_WAMR_BUILDIN_LIBC 1)
 set(FAASM_SGX_WAMR_WASI_LIBC 0)
+
+# Enable(1)/ Disable(0) SGX-specific debug/error messages 
+# Disable for better performance
+set(FAASM_SGX_DEBUG 1) 
 
 if(FAASM_SGX_WHITELISTING)
     add_definitions(-DFAASM_SGX_WHITELISTING=1)
@@ -27,16 +31,19 @@ set(SGX_DEBUG_MODE 1)
 set(SGX_SDK_LIB_PATH ${SGX_SDK_PATH}/lib64)
 set(SGX_SDK_ENCLAVE_SIGNER ${SGX_SDK_PATH}/bin/x64/sgx_sign)
 set(SGX_SDK_ENCLAVE_EDGER8R ${SGX_SDK_PATH}/bin/x64/sgx_edger8r)
-if(FAASM_SGX_XRA)#TODO: CHECK THIS
+
+# TODO: check this
+if(FAASM_SGX_XRA)
     add_definitions(-DFAASM_SGX_XRA=1)
     set(FAASM_SGX_XRA_INCLUDE_PATH ${CMAKE_CURRENT_LIST_DIR}/../../third-party/xra/include)
 endif()
+
 set(SGX_C_GLOBAL_FLAGS -m64)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 set(SGX_SDK_ENCLAVE_SIGNER ${SGX_SDK_PATH}/bin/x64/sgx_sign)
 set(SGX_SDK_ENCLAVE_EDGER8R ${SGX_SDK_PATH}/bin/x64/sgx_edger8r)
 
-# WAMR Build configuration
+# WAMR build configuration
 set(WAMR_BUILD_TARGET X86_64)
 
 if(FAASM_SGX_WAMR_AOT_MODE)
@@ -78,8 +85,9 @@ set(FAASM_SGX_WAMR_SRC_UNTRUSTED
 
 # Attestation configuration
 if (FAASM_SGX_ATTESTATION)
+    # IP-address or hostname is possible to specify host
     add_definitions(
-            -DFAASM_SGX_ATTESTATION_HOST="localhost" #IP-address or hostname is possible
+            -DFAASM_SGX_ATTESTATION_HOST="localhost" 
             -DFAASM_SGX_ATTESTATION_PORT=8009
             -DFAASM_SGX_ATTESTATION_CALLBACK_STORE_INIT_LEN=4
     )
@@ -316,6 +324,7 @@ target_include_directories(faasm_sgx PUBLIC ${SGX_SDK_PATH}/include)
 if(NOT FAASM_SGX_SIM_MODE)
     find_library(SGX_URTS_LIB "sgx_urts")
     find_library(SGX_UAE_SERVICE_LIB "sgx_uae_service")
+
     if(SGX_URTS_LIB STREQUAL "SGX_URTS_LIB-NOTFOUND" OR SGX_UAE_SERVICE_LIB STREQUAL "SGX_UAE_SERVICE_LIB-NOTFOUND")
         message(WARNING "SGX PSW NOT INSTALLED! SET RPATH TO ${SGX_SDK_LIB_PATH}")
         target_link_directories(faasm_sgx INTERFACE ${SGX_SDK_LIB_PATH})
@@ -361,6 +370,7 @@ target_link_libraries(faasm_sgx
 add_library(wamr_sgx STATIC
         ${FAASM_SGX_WAMR_SRC}
         )
+
 target_compile_options(wamr_sgx PRIVATE
         -std=gnu99
         -fPIC
@@ -368,7 +378,9 @@ target_compile_options(wamr_sgx PRIVATE
         -fdata-sections
         -Wall
         -Wno-unused-parameter
-        -Wno-pedantic)
+        -Wno-pedantic
+        )
+
 target_include_directories(wamr_sgx PRIVATE
         ${SGX_SDK_PATH}/include
         ${SGX_SDK_PATH}/include/tlibc
@@ -378,12 +390,12 @@ target_include_directories(wamr_sgx PRIVATE
 add_library(wamr_sgx_untrusted STATIC
         ${FAASM_SGX_WAMR_SRC_UNTRUSTED}
         )
+
 target_compile_options(wamr_sgx_untrusted PRIVATE
         -fPIC
         -ffunction-sections
-        -fdata-sections)
-
-
+        -fdata-sections
+        )
 
 # --------------------------------------------------------
 # DEMO KEY MANAGER
@@ -397,7 +409,8 @@ if(FAASM_SGX_ATTESTATION)
             -O3
             -fpic
             -fpie
-            -DDEMO_KEYMGR=1)
+            -DDEMO_KEYMGR=1
+            )
 endif()
 # --------------------------------------------------------
 # CUSTOM COMMANDS

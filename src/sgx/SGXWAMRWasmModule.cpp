@@ -19,13 +19,15 @@ namespace wasm {
     SGXWAMRWasmModule::SGXWAMRWasmModule(){
         auto logger = faabric::util::getLogger();
 
-        // Allocate memory for response //TODO
+        // Allocate memory for response 
         sgxWamrMsgResponse.buffer_len = (sizeof(sgx_wamr_msg_t) + sizeof(sgx_wamr_msg_hdr_t));
         sgxWamrMsgResponse.buffer_ptr = (sgx_wamr_msg_t *) calloc(sgxWamrMsgResponse.buffer_len, sizeof(uint8_t));
+
         if (!sgxWamrMsgResponse.buffer_ptr) {
             logger->error("Unable to allocate space for SGX message response buffer");
             throw std::runtime_error("Unable to allocate space for SGX message response buffer");
         }
+
         faasletSgxMsgBufferPtr = &sgxWamrMsgResponse;
 
         logger->debug("Created SGX wasm module for enclave {}", globalEnclaveId);
@@ -46,8 +48,9 @@ namespace wasm {
         storage::FileSystem fs;
         fs.prepareFilesystem();
 
-        // Load AoT or wasm opcode
+        // Load AoT or wasm 
         storage::FileLoader &fl = storage::getFileLoader();
+
 #if(FAASM_SGX_WAMR_AOT_MODE)
         std::vector<uint8_t> wasmBytes = fl.loadFunctionWamrAotFile(msg);
 #else

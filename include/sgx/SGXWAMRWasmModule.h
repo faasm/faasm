@@ -64,8 +64,9 @@ namespace wasm {
         bool execute(faabric::Message &msg, bool forceNoop = false) override;
 
         bool isBound() override;
-
-        faaslet_sgx_msg_buffer_t sgxWamrMsgResponse; //TODO: Move in gs/fs
+        
+        // TODO: Move in gs/fs
+        faaslet_sgx_msg_buffer_t sgxWamrMsgResponse;
     private:
         bool _isBound = false;
         uint32_t threadId = 0;
