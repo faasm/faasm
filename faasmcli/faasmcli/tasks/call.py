@@ -26,7 +26,7 @@ def invoke(
     poll=False,
     cmdline=None,
     debug=False,
-    issgx=False,
+    sgx=False,
 ):
     """
     Invoke a function
@@ -43,7 +43,7 @@ def invoke(
         poll=poll,
         cmdline=cmdline,
         debug=debug,
-        issgx=issgx,
+        sgx=sgx,
     )
 
     if asynch:

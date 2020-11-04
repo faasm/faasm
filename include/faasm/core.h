@@ -231,7 +231,7 @@ int _faasm_func_##idx()*/
 
 #else
 
-#define FAASM_FUNC(name,id)                                                                     \
+#define FAASM_FUNC(name, id)                                                                     \
 void _##name##_wrapper(void);                                                                   \
 __attribute__((visibility("default"))) __attribute__((export_name(#id))) void name(void){       \
     _faasm_zygote();                                                                            \
@@ -249,15 +249,10 @@ __attribute__((visibility("hidden"))) __attribute__((always_inline)) int _main_w
 
 #endif
 
-// Shortcut for defining main function
-/*#define FAASM_MAIN_FUNC()         \
-FAASM_FUNC(faasmMain, 0)*/
-
 _FaasmFuncPtr getFaasmFunc(int idx);
 
 // Faasm entrypoint
 extern int _main(void);
-//int exec(void);
 
 #ifdef __cplusplus
 }

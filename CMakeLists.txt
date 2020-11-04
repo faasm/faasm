@@ -16,9 +16,11 @@ option(WAMR_INTERPRETER_MODE "Turns interpreter on / off (vs. AoT)" OFF)
 option(FAASM_SGX_SUPPORT "Enable/Disable SGX Support" ON)
 option(FAASM_SGX_SIM_MODE "SGX sim mode flag" ON)
 option(FAASM_SGX_ATTESTATION "Add support for attestation" OFF)
-option(FAASM_SGX_WHITELISTING "Add support for whitelisting" OFF) #Currently not working in WAMR AoT mode
 option(FAASM_SGX_XRA "Add support for XRA" OFF)
 option(FAASM_SGX_WAMR_AOT_MODE "Turns AoT on / off (vs. Interpreter) within the enclave" ON)
+
+# Note - whitelisting currently not working in WAMR AoT mode
+option(FAASM_SGX_WHITELISTING "Add support for whitelisting" OFF) 
 
 # Top-level CMake config
 set(CMAKE_CXX_FLAGS "-Wall")
@@ -197,7 +199,7 @@ else ()
     add_subdirectory(src/wamr)
     add_subdirectory(src/wavm)
 
-    # Faasm-SGX
+    # Faasm SGX support
     if (FAASM_SGX_SUPPORT)
         add_subdirectory(src/sgx)
 
