@@ -1,10 +1,10 @@
 #include "faasm/faasm.h"
 
-#include <stdio.h>
 #include <faasm/input.h>
+#include <stdio.h>
 
-
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     int inputVal = faasm::getTypedInput<int>(1);
 
     // Writing constants like this can result in a call to puts, not writev
@@ -18,7 +18,7 @@ FAASM_MAIN_FUNC() {
     double fB = 7.89101112 * inputVal;
     printf("FloatA=%.3f FloatB=%.3f\n", fA, fB);
 
-    const char *strOut = "I am output";
+    const char* strOut = "I am output";
     printf("Out: %s\n", strOut);
     printf("Unformatted output\n");
 

@@ -4,18 +4,20 @@
 
 int globalVar = 10;
 
-#define SUCCESS (void *) 100
-#define FAILURE (void *) 101
+#define SUCCESS (void*)100
+#define FAILURE (void*)101
 
 // Zygote function should be seen by main function by default
-FAASM_ZYGOTE() {
+FAASM_ZYGOTE()
+{
     globalVar = 20;
 
     return 0;
 }
 
 // Thread should see global changes made in the main thread
-void *threadFunc(void *arg) {
+void* threadFunc(void* arg)
+{
     if (globalVar != 30) {
         printf("Expected thread to see 30 but got %i\n", globalVar);
         return FAILURE;
@@ -26,7 +28,8 @@ void *threadFunc(void *arg) {
     return SUCCESS;
 }
 
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     if (globalVar != 20) {
         printf("Expected main thread to see 20 but got %i\n", globalVar);
         return 1;
@@ -44,7 +47,7 @@ FAASM_MAIN_FUNC() {
     }
 
     // Join the thread
-    int *res;
+    int* res;
     if (pthread_join(t, (void**)&res)) {
         printf("Error joining thread\n");
         return 1;

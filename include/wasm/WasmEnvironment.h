@@ -4,17 +4,19 @@
 #include <vector>
 
 namespace wasm {
-    class WasmEnvironment {
-    public:
-        WasmEnvironment();
+class WasmEnvironment
+{
+  public:
+    WasmEnvironment();
 
-        void addEnv(const std::string &val);
+    void addEnv(const std::string& val);
 
-        uint32_t getEnvCount();
-        uint32_t getEnvBufferSize();
+    uint32_t getEnvCount();
+    uint32_t getEnvBufferSize();
 
-        const std::vector<std::string> &getVars();
-    private:
-        std::vector<std::string> vars;
-    };
+    const std::vector<std::string>& getVars();
+
+  private:
+    std::vector<std::string> vars;
+};
 }

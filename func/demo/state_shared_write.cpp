@@ -2,17 +2,18 @@
 #include <stdio.h>
 #include <vector>
 
-FAASM_MAIN_FUNC() {
-    const char *key = "state_shared_example";
+FAASM_MAIN_FUNC()
+{
+    const char* key = "state_shared_example";
 
     // Write an empty value
-    std::vector<uint8_t> bytes = {0, 0, 0, 0, 0, 0, 0};
+    std::vector<uint8_t> bytes = { 0, 0, 0, 0, 0, 0, 0 };
     unsigned long bytesLen = bytes.size();
     faasmWriteState(key, bytes.data(), bytesLen);
 
     // Get two pointers to the memory
-    uint8_t *actualA = faasmReadStatePtr(key, bytesLen);
-    uint8_t *actualB = faasmReadStatePtr(key, bytesLen);
+    uint8_t* actualA = faasmReadStatePtr(key, bytesLen);
+    uint8_t* actualB = faasmReadStatePtr(key, bytesLen);
 
     // Write to one pointer
     uint8_t newValue = 5;

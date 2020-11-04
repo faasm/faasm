@@ -8,56 +8,57 @@
 #define HEAP_SIZE_KB 8192
 #define WASM_BYTES_PER_PAGE 65536
 
-
 namespace wasm {
-#if(!WAMR_EXECUTION_MODE_INTERP)
-    std::vector<uint8_t> wamrCodegen(std::vector<uint8_t> &wasmBytes);
+#if (!WAMR_EXECUTION_MODE_INTERP)
+std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes);
 #endif
-    class WAMRWasmModule final : public WasmModule {
-    public:
-        static void initialiseWAMRGlobally();
+class WAMRWasmModule final : public WasmModule
+{
+  public:
+    static void initialiseWAMRGlobally();
 
-        WAMRWasmModule();
+    WAMRWasmModule();
 
-        ~WAMRWasmModule();
+    ~WAMRWasmModule();
 
-        // ----- Module lifecycle -----
-        void bindToFunction(const faabric::Message &msg) override;
+    // ----- Module lifecycle -----
+    void bindToFunction(const faabric::Message& msg) override;
 
-        void bindToFunctionNoZygote(const faabric::Message &msg) override;
+    void bindToFunctionNoZygote(const faabric::Message& msg) override;
 
-        bool execute(faabric::Message &msg, bool forceNoop = false) override;
+    bool execute(faabric::Message& msg, bool forceNoop = false) override;
 
-        bool isBound() override;
+    bool isBound() override;
 
-        void tearDown();
+    void tearDown();
 
-        // ----- Memory management -----
-        uint32_t mmapMemory(uint32_t length) override;
+    // ----- Memory management -----
+    uint32_t mmapMemory(uint32_t length) override;
 
-        uint32_t mmapPages(uint32_t pages) override;
+    uint32_t mmapPages(uint32_t pages) override;
 
-        uint32_t mmapFile(uint32_t fp, uint32_t length) override;
+    uint32_t mmapFile(uint32_t fp, uint32_t length) override;
 
-        uint8_t* wasmPointerToNative(int32_t wasmPtr) override;
-    private:
-        bool _isBound;
+    uint8_t* wasmPointerToNative(int32_t wasmPtr) override;
 
-        char errorBuffer[ERROR_BUFFER_SIZE];
+  private:
+    bool _isBound;
 
-#if(WAMR_EXECUTION_MODE_INTERP)
-        std::vector<uint8_t> wasmBytes;
+    char errorBuffer[ERROR_BUFFER_SIZE];
+
+#if (WAMR_EXECUTION_MODE_INTERP)
+    std::vector<uint8_t> wasmBytes;
 #endif
 
-        WASMModuleCommon *wasmModule;
-        WASMModuleInstanceCommon *moduleInstance;
+    WASMModuleCommon* wasmModule;
+    WASMModuleInstanceCommon* moduleInstance;
 
-        void executeFunction(const std::string &funcName);
-    };
+    void executeFunction(const std::string& funcName);
+};
 
-    void tearDownWAMRGlobally();
+void tearDownWAMRGlobally();
 
-    WAMRWasmModule *getExecutingWAMRModule();
+WAMRWasmModule* getExecutingWAMRModule();
 
-    void setExecutingModule(WAMRWasmModule *executingModuleIn);
+void setExecutingModule(WAMRWasmModule* executingModuleIn);
 }

@@ -1,10 +1,10 @@
+#include <faasm/counter.h>
 #include <faasm/faasm.h>
 #include <faasm/input.h>
-#include <faasm/counter.h>
 #include <faasm/random.h>
 
-#include <vector>
 #include <stdio.h>
+#include <vector>
 
 #define N_GUESSES 1000000
 #define COUNT_KEY "count"
@@ -12,7 +12,8 @@
 /**
  * Parallel estimation of pi
  */
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     int nWorkers = faasm::getTypedInput<int>(4);
 
     // Write chunk size to state
@@ -35,7 +36,7 @@ FAASM_MAIN_FUNC() {
     }
 
     int finalCount = faasm::getCounter(COUNT_KEY);
-    float piEstimate = 4*((float)finalCount / (N_GUESSES));
+    float piEstimate = 4 * ((float)finalCount / (N_GUESSES));
 
     std::string output = "Pi estimate: " + std::to_string(piEstimate) + "\n";
     printf("%s", output.c_str());
@@ -44,9 +45,10 @@ FAASM_MAIN_FUNC() {
     return 0;
 }
 
-FAASM_FUNC(piStep, 1) {
+FAASM_FUNC(piStep, 1)
+{
     int chunkSize = faasm::getTypedInput<int>(0);
-    if(chunkSize == 0) {
+    if (chunkSize == 0) {
         printf("Didn't get told a chunk size\n");
         return 1;
     }

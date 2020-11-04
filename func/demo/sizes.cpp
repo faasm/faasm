@@ -4,15 +4,20 @@
 #include <typeinfo>
 
 template<typename T>
-void checkSizeOf(size_t expected, const char *name) {
+void checkSizeOf(size_t expected, const char* name)
+{
     size_t actual = sizeof(T);
     if (actual != expected) {
-        printf("Size of %s not as expected (expected %lu was %lu)\n", name, expected, actual);
+        printf("Size of %s not as expected (expected %lu was %lu)\n",
+               name,
+               expected,
+               actual);
         exit(1);
     }
 }
 
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     checkSizeOf<double>(8, "double");
 
     checkSizeOf<float>(4, "float");
@@ -38,7 +43,7 @@ FAASM_MAIN_FUNC() {
 
     checkSizeOf<uintptr_t>(ptrSize, "uintptr_t");
     checkSizeOf<intptr_t>(ptrSize, "intptr_t");
-    checkSizeOf<void *>(ptrSize, "void *");
+    checkSizeOf<void*>(ptrSize, "void *");
     checkSizeOf<size_t>(ptrSize, "size_t");
 
     return 0;

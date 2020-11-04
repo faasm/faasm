@@ -2,8 +2,8 @@
 #include <string>
 #include <vector>
 
-
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
     if (argc != 5) {
         printf("Expected 5 argc but got %i\n", argc);
         return 1;
@@ -19,7 +19,10 @@ int main(int argc, char **argv) {
     for (int i = 0; i < argc; ++i) {
         std::string actual(argv[i]);
         if (actual != expectedArgs[i]) {
-            printf("Argv %i - expected %s but got %s\n", i, expectedArgs[i].c_str(), actual.c_str());
+            printf("Argv %i - expected %s but got %s\n",
+                   i,
+                   expectedArgs[i].c_str(),
+                   actual.c_str());
             return 1;
         }
     }

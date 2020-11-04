@@ -1,6 +1,7 @@
 #include <faasm/faasm.h>
 
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     uint8_t inputBuf[2];
     faasmGetInput(inputBuf, 2);
 

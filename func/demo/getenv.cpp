@@ -1,21 +1,24 @@
 #include "faasm/faasm.h"
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-bool checkPredefined(const char* name, const char* expected) {
-    char *actual = getenv(name);
+bool checkPredefined(const char* name, const char* expected)
+{
+    char* actual = getenv(name);
     if (strcmp(actual, expected) == 0) {
         printf("%s as expected (%s)\n", name, expected);
         return false;
     } else {
-        printf("%s not as expected (got %s, expected %s)\n", name, actual, expected);
+        printf(
+          "%s not as expected (got %s, expected %s)\n", name, actual, expected);
         return true;
     }
 }
 
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     // Check predefined var
     bool failed = false;
     failed |= checkPredefined("LC_CTYPE", "en_GB.UTF-8");
@@ -23,22 +26,22 @@ FAASM_MAIN_FUNC() {
     failed |= checkPredefined("PYTHON_PATH", "/");
     failed |= checkPredefined("PYTHONWASM", "1");
 
-    if(failed) {
+    if (failed) {
         return 1;
     }
 
-    const char *varName = "FOOBAR";
-    char *unset = getenv(varName);
+    const char* varName = "FOOBAR";
+    char* unset = getenv(varName);
 
     if (unset != nullptr) {
         printf("Was expecting %s not to be set \n", varName);
         return 1;
     }
 
-    const char *expected = "BAZ";
+    const char* expected = "BAZ";
     setenv("FOOBAR", expected, 0);
 
-    char *actual = getenv(varName);
+    char* actual = getenv(varName);
     printf("FOOBAR=%s\n", actual);
 
     if (strcmp(actual, "BAZ") != 0) {

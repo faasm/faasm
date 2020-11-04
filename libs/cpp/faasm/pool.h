@@ -4,14 +4,16 @@
 #include <vector>
 
 namespace faasm {
-    class FunctionPool {
-    public:
-        unsigned int chain(int funcIdx);
+class FunctionPool
+{
+  public:
+    unsigned int chain(int funcIdx);
 
-        void awaitAll();
-    private:
-        std::vector<unsigned int> callIds;
-    };
+    void awaitAll();
+
+  private:
+    std::vector<unsigned int> callIds;
+};
 }
 
 #endif

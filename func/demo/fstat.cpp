@@ -2,17 +2,19 @@
 
 #include <sys/stat.h>
 
-#include <stdio.h>
-#include <fcntl.h>
 #include <cerrno>
 #include <cstring>
+#include <fcntl.h>
+#include <stdio.h>
 
 /**
  * Comparison of stat structs.
  *
- * It's also important to sense-check these numbers by running the function vs the native host.
+ * It's also important to sense-check these numbers by running the function vs
+ * the native host.
  */
-int compareSwithS64(struct stat &s, struct stat64 &s64) {
+int compareSwithS64(struct stat& s, struct stat64& s64)
+{
 #ifdef __wasm__
     printf("st_dev: %llu\n", s.st_dev);
     printf("st_dev: %llu\n", s64.st_dev);
@@ -183,21 +185,28 @@ int compareSwithS64(struct stat &s, struct stat64 &s64) {
     return 0;
 }
 
-FAASM_MAIN_FUNC() {
-    struct stat sA{}, sB{};
-    struct stat64 s64A{}, s64B{};
+FAASM_MAIN_FUNC()
+{
+    struct stat sA
+    {
+    }, sB{};
+    struct stat64 s64A
+    {
+    }, s64B{};
 
 #if __wasm__
-    const char *path = "/lib/python3.8/multiprocessing";
+    const char* path = "/lib/python3.8/multiprocessing";
 #else
-    const char *path = "/usr/local/faasm/runtime_root/lib/python3.8/multiprocessing";
+    const char* path =
+      "/usr/local/faasm/runtime_root/lib/python3.8/multiprocessing";
 #endif
 
     // Use fstat
     printf("---- fstat ----\n");
     int fd = open(path, O_RDONLY);
     if (fd < 0) {
-        printf("Failed to open file (fd=%i): %i (%s)\n", fd, errno, strerror(errno));
+        printf(
+          "Failed to open file (fd=%i): %i (%s)\n", fd, errno, strerror(errno));
         return 1;
     }
 

@@ -4,7 +4,8 @@
 
 #define STATE_KEY "printable"
 
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     size_t stateSize = faasmReadStateSize(STATE_KEY);
     printf("State %s size: %lu\n", STATE_KEY, stateSize);
 

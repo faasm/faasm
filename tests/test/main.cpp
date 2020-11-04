@@ -1,10 +1,11 @@
 #define CATCH_CONFIG_RUNNER
 
+#include "utils.h"
 #include <catch2/catch.hpp>
 #include <faabric/util/logging.h>
-#include "utils.h"
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[])
+{
     faabric::util::initLogging();
 
     // Clean the system

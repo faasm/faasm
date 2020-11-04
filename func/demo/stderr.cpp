@@ -2,7 +2,8 @@
 
 #include <stdio.h>
 
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     int stdInNo = fileno(stdin);
     int stdOutNo = fileno(stdout);
     int stdErrNo = fileno(stderr);

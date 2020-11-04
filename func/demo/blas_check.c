@@ -3,8 +3,8 @@
 
 #ifdef __wasm__
 #include <blaswrap.h>
-#include <f2c.h>
 #include <clapack.h>
+#include <f2c.h>
 #else
 // TODO - add native CBLAS build
 #endif
@@ -70,17 +70,17 @@ int main()
 
     // Hacky equality check here as we know they're ints
     int success = 1;
-    for(i = 0; i < N; i++) {
-        diff = fabs(B[i] - expected[i]);               
-        if(diff > 0.00000001) {
+    for (i = 0; i < N; i++) {
+        diff = fabs(B[i] - expected[i]);
+        if (diff > 0.00000001) {
             success = 0;
         }
     }
 
     // Error if we don't get what we expect
-    if(success == 0) {
+    if (success == 0) {
         printf("BLAS check not producing expected: \n");
-        for(i = 0; i < N; i++) {
+        for (i = 0; i < N; i++) {
             printf("a[%i] = %2.f   e[%i] = %.2f\n", i, B[i], i, expected[i]);
         }
 
@@ -89,4 +89,3 @@ int main()
         return 0;
     }
 }
-

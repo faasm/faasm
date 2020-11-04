@@ -6,8 +6,8 @@
 #include <faabric/util/config.h>
 #include <faabric/util/timing.h>
 
-
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[])
+{
     faabric::util::initLogging();
     const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
 
@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
 
     // Set short timeouts to die quickly
     conf.boundTimeout = 60000;
@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
     conf.maxNodesPerFunction = nThreads;
 
     // Clear out redis
-    faabric::redis::Redis &redis = faabric::redis::Redis::getQueue();
+    faabric::redis::Redis& redis = faabric::redis::Redis::getQueue();
     redis.flushAll();
 
     // Set up the call
@@ -45,7 +45,9 @@ int main(int argc, char *argv[]) {
 
     if (user == "python") {
         faabric::util::convertMessageToPython(call);
-        logger->info("Running Python function {}/{}", call.pythonuser(), call.pythonfunction());
+        logger->info("Running Python function {}/{}",
+                     call.pythonuser(),
+                     call.pythonfunction());
     } else {
         logger->info("Running function {}/{}", user, function);
     }
@@ -65,11 +67,12 @@ int main(int argc, char *argv[]) {
 
     // Submit the invocation
     PROF_START(roundTrip)
-    faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
+    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.callFunction(call);
 
     // Await the result
-    const faabric::Message &result = sch.getFunctionResult(call.id(), conf.globalMessageTimeout);
+    const faabric::Message& result =
+      sch.getFunctionResult(call.id(), conf.globalMessageTimeout);
     if (result.returnvalue() != 0) {
         logger->error("Execution failed: {}", result.outputdata());
         throw std::runtime_error("Executing function failed");

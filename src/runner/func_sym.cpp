@@ -2,13 +2,14 @@
 
 #include <fstream>
 
-#include <faabric/util/logging.h>
 #include <faabric/util/files.h>
-#include <iomanip>
 #include <faabric/util/func.h>
+#include <faabric/util/logging.h>
+#include <iomanip>
 #include <wavm/WAVMWasmModule.h>
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[])
+{
     faabric::util::initLogging();
     const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
 
@@ -35,9 +36,11 @@ int main(int argc, char *argv[]) {
     std::ofstream outfile;
     outfile.open(outPath, std::ios::out);
 
-    outfile << std::setw(20) << std::left << "FUNC_NAME" << "DISAS_NAME" << std::endl;
-    for(auto const &p : disasMap) {
-        outfile << std::setw(20) << std::left << p.first << p.second << std::endl;
+    outfile << std::setw(20) << std::left << "FUNC_NAME"
+            << "DISAS_NAME" << std::endl;
+    for (auto const& p : disasMap) {
+        outfile << std::setw(20) << std::left << p.first << p.second
+                << std::endl;
     }
 
     outfile.close();

@@ -7,26 +7,28 @@
 #define COUNTER_KEY "atomic_counter"
 
 namespace faasm {
-    void initCounter(const char *counterKey);
+void initCounter(const char* counterKey);
 
-    int getCounter(const char *counterKey);
+int getCounter(const char* counterKey);
 
-    void incrementCounter(const char *counterKey);
+void incrementCounter(const char* counterKey);
 
-    int incrementCounter(const char *counterKey, int increment, bool globalLock);
+int incrementCounter(const char* counterKey, int increment, bool globalLock);
 
-    class AtomicInt {
-    public:
-        AtomicInt();
+class AtomicInt
+{
+  public:
+    AtomicInt();
 
-        int operator+=(int other);
+    int operator+=(int other);
 
-        int get();
+    int get();
 
-        void reset();
-    private:
-        int value;
-    };
+    void reset();
+
+  private:
+    int value;
+};
 }
 
 #endif

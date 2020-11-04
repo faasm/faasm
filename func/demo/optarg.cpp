@@ -2,14 +2,14 @@
  * Function to check use of optarg still compiles
  */
 
-#include <stdio.h>
 #include <getopt.h>
+#include <stdio.h>
 
-
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[])
+{
     int option = -1;
 
-    while ((option = getopt (argc, argv, "a:b:")) != -1)  {
+    while ((option = getopt(argc, argv, "a:b:")) != -1) {
         switch (option) {
             case 'a':
                 printf("This should never be reached\n");

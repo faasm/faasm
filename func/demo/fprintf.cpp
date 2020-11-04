@@ -2,7 +2,8 @@
 
 #include <stdio.h>
 
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     fprintf(stderr, "testing 123\n");
     fputs("testing 345\n", stderr);
 

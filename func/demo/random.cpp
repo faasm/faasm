@@ -1,11 +1,12 @@
 #include "faasm/faasm.h"
 
 #include <algorithm>
-#include <vector>
-#include <random>
 #include <chrono>
+#include <random>
+#include <vector>
 
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     int n = 10;
     std::vector<int> vec(n);
 

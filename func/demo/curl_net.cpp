@@ -1,18 +1,19 @@
 #include "faasm/faasm.h"
 
-#include <stdio.h>
 #include <curl/curl.h>
+#include <stdio.h>
 
 /**
  * Example of HTTP request with libcurl
  */
 
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     char* url = faasm::getStringInput("");
 
     printf("CURL-ing %s\n", url);
 
-    CURL *curl = curl_easy_init();
+    CURL* curl = curl_easy_init();
     if (!curl) {
         printf("Curl initialisation failed\n");
     }

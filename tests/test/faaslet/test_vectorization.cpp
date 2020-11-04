@@ -5,9 +5,10 @@
 #include <faabric/util/func.h>
 
 namespace tests {
-    TEST_CASE("Test eigen vectorization", "[faaslet]") {
-        cleanSystem();
-        faabric::Message msg = faabric::util::messageFactory("demo", "eigen_vec");
-        execFunction(msg);
-    }
+TEST_CASE("Test eigen vectorization", "[faaslet]")
+{
+    cleanSystem();
+    faabric::Message msg = faabric::util::messageFactory("demo", "eigen_vec");
+    execFunction(msg);
+}
 }

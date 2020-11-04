@@ -2,7 +2,8 @@
 
 #include <stdio.h>
 
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     short s = 8;
     printf("s: %i\n", s);
 

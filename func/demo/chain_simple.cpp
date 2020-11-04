@@ -3,10 +3,12 @@
 
 #define INPUT_VAL 42
 
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     // Make one chained call
     int inputVal = INPUT_VAL;
-    unsigned int callId = faasmChainThisInput(1, (uint8_t *) &inputVal, sizeof(int));
+    unsigned int callId =
+      faasmChainThisInput(1, (uint8_t*)&inputVal, sizeof(int));
 
     unsigned int result = faasmAwaitCall(callId);
 
@@ -20,7 +22,8 @@ FAASM_MAIN_FUNC() {
     return 0;
 }
 
-FAASM_FUNC(chainOne, 1) {
+FAASM_FUNC(chainOne, 1)
+{
     int input = 0;
     faasmGetInput(BYTES(&input), sizeof(int));
 
