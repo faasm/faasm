@@ -24,7 +24,7 @@ git submodule update --init
 The service orchestration is handled through `docker-compose`. If you want to
 stop all `faasm`-related development services run:
 ```bash
-docker-compose -p faasm-dev -f docker/docker-compose-cli.yml stop
+./bin/stop-cli.sh
 ```
 
 To build and run the tests, you can then run the following inside the container:
