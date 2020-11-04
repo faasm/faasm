@@ -1,34 +1,36 @@
 #include <stdio.h>
 #include <string>
 
-class MyObjB {
+class MyObjB
+{
 
-public:
-    MyObjB() : name("object B") {
-    }
+  public:
+    MyObjB()
+      : name("object B")
+    {}
 
-    void sayHiB() {
-        printf("Hello from %s!\n", name.c_str());
-    }
+    void sayHiB() { printf("Hello from %s!\n", name.c_str()); }
 
-private:
+  private:
     std::string name;
 };
 
-
-class MyObjA {
-public:
-    void sayHi() {
+class MyObjA
+{
+  public:
+    void sayHi()
+    {
         printf("Hello from object A!\n");
 
         objB.sayHiB();
     }
 
-private:
+  private:
     MyObjB objB;
 };
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[])
+{
 
     auto objA = new MyObjA();
 

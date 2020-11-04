@@ -1,14 +1,15 @@
-#include <faabric/util/logging.h>
 #include <boost/filesystem.hpp>
-#include <faabric/util/func.h>
-#include <storage/FileLoader.h>
 #include <faabric/util/config.h>
 #include <faabric/util/environment.h>
+#include <faabric/util/func.h>
 #include <faabric/util/locks.h>
+#include <faabric/util/logging.h>
+#include <storage/FileLoader.h>
 
 using namespace boost::filesystem;
 
-void codegenForFunc(const std::string &user, const std::string &func) {
+void codegenForFunc(const std::string& user, const std::string& func)
+{
     const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
 
     faabric::Message msg = faabric::util::messageFactory(user, func);
@@ -18,11 +19,12 @@ void codegenForFunc(const std::string &user, const std::string &func) {
     }
 
     logger->info("Generating machine code for {}/{}", user, func);
-    storage::FileLoader &loader = storage::getFileLoader();
+    storage::FileLoader& loader = storage::getFileLoader();
     loader.codegenForFunction(msg);
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[])
+{
     faabric::util::initLogging();
     const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
 
@@ -35,8 +37,9 @@ int main(int argc, char *argv[]) {
     } else if (argc == 2) {
         std::string user = argv[1];
 
-        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
-        logger->info("Running codegen for user {} on dir {}", user, conf.functionDir);
+        faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+        logger->info(
+          "Running codegen for user {} on dir {}", user, conf.functionDir);
 
         boost::filesystem::path path(conf.functionDir);
         path.append(user);
@@ -75,13 +78,14 @@ int main(int argc, char *argv[]) {
                     }
 
                     directory_entry subPath(thisPath);
-                    std::string functionName = subPath.path().filename().string();
+                    std::string functionName =
+                      subPath.path().filename().string();
                     codegenForFunc(user, functionName);
                 }
             });
         }
 
-        for (auto &t : threads) {
+        for (auto& t : threads) {
             if (t.joinable()) {
                 t.join();
             }

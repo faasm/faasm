@@ -1,13 +1,14 @@
-#include <faasm/faasm.h>
 #include <faasm/array.h>
-#include <pthread.h>
 #include <faasm/compare.h>
+#include <faasm/faasm.h>
+#include <pthread.h>
 
 #define N_THREADS 4
 #define ARRAY_KEY "shared_array"
 
-void *threadIncrement(void *voidArgs) {
-    auto threadNo = *((int *) voidArgs);
+void* threadIncrement(void* voidArgs)
+{
+    auto threadNo = *((int*)voidArgs);
     faasm::AsyncArray<int> distArray(ARRAY_KEY, N_THREADS);
 
     // Do the update
@@ -18,7 +19,8 @@ void *threadIncrement(void *voidArgs) {
     return nullptr;
 }
 
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     faasm::AsyncArray<int> distArray(ARRAY_KEY, N_THREADS);
     distArray.zero();
 
@@ -37,7 +39,7 @@ FAASM_MAIN_FUNC() {
     }
 
     // Join threads
-    for (auto &t : threads) {
+    for (auto& t : threads) {
         if (pthread_join(t, nullptr)) {
             return 1;
         };

@@ -4,11 +4,12 @@
 
 size_t dataLength = 3 * sizeof(int);
 
-int checkChained(int funcIdx) {
+int checkChained(int funcIdx)
+{
     // Read input
     uint8_t inputBuf[dataLength];
     faasmGetInput(inputBuf, dataLength);
-    int *intInput = reinterpret_cast<int *>(inputBuf);
+    int* intInput = reinterpret_cast<int*>(inputBuf);
 
     std::vector<int> actual(intInput, intInput + 3);
 
@@ -19,15 +20,24 @@ int checkChained(int funcIdx) {
     expected[2] = funcIdx + 2;
 
     if (actual != expected) {
-        printf("ERROR - chained input does not match expected (actual=[%i, %i, %i], expected=[%i, %i, %i])\n",
-               actual[0], actual[1], actual[2], expected[0], expected[1], expected[2]);
+        printf("ERROR - chained input does not match expected (actual=[%i, %i, "
+               "%i], expected=[%i, %i, %i])\n",
+               actual[0],
+               actual[1],
+               actual[2],
+               expected[0],
+               expected[1],
+               expected[2]);
         return -1;
     }
 
     // Check that Faasm is reporting the correct idx
     int actualIdx = faasmGetCurrentIdx();
     if (actualIdx != funcIdx) {
-        printf("ERROR - chained call idx does not match expected (actual=%i, expected=%i)\n", actualIdx, funcIdx);
+        printf("ERROR - chained call idx does not match expected (actual=%i, "
+               "expected=%i)\n",
+               actualIdx,
+               funcIdx);
     }
 
     return 0;
@@ -36,7 +46,8 @@ int checkChained(int funcIdx) {
 /**
  * Passes some inputs onto other functions
  */
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     int nCalls = 3;
     int callIds[nCalls];
 
@@ -51,7 +62,8 @@ FAASM_MAIN_FUNC() {
         funcData[2] = funcIdx + 2;
 
         // Chain the call
-        unsigned int callId = faasmChainThisInput(funcIdx, (uint8_t *) funcData, dataLength);
+        unsigned int callId =
+          faasmChainThisInput(funcIdx, (uint8_t*)funcData, dataLength);
         callIds[i] = callId;
     }
 
@@ -70,15 +82,18 @@ FAASM_MAIN_FUNC() {
     return 0;
 }
 
-FAASM_FUNC(chainOne, 1) {
+FAASM_FUNC(chainOne, 1)
+{
     return checkChained(1);
 }
 
-FAASM_FUNC(chainTwo, 2) {
+FAASM_FUNC(chainTwo, 2)
+{
     return checkChained(2);
 }
 
-FAASM_FUNC(chainForward, 3) {
+FAASM_FUNC(chainForward, 3)
+{
     // Check input to this function as expected
     checkChained(3);
 
@@ -88,7 +103,7 @@ FAASM_FUNC(chainForward, 3) {
     funcData[1] = 5;
     funcData[2] = 6;
 
-    auto inputBytes = (uint8_t *) funcData;
+    auto inputBytes = (uint8_t*)funcData;
     unsigned int callId = faasmChainThisInput(4, inputBytes, dataLength);
 
     // Await and check the nested call
@@ -104,6 +119,7 @@ FAASM_FUNC(chainForward, 3) {
     return 0;
 }
 
-FAASM_FUNC(chainForwardNested, 4) {
+FAASM_FUNC(chainForwardNested, 4)
+{
     return checkChained(4);
 }

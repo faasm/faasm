@@ -4,8 +4,8 @@
 #include "faasm/print.h"
 
 namespace faasm {
-    template <typename T>
-    bool compareArrays(T *a, T *b, int len);
+template<typename T>
+bool compareArrays(T* a, T* b, int len);
 }
 
 #endif

@@ -1,17 +1,17 @@
-#include <faabric/util/logging.h>
 #include <boost/filesystem.hpp>
-#include <storage/FileLoader.h>
 #include <faabric/util/environment.h>
 #include <faabric/util/locks.h>
+#include <faabric/util/logging.h>
 #include <faabric/util/string_tools.h>
+#include <storage/FileLoader.h>
 
 using namespace boost::filesystem;
 
-
-void codegenForDirectory(std::string &inputPath) {
+void codegenForDirectory(std::string& inputPath)
+{
     const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
     logger->info("Running codegen on directory {}", inputPath);
-    storage::FileLoader &loader = storage::getFileLoader();
+    storage::FileLoader& loader = storage::getFileLoader();
 
     // Iterate through the directory
     path inputFilePath(inputPath);
@@ -46,7 +46,8 @@ void codegenForDirectory(std::string &inputPath) {
 
                 directory_entry f(thisPath);
                 const std::string fileName = f.path().filename().string();
-                if (faabric::util::endsWith(fileName, ".so") || faabric::util::endsWith(fileName, ".wasm")) {
+                if (faabric::util::endsWith(fileName, ".so") ||
+                    faabric::util::endsWith(fileName, ".wasm")) {
                     logger->info("Generating machine code for {}", thisPath);
                     loader.codegenForSharedObject(thisPath);
                 }
@@ -54,14 +55,15 @@ void codegenForDirectory(std::string &inputPath) {
         });
     }
 
-    for (auto &t : threads) {
+    for (auto& t : threads) {
         if (t.joinable()) {
             t.join();
         }
     }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[])
+{
     faabric::util::initLogging();
     const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
 
@@ -74,7 +76,7 @@ int main(int argc, char *argv[]) {
     if (is_directory(inputPath)) {
         codegenForDirectory(inputPath);
     } else {
-        storage::FileLoader &loader = storage::getFileLoader();
+        storage::FileLoader& loader = storage::getFileLoader();
         loader.codegenForSharedObject(inputPath);
     }
 }

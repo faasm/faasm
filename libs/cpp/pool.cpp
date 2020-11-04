@@ -1,19 +1,21 @@
-#include "faasm/core.h"
 #include "faasm/pool.h"
+#include "faasm/core.h"
 
 namespace faasm {
-    unsigned int FunctionPool::chain(int funcIdx) {
-        std::vector<uint8_t> empty;
-        unsigned int callId = faasmChainThisInput(funcIdx, empty.data(), 0);
+unsigned int FunctionPool::chain(int funcIdx)
+{
+    std::vector<uint8_t> empty;
+    unsigned int callId = faasmChainThisInput(funcIdx, empty.data(), 0);
 
-        callIds.emplace_back(callId);
+    callIds.emplace_back(callId);
 
-        return callId;
+    return callId;
+}
+
+void FunctionPool::awaitAll()
+{
+    for (auto callId : callIds) {
+        faasmAwaitCall(callId);
     }
-
-    void FunctionPool::awaitAll() {
-        for(auto callId : callIds) {
-            faasmAwaitCall(callId);
-        }
-    }
+}
 }

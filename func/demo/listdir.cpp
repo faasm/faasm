@@ -1,18 +1,19 @@
 #include "faasm/faasm.h"
 
-#include <stdio.h>
-#include <sys/types.h>
 #include <dirent.h>
-#include <vector>
-#include <string>
 #include <errno.h>
+#include <stdio.h>
 #include <string.h>
+#include <string>
+#include <sys/types.h>
+#include <vector>
 
 #define NAMLEN(dirent) strlen((dirent)->d_name)
 
-std::vector<std::string> listDir(const char *dirPath) {
-    DIR *dirp = opendir(dirPath);
-    struct dirent *ep;
+std::vector<std::string> listDir(const char* dirPath)
+{
+    DIR* dirp = opendir(dirPath);
+    struct dirent* ep;
 
     std::vector<std::string> results;
 
@@ -29,7 +30,8 @@ std::vector<std::string> listDir(const char *dirPath) {
             }
         }
 
-        if (ep->d_name[0] == '.' && (NAMLEN(ep) == 1 || (ep->d_name[1] == '.' && NAMLEN(ep) == 2))) {
+        if (ep->d_name[0] == '.' &&
+            (NAMLEN(ep) == 1 || (ep->d_name[1] == '.' && NAMLEN(ep) == 2))) {
             continue;
         }
 
@@ -39,9 +41,10 @@ std::vector<std::string> listDir(const char *dirPath) {
     return results;
 }
 
-FAASM_MAIN_FUNC() {
-    const char *dirA = "/lib/python3.8/multiprocessing/";
-    const char *dirB = "/lib/python3.8/encodings/";
+FAASM_MAIN_FUNC()
+{
+    const char* dirA = "/lib/python3.8/multiprocessing/";
+    const char* dirB = "/lib/python3.8/encodings/";
 
     std::vector<std::string> vecA = listDir(dirA);
     if (vecA.empty()) {

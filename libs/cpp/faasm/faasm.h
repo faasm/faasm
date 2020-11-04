@@ -7,7 +7,8 @@
 int faasm_argc;
 char** faasm_argv;
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[])
+{
     faasm_argc = argc;
     faasm_argv = argv;
 
@@ -15,4 +16,3 @@ int main(int argc, char *argv[]) {
 }
 
 #endif
-

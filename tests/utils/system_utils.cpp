@@ -2,7 +2,8 @@
 
 #include "faabric_utils.h"
 
-extern "C" {
+extern "C"
+{
 #include <emulator/emulator_api.h>
 }
 
@@ -12,18 +13,19 @@ extern "C" {
 #include <module_cache/WasmModuleCache.h>
 
 namespace tests {
-    void cleanSystem() {
-        // Faabric stuff
-        cleanFaabric();
+void cleanSystem()
+{
+    // Faabric stuff
+    cleanFaabric();
 
-        // Clear shared files
-        storage::FileSystem::clearSharedFiles();
+    // Clear shared files
+    storage::FileSystem::clearSharedFiles();
 
-        // Clear zygotes
-        module_cache::getWasmModuleCache().clear();
+    // Clear zygotes
+    module_cache::getWasmModuleCache().clear();
 
-        // Set emulator user
-        resetEmulator();
-        setEmulatorUser("tester");
-    }
+    // Set emulator user
+    resetEmulator();
+    setEmulatorUser("tester");
+}
 }

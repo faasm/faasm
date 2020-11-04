@@ -1,7 +1,8 @@
 #include <faasm/faasm.h>
 #include <stdio.h>
 
-FAASM_MAIN_FUNC() {
+FAASM_MAIN_FUNC()
+{
     unsigned int on = getConfFlag("ALWAYS_ON");
     unsigned int off = getConfFlag("ALWAYS_OFF");
 
