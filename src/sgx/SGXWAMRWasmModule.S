@@ -56,7 +56,7 @@ faasm_sgx_get_sgx_support:;There is no need to safe base pointer, hence we won't
     xor rcx, rcx
     cpuid
     mov rbx, r8
-    and eax, 0x00000011
+    and eax, 0x00000003
     test eax, eax
     jne .check_sgx_v2_avail
     mov rax, FAASM_SGX_CPU_SGX_V1_LEAF_NOT_AVAILABLE

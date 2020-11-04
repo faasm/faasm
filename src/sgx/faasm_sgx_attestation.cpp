@@ -1,5 +1,5 @@
 #include <faasm_sgx_error.h>
-#include <sgx_wamr_attestation.h>
+#include <faasm_sgx_attestation.h>
 #include <rw_lock.h>
 
 #include <netdb.h>
@@ -35,7 +35,7 @@ static uint32_t _callback_store_len = FAASM_SGX_ATTESTATION_CALLBACK_STORE_INIT_
 static pthread_mutex_t _mutex_callback_store = PTHREAD_MUTEX_INITIALIZER, _mutex_keymgr_socket = PTHREAD_MUTEX_INITIALIZER;
 static rwlock_t _rwlock_callback_store_realloc;
 
-static inline uint8_t __memcmp_zero(uint8_t *mem_ptr, uint64_t mem_len) {
+static __attribute__((always_inline)) uint8_t __memcmp_zero(uint8_t *mem_ptr, uint64_t mem_len) {
     while (mem_len-- > 0) {
         if (*(mem_ptr++))
             return 1;

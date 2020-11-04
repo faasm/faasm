@@ -9,15 +9,18 @@ option(FAASM_SELF_TRACING "Turn on system tracing using the logger" OFF)
 option(FAASM_OPENMP_TRACING "Trace OpenMP forks in Redis" OFF)
 option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md" OFF)
 
-# WAMR functionality
-option(WAMR_INTERPRETER_MODE "Turns interpreter on/ off (vs. AoT)" OFF)
+# WAMR and interpreter
+option(WAMR_INTERPRETER_MODE "Turns interpreter on / off (vs. AoT)" OFF)
 
 # SGX functionality
-option(FAASM_SGX_SUPPORT "Enable/Disable SGX Support" OFF)
+option(FAASM_SGX_SUPPORT "Enable/Disable SGX Support" ON)
 option(FAASM_SGX_SIM_MODE "SGX sim mode flag" ON)
 option(FAASM_SGX_ATTESTATION "Add support for attestation" OFF)
-option(FAASM_SGX_WHITELISTING "Add support for whitelisting" OFF)
 option(FAASM_SGX_XRA "Add support for XRA" OFF)
+option(FAASM_SGX_WAMR_AOT_MODE "Turns AoT on / off (vs. Interpreter) within the enclave" ON)
+
+# Note - whitelisting currently not working in WAMR AoT mode
+option(FAASM_SGX_WHITELISTING "Add support for whitelisting" OFF) 
 
 # Top-level CMake config
 set(CMAKE_CXX_FLAGS "-Wall")
@@ -54,18 +57,21 @@ if (FAASM_SGX_SUPPORT)
 
     if(FAASM_SGX_SIM_MODE)
         add_definitions(-DSGX_SIM_MODE=1)
+        set(Protobuf_USE_STATIC_LIBS 0)
+    else()
+	    add_definitions(-DSGX_SIM_MODE=0)
+        # Must link protobuf statically because SGX LE probably uses an older version
+        set(Protobuf_USE_STATIC_LIBS 1)
     endif()
 
     if(FAASM_SGX_ATTESTATION)
         add_definitions(-DFAASM_SGX_ATTESTATION=1)
+    else()
+        add_definitions(-DFAASM_SGX_ATTESTATION=0)
     endif()
 
-    if(FAASM_SGX_WHITELISTING)
-        add_definitions(-DFAASM_SGX_WHITELISTING=1)
-    endif()
-
-    if(FAASM_SGX_XRA)
-        include_directories(${FAASM_XRA_ROOT_DIR}/include)
+    if(FAASM_SGX_WHITELISTING AND FAASM_SGX_WAMR_AOT_MODE)
+        message(FATAL_ERROR "Faasm-SGX: Whitelisting is not available in Faasm-SGX WAMR AoT execution mode")
     endif()
 else ()
     set(CMAKE_CXX_FLAGS "-Wall -Werror")
@@ -102,11 +108,6 @@ else()
     add_definitions(-DWAMR_EXECUTION_MODE_INTERP=0)
 endif()
 
-# WAMR platform header, will break SGX build to include normal linux header
-if(FAASM_SGX_SUPPORT)
-else()
-    include_directories(${WAMR_SHARED_DIR}/platform/linux/)
-endif()
 
 # Library type (for shared libraries)
 if (FAASM_STATIC_LIBS)
@@ -198,9 +199,8 @@ else ()
     add_subdirectory(src/wamr)
     add_subdirectory(src/wavm)
 
-    # WAMR - build SGX or non-SGX version accordingly
+    # Faasm SGX support
     if (FAASM_SGX_SUPPORT)
-        add_subdirectory(src/sgx_wamr)
         add_subdirectory(src/sgx)
 
         if(FAASM_SGX_XRA)

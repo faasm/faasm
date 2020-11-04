@@ -1,22 +1,27 @@
 // Annoyingly we have to redefine these here
 #define FAASM_SGX 1
 #define FAASM_SGX_ATTESTATION 0
+#define FAASM_SGX_WAMR_WASI_LIBC 0
 
 enclave{
     include "../../../include/sgx/faasm_sgx_error.h"
-    include "../../../include/sgx/sgx_wamr_attestation.h"
+    include "../../../include/sgx/faasm_sgx_attestation.h"
     include "../../../third-party/wamr/core/iwasm/include/wasm_export.h"
     from "sgx_tstdc.edl" import *;
+    from "sgx_pthread.edl" import *;
+#if(FAASM_SGX_WAMR_WASI_LIBC)
+    from "sgx_wamr.edl" import *;
+#endif
 
     trusted{
-        public faasm_sgx_status_t sgx_wamr_enclave_unload_module(uint32_t thread_id);
-        public faasm_sgx_status_t sgx_wamr_enclave_call_function(uint32_t thread_id, uint32_t func_id);
+        public faasm_sgx_status_t faasm_sgx_enclave_unload_module(uint32_t thread_id);
+        public faasm_sgx_status_t faasm_sgx_enclave_call_function(uint32_t thread_id, uint32_t func_id);
 #if(FAASM_SGX_ATTESTATION)
-        public faasm_sgx_status_t sgx_wamr_enclave_load_module([user_check] const void* wasm_opcode_ptr, uint32_t wasm_opcode_size, [out] uint32_t* thread_id, [user_check] sgx_wamr_msg_t** response_ptr);
+        public faasm_sgx_status_t faasm_sgx_enclave_load_module([user_check] const void *wasm_opcode_ptr, uint32_t wasm_opcode_size, [out] uint32_t *thread_id, [user_check] sgx_wamr_msg_t **response_ptr);
 #else
-        public faasm_sgx_status_t sgx_wamr_enclave_load_module([user_check] const void* wasm_opcode_ptr, uint32_t wasm_opcode_size, [out] uint32_t* thread_id);
+        public faasm_sgx_status_t faasm_sgx_enclave_load_module([user_check] const void *wasm_opcode_ptr, uint32_t wasm_opcode_size, [out] uint32_t *thread_id);
 #endif
-        public faasm_sgx_status_t sgx_wamr_enclave_init_wamr(uint32_t thread_number);
+        public faasm_sgx_status_t faasm_sgx_enclave_init_wamr(void);
     };
 
     untrusted{

@@ -36,4 +36,4 @@ typedef enum _faasm_error {
 
 #define FAASM_SGX_OCALL_ERROR(X) (faasm_sgx_status_t)((X) << 16|(FAASM_SGX_OCALL_FAILED))
 #define FAASM_SGX_OCALL_GET_SGX_ERROR(X) ((0xFFFF0000 & (X)) >> 16)
-#define _WRAPPER_ERROR_PREFIX "FAASM_SGX_ERROR:"
+#define _FAASM_SGX_ERROR_PREFIX "FAASM_SGX_ERROR:"

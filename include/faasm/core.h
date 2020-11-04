@@ -218,20 +218,36 @@ int __attribute__((weak)) _faasm_zygote();
 int _faasm_zygote()
 
 // Macro for extra faasm functions that can be chained
-#define FAASM_FUNC(name, idx)      \
-int name() {                       \
-    return _faasm_func_##idx();    \
-};                                 \
-int _faasm_func_##idx()
+#ifdef __wasm__
 
-// Shortcut for defining main function
-#define FAASM_MAIN_FUNC()         \
-FAASM_FUNC(faasmMain, 0)
+#define FAASM_FUNC(name, id) __attribute__((visibility("default"))) __attribute__((export_name(#id))) void name(void)
+
+#define FAASM_MAIN_FUNC() __attribute__((visibility("hidden"))) __attribute__((export_name("0"))) int _main(void)
+
+#else
+
+#define FAASM_FUNC(name, id)                                                                     \
+void _##name##_wrapper(void);                                                                   \
+__attribute__((visibility("default"))) __attribute__((export_name(#id))) void name(void){       \
+    _faasm_zygote();                                                                            \
+    _##name##_wrapper();                                                                        \
+}                                                                                               \
+__attribute__((visibility("hidden"))) __attribute__((always_inline)) void _##name##_wrapper(void)
+
+#define FAASM_MAIN_FUNC()                                                                       \
+int _main_wrapper(void);                                                                        \
+__attribute__((visibility("hidden"))) __attribute__((export_name("0"))) int _main(void){        \
+    _faasm_zygote();                                                                            \
+    _main_wrapper();                                                                            \
+}                                                                                               \
+__attribute__((visibility("hidden"))) __attribute__((always_inline)) int _main_wrapper(void)
+
+#endif
 
 _FaasmFuncPtr getFaasmFunc(int idx);
 
 // Faasm entrypoint
-int exec(int idx);
+extern int _main(void);
 
 #ifdef __cplusplus
 }

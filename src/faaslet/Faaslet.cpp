@@ -8,16 +8,15 @@
 #include <faabric/util/timing.h>
 #include <module_cache/WasmModuleCache.h>
 
+#include <wamr/WAMRWasmModule.h>
 #include <wavm/WAVMWasmModule.h>
 
-#if(FAASM_SGX == 1)
+
+#if(FAASM_SGX)
+#include <sgx/faasm_sgx_system.h>
 #include <sgx/SGXWAMRWasmModule.h>
-#include <sgx/sgx_system.h>
-#else
-
-#include <wamr/WAMRWasmModule.h>
-
 #endif
+
 
 using namespace isolation;
 
@@ -80,14 +79,16 @@ namespace faaslet {
     void Faaslet::postBind(const faabric::Message &msg, bool force) {
         faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
 
-        // Instantiate the right wasm module for our chosen runtime
+        // Instantiate the right wasm module for the chosen runtime
         if (conf.wasmVm == "wamr") {
+
 #if(FAASM_SGX)
-            sgx_enclave_id_t enclaveId = sgx::getGlobalEnclaveId();
-            module = std::make_unique<wasm::SGXWAMRWasmModule>(enclaveId);
-#else
-            module = std::make_unique<wasm::WAMRWasmModule>();
+            if(msg.issgx())
+                module = std::make_unique<wasm::SGXWAMRWasmModule>();
+            else
 #endif
+            module = std::make_unique<wasm::WAMRWasmModule>();
+
             module->bindToFunction(msg);
         } else {
             // Instantiate a WAVM module from its snapshot

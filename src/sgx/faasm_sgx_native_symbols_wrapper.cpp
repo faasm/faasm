@@ -1,20 +1,32 @@
-#include <sgx/sgx_wamr_native_symbols_wrapper.h>
-#include <sgx/sgx_wamr_enclave_types.h>
+#include <sgx/faasm_sgx_native_symbols_wrapper.h>
+#include <sgx/faasm_sgx_enclave_types.h>
 #include <sgx/faasm_sgx_error.h>
 
+#if(FAASM_SGX_WAMR_AOT_MODE)
+#include <iwasm/aot/aot_runtime.h>
+#else
 #include <iwasm/interpreter/wasm_runtime.h>
+#endif
+
 #include <iwasm/common/wasm_exec_env.h>
 
 #if(FAASM_SGX_ATTESTATION)
 extern "C" {
-extern _sgx_wamr_tcs_t *sgx_wamr_tcs;
+extern _faasm_sgx_tcs_t **faasm_sgx_tcs;
 extern __thread uint32_t tls_thread_id;
 }
 #endif
 
+// SET_ERROR definition for AoT and interpreter mode
+#if(FAASM_SGX_WAMR_AOT_MODE)
 #define SET_ERROR(X) \
-    memcpy(((WASMModuleInstance*)exec_env->module_inst)->cur_exception,_WRAPPER_ERROR_PREFIX,sizeof(_WRAPPER_ERROR_PREFIX)); \
-    *((uint32_t*)&((WASMModuleInstance*)exec_env->module_inst)->cur_exception[sizeof(_WRAPPER_ERROR_PREFIX)]) = (X);
+    memcpy(((AOTModuleInstance *)exec_env->module_inst)->cur_exception,_FAASM_SGX_ERROR_PREFIX,sizeof(_FAASM_SGX_ERROR_PREFIX)); \
+    *((uint32_t *)&((AOTModuleInstance *)exec_env->module_inst)->cur_exception[sizeof(_FAASM_SGX_ERROR_PREFIX)]) = (X);
+#else
+#define SET_ERROR(X) \
+    memcpy(((WASMModuleInstance *)exec_env->module_inst)->cur_exception,_FAASM_SGX_ERROR_PREFIX,sizeof(_FAASM_SGX_ERROR_PREFIX)); \
+    *((uint32_t *)&((WASMModuleInstance *)exec_env->module_inst)->cur_exception[sizeof(_FAASM_SGX_ERROR_PREFIX)]) = (X);
+#endif
 
 #define NATIVE_FUNC(funcName, funcSig) \
    { "__"#funcName, (void *) funcName##_wrapper, funcSig, 0x0 }
@@ -24,8 +36,6 @@ extern __thread uint32_t tls_thread_id;
    { #funcName, (void *) funcName##_wrapper, funcSig, 0x0 }
 
 extern "C" {
-
-extern int os_printf(const char *message, ...);
 
 // ------------------------------------
 // FUNCTIONS
@@ -260,7 +270,7 @@ void sgx_wamr_function_not_whitelisted_wrapper(wasm_exec_env_t exec_env) {
 #endif
 
 // ------------------------------
-// WASI
+// WASI default wrapper
 // ------------------------------
 
 static int args_get_wrapper(wasm_exec_env_t exec_env, int a, int b) {
@@ -286,7 +296,7 @@ static int fd_write_wrapper(wasm_exec_env_t exec_env, int a, int b, int c, int d
 static void proc_exit_wrapper(wasm_exec_env_t exec_env, int returnCode) {
 }
 
-NativeSymbol sgxWamrNativeSymbols[SGX_WAMR_NATIVE_SYMBOL_COUNT] = {
+NativeSymbol faasm_sgx_native_symbols[FAASM_SGX_NATIVE_SYMBOLS_LEN] = {
         NATIVE_FUNC(faasm_read_input, "($i)i"),
         NATIVE_FUNC(faasm_write_output, "($i)"),
         NATIVE_FUNC(faasm_get_idx, "()i"),
@@ -315,7 +325,7 @@ NativeSymbol sgxWamrNativeSymbols[SGX_WAMR_NATIVE_SYMBOL_COUNT] = {
         NATIVE_FUNC(faasm_await_call_output, "(i)i")
 };
 
-NativeSymbol sgxWamrWasiSymbols[SGX_WAMR_WASI_SYMBOL_COUNT] = {
+NativeSymbol faasm_sgx_wasi_symbols[FAASM_SGX_WASI_SYMBOLS_LEN] = {
         WASI_NATIVE_FUNC(args_get, "(ii)i"),
         WASI_NATIVE_FUNC(args_sizes_get, "(ii)i"),
         WASI_NATIVE_FUNC(fd_close, "(i)i"),
@@ -323,5 +333,4 @@ NativeSymbol sgxWamrWasiSymbols[SGX_WAMR_WASI_SYMBOL_COUNT] = {
         WASI_NATIVE_FUNC(fd_write, "(iiii)i"),
         WASI_NATIVE_FUNC(proc_exit, "(i)")
 };
-
 }

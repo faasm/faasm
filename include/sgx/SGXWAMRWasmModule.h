@@ -6,22 +6,23 @@
 
 #include <sgx.h>
 #include <sgx_urts.h>
-#include <sgx/sgx_wamr_attestation.h>
+#include <sgx/faasm_sgx_attestation.h>
 #include <sgx/faasm_sgx_error.h>
+
+extern sgx_enclave_id_t globalEnclaveId;
 
 extern "C" {
 
 extern void ocall_printf(const char *msg);
 
-extern faasm_sgx_status_t faasm_sgx_get_sgx_support(void); //Todo: Change const unsigned int to uint32_t
+extern faasm_sgx_status_t faasm_sgx_get_sgx_support(void);
 
-extern sgx_status_t sgx_wamr_enclave_init_wamr(
+extern sgx_status_t faasm_sgx_enclave_init_wamr(
         sgx_enclave_id_t enclave_id,
-        faasm_sgx_status_t *ret_val,
-        const unsigned int thread_number
+        faasm_sgx_status_t *ret_val
 );
 
-extern sgx_status_t sgx_wamr_enclave_load_module(
+extern sgx_status_t faasm_sgx_enclave_load_module(
         sgx_enclave_id_t enclave_id,
         faasm_sgx_status_t *ret_val,
         const void *wasm_opcode_ptr,
@@ -32,17 +33,17 @@ extern sgx_status_t sgx_wamr_enclave_load_module(
 #endif
 );
 
-extern sgx_status_t sgx_wamr_enclave_unload_module(
+extern sgx_status_t faasm_sgx_enclave_unload_module(
         sgx_enclave_id_t enclave_id,
         faasm_sgx_status_t *ret_val,
         const unsigned int thread_id
 );
 
 extern sgx_status_t
-sgx_wamr_enclave_call_function(
+faasm_sgx_enclave_call_function(
         sgx_enclave_id_t enclave_id,
         faasm_sgx_status_t *ret_val,
-        const unsigned int thread_id,
+        const uint32_t thread_id,
         const uint32_t func_id
 );
 }
@@ -50,7 +51,7 @@ sgx_wamr_enclave_call_function(
 namespace wasm {
     class SGXWAMRWasmModule final : public WasmModule {
     public:
-        explicit SGXWAMRWasmModule(sgx_enclave_id_t enclaveIdIn);
+        explicit SGXWAMRWasmModule();
 
         ~SGXWAMRWasmModule() override;
 
@@ -63,11 +64,11 @@ namespace wasm {
         bool execute(faabric::Message &msg, bool forceNoop = false) override;
 
         bool isBound() override;
-
+        
+        // TODO: Move in gs/fs
         faaslet_sgx_msg_buffer_t sgxWamrMsgResponse;
     private:
         bool _isBound = false;
-        unsigned int threadId = 0;
-        sgx_enclave_id_t enclaveId;
+        uint32_t threadId = 0;
     };
 }
