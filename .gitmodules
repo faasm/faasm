@@ -1,4 +1,0 @@
-[submodule "third-party/wamr"]
-	path = third-party/wamr
-    url = https://github.com/J-Heinemann/wasm-micro-runtime.git
-    branch = faasm
