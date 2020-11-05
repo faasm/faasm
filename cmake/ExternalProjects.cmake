@@ -26,6 +26,20 @@ FetchContent_MakeAvailable(wavm_ext faabric_ext)
 FetchContent_GetProperties(wavm_ext SOURCE_DIR FAASM_WAVM_SOURCE_DIR)
 message(STATUS FAASM_WAVM_SOURCE_DIR ${FAASM_WAVM_SOURCE_DIR})
 
+# SGX-specific dependencies
+if(FAASM_SGX_XRA)
+    FetchContent_Declare(xra_ext
+        GIT_REPOSITORY "https://github.com/J-Heinemann/eXtended-Remote-Attestation"
+        GIT_TAG "1252f429c478d8c9052b02fc54f9f7d6ecc33594"
+    )
+
+    FetchContent_MakeAvailable(xra_ext)
+
+    # Access to headers in XRA
+    FetchContent_GetProperties(xra_ext SOURCE_DIR FAASM_XRA_ROOT_DIR)
+    set(FAASM_XRA_INCLUDE_PATH ${FAASM_XRA_ROOT_DIR}/include)
+endif()
+
 # General 3rd party dependencies
 ExternalProject_Add(eigen_ext
     GIT_REPOSITORY "https://gitlab.com/shillaker/eigen.git"

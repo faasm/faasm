@@ -35,7 +35,6 @@ set(SGX_SDK_ENCLAVE_EDGER8R ${SGX_SDK_PATH}/bin/x64/sgx_edger8r)
 # TODO: check this
 if(FAASM_SGX_XRA)
     add_definitions(-DFAASM_SGX_XRA=1)
-    set(FAASM_SGX_XRA_INCLUDE_PATH ${CMAKE_CURRENT_LIST_DIR}/../../third-party/xra/include)
 endif()
 
 set(SGX_C_GLOBAL_FLAGS -m64)
@@ -212,6 +211,7 @@ target_include_directories(faasm_sgx_enclave PRIVATE
         ${WAMR_ROOT_DIR}/core/shared/utils
         ${WAMR_ROOT_DIR}/core/shared/platform/linux-sgx
         )
+
 # Set XRA includes if needed
 if(FAASM_SGX_XRA)
 target_include_directories(faasm_sgx_enclave PRIVATE

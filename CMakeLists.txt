@@ -41,7 +41,6 @@ set(FAASM_LIB_CPP_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/cpp)
 set(FAASM_LIB_FAASMP_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/faasmp)
 set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/pyinit)
 set(FAASM_WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
-set(FAASM_XRA_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/xra)
 
 # SGX configuration
 if (FAASM_SGX_SUPPORT)
@@ -202,10 +201,6 @@ else ()
     # Faasm SGX support
     if (FAASM_SGX_SUPPORT)
         add_subdirectory(src/sgx)
-
-        if(FAASM_SGX_XRA)
-            add_subdirectory(third-party/xra)
-        endif()
     endif ()
 
     # Tests
