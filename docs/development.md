@@ -68,6 +68,8 @@ set up your own. To do this:
 ./bin/cli.sh <your image>
 ```
 
+Or set the environment variable `CLI_IMAGE`  before you run the `cli.sh` script.
+
 ## Building outside of the container
 
 If you want to build the project outside of the recommended container, or just

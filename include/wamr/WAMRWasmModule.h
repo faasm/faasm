@@ -9,9 +9,11 @@
 #define WASM_BYTES_PER_PAGE 65536
 
 namespace wasm {
+
 #if (!WAMR_EXECUTION_MODE_INTERP)
 std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes);
 #endif
+
 class WAMRWasmModule final : public WasmModule
 {
   public:

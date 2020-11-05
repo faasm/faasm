@@ -18,10 +18,6 @@ target_link_libraries(faaslet_lib
         wamrmodule
         )
 
-target_include_directories(faaslet_lib PRIVATE 
-        ${WAMR_SHARED_DIR}/platform/linux
-        )
-
 # Include SGX lib if enabled
 if(FAASM_SGX_SUPPORT)
     target_link_libraries(faaslet_lib faasm_sgx)
