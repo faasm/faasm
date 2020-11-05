@@ -128,9 +128,6 @@ bool WAMRWasmModule::execute(faabric::Message& msg, bool forceNoop)
     // Run the main function
     executeFunction(ENTRY_FUNC_NAME);
 
-    // Must destroy the execution environment
-    wasm_runtime_destroy_exec_env(executionEnv);
-
     return true;
 }
 

@@ -12,7 +12,7 @@
 namespace wasm {
 std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
+    auto logger = faabric::util::getLogger();
 
     // Make sure WAMR is initialised
     WAMRWasmModule::initialiseWAMRGlobally();
