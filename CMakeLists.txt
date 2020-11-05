@@ -80,14 +80,7 @@ endif ()
 # WAMR configuration
 # ----------------------------------------
 
-# See https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/build_wamr.md
-set(WAMR_SHARED_DIR ${WAMR_ROOT_DIR}/core/shared)
-set(WAMR_IWASM_DIR ${WAMR_ROOT_DIR}/core/iwasm)
-set(WAMR_BUILD_TARGET X86_64)
-set(WAMR_NO_LLVM_IMPORT ON)
 add_definitions(-DBUILD_TARGET_X86_64)
-
-# Enable ASM
 enable_language(ASM)
 
 #WAMR Interpreter / AoT Switch
@@ -96,6 +89,10 @@ if(WAMR_INTERPRETER_MODE)
 else()
     add_definitions(-DWAMR_EXECUTION_MODE_INTERP=0)
 endif()
+
+# ----------------------------------------
+# Faasm configuration
+# ----------------------------------------
 
 # Library type (for shared libraries)
 if (FAASM_STATIC_LIBS)
@@ -146,6 +143,12 @@ add_definitions(${LLVM_DEFINITIONS})
 
 # Third party deps
 include(cmake/ExternalProjects.cmake)
+
+# See https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/build_wamr.md
+set(WAMR_SHARED_DIR ${WAMR_ROOT_DIR}/core/shared)
+set(WAMR_IWASM_DIR ${WAMR_ROOT_DIR}/core/iwasm)
+set(WAMR_BUILD_TARGET X86_64)
+set(WAMR_NO_LLVM_IMPORT ON)
 
 # WAMR includes
 include_directories(
