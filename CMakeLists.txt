@@ -13,7 +13,7 @@ option(FAASM_PERF_PROFILING "Turn on profiling features as described in debuggin
 option(WAMR_INTERPRETER_MODE "Turns interpreter on / off (vs. AoT)" OFF)
 
 # SGX functionality
-option(FAASM_SGX_SUPPORT "Enable/Disable SGX Support" ON)
+option(FAASM_SGX_SUPPORT "Enable/Disable SGX Support" OFF)
 option(FAASM_SGX_SIM_MODE "SGX sim mode flag" ON)
 option(FAASM_SGX_ATTESTATION "Add support for attestation" OFF)
 option(FAASM_SGX_XRA "Add support for XRA" OFF)

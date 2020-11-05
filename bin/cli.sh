@@ -7,13 +7,21 @@ PROJ_ROOT=${THIS_DIR}/..
 
 pushd ${PROJ_ROOT} > /dev/null
 
-# Default CLI image
-VERSION=$(cat VERSION)
-DEFAULT_IMAGE=faasm/cli:${VERSION}
-INNER_SHELL=${SHELL:-"/bin/bash"}
-export CLI_IMAGE=${1:-${DEFAULT_IMAGE}}
-export COMPOSE_PROJECT_NAME="faasm-dev"
+# See if someone has specified a CLI image through an environment variable
+if [[ -z "${CLI_IMAGE}" ]]; then
+    # Prepare the default version
+    VERSION=$(cat VERSION)
+    DEFAULT_IMAGE=faasm/cli:${VERSION}
+
+    # Take the script argument if provided, else use the default
+    export CLI_IMAGE=${1:-${DEFAULT_IMAGE}}
+fi
+
 echo "Running Faasm CLI (${CLI_IMAGE})"
+
+INNER_SHELL=${SHELL:-"/bin/bash"}
+
+export COMPOSE_PROJECT_NAME="faasm-dev"
 
 ## Run shell in CLI container
 # If service not running, bring it up first.
