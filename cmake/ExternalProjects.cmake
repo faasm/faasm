@@ -14,17 +14,28 @@ FetchContent_Declare(wavm_ext
         -DWAVM_ENABLE_UNWIND=ON"
 )
 
+FetchContent_Declare(wamr_ext
+    GIT_REPOSITORY "https://github.com/J-Heinemann/wasm-micro-runtime"
+    GIT_TAG "5a3db31c096ec4d8a7b8b639aeaecd3fdda06b30"
+)
+
 FetchContent_Declare(faabric_ext
     GIT_REPOSITORY "https://github.com/faasm/faabric.git"
     GIT_TAG "v0.0.10"
     CMAKE_ARGS "-DFAABRIC_BUILD_TESTS=OFF"
 )
 
-FetchContent_MakeAvailable(wavm_ext faabric_ext)
+FetchContent_MakeAvailable(wavm_ext faabric_ext wamr_ext)
 
-# Need access to private WAVM headers
+# Allow access to headers nested in other projects
 FetchContent_GetProperties(wavm_ext SOURCE_DIR FAASM_WAVM_SOURCE_DIR)
 message(STATUS FAASM_WAVM_SOURCE_DIR ${FAASM_WAVM_SOURCE_DIR})
+
+FetchContent_GetProperties(wamr_ext SOURCE_DIR WAMR_ROOT_DIR)
+message(STATUS WAMR_ROOT_DIR ${WAMR_ROOT_DIR})
+
+FetchContent_GetProperties(faabric_ext BINARY_DIR FAABRIC_BINARY_DIR)
+message(STATUS FAABRIC_BINARY_DIR ${FAABRIC_BINARY_DIR})
 
 # SGX-specific dependencies
 if(FAASM_SGX_XRA)
