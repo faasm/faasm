@@ -31,8 +31,3 @@ wasm
 # Benchmarking
 perf
 perf.*
-
-# Submodules
-third-party
-!third-party/wamr
-

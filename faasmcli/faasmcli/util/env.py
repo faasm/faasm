@@ -11,7 +11,6 @@ def _get_dir(variable, default):
 
 HOME_DIR = expanduser("~")
 PROJ_ROOT = dirname(dirname(dirname(dirname(realpath(__file__)))))
-THIRD_PARTY_DIR = join(PROJ_ROOT, "third-party")
 ANSIBLE_ROOT = join(PROJ_ROOT, "ansible")
 
 PYTHON_USER = "python"
