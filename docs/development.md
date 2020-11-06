@@ -14,9 +14,6 @@ up, you need to run:
 git clone https://github.com/faasm/faasm
 cd faasm
 
-# Update submodules
-git submodule update --init
-
 # Start the CLI
 ./bin/cli.sh
 ```
