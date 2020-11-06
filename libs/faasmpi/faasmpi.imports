@@ -5,9 +5,11 @@ MPI_Barrier
 MPI_Bcast
 MPI_Init
 MPI_Initialized
+MPI_Get_version
 MPI_Finalize
 MPI_Finalized
 MPI_Send
+MPI_Rsend
 MPI_Recv
 MPI_Sendrecv
 MPI_Comm_rank
@@ -25,9 +27,16 @@ MPI_Gatherv
 MPI_Allgather
 MPI_Allgatherv
 MPI_Reduce
+MPI_Reduce_scatter
 MPI_Allreduce
+MPI_Scan
 MPI_Alltoall
 MPI_Alltoallv
+
+MPI_Cart_create
+MPI_Cart_rank
+MPI_Cart_get
+MPI_Cart_shift
 
 MPI_Op_create
 MPI_Op_free
@@ -47,6 +56,7 @@ MPI_Win_shared_query
 MPI_Get_processor_name
 MPI_Win_get_attr
 MPI_Free_mem
+MPI_Request_free
 MPI_Type_contiguous
 MPI_Type_commit
 MPI_Type_free
@@ -55,11 +65,16 @@ MPI_Wtime
 MPI_Isend
 MPI_Irecv
 MPI_Wait
+MPI_Waitall
+MPI_Waitany
 
 MPI_Comm_create
 MPI_Comm_dup
 MPI_Comm_group
 MPI_Group_incl
+
+MPI_Comm_f2c
+MPI_Comm_c2f
 
 # Non-MPI functions
 posix_memalign
