@@ -13,12 +13,20 @@ else
     TARGET_DIR=$1
 fi
 
+pushd ${TARGET_DIR} >> /dev/null
+
+FILES=$(git ls-files "*.h" "*.cpp" "*.c")
+
 # Run clang-tidy on a set of files
 run-clang-tidy-10.py \
-    -header-filter '.*' \
+    -j `nproc` \
+    -fix \
+    -export-fixes clang_tidy_out.yml \
     -format \
     -style 'file' \
     -config '' \
     -p ${BUILD_PATH} \
-    $1 
+    ${FILES}
+
+popd >> /dev/null
 
