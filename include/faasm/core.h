@@ -241,43 +241,48 @@ extern "C"
 #define FAASM_ZYGOTE() int _faasm_zygote()
 
 // Macro for extra faasm functions that can be chained
+// Note that export_name is only valid for WebAssembly
 #ifdef __wasm__
 
-#define FAASM_FUNC(name, id)                                                   \
-    __attribute__((visibility("default")))                                     \
-      __attribute__((export_name(#id))) void                                   \
-      name(void)
+#define FAASM_FUNC(name, id)                        \
+    __attribute__((visibility("default")))          \
+    __attribute__((export_name(#id)))               \
+    int name(void)                                  
 
-#define FAASM_MAIN_FUNC()                                                      \
-    __attribute__((visibility("hidden")))                                      \
-      __attribute__((export_name("0"))) int                                    \
-      _main(void)
+#define FAASM_MAIN_FUNC()                           \
+    __attribute__((visibility("hidden")))           \
+    __attribute__((export_name("0")))               \
+    int _main(void)
 
 #else
 
-#define FAASM_FUNC(name, id)                                                   \
-    void _##name##_wrapper(void);                                              \
-    __attribute__((visibility("default")))                                     \
-      __attribute__((export_name(#id))) void                                   \
-      name(void)                                                               \
-    {                                                                          \
-        _faasm_zygote();                                                       \
-        _##name##_wrapper();                                                   \
-    }                                                                          \
-    __attribute__((visibility("hidden")))                                      \
-      __attribute__((always_inline)) void _##name##_wrapper(void)
+#define FAASM_FUNC(name, id)                        \
+    int _##name##_wrapper(void);                    \
+                                                    \
+    __attribute__((visibility("default")))          \
+    int name(void)                                  \
+    {                                               \
+        _faasm_zygote();                            \
+        return _##name##_wrapper();                 \
+    }                                               \
+                                                    \
+    __attribute__((visibility("hidden")))           \
+    __attribute__((always_inline))                  \
+    int _##name##_wrapper(void)
 
-#define FAASM_MAIN_FUNC()                                                      \
-    int _main_wrapper(void);                                                   \
-    __attribute__((visibility("hidden")))                                      \
-      __attribute__((export_name("0"))) int                                    \
-      _main(void)                                                              \
-    {                                                                          \
-        _faasm_zygote();                                                       \
-        _main_wrapper();                                                       \
-    }                                                                          \
-    __attribute__((visibility("hidden"))) __attribute__((always_inline)) int   \
-    _main_wrapper(void)
+#define FAASM_MAIN_FUNC()                           \
+    int _main_wrapper(void);                        \
+                                                    \
+    __attribute__((visibility("hidden")))           \
+    int _main(void)                                 \
+    {                                               \
+        _faasm_zygote();                            \
+        return _main_wrapper();                     \
+    }                                               \
+                                                    \
+    __attribute__((visibility("hidden")))           \
+    __attribute__((always_inline))                  \
+    int _main_wrapper(void)
 
 #endif
 
