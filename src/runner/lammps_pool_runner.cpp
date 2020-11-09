@@ -15,7 +15,7 @@ int main()
 
     // Set up the message
     auto msg = faabric::util::messageFactory("lammps", "test");
-    msg.set_cmdline("-in faasm://lammps-data/in.balance");
+    msg.set_cmdline("-in faasm://lammps-data/in.controller");
     logger->info("Running function lammps/test");
 
     // Set up the scheduler

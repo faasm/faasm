@@ -1214,6 +1214,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
  * attached.
  *
  * TODO not implemented.
+ * Reference implementation:
+ * https://github.com/open-mpi/ompi/blob/master/ompi/mca/topo/base/topo_base_cart_create.c
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "MPI_Cart_create",
@@ -1234,6 +1236,22 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                       reorder,
                                       comm);
 
+    /** Assumptions:
+     *
+     * For the current use case (LAMMPS), no reorder - ability for MPI to
+     * dynamically change the topology - is supported. Hence we expect the
+     * value to be set to zero.
+     *
+     * Additionally, we don't (TODO) support periodic dimensions.
+     */
+    if (reorder == 1) {
+        throw std::runtime_error("Reordering is not supported for cartesian topologies");
+    }
+
+    /** Steps:
+     * 1. Calculate the number of processes in the grid.
+     * 2. Check if sufficient processes in the world to accomodate the grid.
+     */
     throw std::runtime_error("MPI_Cart_create not implemented!");
 
     return MPI_SUCCESS;
