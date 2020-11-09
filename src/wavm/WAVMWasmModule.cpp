@@ -780,9 +780,9 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
                 break;
             }
             case (1): {
-                // NOTE - when we've got a function pointer, we assume the args
-                // are a single integer held in the input data (resulting from a
-                // chained thread invocation)
+                // NOTE - when we've got a function pointer that takes a single
+                // argument we assume the args, we assume it's a chained thread
+                // invocation.
                 if (msg.inputdata().empty()) {
                     invokeArgs = { 0 };
                 } else {
@@ -803,7 +803,7 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
         // Set up main args
         prepareArgcArgv(msg);
 
-        // Get the main entrypoint function 
+        // Get the main entrypoint function
         funcInstance = getMainFunction(moduleInstance);
         funcType = IR::FunctionType({}, {});
     }

@@ -69,4 +69,3 @@ FAASM_MAIN_FUNC()
 
     return 0;
 }
-

@@ -351,15 +351,15 @@ long __faasm_read_input(unsigned char* buffer, long bufferLen)
 }
 
 unsigned int __faasm_chain_name(const char* name,
-                                 const unsigned char* inputData,
-                                 long inputDataSize)
+                                const unsigned char* inputData,
+                                long inputDataSize)
 {
     throw std::runtime_error("Chaining not supported in emulator");
 }
 
 unsigned int __faasm_chain_ptr(int (*funcPtr)(),
-                                const unsigned char* buffer,
-                                long bufferLen)
+                               const unsigned char* buffer,
+                               long bufferLen)
 {
     throw std::runtime_error("Chaining not supported in emulator");
 }

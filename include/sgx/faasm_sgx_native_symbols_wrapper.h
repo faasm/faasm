@@ -217,10 +217,10 @@ extern "C"
                                                  const uint8_t* input,
                                                  unsigned int input_size);
 
-    static unsigned int __faasm_chain_ptr_wrapper(wasm_exec_env_t exec_env,
-                                                  int wasmFuncPtr,
-                                                  const uint8_t* input,
-                                                  unsigned int input_size);
+    static unsigned int faasm_chain_ptr_wrapper(wasm_exec_env_t exec_env,
+                                                int wasmFuncPtr,
+                                                const uint8_t* input,
+                                                unsigned int input_size);
 
     static unsigned int faasm_await_call_wrapper(wasm_exec_env_t exec_env,
                                                  unsigned int callId);

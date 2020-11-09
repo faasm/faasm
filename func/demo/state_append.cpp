@@ -73,4 +73,3 @@ FAASM_MAIN_FUNC()
     delete[] buffer;
     return 0;
 }
-

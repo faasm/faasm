@@ -222,15 +222,15 @@ extern "C"
 
 #else
 
-#define FAASM_MAIN_FUNC                                                     \
-    int _faasm_main_wrapper();                                              \
-                                                                            \
-    int faasm_main()                                                        \
-    {                                                                       \
-        _faasm_zygote();                                                    \
-        return _faasm_main_wrapper();                                       \
-    }                                                                       \
-                                                                            \
+#define FAASM_MAIN_FUNC                                                        \
+    int _faasm_main_wrapper();                                                 \
+                                                                               \
+    int faasm_main()                                                           \
+    {                                                                          \
+        _faasm_zygote();                                                       \
+        return _faasm_main_wrapper();                                          \
+    }                                                                          \
+                                                                               \
     int _faasm_main_wrapper
 
 #endif
