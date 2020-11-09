@@ -13,6 +13,11 @@ extern "C"
 #define BYTES(arr) reinterpret_cast<uint8_t*>(arr)
 
     /**
+     * Definition of a Faasm function pointer
+     */
+    typedef int (*FaasmFuncPtr)();
+
+    /**
      * Gets the size of the state at the given key
      */
     size_t faasmReadStateSize(const char* key);
@@ -163,16 +168,16 @@ extern "C"
     /**
      * Chains a function with the given input data
      */
-    unsigned int faasmChainFunctionInput(const char* name,
-                                         const uint8_t* inputData,
-                                         long inputDataSize);
+    unsigned int faasmChainNamed(const char* name,
+                                 const uint8_t* inputData,
+                                 long inputDataSize);
 
     /**
      * Chains a function from this module with the given input data
      */
-    unsigned int faasmChainThisInput(int idx,
-                                     const uint8_t* inputData,
-                                     long inputDataSize);
+    unsigned int faasmChain(FaasmFuncPtr funcPtr,
+                            const uint8_t* inputData,
+                            long inputDataSize);
 
     /**
      * Blocks waiting for the call
@@ -185,11 +190,6 @@ extern "C"
     unsigned int faasmAwaitCallOutput(unsigned int messageId,
                                       uint8_t* buffer,
                                       long bufferLen);
-
-    /**
-     * Gets the index of the current function
-     */
-    int faasmGetCurrentIdx();
 
     /**
      * Returns the python user
@@ -211,85 +211,32 @@ extern "C"
      */
     unsigned int getConfFlag(const char* key);
 
-    /**
-     * Extra faasm functions
-     */
-    typedef int (*_FaasmFuncPtr)();
-
-    int __attribute__((weak)) _faasm_func_0();
-
-    int __attribute__((weak)) _faasm_func_1();
-
-    int __attribute__((weak)) _faasm_func_2();
-
-    int __attribute__((weak)) _faasm_func_3();
-
-    int __attribute__((weak)) _faasm_func_4();
-
-    int __attribute__((weak)) _faasm_func_5();
-
-    int __attribute__((weak)) _faasm_func_6();
-
-    int __attribute__((weak)) _faasm_func_7();
-
-    int __attribute__((weak)) _faasm_func_8();
-
-    int __attribute__((weak)) _faasm_func_9();
-
     // Macro for defining zygotes (a default fallback noop is provided)
     int __attribute__((weak)) _faasm_zygote();
 #define FAASM_ZYGOTE() int _faasm_zygote()
 
-// Macro for extra faasm functions that can be chained
 // Note that export_name is only valid for WebAssembly
 #ifdef __wasm__
 
-#define FAASM_FUNC(name, id)                        \
-    __attribute__((visibility("default")))          \
-    __attribute__((export_name(#id)))               \
-    int name(void)                                  
-
-#define FAASM_MAIN_FUNC()                           \
-    __attribute__((visibility("hidden")))           \
-    __attribute__((export_name("0")))               \
-    int _main(void)
+#define FAASM_MAIN_FUNC int faasm_main
 
 #else
 
-#define FAASM_FUNC(name, id)                        \
-    int _##name##_wrapper(void);                    \
-                                                    \
-    __attribute__((visibility("default")))          \
-    int name(void)                                  \
-    {                                               \
-        _faasm_zygote();                            \
-        return _##name##_wrapper();                 \
-    }                                               \
-                                                    \
-    __attribute__((visibility("hidden")))           \
-    __attribute__((always_inline))                  \
-    int _##name##_wrapper(void)
-
-#define FAASM_MAIN_FUNC()                           \
-    int _main_wrapper(void);                        \
-                                                    \
-    __attribute__((visibility("hidden")))           \
-    int _main(void)                                 \
-    {                                               \
-        _faasm_zygote();                            \
-        return _main_wrapper();                     \
-    }                                               \
-                                                    \
-    __attribute__((visibility("hidden")))           \
-    __attribute__((always_inline))                  \
-    int _main_wrapper(void)
+#define FAASM_MAIN_FUNC                                                     \
+    int _faasm_main_wrapper();                                              \
+                                                                            \
+    int faasm_main()                                                        \
+    {                                                                       \
+        _faasm_zygote();                                                    \
+        return _faasm_main_wrapper();                                       \
+    }                                                                       \
+                                                                            \
+    int _faasm_main_wrapper
 
 #endif
 
-    _FaasmFuncPtr getFaasmFunc(int idx);
-
     // Faasm entrypoint
-    extern int _main(void);
+    extern int faasm_main(void);
 
 #ifdef __cplusplus
 }

@@ -31,15 +31,6 @@ int checkChained(int funcIdx)
         return -1;
     }
 
-    // Check that Faasm is reporting the correct idx
-    int actualIdx = faasmGetCurrentIdx();
-    if (actualIdx != funcIdx) {
-        printf("ERROR - chained call idx does not match expected (actual=%i, "
-               "expected=%i)\n",
-               actualIdx,
-               funcIdx);
-    }
-
     return 0;
 }
 

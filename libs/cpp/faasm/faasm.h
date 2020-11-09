@@ -12,7 +12,7 @@ int main(int argc, char* argv[])
     faasm_argc = argc;
     faasm_argv = argv;
 
-    return _main();
+    return faasm_main();
 }
 
 #endif

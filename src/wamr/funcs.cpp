@@ -5,18 +5,6 @@
 #include <wasm_export.h>
 
 namespace wasm {
-/**
- * Returns the index of the current function (this is zero unless it's a
- * function chained from within the same module).
- */
-static int32_t __faasm_get_idx_wrapper(wasm_exec_env_t exec_env)
-{
-    faabric::util::getLogger()->debug("S - faasm_get_idx");
-
-    faabric::Message* call = getExecutingCall();
-    int idx = call->idx();
-    return idx;
-}
 
 /**
  * Read the function input
@@ -58,7 +46,6 @@ static void __faasm_write_output_wrapper(wasm_exec_env_t exec_env,
 }
 
 static NativeSymbol ns[] = {
-    REG_NATIVE_FUNC(__faasm_get_idx, "()i"),
     REG_NATIVE_FUNC(__faasm_write_output, "($i)"),
     REG_NATIVE_FUNC(__faasm_read_input, "($i)i"),
 };

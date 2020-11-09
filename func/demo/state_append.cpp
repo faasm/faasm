@@ -5,6 +5,21 @@
 
 #define APPEND_KEY "dummy_append"
 
+int appender()
+{
+    long appendCount = faasm::getTypedInput<long>(0);
+    if (appendCount == 0) {
+        printf("Append count was zero\n");
+        return 1;
+    }
+
+    for (long i = 0; i < appendCount; i++) {
+        faasmAppendState(APPEND_KEY, BYTES(&i), sizeof(long));
+    }
+
+    return 0;
+}
+
 FAASM_MAIN_FUNC()
 {
     // Chain the calls to do the appending
@@ -12,9 +27,9 @@ FAASM_MAIN_FUNC()
     long appendCountB = 200;
 
     unsigned int callIdA =
-      faasmChainThisInput(1, (uint8_t*)&appendCountA, sizeof(long));
+      faasmChain(appender, (uint8_t*)&appendCountA, sizeof(long));
     unsigned int callIdB =
-      faasmChainThisInput(1, (uint8_t*)&appendCountB, sizeof(long));
+      faasmChain(appender, (uint8_t*)&appendCountB, sizeof(long));
 
     // Wait for calls to finish
     unsigned int resultA = faasmAwaitCall(callIdA);
@@ -59,17 +74,3 @@ FAASM_MAIN_FUNC()
     return 0;
 }
 
-FAASM_FUNC(appender, 1)
-{
-    long appendCount = faasm::getTypedInput<long>(0);
-    if (appendCount == 0) {
-        printf("Append count was zero\n");
-        return 1;
-    }
-
-    for (long i = 0; i < appendCount; i++) {
-        faasmAppendState(APPEND_KEY, BYTES(&i), sizeof(long));
-    }
-
-    return 0;
-}

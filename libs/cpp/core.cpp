@@ -167,23 +167,18 @@ unsigned int faasmAwaitCallOutput(unsigned int messageId,
     return __faasm_await_call_output(messageId, buffer, bufferLen);
 }
 
-unsigned int faasmChainFunctionInput(const char* name,
-                                     const uint8_t* inputData,
-                                     long inputDataSize)
+unsigned int faasmChainNamed(const char* name,
+                             const uint8_t* inputData,
+                             long inputDataSize)
 {
-    return __faasm_chain_function(name, inputData, inputDataSize);
+    return __faasm_chain_name(name, inputData, inputDataSize);
 }
 
-unsigned int faasmChainThisInput(int idx,
-                                 const uint8_t* inputData,
-                                 long inputDataSize)
+unsigned int faasmChain(FaasmFuncPtr funcPtr,
+                        const uint8_t* inputData,
+                        long inputDataSize)
 {
-    return __faasm_chain_this(idx, inputData, inputDataSize);
-}
-
-int faasmGetCurrentIdx()
-{
-    return __faasm_get_idx();
+    return __faasm_chain_ptr(funcPtr, inputData, inputDataSize);
 }
 
 char* faasmGetPythonUser()
@@ -210,14 +205,4 @@ char* faasmGetPythonEntry()
 unsigned int getConfFlag(const char* key)
 {
     return __faasm_conf_flag(key);
-}
-
-_FaasmFuncPtr getFaasmFunc(int idx)
-{
-    int (*_faasm_funcs[10])() = { _faasm_func_0, _faasm_func_1, _faasm_func_2,
-                                  _faasm_func_3, _faasm_func_4, _faasm_func_5,
-                                  _faasm_func_6, _faasm_func_7, _faasm_func_8,
-                                  _faasm_func_9 };
-
-    return _faasm_funcs[idx];
 }

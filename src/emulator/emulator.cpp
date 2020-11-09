@@ -28,12 +28,8 @@ extern "C"
  */
 
 // Note thread-locality here
-static thread_local faabric::Message _emulatedCall = faabric::Message();
-static thread_local faabric::state::State* _emulatedState = nullptr;
-
-static std::mutex threadsMutex;
-static std::unordered_map<int, std::thread> threads;
-static int threadCount = 1;
+static faabric::Message _emulatedCall = faabric::Message();
+static faabric::state::State* _emulatedState = nullptr;
 
 #define DUMMY_USER "emulated"
 
@@ -44,8 +40,6 @@ static int threadCount = 1;
 void resetEmulator()
 {
     _emulatedCall = faabric::Message();
-    threads.clear();
-    threadCount = 1;
 }
 
 std::vector<uint8_t> getEmulatorOutputData()
@@ -356,197 +350,42 @@ long __faasm_read_input(unsigned char* buffer, long bufferLen)
     return bufferLen;
 }
 
-unsigned int _chain_local(int idx,
-                          const char* pyName,
-                          const unsigned char* buffer,
-                          long bufferLen)
+unsigned int __faasm_chain_named(const char* name,
+                                 const unsigned char* inputData,
+                                 long inputDataSize)
 {
-    faabric::util::getLogger()->debug(
-      "E - chain_this_local idx {} input len {}", idx, bufferLen);
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-
-    if (pyName != nullptr) {
-        throw std::runtime_error("Not yet implemented");
-    }
-
-    // Create a fake thread ID for this thread
-    int thisCallId;
-    {
-        faabric::util::UniqueLock threadsLock(threadsMutex);
-
-        threadCount++;
-        thisCallId = threadCount;
-
-        // Spawn a thread to execute the function
-        threads.emplace(
-          std::pair<int, std::thread>(thisCallId, [idx, buffer, bufferLen] {
-              // Set up input data for this thread (thread-local)
-              _emulatedCall.set_inputdata(buffer, bufferLen);
-              _emulatedCall.set_idx(idx);
-
-              // Invoke the function
-              _FaasmFuncPtr f = getFaasmFunc(idx);
-              f();
-          }));
-    }
-
-    logger->debug("Chained local function {} with call ID {}", idx, thisCallId);
-    return thisCallId;
-}
-
-unsigned int _chain_knative(const std::string& funcName,
-                            int idx,
-                            const char* pyName,
-                            const unsigned char* buffer,
-                            long bufferLen)
-{
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug(
-      "E - chain_this_knative idx {} input length {}", idx, bufferLen);
-
-    const std::string host = faabric::util::getEnvVar("FAASM_INVOKE_HOST", "");
-    const std::string port = faabric::util::getEnvVar("FAASM_INVOKE_PORT", "");
-
-    if (host.empty() || port.empty()) {
-        logger->error(
-          "Expected FAASM_INVOKE_HOST and FAASM_INVOKE_PORT to be set");
-        throw std::runtime_error("Missing invoke host and port");
-    }
-
-    int portInt = std::stoi(port);
-
-    // Build the message to dispatch
-    faabric::Message msg =
-      faabric::util::messageFactory(_emulatedCall.user(), funcName);
-    msg.set_idx(idx);
-    msg.set_inputdata(buffer, bufferLen);
-    msg.set_ispython(_emulatedCall.ispython());
-    msg.set_pythonuser(_emulatedCall.pythonuser());
-    msg.set_pythonfunction(_emulatedCall.pythonfunction());
-
-    if (pyName != nullptr) {
-        msg.set_pythonentry(pyName);
-    }
-
-    // Chained calls are always async and can be awaited by the caller
-    msg.set_isasync(true);
-
-    std::string msgJson = faabric::util::messageToJson(msg);
-    logger->debug("POST {}:{} ({})", host, portInt, msgJson);
-
-    // Flush stdout before chaining
-    fflush(stdout);
-
-    // Make the call
-    faabric::util::postJsonFunctionCall(host, portInt, msg);
-    return msg.id();
-}
-
-unsigned int __faasm_chain_function(const char* name,
-                                    const unsigned char* inputData,
-                                    long inputDataSize)
-{
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    if (conf.hostType == "knative") {
-        return _chain_knative(name, 0, 0, inputData, inputDataSize);
-    } else {
-        throw std::runtime_error("Chaining by name not supported in emulator");
-    }
+    throw std::runtime_error("Chaining not supported in emulator");
 }
 
 unsigned int __faasm_chain_this(int idx,
                                 const unsigned char* buffer,
                                 long bufferLen)
 {
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    if (conf.hostType == "knative") {
-        return _chain_knative(
-          _emulatedCall.function(), idx, nullptr, buffer, bufferLen);
-    } else {
-        return _chain_local(idx, nullptr, buffer, bufferLen);
-    }
+    throw std::runtime_error("Chaining not supported in emulator");
 }
 
 unsigned int __faasm_chain_py(const char* name,
                               const unsigned char* buffer,
                               long bufferLen)
 {
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    if (conf.hostType == "knative") {
-        return _chain_knative(
-          _emulatedCall.function(), 0, name, buffer, bufferLen);
-    } else {
-        return _chain_local(0, name, buffer, bufferLen);
-    }
-}
-
-int _await_call_knative(unsigned int callId)
-{
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug("E - await_call_knative {}", callId);
-    int timeoutMs = faabric::util::getSystemConfig().chainedCallTimeout;
-
-    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-    int returnCode = 1;
-    try {
-        const faabric::Message result =
-          sch.getFunctionResult(callId, timeoutMs);
-        returnCode = result.returnvalue();
-    } catch (faabric::redis::RedisNoResponseException& ex) {
-        logger->error("Timed out waiting for chained call: {}", callId);
-    } catch (std::exception& ex) {
-        logger->error("Non-timeout exception waiting for chained call: {}",
-                      ex.what());
-    }
-
-    logger->debug("Await returned {} for {}", returnCode, callId);
-
-    return returnCode;
+    throw std::runtime_error("Chaining not supported in emulator");
 }
 
 int _await_call_local(unsigned int callId)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug("E - await_call_local {}", callId);
-
-    // Check this is valid
-    if (threads.count(callId) == 0) {
-        logger->error("Call with id {} doesn't exist", callId);
-        throw std::runtime_error("Awaiting non-existent call");
-    }
-
-    // Join the thread to await its completion
-    std::thread& t = threads[callId];
-    if (t.joinable()) {
-        t.join();
-    } else {
-        logger->error("Call with id {} not joinable", callId);
-        throw std::runtime_error("Cannot join thread");
-    }
-
-    return 0;
+    throw std::runtime_error("Chaining not supported in emulator");
 }
 
 int __faasm_await_call(unsigned int callId)
 {
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    if (conf.hostType == "knative") {
-        return _await_call_knative(callId);
-    } else {
-        return _await_call_local(callId);
-    }
+    throw std::runtime_error("Chaining not supported in emulator");
 }
 
 int __faasm_await_call_output(unsigned int messageId,
                               unsigned char* buffer,
                               long bufferLen)
 {
-    throw std::runtime_error("Get call output not implemented in emulator");
-}
-
-int __faasm_get_idx()
-{
-    return _emulatedCall.idx();
+    throw std::runtime_error("Chaining not supported in emulator");
 }
 
 void __faasm_lock_state_global(const char* key) {}
