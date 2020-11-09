@@ -49,7 +49,6 @@ def local(ctx, wamr=False):
     _do_codegen_user("errors", wamr=wamr)
     _do_codegen_user("omp", wamr=wamr)
     _do_codegen_user("mpi", wamr=wamr)
-    _do_codegen_user("rust", wamr=wamr)
 
     # Always run the codegen required by the tests
     codegen(ctx, "demo", "echo", wamr=True)

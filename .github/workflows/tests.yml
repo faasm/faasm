@@ -49,6 +49,19 @@ jobs:
         run: ./bin/run_clang_format.sh
       - name: "Check C/C++ formatting changes"
         run: git diff --exit-code
+      # --- Function compilation ---
+      - name: "Compile demo code"
+        run: inv compile.user demo
+      - name: "Compile errors code"
+        run: inv compile.user errors
+      - name: "Compile MPI code"
+        run: inv compile.user mpi
+      - name: "Compile Python function"
+        run: inv compile python py_func
+      - name: "Compile SGD function"
+        run: inv compile sgd reuters_svm
+      - name: "Compile OMP functions"
+        run: inv compile.user omp
       # --- Code build ---
       - name: "Build codegen"
         run: cmake --build . --target codegen_func
