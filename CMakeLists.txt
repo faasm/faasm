@@ -40,8 +40,6 @@ set(FAASM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
 set(FAASM_LIB_CPP_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/cpp)
 set(FAASM_LIB_FAASMP_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/faasmp)
 set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/pyinit)
-set(FAASM_WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
-set(FAASM_XRA_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/xra)
 
 # SGX configuration
 if (FAASM_SGX_SUPPORT)
@@ -71,7 +69,7 @@ if (FAASM_SGX_SUPPORT)
     endif()
 
     if(FAASM_SGX_WHITELISTING AND FAASM_SGX_WAMR_AOT_MODE)
-        message(FATAL_ERROR "Faasm-SGX: Whitelisting is not available in Faasm-SGX WAMR AoT execution mode")
+        message(FATAL_ERROR "Whitelisting is not compatible with WAMR AoT execution mode")
     endif()
 else ()
     set(CMAKE_CXX_FLAGS "-Wall -Werror")
@@ -82,24 +80,8 @@ endif ()
 # WAMR configuration
 # ----------------------------------------
 
-# See https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/build_wamr.md
-set(WAMR_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/wamr)
-set(WAMR_SHARED_DIR ${WAMR_ROOT_DIR}/core/shared)
-set(WAMR_IWASM_DIR ${WAMR_ROOT_DIR}/core/iwasm)
-set(WAMR_BUILD_TARGET X86_64)
-set(WAMR_NO_LLVM_IMPORT ON)
 add_definitions(-DBUILD_TARGET_X86_64)
-
-# Enable ASM
 enable_language(ASM)
-
-# WAMR includes
-include_directories(
-        ${WAMR_SHARED_DIR}/include
-        ${WAMR_SHARED_DIR}/utils
-        ${WAMR_IWASM_DIR}/include
-        ${WAMR_IWASM_DIR}/common
-)
 
 #WAMR Interpreter / AoT Switch
 if(WAMR_INTERPRETER_MODE)
@@ -108,6 +90,9 @@ else()
     add_definitions(-DWAMR_EXECUTION_MODE_INTERP=0)
 endif()
 
+# ----------------------------------------
+# Faasm configuration
+# ----------------------------------------
 
 # Library type (for shared libraries)
 if (FAASM_STATIC_LIBS)
@@ -159,8 +144,21 @@ add_definitions(${LLVM_DEFINITIONS})
 # Third party deps
 include(cmake/ExternalProjects.cmake)
 
+# See https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/build_wamr.md
+set(WAMR_SHARED_DIR ${WAMR_ROOT_DIR}/core/shared)
+set(WAMR_IWASM_DIR ${WAMR_ROOT_DIR}/core/iwasm)
+set(WAMR_BUILD_TARGET X86_64)
+set(WAMR_NO_LLVM_IMPORT ON)
+
+# WAMR includes
+include_directories(
+        ${WAMR_SHARED_DIR}/include
+        ${WAMR_SHARED_DIR}/utils
+        ${WAMR_IWASM_DIR}/include
+        ${WAMR_IWASM_DIR}/common
+)
+
 # Add Faabric src include for protobuf generated sources
-FetchContent_GetProperties(faabric_ext BINARY_DIR FAABRIC_BINARY_DIR)
 include_directories(${FAABRIC_BINARY_DIR}/src)
 
 # More include directories
@@ -202,10 +200,6 @@ else ()
     # Faasm SGX support
     if (FAASM_SGX_SUPPORT)
         add_subdirectory(src/sgx)
-
-        if(FAASM_SGX_XRA)
-            add_subdirectory(third-party/xra)
-        endif()
     endif ()
 
     # Tests

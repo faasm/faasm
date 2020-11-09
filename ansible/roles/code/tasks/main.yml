@@ -27,11 +27,6 @@
     mode: 0755
   when: quick_deploy is not defined
 
-- name: "Submodules"
-  shell: "git submodule update --init"
-  args:
-    chdir: "/usr/local/code/faasm"
-
 - name: "Set up filesystem directories"
   become: yes
   file:
