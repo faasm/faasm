@@ -2,14 +2,14 @@
 #include <faasm/faasm.h>
 #include <stdio.h>
 
-FAASM_FUNC(otherA, 1)
+int otherA()
 {
     uint8_t outputA[5] = { 0, 1, 2, 3, 4 };
     faasmSetOutput(outputA, 5);
     return 0;
 }
 
-FAASM_FUNC(otherB, 2)
+int otherB()
 {
     uint8_t outputB[3] = { 5, 4, 3 };
     faasmSetOutput(outputB, 3);
@@ -21,8 +21,8 @@ FAASM_FUNC(otherB, 2)
  */
 FAASM_MAIN_FUNC()
 {
-    unsigned int callIdA = faasmChainThisInput(1, nullptr, 0);
-    unsigned int callIdB = faasmChainThisInput(2, nullptr, 0);
+    unsigned int callIdA = faasmChain(otherA, nullptr, 0);
+    unsigned int callIdB = faasmChain(otherB, nullptr, 0);
 
     uint8_t expectedA[5] = { 0, 1, 2, 3, 4 };
     uint8_t actualA[5] = { 0, 0, 0, 0, 0 };

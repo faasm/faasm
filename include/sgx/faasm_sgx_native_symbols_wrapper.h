@@ -1,5 +1,6 @@
 #pragma once
 
+#include "faasm/host_interface.h"
 #include <iwasm/include/wasm_export.h>
 #include <sgx.h>
 #include <sgx_defs.h>
@@ -99,16 +100,16 @@ extern "C"
     ocall_faasm_write_output(uint8_t* output, unsigned int output_size);
 
     extern sgx_status_t SGX_CDECL
-    ocall_faasm_chain_function(unsigned int* returnValue,
-                               const char* name,
-                               const uint8_t* input,
-                               unsigned int input_size);
-
-    extern sgx_status_t SGX_CDECL
-    ocall_faasm_chain_this(unsigned int* returnValue,
-                           const int idx,
+    ocall_faasm_chain_name(unsigned int* returnValue,
+                           const char* name,
                            const uint8_t* input,
                            unsigned int input_size);
+
+    extern sgx_status_t SGX_CDECL
+    ocall_faasm_chain_ptr(unsigned int* returnValue,
+                          const int wasmFuncPtr,
+                          const uint8_t* input,
+                          unsigned int input_size);
 
     extern sgx_status_t SGX_CDECL
     ocall_faasm_await_call(unsigned int* returnValue, unsigned int callId);
@@ -118,8 +119,6 @@ extern "C"
                                   unsigned int callId,
                                   uint8_t* buffer,
                                   unsigned int buffer_size);
-
-    extern sgx_status_t SGX_CDECL ocall_faasm_get_idx(int* returnValue);
 
     // --------------------------------------
     // FAASM HOST INTERFACE
@@ -213,15 +212,15 @@ extern "C"
                                            uint8_t* output,
                                            unsigned int output_size);
 
-    static unsigned int faasm_chain_function_wrapper(wasm_exec_env_t exec_env,
-                                                     const char* name,
-                                                     const uint8_t* input,
-                                                     unsigned int input_size);
-
-    static unsigned int faasm_chain_this_wrapper(wasm_exec_env_t exec_env,
-                                                 int idx,
+    static unsigned int faasm_chain_name_wrapper(wasm_exec_env_t exec_env,
+                                                 const char* name,
                                                  const uint8_t* input,
                                                  unsigned int input_size);
+
+    static unsigned int __faasm_chain_ptr_wrapper(wasm_exec_env_t exec_env,
+                                                  int wasmFuncPtr,
+                                                  const uint8_t* input,
+                                                  unsigned int input_size);
 
     static unsigned int faasm_await_call_wrapper(wasm_exec_env_t exec_env,
                                                  unsigned int callId);
@@ -231,8 +230,6 @@ extern "C"
       unsigned int callId,
       uint8_t* buffer,
       unsigned int buffer_size);
-
-    static int faasm_get_idx_wrapper(wasm_exec_env_t exec_env);
 
     // --------------------------------------
     // WHITELISTING

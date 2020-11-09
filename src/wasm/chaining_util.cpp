@@ -1,4 +1,4 @@
-#include "WasmModule.h"
+#include "WasmModule.h" 
 
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/bytes.h>
@@ -26,7 +26,7 @@ int awaitChainedCall(unsigned int messageId)
 }
 
 int makeChainedCall(const std::string& functionName,
-                    int idx,
+                    int wasmFuncPtr,
                     const char* pyFuncName,
                     const std::vector<uint8_t>& inputData)
 {
@@ -38,7 +38,7 @@ int makeChainedCall(const std::string& functionName,
     faabric::Message call =
       faabric::util::messageFactory(originalCall->user(), functionName);
     call.set_inputdata(inputData.data(), inputData.size());
-    call.set_idx(idx);
+    call.set_funcptr(wasmFuncPtr);
     call.set_isasync(true);
 
     call.set_pythonuser(originalCall->pythonuser());

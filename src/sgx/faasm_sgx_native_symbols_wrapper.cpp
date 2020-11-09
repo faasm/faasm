@@ -76,17 +76,6 @@ extern "C"
         }
     }
 
-    static int faasm_get_idx_wrapper(wasm_exec_env_t exec_env)
-    {
-        sgx_status_t sgxReturnValue;
-        int returnValue;
-        if ((sgxReturnValue = ocall_faasm_get_idx(&returnValue)) !=
-            SGX_SUCCESS) {
-            SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
-        }
-        return returnValue;
-    }
-
     // --------------------------------------
     // STATE
     // --------------------------------------
@@ -311,14 +300,14 @@ extern "C"
     // CHAINING
     // ------------------------------
 
-    static unsigned int faasm_chain_function_wrapper(wasm_exec_env_t exec_env,
-                                                     const char* name,
-                                                     const uint8_t* input,
-                                                     unsigned int input_size)
+    static unsigned int faasm_chain_name_wrapper(wasm_exec_env_t exec_env,
+                                                 const char* name,
+                                                 const uint8_t* input,
+                                                 unsigned int input_size)
     {
         sgx_status_t sgxReturnValue;
         unsigned int returnValue;
-        if ((sgxReturnValue = ocall_faasm_chain_function(
+        if ((sgxReturnValue = ocall_faasm_chain_name(
                &returnValue, name, input, input_size)) != SGX_SUCCESS) {
             SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
         }
@@ -326,15 +315,16 @@ extern "C"
         return 0;
     }
 
-    static unsigned int faasm_chain_this_wrapper(wasm_exec_env_t exec_env,
-                                                 int idx,
-                                                 const uint8_t* input_data,
-                                                 unsigned int input_size)
+    static unsigned int faasm_chain_ptr_wrapper(wasm_exec_env_t exec_env,
+                                                int wasmFuncPtr,
+                                                const uint8_t* input_data,
+                                                unsigned int input_size)
     {
-        sgx_status_t sgxReturnValue;
         unsigned int returnValue;
-        if ((sgxReturnValue = ocall_faasm_chain_this(
-               &returnValue, idx, input_data, input_size)) != SGX_SUCCESS) {
+        sgx_status_t sgxReturnValue = ocall_faasm_chain_ptr(
+          &returnValue, wasmFuncPtr, input_data, input_size);
+
+        if (sgxReturnValue != SGX_SUCCESS) {
             SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
         }
 
@@ -418,7 +408,6 @@ extern "C"
     NativeSymbol faasm_sgx_native_symbols[FAASM_SGX_NATIVE_SYMBOLS_LEN] = {
         NATIVE_FUNC(faasm_read_input, "($i)i"),
         NATIVE_FUNC(faasm_write_output, "($i)"),
-        NATIVE_FUNC(faasm_get_idx, "()i"),
         NATIVE_FUNC(faasm_read_state, "($$i)i"),
         NATIVE_FUNC(faasm_read_state_offset, "($ii$i)i"),
         NATIVE_FUNC(faasm_write_state, "($$i)"),
@@ -438,8 +427,8 @@ extern "C"
         NATIVE_FUNC(faasm_clear_appended_state, "($)"),
         NATIVE_FUNC(faasm_flag_state_dirty, "($i)"),
         NATIVE_FUNC(faasm_flag_state_offset_dirty, "($iii)"),
-        NATIVE_FUNC(faasm_chain_function, "($$i)i"),
-        NATIVE_FUNC(faasm_chain_this, "(i$i)i"),
+        NATIVE_FUNC(faasm_chain_name, "($$i)i"),
+        NATIVE_FUNC(faasm_chain_ptr, "(*$i)i"),
         NATIVE_FUNC(faasm_await_call, "(i)i"),
         NATIVE_FUNC(faasm_await_call_output, "(i)i")
     };

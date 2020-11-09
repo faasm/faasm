@@ -53,6 +53,29 @@ SgdParams setUpReutersParams(int nExamples,
     return p;
 }
 
+int step()
+{
+    // Read in input
+    long inputSize = 4 * sizeof(int);
+    auto inputBuffer = new int[4];
+    faasmGetInput(BYTES(inputBuffer), inputSize);
+
+    int batchNumber = inputBuffer[0];
+    int startIdx = inputBuffer[1];
+    int endIdx = inputBuffer[2];
+    int epoch = inputBuffer[3];
+
+    printf("SGD step: %i %i %i %i\n", batchNumber, startIdx, endIdx, epoch);
+
+    // Load params
+    SgdParams sgdParams = readParamsFromState(PARAMS_KEY, false);
+
+    // Perform updates
+    hingeLossWeightUpdate(sgdParams, startIdx, endIdx);
+
+    return 0;
+}
+
 FAASM_MAIN_FUNC()
 {
     long inputSize = faasmGetInputSize();
@@ -137,7 +160,7 @@ FAASM_MAIN_FUNC()
             // Chain the call
             int inputData[4] = { w, startIdx, endIdx, thisEpoch };
             unsigned int workerCallId =
-              faasmChainThisInput(1, BYTES(inputData), 4 * sizeof(int));
+              faasmChain(step, BYTES(inputData), 4 * sizeof(int));
             printf("Worker %i [%i-%i] with ID %i\n",
                    w,
                    startIdx,
@@ -192,25 +215,3 @@ FAASM_MAIN_FUNC()
     return 0;
 }
 
-FAASM_FUNC(step, 1)
-{
-    // Read in input
-    long inputSize = 4 * sizeof(int);
-    auto inputBuffer = new int[4];
-    faasmGetInput(BYTES(inputBuffer), inputSize);
-
-    int batchNumber = inputBuffer[0];
-    int startIdx = inputBuffer[1];
-    int endIdx = inputBuffer[2];
-    int epoch = inputBuffer[3];
-
-    printf("SGD step: %i %i %i %i\n", batchNumber, startIdx, endIdx, epoch);
-
-    // Load params
-    SgdParams sgdParams = readParamsFromState(PARAMS_KEY, false);
-
-    // Perform updates
-    hingeLossWeightUpdate(sgdParams, startIdx, endIdx);
-
-    return 0;
-}

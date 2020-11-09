@@ -1,3 +1,4 @@
+#include "faasm/core.h"
 #include <faasm/faasm.h>
 #include <stdio.h>
 #include <vector>
@@ -34,6 +35,49 @@ int checkChained(int funcIdx)
     return 0;
 }
 
+int chainOne()
+{
+    return checkChained(1);
+}
+
+int chainTwo()
+{
+    return checkChained(2);
+}
+
+int chainForwardNested()
+{
+    return checkChained(4);
+}
+
+int chainForward()
+{
+    // Check input to this function as expected
+    checkChained(3);
+
+    // Make and await another chained call
+    int funcData[3];
+    funcData[0] = 4;
+    funcData[1] = 5;
+    funcData[2] = 6;
+
+    auto inputBytes = (uint8_t*)funcData;
+    unsigned int callId =
+      faasmChain(chainForwardNested, inputBytes, dataLength);
+
+    // Await and check the nested call
+    unsigned int result = faasmAwaitCall(callId);
+
+    if (result != 0) {
+        printf("Nested chained call failed\n");
+        return 1;
+    } else {
+        printf("Nested chained call succeeded\n");
+    }
+
+    return 0;
+}
+
 /**
  * Passes some inputs onto other functions
  */
@@ -41,6 +85,7 @@ FAASM_MAIN_FUNC()
 {
     int nCalls = 3;
     int callIds[nCalls];
+    FaasmFuncPtr funcs[3] = { chainOne, chainTwo, chainForward };
 
     // Dispatch chained calls in a loop
     for (int i = 0; i < nCalls; i++) {
@@ -53,8 +98,8 @@ FAASM_MAIN_FUNC()
         funcData[2] = funcIdx + 2;
 
         // Chain the call
-        unsigned int callId =
-          faasmChainThisInput(funcIdx, (uint8_t*)funcData, dataLength);
+        FaasmFuncPtr func = funcs[i];
+        unsigned int callId = faasmChain(func, (uint8_t*)funcData, dataLength);
         callIds[i] = callId;
     }
 
@@ -71,46 +116,4 @@ FAASM_MAIN_FUNC()
     }
 
     return 0;
-}
-
-FAASM_FUNC(chainOne, 1)
-{
-    return checkChained(1);
-}
-
-FAASM_FUNC(chainTwo, 2)
-{
-    return checkChained(2);
-}
-
-FAASM_FUNC(chainForward, 3)
-{
-    // Check input to this function as expected
-    checkChained(3);
-
-    // Make and await another chained call
-    int funcData[3];
-    funcData[0] = 4;
-    funcData[1] = 5;
-    funcData[2] = 6;
-
-    auto inputBytes = (uint8_t*)funcData;
-    unsigned int callId = faasmChainThisInput(4, inputBytes, dataLength);
-
-    // Await and check the nested call
-    unsigned int result = faasmAwaitCall(callId);
-
-    if (result != 0) {
-        printf("Nested chained call failed\n");
-        return 1;
-    } else {
-        printf("Nested chained call succeeded\n");
-    }
-
-    return 0;
-}
-
-FAASM_FUNC(chainForwardNested, 4)
-{
-    return checkChained(4);
 }
