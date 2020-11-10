@@ -17,7 +17,7 @@ using namespace faabric::state;
 namespace tests {
 TEST_CASE("Test byte offsets for matrix elements", "[matrix]")
 {
-    cleanSystem(); 
+    cleanSystem();
 
     // 0,0 should always be zero
     REQUIRE(faasm::getChunkSizeUpToMatrixElement(0, 0, 10) == 0);
@@ -393,7 +393,7 @@ void doLocalSparseMatrixRoundTripCheck(int rows,
 
     const char* key = "sparse_trip_offset_test";
     SparseMatrix<double> mat = faasm::randomSparseMatrix(rows, cols, 0.7);
-    
+
     // Write matrix to state
     faasm::writeSparseMatrixToState(key, mat, false);
 
