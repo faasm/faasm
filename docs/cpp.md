@@ -18,24 +18,15 @@ You should then see the response `Hello faasm!`.
 # Writing functions
 
 Faasm aims to be uninvasive, allowing code to run natively _and_ in a serverless
-context.  To do this in C/ C++ functions we use a set of Faasm macros. These
-macros allow code to be compiled with a standard toolchain and run natively, and
-with the Faasm toolchain, and run in a serverless context.
-
-The outline of this looks like:
+context. This means the simplest Faasm function looks like:
 
 ```c++
-#include "faasm/faasm.h"
-
 int main(int argc, char* argv[]) {
     // Do something
 
     return 0;
 }
 ```
-
-Although for very simple functions, a standard `int main()` will also still
-work.
 
 ## C++ API
 
@@ -50,6 +41,8 @@ interface](host_interface.md).  Some of the methods in this wrapper are:
 - `faasmReadStateOffset()` and `faasmWriteStateOffset()` - allows functions to
   read/ write at specific points in existing state (e.g. updating a subsection
   of an array)
+
+The are found in the header `faasm/faasm.h`.
 
 ## Chaining
 
@@ -92,7 +85,7 @@ int main(int argc, char* argv[]) {
 }
 ```
 
-Chaining can also be done across functions defined separately, e.g. in C++:
+Chaining can also be done by name across functions defined separately, e.g.:
 
 ```c++
 #include "faasm/faasm.h"
