@@ -19,14 +19,14 @@ FILES=$(git ls-files "*.h" "*.cpp" "*.c")
 
 # Run clang-tidy on a set of files
 run-clang-tidy-10.py \
+    -config '' \
+    -export-fixes clang_tidy_out.yml \
     -j `nproc` \
     -fix \
-    -export-fixes clang_tidy_out.yml \
-    -extra-arg-before='-I/build/faasm/_deps/faabric_ext-src/include/faabric/mpi' \
     -format \
     -style 'file' \
-    -config '' \
     -p ${BUILD_PATH} \
+    -quiet \
     ${FILES}
 
 popd >> /dev/null
