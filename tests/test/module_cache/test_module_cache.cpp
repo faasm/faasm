@@ -14,7 +14,11 @@ TEST_CASE("Test creating zygotes", "[zygote]")
 
     // Want to check things with chained calls, so need to fake up input to a
     // chained func
-    msgA.set_funcptr(1);
+    // NOTE: here we are hard-coding the function's position in the function
+    // table
+    int funcPtr = 2;
+    msgA.set_funcptr(funcPtr);
+
     int input[3] = { 1, 2, 3 };
     msgA.set_inputdata(BYTES(input), 3 * sizeof(int));
 

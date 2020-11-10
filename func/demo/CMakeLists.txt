@@ -107,7 +107,7 @@ if(FAASM_BUILD_TYPE STREQUAL "wasm")
 endif()
 
 faasm_dynamic_func(dynlink dynlink.cpp)
-set(ALL_DEMO_FUNCS ${ALL_DEMO_FUNCS} dynlink PARENT_SCOPE)
+set(ALL_DEMO_FUNCS ${ALL_DEMO_FUNCS} dynlink)
 
 # Custom target to group all the demo functions
 add_custom_target(demo_all_funcs DEPENDS ${ALL_DEMO_FUNCS})
