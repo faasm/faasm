@@ -49,6 +49,19 @@ jobs:
         run: ./bin/run_clang_format.sh
       - name: "Check C/C++ formatting changes"
         run: git diff --exit-code
+      # --- Function compilation ---
+      - name: "Compile demo code"
+        run: inv -r faasmcli/faasmcli compile.user demo
+      - name: "Compile errors code"
+        run: inv -r faasmcli/faasmcli compile.user errors
+      - name: "Compile MPI code"
+        run: inv -r faasmcli/faasmcli compile.user mpi
+      - name: "Compile Python function"
+        run: inv -r faasmcli/faasmcli compile python py_func
+      - name: "Compile SGD function"
+        run: inv -r faasmcli/faasmcli compile sgd reuters_svm
+      - name: "Compile OMP functions"
+        run: inv -r faasmcli/faasmcli compile.user omp
       # --- Code build ---
       - name: "Build codegen"
         run: cmake --build . --target codegen_func
