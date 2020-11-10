@@ -187,20 +187,21 @@ TEST_CASE("Test disassemble module", "[wasm]")
 
     std::map<std::string, std::string> disasMap = module.buildDisassemblyMap();
 
-    // This may fail because it's too brittle in which case we can do something
-    // more flexible
+    // Note: this test assumes the compilation output is always the same. We
+    // could change it to search through definitions rather than assume their
+    // positions.
 
     // Check a few known definitions
     REQUIRE(disasMap["functionDef0"] == "__wasm_call_ctors");
     REQUIRE(disasMap["functionDef1"] == "_start");
     REQUIRE(disasMap["functionDef2"] == "main");
-    REQUIRE(disasMap["functionDef3"] == "_faasm_func_0");
-    REQUIRE(disasMap["functionDef4"] == "faasmGetInputSize");
+    REQUIRE(disasMap["functionDef3"] == "faasmGetInputSize");
+    REQUIRE(disasMap["functionDef4"] == "faasmGetInput");
 
     // Check a couple of imports
     REQUIRE(disasMap["functionImport0"] == "__wasi_proc_exit");
     REQUIRE(disasMap["functionImport1"] == "__faasm_read_input");
     REQUIRE(disasMap["functionImport2"] == "__faasm_write_output");
-    REQUIRE(disasMap["functionImport3"] == "__faasm_get_idx");
+    REQUIRE(disasMap["functionImport3"] == "__wasi_args_sizes_get");
 }
 }
