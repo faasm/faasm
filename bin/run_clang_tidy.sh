@@ -4,7 +4,7 @@ set -e
 
 # TODO
 # Actually apply changes (add -fix flag)
-BUILD_PATH=${FAASM_ROOT}/build/
+BUILD_PATH=/build/faasm/
 CONFIG=${FAASM_ROOT}/.clang-tidy
 
 if [ -z "$1" ]; then
@@ -22,6 +22,7 @@ run-clang-tidy-10.py \
     -j `nproc` \
     -fix \
     -export-fixes clang_tidy_out.yml \
+    -extra-arg-before='-I/build/faasm/_deps/faabric_ext-src/include/faabric/mpi' \
     -format \
     -style 'file' \
     -config '' \

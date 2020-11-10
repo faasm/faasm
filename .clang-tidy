@@ -1,4 +1,4 @@
 {
-    Checks: 'readability-braces-around-statements,modernize-use-auto'
+    Checks: 'readability-braces-around-statements,modernize-use-auto,-clang-diagnostic-*'
     CheckOptions:
 }
