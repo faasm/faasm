@@ -789,6 +789,7 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
                     int intArg = std::stoi(msg.inputdata());
                     invokeArgs = { intArg };
                 }
+                break;
             }
             default: {
                 logger->error("Unexpected function pointer type with {} params",
