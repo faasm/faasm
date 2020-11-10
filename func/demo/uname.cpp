@@ -23,7 +23,7 @@ int _check_value(const char* fieldName,
     return 0;
 }
 
-int main(int argc, char* argv[])()
+int main(int argc, char* argv[])
 {
     // Make the call
     utsname u{};

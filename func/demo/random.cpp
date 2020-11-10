@@ -5,7 +5,7 @@
 #include <random>
 #include <vector>
 
-int main(int argc, char* argv[])()
+int main(int argc, char* argv[])
 {
     int n = 10;
     std::vector<int> vec(n);

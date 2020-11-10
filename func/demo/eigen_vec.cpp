@@ -210,7 +210,7 @@ bool checkComplexMult()
     return isEqual;
 }
 
-int main(int argc, char* argv[])()
+int main(int argc, char* argv[])
 {
     std::string instrSets = Eigen::SimdInstructionSetsInUse();
 
