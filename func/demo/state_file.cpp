@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     const char* filePath = "/tmp/state_file_test";
     const char* key = "state_file_test";

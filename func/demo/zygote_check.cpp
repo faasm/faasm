@@ -15,7 +15,7 @@ FAASM_ZYGOTE()
 /**
  * Checks zygotes are working
  */
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     if (globalA == 5 && globalB == 102) {
         printf("Zygote function working\n");

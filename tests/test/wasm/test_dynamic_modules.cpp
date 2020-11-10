@@ -38,7 +38,7 @@ std::string getPythonModuleB()
 std::string mainFunc = "PyInit_array";
 std::string funcA = "PyArray_Max";
 std::string funcB = "random_uniform";
-int mainFuncOffset = 1581;
+int mainFuncOffset = 1580;
 int funcAOffset = 3686;
 int funcBOffset = 39;
 
@@ -47,7 +47,7 @@ int funcBOffset = 39;
 std::string mainData = "PyBool_Type";
 std::string dataA = "PyArray_API";
 std::string dataB = "__pyx_module_is_main_numpy__random__mtrand";
-int mainDataOffset = 4862260;
+int mainDataOffset = 4862116;
 int dataAOffset = 8760032;
 int dataBOffset = 40042496;
 

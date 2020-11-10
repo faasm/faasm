@@ -3,7 +3,7 @@
 #include <mpi.h>
 #include <stdio.h>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     MPI_Init(NULL, NULL);
 

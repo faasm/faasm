@@ -15,7 +15,7 @@ Faasm provides some simple wrappers around state operations, e.g. in C++:
 ```c++
 #include "faasm/faasm.h"
 
-FAASM_MAIN_FUNC() {
+int main(int argc, char* argv[]) {
     const char *key = "my_state_key";
 
     // Read the state into a buffer

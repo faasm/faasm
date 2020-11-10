@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     int stdInNo = fileno(stdin);
     int stdOutNo = fileno(stdout);

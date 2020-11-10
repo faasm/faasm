@@ -96,7 +96,7 @@ FAASM_ZYGOTE()
     return 0;
 }
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     // With this line uncommented, this file can be run as a normal executable
     // for testing setEmulatedMessageFromJson(R"({"user": "python", "function":

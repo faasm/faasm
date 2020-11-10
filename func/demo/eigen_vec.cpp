@@ -210,7 +210,7 @@ bool checkComplexMult()
     return isEqual;
 }
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     std::string instrSets = Eigen::SimdInstructionSetsInUse();
 

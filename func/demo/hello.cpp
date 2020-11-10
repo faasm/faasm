@@ -1,6 +1,6 @@
 #include "faasm/faasm.h"
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     const char* message = "Hello faasm!";
 

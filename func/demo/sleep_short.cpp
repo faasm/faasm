@@ -4,7 +4,7 @@
 
 #define SLEEP_TIME_SECONDS 25
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     sleep(SLEEP_TIME_SECONDS);
     return 0;

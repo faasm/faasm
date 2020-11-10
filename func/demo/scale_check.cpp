@@ -5,7 +5,7 @@
 #include <cstdio>
 #include <string>
 
-FAASM_FUNC(scaleWorker, 1)
+int scaleWorker()
 {
     printf("Executing scale worker\n");
 
@@ -17,7 +17,7 @@ FAASM_FUNC(scaleWorker, 1)
     return 0;
 }
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     const char* input = faasm::getStringInput("4");
 
@@ -32,7 +32,7 @@ FAASM_MAIN_FUNC()
     auto messageIds = new unsigned int[nFuncs];
 
     for (int i = 0; i < nFuncs; i++) {
-        messageIds[i] = faasmChainThisInput(1, nullptr, 0);
+        messageIds[i] = faasmChain(scaleWorker, nullptr, 0);
     }
 
     for (int i = 0; i < nFuncs; i++) {

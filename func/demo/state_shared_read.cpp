@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <faasm/faasm.h>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     const char* key = "state_shared_example";
     size_t stateSize = faasmReadStateSize(key);

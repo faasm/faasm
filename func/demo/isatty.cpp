@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     int stdoutIsTty = isatty(STDOUT_FILENO);
     int stderrIsTty = isatty(STDERR_FILENO);

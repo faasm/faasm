@@ -17,7 +17,7 @@ bool checkTypeSize(MPI_Datatype dt, int expected, const char* name)
     }
 }
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     MPI_Init(NULL, NULL);
 

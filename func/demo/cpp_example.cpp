@@ -1,7 +1,7 @@
 #include <faasm/faasm.h>
 #include <iostream>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     std::cout << "Hello from C++!" << std::endl;
     return 0;

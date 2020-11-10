@@ -1,7 +1,7 @@
 #include <faasm/faasm.h>
 #include <vector>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     const char* key = "state_shared_offset_example";
 

@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     MPI_Init(NULL, NULL);
 

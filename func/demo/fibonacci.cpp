@@ -16,7 +16,7 @@ int doFib(int n)
     }
 }
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     int fibNum = faasm::getTypedInput<int>(2);
     int result = doFib(fibNum);

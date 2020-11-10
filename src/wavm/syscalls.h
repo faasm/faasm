@@ -34,7 +34,7 @@ int awaitChainedCallOutput(unsigned int messageId,
                            int bufferLen);
 
 int makeChainedCall(const std::string& functionName,
-                    int idx,
+                    int wasmFuncPtr,
                     const char* pyFunc,
                     const std::vector<uint8_t>& inputData);
 

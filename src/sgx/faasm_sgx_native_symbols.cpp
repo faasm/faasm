@@ -17,7 +17,7 @@ extern int awaitChainedCallOutput(unsigned int messageId,
                                   int bufferLen);
 
 extern int makeChainedCall(const std::string& functionName,
-                           int idx,
+                           int wasmFuncPtr,
                            const char* pyFuncName,
                            const std::vector<uint8_t>& inputData);
 }
@@ -198,21 +198,21 @@ extern "C"
         wasm::getExecutingCall()->set_outputdata((void*)output, outputSize);
     }
 
-    unsigned int ocall_faasm_chain_function(const char* name,
-                                            const uint8_t* input,
-                                            unsigned int inputSize)
+    unsigned int ocall_faasm_chain_name(const char* name,
+                                        const uint8_t* input,
+                                        unsigned int inputSize)
     {
         std::vector<uint8_t> _input(input, input + inputSize);
         return wasm::makeChainedCall(std::string(name), 0, nullptr, _input);
     }
 
-    unsigned int ocall_faasm_chain_this(const int idx,
-                                        uint8_t* input,
-                                        unsigned int inputSize)
+    unsigned int ocall_faasm_chain_ptr(int wasmFuncPtr,
+                                       uint8_t* input,
+                                       unsigned int inputSize)
     {
         const std::vector<uint8_t> _input(input, input + inputSize);
         return wasm::makeChainedCall(
-          wasm::getExecutingCall()->function(), idx, nullptr, _input);
+          wasm::getExecutingCall()->function(), wasmFuncPtr, nullptr, _input);
     }
 
     unsigned int ocall_faasm_await_call(unsigned int callId)
@@ -226,6 +226,4 @@ extern "C"
     {
         return wasm::awaitChainedCallOutput(callId, buffer, bufferSize);
     }
-
-    int ocall_faasm_get_idx(void) { return wasm::getExecutingCall()->idx(); }
 }

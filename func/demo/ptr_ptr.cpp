@@ -26,7 +26,7 @@ void setMyClassPointer(MyClass** ptrPtr, int newInt)
     }
 }
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     // Create a pointer and a pointer to a pointer
     MyClass* aPtr;

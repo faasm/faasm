@@ -9,7 +9,7 @@
 
 #define FILE_PATH "/etc/hosts"
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     int fd = open(FILE_PATH, O_RDONLY);
 

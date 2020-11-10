@@ -7,7 +7,7 @@
 #include <string>
 #include <sys/mman.h>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     // Make this multiple pages not on a page boundary
     size_t nPages = 3;

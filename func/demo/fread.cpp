@@ -7,7 +7,7 @@
 /**
  * Test reading a file that we know should be faked
  */
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     // Check we get a file length
     const char* path = "/etc/hosts";

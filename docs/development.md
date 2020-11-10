@@ -27,11 +27,8 @@ stop all `faasm`-related development services run:
 To build and run the tests, you can then run the following inside the container:
 
 ```bash
-# Build the tests and the codegen targets
-inv dev.cmake
-inv dev.cc tests
-inv dev.cc codegen_func
-inv dev.cc codegen_shared_obj
+# Build the development tools
+inv dev.tools
 
 # Upload the Python functions
 inv upload.user python --local-copy --py
@@ -128,12 +125,11 @@ function:
 
 ```bash
 # Set up the CLI
-source workon.sh
+export FAASM_BUILD_DIR=<build dir>
+source bin/workon.sh
 
 # Build the project
-inv dev.cmake --clean
-inv dev.cc simple_runner
-inv dev.cc codgen_func
+inv dev.tools
 
 # Compile, codegen and run the code
 inv compile demo hello

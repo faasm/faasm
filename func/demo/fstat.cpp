@@ -185,7 +185,7 @@ int compareSwithS64(struct stat& s, struct stat64& s64)
     return 0;
 }
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     struct stat sA
     {

@@ -2,7 +2,7 @@
 #include <faasm/faasm.h>
 #include <omp.h>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     const int expected = 1;
     int mine = expected; // Only modified in critical section

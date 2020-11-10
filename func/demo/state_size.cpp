@@ -4,7 +4,7 @@
 
 #define STATE_KEY "size_check"
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     size_t initialSize = faasmReadStateSize(STATE_KEY);
     if (initialSize > 0) {

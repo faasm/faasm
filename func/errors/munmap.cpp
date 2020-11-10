@@ -4,7 +4,7 @@
 #include <string.h>
 #include <sys/mman.h>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     size_t memLen = 196608;
 

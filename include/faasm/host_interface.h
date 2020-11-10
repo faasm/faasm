@@ -103,14 +103,14 @@ HOST_IFACE_FUNC
 void __faasm_write_output(const unsigned char* output, long outputLen);
 
 HOST_IFACE_FUNC
-unsigned int __faasm_chain_function(const char* name,
-                                    const unsigned char* inputData,
-                                    long inputDataSize);
-
-HOST_IFACE_FUNC
-unsigned int __faasm_chain_this(int idx,
+unsigned int __faasm_chain_name(const char* name,
                                 const unsigned char* inputData,
                                 long inputDataSize);
+
+HOST_IFACE_FUNC
+unsigned int __faasm_chain_ptr(int (*funcPtr)(),
+                               const unsigned char* inputData,
+                               long inputDataSize);
 
 HOST_IFACE_FUNC
 int __faasm_await_call(unsigned int messageId);
@@ -119,9 +119,6 @@ HOST_IFACE_FUNC
 int __faasm_await_call_output(unsigned int messageId,
                               unsigned char* buffer,
                               long bufferLen);
-
-HOST_IFACE_FUNC
-int __faasm_get_idx();
 
 HOST_IFACE_FUNC
 void __faasm_get_py_user(unsigned char* buffer, long bufferLen);

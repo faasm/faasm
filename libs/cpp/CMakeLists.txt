@@ -18,7 +18,6 @@ set(PUBLIC_HEADERS
         faasm/files.h
         faasm/input.h
         faasm/matrix.h
-        faasm/pool.h
         faasm/print.h
         faasm/random.h
         faasm/sgd.h
@@ -33,7 +32,6 @@ set(LIB_FILES
         files.cpp
         input.cpp
         matrix.cpp
-        pool.cpp
         print.cpp
         random.cpp
         sgd.cpp

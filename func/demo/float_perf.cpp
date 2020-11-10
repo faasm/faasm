@@ -18,7 +18,7 @@ void floatFunc(int n)
     printf("Float value: %f\n", f);
 }
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     floatFunc(1000000);
 

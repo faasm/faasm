@@ -5,7 +5,7 @@
 #include <random>
 #include <vector>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     int n = 10;
     std::vector<int> vec(n);

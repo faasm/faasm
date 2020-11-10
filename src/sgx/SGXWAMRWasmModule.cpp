@@ -141,7 +141,7 @@ bool SGXWAMRWasmModule::execute(faabric::Message& msg, bool forceNoop)
     logger->debug(
       "Entering enclave {} to execute {}", globalEnclaveId, funcStr);
     sgx_status_t sgxReturnValue = faasm_sgx_enclave_call_function(
-      globalEnclaveId, &returnValue, threadId, msg.idx());
+      globalEnclaveId, &returnValue, threadId, msg.funcptr());
 
     if (sgxReturnValue != SGX_SUCCESS) {
         logger->error("Unable to enter enclave: {}",

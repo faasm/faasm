@@ -10,7 +10,7 @@ bool checkVal(const char* string, double val);
 const int N = 600000000;
 const double expected = 299999999.5;
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     bool failed = false;
     failed |= checkVal("Round robin with atomics", avg_round_robin());
