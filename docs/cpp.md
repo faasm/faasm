@@ -37,12 +37,13 @@ interface](host_interface.md).  Some of the methods in this wrapper are:
 - `faasmSetOutput()` - this allows functions to return output data to the caller
 - `faasmChain()` - this allows one function to invoke others
 - `faasmAwaitCall()` - waits for a chained function invocation to finish
-- `faasmReadState()` and `writeState()` - allows functions to read/ write key/value state
+- `faasmReadState()` and `writeState()` - allows functions to read/ write
+  key/value state
 - `faasmReadStateOffset()` and `faasmWriteStateOffset()` - allows functions to
   read/ write at specific points in existing state (e.g. updating a subsection
   of an array)
 
-The are found in the header `faasm/faasm.h`.
+They are found in the header `faasm/faasm.h`.
 
 ## Chaining
 
