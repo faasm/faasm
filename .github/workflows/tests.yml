@@ -49,7 +49,9 @@ jobs:
         run: ./bin/run_clang_format.sh
       - name: "Check C/C++ formatting changes"
         run: git diff --exit-code
-      # --- Function compilation ---
+      # --- Compilation ---
+      - name: "Compile libraries"
+        run: inv -r faasmcli/faasmcli libs.toolchain
       - name: "Compile demo code"
         run: inv -r faasmcli/faasmcli compile.user demo
       - name: "Compile errors code"

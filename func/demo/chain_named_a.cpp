@@ -1,3 +1,4 @@
+#include "faasm/core.h"
 #include <faasm/faasm.h>
 #include <vector>
 
@@ -8,11 +9,11 @@ FAASM_MAIN_FUNC()
     std::vector<uint8_t> inputC1 = { 6, 7 };
 
     unsigned int idB1 =
-      faasmChainFunctionInput("chain_named_b", inputB1.data(), 3);
+      faasmChainNamed("chain_named_b", inputB1.data(), 3);
     unsigned int idB2 =
-      faasmChainFunctionInput("chain_named_b", inputB2.data(), 3);
+      faasmChainNamed("chain_named_b", inputB2.data(), 3);
     unsigned int idC1 =
-      faasmChainFunctionInput("chain_named_c", inputC1.data(), 2);
+      faasmChainNamed("chain_named_c", inputC1.data(), 2);
 
     unsigned int resB1 = faasmAwaitCall(idB1);
     unsigned int resB2 = faasmAwaitCall(idB2);
