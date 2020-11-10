@@ -28,8 +28,8 @@ extern "C"
  */
 
 // Note thread-locality here
-static faabric::Message _emulatedCall = faabric::Message();
-static faabric::state::State* _emulatedState = nullptr;
+static thread_local faabric::Message _emulatedCall = faabric::Message();
+static thread_local faabric::state::State* _emulatedState = nullptr;
 
 #define DUMMY_USER "emulated"
 
@@ -40,6 +40,7 @@ static faabric::state::State* _emulatedState = nullptr;
 void resetEmulator()
 {
     _emulatedCall = faabric::Message();
+    getEmulatorState()->forceClearAll(true);
 }
 
 std::vector<uint8_t> getEmulatorOutputData()

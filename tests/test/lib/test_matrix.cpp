@@ -17,6 +17,8 @@ using namespace faabric::state;
 namespace tests {
 TEST_CASE("Test byte offsets for matrix elements", "[matrix]")
 {
+    cleanSystem(); 
+
     // 0,0 should always be zero
     REQUIRE(faasm::getChunkSizeUpToMatrixElement(0, 0, 10) == 0);
     REQUIRE(faasm::getChunkSizeUpToMatrixElement(0, 0, 1000) == 0);
@@ -42,6 +44,8 @@ TEST_CASE("Test byte offsets for matrix elements", "[matrix]")
 
 TEST_CASE("Test sparse matrix generation", "[matrix]")
 {
+    cleanSystem();
+
     const SparseMatrix<double> actual = faasm::randomSparseMatrix(10, 5, 0.4);
 
     REQUIRE(actual.rows() == 10);
@@ -164,6 +168,8 @@ TEST_CASE("Test reading columns from state locally", "[matrix]")
 
 TEST_CASE("Test shuffling matrix", "[matrix]")
 {
+    cleanSystem();
+
     MatrixXd mat = faasm::randomSparseMatrix(10, 20, 0.4);
     MatrixXd copy = mat;
 
@@ -178,6 +184,8 @@ TEST_CASE("Test shuffling matrix", "[matrix]")
 
 TEST_CASE("Test shuffling paired matrices", "[matrix]")
 {
+    cleanSystem();
+
     MatrixXd matA(2, 10);
     MatrixXd matB(1, 10);
 
@@ -213,6 +221,8 @@ TEST_CASE("Test shuffling paired matrices", "[matrix]")
 
 TEST_CASE("Test root mean squared error", "[matrix]")
 {
+    cleanSystem();
+
     MatrixXd matA(1, 3);
     matA << 8.5, 10.1, 15.5;
 
@@ -232,6 +242,8 @@ TEST_CASE("Test root mean squared error", "[matrix]")
 
 TEST_CASE("Test calculating squared error", "[matrix]")
 {
+    cleanSystem();
+
     MatrixXd matA(1, 4);
     matA << 11.1, 0.0, 12.2, 13.3;
 
@@ -249,6 +261,8 @@ TEST_CASE("Test calculating squared error", "[matrix]")
 
 TEST_CASE("Test calculating hinge loss", "[matrix]")
 {
+    cleanSystem();
+
     // Some correctly classified (i.e. correct sign), some not
     MatrixXd matA(1, 4);
     matA << -2.3, 1.1, -3.3, 0.0;
@@ -268,6 +282,7 @@ TEST_CASE("Test calculating hinge loss", "[matrix]")
 TEST_CASE("Test sparse matrix round trip", "[matrix]")
 {
     cleanSystem();
+
     SparseMatrix<double> mat = faasm::randomSparseMatrix(5, 10, 0.4);
 
     const char* key = "sparse_trip_test";
@@ -378,20 +393,20 @@ void doLocalSparseMatrixRoundTripCheck(int rows,
 
     const char* key = "sparse_trip_offset_test";
     SparseMatrix<double> mat = faasm::randomSparseMatrix(rows, cols, 0.7);
-
-    // Write matrix to state to master in this thread
+    
+    // Write matrix to state
     faasm::writeSparseMatrixToState(key, mat, false);
 
     // Get subsection from the matrix
     SparseMatrix<double> expected =
       mat.block(0, colStart, rows, colEnd - colStart);
 
-    // Get from state
+    // Get the subsection from state and check equality
     Map<const SparseMatrix<double>> actual =
       faasm::readSparseMatrixColumnsFromState(key, colStart, colEnd, true);
     checkSparseMatrixEquality(actual, expected);
 
-    // Read the whole thing and check
+    // Read the whole thing and check equality
     Map<const SparseMatrix<double>> actualFull =
       faasm::readSparseMatrixFromState(key, true);
     checkSparseMatrixEquality(actualFull, mat);
