@@ -14,7 +14,7 @@
  * failure will look like specifically is unpredictable).
  */
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     // The end result should be each of the thread numbers written into the
     // relevant slots

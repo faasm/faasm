@@ -41,7 +41,7 @@ std::vector<std::string> listDir(const char* dirPath)
     return results;
 }
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     const char* dirA = "/lib/python3.8/multiprocessing/";
     const char* dirB = "/lib/python3.8/encodings/";

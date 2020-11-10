@@ -20,7 +20,7 @@ int appender()
     return 0;
 }
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     // Chain the calls to do the appending
     long appendCountA = 100;

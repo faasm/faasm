@@ -5,7 +5,7 @@
 
 #include <stdio.h>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     const char* key = "incr_example";
 

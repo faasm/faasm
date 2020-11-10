@@ -215,29 +215,6 @@ extern "C"
     int __attribute__((weak)) _faasm_zygote();
 #define FAASM_ZYGOTE() int _faasm_zygote()
 
-// Note that export_name is only valid for WebAssembly
-#ifdef __wasm__
-
-#define FAASM_MAIN_FUNC int faasm_main
-
-#else
-
-#define FAASM_MAIN_FUNC                                                        \
-    int _faasm_main_wrapper();                                                 \
-                                                                               \
-    int faasm_main()                                                           \
-    {                                                                          \
-        _faasm_zygote();                                                       \
-        return _faasm_main_wrapper();                                          \
-    }                                                                          \
-                                                                               \
-    int _faasm_main_wrapper
-
-#endif
-
-    // Faasm entrypoint
-    extern int faasm_main(void);
-
 #ifdef __cplusplus
 }
 #endif

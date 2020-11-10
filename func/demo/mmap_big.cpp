@@ -6,7 +6,7 @@
 #include <string>
 #include <sys/mman.h>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     // Make sure we can allocate more than 1GB of memory (i.e. >16384 pages)
     size_t nPages = 18000;

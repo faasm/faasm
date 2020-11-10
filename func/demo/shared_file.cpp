@@ -10,7 +10,7 @@
 /**
  * Test reading a shared file
  */
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     const char* inputStr = faasm::getStringInput("");
 

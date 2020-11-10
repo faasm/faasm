@@ -2,7 +2,7 @@
 #include <faasm/faasm.h>
 #include <omp.h>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     int count = 0;
 #pragma omp parallel for num_threads(4) default(none) reduction(+ : count)

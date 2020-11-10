@@ -1,7 +1,7 @@
 #include "faasm/matrix.h"
 #include "faasm/faasm.h"
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     Eigen::MatrixXd dense = faasm::randomDenseMatrix(1, 10);
     Eigen::SparseMatrix<double> sparse = faasm::randomSparseMatrix(10, 20, 0.1);

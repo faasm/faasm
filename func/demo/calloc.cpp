@@ -10,7 +10,7 @@
  *
  * Originally created to try to replicate an issue from CPython
  */
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     int callocSize = 100;
     int n = 1000;

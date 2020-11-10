@@ -17,7 +17,7 @@ int scaleWorker()
     return 0;
 }
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     const char* input = faasm::getStringInput("4");
 

@@ -37,7 +37,7 @@ int piStep()
 /**
  * Parallel estimation of pi
  */
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     int nWorkers = faasm::getTypedInput<int>(4);
 

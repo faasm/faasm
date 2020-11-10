@@ -4,7 +4,7 @@
 
 #define TOTAL 10
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     auto results = new int[TOTAL];
     bool failed = false;

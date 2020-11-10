@@ -5,7 +5,7 @@
  * Creates an array on the heap and deliberately doesn't delete.
  * Used to check that heap memory is reclaimed
  */
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     // Create array on heap
     int size = 1024 * 1024;

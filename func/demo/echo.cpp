@@ -7,7 +7,7 @@
 /**
  * Writes the input to the output
  */
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     const char* inputStr = faasm::getStringInput("");
     size_t inputLen = strlen(inputStr);

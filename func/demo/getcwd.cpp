@@ -4,7 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     char buf[1024];
 

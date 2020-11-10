@@ -28,7 +28,7 @@ void* threadFunc(void* arg)
     return SUCCESS;
 }
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])()
 {
     if (globalVar != 20) {
         printf("Expected main thread to see 20 but got %i\n", globalVar);

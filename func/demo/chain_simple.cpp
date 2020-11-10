@@ -17,7 +17,7 @@ int chainOne()
     }
 }
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     // Make one chained call
     int inputVal = INPUT_VAL;

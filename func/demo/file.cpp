@@ -62,7 +62,7 @@ void checkFileContents(const char* fileName)
     }
 }
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     const char* fileA = "dummy_file.txt";
     const char* fileB = "other_dummy_file.txt";

@@ -7,7 +7,7 @@
 #include <sys/types.h>
 #include <vector>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     const char* dirName = "/etc/";
     printf("Opening dir %s\n", dirName);

@@ -5,7 +5,7 @@
 
 constexpr int ITERATIONS = 1000000000;
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     int count = 0;
 #pragma omp parallel num_threads(4) default(none) reduction(+ : count)

@@ -27,7 +27,7 @@ The outline of this looks like:
 ```c++
 #include "faasm/faasm.h"
 
-FAASM_MAIN_FUNC() {
+int main(int argc, char* argv[]) {
     // Do something
 
     return 0;
@@ -79,7 +79,7 @@ int funcTwo() {
 }
 
 // Define the main function
-FAASM_MAIN_FUNC() {
+int main(int argc, char* argv[]) {
     // Chain calls to the other functions
     int callOneId = faasmChain(funcOne);
     int callTwoId = faasmChain(funcTwo);
@@ -97,7 +97,7 @@ Chaining can also be done across functions defined separately, e.g. in C++:
 ```c++
 #include "faasm/faasm.h"
 
-FAASM_MAIN_FUNC() {
+int main(int argc, char* argv[]) {
     // Chain a call to my other function named "other-func"
     int callId = faasmChainNamed("other-func");
     faasmAwaitCall(callId);

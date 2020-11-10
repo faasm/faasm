@@ -6,7 +6,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     uid_t uid = getuid();
     gid_t gid = getgid();

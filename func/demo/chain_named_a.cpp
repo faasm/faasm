@@ -2,7 +2,7 @@
 #include <faasm/faasm.h>
 #include <vector>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     std::vector<uint8_t> inputB1 = { 0, 1, 2 };
     std::vector<uint8_t> inputB2 = { 3, 4, 5 };

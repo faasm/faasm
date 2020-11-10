@@ -19,7 +19,7 @@ struct Reducer
 
 #pragma omp declare reduction(MyReducer:Reducer : omp_out += omp_in)
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     Reducer sum(0);
     Reducer a[ITERATIONS];

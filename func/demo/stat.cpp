@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
 
     struct stat64 s

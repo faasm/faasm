@@ -7,7 +7,7 @@
  * Example of HTTP request with libcurl
  */
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     char* url = faasm::getStringInput("");
 

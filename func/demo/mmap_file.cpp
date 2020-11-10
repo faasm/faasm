@@ -10,7 +10,7 @@
 /**
  * Map a file into memory
  */
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     const char* fileName = "/etc/hosts";
 

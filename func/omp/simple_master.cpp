@@ -5,7 +5,7 @@
 bool fail = false;
 bool accessed = false; /* racy: should be atomic bool */
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     int mainNum = omp_get_thread_num();
 #pragma omp parallel default(none) shared(mainNum)

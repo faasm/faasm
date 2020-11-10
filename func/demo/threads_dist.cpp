@@ -19,7 +19,7 @@ void* threadIncrement(void* voidArgs)
     return nullptr;
 }
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     faasm::AsyncArray<int> distArray(ARRAY_KEY, N_THREADS);
     distArray.zero();

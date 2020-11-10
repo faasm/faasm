@@ -76,7 +76,7 @@ int step()
     return 0;
 }
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     long inputSize = faasmGetInputSize();
     if (inputSize == 0) {

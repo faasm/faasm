@@ -3,7 +3,7 @@
 #include <faasm/input.h>
 #include <stdio.h>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     int inputVal = faasm::getTypedInput<int>(1);
 

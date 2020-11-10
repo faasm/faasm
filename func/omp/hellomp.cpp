@@ -9,7 +9,7 @@ void printThreadInfo(const char* label)
     printf("%s %d of %d\n", label, thisThread, totalThreads);
 }
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     printThreadInfo("Main before");
 

@@ -1,6 +1,6 @@
 #include <faasm/faasm.h>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     const char* key = "state_shared_offset_example";
     uint8_t* actual = faasmReadStateOffsetPtr(key, 7, 2, 3);

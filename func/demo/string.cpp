@@ -2,7 +2,7 @@
 
 #include <string>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     std::string s1 = "hi";
     std::string s2 = "there";

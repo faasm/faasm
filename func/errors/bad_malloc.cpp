@@ -10,7 +10,7 @@ void _do_bad_malloc(void)
     printf("x[5] = %i\n", x[5]);
 } // problem 2: memory leak -- x not freed
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     _do_bad_malloc();
     return 0;

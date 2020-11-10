@@ -3,7 +3,7 @@
 #include <string>
 #include <unistd.h>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     int actual = sysconf(_SC_NPROCESSORS_ONLN);
     int expected = 1;

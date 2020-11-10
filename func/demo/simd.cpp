@@ -7,7 +7,7 @@
  * Invokes Eigen's config to check which flags are on instruction sets are in
  * use
  */
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     const char* eigenInstrSets = Eigen::SimdInstructionSetsInUse();
     printf("Eigen SIMD instruction sets: %s\n", eigenInstrSets);

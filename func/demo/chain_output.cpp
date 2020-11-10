@@ -19,7 +19,7 @@ int otherB()
 /**
  * Checks getting output from chained functions
  */
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     unsigned int callIdA = faasmChain(otherA, nullptr, 0);
     unsigned int callIdB = faasmChain(otherB, nullptr, 0);

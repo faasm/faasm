@@ -4,7 +4,7 @@
 /**
  * Function for load-testing with a state operation
  */
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     const char* key = "state_op";
 

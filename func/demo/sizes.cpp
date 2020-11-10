@@ -16,7 +16,7 @@ void checkSizeOf(size_t expected, const char* name)
     }
 }
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     checkSizeOf<double>(8, "double");
 

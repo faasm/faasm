@@ -17,7 +17,7 @@ bool checkPredefined(const char* name, const char* expected)
     }
 }
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     // Check predefined var
     bool failed = false;

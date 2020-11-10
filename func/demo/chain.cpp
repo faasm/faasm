@@ -81,7 +81,7 @@ int chainForward()
 /**
  * Passes some inputs onto other functions
  */
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     int nCalls = 3;
     int callIds[nCalls];
