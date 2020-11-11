@@ -1,6 +1,8 @@
-#include "utils.h"
 #include <catch2/catch.hpp>
 
+#include "utils.h"
+
+#include <faabric/util/macros.h>
 #include <faabric/util/func.h>
 #include <module_cache/WasmModuleCache.h>
 

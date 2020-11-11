@@ -52,6 +52,7 @@ def local(ctx, wamr=False):
 
     # Always run the codegen required by the tests
     codegen(ctx, "demo", "echo", wamr=True)
+    codegen(ctx, "demo", "chain", wamr=True)
 
     # Run these in parallel
     p = Pool(2)

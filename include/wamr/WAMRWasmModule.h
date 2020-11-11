@@ -56,6 +56,11 @@ class WAMRWasmModule final : public WasmModule
     WASMModuleInstanceCommon* moduleInstance;
 
     void executeFunction(const std::string& funcName);
+
+    void executeFunctionFromPointer(int wasmFuncPtr);
+
+    void doExecuteFunction(const std::string& funcName,
+                           WASMFunctionInstanceCommon* func);
 };
 
 void tearDownWAMRGlobally();

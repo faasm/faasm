@@ -1,4 +1,5 @@
 #include "WAMRWasmModule.h"
+#include "faabric/util/logging.h"
 
 #include <faabric/util/locks.h>
 #include <storage/FileLoader.h>
@@ -125,18 +126,40 @@ bool WAMRWasmModule::execute(faabric::Message& msg, bool forceNoop)
     // Run wasm initialisers
     executeFunction(WASM_CTORS_FUNC_NAME);
 
-    // Run the main function
-    executeFunction(ENTRY_FUNC_NAME);
+    if (msg.funcptr() > 0) {
+        // Run the function from the pointer
+        executeFunctionFromPointer(msg.funcptr());
+    } else {
+        // Run the main function
+        executeFunction(ENTRY_FUNC_NAME);
+    }
 
     return true;
 }
 
+void WAMRWasmModule::executeFunctionFromPointer(int wasmFuncPtr)
+{
+    auto logger = faabric::util::getLogger();
+
+    // TODO - look up function by pointer
+    WASMFunctionInstanceCommon* func = nullptr;
+
+    doExecuteFunction("from_ptr", func);
+}
+
 void WAMRWasmModule::executeFunction(const std::string& funcName)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     WASMFunctionInstanceCommon* func =
       wasm_runtime_lookup_function(moduleInstance, funcName.c_str(), nullptr);
+
+    doExecuteFunction(funcName, func);
+}
+
+void WAMRWasmModule::doExecuteFunction(const std::string& funcName,
+                                       WASMFunctionInstanceCommon* func)
+{
+    auto logger = faabric::util::getLogger();
 
     // Invoke the function
 #if (WAMR_EXECUTION_MODE_INTERP)

@@ -1,5 +1,6 @@
 #include "Faaslet.h"
 
+#include <stdexcept>
 #include <system/CGroup.h>
 #include <system/NetworkNamespace.h>
 
@@ -87,25 +88,35 @@ void Faaslet::postBind(const faabric::Message& msg, bool force)
 
     // Instantiate the right wasm module for the chosen runtime
     if (conf.wasmVm == "wamr") {
-
 #if (FAASM_SGX)
-        if (msg.issgx())
+        // When SGX is enabled, we may still be running with vanilla WAMR
+        if (msg.issgx()) {
             module = std::make_unique<wasm::SGXWAMRWasmModule>();
-        else
-#endif
+        } else {
             module = std::make_unique<wasm::WAMRWasmModule>();
+        }
+#else
+        // Vanilla WAMR
+        module = std::make_unique<wasm::WAMRWasmModule>();
+#endif
 
         module->bindToFunction(msg);
-    } else {
-        // Instantiate a WAVM module from its snapshot
+    } else if (conf.wasmVm == "wavm") {
         PROF_START(snapshotRestore)
 
+        // Load snapshot from cache
         module_cache::WasmModuleCache& registry =
           module_cache::getWasmModuleCache();
         wasm::WAVMWasmModule& snapshot = registry.getCachedModule(msg);
+
+        // Use snapshot to restore WAVM module
         module = std::make_unique<wasm::WAVMWasmModule>(snapshot);
 
         PROF_END(snapshotRestore)
+    } else {
+        faabric::util::getLogger()->error("Unrecognised wasm VM: {}",
+                                          conf.wasmVm);
+        throw std::runtime_error("Unrecognised wasm VM");
     }
 }
 

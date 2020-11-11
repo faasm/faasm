@@ -1,7 +1,10 @@
-#include "utils.h"
 #include <catch2/catch.hpp>
 
+#include "utils.h"
+#include "matrix_utils.h"
+
 #include "faasm/matrix.h"
+#include "faasm/faasm.h"
 
 #include <faabric/redis/Redis.h>
 #include <faabric/state/State.h>
