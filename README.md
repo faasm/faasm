@@ -44,6 +44,9 @@ Then run the Faasm CLI, from which you can build, deploy and invoke functions:
 # Start the CLI
 ./bin/cli.sh
 
+# Compile the demo function
+inv compile demo hello
+
 # Upload the demo "hello" function
 inv upload demo hello
 

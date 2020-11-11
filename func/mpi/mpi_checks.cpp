@@ -2,7 +2,7 @@
 #include <mpi.h>
 #include <stdio.h>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     int res = MPI_Init(NULL, NULL);
     if (res != MPI_SUCCESS) {

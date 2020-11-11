@@ -1,9 +1,10 @@
-#include "faasm/faasm.h"
 #include "faasm/time.h"
+#include "faasm/faasm.h"
 
 #include <stdio.h>
 
-FAASM_MAIN_FUNC() {
+int main(int argc, char* argv[])
+{
     double secs = faasm::getSecondsSinceEpoch();
 
     size_t strLen = 8 + sizeof(double);

@@ -75,7 +75,7 @@ HISTORY: - Written by Rob Van der Wijngaart, March 2006.
 #define flag(TID, j) flag[((TID) + (j)*nthread) * LINEWORDS]
 
 // int main(int argc, char ** argv) {
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
 
     int TID;   /* Thread ID                                           */

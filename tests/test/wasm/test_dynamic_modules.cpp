@@ -1,266 +1,302 @@
-#include <catch2/catch.hpp>
 #include "utils.h"
-#include <wavm/WAVMWasmModule.h>
+#include <catch2/catch.hpp>
 #include <ir_cache/IRModuleCache.h>
+#include <wavm/WAVMWasmModule.h>
 
 namespace tests {
 
-    /*
-     * NOTE - tests in this file are quite brittle as they have hard-coded
-     * table and data locations. This is good when it works, as it checks the
-     * dynamic loading of Python modules is as expected. There may be a better
-     * way though.
-     */
-    std::string getBaseModulePath() {
-        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
-        std::string basePath = conf.runtimeFilesDir + "/lib/python3.8/site-packages/numpy/";
-        return basePath;
-    }
-    
-    std::string getPythonModuleA() {
-        const std::string basePath = getBaseModulePath();
-        std::string pythonModuleA = basePath + "core/_multiarray_umath.so";
-        return pythonModuleA;
-    }
+/*
+ * NOTE - tests in this file are quite brittle as they have hard-coded
+ * table and data locations. This is good when it works, as it checks the
+ * dynamic loading of Python modules is as expected. There may be a better
+ * way though.
+ */
+std::string getBaseModulePath()
+{
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    std::string basePath =
+      conf.runtimeFilesDir + "/lib/python3.8/site-packages/numpy/";
+    return basePath;
+}
 
-    std::string getPythonModuleB() {
-        const std::string basePath = getBaseModulePath();
-        std::string pythonModuleB = basePath + "random/mtrand.so";
-        return pythonModuleB;
-    }
+std::string getPythonModuleA()
+{
+    const std::string basePath = getBaseModulePath();
+    std::string pythonModuleA = basePath + "core/_multiarray_umath.so";
+    return pythonModuleA;
+}
 
-    // These are hard-coded functions whose offsets we know within the given 
-    // modules
-    std::string mainFunc = "PyInit_array";
-    std::string funcA = "PyArray_Max";
-    std::string funcB = "random_uniform";
-    int mainFuncOffset = 1581;
-    int funcAOffset = 3686;
-    int funcBOffset = 39;
+std::string getPythonModuleB()
+{
+    const std::string basePath = getBaseModulePath();
+    std::string pythonModuleB = basePath + "random/mtrand.so";
+    return pythonModuleB;
+}
 
-    // These are hard-coded pointers whose offsets we know.
-    // This should only change if we change the toolchain
-    std::string mainData = "PyBool_Type";
-    std::string dataA = "PyArray_API";
-    std::string dataB = "__pyx_module_is_main_numpy__random__mtrand";
-    int mainDataOffset = 4862260;
-    int dataAOffset = 8760032;
-    int dataBOffset = 40042496;
+// These are hard-coded functions whose offsets we know within the given
+// modules
+std::string mainFunc = "PyInit_array";
+std::string funcA = "PyArray_Max";
+std::string funcB = "random_uniform";
+int mainFuncOffset = 1580;
+int funcAOffset = 3686;
+int funcBOffset = 39;
 
-    // NOTE - we don't get perfect pakcing of the indexing, so each module has
-    // an arbitrary extra offset.
-    int extraTableEntriesModA = 18;
-    int extraTableEntriesModB = 32;
+// These are hard-coded pointers whose offsets we know.
+// This should only change if we change the toolchain
+std::string mainData = "PyBool_Type";
+std::string dataA = "PyArray_API";
+std::string dataB = "__pyx_module_is_main_numpy__random__mtrand";
+int mainDataOffset = 4862116;
+int dataAOffset = 8760032;
+int dataBOffset = 40042496;
 
-    TEST_CASE("Test dynamic load/ function lookup", "[wasm]") {
-        cleanSystem();
+// NOTE - we don't get perfect pakcing of the indexing, so each module has
+// an arbitrary extra offset.
+int extraTableEntriesModA = 18;
+int extraTableEntriesModB = 32;
 
-        // Need to force python function _not_ to load numpy up front
-        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
-        std::string preloadBefore = conf.pythonPreload;
-        conf.pythonPreload = "off";
+TEST_CASE("Test dynamic load/ function lookup", "[wasm]")
+{
+    cleanSystem();
 
-        wasm::IRModuleCache &registry = wasm::getIRModuleCache();
+    // Need to force python function _not_ to load numpy up front
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    std::string preloadBefore = conf.pythonPreload;
+    conf.pythonPreload = "off";
 
-        // Bind to Python function
-        faabric::Message msg = faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
-        wasm::WAVMWasmModule module;
-        module.bindToFunction(msg);
+    wasm::IRModuleCache& registry = wasm::getIRModuleCache();
 
-        // Get initial sizes
-        Uptr initialTableSize = Runtime::getTableNumElements(module.defaultTable);
-        Uptr initialMemSize = Runtime::getMemoryNumPages(module.defaultMemory) * WASM_BYTES_PER_PAGE;
+    // Bind to Python function
+    faabric::Message msg =
+      faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+    wasm::WAVMWasmModule module;
+    module.bindToFunction(msg);
 
-        // --- Module One ---
-        std::string modulePathA = getPythonModuleA();
-        int handleA = module.dynamicLoadModule(modulePathA, module.executionContext);
-        REQUIRE(handleA >= 2);
-        REQUIRE(module.getDynamicModuleCount() == 1);
+    // Get initial sizes
+    Uptr initialTableSize = Runtime::getTableNumElements(module.defaultTable);
+    Uptr initialMemSize =
+      Runtime::getMemoryNumPages(module.defaultMemory) * WASM_BYTES_PER_PAGE;
 
-        U64 moduleTableSizeA = registry.getSharedModuleTableSize(PYTHON_USER, PYTHON_FUNC, modulePathA);
+    // --- Module One ---
+    std::string modulePathA = getPythonModuleA();
+    int handleA =
+      module.dynamicLoadModule(modulePathA, module.executionContext);
+    REQUIRE(handleA >= 2);
+    REQUIRE(module.getDynamicModuleCount() == 1);
 
-        // Check the table size has grown to fit the new functions
-        Uptr tableSizeAfterA = Runtime::getTableNumElements(module.defaultTable);
-        REQUIRE(tableSizeAfterA == initialTableSize + moduleTableSizeA + extraTableEntriesModA);
+    U64 moduleTableSizeA =
+      registry.getSharedModuleTableSize(PYTHON_USER, PYTHON_FUNC, modulePathA);
 
-        // Check that the new module table starts above the old one
-        int tableBaseA = module.getNextTableBase();
-        REQUIRE(tableBaseA == initialTableSize);
+    // Check the table size has grown to fit the new functions
+    Uptr tableSizeAfterA = Runtime::getTableNumElements(module.defaultTable);
+    REQUIRE(tableSizeAfterA ==
+            initialTableSize + moduleTableSizeA + extraTableEntriesModA);
 
-        // Check the memory has grown sufficiently
-        Uptr memSizeAfterA = Runtime::getMemoryNumPages(module.defaultMemory) * WASM_BYTES_PER_PAGE;
-        Uptr heapSize = DYNAMIC_MODULE_HEAP_PAGES * WASM_BYTES_PER_PAGE;
-        REQUIRE(memSizeAfterA == initialMemSize + heapSize);
+    // Check that the new module table starts above the old one
+    int tableBaseA = module.getNextTableBase();
+    REQUIRE(tableBaseA == initialTableSize);
 
-        // Check the stack is at the bottom of this region, and the heap is just above it
+    // Check the memory has grown sufficiently
+    Uptr memSizeAfterA =
+      Runtime::getMemoryNumPages(module.defaultMemory) * WASM_BYTES_PER_PAGE;
+    Uptr heapSize = DYNAMIC_MODULE_HEAP_PAGES * WASM_BYTES_PER_PAGE;
+    REQUIRE(memSizeAfterA == initialMemSize + heapSize);
 
-        // NOTE - ideally we'd actually query the value directly in the module, but
-        // can't get access to it (as it's an import resolved at link time).
-        int heapBaseA = module.getNextMemoryBase();
-        int stackPointerA = module.getNextStackPointer();
+    // Check the stack is at the bottom of this region, and the heap is just
+    // above it
 
-        REQUIRE(heapBaseA == initialMemSize + DYNAMIC_MODULE_STACK_SIZE);
-        REQUIRE(stackPointerA == heapBaseA - 1);
+    // NOTE - ideally we'd actually query the value directly in the module, but
+    // can't get access to it (as it's an import resolved at link time).
+    int heapBaseA = module.getNextMemoryBase();
+    int stackPointerA = module.getNextStackPointer();
 
-        // Check we can't load an invalid function
-        REQUIRE_THROWS(module.getDynamicModuleFunction(handleA, "foo"));
+    REQUIRE(heapBaseA == initialMemSize + DYNAMIC_MODULE_STACK_SIZE);
+    REQUIRE(stackPointerA == heapBaseA - 1);
 
-        // Load a valid function and check table grows to fit it
-        module.getDynamicModuleFunction(handleA, funcA);
-        int tableSizeAfterAFunc = Runtime::getTableNumElements(module.defaultTable);
-        REQUIRE(tableSizeAfterAFunc == tableSizeAfterA + 1);
+    // Check we can't load an invalid function
+    REQUIRE_THROWS(module.getDynamicModuleFunction(handleA, "foo"));
 
-        // --- Module Two ---
-        std::string modulePathB = getPythonModuleB();
-        int handleB = module.dynamicLoadModule(modulePathB, module.executionContext);
-        REQUIRE(handleB == handleA + 1);
-        REQUIRE(module.getDynamicModuleCount() == 2);
+    // Load a valid function and check table grows to fit it
+    module.getDynamicModuleFunction(handleA, funcA);
+    int tableSizeAfterAFunc = Runtime::getTableNumElements(module.defaultTable);
+    REQUIRE(tableSizeAfterAFunc == tableSizeAfterA + 1);
 
-        U64 moduleTableSizeB = registry.getSharedModuleTableSize(PYTHON_USER, PYTHON_FUNC, modulePathB);
+    // --- Module Two ---
+    std::string modulePathB = getPythonModuleB();
+    int handleB =
+      module.dynamicLoadModule(modulePathB, module.executionContext);
+    REQUIRE(handleB == handleA + 1);
+    REQUIRE(module.getDynamicModuleCount() == 2);
 
-        // Check the table
-        Uptr tableSizeAfterB = Runtime::getTableNumElements(module.defaultTable);
-        REQUIRE(tableSizeAfterB == tableSizeAfterAFunc + moduleTableSizeB + extraTableEntriesModB);
+    U64 moduleTableSizeB =
+      registry.getSharedModuleTableSize(PYTHON_USER, PYTHON_FUNC, modulePathB);
 
-        int tableBaseB = module.getNextTableBase();
-        REQUIRE(tableBaseB == tableSizeAfterAFunc);
+    // Check the table
+    Uptr tableSizeAfterB = Runtime::getTableNumElements(module.defaultTable);
+    REQUIRE(tableSizeAfterB ==
+            tableSizeAfterAFunc + moduleTableSizeB + extraTableEntriesModB);
 
-        // Check the memory
-        Uptr memSizeAfterB = Runtime::getMemoryNumPages(module.defaultMemory) * WASM_BYTES_PER_PAGE;
-        REQUIRE(memSizeAfterB == memSizeAfterA + heapSize);
+    int tableBaseB = module.getNextTableBase();
+    REQUIRE(tableBaseB == tableSizeAfterAFunc);
 
-        int heapBaseB = module.getNextMemoryBase();
-        int stackPointerB = module.getNextStackPointer();
+    // Check the memory
+    Uptr memSizeAfterB =
+      Runtime::getMemoryNumPages(module.defaultMemory) * WASM_BYTES_PER_PAGE;
+    REQUIRE(memSizeAfterB == memSizeAfterA + heapSize);
 
-        REQUIRE(heapBaseB == memSizeAfterA + DYNAMIC_MODULE_STACK_SIZE);
-        REQUIRE(stackPointerB == heapBaseB - 1);
+    int heapBaseB = module.getNextMemoryBase();
+    int stackPointerB = module.getNextStackPointer();
 
-        // Check invalid function
-        REQUIRE_THROWS(module.getDynamicModuleFunction(handleB, "bar"));
+    REQUIRE(heapBaseB == memSizeAfterA + DYNAMIC_MODULE_STACK_SIZE);
+    REQUIRE(stackPointerB == heapBaseB - 1);
 
-        // Check a valid function
-        module.getDynamicModuleFunction(handleB, funcB);
-        Uptr numElemsAfterB = Runtime::getTableNumElements(module.defaultTable);
-        REQUIRE(numElemsAfterB == tableSizeAfterB + 1);
+    // Check invalid function
+    REQUIRE_THROWS(module.getDynamicModuleFunction(handleB, "bar"));
 
-        conf.pythonPreload = preloadBefore;
-    }
+    // Check a valid function
+    module.getDynamicModuleFunction(handleB, funcB);
+    Uptr numElemsAfterB = Runtime::getTableNumElements(module.defaultTable);
+    REQUIRE(numElemsAfterB == tableSizeAfterB + 1);
 
-    void checkFuncInGOT(
-            wasm::WAVMWasmModule &module, 
-            const std::string &funcName, 
-            int expectedIdx,
-            const std::string &expectedName) {        
-        int funcIdx = module.getFunctionOffsetFromGOT(funcName);
-        if(funcIdx != expectedIdx) {
-            FAIL(fmt::format(
-               "GOT index {}: {} != {}", funcName, funcIdx, expectedIdx));
-        }
+    conf.pythonPreload = preloadBefore;
+}
 
-        Runtime::Object *tableElem = Runtime::getTableElement(module.defaultTable, funcIdx);
-        Runtime::Function *funcObj = Runtime::asFunction(tableElem);
-        
-        REQUIRE(Runtime::getFunctionDebugName(funcObj) == expectedName);
-    }
-
-    void checkDataInGOT(wasm::WAVMWasmModule &module, const std::string &dataName, int expectedOffset) {
-        int actualOffset = module.getDataOffsetFromGOT(dataName);
-        REQUIRE(actualOffset == expectedOffset);
-    }
-
-    TEST_CASE("Test GOT population", "[wasm]") {
-        cleanSystem();
-
-        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
-        std::string preloadBefore = conf.pythonPreload;
-        conf.pythonPreload = "off";
-
-        // Bind to Python function
-        faabric::Message msg = faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
-        wasm::WAVMWasmModule module;
-        module.bindToFunction(msg);
-
-        Uptr initialTableSize = Runtime::getTableNumElements(module.defaultTable);
-
-        // Load a couple of dynamic modules
-        std::string modulePathA = getPythonModuleA();
-        int handleA = module.dynamicLoadModule(modulePathA, module.executionContext);
-        Uptr tableSizeAfterA = Runtime::getTableNumElements(module.defaultTable);
-
-        std::string modulePathB = getPythonModuleB();
-        int handleB = module.dynamicLoadModule(modulePathB, module.executionContext);
-        Uptr tableSizeAfterB = Runtime::getTableNumElements(module.defaultTable);
-
-        // Check invalid entries don't work
-        REQUIRE_THROWS(module.getFunctionOffsetFromGOT("foobar"));
-        REQUIRE_THROWS(module.getDataOffsetFromGOT("foobaz"));
-
-        // Check some known functions
-        Uptr expectedMainIdx = mainFuncOffset;
-        Uptr expectedIdxA = initialTableSize + extraTableEntriesModA + funcAOffset;
-        Uptr expectedIdxB = tableSizeAfterA + extraTableEntriesModB + funcBOffset;
-
-        std::string expectedNameMain = "wasm!python/py_func!" + mainFunc;
-        std::string expectedNameA = "wasm!handle_" + std::to_string(handleA) + "!" + funcA;
-        std::string expectedNameB = "wasm!handle_" + std::to_string(handleB) + "!" + funcB;
-
-        checkFuncInGOT(module, mainFunc, expectedMainIdx, expectedNameMain);
-        checkFuncInGOT(module, funcA, expectedIdxA, expectedNameA);
-        checkFuncInGOT(module, funcB, expectedIdxB, expectedNameB);
-
-        checkDataInGOT(module, mainData, mainDataOffset);
-        checkDataInGOT(module, dataA, dataAOffset);
-        checkDataInGOT(module, dataB, dataBOffset);
-
-        // Sense check
-        REQUIRE(tableSizeAfterA > initialTableSize);
-        REQUIRE(tableSizeAfterB > tableSizeAfterA);
-
-        REQUIRE(expectedMainIdx < initialTableSize);
-        REQUIRE(expectedIdxA > initialTableSize);
-        REQUIRE(expectedIdxA < tableSizeAfterA);
-        REQUIRE(expectedIdxB > tableSizeAfterA);
-        REQUIRE(expectedIdxB < tableSizeAfterB);
-
-        conf.pythonPreload = preloadBefore;
+void checkFuncInGOT(wasm::WAVMWasmModule& module,
+                    const std::string& funcName,
+                    int expectedIdx,
+                    const std::string& expectedName)
+{
+    int funcIdx = module.getFunctionOffsetFromGOT(funcName);
+    if (funcIdx != expectedIdx) {
+        FAIL(fmt::format(
+          "GOT index {}: {} != {}", funcName, funcIdx, expectedIdx));
     }
 
-    void resolveGlobalI32(wasm::WAVMWasmModule &module, const std::string &moduleName, const std::string &name, I32 expected) {
-        IR::GlobalType globalType;
-        Runtime::Object* importObj;
-        module.resolve(moduleName, name, globalType, importObj);
-        Runtime::Global *thisGlobal = Runtime::asGlobal(importObj);
-        const IR::Value &value = Runtime::getGlobalValue(module.executionContext, thisGlobal);
-        REQUIRE(value.i32 == expected);
-    }
+    Runtime::Object* tableElem =
+      Runtime::getTableElement(module.defaultTable, funcIdx);
+    Runtime::Function* funcObj = Runtime::asFunction(tableElem);
 
-    TEST_CASE("Test resolving dynamic module imports", "[wasm]") {
-        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
-        std::string preloadBefore = conf.pythonPreload;
-        conf.pythonPreload = "off";
+    REQUIRE(Runtime::getFunctionDebugName(funcObj) == expectedName);
+}
 
-        // Bind to Python function
-        faabric::Message msg = faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
-        wasm::WAVMWasmModule module;
-        module.bindToFunction(msg);
+void checkDataInGOT(wasm::WAVMWasmModule& module,
+                    const std::string& dataName,
+                    int expectedOffset)
+{
+    int actualOffset = module.getDataOffsetFromGOT(dataName);
+    REQUIRE(actualOffset == expectedOffset);
+}
 
-        // Load a dynamic module
-        std::string modulePathA = getPythonModuleA();
-        module.dynamicLoadModule(modulePathA, module.executionContext);
+TEST_CASE("Test GOT population", "[wasm]")
+{
+    cleanSystem();
 
-        // Check values resolve to what we'd expect
-        resolveGlobalI32(module, "foo", "__memory_base", module.getNextMemoryBase());
-        resolveGlobalI32(module, "foo", "__stack_pointer", module.getNextStackPointer());
-        resolveGlobalI32(module, "foo", "__table_base", module.getNextTableBase());
-        
-        // Check indirect function table resolves to default table
-        IR::TableType tableType;
-        Runtime::Object* importedTable;
-        module.resolve("foo", "__indirect_function_table", tableType, importedTable);
-        Runtime::Table *table = Runtime::asTable(importedTable);
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    std::string preloadBefore = conf.pythonPreload;
+    conf.pythonPreload = "off";
 
-        REQUIRE(table == module.defaultTable);
+    // Bind to Python function
+    faabric::Message msg =
+      faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+    wasm::WAVMWasmModule module;
+    module.bindToFunction(msg);
 
-        conf.pythonPreload = preloadBefore;
-    }
+    Uptr initialTableSize = Runtime::getTableNumElements(module.defaultTable);
+
+    // Load a couple of dynamic modules
+    std::string modulePathA = getPythonModuleA();
+    int handleA =
+      module.dynamicLoadModule(modulePathA, module.executionContext);
+    Uptr tableSizeAfterA = Runtime::getTableNumElements(module.defaultTable);
+
+    std::string modulePathB = getPythonModuleB();
+    int handleB =
+      module.dynamicLoadModule(modulePathB, module.executionContext);
+    Uptr tableSizeAfterB = Runtime::getTableNumElements(module.defaultTable);
+
+    // Check invalid entries don't work
+    REQUIRE_THROWS(module.getFunctionOffsetFromGOT("foobar"));
+    REQUIRE_THROWS(module.getDataOffsetFromGOT("foobaz"));
+
+    // Check some known functions
+    Uptr expectedMainIdx = mainFuncOffset;
+    Uptr expectedIdxA = initialTableSize + extraTableEntriesModA + funcAOffset;
+    Uptr expectedIdxB = tableSizeAfterA + extraTableEntriesModB + funcBOffset;
+
+    std::string expectedNameMain = "wasm!python/py_func!" + mainFunc;
+    std::string expectedNameA =
+      "wasm!handle_" + std::to_string(handleA) + "!" + funcA;
+    std::string expectedNameB =
+      "wasm!handle_" + std::to_string(handleB) + "!" + funcB;
+
+    checkFuncInGOT(module, mainFunc, expectedMainIdx, expectedNameMain);
+    checkFuncInGOT(module, funcA, expectedIdxA, expectedNameA);
+    checkFuncInGOT(module, funcB, expectedIdxB, expectedNameB);
+
+    checkDataInGOT(module, mainData, mainDataOffset);
+    checkDataInGOT(module, dataA, dataAOffset);
+    checkDataInGOT(module, dataB, dataBOffset);
+
+    // Sense check
+    REQUIRE(tableSizeAfterA > initialTableSize);
+    REQUIRE(tableSizeAfterB > tableSizeAfterA);
+
+    REQUIRE(expectedMainIdx < initialTableSize);
+    REQUIRE(expectedIdxA > initialTableSize);
+    REQUIRE(expectedIdxA < tableSizeAfterA);
+    REQUIRE(expectedIdxB > tableSizeAfterA);
+    REQUIRE(expectedIdxB < tableSizeAfterB);
+
+    conf.pythonPreload = preloadBefore;
+}
+
+void resolveGlobalI32(wasm::WAVMWasmModule& module,
+                      const std::string& moduleName,
+                      const std::string& name,
+                      I32 expected)
+{
+    IR::GlobalType globalType;
+    Runtime::Object* importObj;
+    module.resolve(moduleName, name, globalType, importObj);
+    Runtime::Global* thisGlobal = Runtime::asGlobal(importObj);
+    const IR::Value& value =
+      Runtime::getGlobalValue(module.executionContext, thisGlobal);
+    REQUIRE(value.i32 == expected);
+}
+
+TEST_CASE("Test resolving dynamic module imports", "[wasm]")
+{
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    std::string preloadBefore = conf.pythonPreload;
+    conf.pythonPreload = "off";
+
+    // Bind to Python function
+    faabric::Message msg =
+      faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+    wasm::WAVMWasmModule module;
+    module.bindToFunction(msg);
+
+    // Load a dynamic module
+    std::string modulePathA = getPythonModuleA();
+    module.dynamicLoadModule(modulePathA, module.executionContext);
+
+    // Check values resolve to what we'd expect
+    resolveGlobalI32(
+      module, "foo", "__memory_base", module.getNextMemoryBase());
+    resolveGlobalI32(
+      module, "foo", "__stack_pointer", module.getNextStackPointer());
+    resolveGlobalI32(module, "foo", "__table_base", module.getNextTableBase());
+
+    // Check indirect function table resolves to default table
+    IR::TableType tableType;
+    Runtime::Object* importedTable;
+    module.resolve(
+      "foo", "__indirect_function_table", tableType, importedTable);
+    Runtime::Table* table = Runtime::asTable(importedTable);
+
+    REQUIRE(table == module.defaultTable);
+
+    conf.pythonPreload = preloadBefore;
+}
 }

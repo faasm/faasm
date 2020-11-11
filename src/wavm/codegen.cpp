@@ -6,14 +6,14 @@
 #include <WAVM/WASM/WASM.h>
 #include <WAVM/WASTParse/WASTParse.h>
 
-#include <faabric/util/logging.h>
 #include <faabric/util/files.h>
+#include <faabric/util/logging.h>
 
 using namespace WAVM;
 
 namespace wasm {
-std::vector<uint8_t> wavmCodegen(std::vector<uint8_t>& bytes, 
-        const std::string &fileName)
+std::vector<uint8_t> wavmCodegen(std::vector<uint8_t>& bytes,
+                                 const std::string& fileName)
 {
     auto logger = faabric::util::getLogger();
 
@@ -37,7 +37,7 @@ std::vector<uint8_t> wavmCodegen(std::vector<uint8_t>& bytes,
         std::vector<WAST::Error> parseErrors;
         bool success = WAST::parseModule(
           (const char*)bytes.data(), bytes.size(), moduleIR, parseErrors);
-        
+
         logger->error("Failed to parse non-wasm binary as wast: {}", fileName);
 
         WAST::reportParseErrors(

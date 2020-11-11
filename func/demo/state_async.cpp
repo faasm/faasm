@@ -1,10 +1,11 @@
 #include <faasm/faasm.h>
 
-FAASM_MAIN_FUNC() {
-    const char *key = "state_async_example";
+int main(int argc, char* argv[])
+{
+    const char* key = "state_async_example";
 
     // Read and write async
-    uint8_t value[4] = {3, 2, 1, 0};
+    uint8_t value[4] = { 3, 2, 1, 0 };
     faasmWriteState(key, value, 4);
 
     uint8_t readValueAsync[4];

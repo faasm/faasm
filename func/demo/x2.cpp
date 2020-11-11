@@ -3,7 +3,8 @@
 /**
  * Multiplies its array input by two
  */
-FAASM_MAIN_FUNC() {
+int main(int argc, char* argv[])
+{
     long inputSize = faasmGetInputSize();
     auto inputBuffer = new uint8_t[inputSize];
     faasmGetInput(inputBuffer, inputSize);

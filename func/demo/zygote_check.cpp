@@ -4,7 +4,8 @@
 int globalA = 0;
 int globalB = 2;
 
-FAASM_ZYGOTE() {
+FAASM_ZYGOTE()
+{
     globalA += 5;
     globalB += 100;
 
@@ -14,8 +15,9 @@ FAASM_ZYGOTE() {
 /**
  * Checks zygotes are working
  */
-FAASM_MAIN_FUNC() {
-    if(globalA == 5 && globalB == 102) {
+int main(int argc, char* argv[])
+{
+    if (globalA == 5 && globalB == 102) {
         printf("Zygote function working\n");
         return 0;
     } else {

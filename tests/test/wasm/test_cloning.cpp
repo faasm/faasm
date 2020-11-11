@@ -1,208 +1,232 @@
-#include <catch2/catch.hpp>
-#include <wavm/WAVMWasmModule.h>
-#include <faabric/util/func.h>
-#include <faabric/util/config.h>
 #include <WAVM/Runtime/Intrinsics.h>
+#include <catch2/catch.hpp>
+#include <faabric/util/config.h>
+#include <faabric/util/func.h>
+#include <wavm/WAVMWasmModule.h>
 
 using namespace wasm;
 using namespace WAVM;
 
 namespace tests {
-    void convertMsgToPython(faabric::Message &msg) {
-        msg.set_pythonuser(msg.user());
-        msg.set_pythonfunction(msg.function());
-        msg.set_user(PYTHON_USER);
-        msg.set_function(PYTHON_FUNC);
-        msg.set_ispython(true);
+void convertMsgToPython(faabric::Message& msg)
+{
+    msg.set_pythonuser(msg.user());
+    msg.set_pythonfunction(msg.function());
+    msg.set_user(PYTHON_USER);
+    msg.set_function(PYTHON_FUNC);
+    msg.set_ispython(true);
+}
+
+TEST_CASE("Test cloning empty modules doesn't break", "[wasm]")
+{
+    WAVMWasmModule moduleA;
+    WAVMWasmModule moduleB(moduleA);
+
+    WAVMWasmModule moduleC;
+    moduleC = moduleA;
+
+    // Check clear-up
+    REQUIRE(moduleA.tearDown());
+    REQUIRE(moduleB.tearDown());
+    REQUIRE(moduleC.tearDown());
+}
+
+void _doChecks(wasm::WAVMWasmModule& moduleA,
+               wasm::WAVMWasmModule& moduleB,
+               const std::string& user,
+               const std::string& func,
+               const std::string& inputA,
+               const std::string& inputB,
+               bool isTypescript,
+               bool isPython)
+{
+
+    faabric::Message msgA = faabric::util::messageFactory(user, func);
+    faabric::Message msgB = faabric::util::messageFactory(user, func);
+
+    msgA.set_inputdata(inputA);
+    msgB.set_inputdata(inputB);
+
+    if (isPython) {
+        convertMsgToPython(msgA);
+        convertMsgToPython(msgB);
     }
 
-    TEST_CASE("Test cloning empty modules doesn't break", "[wasm]") {
-        WAVMWasmModule moduleA;
-        WAVMWasmModule moduleB(moduleA);
+    // Dummy execution initially to avoid any first-time set-up differences
+    WAVMWasmModule moduleWarmUp;
+    moduleWarmUp.bindToFunction(msgA);
+    moduleWarmUp.execute(msgA);
 
-        WAVMWasmModule moduleC;
-        moduleC = moduleA;
+    // Get the initial mem and table size
+    Uptr memBeforeA = Runtime::getMemoryNumPages(moduleA.defaultMemory);
+    Uptr memBeforeB = Runtime::getMemoryNumPages(moduleB.defaultMemory);
 
-        // Check clear-up
-        REQUIRE(moduleA.tearDown());
-        REQUIRE(moduleB.tearDown());
-        REQUIRE(moduleC.tearDown());
+    Uptr tableBeforeB;
+    Uptr tableBeforeA;
+    if (!isTypescript) {
+        tableBeforeA = Runtime::getTableNumElements(moduleA.defaultTable);
+        tableBeforeB = Runtime::getTableNumElements(moduleB.defaultTable);
+
+        REQUIRE(tableBeforeB == tableBeforeA);
+
+        // Check tables are different
+        REQUIRE(moduleA.defaultTable != moduleB.defaultTable);
     }
 
-    void
-    _doChecks(wasm::WAVMWasmModule &moduleA, wasm::WAVMWasmModule &moduleB, const std::string &user, const std::string &func,
-              const std::string &inputA,              const std::string &inputB, bool isTypescript, bool isPython) {
+    // Check basic properties
+    REQUIRE(moduleB.isBound());
+    REQUIRE(moduleB.getBoundUser() == moduleA.getBoundUser());
+    REQUIRE(moduleB.getBoundFunction() == moduleA.getBoundFunction());
 
-        faabric::Message msgA = faabric::util::messageFactory(user, func);
-        faabric::Message msgB = faabric::util::messageFactory(user, func);
+    REQUIRE(memBeforeB == memBeforeA);
 
-        msgA.set_inputdata(inputA);
-        msgB.set_inputdata(inputB);
+    // Check important parts are actually different
+    REQUIRE(moduleA.defaultMemory != moduleB.defaultMemory);
+    REQUIRE(moduleA.compartment != moduleB.compartment);
 
-        if(isPython) {
-            convertMsgToPython(msgA);
-            convertMsgToPython(msgB);
-        }
+    // Check base memory addresses are different
+    U8* baseA = Runtime::getMemoryBaseAddress(moduleA.defaultMemory);
+    U8* baseB = Runtime::getMemoryBaseAddress(moduleB.defaultMemory);
+    REQUIRE(baseA != baseB);
 
-        // Dummy execution initially to avoid any first-time set-up differences
-        WAVMWasmModule moduleWarmUp;
-        moduleWarmUp.bindToFunction(msgA);
-        moduleWarmUp.execute(msgA);
+    // Execute the function with the first module and check it works
+    bool successA = moduleA.execute(msgA);
+    REQUIRE(successA);
 
-        // Get the initial mem and table size
-        Uptr memBeforeA = Runtime::getMemoryNumPages(moduleA.defaultMemory);
-        Uptr memBeforeB = Runtime::getMemoryNumPages(moduleB.defaultMemory);
+    if (func == "echo") {
+        REQUIRE(msgA.outputdata() == inputA);
+    }
 
-        Uptr tableBeforeB;
-        Uptr tableBeforeA;
-        if (!isTypescript) {
-            tableBeforeA = Runtime::getTableNumElements(moduleA.defaultTable);
-            tableBeforeB = Runtime::getTableNumElements(moduleB.defaultTable);
+    // Check memory has grown in the one that's executed (unless it's
+    // typescript)
+    Uptr memAfterA1 = Runtime::getMemoryNumPages(moduleA.defaultMemory);
+    Uptr memAfterB1 = Runtime::getMemoryNumPages(moduleB.defaultMemory);
+    REQUIRE(memAfterB1 == memBeforeA);
 
-            REQUIRE(tableBeforeB == tableBeforeA);
+    if (isTypescript) {
+        REQUIRE(memAfterA1 == memBeforeA);
+    } else {
+        REQUIRE(memAfterA1 > memBeforeA);
+    }
 
-            // Check tables are different
-            REQUIRE(moduleA.defaultTable != moduleB.defaultTable);
-        }
+    // Check tables (should have grown for Python and not for other)
+    Uptr tableAfterA1;
+    if (!isTypescript) {
+        tableAfterA1 = Runtime::getTableNumElements(moduleA.defaultTable);
+        Uptr tableAfterB1 = Runtime::getTableNumElements(moduleB.defaultTable);
 
-        // Check basic properties
-        REQUIRE(moduleB.isBound());
-        REQUIRE(moduleB.getBoundUser() == moduleA.getBoundUser());
-        REQUIRE(moduleB.getBoundFunction() == moduleA.getBoundFunction());
-
-        REQUIRE(memBeforeB == memBeforeA);
-
-        // Check important parts are actually different
-        REQUIRE(moduleA.defaultMemory != moduleB.defaultMemory);
-        REQUIRE(moduleA.compartment != moduleB.compartment);
-
-        // Check base memory addresses are different
-        U8 *baseA = Runtime::getMemoryBaseAddress(moduleA.defaultMemory);
-        U8 *baseB = Runtime::getMemoryBaseAddress(moduleB.defaultMemory);
-        REQUIRE(baseA != baseB);
-
-        // Execute the function with the first module and check it works
-        bool successA = moduleA.execute(msgA);
-        REQUIRE(successA);
-
-        if (func == "echo") {
-            REQUIRE(msgA.outputdata() == inputA);
-        }
-
-        // Check memory has grown in the one that's executed (unless it's typescript)
-        Uptr memAfterA1 = Runtime::getMemoryNumPages(moduleA.defaultMemory);
-        Uptr memAfterB1 = Runtime::getMemoryNumPages(moduleB.defaultMemory);
-        REQUIRE(memAfterB1 == memBeforeA);
-
-        if(isTypescript) {
-            REQUIRE(memAfterA1 == memBeforeA);
+        if (isPython) {
+            REQUIRE(tableAfterA1 > tableBeforeA);
         } else {
-            REQUIRE(memAfterA1 > memBeforeA);
+            REQUIRE(tableAfterA1 == tableBeforeA);
         }
 
-        // Check tables (should have grown for Python and not for other)
-        Uptr tableAfterA1;
-        if (!isTypescript) {
-            tableAfterA1 = Runtime::getTableNumElements(moduleA.defaultTable);
-            Uptr tableAfterB1 = Runtime::getTableNumElements(moduleB.defaultTable);
+        REQUIRE(tableAfterB1 == tableBeforeA);
+    }
 
-            if(isPython) {
-                REQUIRE(tableAfterA1 > tableBeforeA);
-            } else {
-                REQUIRE(tableAfterA1 == tableBeforeA);
-            }
+    // Execute with second module
+    bool successB = moduleB.execute(msgB);
+    REQUIRE(successB);
 
-            REQUIRE(tableAfterB1 == tableBeforeA);
-        }
+    if (func == "echo") {
+        REQUIRE(msgB.outputdata() == inputB);
+    }
 
-        // Execute with second module
-        bool successB = moduleB.execute(msgB);
-        REQUIRE(successB);
+    // Check memory sizes
+    Uptr memAfterA2 = Runtime::getMemoryNumPages(moduleA.defaultMemory);
+    Uptr memAfterB2 = Runtime::getMemoryNumPages(moduleB.defaultMemory);
+    REQUIRE(memAfterB2 == memAfterA2);
+    REQUIRE(memAfterA1 == memAfterA2);
 
-        if (func == "echo") {
-            REQUIRE(msgB.outputdata() == inputB);
-        }
+    if (isTypescript) {
+        REQUIRE(memAfterB2 == memBeforeB);
+    } else {
+        REQUIRE(memAfterB2 > memBeforeB);
 
-        // Check memory sizes
-        Uptr memAfterA2 = Runtime::getMemoryNumPages(moduleA.defaultMemory);
-        Uptr memAfterB2 = Runtime::getMemoryNumPages(moduleB.defaultMemory);
-        REQUIRE(memAfterB2 == memAfterA2);
-        REQUIRE(memAfterA1 == memAfterA2);
+        Uptr tableAfterA2 = Runtime::getTableNumElements(moduleA.defaultTable);
+        Uptr tableAfterB2 = Runtime::getTableNumElements(moduleB.defaultTable);
 
-        if(isTypescript) {
-            REQUIRE(memAfterB2 == memBeforeB);
+        if (isPython) {
+            REQUIRE(tableAfterB2 > tableBeforeB);
         } else {
-            REQUIRE(memAfterB2 > memBeforeB);
-
-            Uptr tableAfterA2 = Runtime::getTableNumElements(moduleA.defaultTable);
-            Uptr tableAfterB2 = Runtime::getTableNumElements(moduleB.defaultTable);
-
-            if(isPython) {
-                REQUIRE(tableAfterB2 > tableBeforeB);
-            } else {
-                REQUIRE(tableAfterB2 == tableBeforeB);
-            }
-
-            REQUIRE(tableAfterB2 == tableAfterA2);
-            REQUIRE(tableAfterA1 == tableAfterA2);
+            REQUIRE(tableAfterB2 == tableBeforeB);
         }
 
-        // Check successful clean-up
-        REQUIRE(moduleA.tearDown());
-        REQUIRE(moduleB.tearDown());
+        REQUIRE(tableAfterB2 == tableAfterA2);
+        REQUIRE(tableAfterA1 == tableAfterA2);
     }
 
-    void _checkCopyConstructor(const std::string &user, const std::string &func, const std::string &inputA,
-                               const std::string &inputB, bool isTypescript, bool isPython) {
-        faabric::Message msgA = faabric::util::messageFactory(user, func);
+    // Check successful clean-up
+    REQUIRE(moduleA.tearDown());
+    REQUIRE(moduleB.tearDown());
+}
 
-        if(isPython) {
-            convertMsgToPython(msgA);
-        }
+void _checkCopyConstructor(const std::string& user,
+                           const std::string& func,
+                           const std::string& inputA,
+                           const std::string& inputB,
+                           bool isTypescript,
+                           bool isPython)
+{
+    faabric::Message msgA = faabric::util::messageFactory(user, func);
 
-        if (isTypescript) {
-            msgA.set_istypescript(true);
-        }
-
-        WAVMWasmModule moduleA;
-        moduleA.bindToFunction(msgA);
-
-        WAVMWasmModule moduleB(moduleA);
-        _doChecks(moduleA, moduleB, user, func, inputA, inputB, isTypescript, isPython);
+    if (isPython) {
+        convertMsgToPython(msgA);
     }
 
-    void _checkAssignmentOperator(const std::string &user, const std::string &func, const std::string &inputA,
-                                  const std::string &inputB, bool isTypescript, bool isPython) {
-        faabric::Message msgA = faabric::util::messageFactory(user, func);
-        msgA.set_istypescript(isTypescript);
-
-        if(isPython) {
-            convertMsgToPython(msgA);
-        }
-
-        WAVMWasmModule moduleA;
-        moduleA.bindToFunction(msgA);
-
-        WAVMWasmModule moduleB = moduleA;
-        _doChecks(moduleA, moduleB, user, func, inputA, inputB, isTypescript, isPython);
+    if (isTypescript) {
+        msgA.set_istypescript(true);
     }
 
-    TEST_CASE("Test cloned execution on simple module", "[wasm]") {
-        std::string user = "demo";
-        std::string func = "echo";
-        std::string inputA = "aaa";
-        std::string inputB = "bbb";
+    WAVMWasmModule moduleA;
+    moduleA.bindToFunction(msgA);
 
-        SECTION("copy") {
-            _checkCopyConstructor(user, func, inputA, inputB, false, false);
-        }
+    WAVMWasmModule moduleB(moduleA);
+    _doChecks(
+      moduleA, moduleB, user, func, inputA, inputB, isTypescript, isPython);
+}
 
-        SECTION("assignment") {
-            _checkAssignmentOperator(user, func, inputA, inputB, false, false);
-        }
+void _checkAssignmentOperator(const std::string& user,
+                              const std::string& func,
+                              const std::string& inputA,
+                              const std::string& inputB,
+                              bool isTypescript,
+                              bool isPython)
+{
+    faabric::Message msgA = faabric::util::messageFactory(user, func);
+    msgA.set_istypescript(isTypescript);
+
+    if (isPython) {
+        convertMsgToPython(msgA);
     }
 
-    // TODO - fix typescript support
+    WAVMWasmModule moduleA;
+    moduleA.bindToFunction(msgA);
+
+    WAVMWasmModule moduleB = moduleA;
+    _doChecks(
+      moduleA, moduleB, user, func, inputA, inputB, isTypescript, isPython);
+}
+
+TEST_CASE("Test cloned execution on simple module", "[wasm]")
+{
+    std::string user = "demo";
+    std::string func = "echo";
+    std::string inputA = "aaa";
+    std::string inputB = "bbb";
+
+    SECTION("copy")
+    {
+        _checkCopyConstructor(user, func, inputA, inputB, false, false);
+    }
+
+    SECTION("assignment")
+    {
+        _checkAssignmentOperator(user, func, inputA, inputB, false, false);
+    }
+}
+
+// TODO - fix typescript support
 //    TEST_CASE("Test cloned execution on typescript module", "[wasm]") {
 //        std::string user = "ts";
 //        std::string func = "echo";
@@ -218,55 +242,60 @@ namespace tests {
 //        }
 //    }
 
-    TEST_CASE("Test cloned execution on complex module", "[wasm]") {
-        faabric::util::SystemConfig &conf = faabric::util::getSystemConfig();
-        std::string preloadVal = conf.pythonPreload;
-        conf.pythonPreload = "off";
-        
-        std::string user = "python";
-        std::string func = "numpy_test";
-        std::string input;
+TEST_CASE("Test cloned execution on complex module", "[wasm]")
+{
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    std::string preloadVal = conf.pythonPreload;
+    conf.pythonPreload = "off";
 
-        SECTION("copy") {
-            _checkCopyConstructor(user, func, input, input, false, true);
-        }
-        SECTION("assignment") {
-            _checkAssignmentOperator(user, func, input, input, false, true);
-        }
+    std::string user = "python";
+    std::string func = "numpy_test";
+    std::string input;
 
-        conf.pythonPreload = preloadVal;
+    SECTION("copy")
+    {
+        _checkCopyConstructor(user, func, input, input, false, true);
+    }
+    SECTION("assignment")
+    {
+        _checkAssignmentOperator(user, func, input, input, false, true);
     }
 
-    TEST_CASE("Test GC on cloned modules without execution") {
-        faabric::Message msg = faabric::util::messageFactory("demo", "echo");
+    conf.pythonPreload = preloadVal;
+}
 
-        WAVMWasmModule moduleA;
-        moduleA.bindToFunction(msg);
+TEST_CASE("Test GC on cloned modules without execution")
+{
+    faabric::Message msg = faabric::util::messageFactory("demo", "echo");
 
-        WAVMWasmModule moduleB(moduleA);
+    WAVMWasmModule moduleA;
+    moduleA.bindToFunction(msg);
 
-        WAVMWasmModule moduleC = moduleA;
+    WAVMWasmModule moduleB(moduleA);
 
-        REQUIRE(moduleA.tearDown());
-        REQUIRE(moduleB.tearDown());
-        REQUIRE(moduleC.tearDown());
-    }
+    WAVMWasmModule moduleC = moduleA;
 
-    TEST_CASE("Test GC on cloned modules with execution") {
-        faabric::Message msg = faabric::util::messageFactory("demo", "echo");
+    REQUIRE(moduleA.tearDown());
+    REQUIRE(moduleB.tearDown());
+    REQUIRE(moduleC.tearDown());
+}
 
-        WAVMWasmModule moduleA;
-        moduleA.bindToFunction(msg);
-        moduleA.execute(msg);
+TEST_CASE("Test GC on cloned modules with execution")
+{
+    faabric::Message msg = faabric::util::messageFactory("demo", "echo");
 
-        WAVMWasmModule moduleB(moduleA);
-        moduleB.execute(msg);
+    WAVMWasmModule moduleA;
+    moduleA.bindToFunction(msg);
+    moduleA.execute(msg);
 
-        WAVMWasmModule moduleC = moduleA;
-        moduleC.execute(msg);
+    WAVMWasmModule moduleB(moduleA);
+    moduleB.execute(msg);
 
-        REQUIRE(moduleA.tearDown());
-        REQUIRE(moduleB.tearDown());
-        REQUIRE(moduleC.tearDown());
-    }
+    WAVMWasmModule moduleC = moduleA;
+    moduleC.execute(msg);
+
+    REQUIRE(moduleA.tearDown());
+    REQUIRE(moduleB.tearDown());
+    REQUIRE(moduleC.tearDown());
+}
 }

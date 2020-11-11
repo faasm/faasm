@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[])
+{
     char src[] = "alpha beta gamma delta";
     char dest[10];
 

@@ -22,7 +22,7 @@ target_link_libraries(storage faasm emulator wavmmodule)
 
 # WAMR module depends on SGX support
 if(FAASM_SGX_SUPPORT)
-    target_link_libraries(storage sgx_wamr)
+    target_link_libraries(storage faasm_sgx)
 else()
     target_link_libraries(storage wamrmodule)
 endif()

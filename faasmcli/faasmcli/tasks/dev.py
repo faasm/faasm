@@ -1,11 +1,18 @@
 from os import makedirs
 from os.path import exists
-from shutil import rmtree
 from subprocess import run
 
 from invoke import task
 
 from faasmcli.util.env import PROJ_ROOT, FAASM_BUILD_DIR
+
+DEV_TARGETS = [
+    "codegen_func",
+    "codegen_shared_obj",
+    "func_runner",
+    "simple_runner",
+    "tests",
+]
 
 
 @task
@@ -32,6 +39,22 @@ def cmake(ctx, clean=False):
 
 
 @task
+def tools(ctx, clean=False):
+    """
+    Builds all the targets commonly used for development
+    """
+    cmake(ctx, clean=clean)
+
+    targets = " ".join(DEV_TARGETS)
+
+    run(
+        "cmake --build . --target {}".format(targets),
+        cwd=FAASM_BUILD_DIR,
+        shell=True,
+    )
+
+
+@task
 def cc(ctx, target, clean=False):
     """
     Compiles the given CMake target
@@ -41,9 +64,11 @@ def cc(ctx, target, clean=False):
 
     if target == "all":
         target = ""
+    else:
+        target = "--target {}".format(target)
 
     run(
-        "ninja {}".format(target),
+        "cmake --build . {}".format(target),
         cwd=FAASM_BUILD_DIR,
         shell=True,
     )

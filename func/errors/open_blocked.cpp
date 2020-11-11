@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 /** Attempts to open a blocked file */
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     FILE* fp;
     fp = fopen("/etc/shadow", "r");

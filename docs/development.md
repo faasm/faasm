@@ -14,9 +14,6 @@ up, you need to run:
 git clone https://github.com/faasm/faasm
 cd faasm
 
-# Update submodules
-git submodule update --init
-
 # Start the CLI
 ./bin/cli.sh
 ```
@@ -24,17 +21,14 @@ git submodule update --init
 The service orchestration is handled through `docker-compose`. If you want to
 stop all `faasm`-related development services run:
 ```bash
-docker-compose -p faasm-dev -f docker/docker-compose-cli.yml stop
+./bin/stop-cli.sh
 ```
 
 To build and run the tests, you can then run the following inside the container:
 
 ```bash
-# Build the tests and the codegen targets
-inv dev.cmake
-inv dev.cc tests
-inv dev.cc codegen_func
-inv dev.cc codegen_shared_obj
+# Build the development tools
+inv dev.tools
 
 # Upload the Python functions
 inv upload.user python --local-copy --py
@@ -67,6 +61,8 @@ set up your own. To do this:
 ```bash
 ./bin/cli.sh <your image>
 ```
+
+Or set the environment variable `CLI_IMAGE`  before you run the `cli.sh` script.
 
 ## Building outside of the container
 
@@ -138,12 +134,11 @@ function:
 
 ```bash
 # Set up the CLI
-source workon.sh
+export FAASM_BUILD_DIR=<build dir>
+source bin/workon.sh
 
 # Build the project
-inv dev.cmake --clean
-inv dev.cc simple_runner
-inv dev.cc codgen_func
+inv dev.tools
 
 # Compile, codegen and run the code
 inv compile demo hello

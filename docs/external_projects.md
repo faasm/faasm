@@ -14,7 +14,7 @@ This installs to `/usr/local/faasm/install/`. You can link to `libfaasm` and
 #include <faasm/faasm.h>
 #include <stdio.h>
 
-FAASM_MAIN_FUNC() {
+int main(int argc, char* argv[]) {
     printf("Hi external\n");
     return 0;
 }

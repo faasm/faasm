@@ -2,15 +2,16 @@
 
 #include <faaslet/FaasletPool.h>
 
-#include <faabric/executor/FaabricMain.h>
 #include <faabric/endpoint/FaabricEndpoint.h>
+#include <faabric/executor/FaabricMain.h>
 
 using namespace faabric::executor;
 using namespace faaslet;
 
-int main() {
+int main()
+{
     faabric::util::initLogging();
-    const std::shared_ptr<spdlog::logger> &logger = faabric::util::getLogger();
+    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     // Start the worker pool
     logger->info("Starting faaslet pool in the background");

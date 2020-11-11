@@ -31,7 +31,7 @@ bool compareArrays(const char* label, int* actual, int* expected)
 /**
  * Simple counting test for static and static chunk scheduling
  */
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     int countsA[4] = { 0, 0, 0, 0 };
     int expectedA[4] = { 3, 3, 3, 1 }; // Based on native behaviour

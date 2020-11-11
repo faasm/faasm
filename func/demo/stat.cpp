@@ -4,11 +4,14 @@
 
 #include <stdio.h>
 
-FAASM_MAIN_FUNC() {
+int main(int argc, char* argv[])
+{
 
-    struct stat64 s{};
+    struct stat64 s
+    {};
 
-    // NOTE: in the wasm world the struct has different types, so print whines here if we don't branch
+    // NOTE: in the wasm world the struct has different types, so print whines
+    // here if we don't branch
 #ifdef __wasm__
 
     stat64("/", &s);

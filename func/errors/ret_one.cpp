@@ -2,7 +2,7 @@
 
 #include <cstdlib>
 
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     exit(1);
 }

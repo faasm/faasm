@@ -1,26 +1,25 @@
+#include "faasm/counter.h"
 #include "faasm/faasm.h"
 #include "faasm/input.h"
-#include "faasm/counter.h"
-
 
 #include <cstdio>
 #include <string>
 
-
-FAASM_FUNC(scaleWorker, 1) {
+int scaleWorker()
+{
     printf("Executing scale worker\n");
 
     faasm::AtomicInt counter;
     printf("Adding 1 to counter %i\n", counter.get());
-    
+
     counter += 1;
 
     return 0;
 }
 
-
-FAASM_MAIN_FUNC() {
-    const char *input = faasm::getStringInput("4");
+int main(int argc, char* argv[])
+{
+    const char* input = faasm::getStringInput("4");
 
     int nFuncs = std::stoi(input);
 
@@ -32,13 +31,13 @@ FAASM_MAIN_FUNC() {
 
     auto messageIds = new unsigned int[nFuncs];
 
-    for(int i = 0; i < nFuncs; i++) {
-        messageIds[i] = faasmChainThisInput(1, nullptr, 0);
+    for (int i = 0; i < nFuncs; i++) {
+        messageIds[i] = faasmChain(scaleWorker, nullptr, 0);
     }
-    
-    for(int i = 0; i < nFuncs; i++) {
+
+    for (int i = 0; i < nFuncs; i++) {
         unsigned int callRes = faasmAwaitCall(messageIds[i]);
-        if(callRes != 0) {
+        if (callRes != 0) {
             printf("Chained call %i failed\n", callRes);
             exit(1);
         }

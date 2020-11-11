@@ -1,6 +1,5 @@
 from time import sleep
 
-from faasmcli.util.config import get_faasm_config
 from faasmcli.util.env import PYTHON_USER, PYTHON_FUNC
 from faasmcli.util.http import do_post
 from faasmcli.util.endpoints import get_invoke_host_port
@@ -36,6 +35,7 @@ def invoke_impl(
     mpi_world_size=None,
     debug=False,
     poll_interval_ms=1000,
+    sgx=False,
 ):
     # Provider-specific stuff
     if knative:
@@ -67,6 +67,9 @@ def invoke_impl(
             "function": func,
             "async": asynch,
         }
+
+    if sgx:
+        msg["sgx"] = sgx
 
     if input:
         msg["input_data"] = input

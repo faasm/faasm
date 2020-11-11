@@ -7,9 +7,9 @@
 #define BIT_MASK_32 0b11111111111111111111111111111111
 
 namespace faasm {
-    void maskDouble(unsigned int *maskArray, unsigned long idx);
+void maskDouble(unsigned int* maskArray, unsigned long idx);
 
-    void zeroState(const char *key, size_t stateLen);
+void zeroState(const char* key, size_t stateLen);
 }
 
 #endif

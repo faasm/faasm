@@ -4,22 +4,23 @@
 #include "faasm/core.h"
 
 namespace faasm {
-    template<typename T>
-    T getTypedInput(T defaultValue) {
-        if (faasmGetInputSize() == 0) {
-            return defaultValue;
-        }
-
-        T inputBuff;
-        faasmGetInput(BYTES(&inputBuff), sizeof(T));
-        return inputBuff;
+template<typename T>
+T getTypedInput(T defaultValue)
+{
+    if (faasmGetInputSize() == 0) {
+        return defaultValue;
     }
 
-    const char* getStringInput(const char* defaultValue);
+    T inputBuff;
+    faasmGetInput(BYTES(&inputBuff), sizeof(T));
+    return inputBuff;
+}
 
-    void setStringOutput(const char *val);
+const char* getStringInput(const char* defaultValue);
 
-    int* parseStringToIntArray(const char* inStr, int expected);
+void setStringOutput(const char* val);
+
+int* parseStringToIntArray(const char* inStr, int expected);
 }
 
 #endif

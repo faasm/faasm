@@ -128,7 +128,7 @@ static double* RESTRICT c;
 static int checkTRIADresults(int, long int);
 
 // int main(int argc, char **argv)
-FAASM_MAIN_FUNC()
+int main(int argc, char* argv[])
 {
     long j, iter;        /* dummies                                     */
     double scalar;       /* constant used in Triad operation            */
