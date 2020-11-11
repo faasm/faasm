@@ -4,12 +4,12 @@
 #include "wasm_exec_env.h"
 #include "wasm_runtime.h"
 
-#include <bits/stdint-intn.h>
-#include <bits/stdint-uintn.h>
 #include <faabric/util/locks.h>
+#include <wamr/native.h>
+
+#include <cstdint>
 #include <stdexcept>
 #include <storage/FileLoader.h>
-#include <wamr/native.h>
 #include <wasm_export.h>
 
 #if (WAMR_EXECUTION_MODE_INTERP)

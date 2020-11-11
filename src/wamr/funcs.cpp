@@ -1,6 +1,5 @@
 #include "thread_manager.h"
 
-#include <bits/stdint-uintn.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/macros.h>
 #include <proto/faabric.pb.h>
