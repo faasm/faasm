@@ -49,7 +49,12 @@ jobs:
         run: ./bin/run_clang_format.sh
       - name: "Check C/C++ formatting changes"
         run: git diff --exit-code
-      # --- Compilation ---
+      # --- Code build ---
+      - name: "Rerun cmake"
+        run: inv -r faasmcli/faasmcli dev.cmake
+      - name: "Build dev tools"
+        run: inv -r faasmcli/faasmcli dev.tools
+      # --- WASM compilation ---
       - name: "Compile libraries"
         run: inv -r faasmcli/faasmcli libs.toolchain
       - name: "Compile demo code"
@@ -62,16 +67,6 @@ jobs:
         run: inv -r faasmcli/faasmcli compile python py_func
       - name: "Compile OMP functions"
         run: inv -r faasmcli/faasmcli compile.user omp
-      # --- Code build ---
-      - name: "Build codegen"
-        run: cmake --build . --target codegen_func
-        working-directory: /build/faasm
-      - name: "Build tests"
-        run: cmake --build . --target codegen_shared_obj
-        working-directory: /build/faasm
-      - name: "Build tests"
-        run: cmake --build . --target tests
-        working-directory: /build/faasm
       # --- Environment set-up ---
       - name: "Set up test lib"
         run: inv -r faasmcli/faasmcli libs.fake

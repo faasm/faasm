@@ -4,6 +4,7 @@
 #include <linux/futex.h>
 
 #include <faabric/util/config.h>
+#include <wasm/chaining.h>
 
 #include <WAVM/Platform/Thread.h>
 #include <WAVM/Runtime/Intrinsics.h>

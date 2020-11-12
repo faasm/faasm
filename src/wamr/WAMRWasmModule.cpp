@@ -1,8 +1,15 @@
 #include "WAMRWasmModule.h"
+#include "faabric/util/logging.h"
+#include "platform_common.h"
+#include "wasm_exec_env.h"
+#include "wasm_runtime.h"
 
 #include <faabric/util/locks.h>
-#include <storage/FileLoader.h>
 #include <wamr/native.h>
+
+#include <cstdint>
+#include <stdexcept>
+#include <storage/FileLoader.h>
 #include <wasm_export.h>
 
 #if (WAMR_EXECUTION_MODE_INTERP)
@@ -125,30 +132,83 @@ bool WAMRWasmModule::execute(faabric::Message& msg, bool forceNoop)
     // Run wasm initialisers
     executeFunction(WASM_CTORS_FUNC_NAME);
 
-    // Run the main function
-    executeFunction(ENTRY_FUNC_NAME);
+    if (msg.funcptr() > 0) {
+        // Run the function from the pointer
+        executeFunctionFromPointer(msg.funcptr());
+    } else {
+        // Run the main function
+        executeFunction(ENTRY_FUNC_NAME);
+    }
 
     return true;
 }
 
-void WAMRWasmModule::executeFunction(const std::string& funcName)
+int WAMRWasmModule::executeFunctionFromPointer(int wasmFuncPtr)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
+    auto logger = faabric::util::getLogger();
+
+    // NOTE: WAMR doesn't provide a nice interface for calling functions using
+    // function pointers, so we have to call a few more low-level functions to
+    // get it to work.
+
+    WASMExecEnv* execEnv = wasm_exec_env_create(moduleInstance, STACK_SIZE_KB);
+    if (execEnv == nullptr) {
+        logger->error("Failed to create exec env for func ptr {}", wasmFuncPtr);
+        throw std::runtime_error("Failed to create WAMR exec env");
+    }
+
+    // Set thread handle and stack boundary (required by WAMR)
+    wasm_exec_env_set_thread_info(execEnv);
+
+    // Call the function pointer
+    // NOTE: for some reason WAMR uses the argv array to pass the function
+    // return value, so we have to provide something big enough
+    std::vector<uint32_t> argv = { 0 };
+    bool success =
+      wasm_runtime_call_indirect(execEnv, wasmFuncPtr, 0, argv.data());
+
+    // Handle errors
+    if (!success) {
+        std::string errorMessage(
+          ((AOTModuleInstance*)moduleInstance)->cur_exception);
+
+        logger->error("Failed to execute from function pointer {}",
+                      wasmFuncPtr);
+
+        return 1;
+    }
+
+    return 0;
+}
+
+int WAMRWasmModule::executeFunction(const std::string& funcName)
+{
+    auto logger = faabric::util::getLogger();
 
     WASMFunctionInstanceCommon* func =
       wasm_runtime_lookup_function(moduleInstance, funcName.c_str(), nullptr);
 
+    // Note, for some reason WAMR sets the return value in the argv array you
+    // pass it, therefore we should provide a single integer argv even though
+    // it's not actually used
+    std::vector<uint32_t> argv = { 0 };
+
     // Invoke the function
 #if (WAMR_EXECUTION_MODE_INTERP)
     bool success = wasm_create_exec_env_and_call_function(
-      (WASMModuleInstance*)moduleInstance,
-      (WASMFunctionInstance*)func,
+      reinterpret_cast<WASMModuleInstance*>(moduleInstance),
+      reinterpret_cast<WASMFunctionInstance*>(func),
       0x0,
-      0x0);
+      argv.data());
 #else
     bool success = aot_create_exec_env_and_call_function(
-      (AOTModuleInstance*)moduleInstance, (AOTFunctionInstance*)func, 0x0, 0x0);
+      reinterpret_cast<AOTModuleInstance*>(moduleInstance),
+      reinterpret_cast<AOTFunctionInstance*>(func),
+      0x0,
+      argv.data());
 #endif
+
+    // Check function result
     if (success) {
         logger->debug("{} finished", funcName);
     } else {
@@ -160,7 +220,11 @@ void WAMRWasmModule::executeFunction(const std::string& funcName)
           ((AOTModuleInstance*)moduleInstance)->cur_exception);
 #endif
         logger->error("Function failed: {}", errorMessage);
+
+        return 1;
     }
+
+    return 0;
 }
 
 bool WAMRWasmModule::isBound()

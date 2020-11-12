@@ -1,5 +1,4 @@
 # Faasm
-wasm/
 perf/
 work/
 download/
@@ -9,6 +8,9 @@ ninja-build/
 faasm.ini
 perf.data
 perf.data.*
+
+# Ignore the top-level wasm directory (note the leading slash)
+/wasm/
 
 # Clang
 .clangd
