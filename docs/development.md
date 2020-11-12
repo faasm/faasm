@@ -68,13 +68,41 @@ Or set the environment variable `CLI_IMAGE`  before you run the `cli.sh` script.
 
 If you want to build the project outside of the recommended container, or just
 run some of the CLI tasks, you can take a look at the [CLI
-Dockerfile](../docker/cli.dockerfile) to see what's required.
+Dockerfile](../docker/cli.dockerfile) to see what's required:
 
-You will most likely need to set up the CLI using:
+To run the CLI, you should just need to do:
 
 ```bash
+# Set up some shortcuts and aliases
 export FAASM_BUILD_DIR=$(pwd)/build
 source bin/workon.sh
+
+# Activate the virtualenv
+source venv/bin/activate
+
+# Install toolchain Python module
+cd <wherever you keep your code>
+git clone https://github.com/faasm/faasm-toolchain/
+cd faasm-toolchain
+pip3 install -e .
+cd -
+
+# Install Faasm CLI module
+cd faasmcli
+pip install -e .
+cd ..
+
+# Check things work
+inv -l
+```
+
+From then on, you should just be able to run the following (i.e. not reinstall
+the python modules):
+
+```
+source bin/workon.sh
+
+inv -l
 ```
 
 ## Code style
