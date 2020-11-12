@@ -47,14 +47,12 @@ def local(ctx, wamr=False):
     """
     _do_codegen_user("demo", wamr=wamr)
     _do_codegen_user("errors", wamr=wamr)
-    _do_codegen_user("omp", wamr=wamr)
     _do_codegen_user("mpi", wamr=wamr)
+    _do_codegen_user("omp", wamr=wamr)
+    _do_codegen_user("python", wamr)
 
     # Always run the codegen required by the tests
     codegen(ctx, "demo", "echo", wamr=True)
-
-    # Python codegen
-    _do_codegen_user("python", wamr)
 
     print("Running codegen on python shared objects")
     binary = find_codegen_shared_lib()
