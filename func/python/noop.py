@@ -1,2 +1,2 @@
 def faasm_main():
-    return
+    return 0

@@ -19,3 +19,5 @@ def faasm_main():
 
         for file in dirlist:
             print(file)
+
+    return 0

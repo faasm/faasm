@@ -7,12 +7,16 @@ def chain_one(input_bytes):
     if input_bytes != expected:
         exit(1)
 
+    return 0
+
 
 def chain_two(input_bytes):
     expected = b"5678"
     print("Chained 2: {} {}".format(input_bytes, expected))
     if input_bytes != expected:
         exit(1)
+
+    return 0
 
 
 def faasm_main():
@@ -28,3 +32,5 @@ def faasm_main():
     if res_a != 0 or res_b != 0:
         print("Chained functions failed: {} {}".format(res_a, res_b))
         exit(1)
+
+    return 0

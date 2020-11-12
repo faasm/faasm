@@ -52,3 +52,5 @@ def faasm_main():
         exit(1)
 
     print("Successful Python state writing check")
+
+    return 0
