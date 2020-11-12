@@ -124,22 +124,6 @@ bool Faaslet::doExecute(faabric::Message& msg)
 {
     auto logger = faabric::util::getLogger();
 
-    // Force cold start if necessary
-    int coldStartInterval = msg.coldstartinterval();
-    bool isColdStart = coldStartInterval > 0 && executionCount > 0 &&
-                       executionCount % coldStartInterval == 0;
-
-    if (isColdStart) {
-        const std::string funcStr = faabric::util::funcToString(msg, true);
-        logger->debug("Forcing cold start of {} ({}/{})",
-                      funcStr,
-                      executionCount,
-                      coldStartInterval);
-
-        // Bind to function again
-        this->bindToFunction(msg, true);
-    }
-
     // Check if we need to restore from a different snapshot
     auto conf = faabric::util::getSystemConfig();
     if (conf.wasmVm == "wavm") {
