@@ -87,7 +87,7 @@ TEST_CASE("Test python state write/ read", "[faaslet]")
     REQUIRE(result.returnvalue() == 0);
 }
 
-//TEST_CASE("Test python chaining", "[faaslet]")
+// TEST_CASE("Test python chaining", "[faaslet]")
 //{
 //    faabric::Message call =
 //      faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
