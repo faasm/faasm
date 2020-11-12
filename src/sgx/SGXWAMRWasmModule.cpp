@@ -133,13 +133,14 @@ bool SGXWAMRWasmModule::execute(faabric::Message& msg, bool forceNoop)
         throw std::runtime_error("Function not bound");
     }
 
+    logger->debug(
+      "Entering enclave {} to execute {}", globalEnclaveId, funcStr);
+
     // Set executing call
     wasm::setExecutingCall(const_cast<faabric::Message*>(&msg));
 
     // Enter enclave and call function
     faasm_sgx_status_t returnValue;
-    logger->debug(
-      "Entering enclave {} to execute {}", globalEnclaveId, funcStr);
     sgx_status_t sgxReturnValue = faasm_sgx_enclave_call_function(
       globalEnclaveId, &returnValue, threadId, msg.funcptr());
 

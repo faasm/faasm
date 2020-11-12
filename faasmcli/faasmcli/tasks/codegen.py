@@ -53,6 +53,7 @@ def local(ctx, wamr=False):
 
     # Always run the codegen required by the tests
     codegen(ctx, "demo", "echo", wamr=True)
+    codegen(ctx, "demo", "chain", wamr=True)
 
     print("Running codegen on python shared objects")
     binary = find_codegen_shared_lib()

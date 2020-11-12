@@ -1,6 +1,9 @@
-#include "utils.h"
 #include <catch2/catch.hpp>
 
+#include "matrix_utils.h"
+#include "utils.h"
+
+#include "faasm/faasm.h"
 #include "faasm/matrix.h"
 
 #include <faabric/redis/Redis.h>

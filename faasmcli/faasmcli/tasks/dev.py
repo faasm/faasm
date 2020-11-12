@@ -35,7 +35,7 @@ def cmake(ctx, clean=False):
         PROJ_ROOT,
     ]
 
-    run(" ".join(cmd), shell=True, cwd=FAASM_BUILD_DIR)
+    run(" ".join(cmd), shell=True, check=True, cwd=FAASM_BUILD_DIR)
 
 
 @task
@@ -51,6 +51,7 @@ def tools(ctx, clean=False):
         "cmake --build . --target {}".format(targets),
         cwd=FAASM_BUILD_DIR,
         shell=True,
+        check=True,
     )
 
 
@@ -71,4 +72,5 @@ def cc(ctx, target, clean=False):
         "cmake --build . {}".format(target),
         cwd=FAASM_BUILD_DIR,
         shell=True,
+        check=True,
     )

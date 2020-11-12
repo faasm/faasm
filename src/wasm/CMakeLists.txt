@@ -3,6 +3,7 @@ include_directories(
 )
 
 set(HEADERS
+        "${FAASM_INCLUDE_DIR}/wasm/chaining.h"
         "${FAASM_INCLUDE_DIR}/wasm/serialisation.h"
         "${FAASM_INCLUDE_DIR}/wasm/WasmEnvironment.h"
         "${FAASM_INCLUDE_DIR}/wasm/WasmModule.h"
