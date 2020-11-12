@@ -87,5 +87,3 @@ add_subdirectory(dynlink)
 add_subdirectory(mpi)
 add_subdirectory(omp)
 add_subdirectory(python)
-add_subdirectory(sgd)
-

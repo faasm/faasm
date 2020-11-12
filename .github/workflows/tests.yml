@@ -65,8 +65,6 @@ jobs:
         run: inv -r faasmcli/faasmcli compile.user mpi
       - name: "Compile Python function"
         run: inv -r faasmcli/faasmcli compile python py_func
-      - name: "Compile SGD function"
-        run: inv -r faasmcli/faasmcli compile sgd reuters_svm
       - name: "Compile OMP functions"
         run: inv -r faasmcli/faasmcli compile.user omp
       # --- Environment set-up ---
