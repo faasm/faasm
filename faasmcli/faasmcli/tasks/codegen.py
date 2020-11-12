@@ -53,13 +53,8 @@ def local(ctx, wamr=False):
     # Always run the codegen required by the tests
     codegen(ctx, "demo", "echo", wamr=True)
 
-    # Run these in parallel
-    p = Pool(2)
-    users = [
-        ("python", wamr),
-        ("sgd", wamr),
-    ]
-    p.starmap(_do_codegen_user, users)
+    # Python codegen
+    _do_codegen_user("python", wamr)
 
     print("Running codegen on python shared objects")
     binary = find_codegen_shared_lib()
