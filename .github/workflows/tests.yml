@@ -56,7 +56,7 @@ jobs:
         run: inv -r faasmcli/faasmcli dev.tools
       # --- WASM compilation ---
       - name: "Compile libraries"
-        run: inv -r faasmcli/faasmcli libs.toolchain
+        run: inv -r faasmcli/faasmcli libs.toolchain --clean
       - name: "Compile demo code"
         run: inv -r faasmcli/faasmcli compile.user demo
       - name: "Compile errors code"
@@ -64,7 +64,7 @@ jobs:
       - name: "Compile MPI code"
         run: inv -r faasmcli/faasmcli compile.user mpi
       - name: "Compile Python function"
-        run: inv -r faasmcli/faasmcli compile python py_func
+        run: inv -r faasmcli/faasmcli compile python py_func --clean
       - name: "Compile OMP functions"
         run: inv -r faasmcli/faasmcli compile.user omp
       # --- Environment set-up ---
