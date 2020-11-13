@@ -182,7 +182,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 version,
                                I32 subversion)
 {
-    faabric::util::getLogger()->debug("S - MPI_Get_version");
+    faabric::util::getLogger()->debug(
+      "S - MPI_Get_version {} {}", version, subversion);
 
     throw std::runtime_error("MPI_Get_version not implemented!");
 
@@ -364,7 +365,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 tag,
                                I32 comm)
 {
-    faabric::util::getLogger()->debug("S - MPI_Rsend {} {} {} {} {} {} {}",
+    faabric::util::getLogger()->debug("S - MPI_Rsend {} {} {} {} {} {}",
                                       buffer,
                                       count,
                                       datatype,
@@ -615,11 +616,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                MPI_Waitany,
                                I32 count,
                                I32 requestArray,
-                               I32 index,
+                               I32 idx,
                                I32 status)
 {
     faabric::util::getLogger()->debug(
-      "S - MPI_Waitany {} {} {} {}", count, requestArray, index, status);
+      "S - MPI_Waitany {} {} {} {}", count, requestArray, idx, status);
 
     throw std::runtime_error("MPI_Waitany is not implemented!");
 
@@ -1298,8 +1299,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     auto commPtr =
       &Runtime::memoryRef<faabric_communicator_t>(ctx.memory, comm);
-    faabric::util::getLogger()->debug(
-      "Cart_get w/ comm: {}. Id: {}", comm, commPtr->id);
 
     // If the provided value is lower we error out. Otherwise we will just
     // use the first <MPI_CART_MAX_DIMENSIONS> array positions.
@@ -1674,7 +1673,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     return MPI_SUCCESS;
 }
 
-/** Frees a data type
+/**
+ * Frees a data type
  *
  * TODO not implemented.
  */
