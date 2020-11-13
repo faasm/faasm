@@ -1,25 +1,7 @@
 #pragma once
 
-#include <stdint.h>
-/*#if(DEMO_KEYMGR)
-#define SGX_SHA1_HASH_SIZE              20
-#define SGX_SHA256_HASH_SIZE            32
-#define SGX_ECP256_KEY_SIZE             32
-#define SGX_NISTP_ECP256_KEY_SIZE       (SGX_ECP256_KEY_SIZE/sizeof(uint32_t))
-#define SGX_AESGCM_IV_SIZE              12
-#define SGX_AESGCM_KEY_SIZE             16
-#define SGX_AESGCM_MAC_SIZE             16
-#define SGX_HMAC256_KEY_SIZE            32
-#define SGX_HMAC256_MAC_SIZE            32
-#define SGX_CMAC_KEY_SIZE               16
-#define SGX_CMAC_MAC_SIZE               16
-#define SGX_AESCTR_KEY_SIZE             16
-#define SGX_RSA3072_KEY_SIZE            384
-#define SGX_RSA3072_PRI_EXP_SIZE        384
-#define SGX_RSA3072_PUB_EXP_SIZE        4
-#else*/
+//#include <sgx/faasm_sgx_attestation.h>
 #include <sgx_tcrypto.h>
-//#endif
 
 #define FAASM_SGX_ATTESTATION_FLAGS_BIT_STATUS 0x0
 #define FAASM_SGX_ATTESTATION_FLAGS_BIT_MSG_TYPE 0x1
@@ -27,7 +9,12 @@
 #define FAASM_SGX_ATTESTATION_STATUS_ERROR 0x1
 #define FAASM_SGX_ATTESTATION_PAYLOAD_HASH_SID 0x0
 #define FAASM_SGX_ATTESTATION_PAYLOAD_HASH_FCT 0x1
+#define FAASM_SGX_ATTESTATION_TYPE_STATE_WRITE 0x2
+#define FAASM_SGX_ATTESTATION_TYPE_STATE_READ 0x3
+#define FAASM_SGX_ATTESTATION_TYPE_NONCE 0x4
+#define FAASM_SGX_ATTESTATION_TYPE_STATE_WRITE_ACK 0x5
 
+typedef uint8_t faasm_sgx_nonce_t[SGX_AESGCM_IV_SIZE];
 typedef struct __attribute__((packed)) _msg
 {
     uint8_t msg_id;
@@ -45,6 +32,11 @@ typedef struct __attribute__((packed)) _msg_hdr
         uint8_t type : 1;
     } flags;
 } sgx_wamr_msg_hdr_t;
+
+typedef struct __attribute__((packed)) _nonce_payload{
+    uint8_t nonce[SGX_AESGCM_IV_SIZE];
+    uint8_t payload[];
+} sgx_wamr_msg_nonce_payload;
 
 typedef struct __attribute__((packed)) _msg_pkey_quote
 {
@@ -67,6 +59,12 @@ typedef struct __attribute__((packed)) _msg_hash_sid
     uint32_t session_id;
 } sgx_wamr_hash_sid_t;
 
+typedef struct __attribute((packed)) _msg_payload_key
+{
+    sgx_wamr_msg_hdr_t flags;
+    uint8_t payload_key[SGX_AESGCM_KEY_SIZE];
+} sgx_wamr_payload_key_t;
+
 typedef struct __attribute((packed)) _msg_okey_policy
 {
     sgx_wamr_msg_hdr_t hdr;
@@ -84,13 +82,52 @@ typedef struct __attribute((packed)) _msg_hash_fct
     uint8_t fct_name[];
 } sgx_wamr_msg_hash_fct_t;
 
+typedef struct __attribute((packed)) _msg_state_read
+{
+    sgx_wamr_msg_hdr_t flags;
+    uint8_t state_name[];
+} sgx_wamr_msg_state_read_t;
+
+typedef struct __attribute((packed)) _msg_state_read_res
+{
+    sgx_wamr_msg_hdr_t flags;
+    uint8_t state_secret[SGX_AESGCM_KEY_SIZE];
+    uint8_t buffer_nonce[SGX_AESGCM_IV_SIZE];
+    uint8_t data[];
+} sgx_wamr_msg_state_read_res_t;
+
+typedef struct __attribute((packed)) _msg_state_write
+{
+    sgx_wamr_msg_hdr_t flags;
+    uint8_t buffer_nonce[SGX_AESGCM_IV_SIZE];
+    uint32_t name_length;
+    uint8_t data[];
+} sgx_wamr_msg_state_write_t;
+
 typedef struct _faaslet_sgx_msg_buffer
 {
     uint32_t buffer_len;
     sgx_wamr_msg_t* buffer_ptr;
 } faaslet_sgx_msg_buffer_t;
 
-typedef struct _attestation_env
+typedef struct _faaslet_sgx_gp_buffer
 {
-    uint32_t test;
-} _sgx_wamr_attestation_env_t;
+    uint32_t buffer_len;
+    void* buffer_ptr;
+} faaslet_sgx_gp_buffer_t;
+
+
+typedef struct __attribute__((packed)) _data
+{
+    uint8_t nonce[SGX_AESGCM_IV_SIZE];
+    uint8_t tag[SGX_AESGCM_MAC_SIZE];
+    uint32_t data_len;
+    uint8_t data[];
+} sgx_wamr_encrypted_data_blob_t;
+
+typedef struct __attribute__((packed)) _state_data
+{
+    uint8_t nonce[SGX_AESGCM_IV_SIZE];
+    uint8_t tag[SGX_AESGCM_MAC_SIZE];
+    uint8_t data[];
+} sgx_wamr_encrypted_state_blob_t;

@@ -151,12 +151,27 @@ extern "C"
         stateKv->lockWrite();
     }
 
+#if(FAASM_SGX_ATTESTATION)
+    void ocall_faasm_lock_state_write2(const char* key, uint32_t len)
+    {
+        STATE_KV(key, len)
+        stateKv->lockWrite();
+    }
+#endif
+
     void ocall_faasm_unlock_state_write(const char* key)
     {
         STATE_KV(key, 0)
         stateKv->unlockWrite();
     }
 
+#if(FAASM_SGX_ATTESTATION)
+    void ocall_faasm_unlock_state_write2(const char* key, uint32_t len)
+    {
+        STATE_KV(key, len)
+        stateKv->unlockWrite();
+    }
+#endif
     int ocall_faasm_read_input(uint8_t* buffer, unsigned int bufferSize)
     {
         faabric::Message* msg = wasm::getExecutingCall();
