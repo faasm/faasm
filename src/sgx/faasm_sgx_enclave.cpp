@@ -68,7 +68,7 @@ extern "C"
       sgx_wamr_msg_t** response_ptr)
     {
         read_lock(&_rwlock_faasm_sgx_tcs_realloc);
-        *response_ptr = *faasm_sgx_tcs[thread_id].response_ptr;
+        *response_ptr = *faasm_sgx_tcs[thread_id]->response_ptr;
         read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
         return FAASM_SGX_SUCCESS;
     }
@@ -224,7 +224,6 @@ extern "C"
         if (func_ptr == 0) {
             if (!(wasm_func = wasm_runtime_lookup_function(
                     tcs_ptr->module_inst, WASM_ENTRY_FUNC, NULL))) {
-                goto _WASM_LOOKUP_FUNC_ERROR_HANDLING;
             }
 
         } else {
