@@ -48,7 +48,17 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "wait", I32, s__wait, I32 a)
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pclose", I32, s__pclose, I32 a)
+{
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pipe", I32, s__pipe, I32 a)
+{
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "popen", I32, s__popen, I32 a, I32 b)
 {
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
