@@ -49,11 +49,7 @@ faasm_private_lib(wamrlib "${ALL_WAMR_SRC}")
 # Faasm-specific Non-SGX WAMR module
 # -----------------------------
 
-if(FAASM_SGX_SUPPORT) 
-    set(PLATFORM_HEADER "")
-else()
-    set(PLATFORM_HEADER ${WAMR_SHARED_DIR}/platform/linux)
-endif()
+set(PLATFORM_HEADER ${WAMR_SHARED_DIR}/platform/linux)
 
 target_include_directories(
     wamrlib PUBLIC

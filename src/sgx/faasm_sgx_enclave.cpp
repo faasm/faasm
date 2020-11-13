@@ -76,18 +76,27 @@ extern "C"
     static faasm_sgx_status_t recv_msg(uint32_t thread_id,
                                        void** payload_ptr,
                                        uint32_t* payload_len)
-    { // TODO: Maybe replace thread_id with __thread
-        if (thread_id >= _faasm_sgx_tcs_len)
+    {
+        // Check error conditions
+        // TODO: Maybe replace thread_id with __thread
+        if (thread_id >= _faasm_sgx_tcs_len) {
             return FAASM_SGX_INVALID_THREAD_ID;
-        if (!payload_ptr || !payload_len)
+        }
+
+        if (!payload_ptr || !payload_len) {
             return FAASM_SGX_INVALID_PTR;
+        }
+
         faasm_sgx_status_t returnValue;
         sgx_wamr_msg_t* response_ptr;
+
         if ((returnValue = __get_response_msg(thread_id, &response_ptr)) !=
-            FAASM_SGX_SUCCESS)
+            FAASM_SGX_SUCCESS) {
             return returnValue;
+        }
+
         ///////////ENCRYPTION///////////
-        // Implement me :P
+        // TODO - implement encryption
         ///////////ENCRYPTION///////////
         *payload_ptr = (void*)response_ptr->payload;
         *payload_len = response_ptr->payload_len;
@@ -111,20 +120,25 @@ extern "C"
 
         if (!(msg_ptr = (sgx_wamr_msg_t*)calloc(
                 (sizeof(sgx_wamr_msg_t) + payload_len), sizeof(uint8_t)))) {
+
 #if (FAASM_SGX_DEBUG)
             ocall_printf("Enclave send_msg failed, OOM\n");
 #endif
+
             return FAASM_SGX_OUT_OF_MEMORY;
         }
 
         msg_ptr->msg_id = INCREMENT_MSG_ID();
+
         ///////////ENCRYPTION///////////
-        // Implement me :P
+        // TODO - implement encryption
         ///////////ENCRYPTION///////////
+
         ///////////REMOVE IF ENCRYPTION WORKS///////////
         msg_ptr->payload_len = payload_len;
         memcpy(((uint8_t*)msg_ptr->payload), payload_ptr, payload_len);
         ///////////REMOVE IF ENCRYPTION WORKS///////////
+
         if ((sgxReturnValue = ocall_send_msg(
                &returnValue,
                msg_ptr,
@@ -132,6 +146,7 @@ extern "C"
             free(msg_ptr);
             return FAASM_SGX_OCALL_ERROR(sgxReturnValue);
         }
+
         free(msg_ptr);
         return returnValue;
     }
@@ -188,46 +203,33 @@ extern "C"
 #endif
             return FAASM_SGX_OUT_OF_MEMORY;
         }
+
         *thread_id = i;
         return FAASM_SGX_SUCCESS;
     }
 
     faasm_sgx_status_t faasm_sgx_enclave_call_function(const uint32_t thread_id,
-                                                       const uint32_t func_id)
+                                                       const uint32_t func_ptr)
     {
         // Check if thread_id is in range
-        if (thread_id >= _faasm_sgx_tcs_len)
+        if (thread_id >= _faasm_sgx_tcs_len) {
             return FAASM_SGX_INVALID_THREAD_ID;
+        }
 
         // Get Faasm-SGX TCS slot using thread_id
         _FAASM_SGX_TCS_LOAD_SLOT(tcs_ptr, thread_id);
 
-        // Lookup for wasm function instance that matches func_id
+        // Get function to execute
         WASMFunctionInstanceCommon* wasm_func;
-        if (func_id == 0) {
+        if (func_ptr == 0) {
             if (!(wasm_func = wasm_runtime_lookup_function(
-                    tcs_ptr->module_inst, WASM_ENTRY_FUNC, NULL)))
+                    tcs_ptr->module_inst, WASM_ENTRY_FUNC, NULL))) {
                 goto _WASM_LOOKUP_FUNC_ERROR_HANDLING;
-        } else {
-            // Convert func_id (uint32_t) to string because our wasm functions
-            // just expose their id
-            char func_id_str[33];
-            if (_itoa_s((int)func_id, func_id_str, sizeof(func_id_str), 10)) {
-#if (FAASM_SGX_DEBUG)
-                os_printf("Could not convert func_id %u to string", func_id);
-#endif
-                return FAASM_SGX_INVALID_FUNC_ID;
             }
 
-            // Now lookup for the desired wasm function with matching func_id
-            if (!(wasm_func = wasm_runtime_lookup_function(
-                    tcs_ptr->module_inst, func_id_str, NULL))) {
-            _WASM_LOOKUP_FUNC_ERROR_HANDLING:
-#if (FAASM_SGX_DEBUG)
-                os_printf("Could not find func_id: %u\n", func_id);
-#endif
-                return FAASM_SGX_WAMR_FUNCTION_NOT_FOUND;
-            }
+        } else {
+            // Lookup by function pointer not supported in SGX yet
+            return FAASM_SGX_INVALID_FUNC_ID;
         }
 
 #if (FAASM_SGX_ATTESTATION)
@@ -246,6 +248,7 @@ extern "C"
               (AOTFunctionInstance*)wasm_func,
               0x0,
               0x0))) {
+
             /* Error handling
              * First, check if the _FAASM_SGX_ERROR_PREFIX is set
              * If so, then obtain and return the faasm_sgx_status_t error code
@@ -255,10 +258,12 @@ extern "C"
             if (!memcmp(
                   ((AOTModuleInstance*)tcs_ptr->module_inst)->cur_exception,
                   _FAASM_SGX_ERROR_PREFIX,
-                  sizeof(_FAASM_SGX_ERROR_PREFIX)))
+                  sizeof(_FAASM_SGX_ERROR_PREFIX))) {
+
                 return *((faasm_sgx_status_t*)&(
                   ((AOTModuleInstance*)tcs_ptr->module_inst)
                     ->cur_exception[sizeof(_FAASM_SGX_ERROR_PREFIX)]));
+            }
 
 #if (FAASM_SGX_DEBUG)
             ocall_printf(
@@ -276,6 +281,7 @@ extern "C"
               (WASMFunctionInstance*)wasm_func,
               0x0,
               0x0))) {
+
             /* Error handling
              * First, check if the _FAASM_SGX_ERROR_PREFIX is set
              * If so, then obtain and return the faasm_sgx_status_t error code
@@ -285,10 +291,12 @@ extern "C"
             if (!memcmp(
                   ((WASMModuleInstance*)tcs_ptr->module_inst)->cur_exception,
                   _FAASM_SGX_ERROR_PREFIX,
-                  sizeof(_FAASM_SGX_ERROR_PREFIX)))
+                  sizeof(_FAASM_SGX_ERROR_PREFIX))) {
+
                 return *((faasm_sgx_status_t*)&(
                   ((WASMModuleInstance*)tcs_ptr->module_inst)
                     ->cur_exception[sizeof(_FAASM_SGX_ERROR_PREFIX)]));
+            }
 
 #if (FAASM_SGX_DEBUG)
             ocall_printf(
@@ -303,8 +311,9 @@ extern "C"
     faasm_sgx_status_t faasm_sgx_enclave_unload_module(const uint32_t thread_id)
     {
         // Important possibility check before unloading a module
-        if (thread_id >= _faasm_sgx_tcs_len)
+        if (thread_id >= _faasm_sgx_tcs_len) {
             return FAASM_SGX_INVALID_THREAD_ID;
+        }
 
         // Check if the linked module is already unloaded
         read_lock(&_rwlock_faasm_sgx_tcs_realloc);
@@ -312,6 +321,7 @@ extern "C"
             read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
             return FAASM_SGX_MODULE_NOT_LOADED;
         }
+
         _faasm_sgx_tcs_t* tcs_ptr = faasm_sgx_tcs[thread_id];
         read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
 
@@ -321,6 +331,7 @@ extern "C"
         free(tcs_ptr->wasm_opcode);
         _FAASM_SGX_TCS_FREE_SLOT(thread_id);
         free(tcs_ptr);
+
         return FAASM_SGX_SUCCESS;
     }
 
@@ -440,6 +451,7 @@ extern "C"
           (void*)_wamr_global_heap_buffer;
         wamr_rte_args.mem_alloc_option.pool.heap_size =
           sizeof(_wamr_global_heap_buffer);
+
         if (!wasm_runtime_full_init(&wamr_rte_args)) {
             return FAASM_SGX_WAMR_RTE_INIT_FAILED;
         }
@@ -447,6 +459,7 @@ extern "C"
         // Set up native symbols
         wasm_native_register_natives(
           "env", faasm_sgx_native_symbols, FAASM_SGX_NATIVE_SYMBOLS_LEN);
+
         wasm_native_register_natives("wasi_snapshot_preview1",
                                      faasm_sgx_wasi_symbols,
                                      FAASM_SGX_WASI_SYMBOLS_LEN);

@@ -2,6 +2,7 @@
 #include "syscalls.h"
 
 #include <faabric/scheduler/Scheduler.h>
+#include <wasm/chaining.h>
 
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>

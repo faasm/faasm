@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "matrix_utils.h"
 #include "utils.h"
 
 #include <storage/SparseMatrixFileSerialiser.h>

@@ -1,6 +1,7 @@
 #include <cstring>
 
 #include <sgx/SGXWAMRWasmModule.h>
+#include <wasm/chaining.h>
 
 using namespace faabric::state;
 
@@ -8,19 +9,6 @@ using namespace faabric::state;
     State& state = getGlobalState();                                           \
     std::shared_ptr<StateKeyValue> stateKv = state.getKV(                      \
       wasm::getExecutingCall()->user(), std::string(key), stateLen);
-
-namespace wasm {
-extern int awaitChainedCall(unsigned int messageId);
-
-extern int awaitChainedCallOutput(unsigned int messageId,
-                                  uint8_t* buffer,
-                                  int bufferLen);
-
-extern int makeChainedCall(const std::string& functionName,
-                           int wasmFuncPtr,
-                           const char* pyFuncName,
-                           const std::vector<uint8_t>& inputData);
-}
 
 extern "C"
 {
