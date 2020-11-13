@@ -1,4 +1,5 @@
 #include "WAVMWasmModule.h"
+#include "math.h"
 #include "syscalls.h"
 
 #include <WAVM/Runtime/Intrinsics.h>
@@ -234,9 +235,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 comm,
                                I32 newComm)
 {
-    faabric::util::getLogger()->debug("S - MPI_Comm_dup {} {}",
-                                      comm,
-                                      newComm);
+    faabric::util::getLogger()->debug("S - MPI_Comm_dup {} {}", comm, newComm);
 
     throw std::runtime_error("MPI_Comm_dup not implemented!");
 
@@ -245,8 +244,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
 /**
  * Mark a communicator object for deallocation
- *
- * TODO not implemented.
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "MPI_Comm_free",
@@ -256,7 +253,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     faabric::util::getLogger()->debug("S - MPI_Comm_free {}", comm);
 
-    throw std::runtime_error("MPI_Comm_free not implemented!");
+    // Dealoccation is handled outside of MPI.
 
     return MPI_SUCCESS;
 }
@@ -275,11 +272,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 key,
                                I32 newComm)
 {
-    faabric::util::getLogger()->debug("S - MPI_Comm_split {} {} {} {}",
-                                      comm,
-                                      color,
-                                      key,
-                                      newComm);
+    faabric::util::getLogger()->debug(
+      "S - MPI_Comm_split {} {} {} {}", comm, color, key, newComm);
 
     throw std::runtime_error("MPI_Comm_split not implemented!");
 
@@ -292,11 +286,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
  * https://www.open-mpi.org/doc/v4.0/man3/MPI_Comm_c2f.3.php
  * TODO not implemented
  */
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "MPI_Comm_c2f",
-                               I32,
-                               MPI_Comm_c2f,
-                               I32 comm)
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Comm_c2f", I32, MPI_Comm_c2f, I32 comm)
 {
     faabric::util::getLogger()->debug("S - MPI_Comm_c2f {}", comm);
 
@@ -519,19 +509,20 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 comm,
                                I32 statusPtr)
 {
-    faabric::util::getLogger()->debug("S - MPI_Sendrecv {} {} {} {} {} {} {} {} {} {} {} {}",
-                                      sendBuf,
-                                      sendCount,
-                                      sendType,
-                                      destination,
-                                      sendTag,
-                                      recvBuf,
-                                      recvCount,
-                                      recvType,
-                                      source,
-                                      recvTag,
-                                      comm,
-                                      statusPtr);
+    faabric::util::getLogger()->debug(
+      "S - MPI_Sendrecv {} {} {} {} {} {} {} {} {} {} {} {}",
+      sendBuf,
+      sendCount,
+      sendType,
+      destination,
+      sendTag,
+      recvBuf,
+      recvCount,
+      recvType,
+      source,
+      recvTag,
+      comm,
+      statusPtr);
 
     throw std::runtime_error("MPI_Sendrecv not implemented!");
 
@@ -606,10 +597,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 requestArray,
                                I32 statusArray)
 {
-    faabric::util::getLogger()->debug("S - MPI_Waitany {} {} {}",
-                                      count,
-                                      requestArray,
-                                      statusArray);
+    faabric::util::getLogger()->debug(
+      "S - MPI_Waitany {} {} {}", count, requestArray, statusArray);
 
     throw std::runtime_error("MPI_Waitall is not implemented!");
 
@@ -629,11 +618,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 index,
                                I32 status)
 {
-    faabric::util::getLogger()->debug("S - MPI_Waitany {} {} {} {}",
-                                      count,
-                                      requestArray,
-                                      index,
-                                      status);
+    faabric::util::getLogger()->debug(
+      "S - MPI_Waitany {} {} {} {}", count, requestArray, index, status);
 
     throw std::runtime_error("MPI_Waitany is not implemented!");
 
@@ -690,7 +676,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 comm)
 {
     faabric::util::getLogger()->debug(
-      "S - MPI_Bcast {} {} {} {}", buffer, count, datatype, root, comm);
+      "S - MPI_Bcast {} {} {} {} {}", buffer, count, datatype, root, comm);
     ContextWrapper ctx(comm);
 
     faabric_datatype_t* hostDtype = ctx.getFaasmDataType(datatype);
@@ -893,15 +879,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 recvType,
                                I32 comm)
 {
-    faabric::util::getLogger()->debug("S - MPI_Allgatherv {} {} {} {} {} {} {} {}",
-                                      sendBuf,
-                                      sendCount,
-                                      sendType,
-                                      recvBuf,
-                                      recvCount,
-                                      dspls,
-                                      recvType,
-                                      comm);
+    faabric::util::getLogger()->debug(
+      "S - MPI_Allgatherv {} {} {} {} {} {} {} {}",
+      sendBuf,
+      sendCount,
+      sendType,
+      recvBuf,
+      recvCount,
+      dspls,
+      recvType,
+      comm);
 
     throw std::runtime_error("MPI_Allgatherv not implemented!");
 
@@ -969,13 +956,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 op,
                                I32 comm)
 {
-    faabric::util::getLogger()->debug("S - MPI_Reduce_scatter {} {} {} {} {} {}",
-                                      sendBuf,
-                                      recvBuf,
-                                      recvCount,
-                                      datatype,
-                                      op,
-                                      comm);
+    faabric::util::getLogger()->debug(
+      "S - MPI_Reduce_scatter {} {} {} {} {} {}",
+      sendBuf,
+      recvBuf,
+      recvCount,
+      datatype,
+      op,
+      comm);
 
     throw std::runtime_error("MPI_Reduce_scatter is not implemented!");
 
@@ -1029,8 +1017,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 }
 
 /**
- * Computes an inclusive scan (partial reduction)
- * TODO currently just a stub implementation
+ * Computes an inclusive scan (partial reduction). The operation returns,
+ * when run on process with rank `i`, the reduction of the values of
+ * processes 0, ..., i (inclusive).
+ *
+ * Reference implementation:
+ * https://github.com/open-mpi/ompi/blob/master/ompi/mpi/c/scan.c
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "MPI_Scan",
@@ -1051,7 +1043,27 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                       op,
                                       comm);
 
-    throw std::runtime_error("MPI_Scan is currently not implemented!");
+    ContextWrapper ctx(comm);
+    faabric_datatype_t* hostDtype = ctx.getFaasmDataType(datatype);
+
+    auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(
+      ctx.memory, recvBuf, count * hostDtype->size);
+
+    // Check if we're working in-place
+    uint8_t* hostSendBuffer;
+    if (isInPlace(sendBuf)) {
+        hostSendBuffer = hostRecvBuffer;
+    } else {
+        hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(
+          ctx.memory, sendBuf, count * hostDtype->size);
+    }
+
+    faabric_op_t* hostOp = ctx.getFaasmOp(op);
+
+    // Question: is it preferrable to keep the implementation here or in
+    // Faabric?
+    ctx.world.reduce(
+      ctx.rank, root, hostSendBuffer, hostRecvBuffer, hostDtype, count, hostOp);
 
     return MPI_SUCCESS;
 }
@@ -1120,16 +1132,17 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 recvType,
                                I32 comm)
 {
-    faabric::util::getLogger()->debug("S - MPI_Alltoallv {} {} {} {} {} {} {} {} {}",
-                                      sendBuf,
-                                      sendCount,
-                                      sdispls,
-                                      sendType,
-                                      recvBuf,
-                                      recvCount,
-                                      rdispls,
-                                      recvType,
-                                      comm);
+    faabric::util::getLogger()->debug(
+      "S - MPI_Alltoallv {} {} {} {} {} {} {} {} {}",
+      sendBuf,
+      sendCount,
+      sdispls,
+      sendType,
+      recvBuf,
+      recvCount,
+      rdispls,
+      recvType,
+      comm);
 
     throw std::runtime_error("MPI_Alltoallv not implemented!");
 
@@ -1213,7 +1226,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
  * Makes a new communicator to which Cartesian topology information has been
  * attached.
  *
- * TODO not implemented.
  * Reference implementation:
  * https://github.com/open-mpi/ompi/blob/master/ompi/mca/topo/base/topo_base_cart_create.c
  */
@@ -1226,7 +1238,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 dims,
                                I32 periods,
                                I32 reorder,
-                               I32 comm)
+                               I32 newCommPtr)
 {
     faabric::util::getLogger()->debug("S - MPI_Cart_create {} {} {} {} {} {}",
                                       commOld,
@@ -1234,33 +1246,26 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                       dims,
                                       periods,
                                       reorder,
-                                      comm);
+                                      newCommPtr);
 
-    /** Assumptions:
-     *
-     * For the current use case (LAMMPS), no reorder - ability for MPI to
-     * dynamically change the topology - is supported. Hence we expect the
-     * value to be set to zero.
-     *
-     * Additionally, we don't (TODO) support periodic dimensions.
-     */
-    if (reorder == 1) {
-        throw std::runtime_error("Reordering is not supported for cartesian topologies");
-    }
+    ContextWrapper ctx(commOld);
 
-    /** Steps:
-     * 1. Calculate the number of processes in the grid.
-     * 2. Check if sufficient processes in the world to accomodate the grid.
-     */
-    throw std::runtime_error("MPI_Cart_create not implemented!");
+    // Set up the communicator object in the WASM memory
+    I32 tmpPtr = Runtime::memoryRef<I32>(ctx.memory, newCommPtr);
+    faabric_communicator_t* newComm =
+      &Runtime::memoryRef<faabric_communicator_t>(ctx.memory, tmpPtr);
+    // Cast the original communicator, alternatively could assign directly
+    // to faabric_comm_world
+    auto origComm =
+      Runtime::memoryRef<faabric_communicator_t>(ctx.memory, commOld);
+    // Copy the values from the old the the new
+    *newComm = origComm;
 
     return MPI_SUCCESS;
 }
 
 /**
  * Determines process rank in communicator given Cartesian location.
- *
- * TODO not implemented.
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "MPI_Cart_rank",
@@ -1268,14 +1273,19 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                MPI_Cart_rank,
                                I32 comm,
                                I32 coords,
-                               I32 rank)
+                               I32 rankPtr)
 {
-    faabric::util::getLogger()->debug("S - MPI_Cart_rank {} {} {}",
-                                      comm,
-                                      coords,
-                                      rank);
+    faabric::util::getLogger()->debug(
+      "S - MPI_Cart_rank {} {} {}", comm, coords, rankPtr);
 
-    throw std::runtime_error("MPI_Cart_rank not implemented!");
+    ContextWrapper ctx(comm);
+
+    int* coordsArray = Runtime::memoryArrayPtr<int>(
+      ctx.memory, (Uptr)coords, MPI_CART_MAX_DIMENSIONS);
+    int sideLength =
+      static_cast<int>(std::floor(std::sqrt(ctx.world.getSize())));
+    int rank = sideLength * coordsArray[0] + coordsArray[1];
+    ctx.writeMpiResult<int>(rankPtr, rank);
 
     return MPI_SUCCESS;
 }
@@ -1284,7 +1294,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
  * Retrieves the Cartesian topology information associated with a
  * communicator.
  *
- * TODO not implemented.
+ * MPI Topologies are pointless in a serverless environment. Therefore
+ * we return default values (2dim grid) basing on the current world size.
+ *
+ * In particular we define a 2-dim grid with as many processors, leaving
+ * the rest as MPI_UNDEFINED.
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "MPI_Cart_get",
@@ -1296,14 +1310,51 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 periods,
                                I32 coords)
 {
-    faabric::util::getLogger()->debug("S - MPI_Cart_get {} {} {} {} {}",
-                                      comm,
-                                      maxdims,
-                                      dims,
-                                      periods,
-                                      coords);
+    faabric::util::getLogger()->debug(
+      "S - MPI_Cart_get {} {} {} {} {}", comm, maxdims, dims, periods, coords);
 
-    throw std::runtime_error("MPI_Cart_get not implemented!");
+    ContextWrapper ctx(comm);
+    // ContextWrapper ctx;
+
+    auto commPtr =
+      &Runtime::memoryRef<faabric_communicator_t>(ctx.memory, comm);
+    faabric::util::getLogger()->debug(
+      "Cart_get w/ comm: {}. Id: {}", comm, commPtr->id);
+
+    // We hardcode the number of dimensions to two. If the provided value is
+    // lower we error out. Otherwise we will just use the first
+    // <MPI_CART_MAX_DIMENSIONS> array positions.
+    if (maxdims < MPI_CART_MAX_DIMENSIONS) {
+        faabric::util::getLogger()->error(
+          "Unexpected number of max. dimensions: {}", maxdims);
+        throw std::runtime_error("Bad dimensions in MPI_Cart_get");
+    }
+
+    faabric::util::getLogger()->debug("Instrumenting alloc for: {}",
+                                      "dimsArray");
+    int* dimsArray =
+      Runtime::memoryArrayPtr<int>(ctx.memory, (Uptr)dims, (Uptr)maxdims);
+    faabric::util::getLogger()->debug("Instrumenting alloc for: {}",
+                                      "periodsArray");
+    int* periodsArray =
+      Runtime::memoryArrayPtr<int>(ctx.memory, (Uptr)periods, (Uptr)maxdims);
+    faabric::util::getLogger()->debug("Instrumenting alloc for: {}",
+                                      "coordsArray");
+    int* coordsArray =
+      Runtime::memoryArrayPtr<int>(ctx.memory, (Uptr)coords, (Uptr)maxdims);
+
+    int rank = ctx.rank;
+    int sideLength =
+      static_cast<int>(std::floor(std::sqrt(ctx.world.getSize())));
+    int nprocs = sideLength * sideLength;
+    for (uint8_t i = 0; i < MPI_CART_MAX_DIMENSIONS; i++) {
+        nprocs /= sideLength;
+        dimsArray[i] = sideLength;
+        periodsArray[i] = 0;
+        coordsArray[i] =
+          ctx.rank > (sideLength * sideLength) ? MPI_UNDEFINED : rank / nprocs;
+        rank %= nprocs;
+    }
 
     return MPI_SUCCESS;
 }
@@ -1311,8 +1362,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 /**
  * Returns the shifted source and destination ranks, given a shift direction
  * and amount.
- *
- * TODO not implemented.
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "MPI_Cart_shift",
@@ -1331,7 +1380,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                       sourceRank,
                                       destRank);
 
-    throw std::runtime_error("MPI_Cart_shift not implemented!");
+    sourceRank = destRank;
 
     return MPI_SUCCESS;
 }
@@ -1349,10 +1398,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 commute,
                                I32 op)
 {
-    faabric::util::getLogger()->debug("S - MPI_Op_create {} {} {}",
-                                      userFn,
-                                      commute,
-                                      op);
+    faabric::util::getLogger()->debug(
+      "S - MPI_Op_create {} {} {}", userFn, commute, op);
 
     throw std::runtime_error("MPI_Op_create not implemented!");
 
@@ -1364,11 +1411,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
  *
  * TODO not implemented.
  */
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "MPI_Op_free",
-                               I32,
-                               MPI_Op_free,
-                               I32 op)
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Op_free", I32, MPI_Op_free, I32 op)
 {
     faabric::util::getLogger()->debug("S - MPI_Op_free {}", op);
 
