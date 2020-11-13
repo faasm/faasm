@@ -68,7 +68,7 @@ extern "C"
       sgx_wamr_msg_t** response_ptr)
     {
         read_lock(&_rwlock_faasm_sgx_tcs_realloc);
-        *response_ptr = *faasm_sgx_tcs[thread_id].response_ptr;
+        *response_ptr = *faasm_sgx_tcs[thread_id]->response_ptr;
         read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
         return FAASM_SGX_SUCCESS;
     }
