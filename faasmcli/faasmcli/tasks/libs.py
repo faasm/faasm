@@ -29,37 +29,6 @@ def toolchain(ctx, clean=False):
     rust(ctx, clean=clean)
 
 
-@task
-def native(ctx, clean=False):
-    """
-    Compile and install Faasm native tools
-    """
-    if not exists(FAASM_INSTALL_DIR):
-        makedirs(FAASM_INSTALL_DIR)
-
-    build_dir = join(PROJ_ROOT, "build", "native_tools")
-    clean_dir(build_dir, clean)
-
-    build_cmd = [
-        "cmake",
-        "-GNinja",
-        "-DCMAKE_CXX_COMPILER=/usr/bin/clang++-10",
-        "-DCMAKE_C_COMPILER=/usr/bin/clang-10",
-        "-DFAASM_BUILD_TYPE=native-tools",
-        "-DFAASM_STATIC_LIBS=OFF",
-        "-DFAABRIC_BUILD_TESTS=OFF",
-        "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_INSTALL_DIR),
-        PROJ_ROOT,
-    ]
-
-    build_cmd_str = " ".join(build_cmd)
-    print(build_cmd_str)
-
-    run(build_cmd_str, shell=True, cwd=build_dir, check=True)
-    run("ninja", shell=True, cwd=build_dir, check=True)
-    run("sudo ninja install", shell=True, cwd=build_dir, check=True)
-
 
 def _build_faasm_lib(dir_name, clean, verbose, target=None):
     work_dir = join(PROJ_ROOT, dir_name)
