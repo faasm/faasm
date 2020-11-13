@@ -224,7 +224,6 @@ extern "C"
         if (func_ptr == 0) {
             if (!(wasm_func = wasm_runtime_lookup_function(
                     tcs_ptr->module_inst, WASM_ENTRY_FUNC, NULL))) {
-                goto _WASM_LOOKUP_FUNC_ERROR_HANDLING;
             }
 
         } else {
