@@ -3,7 +3,6 @@
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 #include <wavm/WAVMWasmModule.h>
-#include "utils.h"
 
 using namespace wasm;
 using namespace WAVM;
