@@ -1,4 +1,4 @@
-FROM faasm/grpc-root:0.0.5
+FROM faasm/grpc-root:0.0.11
 
 # -------------------------------------------------------------
 # NOTE - extensive use of Ansible in this Dockerfile makes it
