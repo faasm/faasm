@@ -74,8 +74,6 @@ jobs:
         run: inv -r faasmcli/faasmcli python.codegen
       - name: "Copy Python functions into place"
         run: inv -r faasmcli/faasmcli upload.user python --py --local-copy
-      - name: "Run a python function"
-        run: inv -r faasmcli/faasmcli run python lang_test
       # --- Test run ---
       - name: "Run the tests"
         run: ./bin/tests
