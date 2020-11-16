@@ -16,7 +16,7 @@ DEV_TARGETS = [
 
 
 @task
-def cmake(ctx, clean=False):
+def cmake(ctx, clean=False, build="Debug"):
     """
     Configures the CMake build
     """
@@ -29,26 +29,30 @@ def cmake(ctx, clean=False):
     cmd = [
         "cmake",
         "-GNinja",
-        "-DCMAKE_BUILD_TYPE=Debug",
+        "-DCMAKE_BUILD_TYPE={}".format(build),
         "-DCMAKE_CXX_COMPILER=/usr/bin/clang++-10",
         "-DCMAKE_C_COMPILER=/usr/bin/clang-10",
         PROJ_ROOT,
     ]
 
-    run(" ".join(cmd), shell=True, check=True, cwd=FAASM_BUILD_DIR)
+    cmd_str = " ".join(cmd)
+    print(cmd_str)
+    run(cmd_str, shell=True, check=True, cwd=FAASM_BUILD_DIR)
 
 
 @task
-def tools(ctx, clean=False):
+def tools(ctx, clean=False, build="Debug"):
     """
     Builds all the targets commonly used for development
     """
-    cmake(ctx, clean=clean)
+    cmake(ctx, clean=clean, build=build)
 
     targets = " ".join(DEV_TARGETS)
 
+    cmake_cmd = "cmake --build . --target {}".format(targets)
+    print(cmake_cmd)
     run(
-        "cmake --build . --target {}".format(targets),
+        cmake_cmd,
         cwd=FAASM_BUILD_DIR,
         shell=True,
         check=True,

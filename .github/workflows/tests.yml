@@ -19,13 +19,13 @@ jobs:
       LOG_LEVEL: info
       MAX_FAASLETS: 5
     container:
-      image: faasm/cli:0.5.0
+      image: faasm/cli:0.5.1
     defaults:
       run:
         working-directory: /usr/local/code/faasm
     services:
       redis:
-        image: faasm/redis:0.5.0
+        image: faasm/redis:0.5.1
         ports:
           - 6379:6379
     steps:
@@ -50,13 +50,11 @@ jobs:
       - name: "Check C/C++ formatting changes"
         run: git diff --exit-code
       # --- Code build ---
-      - name: "Rerun cmake"
-        run: inv -r faasmcli/faasmcli dev.cmake
       - name: "Build dev tools"
-        run: inv -r faasmcli/faasmcli dev.tools
+        run: inv -r faasmcli/faasmcli dev.tools --build Release
       # --- WASM compilation ---
       - name: "Compile libraries"
-        run: inv -r faasmcli/faasmcli libs.toolchain
+        run: inv -r faasmcli/faasmcli libs.toolchain --clean
       - name: "Compile demo code"
         run: inv -r faasmcli/faasmcli compile.user demo
       - name: "Compile errors code"
@@ -64,7 +62,7 @@ jobs:
       - name: "Compile MPI code"
         run: inv -r faasmcli/faasmcli compile.user mpi
       - name: "Compile Python function"
-        run: inv -r faasmcli/faasmcli compile python py_func
+        run: inv -r faasmcli/faasmcli compile python py_func --clean
       - name: "Compile OMP functions"
         run: inv -r faasmcli/faasmcli compile.user omp
       # --- Environment set-up ---

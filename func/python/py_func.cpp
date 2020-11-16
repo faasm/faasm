@@ -177,6 +177,7 @@ int main(int argc, char* argv[])
                 PyErr_Print();
             }
             printf("Cannot find function \"%s\"\n", pythonFuncName);
+            return 1;
         }
 
         Py_XDECREF(func);

@@ -226,23 +226,7 @@ TEST_CASE("Test cloned execution on simple module", "[wasm]")
     }
 }
 
-// TODO - fix typescript support
-//    TEST_CASE("Test cloned execution on typescript module", "[wasm]") {
-//        std::string user = "ts";
-//        std::string func = "echo";
-//        std::string inputA = "aaa";
-//        std::string inputB = "bbb";
-//
-//        SECTION("copy") {
-//            _checkCopyConstructor(user, func, inputA, inputB, true);
-//        }
-//
-//        SECTION("assignment") {
-//            _checkAssignmentOperator(user, func, inputA, inputB, true);
-//        }
-//    }
-
-TEST_CASE("Test cloned execution on complex module", "[wasm]")
+TEST_CASE("Test cloned execution on complex module", "[wasm][!mayfail]")
 {
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     std::string preloadVal = conf.pythonPreload;

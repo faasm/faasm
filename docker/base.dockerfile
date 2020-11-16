@@ -1,9 +1,9 @@
 # Stages to extract toolchain and sysroot
 FROM faasm/sysroot:0.0.10
-FROM faasm/cpython:0.0.6 
+FROM faasm/cpython:0.0.7
 
 # Note - we don't often rebuild cpp-root so this dep may be behind
-FROM faasm/cpp-root:0.4.11
+FROM faasm/cpp-root:0.5.1
 ARG FAASM_VERSION
 
 # Flag to say we're in a container
@@ -46,6 +46,8 @@ RUN cmake \
     -DCMAKE_BUILD_TYPE=Release \
     /usr/local/code/faasm
 
-RUN cmake --build . --target libWAVM
-RUN cmake --build . --target wamrlib
+RUN cmake --build . --target tests
 RUN cmake --build . --target simple_runner
+RUN cmake --build . --target func_runner
+RUN cmake --build . --target codegen_func
+RUN cmake --build . --target codegen_shared_obj
