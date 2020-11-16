@@ -1297,9 +1297,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     ContextWrapper ctx(comm);
 
-    auto commPtr =
-      &Runtime::memoryRef<faabric_communicator_t>(ctx.memory, comm);
-
     // If the provided value is lower we error out. Otherwise we will just
     // use the first <MPI_CART_MAX_DIMENSIONS> array positions.
     if (maxdims < MPI_CART_MAX_DIMENSIONS) {
@@ -1316,21 +1313,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     int* coordsArray =
       Runtime::memoryArrayPtr<int>(ctx.memory, (Uptr)coords, (Uptr)maxdims);
 
-    // Compute the corresponding rank in a 2-dim grid given the original
-    // process rank. Note that this operation, restricted to 2dims, is
-    // equivalent to:
-    // coords = {rank / sideLength, rank % sideLength}
-    int rank = ctx.rank;
-    int sideLength =
-      static_cast<int>(std::floor(std::sqrt(ctx.world.getSize())));
-    int nprocs = sideLength * sideLength;
-    for (uint8_t i = 0; i < MPI_CART_MAX_DIMENSIONS; i++) {
-        nprocs /= sideLength;
-        dimsArray[i] = sideLength;
-        periodsArray[i] = 0;
-        coordsArray[i] = ctx.rank > nprocs ? MPI_UNDEFINED : rank / nprocs;
-        rank %= nprocs;
-    }
+    ctx.world.getCartesianRank(ctx.rank, dimsArray, periodsArray, coordsArray);
 
     return MPI_SUCCESS;
 }
