@@ -3,7 +3,7 @@ FROM faasm/sysroot:0.0.10
 FROM faasm/cpython:0.0.7
 
 # Note - we don't often rebuild cpp-root so this dep may be behind
-FROM faasm/cpp-root:0.4.11
+FROM faasm/cpp-root:0.5.1
 ARG FAASM_VERSION
 
 # Flag to say we're in a container
