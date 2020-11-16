@@ -87,16 +87,16 @@ TEST_CASE("Test python state write/ read", "[faaslet]")
     REQUIRE(result.returnvalue() == 0);
 }
 
-// TEST_CASE("Test python chaining", "[faaslet]")
-//{
-//    faabric::Message call =
-//      faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
-//    call.set_pythonuser("python");
-//    call.set_pythonfunction("chain");
-//    call.set_ispython(true);
-//
-//    execFuncWithPool(call, true, 1);
-//}
+TEST_CASE("Test python chaining", "[faaslet][!mayfail]")
+{
+    faabric::Message call =
+      faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+    call.set_pythonuser("python");
+    call.set_pythonfunction("chain");
+    call.set_ispython(true);
+
+    execFuncWithPool(call, true, 1);
+}
 
 TEST_CASE("Test python sharing dict", "[faaslet]")
 {
