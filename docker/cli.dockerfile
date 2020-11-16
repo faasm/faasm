@@ -41,9 +41,6 @@ RUN inv -r faasmcli/faasmcli dev.tools --build Release
 # Set up native tools
 RUN inv -r faasmcli/faasmcli libs.native
 
-# Install pyfaasm
-RUN pip3 install pyfaasm
-
 # Install common libraries
 RUN inv -r faasmcli/faasmcli libs.toolchain
 
