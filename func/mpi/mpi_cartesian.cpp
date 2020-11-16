@@ -51,7 +51,6 @@ int main(int argc, char* argv[])
     }
     printf("MPI_Cart_get succesful check.\n");
 
-    printf("still here\n");
     // Now check that the original rank can be retrieved.
     if (rank < nprocs) {
         int nRank;

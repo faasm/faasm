@@ -527,7 +527,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     throw std::runtime_error("MPI_Sendrecv not implemented!");
 
-    return 0;
+    return MPI_SUCCESS;
 }
 
 /**
