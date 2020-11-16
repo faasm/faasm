@@ -30,17 +30,13 @@ RUN git clone https://github.com/faasm/faasm-toolchain
 WORKDIR /usr/local/code/faasm-toolchain
 RUN pip3 install -e .
 
-# Build some useful targets
-WORKDIR /build/faasm
-RUN cmake --build . --target simple_runner
-RUN cmake --build . --target func_sym
-RUN cmake --build . --target codegen_func
-RUN cmake --build . --target codegen_shared_obj
-
 # Python set-up
 WORKDIR /usr/local/code/faasm
 RUN pip3 install -r faasmcli/requirements.txt
 RUN pip3 install -e faasmcli/
+
+# Build some useful targets
+RUN inv -r faasmcli/faasmcli dev.tools --build Release
 
 # Set up native tools
 RUN inv -r faasmcli/faasmcli libs.native

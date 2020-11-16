@@ -46,6 +46,8 @@ RUN cmake \
     -DCMAKE_BUILD_TYPE=Release \
     /usr/local/code/faasm
 
-RUN cmake --build . --target libWAVM
-RUN cmake --build . --target wamrlib
+RUN cmake --build . --target tests
 RUN cmake --build . --target simple_runner
+RUN cmake --build . --target func_runner
+RUN cmake --build . --target codegen_func
+RUN cmake --build . --target codegen_shared_obj

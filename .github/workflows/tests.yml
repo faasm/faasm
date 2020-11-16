@@ -50,10 +50,8 @@ jobs:
       - name: "Check C/C++ formatting changes"
         run: git diff --exit-code
       # --- Code build ---
-      - name: "Rerun cmake"
-        run: inv -r faasmcli/faasmcli dev.cmake --build Release
       - name: "Build dev tools"
-        run: inv -r faasmcli/faasmcli dev.tools
+        run: inv -r faasmcli/faasmcli dev.tools --build Release
       # --- WASM compilation ---
       - name: "Compile libraries"
         run: inv -r faasmcli/faasmcli libs.toolchain --clean
