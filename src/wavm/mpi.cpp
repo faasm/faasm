@@ -1264,9 +1264,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     int* coordsArray = Runtime::memoryArrayPtr<int>(
       ctx.memory, (Uptr)coords, MPI_CART_MAX_DIMENSIONS);
-    int sideLength =
-      static_cast<int>(std::floor(std::sqrt(ctx.world.getSize())));
-    int rank = sideLength * coordsArray[0] + coordsArray[1];
+    int rank;
+
+    ctx.world.getRankFromCoords(&rank, coordsArray);
     ctx.writeMpiResult<int>(rankPtr, rank);
 
     return MPI_SUCCESS;
