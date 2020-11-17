@@ -74,7 +74,7 @@ void FileLoader::codegenForFunction(faabric::Message& msg)
         oldHash = loadFunctionObjectHash(msg);
     }
 
-    if (oldHash.empty() || newHash == oldHash) {
+    if ((!oldHash.empty()) && newHash == oldHash) {
         logger->debug("Skipping codegen for {}", funcStr);
         return;
     }
