@@ -19,7 +19,7 @@ std::vector<uint8_t> _doLoad(const std::string& url,
                              const std::string& storagePath)
 {
     std::string header;
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
+    auto logger = faabric::util::getLogger();
 
     // Shortcut if already exists
     if (boost::filesystem::exists(storagePath)) {
@@ -106,4 +106,45 @@ std::vector<uint8_t> FileserverFileLoader::loadSharedFile(
     const std::string fullPath = faabric::util::getSharedFileFile(path);
     return _doLoad(url, path, fullPath);
 }
+
+// --------------------------------------------------------
+// TODO: implement hashing and hash storage in fileserver mode
+// --------------------------------------------------------
+std::vector<uint8_t> FileserverFileLoader::loadFunctionObjectHash(
+  const faabric::Message& msg)
+{
+    std::vector<uint8_t> empty;
+    return empty;
+}
+
+std::vector<uint8_t> FileserverFileLoader::loadFunctionWamrAotHash(
+  const faabric::Message& msg)
+{
+    std::vector<uint8_t> empty;
+    return empty;
+}
+
+std::vector<uint8_t> FileserverFileLoader::loadSharedObjectObjectHash(
+  const std::string& path)
+{
+    std::vector<uint8_t> empty;
+    return empty;
+}
+
+void FileserverFileLoader::uploadFunctionObjectHash(const faabric::Message& msg,
+                              const std::vector<uint8_t>& hash)
+{}
+
+void FileserverFileLoader::uploadFunctionWamrAotHash(const faabric::Message& msg,
+                               const std::vector<uint8_t>& hash)
+{}
+
+void FileserverFileLoader::uploadSharedObjectObjectHash(const std::string& path,
+                                  const std::vector<uint8_t>& hash)
+{}
+
+void FileserverFileLoader::uploadSharedObjectAotHash(const std::string& path,
+                                  const std::vector<uint8_t>& hash)
+{}
+
 }

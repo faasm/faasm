@@ -27,6 +27,30 @@ class FileLoader
 
     virtual std::vector<uint8_t> loadSharedFile(const std::string& path) = 0;
 
+    virtual std::vector<uint8_t> loadFunctionObjectHash(
+      const faabric::Message& msg) = 0;
+
+    virtual std::vector<uint8_t> loadFunctionWamrAotHash(
+      const faabric::Message& msg) = 0;
+
+    virtual std::vector<uint8_t> loadSharedObjectObjectHash(
+      const std::string& path) = 0;
+
+    virtual void uploadFunctionObjectHash(const faabric::Message& msg,
+                                          const std::vector<uint8_t>& hash) = 0;
+
+    virtual void uploadFunctionWamrAotHash(
+      const faabric::Message& msg,
+      const std::vector<uint8_t>& hash) = 0;
+
+    virtual void uploadSharedObjectObjectHash(
+      const std::string& path,
+      const std::vector<uint8_t>& hash) = 0;
+    
+    virtual void uploadSharedObjectAotHash(
+      const std::string& path,
+      const std::vector<uint8_t>& hash) = 0;
+
     virtual void uploadFunction(faabric::Message& msg) = 0;
 
     virtual void uploadPythonFunction(faabric::Message& msg) = 0;
@@ -57,6 +81,10 @@ class FileLoader
   protected:
     std::vector<uint8_t> doCodegen(std::vector<uint8_t>& bytes,
                                    const std::string& fileName);
+
+    std::vector<uint8_t> hashBytes(const std::vector<uint8_t>& bytes);
+
+    std::string getHashFilePath(const std::string& path);
 };
 
 FileLoader& getFileLoader();
