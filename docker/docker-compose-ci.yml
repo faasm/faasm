@@ -1,5 +1,14 @@
 version: "3"
 
+# -----------------------------------------------
+# Compose environment to replicate Github Actions
+# Note that resources available in GHA may be very
+# different to those on your machine.
+#
+# Unfortunately docker-compose v3 doesn't support
+# resource limits.
+# -----------------------------------------------
+
 services:
   redis:
     image: faasm/redis:${FAASM_VERSION}
