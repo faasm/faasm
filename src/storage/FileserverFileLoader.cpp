@@ -131,20 +131,24 @@ std::vector<uint8_t> FileserverFileLoader::loadSharedObjectObjectHash(
     return empty;
 }
 
-void FileserverFileLoader::uploadFunctionObjectHash(const faabric::Message& msg,
-                              const std::vector<uint8_t>& hash)
+void FileserverFileLoader::uploadFunctionObjectHash(
+  const faabric::Message& msg,
+  const std::vector<uint8_t>& hash)
 {}
 
-void FileserverFileLoader::uploadFunctionWamrAotHash(const faabric::Message& msg,
-                               const std::vector<uint8_t>& hash)
+void FileserverFileLoader::uploadFunctionWamrAotHash(
+  const faabric::Message& msg,
+  const std::vector<uint8_t>& hash)
 {}
 
-void FileserverFileLoader::uploadSharedObjectObjectHash(const std::string& path,
-                                  const std::vector<uint8_t>& hash)
+void FileserverFileLoader::uploadSharedObjectObjectHash(
+  const std::string& path,
+  const std::vector<uint8_t>& hash)
 {}
 
-void FileserverFileLoader::uploadSharedObjectAotHash(const std::string& path,
-                                  const std::vector<uint8_t>& hash)
+void FileserverFileLoader::uploadSharedObjectAotHash(
+  const std::string& path,
+  const std::vector<uint8_t>& hash)
 {}
 
 }

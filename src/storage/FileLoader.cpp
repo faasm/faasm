@@ -68,7 +68,7 @@ void FileLoader::codegenForFunction(faabric::Message& msg)
     std::vector<uint8_t> newHash = hashBytes(bytes);
     std::vector<uint8_t> oldHash;
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    if(conf.wasmVm == "wamr") {
+    if (conf.wasmVm == "wamr") {
         oldHash = loadFunctionWamrAotFile(msg);
     } else {
         oldHash = loadFunctionObjectHash(msg);
@@ -87,7 +87,7 @@ void FileLoader::codegenForFunction(faabric::Message& msg)
         logger->error("Codegen failed for " + funcStr);
         throw ex;
     }
-    
+
     // Upload the file contents and the hash
     if (conf.wasmVm == "wamr") {
         uploadFunctionAotFile(msg, objBytes);

@@ -46,7 +46,7 @@ class FileLoader
     virtual void uploadSharedObjectObjectHash(
       const std::string& path,
       const std::vector<uint8_t>& hash) = 0;
-    
+
     virtual void uploadSharedObjectAotHash(
       const std::string& path,
       const std::vector<uint8_t>& hash) = 0;
