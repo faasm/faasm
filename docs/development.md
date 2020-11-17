@@ -65,6 +65,38 @@ set up your own. To do this:
 
 Or set the environment variable `CLI_IMAGE`  before you run the `cli.sh` script.
 
+## Testing
+
+The tests use [Catch2](https://github.com/catchorg/Catch2) and your life will be
+much easier if you're familiar with their [command line
+docs](https://github.com/catchorg/Catch2/blob/v2.x/docs/command-line.md).  This
+means you can do things like:
+
+```
+# Run all the MPI tests
+tests "[mpi]"
+
+# Run a specific test
+tests "Test some feature"
+```
+
+### Troubleshooting CI
+
+If the CI build fails and you can't work out why, you can replicate the test
+environment locally.
+
+First, make sure the environment variables and Docker image in 
+[`docker/docker-compose-ci.yml`](../docker/docker-compose-ci.yml) exactly match
+those in [`.github/workflows/tests.yml`](../.github/workflows/tests.yml).
+
+Then, run the container and work through the steps in the Github Actions file,
+to see where things might have gone wrong.
+
+```
+# To start the container 
+docker-compose -f docker/docker-compose-ci.yml run cli /bin/bash
+```
+
 ## Building outside of the container
 
 If you want to build the project outside of the recommended container, or just

@@ -62,7 +62,7 @@ jobs:
       - name: "Compile MPI code"
         run: inv -r faasmcli/faasmcli compile.user mpi
       - name: "Compile Python function"
-        run: inv -r faasmcli/faasmcli compile python py_func --clean
+        run: inv -r faasmcli/faasmcli compile python py_func
       - name: "Compile OMP functions"
         run: inv -r faasmcli/faasmcli compile.user omp
       # --- Environment set-up ---
@@ -76,6 +76,4 @@ jobs:
         run: inv -r faasmcli/faasmcli upload.user python --py --local-copy
       # --- Test run ---
       - name: "Run the tests"
-        run: ./bin/tests
-        working-directory: /build/faasm
-
+        run: /build/faasm/bin/tests
