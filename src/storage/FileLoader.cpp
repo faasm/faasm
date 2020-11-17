@@ -109,7 +109,7 @@ void FileLoader::codegenForSharedObject(const std::string& inputPath)
     std::vector<uint8_t> newHash = hashBytes(bytes);
     std::vector<uint8_t> oldHash = loadSharedObjectObjectHash(inputPath);
 
-    if ((!oldHash.empty()) || newHash == oldHash) {
+    if ((!oldHash.empty()) && newHash == oldHash) {
         logger->debug("Skipping codegen for {}", inputPath);
         return;
     }
