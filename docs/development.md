@@ -35,6 +35,7 @@ inv upload.user python --local-copy --py
 
 # Run codegen (this may take a while the first time it's run)
 inv codegen.local
+inv python.codegen
 
 # Set up cgroup
 ./bin/cgroup.sh
@@ -64,17 +65,77 @@ set up your own. To do this:
 
 Or set the environment variable `CLI_IMAGE`  before you run the `cli.sh` script.
 
+## Testing
+
+The tests use [Catch2](https://github.com/catchorg/Catch2) and your life will be
+much easier if you're familiar with their [command line
+docs](https://github.com/catchorg/Catch2/blob/v2.x/docs/command-line.md).  This
+means you can do things like:
+
+```
+# Run all the MPI tests
+tests "[mpi]"
+
+# Run a specific test
+tests "Test some feature"
+```
+
+### Troubleshooting CI
+
+If the CI build fails and you can't work out why, you can replicate the test
+environment locally.
+
+First, make sure the environment variables and Docker image in 
+[`docker/docker-compose-ci.yml`](../docker/docker-compose-ci.yml) exactly match
+those in [`.github/workflows/tests.yml`](../.github/workflows/tests.yml).
+
+Then, run the container and work through the steps in the Github Actions file,
+to see where things might have gone wrong.
+
+```
+# To start the container 
+docker-compose -f docker/docker-compose-ci.yml run cli /bin/bash
+```
+
 ## Building outside of the container
 
 If you want to build the project outside of the recommended container, or just
 run some of the CLI tasks, you can take a look at the [CLI
-Dockerfile](../docker/cli.dockerfile) to see what's required.
+Dockerfile](../docker/cli.dockerfile) to see what's required:
 
-You will most likely need to set up the CLI using:
+To run the CLI, you should just need to do:
 
 ```bash
+# Set up some shortcuts and aliases
 export FAASM_BUILD_DIR=$(pwd)/build
 source bin/workon.sh
+
+# Activate the virtualenv
+source venv/bin/activate
+
+# Install toolchain Python module
+cd <wherever you keep your code>
+git clone https://github.com/faasm/faasm-toolchain/
+cd faasm-toolchain
+pip3 install -e .
+cd -
+
+# Install Faasm CLI module
+cd faasmcli
+pip install -e .
+cd ..
+
+# Check things work
+inv -l
+```
+
+From then on, you should just be able to run the following (i.e. not reinstall
+the python modules):
+
+```
+source bin/workon.sh
+
+inv -l
 ```
 
 ## Code style

@@ -117,6 +117,9 @@ int main(int argc, char* argv[])
     PyObject* path = PyObject_GetAttrString(sys, "path");
     PyList_Append(path, PyUnicode_FromString(workingDir));
 
+    // Final return value for this main function
+    int outerReturnValue = 0;
+
     // Import the module
     PyObject* module = PyImport_ImportModule(pythonModuleName);
 
@@ -161,13 +164,21 @@ int main(int argc, char* argv[])
 
             // Check return value and clear up
             if (returnValue != nullptr) {
-                printf("Python call succeeded (return value = %ld)\n",
-                       PyLong_AsLong(returnValue));
+                long r = PyLong_AsLong(returnValue);
+
+                if (r == 0) {
+                    printf("Python call succeeded\n");
+                } else {
+                    printf("Python call failed (return value = %ld)\n", r);
+                }
+
+                outerReturnValue = (int)r;
                 Py_DECREF(returnValue);
             } else {
                 // Have to tidy up here as about to return
                 PyErr_Print();
                 printf("Python call failed\n");
+
                 Py_DECREF(func);
                 Py_DECREF(module);
                 return 1;
@@ -177,6 +188,7 @@ int main(int argc, char* argv[])
                 PyErr_Print();
             }
             printf("Cannot find function \"%s\"\n", pythonFuncName);
+            return 1;
         }
 
         Py_XDECREF(func);
@@ -189,5 +201,5 @@ int main(int argc, char* argv[])
 
     Py_FinalizeEx();
 
-    return 0;
+    return outerReturnValue;
 }

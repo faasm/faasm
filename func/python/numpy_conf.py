@@ -48,3 +48,5 @@ def faasm_main():
 
     time_taken = time() - dt_a
     print("Took {:.2f}s".format(time_taken))
+
+    return 0

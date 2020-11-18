@@ -1,4 +1,5 @@
 #include "WasmModule.h"
+#include "wasm/chaining.h"
 
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/bytes.h>

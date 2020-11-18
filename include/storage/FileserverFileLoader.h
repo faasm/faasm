@@ -30,6 +30,28 @@ class FileserverFileLoader : public FileLoader
 
     std::vector<uint8_t> loadSharedFile(const std::string& path) override;
 
+    std::vector<uint8_t> loadFunctionObjectHash(
+      const faabric::Message& msg) override;
+
+    std::vector<uint8_t> loadFunctionWamrAotHash(
+      const faabric::Message& msg) override;
+
+    std::vector<uint8_t> loadSharedObjectObjectHash(
+      const std::string& path) override;
+
+    void uploadFunctionObjectHash(const faabric::Message& msg,
+                                  const std::vector<uint8_t>& hash) override;
+
+    void uploadFunctionWamrAotHash(const faabric::Message& msg,
+                                   const std::vector<uint8_t>& hash) override;
+
+    void uploadSharedObjectObjectHash(
+      const std::string& path,
+      const std::vector<uint8_t>& hash) override;
+
+    void uploadSharedObjectAotHash(const std::string& path,
+                                   const std::vector<uint8_t>& hash) override;
+
     void uploadFunction(faabric::Message& msg) override
     {
         throw std::runtime_error(

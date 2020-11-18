@@ -28,3 +28,4 @@ def faasm_main():
     _check_segment(key, 4, 4, b"9567")
 
     print("Successful Python state reading check")
+    return 0

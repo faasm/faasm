@@ -2,6 +2,7 @@ from os import makedirs
 from os.path import exists
 from os.path import join
 from subprocess import run
+from shutil import rmtree
 
 from invoke import task
 
@@ -30,7 +31,7 @@ def toolchain(ctx, clean=False):
 
 
 @task
-def native(ctx, clean=False):
+def native(ctx, clean=False, tidy=False):
     """
     Compile and install Faasm native tools
     """
@@ -59,6 +60,9 @@ def native(ctx, clean=False):
     run(build_cmd_str, shell=True, cwd=build_dir, check=True)
     run("ninja", shell=True, cwd=build_dir, check=True)
     run("sudo ninja install", shell=True, cwd=build_dir, check=True)
+
+    if tidy:
+        rmtree(build_dir)
 
 
 def _build_faasm_lib(dir_name, clean, verbose, target=None):

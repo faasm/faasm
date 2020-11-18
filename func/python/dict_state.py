@@ -48,3 +48,5 @@ def faasm_main():
         exit(1)
 
     print("Dictionary as expected: {}".format(dict_b))
+
+    return 0

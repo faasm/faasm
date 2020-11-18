@@ -95,7 +95,7 @@ TEST_CASE("Test python chaining", "[faaslet]")
     call.set_pythonfunction("chain");
     call.set_ispython(true);
 
-    execFuncWithPool(call, true, 1);
+    // execFuncWithPool(call, true, 1);
 }
 
 TEST_CASE("Test python sharing dict", "[faaslet]")

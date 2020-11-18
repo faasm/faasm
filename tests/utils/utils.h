@@ -3,16 +3,8 @@
 #include <faabric/util/func.h>
 #include <faaslet/Faaslet.h>
 
-#include "faasm/matrix.h"
-#include "faasm/sgd.h"
-
-using namespace faasm;
-
 namespace tests {
 void cleanSystem();
-
-void checkSparseMatrixEquality(const SparseMatrix<double>& a,
-                               const SparseMatrix<double>& b);
 
 faaslet::Faaslet execFunction(faabric::Message& msg,
                               const std::string& expectedOutput = "");

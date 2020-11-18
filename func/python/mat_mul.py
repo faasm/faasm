@@ -22,3 +22,5 @@ def distributed_divide_and_conquer():
 
 def faasm_main():
     divide_and_conquer()
+
+    return 0

@@ -1,3 +1,5 @@
+#include "faabric/util/func.h"
+#include "proto/faabric.pb.h"
 #include <catch2/catch.hpp>
 
 #include <faabric/redis/Redis.h>
@@ -13,6 +15,10 @@
 
 using namespace web::http::experimental::listener;
 using namespace web::http;
+
+// TODO - possible to avoid hard-coding this?
+#define DUMMY_WASM_FILE "/usr/local/code/faasm/tests/test/upload/dummy.wasm"
+#define DUMMY_FILE "/usr/local/code/faasm/tests/test/upload/dummy_file.txt"
 
 namespace tests {
 http_request createRequest(const std::string& path,
@@ -150,21 +156,23 @@ TEST_CASE("Upload tests", "[upload]")
         // Ensure environment is clean before running
         std::string expectedFile = "/tmp/func/gamma/delta/function.wasm";
         std::string expectedObjFile = "/tmp/obj/gamma/delta/function.wasm.o";
+        std::string expectedHashFile = expectedObjFile + HASH_EXT;
         boost::filesystem::remove(expectedFile);
         boost::filesystem::remove(expectedObjFile);
+        boost::filesystem::remove(expectedHashFile);
 
         // Load some valid dummy wasm bytes
-        // TODO - hard-coded file path is a bad idea
-        std::vector<uint8_t> wasmBytes = faabric::util::readFileToBytes(
-          "/usr/local/code/faasm/tests/test/upload/dummy.wasm");
+        std::vector<uint8_t> wasmBytes =
+          faabric::util::readFileToBytes(DUMMY_WASM_FILE);
 
         // Check putting the file
         std::string url = "/f/gamma/delta";
         checkPut(url, expectedFile, wasmBytes);
 
         // Check object file is generated
-        bool isObjFilePresent = boost::filesystem::exists(expectedObjFile);
-        REQUIRE(isObjFilePresent);
+        REQUIRE(boost::filesystem::exists(expectedObjFile));
+        REQUIRE(boost::filesystem::exists(expectedHashFile));
+
         std::vector<uint8_t> objBytes =
           faabric::util::readFileToBytes(expectedObjFile);
 
@@ -180,8 +188,7 @@ TEST_CASE("Upload tests", "[upload]")
 
     SECTION("Test uploading shared file")
     {
-        const char* realPath =
-          "/usr/local/code/faasm/tests/test/upload/dummy_file.txt";
+        const char* realPath = DUMMY_FILE;
         std::vector<uint8_t> fileBytes =
           faabric::util::readFileToBytes(realPath);
 
@@ -214,15 +221,19 @@ TEST_CASE("Function fileserver test", "[upload]")
     std::string funcName = "echo";
     std::string expectedFilePath;
 
+    faabric::Message msg = faabric::util::messageFactory("demo", "echo");
+    std::string wasmFile = faabric::util::getFunctionFile(msg);
+    std::string objFile = faabric::util::getFunctionObjectFile(msg);
+
     SECTION("Function wasm")
     {
         urlPath = "/f";
-        expectedFilePath = "/usr/local/code/faasm/wasm/demo/echo/function.wasm";
+        expectedFilePath = wasmFile;
     }
     SECTION("Function object file")
     {
         urlPath = "/fo";
-        expectedFilePath = "/usr/local/faasm/object/demo/echo/function.wasm.o";
+        expectedFilePath = objFile;
     }
 
     std::string url = urlPath + "/" + user + "/" + funcName;
