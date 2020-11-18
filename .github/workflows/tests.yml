@@ -7,6 +7,28 @@ on:
     branches: [master]
 
 jobs:
+  formatting:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-20.04
+    container:
+      image: faasm/cli:0.5.3
+    defaults:
+      run:
+        working-directory: /usr/local/code/faasm
+    steps:
+      - name: "Fetch ref"
+        run: git fetch origin ${GITHUB_REF}:ci-branch
+      - name: "Check out branch"
+        run: git checkout --force ci-branch
+      # --- Formatting checks ---
+      - name: "Python formatting check"
+        run: ./bin/check_black.sh
+      # Uncomment when all formatting done
+      - name: "Run C/C++ formatting"
+        run: ./bin/run_clang_format.sh
+      - name: "Check C/C++ formatting changes"
+        run: git diff --exit-code
+
   build:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
@@ -29,11 +51,6 @@ jobs:
         ports:
           - 6379:6379
     steps:
-      # --- Sanity checks ---
-      - name: "Working directory"
-        run: pwd
-      - name: "Working directory contents"
-        run: ls -al
       # --- Check out code ---
       - name: "Fetch ref"
         run: git fetch origin ${GITHUB_REF}:ci-branch
@@ -47,14 +64,6 @@ jobs:
         with:
           path: /usr/local/faasm/object
           key: ${{ runner.os }}-cache
-      # --- Formatting checks ---
-      - name: "Python formatting check"
-        run: ./bin/check_black.sh
-      # Uncomment when all formatting done
-      - name: "Run C/C++ formatting"
-        run: ./bin/run_clang_format.sh
-      - name: "Check C/C++ formatting changes"
-        run: git diff --exit-code
       # --- Code build ---
       - name: "Build dev tools"
         run: inv -r faasmcli/faasmcli dev.tools --build Release

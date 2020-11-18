@@ -1,12 +1,13 @@
 #pragma once
 
+#include "sgx/faasm_sgx_attestation.h"
+#include "sgx/faasm_sgx_error.h"
+
 #include <storage/FileLoader.h>
 #include <storage/FileSystem.h>
 #include <wasm/WasmModule.h>
 
 #include <sgx.h>
-#include <sgx/faasm_sgx_attestation.h>
-#include <sgx/faasm_sgx_error.h>
 #include <sgx_urts.h>
 
 extern sgx_enclave_id_t globalEnclaveId;

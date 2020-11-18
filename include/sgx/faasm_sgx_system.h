@@ -1,6 +1,7 @@
 #pragma once
 
-#include <faasm_sgx_error.h>
+#include "faasm_sgx_error.h"
+
 #include <sgx_eid.h>
 #include <sgx_error.h>
 

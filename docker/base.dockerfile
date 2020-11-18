@@ -25,8 +25,9 @@ COPY --from=cpython \
     /code/faasm-cpython/third-party/cpython/install/wasm/include/python3.8 \
     /usr/local/faasm/llvm-sysroot/include/python3.8
 
-# Copy SGX SDK
+# Set up SGX SDK
 COPY --from=sgx /opt/intel /opt/intel
+RUN apt install -y nasm
 
 # Check out code (clean beforehand just in case)
 WORKDIR /usr/local/code

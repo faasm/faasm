@@ -2,11 +2,18 @@
 #define FAASM_SGX 1
 #define FAASM_SGX_ATTESTATION 0
 #define FAASM_SGX_WAMR_WASI_LIBC 0
+#define FAASM_DOCKER 1
 
 enclave{
+#if(FAASM_DOCKER)
+    include "/usr/local/code/faasm/include/sgx/faasm_sgx_error.h"
+    include "/usr/local/code/faasm/include/sgx/faasm_sgx_attestation.h"
+    include "/build/faasm/_deps/wamr_ext-src/core/iwasm/include/wasm_export.h"
+#else
     include "../../../include/sgx/faasm_sgx_error.h"
     include "../../../include/sgx/faasm_sgx_attestation.h"
     include "../../_deps/wamr_ext-src/core/iwasm/include/wasm_export.h"
+#endif
     from "sgx_tstdc.edl" import *;
     from "sgx_pthread.edl" import *;
 #if(FAASM_SGX_WAMR_WASI_LIBC)

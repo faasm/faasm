@@ -1,6 +1,6 @@
 #pragma once
 
-#include <sgx/faasm_sgx_error.h>
+#include "sgx/faasm_sgx_error.h"
 
 typedef struct _whitelist
 {

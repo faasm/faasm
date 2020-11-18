@@ -18,7 +18,7 @@ _Simulation Mode_
 You'll need to install SGX. You can see how this is done by looking at the
 [`faasm/sgx` dockerfile](../docker/sgx.dockerfile).
 
-To run with simulation mode on, you need to set `FAASM_SGX_SIM_MODE=ON`.
+Simulation mode is the default for Faasm builds.
 
 _Hardware mode_
 
@@ -31,6 +31,9 @@ this is only possible with an SGX-enabled CPU).
 
 ## Building Faasm with SGX enabled
 
+The Faasm build will automatically detect some properties of your SGX
+installation with [SGX-CMake](https://github.com/xzhangxa/SGX-CMake).
+
 High-level Faasm SGX support is configured with CMake options in the [main
 `CMakeLists.txt`](../CMakeLists.txt). 
 
@@ -39,7 +42,6 @@ Low-level SGX-related customisation is found in [the SGX-specific
 
 ### General Options
 
-- `FAASM_SGX_SUPPORT` - Enables or disables the SGX extension. Default is on.
 - `FAASM_SGX_SIM_MODE` - Specifies the SGX execution mode whether the Simulation
   or Hardware mode is used.  Enabling this option chooses the Simulation mode.
   Default is on.

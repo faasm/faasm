@@ -1,6 +1,6 @@
-#include <sgx/faasm_sgx_enclave_types.h>
-#include <sgx/faasm_sgx_error.h>
-#include <sgx/faasm_sgx_native_symbols_wrapper.h>
+#include "sgx/faasm_sgx_native_symbols_wrapper.h"
+#include "sgx/faasm_sgx_enclave_types.h"
+#include "sgx/faasm_sgx_error.h"
 
 #if (FAASM_SGX_WAMR_AOT_MODE)
 #include <iwasm/aot/aot_runtime.h>

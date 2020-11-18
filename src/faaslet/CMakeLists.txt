@@ -19,7 +19,7 @@ target_link_libraries(faaslet_lib
         )
 
 # Include SGX lib if enabled
-if(FAASM_SGX_SUPPORT)
+if(SGX_FOUND)
     target_link_libraries(faaslet_lib faasm_sgx)
-    target_include_directories(faaslet_lib PRIVATE ${FAASM_INCLUDE_DIR}/sgx)
+    target_include_directories(faaslet_lib PUBLIC ${FAASM_INCLUDE_DIR}/sgx)
 endif()
