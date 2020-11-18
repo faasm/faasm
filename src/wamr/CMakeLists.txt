@@ -46,7 +46,7 @@ set(ALL_WAMR_SRC ${COMMON_WAMR_SRC} ${EXTRA_WAMR_SRC})
 faasm_private_lib(wamrlib "${ALL_WAMR_SRC}")
 
 # -----------------------------
-# Faasm-specific Non-SGX WAMR module
+# Faasm-specific configuration
 # -----------------------------
 
 set(PLATFORM_HEADER ${WAMR_SHARED_DIR}/platform/linux)

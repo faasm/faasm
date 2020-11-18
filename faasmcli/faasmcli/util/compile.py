@@ -9,9 +9,7 @@ from os.path import join
 from shutil import copy
 
 
-def wasm_cmake(
-    src_dir, build_dir, target, clean=False, debug=False
-):
+def wasm_cmake(src_dir, build_dir, target, clean=False, debug=False):
     build_type = "wasm"
     cmake_build_type = "Debug" if debug else "Release"
 
