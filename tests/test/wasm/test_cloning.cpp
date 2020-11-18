@@ -1,3 +1,4 @@
+#include "utils.h"
 #include <WAVM/Runtime/Intrinsics.h>
 #include <catch2/catch.hpp>
 #include <faabric/util/config.h>
@@ -19,6 +20,8 @@ void convertMsgToPython(faabric::Message& msg)
 
 TEST_CASE("Test cloning empty modules doesn't break", "[wasm]")
 {
+    cleanSystem();
+
     WAVMWasmModule moduleA;
     WAVMWasmModule moduleB(moduleA);
 
@@ -210,6 +213,8 @@ void _checkAssignmentOperator(const std::string& user,
 
 TEST_CASE("Test cloned execution on simple module", "[wasm]")
 {
+    cleanSystem();
+
     std::string user = "demo";
     std::string func = "echo";
     std::string inputA = "aaa";
@@ -226,8 +231,10 @@ TEST_CASE("Test cloned execution on simple module", "[wasm]")
     }
 }
 
-TEST_CASE("Test cloned execution on complex module", "[wasm][!mayfail]")
+TEST_CASE("Test cloned execution on complex module", "[wasm]")
 {
+    cleanSystem();
+
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     std::string preloadVal = conf.pythonPreload;
     conf.pythonPreload = "off";
@@ -250,6 +257,8 @@ TEST_CASE("Test cloned execution on complex module", "[wasm][!mayfail]")
 
 TEST_CASE("Test GC on cloned modules without execution")
 {
+    cleanSystem();
+
     faabric::Message msg = faabric::util::messageFactory("demo", "echo");
 
     WAVMWasmModule moduleA;
@@ -266,6 +275,8 @@ TEST_CASE("Test GC on cloned modules without execution")
 
 TEST_CASE("Test GC on cloned modules with execution")
 {
+    cleanSystem();
+
     faabric::Message msg = faabric::util::messageFactory("demo", "echo");
 
     WAVMWasmModule moduleA;
