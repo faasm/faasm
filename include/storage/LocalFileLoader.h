@@ -22,6 +22,28 @@ class LocalFileLoader : public FileLoader
 
     std::vector<uint8_t> loadSharedFile(const std::string& path) override;
 
+    std::vector<uint8_t> loadFunctionObjectHash(
+      const faabric::Message& msg) override;
+
+    std::vector<uint8_t> loadFunctionWamrAotHash(
+      const faabric::Message& msg) override;
+
+    std::vector<uint8_t> loadSharedObjectObjectHash(
+      const std::string& path) override;
+
+    void uploadFunctionObjectHash(const faabric::Message& msg,
+                                  const std::vector<uint8_t>& hash) override;
+
+    void uploadFunctionWamrAotHash(const faabric::Message& msg,
+                                   const std::vector<uint8_t>& hash) override;
+
+    void uploadSharedObjectObjectHash(
+      const std::string& path,
+      const std::vector<uint8_t>& hash) override;
+
+    void uploadSharedObjectAotHash(const std::string& path,
+                                   const std::vector<uint8_t>& hash) override;
+
     void uploadFunction(faabric::Message& msg) override;
 
     void uploadPythonFunction(faabric::Message& msg) override;
@@ -43,5 +65,11 @@ class LocalFileLoader : public FileLoader
 
     void uploadSharedFile(const std::string& path,
                           const std::vector<uint8_t>& fileBytes) override;
+
+  private:
+    std::vector<uint8_t> loadHashForPath(const std::string& path);
+
+    void writeHashForFile(const std::string& path,
+                          const std::vector<uint8_t>& hash);
 };
 };
