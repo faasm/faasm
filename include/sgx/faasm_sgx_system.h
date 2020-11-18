@@ -2,6 +2,7 @@
 
 #include "faasm_sgx_error.h"
 
+//SGX SDK includes
 #include <sgx_eid.h>
 #include <sgx_error.h>
 
