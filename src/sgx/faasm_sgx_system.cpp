@@ -32,9 +32,19 @@ void checkSgxSetup()
 #if (!SGX_SIM_MODE)
     returnValue = faasm_sgx_get_sgx_support();
     if (returnValue != FAASM_SGX_SUCCESS) {
-        logger->error("Machine doesn't support SGX {}",
-                      faasmSgxErrorString(returnValue));
-        throw std::runtime_error("Machine doesn't support SGX");
+#if (FAASM_SGX_WAMR_AOT_MODE)
+	if (returnValue == FAASM_SGX_CPU_SGX_V2_LEAF_NOT_AVAILABLE) {
+		logger->error("Machine doesn't support SGXv2 {}",
+					faasmSgxErrorString(returnValue));
+		throw std::runtime_error("Machine doesn't support SGXv2");
+	}
+#else
+	if (returnValue == FAASM_SGX_CPU_SGX_V1_LEAF_NOT_AVAILABLE) {
+		logger->error("Machine doesn't support SGXv1 {}",
+					faasmSgxErrorString(returnValue));
+		throw std::runtime_error("Machine doesn't support SGXv1");
+	}
+#endif
     }
 #endif
 
