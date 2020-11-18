@@ -13,7 +13,7 @@ option(FAASM_PERF_PROFILING "Turn on profiling features as described in debuggin
 option(WAMR_INTERPRETER_MODE "Turns interpreter on / off (vs. AoT)" OFF)
 
 # SGX functionality
-# The build will autodetect the presence of SGX in the first place
+# These options customise the SGX features _provided_ SGX is found
 option(FAASM_SGX_SIM_MODE "Turn on SGX sim mode" ON)
 option(FAASM_SGX_ATTESTATION "Turn on attestation" OFF)
 option(FAASM_SGX_XRA "Turn on support for XRA" OFF)
@@ -43,7 +43,7 @@ set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/pyinit)
 
 # Detect SGX
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
-find_package(SGX OPTIONAL)
+find_package(SGX)
 
 # SGX configuration
 if (SGX_FOUND)

@@ -327,9 +327,5 @@ if(SGX_FOUND)
     endfunction()
 
 else(SGX_FOUND)
-    message(WARNING "Intel SGX SDK not found!")
-    if(SGX_FIND_REQUIRED)
-        message(FATAL_ERROR "Could NOT find Intel SGX SDK!")
-    endif()
+    message(STATUS "Intel SGX SDK not found")
 endif(SGX_FOUND)
-
