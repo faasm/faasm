@@ -7,10 +7,8 @@ RUN apt-get install -y \
     nasm \
     wget
 
-# Download installers
+# Download SDK installer
 WORKDIR /sgx
-
-RUN wget https://download.01.org/intel-sgx/sgx-linux/2.12/distro/ubuntu20.04-server/sgx_linux_x64_driver_1.36.2.bin
 RUN wget https://download.01.org/intel-sgx/sgx-linux/2.12/distro/ubuntu20.04-server/sgx_linux_x64_sdk_2.12.100.3.bin
 
 # Install the SDK
