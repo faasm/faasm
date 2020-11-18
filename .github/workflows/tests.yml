@@ -41,12 +41,6 @@ jobs:
         run: git checkout --force ci-branch
       - name: "Log commits"
         run: git log -3
-      # --- Cache ---
-      - name: "Configure build cache"
-        uses: actions/cache@v2
-        with:
-          path: /usr/local/faasm/object
-          key: ${{ runner.os }}-cache
       # --- Formatting checks ---
       - name: "Python formatting check"
         run: ./bin/check_black.sh
