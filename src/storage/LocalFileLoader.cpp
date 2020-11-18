@@ -206,7 +206,7 @@ void LocalFileLoader::uploadSharedObjectObjectHash(
   const std::vector<uint8_t>& hash)
 {
     std::string outputPath = faabric::util::getSharedObjectObjectFile(path);
-    writeHashForFile(path, hash);
+    writeHashForFile(outputPath, hash);
 }
 
 void LocalFileLoader::uploadSharedObjectAotHash(

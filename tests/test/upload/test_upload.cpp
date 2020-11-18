@@ -172,7 +172,7 @@ TEST_CASE("Upload tests", "[upload]")
         // Check object file is generated
         REQUIRE(boost::filesystem::exists(expectedObjFile));
         REQUIRE(boost::filesystem::exists(expectedHashFile));
-        
+
         std::vector<uint8_t> objBytes =
           faabric::util::readFileToBytes(expectedObjFile);
 
