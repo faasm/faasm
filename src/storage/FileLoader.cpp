@@ -67,7 +67,7 @@ void FileLoader::codegenForFunction(faabric::Message& msg)
     std::vector<uint8_t> oldHash;
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     if (conf.wasmVm == "wamr") {
-        oldHash = loadFunctionWamrAotFile(msg);
+        oldHash = loadFunctionWamrAotHash(msg);
     } else {
         oldHash = loadFunctionObjectHash(msg);
     }

@@ -58,6 +58,29 @@ TEST_CASE("Check function codegen hashing", "[storage]")
     conf.functionDir = "/tmp/func";
     conf.objectFileDir = "/tmp/obj";
 
+    // Test for different wasm VMs
+    std::string origWasmVm = conf.wasmVm;
+    std::string objectFileA;
+    std::string objectFileB;
+    bool isCodegenRepeatable = true;
+    SECTION("WAVM codegen")
+    {
+        conf.wasmVm = "wavm";
+        objectFileA = "/tmp/obj/demo/echo/function.wasm.o";
+        objectFileB = "/tmp/obj/demo/x2/function.wasm.o";
+    }
+
+    SECTION("WAMR codegen")
+    {
+        conf.wasmVm = "wamr";
+        objectFileA = "/tmp/obj/demo/echo/function.aot";
+        objectFileB = "/tmp/obj/demo/x2/function.aot";
+
+        // It seems that WAMR codegen doesn't produce the same results every
+        // time...
+        isCodegenRepeatable = false;
+    }
+
     // Make sure directories are empty to start with
     boost::filesystem::remove_all(conf.functionDir);
     boost::filesystem::remove_all(conf.objectFileDir);
@@ -65,8 +88,6 @@ TEST_CASE("Check function codegen hashing", "[storage]")
     // Check wasm files are created and hashes are different
     std::string wasmFileA = "/tmp/func/demo/echo/function.wasm";
     std::string wasmFileB = "/tmp/func/demo/x2/function.wasm";
-    std::string objectFileA = "/tmp/obj/demo/echo/function.wasm.o";
-    std::string objectFileB = "/tmp/obj/demo/x2/function.wasm.o";
     std::string hashFileA = objectFileA + HASH_EXT;
     std::string hashFileB = objectFileB + HASH_EXT;
 
@@ -116,7 +137,13 @@ TEST_CASE("Check function codegen hashing", "[storage]")
     // Check the object file is updated
     std::vector<uint8_t> objAAfter =
       faabric::util::readFileToBytes(objectFileA);
-    REQUIRE(objAAfter == objABefore);
+
+    if (isCodegenRepeatable) {
+        REQUIRE(objAAfter == objABefore);
+    } else {
+        // Just check the length of the machine code if codegen not repeatable
+        REQUIRE(objAAfter.size() == objABefore.size());
+    }
 
     // Check the hash is updated
     std::vector<uint8_t> hashAAfter = faabric::util::readFileToBytes(hashFileA);
@@ -129,6 +156,7 @@ TEST_CASE("Check function codegen hashing", "[storage]")
     // Reset the config
     conf.functionDir = origFuncDir;
     conf.objectFileDir = origObjDir;
+    conf.wasmVm = origWasmVm;
 }
 
 TEST_CASE("Check shared object codegen hashing", "[storage]")
