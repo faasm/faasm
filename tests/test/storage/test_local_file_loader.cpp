@@ -67,8 +67,8 @@ TEST_CASE("Check function codegen hashing", "[storage]")
     std::string wasmFileB = "/tmp/func/demo/x2/function.wasm";
     std::string objectFileA = "/tmp/obj/demo/echo/function.wasm.o";
     std::string objectFileB = "/tmp/obj/demo/x2/function.wasm.o";
-    std::string hashFileA = objectFileA + ".md5";
-    std::string hashFileB = objectFileB + ".md5";
+    std::string hashFileA = objectFileA + HASH_EXT;
+    std::string hashFileB = objectFileB + HASH_EXT;
 
     // Check files don't yet exist
     REQUIRE(!boost::filesystem::exists(hashFileA));
@@ -140,7 +140,7 @@ TEST_CASE("Check shared object codegen hashing", "[storage]")
     std::string inputPath = SHARED_OBJ;
     std::string objFile =
       std::string("/tmp/obj") + std::string(SHARED_OBJ) + ".o";
-    std::string hashFile = objFile + ".md5";
+    std::string hashFile = objFile + HASH_EXT;
 
     // Clean directory beforehand
     boost::filesystem::remove_all(conf.objectFileDir);

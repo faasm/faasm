@@ -18,8 +18,6 @@
 
 #include <boost/filesystem.hpp>
 
-#define HASH_EXT ".md5"
-
 namespace storage {
 
 std::vector<uint8_t> FileLoader::hashBytes(const std::vector<uint8_t>& bytes)

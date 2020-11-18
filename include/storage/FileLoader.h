@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#define HASH_EXT ".md5"
+
 namespace storage {
 class FileLoader
 {
