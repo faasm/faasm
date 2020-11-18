@@ -17,7 +17,7 @@ def _copy_built_function(user, func):
 
 
 @task(default=True, name="compile")
-def compile(ctx, user, func, clean=False, debug=False, ts=False, sgx=False):
+def compile(ctx, user, func, clean=False, debug=False, ts=False):
     """
     Compile a function
     """
@@ -29,7 +29,7 @@ def compile(ctx, user, func, clean=False, debug=False, ts=False, sgx=False):
     # Build the function (gets written to the build dir)
     # Will fail if compilation fails
     target = func
-    wasm_cmake(FUNC_DIR, FUNC_BUILD_DIR, target, clean, debug, sgx=sgx)
+    wasm_cmake(FUNC_DIR, FUNC_BUILD_DIR, target, clean, debug)
 
     _copy_built_function(user, func)
 
