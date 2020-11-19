@@ -5,6 +5,22 @@ extern "C" {
     extern __thread uint32_t tls_thread_id;
     extern _faasm_sgx_tcs_t* faasm_sgx_tcs;
     extern int os_printf(const char* message, ...);
+
+    void hex_decode(const char *in, size_t len, uint8_t *out) {
+        unsigned int i, hn, ln;
+        char hc, lc;
+        memset(out, 0, len);
+        for (i = 0; i < 2*len; i += 2) {
+            hc = in[i];
+            if ('a' <= hc && hc <= 'f') hc = toupper(hc);
+            lc = in[i+1];
+            if ('a' <= lc && lc <= 'f') lc = toupper(lc);
+            hn = hc > '9' ? hc - 'A' + 10 : hc - '0';
+            ln = lc > '9' ? lc - 'A' + 10 : lc - '0';
+            out[i >> 1] = (hn << 4 ) | ln;
+        }
+    }
+
     faasm_sgx_status_t parse_chain_policy_to_map(std::map<const char*,std::string, cmp_str> *chain_policy_map, char* policy_str, uint32_t policy_str_len) {
         if (policy_str_len < SGX_SHA256_HASH_SIZE * 2) {
             return FAASM_SGX_SUCCESS;
