@@ -16,9 +16,6 @@ enclave{
 #endif
     from "sgx_tstdc.edl" import *;
     from "sgx_pthread.edl" import *;
-#if(FAASM_SGX_WAMR_WASI_LIBC)
-    from "sgx_wamr.edl" import *;
-#endif
 
     trusted{
         public faasm_sgx_status_t faasm_sgx_enclave_unload_module(uint32_t thread_id);
