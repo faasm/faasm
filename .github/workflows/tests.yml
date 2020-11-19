@@ -38,7 +38,7 @@ jobs:
       HOST_TYPE: ci
       REDIS_STATE_HOST: redis
       REDIS_QUEUE_HOST: redis
-      LOG_LEVEL: info
+      LOG_LEVEL: debug
       MAX_FAASLETS: 5
     container:
       image: faasm/cli:0.5.3
