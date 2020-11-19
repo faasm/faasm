@@ -11,6 +11,9 @@ You can read the latest SGX Linux developer instructions
 SGX work in Faasm, but some messy merges have mixed up ownership of a couple of
 commits.
 
+Credits for the work on SGX attestation go to [@golsch](https://github.com/golsch),
+who implemented this as part of his Master's thesis.
+
 ## SGX Set-up
 
 _Simulation Mode_
