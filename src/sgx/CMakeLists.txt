@@ -16,6 +16,13 @@ set(FAASM_SGX_ENCLAVE_PATH "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/faasm_sgx_enclave.
 set(FAASM_SGX_WAMR_BUILDIN_LIBC 1)
 set(FAASM_SGX_WAMR_WASI_LIBC 0)
 
+
+if($ENV{FAASM_DOCKER})
+	set(FAASM_SGX_EDL "faasm_sgx_enclave_docker.edl")
+else()
+	set(FAASM_SGX_EDL "faasm_sgx_enclave_nodocker.edl")
+endif()
+
 # Enable(1)/ Disable(0) SGX-specific debug/error messages 
 # Disable for better performance
 set(FAASM_SGX_DEBUG 1) 
@@ -397,6 +404,14 @@ target_compile_options(wamr_sgx_untrusted PRIVATE
 # --------------------------------------------------------
 
 # WAMR enclave
+
+# copy edl to same name to get same file names
+add_custom_command(TARGET faasm_sgx_enclave
+        PRE_BUILD COMMAND cp -f
+        ${FAASM_SOURCE_DIR}/sgx/${FAASM_SGX_EDL}
+        ${FAASM_SOURCE_DIR}/sgx/faasm_sgx_enclave.edl
+        )
+
 add_custom_command(TARGET faasm_sgx_enclave
         PRE_BUILD COMMAND ${SGX_SDK_ENCLAVE_EDGER8R}
         --trusted --untrusted faasm_sgx_enclave.edl
