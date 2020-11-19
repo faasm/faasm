@@ -88,5 +88,7 @@ jobs:
       - name: "Copy Python functions into place"
         run: inv -r faasmcli/faasmcli upload.user python --py --local-copy
       # --- Test run ---
+      - name: "Just run a the numpy test"
+        run: inv -r faasmcli/faasmcli run python numpy_test
       - name: "Run the tests"
         run: /build/faasm/bin/tests
