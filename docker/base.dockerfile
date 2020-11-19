@@ -1,6 +1,9 @@
 # Stages to extract toolchain and sysroot
-FROM faasm/sysroot:0.0.10
-FROM faasm/cpython:0.0.7
+FROM faasm/sysroot:0.0.10 as sysroot
+FROM faasm/cpython:0.0.7 as cpython
+
+# Import from SGX container
+FROM faasm/sgx:0.5.3 as sgx
 
 # Note - we don't often rebuild cpp-root so this dep may be behind
 FROM faasm/cpp-root:0.5.1
@@ -10,17 +13,21 @@ ARG FAASM_VERSION
 ENV FAASM_DOCKER="on"
 
 # Copy Faasm toolchain
-COPY --from=0 /usr/local/faasm /usr/local/faasm
+COPY --from=sysroot /usr/local/faasm /usr/local/faasm
 
 # Copy Python outputs 
 # TODO - copy these into the toolchain as part of the cpython container build
-COPY --from=1 /usr/local/faasm/runtime_root /usr/local/faasm/runtime_root
-COPY --from=1 \
+COPY --from=cpython /usr/local/faasm/runtime_root /usr/local/faasm/runtime_root
+COPY --from=cpython \
     /code/faasm-cpython/third-party/cpython/install/wasm/lib/libpython3.8.a \
     /usr/local/faasm/llvm-sysroot/lib/wasm32-wasi/libpython3.8.a
-COPY --from=1 \
+COPY --from=cpython \
     /code/faasm-cpython/third-party/cpython/install/wasm/include/python3.8 \
     /usr/local/faasm/llvm-sysroot/include/python3.8
+
+# Set up SGX SDK
+COPY --from=sgx /opt/intel /opt/intel
+RUN apt install -y nasm
 
 # Check out code (clean beforehand just in case)
 WORKDIR /usr/local/code

@@ -1,10 +1,11 @@
+#include "sgx/faasm_sgx_enclave_types.h"
+#include "sgx/faasm_sgx_error.h"
+#include "sgx/faasm_sgx_native_symbols_wrapper.h"
+#include "sgx/rw_lock.h"
+
 #include <iwasm/include/wasm_export.h>
 #include <libcxx/cstdlib>
 #include <sgx.h>
-#include <sgx/faasm_sgx_enclave_types.h>
-#include <sgx/faasm_sgx_error.h>
-#include <sgx/faasm_sgx_native_symbols_wrapper.h>
-#include <sgx/rw_lock.h>
 #include <sgx_defs.h>
 #include <sgx_thread.h>
 #include <tlibc/mbusafecrt.h>

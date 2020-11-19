@@ -9,9 +9,7 @@ from os.path import join
 from shutil import copy
 
 
-def wasm_cmake(
-    src_dir, build_dir, target, clean=False, debug=False, sgx=False
-):
+def wasm_cmake(src_dir, build_dir, target, clean=False, debug=False):
     build_type = "wasm"
     cmake_build_type = "Debug" if debug else "Release"
 
@@ -23,7 +21,6 @@ def wasm_cmake(
         "-DFAASM_BUILD_TYPE={}".format(build_type),
         "-DCMAKE_TOOLCHAIN_FILE={}".format(CMAKE_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE={}".format(cmake_build_type),
-        "-DFAASM_SGX_SUPPORT=on" if sgx else "",
         src_dir,
     ]
 

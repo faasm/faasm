@@ -1,10 +1,11 @@
+#include "sgx/faasm_sgx_error.h"
+
 #include <iwasm/aot/aot_runtime.h>
 #include <iwasm/include/wasm_export.h>
 #include <iwasm/interpreter/wasm_runtime.h>
 #include <libcxx/cstdlib>
 #include <rw_lock.h>
 #include <sgx.h>
-#include <sgx/faasm_sgx_error.h>
 #include <sgx/sgx_wamr_enclave_types.h>
 #include <sgx_defs.h>
 #include <sgx_thread.h>

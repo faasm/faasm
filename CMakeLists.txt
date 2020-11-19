@@ -13,11 +13,11 @@ option(FAASM_PERF_PROFILING "Turn on profiling features as described in debuggin
 option(WAMR_INTERPRETER_MODE "Turns interpreter on / off (vs. AoT)" OFF)
 
 # SGX functionality
-option(FAASM_SGX_SUPPORT "Enable/Disable SGX Support" OFF)
-option(FAASM_SGX_SIM_MODE "SGX sim mode flag" ON)
-option(FAASM_SGX_ATTESTATION "Add support for attestation" OFF)
-option(FAASM_SGX_XRA "Add support for XRA" OFF)
-option(FAASM_SGX_WAMR_AOT_MODE "Turns AoT on / off (vs. Interpreter) within the enclave" ON)
+# These options customise the SGX features _provided_ SGX is found
+option(FAASM_SGX_SIM_MODE "Turn on SGX sim mode" ON)
+option(FAASM_SGX_ATTESTATION "Turn on attestation" OFF)
+option(FAASM_SGX_XRA "Turn on support for XRA" OFF)
+option(FAASM_SGX_WAMR_AOT_MODE "Turn on AoT mode in SGX" ON)
 
 # Note - whitelisting currently not working in WAMR AoT mode
 option(FAASM_SGX_WHITELISTING "Add support for whitelisting" OFF) 
@@ -41,10 +41,13 @@ set(FAASM_LIB_CPP_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/cpp)
 set(FAASM_LIB_FAASMP_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/faasmp)
 set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/pyinit)
 
+# Detect SGX
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
+find_package(SGX)
+
 # SGX configuration
-if (FAASM_SGX_SUPPORT)
+if (SGX_FOUND)
     # SGX includes
-    set(SGX_SDK_PATH /opt/intel/sgxsdk)
     include_directories(${SGX_SDK_PATH}/include)
 
     # Switch off Werror only when in SGX mode
@@ -198,7 +201,7 @@ else ()
     add_subdirectory(src/wavm)
 
     # Faasm SGX support
-    if (FAASM_SGX_SUPPORT)
+    if (SGX_FOUND)
         add_subdirectory(src/sgx)
     endif ()
 
