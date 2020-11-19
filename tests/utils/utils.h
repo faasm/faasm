@@ -18,6 +18,10 @@ void execFuncWithPool(faabric::Message& call,
                       int nThreads = 4,
                       bool clean = true);
 
+void executeWithWamrPool(const std::string& user, const std::string& func);
+
+void executeWithSGX(const std::string& user, const std::string& func);
+
 void checkMultipleExecutions(faabric::Message& msg, int nExecs);
 
 void checkCallingFunctionGivesBoolOutput(const std::string& user,

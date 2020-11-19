@@ -1,10 +1,10 @@
-from multiprocessing.pool import Pool
-from subprocess import check_output, run
+from subprocess import run
 
 from invoke import task
+from copy import copy
+from os import environ
 
-from faasmcli.util.codegen import find_codegen_func, find_codegen_shared_lib
-from faasmcli.util.env import PY_RUNTIME_ROOT
+from faasmcli.util.codegen import find_codegen_func
 
 
 @task(default=True)
@@ -12,7 +12,8 @@ def codegen(ctx, user, function, wamr=False):
     """
     Generates machine code for the given function
     """
-    env = {"WASM_VM": "wamr" if wamr else "wavm"}
+    env = copy(environ)
+    env.update({"WASM_VM": "wamr" if wamr else "wavm"})
 
     binary = find_codegen_func()
     run(
