@@ -84,7 +84,7 @@ extern "C" {
         strncpy(*total_stack_ptr + strlen(entry_stack), execution_stack, strlen(execution_stack));
         return FAASM_SGX_SUCCESS;
     }
-    faasm_sgx_status_t free_execution_stack(char **execution_stack_ptr) { //TODO right?
+    faasm_sgx_status_t free_execution_stack(char **execution_stack_ptr) {
         free(*execution_stack_ptr);
         *execution_stack_ptr = 0x0;
         return FAASM_SGX_SUCCESS;

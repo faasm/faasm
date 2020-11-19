@@ -36,7 +36,6 @@ enclave{
 #if(FAASM_SGX_ATTESTATION)
         faasm_sgx_status_t ocall_init_crt(void);
         faasm_sgx_status_t ocall_send_msg([in, size=msg_len]sgx_wamr_msg_t* msg, uint32_t msg_len);
-        //faasm_sgx_status_t ocall_set_result([in, size=msg_len] uint8_t* msg, uint32_t msg_len);//TODO not needed?
 #endif
         uint64_t ocall_faasm_read_state([in, string] char* key, [out, size=buffer_len] uint8_t* buffer_ptr, uint32_t buffer_len);
         void ocall_faasm_read_appended_state([in, string] char* key, [out, size=buffer_len] uint8_t* buffer_ptr, uint32_t buffer_len, uint32_t element_num);
@@ -62,7 +61,7 @@ enclave{
 #if(FAASM_SGX_ATTESTATION)
         unsigned int ocall_faasm_chain_name([in, string] const char* name, [in, size=input_size] uint8_t* input, long input_size, [in, size=policy_len] uint8_t *policy, uint32_t policy_len);
         unsigned int ocall_faasm_chain_ptr(int idx, [in, size=input_size] uint8_t* input, long input_size, [in, size=policy_len] uint8_t *policy, uint32_t policy_len);
-        unsigned int ocall_faasm_await_call_output(unsigned int call_id); //TODO why?
+        unsigned int ocall_faasm_await_call_output(unsigned int call_id); //different buffer handling in SGX mode
         void ocall_faasm_lock_state_write2([in, string] char* key, uint32_t len);
         void ocall_faasm_unlock_state_write2([in, string] char* key, uint32_t len);
 #else
@@ -71,6 +70,5 @@ enclave{
         unsigned int ocall_faasm_await_call_output(unsigned int call_id, [out, size=buffer_size] uint8_t* buffer, unsigned int buffer_size);
 #endif
         unsigned int ocall_faasm_await_call(unsigned int call_id);
-        //unsigned int ocall_faasm_get_input_size(void);//TODO needed?
     };
 };
