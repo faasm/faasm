@@ -28,11 +28,8 @@ extern "C"
       faasm_sgx_status_t* ret_val,
       const void* wasm_opcode_ptr,
       const uint32_t wasm_opcode_size,
-      uint32_t* thread_id
-#if (FAASM_SGX_ATTESTATION)
-      ,
+      uint32_t* thread_id,
       sgx_wamr_msg_t** response_ptr
-#endif
     );
 
     extern sgx_status_t faasm_sgx_enclave_unload_module(

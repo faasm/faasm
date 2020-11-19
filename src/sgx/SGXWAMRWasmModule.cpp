@@ -70,11 +70,8 @@ void SGXWAMRWasmModule::bindToFunction(const faabric::Message& msg)
                                     &returnValue,
                                     (void*)wasmBytes.data(),
                                     (uint32_t)wasmBytes.size(),
-                                    &threadId
-#if (FAASM_SGX_ATTESTATION)
-                                    ,
+                                    &threadId,
                                     &(faasletSgxMsgBufferPtr->buffer_ptr)
-#endif
       );
 
     if (status != SGX_SUCCESS) {

@@ -10,9 +10,7 @@
 
 #if(FAASM_SGX)
 #include <sgx/SGXWAMRWasmModule.h>
-#if(FAASM_SGX_ATTESTATION)
 #include <sgx/faasm_sgx_attestation.h>
-#endif
 #endif
 
 
@@ -34,10 +32,8 @@ class Faaslet final : public faabric::executor::FaabricExecutor
 
 #if(FAASM_SGX)
         std::unique_ptr<wasm::SGXWAMRWasmModule> module_sgx_wamr;
-#if(FAASM_SGX_ATTESTATION)
         faaslet_sgx_msg_buffer_t sgx_wamr_msg_response;
         faaslet_sgx_gp_buffer_t sgx_wamr_attestation_output, sgx_wamr_attestation_result;
-#endif
 #endif
 
 

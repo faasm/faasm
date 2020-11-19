@@ -198,11 +198,9 @@ Faaslet::~Faaslet(void)
 	if(module_sgx_wamr && !module_sgx_wamr->unbindFunction()){
 		printf("[Error] Faaslet destruction failed\n");
 	}
-#if(FAASM_SGX_ATTESTATION)
 	free(sgx_wamr_msg_response.buffer_ptr);
 	free(sgx_wamr_attestation_result.buffer_ptr);
 	free(sgx_wamr_attestation_output.buffer_ptr);
-#endif
 }
 #endif
 

@@ -1,8 +1,6 @@
 #pragma once
 
-#if (FAASM_SGX_ATTESTATION)
 #include <sgx/faasm_sgx_attestation.h>
-#endif
 
 #if (FAASM_SGX_WHITELISTING)
 #include <sgx/faasm_sgx_whitelisting.h>
@@ -27,7 +25,6 @@
     faasm_sgx_tcs[THREAD_ID] = _FAASM_SGX_TCS_SLOT_FREE;                       \
     read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
 
-#if(FAASM_SGX_ATTESTATION)
 struct cmp_str
 {
    bool operator()(char const *a, char const *b) const {
@@ -52,7 +49,6 @@ typedef struct _attestation_env
     char* entry_execution_stack;
 
 } _sgx_wamr_attestation_env_t;
-#endif
 
 typedef struct _sgx_wamr_execution_policy_t
 {
@@ -77,11 +73,9 @@ typedef struct __faasm_sgx_tcs
     wasm_module_inst_t module_inst;
     uint8_t* wasm_opcode;
 
-#if (FAASM_SGX_ATTESTATION)
     faaslet_sgx_gp_buffer_t* output_ptr, *result_ptr;
     sgx_wamr_msg_t** response_ptr;
     _sgx_wamr_attestation_env_t env;
-#endif
 
 #if (FAASM_SGX_WHITELISTING)
     _faasm_sgx_whitelist_t* module_whitelist;

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#if(FAASM_SGX_ATTESTATION)
 #ifdef __cplusplus
 extern"C"{
 #endif
@@ -11,7 +10,6 @@ extern"C"{
     int Base64encode(char *encoded, const char *string, int len);
 #ifdef __cplusplus
 };
-#endif
 #endif
 
 namespace util {

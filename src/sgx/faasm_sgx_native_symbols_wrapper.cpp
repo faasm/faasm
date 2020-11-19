@@ -10,7 +10,6 @@
 
 #include <iwasm/common/wasm_exec_env.h>
 
-#if (FAASM_SGX_ATTESTATION)
 #include <sgx/faasm_sgx_enclave_types.h>
 #include <sgx/faasm_sgx_util.h>
 #include <sgx_tcrypto.h>
@@ -24,7 +23,6 @@ extern "C"
     extern faasm_sgx_status_t send_recv_msg(uint32_t thread_id, const void *send_payload_ptr, const uint32_t send_payload_len, void** recv_payload_ptr, uint32_t* recv_payload_len);
     extern rwlock_t _rwlock_faasm_sgx_tcs_realloc;
 }
-#endif
 
 // SET_ERROR definition for AoT and interpreter mode
 #if (FAASM_SGX_WAMR_AOT_MODE)
@@ -64,9 +62,7 @@ extern "C"
                                             uint8_t* buffer,
                                             unsigned int buffer_size)
     {
-        int32_t returnValue;
-#if(FAASM_SGX_ATTESTATION)
-        returnValue = 0; //TODO this is ugly :(
+        int32_t returnValue = 0;
         read_lock(&_rwlock_faasm_sgx_tcs_realloc);
         if (buffer_size > faasm_sgx_tcs[tls_thread_id]->env.payload_len) {
             memcpy(buffer, faasm_sgx_tcs[tls_thread_id]->env.payload, faasm_sgx_tcs[tls_thread_id]->env.payload_len);
@@ -74,13 +70,6 @@ extern "C"
             memcpy(buffer, faasm_sgx_tcs[tls_thread_id]->env.payload, buffer_size);
         }
         read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
-#else
-        sgx_status_t sgxReturnValue;
-        if ((sgxReturnValue = ocall_faasm_read_input(
-               &returnValue, buffer, buffer_size)) != SGX_SUCCESS) {
-            SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
-        }
-#endif
         return returnValue;
     }
 
@@ -89,7 +78,6 @@ extern "C"
                                            unsigned int output_size)
     {
         sgx_status_t sgxReturnValue;
-#if(FAASM_SGX_ATTESTATION)
         uint32_t output_data_len;
         sgx_wamr_encrypted_data_blob_t *output_data;
         faasm_sgx_nonce_t p_iv;
@@ -120,12 +108,6 @@ extern "C"
             return;
         }
         free(output_data);
-#else
-        if ((sgxReturnValue = ocall_faasm_write_output(output, output_size)) !=
-            SGX_SUCCESS) {
-            SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
-        }
-#endif
     }
 
     // --------------------------------------
@@ -139,7 +121,6 @@ extern "C"
     {
         sgx_status_t sgxReturnValue;
         uint64_t returnValue;
-#if(FAASM_SGX_ATTESTATION)
         uint32_t msg_payload_len, res_payload_len, encrypted_state_len;
         sgx_wamr_msg_state_read_t* msg_payload;
         faasm_sgx_status_t faasm_ret_val;
@@ -226,28 +207,7 @@ extern "C"
             return 1;
         }
         return buffer_len;
-#endif
-        if ((sgxReturnValue = ocall_faasm_read_state(
-               &returnValue, key, buffer_ptr, buffer_len)) != SGX_SUCCESS) {
-            SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
-        }
-        return returnValue;
     }
-
-/* TODO do we need this??
-#if(FAASM_SGX_ATTESTATION)
-    static uint64_t faasm_read_state_size_wrapper(wasm_exec_env_t exec_env,
-                                                  const char* key)
-    {
-        sgx_status_t sgxReturnValue;
-        uint64_t ret_val;
-        if((sgxReturnValue = ocall_faasm_read_state_size(&ret_val,key)) != SGX_SUCCESS){
-            SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
-        }
-        return ret_val - sizeof(sgx_wamr_encrypted_state_blob_t);
-    }
-#endif
-*/
 
     static void faasm_read_appended_state_wrapper(wasm_exec_env_t exec_env,
                                                   const char* key,
@@ -295,7 +255,6 @@ extern "C"
                                            const uint32_t buffer_len)
     {
         sgx_status_t sgxReturnValue;
-#if(FAASM_SGX_ATTESTATION)
         uint32_t domain_len, msg_payload_len, res_payload_len, encrypted_state_len;
         sgx_wamr_msg_state_write_t* msg_payload;
         faasm_sgx_status_t faasm_ret_val;
@@ -435,12 +394,6 @@ extern "C"
             SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
             return;
         }
-#else
-        if ((sgxReturnValue = ocall_faasm_append_state(
-               key, buffer_ptr, buffer_len)) != SGX_SUCCESS) {
-            SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
-        }
-#endif
     }
 
     static void faasm_clear_appended_state_wrapper(wasm_exec_env_t exec_env,
@@ -604,7 +557,6 @@ extern "C"
     {
         sgx_status_t sgxReturnValue;
         unsigned int returnValue;
-#if(FAASM_SGX_ATTESTATION)
         std::map<const char*, std::string>::iterator it;
         faasm_sgx_status_t faasm_ret_val;
         char *total_execution_stack;
@@ -686,15 +638,6 @@ extern "C"
         read_lock(&_rwlock_faasm_sgx_tcs_realloc);
         faasm_sgx_tcs[tls_thread_id]->env.nonce_store->insert(std::pair<const uint32_t, std::string>(returnValue, std::string(p_iv, p_iv + sizeof(p_iv))));
         read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
-
-#else
-        if ((sgxReturnValue = ocall_faasm_chain_name(
-               &returnValue, name, input, input_size)) != SGX_SUCCESS) {
-            SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
-        }
-
-        return 0;
-#endif
     }
 
     static unsigned int faasm_chain_ptr_wrapper(wasm_exec_env_t exec_env,
@@ -704,7 +647,6 @@ extern "C"
     {
         unsigned int returnValue;
         sgx_status_t sgxReturnValue;
-#if(FAASM_SGX_ATTESTATION)
         faasm_sgx_status_t faasm_ret_val;
         uint32_t policy_len, encrypted_policy_len;
         sgx_wamr_execution_policy_t *policy;
@@ -781,15 +723,6 @@ extern "C"
         read_lock(&_rwlock_faasm_sgx_tcs_realloc);
         faasm_sgx_tcs[tls_thread_id]->env.nonce_store->insert(std::pair<const uint32_t, std::string>(returnValue, std::string(p_iv, p_iv + sizeof(p_iv))));
         read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
-#else
-        //unsigned int ocall_faasm_chain_ptr(int wasmFuncPtr, [in, size=input_size] uint8_t* input, long input_size);
-        sgxReturnValue = ocall_faasm_chain_ptr(
-          &returnValue, wasmFuncPtr, input_data, input_size);
-
-        if (sgxReturnValue != SGX_SUCCESS) {
-            SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
-        }
-#endif
         return returnValue;
     }
 
@@ -798,7 +731,6 @@ extern "C"
     {
         sgx_status_t sgxReturnValue;
         unsigned int returnValue;
-#if(FAASM_SGX_ATTESTATION)
         std::map<const uint32_t, std::string>::iterator it;
         sgx_wamr_execution_attestation_t *decrypted_result;
         read_lock(&_rwlock_faasm_sgx_tcs_realloc);
@@ -839,13 +771,6 @@ extern "C"
             return 1;
         }
         free(decrypted_result);
-
-#else
-        if ((sgxReturnValue = ocall_faasm_await_call(&returnValue, call_id)) !=
-            SGX_SUCCESS) {
-            SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
-        }
-#endif
         return returnValue;
     }
 
@@ -857,7 +782,6 @@ extern "C"
     {
         sgx_status_t sgxReturnValue;
         unsigned int returnValue;
-#if(FAASM_SGX_ATTESTATION)
         std::map<const uint32_t, std::string>::iterator it;
         char *result_stack;
         sgx_wamr_execution_attestation_t *decrypted_result;
@@ -937,12 +861,6 @@ extern "C"
             memcpy(buffer, decrypted_output, buffer_size);
         }
         free(decrypted_output);
-#else
-        if ((sgxReturnValue = ocall_faasm_await_call_output(
-               &returnValue, call_id, buffer, buffer_size)) != SGX_SUCCESS) {
-            SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
-        }
-#endif
         return returnValue;
     }
 

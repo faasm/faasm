@@ -83,14 +83,12 @@ set(FAASM_SGX_WAMR_SRC_UNTRUSTED
         )
 
 # Attestation configuration
-if (FAASM_SGX_ATTESTATION)
-    # IP-address or hostname is possible to specify host
-    add_definitions(
-            -DFAASM_SGX_ATTESTATION_HOST="localhost" 
-            -DFAASM_SGX_ATTESTATION_PORT=8009
-            -DFAASM_SGX_ATTESTATION_CALLBACK_STORE_INIT_LEN=4
-    )
-endif ()
+# IP-address or hostname is possible to specify host
+add_definitions(
+		-DFAASM_SGX_ATTESTATION_HOST="localhost"
+		-DFAASM_SGX_ATTESTATION_PORT=8009
+		-DFAASM_SGX_ATTESTATION_CALLBACK_STORE_INIT_LEN=4
+)
 
 # eXtended Remote Attestation XRA configuration
 if(FAASM_SGX_XRA)
@@ -301,12 +299,10 @@ set(FAASM_SGX_SRC
         faasm_sgx_native_symbols.cpp
         )
 
-if (FAASM_SGX_ATTESTATION)
-    set(FAASM_SGX_SRC ${FAASM_SGX_SRC}
-            faasm_sgx_attestation.cpp
-            rw_lock.cpp
-            )
-endif ()
+set(FAASM_SGX_SRC ${FAASM_SGX_SRC}
+		faasm_sgx_attestation.cpp
+		rw_lock.cpp
+		)
 
 
 add_library(faasm_sgx STATIC

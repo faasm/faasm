@@ -65,12 +65,6 @@ if (SGX_FOUND)
         set(Protobuf_USE_STATIC_LIBS 1)
     endif()
 
-    if(FAASM_SGX_ATTESTATION)
-        add_definitions(-DFAASM_SGX_ATTESTATION=1)
-    else()
-        add_definitions(-DFAASM_SGX_ATTESTATION=0)
-    endif()
-
     if(FAASM_SGX_WHITELISTING AND FAASM_SGX_WAMR_AOT_MODE)
         message(FATAL_ERROR "Whitelisting is not compatible with WAMR AoT execution mode")
     endif()
