@@ -192,6 +192,31 @@ void execFuncWithPool(faabric::Message& call,
     cleanSystem();
 }
 
+void doWamrPoolExecution(faabric::Message& msg)
+{
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    const std::string originalVm = conf.wasmVm;
+    conf.wasmVm = "wamr";
+
+    // Don't clean so that the WAMR configuration persists
+    execFuncWithPool(msg, false, 1, false, 5, false);
+
+    conf.wasmVm = originalVm;
+}
+
+void executeWithWamrPool(const std::string& user, const std::string& func)
+{
+    faabric::Message call = faabric::util::messageFactory(user, func);
+    doWamrPoolExecution(call);
+}
+
+void executeWithSgx(const std::string& user, const std::string& func)
+{
+    faabric::Message call = faabric::util::messageFactory(user, func);
+    call.set_issgx(true);
+    doWamrPoolExecution(call);
+}
+
 void checkCallingFunctionGivesBoolOutput(const std::string& user,
                                          const std::string& funcName,
                                          bool expected)
