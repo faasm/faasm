@@ -63,8 +63,6 @@ Low-level SGX-related customisation is found in [the SGX-specific
 - `FAASM_SGX_INIT_TCS_SLOTS` - Specifies the amount of Faasm-SGX TCS slots after
   initialization.  Its recommended (but not necessary) to use the same number as
   available SGX TCS.  Default is 2.
-- `FAASM_SGX_ENCLAVE_PATH` - Specifies the path to the enclave. Default is
-  `sgx_wamr_enclave.sign.so`
 - `FAASM_SGX_WAMR_BUILDIN_LIBC` - This option enables the WAMR built-in libc.
   Default is 1 (enabled).
 - `FAASM_SGX_WAMR_WASI_LIBC` - This option enables WASI support. If this option 

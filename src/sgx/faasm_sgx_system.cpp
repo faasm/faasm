@@ -16,14 +16,18 @@ sgx_enclave_id_t globalEnclaveId;
     }
 
 namespace sgx {
+
 void checkSgxSetup()
 {
-    faasm_sgx_status_t returnValue;
-    sgx_status_t sgxReturnValue;
-    sgx_launch_token_t sgxEnclaveToken = { 0 };
-    uint32_t sgxEnclaveTokenUpdated = 0;
-
     auto logger = faabric::util::getLogger();
+
+    // Skip set-up if enclave already exists
+    if (globalEnclaveId > 0) {
+        logger->debug("SGX enclave already exists ({})", globalEnclaveId);
+        return;
+    }
+
+    faasm_sgx_status_t returnValue;
 
 #if (!SGX_SIM_MODE)
     returnValue = faasm_sgx_get_sgx_support();
@@ -33,12 +37,17 @@ void checkSgxSetup()
         throw std::runtime_error("Machine doesn't support SGX");
     }
 #endif
+
     // Check enclave file exists
     if (!boost::filesystem::exists(FAASM_SGX_ENCLAVE_PATH)) {
         logger->error("Enclave file {} does not exist", FAASM_SGX_ENCLAVE_PATH);
         throw std::runtime_error("Could not find enclave file");
     }
 
+    // Create the enclave
+    sgx_status_t sgxReturnValue;
+    sgx_launch_token_t sgxEnclaveToken = { 0 };
+    uint32_t sgxEnclaveTokenUpdated = 0;
     sgxReturnValue = sgx_create_enclave(FAASM_SGX_ENCLAVE_PATH,
                                         SGX_DEBUG_FLAG,
                                         &sgxEnclaveToken,

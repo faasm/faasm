@@ -12,7 +12,7 @@ set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <INCLUDES> ${CMAKE_
 
 # FAASM-SGX enclave configuration
 set(FAASM_SGX_INIT_TCS_SLOTS 2)
-set(FAASM_SGX_ENCLAVE_PATH "faasm_sgx_enclave.sign.so")
+set(FAASM_SGX_ENCLAVE_PATH "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/faasm_sgx_enclave.sign.so")
 set(FAASM_SGX_WAMR_BUILDIN_LIBC 1)
 set(FAASM_SGX_WAMR_WASI_LIBC 0)
 
@@ -147,7 +147,7 @@ endif ()
 
 # SGX compilation flags
 if (SGX_DEBUG_MODE)
-    message(STATUS "Enclave will be build with debug information and -O0 optimization")
+    message(STATUS "Enclave will be built with debug information and -O0 optimization")
     set(SGX_C_GLOBAL_FLAGS ${SGX_C_GLOBAL_FLAGS} -O0 -g)
 
     set(FAASM_SGX_C_FLAGS ${SGX_C_GLOBAL_FLAGS}

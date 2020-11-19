@@ -210,7 +210,7 @@ void executeWithWamrPool(const std::string& user, const std::string& func)
     doWamrPoolExecution(call);
 }
 
-void executeWithSgx(const std::string& user, const std::string& func)
+void executeWithSGX(const std::string& user, const std::string& func)
 {
     faabric::Message call = faabric::util::messageFactory(user, func);
     call.set_issgx(true);

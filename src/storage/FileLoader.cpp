@@ -76,6 +76,10 @@ void FileLoader::codegenForFunction(faabric::Message& msg)
     if ((!oldHash.empty()) && newHash == oldHash) {
         logger->debug("Skipping codegen for {}", funcStr);
         return;
+    } else if (oldHash.empty()) {
+        logger->debug("No old hash found for {}", funcStr);
+    } else {
+        logger->debug("Hashes differ for {}", funcStr);
     }
 
     // Run the actual codegen
