@@ -6,8 +6,8 @@
 namespace tests {
 void cleanSystem();
 
-faaslet::Faaslet execFunction(faabric::Message& msg,
-                              const std::string& expectedOutput = "");
+void execFunction(faabric::Message& msg,
+                  const std::string& expectedOutput = "");
 
 std::string execFunctionWithStringResult(faabric::Message& msg);
 

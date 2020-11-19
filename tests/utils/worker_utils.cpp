@@ -7,56 +7,32 @@
 #include <faaslet/FaasletPool.h>
 
 #include "utils.h"
+#include "wavm/WAVMWasmModule.h"
 
 using namespace faaslet;
 
 namespace tests {
 
-Faaslet execFunction(faabric::Message& call, const std::string& expectedOutput)
+void execFunction(faabric::Message& call, const std::string& expectedOutput)
 {
     // Turn off python preloading
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     std::string originalPreload = conf.pythonPreload;
     conf.pythonPreload = "off";
 
-    // Set up worker to listen for relevant function
-    FaasletPool pool(1);
-    Faaslet w(1);
-    REQUIRE(!w.isBound());
-
-    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-    auto bindQueue = sch.getBindQueue();
-
-    // Call the function, checking that everything is set up
-    sch.callFunction(call);
-    REQUIRE(sch.getFunctionInFlightCount(call) == 1);
-    REQUIRE(sch.getFunctionWarmNodeCount(call) == 1);
-    REQUIRE(bindQueue->size() == 1);
-
-    // Process the bind message
-    w.processNextMessage();
-    REQUIRE(w.isBound());
-    REQUIRE(sch.getFunctionInFlightCount(call) == 1);
-    REQUIRE(sch.getFunctionWarmNodeCount(call) == 1);
-    REQUIRE(bindQueue->size() == 0);
-
-    // Now execute the function
-    w.processNextMessage();
-    REQUIRE(sch.getFunctionInFlightCount(call) == 0);
-    REQUIRE(sch.getFunctionWarmNodeCount(call) == 1);
-    REQUIRE(bindQueue->size() == 0);
-
-    // Check success
-    faabric::Message result = sch.getFunctionResult(call.id(), 1);
-    REQUIRE(result.returnvalue() == 0);
+    wasm::WAVMWasmModule module;
+    module.bindToFunction(call);
+    bool success = module.execute(call);
 
     if (!expectedOutput.empty()) {
-        REQUIRE(result.outputdata() == expectedOutput);
+        std::string actualOutput = call.outputdata();
+        REQUIRE(actualOutput == expectedOutput);
     }
 
-    conf.pythonPreload = originalPreload;
+    REQUIRE(success);
+    REQUIRE(call.returnvalue() == 0);
 
-    return w;
+    conf.pythonPreload = originalPreload;
 }
 
 std::string execFunctionWithStringResult(faabric::Message& call)

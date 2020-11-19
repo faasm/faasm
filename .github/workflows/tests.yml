@@ -81,8 +81,6 @@ jobs:
       - name: "Compile OMP functions"
         run: inv -r faasmcli/faasmcli compile.user omp
       # --- Environment set-up ---
-      - name: "Set up test lib"
-        run: inv -r faasmcli/faasmcli libs.fake
       - name: "Run codegen"
         run: inv -r faasmcli/faasmcli codegen.local
       - name: "Run python codegen"

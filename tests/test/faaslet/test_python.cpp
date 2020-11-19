@@ -68,7 +68,7 @@ TEST_CASE("Test python state write/ read", "[faaslet]")
     writeCall.set_pythonuser("python");
     writeCall.set_pythonfunction("state_test_write");
     writeCall.set_ispython(true);
-    faaslet::Faaslet faaslet = execFunction(writeCall);
+    execFunction(writeCall);
 
     // Now run the state read function
     faabric::Message readCall =
@@ -76,15 +76,7 @@ TEST_CASE("Test python state write/ read", "[faaslet]")
     readCall.set_pythonuser("python");
     readCall.set_pythonfunction("state_test_read");
     readCall.set_ispython(true);
-
-    // Schedule and execute the next call
-    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-    sch.callFunction(readCall);
-    faaslet.processNextMessage();
-
-    // Check success
-    faabric::Message result = sch.getFunctionResult(readCall.id(), 1);
-    REQUIRE(result.returnvalue() == 0);
+    execFunction(readCall);
 }
 
 TEST_CASE("Test python chaining", "[faaslet]")

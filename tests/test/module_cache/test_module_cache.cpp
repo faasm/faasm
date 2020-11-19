@@ -34,8 +34,12 @@ TEST_CASE("Test creating zygotes", "[zygote]")
     REQUIRE(moduleA.isBound());
 
     // Execute the function normally and make sure zygote is not used directly
-    faaslet::Faaslet faaslet = execFunction(msgA);
-    REQUIRE(faaslet.isBound());
+    faaslet::Faaslet faaslet(0);
+    faaslet.bindToFunction(msgA);
+    std::string errorMessage = faaslet.executeCall(msgA);
+    REQUIRE(errorMessage.empty());
+    REQUIRE(msgA.returnvalue() == 0);
+
     REQUIRE(std::addressof(moduleA) != std::addressof(*faaslet.module));
 }
 }
