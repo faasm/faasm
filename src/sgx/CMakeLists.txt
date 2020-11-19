@@ -316,10 +316,6 @@ add_library(faasm_sgx STATIC
 
 add_dependencies(faasm_sgx faasm_sgx_enclave wamr_sgx_untrusted wasm)
 
-if(FAASM_SGX_ATTESTATION)
-    add_dependencies(faasm_sgx demo_keymgr)
-endif()
-
 target_include_directories(faasm_sgx PUBLIC ${SGX_SDK_PATH}/include)
 
 # Necessary in HW sim mode because libsgx_urts and libsgx_uae_service are probably
@@ -399,22 +395,6 @@ target_compile_options(wamr_sgx_untrusted PRIVATE
         -ffunction-sections
         -fdata-sections
         )
-
-# --------------------------------------------------------
-# DEMO KEY MANAGER
-# --------------------------------------------------------
-if(FAASM_SGX_ATTESTATION)
-    add_executable(demo_keymgr demo_keymgr.c)
-
-    target_include_directories(demo_keymgr PRIVATE ${SGX_SDK_PATH}/include)
-    target_link_options(demo_keymgr PRIVATE -pthread)
-    target_compile_options(demo_keymgr PRIVATE
-            -O3
-            -fpic
-            -fpie
-            -DDEMO_KEYMGR=1
-            )
-endif()
 
 # --------------------------------------------------------
 # CUSTOM COMMANDS
