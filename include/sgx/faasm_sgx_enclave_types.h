@@ -9,7 +9,8 @@
 #include <wasm_export.h>
 
 #include <map>
-#include <sgx-util/bytes.h>
+#include <string>
+#include <vector>
 
 #define _FAASM_SGX_TCS_SLOT_FREE (_faasm_sgx_tcs_t*)0x0
 

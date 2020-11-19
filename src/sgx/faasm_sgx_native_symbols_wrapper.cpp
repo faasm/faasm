@@ -14,7 +14,7 @@
 #include <sgx/faasm_sgx_util.h>
 #include <sgx_tcrypto.h>
 #include <sgx_trts.h>
-#include <sgx-util/rw_lock.h>
+#include <rw_lock.h>
 extern "C"
 {
     extern _faasm_sgx_tcs_t** faasm_sgx_tcs;
