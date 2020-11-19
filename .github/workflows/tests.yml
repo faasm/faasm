@@ -51,8 +51,9 @@ jobs:
         ports:
           - 6379:6379
     steps:
-      - name: "ulimits"
-        run: ulimit -a
+      # --- Environment ---
+      - name: "Directory permissions"
+        run: chown -R root:root /usr/local/faasm
       # --- Check out code ---
       - name: "Fetch ref"
         run: git fetch origin ${GITHUB_REF}:ci-branch
