@@ -1,18 +1,23 @@
 import os
+from pyfaasm.core import get_input, set_output
 
 
 def faasm_main():
-    paths = [
-        "/lib/python3.8/",
-        "/lib/python3.8/site-packages/",
-    ]
+    path = get_input()
 
-    print("CWD = {}".format(os.getcwd()))
+    if not path:
+        print("Input must be a path")
+        return 1
 
-    for i, p in enumerate(paths):
-        print("\nPath {} - {}".format(i, p))
-        dirlist = os.listdir(p)
-        dirlist.sort()
-        print(" ".join(["{}\n".format(d) for d in dirlist]))
+    path = path.decode()
+    print("Path = {}, cwd = {}".format(path, os.getcwd()))
+
+    dirlist = os.listdir(path)
+    dirlist.sort()
+    dir_list_str = ",".join(dirlist)
+
+    print(dir_list_str)
+
+    set_output(bytes(dir_list_str, "utf-8"))
 
     return 0

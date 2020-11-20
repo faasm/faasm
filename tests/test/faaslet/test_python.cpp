@@ -1,4 +1,6 @@
+#include <boost/algorithm/string.hpp>
 #include <catch2/catch.hpp>
+#include <dirent.h>
 
 #include "utils.h"
 
@@ -19,17 +21,59 @@ void checkPythonFunction(const std::string& funcName)
     execFunction(call);
 }
 
-TEST_CASE("Test python conformance", "[faaslet]")
+TEST_CASE("Test Python listdir", "[python]")
+{
+    // We need to list a big enough directory here to catch issues with long
+    // file listings and the underlying syscalls
+    std::string realDir = "/usr/local/faasm/runtime_root/lib/python3.8";
+    std::string wasmDir = "/lib/python3.8";
+
+    cleanSystem();
+
+    // Build the call, passing in the path as input
+    faabric::Message call =
+      faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+    call.set_pythonuser("python");
+    call.set_pythonfunction("dir_test");
+    call.set_ispython(true);
+    call.set_inputdata(wasmDir);
+
+    // Execute the function
+    execFunction(call);
+    std::string actualOutput = call.outputdata();
+
+    // Split the output into a list
+    std::vector<std::string> wasmList;
+    boost::split(wasmList, actualOutput, [](char c) { return c == ','; });
+
+    // Get the directory listing using stdlib
+    DIR* dir = opendir(realDir.c_str());
+    REQUIRE(dir != nullptr);
+
+    std::vector<std::string> nativeList;
+    struct dirent* ent;
+    while ((ent = readdir(dir)) != nullptr) {
+        nativeList.push_back(ent->d_name);
+    }
+
+    closedir(dir);
+
+    // Check the two listings match
+    REQUIRE(wasmList.size() == nativeList.size());
+    REQUIRE(wasmList == nativeList);
+}
+
+TEST_CASE("Test python conformance", "[python]")
 {
     checkPythonFunction("lang_test");
 }
 
-TEST_CASE("Test numpy conformance", "[faaslet][!mayfail]")
+TEST_CASE("Test numpy conformance", "[python][!mayfail]")
 {
     checkPythonFunction("numpy_test");
 }
 
-TEST_CASE("Test repeated numpy execution", "[faaslet][!mayfail]")
+TEST_CASE("Test repeated numpy execution", "[python][!mayfail]")
 {
     cleanSystem();
 
@@ -42,7 +86,7 @@ TEST_CASE("Test repeated numpy execution", "[faaslet][!mayfail]")
     checkMultipleExecutions(call, 3);
 }
 
-TEST_CASE("Test python echo", "[faaslet]")
+TEST_CASE("Test python echo", "[python]")
 {
     cleanSystem();
 
@@ -58,7 +102,7 @@ TEST_CASE("Test python echo", "[faaslet]")
     REQUIRE(result == input);
 }
 
-TEST_CASE("Test python state write/ read", "[faaslet]")
+TEST_CASE("Test python state write/ read", "[python]")
 {
     cleanSystem();
 
@@ -79,7 +123,7 @@ TEST_CASE("Test python state write/ read", "[faaslet]")
     execFunction(readCall);
 }
 
-TEST_CASE("Test python chaining", "[faaslet]")
+TEST_CASE("Test python chaining", "[python]")
 {
     faabric::Message call =
       faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
@@ -90,7 +134,7 @@ TEST_CASE("Test python chaining", "[faaslet]")
     // execFuncWithPool(call, true, 1);
 }
 
-TEST_CASE("Test python sharing dict", "[faaslet]")
+TEST_CASE("Test python sharing dict", "[python]")
 {
     faabric::Message call =
       faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
