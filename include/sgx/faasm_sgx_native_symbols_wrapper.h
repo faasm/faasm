@@ -249,28 +249,4 @@ extern "C"
 #if(FAASM_SGX_WHITELISTING)
     void sgx_wamr_function_not_whitelisted_wrapper(wasm_exec_env_t exec_env);
 #endif
-
-    // --------------------------------------
-    // WASI STUBS
-    // --------------------------------------
-
-    static int args_get_wrapper(wasm_exec_env_t exec_env, int a, int b);
-
-    static int args_sizes_get_wrapper(wasm_exec_env_t exec_env, int a, int b);
-
-    static int fd_close_wrapper(wasm_exec_env_t exec_env, int a);
-
-    static int fd_seek_wrapper(wasm_exec_env_t exec_env,
-                               int a,
-                               int64_t b,
-                               int c,
-                               int d);
-
-    static int fd_write_wrapper(wasm_exec_env_t exec_env,
-                                int a,
-                                int b,
-                                int c,
-                                int d);
-
-    static void proc_exit_wrapper(wasm_exec_env_t exec_env, int returnCode);
 }
