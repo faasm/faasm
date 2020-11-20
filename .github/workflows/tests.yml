@@ -93,6 +93,8 @@ jobs:
       - name: "Clear existing pyc files"
         run: inv -r faasmcli/faasmcli python.clear-runtime-pyc
       # --- Test run ---
+      - name: "Run the listdir check"
+        run: inv -r faasmcli/faasmcli run python dir_test
       - name: "Run the Python language check"
         run: inv -r faasmcli/faasmcli run python lang_test
       - name: "Run the the numpy check"

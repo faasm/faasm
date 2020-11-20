@@ -1,23 +1,18 @@
-import multiprocessing
 import os
 
 
 def faasm_main():
-    print("MP version = {}".format(multiprocessing))
-
     paths = [
-        "/lib/python3.8/multiprocessing/",
-        "/lib/python3.8/multiprocessing/__pycache__/",
+        "/lib/python3.8/",
+        "/lib/python3.8/site-packages/",
     ]
 
     print("CWD = {}".format(os.getcwd()))
 
     for i, p in enumerate(paths):
-        print("Path {}".format(i))
+        print("\nPath {} - {}".format(i, p))
         dirlist = os.listdir(p)
-        print("Dirlist fine = {}".format(dirlist))
-
-        for file in dirlist:
-            print(file)
+        dirlist.sort()
+        print(" ".join(["{}\n".format(d) for d in dirlist]))
 
     return 0
