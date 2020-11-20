@@ -8,12 +8,6 @@
 
 #include <wasm/WasmModule.h>
 
-#if(FAASM_SGX)
-#include <sgx/SGXWAMRWasmModule.h>
-#include <sgx/faasm_sgx_attestation.h>
-#endif
-
-
 #include <string>
 
 namespace faaslet {
@@ -21,10 +15,6 @@ class Faaslet final : public faabric::executor::FaabricExecutor
 {
   public:
     explicit Faaslet(int threadIdx);
-
-#if(FAASM_SGX)
-        ~Faaslet(void);
-#endif
 
     std::unique_ptr<wasm::WasmModule> module;
 

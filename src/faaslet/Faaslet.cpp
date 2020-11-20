@@ -191,18 +191,4 @@ bool Faaslet::doExecute(faabric::Message& msg)
     bool success = module->execute(msg);
     return success;
 }
-
-#if(FAASM_SGX)
-Faaslet::~Faaslet(void)
-{
-	if(module_sgx_wamr && !module_sgx_wamr->unbindFunction()){
-		printf("[Error] Faaslet destruction failed\n");
-	}
-	free(sgx_wamr_msg_response.buffer_ptr);
-	free(sgx_wamr_attestation_result.buffer_ptr);
-	free(sgx_wamr_attestation_output.buffer_ptr);
-}
-#endif
-
-
 }
