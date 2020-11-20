@@ -183,6 +183,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                       bufLen,
                                       startCookie,
                                       resSizePtr);
+    auto logger = faabric::util::getLogger();
 
     storage::FileDescriptor& fileDesc =
       getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
@@ -202,38 +203,50 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
     size_t bytesCopied = 0;
     size_t bytesLeft = bufLen;
 
-    if (!fileDesc.iterFinished) {
-        while (bytesLeft > 0) {
-            storage::DirEnt dirEnt = fileDesc.iterNext();
+    size_t direntSize = sizeof(__wasi_dirent_t);
+    while (!fileDesc.iterFinished && bytesLeft > 0) {
+        storage::DirEnt dirEnt = fileDesc.iterNext();
 
-            // Done
-            if (fileDesc.iterFinished) {
-                break;
-            }
+        __wasi_dirent_t wasmDirEnt{ .d_next = dirEnt.next,
+                                    .d_ino = dirEnt.ino,
+                                    .d_namlen =
+                                      (unsigned int)dirEnt.path.size(),
+                                    .d_type = dirEnt.type };
 
-            __wasi_dirent_t wasmDirEnt{ .d_next = dirEnt.next,
-                                        .d_ino = dirEnt.ino,
-                                        .d_namlen =
-                                          (unsigned int)dirEnt.path.size(),
-                                        .d_type = dirEnt.type };
+        // Copy the dirent itself
+        int direntBytesCopied = faabric::util::safeCopyToBuffer(
+          BYTES(&wasmDirEnt), direntSize, buffer + bytesCopied, bytesLeft);
 
-            // Copy the dirent itself
-            int direntCopySize =
-              faabric::util::safeCopyToBuffer(BYTES(&wasmDirEnt),
-                                              sizeof(wasmDirEnt),
-                                              buffer + bytesCopied,
-                                              bytesLeft);
-            bytesCopied += direntCopySize;
-            bytesLeft -= direntCopySize;
+        bytesCopied += direntBytesCopied;
+        bytesLeft -= direntBytesCopied;
 
-            // Copy its name in straight after
-            int pathCopySize =
-              faabric::util::safeCopyToBuffer(BYTES_CONST(dirEnt.path.c_str()),
-                                              dirEnt.path.size(),
-                                              buffer + bytesCopied,
-                                              bytesLeft);
-            bytesCopied += pathCopySize;
-            bytesLeft -= pathCopySize;
+        // Copy its name in straight after
+        size_t pathSize = dirEnt.path.size();
+        int pathBytesCopied =
+          faabric::util::safeCopyToBuffer(BYTES_CONST(dirEnt.path.c_str()),
+                                          pathSize,
+                                          buffer + bytesCopied,
+                                          bytesLeft);
+
+        bytesCopied += pathBytesCopied;
+        bytesLeft -= pathBytesCopied;
+
+        if (direntBytesCopied < direntSize) {
+            logger->debug("Only {} of {} bytes of dirent copied to buffer",
+                          direntBytesCopied,
+                          direntSize);
+
+            fileDesc.iterBackOne();
+            break;
+        }
+
+        if (pathBytesCopied < pathSize) {
+            logger->warn("Only {} of {} bytes of dir name copied to buffer",
+                         pathBytesCopied,
+                         pathSize);
+
+            fileDesc.iterBackOne();
+            break;
         }
     }
 

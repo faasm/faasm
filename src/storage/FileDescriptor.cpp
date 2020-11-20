@@ -198,10 +198,20 @@ void FileDescriptor::iterReset()
     iterFinished = false;
 }
 
+void FileDescriptor::iterBackOne()
+{
+    iterOvershot = true;
+}
+
 DirEnt FileDescriptor::iterNext()
 {
     if (iterFinished) {
         throw std::runtime_error("Directory iterator finished");
+    }
+
+    if (iterOvershot) {
+        iterOvershot = false;
+        return lastDirEnt;
     }
 
     if (!iterStarted) {
@@ -231,23 +241,22 @@ DirEnt FileDescriptor::iterNext()
     struct dirent* direntPtr = ::readdir(dirPtr);
 
     // Build the actual dirent
-    DirEnt d;
     if (!direntPtr) {
         // Close iterator
         closedir(dirPtr);
         iterFinished = true;
     } else {
-        d.type = direntPtr->d_type;
-        d.ino = direntPtr->d_ino;
-        d.path = std::string(direntPtr->d_name);
+        lastDirEnt.type = direntPtr->d_type;
+        lastDirEnt.ino = direntPtr->d_ino;
+        lastDirEnt.path = std::string(direntPtr->d_name);
 
         // We have to set "next" here to specify the offset of this
         // directory entry. It seems this is only used to be passed
         // back as the "cookie" value to fd_readdir
-        d.next = direntPtr->d_off;
+        lastDirEnt.next = direntPtr->d_off;
     }
 
-    return d;
+    return lastDirEnt;
 }
 
 bool FileDescriptor::pathOpen(uint32_t lookupFlags,

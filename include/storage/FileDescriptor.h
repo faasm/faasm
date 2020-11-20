@@ -104,6 +104,8 @@ class FileDescriptor
     bool iterStarted;
     bool iterFinished;
 
+    void iterBackOne();
+
     uint8_t wasiPreopenType;
 
     int getLinuxFd();
@@ -141,5 +143,8 @@ class FileDescriptor
     int linuxErrno;
 
     uint16_t wasiErrno;
+
+    DirEnt lastDirEnt;
+    bool iterOvershot;
 };
 }
