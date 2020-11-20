@@ -28,6 +28,8 @@ jobs:
         run: ./bin/run_clang_format.sh
       - name: "Check C/C++ formatting changes"
         run: git diff --exit-code
+      - name: "Check weakref is actuall there"
+        run: "ls -al /usr/local/faasm/runtime_root/lib/python3.8/weakref.py"
 
   build:
     if: github.event.pull_request.draft == false
