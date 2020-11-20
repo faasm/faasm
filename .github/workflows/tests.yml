@@ -28,8 +28,6 @@ jobs:
         run: ./bin/run_clang_format.sh
       - name: "Check C/C++ formatting changes"
         run: git diff --exit-code
-      - name: "Check weakref is actuall there"
-        run: "ls -al /usr/local/faasm/runtime_root/lib/python3.8/weakref.py"
 
   build:
     if: github.event.pull_request.draft == false
@@ -92,6 +90,8 @@ jobs:
         run: inv -r faasmcli/faasmcli python.codegen
       - name: "Copy Python functions into place"
         run: inv -r faasmcli/faasmcli upload.user python --py --local-copy
+      - name: "Clear existing pyc files"
+        run: inv -r faasmcli/faasmcli python.clear-runtime-pyc
       # --- Test run ---
       - name: "Run the Python language check"
         run: inv -r faasmcli/faasmcli run python lang_test
