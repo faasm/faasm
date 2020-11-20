@@ -1,6 +1,11 @@
 import sys
 import os
 from decimal import Decimal
+import weakref
+
+
+class SomeClass:
+    pass
 
 
 def faasm_main():
@@ -38,5 +43,12 @@ def faasm_main():
 
     for k, v in d.items():
         print("{}: {} ({})".format(k, v, d[k]))
+
+    # Weakref check
+    c = SomeClass()
+    r = weakref.ref(c)
+    c2 = r()
+    assert c is c2, "Weakref references not equal"
+    print("Weakref check successful")
 
     return 0
