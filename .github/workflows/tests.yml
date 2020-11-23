@@ -64,7 +64,7 @@ jobs:
       - name: "Get CPU model name"
         run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
       - name: "Print CPU model"
-        run: echo ${{ env.CPU_MODEL}}
+        run: echo "${{ env.CPU_MODEL}}"
       # --- Cache ---
       - name: "Configure machine code cache"
         uses: actions/cache@v2
