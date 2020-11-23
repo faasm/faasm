@@ -1,6 +1,8 @@
 #include "FileDescriptor.h"
 #include "SharedFiles.h"
 
+#include <faabric/util/bytes.h>
+#include <faabric/util/macros.h>
 #include <faabric/util/timing.h>
 
 #include <WAVM/WASI/WASIABI.h>
@@ -184,6 +186,8 @@ void FileDescriptor::iterReset()
     _iterStarted = false;
     directoryIteratorIndex = 0;
     directoryContents.clear();
+    directoryContentsBytes.clear();
+    contentBytesOffset = 0;
 }
 
 void FileDescriptor::loadDirectoryContents()
@@ -214,18 +218,49 @@ void FileDescriptor::loadDirectoryContents()
 
     // Load all directory entries preemptively
     struct dirent* direntPtr;
+
+    uint64_t nextIdx = 0;
+    size_t contentsBytesBufferSize = 0;
+    size_t wasiDirentSize = sizeof(__wasi_dirent_t);
     while ((direntPtr = ::readdir(dirPtr)) != nullptr) {
+        nextIdx++;
+
         DirEnt nextEnt;
-        nextEnt.type = direntPtr->d_type;
-        nextEnt.ino = direntPtr->d_ino;
-        nextEnt.path = std::string(direntPtr->d_name);
 
         // We have to set "next" here to specify the offset of this
         // directory entry. It seems this is only used to be passed
         // back as the "cookie" value to fd_readdir
-        nextEnt.next = direntPtr->d_off;
+        nextEnt.next = nextIdx;
+
+        nextEnt.type = direntPtr->d_type;
+        nextEnt.ino = direntPtr->d_ino;
+        nextEnt.path = std::string(direntPtr->d_name);
 
         directoryContents.push_back(nextEnt);
+
+        // Record how much room this entry will require
+        contentsBytesBufferSize += wasiDirentSize + nextEnt.path.size();
+    }
+
+    // Write contents as bytes buffer
+    directoryContentsBytes = std::vector<uint8_t>(contentsBytesBufferSize);
+    uint8_t* contentBytesPtr = directoryContentsBytes.data();
+    for (const DirEnt& d : directoryContents) {
+        size_t pathSize = d.path.size();
+
+        __wasi_dirent_t wasmDirEnt{ .d_next = d.next,
+                                    .d_ino = d.ino,
+                                    .d_namlen = (uint32_t)pathSize,
+                                    .d_type = d.type };
+
+        auto direntPtr = BYTES(&wasmDirEnt);
+        auto pathPtr = BYTES_CONST(d.path.c_str());
+
+        std::copy(direntPtr, direntPtr + wasiDirentSize, contentBytesPtr);
+        contentBytesPtr += wasiDirentSize;
+
+        std::copy(pathPtr, pathPtr + pathSize, contentBytesPtr);
+        contentBytesPtr += pathSize;
     }
 
     // Close iterator
@@ -247,7 +282,7 @@ void FileDescriptor::iterBack()
         throw std::runtime_error("Iterator already at zero, cannot go back");
     }
 
-    directoryIteratorIndex -= 1;
+    directoryIteratorIndex--;
 }
 
 bool FileDescriptor::iterStarted()
@@ -276,9 +311,38 @@ DirEnt FileDescriptor::iterNext()
     }
 
     DirEnt nextEntry = directoryContents.at(directoryIteratorIndex);
-    directoryIteratorIndex += 1;
+
+    // Increment the iterator
+    directoryIteratorIndex++;
 
     return nextEntry;
+}
+
+size_t FileDescriptor::copyDirentsToWasiBuffer(uint8_t* buffer,
+                                               size_t bufferLen)
+{
+    if (!_iterStarted) {
+        loadDirectoryContents();
+    }
+
+    size_t totalContentBytes = directoryContentsBytes.size();
+    size_t bytesLeft = totalContentBytes - contentBytesOffset;
+
+    if (bytesLeft <= 0) {
+        throw std::runtime_error(
+          fmt::format("Overshot end of content bytes {} >= {}",
+                      contentBytesOffset,
+                      totalContentBytes));
+    }
+
+    uint8_t* source = directoryContentsBytes.data() + contentBytesOffset;
+
+    int bytesCopied =
+      faabric::util::safeCopyToBuffer(source, bytesLeft, buffer, bufferLen);
+
+    contentBytesOffset += bytesCopied;
+
+    return bytesCopied;
 }
 
 bool FileDescriptor::pathOpen(uint32_t lookupFlags,

@@ -68,12 +68,12 @@ TEST_CASE("Test python conformance", "[python]")
     checkPythonFunction("lang_test");
 }
 
-TEST_CASE("Test numpy conformance", "[python][!mayfail]")
+TEST_CASE("Test numpy conformance", "[python]")
 {
     checkPythonFunction("numpy_test");
 }
 
-TEST_CASE("Test repeated numpy execution", "[python][!mayfail]")
+TEST_CASE("Test repeated numpy execution", "[python]")
 {
     cleanSystem();
 

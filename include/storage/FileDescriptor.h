@@ -41,9 +41,9 @@ ReadWriteType getRwType(uint64_t rights);
 class DirEnt
 {
   public:
-    unsigned int next;
+    uint64_t next;
     uint8_t type;
-    unsigned int ino;
+    uint64_t ino;
     std::string path;
 };
 
@@ -85,6 +85,8 @@ class FileDescriptor
     void iterBack();
 
     void iterReset();
+
+    size_t copyDirentsToWasiBuffer(uint8_t* buffer, size_t bufferLen);
 
     Stat stat(const std::string& relativePath = "");
 
@@ -152,5 +154,8 @@ class FileDescriptor
     bool _iterStarted = false;
     std::vector<DirEnt> directoryContents;
     int directoryIteratorIndex = 0;
+
+    std::vector<uint8_t> directoryContentsBytes;
+    size_t contentBytesOffset = 0;
 };
 }

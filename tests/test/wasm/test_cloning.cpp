@@ -231,7 +231,7 @@ TEST_CASE("Test cloned execution on simple module", "[wasm]")
     }
 }
 
-TEST_CASE("Test cloned execution on complex module", "[wasm][!mayfail]")
+TEST_CASE("Test cloned execution on complex module", "[wasm]")
 {
     cleanSystem();
 

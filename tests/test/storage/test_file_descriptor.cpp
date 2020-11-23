@@ -266,6 +266,7 @@ TEST_CASE("Check directory iterator", "[storage]")
     int step = 3;
     for (int i = 0; i < step; i++) {
         storage::DirEnt ent = fileDesc.iterNext();
+        REQUIRE(ent.next == i + 1);
         REQUIRE(ent.path == expectedList.at(i));
     }
 

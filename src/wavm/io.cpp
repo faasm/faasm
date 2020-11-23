@@ -187,8 +187,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
 
     storage::FileDescriptor& fileDesc =
       getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
+    
     bool isStartCookie = startCookie == __WASI_DIRCOOKIE_START;
-
     if (fileDesc.iterStarted() && isStartCookie) {
         // Return invalid if we've already started the iterator but also get the
         // start cookie
@@ -201,49 +201,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
     U8* buffer = Runtime::memoryArrayPtr<U8>(
       getExecutingWAVMModule()->defaultMemory, buf, bufLen);
 
-    size_t bytesCopied = 0;
-    size_t bytesLeft = bufLen;
-    size_t direntSize = sizeof(__wasi_dirent_t);
-
-    while (!fileDesc.iterFinished() && bytesLeft > 0) {
-        storage::DirEnt dirEnt = fileDesc.iterNext();
-
-        __wasi_dirent_t wasmDirEnt{ .d_next = dirEnt.next,
-                                    .d_ino = dirEnt.ino,
-                                    .d_namlen =
-                                      (unsigned int)dirEnt.path.size(),
-                                    .d_type = dirEnt.type };
-
-        // Copy the dirent itself
-        int direntBytesCopied = faabric::util::safeCopyToBuffer(
-          BYTES(&wasmDirEnt), direntSize, buffer + bytesCopied, bytesLeft);
-
-        bytesCopied += direntBytesCopied;
-        bytesLeft -= direntBytesCopied;
-
-        // Copy its name in straight after
-        size_t pathSize = dirEnt.path.size();
-        int pathBytesCopied =
-          faabric::util::safeCopyToBuffer(BYTES_CONST(dirEnt.path.c_str()),
-                                          pathSize,
-                                          buffer + bytesCopied,
-                                          bytesLeft);
-
-        bytesCopied += pathBytesCopied;
-        bytesLeft -= pathBytesCopied;
-
-        if (direntBytesCopied < direntSize || pathBytesCopied < pathSize) {
-            logger->debug("Only {}:{} of {}:{} bytes of dirent copied to "
-                          "buffer, going back one",
-                          direntBytesCopied,
-                          direntSize,
-                          pathBytesCopied,
-                          pathSize);
-
-            fileDesc.iterBack();
-            break;
-        }
-    }
+    size_t bytesCopied = fileDesc.copyDirentsToWasiBuffer(buffer, bufLen);
 
     // Set the result
     Runtime::memoryRef<U32>(getExecutingWAVMModule()->defaultMemory,
