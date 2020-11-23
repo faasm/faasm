@@ -3,12 +3,16 @@
 #include <dirent.h>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 // See wasi-libc/libc-bottom-half/cloudlibc/src/libc/fcntl/openat.c
 #define WASI_RIGHTS_WRITE                                                      \
     (__WASI_RIGHT_FD_DATASYNC | __WASI_RIGHT_FD_WRITE |                        \
      __WASI_RIGHT_FD_ALLOCATE | __WASI_RIGHT_FD_FILESTAT_SET_SIZE)
 #define WASI_RIGHTS_READ (__WASI_RIGHT_FD_READDIR | __WASI_RIGHT_FD_READ)
+
+// The root fd comes after stdin, stdout and stderr
+#define DEFAULT_ROOT_FD 4
 
 namespace storage {
 std::string prependRuntimeRoot(const std::string& originalPath);
@@ -70,9 +74,15 @@ class FileDescriptor
 
     static FileDescriptor stderrFactory();
 
-    FileDescriptor();
+    FileDescriptor() = default;
 
     DirEnt iterNext();
+
+    bool iterStarted();
+
+    bool iterFinished();
+
+    void iterBack();
 
     void iterReset();
 
@@ -101,11 +111,6 @@ class FileDescriptor
 
     uint64_t tell();
 
-    bool iterStarted;
-    bool iterFinished;
-
-    void iterBackOne();
-
     uint8_t wasiPreopenType;
 
     int getLinuxFd();
@@ -129,22 +134,23 @@ class FileDescriptor
   private:
     static FileDescriptor stdFdFactory(int stdFd, const std::string& devPath);
 
+    void loadDirectoryContents();
+
     std::string path;
 
-    DIR* dirPtr;
-
-    bool rightsSet;
+    bool rightsSet = false;
     uint64_t actualRightsBase;
     uint64_t actualRightsInheriting;
 
-    int linuxFd;
-    int linuxMode;
-    int linuxFlags;
-    int linuxErrno;
+    int linuxFd = -1;
+    int linuxMode = -1;
+    int linuxFlags = -1;
+    int linuxErrno = 0;
 
-    uint16_t wasiErrno;
+    uint16_t wasiErrno = 0;
 
-    DirEnt lastDirEnt;
-    bool iterOvershot;
+    bool _iterStarted = false;
+    std::vector<DirEnt> directoryContents;
+    int directoryIteratorIndex = 0;
 };
 }

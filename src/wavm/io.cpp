@@ -189,22 +189,23 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
       getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
     bool isStartCookie = startCookie == __WASI_DIRCOOKIE_START;
 
-    if (fileDesc.iterStarted && isStartCookie) {
+    if (fileDesc.iterStarted() && isStartCookie) {
         // Return invalid if we've already started the iterator but also get the
         // start cookie
         return __WASI_EINVAL;
-    } else if (!fileDesc.iterStarted && !isStartCookie) {
+    } else if (!fileDesc.iterStarted() && !isStartCookie) {
         throw std::runtime_error(
           "No directory iterator exists, and this is not the start cookie");
     }
 
     U8* buffer = Runtime::memoryArrayPtr<U8>(
       getExecutingWAVMModule()->defaultMemory, buf, bufLen);
+
     size_t bytesCopied = 0;
     size_t bytesLeft = bufLen;
-
     size_t direntSize = sizeof(__wasi_dirent_t);
-    while (!fileDesc.iterFinished && bytesLeft > 0) {
+
+    while (!fileDesc.iterFinished() && bytesLeft > 0) {
         storage::DirEnt dirEnt = fileDesc.iterNext();
 
         __wasi_dirent_t wasmDirEnt{ .d_next = dirEnt.next,
@@ -231,21 +232,15 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
         bytesCopied += pathBytesCopied;
         bytesLeft -= pathBytesCopied;
 
-        if (direntBytesCopied < direntSize) {
-            logger->debug("Only {} of {} bytes of dirent copied to buffer",
+        if (direntBytesCopied < direntSize || pathBytesCopied < pathSize) {
+            logger->debug("Only {}:{} of {}:{} bytes of dirent copied to "
+                          "buffer, going back one",
                           direntBytesCopied,
-                          direntSize);
+                          direntSize,
+                          pathBytesCopied,
+                          pathSize);
 
-            fileDesc.iterBackOne();
-            break;
-        }
-
-        if (pathBytesCopied < pathSize) {
-            logger->warn("Only {} of {} bytes of dir name copied to buffer",
-                         pathBytesCopied,
-                         pathSize);
-
-            fileDesc.iterBackOne();
+            fileDesc.iterBack();
             break;
         }
     }

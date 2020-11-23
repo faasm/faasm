@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "storage/FileDescriptor.h"
 #include "utils.h"
 
 #include <WAVM/WASI/WASIABI.h>
@@ -10,18 +11,12 @@
 using namespace storage;
 
 namespace tests {
-FileDescriptor& getRootFd()
-{
-    FileSystem fs;
-    fs.prepareFilesystem();
-
-    FileDescriptor& rootFd = fs.getFileDescriptor(4);
-    return rootFd;
-}
 
 TEST_CASE("Check stat and mkdir", "[storage]")
 {
-    FileDescriptor& fd = getRootFd();
+    FileSystem fs;
+    fs.prepareFilesystem();
+    FileDescriptor& fd = fs.getFileDescriptor(DEFAULT_ROOT_FD);
 
     std::string dummyDir = "fs_test_dir";
 
@@ -54,9 +49,7 @@ TEST_CASE("Check creating, renaming and deleting a file", "[storage]")
 {
     FileSystem fs;
     fs.prepareFilesystem();
-
-    int rootFd = 4;
-    FileDescriptor& rootFileDesc = fs.getFileDescriptor(4);
+    FileDescriptor& rootFileDesc = fs.getFileDescriptor(DEFAULT_ROOT_FD);
 
     std::string dummyDir = "fs_test_dir";
     std::string dummyPath = dummyDir + "/dummy_file.txt";
@@ -80,8 +73,8 @@ TEST_CASE("Check creating, renaming and deleting a file", "[storage]")
     REQUIRE(fileStat.failed);
 
     // Create the file (ignore perms)
-    int fileFd =
-      fs.openFileDescriptor(rootFd, dummyPath, 0, 0, 0, __WASI_O_CREAT, 0);
+    int fileFd = fs.openFileDescriptor(
+      DEFAULT_ROOT_FD, dummyPath, 0, 0, 0, __WASI_O_CREAT, 0);
     REQUIRE(fileFd > 0);
 
     FileDescriptor& fileFileDesc = fs.getFileDescriptor(fileFd);
@@ -125,8 +118,6 @@ TEST_CASE("Check seek", "[storage]")
     FileSystem fs;
     fs.prepareFilesystem();
 
-    int rootFd = 4;
-
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     std::string dummyPath;
     std::string realPath;
@@ -158,8 +149,8 @@ TEST_CASE("Check seek", "[storage]")
     faabric::util::writeBytesToFile(contentPath, contents);
 
     // Open file descriptor for the file
-    int newFd =
-      fs.openFileDescriptor(rootFd, dummyPath, 0, 0, 0, __WASI_O_CREAT, 0);
+    int newFd = fs.openFileDescriptor(
+      DEFAULT_ROOT_FD, dummyPath, 0, 0, 0, __WASI_O_CREAT, 0);
     REQUIRE(newFd > 0);
     FileDescriptor& newFileDesc = fs.getFileDescriptor(newFd);
 
@@ -196,9 +187,7 @@ TEST_CASE("Check stat and read shared file", "[storage]")
 
     FileSystem fs;
     fs.prepareFilesystem();
-
-    int rootFd = 4;
-    FileDescriptor& rootFileDesc = fs.getFileDescriptor(4);
+    FileDescriptor& rootFileDesc = fs.getFileDescriptor(DEFAULT_ROOT_FD);
 
     // Set up the shared file
     std::string relativePath = "test/shared-file-stat.txt";
@@ -218,8 +207,8 @@ TEST_CASE("Check stat and read shared file", "[storage]")
     REQUIRE(statRes.wasiFiletype == __WASI_FILETYPE_REGULAR_FILE);
 
     // Open it as a shared file
-    int fileFd =
-      fs.openFileDescriptor(rootFd, sharedPath, 0, 0, 0, __WASI_O_CREAT, 0);
+    int fileFd = fs.openFileDescriptor(
+      DEFAULT_ROOT_FD, sharedPath, 0, 0, 0, __WASI_O_CREAT, 0);
     REQUIRE(fileFd > 0);
     FileDescriptor& fileFileDesc = fs.getFileDescriptor(fileFd);
 
@@ -237,5 +226,39 @@ TEST_CASE("Check stat and read shared file", "[storage]")
     const std::vector<uint8_t>& actualContents =
       faabric::util::readFileToBytes(realPath);
     REQUIRE(actualContents == contents);
+}
+
+TEST_CASE("Check directory iterator", "[storage]")
+{
+    FileSystem fs;
+    fs.prepareFilesystem();
+
+    // We need to list a big enough directory here to catch issues with long
+    // file listings and the underlying syscalls
+    std::string dirPath = "/usr/local/faasm/runtime_root/lib/python3.8";
+    std::string wasmPath = "/lib/python3.8";
+
+    // Get the full directory listing using stdlib
+    DIR* dir = opendir(dirPath.c_str());
+    std::vector<std::string> actualList;
+    struct dirent* ent;
+    while ((ent = readdir(dir)) != nullptr) {
+        actualList.push_back(ent->d_name);
+    }
+    closedir(dir);
+
+    // Check there are actually some files in the directory
+    REQUIRE(actualList.size() > 50);
+
+    // Create a directory entry
+    int dirFd = fs.openFileDescriptor(
+      DEFAULT_ROOT_FD, wasmPath, 0, 0, 0, __WASI_O_CREAT, 0);
+
+    storage::FileDescriptor& fileDesc = fs.getFileDescriptor(dirFd);
+
+    // Make sure first few items are the same
+    for (int i = 0; i < 3; i++) {
+        storage::DirEnt ent = fileDesc.iterNext();
+    }
 }
 }

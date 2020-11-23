@@ -51,9 +51,6 @@ jobs:
         ports:
           - 6379:6379
     steps:
-      # --- Environment ---
-      - name: "Directory permissions"
-        run: chown -R root:root /usr/local/faasm
       # --- Check out code ---
       - name: "Fetch ref"
         run: git fetch origin ${GITHUB_REF}:ci-branch
@@ -93,11 +90,5 @@ jobs:
       - name: "Clear existing pyc files"
         run: inv -r faasmcli/faasmcli python.clear-runtime-pyc
       # --- Test run ---
-      - name: "Run the listdir check"
-        run: inv -r faasmcli/faasmcli run python dir_test
-      - name: "Run the Python language check"
-        run: inv -r faasmcli/faasmcli run python lang_test
-      - name: "Run the the numpy check"
-        run: inv -r faasmcli/faasmcli run python numpy_test
       - name: "Run the tests"
         run: /build/faasm/bin/tests

@@ -178,85 +178,105 @@ FileDescriptor FileDescriptor::stderrFactory()
     return FileDescriptor::stdFdFactory(STDERR_FILENO, "/dev/stderr");
 }
 
-FileDescriptor::FileDescriptor()
-  : iterStarted(false)
-  , iterFinished(false)
-  , dirPtr(nullptr)
-  , rightsSet(false)
-  , linuxFd(-1)
-  , linuxMode(-1)
-  , linuxFlags(-1)
-  , linuxErrno(0)
-  , wasiErrno(0)
-{}
-
 void FileDescriptor::iterReset()
 {
     // Reset iterator state
-    dirPtr = nullptr;
-    iterStarted = false;
-    iterFinished = false;
+    _iterStarted = false;
+    directoryIteratorIndex = 0;
+    directoryContents.clear();
 }
 
-void FileDescriptor::iterBackOne()
+void FileDescriptor::loadDirectoryContents()
 {
-    iterOvershot = true;
-}
+    auto logger = faabric::util::getLogger();
 
-DirEnt FileDescriptor::iterNext()
-{
-    if (iterFinished) {
-        throw std::runtime_error("Directory iterator finished");
-    }
+    std::string realPath;
 
-    if (iterOvershot) {
-        iterOvershot = false;
-        return lastDirEnt;
-    }
+    // Check if we need to load a shared directory
+    if (SharedFiles::isPathShared(path)) {
+        int pullErr = SharedFiles::syncSharedFile(path);
 
-    if (!iterStarted) {
-        iterStarted = true;
-
-        std::string realPath;
-        dirPtr = nullptr;
-        if (SharedFiles::isPathShared(path)) {
-            int pullErr = SharedFiles::syncSharedFile(path);
-
-            if (pullErr != 0) {
-                throw std::runtime_error("Failed to open shared dir");
-            }
-
-            realPath = SharedFiles::realPathForSharedFile(path);
-        } else {
-            realPath = prependRuntimeRoot(path);
+        if (pullErr != 0) {
+            throw std::runtime_error("Failed to open shared dir");
         }
 
-        dirPtr = ::opendir(realPath.c_str());
-        if (dirPtr == nullptr) {
-            throw std::runtime_error("Failed to open dir");
-        }
-    }
-
-    // Call readdir to get next dirent
-    struct dirent* direntPtr = ::readdir(dirPtr);
-
-    // Build the actual dirent
-    if (!direntPtr) {
-        // Close iterator
-        closedir(dirPtr);
-        iterFinished = true;
+        realPath = SharedFiles::realPathForSharedFile(path);
     } else {
-        lastDirEnt.type = direntPtr->d_type;
-        lastDirEnt.ino = direntPtr->d_ino;
-        lastDirEnt.path = std::string(direntPtr->d_name);
+        realPath = prependRuntimeRoot(path);
+    }
+
+    logger->debug("Loading dir contents: {}", realPath);
+
+    DIR* dirPtr = ::opendir(realPath.c_str());
+    if (dirPtr == nullptr) {
+        throw std::runtime_error("Failed to open dir");
+    }
+
+    // Load all directory entries preemptively
+    struct dirent* direntPtr = ::readdir(dirPtr);
+    while (direntPtr != nullptr) {
+        DirEnt nextEnt;
+        nextEnt.type = direntPtr->d_type;
+        nextEnt.ino = direntPtr->d_ino;
+        nextEnt.path = std::string(direntPtr->d_name);
 
         // We have to set "next" here to specify the offset of this
         // directory entry. It seems this is only used to be passed
         // back as the "cookie" value to fd_readdir
-        lastDirEnt.next = direntPtr->d_off;
+        nextEnt.next = direntPtr->d_off;
+
+        directoryContents.push_back(nextEnt);
+
+        direntPtr = ::readdir(dirPtr);
     }
 
-    return lastDirEnt;
+    // Close iterator
+    closedir(dirPtr);
+    logger->debug(
+      "Loaded {} entries for {}", directoryContents.size(), realPath);
+
+    // Set flag
+    _iterStarted = true;
+}
+
+void FileDescriptor::iterBack()
+{
+    if (directoryIteratorIndex == 0) {
+        iterReset();
+    } else {
+        directoryIteratorIndex -= 1;
+    }
+}
+
+bool FileDescriptor::iterStarted()
+{
+    return _iterStarted;
+}
+
+bool FileDescriptor::iterFinished()
+{
+    return directoryIteratorIndex >= directoryContents.size() - 1;
+}
+
+DirEnt FileDescriptor::iterNext()
+{
+    // Check if contents are initialised
+    if (!iterStarted()) {
+        loadDirectoryContents();
+    }
+
+    // Check
+    if (iterFinished()) {
+        throw std::runtime_error(
+          fmt::format("Accessing index {} in directory length {}",
+                      directoryIteratorIndex,
+                      directoryContents.size()));
+    }
+
+    DirEnt nextEntry = directoryContents.at(directoryIteratorIndex);
+    directoryIteratorIndex += 1;
+
+    return nextEntry;
 }
 
 bool FileDescriptor::pathOpen(uint32_t lookupFlags,
