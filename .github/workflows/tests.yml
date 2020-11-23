@@ -51,6 +51,13 @@ jobs:
         ports:
           - 6379:6379
     steps:
+      # --- Environment ---
+      - name: "CPU info"
+        run: cat /proc/cpuinfo
+      - name: "CPU microcode"
+        run: cat /proc/cpuinfo | grep microcode | uniq
+      - name: "CPU modelname"
+        run: cat /proc/cpuinfo | grep "model name" | uniq
       # --- Check out code ---
       - name: "Fetch ref"
         run: git fetch origin ${GITHUB_REF}:ci-branch
