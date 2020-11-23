@@ -55,7 +55,7 @@ jobs:
       - name: "CPU info"
         run: cat /proc/cpuinfo
       - name: "Get CPU model name"
-        run: echo "CPU_MODEL=${cat /proc/cpuinfo | grep 'model name' | uniq | sed 's/model name.*: //g' | sed 's/ /_/g'}" >> $GITHUB_ENV
+        run: echo "CPU_MODEL=$(cat /proc/cpuinfo | grep 'model name' | uniq | sed 's/model name.*: //g' | sed 's/ /_/g')" >> $GITHUB_ENV
       - name: "Print CPU model"
         run: echo ${{ env.CPU_MODEL}}
       # --- Check out code ---
