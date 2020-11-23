@@ -187,7 +187,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
 
     storage::FileDescriptor& fileDesc =
       getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
-    
+
     bool isStartCookie = startCookie == __WASI_DIRCOOKIE_START;
     if (fileDesc.iterStarted() && isStartCookie) {
         // Return invalid if we've already started the iterator but also get the

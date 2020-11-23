@@ -235,8 +235,7 @@ void FileDescriptor::loadDirContents()
 
     // Close iterator
     closedir(dirPtr);
-    logger->debug(
-      "Loaded {} entries for {}", dirContents.size(), realPath);
+    logger->debug("Loaded {} entries for {}", dirContents.size(), realPath);
 
     // Set flag
     dirContentsLoaded = true;
@@ -288,55 +287,71 @@ DirEnt FileDescriptor::iterNext()
     return nextEntry;
 }
 
+/**
+ * Note that this function conforms to the standard readdir interface:
+ * - Copy each dirent struct followed by its path string
+ * - If the last path string doesn't fit, return the buffer length
+ * - If the last dirent doesn't fit, don't copy it and return the buffer length
+ *
+ * The external libc wrapper should prevent this third point.
+ *
+ * If the final dirent or path doesn't fit, the caller will expect the next
+ * result to contain that same dirent/ path, so we have to step back one in the
+ * iterator if that's the case.
+ *
+ * The caller knows they've reached the end when the buffer is _not_ filled by
+ * this call.
+ */
 size_t FileDescriptor::copyDirentsToWasiBuffer(uint8_t* buffer,
                                                size_t bufferLen)
 {
-    if (!dirContentsLoaded) {
-        loadDirContents();
-    }
-    
-    // Prepare sizes
+    auto logger = faabric::util::getLogger();
+
+    // Prepare loop variables
     size_t bytesLeft = bufferLen;
-    size_t wasiDirentSize = sizeof(__wasi_dirent_t);
-    
     bool isBufferFull = false;
 
-    // Iterate through contents recording where we get to
-    while(!isBufferFull && !iterFinished()) {
-        DirEnt d = dirContents.at(dirContentsIdx);
-        dirContentsIdx++;
+    size_t wasiDirentSize = sizeof(__wasi_dirent_t);
 
-        size_t pathSize = d.path.size();
+    while (!iterFinished()) {
+        DirEnt d = iterNext();
 
         // Create WASI dirent
+        size_t pathSize = d.path.size();
         __wasi_dirent_t wasmDirEnt{ .d_next = d.next,
                                     .d_ino = d.ino,
                                     .d_namlen = (uint32_t)pathSize,
                                     .d_type = d.type };
 
-        auto direntPtr = BYTES(&wasmDirEnt);
-        auto pathPtr = BYTES_CONST(d.path.c_str());
-
-        if(bytesLeft < wasiDirentSize) {
+        // Drop out if we have no room for the dirent
+        if (bytesLeft < wasiDirentSize) {
             isBufferFull = true;
             break;
         }
 
+        auto direntPtr = BYTES(&wasmDirEnt);
         std::copy(direntPtr, direntPtr + wasiDirentSize, buffer);
         bytesLeft -= wasiDirentSize;
+        buffer += wasiDirentSize;
 
-        if(bytesLeft < pathSize) {
+        // Drop out if we have no room for the path
+        if (bytesLeft < pathSize) {
             isBufferFull = true;
             break;
         }
 
-        std::copy(pathPtr, pathPtr + pathSize, contentBytesPtr);
+        auto pathPtr = BYTES_CONST(d.path.c_str());
+        std::copy(pathPtr, pathPtr + pathSize, buffer);
         bytesLeft -= pathSize;
+        buffer += pathSize;
     }
 
-    if(isBufferFull) {
+    if (isBufferFull) {
+        // Go back one, we've not been able to finish this entry
+        iterBack();
         return bufferLen;
     } else {
+        // Return the number of bytes copied
         return bufferLen - bytesLeft;
     }
 }

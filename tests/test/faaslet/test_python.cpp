@@ -53,9 +53,18 @@ TEST_CASE("Test Python listdir", "[python]")
     std::vector<std::string> nativeList;
     struct dirent* ent;
     while ((ent = readdir(dir)) != nullptr) {
+        std::string dirName(ent->d_name);
+
+        // Python listdir excludes . and ..
+        if (dirName == ".." || dirName == ".") {
+            continue;
+        }
+
         nativeList.push_back(ent->d_name);
     }
 
+    // Sort the native list
+    std::sort(nativeList.begin(), nativeList.end());
     closedir(dir);
 
     // Check the two listings match
