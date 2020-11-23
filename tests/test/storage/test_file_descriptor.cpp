@@ -323,13 +323,12 @@ TEST_CASE("Test readdir iterator and buffer", "[storage]")
         fileDesc.iterReset();
 
         // Make a buffer slightly too small for all of them
-        size_t bufferSize = sizeA + sizeB + sizeC - 10;
-        std::vector<uint8_t> buffer(bufferSize);
+        std::vector<uint8_t> buffer(sizeA + sizeB + sizeC - 10);
 
         // Copy into this buffer
         size_t bytesCopied =
           fileDesc.copyDirentsToWasiBuffer(buffer.data(), buffer.size());
-        REQUIRE(bytesCopied == bufferSize);
+        REQUIRE(bytesCopied == buffer.size());
 
         // Check contents
         checkWasiDirentInBuffer(buffer.data(), entA);
