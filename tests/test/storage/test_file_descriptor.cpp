@@ -230,35 +230,65 @@ TEST_CASE("Check stat and read shared file", "[storage]")
 
 TEST_CASE("Check directory iterator", "[storage]")
 {
+    SharedFiles::clear();
+
     FileSystem fs;
     fs.prepareFilesystem();
 
     // We need to list a big enough directory here to catch issues with long
     // file listings and the underlying syscalls
     std::string dirPath = "/usr/local/faasm/runtime_root/lib/python3.8";
-    std::string wasmPath = "/lib/python3.8";
+    std::string wasmPath = "lib/python3.8";
 
     // Get the full directory listing using stdlib
     DIR* dir = opendir(dirPath.c_str());
-    std::vector<std::string> actualList;
+    std::vector<std::string> expectedList;
     struct dirent* ent;
     while ((ent = readdir(dir)) != nullptr) {
-        actualList.push_back(ent->d_name);
+        expectedList.push_back(ent->d_name);
     }
     closedir(dir);
 
     // Check there are actually some files in the directory
-    REQUIRE(actualList.size() > 50);
+    REQUIRE(expectedList.size() > 50);
 
-    // Create a directory entry
+    // Open the directory
     int dirFd = fs.openFileDescriptor(
-      DEFAULT_ROOT_FD, wasmPath, 0, 0, 0, __WASI_O_CREAT, 0);
+      DEFAULT_ROOT_FD, wasmPath, 0, 0, 0, __WASI_O_DIRECTORY, 0);
+    REQUIRE(dirFd > 0);
 
     storage::FileDescriptor& fileDesc = fs.getFileDescriptor(dirFd);
 
+    REQUIRE(fileDesc.iterStarted() == false);
+    REQUIRE(fileDesc.iterFinished() == false);
+
     // Make sure first few items are the same
-    for (int i = 0; i < 3; i++) {
+    int step = 3;
+    for (int i = 0; i < step; i++) {
         storage::DirEnt ent = fileDesc.iterNext();
+        REQUIRE(ent.path == expectedList.at(i));
     }
+
+    REQUIRE(fileDesc.iterStarted() == true);
+    REQUIRE(fileDesc.iterFinished() == false);
+
+    // Go back one in the iterator and check we get the relevant entry
+    fileDesc.iterBack();
+    storage::DirEnt backEnt = fileDesc.iterNext();
+    REQUIRE(backEnt.path == expectedList.at(step - 1));
+
+    // Reset, and walk through the whole iterator to check the values match
+    fileDesc.iterReset();
+    REQUIRE(fileDesc.iterStarted() == false);
+    REQUIRE(fileDesc.iterFinished() == false);
+
+    std::vector<std::string> actualList;
+    while (!fileDesc.iterFinished()) {
+        actualList.push_back(fileDesc.iterNext().path);
+    }
+
+    REQUIRE(actualList == expectedList);
+    REQUIRE(fileDesc.iterStarted() == true);
+    REQUIRE(fileDesc.iterFinished() == true);
 }
 }

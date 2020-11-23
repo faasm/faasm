@@ -213,8 +213,8 @@ void FileDescriptor::loadDirectoryContents()
     }
 
     // Load all directory entries preemptively
-    struct dirent* direntPtr = ::readdir(dirPtr);
-    while (direntPtr != nullptr) {
+    struct dirent* direntPtr;
+    while ((direntPtr = ::readdir(dirPtr)) != nullptr) {
         DirEnt nextEnt;
         nextEnt.type = direntPtr->d_type;
         nextEnt.ino = direntPtr->d_ino;
@@ -226,8 +226,6 @@ void FileDescriptor::loadDirectoryContents()
         nextEnt.next = direntPtr->d_off;
 
         directoryContents.push_back(nextEnt);
-
-        direntPtr = ::readdir(dirPtr);
     }
 
     // Close iterator
@@ -241,11 +239,15 @@ void FileDescriptor::loadDirectoryContents()
 
 void FileDescriptor::iterBack()
 {
-    if (directoryIteratorIndex == 0) {
-        iterReset();
-    } else {
-        directoryIteratorIndex -= 1;
+    if(!_iterStarted) {
+        throw std::runtime_error("Iterator not started, cannot go back");
     }
+
+    if(directoryIteratorIndex == 0) {
+        throw std::runtime_error("Iterator already at zero, cannot go back");
+    }
+
+    directoryIteratorIndex -= 1;
 }
 
 bool FileDescriptor::iterStarted()
@@ -255,13 +257,13 @@ bool FileDescriptor::iterStarted()
 
 bool FileDescriptor::iterFinished()
 {
-    return directoryIteratorIndex >= directoryContents.size() - 1;
+    return _iterStarted && (directoryIteratorIndex >= directoryContents.size());
 }
 
 DirEnt FileDescriptor::iterNext()
 {
     // Check if contents are initialised
-    if (!iterStarted()) {
+    if (!_iterStarted) {
         loadDirectoryContents();
     }
 
