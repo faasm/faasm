@@ -183,20 +183,17 @@ FileDescriptor FileDescriptor::stderrFactory()
 void FileDescriptor::iterReset()
 {
     // Reset iterator state
-    _iterStarted = false;
-    directoryIteratorIndex = 0;
-    directoryContents.clear();
-    directoryContentsBytes.clear();
-    contentBytesOffset = 0;
+    dirContentsLoaded = false;
+    dirContentsIdx = 0;
+    dirContents.clear();
 }
 
-void FileDescriptor::loadDirectoryContents()
+void FileDescriptor::loadDirContents()
 {
     auto logger = faabric::util::getLogger();
 
+    // Work out the local filesystem path
     std::string realPath;
-
-    // Check if we need to load a shared directory
     if (SharedFiles::isPathShared(path)) {
         int pullErr = SharedFiles::syncSharedFile(path);
 
@@ -209,19 +206,16 @@ void FileDescriptor::loadDirectoryContents()
         realPath = prependRuntimeRoot(path);
     }
 
+    // Open the directory
     logger->debug("Loading dir contents: {}", realPath);
-
     DIR* dirPtr = ::opendir(realPath.c_str());
     if (dirPtr == nullptr) {
         throw std::runtime_error("Failed to open dir");
     }
 
-    // Load all directory entries preemptively
-    struct dirent* direntPtr;
-
+    // Load all directory entries
     uint64_t nextIdx = 0;
-    size_t contentsBytesBufferSize = 0;
-    size_t wasiDirentSize = sizeof(__wasi_dirent_t);
+    struct dirent* direntPtr;
     while ((direntPtr = ::readdir(dirPtr)) != nullptr) {
         nextIdx++;
 
@@ -236,18 +230,85 @@ void FileDescriptor::loadDirectoryContents()
         nextEnt.ino = direntPtr->d_ino;
         nextEnt.path = std::string(direntPtr->d_name);
 
-        directoryContents.push_back(nextEnt);
-
-        // Record how much room this entry will require
-        contentsBytesBufferSize += wasiDirentSize + nextEnt.path.size();
+        dirContents.push_back(nextEnt);
     }
 
-    // Write contents as bytes buffer
-    directoryContentsBytes = std::vector<uint8_t>(contentsBytesBufferSize);
-    uint8_t* contentBytesPtr = directoryContentsBytes.data();
-    for (const DirEnt& d : directoryContents) {
+    // Close iterator
+    closedir(dirPtr);
+    logger->debug(
+      "Loaded {} entries for {}", dirContents.size(), realPath);
+
+    // Set flag
+    dirContentsLoaded = true;
+}
+
+void FileDescriptor::iterBack()
+{
+    if (!dirContentsLoaded) {
+        throw std::runtime_error("Iterator not started, cannot go back");
+    }
+
+    if (dirContentsIdx == 0) {
+        throw std::runtime_error("Iterator already at zero, cannot go back");
+    }
+
+    dirContentsIdx--;
+}
+
+bool FileDescriptor::iterStarted()
+{
+    return dirContentsLoaded;
+}
+
+bool FileDescriptor::iterFinished()
+{
+    return dirContentsLoaded && (dirContentsIdx >= dirContents.size());
+}
+
+DirEnt FileDescriptor::iterNext()
+{
+    // Check if contents are initialised
+    if (!dirContentsLoaded) {
+        loadDirContents();
+    }
+
+    // Check
+    if (iterFinished()) {
+        throw std::runtime_error(
+          fmt::format("Accessing index {} in directory length {}",
+                      dirContentsIdx,
+                      dirContents.size()));
+    }
+
+    DirEnt nextEntry = dirContents.at(dirContentsIdx);
+
+    // Increment the iterator
+    dirContentsIdx++;
+
+    return nextEntry;
+}
+
+size_t FileDescriptor::copyDirentsToWasiBuffer(uint8_t* buffer,
+                                               size_t bufferLen)
+{
+    if (!dirContentsLoaded) {
+        loadDirContents();
+    }
+    
+    // Prepare sizes
+    size_t bytesLeft = bufferLen;
+    size_t wasiDirentSize = sizeof(__wasi_dirent_t);
+    
+    bool isBufferFull = false;
+
+    // Iterate through contents recording where we get to
+    while(!isBufferFull && !iterFinished()) {
+        DirEnt d = dirContents.at(dirContentsIdx);
+        dirContentsIdx++;
+
         size_t pathSize = d.path.size();
 
+        // Create WASI dirent
         __wasi_dirent_t wasmDirEnt{ .d_next = d.next,
                                     .d_ino = d.ino,
                                     .d_namlen = (uint32_t)pathSize,
@@ -256,93 +317,28 @@ void FileDescriptor::loadDirectoryContents()
         auto direntPtr = BYTES(&wasmDirEnt);
         auto pathPtr = BYTES_CONST(d.path.c_str());
 
-        std::copy(direntPtr, direntPtr + wasiDirentSize, contentBytesPtr);
-        contentBytesPtr += wasiDirentSize;
+        if(bytesLeft < wasiDirentSize) {
+            isBufferFull = true;
+            break;
+        }
+
+        std::copy(direntPtr, direntPtr + wasiDirentSize, buffer);
+        bytesLeft -= wasiDirentSize;
+
+        if(bytesLeft < pathSize) {
+            isBufferFull = true;
+            break;
+        }
 
         std::copy(pathPtr, pathPtr + pathSize, contentBytesPtr);
-        contentBytesPtr += pathSize;
+        bytesLeft -= pathSize;
     }
 
-    // Close iterator
-    closedir(dirPtr);
-    logger->debug(
-      "Loaded {} entries for {}", directoryContents.size(), realPath);
-
-    // Set flag
-    _iterStarted = true;
-}
-
-void FileDescriptor::iterBack()
-{
-    if (!_iterStarted) {
-        throw std::runtime_error("Iterator not started, cannot go back");
+    if(isBufferFull) {
+        return bufferLen;
+    } else {
+        return bufferLen - bytesLeft;
     }
-
-    if (directoryIteratorIndex == 0) {
-        throw std::runtime_error("Iterator already at zero, cannot go back");
-    }
-
-    directoryIteratorIndex--;
-}
-
-bool FileDescriptor::iterStarted()
-{
-    return _iterStarted;
-}
-
-bool FileDescriptor::iterFinished()
-{
-    return _iterStarted && (directoryIteratorIndex >= directoryContents.size());
-}
-
-DirEnt FileDescriptor::iterNext()
-{
-    // Check if contents are initialised
-    if (!_iterStarted) {
-        loadDirectoryContents();
-    }
-
-    // Check
-    if (iterFinished()) {
-        throw std::runtime_error(
-          fmt::format("Accessing index {} in directory length {}",
-                      directoryIteratorIndex,
-                      directoryContents.size()));
-    }
-
-    DirEnt nextEntry = directoryContents.at(directoryIteratorIndex);
-
-    // Increment the iterator
-    directoryIteratorIndex++;
-
-    return nextEntry;
-}
-
-size_t FileDescriptor::copyDirentsToWasiBuffer(uint8_t* buffer,
-                                               size_t bufferLen)
-{
-    if (!_iterStarted) {
-        loadDirectoryContents();
-    }
-
-    size_t totalContentBytes = directoryContentsBytes.size();
-    size_t bytesLeft = totalContentBytes - contentBytesOffset;
-
-    if (bytesLeft <= 0) {
-        throw std::runtime_error(
-          fmt::format("Overshot end of content bytes {} >= {}",
-                      contentBytesOffset,
-                      totalContentBytes));
-    }
-
-    uint8_t* source = directoryContentsBytes.data() + contentBytesOffset;
-
-    int bytesCopied =
-      faabric::util::safeCopyToBuffer(source, bytesLeft, buffer, bufferLen);
-
-    contentBytesOffset += bytesCopied;
-
-    return bytesCopied;
 }
 
 bool FileDescriptor::pathOpen(uint32_t lookupFlags,

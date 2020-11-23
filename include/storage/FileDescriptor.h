@@ -136,7 +136,7 @@ class FileDescriptor
   private:
     static FileDescriptor stdFdFactory(int stdFd, const std::string& devPath);
 
-    void loadDirectoryContents();
+    void loadDirContents();
 
     std::string path;
 
@@ -151,11 +151,8 @@ class FileDescriptor
 
     uint16_t wasiErrno = 0;
 
-    bool _iterStarted = false;
-    std::vector<DirEnt> directoryContents;
-    int directoryIteratorIndex = 0;
-
-    std::vector<uint8_t> directoryContentsBytes;
-    size_t contentBytesOffset = 0;
+    bool dirContentsLoaded = false;
+    std::vector<DirEnt> dirContents;
+    int dirContentsIdx = 0;
 };
 }
