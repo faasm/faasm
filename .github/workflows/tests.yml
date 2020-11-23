@@ -51,13 +51,6 @@ jobs:
         ports:
           - 6379:6379
     steps:
-      # --- Environment ---
-      - name: "CPU info"
-        run: cat /proc/cpuinfo
-      - name: "Get CPU model name"
-        run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
-      - name: "Print CPU model"
-        run: echo ${{ env.CPU_MODEL}}
       # --- Check out code ---
       - name: "Fetch ref"
         run: git fetch origin ${GITHUB_REF}:ci-branch
@@ -65,6 +58,13 @@ jobs:
         run: git checkout --force ci-branch
       - name: "Log commits"
         run: git log -3
+      # --- CPU information ---
+      - name: "CPU info"
+        run: cat /proc/cpuinfo
+      - name: "Get CPU model name"
+        run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
+      - name: "Print CPU model"
+        run: echo ${{ env.CPU_MODEL}}
       # --- Cache ---
       - name: "Configure machine code cache"
         uses: actions/cache@v2
