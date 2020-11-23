@@ -12,7 +12,7 @@ using namespace storage;
 
 namespace tests {
 
-TEST_CASE("Check stat and mkdir", "[storage]")
+TEST_CASE("Test stat and mkdir", "[storage]")
 {
     FileSystem fs;
     fs.prepareFilesystem();
@@ -45,7 +45,7 @@ TEST_CASE("Check stat and mkdir", "[storage]")
     REQUIRE(dirStatC.failed);
 }
 
-TEST_CASE("Check creating, renaming and deleting a file", "[storage]")
+TEST_CASE("Test creating, renaming and deleting a file", "[storage]")
 {
     FileSystem fs;
     fs.prepareFilesystem();
@@ -111,7 +111,7 @@ TEST_CASE("Check creating, renaming and deleting a file", "[storage]")
     REQUIRE(fileStatF.failed);
 }
 
-TEST_CASE("Check seek", "[storage]")
+TEST_CASE("Test seek", "[storage]")
 {
     SharedFiles::clear();
 
@@ -181,7 +181,7 @@ TEST_CASE("Check seek", "[storage]")
     boost::filesystem::remove(realPath);
 }
 
-TEST_CASE("Check stat and read shared file", "[storage]")
+TEST_CASE("Test stat and read shared file", "[storage]")
 {
     SharedFiles::clear();
 
@@ -228,7 +228,18 @@ TEST_CASE("Check stat and read shared file", "[storage]")
     REQUIRE(actualContents == contents);
 }
 
-TEST_CASE("Check directory iterator", "[storage]")
+void checkWasiDirentInBuffer(uint8_t* buffer, DirEnt e)
+{
+    size_t wasiDirentSize = sizeof(__wasi_dirent_t);
+    auto wasiDirent = reinterpret_cast<__wasi_dirent_t*>(buffer);
+    auto direntPathPtr = reinterpret_cast<const char*>(buffer + wasiDirentSize);
+    std::string direntPath(direntPathPtr, direntPathPtr + e.path.size());
+
+    REQUIRE(wasiDirent->d_namlen == e.path.size());
+    REQUIRE(direntPath == e.path);
+}
+
+TEST_CASE("Test readdir iterator and buffer", "[storage]")
 {
     SharedFiles::clear();
 
@@ -259,37 +270,79 @@ TEST_CASE("Check directory iterator", "[storage]")
 
     storage::FileDescriptor& fileDesc = fs.getFileDescriptor(dirFd);
 
-    REQUIRE(fileDesc.iterStarted() == false);
-    REQUIRE(fileDesc.iterFinished() == false);
+    SECTION("Iterator")
+    {
+        REQUIRE(fileDesc.iterStarted() == false);
+        REQUIRE(fileDesc.iterFinished() == false);
 
-    // Make sure first few items are the same
-    int step = 3;
-    for (int i = 0; i < step; i++) {
-        storage::DirEnt ent = fileDesc.iterNext();
-        REQUIRE(ent.next == i + 1);
-        REQUIRE(ent.path == expectedList.at(i));
+        // Make sure first few items are the same
+        int step = 3;
+        for (int i = 0; i < step; i++) {
+            storage::DirEnt ent = fileDesc.iterNext();
+            REQUIRE(ent.next == i + 1);
+            REQUIRE(ent.path == expectedList.at(i));
+        }
+
+        REQUIRE(fileDesc.iterStarted() == true);
+        REQUIRE(fileDesc.iterFinished() == false);
+
+        // Go back one in the iterator and check we get the relevant entry
+        fileDesc.iterBack();
+        storage::DirEnt backEnt = fileDesc.iterNext();
+        REQUIRE(backEnt.path == expectedList.at(step - 1));
+
+        // Reset, and walk through the whole iterator to check the values match
+        fileDesc.iterReset();
+        REQUIRE(fileDesc.iterStarted() == false);
+        REQUIRE(fileDesc.iterFinished() == false);
+
+        std::vector<std::string> actualList;
+        while (!fileDesc.iterFinished()) {
+            actualList.push_back(fileDesc.iterNext().path);
+        }
+
+        REQUIRE(actualList == expectedList);
+        REQUIRE(fileDesc.iterStarted() == true);
+        REQUIRE(fileDesc.iterFinished() == true);
     }
 
-    REQUIRE(fileDesc.iterStarted() == true);
-    REQUIRE(fileDesc.iterFinished() == false);
+    SECTION("WASI dirent buffer")
+    {
+        // Get the first three entries
+        storage::DirEnt entA = fileDesc.iterNext();
+        storage::DirEnt entB = fileDesc.iterNext();
+        storage::DirEnt entC = fileDesc.iterNext();
 
-    // Go back one in the iterator and check we get the relevant entry
-    fileDesc.iterBack();
-    storage::DirEnt backEnt = fileDesc.iterNext();
-    REQUIRE(backEnt.path == expectedList.at(step - 1));
+        // Work out how long a buffer needs to be
+        size_t wasiDirentSize = sizeof(__wasi_dirent_t);
+        size_t sizeA = wasiDirentSize + entA.path.size();
+        size_t sizeB = wasiDirentSize + entB.path.size();
+        size_t sizeC = wasiDirentSize + entC.path.size();
 
-    // Reset, and walk through the whole iterator to check the values match
-    fileDesc.iterReset();
-    REQUIRE(fileDesc.iterStarted() == false);
-    REQUIRE(fileDesc.iterFinished() == false);
+        // Reset the iterator
+        fileDesc.iterReset();
 
-    std::vector<std::string> actualList;
-    while (!fileDesc.iterFinished()) {
-        actualList.push_back(fileDesc.iterNext().path);
+        // Make a buffer slightly too small for all of them
+        size_t bufferSize = sizeA + sizeB + sizeC - 10;
+        std::vector<uint8_t> buffer(bufferSize);
+
+        // Copy into this buffer
+        size_t bytesCopied =
+          fileDesc.copyDirentsToWasiBuffer(buffer.data(), buffer.size());
+        REQUIRE(bytesCopied == bufferSize);
+
+        // Check contents
+        checkWasiDirentInBuffer(buffer.data(), entA);
+        checkWasiDirentInBuffer(buffer.data() + sizeA, entB);
+
+        // Run on a second buffer and check the third entry is added first to
+        // this one
+        std::vector<uint8_t> buffer2(sizeC + 10);
+        size_t bytesCopied2 =
+          fileDesc.copyDirentsToWasiBuffer(buffer2.data(), buffer2.size());
+        REQUIRE(bytesCopied2 == buffer2.size());
+
+        checkWasiDirentInBuffer(buffer2.data(), entC);
     }
-
-    REQUIRE(actualList == expectedList);
-    REQUIRE(fileDesc.iterStarted() == true);
-    REQUIRE(fileDesc.iterFinished() == true);
 }
 }

@@ -20,11 +20,11 @@ services:
     tty: true
     environment:
       - CGROUP_MODE=off
-      - NETNS_MODE=off
       - HOST_TYPE=ci
-      - REDIS_STATE_HOST=redis
-      - REDIS_QUEUE_HOST=redis
       - LOG_LEVEL=info
       - MAX_FAASLETS=5
+      - NETNS_MODE=off
+      - REDIS_STATE_HOST=redis
+      - REDIS_QUEUE_HOST=redis
     depends_on:
       - redis

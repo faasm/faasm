@@ -34,12 +34,12 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       CGROUP_MODE: off
-      NETNS_MODE: off
       HOST_TYPE: ci
-      REDIS_STATE_HOST: redis
-      REDIS_QUEUE_HOST: redis
       LOG_LEVEL: info
       MAX_FAASLETS: 5
+      NETNS_MODE: off
+      REDIS_QUEUE_HOST: redis
+      REDIS_STATE_HOST: redis
     container:
       image: faasm/cli:0.5.3
     defaults:
