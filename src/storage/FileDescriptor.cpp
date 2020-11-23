@@ -239,11 +239,11 @@ void FileDescriptor::loadDirectoryContents()
 
 void FileDescriptor::iterBack()
 {
-    if(!_iterStarted) {
+    if (!_iterStarted) {
         throw std::runtime_error("Iterator not started, cannot go back");
     }
 
-    if(directoryIteratorIndex == 0) {
+    if (directoryIteratorIndex == 0) {
         throw std::runtime_error("Iterator already at zero, cannot go back");
     }
 
