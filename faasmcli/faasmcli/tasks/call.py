@@ -17,8 +17,6 @@ def invoke(
     ctx,
     user,
     func,
-    host=None,
-    port=None,
     input=None,
     py=False,
     asynch=False,
@@ -34,8 +32,6 @@ def invoke(
     res = invoke_impl(
         user,
         func,
-        host=host,
-        port=port,
         input=input,
         py=py,
         asynch=asynch,
@@ -53,27 +49,20 @@ def invoke(
 
 
 @task
-def status(ctx, call_id, host=None, port=None):
+def status(ctx, call_id):
     """
     Get the status of an async function call
     """
-    k8s_host, k8s_port = get_invoke_host_port()
-    host = host if host else k8s_host
-    port = port if port else k8s_port
-
+    host, port = get_invoke_host_port()
     status_call_impl(None, None, call_id, host, port, quiet=False)
 
 
 @task
-def exec_graph(
-    ctx, call_id=None, host=None, port=None, headless=False, output_file=None
-):
+def exec_graph(ctx, call_id=None, headless=False, output_file=None):
     """
     Get the execution graph for the given call ID
     """
-    k8s_host, k8s_port = get_invoke_host_port()
-    host = host if host else k8s_host
-    port = port if port else k8s_port
+    host, port = get_invoke_host_port()
 
     if not call_id:
         with open(LAST_CALL_ID_FILE) as fh:
@@ -97,7 +86,4 @@ def flush(ctx, user, function):
     Flush workers
     """
     host, port = get_invoke_host_port()
-    host = host if host else "127.0.0.1"
-    port = port if port else 8080
-
     flush_call_impl(host, port, user, function)

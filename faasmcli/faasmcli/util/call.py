@@ -8,6 +8,8 @@ STATUS_SUCCESS = "SUCCESS"
 STATUS_FAILED = "FAILED"
 STATUS_RUNNING = "RUNNING"
 
+POLL_INTERVAL_MS = 1000
+
 
 def _get_knative_headers(func_name):
     func_name = func_name.replace("_", "-")
@@ -21,11 +23,55 @@ def _do_invoke(user, func, host, port, func_type, input=None):
     do_post(url, input, json=True)
 
 
+def _async_invoke(url, msg, headers=None, poll=False, host=None, port=None):
+    # Submit initial async call
+    async_result = do_post(url, msg, headers=headers, quiet=True, json=True)
+
+    try:
+        call_id = int(async_result)
+    except ValueError:
+        raise RuntimeError(
+            "Could not parse async response to int: {}".format(async_result)
+        )
+
+    # Return the call ID if we're not polling
+    if not poll:
+        return call_id
+
+    print("\n---- Polling {} ----".format(call_id))
+
+    # Poll status until we get success/ failure
+    result = None
+    output = None
+    count = 0
+    while result != STATUS_SUCCESS:
+        count += 1
+
+        interval = float(POLL_INTERVAL_MS) / 1000
+        sleep(interval)
+
+        result, output = status_call_impl(
+            msg["user"], msg["func"], call_id, host, port, quiet=True
+        )
+        print("\nPOLL {} - {}".format(count, result))
+
+    print("\n---- Finished {} ----\n".format(call_id))
+    print(output)
+
+    if result == STATUS_SUCCESS:
+        prefix = "SUCCESS:"
+        success = True
+    else:
+        prefix = "FAILED:"
+        success = False
+
+    output = output.replace(prefix, "")
+    return success, output
+
+
 def invoke_impl(
     user,
     func,
-    host=None,
-    port=None,
     input=None,
     py=False,
     asynch=False,
@@ -34,20 +80,15 @@ def invoke_impl(
     cmdline=None,
     mpi_world_size=None,
     debug=False,
-    poll_interval_ms=1000,
     sgx=False,
 ):
-    # Provider-specific stuff
-    if knative:
-        host, port = get_invoke_host_port(host, port)
+    host, port = get_invoke_host_port()
 
-    # Defaults
-    host = host if host else "127.0.0.1"
-    port = port if port else 8080
     # Polling always requires asynch
     if poll:
         asynch = True
-        # Create URL and message
+
+    # Create URL and message
     url = "http://{}".format(host)
     if not port == "80":
         url += ":{}".format(port)
@@ -85,61 +126,13 @@ def invoke_impl(
         headers = _get_knative_headers("worker")
     else:
         headers = {}
+
     if asynch:
-        # Submit initial asynch call
-        asynch_result = do_post(
-            url, msg, headers=headers, quiet=True, json=True
+        _async_invoke(
+            url, msg, headers=headers, poll=poll, host=host, port=port
         )
-        try:
-            call_id = int(asynch_result)
-        except ValueError:
-            raise RuntimeError(
-                "Could not parse async response to int: {}".format(
-                    asynch_result
-                )
-            )
-
-        if not poll:
-            # Return the call ID if we're not polling
-            return call_id
-        else:
-            if not knative:
-                raise RuntimeError("Poll only supported for knative")
-
-            print("\n---- Polling {} ----".format(call_id))
-
-            # Poll status until we get success/ failure
-            result = None
-            output = None
-            count = 0
-            while result != STATUS_SUCCESS:
-                count += 1
-
-                interval = float(poll_interval_ms) / 1000
-                sleep(interval)
-
-                result, output = status_call_impl(
-                    user, func, call_id, host, port, quiet=True
-                )
-                print("\nPOLL {} - {}".format(count, result))
-
-            print("\n---- Finished {} ----\n".format(call_id))
-            print(output)
-
-            if result == STATUS_SUCCESS:
-                prefix = "SUCCESS:"
-                success = True
-            else:
-                prefix = "FAILED:"
-                success = False
-
-            output = output.replace(prefix, "")
-            return success, output
     else:
-        if knative:
-            return do_post(url, msg, headers=headers, json=True, debug=debug)
-        else:
-            raise RuntimeError("Must specify knative")
+        return do_post(url, msg, headers=headers, json=True, debug=debug)
 
 
 def flush_call_impl(host, port, user, function):
