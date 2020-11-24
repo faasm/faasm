@@ -1,43 +1,33 @@
 from faasmcli.util.config import get_faasm_config
+from os import environ
 
 
-def get_upload_host_port(host_in, port_in):
+def _get_config_value(env_var, key, default_value):
+    """
+    Get the config value, allowing an environment variable to take precedence
+    """
     faasm_config = get_faasm_config()
+    env_value = environ.get(env_var, None)
 
-    if not host_in and faasm_config.has_section("Faasm"):
-        host = faasm_config["Faasm"].get("upload_host", "127.0.0.1")
-        port = faasm_config["Faasm"].get("upload_port", 8002)
-    else:
-        host = host_in if host_in else "127.0.0.1"
-        port = port_in if port_in else 8002
+    if env_value:
+        return env_value
+
+    if faasm_config.has_section("Faasm"):
+        conf_value = faasm_config["Faasm"].get(key, default_value)
+        return conf_value
+
+    return default_value
+
+
+def get_upload_host_port():
+    host = _get_config_value("UPLOAD_HOST", "upload_host", "127.0.0.1")
+    port = _get_config_value("UPLOAD_PORT", "upload_port", 8002)
 
     return host, port
 
 
-def get_invoke_host_port(host_in=None, port_in=None):
-    faasm_config = get_faasm_config()
-
-    if not host_in and faasm_config.has_section("Faasm"):
-        host = faasm_config["Faasm"].get("invoke_host", "localhost")
-        port = faasm_config["Faasm"].get("invoke_port", 8080)
-    else:
-        host = host_in if host_in else "127.0.0.1"
-        port = port_in if port_in else 8080
+def get_invoke_host_port():
+    host = _get_config_value("INVOKE_HOST", "invoke_host", "127.0.0.1")
+    port = _get_config_value("INVOKE_PORT", "invoke_port", 8080)
 
     return host, port
-
-
-def get_kubernetes_upload_host(knative, host):
-    faasm_conf = get_faasm_config()
-    if knative:
-        if not faasm_conf.has_section("Faasm"):
-            host = host if host else "localhost"
-        else:
-            host = faasm_conf["Faasm"]["upload_host"]
-
-    return host
-
-
-def is_kubernetes():
-    faasm_conf = get_faasm_config()
-    return faasm_conf.has_section("Faasm")

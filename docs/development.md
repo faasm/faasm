@@ -20,8 +20,9 @@ cd faasm
 
 The service orchestration is handled through `docker-compose`. If you want to
 stop all `faasm`-related development services run:
+
 ```bash
-./bin/stop-cli.sh
+docker-compose down
 ```
 
 To build and run the tests, you can then run the following inside the container:
@@ -47,9 +48,9 @@ tests
 ### Tooling - editors, IDEs etc.
 
 Several directories (including the project root) are mounted as volumes in the
-CLI container (see
-[`docker-compose-cli.yml`](../docker/docker-compose-cli.yml)).  This means you
-can edit the files directly on your host and compile them inside the container.
+CLI container (see [`docker-compose.yml`](../docker-compose.yml)). This means
+you can edit the files directly on your host and compile them inside the
+container.
 
 You can use remote development tools to develop and debug inside the CLI
 container (e.g.  [CLion remote

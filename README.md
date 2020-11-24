@@ -35,10 +35,10 @@ You can start a Faasm cluster locally using the `docker-compose.yml` file in the
 root of the project:
 
 ```bash
-docker-compose up --scale worker=2
+docker-compose up -d
 ```
 
-Then run the Faasm CLI, from which you can build, deploy and invoke functions:
+To interact with this local cluster you can run the Faasm CLI:
 
 ```bash
 # Start the CLI

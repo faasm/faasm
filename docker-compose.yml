@@ -21,9 +21,9 @@ services:
     environment:
       - FUNCTION_STORAGE=local
       - LOG_LEVEL=info
-      - REDIS_STATE_HOST=redis-state
-      - REDIS_QUEUE_HOST=redis-queue
       - PYTHON_CODEGEN=off
+      - REDIS_QUEUE_HOST=redis-queue
+      - REDIS_STATE_HOST=redis-state
 
   worker:
     image: faasm/worker:${FAASM_VERSION}
@@ -32,21 +32,19 @@ services:
     expose:
       - "8080"
     privileged: yes
-    volumes:
-      - ./machine-code/:/usr/local/faasm/object/
     environment:
-      - FUNCTION_STORAGE=fileserver
-      - FILESERVER_URL=http://upload:8002
-      - LOG_LEVEL=info
-      - CGROUP_MODE=on
-      - NETNS_MODE=off
-      - REDIS_STATE_HOST=redis-state
-      - REDIS_QUEUE_HOST=redis-queue
-      - MAX_FAASLETS=20
-      - MAX_IN_FLIGHT_RATIO=1
-      - MAX_FAASLETS_PER_FUNCTION=4
-      - GLOBAL_MESSAGE_TIMEOUT=600000
       - CAPTURE_STDOUT=on
+      - CGROUP_MODE=on
+      - FILESERVER_URL=http://upload:8002
+      - FUNCTION_STORAGE=fileserver
+      - GLOBAL_MESSAGE_TIMEOUT=600000
+      - LOG_LEVEL=info
+      - MAX_IN_FLIGHT_RATIO=1
+      - MAX_FAASLETS=20
+      - MAX_FAASLETS_PER_FUNCTION=4
+      - NETNS_MODE=off
+      - REDIS_QUEUE_HOST=redis-queue
+      - REDIS_STATE_HOST=redis-state
 
   nginx:
     image: nginx:latest
@@ -57,3 +55,23 @@ services:
     ports:
       - "8080:8080"
 
+  cli:
+    image: ${CLI_IMAGE}
+    working_dir: /usr/local/code/faasm
+    stdin_open: true
+    tty: true
+    privileged: true
+    depends_on:
+      - redis-queue
+      - redis-state
+    environment:
+      - UPLOAD_HOST=${UPLOAD_HOST:-upload}
+      - INVOKE_HOST=${INVOKE_HOST:-nginx}
+      - LOG_LEVEL=info
+      - REDIS_QUEUE_HOST=redis-queue
+      - REDIS_STATE_HOST=redis-state
+    volumes:
+      - .:/usr/local/code/faasm
+      - ./build:/build/faasm
+      - ./container/machine-code:/usr/local/faasm/object
+      - ./container/shared_store:/usr/local/faasm/shared_store
