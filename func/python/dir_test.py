@@ -1,23 +1,23 @@
-import multiprocessing
 import os
+from pyfaasm.core import get_input, set_output
 
 
 def faasm_main():
-    print("MP version = {}".format(multiprocessing))
+    path = get_input()
 
-    paths = [
-        "/lib/python3.8/multiprocessing/",
-        "/lib/python3.8/multiprocessing/__pycache__/",
-    ]
+    if not path:
+        print("Input must be a path")
+        return 1
 
-    print("CWD = {}".format(os.getcwd()))
+    path = path.decode()
+    print("Path = {}, cwd = {}".format(path, os.getcwd()))
 
-    for i, p in enumerate(paths):
-        print("Path {}".format(i))
-        dirlist = os.listdir(p)
-        print("Dirlist fine = {}".format(dirlist))
+    dirlist = os.listdir(path)
+    dirlist.sort()
+    dir_list_str = ",".join(dirlist)
 
-        for file in dirlist:
-            print(file)
+    print(dir_list_str)
+
+    set_output(bytes(dir_list_str, "utf-8"))
 
     return 0

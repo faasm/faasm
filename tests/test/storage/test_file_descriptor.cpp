@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "storage/FileDescriptor.h"
 #include "utils.h"
 
 #include <WAVM/WASI/WASIABI.h>
@@ -10,18 +11,12 @@
 using namespace storage;
 
 namespace tests {
-FileDescriptor& getRootFd()
+
+TEST_CASE("Test stat and mkdir", "[storage]")
 {
     FileSystem fs;
     fs.prepareFilesystem();
-
-    FileDescriptor& rootFd = fs.getFileDescriptor(4);
-    return rootFd;
-}
-
-TEST_CASE("Check stat and mkdir", "[storage]")
-{
-    FileDescriptor& fd = getRootFd();
+    FileDescriptor& fd = fs.getFileDescriptor(DEFAULT_ROOT_FD);
 
     std::string dummyDir = "fs_test_dir";
 
@@ -50,13 +45,11 @@ TEST_CASE("Check stat and mkdir", "[storage]")
     REQUIRE(dirStatC.failed);
 }
 
-TEST_CASE("Check creating, renaming and deleting a file", "[storage]")
+TEST_CASE("Test creating, renaming and deleting a file", "[storage]")
 {
     FileSystem fs;
     fs.prepareFilesystem();
-
-    int rootFd = 4;
-    FileDescriptor& rootFileDesc = fs.getFileDescriptor(4);
+    FileDescriptor& rootFileDesc = fs.getFileDescriptor(DEFAULT_ROOT_FD);
 
     std::string dummyDir = "fs_test_dir";
     std::string dummyPath = dummyDir + "/dummy_file.txt";
@@ -80,8 +73,8 @@ TEST_CASE("Check creating, renaming and deleting a file", "[storage]")
     REQUIRE(fileStat.failed);
 
     // Create the file (ignore perms)
-    int fileFd =
-      fs.openFileDescriptor(rootFd, dummyPath, 0, 0, 0, __WASI_O_CREAT, 0);
+    int fileFd = fs.openFileDescriptor(
+      DEFAULT_ROOT_FD, dummyPath, 0, 0, 0, __WASI_O_CREAT, 0);
     REQUIRE(fileFd > 0);
 
     FileDescriptor& fileFileDesc = fs.getFileDescriptor(fileFd);
@@ -118,14 +111,12 @@ TEST_CASE("Check creating, renaming and deleting a file", "[storage]")
     REQUIRE(fileStatF.failed);
 }
 
-TEST_CASE("Check seek", "[storage]")
+TEST_CASE("Test seek", "[storage]")
 {
     SharedFiles::clear();
 
     FileSystem fs;
     fs.prepareFilesystem();
-
-    int rootFd = 4;
 
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     std::string dummyPath;
@@ -158,8 +149,8 @@ TEST_CASE("Check seek", "[storage]")
     faabric::util::writeBytesToFile(contentPath, contents);
 
     // Open file descriptor for the file
-    int newFd =
-      fs.openFileDescriptor(rootFd, dummyPath, 0, 0, 0, __WASI_O_CREAT, 0);
+    int newFd = fs.openFileDescriptor(
+      DEFAULT_ROOT_FD, dummyPath, 0, 0, 0, __WASI_O_CREAT, 0);
     REQUIRE(newFd > 0);
     FileDescriptor& newFileDesc = fs.getFileDescriptor(newFd);
 
@@ -190,15 +181,13 @@ TEST_CASE("Check seek", "[storage]")
     boost::filesystem::remove(realPath);
 }
 
-TEST_CASE("Check stat and read shared file", "[storage]")
+TEST_CASE("Test stat and read shared file", "[storage]")
 {
     SharedFiles::clear();
 
     FileSystem fs;
     fs.prepareFilesystem();
-
-    int rootFd = 4;
-    FileDescriptor& rootFileDesc = fs.getFileDescriptor(4);
+    FileDescriptor& rootFileDesc = fs.getFileDescriptor(DEFAULT_ROOT_FD);
 
     // Set up the shared file
     std::string relativePath = "test/shared-file-stat.txt";
@@ -218,8 +207,8 @@ TEST_CASE("Check stat and read shared file", "[storage]")
     REQUIRE(statRes.wasiFiletype == __WASI_FILETYPE_REGULAR_FILE);
 
     // Open it as a shared file
-    int fileFd =
-      fs.openFileDescriptor(rootFd, sharedPath, 0, 0, 0, __WASI_O_CREAT, 0);
+    int fileFd = fs.openFileDescriptor(
+      DEFAULT_ROOT_FD, sharedPath, 0, 0, 0, __WASI_O_CREAT, 0);
     REQUIRE(fileFd > 0);
     FileDescriptor& fileFileDesc = fs.getFileDescriptor(fileFd);
 
@@ -237,5 +226,122 @@ TEST_CASE("Check stat and read shared file", "[storage]")
     const std::vector<uint8_t>& actualContents =
       faabric::util::readFileToBytes(realPath);
     REQUIRE(actualContents == contents);
+}
+
+void checkWasiDirentInBuffer(uint8_t* buffer, DirEnt e)
+{
+    size_t wasiDirentSize = sizeof(__wasi_dirent_t);
+    auto wasiDirent = reinterpret_cast<__wasi_dirent_t*>(buffer);
+    auto direntPathPtr = reinterpret_cast<const char*>(buffer + wasiDirentSize);
+    std::string direntPath(direntPathPtr, direntPathPtr + e.path.size());
+
+    REQUIRE(wasiDirent->d_namlen == e.path.size());
+    REQUIRE(direntPath == e.path);
+}
+
+TEST_CASE("Test readdir iterator and buffer", "[storage]")
+{
+    SharedFiles::clear();
+
+    FileSystem fs;
+    fs.prepareFilesystem();
+
+    // We need to list a big enough directory here to catch issues with long
+    // file listings and the underlying syscalls
+    std::string dirPath = "/usr/local/faasm/runtime_root/lib/python3.8";
+    std::string wasmPath = "lib/python3.8";
+
+    // Get the full directory listing using stdlib
+    DIR* dir = opendir(dirPath.c_str());
+    std::vector<std::string> expectedList;
+    struct dirent* ent;
+    while ((ent = readdir(dir)) != nullptr) {
+        expectedList.push_back(ent->d_name);
+    }
+    closedir(dir);
+
+    // Check there are actually some files in the directory
+    REQUIRE(expectedList.size() > 50);
+
+    // Open the directory
+    int dirFd = fs.openFileDescriptor(
+      DEFAULT_ROOT_FD, wasmPath, 0, 0, 0, __WASI_O_DIRECTORY, 0);
+    REQUIRE(dirFd > 0);
+
+    storage::FileDescriptor& fileDesc = fs.getFileDescriptor(dirFd);
+
+    SECTION("Iterator")
+    {
+        REQUIRE(fileDesc.iterStarted() == false);
+        REQUIRE(fileDesc.iterFinished() == false);
+
+        // Make sure first few items are the same
+        int step = 3;
+        for (int i = 0; i < step; i++) {
+            storage::DirEnt ent = fileDesc.iterNext();
+            REQUIRE(ent.next == i + 1);
+            REQUIRE(ent.path == expectedList.at(i));
+        }
+
+        REQUIRE(fileDesc.iterStarted() == true);
+        REQUIRE(fileDesc.iterFinished() == false);
+
+        // Go back one in the iterator and check we get the relevant entry
+        fileDesc.iterBack();
+        storage::DirEnt backEnt = fileDesc.iterNext();
+        REQUIRE(backEnt.path == expectedList.at(step - 1));
+
+        // Reset, and walk through the whole iterator to check the values match
+        fileDesc.iterReset();
+        REQUIRE(fileDesc.iterStarted() == false);
+        REQUIRE(fileDesc.iterFinished() == false);
+
+        std::vector<std::string> actualList;
+        while (!fileDesc.iterFinished()) {
+            actualList.push_back(fileDesc.iterNext().path);
+        }
+
+        REQUIRE(actualList == expectedList);
+        REQUIRE(fileDesc.iterStarted() == true);
+        REQUIRE(fileDesc.iterFinished() == true);
+    }
+
+    SECTION("WASI dirent buffer")
+    {
+        // Get the first three entries
+        storage::DirEnt entA = fileDesc.iterNext();
+        storage::DirEnt entB = fileDesc.iterNext();
+        storage::DirEnt entC = fileDesc.iterNext();
+
+        // Work out how long a buffer needs to be
+        size_t wasiDirentSize = sizeof(__wasi_dirent_t);
+        size_t sizeA = wasiDirentSize + entA.path.size();
+        size_t sizeB = wasiDirentSize + entB.path.size();
+        size_t sizeC = wasiDirentSize + entC.path.size();
+
+        // Reset the iterator
+        fileDesc.iterReset();
+
+        // Make a buffer slightly too small for all of them
+        std::vector<uint8_t> buffer(sizeA + sizeB + sizeC - 10);
+
+        // Copy into this buffer
+        size_t bytesCopied =
+          fileDesc.copyDirentsToWasiBuffer(buffer.data(), buffer.size());
+        REQUIRE(bytesCopied == buffer.size());
+
+        // Check contents
+        checkWasiDirentInBuffer(buffer.data(), entA);
+        checkWasiDirentInBuffer(buffer.data() + sizeA, entB);
+
+        // Run on a second buffer and check the third entry is added first to
+        // this one
+        std::vector<uint8_t> buffer2(sizeC + 10);
+        size_t bytesCopied2 =
+          fileDesc.copyDirentsToWasiBuffer(buffer2.data(), buffer2.size());
+        REQUIRE(bytesCopied2 == buffer2.size());
+
+        checkWasiDirentInBuffer(buffer2.data(), entC);
+    }
 }
 }

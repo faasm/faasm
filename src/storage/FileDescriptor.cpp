@@ -1,6 +1,8 @@
 #include "FileDescriptor.h"
 #include "SharedFiles.h"
 
+#include <faabric/util/bytes.h>
+#include <faabric/util/macros.h>
 #include <faabric/util/timing.h>
 
 #include <WAVM/WASI/WASIABI.h>
@@ -178,76 +180,180 @@ FileDescriptor FileDescriptor::stderrFactory()
     return FileDescriptor::stdFdFactory(STDERR_FILENO, "/dev/stderr");
 }
 
-FileDescriptor::FileDescriptor()
-  : iterStarted(false)
-  , iterFinished(false)
-  , dirPtr(nullptr)
-  , rightsSet(false)
-  , linuxFd(-1)
-  , linuxMode(-1)
-  , linuxFlags(-1)
-  , linuxErrno(0)
-  , wasiErrno(0)
-{}
-
 void FileDescriptor::iterReset()
 {
     // Reset iterator state
-    dirPtr = nullptr;
-    iterStarted = false;
-    iterFinished = false;
+    dirContentsLoaded = false;
+    dirContentsIdx = 0;
+    dirContents.clear();
 }
 
-DirEnt FileDescriptor::iterNext()
+void FileDescriptor::loadDirContents()
 {
-    if (iterFinished) {
-        throw std::runtime_error("Directory iterator finished");
-    }
+    auto logger = faabric::util::getLogger();
 
-    if (!iterStarted) {
-        iterStarted = true;
+    // Work out the local filesystem path
+    std::string realPath;
+    if (SharedFiles::isPathShared(path)) {
+        int pullErr = SharedFiles::syncSharedFile(path);
 
-        std::string realPath;
-        dirPtr = nullptr;
-        if (SharedFiles::isPathShared(path)) {
-            int pullErr = SharedFiles::syncSharedFile(path);
-
-            if (pullErr != 0) {
-                throw std::runtime_error("Failed to open shared dir");
-            }
-
-            realPath = SharedFiles::realPathForSharedFile(path);
-        } else {
-            realPath = prependRuntimeRoot(path);
+        if (pullErr != 0) {
+            throw std::runtime_error("Failed to open shared dir");
         }
 
-        dirPtr = ::opendir(realPath.c_str());
-        if (dirPtr == nullptr) {
-            throw std::runtime_error("Failed to open dir");
-        }
-    }
-
-    // Call readdir to get next dirent
-    struct dirent* direntPtr = ::readdir(dirPtr);
-
-    // Build the actual dirent
-    DirEnt d;
-    if (!direntPtr) {
-        // Close iterator
-        closedir(dirPtr);
-        iterFinished = true;
+        realPath = SharedFiles::realPathForSharedFile(path);
     } else {
-        d.type = direntPtr->d_type;
-        d.ino = direntPtr->d_ino;
-        d.path = std::string(direntPtr->d_name);
+        realPath = prependRuntimeRoot(path);
+    }
+
+    // Open the directory
+    logger->debug("Loading dir contents: {}", realPath);
+    DIR* dirPtr = ::opendir(realPath.c_str());
+    if (dirPtr == nullptr) {
+        throw std::runtime_error("Failed to open dir");
+    }
+
+    // Load all directory entries
+    uint64_t nextIdx = 0;
+    struct dirent* direntPtr;
+    while ((direntPtr = ::readdir(dirPtr)) != nullptr) {
+        nextIdx++;
+
+        DirEnt nextEnt;
 
         // We have to set "next" here to specify the offset of this
         // directory entry. It seems this is only used to be passed
         // back as the "cookie" value to fd_readdir
-        d.next = direntPtr->d_off;
+        nextEnt.next = nextIdx;
+
+        nextEnt.type = direntPtr->d_type;
+        nextEnt.ino = direntPtr->d_ino;
+        nextEnt.path = std::string(direntPtr->d_name);
+
+        dirContents.push_back(nextEnt);
     }
 
-    return d;
+    // Close iterator
+    closedir(dirPtr);
+    logger->debug("Loaded {} entries for {}", dirContents.size(), realPath);
+
+    // Set flag
+    dirContentsLoaded = true;
+}
+
+void FileDescriptor::iterBack()
+{
+    if (!dirContentsLoaded) {
+        throw std::runtime_error("Iterator not started, cannot go back");
+    }
+
+    if (dirContentsIdx == 0) {
+        throw std::runtime_error("Iterator already at zero, cannot go back");
+    }
+
+    dirContentsIdx--;
+}
+
+bool FileDescriptor::iterStarted()
+{
+    return dirContentsLoaded;
+}
+
+bool FileDescriptor::iterFinished()
+{
+    return dirContentsLoaded && (dirContentsIdx >= dirContents.size());
+}
+
+DirEnt FileDescriptor::iterNext()
+{
+    // Check if contents are initialised
+    if (!dirContentsLoaded) {
+        loadDirContents();
+    }
+
+    // Check
+    if (iterFinished()) {
+        throw std::runtime_error(
+          fmt::format("Accessing index {} in directory length {}",
+                      dirContentsIdx,
+                      dirContents.size()));
+    }
+
+    DirEnt nextEntry = dirContents.at(dirContentsIdx);
+
+    // Increment the iterator
+    dirContentsIdx++;
+
+    return nextEntry;
+}
+
+/**
+ * Note that this function conforms to the standard readdir interface:
+ * - Copy each dirent struct followed by its path string
+ * - If the last path string doesn't fit, return the buffer length
+ * - If the last dirent doesn't fit, don't copy it and return the buffer length
+ *
+ * The external libc wrapper should prevent this third point.
+ *
+ * If the final dirent or path doesn't fit, the caller will expect the next
+ * result to contain that same dirent/ path, so we have to step back one in the
+ * iterator if that's the case.
+ *
+ * The caller knows they've reached the end when the buffer is _not_ filled by
+ * this call.
+ */
+size_t FileDescriptor::copyDirentsToWasiBuffer(uint8_t* buffer,
+                                               size_t bufferLen)
+{
+    auto logger = faabric::util::getLogger();
+
+    // Prepare loop variables
+    size_t bytesLeft = bufferLen;
+    bool isBufferFull = false;
+
+    size_t wasiDirentSize = sizeof(__wasi_dirent_t);
+
+    while (!iterFinished()) {
+        DirEnt d = iterNext();
+
+        // Create WASI dirent
+        size_t pathSize = d.path.size();
+        __wasi_dirent_t wasmDirEnt{ .d_next = d.next,
+                                    .d_ino = d.ino,
+                                    .d_namlen = (uint32_t)pathSize,
+                                    .d_type = d.type };
+
+        // Drop out if we have no room for the dirent
+        if (bytesLeft < wasiDirentSize) {
+            isBufferFull = true;
+            break;
+        }
+
+        auto direntPtr = BYTES(&wasmDirEnt);
+        std::copy(direntPtr, direntPtr + wasiDirentSize, buffer);
+        bytesLeft -= wasiDirentSize;
+        buffer += wasiDirentSize;
+
+        // Drop out if we have no room for the path
+        if (bytesLeft < pathSize) {
+            isBufferFull = true;
+            break;
+        }
+
+        auto pathPtr = BYTES_CONST(d.path.c_str());
+        std::copy(pathPtr, pathPtr + pathSize, buffer);
+        bytesLeft -= pathSize;
+        buffer += pathSize;
+    }
+
+    if (isBufferFull) {
+        // Go back one, we've not been able to finish this entry
+        iterBack();
+        return bufferLen;
+    } else {
+        // Return the number of bytes copied
+        return bufferLen - bytesLeft;
+    }
 }
 
 bool FileDescriptor::pathOpen(uint32_t lookupFlags,

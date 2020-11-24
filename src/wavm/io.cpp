@@ -183,59 +183,25 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                       bufLen,
                                       startCookie,
                                       resSizePtr);
+    auto logger = faabric::util::getLogger();
 
     storage::FileDescriptor& fileDesc =
       getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
-    bool isStartCookie = startCookie == __WASI_DIRCOOKIE_START;
 
-    if (fileDesc.iterStarted && isStartCookie) {
+    bool isStartCookie = startCookie == __WASI_DIRCOOKIE_START;
+    if (fileDesc.iterStarted() && isStartCookie) {
         // Return invalid if we've already started the iterator but also get the
         // start cookie
         return __WASI_EINVAL;
-    } else if (!fileDesc.iterStarted && !isStartCookie) {
+    } else if (!fileDesc.iterStarted() && !isStartCookie) {
         throw std::runtime_error(
           "No directory iterator exists, and this is not the start cookie");
     }
 
     U8* buffer = Runtime::memoryArrayPtr<U8>(
       getExecutingWAVMModule()->defaultMemory, buf, bufLen);
-    size_t bytesCopied = 0;
-    size_t bytesLeft = bufLen;
 
-    if (!fileDesc.iterFinished) {
-        while (bytesLeft > 0) {
-            storage::DirEnt dirEnt = fileDesc.iterNext();
-
-            // Done
-            if (fileDesc.iterFinished) {
-                break;
-            }
-
-            __wasi_dirent_t wasmDirEnt{ .d_next = dirEnt.next,
-                                        .d_ino = dirEnt.ino,
-                                        .d_namlen =
-                                          (unsigned int)dirEnt.path.size(),
-                                        .d_type = dirEnt.type };
-
-            // Copy the dirent itself
-            int direntCopySize =
-              faabric::util::safeCopyToBuffer(BYTES(&wasmDirEnt),
-                                              sizeof(wasmDirEnt),
-                                              buffer + bytesCopied,
-                                              bytesLeft);
-            bytesCopied += direntCopySize;
-            bytesLeft -= direntCopySize;
-
-            // Copy its name in straight after
-            int pathCopySize =
-              faabric::util::safeCopyToBuffer(BYTES_CONST(dirEnt.path.c_str()),
-                                              dirEnt.path.size(),
-                                              buffer + bytesCopied,
-                                              bytesLeft);
-            bytesCopied += pathCopySize;
-            bytesLeft -= pathCopySize;
-        }
-    }
+    size_t bytesCopied = fileDesc.copyDirentsToWasiBuffer(buffer, bufLen);
 
     // Set the result
     Runtime::memoryRef<U32>(getExecutingWAVMModule()->defaultMemory,
