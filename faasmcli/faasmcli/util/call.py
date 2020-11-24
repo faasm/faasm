@@ -51,7 +51,7 @@ def _async_invoke(url, msg, headers=None, poll=False, host=None, port=None):
         sleep(interval)
 
         result, output = status_call_impl(
-            msg["user"], msg["func"], call_id, host, port, quiet=True
+            msg["user"], msg["function"], call_id, host, port, quiet=True
         )
         print("\nPOLL {} - {}".format(count, result))
 
@@ -66,7 +66,8 @@ def _async_invoke(url, msg, headers=None, poll=False, host=None, port=None):
         success = False
 
     output = output.replace(prefix, "")
-    return success, output
+
+    return call_id
 
 
 def invoke_impl(
@@ -128,7 +129,7 @@ def invoke_impl(
         headers = {}
 
     if asynch:
-        _async_invoke(
+        return _async_invoke(
             url, msg, headers=headers, poll=poll, host=host, port=port
         )
     else:

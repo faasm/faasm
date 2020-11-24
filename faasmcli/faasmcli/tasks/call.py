@@ -48,12 +48,25 @@ def invoke(
             fh.write(str(res))
 
 
+def get_call_id(call_id):
+    if not call_id:
+        with open(LAST_CALL_ID_FILE) as fh:
+            call_id = fh.read()
+
+        if not call_id:
+            print("No call ID provided and no last call ID found")
+            exit(1)
+
+    return call_id
+
+
 @task
-def status(ctx, call_id):
+def status(ctx, call_id=None):
     """
     Get the status of an async function call
     """
     host, port = get_invoke_host_port()
+    call_id = get_call_id(call_id)
     status_call_impl(None, None, call_id, host, port, quiet=False)
 
 
@@ -63,14 +76,7 @@ def exec_graph(ctx, call_id=None, headless=False, output_file=None):
     Get the execution graph for the given call ID
     """
     host, port = get_invoke_host_port()
-
-    if not call_id:
-        with open(LAST_CALL_ID_FILE) as fh:
-            call_id = fh.read()
-
-        if not call_id:
-            print("No call ID provided and no last call ID found")
-            exit(1)
+    call_id = get_call_id(call_id)
 
     json_str = exec_graph_call_impl(
         None, None, call_id, host, port, quiet=True

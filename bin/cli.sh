@@ -21,7 +21,8 @@ echo "Running Faasm CLI (${CLI_IMAGE})"
 
 INNER_SHELL=${SHELL:-"/bin/bash"}
 
-# Make sure docker-compose is running already
+# Make sure the CLI is running already in the background (avoids creating a new
+# container every time)
 docker-compose \
     up \
     --no-recreate \

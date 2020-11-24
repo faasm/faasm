@@ -96,9 +96,7 @@ def user(ctx, user, py=False, local_copy=False):
 
 
 @task(default=True)
-def upload(
-    ctx, user, func, py=False, ts=False, file=None, local_copy=False
-):
+def upload(ctx, user, func, py=False, ts=False, file=None, local_copy=False):
     """
     Upload a function
     """
