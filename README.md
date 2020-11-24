@@ -38,7 +38,7 @@ root of the project:
 docker-compose up -d
 ```
 
-Then run the Faasm CLI, from which you can build, deploy and invoke functions:
+To interact with this local cluster you can run the Faasm CLI:
 
 ```bash
 # Start the CLI
