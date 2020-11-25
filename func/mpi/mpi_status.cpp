@@ -14,8 +14,6 @@ int main(int argc, char* argv[])
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &worldSize);
 
-    int returnValue = 0;
-
     if (rank == 0) {
         // Send a number of values
         const int actualCount = 40;
@@ -32,21 +30,22 @@ int main(int argc, char* argv[])
         int actualCount;
         MPI_Get_count(&status, MPI_INT, &actualCount);
 
-        if (actualCount == expectedCount) {
-            printf("As expected, asked for %i values but got %i\n",
-                   maxCount,
-                   actualCount);
-        } else {
+        if (actualCount != expectedCount) {
             printf(
               "Not expected: asked for %i values, expecting %i, but got %i\n",
               maxCount,
               expectedCount,
               actualCount);
-            returnValue = 1;
+            return 1;
         }
+        printf("As expected, asked for %i values but got %i\n",
+               maxCount,
+               actualCount);
     }
+
+    delete[] numbers;
 
     MPI_Finalize();
 
-    return returnValue;
+    return 0;
 }

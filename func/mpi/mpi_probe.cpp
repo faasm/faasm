@@ -36,9 +36,8 @@ int main(int argc, char* argv[])
                    actualNumbers,
                    probeCount);
             return 1;
-        } else {
-            printf("Probe gave expected length (%i)\n", probeCount);
         }
+        printf("Probe gave expected length (%i)\n", probeCount);
 
         // Receive the message and check
         MPI_Status statusB;
@@ -53,6 +52,8 @@ int main(int argc, char* argv[])
             }
         }
     }
+
+    delete[] numbers;
 
     MPI_Finalize();
 

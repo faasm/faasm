@@ -47,6 +47,9 @@ int main(int argc, char* argv[])
         printf("Reduce as expected\n");
     }
 
+    delete[] expected;
+    delete[] result;
+
     MPI_Finalize();
 
     return MPI_SUCCESS;

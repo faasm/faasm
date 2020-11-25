@@ -67,9 +67,9 @@ int main(int argc, char* argv[])
             printf("Got unexpected number from master (got %i, expected %i)\n",
                    receivedNumber,
                    expectedNumber);
-        } else {
-            printf("Got expected number from master %i\n", receivedNumber);
+            return 1;
         }
+        printf("Got expected number from master %i\n", receivedNumber);
 
         // Send success message back to master
         MPI_Send(&rank, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);

@@ -13,7 +13,7 @@ int main(int argc, char* argv[])
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     // Get name of host
-    char name[MPI_MAX_PROCESSOR_NAME];
+    char* name = new char[MPI_MAX_PROCESSOR_NAME];
     int len;
     MPI_Get_processor_name(name, &len);
     printf("Rank %d running on %s\n", rank, name);
@@ -44,9 +44,9 @@ int main(int argc, char* argv[])
     int* sharedData;
     MPI_Alloc_mem(memSize, MPI_INFO_NULL, &sharedData);
 
-    int putData[NUM_ELEMENT];
-    int expectedGetData[NUM_ELEMENT];
-    int expectedPutData[NUM_ELEMENT];
+    int* putData = new int[NUM_ELEMENT];
+    int* expectedGetData = new int[NUM_ELEMENT];
+    int* expectedPutData = new int[NUM_ELEMENT];
 
     for (int i = 0; i < NUM_ELEMENT; i++) {
         // Populate the existing shared mem along with a copy
@@ -105,16 +105,17 @@ int main(int argc, char* argv[])
     MPI_Win_fence(0, window);
 
     // Check we've had the expected data put in our memory
-    if (rank < 3) {
-        bool putDataEqual =
-          faasm::compareArrays<int>(sharedData, expectedPutData, NUM_ELEMENT);
-
-        if (!putDataEqual) {
-            return 1;
-        } else if (rank < 3) {
-            printf("Rank %i - MPI_Put as expected\n", rank);
-        }
+    if (rank < 3 &&
+        !faasm::compareArrays<int>(sharedData, expectedPutData, NUM_ELEMENT)) {
+        return 1;
+    } else if (rank < 3) {
+        printf("Rank %i - MPI_Put as expected\n", rank);
     }
+
+    delete[] expectedGetData;
+    delete[] expectedPutData;
+    delete[] name;
+    delete[] putData;
 
     MPI_Win_free(&window);
     MPI_Finalize();

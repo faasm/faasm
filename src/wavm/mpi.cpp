@@ -695,7 +695,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 op,
                                I32 comm)
 {
-    faabric::util::getLogger()->debug("S - MPI_Allreduce {} {} {} {} {} {} {}",
+    faabric::util::getLogger()->debug("S - MPI_Allreduce {} {} {} {} {} {}",
                                       sendBuf,
                                       recvBuf,
                                       count,
@@ -704,7 +704,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                       comm);
 
     ContextWrapper ctx(comm);
-
     faabric_datatype_t* hostDtype = ctx.getFaasmDataType(datatype);
     faabric_op_t* hostOp = ctx.getFaasmOp(op);
 
