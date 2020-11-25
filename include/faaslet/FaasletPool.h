@@ -23,8 +23,7 @@ class FaasletPool : public FaabricPool
     {
         // Create an enclave if necessary
 #if FAASM_SGX
-        // 18/11/20 - causing segfault, waiting for PR to be merged to fix
-        // sgx::checkSgxSetup();
+        sgx::checkSgxSetup();
 #endif
 
         // Prepare the Python runtime up front
