@@ -1,20 +1,46 @@
 name: Release
 
+# This file is very verbose, but things have to be split into separate jobs to
+# allow them to run in parallel. There seems to be no way to share the Docker
+# build context between jobs, so the Docker set-up has to be copied in each one.
+
 on:
   push:
     tags:
       - 'v*.*.*'
 
 jobs:
-  build:
+  build-redis:
     runs-on: ubuntu-20.04
     steps:
       - name: "Get the code"
         uses: actions/checkout@v2
       - name: "Get tag version"
         run: echo "TAG_VERSION=${GITHUB_REF#refs/tags/v*}" >> $GITHUB_ENV
-      - name: "Print tag version"
-        run: echo ${{ env.TAG_VERSION }}
+      - name: "Set up QEMU"
+        uses: docker/setup-qemu-action@v1
+      - name: "Set up Docker Buildx"
+        uses: docker/setup-buildx-action@v1
+      - name: "Log in to DockerHub"
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: "Build redis container"
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          file: docker/redis.dockerfile
+          context: .
+          tags: faasm/redis:${{ env.TAG_VERSION }}
+
+  build-base:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: "Get the code"
+        uses: actions/checkout@v2
+      - name: "Get tag version"
+        run: echo "TAG_VERSION=${GITHUB_REF#refs/tags/v*}" >> $GITHUB_ENV
       - name: "Set up QEMU"
         uses: docker/setup-qemu-action@v1
       - name: "Set up Docker Buildx"
@@ -32,6 +58,24 @@ jobs:
           build-args: FAASM_VERSION=${{ env.TAG_VERSION }}
           context: .
           tags: faasm/base:${{ env.TAG_VERSION }}
+
+  build-cli:
+    needs: build-base
+    runs-on: ubuntu-20.04
+    steps:
+      - name: "Get the code"
+        uses: actions/checkout@v2
+      - name: "Get tag version"
+        run: echo "TAG_VERSION=${GITHUB_REF#refs/tags/v*}" >> $GITHUB_ENV
+      - name: "Set up QEMU"
+        uses: docker/setup-qemu-action@v1
+      - name: "Set up Docker Buildx"
+        uses: docker/setup-buildx-action@v1
+      - name: "Log in to DockerHub"
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
       - name: "Build CLI container"
         uses: docker/build-push-action@v2
         with:
@@ -40,13 +84,24 @@ jobs:
           build-args: FAASM_VERSION=${{ env.TAG_VERSION }}
           context: .
           tags: faasm/cli:${{ env.TAG_VERSION }}
-      - name: "Build redis container"
-        uses: docker/build-push-action@v2
+
+  build-worker:
+    needs: build-base
+    runs-on: ubuntu-20.04
+    steps:
+      - name: "Get the code"
+        uses: actions/checkout@v2
+      - name: "Get tag version"
+        run: echo "TAG_VERSION=${GITHUB_REF#refs/tags/v*}" >> $GITHUB_ENV
+      - name: "Set up QEMU"
+        uses: docker/setup-qemu-action@v1
+      - name: "Set up Docker Buildx"
+        uses: docker/setup-buildx-action@v1
+      - name: "Log in to DockerHub"
+        uses: docker/login-action@v1
         with:
-          push: true
-          file: docker/redis.dockerfile
-          context: .
-          tags: faasm/redis:${{ env.TAG_VERSION }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
       - name: "Build worker container"
         uses: docker/build-push-action@v2
         with:
@@ -55,6 +110,24 @@ jobs:
           build-args: FAASM_VERSION=${{ env.TAG_VERSION }}
           context: .
           tags: faasm/worker:${{ env.TAG_VERSION }}
+
+  build-upload:
+    needs: build-base
+    runs-on: ubuntu-20.04
+    steps:
+      - name: "Get the code"
+        uses: actions/checkout@v2
+      - name: "Get tag version"
+        run: echo "TAG_VERSION=${GITHUB_REF#refs/tags/v*}" >> $GITHUB_ENV
+      - name: "Set up QEMU"
+        uses: docker/setup-qemu-action@v1
+      - name: "Set up Docker Buildx"
+        uses: docker/setup-buildx-action@v1
+      - name: "Log in to DockerHub"
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
       - name: "Build upload container"
         uses: docker/build-push-action@v2
         with:
@@ -63,4 +136,3 @@ jobs:
           build-args: FAASM_VERSION=${{ env.TAG_VERSION }}
           context: .
           tags: faasm/upload:${{ env.TAG_VERSION }}
-
