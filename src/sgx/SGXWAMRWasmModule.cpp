@@ -19,6 +19,9 @@ SGXWAMRWasmModule::SGXWAMRWasmModule()
 {
     auto logger = faabric::util::getLogger();
 
+	// init sgx in case we're using this module outside a Faaslet
+	sgx::checkSgxSetup();
+
     // Allocate memory for response
     sgxWamrMsgResponse.buffer_len =
       (sizeof(sgx_wamr_msg_t) + sizeof(sgx_wamr_msg_hdr_t));
