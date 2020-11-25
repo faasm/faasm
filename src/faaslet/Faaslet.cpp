@@ -149,6 +149,9 @@ void Faaslet::postBind(const faabric::Message& msg, bool force)
 
         module->bindToFunction(msg);
     } else if (conf.wasmVm == "wavm") {
+#if (FAASM_SGX)
+        logger->warn("no SGX support for WAVM. continuing without SGX.");
+#endif
         PROF_START(snapshotRestore)
 
         // Load snapshot from cache
