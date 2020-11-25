@@ -25,11 +25,12 @@ jobs:
         run: pip3 install -r faasmcli/requirements.txt
       - name: "Python formatting check"
         run: ./bin/check_python.sh
-      # Uncomment when all formatting done
       - name: "Run C/C++ formatting"
         run: ./bin/run_clang_format.sh
       - name: "Check C/C++ formatting changes"
         run: git diff --exit-code
+      - name: "Run C/C++ linter"
+        run: ./bin/run_clang_tidy.sh > /dev/null
 
   build:
     if: github.event.pull_request.draft == false

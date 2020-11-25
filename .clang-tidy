@@ -1,4 +1,7 @@
 {
-    Checks: 'readability-braces-around-statements,modernize-use-auto,-clang-diagnostic-unknown-attributes,-clang-diagnostic-return-type'
+    Checks: 'readability-braces-around-statements,\
+             modernize-use-auto,\
+             -clang-diagnostic-unknown-attributes,\
+             -clang-diagnostic-return-type'
     CheckOptions:
 }
