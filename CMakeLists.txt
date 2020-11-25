@@ -37,7 +37,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 # Faasm directories
 set(FAASM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(FAASM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
-set(FAASM_LIB_CPP_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/cpp)
 set(FAASM_LIB_FAASMP_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/faasmp)
 set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/pyinit)
 
@@ -167,13 +166,11 @@ include_directories(${FAABRIC_BINARY_DIR}/src)
 # More include directories
 include_directories(
         ${FAASM_INCLUDE_DIR}
-        ${FAASM_LIB_CPP_DIR}
         ${FAASM_LIB_FAASMP_DIR}
         ${FAASM_PYTHON_LIB_DIR}
 )
 
 # Directories common to all builds
-add_subdirectory(libs/cpp)
 add_subdirectory(libs/faasmp)
 add_subdirectory(libs/faasmpi)
 add_subdirectory(src/emulator)

@@ -21,7 +21,6 @@ def toolchain(ctx, clean=False):
     """
     Compile and install all libs crucial to the toolchain
     """
-    faasm(ctx, clean=clean)
     faasmp(ctx, clean=clean)
     faasmpi(ctx, clean=clean)
 
@@ -89,14 +88,6 @@ def _build_faasm_lib(dir_name, clean, verbose, target=None):
 
     run(" ".join(build_cmd), shell=True, cwd=build_dir, check=True)
     run("ninja install", shell=True, cwd=build_dir, check=True)
-
-
-@task
-def faasm(ctx, clean=False, verbose=False):
-    """
-    Compile and install the Faasm library
-    """
-    _build_faasm_lib("libs/cpp", clean, verbose)
 
 
 @task
