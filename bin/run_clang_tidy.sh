@@ -2,8 +2,6 @@
 
 set -e
 
-# TODO
-# Actually apply changes (add -fix flag)
 BUILD_PATH=/build/faasm/
 CONFIG=${FAASM_ROOT}/.clang-tidy
 
