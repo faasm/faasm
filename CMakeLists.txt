@@ -176,7 +176,6 @@ include_directories(
 add_subdirectory(libs/cpp)
 add_subdirectory(libs/faasmp)
 add_subdirectory(libs/faasmpi)
-add_subdirectory(src/emulator)
 
 if (FAASM_BUILD_TYPE STREQUAL "native-tools")
     # Ignore the rest if just doing a native tools build
