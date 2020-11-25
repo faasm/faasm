@@ -152,15 +152,6 @@ configuration:
 - **CMake** - TBD
 - **Bash** - TBD
 
-We also use [`clang-tidy`](https://clang.llvm.org/extra/clang-tidy/) as a
-linter and static analyzer. To set it up for the project, you need to
-generate a compilation database. This can be done as follows:
-```bash
-cd <FAASM_REPO>
-mkdir -p build; cd build
-cmake --DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
-```
-
 ## Detailed notes
 
 ### Networking
