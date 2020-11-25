@@ -15,12 +15,13 @@ fi
 
 pushd ${TARGET_DIR} >> /dev/null
 
-FILES=$(git ls-files "*.h" "*.cpp" "*.c")
+FILES=$(git ls-files {libs,func}/{"*.h","*.cpp","*.c"})
+
+echo $FILES
 
 # Run clang-tidy on a set of files
 run-clang-tidy-10.py \
     -config '' \
-    -export-fixes clang_tidy_out.yml \
     -j `nproc` \
     -fix \
     -format \
