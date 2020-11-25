@@ -74,8 +74,7 @@ HISTORY: - Written by Rob Van der Wijngaart, March 2006.
 #define LINEWORDS 16
 #define flag(TID, j) flag[((TID) + (j)*nthread) * LINEWORDS]
 
-// int main(int argc, char ** argv) {
-int main(int argc, char* argv[])
+int main(int argc, char** argv)
 {
 
     int TID;   /* Thread ID                                           */
@@ -176,10 +175,12 @@ int main(int argc, char* argv[])
     start[0] = 0;
     for (ID = 0; ID < nthread_input; ID++) {
         segment_size = m / nthread_input;
-        if (ID < (m % nthread_input))
+        if (ID < (m % nthread_input)) {
             segment_size++;
-        if (ID > 0)
+        }
+        if (ID > 0) {
             start[ID] = end[ID - 1] + 1;
+        }
         end[ID] = start[ID] + segment_size - 1;
     }
 
@@ -204,8 +205,9 @@ int main(int argc, char* argv[])
                 printf("Number of threads         = %d\n", nthread_input);
                 printf("Grid sizes                = %ld, %ld\n", m, n);
                 printf("Number of iterations      = %d\n", iterations);
-                if (grp > 1)
+                if (grp > 1) {
                     printf("Group factor              = %d (cheating!)\n", grp);
+                }
 #if SYNCHRONOUS
                 printf("Neighbor thread handshake = on\n");
 #else
@@ -218,25 +220,31 @@ int main(int argc, char* argv[])
         TID = omp_get_thread_num();
 
         /* clear the array, assuming first-touch memory placement */
-        for (j = 0; j < n; j++)
-            for (i = start[TID]; i <= end[TID]; i++)
+        for (j = 0; j < n; j++) {
+            for (i = start[TID]; i <= end[TID]; i++) {
                 ARRAY(i, j) = 0.0;
-        /* set boundary values (bottom and left side of grid */
-        if (TID == 0)
-            for (j = 0; j < n; j++)
-                ARRAY(start[TID], j) = (double)j;
-        for (i = start[TID]; i <= end[TID]; i++)
-            ARRAY(i, 0) = (double)i;
+            }
+            /* set boundary values (bottom and left side of grid */
+            if (TID == 0) {
+                for (j = 0; j < n; j++) {
+                    ARRAY(start[TID], j) = (double)j;
+                }
+                for (i = start[TID]; i <= end[TID]; i++) {
+                    ARRAY(i, 0) = (double)i;
+                }
 
-        /* set flags to zero to indicate no data is available yet */
-        trueVar = 1;
-        falseVar = !trueVar;
-        for (j = 0; j < n; j++)
-            flag(TID, j) = falseVar;
+                /* set flags to zero to indicate no data is available yet */
+                trueVar = 1;
+                falseVar = !trueVar;
+                for (j = 0; j < n; j++) {
+                    flag(TID, j) = falseVar;
+                }
+            }
+        }
 
-            /* we need a barrier after setting the flags, to make sure each is
-               visible to all threads, and to synchronize before the iterations
-               start      */
+        /* we need a barrier after setting the flags, to make sure each
+           is visible to all threads, and to synchronize before the
+           iterations start      */
 #pragma omp barrier
 
         for (iter = 0; iter <= iterations; iter++) {
@@ -283,11 +291,12 @@ int main(int argc, char* argv[])
 #endif
                 }
 
-                for (jj = j; jj < j + jjsize; jj++)
+                for (jj = j; jj < j + jjsize; jj++) {
                     for (i = MAX(start[TID], 1); i <= end[TID]; i++) {
                         ARRAY(i, jj) = ARRAY(i - 1, jj) + ARRAY(i, jj - 1) -
                                        ARRAY(i - 1, jj - 1);
                     }
+                }
 
                 /* if not on right boundary, signal right neighbor it has new
                  * data         */
@@ -351,8 +360,9 @@ int main(int argc, char* argv[])
 #endif
     avgtime = pipeline_time / iterations;
     /* flip the sign of the execution time to indicate cheating */
-    if (grp > 1)
+    if (grp > 1) {
         avgtime *= -1.0;
+    }
     printf("Rate (MFlops/s): %lf Avg time (s): %lf\n",
            1.0E-06 * 2 * ((double)((m - 1) * (n - 1))) / avgtime,
            avgtime);

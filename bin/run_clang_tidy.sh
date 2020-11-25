@@ -27,6 +27,7 @@ run-clang-tidy-10.py \
     -format \
     -style 'file' \
     -p ${BUILD_PATH} \
+    -extra-arg-before='-I/build/faasm/_deps/faabric_ext-src/include/faabric/mpi' \
     -quiet \
     ${FILES}
 
