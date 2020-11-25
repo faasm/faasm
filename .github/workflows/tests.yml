@@ -30,7 +30,7 @@ jobs:
       - name: "Check C/C++ formatting changes"
         run: git diff --exit-code
       - name: "Run C/C++ linter"
-        run: ./bin/run_clang_tidy.sh > /dev/null
+        run: ./bin/run_clang_tidy.sh
 
   build:
     if: github.event.pull_request.draft == false

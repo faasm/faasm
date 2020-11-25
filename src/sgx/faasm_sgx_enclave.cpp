@@ -162,8 +162,9 @@ extern "C"
 
         // Search for an unused TCS slot
         for (; i < _faasm_sgx_tcs_len; i++) {
-            if (!faasm_sgx_tcs[i])
+            if (!faasm_sgx_tcs[i]) {
                 goto _FAASM_SGX_TCS_BLOCK_SLOT_AND_ALLOCATE_MEMORY;
+            }
         }
 
         // In case that all TCS slots are in use, the existing TCS structure
