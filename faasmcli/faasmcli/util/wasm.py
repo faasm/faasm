@@ -1034,6 +1034,10 @@ def generate_wat(wasm_file) -> str: #generates wat with binaryen wasm-opt
         return out
     except subprocess.CalledProcessError as error:
         raise SystemExit(error)
+    except FileNotFoundError as error:
+        print("Couldn't find wasm-opt binary. Please install wasm-opt!")
+        raise SystemExit(error)
+
 
 
 def parse_module(wasm_file) -> Module: #creates module from wasm_file
