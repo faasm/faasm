@@ -6,7 +6,7 @@ from faasmcli.util.env import WASM_DIR
 from faasmcli.util.crypto import encrypt_file, get_file_hash_digest
 from faasmcli.util.wasm import parse_module
 from graphviz import Digraph
-FAASM_MAIN_FUNCTION_NAME = "$_main\\28\\29" #main function name of a faasm module
+FAASM_MAIN_FUNCTION_NAME = "$__original_main" #main function name of a faasm module
 def _parse_cfg_to_dot(tree) -> Digraph: #converts dot from cfg-tree
     """
         @param tree cfg tree
@@ -31,7 +31,7 @@ def _parse_cfg_to_dot(tree) -> Digraph: #converts dot from cfg-tree
 @task(default=True, name="policy")
 def policy(ctx, user, func, clean=False, debug=False):
     """
-    Compile a function
+    Create policy file for function
     """
     user_path = join(WASM_DIR, user)
     function_path = join(user_path, func)
@@ -59,6 +59,9 @@ def policy(ctx, user, func, clean=False, debug=False):
     verifies = {}
     chain_verifies = {}
     function = module.function.get(FAASM_MAIN_FUNCTION_NAME)
+    if (function == None):
+        print("error : Faasm main function (%s) not found!" % FAASM_MAIN_FUNCTION_NAME)
+        return
     ccp_tree = module.create_verify(function, 0)
     dot = _parse_cfg_to_dot(ccp_tree)
     print(dot)
