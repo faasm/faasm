@@ -29,7 +29,9 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # We need to build just the Faabric MPI library to wasm here
     # TODO - split Faabric MPI library out into a separate repo 
     FetchContent_Declare(faabric_ext
-        URL "https://github.com/faasm/faabric/archive/v0.0.13.tar.gz"
+        GIT_REPOSITORY "https://github.com/faasm/faabric.git"
+        GIT_TAG "v0.0.13"
+        UPDATE_COMMAND ""
         CMAKE_ARGS "-DFAABRIC_BUILD_TESTS=OFF"
     )
 
