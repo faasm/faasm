@@ -87,3 +87,4 @@ def policy(ctx, user, func, clean=False, debug=False):
     data['verify'] = verifies
     with open(ccp_path, 'w', encoding='utf-8') as policy_file:
         json.dump(data, policy_file, ensure_ascii=False, indent=4) #for beauty print
+        print("policy file written to %s" % ccp_path)
