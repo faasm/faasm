@@ -30,8 +30,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # TODO - split Faabric MPI library out into a separate repo 
     FetchContent_Declare(faabric_ext
         GIT_REPOSITORY "https://github.com/faasm/faabric.git"
-        GIT_TAG "v0.0.13"
-        UPDATE_COMMAND ""
+        GIT_TAG "3e8886281dca4c020bf943fa39fc3ebbd30607f6"
         CMAKE_ARGS "-DFAABRIC_BUILD_TESTS=OFF"
     )
 

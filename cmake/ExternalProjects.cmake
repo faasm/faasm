@@ -6,6 +6,7 @@ include (FetchContent)
 include_directories(${CMAKE_INSTALL_PREFIX}/include)
 
 # Tightly-coupled dependencies
+set(FETCHCONTENT_QUIET OFF)
 FetchContent_Declare(wavm_ext
     GIT_REPOSITORY "https://github.com/faasm/WAVM.git"
     GIT_TAG "faasm"
@@ -21,8 +22,7 @@ FetchContent_Declare(wamr_ext
 
 FetchContent_Declare(faabric_ext
     GIT_REPOSITORY "https://github.com/faasm/faabric.git"
-    GIT_TAG "v0.0.13"
-    UPDATE_COMMAND ""
+    GIT_TAG "3e8886281dca4c020bf943fa39fc3ebbd30607f6"
     CMAKE_ARGS "-DFAABRIC_BUILD_TESTS=OFF"
 )
 
