@@ -21,6 +21,8 @@ jobs:
       - name: "Check out branch"
         run: git checkout --force ci-branch
       # --- Formatting checks ---
+      - name: "Ensure all Python deps up-to-date"
+        run: pip3 install -r faasmcli/requirements.txt
       - name: "Python formatting check"
         run: ./bin/check_python.sh
       # Uncomment when all formatting done
