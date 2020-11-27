@@ -28,8 +28,9 @@ def _get_procs_for_name(proc_part, exact=False):
 
 def get_docker_parent_pids():
     """
-    To get the parent PID of all Docker containers on a system, we need to find the root process.
-    This will be containerd on some systems, dockerd on others
+    To get the parent PID of all Docker containers on a system, we need to
+    find the root process. This will be containerd on some systems, dockerd on
+    others
     """
 
     # Get dockerd (which should always be running)

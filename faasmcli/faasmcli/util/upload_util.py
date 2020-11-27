@@ -1,6 +1,5 @@
 import subprocess
 from os.path import join
-from subprocess import call
 
 import boto3
 

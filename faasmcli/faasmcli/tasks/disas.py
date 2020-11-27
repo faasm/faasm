@@ -2,7 +2,7 @@ from os.path import join, exists
 
 from invoke import task
 
-from faasmcli.util.env import get_wasm_func_path, WASM_DIR
+from faasmcli.util.env import WASM_DIR
 from faasmcli.util.shell import run_command
 
 

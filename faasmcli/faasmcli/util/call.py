@@ -60,10 +60,8 @@ def _async_invoke(url, msg, headers=None, poll=False, host=None, port=None):
 
     if result == STATUS_SUCCESS:
         prefix = "SUCCESS:"
-        success = True
     else:
         prefix = "FAILED:"
-        success = False
 
     output = output.replace(prefix, "")
 
