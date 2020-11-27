@@ -29,10 +29,19 @@ int main(int argc, char* argv[])
             return 1;
         if (!checkTypeSize(MPI_LONG, sizeof(long), "long"))
             return 1;
+        if (!checkTypeSize(MPI_LONG_LONG, sizeof(long long), "long long"))
+            return 1;
         if (!checkTypeSize(
               MPI_LONG_LONG_INT, sizeof(long long int), "long long int"))
             return 1;
         if (!checkTypeSize(MPI_DOUBLE, sizeof(double), "double"))
+            return 1;
+        struct
+        {
+            double a;
+            int b;
+        } s;
+        if (!checkTypeSize(MPI_DOUBLE_INT, sizeof s, "double int"))
             return 1;
         if (!checkTypeSize(MPI_FLOAT, sizeof(float), "float"))
             return 1;
