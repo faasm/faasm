@@ -123,7 +123,7 @@ def bump(ctx, ver=None):
             "find {}".format(d),
             "-type f",
             "-exec sed -i -e 's/{}/{}/g'".format(old_ver, new_ver),
-            "{} \;",
+            "{} \\;",
         ]
         sed_cmd = " ".join(sed_cmd)
         print(sed_cmd)

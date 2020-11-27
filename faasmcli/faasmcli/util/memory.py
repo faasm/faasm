@@ -1,9 +1,8 @@
 import matplotlib.pyplot as plt
 import psutil
+import numpy as np
 
 plt.rcdefaults()
-import numpy as np
-import matplotlib.pyplot as plt
 
 
 class MemTotal:

@@ -2,7 +2,6 @@ from subprocess import call
 
 from invoke import task
 
-from faasmcli.util.config import get_faasm_config
 from faasmcli.util.env import PROJ_ROOT
 
 

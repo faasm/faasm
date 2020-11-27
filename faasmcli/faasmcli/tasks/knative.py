@@ -18,18 +18,17 @@ KNATIVE_VERSION = "0.13.0"
 # Number of replicas in the Faasm worker pod
 DEFAULT_REPLICAS = 4
 
-#
 # Notes on Knative client
 # https://github.com/knative/client/blob/master/docs/cmd/kn_service_create.md
 #
-# Configuring the scheduler: https://knative.dev/docs/serving/configuring-the-autoscaler/
-#
+# Configuring the scheduler:
+# https://knative.dev/docs/serving/configuring-the-autoscaler/
 
 # TODO: Use the knative autoscaler rather than hard-coding a number of workers
-
+# Longer window means fewer knative interventions
 FAASM_WORKER_ANNOTATIONS = [
     "autoscaling.knative.dev/enable-scale-to-zero=false",
-    "autoscaling.knative.dev/stable-window=120s",  # Longer window means fewer knative interventions
+    "autoscaling.knative.dev/stable-window=120s",
 ]
 
 FAASM_WORKER_CONCURRENCY = 0
@@ -59,8 +58,8 @@ KNATIVE_ENV = {
     "PYTHON_CODEGEN": "off",  # Switch on/ off up-front codegen for Python
     "MAX_IN_FLIGHT_RATIO": "1",
     "NO_SCHEDULER": "0",  # Turn on/ off Faasm scheduler
-    "MAX_FAASLETS_PER_FUNCTION": "6",  # This limit is per-host. We only want one instance per core
-    "MAX_FAASLETS": "40",  # This is how many threads are available in total per host (across all functions)
+    "MAX_FAASLETS_PER_FUNCTION": "6",  # This is per-host. We want one per core
+    "MAX_FAASLETS": "40",  # Per-host threads available (across all functions)
     "BOUND_TIMEOUT": str(
         THIRTY_SECS
     ),  # How long a bound worker sticks around for
