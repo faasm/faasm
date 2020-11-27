@@ -73,6 +73,7 @@ def _async_invoke(url, msg, headers=None, poll=False, host=None, port=None):
 def invoke_impl(
     user,
     func,
+    sgx,
     input=None,
     py=False,
     asynch=False,
@@ -81,7 +82,6 @@ def invoke_impl(
     cmdline=None,
     mpi_world_size=None,
     debug=False,
-    sgx=False,
 ):
     host, port = get_invoke_host_port()
 
@@ -113,10 +113,6 @@ def invoke_impl(
     if sgx:
         msg["sgx"] = sgx
 
-    if input:
-        msg["input_data"] = input
-
-    if func.endswith('sgx_wamr'):
         key = get_random_string(AES_KEY_SIZE)
         register_msg = {'key': key}
         response = json.loads(do_post('http://{}:{}/api/v1/registry/pre-request/{}/{}'.format(KEY_MANAGER_REGISTRY_IP, KEY_MANAGER_REGISTRY_PORT, user, func), register_msg, quiet=True, json=True))
@@ -130,6 +126,9 @@ def invoke_impl(
         ciphertext, nonce, tag = encrypt_aes_gcm_128(input.encode(), key.encode())
         msg['input_data'] = base64.b64encode(nonce + tag + len(ciphertext).to_bytes(4, byteorder='little') + ciphertext).decode('utf8')
         print("Executing {}:{} with involved functions:".format(user, func), hash_list)
+
+    if input:
+        msg["input_data"] = input
 
     if cmdline:
         msg["cmdline"] = cmdline
@@ -149,7 +148,7 @@ def invoke_impl(
         )
     else:
         response = do_post(url, msg, headers=headers, json=True, debug=debug)
-        if func.endswith('sgx_wamr'):
+        if sgx:
             response_json = json.loads(response)
             if 'result' not in response_json:
                 raise RuntimeError("sgx flags needs result struct")
