@@ -26,5 +26,5 @@ run-clang-tidy-10.py \
     -quiet \
     ${FILES} > /dev/null
 
-popd >> /dev/null
+popd >> /dev/null || true
 
