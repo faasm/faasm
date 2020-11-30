@@ -266,8 +266,9 @@ int main(int argc, char* argv[])
             }
 
 #pragma omp for /* simd */
-            for (j = 0; j < length; j++)
+            for (j = 0; j < length; j++) {
                 a[j] += b[j] + scalar * c[j];
+            }
 
         } /* end of iterations                                              */
 
@@ -289,8 +290,9 @@ int main(int argc, char* argv[])
         printf("Rate (MB/s): %lf Avg time (s): %lf\n",
                1.0E-06 * bytes / avgtime,
                avgtime);
-    } else
+    } else {
         exit(EXIT_FAILURE);
+    }
 
     return 0;
 }
@@ -315,8 +317,9 @@ int checkTRIADresults(int iterations, long int length)
     aj = aj * (double)(length);
 
     asum = 0.0;
-    for (j = 0; j < length; j++)
+    for (j = 0; j < length; j++) {
         asum += a[j];
+    }
 
 #if VERBOSE
     printf("Results Comparison: \n");

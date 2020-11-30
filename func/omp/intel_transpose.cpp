@@ -195,8 +195,9 @@ int main()
 #else
                     printf("Loop collapse         = off\n");
 #endif
-                } else
+                } else {
                     printf("Untiled\n");
+                }
             }
         }
         bail_out(num_error);
@@ -209,22 +210,27 @@ int main()
 #else
 #pragma omp for
 #endif
-            for (j = 0; j < order; j += Tile_order)
-                for (i = 0; i < order; i += Tile_order)
-                    for (jt = j; jt < MIN(order, j + Tile_order); jt++)
+            for (j = 0; j < order; j += Tile_order) {
+                for (i = 0; i < order; i += Tile_order) {
+                    for (jt = j; jt < MIN(order, j + Tile_order); jt++) {
                         for (it = i; it < MIN(order, i + Tile_order); it++) {
                             A(it, jt) = (double)(order * jt + it);
                             B(it, jt) = 0.0;
                         }
+                    }
+                }
+            }
         } else {
 #pragma omp for
-            for (j = 0; j < order; j++)
+            for (j = 0; j < order; j++) {
                 for (i = 0; i < order; i++) {
                     A(i, j) = (double)(order * j + i);
                     B(i, j) = 0.0;
                 }
+            }
         }
 
+        /* Start iter loop */
         for (iter = 0; iter <= iterations; iter++) {
 
             /* start timer after a warmup iteration */
@@ -239,27 +245,30 @@ int main()
             /* Transpose the  matrix */
             if (!tiling) {
 #pragma omp for
-                for (i = 0; i < order; i++)
+                for (i = 0; i < order; i++) {
                     for (j = 0; j < order; j++) {
                         B(j, i) += A(i, j);
                         A(i, j) += 1.0;
                     }
+                }
             } else {
 #if COLLAPSE
 #pragma omp for collapse(2)
 #else
 #pragma omp for
 #endif
-                for (i = 0; i < order; i += Tile_order)
-                    for (j = 0; j < order; j += Tile_order)
-                        for (it = i; it < MIN(order, i + Tile_order); it++)
+                for (i = 0; i < order; i += Tile_order) {
+                    for (j = 0; j < order; j += Tile_order) {
+                        for (it = i; it < MIN(order, i + Tile_order); it++) {
                             for (jt = j; jt < MIN(order, j + Tile_order);
                                  jt++) {
                                 B(jt, it) += A(it, jt);
                                 A(it, jt) += 1.0;
                             }
+                        }
+                    }
+                }
             }
-
         } /* end of iter loop  */
 
 #pragma omp barrier
@@ -290,7 +299,8 @@ int main()
 #endif
         exit(EXIT_SUCCESS);
     } else {
-        printf("ERROR: Aggregate squared error %lf exceeds threshold %e\n",
+        printf("ERROR: Aggregate squared error %lf exceeds "
+               "threshold %e\n",
                abserr,
                epsilon);
         exit(EXIT_FAILURE);
@@ -298,7 +308,8 @@ int main()
 
 } /* end of main */
 
-/* function that computes the error committed during the transposition */
+/* function that computes the error committed during the
+ * transposition */
 
 double test_results(int order, double* B, int iterations)
 {

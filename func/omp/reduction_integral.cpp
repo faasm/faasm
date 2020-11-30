@@ -55,8 +55,9 @@ double integral_roundrobin()
 
         lnthreads = omp_get_num_threads();
         id = omp_get_thread_num();
-        if (id == 0)
+        if (id == 0) {
             nthreads = lnthreads;
+        }
 
         for (i = id, sum[id] = 0; i < num_steps; i += lnthreads) {
             x = (i + 0.5) * step;
