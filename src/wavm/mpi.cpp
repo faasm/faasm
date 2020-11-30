@@ -1043,7 +1043,25 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                       op,
                                       comm);
 
-    throw std::runtime_error("MPI_Scan not implemented!");
+    ContextWrapper ctx(comm);
+    faabric_datatype_t* hostDtype = ctx.getFaasmDataType(datatype);
+
+    auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(
+      ctx.memory, recvBuf, count * hostDtype->size);
+
+    // Check if we're working in-place
+    uint8_t* hostSendBuffer;
+    if (isInPlace(sendBuf)) {
+        hostSendBuffer = hostRecvBuffer;
+    } else {
+        hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(
+          ctx.memory, sendBuf, count * hostDtype->size);
+    }
+
+    faabric_op_t* hostOp = ctx.getFaasmOp(op);
+
+    ctx.world.scan(
+      ctx.rank, hostSendBuffer, hostRecvBuffer, hostDtype, count, hostOp);
 
     return MPI_SUCCESS;
 }

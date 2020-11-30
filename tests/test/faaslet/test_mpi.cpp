@@ -76,6 +76,11 @@ TEST_CASE("Test MPI reduce", "[mpi]")
     checkMpiFunc("mpi_reduce");
 }
 
+TEST_CASE("Test MPI scan", "[mpi]")
+{
+    checkMpiFunc("mpi_scan");
+}
+
 TEST_CASE("Test MPI scatter", "[mpi]")
 {
     checkMpiFunc("mpi_scatter");
