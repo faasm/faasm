@@ -11,8 +11,6 @@ WAVM_DECLARE_INTRINSIC_MODULE(env)
 
 WAVM_DECLARE_INTRINSIC_MODULE(wasi)
 
-WAVM_DECLARE_INTRINSIC_MODULE(tsenv)
-
 struct WasmThreadSpec;
 
 namespace openmp {
