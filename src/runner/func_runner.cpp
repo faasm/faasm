@@ -39,10 +39,6 @@ int main(int argc, char* argv[])
     std::string function = argv[2];
     faabric::Message call = faabric::util::messageFactory(user, function);
 
-    if (user == "ts") {
-        call.set_istypescript(true);
-    }
-
     if (user == "python") {
         faabric::util::convertMessageToPython(call);
         logger->info("Running Python function {}/{}",

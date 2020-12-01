@@ -34,7 +34,6 @@ set(LIB_FILES
         syscalls.cpp
         threads.cpp
         timing.cpp
-        typescript.cpp
         util.cpp
         ${HEADERS}
         )

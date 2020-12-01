@@ -136,7 +136,6 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
     _isBound = other._isBound;
     boundUser = other.boundUser;
     boundFunction = other.boundFunction;
-    boundIsTypescript = other.boundIsTypescript;
 
     filesystem = other.filesystem;
 
@@ -398,7 +397,6 @@ void WAVMWasmModule::doBindToFunction(const faabric::Message& msg,
 
     // Record that this module is now bound
     _isBound = true;
-    boundIsTypescript = msg.istypescript();
 
     boundUser = msg.user();
     boundFunction = msg.function();
@@ -514,18 +512,11 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
       moduleRegistry.getModule(boundUser, boundFunction, sharedModulePath);
 
     if (isMainModule) {
-        // Set up intrinsics
-        if (boundIsTypescript) {
-            // Special typescript env
-            envModule = Intrinsics::instantiateModule(
-              compartment, { WAVM_INTRINSIC_MODULE_REF(tsenv) }, "env");
-        } else {
-            // Normal (C/C++) env
-            envModule = Runtime::cloneInstance(getEnvModule(), compartment);
+        // Normal (C/C++) env
+        envModule = Runtime::cloneInstance(getEnvModule(), compartment);
 
-            // WASI
-            wasiModule = Runtime::cloneInstance(getWasiModule(), compartment);
-        }
+        // WASI
+        wasiModule = Runtime::cloneInstance(getWasiModule(), compartment);
 
         // Make sure the stack top is as expected
         IR::GlobalDef stackDef = irModule.globals.getDef(0);
@@ -797,9 +788,6 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
                 throw std::runtime_error("Unexpected function pointer args");
             }
         }
-    } else if (boundIsTypescript) {
-        // Different function signature for typescript
-        funcType = IR::FunctionType({ IR::ValueType::i32 }, {});
     } else {
         // Set up main args
         prepareArgcArgv(msg);

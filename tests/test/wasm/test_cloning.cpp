@@ -40,7 +40,6 @@ void _doChecks(wasm::WAVMWasmModule& moduleA,
                const std::string& func,
                const std::string& inputA,
                const std::string& inputB,
-               bool isTypescript,
                bool isPython)
 {
 
@@ -66,15 +65,13 @@ void _doChecks(wasm::WAVMWasmModule& moduleA,
 
     Uptr tableBeforeB;
     Uptr tableBeforeA;
-    if (!isTypescript) {
-        tableBeforeA = Runtime::getTableNumElements(moduleA.defaultTable);
-        tableBeforeB = Runtime::getTableNumElements(moduleB.defaultTable);
+    tableBeforeA = Runtime::getTableNumElements(moduleA.defaultTable);
+    tableBeforeB = Runtime::getTableNumElements(moduleB.defaultTable);
 
-        REQUIRE(tableBeforeB == tableBeforeA);
+    REQUIRE(tableBeforeB == tableBeforeA);
 
-        // Check tables are different
-        REQUIRE(moduleA.defaultTable != moduleB.defaultTable);
-    }
+    // Check tables are different
+    REQUIRE(moduleA.defaultTable != moduleB.defaultTable);
 
     // Check basic properties
     REQUIRE(moduleB.isBound());
@@ -100,32 +97,25 @@ void _doChecks(wasm::WAVMWasmModule& moduleA,
         REQUIRE(msgA.outputdata() == inputA);
     }
 
-    // Check memory has grown in the one that's executed (unless it's
-    // typescript)
+    // Check memory has grown in the one that's executed
     Uptr memAfterA1 = Runtime::getMemoryNumPages(moduleA.defaultMemory);
     Uptr memAfterB1 = Runtime::getMemoryNumPages(moduleB.defaultMemory);
     REQUIRE(memAfterB1 == memBeforeA);
 
-    if (isTypescript) {
-        REQUIRE(memAfterA1 == memBeforeA);
-    } else {
-        REQUIRE(memAfterA1 > memBeforeA);
-    }
+    REQUIRE(memAfterA1 > memBeforeA);
 
     // Check tables (should have grown for Python and not for other)
     Uptr tableAfterA1;
-    if (!isTypescript) {
-        tableAfterA1 = Runtime::getTableNumElements(moduleA.defaultTable);
-        Uptr tableAfterB1 = Runtime::getTableNumElements(moduleB.defaultTable);
+    tableAfterA1 = Runtime::getTableNumElements(moduleA.defaultTable);
+    Uptr tableAfterB1 = Runtime::getTableNumElements(moduleB.defaultTable);
 
-        if (isPython) {
-            REQUIRE(tableAfterA1 > tableBeforeA);
-        } else {
-            REQUIRE(tableAfterA1 == tableBeforeA);
-        }
-
-        REQUIRE(tableAfterB1 == tableBeforeA);
+    if (isPython) {
+        REQUIRE(tableAfterA1 > tableBeforeA);
+    } else {
+        REQUIRE(tableAfterA1 == tableBeforeA);
     }
+
+    REQUIRE(tableAfterB1 == tableBeforeA);
 
     // Execute with second module
     bool successB = moduleB.execute(msgB);
@@ -141,23 +131,19 @@ void _doChecks(wasm::WAVMWasmModule& moduleA,
     REQUIRE(memAfterB2 == memAfterA2);
     REQUIRE(memAfterA1 == memAfterA2);
 
-    if (isTypescript) {
-        REQUIRE(memAfterB2 == memBeforeB);
+    REQUIRE(memAfterB2 > memBeforeB);
+
+    Uptr tableAfterA2 = Runtime::getTableNumElements(moduleA.defaultTable);
+    Uptr tableAfterB2 = Runtime::getTableNumElements(moduleB.defaultTable);
+
+    if (isPython) {
+        REQUIRE(tableAfterB2 > tableBeforeB);
     } else {
-        REQUIRE(memAfterB2 > memBeforeB);
-
-        Uptr tableAfterA2 = Runtime::getTableNumElements(moduleA.defaultTable);
-        Uptr tableAfterB2 = Runtime::getTableNumElements(moduleB.defaultTable);
-
-        if (isPython) {
-            REQUIRE(tableAfterB2 > tableBeforeB);
-        } else {
-            REQUIRE(tableAfterB2 == tableBeforeB);
-        }
-
-        REQUIRE(tableAfterB2 == tableAfterA2);
-        REQUIRE(tableAfterA1 == tableAfterA2);
+        REQUIRE(tableAfterB2 == tableBeforeB);
     }
+
+    REQUIRE(tableAfterB2 == tableAfterA2);
+    REQUIRE(tableAfterA1 == tableAfterA2);
 
     // Check successful clean-up
     REQUIRE(moduleA.tearDown());
@@ -168,7 +154,6 @@ void _checkCopyConstructor(const std::string& user,
                            const std::string& func,
                            const std::string& inputA,
                            const std::string& inputB,
-                           bool isTypescript,
                            bool isPython)
 {
     faabric::Message msgA = faabric::util::messageFactory(user, func);
@@ -177,27 +162,20 @@ void _checkCopyConstructor(const std::string& user,
         convertMsgToPython(msgA);
     }
 
-    if (isTypescript) {
-        msgA.set_istypescript(true);
-    }
-
     WAVMWasmModule moduleA;
     moduleA.bindToFunction(msgA);
 
     WAVMWasmModule moduleB(moduleA);
-    _doChecks(
-      moduleA, moduleB, user, func, inputA, inputB, isTypescript, isPython);
+    _doChecks(moduleA, moduleB, user, func, inputA, inputB, isPython);
 }
 
 void _checkAssignmentOperator(const std::string& user,
                               const std::string& func,
                               const std::string& inputA,
                               const std::string& inputB,
-                              bool isTypescript,
                               bool isPython)
 {
     faabric::Message msgA = faabric::util::messageFactory(user, func);
-    msgA.set_istypescript(isTypescript);
 
     if (isPython) {
         convertMsgToPython(msgA);
@@ -207,8 +185,7 @@ void _checkAssignmentOperator(const std::string& user,
     moduleA.bindToFunction(msgA);
 
     WAVMWasmModule moduleB = moduleA;
-    _doChecks(
-      moduleA, moduleB, user, func, inputA, inputB, isTypescript, isPython);
+    _doChecks(moduleA, moduleB, user, func, inputA, inputB, isPython);
 }
 
 TEST_CASE("Test cloned execution on simple module", "[wasm]")
@@ -222,12 +199,12 @@ TEST_CASE("Test cloned execution on simple module", "[wasm]")
 
     SECTION("copy")
     {
-        _checkCopyConstructor(user, func, inputA, inputB, false, false);
+        _checkCopyConstructor(user, func, inputA, inputB, false);
     }
 
     SECTION("assignment")
     {
-        _checkAssignmentOperator(user, func, inputA, inputB, false, false);
+        _checkAssignmentOperator(user, func, inputA, inputB, false);
     }
 }
 
@@ -243,13 +220,10 @@ TEST_CASE("Test cloned execution on complex module", "[wasm]")
     std::string func = "numpy_test";
     std::string input;
 
-    SECTION("copy")
-    {
-        _checkCopyConstructor(user, func, input, input, false, true);
-    }
+    SECTION("copy") { _checkCopyConstructor(user, func, input, input, true); }
     SECTION("assignment")
     {
-        _checkAssignmentOperator(user, func, input, input, false, true);
+        _checkAssignmentOperator(user, func, input, input, true);
     }
 
     conf.pythonPreload = preloadVal;

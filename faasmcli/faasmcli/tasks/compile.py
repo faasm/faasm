@@ -1,11 +1,9 @@
 from os import listdir
 from os.path import join, splitext
-from subprocess import call
 
 from invoke import task
 
 from faasmcli.util.env import FUNC_DIR, PROJ_ROOT
-from faasmcli.util.typescript import ASC_BINARY, TS_DIR
 from faasmcli.util.compile import wasm_cmake, wasm_copy_upload
 
 FUNC_BUILD_DIR = join(PROJ_ROOT, "build", "func")
@@ -17,15 +15,10 @@ def _copy_built_function(user, func):
 
 
 @task(default=True, name="compile")
-def compile(ctx, user, func, clean=False, debug=False, ts=False):
+def compile(ctx, user, func, clean=False, debug=False):
     """
     Compile a function
     """
-
-    # Typescript compilation
-    if ts:
-        return _ts_compile(func)
-
     # Build the function (gets written to the build dir)
     # Will fail if compilation fails
     target = func
@@ -52,23 +45,3 @@ def user(ctx, user, clean=False, debug=False):
             continue
 
         _copy_built_function(user, name)
-
-
-def _ts_compile(func, optimize=True):
-    cmd = [
-        ASC_BINARY,
-        "assembly/{}.ts".format(func),
-        "-b build/{}.wasm".format(func),
-        "-t build/{}.wast".format(func),
-        "--sourceMap",
-        "--validate",
-    ]
-
-    if optimize:
-        cmd.append("--optimize")
-    else:
-        cmd.append("--debug")
-
-    cmd_string = " ".join(cmd)
-    print(cmd_string)
-    call(cmd_string, cwd=TS_DIR, shell=True)

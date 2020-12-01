@@ -444,19 +444,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     return _readInputImpl(bufferPtr, bufferLen);
 }
 
-WAVM_DEFINE_INTRINSIC_FUNCTION(tsenv,
-                               "__faasm_read_input",
-                               I32,
-                               __ts_faasm_read_input,
-                               I32 bufferPtr,
-                               I32 bufferLen)
-{
-    faabric::util::getLogger()->debug(
-      "TS - read_input - {} {}", bufferPtr, bufferLen);
-
-    return _readInputImpl(bufferPtr, bufferLen);
-}
-
 void _writeOutputImpl(I32 outputPtr, I32 outputLen)
 {
     std::vector<uint8_t> outputData = getBytesFromWasm(outputPtr, outputLen);
@@ -473,18 +460,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     faabric::util::getLogger()->debug(
       "S - write_output - {} {}", outputPtr, outputLen);
-    _writeOutputImpl(outputPtr, outputLen);
-}
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(tsenv,
-                               "__faasm_write_output",
-                               void,
-                               __ts_faasm_write_output,
-                               I32 outputPtr,
-                               I32 outputLen)
-{
-    faabric::util::getLogger()->debug(
-      "TS - write_output - {} {}", outputPtr, outputLen);
     _writeOutputImpl(outputPtr, outputLen);
 }
 
