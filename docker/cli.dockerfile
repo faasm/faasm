@@ -39,9 +39,6 @@ RUN pip3 install -e faasmcli/
 # Build some useful targets
 RUN inv -r faasmcli/faasmcli dev.tools --build Release
 
-# Set up native tools
-RUN inv -r faasmcli/faasmcli libs.native --tidy
-
 # Install common libraries
 RUN inv -r faasmcli/faasmcli libs.toolchain
 
