@@ -2,7 +2,6 @@
 
 #include "utils.h"
 
-#include <emulator/emulator.h>
 #include <faabric/state/DummyStateServer.h>
 #include <faabric/util/func.h>
 #include <faabric/util/memory.h>

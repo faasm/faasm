@@ -572,39 +572,3 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         return 0;
     }
 }
-
-// Emulator API, should not be called from wasm but needs to be present for
-// linking
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "setEmulatedMessageFromJson",
-                               I32,
-                               setEmulatedMessageFromJson,
-                               I32 msgPtr)
-{
-    faabric::util::getLogger()->debug("S - setEmulatedMessageFromJson - {}",
-                                      msgPtr);
-    throw std::runtime_error(
-      "Should not be calling emulator functions from wasm");
-}
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "emulatorGetAsyncResponse",
-                               I32,
-                               emulatorGetAsyncResponse)
-{
-    faabric::util::getLogger()->debug("S - emulatorGetAsyncResponse");
-    throw std::runtime_error(
-      "Should not be calling emulator functions from wasm");
-}
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "emulatorSetCallStatus",
-                               void,
-                               emulatorSetCallStatus,
-                               I32 success)
-{
-    faabric::util::getLogger()->debug("S - emulatorSetCallStatus {}", success);
-    throw std::runtime_error(
-      "Should not be calling emulator functions from wasm");
-}
-}

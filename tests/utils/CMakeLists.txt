@@ -15,5 +15,4 @@ target_link_libraries(test_utils
         faasm
         upload_lib
         faaslet_lib
-        emulator
         )

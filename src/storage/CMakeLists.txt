@@ -12,10 +12,9 @@ set(LIB_FILES
         FileserverFileLoader.cpp
         LocalFileLoader.cpp
         SharedFiles.cpp
-        SparseMatrixFileSerialiser.cpp
         instance.cpp
         ${HEADERS}
         )
 
 faasm_private_lib(storage "${LIB_FILES}")
-target_link_libraries(storage faasm emulator wavmmodule wamrmodule)
+target_link_libraries(storage faasm wavmmodule wamrmodule)

@@ -4,7 +4,6 @@
 
 #include <faabric/util/environment.h>
 
-#include <emulator/emulator.h>
 #include <faabric/util/bytes.h>
 #include <faaslet/Faaslet.h>
 #include <faaslet/FaasletPool.h>
@@ -16,7 +15,6 @@ TEST_CASE("Test repeat invocation with state", "[faaslet]")
 {
     // Set up the function call
     faabric::Message call = faabric::util::messageFactory("demo", "increment");
-    setEmulatedMessage(call);
 
     // Call function
     FaasletPool pool(1);
@@ -37,7 +35,6 @@ TEST_CASE("Test repeat invocation with state", "[faaslet]")
     // Call the function a second time, the state should have been incremented
     call.set_id(0);
     faabric::util::setMessageId(call);
-    setEmulatedMessage(call);
 
     sch.callFunction(call);
     w.processNextMessage();

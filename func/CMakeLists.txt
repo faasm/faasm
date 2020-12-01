@@ -67,7 +67,7 @@ else ()
 
     function(faasm_func_c func_name file_name)
         add_executable(${func_name} ${file_name})
-        target_link_libraries(${func_name} faasm emulator dl)
+        target_link_libraries(${func_name} faasm dl)
     endfunction(faasm_func_c)
 
     function(faasm_func func_name file_name)
