@@ -28,7 +28,6 @@ def _upload_function(
     user,
     func,
     py=False,
-    ts=False,
     file=None,
     local_copy=False,
 ):
@@ -51,12 +50,6 @@ def _upload_function(
         func_file = join(PROJ_ROOT, "func", user, "{}.py".format(func))
 
         url = "http://{}:{}/p/{}/{}".format(host, port, user, func)
-        curl_file(url, func_file)
-    elif ts:
-        func_file = join(
-            PROJ_ROOT, "typescript", "build", "{}.wasm".format(func)
-        )
-        url = "http://{}:{}/f/ts/{}".format(host, port, func)
         curl_file(url, func_file)
     else:
         if file:
@@ -96,10 +89,10 @@ def user(ctx, user, py=False, local_copy=False):
 
 
 @task(default=True)
-def upload(ctx, user, func, py=False, ts=False, file=None, local_copy=False):
+def upload(ctx, user, func, py=False, file=None, local_copy=False):
     """
     Upload a function
     """
     _upload_function(
-        user, func, py=py, ts=ts, file=file, local_copy=local_copy
+        user, func, py=py, file=file, local_copy=local_copy
     )

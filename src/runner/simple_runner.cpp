@@ -120,9 +120,7 @@ bool runFunction(std::string& user, std::string& function, int runCount)
     // Set up function call
     faabric::Message m = faabric::util::messageFactory(user, function);
 
-    if (user == "ts") {
-        m.set_istypescript(true);
-    } else if (user == "python") {
+    if (user == "python") {
         m.set_ispython(true);
         m.set_pythonfunction(function);
         m.set_pythonuser(user);
