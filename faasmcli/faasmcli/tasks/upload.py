@@ -93,6 +93,4 @@ def upload(ctx, user, func, py=False, file=None, local_copy=False):
     """
     Upload a function
     """
-    _upload_function(
-        user, func, py=py, file=file, local_copy=local_copy
-    )
+    _upload_function(user, func, py=py, file=file, local_copy=local_copy)

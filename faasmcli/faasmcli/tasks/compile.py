@@ -45,4 +45,3 @@ def user(ctx, user, clean=False, debug=False):
             continue
 
         _copy_built_function(user, name)
-
