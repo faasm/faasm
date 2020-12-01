@@ -1,7 +1,6 @@
 include_directories(${CMAKE_CURRENT_LIST_DIR})
 
 set(LIB_FILES
-        matrix_utils.cpp
         system_utils.cpp
         worker_utils.cpp
         utils.h
