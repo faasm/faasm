@@ -12,7 +12,6 @@ faasm_private_lib(test_utils "${LIB_FILES}")
 add_dependencies(test_utils catch2_ext)
 target_link_libraries(test_utils
         faabric_test_utils
-        faasm
         upload_lib
         faaslet_lib
         )
