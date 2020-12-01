@@ -1,5 +1,4 @@
 #include <catch2/catch.hpp>
-#include <emulator/emulator.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/environment.h>
 #include <module_cache/WasmModuleCache.h>
@@ -97,8 +96,6 @@ void execFuncWithPool(faabric::Message& call,
         cleanSystem();
     }
 
-    setEmulatedMessage(call);
-
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.clear();
     sch.addHostToGlobalSet();
@@ -126,7 +123,6 @@ void execFuncWithPool(faabric::Message& call,
         faabric::util::setMessageId(call);
 
         mainFuncId = call.id();
-        setEmulatedMessage(call);
 
         // Make the call
         sch.callFunction(call);
@@ -198,7 +194,6 @@ void checkCallingFunctionGivesBoolOutput(const std::string& user,
                                          bool expected)
 {
     faabric::Message call = faabric::util::messageFactory("demo", funcName);
-    setEmulatedMessage(call);
 
     FaasletPool pool(1);
     Faaslet w(1);

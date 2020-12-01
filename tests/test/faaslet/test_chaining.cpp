@@ -2,7 +2,6 @@
 
 #include "utils.h"
 
-#include <emulator/emulator.h>
 #include <faabric/util/environment.h>
 
 using namespace faaslet;

@@ -2,7 +2,6 @@
 
 #include "utils.h"
 
-#include <emulator/emulator.h>
 #include <faabric/state/DummyStateServer.h>
 #include <faabric/util/func.h>
 #include <faabric/util/memory.h>
@@ -62,7 +61,7 @@ TEST_CASE("Test loading state into wasm module", "[wasm]")
 
     // Get the kv
     faabric::state::State& s = faabric::state::getGlobalState();
-    const std::string user = getEmulatorUser();
+    const std::string user = "demo";
     const std::string key = "wasm_state_test";
     auto kv = s.getKV(user, key, stateSize);
 
@@ -102,7 +101,7 @@ TEST_CASE("Test mapping state chunk from remote state", "[state]")
     std::vector<uint8_t> expected = { 4, 5, 3, 3, 3 };
     std::vector<uint8_t> zeroes(expected.size(), 0);
 
-    std::string user = getEmulatorUser();
+    std::string user = "demo";
     std::string key = "chunk_map";
 
     // Set up a remote state server

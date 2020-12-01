@@ -3,13 +3,6 @@
 
 #include <Python.h>
 
-#ifndef __wasm__
-extern "C"
-{
-#include <emulator/emulator_api.h>
-}
-#endif
-
 // --------------------------------------------------
 // See the CPython embedding docs for more info:
 // https://docs.python.org/3/extending/embedding.html

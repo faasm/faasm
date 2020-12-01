@@ -1,16 +1,10 @@
 #include <catch2/catch.hpp>
 
-extern "C"
-{
-#include <emulator/emulator_api.h>
-}
-
 #include "utils.h"
 
 #include <faabric/redis/Redis.h>
 #include <faabric/util/environment.h>
 
-#include <emulator/emulator.h>
 #include <faaslet/FaasletPool.h>
 #include <wavm/WAVMWasmModule.h>
 
@@ -25,7 +19,6 @@ static void setUp()
     cleanSystem();
 
     faabric::Message call = faabric::util::messageFactory("demo", "chain");
-    setEmulatedMessage(call);
 
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.clear();
@@ -65,7 +58,6 @@ TEST_CASE("Test binding to function", "[faaslet]")
     setUp();
 
     faabric::Message call = faabric::util::messageFactory("demo", "chain");
-    setEmulatedMessage(call);
 
     FaasletPool pool(1);
     Faaslet w(1);
@@ -80,7 +72,6 @@ TEST_CASE("Test binding twice causes error unless forced", "[faaslet]")
     setUp();
 
     faabric::Message callA = faabric::util::messageFactory("demo", "chain");
-    setEmulatedMessage(callA);
 
     FaasletPool pool(1);
     Faaslet w(1);
@@ -103,7 +94,6 @@ TEST_CASE("Test execution of empty echo function", "[faaslet]")
 {
     setUp();
     faabric::Message call = faabric::util::messageFactory("demo", "echo");
-    setEmulatedMessage(call);
 
     // Run the execution
     execFunction(call);
@@ -117,7 +107,6 @@ TEST_CASE("Test repeat execution of WASM module", "[faaslet]")
 
     faabric::Message call = faabric::util::messageFactory("demo", "echo");
     call.set_inputdata("first input");
-    setEmulatedMessage(call);
 
     // Set up
     FaasletPool pool(1);
@@ -141,7 +130,6 @@ TEST_CASE("Test repeat execution of WASM module", "[faaslet]")
     call.set_inputdata("second input");
     call.set_id(0);
     faabric::util::setMessageId(call);
-    setEmulatedMessage(call);
 
     sch.callFunction(call);
 
@@ -168,7 +156,6 @@ TEST_CASE("Test bind message causes worker to bind", "[faaslet]")
 
     // Invoke a new call which will require a worker to bind
     faabric::Message call = faabric::util::messageFactory("demo", "echo");
-    setEmulatedMessage(call);
 
     sch.callFunction(call);
 
@@ -188,7 +175,6 @@ TEST_CASE("Test memory is reset", "[faaslet]")
     cleanSystem();
 
     faabric::Message call = faabric::util::messageFactory("demo", "heap");
-    setEmulatedMessage(call);
 
     // Call function
     Faaslet w(1);
@@ -234,7 +220,6 @@ TEST_CASE("Test pool accounting", "[faaslet]")
     REQUIRE(pool.getThreadCount() == 0);
 
     faabric::Message call = faabric::util::messageFactory("demo", "noop");
-    setEmulatedMessage(call);
 
     // Add threads and check tokens are taken
     Faaslet w1(pool.getThreadToken());
@@ -257,7 +242,6 @@ TEST_CASE("Test worker lifecycle interacts with scheduler", "[faaslet]")
     std::string thisHost = faabric::util::getSystemConfig().endpointHost;
 
     faabric::Message call = faabric::util::messageFactory("demo", "noop");
-    setEmulatedMessage(call);
 
     // Sense check initial scheduler set-up
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();

@@ -1,12 +1,6 @@
 #include "utils.h"
 #include <catch2/catch.hpp>
 
-extern "C"
-{
-#include <emulator/emulator_api.h>
-}
-
-#include <emulator/emulator.h>
 #include <faabric/executor/FaabricPool.h>
 #include <faabric/util/config.h>
 

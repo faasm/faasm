@@ -176,36 +176,31 @@ include_directories(
 add_subdirectory(libs/cpp)
 add_subdirectory(libs/faasmp)
 add_subdirectory(libs/faasmpi)
-add_subdirectory(src/emulator)
 
-if (FAASM_BUILD_TYPE STREQUAL "native-tools")
-    # Ignore the rest if just doing a native tools build
-else ()
-    # Faasm functions
-    add_subdirectory(func)
+# Faasm functions
+add_subdirectory(func)
 
-    # Faasm libraries
-    add_subdirectory(libs/pyinit)
-    add_subdirectory(libs/rust)
+# Faasm libraries
+add_subdirectory(libs/pyinit)
+add_subdirectory(libs/rust)
 
-    # Faasm runtime
-    add_subdirectory(src/faaslet)
-    add_subdirectory(src/ir_cache)
-    add_subdirectory(src/module_cache)
-    add_subdirectory(src/runner)
-    add_subdirectory(src/storage)
-    add_subdirectory(src/system)
-    add_subdirectory(src/upload)
-    add_subdirectory(src/wasm)
-    add_subdirectory(src/wamr)
-    add_subdirectory(src/wavm)
+# Faasm runtime
+add_subdirectory(src/faaslet)
+add_subdirectory(src/ir_cache)
+add_subdirectory(src/module_cache)
+add_subdirectory(src/runner)
+add_subdirectory(src/storage)
+add_subdirectory(src/system)
+add_subdirectory(src/upload)
+add_subdirectory(src/wasm)
+add_subdirectory(src/wamr)
+add_subdirectory(src/wavm)
 
-    # Faasm SGX support
-    if (SGX_FOUND)
-        add_subdirectory(src/sgx)
-    endif ()
-
-    # Tests
-    add_subdirectory(tests/test)
-    add_subdirectory(tests/utils)
+# Faasm SGX support
+if (SGX_FOUND)
+    add_subdirectory(src/sgx)
 endif ()
+
+# Tests
+add_subdirectory(tests/test)
+add_subdirectory(tests/utils)

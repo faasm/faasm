@@ -2,7 +2,6 @@ from os import makedirs
 from os.path import exists
 from os.path import join
 from subprocess import run
-from shutil import rmtree
 
 from invoke import task
 
@@ -10,7 +9,6 @@ from faasmcli.util.codegen import find_codegen_shared_lib
 from faasmtools.build import CMAKE_TOOLCHAIN_FILE, WASM_SYSROOT
 from faasmcli.util.env import (
     PROJ_ROOT,
-    FAASM_INSTALL_DIR,
     FAASM_RUNTIME_ROOT,
 )
 from faasmcli.util.files import clean_dir
@@ -28,41 +26,6 @@ def toolchain(ctx, clean=False):
     fake(ctx, clean=clean)
     pyinit(ctx, clean=clean)
     rust(ctx, clean=clean)
-
-
-@task
-def native(ctx, clean=False, tidy=False):
-    """
-    Compile and install Faasm native tools
-    """
-    if not exists(FAASM_INSTALL_DIR):
-        makedirs(FAASM_INSTALL_DIR)
-
-    build_dir = join(PROJ_ROOT, "build", "native_tools")
-    clean_dir(build_dir, clean)
-
-    build_cmd = [
-        "cmake",
-        "-GNinja",
-        "-DCMAKE_CXX_COMPILER=/usr/bin/clang++-10",
-        "-DCMAKE_C_COMPILER=/usr/bin/clang-10",
-        "-DFAASM_BUILD_TYPE=native-tools",
-        "-DFAASM_STATIC_LIBS=OFF",
-        "-DFAABRIC_BUILD_TESTS=OFF",
-        "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_INSTALL_DIR),
-        PROJ_ROOT,
-    ]
-
-    build_cmd_str = " ".join(build_cmd)
-    print(build_cmd_str)
-
-    run(build_cmd_str, shell=True, cwd=build_dir, check=True)
-    run("ninja", shell=True, cwd=build_dir, check=True)
-    run("sudo ninja install", shell=True, cwd=build_dir, check=True)
-
-    if tidy:
-        rmtree(build_dir)
 
 
 def _build_faasm_lib(dir_name, clean, verbose, target=None):
