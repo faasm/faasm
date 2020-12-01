@@ -53,7 +53,6 @@ void checkStateExample(const std::string& funcName,
 
     // Set up the function call
     faabric::Message call = faabric::util::messageFactory("demo", funcName);
-    setEmulatedMessage(call);
 
     // Call function
     FaasletPool pool(1);

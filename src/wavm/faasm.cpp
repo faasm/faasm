@@ -11,6 +11,7 @@
 using namespace WAVM;
 
 namespace wasm {
+
 void faasmLink() {}
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -571,4 +572,5 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         logger->warn("Unknown conf flag: {}", key);
         return 0;
     }
+}
 }
