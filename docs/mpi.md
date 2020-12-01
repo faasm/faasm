@@ -3,8 +3,8 @@
 Faasm provides a custom MPI implementation to execute existing unmodified MPI 
 applications in a serverless context. 
 
-The Faasm MPI implementation is minimal but covers the majority of commonplace
-MPI functionality (point-to-point, collective, one-sided, custom datatypes).   
+The Faasm MPI implementation covers the majority of commonplace MPI
+functionality (point-to-point, collective, one-sided, custom datatypes).   
 
 ## MPI Functions
 
