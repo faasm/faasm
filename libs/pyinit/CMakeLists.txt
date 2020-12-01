@@ -8,7 +8,7 @@ include_directories(${CMAKE_CURRENT_LIST_DIR})
 set(LIB_FILES pyinit.c)
 set(PUBLIC_HEADERS faasm/pyinit.h)
 
-if(FAASM_BUILD_TYPE STREQUAL "wasm")
+if (CMAKE_SYSTEM_NAME STREQUAL "Wasm")
     add_library(pyinit STATIC ${LIB_FILES})
     set_target_properties(pyinit PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 

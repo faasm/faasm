@@ -31,12 +31,15 @@ To build and run the tests, you can then run the following inside the container:
 # Build the development tools
 inv dev.tools
 
-# Upload the Python functions
-inv upload.user python --local-copy --py
+# Compile code required for the tests
+inv compile.local
 
 # Run codegen (this may take a while the first time it's run)
 inv codegen.local
 inv python.codegen
+
+# Upload the Python functions
+inv upload.user python --local-copy --py
 
 # Set up cgroup
 ./bin/cgroup.sh

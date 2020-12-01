@@ -25,7 +25,7 @@ set_target_properties(faasmpi PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 # Only do the install if we're doing a WASM build
 # WARNING - this overwrites the existing mpi.h on the system if not used in a
 # wasm build
-if (FAASM_BUILD_TYPE STREQUAL "wasm")    
+if (CMAKE_SYSTEM_NAME STREQUAL "Wasm")
     # We need to build just the Faabric MPI library to wasm here
     # TODO - split Faabric MPI library out into a separate repo 
     FetchContent_Declare(faabric_ext
