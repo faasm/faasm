@@ -5,12 +5,7 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
-    types: 
-      - opened
-      - edited
-      - syncrhonize
-      - reopened
-      - ready_for_review
+    types: [opened, syncrhonize, reopened, ready_for_review]
 
 jobs:
   formatting:
