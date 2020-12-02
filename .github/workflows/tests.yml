@@ -7,6 +7,7 @@ on:
     branches: [master]
     types: 
       - opened
+      - edited
       - syncrhonize
       - reopened
       - ready_for_review
