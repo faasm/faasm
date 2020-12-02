@@ -3,7 +3,7 @@ set(PUBLIC_HEADERS ../include/sharedHeader.h libA.h)
 add_library(fakeLibA SHARED ${PUBLIC_HEADERS} libA.c)
 set_target_properties(fakeLibA PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
-if(FAASM_BUILD_TYPE STREQUAL "wasm")
+if (CMAKE_SYSTEM_NAME STREQUAL "Wasm")
     install(TARGETS fakeLibA
             ARCHIVE DESTINATION lib/wasm32-wasi
             LIBRARY DESTINATION lib/wasm32-wasi

@@ -97,7 +97,7 @@ demo_func(zygote_check zygote_check.cpp)
 
 # 23/09/2020 - removing simd
 # WASM-only functions
-if(FAASM_BUILD_TYPE STREQUAL "wasm")
+if (CMAKE_SYSTEM_NAME STREQUAL "Wasm")
     # demo_func(eigen_vec eigen_vec.cpp)
 
     # TODO - fix BLAS check function

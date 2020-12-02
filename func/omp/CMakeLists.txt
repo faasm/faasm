@@ -1,6 +1,6 @@
 set(FAASM_USER omp)
 
-if (FAASM_BUILD_TYPE STREQUAL "wasm")
+if (CMAKE_SYSTEM_NAME STREQUAL "Wasm")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 else ()
@@ -19,7 +19,7 @@ function(omp_func exec_name dir_path)
         set(EXEC_NAME ${exec_name})
     endif ()
 
-    if (FAASM_BUILD_TYPE STREQUAL "wasm")
+    if (CMAKE_SYSTEM_NAME STREQUAL "Wasm")
         target_link_libraries(${exec_name} faasmp)
     else ()
         target_link_libraries(${exec_name} pthread)
@@ -61,7 +61,7 @@ omp_func(multi_pi multi_pi.cpp)
 omp_func(mt_pi mt_pi.cpp)
 omp_func(multi_cr multi_cr.cpp)
 
-if (FAASM_BUILD_TYPE STREQUAL "wasm")
+if (CMAKE_SYSTEM_NAME STREQUAL "Wasm")
     omp_func(stack_debug stack_debug.cpp)
 endif ()
 

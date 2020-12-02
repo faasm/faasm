@@ -41,7 +41,7 @@ set(LIB_FILES
         )
 
 
-if (FAASM_BUILD_TYPE STREQUAL "wasm")
+if (CMAKE_SYSTEM_NAME STREQUAL "Wasm")
     add_library(faasm STATIC ${LIB_FILES})
     set_target_properties(faasm PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 

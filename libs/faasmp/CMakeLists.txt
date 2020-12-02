@@ -14,7 +14,7 @@ set(LIB_FILES
         faasmp.cpp
         )
 
-if (FAASM_BUILD_TYPE STREQUAL "wasm")
+if (CMAKE_SYSTEM_NAME STREQUAL "Wasm")
     set(LIBOMP_ASMFILES "z_Linux_asm.S")
     set_source_files_properties(${LIBOMP_ASMFILES} PROPERTIES LANGUAGE C)
     set(LIB_FILES ${LIBOMP_ASMFILES} ${LIB_FILES})

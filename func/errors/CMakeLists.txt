@@ -12,7 +12,7 @@ error_func(open_blocked open_blocked.cpp)
 error_func(ret_one ret_one.cpp)
 error_func(stdin_poll stdin_poll.cpp)
 
-if (FAASM_BUILD_TYPE STREQUAL "wasm")
+if (CMAKE_SYSTEM_NAME STREQUAL "Wasm")
     error_func(stackoverflow stackoverflow.cpp)
 endif()
 

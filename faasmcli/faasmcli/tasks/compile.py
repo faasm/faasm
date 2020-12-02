@@ -45,3 +45,15 @@ def user(ctx, user, clean=False, debug=False):
             continue
 
         _copy_built_function(user, name)
+
+
+@task
+def local(ctx, clean=False, debug=False):
+    """
+    Compile all functions used in the tests
+    """
+    user(ctx, "demo", clean, debug)
+    user(ctx, "errors", clean, debug)
+    user(ctx, "mpi", clean, debug)
+    user(ctx, "omp", clean, debug)
+    user(ctx, "python", clean, debug)
