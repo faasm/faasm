@@ -3,7 +3,7 @@ project(faasm-func)
 
 set(CMAKE_CXX_STANDARD 17)
 
-if (FAASM_BUILD_TYPE STREQUAL "wasm")
+if (CMAKE_SYSTEM_NAME STREQUAL "Wasm")
     message(STATUS "Detected wasm build (sysroot=${CMAKE_SYSROOT})")
 
     # NOTE: we have to set the max memory here but want it to be as close to the
@@ -30,7 +30,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
 endif ()
 
 
-if (FAASM_BUILD_TYPE STREQUAL "wasm")
+if (CMAKE_SYSTEM_NAME STREQUAL "Wasm")
     # ----------------------
     # Wasm build
     # ----------------------
