@@ -6,20 +6,11 @@ set(OMPI_C ${C})
 function(mpi_func exec_name dir_path)
     faasm_func(${exec_name} ${dir_path})
 
-    if (CMAKE_SYSTEM_NAME STREQUAL "Wasm")
-        set(MPI_LIB mpi)
-    else ()
-        include_directories(/usr/local/faasm/openmpi/include)
-        set(MPI_LIB /usr/local/faasm/openmpi/lib/libmpi.so)
-    endif ()
+    target_link_libraries(${exec_name} faasmpi mpi)
 
-    if (CMAKE_SYSTEM_NAME STREQUAL "Wasm")
-        target_link_libraries(${exec_name} faasmpi)
-    else ()
+    if (NOT CMAKE_SYSTEM_NAME STREQUAL "Wasm")
         target_link_libraries(${exec_name} pthread)
     endif ()
-
-    target_link_libraries(${exec_name} ${MPI_LIB})
 
     # Add to list of all funcs
     set(ALL_MPI_FUNCS ${ALL_MPI_FUNCS} ${exec_name} PARENT_SCOPE)

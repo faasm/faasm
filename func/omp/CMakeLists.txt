@@ -13,15 +13,9 @@ endif ()
 function(omp_func exec_name dir_path)
     faasm_func(${exec_name} ${dir_path})
 
-    if (FAASM_BUILD_TYPE STREQUAL "knative-native")
-        set(EXEC_NAME ${exec_name}-knative)
-    else ()
-        set(EXEC_NAME ${exec_name})
-    endif ()
+    target_link_libraries(${exec_name} faasmp)
 
-    if (CMAKE_SYSTEM_NAME STREQUAL "Wasm")
-        target_link_libraries(${exec_name} faasmp)
-    else ()
+    if (NOT CMAKE_SYSTEM_NAME STREQUAL "Wasm")
         target_link_libraries(${exec_name} pthread)
     endif ()
 
