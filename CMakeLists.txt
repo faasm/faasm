@@ -38,6 +38,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(FAASM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(FAASM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
 set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/pyinit)
+set(FAASM_NATIVE_INSTALL "/usr/local/faasm/native")
 
 # Detect SGX
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
@@ -161,6 +162,9 @@ include_directories(
 
 # Add Faabric src include for protobuf generated sources
 include_directories(${FAABRIC_BINARY_DIR}/src)
+
+# Include headers from native installs of Faasm C/C++ libraries
+include_directories(${FAASM_NATIVE_INSTALL}/include)
 
 # More include directories
 include_directories(

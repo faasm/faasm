@@ -3,9 +3,6 @@ project(faasm-func)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# Native installation for building Faasm functions natively
-set(FAASM_NATIVE_INSTALL "/usr/local/faasm/native")
-
 if (CMAKE_SYSTEM_NAME STREQUAL "Wasm")
     message(STATUS "Detected wasm build (sysroot=${CMAKE_SYSROOT})")
 
