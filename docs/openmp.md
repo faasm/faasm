@@ -1,7 +1,7 @@
 # Faasm OpenMP Runtime
 
-Faasm supports OpenMP by intercepting calls to the LLVM OpenMP `libomp` runtime
-with the `libfaasmp` library. It can run OpenMP threads in two different modes:
+Faasm supports OpenMP by intercepting calls to the OpenMP `libomp` runtime with
+the `libfaasmp` library. It can run OpenMP threads in two different modes:
 
 - Intra-Faaslet parallelism, by using WebAssembly threads inside the Faaslet
 as OpenMP thread executor. The local threads are managed by a thread pool
