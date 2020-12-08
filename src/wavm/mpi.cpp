@@ -1223,6 +1223,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 /**
  * Makes a new communicator to which Cartesian topology information has been
  * attached.
+ * Note: In MPI, memory is allocated from within the function call, that's
+ * why we allocate it here.
  *
  * Reference implementation:
  * https://github.com/open-mpi/ompi/blob/master/ompi/mca/topo/base/topo_base_cart_create.c
@@ -1236,7 +1238,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 dims,
                                I32 periods,
                                I32 reorder,
-                               I32 newCommPtr)
+                               I32 newCommPtrPtr)
 {
     faabric::util::getLogger()->debug("S - MPI_Cart_create {} {} {} {} {} {}",
                                       commOld,
@@ -1244,22 +1246,26 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                       dims,
                                       periods,
                                       reorder,
-                                      newCommPtr);
+                                      newCommPtrPtr);
 
     ContextWrapper ctx(commOld);
 
-    // Set up the communicator object in the WASM memory. Note that we return
-    // a pointer to it.
-    I32 tmpPtr = Runtime::memoryRef<I32>(ctx.memory, newCommPtr);
-    faabric_communicator_t* newComm =
-      &Runtime::memoryRef<faabric_communicator_t>(ctx.memory, tmpPtr);
+    // Allocate new faabric_communicator_t object
+    I32 memSize = sizeof(faabric_communicator_t);
+    U32 mappedWasmPtr = ctx.module->mmapMemory(memSize);
+
+    // Write the value to wasm memory
+    I32* hostCommPtr = &Runtime::memoryRef<I32>(ctx.memory, newCommPtrPtr);
+    *hostCommPtr = mappedWasmPtr;
 
     // Cast the original communicator
-    auto origComm =
-      Runtime::memoryRef<faabric_communicator_t>(ctx.memory, commOld);
+    faabric_communicator_t* origComm =
+      &Runtime::memoryRef<faabric_communicator_t>(ctx.memory, commOld);
 
-    // Copy the values from the old the the new
-    *newComm = origComm;
+    // Populate the new object
+    faabric_communicator_t* newComm =
+      &Runtime::memoryRef<faabric_communicator_t>(ctx.memory, *hostCommPtr);
+    *newComm = *origComm;
 
     return MPI_SUCCESS;
 }

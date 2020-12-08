@@ -36,6 +36,11 @@ TEST_CASE("Test MPI broadcast", "[mpi]")
     checkMpiFunc("mpi_bcast");
 }
 
+TEST_CASE("Test MPI cartesian create", "[mpi]")
+{
+    checkMpiFunc("mpi_cart_create");
+}
+
 TEST_CASE("Test MPI cartesian coordinates", "[mpi]")
 {
     checkMpiFunc("mpi_cartesian");
