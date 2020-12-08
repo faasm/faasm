@@ -62,8 +62,6 @@ class ContextWrapper
             logger->error("Unrecognised communicator type {}", hostComm->id);
             return false;
         }
-        faabric::util::getLogger()->debug(
-          "hostComm: {} - hostComm->id {}", wasmPtr, hostComm->id);
 
         return true;
     }
