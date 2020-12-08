@@ -91,6 +91,11 @@ TEST_CASE("Test MPI scatter", "[mpi]")
     checkMpiFunc("mpi_scatter");
 }
 
+TEST_CASE("Test MPI sendrecv", "[mpi]")
+{
+    checkMpiFunc("mpi_sendrecv");
+}
+
 TEST_CASE("Test MPI status", "[mpi]")
 {
     checkMpiFunc("mpi_status");
