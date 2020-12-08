@@ -1223,7 +1223,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 /**
  * Makes a new communicator to which Cartesian topology information has been
  * attached.
- * Note: In OpenMPI, memory is allocated from within the function call, that's
+ * Note: In MPI, memory is allocated from within the function call, that's
  * why we allocate it here.
  *
  * Reference implementation:
