@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
                  &recvValue,
                  1,
                  MPI_INT,
-                 rank,
+                 left,
                  0,
                  MPI_COMM_WORLD,
                  nullptr);

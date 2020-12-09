@@ -542,6 +542,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                        recvCount,
                        hostRecvDtype,
                        source,
+                       ctx.rank,
                        status);
 
     return MPI_SUCCESS;
