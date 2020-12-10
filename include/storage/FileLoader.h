@@ -13,7 +13,7 @@
 #define IS_DIR_RESPONSE "IS_DIR"
 
 // Define custom header for making requests for files
-#define FILE_HEADER "FilePath"
+#define FILE_PATH_HEADER "FilePath"
 CUSTOM_HEADER(FilePath)
 
 namespace storage {

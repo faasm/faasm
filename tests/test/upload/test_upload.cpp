@@ -203,7 +203,7 @@ TEST_CASE("Upload tests", "[upload]")
         std::string url = "/file";
         http_request request = createRequest(url, fileBytes);
         http_headers& h = request.headers();
-        h.add(FILE_HEADER, relativePath);
+        h.add(FILE_PATH_HEADER, relativePath);
         edge::UploadServer::handlePut(request);
 
         // Check file
@@ -288,7 +288,7 @@ TEST_CASE("Shared object fileserver test", "[upload]")
 
     http_request request = createRequest(urlPath);
     http_headers& h = request.headers();
-    h.add(FILE_HEADER, filePath);
+    h.add(FILE_PATH_HEADER, filePath);
 
     // Submit request
     edge::UploadServer::handleGet(request);
@@ -328,7 +328,7 @@ TEST_CASE("Shared file fileserver test", "[upload]")
     std::string urlPath = "/file";
     http_request request = createRequest(urlPath);
     http_headers& h = request.headers();
-    h.add(FILE_HEADER, relativePath);
+    h.add(FILE_PATH_HEADER, relativePath);
 
     // Submit request and get response data
     edge::UploadServer::handleGet(request);
