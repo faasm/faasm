@@ -21,7 +21,6 @@ jobs:
         run: git fetch origin ${GITHUB_REF}:ci-branch
       - name: "Check out branch"
         run: git checkout --force ci-branch
-      # --- Rerun the build to regenerate compile_commands.json ---
       - name: "Run CMake to regenerate compile commands"
         run: inv -r faasmcli/faasmcli dev.cmake --build Release
       # --- Formatting checks ---
