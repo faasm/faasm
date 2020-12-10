@@ -110,12 +110,4 @@ class SharedFileIsDirectoryException : public faabric::util::FaabricException
       : faabric::util::FaabricException(filePath + " is a directory")
     {}
 };
-
-class FileAtUrlIsDirectoryException : public faabric::util::FaabricException
-{
-  public:
-    explicit FileAtUrlIsDirectoryException(std::string message)
-      : FaabricException(std::move(message))
-    {}
-};
 };

@@ -50,12 +50,13 @@ std::vector<uint8_t> _doLoad(const std::string& url,
     }
 
     // Check whether it's a directory
+    // Note - we don't want to convert every file response to a string, so check
+    // the length first
     std::string isDirResponse = IS_DIR_RESPONSE;
     if (fileBytes.size() == isDirResponse.size()) {
         std::string actualResp = faabric::util::bytesToString(fileBytes);
         if (actualResp == IS_DIR_RESPONSE) {
-            throw faabric::util::FileAtUrlIsDirectoryException(
-              url + " is a directory");
+            throw SharedFileIsDirectoryException(path);
         }
     }
 
