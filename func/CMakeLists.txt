@@ -64,6 +64,8 @@ else ()
     # ----------------------
     # Native build
     # ----------------------
+    # Include natively installed libraries to run a native build
+    include_directories(FAASM_NATIVE_INSTALL)
 
     function(faasm_func_c func_name file_name)
         add_executable(${func_name} ${file_name})
