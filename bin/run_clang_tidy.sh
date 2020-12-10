@@ -9,7 +9,6 @@ DUMP_OUTPUT=true
 # Function to actually run clang-tidy
 function do_tidy {
     FILES="($@)"
-    echo "Running on $FILES"
     run-clang-tidy-10.py \
         -config '' \
         -j `nproc` \
