@@ -21,6 +21,8 @@ jobs:
         run: git fetch origin ${GITHUB_REF}:ci-branch
       - name: "Check out branch"
         run: git checkout --force ci-branch
+      - name: "Run CMake to regenerate compile commands"
+        run: inv -r faasmcli/faasmcli dev.cmake --build Release
       # --- Formatting checks ---
       - name: "Ensure all Python deps up-to-date"
         run: pip3 install -r faasmcli/requirements.txt

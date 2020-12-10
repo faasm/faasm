@@ -163,9 +163,6 @@ include_directories(
 # Add Faabric src include for protobuf generated sources
 include_directories(${FAABRIC_BINARY_DIR}/src)
 
-# Include headers from native installs of Faasm C/C++ libraries
-include_directories(${FAASM_NATIVE_INSTALL}/include)
-
 # More include directories
 include_directories(
         ${FAASM_INCLUDE_DIR}

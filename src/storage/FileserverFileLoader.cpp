@@ -4,9 +4,11 @@
 #include <faabric/util/config.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
+#include <faabric/util/http.h>
 #include <faabric/util/logging.h>
 
 #include <boost/filesystem.hpp>
+#include <pistache/http_header.h>
 
 namespace storage {
 std::string FileserverFileLoader::getFileserverUrl()
@@ -18,7 +20,6 @@ std::vector<uint8_t> _doLoad(const std::string& url,
                              const std::string& path,
                              const std::string& storagePath)
 {
-    std::string header;
     auto logger = faabric::util::getLogger();
 
     // Shortcut if already exists
@@ -33,25 +34,30 @@ std::vector<uint8_t> _doLoad(const std::string& url,
 
     logger->debug("Loading from fileserver: {} at {}", path, url);
 
-    if (!path.empty()) {
-        header = std::string(FILE_PATH_HEADER) + ":" + path;
-    }
-
     std::vector<uint8_t> fileBytes;
-
-    try {
-        fileBytes = faabric::util::readFileFromUrlWithHeader(url, header);
-    } catch (faabric::util::FileNotFoundAtUrlException& e) {
-        // Leave empty if file not found
-    } catch (faabric::util::FileAtUrlIsDirectoryException& e) {
-        // Throw exception if we're dealing with a directory
-        throw SharedFileIsDirectoryException(path);
+    if (path.empty()) {
+        fileBytes = faabric::util::readFileFromUrl(url);
+    } else {
+        fileBytes = faabric::util::readFileFromUrlWithHeader(
+          url, std::make_shared<FilePath>(path));
     }
 
+    // Check response data
     if (fileBytes.empty()) {
         std::string errMsg = "Empty response for file " + path + " at " + url;
         logger->error(errMsg);
         throw faabric::util::InvalidFunctionException(errMsg);
+    }
+
+    // Check whether it's a directory
+    // Note - we don't want to convert every file response to a string, so check
+    // the length first
+    std::string isDirResponse = IS_DIR_RESPONSE;
+    if (fileBytes.size() == isDirResponse.size()) {
+        std::string actualResp = faabric::util::bytesToString(fileBytes);
+        if (actualResp == IS_DIR_RESPONSE) {
+            throw SharedFileIsDirectoryException(path);
+        }
     }
 
     // Write to file
