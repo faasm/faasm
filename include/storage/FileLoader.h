@@ -3,10 +3,18 @@
 #include <proto/faabric.pb.h>
 
 #include <faabric/util/exception.h>
+#include <pistache/http_header.h>
 #include <string>
 #include <vector>
 
 #define HASH_EXT ".md5"
+
+#define EMPTY_FILE_RESPONSE "Empty response"
+#define IS_DIR_RESPONSE "IS_DIR"
+
+// Define custom header for making requests for files
+#define FILE_HEADER "FilePath"
+CUSTOM_HEADER(FilePath)
 
 namespace storage {
 class FileLoader
@@ -100,6 +108,14 @@ class SharedFileIsDirectoryException : public faabric::util::FaabricException
   public:
     explicit SharedFileIsDirectoryException(const std::string& filePath)
       : faabric::util::FaabricException(filePath + " is a directory")
+    {}
+};
+
+class FileAtUrlIsDirectoryException : public faabric::util::FaabricException
+{
+  public:
+    explicit FileAtUrlIsDirectoryException(std::string message)
+      : FaabricException(std::move(message))
     {}
 };
 };

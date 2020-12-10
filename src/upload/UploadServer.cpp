@@ -108,7 +108,7 @@ void UploadServer::handleGet(const http_request& request)
     const utility::string_t& uri = request.absolute_uri().to_string();
 
     if (pathType == "sobjwasm" || pathType == "sobjobj" || pathType == "file") {
-        std::string filePath = getHeaderFromRequest(request, FILE_PATH_HEADER);
+        std::string filePath = getHeaderFromRequest(request, FILE_HEADER);
 
         logger->debug("GET request to {} ({})", uri, filePath);
         if (pathType == "sobjwasm") {
@@ -253,7 +253,7 @@ void UploadServer::handlePythonFunctionUpload(const http_request& request)
 void UploadServer::handleSharedFileUpload(const http_request& request)
 {
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    std::string filePath = getHeaderFromRequest(request, FILE_PATH_HEADER);
+    std::string filePath = getHeaderFromRequest(request, FILE_HEADER);
     logger->info("Uploading shared file {}", filePath);
 
     const concurrency::streams::istream bodyStream = request.body();
