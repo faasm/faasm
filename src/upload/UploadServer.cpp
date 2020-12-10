@@ -120,7 +120,7 @@ void UploadServer::handleGet(const http_request& request)
                 returnBytes = l.loadSharedFile(filePath);
             } catch (storage::SharedFileIsDirectoryException& e) {
                 // If shared file is a directory, say so
-                returnBytes = faabric::util::stringToBytes("IS_DIR");
+                returnBytes = faabric::util::stringToBytes(IS_DIR_RESPONSE);
             }
         }
     } else {
