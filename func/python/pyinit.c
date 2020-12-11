@@ -133,4 +133,3 @@ void setUpPyNumpy()
     FORCE_LINK(newlocale);
     FORCE_LINK(freelocale);
 }
-
