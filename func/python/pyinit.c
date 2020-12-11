@@ -1,4 +1,4 @@
-#include "faasm/pyinit.h"
+#include "pyinit.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -133,3 +133,4 @@ void setUpPyNumpy()
     FORCE_LINK(newlocale);
     FORCE_LINK(freelocale);
 }
+
