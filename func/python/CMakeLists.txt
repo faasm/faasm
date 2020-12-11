@@ -27,6 +27,8 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Wasm")
     # target_link_libraries(py_func lapack blas cblas f2c)
 else()
     target_link_libraries(py_func ${PYTHON_LIBRARIES} util)
+
+    target_include_directories(py_func PRIVATE ${FAASM_NATIVE_INSTALL}/include)
 endif()
 
 # Custom target to support compiling pyhton function through compile.user task
