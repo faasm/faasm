@@ -1,5 +1,9 @@
+extern "C"
+{
+#include "pyinit.h"
+}
+
 #include <faasm/faasm.h>
-#include <faasm/pyinit.h>
 
 #include <Python.h>
 

@@ -1,4 +1,4 @@
-#include "faasm/pyinit.h"
+#include "pyinit.h"
 
 #include <stdint.h>
 #include <stdio.h>

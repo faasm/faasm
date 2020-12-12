@@ -20,7 +20,6 @@ def toolchain(ctx, clean=False):
     Compile and install all libs crucial to the toolchain
     """
     fake(ctx, clean=clean)
-    pyinit(ctx, clean=clean)
     rust(ctx, clean=clean)
 
 
@@ -56,14 +55,6 @@ def rust(ctx, clean=False, verbose=False):
     Install Rust library
     """
     _build_faasm_lib("libs/rust", clean, verbose)
-
-
-@task
-def pyinit(ctx, clean=False, verbose=False):
-    """
-    Install pyinit library
-    """
-    _build_faasm_lib("libs/pyinit", clean, verbose)
 
 
 @task

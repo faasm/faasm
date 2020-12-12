@@ -37,7 +37,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 # Faasm directories
 set(FAASM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(FAASM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
-set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/libs/pyinit)
 set(FAASM_NATIVE_INSTALL "/usr/local/faasm/native")
 
 # Detect SGX
@@ -173,7 +172,6 @@ include_directories(
 add_subdirectory(func)
 
 # Faasm libraries
-add_subdirectory(libs/pyinit)
 add_subdirectory(libs/rust)
 
 # Faasm runtime
