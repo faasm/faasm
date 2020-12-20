@@ -13,9 +13,6 @@ faasm_private_lib(faaslet_lib "${LIB_FILES}")
 
 target_link_libraries(faaslet_lib
         faabric
-        faabricmpi
-        spdlog
-        pistache
         module_cache
         system
         wamrmodule
