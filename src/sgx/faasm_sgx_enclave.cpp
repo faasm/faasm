@@ -8,6 +8,7 @@
 #include <sgx.h>
 #include <sgx_defs.h>
 #include <sgx_thread.h>
+#include <sgx_tkey_exchange.h>
 #include <tlibc/mbusafecrt.h>
 
 #if (FAASM_SGX_WAMR_AOT_MODE)
@@ -42,13 +43,29 @@ extern "C"
     extern sgx_status_t SGX_CDECL
     ocall_init_crt(faasm_sgx_status_t* returnValue);
     extern sgx_status_t SGX_CDECL
+    ocall_attest_to_km(faasm_sgx_status_t* returnValue);
+    extern sgx_status_t SGX_CDECL
     ocall_send_msg(faasm_sgx_status_t* returnValue,
                    sgx_wamr_msg_t* msg,
                    uint32_t msg_len);
     static uint8_t _sgx_wamr_msg_id = 0;
-	static sgx_ra_key_128_t shared_secret;
-	sgx_aes_gcm_128bit_key_t master_secret;
-
+    static sgx_ra_key_128_t shared_secret;
+    sgx_aes_gcm_128bit_key_t master_secret;
+    static sgx_ra_context_t *inner_ctx;
+    static const sgx_ec256_public_t key = {
+        {
+            0xdc, 0xbd, 0x32, 0x2e, 0x8d, 0x46, 0xa9, 0xeb,
+            0xdf, 0xdd, 0x64, 0x4, 0x1b, 0x80, 0xde, 0x22,
+            0xb2, 0x14, 0x2, 0x2e, 0x6a, 0xf6, 0xab, 0xe0,
+            0xdc, 0x5e, 0x8, 0xb0, 0xdd, 0x12, 0x96, 0x15
+        },
+        {
+            0x2, 0x83, 0x71, 0xd0, 0x80, 0x72, 0xc8, 0x8f,
+            0xd3, 0x9a, 0x73, 0x5f, 0x75, 0x33, 0xbc, 0x6f,
+            0x1b, 0x52, 0xc2, 0x62, 0x36, 0x1b, 0x3f, 0x2f,
+            0x28, 0x6d, 0x6d, 0xc, 0x4d, 0x87, 0x24, 0x2f,
+        }
+    };
     __thread uint32_t tls_thread_id;
     rwlock_t _rwlock_faasm_sgx_tcs_realloc = { 0 };
 
@@ -523,4 +540,30 @@ extern "C"
 
         return FAASM_SGX_SUCCESS;
     }
+
+    faasm_sgx_status_t faasm_sgx_enclave_init_ra(sgx_ra_context_t *ctx) {
+        inner_ctx = ctx;
+        if (sgx_ra_init(&key, 0, ctx) != SGX_SUCCESS) {
+            return FAASM_SGX_NOT_IMPLEMENTED;
+        }
+
+        sgx_status_t sgx_return_value;
+        faasm_sgx_status_t return_value;
+        if ((sgx_return_value = ocall_attest_to_km(&return_value)) != SGX_SUCCESS) {
+            return FAASM_SGX_OCALL_ERROR(sgx_return_value);
+        }
+    }
+
+	faasm_sgx_status_t faasm_sgx_enclave_finalize_key_exchange(sgx_wamr_msg_t* wamr_msg, uint32_t msg_len) {
+        sgx_wamr_msg_pkey_mkey_t msg;
+        if (sgx_ra_get_keys(*inner_ctx, SGX_RA_KEY_SK, &shared_secret) != SGX_SUCCESS) {
+            return FAASM_SGX_NOT_IMPLEMENTED;
+        }
+
+        if (sgx_rijndael128GCM_decrypt((sgx_aes_gcm_128bit_key_t*)&shared_secret, (uint8_t*) wamr_msg->payload, sizeof(sgx_wamr_msg_pkey_mkey_t), (uint8_t*)&msg,wamr_msg->nonce, sizeof(wamr_msg->nonce), NULL, 0, (const sgx_aes_gcm_128bit_tag_t* )wamr_msg->mac) != SGX_SUCCESS) {
+            return FAASM_SGX_DECRYPTION_FAILED;
+        }
+        return FAASM_SGX_SUCCESS;
+    }
+
 }

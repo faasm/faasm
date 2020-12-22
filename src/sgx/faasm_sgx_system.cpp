@@ -5,6 +5,7 @@
 
 #include <boost/filesystem/operations.hpp>
 #include <sgx/SGXWAMRWasmModule.h>
+#include <sgx_ukey_exchange.h>
 #include <sgx_urts.h>
 
 // Global enclave ID
@@ -172,7 +173,9 @@ std::string faasmSgxErrorString(faasm_sgx_status_t status)
         ERROR_PRINT_CASE(FAASM_SGX_MODULE_NOT_LOADED)
         ERROR_PRINT_CASE(FAASM_SGX_INVALID_FUNC_ID)
         ERROR_PRINT_CASE(FAASM_SGX_INVALID_OPCODE_SIZE)
+        ERROR_PRINT_CASE(FAASM_SGX_ECALL_FAILED)
         ERROR_PRINT_CASE(FAASM_SGX_OCALL_FAILED)
+        ERROR_PRINT_CASE(FAASM_SGX_SDK_CALL_FAILED)
         ERROR_PRINT_CASE(FAASM_SGX_CRT_THREAD_FAILED)
         ERROR_PRINT_CASE(FAASM_SGX_CRT_SOCKET_FAILED)
         ERROR_PRINT_CASE(FAASM_SGX_CRT_INVALID_ADDR)

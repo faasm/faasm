@@ -251,6 +251,7 @@ if (FAASM_SGX_SIM_MODE)
             -Wl,--no-whole-archive
             -Wl,--start-group
             sgx_tservice_sim
+            sgx_tkey_exchange
             -Wl,--end-group
             )
 else ()
@@ -259,6 +260,7 @@ else ()
             -Wl,--no-whole-archive
             -Wl,--start-group
             sgx_tservice
+            sgx_tkey_exchange
             -Wl,--end-group
             )
 endif ()
@@ -350,11 +352,13 @@ if (FAASM_SGX_SIM_MODE)
     target_link_libraries(faasm_sgx
             sgx_urts_sim
             sgx_uae_service_sim
+            sgx_ukey_exchange
             )
 else ()
     target_link_libraries(faasm_sgx
             sgx_urts
             sgx_uae_service
+            sgx_ukey_exchange
             )
 endif ()
 
