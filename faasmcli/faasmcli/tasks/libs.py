@@ -14,15 +14,6 @@ from faasmcli.util.env import (
 from faasmcli.util.files import clean_dir
 
 
-@task
-def toolchain(ctx, clean=False):
-    """
-    Compile and install all libs crucial to the toolchain
-    """
-    fake(ctx, clean=clean)
-    rust(ctx, clean=clean)
-
-
 def _build_faasm_lib(dir_name, clean, verbose, target=None):
     work_dir = join(PROJ_ROOT, dir_name)
     build_dir = join(PROJ_ROOT, "build", dir_name)
@@ -47,14 +38,6 @@ def _build_faasm_lib(dir_name, clean, verbose, target=None):
 
     run(" ".join(build_cmd), shell=True, cwd=build_dir, check=True)
     run("ninja install", shell=True, cwd=build_dir, check=True)
-
-
-@task
-def rust(ctx, clean=False, verbose=False):
-    """
-    Install Rust library
-    """
-    _build_faasm_lib("libs/rust", clean, verbose)
 
 
 @task
