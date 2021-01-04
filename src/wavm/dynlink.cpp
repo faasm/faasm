@@ -67,4 +67,33 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "dlclose", I32, dlclose, I32 handle)
     // Ignore
     return 0;
 }
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "ffi_prep_closure_loc",
+                               I32,
+                               ffi_prep_closure_loc,
+                               I32 a,
+                               I32 b,
+                               I32 c,
+                               I32 d,
+                               I32 e)
+{
+    faabric::util::getLogger()->debug(
+      "S - ffi_prep_closure_loc {} {} {} {} {}", a, b, c, d, e);
+
+    // Ignore
+    return 0;
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "ffi_call",
+                               void,
+                               ffi_call,
+                               I32 a,
+                               I32 b,
+                               I32 c,
+                               I32 d)
+{
+    faabric::util::getLogger()->debug("S - ffi_call {} {} {} {}", a, b, c, d);
+}
 }
