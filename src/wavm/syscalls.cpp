@@ -245,7 +245,6 @@ void linkHook()
     networkLink();
     ompLink();
     processLink();
-    rustLink();
     schedulingLink();
     signalsLink();
     threadsLink();

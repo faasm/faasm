@@ -28,7 +28,6 @@ set(LIB_FILES
         openmp.cpp
         OMPThreadPool.cpp
         process.cpp
-        rust.cpp
         scheduling.cpp
         signals.cpp
         syscalls.cpp

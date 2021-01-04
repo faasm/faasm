@@ -380,8 +380,6 @@ void ompLink();
 
 void processLink();
 
-void rustLink();
-
 void schedulingLink();
 
 void signalsLink();

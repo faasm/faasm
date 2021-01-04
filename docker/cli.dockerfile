@@ -40,7 +40,7 @@ RUN pip3 install -e faasmcli/
 RUN inv -r faasmcli/faasmcli dev.tools --build Release
 
 # Install common libraries
-RUN inv -r faasmcli/faasmcli libs.toolchain
+RUN inv -r faasmcli/faasmcli libs.fake
 
 # Remove worker entrypoint
 COPY bin/noop-entrypoint.sh /entrypoint.sh

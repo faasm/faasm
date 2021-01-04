@@ -81,8 +81,8 @@ jobs:
       - name: "Build dev tools"
         run: inv -r faasmcli/faasmcli dev.tools --build Release
       # --- WASM compilation ---
-      - name: "Compile libraries"
-        run: inv -r faasmcli/faasmcli libs.toolchain --clean
+      - name: "Compile test library"
+        run: inv -r faasmcli/faasmcli libs.fake --clean
       - name: "Compile code"
         run: inv -r faasmcli/faasmcli compile.local --clean
       # --- Environment set-up ---
