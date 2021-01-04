@@ -171,9 +171,6 @@ include_directories(
 # Faasm functions
 add_subdirectory(func)
 
-# Faasm libraries
-add_subdirectory(libs/rust)
-
 # Faasm runtime
 add_subdirectory(src/faaslet)
 add_subdirectory(src/ir_cache)
