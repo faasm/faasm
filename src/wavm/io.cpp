@@ -850,19 +850,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 // Unsupported
 // -----------------------------
 
-WAVM_DEFINE_INTRINSIC_FUNCTION(env, "strcat", I32, s__strcat, I32 dest, I32 src)
-{
-    faabric::util::getLogger()->debug("S - strcat - {} {}", dest, src);
-    Runtime::Memory* memoryPtr = getExecutingWAVMModule()->defaultMemory;
-
-    char* destStr = &Runtime::memoryRef<char>(memoryPtr, (Uptr)dest);
-    char* srcStr = &Runtime::memoryRef<char>(memoryPtr, (Uptr)src);
-
-    ::strcat(destStr, srcStr);
-
-    return dest;
-}
-
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__small_sprintf",
                                I32,

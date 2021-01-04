@@ -126,8 +126,9 @@ void setUpPyNumpy()
     fprintf(devNull, "%Le\n", (long double)strtoull("1e100", NULL, 0));
 
     // Strings
-    FORCE_LINK(strpbrk);
+    FORCE_LINK(strcat);
     FORCE_LINK(strcspn);
+    FORCE_LINK(strpbrk);
 
     // Locale
     FORCE_LINK(newlocale);

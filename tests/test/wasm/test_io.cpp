@@ -11,10 +11,4 @@ TEST_CASE("Test printf", "[wasm]")
     faabric::Message call = faabric::util::messageFactory("demo", "print");
     execFunction(call);
 }
-
-TEST_CASE("Test strcat", "[wasm]")
-{
-    faabric::Message call = faabric::util::messageFactory("demo", "strcat");
-    execFunction(call);
-}
 }
