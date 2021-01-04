@@ -1069,7 +1069,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 b,
                                I32 c)
 {
-    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    faabric::util::getLogger()->warn(
+      "Ignoring call to siprintf - {} {} {}", a, b, c);
+    return 0;
 }
 
 void ioLink() {}
