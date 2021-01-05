@@ -8,8 +8,6 @@
 
 using namespace WAVM;
 
-#define DUMMY_HANDLE 999
-
 namespace wasm {
 void dynlinkLink() {}
 
@@ -32,14 +30,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     std::string filePath = getStringFromWasm(fileNamePtr);
 
-    // ----------- HACKS ------------
-    if (filePath.empty() || filePath == "libpistache.so" ||
-        filePath == "libfaabricmpi.so" || filePath == "libemulator.so") {
-        faabric::util::getLogger()->warn(
-          "S - dlopen with placeholder for \"{}\"", filePath);
-        return DUMMY_HANDLE;
-    }
-
     std::string realPath = getMaskedPathFromWasm(fileNamePtr);
     faabric::util::getLogger()->debug(
       "S - dlopen - {} {} ({})", filePath, flags, realPath);
@@ -58,10 +48,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     const std::string symbol = getStringFromWasm(symbolPtr);
     faabric::util::getLogger()->debug("S - dlsym - {} {}", handle, symbol);
-
-    if (handle == DUMMY_HANDLE) {
-        throw std::runtime_error("TODO - handle DUMMY_HANDLE");
-    }
 
     Uptr tableIdx =
       getExecutingWAVMModule()->getDynamicModuleFunction(handle, symbol);

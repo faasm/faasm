@@ -1,4 +1,5 @@
-#include "WAVMWasmModule.h"
+#include "syscalls.h"
+#include <wavm/WAVMWasmModule.h>
 
 #include <boost/filesystem.hpp>
 #include <cereal/archives/binary.hpp>
@@ -642,28 +643,49 @@ int WAVMWasmModule::dynamicLoadModule(const std::string& path,
     // This function is essentially dlopen. See the comments around the GOT
     // function for more detail on the dynamic linking approach.
 
+    // Sometimes a given library may not exist, or an applciation may call
+    // dlopen with an empty path (e.g. CPython). Instead of failing, we use a
+    // fallback handle so that we can still attempt to resolve calls to dlsym
+    // against the main module or other dynamically linked modules.
+
     auto logger = faabric::util::getLogger();
 
     // Return the handle if we've already loaded this module
     if (dynamicPathToHandleMap.count(path) > 0) {
-        logger->debug("Reusing dynamic module {}", path);
-        return dynamicPathToHandleMap[path];
+        int cachedHandle = dynamicPathToHandleMap[path];
+        logger->debug(
+          "Using cached dynamic module handle {} for {}", cachedHandle, path);
+        return cachedHandle;
     }
 
-    // Note, must start handles at 2, otherwise dlopen can see it as an error
-    int nextHandle = 2 + dynamicModuleCount;
-    std::string name = "handle_" + std::to_string(nextHandle);
+    // Work out if we're loading an existing module or using the fallback
+    int nextHandle;
+    if (boost::filesystem::is_directory(path)) {
+        logger->warn("Dynamic linking directory {}. Using fallback", path);
+        nextHandle = FALLBACK_DYNLINK_HANDLE;
+    } else if (!boost::filesystem::exists(path)) {
+        logger->warn("Dynamic module {} does not exist. Using fallback", path);
+        nextHandle = FALLBACK_DYNLINK_HANDLE;
+    } else {
 
-    // Instantiate the shared module
-    Runtime::Instance* mod = createModuleInstance(name, path);
+        // Note, must start handles at 2, otherwise dlopen can see it as an
+        // error
+        nextHandle = 2 + dynamicModuleCount;
+        std::string name = "handle_" + std::to_string(nextHandle);
 
-    // Execute wasm initialisers
-    executeWasmConstructorsFunction(mod);
+        // Instantiate the shared module
+        Runtime::Instance* mod = createModuleInstance(name, path);
 
-    // Keep a record of this module
+        // Execute wasm initialisers
+        executeWasmConstructorsFunction(mod);
+
+        // Record module creation
+        dynamicModuleMap[nextHandle] = mod;
+        dynamicModuleCount++;
+    }
+
+    // Cache the handle for this module
     dynamicPathToHandleMap[path] = nextHandle;
-    dynamicModuleMap[nextHandle] = mod;
-    dynamicModuleCount++;
 
     logger->debug(
       "Loaded shared module at {} with handle {}", path, nextHandle);
@@ -674,17 +696,23 @@ int WAVMWasmModule::dynamicLoadModule(const std::string& path,
 uint32_t WAVMWasmModule::getDynamicModuleFunction(int handle,
                                                   const std::string& funcName)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
+    auto logger = faabric::util::getLogger();
 
-    // Check the handle is valid
-    if (dynamicModuleMap.count(handle) == 0) {
-        logger->error("No dynamic module registered for handle {}", handle);
-        throw std::runtime_error("Missing dynamic module");
+    Runtime::Instance* targetModule;
+    if (handle == FALLBACK_DYNLINK_HANDLE) {
+        targetModule = moduleInstance;
+    } else {
+        // Check the handle is valid
+        if (dynamicModuleMap.count(handle) == 0) {
+            logger->error("No dynamic module registered for handle {}", handle);
+            throw std::runtime_error("Missing dynamic module");
+        }
+
+        targetModule = dynamicModuleMap[handle];
     }
 
     // If function not in table for some reason, we need to load it
-    Runtime::Instance* dynModule = dynamicModuleMap[handle];
-    Runtime::Object* exportedFunc = getInstanceExport(dynModule, funcName);
+    Runtime::Object* exportedFunc = getInstanceExport(targetModule, funcName);
 
     if (!exportedFunc) {
         logger->error("Unable to dynamically load function {}", funcName);
