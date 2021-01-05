@@ -12,7 +12,9 @@ def faasm_main():
     print("Running Python version {}".format(sys.version))
 
     py_wasm_env = os.getenv("PYTHONWASM", "NOT SET")
+    py_utf8 = os.getenv("PYTHONUTF8", "NOT SET")
     print("PYTHONWASM={}".format(py_wasm_env))
+    print("PYTHONUTF8={}".format(py_utf8))
 
     x = "foo"
     assert x == "foo"

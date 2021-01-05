@@ -7,6 +7,7 @@ WasmEnvironment::WasmEnvironment()
         "PYTHONHOME=/",        "PYTHON_PATH=/",          "PYTHONHASHSEED=0",
         "PYTHONNOUSERSITE=on", "LC_CTYPE=en_GB.UTF-8",   "LANG=en_GB.UTF-8",
         "PYTHONWASM=1",        "OPENBLAS_NUM_THREADS=1", "MKL_NUM_THREADS=1",
+        "PYTHONIOENCODING=utf_8", "PYTHONUTF8=1",
     };
 }
 
