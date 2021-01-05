@@ -8,6 +8,14 @@
 
 using namespace WAVM;
 
+#define FFI_TYPE_CASE(nativeType)                                              \
+    {                                                                          \
+        nativeType argValue =                                                  \
+          Runtime::memoryRef<nativeType>(module->defaultMemory, argPtr);       \
+        wavmArguments.emplace_back(argValue);                                  \
+        break;                                                                 \
+    }
+
 namespace wasm {
 void dynlinkLink() {}
 
@@ -181,12 +189,29 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
           &Runtime::memoryRef<libffi_type>(module->defaultMemory, argTypePtr);
 
         switch (argType->type) {
-            case (libffi_type_value::POINTER): {
-                // Pointers are wasm offsets
-                uint32_t argValue =
-                  Runtime::memoryRef<uint32_t>(module->defaultMemory, argPtr);
-                wavmArguments.emplace_back(argValue);
-                break;
+            case (libffi_type_value::UINT8):
+                FFI_TYPE_CASE(uint8_t)
+            case (libffi_type_value::SINT8):
+                FFI_TYPE_CASE(int8_t)
+            case (libffi_type_value::UINT16):
+                FFI_TYPE_CASE(uint16_t)
+            case (libffi_type_value::SINT16):
+                FFI_TYPE_CASE(int16_t)
+            case (libffi_type_value::UINT32):
+            case (libffi_type_value::POINTER):
+                // Note that pointers are also uint32 in wasm
+                FFI_TYPE_CASE(uint32_t)
+            case (libffi_type_value::SINT32):
+            case (libffi_type_value::INT):
+                FFI_TYPE_CASE(int32_t)
+            case (libffi_type_value::UINT64):
+                FFI_TYPE_CASE(uint64_t)
+            case (libffi_type_value::SINT64):
+                FFI_TYPE_CASE(int64_t)
+            default: {
+                logger->error("FFI type not yet implemented: {}",
+                              argType->type);
+                throw std::runtime_error("FFI type not yet implemented");
             }
         }
 
