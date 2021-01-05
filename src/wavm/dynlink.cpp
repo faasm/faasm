@@ -71,6 +71,64 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "dlclose", I32, dlclose, I32 handle)
     return 0;
 }
 
+// ----------------------------------
+// libffi - see https://github.com/faasm/libffi/
+//
+// See ffi.h.in for useful definitions:
+// https://github.com/faasm/libffi/blob/faasm/include/ffi.h.in
+//
+// Be careful with struct members, they must be defined using the 32-bit wasm
+// types.
+// ----------------------------------
+
+struct libffi_type
+{
+    uint32_t size;
+    uint16_t alignment;
+    uint16_t type;
+    libffi_type** elements;
+};
+
+struct libffi_cif
+{
+    uint32_t abi; // This abi is an enum in libffi, but we don't need it
+    uint32_t nargs;
+    libffi_type** argTypes;
+    libffi_type* retType;
+    uint32_t bytes;
+    uint32_t flags;
+};
+
+/**
+ * The implementation of ffi_call is language-specific. The signature is:
+ *
+ * void ffi_call(ffi_cif *cif, void (*fn)(void), void *ret, void **args);
+ *
+ * - cif = function definition
+ * - fn = function pointer
+ * - ret = return value address
+ * - args = arguments
+ */
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "ffi_call",
+                               void,
+                               ffi_call,
+                               I32 cifPtr,
+                               I32 fnPtr,
+                               I32 ret,
+                               I32 args)
+{
+    auto logger = faabric::util::getLogger();
+    logger->debug("S - ffi_call {} {} {} {}", cifPtr, fnPtr, ret, args);
+
+    // Extract the function definition
+    WAVMWasmModule* module = getExecutingWAVMModule();
+    auto cif = &Runtime::memoryRef<libffi_cif>(module->defaultMemory, cifPtr);
+
+    logger->debug(
+      "ffi_call nargs = {}, retType = {}", cif->nargs, cif->retType->size);
+}
+
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "ffi_prep_closure_loc",
                                I32,
@@ -86,17 +144,5 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     // Ignore
     return 0;
-}
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "ffi_call",
-                               void,
-                               ffi_call,
-                               I32 a,
-                               I32 b,
-                               I32 c,
-                               I32 d)
-{
-    faabric::util::getLogger()->debug("S - ffi_call {} {} {} {}", a, b, c, d);
 }
 }
