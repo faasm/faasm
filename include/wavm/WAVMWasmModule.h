@@ -77,8 +77,6 @@ class WAVMWasmModule final
                          const std::vector<WAVM::IR::UntaggedValue>& arguments,
                          WAVM::IR::UntaggedValue& result);
 
-    void executeFunctionFromPtr(int funcPtr);
-
     void writeArgvToMemory(uint32_t wasmArgvPointers,
                            uint32_t wasmArgvBuffer) override;
 

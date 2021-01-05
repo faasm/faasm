@@ -182,8 +182,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
         switch (argType->type) {
             case (libffi_type_value::POINTER): {
-                uint8_t* argData =
-                  &Runtime::memoryRef<uint8_t>(module->defaultMemory, argPtr);
+                // Pointers are wasm offsets
+                uint32_t argValue =
+                  Runtime::memoryRef<uint32_t>(module->defaultMemory, argPtr);
+                wavmArguments.emplace_back(argValue);
                 break;
             }
         }
@@ -196,6 +198,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   fnPtr,
                   cif->nargs,
                   returnType->type);
+
+    IR::UntaggedValue result;
+    module->executeFunction(func, funcType, wavmArguments, result);
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
