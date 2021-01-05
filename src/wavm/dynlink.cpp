@@ -78,23 +78,44 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "dlclose", I32, dlclose, I32 handle)
 // https://github.com/faasm/libffi/blob/faasm/include/ffi.h.in
 //
 // Be careful with struct members, they must be defined using the 32-bit wasm
-// types.
+// types, and remember that nested pointers are wasm offsets and need to be
+// dereferenced.
 // ----------------------------------
+
+enum libffi_type_value
+{
+    VOID = 0,
+    INT,
+    FLOAT,
+    DOUBLE,
+    LONGDOUBLE,
+    UINT8,
+    SINT8,
+    UINT16,
+    SINT16,
+    UINT32,
+    SINT32,
+    UINT64,
+    SINT64,
+    STRUCT,
+    POINTER,
+    COMPLEX
+};
 
 struct libffi_type
 {
     uint32_t size;
     uint16_t alignment;
     uint16_t type;
-    libffi_type** elements;
+    uint32_t elementsPtrPtr; // libffi_type**
 };
 
 struct libffi_cif
 {
     uint32_t abi; // This abi is an enum in libffi, but we don't need it
     uint32_t nargs;
-    libffi_type** argTypes;
-    libffi_type* retType;
+    uint32_t argTypesPtrPtr; // libffi_type**
+    uint32_t retTypePtr;     // libffi_type*
     uint32_t bytes;
     uint32_t flags;
 };
@@ -115,18 +136,66 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                ffi_call,
                                I32 cifPtr,
                                I32 fnPtr,
-                               I32 ret,
-                               I32 args)
+                               I32 retPtr,
+                               I32 argsPtrPtr)
 {
     auto logger = faabric::util::getLogger();
-    logger->debug("S - ffi_call {} {} {} {}", cifPtr, fnPtr, ret, args);
-
-    // Extract the function definition
-    WAVMWasmModule* module = getExecutingWAVMModule();
-    auto cif = &Runtime::memoryRef<libffi_cif>(module->defaultMemory, cifPtr);
-
     logger->debug(
-      "ffi_call nargs = {}, retType = {}", cif->nargs, cif->retType->size);
+      "S - ffi_call {} {} {} {}", cifPtr, fnPtr, retPtr, argsPtrPtr);
+
+    // Extract the function
+    WAVMWasmModule* module = getExecutingWAVMModule();
+    Runtime::Function* func = module->getFunctionFromPtr(fnPtr);
+    const IR::FunctionType funcType = Runtime::getFunctionType(func);
+
+    // Extract the libffi structs
+    libffi_cif* cif =
+      &Runtime::memoryRef<libffi_cif>(module->defaultMemory, cifPtr);
+
+    libffi_type* returnType =
+      &Runtime::memoryRef<libffi_type>(module->defaultMemory, cif->retTypePtr);
+
+    uint32_t* argTypesPtrs = Runtime::memoryArrayPtr<uint32_t>(
+      module->defaultMemory, cif->argTypesPtrPtr, cif->nargs);
+
+    uint32_t* argsPtrs = Runtime::memoryArrayPtr<uint32_t>(
+      module->defaultMemory, argsPtrPtr, cif->nargs);
+
+    // Check types agree
+    auto expectedNArgs = (uint32_t)funcType.params().size();
+    if (expectedNArgs != cif->nargs) {
+        logger->error("Unexpected function param length {} != {}",
+                      expectedNArgs,
+                      cif->nargs);
+
+        throw std::runtime_error("Mismatched function param lengths");
+    }
+
+    // Create the array of arguments
+    std::vector<IR::UntaggedValue> wavmArguments;
+    for (int i = 0; i < cif->nargs; i++) {
+        uint32_t argTypePtr = argTypesPtrs[i];
+        uint32_t argPtr = argsPtrs[i];
+
+        libffi_type* argType =
+          &Runtime::memoryRef<libffi_type>(module->defaultMemory, argTypePtr);
+
+        switch (argType->type) {
+            case (libffi_type_value::POINTER): {
+                uint8_t* argData =
+                  &Runtime::memoryRef<uint8_t>(module->defaultMemory, argPtr);
+                break;
+            }
+        }
+
+        logger->debug(
+          "ffi arg: bytes={} type={}", argType->size, argType->type);
+    }
+
+    logger->debug("ffi_call: fn={}, nargs={}, retType={}",
+                  fnPtr,
+                  cif->nargs,
+                  returnType->type);
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
