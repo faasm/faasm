@@ -659,19 +659,18 @@ int WAVMWasmModule::dynamicLoadModule(const std::string& path,
     }
 
     // Work out if we're loading an existing module or using the fallback
-    int nextHandle;
+    int thisHandle;
     if (boost::filesystem::is_directory(path)) {
         logger->warn("Dynamic linking directory {}. Using fallback", path);
-        nextHandle = FALLBACK_DYNLINK_HANDLE;
+        thisHandle = FALLBACK_DYNLINK_HANDLE;
     } else if (!boost::filesystem::exists(path)) {
         logger->warn("Dynamic module {} does not exist. Using fallback", path);
-        nextHandle = FALLBACK_DYNLINK_HANDLE;
+        thisHandle = FALLBACK_DYNLINK_HANDLE;
     } else {
-
         // Note, must start handles at 2, otherwise dlopen can see it as an
         // error
-        nextHandle = 2 + dynamicModuleCount;
-        std::string name = "handle_" + std::to_string(nextHandle);
+        thisHandle = 2 + dynamicModuleCount;
+        std::string name = "handle_" + std::to_string(thisHandle);
 
         // Instantiate the shared module
         Runtime::Instance* mod = createModuleInstance(name, path);
@@ -680,27 +679,42 @@ int WAVMWasmModule::dynamicLoadModule(const std::string& path,
         executeWasmConstructorsFunction(mod);
 
         // Record module creation
-        dynamicModuleMap[nextHandle] = mod;
+        dynamicModuleMap[thisHandle] = mod;
         dynamicModuleCount++;
     }
 
     // Cache the handle for this module
-    dynamicPathToHandleMap[path] = nextHandle;
+    dynamicPathToHandleMap[path] = thisHandle;
 
     logger->debug(
-      "Loaded shared module at {} with handle {}", path, nextHandle);
+      "Loaded shared module at {} with handle {}", path, thisHandle);
 
-    return nextHandle;
+    return thisHandle;
 }
 
 uint32_t WAVMWasmModule::getDynamicModuleFunction(int handle,
                                                   const std::string& funcName)
 {
+    // Note - we could do some caching in this function to make it more
+    // efficient on repeat calls, but it usually only gets called once per
+    // function (as the module will usually pass around the resulting function
+    // pointer).
     auto logger = faabric::util::getLogger();
 
-    Runtime::Instance* targetModule;
+    Runtime::Object* exportedFunc;
     if (handle == FALLBACK_DYNLINK_HANDLE) {
-        targetModule = moduleInstance;
+        // Check the env module
+        exportedFunc = getInstanceExport(envModule, funcName);
+
+        // Check the main module
+        if (exportedFunc == nullptr) {
+            exportedFunc = getInstanceExport(moduleInstance, funcName);
+        }
+
+        // Check the wasi module
+        if (exportedFunc == nullptr) {
+            exportedFunc = getInstanceExport(wasiModule, funcName);
+        }
     } else {
         // Check the handle is valid
         if (dynamicModuleMap.count(handle) == 0) {
@@ -708,11 +722,9 @@ uint32_t WAVMWasmModule::getDynamicModuleFunction(int handle,
             throw std::runtime_error("Missing dynamic module");
         }
 
-        targetModule = dynamicModuleMap[handle];
+        Runtime::Instance* targetModule = dynamicModuleMap[handle];
+        exportedFunc = getInstanceExport(targetModule, funcName);
     }
-
-    // If function not in table for some reason, we need to load it
-    Runtime::Object* exportedFunc = getInstanceExport(targetModule, funcName);
 
     if (!exportedFunc) {
         logger->error("Unable to dynamically load function {}", funcName);
