@@ -17,6 +17,8 @@ class UploadServer
 
     void listen(const std::string& port);
 
+    void stop();
+
     static void handleGet(const http_request& request);
 
     static void handlePut(const http_request& request);
@@ -31,6 +33,8 @@ class UploadServer
     static std::vector<uint8_t> getState(const http_request& request);
 
   private:
+    bool stopped = false;
+
     static void handlePythonFunctionUpload(const http_request& request);
 
     static void handleFunctionUpload(const http_request& request);

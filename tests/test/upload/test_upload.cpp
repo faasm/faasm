@@ -1,4 +1,5 @@
 #include "faabric/util/func.h"
+#include "faabric/util/http.h"
 #include "proto/faabric.pb.h"
 #include <catch2/catch.hpp>
 
@@ -345,6 +346,36 @@ TEST_CASE("Shared file fileserver test", "[upload]")
     } else {
         // Check response is an error
         REQUIRE(response.status_code() == status_codes::InternalError);
+    }
+}
+
+TEST_CASE("Test upload server with HTTP client", "[upload]")
+{
+    edge::UploadServer server;
+    std::thread t([&server] {
+        printf("Test upload server listening\n");
+        server.listen(UPLOAD_PORT);
+    });
+
+    // Wait for the server to start
+    usleep(2 * 1000 * 1000);
+
+    // First load the expected bytes from the function file
+    faabric::Message msg = faabric::util::messageFactory("demo", "echo");
+    std::string expectedPath = faabric::util::getFunctionFile(msg);
+    std::vector<uint8_t> expectedBytes =
+      faabric::util::readFileToBytes(expectedPath);
+
+    // Get the bytes from the upload server
+    std::vector<uint8_t> actualBytes =
+      faabric::util::readFileFromUrl("http://localhost:8002/f/demo/echo");
+
+    REQUIRE(expectedBytes == actualBytes);
+
+    server.stop();
+
+    if (t.joinable()) {
+        t.join();
     }
 }
 }

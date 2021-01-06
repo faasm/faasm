@@ -8,7 +8,6 @@
 #include <faabric/util/logging.h>
 
 #include <boost/filesystem.hpp>
-#include <pistache/http_header.h>
 
 namespace storage {
 std::string FileserverFileLoader::getFileserverUrl()
@@ -32,12 +31,12 @@ std::vector<uint8_t> _doLoad(const std::string& url,
         }
     }
 
-    logger->debug("Loading from fileserver: {} at {}", path, url);
-
     std::vector<uint8_t> fileBytes;
     if (path.empty()) {
+        logger->debug("Loading from fileserver: {}", url);
         fileBytes = faabric::util::readFileFromUrl(url);
     } else {
+        logger->debug("Loading from fileserver: {} at {}", path, url);
         fileBytes = faabric::util::readFileFromUrlWithHeader(
           url, std::make_shared<FilePath>(path));
     }
