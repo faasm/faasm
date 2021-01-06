@@ -65,7 +65,7 @@ Then, outside the container:
 
 ```
 # Mount your local build inside the containers
-export BUILD_MOUNT=/build/faasm
+export FAASM_BUILD_MOUNT=/build/faasm
 
 # Start up the local cluster
 docker-compose up -d

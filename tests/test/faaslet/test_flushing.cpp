@@ -1,9 +1,7 @@
 #include <catch2/catch.hpp>
 
-#include "faabric/scheduler/Scheduler.h"
 #include "utils.h"
 
-#include <faaslet/FaasletPool.h>
 #include <boost/filesystem.hpp>
 #include <faabric/executor/FaabricMain.h>
 #include <faabric/util/config.h>

@@ -15,13 +15,13 @@ services:
       - redis-queue
       - redis-state
     volumes:
-      - ./build:${BUILD_MOUNT}
-      - ./wasm:/usr/local/code/faasm/wasm
-      - ./container/machine-code/:/usr/local/faasm/object
-      - ./container/shared_store:/usr/local/faasm/shared_store
+      - ./build/:${FAASM_BUILD_MOUNT}/
+      - ./wasm/:/usr/local/code/faasm/wasm/
+      - ./container/machine-code/:/usr/local/faasm/object/
+      - ./container/shared_store/:/usr/local/faasm/shared_store/
     environment:
       - FUNCTION_STORAGE=local
-      - LOG_LEVEL=info
+      - LOG_LEVEL=debug
       - PYTHON_CODEGEN=off
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
@@ -34,14 +34,14 @@ services:
       - "8080"
     privileged: yes
     volumes:
-      - ./build:${BUILD_MOUNT}
+      - ./build/:${FAASM_BUILD_MOUNT}
     environment:
       - CAPTURE_STDOUT=on
       - CGROUP_MODE=on
-      - FILESERVER_URL=http://upload:8002
+      - FILESERVER_URL=http://${UPLOAD_HOST:-upload}:8002
       - FUNCTION_STORAGE=fileserver
       - GLOBAL_MESSAGE_TIMEOUT=600000
-      - LOG_LEVEL=info
+      - LOG_LEVEL=debug
       - MAX_IN_FLIGHT_RATIO=1
       - MAX_FAASLETS=20
       - MAX_FAASLETS_PER_FUNCTION=4
@@ -74,9 +74,9 @@ services:
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
     volumes:
-      - .:/usr/local/code/faasm
-      - ./build:/build/faasm
-      - ./container/machine-code:/usr/local/faasm/object
-      - ./container/shared_store:/usr/local/faasm/shared_store
+      - .:/usr/local/code/faasm/
+      - ./build/:/build/faasm/
+      - ./container/machine-code/:/usr/local/faasm/object/
+      - ./container/shared_store/:/usr/local/faasm/shared_store/
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker
