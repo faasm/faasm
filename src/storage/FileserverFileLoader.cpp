@@ -22,19 +22,25 @@ using namespace web::http::client;
 using namespace concurrency::streams;
 
 namespace storage {
+
+FileserverFileLoader::FileserverFileLoader(bool useFilesystemCacheIn)
+  : useFilesystemCache(useFilesystemCacheIn)
+{}
+
 std::string FileserverFileLoader::getFileserverUrl()
 {
     return faabric::util::getSystemConfig().fileserverUrl;
 }
 
-std::vector<uint8_t> _doLoad(const std::string& urlPath,
-                             const std::string& headerPath,
-                             const std::string& storagePath)
+std::vector<uint8_t> FileserverFileLoader::doLoad(
+  const std::string& urlPath,
+  const std::string& headerPath,
+  const std::string& storagePath)
 {
     auto logger = faabric::util::getLogger();
 
     // Shortcut if already exists
-    if (boost::filesystem::exists(storagePath)) {
+    if (useFilesystemCache && boost::filesystem::exists(storagePath)) {
         if (boost::filesystem::is_directory(storagePath)) {
             throw SharedFileIsDirectoryException(storagePath);
         } else {
@@ -112,7 +118,7 @@ std::vector<uint8_t> FileserverFileLoader::loadFunctionWasm(
 {
     std::string urlPath = fmt::format("f/{}/{}", msg.user(), msg.function());
     std::string filePath = faabric::util::getFunctionFile(msg);
-    return _doLoad(urlPath, "", filePath);
+    return doLoad(urlPath, "", filePath);
 }
 
 std::vector<uint8_t> FileserverFileLoader::loadFunctionObjectFile(
@@ -120,7 +126,7 @@ std::vector<uint8_t> FileserverFileLoader::loadFunctionObjectFile(
 {
     std::string urlPath = fmt::format("fo/{}/{}", msg.user(), msg.function());
     std::string objectFilePath = faabric::util::getFunctionObjectFile(msg);
-    return _doLoad(urlPath, "", objectFilePath);
+    return doLoad(urlPath, "", objectFilePath);
 }
 
 std::vector<uint8_t> FileserverFileLoader::loadFunctionWamrAotFile(
@@ -135,14 +141,14 @@ std::vector<uint8_t> FileserverFileLoader::loadSharedObjectObjectFile(
 {
     std::string urlPath = "sobjobj";
     std::string objFilePath = faabric::util::getSharedObjectObjectFile(path);
-    return _doLoad(urlPath, path, objFilePath);
+    return doLoad(urlPath, path, objFilePath);
 }
 
 std::vector<uint8_t> FileserverFileLoader::loadSharedObjectWasm(
   const std::string& path)
 {
     std::string urlPath = "sobjwasm";
-    return _doLoad(urlPath, path, path);
+    return doLoad(urlPath, path, path);
 }
 
 std::vector<uint8_t> FileserverFileLoader::loadSharedFile(
@@ -150,7 +156,7 @@ std::vector<uint8_t> FileserverFileLoader::loadSharedFile(
 {
     std::string urlPath = "file";
     const std::string fullPath = faabric::util::getSharedFileFile(path);
-    return _doLoad(urlPath, path, fullPath);
+    return doLoad(urlPath, path, fullPath);
 }
 
 void FileserverFileLoader::flushFunctionFiles()

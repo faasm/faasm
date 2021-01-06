@@ -17,4 +17,10 @@ set(LIB_FILES
         )
 
 faasm_private_lib(storage "${LIB_FILES}")
-target_link_libraries(storage wavmmodule wamrmodule)
+target_link_libraries(storage 
+    wavmmodule 
+    wamrmodule
+    cpprest
+    ssl
+    crypto
+)

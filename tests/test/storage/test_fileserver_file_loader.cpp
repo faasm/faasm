@@ -1,6 +1,8 @@
 #include "faabric/util/bytes.h"
+#include "faabric/util/config.h"
 #include "faabric/util/func.h"
 
+#include "storage/FileserverFileLoader.h"
 #include "utils.h"
 
 #include <boost/filesystem/operations.hpp>
@@ -10,10 +12,53 @@
 #include <faabric/util/files.h>
 #include <stdlib.h>
 #include <storage/LocalFileLoader.h>
+#include <upload/UploadServer.h>
 
 using namespace storage;
 
 namespace tests {
+TEST_CASE("Test fileserver file loader pulling files over HTTP", "[storage]")
+{
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf.functionStorage = "fileserver";
+    conf.fileserverUrl = "localhost";
+
+    // Load the expected bytes from the function file
+    faabric::Message msg = faabric::util::messageFactory("demo", "echo");
+    std::string expectedPath = faabric::util::getFunctionFile(msg);
+    std::vector<uint8_t> expectedBytes =
+      faabric::util::readFileToBytes(expectedPath);
+
+    // Run upload fileserver in the background
+    edge::UploadServer server;
+    std::thread t([&server] {
+        printf("Test upload server listening\n");
+        server.listen(UPLOAD_PORT);
+    });
+
+    // Wait for the server to start
+    usleep(1000 * 1000);
+
+    // Use the fileserver loader to load the file both with and without
+    // filesystem caching
+    bool useFsCache;
+    SECTION("With cache") { useFsCache = true; }
+    SECTION("Without cache") { useFsCache = false; }
+
+    storage::FileserverFileLoader loader(useFsCache);
+    std::vector<uint8_t> actualBytes = loader.loadFunctionWasm(msg);
+
+    REQUIRE(actualBytes.size() > 1000);
+    REQUIRE(actualBytes.size() == expectedBytes.size());
+    REQUIRE(expectedBytes == actualBytes);
+
+    server.stop();
+
+    if (t.joinable()) {
+        t.join();
+    }
+}
+
 TEST_CASE("Test flushing function files deletes them", "[storage]")
 {
     cleanSystem();

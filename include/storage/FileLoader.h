@@ -3,7 +3,6 @@
 #include <proto/faabric.pb.h>
 
 #include <faabric/util/exception.h>
-#include <pistache/http_header.h>
 #include <string>
 #include <vector>
 
@@ -11,10 +10,7 @@
 
 #define EMPTY_FILE_RESPONSE "Empty response"
 #define IS_DIR_RESPONSE "IS_DIR"
-
-// Define custom header for making requests for files
 #define FILE_PATH_HEADER "FilePath"
-CUSTOM_HEADER(FilePath)
 
 namespace storage {
 class FileLoader

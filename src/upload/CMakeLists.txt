@@ -11,8 +11,6 @@ target_link_libraries(upload_lib
         wasm
         wavmmodule
         faabric
-        ssl
-        crypto
         cpprest
         )
 
