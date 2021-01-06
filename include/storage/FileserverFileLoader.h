@@ -107,9 +107,9 @@ class FileserverFileLoader : public FileLoader
 
   private:
     bool useFilesystemCache = true;
-    
+
     std::vector<uint8_t> doLoad(const std::string& urlPath,
-                             const std::string& headerPath,
-                             const std::string& storagePath);
+                                const std::string& headerPath,
+                                const std::string& storagePath);
 };
 };

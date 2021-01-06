@@ -20,8 +20,12 @@ namespace tests {
 TEST_CASE("Test fileserver file loader pulling files over HTTP", "[storage]")
 {
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+
+    std::string origFunctionStorage = conf.functionStorage;
+    std::string origUrl = conf.fileserverUrl;
+
     conf.functionStorage = "fileserver";
-    conf.fileserverUrl = "localhost";
+    conf.fileserverUrl = "http://localhost:8002";
 
     // Load the expected bytes from the function file
     faabric::Message msg = faabric::util::messageFactory("demo", "echo");
@@ -57,6 +61,9 @@ TEST_CASE("Test fileserver file loader pulling files over HTTP", "[storage]")
     if (t.joinable()) {
         t.join();
     }
+
+    conf.functionStorage = origFunctionStorage;
+    conf.fileserverUrl = origUrl;
 }
 
 TEST_CASE("Test flushing function files deletes them", "[storage]")

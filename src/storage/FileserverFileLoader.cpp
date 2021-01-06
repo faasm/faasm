@@ -1,6 +1,7 @@
 #include "FileserverFileLoader.h"
 
 #include <cpprest/astreambuf.h>
+#include <cpprest/containerstream.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/files.h>
@@ -52,6 +53,7 @@ std::vector<uint8_t> FileserverFileLoader::doLoad(
     auto conf = faabric::util::getSystemConfig();
     std::string host = conf.fileserverUrl;
 
+    logger->debug("Creating client at {}", host);
     http_client client(U(host.c_str()));
 
     // Build the request
@@ -65,52 +67,50 @@ std::vector<uint8_t> FileserverFileLoader::doLoad(
         request.headers().add(FILE_PATH_HEADER, headerPath);
     }
 
-    // Make the request
-    concurrency::streams::streambuf<uint8_t> byteBuffer;
+    std::vector<uint8_t> bytesData;
     client.request(request)
-      .then([=](http_response response) {
+      .then([&logger](http_response response) {
           if (response.status_code() != 200) {
               logger->error("GET request for file failed: {}",
                             response.status_code());
               throw std::runtime_error("File GET request failed");
           }
 
-          // Write to the file
-          response.body().read_to_end(byteBuffer).wait();
+          return response.extract_vector();
+      })
+      .then([&](std::vector<uint8_t> responseData) {
+          size_t nBytes = responseData.size();
+
+          // Check response data
+          if (nBytes == 0) {
+              std::string errMsg =
+                "Empty response for file at " + host + "/" + urlPath;
+              logger->error(errMsg);
+              throw faabric::util::InvalidFunctionException(errMsg);
+          }
+
+          // Check whether it's a directory
+          // Note - we don't want to convert every file response to a string, so
+          // check the length first
+          std::string isDirResponse = IS_DIR_RESPONSE;
+          if (nBytes == isDirResponse.size()) {
+              std::string actualResp =
+                faabric::util::bytesToString(responseData);
+              if (actualResp == IS_DIR_RESPONSE) {
+                  throw SharedFileIsDirectoryException(headerPath);
+              }
+          }
+
+          // Write bytes to file
+          faabric::util::writeBytesToFile(storagePath, responseData);
+
+          // Copy out the data
+          // TODO avoid this copy?
+          bytesData = responseData;
       })
       .wait();
 
-    // Read bytes into vector
-    size_t nBytes = byteBuffer.buffer_size();
-
-    // Check response data
-    if (nBytes == 0) {
-        std::string errMsg =
-          "Empty response for file at " + host + "/" + urlPath;
-        logger->error(errMsg);
-        throw faabric::util::InvalidFunctionException(errMsg);
-    }
-
-    std::vector<uint8_t> data;
-    data.reserve(nBytes);
-    byteBuffer.getn(data.data(), nBytes);
-    byteBuffer.close();
-
-    // Check whether it's a directory
-    // Note - we don't want to convert every file response to a string, so check
-    // the length first
-    std::string isDirResponse = IS_DIR_RESPONSE;
-    if (nBytes == isDirResponse.size()) {
-        std::string actualResp = faabric::util::bytesToString(data);
-        if (actualResp == IS_DIR_RESPONSE) {
-            throw SharedFileIsDirectoryException(headerPath);
-        }
-    }
-
-    // Write bytes to file
-    faabric::util::writeBytesToFile(storagePath, data);
-
-    return data;
+    return bytesData;
 }
 
 std::vector<uint8_t> FileserverFileLoader::loadFunctionWasm(
