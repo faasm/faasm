@@ -72,4 +72,9 @@ def codegen(ctx):
     )
 
     binary = cg.find_codegen_shared_lib()
-    run("{} {}".format(binary, PY_RUNTIME_ROOT), shell=True, check=True)
+    run(
+        "{} {}".format(binary, PY_RUNTIME_ROOT),
+        env=shell_env,
+        shell=True,
+        check=True,
+    )
