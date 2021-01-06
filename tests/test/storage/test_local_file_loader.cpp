@@ -214,6 +214,7 @@ TEST_CASE("Check shared object codegen hashing", "[storage]")
 
 TEST_CASE("Test flushing function files does nothing", "[storage]") {
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    std::string origFunctionDir = conf.functionDir;
     std::string origObjDir = conf.objectFileDir;
     
     conf.functionDir = "/tmp/faasm/funcs";
@@ -244,5 +245,9 @@ TEST_CASE("Test flushing function files does nothing", "[storage]") {
     // Check files still exist
     REQUIRE(boost::filesystem::exists(funcFile));
     REQUIRE(boost::filesystem::exists(funcFile));
+
+    // Reset config
+    conf.functionDir = origFunctionDir;
+    conf.objectFileDir = origObjDir;
 }
 }
