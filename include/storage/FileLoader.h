@@ -84,6 +84,8 @@ class FileLoader
     virtual void uploadSharedFile(const std::string& path,
                                   const std::vector<uint8_t>& fileBytes) = 0;
 
+    virtual void flushFunctionFiles() = 0;
+
     void codegenForFunction(faabric::Message& msg);
 
     void codegenForSharedObject(const std::string& inputPath);

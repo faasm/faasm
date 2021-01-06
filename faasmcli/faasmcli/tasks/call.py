@@ -87,9 +87,9 @@ def exec_graph(ctx, call_id=None, headless=False, output_file=None):
 
 
 @task
-def flush(ctx, user, function):
+def flush(ctx):
     """
     Flush workers
     """
     host, port = get_invoke_host_port()
-    flush_call_impl(host, port, user, function)
+    flush_call_impl(host, port)

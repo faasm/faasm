@@ -134,10 +134,8 @@ def invoke_impl(
         return do_post(url, msg, headers=headers, json=True, debug=debug)
 
 
-def flush_call_impl(host, port, user, function):
+def flush_call_impl(host, port):
     msg = {
-        "user": user,
-        "function": function,
         "flush": True,
     }
     return _do_single_call(host, port, msg, False)

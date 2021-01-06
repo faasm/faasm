@@ -113,6 +113,20 @@ std::vector<uint8_t> FileserverFileLoader::loadSharedFile(
     return _doLoad(url, path, fullPath);
 }
 
+void FileserverFileLoader::flushFunctionFiles()
+{
+    // Note that because we're loading files from a file server, we can safely
+    // delete the function and object files on this host as they are not the
+    // master copies.
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+
+    // Nuke the function directory
+    boost::filesystem::remove_all(conf.functionDir);
+
+    // Nuke the machine code directory
+    boost::filesystem::remove_all(conf.objectFileDir);
+}
+
 // --------------------------------------------------------
 // TODO: implement hashing and hash storage in fileserver mode
 // --------------------------------------------------------

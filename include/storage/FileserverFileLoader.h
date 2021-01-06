@@ -52,6 +52,8 @@ class FileserverFileLoader : public FileLoader
     void uploadSharedObjectAotHash(const std::string& path,
                                    const std::vector<uint8_t>& hash) override;
 
+    void flushFunctionFiles() override;
+
     void uploadFunction(faabric::Message& msg) override
     {
         throw std::runtime_error(

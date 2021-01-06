@@ -6,6 +6,7 @@
 
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/config.h>
+#include <faabric/util/locks.h>
 #include <faabric/util/timing.h>
 #include <module_cache/WasmModuleCache.h>
 
@@ -20,10 +21,24 @@
 using namespace isolation;
 
 namespace faaslet {
+
+std::mutex flushMutex;
+
 void Faaslet::postFlush()
 {
+    // Note that this will get executed by each Faaslet running on the system,
+    // hence the need for locking. This means that any global flushing actions
+    // (e.g. deleting function files) will be performed repeatedly.
+    // TODO avoid repeating these global flush actions
+
+    faabric::util::UniqueLock lock(flushMutex);
+
     // Clear shared files
     storage::FileSystem::clearSharedFiles();
+
+    // Clear wasm/ object files
+    storage::FileLoader& fileLoader = storage::getFileLoader();
+    fileLoader.flushFunctionFiles();
 
     // Clear module cache
     module_cache::getWasmModuleCache().clear();
