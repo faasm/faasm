@@ -14,7 +14,8 @@
 using namespace storage;
 
 namespace tests {
-TEST_CASE("Test flushing function files deletes them", "[storage]") {
+TEST_CASE("Test flushing function files deletes them", "[storage]")
+{
     cleanSystem();
 
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
@@ -22,7 +23,7 @@ TEST_CASE("Test flushing function files deletes them", "[storage]") {
     std::string origUrl = conf.fileserverUrl;
     std::string origFunctionDir = conf.functionDir;
     std::string origObjDir = conf.objectFileDir;
-    
+
     conf.functionStorage = "fileserver";
     conf.fileserverUrl = "dummy_url";
     conf.functionDir = "/tmp/faasm/funcs";
@@ -31,7 +32,7 @@ TEST_CASE("Test flushing function files deletes them", "[storage]") {
     std::string funcFile = conf.functionDir + "/function.wasm";
     std::string objFile = conf.objectFileDir + "/function.obj";
 
-    // Clean directories 
+    // Clean directories
     boost::filesystem::remove_all(conf.functionDir);
     boost::filesystem::remove_all(conf.objectFileDir);
 
@@ -39,7 +40,7 @@ TEST_CASE("Test flushing function files deletes them", "[storage]") {
     boost::filesystem::create_directories(conf.objectFileDir);
 
     // Write some junk to a couple of files
-    std::vector<uint8_t> bytes = {0, 1, 2, 3};
+    std::vector<uint8_t> bytes = { 0, 1, 2, 3 };
     faabric::util::writeBytesToFile(funcFile, bytes);
     faabric::util::writeBytesToFile(objFile, bytes);
 
