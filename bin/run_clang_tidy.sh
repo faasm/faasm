@@ -16,7 +16,6 @@ function do_tidy {
         -format \
         -style 'file' \
         -p ${BUILD_PATH} \
-        -quiet \
         ${FILES}
 }
 
