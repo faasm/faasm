@@ -154,14 +154,7 @@ void UploadServer::handleGet(const http_request& request)
 
     setPermissiveHeaders(response);
 
-    request.reply(response).then([](pplx::task<void> t) {
-        try {
-            t.get();
-        } catch (...) {
-            auto logger = faabric::util::getLogger();
-            logger->error("Error responding to GET request");
-        }
-    });
+    request.reply(response);
 }
 
 void UploadServer::handlePut(const http_request& request)

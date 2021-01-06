@@ -2,7 +2,7 @@
 
 int main(int argc, char* argv[])
 {
-    const char* message = "Hello foobar!";
+    const char* message = "Hello thjere!";
 
     faasmSetOutput((uint8_t*)message, 12);
 

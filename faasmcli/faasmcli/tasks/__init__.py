@@ -8,6 +8,7 @@ from . import config
 from . import dev
 from . import disas
 from . import docker_tasks
+from . import flush
 from . import knative
 from . import libs
 from . import python
@@ -25,6 +26,7 @@ ns = Collection(
     config,
     dev,
     disas,
+    flush,
     knative,
     libs,
     python,
