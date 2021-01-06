@@ -15,9 +15,10 @@ services:
       - redis-queue
       - redis-state
     volumes:
-      - ./container/machine-code/:/usr/local/faasm/object/
+      - ./build:${BUILD_MOUNT}
+      - ./wasm:/usr/local/code/faasm/wasm
+      - ./container/machine-code/:/usr/local/faasm/object
       - ./container/shared_store:/usr/local/faasm/shared_store
-      - ./wasm/:/usr/local/code/faasm/wasm/
     environment:
       - FUNCTION_STORAGE=local
       - LOG_LEVEL=info
@@ -32,6 +33,8 @@ services:
     expose:
       - "8080"
     privileged: yes
+    volumes:
+      - ./build:${BUILD_MOUNT}
     environment:
       - CAPTURE_STDOUT=on
       - CGROUP_MODE=on
@@ -75,3 +78,5 @@ services:
       - ./build:/build/faasm
       - ./container/machine-code:/usr/local/faasm/object
       - ./container/shared_store:/usr/local/faasm/shared_store
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
