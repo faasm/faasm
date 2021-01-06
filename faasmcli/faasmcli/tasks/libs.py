@@ -1,4 +1,5 @@
-from os import makedirs
+from copy import copy
+from os import environ, makedirs
 from os.path import exists
 from os.path import join
 from subprocess import run
@@ -78,6 +79,14 @@ def fake(ctx, clean=False):
         check=True,
     )
 
+    # Update env
+    shell_env = copy(environ)
+    shell_env.update(
+        {
+            "LD_LIBRARY_PATH": "/usr/local/lib/",
+        }
+    )
+
     # Run codegen
     shared_objs = [
         join(FAASM_RUNTIME_ROOT, "lib", "libfakeLibA.so"),
@@ -88,4 +97,4 @@ def fake(ctx, clean=False):
 
     for so in shared_objs:
         print("Running codegen for {}".format(so))
-        run("{} {}".format(binary, so), shell=True, check=True)
+        run("{} {}".format(binary, so), env=shell_env, shell=True, check=True)
