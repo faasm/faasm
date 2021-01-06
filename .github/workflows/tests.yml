@@ -86,6 +86,8 @@ jobs:
       - name: "Compile code"
         run: inv -r faasmcli/faasmcli compile.local --clean
       # --- Environment set-up ---
+      - name: "Export LD_LIBRARY_PATH"
+        run: export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
       - name: "Run codegen"
         run: inv -r faasmcli/faasmcli codegen.local
       - name: "Run python codegen"
