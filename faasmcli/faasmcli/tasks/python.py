@@ -1,3 +1,5 @@
+from copy import copy
+from os import environ
 from os.path import join, exists
 from shutil import rmtree
 from subprocess import run
@@ -61,5 +63,13 @@ def codegen(ctx):
     """
     Run Python codegen
     """
+    # Update env
+    shell_env = copy(environ)
+    shell_env.update(
+        {
+            "LD_LIBRARY_PATH": "/usr/local/lib/",
+        }
+    )
+
     binary = cg.find_codegen_shared_lib()
     run("{} {}".format(binary, PY_RUNTIME_ROOT), shell=True, check=True)
