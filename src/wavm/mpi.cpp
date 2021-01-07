@@ -525,7 +525,25 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
       comm,
       statusPtr);
 
-    throw std::runtime_error("MPI_Sendrecv not implemented!");
+    ContextWrapper ctx(comm);
+    faabric_datatype_t* hostSendDtype = ctx.getFaasmDataType(sendType);
+    faabric_datatype_t* hostRecvDtype = ctx.getFaasmDataType(recvType);
+    MPI_Status* status = &Runtime::memoryRef<MPI_Status>(ctx.memory, statusPtr);
+    auto hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(
+      ctx.memory, sendBuf, sendCount * hostSendDtype->size);
+    auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(
+      ctx.memory, recvBuf, recvCount * hostRecvDtype->size);
+
+    ctx.world.sendRecv(hostSendBuffer,
+                       sendCount,
+                       hostSendDtype,
+                       destination,
+                       hostRecvBuffer,
+                       recvCount,
+                       hostRecvDtype,
+                       source,
+                       ctx.rank,
+                       status);
 
     return MPI_SUCCESS;
 }

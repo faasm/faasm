@@ -13,7 +13,12 @@ def codegen(ctx, user, function, wamr=False):
     Generates machine code for the given function
     """
     env = copy(environ)
-    env.update({"WASM_VM": "wamr" if wamr else "wavm"})
+    env.update(
+        {
+            "WASM_VM": "wamr" if wamr else "wavm",
+            "LD_LIBRARY_PATH": "/usr/local/lib/",
+        }
+    )
 
     binary = find_codegen_func()
     run(
@@ -36,7 +41,13 @@ def _do_codegen_user(user, wamr=False):
     print("Running codegen for user {}".format(user))
 
     binary = find_codegen_func()
-    env = {"WASM_VM": "wamr" if wamr else "wavm"}
+    env = copy(environ)
+    env.update(
+        {
+            "WASM_VM": "wamr" if wamr else "wavm",
+            "LD_LIBRARY_PATH": "/usr/local/lib/",
+        }
+    )
 
     run("{} {}".format(binary, user), shell=True, env=env, check=True)
 
