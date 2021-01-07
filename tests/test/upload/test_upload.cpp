@@ -1,4 +1,3 @@
-#if 0
 #include "faabric/util/func.h"
 #include "proto/faabric.pb.h"
 #include <catch2/catch.hpp>
@@ -349,4 +348,3 @@ TEST_CASE("Shared file fileserver test", "[upload]")
     }
 }
 }
-#endif

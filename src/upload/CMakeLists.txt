@@ -7,11 +7,13 @@ set(LIB_FILES
 
 faasm_private_lib(upload_lib "${LIB_FILES}")
 
+find_package(cpprestsdk REQUIRED)
+
 target_link_libraries(upload_lib
         wasm
         wavmmodule
         faabric
-        cpprest
+        cpprestsdk::cpprest
         )
 
 add_executable(upload upload_server.cpp)
