@@ -381,6 +381,11 @@ void WAVMWasmModule::bindToFunctionNoZygote(const faabric::Message& msg)
     doBindToFunction(msg, false);
 }
 
+std::string WAVMWasmModule::getBoundFunctionHash()
+{
+    // TODO implement
+}
+
 void WAVMWasmModule::doBindToFunction(const faabric::Message& msg,
                                       bool executeZygote)
 {
@@ -430,31 +435,27 @@ void WAVMWasmModule::doBindToFunction(const faabric::Message& msg,
         executeZygoteFunction();
     }
 
-    // Typescript doesn't export memory info, nor does it require
-    // setting up argv/argc
-    if (!boundIsTypescript) {
-        // Check stack is at the bottom
-        I32 heapBase = getGlobalI32("__heap_base", executionContext);
-        I32 dataEnd = getGlobalI32("__data_end", executionContext);
+    // Check stack is at the bottom
+    I32 heapBase = getGlobalI32("__heap_base", executionContext);
+    I32 dataEnd = getGlobalI32("__data_end", executionContext);
 
-        if (heapBase > 0 && dataEnd > 0 && heapBase != dataEnd) {
-            logger->error(
-              "Appears stack is not at bottom (__heap_base={} __data_end={})",
-              heapBase,
-              dataEnd);
-            throw std::runtime_error("Wasm memory layout not as expected");
-        }
-
-        Uptr initialTableSize = Runtime::getTableNumElements(defaultTable);
-        Uptr initialMemorySize =
-          Runtime::getMemoryNumPages(defaultMemory) * WASM_BYTES_PER_PAGE;
-        Uptr initialMemoryPages = Runtime::getMemoryNumPages(defaultMemory);
-
-        logger->debug("heap_top={} initial_pages={} initial_table={}",
-                      initialMemorySize,
-                      initialMemoryPages,
-                      initialTableSize);
+    if (heapBase > 0 && dataEnd > 0 && heapBase != dataEnd) {
+        logger->error(
+          "Appears stack is not at bottom (__heap_base={} __data_end={})",
+          heapBase,
+          dataEnd);
+        throw std::runtime_error("Wasm memory layout not as expected");
     }
+
+    Uptr initialTableSize = Runtime::getTableNumElements(defaultTable);
+    Uptr initialMemorySize =
+      Runtime::getMemoryNumPages(defaultMemory) * WASM_BYTES_PER_PAGE;
+    Uptr initialMemoryPages = Runtime::getMemoryNumPages(defaultMemory);
+
+    logger->debug("heap_top={} initial_pages={} initial_table={}",
+                  initialMemorySize,
+                  initialMemoryPages,
+                  initialTableSize);
 
     PROF_END(wasmBind)
 }
@@ -1393,10 +1394,6 @@ I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)
 Runtime::Function* WAVMWasmModule::getMainFunction(Runtime::Instance* module)
 {
     std::string mainFuncName(ENTRY_FUNC_NAME);
-
-    if (boundIsTypescript) {
-        mainFuncName = "_asMain";
-    }
 
     return getFunction(module, mainFuncName, true);
 }

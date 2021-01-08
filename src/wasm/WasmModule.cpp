@@ -1,5 +1,7 @@
 #include "WasmModule.h"
 
+#include <openssl/md5.h>
+
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
@@ -273,6 +275,18 @@ uint32_t WasmModule::mapSharedStateMemory(
     return sharedMemWasmPtrs[segmentKey];
 }
 
+void WasmModule::updateBoundModuleHash(const std::vector<uint8_t>& wasmBytes)
+{
+    std::vector<uint8_t> result(MD5_DIGEST_LENGTH);
+
+    MD5(reinterpret_cast<const unsigned char*>(wasmBytes.data()),
+        wasmBytes.size(),
+        result.data());
+
+    boundModuleHash =
+      std::string(reinterpret_cast<char*>(result.data(), result.size()));
+}
+
 // ------------------------------------------
 // Functions to be implemented by subclasses
 // ------------------------------------------
@@ -285,6 +299,11 @@ void WasmModule::bindToFunction(const faabric::Message& msg)
 void WasmModule::bindToFunctionNoZygote(const faabric::Message& msg)
 {
     throw std::runtime_error("bindToFunctionNoZygote not implemented");
+}
+
+std::string WasmModule::getBoundFunctionHash()
+{
+    throw std::runtime_error("bindToFunction not implemented");
 }
 
 bool WasmModule::execute(faabric::Message& msg, bool forceNoop)

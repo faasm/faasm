@@ -40,6 +40,8 @@ class WAVMWasmModule final
 
     bool execute(faabric::Message& msg, bool forceNoop = false) override;
 
+    std::string getBoundFunctionHash() override;
+
     bool isBound() override;
 
     bool tearDown();
@@ -146,7 +148,7 @@ class WAVMWasmModule final
     size_t memoryFdSize = 0;
 
     bool _isBound = false;
-    bool boundIsTypescript = false;
+    std::string boundFunctionHash;
 
     // Map of dynamically loaded modules
     std::unordered_map<std::string, int> dynamicPathToHandleMap;

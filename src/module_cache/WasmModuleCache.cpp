@@ -1,5 +1,6 @@
 #include "WasmModuleCache.h"
 
+
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 #include <faabric/util/locks.h>
@@ -64,6 +65,9 @@ wasm::WAVMWasmModule& WasmModuleCache::getCachedModule(
             wasm::WAVMWasmModule& module = cachedModuleMap[baseKey];
             module.bindToFunction(msg);
 
+            // Update the hash for this function
+            moduleHashMap[baseKey] = module.getBoundFunctionHash();
+
             // Write memory to fd (to allow copy-on-write cloning)
             int fd = memfd_create(baseKey.c_str(), 0);
             module.writeMemoryToFd(fd);
@@ -102,5 +106,16 @@ wasm::WAVMWasmModule& WasmModuleCache::getCachedModule(
 void WasmModuleCache::clear()
 {
     cachedModuleMap.clear();
+}
+
+std::string WasmModuleCache::getModuleHash(const faabric::Message& msg)
+{
+    std::string key = faabric::util::funcToString(msg, false);
+
+    if (moduleHashMap.count(key) == 0) {
+        return "";
+    }
+
+    return moduleHashMap[key];
 }
 }
