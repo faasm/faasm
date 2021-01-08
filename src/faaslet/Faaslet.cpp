@@ -22,25 +22,21 @@ using namespace isolation;
 
 namespace faaslet {
 
-std::mutex flushMutex;
-
 void Faaslet::postFlush()
 {
-    // Note that this will get executed by each Faaslet running on the system,
-    // hence the need for locking. This means that any global flushing actions
-    // (e.g. deleting function files) will be performed repeatedly.
-    // TODO avoid repeating these global flush actions
+    // Note that only one Faaslet per host will execute this function on a
+    // flush, and it will always be bound to the given function being flushed.
+    // However, we need to make sure that all other Faaslets for this function
+    // are killed and restarted.
 
-    faabric::util::UniqueLock lock(flushMutex);
-
-    // Clear shared files
+    // Clear cached shared files
     storage::FileSystem::clearSharedFiles();
 
-    // Clear wasm/ object files
+    // Clear cached wasm and object files
     storage::FileLoader& fileLoader = storage::getFileLoader();
     fileLoader.flushFunctionFiles();
 
-    // Clear module cache
+    // Clear module cache on this host
     module_cache::getWasmModuleCache().clear();
 
     // Prepare python runtime if necessary
