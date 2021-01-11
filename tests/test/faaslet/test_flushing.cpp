@@ -126,21 +126,15 @@ TEST_CASE("Test flushing worker picks up new version of function")
 
     // Set up worker to listen for relevant function
     faaslet::FaasletPool pool(1);
-    faaslet::Faaslet w(1);
-    REQUIRE(!w.isBound());
+    pool.startThreadPool();
 
     // Call the function
     faabric::Message invokeMsgA = faabric::util::messageFactory("demo", "foo");
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.callFunction(invokeMsgA);
 
-    // Process the bind and execute messages
-    w.processNextMessage();
-    w.processNextMessage();
-    REQUIRE(w.isBound());
-
     // Check the result
-    faabric::Message resultA = sch.getFunctionResult(invokeMsgA.id(), 1);
+    faabric::Message resultA = sch.getFunctionResult(invokeMsgA.id(), 1000);
     REQUIRE(resultA.returnvalue() == 0);
     REQUIRE(resultA.outputdata() == expectedOutputA);
 
@@ -148,10 +142,7 @@ TEST_CASE("Test flushing worker picks up new version of function")
     faabric::Message flushMessage =
       faabric::util::messageFactory("demo", "foo");
     flushMessage.set_type(faabric::Message_MessageType_FLUSH);
-    sch.callFunction(flushMessage);
-
-    // Check the Faaslet is no longer bound
-    REQUIRE(!w.isBound());
+    sch.flushLocally();
 
     // Upload the second version and invoke
     fileLoader.uploadFunction(uploadMsgB);
@@ -163,10 +154,7 @@ TEST_CASE("Test flushing worker picks up new version of function")
     REQUIRE(resultB.returnvalue() == 0);
     REQUIRE(resultB.outputdata() == inputB);
 
-    // Process the bind and execute messages
-    w.processNextMessage();
-    w.processNextMessage();
-    REQUIRE(w.isBound());
+    pool.shutdown();
 
     conf.functionDir = origFunctionDir;
     conf.objectFileDir = origObjDir;
