@@ -1,7 +1,5 @@
 #include "WasmModule.h"
 
-#include <openssl/md5.h>
-
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>

@@ -146,7 +146,6 @@ class WAVMWasmModule final
     size_t memoryFdSize = 0;
 
     bool _isBound = false;
-    std::string boundFunctionHash;
 
     // Map of dynamically loaded modules
     std::unordered_map<std::string, int> dynamicPathToHandleMap;

@@ -1,5 +1,4 @@
 #include "faabric/util/func.h"
-#include "faabric/util/http.h"
 #include "proto/faabric.pb.h"
 #include <catch2/catch.hpp>
 

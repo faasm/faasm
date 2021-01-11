@@ -1,6 +1,5 @@
 #include "WasmModuleCache.h"
 
-
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 #include <faabric/util/locks.h>
@@ -64,7 +63,7 @@ wasm::WAVMWasmModule& WasmModuleCache::getCachedModule(
             logger->debug("Creating new base zygote: {}", baseKey);
             wasm::WAVMWasmModule& module = cachedModuleMap[baseKey];
             module.bindToFunction(msg);
-            
+
             // Write memory to fd (to allow copy-on-write cloning)
             int fd = memfd_create(baseKey.c_str(), 0);
             module.writeMemoryToFd(fd);

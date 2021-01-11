@@ -50,8 +50,6 @@ class WasmModule
 
     virtual bool isBound();
 
-    virtual std::string getBoundFunctionHash();
-
     std::string getBoundUser();
 
     std::string getBoundFunction();
