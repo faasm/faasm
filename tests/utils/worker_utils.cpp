@@ -97,7 +97,7 @@ void execFuncWithPool(faabric::Message& call,
     }
 
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-    sch.clear();
+    sch.shutdown();
     sch.addHostToGlobalSet();
     sch.setTestMode(true);
 

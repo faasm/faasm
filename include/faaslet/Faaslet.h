@@ -18,6 +18,7 @@ class Faaslet final : public faabric::executor::FaabricExecutor
 
     std::unique_ptr<wasm::WasmModule> module;
 
+    void flush() override;
   protected:
     void postBind(const faabric::Message& msg, bool force) override;
 
@@ -28,9 +29,6 @@ class Faaslet final : public faabric::executor::FaabricExecutor
                        const std::string& errorMsg) override;
 
     void postFinish() override;
-
-    void flush() override;
-
   private:
     int isolationIdx;
     std::unique_ptr<isolation::NetworkNamespace> ns;
