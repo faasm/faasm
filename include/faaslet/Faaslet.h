@@ -29,10 +29,13 @@ class Faaslet final : public faabric::executor::FaabricExecutor
 
     void postFinish() override;
 
-    void postFlush() override;
+    void flush() override;
 
   private:
     int isolationIdx;
     std::unique_ptr<isolation::NetworkNamespace> ns;
 };
+
+void preloadPythonRuntime();
+
 }

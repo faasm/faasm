@@ -40,8 +40,6 @@ class WAVMWasmModule final
 
     bool execute(faabric::Message& msg, bool forceNoop = false) override;
 
-    std::string getBoundFunctionHash() override;
-
     bool isBound() override;
 
     bool tearDown();

@@ -147,7 +147,7 @@ TEST_CASE("Test flushing worker picks up new version of function")
     // Flush
     faabric::Message flushMessage =
       faabric::util::messageFactory("demo", "foo");
-    flushMessage.set_isflushrequest(true);
+    flushMessage.set_type(faabric::Message_MessageType_FLUSH);
     sch.callFunction(flushMessage);
 
     // Check the Faaslet is no longer bound

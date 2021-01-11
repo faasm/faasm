@@ -22,12 +22,37 @@ using namespace isolation;
 
 namespace faaslet {
 
-void Faaslet::postFlush()
+std::mutex flushMutex;
+
+void preloadPythonRuntime()
 {
-    // Note that only one Faaslet per host will execute this function on a
-    // flush, and it will always be bound to the given function being flushed.
-    // However, we need to make sure that all other Faaslets for this function
-    // are killed and restarted.
+    auto logger = faabric::util::getLogger();
+
+    auto conf = faabric::util::getSystemConfig();
+    if (conf.pythonPreload != "on") {
+        logger->info("Not preloading python runtime");
+        return;
+    }
+
+    logger->info("Preparing python runtime");
+
+    faabric::Message msg =
+      faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+    msg.set_ispython(true);
+    msg.set_pythonuser("python");
+    msg.set_pythonfunction("noop");
+    faabric::util::setMessageId(msg);
+
+    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
+    sch.callFunction(msg, true);
+}
+
+void Faaslet::flush()
+{
+    // Note that all warm Faaslets on the given host will be flushing at the
+    // same time, so we need to include some locking.
+    // TODO avoid repeating global tidy-up that only needs to be done once
+    faabric::util::UniqueLock lock(flushMutex);
 
     // Clear cached shared files
     storage::FileSystem::clearSharedFiles();
@@ -39,8 +64,8 @@ void Faaslet::postFlush()
     // Clear module cache on this host
     module_cache::getWasmModuleCache().clear();
 
-    // Prepare python runtime if necessary
-    scheduler.preflightPythonCall();
+    // Kill this Faaslet
+    this->finish();
 }
 
 Faaslet::Faaslet(int threadIdxIn)

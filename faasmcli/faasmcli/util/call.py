@@ -1,6 +1,6 @@
 from time import sleep
 
-from faasmcli.util.env import PYTHON_USER, PYTHON_FUNC
+from faasmcli.util.env import PYTHON_USER, PYTHON_FUNC, FAABRIC_MSG_TYPE_FLUSH
 from faasmcli.util.http import do_post
 from faasmcli.util.endpoints import get_invoke_host_port
 
@@ -134,11 +134,9 @@ def invoke_impl(
         return do_post(url, msg, headers=headers, json=True, debug=debug)
 
 
-def flush_call_impl(host, port, user, function):
+def flush_call_impl(host, port):
     msg = {
-        "user": user,
-        "function": function,
-        "flush": True,
+        "type": FAABRIC_MSG_TYPE_FLUSH,
     }
     return _do_single_call(host, port, msg, False)
 

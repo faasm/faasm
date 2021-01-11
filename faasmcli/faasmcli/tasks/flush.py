@@ -7,9 +7,9 @@ from faasmcli.util.endpoints import get_invoke_host_port
 
 
 @task(default=True)
-def function(ctx, user, function):
+def function(ctx):
     """
     Flush functions, state and shared files from all workers
     """
     host, port = get_invoke_host_port()
-    flush_call_impl(host, port, user, function)
+    flush_call_impl(host, port)

@@ -381,11 +381,6 @@ void WAVMWasmModule::bindToFunctionNoZygote(const faabric::Message& msg)
     doBindToFunction(msg, false);
 }
 
-std::string WAVMWasmModule::getBoundFunctionHash()
-{
-    // TODO implement
-}
-
 void WAVMWasmModule::doBindToFunction(const faabric::Message& msg,
                                       bool executeZygote)
 {
