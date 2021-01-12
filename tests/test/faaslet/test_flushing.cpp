@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "ir_cache/IRModuleCache.h"
 #include "utils.h"
 
 #include <boost/filesystem.hpp>
@@ -12,28 +13,13 @@
 #include <storage/FileLoader.h>
 
 namespace tests {
-TEST_CASE("Test flushing empty faaslet", "[faaslet]")
+TEST_CASE("Test flushing empty faaslet does not break", "[faaslet]")
 {
     faaslet::Faaslet f(0);
     f.flush();
 }
 
-TEST_CASE("Test flushing worker clears state", "[faaslet]")
-{
-    // Set up some state
-    faabric::state::State& state = faabric::state::getGlobalState();
-    state.getKV("demo", "blah", 10);
-    state.getKV("other", "foo", 30);
-
-    REQUIRE(state.getKVCount() == 2);
-
-    faaslet::Faaslet f(0);
-    f.flush();
-
-    REQUIRE(state.getKVCount() == 0);
-}
-
-TEST_CASE("Test flushing worker clears shared files", "[faaslet]")
+TEST_CASE("Test flushing faaslet clears shared files", "[faaslet]")
 {
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
 
@@ -57,7 +43,7 @@ TEST_CASE("Test flushing worker clears shared files", "[faaslet]")
     REQUIRE(!boost::filesystem::exists(sharedPath));
 }
 
-TEST_CASE("Test flushing worker clears zygotes", "[faaslet]")
+TEST_CASE("Test flushing faaslet clears zygotes", "[faaslet]")
 {
     const faabric::Message msgA = faabric::util::messageFactory("demo", "echo");
     const faabric::Message msgB =
@@ -74,26 +60,22 @@ TEST_CASE("Test flushing worker clears zygotes", "[faaslet]")
     REQUIRE(reg.getTotalCachedModuleCount() == 0);
 }
 
-TEST_CASE("Test flushing worker clears scheduler", "[faaslet]")
+TEST_CASE("Test flushing faaslet clears IR module cache", "[faaslet]")
 {
-    faabric::Message msgA = faabric::util::messageFactory("demo", "echo");
-    faabric::Message msgB = faabric::util::messageFactory("demo", "dummy");
-
-    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-    sch.callFunction(msgA);
-    sch.callFunction(msgB);
-
-    REQUIRE(sch.getFunctionInFlightCount(msgA) == 1);
-    REQUIRE(sch.getFunctionInFlightCount(msgB) == 1);
+    const faabric::Message msg = faabric::util::messageFactory("demo", "echo");
 
     faaslet::Faaslet f(0);
+    f.bindToFunction(msg);
+
+    wasm::IRModuleCache &cache = wasm::getIRModuleCache();
+    REQUIRE(cache.isModuleCached("demo", "echo", ""));
+
     f.flush();
 
-    REQUIRE(sch.getFunctionInFlightCount(msgA) == 0);
-    REQUIRE(sch.getFunctionInFlightCount(msgB) == 0);
+    REQUIRE(!cache.isModuleCached("demo", "echo", ""));
 }
 
-TEST_CASE("Test flushing worker picks up new version of function")
+TEST_CASE("Test flushing faaslet picks up new version of function")
 {
     cleanSystem();
 
@@ -124,7 +106,7 @@ TEST_CASE("Test flushing worker picks up new version of function")
     // Upload the first version
     fileLoader.uploadFunction(uploadMsgA);
 
-    // Set up worker to listen for relevant function
+    // Set up faaslet to listen for relevant function
     faaslet::FaasletPool pool(1);
     pool.startThreadPool();
 

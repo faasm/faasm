@@ -1,4 +1,5 @@
 #include "Faaslet.h"
+#include "ir_cache/IRModuleCache.h"
 
 #include <stdexcept>
 #include <system/CGroup.h>
@@ -63,6 +64,9 @@ void Faaslet::flush()
 
     // Clear module cache on this host
     module_cache::getWasmModuleCache().clear();
+
+    // Clear IR cache
+    wasm::getIRModuleCache().clear();
 
     // Kill this Faaslet
     this->finish();
