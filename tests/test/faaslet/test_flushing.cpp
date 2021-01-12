@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "faabric/util/queue.h"
 #include "ir_cache/IRModuleCache.h"
 #include "utils.h"
 
@@ -16,7 +17,7 @@ namespace tests {
 TEST_CASE("Test flushing empty faaslet does not break", "[faaslet]")
 {
     faaslet::Faaslet f(0);
-    f.flush();
+    REQUIRE_THROWS_AS(f.flush(), faabric::util::ExecutorFinishedException);
 }
 
 TEST_CASE("Test flushing faaslet clears shared files", "[faaslet]")
@@ -39,7 +40,7 @@ TEST_CASE("Test flushing faaslet clears shared files", "[faaslet]")
 
     // Flush and check file is gone
     faaslet::Faaslet f(0);
-    f.flush();
+    REQUIRE_THROWS_AS(f.flush(), faabric::util::ExecutorFinishedException);
     REQUIRE(!boost::filesystem::exists(sharedPath));
 }
 
@@ -56,7 +57,7 @@ TEST_CASE("Test flushing faaslet clears zygotes", "[faaslet]")
     REQUIRE(reg.getTotalCachedModuleCount() == 2);
 
     faaslet::Faaslet f(0);
-    f.flush();
+    REQUIRE_THROWS_AS(f.flush(), faabric::util::ExecutorFinishedException);
     REQUIRE(reg.getTotalCachedModuleCount() == 0);
 }
 
@@ -67,10 +68,10 @@ TEST_CASE("Test flushing faaslet clears IR module cache", "[faaslet]")
     faaslet::Faaslet f(0);
     f.bindToFunction(msg);
 
-    wasm::IRModuleCache &cache = wasm::getIRModuleCache();
+    wasm::IRModuleCache& cache = wasm::getIRModuleCache();
     REQUIRE(cache.isModuleCached("demo", "echo", ""));
 
-    f.flush();
+    REQUIRE_THROWS_AS(f.flush(), faabric::util::ExecutorFinishedException);
 
     REQUIRE(!cache.isModuleCached("demo", "echo", ""));
 }
@@ -79,25 +80,34 @@ TEST_CASE("Test flushing faaslet picks up new version of function")
 {
     cleanSystem();
 
-    // Load the wasm for the real functions
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    int origBoundTimeout = conf.boundTimeout;
+    int origUnboundTimeout = conf.unboundTimeout;
+    conf.boundTimeout = 1000;
+    conf.unboundTimeout = 1000;
+
+    // Load the wasm for two real functions
     faabric::Message origMsgA = faabric::util::messageFactory("demo", "hello");
     faabric::Message origMsgB = faabric::util::messageFactory("demo", "echo");
-
-    std::string expectedOutputA = "Hello Faasm!";
-    std::string inputB = "This should be echoed";
 
     storage::FileLoader& fileLoader = storage::getFileLoader();
     std::vector<uint8_t> wasmA = fileLoader.loadFunctionWasm(origMsgA);
     std::vector<uint8_t> wasmB = fileLoader.loadFunctionWasm(origMsgB);
 
-    // Prepare the upload messages for the dummy function
+    // Check they're different
+    REQUIRE(wasmA.size() != wasmB.size());
+
+    // Set up input/ output
+    std::string expectedOutputA = "Hello Faasm!";
+    std::string inputB = "This should be echoed";
+
+    // Prepare upload messages for the same dummy function with different wasm
     faabric::Message uploadMsgA = faabric::util::messageFactory("demo", "foo");
     uploadMsgA.set_inputdata(wasmA.data(), wasmA.size());
     faabric::Message uploadMsgB = faabric::util::messageFactory("demo", "foo");
     uploadMsgB.set_inputdata(wasmB.data(), wasmB.size());
 
-    // Set up dummy directories
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    // Set up dummy directories for storage
     conf.functionDir = "/tmp/faasm/funcs";
     conf.objectFileDir = "/tmp/faasm/objs";
     std::string origFunctionDir = conf.functionDir;
@@ -121,14 +131,17 @@ TEST_CASE("Test flushing faaslet picks up new version of function")
     REQUIRE(resultA.outputdata() == expectedOutputA);
 
     // Flush
-    faabric::Message flushMessage =
-      faabric::util::messageFactory("demo", "foo");
-    flushMessage.set_type(faabric::Message_MessageType_FLUSH);
     sch.flushLocally();
 
-    // Upload the second version and invoke
-    fileLoader.uploadFunction(uploadMsgB);
+    // Upload the second version and check wasm is as expected
     faabric::Message invokeMsgB = faabric::util::messageFactory("demo", "foo");
+    fileLoader.uploadFunction(uploadMsgB);
+    std::vector<uint8_t> wasmAfterUpload =
+      fileLoader.loadFunctionWasm(invokeMsgB);
+    REQUIRE(wasmAfterUpload == wasmB);
+
+    // Invoke for the second time
+    invokeMsgB.set_inputdata(inputB);
     sch.callFunction(invokeMsgB);
 
     // Check the output has changed to the second function
@@ -138,6 +151,8 @@ TEST_CASE("Test flushing faaslet picks up new version of function")
 
     pool.shutdown();
 
+    conf.boundTimeout = origBoundTimeout;
+    conf.unboundTimeout = origUnboundTimeout;
     conf.functionDir = origFunctionDir;
     conf.objectFileDir = origObjDir;
 }

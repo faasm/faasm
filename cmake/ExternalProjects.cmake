@@ -22,7 +22,7 @@ FetchContent_Declare(wamr_ext
 
 FetchContent_Declare(faabric_ext
     GIT_REPOSITORY "https://github.com/faasm/faabric.git"
-    GIT_TAG "96775d62c5c1e4546dffd442e95016d01bb0a67f"
+    GIT_TAG "bc7608faec1efeb107a91403f0847be4e2d570b1"
     CMAKE_ARGS "-DFAABRIC_BUILD_TESTS=OFF"
 )
 

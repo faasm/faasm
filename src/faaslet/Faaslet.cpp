@@ -1,5 +1,4 @@
 #include "Faaslet.h"
-#include "ir_cache/IRModuleCache.h"
 
 #include <stdexcept>
 #include <system/CGroup.h>
@@ -50,6 +49,9 @@ void preloadPythonRuntime()
 
 void Faaslet::flush()
 {
+    auto logger = faabric::util::getLogger();
+    logger->debug("Faaslet {} flushing", id);
+
     // Note that all warm Faaslets on the given host will be flushing at the
     // same time, so we need to include some locking.
     // TODO avoid repeating global tidy-up that only needs to be done once
@@ -62,14 +64,16 @@ void Faaslet::flush()
     storage::FileLoader& fileLoader = storage::getFileLoader();
     fileLoader.flushFunctionFiles();
 
+    // Flush the module itself
+    if (_isBound) {
+        module->flush();
+    }
+
     // Clear module cache on this host
     module_cache::getWasmModuleCache().clear();
 
-    // Clear IR cache
-    wasm::getIRModuleCache().clear();
-
-    // Kill this Faaslet
-    this->finish();
+    // Terminate this Faaslet
+    throw faabric::util::ExecutorFinishedException("Faaslet flushed");
 }
 
 Faaslet::Faaslet(int threadIdxIn)

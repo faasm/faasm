@@ -67,6 +67,12 @@ static void instantiateBaseModules()
     PROF_END(BaseWasiModule)
 }
 
+void WAVMWasmModule::flush()
+{
+    wasm::IRModuleCache& cache = wasm::getIRModuleCache();
+    cache.clear();
+}
+
 Runtime::Instance* WAVMWasmModule::getEnvModule()
 {
     instantiateBaseModules();

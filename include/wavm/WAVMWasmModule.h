@@ -44,6 +44,8 @@ class WAVMWasmModule final
 
     bool tearDown();
 
+    void flush() override;
+
     // ----- Memory management -----
     uint32_t mmapMemory(uint32_t length) override;
 
