@@ -1,6 +1,4 @@
-from copy import copy
 from invoke import task
-from os import environ
 
 from faasmcli.util.shell import run_command
 
@@ -23,7 +21,6 @@ def run(ctx, user, function, repeats=1, wamr=False):
         args.append(str(repeats))
 
     wasm_vm = "wamr" if wamr else "wavm"
-    env = copy(environ)
-    env.update({"WASM_VM": wasm_vm})
+    extra_env = {"WASM_VM": wasm_vm}
 
-    run_command("simple_runner", args)
+    run_command("simple_runner", args, extra_env=extra_env)
