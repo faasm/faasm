@@ -21,10 +21,11 @@ services:
       - ./container/shared_store/:/usr/local/faasm/shared_store/
     environment:
       - FUNCTION_STORAGE=local
-      - LOG_LEVEL=debug
+      - LOG_LEVEL=info
       - PYTHON_CODEGEN=off
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
+      - LD_LIBRARY_PATH=/build/faasm/third-party/lib
 
   worker:
     image: faasm/worker:${FAASM_VERSION}
@@ -41,13 +42,14 @@ services:
       - FILESERVER_URL=http://${UPLOAD_HOST:-upload}:8002
       - FUNCTION_STORAGE=fileserver
       - GLOBAL_MESSAGE_TIMEOUT=600000
-      - LOG_LEVEL=debug
+      - LOG_LEVEL=info
       - MAX_IN_FLIGHT_RATIO=1
       - MAX_FAASLETS=20
       - MAX_FAASLETS_PER_FUNCTION=4
       - NETNS_MODE=off
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
+      - LD_LIBRARY_PATH=/build/faasm/third-party/lib
 
   nginx:
     image: nginx:latest
