@@ -1,4 +1,5 @@
 #include "UploadServer.h"
+#include "faabric/util/func.h"
 
 #include <faabric/util/bytes.h>
 #include <faabric/util/logging.h>
@@ -89,9 +90,14 @@ void UploadServer::listen(const std::string& port)
 
     // Continuous loop required to allow listening apparently
     logger->info("Listening for requests on localhost:{}", port);
-    while (true) {
-        usleep(60 * 1000 * 1000);
+    while (!stopped) {
+        usleep(2 * 1000 * 1000);
     }
+}
+
+void UploadServer::stop()
+{
+    stopped = true;
 }
 
 void UploadServer::handleGet(const http_request& request)
@@ -137,17 +143,18 @@ void UploadServer::handleGet(const http_request& request)
         }
     }
 
+    http_response response;
     if (returnBytes.empty()) {
-        http_response response(status_codes::InternalError);
+        response = http_response(status_codes::InternalError);
         response.set_body(EMPTY_FILE_RESPONSE);
-        setPermissiveHeaders(response);
-        request.reply(response);
     } else {
-        http_response response(status_codes::OK);
-        setPermissiveHeaders(response);
+        response = http_response(status_codes::OK);
         response.set_body(returnBytes);
-        request.reply(response);
     }
+
+    setPermissiveHeaders(response);
+
+    request.reply(response);
 }
 
 void UploadServer::handlePut(const http_request& request)
@@ -290,19 +297,23 @@ void UploadServer::handleFunctionUpload(const http_request& request)
 faabric::Message UploadServer::buildMessageFromRequest(
   const http_request& request)
 {
+    auto logger = faabric::util::getLogger();
+
     const std::vector<std::string> pathParts =
       UploadServer::getPathParts(request);
 
     if (pathParts.size() != 3) {
         const char* msg = "Invalid path (must be /f|fa|p|pa/<user>/<func>/ \n";
+
+        logger->error(msg);
+
         request.reply(status_codes::OK, msg);
         throw InvalidPathException(msg);
     }
 
     // Check URI
-    faabric::Message msg;
-    msg.set_user(pathParts[1]);
-    msg.set_function(pathParts[2]);
+    faabric::Message msg =
+      faabric::util::messageFactory(pathParts[1], pathParts[2]);
     msg.set_isasync(pathParts[0] == "fa" || pathParts[0] == "pa");
 
     // Read request into msg input data

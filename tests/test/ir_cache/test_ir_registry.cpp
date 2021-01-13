@@ -34,6 +34,12 @@ TEST_CASE("Test main module caching", "[wasm]")
     IR::Module& moduleRefB1 = registry.getModule(user, funcB, "");
     Runtime::ModuleRef objRefB1 = registry.getCompiledModule(user, funcB, "");
 
+    // Check they are reported as cached
+    REQUIRE(registry.isModuleCached(user, funcA, ""));
+    REQUIRE(registry.isModuleCached(user, funcB, ""));
+    REQUIRE(registry.isCompiledModuleCached(user, funcA, ""));
+    REQUIRE(registry.isCompiledModuleCached(user, funcB, ""));
+
     // And again
     IR::Module& moduleRefA2 = registry.getModule(user, funcA, "");
     Runtime::ModuleRef objRefA2 = registry.getCompiledModule(user, funcA, "");
@@ -91,6 +97,12 @@ TEST_CASE("Test shared library caching", "[wasm]")
     IR::Module& refB1 = registry.getModule(user, func, pathB);
     Runtime::ModuleRef objRefB1 = registry.getCompiledModule(user, func, pathB);
 
+    // Check they are reported as cached
+    REQUIRE(registry.isModuleCached(user, func, pathA));
+    REQUIRE(registry.isModuleCached(user, func, pathB));
+    REQUIRE(registry.isCompiledModuleCached(user, func, pathA));
+    REQUIRE(registry.isCompiledModuleCached(user, func, pathB));
+
     // Again
     IR::Module& refA2 = registry.getModule(user, func, pathA);
     Runtime::ModuleRef objRefA2 = registry.getCompiledModule(user, func, pathA);
@@ -123,5 +135,35 @@ TEST_CASE("Test shared library caching", "[wasm]")
 
     checkObjCode(objRefA1, objPathA);
     checkObjCode(objRefB1, objPathB);
+}
+
+TEST_CASE("Test IR cache clearing", "[wasm]")
+{
+    wasm::IRModuleCache& registry = wasm::getIRModuleCache();
+
+    // Function and shared lib
+    std::string user = "demo";
+    std::string func = "echo";
+    std::string libPath = "/usr/local/faasm/runtime_root/lib/python3.8/"
+                          "site-packages/numpy/core/_multiarray_umath.so";
+
+    registry.getModule(user, func, "");
+    registry.getCompiledModule(user, func, "");
+
+    registry.getModule(user, func, libPath);
+    registry.getCompiledModule(user, func, libPath);
+
+    // Check they are reported as cached
+    REQUIRE(registry.isModuleCached(user, func, ""));
+    REQUIRE(registry.isCompiledModuleCached(user, func, ""));
+    REQUIRE(registry.isModuleCached(user, func, libPath));
+    REQUIRE(registry.isCompiledModuleCached(user, func, libPath));
+
+    registry.clear();
+
+    REQUIRE(!registry.isModuleCached(user, func, ""));
+    REQUIRE(!registry.isCompiledModuleCached(user, func, ""));
+    REQUIRE(!registry.isModuleCached(user, func, libPath));
+    REQUIRE(!registry.isCompiledModuleCached(user, func, libPath));
 }
 }

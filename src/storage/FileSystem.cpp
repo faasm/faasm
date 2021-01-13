@@ -137,6 +137,7 @@ void FileSystem::clearSharedFiles()
     SharedFiles::clear();
 
     // Just nuke the whole shared directory
+    // Note that we're not deleting the master copies in the shared store
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     boost::filesystem::remove_all(conf.sharedFilesDir);
 }

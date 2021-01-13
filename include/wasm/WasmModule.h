@@ -54,6 +54,8 @@ class WasmModule
 
     std::string getBoundFunction();
 
+    virtual void flush();
+
     // ----- Legacy argc/ argv -----
     uint32_t getArgc();
 

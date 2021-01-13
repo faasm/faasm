@@ -118,7 +118,7 @@ Runtime::ModuleRef IRModuleCache::getCompiledMainModule(const std::string& user,
             }
         }
     } else {
-        logger->debug("Using cached compiled main module {}", key);
+        logger->debug("Using cached compiled main module {}/{}", user, func);
     }
 
     return compiledModuleMap[key];
@@ -135,7 +135,8 @@ Runtime::ModuleRef IRModuleCache::getCompiledSharedModule(
     if (getCompiledModuleCount(key) == 0) {
         faabric::util::FullLock registryLock(registryMutex);
         if (compiledModuleMap.count(key) == 0) {
-            logger->debug("Loading compiled shared module {}", key);
+            logger->debug(
+              "Loading compiled shared module {}/{} - {}", user, func, path);
 
             IR::Module& module = getModuleFromMap(key);
 
@@ -146,7 +147,8 @@ Runtime::ModuleRef IRModuleCache::getCompiledSharedModule(
               Runtime::loadPrecompiledModule(module, objectBytes);
         }
     } else {
-        logger->debug("Using cached shared compiled module {}", key);
+        logger->debug(
+          "Using cached shared compiled module {}/{} - {}", user, func, path);
     }
 
     return compiledModuleMap[key];
@@ -162,7 +164,7 @@ IR::Module& IRModuleCache::getMainModule(const std::string& user,
     if (getModuleCount(key) == 0) {
         faabric::util::FullLock registryLock(registryMutex);
         if (moduleMap.count(key) == 0) {
-            logger->debug("Loading main module {}", key);
+            logger->debug("Loading main module {}/{}", user, func);
 
             storage::FileLoader& functionLoader = storage::getFileLoader();
 
@@ -195,7 +197,7 @@ IR::Module& IRModuleCache::getMainModule(const std::string& user,
             }
         }
     } else {
-        logger->debug("Using cached main module {}", key);
+        logger->debug("Using cached main module {}/{}", user, func);
     }
 
     return getModuleFromMap(key);
@@ -212,7 +214,7 @@ IR::Module& IRModuleCache::getSharedModule(const std::string& user,
     if (getModuleCount(key) == 0) {
         faabric::util::FullLock lock(registryMutex);
         if (moduleMap.count(key) == 0) {
-            logger->debug("Loading shared module {}", key);
+            logger->debug("Loading shared module {}/{} - {}", user, func, path);
 
             storage::FileLoader& functionLoader = storage::getFileLoader();
 
@@ -254,9 +256,38 @@ IR::Module& IRModuleCache::getSharedModule(const std::string& user,
               (U64)mainModule.tables.defs[0].type.size.max;
         }
     } else {
-        logger->debug("Loading cached shared module {}", key);
+        logger->debug(
+          "Loading cached shared module {}/{} - {}", user, func, path);
     }
 
     return getModuleFromMap(key);
+}
+
+bool IRModuleCache::isModuleCached(const std::string& user,
+                                   const std::string& func,
+                                   const std::string& path)
+{
+    std::string key = getModuleKey(user, func, path);
+    return getModuleCount(key) > 0;
+}
+
+bool IRModuleCache::isCompiledModuleCached(const std::string& user,
+                                           const std::string& func,
+                                           const std::string& path)
+{
+    std::string key = getModuleKey(user, func, path);
+    return getCompiledModuleCount(key) > 0;
+}
+
+void IRModuleCache::clear()
+{
+    faabric::util::FullLock lock(registryMutex);
+
+    auto logger = faabric::util::getLogger();
+    logger->debug("Clearing IR cache");
+
+    moduleMap.clear();
+    compiledModuleMap.clear();
+    originalTableSizes.clear();
 }
 }

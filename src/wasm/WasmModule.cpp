@@ -39,6 +39,8 @@ WasmModule::~WasmModule()
     // Does nothing
 }
 
+void WasmModule::flush() {}
+
 storage::FileSystem& WasmModule::getFileSystem()
 {
     return filesystem;

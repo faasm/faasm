@@ -48,7 +48,47 @@ inv upload.user python --local-copy --py
 tests
 ```
 
-### Tooling - editors, IDEs etc.
+## Running a local development cluster
+
+The CLI set-up above only runs the CLI container and Redis. To set up a local
+development cluster you can run:
+
+```
+# Run the CLI container
+./bin/cli.sh
+
+# Build the code
+inv dev.tools
+```
+
+Then, outside the container:
+
+```
+# Mount your local build inside the containers
+export FAASM_BUILD_MOUNT=/build/faasm
+
+# Start up the local cluster
+docker-compose up -d
+```
+
+This will mount the built binaries from the CLI container into the other 
+containers, thus allowing you to rebuild and restart everything with local 
+changes. 
+
+For example, if you have changed code and want to restart the worker container:
+
+```
+# Inside the CLI container, rebuild the pool runner (executed by the worker)
+inv dev.cc pool_runner
+
+# Outside the container, restart the worker
+docker-compose restart worker
+
+# Tail the logs
+docker-compose logs -f
+```
+
+## Tooling - editors, IDEs etc.
 
 Several directories (including the project root) are mounted as volumes in the
 CLI container (see [`docker-compose.yml`](../docker-compose.yml)). This means

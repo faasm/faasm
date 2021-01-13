@@ -21,7 +21,7 @@ static void setUp()
     faabric::Message call = faabric::util::messageFactory("demo", "chain");
 
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-    sch.clear();
+    sch.shutdown();
     sch.addHostToGlobalSet();
 
     // Network ns requires root

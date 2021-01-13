@@ -3,7 +3,6 @@ from invoke import task
 from faasmcli.util.call import (
     invoke_impl,
     status_call_impl,
-    flush_call_impl,
     exec_graph_call_impl,
 )
 from faasmcli.util.endpoints import get_invoke_host_port
@@ -84,12 +83,3 @@ def exec_graph(ctx, call_id=None, headless=False, output_file=None):
 
     graph = parse_exec_graph_json(json_str)
     plot_exec_graph(graph, headless=headless, output_file=output_file)
-
-
-@task
-def flush(ctx, user, function):
-    """
-    Flush workers
-    """
-    host, port = get_invoke_host_port()
-    flush_call_impl(host, port, user, function)

@@ -44,6 +44,8 @@ class WAVMWasmModule final
 
     bool tearDown();
 
+    void flush() override;
+
     // ----- Memory management -----
     uint32_t mmapMemory(uint32_t length) override;
 
@@ -146,7 +148,6 @@ class WAVMWasmModule final
     size_t memoryFdSize = 0;
 
     bool _isBound = false;
-    bool boundIsTypescript = false;
 
     // Map of dynamically loaded modules
     std::unordered_map<std::string, int> dynamicPathToHandleMap;
