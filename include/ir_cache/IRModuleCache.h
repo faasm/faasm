@@ -36,6 +36,16 @@ class IRModuleCache
                                  const std::string& func,
                                  const std::string& path);
 
+    bool isModuleCached(const std::string& user,
+                        const std::string& func,
+                        const std::string& path);
+
+    bool isCompiledModuleCached(const std::string& user,
+                                const std::string& func,
+                                const std::string& path);
+
+    void clear();
+
   private:
     std::shared_mutex registryMutex;
     std::unordered_map<std::string, IR::Module> moduleMap;

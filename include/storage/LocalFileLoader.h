@@ -66,6 +66,8 @@ class LocalFileLoader : public FileLoader
     void uploadSharedFile(const std::string& path,
                           const std::vector<uint8_t>& fileBytes) override;
 
+    void flushFunctionFiles() override;
+
   private:
     std::vector<uint8_t> loadHashForPath(const std::string& path);
 

@@ -22,6 +22,9 @@ class FaasletPool : public FaabricPool
         // 18/11/20 - causing segfault, waiting for PR to be merged to fix
         // sgx::checkSgxSetup();
 #endif
+
+        // Prepare the Python runtime up front
+        preloadPythonRuntime();
     }
 
   protected:

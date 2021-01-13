@@ -178,6 +178,12 @@ void LocalFileLoader::uploadSharedFile(const std::string& path,
     faabric::util::writeBytesToFile(fullPath, objBytes);
 }
 
+void LocalFileLoader::flushFunctionFiles()
+{
+    // In local file mode, we do not need to flush anything as the files on this
+    // host are the master copies.
+}
+
 void LocalFileLoader::writeHashForFile(const std::string& path,
                                        const std::vector<uint8_t>& hash)
 {

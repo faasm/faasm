@@ -13,6 +13,8 @@ namespace storage {
 class FileserverFileLoader : public FileLoader
 {
   public:
+    explicit FileserverFileLoader(bool useFilesystemCacheIn);
+
     std::string getFileserverUrl();
 
     std::vector<uint8_t> loadFunctionWasm(const faabric::Message& msg) override;
@@ -51,6 +53,8 @@ class FileserverFileLoader : public FileLoader
 
     void uploadSharedObjectAotHash(const std::string& path,
                                    const std::vector<uint8_t>& hash) override;
+
+    void flushFunctionFiles() override;
 
     void uploadFunction(faabric::Message& msg) override
     {
@@ -100,5 +104,12 @@ class FileserverFileLoader : public FileLoader
         throw std::runtime_error(
           "Not implemented for fileserver function loader");
     }
+
+  private:
+    bool useFilesystemCache = true;
+
+    std::vector<uint8_t> doLoad(const std::string& urlPath,
+                                const std::string& headerPath,
+                                const std::string& storagePath);
 };
 };

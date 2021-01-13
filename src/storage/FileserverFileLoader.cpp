@@ -1,29 +1,47 @@
 #include "FileserverFileLoader.h"
 
+#include <cpprest/astreambuf.h>
+#include <cpprest/containerstream.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
-#include <faabric/util/http.h>
 #include <faabric/util/logging.h>
 
+#include <cpprest/filestream.h>
+#include <cpprest/http_client.h>
+#include <cpprest/json.h>
+#include <cpprest/uri.h>
+#include <iostream>
+
 #include <boost/filesystem.hpp>
-#include <pistache/http_header.h>
+
+using namespace utility;
+using namespace web;
+using namespace web::http;
+using namespace web::http::client;
+using namespace concurrency::streams;
 
 namespace storage {
+
+FileserverFileLoader::FileserverFileLoader(bool useFilesystemCacheIn)
+  : useFilesystemCache(useFilesystemCacheIn)
+{}
+
 std::string FileserverFileLoader::getFileserverUrl()
 {
     return faabric::util::getSystemConfig().fileserverUrl;
 }
 
-std::vector<uint8_t> _doLoad(const std::string& url,
-                             const std::string& path,
-                             const std::string& storagePath)
+std::vector<uint8_t> FileserverFileLoader::doLoad(
+  const std::string& urlPath,
+  const std::string& headerPath,
+  const std::string& storagePath)
 {
     auto logger = faabric::util::getLogger();
 
     // Shortcut if already exists
-    if (boost::filesystem::exists(storagePath)) {
+    if (useFilesystemCache && boost::filesystem::exists(storagePath)) {
         if (boost::filesystem::is_directory(storagePath)) {
             throw SharedFileIsDirectoryException(storagePath);
         } else {
@@ -32,55 +50,83 @@ std::vector<uint8_t> _doLoad(const std::string& url,
         }
     }
 
-    logger->debug("Loading from fileserver: {} at {}", path, url);
+    auto conf = faabric::util::getSystemConfig();
+    std::string host = conf.fileserverUrl;
 
-    std::vector<uint8_t> fileBytes;
-    if (path.empty()) {
-        fileBytes = faabric::util::readFileFromUrl(url);
-    } else {
-        fileBytes = faabric::util::readFileFromUrlWithHeader(
-          url, std::make_shared<FilePath>(path));
+    logger->debug("Creating client at {}", host);
+    http_client client(U(host.c_str()));
+
+    // Build the request
+    uri_builder builder;
+    builder.set_path(urlPath, false);
+    http_request request(methods::GET);
+    request.set_request_uri(builder.to_uri());
+
+    // Add header if necessary
+    if (!headerPath.empty()) {
+        request.headers().add(FILE_PATH_HEADER, headerPath);
     }
 
-    // Check response data
-    if (fileBytes.empty()) {
-        std::string errMsg = "Empty response for file " + path + " at " + url;
-        logger->error(errMsg);
-        throw faabric::util::InvalidFunctionException(errMsg);
-    }
+    std::vector<uint8_t> bytesData;
+    client.request(request)
+      .then([&logger](http_response response) {
+          if (response.status_code() != 200) {
+              logger->error("GET request for file failed: {}",
+                            response.status_code());
+              throw std::runtime_error("File GET request failed");
+          }
 
-    // Check whether it's a directory
-    // Note - we don't want to convert every file response to a string, so check
-    // the length first
-    std::string isDirResponse = IS_DIR_RESPONSE;
-    if (fileBytes.size() == isDirResponse.size()) {
-        std::string actualResp = faabric::util::bytesToString(fileBytes);
-        if (actualResp == IS_DIR_RESPONSE) {
-            throw SharedFileIsDirectoryException(path);
-        }
-    }
+          return response.extract_vector();
+      })
+      .then([&](std::vector<uint8_t> responseData) {
+          size_t nBytes = responseData.size();
 
-    // Write to file
-    logger->debug("Writing file to filesystem at {}", storagePath);
-    faabric::util::writeBytesToFile(storagePath, fileBytes);
+          // Check response data
+          if (nBytes == 0) {
+              std::string errMsg =
+                "Empty response for file at " + host + "/" + urlPath;
+              logger->error(errMsg);
+              throw faabric::util::InvalidFunctionException(errMsg);
+          }
 
-    return fileBytes;
+          // Check whether it's a directory
+          // Note - we don't want to convert every file response to a string, so
+          // check the length first
+          std::string isDirResponse = IS_DIR_RESPONSE;
+          if (nBytes == isDirResponse.size()) {
+              std::string actualResp =
+                faabric::util::bytesToString(responseData);
+              if (actualResp == IS_DIR_RESPONSE) {
+                  throw SharedFileIsDirectoryException(headerPath);
+              }
+          }
+
+          // Write bytes to file
+          faabric::util::writeBytesToFile(storagePath, responseData);
+
+          // Copy out the data
+          // TODO avoid this copy?
+          bytesData = responseData;
+      })
+      .wait();
+
+    return bytesData;
 }
 
 std::vector<uint8_t> FileserverFileLoader::loadFunctionWasm(
   const faabric::Message& msg)
 {
-    std::string url = faabric::util::getFunctionUrl(msg);
+    std::string urlPath = fmt::format("f/{}/{}", msg.user(), msg.function());
     std::string filePath = faabric::util::getFunctionFile(msg);
-    return _doLoad(url, "", filePath);
+    return doLoad(urlPath, "", filePath);
 }
 
 std::vector<uint8_t> FileserverFileLoader::loadFunctionObjectFile(
   const faabric::Message& msg)
 {
-    std::string url = faabric::util::getFunctionObjectUrl(msg);
+    std::string urlPath = fmt::format("fo/{}/{}", msg.user(), msg.function());
     std::string objectFilePath = faabric::util::getFunctionObjectFile(msg);
-    return _doLoad(url, "", objectFilePath);
+    return doLoad(urlPath, "", objectFilePath);
 }
 
 std::vector<uint8_t> FileserverFileLoader::loadFunctionWamrAotFile(
@@ -93,24 +139,38 @@ std::vector<uint8_t> FileserverFileLoader::loadFunctionWamrAotFile(
 std::vector<uint8_t> FileserverFileLoader::loadSharedObjectObjectFile(
   const std::string& path)
 {
-    std::string url = faabric::util::getSharedObjectObjectUrl();
+    std::string urlPath = "sobjobj";
     std::string objFilePath = faabric::util::getSharedObjectObjectFile(path);
-    return _doLoad(url, path, objFilePath);
+    return doLoad(urlPath, path, objFilePath);
 }
 
 std::vector<uint8_t> FileserverFileLoader::loadSharedObjectWasm(
   const std::string& path)
 {
-    std::string url = faabric::util::getSharedObjectUrl();
-    return _doLoad(url, path, path);
+    std::string urlPath = "sobjwasm";
+    return doLoad(urlPath, path, path);
 }
 
 std::vector<uint8_t> FileserverFileLoader::loadSharedFile(
   const std::string& path)
 {
-    std::string url = faabric::util::getSharedFileUrl();
+    std::string urlPath = "file";
     const std::string fullPath = faabric::util::getSharedFileFile(path);
-    return _doLoad(url, path, fullPath);
+    return doLoad(urlPath, path, fullPath);
+}
+
+void FileserverFileLoader::flushFunctionFiles()
+{
+    // Note that because we're loading files from a file server, we can safely
+    // delete the function and object files on this host as they are not the
+    // master copies.
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+
+    // Nuke the function directory
+    boost::filesystem::remove_all(conf.functionDir);
+
+    // Nuke the machine code directory
+    boost::filesystem::remove_all(conf.objectFileDir);
 }
 
 // --------------------------------------------------------
