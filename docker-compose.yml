@@ -78,6 +78,7 @@ services:
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
     volumes:
       - .:/usr/local/code/faasm/
+      - /home/scs17/faasm-cpython:/usr/local/code/faasm-cpython
       - ./build/:/build/faasm/
       - ./container/machine-code/:/usr/local/faasm/object/
       - ./container/shared_store/:/usr/local/faasm/shared_store/
