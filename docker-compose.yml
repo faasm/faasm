@@ -25,7 +25,7 @@ services:
       - PYTHON_CODEGEN=off
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
-      - LD_LIBRARY_PATH=/build/faasm/third-party/lib
+      - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
 
   worker:
     image: faasm/worker:${FAASM_VERSION}
@@ -49,7 +49,7 @@ services:
       - NETNS_MODE=off
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
-      - LD_LIBRARY_PATH=/build/faasm/third-party/lib
+      - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
 
   nginx:
     image: nginx:latest
@@ -75,6 +75,7 @@ services:
       - LOG_LEVEL=info
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
+      - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
     volumes:
       - .:/usr/local/code/faasm/
       - ./build/:/build/faasm/
