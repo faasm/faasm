@@ -82,6 +82,11 @@ TEST_CASE("Test numpy conformance", "[python]")
     checkPythonFunction("numpy_test");
 }
 
+TEST_CASE("Test reading pyc files", "[python]")
+{
+    checkPythonFunction("pyc_check");
+}
+
 TEST_CASE("Test repeated numpy execution", "[python]")
 {
     cleanSystem();
