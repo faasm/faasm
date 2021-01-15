@@ -556,14 +556,19 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
         // (and grows up).
         // TODO - how do we detect stack overflows in dynamic modules?
         dynamicModule.path = sharedModulePath;
+
         dynamicModule.memoryBottom = memoryBottom;
+
         dynamicModule.stackSize = DYNAMIC_MODULE_STACK_SIZE;
         dynamicModule.stackTop =
           dynamicModule.memoryBottom + dynamicModule.stackSize;
         dynamicModule.stackPointer = dynamicModule.stackTop - 1;
+
+        dynamicModule.heapBottom = dynamicModule.stackTop;
         dynamicModule.heapTop =
           dynamicModule.memoryBottom +
           (DYNAMIC_MODULE_MEMORY_PAGES * WASM_BYTES_PER_PAGE);
+
         dynamicModule.tableBottom = oldTableElems;
         dynamicModule.tableTop = newTableElems;
 
