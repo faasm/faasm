@@ -646,9 +646,8 @@ int WAVMWasmModule::dynamicLoadModule(const std::string& path,
     // function for more detail on the dynamic linking approach.
 
     // Sometimes a given library may not exist, or an applciation may call
-    // dlopen with an empty path (e.g. CPython). Instead of failing, we use a
-    // fallback handle so that we can still attempt to resolve calls to dlsym
-    // against the main module or other dynamically linked modules.
+    // dlopen with an empty path (e.g. CPython). In this case we return 0 to
+    // mark failure, as with the dlopen syscall.
 
     auto logger = faabric::util::getLogger();
 
@@ -662,12 +661,15 @@ int WAVMWasmModule::dynamicLoadModule(const std::string& path,
 
     // Work out if we're loading an existing module or using the fallback
     int thisHandle;
-    if (boost::filesystem::is_directory(path)) {
-        logger->warn("Dynamic linking directory {}. Using fallback", path);
-        thisHandle = FALLBACK_DYNLINK_HANDLE;
+    if (path.empty()) {
+        logger->warn("Dynamic linking main module");
+        return MAIN_MODULE_DYNLINK_HANDLE;
+    } else if (boost::filesystem::is_directory(path)) {
+        logger->warn("Dynamic linking directory {}", path);
+        return 0;
     } else if (!boost::filesystem::exists(path)) {
         logger->warn("Dynamic module {} does not exist", path);
-        throw std::runtime_error("Dynamic module does not exist");
+        return 0;
     } else {
         // Note, must start handles at 2, otherwise dlopen can see it as an
         // error
@@ -704,7 +706,7 @@ uint32_t WAVMWasmModule::getDynamicModuleFunction(int handle,
     auto logger = faabric::util::getLogger();
 
     Runtime::Object* exportedFunc;
-    if (handle == FALLBACK_DYNLINK_HANDLE) {
+    if (handle == MAIN_MODULE_DYNLINK_HANDLE) {
         // Check the env module
         exportedFunc = getInstanceExport(envModule, funcName);
 
@@ -813,9 +815,9 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
                 break;
             }
             case (1): {
-                // NOTE - when we've got a function pointer that takes a single
-                // argument we assume the args, we assume it's a chained thread
-                // invocation.
+                // NOTE - when we've got a function pointer that takes a
+                // single argument we assume the args, we assume it's a
+                // chained thread invocation.
                 if (msg.inputdata().empty()) {
                     invokeArgs = { 0 };
                 } else {
@@ -1119,8 +1121,8 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
             // If not found, create a placeholder to be filled in later
             // TODO - what causes this?
             if (tableIdx == -1) {
-                // Create a new entry in the table and use this, but mark it to
-                // be filled later
+                // Create a new entry in the table and use this, but mark it
+                // to be filled later
                 Uptr newIdx;
                 Runtime::GrowResult result =
                   Runtime::growTable(defaultTable, 1, &newIdx);
@@ -1393,7 +1395,8 @@ I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)
       threadContext->runtimeData->mutableGlobals[0];
     if (stackGlobal.u32 != STACK_SIZE) {
         faabric::util::getLogger()->error(
-          "Expected first mutable global in context to be stack pointer ({})",
+          "Expected first mutable global in context to be stack pointer "
+          "({})",
           stackGlobal.u32);
         throw std::runtime_error("Unexpected mutable global format");
     }

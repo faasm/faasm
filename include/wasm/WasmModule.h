@@ -28,7 +28,7 @@
 // the modules. 
 // Heap size must be wasm-module-page-aligned. One page is 64kB so 1920 pages 
 // is 120MB
-#define DYNAMIC_MODULE_STACK_SIZE 2 * ONE_MB_BYTES
+#define DYNAMIC_MODULE_STACK_SIZE 4 * ONE_MB_BYTES
 #define DYNAMIC_MODULE_HEAP_PAGES 1920
 
 // Special known function names

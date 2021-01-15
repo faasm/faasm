@@ -1,3 +1,5 @@
+from ctypes import CDLL
+
 from _ctypes import POINTER
 from _ctypes import _SimpleCData
 from _ctypes import _pointer_type_cache

@@ -16,7 +16,7 @@
 #define FAKE_GID 1000
 #define FAKE_N_PROCESSORS 4
 
-#define FALLBACK_DYNLINK_HANDLE 999
+#define MAIN_MODULE_DYNLINK_HANDLE 999
 
 namespace wasm {
 void getBytesFromWasm(int32_t dataPtr, int32_t dataLen, uint8_t* buffer);

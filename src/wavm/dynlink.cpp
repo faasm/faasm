@@ -1,6 +1,7 @@
 #include "WAVMWasmModule.h"
 #include "syscalls.h"
 
+#include <cstring>
 #include <faabric/util/bytes.h>
 
 #include <WAVM/Runtime/Intrinsics.h>
@@ -38,13 +39,17 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     std::string filePath = getStringFromWasm(fileNamePtr);
 
-    std::string realPath = getMaskedPathFromWasm(fileNamePtr);
-    faabric::util::getLogger()->debug(
-      "S - dlopen - {} {} ({})", filePath, flags, realPath);
+    std::string realPath;
+    if (fileNamePtr == 0) {
+        realPath = "";
+        faabric::util::getLogger()->debug("S - dlopen - nullptr {}", flags);
+    } else {
+        realPath = getMaskedPathFromWasm(fileNamePtr);
+        faabric::util::getLogger()->debug(
+          "S - dlopen - {} {} ({})", filePath, flags, realPath);
+    }
 
-    int handle = getExecutingWAVMModule()->dynamicLoadModule(realPath, context);
-
-    return handle;
+    return getExecutingWAVMModule()->dynamicLoadModule(realPath, context);
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -65,10 +70,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "dlerror", I32, dlerror)
 {
-    faabric::util::getLogger()->debug("S - _dlerror");
+    faabric::util::getLogger()->debug("S - dlerror");
+    std::string errorMessage("Wasm dynamic linking error. See logs");
 
-    // Ignore
-    return 0;
+    wasm::WAVMWasmModule* module = getExecutingWAVMModule();
+    uint32_t wasmStrPtr = module->mmapMemory(errorMessage.size());
+
+    char* strPtr = &Runtime::memoryRef<char>(module->defaultMemory, wasmStrPtr);
+    ::strcpy(strPtr, errorMessage.c_str());
+
+    return wasmStrPtr;
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "dlclose", I32, dlclose, I32 handle)
