@@ -159,12 +159,6 @@ class WAVMWasmModule final
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> wasiModule;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> moduleInstance;
 
-    // Dynamic modules
-    // int dynamicModuleCount = 0;
-    // int nextMemoryBase = 0;
-    // int nextStackPointer = 0;
-    // int nextTableBase = 0;
-
     int memoryFd = -1;
     size_t memoryFdSize = 0;
 

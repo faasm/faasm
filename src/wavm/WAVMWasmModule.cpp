@@ -317,7 +317,7 @@ void WAVMWasmModule::addModuleToGOT(IR::Module& mod, bool isMainModule)
             offset = es.baseOffset.i32;
         } else {
             // We control the base offset for dynamically loaded modules
-            offset = lastLoaded.tableTop + 1;
+            offset = lastLoaded.tableBottom;
         }
 
         // Go through each elem entry and record where in the table it's
@@ -359,7 +359,7 @@ void WAVMWasmModule::addModuleToGOT(IR::Module& mod, bool isMainModule)
         }
 
         // Add the global to the map along with its initialised value
-        I32 value = lastLoaded.memoryTop + global.initializer.i32;
+        I32 value = lastLoaded.heapBottom + global.initializer.i32;
         globalOffsetMemoryMap.insert(
           { ex.name, { value, global.type.isMutable } });
     }
@@ -545,7 +545,7 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
         Uptr newTableElems = Runtime::getTableNumElements(defaultTable);
 
         // Provision the memory for the new module
-        Uptr memoryBottom = mmapPages(DYNAMIC_MODULE_HEAP_PAGES);
+        Uptr memoryBottom = mmapPages(DYNAMIC_MODULE_MEMORY_PAGES);
 
         // Record the dynamic module's creation
         int handle = dynamicPathToHandleMap[sharedModulePath];
@@ -563,7 +563,7 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
         dynamicModule.stackPointer = dynamicModule.stackTop - 1;
         dynamicModule.heapTop =
           dynamicModule.memoryBottom +
-          (DYNAMIC_MODULE_HEAP_PAGES * WASM_BYTES_PER_PAGE);
+          (DYNAMIC_MODULE_MEMORY_PAGES * WASM_BYTES_PER_PAGE);
         dynamicModule.tableBottom = oldTableElems;
         dynamicModule.tableTop = newTableElems;
 
@@ -1048,8 +1048,6 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
 {
 
     auto logger = faabric::util::getLogger();
-    logger->debug("Resolve {}.{}", moduleName, name);
-
     bool isMainModule = moduleInstance == nullptr;
 
     Runtime::Instance* modulePtr = nullptr;
