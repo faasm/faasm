@@ -20,6 +20,27 @@ class PlatformThreadPool;
 std::vector<uint8_t> wavmCodegen(std::vector<uint8_t>& wasmBytes,
                                  const std::string& fileName);
 
+struct LoadedDynamicModule
+{
+    std::string path;
+
+    uint32_t memoryBottom;
+    uint32_t memoryTop;
+
+    uint32_t stackTop;
+    uint32_t stackPointer;
+    uint32_t stackSize;
+
+    uint32_t heapPages;
+    uint32_t heapBottom;
+    uint32_t heapTop;
+
+    uint32_t tableBottom;
+    uint32_t tableTop;
+
+    WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> ptr;
+};
+
 class WAVMWasmModule final
   : public WasmModule
   , WAVM::Runtime::Resolver
@@ -139,10 +160,10 @@ class WAVMWasmModule final
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> moduleInstance;
 
     // Dynamic modules
-    int dynamicModuleCount = 0;
-    int nextMemoryBase = 0;
-    int nextStackPointer = 0;
-    int nextTableBase = 0;
+    // int dynamicModuleCount = 0;
+    // int nextMemoryBase = 0;
+    // int nextStackPointer = 0;
+    // int nextTableBase = 0;
 
     int memoryFd = -1;
     size_t memoryFdSize = 0;
@@ -151,8 +172,8 @@ class WAVMWasmModule final
 
     // Map of dynamically loaded modules
     std::unordered_map<std::string, int> dynamicPathToHandleMap;
-    std::unordered_map<int, WAVM::Runtime::GCPointer<WAVM::Runtime::Instance>>
-      dynamicModuleMap;
+    std::unordered_map<int, LoadedDynamicModule> dynamicModuleMap;
+    int lastLoadedDynamicModuleHandle;
 
     // Dynamic linking tables and memories
     std::unordered_map<std::string, WAVM::Uptr> globalOffsetTableMap;

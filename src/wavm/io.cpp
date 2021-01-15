@@ -339,14 +339,17 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I32 iovecCount,
                                I32 resBytesWrittenPtr)
 {
-    faabric::util::getLogger()->debug("S - fd_write - {} {} {} {}",
+    storage::FileSystem& fileSystem = getExecutingWAVMModule()->getFileSystem();
+    std::string path = fileSystem.getPathForFd(fd);
+
+    faabric::util::getLogger()->debug("S - fd_write - {} {} {} {} ({})",
                                       fd,
                                       iovecsPtr,
                                       iovecCount,
-                                      resBytesWrittenPtr);
+                                      resBytesWrittenPtr,
+                                      path);
 
-    storage::FileDescriptor& fileDesc =
-      getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
+    storage::FileDescriptor& fileDesc = fileSystem.getFileDescriptor(fd);
 
     iovec* nativeIovecs = wasiIovecsToNativeIovecs(iovecsPtr, iovecCount);
     ssize_t bytesWritten =
@@ -367,10 +370,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I32 iovecCount,
                                I32 resBytesRead)
 {
+    storage::FileSystem& fileSystem = getExecutingWAVMModule()->getFileSystem();
+    std::string path = fileSystem.getPathForFd(fd);
+
     faabric::util::getLogger()->debug(
-      "S - fd_read - {} {} {}", fd, iovecsPtr, iovecCount);
-    storage::FileDescriptor& fileDesc =
-      getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
+      "S - fd_read - {} {} {} ({})", fd, iovecsPtr, iovecCount, path);
+
+    storage::FileDescriptor& fileDesc = fileSystem.getFileDescriptor(fd);
     iovec* nativeIovecs = wasiIovecsToNativeIovecs(iovecsPtr, iovecCount);
 
     int bytesRead = readv(fileDesc.getLinuxFd(), nativeIovecs, iovecCount);

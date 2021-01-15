@@ -132,11 +132,6 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
         tearDown();
     }
 
-    dynamicModuleCount = other.dynamicModuleCount;
-    nextMemoryBase = other.nextMemoryBase;
-    nextStackPointer = other.nextStackPointer;
-    nextTableBase = other.nextTableBase;
-
     memoryFd = other.memoryFd;
     memoryFdSize = other.memoryFdSize;
 
@@ -189,11 +184,14 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
 
         // Remap dynamic modules
         // TODO - double check this works
+        lastLoadedDynamicModuleHandle = other.lastLoadedDynamicModuleHandle;
         dynamicPathToHandleMap = other.dynamicPathToHandleMap;
         for (auto& p : other.dynamicModuleMap) {
             Runtime::Instance* newInstance =
-              Runtime::remapToClonedCompartment(p.second, compartment);
-            dynamicModuleMap[p.first] = newInstance;
+              Runtime::remapToClonedCompartment(p.second.ptr, compartment);
+
+            dynamicModuleMap[p.first] = p.second;
+            dynamicModuleMap[p.first].ptr = newInstance;
         }
 
         // Copy dynamic linking stuff
@@ -223,7 +221,7 @@ bool WAVMWasmModule::tearDown()
 
     dynamicPathToHandleMap.clear();
     for (auto const& m : dynamicModuleMap) {
-        dynamicModuleMap[m.first] = nullptr;
+        dynamicModuleMap[m.first].ptr = nullptr;
     }
     dynamicModuleMap.clear();
 
@@ -300,6 +298,9 @@ void WAVMWasmModule::addModuleToGOT(IR::Module& mod, bool isMainModule)
         moduleExports.insert(e.name);
     }
 
+    LoadedDynamicModule& lastLoaded =
+      dynamicModuleMap[lastLoadedDynamicModuleHandle];
+
     // ----------------------------
     // Table elems
     // ----------------------------
@@ -316,7 +317,7 @@ void WAVMWasmModule::addModuleToGOT(IR::Module& mod, bool isMainModule)
             offset = es.baseOffset.i32;
         } else {
             // We control the base offset for dynamically loaded modules
-            offset = nextTableBase;
+            offset = lastLoaded.tableTop + 1;
         }
 
         // Go through each elem entry and record where in the table it's
@@ -358,7 +359,7 @@ void WAVMWasmModule::addModuleToGOT(IR::Module& mod, bool isMainModule)
         }
 
         // Add the global to the map along with its initialised value
-        I32 value = nextMemoryBase + global.initializer.i32;
+        I32 value = lastLoaded.memoryTop + global.initializer.i32;
         globalOffsetMemoryMap.insert(
           { ex.name, { value, global.type.isMutable } });
     }
@@ -530,15 +531,6 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
         // A dynamic module needs the same resources as a main module but we
         // need to manually create them
 
-        // Give the module a chunk of memory and stack region just at the bottom
-        // of the new memory (which will grow down). The memory sits above that
-        // (and grows up).
-        // TODO - how do we detect stack overflows in dynamic modules? Are we
-        // meant to share the stack pointer of the main module?
-        U32 dynamicMemBase = mmapPages(DYNAMIC_MODULE_HEAP_PAGES);
-        nextMemoryBase = dynamicMemBase + DYNAMIC_MODULE_STACK_SIZE;
-        nextStackPointer = nextMemoryBase - 1;
-
         // Extend the existing table to fit all the new elements from the
         // dynamic module
         U64 nTableElems = moduleRegistry.getSharedModuleTableSize(
@@ -552,16 +544,35 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
         }
         Uptr newTableElems = Runtime::getTableNumElements(defaultTable);
 
-        // Set the base of the new module's table to be the top of the existing
-        // one.
-        nextTableBase = oldTableElems;
+        // Provision the memory for the new module
+        Uptr memoryBottom = mmapPages(DYNAMIC_MODULE_HEAP_PAGES);
+
+        // Record the dynamic module's creation
+        int handle = dynamicPathToHandleMap[sharedModulePath];
+        LoadedDynamicModule& dynamicModule = dynamicModuleMap[handle];
+
+        // Give the module a chunk of memory and stack region just at the bottom
+        // of the new memory (which will grow down). The memory sits above that
+        // (and grows up).
+        // TODO - how do we detect stack overflows in dynamic modules?
+        dynamicModule.path = sharedModulePath;
+        dynamicModule.memoryBottom = memoryBottom;
+        dynamicModule.stackSize = DYNAMIC_MODULE_STACK_SIZE;
+        dynamicModule.stackTop =
+          dynamicModule.memoryBottom + dynamicModule.stackSize;
+        dynamicModule.stackPointer = dynamicModule.stackTop - 1;
+        dynamicModule.heapTop =
+          dynamicModule.memoryBottom +
+          (DYNAMIC_MODULE_HEAP_PAGES * WASM_BYTES_PER_PAGE);
+        dynamicModule.tableBottom = oldTableElems;
+        dynamicModule.tableTop = newTableElems;
 
         logger->debug("Provisioned new dynamic module region (stack_ptr={}, "
                       "heap_base={}, table={}->{})",
-                      nextStackPointer,
-                      nextMemoryBase,
-                      nextTableBase,
-                      newTableElems);
+                      dynamicModule.stackPointer,
+                      dynamicModule.heapBottom,
+                      dynamicModule.tableBottom,
+                      dynamicModule.tableTop);
     }
 
     // Add module to GOT before linking
@@ -581,11 +592,13 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
                  boundUser,
                  boundFunction,
                  sharedModulePath);
+
     Runtime::Instance* instance =
       instantiateModule(compartment,
                         compiledModule,
                         std::move(linkResult.resolvedImports),
                         name.c_str());
+
     logger->info("Finished instantiating module {}/{}  {}",
                  boundUser,
                  boundFunction,
@@ -619,6 +632,14 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
 
     // Empty the missing entries now that they're populated
     missingGlobalOffsetEntries.clear();
+
+    // Set the instance on the dynamic module record
+    if (!isMainModule) {
+        int handle = dynamicPathToHandleMap[sharedModulePath];
+        LoadedDynamicModule& dynamicModule = dynamicModuleMap[handle];
+        dynamicModule.ptr = instance;
+        lastLoadedDynamicModuleHandle = handle;
+    }
 
     PROF_END(wasmCreateModule)
 
@@ -670,25 +691,19 @@ int WAVMWasmModule::dynamicLoadModule(const std::string& path,
     } else if (!boost::filesystem::exists(path)) {
         logger->warn("Dynamic module {} does not exist", path);
         return 0;
-    } else {
-        // Note, must start handles at 2, otherwise dlopen can see it as an
-        // error
-        thisHandle = 2 + dynamicModuleCount;
-        std::string name = "handle_" + std::to_string(thisHandle);
-
-        // Instantiate the shared module
-        Runtime::Instance* mod = createModuleInstance(name, path);
-
-        // Execute wasm initialisers
-        executeWasmConstructorsFunction(mod);
-
-        // Record module creation
-        dynamicModuleMap[thisHandle] = mod;
-        dynamicModuleCount++;
     }
 
-    // Cache the handle for this module
+    // Note, must start handles at 2, otherwise dlopen can see it as an
+    // error
+    thisHandle = 2 + dynamicModuleMap.size();
     dynamicPathToHandleMap[path] = thisHandle;
+    std::string name = "handle_" + std::to_string(thisHandle);
+
+    // Instantiate the shared module
+    Runtime::Instance* mod = createModuleInstance(name, path);
+
+    // Execute wasm initialisers
+    executeWasmConstructorsFunction(mod);
 
     logger->debug(
       "Loaded shared module at {} with handle {}", path, thisHandle);
@@ -726,7 +741,7 @@ uint32_t WAVMWasmModule::getDynamicModuleFunction(int handle,
             throw std::runtime_error("Missing dynamic module");
         }
 
-        Runtime::Instance* targetModule = dynamicModuleMap[handle];
+        Runtime::Instance* targetModule = dynamicModuleMap[handle].ptr;
         exportedFunc = getInstanceExport(targetModule, funcName);
     }
 
@@ -1032,7 +1047,8 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
                              Runtime::Object*& resolved)
 {
 
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
+    auto logger = faabric::util::getLogger();
+    logger->debug("Resolve {}.{}", moduleName, name);
 
     bool isMainModule = moduleInstance == nullptr;
 
@@ -1048,6 +1064,9 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
         // Main module linking comes from env module or WASI
         resolved = getInstanceExport(modulePtr, name);
     } else {
+        LoadedDynamicModule& lastLoaded =
+          dynamicModuleMap[lastLoadedDynamicModuleHandle];
+
         if (moduleName == "GOT.mem") {
             // Handle global offset table memory entries
             if (globalOffsetMemoryMap.count(name) == 0) {
@@ -1104,7 +1123,7 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
                 // Check other dynamic modules if not found in main module
                 if (!resolvedFunc) {
                     for (auto m : dynamicModuleMap) {
-                        resolvedFunc = getInstanceExport(m.second, name);
+                        resolvedFunc = getInstanceExport(m.second.ptr, name);
                         if (resolvedFunc) {
                             break;
                         }
@@ -1159,7 +1178,7 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
             // Memory base tells the loaded module where to start its heap
             Runtime::Global* newMemoryBase = Runtime::createGlobal(
               compartment, asGlobalType(type), std::string(name));
-            Runtime::initializeGlobal(newMemoryBase, nextMemoryBase);
+            Runtime::initializeGlobal(newMemoryBase, lastLoaded.heapBottom);
             resolved = asObject(newMemoryBase);
 
         } else if (name == "__table_base") {
@@ -1167,14 +1186,14 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
             // entries
             Runtime::Global* newTableBase = Runtime::createGlobal(
               compartment, asGlobalType(type), std::string(name));
-            Runtime::initializeGlobal(newTableBase, nextTableBase);
+            Runtime::initializeGlobal(newTableBase, lastLoaded.tableBottom);
             resolved = asObject(newTableBase);
 
         } else if (name == "__stack_pointer") {
             // Stack pointer is where the loaded module should put its stack
             Runtime::Global* newStackPointer = Runtime::createGlobal(
               compartment, asGlobalType(type), std::string(name));
-            Runtime::initializeGlobal(newStackPointer, nextStackPointer);
+            Runtime::initializeGlobal(newStackPointer, lastLoaded.stackPointer);
             resolved = asObject(newStackPointer);
 
         } else if (name == "__indirect_function_table") {
@@ -1193,7 +1212,7 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
             // Check other dynamically loaded modules for the export
             if (!resolved) {
                 for (auto& m : dynamicModuleMap) {
-                    resolved = getInstanceExport(m.second, name);
+                    resolved = getInstanceExport(m.second.ptr, name);
                     if (resolved) {
                         break;
                     }
@@ -1250,22 +1269,25 @@ std::map<std::string, std::string> WAVMWasmModule::buildDisassemblyMap()
 
 int WAVMWasmModule::getDynamicModuleCount()
 {
-    return dynamicModuleCount;
+    return dynamicModuleMap.size();
 }
 
 int WAVMWasmModule::getNextMemoryBase()
 {
-    return nextMemoryBase;
+    LoadedDynamicModule& mod = dynamicModuleMap[lastLoadedDynamicModuleHandle];
+    return mod.heapBottom;
 }
 
 int WAVMWasmModule::getNextStackPointer()
 {
-    return nextStackPointer;
+    LoadedDynamicModule& mod = dynamicModuleMap[lastLoadedDynamicModuleHandle];
+    return mod.stackPointer;
 }
 
 int WAVMWasmModule::getNextTableBase()
 {
-    return nextTableBase;
+    LoadedDynamicModule& mod = dynamicModuleMap[lastLoadedDynamicModuleHandle];
+    return mod.tableBottom;
 }
 
 int WAVMWasmModule::getFunctionOffsetFromGOT(const std::string& funcName)

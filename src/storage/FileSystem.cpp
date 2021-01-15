@@ -14,6 +14,10 @@ void FileSystem::prepareFilesystem()
     fileDescriptors.emplace(1, storage::FileDescriptor::stdoutFactory());
     fileDescriptors.emplace(2, storage::FileDescriptor::stderrFactory());
 
+    fdNames[0] = "stdin";
+    fdNames[1] = "stdout";
+    fdNames[2] = "stderr";
+
     // Add roots, note that they are predefined as the file descriptors
     // just above the stdxxx's (i.e. > 3)
     createPreopenedFileDescriptor(3, "/");
@@ -56,6 +60,15 @@ int FileSystem::getNewFd()
     return thisFd;
 }
 
+std::string FileSystem::getPathForFd(int fd)
+{
+    if (fdNames.count(fd) == 0) {
+        return "";
+    }
+
+    return fdNames[fd];
+}
+
 int FileSystem::openFileDescriptor(int rootFd,
                                    const std::string& relativePath,
                                    uint64_t rightsBase,
@@ -93,6 +106,9 @@ int FileSystem::openFileDescriptor(int rootFd,
     if (!success) {
         return -1 * fileDesc.getWasiErrno();
     }
+
+    // Remember the name
+    fdNames[thisFd] = relativePath;
 
     return thisFd;
 }

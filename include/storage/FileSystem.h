@@ -32,9 +32,14 @@ class FileSystem
 
     static void clearSharedFiles();
 
+    std::string getPathForFd(int fd);
+
   private:
     int nextFd;
+
     std::unordered_map<int, storage::FileDescriptor> fileDescriptors;
+
+    std::unordered_map<int, std::string> fdNames;
 
     int getNewFd();
 };
