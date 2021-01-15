@@ -19,10 +19,10 @@ COPY --from=sysroot /usr/local/faasm /usr/local/faasm
 # TODO - copy these into the toolchain as part of the cpython container build
 COPY --from=cpython /usr/local/faasm/runtime_root /usr/local/faasm/runtime_root
 COPY --from=cpython \
-    /code/faasm-cpython/third-party/cpython/install/wasm/lib/libpython3.8.a \
+    /usr/local/faasm/llvm-sysroot/lib/wasm32-wasi/libpython3.8.a \
     /usr/local/faasm/llvm-sysroot/lib/wasm32-wasi/libpython3.8.a
 COPY --from=cpython \
-    /code/faasm-cpython/third-party/cpython/install/wasm/include/python3.8 \
+    /usr/local/faasm/llvm-sysroot/include/python3.8 \
     /usr/local/faasm/llvm-sysroot/include/python3.8
 
 # Set up SGX SDK

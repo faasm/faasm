@@ -23,11 +23,13 @@
 // updated to match the value in the build.
 #define STACK_SIZE 4 * ONE_MB_BYTES
 
-// Properties of dynamic modules - NOTE - these MUST be passed when compiling
-// the modules themselves Heap size must be wasm-module-page-aligned. One page
-// is 64kB so 480 pages is 30MB
+// Properties of dynamic modules 
+// - NOTE - make sure these match any max-memory arguments passed when compiling
+// the modules. 
+// Heap size must be wasm-module-page-aligned. One page is 64kB so 1920 pages 
+// is 120MB
 #define DYNAMIC_MODULE_STACK_SIZE 2 * ONE_MB_BYTES
-#define DYNAMIC_MODULE_HEAP_PAGES 480
+#define DYNAMIC_MODULE_HEAP_PAGES 1920
 
 // Special known function names
 // Zygote function (must match faasm.h linked into the functions themselves)

@@ -666,8 +666,8 @@ int WAVMWasmModule::dynamicLoadModule(const std::string& path,
         logger->warn("Dynamic linking directory {}. Using fallback", path);
         thisHandle = FALLBACK_DYNLINK_HANDLE;
     } else if (!boost::filesystem::exists(path)) {
-        logger->warn("Dynamic module {} does not exist. Using fallback", path);
-        thisHandle = FALLBACK_DYNLINK_HANDLE;
+        logger->warn("Dynamic module {} does not exist", path);
+        throw std::runtime_error("Dynamic module does not exist");
     } else {
         // Note, must start handles at 2, otherwise dlopen can see it as an
         // error
