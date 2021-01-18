@@ -84,7 +84,6 @@ class WasmModule
     void clearCapturedStdout();
 
     // ----- Memory management -----
-
     virtual uint32_t mmapMemory(uint32_t length);
 
     virtual uint32_t mmapPages(uint32_t pages);
@@ -115,6 +114,9 @@ class WasmModule
     void restoreFromMemory(const std::vector<uint8_t>& data);
 
     void restoreFromState(const std::string& stateKey, size_t stateSize);
+
+    // ----- Debugging -----
+    virtual void printDebugInfo();
 
   protected:
     std::string boundUser;

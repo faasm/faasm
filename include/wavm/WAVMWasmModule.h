@@ -65,6 +65,9 @@ class WAVMWasmModule final
 
     void mapMemoryFromFd() override;
 
+    // ----- Debug -----
+    void printDebugInfo() override;
+
     // ----- Internals -----
     WAVM::Runtime::GCPointer<WAVM::Runtime::Memory> defaultMemory;
 
@@ -84,7 +87,6 @@ class WAVMWasmModule final
                            uint32_t wasmArgvBuffer) override;
 
     // ----- Resolution/ linking -----
-
     WAVM::Runtime::Function* getFunction(WAVM::Runtime::Instance* module,
                                          const std::string& funcName,
                                          bool strict);

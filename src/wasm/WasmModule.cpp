@@ -349,4 +349,9 @@ uint8_t* WasmModule::wasmPointerToNative(int32_t wasmPtr)
 {
     throw std::runtime_error("wasmPointerToNative not implemented");
 }
+
+void WasmModule::printDebugInfo()
+{
+    throw std::runtime_error("printDebugInfo not implemented");
+}
 }

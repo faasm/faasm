@@ -51,12 +51,21 @@ bool LoadedDynamicModule::validate()
 
 void LoadedDynamicModule::print()
 {
-    printf("Dynamic module %s\n", path.c_str());
+    printf("---- Dynamic module ----\n");
 
-    printf("Stack      %10u -> %10u\n", memoryBottom, stackTop);
-    printf("Heap       %10u -> %10u\n", heapBottom, memoryTop);
-    printf("Table      %10u -> %10u\n", tableBottom, tableTop);
-    printf("Stack ptr  %10u\n", stackPointer);
+    size_t stackSizeBytes = stackTop - memoryBottom;
+    size_t heapSizeBytes = memoryTop - stackTop;
+
+    float stackSizeMb = ((float)stackSizeBytes) / (1024 * 1024);
+    float heapSizeMb = ((float)heapSizeBytes) / (1024 * 1024);
+
+    printf("Path        %s\n", path.c_str());
+    printf("Stack size  %10.3f MiB\n", stackSizeMb);
+    printf("Heap size   %10.3f MiB\n", heapSizeMb);
+    printf("Stack       %10u -> %10u\n", memoryBottom, stackTop);
+    printf("Heap        %10u -> %10u\n", heapBottom, memoryTop);
+    printf("Table       %10u -> %10u\n", tableBottom, tableTop);
+    printf("Stack ptr   %10u\n", stackPointer);
 }
 
 void LoadedDynamicModule::log()

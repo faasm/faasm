@@ -358,7 +358,7 @@ void WAVMWasmModule::addModuleToGOT(IR::Module& mod, bool isMainModule)
         // Add the global to the map along with its initialised value.
         // For dynamic modules we have to offset this using the heap bottom.
         I32 offset = 0;
-        if(!isMainModule) {
+        if (!isMainModule) {
             offset = getLastLoadedDynamicModule().heapBottom;
         }
 
@@ -1571,5 +1571,48 @@ void WAVMWasmModule::prepareOpenMPContext(const faabric::Message& msg)
 std::unique_ptr<openmp::PlatformThreadPool>& WAVMWasmModule::getOMPPool()
 {
     return OMPPool;
+}
+
+void WAVMWasmModule::printDebugInfo()
+{
+    printf("\n------ Module debug info ------\n");
+
+    if (isBound()) {
+        size_t memSizeBytes = defaultMemory->numPages * WASM_BYTES_PER_PAGE;
+
+        I32 heapBase = getGlobalI32("__heap_base", executionContext);
+        I32 dataEnd = getGlobalI32("__data_end", executionContext);
+
+        size_t heapSizeBytes = memSizeBytes - heapBase;
+        size_t dataStackSizeBytes = dataEnd;
+
+        float memSizeMb = ((float)memSizeBytes) / (1024 * 1024);
+        float heapSizeMb = ((float)heapSizeBytes) / (1024 * 1024);
+        float dataStackSizeMb = ((float)dataStackSizeBytes) / (1024 * 1024);
+
+        Uptr tableSize = Runtime::getTableNumElements(defaultTable);
+
+        printf("Bound user:         %s\n", boundUser.c_str());
+        printf("Bound function:     %s\n", boundFunction.c_str());
+        printf("Memory size:        %.3f MiB (%lu bytes)\n",
+               memSizeMb,
+               memSizeBytes);
+        printf("Heap size:          %.3f MiB (%lu bytes)\n",
+               heapSizeMb,
+               heapSizeBytes);
+        printf("Data + stack size:  %.3f MiB (%lu bytes)\n",
+               dataStackSizeMb,
+               dataStackSizeBytes);
+        printf("Table size:         %lu\n", tableSize);
+        printf("Dynamic modules:    %lu\n", dynamicModuleMap.size());
+
+        for (auto p : dynamicModuleMap) {
+            p.second.print();
+        }
+    } else {
+        printf("Unbound\n");
+    }
+
+    printf("-------------------------------\n");
 }
 }
