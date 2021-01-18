@@ -551,10 +551,6 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
         int handle = dynamicPathToHandleMap[sharedModulePath];
         LoadedDynamicModule& dynamicModule = dynamicModuleMap[handle];
 
-        // Give the module a chunk of memory and stack region just at the bottom
-        // of the new memory (which will grow down). The memory sits above that
-        // (and grows up).
-        // TODO - how do we detect stack overflows in dynamic modules?
         dynamicModule.path = sharedModulePath;
 
         dynamicModule.memoryBottom = memoryBottom;
@@ -640,10 +636,12 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
 
         bool moduleValid = dynamicModule.validate();
         if (!moduleValid) {
-            logger->error("Invalid dynamic module {}. See logs",
-                          dynamicModule.path);
+            logger->error("Invalid dynamic module {}", dynamicModule.path);
             dynamicModule.print();
+            throw std::runtime_error("Invalid dynamic module. See logs");
         }
+
+        dynamicModule.log();
     }
 
     PROF_END(wasmCreateModule)

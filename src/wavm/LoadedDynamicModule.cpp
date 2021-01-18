@@ -10,7 +10,13 @@ using namespace WAVM;
 namespace wasm {
 bool LoadedDynamicModule::validate()
 {
+    auto logger = faabric::util::getLogger();
+
     if (memoryTop <= memoryBottom) {
+        return false;
+    }
+
+    if (stackTop != memoryBottom + stackSize) {
         return false;
     }
 
@@ -18,15 +24,11 @@ bool LoadedDynamicModule::validate()
         return false;
     }
 
+    if (stackPointer != stackTop - 1) {
+        return false;
+    }
+
     if (stackSize <= 0) {
-        return false;
-    }
-
-    if (heapPages <= 0) {
-        return false;
-    }
-
-    if (heapBottom <= memoryBottom + stackSize) {
         return false;
     }
 

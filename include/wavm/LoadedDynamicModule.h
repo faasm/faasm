@@ -17,7 +17,6 @@ class LoadedDynamicModule
     uint32_t stackPointer;
     uint32_t stackSize;
 
-    uint32_t heapPages;
     uint32_t heapBottom;
 
     uint32_t tableBottom;
