@@ -146,8 +146,9 @@ class WAVMWasmModule final
 
     // Map of dynamically loaded modules
     std::unordered_map<std::string, int> dynamicPathToHandleMap;
-    std::unordered_map<int, LoadedDynamicModule> dynamicModuleMap;
-    int lastLoadedDynamicModuleHandle;
+    std::unordered_map<int, LoadedDynamicModule> dynamicModuleMap;    
+    int lastLoadedDynamicModuleHandle = 0;
+    LoadedDynamicModule& getLastLoadedDynamicModule();
 
     // Dynamic linking tables and memories
     std::unordered_map<std::string, WAVM::Uptr> globalOffsetTableMap;

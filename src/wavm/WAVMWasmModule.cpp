@@ -298,9 +298,6 @@ void WAVMWasmModule::addModuleToGOT(IR::Module& mod, bool isMainModule)
         moduleExports.insert(e.name);
     }
 
-    LoadedDynamicModule& lastLoaded =
-      dynamicModuleMap[lastLoadedDynamicModuleHandle];
-
     // ----------------------------
     // Table elems
     // ----------------------------
@@ -317,7 +314,7 @@ void WAVMWasmModule::addModuleToGOT(IR::Module& mod, bool isMainModule)
             offset = es.baseOffset.i32;
         } else {
             // We control the base offset for dynamically loaded modules
-            offset = lastLoaded.tableBottom;
+            offset = getLastLoadedDynamicModule().tableBottom;
         }
 
         // Go through each elem entry and record where in the table it's
@@ -358,8 +355,15 @@ void WAVMWasmModule::addModuleToGOT(IR::Module& mod, bool isMainModule)
             continue;
         }
 
-        // Add the global to the map along with its initialised value
-        I32 value = lastLoaded.heapBottom + global.initializer.i32;
+        // Add the global to the map along with its initialised value.
+        // For dynamic modules we have to offset this using the heap bottom.
+        I32 offset = 0;
+        if(!isMainModule) {
+            offset = getLastLoadedDynamicModule().heapBottom;
+        }
+
+        I32 value = offset + global.initializer.i32;
+
         globalOffsetMemoryMap.insert(
           { ex.name, { value, global.type.isMutable } });
     }
@@ -632,8 +636,6 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
         LoadedDynamicModule& dynamicModule = dynamicModuleMap[handle];
         dynamicModule.ptr = instance;
 
-        lastLoadedDynamicModuleHandle = handle;
-
         bool moduleValid = dynamicModule.validate();
         if (!moduleValid) {
             logger->error("Invalid dynamic module {}", dynamicModule.path);
@@ -668,10 +670,7 @@ int WAVMWasmModule::dynamicLoadModule(const std::string& path,
 {
     // This function is essentially dlopen. See the comments around the GOT
     // function for more detail on the dynamic linking approach.
-
-    // Sometimes a given library may not exist, or an applciation may call
-    // dlopen with an empty path (e.g. CPython). In this case we return 0 to
-    // mark failure, as with the dlopen syscall.
+    // It returns 0 on error, as does dlopen
 
     auto logger = faabric::util::getLogger();
 
@@ -689,7 +688,7 @@ int WAVMWasmModule::dynamicLoadModule(const std::string& path,
         logger->warn("Dynamic linking main module");
         return MAIN_MODULE_DYNLINK_HANDLE;
     } else if (boost::filesystem::is_directory(path)) {
-        logger->warn("Dynamic linking directory {}", path);
+        logger->warn("Dynamic linking a directory {}", path);
         return 0;
     } else if (!boost::filesystem::exists(path)) {
         logger->warn("Dynamic module {} does not exist", path);
@@ -702,6 +701,9 @@ int WAVMWasmModule::dynamicLoadModule(const std::string& path,
     dynamicPathToHandleMap[path] = thisHandle;
     std::string name = "handle_" + std::to_string(thisHandle);
 
+    // Mark this as the last loaded module
+    lastLoadedDynamicModuleHandle = thisHandle;
+
     // Instantiate the shared module
     Runtime::Instance* mod = createModuleInstance(name, path);
 
@@ -712,6 +714,20 @@ int WAVMWasmModule::dynamicLoadModule(const std::string& path,
       "Loaded shared module at {} with handle {}", path, thisHandle);
 
     return thisHandle;
+}
+
+LoadedDynamicModule& WAVMWasmModule::getLastLoadedDynamicModule()
+{
+    if (lastLoadedDynamicModuleHandle == 0) {
+        throw std::runtime_error("No dynamic modules loaded");
+    }
+
+    if (dynamicModuleMap.count(lastLoadedDynamicModuleHandle) == 0) {
+        throw std::runtime_error(
+          "Cannot find entry for last loaded dynamic module");
+    }
+
+    return dynamicModuleMap[lastLoadedDynamicModuleHandle];
 }
 
 uint32_t WAVMWasmModule::getDynamicModuleFunction(int handle,
@@ -1065,8 +1081,7 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
         // Main module linking comes from env module or WASI
         resolved = getInstanceExport(modulePtr, name);
     } else {
-        LoadedDynamicModule& lastLoaded =
-          dynamicModuleMap[lastLoadedDynamicModuleHandle];
+        LoadedDynamicModule& lastLoaded = getLastLoadedDynamicModule();
 
         if (moduleName == "GOT.mem") {
             // Handle global offset table memory entries
@@ -1275,20 +1290,17 @@ int WAVMWasmModule::getDynamicModuleCount()
 
 int WAVMWasmModule::getNextMemoryBase()
 {
-    LoadedDynamicModule& mod = dynamicModuleMap[lastLoadedDynamicModuleHandle];
-    return mod.heapBottom;
+    return getLastLoadedDynamicModule().heapBottom;
 }
 
 int WAVMWasmModule::getNextStackPointer()
 {
-    LoadedDynamicModule& mod = dynamicModuleMap[lastLoadedDynamicModuleHandle];
-    return mod.stackPointer;
+    return getLastLoadedDynamicModule().stackPointer;
 }
 
 int WAVMWasmModule::getNextTableBase()
 {
-    LoadedDynamicModule& mod = dynamicModuleMap[lastLoadedDynamicModuleHandle];
-    return mod.tableBottom;
+    return getLastLoadedDynamicModule().tableBottom;
 }
 
 int WAVMWasmModule::getFunctionOffsetFromGOT(const std::string& funcName)
