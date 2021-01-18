@@ -1,6 +1,7 @@
 #pragma once
 
 #include <wasm/WasmModule.h>
+#include <wavm/LoadedDynamicModule.h>
 
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Linker.h>
@@ -19,27 +20,6 @@ class PlatformThreadPool;
 
 std::vector<uint8_t> wavmCodegen(std::vector<uint8_t>& wasmBytes,
                                  const std::string& fileName);
-
-struct LoadedDynamicModule
-{
-    std::string path;
-
-    uint32_t memoryBottom;
-    uint32_t memoryTop;
-
-    uint32_t stackTop;
-    uint32_t stackPointer;
-    uint32_t stackSize;
-
-    uint32_t heapPages;
-    uint32_t heapBottom;
-    uint32_t heapTop;
-
-    uint32_t tableBottom;
-    uint32_t tableTop;
-
-    WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> ptr;
-};
 
 class WAVMWasmModule final
   : public WasmModule

@@ -558,6 +558,8 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
         dynamicModule.path = sharedModulePath;
 
         dynamicModule.memoryBottom = memoryBottom;
+        dynamicModule.memoryTop =
+          memoryBottom + (DYNAMIC_MODULE_MEMORY_PAGES * WASM_BYTES_PER_PAGE);
 
         dynamicModule.stackSize = DYNAMIC_MODULE_STACK_SIZE;
         dynamicModule.stackTop =
@@ -565,19 +567,9 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
         dynamicModule.stackPointer = dynamicModule.stackTop - 1;
 
         dynamicModule.heapBottom = dynamicModule.stackTop;
-        dynamicModule.heapTop =
-          dynamicModule.memoryBottom +
-          (DYNAMIC_MODULE_MEMORY_PAGES * WASM_BYTES_PER_PAGE);
 
         dynamicModule.tableBottom = oldTableElems;
         dynamicModule.tableTop = newTableElems;
-
-        logger->debug("Provisioned new dynamic module region (stack_ptr={}, "
-                      "heap_base={}, table={}->{})",
-                      dynamicModule.stackPointer,
-                      dynamicModule.heapBottom,
-                      dynamicModule.tableBottom,
-                      dynamicModule.tableTop);
     }
 
     // Add module to GOT before linking
@@ -643,7 +635,15 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
         int handle = dynamicPathToHandleMap[sharedModulePath];
         LoadedDynamicModule& dynamicModule = dynamicModuleMap[handle];
         dynamicModule.ptr = instance;
+
         lastLoadedDynamicModuleHandle = handle;
+
+        bool moduleValid = dynamicModule.validate();
+        if (!moduleValid) {
+            logger->error("Invalid dynamic module {}. See logs",
+                          dynamicModule.path);
+            dynamicModule.print();
+        }
     }
 
     PROF_END(wasmCreateModule)
