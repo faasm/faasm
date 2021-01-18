@@ -103,7 +103,6 @@ bool runWithWavm(faabric::Message& m, int runCount)
         success = module.execute(m);
         if (!success) {
             logger->error("Execution failed");
-            module.printDebugInfo();
             break;
         }
 

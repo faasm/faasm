@@ -14,10 +14,6 @@ void FileSystem::prepareFilesystem()
     fileDescriptors.emplace(1, storage::FileDescriptor::stdoutFactory());
     fileDescriptors.emplace(2, storage::FileDescriptor::stderrFactory());
 
-    fdNames[0] = "stdin";
-    fdNames[1] = "stdout";
-    fdNames[2] = "stderr";
-
     // Add roots, note that they are predefined as the file descriptors
     // just above the stdxxx's (i.e. > 3)
     createPreopenedFileDescriptor(3, "/");
@@ -62,11 +58,11 @@ int FileSystem::getNewFd()
 
 std::string FileSystem::getPathForFd(int fd)
 {
-    if (fdNames.count(fd) == 0) {
+    if (fileDescriptors.count(fd) == 0) {
         return "";
     }
 
-    return fdNames[fd];
+    return fileDescriptors[fd].getPath();
 }
 
 int FileSystem::openFileDescriptor(int rootFd,
@@ -106,9 +102,6 @@ int FileSystem::openFileDescriptor(int rootFd,
     if (!success) {
         return -1 * fileDesc.getWasiErrno();
     }
-
-    // Remember the name
-    fdNames[thisFd] = relativePath;
 
     return thisFd;
 }
@@ -156,6 +149,14 @@ void FileSystem::clearSharedFiles()
     // Note that we're not deleting the master copies in the shared store
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     boost::filesystem::remove_all(conf.sharedFilesDir);
+}
+
+void FileSystem::printDebugInfo()
+{
+    printf("--- Open file descriptors ---");
+    for (auto p : fileDescriptors) {
+        printf("    %s\n", p.second.getPath().c_str());
+    }
 }
 
 }

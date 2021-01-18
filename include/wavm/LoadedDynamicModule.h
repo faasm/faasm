@@ -26,7 +26,7 @@ class LoadedDynamicModule
 
     bool validate();
 
-    void print();
+    void printDebugInfo();
 
     void log();
 };

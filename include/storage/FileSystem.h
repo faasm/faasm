@@ -34,12 +34,12 @@ class FileSystem
 
     std::string getPathForFd(int fd);
 
+    void printDebugInfo();
+
   private:
     int nextFd;
 
     std::unordered_map<int, storage::FileDescriptor> fileDescriptors;
-
-    std::unordered_map<int, std::string> fdNames;
 
     int getNewFd();
 };

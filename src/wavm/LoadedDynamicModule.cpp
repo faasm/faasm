@@ -49,7 +49,7 @@ bool LoadedDynamicModule::validate()
     return true;
 }
 
-void LoadedDynamicModule::print()
+void LoadedDynamicModule::printDebugInfo()
 {
     printf("---- Dynamic module ----\n");
 

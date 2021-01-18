@@ -639,7 +639,7 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
         bool moduleValid = dynamicModule.validate();
         if (!moduleValid) {
             logger->error("Invalid dynamic module {}", dynamicModule.path);
-            dynamicModule.print();
+            dynamicModule.printDebugInfo();
             throw std::runtime_error("Invalid dynamic module. See logs");
         }
 
@@ -1607,8 +1607,10 @@ void WAVMWasmModule::printDebugInfo()
         printf("Dynamic modules:    %lu\n", dynamicModuleMap.size());
 
         for (auto p : dynamicModuleMap) {
-            p.second.print();
+            p.second.printDebugInfo();
         }
+
+        filesystem.printDebugInfo();
     } else {
         printf("Unbound\n");
     }
