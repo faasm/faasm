@@ -1,14 +1,47 @@
 # Debugging and Profiling
 
+## Backtrace
+
+If you're seeing a failure nested somewhere deep in an application but can't 
+work out how it's getting there, you can use the `__faasm_backtrace` function 
+to tell the runtime to print the stacktrace at any point in your code.
+
+This can be very useful for debugging issues with Python C-extensions.
+
+If you can locate the line where the problem might occur, e.g.
+
+```c
+void someDeeplyNestedFunction() {
+    // The line that you know has a problem
+}
+```
+
+You can change this to:
+
+```c
+extern "C" {
+#include <faasm/host_interface.h>
+}
+
+void someDeeplyNestedFunction() {
+
+    __faasm_backtrace(0);
+
+    // The line that you know has a problem
+}
+```
+
+Note that the line numbers in the stacktrace won't match up to the original
+source, so you'll just need to grep for it.
+
 ## Debugging
 
 As Faasm functions are compiled to WebAssembly and executed using [WAVM](https://github.com/WAVM/WAVM/),
 any general tips that apply in WAVM also apply to Faasm.
 
 The instructions below assume that 
-- you're building Faasm locally as per the [local dev](local_dev.md) instructions,
+- you're building Faasm locally as per the [development](development.md) instructions,
 - that you built the `func_sym` target,
-- that Faasm's built executables are on your `PATH`.
 
 ### Symbols
 
