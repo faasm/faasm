@@ -525,14 +525,17 @@ extern "C"
                                      faasm_sgx_wasi_symbols,
                                      FAASM_SGX_WASI_SYMBOLS_LEN);
 
-        // Initialize necessary attestation stuff if FAASM-SGX Attestation
-        // extention is enabled
+        // Initialize necessary attestation stuff
         sgx_status_t sgx_return_value;
         faasm_sgx_status_t return_value;
 
         if ((sgx_return_value = ocall_init_crt(&return_value)) != SGX_SUCCESS) {
             return FAASM_SGX_OCALL_ERROR(sgx_return_value);
         }
+
+        if ((sgx_return_value = ocall_attest_to_km(&return_value)) != SGX_SUCCESS) {
+            return FAASM_SGX_OCALL_ERROR(sgx_return_value);
+		}
 
         if (return_value != FAASM_SGX_SUCCESS) {
             return return_value;
@@ -546,12 +549,7 @@ extern "C"
         if (sgx_ra_init(&key, 0, ctx) != SGX_SUCCESS) {
             return FAASM_SGX_NOT_IMPLEMENTED;
         }
-
-        sgx_status_t sgx_return_value;
-        faasm_sgx_status_t return_value;
-        if ((sgx_return_value = ocall_attest_to_km(&return_value)) != SGX_SUCCESS) {
-            return FAASM_SGX_OCALL_ERROR(sgx_return_value);
-        }
+        return FAASM_SGX_SUCCESS;
     }
 
 	faasm_sgx_status_t faasm_sgx_enclave_finalize_key_exchange(sgx_wamr_msg_t* wamr_msg, uint32_t msg_len) {

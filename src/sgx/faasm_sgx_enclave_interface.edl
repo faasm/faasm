@@ -1,4 +1,6 @@
 enclave{
+    from "sgx_tkey_exchange.edl" import *;
+
     trusted{
         public faasm_sgx_status_t faasm_sgx_enclave_unload_module(uint32_t thread_id);
         public faasm_sgx_status_t faasm_sgx_enclave_call_function(uint32_t thread_id, uint32_t func_id);
@@ -12,7 +14,8 @@ enclave{
         void ocall_printf([in, string] const char* msg);
         faasm_sgx_status_t ocall_init_crt(void);
         faasm_sgx_status_t ocall_send_msg([in, size=msg_len]sgx_wamr_msg_t* msg, uint32_t msg_len);
-        faasm_sgx_status_t ocall_attest_to_km(void);
+        faasm_sgx_status_t ocall_attest_to_km(void)
+            allow(faasm_sgx_enclave_init_ra, sgx_ra_get_ga, sgx_ra_proc_msg2_trusted, sgx_ra_get_msg3_trusted);
         uint64_t ocall_faasm_read_state([in, string] char* key, [out, size=buffer_len] uint8_t* buffer_ptr, uint32_t buffer_len);
         void ocall_faasm_read_appended_state([in, string] char* key, [out, size=buffer_len] uint8_t* buffer_ptr, uint32_t buffer_len, uint32_t element_num);
         void ocall_faasm_read_state_offset([in, string] char* key, uint64_t total_len, uint64_t offset, [out, size=buffer_len] uint8_t* buffer_ptr, uint32_t buffer_len);
