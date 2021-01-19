@@ -548,6 +548,12 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
         }
         Uptr newTableElems = Runtime::getTableNumElements(defaultTable);
 
+        // Work out the size of the data
+        size_t dataSize = 0;
+        for (auto ds : irModule.dataSegments) {
+            dataSize += ds.data->size();
+        }
+
         // Provision the memory for the new module
         Uptr memoryBottom = mmapPages(DYNAMIC_MODULE_MEMORY_PAGES);
 
@@ -566,7 +572,10 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
           dynamicModule.memoryBottom + dynamicModule.stackSize;
         dynamicModule.stackPointer = dynamicModule.stackTop - 1;
 
-        dynamicModule.heapBottom = dynamicModule.stackTop;
+        dynamicModule.dataBottom = dynamicModule.stackTop;
+        dynamicModule.dataTop = dynamicModule.dataBottom + dataSize;
+
+        dynamicModule.heapBottom = dynamicModule.dataTop;
 
         dynamicModule.tableBottom = oldTableElems;
         dynamicModule.tableTop = newTableElems;
@@ -1342,10 +1351,8 @@ void WAVMWasmModule::writeMemoryToFd(int fd)
     memoryFd = fd;
 
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug("Writing memory for {}/{} to fd {}",
-                  boundUser,
-                  boundFunction,
-                  memoryFd);
+    logger->debug(
+      "Writing memory for {}/{} to fd {}", boundUser, boundFunction, memoryFd);
 
     Uptr numPages = Runtime::getMemoryNumPages(defaultMemory);
     Uptr numBytes = numPages * WASM_BYTES_PER_PAGE;
@@ -1597,33 +1604,36 @@ void WAVMWasmModule::printDebugInfo()
         I32 dataEnd = getGlobalI32("__data_end", executionContext);
 
         size_t heapSizeBytes = memSizeBytes - heapBase;
-        size_t dataStackSizeBytes = dataEnd;
+        size_t stackSizeBytes = stackPointer;
+        size_t dataSizeBytes = dataEnd - stackPointer;
 
         float memSizeMb = ((float)memSizeBytes) / (1024 * 1024);
         float heapSizeMb = ((float)heapSizeBytes) / (1024 * 1024);
-        float dataStackSizeMb = ((float)dataStackSizeBytes) / (1024 * 1024);
+        float stackSizeMb = ((float)stackSizeBytes) / (1024 * 1024);
+        float dataSizeMb = ((float)dataSizeBytes) / (1024 * 1024);
 
         Uptr tableSize = Runtime::getTableNumElements(defaultTable);
-
-        U64 memoryMinBytes = defaultMemory->type.size.min;
-        U64 memoryMaxBytes = defaultMemory->type.size.max;
-        float memoryMinMb = ((float)memoryMinBytes) / (1024 * 1024);
-        float memoryMaxMb = ((float)memoryMaxBytes) / (1024 * 1024);
 
         printf("Bound user:         %s\n", boundUser.c_str());
         printf("Bound function:     %s\n", boundFunction.c_str());
         printf("Stack pointer:      %i\n", stackPointer);
-        printf("Memory size:        %.3f MiB (%lu bytes)\n",
+        printf("Total memory:       %.3f MiB (%lu bytes)\n",
                memSizeMb,
                memSizeBytes);
-        printf("Min memory:         %.2f MiB\n", memoryMinMb);
-        printf("Max memory:         %.2f MiB\n", memoryMaxMb);
+        printf("Stack size:         %.3f MiB (%lu bytes)\n",
+               stackSizeMb,
+               stackSizeBytes);
+        printf("Data size:          %.3f MiB (%lu bytes)\n",
+               dataSizeMb,
+               dataSizeBytes);
         printf("Heap size:          %.3f MiB (%lu bytes)\n",
                heapSizeMb,
                heapSizeBytes);
-        printf("Data + stack size:  %.3f MiB (%lu bytes)\n",
-               dataStackSizeMb,
-               dataStackSizeBytes);
+        printf("Stack range:        %i - %i\n", 0, stackPointer);
+        printf("Data range:         %i - %lu\n",
+               stackPointer,
+               stackPointer + dataSizeBytes);
+        printf("Heap range:         %i - %lu\n", heapBase, memSizeBytes);
         printf("Table size:         %lu\n", tableSize);
         printf("Dynamic modules:    %lu\n", dynamicModuleMap.size());
 

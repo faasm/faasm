@@ -91,6 +91,7 @@ demo_func(threads_dist threads_dist.cpp)
 demo_func(time time.cpp)
 demo_func(time_of_day time_of_day.cpp)
 demo_func(uname uname.cpp)
+demo_func(va_arg va_arg.cpp)
 demo_func(x2 x2.cpp)
 demo_func(zygote_check zygote_check.cpp)
 

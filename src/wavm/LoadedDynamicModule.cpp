@@ -10,7 +10,7 @@ using namespace WAVM;
 namespace wasm {
 
 int32_t getModuleStackPointer(Runtime::Instance* module,
-                                     Runtime::Context* context)
+                              Runtime::Context* context)
 {
     // Note: we rely on the stack pointer being the first global.
     // It's usually the only mutable global, so we can use this as a sense check
@@ -29,6 +29,8 @@ int32_t getModuleStackPointer(Runtime::Instance* module,
 
 bool LoadedDynamicModule::validate()
 {
+    // The checks in this function are really assertions, as they should only go
+    // wrong if the logic in the loading module is broken.
     auto logger = faabric::util::getLogger();
 
     if (memoryTop <= memoryBottom) {
@@ -39,7 +41,13 @@ bool LoadedDynamicModule::validate()
         return false;
     }
 
-    if (stackTop != heapBottom) {
+    if (dataTop != heapBottom) {
+        return false;
+    }
+
+    int32_t dataSize = dataTop - dataBottom;
+
+    if (stackTop + dataSize != heapBottom) {
         return false;
     }
 
@@ -74,24 +82,21 @@ void LoadedDynamicModule::printDebugInfo(Runtime::Context* context)
 
     size_t stackSizeBytes = stackTop - memoryBottom;
     size_t heapSizeBytes = memoryTop - stackTop;
+    size_t dataSizeBytes = dataTop - dataBottom;
 
     float stackSizeMb = ((float)stackSizeBytes) / (1024 * 1024);
+    float dataSizeMb = ((float)dataSizeBytes) / (1024 * 1024);
     float heapSizeMb = ((float)heapSizeBytes) / (1024 * 1024);
 
-    int32_t stackPointer = getModuleStackPointer(ptr, context);
-
-    U64 memoryMinBytes = ptr->memories[0]->type.size.min;
-    U64 memoryMaxBytes = ptr->memories[0]->type.size.max;
-    float memoryMinMb = ((float)memoryMinBytes) / (1024 * 1024);
-    float memoryMaxMb = ((float)memoryMaxBytes) / (1024 * 1024);
+    int32_t actualStackPointer = getModuleStackPointer(ptr, context);
 
     printf("Path        %s\n", path.c_str());
     printf("Stack size  %10.3f MiB\n", stackSizeMb);
+    printf("Data size   %10.3f MiB\n", dataSizeMb);
     printf("Heap size   %10.3f MiB\n", heapSizeMb);
-    printf("Memory min  %10.3f MiB\n", memoryMinMb);
-    printf("Memory max  %10.3f MiB\n", memoryMaxMb);
-    printf("Stack ptr   %10i\n", stackPointer);
+    printf("Stack ptr   %10i (actual %10i)\n", stackPointer, actualStackPointer);
     printf("Stack       %10u -> %10u\n", memoryBottom, stackTop);
+    printf("Data        %10u -> %10u\n", dataBottom, dataTop);
     printf("Heap        %10u -> %10u\n", heapBottom, memoryTop);
     printf("Table       %10u -> %10u\n", tableBottom, tableTop);
 }

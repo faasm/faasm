@@ -559,6 +559,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     auto logger = faabric::util::getLogger();
     logger->debug("S - faasm_backtrace {}", depth);
 
+    wasm::WAVMWasmModule *module = getExecutingWAVMModule();
+    module->printDebugInfo();
+
     Platform::CallStack callStack = Platform::captureCallStack(depth);
     std::vector<std::string> callStackStrs = Runtime::describeCallStack(callStack);
 

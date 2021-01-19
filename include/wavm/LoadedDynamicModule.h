@@ -20,6 +20,9 @@ class LoadedDynamicModule
     uint32_t stackPointer = 0;
     uint32_t stackSize = 0;
 
+    uint32_t dataBottom = 0;
+    uint32_t dataTop = 0;
+
     uint32_t heapBottom = 0;
 
     uint32_t tableBottom = 0;
