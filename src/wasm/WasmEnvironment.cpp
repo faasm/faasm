@@ -25,8 +25,6 @@ WasmEnvironment::WasmEnvironment()
     vars["PYTHONHASHSEED"] = "0";
     vars["PYTHONNOUSERSITE"] = "on";
     vars["PYTHONWASM"] = "1";
-
-    this->print();
 }
 
 std::vector<std::string> WasmEnvironment::getVars()
@@ -84,7 +82,7 @@ uint32_t WasmEnvironment::getEnvBufferSize()
     return bufferSize;
 }
 
-void WasmEnvironment::print()
+void WasmEnvironment::printDebugInfo()
 {
     printf("---- Wasm environment ----\n");
     for (auto p : vars) {

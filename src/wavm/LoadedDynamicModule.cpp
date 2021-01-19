@@ -51,7 +51,7 @@ bool LoadedDynamicModule::validate()
         return false;
     }
 
-    if (tableTop <= tableBottom) {
+    if (tableTop < tableBottom) {
         return false;
     }
 
@@ -80,14 +80,20 @@ void LoadedDynamicModule::printDebugInfo(Runtime::Context* context)
 
     int32_t stackPointer = getModuleStackPointer(ptr, context);
 
+    U64 memoryMinBytes = ptr->memories[0]->type.size.min;
+    U64 memoryMaxBytes = ptr->memories[0]->type.size.max;
+    float memoryMinMb = ((float)memoryMinBytes) / (1024 * 1024);
+    float memoryMaxMb = ((float)memoryMaxBytes) / (1024 * 1024);
+
     printf("Path        %s\n", path.c_str());
     printf("Stack size  %10.3f MiB\n", stackSizeMb);
-    printf("Stack ptr   %10i\n", stackPointer);
     printf("Heap size   %10.3f MiB\n", heapSizeMb);
+    printf("Memory min  %10.3f MiB\n", memoryMinMb);
+    printf("Memory max  %10.3f MiB\n", memoryMaxMb);
+    printf("Stack ptr   %10i\n", stackPointer);
     printf("Stack       %10u -> %10u\n", memoryBottom, stackTop);
     printf("Heap        %10u -> %10u\n", heapBottom, memoryTop);
     printf("Table       %10u -> %10u\n", tableBottom, tableTop);
-    printf("Stack ptr   %10u\n", stackPointer);
 }
 
 void LoadedDynamicModule::log()

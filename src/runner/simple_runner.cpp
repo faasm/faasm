@@ -108,6 +108,8 @@ bool runWithWavm(faabric::Message& m, int runCount)
             break;
         }
 
+        module.printDebugInfo();
+
         // Reset using cached module
         module = cachedModule;
     }

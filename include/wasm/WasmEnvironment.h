@@ -23,7 +23,7 @@ class WasmEnvironment
 
     std::string getEnv(const std::string& key);
 
-    void print();
+    void printDebugInfo();
 
   private:
     std::unordered_map<std::string, std::string> vars;

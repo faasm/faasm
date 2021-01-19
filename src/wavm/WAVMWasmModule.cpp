@@ -981,7 +981,7 @@ U32 WAVMWasmModule::mmapFile(U32 fd, U32 length)
 
 U32 WAVMWasmModule::allocateThreadStack()
 {
-    return this->mmapMemory(THREAD_STACK_SIZE);
+    return mmapMemory(THREAD_STACK_SIZE);
 }
 
 U32 WAVMWasmModule::mmapMemory(U32 length)
@@ -1139,6 +1139,10 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
                 // Check other dynamic modules if not found in main module
                 if (!resolvedFunc) {
                     for (auto m : dynamicModuleMap) {
+                        if (m.second.ptr == nullptr) {
+                            continue;
+                        }
+
                         resolvedFunc = getInstanceExport(m.second.ptr, name);
                         if (resolvedFunc) {
                             break;
@@ -1217,6 +1221,8 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
             Runtime::Table* table = Runtime::getDefaultTable(moduleInstance);
             resolved = asObject(table);
         } else {
+            logger->debug("Resolving fallback for {}.{}", moduleName, name);
+
             // First check in normal env
             resolved = getInstanceExport(modulePtr, name);
 
@@ -1228,6 +1234,10 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
             // Check other dynamically loaded modules for the export
             if (!resolved) {
                 for (auto& m : dynamicModuleMap) {
+                    if (m.second.ptr == nullptr) {
+                        continue;
+                    }
+
                     resolved = getInstanceExport(m.second.ptr, name);
                     if (resolved) {
                         break;
@@ -1333,8 +1343,8 @@ void WAVMWasmModule::writeMemoryToFd(int fd)
 
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
     logger->debug("Writing memory for {}/{} to fd {}",
-                  this->boundUser,
-                  this->boundFunction,
+                  boundUser,
+                  boundFunction,
                   memoryFd);
 
     Uptr numPages = Runtime::getMemoryNumPages(defaultMemory);
@@ -1359,8 +1369,8 @@ void WAVMWasmModule::mapMemoryFromFd()
 {
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
     logger->debug("Mapping memory for {}/{} from fd {}",
-                  this->boundUser,
-                  this->boundFunction,
+                  boundUser,
+                  boundFunction,
                   memoryFd);
 
     U8* memoryBase = Runtime::getMemoryBaseAddress(defaultMemory);
@@ -1595,8 +1605,8 @@ void WAVMWasmModule::printDebugInfo()
 
         Uptr tableSize = Runtime::getTableNumElements(defaultTable);
 
-        U64 memoryMinBytes = this->defaultMemory->type.size.min;
-        U64 memoryMaxBytes = this->defaultMemory->type.size.max;
+        U64 memoryMinBytes = defaultMemory->type.size.min;
+        U64 memoryMaxBytes = defaultMemory->type.size.max;
         float memoryMinMb = ((float)memoryMinBytes) / (1024 * 1024);
         float memoryMaxMb = ((float)memoryMaxBytes) / (1024 * 1024);
 
@@ -1606,7 +1616,8 @@ void WAVMWasmModule::printDebugInfo()
         printf("Memory size:        %.3f MiB (%lu bytes)\n",
                memSizeMb,
                memSizeBytes);
-        printf("Memory bounds:      %.2f - %.2f\n", memoryMinMb, memoryMaxMb);
+        printf("Min memory:         %.2f MiB\n", memoryMinMb);
+        printf("Max memory:         %.2f MiB\n", memoryMaxMb);
         printf("Heap size:          %.3f MiB (%lu bytes)\n",
                heapSizeMb,
                heapSizeBytes);

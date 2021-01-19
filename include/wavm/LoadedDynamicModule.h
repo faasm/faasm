@@ -13,19 +13,19 @@ class LoadedDynamicModule
   public:
     std::string path;
 
-    uint32_t memoryBottom;
-    uint32_t memoryTop;
+    uint32_t memoryBottom = 0;
+    uint32_t memoryTop = 0;
 
-    uint32_t stackTop;
-    uint32_t stackPointer;
-    uint32_t stackSize;
+    uint32_t stackTop = 0;
+    uint32_t stackPointer = 0;
+    uint32_t stackSize = 0;
 
-    uint32_t heapBottom;
+    uint32_t heapBottom = 0;
 
-    uint32_t tableBottom;
-    uint32_t tableTop;
+    uint32_t tableBottom = 0;
+    uint32_t tableTop = 0;
 
-    WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> ptr;
+    WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> ptr = nullptr;
 
     bool validate();
 
