@@ -283,6 +283,7 @@ extern "C"
 	faasm_sgx_status_t ocall_attest_to_km(void)
 	{
         auto logger = faabric::util::getLogger();
+        logger->info("attesting to KM");
 
         // Initiate attestation to KM, see SGX developer reference, fig 11 for RA flow detaills
         // https://01.org/sites/default/files/documentation/intel_sgx_sdk_developer_reference_for_linux_os_pdf.pdf
@@ -299,19 +300,19 @@ extern "C"
 
         sgxReturnValue = faasm_sgx_enclave_init_ra(globalEnclaveId, &returnValue, &RActx);
         if (sgxReturnValue != SGX_SUCCESS) {
-            logger->error("ecall failed: {}", sgxReturnValue);
+            logger->error("ecall init_ra failed: {}", sgxReturnValue);
             return FAASM_SGX_ECALL_FAILED;
         }
 
         sgxReturnValue = sgx_get_extended_epid_group_id(&msg0_extended_epid_group_id);
         if (sgxReturnValue != SGX_SUCCESS) {
-            logger->error("ecall failed: {}", sgxReturnValue);
+            logger->error("SDK call get_extended_epid_group_id failed: {}", sgxReturnValue);
             return FAASM_SGX_SDK_CALL_FAILED;
         }
 
         sgxReturnValue  = sgx_ra_get_msg1(RActx, globalEnclaveId, sgx_ra_get_ga, &msg1);
         if (sgxReturnValue != SGX_SUCCESS) {
-            logger->error("ecall failed: {}", sgxReturnValue);
+            logger->error("SDK call ra_get_msg1 failed: {}", sgxReturnValue);
             return FAASM_SGX_SDK_CALL_FAILED;
         }
 
@@ -319,26 +320,41 @@ extern "C"
         if (send(_keymgr_socket, &msg0_extended_epid_group_id, sizeof(msg0_extended_epid_group_id), 0) <= 0) {
             logger->error("sending msg0 to KM failed");
             return FAASM_SGX_CRT_SEND_FAILED;
+        } else {
+            logger->debug("sending msg0 to KM successful");
         }
 
         // send msg1 to KM
         if (send(_keymgr_socket, &msg1, sizeof(msg1), 0) <= 0) {
             logger->error("sending msg1 to KM failed");
             return FAASM_SGX_CRT_SEND_FAILED;
+        } else {
+            logger->debug("sending msg1 to KM successful");
         }
 
         //get msg2 from KM and process
-        recv(_keymgr_socket, &p_msg2, sizeof(p_msg2), MSG_WAITALL);
+        logger->debug("waiting for msg2...");
+        if (recv(_keymgr_socket, &p_msg2, sizeof(p_msg2), MSG_WAITALL) <= 0 ) {
+            logger->error("could not recieve msg2 from KM");
+            return FAASM_SGX_CRT_SEND_FAILED;
+        } else {
+            logger->debug("successfully recieved msg2 from KM");
+        }
+
         sgxReturnValue = sgx_ra_proc_msg2(RActx, globalEnclaveId, sgx_ra_proc_msg2_trusted, sgx_ra_get_msg3_trusted, &p_msg2, sizeof(p_msg2),   &msg3, &msg3_len);
         if (sgxReturnValue != SGX_SUCCESS) {
-            logger->error("ecall failed: {}", sgxReturnValue);
+            logger->error("ecall ra_proc_msg2 failed: {}", sgxReturnValue);
             return FAASM_SGX_ECALL_FAILED;
+        } else {
+            logger->debug("processing of RA msg2 successful");
         }
 
         //send msg3 to KM
         if (send(_keymgr_socket, msg3, msg3_len, 0) <= 0) {
             logger->error("sending msg3 to KM failed");
             return FAASM_SGX_CRT_SEND_FAILED;
+        } else {
+            logger->debug("sending of RA msg3 successful");
         }
 
         res_msg_size = sizeof(sgx_wamr_msg_t) + sizeof(sgx_wamr_msg_pkey_mkey_t);
@@ -348,12 +364,20 @@ extern "C"
             exit(0);
         }
 
-		//recieve res_msg and finalize key exchange
-        recv(_keymgr_socket, res_msg, res_msg_size, MSG_WAITALL);
+        //recieve res_msg and finalize key exchange
+        logger->debug("waiting for final msg from KM...");
+        if (recv(_keymgr_socket, res_msg, res_msg_size, MSG_WAITALL) <= 0 ) {
+            logger->error("could not recieve final msg from KM");
+            return FAASM_SGX_CRT_SEND_FAILED;
+        } else {
+            logger->debug("successfully recieved final msg from KM");
+        }
         sgxReturnValue = faasm_sgx_enclave_finalize_key_exchange(globalEnclaveId, &returnValue, res_msg, res_msg_size);
         if (sgxReturnValue != SGX_SUCCESS) {
             free(res_msg);
-		}
-		return FAASM_SGX_SUCCESS;
+        } else {
+            logger->debug("ket exchange successful");
+        }
+        return FAASM_SGX_SUCCESS;
     }
 }
