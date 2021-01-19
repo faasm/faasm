@@ -5,6 +5,9 @@
 #include <WAVM/Runtime/Runtime.h>
 
 namespace wasm {
+int32_t getModuleStackPointer(WAVM::Runtime::Instance* module,
+                              WAVM::Runtime::Context* context);
+
 class LoadedDynamicModule
 {
   public:
@@ -26,7 +29,7 @@ class LoadedDynamicModule
 
     bool validate();
 
-    void printDebugInfo();
+    void printDebugInfo(WAVM::Runtime::Context* context);
 
     void log();
 };

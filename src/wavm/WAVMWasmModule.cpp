@@ -639,7 +639,7 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
         bool moduleValid = dynamicModule.validate();
         if (!moduleValid) {
             logger->error("Invalid dynamic module {}", dynamicModule.path);
-            dynamicModule.printDebugInfo();
+            dynamicModule.printDebugInfo(nullptr);
             throw std::runtime_error("Invalid dynamic module. See logs");
         }
 
@@ -1580,6 +1580,9 @@ void WAVMWasmModule::printDebugInfo()
     if (isBound()) {
         size_t memSizeBytes = defaultMemory->numPages * WASM_BYTES_PER_PAGE;
 
+        I32 stackPointer =
+          getModuleStackPointer(moduleInstance, executionContext);
+
         I32 heapBase = getGlobalI32("__heap_base", executionContext);
         I32 dataEnd = getGlobalI32("__data_end", executionContext);
 
@@ -1592,11 +1595,18 @@ void WAVMWasmModule::printDebugInfo()
 
         Uptr tableSize = Runtime::getTableNumElements(defaultTable);
 
+        U64 memoryMinBytes = this->defaultMemory->type.size.min;
+        U64 memoryMaxBytes = this->defaultMemory->type.size.max;
+        float memoryMinMb = ((float)memoryMinBytes) / (1024 * 1024);
+        float memoryMaxMb = ((float)memoryMaxBytes) / (1024 * 1024);
+
         printf("Bound user:         %s\n", boundUser.c_str());
         printf("Bound function:     %s\n", boundFunction.c_str());
+        printf("Stack pointer:      %i\n", stackPointer);
         printf("Memory size:        %.3f MiB (%lu bytes)\n",
                memSizeMb,
                memSizeBytes);
+        printf("Memory bounds:      %.2f - %.2f\n", memoryMinMb, memoryMaxMb);
         printf("Heap size:          %.3f MiB (%lu bytes)\n",
                heapSizeMb,
                heapSizeBytes);
@@ -1607,7 +1617,7 @@ void WAVMWasmModule::printDebugInfo()
         printf("Dynamic modules:    %lu\n", dynamicModuleMap.size());
 
         for (auto p : dynamicModuleMap) {
-            p.second.printDebugInfo();
+            p.second.printDebugInfo(executionContext);
         }
 
         filesystem.printDebugInfo();
@@ -1616,5 +1626,7 @@ void WAVMWasmModule::printDebugInfo()
     }
 
     printf("-------------------------------\n");
+
+    fflush(stdout);
 }
 }
