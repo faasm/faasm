@@ -122,13 +122,13 @@ storage::FileDescriptor& FileSystem::getFileDescriptor(int fd)
 
 int FileSystem::dup(int fd)
 {
-    // We just want to map the *same* underlying object to a new descriptor
-    int thisFd = getNewFd();
+    int newFd = getNewFd();
 
     FileDescriptor& originalDesc = getFileDescriptor(fd);
-    fileDescriptors[thisFd] = originalDesc;
+    FileDescriptor& newDesc = fileDescriptors[newFd];
+    newDesc.duplicate(originalDesc);
 
-    return thisFd;
+    return newFd;
 }
 
 void FileSystem::tearDown()

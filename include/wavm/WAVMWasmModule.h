@@ -192,6 +192,8 @@ class WAVMWasmModule final
     void prepareOpenMPContext(const faabric::Message& msg);
 
     std::unique_ptr<openmp::PlatformThreadPool> OMPPool;
+
+    uint32_t createMemoryGuardRegion();
 };
 
 WAVMWasmModule* getExecutingWAVMModule();

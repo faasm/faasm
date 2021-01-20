@@ -555,19 +555,9 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
         }
 
         // Provision the memory for the new module plus two guard pages
-        Uptr newMemory = mmapPages(DYNAMIC_MODULE_MEMORY_PAGES + 2);
-        Uptr guardPageStart = newMemory;
-        Uptr guardPageEnd =
-          newMemory + ((DYNAMIC_MODULE_MEMORY_PAGES + 1) * WASM_BYTES_PER_PAGE);
-
-        // Make the two guard pages non-writable
-        uint8_t* guardPageStartPtr =
-          &Runtime::memoryRef<uint8_t>(defaultMemory, guardPageStart);
-        uint8_t* guardPageEndPtr =
-          &Runtime::memoryRef<uint8_t>(defaultMemory, guardPageEnd);
-
-        mprotect(guardPageStartPtr, WASM_BYTES_PER_PAGE, PROT_NONE);
-        mprotect(guardPageEndPtr, WASM_BYTES_PER_PAGE, PROT_NONE);
+        createMemoryGuardRegion();
+        Uptr newMemory = mmapPages(DYNAMIC_MODULE_MEMORY_PAGES);
+        createMemoryGuardRegion();
 
         // Record the dynamic module's creation
         int handle = dynamicPathToHandleMap[sharedModulePath];
@@ -1662,5 +1652,29 @@ void WAVMWasmModule::printDebugInfo()
     printf("-------------------------------\n");
 
     fflush(stdout);
+}
+
+uint32_t WAVMWasmModule::createMemoryGuardRegion()
+{
+    auto logger = faabric::util::getLogger();
+
+    uint32_t regionSize = 10 * faabric::util::HOST_PAGE_SIZE;
+
+    uint32_t wasmOffset = mmapMemory(regionSize);
+
+    uint8_t* nativePtr =
+      &Runtime::memoryRef<uint8_t>(defaultMemory, wasmOffset);
+
+    int res = mprotect(nativePtr, regionSize, PROT_NONE);
+    if (res != 0) {
+        logger->error("Failed to create memory guard: {}",
+                      std::strerror(errno));
+        throw std::runtime_error("Failed to create memory guard");
+    }
+
+    logger->debug(
+      "Created guard region {}-{}", wasmOffset, wasmOffset + regionSize);
+
+    return wasmOffset;
 }
 }

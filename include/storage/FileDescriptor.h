@@ -109,7 +109,7 @@ class FileDescriptor
 
     bool mkdir(const std::string& dirPath);
 
-    uint16_t seek(uint64_t offset, int wasiWhence, uint64_t* newOffset);
+    uint16_t seek(int32_t offset, int wasiWhence, uint64_t* newOffset);
 
     uint64_t tell();
 
@@ -132,6 +132,8 @@ class FileDescriptor
     void setPath(const std::string& newPath);
 
     std::string getPath();
+
+    int duplicate(const FileDescriptor &other);
 
   private:
     static FileDescriptor stdFdFactory(int stdFd, const std::string& devPath);

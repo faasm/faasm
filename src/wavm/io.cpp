@@ -682,7 +682,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
     storage::FileDescriptor& fileDesc =
       getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
 
-    uint16_t wasiErrno = fileDesc.seek(offset, whence, newOffsetHostPtr);
+    uint16_t wasiErrno =
+      fileDesc.seek((int32_t)offset, whence, newOffsetHostPtr);
 
     return wasiErrno;
 }

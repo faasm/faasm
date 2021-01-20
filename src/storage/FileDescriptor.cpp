@@ -419,7 +419,6 @@ bool FileDescriptor::pathOpen(uint32_t lookupFlags,
         realPath = SharedFiles::realPathForSharedFile(path);
     } else {
         realPath = prependRuntimeRoot(path);
-        ;
     }
 
     // Attempt to open the local file
@@ -625,7 +624,7 @@ ssize_t FileDescriptor::readLink(const std::string& relativePath,
     return bytesRead;
 }
 
-uint16_t FileDescriptor::seek(uint64_t offset,
+uint16_t FileDescriptor::seek(int32_t offset,
                               int wasiWhence,
                               uint64_t* newOffset)
 {
@@ -687,6 +686,28 @@ void FileDescriptor::setActualRights(uint64_t rights, uint64_t inheriting)
     actualRightsBase = rights;
     actualRightsInheriting = inheriting;
     rightsSet = true;
+}
+
+int FileDescriptor::duplicate(const FileDescriptor& other)
+{
+    // Duplicate the underlying fd
+    linuxFd = ::dup(other.linuxFd);
+
+    linuxMode = other.linuxMode;
+    linuxFlags = other.linuxFlags;
+    linuxErrno = other.linuxErrno;
+
+    // Set the internal variables
+    path = other.path;
+    rightsSet = other.rightsSet;
+    actualRightsBase = other.actualRightsBase;
+    actualRightsInheriting = other.actualRightsInheriting;
+
+    dirContentsLoaded = other.dirContentsLoaded;
+    dirContents = other.dirContents;
+    dirContentsIdx = other.dirContentsIdx;
+
+    return linuxFd;
 }
 
 }
