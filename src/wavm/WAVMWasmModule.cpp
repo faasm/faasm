@@ -359,7 +359,7 @@ void WAVMWasmModule::addModuleToGOT(IR::Module& mod, bool isMainModule)
         // For dynamic modules we have to offset this using the heap bottom.
         I32 offset = 0;
         if (!isMainModule) {
-            offset = getLastLoadedDynamicModule().heapBottom;
+            offset = getLastLoadedDynamicModule().dataBottom;
         }
 
         I32 value = offset + global.initializer.i32;
@@ -554,8 +554,20 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
             dataSize += ds.data->size();
         }
 
-        // Provision the memory for the new module
-        Uptr memoryBottom = mmapPages(DYNAMIC_MODULE_MEMORY_PAGES);
+        // Provision the memory for the new module plus two guard pages
+        Uptr newMemory = mmapPages(DYNAMIC_MODULE_MEMORY_PAGES + 2);
+        Uptr guardPageStart = newMemory;
+        Uptr guardPageEnd =
+          newMemory + ((DYNAMIC_MODULE_MEMORY_PAGES + 1) * WASM_BYTES_PER_PAGE);
+
+        // Make the two guard pages non-writable
+        uint8_t* guardPageStartPtr =
+          &Runtime::memoryRef<uint8_t>(defaultMemory, guardPageStart);
+        uint8_t* guardPageEndPtr =
+          &Runtime::memoryRef<uint8_t>(defaultMemory, guardPageEnd);
+
+        mprotect(guardPageStartPtr, WASM_BYTES_PER_PAGE, PROT_NONE);
+        mprotect(guardPageEndPtr, WASM_BYTES_PER_PAGE, PROT_NONE);
 
         // Record the dynamic module's creation
         int handle = dynamicPathToHandleMap[sharedModulePath];
@@ -563,9 +575,10 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
 
         dynamicModule.path = sharedModulePath;
 
-        dynamicModule.memoryBottom = memoryBottom;
+        dynamicModule.memoryBottom = newMemory + WASM_BYTES_PER_PAGE;
         dynamicModule.memoryTop =
-          memoryBottom + (DYNAMIC_MODULE_MEMORY_PAGES * WASM_BYTES_PER_PAGE);
+          dynamicModule.memoryBottom +
+          (DYNAMIC_MODULE_MEMORY_PAGES * WASM_BYTES_PER_PAGE);
 
         dynamicModule.stackSize = DYNAMIC_MODULE_STACK_SIZE;
         dynamicModule.stackTop =
@@ -1207,7 +1220,7 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
             // Memory base tells the loaded module where to start its heap
             Runtime::Global* newMemoryBase = Runtime::createGlobal(
               compartment, asGlobalType(type), std::string(name));
-            Runtime::initializeGlobal(newMemoryBase, lastLoaded.heapBottom);
+            Runtime::initializeGlobal(newMemoryBase, lastLoaded.dataBottom);
             resolved = asObject(newMemoryBase);
 
         } else if (name == "__table_base") {
@@ -1309,7 +1322,7 @@ int WAVMWasmModule::getDynamicModuleCount()
 
 int WAVMWasmModule::getNextMemoryBase()
 {
-    return getLastLoadedDynamicModule().heapBottom;
+    return getLastLoadedDynamicModule().dataBottom;
 }
 
 int WAVMWasmModule::getNextStackPointer()

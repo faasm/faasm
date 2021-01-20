@@ -158,4 +158,26 @@ TEST_CASE("Test python sharing dict", "[python]")
 
     execFuncWithPool(call, true, 1);
 }
+
+TEST_CASE("Test python hashing", "[python]")
+{
+    faabric::Message call =
+      faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+    call.set_pythonuser("python");
+    call.set_pythonfunction("hash_check");
+    call.set_ispython(true);
+
+    execFuncWithPool(call, true, 1);
+}
+
+TEST_CASE("Test python picklinkg", "[python]")
+{
+    faabric::Message call =
+      faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+    call.set_pythonuser("python");
+    call.set_pythonfunction("pickle_check");
+    call.set_ispython(true);
+
+    execFuncWithPool(call, true, 1);
+}
 }

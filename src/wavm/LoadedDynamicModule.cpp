@@ -94,7 +94,8 @@ void LoadedDynamicModule::printDebugInfo(Runtime::Context* context)
     printf("Stack size  %10.3f MiB\n", stackSizeMb);
     printf("Data size   %10.3f MiB\n", dataSizeMb);
     printf("Heap size   %10.3f MiB\n", heapSizeMb);
-    printf("Stack ptr   %10i (actual %10i)\n", stackPointer, actualStackPointer);
+    printf(
+      "Stack ptr   %10i (actual %10i)\n", stackPointer, actualStackPointer);
     printf("Stack       %10u -> %10u\n", memoryBottom, stackTop);
     printf("Data        %10u -> %10u\n", dataBottom, dataTop);
     printf("Heap        %10u -> %10u\n", heapBottom, memoryTop);
@@ -104,11 +105,17 @@ void LoadedDynamicModule::printDebugInfo(Runtime::Context* context)
 void LoadedDynamicModule::log()
 {
     auto logger = faabric::util::getLogger();
-    logger->debug("New dynamic module {}: mem={}-{}, stack={}, table={}-{}",
+    logger->debug("New dynamic module {}: mem={}-{}, stack={}-{}, data={}-{}, "
+                  "heap={}-{}, table={}-{}",
                   path,
                   memoryBottom,
                   memoryTop,
+                  memoryBottom,
                   stackTop,
+                  dataBottom,
+                  dataTop,
+                  heapBottom,
+                  memoryTop,
                   tableBottom,
                   tableTop);
 }

@@ -102,11 +102,10 @@ bool runWithWavm(faabric::Message& m, int runCount)
     for (int i = 0; i < runCount; i++) {
         success = module.execute(m);
         if (!success) {
+            module.printDebugInfo();
             logger->error("Execution failed");
             break;
         }
-
-        module.printDebugInfo();
 
         // Reset using cached module
         module = cachedModule;
