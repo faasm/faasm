@@ -624,17 +624,17 @@ ssize_t FileDescriptor::readLink(const std::string& relativePath,
     return bytesRead;
 }
 
-uint16_t FileDescriptor::seek(int32_t offset,
+uint16_t FileDescriptor::seek(int64_t offset,
                               int wasiWhence,
                               uint64_t* newOffset)
 {
     int linuxWhence;
-    if (wasiWhence == __WASI_WHENCE_CUR) {
+    if (wasiWhence == __WASI_WHENCE_SET) {
+        linuxWhence = SEEK_SET;
+    } else if (wasiWhence == __WASI_WHENCE_CUR) {
         linuxWhence = SEEK_CUR;
     } else if (wasiWhence == __WASI_WHENCE_END) {
         linuxWhence = SEEK_END;
-    } else if (wasiWhence == __WASI_WHENCE_SET) {
-        linuxWhence = SEEK_SET;
     } else {
         throw std::runtime_error("Unsupported whence");
     }

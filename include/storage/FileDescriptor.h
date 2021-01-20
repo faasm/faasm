@@ -34,6 +34,8 @@ enum ReadWriteType
     CUSTOM,
 };
 
+uint16_t errnoToWasi(int errnoIn);
+
 OpenMode getOpenMode(uint16_t openFlags);
 
 ReadWriteType getRwType(uint64_t rights);
@@ -109,7 +111,7 @@ class FileDescriptor
 
     bool mkdir(const std::string& dirPath);
 
-    uint16_t seek(int32_t offset, int wasiWhence, uint64_t* newOffset);
+    uint16_t seek(int64_t offset, int wasiWhence, uint64_t* newOffset);
 
     uint64_t tell();
 

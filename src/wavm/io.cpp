@@ -352,13 +352,26 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
     storage::FileDescriptor& fileDesc = fileSystem.getFileDescriptor(fd);
 
     iovec* nativeIovecs = wasiIovecsToNativeIovecs(iovecsPtr, iovecCount);
+
     ssize_t bytesWritten =
-      doWritev(fileDesc.getLinuxFd(), nativeIovecs, iovecCount);
+      ::writev(fileDesc.getLinuxFd(), nativeIovecs, iovecCount);
 
-    Runtime::memoryRef<int>(getExecutingWAVMModule()->defaultMemory,
-                            resBytesWrittenPtr) = (int)bytesWritten;
+    // Catpure stdout if necessary, otherwise write as normal
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    if (fd == STDOUT_FILENO && conf.captureStdout == "on") {
+        getExecutingWAVMModule()->captureStdout(nativeIovecs, iovecCount);
+    }
 
-    return __WASI_ESUCCESS;
+    Runtime::memoryRef<uint64_t>(getExecutingWAVMModule()->defaultMemory,
+                                 resBytesWrittenPtr) = bytesWritten;
+
+    delete[] nativeIovecs;
+
+    if (bytesWritten < 0) {
+        return storage::errnoToWasi(errno);
+    } else {
+        return __WASI_ESUCCESS;
+    }
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
@@ -676,14 +689,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
       "S - fd_seek - {} {} {} {}", fd, offset, whence, newOffsetPtr);
 
     // Get pointer to result in memory
-    uint64_t* newOffsetHostPtr = &Runtime::memoryRef<uint64_t>(
+    auto newOffsetHostPtr = &Runtime::memoryRef<uint64_t>(
       getExecutingWAVMModule()->defaultMemory, newOffsetPtr);
 
     storage::FileDescriptor& fileDesc =
       getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
 
-    uint16_t wasiErrno =
-      fileDesc.seek((int32_t)offset, whence, newOffsetHostPtr);
+    uint16_t wasiErrno = fileDesc.seek(offset, whence, newOffsetHostPtr);
 
     return wasiErrno;
 }
