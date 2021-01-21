@@ -554,7 +554,7 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
             dataSize += ds.data->size();
         }
 
-        // Provision the memory for the new module plus two guard pages
+        // Provision the memory for the new module plus two guard regions
         createMemoryGuardRegion();
         Uptr newMemory = mmapPages(DYNAMIC_MODULE_MEMORY_PAGES);
         createMemoryGuardRegion();

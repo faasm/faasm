@@ -101,6 +101,9 @@ demo_func(zygote_check zygote_check.cpp)
 if (CMAKE_SYSTEM_NAME STREQUAL "Wasm")
     # demo_func(eigen_vec eigen_vec.cpp)
 
+    demo_func(emscripten_check emscripten_check.cpp)
+    target_link_libraries(emscripten_check emscripten)
+
     # TODO - fix BLAS check function
     # include_directories(/usr/local/faasm/llvm-sysroot/include/clapack)
     # demo_func_c(blas_check blas_check.c)

@@ -18,7 +18,7 @@ set_target_properties(py_func PROPERTIES
     LINK_FLAGS "-Xlinker --export-all -Xlinker --no-gc-sections"                
     )
 
-target_link_libraries(py_func faasm c-printscan-long-double)
+target_link_libraries(py_func faasm emscripten c-printscan-long-double)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Wasm")
     target_link_libraries(py_func ${PYTHON_LIBRARIES})

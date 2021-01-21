@@ -145,39 +145,26 @@ TEST_CASE("Test python chaining", "[python]")
     call.set_pythonfunction("chain");
     call.set_ispython(true);
 
-    // execFuncWithPool(call, true, 1);
+    execFuncWithPool(call, true, 4);
 }
 
 TEST_CASE("Test python sharing dict", "[python]")
 {
-    faabric::Message call =
-      faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
-    call.set_pythonuser("python");
-    call.set_pythonfunction("dict_state");
-    call.set_ispython(true);
+    checkPythonFunction("dict_state");
+}
 
-    execFuncWithPool(call, true, 1);
+TEST_CASE("Test python ctypes", "[python]")
+{
+    checkPythonFunction("ctypes_check");
 }
 
 TEST_CASE("Test python hashing", "[python]")
 {
-    faabric::Message call =
-      faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
-    call.set_pythonuser("python");
-    call.set_pythonfunction("hash_check");
-    call.set_ispython(true);
-
-    execFuncWithPool(call, true, 1);
+    checkPythonFunction("hash_check");
 }
 
 TEST_CASE("Test python picklinkg", "[python]")
 {
-    faabric::Message call =
-      faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
-    call.set_pythonuser("python");
-    call.set_pythonfunction("pickle_check");
-    call.set_ispython(true);
-
-    execFuncWithPool(call, true, 1);
+    checkPythonFunction("pickle_check");
 }
 }
