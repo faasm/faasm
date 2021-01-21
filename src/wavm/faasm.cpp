@@ -1,9 +1,9 @@
 #include "WAVMWasmModule.h"
 #include "syscalls.h"
 
+#include <WAVM/Platform/Diagnostics.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
-#include <WAVM/Platform/Diagnostics.h>
 
 #include <faabric/util/bytes.h>
 #include <faabric/util/files.h>
@@ -559,14 +559,15 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     auto logger = faabric::util::getLogger();
     logger->debug("S - faasm_backtrace {}", depth);
 
-    wasm::WAVMWasmModule *module = getExecutingWAVMModule();
+    wasm::WAVMWasmModule* module = getExecutingWAVMModule();
     module->printDebugInfo();
 
     Platform::CallStack callStack = Platform::captureCallStack(depth);
-    std::vector<std::string> callStackStrs = Runtime::describeCallStack(callStack);
+    std::vector<std::string> callStackStrs =
+      Runtime::describeCallStack(callStack);
 
     printf("\n------ Faasm backtrace ------\n");
-    for(auto s : callStackStrs) {
+    for (auto s : callStackStrs) {
         printf("%s\n", s.c_str());
     }
     printf("-------------------------------\n");

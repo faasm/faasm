@@ -97,8 +97,8 @@ int FileSystem::openFileDescriptor(int rootFd,
 
     // AND requested rights with those of the root file descriptor. Rights for
     // this file descriptor are only permitted if they can be inherited, and
-    // children of this file descriptor can only inherit rights permitted by 
-    // their ancestors. 
+    // children of this file descriptor can only inherit rights permitted by
+    // their ancestors.
     uint64_t effectiveRightsInheriting =
       rightsInheriting & rootFileDesc.getActualRightsInheriting();
     uint64_t effectiveRights =

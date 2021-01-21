@@ -1,25 +1,11 @@
 from ctypes import CDLL
 
-#from _ctypes import POINTER
-#from _ctypes import _SimpleCData
-#from _ctypes import _pointer_type_cache
-
-
-#class c_wchar(_SimpleCData):
-#    _type_ = "u"
-
-
-#class c_wchar_p(_SimpleCData):
-#    _type_ = "Z"
-
 
 def faasm_main():
- #   print("Clearing cache")
-#    _pointer_type_cache.clear()
-#
-#    print("Pointer")
-#    ptr = POINTER(c_wchar)
-#
-#    print(ptr)
+    this_mod = CDLL(None)
+    other_mod = CDLL("/lib/python3.8/lib-dynload/_ctypes.so")
+
+    print("Root module = {}".format(this_mod))
+    print("Other module = {}".format(other_mod))
 
     return 0

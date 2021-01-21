@@ -66,13 +66,13 @@ int main()
     if (collectedArgs != expectedArgs) {
         printf("Collected varargs not equal to expectation\n");
         printf("Actual: ");
-        for(auto i : collectedArgs) {
+        for (auto i : collectedArgs) {
             printf("%i ", i);
         }
         printf("\n");
 
         printf("Expected: ");
-        for(auto i : expectedArgs) {
+        for (auto i : expectedArgs) {
             printf("%i ", i);
         }
         printf("\n");

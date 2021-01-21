@@ -64,7 +64,7 @@ int32_t wasiFdFlagsToLinux(int32_t fdFlags)
 
 OpenMode getOpenMode(uint16_t openFlags)
 {
-    if(openFlags & __WASI_O_CREAT) {
+    if (openFlags & __WASI_O_CREAT) {
         return OpenMode::CREATE;
     } else if (openFlags & __WASI_O_DIRECTORY) {
         return OpenMode::DIRECTORY;

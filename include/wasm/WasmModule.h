@@ -23,8 +23,8 @@
 // updated to match the value in the build.
 #define STACK_SIZE 4 * ONE_MB_BYTES
 
-// Properties of dynamic modules. Heap size must be wasm-module-page-aligned. 
-// One page is 64kB 
+// Properties of dynamic modules. Heap size must be wasm-module-page-aligned.
+// One page is 64kB
 #define DYNAMIC_MODULE_STACK_SIZE 4 * ONE_MB_BYTES
 #define DYNAMIC_MODULE_MEMORY_PAGES 1920
 
