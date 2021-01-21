@@ -83,7 +83,8 @@ bool seekReadCheck(int fd,
     }
 
     if (newOffset != expectedOffset) {
-        printf("New offset not as expected: %lli != %i\n",
+        printf("New offset not as expected (\"%s\"): %lli != %i\n",
+               expected.c_str(),
                newOffset,
                expectedOffset);
         return false;
@@ -93,8 +94,12 @@ bool seekReadCheck(int fd,
 
     ssize_t bytesRead = ::read(fd, buf, expected.size());
 
-    if(bytesRead != expected.size()) {
-        printf("Failed read: %s\n", strerror(errno));
+    if (bytesRead != expected.size()) {
+        printf("Failed reading \"%s\" (%li != %li): %s\n",
+               expected.c_str(),
+               bytesRead,
+               expected.size(),
+               strerror(errno));
         return false;
     }
 
@@ -215,33 +220,46 @@ Without my file, I am useless.\n";
     // Prepare some expectations and offsets
     std::string expectedA = "I am useless";
     std::string expectedB = "There are many like it";
-    std::string expectedC = "There are many";
-    std::string expectedD = "There are many";
+    std::string expectedC = "I must master it";
+    std::string expectedD1 = "It is my life";
+    std::string expectedD2 = "Without my file";
 
-    int relativeOffsetA = -20;
-    int absoluteOffsetB = 10;
+    int relativeOffsetA = -(expectedA.size() + 2);
+    int absoluteOffsetB = 17;
 
-    int relativeOffsetC = 35;
-    int absoluteOffsetD1 = -30;
-    int absoluteOffsetD2 = 10;
+    int relativeOffsetC = contentA.size();
 
-    bool success = true;
-    success &= seekReadCheck(
-      fdA, relativeOffsetA, SEEK_CUR, offA + relativeOffsetA, "foobar");
-    success &= seekReadCheck(
-      fdB, absoluteOffsetB, SEEK_SET, absoluteOffsetB, "baz bar foo");
+    int relativeOffsetD1 = -31;
+    int absoluteOffsetD2 = contentA.size() + contentB.size() - 31;
 
-    success &= seekReadCheck(
-      fdC, relativeOffsetC, SEEK_CUR, relativeOffsetC, "balh balh balh");
-
-    success &= seekReadCheck(
-      fdD, absoluteOffsetD1, SEEK_SET, absoluteOffsetD1, "ffffffffffff");
-    success &= seekReadCheck(
-      fdD, absoluteOffsetD2, SEEK_SET, absoluteOffsetD2, "gfggggsgsgsgs");
-
-    if (success) {
-        return 0;
-    } else {
+    if (!seekReadCheck(
+          fdA, relativeOffsetA, SEEK_CUR, offA + relativeOffsetA, expectedA)) {
         return 1;
     }
+
+    if (!seekReadCheck(
+          fdB, absoluteOffsetB, SEEK_SET, absoluteOffsetB, expectedB)) {
+        return 1;
+    }
+
+    if (!seekReadCheck(
+          fdC, relativeOffsetC, SEEK_CUR, relativeOffsetC, expectedC)) {
+        return 1;
+    }
+
+    // Note that this offset includes the reading done in the step before
+    if (!seekReadCheck(fdD,
+                       relativeOffsetD1,
+                       SEEK_CUR,
+                       relativeOffsetC + expectedC.size() + relativeOffsetD1,
+                       expectedD1)) {
+        return 1;
+    }
+
+    if (!seekReadCheck(
+          fdD, absoluteOffsetD2, SEEK_SET, absoluteOffsetD2, expectedD2)) {
+        return 1;
+    }
+
+    return 0;
 }
