@@ -591,14 +591,6 @@ Stat FileDescriptor::stat(const std::string& relativePath)
         throw std::runtime_error("Unrecognised file type");
     }
 
-    // Set WASI rights accordingly
-    if (isReadOnly) {
-        setActualRights(WASI_RIGHTS_READ, WASI_RIGHTS_READ);
-    } else {
-        uint64_t rights = WASI_RIGHTS_READ | WASI_RIGHTS_WRITE;
-        setActualRights(rights, rights);
-    }
-
     // Set up the result
     statResult.st_dev = nativeStat.st_dev;
     statResult.st_ino = nativeStat.st_ino;
@@ -663,6 +655,11 @@ uint64_t FileDescriptor::tell()
 int FileDescriptor::getLinuxFd()
 {
     return linuxFd;
+}
+
+int FileDescriptor::getLinuxFlags()
+{
+    return linuxFlags;
 }
 
 int FileDescriptor::getLinuxErrno()

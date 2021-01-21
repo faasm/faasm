@@ -29,6 +29,7 @@ void FileSystem::createPreopenedFileDescriptor(int fd, const std::string& path)
     storage::FileDescriptor fileDesc;
     fileDesc.setPath(path);
     fileDesc.setActualRights(DIRECTORY_RIGHTS, INHERITING_DIRECTORY_RIGHTS);
+
     bool success = fileDesc.pathOpen(0, __WASI_O_DIRECTORY, 0);
 
     if (!success) {
@@ -39,6 +40,7 @@ void FileSystem::createPreopenedFileDescriptor(int fd, const std::string& path)
           realSysPath,
           strerror(fileDesc.getLinuxErrno()));
         throw std::runtime_error("Problem opening preopened fd");
+
     } else {
         faabric::util::getLogger()->debug("Opened preopened fd at {}", path);
     }

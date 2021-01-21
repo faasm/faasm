@@ -124,6 +124,8 @@ class FileDescriptor
     uint8_t wasiPreopenType;
 
     int getLinuxFd();
+    
+    int getLinuxFlags();
 
     int getLinuxErrno();
 
