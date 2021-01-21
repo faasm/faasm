@@ -1,11 +1,10 @@
-#include "faasm/faasm.h"
-
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
 #include <string>
+#include <vector>
 
 #include <unistd.h>
 
@@ -22,6 +21,52 @@ void deleteFile(const char* fileName)
             exit(1);
         };
     }
+}
+
+bool validatePermissions()
+{
+    std::string filePath = "foobar.txt";
+    deleteFile(filePath.c_str());
+
+    // Should fail, as file doesn't exist
+    int roFd = open(filePath.c_str(), O_RDONLY);
+    if (roFd > 0) {
+        printf("Should not be able to open read-only fd\%s", strerror(errno));
+        return false;
+    }
+
+    // Should also fail as file doesn't exist
+    int woFd = open(filePath.c_str(), O_WRONLY);
+    if (woFd > 0) {
+        printf("Should not be able to open write-only fd\%s", strerror(errno));
+        return false;
+    }
+
+    // Should also fail as file doesn't exist
+    int rwFd = open(filePath.c_str(), O_RDWR);
+    if (rwFd > 0) {
+        printf("Should not be able to open read-write fd\%s", strerror(errno));
+        return false;
+    }
+
+    // With create flag, should work
+    int woFdCreate = open(filePath.c_str(), O_WRONLY | O_CREAT);
+    if (woFdCreate < 0) {
+        printf("Failed to open write-only/ create fd\%s", strerror(errno));
+        return false;
+    }
+
+    // Delete the file again
+    deleteFile(filePath.c_str());
+
+    // Read-write with create should also work
+    int rwFdCreate = open(filePath.c_str(), O_RDWR | O_CREAT);
+    if (rwFdCreate < 0) {
+        printf("Failed to open read-write/ create fd\%s", strerror(errno));
+        return false;
+    }
+
+    return true;
 }
 
 bool seekReadCheck(int fd,
@@ -46,7 +91,9 @@ bool seekReadCheck(int fd,
 
     char buf[expected.size()];
 
-    if (::read(fd, buf, expected.size()) != 0) {
+    ssize_t bytesRead = ::read(fd, buf, expected.size());
+
+    if(bytesRead != expected.size()) {
         printf("Failed read: %s\n", strerror(errno));
         return false;
     }
@@ -65,6 +112,9 @@ bool seekReadCheck(int fd,
 
 int main(int argc, char* argv[])
 {
+    // Start off with the basic permissions
+    validatePermissions();
+
     const char* filePath = "fileA.txt";
     deleteFile(filePath);
 
@@ -76,8 +126,6 @@ My file is my best friend. It is my life.\n";
 Without me, my file is useless.\n\
 Without my file, I am useless.\n";
 
-    size_t expectedOffset = contentA.size() + contentB.size();
-
     // Write initial content
     int fdA = open(filePath, O_RDWR | O_CREAT);
     if (fdA < 0) {
@@ -85,18 +133,8 @@ Without my file, I am useless.\n";
         return 1;
     }
 
-    int fdFlags = fcntl(fdA, F_GETFD);
-    if (fdFlags < 0) {
-        printf("fcntl failed\n");
-        return 1;
-    }
-    if (!(O_RDWR & fdFlags)) {
-        printf("File descriptor does not have read-write permission\n");
-        return 1;
-    }
-
     ssize_t bytesWrittenA = ::write(fdA, contentA.c_str(), contentA.size());
-    if (bytesWrittenA < 0) {
+    if (bytesWrittenA != contentA.size()) {
         printf("Failed writing content A (%li): %s\n",
                bytesWrittenA,
                strerror(errno));
@@ -111,7 +149,7 @@ Without my file, I am useless.\n";
     }
 
     ssize_t bytesWrittenB = ::write(fdB, contentB.c_str(), contentB.size());
-    if (bytesWrittenB < 0) {
+    if (bytesWrittenB != contentB.size()) {
         printf("Failed writing content B (%li): %s\n",
                bytesWrittenB,
                strerror(errno));
@@ -137,6 +175,7 @@ Without my file, I am useless.\n";
         return 1;
     }
 
+    size_t expectedOffset = contentA.size() + contentB.size();
     if (offA != (off_t)expectedOffset) {
         printf("Offset not as expected: %lli != %lu\n", offA, expectedOffset);
         return 1;
@@ -149,14 +188,14 @@ Without my file, I am useless.\n";
         return 1;
     }
 
-    int fdD = ::dup(fdA);
+    int fdD = ::dup(fdC);
     if (fdD < 0) {
         printf("Failed duping second fd: %s\n", strerror(errno));
         return 1;
     }
 
-    off_t offC = ::lseek(fdA, 0, SEEK_CUR);
-    off_t offD = ::lseek(fdA, 0, SEEK_CUR);
+    off_t offC = ::lseek(fdC, 0, SEEK_CUR);
+    off_t offD = ::lseek(fdD, 0, SEEK_CUR);
 
     if (offC < 0) {
         printf("Seek C failed: %s\n", strerror(errno));
