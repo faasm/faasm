@@ -64,10 +64,10 @@ int32_t wasiFdFlagsToLinux(int32_t fdFlags)
 
 OpenMode getOpenMode(uint16_t openFlags)
 {
-    if (openFlags & __WASI_O_DIRECTORY) {
-        return OpenMode::DIRECTORY;
-    } else if (openFlags & __WASI_O_CREAT) {
+    if(openFlags & __WASI_O_CREAT) {
         return OpenMode::CREATE;
+    } else if (openFlags & __WASI_O_DIRECTORY) {
+        return OpenMode::DIRECTORY;
     } else if (openFlags & __WASI_O_TRUNC) {
         return OpenMode::TRUNC;
     } else if (openFlags & __WASI_O_EXCL) {
@@ -81,7 +81,7 @@ OpenMode getOpenMode(uint16_t openFlags)
 
 ReadWriteType getRwType(uint64_t rights)
 {
-    // Work out read/write
+    // Check for presence of any read/write permissions
     const bool rightsRead = rights & WASI_RIGHTS_READ;
     const bool rightsWrite = rights & WASI_RIGHTS_WRITE;
 
@@ -364,7 +364,10 @@ bool FileDescriptor::pathOpen(uint32_t lookupFlags,
         throw std::runtime_error("Opening path with no rights set");
     }
 
+    auto logger = faabric::util::getLogger();
+
     OpenMode openMode = getOpenMode((uint16_t)openFlags);
+
     ReadWriteType rwType = getRwType(actualRightsBase);
 
     int readWrite = 0;
@@ -377,8 +380,8 @@ bool FileDescriptor::pathOpen(uint32_t lookupFlags,
     } else if (rwType == ReadWriteType::READ_ONLY) {
         readWrite = O_RDONLY;
     } else {
-        // Default to r/w
-        readWrite = O_RDWR;
+        logger->error("Unrecognised access mode: {}", rwType);
+        throw std::runtime_error("Unrecognised access mode for file");
     }
 
     // Open flags
@@ -399,6 +402,7 @@ bool FileDescriptor::pathOpen(uint32_t lookupFlags,
         linuxFlags = readWrite;
         linuxMode = 0;
     } else {
+        logger->error("Unrecognised open mode: {}", openMode);
         throw std::runtime_error("Unrecognised open flags");
     }
 

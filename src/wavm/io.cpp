@@ -315,21 +315,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_close", I32, wasi_fd_close, I32 fd)
     return 0;
 }
 
-ssize_t doWritev(int fd, iovec* nativeIovecs, I32 iovecCount)
-{
-    ssize_t bytesWritten = ::writev(fd, nativeIovecs, iovecCount);
-
-    // Catpure stdout if necessary, otherwise write as normal
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    if (fd == STDOUT_FILENO && conf.captureStdout == "on") {
-        getExecutingWAVMModule()->captureStdout(nativeIovecs, iovecCount);
-    }
-
-    delete[] nativeIovecs;
-
-    return bytesWritten;
-}
-
 WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                "fd_write",
                                I32,
@@ -339,15 +324,17 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I32 iovecCount,
                                I32 resBytesWrittenPtr)
 {
+    auto logger = faabric::util::getLogger();
+
     storage::FileSystem& fileSystem = getExecutingWAVMModule()->getFileSystem();
     std::string path = fileSystem.getPathForFd(fd);
 
-    faabric::util::getLogger()->debug("S - fd_write - {} {} {} {} ({})",
-                                      fd,
-                                      iovecsPtr,
-                                      iovecCount,
-                                      resBytesWrittenPtr,
-                                      path);
+    logger->debug("S - fd_write - {} {} {} {} ({})",
+                  fd,
+                  iovecsPtr,
+                  iovecCount,
+                  resBytesWrittenPtr,
+                  path);
 
     storage::FileDescriptor& fileDesc = fileSystem.getFileDescriptor(fd);
 
@@ -356,14 +343,19 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
     ssize_t bytesWritten =
       ::writev(fileDesc.getLinuxFd(), nativeIovecs, iovecCount);
 
+    if (bytesWritten < 0) {
+        logger->error(
+          "writev failed on fd {}: {}", fileDesc.getLinuxFd(), strerror(errno));
+    }
+
     // Catpure stdout if necessary, otherwise write as normal
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     if (fd == STDOUT_FILENO && conf.captureStdout == "on") {
         getExecutingWAVMModule()->captureStdout(nativeIovecs, iovecCount);
     }
 
-    Runtime::memoryRef<uint64_t>(getExecutingWAVMModule()->defaultMemory,
-                                 resBytesWrittenPtr) = bytesWritten;
+    Runtime::memoryRef<int32_t>(getExecutingWAVMModule()->defaultMemory,
+                                resBytesWrittenPtr) = bytesWritten;
 
     delete[] nativeIovecs;
 
@@ -579,11 +571,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I32 fd,
                                I32 statPtr)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug("S - fd_fdstat_get - {} {}", fd, statPtr);
+    auto logger = faabric::util::getLogger();
 
-    storage::FileDescriptor& fileDesc =
-      getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
+    storage::FileSystem& fileSystem = getExecutingWAVMModule()->getFileSystem();
+    std::string path = fileSystem.getPathForFd(fd);
+    logger->debug("S - fd_fdstat_get - {} {} ({})", fd, statPtr, path);
+
+    storage::FileDescriptor& fileDesc = fileSystem.getFileDescriptor(fd);
     storage::Stat statResult = fileDesc.stat();
 
     if (statResult.failed) {

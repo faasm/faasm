@@ -6,10 +6,16 @@
 #include <vector>
 
 // See wasi-libc/libc-bottom-half/cloudlibc/src/libc/fcntl/openat.c
+// The values used here are taken from WAVM, these must match with the values in
+// wasi-libc (see
+// https://github.com/faasm/WAVM/blob/faasm/Include/WAVM/WASI/WASIABI.h)
 #define WASI_RIGHTS_WRITE                                                      \
     (__WASI_RIGHT_FD_DATASYNC | __WASI_RIGHT_FD_WRITE |                        \
-     __WASI_RIGHT_FD_ALLOCATE | __WASI_RIGHT_FD_FILESTAT_SET_SIZE)
-#define WASI_RIGHTS_READ (__WASI_RIGHT_FD_READDIR | __WASI_RIGHT_FD_READ)
+     __WASI_RIGHT_FD_ALLOCATE | __WASI_RIGHT_FD_FILESTAT_SET_SIZE |            \
+     __WASI_RIGHT_PATH_CREATE_FILE)
+#define WASI_RIGHTS_READ                                                       \
+    (__WASI_RIGHT_FD_READDIR | __WASI_RIGHT_FD_READ | __WASI_RIGHT_FD_SEEK |   \
+     __WASI_RIGHT_FD_TELL | __WASI_RIGHT_PATH_OPEN)
 
 // The root fd comes after stdin, stdout and stderr
 #define DEFAULT_ROOT_FD 4
@@ -135,7 +141,7 @@ class FileDescriptor
 
     std::string getPath();
 
-    int duplicate(const FileDescriptor &other);
+    int duplicate(const FileDescriptor& other);
 
   private:
     static FileDescriptor stdFdFactory(int stdFd, const std::string& devPath);

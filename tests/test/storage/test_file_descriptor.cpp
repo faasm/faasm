@@ -174,9 +174,14 @@ TEST_CASE("Test seek", "[storage]")
     REQUIRE(newFileDesc.tell() == 3);
 
     // Skip back
-    newFileDesc.seek(1, __WASI_WHENCE_SET, &actual);
-    REQUIRE(actual == 1);
-    REQUIRE(newFileDesc.tell() == 1);
+    newFileDesc.seek(-3, __WASI_WHENCE_CUR, &actual);
+    REQUIRE(actual == 0);
+    REQUIRE(newFileDesc.tell() == 0);
+
+    // Set absolute
+    newFileDesc.seek(4, __WASI_WHENCE_SET, &actual);
+    REQUIRE(actual == 4);
+    REQUIRE(newFileDesc.tell() == 4);
 
     boost::filesystem::remove(realPath);
 }

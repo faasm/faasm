@@ -80,8 +80,18 @@ Without my file, I am useless.\n";
 
     // Write initial content
     int fdA = open(filePath, O_RDWR | O_CREAT);
-    if(fdA < 0) {
+    if (fdA < 0) {
         printf("Failed opening file: %s\n", strerror(errno));
+        return 1;
+    }
+
+    int fdFlags = fcntl(fdA, F_GETFD);
+    if (fdFlags < 0) {
+        printf("fcntl failed\n");
+        return 1;
+    }
+    if (!(O_RDWR & fdFlags)) {
+        printf("File descriptor does not have read-write permission\n");
         return 1;
     }
 
@@ -95,7 +105,7 @@ Without my file, I am useless.\n";
 
     // Dup the file descriptor and write more content
     int fdB = dup(fdA);
-    if(fdB < 0) {
+    if (fdB < 0) {
         printf("Failed duping file descriptor: %s\n", strerror(errno));
         return 1;
     }
@@ -133,7 +143,7 @@ Without my file, I am useless.\n";
     }
 
     // Open new descriptors on the same file
-    int fdC = ::open(filePath, O_RDWR);
+    int fdC = ::open(filePath, O_RDONLY);
     if (fdC < 0) {
         printf("Failed opening second fd: %s\n", strerror(errno));
         return 1;

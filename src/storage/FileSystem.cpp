@@ -73,6 +73,7 @@ int FileSystem::openFileDescriptor(int rootFd,
                                    uint32_t openFlags,
                                    int32_t fdFlags)
 {
+    auto logger = faabric::util::getLogger();
 
     storage::FileDescriptor& rootFileDesc = getFileDescriptor(rootFd);
 
@@ -87,15 +88,21 @@ int FileSystem::openFileDescriptor(int rootFd,
         fullPath = std::string(joinedPath.string());
     }
 
+    // Initialise the new fd
     int thisFd = getNewFd();
     FileDescriptor& fileDesc = fileDescriptors[thisFd];
     fileDesc.setPath(fullPath);
 
-    // Set rights on new file descriptor
-    uint64_t effectiveRights = rightsBase & rootFileDesc.getActualRightsBase();
-    uint64_t effectiveInheritedRights =
+    // AND requested rights with those of the root file descriptor. Rights for
+    // this file descriptor are only permitted if they can be inherited, and
+    // children of this file descriptor can only inherit rights permitted by 
+    // their ancestors. 
+    uint64_t effectiveRightsInheriting =
       rightsInheriting & rootFileDesc.getActualRightsInheriting();
-    fileDesc.setActualRights(effectiveRights, effectiveInheritedRights);
+    uint64_t effectiveRights =
+      rightsBase & rootFileDesc.getActualRightsInheriting();
+
+    fileDesc.setActualRights(effectiveRights, effectiveRightsInheriting);
 
     // Open the path
     bool success = fileDesc.pathOpen(lookupFlags, openFlags, fdFlags);
