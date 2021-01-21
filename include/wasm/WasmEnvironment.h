@@ -12,9 +12,6 @@ class WasmEnvironment
 
     void addEnv(const std::string& key, const std::string& value);
 
-    std::string addFromSystemEnv(const std::string& key,
-                                 const std::string& fallback);
-
     uint32_t getEnvCount();
 
     uint32_t getEnvBufferSize();

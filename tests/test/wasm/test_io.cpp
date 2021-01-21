@@ -12,7 +12,7 @@ TEST_CASE("Test printf", "[wasm]")
     execFunction(call);
 }
 
-TEST_CASE("Test emscripten", "[wasm]")
+TEST_CASE("Test emscripten I/O", "[wasm]")
 {
     faabric::Message call =
       faabric::util::messageFactory("demo", "emscripten_check");

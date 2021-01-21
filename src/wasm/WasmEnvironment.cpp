@@ -7,14 +7,6 @@
 namespace wasm {
 WasmEnvironment::WasmEnvironment()
 {
-    // We have to be careful to match some of these values to the underlying
-    // system, otherwise there may be conflicts when performing I/O
-
-    // Locale
-    // std::string encoding = addFromSystemEnv("LC_CTYPE", "en_GB.UTF-8");
-    // addFromSystemEnv("LC_NAME", "en_GB.UTF-8");
-    // addFromSystemEnv("LANG", "en_GB.UTF-8");
-
     // Threading
     vars["MKL_NUM_THREADS"] = "1";
     vars["OPENBLAS_NUM_THREADS"] = "1";
@@ -47,23 +39,6 @@ std::string WasmEnvironment::getEnv(const std::string& key)
 void WasmEnvironment::addEnv(const std::string& key, const std::string& value)
 {
     vars[key] = value;
-}
-
-std::string WasmEnvironment::addFromSystemEnv(const std::string& key,
-                                              const std::string& fallback)
-{
-    const char* actual = std::getenv(key.c_str());
-
-    std::string value;
-    if (actual == nullptr) {
-        value = fallback;
-    } else {
-        value = actual;
-    }
-
-    vars[key] = value;
-
-    return value;
 }
 
 uint32_t WasmEnvironment::getEnvCount()
