@@ -555,6 +555,7 @@ extern "C"
 	faasm_sgx_status_t faasm_sgx_enclave_finalize_key_exchange(sgx_wamr_msg_t* wamr_msg, uint32_t msg_len) {
         sgx_wamr_msg_pkey_mkey_t msg;
         if (sgx_ra_get_keys(*inner_ctx, SGX_RA_KEY_SK, &shared_secret) != SGX_SUCCESS) {
+            ocall_printf("sgx_ra_get_keys failed\n");
             return FAASM_SGX_NOT_IMPLEMENTED;
         }
 

@@ -299,9 +299,11 @@ extern "C"
         faasm_sgx_status_t returnValue;
 
         sgxReturnValue = faasm_sgx_enclave_init_ra(globalEnclaveId, &returnValue, &RActx);
-        if (sgxReturnValue != SGX_SUCCESS) {
-            logger->error("ecall init_ra failed: {}", sgxReturnValue);
+        if (sgxReturnValue != SGX_SUCCESS || returnValue != FAASM_SGX_SUCCESS ) {
+            logger->error("ecall init_ra failed: {} | {}", sgxReturnValue, returnValue);
             return FAASM_SGX_ECALL_FAILED;
+        } else {
+            logger->debug("successfully initialized RA context");
         }
 
         sgxReturnValue = sgx_get_extended_epid_group_id(&msg0_extended_epid_group_id);
@@ -333,7 +335,7 @@ extern "C"
         }
 
         //get msg2 from KM and process
-        logger->debug("waiting for msg2...");
+        logger->debug("waiting for msg2 ({} bytes)...", sizeof(p_msg2));
         if (recv(_keymgr_socket, &p_msg2, sizeof(p_msg2), MSG_WAITALL) <= 0 ) {
             logger->error("could not recieve msg2 from KM");
             return FAASM_SGX_CRT_SEND_FAILED;
@@ -365,7 +367,7 @@ extern "C"
         }
 
         //recieve res_msg and finalize key exchange
-        logger->debug("waiting for final msg from KM...");
+        logger->debug("waiting for final msg from KM ({} bytes)...", res_msg_size);
         if (recv(_keymgr_socket, res_msg, res_msg_size, MSG_WAITALL) <= 0 ) {
             logger->error("could not recieve final msg from KM");
             return FAASM_SGX_CRT_SEND_FAILED;
@@ -375,8 +377,11 @@ extern "C"
         sgxReturnValue = faasm_sgx_enclave_finalize_key_exchange(globalEnclaveId, &returnValue, res_msg, res_msg_size);
         if (sgxReturnValue != SGX_SUCCESS) {
             free(res_msg);
+            logger->warn("key exchange not successful! ecall failed with {}", sgxReturnValue);
+        } else if (returnValue != FAASM_SGX_SUCCESS) {
+            logger->warn("key exchange not successful! failure within ecall");
         } else {
-            logger->debug("ket exchange successful");
+            logger->debug("key exchange successful");
         }
         return FAASM_SGX_SUCCESS;
     }
