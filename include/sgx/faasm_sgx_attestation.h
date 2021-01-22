@@ -13,6 +13,8 @@
 #define FAASM_SGX_ATTESTATION_TYPE_STATE_READ 0x3
 #define FAASM_SGX_ATTESTATION_TYPE_NONCE 0x4
 #define FAASM_SGX_ATTESTATION_TYPE_STATE_WRITE_ACK 0x5
+#define FAASM_SGX_ATTESTATION_TYPE_CALL 0x6
+#define FAASM_SGX_ATTESTATION_SID_SIZE 12
 
 typedef uint8_t faasm_sgx_nonce_t[SGX_AESGCM_IV_SIZE];
 typedef struct __attribute__((packed)) _msg
@@ -56,7 +58,8 @@ typedef struct __attribute__((packed)) _msg_hash_sid
 {
     sgx_wamr_msg_hdr_t hdr;
     uint8_t opcode_enc_hash[SGX_SHA256_HASH_SIZE];
-    uint32_t session_id;
+    uint8_t session_id[FAASM_SGX_ATTESTATION_SID_SIZE];
+    uint8_t payload_nonce[SGX_AESGCM_IV_SIZE];
 } sgx_wamr_hash_sid_t;
 
 typedef struct __attribute((packed)) _msg_payload_key
@@ -131,3 +134,8 @@ typedef struct __attribute__((packed)) _state_data
     uint8_t tag[SGX_AESGCM_MAC_SIZE];
     uint8_t data[];
 } sgx_wamr_encrypted_state_blob_t;
+
+typedef struct __attribute__((packed)) _nonce_offer {
+    sgx_wamr_msg_hdr_t flags;
+    uint8_t nonce[SGX_AESGCM_IV_SIZE];
+} sgx_wamr_msg_nonce_offer_t;

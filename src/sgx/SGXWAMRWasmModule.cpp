@@ -4,6 +4,7 @@
 #include <sgx/SGXWAMRWasmModule.h>
 #include <sgx/faasm_sgx_attestation.h>
 #include <sgx/faasm_sgx_system.h>
+#include <sgx-util/base64.h>
 
 extern "C"
 {
@@ -140,9 +141,14 @@ bool SGXWAMRWasmModule::execute(faabric::Message& msg, bool forceNoop)
     wasm::setExecutingCall(const_cast<faabric::Message*>(&msg));
 
     // Enter enclave and call function
+    sgx_status_t sgxReturnValue;
     faasm_sgx_status_t returnValue;
-    sgx_status_t sgxReturnValue = faasm_sgx_enclave_call_function(
-      globalEnclaveId, &returnValue, threadId, msg.funcptr());
+    std::string inputdata = util::b64decode(msg.inputdata());
+    if (msg.policy().size() == 0) {
+        sgxReturnValue = faasm_sgx_enclave_call_function(globalEnclaveId, &returnValue, threadId, msg.funcptr(), msg.sid().c_str(), (const sgx_wamr_encrypted_data_blob_t*) inputdata.c_str(), inputdata.size(), nullptr, 0);
+    } else {
+        sgxReturnValue = faasm_sgx_enclave_call_function(globalEnclaveId, &returnValue, threadId, msg.funcptr(), msg.sid().c_str(), (const sgx_wamr_encrypted_data_blob_t*) inputdata.c_str(), inputdata.size(), (const uint8_t*) msg.policy().c_str(), msg.policy().size());
+    }
 
     if (sgxReturnValue != SGX_SUCCESS) {
         logger->error("Unable to enter enclave: {}",

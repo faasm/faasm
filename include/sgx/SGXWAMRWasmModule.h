@@ -41,7 +41,12 @@ extern "C"
       sgx_enclave_id_t enclave_id,
       faasm_sgx_status_t* ret_val,
       const uint32_t thread_id,
-      const uint32_t func_id);
+      const uint32_t func_id,
+      const char* sid,
+      const sgx_wamr_encrypted_data_blob_t* payload,
+      uint32_t payload_len,
+      const void* policy,
+      uint32_t policy_len);
 }
 
 namespace wasm {

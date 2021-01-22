@@ -10,6 +10,7 @@
 #include <sgx_thread.h>
 #include <sgx_tkey_exchange.h>
 #include <tlibc/mbusafecrt.h>
+#include <sgx/faasm_sgx_util.h>
 
 #if (FAASM_SGX_WAMR_AOT_MODE)
 #include <iwasm/aot/aot_runtime.h>
@@ -48,6 +49,10 @@ extern "C"
     ocall_send_msg(faasm_sgx_status_t* returnValue,
                    sgx_wamr_msg_t* msg,
                    uint32_t msg_len);
+    extern sgx_status_t SGX_CDECL
+    ocall_set_result(faasm_sgx_status_t* returnValue,
+                     uint8_t *msg,
+                     uint32_t msg_len);
     static uint8_t _sgx_wamr_msg_id = 0;
     static sgx_ra_key_128_t shared_secret;
     sgx_aes_gcm_128bit_key_t master_secret;
@@ -282,8 +287,16 @@ extern "C"
     }
 
     faasm_sgx_status_t faasm_sgx_enclave_call_function(const uint32_t thread_id,
-                                                       const uint32_t func_ptr)
+                                                       const uint32_t func_ptr,
+                                                       const char* sid,
+                                                       const sgx_wamr_encrypted_data_blob_t* input,
+                                                       uint32_t payload_len,
+                                                       const uint8_t* raw_encrypted_policy,
+                                                       uint32_t raw_encrypted_policy_len)
     {
+		faasm_sgx_status_t ret_val;
+		sgx_status_t sgx_ret_val;
+
         // Check if thread_id is in range
         if (thread_id >= _faasm_sgx_tcs_len) {
             return FAASM_SGX_INVALID_THREAD_ID;
@@ -303,6 +316,118 @@ extern "C"
             // Lookup by function pointer not supported in SGX yet
             return FAASM_SGX_INVALID_FUNC_ID;
         }
+        // == START decrypt the payload ==
+        uint8_t *decrypted_payload;
+        if (strlen(sid) == FAASM_SGX_ATTESTATION_SID_SIZE) {
+            uint32_t res_payload_len;
+            sgx_wamr_hash_sid_t msg_payload;
+            void *res_payload;
+            sgx_wamr_msg_hdr_t header;
+            sgx_wamr_payload_key_t* typed_res_payload;
+            if (payload_len == 0) {
+                return FAASM_SGX_EMPTY_PAYLOAD;
+            }
+            if (func_ptr != 0) {
+                return FAASM_SGX_PROTOCOL_LOADED_FUNCTION_MISMATCH;
+            }
+            msg_payload.hdr.flags = {};
+            msg_payload.hdr.flags.type = FAASM_SGX_ATTESTATION_TYPE_CALL;
+            read_lock(&_rwlock_faasm_sgx_tcs_realloc);
+            memcpy(msg_payload.opcode_enc_hash, faasm_sgx_tcs[thread_id]->env.encrypted_op_code_hash, sizeof(msg_payload.opcode_enc_hash));
+            read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+            memcpy(msg_payload.session_id, sid, sizeof(msg_payload.session_id));
+            memcpy(msg_payload.payload_nonce, input->nonce, sizeof(msg_payload.payload_nonce));
+            if ((ret_val = send_recv_msg(thread_id, &msg_payload, sizeof(sgx_wamr_hash_sid_t), &res_payload, &res_payload_len)) != FAASM_SGX_SUCCESS) {
+                return ret_val;
+            }
+            header = *((sgx_wamr_msg_hdr_t *) res_payload);
+            if (header.flags.status) {
+                return FAASM_SGX_PROTOCOL_FAASLET_ATTESTATION_FAILED;
+            }
+            typed_res_payload = (sgx_wamr_payload_key_t *) res_payload;
+            read_lock(&_rwlock_faasm_sgx_tcs_realloc);
+            memcpy(faasm_sgx_tcs[thread_id]->env.payload_secret, typed_res_payload->payload_key, sizeof(faasm_sgx_tcs[thread_id]->env.payload_secret));
+            free(res_payload);
+            memcpy(faasm_sgx_tcs[thread_id]->env.policy_nonce, input->nonce, sizeof(faasm_sgx_tcs[thread_id]->env.policy_nonce));
+            read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+        } else if (raw_encrypted_policy_len >= sizeof(sgx_wamr_encrypted_data_blob_t) + sizeof(sgx_wamr_execution_policy_t)){
+            uint32_t res_payload_len, entry_stack_len;
+            sgx_wamr_msg_nonce_offer_t msg_payload;
+            void *res_payload;
+            sgx_wamr_msg_hdr_t header;
+            sgx_wamr_execution_policy_t *policy;
+            sgx_wamr_encrypted_data_blob_t *encrypted_policy;
+            char *entry_stack;
+            msg_payload.flags.flags = {};
+            msg_payload.flags.flags.type = FAASM_SGX_ATTESTATION_TYPE_NONCE;
+            memcpy(msg_payload.nonce, input->nonce, sizeof(msg_payload.nonce));
+            if ((ret_val = send_recv_msg(thread_id, &msg_payload, sizeof(sgx_wamr_msg_nonce_offer_t), &res_payload, &res_payload_len)) != FAASM_SGX_SUCCESS) {
+                return ret_val;
+            }
+            header = *((sgx_wamr_msg_hdr_t *) res_payload);
+            if (header.flags.status) {
+            free(res_payload);
+                return FAASM_SGX_PROTOCOL_FAASLET_ATTESTATION_FAILED;
+            }
+            free(res_payload);
+            encrypted_policy = (sgx_wamr_encrypted_data_blob_t *) raw_encrypted_policy;
+            if ((policy = (sgx_wamr_execution_policy_t *) calloc(encrypted_policy->data_len, sizeof(uint8_t))) == NULL) {
+                return FAASM_SGX_OUT_OF_MEMORY;
+            }
+            if (sgx_rijndael128GCM_decrypt(&master_secret, encrypted_policy->data, encrypted_policy->data_len, (uint8_t *) policy, encrypted_policy->nonce, SGX_AESGCM_IV_SIZE, NULL, 0, &encrypted_policy->tag) != SGX_SUCCESS) {
+                free(policy);
+                return FAASM_SGX_DECRYPTION_FAILED;
+            }
+            read_lock(&_rwlock_faasm_sgx_tcs_realloc);
+            if(memcmp((uint8_t *) policy->hash, (uint8_t *) &faasm_sgx_tcs[thread_id]->env.op_code_hash, sizeof(policy->hash)) != 0) {
+                read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+                free(policy);
+                return FAASM_SGX_CHAIN_POLICY_HASH_MISMATCH;
+            }
+            read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+            if(memcmp(policy->input_nonce, input->nonce, sizeof(policy->input_nonce)) != 0) {
+                free(policy);
+                return FAASM_SGX_INVALID_INPUT_NONCE;
+            }
+            /* TODO removed because no function id
+            if (policy->fid != func_id) {
+                free(policy);
+                return FAASM_SGX_CHAIN_POLICY_FUNCID_MISMATCH;
+            }*/
+            read_lock(&_rwlock_faasm_sgx_tcs_realloc);
+            memcpy(faasm_sgx_tcs[thread_id]->env.policy_nonce, encrypted_policy->nonce, sizeof(faasm_sgx_tcs[thread_id]->env.policy_nonce));
+            read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+            entry_stack_len = encrypted_policy->data_len - sizeof(sgx_wamr_execution_policy_t);
+            if ((entry_stack = (char*) calloc(entry_stack_len + 1, sizeof(char))) == NULL) {
+                free(policy);
+                return FAASM_SGX_OUT_OF_MEMORY;
+            }
+            memcpy(entry_stack, policy->data, entry_stack_len);
+            free(policy);
+            read_lock(&_rwlock_faasm_sgx_tcs_realloc);
+            faasm_sgx_tcs[thread_id]->env.entry_execution_stack = entry_stack;
+            memcpy(faasm_sgx_tcs[thread_id]->env.payload_secret, master_secret, sizeof(faasm_sgx_tcs[thread_id]->env.payload_secret));
+            read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+        } else
+            return FAASM_SGX_UNKNOWN_EXECUTION_TYPE;
+        if ((decrypted_payload = (uint8_t*) calloc(input->data_len, sizeof(uint8_t))) == NULL)
+            return FAASM_SGX_OUT_OF_MEMORY;
+        read_lock(&_rwlock_faasm_sgx_tcs_realloc);
+        if (payload_len > 0) {
+            if (sgx_rijndael128GCM_decrypt((sgx_aes_gcm_128bit_key_t*) faasm_sgx_tcs[thread_id]->env.payload_secret, input->data, input->data_len, decrypted_payload, input->nonce, SGX_AESGCM_IV_SIZE, NULL, 0, (const sgx_aes_gcm_128bit_tag_t *) input->tag) != SGX_SUCCESS) {
+                read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+                free(decrypted_payload);
+                return FAASM_SGX_DECRYPTION_FAILED;
+            }
+        }
+        if ((ret_val = initialize_execution_stack(&faasm_sgx_tcs[thread_id]->env.execution_stack, func_ptr)) != FAASM_SGX_SUCCESS) {
+                read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+                return ret_val;
+        }
+        faasm_sgx_tcs[thread_id]->env.payload_len = input->data_len;
+        faasm_sgx_tcs[thread_id]->env.payload = decrypted_payload;
+        read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+        // == END decrypt the payload ==
 
         // Set thread_id to fs/gs to make it accessible in native symbols
         // wrapper
@@ -375,6 +500,68 @@ extern "C"
             return FAASM_SGX_WAMR_FUNCTION_UNABLE_TO_CALL;
         }
 #endif
+        // START prepare result
+        sgx_wamr_execution_attestation_t *result;
+        uint32_t result_len, data_len;
+        faasm_sgx_nonce_t p_iv;
+        sgx_wamr_encrypted_data_blob_t *data;
+        read_lock(&_rwlock_faasm_sgx_tcs_realloc);
+        if ((ret_val = finish_execution_stack(&faasm_sgx_tcs[thread_id]->env.execution_stack)) != FAASM_SGX_SUCCESS) {
+            read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+            return ret_val;
+        }
+        result_len = sizeof(sgx_wamr_execution_attestation_t) + strlen(faasm_sgx_tcs[thread_id]->env.execution_stack);
+        if ((result = (sgx_wamr_execution_attestation_t *) calloc(result_len, sizeof(uint8_t))) == NULL) {
+            read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+            return FAASM_SGX_OUT_OF_MEMORY;
+        }
+        memcpy(result->data, faasm_sgx_tcs[thread_id]->env.execution_stack, strlen(faasm_sgx_tcs[thread_id]->env.execution_stack));
+        result->execution_stack_len = strlen(faasm_sgx_tcs[thread_id]->env.execution_stack);
+        memcpy(result->output_nonce, faasm_sgx_tcs[thread_id]->env.output_nonce, sizeof(result->output_nonce));
+        memcpy(result->policy_nonce, faasm_sgx_tcs[thread_id]->env.policy_nonce, sizeof(result->policy_nonce));
+        if (sgx_read_rand(p_iv, SGX_AESGCM_IV_SIZE) != SGX_SUCCESS) {
+            read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+            free(result);
+            return FAASM_SGX_READ_RAND_FAILED;
+        }
+        read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+        data_len = sizeof(sgx_wamr_encrypted_data_blob_t) + result_len;
+        if ((data = (sgx_wamr_encrypted_data_blob_t *) calloc(data_len, sizeof(uint8_t))) == NULL) {
+            free(result);
+            return FAASM_SGX_OUT_OF_MEMORY;
+        }
+        read_lock(&_rwlock_faasm_sgx_tcs_realloc);
+        if (sgx_rijndael128GCM_encrypt((sgx_aes_gcm_128bit_key_t *) faasm_sgx_tcs[thread_id]->env.payload_secret, (uint8_t *) result, result_len, data->data, p_iv, sizeof(p_iv), NULL, 0, (sgx_aes_gcm_128bit_tag_t *) data->tag) != SGX_SUCCESS) {
+            read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+            free(result);
+            free(data);
+            return FAASM_SGX_ENCRYPTION_FAILED;
+        }
+        read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+        free(result);
+        memcpy(data->nonce, p_iv, sizeof(data->nonce));
+        data->data_len = result_len;
+        if ((sgx_ret_val = ocall_set_result(&ret_val, (uint8_t *) data, data_len)) != SGX_SUCCESS) {
+            free(data);
+            return FAASM_SGX_OCALL_ERROR(sgx_ret_val);
+        }
+        free(data);
+        if (ret_val != FAASM_SGX_SUCCESS) {
+            return ret_val;
+        }
+        read_lock(&_rwlock_faasm_sgx_tcs_realloc);
+        free_execution_stack(&faasm_sgx_tcs[thread_id]->env.execution_stack);
+        free_execution_stack(&faasm_sgx_tcs[thread_id]->env.entry_execution_stack);
+        memset(faasm_sgx_tcs[thread_id]->env.payload_secret, 0, sizeof(faasm_sgx_tcs[thread_id]->env.payload_secret));
+        memset(faasm_sgx_tcs[thread_id]->env.output_nonce, 0, sizeof(faasm_sgx_tcs[thread_id]->env.output_nonce));
+        memset(faasm_sgx_tcs[thread_id]->env.policy_nonce, 0, sizeof(faasm_sgx_tcs[thread_id]->env.policy_nonce));
+        if (faasm_sgx_tcs[thread_id]->env.payload_len != 0) {
+            free(faasm_sgx_tcs[thread_id]->env.payload);
+            faasm_sgx_tcs[thread_id]->env.payload_len = 0;
+        }
+        read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+        // END prepare result
+
         return FAASM_SGX_SUCCESS;
     }
 

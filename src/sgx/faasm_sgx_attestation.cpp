@@ -18,6 +18,8 @@
 
 #include <faabric/util/logging.h>
 
+#include <sgx/SGXWAMRWasmModule.h>
+
 #define WAKEUP_SEND_THREAD()                                                   \
     pthread_mutex_lock(&_callback_store[i].mutex);                             \
     pthread_cond_signal(&_callback_store[i].cond);                             \
@@ -26,7 +28,6 @@
 extern "C"
 {
     extern __thread faaslet_sgx_msg_buffer_t* faasletSgxMsgBufferPtr;
-    extern sgx_enclave_id_t globalEnclaveId;
     extern sgx_status_t sgx_ra_get_ga(unsigned long, _status_t *, unsigned int, _sgx_ec256_public_t *);
     extern sgx_status_t faasm_sgx_enclave_init_ra(sgx_enclave_id_t, faasm_sgx_status_t*, sgx_ra_context_t*);
     extern sgx_status_t sgx_ra_proc_msg2_trusted(unsigned long, _status_t *, unsigned int, const _ra_msg2_t *, const _target_info_t *, _report_t *, _quote_nonce *);
@@ -383,6 +384,12 @@ extern "C"
         } else {
             logger->debug("key exchange successful");
         }
+        return FAASM_SGX_SUCCESS;
+    }
+
+    faasm_sgx_status_t ocall_set_result(uint8_t *msg, uint32_t msg_len) {
+        faabric::Message *bounded_message = wasm::getExecutingCall();
+        bounded_message->set_result((void *) msg,msg_len);
         return FAASM_SGX_SUCCESS;
     }
 }
