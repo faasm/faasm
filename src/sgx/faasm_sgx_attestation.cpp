@@ -359,7 +359,7 @@ extern "C"
             logger->debug("sending of RA msg3 successful");
         }
 
-        res_msg_size = sizeof(sgx_wamr_msg_t) + sizeof(sgx_wamr_msg_pkey_mkey_t);
+        res_msg_size = sizeof(sgx_wamr_msg_t) + 17; //TODO magic number 17
         if ((res_msg = (sgx_wamr_msg_t *) calloc(res_msg_size, sizeof(uint8_t))) == NULL) {
             logger->error("memory allocation error. exiting");
             free(res_msg);
