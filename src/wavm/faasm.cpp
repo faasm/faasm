@@ -494,6 +494,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     faabric::util::getLogger()->debug(
       "S - get_py_user - {} {}", bufferPtr, bufferLen);
     std::string value = getExecutingCall()->pythonuser();
+
+    if(value.empty()) {
+        throw std::runtime_error("Python user empty, cannot return");
+    }
+
     _readPythonInput(bufferPtr, bufferLen, value);
 }
 

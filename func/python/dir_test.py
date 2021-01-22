@@ -1,9 +1,9 @@
 import os
-from pyfaasm.core import get_input, set_output
+from pyfaasm.core import read_input, write_output
 
 
 def faasm_main():
-    path = get_input()
+    path = read_input()
 
     if not path:
         print("Input must be a path")
@@ -18,6 +18,6 @@ def faasm_main():
 
     print(dir_list_str)
 
-    set_output(bytes(dir_list_str, "utf-8"))
+    write_output(bytes(dir_list_str, "utf-8"))
 
     return 0

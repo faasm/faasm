@@ -1,4 +1,4 @@
-from pyfaasm.core import chain_this_with_input, await_call
+from pyfaasm.core import chain, await_call
 
 
 def chain_one(input_bytes):
@@ -21,8 +21,8 @@ def chain_two(input_bytes):
 
 def faasm_main():
     print("Main chaining entry point")
-    call_a = chain_this_with_input(chain_one, b"1234")
-    call_b = chain_this_with_input(chain_two, b"5678")
+    call_a = chain(chain_one, b"1234")
+    call_b = chain(chain_two, b"5678")
 
     print("Awaiting calls {} and {}".format(call_a, call_b))
 

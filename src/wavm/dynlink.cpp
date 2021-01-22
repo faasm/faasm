@@ -235,8 +235,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   cif->nargs,
                   returnType->type);
 
+    // Execute the function
     IR::UntaggedValue result;
     module->executeFunction(func, funcType, wavmArguments, result);
+
+    // Set the return value
+    Runtime::memoryRef<I32>(module->defaultMemory, retPtr) = result.i32;
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,

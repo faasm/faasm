@@ -203,7 +203,7 @@ int main(int argc, char* argv[])
 
     // Use fstat
     printf("---- fstat ----\n");
-    int fd = open(path, O_RDONLY);
+    int fd = open(path, O_RDONLY | O_DIRECTORY);
     if (fd < 0) {
         printf(
           "Failed to open file (fd=%i): %i (%s)\n", fd, errno, strerror(errno));

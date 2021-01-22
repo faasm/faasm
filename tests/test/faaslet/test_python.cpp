@@ -21,7 +21,7 @@ void checkPythonFunction(const std::string& funcName)
     execFunction(call);
 }
 
-TEST_CASE("Test Python listdir", "[python]")
+TEST_CASE("Test python listdir", "[python]")
 {
     // We need to list a big enough directory here to catch issues with long
     // file listings and the underlying syscalls
@@ -145,7 +145,7 @@ TEST_CASE("Test python chaining", "[python]")
     call.set_pythonfunction("chain");
     call.set_ispython(true);
 
-    execFuncWithPool(call, true, 4);
+    execFuncWithPool(call, false, 4);
 }
 
 TEST_CASE("Test python sharing dict", "[python]")
