@@ -19,7 +19,11 @@ FetchContent_Declare(wamr_ext
     GIT_TAG "5a3db31c096ec4d8a7b8b639aeaecd3fdda06b30"
 )
 
-FetchContent_MakeAvailable(wavm_ext wamr_ext)
+FetchContent_Declare(faabric_ext
+    GIT_REPOSITORY "https://github.com/dgoltzsche/faabric"
+    GIT_TAG "7448a712f260746fe43a744183888c8d99b5b49d"
+    CMAKE_ARGS "-DFAABRIC_BUILD_TESTS=OFF"
+)
 
 # Allow access to headers nested in other projects
 FetchContent_GetProperties(wavm_ext SOURCE_DIR FAASM_WAVM_SOURCE_DIR)
