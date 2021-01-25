@@ -310,6 +310,7 @@ set(FAASM_SGX_SRC
 set(FAASM_SGX_SRC ${FAASM_SGX_SRC}
 		faasm_sgx_attestation.cpp
 		rw_lock.cpp
+		base64.cpp
 		)
 
 

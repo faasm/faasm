@@ -176,7 +176,6 @@ add_subdirectory(src/wavm)
 # Faasm SGX support
 if (SGX_FOUND)
     add_subdirectory(src/sgx)
-    add_subdirectory(src/sgx-util)
 endif ()
 
 # Tests

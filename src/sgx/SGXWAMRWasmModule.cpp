@@ -4,7 +4,7 @@
 #include <sgx/SGXWAMRWasmModule.h>
 #include <sgx/faasm_sgx_attestation.h>
 #include <sgx/faasm_sgx_system.h>
-#include <sgx-util/base64.h>
+#include <sgx/base64.h>
 
 extern "C"
 {
