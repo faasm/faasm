@@ -20,13 +20,6 @@ class Faaslet final : public faabric::executor::FaabricExecutor
 
     void flush() override;
 
-#if(FAASM_SGX)
-        std::unique_ptr<wasm::SGXWAMRWasmModule> module_sgx_wamr;
-        faaslet_sgx_msg_buffer_t sgx_wamr_msg_response;
-        faaslet_sgx_gp_buffer_t sgx_wamr_attestation_output, sgx_wamr_attestation_result;
-#endif
-
-
   protected:
     void postBind(const faabric::Message& msg, bool force) override;
 
