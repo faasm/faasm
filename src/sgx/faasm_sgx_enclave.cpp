@@ -330,8 +330,8 @@ extern "C"
             if (func_ptr != 0) {
                 return FAASM_SGX_PROTOCOL_LOADED_FUNCTION_MISMATCH;
             }
-            msg_payload.hdr.flags = {};
-            msg_payload.hdr.flags.type = FAASM_SGX_ATTESTATION_TYPE_CALL;
+            msg_payload.hdr.status = FAASM_SGX_ATTESTATION_STATUS_SUCCESS;
+            msg_payload.hdr.type = FAASM_SGX_ATTESTATION_TYPE_CALL;
             read_lock(&_rwlock_faasm_sgx_tcs_realloc);
             memcpy(msg_payload.opcode_enc_hash, faasm_sgx_tcs[thread_id]->env.encrypted_op_code_hash, sizeof(msg_payload.opcode_enc_hash));
             read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
@@ -341,7 +341,7 @@ extern "C"
                 return ret_val;
             }
             header = *((sgx_wamr_msg_hdr_t *) res_payload);
-            if (header.flags.status) {
+            if (header.status) {
                 return FAASM_SGX_PROTOCOL_FAASLET_ATTESTATION_FAILED;
             }
             typed_res_payload = (sgx_wamr_payload_key_t *) res_payload;
@@ -358,14 +358,13 @@ extern "C"
             sgx_wamr_execution_policy_t *policy;
             sgx_wamr_encrypted_data_blob_t *encrypted_policy;
             char *entry_stack;
-            msg_payload.flags.flags = {};
-            msg_payload.flags.flags.type = FAASM_SGX_ATTESTATION_TYPE_NONCE;
+            msg_payload.hdr.type = FAASM_SGX_ATTESTATION_TYPE_NONCE;
             memcpy(msg_payload.nonce, input->nonce, sizeof(msg_payload.nonce));
             if ((ret_val = send_recv_msg(thread_id, &msg_payload, sizeof(sgx_wamr_msg_nonce_offer_t), &res_payload, &res_payload_len)) != FAASM_SGX_SUCCESS) {
                 return ret_val;
             }
             header = *((sgx_wamr_msg_hdr_t *) res_payload);
-            if (header.flags.status) {
+            if (header.status) {
             free(res_payload);
                 return FAASM_SGX_PROTOCOL_FAASLET_ATTESTATION_FAILED;
             }

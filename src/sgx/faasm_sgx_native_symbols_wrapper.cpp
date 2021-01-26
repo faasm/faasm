@@ -141,7 +141,7 @@ extern "C"
         memcpy(msg_payload->state_name + strlen(faasm_sgx_tcs[tls_thread_id]->env.user), ":", strlen(":"));
         memcpy(msg_payload->state_name + strlen(faasm_sgx_tcs[tls_thread_id]->env.user) + strlen(":"), key, strlen(key));
         read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
-        msg_payload->flags.flags.type = FAASM_SGX_ATTESTATION_TYPE_STATE_READ;
+        msg_payload->hdr.type = FAASM_SGX_ATTESTATION_TYPE_STATE_READ;
         if ((faasm_ret_val = send_recv_msg(tls_thread_id, msg_payload, msg_payload_len, &res_payload, &res_payload_len)) != FAASM_SGX_SUCCESS) {
             free(msg_payload);
             SET_ERROR(faasm_ret_val);
@@ -149,7 +149,7 @@ extern "C"
         }
         free(msg_payload);
         header = *((sgx_wamr_msg_hdr_t*) res_payload);
-        if (header.flags.status) {
+        if (header.status) {
             free(res_payload);
             SET_ERROR(FAASM_SGX_KM_STATUS_ERROR);
             return 1;
@@ -294,7 +294,7 @@ extern "C"
         read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
         memcpy(msg_payload->data + domain_len, total_execution_stack, strlen(total_execution_stack));
         free_execution_stack(&total_execution_stack);
-        msg_payload->flags.flags.type = FAASM_SGX_ATTESTATION_TYPE_STATE_WRITE;
+        msg_payload->hdr.type = FAASM_SGX_ATTESTATION_TYPE_STATE_WRITE;
         encrypted_state_len = sizeof(sgx_wamr_encrypted_state_blob_t) + buffer_len;
         if((sgxReturnValue = ocall_faasm_lock_state_write2(key, encrypted_state_len)) != SGX_SUCCESS){
             free(msg_payload);
@@ -312,7 +312,7 @@ extern "C"
         }
         free(msg_payload);
         header = *((sgx_wamr_msg_hdr_t *) res_payload);
-        if (header.flags.status) {
+        if (header.status) {
         free(res_payload);
             if((sgxReturnValue = ocall_faasm_unlock_state_write2(key, encrypted_state_len)) != SGX_SUCCESS){
                 SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
@@ -368,7 +368,7 @@ extern "C"
         memcpy(msg_read_payload->state_name + strlen(faasm_sgx_tcs[tls_thread_id]->env.user), ":", strlen(":"));
         memcpy(msg_read_payload->state_name + strlen(faasm_sgx_tcs[tls_thread_id]->env.user) + strlen(":"), key, strlen(key));
         read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
-        msg_read_payload->flags.flags.type = FAASM_SGX_ATTESTATION_TYPE_STATE_WRITE_ACK;
+        msg_read_payload->hdr.type = FAASM_SGX_ATTESTATION_TYPE_STATE_WRITE_ACK;
         if ((faasm_ret_val = send_recv_msg(tls_thread_id, msg_read_payload, msg_payload_len, &res_payload, &res_payload_len)) != FAASM_SGX_SUCCESS) {
             free(msg_read_payload);
             if((sgxReturnValue = ocall_faasm_unlock_state_write2(key, encrypted_state_len)) != SGX_SUCCESS){
@@ -380,7 +380,7 @@ extern "C"
         }
         free(msg_read_payload);
         header = *((sgx_wamr_msg_hdr_t*) res_payload);
-        if (header.flags.status) {
+        if (header.status) {
         free(res_payload);
             if((sgxReturnValue = ocall_faasm_unlock_state_write2(key, encrypted_state_len)) != SGX_SUCCESS){
                 SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));

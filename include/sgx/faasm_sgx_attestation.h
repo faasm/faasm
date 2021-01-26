@@ -3,17 +3,16 @@
 //#include <sgx/faasm_sgx_attestation.h>
 #include <sgx_tcrypto.h>
 
-#define FAASM_SGX_ATTESTATION_FLAGS_BIT_STATUS 0x0
-#define FAASM_SGX_ATTESTATION_FLAGS_BIT_MSG_TYPE 0x1
 #define FAASM_SGX_ATTESTATION_STATUS_SUCCESS 0x0
 #define FAASM_SGX_ATTESTATION_STATUS_ERROR 0x1
 #define FAASM_SGX_ATTESTATION_PAYLOAD_HASH_SID 0x0
 #define FAASM_SGX_ATTESTATION_PAYLOAD_HASH_FCT 0x1
+#define FAASM_SGX_ATTESTATION_TYPE_CALL 0x0
+#define FAASM_SGX_ATTESTATION_TYPE_BIND 0x1
 #define FAASM_SGX_ATTESTATION_TYPE_STATE_WRITE 0x2
 #define FAASM_SGX_ATTESTATION_TYPE_STATE_READ 0x3
 #define FAASM_SGX_ATTESTATION_TYPE_NONCE 0x4
 #define FAASM_SGX_ATTESTATION_TYPE_STATE_WRITE_ACK 0x5
-#define FAASM_SGX_ATTESTATION_TYPE_CALL 0x6
 #define FAASM_SGX_ATTESTATION_SID_SIZE 12
 
 typedef uint8_t faasm_sgx_nonce_t[SGX_AESGCM_IV_SIZE];
@@ -28,11 +27,8 @@ typedef struct __attribute__((packed)) _msg
 
 typedef struct __attribute__((packed)) _msg_hdr
 {
-    struct
-    {
-        uint8_t status : 1;
-        uint8_t type : 1;
-    } flags;
+    uint8_t status;
+    uint8_t type;
 } sgx_wamr_msg_hdr_t;
 
 typedef struct __attribute__((packed)) _nonce_payload{
@@ -63,7 +59,7 @@ typedef struct __attribute__((packed)) _msg_hash_sid
 
 typedef struct __attribute((packed)) _msg_payload_key
 {
-    sgx_wamr_msg_hdr_t flags;
+    sgx_wamr_msg_hdr_t hdr;
     uint8_t payload_key[SGX_AESGCM_KEY_SIZE];
 } sgx_wamr_payload_key_t;
 
@@ -86,13 +82,13 @@ typedef struct __attribute((packed)) _msg_hash_fct
 
 typedef struct __attribute((packed)) _msg_state_read
 {
-    sgx_wamr_msg_hdr_t flags;
+    sgx_wamr_msg_hdr_t hdr;
     uint8_t state_name[];
 } sgx_wamr_msg_state_read_t;
 
 typedef struct __attribute((packed)) _msg_state_read_res
 {
-    sgx_wamr_msg_hdr_t flags;
+    sgx_wamr_msg_hdr_t hdr;
     uint8_t state_secret[SGX_AESGCM_KEY_SIZE];
     uint8_t buffer_nonce[SGX_AESGCM_IV_SIZE];
     uint8_t data[];
@@ -100,7 +96,7 @@ typedef struct __attribute((packed)) _msg_state_read_res
 
 typedef struct __attribute((packed)) _msg_state_write
 {
-    sgx_wamr_msg_hdr_t flags;
+    sgx_wamr_msg_hdr_t hdr;
     uint8_t buffer_nonce[SGX_AESGCM_IV_SIZE];
     uint32_t name_length;
     uint8_t data[];
@@ -135,6 +131,6 @@ typedef struct __attribute__((packed)) _state_data
 } sgx_wamr_encrypted_state_blob_t;
 
 typedef struct __attribute__((packed)) _nonce_offer {
-    sgx_wamr_msg_hdr_t flags;
+    sgx_wamr_msg_hdr_t hdr;
     uint8_t nonce[SGX_AESGCM_IV_SIZE];
 } sgx_wamr_msg_nonce_offer_t;
