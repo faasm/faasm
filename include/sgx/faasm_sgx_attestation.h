@@ -50,7 +50,6 @@ typedef struct __attribute__((packed)) _msg_pkey_quote
 typedef struct __attribute__((packed)) _msg_pkey_mkey
 {
     sgx_wamr_msg_hdr_t hdr;
-    uint8_t public_key[2 * SGX_ECP256_KEY_SIZE];
     uint8_t enclave_master_key[SGX_AESGCM_KEY_SIZE];
 } sgx_wamr_msg_pkey_mkey_t;
 

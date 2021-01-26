@@ -746,8 +746,7 @@ extern "C"
             return FAASM_SGX_NOT_IMPLEMENTED;
         }
 
-        //TODO magic number 17
-        if (sgx_rijndael128GCM_decrypt((sgx_aes_gcm_128bit_key_t*)&shared_secret, (uint8_t*) wamr_msg->payload, 17, (uint8_t*)&msg,wamr_msg->nonce, sizeof(wamr_msg->nonce), NULL, 0, (const sgx_aes_gcm_128bit_tag_t* )wamr_msg->mac) != SGX_SUCCESS) {
+        if (sgx_rijndael128GCM_decrypt((sgx_aes_gcm_128bit_key_t*)&shared_secret, (uint8_t*) wamr_msg->payload, sizeof(sgx_wamr_msg_pkey_mkey_t), (uint8_t*)&msg,wamr_msg->nonce, sizeof(wamr_msg->nonce), NULL, 0, (const sgx_aes_gcm_128bit_tag_t* )wamr_msg->mac) != SGX_SUCCESS) {
             ocall_printf("decryption failed\n");
             return FAASM_SGX_DECRYPTION_FAILED;
         }
