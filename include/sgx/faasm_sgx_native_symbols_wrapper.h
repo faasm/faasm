@@ -1,6 +1,6 @@
 #pragma once
 
-#include "faasm/host_interface.h"
+#include <faasm/host_interface.h>
 #include <iwasm/include/wasm_export.h>
 #include <sgx.h>
 #include <sgx_defs.h>

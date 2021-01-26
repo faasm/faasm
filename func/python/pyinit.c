@@ -1,6 +1,8 @@
 #include "pyinit.h"
 
+#ifdef __wasm__
 #include <faasm/emscripten.h>
+#endif
 
 #include <stdint.h>
 #include <stdio.h>
@@ -133,7 +135,9 @@ void setUpPyNumpy()
     FORCE_LINK(strpbrk);
 
     // Emscripten
+#ifdef __wasm__
     FORCE_LINK(siprintf);
+#endif
 
     // Locale
     FORCE_LINK(newlocale);

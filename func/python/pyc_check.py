@@ -5,7 +5,7 @@ import io
 
 
 def faasm_main():
-    # Python 3.6+ has 16 bytes header
+    # Python 3.6+ has a 16-byte header
     header_size = 16
 
     # Get path to pyc file
@@ -19,7 +19,7 @@ def faasm_main():
         # Read the rest of the code
         code = marshal.load(f)
 
-    # Print the disassembly
+    # Run the disassembly
     disassembly = io.StringIO()
     dis.dis(x=code, file=disassembly)
 

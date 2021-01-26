@@ -83,7 +83,7 @@ bool seekReadCheck(int fd,
     }
 
     if (newOffset != expectedOffset) {
-        printf("New offset not as expected (\"%s\"): %lli != %i\n",
+        printf("New offset not as expected (\"%s\"): %li != %i\n",
                expected.c_str(),
                newOffset,
                expectedOffset);
@@ -176,13 +176,13 @@ Without my file, I am useless.\n";
     }
 
     if (offA != offB) {
-        printf("Dup-ed fds with different offsets %lli != %lli\n", offA, offB);
+        printf("Dup-ed fds with different offsets %li != %li\n", offA, offB);
         return 1;
     }
 
     size_t expectedOffset = contentA.size() + contentB.size();
     if (offA != (off_t)expectedOffset) {
-        printf("Offset not as expected: %lli != %lu\n", offA, expectedOffset);
+        printf("Offset not as expected: %li != %lu\n", offA, expectedOffset);
         return 1;
     }
 
@@ -214,7 +214,7 @@ Without my file, I am useless.\n";
 
     if (offC != offD || offC != 0 || offD != 0) {
         printf(
-          "Expected new fds to have offset zero: %lli and %lli\n", offC, offD);
+          "Expected new fds to have offset zero: %li and %li\n", offC, offD);
     }
 
     // Prepare some expectations and offsets
