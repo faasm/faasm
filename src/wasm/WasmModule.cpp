@@ -34,6 +34,13 @@ size_t getNumberOfWasmPagesForBytes(uint32_t nBytes)
     return pageCount;
 }
 
+size_t getPagesForGuardRegion()
+{
+    size_t regionSize = GUARD_REGION_SIZE;
+    size_t nWasmPages = getNumberOfWasmPagesForBytes(regionSize);
+    return nWasmPages;
+}
+
 WasmModule::~WasmModule()
 {
     // Does nothing

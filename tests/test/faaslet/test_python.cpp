@@ -8,7 +8,7 @@
 #include <faabric/util/func.h>
 
 namespace tests {
-void checkPythonFunction(const std::string& funcName)
+void checkPythonFunction(const std::string& funcName, int poolSize)
 {
     cleanSystem();
 
@@ -18,7 +18,11 @@ void checkPythonFunction(const std::string& funcName)
     call.set_pythonfunction(funcName);
     call.set_ispython(true);
 
-    execFunction(call);
+    if (poolSize > 1) {
+        execFuncWithPool(call, false, poolSize);
+    } else {
+        execFunction(call);
+    }
 }
 
 TEST_CASE("Test python listdir", "[python]")
@@ -74,17 +78,17 @@ TEST_CASE("Test python listdir", "[python]")
 
 TEST_CASE("Test python conformance", "[python]")
 {
-    checkPythonFunction("lang_test");
+    checkPythonFunction("lang_test", 1);
 }
 
 TEST_CASE("Test numpy conformance", "[python]")
 {
-    checkPythonFunction("numpy_test");
+    checkPythonFunction("numpy_test", 1);
 }
 
 TEST_CASE("Test reading pyc files", "[python]")
 {
-    checkPythonFunction("pyc_check");
+    checkPythonFunction("pyc_check", 1);
 }
 
 TEST_CASE("Test repeated numpy execution", "[python]")
@@ -139,32 +143,26 @@ TEST_CASE("Test python state write/ read", "[python]")
 
 TEST_CASE("Test python chaining", "[python]")
 {
-    faabric::Message call =
-      faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
-    call.set_pythonuser("python");
-    call.set_pythonfunction("chain");
-    call.set_ispython(true);
-
-    execFuncWithPool(call, false, 4);
+    checkPythonFunction("chain", 4);
 }
 
 TEST_CASE("Test python sharing dict", "[python]")
 {
-    checkPythonFunction("dict_state");
+    checkPythonFunction("dict_state", 4);
 }
 
 TEST_CASE("Test python ctypes", "[python]")
 {
-    checkPythonFunction("ctypes_check");
+    checkPythonFunction("ctypes_check", 1);
 }
 
 TEST_CASE("Test python hashing", "[python]")
 {
-    checkPythonFunction("hash_check");
+    checkPythonFunction("hash_check", 1);
 }
 
 TEST_CASE("Test python picklinkg", "[python]")
 {
-    checkPythonFunction("pickle_check");
+    checkPythonFunction("pickle_check", 1);
 }
 }

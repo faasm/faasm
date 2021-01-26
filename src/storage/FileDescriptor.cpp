@@ -91,6 +91,8 @@ ReadWriteType getRwType(uint64_t rights)
         return ReadWriteType::READ_ONLY;
     } else if (!rightsRead && rightsWrite) {
         return ReadWriteType::WRITE_ONLY;
+    } else if(rights == 0) {
+        return ReadWriteType::NO_READ_WRITE;        
     } else {
         return ReadWriteType::CUSTOM;
     }
@@ -379,6 +381,8 @@ bool FileDescriptor::pathOpen(uint32_t lookupFlags,
         readWrite = O_WRONLY;
     } else if (rwType == ReadWriteType::READ_ONLY) {
         readWrite = O_RDONLY;
+    } else if (rwType == ReadWriteType::NO_READ_WRITE) {
+        readWrite = 0;
     } else {
         logger->error("Unrecognised access mode: {}", rwType);
         throw std::runtime_error("Unrecognised access mode for file");

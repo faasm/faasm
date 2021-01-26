@@ -4,6 +4,7 @@
 
 #include <faabric/state/State.h>
 #include <faabric/util/logging.h>
+#include <faabric/util/memory.h>
 #include <proto/faabric.pb.h>
 
 #include <exception>
@@ -27,6 +28,7 @@
 // One page is 64kB
 #define DYNAMIC_MODULE_STACK_SIZE 2 * ONE_MB_BYTES
 #define DYNAMIC_MODULE_MEMORY_PAGES 66
+#define GUARD_REGION_SIZE 10 * faabric::util::HOST_PAGE_SIZE;
 
 // Special known function names
 // Zygote function (must match faasm.h linked into the functions themselves)
@@ -150,8 +152,10 @@ faabric::Message* getExecutingCall();
 
 void setExecutingCall(faabric::Message* other);
 
-// Convenience function
+// Convenience functions
 size_t getNumberOfWasmPagesForBytes(uint32_t nBytes);
+
+size_t getPagesForGuardRegion();
 
 /*
  * Exception thrown when wasm module terminates

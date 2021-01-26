@@ -94,6 +94,19 @@ U64 IRModuleCache::getSharedModuleTableSize(const std::string& user,
     return originalTableSizes[key];
 }
 
+size_t IRModuleCache::getSharedModuleDataSize(const std::string& user,
+                                              const std::string& func,
+                                              const std::string& path)
+{
+    IR::Module& irModule = IRModuleCache::getModule(user, func, path);
+    size_t dataSize = 0;
+    for (auto ds : irModule.dataSegments) {
+        dataSize += ds.data->size();
+    }
+
+    return dataSize;
+}
+
 Runtime::ModuleRef IRModuleCache::getCompiledMainModule(const std::string& user,
                                                         const std::string& func)
 {

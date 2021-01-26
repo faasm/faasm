@@ -1,9 +1,9 @@
 import pickle
 from pyfaasm.core import (
-    get_state,
-    get_state_size,
-    set_state,
-    chain_this_with_input,
+    read_state,
+    read_state_size,
+    write_state,
+    chain,
     await_call,
 )
 
@@ -12,14 +12,14 @@ KEY_B = "dict_b"
 
 
 def get_dict_from_state(key):
-    dict_size = get_state_size(key)
-    pickled_dict = get_state(key, dict_size)
+    dict_size = read_state_size(key)
+    pickled_dict = read_state(key, dict_size)
     return pickle.loads(pickled_dict)
 
 
 def write_dict_to_state(key, dict_in):
     pickled_dict = pickle.dumps(dict_in)
-    set_state(key, pickled_dict)
+    write_state(key, pickled_dict)
 
 
 # This function is chained
@@ -35,7 +35,7 @@ def faasm_main():
     write_dict_to_state(KEY_A, dict_a)
 
     # Make the chained call
-    call_id = chain_this_with_input(check_pickle, b"")
+    call_id = chain(check_pickle, b"")
     await_call(call_id)
 
     # Load from state again

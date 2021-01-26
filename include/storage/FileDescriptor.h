@@ -37,6 +37,7 @@ enum ReadWriteType
     READ_ONLY,
     READ_WRITE,
     WRITE_ONLY,
+    NO_READ_WRITE,
     CUSTOM,
 };
 

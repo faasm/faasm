@@ -38,7 +38,7 @@ std::string getPythonModuleB()
 std::string mainFunc = "PyInit_array";
 std::string funcA = "PyArray_Max";
 std::string funcB = "random_uniform";
-int mainFuncOffset = 1580;
+int mainFuncOffset = 1582;
 int funcAOffset = 3686;
 int funcBOffset = 39;
 
@@ -47,9 +47,9 @@ int funcBOffset = 39;
 std::string mainData = "PyBool_Type";
 std::string dataA = "PyArray_API";
 std::string dataB = "__pyx_module_is_main_numpy__random__mtrand";
-int mainDataOffset = 4862132;
-int dataAOffset = 8760032;
-int dataBOffset = 40042496;
+int mainDataOffset = 4862212;
+int dataAOffset = 8825568;
+int dataBOffset = 13107200;
 
 // NOTE - we don't get perfect pakcing of the indexing, so each module has
 // an arbitrary extra offset.
@@ -66,6 +66,11 @@ TEST_CASE("Test dynamic load/ function lookup", "[wasm]")
     conf.pythonPreload = "off";
 
     wasm::IRModuleCache& registry = wasm::getIRModuleCache();
+
+    // Get the guard region size
+    size_t nGuardPages = wasm::getPagesForGuardRegion();
+    size_t guardBytes = nGuardPages * WASM_BYTES_PER_PAGE;
+    size_t guardBytesPerModule = 2 * guardBytes;
 
     // Bind to Python function
     faabric::Message msg =
@@ -101,7 +106,8 @@ TEST_CASE("Test dynamic load/ function lookup", "[wasm]")
     Uptr memSizeAfterA =
       Runtime::getMemoryNumPages(module.defaultMemory) * WASM_BYTES_PER_PAGE;
     Uptr heapSize = DYNAMIC_MODULE_MEMORY_PAGES * WASM_BYTES_PER_PAGE;
-    REQUIRE(memSizeAfterA == initialMemSize + heapSize);
+
+    REQUIRE(memSizeAfterA == initialMemSize + heapSize + guardBytesPerModule);
 
     // Check the stack is at the bottom of this region, and the heap is just
     // above it
@@ -111,7 +117,8 @@ TEST_CASE("Test dynamic load/ function lookup", "[wasm]")
     int heapBaseA = module.getNextMemoryBase();
     int stackPointerA = module.getNextStackPointer();
 
-    REQUIRE(heapBaseA == initialMemSize + DYNAMIC_MODULE_STACK_SIZE);
+    REQUIRE(heapBaseA ==
+            initialMemSize + DYNAMIC_MODULE_STACK_SIZE + guardBytes);
     REQUIRE(stackPointerA == heapBaseA - 1);
 
     // Check we can't load an invalid function
@@ -143,12 +150,13 @@ TEST_CASE("Test dynamic load/ function lookup", "[wasm]")
     // Check the memory
     Uptr memSizeAfterB =
       Runtime::getMemoryNumPages(module.defaultMemory) * WASM_BYTES_PER_PAGE;
-    REQUIRE(memSizeAfterB == memSizeAfterA + heapSize);
+    REQUIRE(memSizeAfterB == memSizeAfterA + heapSize + guardBytesPerModule);
 
     int heapBaseB = module.getNextMemoryBase();
     int stackPointerB = module.getNextStackPointer();
 
-    REQUIRE(heapBaseB == memSizeAfterA + DYNAMIC_MODULE_STACK_SIZE);
+    REQUIRE(heapBaseB ==
+            memSizeAfterA + DYNAMIC_MODULE_STACK_SIZE + guardBytes);
     REQUIRE(stackPointerB == heapBaseB - 1);
 
     // Check invalid function

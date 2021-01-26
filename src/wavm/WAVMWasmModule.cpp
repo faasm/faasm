@@ -549,10 +549,8 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
         Uptr newTableElems = Runtime::getTableNumElements(defaultTable);
 
         // Work out the size of the data
-        size_t dataSize = 0;
-        for (auto ds : irModule.dataSegments) {
-            dataSize += ds.data->size();
-        }
+        size_t dataSize = moduleRegistry.getSharedModuleDataSize(
+          boundUser, boundFunction, sharedModulePath);
 
         // Provision the memory for the new module plus two guard regions
         createMemoryGuardRegion();
@@ -565,7 +563,7 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
 
         dynamicModule.path = sharedModulePath;
 
-        dynamicModule.memoryBottom = newMemory + WASM_BYTES_PER_PAGE;
+        dynamicModule.memoryBottom = newMemory;
         dynamicModule.memoryTop =
           dynamicModule.memoryBottom +
           (DYNAMIC_MODULE_MEMORY_PAGES * WASM_BYTES_PER_PAGE);
@@ -697,13 +695,13 @@ int WAVMWasmModule::dynamicLoadModule(const std::string& path,
     // Work out if we're loading an existing module or using the fallback
     int thisHandle;
     if (path.empty()) {
-        logger->warn("Dynamic linking main module");
+        logger->debug("Dynamic linking main module");
         return MAIN_MODULE_DYNLINK_HANDLE;
     } else if (boost::filesystem::is_directory(path)) {
-        logger->warn("Dynamic linking a directory {}", path);
+        logger->error("Dynamic linking a directory {}", path);
         return 0;
     } else if (!boost::filesystem::exists(path)) {
-        logger->warn("Dynamic module {} does not exist", path);
+        logger->error("Dynamic module {} does not exist", path);
         return 0;
     }
 
@@ -1658,9 +1656,10 @@ uint32_t WAVMWasmModule::createMemoryGuardRegion()
 {
     auto logger = faabric::util::getLogger();
 
-    uint32_t regionSize = 10 * faabric::util::HOST_PAGE_SIZE;
+    size_t nPages = getPagesForGuardRegion();
+    size_t regionSize = nPages * WASM_BYTES_PER_PAGE;
 
-    uint32_t wasmOffset = mmapMemory(regionSize);
+    uint32_t wasmOffset =  mmapPages(nPages);
 
     uint8_t* nativePtr =
       &Runtime::memoryRef<uint8_t>(defaultMemory, wasmOffset);
