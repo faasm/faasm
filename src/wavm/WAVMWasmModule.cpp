@@ -1659,7 +1659,7 @@ uint32_t WAVMWasmModule::createMemoryGuardRegion()
     size_t nPages = getPagesForGuardRegion();
     size_t regionSize = nPages * WASM_BYTES_PER_PAGE;
 
-    uint32_t wasmOffset =  mmapPages(nPages);
+    uint32_t wasmOffset = mmapPages(nPages);
 
     uint8_t* nativePtr =
       &Runtime::memoryRef<uint8_t>(defaultMemory, wasmOffset);

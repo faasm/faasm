@@ -91,8 +91,8 @@ ReadWriteType getRwType(uint64_t rights)
         return ReadWriteType::READ_ONLY;
     } else if (!rightsRead && rightsWrite) {
         return ReadWriteType::WRITE_ONLY;
-    } else if(rights == 0) {
-        return ReadWriteType::NO_READ_WRITE;        
+    } else if (rights == 0) {
+        return ReadWriteType::NO_READ_WRITE;
     } else {
         return ReadWriteType::CUSTOM;
     }
