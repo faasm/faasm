@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
 {
     // Check predefined var
     bool failed = false;
-    failed |= checkPredefined("LC_CTYPE", "en_GB.UTF-8");
+    failed |= checkPredefined("PYTHONNOUSERSITE", "on");
     failed |= checkPredefined("PYTHONHOME", "/");
     failed |= checkPredefined("PYTHON_PATH", "/");
     failed |= checkPredefined("PYTHONWASM", "1");

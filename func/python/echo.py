@@ -1,11 +1,19 @@
-from pyfaasm.core import get_input, set_output
+from pyfaasm.core import get_input_len, read_input, write_output
 
 
 def faasm_main():
-    i = get_input()
+    input_len = get_input_len()
 
-    print("Got input {}".format(i))
+    if input_len == 0:
+        print("Nothing to echo")
+        return 0
 
-    set_output(bytes(i))
+    i = read_input(input_len)
+
+    input_str = i.decode("utf-8")
+
+    print("Got input {}".format(input_str))
+
+    write_output(i)
 
     return 0

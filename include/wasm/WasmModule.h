@@ -4,6 +4,7 @@
 
 #include <faabric/state/State.h>
 #include <faabric/util/logging.h>
+#include <faabric/util/memory.h>
 #include <proto/faabric.pb.h>
 
 #include <exception>
@@ -23,11 +24,11 @@
 // updated to match the value in the build.
 #define STACK_SIZE 4 * ONE_MB_BYTES
 
-// Properties of dynamic modules - NOTE - these MUST be passed when compiling
-// the modules themselves Heap size must be wasm-module-page-aligned. One page
-// is 64kB so 480 pages is 30MB
+// Properties of dynamic modules. Heap size must be wasm-module-page-aligned.
+// One page is 64kB
 #define DYNAMIC_MODULE_STACK_SIZE 2 * ONE_MB_BYTES
-#define DYNAMIC_MODULE_HEAP_PAGES 480
+#define DYNAMIC_MODULE_MEMORY_PAGES 66
+#define GUARD_REGION_SIZE 10 * faabric::util::HOST_PAGE_SIZE;
 
 // Special known function names
 // Zygote function (must match faasm.h linked into the functions themselves)
@@ -82,7 +83,6 @@ class WasmModule
     void clearCapturedStdout();
 
     // ----- Memory management -----
-
     virtual uint32_t mmapMemory(uint32_t length);
 
     virtual uint32_t mmapPages(uint32_t pages);
@@ -113,6 +113,9 @@ class WasmModule
     void restoreFromMemory(const std::vector<uint8_t>& data);
 
     void restoreFromState(const std::string& stateKey, size_t stateSize);
+
+    // ----- Debugging -----
+    virtual void printDebugInfo();
 
   protected:
     std::string boundUser;
@@ -149,8 +152,10 @@ faabric::Message* getExecutingCall();
 
 void setExecutingCall(faabric::Message* other);
 
-// Convenience function
+// Convenience functions
 size_t getNumberOfWasmPagesForBytes(uint32_t nBytes);
+
+size_t getPagesForGuardRegion();
 
 /*
  * Exception thrown when wasm module terminates

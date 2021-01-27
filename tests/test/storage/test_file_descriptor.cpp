@@ -12,6 +12,67 @@ using namespace storage;
 
 namespace tests {
 
+TEST_CASE("Test fd rights propagation", "[storage]")
+{
+    FileSystem fs;
+    fs.prepareFilesystem();
+    FileDescriptor& rootFd = fs.getFileDescriptor(DEFAULT_ROOT_FD);
+
+    uint64_t base = rootFd.getActualRightsBase();
+    uint64_t inheriting = rootFd.getActualRightsInheriting();
+
+    // Check the base rights only include those for directories
+    REQUIRE(!(bool)(base & __WASI_RIGHT_FD_WRITE));
+    REQUIRE((bool)(base & __WASI_RIGHT_PATH_OPEN));
+
+    // Check the inherited rights include file rights
+    REQUIRE((bool)(inheriting & __WASI_RIGHT_FD_WRITE));
+    REQUIRE((bool)(inheriting & __WASI_RIGHT_PATH_OPEN));
+
+    // Set up some new rights
+    uint64_t requestedBase = __WASI_RIGHT_FD_WRITE | __WASI_RIGHT_FD_SEEK;
+    uint64_t requestedInheriting = __WASI_RIGHT_FD_READ | __WASI_RIGHT_FD_TELL;
+    uint32_t openFlags = __WASI_O_CREAT;
+
+    // Create a new fd, requesting the rights
+    int newFd = fs.openFileDescriptor(DEFAULT_ROOT_FD,
+                                      "/tmp/foobar.txt",
+                                      requestedBase,
+                                      requestedInheriting,
+                                      0,
+                                      openFlags,
+                                      0);
+
+    FileDescriptor& newDescriptor = fs.getFileDescriptor(newFd);
+    uint64_t baseChild = newDescriptor.getActualRightsBase();
+    uint64_t baseInheriting = newDescriptor.getActualRightsInheriting();
+
+    // Check the ones we requested are present, but not those that aren't
+    REQUIRE((bool)(baseChild & __WASI_RIGHT_FD_WRITE));
+    REQUIRE((bool)(baseChild & __WASI_RIGHT_FD_SEEK));
+    REQUIRE(!(bool)(baseChild & __WASI_RIGHT_FD_SYNC));
+
+    REQUIRE((bool)(baseInheriting & __WASI_RIGHT_FD_READ));
+    REQUIRE((bool)(baseInheriting & __WASI_RIGHT_FD_TELL));
+    REQUIRE(!(bool)(baseInheriting & __WASI_RIGHT_FD_WRITE));
+    REQUIRE(!(bool)(baseInheriting & __WASI_RIGHT_FD_SEEK));
+
+    // Open the path where we should be able to create and right
+    uint32_t lookupFlags = 0;
+    uint32_t fdFlags = __WASI_FDFLAG_APPEND;
+    bool success = newDescriptor.pathOpen(lookupFlags, openFlags, fdFlags);
+    REQUIRE(success);
+
+    int linuxFlags = newDescriptor.getLinuxFlags();
+    REQUIRE((bool)(linuxFlags & O_CREAT));
+    REQUIRE((bool)(linuxFlags & O_RDWR));
+    REQUIRE((bool)(linuxFlags & O_APPEND));
+
+    REQUIRE(!(bool)(linuxFlags & O_DIRECTORY));
+    REQUIRE(!(bool)(linuxFlags & O_RDONLY));
+    REQUIRE(!(bool)(linuxFlags & O_RSYNC));
+}
+
 TEST_CASE("Test stat and mkdir", "[storage]")
 {
     FileSystem fs;
@@ -174,9 +235,14 @@ TEST_CASE("Test seek", "[storage]")
     REQUIRE(newFileDesc.tell() == 3);
 
     // Skip back
-    newFileDesc.seek(1, __WASI_WHENCE_SET, &actual);
-    REQUIRE(actual == 1);
-    REQUIRE(newFileDesc.tell() == 1);
+    newFileDesc.seek(-3, __WASI_WHENCE_CUR, &actual);
+    REQUIRE(actual == 0);
+    REQUIRE(newFileDesc.tell() == 0);
+
+    // Set absolute
+    newFileDesc.seek(4, __WASI_WHENCE_SET, &actual);
+    REQUIRE(actual == 4);
+    REQUIRE(newFileDesc.tell() == 4);
 
     boost::filesystem::remove(realPath);
 }

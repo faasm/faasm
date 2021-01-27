@@ -6,7 +6,7 @@ namespace tests {
 TEST_CASE("Test BLAS support", "[faaslet][!mayfail]")
 {
     cleanSystem();
-    faabric::Message msg = faabric::util::messageFactory("demo", "blas");
+    faabric::Message msg = faabric::util::messageFactory("demo", "blas_check");
 
     execFunction(msg);
 }

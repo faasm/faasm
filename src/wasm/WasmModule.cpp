@@ -34,6 +34,13 @@ size_t getNumberOfWasmPagesForBytes(uint32_t nBytes)
     return pageCount;
 }
 
+size_t getPagesForGuardRegion()
+{
+    size_t regionSize = GUARD_REGION_SIZE;
+    size_t nWasmPages = getNumberOfWasmPagesForBytes(regionSize);
+    return nWasmPages;
+}
+
 WasmModule::~WasmModule()
 {
     // Does nothing
@@ -348,5 +355,10 @@ uint32_t WasmModule::mmapFile(uint32_t fp, uint32_t length)
 uint8_t* WasmModule::wasmPointerToNative(int32_t wasmPtr)
 {
     throw std::runtime_error("wasmPointerToNative not implemented");
+}
+
+void WasmModule::printDebugInfo()
+{
+    throw std::runtime_error("printDebugInfo not implemented");
 }
 }

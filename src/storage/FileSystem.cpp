@@ -29,6 +29,7 @@ void FileSystem::createPreopenedFileDescriptor(int fd, const std::string& path)
     storage::FileDescriptor fileDesc;
     fileDesc.setPath(path);
     fileDesc.setActualRights(DIRECTORY_RIGHTS, INHERITING_DIRECTORY_RIGHTS);
+
     bool success = fileDesc.pathOpen(0, __WASI_O_DIRECTORY, 0);
 
     if (!success) {
@@ -39,6 +40,7 @@ void FileSystem::createPreopenedFileDescriptor(int fd, const std::string& path)
           realSysPath,
           strerror(fileDesc.getLinuxErrno()));
         throw std::runtime_error("Problem opening preopened fd");
+
     } else {
         faabric::util::getLogger()->debug("Opened preopened fd at {}", path);
     }
@@ -56,6 +58,15 @@ int FileSystem::getNewFd()
     return thisFd;
 }
 
+std::string FileSystem::getPathForFd(int fd)
+{
+    if (fileDescriptors.count(fd) == 0) {
+        return "";
+    }
+
+    return fileDescriptors[fd].getPath();
+}
+
 int FileSystem::openFileDescriptor(int rootFd,
                                    const std::string& relativePath,
                                    uint64_t rightsBase,
@@ -64,6 +75,7 @@ int FileSystem::openFileDescriptor(int rootFd,
                                    uint32_t openFlags,
                                    int32_t fdFlags)
 {
+    auto logger = faabric::util::getLogger();
 
     storage::FileDescriptor& rootFileDesc = getFileDescriptor(rootFd);
 
@@ -78,15 +90,21 @@ int FileSystem::openFileDescriptor(int rootFd,
         fullPath = std::string(joinedPath.string());
     }
 
+    // Initialise the new fd
     int thisFd = getNewFd();
     FileDescriptor& fileDesc = fileDescriptors[thisFd];
     fileDesc.setPath(fullPath);
 
-    // Set rights on new file descriptor
-    uint64_t effectiveRights = rightsBase & rootFileDesc.getActualRightsBase();
-    uint64_t effectiveInheritedRights =
+    // AND requested rights with those of the root file descriptor. Rights for
+    // this file descriptor are only permitted if they can be inherited, and
+    // children of this file descriptor can only inherit rights permitted by
+    // their ancestors.
+    uint64_t effectiveRightsInheriting =
       rightsInheriting & rootFileDesc.getActualRightsInheriting();
-    fileDesc.setActualRights(effectiveRights, effectiveInheritedRights);
+    uint64_t effectiveRights =
+      rightsBase & rootFileDesc.getActualRightsInheriting();
+
+    fileDesc.setActualRights(effectiveRights, effectiveRightsInheriting);
 
     // Open the path
     bool success = fileDesc.pathOpen(lookupFlags, openFlags, fdFlags);
@@ -113,13 +131,13 @@ storage::FileDescriptor& FileSystem::getFileDescriptor(int fd)
 
 int FileSystem::dup(int fd)
 {
-    // We just want to map the *same* underlying object to a new descriptor
-    int thisFd = getNewFd();
+    int newFd = getNewFd();
 
     FileDescriptor& originalDesc = getFileDescriptor(fd);
-    fileDescriptors[thisFd] = originalDesc;
+    FileDescriptor& newDesc = fileDescriptors[newFd];
+    newDesc.duplicate(originalDesc);
 
-    return thisFd;
+    return newFd;
 }
 
 void FileSystem::tearDown()
@@ -140,6 +158,14 @@ void FileSystem::clearSharedFiles()
     // Note that we're not deleting the master copies in the shared store
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     boost::filesystem::remove_all(conf.sharedFilesDir);
+}
+
+void FileSystem::printDebugInfo()
+{
+    printf("--- Open file descriptors ---\n");
+    for (auto p : fileDescriptors) {
+        printf("    %s\n", p.second.getPath().c_str());
+    }
 }
 
 }

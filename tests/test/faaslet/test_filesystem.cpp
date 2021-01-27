@@ -78,7 +78,6 @@ TEST_CASE("Test fread", "[faaslet]")
 TEST_CASE("Test fstat", "[faaslet]")
 {
     cleanSystem();
-
     faabric::Message msg = faabric::util::messageFactory("demo", "fstat");
     execFunction(msg);
 }
@@ -86,8 +85,15 @@ TEST_CASE("Test fstat", "[faaslet]")
 TEST_CASE("Test file operations", "[faaslet]")
 {
     cleanSystem();
-
     faabric::Message msg = faabric::util::messageFactory("demo", "file");
+    execFunction(msg);
+}
+
+TEST_CASE("Test file descriptors", "[faaslet]")
+{
+    cleanSystem();
+    faabric::Message msg =
+      faabric::util::messageFactory("demo", "filedescriptor");
     execFunction(msg);
 }
 }

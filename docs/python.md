@@ -69,16 +69,16 @@ A couple of the Python test functions also demonstrate chaining:
 NOTE: you only need to do this if you're adding new modules or changing
 something about the Python cross-compilation.
 
-To build CPython and its associated modules, see the [Faasm CPython
-repo](https://github.com/faasm/faasm-cpython).
+If you're using the containerised environment, you need to mount the
+[`faasm-cpython` repo](https://github.com/faasm/faasm-cpython) into your CLI 
+container. 
 
-Once CPython and the modules are build, you can run:
+You can then use the tasks in `faasm-cpython` to build CPython, rebuild the
+Faasm python environment, and execute. 
+
+Note that to copy over the cross-compiled Python libraries, you still need to
+run:
 
 ```
 inv python.runtime
 ```
-
-This will copy the cross-compiled Python libraries into place and generate the
-associated machine code, so that they can be accessed by the interpreter at
-runtime.
-

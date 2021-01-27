@@ -1,8 +1,8 @@
-from pyfaasm.core import get_state, get_state_offset
+from pyfaasm.core import read_state, read_state_offset
 
 
 def _check_segment(key, offset, length, expected):
-    actual = get_state_offset(key, length, offset, length)
+    actual = read_state_offset(key, length, offset, length)
     if actual != expected:
         msg = "Mismatched segment: actual {}, expected {})".format(
             actual, expected
@@ -17,7 +17,7 @@ def faasm_main():
     expected = b"0199956789"
 
     # Check the full value
-    actual = get_state(key, value_len)
+    actual = read_state(key, value_len)
     if actual != expected:
         msg = "Mismatch: actual {}, expected {}".format(actual, expected)
         print(msg)

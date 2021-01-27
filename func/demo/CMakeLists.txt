@@ -12,6 +12,7 @@ endfunction(demo_func_c)
 
 demo_func(argc_argv argc_argv.cpp)
 demo_func(argc_argv_test argc_argv_test.cpp)
+demo_func(backtrace backtrace.cpp)
 demo_func(brk brk.cpp)
 demo_func(calloc calloc.cpp)
 demo_func(chain chain.cpp)
@@ -31,6 +32,7 @@ demo_func(exit exit.cpp)
 demo_func(fcntl fcntl.cpp)
 demo_func(fibonacci fibonacci.cpp)
 demo_func(file file.cpp)
+demo_func(filedescriptor filedescriptor.cpp)
 demo_func(fprintf fprintf.cpp)
 demo_func(fread fread.cpp)
 demo_func(fstat fstat.cpp)
@@ -90,6 +92,7 @@ demo_func(threads_dist threads_dist.cpp)
 demo_func(time time.cpp)
 demo_func(time_of_day time_of_day.cpp)
 demo_func(uname uname.cpp)
+demo_func(va_arg va_arg.cpp)
 demo_func(x2 x2.cpp)
 demo_func(zygote_check zygote_check.cpp)
 
@@ -97,6 +100,9 @@ demo_func(zygote_check zygote_check.cpp)
 # WASM-only functions
 if (CMAKE_SYSTEM_NAME STREQUAL "Wasm")
     # demo_func(eigen_vec eigen_vec.cpp)
+
+    demo_func(emscripten_check emscripten_check.cpp)
+    target_link_libraries(emscripten_check emscripten)
 
     # TODO - fix BLAS check function
     # include_directories(/usr/local/faasm/llvm-sysroot/include/clapack)

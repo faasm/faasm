@@ -36,6 +36,10 @@ class IRModuleCache
                                  const std::string& func,
                                  const std::string& path);
 
+    size_t getSharedModuleDataSize(const std::string& user,
+                                   const std::string& func,
+                                   const std::string& path);
+
     bool isModuleCached(const std::string& user,
                         const std::string& func,
                         const std::string& path);

@@ -1,15 +1,16 @@
 import os
-from pyfaasm.core import get_input, set_output
+from pyfaasm.core import read_input, write_output, get_input_len
 
 
 def faasm_main():
-    path = get_input()
+    input_len = get_input_len()
+    i = read_input(input_len)
 
-    if not path:
+    if not i:
         print("Input must be a path")
         return 1
 
-    path = path.decode()
+    path = i.decode("utf-8")
     print("Path = {}, cwd = {}".format(path, os.getcwd()))
 
     dirlist = os.listdir(path)
@@ -18,6 +19,6 @@ def faasm_main():
 
     print(dir_list_str)
 
-    set_output(bytes(dir_list_str, "utf-8"))
+    write_output(bytes(dir_list_str, "utf-8"))
 
     return 0

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <wasm/WasmModule.h>
+#include <wavm/LoadedDynamicModule.h>
 
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Linker.h>
@@ -64,6 +65,9 @@ class WAVMWasmModule final
 
     void mapMemoryFromFd() override;
 
+    // ----- Debug -----
+    void printDebugInfo() override;
+
     // ----- Internals -----
     WAVM::Runtime::GCPointer<WAVM::Runtime::Memory> defaultMemory;
 
@@ -83,7 +87,6 @@ class WAVMWasmModule final
                            uint32_t wasmArgvBuffer) override;
 
     // ----- Resolution/ linking -----
-
     WAVM::Runtime::Function* getFunction(WAVM::Runtime::Instance* module,
                                          const std::string& funcName,
                                          bool strict);
@@ -138,12 +141,6 @@ class WAVMWasmModule final
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> wasiModule;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> moduleInstance;
 
-    // Dynamic modules
-    int dynamicModuleCount = 0;
-    int nextMemoryBase = 0;
-    int nextStackPointer = 0;
-    int nextTableBase = 0;
-
     int memoryFd = -1;
     size_t memoryFdSize = 0;
 
@@ -151,8 +148,9 @@ class WAVMWasmModule final
 
     // Map of dynamically loaded modules
     std::unordered_map<std::string, int> dynamicPathToHandleMap;
-    std::unordered_map<int, WAVM::Runtime::GCPointer<WAVM::Runtime::Instance>>
-      dynamicModuleMap;
+    std::unordered_map<int, LoadedDynamicModule> dynamicModuleMap;
+    int lastLoadedDynamicModuleHandle = 0;
+    LoadedDynamicModule& getLastLoadedDynamicModule();
 
     // Dynamic linking tables and memories
     std::unordered_map<std::string, WAVM::Uptr> globalOffsetTableMap;
@@ -194,6 +192,8 @@ class WAVMWasmModule final
     void prepareOpenMPContext(const faabric::Message& msg);
 
     std::unique_ptr<openmp::PlatformThreadPool> OMPPool;
+
+    uint32_t createMemoryGuardRegion();
 };
 
 WAVMWasmModule* getExecutingWAVMModule();

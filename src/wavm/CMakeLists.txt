@@ -12,6 +12,7 @@ add_subdirectory(openmp)
 
 set(LIB_FILES
         WAVMWasmModule.cpp
+        LoadedDynamicModule.cpp
         syscalls.h
         chaining.cpp
         codegen.cpp

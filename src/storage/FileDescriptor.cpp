@@ -64,10 +64,10 @@ int32_t wasiFdFlagsToLinux(int32_t fdFlags)
 
 OpenMode getOpenMode(uint16_t openFlags)
 {
-    if (openFlags & __WASI_O_DIRECTORY) {
-        return OpenMode::DIRECTORY;
-    } else if (openFlags & __WASI_O_CREAT) {
+    if (openFlags & __WASI_O_CREAT) {
         return OpenMode::CREATE;
+    } else if (openFlags & __WASI_O_DIRECTORY) {
+        return OpenMode::DIRECTORY;
     } else if (openFlags & __WASI_O_TRUNC) {
         return OpenMode::TRUNC;
     } else if (openFlags & __WASI_O_EXCL) {
@@ -81,7 +81,7 @@ OpenMode getOpenMode(uint16_t openFlags)
 
 ReadWriteType getRwType(uint64_t rights)
 {
-    // Work out read/write
+    // Check for presence of any read/write permissions
     const bool rightsRead = rights & WASI_RIGHTS_READ;
     const bool rightsWrite = rights & WASI_RIGHTS_WRITE;
 
@@ -91,6 +91,8 @@ ReadWriteType getRwType(uint64_t rights)
         return ReadWriteType::READ_ONLY;
     } else if (!rightsRead && rightsWrite) {
         return ReadWriteType::WRITE_ONLY;
+    } else if (rights == 0) {
+        return ReadWriteType::NO_READ_WRITE;
     } else {
         return ReadWriteType::CUSTOM;
     }
@@ -364,7 +366,10 @@ bool FileDescriptor::pathOpen(uint32_t lookupFlags,
         throw std::runtime_error("Opening path with no rights set");
     }
 
+    auto logger = faabric::util::getLogger();
+
     OpenMode openMode = getOpenMode((uint16_t)openFlags);
+
     ReadWriteType rwType = getRwType(actualRightsBase);
 
     int readWrite = 0;
@@ -376,9 +381,11 @@ bool FileDescriptor::pathOpen(uint32_t lookupFlags,
         readWrite = O_WRONLY;
     } else if (rwType == ReadWriteType::READ_ONLY) {
         readWrite = O_RDONLY;
+    } else if (rwType == ReadWriteType::NO_READ_WRITE) {
+        readWrite = 0;
     } else {
-        // Default to r/w
-        readWrite = O_RDWR;
+        logger->error("Unrecognised access mode: {}", rwType);
+        throw std::runtime_error("Unrecognised access mode for file");
     }
 
     // Open flags
@@ -399,6 +406,7 @@ bool FileDescriptor::pathOpen(uint32_t lookupFlags,
         linuxFlags = readWrite;
         linuxMode = 0;
     } else {
+        logger->error("Unrecognised open mode: {}", openMode);
         throw std::runtime_error("Unrecognised open flags");
     }
 
@@ -419,7 +427,6 @@ bool FileDescriptor::pathOpen(uint32_t lookupFlags,
         realPath = SharedFiles::realPathForSharedFile(path);
     } else {
         realPath = prependRuntimeRoot(path);
-        ;
     }
 
     // Attempt to open the local file
@@ -588,14 +595,6 @@ Stat FileDescriptor::stat(const std::string& relativePath)
         throw std::runtime_error("Unrecognised file type");
     }
 
-    // Set WASI rights accordingly
-    if (isReadOnly) {
-        setActualRights(WASI_RIGHTS_READ, WASI_RIGHTS_READ);
-    } else {
-        uint64_t rights = WASI_RIGHTS_READ | WASI_RIGHTS_WRITE;
-        setActualRights(rights, rights);
-    }
-
     // Set up the result
     statResult.st_dev = nativeStat.st_dev;
     statResult.st_ino = nativeStat.st_ino;
@@ -625,17 +624,17 @@ ssize_t FileDescriptor::readLink(const std::string& relativePath,
     return bytesRead;
 }
 
-uint16_t FileDescriptor::seek(uint64_t offset,
+uint16_t FileDescriptor::seek(int64_t offset,
                               int wasiWhence,
                               uint64_t* newOffset)
 {
     int linuxWhence;
-    if (wasiWhence == __WASI_WHENCE_CUR) {
+    if (wasiWhence == __WASI_WHENCE_SET) {
+        linuxWhence = SEEK_SET;
+    } else if (wasiWhence == __WASI_WHENCE_CUR) {
         linuxWhence = SEEK_CUR;
     } else if (wasiWhence == __WASI_WHENCE_END) {
         linuxWhence = SEEK_END;
-    } else if (wasiWhence == __WASI_WHENCE_SET) {
-        linuxWhence = SEEK_SET;
     } else {
         throw std::runtime_error("Unsupported whence");
     }
@@ -660,6 +659,11 @@ uint64_t FileDescriptor::tell()
 int FileDescriptor::getLinuxFd()
 {
     return linuxFd;
+}
+
+int FileDescriptor::getLinuxFlags()
+{
+    return linuxFlags;
 }
 
 int FileDescriptor::getLinuxErrno()
@@ -687,6 +691,28 @@ void FileDescriptor::setActualRights(uint64_t rights, uint64_t inheriting)
     actualRightsBase = rights;
     actualRightsInheriting = inheriting;
     rightsSet = true;
+}
+
+int FileDescriptor::duplicate(const FileDescriptor& other)
+{
+    // Duplicate the underlying fd
+    linuxFd = ::dup(other.linuxFd);
+
+    linuxMode = other.linuxMode;
+    linuxFlags = other.linuxFlags;
+    linuxErrno = other.linuxErrno;
+
+    // Set the internal variables
+    path = other.path;
+    rightsSet = other.rightsSet;
+    actualRightsBase = other.actualRightsBase;
+    actualRightsInheriting = other.actualRightsInheriting;
+
+    dirContentsLoaded = other.dirContentsLoaded;
+    dirContents = other.dirContents;
+    dirContentsIdx = other.dirContentsIdx;
+
+    return linuxFd;
 }
 
 }

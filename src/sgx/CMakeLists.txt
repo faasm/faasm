@@ -183,6 +183,7 @@ set(FAASM_SGX_ENCLAVE_C_FLAGS ${SGX_C_GLOBAL_FLAGS}
 # --------------------------------------------------------
 
 include_directories(${FAASM_INCLUDE_DIR}/sgx)
+include_directories(/usr/local/faasm/native/include)
 
 # --------------------------------------------------------
 # ENCLAVE BUILD

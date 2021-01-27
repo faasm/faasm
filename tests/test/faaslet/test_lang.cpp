@@ -32,4 +32,18 @@ TEST_CASE("Test stack/ heap", "[faaslet]")
     faabric::Message msg = faabric::util::messageFactory("demo", "stackheap");
     execFunction(msg);
 }
+
+TEST_CASE("Test backtrace", "[faaslet]")
+{
+    cleanSystem();
+    faabric::Message msg = faabric::util::messageFactory("demo", "backtrace");
+    execFunction(msg);
+}
+
+TEST_CASE("Test varargs", "[faaslet]")
+{
+    cleanSystem();
+    faabric::Message msg = faabric::util::messageFactory("demo", "va_arg");
+    execFunction(msg);
+}
 }

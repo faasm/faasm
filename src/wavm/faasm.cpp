@@ -1,6 +1,7 @@
 #include "WAVMWasmModule.h"
 #include "syscalls.h"
 
+#include <WAVM/Platform/Diagnostics.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 
@@ -493,6 +494,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     faabric::util::getLogger()->debug(
       "S - get_py_user - {} {}", bufferPtr, bufferLen);
     std::string value = getExecutingCall()->pythonuser();
+
+    if (value.empty()) {
+        throw std::runtime_error("Python user empty, cannot return");
+    }
+
     _readPythonInput(bufferPtr, bufferLen, value);
 }
 
@@ -547,6 +553,31 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         logger->warn("Unknown conf flag: {}", key);
         return 0;
     }
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "__faasm_backtrace",
+                               void,
+                               __faasm_backtrace,
+                               I32 depth)
+{
+    auto logger = faabric::util::getLogger();
+    logger->debug("S - faasm_backtrace {}", depth);
+
+    wasm::WAVMWasmModule* module = getExecutingWAVMModule();
+    module->printDebugInfo();
+
+    Platform::CallStack callStack = Platform::captureCallStack(depth);
+    std::vector<std::string> callStackStrs =
+      Runtime::describeCallStack(callStack);
+
+    printf("\n------ Faasm backtrace ------\n");
+    for (auto s : callStackStrs) {
+        printf("%s\n", s.c_str());
+    }
+    printf("-------------------------------\n");
+
+    fflush(stdout);
 }
 
 // 02/12/20 - unfortunately some old Python wasm still needs this

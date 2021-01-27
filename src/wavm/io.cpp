@@ -6,6 +6,7 @@
 
 #include <storage/FileDescriptor.h>
 
+#include <cstring>
 #include <dirent.h>
 #include <poll.h>
 #include <strings.h>
@@ -314,21 +315,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi, "fd_close", I32, wasi_fd_close, I32 fd)
     return 0;
 }
 
-ssize_t doWritev(int fd, iovec* nativeIovecs, I32 iovecCount)
-{
-    ssize_t bytesWritten = ::writev(fd, nativeIovecs, iovecCount);
-
-    // Catpure stdout if necessary, otherwise write as normal
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    if (fd == STDOUT_FILENO && conf.captureStdout == "on") {
-        getExecutingWAVMModule()->captureStdout(nativeIovecs, iovecCount);
-    }
-
-    delete[] nativeIovecs;
-
-    return bytesWritten;
-}
-
 WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                "fd_write",
                                I32,
@@ -338,23 +324,46 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I32 iovecCount,
                                I32 resBytesWrittenPtr)
 {
-    faabric::util::getLogger()->debug("S - fd_write - {} {} {} {}",
-                                      fd,
-                                      iovecsPtr,
-                                      iovecCount,
-                                      resBytesWrittenPtr);
+    auto logger = faabric::util::getLogger();
 
-    storage::FileDescriptor& fileDesc =
-      getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
+    storage::FileSystem& fileSystem = getExecutingWAVMModule()->getFileSystem();
+    std::string path = fileSystem.getPathForFd(fd);
+
+    logger->debug("S - fd_write - {} {} {} {} ({})",
+                  fd,
+                  iovecsPtr,
+                  iovecCount,
+                  resBytesWrittenPtr,
+                  path);
+
+    storage::FileDescriptor& fileDesc = fileSystem.getFileDescriptor(fd);
 
     iovec* nativeIovecs = wasiIovecsToNativeIovecs(iovecsPtr, iovecCount);
+
     ssize_t bytesWritten =
-      doWritev(fileDesc.getLinuxFd(), nativeIovecs, iovecCount);
+      ::writev(fileDesc.getLinuxFd(), nativeIovecs, iovecCount);
 
-    Runtime::memoryRef<int>(getExecutingWAVMModule()->defaultMemory,
-                            resBytesWrittenPtr) = (int)bytesWritten;
+    if (bytesWritten < 0) {
+        logger->error(
+          "writev failed on fd {}: {}", fileDesc.getLinuxFd(), strerror(errno));
+    }
 
-    return __WASI_ESUCCESS;
+    // Catpure stdout if necessary, otherwise write as normal
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    if (fd == STDOUT_FILENO && conf.captureStdout == "on") {
+        getExecutingWAVMModule()->captureStdout(nativeIovecs, iovecCount);
+    }
+
+    Runtime::memoryRef<int32_t>(getExecutingWAVMModule()->defaultMemory,
+                                resBytesWrittenPtr) = bytesWritten;
+
+    delete[] nativeIovecs;
+
+    if (bytesWritten < 0) {
+        return storage::errnoToWasi(errno);
+    } else {
+        return __WASI_ESUCCESS;
+    }
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
@@ -366,10 +375,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I32 iovecCount,
                                I32 resBytesRead)
 {
+    storage::FileSystem& fileSystem = getExecutingWAVMModule()->getFileSystem();
+    std::string path = fileSystem.getPathForFd(fd);
+
     faabric::util::getLogger()->debug(
-      "S - fd_read - {} {} {}", fd, iovecsPtr, iovecCount);
-    storage::FileDescriptor& fileDesc =
-      getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
+      "S - fd_read - {} {} {} ({})", fd, iovecsPtr, iovecCount, path);
+
+    storage::FileDescriptor& fileDesc = fileSystem.getFileDescriptor(fd);
     iovec* nativeIovecs = wasiIovecsToNativeIovecs(iovecsPtr, iovecCount);
 
     int bytesRead = readv(fileDesc.getLinuxFd(), nativeIovecs, iovecCount);
@@ -559,11 +571,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I32 fd,
                                I32 statPtr)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug("S - fd_fdstat_get - {} {}", fd, statPtr);
+    auto logger = faabric::util::getLogger();
 
-    storage::FileDescriptor& fileDesc =
-      getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
+    storage::FileSystem& fileSystem = getExecutingWAVMModule()->getFileSystem();
+    std::string path = fileSystem.getPathForFd(fd);
+    logger->debug("S - fd_fdstat_get - {} {} ({})", fd, statPtr, path);
+
+    storage::FileDescriptor& fileDesc = fileSystem.getFileDescriptor(fd);
     storage::Stat statResult = fileDesc.stat();
 
     if (statResult.failed) {
@@ -669,7 +683,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
       "S - fd_seek - {} {} {} {}", fd, offset, whence, newOffsetPtr);
 
     // Get pointer to result in memory
-    uint64_t* newOffsetHostPtr = &Runtime::memoryRef<uint64_t>(
+    auto newOffsetHostPtr = &Runtime::memoryRef<uint64_t>(
       getExecutingWAVMModule()->defaultMemory, newOffsetPtr);
 
     storage::FileDescriptor& fileDesc =
@@ -848,6 +862,19 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 // -----------------------------
 // Unsupported
 // -----------------------------
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "__small_sprintf",
+                               I32,
+                               __small_sprintf,
+                               I32 a,
+                               I32 b,
+                               I32 c)
+{
+    faabric::util::getLogger()->debug(
+      "S - __small_sprintf - {} {} {}", a, b, c);
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                "fd_renumber",
@@ -1040,17 +1067,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "fiprintf",
                                I32,
                                wasi_fiprintf,
-                               I32 a,
-                               I32 b,
-                               I32 c)
-{
-    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-}
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "siprintf",
-                               I32,
-                               wasi_siprintf,
                                I32 a,
                                I32 b,
                                I32 c)
