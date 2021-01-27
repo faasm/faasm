@@ -178,12 +178,10 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
             mapMemoryFromFd();
         }
 
-        // TODO - double check this works
         // Reset shared memory variables
         sharedMemWasmPtrs = other.sharedMemWasmPtrs;
 
         // Remap dynamic modules
-        // TODO - double check this works
         lastLoadedDynamicModuleHandle = other.lastLoadedDynamicModuleHandle;
         dynamicPathToHandleMap = other.dynamicPathToHandleMap;
         for (auto& p : other.dynamicModuleMap) {
