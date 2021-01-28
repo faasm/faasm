@@ -127,8 +127,8 @@ def invoke_impl(
         msg['input_data'] = base64.b64encode(nonce + tag + len(ciphertext).to_bytes(4, byteorder='little') + ciphertext).decode('utf8')
         print("Executing {}:{} with involved functions:".format(user, func), hash_list)
 
-    if input:
-        msg["input_data"] = input
+    #if input:
+        #msg["input_data"] = input
 
     if cmdline:
         msg["cmdline"] = cmdline
@@ -147,7 +147,7 @@ def invoke_impl(
             url, msg, headers=headers, poll=poll, host=host, port=port
         )
     else:
-        response = do_post(url, msg, headers=headers, json=True, debug=debug)
+        response = do_post(url, msg, headers=headers, json=True)
         if sgx:
             response_json = json.loads(response)
             if 'result' not in response_json:
@@ -171,7 +171,8 @@ def invoke_impl(
             if not verifier.is_valid_execution(execution_stack):
                 raise RuntimeError("verification failed.")
             else:
-                print("Verfication was successful.")
+                print("Verfication of the following execution stack was successful ✅", end=' ')
+                print(execution_stack)
             if len(encrypted_output_blob) == 0:
                 return ""
             encrypted_output_blob = base64.b64decode(encrypted_output_blob)
