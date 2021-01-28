@@ -2,6 +2,7 @@
 
 #include <sgx/SGXWAMRWasmModule.h>
 #include <wasm/chaining.h>
+#include <sgx/base64.h>
 
 using namespace faabric::state;
 
@@ -195,7 +196,8 @@ extern "C"
 
     void ocall_faasm_write_output(uint8_t* output, unsigned int outputSize)
     {
-        wasm::getExecutingCall()->set_outputdata((void*)output, outputSize);
+        std::string encoded_output = util::b64encode(std::string(output, output + outputSize));
+        wasm::getExecutingCall()->set_outputdata(encoded_output);
     }
 
     unsigned int ocall_faasm_chain_name(const char* name,
