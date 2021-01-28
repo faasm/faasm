@@ -10,6 +10,12 @@
 
 // Global enclave ID
 sgx_enclave_id_t globalEnclaveId;
+faaslet_sgx_msg_buffer_t sgx_wamr_msg_response;
+faaslet_sgx_gp_buffer_t sgx_wamr_attestation_output, sgx_wamr_attestation_result;
+
+//buffer pointers
+__thread faaslet_sgx_msg_buffer_t* faaslet_sgx_msg_buffer_ptr;
+__thread faaslet_sgx_gp_buffer_t* faaslet_sgx_attestation_output_ptr, *faaslet_sgx_attestation_result_ptr;
 
 #define ERROR_PRINT_CASE(enumVal)                                              \
     case (enumVal): {                                                          \
@@ -21,6 +27,19 @@ namespace sgx {
 void checkSgxSetup()
 {
     auto logger = faabric::util::getLogger();
+
+    // Allocate buffers
+    sgx_wamr_msg_response.buffer_len = (sizeof(sgx_wamr_msg_t) + sizeof(sgx_wamr_msg_hdr_t));
+    if(!(sgx_wamr_msg_response.buffer_ptr = (sgx_wamr_msg_t*) calloc(sgx_wamr_msg_response.buffer_len, sizeof(uint8_t)))){
+        //TODO: Error handling
+    }
+    if(!(sgx_wamr_attestation_output.buffer_ptr = calloc(FAASM_SGX_ATTESTATION_GP_BUFFER_DEFAULT_SIZE,sizeof(uint8_t))) || !(sgx_wamr_attestation_result.buffer_ptr = calloc(FAASM_SGX_ATTESTATION_GP_BUFFER_DEFAULT_SIZE,sizeof(uint8_t)))){
+        //TODO: Error Handling
+    }
+    sgx_wamr_attestation_output.buffer_len = sgx_wamr_attestation_result.buffer_len = FAASM_SGX_ATTESTATION_GP_BUFFER_DEFAULT_SIZE;
+    faaslet_sgx_msg_buffer_ptr = &sgx_wamr_msg_response;
+    faaslet_sgx_attestation_output_ptr = &sgx_wamr_attestation_output;
+    faaslet_sgx_attestation_result_ptr = &sgx_wamr_attestation_result;
 
     // Skip set-up if enclave already exists
     if (globalEnclaveId > 0) {
@@ -101,8 +120,13 @@ void checkSgxSetup()
 void tearDownEnclave()
 {
     auto logger = faabric::util::getLogger();
-    logger->debug("Destroying enclave {}", globalEnclaveId);
 
+    // Free buffers
+    free(sgx_wamr_msg_response.buffer_ptr);
+    free(sgx_wamr_attestation_result.buffer_ptr);
+    free(sgx_wamr_attestation_output.buffer_ptr);
+
+    logger->debug("Destroying enclave {}", globalEnclaveId);
     sgx_status_t sgxReturnValue = sgx_destroy_enclave(globalEnclaveId);
     if (sgxReturnValue != SGX_SUCCESS) {
         logger->warn("Unable to destroy enclave {}: {}",

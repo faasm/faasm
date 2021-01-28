@@ -316,6 +316,9 @@ extern "C"
             // Lookup by function pointer not supported in SGX yet
             return FAASM_SGX_INVALID_FUNC_ID;
         }
+        // Set thread_id to fs/gs to make it accessible in native symbols
+        // wrapper
+        tls_thread_id = thread_id;
         // == START decrypt the payload ==
         uint8_t *decrypted_payload;
         if (strlen(sid) == FAASM_SGX_ATTESTATION_SID_SIZE) {
@@ -428,9 +431,6 @@ extern "C"
         read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
         // == END decrypt the payload ==
 
-        // Set thread_id to fs/gs to make it accessible in native symbols
-        // wrapper
-        tls_thread_id = thread_id;
         // Create an execution environment and call the wasm function
 #if (FAASM_SGX_WAMR_AOT_MODE)
         // If AoT is enabled, then the WAMR AoT implementation will be invoked
@@ -592,11 +592,16 @@ extern "C"
     }
 
     faasm_sgx_status_t faasm_sgx_enclave_load_module(
-      const void* wasm_opcode_ptr,
-      const uint32_t wasm_opcode_size,
-      uint32_t* thread_id,
-      sgx_wamr_msg_t** response_ptr
-    )
+        const char *user,
+        const char *function,
+        const char *wasm_opcode_ptr,
+        const uint32_t wasm_opcode_size,
+        const void *wasm_op_nonce,
+        const void *wasm_op_tag,
+        uint32_t* thread_id,
+        sgx_wamr_msg_t** response_ptr,
+        faaslet_sgx_gp_buffer_t* output_ptr,
+        faaslet_sgx_gp_buffer_t* result_ptr)
     {
         char wamr_error_buffer[FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE];
         faasm_sgx_status_t return_value;
@@ -615,26 +620,92 @@ extern "C"
             return return_value;
         }
 
-#if (FAASM_SGX_WHITELISTING)
         tls_thread_id = *thread_id;
-#endif
 
         // Initialize Faasm-SGX TCS slot and copy wasm code
         _FAASM_SGX_TCS_LOAD_SLOT(tcs_ptr, *thread_id);
         tcs_ptr->response_ptr = response_ptr;
-        uint8_t* wasm_buffer_ptr =
-          (uint8_t*)calloc(wasm_opcode_size, sizeof(uint8_t));
-        if (!wasm_buffer_ptr) {
-            // Revert all changes due to the out of memory error
-            _FAASM_SGX_TCS_FREE_SLOT(*thread_id);
-            free(tcs_ptr);
-#if (FAASM_SGX_DEBUG)
-            ocall_printf("Unable to allocate memory for wasmBytes\n");
-#endif
+
+        uint32_t msg_payload_len, res_payload_len;
+        sgx_wamr_msg_hash_fct_t* msg_payload;
+        void* res_payload, *decrypted_module;
+        sgx_wamr_msg_hdr_t header;
+        sgx_wamr_okey_policy_t *typed_res_payload;
+        char* chain_policy;
+        char **user_ptr, **function_ptr;
+        faasm_sgx_status_t ret_val;
+
+
+        //terminate function name
+        msg_payload_len = sizeof(sgx_wamr_msg_hash_fct_t) + strlen(function) + 1; //+1 for string termination
+        if ((msg_payload = (sgx_wamr_msg_hash_fct_t *) calloc(msg_payload_len, sizeof(uint8_t))) == NULL) {
             return FAASM_SGX_OUT_OF_MEMORY;
         }
-        tcs_ptr->wasm_opcode = wasm_buffer_ptr;
-        memcpy(tcs_ptr->wasm_opcode, wasm_opcode_ptr, wasm_opcode_size);
+        msg_payload->hdr.type = FAASM_SGX_ATTESTATION_TYPE_BIND;
+        read_lock(&_rwlock_faasm_sgx_tcs_realloc);
+        if (sgx_sha256_msg((uint8_t *) wasm_opcode_ptr, wasm_opcode_size, &faasm_sgx_tcs[*thread_id]->env.encrypted_op_code_hash) != SGX_SUCCESS) {
+            read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+            free(msg_payload);
+            return FAASM_SGX_HASH_FAILED;
+        }
+        memcpy(msg_payload->opcode_enc_hash, faasm_sgx_tcs[*thread_id]->env.encrypted_op_code_hash, sizeof(msg_payload->opcode_enc_hash));
+        read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+        memcpy(msg_payload->fct_name, function, strlen(function));
+        msg_payload->fct_name[strlen(function)+1] = '\0';
+        if ((ret_val = send_recv_msg(*thread_id, msg_payload, msg_payload_len, &res_payload, &res_payload_len)) != FAASM_SGX_SUCCESS) {
+            free(msg_payload);
+            return ret_val;
+        }
+        free(msg_payload);
+        header = *((sgx_wamr_msg_hdr_t *) res_payload);
+        if (header.status) {
+            free(res_payload);
+            return FAASM_SGX_PROTOCOL_LOADED_FUNCTION_MISMATCH;
+        }
+        typed_res_payload = (sgx_wamr_okey_policy_t *) res_payload;
+        if ((decrypted_module = (void *) calloc(wasm_opcode_size, sizeof(uint8_t))) == NULL) {
+            free(res_payload);
+            return FAASM_SGX_OUT_OF_MEMORY;
+        }
+        if (sgx_rijndael128GCM_decrypt((sgx_aes_gcm_128bit_key_t*)typed_res_payload->opcode_key, (uint8_t *) wasm_opcode_ptr, wasm_opcode_size, (uint8_t *) decrypted_module, (uint8_t *) wasm_op_nonce, SGX_AESGCM_IV_SIZE, NULL, 0, (const sgx_aes_gcm_128bit_tag_t *) wasm_op_tag) != SGX_SUCCESS) {
+            free(res_payload);
+            return FAASM_SGX_DECRYPTION_FAILED;
+        }
+        read_lock(&_rwlock_faasm_sgx_tcs_realloc);
+        if (sgx_sha256_msg((uint8_t *) decrypted_module, wasm_opcode_size, &faasm_sgx_tcs[*thread_id]->env.op_code_hash) != SGX_SUCCESS) {
+            free(res_payload);
+            read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+            return FAASM_SGX_HASH_FAILED;
+        }
+        read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+        if ((chain_policy = (char *) calloc(typed_res_payload->policy_len, sizeof(char *))) == NULL) {
+            free(res_payload);
+            return FAASM_SGX_OUT_OF_MEMORY;
+        }
+        memcpy(chain_policy, typed_res_payload->policy, typed_res_payload->policy_len);
+        free(res_payload);
+        read_lock(&_rwlock_faasm_sgx_tcs_realloc);
+        faasm_sgx_tcs[*thread_id]->env.chain_policy = new std::map<const char *, std::string, cmp_str>;
+        if ((ret_val = parse_chain_policy_to_map(faasm_sgx_tcs[*thread_id]->env.chain_policy, (char *) chain_policy, typed_res_payload->policy_len)) != FAASM_SGX_SUCCESS) {
+            read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+            free(chain_policy);
+            return ret_val;
+        }
+        free(chain_policy);
+        faasm_sgx_tcs[*thread_id]->env.nonce_store = new std::map<const uint32_t, std::string>;
+        read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+        user_ptr = &faasm_sgx_tcs[*thread_id]->env.user;
+        if ((*user_ptr = (char*) calloc(strlen(user) + 1, sizeof(char))) == NULL) {
+            return FAASM_SGX_OUT_OF_MEMORY;
+        }
+        memcpy(*user_ptr, (char*) user, strlen(user));
+        function_ptr = &faasm_sgx_tcs[*thread_id]->env.name;
+        if ((*function_ptr = (char*) calloc(strlen(function) + 1, sizeof(char))) == NULL) {
+            return FAASM_SGX_OUT_OF_MEMORY;
+        }
+        memcpy(*function_ptr, (char*) function, strlen(function));
+        //wasm_opcode_ptr = (char*)decrypted_module;
+        tcs_ptr->wasm_opcode = (uint8_t*) decrypted_module;
 
         // Load the WASM module
         if (!(tcs_ptr->module = wasm_runtime_load(tcs_ptr->wasm_opcode,
@@ -746,7 +817,6 @@ extern "C"
         }
 
         if (sgx_rijndael128GCM_decrypt((sgx_aes_gcm_128bit_key_t*)&shared_secret, (uint8_t*) wamr_msg->payload, sizeof(sgx_wamr_msg_pkey_mkey_t), (uint8_t*)&msg,wamr_msg->nonce, sizeof(wamr_msg->nonce), NULL, 0, (const sgx_aes_gcm_128bit_tag_t* )wamr_msg->mac) != SGX_SUCCESS) {
-            ocall_printf("decryption failed\n");
             return FAASM_SGX_DECRYPTION_FAILED;
         }
         return FAASM_SGX_SUCCESS;

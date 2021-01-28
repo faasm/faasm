@@ -6,6 +6,9 @@
 #include <sgx/faasm_sgx_system.h>
 #include <sgx/base64.h>
 
+extern __thread faaslet_sgx_msg_buffer_t* faaslet_sgx_msg_buffer_ptr;
+extern __thread faaslet_sgx_gp_buffer_t* faaslet_sgx_attestation_output_ptr, *faaslet_sgx_attestation_result_ptr;
+
 extern "C"
 {
     void ocall_printf(const char* msg) { printf("%s", msg); }
@@ -64,19 +67,27 @@ void SGXWAMRWasmModule::bindToFunction(const faabric::Message& msg)
 #if (FAASM_SGX_WAMR_AOT_MODE)
     std::vector<uint8_t> wasmBytes = fl.loadFunctionWamrAotFile(msg);
 #else
-    std::vector<uint8_t> wasmBytes = fl.loadFunctionWasm(msg);
+    std::vector<uint8_t> wasmBytes = fl.loadEncryptedFunctionWasm(msg);
 #endif
 
+    // Extract nonce + tag
+    std::vector<uint8_t> nonce = {wasmBytes.begin(), wasmBytes.begin() + SGX_AESGCM_IV_SIZE};
+    std::vector<uint8_t> tag = {wasmBytes.begin() + SGX_AESGCM_IV_SIZE, wasmBytes.begin() + SGX_AESGCM_IV_SIZE + SGX_AESGCM_MAC_SIZE};
+    wasmBytes.erase(wasmBytes.begin(), wasmBytes.begin() + SGX_AESGCM_IV_SIZE + SGX_AESGCM_MAC_SIZE);
     // Load the wasm module
     faasm_sgx_status_t returnValue;
-    sgx_status_t status =
-      faasm_sgx_enclave_load_module(globalEnclaveId,
-                                    &returnValue,
-                                    (void*)wasmBytes.data(),
-                                    (uint32_t)wasmBytes.size(),
-                                    &threadId,
-                                    &(faasletSgxMsgBufferPtr->buffer_ptr)
-      );
+    sgx_status_t status = faasm_sgx_enclave_load_module(globalEnclaveId,
+                                                        &returnValue,
+                                                        msg.user().c_str(),
+                                                        msg.function().c_str(),
+                                                        (void*)wasmBytes.data(),
+                                                        (uint32_t)wasmBytes.size(),
+                                                        (void*) nonce.data(),
+                                                        (void*) tag.data(),
+                                                        &threadId,
+                                                        &(faasletSgxMsgBufferPtr->buffer_ptr),
+                                                        faaslet_sgx_attestation_output_ptr,
+                                                        faaslet_sgx_attestation_result_ptr);
 
     if (status != SGX_SUCCESS) {
         logger->error("Unable to enter enclave: {}", sgxErrorString(status));

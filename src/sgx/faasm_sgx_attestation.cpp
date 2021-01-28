@@ -119,7 +119,7 @@ extern "C"
             return ret_val;
         }
 
-        logger->debug("sending message to key manager ({}): {}", msg->msg_id, msg->payload);
+        logger->debug("sending message to key manager ({})", msg->msg_id);
 
         read_lock(&_rwlock_callback_store_realloc);
         _callback_store[cb_store_id].msg_id = msg->msg_id;
@@ -388,6 +388,8 @@ extern "C"
     }
 
     faasm_sgx_status_t ocall_set_result(uint8_t *msg, uint32_t msg_len) {
+        auto logger = faabric::util::getLogger();
+        logger-> debug("setting result of size {} via ocall", msg_len);
         faabric::Message *bounded_message = wasm::getExecutingCall();
         bounded_message->set_result((void *) msg,msg_len);
         return FAASM_SGX_SUCCESS;

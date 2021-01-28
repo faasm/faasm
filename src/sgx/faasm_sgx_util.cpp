@@ -3,7 +3,7 @@
 #include <stdio.h>
 extern "C" {
     extern __thread uint32_t tls_thread_id;
-    extern _faasm_sgx_tcs_t* faasm_sgx_tcs;
+    extern _faasm_sgx_tcs_t** faasm_sgx_tcs;
     extern int os_printf(const char* message, ...);
 
     void hex_decode(const char *in, size_t len, uint8_t *out) {
@@ -44,12 +44,12 @@ extern "C" {
         return FAASM_SGX_SUCCESS;
     }
     faasm_sgx_status_t initialize_execution_stack(char **execution_stack_ptr, const uint32_t func_id) {
-        const char* name = faasm_sgx_tcs[tls_thread_id].env.name; //TODO mutex
+        const char* name = faasm_sgx_tcs[tls_thread_id]->env.name; //TODO mutex
         char func_id_str[12];
         snprintf(func_id_str, sizeof(func_id_str), "%d", func_id);
         char hex_hash[SGX_SHA256_HASH_SIZE * 2 + 1];
         for (size_t i = 0; i < SGX_SHA256_HASH_SIZE; i++)
-            snprintf(hex_hash + i * 2, SGX_SHA256_HASH_SIZE, "%02x", faasm_sgx_tcs[tls_thread_id].env.op_code_hash[i]);
+            snprintf(hex_hash + i * 2, SGX_SHA256_HASH_SIZE, "%02x", faasm_sgx_tcs[tls_thread_id]->env.op_code_hash[i]);
         uint32_t new_size = strlen("<") + strlen(name) + strlen(":") + strlen(hex_hash) + strlen(":") + strlen(func_id_str) + 1;
         if ((*execution_stack_ptr = (char*) calloc(new_size, sizeof(char))) == NULL) {
             return FAASM_SGX_OUT_OF_MEMORY; 
