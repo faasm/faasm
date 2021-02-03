@@ -202,30 +202,36 @@ extern "C"
 
     unsigned int ocall_faasm_chain_name(const char* name,
                                         const uint8_t* input,
-                                        unsigned int inputSize)
+                                        unsigned int inputSize,
+                                        const uint8_t* policy,
+                                        unsigned int policySize)
     {
-        std::vector<uint8_t> _input(input, input + inputSize);
-        return wasm::makeChainedCall(std::string(name), 0, nullptr, _input);
+        const std::vector<uint8_t> _input(input, input + inputSize);
+        const std::vector<uint8_t> _policy(policy, policy + policySize);
+        return wasm::makeChainedCall2(std::string(name), 0, nullptr, _input, _policy);
     }
 
     unsigned int ocall_faasm_chain_ptr(int wasmFuncPtr,
                                        uint8_t* input,
-                                       unsigned int inputSize)
+                                       unsigned int inputSize,
+                                       const uint8_t* policy,
+                                       unsigned int policySize)
     {
         const std::vector<uint8_t> _input(input, input + inputSize);
-        return wasm::makeChainedCall(
-          wasm::getExecutingCall()->function(), wasmFuncPtr, nullptr, _input);
+        const std::vector<uint8_t> _policy(policy, policy + policySize);
+        return wasm::makeChainedCall2(
+          wasm::getExecutingCall()->function(), wasmFuncPtr, nullptr, _input, _policy);
     }
 
     unsigned int ocall_faasm_await_call(unsigned int callId)
     {
-        return wasm::awaitChainedCall(callId);
+        return wasm::awaitChainedCall2(callId);
     }
 
     unsigned int ocall_faasm_await_call_output(unsigned int callId,
                                                uint8_t* buffer,
                                                unsigned int bufferSize)
     {
-        return wasm::awaitChainedCallOutput(callId, buffer, bufferSize);
+        return wasm::awaitChainedCallOutput2(callId, buffer, bufferSize);
     }
 }
