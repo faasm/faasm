@@ -121,7 +121,9 @@ int makeChainedCall2(const std::string &functionName,
     call.set_inputdata(inputData.data(), inputData.size());
     call.set_funcptr(wasmFuncPtr);
     call.set_isasync(true);
-    call.set_policy(policy.data(), policy.size()); //TODO this is the only difference 
+    //TODO the next two lines are the only difference  to makeChainedCall
+    call.set_policy(policy.data(), policy.size());
+    call.set_issgx(true);
 
     call.set_pythonuser(originalCall->pythonuser());
     call.set_pythonfunction(originalCall->pythonfunction());
