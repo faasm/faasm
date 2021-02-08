@@ -480,7 +480,7 @@ class Module(): #wasm module
         return result_stack
 
 
-    def get_chained_functions(self) -> list: #searches the whole module for $faasmChainFunctionInput-Calls
+    def get_chained_functions(self) -> list: #searches the whole module for $faasmChainNamed-Calls
         """
             @param module parsed module
             @result list with all function names
@@ -492,9 +492,9 @@ class Module(): #wasm module
             body = function.body
             tbody = list(traverse(body))
 
-            if "$faasmChainFunctionInput" in tbody:
+            if "$faasmChainNamed" in tbody:
                 for index, op in enumerate(tbody):
-                    if op == "$faasmChainFunctionInput":
+                    if op == "$faasmChainNamed":
                         chained.add(self._data[tbody[index + 2]])
 
         return list(chained)
