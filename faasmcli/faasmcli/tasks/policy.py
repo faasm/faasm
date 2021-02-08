@@ -54,6 +54,7 @@ def policy(ctx, user, func, clean=False, debug=False):
         hash = get_file_hash_digest(tmp_func_path, 0)
         chain_policy += '<{},{}>,'.format(tmp_func, hash)
         allowed_functions[tmp_func] = hash
+    print("{} allowed functions found for function '{}': {}".format(len(allowed_functions), func, allowed_functions))
     data['ccp'] = chain_policy
     data['allowed-functions'] = allowed_functions
     verifies = {}
