@@ -495,7 +495,8 @@ class Module(): #wasm module
             if "$faasmChainNamed" in tbody:
                 for index, op in enumerate(tbody):
                     if op == "$faasmChainNamed":
-                        chained.add(self._data[tbody[index + 2]])
+                        functionname = self._data[tbody[index + 2]]
+                        chained.add(functionname.replace('\x00',''))
 
         return list(chained)
 
