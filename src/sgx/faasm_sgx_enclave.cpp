@@ -651,7 +651,7 @@ extern "C"
         memcpy(msg_payload->opcode_enc_hash, faasm_sgx_tcs[*thread_id]->env.encrypted_op_code_hash, sizeof(msg_payload->opcode_enc_hash));
         read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
         memcpy(msg_payload->fct_name, function, strlen(function));
-        msg_payload->fct_name[strlen(function)+1] = '\0';
+        msg_payload->fct_name[strlen(function)] = '\0';
         if ((ret_val = send_recv_msg(*thread_id, msg_payload, msg_payload_len, &res_payload, &res_payload_len)) != FAASM_SGX_SUCCESS) {
             free(msg_payload);
             return ret_val;
