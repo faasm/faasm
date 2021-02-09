@@ -127,8 +127,8 @@ def invoke_impl(
         msg['input_data'] = base64.b64encode(nonce + tag + len(ciphertext).to_bytes(4, byteorder='little') + ciphertext).decode('utf8')
         print("Executing {}:{} with involved functions:".format(user, func), hash_list)
 
-    #if input:
-        #msg["input_data"] = input
+    elif input:
+        msg["input_data"] = input
 
     if cmdline:
         msg["cmdline"] = cmdline
