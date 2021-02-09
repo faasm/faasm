@@ -154,7 +154,7 @@ bool SGXWAMRWasmModule::execute(faabric::Message& msg, bool forceNoop)
     faasm_sgx_status_t returnValue;
     std::string inputdata = util::b64decode(msg.inputdata());
     logger->debug(
-      "Entering enclave {} to execute {} with sid '{}', policy '{}' and input '{}'", globalEnclaveId, funcStr, msg.sid(), msg.policy(), msg.inputdata());
+      "Entering enclave {} to execute {} with sid '{}', policy length {} and input '{}'", globalEnclaveId, funcStr, msg.sid(), msg.policy().size(), msg.inputdata());
     if (msg.policy().size() == 0) {
         sgxReturnValue = faasm_sgx_enclave_call_function(globalEnclaveId, &returnValue, threadId, msg.funcptr(), msg.sid().c_str(), (const sgx_wamr_encrypted_data_blob_t*) inputdata.c_str(), inputdata.size(), nullptr, 0);
     } else {
