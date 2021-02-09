@@ -638,6 +638,7 @@ extern "C"
         read_lock(&_rwlock_faasm_sgx_tcs_realloc);
         faasm_sgx_tcs[tls_thread_id]->env.nonce_store->insert(std::pair<const uint32_t, std::string>(returnValue, std::string(p_iv, p_iv + sizeof(p_iv))));
         read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+        return 0;
     }
 
     static unsigned int faasm_chain_ptr_wrapper(wasm_exec_env_t exec_env,
