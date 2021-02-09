@@ -69,15 +69,16 @@ static int32_t __faasm_chain_ptr_wrapper(wasm_exec_env_t exec_env,
  * Chain a function by function name
  */
 static int32_t __faasm_chain_name_wrapper(wasm_exec_env_t exec_env,
-                                          std::string wasmFuncName,
+                                          char* funcName,
                                           char* inBuff,
                                           int32_t inLen)
 {
+    std::string funcNameString(funcName);
     faabric::util::getLogger()->debug(
-      "S - faasm_chain_name {} {} {}", wasmFuncName, inBuff, inLen);
+      "S - faasm_chain_name {} {} {}", funcNameString, inBuff, inLen);
 
     std::vector<uint8_t> inputData(BYTES(inBuff), BYTES(inBuff) + inLen);
-    return makeChainedCall(wasmFuncName, 0, nullptr, inputData);
+    return makeChainedCall(funcNameString, 0, nullptr, inputData);
 }
 
 /**
@@ -96,7 +97,7 @@ static NativeSymbol ns[] = {
     REG_NATIVE_FUNC(__faasm_write_output, "($i)"),
     REG_NATIVE_FUNC(__faasm_read_input, "($i)i"),
     REG_NATIVE_FUNC(__faasm_chain_ptr, "(i$i)i"),
-    REG_NATIVE_FUNC(__faasm_chain_name, "(i$i)i"),
+    REG_NATIVE_FUNC(__faasm_chain_name, "($$i)i"),
     REG_NATIVE_FUNC(__faasm_await_call, "(i)i"),
 };
 
