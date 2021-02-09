@@ -206,7 +206,8 @@ extern "C"
                                         const uint8_t* policy,
                                         unsigned int policySize)
     {
-        const std::vector<uint8_t> _input(input, input + inputSize);
+        std::string encoded_input = util::b64encode(std::string(input, input + inputSize));
+        const std::vector<uint8_t> _input(encoded_input.begin(), encoded_input.end());
         const std::vector<uint8_t> _policy(policy, policy + policySize);
         return wasm::makeChainedCall2(std::string(name), 0, nullptr, _input, _policy);
     }
