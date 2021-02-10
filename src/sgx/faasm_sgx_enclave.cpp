@@ -625,6 +625,8 @@ extern "C"
         // Initialize Faasm-SGX TCS slot and copy wasm code
         _FAASM_SGX_TCS_LOAD_SLOT(tcs_ptr, *thread_id);
         tcs_ptr->response_ptr = response_ptr;
+        tcs_ptr->output_ptr = output_ptr;
+        tcs_ptr->result_ptr = result_ptr;
 
         uint32_t msg_payload_len, res_payload_len;
         sgx_wamr_msg_hash_fct_t* msg_payload;
