@@ -210,7 +210,7 @@ extern "C"
         if ((decrypted_payload = (uint8_t*) calloc(response_ptr->payload_len, sizeof(uint8_t))) == NULL) {
             return FAASM_SGX_OUT_OF_MEMORY;
         }
-        read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
+        //read_unlock(&_rwlock_faasm_sgx_tcs_realloc); //TODO removed this unlock, cannot find where this is locked first
         if (sgx_rijndael128GCM_decrypt((sgx_aes_gcm_128bit_key_t*)&shared_secret, (uint8_t*) response_ptr->payload, response_ptr->payload_len, decrypted_payload, response_ptr->nonce, sizeof(response_ptr->nonce), NULL, 0, (const sgx_aes_gcm_128bit_tag_t* )response_ptr->mac) != SGX_SUCCESS) {
             free(decrypted_payload);
             return FAASM_SGX_DECRYPTION_FAILED;
