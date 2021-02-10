@@ -94,11 +94,12 @@ int makeChainedCall(const std::string& functionName,
 
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     sch.callFunction(call);
-    faabric::util::getLogger()->debug("Chained {} ({}) -> {} ({})",
+    faabric::util::getLogger()->debug("Chained {} ({}) -> {} ({}) [call id {}]",
                                       origStr,
                                       conf.endpointHost,
                                       chainedStr,
-                                      call.scheduledhost());
+                                      call.scheduledhost(),
+                                      call.id());
 
     sch.logChainedFunction(originalCall->id(), call.id());
 
@@ -138,11 +139,12 @@ int makeChainedCall2(const std::string &functionName,
 
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     sch.callFunction(call);
-    faabric::util::getLogger()->debug("Chained {} ({}) -> {} ({})",
+    faabric::util::getLogger()->debug("Chained {} ({}) -> {} ({}) [call id {}]",
                                       origStr,
                                       conf.endpointHost,
                                       chainedStr,
-                                      call.scheduledhost());
+                                      call.scheduledhost(),
+                                      call.id());
 
     sch.logChainedFunction(originalCall->id(), call.id());
 
