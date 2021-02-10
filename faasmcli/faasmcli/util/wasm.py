@@ -518,7 +518,7 @@ class Module(): #wasm module
         _found = False
         for func in function.body: #filter shitty calls
             funct = list(traverse(func))
-            if "$faasmAwaitCallOutput" in funct or "$faasmChainFunctionInput" in funct or "$faasmChainThisInput" in funct or "$faasmWriteState" in funct:
+            if "$faasmAwaitCall" in funct or "$faasmChain" in funct or "$faasmChainNamed" in funct or "$faasmWriteState" in funct:
                 _found = True
 
         _found2 = False
@@ -528,7 +528,7 @@ class Module(): #wasm module
             if func[0] == 'local.set' and _found:
                 a[0].append(func)
                 _found2 = True
-            elif "$faasmAwaitCallOutput" in funct or "$faasmChainFunctionInput" in funct or "$faasmChainThisInput" in funct or "$faasmWriteState" in funct:
+            elif "$faasmAwaitCall" in funct or "$faasmChain" in funct or "$faasmChainNamed" in funct or "$faasmWriteState" in funct:
                 a[0].append(func)
                 _found2 = True
             elif "call" in funct:
@@ -537,7 +537,7 @@ class Module(): #wasm module
                         tmp_func = self.function.get(funct[i+1])
                         stack = self.create_callstack(tmp_func)        
                         if stack != None:
-                            if "$faasmAwaitCallOutput" in stack or "$faasmChainFunctionInput" in stack or "$faasmChainThisInput" in stack or "$faasmWriteState" in stack:
+                            if "$faasmAwaitCall" in stack or "$faasmChain" in stack or "$faasmChainNamed" in stack or "$faasmWriteState" in stack:
                                 _found2 = True
                                 a[0].append(func)
             elif "return" in funct:
@@ -652,10 +652,10 @@ class Module(): #wasm module
                     if tmp_current == start_node: #this case should not pass... dev error
                         raise NotImplementedError
 
-                elif "$faasmChainFunctionInput" in tra:
+                elif "$faasmChain" in tra:
                     meta_new = ["chain", current[1], self.data[meta[1]]]
                     block = Block("chain-call", meta_new, self.data[meta[1]] + ":0", namespace + str(idx))
-                elif "$faasmChainThisInput" in tra:
+                elif "$faasmChainNamed" in tra:
                     meta_new = ["chain", current[1], self._display_name, current[2][2][1]]
                     block = Block("chain-call", meta_new, self._display_name + ":" + str(meta_new[3]), namespace + str(idx))
                 elif "$faasmWriteState" in tra:
