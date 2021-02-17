@@ -443,7 +443,11 @@ class Module(): #wasm module
             if current in self._import[0]:
                 continue
 
-            calls = self._functions.get(current).get_calls()
+            functions = self._functions.get(current)
+            if functions == None:
+                print("warning: no functions found while creating call stack tree") #TODO this should not happen
+                continue
+            calls = functions.get_calls()
             if len(calls) == 0:
                 continue
             else:
