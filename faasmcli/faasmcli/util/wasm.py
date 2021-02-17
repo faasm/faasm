@@ -510,6 +510,9 @@ class Module(): #wasm module
                 if call == import_name:
                     function_calling_faasm_chain_name = function
 
+        if function_calling_faasm_chain_name == None:
+            return list() #return emtpy list because no functions call faasm_chain_name
+
         #find places at which that function is called
         for function in self._functions:
             body = function.body
