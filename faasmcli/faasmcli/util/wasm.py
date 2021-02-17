@@ -434,7 +434,7 @@ class Module(): #wasm module
             tmp.parent = current_node
             current_node.add_child(tmp)
 
-            if current in self._import:
+            if current in self._import[0]:
                 continue
 
             calls = self._functions.get(current).get_calls()
@@ -488,15 +488,28 @@ class Module(): #wasm module
         """
 
         chained = set() #final set
+        import_name = "" #name of imported __faasm_chain_name
+        function_calling_faasm_chain_name = None
+        for imp in self._import:
+            if(imp[1] == "__faasm_chain_name"):
+                import_name = imp[0]
+
+        #find functions calling that import
+        for function in self._functions:
+            for call in function.get_calls():
+                if call == import_name:
+                    function_calling_faasm_chain_name = function
+
+        #find places at which that function is called
         for function in self._functions:
             body = function.body
             tbody = list(traverse(body))
-
-            if "$faasmChainNamed" in tbody:
-                for index, op in enumerate(tbody):
-                    if op == "$faasmChainNamed":
-                        functionname = self._data[tbody[index + 2]]
-                        chained.add(functionname.replace('\x00',''))
+            for index, op in enumerate(tbody):
+                if op == "call" and tbody[index+1] == function_calling_faasm_chain_name.name:
+                    #if such place is found, use the operand to retrieve the called function names from the data section
+                    operand = tbody[index+3]
+                    functionname = self._data[operand]
+                    chained.add(functionname.replace('\x00',''))
 
         return list(chained)
 
@@ -1013,7 +1026,8 @@ def parse_wat(wasm_file, wat, data) -> Module: #parses wat to module
                         string += chr(char)
            
             elif statement[0] == 'import':
-                isec.append(statement[3][1])
+                to_append=(statement[3][1],statement[2]) #tupel: (import name, function name)
+                isec.append(to_append)
 
     m.function =fsec
     m.data = dsec
@@ -1056,7 +1070,8 @@ def parse_module(wasm_file) -> Module: #creates module from wasm_file
             m = re.search('(\(data\s\(.*\)\s".*\))', wat[index:])
             if m is not None:
                 wat = wat[0:index] + wat[index+len(m.group())+2:]
-                data.append(parse(m.group()))
+                to_append = parse(m.group())
+                data.append(to_append)
         else:
             index += 1
 
