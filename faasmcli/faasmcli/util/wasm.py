@@ -132,7 +132,7 @@ def parse(s, strip_quotes=True):
                 m = re.search('(^".*"\))', s[idx:])
                 count = len(m.group()) - 1
                 if strip_quotes:
-                    result.append(m.group()[1:-3])
+                    result.append(m.group()[1:-2])
                 else:
                     result.append(m.group())
             else:
