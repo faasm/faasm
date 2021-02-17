@@ -6,7 +6,7 @@ from faasmcli.util.env import WASM_DIR
 from faasmcli.util.crypto import encrypt_file, get_file_hash_digest
 from faasmcli.util.wasm import parse_module
 from graphviz import Digraph
-FAASM_MAIN_FUNCTION_NAME = "$__original_main" #main function name of a faasm module
+FAASM_MAIN_FUNCTION_NAME = "_start" #main function name of a faasm module
 def _parse_cfg_to_dot(tree) -> Digraph: #converts dot from cfg-tree
     """
         @param tree cfg tree
@@ -59,7 +59,8 @@ def policy(ctx, user, func, clean=False, debug=False):
     data['allowed-functions'] = allowed_functions
     verifies = {}
     chain_verifies = {}
-    function = module.function.get(FAASM_MAIN_FUNCTION_NAME)
+    exported_start_func = module.export.get(FAASM_MAIN_FUNCTION_NAME)
+    function = module.function.get(exported_start_func)
     if (function == None):
         print("error : Faasm main function (%s) not found!" % FAASM_MAIN_FUNCTION_NAME)
         return
