@@ -15,7 +15,7 @@ option(WAMR_INTERPRETER_MODE "Turns interpreter on / off (vs. AoT)" OFF)
 # These options customise the SGX features _provided_ SGX is found
 option(FAASM_SGX_SIM_MODE "Turn on SGX sim mode" ON)
 option(FAASM_SGX_XRA "Turn on support for XRA" OFF)
-option(FAASM_SGX_WAMR_AOT_MODE "Turn on AoT mode in SGX" ON)
+option(FAASM_SGX_WAMR_AOT_MODE "Turn on AoT mode in SGX" OFF)
 
 # Note - whitelisting currently not working in WAMR AoT mode
 option(FAASM_SGX_WHITELISTING "Add support for whitelisting" OFF) 
