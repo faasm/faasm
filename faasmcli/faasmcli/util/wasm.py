@@ -280,6 +280,12 @@ class Module(): #wasm module
             else:
                 return None
 
+    class ExportSection(dict): #export section
+        def __init__(self):
+            pass
+
+        def get(self, name):
+            return self[name];
 
     class Function(): #function
         def __init__(self, name, params=None, results=None, body=None):
@@ -966,6 +972,7 @@ def parse_wat(wasm_file, wat, data) -> Module: #parses wat to module
     fsec = Module.FunctionSection()
     dsec = Module.DataSection()
     isec = Module.ImportSection()
+    esec = Module.ExportSection()
 
     #content = parse(wat)
     content = parse_sexp(wat)
@@ -1028,10 +1035,17 @@ def parse_wat(wasm_file, wat, data) -> Module: #parses wat to module
             elif statement[0] == 'import':
                 to_append=(statement[3][1],statement[2]) #tupel: (import name, function name)
                 isec.append(to_append)
+            elif statement[0] == 'export':
+                if statement[2][0] == 'func': #only consider exported functions for now
+                    #['export', '_start', ['func', '$1']]
+                    export_name = statement[1]
+                    func_id = statement[2][1]
+                    esec[export_name]=func_id
 
     m.function =fsec
     m.data = dsec
     m.import_ = isec
+    m.export = esec
     
     return m
 
