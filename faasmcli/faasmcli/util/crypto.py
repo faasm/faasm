@@ -1,7 +1,7 @@
 import hashlib
 import random
 import string
-from Crypto.Cipher import AES
+from Cryptodome.Cipher import AES
 from Crypto.Random import get_random_bytes
 from faasmcli.util.constants import *
 

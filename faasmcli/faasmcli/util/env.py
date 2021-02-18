@@ -55,7 +55,10 @@ PY_RUNTIME_ROOT = join(FAASM_RUNTIME_ROOT, "lib", "python3.8")
 
 LATEST_CMAKE = "/usr/local/lib/cmake-3.15/bin/cmake"
 
-KEY_MANAGER_REGISTRY_IP = 'localhost'
+km_registry_host = environ.get("KM_REGISTRY_HOST")
+if km_registry_host == None:
+    km_registry_host = "localhost"
+KEY_MANAGER_REGISTRY_IP = km_registry_host
 KEY_MANAGER_REGISTRY_PORT = 5000
 WASM_OPT_BIN = 'wasm-opt'
 
