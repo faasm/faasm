@@ -440,7 +440,8 @@ class Module(): #wasm module
             tmp.parent = current_node
             current_node.add_child(tmp)
 
-            if current in self._import[0]:
+            import_functions = [imp[0] for imp in self._import]
+            if current in import_functions:
                 continue
 
             functions = self._functions.get(current)
