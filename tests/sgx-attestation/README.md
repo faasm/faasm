@@ -7,8 +7,9 @@ The SGX-attestaion test is only partly based on `docker-compose`:
      - keymanager (in simulation mode, i.e. it does not contact the IAS)
      - upload
      - redis (queue and state)
- - Start `pool-runner` manually: `WASM_VM="wamr" LOG_LEVEL="debug" ./build/bin/pool_runner`
  - Run tests: `./tests/sgx-attestation/sgx_integtration_test.sh`
+
+*Important:* The test script restarts the  `pool_runner` after each test run because the WASM Module needs to be unloaded before re-registering the function. If the `pool_runner` is not restarted, the keymanger will print this error message: `ERROR: function hash 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' and sid 'yyyyyyyyyyyy' do not match`
 
 The output should be something like this:
 ```
