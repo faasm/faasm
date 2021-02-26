@@ -6,9 +6,21 @@ from faasmcli.util.env import PYTHON_USER, PYTHON_FUNC, FAABRIC_MSG_TYPE_FLUSH
 from faasmcli.util.http import do_post
 from faasmcli.util.endpoints import get_invoke_host_port, get_knative_headers
 from faasmcli.util.endpoints import get_invoke_host_port
-from faasmcli.util.env import PYTHON_USER, PYTHON_FUNC, KEY_MANAGER_REGISTRY_IP, KEY_MANAGER_REGISTRY_PORT
-from faasmcli.util.crypto import encrypt_aes_gcm_128, decrypt_aes_gcm_128, get_random_string
-from faasmcli.util.sgx_wamr_types import sgx_wamr_encrypted_data_blob_t_factory, sgx_wamr_result_t_factory
+from faasmcli.util.env import (
+    PYTHON_USER,
+    PYTHON_FUNC,
+    KEY_MANAGER_REGISTRY_IP,
+    KEY_MANAGER_REGISTRY_PORT,
+)
+from faasmcli.util.crypto import (
+    encrypt_aes_gcm_128,
+    decrypt_aes_gcm_128,
+    get_random_string,
+)
+from faasmcli.util.sgx_wamr_types import (
+    sgx_wamr_encrypted_data_blob_t_factory,
+    sgx_wamr_result_t_factory,
+)
 from faasmcli.util.constants import NONCE_SIZE, AES_KEY_SIZE, TAG_SIZE
 from faasmcli.util.policy import Verifier
 
@@ -114,18 +126,40 @@ def invoke_impl(
         msg["sgx"] = sgx
 
         key = get_random_string(AES_KEY_SIZE)
-        register_msg = {'key': key}
-        response = json.loads(do_post('http://{}:{}/api/v1/registry/pre-request/{}/{}'.format(KEY_MANAGER_REGISTRY_IP, KEY_MANAGER_REGISTRY_PORT, user, func), register_msg, quiet=True, json=True))
-        msg['sid'] = response['sid']
-        hash_list = response['hash-list']
-        verify = response['verify']
-        chain_verify = response['chain-verify']
+        register_msg = {"key": key}
+        response = json.loads(
+            do_post(
+                "http://{}:{}/api/v1/registry/pre-request/{}/{}".format(
+                    KEY_MANAGER_REGISTRY_IP,
+                    KEY_MANAGER_REGISTRY_PORT,
+                    user,
+                    func,
+                ),
+                register_msg,
+                quiet=True,
+                json=True,
+            )
+        )
+        msg["sid"] = response["sid"]
+        hash_list = response["hash-list"]
+        verify = response["verify"]
+        chain_verify = response["chain-verify"]
         verifier = Verifier(func, hash_list, verify, chain_verify)
         if not input:
-            input = 'PLACEHOLDER'
-        ciphertext, nonce, tag = encrypt_aes_gcm_128(input.encode(), key.encode())
-        msg['input_data'] = base64.b64encode(nonce + tag + len(ciphertext).to_bytes(4, byteorder='little') + ciphertext).decode('utf8')
-        print("Executing {}:{} with involved functions:".format(user, func), hash_list)
+            input = "PLACEHOLDER"
+        ciphertext, nonce, tag = encrypt_aes_gcm_128(
+            input.encode(), key.encode()
+        )
+        msg["input_data"] = base64.b64encode(
+            nonce
+            + tag
+            + len(ciphertext).to_bytes(4, byteorder="little")
+            + ciphertext
+        ).decode("utf8")
+        print(
+            "Executing {}:{} with involved functions:".format(user, func),
+            hash_list,
+        )
 
     elif input:
         msg["input_data"] = input
@@ -150,38 +184,51 @@ def invoke_impl(
         response = do_post(url, msg, headers=headers, json=True)
         if sgx:
             response_json = json.loads(response)
-            if 'result' not in response_json:
+            if "result" not in response_json:
                 raise RuntimeError("sgx flags needs result struct")
-            encrypted_result_blob = base64.b64decode(response_json['result'])
-            encrypted_result_blob = sgx_wamr_encrypted_data_blob_t_factory(len(encrypted_result_blob)).from_buffer_copy(encrypted_result_blob)
+            encrypted_result_blob = base64.b64decode(response_json["result"])
+            encrypted_result_blob = sgx_wamr_encrypted_data_blob_t_factory(
+                len(encrypted_result_blob)
+            ).from_buffer_copy(encrypted_result_blob)
             result_nonce = bytes(encrypted_result_blob.nonce)
             result_tag = bytes(encrypted_result_blob.tag)
             encryted_result = bytes(encrypted_result_blob.data)
-            result_blob = decrypt_aes_gcm_128(encryted_result, result_nonce, result_tag, key.encode())
-            result = sgx_wamr_result_t_factory(len(result_blob)).from_buffer_copy(result_blob)
+            result_blob = decrypt_aes_gcm_128(
+                encryted_result, result_nonce, result_tag, key.encode()
+            )
+            result = sgx_wamr_result_t_factory(
+                len(result_blob)
+            ).from_buffer_copy(result_blob)
             input_nonce = bytes(result.policy_nonce)
             if nonce != input_nonce:
                 raise RuntimeError("result doesnt match call")
             output_nonce = bytes(result.output_nonce)
-            encrypted_output_blob = response_json['output_data']
+            encrypted_output_blob = response_json["output_data"]
             if len(encrypted_output_blob) == 0:
                 if output_nonce != bytes([0] * NONCE_SIZE):
                     raise RuntimeError("output doesnt not match to result")
-            execution_stack = bytes(result.attestation).decode('ascii')
+            execution_stack = bytes(result.attestation).decode("ascii")
             if not verifier.is_valid_execution(execution_stack):
                 raise RuntimeError("verification failed.")
             else:
-                print("Verfication of the following execution stack was successful ✅", end=' ')
+                print(
+                    "Verfication of the following execution stack was successful ✅",
+                    end=" ",
+                )
                 print(execution_stack)
             if len(encrypted_output_blob) == 0:
                 return ""
             encrypted_output_blob = base64.b64decode(encrypted_output_blob)
-            encrypted_output_blob = sgx_wamr_encrypted_data_blob_t_factory(len(encrypted_output_blob)).from_buffer_copy(encrypted_output_blob)
+            encrypted_output_blob = sgx_wamr_encrypted_data_blob_t_factory(
+                len(encrypted_output_blob)
+            ).from_buffer_copy(encrypted_output_blob)
             if output_nonce != bytes(encrypted_output_blob.nonce):
                 raise RuntimeError("output doesnt not match to result")
             output_tag = bytes(encrypted_output_blob.tag)
             encrypted_output = bytes(encrypted_output_blob.data)
-            output = decrypt_aes_gcm_128(encrypted_output, output_nonce, output_tag, key.encode()).decode('utf8')
+            output = decrypt_aes_gcm_128(
+                encrypted_output, output_nonce, output_tag, key.encode()
+            ).decode("utf8")
             print("Result:", output)
             return output
         else:

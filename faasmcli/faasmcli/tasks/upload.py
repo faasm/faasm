@@ -47,7 +47,9 @@ def upload(ctx, user, func, func_file, py=False, local_copy=False, sgx):
             policy_file_path = join(WASM_DIR, user, func, "policy.json")
             with open(policy_file_path) as policy_file:
                 policy = json.load(policy_file)
-            url = "http://{}:{}/api/v1/registry/register/{}".format(KEY_MANAGER_REGISTRY_IP, KEY_MANAGER_REGISTRY_PORT, user)
+            url = "http://{}:{}/api/v1/registry/register/{}".format(
+                KEY_MANAGER_REGISTRY_IP, KEY_MANAGER_REGISTRY_PORT, user
+            )
             do_post(url, policy, json=True)
 
         url = "http://{}:{}/f/{}/{}".format(host, port, user, func)
@@ -87,4 +89,3 @@ def upload(ctx, user, func, py=False, file=None, local_copy=False, sgx=False):
     Upload a function
     """
     _upload_function(user, func, py=py, file=file, local_copy=local_copy, sgx=sgx)
->>>>>>> faasmcli: user --sgx flag instead of sgx_wamr function name

@@ -60,7 +60,8 @@ if km_registry_host == None:
     km_registry_host = "localhost"
 KEY_MANAGER_REGISTRY_IP = km_registry_host
 KEY_MANAGER_REGISTRY_PORT = 5000
-WASM_OPT_BIN = 'wasm-opt'
+WASM_OPT_BIN = "wasm-opt"
+
 
 def get_wasm_func_path(user, func_name):
     func_dir = join(WASM_DIR, user, func_name)
