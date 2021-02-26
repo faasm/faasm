@@ -127,15 +127,7 @@ class Verifier:
                             break
                 split = reversed_execution_stack[0:_index][::-1].split(":")
                 last_writer_func = split[0]
-                writer_hash = split[1]
                 last_writer_id = split[2][0]  # TODO id > 10...
-                test = list(
-                    reversed(
-                        self._verify_chain[last_writer_func][
-                            str(int(last_writer_id))
-                        ]["nodes"]
-                    )
-                )
                 for _index, _label in enumerate(
                     list(
                         reversed(

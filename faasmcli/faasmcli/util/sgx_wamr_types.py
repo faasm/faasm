@@ -1,4 +1,4 @@
-from faasmcli.util.constants import *
+from faasmcli.util.constants import NONCE_SIZE, TAG_SIZE
 import ctypes
 
 

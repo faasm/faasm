@@ -1,7 +1,6 @@
 from invoke import task
 import json
-from os.path import exists, join, splitext
-from Crypto.Random import get_random_bytes
+from os.path import join
 from faasmcli.util.env import WASM_DIR
 from faasmcli.util.crypto import encrypt_file, get_file_hash_digest
 from faasmcli.util.wasm import parse_module
@@ -69,7 +68,7 @@ def policy(ctx, user, func, clean=False, debug=False):
     chain_verifies = {}
     exported_start_func = module.export.get(FAASM_MAIN_FUNCTION_NAME)
     function = module.function.get(exported_start_func)
-    if function == None:
+    if function is None:
         print(
             "error : Faasm main function (%s) not found!"
             % FAASM_MAIN_FUNCTION_NAME

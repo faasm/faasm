@@ -1,14 +1,15 @@
 import warnings
-
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-from faasmcli.util.env import WASM_OPT_BIN
 import subprocess
-from subprocess import check_output
 import re
 import os
 import codecs
 import random
 import string
+
+from faasmcli.util.env import WASM_OPT_BIN
+from subprocess import check_output
+
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 def get_random_string(length=8) -> str:
@@ -23,14 +24,6 @@ def get_random_string(length=8) -> str:
 def traverse(
     o, tree_types=(list, tuple)
 ):  # traverses list and all nested lists
-    """
-    credits: https://stackoverflow.com/questions/6340351/iterating-through-list-of-list-in-python/6341274#6341274
-    traverses list and all nested lists
-    @param list that should be traversed
-    @return list with all content
-
-    """
-
     if isinstance(o, tree_types):
         for value in o:
             for subvalue in traverse(value, tree_types):
@@ -40,10 +33,6 @@ def traverse(
 
 
 def parse_sexp(sexp) -> list:
-    """
-    credits: https://rosettacode.org/wiki/S-Expressions#Python
-    """
-
     dbg = False
     term_regex = r"""(?mx)
         \s*(?:
@@ -81,7 +70,7 @@ def parse_sexp(sexp) -> list:
         elif term == "s":
             out.append(value)
         else:
-            raise NotImplementedError("Error: %r" % (term, value))
+            raise NotImplementedError("Error: %r %s" % (term, value))
     assert not stack, "Trouble with nesting of brackets"
     return out[0]
 
@@ -454,7 +443,7 @@ class Module:  # wasm module
                 continue
 
             functions = self._functions.get(current)
-            if functions == None:
+            if functions is None:
                 print(
                     "warning: no functions found while creating call stack tree"
                 )  # TODO this should not happen
@@ -524,7 +513,7 @@ class Module:  # wasm module
                 if call == import_name:
                     function_calling_faasm_chain_name = function
 
-        if function_calling_faasm_chain_name == None:
+        if function_calling_faasm_chain_name is None:
             return (
                 list()
             )  # return emtpy list because no functions call faasm_chain_name
@@ -539,7 +528,8 @@ class Module:  # wasm module
                     and tbody[index + 1]
                     == function_calling_faasm_chain_name.name
                 ):
-                    # if such place is found, use the operand to retrieve the called function names from the data section
+                    # if such place is found, use the operand to
+                    # retrieve the called function names from the data section
                     operand = tbody[index + 3]
                     functionname = self._data[operand]
                     chained.add(functionname.replace("\x00", ""))
@@ -591,7 +581,7 @@ class Module:  # wasm module
                     if name == "call":
                         tmp_func = self.function.get(funct[i + 1])
                         stack = self.create_callstack(tmp_func)
-                        if stack != None:
+                        if stack is not None:
                             if (
                                 "$faasmAwaitCall" in stack
                                 or "$faasmChain" in stack
@@ -619,7 +609,6 @@ class Module:  # wasm module
             namespace + str(idx),
         )  # TODO hard
         idx += 1
-        end_node = CFGNode(cfg_end_block)
 
         if not _found2:
             s_block = CFGNode(
@@ -799,7 +788,7 @@ class Module:  # wasm module
                 else:
                     tmp_func = self.function.get(display)
 
-                    if tmp_func == None:
+                    if tmp_func is None:
                         continue
 
                     tree_ = self.create_cfg(tmp_func, filter_, id)
@@ -830,7 +819,9 @@ class Module:  # wasm module
                 block = Block(
                     "set", current, "filter me (set)", namespace + str(idx)
                 )
-                is_call = True  # local sets have not to be analysed much deeper because of wasm-opt no nesting for sets
+                is_call = True
+                # local sets have not to be analysed much deeper
+                # because of wasm-opt no nesting for sets
 
             else:
                 raise NotImplementedError
@@ -843,7 +834,7 @@ class Module:  # wasm module
 
             last_node_stack[-1].append(current_node)
 
-            if is_call == True:
+            if is_call:
                 continue
 
             if len(nested_lists) != 0:
@@ -864,8 +855,6 @@ class Module:  # wasm module
 
                 next_nodes = node.next
                 previous_nodes = node.previous
-                outry_nodes = node.outry
-                entry_nodes = node.entry
 
                 block = node.block
 
@@ -1008,7 +997,6 @@ class Module:  # wasm module
 
                 next_nodes = node.next
                 previous_nodes = node.previous
-                outry_nodes = node.outry
                 entry_nodes = node.entry
 
                 block = node.block
@@ -1136,7 +1124,7 @@ def parse_wat(wasm_file, wat, data) -> Module:  # parses wat to module
                 for i, char in enumerate(data):
                     entry += 1
                     if char == 0 or i == len(data) - 1:
-                        if string != None:
+                        if string is not None:
                             if i == len(data) - 1:
                                 string += chr(char)
 
@@ -1145,7 +1133,7 @@ def parse_wat(wasm_file, wat, data) -> Module:  # parses wat to module
                         index = entry
                         string = None
                     else:
-                        if string == None:
+                        if string is None:
                             string = ""
                         string += chr(char)
 

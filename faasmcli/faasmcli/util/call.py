@@ -21,7 +21,7 @@ from faasmcli.util.sgx_wamr_types import (
     sgx_wamr_encrypted_data_blob_t_factory,
     sgx_wamr_result_t_factory,
 )
-from faasmcli.util.constants import NONCE_SIZE, AES_KEY_SIZE, TAG_SIZE
+from faasmcli.util.constants import NONCE_SIZE, AES_KEY_SIZE
 from faasmcli.util.policy import Verifier
 
 STATUS_SUCCESS = "SUCCESS"

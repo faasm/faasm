@@ -3,7 +3,7 @@ import random
 import string
 from Cryptodome.Cipher import AES
 from Crypto.Random import get_random_bytes
-from faasmcli.util.constants import *
+from faasmcli.util.constants import NONCE_SIZE, AES_KEY_SIZE, TAG_SIZE
 
 
 def get_random_string(length):
@@ -65,7 +65,6 @@ def get_file_hash_digest(
         hashlib.sha256()
     )  # Create the hash object, can use something other than `.sha256()` if you wish
     with open(file_path, "rb") as f:  # Open the file to read it's bytes
-        tmp = f.read(offset)
         fb = f.read(
             BLOCK_SIZE
         )  # Read from the file. Take in the amount declared above
