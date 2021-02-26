@@ -8,7 +8,7 @@
 
 #include <faabric/executor/FaabricPool.h>
 
-#if(FAASM_SGX)
+#if (FAASM_SGX)
 #include <sgx/faasm_sgx_system.h>
 #endif
 

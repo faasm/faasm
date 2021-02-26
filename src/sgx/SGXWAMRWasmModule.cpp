@@ -2,12 +2,13 @@
 
 #include <faabric/util/func.h>
 #include <sgx/SGXWAMRWasmModule.h>
+#include <sgx/base64.h>
 #include <sgx/faasm_sgx_attestation.h>
 #include <sgx/faasm_sgx_system.h>
-#include <sgx/base64.h>
 
 extern __thread faaslet_sgx_msg_buffer_t* faaslet_sgx_msg_buffer_ptr;
-extern __thread faaslet_sgx_gp_buffer_t* faaslet_sgx_attestation_output_ptr, *faaslet_sgx_attestation_result_ptr;
+extern __thread faaslet_sgx_gp_buffer_t *faaslet_sgx_attestation_output_ptr,
+  *faaslet_sgx_attestation_result_ptr;
 
 extern "C"
 {
@@ -23,8 +24,8 @@ SGXWAMRWasmModule::SGXWAMRWasmModule()
 {
     auto logger = faabric::util::getLogger();
 
-	// init sgx in case we're using this module outside a Faaslet
-	sgx::checkSgxSetup();
+    // init sgx in case we're using this module outside a Faaslet
+    sgx::checkSgxSetup();
 
     // Allocate memory for response
     sgxWamrMsgResponse.buffer_len =
@@ -71,23 +72,29 @@ void SGXWAMRWasmModule::bindToFunction(const faabric::Message& msg)
 #endif
 
     // Extract nonce + tag
-    std::vector<uint8_t> nonce = {wasmBytes.begin(), wasmBytes.begin() + SGX_AESGCM_IV_SIZE};
-    std::vector<uint8_t> tag = {wasmBytes.begin() + SGX_AESGCM_IV_SIZE, wasmBytes.begin() + SGX_AESGCM_IV_SIZE + SGX_AESGCM_MAC_SIZE};
-    wasmBytes.erase(wasmBytes.begin(), wasmBytes.begin() + SGX_AESGCM_IV_SIZE + SGX_AESGCM_MAC_SIZE);
+    std::vector<uint8_t> nonce = { wasmBytes.begin(),
+                                   wasmBytes.begin() + SGX_AESGCM_IV_SIZE };
+    std::vector<uint8_t> tag = { wasmBytes.begin() + SGX_AESGCM_IV_SIZE,
+                                 wasmBytes.begin() + SGX_AESGCM_IV_SIZE +
+                                   SGX_AESGCM_MAC_SIZE };
+    wasmBytes.erase(wasmBytes.begin(),
+                    wasmBytes.begin() + SGX_AESGCM_IV_SIZE +
+                      SGX_AESGCM_MAC_SIZE);
     // Load the wasm module
     faasm_sgx_status_t returnValue;
-    sgx_status_t status = faasm_sgx_enclave_load_module(globalEnclaveId,
-                                                        &returnValue,
-                                                        msg.user().c_str(),
-                                                        msg.function().c_str(),
-                                                        (void*)wasmBytes.data(),
-                                                        (uint32_t)wasmBytes.size(),
-                                                        (void*) nonce.data(),
-                                                        (void*) tag.data(),
-                                                        &threadId,
-                                                        &(faasletSgxMsgBufferPtr->buffer_ptr),
-                                                        faaslet_sgx_attestation_output_ptr,
-                                                        faaslet_sgx_attestation_result_ptr);
+    sgx_status_t status =
+      faasm_sgx_enclave_load_module(globalEnclaveId,
+                                    &returnValue,
+                                    msg.user().c_str(),
+                                    msg.function().c_str(),
+                                    (void*)wasmBytes.data(),
+                                    (uint32_t)wasmBytes.size(),
+                                    (void*)nonce.data(),
+                                    (void*)tag.data(),
+                                    &threadId,
+                                    &(faasletSgxMsgBufferPtr->buffer_ptr),
+                                    faaslet_sgx_attestation_output_ptr,
+                                    faaslet_sgx_attestation_result_ptr);
 
     if (status != SGX_SUCCESS) {
         logger->error("Unable to enter enclave: {}", sgxErrorString(status));
@@ -145,7 +152,6 @@ bool SGXWAMRWasmModule::execute(faabric::Message& msg, bool forceNoop)
         throw std::runtime_error("Function not bound");
     }
 
-
     // Set executing call
     wasm::setExecutingCall(const_cast<faabric::Message*>(&msg));
 
@@ -153,12 +159,35 @@ bool SGXWAMRWasmModule::execute(faabric::Message& msg, bool forceNoop)
     sgx_status_t sgxReturnValue;
     faasm_sgx_status_t returnValue;
     std::string inputdata = util::b64decode(msg.inputdata());
-    logger->debug(
-      "Entering enclave {} to execute {} with sid '{}', policy length {} and input '{}'", globalEnclaveId, funcStr, msg.sid(), msg.policy().size(), msg.inputdata());
+    logger->debug("Entering enclave {} to execute {} with sid '{}', policy "
+                  "length {} and input '{}'",
+                  globalEnclaveId,
+                  funcStr,
+                  msg.sid(),
+                  msg.policy().size(),
+                  msg.inputdata());
     if (msg.policy().size() == 0) {
-        sgxReturnValue = faasm_sgx_enclave_call_function(globalEnclaveId, &returnValue, threadId, msg.funcptr(), msg.sid().c_str(), (const sgx_wamr_encrypted_data_blob_t*) inputdata.c_str(), inputdata.size(), nullptr, 0);
+        sgxReturnValue = faasm_sgx_enclave_call_function(
+          globalEnclaveId,
+          &returnValue,
+          threadId,
+          msg.funcptr(),
+          msg.sid().c_str(),
+          (const sgx_wamr_encrypted_data_blob_t*)inputdata.c_str(),
+          inputdata.size(),
+          nullptr,
+          0);
     } else {
-        sgxReturnValue = faasm_sgx_enclave_call_function(globalEnclaveId, &returnValue, threadId, msg.funcptr(), msg.sid().c_str(), (const sgx_wamr_encrypted_data_blob_t*) inputdata.c_str(), inputdata.size(), (const uint8_t*) msg.policy().c_str(), msg.policy().size());
+        sgxReturnValue = faasm_sgx_enclave_call_function(
+          globalEnclaveId,
+          &returnValue,
+          threadId,
+          msg.funcptr(),
+          msg.sid().c_str(),
+          (const sgx_wamr_encrypted_data_blob_t*)inputdata.c_str(),
+          inputdata.size(),
+          (const uint8_t*)msg.policy().c_str(),
+          msg.policy().size());
     }
 
     if (sgxReturnValue != SGX_SUCCESS) {

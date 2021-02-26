@@ -1,8 +1,8 @@
 #include <cstring>
 
 #include <sgx/SGXWAMRWasmModule.h>
-#include <wasm/chaining.h>
 #include <sgx/base64.h>
+#include <wasm/chaining.h>
 
 using namespace faabric::state;
 
@@ -173,7 +173,7 @@ extern "C"
     int ocall_faasm_read_input(uint8_t* buffer, unsigned int bufferSize)
     {
         faabric::util::getLogger()->debug(
-            "Ocall - faasm_read_input [encrypted input] {}", bufferSize);
+          "Ocall - faasm_read_input [encrypted input] {}", bufferSize);
         faabric::Message* msg = wasm::getExecutingCall();
 
         unsigned long inputLen = msg->inputdata().size();
@@ -199,8 +199,9 @@ extern "C"
     void ocall_faasm_write_output(uint8_t* output, unsigned int outputSize)
     {
         faabric::util::getLogger()->debug(
-            "Ocall - faasm_write_output [encrypted output] {}", outputSize);
-        std::string encoded_output = util::b64encode(std::string(output, output + outputSize));
+          "Ocall - faasm_write_output [encrypted output] {}", outputSize);
+        std::string encoded_output =
+          util::b64encode(std::string(output, output + outputSize));
         wasm::getExecutingCall()->set_outputdata(encoded_output);
     }
 
@@ -211,11 +212,14 @@ extern "C"
                                         unsigned int policySize)
     {
         faabric::util::getLogger()->debug(
-            "Ocall - faasm_chain_name {} [encrypted input] {}", name, inputSize);
-        std::string encoded_input = util::b64encode(std::string(input, input + inputSize));
-        const std::vector<uint8_t> _input(encoded_input.begin(), encoded_input.end());
+          "Ocall - faasm_chain_name {} [encrypted input] {}", name, inputSize);
+        std::string encoded_input =
+          util::b64encode(std::string(input, input + inputSize));
+        const std::vector<uint8_t> _input(encoded_input.begin(),
+                                          encoded_input.end());
         const std::vector<uint8_t> _policy(policy, policy + policySize);
-        return wasm::makeChainedCall2(std::string(name), 0, nullptr, _input, _policy);
+        return wasm::makeChainedCall2(
+          std::string(name), 0, nullptr, _input, _policy);
     }
 
     unsigned int ocall_faasm_chain_ptr(int wasmFuncPtr,
@@ -225,16 +229,22 @@ extern "C"
                                        unsigned int policySize)
     {
         faabric::util::getLogger()->debug(
-            "Ocall - faasm_chain_ptr {} [encrpyted input] {}", wasmFuncPtr, inputSize);
+          "Ocall - faasm_chain_ptr {} [encrpyted input] {}",
+          wasmFuncPtr,
+          inputSize);
         const std::vector<uint8_t> _input(input, input + inputSize);
         const std::vector<uint8_t> _policy(policy, policy + policySize);
-        return wasm::makeChainedCall2(
-          wasm::getExecutingCall()->function(), wasmFuncPtr, nullptr, _input, _policy);
+        return wasm::makeChainedCall2(wasm::getExecutingCall()->function(),
+                                      wasmFuncPtr,
+                                      nullptr,
+                                      _input,
+                                      _policy);
     }
 
     unsigned int ocall_faasm_await_call(unsigned int callId)
     {
-        faabric::util::getLogger()->debug("Ocall - faasm_await_call {}", callId);
+        faabric::util::getLogger()->debug("Ocall - faasm_await_call {}",
+                                          callId);
         return wasm::awaitChainedCall2(callId);
     }
 
@@ -242,7 +252,10 @@ extern "C"
                                                uint8_t* buffer,
                                                unsigned int bufferSize)
     {
-        faabric::util::getLogger()->debug("Ocall - faasm_await_call_output {} [encrypted buffer] {}", callId, bufferSize);
+        faabric::util::getLogger()->debug(
+          "Ocall - faasm_await_call_output {} [encrypted buffer] {}",
+          callId,
+          bufferSize);
         return wasm::awaitChainedCallOutput2(callId, buffer, bufferSize);
     }
 }

@@ -11,11 +11,13 @@
 // Global enclave ID
 sgx_enclave_id_t globalEnclaveId;
 faaslet_sgx_msg_buffer_t sgx_wamr_msg_response;
-faaslet_sgx_gp_buffer_t sgx_wamr_attestation_output, sgx_wamr_attestation_result;
+faaslet_sgx_gp_buffer_t sgx_wamr_attestation_output,
+  sgx_wamr_attestation_result;
 
-//buffer pointers
+// buffer pointers
 __thread faaslet_sgx_msg_buffer_t* faaslet_sgx_msg_buffer_ptr;
-__thread faaslet_sgx_gp_buffer_t* faaslet_sgx_attestation_output_ptr, *faaslet_sgx_attestation_result_ptr;
+__thread faaslet_sgx_gp_buffer_t *faaslet_sgx_attestation_output_ptr,
+  *faaslet_sgx_attestation_result_ptr;
 
 #define ERROR_PRINT_CASE(enumVal)                                              \
     case (enumVal): {                                                          \
@@ -29,14 +31,21 @@ void checkSgxSetup()
     auto logger = faabric::util::getLogger();
 
     // Allocate buffers
-    sgx_wamr_msg_response.buffer_len = (sizeof(sgx_wamr_msg_t) + sizeof(sgx_wamr_msg_hdr_t));
-    if(!(sgx_wamr_msg_response.buffer_ptr = (sgx_wamr_msg_t*) calloc(sgx_wamr_msg_response.buffer_len, sizeof(uint8_t)))){
-        //TODO: Error handling
+    sgx_wamr_msg_response.buffer_len =
+      (sizeof(sgx_wamr_msg_t) + sizeof(sgx_wamr_msg_hdr_t));
+    if (!(sgx_wamr_msg_response.buffer_ptr = (sgx_wamr_msg_t*)calloc(
+            sgx_wamr_msg_response.buffer_len, sizeof(uint8_t)))) {
+        // TODO: Error handling
     }
-    if(!(sgx_wamr_attestation_output.buffer_ptr = calloc(FAASM_SGX_ATTESTATION_GP_BUFFER_DEFAULT_SIZE,sizeof(uint8_t))) || !(sgx_wamr_attestation_result.buffer_ptr = calloc(FAASM_SGX_ATTESTATION_GP_BUFFER_DEFAULT_SIZE,sizeof(uint8_t)))){
-        //TODO: Error Handling
+    if (!(sgx_wamr_attestation_output.buffer_ptr = calloc(
+            FAASM_SGX_ATTESTATION_GP_BUFFER_DEFAULT_SIZE, sizeof(uint8_t))) ||
+        !(sgx_wamr_attestation_result.buffer_ptr = calloc(
+            FAASM_SGX_ATTESTATION_GP_BUFFER_DEFAULT_SIZE, sizeof(uint8_t)))) {
+        // TODO: Error Handling
     }
-    sgx_wamr_attestation_output.buffer_len = sgx_wamr_attestation_result.buffer_len = FAASM_SGX_ATTESTATION_GP_BUFFER_DEFAULT_SIZE;
+    sgx_wamr_attestation_output.buffer_len =
+      sgx_wamr_attestation_result.buffer_len =
+        FAASM_SGX_ATTESTATION_GP_BUFFER_DEFAULT_SIZE;
     faaslet_sgx_msg_buffer_ptr = &sgx_wamr_msg_response;
     faaslet_sgx_attestation_output_ptr = &sgx_wamr_attestation_output;
     faaslet_sgx_attestation_result_ptr = &sgx_wamr_attestation_result;
@@ -53,17 +62,17 @@ void checkSgxSetup()
     returnValue = faasm_sgx_get_sgx_support();
     if (returnValue != FAASM_SGX_SUCCESS) {
 #if (FAASM_SGX_WAMR_AOT_MODE)
-	if (returnValue == FAASM_SGX_CPU_SGX_V2_LEAF_NOT_AVAILABLE) {
-		logger->error("Machine doesn't support SGXv2 {}",
-					faasmSgxErrorString(returnValue));
-		throw std::runtime_error("Machine doesn't support SGXv2");
-	}
+        if (returnValue == FAASM_SGX_CPU_SGX_V2_LEAF_NOT_AVAILABLE) {
+            logger->error("Machine doesn't support SGXv2 {}",
+                          faasmSgxErrorString(returnValue));
+            throw std::runtime_error("Machine doesn't support SGXv2");
+        }
 #else
-	if (returnValue == FAASM_SGX_CPU_SGX_V1_LEAF_NOT_AVAILABLE) {
-		logger->error("Machine doesn't support SGXv1 {}",
-					faasmSgxErrorString(returnValue));
-		throw std::runtime_error("Machine doesn't support SGXv1");
-	}
+        if (returnValue == FAASM_SGX_CPU_SGX_V1_LEAF_NOT_AVAILABLE) {
+            logger->error("Machine doesn't support SGXv1 {}",
+                          faasmSgxErrorString(returnValue));
+            throw std::runtime_error("Machine doesn't support SGXv1");
+        }
 #endif
     }
 #endif

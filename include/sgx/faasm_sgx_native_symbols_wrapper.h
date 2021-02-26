@@ -87,8 +87,8 @@ extern "C"
 
     extern sgx_status_t SGX_CDECL ocall_faasm_lock_state_write(const char* key);
 
-    extern sgx_status_t SGX_CDECL
-    ocall_faasm_lock_state_write2(const char* key, uint32_t len);
+    extern sgx_status_t SGX_CDECL ocall_faasm_lock_state_write2(const char* key,
+                                                                uint32_t len);
 
     extern sgx_status_t SGX_CDECL
     ocall_faasm_unlock_state_write(const char* key);
@@ -98,21 +98,20 @@ extern "C"
 
     extern sgx_status_t SGX_CDECL
     ocall_faasm_read_input(int* returnValue,
-                          uint8_t* buffer,
-                          unsigned int buffer_size,
-                          uint8_t *nonce,
-                          uint8_t *mac);
+                           uint8_t* buffer,
+                           unsigned int buffer_size,
+                           uint8_t* nonce,
+                           uint8_t* mac);
 
     extern sgx_status_t SGX_CDECL
     ocall_faasm_write_output(uint8_t* output, unsigned int output_size);
-
 
     extern sgx_status_t SGX_CDECL
     ocall_faasm_chain_name(unsigned int* returnValue,
                            const char* name,
                            const uint8_t* input,
                            unsigned int input_size,
-                           uint8_t *policy,
+                           uint8_t* policy,
                            uint32_t policy_len);
 
     extern sgx_status_t SGX_CDECL
@@ -120,7 +119,7 @@ extern "C"
                           const int wasmFuncPtr,
                           const uint8_t* input,
                           unsigned int input_size,
-                          uint8_t *policy,
+                          uint8_t* policy,
                           uint32_t policy_len);
 
     extern sgx_status_t SGX_CDECL
@@ -245,7 +244,7 @@ extern "C"
     // WHITELISTING
     // --------------------------------------
 
-#if(FAASM_SGX_WHITELISTING)
+#if (FAASM_SGX_WHITELISTING)
     void sgx_wamr_function_not_whitelisted_wrapper(wasm_exec_env_t exec_env);
 #endif
 }

@@ -28,9 +28,10 @@
 
 struct cmp_str
 {
-   bool operator()(char const *a, char const *b) const {
-      return std::strcmp(a, b) < 0;
-   }
+    bool operator()(char const* a, char const* b) const
+    {
+        return std::strcmp(a, b) < 0;
+    }
 };
 
 typedef struct _attestation_env
@@ -44,8 +45,8 @@ typedef struct _attestation_env
     uint8_t output_nonce[SGX_AESGCM_IV_SIZE];
     uint32_t payload_len;
     uint8_t* payload;
-    std::map<const char*, std::string, cmp_str> *chain_policy;
-    std::map<const uint32_t, std::string> *nonce_store;
+    std::map<const char*, std::string, cmp_str>* chain_policy;
+    std::map<const uint32_t, std::string>* nonce_store;
     char* execution_stack;
     char* entry_execution_stack;
 
@@ -74,7 +75,7 @@ typedef struct __faasm_sgx_tcs
     wasm_module_inst_t module_inst;
     uint8_t* wasm_opcode;
 
-    faaslet_sgx_gp_buffer_t* output_ptr, *result_ptr;
+    faaslet_sgx_gp_buffer_t *output_ptr, *result_ptr;
     sgx_wamr_msg_t** response_ptr;
     _sgx_wamr_attestation_env_t env;
 

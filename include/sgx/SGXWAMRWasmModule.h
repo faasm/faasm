@@ -30,13 +30,12 @@ extern "C"
       const char* function,
       const void* wasm_opcode_ptr,
       const uint32_t wasm_opcode_size,
-      const void *wasm_op_nonce,
-      const void *wasm_op_mac,
+      const void* wasm_op_nonce,
+      const void* wasm_op_mac,
       uint32_t* thread_id,
       sgx_wamr_msg_t** response_ptr,
       faaslet_sgx_gp_buffer_t* output_ptr,
-      faaslet_sgx_gp_buffer_t* result_ptr
-    );
+      faaslet_sgx_gp_buffer_t* result_ptr);
 
     extern sgx_status_t faasm_sgx_enclave_unload_module(
       sgx_enclave_id_t enclave_id,

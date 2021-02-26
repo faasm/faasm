@@ -31,7 +31,8 @@ typedef struct __attribute__((packed)) _msg_hdr
     uint8_t type;
 } sgx_wamr_msg_hdr_t;
 
-typedef struct __attribute__((packed)) _nonce_payload{
+typedef struct __attribute__((packed)) _nonce_payload
+{
     uint8_t nonce[SGX_AESGCM_IV_SIZE];
     uint8_t payload[];
 } sgx_wamr_msg_nonce_payload;
@@ -113,7 +114,6 @@ typedef struct _faaslet_sgx_gp_buffer
     void* buffer_ptr;
 } faaslet_sgx_gp_buffer_t;
 
-
 typedef struct __attribute__((packed)) _data
 {
     uint8_t nonce[SGX_AESGCM_IV_SIZE];
@@ -129,7 +129,8 @@ typedef struct __attribute__((packed)) _state_data
     uint8_t data[];
 } sgx_wamr_encrypted_state_blob_t;
 
-typedef struct __attribute__((packed)) _nonce_offer {
+typedef struct __attribute__((packed)) _nonce_offer
+{
     sgx_wamr_msg_hdr_t hdr;
     uint8_t nonce[SGX_AESGCM_IV_SIZE];
 } sgx_wamr_msg_nonce_offer_t;

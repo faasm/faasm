@@ -3,7 +3,7 @@
 #include "faasm_sgx_error.h"
 #include <sgx/faasm_sgx_attestation.h>
 
-//SGX SDK includes
+// SGX SDK includes
 #include <sgx_eid.h>
 #include <sgx_error.h>
 
