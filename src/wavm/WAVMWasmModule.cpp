@@ -928,23 +928,20 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
 
 void WAVMWasmModule::executeRemoteOMP(faabric::Message& msg)
 {
-    int funcPtr = msg.funcptr();
-    std::vector<IR::UntaggedValue> invokeArgs;
-    Runtime::Function* funcInstance;
-
-    // Handle OMP functions
-    funcInstance = getFunctionFromPtr(funcPtr);
+    Runtime::Function* funcInstance = getFunctionFromPtr(msg.funcptr());
     int threadNum = msg.ompthreadnum();
     int argc = msg.ompfunctionargs_size();
 
     faabric::util::getLogger()->debug(
-      "Running OMP thread #{} for function{} (argc = {})",
+      "Running OMP thread #{} for function {} (argc = {})",
       threadNum,
-      funcPtr,
+      msg.funcptr(),
       argc);
 
+    std::vector<IR::UntaggedValue> invokeArgs;
     invokeArgs.emplace_back(threadNum);
     invokeArgs.emplace_back(argc);
+
     for (int argIdx = argc - 1; argIdx >= 0; argIdx--) {
         invokeArgs.emplace_back(msg.ompfunctionargs(argIdx));
     }

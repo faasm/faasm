@@ -5,52 +5,52 @@
 
 namespace wasm {
 namespace openmp {
-Level::Level(const std::shared_ptr<Level>& parent, int numThreads)
+
+Level::Level(const std::shared_ptr<Level>& parent, int numThreadsIn)
   : depth(parent->depth + 1)
-  , effectiveDepth(numThreads > 1 ? parent->effectiveDepth + 1
-                                  : parent->effectiveDepth)
-  , maxActiveLevel(parent->maxActiveLevel)
-  , numThreads(numThreads)
+  , effectiveDepth(numThreadsIn > 1 ? parent->effectiveDepth + 1
+                                    : parent->effectiveDepth)
+  , maxActiveLevels(parent->maxActiveLevels)
+  , numThreads(numThreadsIn)
 {
     if (numThreads > 1) {
         barrier = std::make_unique<faabric::util::Barrier>(numThreads);
     }
 }
 
-Level::Level(int depth, int effectiveDepth, int maxActiveLevel, int numThreads)
-  : depth(depth + 1)
-  , effectiveDepth(numThreads > 1 ? effectiveDepth + 1 : effectiveDepth)
-  , maxActiveLevel(maxActiveLevel)
-  , numThreads(numThreads)
+Level::Level(int depthIn,
+             int effectiveDepthIn,
+             int maxActiveLevelsIn,
+             int numThreadsIn)
+  : depth(depthIn + 1)
+  , effectiveDepth(numThreadsIn > 1 ? effectiveDepthIn + 1 : effectiveDepthIn)
+  , maxActiveLevels(maxActiveLevelsIn)
+  , numThreads(numThreadsIn)
 {
     if (numThreads > 1) {
         barrier = std::make_unique<faabric::util::Barrier>(numThreads);
     }
 }
 
-// TODO - max out at thread pool capacity. If TP capacity is reached then don't
-// spawn thread
-int Level::get_next_level_num_threads() const
+int Level::getMaxThreadsAtNextLevel() const
 {
-    // Limits to one thread if we have exceeded maximum parallelism depth
-    if (effectiveDepth >= maxActiveLevel) {
+    // Limit to one thread if we have exceeded maximum parallelism depth
+    if (effectiveDepth >= maxActiveLevels) {
         return 1;
     }
 
-    // Extracts user preference unless compiler has overridden it for this
-    // parallel section
-    int nextWanted = pushedNumThreads > 0 ? pushedNumThreads : wantedNumThreads;
+    // Return pushed number if set
+    if (pushedNumThreads > 0) {
+        return pushedNumThreads;
+    }
 
-    // Returns user preference if set or device's maximum
-    return nextWanted > 0 ? nextWanted
-                          : (int)faabric::util::getSystemConfig().maxNodes;
-}
+    // REturn wanted number if set
+    if (wantedNumThreads > 0) {
+        return wantedNumThreads;
+    }
 
-void Level::snapshot_parent(faabric::Message& msg) const
-{
-    msg.set_ompdepth(depth);
-    msg.set_ompeffdepth(effectiveDepth);
-    msg.set_ompmal(maxActiveLevel);
+    int defaultNumThreads = (int)faabric::util::getSystemConfig().maxNodes;
+    return defaultNumThreads;
 }
 
 ReduceTypes SingleHostLevel::reductionMethod()
@@ -60,6 +60,7 @@ ReduceTypes SingleHostLevel::reductionMethod()
     if (numThreads == 1) {
         return ReduceTypes::emptyBlock;
     }
+
     return ReduceTypes::criticalBlock;
 }
 
@@ -70,9 +71,9 @@ SingleHostLevel::SingleHostLevel(const std::shared_ptr<Level>& parent,
 
 MultiHostSumLevel::MultiHostSumLevel(int Depth,
                                      int effectiveDepth,
-                                     int maxActiveLevel,
+                                     int maxActiveLevels,
                                      int numThreads)
-  : Level(Depth, effectiveDepth, maxActiveLevel, numThreads)
+  : Level(Depth, effectiveDepth, maxActiveLevels, numThreads)
 {}
 
 ReduceTypes MultiHostSumLevel::reductionMethod()

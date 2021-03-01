@@ -8,6 +8,7 @@
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/state/StateKeyValue.h>
 #include <faabric/util/timing.h>
+
 #include <wavm/OMPThreadPool.h>
 #include <wavm/WAVMWasmModule.h>
 #include <wavm/openmp/Level.h>
@@ -83,8 +84,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 }
 
 /**
- * @return the maximum number of threads that can be used to form a new team if
- * a parallel region without a num_threads clause is encountered.
+ * This function returns the max number of threads that can be used in a new
+ * team if no num_threads value is provided. 
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "omp_get_max_threads",
@@ -92,7 +93,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                omp_get_max_threads)
 {
     faabric::util::getLogger()->debug("S - omp_get_max_threads");
-    return thisLevel->get_next_level_num_threads();
+    return thisLevel->getMaxThreadsAtNextLevel();
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_level", I32, omp_get_level)
@@ -107,7 +108,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                omp_get_max_active_levels)
 {
     faabric::util::getLogger()->debug("S - omp_get_max_active_levels");
-    return thisLevel->maxActiveLevel;
+    return thisLevel->maxActiveLevels;
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -123,7 +124,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                      level);
         return;
     }
-    thisLevel->maxActiveLevel = level;
+    thisLevel->maxActiveLevels = level;
 }
 
 /**
@@ -372,19 +373,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     faabric::Message* parentCall = getExecutingCall();
 
     // Retrieve the microtask function from the table
-    Runtime::Function* func = Runtime::asFunction(Runtime::getTableElement(
-      getExecutingWAVMModule()->defaultTable, microtaskPtr));
-
-#ifdef OPENMP_FORK_REDIS_TRACE
-    const faabric::utilTimePoint iterationTp = faabric::utilstartTimer();
-#endif
+    Runtime::Function* func = parentModule->getFunctionFromPtr(microtaskPtr);
 
     // Set up number of threads for next level
-    int nextNumThreads = thisLevel->get_next_level_num_threads();
+    int nextNumThreads = thisLevel->getMaxThreadsAtNextLevel();
     pushedNumThreads = -1; // Resets for next push
 
     if (0 > thisLevel->userDefaultDevice) {
-
         std::vector<int> chainedThreads;
         chainedThreads.reserve(nextNumThreads);
 
@@ -418,10 +413,15 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
             // Snapshot details
             call.set_snapshotkey(activeSnapshotKey);
             call.set_snapshotsize(threadSnapshotSize);
+
             call.set_funcptr(microtaskPtr);
+            
             call.set_ompthreadnum(threadNum);
             call.set_ompnumthreads(nextNumThreads);
-            thisLevel->snapshot_parent(call);
+            call.set_ompdepth(thisLevel->depth);
+            call.set_ompeffdepth(thisLevel->effectiveDepth);
+            call.set_ompmal(thisLevel->maxActiveLevels);
+
             const std::string chainedStr =
               faabric::util::funcToString(call, false);
             sch.callFunction(call);
@@ -473,6 +473,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         }
 
         logger->debug("Distributed Fork finished successfully");
+
     } else { // Single host
 
         // Set up new level
@@ -532,12 +533,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
               fmt::format("{} OMP threads have exited with errors", numErrors));
         }
     }
-
-#ifdef OPENMP_FORK_REDIS_TRACE
-    const long distributedIterationTime =
-      faabric::utilgetTimeDiffNanos(iterationTp);
-    logger->warn("{}, Wasm local,{}", nextNumThreads, distributedIterationTime);
-#endif
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -700,7 +695,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 }
 
 /**
- *  When reaching the end of the reduction loop, the threads need to synchronise
+ * When reaching the end of the reduction loop, the threads need to synchronise
  * to operate the reduction function. In the multi-machine case, this
  */
 int startReduction(int reduce_data)
@@ -899,6 +894,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     thisLevel->userDefaultDevice = defaultDeviceNumber;
 }
 
+enum sched_type : int
+{
+    sch_lower = 32, /**< lower bound for unordered values */
+    sch_static_chunked = 33,
+    sch_static = 34, /**< static unspecialized */
+};
+
 template<typename T>
 void for_static_init(I32 schedule,
                      I32* lastIter,
@@ -911,68 +913,89 @@ void for_static_init(I32 schedule,
     // Unsigned version of the given template parameter
     typedef typename std::make_unsigned<T>::type UT;
 
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
+    auto logger = faabric::util::getLogger();
 
     if (thisLevel->numThreads == 1) {
         *lastIter = true;
-        *stride = (incr > 0) ? (*upper - *lower + 1) : (-(*lower - *upper + 1));
+
+        if(incr > 0) {
+            *stride = *upper - *lower + 1;
+        } else {
+            *stride = -(*lower - *upper + 1);
+        }
+
         return;
     }
 
     UT tripCount;
     if (incr == 1) {
         tripCount = *upper - *lower + 1;
+
     } else if (incr == -1) {
         tripCount = *lower - *upper + 1;
+
     } else if (incr > 0) {
-        // upper-lower can exceed the limit of signed type
+        // Upper-lower can exceed the limit of signed type
         tripCount = (int)(*upper - *lower) / incr + 1;
-    } else {
+
+    } else {        
         tripCount = (int)(*lower - *upper) / (-incr) + 1;
     }
 
     switch (schedule) {
-        case kmp::sch_static_chunked: {
+        case sch_static_chunked: {
             int span;
+
             if (chunk < 1) {
                 chunk = 1;
             }
+
             span = chunk * incr;
+
             *stride = span * thisLevel->numThreads;
             *lower = *lower + (span * thisThreadNumber);
             *upper = *lower + span - incr;
+            
             *lastIter =
               (thisThreadNumber ==
                ((tripCount - 1) / (unsigned int)chunk) % thisLevel->numThreads);
+
             break;
         }
-        case kmp::sch_static: { // (chunk not given)
+
+        case sch_static: { // (chunk not given)
+
             // If we have fewer trip_counts than threads
-            if (tripCount < thisLevel->numThreads) {
-                logger->warn(
-                  "Small for loop trip count {} {}",
-                  tripCount,
-                  thisLevel
-                    ->numThreads); // Warns for future use, not tested at scale
+            if (tripCount < thisLevel->numThreads) {                
+                // Warning for future use, not tested at scale
+                logger->warn("Small for loop trip count {} {}", tripCount,
+                  thisLevel->numThreads); 
+
                 if (thisThreadNumber < tripCount) {
                     *upper = *lower = *lower + thisThreadNumber * incr;
                 } else {
                     *lower = *upper + incr;
                 }
+
                 *lastIter = (thisThreadNumber == tripCount - 1);
-            } else {
+
+            } else {                
                 // TODO: We only implement below kmp_sch_static_balanced, not
                 // kmp_sch_static_greedy Those are set through KMP_SCHEDULE so
                 // we would need to look out for real code setting this
                 logger->debug("Ignores KMP_SCHEDULE variable, defaults to "
                               "static balanced schedule");
+
                 U32 small_chunk = tripCount / thisLevel->numThreads;
                 U32 extras = tripCount % thisLevel->numThreads;
+
                 *lower += incr * (thisThreadNumber * small_chunk +
                                   (thisThreadNumber < extras ? thisThreadNumber
                                                              : extras));
+
                 *upper = *lower + small_chunk * incr -
                          (thisThreadNumber < extras ? 0 : incr);
+
                 *lastIter = (thisThreadNumber == thisLevel->numThreads - 1);
             }
 
