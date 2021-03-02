@@ -1,9 +1,7 @@
-#include <wavm/openmp.h>
-
+#include "faabric/util/locks.h"
 #include <WAVM/Platform/Thread.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
-#include <future>
 
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/state/StateKeyValue.h>
@@ -15,6 +13,15 @@
 using namespace WAVM;
 
 namespace wasm {
+
+struct LocalThreadArgs
+{
+    int tid = 0;
+    std::shared_ptr<Level> level = nullptr;
+    WAVMWasmModule* parentModule;
+    faabric::Message* parentCall;
+    WasmThreadSpec spec;
+};
 
 /**
  * Performs actual static assignment
@@ -414,11 +421,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
         U32* nativeArgs =
           Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
+
         // Create the threads (messages) themselves
         for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
             faabric::Message call = faabric::util::messageFactory(
               originalCall->user(), originalCall->function());
             call.set_isasync(true);
+
             for (int argIdx = argc - 1; argIdx >= 0; argIdx--) {
                 call.add_ompfunctionargs(nativeArgs[argIdx]);
             }
@@ -499,8 +508,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         std::vector<std::vector<IR::UntaggedValue>> microtaskArgs;
         microtaskArgs.reserve(nextNumThreads);
 
-        std::vector<std::future<I64>> threadsFutures;
-        threadsFutures.reserve(nextNumThreads);
+        std::vector<std::thread> threads;
+
+        std::vector<U64> results;
+        std::mutex resultMutex;
 
         // Build up arguments
         for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
@@ -531,18 +542,26 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                            } };
 
             // Execute thread
-            parentModule->executeThreadLocally(threadArgs.spec);
+            threads.emplace_back(
+              [&parentModule, &threadArgs, &results, &resultMutex] {
+                  I64 threadResult =
+                    parentModule->executeThreadLocally(threadArgs.spec);
+
+                  faabric::util::UniqueLock lock(resultMutex);
+                  results.push_back(threadResult);
+              });
         }
 
-        // Await all threads
-        I64 numErrors = 0;
-        for (auto& f : threadsFutures) {
-            numErrors += f.get();
+        for(auto &t : threads) {
+            if(t.joinable()) {
+                t.join();
+            }
         }
 
-        if (numErrors) {
-            throw std::runtime_error(
-              fmt::format("{} OMP threads have exited with errors", numErrors));
+        for (int res : results) {
+            if (res < 0) {
+                throw std::runtime_error("OMP thread exited with error");
+            }
         }
     }
 }

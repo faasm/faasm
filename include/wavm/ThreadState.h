@@ -1,23 +1,15 @@
 #pragma once
 
-#include <condition_variable>
-#include <future>
 #include <mutex>
-#include <queue>
 #include <vector>
 
-#include <WAVM/Inline/BasicTypes.h>
-#include <WAVM/Platform/Thread.h>
-#include <WAVM/Runtime/Runtime.h>
+#include <proto/faabric.pb.h>
 
 #include <faabric/util/barrier.h>
 #include <faabric/util/environment.h>
 #include <faabric/util/locks.h>
-#include <proto/faabric.pb.h>
 
 namespace wasm {
-
-class WAVMWasmModule;
 
 enum struct ReduceTypes
 {
@@ -122,7 +114,5 @@ OpenMPContext& getOpenMPContext();
 void setUpOpenMPContext(const faabric::Message& msg);
 
 void setUpOpenMPContext(const int threadId, std::shared_ptr<Level> &level);
-
-struct LocalThreadArgs;
 
 }

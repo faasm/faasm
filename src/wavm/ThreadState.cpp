@@ -1,6 +1,5 @@
 #include <wavm/ThreadState.h>
 #include <wavm/WAVMWasmModule.h>
-#include <wavm/openmp.h>
 
 #include <faabric/util/config.h>
 
