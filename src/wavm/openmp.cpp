@@ -503,11 +503,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         auto nextLevel =
           std::make_shared<SingleHostLevel>(level, nextNumThreads);
 
-        // Safety - must ensure thread arguments lifetime is longer than the
-        // threads And that this container is not moved (reserve).
-        std::vector<std::vector<IR::UntaggedValue>> microtaskArgs;
-        microtaskArgs.reserve(nextNumThreads);
-
         std::vector<std::thread> threads;
 
         std::vector<U64> results;
@@ -515,45 +510,44 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
         // Build up arguments
         for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
-            // Note - these arguments are the thread number followed by the
-            // number of shared variables, then the pointers to those shared
-            // variables
-            microtaskArgs.push_back({ threadNum, argc });
-            if (argc > 0) {
-                // Get pointer to start of arguments in host memory
-                U32* pointers =
-                  Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
-                for (int argIdx = 0; argIdx < argc; argIdx++) {
-                    microtaskArgs[threadNum].emplace_back(pointers[argIdx]);
-                }
-            }
-
-            // Arguments for spawning the thread
-            LocalThreadArgs threadArgs = { .tid = threadNum,
-                                           .level = nextLevel,
-                                           .parentModule = parentModule,
-                                           .parentCall = parentCall,
-                                           .spec = {
-                                             .contextRuntimeData =
-                                               contextRuntimeData,
-                                             .func = func,
-                                             .funcArgs =
-                                               microtaskArgs[threadNum].data(),
-                                           } };
 
             // Execute thread
-            threads.emplace_back(
-              [&parentModule, &threadArgs, &results, &resultMutex] {
-                  I64 threadResult =
-                    parentModule->executeThreadLocally(threadArgs.spec);
+            threads.emplace_back([&] {
+                std::vector<IR::UntaggedValue> microtaskArgs = { threadNum,
+                                                                 argc };
+                if (argc > 0) {
+                    // Get pointer to start of arguments in host memory
+                    U32* pointers =
+                      Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
 
-                  faabric::util::UniqueLock lock(resultMutex);
-                  results.push_back(threadResult);
-              });
+                    for (int argIdx = 0; argIdx < argc; argIdx++) {
+                        microtaskArgs.emplace_back(pointers[argIdx]);
+                    }
+                }
+
+                // Arguments for spawning the thread
+                LocalThreadArgs
+                  threadArgs = { .tid = threadNum,
+                                 .level = nextLevel,
+                                 .parentModule = parentModule,
+                                 .parentCall = parentCall,
+                                 .spec = {
+                                   .contextRuntimeData = contextRuntimeData,
+                                   .func = func,
+                                   .funcArgs = microtaskArgs.data(),
+                                 } };
+
+                // This executes the thread synchronously
+                I64 threadResult =
+                  parentModule->executeThreadLocally(threadArgs.spec);
+
+                faabric::util::UniqueLock lock(resultMutex);
+                results.push_back(threadResult);
+            });
         }
 
-        for(auto &t : threads) {
-            if(t.joinable()) {
+        for (auto& t : threads) {
+            if (t.joinable()) {
                 t.join();
             }
         }
