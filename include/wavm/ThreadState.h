@@ -37,8 +37,12 @@ class Level
     // Number of threads of this level
     const int numThreads = 1;
 
-    // Non-negative for local, negative for distributed
-    int userDefaultDevice = 0;
+    // Desired number of thread set by omp_set_num_threads for all future levels
+    int wantedThreads = -1;
+
+    // Num threads pushed by compiler, valid for one parallel section.
+    // Overrides wantedThreads
+    int pushedThreads = -1;
 
     // Only needed if numThreads > 1
     std::unique_ptr<faabric::util::Barrier> barrier = {};
@@ -62,49 +66,14 @@ class Level
 
     int getMaxThreadsAtNextLevel() const;
 
-    // Reduction method based on type of Level
-    virtual ReduceTypes reductionMethod() = 0;
-
     // Needed for polymorphic deletion
     virtual ~Level() = default;
-};
-
-class SingleHostLevel : public Level
-{
-  public:
-    SingleHostLevel() = default;
-
-    SingleHostLevel(const std::shared_ptr<Level>& parent, int numThreads);
-
-    ReduceTypes reductionMethod() override;
-
-    ~SingleHostLevel() = default;
-};
-
-class MultiHostSumLevel : public Level
-{
-  public:
-    MultiHostSumLevel(int Depth,
-                      int effectiveDepth,
-                      int maxActiveLevels,
-                      int numThreads);
-
-    ReduceTypes reductionMethod() override;
-
-    ~MultiHostSumLevel() = default;
 };
 
 class OpenMPContext
 {
   public:
     int threadNumber = -1;
-
-    // Desired number of thread set by omp_set_num_threads for all future levels
-    int wantedThreads = -1;
-
-    // Num threads pushed by compiler, valid for one parallel section, overrides
-    // wanted
-    int pushedThreads = -1;
 
     std::shared_ptr<Level> level = nullptr;
 };

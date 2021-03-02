@@ -1556,6 +1556,13 @@ void WAVMWasmModule::executeWasmConstructorsFunction(Runtime::Instance* module)
 Runtime::Function* WAVMWasmModule::getFunctionFromPtr(int funcPtr)
 {
     Runtime::Object* funcObj = Runtime::getTableElement(defaultTable, funcPtr);
+
+    if (funcObj == nullptr) {
+        faabric::util::getLogger()->error("Function pointer not found {}",
+                                          funcPtr);
+        throw std::runtime_error("Function pointer not found");
+    }
+
     return Runtime::asFunction(funcObj);
 }
 

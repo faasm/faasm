@@ -9,12 +9,11 @@ using namespace WAVM;
 
 namespace wasm {
 
-thread_local int thisThreadNumber = 0;
-thread_local std::shared_ptr<Level> thisLevel = nullptr;
 thread_local int wantedNumThreads = 1;
 thread_local int pushedNumThreads = -1;
 
-OpenMPContext& getOpenMPContext() {
+OpenMPContext& getOpenMPContext()
+{
     thread_local static OpenMPContext ctx;
     return ctx;
 }
@@ -53,66 +52,32 @@ int Level::getMaxThreadsAtNextLevel() const
     }
 
     // Return pushed number if set
-    if (pushedNumThreads > 0) {
-        return pushedNumThreads;
+    if (pushedThreads > 0) {
+        return pushedThreads;
     }
 
-    // REturn wanted number if set
-    if (wantedNumThreads > 0) {
-        return wantedNumThreads;
+    // Return wanted number if set
+    if (wantedThreads > 0) {
+        return wantedThreads;
     }
 
     int defaultNumThreads = (int)faabric::util::getSystemConfig().maxNodes;
     return defaultNumThreads;
 }
 
-ReduceTypes SingleHostLevel::reductionMethod()
+void setUpOpenMPContext(const int threadId, std::shared_ptr<Level>& level)
 {
-    // There exists many reduction methods, simply implement everything as a
-    // critical block unless we know we can avoid synchronisation for now
-    if (numThreads == 1) {
-        return ReduceTypes::emptyBlock;
-    }
-
-    return ReduceTypes::criticalBlock;
-}
-
-SingleHostLevel::SingleHostLevel(const std::shared_ptr<Level>& parent,
-                                 int numThreads)
-  : Level(std::move(parent), numThreads)
-{}
-
-MultiHostSumLevel::MultiHostSumLevel(int Depth,
-                                     int effectiveDepth,
-                                     int maxActiveLevels,
-                                     int numThreads)
-  : Level(Depth, effectiveDepth, maxActiveLevels, numThreads)
-{}
-
-ReduceTypes MultiHostSumLevel::reductionMethod()
-{
-    return ReduceTypes::multiHostSum;
-}
-
-void setUpOpenMPContext(const int threadId, std::shared_ptr<Level> &level) {
     OpenMPContext& ctx = getOpenMPContext();
     ctx.threadNumber = threadId;
     ctx.level = level;
 }
 
-void setUpOpenMPContext(const faabric::Message& msg) {
+void setUpOpenMPContext(const faabric::Message& msg)
+{
     OpenMPContext& ctx = getOpenMPContext();
 
-    if (msg.ompdepth() > 0) {
-        ctx.level = std::static_pointer_cast<Level>(
-          std::make_shared<MultiHostSumLevel>(msg.ompdepth(),
-                                                      msg.ompeffdepth(),
-                                                      msg.ompmal(),
-                                                      msg.ompnumthreads()));
-    } else {
-        ctx.level = std::static_pointer_cast<Level>(
-          std::make_shared<SingleHostLevel>());
-    }
+    ctx.level = std::make_shared<Level>(
+      msg.ompdepth(), msg.ompeffdepth(), msg.ompmal(), msg.ompnumthreads());
 
     ctx.threadNumber = msg.ompthreadnum();
 }
