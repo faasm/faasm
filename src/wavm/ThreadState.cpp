@@ -9,9 +9,6 @@ using namespace WAVM;
 
 namespace wasm {
 
-thread_local int wantedNumThreads = 1;
-thread_local int pushedNumThreads = -1;
-
 OpenMPContext& getOpenMPContext()
 {
     thread_local static OpenMPContext ctx;

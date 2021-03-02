@@ -11,15 +11,6 @@
 
 namespace wasm {
 
-enum struct ReduceTypes
-{
-    notDefined = 0,
-    criticalBlock = 1,
-    atomicBlock = 2,
-    emptyBlock = 3,
-    multiHostSum = 4,
-};
-
 // A Level is a layer of threads in an OpenMP application.
 // Note, defaults are set to mimic Clang 9.0.1 behaviour
 class Level
@@ -65,9 +56,6 @@ class Level
           int numThreadsIn);
 
     int getMaxThreadsAtNextLevel() const;
-
-    // Needed for polymorphic deletion
-    virtual ~Level() = default;
 };
 
 class OpenMPContext
