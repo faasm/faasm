@@ -1,10 +1,24 @@
-#include "wavm/openmp/Level.h"
+#include <wavm/ThreadState.h>
+#include <wavm/WAVMWasmModule.h>
+#include <wavm/openmp.h>
 
 #include <faabric/util/config.h>
-#include <openmp/ThreadState.h>
+
+using namespace faabric::util;
+
+using namespace WAVM;
 
 namespace wasm {
-namespace openmp {
+
+thread_local int thisThreadNumber = 0;
+thread_local std::shared_ptr<Level> thisLevel = nullptr;
+thread_local int wantedNumThreads = 1;
+thread_local int pushedNumThreads = -1;
+
+OpenMPContext& getOpenMPContext() {
+    thread_local static OpenMPContext ctx;
+    return ctx;
+}
 
 Level::Level(const std::shared_ptr<Level>& parent, int numThreadsIn)
   : depth(parent->depth + 1)
@@ -80,5 +94,28 @@ ReduceTypes MultiHostSumLevel::reductionMethod()
 {
     return ReduceTypes::multiHostSum;
 }
+
+void setUpOpenMPContext(const int threadId, std::shared_ptr<Level> &level) {
+    OpenMPContext& ctx = getOpenMPContext();
+    ctx.threadNumber = threadId;
+    ctx.level = level;
 }
+
+void setUpOpenMPContext(const faabric::Message& msg) {
+    OpenMPContext& ctx = getOpenMPContext();
+
+    if (msg.ompdepth() > 0) {
+        ctx.level = std::static_pointer_cast<Level>(
+          std::make_shared<MultiHostSumLevel>(msg.ompdepth(),
+                                                      msg.ompeffdepth(),
+                                                      msg.ompmal(),
+                                                      msg.ompnumthreads()));
+    } else {
+        ctx.level = std::static_pointer_cast<Level>(
+          std::make_shared<SingleHostLevel>());
+    }
+
+    ctx.threadNumber = msg.ompthreadnum();
+}
+
 }

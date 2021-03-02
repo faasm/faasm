@@ -3,12 +3,7 @@ include_directories(
         ${FAASM_WAVM_SOURCE_DIR}/Lib
 )
 
-set(HEADERS
-        "${FAASM_INCLUDE_DIR}/wavm/OMPThreadPool.h"
-        "${FAASM_INCLUDE_DIR}/wavm/WAVMWasmModule.h"
-)
-
-add_subdirectory(openmp)
+file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/wavm/*.h")
 
 set(LIB_FILES
         WAVMWasmModule.cpp
@@ -27,12 +22,12 @@ set(LIB_FILES
         mpi.cpp
         network.cpp
         openmp.cpp
-        OMPThreadPool.cpp
         process.cpp
         scheduling.cpp
         signals.cpp
         syscalls.cpp
         threads.cpp
+        ThreadState.cpp
         timing.cpp
         util.cpp
         ${HEADERS}

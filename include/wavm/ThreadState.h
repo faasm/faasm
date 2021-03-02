@@ -1,13 +1,23 @@
 #pragma once
 
+#include <condition_variable>
+#include <future>
 #include <mutex>
+#include <queue>
+#include <vector>
+
+#include <WAVM/Inline/BasicTypes.h>
+#include <WAVM/Platform/Thread.h>
+#include <WAVM/Runtime/Runtime.h>
 
 #include <faabric/util/barrier.h>
 #include <faabric/util/environment.h>
+#include <faabric/util/locks.h>
 #include <proto/faabric.pb.h>
 
 namespace wasm {
-namespace openmp {
+
+class WAVMWasmModule;
 
 enum struct ReduceTypes
 {
@@ -24,29 +34,29 @@ class Level
 {
   public:
     // Number of nested OpenMP constructs, 0 for serial code
-    const int depth = 0; 
-    
+    const int depth = 0;
+
     // Number of parallel regions (> 1 thread) above this level
-    const int effectiveDepth = 0; 
+    const int effectiveDepth = 0;
 
     // Max number of effective parallel regions allowed from the top
-    int maxActiveLevels = 1; 
+    int maxActiveLevels = 1;
 
     // Number of threads of this level
-    const int numThreads = 1; 
-    
+    const int numThreads = 1;
+
     // Non-negative for local, negative for distributed
-    int userDefaultDevice = 0; 
+    int userDefaultDevice = 0;
 
     // Only needed if numThreads > 1
-    std::unique_ptr<faabric::util::Barrier> barrier = {};        
-    
+    std::unique_ptr<faabric::util::Barrier> barrier = {};
+
     // Mutex used for reduction data
-    std::mutex reduceMutex; 
+    std::mutex reduceMutex;
 
     // NOTE: this limits us to one lock for all critical sections at a level
     std::mutex criticalSection;
-    
+
     Level() = default;
 
     // Local constructor
@@ -91,5 +101,28 @@ class MultiHostSumLevel : public Level
 
     ~MultiHostSumLevel() = default;
 };
-}
+
+class OpenMPContext
+{
+  public:
+    int threadNumber = -1;
+
+    // Desired number of thread set by omp_set_num_threads for all future levels
+    int wantedThreads = -1;
+
+    // Num threads pushed by compiler, valid for one parallel section, overrides
+    // wanted
+    int pushedThreads = -1;
+
+    std::shared_ptr<Level> level = nullptr;
+};
+
+OpenMPContext& getOpenMPContext();
+
+void setUpOpenMPContext(const faabric::Message& msg);
+
+void setUpOpenMPContext(const int threadId, std::shared_ptr<Level> &level);
+
+struct LocalThreadArgs;
+
 }

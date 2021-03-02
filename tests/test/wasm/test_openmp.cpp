@@ -12,18 +12,15 @@ void doOmpTest(const std::string& function)
 
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     std::string& originalThreadMode = conf.threadMode;
-    int originalThreadPoolSize = conf.ompThreadPoolSize;
 
     // Set up local OMP
     conf.threadMode = "local";
-    conf.ompThreadPoolSize = 10;
 
     faabric::Message msg = faabric::util::messageFactory("omp", function);
     execFunction(msg);
 
     // Reset config
     conf.threadMode = originalThreadMode;
-    conf.ompThreadPoolSize = originalThreadPoolSize;
 }
 
 TEST_CASE("Test static for scheduling", "[wasm][openmp]")

@@ -1,11 +1,9 @@
 #pragma once
 
 #include <wavm/WAVMWasmModule.h>
-#include <wavm/openmp/Level.h>
 
 namespace wasm {
 
-namespace openmp {
 struct LocalThreadArgs
 {
     int tid = 0;
@@ -14,6 +12,4 @@ struct LocalThreadArgs
     faabric::Message* parentCall;
     WasmThreadSpec spec;
 };
-}
-
 }

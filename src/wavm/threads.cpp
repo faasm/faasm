@@ -15,7 +15,7 @@ using namespace WAVM;
 namespace wasm {
 struct PThreadArgs
 {
-    wasm::WAVMWasmModule* parentModule;
+    WAVMWasmModule* parentModule;
     faabric::Message* parentCall;
     WasmThreadSpec* spec;
 };
@@ -33,10 +33,11 @@ static size_t threadSnapshotSize;
 
 I64 createPthread(void* threadSpecPtr)
 {
-    // Set up TLS for this thread
     auto pArg = reinterpret_cast<PThreadArgs*>(threadSpecPtr);
+
     setExecutingModule(pArg->parentModule);
     setExecutingCall(pArg->parentCall);
+
     I64 res = getExecutingWAVMModule()->executeThreadLocally(*pArg->spec);
 
     // Delete the spec, no longer needed

@@ -26,8 +26,7 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/WASM/WASM.h>
 
-#include <wavm/OMPThreadPool.h>
-#include <wavm/openmp/ThreadState.h>
+#include <wavm/ThreadState.h>
 
 constexpr int THREAD_STACK_SIZE(2 * ONE_MB_BYTES);
 
@@ -70,7 +69,7 @@ static void instantiateBaseModules()
 
 void WAVMWasmModule::flush()
 {
-    wasm::IRModuleCache& cache = wasm::getIRModuleCache();
+    IRModuleCache& cache = getIRModuleCache();
     cache.clear();
 }
 
@@ -509,7 +508,7 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
 
     PROF_START(wasmCreateModule)
 
-    IRModuleCache& moduleRegistry = wasm::getIRModuleCache();
+    IRModuleCache& moduleRegistry = getIRModuleCache();
     bool isMainModule = sharedModulePath.empty();
 
     // Warning: be very careful here to stick to *references* to the same shared
@@ -832,7 +831,7 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
     storage::SharedFiles::syncPythonFunctionFile(msg);
 
     // Set up OMP
-    prepareOpenMPContext(msg);
+    setUpOpenMPContext(msg);
 
     // Executes OMP fork message if necessary
     if (msg.ompdepth() > 0) {
@@ -913,7 +912,7 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
                   success = false;
                   returnValue = 1;
               });
-        } catch (wasm::WasmExitException& e) {
+        } catch (WasmExitException& e) {
             logger->debug("Caught wasm exit exception (code {})", e.exitCode);
             returnValue = e.exitCode;
             success = e.exitCode == 0;
@@ -1277,7 +1276,7 @@ std::map<std::string, std::string> WAVMWasmModule::buildDisassemblyMap()
 {
     std::map<std::string, std::string> output;
 
-    IRModuleCache& moduleRegistry = wasm::getIRModuleCache();
+    IRModuleCache& moduleRegistry = getIRModuleCache();
     IR::Module& module = moduleRegistry.getModule(boundUser, boundFunction, "");
 
     IR::DisassemblyNames disassemblyNames;
@@ -1395,7 +1394,7 @@ void WAVMWasmModule::doSnapshot(std::ostream& outStream)
     U8* memBase = Runtime::getMemoryBaseAddress(defaultMemory);
     U8* memEnd = memBase + (numPages * WASM_BYTES_PER_PAGE);
 
-    wasm::MemorySerialised mem;
+    MemorySerialised mem;
     mem.numPages = numPages;
     mem.data = std::vector<uint8_t>(memBase, memEnd);
 
@@ -1408,7 +1407,7 @@ void WAVMWasmModule::doRestore(std::istream& inStream)
     cereal::BinaryInputArchive archive(inStream);
 
     // Read in serialised data
-    wasm::MemorySerialised mem;
+    MemorySerialised mem;
     archive(mem);
 
     // Restore memory
@@ -1425,7 +1424,6 @@ void WAVMWasmModule::doRestore(std::istream& inStream)
 
 /*
  * Creates a thread execution context
- * Assumes the worker module TLS was set up already
  */
 I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)
 {
@@ -1475,7 +1473,7 @@ I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)
               Runtime::destroyException(ex);
               returnValue = 1;
           });
-    } catch (wasm::WasmExitException& e) {
+    } catch (WasmExitException& e) {
         logger->debug("Caught wasm exit exception (code {})", e.exitCode);
         returnValue = e.exitCode;
     }
@@ -1559,31 +1557,6 @@ Runtime::Function* WAVMWasmModule::getFunctionFromPtr(int funcPtr)
 {
     Runtime::Object* funcObj = Runtime::getTableElement(defaultTable, funcPtr);
     return Runtime::asFunction(funcObj);
-}
-
-void WAVMWasmModule::prepareOpenMPContext(const faabric::Message& msg)
-{
-    std::shared_ptr<openmp::Level> ompLevel;
-
-    if (msg.ompdepth() > 0) {
-        ompLevel = std::static_pointer_cast<openmp::Level>(
-          std::make_shared<openmp::MultiHostSumLevel>(msg.ompdepth(),
-                                                      msg.ompeffdepth(),
-                                                      msg.ompmal(),
-                                                      msg.ompnumthreads()));
-    } else {
-        OMPPool = std::make_unique<openmp::PlatformThreadPool>(
-          faabric::util::getSystemConfig().ompThreadPoolSize, this);
-        ompLevel = std::static_pointer_cast<openmp::Level>(
-          std::make_shared<openmp::SingleHostLevel>());
-    }
-
-    openmp::setTLS(msg.ompthreadnum(), ompLevel);
-}
-
-std::unique_ptr<openmp::PlatformThreadPool>& WAVMWasmModule::getOMPPool()
-{
-    return OMPPool;
 }
 
 void WAVMWasmModule::printDebugInfo()

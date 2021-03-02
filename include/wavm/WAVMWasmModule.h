@@ -1,6 +1,7 @@
 #pragma once
 
 #include <wasm/WasmModule.h>
+#include <wavm/ThreadState.h>
 #include <wavm/LoadedDynamicModule.h>
 
 #include <WAVM/Runtime/Intrinsics.h>
@@ -8,15 +9,12 @@
 #include <WAVM/Runtime/Runtime.h>
 
 namespace wasm {
+
 WAVM_DECLARE_INTRINSIC_MODULE(env)
 
 WAVM_DECLARE_INTRINSIC_MODULE(wasi)
 
 struct WasmThreadSpec;
-
-namespace openmp {
-class PlatformThreadPool;
-}
 
 std::vector<uint8_t> wavmCodegen(std::vector<uint8_t>& wasmBytes,
                                  const std::string& fileName);
@@ -129,8 +127,6 @@ class WAVMWasmModule final
 
     uint32_t allocateThreadStack();
 
-    std::unique_ptr<openmp::PlatformThreadPool>& getOMPPool();
-
   protected:
     void doSnapshot(std::ostream& outStream) override;
 
@@ -188,10 +184,6 @@ class WAVMWasmModule final
       WAVM::Runtime::Instance* module);
 
     void executeRemoteOMP(faabric::Message& msg);
-
-    void prepareOpenMPContext(const faabric::Message& msg);
-
-    std::unique_ptr<openmp::PlatformThreadPool> OMPPool;
 
     uint32_t createMemoryGuardRegion();
 };
