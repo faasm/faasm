@@ -13,10 +13,6 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 def get_random_string(length=8) -> str:
-    """
-    credits: https://pynative.com/python-generate-random-string/
-    """
-
     letters = string.ascii_lowercase
     return "".join(random.choice(letters) for i in range(length))
 

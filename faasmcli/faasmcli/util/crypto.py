@@ -56,11 +56,6 @@ def get_file_hash_digest(
     file_path, offset=NONCE_SIZE + TAG_SIZE
 ) -> str:  # generates sha256 for file
     BLOCK_SIZE = 64 * 1024
-    """
-        credits: https://nitratine.net/blog/post/how-to-hash-files-in-python/
-        @file_path path for file that bytes should hashed
-        @return hash as hex digest
-    """
     file_hash = (
         hashlib.sha256()
     )  # Create the hash object, can use something other than `.sha256()` if you wish
