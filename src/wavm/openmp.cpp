@@ -1,3 +1,4 @@
+#include "faabric/util/gids.h"
 #include <WAVM/Platform/Thread.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
@@ -15,7 +16,7 @@ using namespace WAVM;
 namespace wasm {
 
 // ------------------------------------------------
-// Get/ set thread nums and levels
+// THREAD NUMS AND LEVELS
 // ------------------------------------------------
 
 /**
@@ -382,8 +383,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         std::string activeSnapshotKey;
         size_t threadSnapshotSize;
 
-        int32_t callId = std::rand() % 100'000;
-        activeSnapshotKey = fmt::format("fork_{}", callId);
+        uint32_t snapshotId = faabric::util::generateGid();
+        activeSnapshotKey = fmt::format("fork_{}", snapshotId);
         threadSnapshotSize = parentModule->snapshotToState(activeSnapshotKey);
 
         faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
@@ -395,10 +396,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         U32* nativeArgs =
           Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
 
-        // Create the threads (messages) themselves
+        // Make the chained calls
         for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
             faabric::Message call = faabric::util::messageFactory(
               originalCall->user(), originalCall->function());
+
             call.set_isasync(true);
 
             for (int argIdx = argc - 1; argIdx >= 0; argIdx--) {
@@ -414,7 +416,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
             call.set_ompthreadnum(threadNum);
             call.set_ompnumthreads(nextNumThreads);
             call.set_ompdepth(ctx.level->depth);
-            call.set_ompeffdepth(ctx.level->effectiveDepth);
+            call.set_ompeffdepth(ctx.level->activeLevels);
             call.set_ompmal(ctx.level->maxActiveLevels);
 
             const std::string chainedStr =
@@ -459,17 +461,17 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   ex.what());
             }
 
-            if (returnCode) {
+            if (returnCode > 0) {
                 numErrors++;
             }
         }
 
         if (numErrors) {
-            throw std::runtime_error(
-              fmt::format("{} OMP threads have exited with errors", numErrors));
+            throw std::runtime_error(fmt::format(
+              "{} OpenMP threads have exited with errors", numErrors));
         }
 
-        logger->debug("Distributed Fork finished successfully");
+        logger->debug("Distributed OpenMP threads finished successfully");
 
     } else if (conf.threadMode == "local") {
 
@@ -490,8 +492,20 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
         // Execute threads locally
         for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
+            // Be careful here what you pass in with a reference and what you
+            // copy
+            threads.emplace_back([&results,
+                                  &resultMutex,
+                                  &nextLevel,
+                                  &contextRuntimeData,
+                                  &parentModule,
+                                  &parentCall,
+                                  &sharedVarsPtr,
+                                  &argc,
+                                  func,
+                                  threadNum] {
+                auto logger = faabric::util::getLogger();
 
-            threads.emplace_back([&] {
                 // We are now in a new thread so need to set up everything that
                 // uses TLS
                 setUpOpenMPContext(threadNum, nextLevel);
@@ -512,6 +526,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                     .contextRuntimeData = contextRuntimeData,
                     .func = func,
                     .funcArgs = funcArgs.data(),
+                    .stackTop = parentModule->allocateThreadStack(),
                 };
 
                 // This executes the thread synchronously

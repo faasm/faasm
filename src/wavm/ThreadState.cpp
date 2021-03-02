@@ -17,8 +17,8 @@ OpenMPContext& getOpenMPContext()
 
 Level::Level(const std::shared_ptr<Level>& parent, int numThreadsIn)
   : depth(parent->depth + 1)
-  , effectiveDepth(numThreadsIn > 1 ? parent->effectiveDepth + 1
-                                    : parent->effectiveDepth)
+  , activeLevels(numThreadsIn > 1 ? parent->activeLevels + 1
+                                    : parent->activeLevels)
   , maxActiveLevels(parent->maxActiveLevels)
   , numThreads(numThreadsIn)
 {
@@ -28,11 +28,11 @@ Level::Level(const std::shared_ptr<Level>& parent, int numThreadsIn)
 }
 
 Level::Level(int depthIn,
-             int effectiveDepthIn,
+             int activeLevelsIn,
              int maxActiveLevelsIn,
              int numThreadsIn)
   : depth(depthIn + 1)
-  , effectiveDepth(numThreadsIn > 1 ? effectiveDepthIn + 1 : effectiveDepthIn)
+  , activeLevels(numThreadsIn > 1 ? activeLevelsIn + 1 : activeLevelsIn)
   , maxActiveLevels(maxActiveLevelsIn)
   , numThreads(numThreadsIn)
 {
@@ -44,7 +44,7 @@ Level::Level(int depthIn,
 int Level::getMaxThreadsAtNextLevel() const
 {
     // Limit to one thread if we have exceeded maximum parallelism depth
-    if (effectiveDepth >= maxActiveLevels) {
+    if ((maxActiveLevels > 0) && (activeLevels >= maxActiveLevels)) {
         return 1;
     }
 
@@ -78,5 +78,4 @@ void setUpOpenMPContext(const faabric::Message& msg)
 
     ctx.threadNumber = msg.ompthreadnum();
 }
-
 }

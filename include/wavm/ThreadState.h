@@ -16,11 +16,11 @@ namespace wasm {
 class Level
 {
   public:
-    // Number of nested OpenMP constructs, 0 for serial code
+    // Number of nested OpenMP constructs
     const int depth = 0;
 
-    // Number of parallel regions (> 1 thread) above this level
-    const int effectiveDepth = 0;
+    // Number of parallel regions with more than 1 thread above this level
+    const int activeLevels = 0;
 
     // Max number of effective parallel regions allowed from the top
     int maxActiveLevels = 1;
@@ -51,7 +51,7 @@ class Level
 
     // Distributed constructor
     Level(int depth,
-          int effectiveDepthIn,
+          int activeLevelsIn,
           int maxActiveLevelsIn,
           int numThreadsIn);
 
