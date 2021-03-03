@@ -99,6 +99,11 @@ TEST_CASE("Test nested parallel region support", "[wasm][openmp]")
     doOmpTest("nested_parallel");
 }
 
+TEST_CASE("Test openmp Pi calculation", "[wasm][openmp]")
+{
+    doOmpTest("mt_pi");
+}
+
 TEST_CASE("Test proper handling of getting and setting next level num threads",
           "[wasm][openmp]")
 {

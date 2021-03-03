@@ -557,64 +557,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     }
 }
 
-// ----------------------------------------------------
-// CUSTOM FAASM HOST INTERFACE
-// ----------------------------------------------------
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "faasmp_incrby",
-                               I64,
-                               __faasmp_incrby,
-                               I32 keyPtr,
-                               I64 value)
-{
-    OMP_FUNC_ARGS("__faasmp_incrby {} {}", keyPtr, value);
-
-    Runtime::Memory* memoryPtr = getExecutingWAVMModule()->defaultMemory;
-    std::string key{ &Runtime::memoryRef<char>(memoryPtr, (Uptr)keyPtr) };
-    faabric::redis::Redis& redis = faabric::redis::Redis::getState();
-
-    return redis.incrByLong(key, value);
-}
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "__faasmp_getLong",
-                               I64,
-                               __faasmp_getLong,
-                               I32 keyPtr)
-{
-    OMP_FUNC_ARGS("__faasmp_getLong {} {}", keyPtr);
-
-    Runtime::Memory* memoryPtr = getExecutingWAVMModule()->defaultMemory;
-    std::string key{ &Runtime::memoryRef<char>(memoryPtr, (Uptr)keyPtr) };
-    faabric::redis::Redis& redis = faabric::redis::Redis::getState();
-
-    return redis.getLong(key);
-}
-
-/**
- * This function is just around to debug issues with threaded access to stacks.
- */
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "__faasmp_debug_copy",
-                               void,
-                               __faasmp_debug_copy,
-                               I32 src,
-                               I32 dest)
-{
-    OMP_FUNC_ARGS("__faasmp_debug_copy {} {}", src, dest);
-
-    // Get pointers on host to both src and dest
-    Runtime::Memory* memoryPtr = getExecutingWAVMModule()->defaultMemory;
-    int* hostSrc = &Runtime::memoryRef<int>(memoryPtr, src);
-    int* hostDest = &Runtime::memoryRef<int>(memoryPtr, dest);
-
-    int threadNumber = ctx.threadNumber;
-    logger->debug("{}: copy {} -> {}", threadNumber, *hostSrc, *hostDest);
-
-    *hostDest = *hostSrc;
-}
-
 // -------------------------------------------------------
 // FOR LOOP STATIC INIT
 // -------------------------------------------------------
@@ -865,24 +807,41 @@ enum ReduceReturnValue
  * This method should return one of the reduce return values as listed in the
  * OpenMP source.
  */
-int startReduction()
+int doReduce(I32 loc,
+             I32 gtid,
+             I32 numVars,
+             I32 reduceSize,
+             I32 reduceData,
+             I32 reduceFunc,
+             I32 lck)
 {
     auto logger = faabric::util::getLogger();
-
     auto ctx = getOpenMPContext();
 
-    if (ctx.level->numThreads <= 1) {
-        return MASTER_THREAD;
-    }
-
+    int returnValue = MASTER_THREAD;
     if (ctx.threadNumber != 0) {
-        return NON_MASTER_THREAD;
+        returnValue = NON_MASTER_THREAD;
     }
 
-    // Lock if master with multiple threads
-    faabric::util::getLogger()->debug("Locking OMP reduction");
-    ctx.level->reduceMutex.lock();
-    return MASTER_THREAD;
+    WAVMWasmModule* parentModule = getExecutingWAVMModule();
+    Runtime::Memory* memoryPtr = parentModule->defaultMemory;
+    Runtime::Function* func = parentModule->getFunctionFromPtr(reduceFunc);
+
+    U32* nativeArgs =
+      Runtime::memoryArrayPtr<U32>(memoryPtr, reduceData, reduceSize);
+
+    const IR::FunctionType funcType = Runtime::getFunctionType(func);
+
+    std::vector<IR::UntaggedValue> funcArgs;
+    for (int argIdx = 0; argIdx < reduceSize; argIdx++) {
+        funcArgs.emplace_back(nativeArgs[argIdx]);
+    }
+    IR::UntaggedValue result;
+
+    // Execute the reduce function
+    parentModule->executeFunction(func, funcType, funcArgs, result);
+
+    return returnValue;
 }
 
 /**
@@ -891,14 +850,7 @@ int startReduction()
  */
 void endReduction()
 {
-    auto ctx = getOpenMPContext();
 
-    if (ctx.level->numThreads <= 1 || ctx.threadNumber != 0) {
-        return;
-    }
-
-    faabric::util::getLogger()->debug("Unlocking OMP reduction");
-    ctx.level->reduceMutex.unlock();
 }
 
 /**
@@ -936,7 +888,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceFunc,
                   lck);
 
-    return startReduction();
+    return doReduce(
+      loc, gtid, numVars, reduceSize, reduceData, reduceFunc, lck);
 }
 
 /**
@@ -975,7 +928,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceFunc,
                   lck);
 
-    return startReduction();
+    return doReduce(
+      loc, gtid, numVars, reduceSize, reduceData, reduceFunc, lck);
 }
 
 /**

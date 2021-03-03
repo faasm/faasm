@@ -1,6 +1,6 @@
 /**
- *  Checks a few invariants of nested levels.
- *  The functions apply at the device level and the active level between the two
+ * Checks a few invariants of nested levels.
+ * The functions apply at the device level and the active level between the two
  * is therefore independent. This example code does not test for multiple
  * devices but rather look at reproducing the behaviour of clang which can be
  * summed up that way: A level l is allowed parallelism if max_active_level >=
