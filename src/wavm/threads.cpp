@@ -1,4 +1,5 @@
 #include "WAVMWasmModule.h"
+#include "faabric/util/logging.h"
 #include "syscalls.h"
 
 #include <linux/futex.h>
@@ -30,6 +31,54 @@ static thread_local std::unordered_map<I32, unsigned int> chainedThreads;
 // Flag to say whether we've spawned a thread
 static std::string activeSnapshotKey;
 static size_t threadSnapshotSize;
+
+// Map of file mutexes
+
+// ---------------------------------------------
+// LIBC THREADING
+// ---------------------------------------------
+
+/*
+ * Locks the given file pointer and returns 1 if an unlock is needed, otherwise
+ * zero.
+ *
+ * Must also be reentrant.
+ *
+ * See musl implementation.
+ * https://github.com/faasm/wasi-libc/blob/faasm/libc-top-half/musl/src/stdio/__lockfile.c
+ */
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "__lockfile",
+                               I32,
+                               __lockfile,
+                               I32 filePtr)
+{
+    faabric::util::getLogger()->debug("S - __lockfile {}", filePtr);
+
+    return 1;
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "__unlockfile",
+                               void,
+                               __unlockfile,
+                               I32 filePtr)
+{
+    faabric::util::getLogger()->debug("S - __unlockfile {}", filePtr);
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "__lock",
+                               void,
+                               __lock,
+                               I32 ptr)
+{
+    faabric::util::getLogger()->debug("S - __lock {}", ptr);
+}
+
+// ---------------------------------------------
+// PTHREADS
+// ---------------------------------------------
 
 I64 createPthread(void* threadSpecPtr)
 {
@@ -195,6 +244,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     faabric::util::getLogger()->debug("S - pthread_exit - {}", code);
 }
 
+// ----------------------------------------------
+// FUTEX
+// ----------------------------------------------
+
 I32 s__futex(I32 uaddrPtr,
              I32 futex_op,
              I32 val,
@@ -249,7 +302,7 @@ I32 s__futex(I32 uaddrPtr,
 
 /*
  * --------------------------
- * Stubbed
+ * STUBBED PTHREADS
  * --------------------------
  */
 

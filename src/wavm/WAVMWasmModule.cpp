@@ -985,7 +985,11 @@ U32 WAVMWasmModule::mmapFile(U32 fd, U32 length)
 
 U32 WAVMWasmModule::allocateThreadStack()
 {
-    return mmapMemory(THREAD_STACK_SIZE);
+    createMemoryGuardRegion();
+    U32 wasmPtr = mmapMemory(THREAD_STACK_SIZE);
+    createMemoryGuardRegion();
+
+    return wasmPtr;
 }
 
 U32 WAVMWasmModule::mmapMemory(U32 length)
