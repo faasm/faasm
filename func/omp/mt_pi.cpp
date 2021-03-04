@@ -1,6 +1,9 @@
 #include <cstdio>
 #include <omp.h>
 #include <random>
+ 
+#define ITERATIONS 100000
+#define N_THREADS 4
 
 unsigned long threadSeed()
 {
@@ -10,39 +13,31 @@ unsigned long threadSeed()
 
 int main(int argc, char** argv)
 {
-    long long iterations = 5000LL;
-    int numThreads = 4;
-    if (argc == 3) {
-        numThreads = std::stoi(argv[1]);
-        iterations = std::stoll(argv[2]);
-    } else if (argc != 1) {
-        printf("Usage: mt_pi [numThreads num_iterations]");
-    }
+    long result = 0;
 
-    long long result = 0;
-#pragma omp parallel num_threads(numThreads) default(none) firstprivate(iterations) reduction(+:result)
+#pragma omp parallel num_threads(N_THREADS) default(none) reduction(+:result)
     {
         std::uniform_real_distribution<double> unif(0, 1);
         std::mt19937_64 generator(threadSeed());
-        double x, y;
 
 #pragma omp for
-        for (long i = 0; i < iterations; i++) {
-            x = unif(generator);
-            y = unif(generator);
+        for (int i = 0; i < ITERATIONS; i++) {
+            double x = unif(generator);
+            double y = unif(generator);
+
             if (x * x + y * y <= 1.0) {
                 result++;
             }
         }
     }
 
-    double pi = (4.0 * result) / iterations;
+    double pi = (4.0 * result) / ITERATIONS;
 
     if (abs(pi - 3.14) > 0.01) {
         printf("Low accuracy. Expected pi got %f\n", pi);
         return 1;
     } else {
-        printf("Calculated Pi as %.2f\n", pi);
+        printf("Calculated Pi as %.10f\n", pi);
         return 0;
     }
 }

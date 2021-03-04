@@ -55,9 +55,5 @@ omp_func(multi_pi multi_pi.cpp)
 omp_func(mt_pi mt_pi.cpp)
 omp_func(multi_cr multi_cr.cpp)
 
-if (CMAKE_SYSTEM_NAME STREQUAL "Wasm")
-    omp_func(stack_debug stack_debug.cpp)
-endif ()
-
 # Custom target for building all functions
 add_custom_target(omp_all_funcs DEPENDS ${ALL_OMP_FUNCS})
