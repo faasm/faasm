@@ -173,7 +173,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS("__kmpc_barrier {} {}", loc, globalTid);
 
     if (ctx.level->numThreads > 1) {
-        ctx.level->barrier->wait();
+        ctx.level->barrier.wait();
     }
 }
 
@@ -202,7 +202,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS("__kmpc_critical {} {} {}", loc, globalTid, crit);
 
     if (ctx.level->numThreads > 1) {
-        ctx.level->criticalSection.lock();
+        ctx.level->levelMutex.lock();
     }
 }
 
@@ -224,7 +224,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS("__kmpc_end_critical {} {} {}", loc, globalTid, crit);
 
     if (ctx.level->numThreads > 1) {
-        ctx.level->criticalSection.unlock();
+        ctx.level->levelMutex.unlock();
     }
 }
 
@@ -453,11 +453,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   chainedThreads[threadNum], callTimeoutMs);
                 returnCode = result.returnvalue();
             } catch (faabric::redis::RedisNoResponseException& ex) {
-                faabric::util::getLogger()->error(
-                  "Timed out waiting for chained call: {}",
-                  chainedThreads[threadNum]);
+                logger->error("Timed out waiting for chained call: {}",
+                              chainedThreads[threadNum]);
             } catch (std::exception& ex) {
-                faabric::util::getLogger()->error(
+                logger->error(
                   "Non-timeout exception waiting for chained call: {}",
                   ex.what());
             }
@@ -505,8 +504,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                   &argc,
                                   func,
                                   threadNum] {
-                auto logger = faabric::util::getLogger();
-
                 // We are now in a new thread so need to set up everything that
                 // uses TLS
                 setUpOpenMPContext(threadNum, nextLevel);
@@ -786,86 +783,84 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 loc,
                                I32 gtid)
 {
-    faabric::util::getLogger()->debug(
-      "S - __kmpc_for_static_fini {} {}", loc, gtid);
+    OMP_FUNC_ARGS("__kmpc_for_static_fini {} {}", loc, gtid);
 }
 
 // ---------------------------------------------------
 // REDUCTION
 // ---------------------------------------------------
 
-// Allows reduce return values. See __kmpc_reduce docs (at time of writing team
-// atomic not supported)
+// Allowed reduce return values.
+// The single thread value is only used when there's one thread.
+// Multi threads signifies that multiple threads are operating
+// We don't currently support atomic reduce, but it signifies that the final
+// reduction must be performed atomically.
 enum ReduceReturnValue
 {
-    NON_MASTER_THREAD = 0,
-    MASTER_THREAD = 1,
-    TEAM_ATMOIC = 2,
+    SINGLE_THREAD = 0,
+    MULTIPLE_THREADS = 1,
+    ATMOIC_REDUCE = 2,
 };
 
 /*
- * This method should return one of the reduce return values as listed in the
- * OpenMP source.
+ * This method should return one of the reduce return values as detailed above.
+ * AFAICT most of the arguments are not needed in our case.
+ *
+ * The reduction is performed by the master thread, so we must ensure that the
+ * other threads have finished before this takes place.
+ *
+ * To interrogate where intermediate results are stored, we can look at the
+ * reduce data and reduce func.
+ *
+ * The reduceFunc provides the reduction operation on two operands and returns
+ * the result in its first argument. The function is of type:
+ * void(*)(void *lhsData, void *rhsData)
+ *
+ * For more info, see OpenMP source at
+ * https://github.com/llvm/llvm-project/blob/main/openmp/runtime/src/kmp_csupport.cpp
  */
-int doReduce(I32 loc,
-             I32 gtid,
-             I32 numVars,
-             I32 reduceSize,
-             I32 reduceData,
-             I32 reduceFunc,
-             I32 lck)
+int reduceFinished()
 {
     auto logger = faabric::util::getLogger();
     auto ctx = getOpenMPContext();
 
-    int returnValue = MASTER_THREAD;
+    if (ctx.level->numThreads == 1) {
+        return SINGLE_THREAD;
+    }
+
+    // Notify the master thread that we've done our reduction
     if (ctx.threadNumber != 0) {
-        returnValue = NON_MASTER_THREAD;
+        ctx.level->masterWait(ctx.threadNumber);
     }
 
-    WAVMWasmModule* parentModule = getExecutingWAVMModule();
-    Runtime::Memory* memoryPtr = parentModule->defaultMemory;
-    Runtime::Function* func = parentModule->getFunctionFromPtr(reduceFunc);
-
-    U32* nativeArgs =
-      Runtime::memoryArrayPtr<U32>(memoryPtr, reduceData, reduceSize);
-
-    const IR::FunctionType funcType = Runtime::getFunctionType(func);
-
-    std::vector<IR::UntaggedValue> funcArgs;
-    for (int argIdx = 0; argIdx < reduceSize; argIdx++) {
-        funcArgs.emplace_back(nativeArgs[argIdx]);
-    }
-    IR::UntaggedValue result;
-
-    // Execute the reduce function
-    parentModule->executeFunction(func, funcType, funcArgs, result);
-
-    return returnValue;
+    return MULTIPLE_THREADS;
 }
 
 /**
- *  Called immediately after running the reduction section before exiting the
- * `reduce` construct.
+ *  Called to finish off a reduction.
+ *  In a nowait scenario, just the master calls this function (the other threads
+ *  have continued on).
  */
-void endReduction()
+void finaliseReduce(bool barrier)
 {
+    auto logger = faabric::util::getLogger();
+    auto ctx = getOpenMPContext();
 
+    // Master must make sure all other threads are done
+    if (ctx.threadNumber == 0) {
+        ctx.level->masterWait(ctx.threadNumber);
+
+        logger->debug("Master thread finished reduce");
+    }
+
+    // Everyone waits if there's a barrier
+    if (barrier) {
+        ctx.level->barrier.wait();
+    }
 }
 
 /**
  * A blocking reduce that includes an implicit barrier.
- * @param loc source location information
- * @param gtid global thread id
- * @param num_vars number of items (variables) to be reduced
- * @param reduce_size size of data in bytes to be reduced
- * @param reduce_data pointer to data to be reduced
- * @param reduce_func callback function providing reduction operation on two
- * operands and returning result of reduction in lhs_data. Of type void(*)(void
- * *lhs data, void *rhs data)
- * @param lck pointer to the unique lock data structure
- * @return 1 for the master thread, 0 for all other team threads, 2 for all team
- * threads if atomic reduction needed
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__kmpc_reduce",
@@ -877,7 +872,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 reduceSize,
                                I32 reduceData,
                                I32 reduceFunc,
-                               I32 lck)
+                               I32 lockPtr)
 {
     OMP_FUNC_ARGS("__kmpc_reduce {} {} {} {} {} {} {}",
                   loc,
@@ -886,26 +881,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceSize,
                   reduceData,
                   reduceFunc,
-                  lck);
+                  lockPtr);
 
-    return doReduce(
-      loc, gtid, numVars, reduceSize, reduceData, reduceFunc, lck);
+    return reduceFinished();
 }
 
 /**
- * The nowait version is used for a reduce clause with the nowait argument. Or
- * direct exit of parallel section.
- * @param loc source location information
- * @param gtid global thread id
- * @param num_vars number of items (variables) to be reduced
- * @param reduce_size size of data in bytes to be reduced
- * @param reduce_data pointer to data to be reduced
- * @param reduce_func callback function providing reduction operation on two
- * operands and returning result of reduction in lhs_data. Of type void(*)(void
- * *lhs_data, void *rhs_data)
- * @param lck pointer to the unique lock data structure
- * @return 1 for the master thread, 0 for all other team threads, 2 for all team
- * threads if atomic reduction needed
+ * The nowait version is used for a reduce clause with the nowait argument, or
+ * when the parallel section finished straight after the reduce.
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__kmpc_reduce_nowait",
@@ -917,7 +900,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 reduceSize,
                                I32 reduceData,
                                I32 reduceFunc,
-                               I32 lck)
+                               I32 lockPtr)
 {
     OMP_FUNC_ARGS("__kmpc_reduce_nowait {} {} {} {} {} {} {}",
                   loc,
@@ -926,18 +909,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceSize,
                   reduceData,
                   reduceFunc,
-                  lck);
+                  lockPtr);
 
-    return doReduce(
-      loc, gtid, numVars, reduceSize, reduceData, reduceFunc, lck);
+    return reduceFinished();
 }
 
 /**
- * Finish the execution of a blocking reduce. The lck pointer must be the same
- * as that used in the corresponding start function.
- * @param loc location info
- * @param gtid global thread id
- * @param lck kmp_critical_name* to the critical section.
+ * Finalises a blocking reduce, called by all threads.
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__kmpc_end_reduce",
@@ -949,15 +927,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     OMP_FUNC_ARGS("__kmpc_end_reduce {} {} {}", loc, gtid, lck);
 
-    endReduction();
+    finaliseReduce(true);
 }
 
 /**
- * Arguments similar to __kmpc_end_reduce. Finish the execution of a
- * reduce_nowait.
- * @param loc
- * @param gtid
- * @param lck
+ * Finalises a non-blocking reduce, called only by the master.
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__kmpc_end_reduce_nowait",
@@ -969,7 +943,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     OMP_FUNC_ARGS("__kmpc_end_reduce_nowait {} {} {}", loc, gtid, lck);
 
-    endReduction();
+    finaliseReduce(false);
 }
 
 // ----------------------------------------------

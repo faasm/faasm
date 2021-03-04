@@ -368,6 +368,15 @@ void WAVMWasmModule::addModuleToGOT(IR::Module& mod, bool isMainModule)
 
 void WAVMWasmModule::executeFunction(
   Runtime::Function* func,
+  const std::vector<IR::UntaggedValue>& arguments,
+  IR::UntaggedValue& result)
+{
+    const IR::FunctionType funcType = Runtime::getFunctionType(func);
+    executeFunction(func, funcType, arguments, result);
+}
+
+void WAVMWasmModule::executeFunction(
+  Runtime::Function* func,
   IR::FunctionType funcType,
   const std::vector<IR::UntaggedValue>& arguments,
   IR::UntaggedValue& result)

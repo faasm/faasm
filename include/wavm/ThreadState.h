@@ -35,16 +35,16 @@ class Level
     // Overrides wantedThreads
     int pushedThreads = -1;
 
-    // Only needed if numThreads > 1
-    std::unique_ptr<faabric::util::Barrier> barrier = {};
+    // Barrier for synchronization
+    faabric::util::Barrier barrier;
 
-    // Mutex used for reduction data
-    std::mutex reduceMutex;
+    // Mutex used for reductions and critical sections
+    std::recursive_mutex levelMutex;
 
-    // NOTE: this limits us to one lock for all critical sections at a level
-    std::mutex criticalSection;
-
-    Level() = default;
+    // Condition variable and count used for nowaits
+    int nowaitCount = 0;
+    std::mutex nowaitMutex;
+    std::condition_variable nowaitCv;
 
     // Local constructor
     Level(const std::shared_ptr<Level>& parent, int numThreadsIn);
@@ -56,6 +56,8 @@ class Level
           int numThreadsIn);
 
     int getMaxThreadsAtNextLevel() const;
+
+    void masterWait(int threadNum);
 };
 
 class OpenMPContext

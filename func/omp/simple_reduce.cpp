@@ -1,22 +1,29 @@
 #include <cstdio>
-#include <faasm/faasm.h>
 #include <omp.h>
 
 int main(int argc, char* argv[])
 {
     int count = 0;
 
-#pragma omp parallel for num_threads(5) default(none) reduction(+ : count)
-    for (int i = 0; i < 100; i++) {
+    // Note: Loop will be divided evenly among the threads
+    int chunkSize = 20;
+    int nThreads = 5;
+    int loopSize = nThreads * chunkSize;
+#pragma omp parallel for num_threads(5) default(none) shared(loopSize) reduction(+ : count)
+    for (int i = 0; i < loopSize; i++) {
         count += (omp_get_thread_num() + 1);
     }
 
-    int expected = 1 * 100 + 2 * 100 + 3 * 100 + 4 * 100 + 5 * 100;
+    int expected = 0;
+    for(int i = 0; i < nThreads; i++) {
+        expected += (i + 1) * chunkSize;
+    }
 
     if (count != expected) {
         printf("Failed reduce: expected %d, got %d\n", expected, count);
-        return EXIT_FAILURE;
+        return 1;
+    } else {
+        printf("Reduce as expected: %d\n", count);
+        return 0;
     }
-
-    return EXIT_SUCCESS;
 }

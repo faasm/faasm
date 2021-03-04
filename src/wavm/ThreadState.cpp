@@ -11,21 +11,18 @@ namespace wasm {
 
 OpenMPContext& getOpenMPContext()
 {
-    thread_local static OpenMPContext ctx;
+    static thread_local OpenMPContext ctx;
     return ctx;
 }
 
 Level::Level(const std::shared_ptr<Level>& parent, int numThreadsIn)
   : depth(parent->depth + 1)
   , activeLevels(numThreadsIn > 1 ? parent->activeLevels + 1
-                                    : parent->activeLevels)
+                                  : parent->activeLevels)
   , maxActiveLevels(parent->maxActiveLevels)
   , numThreads(numThreadsIn)
-{
-    if (numThreads > 1) {
-        barrier = std::make_unique<faabric::util::Barrier>(numThreads);
-    }
-}
+  , barrier(numThreadsIn)
+{}
 
 Level::Level(int depthIn,
              int activeLevelsIn,
@@ -35,11 +32,8 @@ Level::Level(int depthIn,
   , activeLevels(numThreadsIn > 1 ? activeLevelsIn + 1 : activeLevelsIn)
   , maxActiveLevels(maxActiveLevelsIn)
   , numThreads(numThreadsIn)
-{
-    if (numThreads > 1) {
-        barrier = std::make_unique<faabric::util::Barrier>(numThreads);
-    }
-}
+  , barrier(numThreadsIn)
+{}
 
 int Level::getMaxThreadsAtNextLevel() const
 {
@@ -60,6 +54,26 @@ int Level::getMaxThreadsAtNextLevel() const
 
     int defaultNumThreads = (int)faabric::util::getSystemConfig().maxNodes;
     return defaultNumThreads;
+}
+
+void Level::masterWait(int threadNum)
+{
+    // All threads must lock when entering this function
+    std::unique_lock<std::mutex> lock(nowaitMutex);
+
+    if (threadNum == 0) {
+        // Wait until all non-master threads have finished
+        while (nowaitCount < numThreads - 1) {
+            nowaitCv.wait(lock);
+        }
+
+        // Reset, after we've finished
+        nowaitCount = 0;
+    } else {
+        // Notify master that this thread has finished and continue
+        nowaitCount++;
+        nowaitCv.notify_one();
+    }
 }
 
 void setUpOpenMPContext(const int threadId, std::shared_ptr<Level>& level)
