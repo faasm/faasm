@@ -20,31 +20,23 @@ Level::Level(int numThreadsIn)
   , barrier(numThreadsIn)
 {}
 
-void Level::fromParentLevel(int parentDepth,
-                            int parentActiveLevels,
-                            int parentMaxActiveLevels)
-{
-    depth = parentDepth + 1;
-
-    if (numThreads > 1) {
-        activeLevels = parentActiveLevels + 1;
-    } else {
-        activeLevels = parentActiveLevels;
-    }
-
-    maxActiveLevels = parentMaxActiveLevels;
-}
-
 void Level::fromParentLevel(const std::shared_ptr<Level>& parent)
 {
-    return fromParentLevel(
-      parent->depth, parent->activeLevels, parent->maxActiveLevels);
+    depth = parent->depth + 1;
+
+    if (numThreads > 1) {
+        activeLevels = parent->activeLevels + 1;
+    } else {
+        activeLevels = parent->activeLevels;
+    }
+
+    maxActiveLevels = parent->maxActiveLevels;
 }
 
 int Level::getMaxThreadsAtNextLevel() const
 {
     // Limit to one thread if the next level exceededs max active levels
-    if (activeLevels > maxActiveLevels) {
+    if (activeLevels >= maxActiveLevels) {
         return 1;
     }
 
@@ -99,7 +91,9 @@ void setUpOpenMPContext(const faabric::Message& msg)
     int maxActiveLevels = std::max(msg.ompmal(), 1);
 
     auto level = std::make_shared<Level>(msg.ompnumthreads());
-    level->fromParentLevel(msg.ompdepth(), msg.ompeffdepth(), maxActiveLevels);
+    level->depth = msg.ompdepth();
+    level->activeLevels = msg.ompeffdepth();
+    level->maxActiveLevels = maxActiveLevels;
 
     ctx.level = level;
 }

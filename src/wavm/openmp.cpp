@@ -374,6 +374,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     std::shared_ptr<Level> parentLevel = ctx.level;
     int nextNumThreads = parentLevel->getMaxThreadsAtNextLevel();
 
+    // Set up the next level
+    auto nextLevel = std::make_shared<Level>(nextNumThreads);
+    nextLevel->fromParentLevel(parentLevel);
+
     // Spawn the threads
     auto conf = faabric::util::getSystemConfig();
     if (conf.threadMode == "remote") {
@@ -416,9 +420,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
             call.set_ompthreadnum(threadNum);
             call.set_ompnumthreads(nextNumThreads);
 
-            call.set_ompdepth(parentLevel->depth);
-            call.set_ompeffdepth(parentLevel->activeLevels);
-            call.set_ompmal(parentLevel->maxActiveLevels);
+            call.set_ompdepth(nextLevel->depth);
+            call.set_ompeffdepth(nextLevel->activeLevels);
+            call.set_ompmal(nextLevel->maxActiveLevels);
 
             sch.callFunction(call);
 
@@ -452,9 +456,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                 const faabric::Message result = sch.getFunctionResult(
                   chainedThreads[threadNum], callTimeoutMs);
                 returnCode = result.returnvalue();
+
             } catch (faabric::redis::RedisNoResponseException& ex) {
                 logger->error("Timed out waiting for chained call: {}",
                               chainedThreads[threadNum]);
+
             } catch (std::exception& ex) {
                 logger->error(
                   "Non-timeout exception waiting for chained call: {}",
@@ -479,10 +485,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         std::vector<U64> results;
         std::mutex resultMutex;
 
-        // Set up the next level on this machine
-        auto nextLevel = std::make_shared<Level>(nextNumThreads);
-        nextLevel->fromParentLevel(parentLevel);
-
         // Get pointers to shared variables in host memory
         U32* sharedVarsPtr = nullptr;
         if (argc > 0) {
@@ -491,7 +493,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         }
 
         // Execute threads locally
-        logger->debug("OMP {}: Spawning {} threads locally", ctx.threadNumber, nextNumThreads);
+        logger->debug("OMP {}: Spawning {} threads locally",
+                      ctx.threadNumber,
+                      nextNumThreads);
         for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
             // Be careful here what you pass in with a reference and what you
             // copy

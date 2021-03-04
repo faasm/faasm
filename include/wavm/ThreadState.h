@@ -45,21 +45,16 @@ class Level
 
     void fromParentLevel(const std::shared_ptr<Level>& parent);
 
-    void fromParentLevel(int parentDepth,
-                         int parentActiveLevels,
-                         int parentMaxActiveLevels);
-
     // Instance functions
     int getMaxThreadsAtNextLevel() const;
 
     void masterWait(int threadNum);
-    
+
   private:
     // Condition variable and count used for nowaits
     int nowaitCount = 0;
     std::mutex nowaitMutex;
     std::condition_variable nowaitCv;
-
 };
 
 class OpenMPContext

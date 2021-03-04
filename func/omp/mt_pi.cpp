@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <omp.h>
 #include <random>
- 
+
 #define ITERATIONS 100000
 #define N_THREADS 4
 
@@ -15,7 +15,7 @@ int main(int argc, char** argv)
 {
     long result = 0;
 
-#pragma omp parallel num_threads(N_THREADS) default(none) reduction(+:result)
+#pragma omp parallel num_threads(N_THREADS) default(none) reduction(+ : result)
     {
         std::uniform_real_distribution<double> unif(0, 1);
         std::mt19937_64 generator(threadSeed());

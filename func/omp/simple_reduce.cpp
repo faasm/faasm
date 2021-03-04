@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
     }
 
     int expected = 0;
-    for(int i = 0; i < nThreads; i++) {
+    for (int i = 0; i < nThreads; i++) {
         expected += (i + 1) * chunkSize;
     }
 

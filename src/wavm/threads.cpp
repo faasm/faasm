@@ -47,11 +47,7 @@ static size_t threadSnapshotSize;
  * See musl implementation.
  * https://github.com/faasm/wasi-libc/blob/faasm/libc-top-half/musl/src/stdio/__lockfile.c
  */
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "__lockfile",
-                               I32,
-                               __lockfile,
-                               I32 filePtr)
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__lockfile", I32, __lockfile, I32 filePtr)
 {
     faabric::util::getLogger()->debug("S - __lockfile {}", filePtr);
 
@@ -67,11 +63,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     faabric::util::getLogger()->debug("S - __unlockfile {}", filePtr);
 }
 
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "__lock",
-                               void,
-                               __lock,
-                               I32 ptr)
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__lock", void, __lock, I32 ptr)
 {
     faabric::util::getLogger()->debug("S - __lock {}", ptr);
 }

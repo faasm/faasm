@@ -53,11 +53,6 @@ TEST_CASE("Test non-nested master pragma", "[wasm][openmp]")
     doOmpTest("simple_master");
 }
 
-TEST_CASE("Test thread stack mapping", "[wasm][openmp]")
-{
-    doOmpTest("stack_debug");
-}
-
 TEST_CASE("Test simple reduction function", "[wasm][openmp]")
 {
     doOmpTest("simple_reduce");
