@@ -17,16 +17,16 @@ class Level
 {
   public:
     // Number of nested OpenMP constructs
-    const int depth = 0;
+    int depth = 0;
 
     // Number of parallel regions with more than 1 thread above this level
-    const int activeLevels = 0;
+    int activeLevels = 0;
 
-    // Max number of effective parallel regions allowed from the top
+    // Max number of active parallel regions allowed
     int maxActiveLevels = 1;
 
     // Number of threads of this level
-    const int numThreads = 1;
+    int numThreads = 1;
 
     // Desired number of thread set by omp_set_num_threads for all future levels
     int wantedThreads = -1;
@@ -41,23 +41,25 @@ class Level
     // Mutex used for reductions and critical sections
     std::recursive_mutex levelMutex;
 
+    Level(int numThreadsIn);
+
+    void fromParentLevel(const std::shared_ptr<Level>& parent);
+
+    void fromParentLevel(int parentDepth,
+                         int parentActiveLevels,
+                         int parentMaxActiveLevels);
+
+    // Instance functions
+    int getMaxThreadsAtNextLevel() const;
+
+    void masterWait(int threadNum);
+    
+  private:
     // Condition variable and count used for nowaits
     int nowaitCount = 0;
     std::mutex nowaitMutex;
     std::condition_variable nowaitCv;
 
-    // Local constructor
-    Level(const std::shared_ptr<Level>& parent, int numThreadsIn);
-
-    // Distributed constructor
-    Level(int depth,
-          int activeLevelsIn,
-          int maxActiveLevelsIn,
-          int numThreadsIn);
-
-    int getMaxThreadsAtNextLevel() const;
-
-    void masterWait(int threadNum);
 };
 
 class OpenMPContext
@@ -72,6 +74,5 @@ OpenMPContext& getOpenMPContext();
 
 void setUpOpenMPContext(const faabric::Message& msg);
 
-void setUpOpenMPContext(const int threadId, std::shared_ptr<Level> &level);
-
+void setUpOpenMPContext(int threadNum, std::shared_ptr<Level>& level);
 }

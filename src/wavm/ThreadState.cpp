@@ -15,30 +15,36 @@ OpenMPContext& getOpenMPContext()
     return ctx;
 }
 
-Level::Level(const std::shared_ptr<Level>& parent, int numThreadsIn)
-  : depth(parent->depth + 1)
-  , activeLevels(numThreadsIn > 1 ? parent->activeLevels + 1
-                                  : parent->activeLevels)
-  , maxActiveLevels(parent->maxActiveLevels)
-  , numThreads(numThreadsIn)
+Level::Level(int numThreadsIn)
+  : numThreads(numThreadsIn)
   , barrier(numThreadsIn)
 {}
 
-Level::Level(int depthIn,
-             int activeLevelsIn,
-             int maxActiveLevelsIn,
-             int numThreadsIn)
-  : depth(depthIn + 1)
-  , activeLevels(numThreadsIn > 1 ? activeLevelsIn + 1 : activeLevelsIn)
-  , maxActiveLevels(maxActiveLevelsIn)
-  , numThreads(numThreadsIn)
-  , barrier(numThreadsIn)
-{}
+void Level::fromParentLevel(int parentDepth,
+                            int parentActiveLevels,
+                            int parentMaxActiveLevels)
+{
+    depth = parentDepth + 1;
+
+    if (numThreads > 1) {
+        activeLevels = parentActiveLevels + 1;
+    } else {
+        activeLevels = parentActiveLevels;
+    }
+
+    maxActiveLevels = parentMaxActiveLevels;
+}
+
+void Level::fromParentLevel(const std::shared_ptr<Level>& parent)
+{
+    return fromParentLevel(
+      parent->depth, parent->activeLevels, parent->maxActiveLevels);
+}
 
 int Level::getMaxThreadsAtNextLevel() const
 {
-    // Limit to one thread if we have exceeded maximum parallelism depth
-    if ((maxActiveLevels > 0) && (activeLevels >= maxActiveLevels)) {
+    // Limit to one thread if the next level exceededs max active levels
+    if (activeLevels > maxActiveLevels) {
         return 1;
     }
 
@@ -76,20 +82,25 @@ void Level::masterWait(int threadNum)
     }
 }
 
-void setUpOpenMPContext(const int threadId, std::shared_ptr<Level>& level)
+void setUpOpenMPContext(const int threadNum, std::shared_ptr<Level>& thisLevel)
 {
     OpenMPContext& ctx = getOpenMPContext();
-    ctx.threadNumber = threadId;
-    ctx.level = level;
+    ctx.threadNumber = threadNum;
+    ctx.level = thisLevel;
 }
 
 void setUpOpenMPContext(const faabric::Message& msg)
 {
     OpenMPContext& ctx = getOpenMPContext();
-
-    ctx.level = std::make_shared<Level>(
-      msg.ompdepth(), msg.ompeffdepth(), msg.ompmal(), msg.ompnumthreads());
-
     ctx.threadNumber = msg.ompthreadnum();
+
+    // Floor max active levels at 1 for a message. Max active levels of zero
+    // disables parallel code.
+    int maxActiveLevels = std::max(msg.ompmal(), 1);
+
+    auto level = std::make_shared<Level>(msg.ompnumthreads());
+    level->fromParentLevel(msg.ompdepth(), msg.ompeffdepth(), maxActiveLevels);
+
+    ctx.level = level;
 }
 }

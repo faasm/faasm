@@ -1,165 +1,175 @@
 /**
  * Checks a few invariants of nested levels.
+ *
  * The functions apply at the device level and the active level between the two
- * is therefore independent. This example code does not test for multiple
- * devices but rather look at reproducing the behaviour of clang which can be
- * summed up that way: A level l is allowed parallelism if max_active_level >=
- * l. The initial region level is 1, and max_active_level has LB 0 which means
- * the first region can also be disabled that way and is not special in any
- * aspect compared to the rest.
+ * is therefore independent.
+ *
+ * This example code does not test for multiple devices but rather looks at
+ * reproducing the behaviour of clang.
+ *
+ * Level L is allowed parallelism if max_active_level >= L.
+ * The initial region level is 1, and max_active_level can be set to zero,
+ * which means the first region can also be disabled.
  */
 #include <cstdio>
 #include <omp.h>
 
-bool level1_failed = false;
-bool level2_failed = false;
-bool level3_failed = false;
+bool levelOneFailed = false;
+bool levelTwoFailed = false;
+bool levelThreeFailed = false;
 
-bool is_nested()
+bool isNested()
 {
     return omp_get_max_active_levels() > 1;
 }
 
 // Should run at 1 thread the first time (since upper level is running in
-// parallel and nested isn't enabled), then in // with nesting enabled
-int level3()
+// parallel and nested isn't enabled), then in parallel with nesting enabled
+int levelThree()
 {
-
     int previousLevel = omp_get_level();
     if (previousLevel != 2) {
         printf("Starting level 3: previous level failure, expected 2, got %d\n",
                previousLevel);
-        level3_failed = true;
+        levelThreeFailed = true;
     }
 
-    int r = 0;
-    const int maxThreadForLevel = 3;
-    int n; // actual number of threads that will run
-    int nested = is_nested();
+    int returnValue = 0;
+    const int nParallel = 3;
+
+    // Actual number of threads that will run
+    int expectedThreads;
+    int nested = isNested();
     if (nested) {
-        n = maxThreadForLevel;
+        expectedThreads = nParallel;
     } else {
-        n = 1;
+        expectedThreads = 1;
     }
-    bool checkAllRun[maxThreadForLevel] = { false, false, false };
 
-#pragma omp parallel for num_threads(3) default(none)                          \
-  shared(r, n, checkAllRun, level3_failed)
+    bool runFlags[nParallel] = { false, false, false };
+
+#pragma omp parallel for num_threads(nParallel) default(none)                  \
+  shared(returnValue, expectedThreads, runFlags, levelThreeFailed)
     for (int i = 0; i < 3; i++) {
         int levelThreads = omp_get_num_threads();
-        if (levelThreads != n) {
+
+        // Check we have the expected number of threads
+        if (levelThreads != expectedThreads) {
             printf("In level 3: failed get_num_threads, expected %d, got %d\n",
-                   n,
+                   expectedThreads,
                    levelThreads);
-            level3_failed = true;
+            levelThreeFailed = true;
         }
 
         int threadNum = omp_get_thread_num();
-        if (threadNum < 0 || n <= threadNum) {
+        if (threadNum < 0 || threadNum > expectedThreads) {
             printf("In level 3: failed get_thread_num, expected something < "
                    "%d, got %d\n",
-                   n,
+                   expectedThreads,
                    threadNum);
-            level3_failed = true;
+            levelThreeFailed = true;
         }
 
         int currentLevel = omp_get_level();
         if (currentLevel != 3) {
             printf("In level 3: level failure, expected 3, got %d\n",
                    currentLevel);
-            level3_failed = true;
+            levelThreeFailed = true;
         }
 
-        checkAllRun[threadNum] = true; // mark this thread number as "has ran"
+        // Record that this threads was successful
+        runFlags[threadNum] = true;
 
 #pragma omp atomic
-        r += 3;
+        returnValue += 3;
     }
 
-    // Checks every thread has ran
-    for (int i = 0; i < n; i++) {
-        if (!checkAllRun[i]) {
+    // Checks every thread has run
+    for (int i = 0; i < expectedThreads; i++) {
+        if (!runFlags[i]) {
             printf("In level 3: thread  %d didn't synchronise or start "
                    "appropriately\n",
                    i);
-            level3_failed = true;
+            levelThreeFailed = true;
         }
     }
 
-    return r;
+    return returnValue;
 }
 
 // Should always be fully parallel: since the first section is initially
 // sequential, and then allows for nested
-int level2()
+int levelTwo()
 {
-
     int previousLevel = omp_get_level();
+
     if (previousLevel != 1) {
         printf("Starting level 2: previous level failure, expected 1, got %d\n",
                previousLevel);
-        level2_failed = true;
+        levelTwoFailed = true;
     }
 
-    int r = 0;
-    const int n = 2;
-    const bool nested = is_nested(); // 0 then 1
+    int returnValue = 0;
+    const int expectedThreads = 2;
 
-    bool checkAllRun[n] = { false, false };
+    const bool nested = isNested();
 
-#pragma omp parallel for num_threads(n) default(none)                          \
-  shared(r, checkAllRun, n, level2_failed, nested)
+    bool checkAllRun[expectedThreads] = { false, false };
+
+#pragma omp parallel for num_threads(expectedThreads) default(none)            \
+  shared(returnValue, checkAllRun, expectedThreads, levelTwoFailed, nested)
     for (int i = 0; i < 2; i++) {
 
-        if (nested != is_nested()) {
+        if (nested != isNested()) {
             printf("In level 2, did not inherit the nested value of the parent "
                    "of %d\n",
                    nested);
-            level2_failed = true;
+            levelTwoFailed = true;
         }
 
         int levelThreads = omp_get_num_threads();
-        if (levelThreads != n) {
+        if (levelThreads != expectedThreads) {
             printf("In level 2: failed get_num_threads, expected %d, got %d "
                    "with nested %d, upper nested %d\n",
-                   n,
+                   expectedThreads,
                    levelThreads,
-                   is_nested(),
+                   isNested(),
                    nested);
-            level2_failed = true;
+            levelTwoFailed = true;
         }
 
         int threadNum = omp_get_thread_num();
-        if (threadNum < 0 || n <= threadNum) {
+        if (threadNum < 0 || expectedThreads <= threadNum) {
             printf("In level 2: failed get_thread_num, expected something < "
                    "%d, got %d\n",
-                   n,
+                   expectedThreads,
                    threadNum);
-            level2_failed = true;
+            levelTwoFailed = true;
         }
 
         int currentLevel = omp_get_level();
         if (currentLevel != 2) {
-            printf("In level 3: level failure, expected 2, got %d\n",
+            printf("In level 2: level failure, expected 2, got %d\n",
                    currentLevel);
-            level2_failed = true;
+            levelTwoFailed = true;
         }
 
         checkAllRun[threadNum] = true;
 
-        r += level3();
+        // Run level three
+        returnValue += levelThree();
     }
 
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < expectedThreads; i++) {
         if (!checkAllRun[i]) {
-            printf("In level 2: thread  %d didn't synchronise or start "
+            printf("In level 2: thread %d didn't synchronise or start "
                    "appropriately\n",
                    i);
-            level2_failed = true;
+            levelTwoFailed = true;
         }
     }
 
-    return r;
+    return returnValue;
 }
 
 int main()
@@ -171,25 +181,29 @@ int main()
     // omp_get_level Default used to be MaxInt
     activeLevels = omp_get_max_active_levels();
     if (activeLevels != 1) {
-        printf("Nested levels should be off by default, got %d\n",
+        printf("Nested levels should be 1 by default, got %d\n",
                activeLevels);
         return EXIT_FAILURE;
     }
 
-    omp_set_max_active_levels(0); // Essentially Disable OpenMP
+    // Disable parallel regions
+    omp_set_max_active_levels(0);
+
 #pragma omp parallel num_threads(4) default(none) shared(val3)
     {
 #pragma omp atomic
         val3 += omp_get_thread_num();
     }
+
     if (val3 != 0) {
-        printf("Nested levels of 0 means no parallel code\n");
+        printf("Value should still be zero, as parallel should be blocked\n");
         return EXIT_FAILURE;
     }
 
     omp_set_max_active_levels(100);
     omp_set_max_active_levels(-30);
-    activeLevels = omp_get_max_active_levels();
+
+    activeLevels = omp_get_max_active_levels();    
     if (activeLevels != 100) {
         printf("Nested should ignore negative numbers\n");
         return EXIT_FAILURE;
@@ -202,7 +216,7 @@ int main()
     {
 #pragma omp for
         for (int i = 0; i < 2; i++) {
-            val1 += level2();
+            val1 += levelTwo();
         }
     }
 
@@ -216,13 +230,13 @@ int main()
 #pragma omp for
         for (int i = 0; i < 2; i++) {
 #pragma omp atomic
-            val2 += level2();
+            val2 += levelTwo();
         }
     }
 
     if (val1 != val2) {
         printf("Something has gone wrong: val1 %d. val2 %d\n", val1, val2);
-        level1_failed = true;
+        levelOneFailed = true;
     }
 
     activeLevels = omp_get_max_active_levels();
@@ -230,7 +244,7 @@ int main()
         printf("Nested levels should not have changed. Expected %d got %d\n",
                manyLevels,
                activeLevels);
-        level1_failed = true;
+        levelOneFailed = true;
     }
-    return level1_failed || level2_failed || level3_failed;
+    return levelOneFailed || levelTwoFailed || levelThreeFailed;
 }

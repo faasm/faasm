@@ -371,24 +371,22 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     Runtime::Function* func = parentModule->getFunctionFromPtr(microtaskPtr);
 
     // Set up number of threads for next level
-    int nextNumThreads = ctx.level->getMaxThreadsAtNextLevel();
+    std::shared_ptr<Level> parentLevel = ctx.level;
+    int nextNumThreads = parentLevel->getMaxThreadsAtNextLevel();
 
-    // Reset for next push as the decision has now been made
-    ctx.level->pushedThreads = -1;
-
+    // Spawn the threads
     auto conf = faabric::util::getSystemConfig();
     if (conf.threadMode == "remote") {
         std::vector<int> chainedThreads;
         chainedThreads.reserve(nextNumThreads);
 
+        // Take memory snapshot
         std::string activeSnapshotKey;
         size_t threadSnapshotSize;
 
         uint32_t snapshotId = faabric::util::generateGid();
         activeSnapshotKey = fmt::format("fork_{}", snapshotId);
         threadSnapshotSize = parentModule->snapshotToState(activeSnapshotKey);
-
-        faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
 
         const faabric::Message* originalCall = getExecutingCall();
         const std::string origStr =
@@ -398,6 +396,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
           Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
 
         // Make the chained calls
+        auto& sch = faabric::scheduler::getScheduler();
         for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
             faabric::Message call = faabric::util::messageFactory(
               originalCall->user(), originalCall->function());
@@ -416,14 +415,15 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
             call.set_ompthreadnum(threadNum);
             call.set_ompnumthreads(nextNumThreads);
-            call.set_ompdepth(ctx.level->depth);
-            call.set_ompeffdepth(ctx.level->activeLevels);
-            call.set_ompmal(ctx.level->maxActiveLevels);
+
+            call.set_ompdepth(parentLevel->depth);
+            call.set_ompeffdepth(parentLevel->activeLevels);
+            call.set_ompmal(parentLevel->maxActiveLevels);
+
+            sch.callFunction(call);
 
             const std::string chainedStr =
               faabric::util::funcToString(call, false);
-            sch.callFunction(call);
-
             logger->debug("Forked thread {} ({}) -> {} {}(*{}) ({})",
                           origStr,
                           faabric::util::getSystemConfig().endpointHost,
@@ -474,14 +474,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         logger->debug("Distributed OpenMP threads finished successfully");
 
     } else if (conf.threadMode == "local") {
-
-        // Set up new level
-        auto nextLevel = std::make_shared<Level>(ctx.level, nextNumThreads);
-
         std::vector<std::thread> threads;
 
         std::vector<U64> results;
         std::mutex resultMutex;
+
+        // Set up the next level on this machine
+        auto nextLevel = std::make_shared<Level>(nextNumThreads);
+        nextLevel->fromParentLevel(parentLevel);
 
         // Get pointers to shared variables in host memory
         U32* sharedVarsPtr = nullptr;
@@ -491,6 +491,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         }
 
         // Execute threads locally
+        logger->debug("OMP {}: Spawning {} threads locally", ctx.threadNumber, nextNumThreads);
         for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
             // Be careful here what you pass in with a reference and what you
             // copy
@@ -535,6 +536,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                 results.push_back(threadResult);
             });
         }
+
+        // Reset parent level for next setting of threads
+        parentLevel->pushedThreads = -1;
 
         // Await thread completion
         for (auto& t : threads) {
