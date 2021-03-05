@@ -35,40 +35,6 @@ static size_t threadSnapshotSize;
 // Map of file mutexes
 
 // ---------------------------------------------
-// LIBC THREADING
-// ---------------------------------------------
-
-/*
- * Locks the given file pointer and returns 1 if an unlock is needed, otherwise
- * zero.
- *
- * Must also be reentrant.
- *
- * See musl implementation.
- * https://github.com/faasm/wasi-libc/blob/faasm/libc-top-half/musl/src/stdio/__lockfile.c
- */
-WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__lockfile", I32, __lockfile, I32 filePtr)
-{
-    faabric::util::getLogger()->debug("S - __lockfile {}", filePtr);
-
-    return 1;
-}
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "__unlockfile",
-                               void,
-                               __unlockfile,
-                               I32 filePtr)
-{
-    faabric::util::getLogger()->debug("S - __unlockfile {}", filePtr);
-}
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__lock", void, __lock, I32 ptr)
-{
-    faabric::util::getLogger()->debug("S - __lock {}", ptr);
-}
-
-// ---------------------------------------------
 // PTHREADS
 // ---------------------------------------------
 
