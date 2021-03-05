@@ -1,5 +1,4 @@
 #include "WAVMWasmModule.h"
-#include "faabric/util/locks.h"
 #include "syscalls.h"
 
 #include <faabric/util/bytes.h>

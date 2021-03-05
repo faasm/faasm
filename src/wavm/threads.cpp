@@ -32,8 +32,6 @@ static thread_local std::unordered_map<I32, unsigned int> chainedThreads;
 static std::string activeSnapshotKey;
 static size_t threadSnapshotSize;
 
-// Map of file mutexes
-
 // ---------------------------------------------
 // PTHREADS
 // ---------------------------------------------
