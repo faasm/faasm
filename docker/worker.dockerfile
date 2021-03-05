@@ -19,5 +19,5 @@ RUN groupadd -g 1000 faasm
 RUN useradd -u 1000 -g 1000 faasm
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD "/build/faasm/bin/pool_runner"
+CMD "LD_LIBRARY_PATH=/usr/local/lib /build/faasm/bin/pool_runner"
 
