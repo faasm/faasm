@@ -1,8 +1,9 @@
 #!/bin/bash
 
-FUNC_HEADER=$(kn service describe faasm-worker -o url -n faasm | cut -c 8-)
 
 set -e
+
+KNATIVE_HOST=$(kn service describe faasm-worker -o url -n faasm | cut -c 8-)
 
 function service_ip {
     local svc_ns=$1
@@ -44,5 +45,6 @@ echo "invoke_host = ${ISTIO_IP}"
 echo "invoke_port = ${ISTIO_PORT}"
 echo "upload_host = ${UPLOAD_IP}"
 echo "upload_port = ${UPLOAD_PORT}"
+echo "knative_host = ${KNATIVE_HOST}"
 echo ""
 
