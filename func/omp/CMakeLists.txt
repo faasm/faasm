@@ -38,7 +38,7 @@ omp_func(simple_single simple_single.cpp)
 omp_func(simple_reduce simple_reduce.cpp)
 omp_func(nested_parallel nested_parallel.cpp)
 omp_func(custom_reduce custom_reduce.cpp)
-omp_func(pi_calculation pi_calculation.cpp)
+omp_func(mt_pi mt_pi.cpp)
 omp_func(reduction_integral reduction_integral.cpp)
 omp_func(setting_num_threads setting_num_threads.cpp)
 omp_func(reduction_average reduction_average.cpp)
@@ -48,12 +48,6 @@ omp_func(simple_critical simple_critical.cpp)
 omp_func(intel_nstreams intel_nstreams.cpp)
 omp_func(intel_synch_p2p intel_synch_p2p.cpp)
 omp_func(intel_transpose intel_transpose.cpp)
-
-# Multi host and experiments
-omp_func(multi_sum multi_sum.cpp)
-omp_func(multi_pi multi_pi.cpp)
-omp_func(mt_pi mt_pi.cpp)
-omp_func(multi_cr multi_cr.cpp)
 
 # Custom target for building all functions
 add_custom_target(omp_all_funcs DEPENDS ${ALL_OMP_FUNCS})
