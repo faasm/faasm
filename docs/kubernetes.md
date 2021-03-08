@@ -59,10 +59,7 @@ kubectl get pods -n knative-serving
 
 If you are running a local cluster or one on AKS, you will have to update the `externalIPs`
 field in the `upload-service.yml`.
-You can query it with:
-```bash
-./bin/knative_route.sh
-```
+You can query it with `./bin/knative_route.sh` (it corresponds to `invoke_host`)
 
 ### Faasm
 

@@ -30,7 +30,7 @@ UPLOAD_PORT=8002
 echo ""
 echo "-----        Invoke        -----"
 echo ""
-echo "curl -H 'Host: ${FUNC_HEADER}' http://${ISTIO_IP}"
+echo "curl -H 'Host: ${KNATIVE_HOST}' http://${ISTIO_IP}"
 
 echo ""
 echo "-----        Upload        -----"
