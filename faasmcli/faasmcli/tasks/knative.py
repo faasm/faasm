@@ -13,7 +13,7 @@ BARE_METAL_REMOTE_CONF = join(K8S_DIR, "bare-metal-remote")
 LOCAL_CONF = join(K8S_DIR, "local")
 COMMON_CONF = join(K8S_DIR, "common")
 
-KNATIVE_VERSION = "0.13.0"
+KNATIVE_VERSION = "0.21.0"
 
 # Number of replicas in the Faasm worker pod
 DEFAULT_REPLICAS = 4
@@ -238,15 +238,40 @@ def _deploy_knative_fn(
 
 @task
 def install(ctx):
+    """
+    Install knative on an existing k8s cluster
+    """
     specs = [
-        "serving-crds.yaml",
-        "serving-core.yaml",
-        "serving-istio.yaml",
+        ["knative/serving", "serving-crds.yaml"],
+        ["knative/serving", "serving-core.yaml"],
+        ["knative/net-istio", "istio.yaml"],
+        ["knative/net-istio", "net-istio.yaml"],
+        ["knative/serving", "serving-default-domain.yaml"],
     ]
 
     for s in specs:
         _kubectl_apply(
-            "https://github.com/knative/serving/releases/download/v{}/{}".format(
-                KNATIVE_VERSION, s
+            "https://github.com/{}/releases/download/v{}/{}".format(
+                s[0], KNATIVE_VERSION, s[1]
+            )
+        )
+
+
+@task
+def uninstall(ctx):
+    """
+    Uninstall knative from an existing k8s cluster
+    """
+    specs = [
+        ["knative/net-istio", "net-istio.yaml"],
+        ["knative/net-istio", "istio.yaml"],
+        ["knative/serving", "serving-core.yaml"],
+        ["knative/serving", "serving-crds.yaml"],
+    ]
+
+    for s in specs:
+        _kubectl_delete(
+            "https://github.com/{}/releases/download/v{}/{}".format(
+                s[0], KNATIVE_VERSION, s[1]
             )
         )

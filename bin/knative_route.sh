@@ -1,6 +1,6 @@
 #!/bin/bash
 
-FUNC_HEADER=faasm-worker.faasm.example.com
+FUNC_HEADER=$(kn service describe faasm-worker -o url -n faasm | cut -c 8-)
 
 set -e
 
