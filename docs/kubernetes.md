@@ -30,21 +30,10 @@ To set up Faasm on [GKE](https://console.cloud.google.com/kubernetes) you can do
 To set up Faasm on AKS, you can do the following:
 - Set up an account and install the [`az`](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) client.
 - Create a resource group with sufficient quota.
-- Run:
-```bash
-az aks create \
-    --resource-group <YOUR_RESOURCE_GROUP> \
-    --name <CLUSTER_NAME> \
-    --node-count <CLUSTER_NODE_COUNT> \
-    --node-vm-size <VM_SIZE> \
-    --generate-ssh-keys
-```
-- Lastly, to update your local config run:
-```bash
-az aks get-credentials \
-    --resource-group <YOUR_RESOURCE_GROUP> \
-    --name <CLUSTER_NAME>
-```
+- Create an AKS cluster under said resource group.
+- Aim for >=4 nodes with more than one vCPU
+- Set up the local `kubectl` via the `get credentials` command
+- Install Knative as described below
 
 ### Bare metal
 
@@ -72,7 +61,7 @@ If you are running a local cluster or one on AKS, you will have to update the `e
 field in the `upload-service.yml`.
 You can query it with:
 ```bash
-kubectl get svc istio-ingressgateway -n istio-system -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
+./bin/knative_route.sh
 ```
 
 ### Faasm
