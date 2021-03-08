@@ -37,4 +37,3 @@ def get_knative_headers():
     host = _get_config_value("KNATIVE_HOST", "knative_host", "example.com")
 
     return {"Host": "{}".format(host)}
-
