@@ -13,8 +13,10 @@ POLL_INTERVAL_MS = 1000
 
 def _get_knative_headers(func_name):
     func_name = func_name.replace("_", "-")
+    cmd = "kn service describe faasm-{} -o url -n faasm".format(func_name)
+    url = check_output(cmd, shell=True).decode("utf-8").strip()[7:]
 
-    return {"Host": "faasm-{}.faasm.example.com".format(func_name)}
+    return {"Host": "{}".format(url)}
 
 
 def _do_invoke(user, func, host, port, func_type, input=None):
