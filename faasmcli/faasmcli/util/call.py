@@ -2,19 +2,13 @@ from time import sleep
 
 from faasmcli.util.env import PYTHON_USER, PYTHON_FUNC, FAABRIC_MSG_TYPE_FLUSH
 from faasmcli.util.http import do_post
-from faasmcli.util.endpoints import get_invoke_host_port
+from faasmcli.util.endpoints import get_invoke_host_port, get_knative_headers
 
 STATUS_SUCCESS = "SUCCESS"
 STATUS_FAILED = "FAILED"
 STATUS_RUNNING = "RUNNING"
 
 POLL_INTERVAL_MS = 1000
-
-
-def _get_knative_headers(func_name):
-    func_name = func_name.replace("_", "-")
-
-    return {"Host": "faasm-{}.faasm.example.com".format(func_name)}
 
 
 def _do_invoke(user, func, host, port, func_type, input=None):
@@ -122,7 +116,7 @@ def invoke_impl(
 
     # Knative must pass custom headers
     if knative:
-        headers = _get_knative_headers("worker")
+        headers = get_knative_headers()
     else:
         headers = {}
 
@@ -179,6 +173,6 @@ def _do_single_call(host, port, msg, quiet):
         url += ":{}/".format(port)
 
     # If wasm, can always use the faasm worker for getting status
-    headers = _get_knative_headers("worker")
+    headers = get_knative_headers()
 
     return do_post(url, msg, headers=headers, quiet=quiet, json=True)

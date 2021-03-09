@@ -31,3 +31,9 @@ def get_invoke_host_port():
     port = _get_config_value("INVOKE_PORT", "invoke_port", 8080)
 
     return host, port
+
+
+def get_knative_headers():
+    host = _get_config_value("KNATIVE_HOST", "knative_host", "example.com")
+
+    return {"Host": "{}".format(host)}

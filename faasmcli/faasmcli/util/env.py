@@ -30,7 +30,7 @@ FAASM_INSTALL_DIR = "/usr/local"
 
 FAASM_BUILD_DIR = _get_dir("FAASM_BUILD_DIR", "/build/faasm")
 
-FAASM_CONFIG_FILE = join(FAASM_HOME, "faasm.ini")
+FAASM_CONFIG_FILE = join(PROJ_ROOT, "faasm.ini")
 
 BENCHMARK_BUILD = join(HOME_DIR, "faasm", "bench")
 RESULT_DIR = join(FAASM_HOME, "results")

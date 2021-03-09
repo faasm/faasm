@@ -25,6 +25,16 @@ To set up Faasm on [GKE](https://console.cloud.google.com/kubernetes) you can do
 - Check things are working by running `kubectl get nodes`
 - Install Knative serving as described below
 
+### Azure Kubernetes Service
+
+To set up Faasm on AKS, you can do the following:
+- Set up an account and install the [`az`](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) client.
+- Create a resource group with sufficient quota.
+- Create an AKS cluster under said resource group.
+- Aim for >=4 nodes with more than one vCPU
+- Set up the local `kubectl` via the `get credentials` command
+- Install Knative as described below
+
 ### Bare metal
 
 If you're deploying on a bare-metal cluster then you need to update the `externalIPs` 
@@ -45,7 +55,11 @@ inv knative.install
 
 # Check
 kubectl get pods -n knative-serving
-```  
+```
+
+If you are running a local cluster or one on AKS, you will have to update the `externalIPs`
+field in the `upload-service.yml`.
+You can query it with `./bin/knative_route.sh` (it corresponds to `invoke_host`)
 
 ### Faasm
 
