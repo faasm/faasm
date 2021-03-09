@@ -1,4 +1,5 @@
 #include "WAVMWasmModule.h"
+#include "faabric/util/logging.h"
 #include "syscalls.h"
 
 #include <linux/futex.h>
@@ -15,7 +16,7 @@ using namespace WAVM;
 namespace wasm {
 struct PThreadArgs
 {
-    wasm::WAVMWasmModule* parentModule;
+    WAVMWasmModule* parentModule;
     faabric::Message* parentCall;
     WasmThreadSpec* spec;
 };
@@ -31,12 +32,17 @@ static thread_local std::unordered_map<I32, unsigned int> chainedThreads;
 static std::string activeSnapshotKey;
 static size_t threadSnapshotSize;
 
+// ---------------------------------------------
+// PTHREADS
+// ---------------------------------------------
+
 I64 createPthread(void* threadSpecPtr)
 {
-    // Set up TLS for this thread
     auto pArg = reinterpret_cast<PThreadArgs*>(threadSpecPtr);
+
     setExecutingModule(pArg->parentModule);
     setExecutingCall(pArg->parentCall);
+
     I64 res = getExecutingWAVMModule()->executeThreadLocally(*pArg->spec);
 
     // Delete the spec, no longer needed
@@ -194,6 +200,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     faabric::util::getLogger()->debug("S - pthread_exit - {}", code);
 }
 
+// ----------------------------------------------
+// FUTEX
+// ----------------------------------------------
+
 I32 s__futex(I32 uaddrPtr,
              I32 futex_op,
              I32 val,
@@ -248,7 +258,7 @@ I32 s__futex(I32 uaddrPtr,
 
 /*
  * --------------------------
- * Stubbed
+ * STUBBED PTHREADS
  * --------------------------
  */
 

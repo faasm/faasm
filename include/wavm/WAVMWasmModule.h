@@ -2,21 +2,19 @@
 
 #include <wasm/WasmModule.h>
 #include <wavm/LoadedDynamicModule.h>
+#include <wavm/ThreadState.h>
 
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Linker.h>
 #include <WAVM/Runtime/Runtime.h>
 
 namespace wasm {
+
 WAVM_DECLARE_INTRINSIC_MODULE(env)
 
 WAVM_DECLARE_INTRINSIC_MODULE(wasi)
 
 struct WasmThreadSpec;
-
-namespace openmp {
-class PlatformThreadPool;
-}
 
 std::vector<uint8_t> wavmCodegen(std::vector<uint8_t>& wasmBytes,
                                  const std::string& fileName);
@@ -83,6 +81,10 @@ class WAVMWasmModule final
                          const std::vector<WAVM::IR::UntaggedValue>& arguments,
                          WAVM::IR::UntaggedValue& result);
 
+    void executeFunction(WAVM::Runtime::Function* func,
+                         const std::vector<WAVM::IR::UntaggedValue>& arguments,
+                         WAVM::IR::UntaggedValue& result);
+
     void writeArgvToMemory(uint32_t wasmArgvPointers,
                            uint32_t wasmArgvBuffer) override;
 
@@ -128,8 +130,6 @@ class WAVMWasmModule final
     int getDataOffsetFromGOT(const std::string& name);
 
     uint32_t allocateThreadStack();
-
-    std::unique_ptr<openmp::PlatformThreadPool>& getOMPPool();
 
   protected:
     void doSnapshot(std::ostream& outStream) override;
@@ -188,10 +188,6 @@ class WAVMWasmModule final
       WAVM::Runtime::Instance* module);
 
     void executeRemoteOMP(faabric::Message& msg);
-
-    void prepareOpenMPContext(const faabric::Message& msg);
-
-    std::unique_ptr<openmp::PlatformThreadPool> OMPPool;
 
     uint32_t createMemoryGuardRegion();
 };

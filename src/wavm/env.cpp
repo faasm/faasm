@@ -161,7 +161,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getppid", I32, getppid)
 I32 s__exit(I32 a, I32 b)
 {
     faabric::util::getLogger()->debug("S - exit - {} {}", a, b);
-    throw(wasm::WasmExitException(a));
+    throw(WasmExitException(a));
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
@@ -171,7 +171,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I32 retCode)
 {
     faabric::util::getLogger()->debug("S - proc_exit - {}", retCode);
-    throw(wasm::WasmExitException(retCode));
+    throw(WasmExitException(retCode));
 }
 
 I32 s__sched_getaffinity(I32 pid, I32 cpuSetSize, I32 maskPtr)
@@ -206,19 +206,19 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "abort", void, abort)
 {
     faabric::util::getLogger()->debug("S - abort");
-    throw(wasm::WasmExitException(0));
+    throw(WasmExitException(0));
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "exit", void, exit, I32 a)
 {
     faabric::util::getLogger()->debug("S - exit - {}", a);
-    throw(wasm::WasmExitException(a));
+    throw(WasmExitException(a));
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "_Exit", void, _Exit, I32 a)
 {
     faabric::util::getLogger()->debug("S - _Exit - {}", a);
-    throw(wasm::WasmExitException(a));
+    throw(WasmExitException(a));
 }
 
 /**

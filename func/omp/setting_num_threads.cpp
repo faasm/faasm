@@ -1,20 +1,24 @@
 #include <cstdio>
 #include <omp.h>
 
-int get_expected_value(int total)
+/*
+ * Sums the numbers up to the total
+ */
+int getSum(int total)
 {
-    int expected = 0;
+    int sum = 0;
     for (int i = 0; i < total; i++) {
-        expected += i;
+        sum += i;
     }
-    return expected;
+    return sum;
 }
 
 int main()
 {
     int actual = 0;
     const int max = omp_get_max_threads();
-    int expected = get_expected_value(max);
+    int expected = getSum(max);
+
 #pragma omp parallel default(none) reduction(+ : actual)
     {
         actual = omp_get_thread_num();
@@ -34,7 +38,7 @@ int main()
     }
 
     // Test setting with num_threads
-    expected = get_expected_value(wanted);
+    expected = getSum(wanted);
     actual = 0;
 #pragma omp parallel num_threads(wanted) default(none) reduction(+ : actual)
     {
@@ -50,7 +54,7 @@ int main()
 
     // Test value resets at parallel exit
     actual = 0;
-    expected = get_expected_value(max);
+    expected = getSum(max);
 #pragma omp parallel default(none) reduction(+ : actual)
     {
         actual = omp_get_thread_num();
@@ -65,7 +69,7 @@ int main()
 
     // Test setting with omp_set
     omp_set_num_threads(wanted);
-    expected = get_expected_value(wanted);
+    expected = getSum(wanted);
     actual = 0;
 #pragma omp parallel default(none) reduction(+ : actual)
     {
@@ -88,7 +92,7 @@ int main()
     }
 
     actual = 0;
-    expected = get_expected_value(wanted);
+    expected = getSum(wanted);
 #pragma omp parallel default(none) reduction(+ : actual)
     {
         actual = omp_get_thread_num();
@@ -102,7 +106,7 @@ int main()
     }
 
     // Test we can override set value with num_thread
-    expected = get_expected_value(max);
+    expected = getSum(max);
     actual = 0;
 #pragma omp parallel num_threads(max) default(none) reduction(+ : actual)
     {

@@ -125,6 +125,7 @@ iovec* wasiIovecsToNativeIovecs(I32 wasiIovecPtr, I32 wasiIovecCount)
 {
     // Get array of wasi iovecs from memory
     Runtime::Memory* memoryPtr = getExecutingWAVMModule()->defaultMemory;
+
     auto wasmIovecs = Runtime::memoryArrayPtr<__wasi_ciovec_t>(
       memoryPtr, wasiIovecPtr, wasiIovecCount);
 
@@ -132,6 +133,7 @@ iovec* wasiIovecsToNativeIovecs(I32 wasiIovecPtr, I32 wasiIovecCount)
     auto nativeIovecs = new iovec[wasiIovecCount];
     for (int i = 0; i < wasiIovecCount; i++) {
         __wasi_ciovec_t wasiIovec = wasmIovecs[i];
+
         U8* outputPtr = &Runtime::memoryRef<U8>(memoryPtr, wasiIovec.buf);
         iovec nativeIovec{
             .iov_base = outputPtr,

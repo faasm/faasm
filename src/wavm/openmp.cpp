@@ -1,60 +1,37 @@
-#include "wavm/openmp/openmp.h"
-
+#include "faabric/util/gids.h"
 #include <WAVM/Platform/Thread.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
-#include <future>
 
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/state/StateKeyValue.h>
+#include <faabric/util/locks.h>
 #include <faabric/util/timing.h>
-#include <wavm/OMPThreadPool.h>
+
+#include <wavm/ThreadState.h>
 #include <wavm/WAVMWasmModule.h>
-#include <wavm/openmp/Level.h>
-#include <wavm/openmp/ThreadState.h>
 
 using namespace WAVM;
 
 namespace wasm {
-using namespace openmp;
 
-/**
- * Performs actual static assignment
- */
-template<typename T>
-void for_static_init(I32 schedule,
-                     I32* lastIter,
-                     T* lower,
-                     T* upper,
-                     T* stride,
-                     T incr,
-                     T chunk);
+// ------------------------------------------------
+// LOGGING
+// ------------------------------------------------
 
-/**
- * Function used to spawn OMP threads. Will be called from within a thread
- * (hence needs to set up its own TLS)
- */
-I64 ompThreadEntryFunc(void* threadArgsPtr)
-{
-    auto args = *reinterpret_cast<LocalThreadArgs*>(threadArgsPtr);
-    // Set up various TLS
-    setTLS(args.tid, args.level);
-    setExecutingModule(args.parentModule);
-    setExecutingCall(args.parentCall);
-    return getExecutingWAVMModule()->executeThreadLocally(args.spec);
-}
+#define OMP_FUNC(str)                                                          \
+    auto ctx = getOpenMPContext();                                             \
+    auto logger = faabric::util::getLogger();                                  \
+    logger->debug("OMP {}: " str, ctx.threadNumber);
 
-/**
- * Performs actual static assignment
- */
-template<typename T>
-void for_static_init(I32 schedule,
-                     I32* lastIter,
-                     T* lower,
-                     T* upper,
-                     T* stride,
-                     T incr,
-                     T chunk);
+#define OMP_FUNC_ARGS(formatStr, ...)                                          \
+    auto ctx = getOpenMPContext();                                             \
+    auto logger = faabric::util::getLogger();                                  \
+    logger->debug("OMP {}: " formatStr, ctx.threadNumber, __VA_ARGS__);
+
+// ------------------------------------------------
+// THREAD NUMS AND LEVELS
+// ------------------------------------------------
 
 /**
  * @return the thread number, within its team, of the thread executing the
@@ -65,8 +42,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32,
                                omp_get_thread_num)
 {
-    faabric::util::getLogger()->debug("S - omp_get_thread_num");
-    return thisThreadNumber;
+    OMP_FUNC("omp_get_thread_num")
+    return ctx.threadNumber;
 }
 
 /**
@@ -78,27 +55,27 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32,
                                omp_get_num_threads)
 {
-    faabric::util::getLogger()->debug("S - omp_get_num_threads");
-    return thisLevel->numThreads;
+    OMP_FUNC("omp_get_num_threads")
+    return ctx.level->numThreads;
 }
 
 /**
- * @return the maximum number of threads that can be used to form a new team if
- * a parallel region without a num_threads clause is encountered.
+ * This function returns the max number of threads that can be used in a new
+ * team if no num_threads value is provided.
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "omp_get_max_threads",
                                I32,
                                omp_get_max_threads)
 {
-    faabric::util::getLogger()->debug("S - omp_get_max_threads");
-    return thisLevel->get_next_level_num_threads();
+    OMP_FUNC("omp_get_max_threads");
+    return ctx.level->getMaxThreadsAtNextLevel();
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_level", I32, omp_get_level)
 {
-    faabric::util::getLogger()->debug("S - omp_get_level");
-    return thisLevel->depth;
+    OMP_FUNC("omp_get_level");
+    return ctx.level->depth;
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -106,8 +83,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32,
                                omp_get_max_active_levels)
 {
-    faabric::util::getLogger()->debug("S - omp_get_max_active_levels");
-    return thisLevel->maxActiveLevel;
+    OMP_FUNC("omp_get_max_active_levels");
+    return ctx.level->maxActiveLevels;
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -116,15 +93,67 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                omp_set_max_active_levels,
                                I32 level)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug("S - omp_set_max_active_levels {}", level);
+    OMP_FUNC_ARGS("omp_set_max_active_levels {}", level)
+
     if (level < 0) {
         logger->warn("Trying to set active level with a negative number {}",
                      level);
-        return;
+    } else {
+        ctx.level->maxActiveLevels = level;
     }
-    thisLevel->maxActiveLevel = level;
 }
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "__kmpc_push_num_threads",
+                               void,
+                               __kmpc_push_num_threads,
+                               I32 loc,
+                               I32 globalTid,
+                               I32 numThreads)
+{
+    OMP_FUNC_ARGS(
+      "__kmpc_push_num_threads {} {} {}", loc, globalTid, numThreads);
+
+    if (numThreads > 0) {
+        ctx.level->pushedThreads = numThreads;
+    }
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "omp_set_num_threads",
+                               void,
+                               omp_set_num_threads,
+                               I32 numThreads)
+{
+    OMP_FUNC_ARGS("omp_set_num_threads {}", numThreads);
+
+    if (numThreads > 0) {
+        ctx.level->wantedThreads = numThreads;
+    }
+}
+
+/**
+ * If the runtime is called once, equivalent of calling get_thread_num() at the
+ * deepest
+ * @param loc The usual...
+ * @return
+ */
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "__kmpc_global_thread_num",
+                               I32,
+                               __kmpc_global_thread_num,
+                               I32 loc)
+{
+    OMP_FUNC_ARGS("__kmpc_global_thread_num {}", loc);
+
+    // Might be wrong if called at depth 1 while another thread at depths 1 has
+    // forked
+    return ctx.threadNumber;
+}
+
+// ----------------------------------------------------
+// BARRIER
+// ----------------------------------------------------
 
 /**
  * Synchronization point at which threads in a parallel region will not execute
@@ -141,15 +170,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 loc,
                                I32 globalTid)
 {
-    faabric::util::getLogger()->debug(
-      "S - __kmpc_barrier {} {}", loc, globalTid);
+    OMP_FUNC_ARGS("__kmpc_barrier {} {}", loc, globalTid);
 
-    if (!thisLevel->barrier || thisLevel->numThreads <= 1) {
-        return;
+    if (ctx.level->numThreads > 1) {
+        ctx.level->barrier.wait();
     }
-
-    thisLevel->barrier->wait();
 }
+
+// ----------------------------------------------------
+// CRITICAL
+// ----------------------------------------------------
 
 /**
  * Enter code protected by a `critical` construct. This function blocks until
@@ -169,10 +199,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 globalTid,
                                I32 crit)
 {
-    faabric::util::getLogger()->debug(
-      "S - __kmpc_critical {} {} {}", loc, globalTid, crit);
-    if (thisLevel->numThreads > 1) {
-        thisLevel->criticalSection.lock();
+    OMP_FUNC_ARGS("__kmpc_critical {} {} {}", loc, globalTid, crit);
+
+    if (ctx.level->numThreads > 1) {
+        ctx.level->levelMutex.lock();
     }
 }
 
@@ -191,10 +221,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 globalTid,
                                I32 crit)
 {
-    faabric::util::getLogger()->debug(
-      "S - __kmpc_end_critical {} {} {}", loc, globalTid, crit);
-    if (thisLevel->numThreads > 1) {
-        thisLevel->criticalSection.unlock();
+    OMP_FUNC_ARGS("__kmpc_end_critical {} {} {}", loc, globalTid, crit);
+
+    if (ctx.level->numThreads > 1) {
+        ctx.level->levelMutex.unlock();
     }
 }
 
@@ -207,11 +237,15 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_flush", void, __kmpc_flush, I32 loc)
 {
-    faabric::util::getLogger()->debug("S - __kmpc_flush{}", loc);
+    OMP_FUNC_ARGS("__kmpc_flush{}", loc);
 
     // Full memory fence, a bit overkill maybe for Wasm
     __sync_synchronize();
 }
+
+// ----------------------------------------------------
+// MASTER
+// ----------------------------------------------------
 
 /**
  * No implied BARRIER exists on either entry to or exit from the MASTER section.
@@ -232,9 +266,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 loc,
                                I32 globalTid)
 {
-    faabric::util::getLogger()->debug(
-      "S - __kmpc_master {} {}", loc, globalTid);
-    return thisThreadNumber == 0 ? 1 : 0;
+    OMP_FUNC_ARGS("__kmpc_master {} {}", loc, globalTid);
+
+    return (I32)ctx.threadNumber == 0;
 }
 
 /**
@@ -249,10 +283,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 loc,
                                I32 globalTid)
 {
-    faabric::util::getLogger()->debug(
-      "S - __kmpc_end_master {} {}", loc, globalTid);
-    WAVM_ASSERT(thisThreadNumber == 0)
+    OMP_FUNC_ARGS("__kmpc_end_master {} {}", loc, globalTid);
+
+    if (ctx.threadNumber != 0) {
+        throw std::runtime_error("Calling _kmpc_end_master from non-master");
+    }
 }
+
+// ----------------------------------------------------
+// SINGLE
+// ----------------------------------------------------
 
 /**
  * Test whether to execute a single construct. There are no implicit barriers in
@@ -269,18 +309,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 loc,
                                I32 globalTid)
 {
-    faabric::util::getLogger()->debug(
-      "S - __kmpc_single {} {}", loc, globalTid);
-    return thisThreadNumber == 0 ? 1 : 0;
+    OMP_FUNC_ARGS("__kmpc_single {} {}", loc, globalTid);
+
+    return (I32)ctx.threadNumber == 0;
 }
 
 /**
- * Test whether to execute a single construct. There are no implicit barriers in
- the two "single" calls, rather the compiler should introduce an explicit
- barrier if it is required.
- * @param loc
- * @param globalTid
- * @return 1 if this thread should execute the single construct, zero otherwise.
+ * See comment on __kmpc_single
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__kmpc_end_single",
@@ -289,54 +324,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 loc,
                                I32 globalTid)
 {
-    faabric::util::getLogger()->debug(
-      "S - __kmpc_end_single {} {}", loc, globalTid);
-    WAVM_ASSERT(thisThreadNumber == 0)
-}
+    OMP_FUNC_ARGS("__kmpc_end_single {} {}", loc, globalTid);
 
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "__kmpc_push_num_threads",
-                               void,
-                               __kmpc_push_num_threads,
-                               I32 loc,
-                               I32 globalTid,
-                               I32 numThreads)
-{
-    faabric::util::getLogger()->debug(
-      "S - __kmpc_push_num_threads {} {} {}", loc, globalTid, numThreads);
-    if (numThreads > 0) {
-        pushedNumThreads = numThreads;
+    if (ctx.threadNumber != 0) {
+        throw std::runtime_error("Calling _kmpc_end_single from non-master");
     }
 }
 
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "omp_set_num_threads",
-                               void,
-                               omp_set_num_threads,
-                               I32 numThreads)
-{
-    faabric::util::getLogger()->debug("S - omp_set_num_threads {}", numThreads);
-    if (numThreads > 0) {
-        wantedNumThreads = numThreads;
-    }
-}
-
-/**
- * If the runtime is called once, equivalent of calling get_thread_num() at the
- * deepest
- * @param loc The usual...
- * @return
- */
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "__kmpc_global_thread_num",
-                               I32,
-                               __kmpc_global_thread_num,
-                               I32 loc)
-{
-    faabric::util::getLogger()->debug("S - __kmpc_global_thread_num {}", loc);
-    return thisThreadNumber; // Might be wrong if called at depth 1 while
-                             // another thread at depths 1 has forked
-}
+// ----------------------------------------------------
+// FORKING
+// ----------------------------------------------------
 
 /**
  * The "real" version of this function is implemented in the openmp source at
@@ -363,42 +360,37 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 microtaskPtr,
                                I32 argsPtr)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug(
-      "S - __kmpc_fork_call {} {} {} {}", locPtr, argc, microtaskPtr, argsPtr);
+    OMP_FUNC_ARGS(
+      "__kmpc_fork_call {} {} {} {}", locPtr, argc, microtaskPtr, argsPtr);
 
     WAVMWasmModule* parentModule = getExecutingWAVMModule();
     Runtime::Memory* memoryPtr = parentModule->defaultMemory;
     faabric::Message* parentCall = getExecutingCall();
 
     // Retrieve the microtask function from the table
-    Runtime::Function* func = Runtime::asFunction(Runtime::getTableElement(
-      getExecutingWAVMModule()->defaultTable, microtaskPtr));
-
-#ifdef OPENMP_FORK_REDIS_TRACE
-    const faabric::utilTimePoint iterationTp = faabric::utilstartTimer();
-#endif
+    Runtime::Function* func = parentModule->getFunctionFromPtr(microtaskPtr);
 
     // Set up number of threads for next level
-    int nextNumThreads = thisLevel->get_next_level_num_threads();
-    pushedNumThreads = -1; // Resets for next push
+    std::shared_ptr<Level> parentLevel = ctx.level;
+    int nextNumThreads = parentLevel->getMaxThreadsAtNextLevel();
 
-    if (0 > thisLevel->userDefaultDevice) {
+    // Set up the next level
+    auto nextLevel = std::make_shared<Level>(nextNumThreads);
+    nextLevel->fromParentLevel(parentLevel);
 
+    // Spawn the threads
+    auto conf = faabric::util::getSystemConfig();
+    if (conf.threadMode == "remote") {
         std::vector<int> chainedThreads;
         chainedThreads.reserve(nextNumThreads);
 
+        // Take memory snapshot
         std::string activeSnapshotKey;
         size_t threadSnapshotSize;
 
-        // TODO - Implement different cases like calling parallel section in a
-        // loop Or calling several parallel sections to cache snapshots as much
-        // as possible
-        int32_t callId = std::rand() % 100'000;
-        activeSnapshotKey = fmt::format("fork_{}", callId);
+        uint32_t snapshotId = faabric::util::generateGid();
+        activeSnapshotKey = fmt::format("fork_{}", snapshotId);
         threadSnapshotSize = parentModule->snapshotToState(activeSnapshotKey);
-
-        faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
 
         const faabric::Message* originalCall = getExecutingCall();
         const std::string origStr =
@@ -406,11 +398,15 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
         U32* nativeArgs =
           Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
-        // Create the threads (messages) themselves
+
+        // Make the chained calls
+        auto& sch = faabric::scheduler::getScheduler();
         for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
             faabric::Message call = faabric::util::messageFactory(
               originalCall->user(), originalCall->function());
+
             call.set_isasync(true);
+
             for (int argIdx = argc - 1; argIdx >= 0; argIdx--) {
                 call.add_ompfunctionargs(nativeArgs[argIdx]);
             }
@@ -418,14 +414,20 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
             // Snapshot details
             call.set_snapshotkey(activeSnapshotKey);
             call.set_snapshotsize(threadSnapshotSize);
+
             call.set_funcptr(microtaskPtr);
+
             call.set_ompthreadnum(threadNum);
             call.set_ompnumthreads(nextNumThreads);
-            thisLevel->snapshot_parent(call);
-            const std::string chainedStr =
-              faabric::util::funcToString(call, false);
+
+            call.set_ompdepth(nextLevel->depth);
+            call.set_ompeffdepth(nextLevel->activeLevels);
+            call.set_ompmal(nextLevel->maxActiveLevels);
+
             sch.callFunction(call);
 
+            const std::string chainedStr =
+              faabric::util::funcToString(call, false);
             logger->debug("Forked thread {} ({}) -> {} {}(*{}) ({})",
                           origStr,
                           faabric::util::getSystemConfig().endpointHost,
@@ -433,6 +435,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                           microtaskPtr,
                           argsPtr,
                           call.scheduledhost());
+
             chainedThreads[threadNum] = call.id();
         }
 
@@ -441,6 +444,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
             int callTimeoutMs =
               faabric::util::getSystemConfig().chainedCallTimeout;
+
             logger->info(
               "Waiting for thread #{} with call id {} with a timeout of {}",
               threadNum,
@@ -452,147 +456,242 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                 const faabric::Message result = sch.getFunctionResult(
                   chainedThreads[threadNum], callTimeoutMs);
                 returnCode = result.returnvalue();
+
             } catch (faabric::redis::RedisNoResponseException& ex) {
-                faabric::util::getLogger()->error(
-                  "Timed out waiting for chained call: {}",
-                  chainedThreads[threadNum]);
+                logger->error("Timed out waiting for chained call: {}",
+                              chainedThreads[threadNum]);
+
             } catch (std::exception& ex) {
-                faabric::util::getLogger()->error(
+                logger->error(
                   "Non-timeout exception waiting for chained call: {}",
                   ex.what());
             }
 
-            if (returnCode) {
+            if (returnCode > 0) {
                 numErrors++;
             }
         }
 
         if (numErrors) {
-            throw std::runtime_error(
-              fmt::format("{} OMP threads have exited with errors", numErrors));
+            throw std::runtime_error(fmt::format(
+              "{} OpenMP threads have exited with errors", numErrors));
         }
 
-        logger->debug("Distributed Fork finished successfully");
-    } else { // Single host
+        logger->debug("Distributed OpenMP threads finished successfully");
 
-        // Set up new level
-        auto nextLevel =
-          std::make_shared<SingleHostLevel>(thisLevel, nextNumThreads);
+    } else if (conf.threadMode == "local") {
+        std::vector<std::thread> threads;
 
-        // Safety - must ensure thread arguments lifetime is longer than the
-        // threads And that this container is not moved (reserve).
-        std::vector<std::vector<IR::UntaggedValue>> microtaskArgs;
-        microtaskArgs.reserve(nextNumThreads);
+        std::vector<U64> results;
+        std::mutex resultMutex;
 
-        std::vector<std::future<I64>> threadsFutures;
-        threadsFutures.reserve(nextNumThreads);
+        // Get pointers to shared variables in host memory
+        U32* sharedVarsPtr = nullptr;
+        if (argc > 0) {
+            sharedVarsPtr =
+              Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
+        }
 
-        // Build up arguments
+        // Execute threads locally
+        logger->debug("OMP {}: Spawning {} threads locally",
+                      ctx.threadNumber,
+                      nextNumThreads);
         for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
-            // Note - these arguments are the thread number followed by the
-            // number of shared variables, then the pointers to those shared
-            // variables
-            microtaskArgs.push_back({ threadNum, argc });
-            if (argc > 0) {
-                // Get pointer to start of arguments in host memory
-                U32* pointers =
-                  Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
-                for (int argIdx = 0; argIdx < argc; argIdx++) {
-                    microtaskArgs[threadNum].emplace_back(pointers[argIdx]);
+            // Be careful here what you pass in with a reference and what you
+            // copy
+            threads.emplace_back([&results,
+                                  &resultMutex,
+                                  &nextLevel,
+                                  &contextRuntimeData,
+                                  &parentModule,
+                                  &parentCall,
+                                  &sharedVarsPtr,
+                                  &argc,
+                                  func,
+                                  threadNum] {
+                // We are now in a new thread so need to set up everything that
+                // uses TLS
+                setUpOpenMPContext(threadNum, nextLevel);
+                setExecutingModule(parentModule);
+                setExecutingCall(parentCall);
+
+                // Set up the arguments for the entry function
+                std::vector<IR::UntaggedValue> funcArgs = { threadNum, argc };
+                if (argc > 0) {
+                    // Get pointer to start of arguments in host memory
+                    for (int argIdx = 0; argIdx < argc; argIdx++) {
+                        funcArgs.emplace_back(sharedVarsPtr[argIdx]);
+                    }
                 }
+
+                // Arguments for spawning the thread
+                WasmThreadSpec spec = {
+                    .contextRuntimeData = contextRuntimeData,
+                    .func = func,
+                    .funcArgs = funcArgs.data(),
+                    .stackTop = parentModule->allocateThreadStack(),
+                };
+
+                // This executes the thread synchronously
+                I64 threadResult = parentModule->executeThreadLocally(spec);
+
+                // Add the result of this thread to the list
+                faabric::util::UniqueLock lock(resultMutex);
+                results.push_back(threadResult);
+            });
+        }
+
+        // Reset parent level for next setting of threads
+        parentLevel->pushedThreads = -1;
+
+        // Await thread completion
+        for (auto& t : threads) {
+            if (t.joinable()) {
+                t.join();
             }
-
-            // Arguments for spawning the thread
-            // NOTE - CLion auto-format insists on this layout... and clangd
-            // really hates C99 extensions
-            LocalThreadArgs threadArgs = { .tid = threadNum,
-                                           .level = nextLevel,
-                                           .parentModule = parentModule,
-                                           .parentCall = parentCall,
-                                           .spec = {
-                                             .contextRuntimeData =
-                                               contextRuntimeData,
-                                             .func = func,
-                                             .funcArgs =
-                                               microtaskArgs[threadNum].data(),
-                                           } };
-
-            threadsFutures.emplace_back(
-              parentModule->getOMPPool()->runThread(std::move(threadArgs)));
         }
 
-        // Await all threads
-        I64 numErrors = 0;
-        for (auto& f : threadsFutures) {
-            numErrors += f.get();
+        for (int res : results) {
+            if (res < 0) {
+                throw std::runtime_error("OMP thread exited with error");
+            }
+        }
+    } else {
+        logger->error("Unrecognised thread mode: {}", conf.threadMode);
+        throw std::runtime_error("Unrecognised thread mode");
+    }
+}
+
+// -------------------------------------------------------
+// FOR LOOP STATIC INIT
+// -------------------------------------------------------
+
+enum sched_type : int
+{
+    sch_lower = 32, /**< lower bound for unordered values */
+    sch_static_chunked = 33,
+    sch_static = 34, /**< static unspecialized */
+};
+
+template<typename T>
+void for_static_init(I32 schedule,
+                     I32* lastIter,
+                     T* lower,
+                     T* upper,
+                     T* stride,
+                     T incr,
+                     T chunk);
+
+template<typename T>
+void for_static_init(I32 schedule,
+                     I32* lastIter,
+                     T* lower,
+                     T* upper,
+                     T* stride,
+                     T incr,
+                     T chunk)
+{
+    // Unsigned version of the given template parameter
+    typedef typename std::make_unsigned<T>::type UT;
+
+    auto logger = faabric::util::getLogger();
+    auto ctx = getOpenMPContext();
+
+    if (ctx.level->numThreads == 1) {
+        *lastIter = true;
+
+        if (incr > 0) {
+            *stride = *upper - *lower + 1;
+        } else {
+            *stride = -(*lower - *upper + 1);
         }
 
-        if (numErrors) {
-            throw std::runtime_error(
-              fmt::format("{} OMP threads have exited with errors", numErrors));
-        }
+        return;
     }
 
-#ifdef OPENMP_FORK_REDIS_TRACE
-    const long distributedIterationTime =
-      faabric::utilgetTimeDiffNanos(iterationTp);
-    logger->warn("{}, Wasm local,{}", nextNumThreads, distributedIterationTime);
-#endif
+    UT tripCount;
+    if (incr == 1) {
+        tripCount = *upper - *lower + 1;
+
+    } else if (incr == -1) {
+        tripCount = *lower - *upper + 1;
+
+    } else if (incr > 0) {
+        // Upper-lower can exceed the limit of signed type
+        tripCount = (int)(*upper - *lower) / incr + 1;
+
+    } else {
+        tripCount = (int)(*lower - *upper) / (-incr) + 1;
+    }
+
+    switch (schedule) {
+        case sch_static_chunked: {
+            int span;
+
+            if (chunk < 1) {
+                chunk = 1;
+            }
+
+            span = chunk * incr;
+
+            *stride = span * ctx.level->numThreads;
+            *lower = *lower + (span * ctx.threadNumber);
+            *upper = *lower + span - incr;
+
+            *lastIter =
+              (ctx.threadNumber ==
+               ((tripCount - 1) / (unsigned int)chunk) % ctx.level->numThreads);
+
+            break;
+        }
+
+        case sch_static: { // (chunk not given)
+
+            // If we have fewer trip_counts than threads
+            if (tripCount < ctx.level->numThreads) {
+                // Warning for future use, not tested at scale
+                logger->warn("Small for loop trip count {} {}",
+                             tripCount,
+                             ctx.level->numThreads);
+
+                if (ctx.threadNumber < tripCount) {
+                    *upper = *lower = *lower + ctx.threadNumber * incr;
+                } else {
+                    *lower = *upper + incr;
+                }
+
+                *lastIter = (ctx.threadNumber == tripCount - 1);
+
+            } else {
+                // TODO: We only implement below kmp_sch_static_balanced, not
+                // kmp_sch_static_greedy Those are set through KMP_SCHEDULE so
+                // we would need to look out for real code setting this
+                logger->debug("Ignores KMP_SCHEDULE variable, defaults to "
+                              "static balanced schedule");
+
+                U32 small_chunk = tripCount / ctx.level->numThreads;
+                U32 extras = tripCount % ctx.level->numThreads;
+
+                *lower += incr * (ctx.threadNumber * small_chunk +
+                                  (ctx.threadNumber < extras ? ctx.threadNumber
+                                                             : extras));
+
+                *upper = *lower + small_chunk * incr -
+                         (ctx.threadNumber < extras ? 0 : incr);
+
+                *lastIter = (ctx.threadNumber == ctx.level->numThreads - 1);
+            }
+
+            *stride = tripCount;
+            break;
+        }
+        default: {
+            throw std::runtime_error(
+              fmt::format("Unimplemented scheduler {}", schedule));
+        }
+    }
 }
 
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "faasmp_incrby",
-                               I64,
-                               __faasmp_incrby,
-                               I32 keyPtr,
-                               I64 value)
-{
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug("S - __faasmp_incryby {} {}", keyPtr, value);
-
-    Runtime::Memory* memoryPtr = getExecutingWAVMModule()->defaultMemory;
-    std::string key{ &Runtime::memoryRef<char>(memoryPtr, (Uptr)keyPtr) };
-    faabric::redis::Redis& redis = faabric::redis::Redis::getState();
-    return redis.incrByLong(key, value);
-}
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "__faasmp_getLong",
-                               I64,
-                               __faasmp_getLong,
-                               I32 keyPtr)
-{
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug("S - __faasmp_getLong {}", keyPtr);
-
-    Runtime::Memory* memoryPtr = getExecutingWAVMModule()->defaultMemory;
-    std::string key{ &Runtime::memoryRef<char>(memoryPtr, (Uptr)keyPtr) };
-    faabric::redis::Redis& redis = faabric::redis::Redis::getState();
-    return redis.getLong(key);
-}
-
-/**
- * This function is just around to debug issues with threaded access to stacks.
- */
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "__faasmp_debug_copy",
-                               void,
-                               __faasmp_debug_copy,
-                               I32 src,
-                               I32 dest)
-{
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug("S - __faasmp_debug_copy {} {}", src, dest);
-
-    // Get pointers on host to both src and dest
-    Runtime::Memory* memoryPtr = getExecutingWAVMModule()->defaultMemory;
-    int* hostSrc = &Runtime::memoryRef<int>(memoryPtr, src);
-    int* hostDest = &Runtime::memoryRef<int>(memoryPtr, dest);
-
-    logger->debug("{}: copy {} -> {}", thisThreadNumber, *hostSrc, *hostDest);
-
-    *hostDest = *hostSrc;
-}
 /**
  * @param    loc       Source code location
  * @param    gtid      Global thread id of this thread
@@ -626,8 +725,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 incr,
                                I32 chunk)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug("S - __kmpc_for_static_init_4 {} {} {} {} {} {} {} {} {}",
+    OMP_FUNC_ARGS("__kmpc_for_static_init_4 {} {} {} {} {} {} {} {} {}",
                   loc,
                   gtid,
                   schedule,
@@ -665,9 +763,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I64 incr,
                                I64 chunk)
 {
-
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug("S - __kmpc_for_static_init_4 {} {} {} {} {} {} {} {} {}",
+    OMP_FUNC_ARGS("__kmpc_for_static_init_4 {} {} {} {} {} {} {} {} {}",
                   loc,
                   gtid,
                   schedule,
@@ -695,70 +791,84 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 loc,
                                I32 gtid)
 {
-    faabric::util::getLogger()->debug(
-      "S - __kmpc_for_static_fini {} {}", loc, gtid);
+    OMP_FUNC_ARGS("__kmpc_for_static_fini {} {}", loc, gtid);
 }
 
-/**
- *  When reaching the end of the reduction loop, the threads need to synchronise
- * to operate the reduction function. In the multi-machine case, this
- */
-int startReduction(int reduce_data)
-{
-    int retVal = 0;
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
+// ---------------------------------------------------
+// REDUCTION
+// ---------------------------------------------------
 
-    switch (thisLevel->reductionMethod()) {
-        case ReduceTypes::criticalBlock:
-            logger->debug("Thread {} reduction locking", thisThreadNumber);
-            thisLevel->reduceMutex.lock();
-            retVal = 1;
-            break;
-        case ReduceTypes::emptyBlock:
-            retVal = 1;
-            break;
-        case ReduceTypes::atomicBlock:
-            retVal = 2;
-            break;
-        case ReduceTypes::notDefined:
-            throw std::runtime_error("Unsupported reduce operation");
-            break;
-        case ReduceTypes::multiHostSum:
-            retVal = 1;
-            break;
+// Allowed reduce return values.
+// The single thread value is only used when there's one thread.
+// Multi threads signifies that multiple threads are operating
+// We don't currently support atomic reduce, but it signifies that the final
+// reduction must be performed atomically.
+enum ReduceReturnValue
+{
+    SINGLE_THREAD = 0,
+    MULTIPLE_THREADS = 1,
+    ATMOIC_REDUCE = 2,
+};
+
+/*
+ * This method should return one of the reduce return values as detailed above.
+ * AFAICT most of the arguments are not needed in our case.
+ *
+ * The reduction is performed by the master thread, so we must ensure that the
+ * other threads have finished before this takes place.
+ *
+ * To interrogate where intermediate results are stored, we can look at the
+ * reduce data and reduce func.
+ *
+ * The reduceFunc provides the reduction operation on two operands and returns
+ * the result in its first argument. The function is of type:
+ * void(*)(void *lhsData, void *rhsData)
+ *
+ * For more info, see OpenMP source at
+ * https://github.com/llvm/llvm-project/blob/main/openmp/runtime/src/kmp_csupport.cpp
+ */
+int reduceFinished()
+{
+    auto logger = faabric::util::getLogger();
+    auto ctx = getOpenMPContext();
+
+    if (ctx.level->numThreads == 1) {
+        return SINGLE_THREAD;
     }
-    return retVal;
+
+    // Notify the master thread that we've done our reduction
+    if (ctx.threadNumber != 0) {
+        ctx.level->masterWait(ctx.threadNumber);
+    }
+
+    return MULTIPLE_THREADS;
 }
 
 /**
- *  Called immediately after running the reduction section before exiting the
- * `reduce` construct.
+ *  Called to finish off a reduction.
+ *  In a nowait scenario, just the master calls this function (the other threads
+ *  have continued on).
  */
-void endReduction()
+void finaliseReduce(bool barrier)
 {
-    if (0 <= thisLevel->userDefaultDevice) {
-        // Unlocking not owned mutex is UB
-        if (thisLevel->numThreads > 1) {
-            faabric::util::getLogger()->debug("Thread {} unlocking reduction",
-                                              thisThreadNumber);
-            thisLevel->reduceMutex.unlock();
-        }
+    auto logger = faabric::util::getLogger();
+    auto ctx = getOpenMPContext();
+
+    // Master must make sure all other threads are done
+    if (ctx.threadNumber == 0) {
+        ctx.level->masterWait(ctx.threadNumber);
+
+        logger->debug("Master thread finished reduce");
+    }
+
+    // Everyone waits if there's a barrier
+    if (barrier) {
+        ctx.level->barrier.wait();
     }
 }
 
 /**
  * A blocking reduce that includes an implicit barrier.
- * @param loc source location information
- * @param gtid global thread id
- * @param num_vars number of items (variables) to be reduced
- * @param reduce_size size of data in bytes to be reduced
- * @param reduce_data pointer to data to be reduced
- * @param reduce_func callback function providing reduction operation on two
- * operands and returning result of reduction in lhs_data. Of type void(∗)(void
- * ∗lhs data, void ∗rhs data)
- * @param lck pointer to the unique lock data structure
- * @return 1 for the master thread, 0 for all other team threads, 2 for all team
- * threads if atomic reduction needed
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__kmpc_reduce",
@@ -766,38 +876,27 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                __kmpc_reduce,
                                I32 loc,
                                I32 gtid,
-                               I32 num_vars,
-                               I32 reduce_size,
-                               I32 reduce_data,
-                               I32 reduce_func,
-                               I32 lck)
+                               I32 numVars,
+                               I32 reduceSize,
+                               I32 reduceData,
+                               I32 reduceFunc,
+                               I32 lockPtr)
 {
-    faabric::util::getLogger()->debug("S - __kmpc_reduce {} {} {} {} {} {} {}",
-                                      loc,
-                                      gtid,
-                                      num_vars,
-                                      reduce_size,
-                                      reduce_data,
-                                      reduce_func,
-                                      lck);
+    OMP_FUNC_ARGS("__kmpc_reduce {} {} {} {} {} {} {}",
+                  loc,
+                  gtid,
+                  numVars,
+                  reduceSize,
+                  reduceData,
+                  reduceFunc,
+                  lockPtr);
 
-    return startReduction(reduce_data);
+    return reduceFinished();
 }
 
 /**
- * The nowait version is used for a reduce clause with the nowait argument. Or
- * direct exit of parallel section.
- * @param loc source location information
- * @param gtid global thread id
- * @param num_vars number of items (variables) to be reduced
- * @param reduce_size size of data in bytes to be reduced
- * @param reduce_data pointer to data to be reduced
- * @param reduce_func callback function providing reduction operation on two
- * operands and returning result of reduction in lhs_data. Of type void(∗)(void
- * ∗lhs data, void ∗rhs data)
- * @param lck pointer to the unique lock data structure
- * @return 1 for the master thread, 0 for all other team threads, 2 for all team
- * threads if atomic reduction needed
+ * The nowait version is used for a reduce clause with the nowait argument, or
+ * when the parallel section finished straight after the reduce.
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__kmpc_reduce_nowait",
@@ -805,31 +904,26 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                __kmpc_reduce_nowait,
                                I32 loc,
                                I32 gtid,
-                               I32 num_vars,
-                               I32 reduce_size,
-                               I32 reduce_data,
-                               I32 reduce_func,
-                               I32 lck)
+                               I32 numVars,
+                               I32 reduceSize,
+                               I32 reduceData,
+                               I32 reduceFunc,
+                               I32 lockPtr)
 {
-    faabric::util::getLogger()->debug(
-      "S - __kmpc_reduce_nowait {} {} {} {} {} {} {}",
-      loc,
-      gtid,
-      num_vars,
-      reduce_size,
-      reduce_data,
-      reduce_func,
-      lck);
+    OMP_FUNC_ARGS("__kmpc_reduce_nowait {} {} {} {} {} {} {}",
+                  loc,
+                  gtid,
+                  numVars,
+                  reduceSize,
+                  reduceData,
+                  reduceFunc,
+                  lockPtr);
 
-    return startReduction(reduce_data);
+    return reduceFinished();
 }
 
 /**
- * Finish the execution of a blocking reduce. The lck pointer must be the same
- * as that used in the corresponding start function.
- * @param loc location info
- * @param gtid global thread id
- * @param lck kmp_critical_name* to the critical section.
+ * Finalises a blocking reduce, called by all threads.
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__kmpc_end_reduce",
@@ -839,17 +933,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 gtid,
                                I32 lck)
 {
-    faabric::util::getLogger()->debug(
-      "S - __kmpc_end_reduce {} {} {}", loc, gtid, lck);
-    endReduction();
+    OMP_FUNC_ARGS("__kmpc_end_reduce {} {} {}", loc, gtid, lck);
+
+    finaliseReduce(true);
 }
 
 /**
- * Arguments similar to __kmpc_end_reduce. Finish the execution of a
- * reduce_nowait.
- * @param loc
- * @param gtid
- * @param lck
+ * Finalises a non-blocking reduce, called only by the master.
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__kmpc_end_reduce_nowait",
@@ -859,10 +949,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 gtid,
                                I32 lck)
 {
-    faabric::util::getLogger()->debug(
-      "S - __kmpc_end_reduce_nowait {} {} {}", loc, gtid, lck);
-    endReduction();
+    OMP_FUNC_ARGS("__kmpc_end_reduce_nowait {} {} {}", loc, gtid, lck);
+
+    finaliseReduce(false);
 }
+
+// ----------------------------------------------
+// DEVICES
+// ----------------------------------------------
 
 /**
  * Get the number of devices (different CPU sockets or machines) available to
@@ -873,8 +967,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                int,
                                omp_get_num_devices)
 {
-    faabric::util::getLogger()->debug("S - omp_get_num_devices");
-    return thisLevel->userDefaultDevice;
+    OMP_FUNC("omp_get_num_devices");
+    return 1;
 }
 
 /**
@@ -886,104 +980,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                omp_set_default_device,
                                int defaultDeviceNumber)
 {
-    auto logger = faabric::util::getLogger();
-    logger->debug("S - omp_set_default_device {}", defaultDeviceNumber);
-    if (abs(defaultDeviceNumber) > 1) {
-        faabric::util::getLogger()->warn(
-          "Given default device index ({}) is bigger than num of available "
-          "devices (1), ignoring",
-          defaultDeviceNumber);
-        return;
-    }
-    // TODO - flag negative with the specialisation of Level instead
-    thisLevel->userDefaultDevice = defaultDeviceNumber;
-}
-
-template<typename T>
-void for_static_init(I32 schedule,
-                     I32* lastIter,
-                     T* lower,
-                     T* upper,
-                     T* stride,
-                     T incr,
-                     T chunk)
-{
-    // Unsigned version of the given template parameter
-    typedef typename std::make_unsigned<T>::type UT;
-
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-
-    if (thisLevel->numThreads == 1) {
-        *lastIter = true;
-        *stride = (incr > 0) ? (*upper - *lower + 1) : (-(*lower - *upper + 1));
-        return;
-    }
-
-    UT tripCount;
-    if (incr == 1) {
-        tripCount = *upper - *lower + 1;
-    } else if (incr == -1) {
-        tripCount = *lower - *upper + 1;
-    } else if (incr > 0) {
-        // upper-lower can exceed the limit of signed type
-        tripCount = (int)(*upper - *lower) / incr + 1;
-    } else {
-        tripCount = (int)(*lower - *upper) / (-incr) + 1;
-    }
-
-    switch (schedule) {
-        case kmp::sch_static_chunked: {
-            int span;
-            if (chunk < 1) {
-                chunk = 1;
-            }
-            span = chunk * incr;
-            *stride = span * thisLevel->numThreads;
-            *lower = *lower + (span * thisThreadNumber);
-            *upper = *lower + span - incr;
-            *lastIter =
-              (thisThreadNumber ==
-               ((tripCount - 1) / (unsigned int)chunk) % thisLevel->numThreads);
-            break;
-        }
-        case kmp::sch_static: { // (chunk not given)
-            // If we have fewer trip_counts than threads
-            if (tripCount < thisLevel->numThreads) {
-                logger->warn(
-                  "Small for loop trip count {} {}",
-                  tripCount,
-                  thisLevel
-                    ->numThreads); // Warns for future use, not tested at scale
-                if (thisThreadNumber < tripCount) {
-                    *upper = *lower = *lower + thisThreadNumber * incr;
-                } else {
-                    *lower = *upper + incr;
-                }
-                *lastIter = (thisThreadNumber == tripCount - 1);
-            } else {
-                // TODO: We only implement below kmp_sch_static_balanced, not
-                // kmp_sch_static_greedy Those are set through KMP_SCHEDULE so
-                // we would need to look out for real code setting this
-                logger->debug("Ignores KMP_SCHEDULE variable, defaults to "
-                              "static balanced schedule");
-                U32 small_chunk = tripCount / thisLevel->numThreads;
-                U32 extras = tripCount % thisLevel->numThreads;
-                *lower += incr * (thisThreadNumber * small_chunk +
-                                  (thisThreadNumber < extras ? thisThreadNumber
-                                                             : extras));
-                *upper = *lower + small_chunk * incr -
-                         (thisThreadNumber < extras ? 0 : incr);
-                *lastIter = (thisThreadNumber == thisLevel->numThreads - 1);
-            }
-
-            *stride = tripCount;
-            break;
-        }
-        default: {
-            throw std::runtime_error(
-              fmt::format("Unimplemented scheduler {}", schedule));
-        }
-    }
+    OMP_FUNC_ARGS("omp_set_default_device {} (ignored)", defaultDeviceNumber);
 }
 
 void ompLink() {}

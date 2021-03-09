@@ -6,7 +6,6 @@ option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
 
 # Performance functionality
 option(FAASM_SELF_TRACING "Turn on system tracing using the logger" OFF)
-option(FAASM_OPENMP_TRACING "Trace OpenMP forks in Redis" OFF)
 option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md" OFF)
 
 # WAMR and interpreter
@@ -122,10 +121,6 @@ endif ()
 if (${FAASM_SELF_TRACING})
     message("-- Activated FAASM tracing")
     add_definitions(-DTRACE_ALL=1)
-endif ()
-
-if (${FAASM_OPENMP_TRACING})
-    add_definitions(-DOPENMP_FORK_REDIS_TRACE=1)
 endif ()
 
 # LLVM config
