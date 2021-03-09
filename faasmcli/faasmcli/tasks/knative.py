@@ -14,6 +14,14 @@ LOCAL_CONF = join(K8S_DIR, "local")
 COMMON_CONF = join(K8S_DIR, "common")
 
 KNATIVE_VERSION = "0.21.0"
+KNATIVE_SPECS = [
+    ["knative/serving", "serving-crds.yaml"],
+    ["knative/serving", "serving-core.yaml"],
+    ["knative/net-istio", "istio.yaml"],
+    ["knative/net-istio", "net-istio.yaml"],
+    ["knative/serving", "serving-default-domain.yaml"],
+]
+
 
 # Number of replicas in the Faasm worker pod
 DEFAULT_REPLICAS = 4
@@ -241,15 +249,7 @@ def install(ctx):
     """
     Install knative on an existing k8s cluster
     """
-    specs = [
-        ["knative/serving", "serving-crds.yaml"],
-        ["knative/serving", "serving-core.yaml"],
-        ["knative/net-istio", "istio.yaml"],
-        ["knative/net-istio", "net-istio.yaml"],
-        ["knative/serving", "serving-default-domain.yaml"],
-    ]
-
-    for s in specs:
+    for s in KNATIVE_SPECS:
         _kubectl_apply(
             "https://github.com/{}/releases/download/v{}/{}".format(
                 s[0], KNATIVE_VERSION, s[1]
@@ -262,14 +262,9 @@ def uninstall(ctx):
     """
     Uninstall knative from an existing k8s cluster
     """
-    specs = [
-        ["knative/net-istio", "net-istio.yaml"],
-        ["knative/net-istio", "istio.yaml"],
-        ["knative/serving", "serving-core.yaml"],
-        ["knative/serving", "serving-crds.yaml"],
-    ]
-
-    for s in specs:
+    # We delete in the reverse order we apply, and the last component
+    # needs not to be deleted.
+    for s in reversed(KNATIVE_SPECS[:-1]):
         _kubectl_delete(
             "https://github.com/{}/releases/download/v{}/{}".format(
                 s[0], KNATIVE_VERSION, s[1]
