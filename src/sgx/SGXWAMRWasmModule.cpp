@@ -163,16 +163,16 @@ bool SGXWAMRWasmModule::execute(faabric::Message& msg, bool forceNoop)
                   "length {} and input '{}'",
                   globalEnclaveId,
                   funcStr,
-                  msg.sid(),
-                  msg.policy().size(),
+                  msg.sgxsid(),
+                  msg.sgxpolicy().size(),
                   msg.inputdata());
-    if (msg.policy().size() == 0) {
+    if (msg.sgxpolicy().size() == 0) {
         sgxReturnValue = faasm_sgx_enclave_call_function(
           globalEnclaveId,
           &returnValue,
           threadId,
           msg.funcptr(),
-          msg.sid().c_str(),
+          msg.sgxsid().c_str(),
           (const sgx_wamr_encrypted_data_blob_t*)inputdata.c_str(),
           inputdata.size(),
           nullptr,
@@ -183,11 +183,11 @@ bool SGXWAMRWasmModule::execute(faabric::Message& msg, bool forceNoop)
           &returnValue,
           threadId,
           msg.funcptr(),
-          msg.sid().c_str(),
+          msg.sgxsid().c_str(),
           (const sgx_wamr_encrypted_data_blob_t*)inputdata.c_str(),
           inputdata.size(),
-          (const uint8_t*)msg.policy().c_str(),
-          msg.policy().size());
+          (const uint8_t*)msg.sgxpolicy().c_str(),
+          msg.sgxpolicy().size());
     }
 
     if (sgxReturnValue != SGX_SUCCESS) {

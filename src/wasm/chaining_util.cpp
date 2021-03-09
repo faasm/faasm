@@ -47,20 +47,20 @@ int awaitChainedCall2(unsigned int messageId)
         returnCode = result.returnvalue();
 
         if (faaslet_sgx_attestation_result_ptr->buffer_len <
-            result.result().size()) {
+            result.sgxresult().size()) {
             void* temp;
             if (!(temp = realloc(faaslet_sgx_attestation_result_ptr->buffer_ptr,
-                                 result.result().size()))) {
+                                 result.sgxresult().size()))) {
                 std::cout << "Realloc failed." << std::endl;
                 throw "Realloc failed.";
             }
             faaslet_sgx_attestation_result_ptr->buffer_ptr = temp;
             faaslet_sgx_attestation_result_ptr->buffer_len =
-              result.result().size();
+              result.sgxresult().size();
         }
         memcpy(faaslet_sgx_attestation_result_ptr->buffer_ptr,
-               result.result().c_str(),
-               result.result().size());
+               result.sgxresult().c_str(),
+               result.sgxresult().size());
     } catch (faabric::redis::RedisNoResponseException& ex) {
         faabric::util::getLogger()->error(
           "Timed out waiting for chained call: {}", messageId);
@@ -131,7 +131,7 @@ int makeChainedCall2(const std::string& functionName,
     call.set_funcptr(wasmFuncPtr);
     call.set_isasync(true);
     // TODO the next two lines are the only difference  to makeChainedCall
-    call.set_policy(policy.data(), policy.size());
+    call.set_sgxpolicy(policy.data(), policy.size());
     call.set_issgx(true);
 
     call.set_pythonuser(originalCall->pythonuser());
@@ -245,19 +245,19 @@ int awaitChainedCallOutput2(unsigned int messageId,
 
     // TODO start difference
     if (faaslet_sgx_attestation_result_ptr->buffer_len <
-        result.result().size()) {
+        result.sgxresult().size()) {
         void* temp;
         if (!(temp = realloc(faaslet_sgx_attestation_result_ptr->buffer_ptr,
-                             result.result().size()))) {
+                             result.sgxresult().size()))) {
             std::cout << "Realloc failed." << std::endl;
             throw "Realloc failed.";
         }
         faaslet_sgx_attestation_result_ptr->buffer_ptr = temp;
-        faaslet_sgx_attestation_result_ptr->buffer_len = result.result().size();
+        faaslet_sgx_attestation_result_ptr->buffer_len = result.sgxresult().size();
     }
     memcpy(faaslet_sgx_attestation_result_ptr->buffer_ptr,
-           result.result().c_str(),
-           result.result().size());
+           result.sgxresult().c_str(),
+           result.sgxresult().size());
     // TODO end difference
 
     std::vector<uint8_t> outputData =

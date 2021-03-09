@@ -435,7 +435,7 @@ extern "C"
         auto logger = faabric::util::getLogger();
         logger->debug("setting result of size {} via ocall", msg_len);
         faabric::Message* bounded_message = wasm::getExecutingCall();
-        bounded_message->set_result((void*)msg, msg_len);
+        bounded_message->set_sgxresult((void*)msg, msg_len);
         return FAASM_SGX_SUCCESS;
     }
 }
