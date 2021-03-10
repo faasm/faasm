@@ -16,6 +16,9 @@
 #if (FAASM_SGX)
 #include <sgx/SGXWAMRWasmModule.h>
 #include <sgx/faasm_sgx_system.h>
+#else
+#include <storage/FileLoader.h>
+#include <storage/FileSystem.h>
 #endif
 
 using namespace isolation;

@@ -13,6 +13,7 @@ option(WAMR_INTERPRETER_MODE "Turns interpreter on / off (vs. AoT)" OFF)
 
 # SGX functionality
 # These options customise the SGX features _provided_ SGX is found
+option(FAASM_SGX_ENABLED "Enable SGX mode" OFF)
 option(FAASM_SGX_SIM_MODE "Turn on SGX sim mode" ON)
 option(FAASM_SGX_ATTESTATION "Turn on attestation" OFF)
 option(FAASM_SGX_XRA "Turn on support for XRA" OFF)
@@ -42,11 +43,13 @@ set(FAASM_NATIVE_INSTALL "/usr/local/faasm/native")
 find_package(cpprestsdk REQUIRED)
 
 # Detect SGX
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
-find_package(SGX)
+if (FAASM_SGX_ENABLED)
+    list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
+    find_package(SGX)
+endif()
 
 # SGX configuration
-if (SGX_FOUND)
+if (FAASM_SGX_ENABLED AND SGX_FOUND)
     # SGX includes
     include_directories(${SGX_SDK_PATH}/include)
 
@@ -182,7 +185,7 @@ add_subdirectory(src/wamr)
 add_subdirectory(src/wavm)
 
 # Faasm SGX support
-if (SGX_FOUND)
+if (FAASM_SGX_ENABLED AND SGX_FOUND)
     add_subdirectory(src/sgx)
 endif ()
 
