@@ -34,5 +34,6 @@ set(LIB_FILES
         )
 
 faasm_private_lib(wavmmodule "${LIB_FILES}")
+target_compile_options(wavmmodule PRIVATE "-D__wasm__")
 add_dependencies(wavmmodule cereal_ext)
 target_link_libraries(wavmmodule wasm ir_cache libWAVM)

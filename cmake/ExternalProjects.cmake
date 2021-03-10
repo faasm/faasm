@@ -20,15 +20,11 @@ FetchContent_Declare(wamr_ext
     GIT_TAG "5a3db31c096ec4d8a7b8b639aeaecd3fdda06b30"
 )
 
-set(FAABRIC_WASM_BUILD ON CACHE INTERNAL "")
 set(FAABRIC_BUILD_TESTS ON CACHE INTERNAL "")
-set(__wasm__ ON CACHE INTERNAL "")
-set(__wasm__ 1 CACHE INTERNAL "")
 FetchContent_Declare(faabric_ext
     GIT_REPOSITORY "https://github.com/faasm/faabric.git"
-    GIT_TAG "77ec10075ddc2f1ff14a49be396a637276fbfbc3"
+    GIT_TAG "45c97c35958e6e811b43841ab7281df9b584b43c"
 )
-    #GIT_TAG "45c97c35958e6e811b43841ab7281df9b584b43c"
 
 FetchContent_MakeAvailable(wavm_ext faabric_ext wamr_ext)
 
