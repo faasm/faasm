@@ -11,8 +11,7 @@ FetchContent_Declare(wavm_ext
     GIT_REPOSITORY "https://github.com/faasm/WAVM.git"
     GIT_TAG "faasm"
     CMAKE_ARGS "-DDLL_EXPORT= \
-        -DDLL_IMPORT= \
-        -DWAVM_ENABLE_UNWIND=ON"
+        -DDLL_IMPORT="
 )
 
 FetchContent_Declare(wamr_ext
