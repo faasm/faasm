@@ -76,6 +76,17 @@ struct wasm_iovec
     uint32_t iov_len;
 };
 
+/* MPI-related interfacing structs and calls.
+ */
+struct wasm_faabric_win_t
+{
+    uint32_t worldId;
+    uint32_t rank;
+    uint32_t size;
+    uint32_t wasmPtr;
+    uint32_t dispUnit;
+};
+
 /** Socket-related struct (see
  * https://beej.us/guide/bgnet/html/multi/sockaddr_inman.html) */
 struct wasm_sockaddr

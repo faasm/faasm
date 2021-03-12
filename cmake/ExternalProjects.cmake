@@ -11,8 +11,7 @@ FetchContent_Declare(wavm_ext
     GIT_REPOSITORY "https://github.com/faasm/WAVM.git"
     GIT_TAG "faasm"
     CMAKE_ARGS "-DDLL_EXPORT= \
-        -DDLL_IMPORT= \
-        -DWAVM_ENABLE_UNWIND=ON"
+        -DDLL_IMPORT="
 )
 
 FetchContent_Declare(wamr_ext
@@ -20,10 +19,10 @@ FetchContent_Declare(wamr_ext
     GIT_TAG "5a3db31c096ec4d8a7b8b639aeaecd3fdda06b30"
 )
 
+set(FAABRIC_BUILD_TESTS ON CACHE INTERNAL "")
 FetchContent_Declare(faabric_ext
     GIT_REPOSITORY "https://github.com/faasm/faabric.git"
-    GIT_TAG "0aa01dd5a0a332dce83e6464583a5b675900bc61"
-    CMAKE_ARGS "-DFAABRIC_BUILD_TESTS=OFF"
+    GIT_TAG "05ec7e4ffa42a42588a4a1ac952edd261b411162"
 )
 
 FetchContent_MakeAvailable(wavm_ext faabric_ext wamr_ext)

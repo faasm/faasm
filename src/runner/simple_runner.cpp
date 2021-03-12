@@ -14,7 +14,6 @@ bool runFunction(std::string& user, std::string& function, int runCount);
 
 int main(int argc, char* argv[])
 {
-    faabric::util::initLogging();
     const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
 
     int runCount;
