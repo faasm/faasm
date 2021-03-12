@@ -162,9 +162,6 @@ include_directories(
         ${WAMR_IWASM_DIR}/common
 )
 
-# Add Faabric src include for protobuf generated sources
-include_directories(${FAABRIC_BINARY_DIR}/src)
-
 # More include directories
 include_directories(
         ${FAASM_INCLUDE_DIR}
