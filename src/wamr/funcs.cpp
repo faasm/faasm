@@ -1,8 +1,8 @@
 #include "thread_manager.h"
 
+#include <faabric/proto/faabric.pb.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/macros.h>
-#include <proto/faabric.pb.h>
 #include <wamr/native.h>
 #include <wasm/WasmModule.h>
 #include <wasm/chaining.h>

@@ -107,7 +107,8 @@ set up your own. To do this:
 ./bin/cli.sh <your image>
 ```
 
-Or set the environment variable `CLI_IMAGE`  before you run the `cli.sh` script.
+Or set the environment variable `FAASM_CLI_IMAGE`  before you run the `cli.sh`
+script.
 
 ## Testing
 
@@ -159,8 +160,8 @@ source venv/bin/activate
 
 # Install toolchain Python module
 cd <wherever you keep your code>
-git clone https://github.com/faasm/faasm-toolchain/
-cd faasm-toolchain
+git clone https://github.com/faasm/cpp/
+cd cpp
 pip3 install -e .
 cd -
 

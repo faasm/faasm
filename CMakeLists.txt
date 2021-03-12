@@ -144,6 +144,10 @@ add_definitions(${LLVM_DEFINITIONS})
 # Third party deps
 include(cmake/ExternalProjects.cmake)
 
+# Faabric
+add_subdirectory(faabric)
+include_directories(${CMAKE_CURRENT_LIST_DIR}/faabric/include)
+
 # See https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/build_wamr.md
 set(WAMR_SHARED_DIR ${WAMR_ROOT_DIR}/core/shared)
 set(WAMR_IWASM_DIR ${WAMR_ROOT_DIR}/core/iwasm)
@@ -157,9 +161,6 @@ include_directories(
         ${WAMR_IWASM_DIR}/include
         ${WAMR_IWASM_DIR}/common
 )
-
-# Add Faabric src include for protobuf generated sources
-include_directories(${FAABRIC_BINARY_DIR}/src)
 
 # More include directories
 include_directories(

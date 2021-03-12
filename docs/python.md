@@ -5,9 +5,9 @@ executing languages which can't be compiled to WebAssembly. However, we can
 compile certain language runtimes to WebAssembly, then use these to execute
 non-WebAssembly code.
 
-This is true of CPython, which we can compile to WebAssembly (along with Python
-C-extensions). This is covered in the [Faasm CPython
-repo](https://github.com/faasm/faasm-cpython).
+This is true of python, which we can compile to WebAssembly (along with Python
+C-extensions). This is covered in the [Faasm python
+repo](https://github.com/faasm/python).
 
 A separate Python library, [Pyfaasm](https://github.com/faasm/pyfaasm),
 contains the custom C-extensions and decorators to support the [Faasm host
@@ -23,7 +23,7 @@ you must set up the relevant environment variables:
 PYTHON_CODEGEN=on
 ```
 
-The first time the system runs it will generate machine code for CPython and all
+The first time the system runs it will generate machine code for python and all
 the Python C-extensions. This can take around a minute. 
 
 ## Running a Python function
@@ -64,16 +64,16 @@ A couple of the Python test functions also demonstrate chaining:
 - [Simple example](../func/python/chain.py) 
 - [Chaining with shared state](../func/python/dict_state.py) 
 
-# Building CPython and new modules
+# Building python and new modules
 
 NOTE: you only need to do this if you're adding new modules or changing
 something about the Python cross-compilation.
 
 If you're using the containerised environment, you need to mount the
-[`faasm-cpython` repo](https://github.com/faasm/faasm-cpython) into your CLI 
+[`python` repo](https://github.com/faasm/python) into your CLI 
 container. 
 
-You can then use the tasks in `faasm-cpython` to build CPython, rebuild the
+You can then use the tasks in `python` to build python, rebuild the
 Faasm python environment, and execute. 
 
 Note that to copy over the cross-compiled Python libraries, you still need to

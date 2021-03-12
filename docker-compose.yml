@@ -61,7 +61,7 @@ services:
       - "8080:8080"
 
   cli:
-    image: ${CLI_IMAGE}
+    image: ${FAASM_CLI_IMAGE}
     working_dir: /usr/local/code/faasm
     stdin_open: true
     tty: true

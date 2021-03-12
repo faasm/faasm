@@ -19,13 +19,7 @@ FetchContent_Declare(wamr_ext
     GIT_TAG "5a3db31c096ec4d8a7b8b639aeaecd3fdda06b30"
 )
 
-set(FAABRIC_BUILD_TESTS ON CACHE INTERNAL "")
-FetchContent_Declare(faabric_ext
-    GIT_REPOSITORY "https://github.com/faasm/faabric.git"
-    GIT_TAG "05ec7e4ffa42a42588a4a1ac952edd261b411162"
-)
-
-FetchContent_MakeAvailable(wavm_ext faabric_ext wamr_ext)
+FetchContent_MakeAvailable(wavm_ext wamr_ext)
 
 # Allow access to headers nested in other projects
 FetchContent_GetProperties(wavm_ext SOURCE_DIR FAASM_WAVM_SOURCE_DIR)
@@ -33,9 +27,6 @@ message(STATUS FAASM_WAVM_SOURCE_DIR ${FAASM_WAVM_SOURCE_DIR})
 
 FetchContent_GetProperties(wamr_ext SOURCE_DIR WAMR_ROOT_DIR)
 message(STATUS WAMR_ROOT_DIR ${WAMR_ROOT_DIR})
-
-FetchContent_GetProperties(faabric_ext BINARY_DIR FAABRIC_BINARY_DIR)
-message(STATUS FAABRIC_BINARY_DIR ${FAABRIC_BINARY_DIR})
 
 # SGX-specific dependencies
 if(FAASM_SGX_XRA)

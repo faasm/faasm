@@ -1,4 +1,4 @@
-#include <proto/faabric.pb.h>
+#include <faabric/proto/faabric.pb.h>
 #include <wamr/WAMRWasmModule.h>
 #include <wamr/native.h>
 #include <wasm/WasmModule.h>
