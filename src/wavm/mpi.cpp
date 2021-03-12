@@ -101,17 +101,17 @@ class ContextWrapper
         return hostInfoType;
     }
 
-    faabric_win_t* getFaasmWindow(I32 wasmPtr)
+    wasm_faabric_win_t* getFaasmWindow(I32 wasmPtr)
     {
-        faabric_win_t* hostWin =
-          &Runtime::memoryRef<faabric_win_t>(memory, wasmPtr);
+        wasm_faabric_win_t* hostWin =
+          &Runtime::memoryRef<wasm_faabric_win_t>(memory, wasmPtr);
         return hostWin;
     }
 
     /**
      * This function is used for pointers-to-pointers for the window
      */
-    faabric_win_t* getFaasmWindowFromPointer(I32 wasmPtrPtr)
+    wasm_faabric_win_t* getFaasmWindowFromPointer(I32 wasmPtrPtr)
     {
         I32 wasmPtr = Runtime::memoryRef<I32>(memory, wasmPtrPtr);
         return getFaasmWindow(wasmPtr);
@@ -1449,7 +1449,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     ContextWrapper ctx(comm);
 
     // Set up the window object in the wasm memory
-    faabric_win_t* win = ctx.getFaasmWindowFromPointer(winPtrPtr);
+    wasm_faabric_win_t* win = ctx.getFaasmWindowFromPointer(winPtrPtr);
     win->worldId = ctx.world.getId();
     win->size = size;
     win->dispUnit = dispUnit;
@@ -1458,7 +1458,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     U8* hostPtr =
       &Runtime::memoryRef<U8>(getExecutingWAVMModule()->defaultMemory, basePtr);
-    ctx.world.createWindow(win, hostPtr);
+    ctx.world.createWindow(win->rank, win->size, hostPtr);
 
     return MPI_SUCCESS;
 }
@@ -1623,7 +1623,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                       flagResPtr);
 
     ContextWrapper ctx;
-    faabric_win_t* window = ctx.getFaasmWindow(winPtr);
+    wasm_faabric_win_t* window = ctx.getFaasmWindow(winPtr);
 
     // This flag must be 1 if the attribute is set (which we always assume it
     // is)
