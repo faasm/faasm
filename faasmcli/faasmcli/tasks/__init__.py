@@ -3,14 +3,12 @@ from invoke import Collection
 from . import bare_metal
 from . import call
 from . import codegen
-from . import compile
 from . import config
 from . import dev
 from . import disas
 from . import docker_tasks
 from . import flush
 from . import knative
-from . import libs
 from . import python
 from . import redis
 from . import release
@@ -22,13 +20,11 @@ from . import wast
 # Default names
 ns = Collection(
     codegen,
-    compile,
     config,
     dev,
     disas,
     flush,
     knative,
-    libs,
     python,
     redis,
     release,

@@ -61,22 +61,3 @@ To use cgroup isolation, you'll need to run:
 sudo ./bin/cgroup.sh
 ```
 
-# Out-of-tree build example
-
-This is a simple example of running an out-of-tree build to execute a 
-function:
-
-```bash
-# Set up the CLI
-export FAASM_BUILD_DIR=<build dir>
-source bin/workon.sh
-
-# Build the project
-inv dev.tools
-
-# Compile, codegen and run the code
-inv compile demo hello
-inv codegen demo hello
-inv run demo hello
-```
-

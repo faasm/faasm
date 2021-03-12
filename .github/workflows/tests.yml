@@ -91,7 +91,7 @@ jobs:
       - name: "Run python codegen"
         run: inv -r faasmcli/faasmcli python.codegen
       - name: "Copy Python functions into place"
-        run: inv -r faasmcli/faasmcli upload.user python --py --local-copy
+        run: TODO
       - name: "Clear existing pyc files"
         run: inv -r faasmcli/faasmcli python.clear-runtime-pyc
       # --- Test run ---

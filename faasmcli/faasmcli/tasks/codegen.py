@@ -3,8 +3,15 @@ from subprocess import run
 from invoke import task
 from copy import copy
 from os import environ
+from os.path import join
 
-from faasmcli.util.codegen import find_codegen_func
+from faasmcli.util.codegen import find_codegen_func, find_codegen_shared_lib
+from faasmcli.util.env import FAASM_RUNTIME_ROOT
+
+LIB_FAKE_FILES = [
+    join(FAASM_RUNTIME_ROOT, "lib", "libfakeLibA.so"),
+    join(FAASM_RUNTIME_ROOT, "lib", "libfakeLibB.so"),
+]
 
 
 @task(default=True)
@@ -52,6 +59,18 @@ def _do_codegen_user(user, wamr=False):
     run("{} {}".format(binary, user), shell=True, env=env, check=True)
 
 
+def _do_codegen_file(path):
+    binary = find_codegen_shared_lib()
+
+    env = copy(environ)
+    env.update(
+        {
+            "LD_LIBRARY_PATH": "/usr/local/lib/",
+        }
+    )
+    run("{} {}".format(binary, path), env=env, shell=True, check=True)
+
+
 @task
 def local(ctx, wamr=False):
     """
@@ -66,3 +85,7 @@ def local(ctx, wamr=False):
     # Always run the codegen required by the tests
     codegen(ctx, "demo", "echo", wamr=True)
     codegen(ctx, "demo", "chain", wamr=True)
+
+    # Do codegen for libfake
+    for so in LIB_FAKE_FILES:
+        _do_codegen_file(so)

@@ -38,14 +38,14 @@ root of the project:
 docker-compose up -d
 ```
 
-To interact with this local cluster you can run the Faasm CLI:
+To compile, upload and invoke a C++ function using this local cluster you can 
+use the [faasm/cpp](https://github.com/faasm/cpp) container:
 
 ```bash
-# Start the CLI
-./bin/cli.sh
+docker-compose run -it cpp /bin/bash
 
 # Compile the demo function
-inv compile demo hello
+inv func demo hello
 
 # Upload the demo "hello" function
 inv upload demo hello
@@ -63,8 +63,8 @@ directory in the root of the project and reused on subsequent runs.
 More detail on some key features and implementations can be found below: 
 
 - [Usage and set-up](docs/setup.md) - using the CLI and other features.
-- [C/C++ functions](docs/cpp.md) - writing and deploying Faasm functions in C/C++.
-- [Python functions](docs/python.md) - isolating and executing functions in Python.
+- [C/C++ functions](https://github.com/faasm/cpp) - writing and deploying Faasm functions in C/C++.
+- [Python functions](https://github.com/faasm/python) - isolating and executing functions in Python.
 - [Distributed state](docs/state.md) - sharing state between functions.
 - [Faasm host interface](docs/host_interface.md) - the serverless-specific interface between functions and the underlying host.
 - [Kubernetes and Knative integration](docs/kubernetes.md)- deploying Faasm as part of a full serverless platform.
@@ -80,9 +80,6 @@ More detail on some key features and implementations can be found below:
 - [SGX](docs/sgx.md) - information on executing functions with [SGX](https://software.intel.com/content/www/us/en/develop/topics/software-guard-extensions.html) (WIP).
 
 ## Experiments and benchmarks
-
-Faasm experiments and benchmarks live in the 
-[Faasm experiments repo](https://github.com/faasm/faasm-experiments/):
 
 - [Tensorflow Lite](https://github.com/faasm/faasm-experiments/blob/master/docs/tensorflow.md) - performing inference in Faasm with [Tensorflow Lite](https://www.tensorflow.org/lite/)
 - [Polybench](https://github.com/faasm/faasm-experiments/blob/master/docs/polybench.md) - benchmarking with [Polybench/C](http://web.cse.ohio-state.edu/~pouchet.2/software/polybench/)
