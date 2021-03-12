@@ -5,7 +5,7 @@
 #include <faabric/state/State.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/memory.h>
-#include <proto/faabric.pb.h>
+#include <faabric/proto/faabric.pb.h>
 
 #include <exception>
 #include <mutex>

@@ -1,5 +1,5 @@
-#include "faabric/util/func.h"
-#include "proto/faabric.pb.h"
+#include <faabric/util/func.h>
+#include <faabric/proto/faabric.pb.h>
 #include <catch2/catch.hpp>
 
 #include <faabric/redis/Redis.h>
