@@ -37,6 +37,8 @@ RUN git clone \
     https://github.com/faasm/faasm
 WORKDIR /usr/local/code/faasm
 
+RUN git submodule update --init
+
 # Set up runtime filesystem
 WORKDIR /usr/local/code/faasm/ansible
 ENV USER=root
