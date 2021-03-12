@@ -107,7 +107,8 @@ set up your own. To do this:
 ./bin/cli.sh <your image>
 ```
 
-Or set the environment variable `CLI_IMAGE`  before you run the `cli.sh` script.
+Or set the environment variable `FAASM_CLI_IMAGE`  before you run the `cli.sh`
+script.
 
 ## Testing
 
