@@ -1,6 +1,6 @@
 # Stages to extract toolchain and sysroot
 FROM faasm/cpp-sysroot:0.0.19 as sysroot
-FROM faasm/cpython:0.0.9 as cpython
+FROM faasm/python:0.0.9 as python
 
 # Import from SGX container
 FROM faasm/sgx:0.5.3 as sgx
@@ -16,12 +16,12 @@ ENV FAASM_DOCKER="on"
 COPY --from=sysroot /usr/local/faasm /usr/local/faasm
 
 # Copy Python outputs 
-# TODO - copy these into the toolchain as part of the cpython container build
-COPY --from=cpython /usr/local/faasm/runtime_root /usr/local/faasm/runtime_root
-COPY --from=cpython \
+# TODO - copy these into the toolchain as part of the python container build
+COPY --from=python /usr/local/faasm/runtime_root /usr/local/faasm/runtime_root
+COPY --from=python \
     /usr/local/faasm/llvm-sysroot/lib/wasm32-wasi/libpython3.8.a \
     /usr/local/faasm/llvm-sysroot/lib/wasm32-wasi/libpython3.8.a
-COPY --from=cpython \
+COPY --from=python \
     /usr/local/faasm/llvm-sysroot/include/python3.8 \
     /usr/local/faasm/llvm-sysroot/include/python3.8
 

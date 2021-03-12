@@ -24,11 +24,11 @@ RUN ninja install
 WORKDIR /
 RUN rm -r /tmp/wabt
 
-# Install faasm toolchain Python module
-# TODO - include this with via multi-stage Docker build
+# Install faasm cpp Python module
+# TODO - include this via multi-stage Docker build
 WORKDIR /usr/local/code
-RUN git clone https://github.com/faasm/faasm-toolchain
-WORKDIR /usr/local/code/faasm-toolchain
+RUN git clone https://github.com/faasm/cpp
+WORKDIR /usr/local/code/cpp
 RUN pip3 install -e .
 
 # Python set-up

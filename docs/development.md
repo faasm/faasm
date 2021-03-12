@@ -159,8 +159,8 @@ source venv/bin/activate
 
 # Install toolchain Python module
 cd <wherever you keep your code>
-git clone https://github.com/faasm/faasm-toolchain/
-cd faasm-toolchain
+git clone https://github.com/faasm/cpp/
+cd cpp
 pip3 install -e .
 cd -
 
