@@ -1,6 +1,6 @@
 # Stages to extract toolchain and sysroot
 FROM faasm/cpp-sysroot:0.0.21 as sysroot
-FROM faasm/python:0.0.10 as python
+FROM faasm/cpython:0.0.10 as python
 
 # Import from SGX container
 FROM faasm/sgx:0.5.3 as sgx
