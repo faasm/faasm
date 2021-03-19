@@ -12,7 +12,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     container:
-      image: faasm/cli:0.5.12
+      image: faasm/cli:0.5.13
     defaults:
       run:
         working-directory: /usr/local/code/faasm
@@ -79,7 +79,7 @@ jobs:
       REDIS_QUEUE_HOST: redis
       REDIS_STATE_HOST: redis
     container:
-      image: faasm/cli:0.5.12
+      image: faasm/cli:0.5.13
       volumes:
        - wasm:/usr/local/faasm/wasm
        - shared:/usr/local/faasm/shared_store
@@ -88,7 +88,7 @@ jobs:
         working-directory: /usr/local/code/faasm
     services:
       redis:
-        image: faasm/redis:0.5.12
+        image: faasm/redis:0.5.13
         ports:
           - 6379:6379
     steps:

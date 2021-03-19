@@ -2,7 +2,7 @@
 
 ## 0. Create a branch
 
-Create a new branch for this release, but _not_ a PR.
+Create a new branch for this release, and a draft PR (or no PR at all).
 
 See what's going into the release in the [Compare
 view](https://github.com/faasm/faasm/compare).
