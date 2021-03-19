@@ -39,9 +39,9 @@ Once you've built a native executable linked against this, you can then use
 ## Extending the Faasm MPI implementation
 
 The MPI interface declarations live in the [`libfaasmpi`
-directory](https://github.com/faasm/faasm-toolchain/tree/master/libfaasmpi) of
-the `faasm-toolchain` repo. The host interface definitions live
+directory](https://github.com/faasm/cpp/tree/master/libfaasmpi) of
+the `cpp` repo. The host interface definitions live
 [here](../src/wavm/mpi.cpp).
 
 Any new functions need to be included in the `faasmpi.imports` file in the
-`faasm-toolchain` repo. 
+`cpp` repo. 

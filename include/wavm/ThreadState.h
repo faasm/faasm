@@ -3,7 +3,7 @@
 #include <mutex>
 #include <vector>
 
-#include <proto/faabric.pb.h>
+#include <faabric/proto/faabric.pb.h>
 
 #include <faabric/util/barrier.h>
 #include <faabric/util/environment.h>
