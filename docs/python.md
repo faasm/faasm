@@ -58,27 +58,3 @@ def faasm_main():
     await_call(call_one)
     await_call(call_two)
 ```
-
-A couple of the Python test functions also demonstrate chaining:
-
-- [Simple example](../func/python/chain.py) 
-- [Chaining with shared state](../func/python/dict_state.py) 
-
-# Building python and new modules
-
-NOTE: you only need to do this if you're adding new modules or changing
-something about the Python cross-compilation.
-
-If you're using the containerised environment, you need to mount the
-[`python` repo](https://github.com/faasm/python) into your CLI 
-container. 
-
-You can then use the tasks in `python` to build python, rebuild the
-Faasm python environment, and execute. 
-
-Note that to copy over the cross-compiled Python libraries, you still need to
-run:
-
-```
-inv python.runtime
-```

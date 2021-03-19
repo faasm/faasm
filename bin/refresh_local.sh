@@ -9,11 +9,11 @@ PROJ_ROOT=${THIS_DIR}/..
 
 pushd ${PROJ_ROOT} >> /dev/null
 
-FAASM_VERSION=$(cat ${PROJ_ROOT}/faasm/VERSION)
+FAASM_VERSION=$(cat VERSION)
 IMAGE_TAG=faasm/cli:${FAASM_VERSION}
 
 # This path needs to be absolute with no ..s
-TARGET_DIR=$(pwd)/faasm-local
+TARGET_DIR=$(pwd)/dev/faasm-local
 SOURCE_DIR=/usr/local/faasm
 
 # We use docker to clear out the existing dir so that it has the right perms

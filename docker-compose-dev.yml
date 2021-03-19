@@ -19,7 +19,7 @@ services:
       - REDIS_QUEUE_HOST=redis
     volumes:
       - ./faabric:/code/faabric
-      - ./dev/build/faabric:/build/faabric
+      - ./dev/faabric/build:/build/faabric
       - ./dev/faasm-local:/usr/local/faasm
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker
@@ -38,8 +38,8 @@ services:
       - REDIS_STATE_HOST=redis
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
     volumes:
-      - ..:/usr/local/code/faasm/
-      - ./dev/build:/build/faasm/
+      - ./:/usr/local/code/faasm/
+      - ./dev/faasm/build:/build/faasm/
       - ./dev/faasm-local:/usr/local/faasm
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker
@@ -58,7 +58,7 @@ services:
       - REDIS_QUEUE_HOST=redis
     volumes:
       - ./clients/cpp:/code/cpp
-      - ./dev/build/cpp:/build/cpp
+      - ./dev/cpp/build:/build/cpp
       - ./dev/faasm-local:/usr/local/faasm
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker
@@ -76,7 +76,7 @@ services:
       - REDIS_STATE_HOST=redis
       - REDIS_QUEUE_HOST=redis
     volumes:
-      - ./python:/code/python
+      - ./clients/python:/code/python
       - ./dev/faasm-local:/usr/local/faasm
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker

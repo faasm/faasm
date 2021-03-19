@@ -42,7 +42,7 @@ To compile, upload and invoke a C++ function using this local cluster you can
 use the [faasm/cpp](https://github.com/faasm/cpp) container:
 
 ```bash
-docker-compose run -it cpp /bin/bash
+docker-compose run cpp /bin/bash
 
 # Compile the demo function
 inv func demo hello

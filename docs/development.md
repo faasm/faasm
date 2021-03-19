@@ -61,22 +61,23 @@ want to work on:
 ./bin/cli.sh faabric
 ```
 
-# Faasm Development
+## Tests
 
-To build and run the tests, you can then run the following (note which CLI
-container you need to be in):
+To check everything works, you can run the tests as follows (note which 
+container you need to be in for each step):
 
 ```bash
 # --- CPP CLI ---
-# Build CPP functions required for the tests
-inv compile.local
+# Build CPP functions and lib required for the tests
+inv func.local
+inv libfake
 
 # --- Python CLI ---
 # Build Python wrapper function
 inv func
 
 # Upload the Python functions
-inv upload --local
+inv func.uploadpy
 
 # --- Faasm CLI ---
 # Build the development tools
@@ -142,15 +143,11 @@ To run the CLI, you should just need to do:
 # Set up the venv
 ./bin/create_venv.sh
 
-# Activate the virtualenv
-source venv/bin/activate
+# Activate the Faasm virtualenv
+source bin/workon.sh
 
 # Check things work
-cd faasm inv -r faasmcli/faasmcli -l
-
-cd ../cpp inv -l
-
-cd ../python inv -l
+inv -l
 ```
 
 ## Troubleshooting CI
