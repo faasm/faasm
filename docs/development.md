@@ -77,7 +77,7 @@ inv libfake
 inv func
 
 # Upload the Python functions
-inv func.uploadpy
+inv func.uploadpy --local
 
 # --- Faasm CLI ---
 # Build the development tools
@@ -147,6 +147,12 @@ To run the CLI, you should just need to do:
 source bin/workon.sh
 
 # Check things work
+inv -l
+
+cd clients/cpp
+inv -l
+
+cd ../python
 inv -l
 ```
 

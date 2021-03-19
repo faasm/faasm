@@ -35,9 +35,41 @@ jobs:
       - name: "Run C/C++ linter"
         run: ./bin/run_clang_tidy.sh
 
+  cpp-funcs:
+    runs-on: ubuntu-20.04
+    container:
+      image: faasm/cpp:0.0.22
+      volumes:
+       - wasm:/usr/local/faasm/wasm
+    defaults:
+      run:
+        working-directory: /code/cpp
+    steps:
+      - name: "Build C++ functions"
+        run: inv func.local
+      - name: "Build libfake"
+        run: inv libfake
+
+  py-funcs:
+    runs-on: ubuntu-20.04
+    container:
+      image: faasm/python:0.0.11
+      volumes:
+       - wasm:/usr/local/faasm/wasm
+       - shared:/usr/local/faasm/shared_store
+    defaults:
+      run:
+        working-directory: /code/python
+    steps:
+      - name: "Build CPython function"
+        run: inv func
+      - name: "Build libfake"
+        run: inv func.uploadpy --local
+
   build:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
+    needs: [cpp-funcs, python-funcs]
     env:
       CGROUP_MODE: off
       HOST_TYPE: ci
@@ -48,6 +80,9 @@ jobs:
       REDIS_STATE_HOST: redis
     container:
       image: faasm/cli:0.5.12
+      volumes:
+       - wasm:/usr/local/faasm/wasm
+       - shared:/usr/local/faasm/shared_store
     defaults:
       run:
         working-directory: /usr/local/code/faasm
@@ -80,18 +115,11 @@ jobs:
       # --- Code build ---
       - name: "Build dev tools"
         run: inv -r faasmcli/faasmcli dev.tools --build Release
-      # --- WASM compilation ---
-      - name: "Compile dummy CPP library"
-        run: inv -r faasmcli/faasmcli libs.fake --clean
-      - name: "Compile functions"
-        run: inv -r faasmcli/faasmcli compile.local --clean
       # --- Environment set-up ---
       - name: "Run codegen"
         run: inv -r faasmcli/faasmcli codegen.local
       - name: "Run python codegen"
         run: inv -r faasmcli/faasmcli python.codegen
-      - name: "Copy Python functions into place"
-        run: TODO
       - name: "Clear existing pyc files"
         run: inv -r faasmcli/faasmcli python.clear-runtime-pyc
       # --- Test run ---
