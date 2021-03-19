@@ -1,0 +1,82 @@
+version: "3"
+
+services:
+  redis:
+    image: faasm/redis:${FAASM_VERSION}
+
+  faabric-cli:
+    image: ${FAABRIC_CLI_IMAGE}
+    working_dir: /code/faabric
+    stdin_open: true
+    tty: true
+    privileged: true
+    depends_on:
+      - redis
+    environment:
+      - FUNCTION_STORAGE=local
+      - LOG_LEVEL=debug
+      - REDIS_STATE_HOST=redis
+      - REDIS_QUEUE_HOST=redis
+    volumes:
+      - ./faabric:/code/faabric
+      - ./dev/build/faabric:/build/faabric
+      - ./dev/faasm-local:/usr/local/faasm
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+
+  faasm-cli:
+    image: ${FAASM_CLI_IMAGE}
+    working_dir: /usr/local/code/faasm
+    stdin_open: true
+    tty: true
+    privileged: true
+    depends_on:
+      - redis
+    environment:
+      - LOG_LEVEL=debug
+      - REDIS_QUEUE_HOST=redis
+      - REDIS_STATE_HOST=redis
+      - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
+    volumes:
+      - ..:/usr/local/code/faasm/
+      - ./dev/build:/build/faasm/
+      - ./dev/faasm-local:/usr/local/faasm
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+
+  cpp-cli:
+    image: ${CPP_CLI_IMAGE}
+    working_dir: /code/cpp
+    stdin_open: true
+    tty: true
+    privileged: true
+    depends_on:
+      - redis
+    environment:
+      - LOG_LEVEL=debug
+      - REDIS_STATE_HOST=redis
+      - REDIS_QUEUE_HOST=redis
+    volumes:
+      - ./clients/cpp:/code/cpp
+      - ./dev/build/cpp:/build/cpp
+      - ./dev/faasm-local:/usr/local/faasm
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+
+  python-cli:
+    image: ${PYTHON_CLI_IMAGE}
+    working_dir: /code/python
+    stdin_open: true
+    tty: true
+    privileged: true
+    depends_on:
+      - redis
+    environment:
+      - LOG_LEVEL=debug
+      - REDIS_STATE_HOST=redis
+      - REDIS_QUEUE_HOST=redis
+    volumes:
+      - ./python:/code/python
+      - ./dev/faasm-local:/usr/local/faasm
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker

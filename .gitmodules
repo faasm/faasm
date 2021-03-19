@@ -1,3 +1,9 @@
 [submodule "faabric"]
 	path = faabric
 	url = https://github.com/faasm/faabric
+[submodule "clients/python"]
+	path = clients/python
+	url = https://github.com/faasm/python.git
+[submodule "clients/cpp"]
+	path = clients/cpp
+	url = https://github.com/faasm/cpp.git

@@ -60,26 +60,22 @@ services:
     ports:
       - "8080:8080"
 
-  cli:
-    image: ${FAASM_CLI_IMAGE}
-    working_dir: /usr/local/code/faasm
+  cpp:
+    image: ${CPP_CLI_IMAGE}
+    working_dir: /code/cpp
     stdin_open: true
     tty: true
     privileged: true
     depends_on:
-      - redis-queue
-      - redis-state
-    environment:
-      - UPLOAD_HOST=${UPLOAD_HOST:-upload}
-      - INVOKE_HOST=${INVOKE_HOST:-nginx}
-      - LOG_LEVEL=info
-      - REDIS_QUEUE_HOST=redis-queue
-      - REDIS_STATE_HOST=redis-state
-      - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
+      - worker
     volumes:
-      - .:/usr/local/code/faasm/
-      - ./build/:/build/faasm/
-      - ./container/machine-code/:/usr/local/faasm/object/
-      - ./container/shared_store/:/usr/local/faasm/shared_store/
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /usr/bin/docker:/usr/bin/docker
+      - ./container/build:/build/cpp
+
+  python:
+    image: ${PYTHON_CLI_IMAGE}
+    working_dir: /code/python
+    stdin_open: true
+    tty: true
+    privileged: true
+    depends_on:
+      - worker
