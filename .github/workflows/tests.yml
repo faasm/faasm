@@ -83,7 +83,7 @@ jobs:
 
   build:
     if: github.event.pull_request.draft == false
-    needs: [cpp-funcs, python-funcs]
+    needs: [cpp-funcs, py-funcs]
     runs-on: ubuntu-20.04
     env:
       CGROUP_MODE: off
