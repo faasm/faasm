@@ -15,7 +15,7 @@ jobs:
       - name: "Check out code"
         uses: actions/checkout@v2 
         with:
-          path: code
+          path: "/home/runner/faasm-work"
           
   formatting:
     if: github.event.pull_request.draft == false
@@ -24,7 +24,7 @@ jobs:
     container:
       image: faasm/cli:0.5.13
       volumes:
-        - $GITHUB_WORKSPACE/code:/usr/local/code/faasm
+        - /home/runner/faasm-work:/usr/local/code/faasm
     defaults:
       run:
         working-directory: /usr/local/code/faasm
@@ -50,9 +50,9 @@ jobs:
     container:
       image: faasm/cpp-sysroot:0.0.22
       volumes:
-        - $GITHUB_WORKSPACE/code/clients/cpp:/code/cpp
-        - $GITHUB_WORKSPACE/container/wasm:/usr/local/faasm/wasm
-        - $GITHUB_WORKSPACE/container/fake:/usr/local/faasm/runtime_root/lib/fake
+        - /home/runner/faasm-work/clients/cpp:/code/cpp
+        - /home/runner/faasm-work/container/wasm:/usr/local/faasm/wasm
+        - /home/runner/faasm-work/container/fake:/usr/local/faasm/runtime_root/lib/fake
     defaults:
       run:
         working-directory: /code/cpp
@@ -69,9 +69,9 @@ jobs:
     container:
       image: faasm/cpython:0.0.11
       volumes:
-        - $GITHUB_WORKSPACE/code/clients/python:/code/python
-        - $GITHUB_WORKSPACE/container/wasm:/usr/local/faasm/wasm
-        - $GITHUB_WORKSPACE/container/shared:/usr/local/faasm/shared_store
+        - /home/runner/faasm-work/code/clients/python:/code/python
+        - /home/runner/faasm-work/container/wasm:/usr/local/faasm/wasm
+        - /home/runner/faasm-work/container/shared:/usr/local/faasm/shared_store
     defaults:
       run:
         working-directory: /code/python
@@ -96,10 +96,10 @@ jobs:
     container:
       image: faasm/cli:0.5.13
       volumes:
-        - $GITHUB_WORKSPACE/code:/usr/local/code/faasm
-        - $GITHUB_WORKSPACE/container/wasm:/usr/local/faasm/wasm
-        - $GITHUB_WORKSPACE/container/shared:/usr/local/faasm/shared_store
-        - $GITHUB_WORKSPACE/container/fake:/usr/local/faasm/runtime_root/lib/fake
+        - /home/runner/faasm-work/code:/usr/local/code/faasm
+        - /home/runner/faasm-work/container/wasm:/usr/local/faasm/wasm
+        - /home/runner/faasm-work/container/shared:/usr/local/faasm/shared_store
+        - /home/runner/faasm-work/container/fake:/usr/local/faasm/runtime_root/lib/fake
     defaults:
       run:
         working-directory: /usr/local/code/faasm
