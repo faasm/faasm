@@ -38,10 +38,12 @@ jobs:
       image: faasm/cpp-sysroot:0.0.22
     defaults:
       run:
-        working-directory: clients/cpp
+        working-directory: /code/faasm/clients/cpp
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v2
+        with:
+          path: /code/faasm
       - name: "Build C++ functions"
         run: inv func.local
       - name: "Build libfake"
@@ -64,10 +66,12 @@ jobs:
       image: faasm/cpython:0.0.11
     defaults:
       run:
-        working-directory: clients/python
+        working-directory: /code/faasm/clients/python
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v2
+        with:
+          path: /code/faasm
       - name: "Build CPython function"
         run: inv func
       - name: "Put Python functions in place"
