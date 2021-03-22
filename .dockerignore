@@ -8,6 +8,8 @@ cmake-build-release
 
 # Builds
 build
+dev
+clients
 
 # Clang
 .clangd
@@ -22,10 +24,6 @@ deploy/k8s
 node_modules
 venv
 container
-
-# Ignore all WebAssembly other than Python function, which has special status
-wasm
-!wasm/python/py_func/function.wasm
 
 # Benchmarking
 perf
