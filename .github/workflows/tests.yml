@@ -55,7 +55,7 @@ jobs:
         - container/fake:/usr/local/faasm/runtime_root/lib/fake
     defaults:
       run:
-        working-directory: /code/cpp
+        working-directory: /code/cpp-sysroot
     steps:
       - name: "Build C++ functions"
         run: inv func.local
@@ -67,7 +67,7 @@ jobs:
     needs: code
     runs-on: ubuntu-20.04
     container:
-      image: faasm/python:0.0.11
+      image: faasm/cpython:0.0.11
       volumes:
         - code/clients/python:/code/python
         - container/wasm:/usr/local/faasm/wasm
