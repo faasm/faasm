@@ -20,7 +20,26 @@ jobs:
         uses: actions/checkout@v2 
         with:
           path: /home/runner/work/faasm/faasm/code
-          
+      - name: "Print out contents"
+        run: "ls -al /home/runner/work/faasm/faasm/code"
+         
+  dummy:
+    if: github.event.pull_request.draft == false
+    needs: code
+    runs-on: ubuntu-20.04
+    container:
+      image: alpine
+      volumes:
+        - /home/runner/work/faasm/faasm/code:/usr/local/foo
+    defaults:
+      run:
+        working-directory: /usr/local/foo
+    steps:
+      - name: "Check mount"
+        run: "ls -al /usr/local/foo"
+      - name: "Check mount"
+        run: "ls -al"
+
   formatting:
     if: github.event.pull_request.draft == false
     needs: code
