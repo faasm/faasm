@@ -8,19 +8,26 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
+  code:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-20.04
+    steps:
+      - name: "Check out code"
+        uses: actions/checkout@v2 
+          path: "code"
+          
   formatting:
     if: github.event.pull_request.draft == false
+    needs: code
     runs-on: ubuntu-20.04
     container:
       image: faasm/cli:0.5.13
+      volumes:
+        - code:/usr/local/code/faasm
     defaults:
       run:
         working-directory: /usr/local/code/faasm
     steps:
-      - name: "Fetch ref"
-        run: git fetch origin ${GITHUB_REF}:ci-branch
-      - name: "Check out branch"
-        run: git checkout --force ci-branch
       - name: "Build the targets to update compile commands and dependencies"
         run: inv -r faasmcli/faasmcli dev.tools --build Release
       # --- Formatting checks ---
@@ -36,12 +43,15 @@ jobs:
         run: ./bin/run_clang_tidy.sh
 
   cpp-funcs:
+    if: github.event.pull_request.draft == false
+    needs: code
     runs-on: ubuntu-20.04
     container:
       image: faasm/cpp:0.0.22
       volumes:
-       - container/wasm:/usr/local/faasm/wasm
-       - container/fake:/usr/local/faasm/runtime_root/lib/fake
+        - code/clients/cpp:/code/cpp
+        - container/wasm:/usr/local/faasm/wasm
+        - container/fake:/usr/local/faasm/runtime_root/lib/fake
     defaults:
       run:
         working-directory: /code/cpp
@@ -52,12 +62,15 @@ jobs:
         run: inv libfake
 
   py-funcs:
+    if: github.event.pull_request.draft == false
+    needs: code
     runs-on: ubuntu-20.04
     container:
       image: faasm/python:0.0.11
       volumes:
-       - container/wasm:/usr/local/faasm/wasm
-       - container/shared:/usr/local/faasm/shared_store
+        - code/clients/python:/code/python
+        - container/wasm:/usr/local/faasm/wasm
+        - container/shared:/usr/local/faasm/shared_store
     efaults:
       run:
         working-directory: /code/python
@@ -69,8 +82,8 @@ jobs:
 
   build:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-20.04
     needs: [cpp-funcs, python-funcs]
+    runs-on: ubuntu-20.04
     env:
       CGROUP_MODE: off
       HOST_TYPE: ci
@@ -82,9 +95,10 @@ jobs:
     container:
       image: faasm/cli:0.5.13
       volumes:
-       - container/wasm:/usr/local/faasm/wasm
-       - container/shared:/usr/local/faasm/shared_store
-       - container/fake:/usr/local/faasm/runtime_root/lib/fake
+        - code:/usr/local/code/faasm
+        - container/wasm:/usr/local/faasm/wasm
+        - container/shared:/usr/local/faasm/shared_store
+        - container/fake:/usr/local/faasm/runtime_root/lib/fake
     defaults:
       run:
         working-directory: /usr/local/code/faasm
@@ -94,13 +108,6 @@ jobs:
         ports:
           - 6379:6379
     steps:
-      # --- Check out code ---
-      - name: "Fetch ref"
-        run: git fetch origin ${GITHUB_REF}:ci-branch
-      - name: "Check out branch"
-        run: git checkout --force ci-branch
-      - name: "Log commits"
-        run: git log -3
       # --- CPU information ---
       - name: "CPU info"
         run: cat /proc/cpuinfo
