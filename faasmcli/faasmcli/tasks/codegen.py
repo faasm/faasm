@@ -9,8 +9,8 @@ from faasmcli.util.codegen import find_codegen_func, find_codegen_shared_lib
 from faasmcli.util.env import FAASM_RUNTIME_ROOT
 
 LIB_FAKE_FILES = [
-    join(FAASM_RUNTIME_ROOT, "lib", "libfakeLibA.so"),
-    join(FAASM_RUNTIME_ROOT, "lib", "libfakeLibB.so"),
+    join(FAASM_RUNTIME_ROOT, "lib", "fake", "libfakeLibA.so"),
+    join(FAASM_RUNTIME_ROOT, "lib", "fake", "libfakeLibB.so"),
 ]
 
 

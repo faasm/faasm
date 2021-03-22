@@ -40,7 +40,8 @@ jobs:
     container:
       image: faasm/cpp:0.0.22
       volumes:
-       - wasm:/usr/local/faasm/wasm
+       - container/wasm:/usr/local/faasm/wasm
+       - container/fake:/usr/local/faasm/runtime_root/lib/fake
     defaults:
       run:
         working-directory: /code/cpp
@@ -55,9 +56,9 @@ jobs:
     container:
       image: faasm/python:0.0.11
       volumes:
-       - wasm:/usr/local/faasm/wasm
-       - shared:/usr/local/faasm/shared_store
-    defaults:
+       - container/wasm:/usr/local/faasm/wasm
+       - container/shared:/usr/local/faasm/shared_store
+    efaults:
       run:
         working-directory: /code/python
     steps:
@@ -81,8 +82,9 @@ jobs:
     container:
       image: faasm/cli:0.5.13
       volumes:
-       - wasm:/usr/local/faasm/wasm
-       - shared:/usr/local/faasm/shared_store
+       - container/wasm:/usr/local/faasm/wasm
+       - container/shared:/usr/local/faasm/shared_store
+       - container/fake:/usr/local/faasm/runtime_root/lib/fake
     defaults:
       run:
         working-directory: /usr/local/code/faasm

@@ -11,7 +11,8 @@ TEST_CASE("Test e2e execution of dynamic linking modules", "[faaslet]")
 {
     cleanSystem();
 
-    const char* filePath = "/usr/local/faasm/runtime_root/lib/libfakeLibA.so";
+    const char* filePath =
+      "/usr/local/faasm/runtime_root/lib/fake/libfakeLibA.so";
     REQUIRE(boost::filesystem::exists(filePath));
 
     faabric::Message msg = faabric::util::messageFactory("demo", "dynlink");
