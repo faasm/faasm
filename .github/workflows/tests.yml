@@ -15,7 +15,7 @@ jobs:
       - name: "Check out code"
         uses: actions/checkout@v2 
         with:
-          path: "code"
+          path: code
           
   formatting:
     if: github.event.pull_request.draft == false
@@ -24,7 +24,7 @@ jobs:
     container:
       image: faasm/cli:0.5.13
       volumes:
-        - code:/usr/local/code/faasm
+        - ./code:/usr/local/code/faasm
     defaults:
       run:
         working-directory: /usr/local/code/faasm
@@ -50,9 +50,9 @@ jobs:
     container:
       image: faasm/cpp-sysroot:0.0.22
       volumes:
-        - code/clients/cpp:/code/cpp
-        - container/wasm:/usr/local/faasm/wasm
-        - container/fake:/usr/local/faasm/runtime_root/lib/fake
+        - ./code/clients/cpp:/code/cpp
+        - ./container/wasm:/usr/local/faasm/wasm
+        - ./container/fake:/usr/local/faasm/runtime_root/lib/fake
     defaults:
       run:
         working-directory: /code/cpp
@@ -69,9 +69,9 @@ jobs:
     container:
       image: faasm/cpython:0.0.11
       volumes:
-        - code/clients/python:/code/python
-        - container/wasm:/usr/local/faasm/wasm
-        - container/shared:/usr/local/faasm/shared_store
+        - ./code/clients/python:/code/python
+        - ./container/wasm:/usr/local/faasm/wasm
+        - ./container/shared:/usr/local/faasm/shared_store
     defaults:
       run:
         working-directory: /code/python
@@ -96,10 +96,10 @@ jobs:
     container:
       image: faasm/cli:0.5.13
       volumes:
-        - code:/usr/local/code/faasm
-        - container/wasm:/usr/local/faasm/wasm
-        - container/shared:/usr/local/faasm/shared_store
-        - container/fake:/usr/local/faasm/runtime_root/lib/fake
+        - ./code:/usr/local/code/faasm
+        - ./container/wasm:/usr/local/faasm/wasm
+        - ./container/shared:/usr/local/faasm/shared_store
+        - ./container/fake:/usr/local/faasm/runtime_root/lib/fake
     defaults:
       run:
         working-directory: /usr/local/code/faasm
