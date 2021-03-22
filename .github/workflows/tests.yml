@@ -8,48 +8,11 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
-  # Annoyingly we have to provide an absolute path here, as the Docker volume
-  # config below doesn't support variable substitution.
-  # At the time of writing, all paths had to be under
-  # /home/runner/work/<org>/<repo>
-  code:
-    if: github.event.pull_request.draft == false
-    runs-on: ubuntu-20.04
-    steps:
-      - name: "Check out code"
-        uses: actions/checkout@v2 
-        with:
-          path: /home/runner/work/faasm/faasm/code
-      - name: "Print home"
-        run: "echo $GITHUB_WORKSPACE"
-      - name: "Print out contents"
-        run: "ls -al /home/runner/work/faasm/faasm/code"
-         
-  dummy:
-    if: github.event.pull_request.draft == false
-    needs: code
-    runs-on: ubuntu-20.04
-    container:
-      image: alpine
-      volumes:
-        - /home/runner/work/faasm/faasm/code:/usr/local/foo
-    defaults:
-      run:
-        working-directory: /usr/local/foo
-    steps:
-      - name: "Check mount"
-        run: "ls -al /usr/local/foo"
-      - name: "Check mount"
-        run: "ls -al"
-
   formatting:
     if: github.event.pull_request.draft == false
-    needs: code
     runs-on: ubuntu-20.04
     container:
       image: faasm/cli:0.5.13
-      volumes:
-        - /home/runner/work/faasm/faasm/code:/usr/local/code/faasm
     defaults:
       run:
         working-directory: /usr/local/code/faasm
@@ -70,14 +33,9 @@ jobs:
 
   cpp-funcs:
     if: github.event.pull_request.draft == false
-    needs: code
     runs-on: ubuntu-20.04
     container:
       image: faasm/cpp-sysroot:0.0.22
-      volumes:
-        - /home/runner/work/faasm/faasm/code/clients/cpp:/code/cpp
-        - /home/runner/work/faasm/faasm/container/wasm:/usr/local/faasm/wasm
-        - /home/runner/work/faasm/faasm/container/fake:/usr/local/faasm/runtime_root/lib/fake
     defaults:
       run:
         working-directory: /code/cpp
@@ -86,25 +44,40 @@ jobs:
         run: inv func.local
       - name: "Build libfake"
         run: inv libfake
+      - name: "Upload cpp wasm"
+        uses: actions/upload-artifact@v2
+        with:
+          name: cpp-wasm
+          path: /usr/local/faasm/wasm
+      - name: "Upload fake lib wasm"
+        uses: actions/upload-artifact@v2
+        with:
+          name: libfake-wasm
+          path: /usr/local/faasm/runtime_root/lib/fake
 
   py-funcs:
     if: github.event.pull_request.draft == false
-    needs: code
     runs-on: ubuntu-20.04
     container:
       image: faasm/cpython:0.0.11
-      volumes:
-        - /home/runner/work/faasm/faasm/code/code/clients/python:/code/python
-        - /home/runner/work/faasm/faasm/container/wasm:/usr/local/faasm/wasm
-        - /home/runner/work/faasm/faasm/container/shared:/usr/local/faasm/shared_store
     defaults:
       run:
         working-directory: /code/python
     steps:
       - name: "Build CPython function"
         run: inv func
-      - name: "Build libfake"
+      - name: "Put Python functions in place"
         run: inv func.uploadpy --local
+      - name: "Upload python wasm"
+        uses: actions/upload-artifact@v2
+        with:
+          name: py-wasm
+          path: /usr/local/faasm/wasm/python
+      - name: "Upload python functions"
+        uses: actions/upload-artifact@v2
+        with:
+          name: py-funcs
+          path: /usr/local/faasm/shared_store
 
   build:
     if: github.event.pull_request.draft == false
@@ -120,11 +93,6 @@ jobs:
       REDIS_STATE_HOST: redis
     container:
       image: faasm/cli:0.5.13
-      volumes:
-        - /home/runner/work/faasm/faasm/code:/usr/local/code/faasm
-        - /home/runner/work/faasm/faasm/container/wasm:/usr/local/faasm/wasm
-        - /home/runner/work/faasm/faasm/container/shared:/usr/local/faasm/shared_store
-        - /home/runner/work/faasm/faasm/container/fake:/usr/local/faasm/runtime_root/lib/fake
     defaults:
       run:
         working-directory: /usr/local/code/faasm
@@ -134,6 +102,33 @@ jobs:
         ports:
           - 6379:6379
     steps:
+      - name: "Fetch ref"
+        run: git fetch origin ${GITHUB_REF}:ci-branch
+      - name: "Check out branch"
+        run: git checkout --force ci-branch
+      - name: "Update faabric submodule"
+        run: git submodule update faabric
+      # --- Get artifacts from other steps ---
+      - name: "Download CPP wasm"
+        uses: actions/download-artifact@v2
+        with:
+          name: cpp-wasm
+          path: /usr/local/faasm/wasm
+      - name: "Download libfake wasm"
+        uses: actions/download-artifact@v2
+        with:
+          name: libfake-wasm
+          path: /usr/local/faasm/runtime_root/lib/fake
+      - name: "Download Python wasm"
+        uses: actions/download-artifact@v2
+        with:
+          name: py-wasm
+          path: /usr/local/faasm/wasm/python
+      - name: "Download Python funcs"
+        uses: actions/download-artifact@v2
+        with:
+          name: py-funcs
+          path: /usr/local/faasm/shared_store
       # --- CPU information ---
       - name: "CPU info"
         run: cat /proc/cpuinfo
