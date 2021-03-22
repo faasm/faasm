@@ -9,7 +9,7 @@ metadata:
 spec:
   containers:
     - name: upload
-      image: faasm/upload:0.5.12
+      image: faasm/upload:0.5.13
       imagePullPolicy: Always
       ports:
         - containerPort: 8002

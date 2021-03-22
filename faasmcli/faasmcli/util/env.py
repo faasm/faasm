@@ -27,6 +27,7 @@ FAASM_SHARED_ROOT = join(FAASM_LOCAL_DIR, "shared")
 FAASM_SHARED_STORAGE_ROOT = join(FAASM_LOCAL_DIR, "shared_store")
 FAASM_SHARED_ROOT = join(FAASM_LOCAL_DIR, "shared")
 FAASM_INSTALL_DIR = "/usr/local"
+WASM_DIR = join(FAASM_LOCAL_DIR, "wasm")
 
 FAASM_BUILD_DIR = _get_dir("FAASM_BUILD_DIR", "/build/faasm")
 
@@ -40,11 +41,6 @@ BENCHMARK_ENV = {
     "GLOBAL_MESSAGE_TIMEOUT": "120000",
     "LOG_LEVEL": "off",
 }
-
-FUNC_DIR = join(PROJ_ROOT, "func")
-
-WASM_DIR = join(PROJ_ROOT, "wasm")
-WASM_LIB_DIR = join(PROJ_ROOT, "wasm", "lib")
 
 RUNTIME_S3_BUCKET = "faasm-runtime"
 MISC_S3_BUCKET = "faasm-misc"

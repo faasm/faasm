@@ -1,45 +1,91 @@
 # Faasm Development
 
-This guide is only relevant for those wanting to dig deeper or make changes to
-Faasm itself. If you'd just like to write and run functions, you can refer to
-the [set-up instructions](setup.md). 
+The Faasm project is roughly separated into stuff that generates WebAssembly and
+stuff that executes WebAssembly. 
 
-## Recommended Set-up - Docker CLI
+The most important repos 
 
-Most development can be done using the containerised CLI. To get everything set
-up, you need to run:
+- [faasm/cpp](https://github.com/faasm/cpp) - tools for building C/C++ for use
+  in Faasm.
+- [faasm/python](https://github.com/faasm/python) - tools for building CPython
+  and Python functions for use in Faasm.
+- [faasm/faasm](https://github.com/faasm/faasm) - the Faasm runtime (independent
+  of specific languages used to compile the WebAssembly)
+- [faasm/faabric](https://github.com/faasm/faabric) - serverless scheduling,
+  messaging and state (independent of WebAssembly).
 
-```bash
-# Clone this repo
-git clone https://github.com/faasm/faasm
-cd faasm
+## Initial Set-up
 
-# Start the CLI
-./bin/cli.sh
+The Faasm development environment is containerised, as defined in the [dev
+Docker compose config](docker-compose-dev.yml).
+
+We mount local checkouts of all the code into these containers, so first you'll
+need to update all the submodules (may take a while):
+
+```
+git submodule update --init --recursive
 ```
 
-The service orchestration is handled through `docker-compose`. If you want to
-stop all `faasm`-related development services run:
+To tie together the projects in the local dev environment, we mount
+`dev/faasm-local` into `/usr/local/faasm` in the various containers, which you
+can initialise with:
 
-```bash
-docker-compose down
+```
+./bin/refresh_local.sh
 ```
 
-To build and run the tests, you can then run the following inside the container:
+It may also be useful to run Python scripts outside the containerised 
+environments, for which you can set up a suitable Python virtual envrionment 
+with:
+
+```
+./bin/create_venv.sh
+```
+
+## Use
+
+Once you've set up the repo, you can start the CLI for whichever project you 
+want to work on:
+
+```
+# C++ applications
+./bin/cli.sh cpp
+
+# Python applications
+./bin/cli.sh python
+
+# Faasm 
+./bin/cli.sh faasm
+
+# Faabric
+./bin/cli.sh faabric
+```
+
+## Tests
+
+To check everything works, you can run the tests as follows (note which 
+container you need to be in for each step):
 
 ```bash
+# --- CPP CLI ---
+# Build CPP functions and lib required for the tests
+inv func.local
+inv libfake
+
+# --- Python CLI ---
+# Build Python wrapper function
+inv func
+
+# Upload the Python functions
+inv func.uploadpy --local
+
+# --- Faasm CLI ---
 # Build the development tools
 inv dev.tools
-
-# Compile code required for the tests
-inv compile.local
 
 # Run codegen (this may take a while the first time it's run)
 inv codegen.local
 inv python.codegen
-
-# Upload the Python functions
-inv upload.user python --local-copy --py
 
 # Set up cgroup
 ./bin/cgroup.sh
@@ -48,72 +94,32 @@ inv upload.user python --local-copy --py
 tests
 ```
 
-## Running a local development cluster
-
-The CLI set-up above only runs the CLI container and Redis. To set up a local
-development cluster you can run:
-
-```
-# Run the CLI container
-./bin/cli.sh
-
-# Build the code
-inv dev.tools
-```
-
-Then, outside the container:
-
-```
-# Mount your local build inside the containers
-export FAASM_BUILD_MOUNT=/build/faasm
-
-# Start up the local cluster
-docker-compose up -d
-```
-
-This will mount the built binaries from the CLI container into the other 
-containers, thus allowing you to rebuild and restart everything with local 
-changes. 
-
-For example, if you have changed code and want to restart the worker container:
-
-```
-# Inside the CLI container, rebuild the pool runner (executed by the worker)
-inv dev.cc pool_runner
-
-# Outside the container, restart the worker
-docker-compose restart worker
-
-# Tail the logs
-docker-compose logs -f
-```
-
 ## Tooling - editors, IDEs etc.
 
-Several directories (including the project root) are mounted as volumes in the
-CLI container (see [`docker-compose.yml`](../docker-compose.yml)). This means
-you can edit the files directly on your host and compile them inside the
-container.
+You can use custom containers that inherit from the existing CLI images if you
+want to add text editors etc. 
 
-You can use remote development tools to develop and debug inside the CLI
-container (e.g.  [CLion remote
-development](https://www.jetbrains.com/help/clion/remote-development.html) or
-[`gdbserver`](https://sourceware.org/gdb/onlinedocs/gdb/Server.html)).
-
-You can also create a new container that inherits from the CLI if you want to
-set up your own. To do this:
+Before running the `./bin/cli.sh` script, you need to set one or more of the
+following environment variables:
 
 ```bash
-./bin/cli.sh <your image>
-```
+# Faasm
+FAASM_CLI_IMAGE
 
-Or set the environment variable `FAASM_CLI_IMAGE`  before you run the `cli.sh`
-script.
+# Faabric
+FAABRIC_CLI_IMAGE
+
+# CPP
+CPP_CLI_IMAGE
+
+# Python
+PYTHON_CLI_IMAGE
+```
 
 ## Testing
 
-The tests use [Catch2](https://github.com/catchorg/Catch2) and your life will be
-much easier if you're familiar with their [command line
+We use [Catch2](https://github.com/catchorg/Catch2) for testing and your life 
+will be much easier if you're familiar with their [command line
 docs](https://github.com/catchorg/Catch2/blob/v2.x/docs/command-line.md).  This
 means you can do things like:
 
@@ -125,7 +131,32 @@ tests "[mpi]"
 tests "Test some feature"
 ```
 
-### Troubleshooting CI
+## Building outside of the container
+
+If you want to build projects outside of the recommended containers, or just
+run some of the CLI tasks, you can take a look at the [CLI
+Dockerfile](../docker/cli.dockerfile) to see what's required:
+
+To run the CLI, you should just need to do:
+
+```bash
+# Set up the venv
+./bin/create_venv.sh
+
+# Activate the Faasm virtualenv
+source bin/workon.sh
+
+# Check things work
+inv -l
+
+cd clients/cpp
+inv -l
+
+cd ../python
+inv -l
+```
+
+## Troubleshooting CI
 
 If the CI build fails and you can't work out why, you can replicate the test
 environment locally.
@@ -142,47 +173,6 @@ to see where things might have gone wrong.
 docker-compose -f docker/docker-compose-ci.yml run cli /bin/bash
 ```
 
-## Building outside of the container
-
-If you want to build the project outside of the recommended container, or just
-run some of the CLI tasks, you can take a look at the [CLI
-Dockerfile](../docker/cli.dockerfile) to see what's required:
-
-To run the CLI, you should just need to do:
-
-```bash
-# Set up some shortcuts and aliases
-export FAASM_BUILD_DIR=$(pwd)/build
-source bin/workon.sh
-
-# Activate the virtualenv
-source venv/bin/activate
-
-# Install toolchain Python module
-cd <wherever you keep your code>
-git clone https://github.com/faasm/cpp/
-cd cpp
-pip3 install -e .
-cd -
-
-# Install Faasm CLI module
-cd faasmcli
-pip install -e .
-cd ..
-
-# Check things work
-inv -l
-```
-
-From then on, you should just be able to run the following (i.e. not reinstall
-the python modules):
-
-```
-source bin/workon.sh
-
-inv -l
-```
-
 ## Code style
 
 Code style is checked as part of the CI build and uses the following
@@ -196,9 +186,7 @@ configuration:
 - **CMake** - TBD
 - **Bash** - TBD
 
-## Detailed notes
-
-### Networking
+## Networking
 
 If you want to switch on network isolation you need to set up network
 namespaces. To do this we need to ensure consistent interface naming (`eth0` for
@@ -216,7 +204,7 @@ This script will then set up the namespaces
 sudo ./bin/netns.sh 20
 ```
 
-### Cgroups
+## Cgroups
 
 To use cgroup isolation, you'll need to run:
 
@@ -224,22 +212,42 @@ To use cgroup isolation, you'll need to run:
 sudo ./bin/cgroup.sh
 ```
 
-# Out-of-tree build example
+## Mounting your local build inside unmodified containers
 
-This is a simple example of running an out-of-tree build to execute a 
-function:
+If you need to debug issues with the standard containers, you can mount your 
+local build of Faasm inside some otherwise unmodified containers as follows:
 
-```bash
-# Set up the CLI
-export FAASM_BUILD_DIR=<build dir>
-source bin/workon.sh
-
-# Build the project
+```
+# --- Faasm CLI ---
+# Build the code
 inv dev.tools
+```
 
-# Compile, codegen and run the code
-inv compile demo hello
-inv codegen demo hello
-inv run demo hello
+Then, outside the container:
+
+```
+# Mount your local build inside the containers
+export FAASM_BUILD_MOUNT=/build/faasm
+
+# Start up the local cluster
+cd faasm
+docker-compose up -d
+```
+
+This will mount the built binaries from the Faasm CLI container into the other 
+containers, thus allowing you to rebuild and restart everything with local 
+changes. 
+
+For example, if you have changed code and want to restart the worker container:
+
+```
+# Inside the CLI container, rebuild the pool runner (executed by the worker)
+inv dev.cc pool_runner
+
+# Outside the container, restart the worker
+docker-compose restart worker
+
+# Tail the logs
+docker-compose logs -f
 ```
 

@@ -38,27 +38,6 @@ def clear_runtime_pyc(ctx):
 
 
 @task
-def runtime(ctx):
-    """
-    Set up the Python runtime
-    """
-    print("\nRemoving any existing python functions")
-    funcs_dir = join(FAASM_RUNTIME_ROOT, "pyfuncs")
-    if exists(funcs_dir):
-        rmtree(funcs_dir)
-
-    # Create a tmp directory
-    run(
-        "mkdir -p {}".format(join(PY_RUNTIME_ROOT, "tmp")),
-        shell=True,
-        check=True,
-    )
-
-    # Run codegen
-    codegen(ctx)
-
-
-@task
 def codegen(ctx):
     """
     Run Python codegen

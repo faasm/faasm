@@ -22,7 +22,7 @@ TEST_CASE("Test mmapping a file", "[wasm]")
     module.bindToFunction(call);
 
     // File we know to exist
-    std::string fileName = "/usr/local/faasm/llvm-sysroot/include/sys/mman.h";
+    std::string fileName = "/usr/include/stdio.h";
     int fd = open(fileName.c_str(), O_RDONLY);
     if (fd == -1) {
         FAIL("Could not open file");

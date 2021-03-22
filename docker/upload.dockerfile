@@ -9,9 +9,6 @@ RUN cmake --build . --target upload
 RUN cmake --build . --target codegen_shared_obj
 RUN cmake --build . --target codegen_func
 
-# Put the python no-op function in place
-COPY func/python/noop.py /usr/local/faasm/shared_store/pyfuncs/python/noop/function.py
-
 # Set up entrypoint
 COPY bin/entrypoint_codegen.sh /entrypoint_codegen.sh
 COPY bin/entrypoint_upload.sh /entrypoint.sh

@@ -12,15 +12,11 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     container:
-      image: faasm/cli:0.5.12
+      image: faasm/cli:0.5.13
     defaults:
       run:
         working-directory: /usr/local/code/faasm
     steps:
-      - name: "Fetch ref"
-        run: git fetch origin ${GITHUB_REF}:ci-branch
-      - name: "Check out branch"
-        run: git checkout --force ci-branch
       - name: "Build the targets to update compile commands and dependencies"
         run: inv -r faasmcli/faasmcli dev.tools --build Release
       # --- Formatting checks ---
@@ -35,8 +31,67 @@ jobs:
       - name: "Run C/C++ linter"
         run: ./bin/run_clang_tidy.sh
 
+  cpp-funcs:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-20.04
+    container:
+      image: faasm/cpp-sysroot:0.0.22
+    defaults:
+      run:
+        working-directory: /__w/faasm/faasm/clients/cpp
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v2
+      - name: "CPP submodule"
+        run: "git submodule update --init clients/cpp"
+        working-directory: /__w/faasm/faasm
+      - name: "Build C++ functions"
+        run: inv func.local
+      - name: "Build libfake"
+        run: inv libfake
+      - name: "Upload cpp wasm"
+        uses: actions/upload-artifact@v2
+        with:
+          name: cpp-wasm
+          path: /usr/local/faasm/wasm
+      - name: "Upload fake lib wasm"
+        uses: actions/upload-artifact@v2
+        with:
+          name: libfake-wasm
+          path: /usr/local/faasm/runtime_root/lib/fake
+
+  py-funcs:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-20.04
+    container:
+      image: faasm/cpython:0.0.11
+    defaults:
+      run:
+        working-directory: /__w/faasm/faasm/clients/python
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v2
+      - name: "Python submodule"
+        run: "git submodule update --init clients/python"
+        working-directory: /__w/faasm/faasm
+      - name: "Build CPython function"
+        run: inv func
+      - name: "Put Python functions in place"
+        run: inv func.uploadpy --local
+      - name: "Upload python wasm"
+        uses: actions/upload-artifact@v2
+        with:
+          name: py-wasm
+          path: /usr/local/faasm/wasm/python
+      - name: "Upload python functions"
+        uses: actions/upload-artifact@v2
+        with:
+          name: py-funcs
+          path: /usr/local/faasm/shared_store
+
   build:
     if: github.event.pull_request.draft == false
+    needs: [cpp-funcs, py-funcs]
     runs-on: ubuntu-20.04
     env:
       CGROUP_MODE: off
@@ -47,23 +102,43 @@ jobs:
       REDIS_QUEUE_HOST: redis
       REDIS_STATE_HOST: redis
     container:
-      image: faasm/cli:0.5.12
+      image: faasm/cli:0.5.13
     defaults:
       run:
         working-directory: /usr/local/code/faasm
     services:
       redis:
-        image: faasm/redis:0.5.12
+        image: faasm/redis:0.5.13
         ports:
           - 6379:6379
     steps:
-      # --- Check out code ---
       - name: "Fetch ref"
         run: git fetch origin ${GITHUB_REF}:ci-branch
       - name: "Check out branch"
         run: git checkout --force ci-branch
-      - name: "Log commits"
-        run: git log -3
+      - name: "Update faabric submodule"
+        run: git submodule update faabric
+      # --- Get artifacts from other steps ---
+      - name: "Download CPP wasm"
+        uses: actions/download-artifact@v2
+        with:
+          name: cpp-wasm
+          path: /usr/local/faasm/wasm
+      - name: "Download libfake wasm"
+        uses: actions/download-artifact@v2
+        with:
+          name: libfake-wasm
+          path: /usr/local/faasm/runtime_root/lib/fake
+      - name: "Download Python wasm"
+        uses: actions/download-artifact@v2
+        with:
+          name: py-wasm
+          path: /usr/local/faasm/wasm/python
+      - name: "Download Python funcs"
+        uses: actions/download-artifact@v2
+        with:
+          name: py-funcs
+          path: /usr/local/faasm/shared_store
       # --- CPU information ---
       - name: "CPU info"
         run: cat /proc/cpuinfo
@@ -80,18 +155,11 @@ jobs:
       # --- Code build ---
       - name: "Build dev tools"
         run: inv -r faasmcli/faasmcli dev.tools --build Release
-      # --- WASM compilation ---
-      - name: "Compile test library"
-        run: inv -r faasmcli/faasmcli libs.fake --clean
-      - name: "Compile code"
-        run: inv -r faasmcli/faasmcli compile.local --clean
       # --- Environment set-up ---
       - name: "Run codegen"
         run: inv -r faasmcli/faasmcli codegen.local
       - name: "Run python codegen"
         run: inv -r faasmcli/faasmcli python.codegen
-      - name: "Copy Python functions into place"
-        run: inv -r faasmcli/faasmcli upload.user python --py --local-copy
       - name: "Clear existing pyc files"
         run: inv -r faasmcli/faasmcli python.clear-runtime-pyc
       # --- Test run ---

@@ -168,9 +168,6 @@ include_directories(
         ${FAASM_PYTHON_LIB_DIR}
 )
 
-# Faasm functions
-add_subdirectory(func)
-
 # Faasm runtime
 add_subdirectory(src/faaslet)
 add_subdirectory(src/ir_cache)
