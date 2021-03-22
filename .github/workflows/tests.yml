@@ -8,6 +8,10 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
+  # Annoyingly we have to provide an absolute path here, as the Docker volume
+  # config below doesn't support variable substitution.
+  # At the time of writing, all paths had to be under
+  # /home/runner/work/<org>/<repo>
   code:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
@@ -15,7 +19,7 @@ jobs:
       - name: "Check out code"
         uses: actions/checkout@v2 
         with:
-          path: "/home/runner/faasm-work"
+          path: /home/runner/work/faasm/faasm/code
           
   formatting:
     if: github.event.pull_request.draft == false
@@ -24,7 +28,7 @@ jobs:
     container:
       image: faasm/cli:0.5.13
       volumes:
-        - /home/runner/faasm-work:/usr/local/code/faasm
+        - /home/runner/work/faasm/faasm/code:/usr/local/code/faasm
     defaults:
       run:
         working-directory: /usr/local/code/faasm
@@ -50,9 +54,9 @@ jobs:
     container:
       image: faasm/cpp-sysroot:0.0.22
       volumes:
-        - /home/runner/faasm-work/clients/cpp:/code/cpp
-        - /home/runner/faasm-work/container/wasm:/usr/local/faasm/wasm
-        - /home/runner/faasm-work/container/fake:/usr/local/faasm/runtime_root/lib/fake
+        - /home/runner/work/faasm/faasm/code/clients/cpp:/code/cpp
+        - /home/runner/work/faasm/faasm/container/wasm:/usr/local/faasm/wasm
+        - /home/runner/work/faasm/faasm/container/fake:/usr/local/faasm/runtime_root/lib/fake
     defaults:
       run:
         working-directory: /code/cpp
@@ -69,9 +73,9 @@ jobs:
     container:
       image: faasm/cpython:0.0.11
       volumes:
-        - /home/runner/faasm-work/code/clients/python:/code/python
-        - /home/runner/faasm-work/container/wasm:/usr/local/faasm/wasm
-        - /home/runner/faasm-work/container/shared:/usr/local/faasm/shared_store
+        - /home/runner/work/faasm/faasm/code/code/clients/python:/code/python
+        - /home/runner/work/faasm/faasm/container/wasm:/usr/local/faasm/wasm
+        - /home/runner/work/faasm/faasm/container/shared:/usr/local/faasm/shared_store
     defaults:
       run:
         working-directory: /code/python
@@ -96,10 +100,10 @@ jobs:
     container:
       image: faasm/cli:0.5.13
       volumes:
-        - /home/runner/faasm-work/code:/usr/local/code/faasm
-        - /home/runner/faasm-work/container/wasm:/usr/local/faasm/wasm
-        - /home/runner/faasm-work/container/shared:/usr/local/faasm/shared_store
-        - /home/runner/faasm-work/container/fake:/usr/local/faasm/runtime_root/lib/fake
+        - /home/runner/work/faasm/faasm/code:/usr/local/code/faasm
+        - /home/runner/work/faasm/faasm/container/wasm:/usr/local/faasm/wasm
+        - /home/runner/work/faasm/faasm/container/shared:/usr/local/faasm/shared_store
+        - /home/runner/work/faasm/faasm/container/fake:/usr/local/faasm/runtime_root/lib/fake
     defaults:
       run:
         working-directory: /usr/local/code/faasm
