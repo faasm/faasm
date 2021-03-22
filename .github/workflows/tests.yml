@@ -48,14 +48,14 @@ jobs:
     needs: code
     runs-on: ubuntu-20.04
     container:
-      image: faasm/cpp:0.0.22
+      image: faasm/cpp-sysroot:0.0.22
       volumes:
         - code/clients/cpp:/code/cpp
         - container/wasm:/usr/local/faasm/wasm
         - container/fake:/usr/local/faasm/runtime_root/lib/fake
     defaults:
       run:
-        working-directory: /code/cpp-sysroot
+        working-directory: /code/cpp
     steps:
       - name: "Build C++ functions"
         run: inv func.local
