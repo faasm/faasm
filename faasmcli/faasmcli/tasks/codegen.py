@@ -82,10 +82,10 @@ def local(ctx, wamr=False):
     _do_codegen_user("omp", wamr=wamr)
     _do_codegen_user("python", wamr=wamr)
 
-    # Always run the codegen required by the tests
-    codegen(ctx, "demo", "echo", wamr=True)
-    codegen(ctx, "demo", "chain", wamr=True)
-
     # Do codegen for libfake
     for so in LIB_FAKE_FILES:
         _do_codegen_file(so)
+
+    # Run the WAMR codegen required by the tests
+    codegen(ctx, "demo", "echo", wamr=True)
+    codegen(ctx, "demo", "chain", wamr=True)
