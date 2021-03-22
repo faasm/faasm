@@ -48,15 +48,11 @@ docker-compose run cpp /bin/bash
 inv func demo hello
 
 # Upload the demo "hello" function
-inv upload demo hello
+inv func.upload demo hello
 
 # Invoke the function
-inv invoke demo hello
+inv func.invoke demo hello
 ```
-
-Note that the first time you run the local set-up it will generate some machine
-code specific to your host. This is stored in the `container/machine-code`
-directory in the root of the project and reused on subsequent runs.
 
 ## More information
 

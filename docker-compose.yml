@@ -69,13 +69,5 @@ services:
     depends_on:
       - worker
     volumes:
+      - ./clients/cpp:/code/cpp
       - ./container/build:/build/cpp
-
-  python:
-    image: ${PYTHON_CLI_IMAGE}
-    working_dir: /code/python
-    stdin_open: true
-    tty: true
-    privileged: true
-    depends_on:
-      - worker
