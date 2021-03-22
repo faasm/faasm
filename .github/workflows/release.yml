@@ -10,7 +10,14 @@ on:
       - 'v*.*.*'
 
 jobs:
+  clean:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: "Prune docker"
+      - run: "docker system prune -f --all"
+
   build-redis:
+    needs: clean
     runs-on: ubuntu-20.04
     steps:
       - name: "Get the code"
@@ -35,6 +42,7 @@ jobs:
           tags: faasm/redis:${{ env.TAG_VERSION }}
 
   build-base:
+    needs: clean
     runs-on: ubuntu-20.04
     steps:
       - name: "Get the code"
