@@ -72,7 +72,7 @@ jobs:
         - code/clients/python:/code/python
         - container/wasm:/usr/local/faasm/wasm
         - container/shared:/usr/local/faasm/shared_store
-    efaults:
+    defaults:
       run:
         working-directory: /code/python
     steps:
