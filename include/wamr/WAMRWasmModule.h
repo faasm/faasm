@@ -32,6 +32,8 @@ class WAMRWasmModule final : public WasmModule
 
     bool execute(faabric::Message& msg, bool forceNoop = false) override;
 
+    bool executeAsOMPThread(faabric::Message& msg) override;
+
     bool isBound() override;
 
     void tearDown();

@@ -363,6 +363,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS(
       "__kmpc_fork_call {} {} {} {}", locPtr, argc, microtaskPtr, argsPtr);
 
+    auto conf = faabric::util::getSystemConfig();
+    auto& sch = faabric::scheduler::getScheduler();
+
     WAVMWasmModule* parentModule = getExecutingWAVMModule();
     Runtime::Memory* memoryPtr = parentModule->defaultMemory;
     faabric::Message* parentCall = getExecutingCall();
@@ -378,44 +381,46 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     auto nextLevel = std::make_shared<Level>(nextNumThreads);
     nextLevel->fromParentLevel(parentLevel);
 
+    std::vector<faabric::Message> msgs;
+    std::vector<int> callIds;
+
+    // Take memory snapshot
+    uint32_t snapshotId = faabric::util::generateGid();
+    std::string snapshotKey = fmt::format("fork_{}", snapshotId);
+    size_t snapshotSize = parentModule->snapshotToState(snapshotKey);
+
+    const faabric::Message* originalCall = getExecutingCall();
+    const std::string origStr =
+      faabric::util::funcToString(*originalCall, false);
+
+    // Get pointers to shared variables in host memory
+    U32* sharedVarsPtr = nullptr;
+    if (argc > 0) {
+        sharedVarsPtr = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
+    }
+
     // Spawn the threads
-    auto conf = faabric::util::getSystemConfig();
     if (conf.threadMode == "remote") {
-        std::vector<int> chainedThreads;
-        chainedThreads.reserve(nextNumThreads);
-
-        // Take memory snapshot
-        std::string activeSnapshotKey;
-        size_t threadSnapshotSize;
-
-        uint32_t snapshotId = faabric::util::generateGid();
-        activeSnapshotKey = fmt::format("fork_{}", snapshotId);
-        threadSnapshotSize = parentModule->snapshotToState(activeSnapshotKey);
-
-        const faabric::Message* originalCall = getExecutingCall();
-        const std::string origStr =
-          faabric::util::funcToString(*originalCall, false);
-
-        U32* nativeArgs =
-          Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
-
-        // Make the chained calls
-        auto& sch = faabric::scheduler::getScheduler();
+        // Set up the chained calls
         for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
+            // Create basic call
             faabric::Message call = faabric::util::messageFactory(
               originalCall->user(), originalCall->function());
 
+            // All calls are async by definition
             call.set_isasync(true);
 
-            for (int argIdx = argc - 1; argIdx >= 0; argIdx--) {
-                call.add_ompfunctionargs(nativeArgs[argIdx]);
-            }
-
             // Snapshot details
-            call.set_snapshotkey(activeSnapshotKey);
-            call.set_snapshotsize(threadSnapshotSize);
+            call.set_snapshotkey(snapshotKey);
+            call.set_snapshotsize(snapshotSize);
 
+            // Function pointer
             call.set_funcptr(microtaskPtr);
+
+            // Args
+            for (int argIdx = argc - 1; argIdx >= 0; argIdx--) {
+                call.add_ompfunctionargs(sharedVarsPtr[argIdx]);
+            }
 
             call.set_ompthreadnum(threadNum);
             call.set_ompnumthreads(nextNumThreads);
@@ -424,42 +429,49 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
             call.set_ompeffdepth(nextLevel->activeLevels);
             call.set_ompmal(nextLevel->maxActiveLevels);
 
-            sch.callFunction(call);
-
-            const std::string chainedStr =
-              faabric::util::funcToString(call, false);
-            logger->debug("Forked thread {} ({}) -> {} {}(*{}) ({})",
-                          origStr,
-                          faabric::util::getSystemConfig().endpointHost,
-                          chainedStr,
-                          microtaskPtr,
-                          argsPtr,
-                          call.scheduledhost());
-
-            chainedThreads[threadNum] = call.id();
+            msgs.push_back(call);
         }
 
-        I64 numErrors = 0;
+        faabric::MultiMessage localMsgs = sch.callFunctions(msgs);
+        int nLocalThreads = (int)localMsgs.messages().size();
 
+        // Spawn all the local messages as threads
+        std::vector<std::thread> localThreads;
+        for (int i = 0; i < nLocalThreads; i++) {
+            localThreads.emplace_back(
+              [&localMsgs, &nextLevel, &parentModule, &parentCall, i] {
+                  // We are now in a new thread so need to set up everything
+                  // that uses TLS
+                  setUpOpenMPContext(i, nextLevel);
+                  setExecutingModule(parentModule);
+                  setExecutingCall(parentCall);
+
+                  parentModule->executeAsOMPThread(localMsgs.messages().at(i));
+              });
+        }
+
+        // Await the results of all the remote threads
+        I64 numErrors = 0;
         for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
             int callTimeoutMs =
               faabric::util::getSystemConfig().chainedCallTimeout;
 
+            int callId = msgs[threadNum].id();
             logger->info(
               "Waiting for thread #{} with call id {} with a timeout of {}",
               threadNum,
-              chainedThreads[threadNum],
+              callId,
               callTimeoutMs);
 
             int returnCode = 1;
             try {
-                const faabric::Message result = sch.getFunctionResult(
-                  chainedThreads[threadNum], callTimeoutMs);
+                const faabric::Message result =
+                  sch.getFunctionResult(callId, callTimeoutMs);
+
                 returnCode = result.returnvalue();
 
             } catch (faabric::redis::RedisNoResponseException& ex) {
-                logger->error("Timed out waiting for chained call: {}",
-                              chainedThreads[threadNum]);
+                logger->error("Timed out waiting for chained call: {}", callId);
 
             } catch (std::exception& ex) {
                 logger->error(
@@ -484,13 +496,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
         std::vector<U64> results;
         std::mutex resultMutex;
-
-        // Get pointers to shared variables in host memory
-        U32* sharedVarsPtr = nullptr;
-        if (argc > 0) {
-            sharedVarsPtr =
-              Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
-        }
 
         // Execute threads locally
         logger->debug("OMP {}: Spawning {} threads locally",

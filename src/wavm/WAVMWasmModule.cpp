@@ -844,8 +844,7 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
 
     // Executes OMP fork message if necessary
     if (msg.ompdepth() > 0) {
-        executeRemoteOMP(msg);
-        return true;
+        return executeAsOMPThread(msg);
     }
 
     // Run a specific function if requested
@@ -934,7 +933,7 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
     return success;
 }
 
-void WAVMWasmModule::executeRemoteOMP(faabric::Message& msg)
+bool WAVMWasmModule::executeAsOMPThread(faabric::Message& msg)
 {
     Runtime::Function* funcInstance = getFunctionFromPtr(msg.funcptr());
     int threadNum = msg.ompthreadnum();
@@ -962,7 +961,10 @@ void WAVMWasmModule::executeRemoteOMP(faabric::Message& msg)
     };
 
     // Record the return value
-    msg.set_returnvalue(executeThreadLocally(spec));
+    I64 returnValue = executeThreadLocally(spec);
+    msg.set_returnvalue(returnValue);
+
+    return true;
 }
 
 U32 WAVMWasmModule::mmapFile(U32 fd, U32 length)

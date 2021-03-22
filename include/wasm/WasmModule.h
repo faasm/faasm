@@ -48,6 +48,8 @@ class WasmModule
     virtual void bindToFunctionNoZygote(const faabric::Message& msg);
 
     virtual bool execute(faabric::Message& msg, bool forceNoop = false);
+    
+    virtual bool executeAsOMPThread(faabric::Message& msg);
 
     virtual bool isBound();
 
