@@ -28,3 +28,5 @@ spec:
           value: "off"
         - name: STATE_MODE
           value: "redis"
+        - name: LD_LIBRARY_PATH
+          value: "/build/faasm/third-party/lib:/usr/local/lib"
