@@ -1427,8 +1427,8 @@ void WAVMWasmModule::doRestore(std::istream& inStream)
 
     // Restore memory
     Uptr currentNumPages = Runtime::getMemoryNumPages(defaultMemory);
-    size_t pagesRequired = mem.numPages - currentNumPages;
-    if (pagesRequired > 0) {
+    if (mem.numPages > currentNumPages) {
+        size_t pagesRequired = mem.numPages - currentNumPages;
         mmapPages(pagesRequired);
     }
 

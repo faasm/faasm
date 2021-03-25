@@ -1,12 +1,14 @@
+#include "utils.h"
 #include <catch2/catch.hpp>
+
+#include <faabric/proto/faabric.pb.h>
+#include <faabric/scheduler/FunctionCallClient.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/environment.h>
-#include <module_cache/WasmModuleCache.h>
-
+#include <faabric/util/testing.h>
 #include <faaslet/FaasletPool.h>
-
-#include "utils.h"
-#include "wavm/WAVMWasmModule.h"
+#include <module_cache/WasmModuleCache.h>
+#include <wavm/WAVMWasmModule.h>
 
 using namespace faaslet;
 
@@ -82,6 +84,93 @@ void checkMultipleExecutions(faabric::Message& msg, int nExecs)
 
         // Reset
         module = cachedModule;
+    }
+}
+
+void execFunctionWithRemoteBatch(faabric::Message& call,
+                                 int nThreads,
+                                 bool clean)
+{
+    if (clean) {
+        cleanSystem();
+    }
+
+    faabric::util::setMockMode(true);
+
+    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
+
+    // Add other host to available hosts
+    std::string otherHost = "other";
+    sch.addHostToGlobalSet(otherHost);
+
+    // Set up other host to have some resources
+    faabric::HostResources resOther;
+    resOther.set_cores(10);
+    faabric::scheduler::queueResourceResponse(otherHost, resOther);
+
+    // Make sure we have no cores so we get distribution
+    int nCores = 0;
+    faabric::HostResources res;
+    res.set_cores(nCores);
+    sch.setThisHostResources(res);
+
+    // Background thread to execute function (won't finish until threads have
+    // been executed)
+    std::thread t([&call] {
+        wasm::WAVMWasmModule module;
+        module.bindToFunction(call);
+        bool success = module.execute(call);
+
+        REQUIRE(success);
+    });
+
+    // Give it time to have made the request
+    usleep(1000 * 500);
+
+    auto reqs = faabric::scheduler::getBatchRequests();
+    REQUIRE(reqs.size() == 1);
+    REQUIRE(reqs.at(0).first == otherHost);
+
+    // Now execute request on this host (forced)
+    // Note - don't clean as we will have already done at the top of this func
+    execBatchWithPool(reqs.at(0).second, nThreads, false);
+
+    if (t.joinable()) {
+        t.join();
+    }
+}
+
+void execBatchWithPool(faabric::BatchExecuteRequest& req,
+                       int nThreads,
+                       bool checkChained,
+                       bool clean)
+{
+    if (clean) {
+        cleanSystem();
+    }
+
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf.boundTimeout = 1000;
+    conf.unboundTimeout = 1000;
+    conf.chainedCallTimeout = 10000;
+
+    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
+
+    // Start a Faaslet pool to execute things
+    faaslet::FaasletPool pool(nThreads);
+    pool.startThreadPool();
+
+    // Execute forcing local
+    sch.callFunctions(req, true);
+
+    usleep(1000 * 5000);
+
+    // Wait for all functions to complete if necessary
+    if (checkChained) {
+        for (auto m : req.messages()) {
+            faabric::Message result = sch.getFunctionResult(m.id(), 20000);
+            REQUIRE(result.returnvalue() == 0);
+        }
     }
 }
 

@@ -192,10 +192,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         localThreads.erase(pthreadPtr);
 
         // Join it
+        logger->debug("Awaiting local pthread: {}", pthreadPtr);
         returnValue = Platform::joinThread(thread);
     } else {
         // Await the remotely chained thread
         unsigned int callId = chainedThreads[pthreadPtr];
+        logger->debug("Awaiting remote pthread: {} ({})", pthreadPtr, callId);
         returnValue = awaitChainedCall(callId);
 
         // Remove record for the remote thread
@@ -204,6 +206,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         // If this is the last active thread, reset the zygote key
         if (chainedThreads.empty()) {
             activeSnapshotKey = "";
+
+            // TODO - actually delete the snapshot asynchronously
         }
     }
 
