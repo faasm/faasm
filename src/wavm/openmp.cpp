@@ -1,3 +1,5 @@
+#include "faabric/proto/faabric.pb.h"
+#include "faabric/util/func.h"
 #include "faabric/util/gids.h"
 #include <WAVM/Platform/Thread.h>
 #include <WAVM/Runtime/Intrinsics.h>
@@ -370,9 +372,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     Runtime::Memory* memoryPtr = parentModule->defaultMemory;
     faabric::Message* parentCall = getExecutingCall();
 
-    // Retrieve the microtask function from the table
-    Runtime::Function* func = parentModule->getFunctionFromPtr(microtaskPtr);
-
     // Set up number of threads for next level
     std::shared_ptr<Level> parentLevel = ctx.level;
     int nextNumThreads = parentLevel->getMaxThreadsAtNextLevel();
@@ -380,9 +379,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     // Set up the next level
     auto nextLevel = std::make_shared<Level>(nextNumThreads);
     nextLevel->fromParentLevel(parentLevel);
-
-    std::vector<faabric::Message> msgs;
-    std::vector<int> callIds;
 
     // Take memory snapshot
     uint32_t snapshotId = faabric::util::generateGid();
@@ -399,171 +395,108 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         sharedVarsPtr = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
     }
 
-    // Spawn the threads
-    if (conf.threadMode == "remote") {
-        // Set up the chained calls
-        for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
-            // Create basic call
-            faabric::Message call = faabric::util::messageFactory(
-              originalCall->user(), originalCall->function());
+    // Set up the chained calls
+    std::vector<faabric::Message> msgs;
+    std::vector<int> callIds;
+    for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
+        // Create basic call
+        faabric::Message call = faabric::util::messageFactory(
+          originalCall->user(), originalCall->function());
 
-            // All calls are async by definition
-            call.set_isasync(true);
+        // All calls are async by definition
+        call.set_isasync(true);
 
-            // Snapshot details
-            call.set_snapshotkey(snapshotKey);
-            call.set_snapshotsize(snapshotSize);
+        // Snapshot details
+        call.set_snapshotkey(snapshotKey);
+        call.set_snapshotsize(snapshotSize);
 
-            // Function pointer
-            call.set_funcptr(microtaskPtr);
+        // Function pointer
+        call.set_funcptr(microtaskPtr);
 
-            // Args
-            for (int argIdx = argc - 1; argIdx >= 0; argIdx--) {
-                call.add_ompfunctionargs(sharedVarsPtr[argIdx]);
-            }
-
-            call.set_ompthreadnum(threadNum);
-            call.set_ompnumthreads(nextNumThreads);
-
-            call.set_ompdepth(nextLevel->depth);
-            call.set_ompeffdepth(nextLevel->activeLevels);
-            call.set_ompmal(nextLevel->maxActiveLevels);
-
-            msgs.push_back(call);
+        // Args
+        for (int argIdx = argc - 1; argIdx >= 0; argIdx--) {
+            call.add_ompfunctionargs(sharedVarsPtr[argIdx]);
         }
 
-        faabric::MultiMessage localMsgs = sch.callFunctions(msgs);
-        int nLocalThreads = (int)localMsgs.messages().size();
+        call.set_ompthreadnum(threadNum);
+        call.set_ompnumthreads(nextNumThreads);
 
-        // Spawn all the local messages as threads
-        std::vector<std::thread> localThreads;
-        for (int i = 0; i < nLocalThreads; i++) {
-            localThreads.emplace_back(
-              [&localMsgs, &nextLevel, &parentModule, &parentCall, i] {
-                  // We are now in a new thread so need to set up everything
-                  // that uses TLS
-                  setUpOpenMPContext(i, nextLevel);
-                  setExecutingModule(parentModule);
-                  setExecutingCall(parentCall);
+        call.set_ompdepth(nextLevel->depth);
+        call.set_ompeffdepth(nextLevel->activeLevels);
+        call.set_ompmal(nextLevel->maxActiveLevels);
 
-                  parentModule->executeAsOMPThread(localMsgs.messages().at(i));
-              });
+        msgs.push_back(call);
+    }
+
+    // Set up the request
+    faabric::BatchExecuteRequest req = faabric::util::batchExecFactory(msgs);
+    req.set_type(faabric::BatchExecuteRequest::THREADS);
+
+    // Submit it
+    std::vector<std::string> executedHosts = sch.callFunctions(req);
+
+    // Iterate through messages and see which need to be executed locally
+    std::vector<std::thread> localThreads;
+    for (int i = 0; i < executedHosts.size(); i++) {
+        std::string host = executedHosts.at(i);
+        bool isLocal = host.empty();
+
+        if (!isLocal) {
+            // Function is being executed remotely
+            callIds.push_back(msgs.at(i).id());
+            continue;
         }
 
-        // Await the results of all the remote threads
-        I64 numErrors = 0;
-        for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
-            int callTimeoutMs =
-              faabric::util::getSystemConfig().chainedCallTimeout;
+        localThreads.emplace_back(
+          [&msgs, &nextLevel, &parentModule, &parentCall, i] {
+              // We are now in a new thread so need to set up everything
+              // that uses TLS
+              setUpOpenMPContext(i, nextLevel);
+              setExecutingModule(parentModule);
+              setExecutingCall(parentCall);
 
-            int callId = msgs[threadNum].id();
-            logger->info(
-              "Waiting for thread #{} with call id {} with a timeout of {}",
-              threadNum,
-              callId,
-              callTimeoutMs);
+              parentModule->executeAsOMPThread(msgs.at(i));
+          });
+    }
 
-            int returnCode = 1;
-            try {
-                const faabric::Message result =
-                  sch.getFunctionResult(callId, callTimeoutMs);
+    // Await the results of all the remote threads
+    I64 numErrors = 0;
+    for (auto callId : callIds) {
+        int callTimeoutMs = faabric::util::getSystemConfig().chainedCallTimeout;
 
-                returnCode = result.returnvalue();
+        logger->info(
+          "Waiting for call id {} with a timeout of {}", callId, callTimeoutMs);
 
-            } catch (faabric::redis::RedisNoResponseException& ex) {
-                logger->error("Timed out waiting for chained call: {}", callId);
+        int returnCode = 1;
+        try {
+            const faabric::Message result =
+              sch.getFunctionResult(callId, callTimeoutMs);
 
-            } catch (std::exception& ex) {
-                logger->error(
-                  "Non-timeout exception waiting for chained call: {}",
-                  ex.what());
-            }
+            returnCode = result.returnvalue();
 
-            if (returnCode > 0) {
-                numErrors++;
-            }
+        } catch (faabric::redis::RedisNoResponseException& ex) {
+            logger->error("Timed out waiting for chained call: {}", callId);
+
+        } catch (std::exception& ex) {
+            logger->error("Non-timeout exception waiting for chained call: {}",
+                          ex.what());
         }
 
-        if (numErrors) {
-            throw std::runtime_error(fmt::format(
-              "{} OpenMP threads have exited with errors", numErrors));
+        if (returnCode > 0) {
+            numErrors++;
         }
+    }
 
-        logger->debug("Distributed OpenMP threads finished successfully");
+    if (numErrors) {
+        throw std::runtime_error(
+          fmt::format("{} OpenMP threads have exited with errors", numErrors));
+    }
 
-    } else if (conf.threadMode == "local") {
-        std::vector<std::thread> threads;
-
-        std::vector<U64> results;
-        std::mutex resultMutex;
-
-        // Execute threads locally
-        logger->debug("OMP {}: Spawning {} threads locally",
-                      ctx.threadNumber,
-                      nextNumThreads);
-        for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
-            // Be careful here what you pass in with a reference and what you
-            // copy
-            threads.emplace_back([&results,
-                                  &resultMutex,
-                                  &nextLevel,
-                                  &contextRuntimeData,
-                                  &parentModule,
-                                  &parentCall,
-                                  &sharedVarsPtr,
-                                  &argc,
-                                  func,
-                                  threadNum] {
-                // We are now in a new thread so need to set up everything that
-                // uses TLS
-                setUpOpenMPContext(threadNum, nextLevel);
-                setExecutingModule(parentModule);
-                setExecutingCall(parentCall);
-
-                // Set up the arguments for the entry function
-                std::vector<IR::UntaggedValue> funcArgs = { threadNum, argc };
-                if (argc > 0) {
-                    // Get pointer to start of arguments in host memory
-                    for (int argIdx = 0; argIdx < argc; argIdx++) {
-                        funcArgs.emplace_back(sharedVarsPtr[argIdx]);
-                    }
-                }
-
-                // Arguments for spawning the thread
-                WasmThreadSpec spec = {
-                    .contextRuntimeData = contextRuntimeData,
-                    .func = func,
-                    .funcArgs = funcArgs.data(),
-                    .stackTop = parentModule->allocateThreadStack(),
-                };
-
-                // This executes the thread synchronously
-                I64 threadResult = parentModule->executeThreadLocally(spec);
-
-                // Add the result of this thread to the list
-                faabric::util::UniqueLock lock(resultMutex);
-                results.push_back(threadResult);
-            });
+    // Await thread completion
+    for (auto& t : localThreads) {
+        if (t.joinable()) {
+            t.join();
         }
-
-        // Reset parent level for next setting of threads
-        parentLevel->pushedThreads = -1;
-
-        // Await thread completion
-        for (auto& t : threads) {
-            if (t.joinable()) {
-                t.join();
-            }
-        }
-
-        for (int res : results) {
-            if (res < 0) {
-                throw std::runtime_error("OMP thread exited with error");
-            }
-        }
-    } else {
-        logger->error("Unrecognised thread mode: {}", conf.threadMode);
-        throw std::runtime_error("Unrecognised thread mode");
     }
 }
 

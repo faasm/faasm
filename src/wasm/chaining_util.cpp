@@ -53,14 +53,7 @@ int makeChainedCall(const std::string& functionName,
       faabric::util::funcToString(*originalCall, false);
     const std::string chainedStr = faabric::util::funcToString(call, false);
 
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     sch.callFunction(call);
-    faabric::util::getLogger()->debug("Chained {} ({}) -> {} ({})",
-                                      origStr,
-                                      conf.endpointHost,
-                                      chainedStr,
-                                      call.scheduledhost());
-
     sch.logChainedFunction(originalCall->id(), call.id());
 
     return call.id();
@@ -95,14 +88,6 @@ int spawnChainedThread(const std::string& snapshotKey,
 
     // Schedule the call
     sch.callFunction(call);
-    faabric::util::getLogger()->debug(
-      "Chained thread {} ({}) -> {} {}({}) ({})",
-      origStr,
-      faabric::util::getSystemConfig().endpointHost,
-      chainedStr,
-      funcPtr,
-      argsPtr,
-      call.scheduledhost());
 
     return call.id();
 }

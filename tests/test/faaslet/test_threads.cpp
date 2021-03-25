@@ -5,16 +5,9 @@
 #include <faabric/util/func.h>
 
 namespace tests {
-void checkThreadedFunction(const char* threadMode,
-                           const char* threadFunc,
-                           bool runPool)
+void checkThreadedFunction(const char* threadFunc, bool runPool)
 {
     cleanSystem();
-
-    // Set the thread mode
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    std::string initialMode = conf.threadMode;
-    conf.threadMode = threadMode;
 
     // Run the function
     faabric::Message msg = faabric::util::messageFactory("demo", threadFunc);
@@ -24,28 +17,25 @@ void checkThreadedFunction(const char* threadMode,
     } else {
         execFunction(msg);
     }
-
-    // Reset the thread mode
-    conf.threadMode = initialMode;
 }
 
 TEST_CASE("Test local-only threading", "[faaslet]")
 {
-    checkThreadedFunction("local", "threads_local", false);
+    checkThreadedFunction("threads_local", false);
 }
 
 TEST_CASE("Run thread checks locally", "[faaslet]")
 {
-    checkThreadedFunction("local", "threads_check", false);
+    checkThreadedFunction("threads_check", false);
 }
 
 TEST_CASE("Run thread checks with chaining", "[faaslet]")
 {
-    checkThreadedFunction("chain", "threads_check", true);
+    checkThreadedFunction("threads_check", true);
 }
 
 TEST_CASE("Run distributed threading check", "[faaslet]")
 {
-    checkThreadedFunction("chain", "threads_dist", true);
+    checkThreadedFunction("threads_dist", true);
 }
 }

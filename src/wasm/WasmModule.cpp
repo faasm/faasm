@@ -301,6 +301,11 @@ bool WasmModule::execute(faabric::Message& msg, bool forceNoop)
     throw std::runtime_error("execute not implemented");
 }
 
+bool WasmModule::executeAsOMPThread(faabric::Message& msg)
+{
+    throw std::runtime_error("executeAsOMPThread not implemented");
+}
+
 bool WasmModule::isBound()
 {
     throw std::runtime_error("isBound not implemented");

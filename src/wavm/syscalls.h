@@ -29,11 +29,6 @@ std::pair<std::string, std::string> getUserKeyPairFromWasm(int32_t keyPtr);
 
 std::string getMaskedPathFromWasm(int32_t strPtr);
 
-int spawnChainedThread(const std::string& snapshotKey,
-                       size_t snapshotSize,
-                       int funcPtr,
-                       int argsPtr);
-
 // ---------------------------
 // System-related structs
 // ---------------------------

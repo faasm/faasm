@@ -143,11 +143,6 @@ bool WAMRWasmModule::execute(faabric::Message& msg, bool forceNoop)
     return true;
 }
 
-bool WAMRWasmModule::executeAsOMPThread(faabric::Message& msg)
-{
-    throw std::runtime_error("Not implemented OMP threads with WAMR");
-}
-
 int WAMRWasmModule::executeFunctionFromPointer(int wasmFuncPtr)
 {
     auto logger = faabric::util::getLogger();

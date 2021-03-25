@@ -1,10 +1,14 @@
 #include "WAVMWasmModule.h"
-#include "faabric/util/logging.h"
 #include "syscalls.h"
+
+#include <faabric/proto/faabric.pb.h>
+#include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/config.h>
+#include <faabric/util/func.h>
+#include <faabric/util/logging.h>
 
 #include <linux/futex.h>
 
-#include <faabric/util/config.h>
 #include <wasm/chaining.h>
 
 #include <WAVM/Platform/Thread.h>
@@ -44,6 +48,10 @@ I64 createPthread(void* threadSpecPtr)
     setExecutingCall(pArg->parentCall);
 
     I64 res = getExecutingWAVMModule()->executeThreadLocally(*pArg->spec);
+
+    // Notify the scheduler that we've completed executing the thread
+    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
+    sch.notifyCallFinished(*pArg->parentCall);
 
     // Delete the spec, no longer needed
     delete[] pArg->spec->funcArgs;
@@ -86,16 +94,52 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   entryFunc,
                   argsPtr);
 
+    faabric::Message* originalCall = getExecutingCall();
+    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
+
     // Set the bits we care about on the pthread struct
     // NOTE - setting the initial pointer is crucial for inter-operation with
     // existing C code
     WAVMWasmModule* thisModule = getExecutingWAVMModule();
-    wasm_pthread* pthreadHost =
+    wasm_pthread* pthreadNative =
       &Runtime::memoryRef<wasm_pthread>(thisModule->defaultMemory, pthreadPtr);
-    pthreadHost->selfPtr = pthreadPtr;
+    pthreadNative->selfPtr = pthreadPtr;
 
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    if (conf.threadMode == "local") {
+    // Create a new snapshot if one isn't already active
+    if (activeSnapshotKey.empty()) {
+        int callId = originalCall->id();
+        activeSnapshotKey =
+          std::string("pthread_snapshot_") + std::to_string(callId);
+        threadSnapshotSize = thisModule->snapshotToState(activeSnapshotKey);
+    }
+
+    faabric::Message threadCall = faabric::util::messageFactory(
+      originalCall->user(), originalCall->function());
+    threadCall.set_isasync(true);
+
+    // Snapshot details
+    threadCall.set_snapshotkey(activeSnapshotKey);
+    threadCall.set_snapshotsize(threadSnapshotSize);
+
+    // Function pointer and args
+    // NOTE - with a pthread interface we only ever pass the function a single
+    // pointer argument, hence we use the input data here to hold this argument
+    // as a string
+    threadCall.set_funcptr(entryFunc);
+    threadCall.set_inputdata(std::to_string(argsPtr));
+
+    // Set up the request
+    std::vector<faabric::Message> msgs = { threadCall };
+    faabric::BatchExecuteRequest req = faabric::util::batchExecFactory(msgs);
+    req.set_type(faabric::BatchExecuteRequest::THREADS);
+
+    // Submit it
+    std::vector<std::string> hosts = sch.callFunctions(req);
+
+    // Check if the scheduler expects us to execute locally
+    bool execLocal = hosts.at(0) == "";
+
+    if (execLocal) {
         // Spawn a local thread
         Runtime::Object* funcObj =
           Runtime::getTableElement(thisModule->defaultTable, entryFunc);
@@ -122,24 +166,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         localThreads.insert(
           { pthreadPtr, Platform::createThread(0, createPthread, pArgs) });
 
-    } else if (conf.threadMode == "chain") {
-        // Create a new zygote if one isn't already active
-        if (activeSnapshotKey.empty()) {
-            int callId = getExecutingCall()->id();
-            activeSnapshotKey =
-              std::string("pthread_snapshot_") + std::to_string(callId);
-            threadSnapshotSize = thisModule->snapshotToState(activeSnapshotKey);
-        }
-
-        // Chain the threaded call
-        int chainedCallId = spawnChainedThread(
-          activeSnapshotKey, threadSnapshotSize, entryFunc, argsPtr);
-
-        // Record this thread -> call ID
-        chainedThreads.insert({ pthreadPtr, chainedCallId });
     } else {
-        logger->error("Unsupported threading mode: {}", conf.threadMode);
-        throw std::runtime_error("Unsupported threading mode");
+        // Record this thread -> call ID
+        chainedThreads.insert({ pthreadPtr, threadCall.id() });
     }
 
     return 0;
@@ -155,16 +184,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
     logger->debug("S - pthread_join - {} {}", pthreadPtr, resPtrPtr);
 
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     int returnValue;
-    if (conf.threadMode == "local") {
+
+    if (localThreads.count(pthreadPtr) > 0) {
         // Get the local thread and remove it from the local map
         Platform::Thread* thread = localThreads[pthreadPtr];
         localThreads.erase(pthreadPtr);
 
         // Join it
         returnValue = Platform::joinThread(thread);
-    } else if (conf.threadMode == "chain") {
+    } else {
         // Await the remotely chained thread
         unsigned int callId = chainedThreads[pthreadPtr];
         returnValue = awaitChainedCall(callId);
@@ -176,9 +205,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         if (chainedThreads.empty()) {
             activeSnapshotKey = "";
         }
-    } else {
-        logger->error("Unsupported threading mode: {}", conf.threadMode);
-        throw std::runtime_error("Unsupported threading mode");
     }
 
     // This function is passed a pointer to a pointer for the result,

@@ -99,7 +99,6 @@ void execFuncWithPool(faabric::Message& call,
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.shutdown();
     sch.addHostToGlobalSet();
-    sch.setTestMode(true);
 
     // Modify system config (network ns requires root)
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
@@ -111,8 +110,6 @@ void execFuncWithPool(faabric::Message& call,
     conf.pythonPreload = pythonPreload ? "on" : "off";
 
     // Set up a real worker pool to execute the function
-    conf.maxNodes = nThreads;
-    conf.maxNodesPerFunction = nThreads;
     faaslet::FaasletPool pool(nThreads);
     pool.startThreadPool();
 
