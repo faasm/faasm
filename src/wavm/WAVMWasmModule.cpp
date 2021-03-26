@@ -1451,7 +1451,7 @@ void WAVMWasmModule::doRestore(std::istream& inStream)
 I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)
 {
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    
+
     // Create a new region for this thread's stack
     U32 thisStackBase = spec.stackTop;
     U32 stackTop = thisStackBase + THREAD_STACK_SIZE - 1;
