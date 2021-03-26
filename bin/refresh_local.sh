@@ -7,6 +7,14 @@ PROJ_ROOT=${THIS_DIR}/..
 # Pulls the /usr/local/faasm directory from the current Faasm CLI
 # -----------------------------------------
 
+while getopts :d option
+do
+case "${option}"
+in
+d) CLEAN="ON";;
+esac
+done
+
 pushd ${PROJ_ROOT} >> /dev/null
 
 FAASM_VERSION=$(cat VERSION)
@@ -18,12 +26,16 @@ CPP_IMAGE_TAG=faasm/cpp-sysroot:${CPP_VERSION}
 TARGET_DIR=$(pwd)/dev/faasm-local
 SOURCE_DIR=/usr/local/faasm
 
-# We use docker to clear out the existing dir so that it has the right perms
-echo "Nuking existing dir"
-docker run -i\
-    -v ${TARGET_DIR}:/tmp/localcp \
-    ${IMAGE_TAG} \
-    /bin/bash -c "rm -rf /tmp/localcp/*"
+if [ -z $CLEAN ]; then
+    echo "Not cleaning existing dir"
+else
+    # We use docker to clear out the existing dir so that it has the right perms
+    echo "Cleaning existing dir"
+    docker run -i\
+        -v ${TARGET_DIR}:/tmp/localcp \
+        ${IMAGE_TAG} \
+        /bin/bash -c "rm -rf /tmp/localcp/*"
+fi
 
 # This command mounts the faasm-local dir from this repo to a temp location,
 # then copies in the contents of /usr/local/faasm from the relevant containers
