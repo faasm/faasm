@@ -16,7 +16,7 @@ from faasmcli.util.http import do_post
 
 
 @task(default=True)
-def upload(ctx, user, func, func_file, py=False, local_copy=False, sgx):
+def upload(ctx, user, func, func_file, py=False, local_copy=False, sgx=False):
     """
     Upload a function
     """
