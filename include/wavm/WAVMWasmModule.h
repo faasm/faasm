@@ -56,6 +56,8 @@ class WAVMWasmModule final
 
     uint8_t* wasmPointerToNative(int32_t wasmPtr) override;
 
+    size_t getMemorySizeBytes() override;
+
     // ----- Environment variables
     void writeWasmEnvToMemory(uint32_t envPointers,
                               uint32_t envBuffer) override;

@@ -1079,6 +1079,13 @@ uint8_t* WAVMWasmModule::wasmPointerToNative(int32_t wasmPtr)
     return wasmMemoryRegionPtr;
 }
 
+size_t WAVMWasmModule::getMemorySizeBytes() {
+    Uptr numPages = Runtime::getMemoryNumPages(defaultMemory);
+    Uptr numBytes = numPages * WASM_BYTES_PER_PAGE;
+
+    return numBytes;
+}
+
 bool WAVMWasmModule::resolve(const std::string& moduleName,
                              const std::string& name,
                              IR::ExternType type,
@@ -1413,7 +1420,7 @@ void WAVMWasmModule::doSnapshot(std::ostream& outStream)
     mem.numPages = numPages;
     mem.data = std::vector<uint8_t>(memBase, memEnd);
 
-    // Serialise to file
+    // Serialise to output stream
     archive(mem);
 }
 

@@ -59,7 +59,7 @@ class WasmModule
 
     virtual void flush();
 
-    // ----- Legacy argc/ argv -----
+    // ----- argc/ argv -----
     uint32_t getArgc();
 
     uint32_t getArgvBufferSize();
@@ -97,6 +97,8 @@ class WasmModule
       uint32_t length);
 
     virtual uint8_t* wasmPointerToNative(int32_t wasmPtr);
+
+    virtual size_t getMemorySizeBytes();
 
     // ----- CoW memory -----
     virtual void writeMemoryToFd(int fd);

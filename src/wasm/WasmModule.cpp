@@ -366,4 +366,9 @@ void WasmModule::printDebugInfo()
 {
     throw std::runtime_error("printDebugInfo not implemented");
 }
+
+size_t WasmModule::getMemorySizeBytes()
+{
+    throw std::runtime_error("printDebugInfo not implemented");
+}
 }

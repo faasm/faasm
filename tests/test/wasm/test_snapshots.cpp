@@ -8,7 +8,8 @@
 using namespace wasm;
 
 namespace tests {
-TEST_CASE("Test serializing and restoring module", "[wasm]")
+
+TEST_CASE("Test snapshot and restore for module", "[wasm]")
 {
     cleanSystem();
 
@@ -38,6 +39,17 @@ TEST_CASE("Test serializing and restoring module", "[wasm]")
     wasm::WAVMWasmModule moduleA;
     moduleA.bindToFunction(m);
 
+    // Modify the memory of the module to check changes are propagated
+    uint32_t wasmPtr = moduleA.mmapMemory(1);
+    uint8_t *nativePtr = moduleA.wasmPointerToNative(wasmPtr);
+    nativePtr[0] = 0;
+    nativePtr[1] = 1;
+    nativePtr[2] = 2;
+    nativePtr[3] = 3;
+    nativePtr[4] = 4;
+
+    size_t expectedSizeBytes = moduleA.getMemorySizeBytes();
+
     if (mode == "memory") {
         // Serialise to memory
         memoryData = moduleA.snapshotToMemory();
@@ -53,7 +65,7 @@ TEST_CASE("Test serializing and restoring module", "[wasm]")
     wasm::WAVMWasmModule moduleB;
     moduleB.bindToFunctionNoZygote(m);
 
-    // Restore from cross-host data
+    // Restore from snapshot
     if (mode == "memory") {
         moduleB.restoreFromMemory(memoryData);
     } else if (mode == "file") {
@@ -61,6 +73,18 @@ TEST_CASE("Test serializing and restoring module", "[wasm]")
     } else {
         moduleB.restoreFromState(stateKey, stateSize);
     }
+
+    // Check size of restored memory is as expected
+    size_t actualSizeBytes = moduleB.getMemorySizeBytes();
+    REQUIRE(actualSizeBytes == expectedSizeBytes);
+
+    // Check writes to memory are visible in restored module
+    uint8_t *nativePtrB = moduleB.wasmPointerToNative(wasmPtr);
+    REQUIRE(nativePtrB[0] == 0);
+    REQUIRE(nativePtrB[1] == 1);
+    REQUIRE(nativePtrB[2] == 2);
+    REQUIRE(nativePtrB[3] == 3);
+    REQUIRE(nativePtrB[4] == 4);
 
     // Execute both
     bool successA = moduleA.execute(m);
