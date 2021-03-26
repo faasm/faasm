@@ -133,6 +133,8 @@ class WasmModule
     int stdoutMemFd;
     ssize_t stdoutSize;
 
+    std::mutex moduleMutex;
+
     // Argc/argv
     unsigned int argc;
     std::vector<std::string> argv;
@@ -147,7 +149,6 @@ class WasmModule
     void prepareArgcArgv(const faabric::Message& msg);
 
     // Shared memory regions
-    std::mutex sharedMemWasmPtrsMx;
     std::unordered_map<std::string, uint32_t> sharedMemWasmPtrs;
 };
 

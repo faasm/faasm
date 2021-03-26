@@ -135,6 +135,8 @@ class WAVMWasmModule final
 
     uint32_t allocateThreadStack();
 
+    uint32_t createMemoryGuardRegion();
+
   protected:
     void doSnapshot(std::ostream& outStream) override;
 
@@ -190,8 +192,6 @@ class WAVMWasmModule final
 
     WAVM::Runtime::Function* getWasmConstructorsFunction(
       WAVM::Runtime::Instance* module);
-
-    uint32_t createMemoryGuardRegion();
 };
 
 WAVMWasmModule* getExecutingWAVMModule();

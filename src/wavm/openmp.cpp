@@ -1,12 +1,12 @@
-#include "faabric/proto/faabric.pb.h"
-#include "faabric/util/func.h"
-#include "faabric/util/gids.h"
 #include <WAVM/Platform/Thread.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 
+#include <faabric/proto/faabric.pb.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/state/StateKeyValue.h>
+#include <faabric/util/func.h>
+#include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/timing.h>
 
@@ -382,8 +382,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     // Take memory snapshot
     uint32_t snapshotId = faabric::util::generateGid();
-    std::string snapshotKey = fmt::format("fork_{}", snapshotId);
+    std::string snapshotKey = fmt::format("openmp_{}", snapshotId);
+    logger->debug("Creating OpenMP snapshot: {}", snapshotKey);
+
     size_t snapshotSize = parentModule->snapshotToState(snapshotKey);
+    logger->debug(
+      "Created OpenMP snapshot: {} ({} bytes)", snapshotKey, snapshotSize);
 
     const faabric::Message* originalCall = getExecutingCall();
     const std::string origStr =
@@ -414,7 +418,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         call.set_funcptr(microtaskPtr);
 
         // Args
-        for (int argIdx = argc - 1; argIdx >= 0; argIdx--) {
+        // TODO - is the order of these right? Does protobuf push to the back or
+        // front?
+        for (int argIdx = 0; argIdx < argc; argIdx++) {
             call.add_ompfunctionargs(sharedVarsPtr[argIdx]);
         }
 
@@ -437,6 +443,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     // Iterate through messages and see which need to be executed locally
     std::vector<std::thread> localThreads;
+    std::mutex errorsMutex;
+    std::vector<int> errors;
+    int threadId = 0;
     for (int i = 0; i < executedHosts.size(); i++) {
         std::string host = executedHosts.at(i);
         bool isLocal = host.empty();
@@ -447,20 +456,33 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
             continue;
         }
 
-        localThreads.emplace_back(
-          [&msgs, &nextLevel, &parentModule, &parentCall, i] {
-              // We are now in a new thread so need to set up everything
-              // that uses TLS
-              setUpOpenMPContext(i, nextLevel);
-              setExecutingModule(parentModule);
-              setExecutingCall(parentCall);
+        faabric::Message& msg = msgs.at(i);
+        localThreads.emplace_back([&msg,
+                                   &nextLevel,
+                                   &parentModule,
+                                   &parentCall,
+                                   &errors,
+                                   &errorsMutex,
+                                   threadId] {
+            // We are now in a new thread so need to set up everything
+            // that uses TLS
+            setUpOpenMPContext(threadId, nextLevel);
+            setExecutingModule(parentModule);
+            setExecutingCall(parentCall);
 
-              parentModule->executeAsOMPThread(msgs.at(i));
-          });
+            parentModule->executeAsOMPThread(msg);
+
+            if (msg.returnvalue() > 0) {
+                faabric::util::UniqueLock lock(errorsMutex);
+                errors.push_back(threadId);
+            }
+        });
+
+        threadId++;
     }
 
     // Await the results of all the remote threads
-    I64 numErrors = 0;
+    int numErrors = 0;
     for (auto callId : callIds) {
         int callTimeoutMs = faabric::util::getSystemConfig().chainedCallTimeout;
 
@@ -487,9 +509,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         }
     }
 
-    if (numErrors) {
-        throw std::runtime_error(
-          fmt::format("{} OpenMP threads have exited with errors", numErrors));
+    if (numErrors > 0) {
+        logger->error("{} remote OpenMP threads errored", numErrors);
+        throw std::runtime_error("Remote OpenMP threads have errors");
     }
 
     // Await thread completion
@@ -498,6 +520,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
             t.join();
         }
     }
+
+    if (!errors.empty()) {
+        logger->error("{} local OpenMP threads errored", errors.size());
+        throw std::runtime_error("Local OpenMP threads have errors");
+    }
+
+    // Reset parent level for next setting of threads
+    parentLevel->pushedThreads = -1;
 }
 
 // -------------------------------------------------------

@@ -945,19 +945,17 @@ bool WAVMWasmModule::executeAsOMPThread(faabric::Message& msg)
       msg.funcptr(),
       argc);
 
-    std::vector<IR::UntaggedValue> invokeArgs;
-    invokeArgs.emplace_back(threadNum);
-    invokeArgs.emplace_back(argc);
-
-    for (int argIdx = argc - 1; argIdx >= 0; argIdx--) {
+    // Set up function args
+    std::vector<IR::UntaggedValue> invokeArgs = { threadNum, argc };
+    for (int argIdx = 0; argIdx < argc; argIdx++) {
         invokeArgs.emplace_back(msg.ompfunctionargs(argIdx));
     }
 
     WasmThreadSpec spec = {
-        getContextRuntimeData(executionContext),
-        funcInstance,
-        invokeArgs.data(),
-        getExecutingWAVMModule()->allocateThreadStack(),
+        .contextRuntimeData = getContextRuntimeData(executionContext),
+        .func = funcInstance,
+        .funcArgs = invokeArgs.data(),
+        .stackTop = getExecutingWAVMModule()->allocateThreadStack(),
     };
 
     // Record the return value
@@ -1012,6 +1010,9 @@ U32 WAVMWasmModule::mmapMemory(U32 length)
 
 U32 WAVMWasmModule::mmapPages(U32 pages)
 {
+    // Cautious locking
+    faabric::util::UniqueLock lock(moduleMutex);
+
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
     U64 maxSize = getMemoryType(defaultMemory).size.max;
     Uptr currentPageCount = Runtime::getMemoryNumPages(defaultMemory);
@@ -1447,12 +1448,10 @@ void WAVMWasmModule::doRestore(std::istream& inStream)
     memcpy(memBase, mem.data.data(), memSize);
 }
 
-/*
- * Creates a thread execution context
- */
 I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)
 {
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
+    
     // Create a new region for this thread's stack
     U32 thisStackBase = spec.stackTop;
     U32 stackTop = thisStackBase + THREAD_STACK_SIZE - 1;
@@ -1664,7 +1663,10 @@ uint32_t WAVMWasmModule::createMemoryGuardRegion()
     uint8_t* nativePtr =
       &Runtime::memoryRef<uint8_t>(defaultMemory, wasmOffset);
 
-    int res = mprotect(nativePtr, regionSize, PROT_NONE);
+    // NOTE: we want to protect these regions from _writes_, but we don't want
+    // to stop them being read, otherwise snapshotting will fail. Therefore we
+    // make them read-only
+    int res = mprotect(nativePtr, regionSize, PROT_READ);
     if (res != 0) {
         logger->error("Failed to create memory guard: {}",
                       std::strerror(errno));

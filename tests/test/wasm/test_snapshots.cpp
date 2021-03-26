@@ -49,6 +49,10 @@ TEST_CASE("Test snapshot and restore for wasm module", "[wasm]")
     nativePtr[3] = 3;
     nativePtr[4] = 4;
 
+    // Add some guard regions to make sure these can be propagated
+    moduleA.createMemoryGuardRegion();
+    moduleA.createMemoryGuardRegion();
+
     size_t expectedSizeBytes = moduleA.getMemorySizeBytes();
 
     if (mode == "memory") {
@@ -76,8 +80,8 @@ TEST_CASE("Test snapshot and restore for wasm module", "[wasm]")
     }
 
     // Check size of restored memory is as expected
-    size_t actualSizeBytes = moduleB.getMemorySizeBytes();
-    REQUIRE(actualSizeBytes == expectedSizeBytes);
+    size_t actualSizeBytesB = moduleB.getMemorySizeBytes();
+    REQUIRE(actualSizeBytesB == expectedSizeBytes);
 
     // Check writes to memory are visible in restored module
     uint8_t* nativePtrB = moduleB.wasmPointerToNative(wasmPtr);
@@ -87,11 +91,39 @@ TEST_CASE("Test snapshot and restore for wasm module", "[wasm]")
     REQUIRE(nativePtrB[3] == 3);
     REQUIRE(nativePtrB[4] == 4);
 
-    // Execute both
+    // Create a third module from the second one
+    wasm::WAVMWasmModule moduleC;
+    moduleC.bindToFunctionNoZygote(m);
+
+    // Restore from snapshot
+    if (mode == "memory") {
+        moduleC.restoreFromMemory(memoryData);
+    } else if (mode == "file") {
+        moduleC.restoreFromFile(filePath);
+    } else {
+        moduleC.restoreFromState(stateKey, stateSize);
+    }
+
+    // Check size of restored memory is as expected
+    size_t actualSizeBytesC = moduleB.getMemorySizeBytes();
+    REQUIRE(actualSizeBytesC == expectedSizeBytes);
+
+    // Check writes to memory are visible in restored module
+    uint8_t* nativePtrC = moduleC.wasmPointerToNative(wasmPtr);
+    REQUIRE(nativePtrC[0] == 0);
+    REQUIRE(nativePtrC[1] == 1);
+    REQUIRE(nativePtrC[2] == 2);
+    REQUIRE(nativePtrC[3] == 3);
+    REQUIRE(nativePtrC[4] == 4);
+
+    // Execute all of them
     bool successA = moduleA.execute(m);
     REQUIRE(successA);
 
     bool successB = moduleB.execute(m);
     REQUIRE(successB);
+
+    bool successC = moduleC.execute(m);
+    REQUIRE(successC);
 }
 }
