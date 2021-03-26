@@ -16,9 +16,9 @@ void execFunctionWithRemoteBatch(faabric::Message& call,
                                  bool clean = true);
 
 void execBatchWithPool(faabric::BatchExecuteRequest& call,
-                       int nThreads = 4,
-                       bool checkChained = false,
-                       bool clean = true);
+                       int nThreads,
+                       bool checkChained,
+                       bool clean);
 
 void execFuncWithPool(faabric::Message& call,
                       bool pythonPreload = false,

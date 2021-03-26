@@ -111,6 +111,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         activeSnapshotKey =
           std::string("pthread_snapshot_") + std::to_string(callId);
         threadSnapshotSize = thisModule->snapshotToState(activeSnapshotKey);
+
+        logger->debug("Setting pthread snapshot {} ({} bytes)",
+                      activeSnapshotKey,
+                      threadSnapshotSize);
     }
 
     faabric::Message threadCall = faabric::util::messageFactory(

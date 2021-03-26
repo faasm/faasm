@@ -38,9 +38,9 @@ class WAVMWasmModule final
     void bindToFunctionNoZygote(const faabric::Message& msg) override;
 
     bool execute(faabric::Message& msg, bool forceNoop = false) override;
-    
+
     bool executeAsOMPThread(faabric::Message& msg) override;
- 
+
     bool isBound() override;
 
     bool tearDown();

@@ -133,7 +133,7 @@ void execFunctionWithRemoteBatch(faabric::Message& call,
 
     // Now execute request on this host (forced)
     // Note - don't clean as we will have already done at the top of this func
-    execBatchWithPool(reqs.at(0).second, nThreads, false);
+    execBatchWithPool(reqs.at(0).second, nThreads, false, false);
 
     if (t.joinable()) {
         t.join();
@@ -163,7 +163,7 @@ void execBatchWithPool(faabric::BatchExecuteRequest& req,
     // Execute forcing local
     sch.callFunctions(req, true);
 
-    usleep(1000 * 5000);
+    usleep(1000 * 500);
 
     // Wait for all functions to complete if necessary
     if (checkChained) {
@@ -172,6 +172,8 @@ void execBatchWithPool(faabric::BatchExecuteRequest& req,
             REQUIRE(result.returnvalue() == 0);
         }
     }
+
+    pool.shutdown();
 }
 
 void execFuncWithPool(faabric::Message& call,

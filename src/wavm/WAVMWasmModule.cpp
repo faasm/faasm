@@ -241,7 +241,7 @@ bool WAVMWasmModule::tearDown()
     bool compartmentCleared =
       Runtime::tryCollectCompartment(std::move(compartment));
     if (!compartmentCleared) {
-        logger->debug("Failed GC for compartment");
+        logger->warn("Failed GC for compartment");
     } else {
         logger->debug("Successful GC for compartment");
     }
@@ -847,12 +847,12 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
         return executeAsOMPThread(msg);
     }
 
-    // Run a specific function if requested
     int funcPtr = msg.funcptr();
     std::vector<IR::UntaggedValue> invokeArgs;
     Runtime::Function* funcInstance;
     IR::FunctionType funcType;
 
+    // Run a specific function if requested
     if (funcPtr > 0) {
         // Get the function this pointer refers to
         funcInstance = getFunctionFromPtr(funcPtr);
@@ -1079,7 +1079,8 @@ uint8_t* WAVMWasmModule::wasmPointerToNative(int32_t wasmPtr)
     return wasmMemoryRegionPtr;
 }
 
-size_t WAVMWasmModule::getMemorySizeBytes() {
+size_t WAVMWasmModule::getMemorySizeBytes()
+{
     Uptr numPages = Runtime::getMemoryNumPages(defaultMemory);
     Uptr numBytes = numPages * WASM_BYTES_PER_PAGE;
 
@@ -1380,12 +1381,14 @@ void WAVMWasmModule::writeMemoryToFd(int fd)
     int ferror = ftruncate(memoryFd, memoryFdSize);
     if (ferror) {
         logger->error("ferror call failed with error {}", ferror);
+        throw std::runtime_error("Failed writing memory to fd (ftruncate)");
     }
 
     // Write the data
     ssize_t werror = write(memoryFd, memoryBase, memoryFdSize);
     if (werror == -1) {
-        logger->error("write call failed");
+        logger->error("Write call failed with error {}", werror);
+        throw std::runtime_error("Failed writing memory to fd (write)");
     }
 }
 
