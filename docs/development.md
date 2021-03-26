@@ -34,6 +34,12 @@ can initialise with:
 ./bin/refresh_local.sh
 ```
 
+If you want to nuke your existing `dev/faasm-local` in the process:
+
+```
+./bin/refresh_local.sh -d
+```
+
 It may also be useful to run Python scripts outside the containerised 
 environments, for which you can set up a suitable Python virtual envrionment 
 with:
