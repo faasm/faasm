@@ -44,7 +44,6 @@ std::string execFunctionWithStringResult(faabric::Message& call)
     conf.pythonPreload = "off";
 
     // Set up worker to listen for relevant function
-    FaasletPool pool(1);
     Faaslet w(1);
     REQUIRE(!w.isBound());
 
@@ -283,7 +282,6 @@ void checkCallingFunctionGivesBoolOutput(const std::string& user,
 {
     faabric::Message call = faabric::util::messageFactory("demo", funcName);
 
-    FaasletPool pool(1);
     Faaslet w(1);
 
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();

@@ -37,6 +37,8 @@ void runTestLocally(const std::string& func)
 
     faabric::Message msg = faabric::util::messageFactory("demo", func);
     execFunction(msg);
+
+    REQUIRE(sch.getFunctionInFlightCount(msg) == 0);
 }
 
 void runTestDistributed(const std::string& func)
@@ -47,22 +49,22 @@ void runTestDistributed(const std::string& func)
     execFunctionWithRemoteBatch(msg, 4, true);
 }
 
-TEST_CASE("Test local-only threading", "[faaslet]")
+TEST_CASE("Test local-only threading", "[threads]")
 {
     runTestLocally("threads_local");
 }
 
-TEST_CASE("Run thread checks locally", "[faaslet]")
+TEST_CASE("Run thread checks locally", "[threads]")
 {
     runTestLocally("threads_check");
 }
 
-TEST_CASE("Run thread checks with chaining", "[faaslet]")
+TEST_CASE("Run thread checks with chaining", "[threads]")
 {
     runTestDistributed("threads_check");
 }
 
-TEST_CASE("Run distributed threading check", "[faaslet]")
+TEST_CASE("Run distributed threading check", "[threads]")
 {
     runTestDistributed("threads_dist");
 }

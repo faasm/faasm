@@ -133,7 +133,8 @@ class WasmModule
     int stdoutMemFd;
     ssize_t stdoutSize;
 
-    std::mutex moduleMutex;
+    std::mutex moduleMemoryMutex;
+    std::mutex moduleStateMutex;
 
     // Argc/argv
     unsigned int argc;

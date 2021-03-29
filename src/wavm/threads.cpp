@@ -1,5 +1,7 @@
 #include "WAVMWasmModule.h"
+#include "faabric/state/State.h"
 #include "syscalls.h"
+#include "wasm/WasmModule.h"
 
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/scheduler/Scheduler.h>
@@ -32,9 +34,10 @@ static thread_local std::unordered_map<I32, WAVM::Platform::Thread*>
 // Map of tid to message ID for chained calls
 static thread_local std::unordered_map<I32, unsigned int> chainedThreads;
 
-// Flag to say whether we've spawned a thread
-static std::string activeSnapshotKey;
-static size_t threadSnapshotSize;
+// Record of whether this thread has already got a snapshot being used to spawn
+// other threads.
+static thread_local std::string currentSnapshotKey;
+static thread_local size_t currentSnapshotSize;
 
 // ---------------------------------------------
 // PTHREADS
@@ -95,6 +98,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   argsPtr);
 
     faabric::Message* originalCall = getExecutingCall();
+    std::string funcStr = faabric::util::funcToString(*originalCall, true);
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
 
     // Set the bits we care about on the pthread struct
@@ -106,15 +110,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     pthreadNative->selfPtr = pthreadPtr;
 
     // Create a new snapshot if one isn't already active
-    if (activeSnapshotKey.empty()) {
+    if (currentSnapshotKey.empty()) {
         int callId = originalCall->id();
-        activeSnapshotKey =
+        currentSnapshotKey =
           std::string("pthread_snapshot_") + std::to_string(callId);
-        threadSnapshotSize = thisModule->snapshotToState(activeSnapshotKey);
+        currentSnapshotSize = thisModule->snapshotToState(currentSnapshotKey);
 
-        logger->debug("Setting pthread snapshot {} ({} bytes)",
-                      activeSnapshotKey,
-                      threadSnapshotSize);
+        logger->debug("Setting pthread snapshot for {} ({}, {} bytes)",
+                      funcStr,
+                      currentSnapshotKey,
+                      currentSnapshotSize);
     }
 
     faabric::Message threadCall = faabric::util::messageFactory(
@@ -122,8 +127,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     threadCall.set_isasync(true);
 
     // Snapshot details
-    threadCall.set_snapshotkey(activeSnapshotKey);
-    threadCall.set_snapshotsize(threadSnapshotSize);
+    threadCall.set_snapshotkey(currentSnapshotKey);
+    threadCall.set_snapshotsize(currentSnapshotSize);
 
     // Function pointer and args
     // NOTE - with a pthread interface we only ever pass the function a single
@@ -188,6 +193,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
     logger->debug("S - pthread_join - {} {}", pthreadPtr, resPtrPtr);
 
+    faabric::Message* msg = getExecutingCall();
     int returnValue;
 
     if (localThreads.count(pthreadPtr) > 0) {
@@ -206,15 +212,17 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
         // Remove record for the remote thread
         chainedThreads.erase(pthreadPtr);
-
-        // If this is the last active thread, reset the zygote key
-        if (chainedThreads.empty()) {
-            activeSnapshotKey = "";
-
-            // TODO - actually delete the snapshot asynchronously
-        }
     }
 
+    // If we're done with executing threads, remove the snapshot
+    if (chainedThreads.empty() && localThreads.empty()) {
+        logger->debug("Deleting snapshot: {}", currentSnapshotKey);
+        faabric::state::State& s = faabric::state::getGlobalState();
+        s.deleteKV(msg->user(), currentSnapshotKey);
+
+        currentSnapshotKey = "";
+        currentSnapshotSize = 0;
+    }
     // This function is passed a pointer to a pointer for the result,
     // so we dereference it once and are writing an integer (i.e. a wasm
     // pointer)

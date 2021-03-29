@@ -4,6 +4,21 @@
 #include <catch2/catch.hpp>
 #include <faabric/util/logging.h>
 
+struct LogListener : Catch::TestEventListenerBase
+{
+    using TestEventListenerBase::TestEventListenerBase;
+
+    void testCaseStarting(Catch::TestCaseInfo const& testInfo) override
+    {
+        auto logger = faabric::util::getLogger();
+        logger->debug("---------------------------------------------");
+        logger->debug("TEST: {}", testInfo.name);
+        logger->debug("---------------------------------------------");
+    }
+};
+
+CATCH_REGISTER_LISTENER(LogListener)
+
 int main(int argc, char* argv[])
 {
     // Clean the system

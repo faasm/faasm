@@ -254,7 +254,7 @@ uint32_t WasmModule::mapSharedStateMemory(
                              std::to_string(length);
     if (sharedMemWasmPtrs.count(segmentKey) == 0) {
         // Lock and double check
-        faabric::util::UniqueLock lock(moduleMutex);
+        faabric::util::UniqueLock lock(moduleStateMutex);
         if (sharedMemWasmPtrs.count(segmentKey) == 0) {
             // Page-align the chunk
             faabric::util::AlignedChunk chunk =

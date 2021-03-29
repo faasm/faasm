@@ -1011,7 +1011,7 @@ U32 WAVMWasmModule::mmapMemory(U32 length)
 U32 WAVMWasmModule::mmapPages(U32 pages)
 {
     // Cautious locking
-    faabric::util::UniqueLock lock(moduleMutex);
+    faabric::util::UniqueLock lock(moduleMemoryMutex);
 
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
     U64 maxSize = getMemoryType(defaultMemory).size.max;
