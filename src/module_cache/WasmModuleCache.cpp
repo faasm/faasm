@@ -30,16 +30,6 @@ std::string WasmModuleCache::getBaseCachedModuleKey(const faabric::Message& msg)
     return key;
 }
 
-std::string WasmModuleCache::getCachedModuleKey(const faabric::Message& msg)
-{
-    std::string key;
-    if (!msg.snapshotkey().empty()) {
-        return msg.snapshotkey();
-    } else {
-        return getBaseCachedModuleKey(msg);
-    }
-}
-
 /**
  * There are two kinds of cached module here, the "base" cached module, i.e. the
  * default module with its zygote function executed, (same for all instances),
@@ -53,9 +43,9 @@ wasm::WAVMWasmModule& WasmModuleCache::getCachedModule(
 
     // Get the keys for both types of cached module
     const std::string baseKey = getBaseCachedModuleKey(msg);
-    const std::string specialKey = getCachedModuleKey(msg);
 
-    // Check for the base cached module
+    // Check for the base cached module (required for restoring from snapshot as
+    // well)
     if (getCachedModuleCount(baseKey) == 0) {
         faabric::util::FullLock lock(mx);
         if (cachedModuleMap.count(baseKey) == 0) {
@@ -70,33 +60,39 @@ wasm::WAVMWasmModule& WasmModuleCache::getCachedModule(
         }
     }
 
-    // Stop now if we're just looking for the base cached module
-    if (specialKey == baseKey) {
+    // See if we're looking for a special snapshot
+    const std::string snapshotKey = msg.snapshotkey();
+    if (snapshotKey.empty()) {
         return cachedModuleMap[baseKey];
     }
 
-    // See if we already have the special cached module
-    if (getCachedModuleCount(specialKey) == 0) {
-        faabric::util::FullLock lock(mx);
-        if (cachedModuleMap.count(specialKey) == 0) {
-            // Get the base module and the special module
-            logger->debug("Creating new special zygote: {}", specialKey);
-            wasm::WAVMWasmModule& baseModule = cachedModuleMap[baseKey];
-            wasm::WAVMWasmModule& specialModule = cachedModuleMap[specialKey];
+    if (!snapshotKey.empty()) {
+        // See if we already have the snapshot
+        if (getCachedModuleCount(snapshotKey) == 0) {
+            faabric::util::FullLock lock(mx);
 
-            // Clone the special module from the base one
-            specialModule = baseModule;
+            if (cachedModuleMap.count(snapshotKey) == 0) {
+                // Get the base module and the special module
+                logger->debug("Creating new zygote from snapshot: {}",
+                              snapshotKey);
+                wasm::WAVMWasmModule& baseModule = cachedModuleMap[baseKey];
+                wasm::WAVMWasmModule& specialModule =
+                  cachedModuleMap[snapshotKey];
 
-            // Restore the special module
-            specialModule.restoreFromState(specialKey, msg.snapshotsize());
+                // Clone the special module from the base one
+                specialModule = baseModule;
 
-            // Write memory to fd
-            int fd = memfd_create(specialKey.c_str(), 0);
-            specialModule.writeMemoryToFd(fd);
+                // Restore the special module
+                specialModule.restoreFromState(snapshotKey, msg.snapshotsize());
+
+                // Write memory to fd to support copy-on-write cloning
+                int fd = memfd_create(snapshotKey.c_str(), 0);
+                specialModule.writeMemoryToFd(fd);
+            }
         }
     }
 
-    return cachedModuleMap[specialKey];
+    return cachedModuleMap[snapshotKey];
 }
 
 void WasmModuleCache::clear()

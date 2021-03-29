@@ -16,8 +16,6 @@ class WasmModuleCache
     std::shared_mutex mx;
     std::unordered_map<std::string, wasm::WAVMWasmModule> cachedModuleMap;
 
-    std::string getCachedModuleKey(const faabric::Message& msg);
-
     std::string getBaseCachedModuleKey(const faabric::Message& msg);
 
     int getCachedModuleCount(const std::string& key);

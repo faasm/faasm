@@ -49,6 +49,8 @@ class WasmModule
 
     virtual bool execute(faabric::Message& msg, bool forceNoop = false);
 
+    virtual bool executeAsOMPThread(faabric::Message& msg);
+
     virtual bool isBound();
 
     std::string getBoundUser();
@@ -57,7 +59,7 @@ class WasmModule
 
     virtual void flush();
 
-    // ----- Legacy argc/ argv -----
+    // ----- argc/ argv -----
     uint32_t getArgc();
 
     uint32_t getArgvBufferSize();
@@ -96,6 +98,8 @@ class WasmModule
 
     virtual uint8_t* wasmPointerToNative(int32_t wasmPtr);
 
+    virtual size_t getMemorySizeBytes();
+
     // ----- CoW memory -----
     virtual void writeMemoryToFd(int fd);
 
@@ -129,6 +133,9 @@ class WasmModule
     int stdoutMemFd;
     ssize_t stdoutSize;
 
+    std::mutex moduleMemoryMutex;
+    std::mutex moduleStateMutex;
+
     // Argc/argv
     unsigned int argc;
     std::vector<std::string> argv;
@@ -143,7 +150,6 @@ class WasmModule
     void prepareArgcArgv(const faabric::Message& msg);
 
     // Shared memory regions
-    std::mutex sharedMemWasmPtrsMx;
     std::unordered_map<std::string, uint32_t> sharedMemWasmPtrs;
 };
 

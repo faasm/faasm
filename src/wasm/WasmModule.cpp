@@ -254,7 +254,7 @@ uint32_t WasmModule::mapSharedStateMemory(
                              std::to_string(length);
     if (sharedMemWasmPtrs.count(segmentKey) == 0) {
         // Lock and double check
-        faabric::util::UniqueLock lock(sharedMemWasmPtrsMx);
+        faabric::util::UniqueLock lock(moduleStateMutex);
         if (sharedMemWasmPtrs.count(segmentKey) == 0) {
             // Page-align the chunk
             faabric::util::AlignedChunk chunk =
@@ -299,6 +299,11 @@ void WasmModule::bindToFunctionNoZygote(const faabric::Message& msg)
 bool WasmModule::execute(faabric::Message& msg, bool forceNoop)
 {
     throw std::runtime_error("execute not implemented");
+}
+
+bool WasmModule::executeAsOMPThread(faabric::Message& msg)
+{
+    throw std::runtime_error("executeAsOMPThread not implemented");
 }
 
 bool WasmModule::isBound()
@@ -360,5 +365,10 @@ uint8_t* WasmModule::wasmPointerToNative(int32_t wasmPtr)
 void WasmModule::printDebugInfo()
 {
     throw std::runtime_error("printDebugInfo not implemented");
+}
+
+size_t WasmModule::getMemorySizeBytes()
+{
+    throw std::runtime_error("getMemorySizeBytes not implemented");
 }
 }

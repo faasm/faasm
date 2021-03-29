@@ -1,20 +1,17 @@
+#include "utils.h"
 #include <catch2/catch.hpp>
 
-#include "utils.h"
-
+#include <faabric/scheduler/FunctionCallClient.h>
+#include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/config.h>
 #include <faabric/util/func.h>
+#include <faabric/util/testing.h>
+#include <wavm/WAVMWasmModule.h>
 
 namespace tests {
-void checkThreadedFunction(const char* threadMode,
-                           const char* threadFunc,
-                           bool runPool)
+void checkThreadedFunction(const char* threadFunc, bool runPool)
 {
     cleanSystem();
-
-    // Set the thread mode
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    std::string initialMode = conf.threadMode;
-    conf.threadMode = threadMode;
 
     // Run the function
     faabric::Message msg = faabric::util::messageFactory("demo", threadFunc);
@@ -24,28 +21,51 @@ void checkThreadedFunction(const char* threadMode,
     } else {
         execFunction(msg);
     }
-
-    // Reset the thread mode
-    conf.threadMode = initialMode;
 }
 
-TEST_CASE("Test local-only threading", "[faaslet]")
+void runTestLocally(const std::string& func)
 {
-    checkThreadedFunction("local", "threads_local", false);
+    cleanSystem();
+
+    // Make sure we have plenty of cores
+    int nCores = 10;
+
+    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
+    faabric::HostResources res;
+    res.set_cores(nCores);
+    sch.setThisHostResources(res);
+
+    faabric::Message msg = faabric::util::messageFactory("demo", func);
+    execFunction(msg);
+
+    REQUIRE(sch.getFunctionInFlightCount(msg) == 0);
 }
 
-TEST_CASE("Run thread checks locally", "[faaslet]")
+void runTestDistributed(const std::string& func)
 {
-    checkThreadedFunction("local", "threads_check", false);
+    cleanSystem();
+
+    faabric::Message msg = faabric::util::messageFactory("demo", func);
+    execFunctionWithRemoteBatch(msg, 4, true);
 }
 
-TEST_CASE("Run thread checks with chaining", "[faaslet]")
+TEST_CASE("Test local-only threading", "[threads]")
 {
-    checkThreadedFunction("chain", "threads_check", true);
+    runTestLocally("threads_local");
 }
 
-TEST_CASE("Run distributed threading check", "[faaslet]")
+TEST_CASE("Run thread checks locally", "[threads]")
 {
-    checkThreadedFunction("chain", "threads_dist", true);
+    runTestLocally("threads_check");
+}
+
+TEST_CASE("Run thread checks with chaining", "[threads]")
+{
+    runTestDistributed("threads_check");
+}
+
+TEST_CASE("Run distributed threading check", "[threads]")
+{
+    runTestDistributed("threads_dist");
 }
 }

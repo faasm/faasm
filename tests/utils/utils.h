@@ -11,6 +11,15 @@ void execFunction(faabric::Message& msg,
 
 std::string execFunctionWithStringResult(faabric::Message& msg);
 
+void execFunctionWithRemoteBatch(faabric::Message& call,
+                                 int nThreads = 4,
+                                 bool clean = true);
+
+void execBatchWithPool(faabric::BatchExecuteRequest& call,
+                       int nThreads,
+                       bool checkChained,
+                       bool clean);
+
 void execFuncWithPool(faabric::Message& call,
                       bool pythonPreload = false,
                       int repeatCount = 1,

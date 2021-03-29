@@ -241,7 +241,7 @@ bool WAVMWasmModule::tearDown()
     bool compartmentCleared =
       Runtime::tryCollectCompartment(std::move(compartment));
     if (!compartmentCleared) {
-        logger->debug("Failed GC for compartment");
+        logger->warn("Failed GC for compartment");
     } else {
         logger->debug("Successful GC for compartment");
     }
@@ -844,16 +844,15 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
 
     // Executes OMP fork message if necessary
     if (msg.ompdepth() > 0) {
-        executeRemoteOMP(msg);
-        return true;
+        return executeAsOMPThread(msg);
     }
 
-    // Run a specific function if requested
     int funcPtr = msg.funcptr();
     std::vector<IR::UntaggedValue> invokeArgs;
     Runtime::Function* funcInstance;
     IR::FunctionType funcType;
 
+    // Run a specific function if requested
     if (funcPtr > 0) {
         // Get the function this pointer refers to
         funcInstance = getFunctionFromPtr(funcPtr);
@@ -934,7 +933,7 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
     return success;
 }
 
-void WAVMWasmModule::executeRemoteOMP(faabric::Message& msg)
+bool WAVMWasmModule::executeAsOMPThread(faabric::Message& msg)
 {
     Runtime::Function* funcInstance = getFunctionFromPtr(msg.funcptr());
     int threadNum = msg.ompthreadnum();
@@ -946,23 +945,24 @@ void WAVMWasmModule::executeRemoteOMP(faabric::Message& msg)
       msg.funcptr(),
       argc);
 
-    std::vector<IR::UntaggedValue> invokeArgs;
-    invokeArgs.emplace_back(threadNum);
-    invokeArgs.emplace_back(argc);
-
-    for (int argIdx = argc - 1; argIdx >= 0; argIdx--) {
+    // Set up function args
+    std::vector<IR::UntaggedValue> invokeArgs = { threadNum, argc };
+    for (int argIdx = 0; argIdx < argc; argIdx++) {
         invokeArgs.emplace_back(msg.ompfunctionargs(argIdx));
     }
 
     WasmThreadSpec spec = {
-        getContextRuntimeData(executionContext),
-        funcInstance,
-        invokeArgs.data(),
-        getExecutingWAVMModule()->allocateThreadStack(),
+        .contextRuntimeData = getContextRuntimeData(executionContext),
+        .func = funcInstance,
+        .funcArgs = invokeArgs.data(),
+        .stackTop = getExecutingWAVMModule()->allocateThreadStack(),
     };
 
     // Record the return value
-    msg.set_returnvalue(executeThreadLocally(spec));
+    I64 returnValue = executeThreadLocally(spec);
+    msg.set_returnvalue(returnValue);
+
+    return true;
 }
 
 U32 WAVMWasmModule::mmapFile(U32 fd, U32 length)
@@ -1010,6 +1010,9 @@ U32 WAVMWasmModule::mmapMemory(U32 length)
 
 U32 WAVMWasmModule::mmapPages(U32 pages)
 {
+    // Cautious locking
+    faabric::util::UniqueLock lock(moduleMemoryMutex);
+
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
     U64 maxSize = getMemoryType(defaultMemory).size.max;
     Uptr currentPageCount = Runtime::getMemoryNumPages(defaultMemory);
@@ -1075,6 +1078,14 @@ uint8_t* WAVMWasmModule::wasmPointerToNative(int32_t wasmPtr)
 {
     auto wasmMemoryRegionPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmPtr);
     return wasmMemoryRegionPtr;
+}
+
+size_t WAVMWasmModule::getMemorySizeBytes()
+{
+    Uptr numPages = Runtime::getMemoryNumPages(defaultMemory);
+    Uptr numBytes = numPages * WASM_BYTES_PER_PAGE;
+
+    return numBytes;
 }
 
 bool WAVMWasmModule::resolve(const std::string& moduleName,
@@ -1371,12 +1382,14 @@ void WAVMWasmModule::writeMemoryToFd(int fd)
     int ferror = ftruncate(memoryFd, memoryFdSize);
     if (ferror) {
         logger->error("ferror call failed with error {}", ferror);
+        throw std::runtime_error("Failed writing memory to fd (ftruncate)");
     }
 
     // Write the data
     ssize_t werror = write(memoryFd, memoryBase, memoryFdSize);
     if (werror == -1) {
-        logger->error("write call failed");
+        logger->error("Write call failed with error {}", werror);
+        throw std::runtime_error("Failed writing memory to fd (write)");
     }
 }
 
@@ -1411,7 +1424,7 @@ void WAVMWasmModule::doSnapshot(std::ostream& outStream)
     mem.numPages = numPages;
     mem.data = std::vector<uint8_t>(memBase, memEnd);
 
-    // Serialise to file
+    // Serialise to output stream
     archive(mem);
 }
 
@@ -1425,8 +1438,8 @@ void WAVMWasmModule::doRestore(std::istream& inStream)
 
     // Restore memory
     Uptr currentNumPages = Runtime::getMemoryNumPages(defaultMemory);
-    size_t pagesRequired = mem.numPages - currentNumPages;
-    if (pagesRequired > 0) {
+    if (mem.numPages > currentNumPages) {
+        size_t pagesRequired = mem.numPages - currentNumPages;
         mmapPages(pagesRequired);
     }
 
@@ -1435,12 +1448,10 @@ void WAVMWasmModule::doRestore(std::istream& inStream)
     memcpy(memBase, mem.data.data(), memSize);
 }
 
-/*
- * Creates a thread execution context
- */
 I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)
 {
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
+
     // Create a new region for this thread's stack
     U32 thisStackBase = spec.stackTop;
     U32 stackTop = thisStackBase + THREAD_STACK_SIZE - 1;
@@ -1652,7 +1663,10 @@ uint32_t WAVMWasmModule::createMemoryGuardRegion()
     uint8_t* nativePtr =
       &Runtime::memoryRef<uint8_t>(defaultMemory, wasmOffset);
 
-    int res = mprotect(nativePtr, regionSize, PROT_NONE);
+    // NOTE: we want to protect these regions from _writes_, but we don't want
+    // to stop them being read, otherwise snapshotting will fail. Therefore we
+    // make them read-only
+    int res = mprotect(nativePtr, regionSize, PROT_READ);
     if (res != 0) {
         logger->error("Failed to create memory guard: {}",
                       std::strerror(errno));

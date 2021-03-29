@@ -132,6 +132,8 @@ void Faaslet::preFinishCall(faabric::Message& call,
 void Faaslet::postBind(const faabric::Message& msg, bool force)
 {
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    auto logger = faabric::util::getLogger();
+    std::string funcStr = faabric::util::funcToString(msg, false);
 
     // Instantiate the right wasm module for the chosen runtime
     if (conf.wasmVm == "wamr") {
@@ -152,6 +154,13 @@ void Faaslet::postBind(const faabric::Message& msg, bool force)
         PROF_START(snapshotRestore)
 
         // Load snapshot from cache
+        std::string snapshotKey = msg.snapshotkey();
+        if (msg.snapshotkey().empty()) {
+            logger->debug("Restoring {} from standard zygote {}", id, funcStr);
+        } else {
+            logger->debug("Restoring {} from snapshot {}", id, snapshotKey);
+        }
+
         module_cache::WasmModuleCache& registry =
           module_cache::getWasmModuleCache();
         wasm::WAVMWasmModule& snapshot = registry.getCachedModule(msg);
@@ -161,8 +170,7 @@ void Faaslet::postBind(const faabric::Message& msg, bool force)
 
         PROF_END(snapshotRestore)
     } else {
-        faabric::util::getLogger()->error("Unrecognised wasm VM: {}",
-                                          conf.wasmVm);
+        logger->error("Unrecognised wasm VM: {}", conf.wasmVm);
         throw std::runtime_error("Unrecognised wasm VM");
     }
 }
@@ -171,15 +179,20 @@ bool Faaslet::doExecute(faabric::Message& msg)
 {
     auto logger = faabric::util::getLogger();
 
-    // Check if we need to restore from a different snapshot
     auto conf = faabric::util::getSystemConfig();
+    const std::string snapshotKey = msg.snapshotkey();
+
+    // Restore from snapshot if necessary
     if (conf.wasmVm == "wavm") {
-        const std::string snapshotKey = msg.snapshotkey();
         if (!snapshotKey.empty() && !msg.issgx()) {
             PROF_START(snapshotOverride)
 
+            logger->debug("Restoring {} from snapshot {} before execution",
+                          id,
+                          snapshotKey);
             module_cache::WasmModuleCache& registry =
               module_cache::getWasmModuleCache();
+
             wasm::WAVMWasmModule& snapshot = registry.getCachedModule(msg);
             module = std::make_unique<wasm::WAVMWasmModule>(snapshot);
 

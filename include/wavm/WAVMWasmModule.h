@@ -39,6 +39,8 @@ class WAVMWasmModule final
 
     bool execute(faabric::Message& msg, bool forceNoop = false) override;
 
+    bool executeAsOMPThread(faabric::Message& msg) override;
+
     bool isBound() override;
 
     bool tearDown();
@@ -53,6 +55,8 @@ class WAVMWasmModule final
     uint32_t mmapFile(uint32_t fp, uint32_t length) override;
 
     uint8_t* wasmPointerToNative(int32_t wasmPtr) override;
+
+    size_t getMemorySizeBytes() override;
 
     // ----- Environment variables
     void writeWasmEnvToMemory(uint32_t envPointers,
@@ -131,6 +135,8 @@ class WAVMWasmModule final
 
     uint32_t allocateThreadStack();
 
+    uint32_t createMemoryGuardRegion();
+
   protected:
     void doSnapshot(std::ostream& outStream) override;
 
@@ -186,10 +192,6 @@ class WAVMWasmModule final
 
     WAVM::Runtime::Function* getWasmConstructorsFunction(
       WAVM::Runtime::Instance* module);
-
-    void executeRemoteOMP(faabric::Message& msg);
-
-    uint32_t createMemoryGuardRegion();
 };
 
 WAVMWasmModule* getExecutingWAVMModule();

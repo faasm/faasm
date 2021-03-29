@@ -64,10 +64,7 @@ KNATIVE_ENV = {
     "STATE_MODE": "redis",
     "PYTHON_PRELOAD": "off",  # Switch on/ off preloading of Python runtime
     "PYTHON_CODEGEN": "off",  # Switch on/ off up-front codegen for Python
-    "MAX_IN_FLIGHT_RATIO": "1",
     "NO_SCHEDULER": "0",  # Turn on/ off Faasm scheduler
-    "MAX_FAASLETS_PER_FUNCTION": "6",  # This is per-host. We want one per core
-    "MAX_FAASLETS": "40",  # Per-host threads available (across all functions)
     "BOUND_TIMEOUT": str(
         THIRTY_SECS
     ),  # How long a bound worker sticks around for
