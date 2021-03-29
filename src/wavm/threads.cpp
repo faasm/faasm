@@ -1,17 +1,16 @@
 #include "WAVMWasmModule.h"
-#include "faabric/state/State.h"
 #include "syscalls.h"
-#include "wasm/WasmModule.h"
 
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/state/State.h>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 #include <faabric/util/logging.h>
+#include <wasm/WasmModule.h>
+#include <wasm/chaining.h>
 
 #include <linux/futex.h>
-
-#include <wasm/chaining.h>
 
 #include <WAVM/Platform/Thread.h>
 #include <WAVM/Runtime/Intrinsics.h>

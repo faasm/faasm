@@ -1,7 +1,7 @@
-#include "faabric/scheduler/FunctionCallClient.h"
 #include "utils.h"
 #include <catch2/catch.hpp>
 
+#include <faabric/scheduler/FunctionCallClient.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
