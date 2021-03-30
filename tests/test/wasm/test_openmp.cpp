@@ -95,4 +95,9 @@ TEST_CASE("Test proper handling of getting and setting next level num threads",
 {
     doOmpTestLocal("setting_num_threads");
 }
+
+TEST_CASE("Test openmp wtime", "[wasm][openmp]")
+{
+    doOmpTestLocal("wtime");
+}
 }

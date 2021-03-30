@@ -153,6 +153,20 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     return ctx.threadNumber;
 }
 
+// ------------------------------------------------
+// TIMING
+// ------------------------------------------------
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_wtime", F64, omp_get_wtime)
+{
+    OMP_FUNC("omp_get_wtime");
+
+    faabric::util::Clock& clock = faabric::util::getGlobalClock();
+    long millis = clock.epochMillis();
+
+    return ((F64)millis) / 1000;
+}
+
 // ----------------------------------------------------
 // BARRIER
 // ----------------------------------------------------
