@@ -221,11 +221,22 @@ sudo ./bin/cgroup.sh
 ## Developing with a local cluster
 
 If you need to debug issues with the standard containers, or run multiple Faasm
-instances locally, you can mount your local build of Faasm inside a local
-cluster as follows:
+instances locally, you can use the [`bin/cluster_dev.sh`](../bin/cluster_dev.sh)
+script. 
+This will mount your local build of Faasm inside a local cluster defined in 
+[`docker-compose.yml`](../docker-compose.yml).
+
+Before doing so, make sure you've completely nuked any existing Faasm containers
+and docker-compose set-ups.
+
+To demonstrate, we can make a change to the `pool_runner` which is executed by 
+the `worker` container:
 
 ```bash
-# Start a Faasm CLI container with a local dev cluster attached
+# Nuke everything
+docker ps -aq | xargs docker rm -f
+
+# Start a dev cluster
 ./bin/cluster_dev.sh
 
 # Make some modifications to pool_runner
@@ -234,14 +245,15 @@ cluster as follows:
 inv dev.cc pool_runner
 ```
 
-Restart the relevant containers (as defined in `docker-compose.yml`):
+From a different container, tail the logs:
+
+```bash
+docker-compose logs -f
+```
+
+From yet another terminal, restart the relevant containers, then watch the logs
+to see your version start:
 
 ```bash
 docker-compose restart worker
-```
-
-Tail the logs and your build will be running:
-
-```bash
-docker-compose logs -f worker
 ```
