@@ -44,7 +44,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32,
                                omp_get_thread_num)
 {
-    OMP_FUNC("omp_get_thread_num")
+    // OMP_FUNC("omp_get_thread_num")
+
+    auto ctx = getOpenMPContext();
     return ctx.threadNumber;
 }
 
