@@ -69,9 +69,13 @@ complete -F _complete_invoke -o default invoke inv
 # Environment vars
 # ----------------------------
 
+# Related to building outisde a container
 VERSION_FILE=${PROJ_ROOT}/VERSION
 export LOG_LEVEL=debug
 export FAASM_ROOT=$(pwd)
+export FAASM_BUILD_DIR=$(pwd)/dev/native/build
+export FAASM_INSTALL_DIR=$(pwd)/dev/native/install
+export FAASM_LOCAL_DIR=$(pwd)/dev/faasm-local
 export FAASM_VERSION=$(cat ${VERSION_FILE})
 
 export PS1="(faasm) $PS1"

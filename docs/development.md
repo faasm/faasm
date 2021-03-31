@@ -174,22 +174,24 @@ cd ../python
 inv -l
 ```
 
+You may also need to correct the permissions on things built with containers:
+
+```bash
+sudo chown -R ${SUDO_USER}:${SUDO_USER} ./dev
+```
+
 Then you can try building one of the executables:
 
 ```bash
-# Set your build and install dirs
-export FAASM_BUILD_DIR=$(pwd)/dev/native/build
-export FAASM_INSTALL_DIR=$(pwd)/dev/native/install
-
-# Set your Faasm local directory
-export FAASM_LOCAL_DIR=$(pwd)/dev/faasm-local
+# Check environment is set up
+env | grep FAASM
 
 # Run cmake and build
 inv dev.cmake
 inv dev.cc simple_runner
 
 # Run it
-./dev/native/build/bin/simple_runner demo hello
+${FAASM_BUILD_DIR}/bin/simple_runner demo hello
 ```
 
 ## Troubleshooting CI

@@ -38,6 +38,8 @@ int main(int argc, char* argv[])
     conf.globalMessageTimeout = 60000;
     conf.chainedCallTimeout = 120000;
 
+    conf.print();
+
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
 
     // Clear out redis
