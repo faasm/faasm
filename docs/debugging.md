@@ -104,7 +104,7 @@ Once this is done you can use perf as described
 
 ```
 # Do the profiling of 500 runs of demo/hello
-perf record -k 1 dev/native/build/bin/simple_runner demo hello 500
+perf record -k 1 simple_runner demo hello 500
 
 # Inject the JIT dumps into perf data
 perf inject -i perf.data -j -o perf.data.jitted
@@ -120,3 +120,4 @@ grepping for `WAVM_PERF_EVENTS`.
 You can also check the
 [diff](https://github.com/WAVM/WAVM/compare/master...faasm:faasm) of the Faasm
 WAVM fork.
+

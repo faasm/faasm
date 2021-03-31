@@ -190,8 +190,11 @@ env | grep FAASM
 inv dev.cmake
 inv dev.cc simple_runner
 
+# Check which binary is on the path
+which simple_runner
+
 # Run it
-${FAASM_BUILD_DIR}/bin/simple_runner demo hello
+simple_runner demo hello
 ```
 
 ## Troubleshooting CI
