@@ -189,7 +189,7 @@ inv dev.cmake
 inv dev.cc simple_runner
 
 # Run it
-./dev/native/build/bin/simple_runner
+./dev/native/build/bin/simple_runner demo hello
 ```
 
 ## Troubleshooting CI
