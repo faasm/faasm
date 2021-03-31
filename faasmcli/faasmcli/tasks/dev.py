@@ -18,7 +18,7 @@ DEV_TARGETS = [
 
 
 @task
-def cmake(ctx, clean=False, build="Debug", native=False):
+def cmake(ctx, clean=False, build="Debug", native=False, perf=False):
     """
     Configures the CMake build
     """
@@ -38,6 +38,7 @@ def cmake(ctx, clean=False, build="Debug", native=False):
         "-DCMAKE_CXX_COMPILER=/usr/bin/clang++-10",
         "-DCMAKE_C_COMPILER=/usr/bin/clang-10",
         "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_INSTALL_DIR),
+        "-DFAASM_PERF_PROFILING=ON" if perf else "",
         PROJ_ROOT,
     ]
 

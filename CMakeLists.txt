@@ -128,7 +128,7 @@ endif ()
 # LLVM config
 if (${FAASM_PERF_PROFILING})
     # In accordance with bin/build_llvm_perf.sh and LLVM version for WAVM
-    set(LLVM_DIR /usr/local/code/llvm-perf/build/lib/cmake/llvm)
+    set(LLVM_DIR ${CMAKE_CURRENT_LIST_DIR}/dev/llvm-perf/build/lib/cmake/llvm)
     message(STATUS "Using custom LLVM at ${LLVM_DIR} for profiling")
     find_package(LLVM REQUIRED CONFIG NO_DEFAULT_PATH)
 
