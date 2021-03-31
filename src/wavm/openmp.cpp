@@ -967,5 +967,37 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS("omp_set_default_device {} (ignored)", defaultDeviceNumber);
 }
 
+// ----------------------------------------------
+// ATOMICS
+// ----------------------------------------------
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "__atomic_load",
+                               void,
+                               __atomic_load,
+                               I32 a,
+                               I32 b,
+                               I32 c,
+                               I32 d)
+{
+    OMP_FUNC_ARGS("__atomic_load {} {} {} {}", a, b, c, d);
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "__atomic_compare_exchange",
+                               I32,
+                               ___atomic_compare_exchange,
+                               I32 a,
+                               I32 b,
+                               I32 c,
+                               I32 d,
+                               I32 e,
+                               I32 f)
+{
+    OMP_FUNC_ARGS("__atomic_load {} {} {} {} {} {}", a, b, c, d, e, f);
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
 void ompLink() {}
 }
