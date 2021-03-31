@@ -140,10 +140,22 @@ tests "Test some feature"
 ## Building outside of the container
 
 If you want to build projects outside of the recommended containers, or just
-run some of the CLI tasks, you can take a look at the [CLI
-Dockerfile](../docker/cli.dockerfile) to see what's required:
+run some of the CLI tasks, you'll need to install the required packages on your
+local machine.
 
-To run the CLI, you should just need to do:
+This is not the recommended approach to developing Faasm, so it's not scripted,
+but you can work out what's required by looking at the follwing Dockerfiles:
+
+- [`faasm/grpc-root`](faabric/docker/grpc-root.dockerfile)
+- [`faasm/cpp-root`](docker/cpp-root.dockerfile)
+
+Most things can be done with `apt`, but the difficult bits might be:
+
+- LLVM and Clang
+- gRPC
+- Up-to-date CMake
+
+You will also need to set up the Python environment:
 
 ```bash
 # Set up the venv
@@ -160,6 +172,24 @@ inv -l
 
 cd ../python
 inv -l
+```
+
+Then you can try building one of the executables:
+
+```bash
+# Set your build and install dirs
+export FAASM_BUILD_DIR=$(pwd)/dev/native/build
+export FAASM_INSTALL_DIR=$(pwd)/dev/native/install
+
+# Set your Faasm local directory
+export FAASM_LOCAL_DIR=$(pwd)/dev/faasm-local
+
+# Run cmake and build
+inv dev.cmake
+inv dev.cc simple_runner
+
+# Run it
+./dev/native/build/bin/simple_runner
 ```
 
 ## Troubleshooting CI

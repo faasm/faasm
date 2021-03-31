@@ -39,7 +39,8 @@ set(FAASM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
 set(FAASM_NATIVE_INSTALL "/usr/local/faasm/native")
 
 # CPP REST SDK
-find_package(cpprestsdk REQUIRED)
+set(cpprestsdk_DIR /usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}/cmake/)
+find_package(cpprestsdk REQUIRED NAMES cpprestsdk cpprest)
 
 # Detect SGX
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)

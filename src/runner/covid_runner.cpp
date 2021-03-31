@@ -18,10 +18,10 @@ int main(int argc, char* argv[])
 
     faabric::Message msg = faabric::util::messageFactory("cov", "sim");
 
-    int nThreads = 20;
+    int nThreads = 1;
 
     std::string cmdlineArgs =
-      "/c:20 "
+      "/c:1 "
       "/A:faasm://covid/admin_units/Guam_admin.txt "
       "/PP:faasm://covid/param_files/preUK_R0=2.0.txt "
       "/P:faasm://covid/param_files/p_NoInt.txt /O:/tmp/Guam_NoInt_R0=3.0 "
@@ -36,13 +36,9 @@ int main(int argc, char* argv[])
     conf.boundTimeout = 60000;
     conf.unboundTimeout = 60000;
     conf.globalMessageTimeout = 60000;
-    conf.chainedCallTimeout = 60000;
+    conf.chainedCallTimeout = 120000;
 
-    // Make sure we have enough space for chained calls
-    faabric::HostResources res;
-    res.set_cores(nThreads);
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-    sch.setThisHostResources(res);
 
     // Clear out redis
     faabric::redis::Redis& redis = faabric::redis::Redis::getQueue();

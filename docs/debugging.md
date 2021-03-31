@@ -72,7 +72,14 @@ Note that because the function itself is loaded using LLVM JIT libraries, GDB
 doesn't have the symbols up front, but we can still set breakpoints pending a
 shared library load.
 
-# Profiling
+## Using Perf and Valgrind
+
+Perf and Valgrind both require administrative privileges that are hard to
+replicate in a container (although not impossible). The easiest way to use these
+tools is to build a Faasm executable outside of a container. See the [dev
+docs](development.md) for details on how to do this.
+
+### Perf and wasm code
 
 WAVM uses the LLVM JIT libraries to load and execute code at runtime. This can
 be connected to perf events so that this JITed code will properly be reported,
