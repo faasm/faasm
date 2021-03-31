@@ -44,9 +44,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32,
                                omp_get_thread_num)
 {
-    // OMP_FUNC("omp_get_thread_num")
-
-    auto ctx = getOpenMPContext();
+    OMP_FUNC("omp_get_thread_num")
     return ctx.threadNumber;
 }
 
@@ -434,10 +432,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         call.set_funcptr(microtaskPtr);
 
         // Args
-        // TODO - is the order of these right? Does protobuf push to the back or
-        // front?
-        for (int argIdx = 0; argIdx < argc; argIdx++) {
-            call.add_ompfunctionargs(sharedVarsPtr[argIdx]);
+        for(int i = 0; i < argc; i++) {
+            call.add_ompfunctionargs(sharedVarsPtr[i]);
         }
 
         call.set_ompthreadnum(threadNum);

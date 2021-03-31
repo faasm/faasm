@@ -939,11 +939,11 @@ bool WAVMWasmModule::executeAsOMPThread(faabric::Message& msg)
     int threadNum = msg.ompthreadnum();
     int argc = msg.ompfunctionargs_size();
 
-    faabric::util::getLogger()->debug(
-      "Running OMP thread #{} for function {} (argc = {})",
-      threadNum,
-      msg.funcptr(),
-      argc);
+    auto logger = faabric::util::getLogger();
+    logger->debug("Running OMP thread #{} for function {} (argc = {})",
+                  threadNum,
+                  msg.funcptr(),
+                  argc);
 
     // Set up function args
     std::vector<IR::UntaggedValue> invokeArgs = { threadNum, argc };
