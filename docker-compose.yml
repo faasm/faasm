@@ -15,10 +15,10 @@ services:
       - redis-queue
       - redis-state
     volumes:
-      - ./build/:${FAASM_BUILD_MOUNT}/
-      - ./wasm/:/usr/local/code/faasm/wasm/
-      - ./container/machine-code/:/usr/local/faasm/object/
-      - ./container/shared_store/:/usr/local/faasm/shared_store/
+      - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
+      - ./dev/wasm/:/usr/local/code/faasm/wasm/
+      - ./dev/container/machine-code/:/usr/local/faasm/object/
+      - ./dev/container/shared_store/:/usr/local/faasm/shared_store/
     environment:
       - FUNCTION_STORAGE=local
       - LOG_LEVEL=info
@@ -35,7 +35,7 @@ services:
       - "8080"
     privileged: yes
     volumes:
-      - ./build/:${FAASM_BUILD_MOUNT}
+      - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
     environment:
       - CAPTURE_STDOUT=on
       - CGROUP_MODE=on
@@ -57,6 +57,28 @@ services:
     ports:
       - "8080:8080"
 
+  faasm-cli:
+    image: ${FAASM_CLI_IMAGE}
+    working_dir: /usr/local/code/faasm
+    stdin_open: true
+    tty: true
+    privileged: true
+    depends_on:
+      - worker
+    environment:
+      - UPLOAD_HOST=${UPLOAD_HOST:-upload}
+      - INVOKE_HOST=${INVOKE_HOST:-nginx}
+      - LOG_LEVEL=debug
+      - REDIS_QUEUE_HOST=redis-queue
+      - REDIS_STATE_HOST=redis-state
+      - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
+    volumes:
+      - ./:/usr/local/code/faasm/
+      - ./dev/faasm/build/:/build/faasm/
+      - ./dev/faasm-local:/usr/local/faasm
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+
   cpp:
     image: ${CPP_CLI_IMAGE}
     working_dir: /code/cpp
@@ -67,4 +89,4 @@ services:
       - worker
     volumes:
       - ./clients/cpp:/code/cpp
-      - ./container/build:/build/cpp
+      - ./dev/cpp/build:/build/cpp
