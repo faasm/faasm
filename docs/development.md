@@ -129,7 +129,7 @@ will be much easier if you're familiar with their [command line
 docs](https://github.com/catchorg/Catch2/blob/v2.x/docs/command-line.md).  This
 means you can do things like:
 
-```
+```bash
 # Run all the MPI tests
 tests "[mpi]"
 
@@ -209,7 +209,7 @@ those in [`.github/workflows/tests.yml`](../.github/workflows/tests.yml).
 Then, run the container and work through the steps in the Github Actions file,
 to see where things might have gone wrong.
 
-```
+```bash
 # To start the container 
 docker-compose -f docker/docker-compose-ci.yml run cli /bin/bash
 ```
