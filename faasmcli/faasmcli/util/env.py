@@ -26,10 +26,10 @@ FAASM_RUNTIME_ROOT = join(FAASM_LOCAL_DIR, "runtime_root")
 FAASM_SHARED_ROOT = join(FAASM_LOCAL_DIR, "shared")
 FAASM_SHARED_STORAGE_ROOT = join(FAASM_LOCAL_DIR, "shared_store")
 FAASM_SHARED_ROOT = join(FAASM_LOCAL_DIR, "shared")
+FAASM_INSTALL_DIR = "/usr/local"
 WASM_DIR = join(FAASM_LOCAL_DIR, "wasm")
 
 FAASM_BUILD_DIR = _get_dir("FAASM_BUILD_DIR", "/build/faasm")
-FAASM_INSTALL_DIR = _get_dir("FAASM_INSTALL_DIR", "/usr/local")
 
 FAASM_CONFIG_FILE = join(PROJ_ROOT, "faasm.ini")
 
