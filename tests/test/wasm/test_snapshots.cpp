@@ -58,9 +58,6 @@ TEST_CASE("Test snapshot and restore for wasm module", "[wasm]")
     if (mode == "memory") {
         // Serialise to memory
         memoryData = moduleA.snapshotToMemory();
-    } else if (mode == "file") {
-        // Serialise to file
-        moduleA.snapshotToFile(filePath);
     } else {
         // Serialise to state
         stateSize = moduleA.snapshotToState(stateKey);
@@ -73,8 +70,6 @@ TEST_CASE("Test snapshot and restore for wasm module", "[wasm]")
     // Restore from snapshot
     if (mode == "memory") {
         moduleB.restoreFromMemory(memoryData);
-    } else if (mode == "file") {
-        moduleB.restoreFromFile(filePath);
     } else {
         moduleB.restoreFromState(stateKey, stateSize);
     }
@@ -98,8 +93,6 @@ TEST_CASE("Test snapshot and restore for wasm module", "[wasm]")
     // Restore from snapshot
     if (mode == "memory") {
         moduleC.restoreFromMemory(memoryData);
-    } else if (mode == "file") {
-        moduleC.restoreFromFile(filePath);
     } else {
         moduleC.restoreFromState(stateKey, stateSize);
     }

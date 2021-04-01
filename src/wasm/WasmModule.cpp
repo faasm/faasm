@@ -83,13 +83,6 @@ std::string WasmModule::getBoundFunction()
     return boundFunction;
 }
 
-void WasmModule::restoreFromFile(const std::string& filePath)
-{
-    // Read execution state from file
-    std::ifstream inStream(filePath, std::ios::binary);
-    doRestore(inStream);
-}
-
 void WasmModule::restoreFromMemory(const std::vector<uint8_t>& data)
 {
     std::istringstream inStream(
@@ -113,12 +106,6 @@ void WasmModule::restoreFromState(const std::string& stateKey, size_t stateSize)
     const std::vector<uint8_t> snapData =
       std::vector<uint8_t>(snapPtr, snapPtr + stateSize);
     restoreFromMemory(snapData);
-}
-
-void WasmModule::snapshotToFile(const std::string& filePath)
-{
-    std::ofstream outStream(filePath, std::ios::binary);
-    doSnapshot(outStream);
 }
 
 std::vector<uint8_t> WasmModule::snapshotToMemory()
