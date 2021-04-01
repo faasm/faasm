@@ -140,10 +140,22 @@ tests "Test some feature"
 ## Building outside of the container
 
 If you want to build projects outside of the recommended containers, or just
-run some of the CLI tasks, you can take a look at the [CLI
-Dockerfile](../docker/cli.dockerfile) to see what's required:
+run some of the CLI tasks, you'll need to install the required packages on your
+local machine.
 
-To run the CLI, you should just need to do:
+This is not the recommended approach to developing Faasm, so it's not scripted,
+but you can work out what's required by looking at the follwing Dockerfiles:
+
+- [`faasm/grpc-root`](faabric/docker/grpc-root.dockerfile)
+- [`faasm/cpp-root`](docker/cpp-root.dockerfile)
+
+Most things can be done with `apt`, but the difficult bits might be:
+
+- LLVM and Clang
+- gRPC
+- Up-to-date CMake
+
+You will also need to set up the Python environment:
 
 ```bash
 # Set up the venv
@@ -160,6 +172,29 @@ inv -l
 
 cd ../python
 inv -l
+```
+
+You may also need to correct the permissions on things built with containers:
+
+```bash
+sudo chown -R ${SUDO_USER}:${SUDO_USER} ./dev
+```
+
+Then you can try building one of the executables:
+
+```bash
+# Check environment is set up
+env | grep FAASM
+
+# Run cmake and build
+inv dev.cmake
+inv dev.cc simple_runner
+
+# Check which binary is on the path
+which simple_runner
+
+# Run it
+simple_runner demo hello
 ```
 
 ## Troubleshooting CI
@@ -222,14 +257,14 @@ sudo ./bin/cgroup.sh
 
 If you need to debug issues with the standard containers, or run multiple Faasm
 instances locally, you can use the [`bin/cluster_dev.sh`](../bin/cluster_dev.sh)
-script. 
-This will mount your local build of Faasm inside a local cluster defined in 
+script.
+This will mount your local build of Faasm inside a local cluster defined in
 [`docker-compose.yml`](../docker-compose.yml).
 
 Before doing so, make sure you've completely nuked any existing Faasm containers
 and docker-compose set-ups.
 
-To demonstrate, we can make a change to the `pool_runner` which is executed by 
+To demonstrate, we can make a change to the `pool_runner` which is executed by
 the `worker` container:
 
 ```bash
