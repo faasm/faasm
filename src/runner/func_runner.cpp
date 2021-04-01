@@ -51,14 +51,10 @@ int main(int argc, char* argv[])
     }
 
     if (argc > 3) {
-        // std::string inputData = argv[3];
-        // call.set_inputdata(inputData);
-        int mpi_np = atoi(argv[3]);
-        call.set_cmdline("-in faasm://lammps-data/in.controller");
-        call.set_mpiworldsize(mpi_np);
+        std::string inputData = argv[3];
+        call.set_inputdata(inputData);
 
-        logger->info("Adding input file: faasm://lammps-data/in.controller");
-        logger->info("Setting MPI world size: {}", mpi_np);
+        logger->info("Adding input data: {}", inputData);
     }
 
     // Set up a worker pool
