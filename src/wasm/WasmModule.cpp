@@ -60,7 +60,12 @@ wasm::WasmEnvironment& WasmModule::getWasmEnvironment()
 
 size_t WasmModule::snapshotToState(const std::string& stateKey)
 {
-    const std::vector<uint8_t> snapData = snapshotToMemory();
+    std::ostringstream outStream;
+    doSnapshot(outStream);
+
+    std::string outStr = outStream.str();
+    std::vector<uint8_t> snapData(outStr.begin(), outStr.end());
+
     unsigned long stateSize = snapData.size();
 
     faabric::state::State& state = faabric::state::getGlobalState();
@@ -83,13 +88,6 @@ std::string WasmModule::getBoundFunction()
     return boundFunction;
 }
 
-void WasmModule::restoreFromMemory(const std::vector<uint8_t>& data)
-{
-    std::istringstream inStream(
-      std::string(reinterpret_cast<const char*>(data.data()), data.size()));
-    doRestore(inStream);
-}
-
 void WasmModule::restoreFromState(const std::string& stateKey, size_t stateSize)
 {
     if (!isBound()) {
@@ -105,17 +103,10 @@ void WasmModule::restoreFromState(const std::string& stateKey, size_t stateSize)
     uint8_t* snapPtr = stateKv->get();
     const std::vector<uint8_t> snapData =
       std::vector<uint8_t>(snapPtr, snapPtr + stateSize);
-    restoreFromMemory(snapData);
-}
 
-std::vector<uint8_t> WasmModule::snapshotToMemory()
-{
-    std::ostringstream outStream;
-    doSnapshot(outStream);
-
-    std::string outStr = outStream.str();
-
-    return std::vector<uint8_t>(outStr.begin(), outStr.end());
+    std::istringstream inStream(std::string(
+      reinterpret_cast<const char*>(snapData.data()), snapData.size()));
+    doRestore(inStream);
 }
 
 int WasmModule::getStdoutFd()

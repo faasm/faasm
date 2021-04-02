@@ -18,13 +18,6 @@ TEST_CASE("Test snapshot and restore for wasm module", "[wasm]")
     std::string function = "zygote_check";
     faabric::Message m = faabric::util::messageFactory(user, function);
 
-    std::string mode;
-    SECTION("In memory") { mode = "memory"; }
-
-    SECTION("In file") { mode = "file"; }
-
-    SECTION("In state") { mode = "state"; }
-
     std::vector<uint8_t> memoryData;
 
     std::string stateKey = "serialTest";
@@ -55,24 +48,15 @@ TEST_CASE("Test snapshot and restore for wasm module", "[wasm]")
 
     size_t expectedSizeBytes = moduleA.getMemorySizeBytes();
 
-    if (mode == "memory") {
-        // Serialise to memory
-        memoryData = moduleA.snapshotToMemory();
-    } else {
-        // Serialise to state
-        stateSize = moduleA.snapshotToState(stateKey);
-    }
+    // Serialise to state
+    stateSize = moduleA.snapshotToState(stateKey);
 
     // Create the module to be restored but don't execute zygote
     wasm::WAVMWasmModule moduleB;
     moduleB.bindToFunctionNoZygote(m);
 
     // Restore from snapshot
-    if (mode == "memory") {
-        moduleB.restoreFromMemory(memoryData);
-    } else {
-        moduleB.restoreFromState(stateKey, stateSize);
-    }
+    moduleB.restoreFromState(stateKey, stateSize);
 
     // Check size of restored memory is as expected
     size_t actualSizeBytesB = moduleB.getMemorySizeBytes();
@@ -91,11 +75,7 @@ TEST_CASE("Test snapshot and restore for wasm module", "[wasm]")
     moduleC.bindToFunctionNoZygote(m);
 
     // Restore from snapshot
-    if (mode == "memory") {
-        moduleC.restoreFromMemory(memoryData);
-    } else {
-        moduleC.restoreFromState(stateKey, stateSize);
-    }
+    moduleC.restoreFromState(stateKey, stateSize);
 
     // Check size of restored memory is as expected
     size_t actualSizeBytesC = moduleB.getMemorySizeBytes();

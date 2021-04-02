@@ -106,11 +106,7 @@ class WasmModule
     virtual void mapMemoryFromFd();
 
     // ----- Snapshot/ restore -----
-    std::vector<uint8_t> snapshotToMemory();
-
     size_t snapshotToState(const std::string& stateKey);
-
-    void restoreFromMemory(const std::vector<uint8_t>& data);
 
     void restoreFromState(const std::string& stateKey, size_t stateSize);
 
