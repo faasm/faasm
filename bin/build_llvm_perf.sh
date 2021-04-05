@@ -2,33 +2,35 @@
 set -e
 set -x
 
-CODE_DIR=/usr/local/code/
-if [[ ! -d ${CODE_DIR} ]]; then
-  echo "CODE_DIR (${CODE_DIR}) does not exists"
-  exit 1
-fi
+# See https://github.com/llvm/llvm-project/releases
+# NOTE - upgrading this tag may break the WAVM integration, be prepared to fix 
+# 31/03/21 - LLVM 9.0.1 definitely works 
+LLVM_TAG=llvmorg-9.0.1
 
-LLVM_DIR=${CODE_DIR}/llvm-perf
-BUILD_DIR=${LLVM_DIR}/build
+THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+PROJ_ROOT=${THIS_DIR}/..
 
-# Clone LLVM-9 repo if not done already. Version must be compatible with WAVM
+# Set up directory
+DEV_DIR=${PROJ_ROOT}/dev
+mkdir -p ${DEV_DIR}
+LLVM_DIR=${PROJ_ROOT}/dev/llvm-perf
+
+# Clone LLVM repo if not done already
 if [[ ! -d "$LLVM_DIR" ]]; then
-    git clone https://github.com/llvm/llvm-project ${LLVM_DIR}
-    pushd ${LLVM_DIR}
-    git checkout llvmorg-9.0.0-rc3
-    popd
+    git clone \
+        --branch ${LLVM_TAG} \
+        --depth 1 \
+        https://github.com/llvm/llvm-project \
+        ${LLVM_DIR}
 fi
 
 # Make the build dir
+BUILD_DIR=${LLVM_DIR}/build
 mkdir -p ${BUILD_DIR}
 pushd ${BUILD_DIR}
 
-# Clear build dir
-if [[ -f "${BUILD_DIR}/build.ninja" ]]; then
-  ninja clean
-fi
-
-# Enable JIT profiling features of LLVM
+# Build LLVM with JIT profiling turned on
+# See https://llvm.org/docs/CMake.html
 cmake \
 	-G Ninja \
 	-DCMAKE_C_COMPILER=/usr/bin/clang-10 \
@@ -42,6 +44,7 @@ cmake \
 	-DLLVM_INCLUDE_EXAMPLES=0 \
 	-DLLVM_INCLUDE_BENCHMARKS=0 \
 	../llvm
+
 ninja
 
 popd
