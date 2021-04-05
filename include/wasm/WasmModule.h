@@ -136,7 +136,7 @@ class WasmModule
 
     void prepareArgcArgv(const faabric::Message& msg);
 
-    uint8_t *getMemoryBase();
+    virtual uint8_t *getMemoryBase();
 };
 
 // ----- Global functions -----

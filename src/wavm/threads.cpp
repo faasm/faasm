@@ -1,14 +1,14 @@
-#include "WAVMWasmModule.h"
-#include "faabric/snapshot/SnapshotRegistry.h"
 #include "syscalls.h"
 
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 #include <faabric/util/logging.h>
 #include <wasm/WasmModule.h>
 #include <wasm/chaining.h>
+#include <wavm/WAVMWasmModule.h>
 
 #include <linux/futex.h>
 
