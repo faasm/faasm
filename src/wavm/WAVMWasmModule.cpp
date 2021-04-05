@@ -1099,7 +1099,8 @@ size_t WAVMWasmModule::getMemorySizeBytes()
     return numBytes;
 }
 
-uint8_t* WAVMWasmModule::getMemoryBase() {
+uint8_t* WAVMWasmModule::getMemoryBase()
+{
     uint8_t* memBase = Runtime::getMemoryBaseAddress(defaultMemory);
     return memBase;
 }
