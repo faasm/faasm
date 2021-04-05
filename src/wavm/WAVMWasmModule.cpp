@@ -1,6 +1,4 @@
 #include "syscalls.h"
-#include "wasm/WasmModule.h"
-#include <wavm/WAVMWasmModule.h>
 
 #include <boost/filesystem.hpp>
 #include <cereal/archives/binary.hpp>
@@ -16,7 +14,9 @@
 #include <faabric/util/timing.h>
 #include <ir_cache/IRModuleCache.h>
 #include <storage/SharedFiles.h>
+#include <wasm/WasmModule.h>
 #include <wasm/serialisation.h>
+#include <wavm/WAVMWasmModule.h>
 
 #include <Runtime/RuntimePrivate.h>
 #include <WASI/WASIPrivate.h>
@@ -1416,7 +1416,7 @@ faabric::util::SnapshotData WAVMWasmModule::doSnapshot()
 {
     Uptr numPages = Runtime::getMemoryNumPages(defaultMemory);
     U8* memBase = Runtime::getMemoryBaseAddress(defaultMemory);
-    U8* memSize = numPages * WASM_BYTES_PER_PAGE;
+    size_t memSize = numPages * WASM_BYTES_PER_PAGE;
 
     faabric::util::SnapshotData d;
     d.data = memBase;
@@ -1425,7 +1425,7 @@ faabric::util::SnapshotData WAVMWasmModule::doSnapshot()
     return d;
 }
 
-void WAVMWasmModule::doRestore(faabric::util::SnapshotData snapshotData)
+void WAVMWasmModule::doRestore(faabric::util::SnapshotData &snapshotData)
 {
     size_t snapshotPages = getNumberOfWasmPagesForBytes(snapshotData.size);
     Uptr currentNumPages = Runtime::getMemoryNumPages(defaultMemory);

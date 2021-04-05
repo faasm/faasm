@@ -1,8 +1,10 @@
 #include "WasmModule.h";
 
+#include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
+#include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
 #include <sys/uio.h>
 
@@ -61,12 +63,14 @@ wasm::WasmEnvironment& WasmModule::getWasmEnvironment()
 std::string WasmModule::snapshot()
 {
     // Create snapshot key
-    std::string snapKey;
+    uint32_t gid = faabric::util::generateGid();
+    std::string snapKey =
+      this->boundUser + "_" + this->boundFunction + "_" + std::to_string(gid);
 
     faabric::util::SnapshotData data = doSnapshot();
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
-    reg.setSnapshot(snapshotKey, data);
+    reg.setSnapshot(snapKey, data);
 
     return snapKey;
 }

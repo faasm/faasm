@@ -6,6 +6,7 @@
 #include <faabric/state/State.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/memory.h>
+#include <faabric/util/snapshot.h>
 
 #include <exception>
 #include <mutex>
