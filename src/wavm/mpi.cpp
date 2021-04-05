@@ -1355,7 +1355,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     int* coordsArray =
       Runtime::memoryArrayPtr<int>(ctx.memory, (Uptr)coords, (Uptr)maxdims);
 
-    ctx.world.getCartesianRank(ctx.rank, dimsArray, periodsArray, coordsArray);
+    ctx.world.getCartesianRank(
+      ctx.rank, maxdims, dimsArray, periodsArray, coordsArray);
 
     return MPI_SUCCESS;
 }
@@ -1381,7 +1382,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                       sourceRank,
                                       destRank);
 
-    sourceRank = destRank;
+    ContextWrapper ctx(comm);
+    int hostSourceRank, hostDestRank;
+
+    ctx.world.shiftCartesianCoords(
+      ctx.rank, direction, disp, &hostSourceRank, &hostDestRank);
+
+    ctx.writeMpiResult<int>(sourceRank, hostSourceRank);
+    ctx.writeMpiResult<int>(destRank, hostDestRank);
 
     return MPI_SUCCESS;
 }

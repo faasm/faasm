@@ -6,6 +6,7 @@
 #include <faabric/state/State.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/memory.h>
+#include <faabric/util/snapshot.h>
 
 #include <exception>
 #include <mutex>
@@ -100,23 +101,10 @@ class WasmModule
 
     virtual size_t getMemorySizeBytes();
 
-    // ----- CoW memory -----
-    virtual void writeMemoryToFd(int fd);
-
-    virtual void mapMemoryFromFd();
-
     // ----- Snapshot/ restore -----
-    void snapshotToFile(const std::string& filePath);
+    std::string snapshot();
 
-    std::vector<uint8_t> snapshotToMemory();
-
-    size_t snapshotToState(const std::string& stateKey);
-
-    void restoreFromFile(const std::string& filePath);
-
-    void restoreFromMemory(const std::vector<uint8_t>& data);
-
-    void restoreFromState(const std::string& stateKey, size_t stateSize);
+    void restore(const std::string& snapshotKey);
 
     // ----- Debugging -----
     virtual void printDebugInfo();
@@ -141,16 +129,14 @@ class WasmModule
     std::vector<std::string> argv;
     size_t argvBufferSize;
 
+    // Shared memory regions
+    std::unordered_map<std::string, uint32_t> sharedMemWasmPtrs;
+
     int getStdoutFd();
-
-    virtual void doSnapshot(std::ostream& outStream);
-
-    virtual void doRestore(std::istream& inStream);
 
     void prepareArgcArgv(const faabric::Message& msg);
 
-    // Shared memory regions
-    std::unordered_map<std::string, uint32_t> sharedMemWasmPtrs;
+    virtual uint8_t* getMemoryBase();
 };
 
 // ----- Global functions -----

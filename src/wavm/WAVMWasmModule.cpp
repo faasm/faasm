@@ -1,8 +1,6 @@
 #include "syscalls.h"
-#include <wavm/WAVMWasmModule.h>
 
 #include <boost/filesystem.hpp>
-#include <cereal/archives/binary.hpp>
 #include <stdexcept>
 #include <sys/mman.h>
 #include <sys/types.h>
@@ -15,7 +13,8 @@
 #include <faabric/util/timing.h>
 #include <ir_cache/IRModuleCache.h>
 #include <storage/SharedFiles.h>
-#include <wasm/serialisation.h>
+#include <wasm/WasmModule.h>
+#include <wavm/WAVMWasmModule.h>
 
 #include <Runtime/RuntimePrivate.h>
 #include <WASI/WASIPrivate.h>
@@ -131,9 +130,7 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
         tearDown();
     }
 
-    memoryFd = other.memoryFd;
-    memoryFdSize = other.memoryFdSize;
-
+    baseSnapshotKey = other.baseSnapshotKey;
     _isBound = other._isBound;
     boundUser = other.boundUser;
     boundFunction = other.boundFunction;
@@ -147,7 +144,11 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
     stdoutSize = 0;
 
     if (other._isBound) {
-        if (memoryFd > 0) {
+        bool restoreFromBaseSnapshot = !baseSnapshotKey.empty();
+
+        // If we're going to be restoring from a snapshot, we don't need to
+        // clone memory
+        if (restoreFromBaseSnapshot) {
             // Clone compartment excluding memory
             compartment =
               Runtime::cloneCompartment(other.compartment, "", false);
@@ -172,9 +173,9 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
         defaultMemory = Runtime::getDefaultMemory(moduleInstance);
         defaultTable = Runtime::getDefaultTable(moduleInstance);
 
-        // Map memory contents if necessary
-        if (memoryFd > 0) {
-            mapMemoryFromFd();
+        // Restore memory from snapshot
+        if (restoreFromBaseSnapshot) {
+            restore(baseSnapshotKey);
         }
 
         // Reset shared memory variables
@@ -469,6 +470,11 @@ void WAVMWasmModule::doBindToFunction(const faabric::Message& msg,
                   initialMemorySize,
                   initialMemoryPages,
                   initialTableSize);
+
+    // Now that we know everything is set up, we can create the base snapshot
+    if (baseSnapshotKey.empty()) {
+        baseSnapshotKey = snapshot();
+    }
 
     PROF_END(wasmBind)
 }
@@ -839,6 +845,11 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
     // Ensure Python function file in place (if necessary)
     storage::SharedFiles::syncPythonFunctionFile(msg);
 
+    // Restore from snapshot before executing if necessary
+    if (!msg.snapshotkey().empty()) {
+        restore(msg.snapshotkey());
+    }
+
     // Set up OMP
     setUpOpenMPContext(msg);
 
@@ -1086,6 +1097,12 @@ size_t WAVMWasmModule::getMemorySizeBytes()
     Uptr numBytes = numPages * WASM_BYTES_PER_PAGE;
 
     return numBytes;
+}
+
+uint8_t* WAVMWasmModule::getMemoryBase()
+{
+    uint8_t* memBase = Runtime::getMemoryBaseAddress(defaultMemory);
+    return memBase;
 }
 
 bool WAVMWasmModule::resolve(const std::string& moduleName,
@@ -1363,89 +1380,6 @@ int WAVMWasmModule::getDataOffsetFromGOT(const std::string& name)
     }
 
     return globalOffsetMemoryMap[name].first;
-}
-
-void WAVMWasmModule::writeMemoryToFd(int fd)
-{
-    memoryFd = fd;
-
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug(
-      "Writing memory for {}/{} to fd {}", boundUser, boundFunction, memoryFd);
-
-    Uptr numPages = Runtime::getMemoryNumPages(defaultMemory);
-    Uptr numBytes = numPages * WASM_BYTES_PER_PAGE;
-    U8* memoryBase = Runtime::getMemoryBaseAddress(defaultMemory);
-
-    // Make the fd big enough
-    memoryFdSize = numBytes;
-    int ferror = ftruncate(memoryFd, memoryFdSize);
-    if (ferror) {
-        logger->error("ferror call failed with error {}", ferror);
-        throw std::runtime_error("Failed writing memory to fd (ftruncate)");
-    }
-
-    // Write the data
-    ssize_t werror = write(memoryFd, memoryBase, memoryFdSize);
-    if (werror == -1) {
-        logger->error("Write call failed with error {}", werror);
-        throw std::runtime_error("Failed writing memory to fd (write)");
-    }
-}
-
-void WAVMWasmModule::mapMemoryFromFd()
-{
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug("Mapping memory for {}/{} from fd {}",
-                  boundUser,
-                  boundFunction,
-                  memoryFd);
-
-    U8* memoryBase = Runtime::getMemoryBaseAddress(defaultMemory);
-
-    mmap(memoryBase,
-         memoryFdSize,
-         PROT_WRITE,
-         MAP_PRIVATE | MAP_FIXED,
-         memoryFd,
-         0);
-}
-
-void WAVMWasmModule::doSnapshot(std::ostream& outStream)
-{
-    cereal::BinaryOutputArchive archive(outStream);
-
-    // Serialise memory
-    Uptr numPages = Runtime::getMemoryNumPages(defaultMemory);
-    U8* memBase = Runtime::getMemoryBaseAddress(defaultMemory);
-    U8* memEnd = memBase + (numPages * WASM_BYTES_PER_PAGE);
-
-    MemorySerialised mem;
-    mem.numPages = numPages;
-    mem.data = std::vector<uint8_t>(memBase, memEnd);
-
-    // Serialise to output stream
-    archive(mem);
-}
-
-void WAVMWasmModule::doRestore(std::istream& inStream)
-{
-    cereal::BinaryInputArchive archive(inStream);
-
-    // Read in serialised data
-    MemorySerialised mem;
-    archive(mem);
-
-    // Restore memory
-    Uptr currentNumPages = Runtime::getMemoryNumPages(defaultMemory);
-    if (mem.numPages > currentNumPages) {
-        size_t pagesRequired = mem.numPages - currentNumPages;
-        mmapPages(pagesRequired);
-    }
-
-    U8* memBase = Runtime::getMemoryBaseAddress(defaultMemory);
-    size_t memSize = mem.numPages * WASM_BYTES_PER_PAGE;
-    memcpy(memBase, mem.data.data(), memSize);
 }
 
 I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)

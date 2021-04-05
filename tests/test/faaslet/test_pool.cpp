@@ -172,7 +172,6 @@ TEST_CASE("Test memory is reset", "[faaslet]")
 
     // Call function
     Faaslet w(1);
-
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.callFunction(call);
 
@@ -180,16 +179,14 @@ TEST_CASE("Test memory is reset", "[faaslet]")
     w.processNextMessage();
 
     // Check initial pages
-    wasm::WAVMWasmModule* modulePtr =
-      static_cast<wasm::WAVMWasmModule*>(w.module.get());
-    Uptr initialPages = Runtime::getMemoryNumPages(modulePtr->defaultMemory);
+    size_t sizeBefore = w.module->getMemorySizeBytes();
 
     // Exec the function
     w.processNextMessage();
 
-    // Check page count is equal
-    Uptr afterPages = Runtime::getMemoryNumPages(modulePtr->defaultMemory);
-    REQUIRE(afterPages == initialPages);
+    // Check memory size is the same after
+    size_t sizeAfter = w.module->getMemorySizeBytes();
+    REQUIRE(sizeBefore == sizeAfter);
 }
 
 TEST_CASE("Test mmap/munmap", "[faaslet]")

@@ -27,17 +27,12 @@ void runTestLocally(const std::string& func)
 {
     cleanSystem();
 
-    // Make sure we have plenty of cores
-    int nCores = 10;
-
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-    faabric::HostResources res;
-    res.set_cores(nCores);
-    sch.setThisHostResources(res);
 
     faabric::Message msg = faabric::util::messageFactory("demo", func);
     execFunction(msg);
 
+    // Check the system does its accounting
     REQUIRE(sch.getFunctionInFlightCount(msg) == 0);
 }
 
