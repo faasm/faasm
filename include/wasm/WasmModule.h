@@ -129,16 +129,14 @@ class WasmModule
     std::vector<std::string> argv;
     size_t argvBufferSize;
 
+    // Shared memory regions
+    std::unordered_map<std::string, uint32_t> sharedMemWasmPtrs;
+
     int getStdoutFd();
-
-    virtual faabric::util::SnapshotData doSnapshot();
-
-    virtual void doRestore(faabric::util::SnapshotData& data);
 
     void prepareArgcArgv(const faabric::Message& msg);
 
-    // Shared memory regions
-    std::unordered_map<std::string, uint32_t> sharedMemWasmPtrs;
+    uint8_t *getMemoryBase();
 };
 
 // ----- Global functions -----

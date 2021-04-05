@@ -1,7 +1,6 @@
 #include "syscalls.h"
 
 #include <boost/filesystem.hpp>
-#include <cereal/archives/binary.hpp>
 #include <stdexcept>
 #include <sys/mman.h>
 #include <sys/types.h>
@@ -15,7 +14,6 @@
 #include <ir_cache/IRModuleCache.h>
 #include <storage/SharedFiles.h>
 #include <wasm/WasmModule.h>
-#include <wasm/serialisation.h>
 #include <wavm/WAVMWasmModule.h>
 
 #include <Runtime/RuntimePrivate.h>
@@ -132,9 +130,7 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
         tearDown();
     }
 
-    memoryFd = other.memoryFd;
-    memoryFdSize = other.memoryFdSize;
-
+    baseSnapshotKey = other.baseSnapshotKey;
     _isBound = other._isBound;
     boundUser = other.boundUser;
     boundFunction = other.boundFunction;
@@ -148,7 +144,11 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
     stdoutSize = 0;
 
     if (other._isBound) {
-        if (memoryFd > 0) {
+        bool restoreFromBaseSnapshot = !baseSnapshotKey.empty();
+
+        // If we're going to be restoring from a snapshot, we don't need to
+        // clone memory
+        if (restoreFromBaseSnapshot) {
             // Clone compartment excluding memory
             compartment =
               Runtime::cloneCompartment(other.compartment, "", false);
@@ -172,6 +172,11 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
         // Extract the memory and table again
         defaultMemory = Runtime::getDefaultMemory(moduleInstance);
         defaultTable = Runtime::getDefaultTable(moduleInstance);
+
+        // Restore memory from snapshot
+        if (restoreFromBaseSnapshot) {
+            restore(baseSnapshotKey);
+        }
 
         // Reset shared memory variables
         sharedMemWasmPtrs = other.sharedMemWasmPtrs;
@@ -465,6 +470,11 @@ void WAVMWasmModule::doBindToFunction(const faabric::Message& msg,
                   initialMemorySize,
                   initialMemoryPages,
                   initialTableSize);
+
+    // Now that we know everything is set up, we can create the base snapshot
+    if (baseSnapshotKey.empty()) {
+        baseSnapshotKey = snapshot();
+    }
 
     PROF_END(wasmBind)
 }
@@ -1089,6 +1099,11 @@ size_t WAVMWasmModule::getMemorySizeBytes()
     return numBytes;
 }
 
+uint8_t* WAVMWasmModule::getMemoryBase() {
+    uint8_t* memBase = Runtime::getMemoryBaseAddress(defaultMemory);
+    return memBase;
+}
+
 bool WAVMWasmModule::resolve(const std::string& moduleName,
                              const std::string& name,
                              IR::ExternType type,
@@ -1364,34 +1379,6 @@ int WAVMWasmModule::getDataOffsetFromGOT(const std::string& name)
     }
 
     return globalOffsetMemoryMap[name].first;
-}
-
-faabric::util::SnapshotData WAVMWasmModule::doSnapshot()
-{
-    Uptr numPages = Runtime::getMemoryNumPages(defaultMemory);
-    U8* memBase = Runtime::getMemoryBaseAddress(defaultMemory);
-    size_t memSize = numPages * WASM_BYTES_PER_PAGE;
-
-    faabric::util::SnapshotData d;
-    d.data = memBase;
-    d.size = memSize;
-
-    return d;
-}
-
-void WAVMWasmModule::doRestore(faabric::util::SnapshotData& snapshotData)
-{
-    size_t snapshotPages = getNumberOfWasmPagesForBytes(snapshotData.size);
-    Uptr currentNumPages = Runtime::getMemoryNumPages(defaultMemory);
-
-    if (snapshotPages > currentNumPages) {
-        size_t pagesRequired = snapshotPages - currentNumPages;
-        mmapPages(pagesRequired);
-    }
-
-    // TODO - avoid this copy
-    U8* memBase = Runtime::getMemoryBaseAddress(defaultMemory);
-    memcpy(memBase, snapshotData.data, snapshotData.size);
 }
 
 I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)

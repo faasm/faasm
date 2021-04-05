@@ -67,10 +67,13 @@ std::string WasmModule::snapshot()
     std::string snapKey =
       this->boundUser + "_" + this->boundFunction + "_" + std::to_string(gid);
 
-    faabric::util::SnapshotData data = doSnapshot();
+    faabric::util::SnapshotData data;
+    data.data = getMemoryBase();
+    data.size = getMemorySizeBytes();
+
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
-    reg.setSnapshot(snapKey, data);
+    reg.takeSnapshot(snapKey, data);
 
     return snapKey;
 }
@@ -79,9 +82,21 @@ void WasmModule::restore(const std::string& snapshotKey)
 {
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
-    faabric::util::SnapshotData data = reg.getSnapshot(snapshotKey);
 
-    doRestore(data);
+    // Expand memory if necessary
+    faabric::util::SnapshotData data = reg.getSnapshot(snapshotKey);
+    size_t memSize = getMemorySizeBytes();
+    size_t snapshotPages = getNumberOfWasmPagesForBytes(data.size);
+    size_t currentNumPages = getNumberOfWasmPagesForBytes(memSize);
+
+    if (snapshotPages > currentNumPages) {
+        size_t pagesRequired = snapshotPages - currentNumPages;
+        mmapPages(pagesRequired);
+    }
+
+    // Map the snapshot into memory
+    uint8_t* memoryBase = getMemoryBase();
+    reg.mapSnapshot(snapshotKey, memoryBase);
 }
 
 std::string WasmModule::getBoundUser()
@@ -285,16 +300,6 @@ void WasmModule::writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer)
     throw std::runtime_error("writeWasmEnvToMemory not implemented");
 }
 
-faabric::util::SnapshotData WasmModule::doSnapshot()
-{
-    throw std::runtime_error("doSnapshot not implemented");
-}
-
-void WasmModule::doRestore(faabric::util::SnapshotData& data)
-{
-    throw std::runtime_error("doRestore not implemented");
-}
-
 uint32_t WasmModule::mmapMemory(uint32_t length)
 {
     throw std::runtime_error("mmapMemory not implemented");
@@ -323,5 +328,10 @@ void WasmModule::printDebugInfo()
 size_t WasmModule::getMemorySizeBytes()
 {
     throw std::runtime_error("getMemorySizeBytes not implemented");
+}
+
+uint8_t* WasmModule::getMemoryBase()
+{
+    throw std::runtime_error("getMemoryBase not implemented");
 }
 }

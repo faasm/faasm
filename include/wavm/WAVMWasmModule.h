@@ -58,6 +58,8 @@ class WAVMWasmModule final
 
     size_t getMemorySizeBytes() override;
 
+    uint8_t* getMemoryBase() override;
+
     // ----- Environment variables
     void writeWasmEnvToMemory(uint32_t envPointers,
                               uint32_t envBuffer) override;
@@ -132,18 +134,12 @@ class WAVMWasmModule final
 
     uint32_t createMemoryGuardRegion();
 
-  protected:
-    faabric::util::SnapshotData doSnapshot() override;
-
-    void doRestore(faabric::util::SnapshotData& snapData) override;
-
   private:
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> envModule;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> wasiModule;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> moduleInstance;
 
-    int memoryFd = -1;
-    size_t memoryFdSize = 0;
+    std::string baseSnapshotKey;
 
     bool _isBound = false;
 
