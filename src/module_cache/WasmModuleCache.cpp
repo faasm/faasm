@@ -83,7 +83,7 @@ wasm::WAVMWasmModule& WasmModuleCache::getCachedModule(
                 specialModule = baseModule;
 
                 // Restore the special module
-                specialModule.restoreFromState(snapshotKey, msg.snapshotsize());
+                specialModule.restore(snapshotKey);
 
                 // Write memory to fd to support copy-on-write cloning
                 int fd = memfd_create(snapshotKey.c_str(), 0);

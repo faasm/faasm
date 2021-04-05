@@ -138,9 +138,9 @@ class WAVMWasmModule final
     uint32_t createMemoryGuardRegion();
 
   protected:
-    void doSnapshot(std::ostream& outStream) override;
+    faabric::util::SnapshotData doSnapshot() override;
 
-    void doRestore(std::istream& inStream) override;
+    void doRestore(faabric::util::SnapshotData& snapData) override;
 
   private:
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> envModule;

@@ -1,4 +1,4 @@
-#include "WasmModule.h"
+#include "WasmModule.h";
 
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
@@ -58,24 +58,26 @@ wasm::WasmEnvironment& WasmModule::getWasmEnvironment()
     return wasmEnvironment;
 }
 
-size_t WasmModule::snapshotToState(const std::string& stateKey)
+std::string WasmModule::snapshot()
 {
-    std::ostringstream outStream;
-    doSnapshot(outStream);
+    // Create snapshot key
+    std::string snapKey;
 
-    std::string outStr = outStream.str();
-    std::vector<uint8_t> snapData(outStr.begin(), outStr.end());
+    faabric::util::SnapshotData data = doSnapshot();
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+    reg.setSnapshot(snapshotKey, data);
 
-    unsigned long stateSize = snapData.size();
+    return snapKey;
+}
 
-    faabric::state::State& state = faabric::state::getGlobalState();
-    const std::shared_ptr<faabric::state::StateKeyValue>& stateKv =
-      state.getKV(getBoundUser(), stateKey, stateSize);
+void WasmModule::restore(const std::string& snapshotKey)
+{
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+    faabric::util::SnapshotData data = reg.getSnapshot(snapshotKey);
 
-    stateKv->set(snapData.data());
-    stateKv->pushFull();
-
-    return stateSize;
+    doRestore(data);
 }
 
 std::string WasmModule::getBoundUser()
@@ -86,27 +88,6 @@ std::string WasmModule::getBoundUser()
 std::string WasmModule::getBoundFunction()
 {
     return boundFunction;
-}
-
-void WasmModule::restoreFromState(const std::string& stateKey, size_t stateSize)
-{
-    if (!isBound()) {
-        throw std::runtime_error(
-          "Module must be bound before restoring from state");
-    }
-
-    faabric::state::State& state = faabric::state::getGlobalState();
-    const std::shared_ptr<faabric::state::StateKeyValue>& stateKv =
-      state.getKV(boundUser, stateKey, stateSize);
-
-    stateKv->pull();
-    uint8_t* snapPtr = stateKv->get();
-    const std::vector<uint8_t> snapData =
-      std::vector<uint8_t>(snapPtr, snapPtr + stateSize);
-
-    std::istringstream inStream(std::string(
-      reinterpret_cast<const char*>(snapData.data()), snapData.size()));
-    doRestore(inStream);
 }
 
 int WasmModule::getStdoutFd()

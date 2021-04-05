@@ -1,4 +1,5 @@
 #include "syscalls.h"
+#include "wasm/WasmModule.h"
 #include <wavm/WAVMWasmModule.h>
 
 #include <boost/filesystem.hpp>
@@ -1411,41 +1412,32 @@ void WAVMWasmModule::mapMemoryFromFd()
          0);
 }
 
-void WAVMWasmModule::doSnapshot(std::ostream& outStream)
+faabric::util::SnapshotData WAVMWasmModule::doSnapshot()
 {
-    cereal::BinaryOutputArchive archive(outStream);
-
-    // Serialise memory
     Uptr numPages = Runtime::getMemoryNumPages(defaultMemory);
     U8* memBase = Runtime::getMemoryBaseAddress(defaultMemory);
-    U8* memEnd = memBase + (numPages * WASM_BYTES_PER_PAGE);
+    U8* memSize = numPages * WASM_BYTES_PER_PAGE;
 
-    MemorySerialised mem;
-    mem.numPages = numPages;
-    mem.data = std::vector<uint8_t>(memBase, memEnd);
+    faabric::util::SnapshotData d;
+    d.data = memBase;
+    d.size = memSize;
 
-    // Serialise to output stream
-    archive(mem);
+    return d;
 }
 
-void WAVMWasmModule::doRestore(std::istream& inStream)
+void WAVMWasmModule::doRestore(faabric::util::SnapshotData snapshotData)
 {
-    cereal::BinaryInputArchive archive(inStream);
-
-    // Read in serialised data
-    MemorySerialised mem;
-    archive(mem);
-
-    // Restore memory
+    size_t snapshotPages = getNumberOfWasmPagesForBytes(snapshotData.size);
     Uptr currentNumPages = Runtime::getMemoryNumPages(defaultMemory);
-    if (mem.numPages > currentNumPages) {
-        size_t pagesRequired = mem.numPages - currentNumPages;
+
+    if (snapshotPages > currentNumPages) {
+        size_t pagesRequired = snapshotPages - currentNumPages;
         mmapPages(pagesRequired);
     }
 
+    // TODO - avoid this copy
     U8* memBase = Runtime::getMemoryBaseAddress(defaultMemory);
-    size_t memSize = mem.numPages * WASM_BYTES_PER_PAGE;
-    memcpy(memBase, mem.data.data(), memSize);
+    memcpy(memBase, snapshotData.data, snapshotData.size);
 }
 
 I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)

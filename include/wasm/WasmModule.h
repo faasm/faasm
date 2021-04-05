@@ -106,9 +106,9 @@ class WasmModule
     virtual void mapMemoryFromFd();
 
     // ----- Snapshot/ restore -----
-    size_t snapshotToState(const std::string& stateKey);
+    std::string snapshot();
 
-    void restoreFromState(const std::string& stateKey, size_t stateSize);
+    void restore(const std::string& snapshotKey);
 
     // ----- Debugging -----
     virtual void printDebugInfo();
@@ -135,9 +135,9 @@ class WasmModule
 
     int getStdoutFd();
 
-    virtual void doSnapshot(std::ostream& outStream);
+    virtual faabric::util::SnapshotData doSnapshot();
 
-    virtual void doRestore(std::istream& inStream);
+    virtual void doRestore(faabric::util::SnapshotData& data);
 
     void prepareArgcArgv(const faabric::Message& msg);
 
