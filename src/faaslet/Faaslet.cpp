@@ -118,14 +118,12 @@ void Faaslet::preFinishCall(faabric::Message& call,
     }
 
     if (conf.wasmVm == "wavm") {
-        // Restore from zygote
         logger->debug("Resetting module {} from zygote", funcStr);
-        module_cache::WasmModuleCache& registry =
-          module_cache::getWasmModuleCache();
-        wasm::WAVMWasmModule& cachedModule = registry.getCachedModule(call);
 
-        auto* wavmModulePtr = dynamic_cast<wasm::WAVMWasmModule*>(module.get());
-        *wavmModulePtr = cachedModule;
+        // Restore from zygote
+        wasm::WAVMWasmModule& cachedModule =
+          module_cache::getWasmModuleCache().getCachedModule(call);
+        module = std::make_unique<wasm::WAVMWasmModule>(cachedModule);
     }
 }
 
@@ -151,24 +149,10 @@ void Faaslet::postBind(const faabric::Message& msg, bool force)
 
         module->bindToFunction(msg);
     } else if (conf.wasmVm == "wavm") {
-        PROF_START(snapshotRestore)
-
-        // Load snapshot from cache
-        std::string snapshotKey = msg.snapshotkey();
-        if (msg.snapshotkey().empty()) {
-            logger->debug("Restoring {} from standard zygote {}", id, funcStr);
-        } else {
-            logger->debug("Restoring {} from snapshot {}", id, snapshotKey);
-        }
-
-        module_cache::WasmModuleCache& registry =
-          module_cache::getWasmModuleCache();
-        wasm::WAVMWasmModule& snapshot = registry.getCachedModule(msg);
-
-        // Use snapshot to restore WAVM module
-        module = std::make_unique<wasm::WAVMWasmModule>(snapshot);
-
-        PROF_END(snapshotRestore)
+        // Get cached module
+        wasm::WAVMWasmModule& cachedModule =
+          module_cache::getWasmModuleCache().getCachedModule(msg);
+        module = std::make_unique<wasm::WAVMWasmModule>(cachedModule);
     } else {
         logger->error("Unrecognised wasm VM: {}", conf.wasmVm);
         throw std::runtime_error("Unrecognised wasm VM");

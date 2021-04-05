@@ -101,11 +101,6 @@ class WasmModule
 
     virtual size_t getMemorySizeBytes();
 
-    // ----- CoW memory -----
-    virtual void writeMemoryToFd(int fd);
-
-    virtual void mapMemoryFromFd();
-
     // ----- Snapshot/ restore -----
     std::string snapshot();
 

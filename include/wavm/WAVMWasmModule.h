@@ -62,11 +62,6 @@ class WAVMWasmModule final
     void writeWasmEnvToMemory(uint32_t envPointers,
                               uint32_t envBuffer) override;
 
-    // ----- CoW memory -----
-    void writeMemoryToFd(int fd) override;
-
-    void mapMemoryFromFd() override;
-
     // ----- Debug -----
     void printDebugInfo() override;
 

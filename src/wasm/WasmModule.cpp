@@ -285,16 +285,6 @@ void WasmModule::writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer)
     throw std::runtime_error("writeWasmEnvToMemory not implemented");
 }
 
-void WasmModule::writeMemoryToFd(int fd)
-{
-    throw std::runtime_error("writeMemoryToFd not implemented");
-}
-
-void WasmModule::mapMemoryFromFd()
-{
-    throw std::runtime_error("mapMemoryFromFd not implemented");
-}
-
 faabric::util::SnapshotData WasmModule::doSnapshot()
 {
     throw std::runtime_error("doSnapshot not implemented");

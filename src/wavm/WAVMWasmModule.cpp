@@ -173,11 +173,6 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
         defaultMemory = Runtime::getDefaultMemory(moduleInstance);
         defaultTable = Runtime::getDefaultTable(moduleInstance);
 
-        // Map memory contents if necessary
-        if (memoryFd > 0) {
-            mapMemoryFromFd();
-        }
-
         // Reset shared memory variables
         sharedMemWasmPtrs = other.sharedMemWasmPtrs;
 
@@ -840,6 +835,11 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
     // Ensure Python function file in place (if necessary)
     storage::SharedFiles::syncPythonFunctionFile(msg);
 
+    // Restore from snapshot before executing if necessary
+    if (!msg.snapshotkey().empty()) {
+        restore(msg.snapshotkey());
+    }
+
     // Set up OMP
     setUpOpenMPContext(msg);
 
@@ -1364,52 +1364,6 @@ int WAVMWasmModule::getDataOffsetFromGOT(const std::string& name)
     }
 
     return globalOffsetMemoryMap[name].first;
-}
-
-void WAVMWasmModule::writeMemoryToFd(int fd)
-{
-    memoryFd = fd;
-
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug(
-      "Writing memory for {}/{} to fd {}", boundUser, boundFunction, memoryFd);
-
-    Uptr numPages = Runtime::getMemoryNumPages(defaultMemory);
-    Uptr numBytes = numPages * WASM_BYTES_PER_PAGE;
-    U8* memoryBase = Runtime::getMemoryBaseAddress(defaultMemory);
-
-    // Make the fd big enough
-    memoryFdSize = numBytes;
-    int ferror = ftruncate(memoryFd, memoryFdSize);
-    if (ferror) {
-        logger->error("ferror call failed with error {}", ferror);
-        throw std::runtime_error("Failed writing memory to fd (ftruncate)");
-    }
-
-    // Write the data
-    ssize_t werror = write(memoryFd, memoryBase, memoryFdSize);
-    if (werror == -1) {
-        logger->error("Write call failed with error {}", werror);
-        throw std::runtime_error("Failed writing memory to fd (write)");
-    }
-}
-
-void WAVMWasmModule::mapMemoryFromFd()
-{
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug("Mapping memory for {}/{} from fd {}",
-                  boundUser,
-                  boundFunction,
-                  memoryFd);
-
-    U8* memoryBase = Runtime::getMemoryBaseAddress(defaultMemory);
-
-    mmap(memoryBase,
-         memoryFdSize,
-         PROT_WRITE,
-         MAP_PRIVATE | MAP_FIXED,
-         memoryFd,
-         0);
 }
 
 faabric::util::SnapshotData WAVMWasmModule::doSnapshot()
