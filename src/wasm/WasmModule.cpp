@@ -1,15 +1,17 @@
-#include "WasmModule.h"
+#include "wasm/WasmModule.h"
 
+#include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
+#include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
-#include <sys/uio.h>
+#include <faabric/util/memory.h>
 
 #include <boost/filesystem.hpp>
-#include <faabric/util/memory.h>
 #include <sstream>
 #include <sys/mman.h>
+#include <sys/uio.h>
 
 namespace wasm {
 // Using TLS here to isolate between executing functions
@@ -58,19 +60,43 @@ wasm::WasmEnvironment& WasmModule::getWasmEnvironment()
     return wasmEnvironment;
 }
 
-size_t WasmModule::snapshotToState(const std::string& stateKey)
+std::string WasmModule::snapshot()
 {
-    const std::vector<uint8_t> snapData = snapshotToMemory();
-    unsigned long stateSize = snapData.size();
+    // Create snapshot key
+    uint32_t gid = faabric::util::generateGid();
+    std::string snapKey =
+      this->boundUser + "_" + this->boundFunction + "_" + std::to_string(gid);
 
-    faabric::state::State& state = faabric::state::getGlobalState();
-    const std::shared_ptr<faabric::state::StateKeyValue>& stateKv =
-      state.getKV(getBoundUser(), stateKey, stateSize);
+    faabric::util::SnapshotData data;
+    data.data = getMemoryBase();
+    data.size = getMemorySizeBytes();
 
-    stateKv->set(snapData.data());
-    stateKv->pushFull();
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+    reg.takeSnapshot(snapKey, data);
 
-    return stateSize;
+    return snapKey;
+}
+
+void WasmModule::restore(const std::string& snapshotKey)
+{
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+
+    // Expand memory if necessary
+    faabric::util::SnapshotData data = reg.getSnapshot(snapshotKey);
+    size_t memSize = getMemorySizeBytes();
+    size_t snapshotPages = getNumberOfWasmPagesForBytes(data.size);
+    size_t currentNumPages = getNumberOfWasmPagesForBytes(memSize);
+
+    if (snapshotPages > currentNumPages) {
+        size_t pagesRequired = snapshotPages - currentNumPages;
+        mmapPages(pagesRequired);
+    }
+
+    // Map the snapshot into memory
+    uint8_t* memoryBase = getMemoryBase();
+    reg.mapSnapshot(snapshotKey, memoryBase);
 }
 
 std::string WasmModule::getBoundUser()
@@ -81,54 +107,6 @@ std::string WasmModule::getBoundUser()
 std::string WasmModule::getBoundFunction()
 {
     return boundFunction;
-}
-
-void WasmModule::restoreFromFile(const std::string& filePath)
-{
-    // Read execution state from file
-    std::ifstream inStream(filePath, std::ios::binary);
-    doRestore(inStream);
-}
-
-void WasmModule::restoreFromMemory(const std::vector<uint8_t>& data)
-{
-    std::istringstream inStream(
-      std::string(reinterpret_cast<const char*>(data.data()), data.size()));
-    doRestore(inStream);
-}
-
-void WasmModule::restoreFromState(const std::string& stateKey, size_t stateSize)
-{
-    if (!isBound()) {
-        throw std::runtime_error(
-          "Module must be bound before restoring from state");
-    }
-
-    faabric::state::State& state = faabric::state::getGlobalState();
-    const std::shared_ptr<faabric::state::StateKeyValue>& stateKv =
-      state.getKV(boundUser, stateKey, stateSize);
-
-    stateKv->pull();
-    uint8_t* snapPtr = stateKv->get();
-    const std::vector<uint8_t> snapData =
-      std::vector<uint8_t>(snapPtr, snapPtr + stateSize);
-    restoreFromMemory(snapData);
-}
-
-void WasmModule::snapshotToFile(const std::string& filePath)
-{
-    std::ofstream outStream(filePath, std::ios::binary);
-    doSnapshot(outStream);
-}
-
-std::vector<uint8_t> WasmModule::snapshotToMemory()
-{
-    std::ostringstream outStream;
-    doSnapshot(outStream);
-
-    std::string outStr = outStream.str();
-
-    return std::vector<uint8_t>(outStr.begin(), outStr.end());
 }
 
 int WasmModule::getStdoutFd()
@@ -322,26 +300,6 @@ void WasmModule::writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer)
     throw std::runtime_error("writeWasmEnvToMemory not implemented");
 }
 
-void WasmModule::writeMemoryToFd(int fd)
-{
-    throw std::runtime_error("writeMemoryToFd not implemented");
-}
-
-void WasmModule::mapMemoryFromFd()
-{
-    throw std::runtime_error("mapMemoryFromFd not implemented");
-}
-
-void WasmModule::doSnapshot(std::ostream& outStream)
-{
-    throw std::runtime_error("doSnapshot not implemented");
-}
-
-void WasmModule::doRestore(std::istream& inStream)
-{
-    throw std::runtime_error("doRestore not implemented");
-}
-
 uint32_t WasmModule::mmapMemory(uint32_t length)
 {
     throw std::runtime_error("mmapMemory not implemented");
@@ -370,5 +328,10 @@ void WasmModule::printDebugInfo()
 size_t WasmModule::getMemorySizeBytes()
 {
     throw std::runtime_error("getMemorySizeBytes not implemented");
+}
+
+uint8_t* WasmModule::getMemoryBase()
+{
+    throw std::runtime_error("getMemoryBase not implemented");
 }
 }

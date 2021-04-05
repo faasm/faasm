@@ -49,13 +49,6 @@ ExternalProject_Add(eigen_ext
     CMAKE_CACHE_ARGS "-DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}"
 )
 
-ExternalProject_Add(cereal_ext
-    GIT_REPOSITORY "https://github.com/USCiLab/cereal"
-    GIT_TAG "v1.3.0"
-    CMAKE_ARGS "-DJUST_INSTALL_CEREAL=1"
-    CMAKE_CACHE_ARGS "-DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}"
-)
-
 ExternalProject_Add(catch2_ext
      GIT_REPOSITORY "https://github.com/catchorg/Catch2"
      GIT_TAG "v2.13.2"

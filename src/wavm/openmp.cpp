@@ -395,13 +395,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     nextLevel->fromParentLevel(parentLevel);
 
     // Take memory snapshot
-    uint32_t snapshotId = faabric::util::generateGid();
-    std::string snapshotKey = fmt::format("openmp_{}", snapshotId);
-    logger->debug("Creating OpenMP snapshot: {}", snapshotKey);
-
-    size_t snapshotSize = parentModule->snapshotToState(snapshotKey);
-    logger->debug(
-      "Created OpenMP snapshot: {} ({} bytes)", snapshotKey, snapshotSize);
+    std::string snapshotKey = parentModule->snapshot();
+    logger->debug("Created OpenMP snapshot: {}", snapshotKey);
 
     const faabric::Message* originalCall = getExecutingCall();
     const std::string origStr =
@@ -426,7 +421,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
         // Snapshot details
         call.set_snapshotkey(snapshotKey);
-        call.set_snapshotsize(snapshotSize);
 
         // Function pointer
         call.set_funcptr(microtaskPtr);
