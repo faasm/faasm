@@ -41,10 +41,10 @@ TEST_CASE("Test MPI cartesian create", "[mpi]")
     checkMpiFunc("mpi_cart_create");
 }
 
-TEST_CASE("Test MPI cartesian coordinates", "[mpi]")
-{
-    checkMpiFunc("mpi_cartesian");
-}
+// TEST_CASE("Test MPI cartesian coordinates", "[mpi]")
+//{
+//   checkMpiFunc("mpi_cartesian");
+//}
 
 TEST_CASE("Test general MPI functionality", "[mpi]")
 {

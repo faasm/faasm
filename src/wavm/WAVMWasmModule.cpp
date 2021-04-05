@@ -1425,7 +1425,7 @@ faabric::util::SnapshotData WAVMWasmModule::doSnapshot()
     return d;
 }
 
-void WAVMWasmModule::doRestore(faabric::util::SnapshotData &snapshotData)
+void WAVMWasmModule::doRestore(faabric::util::SnapshotData& snapshotData)
 {
     size_t snapshotPages = getNumberOfWasmPagesForBytes(snapshotData.size);
     Uptr currentNumPages = Runtime::getMemoryNumPages(defaultMemory);

@@ -1,4 +1,4 @@
-#include "WasmModule.h";
+#include "wasm/WasmModule.h"
 
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/util/bytes.h>
@@ -6,12 +6,12 @@
 #include <faabric/util/func.h>
 #include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
-#include <sys/uio.h>
+#include <faabric/util/memory.h>
 
 #include <boost/filesystem.hpp>
-#include <faabric/util/memory.h>
 #include <sstream>
 #include <sys/mman.h>
+#include <sys/uio.h>
 
 namespace wasm {
 // Using TLS here to isolate between executing functions
@@ -295,12 +295,12 @@ void WasmModule::mapMemoryFromFd()
     throw std::runtime_error("mapMemoryFromFd not implemented");
 }
 
-void WasmModule::doSnapshot(std::ostream& outStream)
+faabric::util::SnapshotData WasmModule::doSnapshot()
 {
     throw std::runtime_error("doSnapshot not implemented");
 }
 
-void WasmModule::doRestore(std::istream& inStream)
+void WasmModule::doRestore(faabric::util::SnapshotData& data)
 {
     throw std::runtime_error("doRestore not implemented");
 }

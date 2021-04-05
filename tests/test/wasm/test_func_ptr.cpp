@@ -1,6 +1,6 @@
+#include "utils.h"
 #include <catch2/catch.hpp>
 
-#include "utils.h"
 #include <wavm/WAVMWasmModule.h>
 
 using namespace wasm;
@@ -16,8 +16,7 @@ TEST_CASE("Test executing function given specific pointer", "[wasm]")
     module.bindToFunction(call);
 
     // Create zygote from which to restore
-    std::string stateKey = "test_func_ptr_zygote";
-    size_t snapshotSize = module.snapshotToState(stateKey);
+    std::string stateKey = module.snapshot();
 
     // Set up call with a specific function pointer and zygote in state
     call.set_snapshotkey(stateKey);
@@ -27,7 +26,7 @@ TEST_CASE("Test executing function given specific pointer", "[wasm]")
     wasm::WAVMWasmModule moduleB;
     moduleB.bindToFunction(call);
 
-    moduleB.restoreFromState(stateKey, snapshotSize);
+    moduleB.restore(stateKey);
     bool success = moduleB.execute(call);
     REQUIRE(success);
 
