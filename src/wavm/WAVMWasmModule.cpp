@@ -1012,14 +1012,41 @@ U32 WAVMWasmModule::allocateThreadStack()
     return wasmPtr;
 }
 
-U32 WAVMWasmModule::mmapMemory(U32 length)
+U32 WAVMWasmModule::shrinkMemory(U32 nBytes)
+{
+    size_t currentSize = getMemorySizeBytes();
+    U32 offset = currentSize - nBytes;
+    unmapMemory(offset, nBytes);
+
+    return offset;
+}
+
+void WAVMWasmModule::unmapMemory(U32 offset, U32 nBytes)
+{
+    if (nBytes == 0) {
+        return;
+    }
+
+    const Uptr addrPageBase = offset / IR::numBytesPerPage;
+    const Uptr numPages = getNumberOfWasmPagesForBytes(nBytes);
+
+    // Drop out if we're munmapping over the max page boundary
+    if (addrPageBase + numPages > getMemoryType(defaultMemory).size.max) {
+        throw std::runtime_error("munmapping region over max memory pages");
+    }
+
+    // Unmap the memory
+    Runtime::unmapMemoryPages(defaultMemory, addrPageBase, numPages);
+}
+
+U32 WAVMWasmModule::mmapMemory(U32 nBytes)
 {
     // Round up to page boundary
-    Uptr nWasmPages = getNumberOfWasmPagesForBytes(length);
+    Uptr nWasmPages = getNumberOfWasmPagesForBytes(nBytes);
     return mmapPages(nWasmPages);
 }
 
-U32 WAVMWasmModule::mmapPages(U32 pages)
+U32 WAVMWasmModule::mmapPages(U32 nPages)
 {
     // Cautious locking
     faabric::util::UniqueLock lock(moduleMemoryMutex);
@@ -1028,47 +1055,47 @@ U32 WAVMWasmModule::mmapPages(U32 pages)
     U64 maxSize = getMemoryType(defaultMemory).size.max;
     Uptr currentPageCount = Runtime::getMemoryNumPages(defaultMemory);
 
-    if (pages == 0) {
+    if (nPages == 0) {
         throw std::runtime_error("Requesting mapping of zero pages");
     }
 
-    Uptr newPageCount = currentPageCount + pages;
+    Uptr newPageCount = currentPageCount + nPages;
     if (newPageCount > maxSize) {
         logger->error(
           "mmap would exceed max of {} pages (growing by {} from {})",
           maxSize,
-          pages,
+          nPages,
           currentPageCount);
         throw std::runtime_error("Mmap exceeding max");
     }
 
     Uptr pageCountOut;
     Runtime::GrowResult result =
-      growMemory(defaultMemory, pages, &pageCountOut);
+      growMemory(defaultMemory, nPages, &pageCountOut);
     if (result != Runtime::GrowResult::success) {
         if (result == Runtime::GrowResult::outOfMemory) {
             logger->error("Committing new pages failed (errno={} ({})) "
                           "(growing by {} from current {})",
                           errno,
                           strerror(errno),
-                          pages,
+                          nPages,
                           currentPageCount);
             throw std::runtime_error("Unable to commit virtual pages");
         } else if (result == Runtime::GrowResult::outOfMaxSize) {
             logger->error("No memory for mapping (growing by {} from {} pages)",
-                          pages,
+                          nPages,
                           currentPageCount);
             throw std::runtime_error("Run out of memory to map");
         } else if (result == Runtime::GrowResult::outOfQuota) {
             logger->error(
               "Memory resource quota exceeded (growing by {} from {})",
-              pages,
+              nPages,
               newPageCount);
             throw std::runtime_error("Memory resource quota exceeded");
         } else {
             logger->error("Unknown memory mapping error (growing by {} from "
                           "{}. Previous {})",
-                          pages,
+                          nPages,
                           newPageCount,
                           pageCountOut);
             throw std::runtime_error("Unknown memory mapping error");

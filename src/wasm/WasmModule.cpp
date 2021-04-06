@@ -300,12 +300,22 @@ void WasmModule::writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer)
     throw std::runtime_error("writeWasmEnvToMemory not implemented");
 }
 
-uint32_t WasmModule::mmapMemory(uint32_t length)
+uint32_t WasmModule::shrinkMemory(uint32_t nBytes)
+{
+    throw std::runtime_error("shrinkMemory not implemented");
+}
+
+void WasmModule::unmapMemory(uint32_t offset, uint32_t nBytes)
+{
+    throw std::runtime_error("unmapMemory not implemented");
+}
+
+uint32_t WasmModule::mmapMemory(uint32_t nBytes)
 {
     throw std::runtime_error("mmapMemory not implemented");
 }
 
-uint32_t WasmModule::mmapPages(uint32_t pages)
+uint32_t WasmModule::mmapPages(uint32_t nPages)
 {
     throw std::runtime_error("mmapPages not implemented");
 }

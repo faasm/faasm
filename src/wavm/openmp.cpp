@@ -4,6 +4,7 @@
 
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/state/StateKeyValue.h>
 #include <faabric/util/func.h>
 #include <faabric/util/gids.h>
@@ -426,7 +427,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         call.set_funcptr(microtaskPtr);
 
         // Args
-        for(int i = 0; i < argc; i++) {
+        for (int i = 0; i < argc; i++) {
             call.add_ompfunctionargs(sharedVarsPtr[i]);
         }
 
@@ -451,40 +452,46 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     std::vector<std::thread> localThreads;
     std::mutex errorsMutex;
     std::vector<int> errors;
-    int threadId = 0;
     for (int i = 0; i < executedHosts.size(); i++) {
         std::string host = executedHosts.at(i);
         bool isLocal = host.empty();
 
+        faabric::Message& msg = msgs.at(i);
+        uint32_t msgId = msg.id();
+
         if (!isLocal) {
             // Function is being executed remotely
-            callIds.push_back(msgs.at(i).id());
+            logger->debug("Waiting for remote thread for call ID {}", msgId);
+            callIds.push_back(msgId);
             continue;
         }
 
-        faabric::Message& msg = msgs.at(i);
+        logger->debug("Spawning local thread for call ID {}", msgId);
         localThreads.emplace_back([&msg,
+                                   &sch,
                                    &nextLevel,
                                    &parentModule,
                                    &parentCall,
                                    &errors,
                                    &errorsMutex,
-                                   threadId] {
+                                   i] {
             // We are now in a new thread so need to set up everything
             // that uses TLS
-            setUpOpenMPContext(threadId, nextLevel);
+            setUpOpenMPContext(i, nextLevel);
             setExecutingModule(parentModule);
             setExecutingCall(parentCall);
 
             parentModule->executeAsOMPThread(msg);
 
+            // Caller has to notify scheduler when finished executing a thread
+            // locally
+            sch.notifyCallFinished(msg);
+
             if (msg.returnvalue() > 0) {
                 faabric::util::UniqueLock lock(errorsMutex);
-                errors.push_back(threadId);
+                errors.push_back(i);
             }
         });
-
-        threadId++;
     }
 
     // Await the results of all the remote threads
@@ -515,25 +522,33 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         }
     }
 
-    if (numErrors > 0) {
-        logger->error("{} remote OpenMP threads errored", numErrors);
-        throw std::runtime_error("Remote OpenMP threads have errors");
-    }
-
     // Await thread completion
     for (auto& t : localThreads) {
         if (t.joinable()) {
+            logger->debug("Joining local OpenMP thread");
             t.join();
+        } else {
+            logger->warn("Local OpenMP thread not joinable");
         }
     }
 
-    if (!errors.empty()) {
-        logger->error("{} local OpenMP threads errored", errors.size());
-        throw std::runtime_error("Local OpenMP threads have errors");
+    if (numErrors > 0 || !errors.empty()) {
+        logger->error("OpenMP threads errored ({} local, {} remote)",
+                      errors.size(),
+                      numErrors);
+        throw std::runtime_error("OpenMP threads have errors");
     }
 
     // Reset parent level for next setting of threads
     parentLevel->pushedThreads = -1;
+
+    // Delete the snapshot from registered hosts
+    sch.broadcastSnapshotDelete(*originalCall, snapshotKey);
+
+    // Delete the snapshot locally
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+    reg.deleteSnapshot(snapshotKey);
 }
 
 // -------------------------------------------------------

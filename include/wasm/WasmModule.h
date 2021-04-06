@@ -86,9 +86,13 @@ class WasmModule
     void clearCapturedStdout();
 
     // ----- Memory management -----
-    virtual uint32_t mmapMemory(uint32_t length);
+    virtual uint32_t shrinkMemory(uint32_t nBytes);
 
-    virtual uint32_t mmapPages(uint32_t pages);
+    virtual void unmapMemory(uint32_t offset, uint32_t nBytes);
+
+    virtual uint32_t mmapMemory(uint32_t nBytes);
+
+    virtual uint32_t mmapPages(uint32_t nPages);
 
     virtual uint32_t mmapFile(uint32_t fp, uint32_t length);
 

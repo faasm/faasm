@@ -238,17 +238,17 @@ void WAMRWasmModule::tearDown()
     wasm_runtime_unload(wasmModule);
 }
 
-uint32_t WAMRWasmModule::mmapMemory(uint32_t length)
+uint32_t WAMRWasmModule::mmapMemory(uint32_t nBytes)
 {
     void* nativePtr;
-    wasm_runtime_module_malloc(moduleInstance, length, &nativePtr);
+    wasm_runtime_module_malloc(moduleInstance, nBytes, &nativePtr);
     int32 wasmPtr = wasm_runtime_addr_native_to_app(moduleInstance, nativePtr);
     return wasmPtr;
 }
 
-uint32_t WAMRWasmModule::mmapPages(uint32_t pages)
+uint32_t WAMRWasmModule::mmapPages(uint32_t nPages)
 {
-    uint32_t bytes = pages * WASM_BYTES_PER_PAGE;
+    uint32_t bytes = nPages * WASM_BYTES_PER_PAGE;
     return mmapMemory(bytes);
 }
 

@@ -255,8 +255,6 @@ int executeSyscall(int syscallNumber,
 
 int32_t s__access(int32_t pathPtr, int32_t mode);
 
-int32_t s__brk(int32_t addr);
-
 int32_t s__clock_gettime(int32_t clockId, int32_t timespecPtr);
 
 int32_t s__close(int32_t fd);
@@ -317,8 +315,6 @@ int32_t s__mmap(int32_t addr,
                 int32_t offset);
 
 int32_t s__mprotect(int32_t addrPtr, int32_t len, int32_t prot);
-
-int32_t s__munmap(int32_t addr, int32_t length);
 
 int32_t s__nanosleep(int32_t reqPtr, int32_t remPtr);
 

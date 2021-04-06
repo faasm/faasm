@@ -33,10 +33,10 @@ int main(int argc, char* argv[])
 
     // Set short timeouts to die quickly
     auto conf = faabric::util::getSystemConfig();
-    conf.boundTimeout = 60000;
-    conf.unboundTimeout = 60000;
-    conf.globalMessageTimeout = 60000;
-    conf.chainedCallTimeout = 120000;
+    conf.boundTimeout = 240000;
+    conf.unboundTimeout = 240000;
+    conf.globalMessageTimeout = 240000;
+    conf.chainedCallTimeout = 240000;
 
     conf.print();
 

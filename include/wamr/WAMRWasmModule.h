@@ -37,9 +37,9 @@ class WAMRWasmModule final : public WasmModule
     void tearDown();
 
     // ----- Memory management -----
-    uint32_t mmapMemory(uint32_t length) override;
+    uint32_t mmapMemory(uint32_t nBytes) override;
 
-    uint32_t mmapPages(uint32_t pages) override;
+    uint32_t mmapPages(uint32_t nPages) override;
 
     uint32_t mmapFile(uint32_t fp, uint32_t length) override;
 
