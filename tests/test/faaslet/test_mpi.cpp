@@ -7,6 +7,8 @@
 namespace tests {
 void checkMpiFunc(const char* funcName)
 {
+    // Note: we don't `set_mpiworldsize` here, so all tests run with the default
+    // MPI world size (5). Some tests will fail if we change this.
     faabric::Message msg = faabric::util::messageFactory("mpi", funcName);
     execFuncWithPool(msg, false, 1, true, 10);
 }
