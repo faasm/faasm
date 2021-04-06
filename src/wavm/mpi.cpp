@@ -612,8 +612,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     ContextWrapper ctx;
 
-    // ctx.getMpiLogger()->debug("S - MPI_Wait {} {}", requestPtrPtr, status);
-
     int requestId = ctx.getFaasmRequestId(requestPtrPtr);
     ctx.getMpiLogger()->debug("S - MPI_Wait {} {}", requestPtrPtr, requestId);
     ctx.world.awaitAsyncRequest(requestId);
