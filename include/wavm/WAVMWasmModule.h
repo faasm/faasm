@@ -134,10 +134,6 @@ class WAVMWasmModule final
 
     int getDataOffsetFromGOT(const std::string& name);
 
-    uint32_t allocateThreadStack();
-
-    uint32_t createMemoryGuardRegion();
-
   private:
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> envModule;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> wasiModule;
@@ -198,6 +194,5 @@ struct WasmThreadSpec
     WAVM::Runtime::ContextRuntimeData* contextRuntimeData;
     WAVM::Runtime::Function* func;
     WAVM::IR::UntaggedValue* funcArgs;
-    uint32_t stackTop;
 };
 }

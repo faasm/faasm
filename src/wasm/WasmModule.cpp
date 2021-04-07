@@ -281,6 +281,65 @@ uint32_t WasmModule::getCurrentBrk()
     return currentBrk;
 }
 
+uint32_t WasmModule::createMemoryGuardRegion()
+{
+    auto logger = faabric::util::getLogger();
+
+    size_t regionSize = GUARD_REGION_SIZE;
+    uint32_t wasmOffset = growMemory(regionSize);
+
+    uint8_t* nativePtr = wasmPointerToNative(wasmOffset);
+
+    // NOTE: we want to protect these regions from _writes_, but we don't want
+    // to stop them being read, otherwise snapshotting will fail. Therefore we
+    // make them read-only
+    int res = mprotect(nativePtr, regionSize, PROT_READ);
+    if (res != 0) {
+        logger->error("Failed to create memory guard: {}",
+                      std::strerror(errno));
+        throw std::runtime_error("Failed to create memory guard");
+    }
+
+    logger->debug(
+      "Created guard region {}-{}", wasmOffset, wasmOffset + regionSize);
+
+    return wasmOffset;
+}
+
+void WasmModule::createThreadStackPool()
+{
+    auto logger = faabric::util::getLogger();
+
+    for (int i = 0; i < THREAD_STACK_POOL_SIZE; i++) {
+        createMemoryGuardRegion();
+        uint32_t thisStack = growMemory(THREAD_STACK_SIZE);
+        createMemoryGuardRegion();
+
+        logger->debug("Added thread stack {}", thisStack);
+        threadStacks.push_back(thisStack);
+    }
+}
+
+void WasmModule::returnThreadStack(uint32_t wasmPtr)
+{
+    auto logger = faabric::util::getLogger();
+    logger->debug("Returned thread stack {}", wasmPtr);
+    threadStacks.push_back(wasmPtr);
+}
+
+uint32_t WasmModule::allocateThreadStack()
+{
+    if (threadStacks.empty()) {
+        throw std::runtime_error("No more thread stacks left in pool");
+    }
+
+    auto logger = faabric::util::getLogger();
+    uint32_t wasmPtr = threadStacks.back();
+    threadStacks.pop_back();
+    logger->debug("Allocated thread stack {}", wasmPtr);
+    return wasmPtr;
+}
+
 // ------------------------------------------
 // Functions to be implemented by subclasses
 // ------------------------------------------

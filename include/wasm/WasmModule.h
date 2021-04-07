@@ -23,7 +23,9 @@
 // Note: this is *not* controlling the size provisioned by the linker, that is
 // hard-coded in the build. This variable is just here for reference and must be
 // updated to match the value in the build.
-#define STACK_SIZE 4 * ONE_MB_BYTES
+#define STACK_SIZE (4 * ONE_MB_BYTES)
+#define THREAD_STACK_SIZE (2 * ONE_MB_BYTES)
+#define THREAD_STACK_POOL_SIZE 20
 
 // Properties of dynamic modules. Heap size must be wasm-module-page-aligned.
 // One page is 64kB
@@ -101,6 +103,14 @@ class WasmModule
     
     virtual void unmapMemory(uint32_t offset, uint32_t nBytes);
 
+    uint32_t createMemoryGuardRegion();
+
+    uint32_t allocateThreadStack();
+    
+    void createThreadStackPool();
+
+    void returnThreadStack(uint32_t wasmPtr);
+
     virtual uint32_t mapSharedStateMemory(
       const std::shared_ptr<faabric::state::StateKeyValue>& kv,
       long offset,
@@ -120,6 +130,8 @@ class WasmModule
 
   protected:
     uint32_t currentBrk = 0;
+
+    std::vector<uint32_t> threadStacks;
 
     std::string boundUser;
 

@@ -156,7 +156,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         spec->contextRuntimeData = contextRuntimeData;
         spec->func = func;
         spec->funcArgs = threadArgs;
-        spec->stackTop = thisModule->allocateThreadStack();
 
         auto pArgs = new PThreadArgs();
         pArgs->parentModule = thisModule;

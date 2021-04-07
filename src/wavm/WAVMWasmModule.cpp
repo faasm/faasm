@@ -27,7 +27,6 @@
 
 #include <wavm/ThreadState.h>
 
-constexpr int THREAD_STACK_SIZE(2 * ONE_MB_BYTES);
 
 using namespace WAVM;
 
@@ -453,6 +452,9 @@ void WAVMWasmModule::doBindToFunction(const faabric::Message& msg,
     if (executeZygote) {
         executeZygoteFunction();
     }
+
+    // Allocate a pool of thread stacks
+    createThreadStackPool();
 
     // Check stack is at the bottom
     I32 heapBase = getGlobalI32("__heap_base", executionContext);
@@ -969,7 +971,6 @@ bool WAVMWasmModule::executeAsOMPThread(faabric::Message& msg)
         .contextRuntimeData = getContextRuntimeData(executionContext),
         .func = funcInstance,
         .funcArgs = invokeArgs.data(),
-        .stackTop = getExecutingWAVMModule()->allocateThreadStack(),
     };
 
     // Record the return value
@@ -1002,15 +1003,6 @@ U32 WAVMWasmModule::mmapFile(U32 fd, U32 length)
     if (mmappedPtr != targetPtr) {
         throw std::runtime_error("Unable to map file into required location");
     }
-
-    return wasmPtr;
-}
-
-U32 WAVMWasmModule::allocateThreadStack()
-{
-    // createMemoryGuardRegion();
-    U32 wasmPtr = growMemory(THREAD_STACK_SIZE);
-    // createMemoryGuardRegion();
 
     return wasmPtr;
 }
@@ -1490,7 +1482,7 @@ I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     // Create a new region for this thread's stack
-    U32 thisStackBase = spec.stackTop;
+    U32 thisStackBase = allocateThreadStack();
     U32 stackTop = thisStackBase + THREAD_STACK_SIZE - 1;
 
     // Create a new context for this thread
@@ -1538,6 +1530,9 @@ I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)
         logger->debug("Caught wasm exit exception (code {})", e.exitCode);
         returnValue = e.exitCode;
     }
+
+    // Return thread stack to the pool
+    returnThreadStack(thisStackBase);
 
     return returnValue;
 }
@@ -1686,31 +1681,5 @@ void WAVMWasmModule::printDebugInfo()
     printf("-------------------------------\n");
 
     fflush(stdout);
-}
-
-uint32_t WAVMWasmModule::createMemoryGuardRegion()
-{
-    auto logger = faabric::util::getLogger();
-
-    size_t regionSize = GUARD_REGION_SIZE;
-    uint32_t wasmOffset = growMemory(regionSize);
-
-    uint8_t* nativePtr =
-      &Runtime::memoryRef<uint8_t>(defaultMemory, wasmOffset);
-
-    // NOTE: we want to protect these regions from _writes_, but we don't want
-    // to stop them being read, otherwise snapshotting will fail. Therefore we
-    // make them read-only
-    int res = mprotect(nativePtr, regionSize, PROT_READ);
-    if (res != 0) {
-        logger->error("Failed to create memory guard: {}",
-                      std::strerror(errno));
-        throw std::runtime_error("Failed to create memory guard");
-    }
-
-    logger->debug(
-      "Created guard region {}-{}", wasmOffset, wasmOffset + regionSize);
-
-    return wasmOffset;
 }
 }
