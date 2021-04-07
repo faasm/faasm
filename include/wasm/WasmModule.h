@@ -31,7 +31,7 @@
 // One page is 64kB
 #define DYNAMIC_MODULE_STACK_SIZE (2 * ONE_MB_BYTES)
 #define DYNAMIC_MODULE_MEMORY_SIZE (66 * WASM_BYTES_PER_PAGE)
-#define GUARD_REGION_SIZE (10 * faabric::util::HOST_PAGE_SIZE)
+#define GUARD_REGION_SIZE (10 * WASM_BYTES_PER_PAGE)
 
 // Special known function names
 // Zygote function (must match faasm.h linked into the functions themselves)
