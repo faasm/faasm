@@ -74,7 +74,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "dlerror", I32, dlerror)
     std::string errorMessage("Wasm dynamic linking error. See logs");
 
     WAVMWasmModule* module = getExecutingWAVMModule();
-    uint32_t wasmStrPtr = module->mmapMemory(errorMessage.size());
+    uint32_t wasmStrPtr = module->growMemory(errorMessage.size());
 
     char* strPtr = &Runtime::memoryRef<char>(module->defaultMemory, wasmStrPtr);
     ::strcpy(strPtr, errorMessage.c_str());

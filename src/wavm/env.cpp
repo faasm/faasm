@@ -110,7 +110,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getpwuid", I32, getpwuid, I32 uid)
     size_t nameOffset = sizeof(wasm_passwd);
     size_t dirOffset = nameOffset + fakeName.size() + 1;
     size_t newMemSize = dirOffset + fakeDir.size();
-    U32 wasmMemPtr = getExecutingWAVMModule()->mmapMemory(newMemSize);
+    U32 wasmMemPtr = getExecutingWAVMModule()->growMemory(newMemSize);
 
     // Work out the pointers to the strings in wasm memory
     U32 namePtr = wasmMemPtr + nameOffset;

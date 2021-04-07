@@ -1227,7 +1227,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     // Create the new memory region
     WAVMWasmModule* module = getExecutingWAVMModule();
-    U32 mappedWasmPtr = module->mmapMemory(memSize);
+    U32 mappedWasmPtr = module->growMemory(memSize);
 
     // Write the result to the wasm memory (note that the argument passed to the
     // function is a pointer to a pointer)
@@ -1270,7 +1270,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     // Allocate new faabric_communicator_t object
     I32 memSize = sizeof(faabric_communicator_t);
-    U32 mappedWasmPtr = ctx.module->mmapMemory(memSize);
+    U32 mappedWasmPtr = ctx.module->growMemory(memSize);
 
     // Write the value to wasm memory
     I32* hostCommPtr = &Runtime::memoryRef<I32>(ctx.memory, newCommPtrPtr);

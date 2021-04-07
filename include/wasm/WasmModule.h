@@ -38,6 +38,9 @@
 #define ENTRY_FUNC_NAME "_start"
 
 namespace wasm {
+
+bool isWasmPageAligned(int32_t offset);
+
 class WasmModule
 {
   public:
@@ -86,9 +89,11 @@ class WasmModule
     void clearCapturedStdout();
 
     // ----- Memory management -----
+    uint32_t getCurrentBrk();
+
     virtual uint32_t growMemory(uint32_t nBytes);
     
-    virtual uint32_t shrinkMemory(uint32_t nBytes);
+    virtual void shrinkMemory(uint32_t nBytes);
     
     virtual uint32_t mmapMemory(uint32_t nBytes);
 
@@ -102,7 +107,7 @@ class WasmModule
       uint32_t length);
 
     virtual uint8_t* wasmPointerToNative(int32_t wasmPtr);
-
+    
     virtual size_t getMemorySizeBytes();
 
     // ----- Snapshot/ restore -----
@@ -114,6 +119,8 @@ class WasmModule
     virtual void printDebugInfo();
 
   protected:
+    uint32_t currentBrk = 0;
+
     std::string boundUser;
 
     std::string boundFunction;

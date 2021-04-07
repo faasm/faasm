@@ -11,15 +11,6 @@
 using namespace WAVM;
 
 namespace wasm {
-bool isPageAligned(I32 address)
-{
-    Uptr addrPtr = (Uptr)address;
-    if (addrPtr & (WASM_BYTES_PER_PAGE - 1)) {
-        return false;
-    } else {
-        return true;
-    }
-}
 
 I32 s__madvise(I32 address, I32 numBytes, I32 advice)
 {
@@ -156,10 +147,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     auto logger = faabric::util::getLogger();
     logger->debug("S - munmap - {} {}", addr, length);
 
-    if (!isPageAligned(addr)) {
-        throw std::runtime_error("Non-page aligned munmap");
-    }
-
     WasmModule* executingModule = getExecutingWAVMModule();
     executingModule->unmapMemory(addr, length);
 
@@ -182,23 +169,15 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__sbrk", I32, __sbrk, I32 increment)
     faabric::util::getLogger()->debug("S - sbrk - {}", increment);
 
     WAVMWasmModule* module = getExecutingWAVMModule();
-    size_t currentBrk = module->getMemorySizeBytes();
+    U32 oldBrk = module->getCurrentBrk();
     if (increment == 0) {
-        return (I32)currentBrk;
-    }
-
-    I32 newBreak = currentBrk + increment;
-    if (!isPageAligned(newBreak)) {
-        throw std::runtime_error("New break not page aligned");
-    }
-
-    U32 result;
-    if (increment < 0) {
-        result = module->shrinkMemory(-1 * increment);
+        return oldBrk;
+    } else if (increment < 0) {
+        module->shrinkMemory(-1 * increment);
+        return oldBrk;
     } else {
-        result = module->growMemory(increment);
+        return module->growMemory(increment);
     }
-    return (I32)result;
 }
 
 // mprotect is usually called as part of thread creation, in which

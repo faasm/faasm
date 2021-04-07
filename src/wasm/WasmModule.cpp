@@ -17,6 +17,15 @@ namespace wasm {
 // Using TLS here to isolate between executing functions
 static thread_local faabric::Message* executingCall;
 
+bool isWasmPageAligned(int32_t offset)
+{
+    if (offset & (WASM_BYTES_PER_PAGE - 1)) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
 faabric::Message* getExecutingCall()
 {
     return executingCall;
@@ -67,9 +76,11 @@ std::string WasmModule::snapshot()
     std::string snapKey =
       this->boundUser + "_" + this->boundFunction + "_" + std::to_string(gid);
 
+    // Note - we only want to take the snapshot to the current brk, not the top
+    // of the allocated memory
     faabric::util::SnapshotData data;
     data.data = getMemoryBase();
-    data.size = getMemorySizeBytes();
+    data.size = getCurrentBrk();
 
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
@@ -80,15 +91,23 @@ std::string WasmModule::snapshot()
 
 void WasmModule::restore(const std::string& snapshotKey)
 {
+    auto logger = faabric::util::getLogger();
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
 
     // Expand memory if necessary
     faabric::util::SnapshotData data = reg.getSnapshot(snapshotKey);
-    size_t memSize = getMemorySizeBytes();
-    if (data.size > memSize) {
+    uint32_t memSize = getCurrentBrk();
+    if (data.size == memSize) {
+        logger->debug("Snapshot memory size equal to current memory");
+    } else if (data.size > memSize) {
+        logger->debug("Growing memory to fit snapshot");
         size_t bytesRequired = data.size - memSize;
-        growMemory(bytesRequired);
+        this->growMemory(bytesRequired);
+    } else {
+        logger->debug("Shrinking memory to fit snapshot");
+        size_t shrinkBy = memSize - data.size;
+        this->shrinkMemory(shrinkBy);
     }
 
     // Map the snapshot into memory
@@ -239,7 +258,7 @@ uint32_t WasmModule::mapSharedStateMemory(
             // start of the desired chunk in this region (this will be zero if
             // the offset is already zero, or if the offset is page-aligned
             // already).
-            uint32_t wasmBasePtr = this->mmapMemory(chunk.nBytesLength);
+            uint32_t wasmBasePtr = this->growMemory(chunk.nBytesLength);
             uint32_t wasmOffsetPtr = wasmBasePtr + chunk.offsetRemainder;
 
             // Map the shared memory
@@ -255,6 +274,11 @@ uint32_t WasmModule::mapSharedStateMemory(
 
     // Return the wasm pointer
     return sharedMemWasmPtrs[segmentKey];
+}
+
+uint32_t WasmModule::getCurrentBrk()
+{
+    return currentBrk;
 }
 
 // ------------------------------------------
@@ -302,7 +326,7 @@ uint32_t WasmModule::growMemory(uint32_t nBytes)
     throw std::runtime_error("growMemory not implemented");
 }
 
-uint32_t WasmModule::shrinkMemory(uint32_t nBytes)
+void WasmModule::shrinkMemory(uint32_t nBytes)
 {
     throw std::runtime_error("shrinkMemory not implemented");
 }
