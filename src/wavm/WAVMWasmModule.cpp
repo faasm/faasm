@@ -1166,20 +1166,13 @@ void WAVMWasmModule::unmapMemory(U32 offset, U32 nBytes)
         logger->debug("MEM - munmapping top of memory by {}", nBytes);
         shrinkMemory(nBytes);
     } else {
-        logger->debug("MEM - new unmapped region {} at {}", nBytes, offset);
-        // TODO - record unmapped region
+        logger->warn("MEM - unable to reclaim memory {} at {}", nBytes, offset);
     }
 }
 
 U32 WAVMWasmModule::mmapMemory(U32 nBytes)
 {
-    bool memoryPoolFound = false;
-    if (memoryPoolFound) {
-        // TODO - reuse memory from pool
-        return 0;
-    } else {
-        return growMemory(nBytes);
-    }
+    return growMemory(nBytes);
 }
 
 uint8_t* WAVMWasmModule::wasmPointerToNative(int32_t wasmPtr)
