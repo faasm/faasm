@@ -105,7 +105,7 @@ TEST_CASE("Test dynamic load/ function lookup", "[wasm]")
     // Check the memory has grown sufficiently
     Uptr memSizeAfterA =
       Runtime::getMemoryNumPages(module.defaultMemory) * WASM_BYTES_PER_PAGE;
-    Uptr heapSize = DYNAMIC_MODULE_MEMORY_PAGES * WASM_BYTES_PER_PAGE;
+    Uptr heapSize = DYNAMIC_MODULE_MEMORY_SIZE;
 
     REQUIRE(memSizeAfterA == initialMemSize + heapSize + guardBytesPerModule);
 

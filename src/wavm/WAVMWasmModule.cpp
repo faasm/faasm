@@ -566,7 +566,7 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
 
         // Provision the memory for the new module plus two guard regions
         createMemoryGuardRegion();
-        Uptr newMemory = mmapPages(DYNAMIC_MODULE_MEMORY_PAGES);
+        Uptr newMemory = mmapMemory(DYNAMIC_MODULE_MEMORY_SIZE);
         createMemoryGuardRegion();
 
         // Record the dynamic module's creation
@@ -577,8 +577,7 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
 
         dynamicModule.memoryBottom = newMemory;
         dynamicModule.memoryTop =
-          dynamicModule.memoryBottom +
-          (DYNAMIC_MODULE_MEMORY_PAGES * WASM_BYTES_PER_PAGE);
+          dynamicModule.memoryBottom + DYNAMIC_MODULE_MEMORY_SIZE;
 
         dynamicModule.stackSize = DYNAMIC_MODULE_STACK_SIZE;
         dynamicModule.stackTop =
@@ -1012,6 +1011,77 @@ U32 WAVMWasmModule::allocateThreadStack()
     return wasmPtr;
 }
 
+U32 WAVMWasmModule::growMemory(U32 nBytes)
+{
+    // Cautious locking
+    faabric::util::UniqueLock lock(moduleMemoryMutex);
+
+    size_t currentBytes = getMemorySizeBytes();
+    size_t newBytes = currentBytes + nBytes;
+    Uptr currentPages = Runtime::getMemoryNumPages(defaultMemory);
+    Uptr newPages = getNumberOfWasmPagesForBytes(newBytes);
+    Uptr pageChange = newPages - currentPages;
+
+    auto logger = faabric::util::getLogger();
+    U64 maxSize = getMemoryType(defaultMemory).size.max;
+
+    if (nBytes == 0 || pageChange == 0) {
+        return currentBytes;
+    }
+
+    if (newPages > maxSize) {
+        logger->error("mmap would exceed max of {} pages (requested {})",
+                      maxSize,
+                      newPages);
+        throw std::runtime_error("Mmap exceeding max");
+    }
+
+    Uptr pageCountOut;
+    Runtime::GrowResult result =
+      Runtime::growMemory(defaultMemory, pageChange, &pageCountOut);
+
+    if (result != Runtime::GrowResult::success) {
+        if (result == Runtime::GrowResult::outOfMemory) {
+            logger->error("Committing new pages failed (errno={} ({})) "
+                          "(growing by {} from current {})",
+                          errno,
+                          strerror(errno),
+                          pageChange,
+                          currentPages);
+            throw std::runtime_error("Unable to commit virtual pages");
+
+        } else if (result == Runtime::GrowResult::outOfMaxSize) {
+            logger->error("No memory for mapping (growing by {} from {} pages)",
+                          pageChange,
+                          currentPages);
+            throw std::runtime_error("Run out of memory to map");
+
+        } else if (result == Runtime::GrowResult::outOfQuota) {
+            logger->error(
+              "Memory resource quota exceeded (growing by {} from {})",
+              pageChange,
+              currentPages);
+            throw std::runtime_error("Memory resource quota exceeded");
+
+        } else {
+            logger->error("Unknown memory mapping error (growing by {} from "
+                          "{}. Previous {})",
+                          pageChange,
+                          currentPages,
+                          pageCountOut);
+            throw std::runtime_error("Unknown memory mapping error");
+        }
+    }
+
+    logger->debug(
+      "MEM - Growing memory from {} to {} pages", currentPages, newPages);
+
+    // Get pointer to mapped range
+    auto mappedRangePtr = (U32)(Uptr(pageCountOut) * WASM_BYTES_PER_PAGE);
+
+    return mappedRangePtr;
+}
+
 U32 WAVMWasmModule::shrinkMemory(U32 nBytes)
 {
     size_t currentSize = getMemorySizeBytes();
@@ -1027,6 +1097,10 @@ void WAVMWasmModule::unmapMemory(U32 offset, U32 nBytes)
         return;
     }
 
+    faabric::util::UniqueLock lock(moduleMemoryMutex);
+
+    auto logger = faabric::util::getLogger();
+
     const Uptr addrPageBase = offset / IR::numBytesPerPage;
     const Uptr numPages = getNumberOfWasmPagesForBytes(nBytes);
 
@@ -1035,81 +1109,26 @@ void WAVMWasmModule::unmapMemory(U32 offset, U32 nBytes)
         throw std::runtime_error("munmapping region over max memory pages");
     }
 
+    logger->debug(
+      "MEM - Shrinking memory by {} pages at {}", numPages, addrPageBase);
+
+    Uptr pagesBefore = Runtime::getMemoryNumPages(defaultMemory);
     // Unmap the memory
     Runtime::unmapMemoryPages(defaultMemory, addrPageBase, numPages);
+
+    Uptr pagesAfter = Runtime::getMemoryNumPages(defaultMemory);
+    logger->debug("MEM - WAVM {} -> {}", pagesBefore, pagesAfter);
 }
 
 U32 WAVMWasmModule::mmapMemory(U32 nBytes)
 {
-    // Round up to page boundary
-    Uptr nWasmPages = getNumberOfWasmPagesForBytes(nBytes);
-    return mmapPages(nWasmPages);
-}
-
-U32 WAVMWasmModule::mmapPages(U32 nPages)
-{
-    // Cautious locking
-    faabric::util::UniqueLock lock(moduleMemoryMutex);
-
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    U64 maxSize = getMemoryType(defaultMemory).size.max;
-    Uptr currentPageCount = Runtime::getMemoryNumPages(defaultMemory);
-
-    if (nPages == 0) {
-        throw std::runtime_error("Requesting mapping of zero pages");
+    bool memoryPoolFound = false;
+    if (memoryPoolFound) {
+        // TODO - reuse memory from pool
+        return 0;
+    } else {
+        return growMemory(nBytes);
     }
-
-    Uptr newPageCount = currentPageCount + nPages;
-    if (newPageCount > maxSize) {
-        logger->error(
-          "mmap would exceed max of {} pages (growing by {} from {})",
-          maxSize,
-          nPages,
-          currentPageCount);
-        throw std::runtime_error("Mmap exceeding max");
-    }
-
-    Uptr pageCountOut;
-    Runtime::GrowResult result =
-      growMemory(defaultMemory, nPages, &pageCountOut);
-    if (result != Runtime::GrowResult::success) {
-        if (result == Runtime::GrowResult::outOfMemory) {
-            logger->error("Committing new pages failed (errno={} ({})) "
-                          "(growing by {} from current {})",
-                          errno,
-                          strerror(errno),
-                          nPages,
-                          currentPageCount);
-            throw std::runtime_error("Unable to commit virtual pages");
-        } else if (result == Runtime::GrowResult::outOfMaxSize) {
-            logger->error("No memory for mapping (growing by {} from {} pages)",
-                          nPages,
-                          currentPageCount);
-            throw std::runtime_error("Run out of memory to map");
-        } else if (result == Runtime::GrowResult::outOfQuota) {
-            logger->error(
-              "Memory resource quota exceeded (growing by {} from {})",
-              nPages,
-              newPageCount);
-            throw std::runtime_error("Memory resource quota exceeded");
-        } else {
-            logger->error("Unknown memory mapping error (growing by {} from "
-                          "{}. Previous {})",
-                          nPages,
-                          newPageCount,
-                          pageCountOut);
-            throw std::runtime_error("Unknown memory mapping error");
-        }
-    }
-
-    logger->debug("mmap - Growing memory from {} to {} pages",
-                  currentPageCount,
-                  newPageCount);
-
-    // Get pointer to mapped range
-    auto mappedRangePtr = (U32)(Uptr(pageCountOut) * WASM_BYTES_PER_PAGE);
-
-    return mappedRangePtr;
 }
 
 uint8_t* WAVMWasmModule::wasmPointerToNative(int32_t wasmPtr)
@@ -1616,10 +1635,8 @@ uint32_t WAVMWasmModule::createMemoryGuardRegion()
 {
     auto logger = faabric::util::getLogger();
 
-    size_t nPages = getPagesForGuardRegion();
-    size_t regionSize = nPages * WASM_BYTES_PER_PAGE;
-
-    uint32_t wasmOffset = mmapPages(nPages);
+    size_t regionSize = GUARD_REGION_SIZE;
+    uint32_t wasmOffset = mmapMemory(regionSize);
 
     uint8_t* nativePtr =
       &Runtime::memoryRef<uint8_t>(defaultMemory, wasmOffset);

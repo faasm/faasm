@@ -246,12 +246,6 @@ uint32_t WAMRWasmModule::mmapMemory(uint32_t nBytes)
     return wasmPtr;
 }
 
-uint32_t WAMRWasmModule::mmapPages(uint32_t nPages)
-{
-    uint32_t bytes = nPages * WASM_BYTES_PER_PAGE;
-    return mmapMemory(bytes);
-}
-
 uint8_t* WAMRWasmModule::wasmPointerToNative(int32_t wasmPtr)
 {
     void* nativePtr = wasm_runtime_addr_app_to_native(moduleInstance, wasmPtr);

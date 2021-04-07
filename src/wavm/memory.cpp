@@ -187,17 +187,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__sbrk", I32, __sbrk, I32 increment)
         return (I32)currentBrk;
     }
 
+    I32 newBreak = currentBrk + increment;
+    if (!isPageAligned(newBreak)) {
+        throw std::runtime_error("New break not page aligned");
+    }
+
     U32 result;
     if (increment < 0) {
-        I32 nBytes = -1 * increment;
-        I32 newBreak = currentBrk - nBytes;
-        if (!isPageAligned(newBreak)) {
-            throw std::runtime_error("New break not page aligned");
-        }
-
-        result = module->shrinkMemory(nBytes);
+        result = module->shrinkMemory(-1 * increment);
     } else {
-        result = module->mmapMemory(increment);
+        result = module->growMemory(increment);
     }
     return (I32)result;
 }

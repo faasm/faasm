@@ -86,12 +86,9 @@ void WasmModule::restore(const std::string& snapshotKey)
     // Expand memory if necessary
     faabric::util::SnapshotData data = reg.getSnapshot(snapshotKey);
     size_t memSize = getMemorySizeBytes();
-    size_t snapshotPages = getNumberOfWasmPagesForBytes(data.size);
-    size_t currentNumPages = getNumberOfWasmPagesForBytes(memSize);
-
-    if (snapshotPages > currentNumPages) {
-        size_t pagesRequired = snapshotPages - currentNumPages;
-        mmapPages(pagesRequired);
+    if (data.size > memSize) {
+        size_t bytesRequired = data.size - memSize;
+        growMemory(bytesRequired);
     }
 
     // Map the snapshot into memory
@@ -300,14 +297,14 @@ void WasmModule::writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer)
     throw std::runtime_error("writeWasmEnvToMemory not implemented");
 }
 
+uint32_t WasmModule::growMemory(uint32_t nBytes)
+{
+    throw std::runtime_error("growMemory not implemented");
+}
+
 uint32_t WasmModule::shrinkMemory(uint32_t nBytes)
 {
     throw std::runtime_error("shrinkMemory not implemented");
-}
-
-void WasmModule::unmapMemory(uint32_t offset, uint32_t nBytes)
-{
-    throw std::runtime_error("unmapMemory not implemented");
 }
 
 uint32_t WasmModule::mmapMemory(uint32_t nBytes)
@@ -315,14 +312,14 @@ uint32_t WasmModule::mmapMemory(uint32_t nBytes)
     throw std::runtime_error("mmapMemory not implemented");
 }
 
-uint32_t WasmModule::mmapPages(uint32_t nPages)
-{
-    throw std::runtime_error("mmapPages not implemented");
-}
-
 uint32_t WasmModule::mmapFile(uint32_t fp, uint32_t length)
 {
     throw std::runtime_error("mmapFile not implemented");
+}
+
+void WasmModule::unmapMemory(uint32_t offset, uint32_t nBytes)
+{
+    throw std::runtime_error("unmapMemory not implemented");
 }
 
 uint8_t* WasmModule::wasmPointerToNative(int32_t wasmPtr)

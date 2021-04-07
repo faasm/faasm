@@ -27,9 +27,9 @@
 
 // Properties of dynamic modules. Heap size must be wasm-module-page-aligned.
 // One page is 64kB
-#define DYNAMIC_MODULE_STACK_SIZE 2 * ONE_MB_BYTES
-#define DYNAMIC_MODULE_MEMORY_PAGES 66
-#define GUARD_REGION_SIZE 10 * faabric::util::HOST_PAGE_SIZE;
+#define DYNAMIC_MODULE_STACK_SIZE (2 * ONE_MB_BYTES)
+#define DYNAMIC_MODULE_MEMORY_SIZE (66 * WASM_BYTES_PER_PAGE)
+#define GUARD_REGION_SIZE (10 * faabric::util::HOST_PAGE_SIZE)
 
 // Special known function names
 // Zygote function (must match faasm.h linked into the functions themselves)
@@ -86,15 +86,15 @@ class WasmModule
     void clearCapturedStdout();
 
     // ----- Memory management -----
+    virtual uint32_t growMemory(uint32_t nBytes);
+    
     virtual uint32_t shrinkMemory(uint32_t nBytes);
-
-    virtual void unmapMemory(uint32_t offset, uint32_t nBytes);
-
+    
     virtual uint32_t mmapMemory(uint32_t nBytes);
 
-    virtual uint32_t mmapPages(uint32_t nPages);
-
     virtual uint32_t mmapFile(uint32_t fp, uint32_t length);
+    
+    virtual void unmapMemory(uint32_t offset, uint32_t nBytes);
 
     virtual uint32_t mapSharedStateMemory(
       const std::shared_ptr<faabric::state::StateKeyValue>& kv,
