@@ -7,6 +7,7 @@
 #include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/memory.h>
+#include <faabric/util/timing.h>
 
 #include <boost/filesystem.hpp>
 #include <sstream>
@@ -71,6 +72,8 @@ wasm::WasmEnvironment& WasmModule::getWasmEnvironment()
 
 std::string WasmModule::snapshot()
 {
+    PROF_START(wasmSnapshot)
+
     // Create snapshot key
     uint32_t gid = faabric::util::generateGid();
     std::string snapKey =
@@ -86,11 +89,15 @@ std::string WasmModule::snapshot()
       faabric::snapshot::getSnapshotRegistry();
     reg.takeSnapshot(snapKey, data);
 
+    PROF_END(wasmSnapshot)
+
     return snapKey;
 }
 
 void WasmModule::restore(const std::string& snapshotKey)
 {
+    PROF_START(wasmSnapshotRestore)
+
     auto logger = faabric::util::getLogger();
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
@@ -113,6 +120,8 @@ void WasmModule::restore(const std::string& snapshotKey)
     // Map the snapshot into memory
     uint8_t* memoryBase = getMemoryBase();
     reg.mapSnapshot(snapshotKey, memoryBase);
+
+    PROF_END(wasmSnapshotRestore)
 }
 
 std::string WasmModule::getBoundUser()

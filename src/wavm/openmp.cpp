@@ -380,6 +380,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS(
       "__kmpc_fork_call {} {} {} {}", locPtr, argc, microtaskPtr, argsPtr);
 
+    PROF_START(kmpcFork);
+
     auto conf = faabric::util::getSystemConfig();
     auto& sch = faabric::scheduler::getScheduler();
 
@@ -475,6 +477,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                    &errors,
                                    &errorsMutex,
                                    i] {
+
+            PROF_START(ompThread)
+
             // We are now in a new thread so need to set up everything
             // that uses TLS
             setUpOpenMPContext(i, nextLevel);
@@ -491,6 +496,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                 faabric::util::UniqueLock lock(errorsMutex);
                 errors.push_back(i);
             }
+
+            PROF_END(ompThread)
         });
     }
 
@@ -549,6 +556,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
     reg.deleteSnapshot(snapshotKey);
+
+    PROF_END(kmpcFork);
 }
 
 // -------------------------------------------------------
