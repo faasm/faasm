@@ -938,7 +938,9 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
                   returnValue = 1;
               });
         } catch (WasmExitException& e) {
-            logger->debug("Caught wasm exit exception (code {})", e.exitCode);
+            logger->debug(
+              "Caught wasm exit exception from main thread (code {})",
+              e.exitCode);
             returnValue = e.exitCode;
             success = e.exitCode == 0;
         }
@@ -1024,6 +1026,11 @@ U32 WAVMWasmModule::growMemory(U32 nBytes)
 
     uint32_t oldBrk = currentBrk;
     uint32_t newBrk = currentBrk + nBytes;
+
+    if (!isWasmPageAligned(newBrk)) {
+        logger->error("Growing memory by {} is not wasm page aligned", nBytes);
+        throw std::runtime_error("Non-wasm-page-aligned memory growth");
+    }
 
     // If we can reclaim old memory, just bump the break
     if (newBrk <= oldBytes) {
@@ -1522,7 +1529,8 @@ I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)
               returnValue = 1;
           });
     } catch (WasmExitException& e) {
-        logger->debug("Caught wasm exit exception (code {})", e.exitCode);
+        logger->debug("Caught wasm exit exception from child thread (code {})",
+                      e.exitCode);
         returnValue = e.exitCode;
     }
 

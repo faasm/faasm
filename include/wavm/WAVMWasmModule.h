@@ -49,7 +49,7 @@ class WAVMWasmModule final
 
     // ----- Memory management -----
     uint32_t growMemory(uint32_t nBytes) override;
-    
+
     void shrinkMemory(uint32_t nBytes) override;
 
     uint32_t mmapMemory(uint32_t nBytes) override;
@@ -57,7 +57,7 @@ class WAVMWasmModule final
     uint32_t mmapFile(uint32_t fp, uint32_t length) override;
 
     void unmapMemory(uint32_t offset, uint32_t nBytes) override;
-    
+
     uint8_t* wasmPointerToNative(int32_t wasmPtr) override;
 
     size_t getMemorySizeBytes() override;

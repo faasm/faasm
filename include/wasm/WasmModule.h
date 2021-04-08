@@ -94,19 +94,19 @@ class WasmModule
     uint32_t getCurrentBrk();
 
     virtual uint32_t growMemory(uint32_t nBytes);
-    
+
     virtual void shrinkMemory(uint32_t nBytes);
-    
+
     virtual uint32_t mmapMemory(uint32_t nBytes);
 
     virtual uint32_t mmapFile(uint32_t fp, uint32_t length);
-    
+
     virtual void unmapMemory(uint32_t offset, uint32_t nBytes);
 
     uint32_t createMemoryGuardRegion();
 
     uint32_t allocateThreadStack();
-    
+
     void createThreadStackPool();
 
     void returnThreadStack(uint32_t wasmPtr);
@@ -117,11 +117,11 @@ class WasmModule
       uint32_t length);
 
     virtual uint8_t* wasmPointerToNative(int32_t wasmPtr);
-    
+
     virtual size_t getMemorySizeBytes();
 
     // ----- Snapshot/ restore -----
-    std::string snapshot();
+    std::string snapshot(bool locallyRestorable = true);
 
     void restore(const std::string& snapshotKey);
 
@@ -169,6 +169,8 @@ void setExecutingCall(faabric::Message* other);
 
 // Convenience functions
 size_t getNumberOfWasmPagesForBytes(uint32_t nBytes);
+
+uint32_t roundUpToWasmPageAligned(uint32_t nBytes);
 
 size_t getPagesForGuardRegion();
 

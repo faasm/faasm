@@ -1,6 +1,7 @@
 #include "WAVMWasmModule.h"
 #include "math.h"
 #include "syscalls.h"
+#include "wasm/WasmModule.h"
 
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
@@ -1227,7 +1228,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     // Create the new memory region
     WAVMWasmModule* module = getExecutingWAVMModule();
-    U32 mappedWasmPtr = module->growMemory(memSize);
+    U32 pageAlignedSize = roundUpToWasmPageAligned(memSize);
+    U32 mappedWasmPtr = module->growMemory(pageAlignedSize);
 
     // Write the result to the wasm memory (note that the argument passed to the
     // function is a pointer to a pointer)
@@ -1270,7 +1272,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     // Allocate new faabric_communicator_t object
     I32 memSize = sizeof(faabric_communicator_t);
-    U32 mappedWasmPtr = ctx.module->growMemory(memSize);
+    U32 pageAlignedSize = roundUpToWasmPageAligned(memSize);
+    U32 mappedWasmPtr = ctx.module->growMemory(pageAlignedSize);
 
     // Write the value to wasm memory
     I32* hostCommPtr = &Runtime::memoryRef<I32>(ctx.memory, newCommPtrPtr);

@@ -23,7 +23,7 @@ TEST_CASE("Test snapshot and restore for wasm module", "[wasm][snapshot]")
     moduleA.bindToFunction(m);
 
     // Modify the memory of the module to check changes are propagated
-    uint32_t wasmPtr = moduleA.growMemory(1);
+    uint32_t wasmPtr = moduleA.growMemory(WASM_BYTES_PER_PAGE);
     uint8_t* nativePtr = moduleA.wasmPointerToNative(wasmPtr);
     nativePtr[0] = 0;
     nativePtr[1] = 1;

@@ -398,7 +398,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     nextLevel->fromParentLevel(parentLevel);
 
     // Take memory snapshot
-    std::string snapshotKey = parentModule->snapshot();
+    std::string snapshotKey = parentModule->snapshot(false);
     logger->debug("Created OpenMP snapshot: {}", snapshotKey);
 
     const faabric::Message* originalCall = getExecutingCall();
@@ -477,7 +477,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                    &errors,
                                    &errorsMutex,
                                    i] {
-
             PROF_START(ompThread)
 
             // We are now in a new thread so need to set up everything

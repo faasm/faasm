@@ -109,7 +109,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     // Create a new snapshot if one isn't already active
     if (currentSnapshotKey.empty()) {
-        currentSnapshotKey = thisModule->snapshot();
+        currentSnapshotKey = thisModule->snapshot(false);
 
         logger->debug(
           "Setting pthread snapshot for {} ({})", funcStr, currentSnapshotKey);

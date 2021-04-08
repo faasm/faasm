@@ -46,6 +46,12 @@ size_t getNumberOfWasmPagesForBytes(uint32_t nBytes)
     return pageCount;
 }
 
+uint32_t roundUpToWasmPageAligned(uint32_t nBytes)
+{
+    size_t nPages = getNumberOfWasmPagesForBytes(nBytes);
+    return (uint32_t)(nPages * WASM_BYTES_PER_PAGE);
+}
+
 size_t getPagesForGuardRegion()
 {
     size_t regionSize = GUARD_REGION_SIZE;
@@ -70,7 +76,7 @@ wasm::WasmEnvironment& WasmModule::getWasmEnvironment()
     return wasmEnvironment;
 }
 
-std::string WasmModule::snapshot()
+std::string WasmModule::snapshot(bool locallyRestorable)
 {
     PROF_START(wasmSnapshot)
 
@@ -87,7 +93,7 @@ std::string WasmModule::snapshot()
 
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
-    reg.takeSnapshot(snapKey, data);
+    reg.takeSnapshot(snapKey, data, locallyRestorable);
 
     PROF_END(wasmSnapshot)
 
