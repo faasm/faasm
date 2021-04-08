@@ -67,6 +67,7 @@ set(LIB_FILES
         dynlink.cpp
         filesystem.cpp
         funcs.cpp
+        memory.cpp
         native.cpp
         pthread.cpp
         state.cpp

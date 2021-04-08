@@ -1,6 +1,8 @@
 #include "WAMRWasmModule.h"
+#include "aot_runtime.h"
 #include "faabric/util/logging.h"
 #include "platform_common.h"
+#include "wasm/WasmModule.h"
 #include "wasm_exec_env.h"
 #include "wasm_runtime.h"
 
@@ -115,6 +117,9 @@ void WAMRWasmModule::bindToFunction(const faabric::Message& msg)
         logger->error("Failed to instantiate WAMR module: \n{}", errorMsg);
         throw std::runtime_error("Failed to instantiate WAMR module");
     }
+    
+    currentBrk = getMemorySizeBytes();
+    logger->debug("WAMR currentBrk = {}", currentBrk);
 }
 
 void WAMRWasmModule::bindToFunctionNoZygote(const faabric::Message& msg)
@@ -238,7 +243,7 @@ void WAMRWasmModule::tearDown()
     wasm_runtime_unload(wasmModule);
 }
 
-uint32_t WAMRWasmModule::mmapMemory(uint32_t nBytes)
+uint32_t WAMRWasmModule::growMemory(uint32_t nBytes)
 {
     void* nativePtr;
     wasm_runtime_module_malloc(moduleInstance, nBytes, &nativePtr);
@@ -246,10 +251,40 @@ uint32_t WAMRWasmModule::mmapMemory(uint32_t nBytes)
     return wasmPtr;
 }
 
+void WAMRWasmModule::shrinkMemory(uint32_t nBytes)
+{
+    auto logger = faabric::util::getLogger();
+    logger->warn("WAMR ignoring shrink memory");
+}
+
+uint32_t WAMRWasmModule::mmapMemory(uint32_t nBytes)
+{
+    uint32_t pageAligned = roundUpToWasmPageAligned(nBytes);
+    return growMemory(pageAligned);
+}
+
 uint8_t* WAMRWasmModule::wasmPointerToNative(int32_t wasmPtr)
 {
     void* nativePtr = wasm_runtime_addr_app_to_native(moduleInstance, wasmPtr);
     return static_cast<uint8_t*>(nativePtr);
+}
+
+size_t WAMRWasmModule::getMemorySizeBytes()
+{
+#if WASM_ENABLE_AOT != 0
+    // There must be a nicer way to do this, this is lifted from aot_runtime.c
+    auto aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
+    AOTMemoryInstance* aotMem =
+      ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
+    return aotMem->cur_page_count * aotMem->num_bytes_per_page;
+#endif
+
+#if WASM_ENABLE_INTERP != 0
+    auto interpModule = reinterpret_cast<WASMModuleInstance*>(moduleInstance);
+    WASMMemoryInstance* interpMem =
+      ((WASMMemoryInstance**)interpModule->memories)[0];
+    return interpMem->cur_page_count * interpMem->num_bytes_per_page;
+#endif
 }
 
 uint32_t WAMRWasmModule::mmapFile(uint32_t fp, uint32_t length)

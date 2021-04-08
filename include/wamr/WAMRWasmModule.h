@@ -37,11 +37,17 @@ class WAMRWasmModule final : public WasmModule
     void tearDown();
 
     // ----- Memory management -----
+    uint32_t growMemory(uint32_t nBytes) override;
+
+    void shrinkMemory(uint32_t nBytes) override;
+
     uint32_t mmapMemory(uint32_t nBytes) override;
 
     uint32_t mmapFile(uint32_t fp, uint32_t length) override;
 
     uint8_t* wasmPointerToNative(int32_t wasmPtr) override;
+
+    size_t getMemorySizeBytes() override;
 
   private:
     bool _isBound;
