@@ -9,7 +9,7 @@ using namespace wasm;
 
 namespace tests {
 
-TEST_CASE("Test executing echo function with WAMR", "[wamr]")
+TEST_CASE("Test executing echo function with WAMR", "[wamr][!mayfail]")
 {
     faabric::Message call = faabric::util::messageFactory("demo", "echo");
     std::string inputData = "hello there";
@@ -25,7 +25,7 @@ TEST_CASE("Test executing echo function with WAMR", "[wamr]")
     REQUIRE(outputData == inputData);
 }
 
-TEST_CASE("Test executing chain function with WAMR", "[wamr]")
+TEST_CASE("Test executing chain function with WAMR", "[wamr][!mayfail]")
 {
     executeWithWamrPool("demo", "chain");
 }

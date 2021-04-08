@@ -117,7 +117,7 @@ void WAMRWasmModule::bindToFunction(const faabric::Message& msg)
         logger->error("Failed to instantiate WAMR module: \n{}", errorMsg);
         throw std::runtime_error("Failed to instantiate WAMR module");
     }
-    
+
     currentBrk = getMemorySizeBytes();
     logger->debug("WAMR currentBrk = {}", currentBrk);
 }
@@ -245,9 +245,15 @@ void WAMRWasmModule::tearDown()
 
 uint32_t WAMRWasmModule::growMemory(uint32_t nBytes)
 {
+    auto logger = faabric::util::getLogger();
+    logger->debug("WAMR growing memory by {}", nBytes);
+
     void* nativePtr;
     wasm_runtime_module_malloc(moduleInstance, nBytes, &nativePtr);
+
     int32 wasmPtr = wasm_runtime_addr_native_to_app(moduleInstance, nativePtr);
+    currentBrk = wasmPtr + nBytes;
+
     return wasmPtr;
 }
 
