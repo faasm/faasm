@@ -1,4 +1,5 @@
 #include "wasm/WasmModule.h"
+#include "faabric/util/environment.h"
 
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/util/bytes.h>
@@ -273,7 +274,9 @@ uint32_t WasmModule::mapSharedStateMemory(
             // start of the desired chunk in this region (this will be zero if
             // the offset is already zero, or if the offset is page-aligned
             // already).
-            uint32_t wasmBasePtr = this->growMemory(chunk.nBytesLength);
+            // We need to round the allocation up to a wasm page boundary
+            uint32_t allocSize = roundUpToWasmPageAligned(chunk.nBytesLength);
+            uint32_t wasmBasePtr = this->growMemory(allocSize);
             uint32_t wasmOffsetPtr = wasmBasePtr + chunk.offsetRemainder;
 
             // Map the shared memory
@@ -321,37 +324,54 @@ uint32_t WasmModule::createMemoryGuardRegion()
     return wasmOffset;
 }
 
+void WasmModule::addThreadStackToPool()
+{
+    createMemoryGuardRegion();
+    uint32_t thisStack = growMemory(THREAD_STACK_SIZE);
+    createMemoryGuardRegion();
+
+    threadStacks.push_back(thisStack);
+}
+
 void WasmModule::createThreadStackPool()
 {
     auto logger = faabric::util::getLogger();
 
-    for (int i = 0; i < THREAD_STACK_POOL_SIZE; i++) {
-        createMemoryGuardRegion();
-        uint32_t thisStack = growMemory(THREAD_STACK_SIZE);
-        createMemoryGuardRegion();
+    faabric::util::UniqueLock lock(threadStackMutex);
 
-        logger->debug("Added thread stack {}", thisStack);
-        threadStacks.push_back(thisStack);
+    uint32_t cores = faabric::util::getUsableCores();
+    uint32_t poolSize = cores + 5;
+    logger->debug(
+      "Creating thread stack pool size {} (cores={})", poolSize, cores);
+
+    for (int i = 0; i < poolSize; i++) {
+        addThreadStackToPool();
     }
 }
 
 void WasmModule::returnThreadStack(uint32_t wasmPtr)
 {
+    faabric::util::UniqueLock lock(threadStackMutex);
+
     auto logger = faabric::util::getLogger();
     logger->debug("Returned thread stack {}", wasmPtr);
     threadStacks.push_back(wasmPtr);
 }
 
-uint32_t WasmModule::allocateThreadStack()
+uint32_t WasmModule::claimThreadStack()
 {
-    if (threadStacks.empty()) {
-        throw std::runtime_error("No more thread stacks left in pool");
-    }
+    faabric::util::UniqueLock lock(threadStackMutex);
 
     auto logger = faabric::util::getLogger();
+
+    if (threadStacks.empty()) {
+        logger->warn("Thread stack pool empty, having to allocate from heap");
+        addThreadStackToPool();
+    }
+
     uint32_t wasmPtr = threadStacks.back();
     threadStacks.pop_back();
-    logger->debug("Allocated thread stack {}", wasmPtr);
+    logger->debug("Claimed thread stack {}", wasmPtr);
     return wasmPtr;
 }
 

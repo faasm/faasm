@@ -25,7 +25,6 @@
 // updated to match the value in the build.
 #define STACK_SIZE (4 * ONE_MB_BYTES)
 #define THREAD_STACK_SIZE (2 * ONE_MB_BYTES)
-#define THREAD_STACK_POOL_SIZE 20
 
 // Properties of dynamic modules. Heap size must be wasm-module-page-aligned.
 // One page is 64kB
@@ -105,12 +104,6 @@ class WasmModule
 
     uint32_t createMemoryGuardRegion();
 
-    uint32_t allocateThreadStack();
-
-    void createThreadStackPool();
-
-    void returnThreadStack(uint32_t wasmPtr);
-
     virtual uint32_t mapSharedStateMemory(
       const std::shared_ptr<faabric::state::StateKeyValue>& kv,
       long offset,
@@ -146,6 +139,7 @@ class WasmModule
 
     std::mutex moduleMemoryMutex;
     std::mutex moduleStateMutex;
+    std::mutex threadStackMutex;
 
     // Argc/argv
     unsigned int argc;
@@ -160,6 +154,14 @@ class WasmModule
     void prepareArgcArgv(const faabric::Message& msg);
 
     virtual uint8_t* getMemoryBase();
+
+    void addThreadStackToPool();
+
+    uint32_t claimThreadStack();
+
+    void createThreadStackPool();
+
+    void returnThreadStack(uint32_t wasmPtr);
 };
 
 // ----- Global functions -----

@@ -3,6 +3,8 @@
 
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/scheduler/FunctionCallClient.h>
+#include <faabric/scheduler/SnapshotClient.h>
+#include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/environment.h>
 #include <faabric/util/testing.h>
@@ -128,11 +130,27 @@ void execFunctionWithRemoteBatch(faabric::Message& call,
 
     auto reqs = faabric::scheduler::getBatchRequests();
     REQUIRE(reqs.size() == 1);
-    REQUIRE(reqs.at(0).first == otherHost);
+    std::string actualHost = reqs.at(0).first;
+    faabric::BatchExecuteRequest req = reqs.at(0).second;
+    REQUIRE(actualHost == otherHost);
+
+    // Check the snapshot has been pushed to the other host
+    auto snapPushes = faabric::scheduler::getSnapshotPushes();
+    REQUIRE(snapPushes.size() == 1);
+    REQUIRE(snapPushes.at(0).first == otherHost);
+
+    // Rewrite the snapshot to be restorable. This is a bit of a hack, usually
+    // this would have been done via the RPC call between the hosts.
+    faabric::Message firstMsg = req.messages().at(0);
+    std::string snapKey = firstMsg.snapshotkey();
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+    faabric::util::SnapshotData& snapData = reg.getSnapshot(snapKey);
+    reg.takeSnapshot(snapKey, snapData);
 
     // Now execute request on this host (forced)
     // Note - don't clean as we will have already done at the top of this func
-    execBatchWithPool(reqs.at(0).second, nThreads, false, false);
+    execBatchWithPool(req, nThreads, false, false);
 
     if (t.joinable()) {
         t.join();

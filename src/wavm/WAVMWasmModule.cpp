@@ -988,7 +988,7 @@ U32 WAVMWasmModule::mmapFile(U32 fd, U32 length)
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     // Create a new memory region
-    U32 wasmPtr = growMemory(length);
+    U32 wasmPtr = mmapMemory(length);
     U32* targetPtr = &Runtime::memoryRef<U32>(defaultMemory, wasmPtr);
 
     // Unmap and remap the memory
@@ -1152,17 +1152,20 @@ void WAVMWasmModule::unmapMemory(U32 offset, U32 nBytes)
 
     auto logger = faabric::util::getLogger();
 
-    if (!isWasmPageAligned(offset) || !isWasmPageAligned(nBytes)) {
-        logger->error("Non-page aligned munmap {} {}", offset, nBytes);
-        throw std::runtime_error("Non-page aligned munmap");
+    // Munmap expects the offset itself to be page-aligned, but will round up
+    // the number of bytes
+    if (!isWasmPageAligned(offset)) {
+        logger->error("Non-page aligned munmap address {}", offset);
+        throw std::runtime_error("Non-page aligned munmap address");
     }
 
     faabric::util::UniqueLock lock(moduleMemoryMutex);
 
+    uint32_t pageAligned = roundUpToWasmPageAligned(nBytes);
     U64 maxPages = getMemoryType(defaultMemory).size.max;
     U64 maxSize = maxPages * WASM_BYTES_PER_PAGE;
 
-    U32 unmapTop = offset + nBytes;
+    U32 unmapTop = offset + pageAligned;
     if (unmapTop > maxSize) {
         logger->error(
           "Munmapping outside memory max ({} > {})", unmapTop, maxSize);
@@ -1170,16 +1173,19 @@ void WAVMWasmModule::unmapMemory(U32 offset, U32 nBytes)
     }
 
     if (unmapTop == currentBrk) {
-        logger->debug("MEM - munmapping top of memory by {}", nBytes);
-        shrinkMemory(nBytes);
+        logger->debug("MEM - munmapping top of memory by {}", pageAligned);
+        shrinkMemory(pageAligned);
     } else {
-        logger->warn("MEM - unable to reclaim memory {} at {}", nBytes, offset);
+        logger->warn(
+          "MEM - unable to reclaim memory {} at {}", pageAligned, offset);
     }
 }
 
 U32 WAVMWasmModule::mmapMemory(U32 nBytes)
 {
-    return growMemory(nBytes);
+    // Note - the mmap interface allows non page-aligned values, and rounds up.
+    uint32_t pageAligned = roundUpToWasmPageAligned(nBytes);
+    return growMemory(pageAligned);
 }
 
 uint8_t* WAVMWasmModule::wasmPointerToNative(int32_t wasmPtr)
@@ -1484,7 +1490,7 @@ I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     // Create a new region for this thread's stack
-    U32 thisStackBase = allocateThreadStack();
+    U32 thisStackBase = claimThreadStack();
     U32 stackTop = thisStackBase + THREAD_STACK_SIZE - 1;
 
     // Create a new context for this thread
