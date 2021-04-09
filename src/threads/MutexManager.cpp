@@ -3,6 +3,12 @@
 
 namespace threads {
 
+MutexManager& getMutexManager()
+{
+    static MutexManager m;
+    return m;
+}
+
 void MutexManager::createMutex(int mutexId)
 {
     mutexes[mutexId];
