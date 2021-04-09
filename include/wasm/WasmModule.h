@@ -142,7 +142,6 @@ class WasmModule
     int stdoutMemFd;
     ssize_t stdoutSize;
 
-    std::shared_mutex moduleMemoryMutex;
     std::mutex moduleStateMutex;
     std::mutex threadStackMutex;
 

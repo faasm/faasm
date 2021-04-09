@@ -1018,12 +1018,8 @@ U32 WAVMWasmModule::growMemory(U32 nBytes)
 
     // Check if we just need the size
     if (nBytes == 0) {
-        faabric::util::SharedLock lock(moduleMemoryMutex);
         return currentBrk;
     }
-
-    // Full lock to actually modify the memory
-    faabric::util::FullLock lock(moduleMemoryMutex);
 
     // Check if we can reclaim
     size_t oldBytes = getMemorySizeBytes();
@@ -1140,9 +1136,6 @@ uint32_t WAVMWasmModule::shrinkMemory(U32 nBytes)
           "Shrinking by more than current brk ({} > {})", nBytes, currentBrk);
         throw std::runtime_error("Shrinking by more than current brk");
     }
-
-    // Full lock to modify
-    faabric::util::FullLock lock(moduleMemoryMutex);
 
     // Note - we don't actually free the memory, we just change the brk
     U32 oldBrk = currentBrk;
