@@ -112,12 +112,15 @@ TEST_CASE("Test openmp wtime", "[wasm][openmp]")
 
 TEST_CASE("Run openmp memory stress test", "[wasm][openmp]")
 {
-    cleanSystem();
-
+    // Overload the number of cores, and run several times to make sure we
+    // stress enough to flush out errors
     int nCores = 2 * faabric::util::getUsableCores();
     faabric::Message msg = faabric::util::messageFactory("omp", "mem_stress");
     msg.set_cmdline(std::to_string(nCores));
 
-    execFunction(msg);
+    for (int i = 0; i < 5; i++) {
+        cleanSystem();
+        execFunction(msg);
+    }
 }
 }
