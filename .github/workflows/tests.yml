@@ -35,7 +35,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     container:
-      image: faasm/cpp-sysroot:0.0.22
+      image: faasm/cpp-sysroot:0.0.24
     defaults:
       run:
         working-directory: /__w/faasm/faasm/clients/cpp
@@ -64,7 +64,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     container:
-      image: faasm/cpython:0.0.11
+      image: faasm/cpython:0.0.12
     defaults:
       run:
         working-directory: /__w/faasm/faasm/clients/python
