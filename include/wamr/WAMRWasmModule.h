@@ -38,7 +38,7 @@ class WAMRWasmModule final : public WasmModule
     // ----- Memory management -----
     uint32_t growMemory(uint32_t nBytes) override;
 
-    void shrinkMemory(uint32_t nBytes) override;
+    uint32_t shrinkMemory(uint32_t nBytes) override;
 
     uint32_t mmapMemory(uint32_t nBytes) override;
 

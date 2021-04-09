@@ -169,12 +169,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__sbrk", I32, __sbrk, I32 increment)
     faabric::util::getLogger()->debug("S - sbrk - {}", increment);
 
     WAVMWasmModule* module = getExecutingWAVMModule();
-    U32 oldBrk = module->getCurrentBrk();
-    if (increment == 0) {
-        return oldBrk;
-    } else if (increment < 0) {
-        module->shrinkMemory(-1 * increment);
-        return oldBrk;
+    if (increment < 0) {
+        return module->shrinkMemory(-1 * increment);
     } else {
         return module->growMemory(increment);
     }

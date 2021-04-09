@@ -88,10 +88,11 @@ TEST_CASE("Test memory growth and shrinkage", "[wasm]")
     oldBrk = module.getCurrentBrk();
 
     uint32_t shrinkA = 2 * WASM_BYTES_PER_PAGE;
-    module.shrinkMemory(shrinkA);
+    memOffset = module.shrinkMemory(shrinkA);
     newMemSize = module.getMemorySizeBytes();
     newBrk = module.getCurrentBrk();
 
+    REQUIRE(memOffset == oldBrk);
     REQUIRE(oldBrk == oldMemSize);
     REQUIRE(newBrk == oldMemSize - shrinkA);
     REQUIRE(newMemSize == oldMemSize);

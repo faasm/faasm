@@ -572,9 +572,11 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
           boundUser, boundFunction, sharedModulePath);
 
         // Provision the memory for the new module plus two guard regions
-        createMemoryGuardRegion();
-        Uptr newMemory = growMemory(DYNAMIC_MODULE_MEMORY_SIZE);
-        createMemoryGuardRegion();
+        uint32_t memSize = DYNAMIC_MODULE_MEMORY_SIZE + (2 * GUARD_REGION_SIZE);
+        Uptr newMemory = growMemory(memSize);
+        createMemoryGuardRegion(newMemory);
+        createMemoryGuardRegion(newMemory + DYNAMIC_MODULE_MEMORY_SIZE +
+                                GUARD_REGION_SIZE);
 
         // Record the dynamic module's creation
         int handle = dynamicPathToHandleMap[sharedModulePath];
@@ -1013,17 +1015,19 @@ U32 WAVMWasmModule::mmapFile(U32 fd, U32 length)
 U32 WAVMWasmModule::growMemory(U32 nBytes)
 {
     auto logger = faabric::util::getLogger();
+    U64 maxPages = getMemoryType(defaultMemory).size.max;
 
+    // Check if we just need the size
     if (nBytes == 0) {
+        faabric::util::SharedLock lock(moduleMemoryMutex);
         return currentBrk;
     }
 
-    // Cautious locking
-    faabric::util::UniqueLock lock(moduleMemoryMutex);
+    // Full lock to actually modify the memory
+    faabric::util::FullLock lock(moduleMemoryMutex);
 
+    // Check if we can reclaim
     size_t oldBytes = getMemorySizeBytes();
-    size_t newBytes = oldBytes + nBytes;
-
     uint32_t oldBrk = currentBrk;
     uint32_t newBrk = currentBrk + nBytes;
 
@@ -1045,13 +1049,13 @@ U32 WAVMWasmModule::growMemory(U32 nBytes)
         return oldBrk;
     }
 
+    size_t newBytes = oldBytes + nBytes;
     Uptr oldPages = Runtime::getMemoryNumPages(defaultMemory);
     Uptr newPages = getNumberOfWasmPagesForBytes(newBytes);
-    U64 maxSize = getMemoryType(defaultMemory).size.max;
 
-    if (newPages > maxSize) {
+    if (newPages > maxPages) {
         logger->error("mmap would exceed max of {} pages (requested {})",
-                      maxSize,
+                      maxPages,
                       newPages);
         throw std::runtime_error("Mmap exceeding max");
     }
@@ -1123,9 +1127,14 @@ U32 WAVMWasmModule::growMemory(U32 nBytes)
     return newMemBase;
 }
 
-void WAVMWasmModule::shrinkMemory(U32 nBytes)
+uint32_t WAVMWasmModule::shrinkMemory(U32 nBytes)
 {
     auto logger = faabric::util::getLogger();
+
+    if (!isWasmPageAligned(nBytes)) {
+        logger->error("Shrink size not page aligned {}", nBytes);
+        throw std::runtime_error("New break not page aligned");
+    }
 
     if (nBytes > currentBrk) {
         logger->error(
@@ -1133,15 +1142,17 @@ void WAVMWasmModule::shrinkMemory(U32 nBytes)
         throw std::runtime_error("Shrinking by more than current brk");
     }
 
-    U32 newBreak = currentBrk - nBytes;
-    if (!isWasmPageAligned(newBreak)) {
-        logger->error("New break not page aligned {}", newBreak);
-        throw std::runtime_error("New break not page aligned");
-    }
+    // Full lock to modify
+    faabric::util::FullLock lock(moduleMemoryMutex);
 
     // Note - we don't actually free the memory, we just change the brk
-    logger->debug("MEM - shrinking memory {} -> {}", currentBrk, newBreak);
-    currentBrk = newBreak;
+    U32 oldBrk = currentBrk;
+    U32 newBrk = currentBrk - nBytes;
+
+    logger->debug("MEM - shrinking memory {} -> {}", oldBrk, newBrk);
+    currentBrk = newBrk;
+
+    return oldBrk;
 }
 
 void WAVMWasmModule::unmapMemory(U32 offset, U32 nBytes)
@@ -1159,13 +1170,11 @@ void WAVMWasmModule::unmapMemory(U32 offset, U32 nBytes)
         throw std::runtime_error("Non-page aligned munmap address");
     }
 
-    faabric::util::UniqueLock lock(moduleMemoryMutex);
-
     uint32_t pageAligned = roundUpToWasmPageAligned(nBytes);
     U64 maxPages = getMemoryType(defaultMemory).size.max;
     U64 maxSize = maxPages * WASM_BYTES_PER_PAGE;
-
     U32 unmapTop = offset + pageAligned;
+
     if (unmapTop > maxSize) {
         logger->error(
           "Munmapping outside memory max ({} > {})", unmapTop, maxSize);
@@ -1488,11 +1497,11 @@ int WAVMWasmModule::getDataOffsetFromGOT(const std::string& name)
 
 I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
+    auto logger = faabric::util::getLogger();
 
     // Create a new region for this thread's stack
-    U32 thisStackBase = claimThreadStack();
-    U32 stackTop = thisStackBase + THREAD_STACK_SIZE - 1;
+    ThreadStack threadStack = claimThreadStack();    
+    U32 stackTop = threadStack.wasmOffset + THREAD_STACK_SIZE - 1;
 
     // Create a new context for this thread
     Runtime::Context* threadContext = createContext(
@@ -1542,7 +1551,7 @@ I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)
     }
 
     // Return thread stack to the pool
-    returnThreadStack(thisStackBase);
+    returnThreadStack(threadStack);
 
     return returnValue;
 }

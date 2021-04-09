@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "faabric/util/environment.h"
 #include "utils.h"
 
 #include <faabric/snapshot/SnapshotRegistry.h>
@@ -107,5 +108,16 @@ TEST_CASE("Test proper handling of getting and setting next level num threads",
 TEST_CASE("Test openmp wtime", "[wasm][openmp]")
 {
     doOmpTestLocal("wtime");
+}
+
+TEST_CASE("Run openmp memory stress test", "[wasm][openmp]")
+{
+    cleanSystem();
+
+    int nCores = 2 * faabric::util::getUsableCores();
+    faabric::Message msg = faabric::util::messageFactory("omp", "mem_stress");
+    msg.set_cmdline(std::to_string(nCores));
+
+    execFunction(msg);
 }
 }

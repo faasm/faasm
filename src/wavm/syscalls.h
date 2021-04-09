@@ -335,8 +335,6 @@ int32_t s__rt_sigprocmask(int32_t how,
                           int32_t oldSetPtr,
                           int32_t sigsetsize);
 
-int32_t s__sbrk(int32_t addr);
-
 int32_t s__sched_getaffinity(int32_t pid, int32_t cpuSetSize, int32_t maskPtr);
 
 int32_t s__sigaction(int32_t a, int32_t b, int32_t c);

@@ -260,10 +260,11 @@ uint32_t WAMRWasmModule::growMemory(uint32_t nBytes)
     return memBase;
 }
 
-void WAMRWasmModule::shrinkMemory(uint32_t nBytes)
+uint32_t WAMRWasmModule::shrinkMemory(uint32_t nBytes)
 {
     auto logger = faabric::util::getLogger();
     logger->warn("WAMR ignoring shrink memory");
+    return 0;
 }
 
 uint32_t WAMRWasmModule::mmapMemory(uint32_t nBytes)

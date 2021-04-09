@@ -112,6 +112,7 @@ void WasmModule::restore(const std::string& snapshotKey)
     // Expand memory if necessary
     faabric::util::SnapshotData data = reg.getSnapshot(snapshotKey);
     uint32_t memSize = getCurrentBrk();
+
     if (data.size == memSize) {
         logger->debug("Snapshot memory size equal to current memory");
     } else if (data.size > memSize) {
@@ -299,13 +300,11 @@ uint32_t WasmModule::getCurrentBrk()
     return currentBrk;
 }
 
-uint32_t WasmModule::createMemoryGuardRegion()
+void WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
 {
     auto logger = faabric::util::getLogger();
 
     size_t regionSize = GUARD_REGION_SIZE;
-    uint32_t wasmOffset = growMemory(regionSize);
-
     uint8_t* nativePtr = wasmPointerToNative(wasmOffset);
 
     // NOTE: we want to protect these regions from _writes_, but we don't want
@@ -320,17 +319,21 @@ uint32_t WasmModule::createMemoryGuardRegion()
 
     logger->debug(
       "Created guard region {}-{}", wasmOffset, wasmOffset + regionSize);
-
-    return wasmOffset;
 }
 
-void WasmModule::addThreadStackToPool()
+void WasmModule::allocateThreadStack(ThreadStack& s)
 {
-    createMemoryGuardRegion();
-    uint32_t thisStack = growMemory(THREAD_STACK_SIZE);
-    createMemoryGuardRegion();
+    // Set up memory if not already created
+    if (s.wasmOffset == 0) {
+        uint32_t memSize = THREAD_STACK_SIZE + (2 * GUARD_REGION_SIZE);
 
-    threadStacks.push_back(thisStack);
+        uint32_t memBase = growMemory(memSize);
+
+        createMemoryGuardRegion(memBase);
+        s.wasmOffset = memBase + GUARD_REGION_SIZE;
+        createMemoryGuardRegion(memBase + GUARD_REGION_SIZE +
+                                THREAD_STACK_SIZE);
+    }
 }
 
 void WasmModule::createThreadStackPool()
@@ -345,34 +348,38 @@ void WasmModule::createThreadStackPool()
       "Creating thread stack pool size {} (cores={})", poolSize, cores);
 
     for (int i = 0; i < poolSize; i++) {
-        addThreadStackToPool();
+        ThreadStack s;
+        allocateThreadStack(s);
+        threadStacks.push_back(s);
     }
 }
 
-void WasmModule::returnThreadStack(uint32_t wasmPtr)
+void WasmModule::returnThreadStack(ThreadStack s)
 {
     faabric::util::UniqueLock lock(threadStackMutex);
-
-    auto logger = faabric::util::getLogger();
-    logger->debug("Returned thread stack {}", wasmPtr);
-    threadStacks.push_back(wasmPtr);
+    threadStacks.push_back(s);
 }
 
-uint32_t WasmModule::claimThreadStack()
+ThreadStack WasmModule::claimThreadStack()
 {
-    faabric::util::UniqueLock lock(threadStackMutex);
-
     auto logger = faabric::util::getLogger();
 
-    if (threadStacks.empty()) {
-        logger->warn("Thread stack pool empty, having to allocate from heap");
-        addThreadStackToPool();
+    ThreadStack s;
+    {
+        faabric::util::UniqueLock lock(threadStackMutex);
+        if (threadStacks.empty()) {
+            logger->warn("Thread stack pool empty, adding another");
+        } else {
+            s = threadStacks.back();
+            threadStacks.pop_back();
+        }
     }
 
-    uint32_t wasmPtr = threadStacks.back();
-    threadStacks.pop_back();
-    logger->debug("Claimed thread stack {}", wasmPtr);
-    return wasmPtr;
+    // Note - we must allocate memory outside of the locked region to avoid
+    // deadlock between memory and thread stacks
+    allocateThreadStack(s);
+
+    return s;
 }
 
 // ------------------------------------------
@@ -420,7 +427,7 @@ uint32_t WasmModule::growMemory(uint32_t nBytes)
     throw std::runtime_error("growMemory not implemented");
 }
 
-void WasmModule::shrinkMemory(uint32_t nBytes)
+uint32_t WasmModule::shrinkMemory(uint32_t nBytes)
 {
     throw std::runtime_error("shrinkMemory not implemented");
 }

@@ -42,6 +42,11 @@ namespace wasm {
 
 bool isWasmPageAligned(int32_t offset);
 
+struct ThreadStack
+{
+    uint32_t wasmOffset = 0;
+};
+
 class WasmModule
 {
   public:
@@ -94,7 +99,7 @@ class WasmModule
 
     virtual uint32_t growMemory(uint32_t nBytes);
 
-    virtual void shrinkMemory(uint32_t nBytes);
+    virtual uint32_t shrinkMemory(uint32_t nBytes);
 
     virtual uint32_t mmapMemory(uint32_t nBytes);
 
@@ -102,7 +107,7 @@ class WasmModule
 
     virtual void unmapMemory(uint32_t offset, uint32_t nBytes);
 
-    uint32_t createMemoryGuardRegion();
+    void createMemoryGuardRegion(uint32_t wasmOffset);
 
     virtual uint32_t mapSharedStateMemory(
       const std::shared_ptr<faabric::state::StateKeyValue>& kv,
@@ -124,7 +129,7 @@ class WasmModule
   protected:
     uint32_t currentBrk = 0;
 
-    std::vector<uint32_t> threadStacks;
+    std::vector<ThreadStack> threadStacks;
 
     std::string boundUser;
 
@@ -137,7 +142,7 @@ class WasmModule
     int stdoutMemFd;
     ssize_t stdoutSize;
 
-    std::mutex moduleMemoryMutex;
+    std::shared_mutex moduleMemoryMutex;
     std::mutex moduleStateMutex;
     std::mutex threadStackMutex;
 
@@ -155,13 +160,15 @@ class WasmModule
 
     virtual uint8_t* getMemoryBase();
 
-    void addThreadStackToPool();
+    ThreadStack addThreadStackToPool();
 
-    uint32_t claimThreadStack();
+    void allocateThreadStack(ThreadStack &s);
+    
+    ThreadStack claimThreadStack();
 
     void createThreadStackPool();
 
-    void returnThreadStack(uint32_t wasmPtr);
+    void returnThreadStack(ThreadStack s);
 };
 
 // ----- Global functions -----
