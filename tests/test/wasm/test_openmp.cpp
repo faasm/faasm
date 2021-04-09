@@ -118,7 +118,7 @@ TEST_CASE("Run openmp memory stress test", "[wasm][openmp]")
     faabric::Message msg = faabric::util::messageFactory("omp", "mem_stress");
     msg.set_cmdline(std::to_string(nCores));
 
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < 5; i++) {
         cleanSystem();
         execFunction(msg);
     }

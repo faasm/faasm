@@ -16,7 +16,9 @@ void MutexManager::createMutex(int mutexId)
 
 void MutexManager::lockMutex(int mutexId)
 {
-    getMutex(mutexId).lock();
+    // Note - we allow locking to happen on mutexes that haven't explicitly been
+    // created.
+    mutexes[mutexId].lock();
 }
 
 void MutexManager::unlockMutex(int mutexId)

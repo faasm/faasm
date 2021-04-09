@@ -162,8 +162,8 @@ class WasmModule
 
     ThreadStack addThreadStackToPool();
 
-    void allocateThreadStack(ThreadStack &s);
-    
+    void allocateThreadStack(ThreadStack& s);
+
     ThreadStack claimThreadStack();
 
     void createThreadStackPool();
