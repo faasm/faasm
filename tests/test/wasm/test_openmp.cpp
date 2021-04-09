@@ -2,6 +2,7 @@
 
 #include "utils.h"
 
+#include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/util/func.h>
 
 namespace tests {
@@ -10,8 +11,15 @@ void doOmpTestLocal(const std::string& function)
 {
     cleanSystem();
 
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+    REQUIRE(reg.getSnapshotCount() == 0);
+
     faabric::Message msg = faabric::util::messageFactory("omp", function);
     execFunction(msg);
+
+    // Check only the main snapshot exists
+    REQUIRE(reg.getSnapshotCount() == 1);
 }
 
 TEST_CASE("Test static for scheduling", "[wasm][openmp]")

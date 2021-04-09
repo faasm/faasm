@@ -14,9 +14,7 @@ using namespace WAVM;
 namespace tests {
 TEST_CASE("Test mmapping a file", "[wasm]")
 {
-    faabric::Message call;
-    call.set_user("demo");
-    call.set_function("echo");
+    faabric::Message call = faabric::util::messageFactory("demo", "echo");
 
     wasm::WAVMWasmModule module;
     module.bindToFunction(call);
@@ -49,5 +47,93 @@ TEST_CASE("Test mmapping a file", "[wasm]")
 
     // Check the bytes match
     REQUIRE(expected == actual);
+}
+
+TEST_CASE("Test memory growth and shrinkage", "[wasm]")
+{
+    faabric::Message call = faabric::util::messageFactory("demo", "echo");
+    wasm::WAVMWasmModule module;
+    module.bindToFunction(call);
+
+    // Check we can mmap less than a page and it rounds up
+    size_t oldMemSize = module.getMemorySizeBytes();
+    uint32_t oldBrk = module.getCurrentBrk();
+    uint32_t memOffset = module.mmapMemory(1);
+    size_t newMemSize = module.getMemorySizeBytes();
+    size_t newBrk = module.getCurrentBrk();
+
+    REQUIRE(oldBrk == oldMemSize);
+    REQUIRE(newBrk == newMemSize);
+    REQUIRE(memOffset == oldBrk);
+    REQUIRE(newMemSize == oldMemSize + WASM_BYTES_PER_PAGE);
+
+    // Check we can only grow page-aligned
+    REQUIRE_THROWS(module.growMemory(1));
+
+    // Check a page-aligned growth
+    oldMemSize = module.getMemorySizeBytes();
+    oldBrk = module.getCurrentBrk();
+
+    uint32_t growA = 10 * WASM_BYTES_PER_PAGE;
+    memOffset = module.growMemory(growA);
+    newMemSize = module.getMemorySizeBytes();
+    newBrk = module.getCurrentBrk();
+
+    REQUIRE(newBrk == newMemSize);
+    REQUIRE(memOffset == oldBrk);
+    REQUIRE(newMemSize == oldMemSize + growA);
+
+    // Check shrinking memory reduces brk but not size
+    oldMemSize = module.getMemorySizeBytes();
+    oldBrk = module.getCurrentBrk();
+
+    uint32_t shrinkA = 2 * WASM_BYTES_PER_PAGE;
+    module.shrinkMemory(shrinkA);
+    newMemSize = module.getMemorySizeBytes();
+    newBrk = module.getCurrentBrk();
+
+    REQUIRE(oldBrk == oldMemSize);
+    REQUIRE(newBrk == oldMemSize - shrinkA);
+    REQUIRE(newMemSize == oldMemSize);
+
+    // Check growing back up reclaims memory
+    oldMemSize = module.getMemorySizeBytes();
+    oldBrk = module.getCurrentBrk();
+
+    memOffset = module.growMemory(shrinkA);
+    newMemSize = module.getMemorySizeBytes();
+    newBrk = module.getCurrentBrk();
+
+    REQUIRE(newMemSize == oldMemSize);
+    REQUIRE(memOffset == oldBrk);
+    REQUIRE(newBrk == newMemSize);
+
+    // Check unmapping at the top of memory shrinks down
+    uint32_t shrinkB = 5 * WASM_BYTES_PER_PAGE;
+    oldMemSize = module.getMemorySizeBytes();
+    oldBrk = module.getCurrentBrk();
+    uint32_t unmapOffset = oldMemSize - shrinkB;
+
+    module.unmapMemory(unmapOffset, shrinkB);
+
+    newMemSize = module.getMemorySizeBytes();
+    newBrk = module.getCurrentBrk();
+
+    REQUIRE(newMemSize == oldMemSize);
+    REQUIRE(newBrk == oldMemSize - shrinkB);
+
+    // Check unmapping elsewhere cannot reclaim memory
+    uint32_t shrinkC = 3 * WASM_BYTES_PER_PAGE;
+    oldMemSize = module.getMemorySizeBytes();
+    oldBrk = module.getCurrentBrk();
+    unmapOffset = oldMemSize - (2 * WASM_BYTES_PER_PAGE) - shrinkB;
+
+    module.unmapMemory(unmapOffset, shrinkC);
+
+    newMemSize = module.getMemorySizeBytes();
+    newBrk = module.getCurrentBrk();
+
+    REQUIRE(newMemSize == oldMemSize);
+    REQUIRE(newBrk == oldBrk);
 }
 }

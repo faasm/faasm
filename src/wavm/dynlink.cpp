@@ -1,9 +1,10 @@
 #include "WAVMWasmModule.h"
 #include "syscalls.h"
-#include "wasm/WasmModule.h"
 
 #include <cstring>
+
 #include <faabric/util/bytes.h>
+#include <wasm/WasmModule.h>
 
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>

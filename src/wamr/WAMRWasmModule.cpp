@@ -285,7 +285,6 @@ size_t WAMRWasmModule::getMemorySizeBytes()
       ((WASMMemoryInstance**)interpModule->memories)[0];
     return interpMem->cur_page_count * interpMem->num_bytes_per_page;
 #else
-    // There must be a nicer way to do this, this is lifted from aot_runtime.c
     auto aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
     AOTMemoryInstance* aotMem =
       ((AOTMemoryInstance**)aotModule->memories.ptr)[0];

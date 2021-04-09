@@ -47,9 +47,9 @@ int funcBOffset = 39;
 std::string mainData = "PyBool_Type";
 std::string dataA = "PyArray_API";
 std::string dataB = "__pyx_module_is_main_numpy__random__mtrand";
-int mainDataOffset = 4862212;
-int dataAOffset = 8825568;
-int dataBOffset = 13107200;
+int mainDataOffset = 4862196;
+int dataAOffset = 40086240;
+int dataBOffset = 45547520;
 
 // NOTE - we don't get perfect pakcing of the indexing, so each module has
 // an arbitrary extra offset.

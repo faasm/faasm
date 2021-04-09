@@ -59,9 +59,12 @@ void _doChecks(wasm::WAVMWasmModule& moduleA,
     moduleWarmUp.bindToFunction(msgA);
     moduleWarmUp.execute(msgA);
 
-    // Get the initial mem and table size
+    // Get the initial mem, brk and table size
     Uptr memBeforeA = Runtime::getMemoryNumPages(moduleA.defaultMemory);
     Uptr memBeforeB = Runtime::getMemoryNumPages(moduleB.defaultMemory);
+
+    uint32_t brkBeforeA = moduleA.getCurrentBrk();
+    uint32_t brkBeforeB = moduleB.getCurrentBrk();
 
     Uptr tableBeforeB;
     Uptr tableBeforeA;
@@ -79,6 +82,7 @@ void _doChecks(wasm::WAVMWasmModule& moduleA,
     REQUIRE(moduleB.getBoundFunction() == moduleA.getBoundFunction());
 
     REQUIRE(memBeforeB == memBeforeA);
+    REQUIRE(brkBeforeA == brkBeforeB);
 
     // Check important parts are actually different
     REQUIRE(moduleA.defaultMemory != moduleB.defaultMemory);
@@ -100,9 +104,14 @@ void _doChecks(wasm::WAVMWasmModule& moduleA,
     // Check memory has grown in the one that's executed
     Uptr memAfterA1 = Runtime::getMemoryNumPages(moduleA.defaultMemory);
     Uptr memAfterB1 = Runtime::getMemoryNumPages(moduleB.defaultMemory);
+    uint32_t brkAfterA1 = moduleA.getCurrentBrk();
+    uint32_t brkAfterB1 = moduleB.getCurrentBrk();
+
     REQUIRE(memAfterB1 == memBeforeA);
+    REQUIRE(brkAfterB1 == brkBeforeA);
 
     REQUIRE(memAfterA1 > memBeforeA);
+    REQUIRE(brkAfterA1 > brkBeforeA);
 
     // Check tables (should have grown for Python and not for other)
     Uptr tableAfterA1;
@@ -128,10 +137,16 @@ void _doChecks(wasm::WAVMWasmModule& moduleA,
     // Check memory sizes
     Uptr memAfterA2 = Runtime::getMemoryNumPages(moduleA.defaultMemory);
     Uptr memAfterB2 = Runtime::getMemoryNumPages(moduleB.defaultMemory);
+    uint32_t brkAfterA2 = moduleA.getCurrentBrk();
+    uint32_t brkAfterB2 = moduleB.getCurrentBrk();
+
     REQUIRE(memAfterB2 == memAfterA2);
     REQUIRE(memAfterA1 == memAfterA2);
+    REQUIRE(brkAfterB2 == brkAfterA2);
+    REQUIRE(brkAfterA1 == brkAfterA2);
 
     REQUIRE(memAfterB2 > memBeforeB);
+    REQUIRE(brkAfterB2 > brkBeforeB);
 
     Uptr tableAfterA2 = Runtime::getTableNumElements(moduleA.defaultTable);
     Uptr tableAfterB2 = Runtime::getTableNumElements(moduleB.defaultTable);

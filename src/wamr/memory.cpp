@@ -5,9 +5,6 @@
 #include <wasm_export.h>
 
 namespace wasm {
-/**
- * Pushes the state for the given key
- */
 static int32_t __sbrk_wrapper(wasm_exec_env_t exec_env, int32_t increment)
 {
     faabric::util::getLogger()->debug("S - __sbrk - {}", increment);

@@ -1176,8 +1176,9 @@ void WAVMWasmModule::unmapMemory(U32 offset, U32 nBytes)
         logger->debug("MEM - munmapping top of memory by {}", pageAligned);
         shrinkMemory(pageAligned);
     } else {
-        logger->warn(
-          "MEM - unable to reclaim memory {} at {}", pageAligned, offset);
+        logger->warn("MEM - unable to reclaim unmapped memory {} at {}",
+                     pageAligned,
+                     offset);
     }
 }
 

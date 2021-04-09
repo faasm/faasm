@@ -1,16 +1,16 @@
 #include "WAVMWasmModule.h"
 #include "syscalls.h"
-#include "wasm/WasmModule.h"
 
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
+#include <faabric/util/macros.h>
+#include <wasm/WasmModule.h>
 
 #include <sys/random.h>
 
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/WASI/WASIABI.h>
-#include <faabric/util/macros.h>
 
 using namespace WAVM;
 
