@@ -146,13 +146,13 @@ local machine.
 This is not the recommended approach to developing Faasm, so it's not scripted,
 but you can work out what's required by looking at the follwing Dockerfiles:
 
-- [`faasm/grpc-root`](faabric/docker/grpc-root.dockerfile)
-- [`faasm/cpp-root`](docker/cpp-root.dockerfile)
+- [`faasm/grpc-root`](https://github.com/faasm/faabric/blob/master/docker/grpc-root.dockerfile)
+- [`faasm/cpp-root`](https://github.com/faasm/faasm/blob/master/docker/cpp-root.dockerfile)
 
 Most things can be done with `apt`, but the difficult bits might be:
 
 - LLVM and Clang
-- gRPC
+- gRPC and flatbuffers
 - Up-to-date CMake
 
 You will also need to set up the Python environment:
@@ -160,7 +160,16 @@ You will also need to set up the Python environment:
 ```bash
 # Set up the venv
 ./bin/create_venv.sh
+```
+You may need to correct the permissions on the `venv` and `faasmcli` folders:
+```bash
+sudo chown -R ${SUDO_USER}:${SUDO_USER} ./venv
+sudo chown -R ${SUDO_USER}:${SUDO_USER} ./faasmcli
+```
 
+Then:
+
+```
 # Activate the Faasm virtualenv
 source bin/workon.sh
 
