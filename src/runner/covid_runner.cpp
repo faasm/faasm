@@ -1,3 +1,4 @@
+#include "faabric/util/environment.h"
 #include <wasm/WasmModule.h>
 
 #include <boost/filesystem/operations.hpp>
@@ -18,11 +19,19 @@ int main(int argc, char* argv[])
 
     faabric::Message msg = faabric::util::messageFactory("cov", "sim");
 
-    int nThreads = 1;
+    int nThreads;
+    if (argc == 2) {
+        nThreads = std::stoi(argv[1]);
+    } else {
+        nThreads = faabric::util::getUsableCores();
+    }
 
-    std::string cmdlineArgs =
-      "/c:1 "
-      "/A:faasm://covid/admin_units/Guam_admin.txt "
+    logger->info("Running covid sim with {} threads", nThreads);
+
+    std::string cmdlineArgs = "/c:" + std::to_string(nThreads);
+
+    cmdlineArgs +=
+      " /A:faasm://covid/admin_units/Guam_admin.txt "
       "/PP:faasm://covid/param_files/preUK_R0=2.0.txt "
       "/P:faasm://covid/param_files/p_NoInt.txt /O:/tmp/Guam_NoInt_R0=3.0 "
       "/D:/faasm://covid/populations/wpop_us_terr.txt "
