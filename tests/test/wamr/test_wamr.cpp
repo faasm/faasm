@@ -9,7 +9,7 @@ using namespace wasm;
 
 namespace tests {
 
-TEST_CASE("Test executing echo function with WAMR", "[wamr][!mayfail]")
+TEST_CASE("Test executing echo function with WAMR", "[wamr]")
 {
     faabric::Message call = faabric::util::messageFactory("demo", "echo");
     std::string inputData = "hello there";
@@ -25,7 +25,32 @@ TEST_CASE("Test executing echo function with WAMR", "[wamr][!mayfail]")
     REQUIRE(outputData == inputData);
 }
 
-TEST_CASE("Test executing chain function with WAMR", "[wamr][!mayfail]")
+TEST_CASE("Test WAMR sbrk", "[wamr]")
+{
+    faabric::Message call = faabric::util::messageFactory("demo", "echo");
+    std::string inputData = "hello there";
+    call.set_inputdata(inputData);
+
+    wasm::WAMRWasmModule module;
+    module.bindToFunction(call);
+
+    size_t initialSize = module.getMemorySizeBytes();
+
+    uint32_t growA = 5 * WASM_BYTES_PER_PAGE;
+    uint32_t growB = 20 * WASM_BYTES_PER_PAGE;
+
+    module.growMemory(growA);
+    size_t sizeA = module.getMemorySizeBytes();
+    REQUIRE(sizeA > initialSize);
+    REQUIRE(sizeA == initialSize + growA);
+
+    module.growMemory(growB);
+    size_t sizeB = module.getMemorySizeBytes();
+    REQUIRE(sizeB > initialSize + growA);
+    REQUIRE(sizeB == initialSize + growA + growB);
+}
+
+TEST_CASE("Test executing chain function with WAMR", "[wamr]")
 {
     executeWithWamrPool("demo", "chain");
 }

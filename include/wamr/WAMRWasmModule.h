@@ -6,7 +6,6 @@
 #define ERROR_BUFFER_SIZE 256
 #define STACK_SIZE_KB 8192
 #define HEAP_SIZE_KB 8192
-#define WASM_BYTES_PER_PAGE 65536
 
 namespace wasm {
 

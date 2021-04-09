@@ -248,13 +248,16 @@ uint32_t WAMRWasmModule::growMemory(uint32_t nBytes)
     auto logger = faabric::util::getLogger();
     logger->debug("WAMR growing memory by {}", nBytes);
 
-    void* nativePtr;
-    wasm_runtime_module_malloc(moduleInstance, nBytes, &nativePtr);
+    uint32_t memBase = currentBrk;
 
-    int32 wasmPtr = wasm_runtime_addr_native_to_app(moduleInstance, nativePtr);
-    currentBrk = wasmPtr + nBytes;
+    uint32_t nPages = getNumberOfWasmPagesForBytes(nBytes);
+    bool success = wasm_runtime_enlarge_memory(moduleInstance, nPages);
+    if (!success) {
+        throw std::runtime_error("Failed to grow WAMR memory");
+    }
 
-    return wasmPtr;
+    currentBrk = memBase + (nPages * WASM_BYTES_PER_PAGE);
+    return memBase;
 }
 
 void WAMRWasmModule::shrinkMemory(uint32_t nBytes)
@@ -265,8 +268,7 @@ void WAMRWasmModule::shrinkMemory(uint32_t nBytes)
 
 uint32_t WAMRWasmModule::mmapMemory(uint32_t nBytes)
 {
-    uint32_t pageAligned = roundUpToWasmPageAligned(nBytes);
-    return growMemory(pageAligned);
+    return growMemory(nBytes);
 }
 
 uint8_t* WAMRWasmModule::wasmPointerToNative(int32_t wasmPtr)
@@ -277,19 +279,17 @@ uint8_t* WAMRWasmModule::wasmPointerToNative(int32_t wasmPtr)
 
 size_t WAMRWasmModule::getMemorySizeBytes()
 {
-#if WASM_ENABLE_AOT != 0
+#if (WAMR_EXECUTION_MODE_INTERP)
+    auto interpModule = reinterpret_cast<WASMModuleInstance*>(moduleInstance);
+    WASMMemoryInstance* interpMem =
+      ((WASMMemoryInstance**)interpModule->memories)[0];
+    return interpMem->cur_page_count * interpMem->num_bytes_per_page;
+#else
     // There must be a nicer way to do this, this is lifted from aot_runtime.c
     auto aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
     AOTMemoryInstance* aotMem =
       ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
     return aotMem->cur_page_count * aotMem->num_bytes_per_page;
-#endif
-
-#if WASM_ENABLE_INTERP != 0
-    auto interpModule = reinterpret_cast<WASMModuleInstance*>(moduleInstance);
-    WASMMemoryInstance* interpMem =
-      ((WASMMemoryInstance**)interpModule->memories)[0];
-    return interpMem->cur_page_count * interpMem->num_bytes_per_page;
 #endif
 }
 
