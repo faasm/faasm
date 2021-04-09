@@ -10,8 +10,7 @@
 #include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/timing.h>
-
-#include <wavm/ThreadState.h>
+#include <threads/ThreadState.h>
 #include <wavm/WAVMWasmModule.h>
 
 using namespace WAVM;
@@ -23,12 +22,12 @@ namespace wasm {
 // ------------------------------------------------
 
 #define OMP_FUNC(str)                                                          \
-    auto ctx = getOpenMPContext();                                             \
+    auto ctx = threads::getOpenMPContext();                                    \
     auto logger = faabric::util::getLogger();                                  \
     logger->debug("OMP {}: " str, ctx.threadNumber);
 
 #define OMP_FUNC_ARGS(formatStr, ...)                                          \
-    auto ctx = getOpenMPContext();                                             \
+    auto ctx = threads::getOpenMPContext();                                    \
     auto logger = faabric::util::getLogger();                                  \
     logger->debug("OMP {}: " formatStr, ctx.threadNumber, __VA_ARGS__);
 
@@ -390,11 +389,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     faabric::Message* parentCall = getExecutingCall();
 
     // Set up number of threads for next level
-    std::shared_ptr<Level> parentLevel = ctx.level;
+    std::shared_ptr<threads::Level> parentLevel = ctx.level;
     int nextNumThreads = parentLevel->getMaxThreadsAtNextLevel();
 
     // Set up the next level
-    auto nextLevel = std::make_shared<Level>(nextNumThreads);
+    auto nextLevel = std::make_shared<threads::Level>(nextNumThreads);
     nextLevel->fromParentLevel(parentLevel);
 
     // Take memory snapshot
@@ -592,7 +591,7 @@ void for_static_init(I32 schedule,
     typedef typename std::make_unsigned<T>::type UT;
 
     auto logger = faabric::util::getLogger();
-    auto ctx = getOpenMPContext();
+    auto ctx = threads::getOpenMPContext();
 
     if (ctx.level->numThreads == 1) {
         *lastIter = true;
@@ -735,6 +734,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     // Get host pointers for the things we need to write
     Runtime::Memory* memoryPtr = getExecutingWAVMModule()->defaultMemory;
+
     I32* lastIter = &Runtime::memoryRef<I32>(memoryPtr, lastIterPtr);
     I32* lower = &Runtime::memoryRef<I32>(memoryPtr, lowerPtr);
     I32* upper = &Runtime::memoryRef<I32>(memoryPtr, upperPtr);
@@ -827,7 +827,7 @@ enum ReduceReturnValue
 int reduceFinished()
 {
     auto logger = faabric::util::getLogger();
-    auto ctx = getOpenMPContext();
+    auto ctx = threads::getOpenMPContext();
 
     if (ctx.level->numThreads == 1) {
         return SINGLE_THREAD;
@@ -849,7 +849,7 @@ int reduceFinished()
 void finaliseReduce(bool barrier)
 {
     auto logger = faabric::util::getLogger();
-    auto ctx = getOpenMPContext();
+    auto ctx = threads::getOpenMPContext();
 
     // Master must make sure all other threads are done
     if (ctx.threadNumber == 0) {

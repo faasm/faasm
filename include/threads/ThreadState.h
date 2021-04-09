@@ -4,12 +4,11 @@
 #include <vector>
 
 #include <faabric/proto/faabric.pb.h>
-
 #include <faabric/util/barrier.h>
 #include <faabric/util/environment.h>
 #include <faabric/util/locks.h>
 
-namespace wasm {
+namespace threads {
 
 // A Level is a layer of threads in an OpenMP application.
 // Note, defaults are set to mimic Clang 9.0.1 behaviour

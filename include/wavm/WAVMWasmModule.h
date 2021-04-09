@@ -1,8 +1,8 @@
 #pragma once
 
+#include <threads/ThreadState.h>
 #include <wasm/WasmModule.h>
 #include <wavm/LoadedDynamicModule.h>
-#include <wavm/ThreadState.h>
 
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Linker.h>

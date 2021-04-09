@@ -6,6 +6,7 @@
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 #include <faabric/util/logging.h>
+#include <threads/MutexManager.h>
 #include <wasm/WasmModule.h>
 #include <wasm/chaining.h>
 #include <wavm/WAVMWasmModule.h>
@@ -285,20 +286,93 @@ I32 s__futex(I32 uaddrPtr,
     return returnValue;
 }
 
-/*
- * --------------------------
- * STUBBED PTHREADS
- * --------------------------
- */
+// --------------------------
+// PTHREAD MUTEXES - We support pthread mutexes locally as they're important to
+// support thread-safe libc operations
+// --------------------------
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "pthread_mutex_init",
                                I32,
                                pthread_mutex_init,
-                               I32 a,
-                               I32 b)
+                               I32 mx,
+                               I32 attr)
 {
-    // faabric::util::getLogger()->trace("S - pthread_mutex_init {} {}", a, b);
+    faabric::util::getLogger()->debug("S - pthread_mutex_init {} {}", mx, attr);
+    threads::getMutexManager().createMutex(mx);
+    return 0;
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "pthread_mutex_lock",
+                               I32,
+                               pthread_mutex_lock,
+                               I32 mx)
+{
+    faabric::util::getLogger()->debug("S - pthread_mutex_lock {}", mx);
+    threads::getMutexManager().lockMutex(mx);
+    return 0;
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "pthread_mutex_trylock",
+                               I32,
+                               s__pthread_mutex_trylock,
+                               I32 mx)
+{
+    faabric::util::getLogger()->debug("S - pthread_mutex_trylock {}", mx);
+    bool success = threads::getMutexManager().tryLockMutex(mx);
+    if (success) {
+        return 0;
+    } else {
+        return EBUSY;
+    }
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "pthread_mutex_unlock",
+                               I32,
+                               pthread_mutex_unlock,
+                               I32 mx)
+{
+    faabric::util::getLogger()->debug("S - pthread_mutex_unlock {}", mx);
+    threads::getMutexManager().unlockMutex(mx);
+    return 0;
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "pthread_mutex_destroy",
+                               I32,
+                               pthread_mutex_destroy,
+                               I32 mx)
+{
+    faabric::util::getLogger()->debug("S - pthread_mutex_destroy {}", mx);
+    threads::getMutexManager().destroyMutex(mx);
+    return 0;
+}
+
+// --------------------------
+// STUBBED PTHREADS - We can safely ignore the following functions
+// --------------------------
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "pthread_mutexattr_init",
+                               I32,
+                               pthread_mutexattr_init,
+                               I32 a)
+{
+    faabric::util::getLogger()->debug("S - pthread_mutexattr_init {}", a);
+
+    return 0;
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "pthread_mutexattr_destroy",
+                               I32,
+                               pthread_mutexattr_destroy,
+                               I32 a)
+{
+    faabric::util::getLogger()->debug("S - pthread_mutexattr_destroy {}", a);
 
     return 0;
 }
@@ -310,18 +384,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 a,
                                I32 b)
 {
-    // faabric::util::getLogger()->trace("S - pthread_cond_init {} {}", a, b);
-
-    return 0;
-}
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "pthread_mutex_lock",
-                               I32,
-                               pthread_mutex_lock,
-                               I32 a)
-{
-    // faabric::util::getLogger()->trace("S - pthread_mutex_lock {}", a);
+    faabric::util::getLogger()->debug("S - pthread_cond_init {} {}", a, b);
 
     return 0;
 }
@@ -332,36 +395,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                pthread_cond_signal,
                                I32 a)
 {
-    // faabric::util::getLogger()->trace("S - pthread_cond_signal {}", a);
-
-    return 0;
-}
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "pthread_mutex_unlock",
-                               I32,
-                               pthread_mutex_unlock,
-                               I32 a)
-{
-    // faabric::util::getLogger()->trace("S - pthread_mutex_unlock {}", a);
-
-    return 0;
-}
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "pthread_mutex_destroy",
-                               I32,
-                               pthread_mutex_destroy,
-                               I32 a)
-{
-    // faabric::util::getLogger()->trace("S - pthread_mutex_destroy {}", a);
+    faabric::util::getLogger()->debug("S - pthread_cond_signal {}", a);
 
     return 0;
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_self", I32, pthread_self)
 {
-    // faabric::util::getLogger()->trace("S - pthread_self");
+    faabric::util::getLogger()->debug("S - pthread_self");
 
     return 0;
 }
@@ -413,17 +454,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "pthread_mutex_trylock",
-                               I32,
-                               s__pthread_mutex_trylock,
-                               I32 a)
-{
-    // faabric::util::getLogger()->trace("S - pthread_mutex_trylock {}", a);
-
-    return 0;
-}
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "pthread_cond_destroy",
                                I32,
                                pthread_cond_destroy,
@@ -445,11 +475,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     return 0;
 }
 
-/*
- * --------------------------
- * Unsupported
- * --------------------------
- */
+// --------------------------
+// Unsupported
+// --------------------------
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "pthread_equal",

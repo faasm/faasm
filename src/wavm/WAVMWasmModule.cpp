@@ -13,6 +13,7 @@
 #include <faabric/util/timing.h>
 #include <ir_cache/IRModuleCache.h>
 #include <storage/SharedFiles.h>
+#include <threads/ThreadState.h>
 #include <wasm/WasmModule.h>
 #include <wavm/WAVMWasmModule.h>
 
@@ -24,8 +25,6 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/WASM/WASM.h>
-
-#include <wavm/ThreadState.h>
 
 using namespace WAVM;
 
@@ -859,7 +858,7 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
     }
 
     // Set up OMP
-    setUpOpenMPContext(msg);
+    threads::setUpOpenMPContext(msg);
 
     // Executes OMP fork message if necessary
     if (msg.ompdepth() > 0) {
@@ -1500,7 +1499,7 @@ I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)
     auto logger = faabric::util::getLogger();
 
     // Create a new region for this thread's stack
-    ThreadStack threadStack = claimThreadStack();    
+    ThreadStack threadStack = claimThreadStack();
     U32 stackTop = threadStack.wasmOffset + THREAD_STACK_SIZE - 1;
 
     // Create a new context for this thread

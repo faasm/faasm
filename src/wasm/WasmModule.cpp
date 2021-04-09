@@ -343,7 +343,7 @@ void WasmModule::createThreadStackPool()
     faabric::util::UniqueLock lock(threadStackMutex);
 
     uint32_t cores = faabric::util::getUsableCores();
-    uint32_t poolSize = cores + 5;
+    uint32_t poolSize = 20 * cores;
     logger->debug(
       "Creating thread stack pool size {} (cores={})", poolSize, cores);
 
