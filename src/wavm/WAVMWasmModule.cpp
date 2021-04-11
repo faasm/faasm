@@ -30,8 +30,6 @@
 using namespace WAVM;
 
 namespace wasm {
-static thread_local WAVMWasmModule* executingModule;
-
 static Runtime::Instance* baseEnvModule = nullptr;
 static Runtime::Instance* baseWasiModule = nullptr;
 
@@ -84,12 +82,7 @@ Runtime::Instance* WAVMWasmModule::getWasiModule()
 
 WAVMWasmModule* getExecutingWAVMModule()
 {
-    return executingModule;
-}
-
-void setExecutingModule(WAVMWasmModule* other)
-{
-    executingModule = other;
+    return reinterpret_cast<WAVMWasmModule*>(getExecutingModule());
 }
 
 WAVMWasmModule::WAVMWasmModule()
@@ -1547,7 +1540,7 @@ I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)
         returnValue = e.exitCode;
     }
 
-    // Return thread stack to the pool
+    // Return the thread stack
     returnThreadStack(threadStack);
 
     return returnValue;

@@ -12,7 +12,6 @@
 #include <threads/ThreadState.h>
 
 #include <exception>
-#include <future>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -23,6 +22,8 @@
 #define ONE_MB_BYTES 1024 * 1024
 
 #define WASM_BYTES_PER_PAGE 65536
+
+#define OPENMP_QUEUE_TIMEOUT_MS 10000
 
 // Note: this is *not* controlling the size provisioned by the linker, that is
 // hard-coded in the build. This variable is just here for reference and must be
@@ -131,7 +132,13 @@ class WasmModule
     virtual void printDebugInfo();
 
     // ----- Threading -----
-    std::future<int32_t> executeOpenMPTask(threads::OpenMPTask& t);
+    void executeOpenMPTask(threads::OpenMPTask& t);
+    
+    void awaitOpenMPTasks(int nTasks);
+
+    void shutdownOpenMPThreads();
+
+    virtual int32_t executeAsOMPThread(faabric::Message& msg);
 
     threads::MutexManager& getMutexes();
 
@@ -152,10 +159,11 @@ class WasmModule
     int stdoutMemFd;
     ssize_t stdoutSize;
 
-    faabric::util::Queue<std::pair<std::promise<int32_t>, threads::OpenMPTask>>
-      openMPTaskQueue;
+    faabric::util::Queue<threads::OpenMPTask> openMPTaskQueue;
+    faabric::util::Queue<int32_t> openMPResultQueue;
     std::vector<std::thread> openMPThreads;
     std::mutex threadsMutex;
+    std::mutex threadStacksMutex;
 
     threads::MutexManager mutexes;
 
@@ -192,6 +200,10 @@ class WasmModule
 faabric::Message* getExecutingCall();
 
 void setExecutingCall(faabric::Message* other);
+
+void setExecutingModule(wasm::WasmModule* module);
+
+wasm::WasmModule* getExecutingModule();
 
 // Convenience functions
 size_t getNumberOfWasmPagesForBytes(uint32_t nBytes);

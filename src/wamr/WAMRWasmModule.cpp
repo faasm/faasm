@@ -24,8 +24,6 @@ namespace wasm {
 static bool wamrInitialised = false;
 std::mutex wamrInitMx;
 
-static thread_local WAMRWasmModule* executingModule;
-
 void WAMRWasmModule::initialiseWAMRGlobally()
 {
     if (wamrInitialised) {
@@ -57,12 +55,7 @@ void tearDownWAMRGlobally()
 
 WAMRWasmModule* getExecutingWAMRModule()
 {
-    return executingModule;
-}
-
-void setExecutingModule(WAMRWasmModule* executingModuleIn)
-{
-    executingModule = executingModuleIn;
+    return reinterpret_cast<WAMRWasmModule*>(getExecutingModule());
 }
 
 WAMRWasmModule::WAMRWasmModule()

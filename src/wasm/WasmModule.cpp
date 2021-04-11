@@ -1,7 +1,7 @@
 #include "wasm/WasmModule.h"
 
-#include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/environment.h>
@@ -19,6 +19,7 @@
 namespace wasm {
 // Using TLS here to isolate between executing functions
 static thread_local faabric::Message* executingCall;
+static thread_local wasm::WasmModule* executingModule;
 
 bool isWasmPageAligned(int32_t offset)
 {
@@ -37,6 +38,16 @@ faabric::Message* getExecutingCall()
 void setExecutingCall(faabric::Message* other)
 {
     executingCall = other;
+}
+
+wasm::WasmModule* getExecutingModule()
+{
+    return executingModule;
+}
+
+void setExecutingModule(wasm::WasmModule* module)
+{
+    executingModule = module;
 }
 
 size_t getNumberOfWasmPagesForBytes(uint32_t nBytes)
@@ -306,43 +317,81 @@ uint32_t WasmModule::getCurrentBrk()
     return currentBrk;
 }
 
-std::future<int32_t> WasmModule::executeOpenMPTask(threads::OpenMPTask& t)
+void WasmModule::awaitOpenMPTasks(int nTasks)
 {
-    std::promise<int32_t> promise;
-    std::future<int32_t> future = promise.get_future();
+    // Await N tasks
+    for (int i = 0; i < nTasks; i++) {
+        int32_t returnValue =
+          openMPResultQueue.dequeue(OPENMP_QUEUE_TIMEOUT_MS);
 
+        if (returnValue > 0) {
+            throw std::runtime_error("OpenMP thread failed");
+        }
+    }
+}
+
+void WasmModule::shutdownOpenMPThreads()
+{
+    faabric::util::UniqueLock lock(threadsMutex);
+
+    // Send shutdown messages
+    for (int i = 0; i < openMPThreads.size(); i++) {
+        threads::OpenMPShutdownTask t;
+        openMPTaskQueue.enqueue(t);
+    }
+
+    // Wait
+    for (auto& t : openMPThreads) {
+        if (t.joinable()) {
+            t.join();
+        }
+    }
+}
+
+void WasmModule::executeOpenMPTask(threads::OpenMPTask& t)
+{
     // Enqueue the task
-    openMPTaskQueue.enqueue(std::make_pair(std::move(promise), std::move(t)));
+    openMPTaskQueue.enqueue(t);
 
     // Check if we can add a thread
     if (openMPThreads.size() < threadPoolSize) {
         faabric::util::UniqueLock lock(threadsMutex);
+
+        // Double check once lock acquired
         if (openMPThreads.size() < threadPoolSize) {
 
             openMPThreads.emplace_back([this] {
-                auto p = openMPTaskQueue.dequeue();
-                auto t = p.second;
-                PROF_START(ompThread)
+                for (;;) {
+                    threads::OpenMPTask t =
+                      openMPTaskQueue.dequeue(OPENMP_QUEUE_TIMEOUT_MS);
 
-                auto& sch = faabric::scheduler::getScheduler();
+                    if (t.isShutdown) {
+                        break;
+                    }
 
-                // We are now in a new thread so need to set up everything
-                // that uses TLS
-                setUpOpenMPContext(t.threadIdx, t.nextLevel);
-                setExecutingModule(this);
-                setExecutingCall(t.parentMsg);
+                    PROF_START(ompThread)
 
-                p.first.set_value(this->executeAsOMPThread(t.msg));
-                // Caller has to notify scheduler when finished executing a
-                // thread locally
-                sch.notifyCallFinished(t.msg);
+                    auto& sch = faabric::scheduler::getScheduler();
 
-                PROF_END(ompThread)
+                    // We are now in a new thread so need to set up
+                    // everything that uses TLS
+                    setUpOpenMPContext(t.threadIdx, t.nextLevel);
+                    setExecutingModule(this);
+                    setExecutingCall(t.parentMsg);
+
+                    int32_t retValue = executeAsOMPThread(t.msg);
+
+                    // Caller has to notify scheduler when finished
+                    // executing a thread locally
+                    sch.notifyCallFinished(t.msg);
+
+                    openMPResultQueue.enqueue(retValue);
+
+                    PROF_END(ompThread)
+                }
             });
         }
     }
-
-    return future;
 }
 
 uint32_t WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
@@ -352,9 +401,9 @@ uint32_t WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
     uint32_t regionSize = GUARD_REGION_SIZE;
     uint8_t* nativePtr = wasmPointerToNative(wasmOffset);
 
-    // NOTE: we want to protect these regions from _writes_, but we don't want
-    // to stop them being read, otherwise snapshotting will fail. Therefore we
-    // make them read-only
+    // NOTE: we want to protect these regions from _writes_, but we don't
+    // want to stop them being read, otherwise snapshotting will fail.
+    // Therefore we make them read-only
     int res = mprotect(nativePtr, regionSize, PROT_READ);
     if (res != 0) {
         logger->error("Failed to create memory guard: {}",
@@ -368,20 +417,6 @@ uint32_t WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
     return wasmOffset + regionSize;
 }
 
-void WasmModule::allocateThreadStack(ThreadStack& s)
-{
-    // Set up memory if not already created
-    if (s.wasmOffset == 0) {
-        // Allocate thread and guard pages
-        uint32_t memSize = THREAD_STACK_SIZE + (2 * GUARD_REGION_SIZE);
-        uint32_t memBase = growMemory(memSize);
-
-        // Memory begins after the guard page
-        s.wasmOffset = createMemoryGuardRegion(memBase);
-        createMemoryGuardRegion(s.wasmOffset + THREAD_STACK_SIZE);
-    }
-}
-
 void WasmModule::createThreadStackPool()
 {
     auto logger = faabric::util::getLogger();
@@ -390,22 +425,28 @@ void WasmModule::createThreadStackPool()
 
     for (int i = 0; i < threadPoolSize; i++) {
         ThreadStack s;
-        allocateThreadStack(s);
+
+        // Allocate thread and guard pages
+        uint32_t memSize = THREAD_STACK_SIZE + (2 * GUARD_REGION_SIZE);
+        uint32_t memBase = growMemory(memSize);
+
+        // Memory begins after the guard page
+        s.wasmOffset = createMemoryGuardRegion(memBase);
+        createMemoryGuardRegion(s.wasmOffset + THREAD_STACK_SIZE);
+
         threadStacks.push_back(s);
     }
 }
 
 void WasmModule::returnThreadStack(ThreadStack s)
 {
-    faabric::util::UniqueLock lock(threadsMutex);
+    faabric::util::UniqueLock lock(threadStacksMutex);
     threadStacks.push_back(s);
 }
 
 ThreadStack WasmModule::claimThreadStack()
 {
-    auto logger = faabric::util::getLogger();
-
-    faabric::util::UniqueLock lock(threadsMutex);
+    faabric::util::UniqueLock lock(threadStacksMutex);
     ThreadStack s = threadStacks.back();
     threadStacks.pop_back();
 
@@ -495,5 +536,10 @@ size_t WasmModule::getMemorySizeBytes()
 uint8_t* WasmModule::getMemoryBase()
 {
     throw std::runtime_error("getMemoryBase not implemented");
+}
+
+int32_t WasmModule::executeAsOMPThread(faabric::Message& msg)
+{
+    throw std::runtime_error("executeAsOMPThread not implemented");
 }
 }

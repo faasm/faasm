@@ -450,7 +450,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     std::vector<std::string> executedHosts = sch.callFunctions(req);
 
     // Iterate through messages and see which need to be executed locally
-    std::vector<std::future<int32_t>> localThreadFutures;
+    int nLocalTasks = 0;
     for (int i = 0; i < executedHosts.size(); i++) {
         std::string host = executedHosts.at(i);
         bool isLocal = host.empty();
@@ -466,8 +466,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         }
 
         logger->debug("Executing local OMP thread for call ID {}", msgId);
+        nLocalTasks++;
         threads::OpenMPTask t(parentCall, msg, nextLevel, i);
-        localThreadFutures.push_back(parentModule->executeOpenMPTask(t));
+        parentModule->executeOpenMPTask(t);
     }
 
     // Await the results of all the remote threads
@@ -498,13 +499,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         }
     }
 
-    // Await thread completion
-    for (auto& t : localTasks) {
-        int32_t retVal = t.returnValue.get_future().get();
-        if (retVal > 0) {
-            throw std::runtime_error("OpenMP threads have errors");
-        }
-    }
+    // Await local threads
+    parentModule->awaitOpenMPTasks(nLocalTasks);
 
     // Reset parent level for next setting of threads
     parentLevel->pushedThreads = -1;

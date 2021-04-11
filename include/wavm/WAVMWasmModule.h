@@ -182,12 +182,10 @@ class WAVMWasmModule final
     WAVM::Runtime::Function* getWasmConstructorsFunction(
       WAVM::Runtime::Instance* module);
 
-    int32_t executeAsOMPThread(faabric::Message& msg);
+    int32_t executeAsOMPThread(faabric::Message& msg) override;
 };
 
 WAVMWasmModule* getExecutingWAVMModule();
-
-void setExecutingModule(WAVMWasmModule* executingModule);
 
 struct WasmThreadSpec
 {

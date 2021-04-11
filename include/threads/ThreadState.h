@@ -1,6 +1,5 @@
 #pragma once
 
-#include <future>
 #include <mutex>
 #include <vector>
 
@@ -70,10 +69,22 @@ class OpenMPTask
       , threadIdx(threadIdxIn)
     {}
 
+    bool isShutdown = false;
     faabric::Message* parentMsg;
     faabric::Message& msg;
     std::shared_ptr<threads::Level> nextLevel;
     int threadIdx;
+};
+
+class OpenMPShutdownTask : public OpenMPTask
+{
+  public:
+    OpenMPShutdownTask()
+      : OpenMPTask(nullptr, dummyMessage, nullptr, -1)
+    {}
+
+    bool isShutdown = true;
+    faabric::Message dummyMessage;
 };
 
 class OpenMPContext
