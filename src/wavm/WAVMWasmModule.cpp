@@ -1,4 +1,3 @@
-#include "faabric/scheduler/Scheduler.h"
 #include "syscalls.h"
 
 #include <boost/filesystem.hpp>
