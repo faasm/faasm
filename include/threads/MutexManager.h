@@ -21,9 +21,5 @@ class MutexManager
 
   private:
     std::unordered_map<int, std::mutex> mutexes;
-
-    std::mutex& getMutex(int mutexId);
 };
-
-MutexManager& getMutexManager();
 }

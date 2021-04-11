@@ -39,8 +39,6 @@ class WAVMWasmModule final
 
     bool execute(faabric::Message& msg, bool forceNoop = false) override;
 
-    bool executeAsOMPThread(faabric::Message& msg) override;
-
     bool isBound() override;
 
     bool tearDown();
@@ -183,6 +181,8 @@ class WAVMWasmModule final
 
     WAVM::Runtime::Function* getWasmConstructorsFunction(
       WAVM::Runtime::Instance* module);
+
+    int32_t executeAsOMPThread(faabric::Message& msg);
 };
 
 WAVMWasmModule* getExecutingWAVMModule();

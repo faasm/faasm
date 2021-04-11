@@ -48,8 +48,8 @@ std::string mainData = "PyBool_Type";
 std::string dataA = "PyArray_API";
 std::string dataB = "__pyx_module_is_main_numpy__random__mtrand";
 int mainDataOffset = 4862196;
-int dataAOffset = 40086240;
-int dataBOffset = 45547520;
+int dataAOffset = 29862624;
+int dataBOffset = 35323904;
 
 // NOTE - we don't get perfect pakcing of the indexing, so each module has
 // an arbitrary extra offset.
@@ -68,8 +68,7 @@ TEST_CASE("Test dynamic load/ function lookup", "[wasm]")
     wasm::IRModuleCache& registry = wasm::getIRModuleCache();
 
     // Get the guard region size
-    size_t nGuardPages = wasm::getPagesForGuardRegion();
-    size_t guardBytes = nGuardPages * WASM_BYTES_PER_PAGE;
+    size_t guardBytes = GUARD_REGION_SIZE;
     size_t guardBytesPerModule = 2 * guardBytes;
 
     // Bind to Python function

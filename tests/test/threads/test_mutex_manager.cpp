@@ -9,7 +9,7 @@ TEST_CASE("Check lock/ unlock", "[threads]")
 {
     cleanSystem();
 
-    threads::MutexManager& tm = threads::getMutexManager();
+    threads::MutexManager tm;
 
     int idA = 123;
     int idB = 124;
@@ -19,14 +19,12 @@ TEST_CASE("Check lock/ unlock", "[threads]")
     tm.lockMutex(idB);
 
     // Background threads that will try to lock and unlock the same mutexes
-    std::thread tA([idA] {
-        threads::MutexManager& tm = threads::getMutexManager();
+    std::thread tA([idA, &tm] {
         tm.lockMutex(idA);
         tm.unlockMutex(idA);
     });
 
-    std::thread tB([idB] {
-        threads::MutexManager& tm = threads::getMutexManager();
+    std::thread tB([idB, &tm] {
         tm.lockMutex(idB);
     });
 

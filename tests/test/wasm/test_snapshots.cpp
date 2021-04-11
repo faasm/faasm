@@ -33,7 +33,10 @@ TEST_CASE("Test snapshot and restore for wasm module", "[wasm][snapshot]")
     nativePtr[4] = 4;
 
     // Add a guard region to make sure these can be propagated
-    moduleA.createMemoryGuardRegion(wasmPtr + WASM_BYTES_PER_PAGE);
+    uint32_t guardRegionOffset =
+      moduleA.createMemoryGuardRegion(wasmPtr + WASM_BYTES_PER_PAGE);
+    REQUIRE(guardRegionOffset ==
+            wasmPtr + WASM_BYTES_PER_PAGE + GUARD_REGION_SIZE);
 
     size_t expectedSizeBytes = moduleA.getMemorySizeBytes();
 

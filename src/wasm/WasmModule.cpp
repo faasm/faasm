@@ -1,6 +1,7 @@
 #include "wasm/WasmModule.h"
 
 #include <faabric/snapshot/SnapshotRegistry.h>
+#include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/environment.h>
@@ -59,6 +60,10 @@ size_t getPagesForGuardRegion()
     size_t nWasmPages = getNumberOfWasmPagesForBytes(regionSize);
     return nWasmPages;
 }
+
+WasmModule::WasmModule()
+  : threadPoolSize(faabric::util::getUsableCores() + 2)
+{}
 
 WasmModule::~WasmModule()
 {
@@ -297,14 +302,54 @@ uint32_t WasmModule::mapSharedStateMemory(
 
 uint32_t WasmModule::getCurrentBrk()
 {
+    faabric::util::SharedLock lock(moduleMemoryMutex);
     return currentBrk;
 }
 
-void WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
+std::future<int32_t> WasmModule::executeOpenMPTask(threads::OpenMPTask& t)
+{
+    std::promise<int32_t> promise;
+    std::future<int32_t> future = promise.get_future();
+
+    // Enqueue the task
+    openMPTaskQueue.enqueue(std::make_pair(std::move(promise), std::move(t)));
+
+    // Check if we can add a thread
+    if (openMPThreads.size() < threadPoolSize) {
+        faabric::util::UniqueLock lock(threadsMutex);
+        if (openMPThreads.size() < threadPoolSize) {
+
+            openMPThreads.emplace_back([this] {
+                auto p = openMPTaskQueue.dequeue();
+                auto t = p.second;
+                PROF_START(ompThread)
+
+                auto& sch = faabric::scheduler::getScheduler();
+
+                // We are now in a new thread so need to set up everything
+                // that uses TLS
+                setUpOpenMPContext(t.threadIdx, t.nextLevel);
+                setExecutingModule(this);
+                setExecutingCall(t.parentMsg);
+
+                p.first.set_value(this->executeAsOMPThread(t.msg));
+                // Caller has to notify scheduler when finished executing a
+                // thread locally
+                sch.notifyCallFinished(t.msg);
+
+                PROF_END(ompThread)
+            });
+        }
+    }
+
+    return future;
+}
+
+uint32_t WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
 {
     auto logger = faabric::util::getLogger();
 
-    size_t regionSize = GUARD_REGION_SIZE;
+    uint32_t regionSize = GUARD_REGION_SIZE;
     uint8_t* nativePtr = wasmPointerToNative(wasmOffset);
 
     // NOTE: we want to protect these regions from _writes_, but we don't want
@@ -319,20 +364,21 @@ void WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
 
     logger->debug(
       "Created guard region {}-{}", wasmOffset, wasmOffset + regionSize);
+
+    return wasmOffset + regionSize;
 }
 
 void WasmModule::allocateThreadStack(ThreadStack& s)
 {
     // Set up memory if not already created
     if (s.wasmOffset == 0) {
+        // Allocate thread and guard pages
         uint32_t memSize = THREAD_STACK_SIZE + (2 * GUARD_REGION_SIZE);
-
         uint32_t memBase = growMemory(memSize);
 
-        createMemoryGuardRegion(memBase);
-        s.wasmOffset = memBase + GUARD_REGION_SIZE;
-        createMemoryGuardRegion(memBase + GUARD_REGION_SIZE +
-                                THREAD_STACK_SIZE);
+        // Memory begins after the guard page
+        s.wasmOffset = createMemoryGuardRegion(memBase);
+        createMemoryGuardRegion(s.wasmOffset + THREAD_STACK_SIZE);
     }
 }
 
@@ -340,14 +386,9 @@ void WasmModule::createThreadStackPool()
 {
     auto logger = faabric::util::getLogger();
 
-    faabric::util::UniqueLock lock(threadStackMutex);
+    logger->debug("Creating thread stack pool, size {}", threadPoolSize);
 
-    uint32_t cores = faabric::util::getUsableCores();
-    uint32_t poolSize = cores + 2;
-    logger->debug(
-      "Creating thread stack pool size {} (cores={})", poolSize, cores);
-
-    for (int i = 0; i < poolSize; i++) {
+    for (int i = 0; i < threadPoolSize; i++) {
         ThreadStack s;
         allocateThreadStack(s);
         threadStacks.push_back(s);
@@ -356,7 +397,7 @@ void WasmModule::createThreadStackPool()
 
 void WasmModule::returnThreadStack(ThreadStack s)
 {
-    faabric::util::UniqueLock lock(threadStackMutex);
+    faabric::util::UniqueLock lock(threadsMutex);
     threadStacks.push_back(s);
 }
 
@@ -364,22 +405,16 @@ ThreadStack WasmModule::claimThreadStack()
 {
     auto logger = faabric::util::getLogger();
 
-    ThreadStack s;
-    {
-        faabric::util::UniqueLock lock(threadStackMutex);
-        if (threadStacks.empty()) {
-            logger->warn("Thread stack pool empty, adding another");
-        } else {
-            s = threadStacks.back();
-            threadStacks.pop_back();
-        }
-    }
-
-    // Note - we must allocate memory outside of the locked region to avoid
-    // deadlock between memory and thread stacks
-    allocateThreadStack(s);
+    faabric::util::UniqueLock lock(threadsMutex);
+    ThreadStack s = threadStacks.back();
+    threadStacks.pop_back();
 
     return s;
+}
+
+threads::MutexManager& WasmModule::getMutexes()
+{
+    return mutexes;
 }
 
 // ------------------------------------------
@@ -399,11 +434,6 @@ void WasmModule::bindToFunctionNoZygote(const faabric::Message& msg)
 bool WasmModule::execute(faabric::Message& msg, bool forceNoop)
 {
     throw std::runtime_error("execute not implemented");
-}
-
-bool WasmModule::executeAsOMPThread(faabric::Message& msg)
-{
-    throw std::runtime_error("executeAsOMPThread not implemented");
 }
 
 bool WasmModule::isBound()

@@ -450,9 +450,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     std::vector<std::string> executedHosts = sch.callFunctions(req);
 
     // Iterate through messages and see which need to be executed locally
-    std::vector<std::thread> localThreads;
-    std::mutex errorsMutex;
-    std::vector<int> errors;
+    std::vector<std::future<int32_t>> localThreadFutures;
     for (int i = 0; i < executedHosts.size(); i++) {
         std::string host = executedHosts.at(i);
         bool isLocal = host.empty();
@@ -467,36 +465,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
             continue;
         }
 
-        logger->debug("Spawning local thread for call ID {}", msgId);
-        localThreads.emplace_back([&msg,
-                                   &sch,
-                                   &nextLevel,
-                                   &parentModule,
-                                   &parentCall,
-                                   &errors,
-                                   &errorsMutex,
-                                   i] {
-            PROF_START(ompThread)
-
-            // We are now in a new thread so need to set up everything
-            // that uses TLS
-            setUpOpenMPContext(i, nextLevel);
-            setExecutingModule(parentModule);
-            setExecutingCall(parentCall);
-
-            parentModule->executeAsOMPThread(msg);
-
-            // Caller has to notify scheduler when finished executing a thread
-            // locally
-            sch.notifyCallFinished(msg);
-
-            if (msg.returnvalue() > 0) {
-                faabric::util::UniqueLock lock(errorsMutex);
-                errors.push_back(i);
-            }
-
-            PROF_END(ompThread)
-        });
+        logger->debug("Executing local OMP thread for call ID {}", msgId);
+        threads::OpenMPTask t(parentCall, msg, nextLevel, i);
+        localThreadFutures.push_back(parentModule->executeOpenMPTask(t));
     }
 
     // Await the results of all the remote threads
@@ -528,20 +499,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     }
 
     // Await thread completion
-    for (auto& t : localThreads) {
-        if (t.joinable()) {
-            logger->debug("Joining local OpenMP thread");
-            t.join();
-        } else {
-            logger->warn("Local OpenMP thread not joinable");
+    for (auto& t : localTasks) {
+        int32_t retVal = t.returnValue.get_future().get();
+        if (retVal > 0) {
+            throw std::runtime_error("OpenMP threads have errors");
         }
-    }
-
-    if (numErrors > 0 || !errors.empty()) {
-        logger->error("OpenMP threads errored ({} local, {} remote)",
-                      errors.size(),
-                      numErrors);
-        throw std::runtime_error("OpenMP threads have errors");
     }
 
     // Reset parent level for next setting of threads

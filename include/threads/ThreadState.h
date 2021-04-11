@@ -1,5 +1,6 @@
 #pragma once
 
+#include <future>
 #include <mutex>
 #include <vector>
 
@@ -54,6 +55,25 @@ class Level
     int nowaitCount = 0;
     std::mutex nowaitMutex;
     std::condition_variable nowaitCv;
+};
+
+class OpenMPTask
+{
+  public:
+    OpenMPTask(faabric::Message* parentMsgIn,
+               faabric::Message& msgIn,
+               std::shared_ptr<threads::Level> nextLevelIn,
+               int threadIdxIn)
+      : parentMsg(parentMsgIn)
+      , msg(msgIn)
+      , nextLevel(nextLevelIn)
+      , threadIdx(threadIdxIn)
+    {}
+
+    faabric::Message* parentMsg;
+    faabric::Message& msg;
+    std::shared_ptr<threads::Level> nextLevel;
+    int threadIdx;
 };
 
 class OpenMPContext

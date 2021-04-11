@@ -6,9 +6,13 @@
 #include <faabric/state/State.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/memory.h>
+#include <faabric/util/queue.h>
 #include <faabric/util/snapshot.h>
+#include <threads/MutexManager.h>
+#include <threads/ThreadState.h>
 
 #include <exception>
+#include <future>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -50,6 +54,8 @@ struct ThreadStack
 class WasmModule
 {
   public:
+    WasmModule();
+
     virtual ~WasmModule();
 
     // ----- Module lifecycle -----
@@ -58,8 +64,6 @@ class WasmModule
     virtual void bindToFunctionNoZygote(const faabric::Message& msg);
 
     virtual bool execute(faabric::Message& msg, bool forceNoop = false);
-
-    virtual bool executeAsOMPThread(faabric::Message& msg);
 
     virtual bool isBound();
 
@@ -107,7 +111,7 @@ class WasmModule
 
     virtual void unmapMemory(uint32_t offset, uint32_t nBytes);
 
-    void createMemoryGuardRegion(uint32_t wasmOffset);
+    uint32_t createMemoryGuardRegion(uint32_t wasmOffset);
 
     virtual uint32_t mapSharedStateMemory(
       const std::shared_ptr<faabric::state::StateKeyValue>& kv,
@@ -126,9 +130,15 @@ class WasmModule
     // ----- Debugging -----
     virtual void printDebugInfo();
 
+    // ----- Threading -----
+    std::future<int32_t> executeOpenMPTask(threads::OpenMPTask& t);
+
+    threads::MutexManager& getMutexes();
+
   protected:
     uint32_t currentBrk = 0;
 
+    uint32_t threadPoolSize = 0;
     std::vector<ThreadStack> threadStacks;
 
     std::string boundUser;
@@ -142,8 +152,15 @@ class WasmModule
     int stdoutMemFd;
     ssize_t stdoutSize;
 
+    faabric::util::Queue<std::pair<std::promise<int32_t>, threads::OpenMPTask>>
+      openMPTaskQueue;
+    std::vector<std::thread> openMPThreads;
+    std::mutex threadsMutex;
+
+    threads::MutexManager mutexes;
+
+    std::shared_mutex moduleMemoryMutex;
     std::mutex moduleStateMutex;
-    std::mutex threadStackMutex;
 
     // Argc/argv
     unsigned int argc;
@@ -159,6 +176,7 @@ class WasmModule
 
     virtual uint8_t* getMemoryBase();
 
+    // Threads
     ThreadStack addThreadStackToPool();
 
     void allocateThreadStack(ThreadStack& s);

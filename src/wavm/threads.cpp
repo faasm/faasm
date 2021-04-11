@@ -6,7 +6,6 @@
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 #include <faabric/util/logging.h>
-#include <threads/MutexManager.h>
 #include <wasm/WasmModule.h>
 #include <wasm/chaining.h>
 #include <wavm/WAVMWasmModule.h>
@@ -288,7 +287,8 @@ I32 s__futex(I32 uaddrPtr,
 
 // --------------------------
 // PTHREAD MUTEXES - We support pthread mutexes locally as they're important to
-// support thread-safe libc operations
+// support thread-safe libc operations.
+// Note we use trace logging here as these are invoked a lot
 // --------------------------
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -298,8 +298,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 mx,
                                I32 attr)
 {
-    faabric::util::getLogger()->debug("S - pthread_mutex_init {} {}", mx, attr);
-    threads::getMutexManager().createMutex(mx);
+    faabric::util::getLogger()->trace("S - pthread_mutex_init {} {}", mx, attr);
+    getExecutingWAVMModule()->getMutexes().createMutex(mx);
     return 0;
 }
 
@@ -309,8 +309,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                pthread_mutex_lock,
                                I32 mx)
 {
-    faabric::util::getLogger()->debug("S - pthread_mutex_lock {}", mx);
-    threads::getMutexManager().lockMutex(mx);
+    faabric::util::getLogger()->trace("S - pthread_mutex_lock {}", mx);
+    getExecutingWAVMModule()->getMutexes().lockMutex(mx);
     return 0;
 }
 
@@ -320,8 +320,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                s__pthread_mutex_trylock,
                                I32 mx)
 {
-    faabric::util::getLogger()->debug("S - pthread_mutex_trylock {}", mx);
-    bool success = threads::getMutexManager().tryLockMutex(mx);
+    faabric::util::getLogger()->trace("S - pthread_mutex_trylock {}", mx);
+    bool success = getExecutingWAVMModule()->getMutexes().tryLockMutex(mx);
     if (success) {
         return 0;
     } else {
@@ -335,8 +335,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                pthread_mutex_unlock,
                                I32 mx)
 {
-    faabric::util::getLogger()->debug("S - pthread_mutex_unlock {}", mx);
-    threads::getMutexManager().unlockMutex(mx);
+    faabric::util::getLogger()->trace("S - pthread_mutex_unlock {}", mx);
+    getExecutingWAVMModule()->getMutexes().unlockMutex(mx);
     return 0;
 }
 
@@ -346,8 +346,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                pthread_mutex_destroy,
                                I32 mx)
 {
-    faabric::util::getLogger()->debug("S - pthread_mutex_destroy {}", mx);
-    threads::getMutexManager().destroyMutex(mx);
+    faabric::util::getLogger()->trace("S - pthread_mutex_destroy {}", mx);
+    getExecutingWAVMModule()->getMutexes().destroyMutex(mx);
     return 0;
 }
 
@@ -361,7 +361,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                pthread_mutexattr_init,
                                I32 a)
 {
-    faabric::util::getLogger()->debug("S - pthread_mutexattr_init {}", a);
+    faabric::util::getLogger()->trace("S - pthread_mutexattr_init {}", a);
 
     return 0;
 }
@@ -372,7 +372,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                pthread_mutexattr_destroy,
                                I32 a)
 {
-    faabric::util::getLogger()->debug("S - pthread_mutexattr_destroy {}", a);
+    faabric::util::getLogger()->trace("S - pthread_mutexattr_destroy {}", a);
 
     return 0;
 }
@@ -384,7 +384,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 a,
                                I32 b)
 {
-    faabric::util::getLogger()->debug("S - pthread_cond_init {} {}", a, b);
+    faabric::util::getLogger()->trace("S - pthread_cond_init {} {}", a, b);
 
     return 0;
 }
@@ -395,14 +395,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                pthread_cond_signal,
                                I32 a)
 {
-    faabric::util::getLogger()->debug("S - pthread_cond_signal {}", a);
+    faabric::util::getLogger()->trace("S - pthread_cond_signal {}", a);
 
     return 0;
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_self", I32, pthread_self)
 {
-    faabric::util::getLogger()->debug("S - pthread_self");
+    faabric::util::getLogger()->trace("S - pthread_self");
 
     return 0;
 }
@@ -414,7 +414,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 a,
                                I32 b)
 {
-    // faabric::util::getLogger()->trace("S - pthread_key_create {} {}", a, b);
+    faabric::util::getLogger()->trace("S - pthread_key_create {} {}", a, b);
 
     return 0;
 }
@@ -425,7 +425,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                s__pthread_key_delete,
                                I32 a)
 {
-    // faabric::util::getLogger()->trace("S - pthread_key_delete {}", a);
+    faabric::util::getLogger()->trace("S - pthread_key_delete {}", a);
 
     return 0;
 }
@@ -436,7 +436,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                s__pthread_getspecific,
                                I32 a)
 {
-    // faabric::util::getLogger()->trace("S - pthread_getspecific {}", a);
+    faabric::util::getLogger()->trace("S - pthread_getspecific {}", a);
 
     return 0;
 }
@@ -448,7 +448,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 a,
                                I32 b)
 {
-    // faabric::util::getLogger()->trace("S - pthread_setspecific {} {}", a, b);
+    faabric::util::getLogger()->trace("S - pthread_setspecific {} {}", a, b);
 
     return 0;
 }
@@ -459,7 +459,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                pthread_cond_destroy,
                                I32 a)
 {
-    // faabric::util::getLogger()->trace("S - pthread_cond_destroy {}", a);
+    faabric::util::getLogger()->trace("S - pthread_cond_destroy {}", a);
 
     return 0;
 }
@@ -470,7 +470,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                pthread_cond_broadcast,
                                I32 a)
 {
-    // faabric::util::getLogger()->trace("S - pthread_cond_broadcast {}", a);
+    faabric::util::getLogger()->trace("S - pthread_cond_broadcast {}", a);
 
     return 0;
 }

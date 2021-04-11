@@ -1,3 +1,4 @@
+#include "faabric/scheduler/Scheduler.h"
 #include "syscalls.h"
 
 #include <boost/filesystem.hpp>
@@ -572,10 +573,9 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
 
         // Provision the memory for the new module plus two guard regions
         uint32_t memSize = DYNAMIC_MODULE_MEMORY_SIZE + (2 * GUARD_REGION_SIZE);
-        Uptr newMemory = growMemory(memSize);
-        createMemoryGuardRegion(newMemory);
-        createMemoryGuardRegion(newMemory + DYNAMIC_MODULE_MEMORY_SIZE +
-                                GUARD_REGION_SIZE);
+        Uptr memOffset = growMemory(memSize);
+        uint32_t memStart = createMemoryGuardRegion(memOffset);
+        createMemoryGuardRegion(memStart + DYNAMIC_MODULE_MEMORY_SIZE);
 
         // Record the dynamic module's creation
         int handle = dynamicPathToHandleMap[sharedModulePath];
@@ -583,7 +583,7 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
 
         dynamicModule.path = sharedModulePath;
 
-        dynamicModule.memoryBottom = newMemory;
+        dynamicModule.memoryBottom = memStart;
         dynamicModule.memoryTop =
           dynamicModule.memoryBottom + DYNAMIC_MODULE_MEMORY_SIZE;
 
@@ -800,7 +800,7 @@ uint32_t WAVMWasmModule::getDynamicModuleFunction(int handle,
 
     Uptr tableIdx = addFunctionToTable(exportedFunc);
 
-    logger->debug("Resolved function {} to index {}", funcName, tableIdx);
+    logger->trace("Resolved function {} to index {}", funcName, tableIdx);
     return tableIdx;
 }
 
@@ -953,7 +953,7 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
     return success;
 }
 
-bool WAVMWasmModule::executeAsOMPThread(faabric::Message& msg)
+int32_t WAVMWasmModule::executeAsOMPThread(faabric::Message& msg)
 {
     Runtime::Function* funcInstance = getFunctionFromPtr(msg.funcptr());
     int threadNum = msg.ompthreadnum();
@@ -981,7 +981,7 @@ bool WAVMWasmModule::executeAsOMPThread(faabric::Message& msg)
     I64 returnValue = executeThreadLocally(spec);
     msg.set_returnvalue(returnValue);
 
-    return true;
+    return (int32_t)returnValue;
 }
 
 U32 WAVMWasmModule::mmapFile(U32 fd, U32 length)
@@ -1018,8 +1018,11 @@ U32 WAVMWasmModule::growMemory(U32 nBytes)
 
     // Check if we just need the size
     if (nBytes == 0) {
+        faabric::util::SharedLock lock(moduleMemoryMutex);
         return currentBrk;
     }
+
+    faabric::util::FullLock lock(moduleMemoryMutex);
 
     // Check if we can reclaim
     size_t oldBytes = getMemorySizeBytes();
@@ -1130,6 +1133,8 @@ uint32_t WAVMWasmModule::shrinkMemory(U32 nBytes)
         logger->error("Shrink size not page aligned {}", nBytes);
         throw std::runtime_error("New break not page aligned");
     }
+
+    faabric::util::FullLock lock(moduleMemoryMutex);
 
     if (nBytes > currentBrk) {
         logger->error(
@@ -1242,7 +1247,7 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
             }
 
             std::pair<int, bool> memOffset = globalOffsetMemoryMap[name];
-            logger->debug("Resolved {}.{} to ({}, {})",
+            logger->trace("Resolved {}.{} to ({}, {})",
                           moduleName,
                           name,
                           memOffset.first,
@@ -1276,7 +1281,7 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
             // See if it's already in the GOT
             if (globalOffsetTableMap.count(name) > 0) {
                 tableIdx = globalOffsetTableMap[name];
-                logger->debug(
+                logger->trace(
                   "Resolved {}.{} to offset {}", moduleName, name, tableIdx);
             }
 
@@ -1322,10 +1327,10 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
 
                 tableIdx = (int)newIdx;
 
-                logger->warn("Adding placeholder table offset: {}.{} at {}",
-                             moduleName,
-                             name,
-                             tableIdx);
+                logger->trace("Adding placeholder table offset: {}.{} at {}",
+                              moduleName,
+                              name,
+                              tableIdx);
                 missingGlobalOffsetEntries.insert({ name, tableIdx });
             }
 
@@ -1371,7 +1376,7 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
             Runtime::Table* table = Runtime::getDefaultTable(moduleInstance);
             resolved = asObject(table);
         } else {
-            logger->debug("Resolving fallback for {}.{}", moduleName, name);
+            logger->trace("Resolving fallback for {}.{}", moduleName, name);
 
             // First check in normal env
             resolved = getInstanceExport(modulePtr, name);
