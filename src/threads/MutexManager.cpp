@@ -28,7 +28,7 @@ void MutexManager::unlockMutex(int mutexId)
 
 bool MutexManager::tryLockMutex(int mutexId)
 {
-    return getMutex(mutexId).try_lock();
+    return mutexes[mutexId].try_lock();
 }
 
 void MutexManager::destroyMutex(int mutexId)
