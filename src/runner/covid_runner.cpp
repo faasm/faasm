@@ -13,19 +13,9 @@
 
 #include <faabric/util/files.h>
 
-int main(int argc, char* argv[])
+void execCovid(int nThreads)
 {
     auto logger = faabric::util::getLogger();
-
-    faabric::Message msg = faabric::util::messageFactory("cov", "sim");
-
-    int nThreads;
-    if (argc == 2) {
-        nThreads = std::stoi(argv[1]);
-    } else {
-        nThreads = faabric::util::getUsableCores();
-    }
-
     logger->info("Running covid sim with {} threads", nThreads);
 
     std::string cmdlineArgs = "/c:" + std::to_string(nThreads);
@@ -38,6 +28,7 @@ int main(int argc, char* argv[])
       "/M:/tmp/Guam_pop_density.bin /S:/tmp/Network_Guam_T1_R3.0.bin "
       "/R:1.5 98798150 729101 17389101 4797132";
 
+    faabric::Message msg = faabric::util::messageFactory("cov", "sim");
     msg.set_cmdline(cmdlineArgs);
 
     // Set short timeouts to die quickly
@@ -71,5 +62,20 @@ int main(int argc, char* argv[])
     }
 
     pool.shutdown();
+}
+
+int main(int argc, char* argv[])
+{
+    auto logger = faabric::util::getLogger();
+
+    int nThreads;
+    if (argc == 2) {
+        nThreads = std::stoi(argv[1]);
+    } else {
+        nThreads = faabric::util::getUsableCores();
+    }
+
+    execCovid(nThreads);
+
     return 0;
 }

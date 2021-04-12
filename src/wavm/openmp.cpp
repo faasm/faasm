@@ -24,12 +24,12 @@ namespace wasm {
 #define OMP_FUNC(str)                                                          \
     auto ctx = threads::getOpenMPContext();                                    \
     auto logger = faabric::util::getLogger();                                  \
-    logger->debug("OMP {}: " str, ctx.threadNumber);
+    logger->trace("OMP {}: " str, ctx.threadNumber);
 
 #define OMP_FUNC_ARGS(formatStr, ...)                                          \
     auto ctx = threads::getOpenMPContext();                                    \
     auto logger = faabric::util::getLogger();                                  \
-    logger->debug("OMP {}: " formatStr, ctx.threadNumber, __VA_ARGS__);
+    logger->trace("OMP {}: " formatStr, ctx.threadNumber, __VA_ARGS__);
 
 // ------------------------------------------------
 // THREAD NUMS AND LEVELS
@@ -511,12 +511,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     parentLevel->pushedThreads = -1;
 
     // Delete the snapshot from registered hosts
+    PROF_START(BroadcastDeleteSnapshot)
     sch.broadcastSnapshotDelete(*originalCall, snapshotKey);
+    PROF_END(BroadcastDeleteSnapshot)
 
     // Delete the snapshot locally
+    PROF_START(DeleteSnapshot)
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
     reg.deleteSnapshot(snapshotKey);
+    PROF_END(DeleteSnapshot)
 
     PROF_END(kmpcFork);
 }

@@ -1523,8 +1523,10 @@ I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)
     auto logger = faabric::util::getLogger();
 
     // Create a new context for this thread
+    PROF_START(CreateThreadContext)
     Runtime::Context* threadContext = createContext(
       getCompartmentFromContextRuntimeData(spec.contextRuntimeData));
+    PROF_END(CreateThreadContext)
 
     // Set the stack pointer in this context
     IR::UntaggedValue& stackGlobal =
@@ -1543,10 +1545,8 @@ I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)
     IR::UntaggedValue result;
     try {
         Runtime::catchRuntimeExceptions(
-          [this, &spec, &returnValue, &logger, &threadContext, &result] {
+          [&spec, &returnValue, &logger, &threadContext, &result] {
               logger->debug("Invoking C/C++ function");
-
-              setExecutingModule(this);
 
               // Execute the function
               Runtime::invokeFunction(threadContext,
