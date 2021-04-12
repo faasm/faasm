@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "conf/FaasmConfig.h"
 #include "faabric/util/environment.h"
 #include "utils.h"
 
@@ -16,11 +17,18 @@ void doOmpTestLocal(const std::string& function)
       faabric::snapshot::getSnapshotRegistry();
     REQUIRE(reg.getSnapshotCount() == 0);
 
+    // Make sure we have enough thread pool capacity
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
+    int32_t defaultPoolSize = conf.moduleThreadPoolSize;
+    conf.moduleThreadPoolSize = 15;
+
     faabric::Message msg = faabric::util::messageFactory("omp", function);
     execFunction(msg);
 
     // Check only the main snapshot exists
     REQUIRE(reg.getSnapshotCount() == 1);
+
+    conf.moduleThreadPoolSize = defaultPoolSize;
 }
 
 TEST_CASE("Test static for scheduling", "[wasm][openmp]")

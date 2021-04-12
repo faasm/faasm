@@ -182,9 +182,11 @@ class WAVMWasmModule final
     WAVM::Runtime::Function* getWasmConstructorsFunction(
       WAVM::Runtime::Instance* module);
 
-    int32_t executeAsOMPThread(uint32_t stackTop, faabric::Message& msg) override;
-    
-    int32_t executeAsPthread(uint32_t stackTop, faabric::Message& msg) override;
+    int32_t executeAsOMPThread(uint32_t stackTop,
+                               std::shared_ptr<faabric::Message> msg) override;
+
+    int32_t executeAsPthread(uint32_t stackTop,
+                             std::shared_ptr<faabric::Message> msg) override;
 };
 
 WAVMWasmModule* getExecutingWAVMModule();

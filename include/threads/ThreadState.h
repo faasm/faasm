@@ -59,27 +59,28 @@ class Level
 class PthreadTask
 {
   public:
-    PthreadTask(faabric::Message* parentMsgIn, faabric::Message& msgIn)
+    PthreadTask(faabric::Message* parentMsgIn,
+                std::shared_ptr<faabric::Message> msgIn)
       : parentMsg(parentMsgIn)
       , msg(msgIn)
     {}
 
     bool isShutdown = false;
     faabric::Message* parentMsg;
-    faabric::Message& msg;
+    std::shared_ptr<faabric::Message> msg;
 };
 
 class OpenMPTask
 {
   public:
     faabric::Message* parentMsg;
-    faabric::Message& msg;
+    std::shared_ptr<faabric::Message> msg;
     std::shared_ptr<threads::Level> nextLevel;
     int threadIdx;
     bool isShutdown = false;
 
     OpenMPTask(faabric::Message* parentMsgIn,
-               faabric::Message& msgIn,
+               std::shared_ptr<faabric::Message> msgIn,
                std::shared_ptr<threads::Level> nextLevelIn,
                int threadIdxIn)
       : parentMsg(parentMsgIn)
@@ -93,7 +94,6 @@ class OpenMPContext
 {
   public:
     int threadNumber = -1;
-
     std::shared_ptr<Level> level = nullptr;
 };
 

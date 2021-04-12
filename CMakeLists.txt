@@ -170,6 +170,7 @@ include_directories(
 )
 
 # Faasm runtime
+add_subdirectory(src/conf)
 add_subdirectory(src/faaslet)
 add_subdirectory(src/ir_cache)
 add_subdirectory(src/module_cache)

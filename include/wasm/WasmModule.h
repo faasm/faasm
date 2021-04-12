@@ -128,18 +128,19 @@ class WasmModule
     virtual void printDebugInfo();
 
     // ----- Threading -----
-    std::future<int32_t> executeOpenMPTask(threads::OpenMPTask& t);
+    std::future<int32_t> executeOpenMPTask(threads::OpenMPTask t);
 
-    std::future<int32_t> executePthreadTask(threads::PthreadTask& t);
+    std::future<int32_t> executePthreadTask(threads::PthreadTask t);
 
     void shutdownOpenMPThreads();
 
     void shutdownPthreads();
 
     virtual int32_t executeAsOMPThread(uint32_t stackTop,
-                                       faabric::Message& msg);
+                                       std::shared_ptr<faabric::Message> msg);
 
-    virtual int32_t executeAsPthread(uint32_t stackTop, faabric::Message& msg);
+    virtual int32_t executeAsPthread(uint32_t stackTop,
+                                     std::shared_ptr<faabric::Message> msg);
 
     threads::MutexManager& getMutexes();
 
@@ -157,8 +158,7 @@ class WasmModule
     int stdoutMemFd;
     ssize_t stdoutSize;
 
-    uint32_t threadPoolSize = 0;
-    std::atomic<int32_t> threadPoolCounter;
+    const uint32_t threadPoolSize = 0;
     std::vector<uint32_t> threadStacks;
 
     faabric::util::Queue<std::pair<std::promise<int32_t>, threads::OpenMPTask>>
@@ -191,7 +191,7 @@ class WasmModule
     virtual uint8_t* getMemoryBase();
 
     // Threads
-    void createThreadStackPool();
+    void createThreadStacks();
 };
 
 // ----- Global functions -----

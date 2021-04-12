@@ -86,22 +86,23 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
           "Setting pthread snapshot for {} ({})", funcStr, currentSnapshotKey);
     }
 
-    faabric::Message threadCall = faabric::util::messageFactory(
-      originalCall->user(), originalCall->function());
-    threadCall.set_isasync(true);
+    std::shared_ptr<faabric::Message> threadCall =
+      faabric::util::messageFactoryShared(originalCall->user(),
+                                          originalCall->function());
+    threadCall->set_isasync(true);
 
     // Snapshot details
-    threadCall.set_snapshotkey(currentSnapshotKey);
+    threadCall->set_snapshotkey(currentSnapshotKey);
 
     // Function pointer and args
     // NOTE - with a pthread interface we only ever pass the function a single
     // pointer argument, hence we use the input data here to hold this argument
     // as a string
-    threadCall.set_funcptr(entryFunc);
-    threadCall.set_inputdata(std::to_string(argsPtr));
+    threadCall->set_funcptr(entryFunc);
+    threadCall->set_inputdata(std::to_string(argsPtr));
 
     // Set up the request
-    std::vector<faabric::Message> msgs = { threadCall };
+    std::vector<std::shared_ptr<faabric::Message>> msgs = { threadCall };
     faabric::BatchExecuteRequest req = faabric::util::batchExecFactory(msgs);
     req.set_type(faabric::BatchExecuteRequest::THREADS);
 
@@ -117,7 +118,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         localThreadFutures[pthreadPtr] = thisModule->executePthreadTask(t);
     } else {
         // Record this thread -> call ID
-        chainedThreads.insert({ pthreadPtr, threadCall.id() });
+        chainedThreads.insert({ pthreadPtr, threadCall->id() });
     }
 
     return 0;

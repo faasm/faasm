@@ -411,33 +411,34 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     }
 
     // Set up the chained calls
-    std::vector<faabric::Message> msgs;
+    std::vector<std::shared_ptr<faabric::Message>> msgs;
     std::vector<int> callIds;
     for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
         // Create basic call
-        faabric::Message call = faabric::util::messageFactory(
-          originalCall->user(), originalCall->function());
+        std::shared_ptr<faabric::Message> call =
+          faabric::util::messageFactoryShared(originalCall->user(),
+                                              originalCall->function());
 
         // All calls are async by definition
-        call.set_isasync(true);
+        call->set_isasync(true);
 
         // Snapshot details
-        call.set_snapshotkey(snapshotKey);
+        call->set_snapshotkey(snapshotKey);
 
         // Function pointer
-        call.set_funcptr(microtaskPtr);
+        call->set_funcptr(microtaskPtr);
 
         // Args
         for (int i = 0; i < argc; i++) {
-            call.add_ompfunctionargs(sharedVarsPtr[i]);
+            call->add_ompfunctionargs(sharedVarsPtr[i]);
         }
 
-        call.set_ompthreadnum(threadNum);
-        call.set_ompnumthreads(nextNumThreads);
+        call->set_ompthreadnum(threadNum);
+        call->set_ompnumthreads(nextNumThreads);
 
-        call.set_ompdepth(nextLevel->depth);
-        call.set_ompeffdepth(nextLevel->activeLevels);
-        call.set_ompmal(nextLevel->maxActiveLevels);
+        call->set_ompdepth(nextLevel->depth);
+        call->set_ompeffdepth(nextLevel->activeLevels);
+        call->set_ompmal(nextLevel->maxActiveLevels);
 
         msgs.push_back(call);
     }
@@ -455,8 +456,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         std::string host = executedHosts.at(i);
         bool isLocal = host.empty();
 
-        faabric::Message& msg = msgs.at(i);
-        uint32_t msgId = msg.id();
+        std::shared_ptr<faabric::Message> msg = msgs.at(i);
+        uint32_t msgId = msg->id();
 
         if (!isLocal) {
             // Function is being executed remotely
