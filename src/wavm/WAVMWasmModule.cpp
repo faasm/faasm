@@ -859,7 +859,8 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
 
     // Executes OMP fork message if necessary
     if (msg.ompdepth() > 0) {
-        return executeAsOMPThread(msg);
+        // TODO - reimplement this call to execute a remote OpenMP thread
+        throw std::runtime_error("Not yet implemented remote OpenMP");
     }
 
     int funcPtr = msg.funcptr();
