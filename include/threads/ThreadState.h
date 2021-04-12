@@ -56,6 +56,34 @@ class Level
     std::condition_variable nowaitCv;
 };
 
+class PthreadTask
+{
+  public:
+    PthreadTask(faabric::Message* parentMsgIn,
+                faabric::Message& msgIn,
+                int threadIdxIn)
+      : parentMsg(parentMsgIn)
+      , msg(msgIn)
+      , threadIdx(threadIdxIn)
+    {}
+
+    bool isShutdown = false;
+    faabric::Message* parentMsg;
+    faabric::Message& msg;
+    int threadIdx;
+};
+
+class PthreadShutdownTask : public PthreadTask
+{
+  public:
+    PthreadShutdownTask()
+      : PthreadTask(nullptr, dummyMessage, -1)
+    {}
+
+    bool isShutdown = true;
+    faabric::Message dummyMessage;
+};
+
 class OpenMPTask
 {
   public:

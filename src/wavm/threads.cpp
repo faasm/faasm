@@ -1,4 +1,5 @@
 #include "syscalls.h"
+#include "threads/ThreadState.h"
 
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/scheduler/Scheduler.h>
@@ -19,18 +20,12 @@
 using namespace WAVM;
 
 namespace wasm {
-struct PThreadArgs
-{
-    WAVMWasmModule* parentModule;
-    faabric::Message* parentCall;
-    WasmThreadSpec* spec;
-};
-
 // Map of tid to pointer to local thread
 static thread_local std::unordered_map<I32, WAVM::Platform::Thread*>
   localThreads;
 
 // Map of tid to message ID for chained calls
+static thread_local int nLocalThreads;
 static thread_local std::unordered_map<I32, unsigned int> chainedThreads;
 
 // Record of whether this thread has already got a snapshot being used to spawn
@@ -40,27 +35,6 @@ static thread_local std::string currentSnapshotKey;
 // ---------------------------------------------
 // PTHREADS
 // ---------------------------------------------
-
-I64 createPthread(void* threadSpecPtr)
-{
-    auto pArg = reinterpret_cast<PThreadArgs*>(threadSpecPtr);
-
-    setExecutingModule(pArg->parentModule);
-    setExecutingCall(pArg->parentCall);
-
-    I64 res = getExecutingWAVMModule()->executeThreadLocally(*pArg->spec);
-
-    // Notify the scheduler that we've completed executing the thread
-    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-    sch.notifyCallFinished(*pArg->parentCall);
-
-    // Delete the spec, no longer needed
-    delete[] pArg->spec->funcArgs;
-    delete pArg->spec;
-    delete pArg;
-
-    return res;
-}
 
 /**
  * We intercept the pthread API at a high level, hence we control the whole
@@ -141,31 +115,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     bool execLocal = hosts.at(0) == "";
 
     if (execLocal) {
-        // Spawn a local thread
-        Runtime::Object* funcObj =
-          Runtime::getTableElement(thisModule->defaultTable, entryFunc);
-        Runtime::Function* func = Runtime::asFunction(funcObj);
+        threads::PthreadTask t(originalCall, threadCall, nLocalThreads);
+        nLocalThreads++;
 
-        // Note that the spec needs to outlast the scope of this function, so
-        // nothing can be created on the stack (this is deleted once the thread
-        // is finished)
-        auto threadArgs = new IR::UntaggedValue[1];
-        threadArgs[0] = argsPtr;
-
-        auto spec = new WasmThreadSpec();
-        spec->contextRuntimeData = contextRuntimeData;
-        spec->func = func;
-        spec->funcArgs = threadArgs;
-
-        auto pArgs = new PThreadArgs();
-        pArgs->parentModule = thisModule;
-        pArgs->parentCall = getExecutingCall();
-        pArgs->spec = spec;
-
-        // Spawn the thread
-        localThreads.insert(
-          { pthreadPtr, Platform::createThread(0, createPthread, pArgs) });
-
+        thisModule->executePthreadTask(t);
     } else {
         // Record this thread -> call ID
         chainedThreads.insert({ pthreadPtr, threadCall.id() });

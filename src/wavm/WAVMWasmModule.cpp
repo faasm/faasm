@@ -205,8 +205,10 @@ bool WAVMWasmModule::tearDown()
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     // --- Faasm stuff ---
+    // Shared mem
     sharedMemWasmPtrs.clear();
 
+    // Dynamic modules
     globalOffsetTableMap.clear();
     globalOffsetMemoryMap.clear();
     missingGlobalOffsetEntries.clear();
@@ -216,6 +218,9 @@ bool WAVMWasmModule::tearDown()
         dynamicModuleMap[m.first].ptr = nullptr;
     }
     dynamicModuleMap.clear();
+
+    // Threads
+    shutdownOpenMPThreads();
 
     // --- WAVM stuff ---
 
@@ -945,7 +950,30 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
     return success;
 }
 
-int32_t WAVMWasmModule::executeAsOMPThread(faabric::Message& msg)
+int32_t WAVMWasmModule::executeAsPthread(uint32_t stackTop,
+                                         faabric::Message& msg)
+{
+    Runtime::Function* funcInstance = getFunctionFromPtr(msg.funcptr());
+
+    int argsPtr = std::stoi(msg.inputdata());
+    std::vector<IR::UntaggedValue> invokeArgs = { argsPtr };
+
+    WasmThreadSpec spec = {
+        .contextRuntimeData = getContextRuntimeData(executionContext),
+        .func = funcInstance,
+        .funcArgs = invokeArgs.data(),
+        .stackTop = stackTop,
+    };
+
+    // Record the return value
+    I64 returnValue = executeThreadLocally(spec);
+    msg.set_returnvalue(returnValue);
+
+    return (int32_t)returnValue;
+}
+
+int32_t WAVMWasmModule::executeAsOMPThread(uint32_t stackTop,
+                                           faabric::Message& msg)
 {
     Runtime::Function* funcInstance = getFunctionFromPtr(msg.funcptr());
     int threadNum = msg.ompthreadnum();
@@ -967,6 +995,7 @@ int32_t WAVMWasmModule::executeAsOMPThread(faabric::Message& msg)
         .contextRuntimeData = getContextRuntimeData(executionContext),
         .func = funcInstance,
         .funcArgs = invokeArgs.data(),
+        .stackTop = stackTop,
     };
 
     // Record the return value
@@ -1488,10 +1517,6 @@ I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)
 {
     auto logger = faabric::util::getLogger();
 
-    // Create a new region for this thread's stack
-    ThreadStack threadStack = claimThreadStack();
-    U32 stackTop = threadStack.wasmOffset + THREAD_STACK_SIZE - 1;
-
     // Create a new context for this thread
     Runtime::Context* threadContext = createContext(
       getCompartmentFromContextRuntimeData(spec.contextRuntimeData));
@@ -1507,7 +1532,7 @@ I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)
         throw std::runtime_error("Unexpected mutable global format");
     }
 
-    threadContext->runtimeData->mutableGlobals[0] = stackTop;
+    threadContext->runtimeData->mutableGlobals[0] = spec.stackTop;
 
     int returnValue = 0;
     IR::UntaggedValue result;
@@ -1538,9 +1563,6 @@ I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)
                       e.exitCode);
         returnValue = e.exitCode;
     }
-
-    // Return the thread stack
-    returnThreadStack(threadStack);
 
     return returnValue;
 }

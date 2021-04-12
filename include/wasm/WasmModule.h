@@ -12,6 +12,7 @@
 #include <threads/ThreadState.h>
 
 #include <exception>
+#include <future>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -46,11 +47,6 @@
 namespace wasm {
 
 bool isWasmPageAligned(int32_t offset);
-
-struct ThreadStack
-{
-    uint32_t wasmOffset = 0;
-};
 
 class WasmModule
 {
@@ -132,21 +128,23 @@ class WasmModule
     virtual void printDebugInfo();
 
     // ----- Threading -----
-    void executeOpenMPTask(threads::OpenMPTask& t);
-    
-    void awaitOpenMPTasks(int nTasks);
+    std::future<int32_t> executeOpenMPTask(threads::OpenMPTask& t);
+
+    std::future<int32_t> executePthreadTask(threads::PthreadTask& t);
 
     void shutdownOpenMPThreads();
 
-    virtual int32_t executeAsOMPThread(faabric::Message& msg);
+    void shutdownPthreads();
+
+    virtual int32_t executeAsOMPThread(uint32_t stackTop,
+                                       faabric::Message& msg);
+
+    virtual int32_t executeAsPthread(uint32_t stackTop, faabric::Message& msg);
 
     threads::MutexManager& getMutexes();
 
   protected:
     uint32_t currentBrk = 0;
-
-    uint32_t threadPoolSize = 0;
-    std::vector<ThreadStack> threadStacks;
 
     std::string boundUser;
 
@@ -159,11 +157,19 @@ class WasmModule
     int stdoutMemFd;
     ssize_t stdoutSize;
 
-    faabric::util::Queue<threads::OpenMPTask> openMPTaskQueue;
-    faabric::util::Queue<int32_t> openMPResultQueue;
+    uint32_t threadPoolSize = 0;
+    std::atomic<int32_t> threadPoolCounter;
+    std::vector<uint32_t> threadStacks;
+
+    faabric::util::Queue<std::pair<std::promise<int32_t>, threads::OpenMPTask>>
+      openMPTaskQueue;
+    faabric::util::Queue<std::pair<std::promise<int32_t>, threads::PthreadTask>>
+      pthreadTaskQueue;
+
     std::vector<std::thread> openMPThreads;
+    std::vector<std::thread> pthreads;
+
     std::mutex threadsMutex;
-    std::mutex threadStacksMutex;
 
     threads::MutexManager mutexes;
 
@@ -185,13 +191,7 @@ class WasmModule
     virtual uint8_t* getMemoryBase();
 
     // Threads
-    ThreadStack addThreadStackToPool();
-
-    ThreadStack claimThreadStack();
-
     void createThreadStackPool();
-
-    void returnThreadStack(ThreadStack s);
 };
 
 // ----- Global functions -----
