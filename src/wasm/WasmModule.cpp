@@ -322,7 +322,7 @@ void WasmModule::shutdownPthreads()
 {
     faabric::util::UniqueLock lock(threadsMutex);
 
-    faabric::util::getLogger()->debug("Shutting down pthread thread pool");
+    faabric::util::getLogger()->debug("Shutting down pthread pool");
 
     // Send shutdown messages
     for (int i = 0; i < pthreads.size(); i++) {
@@ -342,9 +342,6 @@ void WasmModule::shutdownPthreads()
             t.join();
         }
     }
-
-    pthreadTaskQueue.waitToDrain(TASK_QUEUE_TIMEOUT_MS);
-    pthreads.clear();
 }
 
 void WasmModule::shutdownOpenMPThreads()
@@ -381,7 +378,7 @@ std::future<int32_t> WasmModule::executePthreadTask(threads::PthreadTask t)
     pthreadTaskQueue.enqueue(std::make_pair(std::move(p), std::move(t)));
 
     // Check if we can add a thread
-    if (pthreads.size() < threadPoolSize) {
+    if (!t.isShutdown && (pthreads.size() < threadPoolSize)) {
         faabric::util::UniqueLock lock(threadsMutex);
 
         // Double check once lock acquired
@@ -391,11 +388,16 @@ std::future<int32_t> WasmModule::executePthreadTask(threads::PthreadTask t)
 
             pthreads.emplace_back([this, stackTop] {
                 for (;;) {
+                    auto logger = faabric::util::getLogger();
+
                     std::pair<std::promise<int32_t>, threads::PthreadTask>
                       taskPair =
                         pthreadTaskQueue.dequeue(TASK_QUEUE_TIMEOUT_MS);
 
                     if (taskPair.second.isShutdown) {
+                        taskPair.first.set_value(0);
+
+                        logger->debug("Pthread pool thread shutting down");
                         break;
                     }
 

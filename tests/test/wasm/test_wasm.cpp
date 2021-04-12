@@ -202,6 +202,6 @@ TEST_CASE("Test disassemble module", "[wasm]")
     REQUIRE(disasMap["functionImport0"] == "__wasi_proc_exit");
     REQUIRE(disasMap["functionImport1"] == "__faasm_read_input");
     REQUIRE(disasMap["functionImport2"] == "__faasm_write_output");
-    REQUIRE(disasMap["functionImport3"] == "__sbrk");
+    REQUIRE(disasMap["functionImport3"] == "pthread_mutex_lock");
 }
 }

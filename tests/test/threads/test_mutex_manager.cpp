@@ -24,9 +24,7 @@ TEST_CASE("Check lock/ unlock", "[threads]")
         tm.unlockMutex(idA);
     });
 
-    std::thread tB([idB, &tm] {
-        tm.lockMutex(idB);
-    });
+    std::thread tB([idB, &tm] { tm.lockMutex(idB); });
 
     // Sleep to let things lock up
     usleep(500 * 1000);
