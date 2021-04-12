@@ -20,13 +20,10 @@
 using namespace WAVM;
 
 namespace wasm {
-// Map of tid to pointer to local thread
-static thread_local std::unordered_map<I32, WAVM::Platform::Thread*>
-  localThreads;
-
 // Map of tid to message ID for chained calls
-static thread_local int nLocalThreads;
 static thread_local std::unordered_map<I32, unsigned int> chainedThreads;
+static thread_local std::unordered_map<I32, std::future<int32_t>>
+  localThreadFutures;
 
 // Record of whether this thread has already got a snapshot being used to spawn
 // other threads.
@@ -115,10 +112,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     bool execLocal = hosts.at(0) == "";
 
     if (execLocal) {
-        threads::PthreadTask t(originalCall, threadCall, nLocalThreads);
-        nLocalThreads++;
+        threads::PthreadTask t(originalCall, threadCall);
 
-        thisModule->executePthreadTask(t);
+        localThreadFutures[pthreadPtr] = thisModule->executePthreadTask(t);
     } else {
         // Record this thread -> call ID
         chainedThreads.insert({ pthreadPtr, threadCall.id() });
@@ -139,14 +135,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     int returnValue;
 
-    if (localThreads.count(pthreadPtr) > 0) {
-        // Get the local thread and remove it from the local map
-        Platform::Thread* thread = localThreads[pthreadPtr];
-        localThreads.erase(pthreadPtr);
-
-        // Join it
+    if (localThreadFutures.count(pthreadPtr) > 0) {
+        // Get the local thread future
         logger->debug("Awaiting local pthread: {}", pthreadPtr);
-        returnValue = Platform::joinThread(thread);
+        returnValue = localThreadFutures[pthreadPtr].get();
+        localThreadFutures.erase(pthreadPtr);
     } else {
         // Await the remotely chained thread
         unsigned int callId = chainedThreads[pthreadPtr];
@@ -158,7 +151,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     }
 
     // If we're done with executing threads, remove the snapshot
-    if (chainedThreads.empty() && localThreads.empty()) {
+    if (chainedThreads.empty() && localThreadFutures.empty()) {
         logger->debug("Finished with snapshot: {}", currentSnapshotKey);
         currentSnapshotKey = "";
     }

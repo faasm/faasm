@@ -59,34 +59,25 @@ class Level
 class PthreadTask
 {
   public:
-    PthreadTask(faabric::Message* parentMsgIn,
-                faabric::Message& msgIn,
-                int threadIdxIn)
+    PthreadTask(faabric::Message* parentMsgIn, faabric::Message& msgIn)
       : parentMsg(parentMsgIn)
       , msg(msgIn)
-      , threadIdx(threadIdxIn)
     {}
 
     bool isShutdown = false;
     faabric::Message* parentMsg;
     faabric::Message& msg;
-    int threadIdx;
-};
-
-class PthreadShutdownTask : public PthreadTask
-{
-  public:
-    PthreadShutdownTask()
-      : PthreadTask(nullptr, dummyMessage, -1)
-    {}
-
-    bool isShutdown = true;
-    faabric::Message dummyMessage;
 };
 
 class OpenMPTask
 {
   public:
+    faabric::Message* parentMsg;
+    faabric::Message& msg;
+    std::shared_ptr<threads::Level> nextLevel;
+    int threadIdx;
+    bool isShutdown = false;
+
     OpenMPTask(faabric::Message* parentMsgIn,
                faabric::Message& msgIn,
                std::shared_ptr<threads::Level> nextLevelIn,
@@ -96,23 +87,6 @@ class OpenMPTask
       , nextLevel(nextLevelIn)
       , threadIdx(threadIdxIn)
     {}
-
-    bool isShutdown = false;
-    faabric::Message* parentMsg;
-    faabric::Message& msg;
-    std::shared_ptr<threads::Level> nextLevel;
-    int threadIdx;
-};
-
-class OpenMPShutdownTask : public OpenMPTask
-{
-  public:
-    OpenMPShutdownTask()
-      : OpenMPTask(nullptr, dummyMessage, nullptr, -1)
-    {}
-
-    bool isShutdown = true;
-    faabric::Message dummyMessage;
 };
 
 class OpenMPContext

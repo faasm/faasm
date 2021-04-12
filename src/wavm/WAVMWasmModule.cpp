@@ -221,6 +221,7 @@ bool WAVMWasmModule::tearDown()
 
     // Threads
     shutdownOpenMPThreads();
+    shutdownPthreads();
 
     // --- WAVM stuff ---
 

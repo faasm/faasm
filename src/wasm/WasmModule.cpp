@@ -321,10 +321,14 @@ void WasmModule::shutdownPthreads()
 {
     faabric::util::UniqueLock lock(threadsMutex);
 
+    faabric::util::getLogger()->debug("Shutting down pthread thread pool");
+
     // Send shutdown messages
     for (int i = 0; i < pthreads.size(); i++) {
         std::promise<int32_t> p;
-        threads::PthreadShutdownTask t;
+        faabric::Message dummyMsg;
+        threads::PthreadTask t(nullptr, dummyMsg);
+        t.isShutdown = true;
         pthreadTaskQueue.enqueue(std::make_pair(std::move(p), std::move(t)));
     }
 
@@ -340,10 +344,14 @@ void WasmModule::shutdownOpenMPThreads()
 {
     faabric::util::UniqueLock lock(threadsMutex);
 
+    faabric::util::getLogger()->debug("Shutting down OpenMP thread pool");
+
     // Send shutdown messages
     for (int i = 0; i < openMPThreads.size(); i++) {
         std::promise<int32_t> p;
-        threads::OpenMPShutdownTask t;
+        faabric::Message dummyMsg;
+        threads::OpenMPTask t(nullptr, dummyMsg, nullptr, -1);
+        t.isShutdown = true;
         openMPTaskQueue.enqueue(std::make_pair(std::move(p), std::move(t)));
     }
 
@@ -375,7 +383,7 @@ std::future<int32_t> WasmModule::executePthreadTask(threads::PthreadTask& t)
                 for (;;) {
                     std::pair<std::promise<int32_t>, threads::PthreadTask>
                       taskPair =
-                        pthreadTaskQueue.dequeue(OPENMP_QUEUE_TIMEOUT_MS);
+                        pthreadTaskQueue.dequeue(TASK_QUEUE_TIMEOUT_MS);
 
                     if (taskPair.second.isShutdown) {
                         break;
@@ -425,8 +433,7 @@ std::future<int32_t> WasmModule::executeOpenMPTask(threads::OpenMPTask& t)
             openMPThreads.emplace_back([this, stackTop] {
                 for (;;) {
                     std::pair<std::promise<int32_t>, threads::OpenMPTask>
-                      taskPair =
-                        openMPTaskQueue.dequeue(OPENMP_QUEUE_TIMEOUT_MS);
+                      taskPair = openMPTaskQueue.dequeue(TASK_QUEUE_TIMEOUT_MS);
 
                     if (taskPair.second.isShutdown) {
                         break;

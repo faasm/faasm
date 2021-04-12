@@ -24,7 +24,7 @@
 
 #define WASM_BYTES_PER_PAGE 65536
 
-#define OPENMP_QUEUE_TIMEOUT_MS 10000
+#define TASK_QUEUE_TIMEOUT_MS 10000
 
 // Note: this is *not* controlling the size provisioned by the linker, that is
 // hard-coded in the build. This variable is just here for reference and must be
