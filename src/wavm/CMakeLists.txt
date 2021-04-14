@@ -27,11 +27,10 @@ set(LIB_FILES
         signals.cpp
         syscalls.cpp
         threads.cpp
-        ThreadState.cpp
         timing.cpp
         util.cpp
         ${HEADERS}
         )
 
 faasm_private_lib(wavmmodule "${LIB_FILES}")
-target_link_libraries(wavmmodule wasm ir_cache libWAVM)
+target_link_libraries(wavmmodule wasm ir_cache libWAVM threads)

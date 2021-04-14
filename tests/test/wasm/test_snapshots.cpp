@@ -23,7 +23,8 @@ TEST_CASE("Test snapshot and restore for wasm module", "[wasm][snapshot]")
     moduleA.bindToFunction(m);
 
     // Modify the memory of the module to check changes are propagated
-    uint32_t wasmPtr = moduleA.mmapMemory(1);
+    uint32_t memSize = WASM_BYTES_PER_PAGE + GUARD_REGION_SIZE;
+    uint32_t wasmPtr = moduleA.growMemory(memSize);
     uint8_t* nativePtr = moduleA.wasmPointerToNative(wasmPtr);
     nativePtr[0] = 0;
     nativePtr[1] = 1;
@@ -31,9 +32,11 @@ TEST_CASE("Test snapshot and restore for wasm module", "[wasm][snapshot]")
     nativePtr[3] = 3;
     nativePtr[4] = 4;
 
-    // Add some guard regions to make sure these can be propagated
-    moduleA.createMemoryGuardRegion();
-    moduleA.createMemoryGuardRegion();
+    // Add a guard region to make sure these can be propagated
+    uint32_t guardRegionOffset =
+      moduleA.createMemoryGuardRegion(wasmPtr + WASM_BYTES_PER_PAGE);
+    REQUIRE(guardRegionOffset ==
+            wasmPtr + WASM_BYTES_PER_PAGE + GUARD_REGION_SIZE);
 
     size_t expectedSizeBytes = moduleA.getMemorySizeBytes();
 

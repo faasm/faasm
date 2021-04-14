@@ -1,13 +1,9 @@
-#include <wavm/ThreadState.h>
-#include <wavm/WAVMWasmModule.h>
-
 #include <faabric/util/config.h>
+#include <threads/ThreadState.h>
 
 using namespace faabric::util;
 
-using namespace WAVM;
-
-namespace wasm {
+namespace threads {
 
 OpenMPContext& getOpenMPContext()
 {

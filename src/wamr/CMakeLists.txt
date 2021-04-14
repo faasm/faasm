@@ -17,8 +17,6 @@ include(${WAMR_SHARED_DIR}/utils/shared_utils.cmake)
 include(${WAMR_SHARED_DIR}/utils/uncommon/shared_uncommon.cmake)
 include(${WAMR_IWASM_DIR}/common/iwasm_common.cmake)
 include(${WAMR_IWASM_DIR}/libraries/libc-wasi/libc_wasi.cmake)
-include(${WAMR_IWASM_DIR}/libraries/lib-pthread/lib_pthread.cmake)
-include(${WAMR_IWASM_DIR}/libraries/thread-mgr/thread_mgr.cmake)
 
 if(WAMR_INTERPRETER_MODE)
     include(${WAMR_IWASM_DIR}/interpreter/iwasm_interp.cmake)
@@ -37,8 +35,6 @@ set(COMMON_WAMR_SRC
         ${IWASM_INTERP_SOURCE}
         ${IWASM_AOT_SOURCE}
         ${LIBC_WASI_SOURCE}
-        ${LIB_PTHREAD_SOURCE}
-        ${THREAD_MGR_SOURCE}
 )
 
 # Build the WAMR lib
@@ -67,6 +63,7 @@ set(LIB_FILES
         dynlink.cpp
         filesystem.cpp
         funcs.cpp
+        memory.cpp
         native.cpp
         pthread.cpp
         state.cpp

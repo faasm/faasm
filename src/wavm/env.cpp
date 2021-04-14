@@ -3,13 +3,14 @@
 
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
+#include <faabric/util/macros.h>
+#include <wasm/WasmModule.h>
 
 #include <sys/random.h>
 
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/WASI/WASIABI.h>
-#include <faabric/util/macros.h>
 
 using namespace WAVM;
 
@@ -110,7 +111,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getpwuid", I32, getpwuid, I32 uid)
     size_t nameOffset = sizeof(wasm_passwd);
     size_t dirOffset = nameOffset + fakeName.size() + 1;
     size_t newMemSize = dirOffset + fakeDir.size();
-    U32 wasmMemPtr = getExecutingWAVMModule()->mmapMemory(newMemSize);
+
+    size_t pageAlignedSize = roundUpToWasmPageAligned(newMemSize);
+    U32 wasmMemPtr = getExecutingWAVMModule()->growMemory(pageAlignedSize);
 
     // Work out the pointers to the strings in wasm memory
     U32 namePtr = wasmMemPtr + nameOffset;

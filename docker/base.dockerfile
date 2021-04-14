@@ -1,5 +1,5 @@
-# Stages to extract toolchain and sysroot
-FROM faasm/cpython:0.0.10 as python
+# Stage to extract Python runtime files
+FROM faasm/cpython:0.0.12 as python
 
 # Import from SGX container
 FROM faasm/sgx:0.5.3 as sgx

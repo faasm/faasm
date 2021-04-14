@@ -4,13 +4,13 @@
 
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/state/StateKeyValue.h>
 #include <faabric/util/func.h>
 #include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/timing.h>
-
-#include <wavm/ThreadState.h>
+#include <threads/ThreadState.h>
 #include <wavm/WAVMWasmModule.h>
 
 using namespace WAVM;
@@ -22,14 +22,14 @@ namespace wasm {
 // ------------------------------------------------
 
 #define OMP_FUNC(str)                                                          \
-    auto ctx = getOpenMPContext();                                             \
+    auto ctx = threads::getOpenMPContext();                                    \
     auto logger = faabric::util::getLogger();                                  \
-    logger->debug("OMP {}: " str, ctx.threadNumber);
+    logger->trace("OMP {}: " str, ctx.threadNumber);
 
 #define OMP_FUNC_ARGS(formatStr, ...)                                          \
-    auto ctx = getOpenMPContext();                                             \
+    auto ctx = threads::getOpenMPContext();                                    \
     auto logger = faabric::util::getLogger();                                  \
-    logger->debug("OMP {}: " formatStr, ctx.threadNumber, __VA_ARGS__);
+    logger->trace("OMP {}: " formatStr, ctx.threadNumber, __VA_ARGS__);
 
 // ------------------------------------------------
 // THREAD NUMS AND LEVELS
@@ -151,6 +151,20 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     // Might be wrong if called at depth 1 while another thread at depths 1 has
     // forked
     return ctx.threadNumber;
+}
+
+// ------------------------------------------------
+// TIMING
+// ------------------------------------------------
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_wtime", F64, omp_get_wtime)
+{
+    OMP_FUNC("omp_get_wtime");
+
+    faabric::util::Clock& clock = faabric::util::getGlobalClock();
+    long millis = clock.epochMillis();
+
+    return ((F64)millis) / 1000;
 }
 
 // ----------------------------------------------------
@@ -373,15 +387,15 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     faabric::Message* parentCall = getExecutingCall();
 
     // Set up number of threads for next level
-    std::shared_ptr<Level> parentLevel = ctx.level;
+    std::shared_ptr<threads::Level> parentLevel = ctx.level;
     int nextNumThreads = parentLevel->getMaxThreadsAtNextLevel();
 
     // Set up the next level
-    auto nextLevel = std::make_shared<Level>(nextNumThreads);
+    auto nextLevel = std::make_shared<threads::Level>(nextNumThreads);
     nextLevel->fromParentLevel(parentLevel);
 
     // Take memory snapshot
-    std::string snapshotKey = parentModule->snapshot();
+    std::string snapshotKey = parentModule->snapshot(false);
     logger->debug("Created OpenMP snapshot: {}", snapshotKey);
 
     const faabric::Message* originalCall = getExecutingCall();
@@ -395,35 +409,34 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     }
 
     // Set up the chained calls
-    std::vector<faabric::Message> msgs;
+    std::vector<std::shared_ptr<faabric::Message>> msgs;
     std::vector<int> callIds;
     for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
         // Create basic call
-        faabric::Message call = faabric::util::messageFactory(
-          originalCall->user(), originalCall->function());
+        std::shared_ptr<faabric::Message> call =
+          faabric::util::messageFactoryShared(originalCall->user(),
+                                              originalCall->function());
 
         // All calls are async by definition
-        call.set_isasync(true);
+        call->set_isasync(true);
 
         // Snapshot details
-        call.set_snapshotkey(snapshotKey);
+        call->set_snapshotkey(snapshotKey);
 
         // Function pointer
-        call.set_funcptr(microtaskPtr);
+        call->set_funcptr(microtaskPtr);
 
         // Args
-        // TODO - is the order of these right? Does protobuf push to the back or
-        // front?
-        for (int argIdx = 0; argIdx < argc; argIdx++) {
-            call.add_ompfunctionargs(sharedVarsPtr[argIdx]);
+        for (int i = 0; i < argc; i++) {
+            call->add_ompfunctionargs(sharedVarsPtr[i]);
         }
 
-        call.set_ompthreadnum(threadNum);
-        call.set_ompnumthreads(nextNumThreads);
+        call->set_ompthreadnum(threadNum);
+        call->set_ompnumthreads(nextNumThreads);
 
-        call.set_ompdepth(nextLevel->depth);
-        call.set_ompeffdepth(nextLevel->activeLevels);
-        call.set_ompmal(nextLevel->maxActiveLevels);
+        call->set_ompdepth(nextLevel->depth);
+        call->set_ompeffdepth(nextLevel->activeLevels);
+        call->set_ompmal(nextLevel->maxActiveLevels);
 
         msgs.push_back(call);
     }
@@ -436,43 +449,24 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     std::vector<std::string> executedHosts = sch.callFunctions(req);
 
     // Iterate through messages and see which need to be executed locally
-    std::vector<std::thread> localThreads;
-    std::mutex errorsMutex;
-    std::vector<int> errors;
-    int threadId = 0;
+    std::vector<std::future<int32_t>> localFutures;
     for (int i = 0; i < executedHosts.size(); i++) {
         std::string host = executedHosts.at(i);
         bool isLocal = host.empty();
 
+        std::shared_ptr<faabric::Message> msg = msgs.at(i);
+        uint32_t msgId = msg->id();
+
         if (!isLocal) {
             // Function is being executed remotely
-            callIds.push_back(msgs.at(i).id());
+            logger->debug("Waiting for remote thread for call ID {}", msgId);
+            callIds.push_back(msgId);
             continue;
         }
 
-        faabric::Message& msg = msgs.at(i);
-        localThreads.emplace_back([&msg,
-                                   &nextLevel,
-                                   &parentModule,
-                                   &parentCall,
-                                   &errors,
-                                   &errorsMutex,
-                                   threadId] {
-            // We are now in a new thread so need to set up everything
-            // that uses TLS
-            setUpOpenMPContext(threadId, nextLevel);
-            setExecutingModule(parentModule);
-            setExecutingCall(parentCall);
-
-            parentModule->executeAsOMPThread(msg);
-
-            if (msg.returnvalue() > 0) {
-                faabric::util::UniqueLock lock(errorsMutex);
-                errors.push_back(threadId);
-            }
-        });
-
-        threadId++;
+        logger->debug("Executing local OMP thread for call ID {}", msgId);
+        threads::OpenMPTask t(parentCall, msg, nextLevel, i);
+        localFutures.emplace_back(parentModule->executeOpenMPTask(t));
     }
 
     // Await the results of all the remote threads
@@ -503,25 +497,28 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         }
     }
 
-    if (numErrors > 0) {
-        logger->error("{} remote OpenMP threads errored", numErrors);
-        throw std::runtime_error("Remote OpenMP threads have errors");
-    }
-
-    // Await thread completion
-    for (auto& t : localThreads) {
-        if (t.joinable()) {
-            t.join();
+    // Await local threads
+    for (auto& f : localFutures) {
+        int32_t retValue = f.get();
+        if (retValue > 0) {
+            throw std::runtime_error("OpenMP threads have errors");
         }
-    }
-
-    if (!errors.empty()) {
-        logger->error("{} local OpenMP threads errored", errors.size());
-        throw std::runtime_error("Local OpenMP threads have errors");
     }
 
     // Reset parent level for next setting of threads
     parentLevel->pushedThreads = -1;
+
+    // Delete the snapshot from registered hosts
+    PROF_START(BroadcastDeleteSnapshot)
+    sch.broadcastSnapshotDelete(*originalCall, snapshotKey);
+    PROF_END(BroadcastDeleteSnapshot)
+
+    // Delete the snapshot locally
+    PROF_START(DeleteSnapshot)
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+    reg.deleteSnapshot(snapshotKey);
+    PROF_END(DeleteSnapshot)
 }
 
 // -------------------------------------------------------
@@ -557,7 +554,7 @@ void for_static_init(I32 schedule,
     typedef typename std::make_unsigned<T>::type UT;
 
     auto logger = faabric::util::getLogger();
-    auto ctx = getOpenMPContext();
+    auto ctx = threads::getOpenMPContext();
 
     if (ctx.level->numThreads == 1) {
         *lastIter = true;
@@ -700,6 +697,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     // Get host pointers for the things we need to write
     Runtime::Memory* memoryPtr = getExecutingWAVMModule()->defaultMemory;
+
     I32* lastIter = &Runtime::memoryRef<I32>(memoryPtr, lastIterPtr);
     I32* lower = &Runtime::memoryRef<I32>(memoryPtr, lowerPtr);
     I32* upper = &Runtime::memoryRef<I32>(memoryPtr, upperPtr);
@@ -792,7 +790,7 @@ enum ReduceReturnValue
 int reduceFinished()
 {
     auto logger = faabric::util::getLogger();
-    auto ctx = getOpenMPContext();
+    auto ctx = threads::getOpenMPContext();
 
     if (ctx.level->numThreads == 1) {
         return SINGLE_THREAD;
@@ -814,7 +812,7 @@ int reduceFinished()
 void finaliseReduce(bool barrier)
 {
     auto logger = faabric::util::getLogger();
-    auto ctx = getOpenMPContext();
+    auto ctx = threads::getOpenMPContext();
 
     // Master must make sure all other threads are done
     if (ctx.threadNumber == 0) {
@@ -943,6 +941,38 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                int defaultDeviceNumber)
 {
     OMP_FUNC_ARGS("omp_set_default_device {} (ignored)", defaultDeviceNumber);
+}
+
+// ----------------------------------------------
+// ATOMICS
+// ----------------------------------------------
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "__atomic_load",
+                               void,
+                               __atomic_load,
+                               I32 a,
+                               I32 b,
+                               I32 c,
+                               I32 d)
+{
+    OMP_FUNC_ARGS("__atomic_load {} {} {} {}", a, b, c, d);
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "__atomic_compare_exchange",
+                               I32,
+                               ___atomic_compare_exchange,
+                               I32 a,
+                               I32 b,
+                               I32 c,
+                               I32 d,
+                               I32 e,
+                               I32 f)
+{
+    OMP_FUNC_ARGS("__atomic_load {} {} {} {} {} {}", a, b, c, d, e, f);
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
 void ompLink() {}

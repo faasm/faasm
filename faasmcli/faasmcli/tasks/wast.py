@@ -3,7 +3,7 @@ from os.path import exists, join
 from subprocess import run
 
 from invoke import task
-from faasmcli.util.env import PROJ_ROOT
+from faasmcli.util.env import WASM_DIR
 
 
 @task
@@ -19,7 +19,7 @@ def wast(ctx, user, func_name):
     """
     Generate .wast file for a given function
     """
-    func_dir = join(PROJ_ROOT, "wasm", user, func_name)
+    func_dir = join(WASM_DIR, user, func_name)
     wasm_path = join(func_dir, "function.wasm")
     wast_path = join(func_dir, "function.wast")
     _do_wast(wasm_path, wast_path)
@@ -30,7 +30,7 @@ def decompile(ctx, user, func_name):
     """
     Decompiles the given function
     """
-    func_dir = join(PROJ_ROOT, "wasm", user, func_name)
+    func_dir = join(WASM_DIR, user, func_name)
     wasm_path = join(func_dir, "function.wasm")
     decomp_file = join(func_dir, "function.dcmp")
 
