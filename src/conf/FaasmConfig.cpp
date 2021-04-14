@@ -18,7 +18,7 @@ void FaasmConfig::initialise()
     // Threads
     moduleThreadPoolSize = this->getIntParam("FAASM_THREAD_POOL_SIZE", "0");
     if (moduleThreadPoolSize == 0) {
-        moduleThreadPoolSize = faabric::util::getUsableCores() + 2;
+        moduleThreadPoolSize = faabric::util::getUsableCores();
     }
 }
 

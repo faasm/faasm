@@ -634,7 +634,7 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
     // patch up. They may be exported from the dynamic module itself. I
     // don't know how this happens but occasionally it does
     if (!missingGlobalOffsetEntries.empty()) {
-        for (auto e : missingGlobalOffsetEntries) {
+        for (auto& e : missingGlobalOffsetEntries) {
             // Check if it's an export of the module we're currently importing
             Runtime::Object* missingFunction =
               getInstanceExport(instance, e.first);
@@ -984,12 +984,6 @@ int32_t WAVMWasmModule::executeAsOMPThread(
     int threadNum = msg->ompthreadnum();
     int argc = msg->ompfunctionargs_size();
 
-    auto logger = faabric::util::getLogger();
-    logger->debug("Running OMP thread #{} for function {} (argc = {})",
-                  threadNum,
-                  msg->funcptr(),
-                  argc);
-
     // Set up function args
     std::vector<IR::UntaggedValue> invokeArgs = { threadNum, argc };
     for (int argIdx = 0; argIdx < argc; argIdx++) {
@@ -1319,7 +1313,7 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
 
                 // Check other dynamic modules if not found in main module
                 if (!resolvedFunc) {
-                    for (auto m : dynamicModuleMap) {
+                    for (auto& m : dynamicModuleMap) {
                         if (m.second.ptr == nullptr) {
                             continue;
                         }
@@ -1702,7 +1696,7 @@ void WAVMWasmModule::printDebugInfo()
         printf("Table size:         %lu\n", tableSize);
         printf("Dynamic modules:    %lu\n", dynamicModuleMap.size());
 
-        for (auto p : dynamicModuleMap) {
+        for (auto& p : dynamicModuleMap) {
             p.second.printDebugInfo(executionContext);
         }
 

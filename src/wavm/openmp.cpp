@@ -22,12 +22,12 @@ namespace wasm {
 // ------------------------------------------------
 
 #define OMP_FUNC(str)                                                          \
-    auto ctx = threads::getOpenMPContext();                                    \
+    threads::OpenMPContext& ctx = threads::getOpenMPContext();                 \
     auto logger = faabric::util::getLogger();                                  \
     logger->trace("OMP {}: " str, ctx.threadNumber);
 
 #define OMP_FUNC_ARGS(formatStr, ...)                                          \
-    auto ctx = threads::getOpenMPContext();                                    \
+    threads::OpenMPContext& ctx = threads::getOpenMPContext();                 \
     auto logger = faabric::util::getLogger();                                  \
     logger->trace("OMP {}: " formatStr, ctx.threadNumber, __VA_ARGS__);
 
@@ -379,7 +379,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS(
       "__kmpc_fork_call {} {} {} {}", locPtr, argc, microtaskPtr, argsPtr);
 
-    auto conf = faabric::util::getSystemConfig();
     auto& sch = faabric::scheduler::getScheduler();
 
     WAVMWasmModule* parentModule = getExecutingWAVMModule();
@@ -554,7 +553,7 @@ void for_static_init(I32 schedule,
     typedef typename std::make_unsigned<T>::type UT;
 
     auto logger = faabric::util::getLogger();
-    auto ctx = threads::getOpenMPContext();
+    threads::OpenMPContext& ctx = threads::getOpenMPContext();
 
     if (ctx.level->numThreads == 1) {
         *lastIter = true;
@@ -790,7 +789,7 @@ enum ReduceReturnValue
 int reduceFinished()
 {
     auto logger = faabric::util::getLogger();
-    auto ctx = threads::getOpenMPContext();
+    threads::OpenMPContext& ctx = threads::getOpenMPContext();
 
     if (ctx.level->numThreads == 1) {
         return SINGLE_THREAD;
@@ -812,7 +811,7 @@ int reduceFinished()
 void finaliseReduce(bool barrier)
 {
     auto logger = faabric::util::getLogger();
-    auto ctx = threads::getOpenMPContext();
+    threads::OpenMPContext& ctx = threads::getOpenMPContext();
 
     // Master must make sure all other threads are done
     if (ctx.threadNumber == 0) {

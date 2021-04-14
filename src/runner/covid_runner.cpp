@@ -1,19 +1,20 @@
-#include "faabric/util/environment.h"
-#include <wasm/WasmModule.h>
+#include <filesystem>
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+
+#include <conf/FaasmConfig.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/config.h>
+#include <faabric/util/environment.h>
+#include <faabric/util/files.h>
 #include <faabric/util/func.h>
 #include <faaslet/FaasletPool.h>
-
 #include <module_cache/WasmModuleCache.h>
 #include <wamr/WAMRWasmModule.h>
+#include <wasm/WasmModule.h>
 
-#include <faabric/util/files.h>
-
-void execCovid(int nThreads)
+void execCovid(int nThreads, int nLoops)
 {
     auto logger = faabric::util::getLogger();
     logger->info("Running covid sim with {} threads", nThreads);
@@ -32,50 +33,73 @@ void execCovid(int nThreads)
     msg.set_cmdline(cmdlineArgs);
 
     // Set short timeouts to die quickly
-    auto conf = faabric::util::getSystemConfig();
-    conf.boundTimeout = 240000;
-    conf.unboundTimeout = 240000;
-    conf.globalMessageTimeout = 240000;
-    conf.chainedCallTimeout = 240000;
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf.boundTimeout = 480000;
+    conf.unboundTimeout = 480000;
+    conf.globalMessageTimeout = 480000;
+    conf.chainedCallTimeout = 480000;
 
     conf.print();
-
-    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
 
     // Clear out redis
     faabric::redis::Redis& redis = faabric::redis::Redis::getQueue();
     redis.flushAll();
 
-    // Start pool
-    faaslet::FaasletPool pool(nThreads);
-    pool.startThreadPool();
+    // Force the Faasm thread pool size
+    logger->debug("Setting Faasm thread pool size to {}", nThreads);
+    conf::getFaasmConfig().moduleThreadPoolSize = nThreads;
 
-    // Execute
-    sch.callFunction(msg);
+    std::string tmpDirA = "/usr/local/faasm/runtime_root/tmp";
+    std::string tmpDirB =
+      "/usr/local/code/faasm/dev/faasm-local/runtime_root/tmp";
 
-    // Await the result
-    const faabric::Message& result =
-      sch.getFunctionResult(msg.id(), conf.globalMessageTimeout);
-    if (result.returnvalue() != 0) {
-        logger->error("Execution failed: {}", result.outputdata());
-        throw std::runtime_error("Executing function failed");
+    module_cache::WasmModuleCache& registry =
+      module_cache::getWasmModuleCache();
+    wasm::WAVMWasmModule& cachedModule = registry.getCachedModule(msg);
+
+    // Create new module from cache
+    wasm::WAVMWasmModule module(cachedModule);
+
+    // Run repeated executions
+    for (int i = 0; i < nLoops; i++) {
+        std::string tmpDir;
+        if (std::filesystem::exists(tmpDirA)) {
+            tmpDir = tmpDirA;
+        } else if (std::filesystem::exists(tmpDirB)) {
+
+            tmpDir = tmpDirA;
+        } else {
+            throw std::runtime_error("tmp dir not found");
+        }
+
+        std::filesystem::remove_all(tmpDir);
+        std::filesystem::create_directory(tmpDir);
+
+        bool success = module.execute(msg);
+        if (!success) {
+            module.printDebugInfo();
+            logger->error("Execution failed");
+            break;
+        }
+
+        // Reset using cached module
+        module = cachedModule;
     }
-
-    pool.shutdown();
 }
 
 int main(int argc, char* argv[])
 {
     auto logger = faabric::util::getLogger();
 
-    int nThreads;
-    if (argc == 2) {
+    int nThreads = faabric::util::getUsableCores();
+    int nLoops = 1;
+    if (argc == 3) {
+        nLoops = std::stoi(argv[2]);
+    } else if (argc == 2) {
         nThreads = std::stoi(argv[1]);
-    } else {
-        nThreads = faabric::util::getUsableCores();
     }
 
-    execCovid(nThreads);
+    execCovid(nThreads, nLoops);
 
     return 0;
 }

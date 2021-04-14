@@ -24,7 +24,7 @@ std::vector<std::string> WasmEnvironment::getVars()
     // Format of this is to concatenate all the values
     std::vector<std::string> result;
 
-    for (auto p : vars) {
+    for (auto& p : vars) {
         result.emplace_back(p.first + "=" + p.second);
     }
 
@@ -60,7 +60,7 @@ uint32_t WasmEnvironment::getEnvBufferSize()
 void WasmEnvironment::printDebugInfo()
 {
     printf("---- Wasm environment ----\n");
-    for (auto p : vars) {
+    for (auto& p : vars) {
         printf("%s=%s\n", p.first.c_str(), p.second.c_str());
     }
     printf("--------------------------\n");
