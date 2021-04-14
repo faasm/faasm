@@ -121,3 +121,18 @@ You can also check the
 [diff](https://github.com/WAVM/WAVM/compare/master...faasm:faasm) of the Faasm
 WAVM fork.
 
+## Valgrind
+
+To use Valgrind to profile Faasm you'll have to set up the build outside of a
+container as described in the [dev docs](development.md). 
+
+WAVM seems to require a large stack, so you'll have to bump up the
+`main-stacksize`. An example run with Callgrind might look like:
+
+```bash
+valgrind --tool=callgrind --main-stacksize=16777216 simple_runner demo hello
+```
+
+Unfortunately we've not yet worked out a way to get valgrind to include the
+JITed wasm symbols, so at the moment it's only useful for profiling the Faasm
+runtime itself.

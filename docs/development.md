@@ -144,7 +144,7 @@ run some of the CLI tasks, you'll need to install the required packages on your
 local machine.
 
 This is not the recommended approach to developing Faasm, so it's not scripted,
-but you can work out what's required by looking at the follwing Dockerfiles:
+but you can work out what's required by looking at the following Dockerfiles:
 
 - [`faasm/grpc-root`](https://github.com/faasm/faabric/blob/master/docker/grpc-root.dockerfile)
 - [`faasm/cpp-root`](../docker/cpp-root.dockerfile)
@@ -174,16 +174,18 @@ cd ../python
 inv -l
 ```
 
-You may also need to correct the permissions on things built with containers:
+If you've been running the containerised development environment too, it's
+highly likely that the permissions will be messed up and cause cryptic error
+messages. To be safe, reset the permissions on everything:
 
 ```bash
-sudo chown -R ${SUDO_USER}:${SUDO_USER} ./dev
+sudo chown -R ${SUDO_USER}:${SUDO_USER} .
 ```
 
 Then you can try building one of the executables:
 
 ```bash
-# Check environment is set up
+# Check environment is correct and build directories look sane
 env | grep FAASM
 
 # Run cmake and build
