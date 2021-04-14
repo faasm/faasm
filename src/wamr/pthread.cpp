@@ -4,6 +4,15 @@
 #include <faabric/util/logging.h>
 
 namespace wasm {
+
+// -------------------------------------------
+// 14/04/21 - WAMR threading not implemented
+// All of these functions are stubbed as threading with WAMR isn't yet
+// implemented. Once it is, we will need to implement the function here,
+// exepctially the locking which is used to manage thread-safe memory
+// provisioning.
+// -------------------------------------------
+
 static int32_t pthread_mutex_init_wrapper(wasm_exec_env_t exec_env,
                                           int32_t a,
                                           int32_t b)

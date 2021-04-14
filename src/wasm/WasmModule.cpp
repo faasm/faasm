@@ -401,8 +401,6 @@ std::future<int32_t> WasmModule::executePthreadTask(threads::PthreadTask t)
                         break;
                     }
 
-                    PROF_START(pthreadThread)
-
                     auto& sch = faabric::scheduler::getScheduler();
 
                     // We are now in a new thread so need to set up
@@ -417,8 +415,6 @@ std::future<int32_t> WasmModule::executePthreadTask(threads::PthreadTask t)
                     // executing a thread locally
                     // TODO - avoid this copy
                     sch.notifyCallFinished(*taskPair.second.msg);
-
-                    PROF_END(pthreadThread)
                 }
             });
         }
@@ -467,8 +463,6 @@ std::future<int32_t> WasmModule::executeOpenMPTask(threads::OpenMPTask t)
                         break;
                     }
 
-                    PROF_START(ompThread)
-
                     logger->debug("OpenMP pool thread {} executing {}",
                                   threadPoolId,
                                   taskPair.second.msg->id());
@@ -488,8 +482,6 @@ std::future<int32_t> WasmModule::executeOpenMPTask(threads::OpenMPTask t)
                     // Caller has to notify scheduler when finished
                     // executing a thread locally
                     sch.notifyCallFinished(*taskPair.second.msg);
-
-                    PROF_END(ompThread)
                 }
             });
         }

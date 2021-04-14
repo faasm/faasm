@@ -379,8 +379,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS(
       "__kmpc_fork_call {} {} {} {}", locPtr, argc, microtaskPtr, argsPtr);
 
-    PROF_START(kmpcFork);
-
     auto conf = faabric::util::getSystemConfig();
     auto& sch = faabric::scheduler::getScheduler();
 
@@ -521,8 +519,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
       faabric::snapshot::getSnapshotRegistry();
     reg.deleteSnapshot(snapshotKey);
     PROF_END(DeleteSnapshot)
-
-    PROF_END(kmpcFork);
 }
 
 // -------------------------------------------------------

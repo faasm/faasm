@@ -1523,10 +1523,8 @@ I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)
     auto logger = faabric::util::getLogger();
 
     // Create a new context for this thread
-    PROF_START(CreateThreadContext)
     Runtime::Context* threadContext = createContext(
       getCompartmentFromContextRuntimeData(spec.contextRuntimeData));
-    PROF_END(CreateThreadContext)
 
     // Set the stack pointer in this context
     IR::UntaggedValue& stackGlobal =
