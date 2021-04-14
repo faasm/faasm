@@ -146,8 +146,8 @@ local machine.
 This is not the recommended approach to developing Faasm, so it's not scripted,
 but you can work out what's required by looking at the follwing Dockerfiles:
 
-- [`faasm/grpc-root`](faabric/docker/grpc-root.dockerfile)
-- [`faasm/cpp-root`](docker/cpp-root.dockerfile)
+- [`faasm/grpc-root`](../faabric/docker/grpc-root.dockerfile)
+- [`faasm/cpp-root`](../docker/cpp-root.dockerfile)
 
 Most things can be done with `apt`, but the difficult bits might be:
 
