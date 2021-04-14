@@ -51,7 +51,7 @@ def replace(ctx, user, func, file_in):
             if not line:
                 continue
 
-            symbol, disas = line.split(":")
+            symbol, disas = line.split(" = ")
 
             sed_cmd = [
                 "sed",

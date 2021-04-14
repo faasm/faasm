@@ -133,3 +133,6 @@ venv/
 
 # Valgrind
 callgrind.*
+
+# Flamegraph
+*.svg

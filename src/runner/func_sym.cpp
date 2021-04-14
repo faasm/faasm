@@ -36,7 +36,8 @@ int main(int argc, char* argv[])
     outfile.open(outPath, std::ios::out);
 
     for (auto const& p : disasMap) {
-        outfile << p.first << ":" << p.second << std::endl;
+        // Separator needs to be something not found in the symbols themselves
+        outfile << p.first << " = " << p.second << std::endl;
     }
 
     outfile.close();
