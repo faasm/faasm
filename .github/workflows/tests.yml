@@ -12,7 +12,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     container:
-      image: faasm/cli:0.5.14
+      image: faasm/cli:0.5.15
     defaults:
       run:
         working-directory: /usr/local/code/faasm
@@ -35,7 +35,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     container:
-      image: faasm/cpp-sysroot:0.0.22
+      image: faasm/cpp-sysroot:0.0.24
     defaults:
       run:
         working-directory: /__w/faasm/faasm/clients/cpp
@@ -64,7 +64,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     container:
-      image: faasm/cpython:0.0.11
+      image: faasm/cpython:0.0.12
     defaults:
       run:
         working-directory: /__w/faasm/faasm/clients/python
@@ -102,13 +102,13 @@ jobs:
       REDIS_QUEUE_HOST: redis
       REDIS_STATE_HOST: redis
     container:
-      image: faasm/cli:0.5.14
+      image: faasm/cli:0.5.15
     defaults:
       run:
         working-directory: /usr/local/code/faasm
     services:
       redis:
-        image: faasm/redis:0.5.14
+        image: faasm/redis:0.5.15
         ports:
           - 6379:6379
     steps:

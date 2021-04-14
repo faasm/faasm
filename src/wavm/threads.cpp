@@ -1,4 +1,5 @@
 #include "syscalls.h"
+#include "threads/ThreadState.h"
 
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/scheduler/Scheduler.h>
@@ -19,19 +20,10 @@
 using namespace WAVM;
 
 namespace wasm {
-struct PThreadArgs
-{
-    WAVMWasmModule* parentModule;
-    faabric::Message* parentCall;
-    WasmThreadSpec* spec;
-};
-
-// Map of tid to pointer to local thread
-static thread_local std::unordered_map<I32, WAVM::Platform::Thread*>
-  localThreads;
-
 // Map of tid to message ID for chained calls
 static thread_local std::unordered_map<I32, unsigned int> chainedThreads;
+static thread_local std::unordered_map<I32, std::future<int32_t>>
+  localThreadFutures;
 
 // Record of whether this thread has already got a snapshot being used to spawn
 // other threads.
@@ -40,27 +32,6 @@ static thread_local std::string currentSnapshotKey;
 // ---------------------------------------------
 // PTHREADS
 // ---------------------------------------------
-
-I64 createPthread(void* threadSpecPtr)
-{
-    auto pArg = reinterpret_cast<PThreadArgs*>(threadSpecPtr);
-
-    setExecutingModule(pArg->parentModule);
-    setExecutingCall(pArg->parentCall);
-
-    I64 res = getExecutingWAVMModule()->executeThreadLocally(*pArg->spec);
-
-    // Notify the scheduler that we've completed executing the thread
-    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-    sch.notifyCallFinished(*pArg->parentCall);
-
-    // Delete the spec, no longer needed
-    delete[] pArg->spec->funcArgs;
-    delete pArg->spec;
-    delete pArg;
-
-    return res;
-}
 
 /**
  * We intercept the pthread API at a high level, hence we control the whole
@@ -109,28 +80,29 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     // Create a new snapshot if one isn't already active
     if (currentSnapshotKey.empty()) {
-        currentSnapshotKey = thisModule->snapshot();
+        currentSnapshotKey = thisModule->snapshot(false);
 
         logger->debug(
           "Setting pthread snapshot for {} ({})", funcStr, currentSnapshotKey);
     }
 
-    faabric::Message threadCall = faabric::util::messageFactory(
-      originalCall->user(), originalCall->function());
-    threadCall.set_isasync(true);
+    std::shared_ptr<faabric::Message> threadCall =
+      faabric::util::messageFactoryShared(originalCall->user(),
+                                          originalCall->function());
+    threadCall->set_isasync(true);
 
     // Snapshot details
-    threadCall.set_snapshotkey(currentSnapshotKey);
+    threadCall->set_snapshotkey(currentSnapshotKey);
 
     // Function pointer and args
     // NOTE - with a pthread interface we only ever pass the function a single
     // pointer argument, hence we use the input data here to hold this argument
     // as a string
-    threadCall.set_funcptr(entryFunc);
-    threadCall.set_inputdata(std::to_string(argsPtr));
+    threadCall->set_funcptr(entryFunc);
+    threadCall->set_inputdata(std::to_string(argsPtr));
 
     // Set up the request
-    std::vector<faabric::Message> msgs = { threadCall };
+    std::vector<std::shared_ptr<faabric::Message>> msgs = { threadCall };
     faabric::BatchExecuteRequest req = faabric::util::batchExecFactory(msgs);
     req.set_type(faabric::BatchExecuteRequest::THREADS);
 
@@ -141,35 +113,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     bool execLocal = hosts.at(0) == "";
 
     if (execLocal) {
-        // Spawn a local thread
-        Runtime::Object* funcObj =
-          Runtime::getTableElement(thisModule->defaultTable, entryFunc);
-        Runtime::Function* func = Runtime::asFunction(funcObj);
+        threads::PthreadTask t(originalCall, threadCall);
 
-        // Note that the spec needs to outlast the scope of this function, so
-        // nothing can be created on the stack (this is deleted once the thread
-        // is finished)
-        auto threadArgs = new IR::UntaggedValue[1];
-        threadArgs[0] = argsPtr;
-
-        auto spec = new WasmThreadSpec();
-        spec->contextRuntimeData = contextRuntimeData;
-        spec->func = func;
-        spec->funcArgs = threadArgs;
-        spec->stackTop = thisModule->allocateThreadStack();
-
-        auto pArgs = new PThreadArgs();
-        pArgs->parentModule = thisModule;
-        pArgs->parentCall = getExecutingCall();
-        pArgs->spec = spec;
-
-        // Spawn the thread
-        localThreads.insert(
-          { pthreadPtr, Platform::createThread(0, createPthread, pArgs) });
-
+        localThreadFutures[pthreadPtr] = thisModule->executePthreadTask(t);
     } else {
         // Record this thread -> call ID
-        chainedThreads.insert({ pthreadPtr, threadCall.id() });
+        chainedThreads.insert({ pthreadPtr, threadCall->id() });
     }
 
     return 0;
@@ -187,14 +136,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     int returnValue;
 
-    if (localThreads.count(pthreadPtr) > 0) {
-        // Get the local thread and remove it from the local map
-        Platform::Thread* thread = localThreads[pthreadPtr];
-        localThreads.erase(pthreadPtr);
-
-        // Join it
+    if (localThreadFutures.count(pthreadPtr) > 0) {
+        // Get the local thread future
         logger->debug("Awaiting local pthread: {}", pthreadPtr);
-        returnValue = Platform::joinThread(thread);
+        returnValue = localThreadFutures[pthreadPtr].get();
+        localThreadFutures.erase(pthreadPtr);
     } else {
         // Await the remotely chained thread
         unsigned int callId = chainedThreads[pthreadPtr];
@@ -206,7 +152,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     }
 
     // If we're done with executing threads, remove the snapshot
-    if (chainedThreads.empty() && localThreads.empty()) {
+    if (chainedThreads.empty() && localThreadFutures.empty()) {
         logger->debug("Finished with snapshot: {}", currentSnapshotKey);
         currentSnapshotKey = "";
     }
@@ -286,20 +232,94 @@ I32 s__futex(I32 uaddrPtr,
     return returnValue;
 }
 
-/*
- * --------------------------
- * STUBBED PTHREADS
- * --------------------------
- */
+// --------------------------
+// PTHREAD MUTEXES - We support pthread mutexes locally as they're important to
+// support thread-safe libc operations.
+// Note we use trace logging here as these are invoked a lot
+// --------------------------
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "pthread_mutex_init",
                                I32,
                                pthread_mutex_init,
-                               I32 a,
-                               I32 b)
+                               I32 mx,
+                               I32 attr)
 {
-    // faabric::util::getLogger()->trace("S - pthread_mutex_init {} {}", a, b);
+    faabric::util::getLogger()->trace("S - pthread_mutex_init {} {}", mx, attr);
+    getExecutingWAVMModule()->getMutexes().createMutex(mx);
+    return 0;
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "pthread_mutex_lock",
+                               I32,
+                               pthread_mutex_lock,
+                               I32 mx)
+{
+    faabric::util::getLogger()->trace("S - pthread_mutex_lock {}", mx);
+    getExecutingWAVMModule()->getMutexes().lockMutex(mx);
+    return 0;
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "pthread_mutex_trylock",
+                               I32,
+                               s__pthread_mutex_trylock,
+                               I32 mx)
+{
+    faabric::util::getLogger()->trace("S - pthread_mutex_trylock {}", mx);
+    bool success = getExecutingWAVMModule()->getMutexes().tryLockMutex(mx);
+    if (success) {
+        return 0;
+    } else {
+        return EBUSY;
+    }
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "pthread_mutex_unlock",
+                               I32,
+                               pthread_mutex_unlock,
+                               I32 mx)
+{
+    faabric::util::getLogger()->trace("S - pthread_mutex_unlock {}", mx);
+    getExecutingWAVMModule()->getMutexes().unlockMutex(mx);
+    return 0;
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "pthread_mutex_destroy",
+                               I32,
+                               pthread_mutex_destroy,
+                               I32 mx)
+{
+    faabric::util::getLogger()->trace("S - pthread_mutex_destroy {}", mx);
+    getExecutingWAVMModule()->getMutexes().destroyMutex(mx);
+    return 0;
+}
+
+// --------------------------
+// STUBBED PTHREADS - We can safely ignore the following functions
+// --------------------------
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "pthread_mutexattr_init",
+                               I32,
+                               pthread_mutexattr_init,
+                               I32 a)
+{
+    faabric::util::getLogger()->trace("S - pthread_mutexattr_init {}", a);
+
+    return 0;
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "pthread_mutexattr_destroy",
+                               I32,
+                               pthread_mutexattr_destroy,
+                               I32 a)
+{
+    faabric::util::getLogger()->trace("S - pthread_mutexattr_destroy {}", a);
 
     return 0;
 }
@@ -311,18 +331,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 a,
                                I32 b)
 {
-    // faabric::util::getLogger()->trace("S - pthread_cond_init {} {}", a, b);
-
-    return 0;
-}
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "pthread_mutex_lock",
-                               I32,
-                               pthread_mutex_lock,
-                               I32 a)
-{
-    // faabric::util::getLogger()->trace("S - pthread_mutex_lock {}", a);
+    faabric::util::getLogger()->trace("S - pthread_cond_init {} {}", a, b);
 
     return 0;
 }
@@ -333,36 +342,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                pthread_cond_signal,
                                I32 a)
 {
-    // faabric::util::getLogger()->trace("S - pthread_cond_signal {}", a);
-
-    return 0;
-}
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "pthread_mutex_unlock",
-                               I32,
-                               pthread_mutex_unlock,
-                               I32 a)
-{
-    // faabric::util::getLogger()->trace("S - pthread_mutex_unlock {}", a);
-
-    return 0;
-}
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "pthread_mutex_destroy",
-                               I32,
-                               pthread_mutex_destroy,
-                               I32 a)
-{
-    // faabric::util::getLogger()->trace("S - pthread_mutex_destroy {}", a);
+    faabric::util::getLogger()->trace("S - pthread_cond_signal {}", a);
 
     return 0;
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_self", I32, pthread_self)
 {
-    // faabric::util::getLogger()->trace("S - pthread_self");
+    faabric::util::getLogger()->trace("S - pthread_self");
 
     return 0;
 }
@@ -374,7 +361,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 a,
                                I32 b)
 {
-    // faabric::util::getLogger()->trace("S - pthread_key_create {} {}", a, b);
+    faabric::util::getLogger()->trace("S - pthread_key_create {} {}", a, b);
 
     return 0;
 }
@@ -385,7 +372,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                s__pthread_key_delete,
                                I32 a)
 {
-    // faabric::util::getLogger()->trace("S - pthread_key_delete {}", a);
+    faabric::util::getLogger()->trace("S - pthread_key_delete {}", a);
 
     return 0;
 }
@@ -396,7 +383,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                s__pthread_getspecific,
                                I32 a)
 {
-    // faabric::util::getLogger()->trace("S - pthread_getspecific {}", a);
+    faabric::util::getLogger()->trace("S - pthread_getspecific {}", a);
 
     return 0;
 }
@@ -408,18 +395,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 a,
                                I32 b)
 {
-    // faabric::util::getLogger()->trace("S - pthread_setspecific {} {}", a, b);
-
-    return 0;
-}
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "pthread_mutex_trylock",
-                               I32,
-                               s__pthread_mutex_trylock,
-                               I32 a)
-{
-    // faabric::util::getLogger()->trace("S - pthread_mutex_trylock {}", a);
+    faabric::util::getLogger()->trace("S - pthread_setspecific {} {}", a, b);
 
     return 0;
 }
@@ -430,7 +406,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                pthread_cond_destroy,
                                I32 a)
 {
-    // faabric::util::getLogger()->trace("S - pthread_cond_destroy {}", a);
+    faabric::util::getLogger()->trace("S - pthread_cond_destroy {}", a);
 
     return 0;
 }
@@ -441,16 +417,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                pthread_cond_broadcast,
                                I32 a)
 {
-    // faabric::util::getLogger()->trace("S - pthread_cond_broadcast {}", a);
+    faabric::util::getLogger()->trace("S - pthread_cond_broadcast {}", a);
 
     return 0;
 }
 
-/*
- * --------------------------
- * Unsupported
- * --------------------------
- */
+// --------------------------
+// Unsupported
+// --------------------------
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "pthread_equal",

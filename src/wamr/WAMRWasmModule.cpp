@@ -1,6 +1,8 @@
 #include "WAMRWasmModule.h"
+#include "aot_runtime.h"
 #include "faabric/util/logging.h"
 #include "platform_common.h"
+#include "wasm/WasmModule.h"
 #include "wasm_exec_env.h"
 #include "wasm_runtime.h"
 
@@ -21,8 +23,6 @@
 namespace wasm {
 static bool wamrInitialised = false;
 std::mutex wamrInitMx;
-
-static thread_local WAMRWasmModule* executingModule;
 
 void WAMRWasmModule::initialiseWAMRGlobally()
 {
@@ -55,12 +55,7 @@ void tearDownWAMRGlobally()
 
 WAMRWasmModule* getExecutingWAMRModule()
 {
-    return executingModule;
-}
-
-void setExecutingModule(WAMRWasmModule* executingModuleIn)
-{
-    executingModule = executingModuleIn;
+    return reinterpret_cast<WAMRWasmModule*>(getExecutingModule());
 }
 
 WAMRWasmModule::WAMRWasmModule()
@@ -115,6 +110,9 @@ void WAMRWasmModule::bindToFunction(const faabric::Message& msg)
         logger->error("Failed to instantiate WAMR module: \n{}", errorMsg);
         throw std::runtime_error("Failed to instantiate WAMR module");
     }
+
+    currentBrk = getMemorySizeBytes();
+    logger->debug("WAMR currentBrk = {}", currentBrk);
 }
 
 void WAMRWasmModule::bindToFunctionNoZygote(const faabric::Message& msg)
@@ -238,24 +236,54 @@ void WAMRWasmModule::tearDown()
     wasm_runtime_unload(wasmModule);
 }
 
-uint32_t WAMRWasmModule::mmapMemory(uint32_t length)
+uint32_t WAMRWasmModule::growMemory(uint32_t nBytes)
 {
-    void* nativePtr;
-    wasm_runtime_module_malloc(moduleInstance, length, &nativePtr);
-    int32 wasmPtr = wasm_runtime_addr_native_to_app(moduleInstance, nativePtr);
-    return wasmPtr;
+    auto logger = faabric::util::getLogger();
+    logger->debug("WAMR growing memory by {}", nBytes);
+
+    uint32_t memBase = currentBrk;
+
+    uint32_t nPages = getNumberOfWasmPagesForBytes(nBytes);
+    bool success = wasm_runtime_enlarge_memory(moduleInstance, nPages);
+    if (!success) {
+        throw std::runtime_error("Failed to grow WAMR memory");
+    }
+
+    currentBrk = memBase + (nPages * WASM_BYTES_PER_PAGE);
+    return memBase;
 }
 
-uint32_t WAMRWasmModule::mmapPages(uint32_t pages)
+uint32_t WAMRWasmModule::shrinkMemory(uint32_t nBytes)
 {
-    uint32_t bytes = pages * WASM_BYTES_PER_PAGE;
-    return mmapMemory(bytes);
+    auto logger = faabric::util::getLogger();
+    logger->warn("WAMR ignoring shrink memory");
+    return 0;
+}
+
+uint32_t WAMRWasmModule::mmapMemory(uint32_t nBytes)
+{
+    return growMemory(nBytes);
 }
 
 uint8_t* WAMRWasmModule::wasmPointerToNative(int32_t wasmPtr)
 {
     void* nativePtr = wasm_runtime_addr_app_to_native(moduleInstance, wasmPtr);
     return static_cast<uint8_t*>(nativePtr);
+}
+
+size_t WAMRWasmModule::getMemorySizeBytes()
+{
+#if (WAMR_EXECUTION_MODE_INTERP)
+    auto interpModule = reinterpret_cast<WASMModuleInstance*>(moduleInstance);
+    WASMMemoryInstance* interpMem =
+      ((WASMMemoryInstance**)interpModule->memories)[0];
+    return interpMem->cur_page_count * interpMem->num_bytes_per_page;
+#else
+    auto aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
+    AOTMemoryInstance* aotMem =
+      ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
+    return aotMem->cur_page_count * aotMem->num_bytes_per_page;
+#endif
 }
 
 uint32_t WAMRWasmModule::mmapFile(uint32_t fp, uint32_t length)

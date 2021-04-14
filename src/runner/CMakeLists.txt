@@ -24,4 +24,3 @@ target_link_libraries(codegen_func ${RUNNER_LIBS})
 # Main entrypoint for worker nodes
 add_executable(pool_runner pool_runner.cpp)
 target_link_libraries(pool_runner ${RUNNER_LIBS})
-
