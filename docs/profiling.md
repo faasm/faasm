@@ -60,9 +60,6 @@ perf inject -i perf.data -j -o perf.data.jit
 
 # View the report
 perf report -i perf.data.jit
-
-# Dump the data (e.g. for flame graphs)
-perf script -i perf.data.jit out.perf 
 ```
  
 Note that if the perf notifier isn't working, check that the code isn't getting
@@ -75,16 +72,22 @@ WAVM fork.
 
 ### Flame graphs
 
-You can create [Flame graphs](https://github.com/brendangregg/FlameGraph) using
-the `perf` set-up described above.
+There is a task in the Faasm CLI for creating 
+[Flame graphs](https://github.com/brendangregg/FlameGraph) which include the
+disassembled WebAssembly function names and gives a more intuitive view of the 
+`perf` output. 
 
-Once you've generated the data you can run (from a FlameGraph checkout):
+Assuming you already have the perf-enabled LLVM set up as described above:
 
 ```
-# Generate out.perf as described above
-./stackcollapse-perf.pl out.perf | ./flamegraph.pl > flame.svg 
+# Make sure you can run and disassemble the functions
+inv dev.cc func_sym
+inv dev.cc simple_runner
 
-# Open SVG in your browser
+# Run the flame graph task (which will run perf, replace symbols etc.)
+inv flame
+
+# Open the flame graph in your browser
 firefox flame.svg
 ```
 
