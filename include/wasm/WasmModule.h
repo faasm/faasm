@@ -156,7 +156,7 @@ class WasmModule
     int stdoutMemFd;
     ssize_t stdoutSize;
 
-    const uint32_t threadPoolSize = 0;
+    uint32_t threadPoolSize = 0;
     std::vector<uint32_t> threadStacks;
 
     faabric::util::Queue<std::pair<std::promise<int32_t>, threads::OpenMPTask>>

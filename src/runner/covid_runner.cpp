@@ -17,7 +17,8 @@
 void execCovid(int nThreads, int nLoops)
 {
     auto logger = faabric::util::getLogger();
-    logger->info("Running covid sim with {} threads", nThreads);
+    logger->info(
+      "Running covid sim with {} threads, {} loops", nThreads, nLoops);
 
     std::string cmdlineArgs = "/c:" + std::to_string(nThreads);
 
@@ -66,12 +67,12 @@ void execCovid(int nThreads, int nLoops)
         if (std::filesystem::exists(tmpDirA)) {
             tmpDir = tmpDirA;
         } else if (std::filesystem::exists(tmpDirB)) {
-
-            tmpDir = tmpDirA;
+            tmpDir = tmpDirB;
         } else {
             throw std::runtime_error("tmp dir not found");
         }
 
+        logger->debug("Clearing tmp dir {}", tmpDir);
         std::filesystem::remove_all(tmpDir);
         std::filesystem::create_directory(tmpDir);
 
@@ -91,11 +92,13 @@ int main(int argc, char* argv[])
 {
     auto logger = faabric::util::getLogger();
 
-    int nThreads = faabric::util::getUsableCores();
     int nLoops = 1;
-    if (argc == 3) {
+    if (argc >= 3) {
         nLoops = std::stoi(argv[2]);
-    } else if (argc == 2) {
+    }
+
+    int nThreads = faabric::util::getUsableCores();
+    if (argc >= 2) {
         nThreads = std::stoi(argv[1]);
     }
 

@@ -22,3 +22,5 @@ def symbols(ctx, user, func):
 
     with open(syms_path) as fh:
         print(fh.read())
+
+    print("\nSymbols written to {}".format(syms_path))

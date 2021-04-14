@@ -132,8 +132,15 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
     wasmEnvironment = other.wasmEnvironment;
 
     // Note - we keep the thread stack offsets but not the threads themselves as
-    // they should be empty
+    // each module will have its own thread pool
+    threadPoolSize = other.threadPoolSize;
     threadStacks = other.threadStacks;
+
+    openMPThreads.clear();
+    pthreads.clear();
+    openMPTaskQueue.reset();
+    pthreadTaskQueue.reset();
+    mutexes.clear();
 
     // Do not copy over any captured stdout
     stdoutMemFd = 0;
