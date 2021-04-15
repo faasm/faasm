@@ -1460,6 +1460,19 @@ std::map<std::string, std::string> WAVMWasmModule::buildDisassemblyMap()
     IR::DisassemblyNames disassemblyNames;
     getDisassemblyNames(module, disassemblyNames);
 
+    for (int i = 0; i < disassemblyNames.functions.size(); i++) {
+        auto func = disassemblyNames.functions.at(i);
+        printf("%i = %s\n", i, func.name.c_str());
+
+        for (auto l : func.labels) {
+            printf("    %s\n", l.c_str());
+        }
+
+        for (auto l : func.locals) {
+            printf("    %s\n", l.c_str());
+        }
+    }
+
     for (Uptr i = 0; i < module.functions.size(); i++) {
         unsigned long nImports = module.functions.imports.size();
         bool isImport = i < nImports;

@@ -32,12 +32,18 @@ def replace_symbols_in_file(user, func, file_path, prefix=None):
 
             symbol, disas = line.split(" = ")
 
-            replacement = "{}__{}".format(prefix, disas) if prefix else disas
+            # Remove symbols that might mess up an output file
+            banned_chars = ["(", ")", ",", ":", "<", ">"]
+            for c in banned_chars:
+                disas = disas.replace(c, "")
+
+            if prefix:
+                disas = "{}_{}".format(prefix, disas)
 
             sed_cmd = [
                 "sed",
                 "-i",
-                "'s/{}/{}/g'".format(symbol, replacement),
+                "'s/{}/{}/g'".format(symbol, disas),
                 file_path,
             ]
             sed_cmd = " ".join(sed_cmd)

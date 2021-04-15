@@ -12,7 +12,7 @@ FLAME_GRAPH_DIR = join(WORK_DIR, "FlameGraph")
 
 
 @task(default=True)
-def general(ctx, user, func, reps=10, cmd=None):
+def general(ctx, user, func, reps=10, cmd=None, data=None):
     """
     Generates a flame graph for the given function
     """
@@ -32,7 +32,9 @@ def general(ctx, user, func, reps=10, cmd=None):
     # Set up the command to be perf'd
     if not cmd:
         simple_runner_bin = find_command("simple_runner")
-        cmd = " ".join([simple_runner_bin, user, func, str(reps)])
+        cmd = " ".join(
+            [simple_runner_bin, user, func, str(reps), data if data else ""]
+        )
 
     # Set up main perf command
     perf_cmd = ["perf", "record", "-k 1", "-F 99", "-g", cmd]
