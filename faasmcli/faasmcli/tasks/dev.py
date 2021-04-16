@@ -10,6 +10,7 @@ DEV_TARGETS = [
     "codegen_func",
     "codegen_shared_obj",
     "func_runner",
+    "func_sym",
     "simple_runner",
     "pool_runner",
     "upload",
@@ -18,9 +19,7 @@ DEV_TARGETS = [
 
 
 @task
-def cmake(
-    ctx, clean=False, build="Debug", native=False, perf=False, prof=False
-):
+def cmake(ctx, clean=False, build="Debug", perf=False, prof=False):
     """
     Configures the CMake build
     """

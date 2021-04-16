@@ -15,21 +15,47 @@
 #include <wamr/WAMRWasmModule.h>
 #include <wasm/WasmModule.h>
 
-void execCovid(int nThreads, int nLoops)
+void execCovid(int nThreads, int nLoops, const std::string& country)
 {
     auto logger = faabric::util::getLogger();
     logger->info(
       "Running covid sim with {} threads, {} loops", nThreads, nLoops);
 
-    std::string cmdlineArgs = "/c:" + std::to_string(nThreads);
+    std::string cmdlineArgs = "/c:" + std::to_string(nThreads) + " ";
 
-    cmdlineArgs +=
-      " /A:faasm://covid/admin_units/Guam_admin.txt "
-      "/PP:faasm://covid/param_files/preUK_R0=2.0.txt "
-      "/P:faasm://covid/param_files/p_NoInt.txt /O:/tmp/Guam_NoInt_R0=3.0 "
-      "/D:/faasm://covid/populations/wpop_us_terr.txt "
-      "/M:/tmp/Guam_pop_density.bin /S:/tmp/Network_Guam_T1_R3.0.bin "
-      "/R:1.5 98798150 729101 17389101 4797132";
+    if (country == "Guam") {
+        cmdlineArgs +=
+          "/A:faasm://covid/admin_units/Guam_admin.txt "
+          "/PP:faasm://covid/param_files/preUK_R0=2.0.txt "
+          "/P:faasm://covid/param_files/p_NoInt.txt "
+          "/O:/tmp/Guam_NoInt_R0=3.0 "
+          "/D:/faasm://covid/populations/wpop_us_terr.txt "
+          "/M:/tmp/Guam_pop_density.bin "
+          "/S:/tmp/Network_Guam_T1_R3.0.bin "
+          "/R:1.5 98798150 729101 17389101 4797132";
+    } else if (country == "Virgin_Islands_US") {
+        cmdlineArgs +=
+          "/A:faasm://covid/admin_units/Virgin_Islands_US_admin.txt "
+          "/PP:faasm://covid/param_files/preUK_R0=2.0.txt "
+          "/P:faasm://covid/param_files/p_NoInt.txt "
+          "/O:/tmp/Virgin_Islands_US_NoInt_R0=3.0 "
+          "/D:/faasm://covid/populations/wpop_us_terr.txt "
+          "/M:/tmp/Virgin_Islands_US_pop_density.bin "
+          "/S:/tmp/Network_Virgin_Islands_US_T1_R3.0.bin "
+          "/R:1.5 98798150 729101 17389101 4797132";
+    } else if (country == "Malta") {
+        cmdlineArgs +=
+          "/A:faasm://covid/admin_units/Malta_admin.txt "
+          "/PP:faasm://covid/param_files/preUK_R0=2.0.txt "
+          "/P:faasm://covid/param_files/p_NoInt.txt "
+          "/O:/tmp/Virgin_Islands_US_NoInt_R0=3.0 "
+          "/D:/faasm://covid/populations/wpop_eur.txt "
+          "/M:/tmp/Malta_pop_density.bin "
+          "/S:/tmp/Network_Malta_T1_R3.0.bin "
+          "/R:1.5 98798150 729101 17389101 4797132";
+    } else {
+        throw std::runtime_error("Unrecognised country");
+    }
 
     faabric::Message msg = faabric::util::messageFactory("cov", "sim");
     msg.set_cmdline(cmdlineArgs);
@@ -95,6 +121,11 @@ int main(int argc, char* argv[])
 
     auto logger = faabric::util::getLogger();
 
+    std::string country = "Guam";
+    if (argc >= 4) {
+        country = argv[3];
+    }
+
     int nLoops = 1;
     if (argc >= 3) {
         nLoops = std::stoi(argv[2]);
@@ -105,7 +136,7 @@ int main(int argc, char* argv[])
         nThreads = std::stoi(argv[1]);
     }
 
-    execCovid(nThreads, nLoops);
+    execCovid(nThreads, nLoops, country);
 
     PROF_SUMMARY
 

@@ -420,7 +420,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     // Set up the chained calls - note that we always execute the master thread
     // locally
-    std::shared_ptr<faabric::Message> localMsg = nullptr;
+    std::shared_ptr<faabric::Message> masterMsg = nullptr;
     std::vector<std::shared_ptr<faabric::Message>> childThreadMsgs;
     std::vector<int> remoteCallIds;
     for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
@@ -431,7 +431,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
         // Record as message for this thread if necessary
         if (threadNum == 0) {
-            localMsg = call;
+            masterMsg = call;
         }
 
         // All calls are async by definition
@@ -502,8 +502,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     // Execute the master task
     logger->debug("Executing master OMP thread");
-    threads::OpenMPTask localTask(parentCall, localMsg, nextLevel, 0);
-    int32_t mainReturnValue = parentModule->executeOpenMPTask(localTask).get();
+    threads::OpenMPTask masterTask(parentCall, masterMsg, nextLevel, 0);
+    int32_t mainReturnValue = parentModule->executeOpenMPTask(masterTask).get();
 
     // Await the results of all the remote threads
     int numErrors = 0;

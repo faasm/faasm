@@ -3,8 +3,10 @@
 
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
-
+#include <faabric/util/macros.h>
+#include <faabric/util/timing.h>
 #include <storage/FileDescriptor.h>
+#include <storage/FileLoader.h>
 
 #include <cstring>
 #include <dirent.h>
@@ -18,8 +20,6 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/WASI/WASIABI.h>
-#include <faabric/util/macros.h>
-#include <storage/FileLoader.h>
 
 /**
  * WASI filesystem handling
@@ -104,7 +104,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I32 fdFlags,
                                I32 resFdPtr)
 {
-
+    PROF_START(PathOpen)
     const std::string pathStr = getStringFromWasm(path);
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
     logger->debug("S - path_open - {} {} {}", rootFd, pathStr, pathLen);
@@ -120,6 +120,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
       openFlags,
       fdFlags);
 
+    PROF_END(PathOpen)
     if (fdRes < 0) {
         return -1 * fdRes;
     } else {
@@ -324,6 +325,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I32 iovecCount,
                                I32 resBytesWrittenPtr)
 {
+    PROF_START(FdWrite)
     auto logger = faabric::util::getLogger();
 
     storage::FileSystem& fileSystem = getExecutingWAVMModule()->getFileSystem();
@@ -359,6 +361,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
 
     delete[] nativeIovecs;
 
+    PROF_END(FdWrite)
+
     if (bytesWritten < 0) {
         return storage::errnoToWasi(errno);
     } else {
@@ -375,6 +379,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I32 iovecCount,
                                I32 resBytesRead)
 {
+    PROF_START(FdRead)
     storage::FileSystem& fileSystem = getExecutingWAVMModule()->getFileSystem();
     std::string path = fileSystem.getPathForFd(fd);
 
@@ -387,6 +392,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
     int bytesRead = readv(fileDesc.getLinuxFd(), nativeIovecs, iovecCount);
     Runtime::memoryRef<int>(getExecutingWAVMModule()->defaultMemory,
                             resBytesRead) = (int)bytesRead;
+
+    PROF_END(FdRead)
 
     return __WASI_ESUCCESS;
 }
@@ -679,6 +686,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I32 whence,
                                I32 newOffsetPtr)
 {
+    PROF_START(FdSeek)
     faabric::util::getLogger()->trace(
       "S - fd_seek - {} {} {} {}", fd, offset, whence, newOffsetPtr);
 
@@ -690,6 +698,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
       getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
 
     uint16_t wasiErrno = fileDesc.seek(offset, whence, newOffsetHostPtr);
+
+    PROF_END(FdSeek)
 
     return wasiErrno;
 }
