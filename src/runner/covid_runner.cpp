@@ -9,6 +9,7 @@
 #include <faabric/util/environment.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
+#include <faabric/util/timing.h>
 #include <faaslet/FaasletPool.h>
 #include <module_cache/WasmModuleCache.h>
 #include <wamr/WAMRWasmModule.h>
@@ -90,6 +91,8 @@ void execCovid(int nThreads, int nLoops)
 
 int main(int argc, char* argv[])
 {
+    PROF_BEGIN
+
     auto logger = faabric::util::getLogger();
 
     int nLoops = 1;
@@ -103,6 +106,8 @@ int main(int argc, char* argv[])
     }
 
     execCovid(nThreads, nLoops);
+
+    PROF_SUMMARY
 
     return 0;
 }

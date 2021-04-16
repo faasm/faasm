@@ -5,10 +5,10 @@
 #include <faabric/util/config.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
+#include <faabric/util/timing.h>
 #include <module_cache/WasmModuleCache.h>
 #include <wamr/WAMRWasmModule.h>
 #include <wasm/WasmModule.h>
-
 
 bool runWithWamr(faabric::Message& m, int runCount)
 {
@@ -64,6 +64,9 @@ bool runWithWavm(faabric::Message& m, int runCount)
 
 int main(int argc, char* argv[])
 {
+    // Start profiling if necessary
+    PROF_BEGIN
+
     auto logger = faabric::util::getLogger();
 
     if (argc < 3) {
@@ -122,6 +125,9 @@ int main(int argc, char* argv[])
         throw std::runtime_error(
           fmt::format("Function {}/{} failed", user, function));
     }
+
+    // Print profile summary if present
+    PROF_SUMMARY
 
     return 0;
 }

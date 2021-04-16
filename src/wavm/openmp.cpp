@@ -24,12 +24,13 @@ namespace wasm {
 #define OMP_FUNC(str)                                                          \
     threads::OpenMPContext& ctx = threads::getOpenMPContext();                 \
     auto logger = faabric::util::getLogger();                                  \
-    logger->trace("OMP {}: " str, ctx.threadNumber);
+    logger->trace("OMP {} ({}): " str, ctx.threadNumber, ::gettid());
 
 #define OMP_FUNC_ARGS(formatStr, ...)                                          \
     threads::OpenMPContext& ctx = threads::getOpenMPContext();                 \
     auto logger = faabric::util::getLogger();                                  \
-    logger->trace("OMP {}: " formatStr, ctx.threadNumber, __VA_ARGS__);
+    logger->trace(                                                             \
+      "OMP {} ({}): " formatStr, ctx.threadNumber, gettid(), __VA_ARGS__);
 
 // ------------------------------------------------
 // THREAD NUMS AND LEVELS
@@ -352,9 +353,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 // ----------------------------------------------------
 
 /**
- * The "real" version of this function is implemented in the openmp source at
- * openmp/runtime/src/kmp_csupport.cpp. This in turn calls __kmp_fork_call which
- * does the real heavy lifting (see openmp/runtime/src/kmp_runtime.cpp)
+ * The "real" version of this function is implemented in the openmp source at:
+ * https://github.com/llvm/llvm-project/blob/main/openmp/runtime/src/kmp_csupport.cpp
+ *
+ * It calls into __kmp_fork call to do most of the work, which is here:
+ * https://github.com/llvm/llvm-project/blob/main/openmp/runtime/src/kmp_runtime.cpp
  *
  * @param locPtr pointer to the source location info (type ident_t)
  * @param argc number of arguments to pass to the microtask
@@ -389,13 +392,21 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     std::shared_ptr<threads::Level> parentLevel = ctx.level;
     int nextNumThreads = parentLevel->getMaxThreadsAtNextLevel();
 
+    // Check if we're only doing single-threaded
+    bool isSingleThread = nextNumThreads == 1;
+
     // Set up the next level
     auto nextLevel = std::make_shared<threads::Level>(nextNumThreads);
     nextLevel->fromParentLevel(parentLevel);
 
     // Take memory snapshot
-    std::string snapshotKey = parentModule->snapshot(false);
-    logger->debug("Created OpenMP snapshot: {}", snapshotKey);
+    std::string snapshotKey;
+    if (!isSingleThread) {
+        snapshotKey = parentModule->snapshot(false);
+        logger->debug("Created OpenMP snapshot: {}", snapshotKey);
+    } else {
+        logger->debug("Not creating OpenMP snapshot for single thread");
+    }
 
     const faabric::Message* originalCall = getExecutingCall();
     const std::string origStr =
@@ -407,14 +418,21 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         sharedVarsPtr = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
     }
 
-    // Set up the chained calls
-    std::vector<std::shared_ptr<faabric::Message>> msgs;
-    std::vector<int> callIds;
+    // Set up the chained calls - note that we always execute the master thread
+    // locally
+    std::shared_ptr<faabric::Message> localMsg = nullptr;
+    std::vector<std::shared_ptr<faabric::Message>> childThreadMsgs;
+    std::vector<int> remoteCallIds;
     for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
         // Create basic call
         std::shared_ptr<faabric::Message> call =
           faabric::util::messageFactoryShared(originalCall->user(),
                                               originalCall->function());
+
+        // Record as message for this thread if necessary
+        if (threadNum == 0) {
+            localMsg = call;
+        }
 
         // All calls are async by definition
         call->set_isasync(true);
@@ -437,40 +455,59 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         call->set_ompeffdepth(nextLevel->activeLevels);
         call->set_ompmal(nextLevel->maxActiveLevels);
 
-        msgs.push_back(call);
-    }
-
-    // Set up the request
-    faabric::BatchExecuteRequest req = faabric::util::batchExecFactory(msgs);
-    req.set_type(faabric::BatchExecuteRequest::THREADS);
-
-    // Submit it
-    std::vector<std::string> executedHosts = sch.callFunctions(req);
-
-    // Iterate through messages and see which need to be executed locally
-    std::vector<std::future<int32_t>> localFutures;
-    for (int i = 0; i < executedHosts.size(); i++) {
-        std::string host = executedHosts.at(i);
-        bool isLocal = host.empty();
-
-        std::shared_ptr<faabric::Message> msg = msgs.at(i);
-        uint32_t msgId = msg->id();
-
-        if (!isLocal) {
-            // Function is being executed remotely
-            logger->debug("Waiting for remote thread for call ID {}", msgId);
-            callIds.push_back(msgId);
-            continue;
+        if (threadNum > 0) {
+            childThreadMsgs.push_back(call);
         }
-
-        logger->debug("Executing local OMP thread for call ID {}", msgId);
-        threads::OpenMPTask t(parentCall, msg, nextLevel, i);
-        localFutures.emplace_back(parentModule->executeOpenMPTask(t));
     }
+
+    // Dispatch child threads if necessary
+    std::vector<std::future<int32_t>> localFutures;
+    if (!isSingleThread) {
+        // Set up the request
+        faabric::BatchExecuteRequest req =
+          faabric::util::batchExecFactory(childThreadMsgs);
+
+        req.set_type(faabric::BatchExecuteRequest::THREADS);
+
+        // Submit it
+        std::vector<std::string> executedHosts = sch.callFunctions(req);
+
+        // Iterate through messages and see which need to be executed in local
+        // threads
+        for (int i = 0; i < executedHosts.size(); i++) {
+            std::string host = executedHosts.at(i);
+            bool isLocal = host.empty();
+
+            std::shared_ptr<faabric::Message> msg = childThreadMsgs.at(i);
+            uint32_t msgId = msg->id();
+
+            if (!isLocal) {
+                // Function is being executed remotely
+                logger->debug("Waiting for remote thread for call ID {}",
+                              msgId);
+                remoteCallIds.push_back(msgId);
+                continue;
+            }
+
+            logger->debug("Dispatching local task for OpenMP call ID {}",
+                          msgId);
+
+            // Note that the thread index will always be one greater as we
+            // execute the master thread in this main thread
+            int threadIdx = i + 1;
+            threads::OpenMPTask t(parentCall, msg, nextLevel, threadIdx);
+            localFutures.emplace_back(parentModule->executeOpenMPTask(t));
+        }
+    }
+
+    // Execute the master task
+    logger->debug("Executing master OMP thread");
+    threads::OpenMPTask localTask(parentCall, localMsg, nextLevel, 0);
+    int32_t mainReturnValue = parentModule->executeOpenMPTask(localTask).get();
 
     // Await the results of all the remote threads
     int numErrors = 0;
-    for (auto callId : callIds) {
+    for (auto callId : remoteCallIds) {
         int callTimeoutMs = faabric::util::getSystemConfig().chainedCallTimeout;
 
         logger->info(
@@ -504,20 +541,26 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         }
     }
 
+    if (mainReturnValue > 0) {
+        throw std::runtime_error("Master OpenMP thread failed");
+    }
+
     // Reset parent level for next setting of threads
     parentLevel->pushedThreads = -1;
 
     // Delete the snapshot from registered hosts
-    PROF_START(BroadcastDeleteSnapshot)
-    sch.broadcastSnapshotDelete(*originalCall, snapshotKey);
-    PROF_END(BroadcastDeleteSnapshot)
+    if (!isSingleThread) {
+        PROF_START(BroadcastDeleteSnapshot)
+        sch.broadcastSnapshotDelete(*originalCall, snapshotKey);
+        PROF_END(BroadcastDeleteSnapshot)
 
-    // Delete the snapshot locally
-    PROF_START(DeleteSnapshot)
-    faabric::snapshot::SnapshotRegistry& reg =
-      faabric::snapshot::getSnapshotRegistry();
-    reg.deleteSnapshot(snapshotKey);
-    PROF_END(DeleteSnapshot)
+        // Delete the snapshot locally
+        PROF_START(DeleteSnapshot)
+        faabric::snapshot::SnapshotRegistry& reg =
+          faabric::snapshot::getSnapshotRegistry();
+        reg.deleteSnapshot(snapshotKey);
+        PROF_END(DeleteSnapshot)
+    }
 }
 
 // -------------------------------------------------------
@@ -757,31 +800,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 // REDUCTION
 // ---------------------------------------------------
 
-// Allowed reduce return values.
-// The single thread value is only used when there's one thread.
-// Multi threads signifies that multiple threads are operating
-// We don't currently support atomic reduce, but it signifies that the final
-// reduction must be performed atomically.
-enum ReduceReturnValue
-{
-    SINGLE_THREAD = 0,
-    MULTIPLE_THREADS = 1,
-    ATMOIC_REDUCE = 2,
-};
-
 /*
- * This method should return one of the reduce return values as detailed above.
- * AFAICT most of the arguments are not needed in our case.
+ * It seems this method should return zero in a single-thread scenario and 1 in
+ * a multi-thread one.
  *
- * The reduction is performed by the master thread, so we must ensure that the
- * other threads have finished before this takes place.
- *
- * To interrogate where intermediate results are stored, we can look at the
- * reduce data and reduce func.
- *
- * The reduceFunc provides the reduction operation on two operands and returns
- * the result in its first argument. The function is of type:
- * void(*)(void *lhsData, void *rhsData)
+ * The reduction is eventually performed in the master thread, so we must ensure
+ * that other threads register that they have finished when passing through this
+ * function.
  *
  * For more info, see OpenMP source at
  * https://github.com/llvm/llvm-project/blob/main/openmp/runtime/src/kmp_csupport.cpp
@@ -792,15 +817,19 @@ int reduceFinished()
     threads::OpenMPContext& ctx = threads::getOpenMPContext();
 
     if (ctx.level->numThreads == 1) {
-        return SINGLE_THREAD;
+        // Single master thread, no waiting
+        return 0;
     }
 
     // Notify the master thread that we've done our reduction
     if (ctx.threadNumber != 0) {
+        PROF_START(MasterWaitWorker)
         ctx.level->masterWait(ctx.threadNumber);
+        PROF_END(MasterWaitWorker)
     }
 
-    return MULTIPLE_THREADS;
+    // Multi-thread scenario
+    return 1;
 }
 
 /**
@@ -815,7 +844,9 @@ void finaliseReduce(bool barrier)
 
     // Master must make sure all other threads are done
     if (ctx.threadNumber == 0) {
+        PROF_START(MasterWaitMaster)
         ctx.level->masterWait(ctx.threadNumber);
+        PROF_END(MasterWaitMaster)
 
         logger->debug("Master thread finished reduce");
     }
