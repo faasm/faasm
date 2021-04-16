@@ -12,7 +12,7 @@ FLAME_GRAPH_DIR = join(WORK_DIR, "FlameGraph")
 
 
 @task(default=True)
-def general(ctx, user, func, reps=10, cmd=None, data=None):
+def general(ctx, user, func, reps=10, cmd=None, data=None, reverse=False):
     """
     Generates a flame graph for the given function
     """
@@ -47,7 +47,9 @@ def general(ctx, user, func, reps=10, cmd=None, data=None):
         "perf inject -i perf.data -j -o perf.data.jit",
         "perf script -i perf.data.jit > out.perf",
         "./stackcollapse-perf.pl out.perf > out.folded",
-        "./flamegraph.pl out.folded > {}".format(svg_file),
+        "./flamegraph.pl {} out.folded > {}".format(
+            "--reverse" if reverse else "", svg_file
+        ),
     ]
 
     # Execute each one in the flame graphs checkout
