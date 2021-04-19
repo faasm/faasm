@@ -1,5 +1,32 @@
 # Profiling
 
+## High-level 
+
+To get a quick overview of how things are performing you can use
+[Vector](https://github.com/Netflix/vector) and [Performance
+Copilot](https://pcp.io/). 
+
+Note that at the time of writing (04/2021) the Vector docs talk about
+`pcp-webapi`, but it's been replaced by `pmproxy` which is part of the main
+`pcp` bundle.
+
+To set up:
+
+- Install PCP (`apt install pcp -y`)
+- Check that `pmproxy` is running and listening on `44323` (e.g. `tail
+  /var/log/pcp/pmproxy/pmproxy.log`). May require a restart
+- Run the Vector container in our dev set-up, e.g. `docker-compose -f
+  docker-compose-dev.yml vector`
+- Go to http://localhost:80 in your browser
+- Add a connection to host `localhost` on port `44323`
+- Select the `faasm-cli` container
+
+You should then be able to use Vector to get some high-level performance metrics
+related to whatever you're running in the `faasm-cli` container (e.g. some
+stress-testing script).
+
+## Low-level
+
 Note that although using profilers inside containers is possible, it's best to
 run the on Faasm binaries built and executed outside a container. 
 
