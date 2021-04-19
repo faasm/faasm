@@ -861,16 +861,18 @@ void finaliseReduce(bool barrier)
 
     // Master must make sure all other threads are done
     if (ctx.threadNumber == 0) {
-        PROF_START(MasterWaitMaster)
+        PROF_START(MasterFinaliseReduce)
         ctx.level->masterWait(ctx.threadNumber);
-        PROF_END(MasterWaitMaster)
+        PROF_END(MasterFinaliseReduce)
 
         logger->debug("Master thread finished reduce");
     }
 
     // Everyone waits if there's a barrier
     if (barrier) {
+        PROF_START(FinaliseReduceBarrier)
         ctx.level->barrier.wait();
+        PROF_END(FinaliseReduceBarrier)
     }
 }
 
