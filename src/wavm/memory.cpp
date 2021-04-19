@@ -1,12 +1,13 @@
 #include "WAVMWasmModule.h"
 #include "syscalls.h"
 
-#include <faabric/util/bytes.h>
 #include <linux/membarrier.h>
 
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
+#include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
+#include <faabric/util/timing.h>
 
 using namespace WAVM;
 
@@ -169,11 +170,18 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__sbrk", I32, __sbrk, I32 increment)
     faabric::util::getLogger()->debug("S - sbrk - {}", increment);
 
     WAVMWasmModule* module = getExecutingWAVMModule();
+    I32 result;
     if (increment < 0) {
-        return module->shrinkMemory(-1 * increment);
+        PROF_START(sbrkShrink)
+        result = module->shrinkMemory(-1 * increment);
+        PROF_END(sbrkShrink)
     } else {
-        return module->growMemory(increment);
+        PROF_START(sbrkGrow)
+        result = module->growMemory(increment);
+        PROF_END(sbrkGrow)
     }
+
+    return result;
 }
 
 // mprotect is usually called as part of thread creation, in which

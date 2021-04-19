@@ -412,14 +412,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     const std::string origStr =
       faabric::util::funcToString(*originalCall, false);
 
-    // Get pointers to shared variables in host memory
+    // Prepare arguments for main thread and all others
+    std::vector<IR::UntaggedValue> mainArguments = { 0, argc };
     U32* sharedVarsPtr = nullptr;
     if (argc > 0) {
         sharedVarsPtr = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
     }
 
-    // Set up the chained calls - note that we always execute the master thread
-    // locally
+    // Set up the chained calls
+    // Note that the main OpenMP thread is always executed in this thread, hence
+    // it is not scheduled remotely
     std::shared_ptr<faabric::Message> masterMsg = nullptr;
     std::vector<std::shared_ptr<faabric::Message>> childThreadMsgs;
     std::vector<int> remoteCallIds;
@@ -429,7 +431,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
           faabric::util::messageFactoryShared(originalCall->user(),
                                               originalCall->function());
 
-        // Record as message for this thread if necessary
+        // Record master message if necessary
         if (threadNum == 0) {
             masterMsg = call;
         }
@@ -446,6 +448,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         // Args
         for (int i = 0; i < argc; i++) {
             call->add_ompfunctionargs(sharedVarsPtr[i]);
+            mainArguments.emplace_back(sharedVarsPtr[i]);
         }
 
         call->set_ompthreadnum(threadNum);
@@ -460,7 +463,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         }
     }
 
-    // Dispatch child threads if necessary
+    // Attempt to schedule across hosts
     std::vector<std::future<int32_t>> localFutures;
     if (!isSingleThread) {
         // Set up the request
@@ -481,29 +484,43 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
             std::shared_ptr<faabric::Message> msg = childThreadMsgs.at(i);
             uint32_t msgId = msg->id();
 
-            if (!isLocal) {
+            if (isLocal) {
+                logger->debug("Dispatching local task for OpenMP call ID {}",
+                              msgId);
+
+                // We execute the main thread in this thread so index is one
+                // higher
+                int threadIdx = i + 1;
+
+                // Execute the local thread
+                threads::OpenMPTask t(parentCall, msg, nextLevel, threadIdx);
+                localFutures.emplace_back(parentModule->executeOpenMPTask(t));
+            } else {
                 // Function is being executed remotely
                 logger->debug("Waiting for remote thread for call ID {}",
                               msgId);
                 remoteCallIds.push_back(msgId);
                 continue;
             }
-
-            logger->debug("Dispatching local task for OpenMP call ID {}",
-                          msgId);
-
-            // Note that the thread index will always be one greater as we
-            // execute the master thread in this main thread
-            int threadIdx = i + 1;
-            threads::OpenMPTask t(parentCall, msg, nextLevel, threadIdx);
-            localFutures.emplace_back(parentModule->executeOpenMPTask(t));
         }
     }
 
-    // Execute the master task
-    logger->debug("Executing master OMP thread");
-    threads::OpenMPTask masterTask(parentCall, masterMsg, nextLevel, 0);
-    int32_t mainReturnValue = parentModule->executeOpenMPTask(masterTask).get();
+    // Execute the master task (just invoke the microtask directly)
+    IR::UntaggedValue mainThreadResult;
+    {
+        // We have to set up the context for the thread
+        setUpOpenMPContext(0, nextLevel);
+
+        // Execute the task
+        logger->debug("Executing master OMP thread");
+        WAVM::Runtime::Function* microtaskFunc =
+          parentModule->getFunctionFromPtr(microtaskPtr);
+        parentModule->executeFunction(
+          microtaskFunc, mainArguments, mainThreadResult);
+
+        // Now we reset the context for this main thread
+        setUpOpenMPContext(0, parentLevel);
+    }
 
     // Await the results of all the remote threads
     int numErrors = 0;
@@ -541,7 +558,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         }
     }
 
-    if (mainReturnValue > 0) {
+    if (mainThreadResult.i32 > 0) {
         throw std::runtime_error("Master OpenMP thread failed");
     }
 
