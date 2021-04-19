@@ -24,15 +24,14 @@ void execCovid(int nThreads, int nLoops, const std::string& country)
     std::string cmdlineArgs = "/c:" + std::to_string(nThreads) + " ";
 
     if (country == "Guam") {
-        cmdlineArgs +=
-          "/A:faasm://covid/admin_units/Guam_admin.txt "
-          "/PP:faasm://covid/param_files/preUK_R0=2.0.txt "
-          "/P:faasm://covid/param_files/p_NoInt.txt "
-          "/O:/tmp/Guam_NoInt_R0=3.0 "
-          "/D:/faasm://covid/populations/wpop_us_terr.txt "
-          "/M:/tmp/Guam_pop_density.bin "
-          "/S:/tmp/Network_Guam_T1_R3.0.bin "
-          "/R:1.5 98798150 729101 17389101 4797132";
+        cmdlineArgs += "/A:faasm://covid/admin_units/Guam_admin.txt "
+                       "/PP:faasm://covid/param_files/preUK_R0=2.0.txt "
+                       "/P:faasm://covid/param_files/p_NoInt.txt "
+                       "/O:/tmp/Guam_NoInt_R0=3.0 "
+                       "/D:/faasm://covid/populations/wpop_us_terr.txt "
+                       "/M:/tmp/Guam_pop_density.bin "
+                       "/S:/tmp/Network_Guam_T1_R3.0.bin "
+                       "/R:1.5 98798150 729101 17389101 4797132";
     } else if (country == "Virgin_Islands_US") {
         cmdlineArgs +=
           "/A:faasm://covid/admin_units/Virgin_Islands_US_admin.txt "
@@ -44,15 +43,14 @@ void execCovid(int nThreads, int nLoops, const std::string& country)
           "/S:/tmp/Network_Virgin_Islands_US_T1_R3.0.bin "
           "/R:1.5 98798150 729101 17389101 4797132";
     } else if (country == "Malta") {
-        cmdlineArgs +=
-          "/A:faasm://covid/admin_units/Malta_admin.txt "
-          "/PP:faasm://covid/param_files/preUK_R0=2.0.txt "
-          "/P:faasm://covid/param_files/p_NoInt.txt "
-          "/O:/tmp/Virgin_Islands_US_NoInt_R0=3.0 "
-          "/D:/faasm://covid/populations/wpop_eur.txt "
-          "/M:/tmp/Malta_pop_density.bin "
-          "/S:/tmp/Network_Malta_T1_R3.0.bin "
-          "/R:1.5 98798150 729101 17389101 4797132";
+        cmdlineArgs += "/A:faasm://covid/admin_units/Malta_admin.txt "
+                       "/PP:faasm://covid/param_files/preUK_R0=2.0.txt "
+                       "/P:faasm://covid/param_files/p_NoInt.txt "
+                       "/O:/tmp/Virgin_Islands_US_NoInt_R0=3.0 "
+                       "/D:/faasm://covid/populations/wpop_eur.txt "
+                       "/M:/tmp/Malta_pop_density.bin "
+                       "/S:/tmp/Network_Malta_T1_R3.0.bin "
+                       "/R:1.5 98798150 729101 17389101 4797132";
     } else {
         throw std::runtime_error("Unrecognised country");
     }
@@ -74,8 +72,10 @@ void execCovid(int nThreads, int nLoops, const std::string& country)
     redis.flushAll();
 
     // Force the Faasm thread pool size
-    logger->debug("Setting Faasm thread pool size to {}", nThreads);
-    conf::getFaasmConfig().moduleThreadPoolSize = nThreads;
+    if (nThreads > 1) {
+        logger->debug("Setting Faasm thread pool size to {}", nThreads - 1);
+        conf::getFaasmConfig().moduleThreadPoolSize = nThreads - 1;
+    }
 
     std::string tmpDirA = "/usr/local/faasm/runtime_root/tmp";
     std::string tmpDirB =

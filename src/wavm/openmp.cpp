@@ -817,35 +817,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 // REDUCTION
 // ---------------------------------------------------
 
-/*
- * It seems this method should return zero in a single-thread scenario and 1 in
- * a multi-thread one.
- *
- * The reduction is eventually performed in the master thread, so we must ensure
- * that other threads register that they have finished when passing through this
- * function.
- *
- * For more info, see OpenMP source at
- * https://github.com/llvm/llvm-project/blob/main/openmp/runtime/src/kmp_csupport.cpp
- */
 int reduceFinished()
 {
-    auto logger = faabric::util::getLogger();
-    threads::OpenMPContext& ctx = threads::getOpenMPContext();
-
-    if (ctx.level->numThreads == 1) {
-        // Single master thread, no waiting
-        return 0;
-    }
-
-    // Notify the master thread that we've done our reduction
-    if (ctx.threadNumber != 0) {
-        PROF_START(ReduceFinished)
-        ctx.level->masterWait(ctx.threadNumber);
-        PROF_END(ReduceFinished)
-    }
-
-    // Multi-thread scenario
     return 1;
 }
 
@@ -856,15 +829,7 @@ int reduceFinished()
  */
 void finaliseReduce(bool barrier)
 {
-    auto logger = faabric::util::getLogger();
     threads::OpenMPContext& ctx = threads::getOpenMPContext();
-
-    // Master must make sure all other threads are done
-    if (ctx.threadNumber == 0) {
-        PROF_START(MasterFinaliseReduce)
-        ctx.level->masterWait(ctx.threadNumber);
-        PROF_END(MasterFinaliseReduce)
-    }
 
     // Everyone waits if there's a barrier
     if (barrier) {
@@ -875,7 +840,12 @@ void finaliseReduce(bool barrier)
 }
 
 /**
- * A blocking reduce that includes an implicit barrier.
+ * It seems that in our case, always returning 1 for both kmpc_reduce and
+ * kmpc_reduce_nowait gets the right result.
+ *
+ * In the OpenMP source we can see a more varied set of return values, but these
+ * are for cases we don't yet support:
+ * https://github.com/llvm/llvm-project/blob/main/openmp/runtime/src/kmp_csupport.cpp
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__kmpc_reduce",
@@ -898,12 +868,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceFunc,
                   lockPtr);
 
-    return reduceFinished();
+    return 1;
 }
 
 /**
- * The nowait version is used for a reduce clause with the nowait argument, or
- * when the parallel section finished straight after the reduce.
+ * See __kmpc_reduce
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__kmpc_reduce_nowait",
@@ -926,7 +895,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceFunc,
                   lockPtr);
 
-    return reduceFinished();
+    return 1;
 }
 
 /**
