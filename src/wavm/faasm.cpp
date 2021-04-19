@@ -417,7 +417,7 @@ I32 _readInputImpl(I32 bufferPtr, I32 bufferLen)
     faabric::Message* call = getExecutingCall();
     std::vector<uint8_t> inputBytes =
       faabric::util::stringToBytes(call->inputdata());
-    
+
     // If nothing, return nothing
     if (inputBytes.empty()) {
         return 0;
