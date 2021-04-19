@@ -840,9 +840,9 @@ int reduceFinished()
 
     // Notify the master thread that we've done our reduction
     if (ctx.threadNumber != 0) {
-        PROF_START(MasterWaitWorker)
+        PROF_START(ReduceFinished)
         ctx.level->masterWait(ctx.threadNumber);
-        PROF_END(MasterWaitWorker)
+        PROF_END(ReduceFinished)
     }
 
     // Multi-thread scenario
@@ -864,8 +864,6 @@ void finaliseReduce(bool barrier)
         PROF_START(MasterFinaliseReduce)
         ctx.level->masterWait(ctx.threadNumber);
         PROF_END(MasterFinaliseReduce)
-
-        logger->debug("Master thread finished reduce");
     }
 
     // Everyone waits if there's a barrier
@@ -943,7 +941,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 lck)
 {
     OMP_FUNC_ARGS("__kmpc_end_reduce {} {} {}", loc, gtid, lck);
-
     finaliseReduce(true);
 }
 
@@ -959,7 +956,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 lck)
 {
     OMP_FUNC_ARGS("__kmpc_end_reduce_nowait {} {} {}", loc, gtid, lck);
-
     finaliseReduce(false);
 }
 
