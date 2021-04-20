@@ -163,7 +163,7 @@ void FileSystem::clearSharedFiles()
 void FileSystem::printDebugInfo()
 {
     printf("--- Open file descriptors ---\n");
-    for (auto &p : fileDescriptors) {
+    for (auto& p : fileDescriptors) {
         printf("    %s\n", p.second.getPath().c_str());
     }
 }

@@ -75,8 +75,7 @@ size_t getPagesForGuardRegion()
 
 WasmModule::WasmModule()
   : threadPoolSize(conf::getFaasmConfig().moduleThreadPoolSize)
-{
-}
+{}
 
 WasmModule::~WasmModule()
 {

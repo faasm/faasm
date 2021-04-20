@@ -118,6 +118,16 @@ TEST_CASE("Test openmp wtime", "[wasm][openmp]")
     doOmpTestLocal("wtime");
 }
 
+TEST_CASE("Test single-threaded reduction", "[wasm][openmp]")
+{
+    doOmpTestLocal("single_thread_reduce");
+}
+
+TEST_CASE("Test more complex reduction", "[wasm][openmp]")
+{
+    doOmpTestLocal("complex_reduce");
+}
+
 TEST_CASE("Run openmp memory stress test", "[wasm][openmp]")
 {
     // Overload the number of cores, and run several times to make sure we
