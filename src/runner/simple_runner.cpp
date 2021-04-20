@@ -64,9 +64,6 @@ bool runWithWavm(faabric::Message& m, int runCount)
 
 int main(int argc, char* argv[])
 {
-    // Start profiling if necessary
-    PROF_BEGIN
-
     auto logger = faabric::util::getLogger();
 
     if (argc < 3) {
@@ -125,9 +122,6 @@ int main(int argc, char* argv[])
         throw std::runtime_error(
           fmt::format("Function {}/{} failed", user, function));
     }
-
-    // Print profile summary if present
-    PROF_SUMMARY
 
     return 0;
 }
