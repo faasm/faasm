@@ -113,7 +113,7 @@ TEST_CASE("Test MPI window creation", "[mpi]")
     checkMpiFunc("mpi_wincreate");
 }
 
-TEST_CASE("Test MPI async", "[mpi]")
+TEST_CASE("Test MPI async", "[mpi][!mayfail]")
 {
     checkMpiFunc("mpi_isendrecv");
 }
