@@ -76,17 +76,14 @@ class OpenMPTask
     faabric::Message* parentMsg;
     std::shared_ptr<faabric::Message> msg;
     std::shared_ptr<threads::Level> nextLevel;
-    int threadIdx;
     bool isShutdown = false;
 
     OpenMPTask(faabric::Message* parentMsgIn,
                std::shared_ptr<faabric::Message> msgIn,
-               std::shared_ptr<threads::Level> nextLevelIn,
-               int threadIdxIn)
+               std::shared_ptr<threads::Level> nextLevelIn)
       : parentMsg(parentMsgIn)
       , msg(msgIn)
       , nextLevel(nextLevelIn)
-      , threadIdx(threadIdxIn)
     {}
 };
 

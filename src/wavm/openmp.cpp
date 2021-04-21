@@ -488,14 +488,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                 logger->debug("Dispatching local task for OpenMP call ID {}",
                               msgId);
 
-                // We execute the main thread in this thread so index is one
-                // higher.
-                // As a hack to get the thread pooling to work, we add the
-                // nesting level to the index too
-                int threadIdx = parentLevel->depth + i + 1;
-
                 // Execute the local thread
-                threads::OpenMPTask t(parentCall, msg, nextLevel, threadIdx);
+                threads::OpenMPTask t(parentCall, msg, nextLevel);
                 localFutures.emplace_back(parentModule->executeOpenMPTask(t));
             } else {
                 // Function is being executed remotely
@@ -821,6 +815,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
 int reduceFinished()
 {
+    auto& ctx = threads::getOpenMPContext();
+
+    // Notify the master thread that we've done our reduction
+    if (ctx.threadNumber != 0) {
+        ctx.level->masterWait(ctx.threadNumber);
+    }
+
     return 1;
 }
 
@@ -831,7 +832,12 @@ int reduceFinished()
  */
 void finaliseReduce(bool barrier)
 {
-    threads::OpenMPContext& ctx = threads::getOpenMPContext();
+    auto& ctx = threads::getOpenMPContext();
+
+    // Master must make sure all other threads are done
+    if (ctx.threadNumber == 0) {
+        ctx.level->masterWait(0);
+    }
 
     // Everyone waits if there's a barrier
     if (barrier) {
@@ -870,7 +876,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceFunc,
                   lockPtr);
 
-    return 1;
+    return reduceFinished();
 }
 
 /**
@@ -897,7 +903,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceFunc,
                   lockPtr);
 
-    return 1;
+    return reduceFinished();
 }
 
 /**

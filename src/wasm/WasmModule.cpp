@@ -354,7 +354,7 @@ void WasmModule::shutdownOpenMPThreads()
     for (auto& taskQueue : openMPTaskQueueMap) {
         std::promise<int32_t> p;
         std::future<int32_t> f = p.get_future();
-        threads::OpenMPTask t(nullptr, nullptr, nullptr, -1);
+        threads::OpenMPTask t(nullptr, nullptr, nullptr);
         t.isShutdown = true;
 
         taskQueue.second.enqueue(std::make_pair(std::move(p), std::move(t)));
@@ -390,8 +390,7 @@ std::future<int32_t> WasmModule::executePthreadTask(threads::PthreadTask t)
                 for (;;) {
                     auto logger = faabric::util::getLogger();
 
-                    PthreadTaskPair taskPair =
-                      pthreadTaskQueue.dequeue();
+                    PthreadTaskPair taskPair = pthreadTaskQueue.dequeue();
 
                     if (taskPair.second.isShutdown) {
                         taskPair.first.set_value(0);
@@ -429,8 +428,12 @@ std::future<int32_t> WasmModule::executeOpenMPTask(threads::OpenMPTask t)
     std::future<int32_t> f = p.get_future();
 
     // We have a fixed pool of threads, we have to share the work evenly over
-    // them, but always send the same index to the same threads.
-    int threadPoolIdx = t.threadIdx % threadPoolSize;
+    // them, but we always want to send the same OMP thread number to the same
+    // thread. However, if we don't have enough threads in the pool, we want to
+    // cycle round again, and if we're at a nested level, we want to spread the
+    // work to other threads so we don't get nested ones blocking each other.
+    int threadPoolIdx =
+      (t.nextLevel->depth - 1 + t.msg->ompthreadnum()) % threadPoolSize;
 
     // Enqueue the task
     openMPTaskQueueMap[threadPoolIdx].enqueue(
@@ -452,10 +455,9 @@ std::future<int32_t> WasmModule::executeOpenMPTask(threads::OpenMPTask t)
             openMPThreads.insert(
               std::make_pair(threadPoolIdx, [this, stackTop, threadPoolIdx] {
                   auto logger = faabric::util::getLogger();
-                  logger->debug(
-                    "Starting OpenMP pool thread {}/{}",
-                    threadPoolIdx,
-                    threadPoolSize);
+                  logger->debug("Starting OpenMP pool thread {}/{}",
+                                threadPoolIdx,
+                                threadPoolSize);
 
                   for (;;) {
                       OpenMPTaskPair taskPair =
@@ -471,16 +473,17 @@ std::future<int32_t> WasmModule::executeOpenMPTask(threads::OpenMPTask t)
                           break;
                       }
 
+                      int ompThreadNum = taskPair.second.msg->ompthreadnum();
                       logger->debug("OpenMP {}: executing OMP thread {}, "
                                     "function {}, message {}",
                                     threadPoolIdx,
-                                    taskPair.second.msg->ompthreadnum(),
+                                    ompThreadNum,
                                     taskPair.second.msg->funcptr(),
                                     taskPair.second.msg->id());
 
                       // We are now in a new thread so need to set up
                       // everything that uses TLS
-                      setUpOpenMPContext(taskPair.second.threadIdx,
+                      setUpOpenMPContext(ompThreadNum,
                                          taskPair.second.nextLevel);
                       setExecutingModule(this);
                       setExecutingCall(taskPair.second.parentMsg);
