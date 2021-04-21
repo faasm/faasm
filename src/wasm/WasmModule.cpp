@@ -453,7 +453,7 @@ std::future<int32_t> WasmModule::executeOpenMPTask(threads::OpenMPTask t)
               std::make_pair(threadPoolIdx, [this, stackTop, threadPoolIdx] {
                   auto logger = faabric::util::getLogger();
                   logger->debug(
-                    "Starting OpenMP pool thread {}/{} (timeout {}ms)",
+                    "Starting OpenMP pool thread {}/{}",
                     threadPoolIdx,
                     threadPoolSize);
 
