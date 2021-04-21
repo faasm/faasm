@@ -4,12 +4,13 @@ from subprocess import run
 
 from invoke import task
 
-from faasmcli.util.env import PROJ_ROOT, FAASM_BUILD_DIR
+from faasmcli.util.env import PROJ_ROOT, FAASM_BUILD_DIR, FAASM_INSTALL_DIR
 
 DEV_TARGETS = [
     "codegen_func",
     "codegen_shared_obj",
     "func_runner",
+    "func_sym",
     "simple_runner",
     "pool_runner",
     "upload",
@@ -18,7 +19,7 @@ DEV_TARGETS = [
 
 
 @task
-def cmake(ctx, clean=False, build="Debug"):
+def cmake(ctx, clean=False, build="Debug", perf=False, prof=False):
     """
     Configures the CMake build
     """
@@ -28,12 +29,18 @@ def cmake(ctx, clean=False, build="Debug"):
     if not exists(FAASM_BUILD_DIR):
         makedirs(FAASM_BUILD_DIR)
 
+    if not exists(FAASM_INSTALL_DIR):
+        makedirs(FAASM_INSTALL_DIR)
+
     cmd = [
         "cmake",
         "-GNinja",
         "-DCMAKE_BUILD_TYPE={}".format(build),
         "-DCMAKE_CXX_COMPILER=/usr/bin/clang++-10",
         "-DCMAKE_C_COMPILER=/usr/bin/clang-10",
+        "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_INSTALL_DIR),
+        "-DFAASM_PERF_PROFILING=ON" if perf else "",
+        "-DFAASM_SELF_TRACING=ON" if prof else "",
         PROJ_ROOT,
     ]
 

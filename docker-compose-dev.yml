@@ -80,3 +80,11 @@ services:
       - ./dev/faasm-local:/usr/local/faasm
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker
+
+  vector:
+    image: netflixoss/vector:latest
+    depends_on:
+      - faasm-cli
+    network_mode: host
+    ports:
+      - "80:80"

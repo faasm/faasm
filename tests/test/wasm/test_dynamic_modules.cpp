@@ -48,8 +48,8 @@ std::string mainData = "PyBool_Type";
 std::string dataA = "PyArray_API";
 std::string dataB = "__pyx_module_is_main_numpy__random__mtrand";
 int mainDataOffset = 4862212;
-int dataAOffset = 8825568;
-int dataBOffset = 13107200;
+int dataAOffset = 16231136;
+int dataBOffset = 21692416;
 
 // NOTE - we don't get perfect pakcing of the indexing, so each module has
 // an arbitrary extra offset.
@@ -68,8 +68,7 @@ TEST_CASE("Test dynamic load/ function lookup", "[wasm]")
     wasm::IRModuleCache& registry = wasm::getIRModuleCache();
 
     // Get the guard region size
-    size_t nGuardPages = wasm::getPagesForGuardRegion();
-    size_t guardBytes = nGuardPages * WASM_BYTES_PER_PAGE;
+    size_t guardBytes = GUARD_REGION_SIZE;
     size_t guardBytesPerModule = 2 * guardBytes;
 
     // Bind to Python function
@@ -105,7 +104,7 @@ TEST_CASE("Test dynamic load/ function lookup", "[wasm]")
     // Check the memory has grown sufficiently
     Uptr memSizeAfterA =
       Runtime::getMemoryNumPages(module.defaultMemory) * WASM_BYTES_PER_PAGE;
-    Uptr heapSize = DYNAMIC_MODULE_MEMORY_PAGES * WASM_BYTES_PER_PAGE;
+    Uptr heapSize = DYNAMIC_MODULE_MEMORY_SIZE;
 
     REQUIRE(memSizeAfterA == initialMemSize + heapSize + guardBytesPerModule);
 

@@ -176,16 +176,12 @@ I32 executeSyscall(int syscallNumber,
             return s__rename(a, b);
         case 39:
             return s__mkdir(a, b);
-        case 45:
-            return s__brk(a);
         case 78:
             return s__gettimeofday(a, b);
         case 85:
             return s__readlink(a, b, c);
         case 90:
             return s__mmap(a, b, c, d, e, f);
-        case 91:
-            return s__munmap(a, b);
         case 102:
             return s__socketcall(a, b);
         case 125:
@@ -210,8 +206,6 @@ I32 executeSyscall(int syscallNumber,
             return s__madvise(a, b, c);
         case 220:
             return s__getdents64(a, b, c);
-        case 223:
-            return s__sbrk(a);
         case 224:
             return s__gettid();
         case 240:

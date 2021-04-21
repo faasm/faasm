@@ -31,7 +31,7 @@ void preloadPythonRuntime()
 {
     auto logger = faabric::util::getLogger();
 
-    auto conf = faabric::util::getSystemConfig();
+    auto& conf = faabric::util::getSystemConfig();
     if (conf.pythonPreload != "on") {
         logger->info("Not preloading python runtime");
         return;
@@ -118,20 +118,20 @@ void Faaslet::preFinishCall(faabric::Message& call,
     }
 
     if (conf.wasmVm == "wavm") {
-        // Restore from zygote
         logger->debug("Resetting module {} from zygote", funcStr);
-        module_cache::WasmModuleCache& registry =
-          module_cache::getWasmModuleCache();
-        wasm::WAVMWasmModule& cachedModule = registry.getCachedModule(call);
 
-        auto* wavmModulePtr = dynamic_cast<wasm::WAVMWasmModule*>(module.get());
-        *wavmModulePtr = cachedModule;
+        // Restore from zygote
+        wasm::WAVMWasmModule& cachedModule =
+          module_cache::getWasmModuleCache().getCachedModule(call);
+        module = std::make_unique<wasm::WAVMWasmModule>(cachedModule);
     }
 }
 
 void Faaslet::postBind(const faabric::Message& msg, bool force)
 {
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    auto logger = faabric::util::getLogger();
+    std::string funcStr = faabric::util::funcToString(msg, false);
 
     // Instantiate the right wasm module for the chosen runtime
     if (conf.wasmVm == "wamr") {
@@ -149,20 +149,12 @@ void Faaslet::postBind(const faabric::Message& msg, bool force)
 
         module->bindToFunction(msg);
     } else if (conf.wasmVm == "wavm") {
-        PROF_START(snapshotRestore)
-
-        // Load snapshot from cache
-        module_cache::WasmModuleCache& registry =
-          module_cache::getWasmModuleCache();
-        wasm::WAVMWasmModule& snapshot = registry.getCachedModule(msg);
-
-        // Use snapshot to restore WAVM module
-        module = std::make_unique<wasm::WAVMWasmModule>(snapshot);
-
-        PROF_END(snapshotRestore)
+        // Get cached module
+        wasm::WAVMWasmModule& cachedModule =
+          module_cache::getWasmModuleCache().getCachedModule(msg);
+        module = std::make_unique<wasm::WAVMWasmModule>(cachedModule);
     } else {
-        faabric::util::getLogger()->error("Unrecognised wasm VM: {}",
-                                          conf.wasmVm);
+        logger->error("Unrecognised wasm VM: {}", conf.wasmVm);
         throw std::runtime_error("Unrecognised wasm VM");
     }
 }
@@ -171,15 +163,20 @@ bool Faaslet::doExecute(faabric::Message& msg)
 {
     auto logger = faabric::util::getLogger();
 
-    // Check if we need to restore from a different snapshot
-    auto conf = faabric::util::getSystemConfig();
+    auto& conf = faabric::util::getSystemConfig();
+    const std::string snapshotKey = msg.snapshotkey();
+
+    // Restore from snapshot if necessary
     if (conf.wasmVm == "wavm") {
-        const std::string snapshotKey = msg.snapshotkey();
         if (!snapshotKey.empty() && !msg.issgx()) {
             PROF_START(snapshotOverride)
 
+            logger->debug("Restoring {} from snapshot {} before execution",
+                          id,
+                          snapshotKey);
             module_cache::WasmModuleCache& registry =
               module_cache::getWasmModuleCache();
+
             wasm::WAVMWasmModule& snapshot = registry.getCachedModule(msg);
             module = std::make_unique<wasm::WAVMWasmModule>(snapshot);
 

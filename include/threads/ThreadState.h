@@ -4,12 +4,11 @@
 #include <vector>
 
 #include <faabric/proto/faabric.pb.h>
-
 #include <faabric/util/barrier.h>
 #include <faabric/util/environment.h>
 #include <faabric/util/locks.h>
 
-namespace wasm {
+namespace threads {
 
 // A Level is a layer of threads in an OpenMP application.
 // Note, defaults are set to mimic Clang 9.0.1 behaviour
@@ -57,11 +56,44 @@ class Level
     std::condition_variable nowaitCv;
 };
 
+class PthreadTask
+{
+  public:
+    PthreadTask(faabric::Message* parentMsgIn,
+                std::shared_ptr<faabric::Message> msgIn)
+      : parentMsg(parentMsgIn)
+      , msg(msgIn)
+    {}
+
+    bool isShutdown = false;
+    faabric::Message* parentMsg;
+    std::shared_ptr<faabric::Message> msg;
+};
+
+class OpenMPTask
+{
+  public:
+    faabric::Message* parentMsg;
+    std::shared_ptr<faabric::Message> msg;
+    std::shared_ptr<threads::Level> nextLevel;
+    int threadIdx;
+    bool isShutdown = false;
+
+    OpenMPTask(faabric::Message* parentMsgIn,
+               std::shared_ptr<faabric::Message> msgIn,
+               std::shared_ptr<threads::Level> nextLevelIn,
+               int threadIdxIn)
+      : parentMsg(parentMsgIn)
+      , msg(msgIn)
+      , nextLevel(nextLevelIn)
+      , threadIdx(threadIdxIn)
+    {}
+};
+
 class OpenMPContext
 {
   public:
     int threadNumber = -1;
-
     std::shared_ptr<Level> level = nullptr;
 };
 

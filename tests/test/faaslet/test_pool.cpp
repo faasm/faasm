@@ -34,11 +34,9 @@ static void tearDown()
     cleanSystem();
 }
 
-TEST_CASE("Test worker initially pre-warmed", "[faaslet]")
+TEST_CASE("Test faaslet not initially bound", "[faaslet]")
 {
     setUp();
-
-    FaasletPool pool(1);
     Faaslet w(1);
     REQUIRE(!w.isBound());
 }
@@ -59,7 +57,6 @@ TEST_CASE("Test binding to function", "[faaslet]")
 
     faabric::Message call = faabric::util::messageFactory("demo", "chain");
 
-    FaasletPool pool(1);
     Faaslet w(1);
     checkBound(w, call, false);
 
@@ -73,7 +70,6 @@ TEST_CASE("Test binding twice causes error unless forced", "[faaslet]")
 
     faabric::Message callA = faabric::util::messageFactory("demo", "chain");
 
-    FaasletPool pool(1);
     Faaslet w(1);
 
     // Bind once
@@ -109,7 +105,6 @@ TEST_CASE("Test repeat execution of WASM module", "[faaslet]")
     call.set_inputdata("first input");
 
     // Set up
-    FaasletPool pool(1);
     Faaslet w(1);
 
     // Bind to function
@@ -143,18 +138,17 @@ TEST_CASE("Test repeat execution of WASM module", "[faaslet]")
     tearDown();
 }
 
-TEST_CASE("Test bind message causes worker to bind", "[faaslet]")
+TEST_CASE("Test bind message causes faaslet to bind", "[faaslet]")
 {
     setUp();
 
-    // Create worker
-    FaasletPool pool(1);
+    // Create faaslet
     Faaslet w(1);
     REQUIRE(!w.isBound());
 
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
 
-    // Invoke a new call which will require a worker to bind
+    // Invoke a new call which will require a faaslet to bind
     faabric::Message call = faabric::util::messageFactory("demo", "echo");
 
     sch.callFunction(call);
@@ -166,7 +160,7 @@ TEST_CASE("Test bind message causes worker to bind", "[faaslet]")
     // Process next message
     w.processNextMessage();
 
-    // Check message has been consumed and that worker is now bound
+    // Check message has been consumed and that faaslet is now bound
     REQUIRE(w.isBound());
 }
 
@@ -178,7 +172,6 @@ TEST_CASE("Test memory is reset", "[faaslet]")
 
     // Call function
     Faaslet w(1);
-
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.callFunction(call);
 
@@ -186,16 +179,14 @@ TEST_CASE("Test memory is reset", "[faaslet]")
     w.processNextMessage();
 
     // Check initial pages
-    wasm::WAVMWasmModule* modulePtr =
-      static_cast<wasm::WAVMWasmModule*>(w.module.get());
-    Uptr initialPages = Runtime::getMemoryNumPages(modulePtr->defaultMemory);
+    size_t sizeBefore = w.module->getMemorySizeBytes();
 
     // Exec the function
     w.processNextMessage();
 
-    // Check page count is equal
-    Uptr afterPages = Runtime::getMemoryNumPages(modulePtr->defaultMemory);
-    REQUIRE(afterPages == initialPages);
+    // Check memory size is the same after
+    size_t sizeAfter = w.module->getMemorySizeBytes();
+    REQUIRE(sizeBefore == sizeAfter);
 }
 
 TEST_CASE("Test mmap/munmap", "[faaslet]")
@@ -229,57 +220,5 @@ TEST_CASE("Test pool accounting", "[faaslet]")
     // Bind
     w1.bindToFunction(call);
     REQUIRE(pool.getThreadCount() == 2);
-}
-
-TEST_CASE("Test worker lifecycle interacts with scheduler", "[faaslet]")
-{
-    cleanSystem();
-    faabric::redis::Redis& redis = faabric::redis::Redis::getQueue();
-
-    FaasletPool pool(5);
-
-    Faaslet w(1);
-    std::string thisHost = faabric::util::getSystemConfig().endpointHost;
-
-    faabric::Message call = faabric::util::messageFactory("demo", "noop");
-
-    // Sense check initial scheduler set-up
-    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-    auto bindQueue = sch.getBindQueue();
-    REQUIRE(sch.getFunctionInFlightCount(call) == 0);
-    REQUIRE(sch.getFunctionWarmNodeCount(call) == 0);
-    REQUIRE(bindQueue->size() == 0);
-
-    // Call the function
-    sch.callFunction(call);
-
-    // Check scheduler set-up
-    const std::string warmSetName = sch.getFunctionWarmSetName(call);
-    REQUIRE(sch.getFunctionInFlightCount(call) == 1);
-    REQUIRE(sch.getFunctionWarmNodeCount(call) == 1);
-    REQUIRE(bindQueue->size() == 1);
-    REQUIRE(redis.sismember(warmSetName, thisHost));
-
-    // Bind the thread and check it's now registered but in-flight decreased
-    w.processNextMessage();
-    REQUIRE(w.isBound());
-    REQUIRE(sch.getFunctionInFlightCount(call) == 1);
-    REQUIRE(sch.getFunctionWarmNodeCount(call) == 1);
-    REQUIRE(bindQueue->size() == 0);
-
-    // Execute function and check thread still registered
-    w.processNextMessage();
-    REQUIRE(sch.getFunctionInFlightCount(call) == 0);
-    REQUIRE(sch.getFunctionWarmNodeCount(call) == 1);
-    REQUIRE(sch.getFunctionInFlightRatio(call) == 0);
-    REQUIRE(bindQueue->size() == 0);
-
-    // Finish thread and check things are reset
-    w.finish();
-    REQUIRE(sch.getFunctionInFlightCount(call) == 0);
-    REQUIRE(sch.getFunctionWarmNodeCount(call) == 0);
-    REQUIRE(sch.getFunctionInFlightRatio(call) == 0);
-    REQUIRE(bindQueue->size() == 0);
-    REQUIRE(!redis.sismember(warmSetName, thisHost));
 }
 }

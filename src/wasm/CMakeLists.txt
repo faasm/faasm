@@ -4,7 +4,6 @@ include_directories(
 
 set(HEADERS
         "${FAASM_INCLUDE_DIR}/wasm/chaining.h"
-        "${FAASM_INCLUDE_DIR}/wasm/serialisation.h"
         "${FAASM_INCLUDE_DIR}/wasm/WasmEnvironment.h"
         "${FAASM_INCLUDE_DIR}/wasm/WasmModule.h"
         )
@@ -17,4 +16,4 @@ set(LIB_FILES
         )
 
 faasm_private_lib(wasm "${LIB_FILES}")
-target_link_libraries(wasm storage)
+target_link_libraries(wasm conf storage threads)

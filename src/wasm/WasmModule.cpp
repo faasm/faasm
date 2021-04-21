@@ -1,19 +1,35 @@
-#include "WasmModule.h"
+#include "wasm/WasmModule.h"
 
+#include <conf/FaasmConfig.h>
+#include <faabric/scheduler/Scheduler.h>
+#include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
+#include <faabric/util/environment.h>
 #include <faabric/util/func.h>
+#include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
-#include <sys/uio.h>
+#include <faabric/util/memory.h>
+#include <faabric/util/timing.h>
 
 #include <boost/filesystem.hpp>
-#include <faabric/util/memory.h>
 #include <sstream>
 #include <sys/mman.h>
+#include <sys/uio.h>
 
 namespace wasm {
 // Using TLS here to isolate between executing functions
 static thread_local faabric::Message* executingCall;
+static thread_local wasm::WasmModule* executingModule;
+
+bool isWasmPageAligned(int32_t offset)
+{
+    if (offset & (WASM_BYTES_PER_PAGE - 1)) {
+        return false;
+    } else {
+        return true;
+    }
+}
 
 faabric::Message* getExecutingCall()
 {
@@ -25,6 +41,16 @@ void setExecutingCall(faabric::Message* other)
     executingCall = other;
 }
 
+wasm::WasmModule* getExecutingModule()
+{
+    return executingModule;
+}
+
+void setExecutingModule(wasm::WasmModule* module)
+{
+    executingModule = module;
+}
+
 size_t getNumberOfWasmPagesForBytes(uint32_t nBytes)
 {
     // Round up to nearest page
@@ -34,12 +60,22 @@ size_t getNumberOfWasmPagesForBytes(uint32_t nBytes)
     return pageCount;
 }
 
+uint32_t roundUpToWasmPageAligned(uint32_t nBytes)
+{
+    size_t nPages = getNumberOfWasmPagesForBytes(nBytes);
+    return (uint32_t)(nPages * WASM_BYTES_PER_PAGE);
+}
+
 size_t getPagesForGuardRegion()
 {
     size_t regionSize = GUARD_REGION_SIZE;
     size_t nWasmPages = getNumberOfWasmPagesForBytes(regionSize);
     return nWasmPages;
 }
+
+WasmModule::WasmModule()
+  : threadPoolSize(conf::getFaasmConfig().moduleThreadPoolSize)
+{}
 
 WasmModule::~WasmModule()
 {
@@ -58,19 +94,59 @@ wasm::WasmEnvironment& WasmModule::getWasmEnvironment()
     return wasmEnvironment;
 }
 
-size_t WasmModule::snapshotToState(const std::string& stateKey)
+std::string WasmModule::snapshot(bool locallyRestorable)
 {
-    const std::vector<uint8_t> snapData = snapshotToMemory();
-    unsigned long stateSize = snapData.size();
+    PROF_START(wasmSnapshot)
 
-    faabric::state::State& state = faabric::state::getGlobalState();
-    const std::shared_ptr<faabric::state::StateKeyValue>& stateKv =
-      state.getKV(getBoundUser(), stateKey, stateSize);
+    // Create snapshot key
+    uint32_t gid = faabric::util::generateGid();
+    std::string snapKey =
+      this->boundUser + "_" + this->boundFunction + "_" + std::to_string(gid);
 
-    stateKv->set(snapData.data());
-    stateKv->pushFull();
+    // Note - we only want to take the snapshot to the current brk, not the top
+    // of the allocated memory
+    faabric::util::SnapshotData data;
+    data.data = getMemoryBase();
+    data.size = getCurrentBrk();
 
-    return stateSize;
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+    reg.takeSnapshot(snapKey, data, locallyRestorable);
+
+    PROF_END(wasmSnapshot)
+
+    return snapKey;
+}
+
+void WasmModule::restore(const std::string& snapshotKey)
+{
+    PROF_START(wasmSnapshotRestore)
+
+    auto logger = faabric::util::getLogger();
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+
+    // Expand memory if necessary
+    faabric::util::SnapshotData data = reg.getSnapshot(snapshotKey);
+    uint32_t memSize = getCurrentBrk();
+
+    if (data.size == memSize) {
+        logger->debug("Snapshot memory size equal to current memory");
+    } else if (data.size > memSize) {
+        logger->debug("Growing memory to fit snapshot");
+        size_t bytesRequired = data.size - memSize;
+        this->growMemory(bytesRequired);
+    } else {
+        logger->debug("Shrinking memory to fit snapshot");
+        size_t shrinkBy = memSize - data.size;
+        this->shrinkMemory(shrinkBy);
+    }
+
+    // Map the snapshot into memory
+    uint8_t* memoryBase = getMemoryBase();
+    reg.mapSnapshot(snapshotKey, memoryBase);
+
+    PROF_END(wasmSnapshotRestore)
 }
 
 std::string WasmModule::getBoundUser()
@@ -81,54 +157,6 @@ std::string WasmModule::getBoundUser()
 std::string WasmModule::getBoundFunction()
 {
     return boundFunction;
-}
-
-void WasmModule::restoreFromFile(const std::string& filePath)
-{
-    // Read execution state from file
-    std::ifstream inStream(filePath, std::ios::binary);
-    doRestore(inStream);
-}
-
-void WasmModule::restoreFromMemory(const std::vector<uint8_t>& data)
-{
-    std::istringstream inStream(
-      std::string(reinterpret_cast<const char*>(data.data()), data.size()));
-    doRestore(inStream);
-}
-
-void WasmModule::restoreFromState(const std::string& stateKey, size_t stateSize)
-{
-    if (!isBound()) {
-        throw std::runtime_error(
-          "Module must be bound before restoring from state");
-    }
-
-    faabric::state::State& state = faabric::state::getGlobalState();
-    const std::shared_ptr<faabric::state::StateKeyValue>& stateKv =
-      state.getKV(boundUser, stateKey, stateSize);
-
-    stateKv->pull();
-    uint8_t* snapPtr = stateKv->get();
-    const std::vector<uint8_t> snapData =
-      std::vector<uint8_t>(snapPtr, snapPtr + stateSize);
-    restoreFromMemory(snapData);
-}
-
-void WasmModule::snapshotToFile(const std::string& filePath)
-{
-    std::ofstream outStream(filePath, std::ios::binary);
-    doSnapshot(outStream);
-}
-
-std::vector<uint8_t> WasmModule::snapshotToMemory()
-{
-    std::ostringstream outStream;
-    doSnapshot(outStream);
-
-    std::string outStr = outStream.str();
-
-    return std::vector<uint8_t>(outStr.begin(), outStr.end());
 }
 
 int WasmModule::getStdoutFd()
@@ -254,7 +282,7 @@ uint32_t WasmModule::mapSharedStateMemory(
                              std::to_string(length);
     if (sharedMemWasmPtrs.count(segmentKey) == 0) {
         // Lock and double check
-        faabric::util::UniqueLock lock(sharedMemWasmPtrsMx);
+        faabric::util::UniqueLock lock(moduleStateMutex);
         if (sharedMemWasmPtrs.count(segmentKey) == 0) {
             // Page-align the chunk
             faabric::util::AlignedChunk chunk =
@@ -264,7 +292,9 @@ uint32_t WasmModule::mapSharedStateMemory(
             // start of the desired chunk in this region (this will be zero if
             // the offset is already zero, or if the offset is page-aligned
             // already).
-            uint32_t wasmBasePtr = this->mmapMemory(chunk.nBytesLength);
+            // We need to round the allocation up to a wasm page boundary
+            uint32_t allocSize = roundUpToWasmPageAligned(chunk.nBytesLength);
+            uint32_t wasmBasePtr = this->growMemory(allocSize);
             uint32_t wasmOffsetPtr = wasmBasePtr + chunk.offsetRemainder;
 
             // Map the shared memory
@@ -280,6 +310,243 @@ uint32_t WasmModule::mapSharedStateMemory(
 
     // Return the wasm pointer
     return sharedMemWasmPtrs[segmentKey];
+}
+
+uint32_t WasmModule::getCurrentBrk()
+{
+    faabric::util::SharedLock lock(moduleMemoryMutex);
+    return currentBrk;
+}
+
+void WasmModule::shutdownPthreads()
+{
+    faabric::util::UniqueLock lock(threadsMutex);
+
+    faabric::util::getLogger()->debug("Shutting down pthread pool");
+
+    // Send shutdown messages
+    for (int i = 0; i < pthreads.size(); i++) {
+        std::promise<int32_t> p;
+        std::future<int32_t> f = p.get_future();
+        threads::PthreadTask t(nullptr, nullptr);
+        t.isShutdown = true;
+
+        pthreadTaskQueue.enqueue(std::make_pair(std::move(p), std::move(t)));
+
+        f.get();
+    }
+
+    // Wait
+    for (auto& t : pthreads) {
+        if (t.joinable()) {
+            t.join();
+        }
+    }
+}
+
+void WasmModule::shutdownOpenMPThreads()
+{
+    faabric::util::UniqueLock lock(threadsMutex);
+
+    faabric::util::getLogger()->debug("Shutting down OpenMP thread pool");
+
+    // Send shutdown messages
+    for (int i = 0; i < openMPThreads.size(); i++) {
+        std::promise<int32_t> p;
+        std::future<int32_t> f = p.get_future();
+        threads::OpenMPTask t(nullptr, nullptr, nullptr, -1);
+        t.isShutdown = true;
+
+        openMPTaskQueue.enqueue(std::make_pair(std::move(p), std::move(t)));
+
+        f.get();
+    }
+
+    // Wait
+    for (auto& t : openMPThreads) {
+        if (t.joinable()) {
+            t.join();
+        }
+    }
+}
+
+std::future<int32_t> WasmModule::executePthreadTask(threads::PthreadTask t)
+{
+    // Enqueue the task
+    std::promise<int32_t> p;
+    std::future<int32_t> f = p.get_future();
+    pthreadTaskQueue.enqueue(std::make_pair(std::move(p), std::move(t)));
+
+    // Check if we can add a thread
+    if (!t.isShutdown && (pthreads.size() < threadPoolSize)) {
+        faabric::util::UniqueLock lock(threadsMutex);
+
+        // Double check once lock acquired
+        if (pthreads.size() < threadPoolSize) {
+            uint32_t stackTop = threadStacks.back();
+            threadStacks.pop_back();
+
+            pthreads.emplace_back([this, stackTop] {
+                int queueTimeoutMs =
+                  faabric::util::getSystemConfig().boundTimeout;
+
+                for (;;) {
+                    auto logger = faabric::util::getLogger();
+
+                    std::pair<std::promise<int32_t>, threads::PthreadTask>
+                      taskPair = pthreadTaskQueue.dequeue(queueTimeoutMs);
+
+                    if (taskPair.second.isShutdown) {
+                        taskPair.first.set_value(0);
+
+                        logger->debug("Pthread pool thread shutting down");
+                        break;
+                    }
+
+                    auto& sch = faabric::scheduler::getScheduler();
+
+                    // We are now in a new thread so need to set up
+                    // everything that uses TLS
+                    setExecutingModule(this);
+                    setExecutingCall(taskPair.second.parentMsg);
+
+                    taskPair.first.set_value(
+                      executeAsPthread(stackTop, taskPair.second.msg));
+
+                    // Caller has to notify scheduler when finished
+                    // executing a thread locally
+                    // TODO - avoid this copy
+                    sch.notifyCallFinished(*taskPair.second.msg);
+                }
+            });
+        }
+    }
+
+    return f;
+}
+
+std::future<int32_t> WasmModule::executeOpenMPTask(threads::OpenMPTask t)
+{
+    // Enqueue the task
+    std::promise<int32_t> p;
+    std::future<int32_t> f = p.get_future();
+    openMPTaskQueue.enqueue(std::make_pair(std::move(p), std::move(t)));
+
+    // Check if we can add a thread if we're not shutting down
+    if (!t.isShutdown && (openMPThreads.size() < threadPoolSize)) {
+        faabric::util::UniqueLock lock(threadsMutex);
+
+        // Double check once lock acquired
+        if (openMPThreads.size() < threadPoolSize) {
+            if (threadStacks.empty()) {
+                throw std::runtime_error("Run out of thread stacks");
+            }
+
+            int32_t threadPoolId = openMPThreads.size();
+
+            uint32_t stackTop = threadStacks.back();
+            threadStacks.pop_back();
+
+            openMPThreads.emplace_back([this, stackTop, threadPoolId] {
+                int queueTimeoutMs =
+                  faabric::util::getSystemConfig().boundTimeout;
+                auto logger = faabric::util::getLogger();
+                logger->debug("Starting OpenMP pool thread {} (timeout {}ms)",
+                              threadPoolId,
+                              queueTimeoutMs);
+
+                for (;;) {
+                    std::pair<std::promise<int32_t>, threads::OpenMPTask>
+                      taskPair = openMPTaskQueue.dequeue(queueTimeoutMs);
+
+                    if (taskPair.second.isShutdown) {
+                        taskPair.first.set_value(0);
+
+                        logger->debug(
+                          "OpenMP thread pool thread {} shutting down",
+                          threadPoolId);
+
+                        break;
+                    }
+
+                    logger->debug("OpenMP {}: executing OMP thread {}, "
+                                  "function {}, message {}",
+                                  threadPoolId,
+                                  taskPair.second.msg->ompthreadnum(),
+                                  taskPair.second.msg->funcptr(),
+                                  taskPair.second.msg->id());
+
+                    auto& sch = faabric::scheduler::getScheduler();
+
+                    // We are now in a new thread so need to set up
+                    // everything that uses TLS
+                    setUpOpenMPContext(taskPair.second.threadIdx,
+                                       taskPair.second.nextLevel);
+                    setExecutingModule(this);
+                    setExecutingCall(taskPair.second.parentMsg);
+
+                    taskPair.first.set_value(
+                      executeAsOMPThread(stackTop, taskPair.second.msg));
+
+                    // Caller has to notify scheduler when finished
+                    // executing a thread locally
+                    sch.notifyCallFinished(*taskPair.second.msg);
+                }
+            });
+        }
+    }
+
+    return f;
+}
+
+uint32_t WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
+{
+    auto logger = faabric::util::getLogger();
+
+    uint32_t regionSize = GUARD_REGION_SIZE;
+    uint8_t* nativePtr = wasmPointerToNative(wasmOffset);
+
+    // NOTE: we want to protect these regions from _writes_, but we don't
+    // want to stop them being read, otherwise snapshotting will fail.
+    // Therefore we make them read-only
+    int res = mprotect(nativePtr, regionSize, PROT_READ);
+    if (res != 0) {
+        logger->error("Failed to create memory guard: {}",
+                      std::strerror(errno));
+        throw std::runtime_error("Failed to create memory guard");
+    }
+
+    logger->debug(
+      "Created guard region {}-{}", wasmOffset, wasmOffset + regionSize);
+
+    return wasmOffset + regionSize;
+}
+
+void WasmModule::createThreadStacks()
+{
+    auto logger = faabric::util::getLogger();
+
+    logger->debug("Creating {} thread stacks", threadPoolSize);
+
+    for (int i = 0; i < threadPoolSize; i++) {
+        // Allocate thread and guard pages
+        uint32_t memSize = THREAD_STACK_SIZE + (2 * GUARD_REGION_SIZE);
+        uint32_t memBase = growMemory(memSize);
+
+        // Note that wasm stacks grow downwards, so we have to store the stack
+        // top, which is the offset one below the guard region above the stack
+        uint32_t stackTop = memBase + GUARD_REGION_SIZE + THREAD_STACK_SIZE - 1;
+        threadStacks.push_back(stackTop);
+
+        // Add guard regions
+        createMemoryGuardRegion(memBase);
+        createMemoryGuardRegion(stackTop + 1);
+    }
+}
+
+threads::MutexManager& WasmModule::getMutexes()
+{
+    return mutexes;
 }
 
 // ------------------------------------------
@@ -317,39 +584,29 @@ void WasmModule::writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer)
     throw std::runtime_error("writeWasmEnvToMemory not implemented");
 }
 
-void WasmModule::writeMemoryToFd(int fd)
+uint32_t WasmModule::growMemory(uint32_t nBytes)
 {
-    throw std::runtime_error("writeMemoryToFd not implemented");
+    throw std::runtime_error("growMemory not implemented");
 }
 
-void WasmModule::mapMemoryFromFd()
+uint32_t WasmModule::shrinkMemory(uint32_t nBytes)
 {
-    throw std::runtime_error("mapMemoryFromFd not implemented");
+    throw std::runtime_error("shrinkMemory not implemented");
 }
 
-void WasmModule::doSnapshot(std::ostream& outStream)
-{
-    throw std::runtime_error("doSnapshot not implemented");
-}
-
-void WasmModule::doRestore(std::istream& inStream)
-{
-    throw std::runtime_error("doRestore not implemented");
-}
-
-uint32_t WasmModule::mmapMemory(uint32_t length)
+uint32_t WasmModule::mmapMemory(uint32_t nBytes)
 {
     throw std::runtime_error("mmapMemory not implemented");
-}
-
-uint32_t WasmModule::mmapPages(uint32_t pages)
-{
-    throw std::runtime_error("mmapPages not implemented");
 }
 
 uint32_t WasmModule::mmapFile(uint32_t fp, uint32_t length)
 {
     throw std::runtime_error("mmapFile not implemented");
+}
+
+void WasmModule::unmapMemory(uint32_t offset, uint32_t nBytes)
+{
+    throw std::runtime_error("unmapMemory not implemented");
 }
 
 uint8_t* WasmModule::wasmPointerToNative(int32_t wasmPtr)
@@ -360,5 +617,27 @@ uint8_t* WasmModule::wasmPointerToNative(int32_t wasmPtr)
 void WasmModule::printDebugInfo()
 {
     throw std::runtime_error("printDebugInfo not implemented");
+}
+
+size_t WasmModule::getMemorySizeBytes()
+{
+    throw std::runtime_error("getMemorySizeBytes not implemented");
+}
+
+uint8_t* WasmModule::getMemoryBase()
+{
+    throw std::runtime_error("getMemoryBase not implemented");
+}
+
+int32_t WasmModule::executeAsOMPThread(uint32_t stackTop,
+                                       std::shared_ptr<faabric::Message> msg)
+{
+    throw std::runtime_error("executeAsOMPThread not implemented");
+}
+
+int32_t WasmModule::executeAsPthread(uint32_t stackTop,
+                                     std::shared_ptr<faabric::Message> msg)
+{
+    throw std::runtime_error("executeAsPthread not implemented");
 }
 }

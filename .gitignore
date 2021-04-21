@@ -17,9 +17,6 @@ perf.data.*
 .clangd
 compile_commands.json
 
-# SPEC
-third-party/spec_cpu/
-
 # Ansible
 *.retry
 
@@ -133,3 +130,9 @@ venv/
 
 # Benchmark outputs
 *.ppm
+
+# Valgrind
+callgrind.*
+
+# Flamegraph
+*.svg

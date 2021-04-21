@@ -12,4 +12,5 @@ def function(ctx):
     Flush functions, state and shared files from all workers
     """
     host, port = get_invoke_host_port()
+    print("Flushing {}:{}".format(host, port))
     flush_call_impl(host, port)

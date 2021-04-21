@@ -11,7 +11,7 @@
 using namespace faaslet;
 
 namespace tests {
-TEST_CASE("Test repeat invocation with state", "[faaslet]")
+TEST_CASE("Test repeat invocation with state", "[state]")
 {
     // Set up the function call
     faabric::Message call = faabric::util::messageFactory("demo", "increment");
@@ -81,13 +81,13 @@ void checkStateExample(const std::string& funcName,
     REQUIRE(actual == expectedState);
 }
 
-TEST_CASE("Test asynchronous state", "[faaslet]")
+TEST_CASE("Test asynchronous state", "[state]")
 {
     checkStateExample(
       "state_async", "state_async_example", { 1, 1, 1, 1 }, { 3, 2, 1, 0 });
 }
 
-TEST_CASE("Test offset state", "[faaslet]")
+TEST_CASE("Test offset state", "[state]")
 {
     checkStateExample("state_offset",
                       "state_offset_example",
@@ -95,14 +95,17 @@ TEST_CASE("Test offset state", "[faaslet]")
                       { 5, 5, 6, 6, 4, 5, 6 });
 }
 
-TEST_CASE("Test state size", "[faaslet]")
+TEST_CASE("Test state size", "[state]")
 {
+    cleanSystem();
     faabric::Message msg = faabric::util::messageFactory("demo", "state_size");
     execFunction(msg);
 }
 
-TEST_CASE("Test shared state write pointers", "[faaslet]")
+TEST_CASE("Test shared state write pointers", "[state]")
 {
+    cleanSystem();
+
     // Run the function to write
     checkCallingFunctionGivesBoolOutput("demo", "state_shared_write", true);
 
@@ -110,8 +113,10 @@ TEST_CASE("Test shared state write pointers", "[faaslet]")
     checkCallingFunctionGivesBoolOutput("demo", "state_shared_read", true);
 }
 
-TEST_CASE("Test shared state offset pointers", "[faaslet]")
+TEST_CASE("Test shared state offset pointers", "[state]")
 {
+    cleanSystem();
+
     // Run the function to write
     checkCallingFunctionGivesBoolOutput(
       "demo", "state_shared_write_offset", true);
@@ -121,7 +126,7 @@ TEST_CASE("Test shared state offset pointers", "[faaslet]")
       "demo", "state_shared_read_offset", true);
 }
 
-TEST_CASE("Test writing file to state", "[faaslet]")
+TEST_CASE("Test writing file to state", "[state]")
 {
     cleanSystem();
     faabric::Message msg = faabric::util::messageFactory("demo", "state_file");

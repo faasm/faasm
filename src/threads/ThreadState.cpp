@@ -1,13 +1,10 @@
-#include <wavm/ThreadState.h>
-#include <wavm/WAVMWasmModule.h>
-
 #include <faabric/util/config.h>
+#include <faabric/util/timing.h>
+#include <threads/ThreadState.h>
 
 using namespace faabric::util;
 
-using namespace WAVM;
-
-namespace wasm {
+namespace threads {
 
 OpenMPContext& getOpenMPContext()
 {
@@ -50,7 +47,7 @@ int Level::getMaxThreadsAtNextLevel() const
         return wantedThreads;
     }
 
-    int defaultNumThreads = (int)faabric::util::getSystemConfig().maxNodes;
+    int defaultNumThreads = faabric::util::getUsableCores();
     return defaultNumThreads;
 }
 

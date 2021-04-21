@@ -3,8 +3,10 @@
 
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
-
+#include <faabric/util/macros.h>
+#include <faabric/util/timing.h>
 #include <storage/FileDescriptor.h>
+#include <storage/FileLoader.h>
 
 #include <cstring>
 #include <dirent.h>
@@ -18,8 +20,6 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/WASI/WASIABI.h>
-#include <faabric/util/macros.h>
-#include <storage/FileLoader.h>
 
 /**
  * WASI filesystem handling
@@ -43,7 +43,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I32 fd,
                                I32 prestatPtr)
 {
-    faabric::util::getLogger()->debug(
+    faabric::util::getLogger()->trace(
       "S - fd_prestat_get - {} {}", fd, prestatPtr);
 
     WAVMWasmModule* module = getExecutingWAVMModule();
@@ -70,7 +70,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I32 resPathPtr,
                                I32 resPathLen)
 {
-    faabric::util::getLogger()->debug(
+    faabric::util::getLogger()->trace(
       "S - fd_prestat_dir_name - {} {}", fd, resPathPtr, resPathLen);
 
     WAVMWasmModule* module = getExecutingWAVMModule();
@@ -104,7 +104,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I32 fdFlags,
                                I32 resFdPtr)
 {
-
+    PROF_START(PathOpen)
     const std::string pathStr = getStringFromWasm(path);
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
     logger->debug("S - path_open - {} {} {}", rootFd, pathStr, pathLen);
@@ -120,6 +120,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
       openFlags,
       fdFlags);
 
+    PROF_END(PathOpen)
     if (fdRes < 0) {
         return -1 * fdRes;
     } else {
@@ -178,7 +179,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                U64 startCookie,
                                I32 resSizePtr)
 {
-    faabric::util::getLogger()->debug("S - fd_readdir - {} {} {} {} {}",
+    faabric::util::getLogger()->trace("S - fd_readdir - {} {} {} {} {}",
                                       fd,
                                       buf,
                                       bufLen,
@@ -324,12 +325,15 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I32 iovecCount,
                                I32 resBytesWrittenPtr)
 {
+    bool isStd = fd <= 2;
+    PROF_START(FdWrite);
+
     auto logger = faabric::util::getLogger();
 
     storage::FileSystem& fileSystem = getExecutingWAVMModule()->getFileSystem();
     std::string path = fileSystem.getPathForFd(fd);
 
-    logger->debug("S - fd_write - {} {} {} {} ({})",
+    logger->trace("S - fd_write - {} {} {} {} ({})",
                   fd,
                   iovecsPtr,
                   iovecCount,
@@ -350,7 +354,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
 
     // Catpure stdout if necessary, otherwise write as normal
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    if (fd == STDOUT_FILENO && conf.captureStdout == "on") {
+    if (isStd && conf.captureStdout == "on") {
         getExecutingWAVMModule()->captureStdout(nativeIovecs, iovecCount);
     }
 
@@ -358,6 +362,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                 resBytesWrittenPtr) = bytesWritten;
 
     delete[] nativeIovecs;
+
+    if (!isStd) {
+        // This function is used for printing, and we're only interested in
+        // profiling the actual filesystem
+        PROF_END(FdWrite)
+    }
 
     if (bytesWritten < 0) {
         return storage::errnoToWasi(errno);
@@ -375,10 +385,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I32 iovecCount,
                                I32 resBytesRead)
 {
+    PROF_START(FdRead)
     storage::FileSystem& fileSystem = getExecutingWAVMModule()->getFileSystem();
     std::string path = fileSystem.getPathForFd(fd);
 
-    faabric::util::getLogger()->debug(
+    faabric::util::getLogger()->trace(
       "S - fd_read - {} {} {} ({})", fd, iovecsPtr, iovecCount, path);
 
     storage::FileDescriptor& fileDesc = fileSystem.getFileDescriptor(fd);
@@ -387,6 +398,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
     int bytesRead = readv(fileDesc.getLinuxFd(), nativeIovecs, iovecCount);
     Runtime::memoryRef<int>(getExecutingWAVMModule()->defaultMemory,
                             resBytesRead) = (int)bytesRead;
+
+    PROF_END(FdRead)
 
     return __WASI_ESUCCESS;
 }
@@ -646,7 +659,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I32 statPtr)
 {
     const std::string& pathStr = getStringFromWasm(path);
-    faabric::util::getLogger()->debug(
+    faabric::util::getLogger()->trace(
       "S - path_filestat_get - {} {} {} {}", fd, lookupFlags, pathStr, statPtr);
 
     return doFileStat(fd, pathStr, statPtr);
@@ -659,7 +672,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I32 fd,
                                I32 resOffsetPtr)
 {
-    faabric::util::getLogger()->debug("S - fd_tell - {} {}", fd, resOffsetPtr);
+    faabric::util::getLogger()->trace("S - fd_tell - {} {}", fd, resOffsetPtr);
 
     WAVMWasmModule* module = getExecutingWAVMModule();
 
@@ -679,7 +692,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I32 whence,
                                I32 newOffsetPtr)
 {
-    faabric::util::getLogger()->debug(
+    PROF_START(FdSeek)
+    faabric::util::getLogger()->trace(
       "S - fd_seek - {} {} {} {}", fd, offset, whence, newOffsetPtr);
 
     // Get pointer to result in memory
@@ -690,6 +704,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
       getExecutingWAVMModule()->getFileSystem().getFileDescriptor(fd);
 
     uint16_t wasiErrno = fileDesc.seek(offset, whence, newOffsetHostPtr);
+
+    PROF_END(FdSeek)
 
     return wasiErrno;
 }

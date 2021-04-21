@@ -1,12 +1,16 @@
+#include "utils.h"
 #include <catch2/catch.hpp>
+
+#include <faabric/proto/faabric.pb.h>
+#include <faabric/scheduler/FunctionCallClient.h>
+#include <faabric/scheduler/SnapshotClient.h>
+#include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/environment.h>
-#include <module_cache/WasmModuleCache.h>
-
+#include <faabric/util/testing.h>
 #include <faaslet/FaasletPool.h>
-
-#include "utils.h"
-#include "wavm/WAVMWasmModule.h"
+#include <module_cache/WasmModuleCache.h>
+#include <wavm/WAVMWasmModule.h>
 
 using namespace faaslet;
 
@@ -42,7 +46,6 @@ std::string execFunctionWithStringResult(faabric::Message& call)
     conf.pythonPreload = "off";
 
     // Set up worker to listen for relevant function
-    FaasletPool pool(1);
     Faaslet w(1);
     REQUIRE(!w.isBound());
 
@@ -85,6 +88,111 @@ void checkMultipleExecutions(faabric::Message& msg, int nExecs)
     }
 }
 
+void execFunctionWithRemoteBatch(faabric::Message& call,
+                                 int nThreads,
+                                 bool clean)
+{
+    if (clean) {
+        cleanSystem();
+    }
+
+    faabric::util::setMockMode(true);
+
+    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
+
+    // Add other host to available hosts
+    std::string otherHost = "other";
+    sch.addHostToGlobalSet(otherHost);
+
+    // Set up other host to have some resources
+    faabric::HostResources resOther;
+    resOther.set_cores(10);
+    faabric::scheduler::queueResourceResponse(otherHost, resOther);
+
+    // Make sure we have no cores so we get distribution
+    int nCores = 0;
+    faabric::HostResources res;
+    res.set_cores(nCores);
+    sch.setThisHostResources(res);
+
+    // Background thread to execute function (won't finish until threads have
+    // been executed)
+    std::thread t([&call] {
+        wasm::WAVMWasmModule module;
+        module.bindToFunction(call);
+        bool success = module.execute(call);
+
+        REQUIRE(success);
+    });
+
+    // Give it time to have made the request
+    usleep(1000 * 500);
+
+    auto reqs = faabric::scheduler::getBatchRequests();
+    REQUIRE(reqs.size() == 1);
+    std::string actualHost = reqs.at(0).first;
+    faabric::BatchExecuteRequest req = reqs.at(0).second;
+    REQUIRE(actualHost == otherHost);
+
+    // Check the snapshot has been pushed to the other host
+    auto snapPushes = faabric::scheduler::getSnapshotPushes();
+    REQUIRE(snapPushes.size() == 1);
+    REQUIRE(snapPushes.at(0).first == otherHost);
+
+    // Rewrite the snapshot to be restorable. This is a bit of a hack, usually
+    // this would have been done via the RPC call between the hosts.
+    faabric::Message firstMsg = req.messages().at(0);
+    std::string snapKey = firstMsg.snapshotkey();
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+    faabric::util::SnapshotData& snapData = reg.getSnapshot(snapKey);
+    reg.takeSnapshot(snapKey, snapData);
+
+    // Now execute request on this host (forced)
+    // Note - don't clean as we will have already done at the top of this func
+    execBatchWithPool(req, nThreads, false, false);
+
+    if (t.joinable()) {
+        t.join();
+    }
+}
+
+void execBatchWithPool(faabric::BatchExecuteRequest& req,
+                       int nThreads,
+                       bool checkChained,
+                       bool clean)
+{
+    if (clean) {
+        cleanSystem();
+    }
+
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf.boundTimeout = 1000;
+    conf.unboundTimeout = 1000;
+    conf.chainedCallTimeout = 10000;
+
+    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
+
+    // Start a Faaslet pool to execute things
+    faaslet::FaasletPool pool(nThreads);
+    pool.startThreadPool();
+
+    // Execute forcing local
+    sch.callFunctions(req, true);
+
+    usleep(1000 * 500);
+
+    // Wait for all functions to complete if necessary
+    if (checkChained) {
+        for (auto m : req.messages()) {
+            faabric::Message result = sch.getFunctionResult(m.id(), 20000);
+            REQUIRE(result.returnvalue() == 0);
+        }
+    }
+
+    pool.shutdown();
+}
+
 void execFuncWithPool(faabric::Message& call,
                       bool pythonPreload,
                       int repeatCount,
@@ -99,7 +207,6 @@ void execFuncWithPool(faabric::Message& call,
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.shutdown();
     sch.addHostToGlobalSet();
-    sch.setTestMode(true);
 
     // Modify system config (network ns requires root)
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
@@ -111,8 +218,6 @@ void execFuncWithPool(faabric::Message& call,
     conf.pythonPreload = pythonPreload ? "on" : "off";
 
     // Set up a real worker pool to execute the function
-    conf.maxNodes = nThreads;
-    conf.maxNodesPerFunction = nThreads;
     faaslet::FaasletPool pool(nThreads);
     pool.startThreadPool();
 
@@ -195,7 +300,6 @@ void checkCallingFunctionGivesBoolOutput(const std::string& user,
 {
     faabric::Message call = faabric::util::messageFactory("demo", funcName);
 
-    FaasletPool pool(1);
     Faaslet w(1);
 
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();

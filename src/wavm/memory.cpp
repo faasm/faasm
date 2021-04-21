@@ -1,25 +1,17 @@
 #include "WAVMWasmModule.h"
 #include "syscalls.h"
 
-#include <faabric/util/bytes.h>
 #include <linux/membarrier.h>
 
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
+#include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
+#include <faabric/util/timing.h>
 
 using namespace WAVM;
 
 namespace wasm {
-bool isPageAligned(I32 address)
-{
-    Uptr addrPtr = (Uptr)address;
-    if (addrPtr & (WASM_BYTES_PER_PAGE - 1)) {
-        return false;
-    } else {
-        return true;
-    }
-}
 
 I32 s__madvise(I32 address, I32 numBytes, I32 advice)
 {
@@ -146,50 +138,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     return doMmap(addr, length, prot, flags, fd, (I32)offset);
 }
 
-I32 doMunmap(I32 addr, I32 length)
-{
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug("S - munmap - {} {} (IGNORED)", addr, length);
-
-    //        WasmModule *executingModule = getExecutingWAVMModule();
-    //        Runtime::Memory *memory = executingModule->defaultMemory;
-    //
-    //        // If not aligned or zero length, drop out
-    //        if (!isPageAligned(addr)) {
-    //            logger->warn("munmap address not page-aligned ({})", addr);
-    //            return -EINVAL;
-    //        } else if (length == 0) {
-    //            logger->warn("munmap size zero");
-    //            return -EINVAL;
-    //        }
-    //
-    //        const Uptr addrPageBase = addr / IR::numBytesPerPage;
-    //        const Uptr numPages = getNumberOfWasmPagesForBytes(length);
-    //
-    //        // Drop out if we're munmapping over the max page boundary
-    //        if (addrPageBase + numPages > getMemoryType(memory).size.max) {
-    //            logger->warn("munmapping region over max memory pages");
-    //            return -EINVAL;
-    //        }
-    //
-    //        // Unmap the memory
-    //        unmapMemoryPages(memory, addrPageBase, numPages);
-    return 0;
-}
-
-/*
- * Although we let things call munmap, we don't actually want to bother as the
- * memory can't be reused for that module anyway.
- *
- * NOTE - ENABLING THIS BREAKS MEMORY CLONING
- * By unmapping some pages in a memory, we can't then reuse that memory when
- * cloned.
- */
-I32 s__munmap(I32 addr, I32 length)
-{
-    return doMunmap(addr, length);
-}
-
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "munmap",
                                I32,
@@ -197,102 +145,43 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 addr,
                                I32 length)
 {
-    return doMunmap(addr, length);
+    auto logger = faabric::util::getLogger();
+    logger->debug("S - munmap - {} {}", addr, length);
+
+    WasmModule* executingModule = getExecutingWAVMModule();
+    executingModule->unmapMemory(addr, length);
+
+    return 0;
 }
 
 /**
- * Note that brk should only be called through the musl wrapper. We make the
- * following assumptions (not 100% clear what the behaviour should be):
+ * Note that sbrk should only be called indirectly through musl. The required
+ * behaviour is:
  *
  * - brk(0) returns the current break
  * - returns the new break if successful
  * - returns -1 if there's an issue and sets errno
  *
- * Note that we don't assume the address is page-aligned and just do nothing if
- * there's already space
+ * Note that we assume the address is page-aligned and shrink memory if
+ * necessary.
  */
-I32 _do_brk(I32 addr)
-{
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    if (!isPageAligned(addr)) {
-        logger->error("brk address not page-aligned ({})", addr);
-        throw std::runtime_error("brk not page-aligned");
-    }
-
-    WAVMWasmModule* module = getExecutingWAVMModule();
-    Runtime::Memory* memory = module->defaultMemory;
-
-    Uptr currentPageCount = getMemoryNumPages(memory);
-    const U32 currentBreak = (U32)(currentPageCount * WASM_BYTES_PER_PAGE);
-
-    // Return current break if addr is zero
-    if (addr == 0) {
-        return currentBreak;
-    }
-
-    Uptr targetPageCount = getNumberOfWasmPagesForBytes(addr);
-    Uptr maxPages = getMemoryType(memory).size.max;
-
-    // Check if expanding too far
-    if (targetPageCount > maxPages) {
-        return -ENOMEM;
-    }
-
-    // Nothing to be done if memory already big enough
-    if (targetPageCount <= currentPageCount) {
-        return currentBreak;
-    }
-
-    // Grow memory as required
-    Uptr expansion = targetPageCount - currentPageCount;
-    logger->debug("brk - Growing memory from {} to {} pages",
-                  currentPageCount,
-                  targetPageCount);
-    Uptr prevPageCount = 0;
-    Runtime::GrowResult growResult =
-      growMemory(memory, expansion, &prevPageCount);
-    if (growResult != Runtime::GrowResult::success) {
-        throw std::runtime_error("Something has gone wrong with brk logic");
-    }
-
-    // Success, return requested break (note, this might be lower than the
-    // memory we actually allocated)
-    return (U32)addr;
-}
-
-I32 s__brk(I32 addr)
-{
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug("S - brk - {}", addr);
-
-    return _do_brk(addr);
-}
-
-I32 s__sbrk(I32 increment)
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__sbrk", I32, __sbrk, I32 increment)
 {
     faabric::util::getLogger()->debug("S - sbrk - {}", increment);
 
     WAVMWasmModule* module = getExecutingWAVMModule();
-    Runtime::Memory* memory = module->defaultMemory;
-
-    Uptr currentPageCount = getMemoryNumPages(memory);
-    const U32 currentBreak = (U32)(currentPageCount * WASM_BYTES_PER_PAGE);
-
-    // Calling sbrk with zero is the same as calling brk with zero
-    if (increment == 0) {
-        return currentBreak;
-    }
-
-    U32 target = currentBreak + increment;
-
-    // Normal brk, but we want to return the start of the region that's been
-    // created (i.e. the old break)
-    I32 brkResult = _do_brk(target);
-    if (brkResult == -1) {
-        return -1;
+    I32 result;
+    if (increment < 0) {
+        PROF_START(sbrkShrink)
+        result = module->shrinkMemory(-1 * increment);
+        PROF_END(sbrkShrink)
     } else {
-        return currentBreak;
+        PROF_START(sbrkGrow)
+        result = module->growMemory(increment);
+        PROF_END(sbrkGrow)
     }
+
+    return result;
 }
 
 // mprotect is usually called as part of thread creation, in which

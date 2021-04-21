@@ -25,3 +25,5 @@ target_link_libraries(codegen_func ${RUNNER_LIBS})
 add_executable(pool_runner pool_runner.cpp)
 target_link_libraries(pool_runner ${RUNNER_LIBS})
 
+add_executable(covid_runner covid_runner.cpp)
+target_link_libraries(covid_runner ${RUNNER_LIBS})

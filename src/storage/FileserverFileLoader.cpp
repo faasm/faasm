@@ -50,7 +50,7 @@ std::vector<uint8_t> FileserverFileLoader::doLoad(
         }
     }
 
-    auto conf = faabric::util::getSystemConfig();
+    auto& conf = faabric::util::getSystemConfig();
     std::string host = conf.fileserverUrl;
 
     logger->debug("Creating client at {}", host);

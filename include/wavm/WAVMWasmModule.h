@@ -1,8 +1,8 @@
 #pragma once
 
+#include <threads/ThreadState.h>
 #include <wasm/WasmModule.h>
 #include <wavm/LoadedDynamicModule.h>
-#include <wavm/ThreadState.h>
 
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Linker.h>
@@ -46,22 +46,25 @@ class WAVMWasmModule final
     void flush() override;
 
     // ----- Memory management -----
-    uint32_t mmapMemory(uint32_t length) override;
+    uint32_t growMemory(uint32_t nBytes) override;
 
-    uint32_t mmapPages(uint32_t pages) override;
+    uint32_t shrinkMemory(uint32_t nBytes) override;
+
+    uint32_t mmapMemory(uint32_t nBytes) override;
 
     uint32_t mmapFile(uint32_t fp, uint32_t length) override;
 
+    void unmapMemory(uint32_t offset, uint32_t nBytes) override;
+
     uint8_t* wasmPointerToNative(int32_t wasmPtr) override;
+
+    size_t getMemorySizeBytes() override;
+
+    uint8_t* getMemoryBase() override;
 
     // ----- Environment variables
     void writeWasmEnvToMemory(uint32_t envPointers,
                               uint32_t envBuffer) override;
-
-    // ----- CoW memory -----
-    void writeMemoryToFd(int fd) override;
-
-    void mapMemoryFromFd() override;
 
     // ----- Debug -----
     void printDebugInfo() override;
@@ -129,20 +132,12 @@ class WAVMWasmModule final
 
     int getDataOffsetFromGOT(const std::string& name);
 
-    uint32_t allocateThreadStack();
-
-  protected:
-    void doSnapshot(std::ostream& outStream) override;
-
-    void doRestore(std::istream& inStream) override;
-
   private:
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> envModule;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> wasiModule;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> moduleInstance;
 
-    int memoryFd = -1;
-    size_t memoryFdSize = 0;
+    std::string baseSnapshotKey;
 
     bool _isBound = false;
 
@@ -187,14 +182,14 @@ class WAVMWasmModule final
     WAVM::Runtime::Function* getWasmConstructorsFunction(
       WAVM::Runtime::Instance* module);
 
-    void executeRemoteOMP(faabric::Message& msg);
+    int32_t executeAsOMPThread(uint32_t stackTop,
+                               std::shared_ptr<faabric::Message> msg) override;
 
-    uint32_t createMemoryGuardRegion();
+    int32_t executeAsPthread(uint32_t stackTop,
+                             std::shared_ptr<faabric::Message> msg) override;
 };
 
 WAVMWasmModule* getExecutingWAVMModule();
-
-void setExecutingModule(WAVMWasmModule* executingModule);
 
 struct WasmThreadSpec
 {

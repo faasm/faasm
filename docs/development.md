@@ -22,7 +22,7 @@ Docker compose config](docker-compose-dev.yml).
 We mount local checkouts of all the code into these containers, so first you'll
 need to update all the submodules (may take a while):
 
-```
+```bash
 git submodule update --init --recursive
 ```
 
@@ -30,13 +30,13 @@ To tie together the projects in the local dev environment, we mount
 `dev/faasm-local` into `/usr/local/faasm` in the various containers, which you
 can initialise with:
 
-```
+```bash
 ./bin/refresh_local.sh
 ```
 
 If you want to nuke your existing `dev/faasm-local` in the process:
 
-```
+```bash
 ./bin/refresh_local.sh -d
 ```
 
@@ -44,7 +44,7 @@ It may also be useful to run Python scripts outside the containerised
 environments, for which you can set up a suitable Python virtual envrionment 
 with:
 
-```
+```bash
 ./bin/create_venv.sh
 ```
 
@@ -53,7 +53,7 @@ with:
 Once you've set up the repo, you can start the CLI for whichever project you 
 want to work on:
 
-```
+```bash
 # C++ applications
 ./bin/cli.sh cpp
 
@@ -129,7 +129,7 @@ will be much easier if you're familiar with their [command line
 docs](https://github.com/catchorg/Catch2/blob/v2.x/docs/command-line.md).  This
 means you can do things like:
 
-```
+```bash
 # Run all the MPI tests
 tests "[mpi]"
 
@@ -140,10 +140,22 @@ tests "Test some feature"
 ## Building outside of the container
 
 If you want to build projects outside of the recommended containers, or just
-run some of the CLI tasks, you can take a look at the [CLI
-Dockerfile](../docker/cli.dockerfile) to see what's required:
+run some of the CLI tasks, you'll need to install the required packages on your
+local machine.
 
-To run the CLI, you should just need to do:
+This is not the recommended approach to developing Faasm, so it's not scripted,
+but you can work out what's required by looking at the following Dockerfiles:
+
+- [`faasm/grpc-root`](https://github.com/faasm/faabric/blob/master/docker/grpc-root.dockerfile)
+- [`faasm/cpp-root`](../docker/cpp-root.dockerfile)
+
+Most things can be done with `apt`, but the difficult bits might be:
+
+- LLVM and Clang
+- gRPC
+- Up-to-date CMake
+
+You will also need to set up the Python environment:
 
 ```bash
 # Set up the venv
@@ -162,6 +174,31 @@ cd ../python
 inv -l
 ```
 
+If you've been running the containerised development environment too, it's
+highly likely that the permissions will be messed up and cause cryptic error
+messages. To be safe, reset the permissions on everything:
+
+```bash
+sudo chown -R ${SUDO_USER}:${SUDO_USER} .
+```
+
+Then you can try building one of the executables:
+
+```bash
+# Check environment is correct and build directories look sane
+env | grep FAASM
+
+# Run cmake and build
+inv dev.cmake
+inv dev.cc simple_runner
+
+# Check which binary is on the path
+which simple_runner
+
+# Run it
+simple_runner demo hello
+```
+
 ## Troubleshooting CI
 
 If the CI build fails and you can't work out why, you can replicate the test
@@ -174,7 +211,7 @@ those in [`.github/workflows/tests.yml`](../.github/workflows/tests.yml).
 Then, run the container and work through the steps in the Github Actions file,
 to see where things might have gone wrong.
 
-```
+```bash
 # To start the container 
 docker-compose -f docker/docker-compose-ci.yml run cli /bin/bash
 ```
@@ -218,42 +255,59 @@ To use cgroup isolation, you'll need to run:
 sudo ./bin/cgroup.sh
 ```
 
-## Mounting your local build inside unmodified containers
+## Developing with a local cluster
 
-If you need to debug issues with the standard containers, you can mount your 
-local build of Faasm inside some otherwise unmodified containers as follows:
+If you need to debug issues with the standard containers, or run multiple Faasm
+instances locally, you can use the [`bin/cluster_dev.sh`](../bin/cluster_dev.sh)
+script.
+This will mount your local build of Faasm inside a local cluster defined in
+[`docker-compose.yml`](../docker-compose.yml).
 
-```
-# --- Faasm CLI ---
-# Build the code
+Before doing so, make sure you've completely removed any existing faasm
+containers.
+
+To demonstrate, we can make a change to the `pool_runner` which is executed by
+the `worker` container. To set up the local cluster:
+
+```bash
+# Nuke everything that might already have been set up
+docker ps -aq | xargs docker rm -f
+
+# Start the dev cluster
+./bin/cluster_dev.sh faasm
+
+# Build everything (inside the container you're dropped into)
 inv dev.tools
+
+# Leave the container
 ```
 
-Then, outside the container:
+Now you can run a `cpp` container, compile upload and invoke a function:
 
+```bash
+# Restart, drops you into a cpp container
+./bin/cluster_dev.sh cpp
+
+# Compile, upload, invoke a function
+inv compile demo hello upload demo hello invoke demo hello
 ```
-# Mount your local build inside the containers
-export FAASM_BUILD_MOUNT=/build/faasm
 
-# Start up the local cluster
-cd faasm
-docker-compose up -d
-```
+Now you can make some changes and check:
 
-This will mount the built binaries from the Faasm CLI container into the other 
-containers, thus allowing you to rebuild and restart everything with local 
-changes. 
+```bash
+# Drop into the faasm-cli container
+./bin/cluster_dev.sh faasm
 
-For example, if you have changed code and want to restart the worker container:
+# Make some modifications to pool_runner
 
-```
-# Inside the CLI container, rebuild the pool runner (executed by the worker)
+# Rebuild pool_runner
 inv dev.cc pool_runner
+```
 
-# Outside the container, restart the worker
+From a different terminal, restart the worker and check the logs:
+
+```bash
 docker-compose restart worker
 
-# Tail the logs
 docker-compose logs -f
 ```
-
