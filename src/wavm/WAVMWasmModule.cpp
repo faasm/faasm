@@ -88,6 +88,9 @@ WAVMWasmModule::WAVMWasmModule()
 {
     stdoutMemFd = 0;
     stdoutSize = 0;
+
+    // Prepare OpenMP context cache
+    openMPContexts = std::vector<Runtime::Context*>(threadPoolSize, nullptr);
 }
 
 WAVMWasmModule& WAVMWasmModule::operator=(const WAVMWasmModule& other)
@@ -137,9 +140,12 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
     threadStacks = other.threadStacks;
 
     openMPThreads.clear();
+    openMPTaskQueueMap.clear();
+    openMPContexts = std::vector<Runtime::Context*>(threadPoolSize, nullptr);
+
     pthreads.clear();
-    openMPTaskQueue.reset();
     pthreadTaskQueue.reset();
+
     mutexes.clear();
 
     // Do not copy over any captured stdout
@@ -977,13 +983,17 @@ int32_t WAVMWasmModule::executeAsPthread(uint32_t stackTop,
     };
 
     // Record the return value
-    I64 returnValue = executeThreadLocally(spec);
+    Runtime::Context* threadContext = createContext(
+      getCompartmentFromContextRuntimeData(spec.contextRuntimeData));
+
+    I64 returnValue = executeThreadLocally(threadContext, spec);
     msg->set_returnvalue(returnValue);
 
     return (int32_t)returnValue;
 }
 
 int32_t WAVMWasmModule::executeAsOMPThread(
+  int threadPoolIdx,
   uint32_t stackTop,
   std::shared_ptr<faabric::Message> msg)
 {
@@ -1004,8 +1014,13 @@ int32_t WAVMWasmModule::executeAsOMPThread(
         .stackTop = stackTop,
     };
 
+    if (openMPContexts.at(threadPoolIdx) == nullptr) {
+        openMPContexts.at(threadPoolIdx) = createContext(
+          getCompartmentFromContextRuntimeData(spec.contextRuntimeData));
+    }
+
     // Record the return value
-    I64 returnValue = executeThreadLocally(spec);
+    I64 returnValue = executeThreadLocally(openMPContexts[threadPoolIdx], spec);
     msg->set_returnvalue(returnValue);
 
     return (int32_t)returnValue;
@@ -1519,13 +1534,10 @@ int WAVMWasmModule::getDataOffsetFromGOT(const std::string& name)
     return globalOffsetMemoryMap[name].first;
 }
 
-I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)
+I64 WAVMWasmModule::executeThreadLocally(Runtime::Context* threadContext,
+                                         WasmThreadSpec& spec)
 {
     auto logger = faabric::util::getLogger();
-
-    // Create a new context for this thread
-    Runtime::Context* threadContext = createContext(
-      getCompartmentFromContextRuntimeData(spec.contextRuntimeData));
 
     // Set the stack pointer in this context
     IR::UntaggedValue& stackGlobal =
