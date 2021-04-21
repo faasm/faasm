@@ -387,14 +387,11 @@ std::future<int32_t> WasmModule::executePthreadTask(threads::PthreadTask t)
             threadStacks.pop_back();
 
             pthreads.emplace_back([this, stackTop] {
-                int queueTimeoutMs =
-                  faabric::util::getSystemConfig().boundTimeout;
-
                 for (;;) {
                     auto logger = faabric::util::getLogger();
 
                     PthreadTaskPair taskPair =
-                      pthreadTaskQueue.dequeue(queueTimeoutMs);
+                      pthreadTaskQueue.dequeue();
 
                     if (taskPair.second.isShutdown) {
                         taskPair.first.set_value(0);
@@ -454,20 +451,15 @@ std::future<int32_t> WasmModule::executeOpenMPTask(threads::OpenMPTask t)
 
             openMPThreads.insert(
               std::make_pair(threadPoolIdx, [this, stackTop, threadPoolIdx] {
-                  int queueTimeoutMs =
-                    faabric::util::getSystemConfig().boundTimeout;
-
                   auto logger = faabric::util::getLogger();
                   logger->debug(
                     "Starting OpenMP pool thread {}/{} (timeout {}ms)",
                     threadPoolIdx,
-                    threadPoolSize,
-                    queueTimeoutMs);
+                    threadPoolSize);
 
                   for (;;) {
                       OpenMPTaskPair taskPair =
-                        openMPTaskQueueMap[threadPoolIdx].dequeue(
-                          queueTimeoutMs);
+                        openMPTaskQueueMap[threadPoolIdx].dequeue();
 
                       if (taskPair.second.isShutdown) {
                           taskPair.first.set_value(0);

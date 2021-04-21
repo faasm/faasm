@@ -18,7 +18,10 @@ void FaasmConfig::initialise()
     // Threads
     moduleThreadPoolSize = this->getIntParam("FAASM_THREAD_POOL_SIZE", "0");
     if (moduleThreadPoolSize == 0) {
-        moduleThreadPoolSize = faabric::util::getUsableCores();
+        // Thread pool should be one less than number of cores as main thread
+        // executes as well. Always need at least 1
+        moduleThreadPoolSize =
+          std::max<int>(faabric::util::getUsableCores() - 1, 1);
     }
 }
 
