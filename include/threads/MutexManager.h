@@ -9,6 +9,8 @@ namespace threads {
 class MutexManager
 {
   public:
+    void clear();
+
     void createMutex(int mutexId);
 
     void lockMutex(int mutexId);

@@ -1,10 +1,8 @@
-#include <wasm/WasmModule.h>
-
-#include <faaslet/FaasletPool.h>
-
 #include <faabric/redis/Redis.h>
 #include <faabric/util/config.h>
 #include <faabric/util/timing.h>
+#include <faaslet/FaasletPool.h>
+#include <wasm/WasmModule.h>
 
 int main(int argc, char* argv[])
 {

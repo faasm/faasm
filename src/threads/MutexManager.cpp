@@ -9,6 +9,11 @@ namespace threads {
 // created on the fly.
 // ----------------------------------------
 
+void MutexManager::clear()
+{
+    mutexes.clear();
+}
+
 void MutexManager::createMutex(int mutexId)
 {
     mutexes[mutexId];

@@ -387,12 +387,14 @@ std::future<int32_t> WasmModule::executePthreadTask(threads::PthreadTask t)
             threadStacks.pop_back();
 
             pthreads.emplace_back([this, stackTop] {
+                int queueTimeoutMs =
+                  faabric::util::getSystemConfig().boundTimeout;
+
                 for (;;) {
                     auto logger = faabric::util::getLogger();
 
                     std::pair<std::promise<int32_t>, threads::PthreadTask>
-                      taskPair =
-                        pthreadTaskQueue.dequeue(TASK_QUEUE_TIMEOUT_MS);
+                      taskPair = pthreadTaskQueue.dequeue(queueTimeoutMs);
 
                     if (taskPair.second.isShutdown) {
                         taskPair.first.set_value(0);
@@ -446,12 +448,16 @@ std::future<int32_t> WasmModule::executeOpenMPTask(threads::OpenMPTask t)
             threadStacks.pop_back();
 
             openMPThreads.emplace_back([this, stackTop, threadPoolId] {
+                int queueTimeoutMs =
+                  faabric::util::getSystemConfig().boundTimeout;
                 auto logger = faabric::util::getLogger();
-                logger->debug("Starting OpenMP pool thread {}", threadPoolId);
+                logger->debug("Starting OpenMP pool thread {} (timeout {}ms)",
+                              threadPoolId,
+                              queueTimeoutMs);
 
                 for (;;) {
                     std::pair<std::promise<int32_t>, threads::OpenMPTask>
-                      taskPair = openMPTaskQueue.dequeue(TASK_QUEUE_TIMEOUT_MS);
+                      taskPair = openMPTaskQueue.dequeue(queueTimeoutMs);
 
                     if (taskPair.second.isShutdown) {
                         taskPair.first.set_value(0);
@@ -463,8 +469,11 @@ std::future<int32_t> WasmModule::executeOpenMPTask(threads::OpenMPTask t)
                         break;
                     }
 
-                    logger->debug("OpenMP pool thread {} executing {}",
+                    logger->debug("OpenMP {}: executing OMP thread {}, "
+                                  "function {}, message {}",
                                   threadPoolId,
+                                  taskPair.second.msg->ompthreadnum(),
+                                  taskPair.second.msg->funcptr(),
                                   taskPair.second.msg->id());
 
                     auto& sch = faabric::scheduler::getScheduler();

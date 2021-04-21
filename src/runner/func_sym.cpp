@@ -35,11 +35,9 @@ int main(int argc, char* argv[])
     std::ofstream outfile;
     outfile.open(outPath, std::ios::out);
 
-    outfile << std::setw(20) << std::left << "FUNC_NAME"
-            << "DISAS_NAME" << std::endl;
     for (auto const& p : disasMap) {
-        outfile << std::setw(20) << std::left << p.first << p.second
-                << std::endl;
+        // Separator needs to be something not found in the symbols themselves
+        outfile << p.first << " = " << p.second << std::endl;
     }
 
     outfile.close();

@@ -1,4 +1,5 @@
 #include <faabric/util/config.h>
+#include <faabric/util/timing.h>
 #include <threads/ThreadState.h>
 
 using namespace faabric::util;

@@ -24,8 +24,6 @@
 
 #define WASM_BYTES_PER_PAGE 65536
 
-#define TASK_QUEUE_TIMEOUT_MS 10000
-
 // Note: this is *not* controlling the size provisioned by the linker, that is
 // hard-coded in the build. This variable is just here for reference and must be
 // updated to match the value in the build.
@@ -158,7 +156,7 @@ class WasmModule
     int stdoutMemFd;
     ssize_t stdoutSize;
 
-    const uint32_t threadPoolSize = 0;
+    uint32_t threadPoolSize = 0;
     std::vector<uint32_t> threadStacks;
 
     faabric::util::Queue<std::pair<std::promise<int32_t>, threads::OpenMPTask>>

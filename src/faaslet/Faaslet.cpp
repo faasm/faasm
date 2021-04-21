@@ -31,7 +31,7 @@ void preloadPythonRuntime()
 {
     auto logger = faabric::util::getLogger();
 
-    auto conf = faabric::util::getSystemConfig();
+    auto& conf = faabric::util::getSystemConfig();
     if (conf.pythonPreload != "on") {
         logger->info("Not preloading python runtime");
         return;
@@ -163,7 +163,7 @@ bool Faaslet::doExecute(faabric::Message& msg)
 {
     auto logger = faabric::util::getLogger();
 
-    auto conf = faabric::util::getSystemConfig();
+    auto& conf = faabric::util::getSystemConfig();
     const std::string snapshotKey = msg.snapshotkey();
 
     // Restore from snapshot if necessary

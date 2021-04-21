@@ -134,6 +134,9 @@ if (${FAASM_PERF_PROFILING})
 
     set(WAVM_PERF_LIBS 1)
     add_definitions(-DWAVM_PERF_EVENTS=1)
+
+    # Don't omit frame pointers (lets perf get better stack traces)
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer")
 else ()
     find_package(LLVM REQUIRED CONFIG)
 endif ()

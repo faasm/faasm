@@ -1,4 +1,4 @@
-# Debugging and Profiling
+# Debugging
 
 Code in Faasm has been cross-compiled to WebAssembly, so we lose a lot of
 debugging information. However, there are still some options for chasing down
@@ -72,52 +72,4 @@ run <user> <func>
 Note that because the function itself is loaded using LLVM JIT libraries, GDB 
 doesn't have the symbols up front, but we can still set breakpoints pending a
 shared library load.
-
-## Perf
-
-Perf (and Valgrind) requires administrative privileges that are hard to
-replicate in a container (although not impossible). The easiest way to use these
-tools is to build a Faasm executable outside of a container. See the [dev
-docs](development.md) for details on how to do this.
-
-WAVM uses the LLVM JIT libraries to load and execute code at runtime. This can
-be connected to perf events so that this JITed code will properly be reported,
-but it requires a special build of LLVM to run.
-
-To set things up you need to do the following:
-
-- Run the [`perf.yml`](../ansible/perf.yml) Ansible playbook to set up `perf`
-- Create a build of LLVM with perf support by running `./bin/build_llvm_perf.sh`
-  (this takes a while depending on your machine)
-
-Now you can rebuild the parts of Faasm you're profiling, e.g.
-
-```bash
-# Note the --perf here to switch on the build against the custom LLVM
-inv dev.cmake --perf --clean
-
-inv dev.cc simple_runner
-```
-
-Once this is done you can use perf as described
-[here](https://lwn.net/Articles/633846/), e.g.:
-
-```
-# Do the profiling of 500 runs of demo/hello
-perf record -k 1 simple_runner demo hello 500
-
-# Inject the JIT dumps into perf data
-perf inject -i perf.data -j -o perf.data.jitted
-
-# View the report
-perf report -i perf.data.jitted
-```
- 
-Note that if the perf notifier isn't working, check that the code isn't getting
-excluded by the pre-processor by looking at the WAVM `LLVMModule.cpp` file and
-grepping for `WAVM_PERF_EVENTS`.
-
-You can also check the
-[diff](https://github.com/WAVM/WAVM/compare/master...faasm:faasm) of the Faasm
-WAVM fork.
 

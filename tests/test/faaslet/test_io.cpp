@@ -39,15 +39,18 @@ TEST_CASE("Test capturing stdout", "[faaslet]")
 
     SECTION("Capture off")
     {
+        call.set_inputdata("21");
         conf.captureStdout = "off";
         expected = "Normal Faasm output";
     }
 
     SECTION("Capture on")
     {
+        call.set_inputdata("23");
         conf.captureStdout = "on";
-        expected = "i=7 s=8 f=7.89\n"
-                   "FloatA=1.234 FloatB=7.891\n"
+        expected = "Input value = 23\n"
+                   "i=7 s=8 f=7.89\n"
+                   "FloatA=28.393 FloatB=181.493\n"
                    "Out: I am output\n"
                    "Unformatted output\n\n"
                    "Normal Faasm output";
