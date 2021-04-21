@@ -489,8 +489,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                               msgId);
 
                 // We execute the main thread in this thread so index is one
-                // higher
-                int threadIdx = i + 1;
+                // higher.
+                // As a hack to get the thread pooling to work, we add the
+                // nesting level to the index too
+                int threadIdx = parentLevel->depth + i + 1;
 
                 // Execute the local thread
                 threads::OpenMPTask t(parentCall, msg, nextLevel, threadIdx);
