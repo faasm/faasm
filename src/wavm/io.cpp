@@ -325,6 +325,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I32 iovecCount,
                                I32 resBytesWrittenPtr)
 {
+    bool isStd = fd <= 2;
     PROF_START(FdWrite)
     auto logger = faabric::util::getLogger();
 
@@ -352,7 +353,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
 
     // Catpure stdout if necessary, otherwise write as normal
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    if (fd == STDOUT_FILENO && conf.captureStdout == "on") {
+    if (isStd && conf.captureStdout == "on") {
         getExecutingWAVMModule()->captureStdout(nativeIovecs, iovecCount);
     }
 
@@ -361,7 +362,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
 
     delete[] nativeIovecs;
 
-    PROF_END(FdWrite)
+    if (!isStd) {
+        // This function is used for printing, and we're only interested in
+        // profiling the actual filesystem
+        PROF_END(FdWrite)
+    }
 
     if (bytesWritten < 0) {
         return storage::errnoToWasi(errno);

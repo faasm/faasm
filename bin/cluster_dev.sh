@@ -23,15 +23,27 @@ fi
 
 INNER_SHELL=${SHELL:-"/bin/bash"}
 
+echo "----- Faasm development cluster -----"
+
 docker-compose -f docker-compose.yml \
     up \
     --no-recreate \
     -d \
-    faasm-cli
+
+if [[ "$1" == "faasm" ]]; then
+    CLI_CONTAINER="faasm-cli"
+elif [[ "$1" == "cpp" ]]; then
+    CLI_CONTAINER="cpp"
+else
+    echo "Not starting a CLI container"
+    exit 0
+fi
+
+echo "Starting shell in ${CLI_CONTAINER}"
 
 docker-compose -f docker-compose.yml \
     exec \
-    faasm-cli \
+    ${CLI_CONTAINER} \
     ${INNER_SHELL}
 
 popd > /dev/null
