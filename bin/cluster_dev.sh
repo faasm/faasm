@@ -23,8 +23,6 @@ fi
 
 INNER_SHELL=${SHELL:-"/bin/bash"}
 
-echo "----- Faasm development cluster -----"
-
 docker-compose -f docker-compose.yml \
     up \
     --no-recreate \
