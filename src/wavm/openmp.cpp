@@ -390,14 +390,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     // Set up number of threads for next level
     std::shared_ptr<threads::Level> parentLevel = ctx.level;
-    int nextNumThreads = parentLevel->getMaxThreadsAtNextLevel();
-
-    // Check if we're only doing single-threaded
-    bool isSingleThread = nextNumThreads == 1;
 
     // Set up the next level
-    auto nextLevel = std::make_shared<threads::Level>(nextNumThreads);
+    auto nextLevel =
+      std::make_shared<threads::Level>(parentLevel->getMaxThreadsAtNextLevel());
     nextLevel->fromParentLevel(parentLevel);
+
+    // Check if we're only doing single-threaded
+    bool isSingleThread = nextLevel->numThreads == 1;
 
     // Take memory snapshot
     std::string snapshotKey;
@@ -414,10 +414,22 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     // Prepare arguments for main thread and all others
     std::vector<IR::UntaggedValue> mainArguments = { 0, argc };
-    U32* sharedVarsPtr = nullptr;
+    std::vector<uint32_t> sharedVarPtrs;
     if (argc > 0) {
-        sharedVarsPtr = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
+        // Build list of poitners to shared variables
+        U32* sharedVarsPtr =
+          Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
+        sharedVarPtrs =
+          std::vector<uint32_t>(sharedVarsPtr, sharedVarsPtr + argc);
+
+        // Append to main arguments
+        mainArguments.insert(
+          mainArguments.end(), sharedVarPtrs.begin(), sharedVarPtrs.end());
     }
+
+    // Prepare remote context
+    std::vector<uint8_t> remoteContextBytes =
+      threads::serialiseOpenMPRemoteContext(nextLevel, sharedVarPtrs);
 
     // Set up the chained calls
     // Note that the main OpenMP thread is always executed in this thread, hence
@@ -425,7 +437,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     std::shared_ptr<faabric::Message> masterMsg = nullptr;
     std::vector<std::shared_ptr<faabric::Message>> childThreadMsgs;
     std::vector<int> remoteCallIds;
-    for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
+    for (int threadNum = 0; threadNum < nextLevel->numThreads; threadNum++) {
         // Create basic call
         std::shared_ptr<faabric::Message> call =
           faabric::util::messageFactoryShared(originalCall->user(),
@@ -445,18 +457,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         // Function pointer
         call->set_funcptr(microtaskPtr);
 
-        // Args
-        for (int i = 0; i < argc; i++) {
-            call->add_ompfunctionargs(sharedVarsPtr[i]);
-            mainArguments.emplace_back(sharedVarsPtr[i]);
-        }
-
-        call->set_ompthreadnum(threadNum);
-        call->set_ompnumthreads(nextNumThreads);
-
-        call->set_ompdepth(nextLevel->depth);
-        call->set_ompeffdepth(nextLevel->activeLevels);
-        call->set_ompmal(nextLevel->maxActiveLevels);
+        // OpenMP thread number
+        call->set_appindex(threadNum);
 
         if (threadNum > 0) {
             childThreadMsgs.push_back(call);
@@ -469,6 +471,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         // Set up the request
         faabric::BatchExecuteRequest req =
           faabric::util::batchExecFactory(childThreadMsgs);
+
+        // Add remote context
+        req.set_contextdata(remoteContextBytes.data(),
+                            remoteContextBytes.size());
 
         req.set_type(faabric::BatchExecuteRequest::THREADS);
 

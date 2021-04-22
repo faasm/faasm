@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <mutex>
 #include <vector>
 
@@ -70,6 +71,18 @@ class PthreadTask
     std::shared_ptr<faabric::Message> msg;
 };
 
+class OpenMPRemoteContext
+{
+  public:
+    int32_t depth;
+    int32_t effectiveDepth;
+    int32_t maxActiveLevels;
+    int32_t nThreads;
+
+    uint32_t nSharedVars = 0;
+    uint32_t sharedVars[];
+};
+
 class OpenMPTask
 {
   public:
@@ -95,6 +108,13 @@ class OpenMPContext
 };
 
 OpenMPContext& getOpenMPContext();
+
+OpenMPRemoteContext deserialiseOpenMPRemoteContext(
+  const std::vector<uint8_t>& bytes);
+
+std::vector<uint8_t> serialiseOpenMPRemoteContext(
+  const std::shared_ptr<Level> &level,
+  const std::vector<uint32_t>& sharedVars);
 
 void setUpOpenMPContext(const faabric::Message& msg);
 
