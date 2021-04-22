@@ -1,15 +1,16 @@
 from subprocess import call
 
 from invoke import task
-
+from os import environ
 from faasmcli.util.env import PROJ_ROOT
 
 
 def _do_redis_command(sub_cmd, local, docker, knative):
+    redis_host = environ.get("REDIS_QUEUE_HOST", "redis")
     if local:
         cmd = ["redis-cli", sub_cmd]
     elif docker:
-        cmd = ["docker-compose", "exec", "redis-queue", "redis-cli", sub_cmd]
+        cmd = ["redis-cli", "-h", redis_host, sub_cmd]
     elif knative:
         cmd = [
             "kubectl",

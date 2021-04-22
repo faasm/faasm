@@ -88,6 +88,9 @@ WAVMWasmModule::WAVMWasmModule()
 {
     stdoutMemFd = 0;
     stdoutSize = 0;
+
+    // Prepare OpenMP context cache
+    openMPContexts = std::vector<Runtime::Context*>(threadPoolSize, nullptr);
 }
 
 WAVMWasmModule& WAVMWasmModule::operator=(const WAVMWasmModule& other)
@@ -137,9 +140,12 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
     threadStacks = other.threadStacks;
 
     openMPThreads.clear();
+    openMPTaskQueueMap.clear();
+    openMPContexts = std::vector<Runtime::Context*>(threadPoolSize, nullptr);
+
     pthreads.clear();
-    openMPTaskQueue.reset();
     pthreadTaskQueue.reset();
+
     mutexes.clear();
 
     // Do not copy over any captured stdout
@@ -374,6 +380,20 @@ void WAVMWasmModule::addModuleToGOT(IR::Module& mod, bool isMainModule)
         globalOffsetMemoryMap.insert(
           { ex.name, { value, global.type.isMutable } });
     }
+}
+
+void WAVMWasmModule::executeFunction(
+  WAVM::Runtime::Context* ctx,
+  WAVM::Runtime::Function* func,
+  const std::vector<WAVM::IR::UntaggedValue>& arguments,
+  WAVM::IR::UntaggedValue& result)
+{
+    // Note the need to set the currently executing module
+    setExecutingModule(this);
+
+    const IR::FunctionType funcType = Runtime::getFunctionType(func);
+
+    Runtime::invokeFunction(ctx, func, funcType, arguments.data(), &result);
 }
 
 void WAVMWasmModule::executeFunction(
@@ -969,21 +989,23 @@ int32_t WAVMWasmModule::executeAsPthread(uint32_t stackTop,
     int argsPtr = std::stoi(msg->inputdata());
     std::vector<IR::UntaggedValue> invokeArgs = { argsPtr };
 
-    WasmThreadSpec spec = {
-        .contextRuntimeData = getContextRuntimeData(executionContext),
-        .func = funcInstance,
-        .funcArgs = invokeArgs.data(),
-        .stackTop = stackTop,
-    };
+    Runtime::ContextRuntimeData* contextRuntimeData =
+      getContextRuntimeData(executionContext);
+
+    // Set up the context
+    Runtime::Context* threadContext =
+      createThreadContext(stackTop, contextRuntimeData);
 
     // Record the return value
-    I64 returnValue = executeThreadLocally(spec);
-    msg->set_returnvalue(returnValue);
+    IR::UntaggedValue returnValue;
+    executeFunction(threadContext, funcInstance, invokeArgs, returnValue);
+    msg->set_returnvalue(returnValue.i32);
 
-    return (int32_t)returnValue;
+    return returnValue.i32;
 }
 
 int32_t WAVMWasmModule::executeAsOMPThread(
+  int threadPoolIdx,
   uint32_t stackTop,
   std::shared_ptr<faabric::Message> msg)
 {
@@ -997,18 +1019,21 @@ int32_t WAVMWasmModule::executeAsOMPThread(
         invokeArgs.emplace_back(msg->ompfunctionargs(argIdx));
     }
 
-    WasmThreadSpec spec = {
-        .contextRuntimeData = getContextRuntimeData(executionContext),
-        .func = funcInstance,
-        .funcArgs = invokeArgs.data(),
-        .stackTop = stackTop,
-    };
+    Runtime::ContextRuntimeData* contextRuntimeData =
+      getContextRuntimeData(executionContext);
+
+    if (openMPContexts.at(threadPoolIdx) == nullptr) {
+        openMPContexts.at(threadPoolIdx) =
+          createThreadContext(stackTop, contextRuntimeData);
+    }
 
     // Record the return value
-    I64 returnValue = executeThreadLocally(spec);
-    msg->set_returnvalue(returnValue);
+    IR::UntaggedValue returnValue;
+    executeFunction(
+      openMPContexts[threadPoolIdx], funcInstance, invokeArgs, returnValue);
+    msg->set_returnvalue(returnValue.i32);
 
-    return (int32_t)returnValue;
+    return returnValue.i32;
 }
 
 U32 WAVMWasmModule::mmapFile(U32 fd, U32 length)
@@ -1519,17 +1544,15 @@ int WAVMWasmModule::getDataOffsetFromGOT(const std::string& name)
     return globalOffsetMemoryMap[name].first;
 }
 
-I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)
+Runtime::Context* WAVMWasmModule::createThreadContext(
+  uint32_t stackTop,
+  Runtime::ContextRuntimeData* contextRuntimeData)
 {
-    auto logger = faabric::util::getLogger();
+    Runtime::Context* ctx =
+      createContext(getCompartmentFromContextRuntimeData(contextRuntimeData));
 
-    // Create a new context for this thread
-    Runtime::Context* threadContext = createContext(
-      getCompartmentFromContextRuntimeData(spec.contextRuntimeData));
-
-    // Set the stack pointer in this context
-    IR::UntaggedValue& stackGlobal =
-      threadContext->runtimeData->mutableGlobals[0];
+    // Check the stack pointer in this context
+    IR::UntaggedValue& stackGlobal = ctx->runtimeData->mutableGlobals[0];
     if (stackGlobal.u32 != STACK_SIZE) {
         faabric::util::getLogger()->error(
           "Expected first mutable global in context to be stack pointer "
@@ -1538,37 +1561,9 @@ I64 WAVMWasmModule::executeThreadLocally(WasmThreadSpec& spec)
         throw std::runtime_error("Unexpected mutable global format");
     }
 
-    threadContext->runtimeData->mutableGlobals[0] = spec.stackTop;
+    ctx->runtimeData->mutableGlobals[0] = stackTop;
 
-    int returnValue = 0;
-    IR::UntaggedValue result;
-    try {
-        Runtime::catchRuntimeExceptions(
-          [&spec, &returnValue, &logger, &threadContext, &result] {
-              logger->debug("Invoking C/C++ function");
-
-              // Execute the function
-              Runtime::invokeFunction(threadContext,
-                                      spec.func,
-                                      Runtime::getFunctionType(spec.func),
-                                      spec.funcArgs,
-                                      &result);
-
-              returnValue = result.i32;
-          },
-          [&logger, &returnValue](Runtime::Exception* ex) {
-              logger->error("Runtime exception: {}",
-                            Runtime::describeException(ex).c_str());
-              Runtime::destroyException(ex);
-              returnValue = 1;
-          });
-    } catch (WasmExitException& e) {
-        logger->debug("Caught wasm exit exception from child thread (code {})",
-                      e.exitCode);
-        returnValue = e.exitCode;
-    }
-
-    return returnValue;
+    return ctx;
 }
 
 Runtime::Function* WAVMWasmModule::getMainFunction(Runtime::Instance* module)

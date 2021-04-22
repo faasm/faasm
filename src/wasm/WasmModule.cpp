@@ -350,22 +350,22 @@ void WasmModule::shutdownOpenMPThreads()
 
     faabric::util::getLogger()->debug("Shutting down OpenMP thread pool");
 
-    // Send shutdown messages
-    for (int i = 0; i < openMPThreads.size(); i++) {
+    // Send shutdown messages on each queue
+    for (auto& taskQueue : openMPTaskQueueMap) {
         std::promise<int32_t> p;
         std::future<int32_t> f = p.get_future();
-        threads::OpenMPTask t(nullptr, nullptr, nullptr, -1);
+        threads::OpenMPTask t(nullptr, nullptr, nullptr);
         t.isShutdown = true;
 
-        openMPTaskQueue.enqueue(std::make_pair(std::move(p), std::move(t)));
+        taskQueue.second.enqueue(std::make_pair(std::move(p), std::move(t)));
 
         f.get();
     }
 
     // Wait
     for (auto& t : openMPThreads) {
-        if (t.joinable()) {
-            t.join();
+        if (t.second.joinable()) {
+            t.second.join();
         }
     }
 }
@@ -387,14 +387,10 @@ std::future<int32_t> WasmModule::executePthreadTask(threads::PthreadTask t)
             threadStacks.pop_back();
 
             pthreads.emplace_back([this, stackTop] {
-                int queueTimeoutMs =
-                  faabric::util::getSystemConfig().boundTimeout;
-
                 for (;;) {
                     auto logger = faabric::util::getLogger();
 
-                    std::pair<std::promise<int32_t>, threads::PthreadTask>
-                      taskPair = pthreadTaskQueue.dequeue(queueTimeoutMs);
+                    PthreadTaskPair taskPair = pthreadTaskQueue.dequeue();
 
                     if (taskPair.second.isShutdown) {
                         taskPair.first.set_value(0);
@@ -430,69 +426,81 @@ std::future<int32_t> WasmModule::executeOpenMPTask(threads::OpenMPTask t)
     // Enqueue the task
     std::promise<int32_t> p;
     std::future<int32_t> f = p.get_future();
-    openMPTaskQueue.enqueue(std::make_pair(std::move(p), std::move(t)));
 
-    // Check if we can add a thread if we're not shutting down
-    if (!t.isShutdown && (openMPThreads.size() < threadPoolSize)) {
+    // We have a fixed pool of threads, we have to share the work evenly over
+    // them, but we always want to send the same OMP thread number to the same
+    // thread. However, if we don't have enough threads in the pool, we want to
+    // cycle round again, and if we're at a nested level, we want to spread the
+    // work to other threads so we don't get nested ones blocking each other.
+    if (t.nextLevel->depth < 1) {
+        throw std::runtime_error("Depth cannot be below 1");
+    }
+
+    int threadPoolIdx = t.nextLevel->depth - 1 + t.msg->ompthreadnum();
+    threadPoolIdx = threadPoolIdx % threadPoolSize;
+
+    // Enqueue the task
+    openMPTaskQueueMap[threadPoolIdx].enqueue(
+      std::make_pair(std::move(p), std::move(t)));
+
+    // Check if we need to add the thread for this index
+    if (openMPThreads.count(threadPoolIdx) == 0) {
+        // Get mutex and re-check
         faabric::util::UniqueLock lock(threadsMutex);
 
-        // Double check once lock acquired
-        if (openMPThreads.size() < threadPoolSize) {
+        if (openMPThreads.count(threadPoolIdx) == 0) {
             if (threadStacks.empty()) {
                 throw std::runtime_error("Run out of thread stacks");
             }
 
-            int32_t threadPoolId = openMPThreads.size();
-
             uint32_t stackTop = threadStacks.back();
             threadStacks.pop_back();
 
-            openMPThreads.emplace_back([this, stackTop, threadPoolId] {
-                int queueTimeoutMs =
-                  faabric::util::getSystemConfig().boundTimeout;
-                auto logger = faabric::util::getLogger();
-                logger->debug("Starting OpenMP pool thread {} (timeout {}ms)",
-                              threadPoolId,
-                              queueTimeoutMs);
+            openMPThreads.emplace(
+              std::make_pair(threadPoolIdx, [this, stackTop, threadPoolIdx] {
+                  auto logger = faabric::util::getLogger();
+                  logger->debug("Starting OpenMP pool thread {}/{}",
+                                threadPoolIdx,
+                                threadPoolSize);
 
-                for (;;) {
-                    std::pair<std::promise<int32_t>, threads::OpenMPTask>
-                      taskPair = openMPTaskQueue.dequeue(queueTimeoutMs);
+                  for (;;) {
+                      OpenMPTaskPair taskPair =
+                        openMPTaskQueueMap[threadPoolIdx].dequeue();
 
-                    if (taskPair.second.isShutdown) {
-                        taskPair.first.set_value(0);
+                      if (taskPair.second.isShutdown) {
+                          taskPair.first.set_value(0);
 
-                        logger->debug(
-                          "OpenMP thread pool thread {} shutting down",
-                          threadPoolId);
+                          logger->debug(
+                            "OpenMP thread pool thread {} shutting down",
+                            threadPoolIdx);
 
-                        break;
-                    }
+                          break;
+                      }
 
-                    logger->debug("OpenMP {}: executing OMP thread {}, "
-                                  "function {}, message {}",
-                                  threadPoolId,
-                                  taskPair.second.msg->ompthreadnum(),
-                                  taskPair.second.msg->funcptr(),
-                                  taskPair.second.msg->id());
+                      int ompThreadNum = taskPair.second.msg->ompthreadnum();
+                      logger->debug("OpenMP {}: executing OMP thread {}, "
+                                    "function {}, message {}",
+                                    threadPoolIdx,
+                                    ompThreadNum,
+                                    taskPair.second.msg->funcptr(),
+                                    taskPair.second.msg->id());
 
-                    auto& sch = faabric::scheduler::getScheduler();
+                      // We are now in a new thread so need to set up
+                      // everything that uses TLS
+                      setUpOpenMPContext(ompThreadNum,
+                                         taskPair.second.nextLevel);
+                      setExecutingModule(this);
+                      setExecutingCall(taskPair.second.parentMsg);
 
-                    // We are now in a new thread so need to set up
-                    // everything that uses TLS
-                    setUpOpenMPContext(taskPair.second.threadIdx,
-                                       taskPair.second.nextLevel);
-                    setExecutingModule(this);
-                    setExecutingCall(taskPair.second.parentMsg);
+                      taskPair.first.set_value(executeAsOMPThread(
+                        threadPoolIdx, stackTop, taskPair.second.msg));
 
-                    taskPair.first.set_value(
-                      executeAsOMPThread(stackTop, taskPair.second.msg));
-
-                    // Caller has to notify scheduler when finished
-                    // executing a thread locally
-                    sch.notifyCallFinished(*taskPair.second.msg);
-                }
-            });
+                      // Caller has to notify scheduler when finished
+                      // executing a thread locally
+                      auto& sch = faabric::scheduler::getScheduler();
+                      sch.notifyCallFinished(*taskPair.second.msg);
+                  }
+              }));
         }
     }
 
@@ -629,7 +637,8 @@ uint8_t* WasmModule::getMemoryBase()
     throw std::runtime_error("getMemoryBase not implemented");
 }
 
-int32_t WasmModule::executeAsOMPThread(uint32_t stackTop,
+int32_t WasmModule::executeAsOMPThread(int threadPoolIdx,
+                                       uint32_t stackTop,
                                        std::shared_ptr<faabric::Message> msg)
 {
     throw std::runtime_error("executeAsOMPThread not implemented");

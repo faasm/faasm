@@ -59,4 +59,26 @@ TEST_CASE("Test capturing stdout", "[faaslet]")
     const std::string actual = execFunctionWithStringResult(call);
     REQUIRE(actual == expected);
 }
+
+TEST_CASE("Test capturing stderr", "[faaslet]")
+{
+    cleanSystem();
+
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    faabric::Message call = faabric::util::messageFactory("demo", "stderr");
+
+    std::string expected;
+
+    SECTION("Capture off") { conf.captureStdout = "off"; }
+
+    SECTION("Capture on")
+    {
+        conf.captureStdout = "on";
+        expected = "stdin=0  stdout=1  stderr=2\n"
+                   "This is for stderr\n\n";
+    }
+
+    const std::string actual = execFunctionWithStringResult(call);
+    REQUIRE(actual == expected);
+}
 }

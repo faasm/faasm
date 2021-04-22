@@ -263,18 +263,40 @@ script.
 This will mount your local build of Faasm inside a local cluster defined in
 [`docker-compose.yml`](../docker-compose.yml).
 
-Before doing so, make sure you've completely nuked any existing Faasm containers
-and docker-compose set-ups.
+Before doing so, make sure you've completely removed any existing faasm
+containers.
 
 To demonstrate, we can make a change to the `pool_runner` which is executed by
-the `worker` container:
+the `worker` container. To set up the local cluster:
 
 ```bash
-# Nuke everything
+# Nuke everything that might already have been set up
 docker ps -aq | xargs docker rm -f
 
-# Start a dev cluster
-./bin/cluster_dev.sh
+# Start the dev cluster
+./bin/cluster_dev.sh faasm
+
+# Build everything (inside the container you're dropped into)
+inv dev.tools
+
+# Leave the container
+```
+
+Now you can run a `cpp` container, compile upload and invoke a function:
+
+```bash
+# Restart, drops you into a cpp container
+./bin/cluster_dev.sh cpp
+
+# Compile, upload, invoke a function
+inv compile demo hello upload demo hello invoke demo hello
+```
+
+Now you can make some changes and check:
+
+```bash
+# Drop into the faasm-cli container
+./bin/cluster_dev.sh faasm
 
 # Make some modifications to pool_runner
 
@@ -282,15 +304,11 @@ docker ps -aq | xargs docker rm -f
 inv dev.cc pool_runner
 ```
 
-From a different container, tail the logs:
-
-```bash
-docker-compose logs -f
-```
-
-From yet another terminal, restart the relevant containers, then watch the logs
-to see your version start:
+From a different terminal, restart the worker and check the logs:
 
 ```bash
 docker-compose restart worker
+
+docker-compose logs -f
 ```
+
