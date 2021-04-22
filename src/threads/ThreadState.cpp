@@ -8,6 +8,14 @@ namespace threads {
 
 static thread_local std::shared_ptr<Level> currentLevel;
 
+size_t sizeOfSerialisedLevel(SerialisedLevel& serialisedLevel)
+{
+    size_t slSize = sizeof(serialisedLevel);
+    slSize += serialisedLevel.nSharedVars * sizeof(uint32_t);
+
+    return slSize;
+}
+
 void setCurrentOpenMPLevel(std::shared_ptr<Level>& level)
 {
     currentLevel = level;
@@ -86,4 +94,15 @@ void Level::masterWait(int threadNum)
     }
 }
 
+void Level::deserialise(const SerialisedLevel* level)
+{
+    depth = level->depth;
+    activeLevels = level->effectiveDepth;
+    maxActiveLevels = level->maxActiveLevels;
+    numThreads = level->nThreads;
+
+    for (int i = 0; i < level->nSharedVars; i++) {
+        sharedVarPtrs.emplace_back(level->sharedVars[i]);
+    }
+}
 }

@@ -9,6 +9,7 @@
 #include <faabric/util/func.h>
 #include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
+#include <faabric/util/macros.h>
 #include <faabric/util/timing.h>
 #include <threads/ThreadState.h>
 #include <wavm/WAVMWasmModule.h>
@@ -22,13 +23,13 @@ namespace wasm {
 // ------------------------------------------------
 
 #define OMP_FUNC(str)                                                          \
-    threads::OpenMPContext& level = threads::getCurrentOpenMPLevel();          \
+    std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();  \
     faabric::Message* msg = getExecutingCall();                                \
     auto logger = faabric::util::getLogger();                                  \
     logger->trace("OMP {} ({}): " str, msg->appindex(), ::gettid());
 
 #define OMP_FUNC_ARGS(formatStr, ...)                                          \
-    threads::OpenMPContext& level = threads::getCurrentOpenMPLevel();          \
+    std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();  \
     faabric::Message* msg = getExecutingCall();                                \
     auto logger = faabric::util::getLogger();                                  \
     logger->trace(                                                             \
@@ -96,15 +97,15 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "omp_set_max_active_levels",
                                void,
                                omp_set_max_active_levels,
-                               I32 level)
+                               I32 maxLevels)
 {
-    OMP_FUNC_ARGS("omp_set_max_active_levels {}", level)
+    OMP_FUNC_ARGS("omp_set_max_active_levels {}", maxLevels)
 
     if (level < 0) {
         logger->warn("Trying to set active level with a negative number {}",
                      level);
     } else {
-        level->maxActiveLevels = level;
+        level->maxActiveLevels = maxLevels;
     }
 }
 
@@ -471,11 +472,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
           faabric::util::batchExecFactory(childThreadMsgs);
 
         // Add remote context
-        std::vector<uint8_t> remoteContextBytes =
-          threads::serialiseOpenMPRemoteContext(nextLevel, sharedVarPtrs);
-
-        req.set_contextdata(remoteContextBytes.data(),
-                            remoteContextBytes.size());
+        threads::SerialisedLevel serialisedLevel = nextLevel->serialise();
+        req.set_contextdata(BYTES(&serialisedLevel),
+                            threads::sizeOfSerialisedLevel(serialisedLevel));
 
         req.set_type(faabric::BatchExecuteRequest::THREADS);
 
