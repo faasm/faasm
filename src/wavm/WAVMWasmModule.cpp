@@ -884,15 +884,6 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
         restore(msg.snapshotkey());
     }
 
-    // Set up OMP
-    threads::setUpOpenMPContext(msg);
-
-    // Executes OMP fork message if necessary
-    if (msg.ompdepth() > 0) {
-        // TODO - reimplement this call to execute a remote OpenMP thread
-        throw std::runtime_error("Not yet implemented remote OpenMP");
-    }
-
     int funcPtr = msg.funcptr();
     std::vector<IR::UntaggedValue> invokeArgs;
     Runtime::Function* funcInstance;
@@ -1010,7 +1001,7 @@ int32_t WAVMWasmModule::executeAsOMPThread(
   std::shared_ptr<faabric::Message> msg)
 {
     Runtime::Function* funcInstance = getFunctionFromPtr(msg->funcptr());
-    int threadNum = msg->ompthreadnum();
+    int threadNum = msg->appindex();
     int argc = msg->ompfunctionargs_size();
 
     // Set up function args

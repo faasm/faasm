@@ -473,7 +473,7 @@ std::future<int32_t> WasmModule::executeOpenMPTask(threads::OpenMPTask t)
                           break;
                       }
 
-                      int ompThreadNum = taskPair.second.msg->ompthreadnum();
+                      int ompThreadNum = taskPair.second.msg->appindex();
                       logger->debug("OpenMP {}: executing OMP thread {}, "
                                     "function {}, message {}",
                                     threadPoolIdx,
@@ -483,8 +483,7 @@ std::future<int32_t> WasmModule::executeOpenMPTask(threads::OpenMPTask t)
 
                       // We are now in a new thread so need to set up
                       // everything that uses TLS
-                      setUpOpenMPContext(ompThreadNum,
-                                         taskPair.second.nextLevel);
+                      threads::setCurrentOpenMPLevel(taskPair.second.nextLevel);
                       setExecutingModule(this);
                       setExecutingCall(taskPair.second.parentMsg);
 

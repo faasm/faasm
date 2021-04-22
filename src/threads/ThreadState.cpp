@@ -6,10 +6,25 @@ using namespace faabric::util;
 
 namespace threads {
 
-OpenMPContext& getOpenMPContext()
+static thread_local std::shared_ptr<Level> currentLevel;
+
+void setCurrentOpenMPLevel(std::shared_ptr<Level>& level)
 {
-    static thread_local OpenMPContext ctx;
-    return ctx;
+    currentLevel = level;
+}
+
+void setCurrentOpenMPLevel(const faabric::BatchExecuteRequest& req)
+{
+    const SerialisedLevel* serialisedLevel =
+      reinterpret_cast<const SerialisedLevel*>(req.contextdata().data());
+
+    currentLevel = std::make_shared<Level>(serialisedLevel->nThreads);
+    currentLevel->deserialise(serialisedLevel);
+}
+
+std::shared_ptr<Level> getCurrentOpenMPLevel()
+{
+    return currentLevel;
 }
 
 Level::Level(int numThreadsIn)
@@ -71,27 +86,4 @@ void Level::masterWait(int threadNum)
     }
 }
 
-void setUpOpenMPContext(const int threadNum, std::shared_ptr<Level>& thisLevel)
-{
-    OpenMPContext& ctx = getOpenMPContext();
-    ctx.threadNumber = threadNum;
-    ctx.level = thisLevel;
-}
-
-void setUpOpenMPContext(const faabric::Message& msg)
-{
-    OpenMPContext& ctx = getOpenMPContext();
-    ctx.threadNumber = msg.ompthreadnum();
-
-    // Floor max active levels at 1 for a message. Max active levels of zero
-    // disables parallel code.
-    int maxActiveLevels = std::max(msg.ompmal(), 1);
-
-    auto level = std::make_shared<Level>(msg.ompnumthreads());
-    level->depth = msg.ompdepth();
-    level->activeLevels = msg.ompeffdepth();
-    level->maxActiveLevels = maxActiveLevels;
-
-    ctx.level = level;
-}
 }
