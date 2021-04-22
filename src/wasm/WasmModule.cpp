@@ -432,8 +432,12 @@ std::future<int32_t> WasmModule::executeOpenMPTask(threads::OpenMPTask t)
     // thread. However, if we don't have enough threads in the pool, we want to
     // cycle round again, and if we're at a nested level, we want to spread the
     // work to other threads so we don't get nested ones blocking each other.
-    int threadPoolIdx =
-      (t.nextLevel->depth - 1 + t.msg->ompthreadnum()) % threadPoolSize;
+    if (t.nextLevel->depth < 1) {
+        throw std::runtime_error("Depth cannot be below 1");
+    }
+
+    int threadPoolIdx = t.nextLevel->depth - 1 + t.msg->ompthreadnum();
+    threadPoolIdx = threadPoolIdx % threadPoolSize;
 
     // Enqueue the task
     openMPTaskQueueMap[threadPoolIdx].enqueue(
@@ -452,7 +456,7 @@ std::future<int32_t> WasmModule::executeOpenMPTask(threads::OpenMPTask t)
             uint32_t stackTop = threadStacks.back();
             threadStacks.pop_back();
 
-            openMPThreads.insert(
+            openMPThreads.emplace(
               std::make_pair(threadPoolIdx, [this, stackTop, threadPoolIdx] {
                   auto logger = faabric::util::getLogger();
                   logger->debug("Starting OpenMP pool thread {}/{}",
