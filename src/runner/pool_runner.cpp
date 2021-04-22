@@ -5,8 +5,6 @@
 #include <faabric/endpoint/FaabricEndpoint.h>
 #include <faabric/executor/FaabricMain.h>
 
-#include <faabric/util/timing.h>
-
 using namespace faabric::executor;
 using namespace faaslet;
 
@@ -24,10 +22,8 @@ int main()
     logger->info("Starting endpoint");
     faabric::endpoint::FaabricEndpoint endpoint;
     endpoint.start();
-    PROF_BEGIN
 
     logger->info("Shutting down endpoint");
-    PROF_SUMMARY
     w.shutdown();
 
     return EXIT_SUCCESS;
