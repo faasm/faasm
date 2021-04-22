@@ -266,19 +266,6 @@ This will mount your local build of Faasm inside a local cluster defined in
 Before doing so, make sure you've completely removed any existing faasm
 containers.
 
-Docker compose is well-suited for development as it allows to patch many aspects
-of your cluster without ever shutting down the deployment (which you may do
-by running `docker-compose down`).
-
-### Scaling services
-
-To scale up or down a service you may run:
-```
-docker-compose up -d --scale <service>=<NUM_REPLICAS> [--force-recreate/no-recreate]
-```
-
-### Patching executables
-
 To demonstrate, we can make a change to the `pool_runner` which is executed by
 the `worker` container. To set up the local cluster:
 
@@ -325,15 +312,3 @@ docker-compose restart worker
 docker-compose logs -f
 ```
 
-### Patching the environment
-
-Note that you can also update the environment in a service by modifying the
-`docker-compose.yml` file, and re-running:
-```
-docker-compose up -d
-```
-
-To check that the env. variable has been updated, run:
-```
-docker-compose exec <service> env
-```
