@@ -22,8 +22,6 @@ using namespace WAVM;
 namespace wasm {
 // Map of tid to message ID for chained calls
 static thread_local std::unordered_map<I32, unsigned int> chainedThreads;
-static thread_local std::unordered_map<I32, std::future<int32_t>>
-  localThreadFutures;
 
 // Record of whether this thread has already got a snapshot being used to spawn
 // other threads.
@@ -86,40 +84,30 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
           "Setting pthread snapshot for {} ({})", funcStr, currentSnapshotKey);
     }
 
-    std::shared_ptr<faabric::Message> threadCall =
-      faabric::util::messageFactoryShared(originalCall->user(),
-                                          originalCall->function());
-    threadCall->set_isasync(true);
+    std::shared_ptr<faabric::BatchExecuteRequest> req =
+      faabric::util::batchExecFactory(
+        originalCall->user(), originalCall->function(), 1);
+    faabric::Message& threadCall = req->mutable_messages()->at(0);
+    threadCall.set_isasync(true);
 
     // Snapshot details
-    threadCall->set_snapshotkey(currentSnapshotKey);
+    threadCall.set_snapshotkey(currentSnapshotKey);
 
     // Function pointer and args
     // NOTE - with a pthread interface we only ever pass the function a single
     // pointer argument, hence we use the input data here to hold this argument
     // as a string
-    threadCall->set_funcptr(entryFunc);
-    threadCall->set_inputdata(std::to_string(argsPtr));
+    threadCall.set_funcptr(entryFunc);
+    threadCall.set_inputdata(std::to_string(argsPtr));
 
     // Set up the request
-    std::vector<std::shared_ptr<faabric::Message>> msgs = { threadCall };
-    faabric::BatchExecuteRequest req = faabric::util::batchExecFactory(msgs);
-    req.set_type(faabric::BatchExecuteRequest::THREADS);
+    req->set_type(faabric::BatchExecuteRequest::THREADS);
 
     // Submit it
     std::vector<std::string> hosts = sch.callFunctions(req);
 
-    // Check if the scheduler expects us to execute locally
-    bool execLocal = hosts.at(0) == "";
-
-    if (execLocal) {
-        threads::PthreadTask t(originalCall, threadCall);
-
-        localThreadFutures[pthreadPtr] = thisModule->executePthreadTask(t);
-    } else {
-        // Record this thread -> call ID
-        chainedThreads.insert({ pthreadPtr, threadCall->id() });
-    }
+    // Record this thread -> call ID
+    chainedThreads.insert({ pthreadPtr, threadCall.id() });
 
     return 0;
 }
@@ -136,23 +124,17 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     int returnValue;
 
-    if (localThreadFutures.count(pthreadPtr) > 0) {
-        // Get the local thread future
-        logger->debug("Awaiting local pthread: {}", pthreadPtr);
-        returnValue = localThreadFutures[pthreadPtr].get();
-        localThreadFutures.erase(pthreadPtr);
-    } else {
-        // Await the remotely chained thread
+        // Await the chained thread
         unsigned int callId = chainedThreads[pthreadPtr];
         logger->debug("Awaiting remote pthread: {} ({})", pthreadPtr, callId);
-        returnValue = awaitChainedCall(callId);
+        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
+        returnValue = sch.awaitThreadResult(callId);
 
         // Remove record for the remote thread
         chainedThreads.erase(pthreadPtr);
-    }
 
     // If we're done with executing threads, remove the snapshot
-    if (chainedThreads.empty() && localThreadFutures.empty()) {
+    if (chainedThreads.empty()) {
         logger->debug("Finished with snapshot: {}", currentSnapshotKey);
         currentSnapshotKey = "";
     }

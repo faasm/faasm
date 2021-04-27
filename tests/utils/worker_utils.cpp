@@ -131,7 +131,7 @@ void execFunctionWithRemoteBatch(faabric::Message& call,
     auto reqs = faabric::scheduler::getBatchRequests();
     REQUIRE(reqs.size() == 1);
     std::string actualHost = reqs.at(0).first;
-    faabric::BatchExecuteRequest req = reqs.at(0).second;
+    std::shared_ptr<faabric::BatchExecuteRequest> req = reqs.at(0).second;
     REQUIRE(actualHost == otherHost);
 
     // Check the snapshot has been pushed to the other host
@@ -141,7 +141,7 @@ void execFunctionWithRemoteBatch(faabric::Message& call,
 
     // Rewrite the snapshot to be restorable. This is a bit of a hack, usually
     // this would have been done via the RPC call between the hosts.
-    faabric::Message firstMsg = req.messages().at(0);
+    faabric::Message firstMsg = req->messages().at(0);
     std::string snapKey = firstMsg.snapshotkey();
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
@@ -157,7 +157,7 @@ void execFunctionWithRemoteBatch(faabric::Message& call,
     }
 }
 
-void execBatchWithPool(faabric::BatchExecuteRequest& req,
+void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
                        int nThreads,
                        bool checkChained,
                        bool clean)
@@ -184,7 +184,7 @@ void execBatchWithPool(faabric::BatchExecuteRequest& req,
 
     // Wait for all functions to complete if necessary
     if (checkChained) {
-        for (auto m : req.messages()) {
+        for (auto m : req->messages()) {
             faabric::Message result = sch.getFunctionResult(m.id(), 20000);
             REQUIRE(result.returnvalue() == 0);
         }

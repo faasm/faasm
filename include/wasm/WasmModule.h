@@ -134,20 +134,9 @@ class WasmModule
     virtual void printDebugInfo();
 
     // ----- Threading -----
-    std::future<int32_t> executeOpenMPTask(threads::OpenMPTask t);
-
-    std::future<int32_t> executePthreadTask(threads::PthreadTask t);
-
-    void shutdownOpenMPThreads();
-
-    void shutdownPthreads();
-
-    virtual int32_t executeAsOMPThread(int threadPoolIdx,
-                                       uint32_t stackTop,
-                                       std::shared_ptr<faabric::Message> msg);
-
-    virtual int32_t executeAsPthread(uint32_t stackTop,
-                                     std::shared_ptr<faabric::Message> msg);
+    int32_t executeThread(int threadPoolIdx,
+                          std::shared_ptr<faabric::BatchExecuteRequest> req,
+                          faabric::Message& msg);
 
     threads::MutexManager& getMutexes();
 
@@ -165,16 +154,8 @@ class WasmModule
     int stdoutMemFd;
     ssize_t stdoutSize;
 
-    uint32_t threadPoolSize = 0;
+    int threadPoolSize;
     std::vector<uint32_t> threadStacks;
-
-    OpenMPQueueMap openMPTaskQueueMap;
-    PthreadQueue pthreadTaskQueue;
-
-    std::unordered_map<int, std::thread> openMPThreads;
-    std::vector<std::thread> pthreads;
-
-    std::mutex threadsMutex;
 
     threads::MutexManager mutexes;
 
@@ -194,6 +175,14 @@ class WasmModule
     void prepareArgcArgv(const faabric::Message& msg);
 
     virtual uint8_t* getMemoryBase();
+
+    virtual int32_t executeOMPThread(int threadPoolIdx,
+                                     uint32_t stackTop,
+                                     faabric::Message& msg);
+
+    virtual int32_t executePthread(int threadPoolIdx,
+                                   uint32_t stackTop,
+                                   faabric::Message& msg);
 
     // Threads
     void createThreadStacks();

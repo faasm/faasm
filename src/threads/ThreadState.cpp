@@ -21,10 +21,11 @@ void setCurrentOpenMPLevel(std::shared_ptr<Level>& level)
     currentLevel = level;
 }
 
-void setCurrentOpenMPLevel(const faabric::BatchExecuteRequest& req)
+void setCurrentOpenMPLevel(
+  const std::shared_ptr<faabric::BatchExecuteRequest> req)
 {
     const SerialisedLevel* serialisedLevel =
-      reinterpret_cast<const SerialisedLevel*>(req.contextdata().data());
+      reinterpret_cast<const SerialisedLevel*>(req->contextdata().data());
 
     currentLevel = std::make_shared<Level>(serialisedLevel->nThreads);
     currentLevel->deserialise(serialisedLevel);

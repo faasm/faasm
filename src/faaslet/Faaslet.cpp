@@ -1,4 +1,5 @@
 #include "Faaslet.h"
+#include "threads/ThreadState.h"
 
 #include <stdexcept>
 #include <system/CGroup.h>
@@ -159,16 +160,16 @@ void Faaslet::postBind(const faabric::Message& msg, bool force)
     }
 }
 
-bool Faaslet::doExecute(faabric::Message& msg)
+void Faaslet::restore(const faabric::Message& call)
 {
     auto logger = faabric::util::getLogger();
 
     auto& conf = faabric::util::getSystemConfig();
-    const std::string snapshotKey = msg.snapshotkey();
+    const std::string snapshotKey = call.snapshotkey();
 
     // Restore from snapshot if necessary
     if (conf.wasmVm == "wavm") {
-        if (!snapshotKey.empty() && !msg.issgx()) {
+        if (!snapshotKey.empty() && !call.issgx()) {
             PROF_START(snapshotOverride)
 
             logger->debug("Restoring {} from snapshot {} before execution",
@@ -177,14 +178,27 @@ bool Faaslet::doExecute(faabric::Message& msg)
             module_cache::WasmModuleCache& registry =
               module_cache::getWasmModuleCache();
 
-            wasm::WAVMWasmModule& snapshot = registry.getCachedModule(msg);
+            wasm::WAVMWasmModule& snapshot = registry.getCachedModule(call);
             module = std::make_unique<wasm::WAVMWasmModule>(snapshot);
 
             PROF_END(snapshotOverride)
         }
     }
+}
 
-    // Execute the function
+int32_t Faaslet::executeThread(
+  int threadPoolIdx,
+  std::shared_ptr<faabric::BatchExecuteRequest> req,
+  faabric::Message& msg)
+{
+    restore(msg);
+
+    return module->executeThread(threadPoolIdx, req, msg);
+}
+
+bool Faaslet::doExecute(faabric::Message& msg)
+{
+    restore(msg);
     bool success = module->execute(msg);
     return success;
 }

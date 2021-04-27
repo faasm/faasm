@@ -15,7 +15,7 @@ void execFunctionWithRemoteBatch(faabric::Message& call,
                                  int nThreads = 4,
                                  bool clean = true);
 
-void execBatchWithPool(faabric::BatchExecuteRequest& call,
+void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
                        int nThreads,
                        bool checkChained,
                        bool clean);

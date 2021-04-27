@@ -1,3 +1,4 @@
+#include "wasm/WasmModule.h"
 #include <WAVM/Platform/Thread.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
@@ -103,7 +104,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     if (level < 0) {
         logger->warn("Trying to set active level with a negative number {}",
-                     level);
+                     maxLevels);
     } else {
         level->maxActiveLevels = maxLevels;
     }
@@ -390,6 +391,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     WAVMWasmModule* parentModule = getExecutingWAVMModule();
     Runtime::Memory* memoryPtr = parentModule->defaultMemory;
     faabric::Message* parentCall = getExecutingCall();
+    const std::string parentStr =
+      faabric::util::funcToString(*parentCall, false);
 
     // Set up number of threads for next level
     std::shared_ptr<threads::Level> parentLevel = level;
@@ -411,10 +414,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         logger->debug("Not creating OpenMP snapshot for single thread");
     }
 
-    const faabric::Message* originalCall = getExecutingCall();
-    const std::string origStr =
-      faabric::util::funcToString(*originalCall, false);
-
     // Prepare arguments for main thread and all others
     std::vector<IR::UntaggedValue> mainArguments = { 0, argc };
     std::vector<uint32_t> sharedVarPtrs;
@@ -433,146 +432,81 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     // Set up the chained calls
     // Note that the main OpenMP thread is always executed in this thread, hence
     // it is not scheduled remotely
-    std::shared_ptr<faabric::Message> masterMsg = nullptr;
-    std::vector<std::shared_ptr<faabric::Message>> childThreadMsgs;
-    std::vector<int> remoteCallIds;
-    for (int threadNum = 0; threadNum < nextLevel->numThreads; threadNum++) {
-        // Create basic call
-        std::shared_ptr<faabric::Message> call =
-          faabric::util::messageFactoryShared(originalCall->user(),
-                                              originalCall->function());
-
-        // Record master message if necessary
-        if (threadNum == 0) {
-            masterMsg = call;
-        }
-
-        // All calls are async by definition
-        call->set_isasync(true);
-
-        // Snapshot details
-        call->set_snapshotkey(snapshotKey);
-
-        // Function pointer
-        call->set_funcptr(microtaskPtr);
-
-        // OpenMP thread number
-        call->set_appindex(threadNum);
-
-        if (threadNum > 0) {
-            childThreadMsgs.push_back(call);
-        }
-    }
-
-    // Attempt to schedule across hosts
-    std::vector<std::future<int32_t>> localFutures;
+    std::shared_ptr<faabric::BatchExecuteRequest> req = nullptr;
     if (!isSingleThread) {
         // Set up the request
-        faabric::BatchExecuteRequest req =
-          faabric::util::batchExecFactory(childThreadMsgs);
+        req = faabric::util::batchExecFactory(parentCall->user(),
+                                              parentCall->function(),
+                                              nextLevel->numThreads - 1);
 
         // Add remote context
         threads::SerialisedLevel serialisedLevel = nextLevel->serialise();
-        req.set_contextdata(BYTES(&serialisedLevel),
-                            threads::sizeOfSerialisedLevel(serialisedLevel));
+        req->set_contextdata(BYTES(&serialisedLevel),
+                             threads::sizeOfSerialisedLevel(serialisedLevel));
+        req->set_type(faabric::BatchExecuteRequest::THREADS);
 
-        req.set_type(faabric::BatchExecuteRequest::THREADS);
+        // Configure the mesages
+        for (int i = 0; i < req->messages_size(); i++) {
+            int threadNum = i + 1;
 
-        // Submit it
-        std::vector<std::string> executedHosts = sch.callFunctions(req);
+            // Create basic call
+            faabric::Message& call = req->mutable_messages()->at(threadNum);
 
-        // Iterate through messages and see which need to be executed in local
-        // threads
-        for (int i = 0; i < executedHosts.size(); i++) {
-            std::string host = executedHosts.at(i);
-            bool isLocal = host.empty();
+            // All calls are async by definition
+            call.set_isasync(true);
 
-            std::shared_ptr<faabric::Message> msg = childThreadMsgs.at(i);
-            uint32_t msgId = msg->id();
+            // Snapshot details
+            call.set_snapshotkey(snapshotKey);
 
-            if (isLocal) {
-                logger->debug("Dispatching local task for OpenMP call ID {}",
-                              msgId);
+            // Function pointer
+            call.set_funcptr(microtaskPtr);
 
-                // Execute the local thread
-                threads::OpenMPTask t(parentCall, msg, nextLevel);
-                localFutures.emplace_back(parentModule->executeOpenMPTask(t));
-            } else {
-                // Function is being executed remotely
-                logger->debug("Waiting for remote thread for call ID {}",
-                              msgId);
-                remoteCallIds.push_back(msgId);
-                continue;
-            }
+            // OpenMP thread number
+            call.set_appindex(threadNum);
         }
+
+        // Submit the request
+        std::vector<std::string> executedHosts = sch.callFunctions(req);
     }
 
     // Execute the master task (just invoke the microtask directly)
-    IR::UntaggedValue mainThreadResult;
     {
+        std::shared_ptr<faabric::Message> masterMsg =
+          std::make_shared<faabric::Message>();
+        masterMsg->set_isasync(true);
+        masterMsg->set_appindex(0);
+
+        IR::UntaggedValue masterThreadResult;
+
         // We have to set up the context for the thread
         threads::setCurrentOpenMPLevel(nextLevel);
-        setExecutingCall(masterMsg);
+        setExecutingCall(masterMsg.get());
 
         // Execute the task
         logger->debug("OpenMP 0: executing OMP thread 0 (master)");
         WAVM::Runtime::Function* microtaskFunc =
           parentModule->getFunctionFromPtr(microtaskPtr);
         parentModule->executeFunction(
-          microtaskFunc, mainArguments, mainThreadResult);
+          microtaskFunc, mainArguments, masterThreadResult);
 
         // Now we reset the context for this main thread
         threads::setCurrentOpenMPLevel(parentLevel);
-        setExecutingCall(parentMsg);
-    }
+        setExecutingCall(parentCall);
 
-    // Await the results of all the remote threads
-    int numErrors = 0;
-    for (auto callId : remoteCallIds) {
-        int callTimeoutMs = faabric::util::getSystemConfig().chainedCallTimeout;
-
-        logger->info(
-          "Waiting for call id {} with a timeout of {}", callId, callTimeoutMs);
-
-        int returnCode = 1;
-        try {
-            const faabric::Message result =
-              sch.getFunctionResult(callId, callTimeoutMs);
-
-            returnCode = result.returnvalue();
-
-        } catch (faabric::redis::RedisNoResponseException& ex) {
-            logger->error("Timed out waiting for chained call: {}", callId);
-
-        } catch (std::exception& ex) {
-            logger->error("Non-timeout exception waiting for chained call: {}",
-                          ex.what());
-        }
-
-        if (returnCode > 0) {
-            numErrors++;
+        if (masterThreadResult.i32 > 0) {
+            throw std::runtime_error("Master OpenMP thread failed");
         }
     }
 
-    // Await local threads
-    for (auto& f : localFutures) {
-        int32_t retValue = f.get();
-        if (retValue > 0) {
-            throw std::runtime_error("OpenMP threads have errors");
-        }
-    }
-
-    if (mainThreadResult.i32 > 0) {
-        throw std::runtime_error("Master OpenMP thread failed");
-    }
-
-    // Reset parent level for next setting of threads
-    parentLevel->pushedThreads = -1;
-
-    // Delete the snapshot from registered hosts
+    // Iterate through messages and await completion
     if (!isSingleThread) {
+        for (int i = 0; i < req->messages_size(); i++) {
+            sch.awaitThreadResult(req->messages().at(i).id());
+        }
+
+        // Delete the snapshot from registered hosts
         PROF_START(BroadcastDeleteSnapshot)
-        sch.broadcastSnapshotDelete(*originalCall, snapshotKey);
+        sch.broadcastSnapshotDelete(*parentCall, snapshotKey);
         PROF_END(BroadcastDeleteSnapshot)
 
         // Delete the snapshot locally
@@ -582,6 +516,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         reg.deleteSnapshot(snapshotKey);
         PROF_END(DeleteSnapshot)
     }
+
+    // Reset parent level for next setting of threads
+    parentLevel->pushedThreads = -1;
 }
 
 // -------------------------------------------------------
@@ -617,6 +554,7 @@ void for_static_init(I32 schedule,
     typedef typename std::make_unsigned<T>::type UT;
 
     auto logger = faabric::util::getLogger();
+    faabric::Message* msg = getExecutingCall();
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
 
     if (level->numThreads == 1) {
@@ -824,6 +762,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 int reduceFinished()
 {
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
+    faabric::Message* msg = getExecutingCall();
 
     // Notify the master thread that we've done our reduction
     if (msg->appindex() != 0) {
@@ -840,7 +779,7 @@ int reduceFinished()
  */
 void finaliseReduce(bool barrier)
 {
-    std::shared_ptr<Level> level = getCurrentOpenMPLevel();
+    std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
     faabric::Message* msg = getExecutingCall();
 
     // Master must make sure all other threads are done

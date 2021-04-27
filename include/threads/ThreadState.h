@@ -23,7 +23,7 @@ class SerialisedLevel
     uint32_t sharedVars[];
 };
 
-size_t sizeOfSerialisedLevel(SerialisedLevel &serialisedLevel);
+size_t sizeOfSerialisedLevel(SerialisedLevel& serialisedLevel);
 
 // A Level is a layer of threads in an OpenMP application.
 // Note, defaults are set to mimic Clang 9.0.1 behaviour
@@ -117,7 +117,8 @@ class OpenMPContext
 
 std::shared_ptr<Level> getCurrentOpenMPLevel();
 
-void setCurrentOpenMPLevel(const faabric::BatchExecuteRequest& req);
+void setCurrentOpenMPLevel(
+  const std::shared_ptr<faabric::BatchExecuteRequest> req);
 
 void setCurrentOpenMPLevel(const std::shared_ptr<Level>& level);
 }

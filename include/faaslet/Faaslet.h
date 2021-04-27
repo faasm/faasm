@@ -25,6 +25,10 @@ class Faaslet final : public faabric::executor::FaabricExecutor
 
     bool doExecute(faabric::Message& call) override;
 
+    int32_t executeThread(int threadPoolIdx,
+                          std::shared_ptr<faabric::BatchExecuteRequest> req,
+                          faabric::Message& msg) override;
+
     void preFinishCall(faabric::Message& call,
                        bool success,
                        const std::string& errorMsg) override;
@@ -34,6 +38,8 @@ class Faaslet final : public faabric::executor::FaabricExecutor
   private:
     int isolationIdx;
     std::unique_ptr<isolation::NetworkNamespace> ns;
+
+    void restore(const faabric::Message& call);
 };
 
 void preloadPythonRuntime();
