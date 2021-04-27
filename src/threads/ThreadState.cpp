@@ -16,7 +16,7 @@ size_t sizeOfSerialisedLevel(SerialisedLevel& serialisedLevel)
     return slSize;
 }
 
-void setCurrentOpenMPLevel(std::shared_ptr<Level>& level)
+void setCurrentOpenMPLevel(const std::shared_ptr<Level>& level)
 {
     currentLevel = level;
 }
@@ -93,6 +93,20 @@ void Level::masterWait(int threadNum)
         nowaitCount++;
         nowaitCv.notify_one();
     }
+}
+
+SerialisedLevel Level::serialise()
+{
+    SerialisedLevel sl;
+    sl.depth = depth;
+    sl.effectiveDepth = activeLevels;
+    sl.maxActiveLevels = maxActiveLevels;
+    sl.nThreads = numThreads;
+
+    sl.nSharedVars = sharedVarPtrs.size();
+    sl.sharedVars = sharedVarPtrs.data();
+
+    return sl;
 }
 
 void Level::deserialise(const SerialisedLevel* level)

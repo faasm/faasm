@@ -21,7 +21,7 @@ using namespace WAVM;
 
 namespace wasm {
 // Map of tid to message ID for chained calls
-static thread_local std::unordered_map<I32, unsigned int> chainedThreads;
+static thread_local std::unordered_map<int32_t, uint32_t> chainedThreads;
 
 // Record of whether this thread has already got a snapshot being used to spawn
 // other threads.
@@ -87,6 +87,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory(
         originalCall->user(), originalCall->function(), 1);
+
     faabric::Message& threadCall = req->mutable_messages()->at(0);
     threadCall.set_isasync(true);
 
@@ -104,7 +105,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     req->set_type(faabric::BatchExecuteRequest::THREADS);
 
     // Submit it
-    std::vector<std::string> hosts = sch.callFunctions(req);
+    sch.callFunctions(req);
 
     // Record this thread -> call ID
     chainedThreads.insert({ pthreadPtr, threadCall.id() });
@@ -122,16 +123,15 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
     logger->debug("S - pthread_join - {} {}", pthreadPtr, resPtrPtr);
 
-    int returnValue;
+    // Await the chained thread
+    unsigned int callId = chainedThreads[pthreadPtr];
+    logger->debug("Awaiting pthread: {} ({})", pthreadPtr, callId);
+    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
 
-        // Await the chained thread
-        unsigned int callId = chainedThreads[pthreadPtr];
-        logger->debug("Awaiting remote pthread: {} ({})", pthreadPtr, callId);
-        faabric::scheduler::Scheduler &sch = faabric::scheduler::getScheduler();
-        returnValue = sch.awaitThreadResult(callId);
+    int returnValue = sch.awaitThreadResult(callId);
 
-        // Remove record for the remote thread
-        chainedThreads.erase(pthreadPtr);
+    // Remove record for the remote thread
+    chainedThreads.erase(pthreadPtr);
 
     // If we're done with executing threads, remove the snapshot
     if (chainedThreads.empty()) {

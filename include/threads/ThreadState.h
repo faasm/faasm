@@ -20,7 +20,7 @@ class SerialisedLevel
     int32_t nThreads;
 
     uint32_t nSharedVars = 0;
-    uint32_t sharedVars[];
+    uint32_t* sharedVars;
 };
 
 size_t sizeOfSerialisedLevel(SerialisedLevel& serialisedLevel);

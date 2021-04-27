@@ -466,7 +466,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         }
 
         // Submit the request
-        std::vector<std::string> executedHosts = sch.callFunctions(req);
+        sch.callFunctions(req);
     }
 
     // Execute the master task (just invoke the microtask directly)
