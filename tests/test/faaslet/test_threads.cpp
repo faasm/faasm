@@ -1,3 +1,4 @@
+#include "faabric/proto/faabric.pb.h"
 #include "utils.h"
 #include <catch2/catch.hpp>
 
@@ -9,19 +10,6 @@
 #include <wavm/WAVMWasmModule.h>
 
 namespace tests {
-void checkThreadedFunction(const char* threadFunc, bool runPool)
-{
-    cleanSystem();
-
-    // Run the function
-    faabric::Message msg = faabric::util::messageFactory("demo", threadFunc);
-
-    if (runPool) {
-        execFuncWithPool(msg, false, 1, false, 4, false);
-    } else {
-        execFunction(msg);
-    }
-}
 
 void runTestLocally(const std::string& func)
 {
@@ -30,7 +18,10 @@ void runTestLocally(const std::string& func)
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
 
     faabric::Message msg = faabric::util::messageFactory("demo", func);
-    execFunction(msg);
+    std::shared_ptr<faabric::BatchExecuteRequest> req =
+      faabric::util::batchExecFactory("demo", func, 1);
+
+    execBatchWithPool(req, 3, false, false);
 
     // Check the system does its accounting
     REQUIRE(sch.getFunctionInFlightCount(msg) == 0);

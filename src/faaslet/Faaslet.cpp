@@ -191,9 +191,6 @@ int32_t Faaslet::executeThread(
   std::shared_ptr<faabric::BatchExecuteRequest> req,
   faabric::Message& msg)
 {
-    auto logger = faabric::util::getLogger();
-    logger->debug("{} executing thread", id);
-
     restore(msg);
 
     return module->executeThread(threadPoolIdx, req, msg);

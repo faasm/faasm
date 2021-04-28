@@ -75,7 +75,7 @@ size_t getPagesForGuardRegion()
 }
 
 WasmModule::WasmModule()
-  : threadPoolSize(faabric::util::getSystemConfig().executorThreadPoolSize)
+  : threadPoolSize(faabric::util::getUsableCores() - 1)
 {}
 
 WasmModule::~WasmModule()

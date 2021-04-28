@@ -966,6 +966,11 @@ int32_t WAVMWasmModule::executePthread(int threadPoolIdx,
                                        uint32_t stackTop,
                                        faabric::Message& msg)
 {
+    const auto& logger = faabric::util::getLogger();
+    std::string funcStr = faabric::util::funcToString(msg, false);
+
+    logger->debug("Executing pthread {} for {}", threadPoolIdx, funcStr);
+
     Runtime::Function* funcInstance = getFunctionFromPtr(msg.funcptr());
 
     int argsPtr = std::stoi(msg.inputdata());

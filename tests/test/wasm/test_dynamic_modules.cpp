@@ -203,11 +203,10 @@ TEST_CASE("Test GOT population", "[wasm]")
 
     // Note - we want to set a fixed thread pool size here as this determines
     // the location of data in the wasm memory
-    conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
-    int originalThreadPoolSize = faasmConf.moduleThreadPoolSize;
-    faasmConf.moduleThreadPoolSize = 2;
-
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    int originalThreadPoolSize = conf.overrideCpuCount;
+    conf.overrideCpuCount = 2;
+
     std::string preloadBefore = conf.pythonPreload;
     conf.pythonPreload = "off";
 
@@ -264,7 +263,7 @@ TEST_CASE("Test GOT population", "[wasm]")
     REQUIRE(expectedIdxB < tableSizeAfterB);
 
     conf.pythonPreload = preloadBefore;
-    faasmConf.moduleThreadPoolSize = originalThreadPoolSize;
+    conf.overrideCpuCount = originalThreadPoolSize;
 }
 
 void resolveGlobalI32(wasm::WAVMWasmModule& module,

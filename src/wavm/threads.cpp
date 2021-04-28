@@ -1,5 +1,4 @@
 #include "syscalls.h"
-#include "threads/ThreadState.h"
 
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/scheduler/Scheduler.h>
@@ -7,6 +6,7 @@
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 #include <faabric/util/logging.h>
+#include <threads/ThreadState.h>
 #include <wasm/WasmModule.h>
 #include <wasm/chaining.h>
 #include <wavm/WAVMWasmModule.h>
