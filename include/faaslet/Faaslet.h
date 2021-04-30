@@ -1,28 +1,28 @@
 #pragma once
 
-#include <system/NetworkNamespace.h>
-
-#include <faabric/executor/FaabricExecutor.h>
+#include "faabric/scheduler/ExecutorFactory.h"
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/func.h>
+#include <system/NetworkNamespace.h>
 
 #include <wasm/WasmModule.h>
 
 #include <string>
 
 namespace faaslet {
-class Faaslet final : public faabric::executor::FaabricExecutor
+
+int claimFaasletIdx();
+
+class Faaslet final : public faabric::scheduler::Executor
 {
   public:
-    explicit Faaslet(int threadIdx);
+    explicit Faaslet(const faabric::Message& msg);
 
     std::unique_ptr<wasm::WasmModule> module;
 
     void flush() override;
 
   protected:
-    void postBind(const faabric::Message& msg, bool force) override;
-
     bool doExecute(faabric::Message& call) override;
 
     int32_t executeThread(int threadPoolIdx,
@@ -42,6 +42,12 @@ class Faaslet final : public faabric::executor::FaabricExecutor
     void restore(const faabric::Message& call);
 };
 
-void preloadPythonRuntime();
+class FaasletFactory final : public faabric::scheduler::ExecutorFactory
+{
+  protected:
+    std::shared_ptr<faabric::scheduler::Executor> createExecutor(
+      const faabric::Message& msg);
+};
 
+void preloadPythonRuntime();
 }

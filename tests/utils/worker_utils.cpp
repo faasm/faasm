@@ -2,13 +2,15 @@
 #include <catch2/catch.hpp>
 
 #include <faabric/proto/faabric.pb.h>
+#include <faabric/runner/FaabricMain.h>
 #include <faabric/scheduler/FunctionCallClient.h>
 #include <faabric/scheduler/SnapshotClient.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/environment.h>
 #include <faabric/util/testing.h>
-#include <faaslet/FaasletPool.h>
+
+#include <faaslet/Faaslet.h>
 #include <module_cache/WasmModuleCache.h>
 #include <wavm/WAVMWasmModule.h>
 
@@ -45,17 +47,13 @@ std::string execFunctionWithStringResult(faabric::Message& call)
     std::string originalPreload = conf.pythonPreload;
     conf.pythonPreload = "off";
 
-    // Set up worker to listen for relevant function
-    Faaslet w(1);
-    REQUIRE(!w.isBound());
+    auto fac = std::make_shared<faaslet::FaasletFactory>();
+    faabric::runner::FaabricMain m(fac);
+    m.startRunner();
 
     // Call the function
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.callFunction(call);
-
-    // Process the bind and execute messages
-    w.processNextMessage();
-    w.processNextMessage();
 
     const faabric::Message result = sch.getFunctionResult(call.id(), 1);
     if (result.returnvalue() != 0) {
@@ -67,6 +65,8 @@ std::string execFunctionWithStringResult(faabric::Message& call)
     REQUIRE(result.returnvalue() == 0);
 
     conf.pythonPreload = originalPreload;
+
+    m.shutdown();
 
     return result.outputdata();
 }
@@ -168,14 +168,14 @@ void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
 
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     conf.boundTimeout = 1000;
-    conf.unboundTimeout = 1000;
     conf.chainedCallTimeout = 10000;
 
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
 
-    // Start a Faaslet pool to execute things
-    faaslet::FaasletPool pool(nThreads);
-    pool.startThreadPool();
+    // Start up system
+    auto fac = std::make_shared<faaslet::FaasletFactory>();
+    faabric::runner::FaabricMain m(fac);
+    m.startRunner();
 
     // Execute forcing local
     sch.callFunctions(req, true);
@@ -190,7 +190,7 @@ void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
         }
     }
 
-    pool.shutdown();
+    m.shutdown();
 }
 
 void execFuncWithPool(faabric::Message& call,
@@ -213,13 +213,13 @@ void execFuncWithPool(faabric::Message& call,
     std::string originalNsMode = conf.netNsMode;
     std::string originalPreload = conf.pythonPreload;
     conf.boundTimeout = 1000;
-    conf.unboundTimeout = 1000;
     conf.netNsMode = "off";
     conf.pythonPreload = pythonPreload ? "on" : "off";
 
-    // Set up a real worker pool to execute the function
-    faaslet::FaasletPool pool(nThreads);
-    pool.startThreadPool();
+    // Set up the system
+    auto fac = std::make_shared<faaslet::FaasletFactory>();
+    faabric::runner::FaabricMain m(fac);
+    m.startRunner();
 
     unsigned int mainFuncId;
     for (int i = 0; i < repeatCount; i++) {
@@ -241,7 +241,8 @@ void execFuncWithPool(faabric::Message& call,
 
     // Get all call statuses
     if (checkChained) {
-        for (auto messageId : sch.getRecordedMessagesAll()) {
+        for (auto msg : sch.getRecordedMessagesAll()) {
+            uint32_t messageId = msg.id();
             if (messageId == mainFuncId) {
                 // Already checked the main message ID
                 continue;
@@ -261,7 +262,7 @@ void execFuncWithPool(faabric::Message& call,
     }
 
     // Shut down the pool
-    pool.shutdown();
+    m.shutdown();
 
     conf.netNsMode = originalNsMode;
     conf.pythonPreload = originalPreload;
@@ -300,14 +301,12 @@ void checkCallingFunctionGivesBoolOutput(const std::string& user,
 {
     faabric::Message call = faabric::util::messageFactory("demo", funcName);
 
-    Faaslet w(1);
-
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.callFunction(call);
 
-    // Bind and execute
-    w.processNextMessage();
-    w.processNextMessage();
+    auto fac = std::make_shared<faaslet::FaasletFactory>();
+    faabric::runner::FaabricMain m(fac);
+    m.startRunner();
 
     // Check output is true
     faabric::Message result = sch.getFunctionResult(call.id(), 1);

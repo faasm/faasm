@@ -1,24 +1,19 @@
 #include <catch2/catch.hpp>
 
-#include "faabric/util/queue.h"
 #include "ir_cache/IRModuleCache.h"
 #include "utils.h"
 
 #include <boost/filesystem.hpp>
-#include <faabric/executor/FaabricMain.h>
+
+#include <faabric/runner/FaabricMain.h>
 #include <faabric/util/config.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
-#include <faaslet/FaasletPool.h>
+
 #include <module_cache/WasmModuleCache.h>
 #include <storage/FileLoader.h>
 
 namespace tests {
-TEST_CASE("Test flushing empty faaslet does not break", "[faaslet]")
-{
-    faaslet::Faaslet f(0);
-    REQUIRE_THROWS_AS(f.flush(), faabric::util::ExecutorFinishedException);
-}
 
 TEST_CASE("Test flushing faaslet clears shared files", "[faaslet]")
 {
@@ -39,7 +34,8 @@ TEST_CASE("Test flushing faaslet clears shared files", "[faaslet]")
     REQUIRE(boost::filesystem::exists(sharedPath));
 
     // Flush and check file is gone
-    faaslet::Faaslet f(0);
+    faabric::Message msg = faabric::util::messageFactory("demo", "echo");
+    faaslet::Faaslet f(msg);
     REQUIRE_THROWS_AS(f.flush(), faabric::util::ExecutorFinishedException);
     REQUIRE(!boost::filesystem::exists(sharedPath));
 }
@@ -56,7 +52,7 @@ TEST_CASE("Test flushing faaslet clears zygotes", "[faaslet]")
 
     REQUIRE(reg.getTotalCachedModuleCount() == 2);
 
-    faaslet::Faaslet f(0);
+    faaslet::Faaslet f(msgA);
     REQUIRE_THROWS_AS(f.flush(), faabric::util::ExecutorFinishedException);
     REQUIRE(reg.getTotalCachedModuleCount() == 0);
 }
@@ -65,8 +61,7 @@ TEST_CASE("Test flushing faaslet clears IR module cache", "[faaslet]")
 {
     const faabric::Message msg = faabric::util::messageFactory("demo", "echo");
 
-    faaslet::Faaslet f(0);
-    f.bindToFunction(msg);
+    faaslet::Faaslet f(msg);
 
     wasm::IRModuleCache& cache = wasm::getIRModuleCache();
     REQUIRE(cache.isModuleCached("demo", "echo", ""));
@@ -82,9 +77,7 @@ TEST_CASE("Test flushing faaslet picks up new version of function")
 
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     int origBoundTimeout = conf.boundTimeout;
-    int origUnboundTimeout = conf.unboundTimeout;
     conf.boundTimeout = 1000;
-    conf.unboundTimeout = 1000;
 
     // Load the wasm for two real functions
     faabric::Message origMsgA = faabric::util::messageFactory("demo", "hello");
@@ -117,8 +110,9 @@ TEST_CASE("Test flushing faaslet picks up new version of function")
     fileLoader.uploadFunction(uploadMsgA);
 
     // Set up faaslet to listen for relevant function
-    faaslet::FaasletPool pool(1);
-    pool.startThreadPool();
+    auto fac = std::make_shared<faaslet::FaasletFactory>();
+    faabric::runner::FaabricMain m(fac);
+    m.startRunner();
 
     // Call the function
     faabric::Message invokeMsgA = faabric::util::messageFactory("demo", "foo");
@@ -149,11 +143,10 @@ TEST_CASE("Test flushing faaslet picks up new version of function")
     REQUIRE(resultB.returnvalue() == 0);
     REQUIRE(resultB.outputdata() == inputB);
 
-    pool.shutdown();
-
     conf.boundTimeout = origBoundTimeout;
-    conf.unboundTimeout = origUnboundTimeout;
     conf.functionDir = origFunctionDir;
     conf.objectFileDir = origObjDir;
+
+    m.shutdown();
 }
 }

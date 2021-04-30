@@ -1,7 +1,6 @@
 #include "utils.h"
 #include <catch2/catch.hpp>
 
-#include <faabric/executor/FaabricPool.h>
 #include <faabric/util/config.h>
 
 using namespace faaslet;

@@ -2,25 +2,22 @@
 
 #include "utils.h"
 
+#include <faabric/runner/FaabricMain.h>
 #include <faabric/scheduler/InMemoryMessageQueue.h>
-#include <faaslet/FaasletPool.h>
 
 using namespace faaslet;
 
 namespace tests {
 void execErrorFunction(faabric::Message& call)
 {
-    FaasletPool pool(1);
-    Faaslet w(1);
+    auto fac = std::make_shared<faaslet::FaasletFactory>();
+    faabric::runner::FaabricMain m(fac);
+    m.startRunner();
 
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.callFunction(call);
 
-    // Bind message
-    w.processNextMessage();
-
-    // Execution message
-    w.processNextMessage();
+    m.shutdown();
 }
 
 void checkError(const std::string& funcName, const std::string& expectedMsg)
@@ -58,8 +55,4 @@ TEST_CASE("Test non-zero return code is error", "[wasm]")
 {
     checkError("ret_one", "Call failed (return value=1)");
 }
-
-//    TEST_CASE("Test munmapped memory not usable", "[wasm]") {
-//        checkError("munmap", "");
-//    }
 }

@@ -1,12 +1,15 @@
+#include "faabric/scheduler/ExecutorFactory.h"
+#include <faaslet/Faaslet.h>
+#include <wasm/WasmModule.h>
+
 #include <faabric/redis/Redis.h>
+#include <faabric/runner/FaabricMain.h>
 #include <faabric/util/config.h>
 #include <faabric/util/timing.h>
-#include <faaslet/FaasletPool.h>
-#include <wasm/WasmModule.h>
 
 int main(int argc, char* argv[])
 {
-    const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
+    const auto& logger = faabric::util::getLogger();
 
     if (argc < 3) {
         logger->error("Must provide user and function name");
@@ -17,7 +20,6 @@ int main(int argc, char* argv[])
 
     // Set short timeouts to die quickly
     conf.boundTimeout = 60000;
-    conf.unboundTimeout = 60000;
     conf.globalMessageTimeout = 60000;
     conf.chainedCallTimeout = 60000;
 
@@ -55,11 +57,10 @@ int main(int argc, char* argv[])
         logger->info("Adding input data: {}", inputData);
     }
 
-    // Set up a worker pool
-    faaslet::FaasletPool pool(nThreads);
-
-    // Start the workers
-    pool.startThreadPool();
+    // Set up the system
+    auto fac = std::make_shared<faaslet::FaasletFactory>();
+    faabric::runner::FaabricMain m(fac);
+    m.startRunner();
 
     // Submit the invocation
     PROF_START(roundTrip)
@@ -75,7 +76,7 @@ int main(int argc, char* argv[])
 
     PROF_END(roundTrip)
 
-    pool.shutdown();
+    m.shutdown();
 
     return 0;
 }
