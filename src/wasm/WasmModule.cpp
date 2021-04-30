@@ -74,8 +74,10 @@ size_t getPagesForGuardRegion()
     return nWasmPages;
 }
 
+// NOTE - the thread pool size here must match up with that for the executor in
+// Faabric
 WasmModule::WasmModule()
-  : threadPoolSize(faabric::util::getUsableCores() - 1)
+  : threadPoolSize(faabric::util::getUsableCores())
 {}
 
 WasmModule::~WasmModule()

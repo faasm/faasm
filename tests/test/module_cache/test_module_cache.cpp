@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "faabric/proto/faabric.pb.h"
 #include "utils.h"
 
 #include <faabric/util/func.h>
@@ -11,8 +12,10 @@ TEST_CASE("Test creating zygotes", "[zygote]")
 {
     cleanSystem();
 
-    faabric::Message msgA = faabric::util::messageFactory("demo", "chain");
-    faabric::Message msgB = faabric::util::messageFactory("demo", "chain");
+    std::shared_ptr<faabric::BatchExecuteRequest> req =
+      faabric::util::batchExecFactory("demo", "chain", 2);
+    faabric::Message& msgA = req->mutable_messages()->at(0);
+    faabric::Message& msgB = req->mutable_messages()->at(1);
 
     // Want to check things with chained calls, so need to fake up input to a
     // chained func
@@ -34,9 +37,8 @@ TEST_CASE("Test creating zygotes", "[zygote]")
     REQUIRE(moduleA.isBound());
 
     // Execute the function normally and make sure zygote is not used directly
-    faaslet::Faaslet faaslet(0);
-    faaslet.bindToFunction(msgA);
-    std::string errorMessage = faaslet.executeCall(msgA);
+    faaslet::Faaslet faaslet(msgA);
+    std::string errorMessage = faaslet.executeFunction(0, req);
     REQUIRE(errorMessage.empty());
     REQUIRE(msgA.returnvalue() == 0);
 

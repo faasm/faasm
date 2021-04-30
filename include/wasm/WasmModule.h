@@ -12,7 +12,6 @@
 #include <threads/ThreadState.h>
 
 #include <exception>
-#include <future>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -41,14 +40,6 @@
 #define ZYGOTE_FUNC_NAME "_faasm_zygote"
 #define WASM_CTORS_FUNC_NAME "__wasm_call_ctors"
 #define ENTRY_FUNC_NAME "_start"
-
-typedef std::pair<std::promise<int32_t>, threads::OpenMPTask> OpenMPTaskPair;
-typedef std::pair<std::promise<int32_t>, threads::PthreadTask> PthreadTaskPair;
-
-typedef faabric::util::Queue<OpenMPTaskPair> OpenMPQueue;
-typedef faabric::util::Queue<PthreadTaskPair> PthreadQueue;
-
-typedef std::unordered_map<int, OpenMPQueue> OpenMPQueueMap;
 
 namespace wasm {
 

@@ -11,6 +11,7 @@
 #include <faabric/util/locks.h>
 #include <faabric/util/memory.h>
 #include <faabric/util/timing.h>
+
 #include <ir_cache/IRModuleCache.h>
 #include <storage/SharedFiles.h>
 #include <threads/ThreadState.h>

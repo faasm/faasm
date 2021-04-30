@@ -1,3 +1,4 @@
+#include "faabric/util/environment.h"
 #include <faaslet/Faaslet.h>
 
 #include <module_cache/WasmModuleCache.h>
@@ -27,6 +28,40 @@ using namespace isolation;
 namespace faaslet {
 
 std::mutex flushMutex;
+
+std::mutex faasletIdxMutex;
+
+static std::vector<int> faasletIdxs;
+
+void clearFaasletIdxs()
+{
+    faabric::util::UniqueLock lock(faasletIdxMutex);
+
+    faasletIdxs.clear();
+}
+
+int claimFaasletIdx()
+{
+    faabric::util::UniqueLock lock(faasletIdxMutex);
+
+    if (faasletIdxs.empty()) {
+        for (int i = 0; i < faabric::util::getUsableCores(); i++) {
+            faasletIdxs.emplace_back(i);
+        }
+    }
+
+    int idx = faasletIdxs.back();
+    faasletIdxs.pop_back();
+
+    return idx;
+}
+
+void returnFaasletIdx(int idx)
+{
+    faabric::util::UniqueLock lock(faasletIdxMutex);
+
+    faasletIdxs.emplace_back(idx);
+}
 
 void preloadPythonRuntime()
 {
@@ -141,6 +176,8 @@ int32_t Faaslet::executeThread(
 void Faaslet::postFinish()
 {
     ns->removeCurrentThread();
+
+    returnFaasletIdx(isolationIdx);
 }
 
 void Faaslet::preFinishCall(faabric::Message& call,
@@ -196,5 +233,13 @@ void Faaslet::restore(const faabric::Message& call)
             PROF_END(snapshotOverride)
         }
     }
+}
+
+FaasletFactory::~FaasletFactory() {}
+
+std::shared_ptr<faabric::scheduler::Executor> FaasletFactory::createExecutor(
+  const faabric::Message& msg)
+{
+    return std::make_shared<Faaslet>(msg);
 }
 }

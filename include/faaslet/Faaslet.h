@@ -11,7 +11,11 @@
 
 namespace faaslet {
 
+void clearFaasletIdxs();
+
 int claimFaasletIdx();
+
+void returnFaasletIdx(int idx);
 
 class Faaslet final : public faabric::scheduler::Executor
 {
@@ -44,6 +48,9 @@ class Faaslet final : public faabric::scheduler::Executor
 
 class FaasletFactory final : public faabric::scheduler::ExecutorFactory
 {
+  public:
+    ~FaasletFactory();
+
   protected:
     std::shared_ptr<faabric::scheduler::Executor> createExecutor(
       const faabric::Message& msg);
