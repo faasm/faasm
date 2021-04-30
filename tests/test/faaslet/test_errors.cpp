@@ -8,7 +8,7 @@
 using namespace faaslet;
 
 namespace tests {
-void execErrorFunction(faabric::Message& call)
+faabric::Message execErrorFunction(faabric::Message& call)
 {
     auto fac = std::make_shared<faaslet::FaasletFactory>();
     faabric::runner::FaabricMain m(fac);
@@ -17,7 +17,11 @@ void execErrorFunction(faabric::Message& call)
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.callFunction(call);
 
+    faabric::Message result = sch.getFunctionResult(call.id(), 1);
+
     m.shutdown();
+
+    return result;
 }
 
 void checkError(const std::string& funcName, const std::string& expectedMsg)
@@ -26,11 +30,9 @@ void checkError(const std::string& funcName, const std::string& expectedMsg)
 
     faabric::Message call = faabric::util::messageFactory("errors", funcName);
 
-    execErrorFunction(call);
+    faabric::Message result = execErrorFunction(call);
 
     // Get result
-    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-    faabric::Message result = sch.getFunctionResult(call.id(), 1);
     REQUIRE(result.returnvalue() > 0);
 
     if (expectedMsg.empty()) {
