@@ -39,11 +39,10 @@ class Faaslet final : public faabric::scheduler::Executor
 
     void postFinish() override;
 
+    void restore(const faabric::Message& call) override;
   private:
     int isolationIdx;
     std::unique_ptr<isolation::NetworkNamespace> ns;
-
-    void restore(const faabric::Message& call);
 };
 
 class FaasletFactory final : public faabric::scheduler::ExecutorFactory

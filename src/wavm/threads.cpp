@@ -22,6 +22,7 @@ using namespace WAVM;
 namespace wasm {
 // Map of tid to message ID for chained calls
 static thread_local std::unordered_map<int32_t, uint32_t> chainedThreads;
+static std::atomic<int> pthreadCounter = 1;
 
 // Record of whether this thread has already got a snapshot being used to spawn
 // other threads.
@@ -89,7 +90,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         originalCall->user(), originalCall->function(), 1);
 
     faabric::Message& threadCall = req->mutable_messages()->at(0);
-    threadCall.set_isasync(true);
 
     // Snapshot details
     threadCall.set_snapshotkey(currentSnapshotKey);
@@ -100,6 +100,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     // as a string
     threadCall.set_funcptr(entryFunc);
     threadCall.set_inputdata(std::to_string(argsPtr));
+
+    // Assign a thread ID
+    threadCall.set_appindex(pthreadCounter.fetch_add(1));
 
     // Set up the request
     req->set_type(faabric::BatchExecuteRequest::THREADS);

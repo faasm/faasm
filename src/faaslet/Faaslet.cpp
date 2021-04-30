@@ -1,4 +1,3 @@
-#include "faabric/util/environment.h"
 #include <faaslet/Faaslet.h>
 
 #include <module_cache/WasmModuleCache.h>
@@ -10,6 +9,7 @@
 
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/config.h>
+#include <faabric/util/environment.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/timing.h>
 
@@ -158,7 +158,6 @@ Faaslet::Faaslet(const faabric::Message& msg)
 
 bool Faaslet::doExecute(faabric::Message& msg)
 {
-    restore(msg);
     bool success = module->execute(msg);
     return success;
 }
@@ -168,8 +167,6 @@ int32_t Faaslet::executeThread(
   std::shared_ptr<faabric::BatchExecuteRequest> req,
   faabric::Message& msg)
 {
-    restore(msg);
-
     return module->executeThread(threadPoolIdx, req, msg);
 }
 
