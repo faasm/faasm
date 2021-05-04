@@ -110,10 +110,11 @@ Faaslet::Faaslet(const faabric::Message& msg)
 
         module->bindToFunction(msg);
     } else if (conf.wasmVm == "wavm") {
-        // Get cached module
+        // Get module from cache
         wasm::WAVMWasmModule& cachedModule =
           module_cache::getWasmModuleCache().getCachedModule(msg);
         module = std::make_unique<wasm::WAVMWasmModule>(cachedModule);
+
     } else {
         logger->error("Unrecognised wasm VM: {}", conf.wasmVm);
         throw std::runtime_error("Unrecognised wasm VM");
@@ -127,12 +128,13 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
     // Execute the task
     int32_t returnValue = module->executeTask(threadPoolIdx, msgIdx, req);
 
-    // Reset module
+    // Reset module after execution (but not for threads, as the module may be
+    // used by many of them)
     auto& conf = faabric::util::getSystemConfig();
-    if (conf.wasmVm == "wavm") {
-        // Restore from zygote
-        faabric::Message& msg = req->mutable_messages()->at(msgIdx);
+    if (conf.wasmVm == "wavm" &&
+        req->type() != faabric::BatchExecuteRequest::THREADS) {
 
+        faabric::Message& msg = req->mutable_messages()->at(msgIdx);
         wasm::WAVMWasmModule& cachedModule =
           module_cache::getWasmModuleCache().getCachedModule(msg);
         module = std::make_unique<wasm::WAVMWasmModule>(cachedModule);
@@ -162,11 +164,8 @@ void Faaslet::restore(const faabric::Message& msg)
             logger->debug("Restoring {} from snapshot {} before execution",
                           id,
                           snapshotKey);
-            module_cache::WasmModuleCache& registry =
-              module_cache::getWasmModuleCache();
 
-            wasm::WAVMWasmModule& snapshot = registry.getCachedModule(msg);
-            module = std::make_unique<wasm::WAVMWasmModule>(snapshot);
+            module->restore(snapshotKey);
 
             PROF_END(snapshotOverride)
         }

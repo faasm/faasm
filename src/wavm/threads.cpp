@@ -20,7 +20,7 @@
 using namespace WAVM;
 
 namespace wasm {
-// Map of tid to message ID for chained calls
+
 static thread_local std::unordered_map<int32_t, uint32_t> chainedThreads;
 static std::atomic<int> pthreadCounter = 1;
 
@@ -88,6 +88,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory(
         originalCall->user(), originalCall->function(), 1);
+
+    req->set_type(faabric::BatchExecuteRequest::THREADS);
     req->set_subtype(wasm::ThreadRequestType::PTHREAD);
 
     faabric::Message& threadCall = req->mutable_messages()->at(0);
@@ -104,9 +106,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     // Assign a thread ID
     threadCall.set_appindex(pthreadCounter.fetch_add(1));
-
-    // Set up the request
-    req->set_type(faabric::BatchExecuteRequest::THREADS);
 
     // Submit it
     sch.callFunctions(req);

@@ -17,7 +17,6 @@ void execFunctionWithRemoteBatch(faabric::Message& call,
 
 void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
                        int nThreads,
-                       bool checkChained,
                        bool clean);
 
 void execFuncWithPool(faabric::Message& call,

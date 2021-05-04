@@ -20,7 +20,7 @@ void runTestLocally(const std::string& func)
       faabric::util::batchExecFactory("demo", func, 1);
 
     int nThreads = 4;
-    execBatchWithPool(req, nThreads, false, false);
+    execBatchWithPool(req, nThreads, false);
 }
 
 void runTestDistributed(const std::string& func)

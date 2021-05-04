@@ -29,21 +29,21 @@ wasm::WAVMWasmModule& WasmModuleCache::getCachedModule(
 {
     auto logger = faabric::util::getLogger();
 
-    std::string baseKey = faabric::util::funcToString(msg, false);
+    std::string key = faabric::util::funcToString(msg, false);
 
     // Check for the base cached module (must be present for restoring a
     // snapshot too)
-    if (getCachedModuleCount(baseKey) == 0) {
+    if (getCachedModuleCount(key) == 0) {
         faabric::util::FullLock lock(mx);
-        if (cachedModuleMap.count(baseKey) == 0) {
+        if (cachedModuleMap.count(key) == 0) {
             // Instantiate the base module
-            logger->debug("Creating new base zygote: {}", baseKey);
-            wasm::WAVMWasmModule& module = cachedModuleMap[baseKey];
+            logger->debug("Creating new base zygote: {}", key);
+            wasm::WAVMWasmModule& module = cachedModuleMap[key];
             module.bindToFunction(msg);
         }
     }
 
-    return cachedModuleMap[baseKey];
+    return cachedModuleMap[key];
 }
 
 void WasmModuleCache::clear()

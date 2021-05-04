@@ -88,9 +88,7 @@ void checkMultipleExecutions(faabric::Message& msg, int nExecs)
     }
 }
 
-void execFunctionWithRemoteBatch(faabric::Message& call,
-                                 int nThreads,
-                                 bool clean)
+void execFunctionWithRemoteBatch(faabric::Message& call, int nSlots, bool clean)
 {
     if (clean) {
         cleanSystem();
@@ -149,7 +147,7 @@ void execFunctionWithRemoteBatch(faabric::Message& call,
 
     // Now execute request on this host (forced)
     // Note - don't clean as we will have already done at the top of this func
-    execBatchWithPool(req, nThreads, false, false);
+    execBatchWithPool(req, nSlots, false);
 
     if (t.joinable()) {
         t.join();
@@ -157,8 +155,7 @@ void execFunctionWithRemoteBatch(faabric::Message& call,
 }
 
 void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
-                       int nThreads,
-                       bool checkChained,
+                       int nSlots,
                        bool clean)
 {
     if (clean) {
@@ -181,9 +178,12 @@ void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
 
     usleep(1000 * 500);
 
-    // Wait for all functions to complete if necessary
-    if (checkChained) {
-        for (auto m : req->messages()) {
+    // Wait for all functions to complete
+    for (auto m : req->messages()) {
+        if (req->type() == faabric::BatchExecuteRequest::THREADS) {
+            int returnValue = sch.awaitThreadResult(m.id());
+            REQUIRE(returnValue == 0);
+        } else {
             faabric::Message result = sch.getFunctionResult(m.id(), 20000);
             REQUIRE(result.returnvalue() == 0);
         }
