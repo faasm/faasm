@@ -20,10 +20,7 @@ void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
                        bool clean);
 
 void execFuncWithPool(faabric::Message& call,
-                      bool pythonPreload = false,
                       int repeatCount = 1,
-                      bool checkChained = false,
-                      int nThreads = 4,
                       bool clean = true);
 
 void executeWithWamrPool(const std::string& user, const std::string& func);

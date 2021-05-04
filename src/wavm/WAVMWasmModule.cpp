@@ -643,10 +643,10 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
                         std::move(linkResult.resolvedImports),
                         name.c_str());
 
-    logger->info("Finished instantiating module {}/{}  {}",
-                 boundUser,
-                 boundFunction,
-                 sharedModulePath);
+    logger->debug("Finished instantiating module {}/{}  {}",
+                  boundUser,
+                  boundFunction,
+                  sharedModulePath);
 
     // Here there may be some entries missing from the GOT that we need to
     // patch up. They may be exported from the dynamic module itself. I

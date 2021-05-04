@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "faabric/scheduler/Scheduler.h"
 #include "utils.h"
 
 #include <faabric/util/func.h>
@@ -10,7 +11,23 @@ void checkMpiFunc(const char* funcName)
     // Note: we don't `set_mpiworldsize` here, so all tests run with the default
     // MPI world size (5). Some tests will fail if we change this.
     faabric::Message msg = faabric::util::messageFactory("mpi", funcName);
-    execFuncWithPool(msg, false, 1, true, 10);
+    execFuncWithPool(msg, 1, true);
+
+    // Check all other functions were successful
+    auto& sch = faabric::scheduler::getScheduler();
+    for (auto m : sch.getRecordedMessagesAll()) {
+        uint32_t messageId = msg.id();
+        if (messageId == msg.id()) {
+            // Already checked the main message ID
+            continue;
+        }
+
+        const faabric::Message& result = sch.getFunctionResult(messageId, 1);
+
+        if (result.returnvalue() != 0) {
+            FAIL(fmt::format("Message ID {} failed", messageId));
+        }
+    }
 }
 
 TEST_CASE("Test MPI allgather", "[mpi]")

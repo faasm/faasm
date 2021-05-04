@@ -107,7 +107,7 @@ void execFunctionWithRemoteBatch(faabric::Message& call, int nSlots, bool clean)
     resOther.set_slots(10);
     faabric::scheduler::queueResourceResponse(otherHost, resOther);
 
-    // Make sure we have no cores so we get distribution
+    // Make sure we have no cores so we force distribution
     int nCores = 0;
     faabric::HostResources res;
     res.set_slots(nCores);
@@ -146,7 +146,7 @@ void execFunctionWithRemoteBatch(faabric::Message& call, int nSlots, bool clean)
     reg.takeSnapshot(snapKey, snapData);
 
     // Now execute request on this host (forced)
-    // Note - don't clean as we will have already done at the top of this func
+    // Note - don't clean as we will have already done t at the top of this func
     execBatchWithPool(req, nSlots, false);
 
     if (t.joinable()) {
@@ -193,10 +193,7 @@ void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
 }
 
 void execFuncWithPool(faabric::Message& call,
-                      bool pythonPreload,
                       int repeatCount,
-                      bool checkChained,
-                      int nThreads,
                       bool clean)
 {
     if (clean) {
@@ -210,10 +207,8 @@ void execFuncWithPool(faabric::Message& call,
     // Modify system config (network ns requires root)
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     std::string originalNsMode = conf.netNsMode;
-    std::string originalPreload = conf.pythonPreload;
     conf.boundTimeout = 1000;
     conf.netNsMode = "off";
-    conf.pythonPreload = pythonPreload ? "on" : "off";
 
     // Set up the system
     auto fac = std::make_shared<faaslet::FaasletFactory>();
@@ -222,7 +217,7 @@ void execFuncWithPool(faabric::Message& call,
 
     unsigned int mainFuncId;
     for (int i = 0; i < repeatCount; i++) {
-        // Reset call ID
+        // Set a new call ID for each repeat
         call.set_id(0);
         faabric::util::setMessageId(call);
 
@@ -238,33 +233,10 @@ void execFuncWithPool(faabric::Message& call,
         REQUIRE(result.returnvalue() == 0);
     }
 
-    // Get all call statuses
-    if (checkChained) {
-        for (auto msg : sch.getRecordedMessagesAll()) {
-            uint32_t messageId = msg.id();
-            if (messageId == mainFuncId) {
-                // Already checked the main message ID
-                continue;
-            }
-
-            try {
-                const faabric::Message& result =
-                  sch.getFunctionResult(messageId, 1);
-
-                if (result.returnvalue() != 0) {
-                    FAIL(fmt::format("Message ID {} failed", messageId));
-                }
-            } catch (faabric::redis::RedisNoResponseException& ex) {
-                FAIL(fmt::format("No result for message ID {}", messageId));
-            }
-        }
-    }
-
     // Shut down the pool
     m.shutdown();
 
     conf.netNsMode = originalNsMode;
-    conf.pythonPreload = originalPreload;
 
     cleanSystem();
 }
@@ -276,7 +248,7 @@ void doWamrPoolExecution(faabric::Message& msg)
     conf.wasmVm = "wamr";
 
     // Don't clean so that the WAMR configuration persists
-    execFuncWithPool(msg, false, 1, false, 5, false);
+    execFuncWithPool(msg, 1, false);
 
     conf.wasmVm = originalVm;
 }

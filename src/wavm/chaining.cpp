@@ -55,7 +55,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
       "S - chain_name - {} {} {}", funcName, inputDataPtr, inputDataLen);
 
     const std::vector<uint8_t> inputData =
-      getBytesFromWasm(inputDataPtr, inputDataLen);
+    getBytesFromWasm(inputDataPtr, inputDataLen);
 
     return makeChainedCall(funcName, 0, nullptr, inputData);
 }
