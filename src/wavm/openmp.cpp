@@ -486,7 +486,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         logger->debug("OpenMP 0: executing OMP thread 0 (master)");
         WAVM::Runtime::Function* microtaskFunc =
           parentModule->getFunctionFromPtr(microtaskPtr);
-        parentModule->executeFunction(
+        parentModule->executeWasmFunction(
           microtaskFunc, mainArguments, masterThreadResult);
 
         // Now we reset the context for this main thread

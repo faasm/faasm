@@ -124,7 +124,7 @@ bool SGXWAMRWasmModule::unbindFunction()
     return true;
 }
 
-bool SGXWAMRWasmModule::execute(faabric::Message& msg, bool forceNoop)
+int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
 {
     auto logger = faabric::util::getLogger();
     std::string funcStr = faabric::util::funcToString(msg, true);
@@ -165,7 +165,7 @@ bool SGXWAMRWasmModule::execute(faabric::Message& msg, bool forceNoop)
         throw std::runtime_error("Error occurred during function execution");
     }
 
-    return true;
+    return 0;
 }
 
 bool SGXWAMRWasmModule::isBound()

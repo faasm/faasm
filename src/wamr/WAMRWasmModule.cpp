@@ -122,26 +122,23 @@ void WAMRWasmModule::bindToFunctionNoZygote(const faabric::Message& msg)
     bindToFunction(msg);
 }
 
-bool WAMRWasmModule::execute(faabric::Message& msg, bool forceNoop)
+int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
 {
-    setExecutingCall(&msg);
-    setExecutingModule(this);
-
     // Run wasm initialisers
-    executeFunction(WASM_CTORS_FUNC_NAME);
+    executeWasmFunction(WASM_CTORS_FUNC_NAME);
 
     if (msg.funcptr() > 0) {
         // Run the function from the pointer
-        executeFunctionFromPointer(msg.funcptr());
+        executeWasmFunctionFromPointer(msg.funcptr());
     } else {
         // Run the main function
-        executeFunction(ENTRY_FUNC_NAME);
+        executeWasmFunction(ENTRY_FUNC_NAME);
     }
 
-    return true;
+    return 0;
 }
 
-int WAMRWasmModule::executeFunctionFromPointer(int wasmFuncPtr)
+int WAMRWasmModule::executeWasmFunctionFromPointer(int wasmFuncPtr)
 {
     auto logger = faabric::util::getLogger();
 
@@ -179,7 +176,7 @@ int WAMRWasmModule::executeFunctionFromPointer(int wasmFuncPtr)
     return 0;
 }
 
-int WAMRWasmModule::executeFunction(const std::string& funcName)
+int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
 {
     auto logger = faabric::util::getLogger();
 

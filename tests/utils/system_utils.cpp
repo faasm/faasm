@@ -12,8 +12,6 @@ void cleanSystem()
     // Faabric stuff
     cleanFaabric();
 
-    faaslet::clearFaasletIdxs();
-
     // Clear shared files
     storage::FileSystem::clearSharedFiles();
 

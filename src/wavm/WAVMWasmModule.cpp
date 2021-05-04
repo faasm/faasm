@@ -373,7 +373,7 @@ void WAVMWasmModule::addModuleToGOT(IR::Module& mod, bool isMainModule)
     }
 }
 
-void WAVMWasmModule::executeFunction(
+void WAVMWasmModule::executeWasmFunction(
   WAVM::Runtime::Context* ctx,
   WAVM::Runtime::Function* func,
   const std::vector<WAVM::IR::UntaggedValue>& arguments,
@@ -387,16 +387,16 @@ void WAVMWasmModule::executeFunction(
     Runtime::invokeFunction(ctx, func, funcType, arguments.data(), &result);
 }
 
-void WAVMWasmModule::executeFunction(
+void WAVMWasmModule::executeWasmFunction(
   Runtime::Function* func,
   const std::vector<IR::UntaggedValue>& arguments,
   IR::UntaggedValue& result)
 {
     const IR::FunctionType funcType = Runtime::getFunctionType(func);
-    executeFunction(func, funcType, arguments, result);
+    executeWasmFunction(func, funcType, arguments, result);
 }
 
-void WAVMWasmModule::executeFunction(
+void WAVMWasmModule::executeWasmFunction(
   Runtime::Function* func,
   IR::FunctionType funcType,
   const std::vector<IR::UntaggedValue>& arguments,
@@ -845,7 +845,7 @@ uint32_t WAVMWasmModule::addFunctionToTable(Runtime::Object* exportedFunc)
 /**
  * Executes the given function call
  */
-bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
+int32_t WAVMWasmModule::executeFunction(faabric::Message& msg)
 {
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
@@ -863,9 +863,6 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
               "Cannot execute function on module bound to another");
         }
     }
-
-    setExecutingModule(this);
-    setExecutingCall(&msg);
 
     // Ensure Python function file in place (if necessary)
     storage::SharedFiles::syncPythonFunctionFile(msg);
@@ -921,46 +918,35 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
     // Call the function
     int returnValue = 0;
     bool success = true;
-    if (forceNoop) {
-        logger->debug("NOTE: Explicitly forcing a noop");
-    } else {
+    try {
+        Runtime::catchRuntimeExceptions(
+          [this, &funcInstance, &funcType, &invokeArgs, &returnValue, &logger] {
+              logger->debug("Invoking C/C++ function");
 
-        try {
-            Runtime::catchRuntimeExceptions(
-              [this,
-               &funcInstance,
-               &funcType,
-               &invokeArgs,
-               &returnValue,
-               &logger] {
-                  logger->debug("Invoking C/C++ function");
+              IR::UntaggedValue result;
 
-                  IR::UntaggedValue result;
+              executeWasmFunction(funcInstance, funcType, invokeArgs, result);
 
-                  executeFunction(funcInstance, funcType, invokeArgs, result);
-
-                  returnValue = result.i32;
-              },
-              [&logger, &success, &returnValue](Runtime::Exception* ex) {
-                  logger->error("Runtime exception: {}",
-                                Runtime::describeException(ex).c_str());
-                  Runtime::destroyException(ex);
-                  success = false;
-                  returnValue = 1;
-              });
-        } catch (WasmExitException& e) {
-            logger->debug(
-              "Caught wasm exit exception from main thread (code {})",
-              e.exitCode);
-            returnValue = e.exitCode;
-            success = e.exitCode == 0;
-        }
+              returnValue = result.i32;
+          },
+          [&logger, &success, &returnValue](Runtime::Exception* ex) {
+              logger->error("Runtime exception: {}",
+                            Runtime::describeException(ex).c_str());
+              Runtime::destroyException(ex);
+              success = false;
+              returnValue = 1;
+          });
+    } catch (WasmExitException& e) {
+        logger->debug("Caught wasm exit exception from main thread (code {})",
+                      e.exitCode);
+        returnValue = e.exitCode;
+        success = e.exitCode == 0;
     }
 
     // Record the return value
     msg.set_returnvalue(returnValue);
 
-    return success;
+    return returnValue;
 }
 
 int32_t WAVMWasmModule::executePthread(int threadPoolIdx,
@@ -984,9 +970,9 @@ int32_t WAVMWasmModule::executePthread(int threadPoolIdx,
     Runtime::Context* threadContext =
       createThreadContext(stackTop, contextRuntimeData);
 
-    // Record the return value
+    // Execute the function
     IR::UntaggedValue returnValue;
-    executeFunction(threadContext, funcInstance, invokeArgs, returnValue);
+    executeWasmFunction(threadContext, funcInstance, invokeArgs, returnValue);
     msg.set_returnvalue(returnValue.i32);
 
     return returnValue.i32;
@@ -1018,9 +1004,9 @@ int32_t WAVMWasmModule::executeOMPThread(int threadPoolIdx,
           createThreadContext(stackTop, contextRuntimeData);
     }
 
-    // Record the return value
+    // Execute the wasm function
     IR::UntaggedValue returnValue;
-    executeFunction(
+    executeWasmFunction(
       openMPContexts[threadPoolIdx], funcInstance, invokeArgs, returnValue);
     msg.set_returnvalue(returnValue.i32);
 
@@ -1583,7 +1569,7 @@ void WAVMWasmModule::executeZygoteFunction()
     if (zygoteFunc) {
         IR::UntaggedValue result;
         const IR::FunctionType funcType = Runtime::getFunctionType(zygoteFunc);
-        executeFunction(zygoteFunc, funcType, {}, result);
+        executeWasmFunction(zygoteFunc, funcType, {}, result);
 
         if (result.i32 != 0) {
             logger->error("Zygote for {}/{} failed with return code {}",
@@ -1612,8 +1598,8 @@ void WAVMWasmModule::executeWasmConstructorsFunction(Runtime::Instance* module)
     }
 
     IR::UntaggedValue result;
-    executeFunction(wasmCtorsFunction, IR::FunctionType({}, {}), {}, result);
-
+    executeWasmFunction(
+      wasmCtorsFunction, IR::FunctionType({}, {}), {}, result);
     if (result.i32 != 0) {
         logger->error("{} for {}/{} failed with return code {}",
                       WASM_CTORS_FUNC_NAME,

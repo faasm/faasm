@@ -57,7 +57,9 @@ class WasmModule
 
     virtual void bindToFunctionNoZygote(const faabric::Message& msg);
 
-    virtual bool execute(faabric::Message& msg, bool forceNoop = false);
+    int32_t executeTask(int threadPoolIdx,
+                        int msgIdx,
+                        std::shared_ptr<faabric::BatchExecuteRequest> req);
 
     virtual bool isBound();
 
@@ -124,11 +126,6 @@ class WasmModule
     // ----- Debugging -----
     virtual void printDebugInfo();
 
-    // ----- Threading -----
-    int32_t executeThread(int threadPoolIdx,
-                          std::shared_ptr<faabric::BatchExecuteRequest> req,
-                          faabric::Message& msg);
-
     threads::MutexManager& getMutexes();
 
   protected:
@@ -166,6 +163,8 @@ class WasmModule
     void prepareArgcArgv(const faabric::Message& msg);
 
     virtual uint8_t* getMemoryBase();
+
+    virtual int32_t executeFunction(faabric::Message& msg);
 
     virtual int32_t executeOMPThread(int threadPoolIdx,
                                      uint32_t stackTop,

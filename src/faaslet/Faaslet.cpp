@@ -29,40 +29,6 @@ namespace faaslet {
 
 std::mutex flushMutex;
 
-std::mutex faasletIdxMutex;
-
-static std::vector<int> faasletIdxs;
-
-void clearFaasletIdxs()
-{
-    faabric::util::UniqueLock lock(faasletIdxMutex);
-
-    faasletIdxs.clear();
-}
-
-int claimFaasletIdx()
-{
-    faabric::util::UniqueLock lock(faasletIdxMutex);
-
-    if (faasletIdxs.empty()) {
-        for (int i = 0; i < faabric::util::getUsableCores(); i++) {
-            faasletIdxs.emplace_back(i);
-        }
-    }
-
-    int idx = faasletIdxs.back();
-    faasletIdxs.pop_back();
-
-    return idx;
-}
-
-void returnFaasletIdx(int idx)
-{
-    faabric::util::UniqueLock lock(faasletIdxMutex);
-
-    faasletIdxs.emplace_back(idx);
-}
-
 void preloadPythonRuntime()
 {
     auto logger = faabric::util::getLogger();
@@ -119,9 +85,7 @@ Faaslet::Faaslet(const faabric::Message& msg)
     auto logger = faabric::util::getLogger();
 
     // Set up network namespace
-    isolationIdx = claimFaasletIdx() + 1;
-    std::string netnsName = BASE_NETNS_NAME + std::to_string(isolationIdx);
-    ns = std::make_unique<NetworkNamespace>(netnsName);
+    ns = claimNetworkNamespace();
     ns->addCurrentThread();
 
     // Add this thread to the cgroup
@@ -156,54 +120,30 @@ Faaslet::Faaslet(const faabric::Message& msg)
     }
 }
 
-bool Faaslet::doExecute(faabric::Message& msg)
+int32_t Faaslet::executeTask(int threadPoolIdx,
+                             int msgIdx,
+                             std::shared_ptr<faabric::BatchExecuteRequest> req)
 {
-    bool success = module->execute(msg);
-    return success;
-}
 
-int32_t Faaslet::executeThread(
-  int threadPoolIdx,
-  std::shared_ptr<faabric::BatchExecuteRequest> req,
-  faabric::Message& msg)
-{
-    return module->executeThread(threadPoolIdx, req, msg);
+    int32_t returnValue = module->executeTask(threadPoolIdx, msgIdx, req);
+
+    faabric::Message& msg = req->mutable_messages()->at(msgIdx);
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+
+    if (conf.wasmVm == "wavm") {
+        // Restore from zygote
+        wasm::WAVMWasmModule& cachedModule =
+          module_cache::getWasmModuleCache().getCachedModule(msg);
+        module = std::make_unique<wasm::WAVMWasmModule>(cachedModule);
+    }
+
+    return returnValue;
 }
 
 void Faaslet::postFinish()
 {
     ns->removeCurrentThread();
-
-    returnFaasletIdx(isolationIdx);
-}
-
-void Faaslet::preFinishCall(faabric::Message& call,
-                            bool success,
-                            const std::string& errorMsg)
-{
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    const std::string funcStr = faabric::util::funcToString(call, true);
-
-    // Add captured stdout if necessary
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    if (conf.captureStdout == "on") {
-        std::string moduleStdout = module->getCapturedStdout();
-        if (!moduleStdout.empty()) {
-            std::string newOutput = moduleStdout + "\n" + call.outputdata();
-            call.set_outputdata(newOutput);
-
-            module->clearCapturedStdout();
-        }
-    }
-
-    if (conf.wasmVm == "wavm") {
-        logger->debug("Resetting module {} from zygote", funcStr);
-
-        // Restore from zygote
-        wasm::WAVMWasmModule& cachedModule =
-          module_cache::getWasmModuleCache().getCachedModule(call);
-        module = std::make_unique<wasm::WAVMWasmModule>(cachedModule);
-    }
+    returnNetworkNamespace(ns);
 }
 
 void Faaslet::restore(const faabric::Message& call)

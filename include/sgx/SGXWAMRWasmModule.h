@@ -61,7 +61,7 @@ class SGXWAMRWasmModule final : public WasmModule
 
     bool unbindFunction();
 
-    bool execute(faabric::Message& msg, bool forceNoop = false) override;
+    int32_t executeFunction(faabric::Message& msg) override;
 
     bool isBound() override;
 

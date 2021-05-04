@@ -321,27 +321,48 @@ uint32_t WasmModule::getCurrentBrk()
     return currentBrk;
 }
 
-int32_t WasmModule::executeThread(
+int32_t WasmModule::executeTask(
   int threadPoolIdx,
-  std::shared_ptr<faabric::BatchExecuteRequest> req,
-  faabric::Message& msg)
+  int msgIdx,
+  std::shared_ptr<faabric::BatchExecuteRequest> req)
 {
-    // We are now in a new thread so need to set up
-    // everything that uses TLS
+    const auto& logger = faabric::util::getLogger();
+
     setExecutingModule(this);
+    faabric::Message& msg = req->mutable_messages()->at(msgIdx);
     setExecutingCall(&msg);
 
     uint32_t stackTop = threadStacks.at(threadPoolIdx);
 
-    if (req->contextdata().empty()) {
-        // Pthread
-        return executePthread(threadPoolIdx, stackTop, msg);
-    } else {
-        // OpenMP
-        threads::setCurrentOpenMPLevel(req);
+    int returnValue;
+    if (req->type() == faabric::BatchExecuteRequest::THREADS) {
+        if (req->contextdata().empty()) {
+            // Pthread
+            returnValue = executePthread(threadPoolIdx, stackTop, msg);
+        } else {
+            // OpenMP
+            threads::setCurrentOpenMPLevel(req);
 
-        return executeOMPThread(threadPoolIdx, stackTop, msg);
+            returnValue = executeOMPThread(threadPoolIdx, stackTop, msg);
+        }
+    } else {
+        // TODO - execute function
+        returnValue = 0;
     }
+
+    // Add captured stdout if necessary
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    if (conf.captureStdout == "on") {
+        std::string moduleStdout = getCapturedStdout();
+        if (!moduleStdout.empty()) {
+            std::string newOutput = moduleStdout + "\n" + msg.outputdata();
+            msg.set_outputdata(newOutput);
+
+            clearCapturedStdout();
+        }
+    }
+
+    return returnValue;
 }
 
 uint32_t WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
@@ -408,11 +429,6 @@ void WasmModule::bindToFunctionNoZygote(const faabric::Message& msg)
     throw std::runtime_error("bindToFunctionNoZygote not implemented");
 }
 
-bool WasmModule::execute(faabric::Message& msg, bool forceNoop)
-{
-    throw std::runtime_error("execute not implemented");
-}
-
 bool WasmModule::isBound()
 {
     throw std::runtime_error("isBound not implemented");
@@ -472,6 +488,11 @@ size_t WasmModule::getMemorySizeBytes()
 uint8_t* WasmModule::getMemoryBase()
 {
     throw std::runtime_error("getMemoryBase not implemented");
+}
+
+int32_t WasmModule::executeFunction(faabric::Message& msg)
+{
+    throw std::runtime_error("executeFunction not implemented");
 }
 
 int32_t WasmModule::executeOMPThread(int threadPoolIdx,

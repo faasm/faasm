@@ -29,7 +29,7 @@ class WAMRWasmModule final : public WasmModule
 
     void bindToFunctionNoZygote(const faabric::Message& msg) override;
 
-    bool execute(faabric::Message& msg, bool forceNoop = false) override;
+    int32_t executeFunction(faabric::Message& msg) override;
 
     bool isBound() override;
 
@@ -60,9 +60,9 @@ class WAMRWasmModule final : public WasmModule
     WASMModuleCommon* wasmModule;
     WASMModuleInstanceCommon* moduleInstance;
 
-    int executeFunction(const std::string& funcName);
+    int executeWasmFunction(const std::string& funcName);
 
-    int executeFunctionFromPointer(int wasmFuncPtr);
+    int executeWasmFunctionFromPointer(int wasmFuncPtr);
 };
 
 void tearDownWAMRGlobally();

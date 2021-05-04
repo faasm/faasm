@@ -35,8 +35,6 @@ class WAVMWasmModule final
 
     void bindToFunctionNoZygote(const faabric::Message& msg) override;
 
-    bool execute(faabric::Message& msg, bool forceNoop = false) override;
-
     bool isBound() override;
 
     bool tearDown();
@@ -77,19 +75,22 @@ class WAVMWasmModule final
     WAVM::Runtime::GCPointer<WAVM::Runtime::Compartment> compartment;
 
     // ----- Execution -----
-    void executeFunction(WAVM::Runtime::Function* func,
-                         WAVM::IR::FunctionType funcType,
-                         const std::vector<WAVM::IR::UntaggedValue>& arguments,
-                         WAVM::IR::UntaggedValue& result);
+    void executeWasmFunction(
+      WAVM::Runtime::Function* func,
+      WAVM::IR::FunctionType funcType,
+      const std::vector<WAVM::IR::UntaggedValue>& arguments,
+      WAVM::IR::UntaggedValue& result);
 
-    void executeFunction(WAVM::Runtime::Function* func,
-                         const std::vector<WAVM::IR::UntaggedValue>& arguments,
-                         WAVM::IR::UntaggedValue& result);
+    void executeWasmFunction(
+      WAVM::Runtime::Function* func,
+      const std::vector<WAVM::IR::UntaggedValue>& arguments,
+      WAVM::IR::UntaggedValue& result);
 
-    void executeFunction(WAVM::Runtime::Context* ctx,
-                         WAVM::Runtime::Function* func,
-                         const std::vector<WAVM::IR::UntaggedValue>& arguments,
-                         WAVM::IR::UntaggedValue& result);
+    void executeWasmFunction(
+      WAVM::Runtime::Context* ctx,
+      WAVM::Runtime::Function* func,
+      const std::vector<WAVM::IR::UntaggedValue>& arguments,
+      WAVM::IR::UntaggedValue& result);
 
     void writeArgvToMemory(uint32_t wasmArgvPointers,
                            uint32_t wasmArgvBuffer) override;
@@ -189,6 +190,8 @@ class WAVMWasmModule final
 
     WAVM::Runtime::Function* getWasmConstructorsFunction(
       WAVM::Runtime::Instance* module);
+
+    int32_t executeFunction(faabric::Message& msg) override;
 
     int32_t executeOMPThread(int threadPoolIdx,
                              uint32_t stackTop,
