@@ -43,6 +43,11 @@
 
 namespace wasm {
 
+enum ThreadRequestType {
+    PTHREAD,
+    OPENMP,
+};
+
 bool isWasmPageAligned(int32_t offset);
 
 class WasmModule
@@ -60,6 +65,16 @@ class WasmModule
     int32_t executeTask(int threadPoolIdx,
                         int msgIdx,
                         std::shared_ptr<faabric::BatchExecuteRequest> req);
+
+    virtual int32_t executeFunction(faabric::Message& msg);
+
+    virtual int32_t executeOMPThread(int threadPoolIdx,
+                                     uint32_t stackTop,
+                                     faabric::Message& msg);
+
+    virtual int32_t executePthread(int threadPoolIdx,
+                                   uint32_t stackTop,
+                                   faabric::Message& msg);
 
     virtual bool isBound();
 
@@ -142,7 +157,7 @@ class WasmModule
     int stdoutMemFd;
     ssize_t stdoutSize;
 
-    int threadPoolSize;
+    int threadPoolSize = 0;
     std::vector<uint32_t> threadStacks;
 
     threads::MutexManager mutexes;
@@ -163,16 +178,6 @@ class WasmModule
     void prepareArgcArgv(const faabric::Message& msg);
 
     virtual uint8_t* getMemoryBase();
-
-    virtual int32_t executeFunction(faabric::Message& msg);
-
-    virtual int32_t executeOMPThread(int threadPoolIdx,
-                                     uint32_t stackTop,
-                                     faabric::Message& msg);
-
-    virtual int32_t executePthread(int threadPoolIdx,
-                                   uint32_t stackTop,
-                                   faabric::Message& msg);
 
     // Threads
     void createThreadStacks();

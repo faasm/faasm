@@ -3,6 +3,9 @@
 
 #include <wavm/WAVMWasmModule.h>
 
+#include <faabric/proto/faabric.pb.h>
+#include <faabric/util/func.h>
+
 using namespace wasm;
 
 namespace tests {
@@ -27,8 +30,8 @@ TEST_CASE("Test executing function given specific pointer", "[wasm]")
     moduleB.bindToFunction(call);
 
     moduleB.restore(stateKey);
-    bool success = moduleB.execute(call);
-    REQUIRE(success);
+    int returnValue = moduleB.executeFunction(call);
+    REQUIRE(returnValue == 0);
 
     // Return code will be equal to the failure case of the function
     REQUIRE(call.returnvalue() == 101);

@@ -1,4 +1,3 @@
-#include "wasm/WasmModule.h"
 #include <WAVM/Platform/Thread.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
@@ -12,7 +11,9 @@
 #include <faabric/util/locks.h>
 #include <faabric/util/macros.h>
 #include <faabric/util/timing.h>
+
 #include <threads/ThreadState.h>
+#include <wasm/WasmModule.h>
 #include <wavm/WAVMWasmModule.h>
 
 using namespace WAVM;
@@ -438,12 +439,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         req = faabric::util::batchExecFactory(parentCall->user(),
                                               parentCall->function(),
                                               nextLevel->numThreads - 1);
+        req->set_type(faabric::BatchExecuteRequest::THREADS);
+        req->set_subtype(ThreadRequestType::OPENMP);
 
         // Add remote context
         threads::SerialisedLevel serialisedLevel = nextLevel->serialise();
         req->set_contextdata(BYTES(&serialisedLevel),
                              threads::sizeOfSerialisedLevel(serialisedLevel));
-        req->set_type(faabric::BatchExecuteRequest::THREADS);
 
         // Configure the mesages
         for (int i = 0; i < req->messages_size(); i++) {
@@ -451,9 +453,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
             // Create basic call
             faabric::Message& call = req->mutable_messages()->at(threadNum);
-
-            // All calls are async by definition
-            call.set_isasync(true);
 
             // Snapshot details
             call.set_snapshotkey(snapshotKey);
@@ -473,7 +472,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     {
         std::shared_ptr<faabric::Message> masterMsg =
           std::make_shared<faabric::Message>();
-        masterMsg->set_isasync(true);
         masterMsg->set_appindex(0);
 
         IR::UntaggedValue masterThreadResult;
@@ -498,13 +496,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         }
     }
 
-    // Iterate through messages and await completion
     if (!isSingleThread) {
+        // Await all child threads
         for (int i = 0; i < req->messages_size(); i++) {
             sch.awaitThreadResult(req->messages().at(i).id());
         }
 
-        // Delete the snapshot from registered hosts
+        // Delete the snapshot
         PROF_START(BroadcastDeleteSnapshot)
         sch.broadcastSnapshotDelete(*parentCall, snapshotKey);
         PROF_END(BroadcastDeleteSnapshot)

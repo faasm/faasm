@@ -10,29 +10,28 @@
 #include <wamr/WAMRWasmModule.h>
 #include <wasm/WasmModule.h>
 
-bool runWithWamr(faabric::Message& m, int runCount)
+int runWithWamr(faabric::Message& m, int runCount)
 {
-    bool success = true;
+    int returnValue = true;
 
     for (int i = 0; i < runCount; i++) {
         wasm::WAMRWasmModule module;
         module.bindToFunction(m);
 
-        success = module.execute(m);
-        if (!success) {
+        returnValue = module.executeFunction(m);
+        if (returnValue > 0) {
             break;
         }
     }
 
     wasm::tearDownWAMRGlobally();
 
-    return success;
+    return returnValue;
 }
 
-bool runWithWavm(faabric::Message& m, int runCount)
+int runWithWavm(faabric::Message& m, int runCount)
 {
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    bool success = true;
 
     // Create the module
     module_cache::WasmModuleCache& registry =
@@ -43,9 +42,10 @@ bool runWithWavm(faabric::Message& m, int runCount)
     wasm::WAVMWasmModule module(cachedModule);
 
     // Run repeated executions
+    int returnValue;
     for (int i = 0; i < runCount; i++) {
-        success = module.execute(m);
-        if (!success) {
+        returnValue = module.executeFunction(m);
+        if (returnValue > 0) {
             module.printDebugInfo();
             logger->error("Execution failed");
             break;
@@ -59,7 +59,7 @@ bool runWithWavm(faabric::Message& m, int runCount)
         }
     }
 
-    return success;
+    return returnValue;
 }
 
 int main(int argc, char* argv[])

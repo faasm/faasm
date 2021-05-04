@@ -16,8 +16,8 @@ TEST_CASE("Test executing WASM module with no input", "[wasm]")
     module.bindToFunction(call);
 
     // Execute the function
-    bool success = module.execute(call);
-    REQUIRE(success);
+    int returnValue = module.executeFunction(call);
+    REQUIRE(returnValue == 0);
 
     std::string outputData = call.outputdata();
     const std::vector<uint8_t> outputBytes =
@@ -39,8 +39,8 @@ TEST_CASE("Test printf doesn't fail", "[wasm]")
     wasm::WAVMWasmModule module;
     module.bindToFunction(call);
 
-    bool success = module.execute(call);
-    REQUIRE(success);
+    int returnValue = module.executeFunction(call);
+    REQUIRE(returnValue == 0);
 }
 
 void executeX2(wasm::WAVMWasmModule& module)
@@ -54,8 +54,8 @@ void executeX2(wasm::WAVMWasmModule& module)
     call.set_inputdata(inputValues, 10);
 
     // Make the call
-    bool success = module.execute(call);
-    REQUIRE(success);
+    int returnValue = module.executeFunction(call);
+    REQUIRE(returnValue == 0);
 
     std::string outputData = call.outputdata();
     const std::vector<uint8_t> outputBytes =
@@ -113,7 +113,7 @@ TEST_CASE("Test execution without binding fails", "[wasm]")
     callA.set_function("dummy");
 
     wasm::WAVMWasmModule module;
-    REQUIRE_THROWS(module.execute(callA));
+    REQUIRE_THROWS(module.executeFunction(callA));
 }
 
 TEST_CASE("Test binding twice fails", "[wasm]")
@@ -135,7 +135,7 @@ TEST_CASE("Test repeat execution with different function fails", "[wasm]")
     wasm::WAVMWasmModule module;
     module.bindToFunction(callA);
 
-    REQUIRE_THROWS(module.execute(callB));
+    REQUIRE_THROWS(module.executeFunction(callB));
 }
 
 TEST_CASE("Test reclaiming memory", "[wasm]")
@@ -151,7 +151,7 @@ TEST_CASE("Test reclaiming memory", "[wasm]")
     Uptr initialPages = Runtime::getMemoryNumPages(module.defaultMemory);
 
     // Run it (knowing memory will grow during execution)
-    module.execute(call);
+    module.executeFunction(call);
 
     module = cachedModule;
 
@@ -172,11 +172,11 @@ TEST_CASE("Test GC", "[wasm]")
     SECTION("Executed module")
     {
         module.bindToFunction(call);
-        module.execute(call);
+        module.executeFunction(call);
     }
 
-    bool success = module.tearDown();
-    REQUIRE(success);
+    int returnValue = module.tearDown();
+    REQUIRE(returnValue == 0);
 }
 
 TEST_CASE("Test disassemble module", "[wasm]")

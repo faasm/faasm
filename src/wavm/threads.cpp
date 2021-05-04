@@ -88,6 +88,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory(
         originalCall->user(), originalCall->function(), 1);
+    req->set_subtype(wasm::ThreadRequestType::PTHREAD);
 
     faabric::Message& threadCall = req->mutable_messages()->at(0);
 

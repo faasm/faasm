@@ -82,13 +82,13 @@ TEST_CASE("Test snapshot and restore for wasm module", "[wasm][snapshot]")
     REQUIRE(nativePtrC[4] == 4);
 
     // Execute all of them
-    bool successA = moduleA.execute(m);
-    REQUIRE(successA);
+    int returnValueA = moduleA.executeFunction(m);
+    REQUIRE(returnValueA);
 
-    bool successB = moduleB.execute(m);
-    REQUIRE(successB);
+    int returnValueB = moduleB.executeFunction(m);
+    REQUIRE(returnValueB);
 
-    bool successC = moduleC.execute(m);
-    REQUIRE(successC);
+    int returnValueC = moduleC.executeFunction(m);
+    REQUIRE(returnValueC);
 }
 }

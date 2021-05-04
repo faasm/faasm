@@ -1,9 +1,9 @@
-#include "faabric/scheduler/ExecutorFactory.h"
 #include <faaslet/Faaslet.h>
 #include <wasm/WasmModule.h>
 
 #include <faabric/redis/Redis.h>
 #include <faabric/runner/FaabricMain.h>
+#include <faabric/scheduler/ExecutorFactory.h>
 #include <faabric/util/config.h>
 #include <faabric/util/timing.h>
 
@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
     // Make sure we have enough space for chained calls
     int nThreads = 10;
     faabric::HostResources res;
-    res.set_cores(nThreads);
+    res.set_slots(nThreads);
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.setThisHostResources(res);
 

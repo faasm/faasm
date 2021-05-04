@@ -18,8 +18,8 @@ TEST_CASE("Test executing echo function with WAMR", "[wamr]")
     wasm::WAMRWasmModule module;
     module.bindToFunction(call);
 
-    bool success = module.execute(call);
-    REQUIRE(success);
+    int returnValue = module.executeFunction(call);
+    REQUIRE(returnValue == 0);
 
     std::string outputData = call.outputdata();
     REQUIRE(outputData == inputData);

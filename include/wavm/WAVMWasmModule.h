@@ -138,6 +138,15 @@ class WAVMWasmModule final
 
     int getDataOffsetFromGOT(const std::string& name);
 
+    int32_t executeFunction(faabric::Message& msg) override;
+
+    int32_t executeOMPThread(int threadPoolIdx,
+                             uint32_t stackTop,
+                             faabric::Message& msg) override;
+
+    int32_t executePthread(int threadPoolIdx,
+                           uint32_t stackTop,
+                           faabric::Message& msg) override;
   private:
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> envModule;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> wasiModule;
@@ -190,16 +199,6 @@ class WAVMWasmModule final
 
     WAVM::Runtime::Function* getWasmConstructorsFunction(
       WAVM::Runtime::Instance* module);
-
-    int32_t executeFunction(faabric::Message& msg) override;
-
-    int32_t executeOMPThread(int threadPoolIdx,
-                             uint32_t stackTop,
-                             faabric::Message& msg) override;
-
-    int32_t executePthread(int threadPoolIdx,
-                           uint32_t stackTop,
-                           faabric::Message& msg) override;
 };
 
 WAVMWasmModule* getExecutingWAVMModule();

@@ -124,14 +124,15 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
                              int msgIdx,
                              std::shared_ptr<faabric::BatchExecuteRequest> req)
 {
-
+    // Execute the task
     int32_t returnValue = module->executeTask(threadPoolIdx, msgIdx, req);
 
-    faabric::Message& msg = req->mutable_messages()->at(msgIdx);
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-
+    // Reset module
+    auto& conf = faabric::util::getSystemConfig();
     if (conf.wasmVm == "wavm") {
         // Restore from zygote
+        faabric::Message& msg = req->mutable_messages()->at(msgIdx);
+
         wasm::WAVMWasmModule& cachedModule =
           module_cache::getWasmModuleCache().getCachedModule(msg);
         module = std::make_unique<wasm::WAVMWasmModule>(cachedModule);
@@ -146,16 +147,16 @@ void Faaslet::postFinish()
     returnNetworkNamespace(ns);
 }
 
-void Faaslet::restore(const faabric::Message& call)
+void Faaslet::restore(const faabric::Message& msg)
 {
     auto logger = faabric::util::getLogger();
 
     auto& conf = faabric::util::getSystemConfig();
-    const std::string snapshotKey = call.snapshotkey();
+    const std::string snapshotKey = msg.snapshotkey();
 
     // Restore from snapshot if necessary
     if (conf.wasmVm == "wavm") {
-        if (!snapshotKey.empty() && !call.issgx()) {
+        if (!snapshotKey.empty() && !msg.issgx()) {
             PROF_START(snapshotOverride)
 
             logger->debug("Restoring {} from snapshot {} before execution",
@@ -164,7 +165,7 @@ void Faaslet::restore(const faabric::Message& call)
             module_cache::WasmModuleCache& registry =
               module_cache::getWasmModuleCache();
 
-            wasm::WAVMWasmModule& snapshot = registry.getCachedModule(call);
+            wasm::WAVMWasmModule& snapshot = registry.getCachedModule(msg);
             module = std::make_unique<wasm::WAVMWasmModule>(snapshot);
 
             PROF_END(snapshotOverride)

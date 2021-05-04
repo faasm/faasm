@@ -1,8 +1,11 @@
 #include "utils.h"
-#include <WAVM/Runtime/Intrinsics.h>
 #include <catch2/catch.hpp>
+
+#include <WAVM/Runtime/Intrinsics.h>
+
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
+
 #include <wavm/WAVMWasmModule.h>
 
 using namespace wasm;
@@ -57,7 +60,7 @@ void _doChecks(wasm::WAVMWasmModule& moduleA,
     // Dummy execution initially to avoid any first-time set-up differences
     WAVMWasmModule moduleWarmUp;
     moduleWarmUp.bindToFunction(msgA);
-    moduleWarmUp.execute(msgA);
+    moduleWarmUp.executeFunction(msgA);
 
     // Get the initial mem, brk and table size
     Uptr memBeforeA = Runtime::getMemoryNumPages(moduleA.defaultMemory);
@@ -94,8 +97,8 @@ void _doChecks(wasm::WAVMWasmModule& moduleA,
     REQUIRE(baseA != baseB);
 
     // Execute the function with the first module and check it works
-    bool successA = moduleA.execute(msgA);
-    REQUIRE(successA);
+    int returnValueA = moduleA.executeFunction(msgA);
+    REQUIRE(returnValueA == 0);
 
     if (func == "echo") {
         REQUIRE(msgA.outputdata() == inputA);
@@ -127,8 +130,8 @@ void _doChecks(wasm::WAVMWasmModule& moduleA,
     REQUIRE(tableAfterB1 == tableBeforeA);
 
     // Execute with second module
-    bool successB = moduleB.execute(msgB);
-    REQUIRE(successB);
+    int returnValueB = moduleB.executeFunction(msgB);
+    REQUIRE(returnValueB == 0);
 
     if (func == "echo") {
         REQUIRE(msgB.outputdata() == inputB);
@@ -270,13 +273,13 @@ TEST_CASE("Test GC on cloned modules with execution")
 
     WAVMWasmModule moduleA;
     moduleA.bindToFunction(msg);
-    moduleA.execute(msg);
+    moduleA.executeFunction(msg);
 
     WAVMWasmModule moduleB(moduleA);
-    moduleB.execute(msg);
+    moduleB.executeFunction(msg);
 
     WAVMWasmModule moduleC = moduleA;
-    moduleC.execute(msg);
+    moduleC.executeFunction(msg);
 
     REQUIRE(moduleA.tearDown());
     REQUIRE(moduleB.tearDown());

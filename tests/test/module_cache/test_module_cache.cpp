@@ -39,7 +39,7 @@ TEST_CASE("Test creating zygotes", "[zygote]")
     // Execute the function normally and make sure zygote is not used directly
     faaslet::Faaslet faaslet(msgA);
     int returnValue = faaslet.executeTask(0, 0, req);
-    REQUIRE(returnvalue == 0);
+    REQUIRE(returnValue == 0);
 
     REQUIRE(std::addressof(moduleA) != std::addressof(*faaslet.module));
 }

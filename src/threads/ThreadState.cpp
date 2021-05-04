@@ -24,6 +24,10 @@ void setCurrentOpenMPLevel(const std::shared_ptr<Level>& level)
 void setCurrentOpenMPLevel(
   const std::shared_ptr<faabric::BatchExecuteRequest> req)
 {
+    if (req->contextdata().empty()) {
+        throw std::runtime_error("Empty context for OpenMP request");
+    }
+
     const SerialisedLevel* serialisedLevel =
       reinterpret_cast<const SerialisedLevel*>(req->contextdata().data());
 

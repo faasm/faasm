@@ -27,14 +27,14 @@ void execFunction(faabric::Message& call, const std::string& expectedOutput)
 
     wasm::WAVMWasmModule module;
     module.bindToFunction(call);
-    bool success = module.execute(call);
+    int returnValue = module.executeFunction(call);
 
     if (!expectedOutput.empty()) {
         std::string actualOutput = call.outputdata();
         REQUIRE(actualOutput == expectedOutput);
     }
 
-    REQUIRE(success);
+    REQUIRE(returnValue == 0);
     REQUIRE(call.returnvalue() == 0);
 
     conf.pythonPreload = originalPreload;
@@ -80,8 +80,8 @@ void checkMultipleExecutions(faabric::Message& msg, int nExecs)
     wasm::WAVMWasmModule module(cachedModule);
 
     for (int i = 0; i < nExecs; i++) {
-        bool success = module.execute(msg);
-        REQUIRE(success);
+        int returnValue = module.executeFunction(msg);
+        REQUIRE(returnValue == 0);
 
         // Reset
         module = cachedModule;
@@ -106,13 +106,13 @@ void execFunctionWithRemoteBatch(faabric::Message& call,
 
     // Set up other host to have some resources
     faabric::HostResources resOther;
-    resOther.set_cores(10);
+    resOther.set_slots(10);
     faabric::scheduler::queueResourceResponse(otherHost, resOther);
 
     // Make sure we have no cores so we get distribution
     int nCores = 0;
     faabric::HostResources res;
-    res.set_cores(nCores);
+    res.set_slots(nCores);
     sch.setThisHostResources(res);
 
     // Background thread to execute function (won't finish until threads have
@@ -120,9 +120,8 @@ void execFunctionWithRemoteBatch(faabric::Message& call,
     std::thread t([&call] {
         wasm::WAVMWasmModule module;
         module.bindToFunction(call);
-        bool success = module.execute(call);
-
-        REQUIRE(success);
+        int returnValue = module.executeFunction(call);
+        REQUIRE(returnValue == 0);
     });
 
     // Give it time to have made the request

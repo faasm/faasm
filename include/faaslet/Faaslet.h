@@ -20,12 +20,12 @@ class Faaslet final : public faabric::scheduler::Executor
 
     void flush() override;
 
-  protected:
     int32_t executeTask(
       int threadPoolIdx,
       int msgIdx,
       std::shared_ptr<faabric::BatchExecuteRequest> req) override;
 
+  protected:
     void postFinish() override;
 
     void restore(const faabric::Message& call) override;

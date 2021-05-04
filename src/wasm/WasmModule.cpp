@@ -326,28 +326,27 @@ int32_t WasmModule::executeTask(
   int msgIdx,
   std::shared_ptr<faabric::BatchExecuteRequest> req)
 {
-    const auto& logger = faabric::util::getLogger();
-
     setExecutingModule(this);
     faabric::Message& msg = req->mutable_messages()->at(msgIdx);
     setExecutingCall(&msg);
 
     uint32_t stackTop = threadStacks.at(threadPoolIdx);
 
+    // Perform the appropriate type of execution
     int returnValue;
     if (req->type() == faabric::BatchExecuteRequest::THREADS) {
-        if (req->contextdata().empty()) {
-            // Pthread
+        // Pthreads or openmp
+        if (req->subtype() == ThreadRequestType::PTHREAD) {
             returnValue = executePthread(threadPoolIdx, stackTop, msg);
-        } else {
-            // OpenMP
+        } else if (req->subtype() == ThreadRequestType::OPENMP) {
             threads::setCurrentOpenMPLevel(req);
-
             returnValue = executeOMPThread(threadPoolIdx, stackTop, msg);
+        } else {
+            throw std::runtime_error("Unrecognised thread type");
         }
     } else {
-        // TODO - execute function
-        returnValue = 0;
+        // Vanilla function
+        returnValue = executeFunction(msg);
     }
 
     // Add captured stdout if necessary

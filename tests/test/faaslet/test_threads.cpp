@@ -16,11 +16,11 @@ void runTestLocally(const std::string& func)
 {
     cleanSystem();
 
-    faabric::Message msg = faabric::util::messageFactory("demo", func);
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory("demo", func, 1);
 
-    execBatchWithPool(req, 3, false, false);
+    int nThreads = 4;
+    execBatchWithPool(req, nThreads, false, false);
 }
 
 void runTestDistributed(const std::string& func)

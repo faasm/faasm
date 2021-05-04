@@ -842,12 +842,14 @@ uint32_t WAVMWasmModule::addFunctionToTable(Runtime::Object* exportedFunc)
     return prevIdx;
 }
 
-/**
- * Executes the given function call
- */
 int32_t WAVMWasmModule::executeFunction(faabric::Message& msg)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
+    const auto& logger = faabric::util::getLogger();
+
+    // Note this will already have been set, but we want to be able to call this
+    // function in isolation from tests so must reset
+    setExecutingModule(this);
+    setExecutingCall(&msg);
 
     if (!_isBound) {
         throw std::runtime_error(
@@ -917,30 +919,26 @@ int32_t WAVMWasmModule::executeFunction(faabric::Message& msg)
 
     // Call the function
     int returnValue = 0;
-    bool success = true;
     try {
         Runtime::catchRuntimeExceptions(
           [this, &funcInstance, &funcType, &invokeArgs, &returnValue, &logger] {
               logger->debug("Invoking C/C++ function");
 
               IR::UntaggedValue result;
-
               executeWasmFunction(funcInstance, funcType, invokeArgs, result);
 
               returnValue = result.i32;
           },
-          [&logger, &success, &returnValue](Runtime::Exception* ex) {
+          [&logger, &returnValue](Runtime::Exception* ex) {
               logger->error("Runtime exception: {}",
                             Runtime::describeException(ex).c_str());
               Runtime::destroyException(ex);
-              success = false;
               returnValue = 1;
           });
     } catch (WasmExitException& e) {
         logger->debug("Caught wasm exit exception from main thread (code {})",
                       e.exitCode);
         returnValue = e.exitCode;
-        success = e.exitCode == 0;
     }
 
     // Record the return value
