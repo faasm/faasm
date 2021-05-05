@@ -135,7 +135,6 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
         tearDown();
     }
 
-    baseSnapshotKey = other.baseSnapshotKey;
     _isBound = other._isBound;
     boundUser = other.boundUser;
     boundFunction = other.boundFunction;
@@ -159,18 +158,8 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
     stdoutSize = 0;
 
     if (other._isBound) {
-        bool restoreFromBaseSnapshot = !baseSnapshotKey.empty();
-
-        // If we're going to be restoring from a snapshot, we don't need to
-        // clone memory
-        if (restoreFromBaseSnapshot) {
-            // Clone compartment excluding memory
-            compartment =
-              Runtime::cloneCompartment(other.compartment, "", false);
-        } else {
-            // Clone compartment including memory
-            compartment = Runtime::cloneCompartment(other.compartment);
-        }
+        // Clone compartment
+        compartment = Runtime::cloneCompartment(other.compartment);
 
         // Clone context
         executionContext =
@@ -187,11 +176,6 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
         // Extract the memory and table again
         defaultMemory = Runtime::getDefaultMemory(moduleInstance);
         defaultTable = Runtime::getDefaultTable(moduleInstance);
-
-        // Restore memory from snapshot
-        if (restoreFromBaseSnapshot) {
-            restore(baseSnapshotKey);
-        }
 
         // Reset shared memory variables
         sharedMemWasmPtrs = other.sharedMemWasmPtrs;
@@ -522,11 +506,6 @@ void WAVMWasmModule::doBindToFunction(const faabric::Message& msg,
                   initialMemorySize,
                   initialMemoryPages,
                   initialTableSize);
-
-    // Now that we know everything is set up, we can create the base snapshot
-    if (baseSnapshotKey.empty()) {
-        baseSnapshotKey = snapshot();
-    }
 
     PROF_END(wasmBind)
 }

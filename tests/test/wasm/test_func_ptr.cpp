@@ -18,18 +18,17 @@ TEST_CASE("Test executing function given specific pointer", "[wasm]")
     wasm::WAVMWasmModule module;
     module.bindToFunction(call);
 
-    // Create zygote from which to restore
-    std::string stateKey = module.snapshot();
+    // Create snapshot
+    std::string snapKey = module.snapshot();
 
-    // Set up call with a specific function pointer and zygote in state
-    call.set_snapshotkey(stateKey);
+    // Set up call with a specific function pointer
+    call.set_snapshotkey(snapKey);
     call.set_funcptr(1);
 
-    // Restore from the zygote and execute the function (expect it to succeed)
     wasm::WAVMWasmModule moduleB;
     moduleB.bindToFunction(call);
 
-    moduleB.restore(stateKey);
+    moduleB.restore(snapKey);
     int returnValue = moduleB.executeFunction(call);
     REQUIRE(returnValue == 0);
 

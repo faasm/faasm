@@ -71,7 +71,6 @@ void Faaslet::flush()
     // Flush the module itself
     module->flush();
 
-
     // Terminate this Faaslet
     throw faabric::util::ExecutorFinishedException("Faaslet flushed");
 }

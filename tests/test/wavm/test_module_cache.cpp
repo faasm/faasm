@@ -35,7 +35,7 @@ TEST_CASE("Test creating cached WAVM modules", "[wasm]")
     REQUIRE(std::addressof(moduleA) == std::addressof(moduleB));
     REQUIRE(moduleA.isBound());
 
-    // Execute the function normally and make sure zygote is not used directly
+    // Execute the function normally and make sure cached module is not used
     faaslet::Faaslet faaslet(msgA);
     int returnValue = faaslet.executeTask(0, 0, req);
     REQUIRE(returnValue == 0);

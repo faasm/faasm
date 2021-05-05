@@ -157,8 +157,6 @@ class WAVMWasmModule final
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> wasiModule;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> moduleInstance;
 
-    std::string baseSnapshotKey;
-
     bool _isBound = false;
 
     // Map of dynamically loaded modules
