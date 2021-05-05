@@ -35,6 +35,8 @@ class WAVMWasmModule final
 
     void bindToFunctionNoZygote(const faabric::Message& msg) override;
 
+    void bindToFunctionNoCache(const faabric::Message& msg);
+
     bool isBound() override;
 
     bool tearDown();
@@ -149,6 +151,7 @@ class WAVMWasmModule final
     int32_t executePthread(int threadPoolIdx,
                            uint32_t stackTop,
                            faabric::Message& msg) override;
+
   private:
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> envModule;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> wasiModule;
@@ -176,7 +179,9 @@ class WAVMWasmModule final
 
     static WAVM::Runtime::Instance* getWasiModule();
 
-    void doBindToFunction(const faabric::Message& msg, bool executeZygote);
+    void doBindToFunction(const faabric::Message& msg,
+                          bool executeZygote,
+                          bool useCache);
 
     void writeStringArrayToMemory(const std::vector<std::string>& strings,
                                   uint32_t strPoitners,
@@ -209,6 +214,11 @@ class WAVMModuleCache
     bool hasCachedModule(const faabric::Message& msg);
 
     wasm::WAVMWasmModule& getCachedModule(const faabric::Message& msg);
+
+    wasm::WAVMWasmModule& getCachedModule(const std::string& user,
+                                          const std::string& func);
+
+    void initialiseCachedModule(const faabric::Message& msg);
 
     void clear();
 

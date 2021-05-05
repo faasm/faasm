@@ -65,12 +65,11 @@ static void instantiateBaseModules()
 void WAVMWasmModule::reset()
 {
     // Reset module after execution
-    auto& conf = faabric::util::getSystemConfig();
-    if (conf.wasmVm == "wavm") {
-        faabric::Message& msg = req->mutable_messages()->at(msgIdx);
+    if (_isBound) {
         wasm::WAVMWasmModule& cachedModule =
-          wasm::getWAVMModuleCache().getCachedModule(msg);
-        module = std::make_unique<wasm::WAVMWasmModule>(cachedModule);
+          wasm::getWAVMModuleCache().getCachedModule(boundUser, boundFunction);
+
+        clone(cachedModule);
     }
 }
 
@@ -424,16 +423,22 @@ void WAVMWasmModule::executeWasmFunction(
 
 void WAVMWasmModule::bindToFunction(const faabric::Message& msg)
 {
-    doBindToFunction(msg, true);
+    doBindToFunction(msg, true, true);
 }
 
 void WAVMWasmModule::bindToFunctionNoZygote(const faabric::Message& msg)
 {
-    doBindToFunction(msg, false);
+    doBindToFunction(msg, false, true);
+}
+
+void WAVMWasmModule::bindToFunctionNoCache(const faabric::Message& msg)
+{
+    doBindToFunction(msg, true, false);
 }
 
 void WAVMWasmModule::doBindToFunction(const faabric::Message& msg,
-                                      bool executeZygote)
+                                      bool executeZygote,
+                                      bool useCache)
 {
     /*
      * NOTE - the order things happen in this function is important.
@@ -441,11 +446,14 @@ void WAVMWasmModule::doBindToFunction(const faabric::Message& msg,
      * but in order to work it needs the memory etc. to be set up.
      */
 
-    // See if we can skip this from the cache
-    wasm::WAVMModuleCache& cache = getWAVMModuleCache();
-    if (cache.hasCachedModule(msg)) {
-        clone(cache.getCachedModule(msg);
-                return;
+    if (useCache) {
+        wasm::WAVMModuleCache& cache = getWAVMModuleCache();
+        if (!cache.hasCachedModule(msg)) {
+            cache.initialiseCachedModule(msg);
+        }
+
+        clone(cache.getCachedModule(msg));
+        return;
     }
 
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
