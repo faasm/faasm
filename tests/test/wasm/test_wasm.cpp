@@ -2,7 +2,8 @@
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
-#include <wavm/WAVMModuleCache.h>
+
+#include <wavm/WAVMWasmModule.h>
 
 using namespace WAVM;
 
@@ -85,22 +86,20 @@ TEST_CASE("Test repeat execution on simple WASM module", "[wasm]")
     call.set_user("demo");
     call.set_function("x2");
 
-    wasm::WAVMModuleCache& registry = wasm::getWAVMModuleCache();
-    wasm::WAVMWasmModule& cachedModule = registry.getCachedModule(call);
-
-    wasm::WAVMWasmModule module(cachedModule);
+    wasm::WAVMWasmModule module;
+    module.bindToFunction(call);
 
     // Perform first execution
     executeX2(module);
 
     // Reset
-    module = cachedModule;
+    module.reset();
 
     // Perform repeat executions on same module
     executeX2(module);
 
     // Reset
-    module = cachedModule;
+    module.reset();
 
     executeX2(module);
 }
@@ -141,17 +140,15 @@ TEST_CASE("Test reclaiming memory", "[wasm]")
 {
     faabric::Message call = faabric::util::messageFactory("demo", "heap");
 
-    wasm::WAVMModuleCache& registry = wasm::getWAVMModuleCache();
-    wasm::WAVMWasmModule& cachedModule = registry.getCachedModule(call);
-
-    wasm::WAVMWasmModule module(cachedModule);
+    wasm::WAVMWasmModule module;
+    module.bindToFunction(call);
 
     Uptr initialPages = Runtime::getMemoryNumPages(module.defaultMemory);
 
     // Run it (knowing memory will grow during execution)
     module.executeFunction(call);
 
-    module = cachedModule;
+    module.reset();
 
     Uptr pagesAfter = Runtime::getMemoryNumPages(module.defaultMemory);
     REQUIRE(pagesAfter == initialPages);

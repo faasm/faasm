@@ -107,10 +107,8 @@ Faaslet::Faaslet(const faabric::Message& msg)
 
         module->bindToFunction(msg);
     } else if (conf.wasmVm == "wavm") {
-        // Get module from cache
-        wasm::WAVMWasmModule& cachedModule =
-          wasm::getWAVMModuleCache().getCachedModule(msg);
-        module = std::make_unique<wasm::WAVMWasmModule>(cachedModule);
+        module = std::make_unique<wasm::WAVMWasmModule>();
+        module->bindToFunction(msg);
 
     } else {
         logger->error("Unrecognised wasm VM: {}", conf.wasmVm);

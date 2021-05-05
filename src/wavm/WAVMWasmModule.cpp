@@ -441,6 +441,13 @@ void WAVMWasmModule::doBindToFunction(const faabric::Message& msg,
      * but in order to work it needs the memory etc. to be set up.
      */
 
+    // See if we can skip this from the cache
+    wasm::WAVMModuleCache& cache = getWAVMModuleCache();
+    if (cache.hasCachedModule(msg)) {
+        clone(cache.getCachedModule(msg);
+                return;
+    }
+
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
     if (_isBound) {
         throw std::runtime_error("Cannot bind a module twice");

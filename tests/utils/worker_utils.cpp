@@ -11,7 +11,6 @@
 #include <faabric/util/testing.h>
 
 #include <faaslet/Faaslet.h>
-#include <wavm/WAVMModuleCache.h>
 #include <wavm/WAVMWasmModule.h>
 
 using namespace faaslet;
@@ -73,18 +72,15 @@ std::string execFunctionWithStringResult(faabric::Message& call)
 
 void checkMultipleExecutions(faabric::Message& msg, int nExecs)
 {
-    wasm::WAVMModuleCache& registry =
-      wasm::getWAVMModuleCache();
-    wasm::WAVMWasmModule& cachedModule = registry.getCachedModule(msg);
-
-    wasm::WAVMWasmModule module(cachedModule);
+    wasm::WAVMWasmModule module;
+    module.bindToFunction(msg);
 
     for (int i = 0; i < nExecs; i++) {
         int returnValue = module.executeFunction(msg);
         REQUIRE(returnValue == 0);
 
         // Reset
-        module = cachedModule;
+        module.reset();
     }
 }
 
@@ -192,9 +188,7 @@ void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
     m.shutdown();
 }
 
-void execFuncWithPool(faabric::Message& call,
-                      int repeatCount,
-                      bool clean)
+void execFuncWithPool(faabric::Message& call, int repeatCount, bool clean)
 {
     if (clean) {
         cleanSystem();

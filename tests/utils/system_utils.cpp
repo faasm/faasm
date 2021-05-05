@@ -4,7 +4,7 @@
 
 #include "utils.h"
 
-#include <wavm/WAVMModuleCache.h>
+#include <wavm/WAVMWasmModule.h>
 
 namespace tests {
 void cleanSystem()
@@ -15,7 +15,7 @@ void cleanSystem()
     // Clear shared files
     storage::FileSystem::clearSharedFiles();
 
-    // Clear zygotes
+    // Clear cached modules
     wasm::getWAVMModuleCache().clear();
 }
 }

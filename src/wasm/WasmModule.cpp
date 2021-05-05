@@ -418,6 +418,11 @@ threads::MutexManager& WasmModule::getMutexes()
 // Functions to be implemented by subclasses
 // ------------------------------------------
 
+void WasmModule::reset()
+{
+    faabric::util::getLogger()->warn("Using default reset of wasm module");
+}
+
 void WasmModule::bindToFunction(const faabric::Message& msg)
 {
     throw std::runtime_error("bindToFunction not implemented");

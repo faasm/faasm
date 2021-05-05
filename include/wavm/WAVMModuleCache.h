@@ -6,6 +6,8 @@ namespace wasm {
 class WAVMModuleCache
 {
   public:
+    bool hasCachedModule(const faabric::Message& msg);
+
     wasm::WAVMWasmModule& getCachedModule(const faabric::Message& msg);
 
     void clear();

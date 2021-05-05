@@ -1,4 +1,4 @@
-#include <wavm/WAVMModuleCache.h>
+#include <wavm/WAVMWasmModule.h>
 
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>

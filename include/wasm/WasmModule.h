@@ -58,6 +58,8 @@ class WasmModule
     virtual ~WasmModule();
 
     // ----- Module lifecycle -----
+    virtual void reset();
+
     virtual void bindToFunction(const faabric::Message& msg);
 
     virtual void bindToFunctionNoZygote(const faabric::Message& msg);

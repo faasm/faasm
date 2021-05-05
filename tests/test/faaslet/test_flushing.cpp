@@ -9,7 +9,7 @@
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
 
-#include <wavm/WAVMModuleCache.h>
+#include <wavm/WAVMWasmModule.h>
 #include <storage/FileLoader.h>
 #include <wavm/IRModuleCache.h>
 
@@ -40,7 +40,7 @@ TEST_CASE("Test flushing faaslet clears shared files", "[faaslet]")
     REQUIRE(!boost::filesystem::exists(sharedPath));
 }
 
-TEST_CASE("Test flushing faaslet clears zygotes", "[faaslet]")
+TEST_CASE("Test flushing faaslet clears cached modules", "[faaslet]")
 {
     const faabric::Message msgA = faabric::util::messageFactory("demo", "echo");
     const faabric::Message msgB =

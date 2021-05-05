@@ -5,10 +5,10 @@
 
 #include <faabric/util/func.h>
 #include <faabric/util/macros.h>
-#include <wavm/WAVMModuleCache.h>
+#include <wavm/WAVMWasmModule.h>
 
 namespace tests {
-TEST_CASE("Test creating zygotes", "[zygote]")
+TEST_CASE("Test creating cached WAVM modules", "[wasm]")
 {
     cleanSystem();
 
@@ -27,8 +27,7 @@ TEST_CASE("Test creating zygotes", "[zygote]")
     int input[3] = { 1, 2, 3 };
     msgA.set_inputdata(BYTES(input), 3 * sizeof(int));
 
-    wasm::WAVMModuleCache& registry =
-      wasm::getWAVMModuleCache();
+    wasm::WAVMModuleCache& registry = wasm::getWAVMModuleCache();
     wasm::WasmModule& moduleA = registry.getCachedModule(msgA);
     wasm::WasmModule& moduleB = registry.getCachedModule(msgB);
 

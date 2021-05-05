@@ -32,12 +32,9 @@ int runWithWavm(faabric::Message& m, int runCount)
 {
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
-    // Create the module
-    wasm::WAVMModuleCache& registry = wasm::getWAVMModuleCache();
-    wasm::WAVMWasmModule& cachedModule = registry.getCachedModule(m);
-
-    // Create new module from cache
-    wasm::WAVMWasmModule module(cachedModule);
+    // Create new module
+    wasm::WAVMWasmModule module;
+    module.bindToFunction(m);
 
     // Run repeated executions
     int returnValue;
