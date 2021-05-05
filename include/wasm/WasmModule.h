@@ -43,7 +43,8 @@
 
 namespace wasm {
 
-enum ThreadRequestType {
+enum ThreadRequestType
+{
     PTHREAD,
     OPENMP,
 };
@@ -58,7 +59,7 @@ class WasmModule
     virtual ~WasmModule();
 
     // ----- Module lifecycle -----
-    virtual void reset();
+    virtual void reset(const faabric::Message& msg);
 
     virtual void bindToFunction(const faabric::Message& msg);
 

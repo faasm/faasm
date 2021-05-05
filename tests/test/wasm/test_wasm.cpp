@@ -93,13 +93,13 @@ TEST_CASE("Test repeat execution on simple WASM module", "[wasm]")
     executeX2(module);
 
     // Reset
-    module.reset();
+    module.reset(call);
 
     // Perform repeat executions on same module
     executeX2(module);
 
     // Reset
-    module.reset();
+    module.reset(call);
 
     executeX2(module);
 }
@@ -148,7 +148,7 @@ TEST_CASE("Test reclaiming memory", "[wasm]")
     // Run it (knowing memory will grow during execution)
     module.executeFunction(call);
 
-    module.reset();
+    module.reset(call);
 
     Uptr pagesAfter = Runtime::getMemoryNumPages(module.defaultMemory);
     REQUIRE(pagesAfter == initialPages);

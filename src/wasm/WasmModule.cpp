@@ -418,7 +418,7 @@ threads::MutexManager& WasmModule::getMutexes()
 // Functions to be implemented by subclasses
 // ------------------------------------------
 
-void WasmModule::reset()
+void WasmModule::reset(const faabric::Message& msg)
 {
     faabric::util::getLogger()->warn("Using default reset of wasm module");
 }

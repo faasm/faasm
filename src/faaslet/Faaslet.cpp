@@ -124,9 +124,9 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
     return returnValue;
 }
 
-void Faaslet::reset()
+void Faaslet::reset(const faabric::Message& msg)
 {
-    module.reset();
+    module->reset(msg);
 }
 
 void Faaslet::postFinish()

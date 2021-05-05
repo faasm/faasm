@@ -43,7 +43,7 @@ class WAVMWasmModule final
 
     void flush() override;
 
-    void reset() override;
+    void reset(const faabric::Message &msg) override;
 
     // ----- Memory management -----
     uint32_t growMemory(uint32_t nBytes) override;
@@ -209,12 +209,7 @@ class WAVMWasmModule final
 class WAVMModuleCache
 {
   public:
-    bool hasCachedModule(const faabric::Message& msg);
-
     wasm::WAVMWasmModule& getCachedModule(const faabric::Message& msg);
-
-    wasm::WAVMWasmModule& getCachedModule(const std::string& user,
-                                          const std::string& func);
 
     void initialiseCachedModule(const faabric::Message& msg);
 

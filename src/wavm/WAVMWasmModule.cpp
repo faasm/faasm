@@ -62,12 +62,12 @@ static void instantiateBaseModules()
     PROF_END(BaseWasiModule)
 }
 
-void WAVMWasmModule::reset()
+void WAVMWasmModule::reset(const faabric::Message& msg)
 {
     // Reset module after execution
     if (_isBound) {
         wasm::WAVMWasmModule& cachedModule =
-          wasm::getWAVMModuleCache().getCachedModule(boundUser, boundFunction);
+          wasm::getWAVMModuleCache().getCachedModule(msg);
 
         clone(cachedModule);
     }
@@ -207,7 +207,7 @@ bool WAVMWasmModule::tearDown()
 {
     PROF_START(wasmTearDown)
 
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
+    const auto& logger = faabric::util::getLogger();
 
     // --- Faasm stuff ---
     // Shared mem
@@ -432,10 +432,6 @@ void WAVMWasmModule::doBindToFunction(const faabric::Message& msg,
 
     if (useCache) {
         wasm::WAVMModuleCache& cache = getWAVMModuleCache();
-        if (!cache.hasCachedModule(msg)) {
-            cache.initialiseCachedModule(msg);
-        }
-
         clone(cache.getCachedModule(msg));
         return;
     }

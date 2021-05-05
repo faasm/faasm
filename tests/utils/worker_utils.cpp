@@ -80,7 +80,7 @@ void checkMultipleExecutions(faabric::Message& msg, int nExecs)
         REQUIRE(returnValue == 0);
 
         // Reset
-        module.reset();
+        module.reset(msg);
     }
 }
 
