@@ -1,10 +1,10 @@
 #include <catch2/catch.hpp>
 
-#include "conf/FaasmConfig.h"
-#include "faabric/util/environment.h"
 #include "utils.h"
 
 #include <faabric/snapshot/SnapshotRegistry.h>
+#include <faabric/util/config.h>
+#include <faabric/util/environment.h>
 #include <faabric/util/func.h>
 
 namespace tests {
@@ -13,22 +13,15 @@ void doOmpTestLocal(const std::string& function)
 {
     cleanSystem();
 
-    faabric::snapshot::SnapshotRegistry& reg =
-      faabric::snapshot::getSnapshotRegistry();
-    REQUIRE(reg.getSnapshotCount() == 0);
-
     // Make sure we have enough thread pool capacity
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
-    int32_t defaultPoolSize = conf.moduleThreadPoolSize;
-    conf.moduleThreadPoolSize = 15;
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    int32_t initialCpu = conf.overrideCpuCount;
+    conf.overrideCpuCount = 15;
 
     faabric::Message msg = faabric::util::messageFactory("omp", function);
-    execFunction(msg);
+    execFuncWithPool(msg, false);
 
-    // Check only the main snapshot exists
-    REQUIRE(reg.getSnapshotCount() == 1);
-
-    conf.moduleThreadPoolSize = defaultPoolSize;
+    conf.overrideCpuCount = initialCpu;
 }
 
 TEST_CASE("Test static for scheduling", "[wasm][openmp]")

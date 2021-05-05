@@ -193,10 +193,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 globalTid)
 {
     OMP_FUNC_ARGS("__kmpc_barrier {} {}", loc, globalTid);
-
-    if (level->numThreads > 1) {
-        level->barrier.wait();
-    }
+    level->waitOnBarrier();
 }
 
 // ----------------------------------------------------
@@ -224,7 +221,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS("__kmpc_critical {} {} {}", loc, globalTid, crit);
 
     if (level->numThreads > 1) {
-        level->levelMutex.lock();
+        level->lockCritical();
     }
 }
 
@@ -246,7 +243,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS("__kmpc_end_critical {} {} {}", loc, globalTid, crit);
 
     if (level->numThreads > 1) {
-        level->levelMutex.unlock();
+        level->unlockCritical();
     }
 }
 
@@ -417,17 +414,17 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     // Prepare arguments for main thread and all others
     std::vector<IR::UntaggedValue> mainArguments = { 0, argc };
-    std::vector<uint32_t> sharedVarPtrs;
     if (argc > 0) {
         // Build list of poitners to shared variables
         U32* sharedVarsPtr =
           Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
-        sharedVarPtrs =
+        nextLevel->sharedVarPtrs =
           std::vector<uint32_t>(sharedVarsPtr, sharedVarsPtr + argc);
 
         // Append to main arguments
-        mainArguments.insert(
-          mainArguments.end(), sharedVarPtrs.begin(), sharedVarPtrs.end());
+        mainArguments.insert(mainArguments.end(),
+                             nextLevel->sharedVarPtrs.begin(),
+                             nextLevel->sharedVarPtrs.end());
     }
 
     // Set up the chained calls
@@ -473,7 +470,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
         IR::UntaggedValue masterThreadResult;
 
-        // We have to set up the context for the thread
+        // Set up the context for the next level
         threads::setCurrentOpenMPLevel(nextLevel);
         setExecutingCall(masterMsg.get());
 
@@ -484,7 +481,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         parentModule->executeWasmFunction(
           microtaskFunc, mainArguments, masterThreadResult);
 
-        // Now we reset the context for this main thread
+        // Reset the context
         threads::setCurrentOpenMPLevel(parentLevel);
         setExecutingCall(parentCall);
 
@@ -785,7 +782,7 @@ void finaliseReduce(bool barrier)
     // Everyone waits if there's a barrier
     if (barrier) {
         PROF_START(FinaliseReduceBarrier)
-        level->barrier.wait();
+        level->waitOnBarrier();
         PROF_END(FinaliseReduceBarrier)
     }
 }

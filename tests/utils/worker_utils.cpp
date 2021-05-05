@@ -123,7 +123,7 @@ void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
     m.shutdown();
 }
 
-void execFuncWithPool(faabric::Message& call, int repeatCount, bool clean)
+void execFuncWithPool(faabric::Message& call, bool clean)
 {
     if (clean) {
         cleanSystem();
@@ -144,23 +144,14 @@ void execFuncWithPool(faabric::Message& call, int repeatCount, bool clean)
     faabric::runner::FaabricMain m(fac);
     m.startRunner();
 
-    unsigned int mainFuncId;
-    for (int i = 0; i < repeatCount; i++) {
-        // Set a new call ID for each repeat
-        call.set_id(0);
-        faabric::util::setMessageId(call);
+    // Make the call
+    sch.callFunction(call);
 
-        mainFuncId = call.id();
-
-        // Make the call
-        sch.callFunction(call);
-
-        // Await the result of the main function
-        // NOTE - this timeout will only get hit when things have failed.
-        // It also needs to be long enough to let longer tests complete
-        faabric::Message result = sch.getFunctionResult(mainFuncId, 30000);
-        REQUIRE(result.returnvalue() == 0);
-    }
+    // Await the result of the main function
+    // NOTE - this timeout will only get hit when things have failed.
+    // It also needs to be long enough to let longer tests complete
+    faabric::Message result = sch.getFunctionResult(call.id(), 30000);
+    REQUIRE(result.returnvalue() == 0);
 
     // Shut down the pool
     m.shutdown();
@@ -177,7 +168,7 @@ void doWamrPoolExecution(faabric::Message& msg)
     conf.wasmVm = "wamr";
 
     // Don't clean so that the WAMR configuration persists
-    execFuncWithPool(msg, 1, false);
+    execFuncWithPool(msg, false);
 
     conf.wasmVm = originalVm;
 }

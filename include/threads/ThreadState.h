@@ -11,9 +11,12 @@
 
 namespace threads {
 
+void clearOpenMPState();
+
 class SerialisedLevel
 {
   public:
+    uint32_t id;
     int32_t depth;
     int32_t effectiveDepth;
     int32_t maxActiveLevels;
@@ -30,6 +33,9 @@ size_t sizeOfSerialisedLevel(SerialisedLevel& serialisedLevel);
 class Level
 {
   public:
+    // Id for this level
+    uint32_t id;
+
     // Number of nested OpenMP constructs
     int depth = 0;
 
@@ -51,12 +57,6 @@ class Level
 
     std::vector<uint32_t> sharedVarPtrs;
 
-    // Barrier for synchronization
-    faabric::util::Barrier barrier;
-
-    // Mutex used for reductions and critical sections
-    std::recursive_mutex levelMutex;
-
     Level(int numThreadsIn);
 
     void fromParentLevel(const std::shared_ptr<Level>& parent);
@@ -70,11 +70,11 @@ class Level
 
     void deserialise(const SerialisedLevel* serialised);
 
-  private:
-    // Condition variable and count used for nowaits
-    int nowaitCount = 0;
-    std::mutex nowaitMutex;
-    std::condition_variable nowaitCv;
+    void waitOnBarrier();
+
+    void lockCritical();
+
+    void unlockCritical();
 };
 
 class PthreadTask

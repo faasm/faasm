@@ -4,6 +4,7 @@
 
 #include "utils.h"
 
+#include <threads/ThreadState.h>
 #include <wavm/WAVMWasmModule.h>
 
 namespace tests {
@@ -11,6 +12,9 @@ void cleanSystem()
 {
     // Faabric stuff
     cleanFaabric();
+
+    // Clear thread state
+    threads::clearOpenMPState();
 
     // Clear shared files
     storage::FileSystem::clearSharedFiles();
