@@ -16,7 +16,8 @@ void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
                        bool clean);
 
 void execFuncWithPool(faabric::Message& call,
-                      bool clean = true);
+                      bool clean = true,
+                      int timeout = 1000);
 
 void executeWithWamrPool(const std::string& user, const std::string& func);
 

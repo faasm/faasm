@@ -7,6 +7,9 @@
 #include <faabric/util/environment.h>
 #include <faabric/util/func.h>
 
+// Longer timeout to allow longer-running functions to finish
+#define OMP_TEST_TIMEOUT_MS 10000
+
 namespace tests {
 
 void doOmpTestLocal(const std::string& function)
@@ -19,7 +22,7 @@ void doOmpTestLocal(const std::string& function)
     conf.overrideCpuCount = 15;
 
     faabric::Message msg = faabric::util::messageFactory("omp", function);
-    execFuncWithPool(msg, false);
+    execFuncWithPool(msg, false, OMP_TEST_TIMEOUT_MS);
 
     conf.overrideCpuCount = initialCpu;
 }

@@ -123,7 +123,7 @@ void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
     m.shutdown();
 }
 
-void execFuncWithPool(faabric::Message& call, bool clean)
+void execFuncWithPool(faabric::Message& call, bool clean, int timeout)
 {
     if (clean) {
         cleanSystem();
@@ -136,7 +136,7 @@ void execFuncWithPool(faabric::Message& call, bool clean)
     // Modify system config (network ns requires root)
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     std::string originalNsMode = conf.netNsMode;
-    conf.boundTimeout = 1000;
+    conf.boundTimeout = timeout;
     conf.netNsMode = "off";
 
     // Set up the system
