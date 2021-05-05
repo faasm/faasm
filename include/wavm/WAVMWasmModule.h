@@ -41,6 +41,8 @@ class WAVMWasmModule final
 
     void flush() override;
 
+    void reset() override;
+
     // ----- Memory management -----
     uint32_t growMemory(uint32_t nBytes) override;
 

@@ -2,7 +2,7 @@
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
-#include <module_cache/WasmModuleCache.h>
+#include <wavm/WAVMModuleCache.h>
 
 using namespace WAVM;
 
@@ -85,8 +85,7 @@ TEST_CASE("Test repeat execution on simple WASM module", "[wasm]")
     call.set_user("demo");
     call.set_function("x2");
 
-    module_cache::WasmModuleCache& registry =
-      module_cache::getWasmModuleCache();
+    wasm::WAVMModuleCache& registry = wasm::getWAVMModuleCache();
     wasm::WAVMWasmModule& cachedModule = registry.getCachedModule(call);
 
     wasm::WAVMWasmModule module(cachedModule);
@@ -142,8 +141,7 @@ TEST_CASE("Test reclaiming memory", "[wasm]")
 {
     faabric::Message call = faabric::util::messageFactory("demo", "heap");
 
-    module_cache::WasmModuleCache& registry =
-      module_cache::getWasmModuleCache();
+    wasm::WAVMModuleCache& registry = wasm::getWAVMModuleCache();
     wasm::WAVMWasmModule& cachedModule = registry.getCachedModule(call);
 
     wasm::WAVMWasmModule module(cachedModule);

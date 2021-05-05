@@ -2,7 +2,7 @@
 #include <catch2/catch.hpp>
 
 #include <conf/FaasmConfig.h>
-#include <ir_cache/IRModuleCache.h>
+#include <wavm/IRModuleCache.h>
 #include <wavm/WAVMWasmModule.h>
 
 namespace tests {

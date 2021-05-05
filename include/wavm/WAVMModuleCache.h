@@ -2,8 +2,8 @@
 
 #include <wavm/WAVMWasmModule.h>
 
-namespace module_cache {
-class WasmModuleCache
+namespace wasm {
+class WAVMModuleCache
 {
   public:
     wasm::WAVMWasmModule& getCachedModule(const faabric::Message& msg);
@@ -19,5 +19,5 @@ class WasmModuleCache
     int getCachedModuleCount(const std::string& key);
 };
 
-WasmModuleCache& getWasmModuleCache();
+WAVMModuleCache& getWAVMModuleCache();
 }

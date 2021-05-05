@@ -1,6 +1,5 @@
 #include <catch2/catch.hpp>
 
-#include "ir_cache/IRModuleCache.h"
 #include "utils.h"
 
 #include <boost/filesystem.hpp>
@@ -10,8 +9,9 @@
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
 
-#include <module_cache/WasmModuleCache.h>
+#include <wavm/WAVMModuleCache.h>
 #include <storage/FileLoader.h>
+#include <wavm/IRModuleCache.h>
 
 namespace tests {
 
@@ -46,7 +46,7 @@ TEST_CASE("Test flushing faaslet clears zygotes", "[faaslet]")
     const faabric::Message msgB =
       faabric::util::messageFactory("demo", "dummy");
 
-    module_cache::WasmModuleCache& reg = module_cache::getWasmModuleCache();
+    wasm::WAVMModuleCache& reg = wasm::getWAVMModuleCache();
     reg.getCachedModule(msgA);
     reg.getCachedModule(msgB);
 

@@ -1,6 +1,5 @@
 #include <faaslet/Faaslet.h>
 
-#include <module_cache/WasmModuleCache.h>
 #include <system/CGroup.h>
 #include <system/NetworkNamespace.h>
 #include <threads/ThreadState.h>
@@ -72,8 +71,6 @@ void Faaslet::flush()
     // Flush the module itself
     module->flush();
 
-    // Clear module cache on this host
-    module_cache::getWasmModuleCache().clear();
 
     // Terminate this Faaslet
     throw faabric::util::ExecutorFinishedException("Faaslet flushed");
@@ -112,7 +109,7 @@ Faaslet::Faaslet(const faabric::Message& msg)
     } else if (conf.wasmVm == "wavm") {
         // Get module from cache
         wasm::WAVMWasmModule& cachedModule =
-          module_cache::getWasmModuleCache().getCachedModule(msg);
+          wasm::getWAVMModuleCache().getCachedModule(msg);
         module = std::make_unique<wasm::WAVMWasmModule>(cachedModule);
 
     } else {
@@ -125,22 +122,14 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
                              int msgIdx,
                              std::shared_ptr<faabric::BatchExecuteRequest> req)
 {
-    // Execute the task
     int32_t returnValue = module->executeTask(threadPoolIdx, msgIdx, req);
 
-    // Reset module after execution (but not for threads, as the module may be
-    // used by many of them)
-    auto& conf = faabric::util::getSystemConfig();
-    if (conf.wasmVm == "wavm" &&
-        req->type() != faabric::BatchExecuteRequest::THREADS) {
-
-        faabric::Message& msg = req->mutable_messages()->at(msgIdx);
-        wasm::WAVMWasmModule& cachedModule =
-          module_cache::getWasmModuleCache().getCachedModule(msg);
-        module = std::make_unique<wasm::WAVMWasmModule>(cachedModule);
-    }
-
     return returnValue;
+}
+
+void Faaslet::reset()
+{
+    module.reset();
 }
 
 void Faaslet::postFinish()

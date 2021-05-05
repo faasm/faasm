@@ -12,10 +12,10 @@
 #include <faabric/util/memory.h>
 #include <faabric/util/timing.h>
 
-#include <ir_cache/IRModuleCache.h>
 #include <storage/SharedFiles.h>
 #include <threads/ThreadState.h>
 #include <wasm/WasmModule.h>
+#include <wavm/IRModuleCache.h>
 #include <wavm/WAVMWasmModule.h>
 
 #include <Runtime/RuntimePrivate.h>
@@ -62,10 +62,22 @@ static void instantiateBaseModules()
     PROF_END(BaseWasiModule)
 }
 
+void WAVMWasmModule::reset()
+{
+    // Reset module after execution
+    auto& conf = faabric::util::getSystemConfig();
+    if (conf.wasmVm == "wavm") {
+        faabric::Message& msg = req->mutable_messages()->at(msgIdx);
+        wasm::WAVMWasmModule& cachedModule =
+          wasm::getWAVMModuleCache().getCachedModule(msg);
+        module = std::make_unique<wasm::WAVMWasmModule>(cachedModule);
+    }
+}
+
 void WAVMWasmModule::flush()
 {
-    IRModuleCache& cache = getIRModuleCache();
-    cache.clear();
+    getIRModuleCache().clear();
+    getWAVMModuleCache().clear();
 }
 
 Runtime::Instance* WAVMWasmModule::getEnvModule()

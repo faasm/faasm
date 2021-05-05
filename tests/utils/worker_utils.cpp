@@ -11,7 +11,7 @@
 #include <faabric/util/testing.h>
 
 #include <faaslet/Faaslet.h>
-#include <module_cache/WasmModuleCache.h>
+#include <wavm/WAVMModuleCache.h>
 #include <wavm/WAVMWasmModule.h>
 
 using namespace faaslet;
@@ -73,8 +73,8 @@ std::string execFunctionWithStringResult(faabric::Message& call)
 
 void checkMultipleExecutions(faabric::Message& msg, int nExecs)
 {
-    module_cache::WasmModuleCache& registry =
-      module_cache::getWasmModuleCache();
+    wasm::WAVMModuleCache& registry =
+      wasm::getWAVMModuleCache();
     wasm::WAVMWasmModule& cachedModule = registry.getCachedModule(msg);
 
     wasm::WAVMWasmModule module(cachedModule);

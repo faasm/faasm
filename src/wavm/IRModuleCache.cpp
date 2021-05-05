@@ -1,5 +1,3 @@
-#include "IRModuleCache.h"
-
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
 
@@ -11,6 +9,7 @@
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
 #include <storage/FileLoader.h>
+#include <wavm/IRModuleCache.h>
 
 namespace wasm {
 IRModuleCache::IRModuleCache()

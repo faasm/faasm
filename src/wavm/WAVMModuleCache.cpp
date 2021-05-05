@@ -1,30 +1,31 @@
-#include "WasmModuleCache.h"
+#include <wavm/WAVMModuleCache.h>
 
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 #include <faabric/util/locks.h>
+
 #include <sys/mman.h>
 
-namespace module_cache {
-WasmModuleCache& getWasmModuleCache()
+namespace wasm {
+WAVMModuleCache& getWAVMModuleCache()
 {
-    static WasmModuleCache r;
+    static WAVMModuleCache r;
     return r;
 }
 
-size_t WasmModuleCache::getTotalCachedModuleCount()
+size_t WAVMModuleCache::getTotalCachedModuleCount()
 {
     return cachedModuleMap.size();
 }
 
-int WasmModuleCache::getCachedModuleCount(const std::string& key)
+int WAVMModuleCache::getCachedModuleCount(const std::string& key)
 {
     faabric::util::SharedLock lock(mx);
     int count = cachedModuleMap.count(key);
     return count;
 }
 
-wasm::WAVMWasmModule& WasmModuleCache::getCachedModule(
+wasm::WAVMWasmModule& WAVMModuleCache::getCachedModule(
   const faabric::Message& msg)
 {
     auto logger = faabric::util::getLogger();
@@ -46,7 +47,7 @@ wasm::WAVMWasmModule& WasmModuleCache::getCachedModule(
     return cachedModuleMap[key];
 }
 
-void WasmModuleCache::clear()
+void WAVMModuleCache::clear()
 {
     cachedModuleMap.clear();
 }

@@ -6,7 +6,6 @@
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
 #include <faabric/util/timing.h>
-#include <module_cache/WasmModuleCache.h>
 #include <wamr/WAMRWasmModule.h>
 #include <wasm/WasmModule.h>
 
@@ -34,8 +33,7 @@ int runWithWavm(faabric::Message& m, int runCount)
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     // Create the module
-    module_cache::WasmModuleCache& registry =
-      module_cache::getWasmModuleCache();
+    wasm::WAVMModuleCache& registry = wasm::getWAVMModuleCache();
     wasm::WAVMWasmModule& cachedModule = registry.getCachedModule(m);
 
     // Create new module from cache

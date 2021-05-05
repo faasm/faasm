@@ -20,6 +20,8 @@ class Faaslet final : public faabric::scheduler::Executor
 
     void flush() override;
 
+    void reset() override;
+
     int32_t executeTask(
       int threadPoolIdx,
       int msgIdx,

@@ -4,8 +4,8 @@
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
 
-#include <ir_cache/IRModuleCache.h>
 #include <storage/FileLoader.h>
+#include <wavm/IRModuleCache.h>
 
 namespace tests {
 void checkObjCode(const Runtime::ModuleRef moduleRef, const std::string& path)
