@@ -1,3 +1,4 @@
+#include "faabric/util/config.h"
 #include "utils.h"
 #include <catch2/catch.hpp>
 
@@ -81,72 +82,6 @@ void checkMultipleExecutions(faabric::Message& msg, int nExecs)
 
         // Reset
         module.reset(msg);
-    }
-}
-
-void execFunctionWithRemoteBatch(faabric::Message& call, int nSlots, bool clean)
-{
-    if (clean) {
-        cleanSystem();
-    }
-
-    faabric::util::setMockMode(true);
-
-    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-
-    // Add other host to available hosts
-    std::string otherHost = "other";
-    sch.addHostToGlobalSet(otherHost);
-
-    // Set up other host to have some resources
-    faabric::HostResources resOther;
-    resOther.set_slots(10);
-    faabric::scheduler::queueResourceResponse(otherHost, resOther);
-
-    // Make sure we have no cores so we force distribution
-    int nCores = 0;
-    faabric::HostResources res;
-    res.set_slots(nCores);
-    sch.setThisHostResources(res);
-
-    // Background thread to execute function (won't finish until threads have
-    // been executed)
-    std::thread t([&call] {
-        wasm::WAVMWasmModule module;
-        module.bindToFunction(call);
-        int returnValue = module.executeFunction(call);
-        REQUIRE(returnValue == 0);
-    });
-
-    // Give it time to have made the request
-    usleep(1000 * 500);
-
-    auto reqs = faabric::scheduler::getBatchRequests();
-    REQUIRE(reqs.size() == 1);
-    std::string actualHost = reqs.at(0).first;
-    std::shared_ptr<faabric::BatchExecuteRequest> req = reqs.at(0).second;
-    REQUIRE(actualHost == otherHost);
-
-    // Check the snapshot has been pushed to the other host
-    auto snapPushes = faabric::scheduler::getSnapshotPushes();
-    REQUIRE(snapPushes.size() == 1);
-    REQUIRE(snapPushes.at(0).first == otherHost);
-
-    // Rewrite the snapshot to be restorable. This is a bit of a hack, usually
-    // this would have been done via the RPC call between the hosts.
-    faabric::Message firstMsg = req->messages().at(0);
-    std::string snapKey = firstMsg.snapshotkey();
-    faabric::snapshot::SnapshotRegistry& reg =
-      faabric::snapshot::getSnapshotRegistry();
-    faabric::util::SnapshotData& snapData = reg.getSnapshot(snapKey);
-    reg.takeSnapshot(snapKey, snapData);
-
-    // Now execute request on this host (forced)
-    // Note - don't clean as we will have already done t at the top of this func
-    execBatchWithPool(req, nSlots, false);
-
-    if (t.joinable()) {
-        t.join();
     }
 }
 

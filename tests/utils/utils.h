@@ -11,10 +11,6 @@ void execFunction(faabric::Message& msg,
 
 std::string execFunctionWithStringResult(faabric::Message& msg);
 
-void execFunctionWithRemoteBatch(faabric::Message& call,
-                                 int nThreads = 4,
-                                 bool clean = true);
-
 void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
                        int nThreads,
                        bool clean);

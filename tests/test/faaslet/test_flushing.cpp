@@ -9,9 +9,9 @@
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
 
-#include <wavm/WAVMWasmModule.h>
 #include <storage/FileLoader.h>
 #include <wavm/IRModuleCache.h>
+#include <wavm/WAVMWasmModule.h>
 
 namespace tests {
 

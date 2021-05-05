@@ -23,14 +23,6 @@ void runTestLocally(const std::string& func)
     execBatchWithPool(req, nThreads, false);
 }
 
-void runTestDistributed(const std::string& func)
-{
-    cleanSystem();
-
-    faabric::Message msg = faabric::util::messageFactory("demo", func);
-    execFunctionWithRemoteBatch(msg, 4, true);
-}
-
 TEST_CASE("Test local-only threading", "[threads]")
 {
     runTestLocally("threads_local");
@@ -39,15 +31,5 @@ TEST_CASE("Test local-only threading", "[threads]")
 TEST_CASE("Run thread checks locally", "[threads]")
 {
     runTestLocally("threads_check");
-}
-
-TEST_CASE("Run thread checks with chaining", "[threads]")
-{
-    runTestDistributed("threads_check");
-}
-
-TEST_CASE("Run distributed threading check", "[threads]")
-{
-    runTestDistributed("threads_dist");
 }
 }

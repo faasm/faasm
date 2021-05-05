@@ -923,9 +923,7 @@ int32_t WAVMWasmModule::executeFunction(faabric::Message& msg)
     int returnValue = 0;
     try {
         Runtime::catchRuntimeExceptions(
-          [this, &funcInstance, &funcType, &invokeArgs, &returnValue, &logger] {
-              logger->debug("Invoking C/C++ function");
-
+          [this, &funcInstance, &funcType, &invokeArgs, &returnValue] {
               IR::UntaggedValue result;
               executeWasmFunction(funcInstance, funcType, invokeArgs, result);
 

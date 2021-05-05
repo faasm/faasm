@@ -125,7 +125,6 @@ void WasmModule::restore(const std::string& snapshotKey)
 {
     PROF_START(wasmSnapshotRestore)
 
-    auto logger = faabric::util::getLogger();
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
 
@@ -133,9 +132,8 @@ void WasmModule::restore(const std::string& snapshotKey)
     faabric::util::SnapshotData data = reg.getSnapshot(snapshotKey);
     uint32_t memSize = getCurrentBrk();
 
-    if (data.size == memSize) {
-        logger->debug("Snapshot memory size equal to current memory");
-    } else if (data.size > memSize) {
+    const auto& logger = faabric::util::getLogger();
+    if (data.size > memSize) {
         logger->debug("Growing memory to fit snapshot");
         size_t bytesRequired = data.size - memSize;
         this->growMemory(bytesRequired);
