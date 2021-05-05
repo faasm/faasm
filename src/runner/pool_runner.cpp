@@ -8,11 +8,9 @@ int main()
 {
     const auto& logger = faabric::util::getLogger();
 
-    // Start the worker pool
-    logger->info("Starting faaslet pool in the background");
     auto fac = std::make_shared<faaslet::FaasletFactory>();
     faabric::runner::FaabricMain m(fac);
-    m.startRunner();
+    m.startBackground();
 
     // Start endpoint (will also have multiple threads)
     logger->info("Starting endpoint");

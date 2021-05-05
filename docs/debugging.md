@@ -6,8 +6,8 @@ issues.
 
 ## Backtrace
 
-If you're seeing a failure nested somewhere deep in an application but can't 
-work out how it's getting there, you can use the `__faasm_backtrace` function 
+If you're seeing a failure nested somewhere deep in an application but can't
+work out how it's getting there, you can use the `__faasm_backtrace` function
 to tell the runtime to print the stacktrace at any point in your code.
 
 This can be very useful for debugging issues with Python C-extensions.
@@ -40,7 +40,7 @@ source, so you'll just need to grep for it.
 
 ## WAVM function symbols
 
-WAVM assigns certain functions names like `functionDef123`, and we need to map 
+WAVM assigns certain functions names like `functionDef123`, and we need to map
 these back to the original source to understand the output of a debugger.
 
 To do this:
@@ -50,7 +50,7 @@ inv dev.cc func_sym
 inv disas.symbols <user> <func>
 ```
 
-This will output a mapping from names like `functionDef123` to the names of 
+This will output a mapping from names like `functionDef123` to the names of
 functions as they appear in the source.
 
 The output will appear at
@@ -58,18 +58,18 @@ The output will appear at
 
 ## GDB
 
-We can use `gdb` normally on the `simple_runner` target, e.g.
+We can use `gdb` normally on the `func_runner` target, e.g.
 
 ```
-inv dev.cc simple_runner
-gdb simple_runner
+inv dev.cc func_runner
+gdb func_runner
 
 break functionDef123
 
 run <user> <func>
 ```
 
-Note that because the function itself is loaded using LLVM JIT libraries, GDB 
+Note that because the function itself is loaded using LLVM JIT libraries, GDB
 doesn't have the symbols up front, but we can still set breakpoints pending a
 shared library load.
 

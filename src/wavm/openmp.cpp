@@ -436,9 +436,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     std::shared_ptr<faabric::BatchExecuteRequest> req = nullptr;
     if (!isSingleThread) {
         // Set up the request
-        req = faabric::util::batchExecFactory(parentCall->user(),
-                                              parentCall->function(),
-                                              nextLevel->numThreads - 1);
+        int nOtherThreads = nextLevel->numThreads - 1;
+        req = faabric::util::batchExecFactory(
+          parentCall->user(), parentCall->function(), nOtherThreads);
         req->set_type(faabric::BatchExecuteRequest::THREADS);
         req->set_subtype(ThreadRequestType::OPENMP);
 
@@ -449,10 +449,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
         // Configure the mesages
         for (int i = 0; i < req->messages_size(); i++) {
-            int threadNum = i + 1;
-
-            // Create basic call
-            faabric::Message& call = req->mutable_messages()->at(threadNum);
+            faabric::Message& call = req->mutable_messages()->at(i);
 
             // Snapshot details
             call.set_snapshotkey(snapshotKey);
@@ -461,7 +458,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
             call.set_funcptr(microtaskPtr);
 
             // OpenMP thread number
-            call.set_appindex(threadNum);
+            call.set_appindex(i + 1);
         }
 
         // Submit the request

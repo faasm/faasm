@@ -16,6 +16,17 @@ int main(int argc, char* argv[])
         return 1;
     }
 
+    // Set up the call
+    std::string user = argv[1];
+    std::string function = argv[2];
+
+    std::string inputData;
+    if (argc >= 4) {
+        inputData = argv[3];
+    }
+
+    faabric::Message msg = faabric::util::messageFactory(user, function);
+
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
 
     // Set short timeouts to die quickly
@@ -36,23 +47,18 @@ int main(int argc, char* argv[])
     faabric::redis::Redis& redis = faabric::redis::Redis::getQueue();
     redis.flushAll();
 
-    // Set up the call
-    std::string user = argv[1];
-    std::string function = argv[2];
-    faabric::Message call = faabric::util::messageFactory(user, function);
-
     if (user == "python") {
-        faabric::util::convertMessageToPython(call);
+        faabric::util::convertMessageToPython(msg);
         logger->info("Running Python function {}/{}",
-                     call.pythonuser(),
-                     call.pythonfunction());
+                     msg.pythonuser(),
+                     msg.pythonfunction());
     } else {
         logger->info("Running function {}/{}", user, function);
     }
 
     if (argc > 3) {
         std::string inputData = argv[3];
-        call.set_inputdata(inputData);
+        msg.set_inputdata(inputData);
 
         logger->info("Adding input data: {}", inputData);
     }
@@ -64,11 +70,11 @@ int main(int argc, char* argv[])
 
     // Submit the invocation
     PROF_START(roundTrip)
-    sch.callFunction(call);
+    sch.callFunction(msg);
 
     // Await the result
     const faabric::Message& result =
-      sch.getFunctionResult(call.id(), conf.globalMessageTimeout);
+      sch.getFunctionResult(msg.id(), conf.globalMessageTimeout);
     if (result.returnvalue() != 0) {
         logger->error("Execution failed: {}", result.outputdata());
         throw std::runtime_error("Executing function failed");

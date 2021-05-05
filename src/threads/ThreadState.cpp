@@ -1,3 +1,4 @@
+#include "faabric/scheduler/Scheduler.h"
 #include <faabric/util/config.h>
 #include <faabric/util/timing.h>
 #include <threads/ThreadState.h>
@@ -6,7 +7,7 @@ using namespace faabric::util;
 
 namespace threads {
 
-static thread_local std::shared_ptr<Level> currentLevel;
+static thread_local std::shared_ptr<Level> currentLevel = nullptr;
 
 size_t sizeOfSerialisedLevel(SerialisedLevel& serialisedLevel)
 {
@@ -37,6 +38,14 @@ void setCurrentOpenMPLevel(
 
 std::shared_ptr<Level> getCurrentOpenMPLevel()
 {
+    if (currentLevel == nullptr) {
+        int nSlots =
+          faabric::scheduler::getScheduler().getThisHostResources().slots();
+        faabric::util::getLogger()->debug(
+          "Creating default OpenMP level with {} slots", nSlots);
+        currentLevel = std::make_shared<Level>(nSlots);
+    }
+
     return currentLevel;
 }
 

@@ -26,7 +26,7 @@ class SerialisedLevel
 size_t sizeOfSerialisedLevel(SerialisedLevel& serialisedLevel);
 
 // A Level is a layer of threads in an OpenMP application.
-// Note, defaults are set to mimic Clang 9.0.1 behaviour
+// Note, defaults are set to replicate the behaviour as of Clang 9.0.1
 class Level
 {
   public:
@@ -106,13 +106,6 @@ class OpenMPTask
       , msg(msgIn)
       , nextLevel(nextLevelIn)
     {}
-};
-
-class OpenMPContext
-{
-  public:
-    int threadNumber = -1;
-    std::shared_ptr<Level> level = nullptr;
 };
 
 std::shared_ptr<Level> getCurrentOpenMPLevel();

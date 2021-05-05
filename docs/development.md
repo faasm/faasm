@@ -1,9 +1,9 @@
 # Faasm Development
 
 The Faasm project is roughly separated into stuff that generates WebAssembly and
-stuff that executes WebAssembly. 
+stuff that executes WebAssembly.
 
-The most important repos 
+The most important repos
 
 - [faasm/cpp](https://github.com/faasm/cpp) - tools for building C/C++ for use
   in Faasm.
@@ -40,8 +40,8 @@ If you want to nuke your existing `dev/faasm-local` in the process:
 ./bin/refresh_local.sh -d
 ```
 
-It may also be useful to run Python scripts outside the containerised 
-environments, for which you can set up a suitable Python virtual envrionment 
+It may also be useful to run Python scripts outside the containerised
+environments, for which you can set up a suitable Python virtual envrionment
 with:
 
 ```bash
@@ -50,7 +50,7 @@ with:
 
 ## Use
 
-Once you've set up the repo, you can start the CLI for whichever project you 
+Once you've set up the repo, you can start the CLI for whichever project you
 want to work on:
 
 ```bash
@@ -60,7 +60,7 @@ want to work on:
 # Python applications
 ./bin/cli.sh python
 
-# Faasm 
+# Faasm
 ./bin/cli.sh faasm
 
 # Faabric
@@ -69,7 +69,7 @@ want to work on:
 
 ## Tests
 
-To check everything works, you can run the tests as follows (note which 
+To check everything works, you can run the tests as follows (note which
 container you need to be in for each step):
 
 ```bash
@@ -103,7 +103,7 @@ tests
 ## Tooling - editors, IDEs etc.
 
 You can use custom containers that inherit from the existing CLI images if you
-want to add text editors etc. 
+want to add text editors etc.
 
 Before running the `./bin/cli.sh` script, you need to set one or more of the
 following environment variables:
@@ -124,7 +124,7 @@ PYTHON_CLI_IMAGE
 
 ## Testing
 
-We use [Catch2](https://github.com/catchorg/Catch2) for testing and your life 
+We use [Catch2](https://github.com/catchorg/Catch2) for testing and your life
 will be much easier if you're familiar with their [command line
 docs](https://github.com/catchorg/Catch2/blob/v2.x/docs/command-line.md).  This
 means you can do things like:
@@ -190,13 +190,13 @@ env | grep FAASM
 
 # Run cmake and build
 inv dev.cmake
-inv dev.cc simple_runner
+inv dev.cc func_runner
 
 # Check which binary is on the path
-which simple_runner
+which func_runner
 
 # Run it
-simple_runner demo hello
+func_runner demo hello
 ```
 
 ## Troubleshooting CI
@@ -204,7 +204,7 @@ simple_runner demo hello
 If the CI build fails and you can't work out why, you can replicate the test
 environment locally.
 
-First, make sure the environment variables and Docker image in 
+First, make sure the environment variables and Docker image in
 [`docker/docker-compose-ci.yml`](../docker/docker-compose-ci.yml) exactly match
 those in [`.github/workflows/tests.yml`](../.github/workflows/tests.yml).
 
@@ -212,7 +212,7 @@ Then, run the container and work through the steps in the Github Actions file,
 to see where things might have gone wrong.
 
 ```bash
-# To start the container 
+# To start the container
 docker-compose -f docker/docker-compose-ci.yml run cli /bin/bash
 ```
 

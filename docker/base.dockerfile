@@ -45,7 +45,6 @@ RUN cmake \
     /usr/local/code/faasm
 
 RUN cmake --build . --target tests
-RUN cmake --build . --target simple_runner
 RUN cmake --build . --target func_runner
 RUN cmake --build . --target codegen_func
 RUN cmake --build . --target codegen_shared_obj
