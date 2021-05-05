@@ -43,10 +43,12 @@
 
 namespace wasm {
 
+// Note - avoid a zero default on the thread request type otherwise it can
+// go unset without noticing
 enum ThreadRequestType
 {
-    PTHREAD,
-    OPENMP,
+    PTHREAD = 1,
+    OPENMP = 2,
 };
 
 bool isWasmPageAligned(int32_t offset);

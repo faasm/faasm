@@ -28,14 +28,14 @@ namespace wasm {
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();  \
     faabric::Message* msg = getExecutingCall();                                \
     auto logger = faabric::util::getLogger();                                  \
-    logger->trace("OMP {} ({}): " str, msg->appindex(), ::gettid());
+    logger->trace("OMP {} (tid {}): " str, msg->appindex(), ::gettid());
 
 #define OMP_FUNC_ARGS(formatStr, ...)                                          \
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();  \
     faabric::Message* msg = getExecutingCall();                                \
     auto logger = faabric::util::getLogger();                                  \
     logger->trace(                                                             \
-      "OMP {} ({}): " formatStr, msg->appindex(), gettid(), __VA_ARGS__);
+      "OMP {} (tid {}): " formatStr, msg->appindex(), gettid(), __VA_ARGS__);
 
 // ------------------------------------------------
 // THREAD NUMS AND LEVELS

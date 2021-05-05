@@ -34,16 +34,19 @@ void setCurrentOpenMPLevel(
 
     currentLevel = std::make_shared<Level>(serialisedLevel->nThreads);
     currentLevel->deserialise(serialisedLevel);
+
+    faabric::util::getLogger()->debug("Setting OpenMP level with {} threads",
+                                      currentLevel->numThreads);
 }
 
 std::shared_ptr<Level> getCurrentOpenMPLevel()
 {
     if (currentLevel == nullptr) {
-        int nSlots =
+        int nThreads =
           faabric::scheduler::getScheduler().getThisHostResources().slots();
         faabric::util::getLogger()->debug(
-          "Creating default OpenMP level with {} slots", nSlots);
-        currentLevel = std::make_shared<Level>(nSlots);
+          "Creating default OpenMP level with {} threads", nThreads);
+        currentLevel = std::make_shared<Level>(nThreads);
     }
 
     return currentLevel;
