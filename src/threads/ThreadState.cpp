@@ -154,6 +154,12 @@ void Level::fromParentLevel(const std::shared_ptr<Level>& parent)
     }
 
     maxActiveLevels = parent->maxActiveLevels;
+
+    if (parent->depth == 0) {
+        globalTidOffset = 0;
+    } else {
+        globalTidOffset = parent->globalTidOffset + parent->numThreads;
+    }
 }
 
 int Level::getMaxThreadsAtNextLevel() const
@@ -209,6 +215,7 @@ SerialisedLevel Level::serialise()
     sl.effectiveDepth = activeLevels;
     sl.maxActiveLevels = maxActiveLevels;
     sl.nThreads = numThreads;
+    sl.globalTidOffset = globalTidOffset;
 
     sl.nSharedVars = sharedVarPtrs.size();
     sl.sharedVars = sharedVarPtrs.data();
@@ -223,6 +230,7 @@ void Level::deserialise(const SerialisedLevel* level)
     activeLevels = level->effectiveDepth;
     maxActiveLevels = level->maxActiveLevels;
     numThreads = level->nThreads;
+    globalTidOffset = level->globalTidOffset;
 
     for (int i = 0; i < level->nSharedVars; i++) {
         sharedVarPtrs.emplace_back(level->sharedVars[i]);
@@ -249,27 +257,39 @@ void Level::unlockCritical()
     mx->unlock();
 }
 
-// Note that we need a unique way of referring to the index of a thread within
-// the application while retaining its relative index within a team/ level.
-// We use the Faabric messages to hold this global index and can translate
-// it back and forth depending on the level
+// Note that we need be able to translate between local and global thread
+// numbers. The global thread number must be unique in the system, while the
+// local thread number must fit with that expected by OpenMP within the team/
+// level. We use Faabric messages to hold the global thread number and can
+// translated back and forth.
 int Level::getLocalThreadNum(faabric::Message* msg)
 {
-    int localThreadNum = msg->appindex() - depth;
-    assert(localThreadNum >= 0);
+    if (depth == 0) {
+        return msg->appindex();
+    }
 
+    int localThreadNum = msg->appindex() - globalTidOffset;
+
+    if(localThreadNum < 0) {
+        faabric::util::getLogger()->error("Local thread num negative: {} - {} @ {}",
+                msg->appindex(), globalTidOffset, depth);
+    }
+
+    assert(localThreadNum >= 0);
     return localThreadNum;
 }
 
 int Level::getGlobalThreadNum(int localThreadNum)
 {
-    return localThreadNum + depth;
+    if (depth == 0) {
+        return localThreadNum;
+    }
+
+    return localThreadNum + globalTidOffset;
 }
 
 int Level::getGlobalThreadNum(faabric::Message* msg)
 {
-    // Isolating this in a function makes it clearer that this is what we're
-    // using for the global thread number rather than using appindex everywhere
     return msg->appindex();
 }
 }

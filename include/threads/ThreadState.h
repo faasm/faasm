@@ -21,6 +21,7 @@ class SerialisedLevel
     int32_t effectiveDepth;
     int32_t maxActiveLevels;
     int32_t nThreads;
+    int32_t globalTidOffset = 0;
 
     uint32_t nSharedVars = 0;
     uint32_t* sharedVars;
@@ -54,6 +55,9 @@ class Level
     // Num threads pushed by compiler, valid for one parallel section.
     // Overrides wantedThreads
     int pushedThreads = -1;
+
+    // Offset for the global thread numbers at this level
+    int32_t globalTidOffset = 0;
 
     std::vector<uint32_t> sharedVarPtrs;
 

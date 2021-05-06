@@ -109,7 +109,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     OMP_FUNC_ARGS("omp_set_max_active_levels {}", maxLevels)
 
-    if (level < 0) {
+    if (maxLevels < 0) {
         logger->warn("Trying to set active level with a negative number {}",
                      maxLevels);
     } else {
@@ -440,7 +440,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
             call.set_funcptr(microtaskPtr);
 
             // OpenMP thread number
-            call.set_appindex(level->getGlobalThreadNum(i + 1));
+            call.set_appindex(nextLevel->getGlobalThreadNum(i + 1));
         }
 
         // Submit the request
@@ -454,7 +454,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     {
         faabric::Message masterMsg = faabric::util::messageFactory(
           parentCall->user(), parentCall->function());
-        masterMsg.set_appindex(level->getGlobalThreadNum(0));
+        masterMsg.set_appindex(nextLevel->getGlobalThreadNum(0));
 
         IR::UntaggedValue masterThreadResult;
 
