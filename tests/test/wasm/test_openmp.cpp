@@ -62,13 +62,7 @@ TEST_CASE("Test simple reduction function", "[wasm][openmp]")
     doOmpTestLocal("simple_reduce");
 }
 
-TEST_CASE("Test averaging with different methods (atomic RR and reduction)",
-          "[wasm][openmp]")
-{
-    doOmpTestLocal("reduction_average");
-}
-
-TEST_CASE("Test integrating using many OpenMP constructs", "[wasm][openmp]")
+TEST_CASE("Test integrating using different constructs", "[wasm][openmp]")
 {
     doOmpTestLocal("reduction_integral");
 }

@@ -248,4 +248,28 @@ void Level::unlockCritical()
     std::shared_ptr<std::recursive_mutex> mx = getLevelMutex();
     mx->unlock();
 }
+
+// Note that we need a unique way of referring to the index of a thread within
+// the application while retaining its relative index within a team/ level.
+// We use the Faabric messages to hold this global index and can translate
+// it back and forth depending on the level
+int Level::getLocalThreadNum(faabric::Message* msg)
+{
+    int localThreadNum = msg->appindex() - depth;
+    assert(localThreadNum >= 0);
+
+    return localThreadNum;
+}
+
+int Level::getGlobalThreadNum(int localThreadNum)
+{
+    return localThreadNum + depth;
+}
+
+int Level::getGlobalThreadNum(faabric::Message* msg)
+{
+    // Isolating this in a function makes it clearer that this is what we're
+    // using for the global thread number rather than using appindex everywhere
+    return msg->appindex();
+}
 }

@@ -956,6 +956,9 @@ int32_t WAVMWasmModule::executePthread(int threadPoolIdx,
     const auto& logger = faabric::util::getLogger();
     std::string funcStr = faabric::util::funcToString(msg, false);
 
+    setExecutingModule(this);
+    setExecutingCall(&msg);
+
     logger->debug("Executing pthread {} for {}", threadPoolIdx, funcStr);
 
     Runtime::Function* funcInstance = getFunctionFromPtr(msg.funcptr());
@@ -983,6 +986,9 @@ int32_t WAVMWasmModule::executeOMPThread(int threadPoolIdx,
                                          faabric::Message& msg)
 {
     Runtime::Function* funcInstance = getFunctionFromPtr(msg.funcptr());
+
+    setExecutingModule(this);
+    setExecutingCall(&msg);
 
     std::shared_ptr<threads::Level> ompLevel = threads::getCurrentOpenMPLevel();
     if (ompLevel->depth < 1) {

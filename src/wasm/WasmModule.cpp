@@ -20,8 +20,8 @@
 
 namespace wasm {
 // Using TLS here to isolate between executing functions
-static thread_local faabric::Message* executingCall;
-static thread_local wasm::WasmModule* executingModule;
+static thread_local faabric::Message* executingCall = nullptr;
+static thread_local wasm::WasmModule* executingModule = nullptr;
 
 bool isWasmPageAligned(int32_t offset)
 {
@@ -34,6 +34,7 @@ bool isWasmPageAligned(int32_t offset)
 
 faabric::Message* getExecutingCall()
 {
+    assert(executingCall != nullptr);
     return executingCall;
 }
 
@@ -44,6 +45,7 @@ void setExecutingCall(faabric::Message* other)
 
 wasm::WasmModule* getExecutingModule()
 {
+    assert(executingModule != nullptr);
     return executingModule;
 }
 
