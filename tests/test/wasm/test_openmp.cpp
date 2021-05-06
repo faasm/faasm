@@ -97,7 +97,7 @@ TEST_CASE("Test openmp Pi calculation", "[wasm][openmp]")
     doOmpTestLocal("mt_pi");
 }
 
-TEST_CASE("Test proper handling of getting and setting next level num threads",
+TEST_CASE("Test getting and setting num threads",
           "[wasm][openmp]")
 {
     doOmpTestLocal("setting_num_threads");

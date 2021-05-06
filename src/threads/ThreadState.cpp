@@ -120,9 +120,6 @@ void setCurrentOpenMPLevel(
 
     currentLevel = std::make_shared<Level>(serialisedLevel->nThreads);
     currentLevel->deserialise(serialisedLevel);
-
-    faabric::util::getLogger()->debug("Setting OpenMP level with {} threads",
-                                      currentLevel->numThreads);
 }
 
 std::shared_ptr<Level> getCurrentOpenMPLevel()
