@@ -182,25 +182,27 @@ int Level::getMaxThreadsAtNextLevel() const
 
 void Level::masterWait(int threadNum)
 {
-    // All threads must lock when entering this function
     std::shared_ptr<std::mutex> nowaitMutex = getNowaitMutex();
     std::shared_ptr<std::atomic<int>> nowaitCount = getNowaitCount();
     std::shared_ptr<std::condition_variable> nowaitCv = getNowaitCv();
 
+    // All threads must lock when entering this function
     std::unique_lock<std::mutex> lock(*nowaitMutex);
 
     if (threadNum == 0) {
         // Wait until all non-master threads have finished
-        while (*nowaitCount < numThreads - 1) {
+        while (nowaitCount->load() < numThreads - 1) {
             nowaitCv->wait(lock);
         }
 
         // Reset, after we've finished
-        *nowaitCount = 0;
+        nowaitCount->store(0);
     } else {
         // Notify master that this thread has finished and continue
-        *nowaitCount += 1;
-        nowaitCv->notify_one();
+        int res = nowaitCount->fetch_add(1);
+        if (res == numThreads - 2) {
+            nowaitCv->notify_one();
+        }
     }
 }
 

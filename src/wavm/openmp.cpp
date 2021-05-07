@@ -587,7 +587,6 @@ void for_static_init(I32 schedule,
         }
 
         case sch_static: { // (chunk not given)
-
             // If we have fewer trip_counts than threads
             if (tripCount < level->numThreads) {
                 // Warning for future use, not tested at scale
@@ -607,9 +606,6 @@ void for_static_init(I32 schedule,
                 // TODO: We only implement below kmp_sch_static_balanced, not
                 // kmp_sch_static_greedy Those are set through KMP_SCHEDULE so
                 // we would need to look out for real code setting this
-                logger->debug("Ignores KMP_SCHEDULE variable, defaults to "
-                              "static balanced schedule");
-
                 U32 small_chunk = tripCount / level->numThreads;
                 U32 extras = tripCount % level->numThreads;
 
