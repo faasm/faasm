@@ -993,12 +993,8 @@ int32_t WAVMWasmModule::executeOMPThread(int threadPoolIdx,
     setExecutingModule(this);
     setExecutingCall(&msg);
 
-    std::shared_ptr<threads::Level> ompLevel = threads::getCurrentOpenMPLevel();
-    if (ompLevel->depth < 1) {
-        throw std::runtime_error("Depth cannot be below 1");
-    }
-
     // Set up function args
+    std::shared_ptr<threads::Level> ompLevel = threads::getCurrentOpenMPLevel();
     int argc = ompLevel->sharedVarPtrs.size();
     std::vector<IR::UntaggedValue> invokeArgs = { msg.appindex(), argc };
     for (int argIdx = 0; argIdx < argc; argIdx++) {

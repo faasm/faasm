@@ -126,4 +126,11 @@ TEST_CASE("Test writing file to state", "[state]")
     faabric::Message msg = faabric::util::messageFactory("demo", "state_file");
     execFunction(msg);
 }
+
+TEST_CASE("Test appended state", "[state]")
+{
+    faabric::Message call =
+      faabric::util::messageFactory("demo", "state_append");
+    execFuncWithPool(call);
+}
 }

@@ -25,5 +25,10 @@ void cleanSystem()
     // Make sure execution state doesn't bleed across
     wasm::setExecutingModule(nullptr);
     wasm::setExecutingCall(nullptr);
+
+    // Set Faaslets as the executors
+    std::shared_ptr<faabric::scheduler::ExecutorFactory> fac =
+      std::make_shared<faaslet::FaasletFactory>();
+    faabric::scheduler::setExecutorFactory(fac);
 }
 }

@@ -20,10 +20,4 @@ TEST_CASE("Test named function chaining", "[faaslet]")
     execFuncWithPool(call);
 }
 
-TEST_CASE("Test appended state", "[faaslet]")
-{
-    faabric::Message call =
-      faabric::util::messageFactory("demo", "state_append");
-    execFuncWithPool(call);
-}
 }

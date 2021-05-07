@@ -12,6 +12,8 @@ namespace tests {
 
 TEST_CASE("Test executing function given specific pointer", "[wasm]")
 {
+    cleanSystem();
+
     faabric::Message call =
       faabric::util::messageFactory("demo", "threads_check");
 
