@@ -381,7 +381,7 @@ uint32_t WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
         throw std::runtime_error("Failed to create memory guard");
     }
 
-    logger->debug(
+    logger->trace(
       "Created guard region {}-{}", wasmOffset, wasmOffset + regionSize);
 
     return wasmOffset + regionSize;

@@ -1071,7 +1071,7 @@ U32 WAVMWasmModule::growMemory(U32 nBytes)
 
     // If we can reclaim old memory, just bump the break
     if (newBrk <= oldBytes) {
-        logger->debug(
+        logger->trace(
           "MEM - Growing memory using already provisioned {} + {} <= {}",
           oldBrk,
           nBytes,
@@ -1131,7 +1131,7 @@ U32 WAVMWasmModule::growMemory(U32 nBytes)
         }
     }
 
-    logger->debug(
+    logger->trace(
       "MEM - Growing memory from {} to {} pages", oldPages, newPages);
 
     // Get offset of bottom of new range
@@ -1181,7 +1181,7 @@ uint32_t WAVMWasmModule::shrinkMemory(U32 nBytes)
     U32 oldBrk = currentBrk;
     U32 newBrk = currentBrk - nBytes;
 
-    logger->debug("MEM - shrinking memory {} -> {}", oldBrk, newBrk);
+    logger->trace("MEM - shrinking memory {} -> {}", oldBrk, newBrk);
     currentBrk = newBrk;
 
     return oldBrk;
@@ -1214,7 +1214,7 @@ void WAVMWasmModule::unmapMemory(U32 offset, U32 nBytes)
     }
 
     if (unmapTop == currentBrk) {
-        logger->debug("MEM - munmapping top of memory by {}", pageAligned);
+        logger->trace("MEM - munmapping top of memory by {}", pageAligned);
         shrinkMemory(pageAligned);
     } else {
         logger->warn("MEM - unable to reclaim unmapped memory {} at {}",
