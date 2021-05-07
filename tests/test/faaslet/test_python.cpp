@@ -19,7 +19,8 @@ void checkPythonFunction(const std::string& funcName, bool withPool)
     call.set_ispython(true);
 
     if (withPool) {
-        execFuncWithPool(call, false);
+        // Note - some of the python checks can take a while to run
+        execFuncWithPool(call, false, 10000);
     } else {
         execFunction(call);
     }
