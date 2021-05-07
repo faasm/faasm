@@ -21,5 +21,9 @@ void cleanSystem()
 
     // Clear cached modules
     wasm::getWAVMModuleCache().clear();
+
+    // Make sure execution state doesn't bleed across
+    wasm::setExecutingModule(nullptr);
+    wasm::setExecutingCall(nullptr);
 }
 }

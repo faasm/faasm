@@ -267,9 +267,12 @@ int Level::getLocalThreadNum(faabric::Message* msg)
 
     int localThreadNum = msg->appindex() - globalTidOffset;
 
-    if(localThreadNum < 0) {
-        faabric::util::getLogger()->error("Local thread num negative: {} - {} @ {}",
-                msg->appindex(), globalTidOffset, depth);
+    if (localThreadNum < 0) {
+        faabric::util::getLogger()->error(
+          "Local thread num negative: {} - {} @ {}",
+          msg->appindex(),
+          globalTidOffset,
+          depth);
     }
 
     assert(localThreadNum >= 0);
