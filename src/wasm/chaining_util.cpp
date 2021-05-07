@@ -35,6 +35,14 @@ int makeChainedCall(const std::string& functionName,
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     faabric::Message* originalCall = getExecutingCall();
 
+    std::string user = originalCall->user();
+
+    assert(!user.empty());
+    assert(!functionName.empty());
+
+    faabric::util::getLogger()->debug(
+      "Chaining call {}/{}:{}", user, functionName, originalCall->id());
+
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory(originalCall->user(), functionName, 1);
 

@@ -1,8 +1,8 @@
-#include <boost/algorithm/string.hpp>
 #include <catch2/catch.hpp>
-#include <dirent.h>
-
 #include "utils.h"
+
+#include <boost/algorithm/string.hpp>
+#include <dirent.h>
 
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>

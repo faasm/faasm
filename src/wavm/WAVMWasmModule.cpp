@@ -66,6 +66,9 @@ void WAVMWasmModule::reset(const faabric::Message& msg)
 {
     // Reset module after execution
     if (_isBound) {
+        assert(msg.user() == boundUser);
+        assert(msg.function() == boundFunction);
+
         std::string funcStr = faabric::util::funcToString(msg, true);
         faabric::util::getLogger()->debug("Resetting after {}", funcStr);
         wasm::WAVMWasmModule& cachedModule =

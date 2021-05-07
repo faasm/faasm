@@ -328,6 +328,10 @@ int32_t WasmModule::executeTask(
 {
     setExecutingModule(this);
     faabric::Message& msg = req->mutable_messages()->at(msgIdx);
+
+    assert(boundUser == msg.user());
+    assert(boundFunction == msg.function());
+
     setExecutingCall(&msg);
 
     uint32_t stackTop = threadStacks.at(threadPoolIdx);
