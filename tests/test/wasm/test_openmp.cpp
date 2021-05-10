@@ -1,5 +1,7 @@
 #include <catch2/catch.hpp>
 
+#include "faabric/proto/faabric.pb.h"
+#include "faabric/scheduler/Scheduler.h"
 #include "utils.h"
 
 #include <faabric/snapshot/SnapshotRegistry.h>
@@ -121,11 +123,19 @@ TEST_CASE("Run openmp memory stress test", "[wasm][openmp]")
 {
     cleanSystem();
 
-    // Overload the number of cores
-    int nCores = 50;
-    faabric::Message msg = faabric::util::messageFactory("omp", "mem_stress");
-    msg.set_cmdline(std::to_string(nCores));
+    // Overload the local resources
+    int nSlots = 15;
+    int nOmpThreads = 60;
 
-    execFunction(msg);
+    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
+    faabric::HostResources res;
+    res.set_slots(nSlots);
+    sch.setThisHostResources(res);
+
+    // Overload the number of cores
+    faabric::Message msg = faabric::util::messageFactory("omp", "mem_stress");
+    msg.set_cmdline(std::to_string(nOmpThreads));
+
+    execFuncWithPool(msg, false, OMP_TEST_TIMEOUT_MS);
 }
 }

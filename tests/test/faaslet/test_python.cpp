@@ -1,5 +1,5 @@
-#include <catch2/catch.hpp>
 #include "utils.h"
+#include <catch2/catch.hpp>
 
 #include <boost/algorithm/string.hpp>
 #include <dirent.h>
