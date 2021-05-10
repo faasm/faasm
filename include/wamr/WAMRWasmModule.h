@@ -33,8 +33,6 @@ class WAMRWasmModule final : public WasmModule
 
     bool isBound() override;
 
-    void tearDown();
-
     // ----- Memory management -----
     uint32_t growMemory(uint32_t nBytes) override;
 

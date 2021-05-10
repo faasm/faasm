@@ -30,11 +30,6 @@ TEST_CASE("Test cloning empty modules doesn't break", "[wasm]")
 
     WAVMWasmModule moduleC;
     moduleC = moduleA;
-
-    // Check clear-up
-    REQUIRE(moduleA.tearDown());
-    REQUIRE(moduleB.tearDown());
-    REQUIRE(moduleC.tearDown());
 }
 
 void _doChecks(wasm::WAVMWasmModule& moduleA,
@@ -162,10 +157,6 @@ void _doChecks(wasm::WAVMWasmModule& moduleA,
 
     REQUIRE(tableAfterB2 == tableAfterA2);
     REQUIRE(tableAfterA1 == tableAfterA2);
-
-    // Check successful clean-up
-    REQUIRE(moduleA.tearDown());
-    REQUIRE(moduleB.tearDown());
 }
 
 void _checkCopyConstructor(const std::string& user,
@@ -245,44 +236,5 @@ TEST_CASE("Test cloned execution on complex module", "[wasm]")
     }
 
     conf.pythonPreload = preloadVal;
-}
-
-TEST_CASE("Test GC on cloned modules without execution")
-{
-    cleanSystem();
-
-    faabric::Message msg = faabric::util::messageFactory("demo", "echo");
-
-    WAVMWasmModule moduleA;
-    moduleA.bindToFunction(msg);
-
-    WAVMWasmModule moduleB(moduleA);
-
-    WAVMWasmModule moduleC = moduleA;
-
-    REQUIRE(moduleA.tearDown());
-    REQUIRE(moduleB.tearDown());
-    REQUIRE(moduleC.tearDown());
-}
-
-TEST_CASE("Test GC on cloned modules with execution")
-{
-    cleanSystem();
-
-    faabric::Message msg = faabric::util::messageFactory("demo", "echo");
-
-    WAVMWasmModule moduleA;
-    moduleA.bindToFunction(msg);
-    moduleA.executeFunction(msg);
-
-    WAVMWasmModule moduleB(moduleA);
-    moduleB.executeFunction(msg);
-
-    WAVMWasmModule moduleC = moduleA;
-    moduleC.executeFunction(msg);
-
-    REQUIRE(moduleA.tearDown());
-    REQUIRE(moduleB.tearDown());
-    REQUIRE(moduleC.tearDown());
 }
 }

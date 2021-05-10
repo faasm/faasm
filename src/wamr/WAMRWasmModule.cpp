@@ -64,9 +64,9 @@ WAMRWasmModule::WAMRWasmModule()
     initialiseWAMRGlobally();
 }
 
-WAMRWasmModule::~WAMRWasmModule()
-{
-    tearDown();
+WAMRWasmModule::~WAMRWasmModule() {
+    wasm_runtime_deinstantiate(moduleInstance);
+    wasm_runtime_unload(wasmModule);
 }
 
 // ----- Module lifecycle -----
@@ -228,12 +228,6 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
 bool WAMRWasmModule::isBound()
 {
     return _isBound;
-}
-
-void WAMRWasmModule::tearDown()
-{
-    wasm_runtime_deinstantiate(moduleInstance);
-    wasm_runtime_unload(wasmModule);
 }
 
 uint32_t WAMRWasmModule::growMemory(uint32_t nBytes)

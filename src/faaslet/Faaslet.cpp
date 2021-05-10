@@ -56,8 +56,9 @@ void Faaslet::flush()
     auto logger = faabric::util::getLogger();
     logger->debug("Faaslet {} flushing", id);
 
-    // Note that all warm Faaslets on the given host will be flushing at the
-    // same time, so we need to include some locking.
+    // Note that all Faaslets on the given host will be flushing at the same
+    // time, so we need to include some locking. They will also be killed
+    // shortly after.
     // TODO avoid repeating global tidy-up that only needs to be done once
     faabric::util::UniqueLock lock(flushMutex);
 
@@ -70,9 +71,6 @@ void Faaslet::flush()
 
     // Flush the module itself
     module->flush();
-
-    // Terminate this Faaslet
-    throw faabric::util::ExecutorFinishedException("Faaslet flushed");
 }
 
 Faaslet::Faaslet(const faabric::Message& msg)

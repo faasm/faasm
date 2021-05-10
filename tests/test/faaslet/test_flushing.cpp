@@ -15,7 +15,7 @@
 
 namespace tests {
 
-TEST_CASE("Test flushing faaslet clears shared files", "[faaslet]")
+TEST_CASE("Test flushing faaslet clears shared files", "[flush]")
 {
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
 
@@ -36,11 +36,11 @@ TEST_CASE("Test flushing faaslet clears shared files", "[faaslet]")
     // Flush and check file is gone
     faabric::Message msg = faabric::util::messageFactory("demo", "echo");
     faaslet::Faaslet f(msg);
-    REQUIRE_THROWS_AS(f.flush(), faabric::util::ExecutorFinishedException);
+    f.flush();
     REQUIRE(!boost::filesystem::exists(sharedPath));
 }
 
-TEST_CASE("Test flushing faaslet clears cached modules", "[faaslet]")
+TEST_CASE("Test flushing faaslet clears cached modules", "[flush]")
 {
     const faabric::Message msgA = faabric::util::messageFactory("demo", "echo");
     const faabric::Message msgB =
@@ -53,11 +53,11 @@ TEST_CASE("Test flushing faaslet clears cached modules", "[faaslet]")
     REQUIRE(reg.getTotalCachedModuleCount() == 2);
 
     faaslet::Faaslet f(msgA);
-    REQUIRE_THROWS_AS(f.flush(), faabric::util::ExecutorFinishedException);
+    f.flush();
     REQUIRE(reg.getTotalCachedModuleCount() == 0);
 }
 
-TEST_CASE("Test flushing faaslet clears IR module cache", "[faaslet]")
+TEST_CASE("Test flushing faaslet clears IR module cache", "[flush]")
 {
     const faabric::Message msg = faabric::util::messageFactory("demo", "echo");
 
@@ -66,12 +66,12 @@ TEST_CASE("Test flushing faaslet clears IR module cache", "[faaslet]")
     wasm::IRModuleCache& cache = wasm::getIRModuleCache();
     REQUIRE(cache.isModuleCached("demo", "echo", ""));
 
-    REQUIRE_THROWS_AS(f.flush(), faabric::util::ExecutorFinishedException);
+    f.flush();
 
     REQUIRE(!cache.isModuleCached("demo", "echo", ""));
 }
 
-TEST_CASE("Test flushing faaslet picks up new version of function")
+TEST_CASE("Test flushing faaslet picks up new version of function", "[flush]")
 {
     cleanSystem();
 
@@ -123,6 +123,9 @@ TEST_CASE("Test flushing faaslet picks up new version of function")
     faabric::Message resultA = sch.getFunctionResult(invokeMsgA.id(), 1000);
     REQUIRE(resultA.returnvalue() == 0);
     REQUIRE(resultA.outputdata() == expectedOutputA);
+
+    // Wait for the executor to have cleared up
+    usleep(1000 * 1000);
 
     // Flush
     sch.flushLocally();

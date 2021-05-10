@@ -82,10 +82,7 @@ WasmModule::WasmModule()
   : threadPoolSize(faabric::util::getUsableCores())
 {}
 
-WasmModule::~WasmModule()
-{
-    // Does nothing
-}
+WasmModule::~WasmModule() {}
 
 void WasmModule::flush() {}
 
@@ -326,12 +323,12 @@ int32_t WasmModule::executeTask(
   int msgIdx,
   std::shared_ptr<faabric::BatchExecuteRequest> req)
 {
-    setExecutingModule(this);
     faabric::Message& msg = req->mutable_messages()->at(msgIdx);
 
     assert(boundUser == msg.user());
     assert(boundFunction == msg.function());
 
+    setExecutingModule(this);
     setExecutingCall(&msg);
 
     uint32_t stackTop = threadStacks.at(threadPoolIdx);
@@ -351,6 +348,11 @@ int32_t WasmModule::executeTask(
     } else {
         // Vanilla function
         returnValue = executeFunction(msg);
+    }
+
+    if (returnValue != 0) {
+        msg.set_outputdata(
+          fmt::format("Call failed (return value={})", returnValue));
     }
 
     // Add captured stdout if necessary

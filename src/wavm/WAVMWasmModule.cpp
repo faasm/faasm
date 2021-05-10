@@ -70,7 +70,8 @@ void WAVMWasmModule::reset(const faabric::Message& msg)
         assert(msg.function() == boundFunction);
 
         std::string funcStr = faabric::util::funcToString(msg, true);
-        faabric::util::getLogger()->debug("Resetting after {}", funcStr);
+        faabric::util::getLogger()->debug(
+          "{} Resetting after {}", gettid(), funcStr);
         wasm::WAVMWasmModule& cachedModule =
           wasm::getWAVMModuleCache().getCachedModule(msg);
 
@@ -137,7 +138,7 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
     // If bound, we want to reclaim all the memory we've created _before_
     // cloning from the zygote otherwise it's lost forever
     if (_isBound) {
-        tearDown();
+        doWAVMGarbageCollection();
     }
 
     _isBound = other._isBound;
@@ -205,33 +206,21 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
 
 WAVMWasmModule::~WAVMWasmModule()
 {
-    tearDown();
+    // Note - the only need for this destructor is to perform the WAVM-related
+    // GC, do not add anything else here.
+    doWAVMGarbageCollection();
 }
 
-bool WAVMWasmModule::tearDown()
+void WAVMWasmModule::doWAVMGarbageCollection()
 {
-    PROF_START(wasmTearDown)
-
-    const auto& logger = faabric::util::getLogger();
-
-    // --- Faasm stuff ---
-    // Shared mem
-    sharedMemWasmPtrs.clear();
-
-    // Dynamic modules
-    globalOffsetTableMap.clear();
-    globalOffsetMemoryMap.clear();
-    missingGlobalOffsetEntries.clear();
-
-    dynamicPathToHandleMap.clear();
+    // To allow WAVM to perform GC, we need to ensure all of our own copies of
+    // WAVM GCPointers have been set to nullptr, so that WAVM's own refcounts
+    // will be zero. We can then call its GC method directly.
     for (auto const& m : dynamicModuleMap) {
         dynamicModuleMap[m.first].ptr = nullptr;
     }
     dynamicModuleMap.clear();
 
-    // --- WAVM stuff ---
-
-    // Set all reference to GC pointers to null to allow WAVM GC to clear up
     defaultMemory = nullptr;
     defaultTable = nullptr;
     moduleInstance = nullptr;
@@ -241,21 +230,11 @@ bool WAVMWasmModule::tearDown()
 
     executionContext = nullptr;
 
-    if (compartment == nullptr) {
-        return true;
+    if (compartment != nullptr) {
+        bool compartmentCleared =
+          Runtime::tryCollectCompartment(std::move(compartment));
+        assert(compartmentCleared);
     }
-
-    bool compartmentCleared =
-      Runtime::tryCollectCompartment(std::move(compartment));
-    if (!compartmentCleared) {
-        logger->warn("Failed GC for compartment");
-    } else {
-        logger->debug("Successful GC for compartment");
-    }
-
-    PROF_END(wasmTearDown)
-
-    return compartmentCleared;
 }
 
 bool WAVMWasmModule::isBound()
@@ -1613,7 +1592,8 @@ void WAVMWasmModule::executeWasmConstructorsFunction(Runtime::Instance* module)
                       result.i32);
         throw std::runtime_error(std::string(WASM_CTORS_FUNC_NAME) + " failed");
     } else {
-        logger->debug("Successfully executed {} for {}/{}",
+        logger->debug("{} Successfully executed {} for {}/{}",
+                      gettid(),
                       WASM_CTORS_FUNC_NAME,
                       boundUser,
                       boundFunction);

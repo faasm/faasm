@@ -39,8 +39,6 @@ class WAVMWasmModule final
 
     bool isBound() override;
 
-    bool tearDown();
-
     void flush() override;
 
     void reset(const faabric::Message& msg) override;
@@ -192,6 +190,8 @@ class WAVMWasmModule final
     void executeZygoteFunction();
 
     void executeWasmConstructorsFunction(WAVM::Runtime::Instance* module);
+
+    void doWAVMGarbageCollection();
 
     WAVM::Runtime::Instance* createModuleInstance(
       const std::string& name,

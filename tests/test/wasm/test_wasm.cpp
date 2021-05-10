@@ -114,17 +114,6 @@ TEST_CASE("Test execution without binding fails", "[wasm]")
     REQUIRE_THROWS(module.executeFunction(callA));
 }
 
-TEST_CASE("Test binding twice fails", "[wasm]")
-{
-    faabric::Message callA;
-    callA.set_user("demo");
-    callA.set_function("dummy");
-
-    wasm::WAVMWasmModule module;
-    module.bindToFunction(callA);
-    REQUIRE_THROWS(module.bindToFunction(callA));
-}
-
 TEST_CASE("Test repeat execution with different function fails", "[wasm]")
 {
     faabric::Message callA = faabric::util::messageFactory("demo", "dummy");
@@ -152,26 +141,6 @@ TEST_CASE("Test reclaiming memory", "[wasm]")
 
     Uptr pagesAfter = Runtime::getMemoryNumPages(module.defaultMemory);
     REQUIRE(pagesAfter == initialPages);
-}
-
-TEST_CASE("Test GC", "[wasm]")
-{
-    wasm::WAVMWasmModule module;
-    faabric::Message call = faabric::util::messageFactory("demo", "malloc");
-
-    SECTION("Plain module")
-    {
-        // Do nothing
-    }
-    SECTION("Bound but not executed module") { module.bindToFunction(call); }
-    SECTION("Executed module")
-    {
-        module.bindToFunction(call);
-        module.executeFunction(call);
-    }
-
-    int returnValue = module.tearDown();
-    REQUIRE(returnValue == 0);
 }
 
 TEST_CASE("Test disassemble module", "[wasm]")

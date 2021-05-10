@@ -84,12 +84,12 @@ TEST_CASE("Test snapshot and restore for wasm module", "[wasm][snapshot]")
 
     // Execute all of them
     int returnValueA = moduleA.executeFunction(m);
-    REQUIRE(returnValueA);
+    REQUIRE(returnValueA == 0);
 
     int returnValueB = moduleB.executeFunction(m);
-    REQUIRE(returnValueB);
+    REQUIRE(returnValueB == 0);
 
     int returnValueC = moduleC.executeFunction(m);
-    REQUIRE(returnValueC);
+    REQUIRE(returnValueC == 0);
 }
 }

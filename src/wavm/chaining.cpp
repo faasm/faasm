@@ -50,12 +50,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 inputDataPtr,
                                I32 inputDataLen)
 {
+    faabric::util::getLogger()->debug(
+      "S - chain_name - {} {} {}", namePtr, inputDataPtr, inputDataLen);
+
     std::string funcName = getStringFromWasm(namePtr);
-    faabric::util::getLogger()->debug("S - chain_name - {} ({}) {} {}",
-                                      funcName,
-                                      namePtr,
-                                      inputDataPtr,
-                                      inputDataLen);
+
+    faabric::util::getLogger()->debug(
+      "CHAIN STRING {} len {}", funcName, funcName.size());
 
     const std::vector<uint8_t> inputData =
       getBytesFromWasm(inputDataPtr, inputDataLen);
