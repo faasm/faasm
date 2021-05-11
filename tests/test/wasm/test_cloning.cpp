@@ -173,6 +173,7 @@ void _checkCopyConstructor(const std::string& user,
 
     WAVMWasmModule moduleA;
     moduleA.bindToFunction(msgA);
+    REQUIRE(moduleA.isBound());
 
     WAVMWasmModule moduleB(moduleA);
     _doChecks(moduleA, moduleB, user, func, inputA, inputB, isPython);

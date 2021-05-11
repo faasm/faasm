@@ -64,7 +64,7 @@ static void instantiateBaseModules()
 
 void WAVMWasmModule::reset(const faabric::Message& msg)
 {
-    if (!isBound()) {
+    if (!_isBound) {
         return;
     }
 
@@ -139,6 +139,10 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
         doWAVMGarbageCollection();
     }
 
+    if (!other._isBound) {
+        throw std::runtime_error("Binding from unbound module");
+    }
+
     _isBound = other._isBound;
     boundUser = other.boundUser;
     boundFunction = other.boundFunction;
@@ -162,6 +166,8 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
     stdoutSize = 0;
 
     if (other._isBound) {
+        assert(other.compartment != nullptr);
+
         // Clone compartment
         compartment = Runtime::cloneCompartment(other.compartment);
 
