@@ -58,6 +58,8 @@ class WasmModule
   public:
     WasmModule();
 
+    explicit WasmModule(int threadPoolSizeIn);
+
     virtual ~WasmModule();
 
     // ----- Module lifecycle -----
@@ -165,8 +167,8 @@ class WasmModule
 
     WasmEnvironment wasmEnvironment;
 
-    int stdoutMemFd;
-    ssize_t stdoutSize;
+    int stdoutMemFd = 0;
+    ssize_t stdoutSize = 0;
 
     int threadPoolSize = 0;
     std::vector<uint32_t> threadStacks;

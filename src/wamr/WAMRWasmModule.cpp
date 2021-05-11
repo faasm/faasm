@@ -125,6 +125,9 @@ void WAMRWasmModule::bindToFunctionNoZygote(const faabric::Message& msg)
 
 int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
 {
+    setExecutingModule(this);
+    setExecutingMsg(&msg);
+
     // Run wasm initialisers
     executeWasmFunction(WASM_CTORS_FUNC_NAME);
 

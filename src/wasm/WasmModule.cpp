@@ -55,13 +55,6 @@ void setExecutingModule(wasm::WasmModule* module)
     if (executingModule != nullptr && module != nullptr &&
         executingModule != module) {
 
-        if (executingModule->getBoundFunction() != module->getBoundFunction()) {
-            faabric::util::getLogger()->error(
-              "{} != {}",
-              executingModule->getBoundFunction(),
-              module->getBoundFunction());
-        }
-
         assert(executingModule->getBoundFunction() ==
                module->getBoundFunction());
         assert(executingModule->getBoundUser() == module->getBoundUser());
@@ -92,10 +85,12 @@ size_t getPagesForGuardRegion()
     return nWasmPages;
 }
 
-// NOTE - the thread pool size here must match up with that for the executor in
-// Faabric
 WasmModule::WasmModule()
-  : threadPoolSize(faabric::util::getUsableCores())
+  : WasmModule(faabric::util::getUsableCores())
+{}
+
+WasmModule::WasmModule(int threadPoolSizeIn)
+  : threadPoolSize(threadPoolSizeIn)
 {}
 
 WasmModule::~WasmModule() {}

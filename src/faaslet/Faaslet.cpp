@@ -92,7 +92,7 @@ Faaslet::Faaslet(const faabric::Message& msg)
         module = std::make_unique<wasm::WAMRWasmModule>();
 #endif
     } else if (conf.wasmVm == "wavm") {
-        module = std::make_unique<wasm::WAVMWasmModule>();
+        module = std::make_unique<wasm::WAVMWasmModule>(threadPoolSize);
     } else {
         auto logger = faabric::util::getLogger();
         logger->error("Unrecognised wasm VM: {}", conf.wasmVm);

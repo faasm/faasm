@@ -101,8 +101,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     threadCall.set_funcptr(entryFunc);
     threadCall.set_inputdata(std::to_string(argsPtr));
 
-    // Assign a thread ID
-    threadCall.set_appindex(thisModule->pthreadCounter.fetch_add(1));
+    // Assign a thread ID and increment. Our pthread IDs start at 1
+    threadCall.set_appindex(thisModule->pthreadCounter.fetch_add(1) + 1);
 
     // Submit it
     sch.callFunctions(req);
