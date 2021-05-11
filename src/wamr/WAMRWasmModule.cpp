@@ -64,7 +64,8 @@ WAMRWasmModule::WAMRWasmModule()
     initialiseWAMRGlobally();
 }
 
-WAMRWasmModule::~WAMRWasmModule() {
+WAMRWasmModule::~WAMRWasmModule()
+{
     wasm_runtime_deinstantiate(moduleInstance);
     wasm_runtime_unload(wasmModule);
 }
