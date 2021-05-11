@@ -21,9 +21,6 @@ using namespace WAVM;
 
 namespace wasm {
 
-static thread_local std::unordered_map<int32_t, uint32_t> chainedThreads;
-static std::atomic<int> pthreadCounter = 1;
-
 // Record of whether this thread has already got a snapshot being used to spawn
 // other threads.
 static thread_local std::string currentSnapshotKey;
@@ -105,13 +102,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     threadCall.set_inputdata(std::to_string(argsPtr));
 
     // Assign a thread ID
-    threadCall.set_appindex(pthreadCounter.fetch_add(1));
+    threadCall.set_appindex(thisModule->pthreadCounter.fetch_add(1));
 
     // Submit it
     sch.callFunctions(req);
 
     // Record this thread -> call ID
-    chainedThreads.insert({ pthreadPtr, threadCall.id() });
+    thisModule->chainedThreads.insert({ pthreadPtr, threadCall.id() });
 
     return 0;
 }
@@ -127,17 +124,18 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     logger->debug("S - pthread_join - {} {}", pthreadPtr, resPtrPtr);
 
     // Await the chained thread
-    unsigned int callId = chainedThreads[pthreadPtr];
+    WAVMWasmModule* thisModule = getExecutingWAVMModule();
+    unsigned int callId = thisModule->chainedThreads[pthreadPtr];
     logger->debug("Awaiting pthread: {} ({})", pthreadPtr, callId);
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
 
     int returnValue = sch.awaitThreadResult(callId);
 
     // Remove record for the remote thread
-    chainedThreads.erase(pthreadPtr);
+    thisModule->chainedThreads.erase(pthreadPtr);
 
     // If we're done with executing threads, remove the snapshot
-    if (chainedThreads.empty()) {
+    if (thisModule->chainedThreads.empty()) {
         logger->debug("Finished with snapshot: {}", currentSnapshotKey);
         currentSnapshotKey = "";
     }

@@ -14,7 +14,7 @@ void cleanSystem()
     cleanFaabric();
 
     // Clear thread state
-    threads::clearOpenMPState();
+    threads::clearThreadState();
 
     // Clear shared files
     storage::FileSystem::clearSharedFiles();
@@ -24,7 +24,6 @@ void cleanSystem()
 
     // Make sure execution state doesn't bleed across
     wasm::setExecutingModule(nullptr);
-    wasm::setExecutingCall(nullptr);
 
     // Set Faaslets as the executors
     std::shared_ptr<faabric::scheduler::ExecutorFactory> fac =

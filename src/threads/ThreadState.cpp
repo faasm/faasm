@@ -24,7 +24,7 @@ std::unordered_map<uint32_t, std::shared_ptr<std::atomic<int>>> nowaitCounts;
 std::unordered_map<uint32_t, std::shared_ptr<std::condition_variable>>
   nowaitCvs;
 
-void clearOpenMPState()
+void clearThreadState()
 {
     barriers.clear();
 

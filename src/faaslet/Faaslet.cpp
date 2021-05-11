@@ -76,17 +76,7 @@ void Faaslet::flush()
 Faaslet::Faaslet(const faabric::Message& msg)
   : Executor(msg)
 {
-    auto logger = faabric::util::getLogger();
-
-    // Set up network namespace
-    ns = claimNetworkNamespace();
-    ns->addCurrentThread();
-
-    // Add this thread to the cgroup
-    CGroup cgroup(BASE_CGROUP_NAME);
-    cgroup.addCurrentThread();
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    std::string funcStr = faabric::util::funcToString(msg, false);
 
     // Instantiate the right wasm module for the chosen runtime
     if (conf.wasmVm == "wamr") {
@@ -101,13 +91,10 @@ Faaslet::Faaslet(const faabric::Message& msg)
         // Vanilla WAMR
         module = std::make_unique<wasm::WAMRWasmModule>();
 #endif
-
-        module->bindToFunction(msg);
     } else if (conf.wasmVm == "wavm") {
         module = std::make_unique<wasm::WAVMWasmModule>();
-        module->bindToFunction(msg);
-
     } else {
+        auto logger = faabric::util::getLogger();
         logger->error("Unrecognised wasm VM: {}", conf.wasmVm);
         throw std::runtime_error("Unrecognised wasm VM");
     }
@@ -117,6 +104,22 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
                              int msgIdx,
                              std::shared_ptr<faabric::BatchExecuteRequest> req)
 {
+    // Lazily bind to function and isolate
+    // Note that this has to be done within the executeTask function to be in
+    // the same thread as the execution
+    if (!module->isBound()) {
+        // Add this thread to the cgroup
+        CGroup cgroup(BASE_CGROUP_NAME);
+        cgroup.addCurrentThread();
+        std::string funcStr = faabric::util::funcToString(boundMessage, false);
+
+        // Set up network namespace
+        ns = claimNetworkNamespace();
+        ns->addCurrentThread();
+
+        module->bindToFunction(boundMessage);
+    }
+
     int32_t returnValue = module->executeTask(threadPoolIdx, msgIdx, req);
 
     return returnValue;

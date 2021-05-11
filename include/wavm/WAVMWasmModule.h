@@ -117,6 +117,9 @@ class WAVMWasmModule final
       uint32_t stackTop,
       WAVM::Runtime::ContextRuntimeData* contextRuntimeData);
 
+    std::unordered_map<int32_t, uint32_t> chainedThreads;
+    std::atomic<int> pthreadCounter = 1;
+
     // ----- Disassembly -----
     std::map<std::string, std::string> buildDisassemblyMap();
 

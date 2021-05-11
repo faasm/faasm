@@ -358,7 +358,6 @@ void WAVMWasmModule::executeWasmFunction(
   const std::vector<WAVM::IR::UntaggedValue>& arguments,
   WAVM::IR::UntaggedValue& result)
 {
-    // Note the need to set the currently executing module
     setExecutingModule(this);
 
     const IR::FunctionType funcType = Runtime::getFunctionType(func);
@@ -381,7 +380,6 @@ void WAVMWasmModule::executeWasmFunction(
   const std::vector<IR::UntaggedValue>& arguments,
   IR::UntaggedValue& result)
 {
-    // Note the need to set the currently executing module
     setExecutingModule(this);
 
     // Function expects a result array so pass pointer to single value
@@ -831,11 +829,7 @@ uint32_t WAVMWasmModule::addFunctionToTable(Runtime::Object* exportedFunc)
 int32_t WAVMWasmModule::executeFunction(faabric::Message& msg)
 {
     const auto& logger = faabric::util::getLogger();
-
-    // Note this will already have been set, but we want to be able to call this
-    // function in isolation from tests so must reset
-    setExecutingModule(this);
-    setExecutingCall(&msg);
+    setExecutingMsg(&msg);
 
     if (!_isBound) {
         throw std::runtime_error(
@@ -937,9 +931,7 @@ int32_t WAVMWasmModule::executePthread(int threadPoolIdx,
 {
     const auto& logger = faabric::util::getLogger();
     std::string funcStr = faabric::util::funcToString(msg, false);
-
-    setExecutingModule(this);
-    setExecutingCall(&msg);
+    setExecutingMsg(&msg);
 
     logger->debug("Executing pthread {} for {}", threadPoolIdx, funcStr);
 
@@ -968,9 +960,7 @@ int32_t WAVMWasmModule::executeOMPThread(int threadPoolIdx,
                                          faabric::Message& msg)
 {
     Runtime::Function* funcInstance = getFunctionFromPtr(msg.funcptr());
-
-    setExecutingModule(this);
-    setExecutingCall(&msg);
+    setExecutingMsg(&msg);
 
     // Set up function args
     std::shared_ptr<threads::Level> ompLevel = threads::getCurrentOpenMPLevel();

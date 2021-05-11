@@ -460,7 +460,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
         // Set up the context for the next level
         threads::setCurrentOpenMPLevel(nextLevel);
-        setExecutingCall(&masterMsg);
+        getExecutingModule()->setExecutingMsg(&masterMsg);
 
         // Execute the task
         logger->debug("OpenMP 0: executing OMP thread 0 (master)");
@@ -471,7 +471,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
         // Reset the context
         threads::setCurrentOpenMPLevel(parentLevel);
-        setExecutingCall(parentCall);
+        getExecutingModule()->setExecutingMsg(&masterMsg);
 
         if (masterThreadResult.i32 > 0) {
             throw std::runtime_error("Master OpenMP thread failed");

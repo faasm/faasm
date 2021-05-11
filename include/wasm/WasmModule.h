@@ -89,6 +89,10 @@ class WasmModule
 
     virtual void flush();
 
+    void setExecutingMsg(faabric::Message* msg);
+
+    faabric::Message* getExecutingMsg();
+
     // ----- argc/ argv -----
     uint32_t getArgc();
 
@@ -155,6 +159,8 @@ class WasmModule
 
     std::string boundFunction;
 
+    faabric::Message* executingMsg = nullptr;
+
     storage::FileSystem filesystem;
 
     WasmEnvironment wasmEnvironment;
@@ -190,8 +196,6 @@ class WasmModule
 
 // ----- Global functions -----
 faabric::Message* getExecutingCall();
-
-void setExecutingCall(faabric::Message* other);
 
 void setExecutingModule(wasm::WasmModule* module);
 

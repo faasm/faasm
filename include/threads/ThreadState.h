@@ -11,7 +11,7 @@
 
 namespace threads {
 
-void clearOpenMPState();
+void clearThreadState();
 
 class SerialisedLevel
 {

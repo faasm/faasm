@@ -124,9 +124,6 @@ void WAMRWasmModule::bindToFunctionNoZygote(const faabric::Message& msg)
 
 int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
 {
-    setExecutingModule(this);
-    setExecutingCall(&msg);
-
     // Run wasm initialisers
     executeWasmFunction(WASM_CTORS_FUNC_NAME);
 
@@ -144,6 +141,8 @@ int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
 int WAMRWasmModule::executeWasmFunctionFromPointer(int wasmFuncPtr)
 {
     auto logger = faabric::util::getLogger();
+
+    setExecutingModule(this);
 
     // NOTE: WAMR doesn't provide a nice interface for calling functions using
     // function pointers, so we have to call a few more low-level functions to
@@ -182,6 +181,8 @@ int WAMRWasmModule::executeWasmFunctionFromPointer(int wasmFuncPtr)
 int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
 {
     auto logger = faabric::util::getLogger();
+
+    setExecutingModule(this);
 
     WASMFunctionInstanceCommon* func =
       wasm_runtime_lookup_function(moduleInstance, funcName.c_str(), nullptr);
