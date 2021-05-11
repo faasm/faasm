@@ -104,6 +104,8 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
                              int msgIdx,
                              std::shared_ptr<faabric::BatchExecuteRequest> req)
 {
+    const faabric::Message& msg = req->mutable_messages()->at(msgIdx);
+
     // Lazily bind to function and isolate
     // Note that this has to be done within the executeTask function to be in
     // the same thread as the execution
@@ -111,13 +113,12 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
         // Add this thread to the cgroup
         CGroup cgroup(BASE_CGROUP_NAME);
         cgroup.addCurrentThread();
-        std::string funcStr = faabric::util::funcToString(boundMessage, false);
 
         // Set up network namespace
         ns = claimNetworkNamespace();
         ns->addCurrentThread();
 
-        module->bindToFunction(boundMessage);
+        module->bindToFunction(msg);
     }
 
     int32_t returnValue = module->executeTask(threadPoolIdx, msgIdx, req);

@@ -231,7 +231,9 @@ void WAVMWasmModule::doWAVMGarbageCollection()
     executionContext = nullptr;
 
     if (compartment != nullptr) {
-        bool compartmentCleared =
+        // Release build complains that this is unused as the assertion is
+        // removed
+        [[maybe_unused]] bool compartmentCleared =
           Runtime::tryCollectCompartment(std::move(compartment));
         assert(compartmentCleared);
     }

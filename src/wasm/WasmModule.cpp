@@ -177,12 +177,15 @@ std::string WasmModule::getBoundFunction()
 
 void WasmModule::setExecutingMsg(faabric::Message* msg)
 {
-    // Although the executing msg can be overridden, we only want to do so with
-    // another message for the same function (e.g. when executing threads). We
-    // cannot set it to another function
-    if (executingMsg != nullptr && msg != nullptr) {
-        assert(executingMsg->user() == msg->user());
-        assert(executingMsg->function() == msg->function());
+    // Although the executing msg can be overridden, we only want to do so
+    // with another message for the same function (e.g. when executing
+    // threads).
+    if (msg != nullptr) {
+        assert(!msg->user().empty());
+        assert(!msg->function().empty());
+
+        assert(boundUser.empty() || boundUser == msg->user());
+        assert(boundFunction.empty() || boundFunction == msg->function());
     }
 
     executingMsg = msg;

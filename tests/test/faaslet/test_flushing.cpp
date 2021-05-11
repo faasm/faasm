@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "faabric/proto/faabric.pb.h"
 #include "utils.h"
 
 #include <boost/filesystem.hpp>
@@ -15,8 +16,10 @@
 
 namespace tests {
 
-TEST_CASE("Test flushing faaslet clears shared files", "[flush]")
+TEST_CASE("Test flushing clears shared files", "[flush]")
 {
+    cleanSystem();
+
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
 
     std::string relativePath = "flush-test.txt";
@@ -40,38 +43,58 @@ TEST_CASE("Test flushing faaslet clears shared files", "[flush]")
     REQUIRE(!boost::filesystem::exists(sharedPath));
 }
 
-TEST_CASE("Test flushing faaslet clears cached modules", "[flush]")
+TEST_CASE("Test flushing clears cached modules", "[flush]")
 {
+    cleanSystem();
+
     const faabric::Message msgA = faabric::util::messageFactory("demo", "echo");
     const faabric::Message msgB =
       faabric::util::messageFactory("demo", "dummy");
 
-    wasm::WAVMModuleCache& reg = wasm::getWAVMModuleCache();
-    reg.getCachedModule(msgA);
-    reg.getCachedModule(msgB);
+    // Note, these have to be executed in a separate thread to fit with the
+    // module's isolation expectation
+    std::thread tA(
+      [&msgA] { wasm::getWAVMModuleCache().getCachedModule(msgA); });
 
-    REQUIRE(reg.getTotalCachedModuleCount() == 2);
+    std::thread tB(
+      [&msgB] { wasm::getWAVMModuleCache().getCachedModule(msgB); });
+
+    if (tA.joinable()) {
+        tA.join();
+    }
+    if (tB.joinable()) {
+        tB.join();
+    }
+
+    wasm::WAVMModuleCache& cache = wasm::getWAVMModuleCache();
+    REQUIRE(cache.getTotalCachedModuleCount() == 2);
 
     faaslet::Faaslet f(msgA);
     f.flush();
-    REQUIRE(reg.getTotalCachedModuleCount() == 0);
+    REQUIRE(cache.getTotalCachedModuleCount() == 0);
 }
 
-TEST_CASE("Test flushing faaslet clears IR module cache", "[flush]")
+TEST_CASE("Test flushing clears IR module cache", "[flush]")
 {
-    const faabric::Message msg = faabric::util::messageFactory("demo", "echo");
+    cleanSystem();
 
+    // Execute a task
+    std::shared_ptr<faabric::BatchExecuteRequest> req =
+      faabric::util::batchExecFactory("demo", "echo", 1);
+    faabric::Message& msg = req->mutable_messages()->at(0);
     faaslet::Faaslet f(msg);
+    f.executeTask(0, 0, req);
 
+    // Check the module has been cached
     wasm::IRModuleCache& cache = wasm::getIRModuleCache();
     REQUIRE(cache.isModuleCached("demo", "echo", ""));
 
+    // Flush and check it's gone
     f.flush();
-
     REQUIRE(!cache.isModuleCached("demo", "echo", ""));
 }
 
-TEST_CASE("Test flushing faaslet picks up new version of function", "[flush]")
+TEST_CASE("Test flushing picks up new version of function", "[flush]")
 {
     cleanSystem();
 
