@@ -277,6 +277,20 @@ uint32_t WasmModule::getArgvBufferSize()
     return argvBufferSize;
 }
 
+void WasmModule::bindToFunction(const faabric::Message& msg, bool cache)
+{
+    if (_isBound) {
+        throw std::runtime_error("Cannot bind a module twice");
+    }
+
+    _isBound = true;
+    boundUser = msg.user();
+    boundFunction = msg.function();
+
+    // Call module-specific steps
+    doBindToFunction(msg, cache);
+}
+
 void WasmModule::prepareArgcArgv(const faabric::Message& msg)
 {
     // Here we set up the arguments to main(), i.e. argc and argv
@@ -358,6 +372,11 @@ int32_t WasmModule::executeTask(
 {
     faabric::Message& msg = req->mutable_messages()->at(msgIdx);
 
+    if (!isBound()) {
+        throw std::runtime_error(
+          "WasmModule must be bound before executing anything");
+    }
+
     assert(boundUser == msg.user());
     assert(boundFunction == msg.function());
 
@@ -365,6 +384,8 @@ int32_t WasmModule::executeTask(
     setExecutingModule(this);
     setExecutingMsg(&msg);
 
+    // Modules must have provisioned their own thread stacks
+    assert(!threadStacks.empty());
     uint32_t stackTop = threadStacks.at(threadPoolIdx);
 
     // Perform the appropriate type of execution
@@ -454,6 +475,11 @@ threads::MutexManager& WasmModule::getMutexes()
     return mutexes;
 }
 
+bool WasmModule::isBound()
+{
+    return _isBound;
+}
+
 // ------------------------------------------
 // Functions to be implemented by subclasses
 // ------------------------------------------
@@ -463,19 +489,9 @@ void WasmModule::reset(const faabric::Message& msg)
     faabric::util::getLogger()->warn("Using default reset of wasm module");
 }
 
-void WasmModule::bindToFunction(const faabric::Message& msg)
+void WasmModule::doBindToFunction(const faabric::Message& msg, bool cache)
 {
-    throw std::runtime_error("bindToFunction not implemented");
-}
-
-void WasmModule::bindToFunctionNoZygote(const faabric::Message& msg)
-{
-    throw std::runtime_error("bindToFunctionNoZygote not implemented");
-}
-
-bool WasmModule::isBound()
-{
-    throw std::runtime_error("isBound not implemented");
+    throw std::runtime_error("doBindToFunction not implemented");
 }
 
 void WasmModule::writeArgvToMemory(uint32_t wasmArgvPointers,

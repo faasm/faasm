@@ -33,13 +33,9 @@ class WAVMWasmModule final
     ~WAVMWasmModule();
 
     // ----- Module lifecycle -----
-    void bindToFunction(const faabric::Message& msg) override;
+    void doBindToFunction(const faabric::Message& msg, bool cache) override;
 
-    void bindToFunctionNoZygote(const faabric::Message& msg) override;
-
-    void bindToFunctionNoCache(const faabric::Message& msg);
-
-    bool isBound() override;
+    void bindToFunctionNoZygote(const faabric::Message& msg);
 
     void flush() override;
 
@@ -181,9 +177,9 @@ class WAVMWasmModule final
 
     static WAVM::Runtime::Instance* getWasiModule();
 
-    void doBindToFunction(const faabric::Message& msg,
-                          bool executeZygote,
-                          bool useCache);
+    void doBindToFunctionInternal(const faabric::Message& msg,
+                                  bool executeZygote,
+                                  bool useCache);
 
     void writeStringArrayToMemory(const std::vector<std::string>& strings,
                                   uint32_t strPoitners,

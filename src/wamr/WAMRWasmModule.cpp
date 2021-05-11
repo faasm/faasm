@@ -60,7 +60,12 @@ WAMRWasmModule* getExecutingWAMRModule()
 
 WAMRWasmModule::WAMRWasmModule()
 {
-    // Lazily initialise WAMR
+    initialiseWAMRGlobally();
+}
+
+WAMRWasmModule::WAMRWasmModule(int threadPoolSizeIn)
+  : WasmModule(threadPoolSizeIn)
+{
     initialiseWAMRGlobally();
 }
 
@@ -71,14 +76,9 @@ WAMRWasmModule::~WAMRWasmModule()
 }
 
 // ----- Module lifecycle -----
-void WAMRWasmModule::bindToFunction(const faabric::Message& msg)
+void WAMRWasmModule::doBindToFunction(const faabric::Message& msg, bool cache)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-
-    // Set up the module
-    boundUser = msg.user();
-    boundFunction = msg.function();
-    _isBound = true;
+    const auto& logger = faabric::util::getLogger();
 
     // Prepare the filesystem
     filesystem.prepareFilesystem();
@@ -113,18 +113,16 @@ void WAMRWasmModule::bindToFunction(const faabric::Message& msg)
     }
 
     currentBrk = getMemorySizeBytes();
-    logger->debug("WAMR currentBrk = {}", currentBrk);
-}
 
-void WAMRWasmModule::bindToFunctionNoZygote(const faabric::Message& msg)
-{
-    // WAMR does not support zygotes yet so it's
-    // equivalent to binding with zygote
-    bindToFunction(msg);
+    // Set up thread stacks
+    createThreadStacks();
 }
 
 int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
 {
+    const auto& logger = faabric::util::getLogger();
+    logger->debug("WAMR executing message {}", msg.id());
+
     setExecutingModule(this);
     setExecutingMsg(&msg);
 
@@ -228,11 +226,6 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
     }
 
     return 0;
-}
-
-bool WAMRWasmModule::isBound()
-{
-    return _isBound;
 }
 
 uint32_t WAMRWasmModule::growMemory(uint32_t nBytes)

@@ -46,7 +46,8 @@ SGXWAMRWasmModule::~SGXWAMRWasmModule()
     }
 }
 
-void SGXWAMRWasmModule::bindToFunction(const faabric::Message& msg)
+void SGXWAMRWasmModule::doBindToFunction(const faabric::Message& msg,
+                                         bool cache)
 {
     auto logger = faabric::util::getLogger();
 
@@ -87,18 +88,11 @@ void SGXWAMRWasmModule::bindToFunction(const faabric::Message& msg)
                       faasmSgxErrorString(returnValue));
         throw std::runtime_error("Unable to load WASM module");
     }
-
-    _isBound = true;
-}
-
-void SGXWAMRWasmModule::bindToFunctionNoZygote(const faabric::Message& msg)
-{
-    bindToFunction(msg);
 }
 
 bool SGXWAMRWasmModule::unbindFunction()
 {
-    if (!_isBound) {
+    if (!isBound()) {
         return true;
     }
 
@@ -128,10 +122,6 @@ int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
 {
     auto logger = faabric::util::getLogger();
     std::string funcStr = faabric::util::funcToString(msg, true);
-    if (!_isBound) {
-        logger->error("Function not bound {}", funcStr);
-        throw std::runtime_error("Function not bound");
-    }
 
     logger->debug(
       "Entering enclave {} to execute {}", globalEnclaveId, funcStr);
@@ -166,10 +156,5 @@ int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
     }
 
     return 0;
-}
-
-bool SGXWAMRWasmModule::isBound()
-{
-    return _isBound;
 }
 }

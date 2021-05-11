@@ -25,7 +25,9 @@ int main(int argc, char* argv[])
         inputData = argv[3];
     }
 
-    faabric::Message msg = faabric::util::messageFactory(user, function);
+    std::shared_ptr<faabric::BatchExecuteRequest> req =
+      faabric::util::batchExecFactory(user, function, 1);
+    faabric::Message& msg = req->mutable_messages()->at(0);
 
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
 
@@ -70,7 +72,7 @@ int main(int argc, char* argv[])
 
     // Submit the invocation
     PROF_START(roundTrip)
-    sch.callFunction(msg);
+    sch.callFunctions(req);
 
     // Await the result
     const faabric::Message& result =

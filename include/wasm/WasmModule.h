@@ -65,9 +65,7 @@ class WasmModule
     // ----- Module lifecycle -----
     virtual void reset(const faabric::Message& msg);
 
-    virtual void bindToFunction(const faabric::Message& msg);
-
-    virtual void bindToFunctionNoZygote(const faabric::Message& msg);
+    void bindToFunction(const faabric::Message& msg, bool cache=false);
 
     int32_t executeTask(int threadPoolIdx,
                         int msgIdx,
@@ -83,7 +81,7 @@ class WasmModule
                                    uint32_t stackTop,
                                    faabric::Message& msg);
 
-    virtual bool isBound();
+    bool isBound();
 
     std::string getBoundUser();
 
@@ -158,8 +156,8 @@ class WasmModule
     uint32_t currentBrk = 0;
 
     std::string boundUser;
-
     std::string boundFunction;
+    bool _isBound = false;
 
     faabric::Message* executingMsg = nullptr;
 
@@ -191,6 +189,9 @@ class WasmModule
     void prepareArgcArgv(const faabric::Message& msg);
 
     virtual uint8_t* getMemoryBase();
+
+    // Module-specific binding
+    virtual void doBindToFunction(const faabric::Message& msg, bool cache);
 
     // Threads
     void createThreadStacks();

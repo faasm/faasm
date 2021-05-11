@@ -49,7 +49,7 @@ void WAVMModuleCache::initialiseCachedModule(const faabric::Message& msg)
 
     // Instantiate the base module
     wasm::WAVMWasmModule& module = cachedModuleMap[key];
-    module.bindToFunctionNoCache(msg);
+    module.bindToFunction(msg, false);
 }
 
 void WAVMModuleCache::clear()

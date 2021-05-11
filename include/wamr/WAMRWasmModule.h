@@ -22,16 +22,14 @@ class WAMRWasmModule final : public WasmModule
 
     WAMRWasmModule();
 
+    explicit WAMRWasmModule(int threadPoolSizeIn);
+
     ~WAMRWasmModule();
 
     // ----- Module lifecycle -----
-    void bindToFunction(const faabric::Message& msg) override;
-
-    void bindToFunctionNoZygote(const faabric::Message& msg) override;
+    void doBindToFunction(const faabric::Message& msg, bool cache) override;
 
     int32_t executeFunction(faabric::Message& msg) override;
-
-    bool isBound() override;
 
     // ----- Memory management -----
     uint32_t growMemory(uint32_t nBytes) override;
@@ -47,8 +45,6 @@ class WAMRWasmModule final : public WasmModule
     size_t getMemorySizeBytes() override;
 
   private:
-    bool _isBound;
-
     char errorBuffer[ERROR_BUFFER_SIZE];
 
 #if (WAMR_EXECUTION_MODE_INTERP)
