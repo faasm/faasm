@@ -25,7 +25,7 @@ TEST_CASE("Check level serialisation and deserialisation", "[threads]")
     lvlA.pushedThreads = 777;
     lvlA.wantedThreads = 888;
 
-    std::vector<uint32_t> sharedVars = {22, 33, 44, 55, 66};
+    std::vector<uint32_t> sharedVars = { 22, 33, 44, 55, 66 };
     lvlA.setSharedVars(sharedVars.data(), sharedVars.size());
     REQUIRE(lvlA.getSharedVars() == sharedVars);
 

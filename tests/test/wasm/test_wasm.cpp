@@ -126,19 +126,6 @@ TEST_CASE("Test execution without binding fails", "[wasm]")
     REQUIRE_THROWS(module.executeFunction(callA));
 }
 
-TEST_CASE("Test repeat execution with different function fails", "[wasm]")
-{
-    cleanSystem();
-
-    faabric::Message callA = faabric::util::messageFactory("demo", "dummy");
-    faabric::Message callB = faabric::util::messageFactory("demo", "x2");
-
-    wasm::WAVMWasmModule module;
-    module.bindToFunction(callA);
-
-    REQUIRE_THROWS(module.executeFunction(callB));
-}
-
 TEST_CASE("Test reclaiming memory", "[wasm]")
 {
     cleanSystem();

@@ -21,17 +21,6 @@ void convertMsgToPython(faabric::Message& msg)
     msg.set_ispython(true);
 }
 
-TEST_CASE("Test cloning empty modules doesn't break", "[wasm]")
-{
-    cleanSystem();
-
-    WAVMWasmModule moduleA;
-    WAVMWasmModule moduleB(moduleA);
-
-    WAVMWasmModule moduleC;
-    moduleC = moduleA;
-}
-
 void _doChecks(wasm::WAVMWasmModule& moduleA,
                wasm::WAVMWasmModule& moduleB,
                const std::string& user,

@@ -817,7 +817,7 @@ uint32_t WAVMWasmModule::addFunctionToTable(Runtime::Object* exportedFunc)
 
 int32_t WAVMWasmModule::executeFunction(faabric::Message& msg)
 {
-    if(!_isBound) {
+    if (!_isBound) {
         throw std::runtime_error("Module must be bound before executing");
     }
 
@@ -1389,6 +1389,10 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
     if (resolved) {
         if (isA(resolved, type)) {
             return true;
+        } else if (name == "__indirect_function_table") {
+            // We handle the indirect_function_table ourselves, so we can ignore
+            // resolution errors here.
+            return true;
         } else {
             IR::ExternType resolvedType = Runtime::getExternType(resolved);
             logger->error("Resolved import {}.{} to a {}, but was expecting {}",
@@ -1396,7 +1400,8 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
                           name.c_str(),
                           asString(resolvedType).c_str(),
                           asString(type).c_str());
-            return false;
+
+            throw std::runtime_error("Error resolving import");
         }
     }
 

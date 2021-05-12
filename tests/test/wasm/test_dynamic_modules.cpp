@@ -282,6 +282,8 @@ void resolveGlobalI32(wasm::WAVMWasmModule& module,
 
 TEST_CASE("Test resolving dynamic module imports", "[wasm]")
 {
+    cleanSystem();
+
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     std::string preloadBefore = conf.pythonPreload;
     conf.pythonPreload = "off";
