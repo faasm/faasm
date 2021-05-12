@@ -1,4 +1,3 @@
-#include "faabric/util/config.h"
 #include "utils.h"
 #include <catch2/catch.hpp>
 
@@ -8,6 +7,7 @@
 #include <faabric/scheduler/SnapshotClient.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/util/bytes.h>
+#include <faabric/util/config.h>
 #include <faabric/util/environment.h>
 #include <faabric/util/testing.h>
 

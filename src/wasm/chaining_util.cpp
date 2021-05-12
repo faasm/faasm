@@ -1,9 +1,10 @@
 #include "WasmModule.h"
-#include "faabric/util/func.h"
-#include "wasm/chaining.h"
 
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/bytes.h>
+#include <faabric/util/func.h>
+
+#include <wasm/chaining.h>
 
 namespace wasm {
 int awaitChainedCall(unsigned int messageId)

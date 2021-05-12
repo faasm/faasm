@@ -1,10 +1,10 @@
 #include <catch2/catch.hpp>
 
-#include "faabric/proto/faabric.pb.h"
 #include "utils.h"
 
 #include <boost/filesystem.hpp>
 
+#include <faabric/proto/faabric.pb.h>
 #include <faabric/runner/FaabricMain.h>
 #include <faabric/util/config.h>
 #include <faabric/util/files.h>

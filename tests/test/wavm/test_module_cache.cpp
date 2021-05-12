@@ -1,10 +1,11 @@
 #include <catch2/catch.hpp>
 
-#include "faabric/proto/faabric.pb.h"
 #include "utils.h"
 
+#include <faabric/proto/faabric.pb.h>
 #include <faabric/util/func.h>
 #include <faabric/util/macros.h>
+
 #include <wavm/WAVMWasmModule.h>
 
 namespace tests {

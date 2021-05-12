@@ -1,8 +1,8 @@
 #include <catch2/catch.hpp>
 
-#include "faabric/scheduler/Scheduler.h"
 #include "utils.h"
 
+#include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/func.h>
 
 namespace tests {

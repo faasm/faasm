@@ -9,6 +9,18 @@
 
 using namespace faabric::util;
 
+#define FROM_MAP(varName, T, m, ...)                                           \
+    {                                                                          \
+        uint32_t id = currentLevel->id;                                        \
+        if (m.count(id) == 0) {                                                \
+            faabric::util::UniqueLock lock(sharedMutex);                       \
+            if (m.count(id) == 0) {                                            \
+                m[id] = std::make_shared<T>(__VA_ARGS__);                      \
+            }                                                                  \
+        }                                                                      \
+    }                                                                          \
+    std::shared_ptr<T> varName = m[currentLevel->id];
+
 namespace threads {
 
 static thread_local std::shared_ptr<Level> currentLevel = nullptr;
@@ -31,69 +43,9 @@ void clearThreadState()
 
     levelMutexes.clear();
 
+    nowaitMutexes.clear();
     nowaitCounts.clear();
     nowaitCvs.clear();
-}
-
-std::shared_ptr<std::recursive_mutex> getLevelMutex()
-{
-    uint32_t id = currentLevel->id;
-    if (levelMutexes.count(id) == 0) {
-        faabric::util::UniqueLock lock(sharedMutex);
-        if (levelMutexes.count(id) == 0) {
-            levelMutexes[id] = std::make_shared<std::recursive_mutex>();
-        }
-    }
-    return levelMutexes[id];
-}
-
-std::shared_ptr<std::mutex> getNowaitMutex()
-{
-    uint32_t id = currentLevel->id;
-    if (nowaitMutexes.count(id) == 0) {
-        faabric::util::UniqueLock lock(sharedMutex);
-        if (nowaitMutexes.count(id) == 0) {
-            nowaitMutexes[id] = std::make_shared<std::mutex>();
-        }
-    }
-    return nowaitMutexes[id];
-}
-
-std::shared_ptr<std::atomic<int>> getNowaitCount()
-{
-    uint32_t id = currentLevel->id;
-    if (nowaitCounts.count(id) == 0) {
-        faabric::util::UniqueLock lock(sharedMutex);
-        if (nowaitCounts.count(id) == 0) {
-            nowaitCounts[id] = std::make_shared<std::atomic<int>>();
-        }
-    }
-    return nowaitCounts[id];
-}
-
-std::shared_ptr<std::condition_variable> getNowaitCv()
-{
-    uint32_t id = currentLevel->id;
-    if (nowaitCvs.count(id) == 0) {
-        faabric::util::UniqueLock lock(sharedMutex);
-        if (nowaitCvs.count(id) == 0) {
-            nowaitCvs[id] = std::make_shared<std::condition_variable>();
-        }
-    }
-    return nowaitCvs[id];
-}
-
-std::shared_ptr<faabric::util::Barrier> getBarrier()
-{
-    uint32_t id = currentLevel->id;
-    if (barriers.count(id) == 0) {
-        faabric::util::UniqueLock lock(sharedMutex);
-        if (barriers.count(id) == 0) {
-            barriers[id] = std::make_shared<faabric::util::Barrier>(
-              currentLevel->numThreads);
-        }
-    }
-    return barriers[id];
 }
 
 void setCurrentOpenMPLevel(const std::shared_ptr<Level>& level)
@@ -195,9 +147,9 @@ int Level::getMaxThreadsAtNextLevel() const
 
 void Level::masterWait(int threadNum)
 {
-    std::shared_ptr<std::mutex> nowaitMutex = getNowaitMutex();
-    std::shared_ptr<std::atomic<int>> nowaitCount = getNowaitCount();
-    std::shared_ptr<std::condition_variable> nowaitCv = getNowaitCv();
+    FROM_MAP(nowaitMutex, std::mutex, nowaitMutexes)
+    FROM_MAP(nowaitCount, std::atomic<int>, nowaitCounts)
+    FROM_MAP(nowaitCv, std::condition_variable, nowaitCvs)
 
     // All threads must lock when entering this function
     std::unique_lock<std::mutex> lock(*nowaitMutex);
@@ -250,20 +202,20 @@ void Level::deserialise(const Level* other)
 void Level::waitOnBarrier()
 {
     if (numThreads > 1) {
-        std::shared_ptr<faabric::util::Barrier> barrier = getBarrier();
-        barrier->wait();
+        FROM_MAP(b, faabric::util::Barrier, barriers, currentLevel->numThreads);
+        b->wait();
     }
 }
 
 void Level::lockCritical()
 {
-    std::shared_ptr<std::recursive_mutex> mx = getLevelMutex();
+    FROM_MAP(mx, std::recursive_mutex, levelMutexes);
     mx->lock();
 }
 
 void Level::unlockCritical()
 {
-    std::shared_ptr<std::recursive_mutex> mx = getLevelMutex();
+    FROM_MAP(mx, std::recursive_mutex, levelMutexes);
     mx->unlock();
 }
 
