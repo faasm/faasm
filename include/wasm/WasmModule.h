@@ -65,7 +65,7 @@ class WasmModule
     // ----- Module lifecycle -----
     virtual void reset(const faabric::Message& msg);
 
-    void bindToFunction(const faabric::Message& msg, bool cache=true);
+    void bindToFunction(const faabric::Message& msg, bool cache = true);
 
     int32_t executeTask(int threadPoolIdx,
                         int msgIdx,
@@ -88,10 +88,6 @@ class WasmModule
     std::string getBoundFunction();
 
     virtual void flush();
-
-    void setExecutingMsg(faabric::Message* msg);
-
-    faabric::Message* getExecutingMsg();
 
     // ----- argc/ argv -----
     uint32_t getArgc();
@@ -159,8 +155,6 @@ class WasmModule
     std::string boundFunction;
     bool _isBound = false;
 
-    faabric::Message* executingMsg = nullptr;
-
     storage::FileSystem filesystem;
 
     WasmEnvironment wasmEnvironment;
@@ -198,6 +192,8 @@ class WasmModule
 };
 
 // ----- Global functions -----
+void setExecutingCall(faabric::Message* call);
+
 faabric::Message* getExecutingCall();
 
 void setExecutingModule(wasm::WasmModule* module);

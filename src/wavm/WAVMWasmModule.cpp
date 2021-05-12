@@ -817,8 +817,12 @@ uint32_t WAVMWasmModule::addFunctionToTable(Runtime::Object* exportedFunc)
 
 int32_t WAVMWasmModule::executeFunction(faabric::Message& msg)
 {
+    if(!_isBound) {
+        throw std::runtime_error("Module must be bound before executing");
+    }
+
     const auto& logger = faabric::util::getLogger();
-    setExecutingMsg(&msg);
+    setExecutingCall(&msg);
 
     // Ensure Python function file in place (if necessary)
     storage::SharedFiles::syncPythonFunctionFile(msg);

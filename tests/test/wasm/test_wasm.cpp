@@ -1,4 +1,6 @@
+#include "utils.h"
 #include <catch2/catch.hpp>
+
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
@@ -11,6 +13,8 @@ namespace tests {
 
 TEST_CASE("Test executing WASM module with no input", "[wasm]")
 {
+    cleanSystem();
+
     faabric::Message call = faabric::util::messageFactory("demo", "dummy");
 
     wasm::WAVMWasmModule module;
@@ -33,6 +37,8 @@ TEST_CASE("Test executing WASM module with no input", "[wasm]")
 
 TEST_CASE("Test printf doesn't fail", "[wasm]")
 {
+    cleanSystem();
+
     faabric::Message call;
     call.set_user("demo");
     call.set_function("print");
@@ -69,6 +75,8 @@ void executeX2(wasm::WAVMWasmModule& module)
 
 TEST_CASE("Test binding", "[wasm]")
 {
+    cleanSystem();
+
     faabric::Message call;
     call.set_user("demo");
     call.set_function("x2");
@@ -82,6 +90,8 @@ TEST_CASE("Test binding", "[wasm]")
 
 TEST_CASE("Test repeat execution on simple WASM module", "[wasm]")
 {
+    cleanSystem();
+
     faabric::Message call;
     call.set_user("demo");
     call.set_function("x2");
@@ -106,6 +116,8 @@ TEST_CASE("Test repeat execution on simple WASM module", "[wasm]")
 
 TEST_CASE("Test execution without binding fails", "[wasm]")
 {
+    cleanSystem();
+
     faabric::Message callA;
     callA.set_user("demo");
     callA.set_function("dummy");
@@ -116,6 +128,8 @@ TEST_CASE("Test execution without binding fails", "[wasm]")
 
 TEST_CASE("Test repeat execution with different function fails", "[wasm]")
 {
+    cleanSystem();
+
     faabric::Message callA = faabric::util::messageFactory("demo", "dummy");
     faabric::Message callB = faabric::util::messageFactory("demo", "x2");
 
@@ -127,6 +141,8 @@ TEST_CASE("Test repeat execution with different function fails", "[wasm]")
 
 TEST_CASE("Test reclaiming memory", "[wasm]")
 {
+    cleanSystem();
+
     faabric::Message call = faabric::util::messageFactory("demo", "heap");
 
     wasm::WAVMWasmModule module;
@@ -145,6 +161,8 @@ TEST_CASE("Test reclaiming memory", "[wasm]")
 
 TEST_CASE("Test disassemble module", "[wasm]")
 {
+    cleanSystem();
+
     faabric::Message call = faabric::util::messageFactory("demo", "echo");
     wasm::WAVMWasmModule module;
     module.bindToFunction(call);

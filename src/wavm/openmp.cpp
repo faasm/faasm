@@ -375,7 +375,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     WAVMWasmModule* parentModule = getExecutingWAVMModule();
     Runtime::Memory* memoryPtr = parentModule->defaultMemory;
-    faabric::Message* parentCall = parentModule->getExecutingMsg();
+    faabric::Message* parentCall = getExecutingCall();
 
     const std::string parentStr =
       faabric::util::funcToString(*parentCall, false);
@@ -458,7 +458,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
         // Set up the context for the next level
         threads::setCurrentOpenMPLevel(nextLevel);
-        getExecutingModule()->setExecutingMsg(&masterMsg);
+        setExecutingCall(&masterMsg);
 
         // Execute the task
         logger->debug("OpenMP 0: executing OMP thread 0 (master)");
@@ -469,7 +469,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
         // Reset the context
         threads::setCurrentOpenMPLevel(parentLevel);
-        getExecutingModule()->setExecutingMsg(&masterMsg);
+        setExecutingCall(parentCall);
 
         if (masterThreadResult.i32 > 0) {
             throw std::runtime_error("Master OpenMP thread failed");

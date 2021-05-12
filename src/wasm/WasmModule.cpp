@@ -20,7 +20,11 @@
 
 namespace wasm {
 // Using TLS here to isolate between executing functions
+// Note that with threads, multiple messages can be executing on the same
+// module, hence we must track them independently.
 static thread_local wasm::WasmModule* executingModule = nullptr;
+
+static thread_local faabric::Message* executingCall = nullptr;
 
 bool isWasmPageAligned(int32_t offset)
 {
@@ -34,11 +38,26 @@ bool isWasmPageAligned(int32_t offset)
 // This function remains for compatibility
 faabric::Message* getExecutingCall()
 {
-    assert(executingModule != nullptr);
-    faabric::Message* msg = executingModule->getExecutingMsg();
+    assert(executingCall != nullptr);
+    return executingCall;
+}
 
-    assert(msg != nullptr);
-    return msg;
+void setExecutingCall(faabric::Message* msg)
+{
+    // Although the executing msg can be overridden, we only want to do so
+    // with another message for the same function (e.g. when executing
+    // threads).
+    if (msg != nullptr) {
+        assert(!msg->user().empty());
+        assert(!msg->function().empty());
+
+        assert(executingModule->getBoundUser().empty() ||
+               executingModule->getBoundUser() == msg->user());
+        assert(executingModule->getBoundFunction().empty() ||
+               executingModule->getBoundFunction() == msg->function());
+    }
+
+    executingCall = msg;
 }
 
 wasm::WasmModule* getExecutingModule()
@@ -168,28 +187,6 @@ std::string WasmModule::getBoundUser()
 std::string WasmModule::getBoundFunction()
 {
     return boundFunction;
-}
-
-void WasmModule::setExecutingMsg(faabric::Message* msg)
-{
-    // Although the executing msg can be overridden, we only want to do so
-    // with another message for the same function (e.g. when executing
-    // threads).
-    if (msg != nullptr) {
-        assert(!msg->user().empty());
-        assert(!msg->function().empty());
-
-        assert(boundUser.empty() || boundUser == msg->user());
-        assert(boundFunction.empty() || boundFunction == msg->function());
-    }
-
-    executingMsg = msg;
-}
-
-faabric::Message* WasmModule::getExecutingMsg()
-{
-    assert(executingMsg != nullptr);
-    return executingMsg;
 }
 
 int WasmModule::getStdoutFd()
@@ -382,7 +379,7 @@ int32_t WasmModule::executeTask(
 
     // Set up context for this task
     setExecutingModule(this);
-    setExecutingMsg(&msg);
+    setExecutingCall(&msg);
 
     // Modules must have provisioned their own thread stacks
     assert(!threadStacks.empty());
