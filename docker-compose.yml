@@ -36,7 +36,6 @@ services:
     privileged: yes
     volumes:
       - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
-      - ./dev/container/shared_store/:/usr/local/faasm/shared_store/
     environment:
       - CAPTURE_STDOUT=on
       - CGROUP_MODE=on
