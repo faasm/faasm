@@ -2,6 +2,7 @@
 #include <faabric/util/config.h>
 #include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
+#include <faabric/util/macros.h>
 #include <faabric/util/timing.h>
 
 #include <threads/ThreadState.h>
@@ -95,14 +96,6 @@ std::shared_ptr<faabric::util::Barrier> getBarrier()
     return barriers[id];
 }
 
-size_t sizeOfSerialisedLevel(SerialisedLevel& serialisedLevel)
-{
-    size_t slSize = sizeof(serialisedLevel);
-    slSize += serialisedLevel.nSharedVars * sizeof(uint32_t);
-
-    return slSize;
-}
-
 void setCurrentOpenMPLevel(const std::shared_ptr<Level>& level)
 {
     currentLevel = level;
@@ -115,11 +108,7 @@ void setCurrentOpenMPLevel(
         throw std::runtime_error("Empty context for OpenMP request");
     }
 
-    const SerialisedLevel* serialisedLevel =
-      reinterpret_cast<const SerialisedLevel*>(req->contextdata().data());
-
-    currentLevel = std::make_shared<Level>(serialisedLevel->nThreads);
-    currentLevel->deserialise(serialisedLevel);
+    currentLevel = levelFromBatchRequest(req);
 }
 
 std::shared_ptr<Level> getCurrentOpenMPLevel()
@@ -135,10 +124,34 @@ std::shared_ptr<Level> getCurrentOpenMPLevel()
     return currentLevel;
 }
 
+std::shared_ptr<Level> levelFromBatchRequest(
+  const std::shared_ptr<faabric::BatchExecuteRequest>& req)
+{
+    const auto other =
+      reinterpret_cast<const Level*>(req->contextdata().data());
+    currentLevel = std::make_shared<Level>(other->numThreads);
+    currentLevel->deserialise(other);
+
+    return currentLevel;
+}
+
 Level::Level(int numThreadsIn)
   : id(faabric::util::generateGid())
   , numThreads(numThreadsIn)
 {}
+
+std::vector<uint32_t> Level::getSharedVars()
+{
+    return std::vector<uint32_t>(sharedVars, sharedVars + nSharedVars);
+}
+
+void Level::setSharedVars(uint32_t* ptr, int nVars)
+{
+    sharedVars = new uint32_t[nVars];
+    nSharedVars = nVars;
+
+    std::memcpy(sharedVars, ptr, nVars * sizeof(uint32_t));
+}
 
 void Level::fromParentLevel(const std::shared_ptr<Level>& parent)
 {
@@ -206,34 +219,32 @@ void Level::masterWait(int threadNum)
     }
 }
 
-SerialisedLevel Level::serialise()
+std::vector<uint8_t> Level::serialise()
 {
-    SerialisedLevel sl;
-    sl.id = id;
-    sl.depth = depth;
-    sl.effectiveDepth = activeLevels;
-    sl.maxActiveLevels = maxActiveLevels;
-    sl.nThreads = numThreads;
-    sl.globalTidOffset = globalTidOffset;
+    // Work out the size of this object
+    size_t thisSize = sizeof(Level);
+    thisSize += nSharedVars * sizeof(uint32_t);
 
-    sl.nSharedVars = sharedVarPtrs.size();
-    sl.sharedVars = sharedVarPtrs.data();
-
-    return sl;
+    uint8_t* bytesPtr = BYTES(this);
+    std::vector<uint8_t> bytes(bytesPtr, bytesPtr + thisSize);
+    return bytes;
 }
 
-void Level::deserialise(const SerialisedLevel* level)
+void Level::deserialise(const Level* other)
 {
-    id = level->id;
-    depth = level->depth;
-    activeLevels = level->effectiveDepth;
-    maxActiveLevels = level->maxActiveLevels;
-    numThreads = level->nThreads;
-    globalTidOffset = level->globalTidOffset;
+    id = other->id;
+    depth = other->depth;
+    activeLevels = other->activeLevels;
+    maxActiveLevels = other->maxActiveLevels;
+    numThreads = other->numThreads;
+    pushedThreads = other->pushedThreads;
+    wantedThreads = other->wantedThreads;
 
-    for (int i = 0; i < level->nSharedVars; i++) {
-        sharedVarPtrs.emplace_back(level->sharedVars[i]);
-    }
+    globalTidOffset = other->globalTidOffset;
+
+    nSharedVars = other->nSharedVars;
+    sharedVars = new uint32_t[nSharedVars];
+    std::memcpy(sharedVars, other->sharedVars, nSharedVars * sizeof(uint32_t));
 }
 
 void Level::waitOnBarrier()

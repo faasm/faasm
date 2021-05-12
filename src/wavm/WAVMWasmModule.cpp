@@ -905,7 +905,6 @@ int32_t WAVMWasmModule::executePthread(int threadPoolIdx,
 {
     const auto& logger = faabric::util::getLogger();
     std::string funcStr = faabric::util::funcToString(msg, false);
-    setExecutingMsg(&msg);
 
     logger->debug("Executing pthread {} for {}", threadPoolIdx, funcStr);
 
@@ -934,14 +933,17 @@ int32_t WAVMWasmModule::executeOMPThread(int threadPoolIdx,
                                          faabric::Message& msg)
 {
     Runtime::Function* funcInstance = getFunctionFromPtr(msg.funcptr());
-    setExecutingMsg(&msg);
+
+    const auto& logger = faabric::util::getLogger();
+    std::string funcStr = faabric::util::funcToString(msg, false);
+    logger->debug("Executing OpenMP thread {} for {}", threadPoolIdx, funcStr);
 
     // Set up function args
     std::shared_ptr<threads::Level> ompLevel = threads::getCurrentOpenMPLevel();
-    int argc = ompLevel->sharedVarPtrs.size();
+    int argc = ompLevel->nSharedVars;
     std::vector<IR::UntaggedValue> invokeArgs = { msg.appindex(), argc };
     for (int argIdx = 0; argIdx < argc; argIdx++) {
-        invokeArgs.emplace_back(ompLevel->sharedVarPtrs.at(argIdx));
+        invokeArgs.emplace_back(ompLevel->sharedVars[argIdx]);
     }
 
     Runtime::ContextRuntimeData* contextRuntimeData =
@@ -951,11 +953,11 @@ int32_t WAVMWasmModule::executeOMPThread(int threadPoolIdx,
         openMPContexts.at(threadPoolIdx) =
           createThreadContext(stackTop, contextRuntimeData);
     }
+    Runtime::Context* ctx = openMPContexts.at(threadPoolIdx);
 
     // Execute the wasm function
     IR::UntaggedValue returnValue;
-    executeWasmFunction(
-      openMPContexts[threadPoolIdx], funcInstance, invokeArgs, returnValue);
+    executeWasmFunction(ctx, funcInstance, invokeArgs, returnValue);
     msg.set_returnvalue(returnValue.i32);
 
     return returnValue.i32;

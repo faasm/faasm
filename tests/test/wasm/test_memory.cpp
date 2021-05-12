@@ -1,4 +1,6 @@
 #include <catch2/catch.hpp>
+#include "utils.h"
+
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
@@ -14,6 +16,8 @@ using namespace WAVM;
 namespace tests {
 TEST_CASE("Test mmapping a file", "[wasm]")
 {
+    cleanSystem();
+
     faabric::Message call = faabric::util::messageFactory("demo", "echo");
 
     wasm::WAVMWasmModule module;
@@ -51,6 +55,8 @@ TEST_CASE("Test mmapping a file", "[wasm]")
 
 TEST_CASE("Test memory growth and shrinkage", "[wasm]")
 {
+    cleanSystem();
+
     faabric::Message call = faabric::util::messageFactory("demo", "echo");
     wasm::WAVMWasmModule module;
     module.bindToFunction(call);

@@ -375,7 +375,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     WAVMWasmModule* parentModule = getExecutingWAVMModule();
     Runtime::Memory* memoryPtr = parentModule->defaultMemory;
-    faabric::Message* parentCall = getExecutingCall();
+    faabric::Message* parentCall = parentModule->getExecutingMsg();
 
     const std::string parentStr =
       faabric::util::funcToString(*parentCall, false);
@@ -404,13 +404,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         // Build list of pointers to shared variables
         U32* sharedVarsPtr =
           Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
-        nextLevel->sharedVarPtrs =
-          std::vector<uint32_t>(sharedVarsPtr, sharedVarsPtr + argc);
+        nextLevel->setSharedVars(sharedVarsPtr, argc);
 
         // Append to main arguments
-        mainArguments.insert(mainArguments.end(),
-                             nextLevel->sharedVarPtrs.begin(),
-                             nextLevel->sharedVarPtrs.end());
+        mainArguments.insert(
+          mainArguments.end(), sharedVarsPtr, sharedVarsPtr + argc);
     }
 
     // Set up the chained calls
@@ -425,9 +423,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         req->set_subtype(ThreadRequestType::OPENMP);
 
         // Add remote context
-        threads::SerialisedLevel serialisedLevel = nextLevel->serialise();
-        req->set_contextdata(BYTES(&serialisedLevel),
-                             threads::sizeOfSerialisedLevel(serialisedLevel));
+        // TODO - avoid copy
+        std::vector<uint8_t> serialisedLevel = nextLevel->serialise();
+        req->set_contextdata(serialisedLevel.data(), serialisedLevel.size());
 
         // Configure the mesages
         for (int i = 0; i < req->messages_size(); i++) {

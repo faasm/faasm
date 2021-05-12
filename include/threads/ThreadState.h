@@ -13,22 +13,6 @@ namespace threads {
 
 void clearThreadState();
 
-class SerialisedLevel
-{
-  public:
-    uint32_t id;
-    int32_t depth;
-    int32_t effectiveDepth;
-    int32_t maxActiveLevels;
-    int32_t nThreads;
-    int32_t globalTidOffset = 0;
-
-    uint32_t nSharedVars = 0;
-    uint32_t* sharedVars;
-};
-
-size_t sizeOfSerialisedLevel(SerialisedLevel& serialisedLevel);
-
 // A Level is a layer of threads in an OpenMP application.
 // Note, defaults are set to replicate the behaviour as of Clang 9.0.1
 class Level
@@ -59,9 +43,14 @@ class Level
     // Offset for the global thread numbers at this level
     int32_t globalTidOffset = 0;
 
-    std::vector<uint32_t> sharedVarPtrs;
+    uint32_t nSharedVars = 0;
+    uint32_t* sharedVars;
 
     Level(int numThreadsIn);
+
+    std::vector<uint32_t> getSharedVars();
+
+    void setSharedVars(uint32_t* ptr, int nVars);
 
     void fromParentLevel(const std::shared_ptr<Level>& parent);
 
@@ -70,9 +59,9 @@ class Level
 
     void masterWait(int threadNum);
 
-    SerialisedLevel serialise();
+    std::vector<uint8_t> serialise();
 
-    void deserialise(const SerialisedLevel* serialised);
+    void deserialise(const Level* other);
 
     void waitOnBarrier();
 
@@ -117,6 +106,9 @@ class OpenMPTask
       , nextLevel(nextLevelIn)
     {}
 };
+
+std::shared_ptr<Level> levelFromBatchRequest(
+  const std::shared_ptr<faabric::BatchExecuteRequest>& req);
 
 std::shared_ptr<Level> getCurrentOpenMPLevel();
 

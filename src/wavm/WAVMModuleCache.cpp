@@ -33,6 +33,8 @@ wasm::WAVMWasmModule& WAVMModuleCache::getCachedModule(
         faabric::util::FullLock lock(mx);
 
         if (cachedModuleMap.count(key) == 0) {
+            faabric::util::getLogger()->debug(
+              "{} initialising {}", gettid(), key);
             initialiseCachedModule(msg);
         }
     }

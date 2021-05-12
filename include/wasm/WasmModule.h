@@ -65,7 +65,7 @@ class WasmModule
     // ----- Module lifecycle -----
     virtual void reset(const faabric::Message& msg);
 
-    void bindToFunction(const faabric::Message& msg, bool cache=false);
+    void bindToFunction(const faabric::Message& msg, bool cache=true);
 
     int32_t executeTask(int threadPoolIdx,
                         int msgIdx,
