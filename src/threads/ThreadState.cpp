@@ -11,7 +11,6 @@ using namespace faabric::util;
 
 #define FROM_MAP(varName, T, m, ...)                                           \
     {                                                                          \
-        uint32_t id = currentLevel->id;                                        \
         if (m.find(id) == m.end()) {                                           \
             faabric::util::UniqueLock lock(sharedMutex);                       \
             if (m.find(id) == m.end()) {                                       \
@@ -19,7 +18,7 @@ using namespace faabric::util;
             }                                                                  \
         }                                                                      \
     }                                                                          \
-    std::shared_ptr<T> varName = m[currentLevel->id];
+    std::shared_ptr<T> varName = m[id];
 
 namespace threads {
 
@@ -81,10 +80,10 @@ std::shared_ptr<Level> levelFromBatchRequest(
 {
     const auto other =
       reinterpret_cast<const Level*>(req->contextdata().data());
-    currentLevel = std::make_shared<Level>(other->numThreads);
-    currentLevel->deserialise(other);
+    auto lvl = std::make_shared<Level>(other->numThreads);
+    lvl->deserialise(other);
 
-    return currentLevel;
+    return lvl;
 }
 
 Level::Level(int numThreadsIn)
@@ -202,7 +201,7 @@ void Level::deserialise(const Level* other)
 void Level::waitOnBarrier()
 {
     if (numThreads > 1) {
-        FROM_MAP(b, faabric::util::Barrier, barriers, currentLevel->numThreads);
+        FROM_MAP(b, faabric::util::Barrier, barriers, numThreads);
         b->wait();
     }
 }

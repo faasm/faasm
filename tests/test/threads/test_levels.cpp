@@ -16,7 +16,8 @@ TEST_CASE("Check level serialisation and deserialisation", "[threads]")
     cleanSystem();
 
     Level lvlA(10);
-    lvlA.id = 111;
+    REQUIRE(lvlA.id != 0);
+
     lvlA.activeLevels = 222;
     lvlA.maxActiveLevels = 333;
     lvlA.depth = 444;
@@ -49,5 +50,108 @@ TEST_CASE("Check level serialisation and deserialisation", "[threads]")
     REQUIRE(lvlB->wantedThreads == lvlA.wantedThreads);
 
     REQUIRE(lvlB->getSharedVars() == sharedVars);
+}
+
+TEST_CASE("Test level locking", "[threads]")
+{
+    cleanSystem();
+
+    std::atomic<int> sharedInt = 0;
+
+    // Set up the level and lock early
+    Level lvlA(10);
+    lvlA.lockCritical();
+
+    uint32_t expectedId = lvlA.id;
+
+    std::vector<uint8_t> serialised = lvlA.serialise();
+    std::shared_ptr<faabric::BatchExecuteRequest> req =
+      faabric::util::batchExecFactory("demo", "echo", 1);
+    req->set_contextdata(serialised.data(), serialised.size());
+
+    std::thread tA([&req, &sharedInt, expectedId] {
+        std::shared_ptr<Level> lvlB = levelFromBatchRequest(req);
+        assert(lvlB->id == expectedId);
+
+        lvlB->lockCritical();
+
+        assert(sharedInt == 99);
+        sharedInt = 88;
+
+        lvlB->unlockCritical();
+    });
+
+    // Main thread sleep for a while, make sure the other can't run and update
+    // the counter
+    usleep(1000 * 1000);
+
+    REQUIRE(sharedInt == 0);
+    sharedInt.store(99);
+
+    lvlA.unlockCritical();
+
+    if (tA.joinable()) {
+        tA.join();
+    }
+
+    REQUIRE(sharedInt == 88);
+}
+
+TEST_CASE("Test level barrier", "[threads]")
+{
+    cleanSystem();
+    std::atomic<int> sharedInt = 0;
+    std::atomic<int> sharedSum = 0;
+
+    int nThreads = 5;
+    Level lvlA(nThreads);
+
+    std::vector<uint8_t> serialised = lvlA.serialise();
+    std::shared_ptr<faabric::BatchExecuteRequest> req =
+      faabric::util::batchExecFactory("demo", "echo", 1);
+    req->set_contextdata(serialised.data(), serialised.size());
+
+    // Spawn n-1 child threads to wait on barriers
+    std::vector<std::thread> threads;
+    for (int i = 1; i < nThreads; i++) {
+        threads.emplace_back([nThreads, &req, &sharedInt, &sharedSum] {
+            std::shared_ptr<Level> lvlB = levelFromBatchRequest(req);
+
+            assert(lvlB->numThreads == nThreads);
+
+            // Barrier 1
+            lvlB->waitOnBarrier();
+
+            // Make visible changes
+            assert(sharedInt == 99);
+            sharedSum.fetch_add(1);
+
+            // Barrier 2
+            lvlB->waitOnBarrier();
+        });
+    }
+
+    // Block for a while as the child threads wait on the first barrier
+    usleep(1000 * 1000);
+
+    // Set the shared int that the threads should wake up to see
+    sharedInt = 99;
+
+    // Finish barrier one
+    lvlA.waitOnBarrier();
+
+    // Sleep again
+    usleep(1000 * 1000);
+
+    // Finish barrier two and check threads have done their work
+    lvlA.waitOnBarrier();
+    REQUIRE(sharedSum == nThreads - 1);
+
+    // Join all child threads
+    for (auto& t : threads) {
+        if (t.joinable()) {
+            t.join();
+        }
+    }
 }
 }
