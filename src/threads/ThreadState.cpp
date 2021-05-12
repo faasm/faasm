@@ -12,9 +12,9 @@ using namespace faabric::util;
 #define FROM_MAP(varName, T, m, ...)                                           \
     {                                                                          \
         uint32_t id = currentLevel->id;                                        \
-        if (m.count(id) == 0) {                                                \
+        if (m.find(id) == m.end()) {                                           \
             faabric::util::UniqueLock lock(sharedMutex);                       \
-            if (m.count(id) == 0) {                                            \
+            if (m.find(id) == m.end()) {                                       \
                 m[id] = std::make_shared<T>(__VA_ARGS__);                      \
             }                                                                  \
         }                                                                      \
