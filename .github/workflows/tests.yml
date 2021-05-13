@@ -152,9 +152,9 @@ jobs:
         with:
           path: /usr/local/faasm/object
           key: ${{ env.CPU_MODEL }}-machine-code
-      # --- Code build ---
+      # --- Code build (Debug required for tests) ---
       - name: "Build dev tools"
-        run: inv -r faasmcli/faasmcli dev.tools --build Release
+        run: inv -r faasmcli/faasmcli dev.tools --build Debug
       # --- Environment set-up ---
       - name: "Run codegen"
         run: inv -r faasmcli/faasmcli codegen.local
