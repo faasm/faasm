@@ -162,9 +162,9 @@ void Level::masterWait(int threadNum)
         // Reset, after we've finished
         nowaitCount->store(0);
     } else {
-        // Notify master that this thread has finished and continue
-        int res = nowaitCount->fetch_add(1);
-        if (res == numThreads - 2) {
+        // If this is the last non-master thread, notify
+        int countBefore = nowaitCount->fetch_add(1);
+        if (countBefore == numThreads - 2) {
             nowaitCv->notify_one();
         }
     }

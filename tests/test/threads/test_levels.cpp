@@ -167,7 +167,7 @@ TEST_CASE("Test nowait barrier", "[threads]")
     std::atomic<int> sharedInt = 0;
     std::atomic<int> sharedSum = 0;
 
-    int nThreads = 3;
+    int nThreads = 10;
     Level lvlA(nThreads);
 
     std::vector<uint8_t> serialised = lvlA.serialise();
@@ -187,14 +187,15 @@ TEST_CASE("Test nowait barrier", "[threads]")
             // barrier
             usleep(1000 * 1000);
 
-            // Call the master wait
-            lvlB->masterWait(i);
-
-            // Check this thread doesn't have to wait
-            assert(sharedInt == 0);
-
             // Add to the shared sum
             sharedSum += 1;
+
+            // Check the master thread's changes aren't yet visible as it should
+            // be waiting
+            assert(sharedInt == 0);
+
+            // Notify the master we're done (should not have to wait)
+            lvlB->masterWait(i);
         });
     }
 
@@ -204,7 +205,7 @@ TEST_CASE("Test nowait barrier", "[threads]")
     // Make a change that would be seen by threads if the wait didn't work
     sharedInt = 99;
 
-    // Check the changes from the child threads
+    // Check other threads have finished
     REQUIRE(sharedSum == nThreads - 1);
 
     // Join all child threads
