@@ -6,11 +6,28 @@ namespace conf {
 class FaasmConfig
 {
   public:
-    // Threading
-    int moduleThreadPoolSize;
+    std::string hostType;
+    std::string functionStorage;
+    std::string fileserverUrl;
+
+    std::string cgroupMode;
+    std::string netNsMode;
+
+    std::string pythonPreload;
+    std::string captureStdout;
+
+    int chainedCallTimeout;
+
+    std::string wasmVm;
+
+    // Filesystem storage
+    std::string functionDir;
+    std::string objectFileDir;
+    std::string runtimeFilesDir;
+    std::string sharedFilesDir;
+    std::string sharedFilesStorageDir;
 
     FaasmConfig();
-
     void reset();
 
   private:
