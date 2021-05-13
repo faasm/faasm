@@ -1,15 +1,17 @@
 #include "FileDescriptor.h"
-#include "SharedFiles.h"
 
 #include <faabric/util/bytes.h>
+#include <faabric/util/config.h>
+#include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
 #include <faabric/util/timing.h>
+
+#include <conf/FaasmConfig.h>
+#include <storage/SharedFiles.h>
 
 #include <WAVM/WASI/WASIABI.h>
 #include <boost/filesystem.hpp>
 #include <dirent.h>
-#include <faabric/util/config.h>
-#include <faabric/util/logging.h>
 #include <fcntl.h>
 #include <stdexcept>
 #include <sys/stat.h>
@@ -21,7 +23,7 @@
 namespace storage {
 std::string prependRuntimeRoot(const std::string& originalPath)
 {
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     boost::filesystem::path p(conf.runtimeFilesDir);
     p.append(originalPath);
     return p.string();

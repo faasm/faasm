@@ -1,11 +1,14 @@
 #include <catch2/catch.hpp>
 
-#include "storage/FileDescriptor.h"
 #include "utils.h"
 
 #include <WAVM/WASI/WASIABI.h>
 #include <boost/filesystem.hpp>
 #include <faabric/util/files.h>
+
+#include <conf/FaasmConfig.h>
+#include <conf/function_utils.h>
+#include <storage/FileDescriptor.h>
 #include <storage/SharedFiles.h>
 
 using namespace storage;
@@ -81,7 +84,7 @@ TEST_CASE("Test stat and mkdir", "[storage]")
 
     std::string dummyDir = "fs_test_dir";
 
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string realDir = conf.runtimeFilesDir + "/" + dummyDir;
     if (boost::filesystem::exists(realDir)) {
         boost::filesystem::remove_all(realDir);
@@ -116,7 +119,7 @@ TEST_CASE("Test creating, renaming and deleting a file", "[storage]")
     std::string dummyPath = dummyDir + "/dummy_file.txt";
 
     // Set up the directory
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string realDir = conf.runtimeFilesDir + "/" + dummyDir;
     if (!boost::filesystem::exists(realDir)) {
         boost::filesystem::create_directories(realDir);
@@ -179,7 +182,7 @@ TEST_CASE("Test seek", "[storage]")
     FileSystem fs;
     fs.prepareFilesystem();
 
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string dummyPath;
     std::string realPath;
     std::string contentPath;
@@ -197,7 +200,7 @@ TEST_CASE("Test seek", "[storage]")
     SECTION("Shared file")
     {
         dummyPath = "faasm://dummy_test_file.txt";
-        contentPath = faabric::util::getSharedFileFile("dummy_test_file.txt");
+        contentPath = conf::getSharedFileFile("dummy_test_file.txt");
 
         // This is the path where the file should end up after being synced
         realPath = SharedFiles::realPathForSharedFile(dummyPath);
@@ -257,7 +260,7 @@ TEST_CASE("Test stat and read shared file", "[storage]")
 
     // Set up the shared file
     std::string relativePath = "test/shared-file-stat.txt";
-    std::string fullPath = faabric::util::getSharedFileFile(relativePath);
+    std::string fullPath = conf::getSharedFileFile(relativePath);
     if (boost::filesystem::exists(fullPath)) {
         boost::filesystem::remove(fullPath);
     }

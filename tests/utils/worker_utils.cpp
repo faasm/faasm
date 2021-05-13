@@ -10,8 +10,8 @@
 #include <faabric/util/config.h>
 #include <faabric/util/environment.h>
 #include <faabric/util/testing.h>
-
 #include <faaslet/Faaslet.h>
+
 #include <wavm/WAVMWasmModule.h>
 
 using namespace faaslet;
@@ -21,7 +21,7 @@ namespace tests {
 void execFunction(faabric::Message& call, const std::string& expectedOutput)
 {
     // Turn off python preloading
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string originalPreload = conf.pythonPreload;
     conf.pythonPreload = "off";
 
@@ -43,7 +43,7 @@ void execFunction(faabric::Message& call, const std::string& expectedOutput)
 std::string execFunctionWithStringResult(faabric::Message& call)
 {
     // Turn off python preloading
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string originalPreload = conf.pythonPreload;
     conf.pythonPreload = "off";
 
