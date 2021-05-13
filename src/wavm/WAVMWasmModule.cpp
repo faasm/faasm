@@ -9,6 +9,7 @@
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 #include <faabric/util/locks.h>
+#include <faabric/util/macros.h>
 #include <faabric/util/memory.h>
 #include <faabric/util/timing.h>
 
@@ -237,8 +238,9 @@ void WAVMWasmModule::doWAVMGarbageCollection()
     if (compartment != nullptr) {
         // Release build complains that this is unused as the assertion is
         // removed
-        [[maybe_unused]] bool compartmentCleared =
+        bool compartmentCleared =
           Runtime::tryCollectCompartment(std::move(compartment));
+        UNUSED(compartmentCleared);
         assert(compartmentCleared);
     }
 }

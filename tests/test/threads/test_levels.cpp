@@ -4,6 +4,7 @@
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/func.h>
+#include <faabric/util/macros.h>
 
 #include <threads/ThreadState.h>
 
@@ -70,6 +71,8 @@ TEST_CASE("Test level locking", "[threads]")
     req->set_contextdata(serialised.data(), serialised.size());
 
     std::thread tA([&req, &sharedInt, expectedId] {
+        UNUSED(expectedId);
+
         std::shared_ptr<Level> lvlB = levelFromBatchRequest(req);
         assert(lvlB->id == expectedId);
 
@@ -115,6 +118,9 @@ TEST_CASE("Test level barrier", "[threads]")
     std::vector<std::thread> threads;
     for (int i = 1; i < nThreads; i++) {
         threads.emplace_back([nThreads, &req, &sharedInt, &sharedSum] {
+            UNUSED(nThreads);
+            UNUSED(sharedInt);
+
             std::shared_ptr<Level> lvlB = levelFromBatchRequest(req);
 
             assert(lvlB->numThreads == nThreads);
@@ -145,6 +151,60 @@ TEST_CASE("Test level barrier", "[threads]")
 
     // Finish barrier two and check threads have done their work
     lvlA.waitOnBarrier();
+    REQUIRE(sharedSum == nThreads - 1);
+
+    // Join all child threads
+    for (auto& t : threads) {
+        if (t.joinable()) {
+            t.join();
+        }
+    }
+}
+
+TEST_CASE("Test nowait barrier", "[threads]")
+{
+    cleanSystem();
+    std::atomic<int> sharedInt = 0;
+    std::atomic<int> sharedSum = 0;
+
+    int nThreads = 3;
+    Level lvlA(nThreads);
+
+    std::vector<uint8_t> serialised = lvlA.serialise();
+    std::shared_ptr<faabric::BatchExecuteRequest> req =
+      faabric::util::batchExecFactory("demo", "echo", 1);
+    req->set_contextdata(serialised.data(), serialised.size());
+
+    // Set up the other threads to run through their nowaits
+    std::vector<std::thread> threads;
+    for (int i = 1; i < nThreads; i++) {
+        threads.emplace_back([i, &req, &sharedInt, &sharedSum] {
+            UNUSED(sharedInt);
+
+            std::shared_ptr<Level> lvlB = levelFromBatchRequest(req);
+
+            // Sleep for a while to make sure the master thread has hit the
+            // barrier
+            usleep(1000 * 1000);
+
+            // Call the master wait
+            lvlB->masterWait(i);
+
+            // Check this thread doesn't have to wait
+            assert(sharedInt == 0);
+
+            // Add to the shared sum
+            sharedSum += 1;
+        });
+    }
+
+    // Do the master wait from the master thread
+    lvlA.masterWait(0);
+
+    // Make a change that would be seen by threads if the wait didn't work
+    sharedInt = 99;
+
+    // Check the changes from the child threads
     REQUIRE(sharedSum == nThreads - 1);
 
     // Join all child threads
