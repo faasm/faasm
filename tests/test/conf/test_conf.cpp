@@ -14,7 +14,12 @@ TEST_CASE("Test default faasm config initialisation", "[conf]")
     FaasmConfig conf;
     conf.reset();
 
-    REQUIRE(conf.cgroupMode == "on");
+    std::string cgroupExpected = "on";
+    if (conf.hostType == "ci") {
+        cgroupExpected = "off";
+    }
+    REQUIRE(conf.cgroupMode == cgroupExpected);
+
     REQUIRE(conf.functionStorage == "local");
     REQUIRE(conf.fileserverUrl == "");
     REQUIRE(conf.netNsMode == "off");
