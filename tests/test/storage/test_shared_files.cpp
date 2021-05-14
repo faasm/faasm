@@ -4,6 +4,8 @@
 
 #include <boost/filesystem.hpp>
 
+#include <conf/FaasmConfig.h>
+#include <conf/function_utils.h>
 #include <faabric/util/files.h>
 #include <storage/SharedFiles.h>
 
@@ -14,10 +16,10 @@ TEST_CASE("Check sync shared file", "[storage]")
 {
     SharedFiles::clear();
 
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string relPath = "shared_test_dir/dummy_file.txt";
     std::string sharedPath = "faasm://" + relPath;
-    std::string realPath = faabric::util::getSharedFileFile(relPath);
+    std::string realPath = conf::getSharedFileFile(relPath);
 
     std::string syncedPath;
     std::string overridePath;

@@ -3,6 +3,8 @@
 
 #include <faabric/util/config.h>
 
+#include <conf/FaasmConfig.h>
+
 using namespace faaslet;
 
 namespace tests {
@@ -31,7 +33,7 @@ TEST_CASE("Test capturing stdout", "[faaslet]")
 {
     cleanSystem();
 
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     faabric::Message call = faabric::util::messageFactory("demo", "stdout");
 
     std::string expected;
@@ -63,7 +65,7 @@ TEST_CASE("Test capturing stderr", "[faaslet]")
 {
     cleanSystem();
 
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     faabric::Message call = faabric::util::messageFactory("demo", "stderr");
 
     std::string expected;

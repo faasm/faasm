@@ -2,6 +2,7 @@
 #include <catch2/catch.hpp>
 
 #include <conf/FaasmConfig.h>
+#include <conf/function_utils.h>
 #include <wavm/IRModuleCache.h>
 #include <wavm/WAVMWasmModule.h>
 
@@ -15,7 +16,7 @@ namespace tests {
  */
 std::string getBaseModulePath()
 {
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string basePath =
       conf.runtimeFilesDir + "/lib/python3.8/site-packages/numpy/";
     return basePath;
@@ -63,9 +64,9 @@ TEST_CASE("Test dynamic load/ function lookup", "[wasm]")
     cleanSystem();
 
     // Need to force python function _not_ to load numpy up front
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    std::string preloadBefore = conf.pythonPreload;
-    conf.pythonPreload = "off";
+    conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
+    std::string preloadBefore = faasmConf.pythonPreload;
+    faasmConf.pythonPreload = "off";
 
     wasm::IRModuleCache& registry = wasm::getIRModuleCache();
 
@@ -168,7 +169,7 @@ TEST_CASE("Test dynamic load/ function lookup", "[wasm]")
     Uptr numElemsAfterB = Runtime::getTableNumElements(module.defaultTable);
     REQUIRE(numElemsAfterB == tableSizeAfterB + 1);
 
-    conf.pythonPreload = preloadBefore;
+    faasmConf.pythonPreload = preloadBefore;
 }
 
 void checkFuncInGOT(wasm::WAVMWasmModule& module,
@@ -204,11 +205,10 @@ TEST_CASE("Test GOT population", "[wasm]")
     // Note - we want to set a fixed thread pool size here as this determines
     // the location of data in the wasm memory
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    int originalThreadPoolSize = conf.overrideCpuCount;
     conf.overrideCpuCount = 2;
 
-    std::string preloadBefore = conf.pythonPreload;
-    conf.pythonPreload = "off";
+    conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
+    faasmConf.pythonPreload = "off";
 
     // Bind to Python function
     faabric::Message msg =
@@ -262,8 +262,8 @@ TEST_CASE("Test GOT population", "[wasm]")
     REQUIRE(expectedIdxB > tableSizeAfterA);
     REQUIRE(expectedIdxB < tableSizeAfterB);
 
-    conf.pythonPreload = preloadBefore;
-    conf.overrideCpuCount = originalThreadPoolSize;
+    conf.reset();
+    faasmConf.reset();
 }
 
 void resolveGlobalI32(wasm::WAVMWasmModule& module,
@@ -284,9 +284,9 @@ TEST_CASE("Test resolving dynamic module imports", "[wasm]")
 {
     cleanSystem();
 
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    std::string preloadBefore = conf.pythonPreload;
-    conf.pythonPreload = "off";
+    conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
+    std::string preloadBefore = faasmConf.pythonPreload;
+    faasmConf.pythonPreload = "off";
 
     // Bind to Python function
     faabric::Message msg =
@@ -314,6 +314,6 @@ TEST_CASE("Test resolving dynamic module imports", "[wasm]")
 
     REQUIRE(table == module.defaultTable);
 
-    conf.pythonPreload = preloadBefore;
+    faasmConf.pythonPreload = preloadBefore;
 }
 }

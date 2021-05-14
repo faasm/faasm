@@ -5,6 +5,7 @@
 #include <faabric/util/files.h>
 #include <faabric/util/string_tools.h>
 
+#include <conf/FaasmConfig.h>
 #include <system/CGroup.h>
 
 #include <boost/algorithm/string.hpp>
@@ -20,7 +21,7 @@ static int cgroupCheckSuccessful = 0;
 
 TEST_CASE("Test cgroup on/ off", "[faaslet]")
 {
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string original = conf.cgroupMode;
 
     // Ignore this test in CI, not able to run privileged hence can't create
@@ -88,7 +89,7 @@ void checkCgroupAddition()
 
 TEST_CASE("Test adding thread to cpu controller", "[faaslet]")
 {
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
 
     // Ignore this test in CI, not able to run privileged hence can't create
     // cgroups

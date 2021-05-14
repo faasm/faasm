@@ -1,8 +1,6 @@
 #include "FileLoader.h"
-#include <boost/filesystem/operations.hpp>
-#include <stdexcept>
 
-#include <openssl/md5.h>
+#include <stdexcept>
 
 #if (WAMR_EXECUTION_MODE_INTERP)
 // Import for codegen not needed as it's not supported
@@ -10,6 +8,7 @@
 #include <wamr/WAMRWasmModule.h>
 #endif
 
+#include <conf/FaasmConfig.h>
 #include <wavm/WAVMWasmModule.h>
 
 #include <faabric/util/config.h>
@@ -18,6 +17,8 @@
 #include <faabric/util/logging.h>
 
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <openssl/md5.h>
 
 namespace storage {
 
@@ -39,7 +40,7 @@ std::string FileLoader::getHashFilePath(const std::string& path)
 std::vector<uint8_t> FileLoader::doCodegen(std::vector<uint8_t>& bytes,
                                            const std::string& fileName)
 {
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    auto& conf = conf::getFaasmConfig();
     if (conf.wasmVm == "wamr") {
 #if (WAMR_EXECTION_MODE_INTERP)
         throw std::runtime_error(
@@ -66,7 +67,7 @@ void FileLoader::codegenForFunction(faabric::Message& msg)
     // Compare hashes
     std::vector<uint8_t> newHash = hashBytes(bytes);
     std::vector<uint8_t> oldHash;
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    auto& conf = conf::getFaasmConfig();
     if (conf.wasmVm == "wamr") {
         oldHash = loadFunctionWamrAotHash(msg);
     } else {
@@ -121,7 +122,7 @@ void FileLoader::codegenForSharedObject(const std::string& inputPath)
     std::vector<uint8_t> objBytes = doCodegen(bytes, inputPath);
 
     // Do the upload
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    auto& conf = conf::getFaasmConfig();
     if (conf.wasmVm == "wamr") {
         uploadSharedObjectAotFile(inputPath, objBytes);
         uploadSharedObjectAotHash(inputPath, newHash);

@@ -1,3 +1,5 @@
+#include <conf/FaasmConfig.h>
+#include <conf/function_utils.h>
 #include <faaslet/Faaslet.h>
 #include <wasm/WasmModule.h>
 
@@ -30,11 +32,12 @@ int main(int argc, char* argv[])
     faabric::Message& msg = req->mutable_messages()->at(0);
 
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
 
     // Set short timeouts to die quickly
     conf.boundTimeout = 60000;
     conf.globalMessageTimeout = 60000;
-    conf.chainedCallTimeout = 60000;
+    faasmConf.chainedCallTimeout = 60000;
 
     // Make sure we have enough space for chained calls
     int nThreads = 10;
@@ -50,7 +53,7 @@ int main(int argc, char* argv[])
     redis.flushAll();
 
     if (user == "python") {
-        faabric::util::convertMessageToPython(msg);
+        conf::convertMessageToPython(msg);
         logger->info("Running Python function {}/{}",
                      msg.pythonuser(),
                      msg.pythonfunction());

@@ -1,13 +1,15 @@
 #include "CGroup.h"
 
+#include <conf/FaasmConfig.h>
+
 #include <faabric/util/config.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/timing.h>
 
 #include <mutex>
+#include <syscall.h>
 
 #include <boost/filesystem.hpp>
-#include <syscall.h>
 
 using namespace boost::filesystem;
 
@@ -22,7 +24,7 @@ static std::mutex groupMutex;
 CGroup::CGroup(const std::string& name)
   : name(name)
 {
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
 
     if (conf.cgroupMode == "on") {
         mode = CgroupMode::cg_on;

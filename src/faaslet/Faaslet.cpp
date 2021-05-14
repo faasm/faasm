@@ -1,5 +1,7 @@
 #include <faaslet/Faaslet.h>
 
+#include <conf/FaasmConfig.h>
+#include <conf/function_utils.h>
 #include <system/CGroup.h>
 #include <system/NetworkNamespace.h>
 #include <threads/ThreadState.h>
@@ -32,7 +34,7 @@ void preloadPythonRuntime()
 {
     auto logger = faabric::util::getLogger();
 
-    auto& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     if (conf.pythonPreload != "on") {
         logger->info("Not preloading python runtime");
         return;
@@ -76,7 +78,7 @@ void Faaslet::flush()
 Faaslet::Faaslet(const faabric::Message& msg)
   : Executor(msg)
 {
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
 
     // Instantiate the right wasm module for the chosen runtime
     if (conf.wasmVm == "wamr") {
@@ -141,7 +143,7 @@ void Faaslet::restore(const faabric::Message& msg)
 {
     auto logger = faabric::util::getLogger();
 
-    auto& conf = faabric::util::getSystemConfig();
+    auto& conf = conf::getFaasmConfig();
     const std::string snapshotKey = msg.snapshotkey();
 
     // Restore from snapshot if necessary

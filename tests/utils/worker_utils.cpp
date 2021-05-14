@@ -12,6 +12,7 @@
 #include <faabric/util/testing.h>
 #include <faaslet/Faaslet.h>
 
+#include <conf/FaasmConfig.h>
 #include <wavm/WAVMWasmModule.h>
 
 using namespace faaslet;
@@ -94,8 +95,9 @@ void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
     }
 
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
     conf.boundTimeout = 1000;
-    conf.chainedCallTimeout = 10000;
+    faasmConf.chainedCallTimeout = 10000;
 
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
 
@@ -135,9 +137,10 @@ void execFuncWithPool(faabric::Message& call, bool clean, int timeout)
 
     // Modify system config (network ns requires root)
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    std::string originalNsMode = conf.netNsMode;
+    conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
+    std::string originalNsMode = faasmConf.netNsMode;
     conf.boundTimeout = timeout;
-    conf.netNsMode = "off";
+    faasmConf.netNsMode = "off";
 
     // Set up the system
     auto fac = std::make_shared<faaslet::FaasletFactory>();
@@ -156,14 +159,14 @@ void execFuncWithPool(faabric::Message& call, bool clean, int timeout)
     // Shut down the pool
     m.shutdown();
 
-    conf.netNsMode = originalNsMode;
+    faasmConf.netNsMode = originalNsMode;
 
     cleanSystem();
 }
 
 void doWamrPoolExecution(faabric::Message& msg)
 {
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     const std::string originalVm = conf.wasmVm;
     conf.wasmVm = "wamr";
 

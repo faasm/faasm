@@ -10,6 +10,7 @@
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
 
+#include <conf/FaasmConfig.h>
 #include <storage/FileLoader.h>
 #include <wavm/IRModuleCache.h>
 #include <wavm/WAVMWasmModule.h>
@@ -20,7 +21,7 @@ TEST_CASE("Test flushing clears shared files", "[flush]")
 {
     cleanSystem();
 
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
 
     std::string relativePath = "flush-test.txt";
     boost::filesystem::path sharedPath(conf.sharedFilesDir);
@@ -102,6 +103,8 @@ TEST_CASE("Test flushing picks up new version of function", "[flush]")
     int origBoundTimeout = conf.boundTimeout;
     conf.boundTimeout = 1000;
 
+    conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
+
     // Load the wasm for two real functions
     faabric::Message origMsgA = faabric::util::messageFactory("demo", "hello");
     faabric::Message origMsgB = faabric::util::messageFactory("demo", "echo");
@@ -124,10 +127,10 @@ TEST_CASE("Test flushing picks up new version of function", "[flush]")
     uploadMsgB.set_inputdata(wasmB.data(), wasmB.size());
 
     // Set up dummy directories for storage
-    conf.functionDir = "/tmp/faasm/funcs";
-    conf.objectFileDir = "/tmp/faasm/objs";
-    std::string origFunctionDir = conf.functionDir;
-    std::string origObjDir = conf.objectFileDir;
+    faasmConf.functionDir = "/tmp/faasm/funcs";
+    faasmConf.objectFileDir = "/tmp/faasm/objs";
+    std::string origFunctionDir = faasmConf.functionDir;
+    std::string origObjDir = faasmConf.objectFileDir;
 
     // Upload the first version
     fileLoader.uploadFunction(uploadMsgA);
@@ -170,8 +173,8 @@ TEST_CASE("Test flushing picks up new version of function", "[flush]")
     REQUIRE(resultB.outputdata() == inputB);
 
     conf.boundTimeout = origBoundTimeout;
-    conf.functionDir = origFunctionDir;
-    conf.objectFileDir = origObjDir;
+    faasmConf.functionDir = origFunctionDir;
+    faasmConf.objectFileDir = origObjDir;
 
     m.shutdown();
 }

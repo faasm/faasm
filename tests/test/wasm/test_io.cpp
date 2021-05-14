@@ -1,5 +1,6 @@
 #include "utils.h"
 #include <catch2/catch.hpp>
+
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
