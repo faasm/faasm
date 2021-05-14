@@ -1,4 +1,6 @@
+#include "utils.h"
 #include <catch2/catch.hpp>
+
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
@@ -14,6 +16,8 @@ using namespace WAVM;
 namespace tests {
 TEST_CASE("Test mmapping a file", "[wasm]")
 {
+    cleanSystem();
+
     faabric::Message call = faabric::util::messageFactory("demo", "echo");
 
     wasm::WAVMWasmModule module;
@@ -51,6 +55,8 @@ TEST_CASE("Test mmapping a file", "[wasm]")
 
 TEST_CASE("Test memory growth and shrinkage", "[wasm]")
 {
+    cleanSystem();
+
     faabric::Message call = faabric::util::messageFactory("demo", "echo");
     wasm::WAVMWasmModule module;
     module.bindToFunction(call);
@@ -136,5 +142,20 @@ TEST_CASE("Test memory growth and shrinkage", "[wasm]")
 
     REQUIRE(newMemSize == oldMemSize);
     REQUIRE(newBrk == oldBrk);
+}
+
+TEST_CASE("Test mmap/munmap", "[faaslet]")
+{
+    cleanSystem();
+
+    checkCallingFunctionGivesBoolOutput("demo", "mmap", true);
+}
+
+TEST_CASE("Test big mmap", "[faaslet]")
+{
+    cleanSystem();
+
+    faabric::Message msg = faabric::util::messageFactory("demo", "mmap_big");
+    execFunction(msg);
 }
 }

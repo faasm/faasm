@@ -60,24 +60,25 @@ WAMRWasmModule* getExecutingWAMRModule()
 
 WAMRWasmModule::WAMRWasmModule()
 {
-    // Lazily initialise WAMR
+    initialiseWAMRGlobally();
+}
+
+WAMRWasmModule::WAMRWasmModule(int threadPoolSizeIn)
+  : WasmModule(threadPoolSizeIn)
+{
     initialiseWAMRGlobally();
 }
 
 WAMRWasmModule::~WAMRWasmModule()
 {
-    tearDown();
+    wasm_runtime_deinstantiate(moduleInstance);
+    wasm_runtime_unload(wasmModule);
 }
 
 // ----- Module lifecycle -----
-void WAMRWasmModule::bindToFunction(const faabric::Message& msg)
+void WAMRWasmModule::doBindToFunction(const faabric::Message& msg, bool cache)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-
-    // Set up the module
-    boundUser = msg.user();
-    boundFunction = msg.function();
-    _isBound = true;
+    const auto& logger = faabric::util::getLogger();
 
     // Prepare the filesystem
     filesystem.prepareFilesystem();
@@ -112,38 +113,38 @@ void WAMRWasmModule::bindToFunction(const faabric::Message& msg)
     }
 
     currentBrk = getMemorySizeBytes();
-    logger->debug("WAMR currentBrk = {}", currentBrk);
+
+    // Set up thread stacks
+    createThreadStacks();
 }
 
-void WAMRWasmModule::bindToFunctionNoZygote(const faabric::Message& msg)
+int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
 {
-    // WAMR does not support zygotes yet so it's
-    // equivalent to binding with zygote
-    bindToFunction(msg);
-}
+    const auto& logger = faabric::util::getLogger();
+    logger->debug("WAMR executing message {}", msg.id());
 
-bool WAMRWasmModule::execute(faabric::Message& msg, bool forceNoop)
-{
-    setExecutingCall(&msg);
     setExecutingModule(this);
+    setExecutingCall(&msg);
 
     // Run wasm initialisers
-    executeFunction(WASM_CTORS_FUNC_NAME);
+    executeWasmFunction(WASM_CTORS_FUNC_NAME);
 
     if (msg.funcptr() > 0) {
         // Run the function from the pointer
-        executeFunctionFromPointer(msg.funcptr());
+        executeWasmFunctionFromPointer(msg.funcptr());
     } else {
         // Run the main function
-        executeFunction(ENTRY_FUNC_NAME);
+        executeWasmFunction(ENTRY_FUNC_NAME);
     }
 
-    return true;
+    return 0;
 }
 
-int WAMRWasmModule::executeFunctionFromPointer(int wasmFuncPtr)
+int WAMRWasmModule::executeWasmFunctionFromPointer(int wasmFuncPtr)
 {
     auto logger = faabric::util::getLogger();
+
+    setExecutingModule(this);
 
     // NOTE: WAMR doesn't provide a nice interface for calling functions using
     // function pointers, so we have to call a few more low-level functions to
@@ -179,9 +180,11 @@ int WAMRWasmModule::executeFunctionFromPointer(int wasmFuncPtr)
     return 0;
 }
 
-int WAMRWasmModule::executeFunction(const std::string& funcName)
+int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
 {
     auto logger = faabric::util::getLogger();
+
+    setExecutingModule(this);
 
     WASMFunctionInstanceCommon* func =
       wasm_runtime_lookup_function(moduleInstance, funcName.c_str(), nullptr);
@@ -223,17 +226,6 @@ int WAMRWasmModule::executeFunction(const std::string& funcName)
     }
 
     return 0;
-}
-
-bool WAMRWasmModule::isBound()
-{
-    return _isBound;
-}
-
-void WAMRWasmModule::tearDown()
-{
-    wasm_runtime_deinstantiate(moduleInstance);
-    wasm_runtime_unload(wasmModule);
 }
 
 uint32_t WAMRWasmModule::growMemory(uint32_t nBytes)

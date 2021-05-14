@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <mutex>
 #include <vector>
 
@@ -10,11 +11,16 @@
 
 namespace threads {
 
+void clearThreadState();
+
 // A Level is a layer of threads in an OpenMP application.
-// Note, defaults are set to mimic Clang 9.0.1 behaviour
+// Note, defaults are set to replicate the behaviour as of Clang 9.0.1
 class Level
 {
   public:
+    // Id for this level
+    uint32_t id;
+
     // Number of nested OpenMP constructs
     int depth = 0;
 
@@ -34,13 +40,17 @@ class Level
     // Overrides wantedThreads
     int pushedThreads = -1;
 
-    // Barrier for synchronization
-    faabric::util::Barrier barrier;
+    // Offset for the global thread numbers at this level
+    int32_t globalTidOffset = 0;
 
-    // Mutex used for reductions and critical sections
-    std::recursive_mutex levelMutex;
+    uint32_t nSharedVarOffsets = 0;
+    uint32_t* sharedVarOffsets;
 
     Level(int numThreadsIn);
+
+    std::vector<uint32_t> getSharedVarOffsets();
+
+    void setSharedVarOffsets(uint32_t* ptr, int nVars);
 
     void fromParentLevel(const std::shared_ptr<Level>& parent);
 
@@ -49,11 +59,21 @@ class Level
 
     void masterWait(int threadNum);
 
-  private:
-    // Condition variable and count used for nowaits
-    int nowaitCount = 0;
-    std::mutex nowaitMutex;
-    std::condition_variable nowaitCv;
+    std::vector<uint8_t> serialise();
+
+    void deserialise(const Level* other);
+
+    void waitOnBarrier();
+
+    void lockCritical();
+
+    void unlockCritical();
+
+    int getLocalThreadNum(faabric::Message* msg);
+
+    int getGlobalThreadNum(int localThreadNum);
+
+    int getGlobalThreadNum(faabric::Message* msg);
 };
 
 class PthreadTask
@@ -87,16 +107,13 @@ class OpenMPTask
     {}
 };
 
-class OpenMPContext
-{
-  public:
-    int threadNumber = -1;
-    std::shared_ptr<Level> level = nullptr;
-};
+std::shared_ptr<Level> levelFromBatchRequest(
+  const std::shared_ptr<faabric::BatchExecuteRequest>& req);
 
-OpenMPContext& getOpenMPContext();
+std::shared_ptr<Level> getCurrentOpenMPLevel();
 
-void setUpOpenMPContext(const faabric::Message& msg);
+void setCurrentOpenMPLevel(
+  const std::shared_ptr<faabric::BatchExecuteRequest> req);
 
-void setUpOpenMPContext(int threadNum, std::shared_ptr<Level>& level);
+void setCurrentOpenMPLevel(const std::shared_ptr<Level>& level);
 }

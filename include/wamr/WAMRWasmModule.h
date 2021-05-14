@@ -22,18 +22,14 @@ class WAMRWasmModule final : public WasmModule
 
     WAMRWasmModule();
 
+    explicit WAMRWasmModule(int threadPoolSizeIn);
+
     ~WAMRWasmModule();
 
     // ----- Module lifecycle -----
-    void bindToFunction(const faabric::Message& msg) override;
+    void doBindToFunction(const faabric::Message& msg, bool cache) override;
 
-    void bindToFunctionNoZygote(const faabric::Message& msg) override;
-
-    bool execute(faabric::Message& msg, bool forceNoop = false) override;
-
-    bool isBound() override;
-
-    void tearDown();
+    int32_t executeFunction(faabric::Message& msg) override;
 
     // ----- Memory management -----
     uint32_t growMemory(uint32_t nBytes) override;
@@ -49,8 +45,6 @@ class WAMRWasmModule final : public WasmModule
     size_t getMemorySizeBytes() override;
 
   private:
-    bool _isBound;
-
     char errorBuffer[ERROR_BUFFER_SIZE];
 
 #if (WAMR_EXECUTION_MODE_INTERP)
@@ -60,9 +54,9 @@ class WAMRWasmModule final : public WasmModule
     WASMModuleCommon* wasmModule;
     WASMModuleInstanceCommon* moduleInstance;
 
-    int executeFunction(const std::string& funcName);
+    int executeWasmFunction(const std::string& funcName);
 
-    int executeFunctionFromPointer(int wasmFuncPtr);
+    int executeWasmFunctionFromPointer(int wasmFuncPtr);
 };
 
 void tearDownWAMRGlobally();

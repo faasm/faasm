@@ -2,11 +2,10 @@
 
 #include "utils.h"
 
-#include <faabric/util/environment.h>
-
+#include <faabric/runner/FaabricMain.h>
 #include <faabric/util/bytes.h>
+#include <faabric/util/environment.h>
 #include <faaslet/Faaslet.h>
-#include <faaslet/FaasletPool.h>
 
 using namespace faaslet;
 
@@ -16,16 +15,12 @@ TEST_CASE("Test repeat invocation with state", "[state]")
     // Set up the function call
     faabric::Message call = faabric::util::messageFactory("demo", "increment");
 
-    // Call function
-    FaasletPool pool(1);
-    Faaslet w(1);
+    auto fac = std::make_shared<faaslet::FaasletFactory>();
+    faabric::runner::FaabricMain m(fac);
+    m.startRunner();
 
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.callFunction(call);
-
-    // Bind and exec
-    w.processNextMessage();
-    w.processNextMessage();
 
     // Check result
     faabric::Message resultA = sch.getFunctionResult(call.id(), 1);
@@ -37,11 +32,12 @@ TEST_CASE("Test repeat invocation with state", "[state]")
     faabric::util::setMessageId(call);
 
     sch.callFunction(call);
-    w.processNextMessage();
 
     faabric::Message resultB = sch.getFunctionResult(call.id(), 1);
     REQUIRE(resultB.returnvalue() == 0);
     REQUIRE(resultB.outputdata() == "Counter: 002");
+
+    m.shutdown();
 }
 
 void checkStateExample(const std::string& funcName,
@@ -54,16 +50,12 @@ void checkStateExample(const std::string& funcName,
     // Set up the function call
     faabric::Message call = faabric::util::messageFactory("demo", funcName);
 
-    // Call function
-    FaasletPool pool(1);
-    Faaslet w(1);
+    auto fac = std::make_shared<faaslet::FaasletFactory>();
+    faabric::runner::FaabricMain m(fac);
+    m.startRunner();
 
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.callFunction(call);
-
-    // Bind and exec
-    w.processNextMessage();
-    w.processNextMessage();
 
     // Check result
     faabric::Message result = sch.getFunctionResult(call.id(), 1);
@@ -79,6 +71,8 @@ void checkStateExample(const std::string& funcName,
     std::vector<uint8_t> actual(kv->size(), 0);
     kv->get(actual.data());
     REQUIRE(actual == expectedState);
+
+    m.shutdown();
 }
 
 TEST_CASE("Test asynchronous state", "[state]")
@@ -131,5 +125,12 @@ TEST_CASE("Test writing file to state", "[state]")
     cleanSystem();
     faabric::Message msg = faabric::util::messageFactory("demo", "state_file");
     execFunction(msg);
+}
+
+TEST_CASE("Test appended state", "[state]")
+{
+    faabric::Message call =
+      faabric::util::messageFactory("demo", "state_append");
+    execFuncWithPool(call);
 }
 }

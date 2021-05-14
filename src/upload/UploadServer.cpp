@@ -1,12 +1,12 @@
 #include "UploadServer.h"
-#include "faabric/util/func.h"
-
-#include <faabric/util/bytes.h>
-#include <faabric/util/logging.h>
 
 #include <faabric/state/State.h>
+#include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/files.h>
+#include <faabric/util/func.h>
+#include <faabric/util/logging.h>
+
 #include <storage/FileLoader.h>
 
 namespace edge {

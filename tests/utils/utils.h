@@ -11,21 +11,13 @@ void execFunction(faabric::Message& msg,
 
 std::string execFunctionWithStringResult(faabric::Message& msg);
 
-void execFunctionWithRemoteBatch(faabric::Message& call,
-                                 int nThreads = 4,
-                                 bool clean = true);
-
-void execBatchWithPool(faabric::BatchExecuteRequest& call,
+void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
                        int nThreads,
-                       bool checkChained,
                        bool clean);
 
 void execFuncWithPool(faabric::Message& call,
-                      bool pythonPreload = false,
-                      int repeatCount = 1,
-                      bool checkChained = false,
-                      int nThreads = 4,
-                      bool clean = true);
+                      bool clean = true,
+                      int timeout = 1000);
 
 void executeWithWamrPool(const std::string& user, const std::string& func);
 

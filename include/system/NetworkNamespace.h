@@ -1,6 +1,8 @@
 #pragma once
 
+#include <memory>
 #include <string>
+
 #define BASE_NETNS_NAME "faasmns"
 
 namespace isolation {
@@ -27,4 +29,9 @@ class NetworkNamespace
     std::string name;
     NetworkIsolationMode mode;
 };
+
+std::shared_ptr<NetworkNamespace> claimNetworkNamespace();
+
+void returnNetworkNamespace(std::shared_ptr<NetworkNamespace> ns);
+
 }

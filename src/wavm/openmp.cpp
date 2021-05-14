@@ -9,8 +9,11 @@
 #include <faabric/util/func.h>
 #include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
+#include <faabric/util/macros.h>
 #include <faabric/util/timing.h>
+
 #include <threads/ThreadState.h>
+#include <wasm/WasmModule.h>
 #include <wavm/WAVMWasmModule.h>
 
 using namespace WAVM;
@@ -22,15 +25,23 @@ namespace wasm {
 // ------------------------------------------------
 
 #define OMP_FUNC(str)                                                          \
-    threads::OpenMPContext& ctx = threads::getOpenMPContext();                 \
+    std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();  \
+    faabric::Message* msg = getExecutingCall();                                \
+    int localThreadNum = level->getLocalThreadNum(msg);                        \
+    int globalThreadNum = level->getGlobalThreadNum(msg);                      \
     auto logger = faabric::util::getLogger();                                  \
-    logger->trace("OMP {} ({}): " str, ctx.threadNumber, ::gettid());
+    logger->trace("OMP {} ({}): " str, localThreadNum, globalThreadNum);
 
 #define OMP_FUNC_ARGS(formatStr, ...)                                          \
-    threads::OpenMPContext& ctx = threads::getOpenMPContext();                 \
+    std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();  \
+    faabric::Message* msg = getExecutingCall();                                \
+    int localThreadNum = level->getLocalThreadNum(msg);                        \
+    int globalThreadNum = level->getGlobalThreadNum(msg);                      \
     auto logger = faabric::util::getLogger();                                  \
-    logger->trace(                                                             \
-      "OMP {} ({}): " formatStr, ctx.threadNumber, gettid(), __VA_ARGS__);
+    logger->trace("OMP {} ({}): " formatStr,                                   \
+                  localThreadNum,                                              \
+                  globalThreadNum,                                             \
+                  __VA_ARGS__);
 
 // ------------------------------------------------
 // THREAD NUMS AND LEVELS
@@ -46,7 +57,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                omp_get_thread_num)
 {
     OMP_FUNC("omp_get_thread_num")
-    return ctx.threadNumber;
+    return localThreadNum;
 }
 
 /**
@@ -59,7 +70,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                omp_get_num_threads)
 {
     OMP_FUNC("omp_get_num_threads")
-    return ctx.level->numThreads;
+    return level->numThreads;
 }
 
 /**
@@ -72,13 +83,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                omp_get_max_threads)
 {
     OMP_FUNC("omp_get_max_threads");
-    return ctx.level->getMaxThreadsAtNextLevel();
+    return level->getMaxThreadsAtNextLevel();
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_level", I32, omp_get_level)
 {
     OMP_FUNC("omp_get_level");
-    return ctx.level->depth;
+    return level->depth;
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -87,22 +98,22 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                omp_get_max_active_levels)
 {
     OMP_FUNC("omp_get_max_active_levels");
-    return ctx.level->maxActiveLevels;
+    return level->maxActiveLevels;
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "omp_set_max_active_levels",
                                void,
                                omp_set_max_active_levels,
-                               I32 level)
+                               I32 maxLevels)
 {
-    OMP_FUNC_ARGS("omp_set_max_active_levels {}", level)
+    OMP_FUNC_ARGS("omp_set_max_active_levels {}", maxLevels)
 
-    if (level < 0) {
+    if (maxLevels < 0) {
         logger->warn("Trying to set active level with a negative number {}",
-                     level);
+                     maxLevels);
     } else {
-        ctx.level->maxActiveLevels = level;
+        level->maxActiveLevels = maxLevels;
     }
 }
 
@@ -118,7 +129,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
       "__kmpc_push_num_threads {} {} {}", loc, globalTid, numThreads);
 
     if (numThreads > 0) {
-        ctx.level->pushedThreads = numThreads;
+        level->pushedThreads = numThreads;
     }
 }
 
@@ -131,16 +142,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS("omp_set_num_threads {}", numThreads);
 
     if (numThreads > 0) {
-        ctx.level->wantedThreads = numThreads;
+        level->wantedThreads = numThreads;
     }
 }
 
-/**
- * If the runtime is called once, equivalent of calling get_thread_num() at the
- * deepest
- * @param loc The usual...
- * @return
- */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__kmpc_global_thread_num",
                                I32,
@@ -148,10 +153,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 loc)
 {
     OMP_FUNC_ARGS("__kmpc_global_thread_num {}", loc);
-
-    // Might be wrong if called at depth 1 while another thread at depths 1 has
-    // forked
-    return ctx.threadNumber;
+    return globalThreadNum;
 }
 
 // ------------------------------------------------
@@ -188,10 +190,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 globalTid)
 {
     OMP_FUNC_ARGS("__kmpc_barrier {} {}", loc, globalTid);
-
-    if (ctx.level->numThreads > 1) {
-        ctx.level->barrier.wait();
-    }
+    level->waitOnBarrier();
 }
 
 // ----------------------------------------------------
@@ -218,8 +217,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     OMP_FUNC_ARGS("__kmpc_critical {} {} {}", loc, globalTid, crit);
 
-    if (ctx.level->numThreads > 1) {
-        ctx.level->levelMutex.lock();
+    if (level->numThreads > 1) {
+        level->lockCritical();
     }
 }
 
@@ -240,8 +239,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     OMP_FUNC_ARGS("__kmpc_end_critical {} {} {}", loc, globalTid, crit);
 
-    if (ctx.level->numThreads > 1) {
-        ctx.level->levelMutex.unlock();
+    if (level->numThreads > 1) {
+        level->unlockCritical();
     }
 }
 
@@ -265,16 +264,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_flush", void, __kmpc_flush, I32 loc)
 // ----------------------------------------------------
 
 /**
- * No implied BARRIER exists on either entry to or exit from the MASTER section.
- * @param loc  source location information.
- * @param global_tid  global thread number.
- * @return 1 if this thread should execute the <tt>master</tt> block, 0
- * otherwise.
- *
- * Faasm: at the moment we only ensure the MASTER section is ran only once but
- * do not handle properly assigning to the master section. Support for better
- * gtid and teams will come. This is called by all threads with same GTID, which
- * is not what the native code does.
+ * Note: we only ensure the master section is run once, but do not handle
+ * assigning to the master section.
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__kmpc_master",
@@ -285,13 +276,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     OMP_FUNC_ARGS("__kmpc_master {} {}", loc, globalTid);
 
-    return (I32)ctx.threadNumber == 0;
+    return localThreadNum == 0;
 }
 
 /**
  * Only called by the thread executing the master region.
- * @param loc  source location information.
- * @param global_tid  global thread number .
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__kmpc_end_master",
@@ -302,7 +291,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     OMP_FUNC_ARGS("__kmpc_end_master {} {}", loc, globalTid);
 
-    if (ctx.threadNumber != 0) {
+    if (localThreadNum != 0) {
         throw std::runtime_error("Calling _kmpc_end_master from non-master");
     }
 }
@@ -328,7 +317,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     OMP_FUNC_ARGS("__kmpc_single {} {}", loc, globalTid);
 
-    return (I32)ctx.threadNumber == 0;
+    return localThreadNum == 0;
 }
 
 /**
@@ -343,7 +332,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     OMP_FUNC_ARGS("__kmpc_end_single {} {}", loc, globalTid);
 
-    if (ctx.threadNumber != 0) {
+    if (localThreadNum != 0) {
         throw std::runtime_error("Calling _kmpc_end_single from non-master");
     }
 }
@@ -388,16 +377,17 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     Runtime::Memory* memoryPtr = parentModule->defaultMemory;
     faabric::Message* parentCall = getExecutingCall();
 
-    // Set up number of threads for next level
-    std::shared_ptr<threads::Level> parentLevel = ctx.level;
-    int nextNumThreads = parentLevel->getMaxThreadsAtNextLevel();
-
-    // Check if we're only doing single-threaded
-    bool isSingleThread = nextNumThreads == 1;
+    const std::string parentStr =
+      faabric::util::funcToString(*parentCall, false);
 
     // Set up the next level
-    auto nextLevel = std::make_shared<threads::Level>(nextNumThreads);
+    std::shared_ptr<threads::Level> parentLevel = level;
+    auto nextLevel =
+      std::make_shared<threads::Level>(parentLevel->getMaxThreadsAtNextLevel());
     nextLevel->fromParentLevel(parentLevel);
+
+    // Check if we're only doing single-threaded
+    bool isSingleThread = nextLevel->numThreads == 1;
 
     // Take memory snapshot
     std::string snapshotKey;
@@ -408,163 +398,93 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         logger->debug("Not creating OpenMP snapshot for single thread");
     }
 
-    const faabric::Message* originalCall = getExecutingCall();
-    const std::string origStr =
-      faabric::util::funcToString(*originalCall, false);
-
     // Prepare arguments for main thread and all others
     std::vector<IR::UntaggedValue> mainArguments = { 0, argc };
-    U32* sharedVarsPtr = nullptr;
     if (argc > 0) {
-        sharedVarsPtr = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
+        // Build list of pointers to shared variables
+        U32* sharedVarsPtr =
+          Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
+        nextLevel->setSharedVarOffsets(sharedVarsPtr, argc);
+
+        // Append to main arguments
+        mainArguments.insert(
+          mainArguments.end(), sharedVarsPtr, sharedVarsPtr + argc);
     }
 
     // Set up the chained calls
-    // Note that the main OpenMP thread is always executed in this thread, hence
-    // it is not scheduled remotely
-    std::shared_ptr<faabric::Message> masterMsg = nullptr;
-    std::vector<std::shared_ptr<faabric::Message>> childThreadMsgs;
-    std::vector<int> remoteCallIds;
-    for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
-        // Create basic call
-        std::shared_ptr<faabric::Message> call =
-          faabric::util::messageFactoryShared(originalCall->user(),
-                                              originalCall->function());
-
-        // Record master message if necessary
-        if (threadNum == 0) {
-            masterMsg = call;
-        }
-
-        // All calls are async by definition
-        call->set_isasync(true);
-
-        // Snapshot details
-        call->set_snapshotkey(snapshotKey);
-
-        // Function pointer
-        call->set_funcptr(microtaskPtr);
-
-        // Args
-        for (int i = 0; i < argc; i++) {
-            call->add_ompfunctionargs(sharedVarsPtr[i]);
-            mainArguments.emplace_back(sharedVarsPtr[i]);
-        }
-
-        call->set_ompthreadnum(threadNum);
-        call->set_ompnumthreads(nextNumThreads);
-
-        call->set_ompdepth(nextLevel->depth);
-        call->set_ompeffdepth(nextLevel->activeLevels);
-        call->set_ompmal(nextLevel->maxActiveLevels);
-
-        if (threadNum > 0) {
-            childThreadMsgs.push_back(call);
-        }
-    }
-
-    // Attempt to schedule across hosts
-    std::vector<std::future<int32_t>> localFutures;
+    // Note that the spawning thread always executes the first task
+    std::shared_ptr<faabric::BatchExecuteRequest> req = nullptr;
     if (!isSingleThread) {
         // Set up the request
-        faabric::BatchExecuteRequest req =
-          faabric::util::batchExecFactory(childThreadMsgs);
+        int nOtherThreads = nextLevel->numThreads - 1;
+        req = faabric::util::batchExecFactory(
+          parentCall->user(), parentCall->function(), nOtherThreads);
+        req->set_type(faabric::BatchExecuteRequest::THREADS);
+        req->set_subtype(ThreadRequestType::OPENMP);
 
-        req.set_type(faabric::BatchExecuteRequest::THREADS);
+        // Add remote context
+        // TODO - avoid copy
+        std::vector<uint8_t> serialisedLevel = nextLevel->serialise();
+        req->set_contextdata(serialisedLevel.data(), serialisedLevel.size());
 
-        // Submit it
-        std::vector<std::string> executedHosts = sch.callFunctions(req);
+        // Configure the mesages
+        for (int i = 0; i < req->messages_size(); i++) {
+            faabric::Message& call = req->mutable_messages()->at(i);
 
-        // Iterate through messages and see which need to be executed in local
-        // threads
-        for (int i = 0; i < executedHosts.size(); i++) {
-            std::string host = executedHosts.at(i);
-            bool isLocal = host.empty();
+            // Snapshot details
+            call.set_snapshotkey(snapshotKey);
 
-            std::shared_ptr<faabric::Message> msg = childThreadMsgs.at(i);
-            uint32_t msgId = msg->id();
+            // Function pointer
+            call.set_funcptr(microtaskPtr);
 
-            if (isLocal) {
-                logger->debug("Dispatching local task for OpenMP call ID {}",
-                              msgId);
-
-                // Execute the local thread
-                threads::OpenMPTask t(parentCall, msg, nextLevel);
-                localFutures.emplace_back(parentModule->executeOpenMPTask(t));
-            } else {
-                // Function is being executed remotely
-                logger->debug("Waiting for remote thread for call ID {}",
-                              msgId);
-                remoteCallIds.push_back(msgId);
-                continue;
-            }
+            // OpenMP thread number
+            call.set_appindex(nextLevel->getGlobalThreadNum(i + 1));
         }
+
+        // Submit the request
+        sch.callFunctions(req);
     }
 
-    // Execute the master task (just invoke the microtask directly)
-    IR::UntaggedValue mainThreadResult;
+    // Execute the master task (just invoke the microtask directly).
+    // Note that we're using a slightly different set-up to execute this thread,
+    // so there's double the logic, but it's worth it for the performance boost,
+    // especially in the single-host case.
     {
-        // We have to set up the context for the thread
-        setUpOpenMPContext(0, nextLevel);
+        faabric::Message masterMsg = faabric::util::messageFactory(
+          parentCall->user(), parentCall->function());
+        masterMsg.set_appindex(nextLevel->getGlobalThreadNum(0));
+
+        IR::UntaggedValue masterThreadResult;
+
+        // Set up the context for the next level
+        threads::setCurrentOpenMPLevel(nextLevel);
+        setExecutingCall(&masterMsg);
 
         // Execute the task
         logger->debug("OpenMP 0: executing OMP thread 0 (master)");
         WAVM::Runtime::Function* microtaskFunc =
           parentModule->getFunctionFromPtr(microtaskPtr);
-        parentModule->executeFunction(
-          microtaskFunc, mainArguments, mainThreadResult);
+        parentModule->executeWasmFunction(
+          microtaskFunc, mainArguments, masterThreadResult);
 
-        // Now we reset the context for this main thread
-        setUpOpenMPContext(0, parentLevel);
-    }
+        // Reset the context
+        threads::setCurrentOpenMPLevel(parentLevel);
+        setExecutingCall(parentCall);
 
-    // Await the results of all the remote threads
-    int numErrors = 0;
-    for (auto callId : remoteCallIds) {
-        int callTimeoutMs = faabric::util::getSystemConfig().chainedCallTimeout;
-
-        logger->info(
-          "Waiting for call id {} with a timeout of {}", callId, callTimeoutMs);
-
-        int returnCode = 1;
-        try {
-            const faabric::Message result =
-              sch.getFunctionResult(callId, callTimeoutMs);
-
-            returnCode = result.returnvalue();
-
-        } catch (faabric::redis::RedisNoResponseException& ex) {
-            logger->error("Timed out waiting for chained call: {}", callId);
-
-        } catch (std::exception& ex) {
-            logger->error("Non-timeout exception waiting for chained call: {}",
-                          ex.what());
-        }
-
-        if (returnCode > 0) {
-            numErrors++;
+        if (masterThreadResult.i32 > 0) {
+            throw std::runtime_error("Master OpenMP thread failed");
         }
     }
 
-    // Await local threads
-    for (auto& f : localFutures) {
-        int32_t retValue = f.get();
-        if (retValue > 0) {
-            throw std::runtime_error("OpenMP threads have errors");
-        }
-    }
-
-    if (mainThreadResult.i32 > 0) {
-        throw std::runtime_error("Master OpenMP thread failed");
-    }
-
-    // Reset parent level for next setting of threads
-    parentLevel->pushedThreads = -1;
-
-    // Delete the snapshot from registered hosts
     if (!isSingleThread) {
+        // Await all child threads
+        for (int i = 0; i < req->messages_size(); i++) {
+            sch.awaitThreadResult(req->messages().at(i).id());
+        }
+
+        // Delete the snapshot
         PROF_START(BroadcastDeleteSnapshot)
-        sch.broadcastSnapshotDelete(*originalCall, snapshotKey);
+        sch.broadcastSnapshotDelete(*parentCall, snapshotKey);
         PROF_END(BroadcastDeleteSnapshot)
 
         // Delete the snapshot locally
@@ -574,6 +494,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         reg.deleteSnapshot(snapshotKey);
         PROF_END(DeleteSnapshot)
     }
+
+    // Reset parent level for next setting of threads
+    parentLevel->pushedThreads = -1;
 }
 
 // -------------------------------------------------------
@@ -609,9 +532,11 @@ void for_static_init(I32 schedule,
     typedef typename std::make_unsigned<T>::type UT;
 
     auto logger = faabric::util::getLogger();
-    threads::OpenMPContext& ctx = threads::getOpenMPContext();
+    faabric::Message* msg = getExecutingCall();
+    std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
+    int localThreadNum = level->getLocalThreadNum(msg);
 
-    if (ctx.level->numThreads == 1) {
+    if (level->numThreads == 1) {
         *lastIter = true;
 
         if (incr > 0) {
@@ -648,52 +573,48 @@ void for_static_init(I32 schedule,
 
             span = chunk * incr;
 
-            *stride = span * ctx.level->numThreads;
-            *lower = *lower + (span * ctx.threadNumber);
+            *stride = span * level->numThreads;
+            *lower = *lower + (span * localThreadNum);
             *upper = *lower + span - incr;
 
             *lastIter =
-              (ctx.threadNumber ==
-               ((tripCount - 1) / (unsigned int)chunk) % ctx.level->numThreads);
+              (localThreadNum ==
+               ((tripCount - 1) / (unsigned int)chunk) % level->numThreads);
 
             break;
         }
 
         case sch_static: { // (chunk not given)
-
             // If we have fewer trip_counts than threads
-            if (tripCount < ctx.level->numThreads) {
+            if (tripCount < level->numThreads) {
                 // Warning for future use, not tested at scale
                 logger->warn("Small for loop trip count {} {}",
                              tripCount,
-                             ctx.level->numThreads);
+                             level->numThreads);
 
-                if (ctx.threadNumber < tripCount) {
-                    *upper = *lower = *lower + ctx.threadNumber * incr;
+                if (localThreadNum < tripCount) {
+                    *upper = *lower = *lower + localThreadNum * incr;
                 } else {
                     *lower = *upper + incr;
                 }
 
-                *lastIter = (ctx.threadNumber == tripCount - 1);
+                *lastIter = (localThreadNum == tripCount - 1);
 
             } else {
                 // TODO: We only implement below kmp_sch_static_balanced, not
                 // kmp_sch_static_greedy Those are set through KMP_SCHEDULE so
                 // we would need to look out for real code setting this
-                logger->debug("Ignores KMP_SCHEDULE variable, defaults to "
-                              "static balanced schedule");
+                U32 small_chunk = tripCount / level->numThreads;
+                U32 extras = tripCount % level->numThreads;
 
-                U32 small_chunk = tripCount / ctx.level->numThreads;
-                U32 extras = tripCount % ctx.level->numThreads;
-
-                *lower += incr * (ctx.threadNumber * small_chunk +
-                                  (ctx.threadNumber < extras ? ctx.threadNumber
-                                                             : extras));
+                *lower +=
+                  incr * (localThreadNum * small_chunk +
+                          (localThreadNum < extras ? localThreadNum : extras));
 
                 *upper = *lower + small_chunk * incr -
-                         (ctx.threadNumber < extras ? 0 : incr);
+                         (localThreadNum < extras ? 0 : incr);
 
-                *lastIter = (ctx.threadNumber == ctx.level->numThreads - 1);
+                *lastIter = (localThreadNum == level->numThreads - 1);
             }
 
             *stride = tripCount;
@@ -815,11 +736,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
 int reduceFinished()
 {
-    auto& ctx = threads::getOpenMPContext();
+    std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
+    faabric::Message* msg = getExecutingCall();
+    int localThreadNum = level->getLocalThreadNum(msg);
 
     // Notify the master thread that we've done our reduction
-    if (ctx.threadNumber != 0) {
-        ctx.level->masterWait(ctx.threadNumber);
+    if (localThreadNum != 0) {
+        level->masterWait(localThreadNum);
     }
 
     return 1;
@@ -832,17 +755,19 @@ int reduceFinished()
  */
 void finaliseReduce(bool barrier)
 {
-    auto& ctx = threads::getOpenMPContext();
+    std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
+    faabric::Message* msg = getExecutingCall();
+    int localThreadNum = level->getLocalThreadNum(msg);
 
     // Master must make sure all other threads are done
-    if (ctx.threadNumber == 0) {
-        ctx.level->masterWait(0);
+    if (localThreadNum == 0) {
+        level->masterWait(0);
     }
 
     // Everyone waits if there's a barrier
     if (barrier) {
         PROF_START(FinaliseReduceBarrier)
-        ctx.level->barrier.wait();
+        level->waitOnBarrier();
         PROF_END(FinaliseReduceBarrier)
     }
 }

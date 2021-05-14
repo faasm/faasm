@@ -1,14 +1,14 @@
-#include <boost/algorithm/string.hpp>
-#include <catch2/catch.hpp>
-#include <dirent.h>
-
 #include "utils.h"
+#include <catch2/catch.hpp>
+
+#include <boost/algorithm/string.hpp>
+#include <dirent.h>
 
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 
 namespace tests {
-void checkPythonFunction(const std::string& funcName, int poolSize)
+void checkPythonFunction(const std::string& funcName, bool withPool)
 {
     cleanSystem();
 
@@ -18,8 +18,9 @@ void checkPythonFunction(const std::string& funcName, int poolSize)
     call.set_pythonfunction(funcName);
     call.set_ispython(true);
 
-    if (poolSize > 1) {
-        execFuncWithPool(call, false, poolSize);
+    if (withPool) {
+        // Note - some of the python checks can take a while to run
+        execFuncWithPool(call, false, 10000);
     } else {
         execFunction(call);
     }
@@ -78,17 +79,17 @@ TEST_CASE("Test python listdir", "[python]")
 
 TEST_CASE("Test python conformance", "[python]")
 {
-    checkPythonFunction("lang_test", 1);
+    checkPythonFunction("lang_test", false);
 }
 
 TEST_CASE("Test numpy conformance", "[python]")
 {
-    checkPythonFunction("numpy_test", 1);
+    checkPythonFunction("numpy_test", false);
 }
 
 TEST_CASE("Test reading pyc files", "[python]")
 {
-    checkPythonFunction("pyc_check", 1);
+    checkPythonFunction("pyc_check", false);
 }
 
 TEST_CASE("Test repeated numpy execution", "[python]")
@@ -143,26 +144,26 @@ TEST_CASE("Test python state write/ read", "[python]")
 
 TEST_CASE("Test python chaining", "[python]")
 {
-    checkPythonFunction("chain", 4);
+    checkPythonFunction("chain", true);
 }
 
 TEST_CASE("Test python sharing dict", "[python]")
 {
-    checkPythonFunction("dict_state", 4);
+    checkPythonFunction("dict_state", true);
 }
 
 TEST_CASE("Test python ctypes", "[python]")
 {
-    checkPythonFunction("ctypes_check", 1);
+    checkPythonFunction("ctypes_check", false);
 }
 
 TEST_CASE("Test python hashing", "[python]")
 {
-    checkPythonFunction("hash_check", 1);
+    checkPythonFunction("hash_check", false);
 }
 
 TEST_CASE("Test python picklinkg", "[python]")
 {
-    checkPythonFunction("pickle_check", 1);
+    checkPythonFunction("pickle_check", false);
 }
 }

@@ -11,6 +11,7 @@
 #include <faabric/util/locks.h>
 #include <faabric/util/memory.h>
 #include <faabric/util/timing.h>
+#include <threads/ThreadState.h>
 
 #include <boost/filesystem.hpp>
 #include <sstream>
@@ -19,8 +20,11 @@
 
 namespace wasm {
 // Using TLS here to isolate between executing functions
-static thread_local faabric::Message* executingCall;
-static thread_local wasm::WasmModule* executingModule;
+// Note that with threads, multiple messages can be executing on the same
+// module, hence we must track them independently.
+static thread_local wasm::WasmModule* executingModule = nullptr;
+
+static thread_local faabric::Message* executingCall = nullptr;
 
 bool isWasmPageAligned(int32_t offset)
 {
@@ -31,23 +35,50 @@ bool isWasmPageAligned(int32_t offset)
     }
 }
 
+// This function remains for compatibility
 faabric::Message* getExecutingCall()
 {
+    assert(executingCall != nullptr);
     return executingCall;
 }
 
-void setExecutingCall(faabric::Message* other)
+void setExecutingCall(faabric::Message* msg)
 {
-    executingCall = other;
+    // Although the executing msg can be overridden, we only want to do so
+    // with another message for the same function (e.g. when executing
+    // threads).
+    if (msg != nullptr) {
+        assert(!msg->user().empty());
+        assert(!msg->function().empty());
+
+        assert(executingModule->getBoundUser().empty() ||
+               executingModule->getBoundUser() == msg->user());
+        assert(executingModule->getBoundFunction().empty() ||
+               executingModule->getBoundFunction() == msg->function());
+    }
+
+    executingCall = msg;
 }
 
 wasm::WasmModule* getExecutingModule()
 {
+    assert(executingModule != nullptr);
     return executingModule;
 }
 
 void setExecutingModule(wasm::WasmModule* module)
 {
+    // We should not be changing the executing module associated with this
+    // thread, only setting it for the first time, unsetting it, or harmlessly
+    // resetting the same value
+    if (executingModule != nullptr && module != nullptr &&
+        executingModule != module) {
+
+        assert(executingModule->getBoundFunction() ==
+               module->getBoundFunction());
+        assert(executingModule->getBoundUser() == module->getBoundUser());
+    }
+
     executingModule = module;
 }
 
@@ -74,13 +105,14 @@ size_t getPagesForGuardRegion()
 }
 
 WasmModule::WasmModule()
-  : threadPoolSize(conf::getFaasmConfig().moduleThreadPoolSize)
+  : WasmModule(faabric::util::getUsableCores())
 {}
 
-WasmModule::~WasmModule()
-{
-    // Does nothing
-}
+WasmModule::WasmModule(int threadPoolSizeIn)
+  : threadPoolSize(threadPoolSizeIn)
+{}
+
+WasmModule::~WasmModule() {}
 
 void WasmModule::flush() {}
 
@@ -122,7 +154,6 @@ void WasmModule::restore(const std::string& snapshotKey)
 {
     PROF_START(wasmSnapshotRestore)
 
-    auto logger = faabric::util::getLogger();
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
 
@@ -130,9 +161,8 @@ void WasmModule::restore(const std::string& snapshotKey)
     faabric::util::SnapshotData data = reg.getSnapshot(snapshotKey);
     uint32_t memSize = getCurrentBrk();
 
-    if (data.size == memSize) {
-        logger->debug("Snapshot memory size equal to current memory");
-    } else if (data.size > memSize) {
+    const auto& logger = faabric::util::getLogger();
+    if (data.size > memSize) {
         logger->debug("Growing memory to fit snapshot");
         size_t bytesRequired = data.size - memSize;
         this->growMemory(bytesRequired);
@@ -244,6 +274,20 @@ uint32_t WasmModule::getArgvBufferSize()
     return argvBufferSize;
 }
 
+void WasmModule::bindToFunction(const faabric::Message& msg, bool cache)
+{
+    if (_isBound) {
+        throw std::runtime_error("Cannot bind a module twice");
+    }
+
+    _isBound = true;
+    boundUser = msg.user();
+    boundFunction = msg.function();
+
+    // Call module-specific steps
+    doBindToFunction(msg, cache);
+}
+
 void WasmModule::prepareArgcArgv(const faabric::Message& msg)
 {
     // Here we set up the arguments to main(), i.e. argc and argv
@@ -318,193 +362,64 @@ uint32_t WasmModule::getCurrentBrk()
     return currentBrk;
 }
 
-void WasmModule::shutdownPthreads()
+int32_t WasmModule::executeTask(
+  int threadPoolIdx,
+  int msgIdx,
+  std::shared_ptr<faabric::BatchExecuteRequest> req)
 {
-    faabric::util::UniqueLock lock(threadsMutex);
+    faabric::Message& msg = req->mutable_messages()->at(msgIdx);
 
-    faabric::util::getLogger()->debug("Shutting down pthread pool");
-
-    // Send shutdown messages
-    for (int i = 0; i < pthreads.size(); i++) {
-        std::promise<int32_t> p;
-        std::future<int32_t> f = p.get_future();
-        threads::PthreadTask t(nullptr, nullptr);
-        t.isShutdown = true;
-
-        pthreadTaskQueue.enqueue(std::make_pair(std::move(p), std::move(t)));
-
-        f.get();
+    if (!isBound()) {
+        throw std::runtime_error(
+          "WasmModule must be bound before executing anything");
     }
 
-    // Wait
-    for (auto& t : pthreads) {
-        if (t.joinable()) {
-            t.join();
+    assert(boundUser == msg.user());
+    assert(boundFunction == msg.function());
+
+    // Set up context for this task
+    setExecutingModule(this);
+    setExecutingCall(&msg);
+
+    // Modules must have provisioned their own thread stacks
+    assert(!threadStacks.empty());
+    uint32_t stackTop = threadStacks.at(threadPoolIdx);
+
+    // Perform the appropriate type of execution
+    int returnValue;
+    if (req->type() == faabric::BatchExecuteRequest::THREADS) {
+        // Pthreads or openmp
+        if (req->subtype() == ThreadRequestType::PTHREAD) {
+            returnValue = executePthread(threadPoolIdx, stackTop, msg);
+        } else if (req->subtype() == ThreadRequestType::OPENMP) {
+            threads::setCurrentOpenMPLevel(req);
+            returnValue = executeOMPThread(threadPoolIdx, stackTop, msg);
+        } else {
+            throw std::runtime_error("Unrecognised thread type");
         }
-    }
-}
-
-void WasmModule::shutdownOpenMPThreads()
-{
-    faabric::util::UniqueLock lock(threadsMutex);
-
-    faabric::util::getLogger()->debug("Shutting down OpenMP thread pool");
-
-    // Send shutdown messages on each queue
-    for (auto& taskQueue : openMPTaskQueueMap) {
-        std::promise<int32_t> p;
-        std::future<int32_t> f = p.get_future();
-        threads::OpenMPTask t(nullptr, nullptr, nullptr);
-        t.isShutdown = true;
-
-        taskQueue.second.enqueue(std::make_pair(std::move(p), std::move(t)));
-
-        f.get();
+    } else {
+        // Vanilla function
+        returnValue = executeFunction(msg);
     }
 
-    // Wait
-    for (auto& t : openMPThreads) {
-        if (t.second.joinable()) {
-            t.second.join();
-        }
+    if (returnValue != 0) {
+        msg.set_outputdata(
+          fmt::format("Call failed (return value={})", returnValue));
     }
-}
 
-std::future<int32_t> WasmModule::executePthreadTask(threads::PthreadTask t)
-{
-    // Enqueue the task
-    std::promise<int32_t> p;
-    std::future<int32_t> f = p.get_future();
-    pthreadTaskQueue.enqueue(std::make_pair(std::move(p), std::move(t)));
+    // Add captured stdout if necessary
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    if (conf.captureStdout == "on") {
+        std::string moduleStdout = getCapturedStdout();
+        if (!moduleStdout.empty()) {
+            std::string newOutput = moduleStdout + "\n" + msg.outputdata();
+            msg.set_outputdata(newOutput);
 
-    // Check if we can add a thread
-    if (!t.isShutdown && (pthreads.size() < threadPoolSize)) {
-        faabric::util::UniqueLock lock(threadsMutex);
-
-        // Double check once lock acquired
-        if (pthreads.size() < threadPoolSize) {
-            uint32_t stackTop = threadStacks.back();
-            threadStacks.pop_back();
-
-            pthreads.emplace_back([this, stackTop] {
-                for (;;) {
-                    auto logger = faabric::util::getLogger();
-
-                    PthreadTaskPair taskPair = pthreadTaskQueue.dequeue();
-
-                    if (taskPair.second.isShutdown) {
-                        taskPair.first.set_value(0);
-
-                        logger->debug("Pthread pool thread shutting down");
-                        break;
-                    }
-
-                    auto& sch = faabric::scheduler::getScheduler();
-
-                    // We are now in a new thread so need to set up
-                    // everything that uses TLS
-                    setExecutingModule(this);
-                    setExecutingCall(taskPair.second.parentMsg);
-
-                    taskPair.first.set_value(
-                      executeAsPthread(stackTop, taskPair.second.msg));
-
-                    // Caller has to notify scheduler when finished
-                    // executing a thread locally
-                    // TODO - avoid this copy
-                    sch.notifyCallFinished(*taskPair.second.msg);
-                }
-            });
+            clearCapturedStdout();
         }
     }
 
-    return f;
-}
-
-std::future<int32_t> WasmModule::executeOpenMPTask(threads::OpenMPTask t)
-{
-    // Enqueue the task
-    std::promise<int32_t> p;
-    std::future<int32_t> f = p.get_future();
-
-    // We have a fixed pool of threads, we have to share the work evenly over
-    // them, but we always want to send the same OMP thread number to the same
-    // thread. However, if we don't have enough threads in the pool, we want to
-    // cycle round again, and if we're at a nested level, we want to spread the
-    // work to other threads so we don't get nested ones blocking each other.
-    if (t.nextLevel->depth < 1) {
-        throw std::runtime_error("Depth cannot be below 1");
-    }
-
-    int threadPoolIdx = t.nextLevel->depth - 1 + t.msg->ompthreadnum();
-    threadPoolIdx = threadPoolIdx % threadPoolSize;
-
-    // Enqueue the task
-    openMPTaskQueueMap[threadPoolIdx].enqueue(
-      std::make_pair(std::move(p), std::move(t)));
-
-    // Check if we need to add the thread for this index
-    if (openMPThreads.count(threadPoolIdx) == 0) {
-        // Get mutex and re-check
-        faabric::util::UniqueLock lock(threadsMutex);
-
-        if (openMPThreads.count(threadPoolIdx) == 0) {
-            if (threadStacks.empty()) {
-                throw std::runtime_error("Run out of thread stacks");
-            }
-
-            uint32_t stackTop = threadStacks.back();
-            threadStacks.pop_back();
-
-            openMPThreads.emplace(
-              std::make_pair(threadPoolIdx, [this, stackTop, threadPoolIdx] {
-                  auto logger = faabric::util::getLogger();
-                  logger->debug("Starting OpenMP pool thread {}/{}",
-                                threadPoolIdx,
-                                threadPoolSize);
-
-                  for (;;) {
-                      OpenMPTaskPair taskPair =
-                        openMPTaskQueueMap[threadPoolIdx].dequeue();
-
-                      if (taskPair.second.isShutdown) {
-                          taskPair.first.set_value(0);
-
-                          logger->debug(
-                            "OpenMP thread pool thread {} shutting down",
-                            threadPoolIdx);
-
-                          break;
-                      }
-
-                      int ompThreadNum = taskPair.second.msg->ompthreadnum();
-                      logger->debug("OpenMP {}: executing OMP thread {}, "
-                                    "function {}, message {}",
-                                    threadPoolIdx,
-                                    ompThreadNum,
-                                    taskPair.second.msg->funcptr(),
-                                    taskPair.second.msg->id());
-
-                      // We are now in a new thread so need to set up
-                      // everything that uses TLS
-                      setUpOpenMPContext(ompThreadNum,
-                                         taskPair.second.nextLevel);
-                      setExecutingModule(this);
-                      setExecutingCall(taskPair.second.parentMsg);
-
-                      taskPair.first.set_value(executeAsOMPThread(
-                        threadPoolIdx, stackTop, taskPair.second.msg));
-
-                      // Caller has to notify scheduler when finished
-                      // executing a thread locally
-                      auto& sch = faabric::scheduler::getScheduler();
-                      sch.notifyCallFinished(*taskPair.second.msg);
-                  }
-              }));
-        }
-    }
-
-    return f;
+    return returnValue;
 }
 
 uint32_t WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
@@ -524,7 +439,7 @@ uint32_t WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
         throw std::runtime_error("Failed to create memory guard");
     }
 
-    logger->debug(
+    logger->trace(
       "Created guard region {}-{}", wasmOffset, wasmOffset + regionSize);
 
     return wasmOffset + regionSize;
@@ -557,28 +472,23 @@ threads::MutexManager& WasmModule::getMutexes()
     return mutexes;
 }
 
+bool WasmModule::isBound()
+{
+    return _isBound;
+}
+
 // ------------------------------------------
 // Functions to be implemented by subclasses
 // ------------------------------------------
 
-void WasmModule::bindToFunction(const faabric::Message& msg)
+void WasmModule::reset(const faabric::Message& msg)
 {
-    throw std::runtime_error("bindToFunction not implemented");
+    faabric::util::getLogger()->warn("Using default reset of wasm module");
 }
 
-void WasmModule::bindToFunctionNoZygote(const faabric::Message& msg)
+void WasmModule::doBindToFunction(const faabric::Message& msg, bool cache)
 {
-    throw std::runtime_error("bindToFunctionNoZygote not implemented");
-}
-
-bool WasmModule::execute(faabric::Message& msg, bool forceNoop)
-{
-    throw std::runtime_error("execute not implemented");
-}
-
-bool WasmModule::isBound()
-{
-    throw std::runtime_error("isBound not implemented");
+    throw std::runtime_error("doBindToFunction not implemented");
 }
 
 void WasmModule::writeArgvToMemory(uint32_t wasmArgvPointers,
@@ -637,16 +547,22 @@ uint8_t* WasmModule::getMemoryBase()
     throw std::runtime_error("getMemoryBase not implemented");
 }
 
-int32_t WasmModule::executeAsOMPThread(int threadPoolIdx,
-                                       uint32_t stackTop,
-                                       std::shared_ptr<faabric::Message> msg)
+int32_t WasmModule::executeFunction(faabric::Message& msg)
 {
-    throw std::runtime_error("executeAsOMPThread not implemented");
+    throw std::runtime_error("executeFunction not implemented");
 }
 
-int32_t WasmModule::executeAsPthread(uint32_t stackTop,
-                                     std::shared_ptr<faabric::Message> msg)
+int32_t WasmModule::executeOMPThread(int threadPoolIdx,
+                                     uint32_t stackTop,
+                                     faabric::Message& msg)
 {
-    throw std::runtime_error("executeAsPthread not implemented");
+    throw std::runtime_error("executeOMPThread not implemented ");
+}
+
+int32_t WasmModule::executePthread(int32_t threadPoolIdx,
+                                   uint32_t stackTop,
+                                   faabric::Message& msg)
+{
+    throw std::runtime_error("executePthread not implemented");
 }
 }

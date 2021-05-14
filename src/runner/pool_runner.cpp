@@ -1,30 +1,24 @@
-#include <faabric/util/logging.h>
-
-#include <faaslet/FaasletPool.h>
+#include <faaslet/Faaslet.h>
 
 #include <faabric/endpoint/FaabricEndpoint.h>
-#include <faabric/executor/FaabricMain.h>
-
-using namespace faabric::executor;
-using namespace faaslet;
+#include <faabric/runner/FaabricMain.h>
+#include <faabric/util/logging.h>
 
 int main()
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
+    const auto& logger = faabric::util::getLogger();
 
-    // Start the worker pool
-    logger->info("Starting faaslet pool in the background");
-    FaasletPool p(5);
-    FaabricMain w(p);
-    w.startBackground();
+    auto fac = std::make_shared<faaslet::FaasletFactory>();
+    faabric::runner::FaabricMain m(fac);
+    m.startBackground();
 
     // Start endpoint (will also have multiple threads)
     logger->info("Starting endpoint");
     faabric::endpoint::FaabricEndpoint endpoint;
     endpoint.start();
 
-    logger->info("Shutting down endpoint");
-    w.shutdown();
+    logger->info("Shutting down");
+    m.shutdown();
 
     return EXIT_SUCCESS;
 }

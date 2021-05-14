@@ -7,6 +7,8 @@ file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/wavm/*.h")
 
 set(LIB_FILES
         WAVMWasmModule.cpp
+        WAVMModuleCache.cpp
+        IRModuleCache.cpp
         LoadedDynamicModule.cpp
         syscalls.h
         chaining.cpp
@@ -33,4 +35,4 @@ set(LIB_FILES
         )
 
 faasm_private_lib(wavmmodule "${LIB_FILES}")
-target_link_libraries(wavmmodule wasm ir_cache libWAVM threads)
+target_link_libraries(wavmmodule wasm libWAVM threads)

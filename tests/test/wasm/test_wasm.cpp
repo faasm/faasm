@@ -1,8 +1,11 @@
+#include "utils.h"
 #include <catch2/catch.hpp>
+
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
-#include <module_cache/WasmModuleCache.h>
+
+#include <wavm/WAVMWasmModule.h>
 
 using namespace WAVM;
 
@@ -10,14 +13,16 @@ namespace tests {
 
 TEST_CASE("Test executing WASM module with no input", "[wasm]")
 {
+    cleanSystem();
+
     faabric::Message call = faabric::util::messageFactory("demo", "dummy");
 
     wasm::WAVMWasmModule module;
     module.bindToFunction(call);
 
     // Execute the function
-    bool success = module.execute(call);
-    REQUIRE(success);
+    int returnValue = module.executeFunction(call);
+    REQUIRE(returnValue == 0);
 
     std::string outputData = call.outputdata();
     const std::vector<uint8_t> outputBytes =
@@ -32,6 +37,8 @@ TEST_CASE("Test executing WASM module with no input", "[wasm]")
 
 TEST_CASE("Test printf doesn't fail", "[wasm]")
 {
+    cleanSystem();
+
     faabric::Message call;
     call.set_user("demo");
     call.set_function("print");
@@ -39,8 +46,8 @@ TEST_CASE("Test printf doesn't fail", "[wasm]")
     wasm::WAVMWasmModule module;
     module.bindToFunction(call);
 
-    bool success = module.execute(call);
-    REQUIRE(success);
+    int returnValue = module.executeFunction(call);
+    REQUIRE(returnValue == 0);
 }
 
 void executeX2(wasm::WAVMWasmModule& module)
@@ -54,8 +61,8 @@ void executeX2(wasm::WAVMWasmModule& module)
     call.set_inputdata(inputValues, 10);
 
     // Make the call
-    bool success = module.execute(call);
-    REQUIRE(success);
+    int returnValue = module.executeFunction(call);
+    REQUIRE(returnValue == 0);
 
     std::string outputData = call.outputdata();
     const std::vector<uint8_t> outputBytes =
@@ -68,6 +75,8 @@ void executeX2(wasm::WAVMWasmModule& module)
 
 TEST_CASE("Test binding", "[wasm]")
 {
+    cleanSystem();
+
     faabric::Message call;
     call.set_user("demo");
     call.set_function("x2");
@@ -81,106 +90,66 @@ TEST_CASE("Test binding", "[wasm]")
 
 TEST_CASE("Test repeat execution on simple WASM module", "[wasm]")
 {
+    cleanSystem();
+
     faabric::Message call;
     call.set_user("demo");
     call.set_function("x2");
 
-    module_cache::WasmModuleCache& registry =
-      module_cache::getWasmModuleCache();
-    wasm::WAVMWasmModule& cachedModule = registry.getCachedModule(call);
-
-    wasm::WAVMWasmModule module(cachedModule);
+    wasm::WAVMWasmModule module;
+    module.bindToFunction(call);
 
     // Perform first execution
     executeX2(module);
 
     // Reset
-    module = cachedModule;
+    module.reset(call);
 
     // Perform repeat executions on same module
     executeX2(module);
 
     // Reset
-    module = cachedModule;
+    module.reset(call);
 
     executeX2(module);
 }
 
 TEST_CASE("Test execution without binding fails", "[wasm]")
 {
+    cleanSystem();
+
     faabric::Message callA;
     callA.set_user("demo");
     callA.set_function("dummy");
 
     wasm::WAVMWasmModule module;
-    REQUIRE_THROWS(module.execute(callA));
-}
-
-TEST_CASE("Test binding twice fails", "[wasm]")
-{
-    faabric::Message callA;
-    callA.set_user("demo");
-    callA.set_function("dummy");
-
-    wasm::WAVMWasmModule module;
-    module.bindToFunction(callA);
-    REQUIRE_THROWS(module.bindToFunction(callA));
-}
-
-TEST_CASE("Test repeat execution with different function fails", "[wasm]")
-{
-    faabric::Message callA = faabric::util::messageFactory("demo", "dummy");
-    faabric::Message callB = faabric::util::messageFactory("demo", "x2");
-
-    wasm::WAVMWasmModule module;
-    module.bindToFunction(callA);
-
-    REQUIRE_THROWS(module.execute(callB));
+    REQUIRE_THROWS(module.executeFunction(callA));
 }
 
 TEST_CASE("Test reclaiming memory", "[wasm]")
 {
+    cleanSystem();
+
     faabric::Message call = faabric::util::messageFactory("demo", "heap");
 
-    module_cache::WasmModuleCache& registry =
-      module_cache::getWasmModuleCache();
-    wasm::WAVMWasmModule& cachedModule = registry.getCachedModule(call);
-
-    wasm::WAVMWasmModule module(cachedModule);
+    wasm::WAVMWasmModule module;
+    module.bindToFunction(call);
 
     Uptr initialPages = Runtime::getMemoryNumPages(module.defaultMemory);
 
     // Run it (knowing memory will grow during execution)
-    module.execute(call);
+    module.executeFunction(call);
 
-    module = cachedModule;
+    module.reset(call);
 
     Uptr pagesAfter = Runtime::getMemoryNumPages(module.defaultMemory);
     REQUIRE(pagesAfter == initialPages);
 }
 
-TEST_CASE("Test GC", "[wasm]")
-{
-    wasm::WAVMWasmModule module;
-    faabric::Message call = faabric::util::messageFactory("demo", "malloc");
-
-    SECTION("Plain module")
-    {
-        // Do nothing
-    }
-    SECTION("Bound but not executed module") { module.bindToFunction(call); }
-    SECTION("Executed module")
-    {
-        module.bindToFunction(call);
-        module.execute(call);
-    }
-
-    bool success = module.tearDown();
-    REQUIRE(success);
-}
-
 TEST_CASE("Test disassemble module", "[wasm]")
 {
+    cleanSystem();
+
     faabric::Message call = faabric::util::messageFactory("demo", "echo");
     wasm::WAVMWasmModule module;
     module.bindToFunction(call);

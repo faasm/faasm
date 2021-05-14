@@ -4,6 +4,7 @@
 
 #include <faabric/util/config.h>
 #include <faabric/util/environment.h>
+#include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/timing.h>
 
@@ -11,6 +12,47 @@
 #include <fcntl.h>
 
 namespace isolation {
+
+std::vector<std::shared_ptr<NetworkNamespace>> namespaces;
+bool namespacesInitialised = false;
+std::mutex namespacesLock;
+
+void returnNetworkNamespace(std::shared_ptr<NetworkNamespace> ns)
+{
+    faabric::util::UniqueLock lock(namespacesLock);
+    namespaces.emplace_back(ns);
+}
+
+std::shared_ptr<NetworkNamespace> claimNetworkNamespace()
+{
+    if (namespaces.empty() && !namespacesInitialised) {
+        faabric::util::UniqueLock lock(namespacesLock);
+
+        if (namespaces.empty() && !namespacesInitialised) {
+            namespacesInitialised = true;
+
+            // Note that the availability of namespaces depends on the Faasm
+            // configuration for the relevant host
+            // TODO - connect these two up properly
+            int nNamespaces = faabric::util::getUsableCores() * 10;
+
+            for (int i = 0; i < nNamespaces; i++) {
+                std::string netnsName = BASE_NETNS_NAME + std::to_string(i);
+                namespaces.emplace_back(
+                  std::make_shared<NetworkNamespace>(netnsName));
+            }
+        }
+    } else if (namespaces.empty()) {
+        throw std::runtime_error("Namespaces have run out");
+    }
+
+    faabric::util::UniqueLock lock(namespacesLock);
+
+    std::shared_ptr<NetworkNamespace> res = namespaces.back();
+    namespaces.pop_back();
+    return res;
+}
+
 NetworkNamespace::NetworkNamespace(const std::string& name)
   : name(name)
 {
@@ -34,7 +76,6 @@ const NetworkIsolationMode NetworkNamespace::getMode()
     return this->mode;
 }
 
-/** Joins the namespace at the given path */
 void joinNamespace(const boost::filesystem::path& nsPath)
 {
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();

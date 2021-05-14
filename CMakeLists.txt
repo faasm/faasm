@@ -19,7 +19,7 @@ option(FAASM_SGX_XRA "Turn on support for XRA" OFF)
 option(FAASM_SGX_WAMR_AOT_MODE "Turn on AoT mode in SGX" ON)
 
 # Note - whitelisting currently not working in WAMR AoT mode
-option(FAASM_SGX_WHITELISTING "Add support for whitelisting" OFF) 
+option(FAASM_SGX_WHITELISTING "Add support for whitelisting" OFF)
 
 # Top-level CMake config
 set(CMAKE_CXX_FLAGS "-Wall")
@@ -175,8 +175,6 @@ include_directories(
 # Faasm runtime
 add_subdirectory(src/conf)
 add_subdirectory(src/faaslet)
-add_subdirectory(src/ir_cache)
-add_subdirectory(src/module_cache)
 add_subdirectory(src/runner)
 add_subdirectory(src/storage)
 add_subdirectory(src/system)

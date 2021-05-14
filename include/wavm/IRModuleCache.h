@@ -51,7 +51,7 @@ class IRModuleCache
     void clear();
 
   private:
-    std::shared_mutex registryMutex;
+    std::shared_mutex mx;
     std::unordered_map<std::string, IR::Module> moduleMap;
     std::unordered_map<std::string, Runtime::ModuleRef> compiledModuleMap;
     std::unordered_map<std::string, int> originalTableSizes;

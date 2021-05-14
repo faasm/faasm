@@ -24,6 +24,8 @@ class WAVMWasmModule final
   public:
     WAVMWasmModule();
 
+    WAVMWasmModule(int threadPoolSizeIn);
+
     WAVMWasmModule(const WAVMWasmModule& other);
 
     WAVMWasmModule& operator=(const WAVMWasmModule& other);
@@ -31,17 +33,13 @@ class WAVMWasmModule final
     ~WAVMWasmModule();
 
     // ----- Module lifecycle -----
-    void bindToFunction(const faabric::Message& msg) override;
+    void doBindToFunction(const faabric::Message& msg, bool cache) override;
 
-    void bindToFunctionNoZygote(const faabric::Message& msg) override;
-
-    bool execute(faabric::Message& msg, bool forceNoop = false) override;
-
-    bool isBound() override;
-
-    bool tearDown();
+    void bindToFunctionNoZygote(const faabric::Message& msg);
 
     void flush() override;
+
+    void reset(const faabric::Message& msg) override;
 
     // ----- Memory management -----
     uint32_t growMemory(uint32_t nBytes) override;
@@ -77,19 +75,22 @@ class WAVMWasmModule final
     WAVM::Runtime::GCPointer<WAVM::Runtime::Compartment> compartment;
 
     // ----- Execution -----
-    void executeFunction(WAVM::Runtime::Function* func,
-                         WAVM::IR::FunctionType funcType,
-                         const std::vector<WAVM::IR::UntaggedValue>& arguments,
-                         WAVM::IR::UntaggedValue& result);
+    void executeWasmFunction(
+      WAVM::Runtime::Function* func,
+      WAVM::IR::FunctionType funcType,
+      const std::vector<WAVM::IR::UntaggedValue>& arguments,
+      WAVM::IR::UntaggedValue& result);
 
-    void executeFunction(WAVM::Runtime::Function* func,
-                         const std::vector<WAVM::IR::UntaggedValue>& arguments,
-                         WAVM::IR::UntaggedValue& result);
+    void executeWasmFunction(
+      WAVM::Runtime::Function* func,
+      const std::vector<WAVM::IR::UntaggedValue>& arguments,
+      WAVM::IR::UntaggedValue& result);
 
-    void executeFunction(WAVM::Runtime::Context* ctx,
-                         WAVM::Runtime::Function* func,
-                         const std::vector<WAVM::IR::UntaggedValue>& arguments,
-                         WAVM::IR::UntaggedValue& result);
+    void executeWasmFunction(
+      WAVM::Runtime::Context* ctx,
+      WAVM::Runtime::Function* func,
+      const std::vector<WAVM::IR::UntaggedValue>& arguments,
+      WAVM::IR::UntaggedValue& result);
 
     void writeArgvToMemory(uint32_t wasmArgvPointers,
                            uint32_t wasmArgvBuffer) override;
@@ -114,6 +115,10 @@ class WAVMWasmModule final
       uint32_t stackTop,
       WAVM::Runtime::ContextRuntimeData* contextRuntimeData);
 
+    std::unordered_map<int32_t, uint32_t> chainedThreads;
+
+    std::atomic<int> pthreadCounter = 0;
+
     // ----- Disassembly -----
     std::map<std::string, std::string> buildDisassemblyMap();
 
@@ -137,14 +142,20 @@ class WAVMWasmModule final
 
     int getDataOffsetFromGOT(const std::string& name);
 
+    int32_t executeFunction(faabric::Message& msg) override;
+
+    int32_t executeOMPThread(int threadPoolIdx,
+                             uint32_t stackTop,
+                             faabric::Message& msg) override;
+
+    int32_t executePthread(int threadPoolIdx,
+                           uint32_t stackTop,
+                           faabric::Message& msg) override;
+
   private:
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> envModule;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> wasiModule;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> moduleInstance;
-
-    std::string baseSnapshotKey;
-
-    bool _isBound = false;
 
     // Map of dynamically loaded modules
     std::unordered_map<std::string, int> dynamicPathToHandleMap;
@@ -164,7 +175,9 @@ class WAVMWasmModule final
 
     static WAVM::Runtime::Instance* getWasiModule();
 
-    void doBindToFunction(const faabric::Message& msg, bool executeZygote);
+    void doBindToFunctionInternal(const faabric::Message& msg,
+                                  bool executeZygote,
+                                  bool useCache);
 
     void writeStringArrayToMemory(const std::vector<std::string>& strings,
                                   uint32_t strPoitners,
@@ -178,6 +191,8 @@ class WAVMWasmModule final
 
     void executeWasmConstructorsFunction(WAVM::Runtime::Instance* module);
 
+    void doWAVMGarbageCollection();
+
     WAVM::Runtime::Instance* createModuleInstance(
       const std::string& name,
       const std::string& sharedModulePath);
@@ -189,14 +204,27 @@ class WAVMWasmModule final
 
     WAVM::Runtime::Function* getWasmConstructorsFunction(
       WAVM::Runtime::Instance* module);
-
-    int32_t executeAsOMPThread(int threadPoolIdx,
-                               uint32_t stackTop,
-                               std::shared_ptr<faabric::Message> msg) override;
-
-    int32_t executeAsPthread(uint32_t stackTop,
-                             std::shared_ptr<faabric::Message> msg) override;
 };
+
+class WAVMModuleCache
+{
+  public:
+    wasm::WAVMWasmModule& getCachedModule(const faabric::Message& msg);
+
+    void initialiseCachedModule(const faabric::Message& msg);
+
+    void clear();
+
+    size_t getTotalCachedModuleCount();
+
+  private:
+    std::shared_mutex mx;
+    std::unordered_map<std::string, wasm::WAVMWasmModule> cachedModuleMap;
+
+    int getCachedModuleCount(const std::string& key);
+};
+
+WAVMModuleCache& getWAVMModuleCache();
 
 WAVMWasmModule* getExecutingWAVMModule();
 }

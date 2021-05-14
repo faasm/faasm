@@ -55,21 +55,16 @@ class SGXWAMRWasmModule final : public WasmModule
 
     ~SGXWAMRWasmModule() override;
 
-    void bindToFunction(const faabric::Message& msg) override;
-
-    void bindToFunctionNoZygote(const faabric::Message& msg) override;
+    void doBindToFunction(const faabric::Message& msg, bool cache) override;
 
     bool unbindFunction();
 
-    bool execute(faabric::Message& msg, bool forceNoop = false) override;
-
-    bool isBound() override;
+    int32_t executeFunction(faabric::Message& msg) override;
 
     // TODO: Move in gs/fs
     faaslet_sgx_msg_buffer_t sgxWamrMsgResponse;
 
   private:
-    bool _isBound = false;
     uint32_t threadId = 0;
 };
 }

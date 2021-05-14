@@ -1,10 +1,10 @@
 # Profiling
 
-## High-level 
+## High-level
 
 To get a quick overview of how things are performing you can use
 [Vector](https://github.com/Netflix/vector) and [Performance
-Copilot](https://pcp.io/). 
+Copilot](https://pcp.io/).
 
 Note that at the time of writing (04/2021) the Vector docs talk about
 `pcp-webapi`, but it's been replaced by `pmproxy` which is part of the main
@@ -28,7 +28,7 @@ stress-testing script).
 ## Low-level
 
 Note that although using profilers inside containers is possible, it's best to
-run the on Faasm binaries built and executed outside a container. 
+run the on Faasm binaries built and executed outside a container.
 
 See the [dev docs](development.md) on how to set this up.
 
@@ -44,7 +44,7 @@ you can look at their
 [docs](https://github.com/iovisor/bcc/blob/master/INSTALL.md):
 
 ```
-sudo apt-get install bpfcc-tools linux-headers-$(uname -r) 
+sudo apt-get install bpfcc-tools linux-headers-$(uname -r)
 ```
 
 Set up `perf` to run without `sudo`:
@@ -57,7 +57,7 @@ sudo sysctl -w kernel.kptr_restrict=0
 ## Building LLVM with JIT perf support
 
 You can use perf with a standard Faasm build, but this may have large gaps with
-`perf.<PID>.map`. This is because WAVM uses the LLVM JIT libraries to load and 
+`perf.<PID>.map`. This is because WAVM uses the LLVM JIT libraries to load and
 execute code at runtime, including any WebAssembly.
 
 Unfortunately the default build of the LLVM JIT libraries doesn't include the
@@ -74,7 +74,7 @@ Now you can rebuild the parts of Faasm you're profiling, e.g.
 # Note the --perf here to switch on the build against the custom LLVM
 inv dev.cmake --perf --clean
 
-inv dev.cc simple_runner
+inv dev.cc func_runner
 ```
 
 Note that this will also set `-fno-omit-frame-pointer` to the compile flags
@@ -90,8 +90,8 @@ Once this is done you can use `perf` with JIT symbols as described
 ## perf
 
 ```
-# Standard CPU profiling of 1000 runs of demo/hello
-perf record -k 1 -F 99 -g simple_runner demo hello 1000
+# Standard CPU profiling of demo/hello (too short for meaningful profile)
+perf record -k 1 -F 99 -g func_runner demo hello
 
 # Inject the JIT dumps into perf data
 perf inject -i perf.data -j -o perf.data.jit
@@ -99,7 +99,7 @@ perf inject -i perf.data -j -o perf.data.jit
 # View the report
 perf report -i perf.data.jit
 ```
- 
+
 Note that if the `perf` notifier isn't working, check that the code isn't
 getting excluded by the pre-processor by looking at the WAVM `LLVMModule.cpp`
 file and grepping for `WAVM_PERF_EVENTS`.
@@ -110,15 +110,15 @@ WAVM fork to see the changes that were made.
 
 ## Flame graphs
 
-There is a task in the Faasm CLI for creating 
-[Flame graphs](https://github.com/brendangregg/FlameGraph) which automatically 
+There is a task in the Faasm CLI for creating
+[Flame graphs](https://github.com/brendangregg/FlameGraph) which automatically
 include the disassembled WebAssembly function names.
 
 Note that this requires the custom LLVM build described above.
 
 ```
 # Make sure you can run and disassemble the functions
-inv dev.cc simple_runner
+inv dev.cc func_runner
 inv dev.cc func_sym
 
 # Run the flame graph task (which will run perf, replace symbols etc.)
@@ -132,7 +132,7 @@ You can use the search feature in the flame graph to find things related to wasm
 by searching (Ctrl+F) for `wasm`.
 
 If you want to do custom set-up of a specific function, you can write an adapted
-version of the `simple_runner`, to run your function, then pass it in as a 
+version of the `func_runner`, to run your function, then pass it in as a
 command to `inv flame`:
 
 ```
@@ -149,7 +149,7 @@ WAVM seems to require a large stack, so you'll have to bump up the
 `main-stacksize`. An example run with Callgrind might look like:
 
 ```bash
-valgrind --tool=callgrind --main-stacksize=16777216 simple_runner demo hello
+valgrind --tool=callgrind --main-stacksize=16777216 func_runner demo hello
 ```
 
 Unfortunately we've not yet worked out a way to get valgrind to include the

@@ -3,6 +3,7 @@
 #include "utils.h"
 
 #include <boost/filesystem.hpp>
+
 #include <faabric/util/func.h>
 #include <wavm/WAVMWasmModule.h>
 
@@ -82,13 +83,13 @@ TEST_CASE("Test snapshot and restore for wasm module", "[wasm][snapshot]")
     REQUIRE(nativePtrC[4] == 4);
 
     // Execute all of them
-    bool successA = moduleA.execute(m);
-    REQUIRE(successA);
+    int returnValueA = moduleA.executeFunction(m);
+    REQUIRE(returnValueA == 0);
 
-    bool successB = moduleB.execute(m);
-    REQUIRE(successB);
+    int returnValueB = moduleB.executeFunction(m);
+    REQUIRE(returnValueB == 0);
 
-    bool successC = moduleC.execute(m);
-    REQUIRE(successC);
+    int returnValueC = moduleC.executeFunction(m);
+    REQUIRE(returnValueC == 0);
 }
 }

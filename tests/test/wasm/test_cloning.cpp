@@ -1,8 +1,11 @@
 #include "utils.h"
-#include <WAVM/Runtime/Intrinsics.h>
 #include <catch2/catch.hpp>
+
+#include <WAVM/Runtime/Intrinsics.h>
+
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
+
 #include <wavm/WAVMWasmModule.h>
 
 using namespace wasm;
@@ -16,22 +19,6 @@ void convertMsgToPython(faabric::Message& msg)
     msg.set_user(PYTHON_USER);
     msg.set_function(PYTHON_FUNC);
     msg.set_ispython(true);
-}
-
-TEST_CASE("Test cloning empty modules doesn't break", "[wasm]")
-{
-    cleanSystem();
-
-    WAVMWasmModule moduleA;
-    WAVMWasmModule moduleB(moduleA);
-
-    WAVMWasmModule moduleC;
-    moduleC = moduleA;
-
-    // Check clear-up
-    REQUIRE(moduleA.tearDown());
-    REQUIRE(moduleB.tearDown());
-    REQUIRE(moduleC.tearDown());
 }
 
 void _doChecks(wasm::WAVMWasmModule& moduleA,
@@ -57,7 +44,7 @@ void _doChecks(wasm::WAVMWasmModule& moduleA,
     // Dummy execution initially to avoid any first-time set-up differences
     WAVMWasmModule moduleWarmUp;
     moduleWarmUp.bindToFunction(msgA);
-    moduleWarmUp.execute(msgA);
+    moduleWarmUp.executeFunction(msgA);
 
     // Get the initial mem, brk and table size
     Uptr memBeforeA = Runtime::getMemoryNumPages(moduleA.defaultMemory);
@@ -94,8 +81,8 @@ void _doChecks(wasm::WAVMWasmModule& moduleA,
     REQUIRE(baseA != baseB);
 
     // Execute the function with the first module and check it works
-    bool successA = moduleA.execute(msgA);
-    REQUIRE(successA);
+    int returnValueA = moduleA.executeFunction(msgA);
+    REQUIRE(returnValueA == 0);
 
     if (func == "echo") {
         REQUIRE(msgA.outputdata() == inputA);
@@ -127,8 +114,8 @@ void _doChecks(wasm::WAVMWasmModule& moduleA,
     REQUIRE(tableAfterB1 == tableBeforeA);
 
     // Execute with second module
-    bool successB = moduleB.execute(msgB);
-    REQUIRE(successB);
+    int returnValueB = moduleB.executeFunction(msgB);
+    REQUIRE(returnValueB == 0);
 
     if (func == "echo") {
         REQUIRE(msgB.outputdata() == inputB);
@@ -159,10 +146,6 @@ void _doChecks(wasm::WAVMWasmModule& moduleA,
 
     REQUIRE(tableAfterB2 == tableAfterA2);
     REQUIRE(tableAfterA1 == tableAfterA2);
-
-    // Check successful clean-up
-    REQUIRE(moduleA.tearDown());
-    REQUIRE(moduleB.tearDown());
 }
 
 void _checkCopyConstructor(const std::string& user,
@@ -179,6 +162,7 @@ void _checkCopyConstructor(const std::string& user,
 
     WAVMWasmModule moduleA;
     moduleA.bindToFunction(msgA);
+    REQUIRE(moduleA.isBound());
 
     WAVMWasmModule moduleB(moduleA);
     _doChecks(moduleA, moduleB, user, func, inputA, inputB, isPython);
@@ -242,44 +226,5 @@ TEST_CASE("Test cloned execution on complex module", "[wasm]")
     }
 
     conf.pythonPreload = preloadVal;
-}
-
-TEST_CASE("Test GC on cloned modules without execution")
-{
-    cleanSystem();
-
-    faabric::Message msg = faabric::util::messageFactory("demo", "echo");
-
-    WAVMWasmModule moduleA;
-    moduleA.bindToFunction(msg);
-
-    WAVMWasmModule moduleB(moduleA);
-
-    WAVMWasmModule moduleC = moduleA;
-
-    REQUIRE(moduleA.tearDown());
-    REQUIRE(moduleB.tearDown());
-    REQUIRE(moduleC.tearDown());
-}
-
-TEST_CASE("Test GC on cloned modules with execution")
-{
-    cleanSystem();
-
-    faabric::Message msg = faabric::util::messageFactory("demo", "echo");
-
-    WAVMWasmModule moduleA;
-    moduleA.bindToFunction(msg);
-    moduleA.execute(msg);
-
-    WAVMWasmModule moduleB(moduleA);
-    moduleB.execute(msg);
-
-    WAVMWasmModule moduleC = moduleA;
-    moduleC.execute(msg);
-
-    REQUIRE(moduleA.tearDown());
-    REQUIRE(moduleB.tearDown());
-    REQUIRE(moduleC.tearDown());
 }
 }

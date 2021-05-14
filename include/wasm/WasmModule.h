@@ -12,7 +12,6 @@
 #include <threads/ThreadState.h>
 
 #include <exception>
-#include <future>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -42,15 +41,16 @@
 #define WASM_CTORS_FUNC_NAME "__wasm_call_ctors"
 #define ENTRY_FUNC_NAME "_start"
 
-typedef std::pair<std::promise<int32_t>, threads::OpenMPTask> OpenMPTaskPair;
-typedef std::pair<std::promise<int32_t>, threads::PthreadTask> PthreadTaskPair;
-
-typedef faabric::util::Queue<OpenMPTaskPair> OpenMPQueue;
-typedef faabric::util::Queue<PthreadTaskPair> PthreadQueue;
-
-typedef std::unordered_map<int, OpenMPQueue> OpenMPQueueMap;
-
 namespace wasm {
+
+// Note - avoid a zero default on the thread request type otherwise it can
+// go unset without noticing
+enum ThreadRequestType
+{
+    UNSET = 0,
+    PTHREAD = 1,
+    OPENMP = 2,
+};
 
 bool isWasmPageAligned(int32_t offset);
 
@@ -59,16 +59,30 @@ class WasmModule
   public:
     WasmModule();
 
+    explicit WasmModule(int threadPoolSizeIn);
+
     virtual ~WasmModule();
 
     // ----- Module lifecycle -----
-    virtual void bindToFunction(const faabric::Message& msg);
+    virtual void reset(const faabric::Message& msg);
 
-    virtual void bindToFunctionNoZygote(const faabric::Message& msg);
+    void bindToFunction(const faabric::Message& msg, bool cache = true);
 
-    virtual bool execute(faabric::Message& msg, bool forceNoop = false);
+    int32_t executeTask(int threadPoolIdx,
+                        int msgIdx,
+                        std::shared_ptr<faabric::BatchExecuteRequest> req);
 
-    virtual bool isBound();
+    virtual int32_t executeFunction(faabric::Message& msg);
+
+    virtual int32_t executeOMPThread(int threadPoolIdx,
+                                     uint32_t stackTop,
+                                     faabric::Message& msg);
+
+    virtual int32_t executePthread(int threadPoolIdx,
+                                   uint32_t stackTop,
+                                   faabric::Message& msg);
+
+    bool isBound();
 
     std::string getBoundUser();
 
@@ -133,48 +147,24 @@ class WasmModule
     // ----- Debugging -----
     virtual void printDebugInfo();
 
-    // ----- Threading -----
-    std::future<int32_t> executeOpenMPTask(threads::OpenMPTask t);
-
-    std::future<int32_t> executePthreadTask(threads::PthreadTask t);
-
-    void shutdownOpenMPThreads();
-
-    void shutdownPthreads();
-
-    virtual int32_t executeAsOMPThread(int threadPoolIdx,
-                                       uint32_t stackTop,
-                                       std::shared_ptr<faabric::Message> msg);
-
-    virtual int32_t executeAsPthread(uint32_t stackTop,
-                                     std::shared_ptr<faabric::Message> msg);
-
     threads::MutexManager& getMutexes();
 
   protected:
     uint32_t currentBrk = 0;
 
     std::string boundUser;
-
     std::string boundFunction;
+    bool _isBound = false;
 
     storage::FileSystem filesystem;
 
     WasmEnvironment wasmEnvironment;
 
-    int stdoutMemFd;
-    ssize_t stdoutSize;
+    int stdoutMemFd = 0;
+    ssize_t stdoutSize = 0;
 
-    uint32_t threadPoolSize = 0;
+    int threadPoolSize = 0;
     std::vector<uint32_t> threadStacks;
-
-    OpenMPQueueMap openMPTaskQueueMap;
-    PthreadQueue pthreadTaskQueue;
-
-    std::unordered_map<int, std::thread> openMPThreads;
-    std::vector<std::thread> pthreads;
-
-    std::mutex threadsMutex;
 
     threads::MutexManager mutexes;
 
@@ -195,14 +185,17 @@ class WasmModule
 
     virtual uint8_t* getMemoryBase();
 
+    // Module-specific binding
+    virtual void doBindToFunction(const faabric::Message& msg, bool cache);
+
     // Threads
     void createThreadStacks();
 };
 
 // ----- Global functions -----
-faabric::Message* getExecutingCall();
+void setExecutingCall(faabric::Message* call);
 
-void setExecutingCall(faabric::Message* other);
+faabric::Message* getExecutingCall();
 
 void setExecutingModule(wasm::WasmModule* module);
 

@@ -1,11 +1,16 @@
 #include <catch2/catch.hpp>
 
-#include "conf/FaasmConfig.h"
-#include "faabric/util/environment.h"
 #include "utils.h"
 
+#include <faabric/proto/faabric.pb.h>
+#include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
+#include <faabric/util/config.h>
+#include <faabric/util/environment.h>
 #include <faabric/util/func.h>
+
+// Longer timeout to allow longer-running functions to finish
+#define OMP_TEST_TIMEOUT_MS 10000
 
 namespace tests {
 
@@ -13,22 +18,15 @@ void doOmpTestLocal(const std::string& function)
 {
     cleanSystem();
 
-    faabric::snapshot::SnapshotRegistry& reg =
-      faabric::snapshot::getSnapshotRegistry();
-    REQUIRE(reg.getSnapshotCount() == 0);
-
     // Make sure we have enough thread pool capacity
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
-    int32_t defaultPoolSize = conf.moduleThreadPoolSize;
-    conf.moduleThreadPoolSize = 15;
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    int32_t initialCpu = conf.overrideCpuCount;
+    conf.overrideCpuCount = 15;
 
     faabric::Message msg = faabric::util::messageFactory("omp", function);
-    execFunction(msg);
+    execFuncWithPool(msg, false, OMP_TEST_TIMEOUT_MS);
 
-    // Check only the main snapshot exists
-    REQUIRE(reg.getSnapshotCount() == 1);
-
-    conf.moduleThreadPoolSize = defaultPoolSize;
+    conf.overrideCpuCount = initialCpu;
 }
 
 TEST_CASE("Test static for scheduling", "[wasm][openmp]")
@@ -66,13 +64,7 @@ TEST_CASE("Test simple reduction function", "[wasm][openmp]")
     doOmpTestLocal("simple_reduce");
 }
 
-TEST_CASE("Test averaging with different methods (atomic RR and reduction)",
-          "[wasm][openmp]")
-{
-    doOmpTestLocal("reduction_average");
-}
-
-TEST_CASE("Test integrating using many OpenMP constructs", "[wasm][openmp]")
+TEST_CASE("Test integrating using different constructs", "[wasm][openmp]")
 {
     doOmpTestLocal("reduction_integral");
 }
@@ -107,8 +99,7 @@ TEST_CASE("Test openmp Pi calculation", "[wasm][openmp]")
     doOmpTestLocal("mt_pi");
 }
 
-TEST_CASE("Test proper handling of getting and setting next level num threads",
-          "[wasm][openmp]")
+TEST_CASE("Test getting and setting num threads", "[wasm][openmp]")
 {
     doOmpTestLocal("setting_num_threads");
 }
@@ -130,16 +121,21 @@ TEST_CASE("Test more complex reduction", "[wasm][openmp]")
 
 TEST_CASE("Run openmp memory stress test", "[wasm][openmp]")
 {
-    // Overload the number of cores, and run several times to make sure we
-    // stress enough to flush out errors. Should be smaller than number of
-    // iterations in function though
-    int nCores = 50;
-    faabric::Message msg = faabric::util::messageFactory("omp", "mem_stress");
-    msg.set_cmdline(std::to_string(nCores));
+    cleanSystem();
 
-    for (int i = 0; i < 5; i++) {
-        cleanSystem();
-        execFunction(msg);
-    }
+    // Overload the local resources
+    int nSlots = 15;
+    int nOmpThreads = 60;
+
+    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
+    faabric::HostResources res;
+    res.set_slots(nSlots);
+    sch.setThisHostResources(res);
+
+    // Overload the number of cores
+    faabric::Message msg = faabric::util::messageFactory("omp", "mem_stress");
+    msg.set_cmdline(std::to_string(nOmpThreads));
+
+    execFuncWithPool(msg, false, OMP_TEST_TIMEOUT_MS);
 }
 }

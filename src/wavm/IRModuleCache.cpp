@@ -1,5 +1,3 @@
-#include "IRModuleCache.h"
-
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
 
@@ -11,6 +9,7 @@
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
 #include <storage/FileLoader.h>
+#include <wavm/IRModuleCache.h>
 
 namespace wasm {
 IRModuleCache::IRModuleCache()
@@ -42,13 +41,13 @@ std::string getModuleKey(const std::string& user,
 
 int IRModuleCache::getModuleCount(const std::string& key)
 {
-    faabric::util::SharedLock lock(registryMutex);
+    faabric::util::SharedLock lock(mx);
     return moduleMap.count(key);
 }
 
 int IRModuleCache::getCompiledModuleCount(const std::string& key)
 {
-    faabric::util::SharedLock lock(registryMutex);
+    faabric::util::SharedLock lock(mx);
     return compiledModuleMap.count(key);
 }
 
@@ -114,7 +113,7 @@ Runtime::ModuleRef IRModuleCache::getCompiledMainModule(const std::string& user,
     const std::string key = getModuleKey(user, func, "");
 
     if (getCompiledModuleCount(key) == 0) {
-        faabric::util::FullLock registryLock(registryMutex);
+        faabric::util::FullLock registryLock(mx);
         if (compiledModuleMap.count(key) == 0) {
             IR::Module& module = getModuleFromMap(key);
 
@@ -146,7 +145,7 @@ Runtime::ModuleRef IRModuleCache::getCompiledSharedModule(
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     if (getCompiledModuleCount(key) == 0) {
-        faabric::util::FullLock registryLock(registryMutex);
+        faabric::util::FullLock registryLock(mx);
         if (compiledModuleMap.count(key) == 0) {
             logger->debug(
               "Loading compiled shared module {}/{} - {}", user, func, path);
@@ -175,7 +174,7 @@ IR::Module& IRModuleCache::getMainModule(const std::string& user,
 
     // Check if initialised
     if (getModuleCount(key) == 0) {
-        faabric::util::FullLock registryLock(registryMutex);
+        faabric::util::FullLock registryLock(mx);
         if (moduleMap.count(key) == 0) {
             logger->debug("Loading main module {}/{}", user, func);
 
@@ -225,7 +224,7 @@ IR::Module& IRModuleCache::getSharedModule(const std::string& user,
 
     // Check if initialised
     if (getModuleCount(key) == 0) {
-        faabric::util::FullLock lock(registryMutex);
+        faabric::util::FullLock lock(mx);
         if (moduleMap.count(key) == 0) {
             logger->debug("Loading shared module {}/{} - {}", user, func, path);
 
@@ -294,7 +293,7 @@ bool IRModuleCache::isCompiledModuleCached(const std::string& user,
 
 void IRModuleCache::clear()
 {
-    faabric::util::FullLock lock(registryMutex);
+    faabric::util::FullLock lock(mx);
 
     auto logger = faabric::util::getLogger();
     logger->debug("Clearing IR cache");

@@ -9,12 +9,14 @@
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 #include <faabric/util/locks.h>
+#include <faabric/util/macros.h>
 #include <faabric/util/memory.h>
 #include <faabric/util/timing.h>
-#include <ir_cache/IRModuleCache.h>
+
 #include <storage/SharedFiles.h>
 #include <threads/ThreadState.h>
 #include <wasm/WasmModule.h>
+#include <wavm/IRModuleCache.h>
 #include <wavm/WAVMWasmModule.h>
 
 #include <Runtime/RuntimePrivate.h>
@@ -61,10 +63,28 @@ static void instantiateBaseModules()
     PROF_END(BaseWasiModule)
 }
 
+void WAVMWasmModule::reset(const faabric::Message& msg)
+{
+    if (!_isBound) {
+        return;
+    }
+
+    assert(msg.user() == boundUser);
+    assert(msg.function() == boundFunction);
+
+    std::string funcStr = faabric::util::funcToString(msg, true);
+    faabric::util::getLogger()->debug(
+      "{} Resetting after {}", gettid(), funcStr);
+    wasm::WAVMWasmModule& cachedModule =
+      wasm::getWAVMModuleCache().getCachedModule(msg);
+
+    clone(cachedModule);
+}
+
 void WAVMWasmModule::flush()
 {
-    IRModuleCache& cache = getIRModuleCache();
-    cache.clear();
+    getIRModuleCache().clear();
+    getWAVMModuleCache().clear();
 }
 
 Runtime::Instance* WAVMWasmModule::getEnvModule()
@@ -84,14 +104,11 @@ WAVMWasmModule* getExecutingWAVMModule()
     return reinterpret_cast<WAVMWasmModule*>(getExecutingModule());
 }
 
-WAVMWasmModule::WAVMWasmModule()
-{
-    stdoutMemFd = 0;
-    stdoutSize = 0;
+WAVMWasmModule::WAVMWasmModule() {}
 
-    // Prepare OpenMP context cache
-    openMPContexts = std::vector<Runtime::Context*>(threadPoolSize, nullptr);
-}
+WAVMWasmModule::WAVMWasmModule(int threadPoolSizeIn)
+  : WasmModule(threadPoolSizeIn)
+{}
 
 WAVMWasmModule& WAVMWasmModule::operator=(const WAVMWasmModule& other)
 {
@@ -120,10 +137,13 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
     // If bound, we want to reclaim all the memory we've created _before_
     // cloning from the zygote otherwise it's lost forever
     if (_isBound) {
-        tearDown();
+        doWAVMGarbageCollection();
     }
 
-    baseSnapshotKey = other.baseSnapshotKey;
+    if (!other._isBound) {
+        throw std::runtime_error("Binding from unbound module");
+    }
+
     _isBound = other._isBound;
     boundUser = other.boundUser;
     boundFunction = other.boundFunction;
@@ -138,13 +158,7 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
     // each module will have its own thread pool
     threadPoolSize = other.threadPoolSize;
     threadStacks = other.threadStacks;
-
-    openMPThreads.clear();
-    openMPTaskQueueMap.clear();
     openMPContexts = std::vector<Runtime::Context*>(threadPoolSize, nullptr);
-
-    pthreads.clear();
-    pthreadTaskQueue.reset();
 
     mutexes.clear();
 
@@ -153,18 +167,10 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
     stdoutSize = 0;
 
     if (other._isBound) {
-        bool restoreFromBaseSnapshot = !baseSnapshotKey.empty();
+        assert(other.compartment != nullptr);
 
-        // If we're going to be restoring from a snapshot, we don't need to
-        // clone memory
-        if (restoreFromBaseSnapshot) {
-            // Clone compartment excluding memory
-            compartment =
-              Runtime::cloneCompartment(other.compartment, "", false);
-        } else {
-            // Clone compartment including memory
-            compartment = Runtime::cloneCompartment(other.compartment);
-        }
+        // Clone compartment
+        compartment = Runtime::cloneCompartment(other.compartment);
 
         // Clone context
         executionContext =
@@ -181,11 +187,6 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
         // Extract the memory and table again
         defaultMemory = Runtime::getDefaultMemory(moduleInstance);
         defaultTable = Runtime::getDefaultTable(moduleInstance);
-
-        // Restore memory from snapshot
-        if (restoreFromBaseSnapshot) {
-            restore(baseSnapshotKey);
-        }
 
         // Reset shared memory variables
         sharedMemWasmPtrs = other.sharedMemWasmPtrs;
@@ -210,37 +211,21 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
 
 WAVMWasmModule::~WAVMWasmModule()
 {
-    tearDown();
+    // Note - the only need for this destructor is to perform the WAVM-related
+    // GC, do not add anything else here.
+    doWAVMGarbageCollection();
 }
 
-bool WAVMWasmModule::tearDown()
+void WAVMWasmModule::doWAVMGarbageCollection()
 {
-    PROF_START(wasmTearDown)
-
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-
-    // --- Faasm stuff ---
-    // Shared mem
-    sharedMemWasmPtrs.clear();
-
-    // Dynamic modules
-    globalOffsetTableMap.clear();
-    globalOffsetMemoryMap.clear();
-    missingGlobalOffsetEntries.clear();
-
-    dynamicPathToHandleMap.clear();
+    // To allow WAVM to perform GC, we need to ensure all of our own copies of
+    // WAVM GCPointers have been set to nullptr, so that WAVM's own refcounts
+    // will be zero. We can then call its GC method directly.
     for (auto const& m : dynamicModuleMap) {
         dynamicModuleMap[m.first].ptr = nullptr;
     }
     dynamicModuleMap.clear();
 
-    // Threads
-    shutdownOpenMPThreads();
-    shutdownPthreads();
-
-    // --- WAVM stuff ---
-
-    // Set all reference to GC pointers to null to allow WAVM GC to clear up
     defaultMemory = nullptr;
     defaultTable = nullptr;
     moduleInstance = nullptr;
@@ -250,26 +235,14 @@ bool WAVMWasmModule::tearDown()
 
     executionContext = nullptr;
 
-    if (compartment == nullptr) {
-        return true;
+    if (compartment != nullptr) {
+        // Release build complains that this is unused as the assertion is
+        // removed
+        bool compartmentCleared =
+          Runtime::tryCollectCompartment(std::move(compartment));
+        UNUSED(compartmentCleared);
+        assert(compartmentCleared);
     }
-
-    bool compartmentCleared =
-      Runtime::tryCollectCompartment(std::move(compartment));
-    if (!compartmentCleared) {
-        logger->warn("Failed GC for compartment");
-    } else {
-        logger->debug("Successful GC for compartment");
-    }
-
-    PROF_END(wasmTearDown)
-
-    return compartmentCleared;
-}
-
-bool WAVMWasmModule::isBound()
-{
-    return _isBound;
 }
 
 Runtime::Function* WAVMWasmModule::getFunction(Runtime::Instance* module,
@@ -382,13 +355,12 @@ void WAVMWasmModule::addModuleToGOT(IR::Module& mod, bool isMainModule)
     }
 }
 
-void WAVMWasmModule::executeFunction(
+void WAVMWasmModule::executeWasmFunction(
   WAVM::Runtime::Context* ctx,
   WAVM::Runtime::Function* func,
   const std::vector<WAVM::IR::UntaggedValue>& arguments,
   WAVM::IR::UntaggedValue& result)
 {
-    // Note the need to set the currently executing module
     setExecutingModule(this);
 
     const IR::FunctionType funcType = Runtime::getFunctionType(func);
@@ -396,22 +368,21 @@ void WAVMWasmModule::executeFunction(
     Runtime::invokeFunction(ctx, func, funcType, arguments.data(), &result);
 }
 
-void WAVMWasmModule::executeFunction(
+void WAVMWasmModule::executeWasmFunction(
   Runtime::Function* func,
   const std::vector<IR::UntaggedValue>& arguments,
   IR::UntaggedValue& result)
 {
     const IR::FunctionType funcType = Runtime::getFunctionType(func);
-    executeFunction(func, funcType, arguments, result);
+    executeWasmFunction(func, funcType, arguments, result);
 }
 
-void WAVMWasmModule::executeFunction(
+void WAVMWasmModule::executeWasmFunction(
   Runtime::Function* func,
   IR::FunctionType funcType,
   const std::vector<IR::UntaggedValue>& arguments,
   IR::UntaggedValue& result)
 {
-    // Note the need to set the currently executing module
     setExecutingModule(this);
 
     // Function expects a result array so pass pointer to single value
@@ -419,35 +390,32 @@ void WAVMWasmModule::executeFunction(
       executionContext, func, funcType, arguments.data(), &result);
 }
 
-void WAVMWasmModule::bindToFunction(const faabric::Message& msg)
+void WAVMWasmModule::doBindToFunction(const faabric::Message& msg, bool cache)
 {
-    doBindToFunction(msg, true);
+    doBindToFunctionInternal(msg, true, cache);
 }
 
 void WAVMWasmModule::bindToFunctionNoZygote(const faabric::Message& msg)
 {
-    doBindToFunction(msg, false);
+    doBindToFunctionInternal(msg, false, true);
 }
 
-void WAVMWasmModule::doBindToFunction(const faabric::Message& msg,
-                                      bool executeZygote)
+void WAVMWasmModule::doBindToFunctionInternal(const faabric::Message& msg,
+                                              bool executeZygote,
+                                              bool useCache)
 {
     /*
      * NOTE - the order things happen in this function is important.
      * The zygote function may execute non-trivial code and modify the memory,
      * but in order to work it needs the memory etc. to be set up.
      */
-
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    if (_isBound) {
-        throw std::runtime_error("Cannot bind a module twice");
+    if (useCache) {
+        wasm::WAVMModuleCache& cache = getWAVMModuleCache();
+        clone(cache.getCachedModule(msg));
+        return;
     }
 
-    // Record that this module is now bound
-    _isBound = true;
-
-    boundUser = msg.user();
-    boundFunction = msg.function();
+    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     // Set up the compartment and context
     PROF_START(wasmContext)
@@ -471,8 +439,11 @@ void WAVMWasmModule::doBindToFunction(const faabric::Message& msg,
     // We have to set the current brk before executing any code
     currentBrk = getMemorySizeBytes();
 
-    // Allocate a pool of thread stacks
+    // Set up thread stacks
     createThreadStacks();
+
+    // Allocate a pool of OpenMP contexts
+    openMPContexts = std::vector<Runtime::Context*>(threadPoolSize, nullptr);
 
     // Execute the wasm ctors function. This is a hook generated by the linker
     // that lets things set up the environment (e.g. handling preopened
@@ -504,11 +475,6 @@ void WAVMWasmModule::doBindToFunction(const faabric::Message& msg,
                   initialMemorySize,
                   initialMemoryPages,
                   initialTableSize);
-
-    // Now that we know everything is set up, we can create the base snapshot
-    if (baseSnapshotKey.empty()) {
-        baseSnapshotKey = snapshot();
-    }
 
     PROF_END(wasmBind)
 }
@@ -652,10 +618,10 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
                         std::move(linkResult.resolvedImports),
                         name.c_str());
 
-    logger->info("Finished instantiating module {}/{}  {}",
-                 boundUser,
-                 boundFunction,
-                 sharedModulePath);
+    logger->debug("Finished instantiating module {}/{}  {}",
+                  boundUser,
+                  boundFunction,
+                  sharedModulePath);
 
     // Here there may be some entries missing from the GOT that we need to
     // patch up. They may be exported from the dynamic module itself. I
@@ -851,29 +817,13 @@ uint32_t WAVMWasmModule::addFunctionToTable(Runtime::Object* exportedFunc)
     return prevIdx;
 }
 
-/**
- * Executes the given function call
- */
-bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
+int32_t WAVMWasmModule::executeFunction(faabric::Message& msg)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-
     if (!_isBound) {
-        throw std::runtime_error(
-          "WasmModule must be bound before executing function");
-    } else {
-        if (boundUser != msg.user() || boundFunction != msg.function()) {
-            const std::string funcStr = faabric::util::funcToString(msg, true);
-            logger->error("Cannot execute {} on module bound to {}/{}",
-                          funcStr,
-                          boundUser,
-                          boundFunction);
-            throw std::runtime_error(
-              "Cannot execute function on module bound to another");
-        }
+        throw std::runtime_error("Module must be bound before executing");
     }
 
-    setExecutingModule(this);
+    const auto& logger = faabric::util::getLogger();
     setExecutingCall(&msg);
 
     // Ensure Python function file in place (if necessary)
@@ -882,15 +832,6 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
     // Restore from snapshot before executing if necessary
     if (!msg.snapshotkey().empty()) {
         restore(msg.snapshotkey());
-    }
-
-    // Set up OMP
-    threads::setUpOpenMPContext(msg);
-
-    // Executes OMP fork message if necessary
-    if (msg.ompdepth() > 0) {
-        // TODO - reimplement this call to execute a remote OpenMP thread
-        throw std::runtime_error("Not yet implemented remote OpenMP");
     }
 
     int funcPtr = msg.funcptr();
@@ -938,55 +879,44 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
 
     // Call the function
     int returnValue = 0;
-    bool success = true;
-    if (forceNoop) {
-        logger->debug("NOTE: Explicitly forcing a noop");
-    } else {
+    try {
+        Runtime::catchRuntimeExceptions(
+          [this, &funcInstance, &funcType, &invokeArgs, &returnValue] {
+              IR::UntaggedValue result;
+              executeWasmFunction(funcInstance, funcType, invokeArgs, result);
 
-        try {
-            Runtime::catchRuntimeExceptions(
-              [this,
-               &funcInstance,
-               &funcType,
-               &invokeArgs,
-               &returnValue,
-               &logger] {
-                  logger->debug("Invoking C/C++ function");
-
-                  IR::UntaggedValue result;
-
-                  executeFunction(funcInstance, funcType, invokeArgs, result);
-
-                  returnValue = result.i32;
-              },
-              [&logger, &success, &returnValue](Runtime::Exception* ex) {
-                  logger->error("Runtime exception: {}",
-                                Runtime::describeException(ex).c_str());
-                  Runtime::destroyException(ex);
-                  success = false;
-                  returnValue = 1;
-              });
-        } catch (WasmExitException& e) {
-            logger->debug(
-              "Caught wasm exit exception from main thread (code {})",
-              e.exitCode);
-            returnValue = e.exitCode;
-            success = e.exitCode == 0;
-        }
+              returnValue = result.i32;
+          },
+          [&logger, &returnValue](Runtime::Exception* ex) {
+              logger->error("Runtime exception: {}",
+                            Runtime::describeException(ex).c_str());
+              Runtime::destroyException(ex);
+              returnValue = 1;
+          });
+    } catch (WasmExitException& e) {
+        logger->debug("Caught wasm exit exception from main thread (code {})",
+                      e.exitCode);
+        returnValue = e.exitCode;
     }
 
     // Record the return value
     msg.set_returnvalue(returnValue);
 
-    return success;
+    return returnValue;
 }
 
-int32_t WAVMWasmModule::executeAsPthread(uint32_t stackTop,
-                                         std::shared_ptr<faabric::Message> msg)
+int32_t WAVMWasmModule::executePthread(int threadPoolIdx,
+                                       uint32_t stackTop,
+                                       faabric::Message& msg)
 {
-    Runtime::Function* funcInstance = getFunctionFromPtr(msg->funcptr());
+    const auto& logger = faabric::util::getLogger();
+    std::string funcStr = faabric::util::funcToString(msg, false);
 
-    int argsPtr = std::stoi(msg->inputdata());
+    logger->debug("Executing pthread {} for {}", threadPoolIdx, funcStr);
+
+    Runtime::Function* funcInstance = getFunctionFromPtr(msg.funcptr());
+
+    int argsPtr = std::stoi(msg.inputdata());
     std::vector<IR::UntaggedValue> invokeArgs = { argsPtr };
 
     Runtime::ContextRuntimeData* contextRuntimeData =
@@ -996,27 +926,30 @@ int32_t WAVMWasmModule::executeAsPthread(uint32_t stackTop,
     Runtime::Context* threadContext =
       createThreadContext(stackTop, contextRuntimeData);
 
-    // Record the return value
+    // Execute the function
     IR::UntaggedValue returnValue;
-    executeFunction(threadContext, funcInstance, invokeArgs, returnValue);
-    msg->set_returnvalue(returnValue.i32);
+    executeWasmFunction(threadContext, funcInstance, invokeArgs, returnValue);
+    msg.set_returnvalue(returnValue.i32);
 
     return returnValue.i32;
 }
 
-int32_t WAVMWasmModule::executeAsOMPThread(
-  int threadPoolIdx,
-  uint32_t stackTop,
-  std::shared_ptr<faabric::Message> msg)
+int32_t WAVMWasmModule::executeOMPThread(int threadPoolIdx,
+                                         uint32_t stackTop,
+                                         faabric::Message& msg)
 {
-    Runtime::Function* funcInstance = getFunctionFromPtr(msg->funcptr());
-    int threadNum = msg->ompthreadnum();
-    int argc = msg->ompfunctionargs_size();
+    Runtime::Function* funcInstance = getFunctionFromPtr(msg.funcptr());
+
+    const auto& logger = faabric::util::getLogger();
+    std::string funcStr = faabric::util::funcToString(msg, false);
+    logger->debug("Executing OpenMP thread {} for {}", threadPoolIdx, funcStr);
 
     // Set up function args
-    std::vector<IR::UntaggedValue> invokeArgs = { threadNum, argc };
+    std::shared_ptr<threads::Level> ompLevel = threads::getCurrentOpenMPLevel();
+    int argc = ompLevel->nSharedVarOffsets;
+    std::vector<IR::UntaggedValue> invokeArgs = { msg.appindex(), argc };
     for (int argIdx = 0; argIdx < argc; argIdx++) {
-        invokeArgs.emplace_back(msg->ompfunctionargs(argIdx));
+        invokeArgs.emplace_back(ompLevel->sharedVarOffsets[argIdx]);
     }
 
     Runtime::ContextRuntimeData* contextRuntimeData =
@@ -1026,12 +959,12 @@ int32_t WAVMWasmModule::executeAsOMPThread(
         openMPContexts.at(threadPoolIdx) =
           createThreadContext(stackTop, contextRuntimeData);
     }
+    Runtime::Context* ctx = openMPContexts.at(threadPoolIdx);
 
-    // Record the return value
+    // Execute the wasm function
     IR::UntaggedValue returnValue;
-    executeFunction(
-      openMPContexts[threadPoolIdx], funcInstance, invokeArgs, returnValue);
-    msg->set_returnvalue(returnValue.i32);
+    executeWasmFunction(ctx, funcInstance, invokeArgs, returnValue);
+    msg.set_returnvalue(returnValue.i32);
 
     return returnValue.i32;
 }
@@ -1088,7 +1021,7 @@ U32 WAVMWasmModule::growMemory(U32 nBytes)
 
     // If we can reclaim old memory, just bump the break
     if (newBrk <= oldBytes) {
-        logger->debug(
+        logger->trace(
           "MEM - Growing memory using already provisioned {} + {} <= {}",
           oldBrk,
           nBytes,
@@ -1148,7 +1081,7 @@ U32 WAVMWasmModule::growMemory(U32 nBytes)
         }
     }
 
-    logger->debug(
+    logger->trace(
       "MEM - Growing memory from {} to {} pages", oldPages, newPages);
 
     // Get offset of bottom of new range
@@ -1198,7 +1131,7 @@ uint32_t WAVMWasmModule::shrinkMemory(U32 nBytes)
     U32 oldBrk = currentBrk;
     U32 newBrk = currentBrk - nBytes;
 
-    logger->debug("MEM - shrinking memory {} -> {}", oldBrk, newBrk);
+    logger->trace("MEM - shrinking memory {} -> {}", oldBrk, newBrk);
     currentBrk = newBrk;
 
     return oldBrk;
@@ -1231,7 +1164,7 @@ void WAVMWasmModule::unmapMemory(U32 offset, U32 nBytes)
     }
 
     if (unmapTop == currentBrk) {
-        logger->debug("MEM - munmapping top of memory by {}", pageAligned);
+        logger->trace("MEM - munmapping top of memory by {}", pageAligned);
         shrinkMemory(pageAligned);
     } else {
         logger->warn("MEM - unable to reclaim unmapped memory {} at {}",
@@ -1458,6 +1391,10 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
     if (resolved) {
         if (isA(resolved, type)) {
             return true;
+        } else if (name == "__indirect_function_table") {
+            // We handle the indirect_function_table ourselves, so we can ignore
+            // resolution errors here.
+            return true;
         } else {
             IR::ExternType resolvedType = Runtime::getExternType(resolved);
             logger->error("Resolved import {}.{} to a {}, but was expecting {}",
@@ -1465,7 +1402,8 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
                           name.c_str(),
                           asString(resolvedType).c_str(),
                           asString(type).c_str());
-            return false;
+
+            throw std::runtime_error("Error resolving import");
         }
     }
 
@@ -1592,7 +1530,7 @@ void WAVMWasmModule::executeZygoteFunction()
     if (zygoteFunc) {
         IR::UntaggedValue result;
         const IR::FunctionType funcType = Runtime::getFunctionType(zygoteFunc);
-        executeFunction(zygoteFunc, funcType, {}, result);
+        executeWasmFunction(zygoteFunc, funcType, {}, result);
 
         if (result.i32 != 0) {
             logger->error("Zygote for {}/{} failed with return code {}",
@@ -1621,8 +1559,8 @@ void WAVMWasmModule::executeWasmConstructorsFunction(Runtime::Instance* module)
     }
 
     IR::UntaggedValue result;
-    executeFunction(wasmCtorsFunction, IR::FunctionType({}, {}), {}, result);
-
+    executeWasmFunction(
+      wasmCtorsFunction, IR::FunctionType({}, {}), {}, result);
     if (result.i32 != 0) {
         logger->error("{} for {}/{} failed with return code {}",
                       WASM_CTORS_FUNC_NAME,
@@ -1631,7 +1569,8 @@ void WAVMWasmModule::executeWasmConstructorsFunction(Runtime::Instance* module)
                       result.i32);
         throw std::runtime_error(std::string(WASM_CTORS_FUNC_NAME) + " failed");
     } else {
-        logger->debug("Successfully executed {} for {}/{}",
+        logger->debug("{} Successfully executed {} for {}/{}",
+                      gettid(),
                       WASM_CTORS_FUNC_NAME,
                       boundUser,
                       boundFunction);

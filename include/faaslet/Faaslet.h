@@ -1,41 +1,50 @@
 #pragma once
 
-#include <system/NetworkNamespace.h>
-
-#include <faabric/executor/FaabricExecutor.h>
+#include <faabric/scheduler/ExecutorFactory.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/func.h>
+#include <system/NetworkNamespace.h>
 
 #include <wasm/WasmModule.h>
 
 #include <string>
 
 namespace faaslet {
-class Faaslet final : public faabric::executor::FaabricExecutor
+
+class Faaslet final : public faabric::scheduler::Executor
 {
   public:
-    explicit Faaslet(int threadIdx);
+    explicit Faaslet(const faabric::Message& msg);
 
     std::unique_ptr<wasm::WasmModule> module;
 
     void flush() override;
 
+    void reset(const faabric::Message& msg) override;
+
+    int32_t executeTask(
+      int threadPoolIdx,
+      int msgIdx,
+      std::shared_ptr<faabric::BatchExecuteRequest> req) override;
+
   protected:
-    void postBind(const faabric::Message& msg, bool force) override;
-
-    bool doExecute(faabric::Message& call) override;
-
-    void preFinishCall(faabric::Message& call,
-                       bool success,
-                       const std::string& errorMsg) override;
-
     void postFinish() override;
 
+    void restore(const faabric::Message& call) override;
+
   private:
-    int isolationIdx;
-    std::unique_ptr<isolation::NetworkNamespace> ns;
+    std::shared_ptr<isolation::NetworkNamespace> ns;
+};
+
+class FaasletFactory final : public faabric::scheduler::ExecutorFactory
+{
+  public:
+    ~FaasletFactory();
+
+  protected:
+    std::shared_ptr<faabric::scheduler::Executor> createExecutor(
+      const faabric::Message& msg);
 };
 
 void preloadPythonRuntime();
-
 }

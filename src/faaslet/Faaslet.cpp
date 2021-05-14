@@ -1,17 +1,18 @@
-#include "Faaslet.h"
+#include <faaslet/Faaslet.h>
 
-#include <stdexcept>
 #include <system/CGroup.h>
 #include <system/NetworkNamespace.h>
+#include <threads/ThreadState.h>
+#include <wamr/WAMRWasmModule.h>
+#include <wavm/WAVMWasmModule.h>
 
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/config.h>
+#include <faabric/util/environment.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/timing.h>
-#include <module_cache/WasmModuleCache.h>
 
-#include <wamr/WAMRWasmModule.h>
-#include <wavm/WAVMWasmModule.h>
+#include <stdexcept>
 
 #if (FAASM_SGX)
 #include <sgx/SGXWAMRWasmModule.h>
@@ -55,8 +56,9 @@ void Faaslet::flush()
     auto logger = faabric::util::getLogger();
     logger->debug("Faaslet {} flushing", id);
 
-    // Note that all warm Faaslets on the given host will be flushing at the
-    // same time, so we need to include some locking.
+    // Note that all Faaslets on the given host will be flushing at the same
+    // time, so we need to include some locking. They will also be killed
+    // shortly after.
     // TODO avoid repeating global tidy-up that only needs to be done once
     faabric::util::UniqueLock lock(flushMutex);
 
@@ -68,70 +70,13 @@ void Faaslet::flush()
     fileLoader.flushFunctionFiles();
 
     // Flush the module itself
-    if (_isBound) {
-        module->flush();
-    }
-
-    // Clear module cache on this host
-    module_cache::getWasmModuleCache().clear();
-
-    // Terminate this Faaslet
-    throw faabric::util::ExecutorFinishedException("Faaslet flushed");
+    module->flush();
 }
 
-Faaslet::Faaslet(int threadIdxIn)
-  : FaabricExecutor(threadIdxIn)
-{
-    // Set up network namespace
-    isolationIdx = threadIdx + 1;
-    std::string netnsName = BASE_NETNS_NAME + std::to_string(isolationIdx);
-    ns = std::make_unique<NetworkNamespace>(netnsName);
-    ns->addCurrentThread();
-
-    // Add this thread to the cgroup
-    CGroup cgroup(BASE_CGROUP_NAME);
-    cgroup.addCurrentThread();
-}
-
-void Faaslet::postFinish()
-{
-    ns->removeCurrentThread();
-}
-
-void Faaslet::preFinishCall(faabric::Message& call,
-                            bool success,
-                            const std::string& errorMsg)
-{
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    const std::string funcStr = faabric::util::funcToString(call, true);
-
-    // Add captured stdout if necessary
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    if (conf.captureStdout == "on") {
-        std::string moduleStdout = module->getCapturedStdout();
-        if (!moduleStdout.empty()) {
-            std::string newOutput = moduleStdout + "\n" + call.outputdata();
-            call.set_outputdata(newOutput);
-
-            module->clearCapturedStdout();
-        }
-    }
-
-    if (conf.wasmVm == "wavm") {
-        logger->debug("Resetting module {} from zygote", funcStr);
-
-        // Restore from zygote
-        wasm::WAVMWasmModule& cachedModule =
-          module_cache::getWasmModuleCache().getCachedModule(call);
-        module = std::make_unique<wasm::WAVMWasmModule>(cachedModule);
-    }
-}
-
-void Faaslet::postBind(const faabric::Message& msg, bool force)
+Faaslet::Faaslet(const faabric::Message& msg)
+  : Executor(msg)
 {
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    auto logger = faabric::util::getLogger();
-    std::string funcStr = faabric::util::funcToString(msg, false);
 
     // Instantiate the right wasm module for the chosen runtime
     if (conf.wasmVm == "wamr") {
@@ -140,26 +85,59 @@ void Faaslet::postBind(const faabric::Message& msg, bool force)
         if (msg.issgx()) {
             module = std::make_unique<wasm::SGXWAMRWasmModule>();
         } else {
-            module = std::make_unique<wasm::WAMRWasmModule>();
+            module = std::make_unique<wasm::WAMRWasmModule>(threadPoolSize);
         }
 #else
         // Vanilla WAMR
-        module = std::make_unique<wasm::WAMRWasmModule>();
+        module = std::make_unique<wasm::WAMRWasmModule>(threadPoolSize);
 #endif
-
-        module->bindToFunction(msg);
     } else if (conf.wasmVm == "wavm") {
-        // Get cached module
-        wasm::WAVMWasmModule& cachedModule =
-          module_cache::getWasmModuleCache().getCachedModule(msg);
-        module = std::make_unique<wasm::WAVMWasmModule>(cachedModule);
+        module = std::make_unique<wasm::WAVMWasmModule>(threadPoolSize);
     } else {
+        auto logger = faabric::util::getLogger();
         logger->error("Unrecognised wasm VM: {}", conf.wasmVm);
         throw std::runtime_error("Unrecognised wasm VM");
     }
 }
 
-bool Faaslet::doExecute(faabric::Message& msg)
+int32_t Faaslet::executeTask(int threadPoolIdx,
+                             int msgIdx,
+                             std::shared_ptr<faabric::BatchExecuteRequest> req)
+{
+    const faabric::Message& msg = req->mutable_messages()->at(msgIdx);
+
+    // Lazily bind to function and isolate
+    // Note that this has to be done within the executeTask function to be in
+    // the same thread as the execution
+    if (!module->isBound()) {
+        // Add this thread to the cgroup
+        CGroup cgroup(BASE_CGROUP_NAME);
+        cgroup.addCurrentThread();
+
+        // Set up network namespace
+        ns = claimNetworkNamespace();
+        ns->addCurrentThread();
+
+        module->bindToFunction(msg);
+    }
+
+    int32_t returnValue = module->executeTask(threadPoolIdx, msgIdx, req);
+
+    return returnValue;
+}
+
+void Faaslet::reset(const faabric::Message& msg)
+{
+    module->reset(msg);
+}
+
+void Faaslet::postFinish()
+{
+    ns->removeCurrentThread();
+    returnNetworkNamespace(ns);
+}
+
+void Faaslet::restore(const faabric::Message& msg)
 {
     auto logger = faabric::util::getLogger();
 
@@ -174,18 +152,19 @@ bool Faaslet::doExecute(faabric::Message& msg)
             logger->debug("Restoring {} from snapshot {} before execution",
                           id,
                           snapshotKey);
-            module_cache::WasmModuleCache& registry =
-              module_cache::getWasmModuleCache();
 
-            wasm::WAVMWasmModule& snapshot = registry.getCachedModule(msg);
-            module = std::make_unique<wasm::WAVMWasmModule>(snapshot);
+            module->restore(snapshotKey);
 
             PROF_END(snapshotOverride)
         }
     }
+}
 
-    // Execute the function
-    bool success = module->execute(msg);
-    return success;
+FaasletFactory::~FaasletFactory() {}
+
+std::shared_ptr<faabric::scheduler::Executor> FaasletFactory::createExecutor(
+  const faabric::Message& msg)
+{
+    return std::make_shared<Faaslet>(msg);
 }
 }
