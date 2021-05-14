@@ -946,10 +946,10 @@ int32_t WAVMWasmModule::executeOMPThread(int threadPoolIdx,
 
     // Set up function args
     std::shared_ptr<threads::Level> ompLevel = threads::getCurrentOpenMPLevel();
-    int argc = ompLevel->nSharedVars;
+    int argc = ompLevel->nSharedVarOffsets;
     std::vector<IR::UntaggedValue> invokeArgs = { msg.appindex(), argc };
     for (int argIdx = 0; argIdx < argc; argIdx++) {
-        invokeArgs.emplace_back(ompLevel->sharedVars[argIdx]);
+        invokeArgs.emplace_back(ompLevel->sharedVarOffsets[argIdx]);
     }
 
     Runtime::ContextRuntimeData* contextRuntimeData =

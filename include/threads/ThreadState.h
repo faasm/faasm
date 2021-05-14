@@ -43,14 +43,14 @@ class Level
     // Offset for the global thread numbers at this level
     int32_t globalTidOffset = 0;
 
-    uint32_t nSharedVars = 0;
-    uint32_t* sharedVars;
+    uint32_t nSharedVarOffsets = 0;
+    uint32_t* sharedVarOffsets;
 
     Level(int numThreadsIn);
 
-    std::vector<uint32_t> getSharedVars();
+    std::vector<uint32_t> getSharedVarOffsets();
 
-    void setSharedVars(uint32_t* ptr, int nVars);
+    void setSharedVarOffsets(uint32_t* ptr, int nVars);
 
     void fromParentLevel(const std::shared_ptr<Level>& parent);
 

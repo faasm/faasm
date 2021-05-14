@@ -91,17 +91,18 @@ Level::Level(int numThreadsIn)
   , numThreads(numThreadsIn)
 {}
 
-std::vector<uint32_t> Level::getSharedVars()
+std::vector<uint32_t> Level::getSharedVarOffsets()
 {
-    return std::vector<uint32_t>(sharedVars, sharedVars + nSharedVars);
+    return std::vector<uint32_t>(sharedVarOffsets,
+                                 sharedVarOffsets + nSharedVarOffsets);
 }
 
-void Level::setSharedVars(uint32_t* ptr, int nVars)
+void Level::setSharedVarOffsets(uint32_t* ptr, int nVars)
 {
-    sharedVars = new uint32_t[nVars];
-    nSharedVars = nVars;
+    sharedVarOffsets = new uint32_t[nVars];
+    nSharedVarOffsets = nVars;
 
-    std::memcpy(sharedVars, ptr, nVars * sizeof(uint32_t));
+    std::memcpy(sharedVarOffsets, ptr, nVars * sizeof(uint32_t));
 }
 
 void Level::fromParentLevel(const std::shared_ptr<Level>& parent)
@@ -174,7 +175,7 @@ std::vector<uint8_t> Level::serialise()
 {
     // Work out the size of this object
     size_t thisSize = sizeof(Level);
-    thisSize += nSharedVars * sizeof(uint32_t);
+    thisSize += nSharedVarOffsets * sizeof(uint32_t);
 
     uint8_t* bytesPtr = BYTES(this);
     std::vector<uint8_t> bytes(bytesPtr, bytesPtr + thisSize);
@@ -193,9 +194,11 @@ void Level::deserialise(const Level* other)
 
     globalTidOffset = other->globalTidOffset;
 
-    nSharedVars = other->nSharedVars;
-    sharedVars = new uint32_t[nSharedVars];
-    std::memcpy(sharedVars, other->sharedVars, nSharedVars * sizeof(uint32_t));
+    nSharedVarOffsets = other->nSharedVarOffsets;
+    sharedVarOffsets = new uint32_t[nSharedVarOffsets];
+    std::memcpy(sharedVarOffsets,
+                other->sharedVarOffsets,
+                nSharedVarOffsets * sizeof(uint32_t));
 }
 
 void Level::waitOnBarrier()
@@ -237,9 +240,10 @@ int Level::getLocalThreadNum(faabric::Message* msg)
           msg->appindex(),
           globalTidOffset,
           depth);
+
+        throw std::runtime_error("Error in local thread number calculation");
     }
 
-    assert(localThreadNum >= 0);
     return localThreadNum;
 }
 

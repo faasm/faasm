@@ -404,7 +404,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         // Build list of pointers to shared variables
         U32* sharedVarsPtr =
           Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
-        nextLevel->setSharedVars(sharedVarsPtr, argc);
+        nextLevel->setSharedVarOffsets(sharedVarsPtr, argc);
 
         // Append to main arguments
         mainArguments.insert(

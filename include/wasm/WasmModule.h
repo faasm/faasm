@@ -47,6 +47,7 @@ namespace wasm {
 // go unset without noticing
 enum ThreadRequestType
 {
+    UNSET = 0,
     PTHREAD = 1,
     OPENMP = 2,
 };

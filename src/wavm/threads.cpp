@@ -127,7 +127,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     WAVMWasmModule* thisModule = getExecutingWAVMModule();
     unsigned int callId = thisModule->chainedThreads[pthreadPtr];
     logger->debug("Awaiting pthread: {} ({})", pthreadPtr, callId);
-    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
+    auto& sch = faabric::scheduler::getScheduler();
 
     int returnValue = sch.awaitThreadResult(callId);
 

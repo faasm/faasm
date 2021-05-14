@@ -27,9 +27,9 @@ TEST_CASE("Check level serialisation and deserialisation", "[threads]")
     lvlA.pushedThreads = 777;
     lvlA.wantedThreads = 888;
 
-    std::vector<uint32_t> sharedVars = { 22, 33, 44, 55, 66 };
-    lvlA.setSharedVars(sharedVars.data(), sharedVars.size());
-    REQUIRE(lvlA.getSharedVars() == sharedVars);
+    std::vector<uint32_t> sharedVarOffsets = { 22, 33, 44, 55, 66 };
+    lvlA.setSharedVarOffsets(sharedVarOffsets.data(), sharedVarOffsets.size());
+    REQUIRE(lvlA.getSharedVarOffsets() == sharedVarOffsets);
 
     // Make sure we serialise via the relevant protobuf object to test the round
     // trip
@@ -50,7 +50,7 @@ TEST_CASE("Check level serialisation and deserialisation", "[threads]")
     REQUIRE(lvlB->pushedThreads == lvlA.pushedThreads);
     REQUIRE(lvlB->wantedThreads == lvlA.wantedThreads);
 
-    REQUIRE(lvlB->getSharedVars() == sharedVars);
+    REQUIRE(lvlB->getSharedVarOffsets() == sharedVarOffsets);
 }
 
 TEST_CASE("Test level locking", "[threads]")
