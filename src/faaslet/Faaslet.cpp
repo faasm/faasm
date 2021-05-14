@@ -143,7 +143,7 @@ void Faaslet::restore(const faabric::Message& msg)
 {
     auto logger = faabric::util::getLogger();
 
-    auto& conf = conf::getFaasmConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     const std::string snapshotKey = msg.snapshotkey();
 
     // Restore from snapshot if necessary

@@ -40,7 +40,7 @@ std::string FileLoader::getHashFilePath(const std::string& path)
 std::vector<uint8_t> FileLoader::doCodegen(std::vector<uint8_t>& bytes,
                                            const std::string& fileName)
 {
-    auto& conf = conf::getFaasmConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     if (conf.wasmVm == "wamr") {
 #if (WAMR_EXECTION_MODE_INTERP)
         throw std::runtime_error(
@@ -67,7 +67,7 @@ void FileLoader::codegenForFunction(faabric::Message& msg)
     // Compare hashes
     std::vector<uint8_t> newHash = hashBytes(bytes);
     std::vector<uint8_t> oldHash;
-    auto& conf = conf::getFaasmConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     if (conf.wasmVm == "wamr") {
         oldHash = loadFunctionWamrAotHash(msg);
     } else {
@@ -122,7 +122,7 @@ void FileLoader::codegenForSharedObject(const std::string& inputPath)
     std::vector<uint8_t> objBytes = doCodegen(bytes, inputPath);
 
     // Do the upload
-    auto& conf = conf::getFaasmConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     if (conf.wasmVm == "wamr") {
         uploadSharedObjectAotFile(inputPath, objBytes);
         uploadSharedObjectAotHash(inputPath, newHash);

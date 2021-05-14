@@ -53,7 +53,7 @@ std::vector<uint8_t> FileserverFileLoader::doLoad(
         }
     }
 
-    auto& conf = conf::getFaasmConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string host = conf.fileserverUrl;
 
     logger->debug("Creating client at {}", host);

@@ -31,7 +31,6 @@ void FaasmConfig::initialise()
     wasmVm = getEnvVar("WASM_VM", "wavm");
     chainedCallTimeout = this->getIntParam("CHAINED_CALL_TIMEOUT", "300000");
 
-    // Filesystem storage
     std::string faasmLocalDir =
       getEnvVar("FAASM_LOCAL_DIR", "/usr/local/faasm");
     functionDir = fmt::format("{}/{}", faasmLocalDir, "wasm");

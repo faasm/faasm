@@ -20,7 +20,6 @@ class FaasmConfig
 
     std::string wasmVm;
 
-    // Filesystem storage
     std::string functionDir;
     std::string objectFileDir;
     std::string runtimeFilesDir;
