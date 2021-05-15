@@ -4,6 +4,7 @@
 
 #include "utils.h"
 
+#include <conf/FaasmConfig.h>
 #include <threads/ThreadState.h>
 #include <wavm/WAVMWasmModule.h>
 
@@ -12,6 +13,9 @@ void cleanSystem()
 {
     // Faabric stuff
     cleanFaabric();
+
+    // Reset config
+    conf::getFaasmConfig().reset();
 
     // Clear thread state
     threads::clearThreadState();

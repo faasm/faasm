@@ -4,6 +4,8 @@
 #include <boost/algorithm/string.hpp>
 #include <dirent.h>
 
+#include <conf/function_utils.h>
+
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 

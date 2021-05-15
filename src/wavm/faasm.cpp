@@ -9,6 +9,8 @@
 #include <faabric/util/files.h>
 #include <faabric/util/state.h>
 
+#include <conf/FaasmConfig.h>
+
 using namespace WAVM;
 
 namespace wasm {
@@ -538,8 +540,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     const std::string key = getStringFromWasm(keyPtr);
     logger->debug("S - conf_flag - {}", key);
 
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     if (key == "PYTHON_PRELOAD") {
         int res = conf.pythonPreload == "on" ? 1 : 0;
         return res;

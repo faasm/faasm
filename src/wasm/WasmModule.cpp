@@ -1,6 +1,8 @@
 #include "wasm/WasmModule.h"
 
 #include <conf/FaasmConfig.h>
+#include <threads/ThreadState.h>
+
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/util/bytes.h>
@@ -11,7 +13,6 @@
 #include <faabric/util/locks.h>
 #include <faabric/util/memory.h>
 #include <faabric/util/timing.h>
-#include <threads/ThreadState.h>
 
 #include <boost/filesystem.hpp>
 #include <sstream>
@@ -408,7 +409,7 @@ int32_t WasmModule::executeTask(
     }
 
     // Add captured stdout if necessary
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     if (conf.captureStdout == "on") {
         std::string moduleStdout = getCapturedStdout();
         if (!moduleStdout.empty()) {

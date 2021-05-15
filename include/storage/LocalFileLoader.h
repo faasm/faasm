@@ -74,4 +74,4 @@ class LocalFileLoader : public FileLoader
     void writeHashForFile(const std::string& path,
                           const std::vector<uint8_t>& hash);
 };
-};
+}

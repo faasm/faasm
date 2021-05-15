@@ -3,6 +3,7 @@
 #include <faabric/util/config.h>
 #include <faabric/util/environment.h>
 
+#include <conf/FaasmConfig.h>
 #include <system/NetworkNamespace.h>
 
 using namespace isolation;
@@ -11,7 +12,7 @@ namespace tests {
 
 TEST_CASE("Test basic network properties", "[faaslet]")
 {
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string original = conf.netNsMode;
 
     std::string envValue;

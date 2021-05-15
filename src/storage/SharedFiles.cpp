@@ -1,11 +1,15 @@
 #include "SharedFiles.h"
 
 #include <boost/filesystem.hpp>
+
 #include <faabric/util/config.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/string_tools.h>
+
+#include <conf/FaasmConfig.h>
+#include <conf/function_utils.h>
 #include <storage/FileLoader.h>
 
 namespace storage {
@@ -22,7 +26,7 @@ static std::unordered_map<std::string, FileState> sharedFileMap;
 
 std::string SharedFiles::prependSharedRoot(const std::string& originalPath)
 {
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     boost::filesystem::path p(conf.sharedFilesDir);
     p.append(originalPath);
     return p.string();
@@ -143,10 +147,8 @@ void SharedFiles::syncPythonFunctionFile(const faabric::Message& msg)
         return;
     }
 
-    std::string sharedPath =
-      faabric::util::getPythonFunctionFileSharedPath(msg);
-    std::string runtimeFilePath =
-      faabric::util::getPythonRuntimeFunctionFile(msg);
+    std::string sharedPath = conf::getPythonFunctionFileSharedPath(msg);
+    std::string runtimeFilePath = conf::getPythonRuntimeFunctionFile(msg);
 
     syncSharedFile(sharedPath, runtimeFilePath);
 }

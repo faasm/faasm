@@ -8,6 +8,8 @@
 #include <faabric/util/logging.h>
 #include <faabric/util/timing.h>
 
+#include <conf/FaasmConfig.h>
+
 #include <errno.h>
 #include <fcntl.h>
 
@@ -57,7 +59,7 @@ NetworkNamespace::NetworkNamespace(const std::string& name)
   : name(name)
 {
     // Get which mode we're operating in
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
 
     if (conf.netNsMode == "on") {
         mode = NetworkIsolationMode::ns_on;

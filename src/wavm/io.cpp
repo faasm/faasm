@@ -5,6 +5,8 @@
 #include <faabric/util/config.h>
 #include <faabric/util/macros.h>
 #include <faabric/util/timing.h>
+
+#include <conf/FaasmConfig.h>
 #include <storage/FileDescriptor.h>
 #include <storage/FileLoader.h>
 
@@ -352,7 +354,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
     }
 
     // Catpure stdout if necessary, otherwise write as normal
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     if (isStd && conf.captureStdout == "on") {
         getExecutingWAVMModule()->captureStdout(nativeIovecs, iovecCount);
     }
@@ -744,7 +746,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "puts", I32, puts, I32 strPtr)
     char* hostStr = &Runtime::memoryRef<char>(memoryPtr, (Uptr)strPtr);
 
     // Capture stdout if necessary
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     if (conf.captureStdout == "on") {
         module->captureStdout(hostStr);
     }

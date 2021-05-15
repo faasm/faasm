@@ -1,25 +1,28 @@
-#include "faabric/util/bytes.h"
-#include "faabric/util/config.h"
-#include "faabric/util/func.h"
-
-#include "storage/FileserverFileLoader.h"
 #include "utils.h"
-
-#include <boost/filesystem/operations.hpp>
 #include <catch2/catch.hpp>
 
-#include <boost/filesystem.hpp>
+#include <faabric/util/bytes.h>
+#include <faabric/util/config.h>
 #include <faabric/util/files.h>
-#include <stdlib.h>
+#include <faabric/util/func.h>
+
+#include <conf/FaasmConfig.h>
+#include <conf/function_utils.h>
+#include <storage/FileserverFileLoader.h>
 #include <storage/LocalFileLoader.h>
 #include <upload/UploadServer.h>
+
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
+
+#include <stdlib.h>
 
 using namespace storage;
 
 namespace tests {
 TEST_CASE("Test fileserver file loader pulling files over HTTP", "[storage]")
 {
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
 
     std::string origFunctionStorage = conf.functionStorage;
     std::string origUrl = conf.fileserverUrl;
@@ -29,7 +32,7 @@ TEST_CASE("Test fileserver file loader pulling files over HTTP", "[storage]")
 
     // Load the expected bytes from the function file
     faabric::Message msg = faabric::util::messageFactory("demo", "echo");
-    std::string expectedPath = faabric::util::getFunctionFile(msg);
+    std::string expectedPath = conf::getFunctionFile(msg);
     std::vector<uint8_t> expectedBytes =
       faabric::util::readFileToBytes(expectedPath);
 
@@ -70,7 +73,7 @@ TEST_CASE("Test flushing function files deletes them", "[storage]")
 {
     cleanSystem();
 
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string origStorage = conf.functionStorage;
     std::string origUrl = conf.fileserverUrl;
     std::string origFunctionDir = conf.functionDir;

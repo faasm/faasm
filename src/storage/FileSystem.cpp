@@ -1,8 +1,11 @@
 #include "FileSystem.h"
 #include "SharedFiles.h"
 
+#include <conf/FaasmConfig.h>
+
 #include <WASI/WASIPrivate.h>
 #include <boost/filesystem.hpp>
+
 #include <faabric/util/config.h>
 #include <faabric/util/logging.h>
 
@@ -156,7 +159,7 @@ void FileSystem::clearSharedFiles()
 
     // Just nuke the whole shared directory
     // Note that we're not deleting the master copies in the shared store
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     boost::filesystem::remove_all(conf.sharedFilesDir);
 }
 

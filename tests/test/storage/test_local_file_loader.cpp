@@ -1,11 +1,15 @@
-#include "faabric/util/bytes.h"
-#include "faabric/util/func.h"
-#include <boost/filesystem/operations.hpp>
 #include <catch2/catch.hpp>
 
-#include <boost/filesystem.hpp>
+#include <faabric/util/bytes.h>
 #include <faabric/util/files.h>
+#include <faabric/util/func.h>
+
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <stdlib.h>
+
+#include <conf/FaasmConfig.h>
+#include <conf/function_utils.h>
 #include <storage/LocalFileLoader.h>
 
 #define SHARED_OBJ                                                             \
@@ -14,6 +18,7 @@
 using namespace storage;
 
 namespace tests {
+
 TEST_CASE("Check uploading and loading shared files", "[storage]")
 {
     std::string relativePath = "test/local_file_loader.txt";
@@ -27,7 +32,7 @@ TEST_CASE("Check uploading and loading shared files", "[storage]")
     REQUIRE(actual == expected);
 
     // Check it's written where we expect it to be too
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     boost::filesystem::path fullPath(conf.sharedFilesStorageDir);
     fullPath.append(relativePath);
 
@@ -43,8 +48,8 @@ TEST_CASE("Check function codegen hashing", "[storage]")
     faabric::Message msgB = faabric::util::messageFactory("demo", "x2");
 
     // Load the existing wasm
-    std::string pathA = faabric::util::getFunctionFile(msgA);
-    std::string pathB = faabric::util::getFunctionFile(msgB);
+    std::string pathA = conf::getFunctionFile(msgA);
+    std::string pathB = conf::getFunctionFile(msgB);
     std::vector<uint8_t> wasmA = faabric::util::readFileToBytes(pathA);
     std::vector<uint8_t> wasmB = faabric::util::readFileToBytes(pathB);
 
@@ -52,7 +57,7 @@ TEST_CASE("Check function codegen hashing", "[storage]")
     msgB.set_inputdata(faabric::util::bytesToString(wasmB));
 
     // Override the storage directories
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string origFuncDir = conf.functionDir;
     std::string origObjDir = conf.objectFileDir;
     conf.functionDir = "/tmp/func";
@@ -161,7 +166,7 @@ TEST_CASE("Check function codegen hashing", "[storage]")
 
 TEST_CASE("Check shared object codegen hashing", "[storage]")
 {
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string origObjDir = conf.objectFileDir;
     conf.objectFileDir = "/tmp/obj";
 
@@ -214,7 +219,7 @@ TEST_CASE("Check shared object codegen hashing", "[storage]")
 
 TEST_CASE("Test flushing function files does nothing", "[storage]")
 {
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string origFunctionDir = conf.functionDir;
     std::string origObjDir = conf.objectFileDir;
 

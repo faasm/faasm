@@ -4,6 +4,9 @@
 #include <faabric/util/func.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
+
+#include <conf/FaasmConfig.h>
+#include <conf/function_utils.h>
 #include <storage/FileLoader.h>
 
 using namespace boost::filesystem;
@@ -13,7 +16,7 @@ void codegenForFunc(const std::string& user, const std::string& func)
     const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
 
     faabric::Message msg = faabric::util::messageFactory(user, func);
-    if (!faabric::util::isValidFunction(msg)) {
+    if (!conf::isValidFunction(msg)) {
         logger->warn("Invalid function: {}/{}", user, func);
         return;
     }
@@ -36,7 +39,7 @@ int main(int argc, char* argv[])
     } else if (argc == 2) {
         std::string user = argv[1];
 
-        faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+        conf::FaasmConfig& conf = conf::getFaasmConfig();
         logger->info(
           "Running codegen for user {} on dir {}", user, conf.functionDir);
 

@@ -6,10 +6,13 @@
 
 #include <wasm/chaining.h>
 
+#include <conf/FaasmConfig.h>
+#include <wasm/chaining.h>
+
 namespace wasm {
 int awaitChainedCall(unsigned int messageId)
 {
-    int callTimeoutMs = faabric::util::getSystemConfig().chainedCallTimeout;
+    int callTimeoutMs = conf::getFaasmConfig().chainedCallTimeout;
 
     int returnCode = 1;
     try {
@@ -102,7 +105,7 @@ int awaitChainedCallOutput(unsigned int messageId,
                            int bufferLen)
 {
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    int callTimeoutMs = faabric::util::getSystemConfig().chainedCallTimeout;
+    int callTimeoutMs = conf::getFaasmConfig().chainedCallTimeout;
 
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     const faabric::Message result =
