@@ -1,0 +1,58 @@
+version: "3"
+
+networks:
+  disttest:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.60.0.0/24
+
+services:
+  redis:
+    image: redis
+    networks:
+      disttest:
+        ipv4_address: 172.60.0.3
+
+  builder:
+    image: ${FAASM_CLI_IMAGE}
+    volumes:
+      - ${PROJ_ROOT}:/usr/local/code/faasm
+      - ./build/dist-test/:/build/dist-test
+    working_dir: /usr/local/code/faasm
+
+  master:
+    image: ${FAASM_CLI_IMAGE}
+    volumes:
+      - ${PROJ_ROOT}:/usr/local/code/faasm
+      - ./build/dist-test/:/build/faasm
+    working_dir: /usr/local/code/faasm
+    stdin_open: true
+    tty: true
+    environment:
+      - LOG_LEVEL=debug
+      - REDIS_STATE_HOST=redis
+      - REDIS_QUEUE_HOST=redis
+    networks:
+      disttest:
+        ipv4_address: 172.60.0.4
+    depends_on:
+      - redis
+      - worker
+
+  worker:
+    image: ${FAASM_CLI_IMAGE}
+    volumes:
+      - ${PROJ_ROOT}:/usr/local/code/faasm
+      - ./build/dist-test/:/build/faasm
+    working_dir: /build/faasm
+    environment:
+      - LOG_LEVEL=debug
+      - REDIS_STATE_HOST=redis
+      - REDIS_QUEUE_HOST=redis
+    command: ./bin/dist_test_server
+    networks:
+      disttest:
+        ipv4_address: 172.60.0.5
+    depends_on:
+      - redis
