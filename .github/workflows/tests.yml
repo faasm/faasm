@@ -174,7 +174,7 @@ jobs:
       - name: "Check out code"
         uses: actions/checkout@v2
       - name: "Update faabric submodule"
-        run: git submodule update faabric
+        run: git submodule update --init faabric
       # --- Build and test ---
       - name: "Build distributed tests"
         run: ./dist-test/build.sh
