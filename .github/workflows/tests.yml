@@ -89,19 +89,6 @@ jobs:
           name: py-funcs
           path: /usr/local/faasm/shared_store
 
-  dist-tests:
-    if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
-    steps:
-      # --- Code update ---
-      - name: "Check out code"
-        uses: actions/checkout@v2
-      # --- Build and test ---
-      - name: "Build distributed tests"
-        run: ./dist-test/build.sh
-      - name: "Run the distributed tests"
-        run: ./dist-test/run.sh
-
   build:
     if: github.event.pull_request.draft == false
     needs: [cpp-funcs, py-funcs]
@@ -178,3 +165,19 @@ jobs:
       # --- Test run ---
       - name: "Run the tests"
         run: /build/faasm/bin/tests
+
+  dist-tests:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      # --- Code update ---
+      - name: "Check out code"
+        uses: actions/checkout@v2
+      - name: "Update faabric submodule"
+        run: git submodule update faabric
+      # --- Build and test ---
+      - name: "Build distributed tests"
+        run: ./dist-test/build.sh
+      - name: "Run the distributed tests"
+        run: ./dist-test/run.sh
+
