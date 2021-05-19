@@ -1,17 +1,19 @@
 #include <catch2/catch.hpp>
-#include <faabric/proto/faabric.pb.h>
-#include <faabric/util/func.h>
 
+#include <faabric/proto/faabric.pb.h>
 #include <faabric/redis/Redis.h>
+#include <faabric/state/State.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/environment.h>
 #include <faabric/util/files.h>
-
-#include <upload/UploadServer.h>
+#include <faabric/util/func.h>
 
 #include <boost/filesystem.hpp>
-#include <faabric/state/State.h>
+
+#include <conf/FaasmConfig.h>
+#include <conf/function_utils.h>
 #include <storage/FileLoader.h>
+#include <upload/UploadServer.h>
 
 using namespace web::http::experimental::listener;
 using namespace web::http;
@@ -69,15 +71,12 @@ void checkGet(const std::string& url, const std::vector<uint8_t>& bytes)
 
 TEST_CASE("Check upload overrides fileserver storage", "[upload]")
 {
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    std::string original = conf.functionStorage;
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     conf.functionStorage = "fileserver";
 
     // Instantiate a server
     edge::UploadServer server;
     REQUIRE(conf.functionStorage == "local");
-
-    conf.functionStorage = original;
 }
 
 TEST_CASE("Upload tests", "[upload]")
@@ -147,7 +146,7 @@ TEST_CASE("Upload tests", "[upload]")
     SECTION("Test uploading wasm file")
     {
         // Override the function directory with junk
-        faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+        conf::FaasmConfig& conf = conf::getFaasmConfig();
         std::string origFuncDir = conf.functionDir;
         std::string origObjDir = conf.objectFileDir;
         conf.functionDir = "/tmp/func";
@@ -194,7 +193,7 @@ TEST_CASE("Upload tests", "[upload]")
 
         // Clear out any existing
         const char* relativePath = "test/dummy_file.txt";
-        std::string fullPath = faabric::util::getSharedFileFile(relativePath);
+        std::string fullPath = conf::getSharedFileFile(relativePath);
         if (boost::filesystem::exists(fullPath)) {
             boost::filesystem::remove(fullPath);
         }
@@ -222,8 +221,8 @@ TEST_CASE("Function fileserver test", "[upload]")
     std::string expectedFilePath;
 
     faabric::Message msg = faabric::util::messageFactory("demo", "echo");
-    std::string wasmFile = faabric::util::getFunctionFile(msg);
-    std::string objFile = faabric::util::getFunctionObjectFile(msg);
+    std::string wasmFile = conf::getFunctionFile(msg);
+    std::string objFile = conf::getFunctionObjectFile(msg);
 
     SECTION("Function wasm")
     {
@@ -259,8 +258,8 @@ TEST_CASE("Python fileserver test", "[upload]")
     // Check file exists as expected
     faabric::Message tempMsg =
       faabric::util::messageFactory("python", "foobar");
-    faabric::util::convertMessageToPython(tempMsg);
-    const std::string filePath = faabric::util::getPythonFunctionFile(tempMsg);
+    conf::convertMessageToPython(tempMsg);
+    const std::string filePath = conf::getPythonFunctionFile(tempMsg);
     const std::vector<uint8_t> actualBytes =
       faabric::util::readFileToBytes(filePath);
     REQUIRE(actualBytes == expected);
@@ -308,7 +307,7 @@ TEST_CASE("Shared file fileserver test", "[upload]")
     std::string relativePath = "test/fileserver.txt";
     std::vector<uint8_t> fileBytes = { 3, 4, 5, 0, 1, 2, 3 };
 
-    std::string fullPath = faabric::util::getSharedFileFile(relativePath);
+    std::string fullPath = conf::getSharedFileFile(relativePath);
     if (boost::filesystem::exists(fullPath)) {
         boost::filesystem::remove(fullPath);
     }

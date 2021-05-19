@@ -11,9 +11,9 @@ struct LogListener : Catch::TestEventListenerBase
     void testCaseStarting(Catch::TestCaseInfo const& testInfo) override
     {
         auto logger = faabric::util::getLogger();
-        logger->debug("---------------------------------------------");
-        logger->debug("TEST: {}", testInfo.name);
-        logger->debug("---------------------------------------------");
+        logger->info("---------------------------------------------");
+        logger->info("TEST: {}", testInfo.name);
+        logger->info("---------------------------------------------");
     }
 };
 

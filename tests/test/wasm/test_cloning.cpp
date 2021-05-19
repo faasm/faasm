@@ -6,6 +6,8 @@
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 
+#include <conf/FaasmConfig.h>
+#include <conf/function_utils.h>
 #include <wavm/WAVMWasmModule.h>
 
 using namespace wasm;
@@ -211,7 +213,7 @@ TEST_CASE("Test cloned execution on complex module", "[wasm]")
 {
     cleanSystem();
 
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string preloadVal = conf.pythonPreload;
     conf.pythonPreload = "off";
 

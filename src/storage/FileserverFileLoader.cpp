@@ -1,20 +1,23 @@
 #include "FileserverFileLoader.h"
 
-#include <cpprest/astreambuf.h>
-#include <cpprest/containerstream.h>
+#include <conf/FaasmConfig.h>
+#include <conf/function_utils.h>
+
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
 #include <faabric/util/logging.h>
 
+#include <boost/filesystem.hpp>
+#include <cpprest/astreambuf.h>
+#include <cpprest/containerstream.h>
 #include <cpprest/filestream.h>
 #include <cpprest/http_client.h>
 #include <cpprest/json.h>
 #include <cpprest/uri.h>
-#include <iostream>
 
-#include <boost/filesystem.hpp>
+#include <iostream>
 
 using namespace utility;
 using namespace web;
@@ -30,7 +33,7 @@ FileserverFileLoader::FileserverFileLoader(bool useFilesystemCacheIn)
 
 std::string FileserverFileLoader::getFileserverUrl()
 {
-    return faabric::util::getSystemConfig().fileserverUrl;
+    return conf::getFaasmConfig().fileserverUrl;
 }
 
 std::vector<uint8_t> FileserverFileLoader::doLoad(
@@ -50,7 +53,7 @@ std::vector<uint8_t> FileserverFileLoader::doLoad(
         }
     }
 
-    auto& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string host = conf.fileserverUrl;
 
     logger->debug("Creating client at {}", host);
@@ -86,7 +89,7 @@ std::vector<uint8_t> FileserverFileLoader::doLoad(
               std::string errMsg =
                 "Empty response for file at " + host + "/" + urlPath;
               logger->error(errMsg);
-              throw faabric::util::InvalidFunctionException(errMsg);
+              throw conf::InvalidFunctionException(errMsg);
           }
 
           // Check whether it's a directory
@@ -117,7 +120,7 @@ std::vector<uint8_t> FileserverFileLoader::loadFunctionWasm(
   const faabric::Message& msg)
 {
     std::string urlPath = fmt::format("f/{}/{}", msg.user(), msg.function());
-    std::string filePath = faabric::util::getFunctionFile(msg);
+    std::string filePath = conf::getFunctionFile(msg);
     return doLoad(urlPath, "", filePath);
 }
 
@@ -125,7 +128,7 @@ std::vector<uint8_t> FileserverFileLoader::loadFunctionObjectFile(
   const faabric::Message& msg)
 {
     std::string urlPath = fmt::format("fo/{}/{}", msg.user(), msg.function());
-    std::string objectFilePath = faabric::util::getFunctionObjectFile(msg);
+    std::string objectFilePath = conf::getFunctionObjectFile(msg);
     return doLoad(urlPath, "", objectFilePath);
 }
 
@@ -140,7 +143,7 @@ std::vector<uint8_t> FileserverFileLoader::loadSharedObjectObjectFile(
   const std::string& path)
 {
     std::string urlPath = "sobjobj";
-    std::string objFilePath = faabric::util::getSharedObjectObjectFile(path);
+    std::string objFilePath = conf::getSharedObjectObjectFile(path);
     return doLoad(urlPath, path, objFilePath);
 }
 
@@ -155,7 +158,7 @@ std::vector<uint8_t> FileserverFileLoader::loadSharedFile(
   const std::string& path)
 {
     std::string urlPath = "file";
-    const std::string fullPath = faabric::util::getSharedFileFile(path);
+    const std::string fullPath = conf::getSharedFileFile(path);
     return doLoad(urlPath, path, fullPath);
 }
 
@@ -164,7 +167,7 @@ void FileserverFileLoader::flushFunctionFiles()
     // Note that because we're loading files from a file server, we can safely
     // delete the function and object files on this host as they are not the
     // master copies.
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
 
     // Nuke the function directory
     boost::filesystem::remove_all(conf.functionDir);

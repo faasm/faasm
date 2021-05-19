@@ -7,6 +7,7 @@
 #include <faabric/util/func.h>
 #include <faabric/util/logging.h>
 
+#include <conf/FaasmConfig.h>
 #include <storage/FileLoader.h>
 
 namespace edge {
@@ -34,7 +35,7 @@ UploadServer::UploadServer()
 {
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     if (conf.functionStorage == "fileserver") {
         logger->info("Overriding fileserver storage on upload server (as this "
                      "is the fileserver)");

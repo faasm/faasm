@@ -2,12 +2,14 @@
 
 #include "utils.h"
 
+#include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
+#include <faabric/util/files.h>
 #include <faabric/util/func.h>
 
+#include <conf/function_utils.h>
+
 #include <boost/filesystem.hpp>
-#include <faabric/util/bytes.h>
-#include <faabric/util/files.h>
 
 namespace tests {
 TEST_CASE("Test accessing shared files from wasm", "[faaslet]")
@@ -16,7 +18,7 @@ TEST_CASE("Test accessing shared files from wasm", "[faaslet]")
 
     // Set up a dummy file
     std::string relativePath = "test/shared-wasm.txt";
-    std::string fullPath = faabric::util::getSharedFileFile(relativePath);
+    std::string fullPath = conf::getSharedFileFile(relativePath);
     if (boost::filesystem::exists(fullPath)) {
         boost::filesystem::remove(fullPath);
     }
