@@ -191,4 +191,5 @@ endif ()
 
 # Tests
 add_subdirectory(tests/test)
+add_subdirectory(tests/dist)
 add_subdirectory(tests/utils)
