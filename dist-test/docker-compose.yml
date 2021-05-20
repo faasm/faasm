@@ -19,6 +19,7 @@ services:
     volumes:
       - ${PROJ_ROOT}:/usr/local/code/faasm
       - ./build/dist-test/:/build/dist-test
+      - ./build/faasm-local/:/build/faasm-local
     working_dir: /usr/local/code/faasm
 
   master:
@@ -26,6 +27,7 @@ services:
     volumes:
       - ${PROJ_ROOT}:/usr/local/code/faasm
       - ./build/dist-test/:/build/faasm
+      - ${FAASM_LOCAL_DIR}:/usr/local/faasm
     working_dir: /usr/local/code/faasm
     stdin_open: true
     tty: true
@@ -45,6 +47,7 @@ services:
     volumes:
       - ${PROJ_ROOT}:/usr/local/code/faasm
       - ./build/dist-test/:/build/faasm
+      - ${FAASM_LOCAL_DIR}:/usr/local/faasm
     working_dir: /build/faasm
     environment:
       - LOG_LEVEL=debug

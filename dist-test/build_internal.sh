@@ -13,4 +13,7 @@ inv -r faasmcli/faasmcli dev.cc dist_test_server
 # Copy the results
 cp -r /build/faasm/* /build/dist-test/
 
+# Copy the faasm local directory to be mounted
+cp -r /usr/local/faasm/* /build/faasm-local/
+
 popd >> /dev/null
