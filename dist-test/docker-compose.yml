@@ -35,6 +35,7 @@ services:
       - LOG_LEVEL=trace
       - REDIS_STATE_HOST=redis
       - REDIS_QUEUE_HOST=redis
+      - OVERRIDE_CPU_COUNT=4
       - CGROUP_MODE=off
     networks:
       faasmdist:
@@ -54,6 +55,7 @@ services:
       - LOG_LEVEL=trace
       - REDIS_STATE_HOST=redis
       - REDIS_QUEUE_HOST=redis
+      - OVERRIDE_CPU_COUNT=4
       - CGROUP_MODE=off
     command: ./bin/dist_test_server
     networks:
