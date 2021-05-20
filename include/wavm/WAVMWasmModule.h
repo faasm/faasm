@@ -211,8 +211,6 @@ class WAVMModuleCache
   public:
     wasm::WAVMWasmModule& getCachedModule(const faabric::Message& msg);
 
-    void initialiseCachedModule(const faabric::Message& msg);
-
     void clear();
 
     size_t getTotalCachedModuleCount();

@@ -32,9 +32,10 @@ services:
     stdin_open: true
     tty: true
     environment:
-      - LOG_LEVEL=debug
+      - LOG_LEVEL=trace
       - REDIS_STATE_HOST=redis
       - REDIS_QUEUE_HOST=redis
+      - CGROUP_MODE=off
     networks:
       faasmdist:
         ipv4_address: 172.60.0.4
@@ -50,9 +51,10 @@ services:
       - ${FAASM_LOCAL_DIR}:/usr/local/faasm
     working_dir: /build/faasm
     environment:
-      - LOG_LEVEL=debug
+      - LOG_LEVEL=trace
       - REDIS_STATE_HOST=redis
       - REDIS_QUEUE_HOST=redis
+      - CGROUP_MODE=off
     command: ./bin/dist_test_server
     networks:
       faasmdist:
