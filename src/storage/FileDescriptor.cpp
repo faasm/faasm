@@ -71,9 +71,11 @@ OpenMode getOpenMode(uint16_t openFlags)
     }
     if (openFlags & __WASI_O_DIRECTORY) {
         return OpenMode::DIRECTORY;
-    } else if (openFlags & __WASI_O_TRUNC) {
+    }
+    if (openFlags & __WASI_O_TRUNC) {
         return OpenMode::TRUNC;
-    } else if (openFlags & __WASI_O_EXCL) {
+    }
+    if (openFlags & __WASI_O_EXCL) {
         return OpenMode::EXCL;
     } else if (openFlags == 0) {
         return OpenMode::NONE;
@@ -93,9 +95,11 @@ ReadWriteType getRwType(uint64_t rights)
     }
     if (rightsRead) {
         return ReadWriteType::READ_ONLY;
-    } else if (!rightsRead && rightsWrite) {
+    }
+    if (!rightsRead && rightsWrite) {
         return ReadWriteType::WRITE_ONLY;
-    } else if (rights == 0) {
+    }
+    if (rights == 0) {
         return ReadWriteType::NO_READ_WRITE;
     } else {
         return ReadWriteType::CUSTOM;

@@ -89,7 +89,6 @@ def inner_tidy(file_chunk):
     ]
 
     cmd = " ".join(cmd)
-    print(cmd)
     run(cmd, check=True, shell=True, cwd=PROJ_ROOT)
 
 
