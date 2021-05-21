@@ -1072,7 +1072,6 @@ U32 WAVMWasmModule::growMemory(U32 nBytes)
               pageChange,
               oldPages);
             throw std::runtime_error("Memory resource quota exceeded");
-
         }
         logger->error("Unknown memory mapping error (growing by {} from "
                       "{}. Previous {})",
