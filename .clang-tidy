@@ -11,4 +11,3 @@ Checks: >
     -readability-redundant-string-cstr,
     -readability-implicit-bool-conversion
 
-
