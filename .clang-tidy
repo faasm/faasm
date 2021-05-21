@@ -8,5 +8,7 @@ Checks: >
     -modernize-use-trailing-return-type,
     readability-*,
     -readability-magic-numbers,
-    -readability-redundant-string-cstr
+    -readability-redundant-string-cstr,
+    -readability-implicit-bool-conversion
+
 
