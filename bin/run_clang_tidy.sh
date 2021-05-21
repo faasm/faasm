@@ -8,6 +8,8 @@ PROJ_ROOT=${THIS_DIR}/..
 
 BUILD_PATH=/build/faasm/
 
+HEADERS=${PROJ_ROOT}/include
+
 CONFIG_FILE=${PROJ_ROOT}/.clang-tidy
 CONFIG="$(cat $CONFIG_FILE)"
 
@@ -16,13 +18,12 @@ DUMP_OUTPUT=true
 # Function to actually run clang-tidy
 function do_tidy {
     FILES="$@"
-    run-clang-tidy-10.py \
-        -config "${CONFIG}" \
-        -j `nproc` \
-        -fix \
-        -style 'file' \
-        -p ${BUILD_PATH} \
-        -quiet \
+    clang-tidy-10 \
+        --config "${CONFIG}" \
+        --enable-check-profile \
+        --header-filter="${HEADERS}/*" \
+        --fix \
+        -p=${BUILD_PATH} \
         ${FILES}
 }
 

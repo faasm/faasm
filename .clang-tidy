@@ -4,7 +4,12 @@ Checks: >
     bugprone-*,
     cppcoreguidelines-*,
     concurrency-*,
-    google-*,
     misc-*,
     modernize-*,
-    readability-*
+    readability-*,
+    -cppcoreguidelines-pro-*,
+    -cppcoreguidelines-avoid-magic-numbers,
+    -cppcoreguidelines-pro-type-vararg,
+    -readability-magic-numbers,
+    -modernize-use-trailing-return-type,
+    -readability-identifier-naming
