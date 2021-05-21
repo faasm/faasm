@@ -30,14 +30,18 @@ def get_files(cmd):
     all_files = res.stdout.decode("utf-8").split("\n")
     all_files = [f.strip() for f in all_files if f.strip()]
 
-    # Filter by dir
-    folder_files = list()
+    print("Started with {} files".format(len(all_files)))
+
+    # Include only dirs we want
+    folder_files = all_files
     for d in FILE_FILTERS:
+        print("Filtering in {}".format(d))
         folder_files.extend([f for f in all_files if f.startswith(d)])
 
-    # Filter by type
+    # Include only types we want
     type_files = list()
     for t in FILE_TYPES:
+        print("Filtering in types {}".format(t))
         type_files.extend([f for f in folder_files if f.endswith(t)])
 
     print("Found {} files".format(len(type_files)))
@@ -83,6 +87,7 @@ def inner_tidy(file_chunk):
         "clang-tidy-10",
         '-config "{}"'.format(CONFIG),
         "--fix",
+        "--fix-errors",
         "--format-style=file",
         "-p={}".format(BUILD_PATH),
         " ".join(file_chunk),
