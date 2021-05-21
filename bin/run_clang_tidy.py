@@ -1,4 +1,5 @@
-from os.path import join, abspath, dirname, isfile
+from os.path import join, abspath, dirname, isfile, isdir
+from os import listdir
 import sys
 import numpy as np
 from subprocess import run, PIPE
@@ -6,7 +7,7 @@ from multiprocessing import cpu_count, Pool
 
 PROJ_ROOT = dirname(dirname(abspath(__file__)))
 
-BUILD_PATH = "/build/faasm/"
+BUILD_PATH = "/build/faabric/static"
 
 CONFIG_FILE = join(PROJ_ROOT, ".clang-tidy")
 with open(CONFIG_FILE, "r") as fh:
@@ -29,7 +30,10 @@ def get_files(cmd):
 
     all_files = res.stdout.decode("utf-8").split("\n")
     all_files = [f.strip() for f in all_files if f.strip()]
+    return filter_file_list(all_files)
 
+
+def filter_file_list(all_files):
     print("Started with {} files".format(len(all_files)))
 
     # Include only dirs we want
@@ -51,13 +55,23 @@ def get_files(cmd):
 def get_changed_files():
     cmd = "git diff --name-only master"
     changed_files = get_files(cmd)
-    print("Running clang format on changed files:\n{}".format(changed_files))
+    print("Running clang-tidy on changed files:\n{}".format(changed_files))
     return changed_files
 
 
 def get_all_files():
     cmd = "git ls-files"
     return get_files(cmd)
+
+
+def get_dir_files(relative_dir):
+    file_list = [join(argument, f) for f in listdir(argument)]
+    print(
+        "Running clang tidy on files in dir {}:\n{}".format(
+            argument, file_list
+        )
+    )
+    return filter_file_list(file_list)
 
 
 # Function to actually run clang-tidy
@@ -101,8 +115,11 @@ if __name__ == "__main__":
     if len(sys.argv) == 2:
         argument = sys.argv[1]
         if isfile(argument):
-            print("Running clang format on file {}".format(argument))
+            print("Running clang-tidy on file {}".format(argument))
             file_list = [argument]
+
+        elif isdir(argument):
+            file_list = get_dir_files(argument)
 
         elif argument == "ci":
             file_list = get_changed_files()
@@ -111,7 +128,7 @@ if __name__ == "__main__":
             print("Unrecognised argument")
             exit(1)
     else:
-        print("Running clang format on full project {}".format(PROJ_ROOT))
+        print("Running clang-tidy on full project {}".format(PROJ_ROOT))
         file_list = get_all_files()
 
     do_tidy(file_list)
