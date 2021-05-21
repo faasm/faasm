@@ -19,7 +19,7 @@ FILE_TYPES = [".cpp", ".h", ".c"]
 def get_files(cmd):
     print("Running files cmd: {}".format(cmd))
     res = run(
-        "git ls-files",
+        cmd,
         check=True,
         shell=True,
         cwd=PROJ_ROOT,
@@ -46,7 +46,9 @@ def get_files(cmd):
 
 def get_changed_files():
     cmd = "git diff --name-only master"
-    return get_files(cmd)
+    changed_files = get_files(cmd)
+    print("Running clang format on changed files:\n{}".format(changed_files))
+    return changed_files
 
 
 def get_all_files():
@@ -76,7 +78,7 @@ def do_tidy(file_list):
 
 
 def inner_tidy(file_chunk):
-    print("Running clang-tidy on chunk of {} files", len(file_chunk))
+    print("Running clang-tidy on chunk of {} files".format(len(file_chunk)))
     cmd = [
         "clang-tidy-10",
         '-config "{}"'.format(CONFIG),
@@ -100,9 +102,6 @@ if __name__ == "__main__":
 
         elif argument == "ci":
             file_list = get_changed_files()
-            print(
-                "Running clang format on changed files:\n{}".format(file_list)
-            )
 
         else:
             print("Unrecognised argument")
