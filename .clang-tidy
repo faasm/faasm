@@ -1,15 +1,11 @@
 ---
 
 Checks: >
-    bugprone-*,
-    cppcoreguidelines-*,
-    concurrency-*,
-    misc-*,
+    clang-analyzer-*,
+    -clang-diagnostic-unknown-attributes,
+    -clang-diagnostic-return-type
     modernize-*,
-    readability-*,
-    -cppcoreguidelines-pro-*,
-    -cppcoreguidelines-avoid-magic-numbers,
-    -cppcoreguidelines-pro-type-vararg,
-    -readability-magic-numbers,
     -modernize-use-trailing-return-type,
-    -readability-identifier-naming
+    readability-*,
+    -readability-magic-numbers
+
