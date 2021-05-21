@@ -45,12 +45,12 @@ def get_files(cmd):
 
 
 def get_changed_files():
-    cmd = 'git diff --name-only master | grep -E "\\.h|\\.cpp$|\\.c$"'
+    cmd = "git diff --name-only master"
     return get_files(cmd)
 
 
 def get_all_files():
-    cmd = 'git ls-files {func,libs,src,tests}/{"*.h","*.cpp","*.c"}'
+    cmd = "git ls-files"
     return get_files(cmd)
 
 

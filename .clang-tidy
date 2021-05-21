@@ -7,5 +7,6 @@ Checks: >
     modernize-*,
     -modernize-use-trailing-return-type,
     readability-*,
-    -readability-magic-numbers
+    -readability-magic-numbers,
+    -readability-redundant-string-cstr
 
