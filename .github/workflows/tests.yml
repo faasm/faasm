@@ -26,10 +26,10 @@ jobs:
         run: ./bin/check_python.sh
       - name: "Run C/C++ formatting"
         run: ./bin/run_clang_format.sh
-      - name: "Check C/C++ formatting changes"
-        run: git diff --exit-code
       - name: "Run C/C++ linter"
         run: ./bin/run_clang_tidy.sh
+      - name: "Check C/C++ formatting changes"
+        run: git diff --exit-code
 
   cpp-funcs:
     if: github.event.pull_request.draft == false
