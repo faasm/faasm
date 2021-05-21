@@ -12,14 +12,36 @@ CONFIG_FILE = join(PROJ_ROOT, ".clang-tidy")
 with open(CONFIG_FILE, "r") as fh:
     CONFIG = fh.read()
 
+FILE_FILTERS = ["include/", "src/", "tests/"]
+FILE_TYPES = [".cpp", ".h", ".c"]
+
 
 def get_files(cmd):
+    print("Running files cmd: {}".format(cmd))
     res = run(
-        cmd, check=True, shell=True, cwd=PROJ_ROOT, stdout=PIPE, stderr=PIPE
+        "git ls-files",
+        check=True,
+        shell=True,
+        cwd=PROJ_ROOT,
+        stdout=PIPE,
+        stderr=PIPE,
     )
 
-    file_list = res.stdout.split(" ")
-    file_list = [f.strip() for f in file_list]
+    all_files = res.stdout.decode("utf-8").split("\n")
+    all_files = [f.strip() for f in all_files if f.strip()]
+
+    # Filter by dir
+    folder_files = list()
+    for d in FILE_FILTERS:
+        folder_files.extend([f for f in all_files if f.startswith(d)])
+
+    # Filter by type
+    type_files = list()
+    for t in FILE_TYPES:
+        type_files.extend([f for f in folder_files if f.endswith(t)])
+
+    print("Found {} files".format(len(type_files)))
+    return type_files
 
 
 def get_changed_files():
@@ -34,6 +56,10 @@ def get_all_files():
 
 # Function to actually run clang-tidy
 def do_tidy(file_list):
+    if not file_list:
+        print("Got no files to tidy")
+        exit(1)
+
     n_cpus = cpu_count()
     file_chunks = np.array_split(file_list, n_cpus)
     non_empty_chunks = [f for f in file_chunks if len(f) > 0]
