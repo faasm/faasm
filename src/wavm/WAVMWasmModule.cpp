@@ -194,7 +194,7 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
         // Remap dynamic modules
         lastLoadedDynamicModuleHandle = other.lastLoadedDynamicModuleHandle;
         dynamicPathToHandleMap = other.dynamicPathToHandleMap;
-        for (auto& p : other.dynamicModuleMap) {
+        for (const auto& p : other.dynamicModuleMap) {
             Runtime::Instance* newInstance =
               Runtime::remapToClonedCompartment(p.second.ptr, compartment);
 
@@ -254,7 +254,7 @@ Runtime::Function* WAVMWasmModule::getFunction(Runtime::Instance* module,
     // Look up the function
     Runtime::Function* func =
       asFunctionNullable(getInstanceExport(module, funcName));
-    if (!func && strict) {
+    if ((func == nullptr) && strict) {
         logger->error("Unable to find function {}", funcName);
         throw std::runtime_error("Missing exported function");
     }
@@ -482,7 +482,7 @@ void WAVMWasmModule::doBindToFunctionInternal(const faabric::Message& msg,
 void WAVMWasmModule::writeStringArrayToMemory(
   const std::vector<std::string>& strings,
   U32 strPoitners,
-  U32 strBuffer)
+  U32 strBuffer) const
 {
     // Iterate through values, putting them in memory
     U32 strNextBuffer = strBuffer;
@@ -632,7 +632,7 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
             Runtime::Object* missingFunction =
               getInstanceExport(instance, e.first);
 
-            if (!missingFunction) {
+            if (missingFunction == nullptr) {
                 logger->error("Could not fill gap in GOT for function: {}",
                               e.first);
                 throw std::runtime_error(
@@ -676,8 +676,8 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
 I32 WAVMWasmModule::getGlobalI32(const std::string& globalName,
                                  Runtime::Context* context)
 {
-    Runtime::Global* globalPtr = Runtime::asGlobal(
-      Runtime::getInstanceExport(moduleInstance, globalName.c_str()));
+    Runtime::Global* globalPtr =
+      Runtime::asGlobal(Runtime::getInstanceExport(moduleInstance, globalName));
 
     if (globalPtr == nullptr) {
         return -1;
@@ -709,10 +709,12 @@ int WAVMWasmModule::dynamicLoadModule(const std::string& path,
     if (path.empty()) {
         logger->debug("Dynamic linking main module");
         return MAIN_MODULE_DYNLINK_HANDLE;
-    } else if (boost::filesystem::is_directory(path)) {
+    }
+    if (boost::filesystem::is_directory(path)) {
         logger->error("Dynamic linking a directory {}", path);
         return 0;
-    } else if (!boost::filesystem::exists(path)) {
+    }
+    if (!boost::filesystem::exists(path)) {
         logger->error("Dynamic module {} does not exist", path);
         return 0;
     }
@@ -786,7 +788,7 @@ uint32_t WAVMWasmModule::getDynamicModuleFunction(int handle,
         exportedFunc = getInstanceExport(targetModule, funcName);
     }
 
-    if (!exportedFunc) {
+    if (exportedFunc == nullptr) {
         logger->error("Unable to dynamically load function {}", funcName);
         throw std::runtime_error("Missing dynamic module function");
     }
@@ -797,7 +799,7 @@ uint32_t WAVMWasmModule::getDynamicModuleFunction(int handle,
     return tableIdx;
 }
 
-uint32_t WAVMWasmModule::addFunctionToTable(Runtime::Object* exportedFunc)
+uint32_t WAVMWasmModule::addFunctionToTable(Runtime::Object* exportedFunc) const
 {
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
@@ -1057,28 +1059,27 @@ U32 WAVMWasmModule::growMemory(U32 nBytes)
                           pageChange,
                           oldPages);
             throw std::runtime_error("Unable to commit virtual pages");
-
-        } else if (result == Runtime::GrowResult::outOfMaxSize) {
+        }
+        if (result == Runtime::GrowResult::outOfMaxSize) {
             logger->error("No memory for mapping (growing by {} from {} pages)",
                           pageChange,
                           oldPages);
             throw std::runtime_error("Run out of memory to map");
-
-        } else if (result == Runtime::GrowResult::outOfQuota) {
+        }
+        if (result == Runtime::GrowResult::outOfQuota) {
             logger->error(
               "Memory resource quota exceeded (growing by {} from {})",
               pageChange,
               oldPages);
             throw std::runtime_error("Memory resource quota exceeded");
 
-        } else {
-            logger->error("Unknown memory mapping error (growing by {} from "
-                          "{}. Previous {})",
-                          pageChange,
-                          oldPages,
-                          newMemPageBase);
-            throw std::runtime_error("Unknown memory mapping error");
         }
+        logger->error("Unknown memory mapping error (growing by {} from "
+                      "{}. Previous {})",
+                      pageChange,
+                      oldPages,
+                      newMemPageBase);
+        throw std::runtime_error("Unknown memory mapping error");
     }
 
     logger->trace(
@@ -1182,7 +1183,7 @@ U32 WAVMWasmModule::mmapMemory(U32 nBytes)
 
 uint8_t* WAVMWasmModule::wasmPointerToNative(int32_t wasmPtr)
 {
-    auto wasmMemoryRegionPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmPtr);
+    auto* wasmMemoryRegionPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmPtr);
     return wasmMemoryRegionPtr;
 }
 
@@ -1277,21 +1278,21 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
                   getInstanceExport(moduleInstance, name);
 
                 // Check other dynamic modules if not found in main module
-                if (!resolvedFunc) {
+                if (resolvedFunc == nullptr) {
                     for (auto& m : dynamicModuleMap) {
                         if (m.second.ptr == nullptr) {
                             continue;
                         }
 
                         resolvedFunc = getInstanceExport(m.second.ptr, name);
-                        if (resolvedFunc) {
+                        if (resolvedFunc != nullptr) {
                             break;
                         }
                     }
                 }
 
                 // If we've found something, add it to the table
-                if (resolvedFunc) {
+                if (resolvedFunc != nullptr) {
                     tableIdx = addFunctionToTable(resolvedFunc);
                     globalOffsetTableMap.insert({ name, tableIdx });
                 }
@@ -1367,19 +1368,19 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
             resolved = getInstanceExport(modulePtr, name);
 
             // Check the main module if not
-            if (!resolved) {
+            if (resolved == nullptr) {
                 resolved = getInstanceExport(moduleInstance, name);
             }
 
             // Check other dynamically loaded modules for the export
-            if (!resolved) {
+            if (resolved == nullptr) {
                 for (auto& m : dynamicModuleMap) {
                     if (m.second.ptr == nullptr) {
                         continue;
                     }
 
                     resolved = getInstanceExport(m.second.ptr, name);
-                    if (resolved) {
+                    if (resolved != nullptr) {
                         break;
                     }
                 }
@@ -1388,23 +1389,23 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
     }
 
     // Check whether the target has been resolved to the correct type
-    if (resolved) {
+    if (resolved != nullptr) {
         if (isA(resolved, type)) {
             return true;
-        } else if (name == "__indirect_function_table") {
+        }
+        if (name == "__indirect_function_table") {
             // We handle the indirect_function_table ourselves, so we can ignore
             // resolution errors here.
             return true;
-        } else {
-            IR::ExternType resolvedType = Runtime::getExternType(resolved);
-            logger->error("Resolved import {}.{} to a {}, but was expecting {}",
-                          moduleName.c_str(),
-                          name.c_str(),
-                          asString(resolvedType).c_str(),
-                          asString(type).c_str());
-
-            throw std::runtime_error("Error resolving import");
         }
+        IR::ExternType resolvedType = Runtime::getExternType(resolved);
+        logger->error("Resolved import {}.{} to a {}, but was expecting {}",
+                      moduleName.c_str(),
+                      name.c_str(),
+                      asString(resolvedType).c_str(),
+                      asString(type).c_str());
+
+        throw std::runtime_error("Error resolving import");
     }
 
     logger->error(
@@ -1527,7 +1528,7 @@ void WAVMWasmModule::executeZygoteFunction()
 {
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
     Runtime::Function* zygoteFunc = getDefaultZygoteFunction(moduleInstance);
-    if (zygoteFunc) {
+    if (zygoteFunc != nullptr) {
         IR::UntaggedValue result;
         const IR::FunctionType funcType = Runtime::getFunctionType(zygoteFunc);
         executeWasmFunction(zygoteFunc, funcType, {}, result);
@@ -1538,11 +1539,9 @@ void WAVMWasmModule::executeZygoteFunction()
                           boundFunction,
                           result.i32);
             throw std::runtime_error("Zygote failed");
-        } else {
-            logger->debug("Successfully executed zygote for {}/{}",
-                          boundUser,
-                          boundFunction);
         }
+        logger->debug(
+          "Successfully executed zygote for {}/{}", boundUser, boundFunction);
     }
 }
 
@@ -1551,7 +1550,7 @@ void WAVMWasmModule::executeWasmConstructorsFunction(Runtime::Instance* module)
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     Runtime::Function* wasmCtorsFunction = getWasmConstructorsFunction(module);
-    if (!wasmCtorsFunction) {
+    if (wasmCtorsFunction == nullptr) {
         logger->error("Did not find __wasm_call_ctors function for {}/{}",
                       boundUser,
                       boundFunction);
@@ -1568,16 +1567,15 @@ void WAVMWasmModule::executeWasmConstructorsFunction(Runtime::Instance* module)
                       boundFunction,
                       result.i32);
         throw std::runtime_error(std::string(WASM_CTORS_FUNC_NAME) + " failed");
-    } else {
-        logger->debug("{} Successfully executed {} for {}/{}",
-                      gettid(),
-                      WASM_CTORS_FUNC_NAME,
-                      boundUser,
-                      boundFunction);
     }
+    logger->debug("{} Successfully executed {} for {}/{}",
+                  gettid(),
+                  WASM_CTORS_FUNC_NAME,
+                  boundUser,
+                  boundFunction);
 }
 
-Runtime::Function* WAVMWasmModule::getFunctionFromPtr(int funcPtr)
+Runtime::Function* WAVMWasmModule::getFunctionFromPtr(int funcPtr) const
 {
     Runtime::Object* funcObj = Runtime::getTableElement(defaultTable, funcPtr);
 
