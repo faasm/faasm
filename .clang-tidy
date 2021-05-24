@@ -1,7 +1,13 @@
-{
-    Checks: 'readability-braces-around-statements,\
-             modernize-use-auto,\
-             -clang-diagnostic-unknown-attributes,\
-             -clang-diagnostic-return-type'
-    CheckOptions:
-}
+---
+
+Checks: >
+    clang-analyzer-*,
+    -clang-diagnostic-unknown-attributes,
+    -clang-diagnostic-return-type
+    modernize-*,
+    -modernize-use-trailing-return-type,
+    readability-*,
+    -readability-magic-numbers,
+    -readability-redundant-string-cstr,
+    -readability-implicit-bool-conversion
+

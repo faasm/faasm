@@ -48,7 +48,7 @@ class WAVMWasmModule final
 
     uint32_t mmapMemory(uint32_t nBytes) override;
 
-    uint32_t mmapFile(uint32_t fp, uint32_t length) override;
+    uint32_t mmapFile(uint32_t fd, uint32_t length) override;
 
     void unmapMemory(uint32_t offset, uint32_t nBytes) override;
 
@@ -96,11 +96,11 @@ class WAVMWasmModule final
                            uint32_t wasmArgvBuffer) override;
 
     // ----- Resolution/ linking -----
-    WAVM::Runtime::Function* getFunction(WAVM::Runtime::Instance* module,
-                                         const std::string& funcName,
-                                         bool strict);
+    static WAVM::Runtime::Function* getFunction(WAVM::Runtime::Instance* module,
+                                                const std::string& funcName,
+                                                bool strict);
 
-    WAVM::Runtime::Function* getFunctionFromPtr(int funcPtr);
+    WAVM::Runtime::Function* getFunctionFromPtr(int funcPtr) const;
 
     bool resolve(const std::string& moduleName,
                  const std::string& name,
@@ -111,7 +111,7 @@ class WAVMWasmModule final
                          WAVM::Runtime::Context* context);
 
     // ----- Threading -----
-    WAVM::Runtime::Context* createThreadContext(
+    static WAVM::Runtime::Context* createThreadContext(
       uint32_t stackTop,
       WAVM::Runtime::ContextRuntimeData* contextRuntimeData);
 
@@ -130,7 +130,7 @@ class WAVMWasmModule final
 
     int getDynamicModuleCount();
 
-    uint32_t addFunctionToTable(WAVM::Runtime::Object* exportedFunc);
+    uint32_t addFunctionToTable(WAVM::Runtime::Object* exportedFunc) const;
 
     int getNextMemoryBase();
 
@@ -181,7 +181,7 @@ class WAVMWasmModule final
 
     void writeStringArrayToMemory(const std::vector<std::string>& strings,
                                   uint32_t strPoitners,
-                                  uint32_t strBuffer);
+                                  uint32_t strBuffer) const;
 
     void clone(const WAVMWasmModule& other);
 
@@ -197,12 +197,13 @@ class WAVMWasmModule final
       const std::string& name,
       const std::string& sharedModulePath);
 
-    WAVM::Runtime::Function* getMainFunction(WAVM::Runtime::Instance* module);
-
-    WAVM::Runtime::Function* getDefaultZygoteFunction(
+    static WAVM::Runtime::Function* getMainFunction(
       WAVM::Runtime::Instance* module);
 
-    WAVM::Runtime::Function* getWasmConstructorsFunction(
+    static WAVM::Runtime::Function* getDefaultZygoteFunction(
+      WAVM::Runtime::Instance* module);
+
+    static WAVM::Runtime::Function* getWasmConstructorsFunction(
       WAVM::Runtime::Instance* module);
 };
 

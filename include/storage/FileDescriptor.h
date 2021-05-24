@@ -87,7 +87,7 @@ class FileDescriptor
 
     DirEnt iterNext();
 
-    bool iterStarted();
+    bool iterStarted() const;
 
     bool iterFinished();
 
@@ -114,27 +114,27 @@ class FileDescriptor
 
     bool updateFlags(int32_t fdFlags);
 
-    void close();
+    void close() const;
 
     bool mkdir(const std::string& dirPath);
 
-    uint16_t seek(int64_t offset, int wasiWhence, uint64_t* newOffset);
+    uint16_t seek(int64_t offset, int wasiWhence, uint64_t* newOffset) const;
 
-    uint64_t tell();
+    uint64_t tell() const;
 
     uint8_t wasiPreopenType;
 
-    int getLinuxFd();
+    int getLinuxFd() const;
 
-    int getLinuxFlags();
+    int getLinuxFlags() const;
 
-    int getLinuxErrno();
+    int getLinuxErrno() const;
 
-    uint16_t getWasiErrno();
+    uint16_t getWasiErrno() const;
 
-    uint64_t getActualRightsBase();
+    uint64_t getActualRightsBase() const;
 
-    uint64_t getActualRightsInheriting();
+    uint64_t getActualRightsInheriting() const;
 
     void setActualRights(uint64_t rights, uint64_t inheriting);
 
