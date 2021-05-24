@@ -140,6 +140,8 @@ class WasmModule
     virtual size_t getMemorySizeBytes();
 
     // ----- Snapshot/ restore -----
+    faabric::util::SnapshotData getSnapshotData();
+
     std::string snapshot(bool locallyRestorable = true);
 
     void restore(const std::string& snapshotKey);

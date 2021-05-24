@@ -127,6 +127,17 @@ wasm::WasmEnvironment& WasmModule::getWasmEnvironment()
     return wasmEnvironment;
 }
 
+faabric::util::SnapshotData WasmModule::getSnapshotData()
+{
+    // Note - we only want to take the snapshot to the current brk, not the top
+    // of the allocated memory
+    faabric::util::SnapshotData data;
+    data.data = getMemoryBase();
+    data.size = getCurrentBrk();
+
+    return data;
+}
+
 std::string WasmModule::snapshot(bool locallyRestorable)
 {
     PROF_START(wasmSnapshot)
@@ -136,12 +147,7 @@ std::string WasmModule::snapshot(bool locallyRestorable)
     std::string snapKey =
       this->boundUser + "_" + this->boundFunction + "_" + std::to_string(gid);
 
-    // Note - we only want to take the snapshot to the current brk, not the top
-    // of the allocated memory
-    faabric::util::SnapshotData data;
-    data.data = getMemoryBase();
-    data.size = getCurrentBrk();
-
+    faabric::util::SnapshotData data = getSnapshotData();
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
     reg.takeSnapshot(snapKey, data, locallyRestorable);

@@ -139,16 +139,20 @@ void Faaslet::postFinish()
     returnNetworkNamespace(ns);
 }
 
+faabric::util::SnapshotData Faaslet::snapshot()
+{
+    return module->getSnapshotData();
+}
+
 void Faaslet::restore(const faabric::Message& msg)
 {
-    auto logger = faabric::util::getLogger();
-
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     const std::string snapshotKey = msg.snapshotkey();
 
     // Restore from snapshot if necessary
     if (conf.wasmVm == "wavm") {
         if (!snapshotKey.empty() && !msg.issgx()) {
+            auto logger = faabric::util::getLogger();
             PROF_START(snapshotOverride)
 
             logger->debug("Restoring {} from snapshot {} before execution",
