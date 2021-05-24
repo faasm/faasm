@@ -339,8 +339,6 @@ int32_t s__sched_getaffinity(int32_t pid, int32_t cpuSetSize, int32_t maskPtr);
 
 int32_t s__sigaction(int32_t a, int32_t b, int32_t c);
 
-int32_t s__sigaltstack(int32_t ssPtr, int32_t oldSsPtr);
-
 int32_t s__sigemptyset(int32_t a);
 
 int32_t s__siginterrupt(int32_t a, int32_t b);
