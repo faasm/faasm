@@ -25,13 +25,25 @@ RUN apt-get install -y \
     libcgroup-dev \
     libcurl4-openssl-dev \
     libhiredis-dev \
+    libpython3-dev \
     libtool \
     libz-dev \
     make \ 
     ninja-build \
     redis-tools \
     sudo \
-    unzip 
+    unzip \
+    wget
+
+# Latest cmake
+RUN apt remove --purge --auto-remove cmake
+WORKDIR /setup
+RUN wget -q -O \
+    cmake-linux.sh \
+    https://github.com/Kitware/CMake/releases/download/v3.18.2/cmake-3.18.2-Linux-x86_64.sh
+RUN sh cmake-linux.sh -- --skip-license --prefix=/usr/local
+WORKDIR /
+RUN rm -r /setup
 
 # We could be more tactical here, adding only what's required, thus 
 # avoiding invalidating the Docker cache when anything Ansible-related 
