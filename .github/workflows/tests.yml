@@ -17,8 +17,11 @@ jobs:
       run:
         working-directory: /usr/local/code/faasm
     steps:
-      - name: "Build the targets to update compile commands and dependencies"
-        run: inv -r faasmcli/faasmcli dev.tools --build Release
+      # --- Get the code ---
+      - name: "Fetch ref"
+        run: git fetch origin ${GITHUB_REF}:ci-branch
+      - name: "Check out branch"
+        run: git checkout --force ci-branch
       # --- Formatting checks ---
       - name: "Ensure all Python deps up-to-date"
         run: pip3 install -r faasmcli/requirements.txt
