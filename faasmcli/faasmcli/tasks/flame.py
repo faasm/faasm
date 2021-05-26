@@ -16,9 +16,7 @@ def general(ctx, user, func, cmd=None, data=None, reverse=False):
     """
     Generates a flame graph for the given function
     """
-    print(
-        "Generating flame graph for {}/{}".format(user, func)
-    )
+    print("Generating flame graph for {}/{}".format(user, func))
 
     if not exists(FLAME_GRAPH_DIR):
         print("Cloning FlameGraph")
@@ -32,9 +30,7 @@ def general(ctx, user, func, cmd=None, data=None, reverse=False):
     # Set up the command to be perf'd
     if not cmd:
         func_runner_bin = find_command("func_runner")
-        cmd = " ".join(
-            [func_runner_bin, user, func, data if data else ""]
-        )
+        cmd = " ".join([func_runner_bin, user, func, data if data else ""])
 
     # Set up main perf command
     perf_cmd = ["perf", "record", "-k 1", "-F 99", "-g", cmd]
