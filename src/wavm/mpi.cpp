@@ -397,10 +397,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
 int terminateMpi()
 {
-    if (executingContext.getRank() <= 0) {
-        faabric::scheduler::MpiWorld& world = getExecutingWorld();
-        world.destroy();
-    }
+    // Wait for all processes to reach the terminate step
+    ContextWrapper ctx;
+    ctx.world.barrier(ctx.rank);
+
+    // Destroy the MPI world
+    ctx.world.destroy();
 
     return MPI_SUCCESS;
 }
