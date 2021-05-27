@@ -669,16 +669,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Abort", I32, MPI_Abort, I32 a, I32 b)
 {
     ContextWrapper ctx;
     ctx.getMpiLogger()->debug("S - MPI_Abort {} {}", a, b);
-    //        return terminateMpi();
-    return MPI_SUCCESS;
+    return terminateMpi();
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Finalize", I32, MPI_Finalize)
 {
     ContextWrapper ctx;
     ctx.getMpiLogger()->debug("S - MPI_Finalize");
-    //        return terminateMpi();
-    return MPI_SUCCESS;
+    return terminateMpi();
 }
 
 /**
