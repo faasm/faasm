@@ -192,8 +192,6 @@ I32 executeSyscall(int syscallNumber,
             return s__sigaction(a, b, c);
         case 175:
             return s__rt_sigprocmask(a, b, c, d);
-        case 186:
-            return s__sigaltstack(a, b);
         case 192:
             // mmap2 is basically the same as mmap (difference is in the final
             // argument which we ignore)
