@@ -49,7 +49,19 @@ locally.
 Create a PR from your branch, this will then run through the tests for the new
 release. If it's green, you can merge it into master.
 
-## 4. Create the Github release
+## 4. Re-tag after the PR is merged
+
+It is encouraged to re-tag the code once the PR has been merged to keep a clean
+commit log. To do so, once the PR has been merged:
+
+```bash
+git checkout master
+git pull origin master
+cat VERSION # ensure VERSION has the correct tag
+inv git.tag --foce
+```
+
+## 5. Create the Github release
 
 Run the following to create the new release from your tag:
 
@@ -70,7 +82,15 @@ inv docker.build -c <container>
 To build more than one:
 
 ```bash
-inv docker.build -c <containerA> <containerB>
+inv docker.build -c <containerA> -c <containerB>
+```
+
+In particular, if you have re-tagged the code and the builds in github are not
+working, this line will get all the container images up to speed (will take a
+while though):
+
+```bash
+inv docker.build -c base -c worker -c cli -c upload --push --nocache
 ```
 
 # Github config
