@@ -166,8 +166,11 @@ jobs:
       - name: "Clear existing pyc files"
         run: inv -r faasmcli/faasmcli python.clear-runtime-pyc
       # --- Test run ---
+      - name: "Run one test"
+        run: LOG_LEVEL=trace /build/faasm/bin/tests "Test MPI"
+      # --- Test run ---
       - name: "Run the tests"
-        run: /build/faasm/bin/tests
+        run: LOG_LEVEL=trace /build/faasm/bin/tests
 
   dist-tests:
     if: github.event.pull_request.draft == false
