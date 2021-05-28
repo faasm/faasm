@@ -1,4 +1,4 @@
-FROM faasm/grpc-root:0.0.20
+FROM ubuntu:20.04
 
 # -------------------------------------------------------------
 # NOTE - extensive use of Ansible in this Dockerfile makes it
@@ -9,14 +9,20 @@ FROM faasm/grpc-root:0.0.20
 # -------------------------------------------------------------
 
 RUN apt-get update
+RUN apt-get install -y software-properties-common
 
 # All apt packages
 RUN apt-get install -y \
     ansible \
     autoconf \
     automake \
+    build-essential \
+    clang-10 \
+    clang-format-10 \
+    clang-tidy-10 \
     cgroup-tools \
     curl \
+    git \
     iproute2 \
     iptables \
     libboost-dev \
@@ -30,6 +36,10 @@ RUN apt-get install -y \
     libz-dev \
     make \ 
     ninja-build \
+    pkg-config \
+    python3-dev \
+    python3-pip \
+    python3-venv \
     redis-tools \
     sudo \
     unzip \
