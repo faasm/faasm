@@ -3,6 +3,7 @@
 #include "utils.h"
 
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/environment.h>
 #include <faabric/util/func.h>
 
 namespace tests {
