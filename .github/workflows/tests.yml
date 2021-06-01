@@ -167,7 +167,7 @@ jobs:
         run: inv -r faasmcli/faasmcli python.clear-runtime-pyc
       # --- Test run ---
       - name: "Run one test"
-        run: LOG_LEVEL=trace /build/faasm/bin/tests "Test MPI"
+        run: LOG_LEVEL=trace /build/faasm/bin/tests "Test MPI async"
       # --- Test run ---
       - name: "Run the tests"
         run: LOG_LEVEL=trace /build/faasm/bin/tests
