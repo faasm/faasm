@@ -122,6 +122,8 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
             // Set up network namespace
             ns = claimNetworkNamespace();
             ns->addCurrentThread();
+
+            isIsolated = true;
         }
     }
 
