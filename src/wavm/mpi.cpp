@@ -397,10 +397,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
 int terminateMpi()
 {
-    if (executingContext.getRank() <= 0) {
-        faabric::scheduler::MpiWorld& world = getExecutingWorld();
-        world.destroy();
-    }
+    // Wait for all processes to reach the terminate step
+    ContextWrapper ctx;
+    ctx.world.barrier(ctx.rank);
+
+    // Destroy the MPI world
+    ctx.world.destroy();
 
     return MPI_SUCCESS;
 }
@@ -667,16 +669,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Abort", I32, MPI_Abort, I32 a, I32 b)
 {
     ContextWrapper ctx;
     ctx.getMpiLogger()->debug("S - MPI_Abort {} {}", a, b);
-    //        return terminateMpi();
-    return MPI_SUCCESS;
+    return terminateMpi();
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Finalize", I32, MPI_Finalize)
 {
     ContextWrapper ctx;
     ctx.getMpiLogger()->debug("S - MPI_Finalize");
-    //        return terminateMpi();
-    return MPI_SUCCESS;
+    return terminateMpi();
 }
 
 /**

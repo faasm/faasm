@@ -12,13 +12,18 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     container:
-      image: faasm/cli:0.5.16
+      image: faasm/cli:0.6.0
     defaults:
       run:
         working-directory: /usr/local/code/faasm
     steps:
-      - name: "Build the targets to update compile commands and dependencies"
-        run: inv -r faasmcli/faasmcli dev.tools --build Release
+      # --- Get the code ---
+      - name: "Fetch ref"
+        run: git fetch origin ${GITHUB_REF}:ci-branch
+      - name: "Check out branch"
+        run: git checkout --force ci-branch
+      - name: "Update submodules"
+        run: git submodule update 
       # --- Formatting checks ---
       - name: "Ensure all Python deps up-to-date"
         run: pip3 install -r faasmcli/requirements.txt
@@ -100,13 +105,13 @@ jobs:
       REDIS_QUEUE_HOST: redis
       REDIS_STATE_HOST: redis
     container:
-      image: faasm/cli:0.5.16
+      image: faasm/cli:0.6.0
     defaults:
       run:
         working-directory: /usr/local/code/faasm
     services:
       redis:
-        image: faasm/redis:0.5.16
+        image: faasm/redis:0.6.0
         ports:
           - 6379:6379
     steps:
