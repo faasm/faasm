@@ -24,10 +24,9 @@ bool isInPlace(U8 wasmPtr)
 
 faabric::scheduler::MpiWorld& getExecutingWorld()
 {
-    int worldId = executingContext.getWorldId();
     faabric::scheduler::MpiWorldRegistry& reg =
       faabric::scheduler::getMpiWorldRegistry();
-    return reg.getOrInitialiseWorld(*getExecutingCall(), worldId);
+    return reg.getOrInitialiseWorld(*getExecutingCall());
 }
 
 /**
@@ -165,7 +164,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Init", I32, MPI_Init, I32 a, I32 b)
         logger->debug("S - MPI_Init (create) {} {}", a, b);
 
         // Initialise the world
-        executingContext.createWorld(*call);
+        int worldId = executingContext.createWorld(*call);
+        call->set_mpiworldid(worldId);
     } else {
         logger->debug("S - MPI_Init (join) {} {}", a, b);
 
