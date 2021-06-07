@@ -100,27 +100,29 @@ Faaslet::Faaslet(const faabric::Message& msg)
         logger->error("Unrecognised wasm VM: {}", conf.wasmVm);
         throw std::runtime_error("Unrecognised wasm VM");
     }
+
+    // Bind to the function
+    module->bindToFunction(msg);
 }
 
 int32_t Faaslet::executeTask(int threadPoolIdx,
                              int msgIdx,
                              std::shared_ptr<faabric::BatchExecuteRequest> req)
 {
-    const faabric::Message& msg = req->mutable_messages()->at(msgIdx);
+    // Lazily set up Faaslet isolation.
+    // This has to be done within the same thread as the execution (hence we
+    // leave it until just before execution).
+    if (!isIsolated) {
+        faabric::util::UniqueLock lock(isolationMutex);
+        if (!isIsolated) {
+            // Add this thread to the cgroup
+            CGroup cgroup(BASE_CGROUP_NAME);
+            cgroup.addCurrentThread();
 
-    // Lazily bind to function and isolate
-    // Note that this has to be done within the executeTask function to be in
-    // the same thread as the execution
-    if (!module->isBound()) {
-        // Add this thread to the cgroup
-        CGroup cgroup(BASE_CGROUP_NAME);
-        cgroup.addCurrentThread();
-
-        // Set up network namespace
-        ns = claimNetworkNamespace();
-        ns->addCurrentThread();
-
-        module->bindToFunction(msg);
+            // Set up network namespace
+            ns = claimNetworkNamespace();
+            ns->addCurrentThread();
+        }
     }
 
     int32_t returnValue = module->executeTask(threadPoolIdx, msgIdx, req);
@@ -135,8 +137,10 @@ void Faaslet::reset(const faabric::Message& msg)
 
 void Faaslet::postFinish()
 {
-    ns->removeCurrentThread();
-    returnNetworkNamespace(ns);
+    if (ns != nullptr) {
+        ns->removeCurrentThread();
+        returnNetworkNamespace(ns);
+    }
 }
 
 faabric::util::SnapshotData Faaslet::snapshot()

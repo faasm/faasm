@@ -162,6 +162,13 @@ void WasmModule::restore(const std::string& snapshotKey)
 {
     PROF_START(wasmSnapshotRestore)
 
+    const auto& logger = faabric::util::getLogger();
+    if (!isBound()) {
+        logger->error("Must bind wasm module before restoring snapshot {}",
+                      snapshotKey);
+        throw std::runtime_error("Cannot restore unbound wasm module");
+    }
+
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
 
@@ -169,15 +176,15 @@ void WasmModule::restore(const std::string& snapshotKey)
     faabric::util::SnapshotData data = reg.getSnapshot(snapshotKey);
     uint32_t memSize = getCurrentBrk();
 
-    const auto& logger = faabric::util::getLogger();
     if (data.size > memSize) {
-        logger->debug("Growing memory to fit snapshot");
         size_t bytesRequired = data.size - memSize;
-        this->growMemory(bytesRequired);
+        logger->debug("Growing memory by {} bytes to fit snapshot",
+                      bytesRequired);
+        growMemory(bytesRequired);
     } else {
-        logger->debug("Shrinking memory to fit snapshot");
         size_t shrinkBy = memSize - data.size;
-        this->shrinkMemory(shrinkBy);
+        logger->debug("Shrinking memory by {} bytes to fit snapshot", shrinkBy);
+        shrinkMemory(shrinkBy);
     }
 
     // Map the snapshot into memory
@@ -375,7 +382,11 @@ int32_t WasmModule::executeTask(
   int msgIdx,
   std::shared_ptr<faabric::BatchExecuteRequest> req)
 {
+    // Set up context for this task
+    setExecutingModule(this);
+
     faabric::Message& msg = req->mutable_messages()->at(msgIdx);
+    setExecutingCall(&msg);
 
     if (!isBound()) {
         throw std::runtime_error(
@@ -384,10 +395,6 @@ int32_t WasmModule::executeTask(
 
     assert(boundUser == msg.user());
     assert(boundFunction == msg.function());
-
-    // Set up context for this task
-    setExecutingModule(this);
-    setExecutingCall(&msg);
 
     // Modules must have provisioned their own thread stacks
     assert(!threadStacks.empty());
