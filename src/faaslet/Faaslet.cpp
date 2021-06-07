@@ -139,6 +139,11 @@ void Faaslet::postFinish()
     returnNetworkNamespace(ns);
 }
 
+faabric::util::SnapshotData Faaslet::snapshot()
+{
+    return module->getSnapshotData();
+}
+
 void Faaslet::restore(const faabric::Message& msg)
 {
     auto logger = faabric::util::getLogger();
