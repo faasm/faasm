@@ -3,6 +3,7 @@
 #include "utils.h"
 
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/environment.h>
 #include <faabric/util/func.h>
 
 namespace tests {
@@ -130,8 +131,8 @@ TEST_CASE("Test MPI window creation", "[mpi]")
     checkMpiFunc("mpi_wincreate");
 }
 
-// TEST_CASE("Test MPI async", "[mpi]")
-//{
-//    checkMpiFunc("mpi_isendrecv");
-//}
+TEST_CASE("Test MPI async", "[mpi]")
+{
+    checkMpiFunc("mpi_isendrecv");
+}
 }

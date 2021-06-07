@@ -1,5 +1,6 @@
 ansible
 awscli
+black
 botocore
 boto
 boto3

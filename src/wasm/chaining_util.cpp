@@ -81,7 +81,6 @@ int spawnChainedThread(const std::string& snapshotKey,
 
     // Snapshot details
     call.set_snapshotkey(snapshotKey);
-    call.set_snapshotsize(snapshotSize);
 
     // Function pointer and args
     // NOTE - with a pthread interface we only ever pass the function a single

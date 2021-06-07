@@ -68,11 +68,14 @@ OpenMode getOpenMode(uint16_t openFlags)
 {
     if (openFlags & __WASI_O_CREAT) {
         return OpenMode::CREATE;
-    } else if (openFlags & __WASI_O_DIRECTORY) {
+    }
+    if (openFlags & __WASI_O_DIRECTORY) {
         return OpenMode::DIRECTORY;
-    } else if (openFlags & __WASI_O_TRUNC) {
+    }
+    if (openFlags & __WASI_O_TRUNC) {
         return OpenMode::TRUNC;
-    } else if (openFlags & __WASI_O_EXCL) {
+    }
+    if (openFlags & __WASI_O_EXCL) {
         return OpenMode::EXCL;
     } else if (openFlags == 0) {
         return OpenMode::NONE;
@@ -89,11 +92,14 @@ ReadWriteType getRwType(uint64_t rights)
 
     if (rightsRead && rightsWrite) {
         return ReadWriteType::READ_WRITE;
-    } else if (rightsRead) {
+    }
+    if (rightsRead) {
         return ReadWriteType::READ_ONLY;
-    } else if (!rightsRead && rightsWrite) {
+    }
+    if (!rightsRead && rightsWrite) {
         return ReadWriteType::WRITE_ONLY;
-    } else if (rights == 0) {
+    }
+    if (rights == 0) {
         return ReadWriteType::NO_READ_WRITE;
     } else {
         return ReadWriteType::CUSTOM;
@@ -147,12 +153,11 @@ std::string FileDescriptor::absPath(const std::string& relativePath)
 
     if (relativePath.empty()) {
         return path;
-    } else {
-        std::string basePath = path == "." ? "" : path;
-        boost::filesystem::path joinedPath(basePath);
-        joinedPath.append(relativePath);
-        return joinedPath.string();
     }
+    std::string basePath = path == "." ? "" : path;
+    boost::filesystem::path joinedPath(basePath);
+    joinedPath.append(relativePath);
+    return joinedPath.string();
 }
 
 FileDescriptor FileDescriptor::stdFdFactory(int stdFd,
@@ -258,7 +263,7 @@ void FileDescriptor::iterBack()
     dirContentsIdx--;
 }
 
-bool FileDescriptor::iterStarted()
+bool FileDescriptor::iterStarted() const
 {
     return dirContentsLoaded;
 }
@@ -333,7 +338,7 @@ size_t FileDescriptor::copyDirentsToWasiBuffer(uint8_t* buffer,
             break;
         }
 
-        auto direntPtr = BYTES(&wasmDirEnt);
+        auto* direntPtr = BYTES(&wasmDirEnt);
         std::copy(direntPtr, direntPtr + wasiDirentSize, buffer);
         bytesLeft -= wasiDirentSize;
         buffer += wasiDirentSize;
@@ -344,7 +349,7 @@ size_t FileDescriptor::copyDirentsToWasiBuffer(uint8_t* buffer,
             break;
         }
 
-        auto pathPtr = BYTES_CONST(d.path.c_str());
+        const auto* pathPtr = BYTES_CONST(d.path.c_str());
         std::copy(pathPtr, pathPtr + pathSize, buffer);
         bytesLeft -= pathSize;
         buffer += pathSize;
@@ -354,10 +359,8 @@ size_t FileDescriptor::copyDirentsToWasiBuffer(uint8_t* buffer,
         // Go back one, we've not been able to finish this entry
         iterBack();
         return bufferLen;
-    } else {
-        // Return the number of bytes copied
-        return bufferLen - bytesLeft;
-    }
+    } // Return the number of bytes copied
+    return bufferLen - bytesLeft;
 }
 
 bool FileDescriptor::pathOpen(uint32_t lookupFlags,
@@ -480,7 +483,7 @@ bool FileDescriptor::updateFlags(int32_t fdFlags)
     return true;
 }
 
-void FileDescriptor::close()
+void FileDescriptor::close() const
 {
     if (linuxFd > 0) {
         ::close(linuxFd);
@@ -572,10 +575,9 @@ Stat FileDescriptor::stat(const std::string& relativePath)
         statResult.failed = true;
         statResult.wasiErrno = errnoToWasi(statErrno);
         return statResult;
-    } else {
-        statResult.failed = false;
-        statResult.wasiErrno = 0;
     }
+    statResult.failed = false;
+    statResult.wasiErrno = 0;
 
     // Work out file type
     bool isReadOnly = false;
@@ -628,7 +630,7 @@ ssize_t FileDescriptor::readLink(const std::string& relativePath,
 
 uint16_t FileDescriptor::seek(int64_t offset,
                               int wasiWhence,
-                              uint64_t* newOffset)
+                              uint64_t* newOffset) const
 {
     int linuxWhence;
     if (wasiWhence == __WASI_WHENCE_SET) {
@@ -652,38 +654,38 @@ uint16_t FileDescriptor::seek(int64_t offset,
     return __WASI_ESUCCESS;
 }
 
-uint64_t FileDescriptor::tell()
+uint64_t FileDescriptor::tell() const
 {
     off_t result = ::lseek(linuxFd, 0, SEEK_CUR);
     return result;
 }
 
-int FileDescriptor::getLinuxFd()
+int FileDescriptor::getLinuxFd() const
 {
     return linuxFd;
 }
 
-int FileDescriptor::getLinuxFlags()
+int FileDescriptor::getLinuxFlags() const
 {
     return linuxFlags;
 }
 
-int FileDescriptor::getLinuxErrno()
+int FileDescriptor::getLinuxErrno() const
 {
     return linuxErrno;
 }
 
-uint16_t FileDescriptor::getWasiErrno()
+uint16_t FileDescriptor::getWasiErrno() const
 {
     return wasiErrno;
 }
 
-uint64_t FileDescriptor::getActualRightsBase()
+uint64_t FileDescriptor::getActualRightsBase() const
 {
     return actualRightsBase;
 }
 
-uint64_t FileDescriptor::getActualRightsInheriting()
+uint64_t FileDescriptor::getActualRightsInheriting() const
 {
     return actualRightsInheriting;
 }
