@@ -113,18 +113,15 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
     // This has to be done within the same thread as the execution (hence we
     // leave it until just before execution).
     if (!isIsolated) {
-        faabric::util::UniqueLock lock(isolationMutex);
-        if (!isIsolated) {
-            // Add this thread to the cgroup
-            CGroup cgroup(BASE_CGROUP_NAME);
-            cgroup.addCurrentThread();
+        // Add this thread to the cgroup
+        CGroup cgroup(BASE_CGROUP_NAME);
+        cgroup.addCurrentThread();
 
-            // Set up network namespace
-            ns = claimNetworkNamespace();
-            ns->addCurrentThread();
+        // Set up network namespace
+        ns = claimNetworkNamespace();
+        ns->addCurrentThread();
 
-            isIsolated = true;
-        }
+        isIsolated = true;
     }
 
     int32_t returnValue = module->executeTask(threadPoolIdx, msgIdx, req);

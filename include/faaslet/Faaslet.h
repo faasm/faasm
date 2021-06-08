@@ -36,7 +36,6 @@ class Faaslet final : public faabric::scheduler::Executor
 
   private:
     bool isIsolated;
-    std::mutex isolationMutex;
 
     std::shared_ptr<isolation::NetworkNamespace> ns;
 };
