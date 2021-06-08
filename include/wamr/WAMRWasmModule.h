@@ -27,7 +27,7 @@ class WAMRWasmModule final : public WasmModule
     ~WAMRWasmModule();
 
     // ----- Module lifecycle -----
-    void doBindToFunction(const faabric::Message& msg, bool cache) override;
+    void doBindToFunction(faabric::Message& msg, bool cache) override;
 
     int32_t executeFunction(faabric::Message& msg) override;
 

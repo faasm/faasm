@@ -1,6 +1,7 @@
 #include <faabric/proto/faabric.pb.h>
 #include <wamr/WAMRWasmModule.h>
 #include <wamr/native.h>
+#include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 #include <wasm_export.h>
 

@@ -8,6 +8,7 @@
 
 #include <faabric/util/locks.h>
 #include <wamr/native.h>
+#include <wasm/WasmExecutionContext.h>
 
 #include <cstdint>
 #include <stdexcept>
@@ -76,7 +77,7 @@ WAMRWasmModule::~WAMRWasmModule()
 }
 
 // ----- Module lifecycle -----
-void WAMRWasmModule::doBindToFunction(const faabric::Message& msg, bool cache)
+void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 {
     const auto& logger = faabric::util::getLogger();
 
@@ -123,10 +124,8 @@ int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
     const auto& logger = faabric::util::getLogger();
     logger->debug("WAMR executing message {}", msg.id());
 
-    setExecutingModule(this);
-    setExecutingCall(&msg);
-
     // Run wasm initialisers
+    wasm::WasmExecutionContext(this, &msg);
     executeWasmFunction(WASM_CTORS_FUNC_NAME);
 
     if (msg.funcptr() > 0) {
@@ -143,8 +142,6 @@ int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
 int WAMRWasmModule::executeWasmFunctionFromPointer(int wasmFuncPtr)
 {
     auto logger = faabric::util::getLogger();
-
-    setExecutingModule(this);
 
     // NOTE: WAMR doesn't provide a nice interface for calling functions using
     // function pointers, so we have to call a few more low-level functions to
@@ -183,8 +180,6 @@ int WAMRWasmModule::executeWasmFunctionFromPointer(int wasmFuncPtr)
 int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
 {
     auto logger = faabric::util::getLogger();
-
-    setExecutingModule(this);
 
     WASMFunctionInstanceCommon* func =
       wasm_runtime_lookup_function(moduleInstance, funcName.c_str(), nullptr);

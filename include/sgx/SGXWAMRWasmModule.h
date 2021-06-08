@@ -55,7 +55,7 @@ class SGXWAMRWasmModule final : public WasmModule
 
     ~SGXWAMRWasmModule() override;
 
-    void doBindToFunction(const faabric::Message& msg, bool cache) override;
+    void doBindToFunction(faabric::Message& msg, bool cache) override;
 
     bool unbindFunction();
 

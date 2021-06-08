@@ -26,7 +26,7 @@ namespace wasm {
 
 #define OMP_FUNC(str)                                                          \
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();  \
-    faabric::Message* msg = getExecutingCall();                                \
+    const faabric::Message* msg = getExecutingCall();                                \
     int localThreadNum = level->getLocalThreadNum(msg);                        \
     int globalThreadNum = level->getGlobalThreadNum(msg);                      \
     auto logger = faabric::util::getLogger();                                  \
@@ -34,7 +34,7 @@ namespace wasm {
 
 #define OMP_FUNC_ARGS(formatStr, ...)                                          \
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();  \
-    faabric::Message* msg = getExecutingCall();                                \
+    const faabric::Message* msg = getExecutingCall();                                \
     int localThreadNum = level->getLocalThreadNum(msg);                        \
     int globalThreadNum = level->getGlobalThreadNum(msg);                      \
     auto logger = faabric::util::getLogger();                                  \
@@ -458,7 +458,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
         // Set up the context for the next level
         threads::setCurrentOpenMPLevel(nextLevel);
-        setExecutingCall(&masterMsg);
+        wasm::WasmExecutionContext(parentModule, &masterMsg);
 
         // Execute the task
         logger->debug("OpenMP 0: executing OMP thread 0 (master)");
@@ -469,7 +469,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
         // Reset the context
         threads::setCurrentOpenMPLevel(parentLevel);
-        setExecutingCall(parentCall);
 
         if (masterThreadResult.i32 > 0) {
             throw std::runtime_error("Master OpenMP thread failed");

@@ -69,11 +69,11 @@ class Level
 
     void unlockCritical();
 
-    int getLocalThreadNum(faabric::Message* msg);
+    int getLocalThreadNum(const faabric::Message* msg);
 
     int getGlobalThreadNum(int localThreadNum);
 
-    int getGlobalThreadNum(faabric::Message* msg);
+    int getGlobalThreadNum(const faabric::Message* msg);
 };
 
 class PthreadTask

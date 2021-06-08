@@ -34,7 +34,7 @@ TEST_CASE("Test loading state into wasm module", "[wasm]")
     wasm::WAVMWasmModule moduleA;
     wasm::WAVMWasmModule moduleB;
 
-    const faabric::Message call = faabric::util::messageFactory("demo", "echo");
+    faabric::Message call = faabric::util::messageFactory("demo", "echo");
     moduleA.bindToFunction(call);
     moduleB.bindToFunction(call);
 
@@ -121,7 +121,7 @@ TEST_CASE("Test mapping state chunk from remote state", "[state]")
 
     // Create a wasm module
     wasm::WAVMWasmModule module;
-    const faabric::Message call = faabric::util::messageFactory("demo", "echo");
+    faabric::Message call = faabric::util::messageFactory("demo", "echo");
     module.bindToFunction(call);
 
     // Map the chunk locally

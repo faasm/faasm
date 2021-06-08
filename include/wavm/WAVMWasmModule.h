@@ -1,6 +1,7 @@
 #pragma once
 
 #include <threads/ThreadState.h>
+#include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 #include <wavm/LoadedDynamicModule.h>
 
@@ -33,13 +34,13 @@ class WAVMWasmModule final
     ~WAVMWasmModule();
 
     // ----- Module lifecycle -----
-    void doBindToFunction(const faabric::Message& msg, bool cache) override;
+    void doBindToFunction(faabric::Message& msg, bool cache) override;
 
-    void bindToFunctionNoZygote(const faabric::Message& msg);
+    void bindToFunctionNoZygote(faabric::Message& msg);
 
     void flush() override;
 
-    void reset(const faabric::Message& msg) override;
+    void reset(faabric::Message& msg) override;
 
     // ----- Memory management -----
     uint32_t growMemory(uint32_t nBytes) override;
@@ -175,7 +176,7 @@ class WAVMWasmModule final
 
     static WAVM::Runtime::Instance* getWasiModule();
 
-    void doBindToFunctionInternal(const faabric::Message& msg,
+    void doBindToFunctionInternal(faabric::Message& msg,
                                   bool executeZygote,
                                   bool useCache);
 
@@ -210,9 +211,9 @@ class WAVMWasmModule final
 class WAVMModuleCache
 {
   public:
-    wasm::WAVMWasmModule& getCachedModule(const faabric::Message& msg);
+    wasm::WAVMWasmModule& getCachedModule(faabric::Message& msg);
 
-    void initialiseCachedModule(const faabric::Message& msg);
+    void initialiseCachedModule(faabric::Message& msg);
 
     void clear();
 

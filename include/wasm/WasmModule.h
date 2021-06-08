@@ -64,9 +64,9 @@ class WasmModule
     virtual ~WasmModule();
 
     // ----- Module lifecycle -----
-    virtual void reset(const faabric::Message& msg);
+    virtual void reset(faabric::Message& msg);
 
-    void bindToFunction(const faabric::Message& msg, bool cache = true);
+    void bindToFunction(faabric::Message& msg, bool cache = true);
 
     int32_t executeTask(int threadPoolIdx,
                         int msgIdx,
@@ -186,20 +186,11 @@ class WasmModule
     virtual uint8_t* getMemoryBase();
 
     // Module-specific binding
-    virtual void doBindToFunction(const faabric::Message& msg, bool cache);
+    virtual void doBindToFunction(faabric::Message& msg, bool cache);
 
     // Threads
     void createThreadStacks();
 };
-
-// ----- Global functions -----
-void setExecutingCall(faabric::Message* call);
-
-faabric::Message* getExecutingCall();
-
-void setExecutingModule(wasm::WasmModule* module);
-
-wasm::WasmModule* getExecutingModule();
 
 // Convenience functions
 size_t getNumberOfWasmPagesForBytes(uint32_t nBytes);
