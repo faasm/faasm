@@ -91,11 +91,6 @@ TEST_CASE("Test MPI probe", "[mpi]")
     checkMpiFunc("mpi_probe");
 }
 
-TEST_CASE("Test MPI put", "[mpi]")
-{
-    checkMpiFunc("mpi_put");
-}
-
 TEST_CASE("Test MPI reduce", "[mpi]")
 {
     checkMpiFunc("mpi_reduce");
@@ -124,11 +119,6 @@ TEST_CASE("Test MPI status", "[mpi]")
 TEST_CASE("Test MPI type sizes", "[mpi]")
 {
     checkMpiFunc("mpi_typesize");
-}
-
-TEST_CASE("Test MPI window creation", "[mpi]")
-{
-    checkMpiFunc("mpi_wincreate");
 }
 
 TEST_CASE("Test MPI async", "[mpi]")
