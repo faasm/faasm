@@ -60,6 +60,4 @@ class WAMRWasmModule final : public WasmModule
 };
 
 void tearDownWAMRGlobally();
-
-WAMRWasmModule* getExecutingWAMRModule();
 }

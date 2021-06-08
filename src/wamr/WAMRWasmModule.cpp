@@ -1,14 +1,14 @@
 #include "WAMRWasmModule.h"
 #include "aot_runtime.h"
-#include "faabric/util/logging.h"
 #include "platform_common.h"
-#include "wasm/WasmModule.h"
 #include "wasm_exec_env.h"
 #include "wasm_runtime.h"
 
 #include <faabric/util/locks.h>
+#include <faabric/util/logging.h>
 #include <wamr/native.h>
 #include <wasm/WasmExecutionContext.h>
+#include <wasm/WasmModule.h>
 
 #include <cstdint>
 #include <stdexcept>
@@ -52,11 +52,6 @@ void WAMRWasmModule::initialiseWAMRGlobally()
 void tearDownWAMRGlobally()
 {
     wasm_runtime_destroy();
-}
-
-WAMRWasmModule* getExecutingWAMRModule()
-{
-    return reinterpret_cast<WAMRWasmModule*>(getExecutingModule());
 }
 
 WAMRWasmModule::WAMRWasmModule()
