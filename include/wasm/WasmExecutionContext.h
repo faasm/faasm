@@ -17,6 +17,9 @@ class WasmExecutionContext
     WasmExecutionContext(WasmModule* module, faabric::Message* call);
 
     ~WasmExecutionContext();
+
+    WasmExecutionContext(const WasmExecutionContext&) = delete;
+    WasmExecutionContext& operator=(const WasmExecutionContext&) = delete;
 };
 
 WasmModule* getExecutingModule();
