@@ -47,8 +47,7 @@ SGXWAMRWasmModule::~SGXWAMRWasmModule()
     }
 }
 
-void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg,
-                                         bool cache)
+void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 {
     auto logger = faabric::util::getLogger();
 
@@ -128,7 +127,7 @@ int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
       "Entering enclave {} to execute {}", globalEnclaveId, funcStr);
 
     // Set execution context
-    wasm::WasmExecutionContext((WasmModule*)this, &msg);
+    wasm::WasmExecutionContext(this, &msg);
 
     // Enter enclave and call function
     faasm_sgx_status_t returnValue;

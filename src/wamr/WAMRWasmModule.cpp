@@ -124,8 +124,10 @@ int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
     const auto& logger = faabric::util::getLogger();
     logger->debug("WAMR executing message {}", msg.id());
 
+    // Make sure context is set
+    WasmExecutionContext(this, &msg);
+
     // Run wasm initialisers
-    wasm::WasmExecutionContext(this, &msg);
     executeWasmFunction(WASM_CTORS_FUNC_NAME);
 
     if (msg.funcptr() > 0) {

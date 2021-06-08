@@ -14,9 +14,6 @@ class WasmExecutionContext
     WasmModule* executingModule = nullptr;
     faabric::Message* executingCall = nullptr;
 
-    WasmModule* previousModule = nullptr;
-    faabric::Message* previousCall = nullptr;
-
     WasmExecutionContext(WasmModule* module, faabric::Message* call);
 
     ~WasmExecutionContext();

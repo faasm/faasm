@@ -233,8 +233,8 @@ void WasmModule::bindToFunction(faabric::Message& msg, bool cache)
     boundUser = msg.user();
     boundFunction = msg.function();
 
-    // Set up context and call subclass hook
-    WasmExecutionContext(this, &msg);
+    // Call into subclass hook, setting the context beforehand
+    WasmExecutionContext ctx(this, &msg);
     doBindToFunction(msg, cache);
 }
 

@@ -15,8 +15,8 @@
 
 #include <storage/SharedFiles.h>
 #include <threads/ThreadState.h>
-#include <wasm/WasmModule.h>
 #include <wasm/WasmExecutionContext.h>
+#include <wasm/WasmModule.h>
 #include <wavm/IRModuleCache.h>
 #include <wavm/WAVMWasmModule.h>
 
@@ -824,9 +824,6 @@ int32_t WAVMWasmModule::executeFunction(faabric::Message& msg)
 
     const auto& logger = faabric::util::getLogger();
 
-    // Set execution context
-    wasm::WasmExecutionContext ctx(this, &msg);
-
     // Ensure Python function file in place (if necessary)
     storage::SharedFiles::syncPythonFunctionFile(msg);
 
@@ -879,6 +876,7 @@ int32_t WAVMWasmModule::executeFunction(faabric::Message& msg)
     }
 
     // Call the function
+    WasmExecutionContext ctx(this, &msg);
     int returnValue = 0;
     try {
         Runtime::catchRuntimeExceptions(

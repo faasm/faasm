@@ -1,47 +1,42 @@
 #include <wasm/WasmExecutionContext.h>
 
+#include <stack>
+
 namespace wasm {
 
-// Using TLS here to isolate between executing functions
-// Note that with threads, multiple messages can be executing on the same
-// module, hence we must track them independently.
-static thread_local WasmExecutionContext* currentExecutionContext = nullptr;
+// Using global TLS here to isolate between executing functions and support the
+// globally accessible accessor methods to access the current context
+static thread_local std::stack<WasmExecutionContext*> contexts;
 
 WasmExecutionContext::WasmExecutionContext(WasmModule* module,
                                            faabric::Message* call)
+
+  : executingModule(module)
+  , executingCall(call)
 {
-    if (currentExecutionContext != nullptr) {
-        previousModule = currentExecutionContext->executingModule;
-        previousCall = currentExecutionContext->executingCall;
-    }
-
-    executingModule = module;
-    executingCall = call;
-
-    currentExecutionContext = this;
+    contexts.push(this);
 }
 
 WasmExecutionContext::~WasmExecutionContext()
 {
-    executingModule = previousModule;
-    executingCall = previousCall;
+    contexts.pop();
 }
 
 WasmModule* getExecutingModule()
 {
-    if (currentExecutionContext == nullptr) {
+    if (contexts.empty()) {
         return nullptr;
     }
 
-    return currentExecutionContext->executingModule;
+    return contexts.top()->executingModule;
 }
 
 faabric::Message* getExecutingCall()
 {
-    if (currentExecutionContext == nullptr) {
+    if (contexts.empty()) {
         return nullptr;
     }
 
-    return currentExecutionContext->executingCall;
+    return contexts.top()->executingCall;
 }
 }
