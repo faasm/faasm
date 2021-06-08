@@ -382,11 +382,7 @@ int32_t WasmModule::executeTask(
   int msgIdx,
   std::shared_ptr<faabric::BatchExecuteRequest> req)
 {
-    // Set up context for this task
-    setExecutingModule(this);
-
     faabric::Message& msg = req->mutable_messages()->at(msgIdx);
-    setExecutingCall(&msg);
 
     if (!isBound()) {
         throw std::runtime_error(
@@ -395,6 +391,10 @@ int32_t WasmModule::executeTask(
 
     assert(boundUser == msg.user());
     assert(boundFunction == msg.function());
+
+    // Set up context for this task
+    setExecutingModule(this);
+    setExecutingCall(&msg);
 
     // Modules must have provisioned their own thread stacks
     assert(!threadStacks.empty());
