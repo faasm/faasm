@@ -81,19 +81,9 @@ TEST_CASE("Test MPI message ordering", "[mpi]")
     checkMpiFunc("mpi_order");
 }
 
-TEST_CASE("Test MPI one-sided comms", "[mpi]")
-{
-    checkMpiFunc("mpi_onesided");
-}
-
 TEST_CASE("Test MPI probe", "[mpi]")
 {
     checkMpiFunc("mpi_probe");
-}
-
-TEST_CASE("Test MPI put", "[mpi]")
-{
-    checkMpiFunc("mpi_put");
 }
 
 TEST_CASE("Test MPI reduce", "[mpi]")
@@ -124,11 +114,6 @@ TEST_CASE("Test MPI status", "[mpi]")
 TEST_CASE("Test MPI type sizes", "[mpi]")
 {
     checkMpiFunc("mpi_typesize");
-}
-
-TEST_CASE("Test MPI window creation", "[mpi]")
-{
-    checkMpiFunc("mpi_wincreate");
 }
 
 TEST_CASE("Test MPI async", "[mpi]")
