@@ -29,29 +29,29 @@ wasm::WAVMWasmModule& WAVMModuleCache::getCachedModule(
   const faabric::Message& msg)
 {
     std::string key = faabric::util::funcToString(msg, false);
-    if (cachedModuleMap.count(key) == 0) {
+
+    // If there's no cached module, we need to create it
+    if (cachedModuleMap.find(key) == cachedModuleMap.end()) {
         faabric::util::FullLock lock(mx);
 
-        if (cachedModuleMap.count(key) == 0) {
-            faabric::util::getLogger()->debug(
-              "{} initialising {}", gettid(), key);
-            initialiseCachedModule(msg);
+        // Re-check condition
+        if (cachedModuleMap.find(key) == cachedModuleMap.end()) {
+            const auto& logger = faabric::util::getLogger();
+            logger->debug(
+              "WAVM module cache initialising {} (tid {})", key, gettid());
+
+            // Instantiate the base module
+            wasm::WAVMWasmModule& module = cachedModuleMap[key];
+            module.bindToFunction(msg, false);
         }
     }
 
-    return cachedModuleMap[key];
-}
-
-void WAVMModuleCache::initialiseCachedModule(const faabric::Message& msg)
-{
-    std::string key = faabric::util::funcToString(msg, false);
-
-    const auto& logger = faabric::util::getLogger();
-    logger->debug("Creating new cached module: {}", key);
-
-    // Instantiate the base module
-    wasm::WAVMWasmModule& module = cachedModuleMap[key];
-    module.bindToFunction(msg, false);
+    {
+        // Note that we need a shared lock here to avoid a race condition on
+        // initialising the module
+        faabric::util::SharedLock lock(mx);
+        return cachedModuleMap[key];
+    }
 }
 
 void WAVMModuleCache::clear()
