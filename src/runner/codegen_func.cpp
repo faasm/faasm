@@ -13,11 +13,10 @@ using namespace boost::filesystem;
 
 void codegenForFunc(const std::string& user, const std::string& func)
 {
-    const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
 
     faabric::Message msg = faabric::util::messageFactory(user, func);
     if (!conf::isValidFunction(msg)) {
-        logger->warn("Invalid function: {}/{}", user, func);
+        SPDLOG_WARN("Invalid function: {}/{}", user, func);
         return;
     }
 
@@ -28,7 +27,6 @@ void codegenForFunc(const std::string& user, const std::string& func)
 
 int main(int argc, char* argv[])
 {
-    const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
 
     if (argc == 3) {
         std::string user = argv[1];
@@ -47,7 +45,7 @@ int main(int argc, char* argv[])
         path.append(user);
 
         if (!boost::filesystem::is_directory(path)) {
-            logger->error("Expected {} to be a directory", path.string());
+            SPDLOG_ERROR("Expected {} to be a directory", path.string());
             return 1;
         }
 
@@ -93,7 +91,7 @@ int main(int argc, char* argv[])
             }
         }
     } else {
-        logger->error("Must provide function user and optional function name");
+        SPDLOG_ERROR("Must provide function user and optional function name");
         return 0;
     }
 }

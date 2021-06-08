@@ -80,9 +80,8 @@ const NetworkIsolationMode NetworkNamespace::getMode()
 
 void joinNamespace(const boost::filesystem::path& nsPath)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
-    logger->debug("Setting network ns to {}", nsPath.string());
+    SPDLOG_DEBUG("Setting network ns to {}", nsPath.string());
 
     int fd;
     fd = open(nsPath.c_str(), O_RDONLY, 0);
@@ -95,9 +94,9 @@ void joinNamespace(const boost::filesystem::path& nsPath)
     close(fd);
 
     if (result != 0) {
-        logger->error("Failed to join namespace at {} - {}",
-                      nsPath.string(),
-                      std::strerror(errno));
+        SPDLOG_ERROR("Failed to join namespace at {} - {}",
+                     nsPath.string(),
+                     std::strerror(errno));
         std::string errorMsg = "setns failed " + std::to_string(errno);
         throw std::runtime_error(errorMsg);
     }
@@ -105,15 +104,14 @@ void joinNamespace(const boost::filesystem::path& nsPath)
 
 void NetworkNamespace::addCurrentThread()
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     if (mode == NetworkIsolationMode::ns_off) {
-        logger->debug("Not using network ns, support off");
+        SPDLOG_DEBUG("Not using network ns, support off");
         return;
     }
 
     PROF_START(netNsAdd)
-    logger->debug("Adding thread to network ns: {}", name);
+    SPDLOG_DEBUG("Adding thread to network ns: {}", name);
 
     // Open path to the namespace
     boost::filesystem::path nsPath("/var/run/netns");
@@ -125,10 +123,9 @@ void NetworkNamespace::addCurrentThread()
 
 void NetworkNamespace::removeCurrentThread()
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     if (mode == NetworkIsolationMode::ns_off) {
-        logger->debug("Not using network ns, support off");
+        SPDLOG_DEBUG("Not using network ns, support off");
         return;
     }
 

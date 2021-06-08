@@ -15,8 +15,7 @@ static int32_t __faasm_read_state_wrapper(wasm_exec_env_t exec_env,
                                           char* buffer,
                                           int32_t bufferLen)
 {
-    faabric::util::getLogger()->debug(
-      "S - faasm_read_state {} <buffer> {}", key, bufferLen);
+    SPDLOG_DEBUG("S - faasm_read_state {} <buffer> {}", key, bufferLen);
 
     std::string user = getExecutingCall()->user();
 
@@ -46,8 +45,7 @@ static int32_t __faasm_read_state_ptr_wrapper(wasm_exec_env_t exec_env,
     std::string user = getExecutingCall()->user();
     auto kv = faabric::state::getGlobalState().getKV(user, key, bufferLen);
 
-    faabric::util::getLogger()->debug(
-      "S - faasm_read_state_ptr - {} {}", kv->key, bufferLen);
+    SPDLOG_DEBUG("S - faasm_read_state_ptr - {} {}", kv->key, bufferLen);
 
     // Map shared memory
     WAMRWasmModule* module = getExecutingWAMRModule();
@@ -70,8 +68,7 @@ static void __faasm_write_state_wrapper(wasm_exec_env_t exec_env,
     std::string user = getExecutingCall()->user();
     auto kv = faabric::state::getGlobalState().getKV(user, key, bufferLen);
 
-    faabric::util::getLogger()->debug(
-      "S - faasm_write_state - {} <data> {}", kv->key, bufferLen);
+    SPDLOG_DEBUG("S - faasm_write_state - {} <data> {}", kv->key, bufferLen);
 
     kv->set(reinterpret_cast<uint8_t*>(buffer));
 }
@@ -81,7 +78,7 @@ static void __faasm_write_state_wrapper(wasm_exec_env_t exec_env,
  */
 static void __faasm_push_state_wrapper(wasm_exec_env_t exec_env, char* key)
 {
-    faabric::util::getLogger()->debug("S - faasm_push_state - {}", key);
+    SPDLOG_DEBUG("S - faasm_push_state - {}", key);
 
     std::string user = getExecutingCall()->user();
     auto kv = faabric::state::getGlobalState().getKV(user, key, 0);

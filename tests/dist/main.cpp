@@ -17,10 +17,9 @@ struct LogListener : Catch::TestEventListenerBase
 
     void testCaseStarting(Catch::TestCaseInfo const& testInfo) override
     {
-        auto logger = faabric::util::getLogger();
-        logger->info("---------------------------------------------");
-        logger->info("TEST: {}", testInfo.name);
-        logger->info("---------------------------------------------");
+        SPDLOG_INFO("---------------------------------------------");
+        SPDLOG_INFO("TEST: {}", testInfo.name);
+        SPDLOG_INFO("---------------------------------------------");
     }
 };
 
@@ -28,10 +27,9 @@ CATCH_REGISTER_LISTENER(LogListener)
 
 int main(int argc, char* argv[])
 {
-    const auto& logger = faabric::util::getLogger();
 
     // Start everything up
-    logger->info("Starting distributed test server on master");
+    SPDLOG_INFO("Starting distributed test server on master");
     std::shared_ptr<faaslet::FaasletFactory> fac =
       std::make_shared<faaslet::FaasletFactory>();
     faabric::runner::FaabricMain m(fac);
@@ -45,7 +43,7 @@ int main(int argc, char* argv[])
     fflush(stdout);
 
     // Shut down
-    logger->info("Shutting down");
+    SPDLOG_INFO("Shutting down");
     m.shutdown();
 
     return result;

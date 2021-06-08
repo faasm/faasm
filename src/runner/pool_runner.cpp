@@ -6,7 +6,6 @@
 
 int main()
 {
-    const auto& logger = faabric::util::getLogger();
 
     auto fac = std::make_shared<faaslet::FaasletFactory>();
     faabric::runner::FaabricMain m(fac);

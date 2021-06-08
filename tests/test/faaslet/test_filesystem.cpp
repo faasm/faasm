@@ -41,8 +41,6 @@ TEST_CASE("Test getdents", "[faaslet]")
     // Check we have a sensible number
     REQUIRE(actual.size() > 3);
 
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-
     for (auto& a : actual) {
         bool isFound =
           std::find(expected.begin(), expected.end(), a) != expected.end();

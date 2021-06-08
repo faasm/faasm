@@ -33,7 +33,6 @@ std::string getHeaderFromRequest(const http_request& request,
 
 UploadServer::UploadServer()
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     if (conf.functionStorage == "fileserver") {
@@ -76,7 +75,6 @@ std::vector<std::string> UploadServer::getPathParts(const http_request& request)
 
 void UploadServer::listen(const std::string& port)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     std::string addr = "http://0.0.0.0:" + port;
     http_listener listener(addr);
@@ -103,7 +101,6 @@ void UploadServer::stop()
 
 void UploadServer::handleGet(const http_request& request)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     const std::vector<std::string> pathParts =
       UploadServer::getPathParts(request);
@@ -117,7 +114,7 @@ void UploadServer::handleGet(const http_request& request)
     if (pathType == "sobjwasm" || pathType == "sobjobj" || pathType == "file") {
         std::string filePath = getHeaderFromRequest(request, FILE_PATH_HEADER);
 
-        logger->debug("GET request to {} ({})", uri, filePath);
+        SPDLOG_DEBUG("GET request to {} ({})", uri, filePath);
         if (pathType == "sobjwasm") {
             returnBytes = l.loadSharedObjectWasm(filePath);
         } else if (pathType == "sobjobj") {
@@ -131,7 +128,7 @@ void UploadServer::handleGet(const http_request& request)
             }
         }
     } else {
-        logger->debug("GET request to {}", uri);
+        SPDLOG_DEBUG("GET request to {}", uri);
 
         faabric::Message msg = UploadServer::buildMessageFromRequest(request);
 
@@ -160,8 +157,8 @@ void UploadServer::handleGet(const http_request& request)
 
 void UploadServer::handlePut(const http_request& request)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug("PUT request to {}", request.absolute_uri().to_string());
+
+    SPDLOG_DEBUG("PUT request to {}", request.absolute_uri().to_string());
 
     const std::vector<std::string> pathParts =
       UploadServer::getPathParts(request);
@@ -179,8 +176,8 @@ void UploadServer::handlePut(const http_request& request)
 
 void UploadServer::handleOptions(const http_request& request)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug("OPTIONS request to {}", request.absolute_uri().to_string());
+
+    SPDLOG_DEBUG("OPTIONS request to {}", request.absolute_uri().to_string());
 
     http_response response(status_codes::OK);
     setPermissiveHeaders(response);
@@ -189,7 +186,6 @@ void UploadServer::handleOptions(const http_request& request)
 
 std::vector<uint8_t> UploadServer::getState(const http_request& request)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     const std::vector<std::string> pathParts =
       UploadServer::getPathParts(request);
@@ -209,7 +205,6 @@ std::vector<uint8_t> UploadServer::getState(const http_request& request)
 
 void UploadServer::handleStateUpload(const http_request& request)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     const std::vector<std::string> pathParts =
       UploadServer::getPathParts(request);
@@ -245,7 +240,6 @@ void UploadServer::handleStateUpload(const http_request& request)
 
 void UploadServer::handlePythonFunctionUpload(const http_request& request)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     faabric::Message msg = UploadServer::buildMessageFromRequest(request);
     logger->info("Uploading Python function {}",
@@ -260,7 +254,7 @@ void UploadServer::handlePythonFunctionUpload(const http_request& request)
 
 void UploadServer::handleSharedFileUpload(const http_request& request)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
+
     std::string filePath = getHeaderFromRequest(request, FILE_PATH_HEADER);
     logger->info("Uploading shared file {}", filePath);
 
@@ -283,7 +277,6 @@ void UploadServer::handleSharedFileUpload(const http_request& request)
 
 void UploadServer::handleFunctionUpload(const http_request& request)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     faabric::Message msg = UploadServer::buildMessageFromRequest(request);
     logger->info("Uploading {}", faabric::util::funcToString(msg, false));
@@ -298,7 +291,6 @@ void UploadServer::handleFunctionUpload(const http_request& request)
 faabric::Message UploadServer::buildMessageFromRequest(
   const http_request& request)
 {
-    auto logger = faabric::util::getLogger();
 
     const std::vector<std::string> pathParts =
       UploadServer::getPathParts(request);
@@ -306,7 +298,7 @@ faabric::Message UploadServer::buildMessageFromRequest(
     if (pathParts.size() != 3) {
         const char* msg = "Invalid path (must be /f|fa|p|pa/<user>/<func>/ \n";
 
-        logger->error(msg);
+        SPDLOG_ERROR(msg);
 
         request.reply(status_codes::OK, msg);
         throw InvalidPathException(msg);

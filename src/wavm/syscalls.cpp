@@ -35,7 +35,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
             // gettid
             return executeSyscall(224, 0, 0, 0, 0, 0, 0, 0);
         default:
-            faabric::util::getLogger()->error(
+            SPDLOG_ERROR(
               "Called unsupported syscall format {} {}", syscallNo, argsPtr);
             throwException(
               Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
@@ -49,8 +49,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 syscallNo,
                                I32 argsPtr)
 {
-    faabric::util::getLogger()->error(
-      "Called unsupported syscall format {} {}", syscallNo, argsPtr);
+    SPDLOG_ERROR("Called unsupported syscall format {} {}", syscallNo, argsPtr);
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 

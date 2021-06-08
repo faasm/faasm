@@ -109,8 +109,7 @@ I32 s__socketcall(I32 call, I32 argsPtr)
                 }
             }
 
-            faabric::util::getLogger()->debug(
-              "S - socket - {} {} {}", domain, type, protocol);
+            SPDLOG_DEBUG("S - socket - {} {} {}", domain, type, protocol);
             I32 sock = (int)syscall(SYS_socket, domain, type, protocol);
 
             if (sock < 0) {
@@ -128,8 +127,7 @@ I32 s__socketcall(I32 call, I32 argsPtr)
             I32 addrPtr = subCallArgs[1];
             I32 addrLen = subCallArgs[2];
 
-            faabric::util::getLogger()->debug(
-              "S - connect - {} {} {}", sockfd, addrPtr, addrLen);
+            SPDLOG_DEBUG("S - connect - {} {} {}", sockfd, addrPtr, addrLen);
 
             sockaddr addr = getSockAddr(addrPtr);
             int result = connect(sockfd, &addr, sizeof(sockaddr));
@@ -161,13 +159,13 @@ I32 s__socketcall(I32 call, I32 argsPtr)
 
             ssize_t result = 0;
             if (call == SocketCalls::sc_send) {
-                faabric::util::getLogger()->debug(
+                SPDLOG_DEBUG(
                   "S - send - {} {} {} {}", sockfd, bufPtr, bufLen, flags);
 
                 result = send(sockfd, buf, bufLen, flags);
 
             } else if (call == SocketCalls::sc_recv) {
-                faabric::util::getLogger()->debug(
+                SPDLOG_DEBUG(
                   "S - recv - {} {} {} {}", sockfd, bufPtr, bufLen, flags);
 
                 result = recv(sockfd, buf, bufLen, flags);
@@ -179,28 +177,26 @@ I32 s__socketcall(I32 call, I32 argsPtr)
                 socklen_t addrLen = subCallArgs[5];
 
                 if (call == SocketCalls::sc_sendto) {
-                    faabric::util::getLogger()->debug(
-                      "S - sendto - {} {} {} {} {} {}",
-                      sockfd,
-                      bufPtr,
-                      bufLen,
-                      flags,
-                      sockAddrPtr,
-                      addrLen);
+                    SPDLOG_DEBUG("S - sendto - {} {} {} {} {} {}",
+                                 sockfd,
+                                 bufPtr,
+                                 bufLen,
+                                 flags,
+                                 sockAddrPtr,
+                                 addrLen);
 
                     result = sendto(
                       sockfd, buf, bufLen, flags, &sockAddr, nativeAddrLen);
 
                 } else {
                     // Note, addrLen here is actually a pointer
-                    faabric::util::getLogger()->debug(
-                      "S - recvfrom - {} {} {} {} {} {}",
-                      sockfd,
-                      bufPtr,
-                      bufLen,
-                      flags,
-                      sockAddrPtr,
-                      addrLen);
+                    SPDLOG_DEBUG("S - recvfrom - {} {} {} {} {} {}",
+                                 sockfd,
+                                 bufPtr,
+                                 bufLen,
+                                 flags,
+                                 sockAddrPtr,
+                                 addrLen);
 
                     // Make the call
                     result = recvfrom(
@@ -227,8 +223,7 @@ I32 s__socketcall(I32 call, I32 argsPtr)
 
             I32 addrLen = subCallArgs[2];
 
-            faabric::util::getLogger()->debug(
-              "S - bind - {} {} {}", sockfd, addrPtr, addrLen);
+            SPDLOG_DEBUG("S - bind - {} {} {}", sockfd, addrPtr, addrLen);
 
             int bindResult = bind(sockfd, &addr, sizeof(addr));
 
@@ -242,7 +237,7 @@ I32 s__socketcall(I32 call, I32 argsPtr)
             I32 addrPtr = subCallArgs[1];
             I32 addrLenPtr = subCallArgs[2];
 
-            faabric::util::getLogger()->debug(
+            SPDLOG_DEBUG(
               "S - getsockname - {} {} {}", sockfd, addrPtr, addrLenPtr);
 
             sockaddr nativeAddr = getSockAddr(addrPtr);
@@ -262,61 +257,51 @@ I32 s__socketcall(I32 call, I32 argsPtr)
             // ----------------------------
 
         case (SocketCalls::sc_getpeername): {
-            faabric::util::getLogger()->debug(
-              "S - getpeername - {} {}", call, argsPtr);
+            SPDLOG_DEBUG("S - getpeername - {} {}", call, argsPtr);
             return 0;
         }
 
         case (SocketCalls::sc_socketpair): {
-            faabric::util::getLogger()->debug(
-              "S - socketpair - {} {}", call, argsPtr);
+            SPDLOG_DEBUG("S - socketpair - {} {}", call, argsPtr);
             return 0;
         }
 
         case (SocketCalls::sc_shutdown): {
-            faabric::util::getLogger()->debug(
-              "S - shutdown - {} {}", call, argsPtr);
+            SPDLOG_DEBUG("S - shutdown - {} {}", call, argsPtr);
             return 0;
         }
 
         case (SocketCalls::sc_setsockopt): {
-            faabric::util::getLogger()->debug(
-              "S - setsockopt - {} {}", call, argsPtr);
+            SPDLOG_DEBUG("S - setsockopt - {} {}", call, argsPtr);
             return 0;
         }
         case (SocketCalls::sc_getsockopt): {
-            faabric::util::getLogger()->debug(
-              "S - getsockopt - {} {}", call, argsPtr);
+            SPDLOG_DEBUG("S - getsockopt - {} {}", call, argsPtr);
             return 0;
         }
 
         case (SocketCalls::sc_sendmsg): {
-            faabric::util::getLogger()->debug(
-              "S - sendmsg - {} {}", call, argsPtr);
+            SPDLOG_DEBUG("S - sendmsg - {} {}", call, argsPtr);
             return 0;
         }
 
         case (SocketCalls::sc_recvmsg): {
-            faabric::util::getLogger()->debug(
-              "S - recvmsg - {} {}", call, argsPtr);
+            SPDLOG_DEBUG("S - recvmsg - {} {}", call, argsPtr);
             return 0;
         }
 
         case (SocketCalls::sc_accept4): {
-            faabric::util::getLogger()->debug(
-              "S - accept4 - {} {}", call, argsPtr);
+            SPDLOG_DEBUG("S - accept4 - {} {}", call, argsPtr);
             return 0;
         }
 
         case (SocketCalls::sc_recvmmsg): {
-            faabric::util::getLogger()->debug(
-              "S - recvmmsg - {} {}", call, argsPtr);
+            SPDLOG_DEBUG("S - recvmmsg - {} {}", call, argsPtr);
             return 0;
         }
 
         case (SocketCalls::sc_sendmmsg): {
-            faabric::util::getLogger()->debug(
-              "S - sendmmsg - {} {}", call, argsPtr);
+            SPDLOG_DEBUG("S - sendmmsg - {} {}", call, argsPtr);
             return 0;
         }
 
@@ -326,16 +311,14 @@ I32 s__socketcall(I32 call, I32 argsPtr)
 
         case (SocketCalls::sc_accept):
             // Server-side
-            faabric::util::getLogger()->debug(
-              "S - accept - {} {}", call, argsPtr);
+            SPDLOG_DEBUG("S - accept - {} {}", call, argsPtr);
 
             throwException(
               Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 
         case (SocketCalls::sc_listen): {
             // Server-side
-            faabric::util::getLogger()->debug(
-              "S - listen - {} {}", call, argsPtr);
+            SPDLOG_DEBUG("S - listen - {} {}", call, argsPtr);
 
             throwException(
               Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
@@ -357,7 +340,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 hostnamePtr)
 {
     const std::string hostname = getStringFromWasm(hostnamePtr);
-    faabric::util::getLogger()->debug("S - gethostbyname {}", hostname);
+    SPDLOG_DEBUG("S - gethostbyname {}", hostname);
 
     return 0;
 }
@@ -369,8 +352,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 buffer,
                                I32 bufferLen)
 {
-    faabric::util::getLogger()->debug(
-      "S - gethostname {} {}", buffer, bufferLen);
+    SPDLOG_DEBUG("S - gethostname {} {}", buffer, bufferLen);
 
     Runtime::Memory* memoryPtr = getExecutingWAVMModule()->defaultMemory;
     char* key = &Runtime::memoryRef<char>(memoryPtr, (Uptr)buffer);

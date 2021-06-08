@@ -44,11 +44,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     std::string realPath;
     if (fileNamePtr == 0) {
         realPath = "";
-        faabric::util::getLogger()->debug("S - dlopen - nullptr {}", flags);
+        SPDLOG_DEBUG("S - dlopen - nullptr {}", flags);
     } else {
         realPath = getMaskedPathFromWasm(fileNamePtr);
-        faabric::util::getLogger()->debug(
-          "S - dlopen - {} {} ({})", filePath, flags, realPath);
+        SPDLOG_DEBUG("S - dlopen - {} {} ({})", filePath, flags, realPath);
     }
 
     return getExecutingWAVMModule()->dynamicLoadModule(realPath, context);
@@ -62,7 +61,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 symbolPtr)
 {
     const std::string symbol = getStringFromWasm(symbolPtr);
-    faabric::util::getLogger()->debug("S - dlsym - {} {}", handle, symbol);
+    SPDLOG_DEBUG("S - dlsym - {} {}", handle, symbol);
 
     Uptr tableIdx =
       getExecutingWAVMModule()->getDynamicModuleFunction(handle, symbol);
@@ -72,7 +71,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "dlerror", I32, dlerror)
 {
-    faabric::util::getLogger()->debug("S - dlerror");
+    SPDLOG_DEBUG("S - dlerror");
     std::string errorMessage("Wasm dynamic linking error. See logs");
 
     WAVMWasmModule* module = getExecutingWAVMModule();
@@ -87,7 +86,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "dlerror", I32, dlerror)
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "dlclose", I32, dlclose, I32 handle)
 {
-    faabric::util::getLogger()->debug("S - _dlclose {}", handle);
+    SPDLOG_DEBUG("S - _dlclose {}", handle);
 
     // Ignore
     return 0;
@@ -161,9 +160,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 retPtr,
                                I32 argsPtrPtr)
 {
-    auto logger = faabric::util::getLogger();
-    logger->debug(
-      "S - ffi_call {} {} {} {}", cifPtr, fnPtr, retPtr, argsPtrPtr);
+
+    SPDLOG_DEBUG("S - ffi_call {} {} {} {}", cifPtr, fnPtr, retPtr, argsPtrPtr);
 
     // Extract the function
     WAVMWasmModule* module = getExecutingWAVMModule();
@@ -186,9 +184,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     // Check types agree
     auto expectedNArgs = (uint32_t)funcType.params().size();
     if (expectedNArgs != cif->nargs) {
-        logger->error("Unexpected function param length {} != {}",
-                      expectedNArgs,
-                      cif->nargs);
+        SPDLOG_ERROR("Unexpected function param length {} != {}",
+                     expectedNArgs,
+                     cif->nargs);
 
         throw std::runtime_error("Mismatched function param lengths");
     }
@@ -223,20 +221,18 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
             case (libffi_type_value::SINT64):
                 FFI_TYPE_CASE(int64_t)
             default: {
-                logger->error("FFI type not yet implemented: {}",
-                              argType->type);
+                SPDLOG_ERROR("FFI type not yet implemented: {}", argType->type);
                 throw std::runtime_error("FFI type not yet implemented");
             }
         }
 
-        logger->debug(
-          "ffi arg: bytes={} type={}", argType->size, argType->type);
+        SPDLOG_DEBUG("ffi arg: bytes={} type={}", argType->size, argType->type);
     }
 
-    logger->debug("ffi_call: fn={}, nargs={}, retType={}",
-                  fnPtr,
-                  cif->nargs,
-                  returnType->type);
+    SPDLOG_DEBUG("ffi_call: fn={}, nargs={}, retType={}",
+                 fnPtr,
+                 cif->nargs,
+                 returnType->type);
 
     // Execute the function
     IR::UntaggedValue result;
@@ -256,8 +252,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 d,
                                I32 e)
 {
-    faabric::util::getLogger()->debug(
-      "S - ffi_prep_closure_loc {} {} {} {} {}", a, b, c, d, e);
+    SPDLOG_DEBUG("S - ffi_prep_closure_loc {} {} {} {} {}", a, b, c, d, e);
 
     // Ignore
     return 0;

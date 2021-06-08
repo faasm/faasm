@@ -12,10 +12,9 @@
 
 int main(int argc, char* argv[])
 {
-    const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
 
     if (argc < 3) {
-        logger->error("Must provide user and function name");
+        SPDLOG_ERROR("Must provide user and function name");
         return 1;
     }
 

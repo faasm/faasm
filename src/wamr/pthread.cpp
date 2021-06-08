@@ -17,41 +17,40 @@ static int32_t pthread_mutex_init_wrapper(wasm_exec_env_t exec_env,
                                           int32_t a,
                                           int32_t b)
 {
-    faabric::util::getLogger()->debug("S - pthread_mutex_init {} {}", a, b);
+    SPDLOG_DEBUG("S - pthread_mutex_init {} {}", a, b);
     return 0;
 }
 
 static int32_t pthread_mutex_lock_wrapper(wasm_exec_env_t exec_env, int32_t a)
 {
-    faabric::util::getLogger()->debug("S - pthread_mutex_lock {}", a);
+    SPDLOG_DEBUG("S - pthread_mutex_lock {}", a);
     return 0;
 }
 
 static int32_t pthread_mutex_unlock_wrapper(wasm_exec_env_t exec_env, int32_t a)
 {
-    faabric::util::getLogger()->debug("S - pthread_mutex_unlock {}", a);
+    SPDLOG_DEBUG("S - pthread_mutex_unlock {}", a);
     return 0;
 }
 
 static int32_t pthread_cond_broadcast_wrapper(wasm_exec_env_t exec_env,
                                               int32_t a)
 {
-    faabric::util::getLogger()->debug("S - pthread_cond_broadcast_wrapper {}",
-                                      a);
+    SPDLOG_DEBUG("S - pthread_cond_broadcast_wrapper {}", a);
     return 0;
 }
 
 static int32_t pthread_mutexattr_init_wrapper(wasm_exec_env_t exec_env,
                                               int32_t a)
 {
-    faabric::util::getLogger()->debug("S - pthread_mutexattr_init {}", a);
+    SPDLOG_DEBUG("S - pthread_mutexattr_init {}", a);
     return 0;
 }
 
 static int32_t pthread_mutexattr_destroy_wrapper(wasm_exec_env_t exec_env,
                                                  int32_t a)
 {
-    faabric::util::getLogger()->debug("S - pthread_mutexattr_destroy {}", a);
+    SPDLOG_DEBUG("S - pthread_mutexattr_destroy {}", a);
     return 0;
 }
 
@@ -59,7 +58,7 @@ static int32_t pthread_equal_wrapper(wasm_exec_env_t exec_env,
                                      int32_t a,
                                      int32_t b)
 {
-    faabric::util::getLogger()->debug("S - pthread_equal {} {}", a, b);
+    SPDLOG_DEBUG("S - pthread_equal {} {}", a, b);
     return 0;
 }
 

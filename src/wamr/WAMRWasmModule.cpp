@@ -41,7 +41,7 @@ void WAMRWasmModule::initialiseWAMRGlobally()
             throw std::runtime_error("Failed to initialise WAMR");
         }
 
-        faabric::util::getLogger()->debug("Successfully initialised WAMR");
+        SPDLOG_DEBUG("Successfully initialised WAMR");
 
         // Initialise native functions
         initialiseWAMRNatives();
@@ -78,7 +78,6 @@ WAMRWasmModule::~WAMRWasmModule()
 // ----- Module lifecycle -----
 void WAMRWasmModule::doBindToFunction(const faabric::Message& msg, bool cache)
 {
-    const auto& logger = faabric::util::getLogger();
 
     // Prepare the filesystem
     filesystem.prepareFilesystem();
@@ -98,7 +97,7 @@ void WAMRWasmModule::doBindToFunction(const faabric::Message& msg, bool cache)
 
     if (wasmModule == nullptr) {
         std::string errorMsg = std::string(errorBuffer);
-        logger->error("Failed to load WAMR module: \n{}", errorMsg);
+        SPDLOG_ERROR("Failed to load WAMR module: \n{}", errorMsg);
         throw std::runtime_error("Failed to load WAMR module");
     }
 
@@ -108,7 +107,7 @@ void WAMRWasmModule::doBindToFunction(const faabric::Message& msg, bool cache)
 
     if (moduleInstance == nullptr) {
         std::string errorMsg = std::string(errorBuffer);
-        logger->error("Failed to instantiate WAMR module: \n{}", errorMsg);
+        SPDLOG_ERROR("Failed to instantiate WAMR module: \n{}", errorMsg);
         throw std::runtime_error("Failed to instantiate WAMR module");
     }
 
@@ -120,8 +119,8 @@ void WAMRWasmModule::doBindToFunction(const faabric::Message& msg, bool cache)
 
 int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
 {
-    const auto& logger = faabric::util::getLogger();
-    logger->debug("WAMR executing message {}", msg.id());
+
+    SPDLOG_DEBUG("WAMR executing message {}", msg.id());
 
     setExecutingModule(this);
     setExecutingCall(&msg);
@@ -142,7 +141,6 @@ int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
 
 int WAMRWasmModule::executeWasmFunctionFromPointer(int wasmFuncPtr)
 {
-    auto logger = faabric::util::getLogger();
 
     setExecutingModule(this);
 
@@ -152,7 +150,7 @@ int WAMRWasmModule::executeWasmFunctionFromPointer(int wasmFuncPtr)
 
     WASMExecEnv* execEnv = wasm_exec_env_create(moduleInstance, STACK_SIZE_KB);
     if (execEnv == nullptr) {
-        logger->error("Failed to create exec env for func ptr {}", wasmFuncPtr);
+        SPDLOG_ERROR("Failed to create exec env for func ptr {}", wasmFuncPtr);
         throw std::runtime_error("Failed to create WAMR exec env");
     }
 
@@ -171,8 +169,7 @@ int WAMRWasmModule::executeWasmFunctionFromPointer(int wasmFuncPtr)
         std::string errorMessage(
           ((AOTModuleInstance*)moduleInstance)->cur_exception);
 
-        logger->error("Failed to execute from function pointer {}",
-                      wasmFuncPtr);
+        SPDLOG_ERROR("Failed to execute from function pointer {}", wasmFuncPtr);
 
         return 1;
     }
@@ -182,7 +179,6 @@ int WAMRWasmModule::executeWasmFunctionFromPointer(int wasmFuncPtr)
 
 int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
 {
-    auto logger = faabric::util::getLogger();
 
     setExecutingModule(this);
 
@@ -211,7 +207,7 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
 
     // Check function result
     if (success) {
-        logger->debug("{} finished", funcName);
+        SPDLOG_DEBUG("{} finished", funcName);
     } else {
 #if (WAMR_EXECUTION_MODE_INTERP)
         std::string errorMessage(
@@ -220,7 +216,7 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
         std::string errorMessage(
           ((AOTModuleInstance*)moduleInstance)->cur_exception);
 #endif
-        logger->error("Function failed: {}", errorMessage);
+        SPDLOG_ERROR("Function failed: {}", errorMessage);
 
         return 1;
     }
@@ -230,8 +226,8 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
 
 uint32_t WAMRWasmModule::growMemory(uint32_t nBytes)
 {
-    auto logger = faabric::util::getLogger();
-    logger->debug("WAMR growing memory by {}", nBytes);
+
+    SPDLOG_DEBUG("WAMR growing memory by {}", nBytes);
 
     uint32_t memBase = currentBrk;
 
@@ -247,8 +243,8 @@ uint32_t WAMRWasmModule::growMemory(uint32_t nBytes)
 
 uint32_t WAMRWasmModule::shrinkMemory(uint32_t nBytes)
 {
-    auto logger = faabric::util::getLogger();
-    logger->warn("WAMR ignoring shrink memory");
+
+    SPDLOG_WARN("WAMR ignoring shrink memory");
     return 0;
 }
 

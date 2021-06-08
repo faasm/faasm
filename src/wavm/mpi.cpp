@@ -59,8 +59,8 @@ class ContextWrapper
 
         if (hostComm->id != FAABRIC_COMM_WORLD) {
             const std::shared_ptr<spdlog::logger>& logger =
-              faabric::util::getLogger();
-            logger->error("Unrecognised communicator type {}", hostComm->id);
+
+              SPDLOG_ERROR("Unrecognised communicator type {}", hostComm->id);
             return false;
         }
 
@@ -70,7 +70,7 @@ class ContextWrapper
     std::shared_ptr<spdlog::logger> getMpiLogger()
     {
         if (mpiLogger == nullptr) {
-            mpiLogger = faabric::util::getLogger(
+
               fmt::format("MPI-{}", executingContext.getRank()));
         }
 
@@ -138,20 +138,19 @@ class ContextWrapper
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Init", I32, MPI_Init, I32 a, I32 b)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     faabric::Message* call = getExecutingCall();
 
     // Note - only want to initialise the world on rank zero (or when rank isn't
     // set yet)
     if (call->mpirank() <= 0) {
-        logger->debug("S - MPI_Init (create) {} {}", a, b);
+        SPDLOG_DEBUG("S - MPI_Init (create) {} {}", a, b);
 
         // Initialise the world
         int worldId = executingContext.createWorld(*call);
         call->set_mpiworldid(worldId);
     } else {
-        logger->debug("S - MPI_Init (join) {} {}", a, b);
+        SPDLOG_DEBUG("S - MPI_Init (join) {} {}", a, b);
 
         // Join the world
         executingContext.joinWorld(*call);
@@ -441,14 +440,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     ContextWrapper ctx;
     const std::shared_ptr<spdlog::logger>& logger = ctx.getMpiLogger();
-    logger->debug("S - MPI_Get_count {} {} {}", statusPtr, datatype, countPtr);
+    SPDLOG_DEBUG("S - MPI_Get_count {} {} {}", statusPtr, datatype, countPtr);
 
     MPI_Status* status = &Runtime::memoryRef<MPI_Status>(ctx.memory, statusPtr);
     faabric_datatype_t* hostDtype = ctx.getFaasmDataType(datatype);
     if (status->bytesSize % hostDtype->size != 0) {
-        logger->error("Incomplete message (bytes {}, datatype size {})",
-                      status->bytesSize,
-                      hostDtype->size);
+        SPDLOG_ERROR("Incomplete message (bytes {}, datatype size {})",
+                     status->bytesSize,
+                     hostDtype->size);
         return 1;
     }
 

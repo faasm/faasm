@@ -73,8 +73,7 @@ void WAVMWasmModule::reset(const faabric::Message& msg)
     assert(msg.function() == boundFunction);
 
     std::string funcStr = faabric::util::funcToString(msg, true);
-    faabric::util::getLogger()->debug(
-      "{} Resetting after {}", gettid(), funcStr);
+    SPDLOG_DEBUG("{} Resetting after {}", gettid(), funcStr);
     wasm::WAVMWasmModule& cachedModule =
       wasm::getWAVMModuleCache().getCachedModule(msg);
 
@@ -249,13 +248,12 @@ Runtime::Function* WAVMWasmModule::getFunction(Runtime::Instance* module,
                                                const std::string& funcName,
                                                bool strict)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     // Look up the function
     Runtime::Function* func =
       asFunctionNullable(getInstanceExport(module, funcName));
     if ((func == nullptr) && strict) {
-        logger->error("Unable to find function {}", funcName);
+        SPDLOG_ERROR("Unable to find function {}", funcName);
         throw std::runtime_error("Missing exported function");
     }
 
@@ -415,8 +413,6 @@ void WAVMWasmModule::doBindToFunctionInternal(const faabric::Message& msg,
         return;
     }
 
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-
     // Set up the compartment and context
     PROF_START(wasmContext)
     compartment = Runtime::createCompartment();
@@ -460,7 +456,7 @@ void WAVMWasmModule::doBindToFunctionInternal(const faabric::Message& msg,
     I32 dataEnd = getGlobalI32("__data_end", executionContext);
 
     if (heapBase > 0 && dataEnd > 0 && heapBase != dataEnd) {
-        logger->error(
+        SPDLOG_ERROR(
           "Appears stack is not at bottom (__heap_base={} __data_end={})",
           heapBase,
           dataEnd);
@@ -471,10 +467,10 @@ void WAVMWasmModule::doBindToFunctionInternal(const faabric::Message& msg,
     Uptr initialMemorySize = getMemorySizeBytes();
     Uptr initialMemoryPages = Runtime::getMemoryNumPages(defaultMemory);
 
-    logger->debug("heap_top={} initial_pages={} initial_table={}",
-                  initialMemorySize,
-                  initialMemoryPages,
-                  initialTableSize);
+    SPDLOG_DEBUG("heap_top={} initial_pages={} initial_table={}",
+                 initialMemorySize,
+                 initialMemoryPages,
+                 initialTableSize);
 
     PROF_END(wasmBind)
 }
@@ -519,7 +515,6 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
   const std::string& name,
   const std::string& sharedModulePath)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     PROF_START(wasmCreateModule)
 
@@ -600,7 +595,7 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
     // Do the linking
     Runtime::LinkResult linkResult = linkModule(irModule, *this);
     if (!linkResult.success) {
-        logger->error("Failed to link module");
+        SPDLOG_ERROR("Failed to link module");
         throw std::runtime_error("Failed linking module");
     }
 
@@ -618,10 +613,10 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
                         std::move(linkResult.resolvedImports),
                         name.c_str());
 
-    logger->debug("Finished instantiating module {}/{}  {}",
-                  boundUser,
-                  boundFunction,
-                  sharedModulePath);
+    SPDLOG_DEBUG("Finished instantiating module {}/{}  {}",
+                 boundUser,
+                 boundFunction,
+                 sharedModulePath);
 
     // Here there may be some entries missing from the GOT that we need to
     // patch up. They may be exported from the dynamic module itself. I
@@ -633,14 +628,14 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
               getInstanceExport(instance, e.first);
 
             if (missingFunction == nullptr) {
-                logger->error("Could not fill gap in GOT for function: {}",
-                              e.first);
+                SPDLOG_ERROR("Could not fill gap in GOT for function: {}",
+                             e.first);
                 throw std::runtime_error(
                   "Failed linking module on missing GOT entry");
             }
 
             // Put the actual function into the placeholder table location
-            logger->debug(
+            SPDLOG_DEBUG(
               "Filling gap in GOT for function: {} at {}", e.first, e.second);
             Runtime::setTableElement(defaultTable, e.second, missingFunction);
 
@@ -660,7 +655,7 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
 
         bool moduleValid = dynamicModule.validate();
         if (!moduleValid) {
-            logger->error("Invalid dynamic module {}", dynamicModule.path);
+            SPDLOG_ERROR("Invalid dynamic module {}", dynamicModule.path);
             dynamicModule.printDebugInfo(nullptr);
             throw std::runtime_error("Invalid dynamic module. See logs");
         }
@@ -694,12 +689,10 @@ int WAVMWasmModule::dynamicLoadModule(const std::string& path,
     // function for more detail on the dynamic linking approach.
     // It returns 0 on error, as does dlopen
 
-    auto logger = faabric::util::getLogger();
-
     // Return the handle if we've already loaded this module
     if (dynamicPathToHandleMap.count(path) > 0) {
         int cachedHandle = dynamicPathToHandleMap[path];
-        logger->debug(
+        SPDLOG_DEBUG(
           "Using cached dynamic module handle {} for {}", cachedHandle, path);
         return cachedHandle;
     }
@@ -707,15 +700,15 @@ int WAVMWasmModule::dynamicLoadModule(const std::string& path,
     // Work out if we're loading an existing module or using the fallback
     int thisHandle;
     if (path.empty()) {
-        logger->debug("Dynamic linking main module");
+        SPDLOG_DEBUG("Dynamic linking main module");
         return MAIN_MODULE_DYNLINK_HANDLE;
     }
     if (boost::filesystem::is_directory(path)) {
-        logger->error("Dynamic linking a directory {}", path);
+        SPDLOG_ERROR("Dynamic linking a directory {}", path);
         return 0;
     }
     if (!boost::filesystem::exists(path)) {
-        logger->error("Dynamic module {} does not exist", path);
+        SPDLOG_ERROR("Dynamic module {} does not exist", path);
         return 0;
     }
 
@@ -734,8 +727,7 @@ int WAVMWasmModule::dynamicLoadModule(const std::string& path,
     // Execute wasm initialisers
     executeWasmConstructorsFunction(mod);
 
-    logger->debug(
-      "Loaded shared module at {} with handle {}", path, thisHandle);
+    SPDLOG_DEBUG("Loaded shared module at {} with handle {}", path, thisHandle);
 
     return thisHandle;
 }
@@ -761,7 +753,6 @@ uint32_t WAVMWasmModule::getDynamicModuleFunction(int handle,
     // efficient on repeat calls, but it usually only gets called once per
     // function (as the module will usually pass around the resulting function
     // pointer).
-    auto logger = faabric::util::getLogger();
 
     Runtime::Object* exportedFunc;
     if (handle == MAIN_MODULE_DYNLINK_HANDLE) {
@@ -780,7 +771,7 @@ uint32_t WAVMWasmModule::getDynamicModuleFunction(int handle,
     } else {
         // Check the handle is valid
         if (dynamicModuleMap.count(handle) == 0) {
-            logger->error("No dynamic module registered for handle {}", handle);
+            SPDLOG_ERROR("No dynamic module registered for handle {}", handle);
             throw std::runtime_error("Missing dynamic module");
         }
 
@@ -789,31 +780,30 @@ uint32_t WAVMWasmModule::getDynamicModuleFunction(int handle,
     }
 
     if (exportedFunc == nullptr) {
-        logger->error("Unable to dynamically load function {}", funcName);
+        SPDLOG_ERROR("Unable to dynamically load function {}", funcName);
         throw std::runtime_error("Missing dynamic module function");
     }
 
     Uptr tableIdx = addFunctionToTable(exportedFunc);
 
-    logger->trace("Resolved function {} to index {}", funcName, tableIdx);
+    SPDLOG_TRACE("Resolved function {} to index {}", funcName, tableIdx);
     return tableIdx;
 }
 
 uint32_t WAVMWasmModule::addFunctionToTable(Runtime::Object* exportedFunc) const
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     // Add function to the table
     Uptr prevIdx;
     Runtime::GrowResult result = Runtime::growTable(defaultTable, 1, &prevIdx);
     if (result != Runtime::GrowResult::success) {
-        logger->error(
+        SPDLOG_ERROR(
           "Failed to grow table from {} elements to {}", prevIdx, prevIdx + 1);
         throw std::runtime_error("Failed to grow table");
     }
 
     Uptr newElements = Runtime::getTableNumElements(defaultTable);
-    logger->debug("Table grown from {} elements to {}", prevIdx, newElements);
+    SPDLOG_DEBUG("Table grown from {} elements to {}", prevIdx, newElements);
 
     Runtime::setTableElement(defaultTable, prevIdx, exportedFunc);
     return prevIdx;
@@ -825,7 +815,6 @@ int32_t WAVMWasmModule::executeFunction(faabric::Message& msg)
         throw std::runtime_error("Module must be bound before executing");
     }
 
-    const auto& logger = faabric::util::getLogger();
     setExecutingCall(&msg);
 
     // Ensure Python function file in place (if necessary)
@@ -865,8 +854,8 @@ int32_t WAVMWasmModule::executeFunction(faabric::Message& msg)
                 break;
             }
             default: {
-                logger->error("Unexpected function pointer type with {} params",
-                              nParams);
+                SPDLOG_ERROR("Unexpected function pointer type with {} params",
+                             nParams);
                 throw std::runtime_error("Unexpected function pointer args");
             }
         }
@@ -890,14 +879,14 @@ int32_t WAVMWasmModule::executeFunction(faabric::Message& msg)
               returnValue = result.i32;
           },
           [&logger, &returnValue](Runtime::Exception* ex) {
-              logger->error("Runtime exception: {}",
-                            Runtime::describeException(ex).c_str());
+              SPDLOG_ERROR("Runtime exception: {}",
+                           Runtime::describeException(ex).c_str());
               Runtime::destroyException(ex);
               returnValue = 1;
           });
     } catch (WasmExitException& e) {
-        logger->debug("Caught wasm exit exception from main thread (code {})",
-                      e.exitCode);
+        SPDLOG_DEBUG("Caught wasm exit exception from main thread (code {})",
+                     e.exitCode);
         returnValue = e.exitCode;
     }
 
@@ -911,10 +900,10 @@ int32_t WAVMWasmModule::executePthread(int threadPoolIdx,
                                        uint32_t stackTop,
                                        faabric::Message& msg)
 {
-    const auto& logger = faabric::util::getLogger();
+
     std::string funcStr = faabric::util::funcToString(msg, false);
 
-    logger->debug("Executing pthread {} for {}", threadPoolIdx, funcStr);
+    SPDLOG_DEBUG("Executing pthread {} for {}", threadPoolIdx, funcStr);
 
     Runtime::Function* funcInstance = getFunctionFromPtr(msg.funcptr());
 
@@ -942,9 +931,8 @@ int32_t WAVMWasmModule::executeOMPThread(int threadPoolIdx,
 {
     Runtime::Function* funcInstance = getFunctionFromPtr(msg.funcptr());
 
-    const auto& logger = faabric::util::getLogger();
     std::string funcStr = faabric::util::funcToString(msg, false);
-    logger->debug("Executing OpenMP thread {} for {}", threadPoolIdx, funcStr);
+    SPDLOG_DEBUG("Executing OpenMP thread {} for {}", threadPoolIdx, funcStr);
 
     // Set up function args
     std::shared_ptr<threads::Level> ompLevel = threads::getCurrentOpenMPLevel();
@@ -973,7 +961,6 @@ int32_t WAVMWasmModule::executeOMPThread(int threadPoolIdx,
 
 U32 WAVMWasmModule::mmapFile(U32 fd, U32 length)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     // Create a new memory region
     U32 wasmPtr = mmapMemory(length);
@@ -984,10 +971,10 @@ U32 WAVMWasmModule::mmapFile(U32 fd, U32 length)
     U32* mmappedPtr =
       (U32*)mmap(targetPtr, length, PROT_READ, MAP_SHARED, fd, 0);
     if (mmappedPtr == MAP_FAILED) {
-        logger->error("Failed mmapping file descriptor {} ({} - {})",
-                      fd,
-                      errno,
-                      strerror(errno));
+        SPDLOG_ERROR("Failed mmapping file descriptor {} ({} - {})",
+                     fd,
+                     errno,
+                     strerror(errno));
         throw std::runtime_error("Unable to map file");
     }
 
@@ -1000,7 +987,7 @@ U32 WAVMWasmModule::mmapFile(U32 fd, U32 length)
 
 U32 WAVMWasmModule::growMemory(U32 nBytes)
 {
-    auto logger = faabric::util::getLogger();
+
     U64 maxPages = getMemoryType(defaultMemory).size.max;
 
     // Check if we just need the size
@@ -1017,13 +1004,13 @@ U32 WAVMWasmModule::growMemory(U32 nBytes)
     uint32_t newBrk = currentBrk + nBytes;
 
     if (!isWasmPageAligned(newBrk)) {
-        logger->error("Growing memory by {} is not wasm page aligned", nBytes);
+        SPDLOG_ERROR("Growing memory by {} is not wasm page aligned", nBytes);
         throw std::runtime_error("Non-wasm-page-aligned memory growth");
     }
 
     // If we can reclaim old memory, just bump the break
     if (newBrk <= oldBytes) {
-        logger->trace(
+        SPDLOG_TRACE(
           "MEM - Growing memory using already provisioned {} + {} <= {}",
           oldBrk,
           nBytes,
@@ -1039,9 +1026,9 @@ U32 WAVMWasmModule::growMemory(U32 nBytes)
     Uptr newPages = getNumberOfWasmPagesForBytes(newBytes);
 
     if (newPages > maxPages) {
-        logger->error("mmap would exceed max of {} pages (requested {})",
-                      maxPages,
-                      newPages);
+        SPDLOG_ERROR("mmap would exceed max of {} pages (requested {})",
+                     maxPages,
+                     newPages);
         throw std::runtime_error("Mmap exceeding max");
     }
 
@@ -1052,36 +1039,36 @@ U32 WAVMWasmModule::growMemory(U32 nBytes)
 
     if (result != Runtime::GrowResult::success) {
         if (result == Runtime::GrowResult::outOfMemory) {
-            logger->error("Committing new pages failed (errno={} ({})) "
-                          "(growing by {} from current {})",
-                          errno,
-                          strerror(errno),
-                          pageChange,
-                          oldPages);
+            SPDLOG_ERROR("Committing new pages failed (errno={} ({})) "
+                         "(growing by {} from current {})",
+                         errno,
+                         strerror(errno),
+                         pageChange,
+                         oldPages);
             throw std::runtime_error("Unable to commit virtual pages");
         }
         if (result == Runtime::GrowResult::outOfMaxSize) {
-            logger->error("No memory for mapping (growing by {} from {} pages)",
-                          pageChange,
-                          oldPages);
+            SPDLOG_ERROR("No memory for mapping (growing by {} from {} pages)",
+                         pageChange,
+                         oldPages);
             throw std::runtime_error("Run out of memory to map");
         }
         if (result == Runtime::GrowResult::outOfQuota) {
-            logger->error(
+            SPDLOG_ERROR(
               "Memory resource quota exceeded (growing by {} from {})",
               pageChange,
               oldPages);
             throw std::runtime_error("Memory resource quota exceeded");
         }
-        logger->error("Unknown memory mapping error (growing by {} from "
-                      "{}. Previous {})",
-                      pageChange,
-                      oldPages,
-                      newMemPageBase);
+        SPDLOG_ERROR("Unknown memory mapping error (growing by {} from "
+                     "{}. Previous {})",
+                     pageChange,
+                     oldPages,
+                     newMemPageBase);
         throw std::runtime_error("Unknown memory mapping error");
     }
 
-    logger->trace(
+    SPDLOG_TRACE(
       "MEM - Growing memory from {} to {} pages", oldPages, newPages);
 
     // Get offset of bottom of new range
@@ -1091,16 +1078,16 @@ U32 WAVMWasmModule::growMemory(U32 nBytes)
     currentBrk = getMemorySizeBytes();
 
     if (newMemBase != oldBytes) {
-        logger->error("Expected base of new region ({}) to be end of memory "
-                      "before growth ({})",
-                      newMemBase,
-                      oldBytes);
+        SPDLOG_ERROR("Expected base of new region ({}) to be end of memory "
+                     "before growth ({})",
+                     newMemBase,
+                     oldBytes);
 
         throw std::runtime_error("Memory growth discrepancy");
     }
 
     if (currentBrk != newBytes) {
-        logger->error(
+        SPDLOG_ERROR(
           "Expected new brk ({}) to be old memory plus new bytes ({})",
           currentBrk,
           newBytes);
@@ -1112,17 +1099,16 @@ U32 WAVMWasmModule::growMemory(U32 nBytes)
 
 uint32_t WAVMWasmModule::shrinkMemory(U32 nBytes)
 {
-    auto logger = faabric::util::getLogger();
 
     if (!isWasmPageAligned(nBytes)) {
-        logger->error("Shrink size not page aligned {}", nBytes);
+        SPDLOG_ERROR("Shrink size not page aligned {}", nBytes);
         throw std::runtime_error("New break not page aligned");
     }
 
     faabric::util::FullLock lock(moduleMemoryMutex);
 
     if (nBytes > currentBrk) {
-        logger->error(
+        SPDLOG_ERROR(
           "Shrinking by more than current brk ({} > {})", nBytes, currentBrk);
         throw std::runtime_error("Shrinking by more than current brk");
     }
@@ -1131,7 +1117,7 @@ uint32_t WAVMWasmModule::shrinkMemory(U32 nBytes)
     U32 oldBrk = currentBrk;
     U32 newBrk = currentBrk - nBytes;
 
-    logger->trace("MEM - shrinking memory {} -> {}", oldBrk, newBrk);
+    SPDLOG_TRACE("MEM - shrinking memory {} -> {}", oldBrk, newBrk);
     currentBrk = newBrk;
 
     return oldBrk;
@@ -1143,12 +1129,10 @@ void WAVMWasmModule::unmapMemory(U32 offset, U32 nBytes)
         return;
     }
 
-    auto logger = faabric::util::getLogger();
-
     // Munmap expects the offset itself to be page-aligned, but will round up
     // the number of bytes
     if (!isWasmPageAligned(offset)) {
-        logger->error("Non-page aligned munmap address {}", offset);
+        SPDLOG_ERROR("Non-page aligned munmap address {}", offset);
         throw std::runtime_error("Non-page aligned munmap address");
     }
 
@@ -1158,18 +1142,18 @@ void WAVMWasmModule::unmapMemory(U32 offset, U32 nBytes)
     U32 unmapTop = offset + pageAligned;
 
     if (unmapTop > maxSize) {
-        logger->error(
+        SPDLOG_ERROR(
           "Munmapping outside memory max ({} > {})", unmapTop, maxSize);
         throw std::runtime_error("munmapping outside memory max");
     }
 
     if (unmapTop == currentBrk) {
-        logger->trace("MEM - munmapping top of memory by {}", pageAligned);
+        SPDLOG_TRACE("MEM - munmapping top of memory by {}", pageAligned);
         shrinkMemory(pageAligned);
     } else {
-        logger->warn("MEM - unable to reclaim unmapped memory {} at {}",
-                     pageAligned,
-                     offset);
+        SPDLOG_WARN("MEM - unable to reclaim unmapped memory {} at {}",
+                    pageAligned,
+                    offset);
     }
 }
 
@@ -1206,7 +1190,6 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
                              Runtime::Object*& resolved)
 {
 
-    auto logger = faabric::util::getLogger();
     bool isMainModule = moduleInstance == nullptr;
 
     Runtime::Instance* modulePtr = nullptr;
@@ -1226,17 +1209,17 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
         if (moduleName == "GOT.mem") {
             // Handle global offset table memory entries
             if (globalOffsetMemoryMap.count(name) == 0) {
-                logger->error(
+                SPDLOG_ERROR(
                   "Memory offset not found in GOT: {}.{}", moduleName, name);
                 return false;
             }
 
             std::pair<int, bool> memOffset = globalOffsetMemoryMap[name];
-            logger->trace("Resolved {}.{} to ({}, {})",
-                          moduleName,
-                          name,
-                          memOffset.first,
-                          memOffset.second);
+            SPDLOG_TRACE("Resolved {}.{} to ({}, {})",
+                         moduleName,
+                         name,
+                         memOffset.first,
+                         memOffset.second);
 
             // Create the type for the global, note that _all_ GOT.mem
             // imports seem to be mutable, even if the global they
@@ -1249,11 +1232,11 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
               Runtime::createGlobal(compartment, globalType, std::string(name));
 
             if (gotMemoryOffset == nullptr) {
-                logger->error("Could not create global for {}.{} ({}, {})",
-                              moduleName,
-                              name,
-                              memOffset.first,
-                              memOffset.second);
+                SPDLOG_ERROR("Could not create global for {}.{} ({}, {})",
+                             moduleName,
+                             name,
+                             memOffset.first,
+                             memOffset.second);
                 throw std::runtime_error("Failed to create global");
             }
 
@@ -1266,7 +1249,7 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
             // See if it's already in the GOT
             if (globalOffsetTableMap.count(name) > 0) {
                 tableIdx = globalOffsetTableMap[name];
-                logger->trace(
+                SPDLOG_TRACE(
                   "Resolved {}.{} to offset {}", moduleName, name, tableIdx);
             }
 
@@ -1312,10 +1295,10 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
 
                 tableIdx = (int)newIdx;
 
-                logger->trace("Adding placeholder table offset: {}.{} at {}",
-                              moduleName,
-                              name,
-                              tableIdx);
+                SPDLOG_TRACE("Adding placeholder table offset: {}.{} at {}",
+                             moduleName,
+                             name,
+                             tableIdx);
                 missingGlobalOffsetEntries.insert({ name, tableIdx });
             }
 
@@ -1324,9 +1307,9 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
               compartment, asGlobalType(type), std::string(name));
 
             if (gotFunctionOffset == nullptr) {
-                logger->error("Failed to create global function offset {}.{}",
-                              moduleName,
-                              name);
+                SPDLOG_ERROR("Failed to create global function offset {}.{}",
+                             moduleName,
+                             name);
                 throw std::runtime_error(
                   "Failed to create global function offset");
             }
@@ -1361,7 +1344,7 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
             Runtime::Table* table = Runtime::getDefaultTable(moduleInstance);
             resolved = asObject(table);
         } else {
-            logger->trace("Resolving fallback for {}.{}", moduleName, name);
+            SPDLOG_TRACE("Resolving fallback for {}.{}", moduleName, name);
 
             // First check in normal env
             resolved = getInstanceExport(modulePtr, name);
@@ -1398,16 +1381,16 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
             return true;
         }
         IR::ExternType resolvedType = Runtime::getExternType(resolved);
-        logger->error("Resolved import {}.{} to a {}, but was expecting {}",
-                      moduleName.c_str(),
-                      name.c_str(),
-                      asString(resolvedType).c_str(),
-                      asString(type).c_str());
+        SPDLOG_ERROR("Resolved import {}.{} to a {}, but was expecting {}",
+                     moduleName.c_str(),
+                     name.c_str(),
+                     asString(resolvedType).c_str(),
+                     asString(type).c_str());
 
         throw std::runtime_error("Error resolving import");
     }
 
-    logger->error(
+    SPDLOG_ERROR(
       "Missing import {}.{} {}", moduleName, name, asString(type).c_str());
 
     return false;
@@ -1462,8 +1445,8 @@ int WAVMWasmModule::getFunctionOffsetFromGOT(const std::string& funcName)
 {
     if (globalOffsetTableMap.count(funcName) == 0) {
         const std::shared_ptr<spdlog::logger>& logger =
-          faabric::util::getLogger();
-        logger->error("Function not found in GOT - {}", funcName);
+
+          SPDLOG_ERROR("Function not found in GOT - {}", funcName);
         throw std::runtime_error("Function not found in GOT");
     }
 
@@ -1474,8 +1457,8 @@ int WAVMWasmModule::getDataOffsetFromGOT(const std::string& name)
 {
     if (globalOffsetMemoryMap.count(name) == 0) {
         const std::shared_ptr<spdlog::logger>& logger =
-          faabric::util::getLogger();
-        logger->error("Data not found in GOT - {}", name);
+
+          SPDLOG_ERROR("Data not found in GOT - {}", name);
         throw std::runtime_error("Memory not found in GOT");
     }
 
@@ -1492,7 +1475,7 @@ Runtime::Context* WAVMWasmModule::createThreadContext(
     // Check the stack pointer in this context
     IR::UntaggedValue& stackGlobal = ctx->runtimeData->mutableGlobals[0];
     if (stackGlobal.u32 != STACK_SIZE) {
-        faabric::util::getLogger()->error(
+        SPDLOG_ERROR(
           "Expected first mutable global in context to be stack pointer "
           "({})",
           stackGlobal.u32);
@@ -1525,7 +1508,7 @@ Runtime::Function* WAVMWasmModule::getDefaultZygoteFunction(
 
 void WAVMWasmModule::executeZygoteFunction()
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
+
     Runtime::Function* zygoteFunc = getDefaultZygoteFunction(moduleInstance);
     if (zygoteFunc != nullptr) {
         IR::UntaggedValue result;
@@ -1533,26 +1516,25 @@ void WAVMWasmModule::executeZygoteFunction()
         executeWasmFunction(zygoteFunc, funcType, {}, result);
 
         if (result.i32 != 0) {
-            logger->error("Zygote for {}/{} failed with return code {}",
-                          boundUser,
-                          boundFunction,
-                          result.i32);
+            SPDLOG_ERROR("Zygote for {}/{} failed with return code {}",
+                         boundUser,
+                         boundFunction,
+                         result.i32);
             throw std::runtime_error("Zygote failed");
         }
-        logger->debug(
+        SPDLOG_DEBUG(
           "Successfully executed zygote for {}/{}", boundUser, boundFunction);
     }
 }
 
 void WAVMWasmModule::executeWasmConstructorsFunction(Runtime::Instance* module)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     Runtime::Function* wasmCtorsFunction = getWasmConstructorsFunction(module);
     if (wasmCtorsFunction == nullptr) {
-        logger->error("Did not find __wasm_call_ctors function for {}/{}",
-                      boundUser,
-                      boundFunction);
+        SPDLOG_ERROR("Did not find __wasm_call_ctors function for {}/{}",
+                     boundUser,
+                     boundFunction);
         throw std::runtime_error("Did not find __wasm_call_ctors");
     }
 
@@ -1560,18 +1542,18 @@ void WAVMWasmModule::executeWasmConstructorsFunction(Runtime::Instance* module)
     executeWasmFunction(
       wasmCtorsFunction, IR::FunctionType({}, {}), {}, result);
     if (result.i32 != 0) {
-        logger->error("{} for {}/{} failed with return code {}",
-                      WASM_CTORS_FUNC_NAME,
-                      boundUser,
-                      boundFunction,
-                      result.i32);
+        SPDLOG_ERROR("{} for {}/{} failed with return code {}",
+                     WASM_CTORS_FUNC_NAME,
+                     boundUser,
+                     boundFunction,
+                     result.i32);
         throw std::runtime_error(std::string(WASM_CTORS_FUNC_NAME) + " failed");
     }
-    logger->debug("{} Successfully executed {} for {}/{}",
-                  gettid(),
-                  WASM_CTORS_FUNC_NAME,
-                  boundUser,
-                  boundFunction);
+    SPDLOG_DEBUG("{} Successfully executed {} for {}/{}",
+                 gettid(),
+                 WASM_CTORS_FUNC_NAME,
+                 boundUser,
+                 boundFunction);
 }
 
 Runtime::Function* WAVMWasmModule::getFunctionFromPtr(int funcPtr) const
@@ -1579,8 +1561,7 @@ Runtime::Function* WAVMWasmModule::getFunctionFromPtr(int funcPtr) const
     Runtime::Object* funcObj = Runtime::getTableElement(defaultTable, funcPtr);
 
     if (funcObj == nullptr) {
-        faabric::util::getLogger()->error("Function pointer not found {}",
-                                          funcPtr);
+        SPDLOG_ERROR("Function pointer not found {}", funcPtr);
         throw std::runtime_error("Function pointer not found");
     }
 

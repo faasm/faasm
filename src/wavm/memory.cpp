@@ -15,15 +15,14 @@ namespace wasm {
 
 I32 s__madvise(I32 address, I32 numBytes, I32 advice)
 {
-    faabric::util::getLogger()->debug(
-      "S - madvise - {} {} {}", address, numBytes, advice);
+    SPDLOG_DEBUG("S - madvise - {} {} {}", address, numBytes, advice);
 
     return 0;
 }
 
 I32 s__membarrier(I32 a)
 {
-    faabric::util::getLogger()->debug("S - membarrier - {}", a);
+    SPDLOG_DEBUG("S - membarrier - {}", a);
 
     int res;
     if (a == MEMBARRIER_CMD_QUERY) {
@@ -34,8 +33,7 @@ I32 s__membarrier(I32 a)
         // We can ignore all non-query membarrier operations
         res = 0;
     } else {
-        faabric::util::getLogger()->error("Unexpected membarrier argument {}",
-                                          a);
+        SPDLOG_ERROR("Unexpected membarrier argument {}", a);
         throw std::runtime_error("Invalid membarrier command");
     }
 
@@ -65,19 +63,19 @@ std::shared_ptr<faabric::state::StateKeyValue> getStateKV(I32 keyPtr)
 
 I32 doMmap(I32 addr, I32 length, I32 prot, I32 flags, I32 fd, I32 offset)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug(
+
+    SPDLOG_DEBUG(
       "S - mmap - {} {} {} {} {} {}", addr, length, prot, flags, fd, offset);
 
     // Although we are ignoring the offset we should probably
     // double check when something explicitly requests one
     if (offset != 0) {
-        logger->warn("WARNING: ignoring non-zero mmap offset ({})", offset);
+        SPDLOG_WARN("WARNING: ignoring non-zero mmap offset ({})", offset);
     }
 
     // Likewise with the address hint
     if (addr != 0) {
-        logger->warn("WARNING: ignoring mmap hint at {}", addr);
+        SPDLOG_WARN("WARNING: ignoring mmap hint at {}", addr);
     }
 
     WAVMWasmModule* module = getExecutingWAVMModule();
@@ -125,8 +123,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 addr,
                                I32 length)
 {
-    auto logger = faabric::util::getLogger();
-    logger->debug("S - munmap - {} {}", addr, length);
+
+    SPDLOG_DEBUG("S - munmap - {} {}", addr, length);
 
     WasmModule* executingModule = getExecutingWAVMModule();
     executingModule->unmapMemory(addr, length);
@@ -147,7 +145,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__sbrk", I32, __sbrk, I32 increment)
 {
-    faabric::util::getLogger()->debug("S - sbrk - {}", increment);
+    SPDLOG_DEBUG("S - sbrk - {}", increment);
 
     WAVMWasmModule* module = getExecutingWAVMModule();
     I32 result;
@@ -168,8 +166,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__sbrk", I32, __sbrk, I32 increment)
 // case we can ignore it.
 I32 s__mprotect(I32 addrPtr, I32 len, I32 prot)
 {
-    faabric::util::getLogger()->debug(
-      "S - mprotect - {} {} {}", addrPtr, len, prot);
+    SPDLOG_DEBUG("S - mprotect - {} {} {}", addrPtr, len, prot);
 
     return 0;
 }
@@ -182,7 +179,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 b,
                                I32 c)
 {
-    faabric::util::getLogger()->debug("S - shm_open - {} {} {}", a, b, c);
+    SPDLOG_DEBUG("S - shm_open - {} {} {}", a, b, c);
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 

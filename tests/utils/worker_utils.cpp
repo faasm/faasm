@@ -59,8 +59,8 @@ std::string execFunctionWithStringResult(faabric::Message& call)
     const faabric::Message result = sch.getFunctionResult(call.id(), 1);
     if (result.returnvalue() != 0) {
         const std::shared_ptr<spdlog::logger>& logger =
-          faabric::util::getLogger();
-        logger->error("Function failed: {}", result.outputdata());
+
+          logger->error("Function failed: {}", result.outputdata());
         FAIL();
     }
     REQUIRE(result.returnvalue() == 0);

@@ -17,7 +17,6 @@ using namespace sgx;
 namespace wasm {
 SGXWAMRWasmModule::SGXWAMRWasmModule()
 {
-    auto logger = faabric::util::getLogger();
 
     // Allocate memory for response
     sgxWamrMsgResponse.buffer_len =
@@ -26,7 +25,7 @@ SGXWAMRWasmModule::SGXWAMRWasmModule()
       (sgx_wamr_msg_t*)calloc(sgxWamrMsgResponse.buffer_len, sizeof(uint8_t));
 
     if (!sgxWamrMsgResponse.buffer_ptr) {
-        logger->error(
+        SPDLOG_ERROR(
           "Unable to allocate space for SGX message response buffer");
         throw std::runtime_error(
           "Unable to allocate space for SGX message response buffer");
@@ -34,7 +33,7 @@ SGXWAMRWasmModule::SGXWAMRWasmModule()
 
     faasletSgxMsgBufferPtr = &sgxWamrMsgResponse;
 
-    logger->debug("Created SGX wasm module for enclave {}", globalEnclaveId);
+    SPDLOG_DEBUG("Created SGX wasm module for enclave {}", globalEnclaveId);
 }
 
 SGXWAMRWasmModule::~SGXWAMRWasmModule()
@@ -49,7 +48,6 @@ SGXWAMRWasmModule::~SGXWAMRWasmModule()
 void SGXWAMRWasmModule::doBindToFunction(const faabric::Message& msg,
                                          bool cache)
 {
-    auto logger = faabric::util::getLogger();
 
     // Set up filesystem
     storage::FileSystem fs;
@@ -79,13 +77,13 @@ void SGXWAMRWasmModule::doBindToFunction(const faabric::Message& msg,
       );
 
     if (status != SGX_SUCCESS) {
-        logger->error("Unable to enter enclave: {}", sgxErrorString(status));
+        SPDLOG_ERROR("Unable to enter enclave: {}", sgxErrorString(status));
         throw std::runtime_error("Unable to enter enclave");
     }
 
     if (returnValue != FAASM_SGX_SUCCESS) {
-        logger->error("Unable to load WASM module: {}",
-                      faasmSgxErrorString(returnValue));
+        SPDLOG_ERROR("Unable to load WASM module: {}",
+                     faasmSgxErrorString(returnValue));
         throw std::runtime_error("Unable to load WASM module");
     }
 }
@@ -96,22 +94,21 @@ bool SGXWAMRWasmModule::unbindFunction()
         return true;
     }
 
-    auto logger = faabric::util::getLogger();
-    logger->debug("Unloading SGX wasm module");
+    SPDLOG_DEBUG("Unloading SGX wasm module");
 
     faasm_sgx_status_t returnValue;
     sgx_status_t sgxReturnValue =
       faasm_sgx_enclave_unload_module(globalEnclaveId, &returnValue, threadId);
 
     if (sgxReturnValue != SGX_SUCCESS) {
-        logger->error("Unable to unbind function due to SGX error: {}",
-                      sgxErrorString(sgxReturnValue));
+        SPDLOG_ERROR("Unable to unbind function due to SGX error: {}",
+                     sgxErrorString(sgxReturnValue));
         throw std::runtime_error("Unable to unbind function due to SGX error");
     }
 
     if (returnValue != FAASM_SGX_SUCCESS) {
-        logger->error("Unable to unbind function: {}",
-                      faasmSgxErrorString(returnValue));
+        SPDLOG_ERROR("Unable to unbind function: {}",
+                     faasmSgxErrorString(returnValue));
         throw std::runtime_error("Unable to unbind function");
     }
 
@@ -120,11 +117,10 @@ bool SGXWAMRWasmModule::unbindFunction()
 
 int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
 {
-    auto logger = faabric::util::getLogger();
+
     std::string funcStr = faabric::util::funcToString(msg, true);
 
-    logger->debug(
-      "Entering enclave {} to execute {}", globalEnclaveId, funcStr);
+    SPDLOG_DEBUG("Entering enclave {} to execute {}", globalEnclaveId, funcStr);
 
     // Set executing module
     setExecutingModule(this);
@@ -135,8 +131,8 @@ int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
       globalEnclaveId, &returnValue, threadId, msg.funcptr());
 
     if (sgxReturnValue != SGX_SUCCESS) {
-        logger->error("Unable to enter enclave: {}",
-                      sgxErrorString(sgxReturnValue));
+        SPDLOG_ERROR("Unable to enter enclave: {}",
+                     sgxErrorString(sgxReturnValue));
         throw std::runtime_error("Unable to enter enclave");
     }
 
@@ -145,13 +141,12 @@ int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
         sgxReturnValue =
           (sgx_status_t)FAASM_SGX_OCALL_GET_SGX_ERROR(returnValue);
         if (sgxReturnValue) {
-            logger->error("An OCALL failed: {}",
-                          sgxErrorString(sgxReturnValue));
+            SPDLOG_ERROR("An OCALL failed: {}", sgxErrorString(sgxReturnValue));
             throw std::runtime_error("OCALL failed");
         }
 
-        logger->error("Error occurred during function execution: {}",
-                      faasmSgxErrorString(returnValue));
+        SPDLOG_ERROR("Error occurred during function execution: {}",
+                     faasmSgxErrorString(returnValue));
         throw std::runtime_error("Error occurred during function execution");
     }
 

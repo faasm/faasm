@@ -32,7 +32,6 @@ std::mutex flushMutex;
 
 void preloadPythonRuntime()
 {
-    auto logger = faabric::util::getLogger();
 
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     if (conf.pythonPreload != "on") {
@@ -55,8 +54,8 @@ void preloadPythonRuntime()
 
 void Faaslet::flush()
 {
-    auto logger = faabric::util::getLogger();
-    logger->debug("Faaslet {} flushing", id);
+
+    SPDLOG_DEBUG("Faaslet {} flushing", id);
 
     // Note that all Faaslets on the given host will be flushing at the same
     // time, so we need to include some locking. They will also be killed
@@ -96,8 +95,8 @@ Faaslet::Faaslet(const faabric::Message& msg)
     } else if (conf.wasmVm == "wavm") {
         module = std::make_unique<wasm::WAVMWasmModule>(threadPoolSize);
     } else {
-        auto logger = faabric::util::getLogger();
-        logger->error("Unrecognised wasm VM: {}", conf.wasmVm);
+
+        SPDLOG_ERROR("Unrecognised wasm VM: {}", conf.wasmVm);
         throw std::runtime_error("Unrecognised wasm VM");
     }
 }
@@ -141,7 +140,6 @@ void Faaslet::postFinish()
 
 void Faaslet::restore(const faabric::Message& msg)
 {
-    auto logger = faabric::util::getLogger();
 
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     const std::string snapshotKey = msg.snapshotkey();
@@ -151,9 +149,9 @@ void Faaslet::restore(const faabric::Message& msg)
         if (!snapshotKey.empty() && !msg.issgx()) {
             PROF_START(snapshotOverride)
 
-            logger->debug("Restoring {} from snapshot {} before execution",
-                          id,
-                          snapshotKey);
+            SPDLOG_DEBUG("Restoring {} from snapshot {} before execution",
+                         id,
+                         snapshotKey);
 
             module->restore(snapshotKey);
 

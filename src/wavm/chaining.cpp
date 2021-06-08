@@ -19,7 +19,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                __faasm_await_call,
                                U32 messageId)
 {
-    faabric::util::getLogger()->debug("S - await_call - {}", messageId);
+    SPDLOG_DEBUG("S - await_call - {}", messageId);
 
     return awaitChainedCall(messageId);
 }
@@ -32,8 +32,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 bufferPtr,
                                I32 bufferLen)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug(
+
+    SPDLOG_DEBUG(
       "S - await_call_output - {} {} {}", messageId, bufferPtr, bufferLen);
 
     auto buffer = &Runtime::memoryRef<uint8_t>(
@@ -51,11 +51,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 inputDataLen)
 {
     std::string funcName = getStringFromWasm(namePtr);
-    faabric::util::getLogger()->debug("S - chain_name - {} ({}) {} {}",
-                                      funcName,
-                                      namePtr,
-                                      inputDataPtr,
-                                      inputDataLen);
+    SPDLOG_DEBUG("S - chain_name - {} ({}) {} {}",
+                 funcName,
+                 namePtr,
+                 inputDataPtr,
+                 inputDataLen);
 
     const std::vector<uint8_t> inputData =
       getBytesFromWasm(inputDataPtr, inputDataLen);
@@ -72,7 +72,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 inputDataPtr,
                                I32 inputDataLen)
 {
-    faabric::util::getLogger()->debug(
+    SPDLOG_DEBUG(
       "S - chain_ptr - {} {} {}", wasmFuncPtr, inputDataPtr, inputDataLen);
 
     faabric::Message* call = getExecutingCall();
@@ -91,7 +91,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 inputDataLen)
 {
     const std::string pyFuncName = getStringFromWasm(namePtr);
-    faabric::util::getLogger()->debug(
+    SPDLOG_DEBUG(
       "S - chain_py - {} {} {}", pyFuncName, inputDataPtr, inputDataLen);
 
     faabric::Message* call = getExecutingCall();

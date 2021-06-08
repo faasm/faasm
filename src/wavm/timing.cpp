@@ -13,17 +13,15 @@ namespace wasm {
 // TODO - make timing functions more secure
 I32 s__clock_gettime(I32 clockId, I32 timespecPtr)
 {
-    faabric::util::getLogger()->debug(
-      "S - clock_gettime - {} {}", clockId, timespecPtr);
+    SPDLOG_DEBUG("S - clock_gettime - {} {}", clockId, timespecPtr);
 
     timespec ts{};
     int retVal = clock_gettime(clockId, &ts);
     if (retVal == -1) {
         int systemErrno = errno;
-        faabric::util::getLogger()->error(
-          "Clock type not supported - {} ({})\n",
-          systemErrno,
-          strerror(systemErrno));
+        SPDLOG_ERROR("Clock type not supported - {} ({})\n",
+                     systemErrno,
+                     strerror(systemErrno));
         return -systemErrno;
     }
 
@@ -41,7 +39,7 @@ I32 s__clock_gettime(I32 clockId, I32 timespecPtr)
  */
 I32 s__gettimeofday(int tvPtr, int tzPtr)
 {
-    faabric::util::getLogger()->debug("S - gettimeofday - {} {}", tvPtr, tzPtr);
+    SPDLOG_DEBUG("S - gettimeofday - {} {}", tvPtr, tzPtr);
 
     timeval tv{};
     gettimeofday(&tv, nullptr);
@@ -59,7 +57,7 @@ I32 s__gettimeofday(int tvPtr, int tzPtr)
  */
 I32 s__nanosleep(I32 reqPtr, I32 remPtr)
 {
-    faabric::util::getLogger()->debug("S - nanosleep - {} {}", reqPtr, remPtr);
+    SPDLOG_DEBUG("S - nanosleep - {} {}", reqPtr, remPtr);
 
     auto request = &Runtime::memoryRef<wasm_timespec>(
       getExecutingWAVMModule()->defaultMemory, (Uptr)reqPtr);
@@ -80,11 +78,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I32 nSubs,
                                I32 resNEvents)
 {
-    faabric::util::getLogger()->debug("S - poll_oneoff - {} {} {} {}",
-                                      subscriptionsPtr,
-                                      eventsPtr,
-                                      nSubs,
-                                      resNEvents);
+    SPDLOG_DEBUG("S - poll_oneoff - {} {} {} {}",
+                 subscriptionsPtr,
+                 eventsPtr,
+                 nSubs,
+                 resNEvents);
     WAVMWasmModule* module = getExecutingWAVMModule();
 
     auto inEvents = Runtime::memoryArrayPtr<__wasi_subscription_t>(
@@ -140,7 +138,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I64 precision,
                                I32 resultPtr)
 {
-    faabric::util::getLogger()->debug(
+    SPDLOG_DEBUG(
       "S - clock_time_get - {} {} {}", clockId, precision, resultPtr);
 
     timespec ts{};

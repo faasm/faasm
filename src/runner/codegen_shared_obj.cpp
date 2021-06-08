@@ -9,7 +9,7 @@ using namespace boost::filesystem;
 
 void codegenForDirectory(std::string& inputPath)
 {
-    const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
+
     logger->info("Running codegen on directory {}", inputPath);
     storage::FileLoader& loader = storage::getFileLoader();
 
@@ -64,10 +64,9 @@ void codegenForDirectory(std::string& inputPath)
 
 int main(int argc, char* argv[])
 {
-    const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
 
     if (argc < 2) {
-        logger->error("Must provide path to shared object dir");
+        SPDLOG_ERROR("Must provide path to shared object dir");
         return 1;
     }
 

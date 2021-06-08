@@ -11,10 +11,9 @@
 
 int main(int argc, char* argv[])
 {
-    const auto& logger = faabric::util::getLogger();
 
     if (argc < 3) {
-        logger->error("Must provide user and function name");
+        SPDLOG_ERROR("Must provide user and function name");
         return 1;
     }
 
@@ -81,7 +80,7 @@ int main(int argc, char* argv[])
     const faabric::Message& result =
       sch.getFunctionResult(msg.id(), conf.globalMessageTimeout);
     if (result.returnvalue() != 0) {
-        logger->error("Execution failed: {}", result.outputdata());
+        SPDLOG_ERROR("Execution failed: {}", result.outputdata());
         throw std::runtime_error("Executing function failed");
     }
 
