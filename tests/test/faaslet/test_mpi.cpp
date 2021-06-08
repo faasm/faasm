@@ -81,11 +81,6 @@ TEST_CASE("Test MPI message ordering", "[mpi]")
     checkMpiFunc("mpi_order");
 }
 
-TEST_CASE("Test MPI one-sided comms", "[mpi]")
-{
-    checkMpiFunc("mpi_onesided");
-}
-
 TEST_CASE("Test MPI probe", "[mpi]")
 {
     checkMpiFunc("mpi_probe");
