@@ -26,7 +26,7 @@ namespace wasm {
 
 #define OMP_FUNC(str)                                                          \
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();  \
-    const faabric::Message* msg = getExecutingCall();                          \
+    faabric::Message* msg = getExecutingCall();                                \
     int localThreadNum = level->getLocalThreadNum(msg);                        \
     int globalThreadNum = level->getGlobalThreadNum(msg);                      \
     auto logger = faabric::util::getLogger();                                  \
@@ -34,7 +34,7 @@ namespace wasm {
 
 #define OMP_FUNC_ARGS(formatStr, ...)                                          \
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();  \
-    const faabric::Message* msg = getExecutingCall();                          \
+    faabric::Message* msg = getExecutingCall();                                \
     int localThreadNum = level->getLocalThreadNum(msg);                        \
     int globalThreadNum = level->getGlobalThreadNum(msg);                      \
     auto logger = faabric::util::getLogger();                                  \

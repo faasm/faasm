@@ -5,7 +5,7 @@
 namespace wasm {
 
 // Using global TLS here to isolate between executing functions and support the
-// globally accessible accessor methods to access the current context
+// global accessor methods for the current context
 static thread_local std::stack<WasmExecutionContext*> contexts;
 
 WasmExecutionContext::WasmExecutionContext(WasmModule* module,
