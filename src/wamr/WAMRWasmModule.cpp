@@ -120,7 +120,7 @@ int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
     logger->debug("WAMR executing message {}", msg.id());
 
     // Make sure context is set
-    WasmExecutionContext(this, &msg);
+    WasmExecutionContext ctx(this, &msg);
 
     // Run wasm initialisers
     executeWasmFunction(WASM_CTORS_FUNC_NAME);

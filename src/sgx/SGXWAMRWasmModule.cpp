@@ -127,7 +127,7 @@ int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
       "Entering enclave {} to execute {}", globalEnclaveId, funcStr);
 
     // Set execution context
-    wasm::WasmExecutionContext(this, &msg);
+    wasm::WasmExecutionContext ctx(this, &msg);
 
     // Enter enclave and call function
     faasm_sgx_status_t returnValue;
