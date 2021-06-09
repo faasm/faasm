@@ -31,8 +31,8 @@ TEST_CASE_METHOD(DistTestsFixture, "Test threading across hosts", "[scheduler]")
     faabric::Message result = sch.getFunctionResult(msg.id(), 1000);
     REQUIRE(result.returnvalue() == 0);
 
-    // Check executors on this host
-    REQUIRE(sch.getFunctionExecutorCount(msg) == 2);
+    // Check one executor used on this host (always the case for threads)
+    REQUIRE(sch.getFunctionExecutorCount(msg) == 1);
 
     // Check other host is registered
     std::set<std::string> expectedRegisteredHosts = { WORKER_IP };
