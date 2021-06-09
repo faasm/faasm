@@ -53,18 +53,18 @@ int main(int argc, char* argv[])
 
     if (user == "python") {
         conf::convertMessageToPython(msg);
-        logger->info("Running Python function {}/{}",
-                     msg.pythonuser(),
-                     msg.pythonfunction());
+        SPDLOG_INFO("Running Python function {}/{}",
+                    msg.pythonuser(),
+                    msg.pythonfunction());
     } else {
-        logger->info("Running function {}/{}", user, function);
+        SPDLOG_INFO("Running function {}/{}", user, function);
     }
 
     if (argc > 3) {
         std::string inputData = argv[3];
         msg.set_inputdata(inputData);
 
-        logger->info("Adding input data: {}", inputData);
+        SPDLOG_INFO("Adding input data: {}", inputData);
     }
 
     // Set up the system

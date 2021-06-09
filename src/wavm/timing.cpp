@@ -5,6 +5,8 @@
 
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/WASI/WASIABI.h>
+
+#include <faabric/util/logging.h>
 #include <faabric/util/timing.h>
 
 using namespace WAVM;

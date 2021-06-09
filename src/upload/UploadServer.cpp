@@ -36,8 +36,8 @@ UploadServer::UploadServer()
 
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     if (conf.functionStorage == "fileserver") {
-        logger->info("Overriding fileserver storage on upload server (as this "
-                     "is the fileserver)");
+        SPDLOG_INFO("Overriding fileserver storage on upload server (as this "
+                    "is the fileserver)");
         conf.functionStorage = "local";
     }
 }
@@ -88,7 +88,7 @@ void UploadServer::listen(const std::string& port)
     listener.open().wait();
 
     // Continuous loop required to allow listening apparently
-    logger->info("Listening for requests on localhost:{}", port);
+    SPDLOG_INFO("Listening for requests on localhost:{}", port);
     while (!stopped) {
         usleep(2 * 1000 * 1000);
     }
@@ -191,7 +191,7 @@ std::vector<uint8_t> UploadServer::getState(const http_request& request)
       UploadServer::getPathParts(request);
     std::string user = pathParts[1];
     std::string key = pathParts[2];
-    logger->info("Downloading state from ({}/{})", user, key);
+    SPDLOG_INFO("Downloading state from ({}/{})", user, key);
 
     faabric::state::State& state = faabric::state::getGlobalState();
     size_t stateSize = state.getStateSize(user, key);
@@ -211,7 +211,7 @@ void UploadServer::handleStateUpload(const http_request& request)
     std::string user = pathParts[1];
     std::string key = pathParts[2];
 
-    logger->info("Upload state to ({}/{})", user, key);
+    SPDLOG_INFO("Upload state to ({}/{})", user, key);
 
     // Read request body into KV store
     const concurrency::streams::istream bodyStream = request.body();
@@ -242,8 +242,8 @@ void UploadServer::handlePythonFunctionUpload(const http_request& request)
 {
 
     faabric::Message msg = UploadServer::buildMessageFromRequest(request);
-    logger->info("Uploading Python function {}",
-                 faabric::util::funcToString(msg, false));
+    SPDLOG_INFO("Uploading Python function {}",
+                faabric::util::funcToString(msg, false));
 
     // Do the upload
     storage::FileLoader& l = storage::getFileLoader();
@@ -256,7 +256,7 @@ void UploadServer::handleSharedFileUpload(const http_request& request)
 {
 
     std::string filePath = getHeaderFromRequest(request, FILE_PATH_HEADER);
-    logger->info("Uploading shared file {}", filePath);
+    SPDLOG_INFO("Uploading shared file {}", filePath);
 
     const concurrency::streams::istream bodyStream = request.body();
     concurrency::streams::stringstreambuf inputStream;
@@ -279,7 +279,7 @@ void UploadServer::handleFunctionUpload(const http_request& request)
 {
 
     faabric::Message msg = UploadServer::buildMessageFromRequest(request);
-    logger->info("Uploading {}", faabric::util::funcToString(msg, false));
+    SPDLOG_INFO("Uploading {}", faabric::util::funcToString(msg, false));
 
     // Do the upload
     storage::FileLoader& l = storage::getFileLoader();

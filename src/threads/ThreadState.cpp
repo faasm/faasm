@@ -2,6 +2,7 @@
 #include <faabric/util/config.h>
 #include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
+#include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
 #include <faabric/util/timing.h>
 

@@ -71,7 +71,7 @@ std::vector<uint8_t> FileserverFileLoader::doLoad(
 
     std::vector<uint8_t> bytesData;
     client.request(request)
-      .then([&logger](http_response response) {
+      .then([](http_response response) {
           if (response.status_code() != 200) {
               SPDLOG_ERROR("GET request for file failed: {}",
                            response.status_code());

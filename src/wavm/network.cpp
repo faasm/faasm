@@ -2,6 +2,7 @@
 #include "syscalls.h"
 
 #include <faabric/util/bytes.h>
+#include <faabric/util/logging.h>
 
 #include <netdb.h>
 

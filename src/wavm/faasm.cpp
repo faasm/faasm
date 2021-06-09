@@ -7,6 +7,7 @@
 
 #include <faabric/util/bytes.h>
 #include <faabric/util/files.h>
+#include <faabric/util/logging.h>
 #include <faabric/util/state.h>
 
 #include <conf/FaasmConfig.h>

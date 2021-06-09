@@ -38,13 +38,6 @@ set(FAASM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(FAASM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
 set(FAASM_NATIVE_INSTALL "/usr/local/faasm/native")
 
-# Logging level
-if(CMAKE_BUILD_TYPE MATCHES DEBUG)
-    add_compile_definitions(SPDLOG_ACTIVE_LEVEL=debug)
-else()
-    add_compile_definitions(SPDLOG_ACTIVE_LEVEL=info)
-endif()
-
 # CPP REST SDK
 set(cpprestsdk_DIR /usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}/cmake/)
 find_package(cpprestsdk REQUIRED NAMES cpprestsdk cpprest)

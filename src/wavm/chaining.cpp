@@ -2,11 +2,13 @@
 #include "syscalls.h"
 
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/bytes.h>
+#include <faabric/util/logging.h>
+
 #include <wasm/chaining.h>
 
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
-#include <faabric/util/bytes.h>
 
 using namespace WAVM;
 

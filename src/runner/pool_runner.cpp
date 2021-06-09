@@ -12,11 +12,11 @@ int main()
     m.startBackground();
 
     // Start endpoint (will also have multiple threads)
-    logger->info("Starting endpoint");
+    SPDLOG_INFO("Starting endpoint");
     faabric::endpoint::FaabricEndpoint endpoint;
     endpoint.start();
 
-    logger->info("Shutting down");
+    SPDLOG_INFO("Shutting down");
     m.shutdown();
 
     return EXIT_SUCCESS;

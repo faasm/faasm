@@ -9,6 +9,7 @@
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/environment.h>
+#include <faabric/util/logging.h>
 #include <faabric/util/testing.h>
 #include <faaslet/Faaslet.h>
 
@@ -58,9 +59,7 @@ std::string execFunctionWithStringResult(faabric::Message& call)
 
     const faabric::Message result = sch.getFunctionResult(call.id(), 1);
     if (result.returnvalue() != 0) {
-        const std::shared_ptr<spdlog::logger>& logger =
-
-          logger->error("Function failed: {}", result.outputdata());
+        SPDLOG_ERROR("Function failed: {}", result.outputdata());
         FAIL();
     }
     REQUIRE(result.returnvalue() == 0);

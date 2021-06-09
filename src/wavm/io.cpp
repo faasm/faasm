@@ -3,6 +3,7 @@
 
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
+#include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
 #include <faabric/util/timing.h>
 
@@ -16,6 +17,7 @@
 #include <strings.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <sys/uio.h>
 #include <sys/unistd.h>
 
@@ -339,7 +341,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
 
     storage::FileDescriptor& fileDesc = fileSystem.getFileDescriptor(fd);
 
-    iovec* nativeIovecs = wasiIovecsToNativeIovecs(iovecsPtr, iovecCount);
+    ::iovec* nativeIovecs = wasiIovecsToNativeIovecs(iovecsPtr, iovecCount);
 
     ssize_t bytesWritten =
       ::writev(fileDesc.getLinuxFd(), nativeIovecs, iovecCount);
@@ -541,7 +543,7 @@ I32 s__fstat64(I32 fd, I32 statBufPtr)
 {
     SPDLOG_DEBUG("S - fstat64 - {} {}", fd, statBufPtr);
 
-    struct stat64 nativeStat
+    struct ::stat64 nativeStat
     {};
     int result = fstat64(fd, &nativeStat);
 
@@ -560,7 +562,7 @@ I32 s__lstat64(I32 pathPtr, I32 statBufPtr)
     const std::string fakePath = getMaskedPathFromWasm(pathPtr);
     SPDLOG_DEBUG("S - lstat - {} {}", fakePath, statBufPtr);
 
-    struct stat64 nativeStat
+    struct ::stat64 nativeStat
     {};
     lstat64(fakePath.c_str(), &nativeStat);
     writeNativeStatToWasmStat(&nativeStat, statBufPtr);

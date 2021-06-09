@@ -3,8 +3,7 @@
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/func.h>
-
-#include <wasm/chaining.h>
+#include <faabric/util/logging.h>
 
 #include <conf/FaasmConfig.h>
 #include <wasm/chaining.h>

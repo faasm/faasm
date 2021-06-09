@@ -4,10 +4,12 @@
 #include <cstring>
 
 #include <faabric/util/bytes.h>
-#include <wasm/WasmModule.h>
+#include <faabric/util/logging.h>
 
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
+
+#include <wasm/WasmModule.h>
 
 using namespace WAVM;
 

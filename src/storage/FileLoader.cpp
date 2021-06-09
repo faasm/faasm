@@ -133,9 +133,7 @@ void FileLoader::codegenForSharedObject(const std::string& inputPath)
 void checkFileExists(const std::string& path)
 {
     if (!boost::filesystem::exists(path)) {
-        const std::shared_ptr<spdlog::logger>& logger =
-
-          SPDLOG_ERROR("File {} does not exist", path);
+        SPDLOG_ERROR("File {} does not exist", path);
         throw std::runtime_error("Expected file does not exist");
     }
 }

@@ -4,7 +4,6 @@
 
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/state/State.h>
-#include <faabric/util/logging.h>
 #include <faabric/util/memory.h>
 #include <faabric/util/queue.h>
 #include <faabric/util/snapshot.h>
@@ -14,6 +13,7 @@
 #include <exception>
 #include <mutex>
 #include <string>
+#include <sys/uio.h>
 #include <thread>
 #include <tuple>
 
@@ -107,7 +107,7 @@ class WasmModule
     storage::FileSystem& getFileSystem();
 
     // ----- Stdout capture -----
-    ssize_t captureStdout(const struct iovec* iovecs, int iovecCount);
+    ssize_t captureStdout(const struct ::iovec* iovecs, int iovecCount);
 
     ssize_t captureStdout(const void* buffer);
 

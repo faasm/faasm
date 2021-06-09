@@ -7,6 +7,7 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
+#include <faabric/util/logging.h>
 #include <faabric/util/timing.h>
 
 using namespace WAVM;

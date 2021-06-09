@@ -11,6 +11,7 @@
 #include <faabric/util/func.h>
 #include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
+#include <faabric/util/logging.h>
 #include <faabric/util/memory.h>
 #include <faabric/util/timing.h>
 
@@ -199,7 +200,7 @@ int WasmModule::getStdoutFd()
     return stdoutMemFd;
 }
 
-ssize_t WasmModule::captureStdout(const struct iovec* iovecs, int iovecCount)
+ssize_t WasmModule::captureStdout(const struct ::iovec* iovecs, int iovecCount)
 {
     int memFd = getStdoutFd();
     ssize_t writtenSize = ::writev(memFd, iovecs, iovecCount);

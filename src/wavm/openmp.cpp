@@ -9,6 +9,7 @@
 #include <faabric/util/func.h>
 #include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
+#include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
 #include <faabric/util/timing.h>
 
@@ -28,20 +29,18 @@ namespace wasm {
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();  \
     faabric::Message* msg = getExecutingCall();                                \
     int localThreadNum = level->getLocalThreadNum(msg);                        \
-    int globalThreadNum = level->getGlobalThreadNum(msg);
-
-SPDLOG_TRACE("OMP {} ({}): " str, localThreadNum, globalThreadNum);
+    int globalThreadNum = level->getGlobalThreadNum(msg);                      \
+    SPDLOG_TRACE("OMP {} ({}): " str, localThreadNum, globalThreadNum);
 
 #define OMP_FUNC_ARGS(formatStr, ...)                                          \
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();  \
     faabric::Message* msg = getExecutingCall();                                \
     int localThreadNum = level->getLocalThreadNum(msg);                        \
-    int globalThreadNum = level->getGlobalThreadNum(msg);
-
-SPDLOG_TRACE("OMP {} ({}): " formatStr,
-             localThreadNum,
-             globalThreadNum,
-             __VA_ARGS__);
+    int globalThreadNum = level->getGlobalThreadNum(msg);                      \
+    SPDLOG_TRACE("OMP {} ({}): " formatStr,                                    \
+                 localThreadNum,                                               \
+                 globalThreadNum,                                              \
+                 __VA_ARGS__);
 
 // ------------------------------------------------
 // THREAD NUMS AND LEVELS

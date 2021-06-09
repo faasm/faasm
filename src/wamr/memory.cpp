@@ -1,4 +1,6 @@
 #include <faabric/proto/faabric.pb.h>
+#include <faabric/util/logging.h>
+
 #include <wamr/WAMRWasmModule.h>
 #include <wamr/native.h>
 #include <wasm/WasmModule.h>

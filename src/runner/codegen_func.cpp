@@ -20,7 +20,7 @@ void codegenForFunc(const std::string& user, const std::string& func)
         return;
     }
 
-    logger->info("Generating machine code for {}/{}", user, func);
+    SPDLOG_INFO("Generating machine code for {}/{}", user, func);
     storage::FileLoader& loader = storage::getFileLoader();
     loader.codegenForFunction(msg);
 }
@@ -32,13 +32,13 @@ int main(int argc, char* argv[])
         std::string user = argv[1];
         std::string func = argv[2];
 
-        logger->info("Running codegen for function {}/{}", user, func);
+        SPDLOG_INFO("Running codegen for function {}/{}", user, func);
         codegenForFunc(user, func);
     } else if (argc == 2) {
         std::string user = argv[1];
 
         conf::FaasmConfig& conf = conf::getFaasmConfig();
-        logger->info(
+        SPDLOG_INFO(
           "Running codegen for user {} on dir {}", user, conf.functionDir);
 
         boost::filesystem::path path(conf.functionDir);
@@ -57,7 +57,7 @@ int main(int argc, char* argv[])
 
         for (unsigned int i = 0; i < nThreads; i++) {
             threads.emplace_back([&iter, &mx, &end, &logger, &user] {
-                logger->info("Spawning codegen thread");
+                SPDLOG_INFO("Spawning codegen thread");
 
                 while (true) {
                     std::string thisPath;
@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
 
                         // Check if we've got more to do
                         if (iter == end) {
-                            logger->info("Codegen thread finished");
+                            SPDLOG_INFO("Codegen thread finished");
                             break;
                         }
 

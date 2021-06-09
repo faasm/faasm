@@ -9,6 +9,7 @@
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 #include <faabric/util/locks.h>
+#include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
 #include <faabric/util/memory.h>
 #include <faabric/util/timing.h>
@@ -602,10 +603,10 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
     Runtime::ModuleRef compiledModule = moduleRegistry.getCompiledModule(
       boundUser, boundFunction, sharedModulePath);
 
-    logger->info("Instantiating module {}/{}  {}",
-                 boundUser,
-                 boundFunction,
-                 sharedModulePath);
+    SPDLOG_INFO("Instantiating module {}/{}  {}",
+                boundUser,
+                boundFunction,
+                sharedModulePath);
 
     Runtime::Instance* instance =
       instantiateModule(compartment,
@@ -878,7 +879,7 @@ int32_t WAVMWasmModule::executeFunction(faabric::Message& msg)
 
               returnValue = result.i32;
           },
-          [&logger, &returnValue](Runtime::Exception* ex) {
+          [&returnValue](Runtime::Exception* ex) {
               SPDLOG_ERROR("Runtime exception: {}",
                            Runtime::describeException(ex).c_str());
               Runtime::destroyException(ex);
@@ -1444,9 +1445,7 @@ int WAVMWasmModule::getNextTableBase()
 int WAVMWasmModule::getFunctionOffsetFromGOT(const std::string& funcName)
 {
     if (globalOffsetTableMap.count(funcName) == 0) {
-        const std::shared_ptr<spdlog::logger>& logger =
-
-          SPDLOG_ERROR("Function not found in GOT - {}", funcName);
+        SPDLOG_ERROR("Function not found in GOT - {}", funcName);
         throw std::runtime_error("Function not found in GOT");
     }
 
@@ -1456,9 +1455,7 @@ int WAVMWasmModule::getFunctionOffsetFromGOT(const std::string& funcName)
 int WAVMWasmModule::getDataOffsetFromGOT(const std::string& name)
 {
     if (globalOffsetMemoryMap.count(name) == 0) {
-        const std::shared_ptr<spdlog::logger>& logger =
-
-          SPDLOG_ERROR("Data not found in GOT - {}", name);
+        SPDLOG_ERROR("Data not found in GOT - {}", name);
         throw std::runtime_error("Memory not found in GOT");
     }
 

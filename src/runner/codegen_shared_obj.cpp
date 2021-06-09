@@ -10,7 +10,7 @@ using namespace boost::filesystem;
 void codegenForDirectory(std::string& inputPath)
 {
 
-    logger->info("Running codegen on directory {}", inputPath);
+    SPDLOG_INFO("Running codegen on directory {}", inputPath);
     storage::FileLoader& loader = storage::getFileLoader();
 
     // Iterate through the directory
@@ -24,7 +24,7 @@ void codegenForDirectory(std::string& inputPath)
 
     for (unsigned int i = 0; i < nThreads; i++) {
         threads.emplace_back([&iter, &mx, &end, &logger, &loader] {
-            logger->info("Spawning codegen thread");
+            SPDLOG_INFO("Spawning codegen thread");
 
             while (true) {
                 std::string thisPath;
@@ -35,7 +35,7 @@ void codegenForDirectory(std::string& inputPath)
 
                     // Check if we've got more to do
                     if (iter == end) {
-                        logger->info("Codegen thread finished");
+                        SPDLOG_INFO("Codegen thread finished");
                         break;
                     }
 
@@ -48,7 +48,7 @@ void codegenForDirectory(std::string& inputPath)
                 const std::string fileName = f.path().filename().string();
                 if (faabric::util::endsWith(fileName, ".so") ||
                     faabric::util::endsWith(fileName, ".wasm")) {
-                    logger->info("Generating machine code for {}", thisPath);
+                    SPDLOG_INFO("Generating machine code for {}", thisPath);
                     loader.codegenForSharedObject(thisPath);
                 }
             }

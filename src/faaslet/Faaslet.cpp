@@ -12,6 +12,7 @@
 #include <faabric/util/config.h>
 #include <faabric/util/environment.h>
 #include <faabric/util/locks.h>
+#include <faabric/util/logging.h>
 #include <faabric/util/timing.h>
 
 #include <stdexcept>
@@ -32,14 +33,13 @@ std::mutex flushMutex;
 
 void preloadPythonRuntime()
 {
-
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     if (conf.pythonPreload != "on") {
-        logger->info("Not preloading python runtime");
+        SPDLOG_INFO("Not preloading python runtime");
         return;
     }
 
-    logger->info("Preparing python runtime");
+    SPDLOG_INFO("Preparing python runtime");
 
     faabric::Message msg =
       faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
@@ -54,7 +54,6 @@ void preloadPythonRuntime()
 
 void Faaslet::flush()
 {
-
     SPDLOG_DEBUG("Faaslet {} flushing", id);
 
     // Note that all Faaslets on the given host will be flushing at the same
@@ -140,7 +139,6 @@ void Faaslet::postFinish()
 
 void Faaslet::restore(const faabric::Message& msg)
 {
-
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     const std::string snapshotKey = msg.snapshotkey();
 
