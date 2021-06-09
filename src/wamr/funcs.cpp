@@ -2,6 +2,7 @@
 #include <faabric/util/bytes.h>
 #include <faabric/util/macros.h>
 #include <wamr/native.h>
+#include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 #include <wasm/chaining.h>
 #include <wasm_export.h>

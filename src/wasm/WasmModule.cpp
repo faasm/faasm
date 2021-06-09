@@ -2,6 +2,7 @@
 
 #include <conf/FaasmConfig.h>
 #include <threads/ThreadState.h>
+#include <wasm/WasmExecutionContext.h>
 
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
@@ -20,12 +21,6 @@
 #include <sys/uio.h>
 
 namespace wasm {
-// Using TLS here to isolate between executing functions
-// Note that with threads, multiple messages can be executing on the same
-// module, hence we must track them independently.
-static thread_local wasm::WasmModule* executingModule = nullptr;
-
-static thread_local faabric::Message* executingCall = nullptr;
 
 bool isWasmPageAligned(int32_t offset)
 {
@@ -34,53 +29,6 @@ bool isWasmPageAligned(int32_t offset)
     } else {
         return true;
     }
-}
-
-// This function remains for compatibility
-faabric::Message* getExecutingCall()
-{
-    assert(executingCall != nullptr);
-    return executingCall;
-}
-
-void setExecutingCall(faabric::Message* msg)
-{
-    // Although the executing msg can be overridden, we only want to do so
-    // with another message for the same function (e.g. when executing
-    // threads).
-    if (msg != nullptr) {
-        assert(!msg->user().empty());
-        assert(!msg->function().empty());
-
-        assert(executingModule->getBoundUser().empty() ||
-               executingModule->getBoundUser() == msg->user());
-        assert(executingModule->getBoundFunction().empty() ||
-               executingModule->getBoundFunction() == msg->function());
-    }
-
-    executingCall = msg;
-}
-
-wasm::WasmModule* getExecutingModule()
-{
-    assert(executingModule != nullptr);
-    return executingModule;
-}
-
-void setExecutingModule(wasm::WasmModule* module)
-{
-    // We should not be changing the executing module associated with this
-    // thread, only setting it for the first time, unsetting it, or harmlessly
-    // resetting the same value
-    if (executingModule != nullptr && module != nullptr &&
-        executingModule != module) {
-
-        assert(executingModule->getBoundFunction() ==
-               module->getBoundFunction());
-        assert(executingModule->getBoundUser() == module->getBoundUser());
-    }
-
-    executingModule = module;
 }
 
 size_t getNumberOfWasmPagesForBytes(uint32_t nBytes)
@@ -275,7 +223,7 @@ uint32_t WasmModule::getArgvBufferSize()
     return argvBufferSize;
 }
 
-void WasmModule::bindToFunction(const faabric::Message& msg, bool cache)
+void WasmModule::bindToFunction(faabric::Message& msg, bool cache)
 {
     if (_isBound) {
         throw std::runtime_error("Cannot bind a module twice");
@@ -285,7 +233,8 @@ void WasmModule::bindToFunction(const faabric::Message& msg, bool cache)
     boundUser = msg.user();
     boundFunction = msg.function();
 
-    // Call module-specific steps
+    // Call into subclass hook, setting the context beforehand
+    WasmExecutionContext ctx(this, &msg);
     doBindToFunction(msg, cache);
 }
 
@@ -379,8 +328,7 @@ int32_t WasmModule::executeTask(
     assert(boundFunction == msg.function());
 
     // Set up context for this task
-    setExecutingModule(this);
-    setExecutingCall(&msg);
+    WasmExecutionContext ctx(this, &msg);
 
     // Modules must have provisioned their own thread stacks
     assert(!threadStacks.empty());
@@ -482,12 +430,12 @@ bool WasmModule::isBound()
 // Functions to be implemented by subclasses
 // ------------------------------------------
 
-void WasmModule::reset(const faabric::Message& msg)
+void WasmModule::reset(faabric::Message& msg)
 {
     faabric::util::getLogger()->warn("Using default reset of wasm module");
 }
 
-void WasmModule::doBindToFunction(const faabric::Message& msg, bool cache)
+void WasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 {
     throw std::runtime_error("doBindToFunction not implemented");
 }

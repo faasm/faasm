@@ -4,6 +4,7 @@
 #include <sgx/SGXWAMRWasmModule.h>
 #include <sgx/faasm_sgx_attestation.h>
 #include <sgx/faasm_sgx_system.h>
+#include <wasm/WasmExecutionContext.h>
 
 extern "C"
 {
@@ -46,8 +47,7 @@ SGXWAMRWasmModule::~SGXWAMRWasmModule()
     }
 }
 
-void SGXWAMRWasmModule::doBindToFunction(const faabric::Message& msg,
-                                         bool cache)
+void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 {
     auto logger = faabric::util::getLogger();
 
@@ -126,8 +126,8 @@ int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
     logger->debug(
       "Entering enclave {} to execute {}", globalEnclaveId, funcStr);
 
-    // Set executing module
-    setExecutingModule(this);
+    // Set execution context
+    wasm::WasmExecutionContext ctx(this, &msg);
 
     // Enter enclave and call function
     faasm_sgx_status_t returnValue;

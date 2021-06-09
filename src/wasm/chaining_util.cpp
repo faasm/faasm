@@ -4,9 +4,8 @@
 #include <faabric/util/bytes.h>
 #include <faabric/util/func.h>
 
-#include <wasm/chaining.h>
-
 #include <conf/FaasmConfig.h>
+#include <wasm/WasmExecutionContext.h>
 #include <wasm/chaining.h>
 
 namespace wasm {
