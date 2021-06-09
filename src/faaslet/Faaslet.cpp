@@ -75,7 +75,7 @@ void Faaslet::flush()
     module->flush();
 }
 
-Faaslet::Faaslet(const faabric::Message& msg)
+Faaslet::Faaslet(faabric::Message& msg)
   : Executor(msg)
 {
     conf::FaasmConfig& conf = conf::getFaasmConfig();
@@ -102,9 +102,7 @@ Faaslet::Faaslet(const faabric::Message& msg)
     }
 
     // Bind to the function
-    // TODO - avoid this copy
-    faabric::Message msgCopy = msg;
-    module->bindToFunction(msgCopy);
+    module->bindToFunction(msg);
 }
 
 int32_t Faaslet::executeTask(int threadPoolIdx,
@@ -131,11 +129,9 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
     return returnValue;
 }
 
-void Faaslet::reset(const faabric::Message& msg)
+void Faaslet::reset(faabric::Message& msg)
 {
-    // TODO - avoid this copy, need to remove the const
-    faabric::Message msgCopy = msg;
-    module->reset(msgCopy);
+    module->reset(msg);
 }
 
 void Faaslet::postFinish()
@@ -151,7 +147,7 @@ faabric::util::SnapshotData Faaslet::snapshot()
     return module->getSnapshotData();
 }
 
-void Faaslet::restore(const faabric::Message& msg)
+void Faaslet::restore(faabric::Message& msg)
 {
     auto logger = faabric::util::getLogger();
 
@@ -177,7 +173,7 @@ void Faaslet::restore(const faabric::Message& msg)
 FaasletFactory::~FaasletFactory() {}
 
 std::shared_ptr<faabric::scheduler::Executor> FaasletFactory::createExecutor(
-  const faabric::Message& msg)
+  faabric::Message& msg)
 {
     return std::make_shared<Faaslet>(msg);
 }
