@@ -23,7 +23,7 @@ jobs:
       - name: "Check out branch"
         run: git checkout --force ci-branch
       - name: "Update submodules"
-        run: git submodule update 
+        run: git submodule update
       # --- Formatting checks ---
       - name: "Ensure all Python deps up-to-date"
         run: pip3 install -r faasmcli/requirements.txt
@@ -180,13 +180,15 @@ jobs:
       - name: "Update faabric submodule"
         run: git submodule update --init faabric
       # --- Set up and run ---
-      - name: "Build distributed tests"
-        run: ./dist-test/build.sh
+      - name: "Set up directory for wasm"
+        run: mkdir -p ./dist-test/build/faasm-local
       - name: "Download CPP wasm"
         uses: actions/download-artifact@v2
         with:
           name: cpp-wasm
           path: ./dist-test/build/faasm-local/wasm
+      - name: "Build distributed tests"
+        run: ./dist-test/build.sh
       - name: "Run the distributed tests"
         run: ./dist-test/run.sh
 
