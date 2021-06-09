@@ -163,7 +163,10 @@ Runtime::ModuleRef IRModuleCache::getCompiledSharedModule(
           "Using cached shared compiled module {}/{} - {}", user, func, path);
     }
 
-    return compiledModuleMap[key];
+    {
+        faabric::util::SharedLock lock(mx);
+        return compiledModuleMap[key];
+    }
 }
 
 IR::Module& IRModuleCache::getMainModule(const std::string& user,
@@ -212,7 +215,10 @@ IR::Module& IRModuleCache::getMainModule(const std::string& user,
         logger->debug("Using cached main module {}/{}", user, func);
     }
 
-    return getModuleFromMap(key);
+    {
+        faabric::util::SharedLock lock(mx);
+        return getModuleFromMap(key);
+    }
 }
 
 IR::Module& IRModuleCache::getSharedModule(const std::string& user,
@@ -272,7 +278,10 @@ IR::Module& IRModuleCache::getSharedModule(const std::string& user,
           "Loading cached shared module {}/{} - {}", user, func, path);
     }
 
-    return getModuleFromMap(key);
+    {
+        faabric::util::SharedLock lock(mx);
+        return getModuleFromMap(key);
+    }
 }
 
 bool IRModuleCache::isModuleCached(const std::string& user,

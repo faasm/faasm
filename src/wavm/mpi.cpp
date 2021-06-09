@@ -24,10 +24,9 @@ bool isInPlace(U8 wasmPtr)
 
 faabric::scheduler::MpiWorld& getExecutingWorld()
 {
-    int worldId = executingContext.getWorldId();
     faabric::scheduler::MpiWorldRegistry& reg =
       faabric::scheduler::getMpiWorldRegistry();
-    return reg.getOrInitialiseWorld(*getExecutingCall(), worldId);
+    return reg.getOrInitialiseWorld(*getExecutingCall());
 }
 
 /**
@@ -113,22 +112,6 @@ class ContextWrapper
         return hostInfoType;
     }
 
-    wasm_faabric_win_t* getFaasmWindow(I32 wasmPtr)
-    {
-        wasm_faabric_win_t* hostWin =
-          &Runtime::memoryRef<wasm_faabric_win_t>(memory, wasmPtr);
-        return hostWin;
-    }
-
-    /**
-     * This function is used for pointers-to-pointers for the window
-     */
-    wasm_faabric_win_t* getFaasmWindowFromPointer(I32 wasmPtrPtr)
-    {
-        I32 wasmPtr = Runtime::memoryRef<I32>(memory, wasmPtrPtr);
-        return getFaasmWindow(wasmPtr);
-    }
-
     faabric_op_t* getFaasmOp(I32 wasmOp)
     {
         faabric_op_t* hostOpType =
@@ -165,7 +148,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Init", I32, MPI_Init, I32 a, I32 b)
         logger->debug("S - MPI_Init (create) {} {}", a, b);
 
         // Initialise the world
-        executingContext.createWorld(*call);
+        int worldId = executingContext.createWorld(*call);
+        call->set_mpiworldid(worldId);
     } else {
         logger->debug("S - MPI_Init (join) {} {}", a, b);
 
@@ -1449,9 +1433,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Op_free", I32, MPI_Op_free, I32 op)
 
 /**
  * Creates a shared memory region (i.e. a chunk of Faasm state)
- * NOTE - the final argument is a pointer to an MPI_Win which *is itself a
- * pointer*, thus this is actually a pointer to a pointer for the underlying
- * struct.
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "MPI_Win_create",
@@ -1473,28 +1454,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                               comm,
                               winPtrPtr);
 
-    // Set up the window object in the wasm memory
-    wasm_faabric_win_t* win = ctx.getFaasmWindowFromPointer(winPtrPtr);
-    win->worldId = ctx.world.getId();
-    win->size = size;
-    win->dispUnit = dispUnit;
-    win->rank = ctx.rank;
-    win->wasmPtr = basePtr;
-
-    U8* hostPtr =
-      &Runtime::memoryRef<U8>(getExecutingWAVMModule()->defaultMemory, basePtr);
-    ctx.world.createWindow(win->rank, win->size, hostPtr);
+    throw std::runtime_error("MPI_Win_create is not implemented!");
 
     return MPI_SUCCESS;
 }
 
 /**
  * Special type of barrier invoked to ensure all RMA operations have completed.
- * In our case, colocated RMA is done instantly so we don't need to worry.
- * RMA on another host is always followed with a notification on the same queue
- * that handles barrier messages, therefore will always have been resolved
- * before the barrier completes. For this reason we can just use the normal
- * barrier.
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "MPI_Win_fence",
@@ -1506,14 +1472,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     ContextWrapper ctx;
     ctx.getMpiLogger()->debug("S - MPI_Win_fence {} {}", assert, winPtr);
 
-    ctx.world.barrier(ctx.rank);
+    throw std::runtime_error("MPI_Win_fence is not implemented!");
 
     return MPI_SUCCESS;
 }
 
 /**
- * Pulls from remote state to a shared buffer. Just looks like a pull from Faasm
- * global state with the window specifying the key.
+ * One-sided get RDMA.
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "MPI_Get",
@@ -1539,30 +1504,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                               sendType,
                               winPtr);
 
-    // TODO - check window
-
-    faabric_datatype_t* hostRecvDtype = ctx.getFaasmDataType(recvType);
-    faabric_datatype_t* hostSendDtype = ctx.getFaasmDataType(sendType);
-    auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(
-      ctx.memory, recvBuf, recvCount * hostRecvDtype->size);
-
-    ctx.world.rmaGet(sendRank,
-                     hostSendDtype,
-                     sendCount,
-                     hostRecvBuffer,
-                     hostRecvDtype,
-                     recvCount);
+    throw std::runtime_error("MPI_Get is not implemented!");
 
     return MPI_SUCCESS;
 }
 
 /**
- * One-sided write to shared memory. Looks like:
- *  - Make the write to state
- *  - Send the notification message to the receiver
- *
- *  This notification message will then be resolved at the end of the
- *  epoch (if epoch is open).
+ * One-sided write to shared memory.
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "MPI_Put",
@@ -1588,20 +1536,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                               recvType,
                               winPtr);
 
-    // TODO - check window
-
-    faabric_datatype_t* hostRecvDtype = ctx.getFaasmDataType(recvType);
-    faabric_datatype_t* hostSendDtype = ctx.getFaasmDataType(sendType);
-    auto hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(
-      ctx.memory, sendBuf, sendCount * hostSendDtype->size);
-
-    ctx.world.rmaPut(ctx.rank,
-                     hostSendBuffer,
-                     hostSendDtype,
-                     sendCount,
-                     recvRank,
-                     hostRecvDtype,
-                     recvCount);
+    throw std::runtime_error("MPI_Put is not implemented!");
 
     return MPI_SUCCESS;
 }
@@ -1618,19 +1553,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     ContextWrapper ctx;
     ctx.getMpiLogger()->debug("S - MPI_Win_free {}", winPtr);
 
-    // TODO - delete the state related to this window
+    throw std::runtime_error("MPI_Win_free is not implemented!");
 
     return MPI_SUCCESS;
 }
 
 /**
  * Returns the value for a given attribute of a window.
- *
- * The results can be of different types, so writing the result
- * must be done carefully and will depend on the attribute requested.
- *
- * Some notes here on sizes:
- * https://github.com/open-mpi/ompi/blob/master/ompi/attribute/attribute_predefined.c
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "MPI_Win_get_attr",
@@ -1648,31 +1577,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                               attrResPtrPtr,
                               flagResPtr);
 
-    wasm_faabric_win_t* window = ctx.getFaasmWindow(winPtr);
-
-    // This flag must be 1 if the attribute is set (which we always assume it
-    // is)
-    ctx.writeMpiResult<int>(flagResPtr, 1);
-
-    // MPI_WIN_BASE is special as we're passing back a pointer
-    if (attrKey == MPI_WIN_BASE) {
-        ctx.writeMpiResult<int>(attrResPtrPtr, window->wasmPtr);
-    } else {
-        // The result is a pointer to a pointer, so for everything other than
-        // MPI_WIN_BASE we need to doubly translate it
-        Runtime::GCPointer<Runtime::Memory>& memPtr =
-          getExecutingWAVMModule()->defaultMemory;
-        I32 attrResPtr = Runtime::memoryRef<I32>(memPtr, attrResPtrPtr);
-
-        if (attrKey == MPI_WIN_SIZE) {
-            ctx.writeMpiResult<I32>(attrResPtr, window->size);
-        } else if (attrKey == MPI_WIN_DISP_UNIT) {
-            ctx.writeMpiResult<I32>(attrResPtr, window->dispUnit);
-        } else {
-            throw std::runtime_error("Unrecognised window attribute type " +
-                                     std::to_string(attrKey));
-        }
-    }
+    throw std::runtime_error("MPI_Win_get_attr is not implemented!");
 
     return MPI_SUCCESS;
 }

@@ -15,6 +15,7 @@
 
 #include <storage/SharedFiles.h>
 #include <threads/ThreadState.h>
+#include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 #include <wavm/IRModuleCache.h>
 #include <wavm/WAVMWasmModule.h>
@@ -63,7 +64,7 @@ static void instantiateBaseModules()
     PROF_END(BaseWasiModule)
 }
 
-void WAVMWasmModule::reset(const faabric::Message& msg)
+void WAVMWasmModule::reset(faabric::Message& msg)
 {
     if (!_isBound) {
         return;
@@ -361,8 +362,6 @@ void WAVMWasmModule::executeWasmFunction(
   const std::vector<WAVM::IR::UntaggedValue>& arguments,
   WAVM::IR::UntaggedValue& result)
 {
-    setExecutingModule(this);
-
     const IR::FunctionType funcType = Runtime::getFunctionType(func);
 
     Runtime::invokeFunction(ctx, func, funcType, arguments.data(), &result);
@@ -383,24 +382,22 @@ void WAVMWasmModule::executeWasmFunction(
   const std::vector<IR::UntaggedValue>& arguments,
   IR::UntaggedValue& result)
 {
-    setExecutingModule(this);
-
     // Function expects a result array so pass pointer to single value
     Runtime::invokeFunction(
       executionContext, func, funcType, arguments.data(), &result);
 }
 
-void WAVMWasmModule::doBindToFunction(const faabric::Message& msg, bool cache)
+void WAVMWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 {
     doBindToFunctionInternal(msg, true, cache);
 }
 
-void WAVMWasmModule::bindToFunctionNoZygote(const faabric::Message& msg)
+void WAVMWasmModule::bindToFunctionNoZygote(faabric::Message& msg)
 {
     doBindToFunctionInternal(msg, false, true);
 }
 
-void WAVMWasmModule::doBindToFunctionInternal(const faabric::Message& msg,
+void WAVMWasmModule::doBindToFunctionInternal(faabric::Message& msg,
                                               bool executeZygote,
                                               bool useCache)
 {
@@ -826,7 +823,6 @@ int32_t WAVMWasmModule::executeFunction(faabric::Message& msg)
     }
 
     const auto& logger = faabric::util::getLogger();
-    setExecutingCall(&msg);
 
     // Ensure Python function file in place (if necessary)
     storage::SharedFiles::syncPythonFunctionFile(msg);
@@ -880,6 +876,7 @@ int32_t WAVMWasmModule::executeFunction(faabric::Message& msg)
     }
 
     // Call the function
+    WasmExecutionContext ctx(this, &msg);
     int returnValue = 0;
     try {
         Runtime::catchRuntimeExceptions(

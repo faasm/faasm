@@ -1,13 +1,14 @@
 #include "WAMRWasmModule.h"
 #include "aot_runtime.h"
-#include "faabric/util/logging.h"
 #include "platform_common.h"
-#include "wasm/WasmModule.h"
 #include "wasm_exec_env.h"
 #include "wasm_runtime.h"
 
 #include <faabric/util/locks.h>
+#include <faabric/util/logging.h>
 #include <wamr/native.h>
+#include <wasm/WasmExecutionContext.h>
+#include <wasm/WasmModule.h>
 
 #include <cstdint>
 #include <stdexcept>
@@ -53,11 +54,6 @@ void tearDownWAMRGlobally()
     wasm_runtime_destroy();
 }
 
-WAMRWasmModule* getExecutingWAMRModule()
-{
-    return reinterpret_cast<WAMRWasmModule*>(getExecutingModule());
-}
-
 WAMRWasmModule::WAMRWasmModule()
 {
     initialiseWAMRGlobally();
@@ -76,7 +72,7 @@ WAMRWasmModule::~WAMRWasmModule()
 }
 
 // ----- Module lifecycle -----
-void WAMRWasmModule::doBindToFunction(const faabric::Message& msg, bool cache)
+void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 {
     const auto& logger = faabric::util::getLogger();
 
@@ -123,8 +119,8 @@ int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
     const auto& logger = faabric::util::getLogger();
     logger->debug("WAMR executing message {}", msg.id());
 
-    setExecutingModule(this);
-    setExecutingCall(&msg);
+    // Make sure context is set
+    WasmExecutionContext ctx(this, &msg);
 
     // Run wasm initialisers
     executeWasmFunction(WASM_CTORS_FUNC_NAME);
@@ -143,8 +139,6 @@ int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
 int WAMRWasmModule::executeWasmFunctionFromPointer(int wasmFuncPtr)
 {
     auto logger = faabric::util::getLogger();
-
-    setExecutingModule(this);
 
     // NOTE: WAMR doesn't provide a nice interface for calling functions using
     // function pointers, so we have to call a few more low-level functions to
@@ -183,8 +177,6 @@ int WAMRWasmModule::executeWasmFunctionFromPointer(int wasmFuncPtr)
 int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
 {
     auto logger = faabric::util::getLogger();
-
-    setExecutingModule(this);
 
     WASMFunctionInstanceCommon* func =
       wasm_runtime_lookup_function(moduleInstance, funcName.c_str(), nullptr);

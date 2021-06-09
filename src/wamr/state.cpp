@@ -1,6 +1,7 @@
 #include <faabric/proto/faabric.pb.h>
 #include <wamr/WAMRWasmModule.h>
 #include <wamr/native.h>
+#include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 #include <wasm_export.h>
 
@@ -50,7 +51,7 @@ static int32_t __faasm_read_state_ptr_wrapper(wasm_exec_env_t exec_env,
       "S - faasm_read_state_ptr - {} {}", kv->key, bufferLen);
 
     // Map shared memory
-    WAMRWasmModule* module = getExecutingWAMRModule();
+    WasmModule* module = getExecutingModule();
     uint32_t wasmPtr = module->mapSharedStateMemory(kv, 0, bufferLen);
 
     // Call get to make sure the value is pulled
