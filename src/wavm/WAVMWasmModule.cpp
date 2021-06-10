@@ -461,14 +461,10 @@ void WAVMWasmModule::doBindToFunctionInternal(faabric::Message& msg,
         throw std::runtime_error("Wasm memory layout not as expected");
     }
 
-    Uptr initialTableSize = Runtime::getTableNumElements(defaultTable);
-    Uptr initialMemorySize = getMemorySizeBytes();
-    Uptr initialMemoryPages = Runtime::getMemoryNumPages(defaultMemory);
-
     SPDLOG_DEBUG("heap_top={} initial_pages={} initial_table={}",
-                 initialMemorySize,
-                 initialMemoryPages,
-                 initialTableSize);
+                 getMemorySizeBytes(),
+                 Runtime::getMemoryNumPages(defaultMemory),
+                 Runtime::getTableNumElements(defaultTable));
 
     PROF_END(wasmBind)
 }
@@ -800,8 +796,9 @@ uint32_t WAVMWasmModule::addFunctionToTable(Runtime::Object* exportedFunc) const
         throw std::runtime_error("Failed to grow table");
     }
 
-    Uptr newElements = Runtime::getTableNumElements(defaultTable);
-    SPDLOG_DEBUG("Table grown from {} elements to {}", prevIdx, newElements);
+    SPDLOG_DEBUG("Table grown from {} elements to {}",
+                 prevIdx,
+                 Runtime::getTableNumElements(defaultTable));
 
     Runtime::setTableElement(defaultTable, prevIdx, exportedFunc);
     return prevIdx;

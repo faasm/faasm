@@ -30,6 +30,10 @@ namespace wasm {
     faabric::Message* msg = getExecutingCall();                                \
     int localThreadNum = level->getLocalThreadNum(msg);                        \
     int globalThreadNum = level->getGlobalThreadNum(msg);                      \
+    UNUSED(level);                                                             \
+    UNUSED(msg);                                                               \
+    UNUSED(localThreadNum);                                                    \
+    UNUSED(globalThreadNum);                                                   \
     SPDLOG_TRACE("OMP {} ({}): " str, localThreadNum, globalThreadNum);
 
 #define OMP_FUNC_ARGS(formatStr, ...)                                          \
@@ -37,6 +41,10 @@ namespace wasm {
     faabric::Message* msg = getExecutingCall();                                \
     int localThreadNum = level->getLocalThreadNum(msg);                        \
     int globalThreadNum = level->getGlobalThreadNum(msg);                      \
+    UNUSED(level);                                                             \
+    UNUSED(msg);                                                               \
+    UNUSED(localThreadNum);                                                    \
+    UNUSED(globalThreadNum);                                                   \
     SPDLOG_TRACE("OMP {} ({}): " formatStr,                                    \
                  localThreadNum,                                               \
                  globalThreadNum,                                              \

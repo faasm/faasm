@@ -109,12 +109,12 @@ void UploadServer::handleGet(const http_request& request)
     std::string pathType = pathParts[0];
     std::vector<uint8_t> returnBytes;
 
-    const utility::string_t& uri = request.absolute_uri().to_string();
-
     if (pathType == "sobjwasm" || pathType == "sobjobj" || pathType == "file") {
         std::string filePath = getHeaderFromRequest(request, FILE_PATH_HEADER);
 
-        SPDLOG_DEBUG("GET request to {} ({})", uri, filePath);
+        SPDLOG_DEBUG("GET request to {} ({})",
+                     request.absolute_uri().to_string(),
+                     filePath);
         if (pathType == "sobjwasm") {
             returnBytes = l.loadSharedObjectWasm(filePath);
         } else if (pathType == "sobjobj") {
@@ -128,7 +128,7 @@ void UploadServer::handleGet(const http_request& request)
             }
         }
     } else {
-        SPDLOG_DEBUG("GET request to {}", uri);
+        SPDLOG_DEBUG("GET request to {}", request.absolute_uri().to_string());
 
         faabric::Message msg = UploadServer::buildMessageFromRequest(request);
 

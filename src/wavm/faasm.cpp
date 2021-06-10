@@ -8,6 +8,7 @@
 #include <faabric/util/bytes.h>
 #include <faabric/util/files.h>
 #include <faabric/util/logging.h>
+#include <faabric/util/macros.h>
 #include <faabric/util/state.h>
 
 #include <conf/FaasmConfig.h>
@@ -169,11 +170,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
 
     Runtime::Memory* memoryPtr = getExecutingWAVMModule()->defaultMemory;
-    char* key = &Runtime::memoryRef<char>(memoryPtr, (Uptr)keyPtr);
     U8* data =
       Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr)dataPtr, (Uptr)dataLen);
 
-    SPDLOG_DEBUG("S - append_state - {} {} {}", key, dataPtr, dataLen);
+    SPDLOG_DEBUG("S - append_state - {} {} {}",
+                 &Runtime::memoryRef<char>(memoryPtr, (Uptr)keyPtr),
+                 dataPtr,
+                 dataLen);
 
     auto kv = getStateKV(keyPtr);
     kv->append(data, dataLen);
@@ -189,12 +192,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 nElems)
 {
     Runtime::Memory* memoryPtr = getExecutingWAVMModule()->defaultMemory;
-    char* key = &Runtime::memoryRef<char>(memoryPtr, (Uptr)keyPtr);
     U8* buffer =
       Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr)bufferPtr, (Uptr)bufferLen);
 
     SPDLOG_DEBUG("S - read_appended_state - {} {} {} {}",
-                 key,
+                 &Runtime::memoryRef<char>(memoryPtr, (Uptr)keyPtr),
                  bufferPtr,
                  bufferLen,
                  nElems);
@@ -211,9 +213,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
 
     Runtime::Memory* memoryPtr = getExecutingWAVMModule()->defaultMemory;
-    char* key = &Runtime::memoryRef<char>(memoryPtr, (Uptr)keyPtr);
+    UNUSED(memoryPtr);
 
-    SPDLOG_DEBUG("S - clear_appended_state - {}", key);
+    SPDLOG_DEBUG("S - clear_appended_state - {}",
+                 &Runtime::memoryRef<char>(memoryPtr, (Uptr)keyPtr));
+
     const std::pair<std::string, std::string> userKey =
       getUserKeyPairFromWasm(keyPtr);
 

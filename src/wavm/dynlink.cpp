@@ -5,6 +5,7 @@
 
 #include <faabric/util/bytes.h>
 #include <faabric/util/logging.h>
+#include <faabric/util/macros.h>
 
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
@@ -162,7 +163,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 retPtr,
                                I32 argsPtrPtr)
 {
-
     SPDLOG_DEBUG("S - ffi_call {} {} {} {}", cifPtr, fnPtr, retPtr, argsPtrPtr);
 
     // Extract the function
@@ -173,9 +173,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     // Extract the libffi structs
     libffi_cif* cif =
       &Runtime::memoryRef<libffi_cif>(module->defaultMemory, cifPtr);
-
-    libffi_type* returnType =
-      &Runtime::memoryRef<libffi_type>(module->defaultMemory, cif->retTypePtr);
 
     uint32_t* argTypesPtrs = Runtime::memoryArrayPtr<uint32_t>(
       module->defaultMemory, cif->argTypesPtrPtr, cif->nargs);
@@ -231,6 +228,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         SPDLOG_DEBUG("ffi arg: bytes={} type={}", argType->size, argType->type);
     }
 
+    libffi_type* returnType =
+      &Runtime::memoryRef<libffi_type>(module->defaultMemory, cif->retTypePtr);
+    UNUSED(returnType);
     SPDLOG_DEBUG("ffi_call: fn={}, nargs={}, retType={}",
                  fnPtr,
                  cif->nargs,

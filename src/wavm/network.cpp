@@ -126,9 +126,9 @@ I32 s__socketcall(I32 call, I32 argsPtr)
 
             I32 sockfd = subCallArgs[0];
             I32 addrPtr = subCallArgs[1];
-            I32 addrLen = subCallArgs[2];
 
-            SPDLOG_DEBUG("S - connect - {} {} {}", sockfd, addrPtr, addrLen);
+            SPDLOG_DEBUG(
+              "S - connect - {} {} {}", sockfd, addrPtr, subCallArgs[2]);
 
             sockaddr addr = getSockAddr(addrPtr);
             int result = connect(sockfd, &addr, sizeof(sockaddr));
@@ -222,9 +222,8 @@ I32 s__socketcall(I32 call, I32 argsPtr)
             I32 addrPtr = subCallArgs[1];
             sockaddr addr = getSockAddr(addrPtr);
 
-            I32 addrLen = subCallArgs[2];
-
-            SPDLOG_DEBUG("S - bind - {} {} {}", sockfd, addrPtr, addrLen);
+            SPDLOG_DEBUG(
+              "S - bind - {} {} {}", sockfd, addrPtr, subCallArgs[2]);
 
             int bindResult = bind(sockfd, &addr, sizeof(addr));
 

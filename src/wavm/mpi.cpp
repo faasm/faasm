@@ -15,12 +15,10 @@
 using namespace WAVM;
 
 #define MPI_FUNC(str)                                                          \
-    int _rank = executingContext.getRank();                                    \
-    SPDLOG_DEBUG("MPI-{} {}", _rank, str);
+    SPDLOG_DEBUG("MPI-{} {}", executingContext.getRank(), str);
 
 #define MPI_FUNC_ARGS(formatStr, ...)                                          \
-    int _rank = executingContext.getRank();                                    \
-    SPDLOG_DEBUG("MPI-{} " formatStr, _rank, __VA_ARGS__);
+    SPDLOG_DEBUG("MPI-{} " formatStr, executingContext.getRank(), __VA_ARGS__);
 
 namespace wasm {
 static thread_local faabric::scheduler::MpiContext executingContext;
