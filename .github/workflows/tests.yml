@@ -18,9 +18,6 @@ jobs:
         working-directory: /usr/local/code/faasm
     steps:
       # --- Get the code ---
-      - name: "Fetch faabric"
-        run: git fetch origin
-        working-directory: /usr/local/code/faasm/faabric
       - name: "Fetch ref"
         run: git fetch origin ${GITHUB_REF}:ci-branch
       - name: "Check out branch"
@@ -118,9 +115,6 @@ jobs:
         ports:
           - 6379:6379
     steps:
-      - name: "Fetch faabric"
-        run: git fetch origin
-        working-directory: /usr/local/code/faasm/faabric
       - name: "Fetch ref"
         run: git fetch origin ${GITHUB_REF}:ci-branch
       - name: "Check out branch"
