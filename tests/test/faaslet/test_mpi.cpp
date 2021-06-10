@@ -5,6 +5,7 @@
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/environment.h>
 #include <faabric/util/func.h>
+#include <faabric/util/logging.h>
 
 namespace tests {
 void checkMpiFunc(const char* funcName)

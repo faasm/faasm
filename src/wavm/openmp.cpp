@@ -9,6 +9,7 @@
 #include <faabric/util/func.h>
 #include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
+#include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
 #include <faabric/util/timing.h>
 
@@ -29,19 +30,25 @@ namespace wasm {
     faabric::Message* msg = getExecutingCall();                                \
     int localThreadNum = level->getLocalThreadNum(msg);                        \
     int globalThreadNum = level->getGlobalThreadNum(msg);                      \
-    auto logger = faabric::util::getLogger();                                  \
-    logger->trace("OMP {} ({}): " str, localThreadNum, globalThreadNum);
+    UNUSED(level);                                                             \
+    UNUSED(msg);                                                               \
+    UNUSED(localThreadNum);                                                    \
+    UNUSED(globalThreadNum);                                                   \
+    SPDLOG_TRACE("OMP {} ({}): " str, localThreadNum, globalThreadNum);
 
 #define OMP_FUNC_ARGS(formatStr, ...)                                          \
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();  \
     faabric::Message* msg = getExecutingCall();                                \
     int localThreadNum = level->getLocalThreadNum(msg);                        \
     int globalThreadNum = level->getGlobalThreadNum(msg);                      \
-    auto logger = faabric::util::getLogger();                                  \
-    logger->trace("OMP {} ({}): " formatStr,                                   \
-                  localThreadNum,                                              \
-                  globalThreadNum,                                             \
-                  __VA_ARGS__);
+    UNUSED(level);                                                             \
+    UNUSED(msg);                                                               \
+    UNUSED(localThreadNum);                                                    \
+    UNUSED(globalThreadNum);                                                   \
+    SPDLOG_TRACE("OMP {} ({}): " formatStr,                                    \
+                 localThreadNum,                                               \
+                 globalThreadNum,                                              \
+                 __VA_ARGS__);
 
 // ------------------------------------------------
 // THREAD NUMS AND LEVELS
@@ -110,8 +117,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS("omp_set_max_active_levels {}", maxLevels)
 
     if (maxLevels < 0) {
-        logger->warn("Trying to set active level with a negative number {}",
-                     maxLevels);
+        SPDLOG_WARN("Trying to set active level with a negative number {}",
+                    maxLevels);
     } else {
         level->maxActiveLevels = maxLevels;
     }
@@ -393,9 +400,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     std::string snapshotKey;
     if (!isSingleThread) {
         snapshotKey = parentModule->snapshot(false);
-        logger->debug("Created OpenMP snapshot: {}", snapshotKey);
+        SPDLOG_DEBUG("Created OpenMP snapshot: {}", snapshotKey);
     } else {
-        logger->debug("Not creating OpenMP snapshot for single thread");
+        SPDLOG_DEBUG("Not creating OpenMP snapshot for single thread");
     }
 
     // Prepare arguments for main thread and all others
@@ -463,7 +470,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
             wasm::WasmExecutionContext ctx(parentModule, &masterMsg);
 
             // Execute the task
-            logger->debug("OpenMP 0: executing OMP thread 0 (master)");
+            SPDLOG_DEBUG("OpenMP 0: executing OMP thread 0 (master)");
             WAVM::Runtime::Function* microtaskFunc =
               parentModule->getFunctionFromPtr(microtaskPtr);
             parentModule->executeWasmFunction(
@@ -533,7 +540,6 @@ void for_static_init(I32 schedule,
     // Unsigned version of the given template parameter
     typedef typename std::make_unsigned<T>::type UT;
 
-    auto logger = faabric::util::getLogger();
     faabric::Message* msg = getExecutingCall();
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
     int localThreadNum = level->getLocalThreadNum(msg);
@@ -590,9 +596,9 @@ void for_static_init(I32 schedule,
             // If we have fewer trip_counts than threads
             if (tripCount < level->numThreads) {
                 // Warning for future use, not tested at scale
-                logger->warn("Small for loop trip count {} {}",
-                             tripCount,
-                             level->numThreads);
+                SPDLOG_WARN("Small for loop trip count {} {}",
+                            tripCount,
+                            level->numThreads);
 
                 if (localThreadNum < tripCount) {
                     *upper = *lower = *lower + localThreadNum * incr;

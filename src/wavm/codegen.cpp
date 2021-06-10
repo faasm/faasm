@@ -15,7 +15,6 @@ namespace wasm {
 std::vector<uint8_t> wavmCodegen(std::vector<uint8_t>& bytes,
                                  const std::string& fileName)
 {
-    auto logger = faabric::util::getLogger();
 
     IR::Module moduleIR;
 
@@ -28,8 +27,8 @@ std::vector<uint8_t> wavmCodegen(std::vector<uint8_t>& bytes,
         bool success = WASM::loadBinaryModule(
           bytes.data(), bytes.size(), moduleIR, &loadError);
         if (!success) {
-            logger->error("Failed to parse wasm binary at {}", fileName);
-            logger->error("Parse failure: {}", loadError.message);
+            SPDLOG_ERROR("Failed to parse wasm binary at {}", fileName);
+            SPDLOG_ERROR("Parse failure: {}", loadError.message);
 
             throw std::runtime_error("Failed to parse wasm binary");
         }
@@ -38,7 +37,7 @@ std::vector<uint8_t> wavmCodegen(std::vector<uint8_t>& bytes,
         bool success = WAST::parseModule(
           (const char*)bytes.data(), bytes.size(), moduleIR, parseErrors);
 
-        logger->error("Failed to parse non-wasm binary as wast: {}", fileName);
+        SPDLOG_ERROR("Failed to parse non-wasm binary as wast: {}", fileName);
 
         WAST::reportParseErrors(
           "wast_file", (const char*)bytes.data(), parseErrors);

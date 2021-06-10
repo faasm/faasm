@@ -10,12 +10,18 @@
 #include <faabric/scheduler/MpiContext.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/gids.h>
+#include <faabric/util/logging.h>
 
 using namespace WAVM;
 
+#define MPI_FUNC(str)                                                          \
+    SPDLOG_DEBUG("MPI-{} {}", executingContext.getRank(), str);
+
+#define MPI_FUNC_ARGS(formatStr, ...)                                          \
+    SPDLOG_DEBUG("MPI-{} " formatStr, executingContext.getRank(), __VA_ARGS__);
+
 namespace wasm {
 static thread_local faabric::scheduler::MpiContext executingContext;
-static thread_local std::shared_ptr<spdlog::logger> mpiLogger = nullptr;
 
 bool isInPlace(U8 wasmPtr)
 {
@@ -42,7 +48,6 @@ class ContextWrapper
       , world(getExecutingWorld())
       , rank(executingContext.getRank())
     {
-
         if (commPtr >= 0 && !checkMpiComm(commPtr)) {
             throw std::runtime_error("Unexpected comm type");
         }
@@ -58,23 +63,11 @@ class ContextWrapper
           &Runtime::memoryRef<faabric_communicator_t>(memory, wasmPtr);
 
         if (hostComm->id != FAABRIC_COMM_WORLD) {
-            const std::shared_ptr<spdlog::logger>& logger =
-              faabric::util::getLogger();
-            logger->error("Unrecognised communicator type {}", hostComm->id);
+            SPDLOG_ERROR("Unrecognised communicator type {}", hostComm->id);
             return false;
         }
 
         return true;
-    }
-
-    std::shared_ptr<spdlog::logger> getMpiLogger()
-    {
-        if (mpiLogger == nullptr) {
-            mpiLogger = faabric::util::getLogger(
-              fmt::format("MPI-{}", executingContext.getRank()));
-        }
-
-        return mpiLogger;
     }
 
     faabric_datatype_t* getFaasmDataType(I32 wasmPtr)
@@ -138,20 +131,18 @@ class ContextWrapper
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Init", I32, MPI_Init, I32 a, I32 b)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-
     faabric::Message* call = getExecutingCall();
 
     // Note - only want to initialise the world on rank zero (or when rank isn't
     // set yet)
     if (call->mpirank() <= 0) {
-        logger->debug("S - MPI_Init (create) {} {}", a, b);
+        SPDLOG_DEBUG("S - MPI_Init (create) {} {}", a, b);
 
         // Initialise the world
         int worldId = executingContext.createWorld(*call);
         call->set_mpiworldid(worldId);
     } else {
-        logger->debug("S - MPI_Init (join) {} {}", a, b);
+        SPDLOG_DEBUG("S - MPI_Init (join) {} {}", a, b);
 
         // Join the world
         executingContext.joinWorld(*call);
@@ -178,9 +169,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 version,
                                I32 subversion)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug("S - MPI_Get_version {} {}", version, subversion);
-
+    MPI_FUNC_ARGS("MPI_Get_version {} {}", version, subversion);
     throw std::runtime_error("MPI_Get_version not implemented!");
 
     return MPI_SUCCESS;
@@ -196,8 +185,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 comm,
                                I32 resPtr)
 {
+    MPI_FUNC_ARGS("S - MPI_Comm_size {} {}", comm, resPtr);
+
     ContextWrapper ctx(comm);
-    ctx.getMpiLogger()->debug("S - MPI_Comm_size {} {}", comm, resPtr);
     ctx.writeMpiResult<int>(resPtr, ctx.world.getSize());
 
     return MPI_SUCCESS;
@@ -213,8 +203,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 comm,
                                I32 resPtr)
 {
+    MPI_FUNC_ARGS("S - MPI_Comm_rank {} {}", comm, resPtr);
+
     ContextWrapper ctx(comm);
-    ctx.getMpiLogger()->debug("S - MPI_Comm_rank {} {}", comm, resPtr);
     ctx.writeMpiResult<int>(resPtr, ctx.rank);
 
     return MPI_SUCCESS;
@@ -232,8 +223,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 comm,
                                I32 newComm)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug("S - MPI_Comm_dup {} {}", comm, newComm);
+    MPI_FUNC_ARGS("S - MPI_Comm_dup {} {}", comm, newComm);
 
     throw std::runtime_error("MPI_Comm_dup not implemented!");
 
@@ -249,8 +239,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                MPI_Comm_free,
                                I32 comm)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug("S - MPI_Comm_free {}", comm);
+    MPI_FUNC_ARGS("S - MPI_Comm_free {}", comm);
 
     // Dealoccation is handled outside of MPI.
 
@@ -271,9 +260,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 key,
                                I32 newComm)
 {
-    ContextWrapper ctx(comm);
-    ctx.getMpiLogger()->debug(
-      "S - MPI_Comm_split {} {} {} {}", comm, color, key, newComm);
+    MPI_FUNC_ARGS("S - MPI_Comm_split {} {} {} {}", comm, color, key, newComm);
 
     throw std::runtime_error("MPI_Comm_split not implemented!");
 
@@ -288,8 +275,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Comm_c2f", I32, MPI_Comm_c2f, I32 comm)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug("S - MPI_Comm_c2f {}", comm);
+    MPI_FUNC_ARGS("S - MPI_Comm_c2f {}", comm);
 
     throw std::runtime_error("S - MPI_Comm_c2f not implemented!");
 
@@ -310,8 +296,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                MPI_Comm_f2c,
                                I32 fComm)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug("S - MPI_Comm_f2c {}", fComm);
+    MPI_FUNC_ARGS("S - MPI_Comm_f2c {}", fComm);
 
     throw std::runtime_error("S - MPI_Comm_f2c not implemented!");
 
@@ -334,15 +319,15 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 tag,
                                I32 comm)
 {
-    ContextWrapper ctx(comm);
-    ctx.getMpiLogger()->debug("S - MPI_Send {} {} {} {} {} {}",
-                              buffer,
-                              count,
-                              datatype,
-                              destRank,
-                              tag,
-                              comm);
+    MPI_FUNC_ARGS("S - MPI_Send {} {} {} {} {} {}",
+                  buffer,
+                  count,
+                  datatype,
+                  destRank,
+                  tag,
+                  comm);
 
+    ContextWrapper ctx(comm);
     faabric_datatype_t* hostDtype = ctx.getFaasmDataType(datatype);
     auto inputs = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, buffer, count);
     ctx.world.send(ctx.rank, destRank, inputs, hostDtype, count);
@@ -365,14 +350,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 tag,
                                I32 comm)
 {
-    ContextWrapper ctx(comm);
-    ctx.getMpiLogger()->debug("S - MPI_Rsend {} {} {} {} {} {}",
-                              buffer,
-                              count,
-                              datatype,
-                              destRank,
-                              tag,
-                              comm);
+    MPI_FUNC_ARGS("S - MPI_Rsend {} {} {} {} {} {}",
+                  buffer,
+                  count,
+                  datatype,
+                  destRank,
+                  tag,
+                  comm);
 
     throw std::runtime_error("MPI_Rsend is not implemented");
 
@@ -406,16 +390,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 comm,
                                I32 requestPtrPtr)
 {
-    ContextWrapper ctx(comm);
-    ctx.getMpiLogger()->debug("S - MPI_Isend {} {} {} {} {} {} {}",
-                              buffer,
-                              count,
-                              datatype,
-                              destRank,
-                              tag,
-                              comm,
-                              requestPtrPtr);
+    MPI_FUNC_ARGS("S - MPI_Isend {} {} {} {} {} {} {}",
+                  buffer,
+                  count,
+                  datatype,
+                  destRank,
+                  tag,
+                  comm,
+                  requestPtrPtr);
 
+    ContextWrapper ctx(comm);
     faabric_datatype_t* hostDtype = ctx.getFaasmDataType(datatype);
 
     auto inputs = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, buffer, count);
@@ -423,7 +407,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
       ctx.world.isend(ctx.rank, destRank, inputs, hostDtype, count);
 
     ctx.writeFaasmRequestId(requestPtrPtr, requestId);
-    ctx.getMpiLogger()->debug("S - MPI_Isend {} {} ", requestPtrPtr, requestId);
 
     return MPI_SUCCESS;
 }
@@ -439,16 +422,15 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 datatype,
                                I32 countPtr)
 {
-    ContextWrapper ctx;
-    const std::shared_ptr<spdlog::logger>& logger = ctx.getMpiLogger();
-    logger->debug("S - MPI_Get_count {} {} {}", statusPtr, datatype, countPtr);
+    SPDLOG_DEBUG("S - MPI_Get_count {} {} {}", statusPtr, datatype, countPtr);
 
+    ContextWrapper ctx;
     MPI_Status* status = &Runtime::memoryRef<MPI_Status>(ctx.memory, statusPtr);
     faabric_datatype_t* hostDtype = ctx.getFaasmDataType(datatype);
     if (status->bytesSize % hostDtype->size != 0) {
-        logger->error("Incomplete message (bytes {}, datatype size {})",
-                      status->bytesSize,
-                      hostDtype->size);
+        SPDLOG_ERROR("Incomplete message (bytes {}, datatype size {})",
+                     status->bytesSize,
+                     hostDtype->size);
         return 1;
     }
 
@@ -473,16 +455,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 comm,
                                I32 statusPtr)
 {
-    ContextWrapper ctx(comm);
-    ctx.getMpiLogger()->debug("S - MPI_Recv {} {} {} {} {} {} {}",
-                              buffer,
-                              count,
-                              datatype,
-                              sourceRank,
-                              tag,
-                              comm,
-                              statusPtr);
+    MPI_FUNC_ARGS("S - MPI_Recv {} {} {} {} {} {} {}",
+                  buffer,
+                  count,
+                  datatype,
+                  sourceRank,
+                  tag,
+                  comm,
+                  statusPtr);
 
+    ContextWrapper ctx(comm);
     MPI_Status* status = &Runtime::memoryRef<MPI_Status>(ctx.memory, statusPtr);
     faabric_datatype_t* hostDtype = ctx.getFaasmDataType(datatype);
     auto outputs = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, buffer, count);
@@ -513,22 +495,21 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 comm,
                                I32 statusPtr)
 {
-    ContextWrapper ctx(comm);
-    ctx.getMpiLogger()->debug(
-      "S - MPI_Sendrecv {} {} {} {} {} {} {} {} {} {} {} {}",
-      sendBuf,
-      sendCount,
-      sendType,
-      destination,
-      sendTag,
-      recvBuf,
-      recvCount,
-      recvType,
-      source,
-      recvTag,
-      comm,
-      statusPtr);
+    MPI_FUNC_ARGS("S - MPI_Sendrecv {} {} {} {} {} {} {} {} {} {} {} {}",
+                  sendBuf,
+                  sendCount,
+                  sendType,
+                  destination,
+                  sendTag,
+                  recvBuf,
+                  recvCount,
+                  recvType,
+                  source,
+                  recvTag,
+                  comm,
+                  statusPtr);
 
+    ContextWrapper ctx(comm);
     faabric_datatype_t* hostSendDtype = ctx.getFaasmDataType(sendType);
     faabric_datatype_t* hostRecvDtype = ctx.getFaasmDataType(recvType);
     MPI_Status* status = &Runtime::memoryRef<MPI_Status>(ctx.memory, statusPtr);
@@ -567,20 +548,19 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 requestPtrPtr)
 {
     ContextWrapper ctx(comm);
-    ctx.getMpiLogger()->debug("S - MPI_Irecv {} {} {} {} {} {} {}",
-                              buffer,
-                              count,
-                              datatype,
-                              sourceRank,
-                              tag,
-                              comm,
-                              requestPtrPtr);
+    MPI_FUNC_ARGS("S - MPI_Irecv {} {} {} {} {} {} {}",
+                  buffer,
+                  count,
+                  datatype,
+                  sourceRank,
+                  tag,
+                  comm,
+                  requestPtrPtr);
 
     faabric_datatype_t* hostDtype = ctx.getFaasmDataType(datatype);
     auto outputs = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, buffer, count);
     int requestId =
       ctx.world.irecv(sourceRank, ctx.rank, outputs, hostDtype, count);
-    ctx.getMpiLogger()->debug("S - MPI_Irecv {} {} ", requestPtrPtr, requestId);
 
     ctx.writeFaasmRequestId(requestPtrPtr, requestId);
 
@@ -598,9 +578,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 status)
 {
     ContextWrapper ctx;
-
     int requestId = ctx.getFaasmRequestId(requestPtrPtr);
-    ctx.getMpiLogger()->debug("S - MPI_Wait {} {}", requestPtrPtr, requestId);
+
+    MPI_FUNC_ARGS("S - MPI_Wait {} {}", requestPtrPtr, requestId);
     ctx.world.awaitAsyncRequest(requestId);
 
     return MPI_SUCCESS;
@@ -618,9 +598,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 requestArray,
                                I32 statusArray)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug(
-      "S - MPI_Waitall {} {} {}", count, requestArray, statusArray);
+    MPI_FUNC_ARGS("S - MPI_Waitall {} {} {}", count, requestArray, statusArray);
 
     throw std::runtime_error("MPI_Waitall is not implemented!");
 
@@ -640,8 +618,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 idx,
                                I32 status)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug(
+    MPI_FUNC_ARGS(
       "S - MPI_Waitany {} {} {} {}", count, requestArray, idx, status);
 
     throw std::runtime_error("MPI_Waitany is not implemented!");
@@ -651,15 +628,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Abort", I32, MPI_Abort, I32 a, I32 b)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug("S - MPI_Abort {} {}", a, b);
+    MPI_FUNC_ARGS("S - MPI_Abort {} {}", a, b);
     return terminateMpi();
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Finalize", I32, MPI_Finalize)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug("S - MPI_Finalize");
+    MPI_FUNC("S - MPI_Finalize");
     return terminateMpi();
 }
 
@@ -675,9 +650,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 comm,
                                I32 statusPtr)
 {
+    MPI_FUNC_ARGS("S - MPI_Probe {} {} {} {}", source, tag, comm, statusPtr);
+
     ContextWrapper ctx(comm);
-    ctx.getMpiLogger()->debug(
-      "S - MPI_Probe {} {} {} {}", source, tag, comm, statusPtr);
     MPI_Status* status = &Runtime::memoryRef<MPI_Status>(ctx.memory, statusPtr);
     ctx.world.probe(source, ctx.rank, status);
 
@@ -698,10 +673,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 root,
                                I32 comm)
 {
-    ContextWrapper ctx(comm);
-    ctx.getMpiLogger()->debug(
+    MPI_FUNC_ARGS(
       "S - MPI_Bcast {} {} {} {} {}", buffer, count, datatype, root, comm);
 
+    ContextWrapper ctx(comm);
     faabric_datatype_t* hostDtype = ctx.getFaasmDataType(datatype);
     auto inputs = Runtime::memoryArrayPtr<uint8_t>(
       ctx.memory, buffer, count * hostDtype->size);
@@ -722,9 +697,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Barrier", I32, MPI_Barrier, I32 comm)
 {
-    ContextWrapper ctx(comm);
-    ctx.getMpiLogger()->debug("S - MPI_Barrier {}", comm);
+    MPI_FUNC_ARGS("S - MPI_Barrier {}", comm);
 
+    ContextWrapper ctx(comm);
     ctx.world.barrier(ctx.rank);
 
     return MPI_SUCCESS;
@@ -746,17 +721,17 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 root,
                                I32 comm)
 {
-    ContextWrapper ctx(comm);
-    ctx.getMpiLogger()->debug("S - MPI_Scatter {} {} {} {} {} {} {} {}",
-                              sendBuf,
-                              sendCount,
-                              sendType,
-                              recvBuf,
-                              recvCount,
-                              recvType,
-                              root,
-                              comm);
+    MPI_FUNC_ARGS("S - MPI_Scatter {} {} {} {} {} {} {} {}",
+                  sendBuf,
+                  sendCount,
+                  sendType,
+                  recvBuf,
+                  recvCount,
+                  recvType,
+                  root,
+                  comm);
 
+    ContextWrapper ctx(comm);
     faabric_datatype_t* hostSendDtype = ctx.getFaasmDataType(sendType);
     faabric_datatype_t* hostRecvDtype = ctx.getFaasmDataType(recvType);
 
@@ -793,17 +768,17 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 root,
                                I32 comm)
 {
-    ContextWrapper ctx(comm);
-    ctx.getMpiLogger()->debug("S - MPI_Gather {} {} {} {} {} {} {} {}",
-                              sendBuf,
-                              sendCount,
-                              sendType,
-                              recvBuf,
-                              recvCount,
-                              recvType,
-                              root,
-                              comm);
+    MPI_FUNC_ARGS("S - MPI_Gather {} {} {} {} {} {} {} {}",
+                  sendBuf,
+                  sendCount,
+                  sendType,
+                  recvBuf,
+                  recvCount,
+                  recvType,
+                  root,
+                  comm);
 
+    ContextWrapper ctx(comm);
     faabric_datatype_t* hostSendDtype = ctx.getFaasmDataType(sendType);
     faabric_datatype_t* hostRecvDtype = ctx.getFaasmDataType(recvType);
 
@@ -845,16 +820,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 recvType,
                                I32 comm)
 {
-    ContextWrapper ctx(comm);
-    ctx.getMpiLogger()->debug("S - MPI_Allgather {} {} {} {} {} {} {}",
-                              sendBuf,
-                              sendCount,
-                              sendType,
-                              recvBuf,
-                              recvCount,
-                              recvType,
-                              comm);
+    MPI_FUNC_ARGS("S - MPI_Allgather {} {} {} {} {} {} {}",
+                  sendBuf,
+                  sendCount,
+                  sendType,
+                  recvBuf,
+                  recvCount,
+                  recvType,
+                  comm);
 
+    ContextWrapper ctx(comm);
     faabric_datatype_t* hostSendDtype = ctx.getFaasmDataType(sendType);
     faabric_datatype_t* hostRecvDtype = ctx.getFaasmDataType(recvType);
 
@@ -900,16 +875,15 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 recvType,
                                I32 comm)
 {
-    ContextWrapper ctx(comm);
-    ctx.getMpiLogger()->debug("S - MPI_Allgatherv {} {} {} {} {} {} {} {}",
-                              sendBuf,
-                              sendCount,
-                              sendType,
-                              recvBuf,
-                              recvCount,
-                              dspls,
-                              recvType,
-                              comm);
+    MPI_FUNC_ARGS("S - MPI_Allgatherv {} {} {} {} {} {} {} {}",
+                  sendBuf,
+                  sendCount,
+                  sendType,
+                  recvBuf,
+                  recvCount,
+                  dspls,
+                  recvType,
+                  comm);
 
     throw std::runtime_error("MPI_Allgatherv not implemented!");
 
@@ -931,16 +905,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 root,
                                I32 comm)
 {
-    ContextWrapper ctx(comm);
-    ctx.getMpiLogger()->debug("S - MPI_Reduce {} {} {} {} {} {} {}",
-                              sendBuf,
-                              recvBuf,
-                              count,
-                              datatype,
-                              op,
-                              root,
-                              comm);
+    MPI_FUNC_ARGS("S - MPI_Reduce {} {} {} {} {} {} {}",
+                  sendBuf,
+                  recvBuf,
+                  count,
+                  datatype,
+                  op,
+                  root,
+                  comm);
 
+    ContextWrapper ctx(comm);
     faabric_datatype_t* hostDtype = ctx.getFaasmDataType(datatype);
 
     auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(
@@ -977,14 +951,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 op,
                                I32 comm)
 {
-    ContextWrapper ctx(comm);
-    ctx.getMpiLogger()->debug("S - MPI_Reduce_scatter {} {} {} {} {} {}",
-                              sendBuf,
-                              recvBuf,
-                              recvCount,
-                              datatype,
-                              op,
-                              comm);
+    MPI_FUNC_ARGS("S - MPI_Reduce_scatter {} {} {} {} {} {}",
+                  sendBuf,
+                  recvBuf,
+                  recvCount,
+                  datatype,
+                  op,
+                  comm);
 
     throw std::runtime_error("MPI_Reduce_scatter is not implemented!");
 
@@ -1006,15 +979,15 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 op,
                                I32 comm)
 {
-    ContextWrapper ctx(comm);
-    ctx.getMpiLogger()->debug("S - MPI_Allreduce {} {} {} {} {} {}",
-                              sendBuf,
-                              recvBuf,
-                              count,
-                              datatype,
-                              op,
-                              comm);
+    MPI_FUNC_ARGS("S - MPI_Allreduce {} {} {} {} {} {}",
+                  sendBuf,
+                  recvBuf,
+                  count,
+                  datatype,
+                  op,
+                  comm);
 
+    ContextWrapper ctx(comm);
     faabric_datatype_t* hostDtype = ctx.getFaasmDataType(datatype);
     faabric_op_t* hostOp = ctx.getFaasmOp(op);
 
@@ -1055,15 +1028,15 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 op,
                                I32 comm)
 {
-    ContextWrapper ctx(comm);
-    ctx.getMpiLogger()->debug("S - MPI_Scan {} {} {} {} {} {}",
-                              sendBuf,
-                              recvBuf,
-                              count,
-                              datatype,
-                              op,
-                              comm);
+    MPI_FUNC_ARGS("S - MPI_Scan {} {} {} {} {} {}",
+                  sendBuf,
+                  recvBuf,
+                  count,
+                  datatype,
+                  op,
+                  comm);
 
+    ContextWrapper ctx(comm);
     faabric_datatype_t* hostDtype = ctx.getFaasmDataType(datatype);
 
     auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(
@@ -1101,16 +1074,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 recvType,
                                I32 comm)
 {
-    ContextWrapper ctx(comm);
-    ctx.getMpiLogger()->debug("S - MPI_Alltoall {} {} {} {} {} {} {}",
-                              sendBuf,
-                              sendCount,
-                              sendType,
-                              recvBuf,
-                              recvCount,
-                              recvType,
-                              comm);
+    MPI_FUNC_ARGS("S - MPI_Alltoall {} {} {} {} {} {} {}",
+                  sendBuf,
+                  sendCount,
+                  sendType,
+                  recvBuf,
+                  recvCount,
+                  recvType,
+                  comm);
 
+    ContextWrapper ctx(comm);
     faabric_datatype_t* hostSendDtype = ctx.getFaasmDataType(sendType);
     faabric_datatype_t* hostRecvDtype = ctx.getFaasmDataType(recvType);
     auto hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(
@@ -1149,17 +1122,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 recvType,
                                I32 comm)
 {
-    ContextWrapper ctx(comm);
-    ctx.getMpiLogger()->debug("S - MPI_Alltoallv {} {} {} {} {} {} {} {} {}",
-                              sendBuf,
-                              sendCount,
-                              sdispls,
-                              sendType,
-                              recvBuf,
-                              recvCount,
-                              rdispls,
-                              recvType,
-                              comm);
+    MPI_FUNC_ARGS("S - MPI_Alltoallv {} {} {} {} {} {} {} {} {}",
+                  sendBuf,
+                  sendCount,
+                  sdispls,
+                  sendType,
+                  recvBuf,
+                  recvCount,
+                  rdispls,
+                  recvType,
+                  comm);
 
     throw std::runtime_error("MPI_Alltoallv not implemented!");
 
@@ -1176,8 +1148,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 buf,
                                I32 bufLen)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug("S - MPI_Get_processor_name {} {}", buf, bufLen);
+    MPI_FUNC_ARGS("S - MPI_Get_processor_name {} {}", buf, bufLen);
 
     const std::string host = faabric::util::getSystemConfig().endpointHost;
     char* key = &Runtime::memoryRef<char>(
@@ -1197,9 +1168,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 typePtr,
                                I32 res)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug("S - MPI_Type_size {} {}", typePtr, res);
+    MPI_FUNC_ARGS("S - MPI_Type_size {} {}", typePtr, res);
 
+    ContextWrapper ctx;
     faabric_datatype_t* hostType = ctx.getFaasmDataType(typePtr);
     ctx.writeMpiResult<int>(res, hostType->size);
 
@@ -1217,10 +1188,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 info,
                                I32 resPtrPtr)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug(
-      "S - MPI_Alloc_mem {} {} {}", memSize, info, resPtrPtr);
+    MPI_FUNC_ARGS("S - MPI_Alloc_mem {} {} {}", memSize, info, resPtrPtr);
 
+    ContextWrapper ctx;
     faabric_info_t* hostInfo = ctx.getFaasmInfoType(info);
     if (hostInfo->id != FAABRIC_INFO_NULL) {
         throw std::runtime_error("Non-null info not supported");
@@ -1260,18 +1230,19 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 reorder,
                                I32 newCommPtrPtr)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug("S - MPI_Cart_create {} {} {} {} {} {}",
-                              commOld,
-                              ndims,
-                              dims,
-                              periods,
-                              reorder,
-                              newCommPtrPtr);
+    MPI_FUNC_ARGS("S - MPI_Cart_create {} {} {} {} {} {}",
+                  commOld,
+                  ndims,
+                  dims,
+                  periods,
+                  reorder,
+                  newCommPtrPtr);
 
     // Allocate new faabric_communicator_t object
     I32 memSize = sizeof(faabric_communicator_t);
     U32 pageAlignedSize = roundUpToWasmPageAligned(memSize);
+
+    ContextWrapper ctx;
     U32 mappedWasmPtr = ctx.module->growMemory(pageAlignedSize);
 
     // Write the value to wasm memory
@@ -1301,14 +1272,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 coords,
                                I32 rankPtr)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug(
-      "S - MPI_Cart_rank {} {} {}", comm, coords, rankPtr);
+    MPI_FUNC_ARGS("S - MPI_Cart_rank {} {} {}", comm, coords, rankPtr);
 
+    ContextWrapper ctx;
     int* coordsArray = Runtime::memoryArrayPtr<int>(
       ctx.memory, (Uptr)coords, MPI_CART_MAX_DIMENSIONS);
-    int rank;
 
+    int rank;
     ctx.world.getRankFromCoords(&rank, coordsArray);
     ctx.writeMpiResult<int>(rankPtr, rank);
 
@@ -1335,19 +1305,18 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 periods,
                                I32 coords)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug(
+    MPI_FUNC_ARGS(
       "S - MPI_Cart_get {} {} {} {} {}", comm, maxdims, dims, periods, coords);
 
     // If the provided value is lower we error out. Otherwise we will just
     // use the first <MPI_CART_MAX_DIMENSIONS> array positions.
     if (maxdims < MPI_CART_MAX_DIMENSIONS) {
-        ctx.getMpiLogger()->error("Unexpected number of max. dimensions: {}",
-                                  maxdims);
+        SPDLOG_ERROR("Unexpected number of max. dimensions: {}", maxdims);
         throw std::runtime_error("Bad dimensions in MPI_Cart_get");
     }
 
     // Allocate the vectors in wasm memory
+    ContextWrapper ctx;
     int* dimsArray =
       Runtime::memoryArrayPtr<int>(ctx.memory, (Uptr)dims, (Uptr)maxdims);
     int* periodsArray =
@@ -1375,16 +1344,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 sourceRank,
                                I32 destRank)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug("S - MPI_Cart_shift {} {} {} {} {}",
-                              comm,
-                              direction,
-                              disp,
-                              sourceRank,
-                              destRank);
+    MPI_FUNC_ARGS("S - MPI_Cart_shift {} {} {} {} {}",
+                  comm,
+                  direction,
+                  disp,
+                  sourceRank,
+                  destRank);
 
     int hostSourceRank, hostDestRank;
 
+    ContextWrapper ctx;
     ctx.world.shiftCartesianCoords(
       ctx.rank, direction, disp, &hostSourceRank, &hostDestRank);
 
@@ -1407,9 +1376,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 commute,
                                I32 op)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug(
-      "S - MPI_Op_create {} {} {}", userFn, commute, op);
+    MPI_FUNC_ARGS("S - MPI_Op_create {} {} {}", userFn, commute, op);
 
     throw std::runtime_error("MPI_Op_create not implemented!");
 
@@ -1423,8 +1390,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Op_free", I32, MPI_Op_free, I32 op)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug("S - MPI_Op_free {}", op);
+    MPI_FUNC_ARGS("S - MPI_Op_free {}", op);
 
     throw std::runtime_error("MPI_Op_free not implemented!");
 
@@ -1445,14 +1411,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 comm,
                                I32 winPtrPtr)
 {
-    ContextWrapper ctx(comm);
-    ctx.getMpiLogger()->debug("S - MPI_Win_create {} {} {} {} {} {}",
-                              basePtr,
-                              size,
-                              dispUnit,
-                              info,
-                              comm,
-                              winPtrPtr);
+    MPI_FUNC_ARGS("S - MPI_Win_create {} {} {} {} {} {}",
+                  basePtr,
+                  size,
+                  dispUnit,
+                  info,
+                  comm,
+                  winPtrPtr);
 
     throw std::runtime_error("MPI_Win_create is not implemented!");
 
@@ -1469,8 +1434,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 assert,
                                I32 winPtr)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug("S - MPI_Win_fence {} {}", assert, winPtr);
+    MPI_FUNC_ARGS("S - MPI_Win_fence {} {}", assert, winPtr);
 
     throw std::runtime_error("MPI_Win_fence is not implemented!");
 
@@ -1493,16 +1457,15 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 sendType,
                                I32 winPtr)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug("S - MPI_Get {} {} {} {} {} {} {} {}",
-                              recvBuf,
-                              recvCount,
-                              recvType,
-                              sendRank,
-                              sendOffset,
-                              sendCount,
-                              sendType,
-                              winPtr);
+    MPI_FUNC_ARGS("S - MPI_Get {} {} {} {} {} {} {} {}",
+                  recvBuf,
+                  recvCount,
+                  recvType,
+                  sendRank,
+                  sendOffset,
+                  sendCount,
+                  sendType,
+                  winPtr);
 
     throw std::runtime_error("MPI_Get is not implemented!");
 
@@ -1525,16 +1488,15 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 recvType,
                                I32 winPtr)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug("S - MPI_Put {} {} {} {} {} {} {} {}",
-                              sendBuf,
-                              sendCount,
-                              sendType,
-                              recvRank,
-                              recvOffset,
-                              recvCount,
-                              recvType,
-                              winPtr);
+    MPI_FUNC_ARGS("S - MPI_Put {} {} {} {} {} {} {} {}",
+                  sendBuf,
+                  sendCount,
+                  sendType,
+                  recvRank,
+                  recvOffset,
+                  recvCount,
+                  recvType,
+                  winPtr);
 
     throw std::runtime_error("MPI_Put is not implemented!");
 
@@ -1550,8 +1512,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                MPI_Win_free,
                                I32 winPtr)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug("S - MPI_Win_free {}", winPtr);
+    MPI_FUNC_ARGS("S - MPI_Win_free {}", winPtr);
 
     throw std::runtime_error("MPI_Win_free is not implemented!");
 
@@ -1570,12 +1531,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 attrResPtrPtr,
                                I32 flagResPtr)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug("S - MPI_Win_get_attr {} {} {} {}",
-                              winPtr,
-                              attrKey,
-                              attrResPtrPtr,
-                              flagResPtr);
+    MPI_FUNC_ARGS("S - MPI_Win_get_attr {} {} {} {}",
+                  winPtr,
+                  attrKey,
+                  attrResPtrPtr,
+                  flagResPtr);
 
     throw std::runtime_error("MPI_Win_get_attr is not implemented!");
 
@@ -1588,8 +1548,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                MPI_Free_mem,
                                I32 basePtr)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug("S - MPI_Free_mem {}", basePtr);
+    MPI_FUNC_ARGS("S - MPI_Free_mem {}", basePtr);
 
     // Can ignore freeing memory (as we do with munmap etc.)
 
@@ -1606,8 +1565,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                MPI_Request_free,
                                I32 requestPtr)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug("S - MPI_Request_free {}", requestPtr);
+    MPI_FUNC_ARGS("S - MPI_Request_free {}", requestPtr);
 
     throw std::runtime_error("MPI_Request_free is not implemented!");
 
@@ -1622,11 +1580,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 oldDatatypePtr,
                                I32 newDatatypePtrPtr)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug("S - MPI_Type_contiguous {} {} {}",
-                              count,
-                              oldDatatypePtr,
-                              newDatatypePtrPtr);
+    MPI_FUNC_ARGS("S - MPI_Type_contiguous {} {} {}",
+                  count,
+                  oldDatatypePtr,
+                  newDatatypePtrPtr);
 
     return MPI_SUCCESS;
 }
@@ -1642,8 +1599,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                MPI_Type_free,
                                I32 datatype)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug("S - MPI_Type_free {}", datatype);
+    MPI_FUNC_ARGS("S - MPI_Type_free {}", datatype);
 
     throw std::runtime_error("MPI_Type_free is not implemented!");
 
@@ -1656,17 +1612,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                MPI_Type_commit,
                                I32 datatypePtrPtr)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug("S - MPI_Type_commit {}", datatypePtrPtr);
+    MPI_FUNC_ARGS("S - MPI_Type_commit {}", datatypePtrPtr);
 
     return MPI_SUCCESS;
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Wtime", F64, MPI_Wtime)
 {
-    ContextWrapper ctx;
-    ctx.getMpiLogger()->debug("S - MPI_Wtime");
+    MPI_FUNC("S - MPI_Wtime");
 
+    ContextWrapper ctx;
     double t = ctx.world.getWTime();
     return (F64)t;
 }

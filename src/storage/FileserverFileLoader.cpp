@@ -41,14 +41,13 @@ std::vector<uint8_t> FileserverFileLoader::doLoad(
   const std::string& headerPath,
   const std::string& storagePath)
 {
-    auto logger = faabric::util::getLogger();
 
     // Shortcut if already exists
     if (useFilesystemCache && boost::filesystem::exists(storagePath)) {
         if (boost::filesystem::is_directory(storagePath)) {
             throw SharedFileIsDirectoryException(storagePath);
         } else {
-            logger->debug("Loading from filesystem at {}", storagePath);
+            SPDLOG_DEBUG("Loading from filesystem at {}", storagePath);
             return faabric::util::readFileToBytes(storagePath);
         }
     }
@@ -56,7 +55,7 @@ std::vector<uint8_t> FileserverFileLoader::doLoad(
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string host = conf.fileserverUrl;
 
-    logger->debug("Creating client at {}", host);
+    SPDLOG_DEBUG("Creating client at {}", host);
     http_client client(U(host.c_str()));
 
     // Build the request
@@ -72,10 +71,10 @@ std::vector<uint8_t> FileserverFileLoader::doLoad(
 
     std::vector<uint8_t> bytesData;
     client.request(request)
-      .then([&logger](http_response response) {
+      .then([](http_response response) {
           if (response.status_code() != 200) {
-              logger->error("GET request for file failed: {}",
-                            response.status_code());
+              SPDLOG_ERROR("GET request for file failed: {}",
+                           response.status_code());
               throw std::runtime_error("File GET request failed");
           }
 
@@ -88,7 +87,7 @@ std::vector<uint8_t> FileserverFileLoader::doLoad(
           if (nBytes == 0) {
               std::string errMsg =
                 "Empty response for file at " + host + "/" + urlPath;
-              logger->error(errMsg);
+              SPDLOG_ERROR(errMsg);
               throw conf::InvalidFunctionException(errMsg);
           }
 

@@ -55,12 +55,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 entryFunc,
                                I32 argsPtr)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug("S - pthread_create - {} {} {} {}",
-                  pthreadPtr,
-                  attrPtr,
-                  entryFunc,
-                  argsPtr);
+
+    SPDLOG_DEBUG("S - pthread_create - {} {} {} {}",
+                 pthreadPtr,
+                 attrPtr,
+                 entryFunc,
+                 argsPtr);
 
     faabric::Message* originalCall = getExecutingCall();
     std::string funcStr = faabric::util::funcToString(*originalCall, true);
@@ -78,7 +78,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     if (currentSnapshotKey.empty()) {
         currentSnapshotKey = thisModule->snapshot(false);
 
-        logger->debug(
+        SPDLOG_DEBUG(
           "Setting pthread snapshot for {} ({})", funcStr, currentSnapshotKey);
     }
 
@@ -120,13 +120,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 pthreadPtr,
                                I32 resPtrPtr)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
-    logger->debug("S - pthread_join - {} {}", pthreadPtr, resPtrPtr);
+
+    SPDLOG_DEBUG("S - pthread_join - {} {}", pthreadPtr, resPtrPtr);
 
     // Await the chained thread
     WAVMWasmModule* thisModule = getExecutingWAVMModule();
     unsigned int callId = thisModule->chainedThreads[pthreadPtr];
-    logger->debug("Awaiting pthread: {} ({})", pthreadPtr, callId);
+    SPDLOG_DEBUG("Awaiting pthread: {} ({})", pthreadPtr, callId);
     auto& sch = faabric::scheduler::getScheduler();
 
     int returnValue = sch.awaitThreadResult(callId);
@@ -136,7 +136,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     // If we're done with executing threads, remove the snapshot
     if (thisModule->chainedThreads.empty()) {
-        logger->debug("Finished with snapshot: {}", currentSnapshotKey);
+        SPDLOG_DEBUG("Finished with snapshot: {}", currentSnapshotKey);
         currentSnapshotKey = "";
     }
 
@@ -156,7 +156,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                pthread_exit,
                                I32 code)
 {
-    faabric::util::getLogger()->debug("S - pthread_exit - {}", code);
+    SPDLOG_DEBUG("S - pthread_exit - {}", code);
 }
 
 // ----------------------------------------------
@@ -170,7 +170,7 @@ I32 s__futex(I32 uaddrPtr,
              I32 uaddr2Ptr,
              I32 other)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
+
     std::string opStr;
     int returnValue = 0;
 
@@ -200,18 +200,18 @@ I32 s__futex(I32 uaddrPtr,
         // val here means "max waiters to wake"
         returnValue = val;
     } else {
-        logger->error("Unsupported futex syscall with operation {}", futex_op);
+        SPDLOG_ERROR("Unsupported futex syscall with operation {}", futex_op);
         throw std::runtime_error("Unuspported futex syscall");
     }
 
-    logger->debug("S - futex - {} {} {} {} {} {} (uaddr = {})",
-                  uaddrPtr,
-                  opStr,
-                  val,
-                  timeoutPtr,
-                  uaddr2Ptr,
-                  other,
-                  actualVal);
+    SPDLOG_DEBUG("S - futex - {} {} {} {} {} {} (uaddr = {})",
+                 uaddrPtr,
+                 opStr,
+                 val,
+                 timeoutPtr,
+                 uaddr2Ptr,
+                 other,
+                 actualVal);
     return returnValue;
 }
 
@@ -228,7 +228,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 mx,
                                I32 attr)
 {
-    faabric::util::getLogger()->trace("S - pthread_mutex_init {} {}", mx, attr);
+    SPDLOG_TRACE("S - pthread_mutex_init {} {}", mx, attr);
     getExecutingWAVMModule()->getMutexes().createMutex(mx);
     return 0;
 }
@@ -239,7 +239,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                pthread_mutex_lock,
                                I32 mx)
 {
-    faabric::util::getLogger()->trace("S - pthread_mutex_lock {}", mx);
+    SPDLOG_TRACE("S - pthread_mutex_lock {}", mx);
     getExecutingWAVMModule()->getMutexes().lockMutex(mx);
     return 0;
 }
@@ -250,7 +250,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                s__pthread_mutex_trylock,
                                I32 mx)
 {
-    faabric::util::getLogger()->trace("S - pthread_mutex_trylock {}", mx);
+    SPDLOG_TRACE("S - pthread_mutex_trylock {}", mx);
     bool success = getExecutingWAVMModule()->getMutexes().tryLockMutex(mx);
     if (success) {
         return 0;
@@ -265,7 +265,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                pthread_mutex_unlock,
                                I32 mx)
 {
-    faabric::util::getLogger()->trace("S - pthread_mutex_unlock {}", mx);
+    SPDLOG_TRACE("S - pthread_mutex_unlock {}", mx);
     getExecutingWAVMModule()->getMutexes().unlockMutex(mx);
     return 0;
 }
@@ -276,7 +276,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                pthread_mutex_destroy,
                                I32 mx)
 {
-    faabric::util::getLogger()->trace("S - pthread_mutex_destroy {}", mx);
+    SPDLOG_TRACE("S - pthread_mutex_destroy {}", mx);
     getExecutingWAVMModule()->getMutexes().destroyMutex(mx);
     return 0;
 }
@@ -291,7 +291,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                pthread_mutexattr_init,
                                I32 a)
 {
-    faabric::util::getLogger()->trace("S - pthread_mutexattr_init {}", a);
+    SPDLOG_TRACE("S - pthread_mutexattr_init {}", a);
 
     return 0;
 }
@@ -302,7 +302,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                pthread_mutexattr_destroy,
                                I32 a)
 {
-    faabric::util::getLogger()->trace("S - pthread_mutexattr_destroy {}", a);
+    SPDLOG_TRACE("S - pthread_mutexattr_destroy {}", a);
 
     return 0;
 }
@@ -314,7 +314,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 a,
                                I32 b)
 {
-    faabric::util::getLogger()->trace("S - pthread_cond_init {} {}", a, b);
+    SPDLOG_TRACE("S - pthread_cond_init {} {}", a, b);
 
     return 0;
 }
@@ -325,14 +325,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                pthread_cond_signal,
                                I32 a)
 {
-    faabric::util::getLogger()->trace("S - pthread_cond_signal {}", a);
+    SPDLOG_TRACE("S - pthread_cond_signal {}", a);
 
     return 0;
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_self", I32, pthread_self)
 {
-    faabric::util::getLogger()->trace("S - pthread_self");
+    SPDLOG_TRACE("S - pthread_self");
 
     return 0;
 }
@@ -344,7 +344,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 a,
                                I32 b)
 {
-    faabric::util::getLogger()->trace("S - pthread_key_create {} {}", a, b);
+    SPDLOG_TRACE("S - pthread_key_create {} {}", a, b);
 
     return 0;
 }
@@ -355,7 +355,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                s__pthread_key_delete,
                                I32 a)
 {
-    faabric::util::getLogger()->trace("S - pthread_key_delete {}", a);
+    SPDLOG_TRACE("S - pthread_key_delete {}", a);
 
     return 0;
 }
@@ -366,7 +366,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                s__pthread_getspecific,
                                I32 a)
 {
-    faabric::util::getLogger()->trace("S - pthread_getspecific {}", a);
+    SPDLOG_TRACE("S - pthread_getspecific {}", a);
 
     return 0;
 }
@@ -378,7 +378,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 a,
                                I32 b)
 {
-    faabric::util::getLogger()->trace("S - pthread_setspecific {} {}", a, b);
+    SPDLOG_TRACE("S - pthread_setspecific {} {}", a, b);
 
     return 0;
 }
@@ -389,7 +389,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                pthread_cond_destroy,
                                I32 a)
 {
-    faabric::util::getLogger()->trace("S - pthread_cond_destroy {}", a);
+    SPDLOG_TRACE("S - pthread_cond_destroy {}", a);
 
     return 0;
 }
@@ -400,7 +400,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                pthread_cond_broadcast,
                                I32 a)
 {
-    faabric::util::getLogger()->trace("S - pthread_cond_broadcast {}", a);
+    SPDLOG_TRACE("S - pthread_cond_broadcast {}", a);
 
     return 0;
 }
@@ -416,7 +416,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 a,
                                I32 b)
 {
-    faabric::util::getLogger()->trace("S - pthread_equal {} {}", a, b);
+    SPDLOG_TRACE("S - pthread_equal {} {}", a, b);
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 

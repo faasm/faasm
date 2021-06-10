@@ -217,7 +217,6 @@ extern "C"
 
     faasm_sgx_status_t ocall_init_crt(void)
     {
-        auto logger = faabric::util::getLogger();
 
         struct sockaddr_in keymgr_sockaddr;
 
@@ -239,7 +238,7 @@ extern "C"
         if (inet_pton(AF_INET, hostname, &keymgr_sockaddr.sin_addr) != 1) {
             struct hostent* resolved_addr;
             if (!(resolved_addr = gethostbyname(hostname))) {
-                logger->error("Unresolved host: {}", hostname);
+                SPDLOG_ERROR("Unresolved host: {}", hostname);
                 close(_keymgr_socket);
                 return FAASM_SGX_CRT_INVALID_ADDR;
             }

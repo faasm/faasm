@@ -12,7 +12,6 @@
 namespace wasm {
 std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes)
 {
-    auto logger = faabric::util::getLogger();
 
     // Make sure WAMR is initialised
     WAMRWasmModule::initialiseWAMRGlobally();
@@ -27,13 +26,13 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes)
       wasmBytes.data(), wasmBytes.size(), errorBuffer, sizeof(errorBuffer));
 
     if (wasmModule == nullptr) {
-        logger->error("Failed to import module: {}", errorBuffer);
+        SPDLOG_ERROR("Failed to import module: {}", errorBuffer);
         throw std::runtime_error("Failed to load module");
     }
 
     aot_comp_data_t compileData = aot_create_comp_data(wasmModule);
     if (compileData == nullptr) {
-        logger->error("Failed to generat AOT data: {}", aot_get_last_error());
+        SPDLOG_ERROR("Failed to generat AOT data: {}", aot_get_last_error());
         throw std::runtime_error("Failed to generate AOT data");
     }
 
@@ -47,15 +46,13 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes)
       aot_create_comp_context(compileData, &option);
 
     if (compileContext == nullptr) {
-        logger->error("Failed to generat AOT context: {}",
-                      aot_get_last_error());
+        SPDLOG_ERROR("Failed to generat AOT context: {}", aot_get_last_error());
         throw std::runtime_error("Failed to generate AOT context");
     }
 
     bool compileSuccess = aot_compile_wasm(compileContext);
     if (!compileSuccess) {
-        logger->error("Failed to run codegen on wasm: {}",
-                      aot_get_last_error());
+        SPDLOG_ERROR("Failed to run codegen on wasm: {}", aot_get_last_error());
         throw std::runtime_error("Failed to run codegen");
     }
 
@@ -66,7 +63,7 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes)
     bool aotSuccess =
       aot_emit_aot_file(compileContext, compileData, temp.c_str());
     if (!aotSuccess) {
-        logger->error("Failed to write AOT file to {}", temp.string());
+        SPDLOG_ERROR("Failed to write AOT file to {}", temp.string());
         throw std::runtime_error("Failed to emit AOT file");
     }
 

@@ -65,7 +65,7 @@ sockaddr getSockAddr(I32 addrPtr)
 }
 
 /** Translates a native stat to a wasm stat */
-void writeNativeStatToWasmStat(struct stat64* nativeStatPtr, I32 wasmStatPtr)
+void writeNativeStatToWasmStat(struct ::stat64* nativeStatPtr, I32 wasmStatPtr)
 {
     auto wasmHostPtr = &Runtime::memoryRef<wasm_stat>(
       getExecutingWAVMModule()->defaultMemory, (Uptr)wasmStatPtr);

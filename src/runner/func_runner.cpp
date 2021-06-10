@@ -7,14 +7,15 @@
 #include <faabric/runner/FaabricMain.h>
 #include <faabric/scheduler/ExecutorFactory.h>
 #include <faabric/util/config.h>
+#include <faabric/util/logging.h>
 #include <faabric/util/timing.h>
 
 int main(int argc, char* argv[])
 {
-    const auto& logger = faabric::util::getLogger();
+    faabric::util::initLogging();
 
     if (argc < 3) {
-        logger->error("Must provide user and function name");
+        SPDLOG_ERROR("Must provide user and function name");
         return 1;
     }
 
@@ -54,18 +55,18 @@ int main(int argc, char* argv[])
 
     if (user == "python") {
         conf::convertMessageToPython(msg);
-        logger->info("Running Python function {}/{}",
-                     msg.pythonuser(),
-                     msg.pythonfunction());
+        SPDLOG_INFO("Running Python function {}/{}",
+                    msg.pythonuser(),
+                    msg.pythonfunction());
     } else {
-        logger->info("Running function {}/{}", user, function);
+        SPDLOG_INFO("Running function {}/{}", user, function);
     }
 
     if (argc > 3) {
         std::string inputData = argv[3];
         msg.set_inputdata(inputData);
 
-        logger->info("Adding input data: {}", inputData);
+        SPDLOG_INFO("Adding input data: {}", inputData);
     }
 
     // Set up the system
@@ -81,7 +82,7 @@ int main(int argc, char* argv[])
     const faabric::Message& result =
       sch.getFunctionResult(msg.id(), conf.globalMessageTimeout);
     if (result.returnvalue() != 0) {
-        logger->error("Execution failed: {}", result.outputdata());
+        SPDLOG_ERROR("Execution failed: {}", result.outputdata());
         throw std::runtime_error("Executing function failed");
     }
 

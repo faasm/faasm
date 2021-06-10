@@ -19,11 +19,10 @@ namespace sgx {
 
 void checkSgxSetup()
 {
-    auto logger = faabric::util::getLogger();
 
     // Skip set-up if enclave already exists
     if (globalEnclaveId > 0) {
-        logger->debug("SGX enclave already exists ({})", globalEnclaveId);
+        SPDLOG_DEBUG("SGX enclave already exists ({})", globalEnclaveId);
         return;
     }
 
@@ -32,15 +31,15 @@ void checkSgxSetup()
 #if (!SGX_SIM_MODE)
     returnValue = faasm_sgx_get_sgx_support();
     if (returnValue != FAASM_SGX_SUCCESS) {
-        logger->error("Machine doesn't support SGX {}",
-                      faasmSgxErrorString(returnValue));
+        SPDLOG_ERROR("Machine doesn't support SGX {}",
+                     faasmSgxErrorString(returnValue));
         throw std::runtime_error("Machine doesn't support SGX");
     }
 #endif
 
     // Check enclave file exists
     if (!boost::filesystem::exists(FAASM_SGX_ENCLAVE_PATH)) {
-        logger->error("Enclave file {} does not exist", FAASM_SGX_ENCLAVE_PATH);
+        SPDLOG_ERROR("Enclave file {} does not exist", FAASM_SGX_ENCLAVE_PATH);
         throw std::runtime_error("Could not find enclave file");
     }
 
@@ -56,47 +55,47 @@ void checkSgxSetup()
                                         nullptr);
 
     if (sgxReturnValue != SGX_SUCCESS) {
-        logger->error("Unable to create enclave: {}",
-                      sgxErrorString(sgxReturnValue));
+        SPDLOG_ERROR("Unable to create enclave: {}",
+                     sgxErrorString(sgxReturnValue));
         throw std::runtime_error("Unable to create enclave");
     }
 
-    logger->debug("Created SGX enclave: {}", globalEnclaveId);
+    SPDLOG_DEBUG("Created SGX enclave: {}", globalEnclaveId);
 
     sgxReturnValue = faasm_sgx_enclave_init_wamr(globalEnclaveId, &returnValue);
     if (sgxReturnValue != SGX_SUCCESS) {
-        logger->error("Unable to enter enclave: {}",
-                      sgxErrorString(sgxReturnValue));
+        SPDLOG_ERROR("Unable to enter enclave: {}",
+                     sgxErrorString(sgxReturnValue));
         throw std::runtime_error("Unable to enter enclave");
     }
 
     if (returnValue != FAASM_SGX_SUCCESS) {
         if (FAASM_SGX_OCALL_GET_SGX_ERROR(returnValue)) {
-            logger->error(
+            SPDLOG_ERROR(
               "Unable to initialise WAMR due to an SGX error: {}",
               sgxErrorString(
                 (sgx_status_t)FAASM_SGX_OCALL_GET_SGX_ERROR(returnValue)));
             throw std::runtime_error(
               "Unable to initialise WAMR due to an SGX error");
         }
-        logger->error("Unable to initialise WAMR: {}",
-                      faasmSgxErrorString(returnValue));
+        SPDLOG_ERROR("Unable to initialise WAMR: {}",
+                     faasmSgxErrorString(returnValue));
         throw std::runtime_error("Unable to initialise WAMR");
     }
 
-    logger->debug("Initialised WAMR in SGX enclave {}", globalEnclaveId);
+    SPDLOG_DEBUG("Initialised WAMR in SGX enclave {}", globalEnclaveId);
 }
 
 void tearDownEnclave()
 {
-    auto logger = faabric::util::getLogger();
-    logger->debug("Destroying enclave {}", globalEnclaveId);
+
+    SPDLOG_DEBUG("Destroying enclave {}", globalEnclaveId);
 
     sgx_status_t sgxReturnValue = sgx_destroy_enclave(globalEnclaveId);
     if (sgxReturnValue != SGX_SUCCESS) {
-        logger->warn("Unable to destroy enclave {}: {}",
-                     globalEnclaveId,
-                     sgxErrorString(sgxReturnValue));
+        SPDLOG_WARN("Unable to destroy enclave {}: {}",
+                    globalEnclaveId,
+                    sgxErrorString(sgxReturnValue));
     }
 }
 

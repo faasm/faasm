@@ -2,6 +2,7 @@
 #include <faabric/util/config.h>
 #include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
+#include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
 #include <faabric/util/timing.h>
 
@@ -67,8 +68,7 @@ std::shared_ptr<Level> getCurrentOpenMPLevel()
     if (currentLevel == nullptr) {
         int nThreads =
           faabric::scheduler::getScheduler().getThisHostResources().slots();
-        faabric::util::getLogger()->debug(
-          "Creating default OpenMP level with {} threads", nThreads);
+        SPDLOG_DEBUG("Creating default OpenMP level with {} threads", nThreads);
         currentLevel = std::make_shared<Level>(nThreads);
     }
 
@@ -235,11 +235,10 @@ int Level::getLocalThreadNum(faabric::Message* msg)
     int localThreadNum = msg->appindex() - globalTidOffset;
 
     if (localThreadNum < 0) {
-        faabric::util::getLogger()->error(
-          "Local thread num negative: {} - {} @ {}",
-          msg->appindex(),
-          globalTidOffset,
-          depth);
+        SPDLOG_ERROR("Local thread num negative: {} - {} @ {}",
+                     msg->appindex(),
+                     globalTidOffset,
+                     depth);
 
         throw std::runtime_error("Error in local thread number calculation");
     }

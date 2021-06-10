@@ -12,10 +12,10 @@
 
 int main(int argc, char* argv[])
 {
-    const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
+    faabric::util::initLogging();
 
     if (argc < 3) {
-        logger->error("Must provide user and function name");
+        SPDLOG_ERROR("Must provide user and function name");
         return 1;
     }
 
@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
     call.set_user(user);
     call.set_function(function);
 
-    logger->info("Disassembling function {}/{}", user, function);
+    SPDLOG_INFO("Disassembling function {}/{}", user, function);
 
     wasm::WAVMWasmModule module;
     module.bindToFunction(call);
@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
 
     outfile.close();
 
-    logger->info("Output at {}", outPath);
+    SPDLOG_INFO("Output at {}", outPath);
 
     return 0;
 }

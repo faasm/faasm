@@ -3,6 +3,7 @@
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 #include <faabric/util/locks.h>
+#include <faabric/util/logging.h>
 
 #include <sys/mman.h>
 
@@ -35,8 +36,8 @@ wasm::WAVMWasmModule& WAVMModuleCache::getCachedModule(faabric::Message& msg)
 
         // Re-check condition
         if (cachedModuleMap.find(key) == cachedModuleMap.end()) {
-            const auto& logger = faabric::util::getLogger();
-            logger->debug(
+
+            SPDLOG_DEBUG(
               "WAVM module cache initialising {} (tid {})", key, gettid());
 
             // Instantiate the base module

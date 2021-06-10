@@ -1,6 +1,8 @@
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/util/bytes.h>
+#include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
+
 #include <wamr/native.h>
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
@@ -16,8 +18,7 @@ static int32_t __faasm_read_input_wrapper(wasm_exec_env_t exec_env,
                                           char* inBuff,
                                           int32_t inLen)
 {
-    faabric::util::getLogger()->debug(
-      "S - faasm_read_input {} {}", inBuff, inLen);
+    SPDLOG_DEBUG("S - faasm_read_input {} {}", inBuff, inLen);
 
     faabric::Message* call = getExecutingCall();
     std::vector<uint8_t> inputBytes =
@@ -41,8 +42,7 @@ static void __faasm_write_output_wrapper(wasm_exec_env_t exec_env,
                                          char* outBuff,
                                          int32_t outLen)
 {
-    faabric::util::getLogger()->debug(
-      "S - faasm_write_output {} {}", outBuff, outLen);
+    SPDLOG_DEBUG("S - faasm_write_output {} {}", outBuff, outLen);
 
     faabric::Message* call = getExecutingCall();
     call->set_outputdata(outBuff, outLen);
@@ -56,8 +56,7 @@ static int32_t __faasm_chain_ptr_wrapper(wasm_exec_env_t exec_env,
                                          char* inBuff,
                                          int32_t inLen)
 {
-    faabric::util::getLogger()->debug(
-      "S - faasm_chain_ptr {} {} {}", wasmFuncPtr, inBuff, inLen);
+    SPDLOG_DEBUG("S - faasm_chain_ptr {} {} {}", wasmFuncPtr, inBuff, inLen);
 
     faabric::Message* call = getExecutingCall();
     std::vector<uint8_t> inputData(BYTES(inBuff), BYTES(inBuff) + inLen);
@@ -70,7 +69,7 @@ static int32_t __faasm_chain_ptr_wrapper(wasm_exec_env_t exec_env,
 static int32_t __faasm_await_call_wrapper(wasm_exec_env_t exec_env,
                                           int32_t callId)
 {
-    faabric::util::getLogger()->debug("S - faasm_await_call {}", callId);
+    SPDLOG_DEBUG("S - faasm_await_call {}", callId);
 
     int32_t result = wasm::awaitChainedCall((uint32_t)callId);
     return result;

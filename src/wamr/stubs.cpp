@@ -16,8 +16,8 @@ static int32_t syscall_wrapper(wasm_exec_env_t exec_env,
     switch (syscallNo) {
         case 224:
             // We only support gettid here
-            faabric::util::getLogger()->warn(
-              "Using syscall to call gettid (syscall no. {})", syscallNo);
+            SPDLOG_WARN("Using syscall to call gettid (syscall no. {})",
+                        syscallNo);
             return 0;
         default:
             throw std::runtime_error("Native syscall not implemented");

@@ -51,7 +51,6 @@ pid_t getCurrentTid()
 
 void addCurrentThreadToTasks(const path& tasksPath)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     pid_t threadId = getCurrentTid();
 
@@ -60,15 +59,14 @@ void addCurrentThreadToTasks(const path& tasksPath)
     outfile << threadId << std::endl;
     outfile.flush();
 
-    logger->debug("Added thread id {} to {}", threadId, tasksPath.string());
+    SPDLOG_DEBUG("Added thread id {} to {}", threadId, tasksPath.string());
 }
 
 void CGroup::addCurrentThread()
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     if (mode == CgroupMode::cg_off) {
-        logger->debug("Not adding thread. cgroup support off");
+        SPDLOG_DEBUG("Not adding thread. cgroup support off");
         return;
     }
 

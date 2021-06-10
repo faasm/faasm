@@ -12,6 +12,7 @@
 #include <faabric/util/config.h>
 #include <faabric/util/environment.h>
 #include <faabric/util/locks.h>
+#include <faabric/util/logging.h>
 #include <faabric/util/timing.h>
 
 #include <stdexcept>
@@ -32,15 +33,13 @@ std::mutex flushMutex;
 
 void preloadPythonRuntime()
 {
-    auto logger = faabric::util::getLogger();
-
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     if (conf.pythonPreload != "on") {
-        logger->info("Not preloading python runtime");
+        SPDLOG_INFO("Not preloading python runtime");
         return;
     }
 
-    logger->info("Preparing python runtime");
+    SPDLOG_INFO("Preparing python runtime");
 
     faabric::Message msg =
       faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
@@ -55,8 +54,7 @@ void preloadPythonRuntime()
 
 void Faaslet::flush()
 {
-    auto logger = faabric::util::getLogger();
-    logger->debug("Faaslet {} flushing", id);
+    SPDLOG_DEBUG("Faaslet {} flushing", id);
 
     // Note that all Faaslets on the given host will be flushing at the same
     // time, so we need to include some locking. They will also be killed
@@ -96,8 +94,8 @@ Faaslet::Faaslet(faabric::Message& msg)
     } else if (conf.wasmVm == "wavm") {
         module = std::make_unique<wasm::WAVMWasmModule>(threadPoolSize);
     } else {
-        auto logger = faabric::util::getLogger();
-        logger->error("Unrecognised wasm VM: {}", conf.wasmVm);
+
+        SPDLOG_ERROR("Unrecognised wasm VM: {}", conf.wasmVm);
         throw std::runtime_error("Unrecognised wasm VM");
     }
 
@@ -149,8 +147,6 @@ faabric::util::SnapshotData Faaslet::snapshot()
 
 void Faaslet::restore(faabric::Message& msg)
 {
-    auto logger = faabric::util::getLogger();
-
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     const std::string snapshotKey = msg.snapshotkey();
 
@@ -159,9 +155,9 @@ void Faaslet::restore(faabric::Message& msg)
         if (!snapshotKey.empty() && !msg.issgx()) {
             PROF_START(snapshotOverride)
 
-            logger->debug("Restoring {} from snapshot {} before execution",
-                          id,
-                          snapshotKey);
+            SPDLOG_DEBUG("Restoring {} from snapshot {} before execution",
+                         id,
+                         snapshotKey);
 
             module->restore(snapshotKey);
 

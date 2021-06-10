@@ -9,8 +9,7 @@ using namespace boost::filesystem;
 
 void codegenForDirectory(std::string& inputPath)
 {
-    const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
-    logger->info("Running codegen on directory {}", inputPath);
+    SPDLOG_INFO("Running codegen on directory {}", inputPath);
     storage::FileLoader& loader = storage::getFileLoader();
 
     // Iterate through the directory
@@ -23,8 +22,8 @@ void codegenForDirectory(std::string& inputPath)
     std::vector<std::thread> threads;
 
     for (unsigned int i = 0; i < nThreads; i++) {
-        threads.emplace_back([&iter, &mx, &end, &logger, &loader] {
-            logger->info("Spawning codegen thread");
+        threads.emplace_back([&iter, &mx, &end, &loader] {
+            SPDLOG_INFO("Spawning codegen thread");
 
             while (true) {
                 std::string thisPath;
@@ -35,7 +34,7 @@ void codegenForDirectory(std::string& inputPath)
 
                     // Check if we've got more to do
                     if (iter == end) {
-                        logger->info("Codegen thread finished");
+                        SPDLOG_INFO("Codegen thread finished");
                         break;
                     }
 
@@ -48,7 +47,7 @@ void codegenForDirectory(std::string& inputPath)
                 const std::string fileName = f.path().filename().string();
                 if (faabric::util::endsWith(fileName, ".so") ||
                     faabric::util::endsWith(fileName, ".wasm")) {
-                    logger->info("Generating machine code for {}", thisPath);
+                    SPDLOG_INFO("Generating machine code for {}", thisPath);
                     loader.codegenForSharedObject(thisPath);
                 }
             }
@@ -64,10 +63,10 @@ void codegenForDirectory(std::string& inputPath)
 
 int main(int argc, char* argv[])
 {
-    const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
+    faabric::util::initLogging();
 
     if (argc < 2) {
-        logger->error("Must provide path to shared object dir");
+        SPDLOG_ERROR("Must provide path to shared object dir");
         return 1;
     }
 
