@@ -9,19 +9,19 @@ using namespace faabric::scheduler;
 
 int main()
 {
-    const auto& logger = faabric::util::getLogger();
+    faabric::util::initLogging();
 
-    logger->info("Starting distributed test server on worker");
+    SPDLOG_INFO("Starting distributed test server on worker");
     std::shared_ptr<ExecutorFactory> fac =
       std::make_shared<faaslet::FaasletFactory>();
     faabric::runner::FaabricMain m(fac);
     m.startBackground();
 
-    logger->info("Starting HTTP endpoint on worker");
+    SPDLOG_INFO("Starting HTTP endpoint on worker");
     faabric::endpoint::FaabricEndpoint endpoint;
     endpoint.start();
 
-    logger->info("Shutting down");
+    SPDLOG_INFO("Shutting down");
     m.shutdown();
 
     return EXIT_SUCCESS;

@@ -1,8 +1,12 @@
 #pragma once
 
 #include <WAVM/WASI/WASIABI.h>
+
 #include <faabric/scheduler/MpiContext.h>
+#include <faabric/state/StateKeyValue.h>
+
 #include <sys/socket.h>
+#include <sys/stat.h>
 
 #define FAKE_NAME "faasm"
 #define FAKE_PASSWORD "foobar123"
@@ -228,7 +232,7 @@ enum SocketCalls : uint32_t
 
 sockaddr getSockAddr(int32_t addrPtr);
 
-void writeNativeStatToWasmStat(struct stat64* nativeStatPtr,
+void writeNativeStatToWasmStat(struct ::stat64* nativeStatPtr,
                                int32_t wasmStatPtr);
 
 iovec* wasmIovecsToNativeIovecs(int32_t wasmIovecPtr, int32_t wasmIovecCount);

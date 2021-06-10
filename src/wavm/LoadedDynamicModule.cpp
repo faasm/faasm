@@ -17,8 +17,8 @@ int32_t getModuleStackPointer(Runtime::Instance* module,
     Runtime::Global* stackPtrGlobal = module->globals[0];
 
     if (!stackPtrGlobal->type.isMutable) {
-        auto logger = faabric::util::getLogger();
-        logger->error("Expected stack pointer (first global) to be mutable.");
+
+        SPDLOG_ERROR("Expected stack pointer (first global) to be mutable.");
         throw std::runtime_error("Stack pointer not mutable");
     }
 
@@ -31,7 +31,6 @@ bool LoadedDynamicModule::validate()
 {
     // The checks in this function are really assertions, as they should only go
     // wrong if the logic in the loading module is broken.
-    auto logger = faabric::util::getLogger();
 
     if (memoryTop <= memoryBottom) {
         return false;
@@ -104,19 +103,19 @@ void LoadedDynamicModule::printDebugInfo(Runtime::Context* context)
 
 void LoadedDynamicModule::log()
 {
-    auto logger = faabric::util::getLogger();
-    logger->debug("New dynamic module {}: mem={}-{}, stack={}-{}, data={}-{}, "
-                  "heap={}-{}, table={}-{}",
-                  path,
-                  memoryBottom,
-                  memoryTop,
-                  memoryBottom,
-                  stackTop,
-                  dataBottom,
-                  dataTop,
-                  heapBottom,
-                  memoryTop,
-                  tableBottom,
-                  tableTop);
+
+    SPDLOG_DEBUG("New dynamic module {}: mem={}-{}, stack={}-{}, data={}-{}, "
+                 "heap={}-{}, table={}-{}",
+                 path,
+                 memoryBottom,
+                 memoryTop,
+                 memoryBottom,
+                 stackTop,
+                 dataBottom,
+                 dataTop,
+                 heapBottom,
+                 memoryTop,
+                 tableBottom,
+                 tableTop);
 }
 }

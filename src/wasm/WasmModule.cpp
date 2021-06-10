@@ -12,6 +12,7 @@
 #include <faabric/util/func.h>
 #include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
+#include <faabric/util/logging.h>
 #include <faabric/util/memory.h>
 #include <faabric/util/timing.h>
 
@@ -110,13 +111,12 @@ void WasmModule::restore(const std::string& snapshotKey)
     faabric::util::SnapshotData data = reg.getSnapshot(snapshotKey);
     uint32_t memSize = getCurrentBrk();
 
-    const auto& logger = faabric::util::getLogger();
     if (data.size > memSize) {
-        logger->debug("Growing memory to fit snapshot");
+        SPDLOG_DEBUG("Growing memory to fit snapshot");
         size_t bytesRequired = data.size - memSize;
         this->growMemory(bytesRequired);
     } else {
-        logger->debug("Shrinking memory to fit snapshot");
+        SPDLOG_DEBUG("Shrinking memory to fit snapshot");
         size_t shrinkBy = memSize - data.size;
         this->shrinkMemory(shrinkBy);
     }
@@ -142,27 +142,24 @@ int WasmModule::getStdoutFd()
 {
     if (stdoutMemFd == 0) {
         stdoutMemFd = memfd_create("stdoutfd", 0);
-        faabric::util::getLogger()->debug("Capturing stdout: fd={}",
-                                          stdoutMemFd);
+        SPDLOG_DEBUG("Capturing stdout: fd={}", stdoutMemFd);
     }
 
     return stdoutMemFd;
 }
 
-ssize_t WasmModule::captureStdout(const struct iovec* iovecs, int iovecCount)
+ssize_t WasmModule::captureStdout(const struct ::iovec* iovecs, int iovecCount)
 {
     int memFd = getStdoutFd();
     ssize_t writtenSize = ::writev(memFd, iovecs, iovecCount);
 
     if (writtenSize < 0) {
-        faabric::util::getLogger()->error("Failed capturing stdout: {}",
-                                          strerror(errno));
+        SPDLOG_ERROR("Failed capturing stdout: {}", strerror(errno));
         throw std::runtime_error(std::string("Failed capturing stdout: ") +
                                  strerror(errno));
     }
 
-    faabric::util::getLogger()->debug("Captured {} bytes of formatted stdout",
-                                      writtenSize);
+    SPDLOG_DEBUG("Captured {} bytes of formatted stdout", writtenSize);
     stdoutSize += writtenSize;
     return writtenSize;
 }
@@ -175,13 +172,11 @@ ssize_t WasmModule::captureStdout(const void* buffer)
       dprintf(memFd, "%s\n", reinterpret_cast<const char*>(buffer));
 
     if (writtenSize < 0) {
-        faabric::util::getLogger()->error("Failed capturing stdout: {}",
-                                          strerror(errno));
+        SPDLOG_ERROR("Failed capturing stdout: {}", strerror(errno));
         throw std::runtime_error("Failed capturing stdout");
     }
 
-    faabric::util::getLogger()->debug("Captured {} bytes of unformatted stdout",
-                                      writtenSize);
+    SPDLOG_DEBUG("Captured {} bytes of unformatted stdout", writtenSize);
     stdoutSize += writtenSize;
     return writtenSize;
 }
@@ -200,8 +195,7 @@ std::string WasmModule::getCapturedStdout()
     char* buf = new char[stdoutSize];
     read(memFd, buf, stdoutSize);
     std::string stdoutString(buf, stdoutSize);
-    faabric::util::getLogger()->debug(
-      "Read stdout length {}:\n{}", stdoutSize, stdoutString);
+    SPDLOG_DEBUG("Read stdout length {}:\n{}", stdoutSize, stdoutString);
 
     return stdoutString;
 }
@@ -373,7 +367,6 @@ int32_t WasmModule::executeTask(
 
 uint32_t WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
 {
-    auto logger = faabric::util::getLogger();
 
     uint32_t regionSize = GUARD_REGION_SIZE;
     uint8_t* nativePtr = wasmPointerToNative(wasmOffset);
@@ -383,12 +376,11 @@ uint32_t WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
     // Therefore we make them read-only
     int res = mprotect(nativePtr, regionSize, PROT_READ);
     if (res != 0) {
-        logger->error("Failed to create memory guard: {}",
-                      std::strerror(errno));
+        SPDLOG_ERROR("Failed to create memory guard: {}", std::strerror(errno));
         throw std::runtime_error("Failed to create memory guard");
     }
 
-    logger->trace(
+    SPDLOG_TRACE(
       "Created guard region {}-{}", wasmOffset, wasmOffset + regionSize);
 
     return wasmOffset + regionSize;
@@ -396,9 +388,8 @@ uint32_t WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
 
 void WasmModule::createThreadStacks()
 {
-    auto logger = faabric::util::getLogger();
 
-    logger->debug("Creating {} thread stacks", threadPoolSize);
+    SPDLOG_DEBUG("Creating {} thread stacks", threadPoolSize);
 
     for (int i = 0; i < threadPoolSize; i++) {
         // Allocate thread and guard pages
@@ -432,7 +423,7 @@ bool WasmModule::isBound()
 
 void WasmModule::reset(faabric::Message& msg)
 {
-    faabric::util::getLogger()->warn("Using default reset of wasm module");
+    SPDLOG_WARN("Using default reset of wasm module");
 }
 
 void WasmModule::doBindToFunction(faabric::Message& msg, bool cache)

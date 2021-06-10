@@ -1,6 +1,8 @@
 #include "WAVMWasmModule.h"
 #include "syscalls.h"
 
+#include <faabric/util/logging.h>
+
 #include <WAVM/Runtime/Intrinsics.h>
 
 using namespace WAVM;
@@ -8,7 +10,7 @@ using namespace WAVM;
 namespace wasm {
 I32 s__fork()
 {
-    faabric::util::getLogger()->debug("S - fork");
+    SPDLOG_DEBUG("S - fork");
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
@@ -83,8 +85,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 d,
                                I32 e)
 {
-    faabric::util::getLogger()->debug(
-      "S - openpty - {} {} {} {} {}", a, b, c, d, e);
+    SPDLOG_DEBUG("S - openpty - {} {} {} {} {}", a, b, c, d, e);
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
@@ -97,7 +98,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 c,
                                I32 d)
 {
-    faabric::util::getLogger()->debug("S - forkpty - {} {} {} {}", a, b, c, d);
+    SPDLOG_DEBUG("S - forkpty - {} {} {} {}", a, b, c, d);
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 

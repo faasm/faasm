@@ -1,6 +1,8 @@
 #include "WAVMWasmModule.h"
 #include "syscalls.h"
 
+#include <faabric/util/logging.h>
+
 #include <WAVM/Runtime/Intrinsics.h>
 
 using namespace WAVM;
@@ -13,7 +15,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                _Unwind_RaiseException,
                                I32 a)
 {
-    faabric::util::getLogger()->debug("S - _Unwind_RaiseException - {}", a);
+    SPDLOG_DEBUG("S - _Unwind_RaiseException - {}", a);
     return 0;
 }
 
@@ -23,7 +25,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                _Unwind_DeleteException,
                                I32 a)
 {
-    faabric::util::getLogger()->debug("S - _Unwind_DeleteException - {}", a);
+    SPDLOG_DEBUG("S - _Unwind_DeleteException - {}", a);
 }
 
 // -----------------------------
@@ -47,7 +49,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                __cxa_allocate_exception,
                                I32 a)
 {
-    faabric::util::getLogger()->debug("S - __cxa_allocate_exception - {}", a);
+    SPDLOG_DEBUG("S - __cxa_allocate_exception - {}", a);
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
@@ -59,7 +61,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 b,
                                I32 c)
 {
-    faabric::util::getLogger()->debug("S - __cxa_throw - {} {} {}", a, b, c);
+    SPDLOG_DEBUG("S - __cxa_throw - {} {} {}", a, b, c);
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 

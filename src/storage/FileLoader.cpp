@@ -57,7 +57,6 @@ void FileLoader::codegenForFunction(faabric::Message& msg)
 {
     std::vector<uint8_t> bytes = loadFunctionWasm(msg);
 
-    auto logger = faabric::util::getLogger();
     const std::string funcStr = faabric::util::funcToString(msg, false);
 
     if (bytes.empty()) {
@@ -75,12 +74,12 @@ void FileLoader::codegenForFunction(faabric::Message& msg)
     }
 
     if ((!oldHash.empty()) && newHash == oldHash) {
-        logger->debug("Skipping codegen for {}", funcStr);
+        SPDLOG_DEBUG("Skipping codegen for {}", funcStr);
         return;
     } else if (oldHash.empty()) {
-        logger->debug("No old hash found for {}", funcStr);
+        SPDLOG_DEBUG("No old hash found for {}", funcStr);
     } else {
-        logger->debug("Hashes differ for {}", funcStr);
+        SPDLOG_DEBUG("Hashes differ for {}", funcStr);
     }
 
     // Run the actual codegen
@@ -88,7 +87,7 @@ void FileLoader::codegenForFunction(faabric::Message& msg)
     try {
         objBytes = doCodegen(bytes, funcStr);
     } catch (std::runtime_error& ex) {
-        logger->error("Codegen failed for " + funcStr);
+        SPDLOG_ERROR("Codegen failed for " + funcStr);
         throw ex;
     }
 
@@ -104,7 +103,6 @@ void FileLoader::codegenForFunction(faabric::Message& msg)
 
 void FileLoader::codegenForSharedObject(const std::string& inputPath)
 {
-    auto logger = faabric::util::getLogger();
 
     // Load the wasm
     std::vector<uint8_t> bytes = loadSharedObjectWasm(inputPath);
@@ -114,7 +112,7 @@ void FileLoader::codegenForSharedObject(const std::string& inputPath)
     std::vector<uint8_t> oldHash = loadSharedObjectObjectHash(inputPath);
 
     if ((!oldHash.empty()) && newHash == oldHash) {
-        logger->debug("Skipping codegen for {}", inputPath);
+        SPDLOG_DEBUG("Skipping codegen for {}", inputPath);
         return;
     }
 
@@ -135,9 +133,7 @@ void FileLoader::codegenForSharedObject(const std::string& inputPath)
 void checkFileExists(const std::string& path)
 {
     if (!boost::filesystem::exists(path)) {
-        const std::shared_ptr<spdlog::logger>& logger =
-          faabric::util::getLogger();
-        logger->error("File {} does not exist", path);
+        SPDLOG_ERROR("File {} does not exist", path);
         throw std::runtime_error("Expected file does not exist");
     }
 }

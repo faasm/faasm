@@ -37,7 +37,7 @@ void FileSystem::createPreopenedFileDescriptor(int fd, const std::string& path)
 
     if (!success) {
         const std::string realSysPath = prependRuntimeRoot(path);
-        faabric::util::getLogger()->error(
+        SPDLOG_ERROR(
           "Failed on preopened fd at {} (system path {}). Error: {} ",
           path,
           realSysPath,
@@ -45,7 +45,7 @@ void FileSystem::createPreopenedFileDescriptor(int fd, const std::string& path)
         throw std::runtime_error("Problem opening preopened fd");
 
     } else {
-        faabric::util::getLogger()->debug("Opened preopened fd at {}", path);
+        SPDLOG_DEBUG("Opened preopened fd at {}", path);
     }
 
     // Add to this module's fds
@@ -78,7 +78,6 @@ int FileSystem::openFileDescriptor(int rootFd,
                                    uint32_t openFlags,
                                    int32_t fdFlags)
 {
-    auto logger = faabric::util::getLogger();
 
     storage::FileDescriptor& rootFileDesc = getFileDescriptor(rootFd);
 

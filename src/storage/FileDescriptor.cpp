@@ -199,7 +199,6 @@ void FileDescriptor::iterReset()
 
 void FileDescriptor::loadDirContents()
 {
-    auto logger = faabric::util::getLogger();
 
     // Work out the local filesystem path
     std::string realPath;
@@ -216,7 +215,7 @@ void FileDescriptor::loadDirContents()
     }
 
     // Open the directory
-    logger->debug("Loading dir contents: {}", realPath);
+    SPDLOG_DEBUG("Loading dir contents: {}", realPath);
     DIR* dirPtr = ::opendir(realPath.c_str());
     if (dirPtr == nullptr) {
         throw std::runtime_error("Failed to open dir");
@@ -244,7 +243,7 @@ void FileDescriptor::loadDirContents()
 
     // Close iterator
     closedir(dirPtr);
-    logger->debug("Loaded {} entries for {}", dirContents.size(), realPath);
+    SPDLOG_DEBUG("Loaded {} entries for {}", dirContents.size(), realPath);
 
     // Set flag
     dirContentsLoaded = true;
@@ -314,7 +313,6 @@ DirEnt FileDescriptor::iterNext()
 size_t FileDescriptor::copyDirentsToWasiBuffer(uint8_t* buffer,
                                                size_t bufferLen)
 {
-    auto logger = faabric::util::getLogger();
 
     // Prepare loop variables
     size_t bytesLeft = bufferLen;
@@ -371,8 +369,6 @@ bool FileDescriptor::pathOpen(uint32_t lookupFlags,
         throw std::runtime_error("Opening path with no rights set");
     }
 
-    auto logger = faabric::util::getLogger();
-
     OpenMode openMode = getOpenMode((uint16_t)openFlags);
 
     ReadWriteType rwType = getRwType(actualRightsBase);
@@ -389,7 +385,7 @@ bool FileDescriptor::pathOpen(uint32_t lookupFlags,
     } else if (rwType == ReadWriteType::NO_READ_WRITE) {
         readWrite = 0;
     } else {
-        logger->error("Unrecognised access mode: {}", rwType);
+        SPDLOG_ERROR("Unrecognised access mode: {}", rwType);
         throw std::runtime_error("Unrecognised access mode for file");
     }
 
@@ -411,7 +407,7 @@ bool FileDescriptor::pathOpen(uint32_t lookupFlags,
         linuxFlags = readWrite;
         linuxMode = 0;
     } else {
-        logger->error("Unrecognised open mode: {}", openMode);
+        SPDLOG_ERROR("Unrecognised open mode: {}", openMode);
         throw std::runtime_error("Unrecognised open flags");
     }
 
@@ -619,8 +615,7 @@ ssize_t FileDescriptor::readLink(const std::string& relativePath,
     std::string linkPath = prependRuntimeRoot(absPath(relativePath));
 
     if (SharedFiles::isPathShared(linkPath)) {
-        faabric::util::getLogger()->error(
-          "Readlink on shared not yet supported ({})", path);
+        SPDLOG_ERROR("Readlink on shared not yet supported ({})", path);
         throw std::runtime_error("Readlink on shared file not supported");
     }
 

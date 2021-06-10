@@ -1,6 +1,8 @@
 #include "utils.h"
 #include <catch2/catch.hpp>
 
+#include <faabric/util/logging.h>
+
 #include <conf/FaasmConfig.h>
 #include <conf/function_utils.h>
 #include <wavm/IRModuleCache.h>

@@ -83,8 +83,8 @@ std::vector<uint8_t> LocalFileLoader::loadSharedFile(const std::string& path)
     const std::string fullPath = conf::getSharedFileFile(path);
 
     if (!boost::filesystem::exists(fullPath)) {
-        const auto& logger = faabric::util::getLogger();
-        logger->debug("Local file loader could not find file at {}", fullPath);
+
+        SPDLOG_DEBUG("Local file loader could not find file at {}", fullPath);
         std::vector<uint8_t> empty;
         return empty;
     }
@@ -98,17 +98,17 @@ std::vector<uint8_t> LocalFileLoader::loadSharedFile(const std::string& path)
 
 void LocalFileLoader::uploadFunction(faabric::Message& msg)
 {
-    const auto& logger = faabric::util::getLogger();
+
     const std::string funcStr = faabric::util::funcToString(msg, false);
 
     // Here the msg input data is actually the file
     const std::string& fileBody = msg.inputdata();
     if (fileBody.empty()) {
-        logger->error("Uploaded empty file to {}", funcStr);
+        SPDLOG_ERROR("Uploaded empty file to {}", funcStr);
         throw std::runtime_error("Uploaded empty file");
     }
 
-    logger->debug("Uploading wasm file {}", funcStr);
+    SPDLOG_DEBUG("Uploading wasm file {}", funcStr);
     std::string outputFile = conf::getFunctionFile(msg);
     std::ofstream out(outputFile);
     out.write(fileBody.c_str(), fileBody.size());
@@ -116,23 +116,22 @@ void LocalFileLoader::uploadFunction(faabric::Message& msg)
     out.close();
 
     // Build the object file from the file we've just received
-    logger->debug("Generating object file for {}", funcStr);
+    SPDLOG_DEBUG("Generating object file for {}", funcStr);
     codegenForFunction(msg);
 }
 
 void LocalFileLoader::uploadPythonFunction(faabric::Message& msg)
 {
     const std::string& fileBody = msg.inputdata();
-    const auto& logger = faabric::util::getLogger();
 
     // Message will have user/ function set as python user and python function
     conf::convertMessageToPython(msg);
 
     std::string outputFile = conf::getPythonFunctionFile(msg);
-    logger->debug("Uploading python file {}/{} to {}",
-                  msg.pythonuser(),
-                  msg.pythonfunction(),
-                  outputFile);
+    SPDLOG_DEBUG("Uploading python file {}/{} to {}",
+                 msg.pythonuser(),
+                 msg.pythonfunction(),
+                 outputFile);
 
     std::ofstream out(outputFile);
     out.write(fileBody.c_str(), fileBody.size());

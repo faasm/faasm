@@ -13,41 +13,40 @@ using namespace boost::filesystem;
 
 void codegenForFunc(const std::string& user, const std::string& func)
 {
-    const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
 
     faabric::Message msg = faabric::util::messageFactory(user, func);
     if (!conf::isValidFunction(msg)) {
-        logger->warn("Invalid function: {}/{}", user, func);
+        SPDLOG_WARN("Invalid function: {}/{}", user, func);
         return;
     }
 
-    logger->info("Generating machine code for {}/{}", user, func);
+    SPDLOG_INFO("Generating machine code for {}/{}", user, func);
     storage::FileLoader& loader = storage::getFileLoader();
     loader.codegenForFunction(msg);
 }
 
 int main(int argc, char* argv[])
 {
-    const std::shared_ptr<spdlog::logger> logger = faabric::util::getLogger();
+    faabric::util::initLogging();
 
     if (argc == 3) {
         std::string user = argv[1];
         std::string func = argv[2];
 
-        logger->info("Running codegen for function {}/{}", user, func);
+        SPDLOG_INFO("Running codegen for function {}/{}", user, func);
         codegenForFunc(user, func);
     } else if (argc == 2) {
         std::string user = argv[1];
 
         conf::FaasmConfig& conf = conf::getFaasmConfig();
-        logger->info(
+        SPDLOG_INFO(
           "Running codegen for user {} on dir {}", user, conf.functionDir);
 
         boost::filesystem::path path(conf.functionDir);
         path.append(user);
 
         if (!boost::filesystem::is_directory(path)) {
-            logger->error("Expected {} to be a directory", path.string());
+            SPDLOG_ERROR("Expected {} to be a directory", path.string());
             return 1;
         }
 
@@ -58,8 +57,8 @@ int main(int argc, char* argv[])
         std::vector<std::thread> threads;
 
         for (unsigned int i = 0; i < nThreads; i++) {
-            threads.emplace_back([&iter, &mx, &end, &logger, &user] {
-                logger->info("Spawning codegen thread");
+            threads.emplace_back([&iter, &mx, &end, &user] {
+                SPDLOG_INFO("Spawning codegen thread");
 
                 while (true) {
                     std::string thisPath;
@@ -70,7 +69,7 @@ int main(int argc, char* argv[])
 
                         // Check if we've got more to do
                         if (iter == end) {
-                            logger->info("Codegen thread finished");
+                            SPDLOG_INFO("Codegen thread finished");
                             break;
                         }
 
@@ -93,7 +92,7 @@ int main(int argc, char* argv[])
             }
         }
     } else {
-        logger->error("Must provide function user and optional function name");
+        SPDLOG_ERROR("Must provide function user and optional function name");
         return 0;
     }
 }

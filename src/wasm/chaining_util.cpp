@@ -3,6 +3,7 @@
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/func.h>
+#include <faabric/util/logging.h>
 
 #include <conf/FaasmConfig.h>
 #include <wasm/WasmExecutionContext.h>
@@ -20,11 +21,10 @@ int awaitChainedCall(unsigned int messageId)
           sch.getFunctionResult(messageId, callTimeoutMs);
         returnCode = result.returnvalue();
     } catch (faabric::redis::RedisNoResponseException& ex) {
-        faabric::util::getLogger()->error(
-          "Timed out waiting for chained call: {}", messageId);
+        SPDLOG_ERROR("Timed out waiting for chained call: {}", messageId);
     } catch (std::exception& ex) {
-        faabric::util::getLogger()->error(
-          "Non-timeout exception waiting for chained call: {}", ex.what());
+        SPDLOG_ERROR("Non-timeout exception waiting for chained call: {}",
+                     ex.what());
     }
 
     return returnCode;
@@ -43,7 +43,7 @@ int makeChainedCall(const std::string& functionName,
     assert(!user.empty());
     assert(!functionName.empty());
 
-    faabric::util::getLogger()->debug(
+    SPDLOG_DEBUG(
       "Chaining call {}/{}:{}", user, functionName, originalCall->id());
 
     std::shared_ptr<faabric::BatchExecuteRequest> req =
@@ -102,7 +102,7 @@ int awaitChainedCallOutput(unsigned int messageId,
                            uint8_t* buffer,
                            int bufferLen)
 {
-    const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
+
     int callTimeoutMs = conf::getFaasmConfig().chainedCallTimeout;
 
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
@@ -110,7 +110,7 @@ int awaitChainedCallOutput(unsigned int messageId,
       sch.getFunctionResult(messageId, callTimeoutMs);
 
     if (result.type() == faabric::Message_MessageType_EMPTY) {
-        logger->error("Cannot find output for {}", messageId);
+        SPDLOG_ERROR("Cannot find output for {}", messageId);
     }
 
     std::vector<uint8_t> outputData =
@@ -119,7 +119,7 @@ int awaitChainedCallOutput(unsigned int messageId,
       faabric::util::safeCopyToBuffer(outputData, buffer, bufferLen);
 
     if (outputLen < outputData.size()) {
-        logger->warn(
+        SPDLOG_WARN(
           "Undersized output buffer: {} for {} output", bufferLen, outputLen);
     }
 
