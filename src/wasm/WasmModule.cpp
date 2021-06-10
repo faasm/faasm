@@ -111,10 +111,9 @@ void WasmModule::restore(const std::string& snapshotKey)
 {
     PROF_START(wasmSnapshotRestore)
 
-    const auto& logger = faabric::util::getLogger();
     if (!isBound()) {
-        logger->error("Must bind wasm module before restoring snapshot {}",
-                      snapshotKey);
+        SPDLOG_ERROR("Must bind wasm module before restoring snapshot {}",
+                     snapshotKey);
         throw std::runtime_error("Cannot restore unbound wasm module");
     }
 
@@ -132,7 +131,7 @@ void WasmModule::restore(const std::string& snapshotKey)
         growMemory(bytesRequired);
     } else {
         size_t shrinkBy = memSize - data.size;
-        logger->debug("Shrinking memory by {} bytes to fit snapshot", shrinkBy);
+        SPDLOG_DEBUG("Shrinking memory by {} bytes to fit snapshot", shrinkBy);
         shrinkMemory(shrinkBy);
     }
 
