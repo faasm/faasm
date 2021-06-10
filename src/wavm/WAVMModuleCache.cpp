@@ -26,8 +26,7 @@ int WAVMModuleCache::getCachedModuleCount(const std::string& key)
     return count;
 }
 
-wasm::WAVMWasmModule& WAVMModuleCache::getCachedModule(
-  const faabric::Message& msg)
+wasm::WAVMWasmModule& WAVMModuleCache::getCachedModule(faabric::Message& msg)
 {
     std::string key = faabric::util::funcToString(msg, false);
 

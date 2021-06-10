@@ -104,7 +104,7 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
                              int msgIdx,
                              std::shared_ptr<faabric::BatchExecuteRequest> req)
 {
-    const faabric::Message& msg = req->mutable_messages()->at(msgIdx);
+    faabric::Message& msg = req->mutable_messages()->at(msgIdx);
 
     // Lazily bind to function and isolate
     // Note that this has to be done within the executeTask function to be in
@@ -128,7 +128,9 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
 
 void Faaslet::reset(faabric::Message& msg)
 {
-    module->reset(msg);
+    // TODO - avoid this copy, need to remove the const
+    faabric::Message msgCopy = msg;
+    module->reset(msgCopy);
 }
 
 void Faaslet::postFinish()

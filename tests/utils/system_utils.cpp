@@ -26,9 +26,6 @@ void cleanSystem()
     // Clear cached modules
     wasm::getWAVMModuleCache().clear();
 
-    // Make sure execution state doesn't bleed across
-    wasm::setExecutingModule(nullptr);
-
     // Set Faaslets as the executors
     std::shared_ptr<faabric::scheduler::ExecutorFactory> fac =
       std::make_shared<faaslet::FaasletFactory>();

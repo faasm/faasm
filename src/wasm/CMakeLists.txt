@@ -10,6 +10,7 @@ set(HEADERS
 
 set(LIB_FILES
         WasmEnvironment.cpp
+        WasmExecutionContext.cpp
         WasmModule.cpp
         chaining_util.cpp
         ${HEADERS}

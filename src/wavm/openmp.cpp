@@ -457,18 +457,20 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
         // Set up the context for the next level
         threads::setCurrentOpenMPLevel(nextLevel);
-        setExecutingCall(&masterMsg);
 
-        // Execute the task
-        SPDLOG_DEBUG("OpenMP 0: executing OMP thread 0 (master)");
-        WAVM::Runtime::Function* microtaskFunc =
-          parentModule->getFunctionFromPtr(microtaskPtr);
-        parentModule->executeWasmFunction(
-          microtaskFunc, mainArguments, masterThreadResult);
+        {
+            wasm::WasmExecutionContext ctx(parentModule, &masterMsg);
+
+            // Execute the task
+            SPDLOG_DEBUG("OpenMP 0: executing OMP thread 0 (master)");
+            WAVM::Runtime::Function* microtaskFunc =
+              parentModule->getFunctionFromPtr(microtaskPtr);
+            parentModule->executeWasmFunction(
+              microtaskFunc, mainArguments, masterThreadResult);
+        }
 
         // Reset the context
         threads::setCurrentOpenMPLevel(parentLevel);
-        setExecutingCall(parentCall);
 
         if (masterThreadResult.i32 > 0) {
             throw std::runtime_error("Master OpenMP thread failed");

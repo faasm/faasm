@@ -6,6 +6,7 @@
 #include <faabric/util/logging.h>
 
 #include <conf/FaasmConfig.h>
+#include <wasm/WasmExecutionContext.h>
 #include <wasm/chaining.h>
 
 namespace wasm {
