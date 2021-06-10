@@ -27,6 +27,7 @@ void codegenForFunc(const std::string& user, const std::string& func)
 
 int main(int argc, char* argv[])
 {
+    faabric::util::initLogging();
 
     if (argc == 3) {
         std::string user = argv[1];
@@ -56,7 +57,7 @@ int main(int argc, char* argv[])
         std::vector<std::thread> threads;
 
         for (unsigned int i = 0; i < nThreads; i++) {
-            threads.emplace_back([&iter, &mx, &end, &logger, &user] {
+            threads.emplace_back([&iter, &mx, &end, &user] {
                 SPDLOG_INFO("Spawning codegen thread");
 
                 while (true) {

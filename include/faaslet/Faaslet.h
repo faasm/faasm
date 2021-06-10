@@ -14,13 +14,13 @@ namespace faaslet {
 class Faaslet final : public faabric::scheduler::Executor
 {
   public:
-    explicit Faaslet(const faabric::Message& msg);
+    explicit Faaslet(faabric::Message& msg);
 
     std::unique_ptr<wasm::WasmModule> module;
 
     void flush() override;
 
-    void reset(const faabric::Message& msg) override;
+    void reset(faabric::Message& msg) override;
 
     int32_t executeTask(
       int threadPoolIdx,
@@ -30,7 +30,7 @@ class Faaslet final : public faabric::scheduler::Executor
   protected:
     void postFinish() override;
 
-    void restore(const faabric::Message& call) override;
+    void restore(faabric::Message& call) override;
 
   private:
     std::shared_ptr<isolation::NetworkNamespace> ns;
@@ -43,7 +43,7 @@ class FaasletFactory final : public faabric::scheduler::ExecutorFactory
 
   protected:
     std::shared_ptr<faabric::scheduler::Executor> createExecutor(
-      const faabric::Message& msg);
+      faabric::Message& msg);
 };
 
 void preloadPythonRuntime();

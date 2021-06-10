@@ -9,7 +9,6 @@ using namespace boost::filesystem;
 
 void codegenForDirectory(std::string& inputPath)
 {
-
     SPDLOG_INFO("Running codegen on directory {}", inputPath);
     storage::FileLoader& loader = storage::getFileLoader();
 
@@ -23,7 +22,7 @@ void codegenForDirectory(std::string& inputPath)
     std::vector<std::thread> threads;
 
     for (unsigned int i = 0; i < nThreads; i++) {
-        threads.emplace_back([&iter, &mx, &end, &logger, &loader] {
+        threads.emplace_back([&iter, &mx, &end, &loader] {
             SPDLOG_INFO("Spawning codegen thread");
 
             while (true) {
@@ -64,6 +63,7 @@ void codegenForDirectory(std::string& inputPath)
 
 int main(int argc, char* argv[])
 {
+    faabric::util::initLogging();
 
     if (argc < 2) {
         SPDLOG_ERROR("Must provide path to shared object dir");

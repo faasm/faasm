@@ -9,6 +9,7 @@ using namespace faabric::scheduler;
 
 int main()
 {
+    faabric::util::initLogging();
 
     SPDLOG_INFO("Starting distributed test server on worker");
     std::shared_ptr<ExecutorFactory> fac =

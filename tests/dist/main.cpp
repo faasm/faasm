@@ -27,6 +27,7 @@ CATCH_REGISTER_LISTENER(LogListener)
 
 int main(int argc, char* argv[])
 {
+    faabric::util::initLogging();
 
     // Start everything up
     SPDLOG_INFO("Starting distributed test server on master");

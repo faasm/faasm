@@ -1,7 +1,10 @@
 #pragma once
 
 #include <WAVM/WASI/WASIABI.h>
+
 #include <faabric/scheduler/MpiContext.h>
+#include <faabric/state/StateKeyValue.h>
+
 #include <sys/socket.h>
 #include <sys/stat.h>
 

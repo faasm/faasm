@@ -6,6 +6,8 @@
 
 int main()
 {
+    faabric::util::initLogging();
+
     faabric::util::SystemConfig& config = faabric::util::getSystemConfig();
     config.print();
 

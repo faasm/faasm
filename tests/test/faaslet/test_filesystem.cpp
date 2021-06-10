@@ -5,6 +5,7 @@
 #include <boost/tokenizer.hpp>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
+#include <faabric/util/logging.h>
 #include <faabric/util/string_tools.h>
 
 using namespace std;
@@ -45,7 +46,7 @@ TEST_CASE("Test getdents", "[faaslet]")
         bool isFound =
           std::find(expected.begin(), expected.end(), a) != expected.end();
         if (!isFound) {
-            logger->error("Did not find {} in expected files", a);
+            SPDLOG_ERROR("Did not find {} in expected files", a);
         }
         REQUIRE(isFound);
     }

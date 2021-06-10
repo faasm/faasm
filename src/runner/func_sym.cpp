@@ -12,6 +12,7 @@
 
 int main(int argc, char* argv[])
 {
+    faabric::util::initLogging();
 
     if (argc < 3) {
         SPDLOG_ERROR("Must provide user and function name");

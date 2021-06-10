@@ -73,7 +73,7 @@ void Faaslet::flush()
     module->flush();
 }
 
-Faaslet::Faaslet(const faabric::Message& msg)
+Faaslet::Faaslet(faabric::Message& msg)
   : Executor(msg)
 {
     conf::FaasmConfig& conf = conf::getFaasmConfig();
@@ -126,7 +126,7 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
     return returnValue;
 }
 
-void Faaslet::reset(const faabric::Message& msg)
+void Faaslet::reset(faabric::Message& msg)
 {
     module->reset(msg);
 }
@@ -137,7 +137,7 @@ void Faaslet::postFinish()
     returnNetworkNamespace(ns);
 }
 
-void Faaslet::restore(const faabric::Message& msg)
+void Faaslet::restore(faabric::Message& msg)
 {
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     const std::string snapshotKey = msg.snapshotkey();
@@ -161,7 +161,7 @@ void Faaslet::restore(const faabric::Message& msg)
 FaasletFactory::~FaasletFactory() {}
 
 std::shared_ptr<faabric::scheduler::Executor> FaasletFactory::createExecutor(
-  const faabric::Message& msg)
+  faabric::Message& msg)
 {
     return std::make_shared<Faaslet>(msg);
 }

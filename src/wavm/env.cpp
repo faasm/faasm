@@ -3,7 +3,9 @@
 
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
+#include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
+
 #include <wasm/WasmModule.h>
 
 #include <sys/random.h>

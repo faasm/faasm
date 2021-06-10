@@ -48,9 +48,8 @@ TEST_CASE("Test flushing clears cached modules", "[flush]")
 {
     cleanSystem();
 
-    const faabric::Message msgA = faabric::util::messageFactory("demo", "echo");
-    const faabric::Message msgB =
-      faabric::util::messageFactory("demo", "dummy");
+    faabric::Message msgA = faabric::util::messageFactory("demo", "echo");
+    faabric::Message msgB = faabric::util::messageFactory("demo", "dummy");
 
     // Note, these have to be executed in a separate thread to fit with the
     // module's isolation expectation

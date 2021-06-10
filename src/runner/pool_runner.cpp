@@ -6,6 +6,7 @@
 
 int main()
 {
+    faabric::util::initLogging();
 
     auto fac = std::make_shared<faaslet::FaasletFactory>();
     faabric::runner::FaabricMain m(fac);

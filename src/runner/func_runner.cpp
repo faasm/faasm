@@ -7,10 +7,12 @@
 #include <faabric/runner/FaabricMain.h>
 #include <faabric/scheduler/ExecutorFactory.h>
 #include <faabric/util/config.h>
+#include <faabric/util/logging.h>
 #include <faabric/util/timing.h>
 
 int main(int argc, char* argv[])
 {
+    faabric::util::initLogging();
 
     if (argc < 3) {
         SPDLOG_ERROR("Must provide user and function name");

@@ -1,6 +1,8 @@
 #include "WAVMWasmModule.h"
 #include "syscalls.h"
 
+#include <faabric/util/logging.h>
+
 #include <WAVM/Runtime/Intrinsics.h>
 
 using namespace WAVM;

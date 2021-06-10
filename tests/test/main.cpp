@@ -21,6 +21,8 @@ CATCH_REGISTER_LISTENER(LogListener)
 
 int main(int argc, char* argv[])
 {
+    faabric::util::initLogging();
+
     // Clean the system
     tests::cleanSystem();
 
