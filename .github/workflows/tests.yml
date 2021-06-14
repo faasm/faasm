@@ -99,7 +99,7 @@ jobs:
     env:
       CGROUP_MODE: off
       HOST_TYPE: ci
-      LOG_LEVEL: trace
+      LOG_LEVEL: info
       MAX_FAASLETS: 5
       NETNS_MODE: off
       REDIS_QUEUE_HOST: redis
