@@ -18,8 +18,6 @@ class Faaslet final : public faabric::scheduler::Executor
 
     std::unique_ptr<wasm::WasmModule> module;
 
-    void flush() override;
-
     void reset(faabric::Message& msg) override;
 
     int32_t executeTask(
@@ -47,7 +45,9 @@ class FaasletFactory final : public faabric::scheduler::ExecutorFactory
 
   protected:
     std::shared_ptr<faabric::scheduler::Executor> createExecutor(
-      faabric::Message& msg);
+      faabric::Message& msg) override;
+
+    void flushHost() override;
 };
 
 void preloadPythonRuntime();

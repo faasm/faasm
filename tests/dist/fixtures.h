@@ -38,7 +38,8 @@ class DistTestsFixture
 
     ~DistTestsFixture()
     {
-        sch.reset();
+        sch.broadcastFlush();
+
         conf.reset();
         faasmConf.reset();
     }

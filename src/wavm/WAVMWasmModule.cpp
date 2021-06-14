@@ -65,6 +65,12 @@ static void instantiateBaseModules()
     PROF_END(BaseWasiModule)
 }
 
+void WAVMWasmModule::clearCaches()
+{
+    getIRModuleCache().clear();
+    getWAVMModuleCache().clear();
+}
+
 void WAVMWasmModule::reset(faabric::Message& msg)
 {
     if (!_isBound) {
@@ -75,17 +81,11 @@ void WAVMWasmModule::reset(faabric::Message& msg)
     assert(msg.function() == boundFunction);
 
     std::string funcStr = faabric::util::funcToString(msg, true);
-    SPDLOG_DEBUG("{} Resetting after {}", gettid(), funcStr);
+    SPDLOG_DEBUG("Resetting after {}", gettid(), funcStr);
     wasm::WAVMWasmModule& cachedModule =
       wasm::getWAVMModuleCache().getCachedModule(msg);
 
     clone(cachedModule);
-}
-
-void WAVMWasmModule::flush()
-{
-    getIRModuleCache().clear();
-    getWAVMModuleCache().clear();
 }
 
 Runtime::Instance* WAVMWasmModule::getEnvModule()
