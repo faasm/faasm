@@ -7,6 +7,14 @@ services:
   redis-queue:
     image: faasm/redis:${FAASM_VERSION}
 
+  minio:
+    image: minio/minio
+    command: server /data/minio
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./dev/minio/data:/data/minio
+
   upload:
     image: faasm/upload:${FAASM_VERSION}
     ports:
