@@ -40,8 +40,6 @@ class WAVMWasmModule final
 
     void bindToFunctionNoZygote(faabric::Message& msg);
 
-    void flush() override;
-
     void reset(faabric::Message& msg) override;
 
     // ----- Memory management -----

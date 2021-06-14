@@ -29,8 +29,6 @@ using namespace isolation;
 
 namespace faaslet {
 
-std::mutex flushMutex;
-
 void preloadPythonRuntime()
 {
     conf::FaasmConfig& conf = conf::getFaasmConfig();

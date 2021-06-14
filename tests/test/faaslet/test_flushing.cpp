@@ -6,6 +6,7 @@
 
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/runner/FaabricMain.h>
+#include <faabric/scheduler/ExecutorFactory.h>
 #include <faabric/util/config.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
@@ -39,8 +40,8 @@ TEST_CASE("Test flushing clears shared files", "[flush]")
 
     // Flush and check file is gone
     faabric::Message msg = faabric::util::messageFactory("demo", "echo");
-    faaslet::Faaslet f(msg);
-    f.flush();
+    faabric::scheduler::getExecutorFactory()->flushHost();
+
     REQUIRE(!boost::filesystem::exists(sharedPath));
 }
 
@@ -69,8 +70,7 @@ TEST_CASE("Test flushing clears cached modules", "[flush]")
     wasm::WAVMModuleCache& cache = wasm::getWAVMModuleCache();
     REQUIRE(cache.getTotalCachedModuleCount() == 2);
 
-    faaslet::Faaslet f(msgA);
-    f.flush();
+    faabric::scheduler::getExecutorFactory()->flushHost();
     REQUIRE(cache.getTotalCachedModuleCount() == 0);
 }
 
@@ -90,7 +90,7 @@ TEST_CASE("Test flushing clears IR module cache", "[flush]")
     REQUIRE(cache.isModuleCached("demo", "echo", ""));
 
     // Flush and check it's gone
-    f.flush();
+    faabric::scheduler::getExecutorFactory()->flushHost();
     REQUIRE(!cache.isModuleCached("demo", "echo", ""));
 }
 
@@ -174,7 +174,5 @@ TEST_CASE("Test flushing picks up new version of function", "[flush]")
     conf.boundTimeout = origBoundTimeout;
     faasmConf.functionDir = origFunctionDir;
     faasmConf.objectFileDir = origObjDir;
-
-    m.shutdown();
 }
 }
