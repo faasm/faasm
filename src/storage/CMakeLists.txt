@@ -17,8 +17,9 @@ set(LIB_FILES
         )
 
 faasm_private_lib(storage "${LIB_FILES}")
-target_link_libraries(storage 
-    wavmmodule 
+add_dependencies(storage aws_ext)
+target_link_libraries(storage
+    wavmmodule
     wamrmodule
     cpprestsdk::cpprest
 )
