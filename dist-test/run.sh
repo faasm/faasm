@@ -39,19 +39,9 @@ else
     # Run the tests directly
     docker-compose \
         run \
-        -d \
         master \
         /build/faasm/bin/dist_tests
     RETURN_VAL=$?
-
-    # Wait for the tests to finish
-    sleep 60
-
-    # Print the logs
-    echo "-------------------------------------------"
-    echo "                FULL LOGS                "
-    echo "-------------------------------------------"
-    docker-compose logs
 
     echo "-------------------------------------------"
     echo "                WORKER LOGS                "
@@ -64,4 +54,4 @@ fi
 
 popd >> /dev/null
 
-exit RETURN_VAL
+exit $RETURN_VAL
