@@ -5,11 +5,12 @@
 #include <faabric/util/func.h>
 
 #include <conf/FaasmConfig.h>
+#include <conf/function_utils.h>
 #include <storage/FileLoader.h>
 #include <storage/S3Wrapper.h>
 
 namespace tests {
-TEST_CASE("Test read/write keys in bucket", "[aws]")
+TEST_CASE("Test read/write keys in bucket", "[s3]")
 {
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     storage::S3Wrapper& s3 = storage::S3Wrapper::getThreadLocal();
@@ -62,23 +63,25 @@ TEST_CASE("Test read/write keys in bucket", "[aws]")
     REQUIRE(actualEmpty.empty());
 }
 
-TEST_CASE("Test read/write function data in bucket")
+TEST_CASE("Test read/write function data in bucket", "[s3]")
 {
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    S3Wrapper& s3 = S3Wrapper::getThreadLocal();
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
+    storage::S3Wrapper& s3 = storage::S3Wrapper::getThreadLocal();
 
-    message::Message msg;
+    faabric::Message msg;
     msg.set_user("demo");
     msg.set_function("echo");
 
     // Wasm data is uploaded via the message input data
-    const std::string& funcPath = faabric::util::getFunctionFile(msg);
-    const std::vector<uint8_t>& wasmBytes = faabric::util::readFileToBytes(funcPath);
+    const std::string& funcPath = conf::getFunctionFile(msg);
+    const std::vector<uint8_t>& wasmBytes =
+      faabric::util::readFileToBytes(funcPath);
     msg.set_inputdata(wasmBytes.data(), wasmBytes.size());
 
     // Object files are uploaded by passing bytes directly
-    const std::string& objPath = faabric::util::getFunctionObjectFile(msg);
-    const std::vector<uint8_t>& objectBytes = faabric::util::readFileToBytes(objPath);
+    const std::string& objPath = conf::getFunctionObjectFile(msg);
+    const std::vector<uint8_t>& objectBytes =
+      faabric::util::readFileToBytes(objPath);
 
     storage::FileLoader& loader = storage::getFileLoader();
 
@@ -109,8 +112,8 @@ TEST_CASE("Test read/write function data in bucket")
     t.join();
 
     // Clear up
-    const std::string& funcKey = faabric::util::getFunctionKey(msg);
-    const std::string& objKey = faabric::util::getFunctionObjectKey(msg);
+    const std::string& funcKey = conf::getFunctionKey(msg);
+    const std::string& objKey = conf::getFunctionObjectKey(msg);
     s3.deleteKey(conf.bucketName, funcKey);
     s3.deleteKey(conf.bucketName, objKey);
 

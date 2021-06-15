@@ -8,6 +8,8 @@
 #include <aws/core/auth/AWSCredentialsProvider.h>
 #include <aws/s3/S3Client.h>
 
+#include <faabric/util/logging.h>
+
 namespace storage {
 
 std::shared_ptr<Aws::Auth::AWSCredentialsProvider> getCredentialsProvider();
