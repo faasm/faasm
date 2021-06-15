@@ -317,14 +317,7 @@ docker-compose logs -f
 The distributed tests are aimed at testing a more "realistic" distributed
 environment than the normal tests and use multiple containers.
 
-To set up the initial build:
-
-```bash
-# Build the relevant binaries
-./dist-test/build.sh
-```
-
-Then to run and develop locally:
+To run and develop locally:
 
 ```bash
 # Start up the CLI container
@@ -352,10 +345,16 @@ docker-compose logs -f
 To run as if in CI:
 
 ```bash
+# Copy wasm files into place
+cp -r dev/faasm-local/wasm dist-test/build/faasm-local/wasm
+
 # Clean up
 cd dist-test
 docker-compose stop
 docker-compose rm
+
+# Build
+./dist-test/build.sh
 
 # Run once through
 ./dist-test/run.sh
