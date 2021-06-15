@@ -12,6 +12,8 @@ if [[ -z "${FAASM_CLI_IMAGE}" ]]; then
     export FAASM_CLI_IMAGE=faasm/cli:${VERSION}
 fi
 
+RETURN_VAL=0
+
 if [ "$1" == "local" ]; then
     INNER_SHELL=${SHELL:-"/bin/bash"}
 
@@ -37,11 +39,29 @@ else
     # Run the tests directly
     docker-compose \
         run \
+        -d \
         master \
         /build/faasm/bin/dist_tests
+    RETURN_VAL=$?
 
-    docker-compose \
-        stop
+    # Wait for the tests to finish
+    sleep 60
+
+    # Print the logs
+    echo "-------------------------------------------"
+    echo "                FULL LOGS                "
+    echo "-------------------------------------------"
+    docker-compose logs
+
+    echo "-------------------------------------------"
+    echo "                WORKER LOGS                "
+    echo "-------------------------------------------"
+    docker-compose logs worker
+
+    # Stop everything
+    docker-compose stop
 fi
 
 popd >> /dev/null
+
+exit RETURN_VAL
