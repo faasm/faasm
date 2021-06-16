@@ -33,7 +33,7 @@ if [ "$1" == "local" ]; then
         ${INNER_SHELL}
 else
     # Use the faasm-local dir set up by the build
-    export FAASM_LOCAL_DIR=${DIST_TEST_DIR}/build/faasm-local
+    export FAASM_LOCAL_DIR=${PROJ_ROOT}/dist-test/build/faasm-local
 
     # Run the tests directly
     docker-compose \
