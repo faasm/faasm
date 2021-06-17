@@ -22,7 +22,8 @@ class DistTestsFixture
       , conf(faabric::util::getSystemConfig())
       , faasmConf(conf::getFaasmConfig())
     {
-        // Make sure this host is available
+        // Clean up the scheduler and make sure this host is available
+        sch.shutdown();
         sch.addHostToGlobalSet();
 
         // Get other hosts
