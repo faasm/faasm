@@ -367,7 +367,6 @@ int terminateMpi()
 {
     // Wait for all processes to reach the terminate step
     ContextWrapper ctx;
-    ctx.world.barrier(ctx.rank);
 
     // Destroy the MPI world
     ctx.world.destroy();

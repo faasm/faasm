@@ -38,9 +38,7 @@ TEST_CASE("Test flushing clears shared files", "[flush]")
     REQUIRE(boost::filesystem::exists(sharedPath));
 
     // Flush and check file is gone
-    faabric::Message msg = faabric::util::messageFactory("demo", "echo");
-    faaslet::Faaslet f(msg);
-    f.flush();
+    faabric::scheduler::getExecutorFactory()->flushHost();
     REQUIRE(!boost::filesystem::exists(sharedPath));
 }
 
@@ -69,8 +67,7 @@ TEST_CASE("Test flushing clears cached modules", "[flush]")
     wasm::WAVMModuleCache& cache = wasm::getWAVMModuleCache();
     REQUIRE(cache.getTotalCachedModuleCount() == 2);
 
-    faaslet::Faaslet f(msgA);
-    f.flush();
+    faabric::scheduler::getExecutorFactory()->flushHost();
     REQUIRE(cache.getTotalCachedModuleCount() == 0);
 }
 
@@ -90,7 +87,7 @@ TEST_CASE("Test flushing clears IR module cache", "[flush]")
     REQUIRE(cache.isModuleCached("demo", "echo", ""));
 
     // Flush and check it's gone
-    f.flush();
+    faabric::scheduler::getExecutorFactory()->flushHost();
     REQUIRE(!cache.isModuleCached("demo", "echo", ""));
 }
 
