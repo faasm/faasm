@@ -10,7 +10,6 @@ TEST_CASE_METHOD(DistTestsFixture,
                  "Test invoking a function on another host",
                  "[scheduler]")
 {
-    auto& sch = faabric::scheduler::getScheduler();
     sch.addHostToGlobalSet();
 
     int nMessages = 3;
@@ -48,7 +47,6 @@ TEST_CASE_METHOD(DistTestsFixture,
 
 TEST_CASE_METHOD(DistTestsFixture, "Test chaining across hosts", "[scheduler]")
 {
-    auto& sch = faabric::scheduler::getScheduler();
     sch.addHostToGlobalSet();
 
     // Set up this host's resources
