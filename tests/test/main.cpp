@@ -23,9 +23,13 @@ struct LogListener : Catch::TestEventListenerBase
     {
         this->Catch::TestEventListenerBase::sectionStarting(sectionInfo);
 
-        SPDLOG_INFO("---------------------------------------------");
-        SPDLOG_INFO("SECTION: {}", sectionInfo.name);
-        SPDLOG_INFO("---------------------------------------------");
+        // Tests without any sections will be default have one section with the
+        // same name as the test
+        if (sectionInfo.name != currentTestCaseInfo->name) {
+            SPDLOG_INFO("---------------------------------------------");
+            SPDLOG_INFO("SECTION: {}", sectionInfo.name);
+            SPDLOG_INFO("---------------------------------------------");
+        }
     }
 };
 
