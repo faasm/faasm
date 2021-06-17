@@ -19,6 +19,7 @@ services:
     volumes:
       - ${PROJ_ROOT}:/usr/local/code/faasm
       - ./build/dist-test/:/build/dist-test
+      - ./build/faasm-local/:/build/faasm-local
     working_dir: /usr/local/code/faasm
 
   master:
@@ -26,13 +27,16 @@ services:
     volumes:
       - ${PROJ_ROOT}:/usr/local/code/faasm
       - ./build/dist-test/:/build/faasm
+      - ${FAASM_LOCAL_DIR}:/usr/local/faasm
     working_dir: /usr/local/code/faasm
     stdin_open: true
     tty: true
     environment:
-      - LOG_LEVEL=debug
+      - LOG_LEVEL=info
       - REDIS_STATE_HOST=redis
       - REDIS_QUEUE_HOST=redis
+      - OVERRIDE_CPU_COUNT=4
+      - CGROUP_MODE=off
     networks:
       faasmdist:
         ipv4_address: 172.60.0.4
@@ -45,11 +49,14 @@ services:
     volumes:
       - ${PROJ_ROOT}:/usr/local/code/faasm
       - ./build/dist-test/:/build/faasm
+      - ${FAASM_LOCAL_DIR}:/usr/local/faasm
     working_dir: /build/faasm
     environment:
-      - LOG_LEVEL=debug
+      - LOG_LEVEL=info
       - REDIS_STATE_HOST=redis
       - REDIS_QUEUE_HOST=redis
+      - OVERRIDE_CPU_COUNT=4
+      - CGROUP_MODE=off
     command: ./bin/dist_test_server
     networks:
       faasmdist:
