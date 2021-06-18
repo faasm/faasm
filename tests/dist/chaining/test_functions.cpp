@@ -11,8 +11,6 @@ TEST_CASE_METHOD(DistTestsFixture,
                  "Test invoking a function on another host",
                  "[scheduler]")
 {
-    sch.addHostToGlobalSet();
-
     int nMessages = 3;
 
     // Remove slots from this host
@@ -48,8 +46,6 @@ TEST_CASE_METHOD(DistTestsFixture,
 
 TEST_CASE_METHOD(DistTestsFixture, "Test chaining across hosts", "[scheduler]")
 {
-    sch.addHostToGlobalSet();
-
     // Set up this host's resources
     int nLocalSlots = 2;
     faabric::HostResources res;
