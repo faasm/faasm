@@ -6,6 +6,7 @@
 #include <faabric/util/logging.h>
 
 namespace tests {
+
 TEST_CASE_METHOD(DistTestsFixture,
                  "Test invoking a function on another host",
                  "[scheduler]")

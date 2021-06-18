@@ -1,3 +1,4 @@
+#include <conf/FaasmConfig.h>
 #include <faaslet/Faaslet.h>
 
 #include <faabric/endpoint/FaabricEndpoint.h>
@@ -12,6 +13,16 @@ int main()
     faabric::util::initLogging();
 
     SPDLOG_INFO("Starting distributed test server on worker");
+
+    faabric::util::SystemConfig& faabricConf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
+
+    SPDLOG_INFO("--- Faabric config ---");
+    faabricConf.print();
+
+    SPDLOG_INFO("--- Faasm config ---");
+    faasmConf.print();
+
     std::shared_ptr<ExecutorFactory> fac =
       std::make_shared<faaslet::FaasletFactory>();
     faabric::runner::FaabricMain m(fac);

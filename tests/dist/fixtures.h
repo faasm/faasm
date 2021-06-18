@@ -25,6 +25,7 @@ class DistTestsFixture
         // Clean up the scheduler and make sure this host is available
         sch.shutdown();
         sch.addHostToGlobalSet();
+        sch.addHostToGlobalSet(WORKER_IP);
 
         // Get other hosts
         std::string thisHost = conf.endpointHost;
