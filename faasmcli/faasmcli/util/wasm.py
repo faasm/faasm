@@ -207,7 +207,7 @@ class CFGNode:  # node for cfgtree
         self._outry = []
 
     def add_next(self, _next):
-        self._next.append(_next)
+        self._next.append(_next)   
 
     @property
     def next(self):
@@ -538,6 +538,7 @@ class Module:  # wasm module
         @param function
         @return cfg-tree
         """
+        
         if not isinstance(function, self.Function):
             return None  # TODO exception is better
 
@@ -786,14 +787,14 @@ class Module:  # wasm module
 
                     if tmp_func is None:
                         continue
-
                     tree_ = self.create_cfg(tmp_func, filter_, id)
                     next__ = tree_.next[0]
                     if next__.next[0].block.type_ == "end":
                         continue
                     stack_ = list(reversed(tree_.next))
                     last_node.add_next(tree_.next[0])
-                    tree_.next[0].previous = [last_node]
+                    #tree_.next[0].add_previous = [last_node]
+                    tree_.next[0].add_previous(last_node)
                     while len(stack_) != 0:
                         node_ = stack_.pop()
                         next_nodes_ = node_.next
