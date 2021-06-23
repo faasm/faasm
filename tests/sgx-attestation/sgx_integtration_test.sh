@@ -23,12 +23,22 @@ function start_runner {
 
 
 echo "################################################################################"
+echo "# Test: Compiling Functions ####################################################"
+echo "################################################################################"
+
+for f in $UPLOAD_FUNCS; do
+    echo "- Function $f --------------------------------------------------------"
+    echo "inv func $USER $f" | SHELL="/bin/bash" ./bin/cli.sh cpp -T
+    echo -e "\n"
+done
+
+echo "################################################################################"
 echo "# Test: Policy Generation ######################################################"
 echo "################################################################################"
 
 for f in $UPLOAD_FUNCS; do
     echo "- Function $f --------------------------------------------------------"
-    inv -r faasmcli/faasmcli policy $USER $f
+    echo "inv -r faasmcli/faasmcli policy $USER $f" | SHELL="/bin/bash" ./bin/cli.sh faasm -T
     echo -e "\n"
 done
 
@@ -40,7 +50,7 @@ echo "##########################################################################
 
 for f in $UPLOAD_FUNCS; do
     echo "- Function $f --------------------------------------------------------"
-    inv -r faasmcli/faasmcli upload $USER $f --sgx
+    echo "inv -r faasmcli/faasmcli upload $USER $f --sgx" | SHELL="/bin/bash" ./bin/cli.sh faasm -T
     echo -e "\n"
 done
 
@@ -53,7 +63,7 @@ echo "##########################################################################
 for f in $INVOKE_FUNCS; do
     echo "- Function $f --------------------------------------------------------"
     start_runner
-    inv -r faasmcli/faasmcli invoke $USER $f --sgx
+    echo "inv -r faasmcli/faasmcli invoke $USER $f --sgx" | SHELL="/bin/bash" ./bin/cli.sh faasm -T
     kill_runner
 done
 
