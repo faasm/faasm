@@ -68,7 +68,7 @@ docker-compose -f docker-compose-dev.yml \
 
 # Attach to the CLI container
 docker-compose -f docker-compose-dev.yml \
-    exec \
+    exec $2 \
     ${CLI_CONTAINER} \
     ${INNER_SHELL}
 
