@@ -6,6 +6,7 @@
 #include <storage/FileLoader.h>
 #include <storage/FileSystem.h>
 #include <wasm/WasmModule.h>
+#include <wasm/WasmExecutionContext.h>
 
 #include <sgx.h>
 #include <sgx_urts.h>
