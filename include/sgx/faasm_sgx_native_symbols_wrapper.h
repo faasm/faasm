@@ -6,7 +6,7 @@
 #include <sgx_defs.h>
 
 // Length of used native symbols
-#define FAASM_SGX_NATIVE_SYMBOLS_LEN 26
+#define FAASM_SGX_NATIVE_SYMBOLS_LEN 25
 #define FAASM_SGX_WASI_SYMBOLS_LEN 6
 
 extern "C"
