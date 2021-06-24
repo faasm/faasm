@@ -14,4 +14,7 @@ target_link_libraries(test_utils
         storage
         upload_lib
         faaslet_lib
+        wavmmodule
+        wamrmodule
+        system
         )
