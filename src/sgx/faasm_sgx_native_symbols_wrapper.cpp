@@ -1,6 +1,6 @@
-#include "sgx/faasm_sgx_native_symbols_wrapper.h"
-#include "sgx/faasm_sgx_enclave_types.h"
-#include "sgx/faasm_sgx_error.h"
+#include <sgx/faasm_sgx_native_symbols_wrapper.h>
+#include <sgx/faasm_sgx_enclave_types.h>
+#include <sgx/faasm_sgx_error.h>
 
 #if (FAASM_SGX_WAMR_AOT_MODE)
 #include <iwasm/aot/aot_runtime.h>
@@ -405,6 +405,8 @@ extern "C"
 
     static void proc_exit_wrapper(wasm_exec_env_t exec_env, int returnCode) {}
 
+    // TODO - is there a way to automate this?
+    // Size must be done at compile time, so provably a lot of `constexpr`
     NativeSymbol faasm_sgx_native_symbols[FAASM_SGX_NATIVE_SYMBOLS_LEN] = {
         NATIVE_FUNC(faasm_read_input, "($i)i"),
         NATIVE_FUNC(faasm_write_output, "($i)"),
@@ -430,7 +432,7 @@ extern "C"
         NATIVE_FUNC(faasm_chain_name, "($$i)i"),
         NATIVE_FUNC(faasm_chain_ptr, "(*$i)i"),
         NATIVE_FUNC(faasm_await_call, "(i)i"),
-        NATIVE_FUNC(faasm_await_call_output, "(i)i")
+        NATIVE_FUNC(faasm_await_call_output, "(i)i"),
     };
 
     NativeSymbol faasm_sgx_wasi_symbols[FAASM_SGX_WASI_SYMBOLS_LEN] = {

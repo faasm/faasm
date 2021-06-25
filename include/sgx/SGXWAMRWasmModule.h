@@ -1,18 +1,26 @@
 #pragma once
 
-#include "sgx/faasm_sgx_attestation.h"
-#include "sgx/faasm_sgx_error.h"
+#include <sgx/faasm_sgx_attestation.h>
+#include <sgx/faasm_sgx_error.h>
 
 #include <storage/FileLoader.h>
 #include <storage/FileSystem.h>
 #include <wasm/WasmModule.h>
 #include <wasm/WasmExecutionContext.h>
 
+// Non-faasm SGX includes
 #include <sgx.h>
 #include <sgx_urts.h>
 
+// Note that we currently only initialise _one enclave per Faasm runtime_
 extern sgx_enclave_id_t globalEnclaveId;
 
+/* Ecall definitions
+ *
+ * What follows are the definitions of the enclave-entry calls. This is, the
+ * way we have to interact with a running enclave. These calls are shared among
+ * all function invocations (i.e. module instantiation).
+ */
 extern "C"
 {
 
@@ -49,9 +57,18 @@ extern "C"
 }
 
 namespace wasm {
+/* Interface to interact with a WAMR runtime running inside an enclave.
+ *
+ * This class interfaces between an untrusted Faasm runtime running outside any
+ * enclave, and a WebAssembly runtime (WAMR) running inside.
+ * This class lives _outside_ the enclave, in an untrusted region, but is the
+ * single entrypoint to the enclave.
+ */
 class SGXWAMRWasmModule final : public WasmModule
 {
   public:
+    static void initialiseSGXWAMRGlobally();
+
     explicit SGXWAMRWasmModule();
 
     ~SGXWAMRWasmModule() override;

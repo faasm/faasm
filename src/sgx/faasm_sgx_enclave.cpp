@@ -1,3 +1,4 @@
+#include <sgx/enclaveConfig.h>
 #include "sgx/faasm_sgx_enclave_types.h"
 #include "sgx/faasm_sgx_error.h"
 #include "sgx/faasm_sgx_native_symbols_wrapper.h"
@@ -23,6 +24,13 @@
 #define WASM_CTORS_FUNC_NAME "__wasm_call_ctors"
 #define WASM_ENTRY_FUNC "_start"
 
+/* Enclave code for a WAMR enclave running in Faasm
+ *
+ * This file contains the implementation of the exposed Ecalls API.
+ * The code in this file is meant to run _inside_ the enclave, thus is the
+ * only bit of code that actually interacts with the WAMR runtime.
+ */
+
 extern "C"
 {
 
@@ -33,6 +41,16 @@ extern "C"
     extern sgx_status_t SGX_CDECL ocall_printf(const char* msg);
     extern int os_printf(const char* message, ...);
 #endif
+
+    // Print function wrapper
+    void DEBUG_LOG(const char *message)
+    {
+#if (FAASM_SGX_DEBUG)
+        ocall_printf(message);
+#else
+        ;
+#endif
+    }
 
     // WAMR native symbols
     extern NativeSymbol faasm_sgx_native_symbols[FAASM_SGX_NATIVE_SYMBOLS_LEN];
@@ -61,7 +79,8 @@ extern "C"
     static sgx_thread_mutex_t _mutex_faasm_sgx_tcs =
       SGX_THREAD_MUTEX_INITIALIZER;
 
-    static uint8_t _wamr_global_heap_buffer[FAASM_SGX_WAMR_HEAP_SIZE * 1024];
+    // Defined in the SGX WAMR module header file
+    static uint8_t _wamr_global_heap_buffer[FAASM_SGX_WAMR_HEAP_SIZE];
 
 #if (FAASM_SGX_ATTESTATION)
     static inline faasm_sgx_status_t __get_response_msg(
@@ -121,11 +140,7 @@ extern "C"
 
         if (!(msg_ptr = (sgx_wamr_msg_t*)calloc(
                 (sizeof(sgx_wamr_msg_t) + payload_len), sizeof(uint8_t)))) {
-
-#if (FAASM_SGX_DEBUG)
-            ocall_printf("Enclave send_msg failed, OOM\n");
-#endif
-
+            DEBUG_LOG("Enclave send_msg failed, OOM\n");
             return FAASM_SGX_OUT_OF_MEMORY;
         }
 
@@ -177,9 +192,7 @@ extern "C"
             // Revert all changes due to an memory-error
             write_unlock(&_rwlock_faasm_sgx_tcs_realloc);
             sgx_thread_mutex_unlock(&_mutex_faasm_sgx_tcs);
-#if (FAASM_SGX_DEBUG)
-            ocall_printf("OOM on get TCS slot\n");
-#endif
+            DEBUG_LOG("OOM on get TCS slot\n");
             return FAASM_SGX_OUT_OF_MEMORY;
         }
 
@@ -200,9 +213,7 @@ extern "C"
         sgx_thread_mutex_unlock(&_mutex_faasm_sgx_tcs);
         if (!(faasm_sgx_tcs[i] = (_faasm_sgx_tcs_t*)calloc(
                 sizeof(_faasm_sgx_tcs_t), sizeof(uint8_t)))) {
-#if (FAASM_SGX_DEBUG)
-            ocall_printf("OOM on allocate TCS structure\n");
-#endif
+            DEBUG_LOG("OOM on allocate TCS structure\n");
             return FAASM_SGX_OUT_OF_MEMORY;
         }
 
@@ -241,9 +252,7 @@ extern "C"
         // Create an execution environment and call the wasm function
 #if (FAASM_SGX_WAMR_AOT_MODE)
         // If AoT is enabled, then the WAMR AoT implementation will be invoked
-#if (FAASM_SGX_DEBUG)
-        ocall_printf("Faasm-SGX: AoT\n");
-#endif
+        DEBUG_LOG("Faasm-SGX: AoT\n");
         if (!(aot_create_exec_env_and_call_function(
               (AOTModuleInstance*)tcs_ptr->module_inst,
               (AOTFunctionInstance*)wasm_func,
@@ -266,17 +275,13 @@ extern "C"
                     ->cur_exception[sizeof(_FAASM_SGX_ERROR_PREFIX)]));
             }
 
-#if (FAASM_SGX_DEBUG)
-            ocall_printf(
+            DEBUG_LOG(
               ((AOTModuleInstance*)tcs_ptr->module_inst)->cur_exception);
-#endif
             return FAASM_SGX_WAMR_FUNCTION_UNABLE_TO_CALL;
         }
 #else
         // If AoT is disabled, then the WAMR interpreter will be invoked
-#if (FAASM_SGX_DEBUG)
-        ocall_printf("Faasm-SGX: Interpreter\n");
-#endif
+        DEBUG_LOG("Faasm-SGX: Interpreter\n");
         if (!(wasm_create_exec_env_and_call_function(
               (WASMModuleInstance*)tcs_ptr->module_inst,
               (WASMFunctionInstance*)wasm_func,
@@ -299,10 +304,8 @@ extern "C"
                     ->cur_exception[sizeof(_FAASM_SGX_ERROR_PREFIX)]));
             }
 
-#if (FAASM_SGX_DEBUG)
-            ocall_printf(
+            DEBUG_LOG(
               ((WASMModuleInstance*)tcs_ptr->module_inst)->cur_exception);
-#endif
             return FAASM_SGX_WAMR_FUNCTION_UNABLE_TO_CALL;
         }
 #endif
@@ -336,6 +339,12 @@ extern "C"
         return FAASM_SGX_SUCCESS;
     }
 
+    /* Load WebAssembly module to the enclave 
+     *
+     * This function loads the provided web assembly module to the enclave's
+     * runtime. It also sets the stack top for the current module so that it
+     * can be used by the untrusted scheduler.
+     */
     faasm_sgx_status_t faasm_sgx_enclave_load_module(
       const void* wasm_opcode_ptr,
       const uint32_t wasm_opcode_size,
@@ -382,9 +391,7 @@ extern "C"
             // Revert all changes due to the out of memory error
             _FAASM_SGX_TCS_FREE_SLOT(*thread_id);
             free(tcs_ptr);
-#if (FAASM_SGX_DEBUG)
-            ocall_printf("Unable to allocate memory for wasmBytes\n");
-#endif
+            DEBUG_LOG("Unable to allocate memory for wasmBytes\n");
             return FAASM_SGX_OUT_OF_MEMORY;
         }
         tcs_ptr->wasm_opcode = wasm_buffer_ptr;
@@ -399,9 +406,7 @@ extern "C"
             free(tcs_ptr->wasm_opcode);
             _FAASM_SGX_TCS_FREE_SLOT(*thread_id);
             free(tcs_ptr);
-#if (FAASM_SGX_DEBUG)
-            ocall_printf(wamr_error_buffer);
-#endif
+            DEBUG_LOG(wamr_error_buffer);
             return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
         }
 
@@ -417,30 +422,30 @@ extern "C"
             wasm_runtime_unload(tcs_ptr->module);
             _FAASM_SGX_TCS_FREE_SLOT(*thread_id);
             free(tcs_ptr);
-#if (FAASM_SGX_DEBUG)
-            ocall_printf(wamr_error_buffer);
-#endif
+            DEBUG_LOG(wamr_error_buffer);
             return FAASM_SGX_WAMR_MODULE_INSTANTIATION_FAILED;
         }
 
         return FAASM_SGX_SUCCESS;
     }
 
+    /* Initialise WebAssembly Micro Runtime inside the enclave.
+     *
+     * This method sets up the WAMR runtime, and initialises all enclave-related
+     * variables. Currently, this happens _once_ per Faasm instance. This is,
+     * we only run one enclave per Faasm instance.
+     */
     faasm_sgx_status_t faasm_sgx_enclave_init_wamr(void)
     {
-#if (FAASM_SGX_DEBUG)
-        // Set our ocall_printf as default printf function if FAASM_SGX_DEBUG ==
-        // 1
-        os_set_print_function((os_print_function_t)ocall_printf);
-#endif
+        os_set_print_function((os_print_function_t)DEBUG_LOG);
 
         // Initialize FAASM-SGX TCS
+        // Note - currently we just support single-threaded execution, thus
+        // only one TCS slot.
         _faasm_sgx_tcs_len = FAASM_SGX_INIT_TCS_SLOTS;
         if (!(faasm_sgx_tcs = (_faasm_sgx_tcs_t**)calloc(
                 FAASM_SGX_INIT_TCS_SLOTS, sizeof(_faasm_sgx_tcs_t*)))) {
-#if (FAASM_SGX_DEBUG)
-            ocall_printf("OOM initialising WAMR\n");
-#endif
+            DEBUG_LOG("OOM error initialising TCS\n");
             return FAASM_SGX_OUT_OF_MEMORY;
         }
 
