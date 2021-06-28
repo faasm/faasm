@@ -5,8 +5,8 @@
 
 #include <storage/FileLoader.h>
 #include <storage/FileSystem.h>
-#include <wasm/WasmModule.h>
 #include <wasm/WasmExecutionContext.h>
+#include <wasm/WasmModule.h>
 
 // Non-faasm SGX includes
 #include <sgx.h>
@@ -67,8 +67,6 @@ namespace wasm {
 class SGXWAMRWasmModule final : public WasmModule
 {
   public:
-    static void initialiseSGXWAMRGlobally();
-
     explicit SGXWAMRWasmModule();
 
     ~SGXWAMRWasmModule() override;

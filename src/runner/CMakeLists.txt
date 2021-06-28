@@ -26,4 +26,3 @@ target_link_libraries(codegen_shared_obj ${CODEGEN_LIBS})
 
 add_executable(codegen_func codegen_func.cpp)
 target_link_libraries(codegen_func ${CODEGEN_LIBS})
-

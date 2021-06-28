@@ -56,7 +56,8 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
     storage::FileLoader& functionLoader = storage::getFileLoader();
 
 #if (FAASM_SGX_WAMR_AOT_MODE)
-    std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionWamrAotFile(msg);
+    std::vector<uint8_t> wasmBytes =
+      functionLoader.loadFunctionWamrAotFile(msg);
 #else
     std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionWasm(msg);
 #endif
@@ -88,9 +89,9 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
     }
 
     // Set up the thread stacks
-    // TODO - do seriously
-    // createThreadStacks();
-    threadStacks.push_back(1337);
+    // 28/06/2021 - Threading is not supported in SGX-WAMR. Thus, we don't care
+    // what we put in this vector.
+    threadStacks.push_back(-1);
 }
 
 bool SGXWAMRWasmModule::unbindFunction()

@@ -73,3 +73,7 @@ Note that because the function itself is loaded using LLVM JIT libraries, GDB
 doesn't have the symbols up front, but we can still set breakpoints pending a
 shared library load.
 
+## Debugging SGX 
+
+To debug SGX applications, you may need the `sgx-gdb` debugger to see the
+function symbols.

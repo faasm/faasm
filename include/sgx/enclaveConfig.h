@@ -1,7 +1,5 @@
 #pragma once
 
-// TODO - should we print this somewhere at runtime?
-
 /* Main hardcoded memory sizes */
 #define ONE_KB_BYTES 1024
 #define ONE_MB_BYTES (1024 * 1024)
