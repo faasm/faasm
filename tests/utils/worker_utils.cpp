@@ -155,6 +155,10 @@ void execFuncWithPool(faabric::Message& call, bool clean, int timeout)
     faabric::Message result = sch.getFunctionResult(call.id(), 30000);
     REQUIRE(result.returnvalue() == 0);
 
+    if (result.outputdata().size() > 0) {
+        SPDLOG_INFO(result.outputdata());
+    }
+
     // Shut down the pool
     m.shutdown();
 

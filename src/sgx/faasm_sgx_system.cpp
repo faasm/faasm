@@ -169,6 +169,7 @@ std::string faasmSgxErrorString(faasm_sgx_status_t status)
         ERROR_PRINT_CASE(FAASM_SGX_CRT_RECV_FAILED)
         ERROR_PRINT_CASE(FAASM_SGX_INVALID_PAYLOAD_LEN)
         ERROR_PRINT_CASE(FAASM_SGX_FUNCTION_NOT_WHITELISTED)
+        ERROR_PRINT_CASE(FAASM_SGX_WAMR_FUNCTION_NOT_IMPLEMENTED)
         default: {
             char res[20];
             sprintf(res, "%#010x", status);

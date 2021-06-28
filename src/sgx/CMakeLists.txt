@@ -61,6 +61,7 @@ endif ()
 
 # Set interpreter mode
 set (WAMR_BUILD_INTERP 1)
+set (WAMR_BUILD_FAST_INTERP 1)
 if (FAASM_SGX_WAMR_AOT_MODE)
     set (WAMR_BUILD_AOT 1)
     add_definitions(-DFAASM_SGX_WAMR_AOT_MODE=1)
