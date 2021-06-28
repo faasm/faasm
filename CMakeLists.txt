@@ -8,12 +8,16 @@ option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
 option(FAASM_SELF_TRACING "Turn on system tracing using the logger" OFF)
 option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md" OFF)
 
+# WAMR and interpreter
+option(FAASM_WAMR_AOT_MODE "Turns on AoT mode in WAMR" ON)
+
 # SGX functionality
 # These options customise the SGX features _provided_ SGX is found
 option(FAASM_SGX_SIM_MODE "Turn on SGX sim mode" ON)
 option(FAASM_SGX_ATTESTATION "Turn on attestation" OFF)
 option(FAASM_SGX_XRA "Turn on support for XRA" OFF)
 option(FAASM_SGX_WAMR_AOT_MODE "Turn on AoT mode in SGX" OFF)
+set (FAASM_SGX_WAMR_AOT_MODE OFF)
 
 # Note - whitelisting currently not working in WAMR AoT mode
 option(FAASM_SGX_WHITELISTING "Add support for whitelisting" OFF)
