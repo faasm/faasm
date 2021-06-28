@@ -1,11 +1,10 @@
-#include <string>
-
-#include "faasm_sgx_error.h"
-#include "faasm_sgx_system.h"
+#include <sgx/SGXWAMRWasmModule.h>
+#include <sgx/faasm_sgx_error.h>
+#include <sgx/faasm_sgx_system.h>
 
 #include <boost/filesystem/operations.hpp>
-#include <sgx/SGXWAMRWasmModule.h>
 #include <sgx_urts.h>
+#include <string>
 
 // Global enclave ID
 sgx_enclave_id_t globalEnclaveId;

@@ -1,6 +1,6 @@
-#include <faasm_sgx_attestation.h>
-#include <faasm_sgx_error.h>
-#include <rw_lock.h>
+#include <sgx/faasm_sgx_attestation.h>
+#include <sgx/faasm_sgx_error.h>
+#include <sgx/rw_lock.h>
 
 #include <arpa/inet.h>
 #include <cstdlib>

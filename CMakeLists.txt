@@ -45,7 +45,6 @@ find_package(cpprestsdk REQUIRED NAMES cpprestsdk cpprest)
 # Detect SGX
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 find_package(SGX)
-set(SGX_FOUND 0)
 
 # SGX configuration
 if (SGX_FOUND)

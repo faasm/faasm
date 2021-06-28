@@ -1,6 +1,6 @@
-#include "sgx/faasm_sgx_native_symbols_wrapper.h"
-#include "sgx/faasm_sgx_enclave_types.h"
-#include "sgx/faasm_sgx_error.h"
+#include <sgx/faasm_sgx_enclave_types.h>
+#include <sgx/faasm_sgx_error.h>
+#include <sgx/faasm_sgx_native_symbols_wrapper.h>
 
 #if (FAASM_SGX_WAMR_AOT_MODE)
 #include <iwasm/aot/aot_runtime.h>
@@ -430,7 +430,7 @@ extern "C"
         NATIVE_FUNC(faasm_chain_name, "($$i)i"),
         NATIVE_FUNC(faasm_chain_ptr, "(*$i)i"),
         NATIVE_FUNC(faasm_await_call, "(i)i"),
-        NATIVE_FUNC(faasm_await_call_output, "(i)i")
+        NATIVE_FUNC(faasm_await_call_output, "(i)i"),
     };
 
     NativeSymbol faasm_sgx_wasi_symbols[FAASM_SGX_WASI_SYMBOLS_LEN] = {

@@ -11,6 +11,6 @@ namespace tests {
 TEST_CASE("Test executing echo function with SGX", "[sgx]")
 {
     // TODO - uncomment this to actually run the SGX test
-    // executeWithSGX("demo", "chain");
+    // executeWithSGX("demo", "hello");
 }
 }

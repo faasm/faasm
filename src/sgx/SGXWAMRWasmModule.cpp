@@ -11,14 +11,13 @@ extern "C"
     void ocall_printf(const char* msg) { printf("%s", msg); }
 }
 
-__thread faaslet_sgx_msg_buffer_t* faasletSgxMsgBufferPtr;
+thread_local faaslet_sgx_msg_buffer_t* faasletSgxMsgBufferPtr;
 
 using namespace sgx;
 
 namespace wasm {
 SGXWAMRWasmModule::SGXWAMRWasmModule()
 {
-
     // Allocate memory for response
     sgxWamrMsgResponse.buffer_len =
       (sizeof(sgx_wamr_msg_t) + sizeof(sgx_wamr_msg_hdr_t));
@@ -46,23 +45,25 @@ SGXWAMRWasmModule::~SGXWAMRWasmModule()
     }
 }
 
+// ----- Module lifecycle -----
 void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 {
-
     // Set up filesystem
     storage::FileSystem fs;
     fs.prepareFilesystem();
 
     // Load AoT or wasm
-    storage::FileLoader& fl = storage::getFileLoader();
+    storage::FileLoader& functionLoader = storage::getFileLoader();
 
 #if (FAASM_SGX_WAMR_AOT_MODE)
-    std::vector<uint8_t> wasmBytes = fl.loadFunctionWamrAotFile(msg);
+    std::vector<uint8_t> wasmBytes =
+      functionLoader.loadFunctionWamrAotFile(msg);
 #else
-    std::vector<uint8_t> wasmBytes = fl.loadFunctionWasm(msg);
+    std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionWasm(msg);
 #endif
 
     // Load the wasm module
+    // Note - loading and instantiating happen in the same ecall
     faasm_sgx_status_t returnValue;
     sgx_status_t status =
       faasm_sgx_enclave_load_module(globalEnclaveId,
@@ -86,6 +87,12 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
                      faasmSgxErrorString(returnValue));
         throw std::runtime_error("Unable to load WASM module");
     }
+
+    // Set up the thread stacks
+    // 28/06/2021 - Threading is not supported in SGX-WAMR. However, the Faasm
+    // runtime expects (asserts) this vector to be non-empty. Change when
+    // in-SGX threading is supported.
+    threadStacks.push_back(-1);
 }
 
 bool SGXWAMRWasmModule::unbindFunction()

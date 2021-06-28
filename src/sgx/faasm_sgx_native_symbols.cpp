@@ -1,7 +1,7 @@
-#include <cstring>
-
 #include <sgx/SGXWAMRWasmModule.h>
 #include <wasm/chaining.h>
+
+#include <cstring>
 
 using namespace faabric::state;
 
