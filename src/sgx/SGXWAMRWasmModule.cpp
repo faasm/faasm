@@ -89,8 +89,9 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
     }
 
     // Set up the thread stacks
-    // 28/06/2021 - Threading is not supported in SGX-WAMR. Thus, we don't care
-    // what we put in this vector.
+    // 28/06/2021 - Threading is not supported in SGX-WAMR. However, the Faasm
+    // runtime expects (asserts) this vector to be non-empty. Change when
+    // in-SGX threading is supported.
     threadStacks.push_back(-1);
 }
 

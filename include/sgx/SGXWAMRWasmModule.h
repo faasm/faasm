@@ -15,12 +15,9 @@
 // Note that we currently only initialise _one enclave per Faasm runtime_
 extern sgx_enclave_id_t globalEnclaveId;
 
-/* Ecall definitions
- *
- * What follows are the definitions of the enclave-entry calls. This is, the
- * way we have to interact with a running enclave. These calls are shared among
- * all function invocations (i.e. module instantiation).
- */
+// What follows are the definitions of the enclave-entry calls. This is, the
+// way we have to interact with a running enclave. These calls are shared among
+// all function invocations (i.e. module instantiation).
 extern "C"
 {
 
@@ -57,13 +54,10 @@ extern "C"
 }
 
 namespace wasm {
-/* Interface to interact with a WAMR runtime running inside an enclave.
- *
- * This class interfaces between an untrusted Faasm runtime running outside any
- * enclave, and a WebAssembly runtime (WAMR) running inside.
- * This class lives _outside_ the enclave, in an untrusted region, but is the
- * single entrypoint to the enclave.
- */
+// This class interfaces between an untrusted Faasm runtime running outside any
+// enclave, and a WebAssembly runtime (WAMR) running inside.
+// This class lives _outside_ the enclave, in an untrusted region, but is the
+// single entrypoint to the enclave.
 class SGXWAMRWasmModule final : public WasmModule
 {
   public:

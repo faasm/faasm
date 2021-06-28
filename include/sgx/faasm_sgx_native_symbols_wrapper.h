@@ -8,11 +8,7 @@
 #define FAASM_SGX_NATIVE_SYMBOLS_LEN 25
 #define FAASM_SGX_WASI_SYMBOLS_LEN 6
 
-/* Native symbols definition
- *
- * This file defines all the symbols that need to be available for functions
- * running inside enclaves.
- */
+// Define symbols that need to be available for functions inside enclaves
 extern "C"
 {
 

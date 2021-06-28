@@ -24,13 +24,9 @@
 #define WASM_CTORS_FUNC_NAME "__wasm_call_ctors"
 #define WASM_ENTRY_FUNC "_start"
 
-/* Enclave code for a WAMR enclave running in Faasm
- *
- * This file contains the implementation of the exposed Ecalls API.
- * The code in this file is meant to run _inside_ the enclave, thus is the
- * only bit of code that actually interacts with the WAMR runtime.
- */
-
+// Omplementation of the exposed Ecalls API. The code in this file is meant to
+// run _inside_ the enclave, thus is the only bit of code that actually
+// interacts with the WAMR runtime.
 extern "C"
 {
 
@@ -195,8 +191,8 @@ extern "C"
             return FAASM_SGX_OUT_OF_MEMORY;
         }
 
-        /* Have to zero out new memory because realloc can refer to already used
-           memory, hence faasm_sgx_tcs[X].module might not be zero */
+        // Have to zero out new memory because realloc can refer to already used
+        // memory, hence faasm_sgx_tcs[X].module might not be zero
         memset((void*)(temp_ptr + _faasm_sgx_tcs_len),
                0x0,
                (temp_len - _faasm_sgx_tcs_len) * sizeof(_faasm_sgx_tcs_t*));
@@ -258,12 +254,10 @@ extern "C"
               0x0,
               0x0))) {
 
-            /* Error handling
-             * First, check if the _FAASM_SGX_ERROR_PREFIX is set
-             * If so, then obtain and return the faasm_sgx_status_t error code
-             * If not, just print the exception and return the matching
-             * Faasm-SGX error code
-             */
+            // First, check if the _FAASM_SGX_ERROR_PREFIX is set
+            // If so, then obtain and return the faasm_sgx_status_t error code
+            // If not, just print the exception and return the matching
+            // Faasm-SGX error code
             if (!memcmp(
                   ((AOTModuleInstance*)tcs_ptr->module_inst)->cur_exception,
                   _FAASM_SGX_ERROR_PREFIX,
@@ -287,12 +281,10 @@ extern "C"
               0x0,
               0x0))) {
 
-            /* Error handling
-             * First, check if the _FAASM_SGX_ERROR_PREFIX is set
-             * If so, then obtain and return the faasm_sgx_status_t error code
-             * If not, just print the exception and return the matching
-             * Faasm-SGX error code
-             */
+            // First, check if the _FAASM_SGX_ERROR_PREFIX is set
+            // If so, then obtain and return the faasm_sgx_status_t error code
+            // If not, just print the exception and return the matching
+            // Faasm-SGX error code
             if (!memcmp(
                   ((WASMModuleInstance*)tcs_ptr->module_inst)->cur_exception,
                   _FAASM_SGX_ERROR_PREFIX,
@@ -338,12 +330,7 @@ extern "C"
         return FAASM_SGX_SUCCESS;
     }
 
-    /* Load WebAssembly module to the enclave
-     *
-     * This function loads the provided web assembly module to the enclave's
-     * runtime. It also sets the stack top for the current module so that it
-     * can be used by the untrusted scheduler.
-     */
+    // Load the provided web assembly module to the enclave's runtime
     faasm_sgx_status_t faasm_sgx_enclave_load_module(
       const void* wasm_opcode_ptr,
       const uint32_t wasm_opcode_size,
@@ -428,19 +415,14 @@ extern "C"
         return FAASM_SGX_SUCCESS;
     }
 
-    /* Initialise WebAssembly Micro Runtime inside the enclave.
-     *
-     * This method sets up the WAMR runtime, and initialises all enclave-related
-     * variables. Currently, this happens _once_ per Faasm instance. This is,
-     * we only run one enclave per Faasm instance.
-     */
+    // Set up the WAMR runtime, and initialise all enclave-related
+    // variables. Currently, this happens _once_ per Faasm instance. This is,
+    // we only run one enclave per Faasm instance.
     faasm_sgx_status_t faasm_sgx_enclave_init_wamr(void)
     {
         os_set_print_function((os_print_function_t)SGX_DEBUG_LOG);
 
         // Initialize FAASM-SGX TCS
-        // Note - currently we just support single-threaded execution, thus
-        // only one TCS slot.
         _faasm_sgx_tcs_len = FAASM_SGX_INIT_TCS_SLOTS;
         if (!(faasm_sgx_tcs = (_faasm_sgx_tcs_t**)calloc(
                 FAASM_SGX_INIT_TCS_SLOTS, sizeof(_faasm_sgx_tcs_t*)))) {

@@ -12,8 +12,6 @@ set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <INCLUDES> ${CMAKE_
 
 # FAASM-SGX enclave configuration
 set(FAASM_SGX_ENCLAVE_PATH "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/faasm_sgx_enclave.sign.so")
-set(FAASM_SGX_WAMR_BUILDIN_LIBC 1)
-set(FAASM_SGX_WAMR_WASI_LIBC 0)
 
 # Enable(1)/ Disable(0) SGX-specific debug/error messages 
 # Disable for better performance
@@ -43,6 +41,9 @@ set(SGX_SDK_ENCLAVE_EDGER8R ${SGX_SDK_PATH}/bin/x64/sgx_edger8r)
 
 # --------------------------------------------------------
 # WAMR Build
+# 
+# 28/06/2021 - To build WAMR inside SGX, we follow the provided example:
+# https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/product-mini/platforms/linux-sgx/CMakeLists.txt
 # --------------------------------------------------------
 
 # Set target platform details
@@ -50,8 +51,7 @@ set (WAMR_BUILD_PLATFORM "linux-sgx")
 set (WAMR_BUILD_TARGET X86_64)
 
 # Set WAMR include flags
-# 28/06/2021 - (fast) interpreter, AOT, libc, wasi, and pthread are enabled by
-# default in WAMR's SGX port.
+# (fast) interpreter, AOT, libc, wasi, and pthread are enabled by default
 
 # Set interpreter mode
 set (WAMR_BUILD_INTERP 1)
@@ -65,13 +65,9 @@ endif ()
 set (WAMR_BUILD_JIT 0)
 
 # Set libraries
-if (FAASM_SGX_WAMR_BUILDIN_LIBC)
-    set (WAMR_BUILD_LIBC_BUILTIN 1)
-endif ()
-if (FAASM_SGX_WAMR_WASI_LIBC)
-    set (WAMR_BUILD_LIBC_WASI 0)
-endif ()
-set (WAMR_BUILD_LIB_PTHREAD 1)
+set (WAMR_BUILD_LIBC_BUILTIN 1)
+set (WAMR_BUILD_LIBC_WASI 0)
+set (WAMR_BUILD_LIB_PTHREAD 0)
 
 # Let WAMR do the including and importing of the sources
 include (${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
@@ -81,7 +77,10 @@ set(FAASM_SGX_WAMR_SRC_UNTRUSTED
         ${PLATFORM_SHARED_SOURCE_UNTRUSTED}
         )
 
+# --------------------------------------------------------
 # Attestation configuration
+# --------------------------------------------------------
+
 if (FAASM_SGX_ATTESTATION)
     # IP-address or hostname is possible to specify host
     add_definitions(
@@ -107,8 +106,6 @@ message("-- Faasm-SGX Configuration:
  FAASM-SGX Debug Mode: ${FAASM_SGX_DEBUG}
  FAASM-SGX SGX Simulation Mode: ${FAASM_SGX_SIM_MODE}
  FAASM-SGX WAMR AoT Mode: ${FAASM_SGX_WAMR_AOT_MODE}
- FAASM-SGX WAMR Buildin Libc: ${FAASM_SGX_WAMR_BUILDIN_LIBC}
- FAASM-SGX WAMR Wasi Libc: ${FAASM_SGX_WAMR_WASI_LIBC}
  FAASM-SGX ATTESTATION: ${FAASM_SGX_ATTESTATION}
  FAASM-SGX WHITELISTING: ${FAASM_SGX_WHITELISTING}
  FAASM-SGX XRA: ${FAASM_SGX_XRA}
