@@ -53,12 +53,6 @@ set (WAMR_BUILD_TARGET X86_64)
 # Set WAMR include flags
 # (fast) interpreter, AOT, libc, wasi, and pthread are enabled by default
 
-# Enabling the spec tests performs stricter checks. E.g. it will error if can't
-# link an imported function
-if (FAASM_SGX_DEBUG)
-    add_definitions (-DWASM_ENABLE_SPEC_TEST)
-endif ()
-
 # Set interpreter mode
 set (WAMR_BUILD_INTERP 1)
 set (WAMR_BUILD_FAST_INTERP 1)

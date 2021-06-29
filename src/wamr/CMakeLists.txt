@@ -19,6 +19,8 @@ include(${WAMR_IWASM_DIR}/common/iwasm_common.cmake)
 include(${WAMR_IWASM_DIR}/libraries/libc-wasi/libc_wasi.cmake)
 
 if(FAASM_WAMR_AOT_MODE)
+    # set (WAMR_BUILD_AOT 1)
+    # include (${WAMR_ROOT_DIR}/build-scripts/config_common.cmake)
     include(${WAMR_IWASM_DIR}/aot/iwasm_aot.cmake)
     include(${WAMR_IWASM_DIR}/interpreter/iwasm_interp.cmake)
     include(${WAMR_IWASM_DIR}/compilation/iwasm_compl.cmake)

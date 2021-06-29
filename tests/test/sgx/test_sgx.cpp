@@ -8,7 +8,7 @@
 using namespace wasm;
 
 namespace tests {
-TEST_CASE("Test executing echo function with SGX", "[sgx]")
+TEST_CASE("Test executing hello function with SGX", "[sgx]")
 {
     executeWithSGX("demo", "hello");
 }

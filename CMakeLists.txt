@@ -10,6 +10,9 @@ option(FAASM_PERF_PROFILING "Turn on profiling features as described in debuggin
 
 # WAMR and interpreter
 option(FAASM_WAMR_AOT_MODE "Turns on AoT mode in WAMR" ON)
+# Enabling the spec tests performs stricter checks. E.g. it will error if can't
+# link an imported function
+# set (WAMR_BUILD_SPEC_TEST)
 
 # SGX functionality
 # These options customise the SGX features _provided_ SGX is found
