@@ -24,8 +24,22 @@ int main(int argc, char* argv[])
     std::string function = argv[2];
 
     std::string inputData;
-    if (argc >= 4) {
+    bool isSgx = false;
+    bool hasInput = false;
+    if (argc == 4) {
+        if (std::string(argv[3]) == "--sgx") {
+            isSgx = true;
+        } else {
+            inputData = argv[3];
+            hasInput = true;
+        }
+    } else if (argc == 5 && std::string(argv[4]) == "--sgx") {
         inputData = argv[3];
+        hasInput = true;
+        isSgx = true;
+    } else {
+        SPDLOG_ERROR("Unrecognized argument list for func_runner");
+        return 1;
     }
 
     std::shared_ptr<faabric::BatchExecuteRequest> req =
@@ -62,11 +76,16 @@ int main(int argc, char* argv[])
         SPDLOG_INFO("Running function {}/{}", user, function);
     }
 
-    if (argc > 3) {
+    if (hasInput) {
         std::string inputData = argv[3];
         msg.set_inputdata(inputData);
 
         SPDLOG_INFO("Adding input data: {}", inputData);
+    }
+
+    if (isSgx) {
+        msg.set_issgx(true);
+        SPDLOG_INFO("Running function in SGX");
     }
 
     // Set up the system

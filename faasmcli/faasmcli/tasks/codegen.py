@@ -4,6 +4,7 @@ from invoke import task
 from copy import copy
 from os import environ
 from os.path import join
+from sys import exit
 
 from faasmcli.util.codegen import find_codegen_func, find_codegen_shared_lib
 from faasmcli.util.env import FAASM_RUNTIME_ROOT
@@ -15,7 +16,7 @@ LIB_FAKE_FILES = [
 
 
 @task(default=True)
-def codegen(ctx, user, function, wamr=False):
+def codegen(ctx, user, function, wamr=False, sgx=False):
     """
     Generates machine code for the given function
     """
@@ -27,9 +28,13 @@ def codegen(ctx, user, function, wamr=False):
         }
     )
 
+    if ((not wamr) and sgx):
+        print("Can't run SGX codegen with WAVM. Add --wamr flag.")
+        exit(1)
+
     binary = find_codegen_func()
     run(
-        "{} {} {}".format(binary, user, function),
+        "{} {} {} {}".format(binary, user, function, "--sgx" if sgx else ""),
         shell=True,
         env=env,
         check=True,

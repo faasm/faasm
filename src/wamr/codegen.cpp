@@ -10,7 +10,7 @@
 #include <boost/filesystem.hpp>
 
 namespace wasm {
-std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes)
+std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
 {
 
     // Make sure WAMR is initialised
@@ -41,6 +41,11 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes)
     option.size_level = 3;
     option.output_format = AOT_FORMAT_FILE;
     option.bounds_checks = 2;
+
+    if (isSgx) {
+        option.size_level = 1;
+        option.is_sgx_platform = true;
+    }
 
     aot_comp_context_t compileContext =
       aot_create_comp_context(compileData, &option);

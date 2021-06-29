@@ -23,6 +23,7 @@ const static std::string encryptedFuncFile = "function.wasm.enc";
 const static std::string symFile = "function.symbols";
 const static std::string objFile = "function.wasm.o";
 const static std::string wamrAotFile = "function.aot";
+const static std::string sgxWamrAotFile = "function.aot.sgx";
 
 std::string getRootUrl()
 {
@@ -235,7 +236,11 @@ std::string getFunctionObjectFile(const faabric::Message& msg)
 std::string getFunctionAotFile(const faabric::Message& msg)
 {
     auto path = getObjectDir(msg);
-    path.append(wamrAotFile);
+    if (msg.issgx()) {
+        path.append(sgxWamrAotFile);
+    } else {
+        path.append(wamrAotFile);
+    }
 
     return path.string();
 }
