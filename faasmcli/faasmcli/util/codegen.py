@@ -5,8 +5,5 @@ def find_codegen_shared_lib():
     return find_command("codegen_shared_obj")
 
 
-def find_codegen_func(wamr=False):
-    if wamr:
-        return find_command("wamrc")
-    else:
-        return find_command("codegen_func")
+def find_codegen_func():
+    return find_command("codegen_func")

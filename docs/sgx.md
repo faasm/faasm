@@ -4,12 +4,28 @@ Faasm provides
 [SGX](https://software.intel.com/content/www/us/en/develop/topics/software-guard-extensions.html)
 support using [WAMR](https://github.com/bytecodealliance/wasm-micro-runtime).
 
-You can read the latest SGX Linux developer instructions 
-[here](https://download.01.org/intel-sgx/latest/linux-latest/docs/Intel_SGX_Developer_Guide.pdf).
+## Quick start
 
-[@J-Heinemann](https://github.com/J-Heinemann) is responsible for a lot of the
-SGX work in Faasm, but some messy merges have mixed up ownership of a couple of
-commits.
+SGX support is currently only available for development clusters.
+Note that the following will run in simulation mode.
+
+```bash
+# Start development cluster, and log into the cpp container
+./bin/cli.sh cpp
+
+# Compile the demo function
+(cpp) inv func demo hello
+
+# Exit the cpp container, and log into the CLI one
+(cpp) exit
+./bin/cli.sh faasm
+
+# Generate machine code for SGX
+inv codegen demo hello --wamr --sgx
+
+# Run the code
+inv run demo hello --wamr --sgx
+```
 
 ## SGX Set-up
 
@@ -55,19 +71,3 @@ Low-level SGX-related customisation is found in [the SGX-specific
   only available if `FAASM_SGX_WAMR_AOT_MODE=OFF`.  Default is off.
 - `FAASM_SGX_XRA` - Enables the eXtended Remote Attestation mechanism. Default 
   is off.
-
-### Low-Level Options
-
-- `FAASM_SGX_DEBUG`- Prints debug information messages.  Useful for development
-  but slows down the execution.  Default is 1
-- `FAASM_SGX_INIT_TCS_SLOTS` - Specifies the amount of Faasm-SGX TCS slots after
-  initialization.  Its recommended (but not necessary) to use the same number as
-  available SGX TCS.  Default is 2.
-- `FAASM_SGX_WAMR_BUILDIN_LIBC` - This option enables the WAMR built-in libc.
-  Default is 1 (enabled).
-- `FAASM_SGX_WAMR_WASI_LIBC` - This option enables WASI support. If this option 
-  is enabled, please set `#define FAASM_SGX_WAMR_WASI_LIBC 1` in 
-  [faasm_sgx_enclave.edl](../src/sgx/faasm_sgx_enclave.edl). Default is 0 
-  (disabled).
-- `SGX_DEBUG_MODE` - This option enables or disables the SGX debug mode. 
-  Default is 1 (enabled).

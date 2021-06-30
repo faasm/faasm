@@ -12,7 +12,7 @@ namespace wasm {
 #if (WAMR_EXECUTION_MODE_INTERP)
 // We can't support WAMR codegen in interpreter mode
 #else
-std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes);
+std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx);
 #endif
 
 class WAMRWasmModule final : public WasmModule
