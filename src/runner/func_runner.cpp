@@ -37,9 +37,6 @@ int main(int argc, char* argv[])
         inputData = argv[3];
         hasInput = true;
         isSgx = true;
-    } else {
-        SPDLOG_ERROR("Unrecognized argument list for func_runner");
-        return 1;
     }
 
     std::shared_ptr<faabric::BatchExecuteRequest> req =

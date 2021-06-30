@@ -28,7 +28,7 @@ def codegen(ctx, user, function, wamr=False, sgx=False):
         }
     )
 
-    if ((not wamr) and sgx):
+    if (not wamr) and sgx:
         print("Can't run SGX codegen with WAVM. Add --wamr flag.")
         exit(1)
 
@@ -42,21 +42,21 @@ def codegen(ctx, user, function, wamr=False, sgx=False):
 
 
 @task
-def user(ctx, user, wamr=False):
+def user(ctx, user):
     """
     Generates machine for all the functions belonging to the given user
     """
-    _do_codegen_user(user, wamr=wamr)
+    _do_codegen_user(user)
 
 
-def _do_codegen_user(user, wamr=False):
-    print("Running codegen for user {}".format(user))
+def _do_codegen_user(user):
+    print("Running WAVM codegen for user {}".format(user))
 
     binary = find_codegen_func()
     env = copy(environ)
     env.update(
         {
-            "WASM_VM": "wamr" if wamr else "wavm",
+            "WASM_VM": "wavm",
             "LD_LIBRARY_PATH": "/usr/local/lib/",
         }
     )
@@ -77,15 +77,15 @@ def _do_codegen_file(path):
 
 
 @task
-def local(ctx, wamr=False):
+def local(ctx):
     """
     Runs codegen on functions used in tests
     """
-    _do_codegen_user("demo", wamr=wamr)
-    _do_codegen_user("errors", wamr=wamr)
-    _do_codegen_user("mpi", wamr=wamr)
-    _do_codegen_user("omp", wamr=wamr)
-    _do_codegen_user("python", wamr=wamr)
+    _do_codegen_user("demo")
+    _do_codegen_user("errors")
+    _do_codegen_user("mpi")
+    _do_codegen_user("omp")
+    _do_codegen_user("python")
 
     # Do codegen for libfake
     for so in LIB_FAKE_FILES:
@@ -94,3 +94,6 @@ def local(ctx, wamr=False):
     # Run the WAMR codegen required by the tests
     codegen(ctx, "demo", "echo", wamr=True)
     codegen(ctx, "demo", "chain", wamr=True)
+
+    # Run the SGX codegen required by the tests
+    codegen(ctx, "demo", "hello", wamr=True, sgx=True)
