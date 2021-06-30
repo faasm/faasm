@@ -62,5 +62,6 @@ enclave{
         unsigned int ocall_faasm_chain_ptr(int wasmFuncPtr, [in, size=input_size] uint8_t* input, long input_size);
         unsigned int ocall_faasm_await_call(unsigned int call_id);
         unsigned int ocall_faasm_await_call_output(unsigned int call_id, [out, size=buffer_size] uint8_t* buffer, unsigned int buffer_size);
+        int32_t ocall_sbrk(int32_t increment);
     };
 };

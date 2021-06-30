@@ -18,13 +18,15 @@ include(${WAMR_SHARED_DIR}/utils/uncommon/shared_uncommon.cmake)
 include(${WAMR_IWASM_DIR}/common/iwasm_common.cmake)
 include(${WAMR_IWASM_DIR}/libraries/libc-wasi/libc_wasi.cmake)
 
-if(WAMR_INTERPRETER_MODE)
-    include(${WAMR_IWASM_DIR}/interpreter/iwasm_interp.cmake)
-else()
+if(FAASM_WAMR_AOT_MODE)
+    # set (WAMR_BUILD_AOT 1)
+    # include (${WAMR_ROOT_DIR}/build-scripts/config_common.cmake)
     include(${WAMR_IWASM_DIR}/aot/iwasm_aot.cmake)
     include(${WAMR_IWASM_DIR}/interpreter/iwasm_interp.cmake)
     include(${WAMR_IWASM_DIR}/compilation/iwasm_compl.cmake)
     faasm_private_lib(aotclib "${IWASM_COMPL_SOURCE}")
+else()
+    include(${WAMR_IWASM_DIR}/interpreter/iwasm_interp.cmake)
 endif()
 
 set(COMMON_WAMR_SRC
@@ -87,7 +89,7 @@ target_link_libraries(wamrmodule
         wamrlib
         )
 
-if(NOT WAMR_INTERPRETER_MODE)
+if(FAASM_WAMR_AOT_MODE)
     target_link_libraries(wamrmodule
             aotclib
             ${WAMR_LLVM_LIBRARIES}

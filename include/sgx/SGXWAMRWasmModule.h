@@ -71,6 +71,10 @@ class SGXWAMRWasmModule final : public WasmModule
 
     int32_t executeFunction(faabric::Message& msg) override;
 
+    uint32_t growMemory(uint32_t nBytes) override;
+
+    uint32_t shrinkMemory(uint32_t nBytes) override;
+
     // TODO: Move in gs/fs
     faaslet_sgx_msg_buffer_t sgxWamrMsgResponse;
 
