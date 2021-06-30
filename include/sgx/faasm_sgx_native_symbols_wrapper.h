@@ -6,7 +6,7 @@
 
 // Length of used native symbols
 #define FAASM_SGX_NATIVE_SYMBOLS_LEN 33
-#define FAASM_SGX_WASI_SYMBOLS_LEN 6
+#define FAASM_SGX_WASI_SYMBOLS_LEN 7
 
 // Define symbols that need to be available for functions inside enclaves
 extern "C"
@@ -294,6 +294,8 @@ extern "C"
                                 int b,
                                 int c,
                                 int d);
+
+    static int fd_fdstat_get_wrapper(wasm_exec_env_t exec_env, int a, int b);
 
     static void proc_exit_wrapper(wasm_exec_env_t exec_env, int returnCode);
 }

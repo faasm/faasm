@@ -454,6 +454,11 @@ extern "C"
         return 0;
     }
 
+    static int fd_fdstat_get_wrapper(wasm_exec_env_t exec_env, int a, int b)
+    {
+        return 0;
+    }
+
     static void proc_exit_wrapper(wasm_exec_env_t exec_env, int returnCode) {}
 
     NativeSymbol faasm_sgx_native_symbols[FAASM_SGX_NATIVE_SYMBOLS_LEN] = {
@@ -498,6 +503,7 @@ extern "C"
         WASI_NATIVE_FUNC(fd_close, "(i)i"),
         WASI_NATIVE_FUNC(fd_seek, "(iIii)i"),
         WASI_NATIVE_FUNC(fd_write, "(iiii)i"),
-        WASI_NATIVE_FUNC(proc_exit, "(i)")
+        WASI_NATIVE_FUNC(fd_fdstat_get, "(ii)i"),
+        WASI_NATIVE_FUNC(proc_exit, "(i)"),
     };
 }
