@@ -59,15 +59,8 @@ Low-level SGX-related customisation is found in [the SGX-specific
 ### General Options
 
 - `FAASM_SGX_SIM_MODE` - Specifies the SGX execution mode whether the Simulation
-  or Hardware mode is used.  Enabling this option chooses the Simulation mode.
+  or Hardware mode is used. Enabling this option chooses the Simulation mode.
   Default is on.
-- `FAASM_SGX_WAMR_AOT_MODE` - Activates the Ahead of Time execution mode of
-  WAMR.  If enabled, AoT is used. Otherwise the interpreter mode of WAMR is
-  used. Default is on.
-- `FAASM_SGX_ATTESTATION` - Enables the Attestation extension. If this option is
-  enabled, please set `#define FAASM_SGX_ATTESTATION 1` in
-  [faasm_sgx_enclave.edl](../src/sgx/faasm_sgx_enclave.edl).  Default is off.
-- `FAASM_SGX_WHITELISTING` - Enables the Whitelisting extension. This option is 
-  only available if `FAASM_SGX_WAMR_AOT_MODE=OFF`.  Default is off.
+- `FAASM_SGX_ATTESTATION` - Enables the Attestation extension. Default is off.
 - `FAASM_SGX_XRA` - Enables the eXtended Remote Attestation mechanism. Default 
   is off.

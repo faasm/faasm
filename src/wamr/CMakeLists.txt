@@ -18,16 +18,11 @@ include(${WAMR_SHARED_DIR}/utils/uncommon/shared_uncommon.cmake)
 include(${WAMR_IWASM_DIR}/common/iwasm_common.cmake)
 include(${WAMR_IWASM_DIR}/libraries/libc-wasi/libc_wasi.cmake)
 
-if(FAASM_WAMR_AOT_MODE)
-    # set (WAMR_BUILD_AOT 1)
-    # include (${WAMR_ROOT_DIR}/build-scripts/config_common.cmake)
-    include(${WAMR_IWASM_DIR}/aot/iwasm_aot.cmake)
-    include(${WAMR_IWASM_DIR}/interpreter/iwasm_interp.cmake)
-    include(${WAMR_IWASM_DIR}/compilation/iwasm_compl.cmake)
-    faasm_private_lib(aotclib "${IWASM_COMPL_SOURCE}")
-else()
-    include(${WAMR_IWASM_DIR}/interpreter/iwasm_interp.cmake)
-endif()
+# enable AOT
+include(${WAMR_IWASM_DIR}/aot/iwasm_aot.cmake)
+include(${WAMR_IWASM_DIR}/interpreter/iwasm_interp.cmake)
+include(${WAMR_IWASM_DIR}/compilation/iwasm_compl.cmake)
+faasm_private_lib(aotclib "${IWASM_COMPL_SOURCE}")
 
 set(COMMON_WAMR_SRC
         ${PLATFORM_SHARED_SOURCE}
@@ -89,10 +84,7 @@ target_link_libraries(wamrmodule
         wamrlib
         )
 
-if(FAASM_WAMR_AOT_MODE)
-    target_link_libraries(wamrmodule
-            aotclib
-            ${WAMR_LLVM_LIBRARIES}
-            )
-endif()
-
+target_link_libraries(wamrmodule
+        aotclib
+        ${WAMR_LLVM_LIBRARIES}
+        )

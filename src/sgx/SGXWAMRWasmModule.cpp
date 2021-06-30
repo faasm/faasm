@@ -52,15 +52,11 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
     storage::FileSystem fs;
     fs.prepareFilesystem();
 
-    // Load AoT or wasm
+    // Load AoT
     storage::FileLoader& functionLoader = storage::getFileLoader();
 
-#if (FAASM_SGX_WAMR_AOT_MODE)
     std::vector<uint8_t> wasmBytes =
       functionLoader.loadFunctionWamrAotFile(msg);
-#else
-    std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionWasm(msg);
-#endif
 
     // Load the wasm module
     // Note - loading and instantiating happen in the same ecall

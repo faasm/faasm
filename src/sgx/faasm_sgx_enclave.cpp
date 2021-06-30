@@ -11,11 +11,7 @@
 #include <sgx_thread.h>
 #include <tlibc/mbusafecrt.h>
 
-#if (FAASM_SGX_WAMR_AOT_MODE)
 #include <iwasm/aot/aot_runtime.h>
-#else
-#include <iwasm/interpreter/wasm_runtime.h>
-#endif
 
 #if (FAASM_SGX_ATTESTATION)
 #include <sgx/faasm_sgx_attestation.h>
@@ -61,9 +57,6 @@ extern "C"
                    sgx_wamr_msg_t* msg,
                    uint32_t msg_len);
     static uint8_t _sgx_wamr_msg_id = 0;
-#endif
-
-#if (FAASM_SGX_ATTESTATION || FAASM_SGX_WHITELISTING)
     __thread uint32_t tls_thread_id;
     rwlock_t _rwlock_faasm_sgx_tcs_realloc = { 0 };
 #else
@@ -245,9 +238,6 @@ extern "C"
         tls_thread_id = thread_id;
 #endif
         // Create an execution environment and call the wasm function
-#if (FAASM_SGX_WAMR_AOT_MODE)
-        // If AoT is enabled, then the WAMR AoT implementation will be invoked
-        SGX_DEBUG_LOG("Faasm-SGX: AoT\n");
         if (!(aot_create_exec_env_and_call_function(
               (AOTModuleInstance*)tcs_ptr->module_inst,
               (AOTFunctionInstance*)wasm_func,
@@ -272,34 +262,6 @@ extern "C"
               ((AOTModuleInstance*)tcs_ptr->module_inst)->cur_exception);
             return FAASM_SGX_WAMR_FUNCTION_UNABLE_TO_CALL;
         }
-#else
-        // If AoT is disabled, then the WAMR interpreter will be invoked
-        SGX_DEBUG_LOG("Faasm-SGX: Interpreter\n");
-        if (!(wasm_create_exec_env_and_call_function(
-              (WASMModuleInstance*)tcs_ptr->module_inst,
-              (WASMFunctionInstance*)wasm_func,
-              0x0,
-              0x0))) {
-
-            // First, check if the _FAASM_SGX_ERROR_PREFIX is set
-            // If so, then obtain and return the faasm_sgx_status_t error code
-            // If not, just print the exception and return the matching
-            // Faasm-SGX error code
-            if (!memcmp(
-                  ((WASMModuleInstance*)tcs_ptr->module_inst)->cur_exception,
-                  _FAASM_SGX_ERROR_PREFIX,
-                  sizeof(_FAASM_SGX_ERROR_PREFIX))) {
-
-                return *((faasm_sgx_status_t*)&(
-                  ((WASMModuleInstance*)tcs_ptr->module_inst)
-                    ->cur_exception[sizeof(_FAASM_SGX_ERROR_PREFIX)]));
-            }
-
-            SGX_DEBUG_LOG(
-              ((WASMModuleInstance*)tcs_ptr->module_inst)->cur_exception);
-            return FAASM_SGX_WAMR_FUNCTION_UNABLE_TO_CALL;
-        }
-#endif
         return FAASM_SGX_SUCCESS;
     }
 
@@ -361,10 +323,6 @@ extern "C"
         if ((return_value = __get_tcs_slot(thread_id)) != FAASM_SGX_SUCCESS) {
             return return_value;
         }
-
-#if (FAASM_SGX_WHITELISTING)
-        tls_thread_id = *thread_id;
-#endif
 
         // Initialize Faasm-SGX TCS slot and copy wasm code
         _FAASM_SGX_TCS_LOAD_SLOT(tcs_ptr, *thread_id);

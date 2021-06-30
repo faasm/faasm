@@ -2,12 +2,7 @@
 #include <sgx/faasm_sgx_error.h>
 #include <sgx/faasm_sgx_native_symbols_wrapper.h>
 
-#if (FAASM_SGX_WAMR_AOT_MODE)
 #include <iwasm/aot/aot_runtime.h>
-#else
-#include <iwasm/interpreter/wasm_runtime.h>
-#endif
-
 #include <iwasm/common/wasm_exec_env.h>
 
 #if (FAASM_SGX_ATTESTATION)
@@ -18,22 +13,13 @@ extern "C"
 }
 #endif
 
-// SET_ERROR definition for AoT and interpreter mode
-#if (FAASM_SGX_WAMR_AOT_MODE)
+// SET_ERROR definition
 #define SET_ERROR(X)                                                           \
     memcpy(((AOTModuleInstance*)exec_env->module_inst)->cur_exception,         \
            _FAASM_SGX_ERROR_PREFIX,                                            \
            sizeof(_FAASM_SGX_ERROR_PREFIX));                                   \
     *((uint32_t*)&((AOTModuleInstance*)exec_env->module_inst)                  \
         ->cur_exception[sizeof(_FAASM_SGX_ERROR_PREFIX)]) = (X);
-#else
-#define SET_ERROR(X)                                                           \
-    memcpy(((WASMModuleInstance*)exec_env->module_inst)->cur_exception,        \
-           _FAASM_SGX_ERROR_PREFIX,                                            \
-           sizeof(_FAASM_SGX_ERROR_PREFIX));                                   \
-    *((uint32_t*)&((WASMModuleInstance*)exec_env->module_inst)                 \
-        ->cur_exception[sizeof(_FAASM_SGX_ERROR_PREFIX)]) = (X);
-#endif
 
 #define NATIVE_FUNC(funcName, funcSig)                                         \
     {                                                                          \
@@ -367,17 +353,6 @@ extern "C"
         }
         return returnValue;
     }
-
-    // ------------------------------
-    // WHITELISTING
-    // ------------------------------
-
-#if (FAASM_SGX_WHITELISTING)
-    void sgx_wamr_function_not_whitelisted_wrapper(wasm_exec_env_t exec_env)
-    {
-        SET_ERROR(FAASM_SGX_FUNCTION_NOT_WHITELISTED);
-    }
-#endif
 
     // -------------------------------------------
     // PTHREADS
