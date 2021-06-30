@@ -59,10 +59,8 @@ Low-level SGX-related customisation is found in [the SGX-specific
 ### General Options
 
 - `FAASM_SGX_SIM_MODE` - Specifies the SGX execution mode whether the Simulation
-  or Hardware mode is used.  Enabling this option chooses the Simulation mode.
+  or Hardware mode is used. Enabling this option chooses the Simulation mode.
   Default is on.
-- `FAASM_SGX_ATTESTATION` - Enables the Attestation extension. If this option is
-  enabled, please set `#define FAASM_SGX_ATTESTATION 1` in
-  [faasm_sgx_enclave.edl](../src/sgx/faasm_sgx_enclave.edl).  Default is off.
+- `FAASM_SGX_ATTESTATION` - Enables the Attestation extension. Default is off.
 - `FAASM_SGX_XRA` - Enables the eXtended Remote Attestation mechanism. Default 
   is off.
