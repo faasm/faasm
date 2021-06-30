@@ -1,7 +1,7 @@
 #pragma once
 
-#include <stdint.h>
 #include <sgx_tcrypto.h>
+#include <stdint.h>
 
 #define FAASM_SGX_ATTESTATION_FLAGS_BIT_STATUS 0x0
 #define FAASM_SGX_ATTESTATION_FLAGS_BIT_MSG_TYPE 0x1
