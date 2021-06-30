@@ -1,25 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-/*#if(DEMO_KEYMGR)
-#define SGX_SHA1_HASH_SIZE              20
-#define SGX_SHA256_HASH_SIZE            32
-#define SGX_ECP256_KEY_SIZE             32
-#define SGX_NISTP_ECP256_KEY_SIZE       (SGX_ECP256_KEY_SIZE/sizeof(uint32_t))
-#define SGX_AESGCM_IV_SIZE              12
-#define SGX_AESGCM_KEY_SIZE             16
-#define SGX_AESGCM_MAC_SIZE             16
-#define SGX_HMAC256_KEY_SIZE            32
-#define SGX_HMAC256_MAC_SIZE            32
-#define SGX_CMAC_KEY_SIZE               16
-#define SGX_CMAC_MAC_SIZE               16
-#define SGX_AESCTR_KEY_SIZE             16
-#define SGX_RSA3072_KEY_SIZE            384
-#define SGX_RSA3072_PRI_EXP_SIZE        384
-#define SGX_RSA3072_PUB_EXP_SIZE        4
-#else*/
 #include <sgx_tcrypto.h>
-//#endif
 
 #define FAASM_SGX_ATTESTATION_FLAGS_BIT_STATUS 0x0
 #define FAASM_SGX_ATTESTATION_FLAGS_BIT_MSG_TYPE 0x1

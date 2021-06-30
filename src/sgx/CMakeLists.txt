@@ -17,12 +17,6 @@ set(FAASM_SGX_ENCLAVE_PATH "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/faasm_sgx_enclave.
 # Disable for better performance
 set(FAASM_SGX_DEBUG 1) 
 
-if(FAASM_SGX_WHITELISTING)
-    add_definitions(-DFAASM_SGX_WHITELISTING=1)
-else()
-    add_definitions(-DFAASM_SGX_WHITELISTING=0)
-endif()
-
 # SGX configuration
 set(SGX_DEBUG_MODE 1)
 set(SGX_SDK_LIB_PATH ${SGX_SDK_PATH}/lib64)
@@ -50,19 +44,8 @@ set(SGX_SDK_ENCLAVE_EDGER8R ${SGX_SDK_PATH}/bin/x64/sgx_edger8r)
 set (WAMR_BUILD_PLATFORM "linux-sgx")
 set (WAMR_BUILD_TARGET X86_64)
 
-# Set WAMR include flags
-# (fast) interpreter, AOT, libc, wasi, and pthread are enabled by default
-
-# Set interpreter mode
-set (WAMR_BUILD_INTERP 1)
-set (WAMR_BUILD_FAST_INTERP 1)
-if (FAASM_SGX_WAMR_AOT_MODE)
-    set (WAMR_BUILD_AOT 1)
-    add_definitions(-DFAASM_SGX_WAMR_AOT_MODE=1)
-else ()
-    set (WAMR_BUILD_AOT 0)
-    add_definitions(-DFAASM_SGX_WAMR_AOT_MODE=0)
-endif ()
+# Set AOT mode, disable JIT
+set (WAMR_BUILD_AOT 1)
 set (WAMR_BUILD_JIT 0)
 
 # Set libraries
@@ -106,9 +89,7 @@ add_definitions(
 message("-- Faasm-SGX Configuration:
  FAASM-SGX Debug Mode: ${FAASM_SGX_DEBUG}
  FAASM-SGX SGX Simulation Mode: ${FAASM_SGX_SIM_MODE}
- FAASM-SGX WAMR AoT Mode: ${FAASM_SGX_WAMR_AOT_MODE}
  FAASM-SGX ATTESTATION: ${FAASM_SGX_ATTESTATION}
- FAASM-SGX WHITELISTING: ${FAASM_SGX_WHITELISTING}
  FAASM-SGX XRA: ${FAASM_SGX_XRA}
  FAASM_SGX Enclave Path: ${FAASM_SGX_ENCLAVE_PATH}"
 )
@@ -166,7 +147,6 @@ set(FAASM_SGX_HEADERS
         ${FAASM_INCLUDE_DIR}/sgx/faasm_sgx_error.h
         ${FAASM_INCLUDE_DIR}/sgx/faasm_sgx_native_symbols_wrapper.h
         ${FAASM_INCLUDE_DIR}/sgx/faasm_sgx_system.h
-        ${FAASM_INCLUDE_DIR}/sgx/faasm_sgx_whitelisting.h
         ${FAASM_INCLUDE_DIR}/sgx/rw_lock.h
         ${FAASM_INCLUDE_DIR}/sgx/SGXWAMRWasmModule.h
 )
@@ -181,10 +161,6 @@ set(FAASM_SGX_ENCLAVE_SRC
         faasm_sgx_native_symbols_wrapper.cpp
         rw_lock.cpp
         )
-
-if (FAASM_SGX_WHITELISTING)
-    set(FAASM_SGX_ENCLAVE_SRC ${FAASM_SGX_ENCLAVE_SRC} faasm_sgx_whitelisting.cpp)
-endif ()
 
 add_library(faasm_sgx_enclave SHARED
     ${FAASM_SGX_HEADERS}
@@ -305,7 +281,7 @@ add_library(faasm_sgx STATIC
 add_dependencies(faasm_sgx faasm_sgx_enclave wamr_sgx_untrusted wasm)
 
 if(FAASM_SGX_ATTESTATION)
-    add_dependencies(faasm_sgx demo_keymgr)
+    add_dependencies(faasm_sgx)
 endif()
 
 target_include_directories(faasm_sgx PUBLIC ${SGX_SDK_PATH}/include)
@@ -389,22 +365,6 @@ target_compile_options(wamr_sgx_untrusted PRIVATE
         -ffunction-sections
         -fdata-sections
         )
-
-# --------------------------------------------------------
-# DEMO KEY MANAGER
-# --------------------------------------------------------
-if(FAASM_SGX_ATTESTATION)
-    add_executable(demo_keymgr demo_keymgr.c)
-
-    target_include_directories(demo_keymgr PRIVATE ${SGX_SDK_PATH}/include)
-    target_link_options(demo_keymgr PRIVATE -pthread)
-    target_compile_options(demo_keymgr PRIVATE
-            -O3
-            -fpic
-            -fpie
-            -DDEMO_KEYMGR=1
-            )
-endif()
 
 # --------------------------------------------------------
 # CUSTOM COMMANDS
