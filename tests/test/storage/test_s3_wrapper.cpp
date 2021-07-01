@@ -15,7 +15,11 @@ class S3TestFixture
 {
   public:
     S3TestFixture()
-      : conf(conf::getFaasmConfig()){};
+      : conf(conf::getFaasmConfig())
+    {
+        // Make sure the bucket exists
+        s3.createBucket(conf.bucketName);
+    };
 
     ~S3TestFixture(){};
 

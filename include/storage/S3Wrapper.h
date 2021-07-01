@@ -15,7 +15,11 @@ namespace storage {
 Aws::Client::ClientConfiguration getClientConf(long timeout = 3000);
 
 #define S3_REQUEST_TIMEOUT_MS 500
+
+#define MINIO_CONNECT_TIMEOUT_MS 500
 #define MINIO_URI "minio:9000"
+#define MINIO_USER "minioadmin"
+#define MINIO_PASSWORD "minioadmin"
 
 void initSDK();
 
@@ -34,9 +38,9 @@ void handleError(const Aws::Client::AWSError<T> err)
 class S3Wrapper
 {
   public:
-    static S3Wrapper& getThreadLocal();
-
     S3Wrapper();
+
+    void createBucket(const std::string& bucketName);
 
     std::vector<std::string> listKeys(const std::string& bucketName);
 
