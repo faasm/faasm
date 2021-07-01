@@ -20,6 +20,8 @@ the distributed messaging and state layer.
 
 The underlying WebAssembly execution and code generation is built using
 [WAVM](https://github.com/WAVM/WAVM). 
+Support for running functions inside SGX enclaves is achieved using
+[WAMR](https://github.com/bytecodealliance/wasm-micro-runtime).
 
 Faasm defines a custom [host interface](docs/host_interface.md) which extends
 [WASI](https://wasi.dev/) to include function inputs and outputs, chaining

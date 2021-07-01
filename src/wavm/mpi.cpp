@@ -148,11 +148,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Init", I32, MPI_Init, I32 a, I32 b)
         executingContext.joinWorld(*call);
     }
 
-    // We want to synchronise everyone here on a barrier
-    int thisRank = executingContext.getRank();
-    faabric::scheduler::MpiWorld& world = getExecutingWorld();
-    world.barrier(thisRank);
-
     return 0;
 }
 
@@ -367,7 +362,6 @@ int terminateMpi()
 {
     // Wait for all processes to reach the terminate step
     ContextWrapper ctx;
-    ctx.world.barrier(ctx.rank);
 
     // Destroy the MPI world
     ctx.world.destroy();

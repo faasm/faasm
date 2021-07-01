@@ -11,14 +11,13 @@ extern "C"
     void ocall_printf(const char* msg) { printf("%s", msg); }
 }
 
-__thread faaslet_sgx_msg_buffer_t* faasletSgxMsgBufferPtr;
+thread_local faaslet_sgx_msg_buffer_t* faasletSgxMsgBufferPtr;
 
 using namespace sgx;
 
 namespace wasm {
 SGXWAMRWasmModule::SGXWAMRWasmModule()
 {
-
     // Allocate memory for response
     sgxWamrMsgResponse.buffer_len =
       (sizeof(sgx_wamr_msg_t) + sizeof(sgx_wamr_msg_hdr_t));
@@ -46,23 +45,21 @@ SGXWAMRWasmModule::~SGXWAMRWasmModule()
     }
 }
 
+// ----- Module lifecycle -----
 void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 {
-
     // Set up filesystem
     storage::FileSystem fs;
     fs.prepareFilesystem();
 
-    // Load AoT or wasm
-    storage::FileLoader& fl = storage::getFileLoader();
+    // Load AoT
+    storage::FileLoader& functionLoader = storage::getFileLoader();
 
-#if (FAASM_SGX_WAMR_AOT_MODE)
-    std::vector<uint8_t> wasmBytes = fl.loadFunctionWamrAotFile(msg);
-#else
-    std::vector<uint8_t> wasmBytes = fl.loadFunctionWasm(msg);
-#endif
+    std::vector<uint8_t> wasmBytes =
+      functionLoader.loadFunctionWamrAotFile(msg);
 
     // Load the wasm module
+    // Note - loading and instantiating happen in the same ecall
     faasm_sgx_status_t returnValue;
     sgx_status_t status =
       faasm_sgx_enclave_load_module(globalEnclaveId,
@@ -86,6 +83,12 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
                      faasmSgxErrorString(returnValue));
         throw std::runtime_error("Unable to load WASM module");
     }
+
+    // Set up the thread stacks
+    // 28/06/2021 - Threading is not supported in SGX-WAMR. However, the Faasm
+    // runtime expects (asserts) this vector to be non-empty. Change when
+    // in-SGX threading is supported.
+    threadStacks.push_back(-1);
 }
 
 bool SGXWAMRWasmModule::unbindFunction()
@@ -150,6 +153,25 @@ int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
         throw std::runtime_error("Error occurred during function execution");
     }
 
+    return 0;
+}
+
+uint32_t SGXWAMRWasmModule::growMemory(uint32_t nBytes)
+{
+    SPDLOG_DEBUG("SGX-WAMR growing memory by {}", nBytes);
+
+    uint32_t memBase = currentBrk;
+
+    uint32_t nPages = getNumberOfWasmPagesForBytes(nBytes);
+    SPDLOG_WARN("Growing memory in SGX-WAMR never allocates new memory");
+
+    currentBrk = memBase + (nPages * WASM_BYTES_PER_PAGE);
+    return memBase;
+}
+
+uint32_t SGXWAMRWasmModule::shrinkMemory(uint32_t nBytes)
+{
+    SPDLOG_WARN("SGX-WAMR ignoring shrink memory");
     return 0;
 }
 }

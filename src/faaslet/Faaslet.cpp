@@ -29,8 +29,6 @@ using namespace isolation;
 
 namespace faaslet {
 
-std::mutex flushMutex;
-
 void preloadPythonRuntime()
 {
     conf::FaasmConfig& conf = conf::getFaasmConfig();
@@ -50,27 +48,6 @@ void preloadPythonRuntime()
 
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.callFunction(msg, true);
-}
-
-void Faaslet::flush()
-{
-    SPDLOG_DEBUG("Faaslet {} flushing", id);
-
-    // Note that all Faaslets on the given host will be flushing at the same
-    // time, so we need to include some locking. They will also be killed
-    // shortly after.
-    // TODO avoid repeating global tidy-up that only needs to be done once
-    faabric::util::UniqueLock lock(flushMutex);
-
-    // Clear cached shared files
-    storage::FileSystem::clearSharedFiles();
-
-    // Clear cached wasm and object files
-    storage::FileLoader& fileLoader = storage::getFileLoader();
-    fileLoader.flushFunctionFiles();
-
-    // Flush the module itself
-    module->flush();
 }
 
 Faaslet::Faaslet(faabric::Message& msg)
@@ -98,18 +75,19 @@ Faaslet::Faaslet(faabric::Message& msg)
         SPDLOG_ERROR("Unrecognised wasm VM: {}", conf.wasmVm);
         throw std::runtime_error("Unrecognised wasm VM");
     }
+
+    // Bind to the function
+    module->bindToFunction(msg);
 }
 
 int32_t Faaslet::executeTask(int threadPoolIdx,
                              int msgIdx,
                              std::shared_ptr<faabric::BatchExecuteRequest> req)
 {
-    faabric::Message& msg = req->mutable_messages()->at(msgIdx);
-
-    // Lazily bind to function and isolate
-    // Note that this has to be done within the executeTask function to be in
-    // the same thread as the execution
-    if (!module->isBound()) {
+    // Lazily setup Faaslet isolation.
+    // This has to be done within the same thread as the execution (hence we
+    // leave it until just before execution).
+    if (!isIsolated) {
         // Add this thread to the cgroup
         CGroup cgroup(BASE_CGROUP_NAME);
         cgroup.addCurrentThread();
@@ -118,7 +96,7 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
         ns = claimNetworkNamespace();
         ns->addCurrentThread();
 
-        module->bindToFunction(msg);
+        isIsolated = true;
     }
 
     int32_t returnValue = module->executeTask(threadPoolIdx, msgIdx, req);
@@ -128,15 +106,20 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
 
 void Faaslet::reset(faabric::Message& msg)
 {
-    // TODO - avoid this copy, need to remove the const
-    faabric::Message msgCopy = msg;
-    module->reset(msgCopy);
+    module->reset(msg);
 }
 
 void Faaslet::postFinish()
 {
-    ns->removeCurrentThread();
-    returnNetworkNamespace(ns);
+    if (ns != nullptr) {
+        ns->removeCurrentThread();
+        returnNetworkNamespace(ns);
+    }
+}
+
+faabric::util::SnapshotData Faaslet::snapshot()
+{
+    return module->getSnapshotData();
 }
 
 void Faaslet::restore(faabric::Message& msg)
@@ -166,5 +149,21 @@ std::shared_ptr<faabric::scheduler::Executor> FaasletFactory::createExecutor(
   faabric::Message& msg)
 {
     return std::make_shared<Faaslet>(msg);
+}
+
+void FaasletFactory::flushHost()
+{
+    // Clear cached shared files
+    storage::FileSystem::clearSharedFiles();
+
+    // Clear cached wasm and object files
+    storage::FileLoader& fileLoader = storage::getFileLoader();
+    fileLoader.flushFunctionFiles();
+
+    // WAVM-specific flushing
+    const conf::FaasmConfig& conf = conf::getFaasmConfig();
+    if (conf.wasmVm == "wavm") {
+        wasm::WAVMWasmModule::clearCaches();
+    }
 }
 }

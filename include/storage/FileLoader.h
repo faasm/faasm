@@ -88,7 +88,8 @@ class FileLoader
 
   protected:
     std::vector<uint8_t> doCodegen(std::vector<uint8_t>& bytes,
-                                   const std::string& fileName);
+                                   const std::string& fileName,
+                                   bool isSgx = false);
 
     std::vector<uint8_t> hashBytes(const std::vector<uint8_t>& bytes);
 

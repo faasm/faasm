@@ -1,13 +1,8 @@
-#include "sgx/faasm_sgx_native_symbols_wrapper.h"
-#include "sgx/faasm_sgx_enclave_types.h"
-#include "sgx/faasm_sgx_error.h"
+#include <sgx/faasm_sgx_enclave_types.h>
+#include <sgx/faasm_sgx_error.h>
+#include <sgx/faasm_sgx_native_symbols_wrapper.h>
 
-#if (FAASM_SGX_WAMR_AOT_MODE)
 #include <iwasm/aot/aot_runtime.h>
-#else
-#include <iwasm/interpreter/wasm_runtime.h>
-#endif
-
 #include <iwasm/common/wasm_exec_env.h>
 
 #if (FAASM_SGX_ATTESTATION)
@@ -18,26 +13,27 @@ extern "C"
 }
 #endif
 
-// SET_ERROR definition for AoT and interpreter mode
-#if (FAASM_SGX_WAMR_AOT_MODE)
+// SET_ERROR definition
 #define SET_ERROR(X)                                                           \
     memcpy(((AOTModuleInstance*)exec_env->module_inst)->cur_exception,         \
            _FAASM_SGX_ERROR_PREFIX,                                            \
            sizeof(_FAASM_SGX_ERROR_PREFIX));                                   \
     *((uint32_t*)&((AOTModuleInstance*)exec_env->module_inst)                  \
         ->cur_exception[sizeof(_FAASM_SGX_ERROR_PREFIX)]) = (X);
-#else
-#define SET_ERROR(X)                                                           \
-    memcpy(((WASMModuleInstance*)exec_env->module_inst)->cur_exception,        \
-           _FAASM_SGX_ERROR_PREFIX,                                            \
-           sizeof(_FAASM_SGX_ERROR_PREFIX));                                   \
-    *((uint32_t*)&((WASMModuleInstance*)exec_env->module_inst)                 \
-        ->cur_exception[sizeof(_FAASM_SGX_ERROR_PREFIX)]) = (X);
-#endif
 
 #define NATIVE_FUNC(funcName, funcSig)                                         \
     {                                                                          \
         "__" #funcName, (void*)funcName##_wrapper, funcSig, 0x0                \
+    }
+
+#define PTHREAD_NATIVE_FUNC(funcName, funcSig)                                 \
+    {                                                                          \
+#funcName, (void*)funcName##_wrapper, funcSig, 0x0                     \
+    }
+
+#define MEMORY_NATIVE_FUNC(funcName, funcSig)                                  \
+    {                                                                          \
+#funcName, (void*)funcName##_wrapper, funcSig, 0x0                     \
     }
 
 #define WASI_NATIVE_FUNC(funcName, funcSig)                                    \
@@ -358,16 +354,71 @@ extern "C"
         return returnValue;
     }
 
+    // -------------------------------------------
+    // PTHREADS
+    // 28/06/21 - WAMR-SGX threading not implemented
+    // -------------------------------------------
+
+    static int32_t pthread_mutex_init_wrapper(wasm_exec_env_t exec_env,
+                                              int32_t a,
+                                              int32_t b)
+    {
+        return 0;
+    }
+
+    static int32_t pthread_mutex_lock_wrapper(wasm_exec_env_t exec_env,
+                                              int32_t a)
+    {
+        return 0;
+    }
+
+    static int32_t pthread_mutex_unlock_wrapper(wasm_exec_env_t exec_env,
+                                                int32_t a)
+    {
+        return 0;
+    }
+
+    static int32_t pthread_cond_broadcast_wrapper(wasm_exec_env_t exec_env,
+                                                  int32_t a)
+    {
+        return 0;
+    }
+
+    static int32_t pthread_mutexattr_init_wrapper(wasm_exec_env_t exec_env,
+                                                  int32_t a)
+    {
+        return 0;
+    }
+
+    static int32_t pthread_mutexattr_destroy_wrapper(wasm_exec_env_t exec_env,
+                                                     int32_t a)
+    {
+        return 0;
+    }
+
+    static int32_t pthread_equal_wrapper(wasm_exec_env_t exec_env,
+                                         int32_t a,
+                                         int32_t b)
+    {
+        return 0;
+    }
+
     // ------------------------------
-    // WHITELISTING
+    // MEMORY
     // ------------------------------
 
-#if (FAASM_SGX_WHITELISTING)
-    void sgx_wamr_function_not_whitelisted_wrapper(wasm_exec_env_t exec_env)
+    static int32_t __sbrk_wrapper(wasm_exec_env_t exec_env, int32_t increment)
     {
-        SET_ERROR(FAASM_SGX_FUNCTION_NOT_WHITELISTED);
+        int32_t returnValue;
+        sgx_status_t sgxReturnValue = ocall_sbrk(&returnValue, increment);
+
+        if ((sgxReturnValue = ocall_sbrk(&returnValue, increment)) !=
+            SGX_SUCCESS) {
+            SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
+        }
+
+        return returnValue;
     }
-#endif
 
     // ------------------------------
     // WASI default wrapper
@@ -430,7 +481,15 @@ extern "C"
         NATIVE_FUNC(faasm_chain_name, "($$i)i"),
         NATIVE_FUNC(faasm_chain_ptr, "(*$i)i"),
         NATIVE_FUNC(faasm_await_call, "(i)i"),
-        NATIVE_FUNC(faasm_await_call_output, "(i)i")
+        NATIVE_FUNC(faasm_await_call_output, "(i)i"),
+        PTHREAD_NATIVE_FUNC(pthread_mutex_init, "(ii)i"),
+        PTHREAD_NATIVE_FUNC(pthread_mutex_lock, "(i)i"),
+        PTHREAD_NATIVE_FUNC(pthread_mutex_unlock, "(i)i"),
+        PTHREAD_NATIVE_FUNC(pthread_cond_broadcast, "(i)i"),
+        PTHREAD_NATIVE_FUNC(pthread_mutexattr_init, "(i)i"),
+        PTHREAD_NATIVE_FUNC(pthread_mutexattr_destroy, "(i)i"),
+        PTHREAD_NATIVE_FUNC(pthread_equal, "(ii)i"),
+        MEMORY_NATIVE_FUNC(__sbrk, "(i)i"),
     };
 
     NativeSymbol faasm_sgx_wasi_symbols[FAASM_SGX_WASI_SYMBOLS_LEN] = {
