@@ -209,8 +209,8 @@ extern "C"
         return FAASM_SGX_SUCCESS;
     }
 
-    faasm_sgx_status_t faasm_sgx_enclave_call_function(const uint32_t thread_id,
-                                                       const uint32_t func_ptr)
+    // Execute the main function
+    faasm_sgx_status_t faasm_sgx_enclave_call_function(const uint32_t thread_id)
     {
         // Check if thread_id is in range
         if (thread_id >= _faasm_sgx_tcs_len) {
@@ -222,14 +222,9 @@ extern "C"
 
         // Get function to execute
         WASMFunctionInstanceCommon* wasm_func;
-        if (func_ptr == 0) {
-            if (!(wasm_func = wasm_runtime_lookup_function(
-                    tcs_ptr->module_inst, WASM_ENTRY_FUNC, NULL))) {
-            }
-
-        } else {
-            // Lookup by function pointer not supported in SGX yet
-            return FAASM_SGX_INVALID_FUNC_ID;
+        if (!(wasm_func = wasm_runtime_lookup_function(
+                tcs_ptr->module_inst, WASM_ENTRY_FUNC, NULL))) {
+            return FAASM_SGX_WAMR_FUNCTION_NOT_FOUND;
         }
 
 #if (FAASM_SGX_ATTESTATION)

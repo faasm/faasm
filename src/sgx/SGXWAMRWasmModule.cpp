@@ -130,8 +130,8 @@ int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
 
     // Enter enclave and call function
     faasm_sgx_status_t returnValue;
-    sgx_status_t sgxReturnValue = faasm_sgx_enclave_call_function(
-      globalEnclaveId, &returnValue, threadId, msg.funcptr());
+    sgx_status_t sgxReturnValue =
+      faasm_sgx_enclave_call_function(globalEnclaveId, &returnValue, threadId);
 
     if (sgxReturnValue != SGX_SUCCESS) {
         SPDLOG_ERROR("Unable to enter enclave: {}",

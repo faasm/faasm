@@ -97,4 +97,6 @@ def local(ctx):
 
     # Run the SGX codegen required by the tests
     codegen(ctx, "demo", "hello", wamr=True, sgx=True)
-    codegen(ctx, "demo", "chain", wamr=True, sgx=True)
+    codegen(ctx, "demo", "chain_named_a", wamr=True, sgx=True)
+    codegen(ctx, "demo", "chain_named_b", wamr=True, sgx=True)
+    codegen(ctx, "demo", "chain_named_c", wamr=True, sgx=True)

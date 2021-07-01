@@ -12,8 +12,8 @@ TEST_CASE("Test executing hello function with SGX", "[sgx]")
     executeWithSGX("demo", "hello");
 }
 
-TEST_CASE("Test executing chain function with SGX", "[sgx2]")
+TEST_CASE("Test executing chaining by name with SGX", "[sgx]")
 {
-    executeWithSGX("demo", "chain");
+    executeWithSGX("demo", "chain_named_a");
 }
 }
