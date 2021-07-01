@@ -43,6 +43,7 @@ set(SGX_SDK_ENCLAVE_EDGER8R ${SGX_SDK_PATH}/bin/x64/sgx_edger8r)
 # Set target platform details
 set (WAMR_BUILD_PLATFORM "linux-sgx")
 set (WAMR_BUILD_TARGET X86_64)
+set (WAMR_BUILD_SPEC_TEST)
 
 # Set AOT mode, disable JIT
 set (WAMR_BUILD_AOT 1)
