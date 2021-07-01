@@ -54,17 +54,15 @@ ExternalProject_Add(eigen_ext
 # If you need to build multiple AWS components, see this issue:
 # https://github.com/aws/aws-sdk-cpp/issues/826
 ExternalProject_Add(aws_ext
-    GIT_REPOSITORY   https://github.com/aws/aws-sdk-cpp.git
+    GIT_REPOSITORY   "https://github.com/aws/aws-sdk-cpp.git"
     GIT_TAG          "b733384b16945818fa5da5b73e410dea1e9ab9d0"
     CMAKE_CACHE_ARGS "-DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}"
+    LIST_SEPARATOR    "|"
     CMAKE_ARGS       -DBUILD_SHARED_LIBS=OFF
-                     -DBUILD_ONLY=s3
+                     -DBUILD_ONLY=s3|sts
                      -DAUTORUN_UNIT_TESTS=OFF
                      -DENABLE_TESTING=OFF
                      -DCMAKE_BUILD_TYPE=Release
-    BUILD_ALWAYS     0
-    TEST_COMMAND     ""
-    UPDATE_COMMAND   ""
 )
 
 ExternalProject_Add(catch2_ext

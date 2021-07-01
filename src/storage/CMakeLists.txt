@@ -20,8 +20,14 @@ set(LIB_FILES
 
 faasm_private_lib(storage "${LIB_FILES}")
 add_dependencies(storage aws_ext)
+
+find_package(aws-cpp-sdk-core)
+find_package(aws-cpp-sdk-s3)
+
 target_link_libraries(storage
     wavmmodule
     wamrmodule
     cpprestsdk::cpprest
+    aws-cpp-sdk-core
+    aws-cpp-sdk-s3
 )
