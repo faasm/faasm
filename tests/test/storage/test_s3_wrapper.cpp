@@ -15,12 +15,9 @@ class S3TestFixture
 {
   public:
     S3TestFixture()
-      : conf(conf::getFaasmConfig())
-    {
-        storage::initSDK();
-    };
+      : conf(conf::getFaasmConfig()){};
 
-    ~S3TestFixture() { storage::cleanUpSDK(); }
+    ~S3TestFixture(){};
 
   protected:
     conf::FaasmConfig& conf;
@@ -29,9 +26,6 @@ class S3TestFixture
 
 TEST_CASE_METHOD(S3TestFixture, "Test read/write keys in bucket", "[s3]")
 {
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
-    storage::S3Wrapper s3;
-
     std::string dataA("£5^Itej__\n\tFoo");
     std::string dataB("ABCDEFGH123$$$&\r*");
 
