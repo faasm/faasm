@@ -10,10 +10,27 @@
 #include <storage/S3Wrapper.h>
 
 namespace tests {
-TEST_CASE("Test read/write keys in bucket", "[s3]")
+
+class S3TestFixture
+{
+  public:
+    S3TestFixture()
+      : conf(conf::getFaasmConfig())
+    {
+        storage::initSDK();
+    };
+
+    ~S3TestFixture() { storage::cleanUpSDK(); }
+
+  protected:
+    conf::FaasmConfig& conf;
+    storage::S3Wrapper s3;
+};
+
+TEST_CASE_METHOD(S3TestFixture, "Test read/write keys in bucket", "[s3]")
 {
     conf::FaasmConfig& conf = conf::getFaasmConfig();
-    storage::S3Wrapper& s3 = storage::S3Wrapper::getThreadLocal();
+    storage::S3Wrapper s3;
 
     std::string dataA("£5^Itej__\n\tFoo");
     std::string dataB("ABCDEFGH123$$$&\r*");
@@ -63,11 +80,10 @@ TEST_CASE("Test read/write keys in bucket", "[s3]")
     REQUIRE(actualEmpty.empty());
 }
 
-TEST_CASE("Test read/write function data in bucket", "[s3]")
+TEST_CASE_METHOD(S3TestFixture,
+                 "Test read/write function data in bucket",
+                 "[s3]")
 {
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
-    storage::S3Wrapper& s3 = storage::S3Wrapper::getThreadLocal();
-
     faabric::Message msg;
     msg.set_user("demo");
     msg.set_function("echo");

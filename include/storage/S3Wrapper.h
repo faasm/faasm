@@ -12,11 +12,13 @@
 
 namespace storage {
 
-std::shared_ptr<Aws::Auth::AWSCredentialsProvider> getCredentialsProvider();
-
 Aws::Client::ClientConfiguration getClientConf(long timeout = 3000);
 
+#define S3_REQUEST_TIMEOUT_MS 500
+#define MINIO_URI "minio:9000"
+
 void initSDK();
+
 void cleanUpSDK();
 
 template<typename T>
@@ -32,8 +34,6 @@ void handleError(const Aws::Client::AWSError<T> err)
 class S3Wrapper
 {
   public:
-    static const long REQUEST_TIMEOUT_MS = 500;
-
     static S3Wrapper& getThreadLocal();
 
     S3Wrapper();
@@ -57,6 +57,10 @@ class S3Wrapper
                           const std::string& keyName);
 
   private:
+    Aws::Client::ClientConfiguration clientConf;
+
+    Aws::S3::S3Client client;
+
     void addKey(const std::string& bucketName,
                 const std::string& keyName,
                 const char* data,
@@ -64,9 +68,5 @@ class S3Wrapper
 
     std::string getKey(const std::string& bucketName,
                        const std::string& keyName);
-
-    std::shared_ptr<Aws::Auth::AWSCredentialsProvider> credentialsProvider;
-    Aws::Client::ClientConfiguration clientConf;
-    Aws::S3::S3Client client;
 };
 }

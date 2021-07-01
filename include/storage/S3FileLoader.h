@@ -47,7 +47,7 @@ class S3FileLoader : public FileLoader
 
   private:
     conf::FaasmConfig& conf;
-    storage::S3Wrapper& s3;
+    storage::S3Wrapper s3;
 
     std::vector<uint8_t> loadFileBytes(const std::string& path);
 };

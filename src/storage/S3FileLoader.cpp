@@ -39,7 +39,6 @@ std::string getFunctionObjectKey(const faabric::Message& msg)
 
 S3FileLoader::S3FileLoader()
   : conf(conf::getFaasmConfig())
-  , s3(storage::S3Wrapper::getThreadLocal())
 {}
 
 std::vector<uint8_t> S3FileLoader::loadFileBytes(const std::string& path)

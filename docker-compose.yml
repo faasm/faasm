@@ -22,6 +22,7 @@ services:
     depends_on:
       - redis-queue
       - redis-state
+      - minio
     volumes:
       - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
       - ./dev/wasm/:/usr/local/code/faasm/wasm/

@@ -20,17 +20,21 @@ std::shared_ptr<Aws::Auth::AWSCredentialsProvider> getCredentialsProvider()
 
 Aws::Client::ClientConfiguration getClientConf(long timeout)
 {
-    Aws::Client::ClientConfiguration clientConf;
-    clientConf.region = Aws::Region::EU_WEST_1;
-    clientConf.requestTimeoutMs = timeout;
+    Aws::Client::ClientConfiguration config;
 
-    return clientConf;
+    config.region = Aws::String("");
+    config.verifySSL = false;
+    config.endpointOverride = Aws::String(MINIO_URI);
+    config.scheme = Aws::Http::Scheme::HTTP;
+    config.connectTimeoutMs = timeout;
+    config.requestTimeoutMs = timeout;
+
+    return config;
 }
 
 void initSDK()
 {
-    SPDLOG_INFO("Initialising AWS support");
-
+    SPDLOG_INFO("Initialising AWS SDK");
     Aws::InitAPI(options);
 }
 
@@ -39,17 +43,14 @@ void cleanUpSDK()
     Aws::ShutdownAPI(options);
 }
 
+// Note the flag passed to the client for useVirtualAddressing
+// https://github.com/aws/aws-sdk-cpp/issues/587
 S3Wrapper::S3Wrapper()
-  : credentialsProvider(getCredentialsProvider())
-  , clientConf(getClientConf(REQUEST_TIMEOUT_MS))
-  , client(Aws::S3::S3Client(credentialsProvider, clientConf))
+  : clientConf(getClientConf(S3_REQUEST_TIMEOUT_MS))
+  , client(clientConf,
+           Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never,
+           true)
 {}
-
-S3Wrapper& S3Wrapper::getThreadLocal()
-{
-    static thread_local S3Wrapper s3;
-    return s3;
-}
 
 std::vector<std::string> S3Wrapper::listKeys(const std::string& bucketName)
 {
@@ -162,4 +163,3 @@ std::string S3Wrapper::getKey(const std::string& bucketName,
     return ss.str();
 }
 }
-
