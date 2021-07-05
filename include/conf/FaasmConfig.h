@@ -27,7 +27,10 @@ class FaasmConfig
     std::string sharedFilesStorageDir;
 
     FaasmConfig();
+
     void reset();
+
+    void print();
 
   private:
     int getIntParam(const char* name, const char* defaultValue);
