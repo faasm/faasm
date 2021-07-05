@@ -11,9 +11,8 @@
 #include <faabric/util/logging.h>
 #include <faabric/util/timing.h>
 
-int main(int argc, char* argv[])
+int doRunner(int argc, char* argv[])
 {
-    faabric::transport::initGlobalMessageContext();
     faabric::util::initLogging();
 
     if (argc < 3) {
@@ -108,6 +107,17 @@ int main(int argc, char* argv[])
 
     m.shutdown();
 
-    faabric::transport::closeGlobalMessageContext();
     return 0;
+}
+
+int main(int argc, char* argv[])
+{
+    faabric::transport::initGlobalMessageContext();
+
+    // WARNING: All 0MQ-related operations must take place in a self-contined
+    // scope to ensure all sockets are destructed before closing the context.
+    int result = doRunner(argc, argv);
+
+    faabric::transport::closeGlobalMessageContext();
+    return result;
 }

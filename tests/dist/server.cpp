@@ -13,19 +13,24 @@ int main()
     faabric::transport::initGlobalMessageContext();
     faabric::util::initLogging();
 
-    SPDLOG_INFO("Starting distributed test server on worker");
-    std::shared_ptr<ExecutorFactory> fac =
-      std::make_shared<faaslet::FaasletFactory>();
-    faabric::runner::FaabricMain m(fac);
-    m.startBackground();
+    // WARNING: All 0MQ-related operations must take place in a self-contined
+    // scope to ensure all sockets are destructed before closing the context.
+    {
+        SPDLOG_INFO("Starting distributed test server on worker");
+        std::shared_ptr<ExecutorFactory> fac =
+          std::make_shared<faaslet::FaasletFactory>();
+        faabric::runner::FaabricMain m(fac);
+        m.startBackground();
 
-    SPDLOG_INFO("Starting HTTP endpoint on worker");
-    faabric::endpoint::FaabricEndpoint endpoint;
-    endpoint.start();
+        SPDLOG_INFO("Starting HTTP endpoint on worker");
+        faabric::endpoint::FaabricEndpoint endpoint;
+        endpoint.start();
 
-    SPDLOG_INFO("Shutting down");
-    m.shutdown();
+        SPDLOG_INFO("Shutting down");
+        m.shutdown();
+    }
+
     faabric::transport::closeGlobalMessageContext();
 
-    return EXIT_SUCCESS;
+    return 0;
 }

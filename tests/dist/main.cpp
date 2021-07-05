@@ -25,19 +25,26 @@ int main(int argc, char* argv[])
     SPDLOG_INFO("Starting distributed test server on master");
     std::shared_ptr<faaslet::FaasletFactory> fac =
       std::make_shared<faaslet::FaasletFactory>();
-    faabric::runner::FaabricMain m(fac);
-    m.startBackground();
 
-    // Wait for things to start
-    usleep(3000 * 1000);
+    // WARNING: all 0MQ sockets have to have gone *out of scope* before we shut
+    // down the context, therefore this segment must be in a nested scope (or
+    // another function).
+    int result;
+    {
+        faabric::runner::FaabricMain m(fac);
+        m.startBackground();
 
-    // Run the tests
-    int result = Catch::Session().run(argc, argv);
-    fflush(stdout);
+        // Wait for things to start
+        usleep(3000 * 1000);
 
-    // Shut down
-    SPDLOG_INFO("Shutting down");
-    m.shutdown();
+        // Run the tests
+        result = Catch::Session().run(argc, argv);
+        fflush(stdout);
+
+        // Shut down
+        SPDLOG_INFO("Shutting down");
+        m.shutdown();
+    }
 
     faabric::transport::closeGlobalMessageContext();
     return result;
