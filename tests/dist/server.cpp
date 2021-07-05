@@ -1,3 +1,4 @@
+#include <conf/FaasmConfig.h>
 #include <faaslet/Faaslet.h>
 
 #include <faabric/endpoint/FaabricEndpoint.h>
