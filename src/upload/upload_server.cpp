@@ -1,11 +1,13 @@
 #include <upload/UploadServer.h>
 
 #include <faabric/state/StateServer.h>
+#include <faabric/transport/context.h>
 #include <faabric/util/config.h>
 #include <faabric/util/logging.h>
 
 int main()
 {
+    faabric::transport::initGlobalMessageContext();
     faabric::util::initLogging();
 
     faabric::util::SystemConfig& config = faabric::util::getSystemConfig();
@@ -21,6 +23,7 @@ int main()
 
     // Stop the state server
     stateServer.stop();
+    faabric::transport::closeGlobalMessageContext();
 
     return 0;
 }

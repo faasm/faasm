@@ -9,6 +9,7 @@
 #include <faabric/endpoint/FaabricEndpoint.h>
 #include <faabric/runner/FaabricMain.h>
 #include <faabric/scheduler/ExecutorFactory.h>
+#include <faabric/transport/context.h>
 #include <faabric/util/logging.h>
 
 using namespace faabric::scheduler;
@@ -17,6 +18,7 @@ FAABRIC_CATCH_LOGGER
 
 int main(int argc, char* argv[])
 {
+    faabric::transport::initGlobalMessageContext();
     faabric::util::initLogging();
 
     // Start everything up
@@ -37,5 +39,6 @@ int main(int argc, char* argv[])
     SPDLOG_INFO("Shutting down");
     m.shutdown();
 
+    faabric::transport::closeGlobalMessageContext();
     return result;
 }
