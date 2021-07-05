@@ -1,11 +1,10 @@
-#include <string>
-
-#include "faasm_sgx_error.h"
-#include "faasm_sgx_system.h"
+#include <sgx/SGXWAMRWasmModule.h>
+#include <sgx/faasm_sgx_error.h>
+#include <sgx/faasm_sgx_system.h>
 
 #include <boost/filesystem/operations.hpp>
-#include <sgx/SGXWAMRWasmModule.h>
 #include <sgx_urts.h>
+#include <string>
 
 // Global enclave ID
 sgx_enclave_id_t globalEnclaveId;
@@ -170,6 +169,7 @@ std::string faasmSgxErrorString(faasm_sgx_status_t status)
         ERROR_PRINT_CASE(FAASM_SGX_CRT_RECV_FAILED)
         ERROR_PRINT_CASE(FAASM_SGX_INVALID_PAYLOAD_LEN)
         ERROR_PRINT_CASE(FAASM_SGX_FUNCTION_NOT_WHITELISTED)
+        ERROR_PRINT_CASE(FAASM_SGX_WAMR_FUNCTION_NOT_IMPLEMENTED)
         default: {
             char res[20];
             sprintf(res, "%#010x", status);

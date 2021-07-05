@@ -4,10 +4,6 @@
 #include <sgx/faasm_sgx_attestation.h>
 #endif
 
-#if (FAASM_SGX_WHITELISTING)
-#include <sgx/faasm_sgx_whitelisting.h>
-#endif
-
 #include <wasm_export.h>
 
 #define _FAASM_SGX_TCS_SLOT_FREE (_faasm_sgx_tcs_t*)0x0
@@ -34,9 +30,4 @@ typedef struct __faasm_sgx_tcs
     sgx_wamr_msg_t** response_ptr;
     _sgx_wamr_attestation_env_t env;
 #endif
-
-#if (FAASM_SGX_WHITELISTING)
-    _faasm_sgx_whitelist_t* module_whitelist;
-#endif
-
 } _faasm_sgx_tcs_t;

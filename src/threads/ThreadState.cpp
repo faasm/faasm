@@ -1,6 +1,7 @@
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/config.h>
 #include <faabric/util/gids.h>
+#include <faabric/util/latch.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
@@ -27,7 +28,7 @@ static thread_local std::shared_ptr<Level> currentLevel = nullptr;
 
 std::mutex sharedMutex;
 
-std::unordered_map<uint32_t, std::shared_ptr<faabric::util::Barrier>> barriers;
+std::unordered_map<uint32_t, std::shared_ptr<faabric::util::Latch>> latches;
 
 std::unordered_map<uint32_t, std::shared_ptr<std::recursive_mutex>>
   levelMutexes;
@@ -39,7 +40,7 @@ std::unordered_map<uint32_t, std::shared_ptr<std::condition_variable>>
 
 void clearThreadState()
 {
-    barriers.clear();
+    latches.clear();
 
     levelMutexes.clear();
 
@@ -203,9 +204,27 @@ void Level::deserialise(const Level* other)
 
 void Level::waitOnBarrier()
 {
-    if (numThreads > 1) {
-        FROM_MAP(b, faabric::util::Barrier, barriers, numThreads);
-        b->wait();
+    // Ignore if single threaded
+    if (numThreads <= 1) {
+        return;
+    }
+
+    // Create if necessary
+    if (latches.find(id) == latches.end()) {
+        faabric::util::UniqueLock lock(sharedMutex);
+        if (latches.find(id) == latches.end()) {
+            latches[id] = Latch::create(numThreads);
+        }
+    }
+
+    latches[id]->wait();
+
+    // Remove the used latch from the map
+    if (latches.find(id) != latches.end()) {
+        faabric::util::UniqueLock lock(sharedMutex);
+        if (latches.find(id) != latches.end()) {
+            latches.erase(id);
+        }
     }
 }
 

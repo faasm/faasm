@@ -1,9 +1,10 @@
 #pragma once
 
-#include "faasm_sgx_error.h"
+#include <sgx/faasm_sgx_error.h>
 
 #include <sgx_eid.h>
 #include <sgx_error.h>
+#include <string>
 
 namespace sgx {
 sgx_enclave_id_t getGlobalEnclaveId();
