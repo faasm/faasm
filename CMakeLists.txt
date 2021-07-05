@@ -8,18 +8,16 @@ option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
 option(FAASM_SELF_TRACING "Turn on system tracing using the logger" OFF)
 option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md" OFF)
 
-# WAMR and interpreter
-option(WAMR_INTERPRETER_MODE "Turns interpreter on / off (vs. AoT)" OFF)
+# WAMR
+# Enabling the spec tests performs stricter checks. E.g. it will error if can't
+# link an imported function
+# set (WAMR_BUILD_SPEC_TEST)
 
 # SGX functionality
 # These options customise the SGX features _provided_ SGX is found
 option(FAASM_SGX_SIM_MODE "Turn on SGX sim mode" ON)
 option(FAASM_SGX_ATTESTATION "Turn on attestation" OFF)
 option(FAASM_SGX_XRA "Turn on support for XRA" OFF)
-option(FAASM_SGX_WAMR_AOT_MODE "Turn on AoT mode in SGX" ON)
-
-# Note - whitelisting currently not working in WAMR AoT mode
-option(FAASM_SGX_WHITELISTING "Add support for whitelisting" OFF)
 
 # Top-level CMake config
 set(CMAKE_CXX_FLAGS "-Wall")
@@ -45,7 +43,6 @@ find_package(cpprestsdk REQUIRED NAMES cpprestsdk cpprest)
 # Detect SGX
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 find_package(SGX)
-set(SGX_FOUND 0)
 
 # SGX configuration
 if (SGX_FOUND)
@@ -72,10 +69,6 @@ if (SGX_FOUND)
     else()
         add_definitions(-DFAASM_SGX_ATTESTATION=0)
     endif()
-
-    if(FAASM_SGX_WHITELISTING AND FAASM_SGX_WAMR_AOT_MODE)
-        message(FATAL_ERROR "Whitelisting is not compatible with WAMR AoT execution mode")
-    endif()
 else ()
     set(CMAKE_CXX_FLAGS "-Wall -Werror")
     add_definitions(-DFAASM_SGX=0)
@@ -87,13 +80,7 @@ endif ()
 
 add_definitions(-DBUILD_TARGET_X86_64)
 enable_language(ASM)
-
-#WAMR Interpreter / AoT Switch
-if(WAMR_INTERPRETER_MODE)
-    add_definitions(-DWAMR_EXECUTION_MODE_INTERP=1)
-else()
-    add_definitions(-DWAMR_EXECUTION_MODE_INTERP=0)
-endif()
+add_definitions(-DWAMR_EXECUTION_MODE_INTERP=0)
 
 # ----------------------------------------
 # Faasm configuration

@@ -6,11 +6,12 @@
 #include <faabric/redis/Redis.h>
 #include <faabric/runner/FaabricMain.h>
 #include <faabric/scheduler/ExecutorFactory.h>
+#include <faabric/transport/context.h>
 #include <faabric/util/config.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/timing.h>
 
-int main(int argc, char* argv[])
+int doRunner(int argc, char* argv[])
 {
     faabric::util::initLogging();
 
@@ -24,8 +25,19 @@ int main(int argc, char* argv[])
     std::string function = argv[2];
 
     std::string inputData;
-    if (argc >= 4) {
+    bool isSgx = false;
+    bool hasInput = false;
+    if (argc == 4) {
+        if (std::string(argv[3]) == "--sgx") {
+            isSgx = true;
+        } else {
+            inputData = argv[3];
+            hasInput = true;
+        }
+    } else if (argc == 5 && std::string(argv[4]) == "--sgx") {
         inputData = argv[3];
+        hasInput = true;
+        isSgx = true;
     }
 
     std::shared_ptr<faabric::BatchExecuteRequest> req =
@@ -62,11 +74,16 @@ int main(int argc, char* argv[])
         SPDLOG_INFO("Running function {}/{}", user, function);
     }
 
-    if (argc > 3) {
+    if (hasInput) {
         std::string inputData = argv[3];
         msg.set_inputdata(inputData);
 
         SPDLOG_INFO("Adding input data: {}", inputData);
+    }
+
+    if (isSgx) {
+        msg.set_issgx(true);
+        SPDLOG_INFO("Running function in SGX");
     }
 
     // Set up the system
@@ -91,4 +108,16 @@ int main(int argc, char* argv[])
     m.shutdown();
 
     return 0;
+}
+
+int main(int argc, char* argv[])
+{
+    faabric::transport::initGlobalMessageContext();
+
+    // WARNING: All 0MQ-related operations must take place in a self-contined
+    // scope to ensure all sockets are destructed before closing the context.
+    int result = doRunner(argc, argv);
+
+    faabric::transport::closeGlobalMessageContext();
+    return result;
 }

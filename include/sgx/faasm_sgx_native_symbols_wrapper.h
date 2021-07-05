@@ -1,14 +1,14 @@
 #pragma once
 
-#include <faasm/host_interface.h>
 #include <iwasm/include/wasm_export.h>
 #include <sgx.h>
 #include <sgx_defs.h>
 
 // Length of used native symbols
-#define FAASM_SGX_NATIVE_SYMBOLS_LEN 26
-#define FAASM_SGX_WASI_SYMBOLS_LEN 6
+#define FAASM_SGX_NATIVE_SYMBOLS_LEN 33
+#define FAASM_SGX_WASI_SYMBOLS_LEN 7
 
+// Define symbols that need to be available for functions inside enclaves
 extern "C"
 {
 
@@ -119,6 +119,9 @@ extern "C"
                                   unsigned int callId,
                                   uint8_t* buffer,
                                   unsigned int buffer_size);
+
+    extern sgx_status_t SGX_CDECL ocall_sbrk(int32_t* returnValue,
+                                             int32_t increment);
 
     // --------------------------------------
     // FAASM HOST INTERFACE
@@ -237,6 +240,39 @@ extern "C"
 
     void sgx_wamr_function_not_whitelisted_wrapper(wasm_exec_env_t exec_env);
 
+    // -------------------------------------------
+    // PTHREADS
+    // -------------------------------------------
+
+    static int32_t pthread_mutex_init_wrapper(wasm_exec_env_t exec_env,
+                                              int32_t a,
+                                              int32_t b);
+
+    static int32_t pthread_mutex_lock_wrapper(wasm_exec_env_t exec_env,
+                                              int32_t a);
+
+    static int32_t pthread_mutex_unlock_wrapper(wasm_exec_env_t exec_env,
+                                                int32_t a);
+
+    static int32_t pthread_cond_broadcast_wrapper(wasm_exec_env_t exec_env,
+                                                  int32_t a);
+
+    static int32_t pthread_mutexattr_init_wrapper(wasm_exec_env_t exec_env,
+                                                  int32_t a);
+
+    static int32_t pthread_mutexattr_destroy_wrapper(wasm_exec_env_t exec_env,
+                                                     int32_t a);
+
+    static int32_t pthread_equal_wrapper(wasm_exec_env_t exec_env,
+                                         int32_t a,
+                                         int32_t b);
+
+    // ------------------------------
+    // MEMORY
+    // ------------------------------
+
+    static int32_t __sbrk_wrapper(wasm_exec_env_t exec_env, int32_t increment);
+
     // --------------------------------------
     // WASI STUBS
     // --------------------------------------
@@ -258,6 +294,8 @@ extern "C"
                                 int b,
                                 int c,
                                 int d);
+
+    static int fd_fdstat_get_wrapper(wasm_exec_env_t exec_env, int a, int b);
 
     static void proc_exit_wrapper(wasm_exec_env_t exec_env, int returnCode);
 }

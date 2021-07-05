@@ -1,7 +1,7 @@
-#include <cstring>
-
 #include <sgx/SGXWAMRWasmModule.h>
 #include <wasm/chaining.h>
+
+#include <cstring>
 
 using namespace faabric::state;
 
@@ -213,5 +213,21 @@ extern "C"
                                                unsigned int bufferSize)
     {
         return wasm::awaitChainedCallOutput(callId, buffer, bufferSize);
+    }
+
+    int32_t ocall_sbrk(int32_t increment)
+    {
+        SPDLOG_TRACE("S - __sbrk - {}", increment);
+        wasm::WasmModule* module = wasm::getExecutingModule();
+        uint32_t oldBrk = module->getCurrentBrk();
+
+        if (increment == 0) {
+            return oldBrk;
+        } else if (increment < 0) {
+            module->shrinkMemory(-1 * increment);
+            return oldBrk;
+        } else {
+            return module->growMemory(increment);
+        }
     }
 }

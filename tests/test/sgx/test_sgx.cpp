@@ -3,14 +3,17 @@
 #include <catch2/catch.hpp>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
-#include <wamr/WAMRWasmModule.h>
 
 using namespace wasm;
 
 namespace tests {
-TEST_CASE("Test executing echo function with SGX", "[sgx]")
+TEST_CASE("Test executing hello function with SGX", "[sgx]")
 {
-    // TODO - uncomment this to actually run the SGX test
-    // executeWithSGX("demo", "chain");
+    executeWithSGX("demo", "hello");
+}
+
+TEST_CASE("Test executing chaining by name with SGX", "[sgx]")
+{
+    executeWithSGX("demo", "chain_named_a");
 }
 }

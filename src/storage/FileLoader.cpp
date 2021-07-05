@@ -38,7 +38,8 @@ std::string FileLoader::getHashFilePath(const std::string& path)
 }
 
 std::vector<uint8_t> FileLoader::doCodegen(std::vector<uint8_t>& bytes,
-                                           const std::string& fileName)
+                                           const std::string& fileName,
+                                           bool isSgx)
 {
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     if (conf.wasmVm == "wamr") {
@@ -46,9 +47,10 @@ std::vector<uint8_t> FileLoader::doCodegen(std::vector<uint8_t>& bytes,
         throw std::runtime_error(
           "WAMR codegen not supported with WAMR interp mode");
 #else
-        return wasm::wamrCodegen(bytes);
+        return wasm::wamrCodegen(bytes, isSgx);
 #endif
     } else {
+        assert(isSgx == false);
         return wasm::wavmCodegen(bytes, fileName);
     }
 }
@@ -69,6 +71,9 @@ void FileLoader::codegenForFunction(faabric::Message& msg)
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     if (conf.wasmVm == "wamr") {
         oldHash = loadFunctionWamrAotHash(msg);
+    } else if (conf.wasmVm == "wavm" && msg.issgx()) {
+        SPDLOG_ERROR("Can't run SGX codegen for WAVM. Only WAMR is supported.");
+        throw std::runtime_error("SGX codegen for WAVM");
     } else {
         oldHash = loadFunctionObjectHash(msg);
     }
@@ -85,7 +90,7 @@ void FileLoader::codegenForFunction(faabric::Message& msg)
     // Run the actual codegen
     std::vector<uint8_t> objBytes;
     try {
-        objBytes = doCodegen(bytes, funcStr);
+        objBytes = doCodegen(bytes, funcStr, msg.issgx());
     } catch (std::runtime_error& ex) {
         SPDLOG_ERROR("Codegen failed for " + funcStr);
         throw ex;
