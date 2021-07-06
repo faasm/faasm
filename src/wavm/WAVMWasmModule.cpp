@@ -1539,8 +1539,7 @@ void WAVMWasmModule::executeWasmConstructorsFunction(Runtime::Instance* module)
                      result.i32);
         throw std::runtime_error(std::string(WASM_CTORS_FUNC_NAME) + " failed");
     }
-    SPDLOG_DEBUG("{} Successfully executed {} for {}/{}",
-                 gettid(),
+    SPDLOG_DEBUG("Successfully executed {} for {}/{}",
                  WASM_CTORS_FUNC_NAME,
                  boundUser,
                  boundFunction);
