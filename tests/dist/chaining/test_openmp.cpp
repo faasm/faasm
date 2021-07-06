@@ -5,7 +5,7 @@
 #include <faabric/scheduler/Scheduler.h>
 
 namespace tests {
-TEST_CASE_METHOD(DistTestsFixture, "Test threading across hosts", "[scheduler]")
+TEST_CASE_METHOD(DistTestsFixture, "Test OpenMP across hosts", "[scheduler]")
 {
     conf.overrideCpuCount = 6;
 
@@ -32,7 +32,7 @@ TEST_CASE_METHOD(DistTestsFixture, "Test threading across hosts", "[scheduler]")
     sch.callFunctions(req);
 
     // Check it's successful
-    faabric::Message result = sch.getFunctionResult(msg.id(), 1000);
+    faabric::Message result = sch.getFunctionResult(msg.id(), 10000);
     REQUIRE(result.returnvalue() == 0);
 
     // Check one executor used on this host (always the case for threads)
