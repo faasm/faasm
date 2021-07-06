@@ -1,20 +1,35 @@
 #include <catch2/catch.hpp>
 
+#include "faabric_utils.h"
 #include "utils.h"
 
 #include <boost/filesystem.hpp>
 
 #include <faabric/util/func.h>
+#include <faabric/util/memory.h>
+#include <faabric/util/snapshot.h>
+
 #include <wavm/WAVMWasmModule.h>
 
 using namespace wasm;
 
 namespace tests {
 
-TEST_CASE("Test snapshot and restore for wasm module", "[wasm][snapshot]")
+class WasmSnapTestFixture
+  : public RedisTestFixture
+  , public SchedulerTestFixture
+  , public SnapshotTestFixture
 {
-    cleanSystem();
+  public:
+    WasmSnapTestFixture() {}
 
+    ~WasmSnapTestFixture() {}
+};
+
+TEST_CASE_METHOD(WasmSnapTestFixture,
+                 "Test snapshot and restore for wasm module",
+                 "[wasm][snapshot]")
+{
     std::string user = "demo";
     std::string function = "zygote_check";
     faabric::Message m = faabric::util::messageFactory(user, function);
@@ -91,5 +106,31 @@ TEST_CASE("Test snapshot and restore for wasm module", "[wasm][snapshot]")
 
     int returnValueC = moduleC.executeFunction(m);
     REQUIRE(returnValueC == 0);
+}
+
+TEST_CASE_METHOD(WasmSnapTestFixture,
+                 "Test dirty page checks for wasm module",
+                 "[wasm][snapshot]")
+{
+    std::string user = "demo";
+    std::string function = "memcpy";
+    faabric::Message m = faabric::util::messageFactory(user, function);
+
+    wasm::WAVMWasmModule module;
+    module.bindToFunction(m);
+
+    // Reset dirty page tracking _after_ binding
+    faabric::util::resetDirtyTracking();
+
+    // Check no dirty pages initially
+    faabric::util::SnapshotData snapData = module.getSnapshotData();
+    REQUIRE(snapData.getDirtyPages().empty());
+
+    // Execute the function
+    module.executeFunction(m);
+
+    // Check some dirty pages are registered
+    std::vector<faabric::util::SnapshotDiff> actual = snapData.getDirtyPages();
+    REQUIRE(actual.size() == 2);
 }
 }
