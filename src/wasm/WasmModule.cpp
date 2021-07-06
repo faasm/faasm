@@ -125,12 +125,14 @@ void WasmModule::restore(const std::string& snapshotKey)
     uint32_t memSize = getCurrentBrk();
 
     if (data.size > memSize) {
-        SPDLOG_DEBUG("Growing memory to fit snapshot");
         size_t bytesRequired = data.size - memSize;
+        SPDLOG_DEBUG("Growing memory by {} bytes to restore snapshot",
+                     bytesRequired);
         this->growMemory(bytesRequired);
     } else {
-        SPDLOG_DEBUG("Shrinking memory to fit snapshot");
         size_t shrinkBy = memSize - data.size;
+        SPDLOG_DEBUG("Shrinking memory by {} bytes to restore snapshot",
+                     shrinkBy);
         this->shrinkMemory(shrinkBy);
     }
 
