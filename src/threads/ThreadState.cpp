@@ -1,5 +1,6 @@
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/config.h>
+#include <faabric/util/func.h>
 #include <faabric/util/gids.h>
 #include <faabric/util/latch.h>
 #include <faabric/util/locks.h>
@@ -58,10 +59,20 @@ void setCurrentOpenMPLevel(
   const std::shared_ptr<faabric::BatchExecuteRequest> req)
 {
     if (req->contextdata().empty()) {
+        SPDLOG_ERROR("Empty OpenMP context for {}", req->id());
         throw std::runtime_error("Empty context for OpenMP request");
     }
 
+    std::string funcStr = faabric::util::funcToString(req);
+    SPDLOG_TRACE("Deserialising OpenMP level with {} bytes from {}",
+                 req->contextdata().size(),
+                 funcStr);
+
     currentLevel = levelFromBatchRequest(req);
+    SPDLOG_TRACE("Set OpenMP level depth {} with {} threads for {}",
+                 currentLevel->depth,
+                 currentLevel->numThreads,
+                 funcStr);
 }
 
 std::shared_ptr<Level> getCurrentOpenMPLevel()
@@ -79,8 +90,9 @@ std::shared_ptr<Level> getCurrentOpenMPLevel()
 std::shared_ptr<Level> levelFromBatchRequest(
   const std::shared_ptr<faabric::BatchExecuteRequest>& req)
 {
-    const auto other =
+    const auto* other =
       reinterpret_cast<const Level*>(req->contextdata().data());
+
     auto lvl = std::make_shared<Level>(other->numThreads);
     lvl->deserialise(other);
 
@@ -185,6 +197,14 @@ std::vector<uint8_t> Level::serialise()
 
 void Level::deserialise(const Level* other)
 {
+    const auto* otherInts = reinterpret_cast<const int32_t*>(other);
+
+    int nParams = 9;
+    printf("Level: ");
+    for (int i = 0; i < nParams; i++) {
+        printf("%i ", otherInts[i]);
+    }
+
     id = other->id;
     depth = other->depth;
     activeLevels = other->activeLevels;
@@ -196,10 +216,24 @@ void Level::deserialise(const Level* other)
     globalTidOffset = other->globalTidOffset;
 
     nSharedVarOffsets = other->nSharedVarOffsets;
-    sharedVarOffsets = new uint32_t[nSharedVarOffsets];
-    std::memcpy(sharedVarOffsets,
-                other->sharedVarOffsets,
-                nSharedVarOffsets * sizeof(uint32_t));
+
+    uint32_t* otherShared = other->sharedVarOffsets;
+    assert(otherShared != nullptr);
+
+    printf("\nShared: [ ");
+    for (int i = 0; i < other->nSharedVarOffsets; i++) {
+        printf("%i ", otherShared[i]);
+    }
+    printf("]\n");
+
+    if (nSharedVarOffsets > 0) {
+        sharedVarOffsets = new uint32_t[nSharedVarOffsets];
+        std::memcpy(sharedVarOffsets,
+                    other->sharedVarOffsets,
+                    nSharedVarOffsets * sizeof(uint32_t));
+    } else {
+        sharedVarOffsets = nullptr;
+    }
 }
 
 void Level::waitOnBarrier()
