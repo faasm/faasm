@@ -349,12 +349,12 @@ int32_t WasmModule::executeTask(
     if (req->type() == faabric::BatchExecuteRequest::THREADS) {
         switch (req->subtype()) {
             case ThreadRequestType::PTHREAD: {
-                SPDLOG_TRACE("Wasm Module treating {} as pthread", funcStr);
+                SPDLOG_TRACE("Executing {} as pthread", funcStr);
                 returnValue = executePthread(threadPoolIdx, stackTop, msg);
                 break;
             }
             case ThreadRequestType::OPENMP: {
-                SPDLOG_TRACE("Wasm Module treating {} as OpenMP", funcStr);
+                SPDLOG_TRACE("Executing {} as OpenMP", funcStr);
                 threads::setCurrentOpenMPLevel(req);
                 returnValue = executeOMPThread(threadPoolIdx, stackTop, msg);
                 break;
@@ -368,7 +368,7 @@ int32_t WasmModule::executeTask(
         }
     } else {
         // Vanilla function
-        SPDLOG_TRACE("Wasm Module treating {} as standard function", funcStr);
+        SPDLOG_TRACE("Executing {} as standard function", funcStr);
         returnValue = executeFunction(msg);
     }
 
