@@ -327,6 +327,7 @@ int32_t WasmModule::executeTask(
   std::shared_ptr<faabric::BatchExecuteRequest> req)
 {
     faabric::Message& msg = req->mutable_messages()->at(msgIdx);
+    std::string funcStr = faabric::util::funcToString(msg, true);
 
     if (!isBound()) {
         throw std::runtime_error(
@@ -346,17 +347,28 @@ int32_t WasmModule::executeTask(
     // Perform the appropriate type of execution
     int returnValue;
     if (req->type() == faabric::BatchExecuteRequest::THREADS) {
-        // Pthreads or openmp
-        if (req->subtype() == ThreadRequestType::PTHREAD) {
-            returnValue = executePthread(threadPoolIdx, stackTop, msg);
-        } else if (req->subtype() == ThreadRequestType::OPENMP) {
-            threads::setCurrentOpenMPLevel(req);
-            returnValue = executeOMPThread(threadPoolIdx, stackTop, msg);
-        } else {
-            throw std::runtime_error("Unrecognised thread type");
+        switch (req->subtype()) {
+            case ThreadRequestType::PTHREAD: {
+                SPDLOG_TRACE("Wasm Module treating {} as pthread", funcStr);
+                returnValue = executePthread(threadPoolIdx, stackTop, msg);
+                break;
+            }
+            case ThreadRequestType::OPENMP: {
+                SPDLOG_TRACE("Wasm Module treating {} as OpenMP", funcStr);
+                threads::setCurrentOpenMPLevel(req);
+                returnValue = executeOMPThread(threadPoolIdx, stackTop, msg);
+                break;
+            }
+            default: {
+                SPDLOG_ERROR("{} has unrecognised thread subtype {}",
+                             funcStr,
+                             req->subtype());
+                throw std::runtime_error("Unrecognised thread subtype");
+            }
         }
     } else {
         // Vanilla function
+        SPDLOG_TRACE("Wasm Module treating {} as standard function", funcStr);
         returnValue = executeFunction(msg);
     }
 
