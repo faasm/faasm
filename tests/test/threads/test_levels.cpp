@@ -31,9 +31,13 @@ TEST_CASE("Check level serialisation and deserialisation", "[threads]")
     lvlA.setSharedVarOffsets(sharedVarOffsets.data(), sharedVarOffsets.size());
     REQUIRE(lvlA.getSharedVarOffsets() == sharedVarOffsets);
 
-    // Make sure we serialise via the relevant protobuf object to test the round
-    // trip
+    // Serialise and check size
     std::vector<uint8_t> serialised = lvlA.serialise();
+    size_t expectedSize =
+      sizeof(Level) + (sharedVarOffsets.size() * sizeof(uint32_t));
+    REQUIRE(serialised.size() == expectedSize);
+
+    // Serialise via the relevant protobuf object to test the round trip
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory("demo", "echo", 1);
     req->set_contextdata(serialised.data(), serialised.size());
@@ -45,6 +49,7 @@ TEST_CASE("Check level serialisation and deserialisation", "[threads]")
 
     auto reqB = std::make_shared<faabric::BatchExecuteRequest>();
     reqB->ParseFromArray(buffer, bufferSize);
+    REQUIRE(reqB->contextdata().size() == expectedSize);
 
     // Deserialise the nested level object
     std::shared_ptr<Level> lvlB = levelFromBatchRequest(reqB);
