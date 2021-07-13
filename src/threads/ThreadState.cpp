@@ -1,5 +1,5 @@
-#include <faabric/util/bytes.h>
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 #include <faabric/util/gids.h>

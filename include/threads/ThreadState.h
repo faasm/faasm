@@ -45,7 +45,8 @@ class Level
     uint32_t nSharedVarOffsets = 0;
     uint32_t* sharedVarOffsets;
 
-    static std::shared_ptr<Level> deserialise(const std::vector<uint8_t> &bytes);
+    static std::shared_ptr<Level> deserialise(
+      const std::vector<uint8_t>& bytes);
 
     Level(int32_t numThreadsIn);
 
