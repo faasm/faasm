@@ -149,7 +149,7 @@ class WasmModule
     // ----- Threading -----
     void queuePthreadCall(threads::PthreadCall call);
 
-    int awaitPthreadCall(const faabric::Message& msg, int pthreadPtr);
+    int awaitPthreadCall(const faabric::Message* msg, int pthreadPtr);
 
     // ----- Debugging -----
     virtual void printDebugInfo();
@@ -176,6 +176,7 @@ class WasmModule
     threads::MutexManager mutexes;
 
     std::shared_mutex moduleMemoryMutex;
+    std::mutex modulePthreadsMutex;
     std::mutex moduleStateMutex;
 
     // Argc/argv

@@ -82,7 +82,7 @@ faabric::util::SnapshotData WasmModule::getSnapshotData()
     // of the allocated memory
     faabric::util::SnapshotData data;
     data.data = getMemoryBase();
-    data.size = getCurrentBrk();
+    data.size = currentBrk;
 
     return data;
 }
@@ -404,15 +404,17 @@ void WasmModule::queuePthreadCall(threads::PthreadCall call)
     queuedPthreadCalls.emplace_back(call);
 }
 
-int WasmModule::awaitPthreadCall(const faabric::Message& msg, int pthreadPtr)
+int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
 {
+    assert(msg != nullptr);
+
     if (!queuedPthreadCalls.empty()) {
-        faabric::util::FullLock lock(moduleMemoryMutex);
+        faabric::util::UniqueLock lock(modulePthreadsMutex);
 
         if (!queuedPthreadCalls.empty()) {
             int nPthreadCalls = queuedPthreadCalls.size();
             std::string snapshotKey = snapshot(false);
-            std::string funcStr = faabric::util::funcToString(msg, true);
+            std::string funcStr = faabric::util::funcToString(*msg, true);
 
             SPDLOG_DEBUG("Executing {} pthread calls for {} with snapshot {}",
                          nPthreadCalls,
@@ -421,7 +423,7 @@ int WasmModule::awaitPthreadCall(const faabric::Message& msg, int pthreadPtr)
 
             std::shared_ptr<faabric::BatchExecuteRequest> req =
               faabric::util::batchExecFactory(
-                msg.user(), msg.function(), nPthreadCalls);
+                msg->user(), msg->function(), nPthreadCalls);
 
             req->set_type(faabric::BatchExecuteRequest::THREADS);
             req->set_subtype(wasm::ThreadRequestType::PTHREAD);
@@ -444,11 +446,15 @@ int WasmModule::awaitPthreadCall(const faabric::Message& msg, int pthreadPtr)
                 m.set_appindex(i + 1);
 
                 // Record this thread -> call ID
+                SPDLOG_TRACE(
+                  "pthread {} mapped to call {}", p.pthreadPtr, m.id());
                 pthreadPtrsToChainedCalls.insert({ p.pthreadPtr, m.id() });
             }
 
             // Submit the call
-            faabric::scheduler::getScheduler().callFunctions(req);
+            faabric::scheduler::Scheduler& sch =
+              faabric::scheduler::getScheduler();
+            sch.callFunctions(req);
 
             // Empty the queue
             queuedPthreadCalls.clear();

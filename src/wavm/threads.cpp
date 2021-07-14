@@ -62,12 +62,19 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                  entryFunc,
                  argsPtr);
 
+    // Set the bits we care about on the pthread struct
+    // NOTE - setting the initial pointer is crucial for inter-operation with
+    // existing C code
+    WAVMWasmModule* thisModule = getExecutingWAVMModule();
+    wasm_pthread* pthreadNative =
+      &Runtime::memoryRef<wasm_pthread>(thisModule->defaultMemory, pthreadPtr);
+    pthreadNative->selfPtr = pthreadPtr;
+
     threads::PthreadCall pthreadCall;
     pthreadCall.pthreadPtr = pthreadPtr;
     pthreadCall.entryFunc = entryFunc;
     pthreadCall.argsPtr = argsPtr;
 
-    WasmModule* thisModule = getExecutingModule();
     thisModule->queuePthreadCall(pthreadCall);
 
     return 0;
@@ -84,7 +91,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     faabric::Message* call = getExecutingCall();
     WasmModule* thisModule = getExecutingModule();
-    int returnValue = thisModule->awaitPthreadCall(*call, pthreadPtr);
+    int returnValue = thisModule->awaitPthreadCall(call, pthreadPtr);
 
     // This function is passed a pointer to a pointer for the result,
     // so we dereference it once and are writing an integer (i.e. a wasm
