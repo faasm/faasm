@@ -142,7 +142,7 @@ jobs:
         with:
           name: py-funcs
           path: /usr/local/faasm/shared_store
-      # --- CPU information ---
+      # --- Host information ---
       - name: "CPU info"
         run: cat /proc/cpuinfo
       - name: "Get CPU model name"
