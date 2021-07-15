@@ -74,6 +74,8 @@ class Level
     int getGlobalThreadNum(int localThreadNum);
 
     int getGlobalThreadNum(faabric::Message* msg);
+
+    std::string toString();
 };
 
 class PthreadCall

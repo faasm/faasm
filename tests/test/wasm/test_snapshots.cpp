@@ -174,6 +174,8 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
     mSnap.set_snapshotkey(snapKey);
 
     faaslet::Faaslet fSnap(mSnap);
+    fSnap.restore(mSnap);
+
     faabric::util::resetDirtyTracking();
 
     // Execute and check again

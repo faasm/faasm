@@ -68,14 +68,10 @@ void setCurrentOpenMPLevel(
 
     std::string funcStr = faabric::util::funcToString(req);
     currentLevel = levelFromBatchRequest(req);
-    SPDLOG_TRACE(
-      "Set OpenMP level {} for {}, depth={} threads={} shared={} bytes={}",
-      currentLevel->id,
-      funcStr,
-      currentLevel->depth,
-      currentLevel->numThreads,
-      currentLevel->nSharedVarOffsets,
-      req->contextdata().size());
+    SPDLOG_TRACE("Deserialised from {} bytes for {}, {}",
+                 req->contextdata().size(),
+                 funcStr,
+                 currentLevel->toString());
 }
 
 std::shared_ptr<Level> getCurrentOpenMPLevel()
@@ -189,7 +185,7 @@ void Level::masterWait(int threadNum)
                          id,
                          countBefore,
                          numThreads - 2);
-            throw std::runtime_error("OpenMP nowait error");
+            throw std::runtime_error("OpenMP master wait error");
         }
     }
 }
@@ -214,13 +210,7 @@ std::vector<uint8_t> Level::serialise()
                     nSharedVarOffsets * sizeof(uint32_t));
     }
 
-    SPDLOG_TRACE(
-      "Serialising OpenMP level {}, depth={} threads={} shared={} bytes={}",
-      id,
-      depth,
-      numThreads,
-      nSharedVarOffsets,
-      bytes.size());
+    SPDLOG_TRACE("Serialising to {} bytes, {}", bytes.size(), toString());
 
     return bytes;
 }
@@ -320,5 +310,18 @@ int Level::getGlobalThreadNum(int localThreadNum)
 int Level::getGlobalThreadNum(faabric::Message* msg)
 {
     return msg->appindex();
+}
+
+std::string Level::toString()
+{
+    std::stringstream ss;
+    ss << "Level " << id << " depth=" << depth << " threads=" << numThreads
+       << " shared={ ";
+    for (int i = 0; i < nSharedVarOffsets; i++) {
+        ss << sharedVarOffsets[i] << " ";
+    }
+    ss << "}";
+
+    return ss.str();
 }
 }
