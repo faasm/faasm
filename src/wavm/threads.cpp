@@ -21,10 +21,6 @@ using namespace WAVM;
 
 namespace wasm {
 
-// Record of whether this thread has already got a snapshot being used to spawn
-// other threads.
-static thread_local std::string currentSnapshotKey;
-
 // ---------------------------------------------
 // PTHREADS
 // ---------------------------------------------

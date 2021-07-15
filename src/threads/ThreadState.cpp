@@ -13,6 +13,8 @@
 
 using namespace faabric::util;
 
+#define LEVEL_WAIT_TIMEOUT_MS 20000
+
 #define FROM_MAP(varName, T, m, ...)                                           \
     {                                                                          \
         if (m.find(id) == m.end()) {                                           \
@@ -65,15 +67,15 @@ void setCurrentOpenMPLevel(
     }
 
     std::string funcStr = faabric::util::funcToString(req);
-    SPDLOG_TRACE("Deserialising OpenMP level with {} bytes from {}",
-                 req->contextdata().size(),
-                 funcStr);
-
     currentLevel = levelFromBatchRequest(req);
-    SPDLOG_TRACE("Set OpenMP level depth {} with {} threads for {}",
-                 currentLevel->depth,
-                 currentLevel->numThreads,
-                 funcStr);
+    SPDLOG_TRACE(
+      "Set OpenMP level {} for {}, depth={} threads={} shared={} bytes={}",
+      currentLevel->id,
+      funcStr,
+      currentLevel->depth,
+      currentLevel->numThreads,
+      currentLevel->nSharedVarOffsets,
+      req->contextdata().size());
 }
 
 std::shared_ptr<Level> getCurrentOpenMPLevel()
@@ -164,8 +166,15 @@ void Level::masterWait(int threadNum)
 
     if (threadNum == 0) {
         // Wait until all non-master threads have finished
-        while (nowaitCount->load() < numThreads - 1) {
-            nowaitCv->wait(lock);
+        auto timePoint = std::chrono::system_clock::now() +
+                         std::chrono::milliseconds(LEVEL_WAIT_TIMEOUT_MS);
+
+        if (!nowaitCv->wait_until(lock, timePoint, [&] {
+                return nowaitCount->load() >= numThreads - 1;
+            })) {
+
+            SPDLOG_ERROR("Level {} master wait timed out", id);
+            throw std::runtime_error("Level wait on master timed out");
         }
 
         // Reset, after we've finished
@@ -175,6 +184,12 @@ void Level::masterWait(int threadNum)
         int countBefore = nowaitCount->fetch_add(1);
         if (countBefore == numThreads - 2) {
             nowaitCv->notify_one();
+        } else if (countBefore > numThreads - 2) {
+            SPDLOG_ERROR("Level {} master wait error, {} > {}",
+                         id,
+                         countBefore,
+                         numThreads - 2);
+            throw std::runtime_error("OpenMP nowait error");
         }
     }
 }
@@ -198,6 +213,14 @@ std::vector<uint8_t> Level::serialise()
                     sharedVarOffsets,
                     nSharedVarOffsets * sizeof(uint32_t));
     }
+
+    SPDLOG_TRACE(
+      "Serialising OpenMP level {}, depth={} threads={} shared={} bytes={}",
+      id,
+      depth,
+      numThreads,
+      nSharedVarOffsets,
+      bytes.size());
 
     return bytes;
 }

@@ -432,8 +432,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         // Add remote context
         // TODO - avoid copy
         std::vector<uint8_t> serialisedLevel = nextLevel->serialise();
-        SPDLOG_TRACE("Serialised OpenMP level to {} bytes",
-                     serialisedLevel.size());
         req->set_contextdata(serialisedLevel.data(), serialisedLevel.size());
 
         // Configure the mesages
@@ -487,9 +485,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     }
 
     if (!isSingleThread) {
+        std::vector<std::pair<int, uint32_t>> failures;
         // Await all child threads
         for (int i = 0; i < req->messages_size(); i++) {
-            sch.awaitThreadResult(req->messages().at(i).id());
+            uint32_t messageId = req->messages().at(i).id();
+            int result = sch.awaitThreadResult(messageId);
+            if (result != 0) {
+                failures.emplace_back(result, messageId);
+            }
         }
 
         // Delete the snapshot
@@ -503,6 +506,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
           faabric::snapshot::getSnapshotRegistry();
         reg.deleteSnapshot(snapshotKey);
         PROF_END(DeleteSnapshot)
+
+        if (!failures.empty()) {
+            for (auto f : failures) {
+                SPDLOG_ERROR("OpenMP thread failed, result {} on message {}",
+                             f.first,
+                             f.second);
+            }
+
+            throw std::runtime_error("OpenMP threads failed");
+        }
     }
 
     // Reset parent level for next setting of threads
