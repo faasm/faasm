@@ -199,7 +199,7 @@ std::vector<uint8_t> Level::serialise()
     std::vector<uint8_t> bytes(thisSize, 0);
 
     // Copy the level without the shared offsets (relying on the C++ class
-    // memory layout placing members at the top
+    // memory layout placing members at the top)
     uint8_t* bytesPtr = BYTES(this);
     std::memcpy(bytes.data(), bytesPtr, sizeof(Level));
 
