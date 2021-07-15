@@ -162,7 +162,7 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
         faabric::util::SnapshotData snapAfter = f.snapshot();
         std::vector<faabric::util::SnapshotDiff> actual =
           snapAfter.getDirtyPages();
-        REQUIRE(actual.size() == 4);
+        REQUIRE(!actual.empty());
 
         // Set up a snapshot with this data
         std::string snapKey = "dirty-check";
