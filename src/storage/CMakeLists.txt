@@ -30,4 +30,5 @@ target_link_libraries(storage
     cpprestsdk::cpprest
     aws-cpp-sdk-core
     aws-cpp-sdk-s3
+    curl
 )

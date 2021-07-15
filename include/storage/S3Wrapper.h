@@ -18,8 +18,8 @@ Aws::Client::ClientConfiguration getClientConf(long timeout = 3000);
 
 #define MINIO_CONNECT_TIMEOUT_MS 500
 #define MINIO_URI "minio:9000"
-#define MINIO_USER "minioadmin"
-#define MINIO_PASSWORD "minioadmin"
+#define MINIO_USER "minio"
+#define MINIO_PASSWORD "minio123"
 
 void initSDK();
 
@@ -41,6 +41,8 @@ class S3Wrapper
     S3Wrapper();
 
     void createBucket(const std::string& bucketName);
+
+    std::vector<std::string> listBuckets();
 
     std::vector<std::string> listKeys(const std::string& bucketName);
 

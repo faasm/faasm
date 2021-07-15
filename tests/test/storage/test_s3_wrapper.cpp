@@ -30,11 +30,25 @@ class S3TestFixture
 
 TEST_CASE_METHOD(S3TestFixture, "Test read/write keys in bucket", "[s3]")
 {
+    std::string simpleData = "I am a string";
     std::string dataA("£5^Itej__\n\tFoo");
     std::string dataB("ABCDEFGH123$$$&\r*");
 
     std::vector<uint8_t> byteDataA = { 0, 1, 2, 3, 'c', '\\', '@', '$', '%' };
     std::vector<uint8_t> byteDataB = { 11, 99, 123, '#', '\n', '\t' };
+
+    SECTION("Test list buckets")
+    {
+        std::vector<std::string> buckets = s3.listBuckets();
+        std::vector<std::string> expected = { conf.bucketName };
+        REQUIRE(buckets == expected);
+    }
+
+    SECTION("Test simple string read/ write")
+    {
+        s3.addKeyStr(conf.bucketName, "simple", simpleData);
+        REQUIRE(s3.getKeyStr(conf.bucketName, "simple") == simpleData);
+    }
 
     SECTION("Test string read/ write")
     {
@@ -73,6 +87,7 @@ TEST_CASE_METHOD(S3TestFixture, "Test read/write keys in bucket", "[s3]")
 
     s3.deleteKey(conf.bucketName, "alpha");
     s3.deleteKey(conf.bucketName, "beta");
+    s3.deleteKey(conf.bucketName, "simple");
 
     std::vector<std::string> actualEmpty = s3.listKeys(conf.bucketName);
     REQUIRE(actualEmpty.empty());
