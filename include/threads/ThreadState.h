@@ -76,35 +76,12 @@ class Level
     int getGlobalThreadNum(faabric::Message* msg);
 };
 
-class PthreadTask
+class PthreadCall
 {
   public:
-    PthreadTask(faabric::Message* parentMsgIn,
-                std::shared_ptr<faabric::Message> msgIn)
-      : parentMsg(parentMsgIn)
-      , msg(msgIn)
-    {}
-
-    bool isShutdown = false;
-    faabric::Message* parentMsg;
-    std::shared_ptr<faabric::Message> msg;
-};
-
-class OpenMPTask
-{
-  public:
-    faabric::Message* parentMsg;
-    std::shared_ptr<faabric::Message> msg;
-    std::shared_ptr<threads::Level> nextLevel;
-    bool isShutdown = false;
-
-    OpenMPTask(faabric::Message* parentMsgIn,
-               std::shared_ptr<faabric::Message> msgIn,
-               std::shared_ptr<threads::Level> nextLevelIn)
-      : parentMsg(parentMsgIn)
-      , msg(msgIn)
-      , nextLevel(nextLevelIn)
-    {}
+    int32_t pthreadPtr;
+    int32_t entryFunc;
+    int32_t argsPtr;
 };
 
 std::shared_ptr<Level> levelFromBatchRequest(

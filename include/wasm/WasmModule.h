@@ -146,6 +146,11 @@ class WasmModule
 
     void restore(const std::string& snapshotKey);
 
+    // ----- Threading -----
+    void queuePthreadCall(threads::PthreadCall call);
+
+    int awaitPthreadCall(const faabric::Message* msg, int pthreadPtr);
+
     // ----- Debugging -----
     virtual void printDebugInfo();
 
@@ -171,12 +176,17 @@ class WasmModule
     threads::MutexManager mutexes;
 
     std::shared_mutex moduleMemoryMutex;
+    std::mutex modulePthreadsMutex;
     std::mutex moduleStateMutex;
 
     // Argc/argv
     unsigned int argc;
     std::vector<std::string> argv;
     size_t argvBufferSize;
+
+    // Threads
+    std::vector<threads::PthreadCall> queuedPthreadCalls;
+    std::unordered_map<int32_t, uint32_t> pthreadPtrsToChainedCalls;
 
     // Shared memory regions
     std::unordered_map<std::string, uint32_t> sharedMemWasmPtrs;

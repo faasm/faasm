@@ -5,6 +5,7 @@
 #include <sys/mman.h>
 #include <sys/types.h>
 
+#include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
@@ -981,7 +982,6 @@ U32 WAVMWasmModule::mmapFile(U32 fd, U32 length)
 
 U32 WAVMWasmModule::growMemory(U32 nBytes)
 {
-
     U64 maxPages = getMemoryType(defaultMemory).size.max;
 
     // Check if we just need the size

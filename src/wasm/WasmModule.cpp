@@ -82,7 +82,7 @@ faabric::util::SnapshotData WasmModule::getSnapshotData()
     // of the allocated memory
     faabric::util::SnapshotData data;
     data.data = getMemoryBase();
-    data.size = getCurrentBrk();
+    data.size = currentBrk;
 
     return data;
 }
@@ -413,9 +413,82 @@ uint32_t WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
     return wasmOffset + regionSize;
 }
 
+void WasmModule::queuePthreadCall(threads::PthreadCall call)
+{
+    queuedPthreadCalls.emplace_back(call);
+}
+
+int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
+{
+    assert(msg != nullptr);
+
+    if (!queuedPthreadCalls.empty()) {
+        faabric::util::UniqueLock lock(modulePthreadsMutex);
+
+        if (!queuedPthreadCalls.empty()) {
+            int nPthreadCalls = queuedPthreadCalls.size();
+            std::string snapshotKey = snapshot(false);
+            std::string funcStr = faabric::util::funcToString(*msg, true);
+
+            SPDLOG_DEBUG("Executing {} pthread calls for {} with snapshot {}",
+                         nPthreadCalls,
+                         funcStr,
+                         snapshotKey);
+
+            std::shared_ptr<faabric::BatchExecuteRequest> req =
+              faabric::util::batchExecFactory(
+                msg->user(), msg->function(), nPthreadCalls);
+
+            req->set_type(faabric::BatchExecuteRequest::THREADS);
+            req->set_subtype(wasm::ThreadRequestType::PTHREAD);
+
+            for (int i = 0; i < nPthreadCalls; i++) {
+                threads::PthreadCall p = queuedPthreadCalls.at(i);
+                faabric::Message& m = req->mutable_messages()->at(i);
+
+                // Snapshot details
+                m.set_snapshotkey(snapshotKey);
+                // Function pointer and args
+                // NOTE - with a pthread interface we only ever pass the
+                // function a single pointer argument, hence we use the
+                // input data here to hold this argument as a string
+                m.set_funcptr(p.entryFunc);
+                m.set_inputdata(std::to_string(p.argsPtr));
+
+                // Assign a thread ID and increment. Our pthread IDs start
+                // at 1
+                m.set_appindex(i + 1);
+
+                // Record this thread -> call ID
+                SPDLOG_TRACE(
+                  "pthread {} mapped to call {}", p.pthreadPtr, m.id());
+                pthreadPtrsToChainedCalls.insert({ p.pthreadPtr, m.id() });
+            }
+
+            // Submit the call
+            faabric::scheduler::Scheduler& sch =
+              faabric::scheduler::getScheduler();
+            sch.callFunctions(req);
+
+            // Empty the queue
+            queuedPthreadCalls.clear();
+        }
+    }
+
+    // Await the results of this call
+    unsigned int callId = pthreadPtrsToChainedCalls[pthreadPtr];
+    SPDLOG_DEBUG("Awaiting pthread: {} ({})", pthreadPtr, callId);
+    auto& sch = faabric::scheduler::getScheduler();
+
+    int returnValue = sch.awaitThreadResult(callId);
+
+    pthreadPtrsToChainedCalls.erase(pthreadPtr);
+
+    return returnValue;
+}
+
 void WasmModule::createThreadStacks()
 {
-
     SPDLOG_DEBUG("Creating {} thread stacks", threadPoolSize);
 
     for (int i = 0; i < threadPoolSize; i++) {

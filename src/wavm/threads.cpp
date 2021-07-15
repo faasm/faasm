@@ -62,10 +62,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                  entryFunc,
                  argsPtr);
 
-    faabric::Message* originalCall = getExecutingCall();
-    std::string funcStr = faabric::util::funcToString(*originalCall, true);
-    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-
     // Set the bits we care about on the pthread struct
     // NOTE - setting the initial pointer is crucial for inter-operation with
     // existing C code
@@ -74,41 +70,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
       &Runtime::memoryRef<wasm_pthread>(thisModule->defaultMemory, pthreadPtr);
     pthreadNative->selfPtr = pthreadPtr;
 
-    // Create a new snapshot if one isn't already active
-    if (currentSnapshotKey.empty()) {
-        currentSnapshotKey = thisModule->snapshot(false);
+    threads::PthreadCall pthreadCall;
+    pthreadCall.pthreadPtr = pthreadPtr;
+    pthreadCall.entryFunc = entryFunc;
+    pthreadCall.argsPtr = argsPtr;
 
-        SPDLOG_DEBUG(
-          "Setting pthread snapshot for {} ({})", funcStr, currentSnapshotKey);
-    }
-
-    std::shared_ptr<faabric::BatchExecuteRequest> req =
-      faabric::util::batchExecFactory(
-        originalCall->user(), originalCall->function(), 1);
-
-    req->set_type(faabric::BatchExecuteRequest::THREADS);
-    req->set_subtype(wasm::ThreadRequestType::PTHREAD);
-
-    faabric::Message& threadCall = req->mutable_messages()->at(0);
-
-    // Snapshot details
-    threadCall.set_snapshotkey(currentSnapshotKey);
-
-    // Function pointer and args
-    // NOTE - with a pthread interface we only ever pass the function a single
-    // pointer argument, hence we use the input data here to hold this argument
-    // as a string
-    threadCall.set_funcptr(entryFunc);
-    threadCall.set_inputdata(std::to_string(argsPtr));
-
-    // Assign a thread ID and increment. Our pthread IDs start at 1
-    threadCall.set_appindex(thisModule->pthreadCounter.fetch_add(1) + 1);
-
-    // Submit it
-    sch.callFunctions(req);
-
-    // Record this thread -> call ID
-    thisModule->chainedThreads.insert({ pthreadPtr, threadCall.id() });
+    thisModule->queuePthreadCall(pthreadCall);
 
     return 0;
 }
@@ -120,25 +87,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 pthreadPtr,
                                I32 resPtrPtr)
 {
-
     SPDLOG_DEBUG("S - pthread_join - {} {}", pthreadPtr, resPtrPtr);
 
-    // Await the chained thread
-    WAVMWasmModule* thisModule = getExecutingWAVMModule();
-    unsigned int callId = thisModule->chainedThreads[pthreadPtr];
-    SPDLOG_DEBUG("Awaiting pthread: {} ({})", pthreadPtr, callId);
-    auto& sch = faabric::scheduler::getScheduler();
-
-    int returnValue = sch.awaitThreadResult(callId);
-
-    // Remove record for the remote thread
-    thisModule->chainedThreads.erase(pthreadPtr);
-
-    // If we're done with executing threads, remove the snapshot
-    if (thisModule->chainedThreads.empty()) {
-        SPDLOG_DEBUG("Finished with snapshot: {}", currentSnapshotKey);
-        currentSnapshotKey = "";
-    }
+    faabric::Message* call = getExecutingCall();
+    WasmModule* thisModule = getExecutingModule();
+    int returnValue = thisModule->awaitPthreadCall(call, pthreadPtr);
 
     // This function is passed a pointer to a pointer for the result,
     // so we dereference it once and are writing an integer (i.e. a wasm

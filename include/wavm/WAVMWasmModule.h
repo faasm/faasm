@@ -59,7 +59,7 @@ class WAVMWasmModule final
 
     uint8_t* getMemoryBase() override;
 
-    // ----- Environment variables
+    // ----- Environment variables -----
     void writeWasmEnvToMemory(uint32_t envPointers,
                               uint32_t envBuffer) override;
 
@@ -115,10 +115,6 @@ class WAVMWasmModule final
     static WAVM::Runtime::Context* createThreadContext(
       uint32_t stackTop,
       WAVM::Runtime::ContextRuntimeData* contextRuntimeData);
-
-    std::unordered_map<int32_t, uint32_t> chainedThreads;
-
-    std::atomic<int> pthreadCounter = 0;
 
     // ----- Disassembly -----
     std::map<std::string, std::string> buildDisassemblyMap();
