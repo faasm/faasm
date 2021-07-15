@@ -149,8 +149,6 @@ jobs:
         run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
       - name: "Print CPU model"
         run: echo "${{ env.CPU_MODEL}}"
-      - name: "Print page size"
-        run: getconf PAGESIZE
       # --- Cache ---
       - name: "Configure machine code cache"
         uses: actions/cache@v2
