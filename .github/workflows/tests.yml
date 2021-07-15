@@ -142,13 +142,15 @@ jobs:
         with:
           name: py-funcs
           path: /usr/local/faasm/shared_store
-      # --- CPU information ---
+      # --- Host information ---
       - name: "CPU info"
         run: cat /proc/cpuinfo
       - name: "Get CPU model name"
         run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
       - name: "Print CPU model"
         run: echo "${{ env.CPU_MODEL}}"
+      - name: "Print page size"
+        run: getconf PAGESIZE
       # --- Cache ---
       - name: "Configure machine code cache"
         uses: actions/cache@v2

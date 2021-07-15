@@ -114,77 +114,83 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
                  "Test dirty page checks for wasm module",
                  "[wasm][snapshot]")
 {
+    int expectedBytesChanged = 4 * 4096;
+    int expectedPagesChanged =
+      faabric::util::getRequiredHostPages(expectedBytesChanged);
+
     std::string user = "demo";
     std::string function = "memcpy";
-    faabric::Message m = faabric::util::messageFactory(user, function);
 
-    wasm::WAVMWasmModule module;
-    module.bindToFunction(m);
+    SECTION("Wasm module")
+    {
+        faabric::Message m = faabric::util::messageFactory(user, function);
 
-    // Reset dirty page tracking _after_ binding
-    faabric::util::resetDirtyTracking();
+        wasm::WAVMWasmModule module;
+        module.bindToFunction(m);
 
-    // Check no dirty pages initially
-    faabric::util::SnapshotData snapBefore = module.getSnapshotData();
-    REQUIRE(snapBefore.getDirtyPages().empty());
+        // Reset dirty page tracking _after_ binding
+        faabric::util::resetDirtyTracking();
 
-    // Execute the function
-    module.executeFunction(m);
+        // Check no dirty pages initially
+        faabric::util::SnapshotData snapBefore = module.getSnapshotData();
+        REQUIRE(snapBefore.getDirtyPages().empty());
 
-    // Check some dirty pages are registered
-    faabric::util::SnapshotData snapAfter = module.getSnapshotData();
-    std::vector<faabric::util::SnapshotDiff> actual = snapAfter.getDirtyPages();
-    REQUIRE(actual.size() == 4);
-}
+        // Execute the function
+        module.executeFunction(m);
 
-TEST_CASE_METHOD(WasmSnapTestFixture,
-                 "Test dirty page checks for faaslet",
-                 "[wasm][snapshot]")
-{
-    std::string user = "demo";
-    std::string function = "memcpy";
-    std::shared_ptr<faabric::BatchExecuteRequest> req =
-      faabric::util::batchExecFactory(user, function, 1);
-    faabric::Message& m = req->mutable_messages()->at(0);
-    faaslet::Faaslet f(m);
+        // Check some dirty pages are registered
+        faabric::util::SnapshotData snapAfter = module.getSnapshotData();
+        std::vector<faabric::util::SnapshotDiff> actual =
+          snapAfter.getDirtyPages();
+        REQUIRE(actual.size() == expectedPagesChanged);
+    }
 
-    // Reset dirty page tracking _after_ binding
-    faabric::util::resetDirtyTracking();
+    SECTION("Faaslet")
+    {
+        std::shared_ptr<faabric::BatchExecuteRequest> req =
+          faabric::util::batchExecFactory(user, function, 1);
+        faabric::Message& m = req->mutable_messages()->at(0);
+        faaslet::Faaslet f(m);
 
-    // Check no dirty pages initially
-    faabric::util::SnapshotData snapBefore = f.snapshot();
-    REQUIRE(snapBefore.getDirtyPages().empty());
+        // Reset dirty page tracking _after_ binding
+        faabric::util::resetDirtyTracking();
 
-    // Execute the function
-    f.executeTask(0, 0, req);
+        // Check no dirty pages initially
+        faabric::util::SnapshotData snapBefore = f.snapshot();
+        REQUIRE(snapBefore.getDirtyPages().empty());
 
-    // Check some dirty pages are registered
-    faabric::util::SnapshotData snapAfter = f.snapshot();
-    std::vector<faabric::util::SnapshotDiff> actual = snapAfter.getDirtyPages();
-    REQUIRE(actual.size() == 4);
+        // Execute the function
+        f.executeTask(0, 0, req);
 
-    // Set up a snapshot with this data
-    std::string snapKey = "dirty-check";
-    reg.takeSnapshot(snapKey, snapAfter);
+        // Check some dirty pages are registered
+        faabric::util::SnapshotData snapAfter = f.snapshot();
+        std::vector<faabric::util::SnapshotDiff> actual =
+          snapAfter.getDirtyPages();
+        REQUIRE(actual.size() == 4);
 
-    // Restore a Faaslet with this snapshot
-    std::shared_ptr<faabric::BatchExecuteRequest> reqSnap =
-      faabric::util::batchExecFactory(user, function, 1);
-    faabric::Message& mSnap = reqSnap->mutable_messages()->at(0);
-    mSnap.set_snapshotkey(snapKey);
+        // Set up a snapshot with this data
+        std::string snapKey = "dirty-check";
+        reg.takeSnapshot(snapKey, snapAfter);
 
-    faaslet::Faaslet fSnap(mSnap);
-    fSnap.restore(mSnap);
+        // Restore a Faaslet with this snapshot
+        std::shared_ptr<faabric::BatchExecuteRequest> reqSnap =
+          faabric::util::batchExecFactory(user, function, 1);
+        faabric::Message& mSnap = reqSnap->mutable_messages()->at(0);
+        mSnap.set_snapshotkey(snapKey);
 
-    faabric::util::resetDirtyTracking();
+        faaslet::Faaslet fSnap(mSnap);
+        fSnap.restore(mSnap);
 
-    // Execute and check again
-    fSnap.executeTask(0, 0, reqSnap);
+        faabric::util::resetDirtyTracking();
 
-    // Check some dirty pages are registered
-    faabric::util::SnapshotData afterSnap = fSnap.snapshot();
-    std::vector<faabric::util::SnapshotDiff> actualSnap =
-      afterSnap.getDirtyPages();
-    REQUIRE(actualSnap.size() == 4);
+        // Execute and check again
+        fSnap.executeTask(0, 0, reqSnap);
+
+        // Check some dirty pages are registered
+        faabric::util::SnapshotData afterSnap = fSnap.snapshot();
+        std::vector<faabric::util::SnapshotDiff> actualSnap =
+          afterSnap.getDirtyPages();
+        REQUIRE(actual.size() == expectedPagesChanged);
+    }
 }
 }
