@@ -53,4 +53,27 @@ void FaasmConfig::reset()
 {
     this->initialise();
 }
+
+void FaasmConfig::print()
+{
+    SPDLOG_INFO("--- HOST ---");
+    SPDLOG_INFO("Cgroup mode:          {}", cgroupMode);
+    SPDLOG_INFO("Host type:            {}", hostType);
+    SPDLOG_INFO("Network ns mode:      {}", netNsMode);
+
+    SPDLOG_INFO("--- MISC ---");
+    SPDLOG_INFO("Capture stdout:       {}", captureStdout);
+    SPDLOG_INFO("Chained call timeout: {}", chainedCallTimeout);
+    SPDLOG_INFO("Python preload:       {}", pythonPreload);
+    SPDLOG_INFO("Wasm VM:              {}", wasmVm);
+
+    SPDLOG_INFO("--- STORAGE ---");
+    SPDLOG_INFO("Fileserver:           {}", fileserverUrl);
+    SPDLOG_INFO("Function storage:     {}", functionStorage);
+    SPDLOG_INFO("Function dir:         {}", functionDir);
+    SPDLOG_INFO("Object file dir:      {}", objectFileDir);
+    SPDLOG_INFO("Runtime files dir:    {}", runtimeFilesDir);
+    SPDLOG_INFO("Shared files dir:     {}", sharedFilesDir);
+    SPDLOG_INFO("Shared storage dir:   {}", sharedFilesStorageDir);
+}
 }

@@ -43,9 +43,6 @@ int makeChainedCall(const std::string& functionName,
     assert(!user.empty());
     assert(!functionName.empty());
 
-    SPDLOG_DEBUG(
-      "Chaining call {}/{}:{}", user, functionName, originalCall->id());
-
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory(originalCall->user(), functionName, 1);
 
@@ -59,6 +56,26 @@ int makeChainedCall(const std::string& functionName,
         msg.set_pythonentry(pyFuncName);
     }
     msg.set_ispython(originalCall->ispython());
+
+    if (originalCall->issgx()) {
+        msg.set_issgx(true);
+    }
+
+    if (msg.funcptr() == 0) {
+        SPDLOG_INFO("Chaining call {}/{} -> {}/{} (ids: {} -> {})",
+                    originalCall->user(),
+                    originalCall->function(),
+                    msg.user(),
+                    msg.function(),
+                    originalCall->id(),
+                    msg.id());
+    } else {
+        SPDLOG_INFO("Chaining nested call {}/{} (ids: {} -> {})",
+                    msg.user(),
+                    msg.function(),
+                    originalCall->id(),
+                    msg.id());
+    }
 
     sch.callFunctions(req);
     sch.logChainedFunction(originalCall->id(), msg.id());

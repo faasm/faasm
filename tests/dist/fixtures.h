@@ -14,7 +14,6 @@ class DistTestsFixture
     faabric::scheduler::Scheduler& sch;
     faabric::util::SystemConfig& conf;
     conf::FaasmConfig& faasmConf;
-    std::set<std::string> otherHosts;
 
   public:
     DistTestsFixture()
@@ -22,13 +21,10 @@ class DistTestsFixture
       , conf(faabric::util::getSystemConfig())
       , faasmConf(conf::getFaasmConfig())
     {
-        // Make sure this host is available
+        // Clean up the scheduler and make sure this host is available
+        sch.shutdown();
         sch.addHostToGlobalSet();
-
-        // Get other hosts
-        std::string thisHost = conf.endpointHost;
-        otherHosts = sch.getAvailableHosts();
-        otherHosts.erase(thisHost);
+        sch.addHostToGlobalSet(WORKER_IP);
 
         // Set up executor
         std::shared_ptr<faaslet::FaasletFactory> fac =

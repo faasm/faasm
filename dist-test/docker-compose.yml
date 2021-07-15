@@ -32,7 +32,7 @@ services:
     stdin_open: true
     tty: true
     environment:
-      - LOG_LEVEL=info
+      - LOG_LEVEL=debug
       - REDIS_STATE_HOST=redis
       - REDIS_QUEUE_HOST=redis
       - OVERRIDE_CPU_COUNT=4
@@ -52,7 +52,7 @@ services:
       - ${FAASM_LOCAL_DIR}:/usr/local/faasm
     working_dir: /build/faasm
     environment:
-      - LOG_LEVEL=info
+      - LOG_LEVEL=debug
       - REDIS_STATE_HOST=redis
       - REDIS_QUEUE_HOST=redis
       - OVERRIDE_CPU_COUNT=4

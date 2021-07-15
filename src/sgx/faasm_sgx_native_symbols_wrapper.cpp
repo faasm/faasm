@@ -308,7 +308,7 @@ extern "C"
             SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
         }
 
-        return 0;
+        return returnValue;
     }
 
     static unsigned int faasm_chain_ptr_wrapper(wasm_exec_env_t exec_env,
@@ -316,15 +316,11 @@ extern "C"
                                                 const uint8_t* input_data,
                                                 unsigned int input_size)
     {
-        unsigned int returnValue;
-        sgx_status_t sgxReturnValue = ocall_faasm_chain_ptr(
-          &returnValue, wasmFuncPtr, input_data, input_size);
+        // 01/07/2021 - Chain function by pointer is not supported in SGX as it
+        // breaks attestation model. Chain by name instead.
+        SET_ERROR(FAASM_SGX_WAMR_FUNCTION_NOT_IMPLEMENTED);
 
-        if (sgxReturnValue != SGX_SUCCESS) {
-            SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
-        }
-
-        return returnValue;
+        return 1;
     }
 
     static unsigned int faasm_await_call_wrapper(wasm_exec_env_t exec_env,
@@ -454,6 +450,11 @@ extern "C"
         return 0;
     }
 
+    static int fd_fdstat_get_wrapper(wasm_exec_env_t exec_env, int a, int b)
+    {
+        return 0;
+    }
+
     static void proc_exit_wrapper(wasm_exec_env_t exec_env, int returnCode) {}
 
     NativeSymbol faasm_sgx_native_symbols[FAASM_SGX_NATIVE_SYMBOLS_LEN] = {
@@ -498,6 +499,7 @@ extern "C"
         WASI_NATIVE_FUNC(fd_close, "(i)i"),
         WASI_NATIVE_FUNC(fd_seek, "(iIii)i"),
         WASI_NATIVE_FUNC(fd_write, "(iiii)i"),
-        WASI_NATIVE_FUNC(proc_exit, "(i)")
+        WASI_NATIVE_FUNC(fd_fdstat_get, "(ii)i"),
+        WASI_NATIVE_FUNC(proc_exit, "(i)"),
     };
 }

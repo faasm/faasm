@@ -6,11 +6,12 @@
 #include <faabric/redis/Redis.h>
 #include <faabric/runner/FaabricMain.h>
 #include <faabric/scheduler/ExecutorFactory.h>
+#include <faabric/transport/context.h>
 #include <faabric/util/config.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/timing.h>
 
-int main(int argc, char* argv[])
+int doRunner(int argc, char* argv[])
 {
     faabric::util::initLogging();
 
@@ -107,4 +108,16 @@ int main(int argc, char* argv[])
     m.shutdown();
 
     return 0;
+}
+
+int main(int argc, char* argv[])
+{
+    faabric::transport::initGlobalMessageContext();
+
+    // WARNING: All 0MQ-related operations must take place in a self-contined
+    // scope to ensure all sockets are destructed before closing the context.
+    int result = doRunner(argc, argv);
+
+    faabric::transport::closeGlobalMessageContext();
+    return result;
 }
