@@ -16,16 +16,16 @@ void printHex(const std::vector<uint8_t>& vec)
 int main()
 {
     std::vector<uint8_t> key(SGX_AESGCM_KEY_SIZE, 0);
-    generate(key.begin(), key.end(), rand);
+    std::generate(key.begin(), key.end(), rand);
 
     std::string plainTestStr = "Hello world!";
-    FaasmSgxMsg_t plainText = { .buffer = plainTestStr.c_str(),
+    FaasmSgxMsg_t plainText = { .buffer = reinterpret_cast<uint8_t*>(&plainTestStr[0]),
                                 .bufferLen = plainTestStr.size() };
     FaasmSgxEncryptedMsg_t encrypted;
 
     doSymEncrypt(&plainText,
                  &encrypted,
-                 static_cast<FaasmSgxSymKey_t*>(key.data()));
+                 reinterpret_cast<FaasmSgxSymKey_t*>(key.data()));
 
     return 0;
 }

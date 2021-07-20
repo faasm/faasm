@@ -63,8 +63,56 @@ set(FAASM_SGX_WAMR_SRC_UNTRUSTED
         )
 
 # --------------------------------------------------------
+# SGX-WAMR Runtime Libraries
+# --------------------------------------------------------
+
+set(FAASM_SGX_HEADERS
+        ${FAASM_INCLUDE_DIR}/sgx/enclaveConfig.h
+        ${FAASM_INCLUDE_DIR}/sgx/faasm_sgx_attestation.h
+        ${FAASM_INCLUDE_DIR}/sgx/faasm_sgx_enclave_types.h
+        ${FAASM_INCLUDE_DIR}/sgx/faasm_sgx_error.h
+        ${FAASM_INCLUDE_DIR}/sgx/faasm_sgx_native_symbols_wrapper.h
+        ${FAASM_INCLUDE_DIR}/sgx/faasm_sgx_system.h
+        ${FAASM_INCLUDE_DIR}/sgx/rw_lock.h
+        ${FAASM_INCLUDE_DIR}/sgx/SGXWAMRWasmModule.h
+)
+
+add_library(wamr_sgx STATIC
+        ${FAASM_SGX_HEADERS}
+        ${FAASM_SGX_WAMR_SRC}
+        )
+
+target_compile_options(wamr_sgx PRIVATE
+        -std=gnu99
+        -fPIC
+        -ffunction-sections
+        -fdata-sections
+        -Wall
+        -Wno-unused-parameter
+        -Wno-pedantic
+        )
+
+target_include_directories(wamr_sgx PRIVATE
+        ${SGX_SDK_PATH}/include
+        ${SGX_SDK_PATH}/include/tlibc
+        ${SGX_SDK_PATH}/include/libcxx
+        )
+
+add_library(wamr_sgx_untrusted STATIC
+        ${FAASM_SGX_HEADERS}
+        ${FAASM_SGX_WAMR_SRC_UNTRUSTED}
+        )
+
+target_compile_options(wamr_sgx_untrusted PRIVATE
+        -fPIC
+        -ffunction-sections
+        -fdata-sections
+        )
+
+# --------------------------------------------------------
 # Crypto submodule
 # --------------------------------------------------------
+
 add_subdirectory(crypto)
 
 # --------------------------------------------------------
@@ -146,17 +194,6 @@ set(FAASM_SGX_ENCLAVE_C_FLAGS ${SGX_C_GLOBAL_FLAGS}
         -fstack-protector-strong
         )
 
-set(FAASM_SGX_HEADERS
-        ${FAASM_INCLUDE_DIR}/sgx/enclaveConfig.h
-        ${FAASM_INCLUDE_DIR}/sgx/faasm_sgx_attestation.h
-        ${FAASM_INCLUDE_DIR}/sgx/faasm_sgx_enclave_types.h
-        ${FAASM_INCLUDE_DIR}/sgx/faasm_sgx_error.h
-        ${FAASM_INCLUDE_DIR}/sgx/faasm_sgx_native_symbols_wrapper.h
-        ${FAASM_INCLUDE_DIR}/sgx/faasm_sgx_system.h
-        ${FAASM_INCLUDE_DIR}/sgx/rw_lock.h
-        ${FAASM_INCLUDE_DIR}/sgx/SGXWAMRWasmModule.h
-)
-
 # --------------------------------------------------------
 # ENCLAVE BUILD
 # --------------------------------------------------------
@@ -172,7 +209,6 @@ add_library(faasm_sgx_enclave SHARED
     ${FAASM_SGX_HEADERS}
     ${FAASM_SGX_ENCLAVE_SRC}
 )
-add_dependencies(faasm_sgx_enclave wamr_sgx)
 
 set_target_properties(faasm_sgx_enclave PROPERTIES PREFIX "")
 target_include_directories(faasm_sgx_enclave PRIVATE
@@ -298,7 +334,8 @@ if(NOT FAASM_SGX_SIM_MODE)
     find_library(SGX_URTS_LIB "sgx_urts")
     find_library(SGX_UAE_SERVICE_LIB "sgx_uae_service")
 
-    if(SGX_URTS_LIB STREQUAL "SGX_URTS_LIB-NOTFOUND" OR SGX_UAE_SERVICE_LIB STREQUAL "SGX_UAE_SERVICE_LIB-NOTFOUND")
+    if(SGX_URTS_LIB STREQUAL "SGX_URTS_LIB-NOTFOUND" OR
+       SGX_UAE_SERVICE_LIB STREQUAL "SGX_UAE_SERVICE_LIB-NOTFOUND")
         message(WARNING "SGX PSW NOT INSTALLED! SET RPATH TO ${SGX_SDK_LIB_PATH}")
         target_link_directories(faasm_sgx INTERFACE ${SGX_SDK_LIB_PATH})
     endif()
@@ -320,13 +357,13 @@ target_link_options(faasm_sgx PUBLIC
 
 if (FAASM_SGX_SIM_MODE)
     target_link_libraries(faasm_sgx
-            sgx_urts_sim
-            sgx_uae_service_sim
+            ${SGX_SDK_LIB_PATH}/libsgx_urts_sim.so
+            ${SGX_SDK_LIB_PATH}/libsgx_uae_service_sim.so
             )
 else ()
     target_link_libraries(faasm_sgx
-            sgx_urts
-            sgx_uae_service
+            ${SGX_SDK_LIB_PATH}/libsgx_urts.so
+            ${SGX_SDK_LIB_PATH}/libsgx_uae_service.so
             )
 endif ()
 
@@ -337,46 +374,9 @@ target_link_libraries(faasm_sgx
         )
 
 # --------------------------------------------------------
-# WAMR Runtime Libraries
+# Trusted enclave build + Signature
 # --------------------------------------------------------
 
-add_library(wamr_sgx STATIC
-        ${FAASM_SGX_HEADERS}
-        ${FAASM_SGX_WAMR_SRC}
-        )
-
-target_compile_options(wamr_sgx PRIVATE
-        -std=gnu99
-        -fPIC
-        -ffunction-sections
-        -fdata-sections
-        -Wall
-        -Wno-unused-parameter
-        -Wno-pedantic
-        )
-
-target_include_directories(wamr_sgx PRIVATE
-        ${SGX_SDK_PATH}/include
-        ${SGX_SDK_PATH}/include/tlibc
-        ${SGX_SDK_PATH}/include/libcxx
-        )
-
-add_library(wamr_sgx_untrusted STATIC
-        ${FAASM_SGX_HEADERS}
-        ${FAASM_SGX_WAMR_SRC_UNTRUSTED}
-        )
-
-target_compile_options(wamr_sgx_untrusted PRIVATE
-        -fPIC
-        -ffunction-sections
-        -fdata-sections
-        )
-
-# --------------------------------------------------------
-# CUSTOM COMMANDS
-# --------------------------------------------------------
-
-# WAMR enclave
 add_custom_command(TARGET faasm_sgx_enclave
         PRE_BUILD COMMAND ${SGX_SDK_ENCLAVE_EDGER8R}
         --trusted faasm_sgx_enclave.edl
@@ -403,7 +403,10 @@ add_custom_command(TARGET faasm_sgx_enclave
         -config ${CMAKE_CURRENT_SOURCE_DIR}/faasm_sgx_enclave.config
         )
 
-# SGX-WAMR
+# --------------------------------------------------------
+# Untrusted-side build
+# --------------------------------------------------------
+
 add_custom_command(TARGET faasm_sgx
         PRE_BUILD COMMAND ${SGX_SDK_ENCLAVE_EDGER8R}
         --untrusted faasm_sgx_enclave.edl
