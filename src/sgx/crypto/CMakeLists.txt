@@ -7,17 +7,22 @@ set(FAASM_SGX_CRYPTO_SRC
         ${FAASM_SGX_CRYPTO_HEADERS}
         )
 
-faasm_private_lib(faasm_sgx_crypto ${FAASM_SGX_CRYPTO_SRC})
+add_library(faasm_sgx_crypto STATIC ${FAASM_SGX_CRYPTO_SRC})
+target_compile_options(faasm_sgx_crypto PRIVATE
+        -nostdinc
+        -fvisibility=hidden
+        -fpie
+        -ffunction-sections
+        -fdata-sections
+        -fstack-protector-strong
+        )
 
-# if (FAASM_SGX_SIM_MODE)
-#     target_link_libraries(faasm_sgx_crypto
-#         -Wl,--whole-archive ${SGX_SDK_LIB_PATH}/libsgx_trts_sim.a
-#         )
-# else()
-#     target_link_libraries(faasm_sgx_crypto
-#         -Wl,--whole-archive ${SGX_SDK_LIB_PATH}/libsgx_trts.a
-#         )
-# endif()
+target_include_directories(faasm_sgx_crypto PRIVATE
+    ${SGX_SDK_PATH}/include
+    ${SGX_SDK_PATH}/include/tlibc
+    ${SGX_SDK_PATH}/include/libcxx
+    )
+
 target_link_libraries(faasm_sgx_crypto
         ${SGX_SDK_LIB_PATH}/libsgx_tstdc.a
         ${SGX_SDK_LIB_PATH}/libsgx_tcrypto.a

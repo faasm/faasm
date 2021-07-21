@@ -406,7 +406,7 @@ extern "C"
 
 #if (FAASM_SGX_ATTESTATION)
         // Initialize necessary attestation stuff if FAASM-SGX Attestation
-        // extention is enabled
+        // extension is enabled
         sgx_status_t sgx_return_value;
         faasm_sgx_status_t return_value;
 

@@ -109,6 +109,16 @@ target_compile_options(wamr_sgx_untrusted PRIVATE
         -fdata-sections
         )
 
+# Note - these are the same in debug/ non-debug mode
+set(FAASM_SGX_ENCLAVE_C_FLAGS ${SGX_C_GLOBAL_FLAGS}
+        -nostdinc
+        -fvisibility=hidden
+        -fpie
+        -ffunction-sections
+        -fdata-sections
+        -fstack-protector-strong
+        )
+
 # --------------------------------------------------------
 # Crypto submodule
 # --------------------------------------------------------
@@ -184,22 +194,13 @@ else ()
 
 endif ()
 
-# Note - these are the same in debug/ non-debug mode
-set(FAASM_SGX_ENCLAVE_C_FLAGS ${SGX_C_GLOBAL_FLAGS}
-        -nostdinc
-        -fvisibility=hidden
-        -fpie
-        -ffunction-sections
-        -fdata-sections
-        -fstack-protector-strong
-        )
-
 # --------------------------------------------------------
 # ENCLAVE BUILD
 # --------------------------------------------------------
 
 # SGX WAMR enclave library
 set(FAASM_SGX_ENCLAVE_SRC
+        faasm_sgx_checks.cpp
         faasm_sgx_enclave.cpp
         faasm_sgx_native_symbols_wrapper.cpp
         rw_lock.cpp
@@ -272,6 +273,7 @@ target_link_libraries(faasm_sgx_enclave
         ${SGX_SDK_LIB_PATH}/libsgx_tstdc.a
         ${SGX_SDK_LIB_PATH}/libsgx_tcxx.a
         ${SGX_SDK_LIB_PATH}/libsgx_tcrypto.a
+        faasm_sgx_crypto
         wamr_sgx
         -Wl,--end-group
         )
