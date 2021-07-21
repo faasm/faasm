@@ -7,7 +7,7 @@
 #include <string>
 
 // Global enclave ID
-sgx_enclave_id_t globalEnclaveId;
+sgx_enclave_id_t globalEnclaveId = 0;
 
 #define ERROR_PRINT_CASE(enumVal)                                              \
     case (enumVal): {                                                          \
@@ -25,7 +25,7 @@ void checkSgxSetup()
 {
 
     // Skip set-up if enclave already exists
-    if (globalEnclaveId > 0) {
+    if (globalEnclaveId != 0) {
         SPDLOG_DEBUG("SGX enclave already exists ({})", globalEnclaveId);
         return;
     }
@@ -97,10 +97,13 @@ void tearDownEnclave()
 
     sgx_status_t sgxReturnValue = sgx_destroy_enclave(globalEnclaveId);
     if (sgxReturnValue != SGX_SUCCESS) {
-        SPDLOG_WARN("Unable to destroy enclave {}: {}",
-                    globalEnclaveId,
-                    sgxErrorString(sgxReturnValue));
+        SPDLOG_ERROR("Unable to destroy enclave {}: {}",
+                     globalEnclaveId,
+                     sgxErrorString(sgxReturnValue));
+        throw std::runtime_error("Unable to destroy enclave");
     }
+
+    globalEnclaveId = 0;
 }
 
 void checkSgxCrypto()
