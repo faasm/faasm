@@ -2,7 +2,8 @@
 #include <sgx_defs.h>
 #include <tlibc/string.h>
 
-#include <sgx/crypto/utils.h>
+#include <sgx/crypto/encryption.h>
+#include <sgx/crypto/types.h>
 #include <sgx/faasm_sgx_error.h>
 
 extern "C"

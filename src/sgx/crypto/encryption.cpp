@@ -1,4 +1,4 @@
-#include <sgx/crypto/utils.h>
+#include <sgx/crypto/encryption.h>
 
 extern "C"
 {
