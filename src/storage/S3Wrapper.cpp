@@ -1,9 +1,10 @@
-#include <aws/s3/S3Errors.h>
+#include <conf/FaasmConfig.h>
 #include <storage/S3Wrapper.h>
 
 #include <faabric/util/bytes.h>
 #include <faabric/util/logging.h>
 
+#include <aws/s3/S3Errors.h>
 #include <aws/s3/model/CreateBucketRequest.h>
 #include <aws/s3/model/DeleteObjectRequest.h>
 #include <aws/s3/model/GetObjectRequest.h>
@@ -58,10 +59,12 @@ ClientConfiguration getClientConf(long timeout)
     // https://github.com/aws/aws-sdk-cpp/issues/587
     ClientConfiguration config;
 
+    conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
+
     config.region = "";
     config.verifySSL = false;
-    config.endpointOverride = MINIO_URI;
-    config.connectTimeoutMs = MINIO_CONNECT_TIMEOUT_MS;
+    config.endpointOverride = faasmConf.s3Host + ":" + faasmConf.s3Port;
+    config.connectTimeoutMs = S3_CONNECT_TIMEOUT_MS;
     config.requestTimeoutMs = timeout;
 
     // Use HTTP, not HTTPS
@@ -82,8 +85,9 @@ void cleanUpSDK()
 }
 
 S3Wrapper::S3Wrapper()
-  : clientConf(getClientConf(S3_REQUEST_TIMEOUT_MS))
-  , client(AWSCredentials(MINIO_USER, MINIO_PASSWORD),
+  : faasmConf(conf::getFaasmConfig())
+  , clientConf(getClientConf(S3_REQUEST_TIMEOUT_MS))
+  , client(AWSCredentials(faasmConf.s3User, faasmConf.s3Password),
            clientConf,
            AWSAuthV4Signer::PayloadSigningPolicy::Never,
            false)

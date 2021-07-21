@@ -43,9 +43,9 @@ S3FileLoader::S3FileLoader()
 
 std::vector<uint8_t> S3FileLoader::loadFileBytes(const std::string& path)
 {
-    SPDLOG_DEBUG("Loading bytes from {}/{}", conf.bucketName, path);
+    SPDLOG_DEBUG("Loading bytes from {}/{}", conf.s3Bucket, path);
 
-    const std::vector<uint8_t> bytes = s3.getKeyBytes(conf.bucketName, path);
+    const std::vector<uint8_t> bytes = s3.getKeyBytes(conf.s3Bucket, path);
 
     return bytes;
 }
@@ -80,7 +80,7 @@ void S3FileLoader::uploadFunction(faabric::Message& msg)
     const std::string& inputBytes = msg.inputdata();
 
     const std::string key = getFunctionKey(msg);
-    s3.addKeyStr(conf.bucketName, key, inputBytes);
+    s3.addKeyStr(conf.s3Bucket, key, inputBytes);
 
     // Build the object file from the file we've just received
     this->codegenForFunction(msg);
@@ -98,9 +98,9 @@ void S3FileLoader::uploadFunctionObjectFile(
     const std::string key = getFunctionObjectKey(msg);
 
     SPDLOG_DEBUG(
-      "Uploading function object bytes to {}/{}", conf.bucketName, key);
+      "Uploading function object bytes to {}/{}", conf.s3Bucket, key);
 
-    s3.addKeyBytes(conf.bucketName, key, objBytes);
+    s3.addKeyBytes(conf.s3Bucket, key, objBytes);
 }
 
 void S3FileLoader::uploadSharedObjectObjectFile(
@@ -108,8 +108,8 @@ void S3FileLoader::uploadSharedObjectObjectFile(
   const std::vector<uint8_t>& objBytes)
 {
     SPDLOG_DEBUG(
-      "Uploading shared object object bytes to {}/{}", conf.bucketName, path);
+      "Uploading shared object object bytes to {}/{}", conf.s3Bucket, path);
 
-    s3.addKeyBytes(conf.bucketName, path, objBytes);
+    s3.addKeyBytes(conf.s3Bucket, path, objBytes);
 }
 }

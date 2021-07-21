@@ -39,7 +39,11 @@ void FaasmConfig::initialise()
     sharedFilesDir = fmt::format("{}/{}", faasmLocalDir, "shared");
     sharedFilesStorageDir = fmt::format("{}/{}", faasmLocalDir, "shared_store");
 
-    bucketName = getEnvVar("BUCKET_NAME", "faasm");
+    s3Bucket = getEnvVar("S3_BUCKET", "faasm");
+    s3Host= getEnvVar("S3_HOST", "minio");
+    s3Port= getEnvVar("S3_PORT", "9000");
+    s3User = getEnvVar("S3_USER", "minio");
+    s3Password = getEnvVar("S3_PASSWORD", "minio123");
 }
 
 int FaasmConfig::getIntParam(const char* name, const char* defaultValue)

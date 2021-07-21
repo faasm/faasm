@@ -8,18 +8,14 @@
 #include <aws/core/auth/AWSCredentialsProvider.h>
 #include <aws/s3/S3Client.h>
 
+#include <conf/FaasmConfig.h>
+
 #include <faabric/util/logging.h>
 
+#define S3_REQUEST_TIMEOUT_MS 10000
+#define S3_CONNECT_TIMEOUT_MS 500
+
 namespace storage {
-
-Aws::Client::ClientConfiguration getClientConf(long timeout = 3000);
-
-#define S3_REQUEST_TIMEOUT_MS 500
-
-#define MINIO_CONNECT_TIMEOUT_MS 500
-#define MINIO_URI "minio:9000"
-#define MINIO_USER "minio"
-#define MINIO_PASSWORD "minio123"
 
 void initSDK();
 
@@ -53,6 +49,7 @@ class S3Wrapper
                           const std::string& keyName);
 
   private:
+    const conf::FaasmConfig& faasmConf;
     Aws::Client::ClientConfiguration clientConf;
     Aws::S3::S3Client client;
 };
