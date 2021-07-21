@@ -12,21 +12,18 @@ extern "C"
     {
         // Test string of size 13 (including trailing nullptr)
         uint8_t tmpPlainText[] = "Hello world!";
-        FaasmSgxMsg_t plainText = { .buffer = &tmpPlainText[0],
-                                    .bufferLen = 13 };
-        FaasmSgxSymKey_t key = {
-            0xdc, 0xbd, 0x32, 0x2e, 0x8d, 0x46, 0xa9, 0xeb,
-            0xdf, 0xdd, 0x64, 0x4,  0x1b, 0x80, 0xde, 0x22
-        };
+        FaasmSgxMsg plainText = { .buffer = &tmpPlainText[0], .bufferLen = 13 };
+        FaasmSgxSymKey key = { 0xdc, 0xbd, 0x32, 0x2e, 0x8d, 0x46, 0xa9, 0xeb,
+                               0xdf, 0xdd, 0x64, 0x4,  0x1b, 0x80, 0xde, 0x22 };
 
         // Symmetric encrypt
-        FaasmSgxEncryptedMsg_t* encrypted = doSymEncrypt(&plainText, key);
+        FaasmSgxEncryptedMsg* encrypted = doSymEncrypt(&plainText, key);
         if (encrypted == NULL) {
             return FAASM_SGX_ENCRYPTION_FAILED;
         }
 
         // Symmetric decrypt
-        FaasmSgxMsg_t* decrypted = doSymDecrypt(encrypted, key);
+        FaasmSgxMsg* decrypted = doSymDecrypt(encrypted, key);
         if (decrypted == NULL) {
             return FAASM_SGX_DECRYPTION_FAILED;
         }

@@ -2,28 +2,28 @@
 
 extern "C"
 {
-    FaasmSgxEncryptedMsg_t* doSymEncrypt(FaasmSgxMsg_t* decryptedMsg,
-                                         FaasmSgxSymKey_t symKey)
+    FaasmSgxEncryptedMsg* doSymEncrypt(FaasmSgxMsg* decryptedMsg,
+                                       FaasmSgxSymKey symKey)
     {
         return doAesGcmEncrypt(decryptedMsg, symKey);
     }
 
-    FaasmSgxMsg_t* doSymDecrypt(FaasmSgxEncryptedMsg_t* encryptedMsg,
-                                FaasmSgxSymKey_t symKey)
+    FaasmSgxMsg* doSymDecrypt(FaasmSgxEncryptedMsg* encryptedMsg,
+                              FaasmSgxSymKey symKey)
     {
         return doAesGcmDecrypt(encryptedMsg, symKey);
     }
 
-    FaasmSgxEncryptedMsg_t* doAesGcmEncrypt(FaasmSgxMsg_t* decryptedMsg,
-                                            FaasmSgxSymKey_t symKey)
+    FaasmSgxEncryptedMsg* doAesGcmEncrypt(FaasmSgxMsg* decryptedMsg,
+                                          FaasmSgxSymKey symKey)
     {
-        FaasmSgxEncryptedMsg_t* encryptedMsg;
+        FaasmSgxEncryptedMsg* encryptedMsg;
 
         // Allocate size for the cipher text
         // Note - the output pointer must have a size greater or equal than
         // bufferLen.
-        if (!(encryptedMsg = (FaasmSgxEncryptedMsg_t*)calloc(
-                1, sizeof(FaasmSgxEncryptedMsg_t)))) {
+        if (!(encryptedMsg = (FaasmSgxEncryptedMsg*)calloc(
+                1, sizeof(FaasmSgxEncryptedMsg)))) {
             return NULL;
         }
         // Initialise the IV
@@ -62,16 +62,15 @@ extern "C"
         return encryptedMsg;
     }
 
-    FaasmSgxMsg_t* doAesGcmDecrypt(FaasmSgxEncryptedMsg_t* encryptedMsg,
-                                   FaasmSgxSymKey_t symKey)
+    FaasmSgxMsg* doAesGcmDecrypt(FaasmSgxEncryptedMsg* encryptedMsg,
+                                 FaasmSgxSymKey symKey)
     {
-        FaasmSgxMsg_t* decryptedMsg;
+        FaasmSgxMsg* decryptedMsg;
 
         // Allocate size for the clear text
         // Note - the output pointer must have a size greater or equal than
         // the input buffer len.
-        if (!(decryptedMsg =
-                (FaasmSgxMsg_t*)calloc(1, sizeof(FaasmSgxMsg_t)))) {
+        if (!(decryptedMsg = (FaasmSgxMsg*)calloc(1, sizeof(FaasmSgxMsg)))) {
             return NULL;
         }
         if (!(decryptedMsg->buffer =

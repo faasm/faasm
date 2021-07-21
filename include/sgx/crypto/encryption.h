@@ -12,15 +12,15 @@ extern "C"
     // Symmetric encryption
     // --------------------------------------
 
-    FaasmSgxEncryptedMsg_t* doSymEncrypt(FaasmSgxMsg_t* decryptedMsg,
-                                         FaasmSgxSymKey_t symKey);
+    FaasmSgxEncryptedMsg* doSymEncrypt(FaasmSgxMsg* decryptedMsg,
+                                       FaasmSgxSymKey symKey);
 
-    FaasmSgxMsg_t* doSymDecrypt(FaasmSgxEncryptedMsg_t* encryptedMsg,
-                                FaasmSgxSymKey_t symKey);
+    FaasmSgxMsg* doSymDecrypt(FaasmSgxEncryptedMsg* encryptedMsg,
+                              FaasmSgxSymKey symKey);
 
-    FaasmSgxEncryptedMsg_t* doAesGcmEncrypt(FaasmSgxMsg_t* decryptedMsg,
-                                            FaasmSgxSymKey_t symKey);
+    FaasmSgxEncryptedMsg* doAesGcmEncrypt(FaasmSgxMsg* decryptedMsg,
+                                          FaasmSgxSymKey symKey);
 
-    FaasmSgxMsg_t* doAesGcmDecrypt(FaasmSgxEncryptedMsg_t* encryptedMsg,
-                                   FaasmSgxSymKey_t symKey);
+    FaasmSgxMsg* doAesGcmDecrypt(FaasmSgxEncryptedMsg* encryptedMsg,
+                                 FaasmSgxSymKey symKey);
 }
