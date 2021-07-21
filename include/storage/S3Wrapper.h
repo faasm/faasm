@@ -25,16 +25,6 @@ void initSDK();
 
 void cleanUpSDK();
 
-template<typename T>
-void handleError(const Aws::Client::AWSError<T> err)
-{
-    SPDLOG_ERROR("AWS error: {} {}",
-                 err.GetExceptionName().c_str(),
-                 err.GetMessage().c_str());
-
-    throw std::runtime_error("AWS error");
-}
-
 class S3Wrapper
 {
   public:

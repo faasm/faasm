@@ -10,23 +10,53 @@
 #include <aws/s3/model/ListObjectsRequest.h>
 #include <aws/s3/model/PutObjectRequest.h>
 
+using namespace Aws::S3::Model;
+using namespace Aws::Client;
+using namespace Aws::Auth;
+
 namespace storage {
 
 static Aws::SDKOptions options;
 
-std::shared_ptr<Aws::Auth::AWSCredentialsProvider> getCredentialsProvider()
+template<typename R>
+R reqFactory(const std::string& bucket)
 {
-    return Aws::MakeShared<Aws::Auth::ProfileConfigFileAWSCredentialsProvider>(
-      "local");
+    R req;
+    req.SetBucket(bucket);
+    return req;
 }
 
-Aws::Client::ClientConfiguration getClientConf(long timeout)
+template<typename R>
+R reqFactory(const std::string& bucket, const std::string& key)
 {
-    // There are a couple of conflicting pieces of info on how to configure the
-    // AWS C++ SDK for use with minio:
+    R req = reqFactory<R>(bucket);
+    req.SetKey(key);
+    return req;
+}
+
+#define CHECK_ERRORS(response)                                                 \
+    {                                                                          \
+        if (!response.IsSuccess()) {                                           \
+            const auto& err = response.GetError();                             \
+            SPDLOG_ERROR("S3 error: {} {}",                                    \
+                         err.GetExceptionName().c_str(),                       \
+                         err.GetMessage().c_str());                            \
+            throw std::runtime_error("S3 error");                              \
+        }                                                                      \
+    }
+
+std::shared_ptr<AWSCredentialsProvider> getCredentialsProvider()
+{
+    return Aws::MakeShared<ProfileConfigFileAWSCredentialsProvider>("local");
+}
+
+ClientConfiguration getClientConf(long timeout)
+{
+    // There are a couple of conflicting pieces of info on how to configure
+    // the AWS C++ SDK for use with minio:
     // https://stackoverflow.com/questions/47105289/how-to-override-endpoint-in-aws-sdk-cpp-to-connect-to-minio-server-at-localhost
     // https://github.com/aws/aws-sdk-cpp/issues/587
-    Aws::Client::ClientConfiguration config;
+    ClientConfiguration config;
 
     config.region = "";
     config.verifySSL = false;
@@ -53,18 +83,16 @@ void cleanUpSDK()
 
 S3Wrapper::S3Wrapper()
   : clientConf(getClientConf(S3_REQUEST_TIMEOUT_MS))
-  , client(Aws::Auth::AWSCredentials(MINIO_USER, MINIO_PASSWORD),
+  , client(AWSCredentials(MINIO_USER, MINIO_PASSWORD),
            clientConf,
-           Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never,
+           AWSAuthV4Signer::PayloadSigningPolicy::Never,
            false)
 {}
 
 void S3Wrapper::createBucket(const std::string& bucketName)
 {
     SPDLOG_DEBUG("Creating bucket {}", bucketName);
-    Aws::S3::Model::CreateBucketRequest request;
-    request.SetBucket(bucketName);
-
+    auto request = reqFactory<CreateBucketRequest>(bucketName);
     auto response = client.CreateBucket(request);
 
     if (!response.IsSuccess()) {
@@ -75,7 +103,7 @@ void S3Wrapper::createBucket(const std::string& bucketName)
             errType == Aws::S3::S3Errors::BUCKET_ALREADY_EXISTS) {
             SPDLOG_DEBUG("Bucket already exists {}", bucketName);
         } else {
-            handleError(err);
+            CHECK_ERRORS(response);
         }
     }
 }
@@ -84,14 +112,9 @@ std::vector<std::string> S3Wrapper::listBuckets()
 {
     SPDLOG_DEBUG("Listing buckets");
     auto response = client.ListBuckets();
+    CHECK_ERRORS(response);
 
-    if (!response.IsSuccess()) {
-        const auto& err = response.GetError();
-        handleError(err);
-    }
-
-    Aws::Vector<Aws::S3::Model::Bucket> bucketObjects =
-      response.GetResult().GetBuckets();
+    Aws::Vector<Bucket> bucketObjects = response.GetResult().GetBuckets();
 
     std::vector<std::string> bucketNames;
     for (auto const& bucketObject : bucketObjects) {
@@ -105,18 +128,12 @@ std::vector<std::string> S3Wrapper::listBuckets()
 std::vector<std::string> S3Wrapper::listKeys(const std::string& bucketName)
 {
     SPDLOG_DEBUG("Listing keys in bucket {}", bucketName);
-    Aws::S3::Model::ListObjectsRequest request;
-    request.SetBucket(bucketName);
-
+    auto request = reqFactory<ListObjectsRequest>(bucketName);
     auto response = client.ListObjects(request);
 
-    if (!response.IsSuccess()) {
-        const auto& err = response.GetError();
-        handleError(err);
-    }
+    CHECK_ERRORS(response);
 
-    Aws::Vector<Aws::S3::Model::Object> keyObjects =
-      response.GetResult().GetContents();
+    Aws::Vector<Object> keyObjects = response.GetResult().GetContents();
 
     std::vector<std::string> keys;
     for (auto const& keyObject : keyObjects) {
@@ -131,16 +148,9 @@ void S3Wrapper::deleteKey(const std::string& bucketName,
                           const std::string& keyName)
 {
     SPDLOG_DEBUG("Deleting key {}/{}", bucketName, keyName);
-    Aws::S3::Model::DeleteObjectRequest request;
-    request.SetBucket(bucketName);
-    request.SetKey(keyName);
-
+    auto request = reqFactory<DeleteObjectRequest>(bucketName, keyName);
     auto response = client.DeleteObject(request);
-
-    if (!response.IsSuccess()) {
-        const auto& err = response.GetError();
-        handleError(err);
-    }
+    CHECK_ERRORS(response);
 }
 
 void S3Wrapper::addKeyBytes(const std::string& bucketName,
@@ -150,10 +160,7 @@ void S3Wrapper::addKeyBytes(const std::string& bucketName,
     // See example:
     // https://github.com/awsdocs/aws-doc-sdk-examples/blob/master/cpp/example_code/s3/put_object_buffer.cpp
     SPDLOG_DEBUG("Writing {} to bucket {} as bytes", keyName, bucketName);
-
-    Aws::S3::Model::PutObjectRequest request;
-    request.SetBucket(bucketName);
-    request.SetKey(keyName);
+    auto request = reqFactory<PutObjectRequest>(bucketName, keyName);
 
     const std::shared_ptr<Aws::IOStream> dataStream =
       Aws::MakeShared<Aws::StringStream>((char*)data.data());
@@ -163,11 +170,7 @@ void S3Wrapper::addKeyBytes(const std::string& bucketName,
     request.SetBody(dataStream);
 
     auto response = client.PutObject(request);
-
-    if (!response.IsSuccess()) {
-        const auto& err = response.GetError();
-        handleError(err);
-    }
+    CHECK_ERRORS(response);
 }
 
 void S3Wrapper::addKeyStr(const std::string& bucketName,
@@ -178,9 +181,7 @@ void S3Wrapper::addKeyStr(const std::string& bucketName,
     // https://github.com/awsdocs/aws-doc-sdk-examples/blob/master/cpp/example_code/s3/put_object_buffer.cpp
     SPDLOG_DEBUG("Writing {} to bucket {} as string", keyName, bucketName);
 
-    Aws::S3::Model::PutObjectRequest request;
-    request.SetBucket(bucketName);
-    request.SetKey(keyName);
+    auto request = reqFactory<PutObjectRequest>(bucketName, keyName);
 
     const std::shared_ptr<Aws::IOStream> dataStream =
       Aws::MakeShared<Aws::StringStream>("");
@@ -188,34 +189,17 @@ void S3Wrapper::addKeyStr(const std::string& bucketName,
     dataStream->flush();
 
     request.SetBody(dataStream);
-
     auto response = client.PutObject(request);
-
-    if (!response.IsSuccess()) {
-        const auto& err = response.GetError();
-        handleError(err);
-    }
+    CHECK_ERRORS(response);
 }
 
 std::vector<uint8_t> S3Wrapper::getKeyBytes(const std::string& bucketName,
                                             const std::string& keyName)
 {
     SPDLOG_DEBUG("Getting key {}/{} as bytes", bucketName, keyName);
-    Aws::S3::Model::GetObjectRequest request;
-    request.SetBucket(bucketName);
-    request.SetKey(keyName);
-    Aws::S3::Model::GetObjectOutcome response = client.GetObject(request);
-
-    if (!response.IsSuccess()) {
-        const auto& err = response.GetError();
-        handleError(err);
-    }
-
-    // Aws::Utils::ByteBuffer rawData(
-    // static_cast<size_t>(response.GetResult().GetContentLength()));
-    // memset(rawData.GetUnderlyingData(), 0, rawData.GetLength());
-    // response.GetResult().GetBody().read((char*)rawData.GetUnderlyingData(),
-    //                                    rawData.GetLength());
+    auto request = reqFactory<GetObjectRequest>(bucketName, keyName);
+    GetObjectOutcome response = client.GetObject(request);
+    CHECK_ERRORS(response);
 
     std::vector<uint8_t> rawData(response.GetResult().GetContentLength());
     response.GetResult().GetBody().read((char*)rawData.data(), rawData.size());
@@ -226,15 +210,9 @@ std::string S3Wrapper::getKeyStr(const std::string& bucketName,
                                  const std::string& keyName)
 {
     SPDLOG_DEBUG("Getting key {}/{} as string", bucketName, keyName);
-    Aws::S3::Model::GetObjectRequest request;
-    request.SetBucket(bucketName);
-    request.SetKey(keyName);
-    auto response = client.GetObject(request);
-
-    if (!response.IsSuccess()) {
-        const auto& err = response.GetError();
-        handleError(err);
-    }
+    auto request = reqFactory<GetObjectRequest>(bucketName, keyName);
+    GetObjectOutcome response = client.GetObject(request);
+    CHECK_ERRORS(response);
 
     std::ostringstream ss;
     auto* responseStream = response.GetResultWithOwnership().GetBody().rdbuf();
