@@ -20,8 +20,8 @@ extern "C"
         FaasmSgxEncryptedMsg_t* encryptedMsg;
 
         // Allocate size for the cipher text
-        // Note - the output pointer, encryptedMsg->buffer, must have a size
-        // greater or equal than bufferLen.
+        // Note - the output pointer must have a size greater or equal than
+        // bufferLen.
         if (!(encryptedMsg = (FaasmSgxEncryptedMsg_t*)calloc(
                 1, sizeof(FaasmSgxEncryptedMsg_t)))) {
             return NULL;
@@ -66,8 +66,9 @@ extern "C"
                                    FaasmSgxSymKey_t symKey)
     {
         FaasmSgxMsg_t* decryptedMsg;
+
         // Allocate size for the clear text
-        // Note - the output pointer, must have a size greater or equal than
+        // Note - the output pointer must have a size greater or equal than
         // the input buffer len.
         if (!(decryptedMsg =
                 (FaasmSgxMsg_t*)calloc(1, sizeof(FaasmSgxMsg_t)))) {
