@@ -1,8 +1,6 @@
 ARG FAASM_VERSION
 FROM faasm/base:${FAASM_VERSION}
 
-COPY . /usr/local/code/faasm
-
 # Build the upload and codegen targets
 WORKDIR /build/faasm
 RUN cmake --build . --target upload

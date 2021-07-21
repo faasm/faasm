@@ -66,8 +66,6 @@ def build(ctx, c, nocache=False, push=False):
     faasm_ver = get_faasm_version()
 
     for container in c:
-        # Check if we need to template a special dockerignore file It seems the
-        # dockerignore file needs to be at <dockerfile_path>.dockerignore
         dockerfile = join("docker", "{}.dockerfile".format(container))
         tag_name = "faasm/{}:{}".format(container, faasm_ver)
 

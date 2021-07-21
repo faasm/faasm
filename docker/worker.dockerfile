@@ -1,8 +1,6 @@
 ARG FAASM_VERSION
 FROM faasm/base:${FAASM_VERSION}
 
-COPY . /usr/local/code/faasm
-
 # Build the worker binary
 WORKDIR /build/faasm
 RUN cmake --build . --target codegen_shared_obj
