@@ -147,46 +147,19 @@ void S3Wrapper::addKeyBytes(const std::string& bucketName,
                             const std::string& keyName,
                             const std::vector<uint8_t>& data)
 {
-    const char* charPtr = reinterpret_cast<const char*>(data.data());
-    addKey(bucketName, keyName, charPtr, data.size());
-}
-
-void S3Wrapper::addKeyStr(const std::string& bucketName,
-                          const std::string& keyName,
-                          const std::string& data)
-{
-    addKey(bucketName, keyName, data.c_str(), data.size());
-}
-
-std::vector<uint8_t> S3Wrapper::getKeyBytes(const std::string& bucketName,
-                                            const std::string& keyName)
-{
-    std::string byteStr = getKey(bucketName, keyName);
-    return faabric::util::stringToBytes(byteStr);
-}
-
-std::string S3Wrapper::getKeyStr(const std::string& bucketName,
-                                 const std::string& keyName)
-{
-    return getKey(bucketName, keyName);
-}
-
-void S3Wrapper::addKey(const std::string& bucketName,
-                       const std::string& keyName,
-                       const char* data,
-                       size_t dataLen)
-{
     // See example:
     // https://github.com/awsdocs/aws-doc-sdk-examples/blob/master/cpp/example_code/s3/put_object_buffer.cpp
-    SPDLOG_DEBUG("Writing {} to bucket {}", keyName, bucketName);
+    SPDLOG_DEBUG("Writing {} to bucket {} as bytes", keyName, bucketName);
 
     Aws::S3::Model::PutObjectRequest request;
     request.SetBucket(bucketName);
     request.SetKey(keyName);
 
     const std::shared_ptr<Aws::IOStream> dataStream =
-      Aws::MakeShared<Aws::StringStream>("");
-    *dataStream << data;
+      Aws::MakeShared<Aws::StringStream>((char*)data.data());
+    dataStream->write((char*)data.data(), data.size());
+    dataStream->flush();
+
     request.SetBody(dataStream);
 
     auto response = client.PutObject(request);
@@ -197,14 +170,65 @@ void S3Wrapper::addKey(const std::string& bucketName,
     }
 }
 
-std::string S3Wrapper::getKey(const std::string& bucketName,
-                              const std::string& keyName)
+void S3Wrapper::addKeyStr(const std::string& bucketName,
+                          const std::string& keyName,
+                          const std::string& data)
 {
-    SPDLOG_DEBUG("Getting key {}/{}", bucketName, keyName);
-    Aws::S3::Model::GetObjectRequest request;
+    // See example:
+    // https://github.com/awsdocs/aws-doc-sdk-examples/blob/master/cpp/example_code/s3/put_object_buffer.cpp
+    SPDLOG_DEBUG("Writing {} to bucket {} as string", keyName, bucketName);
+
+    Aws::S3::Model::PutObjectRequest request;
     request.SetBucket(bucketName);
     request.SetKey(keyName);
 
+    const std::shared_ptr<Aws::IOStream> dataStream =
+      Aws::MakeShared<Aws::StringStream>("");
+    *dataStream << data;
+    dataStream->flush();
+
+    request.SetBody(dataStream);
+
+    auto response = client.PutObject(request);
+
+    if (!response.IsSuccess()) {
+        const auto& err = response.GetError();
+        handleError(err);
+    }
+}
+
+std::vector<uint8_t> S3Wrapper::getKeyBytes(const std::string& bucketName,
+                                            const std::string& keyName)
+{
+    SPDLOG_DEBUG("Getting key {}/{} as bytes", bucketName, keyName);
+    Aws::S3::Model::GetObjectRequest request;
+    request.SetBucket(bucketName);
+    request.SetKey(keyName);
+    Aws::S3::Model::GetObjectOutcome response = client.GetObject(request);
+
+    if (!response.IsSuccess()) {
+        const auto& err = response.GetError();
+        handleError(err);
+    }
+
+    // Aws::Utils::ByteBuffer rawData(
+    // static_cast<size_t>(response.GetResult().GetContentLength()));
+    // memset(rawData.GetUnderlyingData(), 0, rawData.GetLength());
+    // response.GetResult().GetBody().read((char*)rawData.GetUnderlyingData(),
+    //                                    rawData.GetLength());
+
+    std::vector<uint8_t> rawData(response.GetResult().GetContentLength());
+    response.GetResult().GetBody().read((char*)rawData.data(), rawData.size());
+    return rawData;
+}
+
+std::string S3Wrapper::getKeyStr(const std::string& bucketName,
+                                 const std::string& keyName)
+{
+    SPDLOG_DEBUG("Getting key {}/{} as string", bucketName, keyName);
+    Aws::S3::Model::GetObjectRequest request;
+    request.SetBucket(bucketName);
+    request.SetKey(keyName);
     auto response = client.GetObject(request);
 
     if (!response.IsSuccess()) {

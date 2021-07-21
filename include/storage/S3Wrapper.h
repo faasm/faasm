@@ -64,15 +64,6 @@ class S3Wrapper
 
   private:
     Aws::Client::ClientConfiguration clientConf;
-
     Aws::S3::S3Client client;
-
-    void addKey(const std::string& bucketName,
-                const std::string& keyName,
-                const char* data,
-                size_t dataLen);
-
-    std::string getKey(const std::string& bucketName,
-                       const std::string& keyName);
 };
 }
