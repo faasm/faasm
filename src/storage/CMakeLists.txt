@@ -20,12 +20,12 @@ set(LIB_FILES
 
 faasm_private_lib(storage "${LIB_FILES}")
 add_dependencies(storage aws_ext)
-find_package(AWSSDK REQUIRED COMPONENTS s3 core)
 
 target_link_libraries(storage
-    ${AWSSDK_LINK_LIBRARIES}
     wavmmodule
     wamrmodule
+    aws_ext_core
+    aws_ext_s3
     cpprestsdk::cpprest
     curl
 )

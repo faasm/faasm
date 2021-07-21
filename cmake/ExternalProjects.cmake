@@ -49,24 +49,38 @@ ExternalProject_Add(eigen_ext
     CMAKE_CACHE_ARGS "-DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}"
 )
 
-# AWS docs on using as an external project:
+# There are some AWS docs on using the cpp sdk as an external project:
 # https://github.com/aws/aws-sdk-cpp/blob/main/Docs/CMake_External_Project.md
-# If you need to build multiple AWS components, see this issue:
-# https://github.com/aws/aws-sdk-cpp/issues/826
+# but they don't specify how to link the libraries, which required adding an
+# extra couple of CMake targets.
+set(AWS_CORE_LIBRARY ${CMAKE_INSTALL_PREFIX}/lib/libaws-cpp-sdk-core.so)
+set(AWS_S3_LIBRARY ${CMAKE_INSTALL_PREFIX}/lib/libaws-cpp-sdk-s3.so)
 ExternalProject_Add(aws_ext
     GIT_REPOSITORY   "https://github.com/aws/aws-sdk-cpp.git"
     GIT_TAG          "b733384b16945818fa5da5b73e410dea1e9ab9d0"
     BUILD_ALWAYS     0
     TEST_COMMAND     ""
     UPDATE_COMMAND   ""
+    BUILD_BYPRODUCTS ${AWS_S3_LIBRARY} ${AWS_CORE_LIBRARY}
     CMAKE_CACHE_ARGS "-DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}"
     LIST_SEPARATOR    "|"
-    CMAKE_ARGS       -DBUILD_SHARED_LIBS=OFF
+    CMAKE_ARGS       -DBUILD_SHARED_LIBS=ON
                      -DBUILD_ONLY=s3|sts
                      -DAUTORUN_UNIT_TESTS=OFF
                      -DENABLE_TESTING=OFF
                      -DCMAKE_BUILD_TYPE=Release
 )
+
+add_library(aws_ext_core SHARED IMPORTED)
+add_library(aws_ext_s3 SHARED IMPORTED)
+set_target_properties(aws_ext_core
+    PROPERTIES IMPORTED_LOCATION
+    ${CMAKE_INSTALL_PREFIX}/lib/libaws-cpp-sdk-core.so)
+set_target_properties(aws_ext_s3
+    PROPERTIES IMPORTED_LOCATION
+    ${CMAKE_INSTALL_PREFIX}/lib/libaws-cpp-sdk-s3.so)
+add_dependencies(aws_ext_core aws_ext)
+add_dependencies(aws_ext_s3 aws_ext)
 
 ExternalProject_Add(catch2_ext
      GIT_REPOSITORY "https://github.com/catchorg/Catch2"
