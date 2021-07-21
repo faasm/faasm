@@ -208,6 +208,7 @@ std::string faasmSgxErrorString(faasm_sgx_status_t status)
         ERROR_PRINT_CASE(FAASM_SGX_READ_RAND_FAILED)
         ERROR_PRINT_CASE(FAASM_SGX_ENCRYPTION_FAILED)
         ERROR_PRINT_CASE(FAASM_SGX_DECRYPTION_FAILED)
+        ERROR_PRINT_CASE(FAASM_SGX_HASH_FAILED)
         default: {
             char res[20];
             sprintf(res, "%#010x", status);
