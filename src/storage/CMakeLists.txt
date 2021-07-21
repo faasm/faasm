@@ -20,18 +20,12 @@ set(LIB_FILES
 
 faasm_private_lib(storage "${LIB_FILES}")
 add_dependencies(storage aws_ext)
-
-find_package(aws-cpp-sdk-core)
-find_package(aws-cpp-sdk-s3)
-
-# This is necessary to make sure we can link the S3 module with the core one
-add_dependencies(aws-cpp-sdk-s3 aws-cpp-sdk-core)
+find_package(AWSSDK REQUIRED COMPONENTS s3 core)
 
 target_link_libraries(storage
+    ${AWSSDK_LINK_LIBRARIES}
     wavmmodule
     wamrmodule
     cpprestsdk::cpprest
-    aws-cpp-sdk-core
-    aws-cpp-sdk-s3
     curl
 )
