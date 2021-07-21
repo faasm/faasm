@@ -24,6 +24,9 @@ add_dependencies(storage aws_ext)
 find_package(aws-cpp-sdk-core)
 find_package(aws-cpp-sdk-s3)
 
+# This is necessary to make sure we can link the S3 module with the core one
+add_dependencies(aws-cpp-sdk-s3 aws-cpp-sdk-core)
+
 target_link_libraries(storage
     wavmmodule
     wamrmodule
