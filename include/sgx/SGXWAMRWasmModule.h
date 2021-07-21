@@ -12,9 +12,6 @@
 #include <sgx.h>
 #include <sgx_urts.h>
 
-// Note that we currently only initialise _one enclave per Faasm runtime_
-extern sgx_enclave_id_t globalEnclaveId;
-
 // What follows are the definitions of the enclave-entry calls. This is, the
 // way we have to interact with a running enclave. These calls are shared among
 // all function invocations (i.e. module instantiation).
@@ -50,6 +47,10 @@ extern "C"
       sgx_enclave_id_t enclave_id,
       faasm_sgx_status_t* ret_val,
       const uint32_t thread_id);
+
+    extern sgx_status_t faasm_sgx_enclave_crypto_checks(
+      sgx_enclave_id_t enclave_id,
+      faasm_sgx_status_t* ret_val);
 }
 
 namespace wasm {
