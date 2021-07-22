@@ -56,22 +56,11 @@ std::vector<uint8_t> S3FileLoader::loadFunctionWasm(const faabric::Message& msg)
     return this->loadFileBytes(key);
 }
 
-std::vector<uint8_t> S3FileLoader::loadSharedObjectWasm(const std::string& path)
-{
-    throw std::runtime_error("Not implemented for S3 function loader");
-}
-
 std::vector<uint8_t> S3FileLoader::loadFunctionObjectFile(
   const faabric::Message& msg)
 {
     const std::string key = getFunctionObjectKey(msg);
     return this->loadFileBytes(key);
-}
-
-std::vector<uint8_t> S3FileLoader::loadSharedObjectObjectFile(
-  const std::string& path)
-{
-    throw std::runtime_error("Not implemented for S3 function loader");
 }
 
 void S3FileLoader::uploadFunction(faabric::Message& msg)
@@ -84,11 +73,6 @@ void S3FileLoader::uploadFunction(faabric::Message& msg)
 
     // Build the object file from the file we've just received
     this->codegenForFunction(msg);
-}
-
-void S3FileLoader::uploadPythonFunction(faabric::Message& msg)
-{
-    throw std::runtime_error("Not yet implemented Python upload on S3");
 }
 
 void S3FileLoader::uploadFunctionObjectFile(
@@ -112,4 +96,19 @@ void S3FileLoader::uploadSharedObjectObjectFile(
 
     s3.addKeyBytes(conf.s3Bucket, path, objBytes);
 }
+
+// ----------------------------------------
+// Unimplemented
+// ----------------------------------------
+
+std::vector<uint8_t> S3FileLoader::loadFunctionObjectHash(
+  const faabric::Message& msg)
+{
+    std::vector<uint8_t> empty;
+    return empty;
+}
+
+void S3FileLoader::uploadFunctionObjectHash(const faabric::Message& msg,
+                                            const std::vector<uint8_t>& hash)
+{}
 }

@@ -1,5 +1,7 @@
 #include <catch2/catch.hpp>
 
+#include "faabric_utils.h"
+
 #include <faabric/util/config.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
@@ -19,12 +21,14 @@ class S3TestFixture
     {
         // Make sure the bucket exists
         s3.createBucket(conf.s3Bucket);
+
+        conf.functionStorage = "s3";
     };
 
-    ~S3TestFixture(){};
+    ~S3TestFixture() { conf.reset(); };
 
   protected:
-    const conf::FaasmConfig& conf;
+    conf::FaasmConfig& conf;
     storage::S3Wrapper s3;
 };
 
@@ -101,21 +105,19 @@ TEST_CASE_METHOD(S3TestFixture,
     msg.set_user("demo");
     msg.set_function("echo");
 
-    // Wasm data is uploaded via the message input data
+    // Upload wasm data
     const std::string& funcPath = conf::getFunctionFile(msg);
     const std::vector<uint8_t>& wasmBytes =
       faabric::util::readFileToBytes(funcPath);
     msg.set_inputdata(wasmBytes.data(), wasmBytes.size());
 
-    // Object files are uploaded by passing bytes directly
+    storage::FileLoader& loader = storage::getFileLoader();
+    loader.uploadFunction(msg);
+
+    // Get the expected object data
     const std::string& objPath = conf::getFunctionObjectFile(msg);
     const std::vector<uint8_t>& objectBytes =
       faabric::util::readFileToBytes(objPath);
-
-    storage::FileLoader& loader = storage::getFileLoader();
-
-    // Do both uploads
-    loader.uploadFunction(msg);
 
     // Download again
     const std::vector<uint8_t>& actualWasmBytes = loader.loadFunctionWasm(msg);
@@ -124,7 +126,7 @@ TEST_CASE_METHOD(S3TestFixture,
     REQUIRE(actualWasmBytes == wasmBytes);
     REQUIRE(actualObjectBytes == objectBytes);
 
-    // Check 2 keys present
+    // Check both keys present
     std::vector<std::string> keys = s3.listKeys(conf.s3Bucket);
     REQUIRE(keys.size() == 2);
 

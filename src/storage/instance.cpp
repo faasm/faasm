@@ -3,6 +3,7 @@
 #include <conf/FaasmConfig.h>
 #include <storage/FileserverFileLoader.h>
 #include <storage/LocalFileLoader.h>
+#include <storage/S3FileLoader.h>
 
 namespace storage {
 FileLoader& getFileLoader()
@@ -18,6 +19,9 @@ FileLoader& getFileLoader()
             throw std::runtime_error(
               "No fileserver URL set in fileserver mode");
         }
+        return fl;
+    } else if (conf.functionStorage == "s3") {
+        static thread_local S3FileLoader fl;
         return fl;
     } else {
         throw std::runtime_error("Invalid function storage mode");
