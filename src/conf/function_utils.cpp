@@ -25,59 +25,6 @@ const static std::string objFile = "function.wasm.o";
 const static std::string wamrAotFile = "function.aot";
 const static std::string sgxWamrAotFile = "function.aot.sgx";
 
-std::string getRootUrl()
-{
-    std::string rootUrl = getEnvVar("FILESERVER_URL", "");
-    if (rootUrl.empty()) {
-        throw std::runtime_error("Fileserver URL not set");
-    }
-
-    return rootUrl;
-}
-
-std::string getUrl(const faabric::Message& msg, const std::string& urlPart)
-{
-    std::string rootUrl = getRootUrl();
-
-    std::string funcUrl =
-      rootUrl + "/" + urlPart + "/" + msg.user() + "/" + msg.function();
-
-    return funcUrl;
-}
-
-std::string getSharedObjectUrl()
-{
-    std::string rootUrl = getRootUrl();
-    return rootUrl + "/sobjwasm";
-}
-
-std::string getSharedObjectObjectUrl()
-{
-    std::string rootUrl = getRootUrl();
-    return rootUrl + "/sobjobj";
-}
-
-std::string getSharedFileUrl()
-{
-    std::string rootUrl = getRootUrl();
-    return rootUrl + "/file";
-}
-
-std::string getFunctionUrl(const faabric::Message& msg)
-{
-    return getUrl(msg, "f");
-}
-
-std::string getFunctionObjectUrl(const faabric::Message& msg)
-{
-    return getUrl(msg, "fo");
-}
-
-std::string getPythonFunctionUrl(const faabric::Message& msg)
-{
-    return getUrl(msg, "p");
-}
-
 std::string _doGetPythonFunctionFile(const faabric::Message& msg,
                                      const std::string& parentDir,
                                      bool createDirs)
@@ -148,34 +95,6 @@ bool isValidFunction(const faabric::Message& msg)
 
     bool isValid = boost::filesystem::exists(path);
     return isValid;
-}
-
-std::string getFunctionKey(const faabric::Message& msg)
-{
-    std::string key = "wasm";
-
-    key += "/";
-    key += msg.user();
-    key += "/";
-    key += msg.function();
-    key += "/";
-    key += funcFile;
-
-    return key;
-}
-
-std::string getFunctionObjectKey(const faabric::Message& msg)
-{
-    std::string key = "wasm";
-
-    key += "/";
-    key += msg.user();
-    key += "/";
-    key += msg.function();
-    key += "/";
-    key += objFile;
-
-    return key;
 }
 
 std::string getPythonFunctionFile(const faabric::Message& msg)
