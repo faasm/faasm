@@ -53,14 +53,14 @@ std::vector<uint8_t> S3FileLoader::loadFileBytes(const std::string& path)
 std::vector<uint8_t> S3FileLoader::loadFunctionWasm(const faabric::Message& msg)
 {
     const std::string key = getFunctionKey(msg);
-    return this->loadFileBytes(key);
+    return loadFileBytes(key);
 }
 
 std::vector<uint8_t> S3FileLoader::loadFunctionObjectFile(
   const faabric::Message& msg)
 {
     const std::string key = getFunctionObjectKey(msg);
-    return this->loadFileBytes(key);
+    return loadFileBytes(key);
 }
 
 void S3FileLoader::uploadFunction(faabric::Message& msg)
@@ -72,7 +72,7 @@ void S3FileLoader::uploadFunction(faabric::Message& msg)
     s3.addKeyStr(conf.s3Bucket, key, inputBytes);
 
     // Build the object file from the file we've just received
-    this->codegenForFunction(msg);
+    codegenForFunction(msg);
 }
 
 void S3FileLoader::uploadFunctionObjectFile(
