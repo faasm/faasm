@@ -114,6 +114,13 @@ jobs:
         image: faasm/redis:0.6.2
         ports:
           - 6379:6379
+      minio:
+        image: minio/minio:RELEASE.2021-07-12T02-44-53Z
+        env:
+          MINIO_ROOT_USER: minio
+          MINIO_ROOT_PASSWORD: minio123
+        ports:
+          - 9000:9000
     steps:
       - name: "Fetch ref"
         run: git fetch origin ${GITHUB_REF}:ci-branch
