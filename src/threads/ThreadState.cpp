@@ -1,9 +1,9 @@
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/barrier.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 #include <faabric/util/gids.h>
-#include <faabric/util/latch.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
@@ -18,33 +18,39 @@ using namespace faabric::util;
 #define FROM_MAP(varName, T, m, ...)                                           \
     {                                                                          \
         if (m.find(id) == m.end()) {                                           \
-            faabric::util::UniqueLock lock(sharedMutex);                       \
+            faabric::util::FullLock lock(sharedMutex);                         \
             if (m.find(id) == m.end()) {                                       \
                 m[id] = std::make_shared<T>(__VA_ARGS__);                      \
             }                                                                  \
         }                                                                      \
     }                                                                          \
-    std::shared_ptr<T> varName = m[id];
+    std::shared_ptr<T> varName;                                                \
+    {                                                                          \
+        faabric::util::SharedLock lock(sharedMutex);                           \
+        varName = m[id];                                                       \
+    }
 
 namespace threads {
 
 static thread_local std::shared_ptr<Level> currentLevel = nullptr;
 
-std::mutex sharedMutex;
+std::shared_mutex sharedMutex;
 
-std::unordered_map<uint32_t, std::shared_ptr<faabric::util::Latch>> latches;
+static std::unordered_map<uint32_t, std::shared_ptr<faabric::util::Barrier>>
+  barriers;
 
-std::unordered_map<uint32_t, std::shared_ptr<std::recursive_mutex>>
+static std::unordered_map<uint32_t, std::shared_ptr<std::recursive_mutex>>
   levelMutexes;
 
-std::unordered_map<uint32_t, std::shared_ptr<std::mutex>> nowaitMutexes;
-std::unordered_map<uint32_t, std::shared_ptr<std::atomic<int>>> nowaitCounts;
-std::unordered_map<uint32_t, std::shared_ptr<std::condition_variable>>
+static std::unordered_map<uint32_t, std::shared_ptr<std::mutex>> nowaitMutexes;
+static std::unordered_map<uint32_t, std::shared_ptr<std::atomic<int>>>
+  nowaitCounts;
+static std::unordered_map<uint32_t, std::shared_ptr<std::condition_variable>>
   nowaitCvs;
 
 void clearThreadState()
 {
-    latches.clear();
+    barriers.clear();
 
     levelMutexes.clear();
 
@@ -243,21 +249,21 @@ void Level::waitOnBarrier()
     }
 
     // Create if necessary
-    if (latches.find(id) == latches.end()) {
-        faabric::util::UniqueLock lock(sharedMutex);
-        if (latches.find(id) == latches.end()) {
-            latches[id] = Latch::create(numThreads);
+    if (barriers.find(id) == barriers.end()) {
+        bool locked = sharedMutex.try_lock();
+        if (locked && (barriers.find(id) == barriers.end())) {
+            barriers[id] = Barrier::create(numThreads);
+        }
+
+        if (locked) {
+            sharedMutex.unlock();
         }
     }
 
-    latches[id]->wait();
-
-    // Remove the used latch from the map
-    if (latches.find(id) != latches.end()) {
-        faabric::util::UniqueLock lock(sharedMutex);
-        if (latches.find(id) != latches.end()) {
-            latches.erase(id);
-        }
+    // Wait
+    {
+        faabric::util::SharedLock lock(sharedMutex);
+        barriers[id]->wait();
     }
 }
 

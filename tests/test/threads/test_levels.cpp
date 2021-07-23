@@ -134,55 +134,44 @@ TEST_CASE("Test level locking", "[threads]")
 TEST_CASE("Test level barrier", "[threads]")
 {
     cleanSystem();
-    std::atomic<int> sharedInt = 0;
-    std::atomic<int> sharedSum = 0;
 
     int nThreads = 5;
     Level lvlA(nThreads);
+    uint32_t levelId = lvlA.id;
 
     std::vector<uint8_t> serialised = lvlA.serialise();
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory("demo", "echo", 1);
     req->set_contextdata(serialised.data(), serialised.size());
 
-    // Spawn n-1 child threads to wait on barriers
+    // Spawn n-1 child threads to add to shared sums over several barriers so
+    // that the main thread can check all threads have completed after each.
+    // We want to do this as many times as possible to deliberately create
+    // contention
+
+    int nSums = 1000;
+    std::vector<std::atomic<int>> sharedSums(nSums);
     std::vector<std::thread> threads;
     for (int i = 1; i < nThreads; i++) {
-        threads.emplace_back([nThreads, &req, &sharedInt, &sharedSum] {
+        threads.emplace_back([nThreads, levelId, &req, nSums, &sharedSums] {
             UNUSED(nThreads);
-            UNUSED(sharedInt);
+            UNUSED(levelId);
 
             std::shared_ptr<Level> lvlB = levelFromBatchRequest(req);
-
             assert(lvlB->numThreads == nThreads);
+            assert(lvlB->id == levelId);
 
-            // Barrier 1
-            lvlB->waitOnBarrier();
-
-            // Make visible changes
-            assert(sharedInt == 99);
-            sharedSum.fetch_add(1);
-
-            // Barrier 2
-            lvlB->waitOnBarrier();
+            for (int s = 0; s < nSums; s++) {
+                sharedSums.at(s).fetch_add(s + 1);
+                lvlB->waitOnBarrier();
+            }
         });
     }
 
-    // Block for a while as the child threads wait on the first barrier
-    usleep(1000 * 1000);
-
-    // Set the shared int that the threads should wake up to see
-    sharedInt = 99;
-
-    // Finish barrier one
-    lvlA.waitOnBarrier();
-
-    // Sleep again
-    usleep(1000 * 1000);
-
-    // Finish barrier two and check threads have done their work
-    lvlA.waitOnBarrier();
-    REQUIRE(sharedSum == nThreads - 1);
+    for (int i = 0; i < nSums; i++) {
+        lvlA.waitOnBarrier();
+        REQUIRE(sharedSums.at(i).load() == (i + 1) * (nThreads - 1));
+    }
 
     // Join all child threads
     for (auto& t : threads) {
