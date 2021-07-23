@@ -25,7 +25,12 @@ class S3TestFixture
         conf.functionStorage = "s3";
     };
 
-    ~S3TestFixture() { conf.reset(); };
+    ~S3TestFixture()
+    {
+        s3.deleteBucket(conf.s3Bucket);
+
+        conf.reset();
+    };
 
   protected:
     conf::FaasmConfig& conf;
@@ -46,6 +51,11 @@ TEST_CASE_METHOD(S3TestFixture, "Test read/write keys in bucket", "[s3]")
         std::vector<std::string> buckets = s3.listBuckets();
         std::vector<std::string> expected = { conf.s3Bucket };
         REQUIRE(buckets == expected);
+
+        s3.deleteBucket(conf.s3Bucket);
+
+        std::vector<std::string> bucketsAfter = s3.listBuckets();
+        REQUIRE(bucketsAfter.empty());
     }
 
     SECTION("Test simple string read/ write")
@@ -141,15 +151,5 @@ TEST_CASE_METHOD(S3TestFixture,
     });
 
     t.join();
-
-    // Clear up
-    const std::string& funcKey = conf::getFunctionKey(msg);
-    const std::string& objKey = conf::getFunctionObjectKey(msg);
-    s3.deleteKey(conf.s3Bucket, funcKey);
-    s3.deleteKey(conf.s3Bucket, objKey);
-
-    // Check no more keys
-    std::vector<std::string> actualEmpty = s3.listKeys(conf.s3Bucket);
-    REQUIRE(actualEmpty.empty());
 }
 }

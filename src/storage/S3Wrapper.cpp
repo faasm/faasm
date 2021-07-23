@@ -6,6 +6,7 @@
 
 #include <aws/s3/S3Errors.h>
 #include <aws/s3/model/CreateBucketRequest.h>
+#include <aws/s3/model/DeleteBucketRequest.h>
 #include <aws/s3/model/DeleteObjectRequest.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/ListObjectsRequest.h>
@@ -39,7 +40,7 @@ R reqFactory(const std::string& bucket, const std::string& key)
     {                                                                          \
         if (!response.IsSuccess()) {                                           \
             const auto& err = response.GetError();                             \
-            SPDLOG_ERROR("S3 error: {} {}",                                    \
+            SPDLOG_ERROR("S3 error: {}. {}",                                   \
                          err.GetExceptionName().c_str(),                       \
                          err.GetMessage().c_str());                            \
             throw std::runtime_error("S3 error");                              \
@@ -112,6 +113,33 @@ void S3Wrapper::createBucket(const std::string& bucketName)
     }
 }
 
+void S3Wrapper::deleteBucket(const std::string& bucketName)
+{
+    SPDLOG_DEBUG("Deleting bucket {}", bucketName);
+    auto request = reqFactory<DeleteBucketRequest>(bucketName);
+    auto response = client.DeleteBucket(request);
+
+    if (!response.IsSuccess()) {
+        const auto& err = response.GetError();
+
+        auto errType = err.GetErrorType();
+        if (errType == Aws::S3::S3Errors::NO_SUCH_BUCKET) {
+            SPDLOG_DEBUG("Bucket already deleted {}", bucketName);
+        } else if (err.GetExceptionName() == "BucketNotEmpty") {
+            SPDLOG_DEBUG("Bucket {} not empty, deleting keys", bucketName);
+            std::vector<std::string> keys = listKeys(bucketName);
+            for (const auto& k : keys) {
+                deleteKey(bucketName, k);
+            }
+
+            // Recursively delete
+            deleteBucket(bucketName);
+        } else {
+            CHECK_ERRORS(response);
+        }
+    }
+}
+
 std::vector<std::string> S3Wrapper::listBuckets()
 {
     SPDLOG_DEBUG("Listing buckets");
@@ -135,11 +163,21 @@ std::vector<std::string> S3Wrapper::listKeys(const std::string& bucketName)
     auto request = reqFactory<ListObjectsRequest>(bucketName);
     auto response = client.ListObjects(request);
 
-    CHECK_ERRORS(response);
+    std::vector<std::string> keys;
+    if (!response.IsSuccess()) {
+        const auto& err = response.GetError();
+        auto errType = err.GetErrorType();
+
+        if (errType == Aws::S3::S3Errors::NO_SUCH_BUCKET) {
+            SPDLOG_WARN("Listing keys of deleted bucket {}", bucketName);
+            return keys;
+        }
+
+        CHECK_ERRORS(response);
+    }
 
     Aws::Vector<Object> keyObjects = response.GetResult().GetContents();
 
-    std::vector<std::string> keys;
     for (auto const& keyObject : keyObjects) {
         const Aws::String& awsStr = keyObject.GetKey();
         keys.emplace_back(awsStr.c_str());
@@ -154,7 +192,19 @@ void S3Wrapper::deleteKey(const std::string& bucketName,
     SPDLOG_DEBUG("Deleting key {}/{}", bucketName, keyName);
     auto request = reqFactory<DeleteObjectRequest>(bucketName, keyName);
     auto response = client.DeleteObject(request);
-    CHECK_ERRORS(response);
+
+    if (!response.IsSuccess()) {
+        const auto& err = response.GetError();
+        auto errType = err.GetErrorType();
+
+        if (errType == Aws::S3::S3Errors::NO_SUCH_KEY) {
+            SPDLOG_DEBUG("Key already deleted {}", keyName);
+        } else if (errType == Aws::S3::S3Errors::NO_SUCH_BUCKET) {
+            SPDLOG_DEBUG("Bucket already deleted {}", bucketName);
+        } else {
+            CHECK_ERRORS(response);
+        }
+    }
 }
 
 void S3Wrapper::addKeyBytes(const std::string& bucketName,
