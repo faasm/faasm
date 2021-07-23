@@ -25,7 +25,12 @@ class S3TestFixture
         conf.functionStorage = "s3";
     };
 
-    ~S3TestFixture() { conf.reset(); };
+    ~S3TestFixture()
+    {
+        s3.deleteBucket(conf.s3Bucket);
+
+        conf.reset();
+    };
 
   protected:
     conf::FaasmConfig& conf;
@@ -141,15 +146,5 @@ TEST_CASE_METHOD(S3TestFixture,
     });
 
     t.join();
-
-    // Clear up
-    const std::string& funcKey = conf::getFunctionKey(msg);
-    const std::string& objKey = conf::getFunctionObjectKey(msg);
-    s3.deleteKey(conf.s3Bucket, funcKey);
-    s3.deleteKey(conf.s3Bucket, objKey);
-
-    // Check no more keys
-    std::vector<std::string> actualEmpty = s3.listKeys(conf.s3Bucket);
-    REQUIRE(actualEmpty.empty());
 }
 }

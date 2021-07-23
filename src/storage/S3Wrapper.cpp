@@ -6,6 +6,7 @@
 
 #include <aws/s3/S3Errors.h>
 #include <aws/s3/model/CreateBucketRequest.h>
+#include <aws/s3/model/DeleteBucketRequest.h>
 #include <aws/s3/model/DeleteObjectRequest.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/ListObjectsRequest.h>
@@ -39,7 +40,7 @@ R reqFactory(const std::string& bucket, const std::string& key)
     {                                                                          \
         if (!response.IsSuccess()) {                                           \
             const auto& err = response.GetError();                             \
-            SPDLOG_ERROR("S3 error: {} {}",                                    \
+            SPDLOG_ERROR("S3 error: {}. {}",                                   \
                          err.GetExceptionName().c_str(),                       \
                          err.GetMessage().c_str());                            \
             throw std::runtime_error("S3 error");                              \
@@ -106,6 +107,33 @@ void S3Wrapper::createBucket(const std::string& bucketName)
         if (errType == Aws::S3::S3Errors::BUCKET_ALREADY_OWNED_BY_YOU ||
             errType == Aws::S3::S3Errors::BUCKET_ALREADY_EXISTS) {
             SPDLOG_DEBUG("Bucket already exists {}", bucketName);
+        } else {
+            CHECK_ERRORS(response);
+        }
+    }
+}
+
+void S3Wrapper::deleteBucket(const std::string& bucketName)
+{
+    SPDLOG_DEBUG("Deleting bucket {}", bucketName);
+    auto request = reqFactory<DeleteBucketRequest>(bucketName);
+    auto response = client.DeleteBucket(request);
+
+    if (!response.IsSuccess()) {
+        const auto& err = response.GetError();
+
+        auto errType = err.GetErrorType();
+        if (errType == Aws::S3::S3Errors::NO_SUCH_BUCKET) {
+            SPDLOG_DEBUG("Bucket already deleted {}", bucketName);
+        } else if (err.GetExceptionName() == "BucketNotEmpty") {
+            SPDLOG_DEBUG("Bucket {} not empty, deleting keys", bucketName);
+            std::vector<std::string> keys = listKeys(bucketName);
+            for (const auto& k : keys) {
+                deleteKey(bucketName, k);
+            }
+
+            // Recursively delete
+            deleteBucket(bucketName);
         } else {
             CHECK_ERRORS(response);
         }
