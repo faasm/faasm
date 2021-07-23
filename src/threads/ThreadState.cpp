@@ -250,19 +250,19 @@ void Level::waitOnBarrier()
 
     // Create if necessary
     if (barriers.find(id) == barriers.end()) {
-        faabric::util::FullLock lock(sharedMutex);
-        if (barriers.find(id) == barriers.end()) {
-            SPDLOG_TRACE("Creating barrier for level {}", id);
+        bool locked = sharedMutex.try_lock();
+        if (locked && (barriers.find(id) == barriers.end())) {
             barriers[id] = Barrier::create(numThreads);
-            SPDLOG_TRACE("Created barrier for level {}", id);
+        }
+
+        if (locked) {
+            sharedMutex.unlock();
         }
     }
 
     // Wait
     {
-        SPDLOG_TRACE("Getting lock for barrier for level {}", id);
         faabric::util::SharedLock lock(sharedMutex);
-        SPDLOG_TRACE("Waiting on barrier for level {}", id);
         barriers[id]->wait();
     }
 }
