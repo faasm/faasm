@@ -14,21 +14,6 @@
 #define PYTHON_FUNC_DIR "pyfuncs"
 
 namespace conf {
-std::string getFunctionKey(const faabric::Message& msg);
-
-std::string getFunctionObjectKey(const faabric::Message& msg);
-
-std::string getFunctionUrl(const faabric::Message& msg);
-
-std::string getFunctionObjectUrl(const faabric::Message& msg);
-
-std::string getPythonFunctionUrl(const faabric::Message& msg);
-
-std::string getSharedObjectUrl();
-
-std::string getSharedObjectObjectUrl();
-
-std::string getSharedFileUrl();
 
 std::string getFunctionFile(const faabric::Message& msg);
 
