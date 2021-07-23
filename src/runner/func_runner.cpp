@@ -1,6 +1,7 @@
 #include <conf/FaasmConfig.h>
 #include <conf/function_utils.h>
 #include <faaslet/Faaslet.h>
+#include <storage/S3Wrapper.h>
 #include <wasm/WasmModule.h>
 
 #include <faabric/redis/Redis.h>
@@ -112,6 +113,7 @@ int doRunner(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
+    storage::initSDK();
     faabric::transport::initGlobalMessageContext();
 
     // WARNING: All 0MQ-related operations must take place in a self-contined
@@ -119,5 +121,6 @@ int main(int argc, char* argv[])
     int result = doRunner(argc, argv);
 
     faabric::transport::closeGlobalMessageContext();
+    storage::cleanUpSDK();
     return result;
 }

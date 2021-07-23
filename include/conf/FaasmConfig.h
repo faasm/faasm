@@ -26,6 +26,12 @@ class FaasmConfig
     std::string sharedFilesDir;
     std::string sharedFilesStorageDir;
 
+    std::string s3Bucket;
+    std::string s3Host;
+    std::string s3Port;
+    std::string s3User;
+    std::string s3Password;
+
     FaasmConfig();
 
     void reset();

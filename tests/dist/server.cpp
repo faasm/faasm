@@ -1,5 +1,6 @@
 #include <conf/FaasmConfig.h>
 #include <faaslet/Faaslet.h>
+#include <storage/S3Wrapper.h>
 
 #include <faabric/endpoint/FaabricEndpoint.h>
 #include <faabric/runner/FaabricMain.h>
@@ -11,6 +12,7 @@ using namespace faabric::scheduler;
 
 int main()
 {
+    storage::initSDK();
     faabric::transport::initGlobalMessageContext();
     faabric::util::initLogging();
 
@@ -32,6 +34,7 @@ int main()
     }
 
     faabric::transport::closeGlobalMessageContext();
+    storage::cleanUpSDK();
 
     return 0;
 }

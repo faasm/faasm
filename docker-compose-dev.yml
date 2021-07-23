@@ -4,6 +4,16 @@ services:
   redis:
     image: faasm/redis:${FAASM_VERSION}
 
+  minio:
+    image: faasm/minio:${FAASM_VERSION}
+    expose:
+      - "9000"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    volumes:
+      - ./dev/minio/data:/data/minio
+
   faabric-cli:
     image: ${FAABRIC_CLI_IMAGE}
     working_dir: /code/faabric
@@ -12,6 +22,7 @@ services:
     privileged: true
     depends_on:
       - redis
+      - minio
     environment:
       - FUNCTION_STORAGE=local
       - LOG_LEVEL=debug
@@ -32,6 +43,7 @@ services:
     privileged: true
     depends_on:
       - redis
+      - minio
     environment:
       - LOG_LEVEL=debug
       - REDIS_QUEUE_HOST=redis
@@ -52,6 +64,7 @@ services:
     privileged: true
     depends_on:
       - redis
+      - minio
     environment:
       - LOG_LEVEL=debug
       - REDIS_STATE_HOST=redis
@@ -71,6 +84,7 @@ services:
     privileged: true
     depends_on:
       - redis
+      - minio
     environment:
       - LOG_LEVEL=debug
       - REDIS_STATE_HOST=redis

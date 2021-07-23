@@ -12,7 +12,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     container:
-      image: faasm/cli:0.6.1
+      image: faasm/cli:0.6.2
     defaults:
       run:
         working-directory: /usr/local/code/faasm
@@ -105,15 +105,22 @@ jobs:
       REDIS_QUEUE_HOST: redis
       REDIS_STATE_HOST: redis
     container:
-      image: faasm/cli:0.6.1
+      image: faasm/cli:0.6.2
     defaults:
       run:
         working-directory: /usr/local/code/faasm
     services:
       redis:
-        image: faasm/redis:0.6.1
+        image: faasm/redis:0.6.2
         ports:
           - 6379:6379
+      minio:
+        image: faasm/minio:0.6.2
+        env:
+          MINIO_ROOT_USER: minio
+          MINIO_ROOT_PASSWORD: minio123
+        ports:
+          - 9000:9000
     steps:
       - name: "Fetch ref"
         run: git fetch origin ${GITHUB_REF}:ci-branch
@@ -121,6 +128,11 @@ jobs:
         run: git checkout --force ci-branch
       - name: "Update faabric submodule"
         run: git submodule update faabric
+      # --- Checks ---
+      - name: "Ping redis"
+        run: redis-cli -h redis ping
+      - name: "Ping minio"
+        run: curl -f http://minio:9000/minio/health/live
       # --- Get artifacts from other steps ---
       - name: "Download CPP wasm"
         uses: actions/download-artifact@v2

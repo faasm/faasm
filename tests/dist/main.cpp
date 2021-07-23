@@ -5,6 +5,7 @@
 #include <catch2/catch.hpp>
 
 #include <faaslet/Faaslet.h>
+#include <storage/S3Wrapper.h>
 
 #include <faabric/endpoint/FaabricEndpoint.h>
 #include <faabric/runner/FaabricMain.h>
@@ -18,6 +19,7 @@ FAABRIC_CATCH_LOGGER
 
 int main(int argc, char* argv[])
 {
+    storage::initSDK();
     faabric::transport::initGlobalMessageContext();
     faabric::util::initLogging();
 
@@ -47,5 +49,6 @@ int main(int argc, char* argv[])
     }
 
     faabric::transport::closeGlobalMessageContext();
+    storage::cleanUpSDK();
     return result;
 }

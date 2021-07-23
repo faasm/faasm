@@ -12,7 +12,7 @@ view](https://github.com/faasm/faasm/compare).
 Version can be updated with:
 
 ```
-# Minor 
+# Minor
 inv release.bump
 
 # Custom
@@ -90,17 +90,17 @@ working, this line will get all the container images up to speed (will take a
 while though):
 
 ```bash
-inv docker.build -c base -c worker -c cli -c upload --push --nocache
+inv docker.build -c redis -c minio -c base -c worker -c cli -c upload --push --nocache
 ```
 
 # Github config
 
-If this is your first time releasing, you'll need to 
-[create a public access token](https://github.com/settings/tokens) 
-with the relevant permissions (just `public_repo`) and add it to 
+If this is your first time releasing, you'll need to
+[create a public access token](https://github.com/settings/tokens)
+with the relevant permissions (just `public_repo`) and add it to
 `~/faasm/faasm.ini`:
 
 ```ini
 [Github]
 access_token: <token>
-``` 
+```

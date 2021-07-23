@@ -7,6 +7,16 @@ services:
   redis-queue:
     image: faasm/redis:${FAASM_VERSION}
 
+  minio:
+    image: faasm/minio:${FAASM_VERSION}
+    expose:
+      - "9000"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    volumes:
+      - ./dev/minio/data:/data/minio
+
   upload:
     image: faasm/upload:${FAASM_VERSION}
     ports:
@@ -14,6 +24,7 @@ services:
     depends_on:
       - redis-queue
       - redis-state
+      - minio
     volumes:
       - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
       - ./dev/wasm/:/usr/local/code/faasm/wasm/
