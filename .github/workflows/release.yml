@@ -41,7 +41,8 @@ jobs:
           context: .
           tags: faasm/redis:${{ env.TAG_VERSION }}
 
-  build-minio: clean
+  build-minio:
+    needs: clean
     runs-on: ubuntu-20.04
     steps:
       - name: "Get the code"
