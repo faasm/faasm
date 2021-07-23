@@ -77,7 +77,8 @@ class S3FileLoader final : public FileLoader
     conf::FaasmConfig& conf;
     storage::S3Wrapper s3;
 
-    std::vector<uint8_t> loadFileBytes(const std::string& path);
+    std::vector<uint8_t> loadFileBytes(const std::string& path,
+                                       const std::string& localCachePath);
 
     void uploadFileBytes(const std::string& path,
                          const std::vector<uint8_t>& bytes);

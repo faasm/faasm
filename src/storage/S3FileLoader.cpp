@@ -1,9 +1,13 @@
+#include "conf/function_utils.h"
 #include <conf/FaasmConfig.h>
 #include <storage/S3FileLoader.h>
 
 #include <faabric/util/bytes.h>
+#include <faabric/util/files.h>
 #include <faabric/util/func.h>
 #include <faabric/util/logging.h>
+
+#include <boost/filesystem.hpp>
 
 namespace storage {
 
@@ -33,10 +37,26 @@ S3FileLoader::S3FileLoader()
   : conf(conf::getFaasmConfig())
 {}
 
-std::vector<uint8_t> S3FileLoader::loadFileBytes(const std::string& path)
+std::vector<uint8_t> S3FileLoader::loadFileBytes(
+  const std::string& path,
+  const std::string& localCachePath)
 {
-    SPDLOG_DEBUG("Loading bytes from {}/{}", conf.s3Bucket, path);
-    return s3.getKeyBytes(conf.s3Bucket, path);
+    // Check locally first
+    if (boost::filesystem::exists(localCachePath)) {
+        if (boost::filesystem::is_directory(localCachePath)) {
+            throw SharedFileIsDirectoryException(localCachePath);
+        } else {
+            SPDLOG_DEBUG(
+              "Loading {} from filesystem at {}", path, localCachePath);
+            return faabric::util::readFileToBytes(localCachePath);
+        }
+    } else {
+        // Load from S3
+        SPDLOG_DEBUG("Loading bytes from S3 for {}/{}", conf.s3Bucket, path);
+        std::vector<uint8_t> bytes = s3.getKeyBytes(conf.s3Bucket, path);
+        faabric::util::writeBytesToFile(localCachePath, bytes);
+        return bytes;
+    }
 }
 
 void S3FileLoader::uploadFileBytes(const std::string& path,
@@ -60,60 +80,60 @@ void S3FileLoader::uploadFileString(const std::string& path,
 std::vector<uint8_t> S3FileLoader::loadFunctionWasm(const faabric::Message& msg)
 {
     const std::string key = getKey(msg, funcFile);
-    return loadFileBytes(key);
+    return loadFileBytes(key, conf::getFunctionFile(msg));
 }
 
 std::vector<uint8_t> S3FileLoader::loadSharedObjectWasm(const std::string& path)
 {
-    return loadFileBytes(path);
+    return loadFileBytes(path, path);
 }
 
 std::vector<uint8_t> S3FileLoader::loadFunctionObjectFile(
   const faabric::Message& msg)
 {
     const std::string key = getKey(msg, objFile);
-    return loadFileBytes(key);
+    return loadFileBytes(key, conf::getFunctionObjectFile(msg));
 }
 
 std::vector<uint8_t> S3FileLoader::loadFunctionWamrAotFile(
   const faabric::Message& msg)
 {
     const std::string key = getKey(msg, wamrAotFile);
-    return loadFileBytes(key);
+    return loadFileBytes(key, conf::getFunctionAotFile(msg));
 }
 
 std::vector<uint8_t> S3FileLoader::loadSharedObjectObjectFile(
   const std::string& path)
 {
-    return loadFileBytes(path);
+    return loadFileBytes(path, conf::getSharedObjectObjectFile(path));
 }
 
 std::vector<uint8_t> S3FileLoader::loadSharedFile(const std::string& path)
 {
-    return loadFileBytes(path);
+    return loadFileBytes(path, conf::getSharedFileFile(path));
 }
 
 std::vector<uint8_t> S3FileLoader::loadFunctionObjectHash(
   const faabric::Message& msg)
 {
+    std::string cachePath = conf::getFunctionObjectFile(msg);
     std::string key = getKey(msg, objFile);
-    key = getHashFilePath(key);
-    return loadFileBytes(key);
+    return loadFileBytes(getHashFilePath(key), getHashFilePath(cachePath));
 }
 
 std::vector<uint8_t> S3FileLoader::loadFunctionWamrAotHash(
   const faabric::Message& msg)
 {
+    std::string cachePath = conf::getFunctionAotFile(msg);
     std::string key = getKey(msg, wamrAotFile);
-    key = getHashFilePath(key);
-    return loadFileBytes(key);
+    return loadFileBytes(getHashFilePath(key), getHashFilePath(cachePath));
 }
 
 std::vector<uint8_t> S3FileLoader::loadSharedObjectObjectHash(
   const std::string& path)
 {
-    const std::string key = getHashFilePath(path);
-    return loadFileBytes(key);
+    const std::string hashPath = getHashFilePath(path);
+    return loadFileBytes(hashPath, hashPath);
 }
 
 void S3FileLoader::uploadFunctionObjectHash(const faabric::Message& msg,
