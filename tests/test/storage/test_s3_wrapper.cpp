@@ -47,6 +47,11 @@ TEST_CASE_METHOD(S3TestFixture, "Test read/write keys in bucket", "[s3]")
         std::vector<std::string> buckets = s3.listBuckets();
         std::vector<std::string> expected = { conf.s3Bucket };
         REQUIRE(buckets == expected);
+
+        s3.deleteBucket(conf.s3Bucket);
+
+        std::vector<std::string> bucketsAfter = s3.listBuckets();
+        REQUIRE(bucketsAfter.empty());
     }
 
     SECTION("Test simple string read/ write")
