@@ -123,7 +123,7 @@ std::vector<std::string> S3Wrapper::listBuckets()
     std::vector<std::string> bucketNames;
     for (auto const& bucketObject : bucketObjects) {
         const Aws::String& awsStr = bucketObject.GetName();
-        bucketNames.emplace_back(awsStr.c_str());
+        bucketNames.emplace_back(awsStr.c_str(), awsStr.size());
     }
 
     return bucketNames;

@@ -1,8 +1,6 @@
 #include <faabric/util/config.h>
 
 #include <conf/FaasmConfig.h>
-#include <storage/FileserverFileLoader.h>
-#include <storage/LocalFileLoader.h>
 #include <storage/S3FileLoader.h>
 
 namespace storage {

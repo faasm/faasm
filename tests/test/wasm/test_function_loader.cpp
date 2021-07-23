@@ -9,7 +9,6 @@
 
 #include <conf/FaasmConfig.h>
 #include <conf/function_utils.h>
-#include <storage/FileserverFileLoader.h>
 
 namespace tests {
 void checkResult(const std::string& filePath,
