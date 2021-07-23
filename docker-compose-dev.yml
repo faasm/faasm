@@ -24,7 +24,6 @@ services:
       - redis
       - minio
     environment:
-      - FUNCTION_STORAGE=local
       - LOG_LEVEL=debug
       - REDIS_STATE_HOST=redis
       - REDIS_QUEUE_HOST=redis

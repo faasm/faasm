@@ -60,33 +60,4 @@ TEST_CASE("Test function round trip", "[wasm]")
 
     checkResult(filePath, expectedBytes, actualBytes);
 }
-
-TEST_CASE("Test invalid storage mode", "[wasm]")
-{
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
-    conf.functionStorage = "junk";
-
-    REQUIRE_THROWS(storage::getFileLoader());
-
-    conf.reset();
-}
-
-TEST_CASE("Test fileserver function loader requires fileserver URL", "[wasm]")
-{
-    // Instantiate with no url set
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
-    conf.functionStorage = "fileserver";
-    conf.fileserverUrl = "";
-
-    REQUIRE_THROWS(storage::getFileLoader());
-
-    // Set up a URL
-    conf.fileserverUrl = "www.foo.com";
-
-    // Check no error
-    auto loader = (storage::FileserverFileLoader&)storage::getFileLoader();
-    REQUIRE(loader.getFileserverUrl() == "www.foo.com");
-
-    conf.reset();
-}
 }

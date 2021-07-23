@@ -69,16 +69,6 @@ void checkGet(const std::string& url, const std::vector<uint8_t>& bytes)
     REQUIRE(responseBytes == bytes);
 }
 
-TEST_CASE("Check upload overrides fileserver storage", "[upload]")
-{
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
-    conf.functionStorage = "fileserver";
-
-    // Instantiate a server
-    edge::UploadServer server;
-    REQUIRE(conf.functionStorage == "local");
-}
-
 TEST_CASE("Upload tests", "[upload]")
 {
     faabric::redis::Redis& redisQueue = faabric::redis::Redis::getQueue();

@@ -20,8 +20,6 @@ TEST_CASE("Test default faasm config initialisation", "[conf]")
     }
     REQUIRE(conf.cgroupMode == cgroupExpected);
 
-    REQUIRE(conf.functionStorage == "local");
-    REQUIRE(conf.fileserverUrl == "");
     REQUIRE(conf.netNsMode == "off");
     REQUIRE(conf.pythonPreload == "off");
     REQUIRE(conf.captureStdout == "off");
@@ -35,8 +33,6 @@ TEST_CASE("Test overriding faasm config initialisation", "[conf]")
     std::string originalHostType = getFaasmConfig().hostType;
 
     std::string hostType = setEnvVar("HOST_TYPE", "magic");
-    std::string funcStorage = setEnvVar("FUNCTION_STORAGE", "foobar");
-    std::string fileserver = setEnvVar("FILESERVER_URL", "www.foo.com");
     std::string cgMode = setEnvVar("CGROUP_MODE", "off");
     std::string nsMode = setEnvVar("NETNS_MODE", "on");
     std::string pythonPre = setEnvVar("PYTHON_PRELOAD", "on");
@@ -51,8 +47,6 @@ TEST_CASE("Test overriding faasm config initialisation", "[conf]")
     FaasmConfig conf;
 
     REQUIRE(conf.hostType == "magic");
-    REQUIRE(conf.functionStorage == "foobar");
-    REQUIRE(conf.fileserverUrl == "www.foo.com");
     REQUIRE(conf.cgroupMode == "off");
     REQUIRE(conf.netNsMode == "on");
     REQUIRE(conf.pythonPreload == "on");
@@ -68,8 +62,6 @@ TEST_CASE("Test overriding faasm config initialisation", "[conf]")
     // Be careful with host type as it must remain consistent for tests
     setEnvVar("HOST_TYPE", originalHostType);
 
-    setEnvVar("FUNCTION_STORAGE", funcStorage);
-    setEnvVar("FILESERVER_URL", fileserver);
     setEnvVar("CGROUP_MODE", cgMode);
     setEnvVar("NETNS_MODE", nsMode);
     setEnvVar("PYTHON_PRELOAD", pythonPre);

@@ -9,8 +9,6 @@ set(LIB_FILES
         FileDescriptor.cpp
         FileLoader.cpp
         FileSystem.cpp
-        FileserverFileLoader.cpp
-        LocalFileLoader.cpp
         S3FileLoader.cpp
         S3Wrapper.cpp
         SharedFiles.cpp

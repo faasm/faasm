@@ -31,17 +31,6 @@ std::string getHeaderFromRequest(const http_request& request,
     }
 }
 
-UploadServer::UploadServer()
-{
-
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
-    if (conf.functionStorage == "fileserver") {
-        SPDLOG_INFO("Overriding fileserver storage on upload server (as this "
-                    "is the fileserver)");
-        conf.functionStorage = "local";
-    }
-}
-
 std::vector<std::string> UploadServer::getPathParts(const http_request& request)
 {
     const uri uri = request.relative_uri();
@@ -75,7 +64,6 @@ std::vector<std::string> UploadServer::getPathParts(const http_request& request)
 
 void UploadServer::listen(const std::string& port)
 {
-
     std::string addr = "http://0.0.0.0:" + port;
     http_listener listener(addr);
 
@@ -101,7 +89,6 @@ void UploadServer::stop()
 
 void UploadServer::handleGet(const http_request& request)
 {
-
     const std::vector<std::string> pathParts =
       UploadServer::getPathParts(request);
 

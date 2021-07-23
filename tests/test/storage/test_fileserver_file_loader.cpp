@@ -24,12 +24,6 @@ TEST_CASE("Test fileserver file loader pulling files over HTTP", "[storage]")
 {
     conf::FaasmConfig& conf = conf::getFaasmConfig();
 
-    std::string origFunctionStorage = conf.functionStorage;
-    std::string origUrl = conf.fileserverUrl;
-
-    conf.functionStorage = "fileserver";
-    conf.fileserverUrl = "http://localhost:8002";
-
     // Load the expected bytes from the function file
     faabric::Message msg = faabric::util::messageFactory("demo", "echo");
     std::string expectedPath = conf::getFunctionFile(msg);
@@ -64,9 +58,6 @@ TEST_CASE("Test fileserver file loader pulling files over HTTP", "[storage]")
     if (t.joinable()) {
         t.join();
     }
-
-    conf.functionStorage = origFunctionStorage;
-    conf.fileserverUrl = origUrl;
 }
 
 TEST_CASE("Test flushing function files deletes them", "[storage]")
@@ -74,13 +65,9 @@ TEST_CASE("Test flushing function files deletes them", "[storage]")
     cleanSystem();
 
     conf::FaasmConfig& conf = conf::getFaasmConfig();
-    std::string origStorage = conf.functionStorage;
-    std::string origUrl = conf.fileserverUrl;
     std::string origFunctionDir = conf.functionDir;
     std::string origObjDir = conf.objectFileDir;
 
-    conf.functionStorage = "fileserver";
-    conf.fileserverUrl = "dummy_url";
     conf.functionDir = "/tmp/faasm/funcs";
     conf.objectFileDir = "/tmp/faasm/objs";
 
@@ -111,8 +98,6 @@ TEST_CASE("Test flushing function files deletes them", "[storage]")
     REQUIRE(!boost::filesystem::exists(funcFile));
 
     // Reset config
-    conf.functionStorage = origStorage;
-    conf.fileserverUrl = origUrl;
     conf.functionDir = origFunctionDir;
     conf.objectFileDir = origObjDir;
 }

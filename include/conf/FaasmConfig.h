@@ -7,8 +7,6 @@ class FaasmConfig
 {
   public:
     std::string hostType;
-    std::string functionStorage;
-    std::string fileserverUrl;
 
     std::string cgroupMode;
     std::string netNsMode;

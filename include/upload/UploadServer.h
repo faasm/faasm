@@ -13,8 +13,6 @@ namespace edge {
 class UploadServer
 {
   public:
-    UploadServer();
-
     void listen(const std::string& port);
 
     void stop();

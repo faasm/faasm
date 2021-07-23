@@ -18,8 +18,6 @@ spec:
           value: redis-state
         - name: REDIS_QUEUE_HOST
           value: redis-queue
-        - name: FUNCTION_STORAGE
-          value: "local"
         - name: LOG_LEVEL
           value: "debug"
         - name: CGROUP_MODE

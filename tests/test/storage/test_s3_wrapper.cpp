@@ -21,8 +21,6 @@ class S3TestFixture
     {
         // Make sure the bucket exists
         s3.createBucket(conf.s3Bucket);
-
-        conf.functionStorage = "s3";
     };
 
     ~S3TestFixture() { conf.reset(); };
