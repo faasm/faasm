@@ -115,7 +115,7 @@ jobs:
         ports:
           - 6379:6379
       minio:
-        image: minio/minio:RELEASE.2021-07-12T02-44-53Z
+        image: faasm/minio:0.6.2
         env:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
@@ -128,6 +128,11 @@ jobs:
         run: git checkout --force ci-branch
       - name: "Update faabric submodule"
         run: git submodule update faabric
+      # --- Checks ---
+      - name: "Ping redis"
+        run: redis-cli -h redis ping
+      - name: "Ping minio"
+        run: curl -f http://minio:9000/minio/health/live
       # --- Get artifacts from other steps ---
       - name: "Download CPP wasm"
         uses: actions/download-artifact@v2
