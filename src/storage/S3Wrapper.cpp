@@ -6,6 +6,7 @@
 
 #include <aws/s3/S3Errors.h>
 #include <aws/s3/model/CreateBucketRequest.h>
+#include <aws/s3/model/DeleteBucketRequest.h>
 #include <aws/s3/model/DeleteObjectRequest.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/ListObjectsRequest.h>
@@ -106,6 +107,23 @@ void S3Wrapper::createBucket(const std::string& bucketName)
         if (errType == Aws::S3::S3Errors::BUCKET_ALREADY_OWNED_BY_YOU ||
             errType == Aws::S3::S3Errors::BUCKET_ALREADY_EXISTS) {
             SPDLOG_DEBUG("Bucket already exists {}", bucketName);
+        } else {
+            CHECK_ERRORS(response);
+        }
+    }
+}
+
+void S3Wrapper::deleteBucket(const std::string& bucketName)
+{
+    SPDLOG_DEBUG("Deleting bucket {}", bucketName);
+    auto request = reqFactory<DeleteBucketRequest>(bucketName);
+    auto response = client.DeleteBucket(request);
+
+    if (!response.IsSuccess()) {
+        const auto& err = response.GetError();
+        auto errType = err.GetErrorType();
+        if (errType == Aws::S3::S3Errors::NO_SUCH_BUCKET) {
+            SPDLOG_DEBUG("Bucket already deleted {}", bucketName);
         } else {
             CHECK_ERRORS(response);
         }
