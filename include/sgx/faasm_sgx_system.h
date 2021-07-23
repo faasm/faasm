@@ -15,5 +15,7 @@ std::string faasmSgxErrorString(faasm_sgx_status_t status);
 
 void checkSgxSetup();
 
+void checkSgxCrypto();
+
 void tearDownEnclave();
 }

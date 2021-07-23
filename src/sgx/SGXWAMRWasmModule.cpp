@@ -33,7 +33,8 @@ SGXWAMRWasmModule::SGXWAMRWasmModule()
 
     faasletSgxMsgBufferPtr = &sgxWamrMsgResponse;
 
-    SPDLOG_DEBUG("Created SGX wasm module for enclave {}", globalEnclaveId);
+    SPDLOG_DEBUG("Created SGX wasm module for enclave {}",
+                 sgx::getGlobalEnclaveId());
 }
 
 SGXWAMRWasmModule::~SGXWAMRWasmModule()
@@ -62,7 +63,7 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
     // Note - loading and instantiating happen in the same ecall
     faasm_sgx_status_t returnValue;
     sgx_status_t status =
-      faasm_sgx_enclave_load_module(globalEnclaveId,
+      faasm_sgx_enclave_load_module(sgx::getGlobalEnclaveId(),
                                     &returnValue,
                                     (void*)wasmBytes.data(),
                                     (uint32_t)wasmBytes.size(),
@@ -100,8 +101,8 @@ bool SGXWAMRWasmModule::unbindFunction()
     SPDLOG_DEBUG("Unloading SGX wasm module");
 
     faasm_sgx_status_t returnValue;
-    sgx_status_t sgxReturnValue =
-      faasm_sgx_enclave_unload_module(globalEnclaveId, &returnValue, threadId);
+    sgx_status_t sgxReturnValue = faasm_sgx_enclave_unload_module(
+      sgx::getGlobalEnclaveId(), &returnValue, threadId);
 
     if (sgxReturnValue != SGX_SUCCESS) {
         SPDLOG_ERROR("Unable to unbind function due to SGX error: {}",
@@ -123,15 +124,16 @@ int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
 
     std::string funcStr = faabric::util::funcToString(msg, true);
 
-    SPDLOG_DEBUG("Entering enclave {} to execute {}", globalEnclaveId, funcStr);
+    SPDLOG_DEBUG(
+      "Entering enclave {} to execute {}", sgx::getGlobalEnclaveId(), funcStr);
 
     // Set execution context
     wasm::WasmExecutionContext ctx(this, &msg);
 
     // Enter enclave and call function
     faasm_sgx_status_t returnValue;
-    sgx_status_t sgxReturnValue =
-      faasm_sgx_enclave_call_function(globalEnclaveId, &returnValue, threadId);
+    sgx_status_t sgxReturnValue = faasm_sgx_enclave_call_function(
+      sgx::getGlobalEnclaveId(), &returnValue, threadId);
 
     if (sgxReturnValue != SGX_SUCCESS) {
         SPDLOG_ERROR("Unable to enter enclave: {}",

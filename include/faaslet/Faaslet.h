@@ -27,10 +27,10 @@ class Faaslet final : public faabric::scheduler::Executor
 
     faabric::util::SnapshotData snapshot() override;
 
+    void restore(faabric::Message& call) override;
+
   protected:
     void postFinish() override;
-
-    void restore(faabric::Message& call) override;
 
   private:
     bool isIsolated = false;

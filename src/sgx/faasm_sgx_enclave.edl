@@ -45,6 +45,8 @@ enclave{
 #endif
 
         public faasm_sgx_status_t faasm_sgx_enclave_init_wamr(void);
+
+        public faasm_sgx_status_t faasm_sgx_enclave_crypto_checks(void);
     };
 
     untrusted{

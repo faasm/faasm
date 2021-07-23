@@ -408,9 +408,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     // Prepare arguments for main thread and all others
     std::vector<IR::UntaggedValue> mainArguments = { 0, argc };
     if (argc > 0) {
-        // Build list of pointers to shared variables
-        U32* sharedVarsPtr =
-          Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
+        // Build list of offsets to shared variables
+        uint32_t* sharedVarsPtr =
+          Runtime::memoryArrayPtr<uint32_t>(memoryPtr, argsPtr, argc);
         nextLevel->setSharedVarOffsets(sharedVarsPtr, argc);
 
         // Append to main arguments
@@ -465,7 +465,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
         // Set up the context for the next level
         threads::setCurrentOpenMPLevel(nextLevel);
-
         {
             wasm::WasmExecutionContext ctx(parentModule, &masterMsg);
 
@@ -486,9 +485,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     }
 
     if (!isSingleThread) {
+        std::vector<std::pair<int, uint32_t>> failures;
         // Await all child threads
         for (int i = 0; i < req->messages_size(); i++) {
-            sch.awaitThreadResult(req->messages().at(i).id());
+            uint32_t messageId = req->messages().at(i).id();
+            int result = sch.awaitThreadResult(messageId);
+            if (result != 0) {
+                failures.emplace_back(result, messageId);
+            }
         }
 
         // Delete the snapshot
@@ -502,6 +506,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
           faabric::snapshot::getSnapshotRegistry();
         reg.deleteSnapshot(snapshotKey);
         PROF_END(DeleteSnapshot)
+
+        if (!failures.empty()) {
+            for (auto f : failures) {
+                SPDLOG_ERROR("OpenMP thread failed, result {} on message {}",
+                             f.first,
+                             f.second);
+            }
+
+            throw std::runtime_error("OpenMP threads failed");
+        }
     }
 
     // Reset parent level for next setting of threads

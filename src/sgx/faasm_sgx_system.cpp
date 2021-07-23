@@ -7,7 +7,7 @@
 #include <string>
 
 // Global enclave ID
-sgx_enclave_id_t globalEnclaveId;
+sgx_enclave_id_t globalEnclaveId = 0;
 
 #define ERROR_PRINT_CASE(enumVal)                                              \
     case (enumVal): {                                                          \
@@ -16,11 +16,16 @@ sgx_enclave_id_t globalEnclaveId;
 
 namespace sgx {
 
+sgx_enclave_id_t getGlobalEnclaveId()
+{
+    return globalEnclaveId;
+}
+
 void checkSgxSetup()
 {
 
     // Skip set-up if enclave already exists
-    if (globalEnclaveId > 0) {
+    if (globalEnclaveId != 0) {
         SPDLOG_DEBUG("SGX enclave already exists ({})", globalEnclaveId);
         return;
     }
@@ -92,10 +97,39 @@ void tearDownEnclave()
 
     sgx_status_t sgxReturnValue = sgx_destroy_enclave(globalEnclaveId);
     if (sgxReturnValue != SGX_SUCCESS) {
-        SPDLOG_WARN("Unable to destroy enclave {}: {}",
-                    globalEnclaveId,
-                    sgxErrorString(sgxReturnValue));
+        SPDLOG_ERROR("Unable to destroy enclave {}: {}",
+                     globalEnclaveId,
+                     sgxErrorString(sgxReturnValue));
+        throw std::runtime_error("Unable to destroy enclave");
     }
+
+    globalEnclaveId = 0;
+}
+
+void checkSgxCrypto()
+{
+    faasm_sgx_status_t faasmReturnValue;
+    sgx_status_t sgxReturnValue;
+
+    sgxReturnValue =
+      faasm_sgx_enclave_crypto_checks(globalEnclaveId, &faasmReturnValue);
+
+    if (sgxReturnValue != SGX_SUCCESS) {
+        SPDLOG_ERROR("SGX error in crypto checks: {}",
+                     sgxErrorString(sgxReturnValue));
+        throw std::runtime_error("SGX error in crypto checks");
+    }
+
+    if (faasmReturnValue != FAASM_SGX_SUCCESS) {
+        if (FAASM_SGX_OCALL_GET_SGX_ERROR(faasmReturnValue)) {
+            throw std::runtime_error("SGX error in crypto checks");
+        }
+        SPDLOG_ERROR("Error running SGX crypto checks: {}",
+                     faasmSgxErrorString(faasmReturnValue));
+        throw std::runtime_error("Error running SGX crypto checks");
+    }
+
+    SPDLOG_DEBUG("Succesful SGX crypto checks");
 }
 
 std::string sgxErrorString(sgx_status_t status)
@@ -170,6 +204,10 @@ std::string faasmSgxErrorString(faasm_sgx_status_t status)
         ERROR_PRINT_CASE(FAASM_SGX_INVALID_PAYLOAD_LEN)
         ERROR_PRINT_CASE(FAASM_SGX_FUNCTION_NOT_WHITELISTED)
         ERROR_PRINT_CASE(FAASM_SGX_WAMR_FUNCTION_NOT_IMPLEMENTED)
+        // TODO - not do this manually
+        ERROR_PRINT_CASE(FAASM_SGX_READ_RAND_FAILED)
+        ERROR_PRINT_CASE(FAASM_SGX_ENCRYPTION_FAILED)
+        ERROR_PRINT_CASE(FAASM_SGX_DECRYPTION_FAILED)
         default: {
             char res[20];
             sprintf(res, "%#010x", status);
