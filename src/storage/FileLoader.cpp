@@ -31,6 +31,24 @@ const static std::string symFile = "function.symbols";
 const static std::string wamrAotFile = "function.aot";
 const static std::string sgxWamrAotFile = "function.aot.sgx";
 
+std::string trimLeadingSlashes(const std::string& pathIn)
+{
+    // Remove any leading slashes
+    int startIdx = pathIn.find_first_not_of("/");
+
+    // If there are no non-slashes return empty
+    if (startIdx == std::string::npos) {
+        return "";
+    }
+
+    if (startIdx == 0) {
+        return pathIn;
+    }
+
+    std::string pathOut = pathIn.substr(startIdx);
+    return pathOut;
+}
+
 void checkFileExists(const std::string& path)
 {
     if (!boost::filesystem::exists(path)) {
@@ -79,11 +97,15 @@ std::vector<uint8_t> FileLoader::loadFileBytes(
     }
 
     // Load from S3 if not found
-    SPDLOG_DEBUG("Loading bytes from S3 for {}/{}", conf.s3Bucket, path);
+    std::string pathCopy = trimLeadingSlashes(path);
     std::vector<uint8_t> bytes =
-      s3.getKeyBytes(conf.s3Bucket, path, tolerateMissing);
+      s3.getKeyBytes(conf.s3Bucket, pathCopy, tolerateMissing);
 
     if (!bytes.empty()) {
+        SPDLOG_DEBUG("Caching S3 key {}/{} at {}",
+                     conf.s3Bucket,
+                     pathCopy,
+                     localCachePath);
         faabric::util::writeBytesToFile(localCachePath, bytes);
     }
 
@@ -93,19 +115,21 @@ std::vector<uint8_t> FileLoader::loadFileBytes(
 void FileLoader::uploadFileBytes(const std::string& path,
                                  const std::vector<uint8_t>& bytes)
 {
+    std::string pathCopy = trimLeadingSlashes(path);
     SPDLOG_DEBUG(
-      "Uploading {} bytes to {}/{}", bytes.size(), conf.s3Bucket, path);
-    s3.addKeyBytes(conf.s3Bucket, path, bytes);
+      "Uploading {} bytes to {}/{}", bytes.size(), conf.s3Bucket, pathCopy);
+    s3.addKeyBytes(conf.s3Bucket, pathCopy, bytes);
 }
 
 void FileLoader::uploadFileString(const std::string& path,
                                   const std::string& bytes)
 {
+    std::string pathCopy = trimLeadingSlashes(path);
     SPDLOG_DEBUG("Uploading {} bytes to {}/{} (string)",
                  bytes.size(),
                  conf.s3Bucket,
-                 path);
-    s3.addKeyStr(conf.s3Bucket, path, bytes);
+                 pathCopy);
+    s3.addKeyStr(conf.s3Bucket, pathCopy, bytes);
 }
 
 std::vector<uint8_t> FileLoader::loadFunctionWasm(const faabric::Message& msg)
@@ -147,8 +171,9 @@ std::vector<uint8_t> FileLoader::loadSharedFile(const std::string& path)
 std::vector<uint8_t> FileLoader::loadFunctionObjectHash(
   const faabric::Message& msg)
 {
-    std::string cachePath = conf::getFunctionObjectFile(msg);
     std::string key = getKey(msg, objFile);
+    std::string cachePath = conf::getFunctionObjectFile(msg);
+
     return loadFileBytes(
       conf::getHashFilePath(key), conf::getHashFilePath(cachePath), true);
 }
@@ -156,8 +181,9 @@ std::vector<uint8_t> FileLoader::loadFunctionObjectHash(
 std::vector<uint8_t> FileLoader::loadFunctionWamrAotHash(
   const faabric::Message& msg)
 {
-    std::string cachePath = conf::getFunctionAotFile(msg);
     std::string key = getKey(msg, wamrAotFile);
+    std::string cachePath = conf::getFunctionAotFile(msg);
+
     return loadFileBytes(
       conf::getHashFilePath(key), conf::getHashFilePath(cachePath), true);
 }
@@ -166,7 +192,11 @@ std::vector<uint8_t> FileLoader::loadSharedObjectObjectHash(
   const std::string& path)
 {
     const std::string hashPath = conf::getHashFilePath(path);
-    return loadFileBytes(hashPath, hashPath, true);
+
+    const std::string localCachePath =
+      conf::getHashFilePath(conf::getSharedObjectObjectFile(path));
+
+    return loadFileBytes(hashPath, localCachePath, true);
 }
 
 void FileLoader::uploadFunctionObjectHash(const faabric::Message& msg,
@@ -254,9 +284,11 @@ void FileLoader::uploadSharedFile(const std::string& path,
 void FileLoader::flushFunctionFiles()
 {
     // Nuke the function directory
+    SPDLOG_DEBUG("Clearing all files from {}", conf.functionDir);
     boost::filesystem::remove_all(conf.functionDir);
 
     // Nuke the machine code directory
+    SPDLOG_DEBUG("Clearing all files from {}", conf.objectFileDir);
     boost::filesystem::remove_all(conf.objectFileDir);
 }
 

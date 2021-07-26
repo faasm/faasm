@@ -19,9 +19,6 @@
 
 #include <stdlib.h>
 
-#define SHARED_OBJ                                                             \
-    "/usr/local/faasm/runtime_root/lib/python3.8/lib-dynload/mmap.so"
-
 using namespace storage;
 
 namespace tests {
@@ -322,9 +319,12 @@ TEST_CASE_METHOD(S3FilesTestFixture,
     std::string origObjDir = conf.objectFileDir;
     conf.objectFileDir = "/tmp/obj";
 
-    std::string inputPath = SHARED_OBJ;
+    std::string localSharedObjFile =
+      "/usr/local/faasm/runtime_root/lib/python3.8/lib-dynload/mmap.so";
+
+    std::string inputPath = localSharedObjFile;
     std::string objFile =
-      std::string("/tmp/obj") + std::string(SHARED_OBJ) + ".o";
+      std::string("/tmp/obj") + std::string(localSharedObjFile) + ".o";
     std::string hashFile = objFile + HASH_EXT;
 
     bool localCache;
