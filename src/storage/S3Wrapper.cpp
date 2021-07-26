@@ -176,6 +176,9 @@ std::vector<std::string> S3Wrapper::listKeys(const std::string& bucketName)
     }
 
     Aws::Vector<Object> keyObjects = response.GetResult().GetContents();
+    if (keyObjects.empty()) {
+        return keys;
+    }
 
     for (auto const& keyObject : keyObjects) {
         const Aws::String& awsStr = keyObject.GetKey();

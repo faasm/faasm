@@ -196,7 +196,6 @@ TEST_CASE_METHOD(S3FilesTestFixture,
     msgB.set_inputdata(faabric::util::bytesToString(wasmB));
 
     // Override the storage directories
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string origFuncDir = conf.functionDir;
     std::string origObjDir = conf.objectFileDir;
     conf.functionDir = "/tmp/func";
@@ -232,7 +231,7 @@ TEST_CASE_METHOD(S3FilesTestFixture,
         objectFileB = "/tmp/obj/demo/x2/function.aot";
 
         // It seems that WAMR codegen doesn't produce the same results every
-        // time...
+        // time, but they are the same length. Perhaps a timestamp is included.
         isCodegenRepeatable = false;
 
         SECTION("WAMR with local cache") { localCache = true; }
@@ -340,15 +339,15 @@ TEST_CASE_METHOD(S3FilesTestFixture,
     // Run the codegen
     loader.codegenForSharedObject(inputPath);
 
-    // Check files exist if necessary
-    REQUIRE(boost::filesystem::exists(objFile) == localCache);
-    REQUIRE(boost::filesystem::exists(hashFile) == localCache);
-
     // Read object file and hash to check results later
     std::vector<uint8_t> objBefore =
       loader.loadSharedObjectObjectFile(inputPath);
     std::vector<uint8_t> hashBefore =
       loader.loadSharedObjectObjectHash(inputPath);
+
+    // Check files exist if necessary
+    REQUIRE(boost::filesystem::exists(objFile) == localCache);
+    REQUIRE(boost::filesystem::exists(hashFile) == localCache);
 
     // Flush and set dummy object data
     loader.flushFunctionFiles();

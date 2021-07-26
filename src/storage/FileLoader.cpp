@@ -72,20 +72,22 @@ std::vector<uint8_t> FileLoader::loadFileBytes(
     if (useLocalFsCache && boost::filesystem::exists(localCachePath)) {
         if (boost::filesystem::is_directory(localCachePath)) {
             throw SharedFileIsDirectoryException(localCachePath);
-        } else {
-            SPDLOG_DEBUG(
-              "Loading {} from filesystem at {}", path, localCachePath);
-            return faabric::util::readFileToBytes(localCachePath);
         }
-    } else {
-        // Load from S3
-        SPDLOG_DEBUG("Loading bytes from S3 for {}/{}", conf.s3Bucket, path);
-        std::vector<uint8_t> bytes =
-          s3.getKeyBytes(conf.s3Bucket, path, tolerateMissing);
-        faabric::util::writeBytesToFile(localCachePath, bytes);
 
-        return bytes;
+        SPDLOG_DEBUG("Loading {} from filesystem at {}", path, localCachePath);
+        return faabric::util::readFileToBytes(localCachePath);
     }
+
+    // Load from S3 if not found
+    SPDLOG_DEBUG("Loading bytes from S3 for {}/{}", conf.s3Bucket, path);
+    std::vector<uint8_t> bytes =
+      s3.getKeyBytes(conf.s3Bucket, path, tolerateMissing);
+
+    if (!bytes.empty()) {
+        faabric::util::writeBytesToFile(localCachePath, bytes);
+    }
+
+    return bytes;
 }
 
 void FileLoader::uploadFileBytes(const std::string& path,
@@ -164,7 +166,7 @@ std::vector<uint8_t> FileLoader::loadSharedObjectObjectHash(
   const std::string& path)
 {
     const std::string hashPath = conf::getHashFilePath(path);
-    return loadFileBytes(hashPath, hashPath);
+    return loadFileBytes(hashPath, hashPath, true);
 }
 
 void FileLoader::uploadFunctionObjectHash(const faabric::Message& msg,
@@ -251,10 +253,6 @@ void FileLoader::uploadSharedFile(const std::string& path,
 
 void FileLoader::flushFunctionFiles()
 {
-    // Note that here we are just flushing our local copies of the function
-    // files, not those stored in S3.
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
-
     // Nuke the function directory
     boost::filesystem::remove_all(conf.functionDir);
 
@@ -276,7 +274,6 @@ std::vector<uint8_t> FileLoader::doCodegen(std::vector<uint8_t>& bytes,
                                            const std::string& fileName,
                                            bool isSgx)
 {
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
     if (conf.wasmVm == "wamr") {
 #if (WAMR_EXECTION_MODE_INTERP)
         throw std::runtime_error(
@@ -303,7 +300,6 @@ void FileLoader::codegenForFunction(faabric::Message& msg)
     // Compare hashes
     std::vector<uint8_t> newHash = hashBytes(bytes);
     std::vector<uint8_t> oldHash;
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
     if (conf.wasmVm == "wamr") {
         oldHash = loadFunctionWamrAotHash(msg);
     } else if (conf.wasmVm == "wavm" && msg.issgx()) {
@@ -359,7 +355,6 @@ void FileLoader::codegenForSharedObject(const std::string& inputPath)
     std::vector<uint8_t> objBytes = doCodegen(bytes, inputPath);
 
     // Do the upload
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
     if (conf.wasmVm == "wamr") {
         uploadSharedObjectAotFile(inputPath, objBytes);
         uploadSharedObjectAotHash(inputPath, newHash);
