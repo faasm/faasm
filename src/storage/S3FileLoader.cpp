@@ -223,6 +223,14 @@ void S3FileLoader::uploadSharedFile(const std::string& path,
 
 void S3FileLoader::flushFunctionFiles()
 {
-    // TODO - implement flushing
+    // Note that here we are just flushing our local copies of the function
+    // files, not those stored in S3.
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
+
+    // Nuke the function directory
+    boost::filesystem::remove_all(conf.functionDir);
+
+    // Nuke the machine code directory
+    boost::filesystem::remove_all(conf.objectFileDir);
 }
 }
