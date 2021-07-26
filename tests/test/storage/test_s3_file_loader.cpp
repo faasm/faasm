@@ -12,7 +12,7 @@
 #include <conf/FaasmConfig.h>
 #include <conf/function_utils.h>
 #include <storage/FileLoader.h>
-#include <storage/S3FileLoader.h>
+#include <storage/FileLoader.h>
 #include <upload/UploadServer.h>
 
 #include <boost/filesystem.hpp>
@@ -72,7 +72,7 @@ TEST_CASE_METHOD(S3FilesTestFixture,
 
     SECTION("Without cache") { useFsCache = false; }
 
-    storage::S3FileLoader loader(useFsCache);
+    storage::FileLoader loader(useFsCache);
 
     // Upload the function and make sure it's written to S3 along with the
     // machine code and the machine code's hash

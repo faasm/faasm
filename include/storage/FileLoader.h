@@ -1,95 +1,99 @@
 #pragma once
 
-#include <faabric/proto/faabric.pb.h>
+#include <conf/FaasmConfig.h>
+#include <storage/S3Wrapper.h>
 
+#include <faabric/util/config.h>
 #include <faabric/util/exception.h>
-#include <string>
-#include <vector>
+#include <faabric/util/func.h>
 
 #define EMPTY_FILE_RESPONSE "Empty response"
 #define IS_DIR_RESPONSE "IS_DIR"
 #define FILE_PATH_HEADER "FilePath"
 
 namespace storage {
+
 class FileLoader
 {
   public:
-    virtual std::vector<uint8_t> loadFunctionWasm(
-      const faabric::Message& msg) = 0;
+    FileLoader();
 
-    virtual std::vector<uint8_t> loadSharedObjectWasm(
-      const std::string& path) = 0;
+    FileLoader(bool useLocalFsCacheIn);
 
-    virtual std::vector<uint8_t> loadFunctionObjectFile(
-      const faabric::Message& msg) = 0;
+    std::vector<uint8_t> loadFunctionWasm(const faabric::Message& msg);
 
-    virtual std::vector<uint8_t> loadFunctionWamrAotFile(
-      const faabric::Message& msg) = 0;
+    std::vector<uint8_t> loadSharedObjectWasm(const std::string& path);
 
-    virtual std::vector<uint8_t> loadSharedObjectObjectFile(
-      const std::string& path) = 0;
+    std::vector<uint8_t> loadFunctionObjectFile(const faabric::Message& msg);
 
-    virtual std::vector<uint8_t> loadSharedFile(const std::string& path) = 0;
+    std::vector<uint8_t> loadFunctionWamrAotFile(const faabric::Message& msg);
 
-    virtual std::vector<uint8_t> loadFunctionObjectHash(
-      const faabric::Message& msg) = 0;
+    std::vector<uint8_t> loadSharedObjectObjectFile(const std::string& path);
 
-    virtual std::vector<uint8_t> loadFunctionWamrAotHash(
-      const faabric::Message& msg) = 0;
+    std::vector<uint8_t> loadSharedFile(const std::string& path);
 
-    virtual std::vector<uint8_t> loadSharedObjectObjectHash(
-      const std::string& path) = 0;
+    std::vector<uint8_t> loadFunctionObjectHash(const faabric::Message& msg);
 
-    virtual void uploadFunctionObjectHash(const faabric::Message& msg,
-                                          const std::vector<uint8_t>& hash) = 0;
+    std::vector<uint8_t> loadFunctionWamrAotHash(const faabric::Message& msg);
 
-    virtual void uploadFunctionWamrAotHash(
-      const faabric::Message& msg,
-      const std::vector<uint8_t>& hash) = 0;
+    std::vector<uint8_t> loadSharedObjectObjectHash(const std::string& path);
 
-    virtual void uploadSharedObjectObjectHash(
-      const std::string& path,
-      const std::vector<uint8_t>& hash) = 0;
+    void uploadFunctionObjectHash(const faabric::Message& msg,
+                                  const std::vector<uint8_t>& hash);
 
-    virtual void uploadSharedObjectAotHash(
-      const std::string& path,
-      const std::vector<uint8_t>& hash) = 0;
+    void uploadFunctionWamrAotHash(const faabric::Message& msg,
+                                   const std::vector<uint8_t>& hash);
 
-    virtual void uploadFunction(faabric::Message& msg) = 0;
+    void uploadSharedObjectObjectHash(const std::string& path,
+                                      const std::vector<uint8_t>& hash);
 
-    virtual void uploadPythonFunction(faabric::Message& msg) = 0;
+    void uploadSharedObjectAotHash(const std::string& path,
+                                   const std::vector<uint8_t>& hash);
 
-    virtual void uploadFunctionObjectFile(
-      const faabric::Message& msg,
-      const std::vector<uint8_t>& objBytes) = 0;
+    void uploadFunction(faabric::Message& msg);
 
-    virtual void uploadFunctionAotFile(
-      const faabric::Message& msg,
-      const std::vector<uint8_t>& objBytes) = 0;
+    void uploadPythonFunction(faabric::Message& msg);
 
-    virtual void uploadSharedObjectObjectFile(
-      const std::string& path,
-      const std::vector<uint8_t>& objBytes) = 0;
+    void uploadFunctionObjectFile(const faabric::Message& msg,
+                                  const std::vector<uint8_t>& objBytes);
 
-    virtual void uploadSharedObjectAotFile(
-      const std::string& path,
-      const std::vector<uint8_t>& objBytes) = 0;
+    void uploadFunctionAotFile(const faabric::Message& msg,
+                               const std::vector<uint8_t>& objBytes);
 
-    virtual void uploadSharedFile(const std::string& path,
-                                  const std::vector<uint8_t>& fileBytes) = 0;
+    void uploadSharedObjectObjectFile(const std::string& path,
+                                      const std::vector<uint8_t>& objBytes);
 
-    virtual void flushFunctionFiles() = 0;
+    void uploadSharedObjectAotFile(const std::string& path,
+                                   const std::vector<uint8_t>& objBytes);
+
+    void uploadSharedFile(const std::string& path,
+                          const std::vector<uint8_t>& fileBytes);
+
+    void flushFunctionFiles();
+
+  private:
+    conf::FaasmConfig& conf;
+    storage::S3Wrapper s3;
+
+    bool useLocalFsCache = true;
 
     void codegenForFunction(faabric::Message& msg);
 
     void codegenForSharedObject(const std::string& inputPath);
 
-  protected:
     std::vector<uint8_t> doCodegen(std::vector<uint8_t>& bytes,
                                    const std::string& fileName,
                                    bool isSgx = false);
 
     std::vector<uint8_t> hashBytes(const std::vector<uint8_t>& bytes);
+
+    std::vector<uint8_t> loadFileBytes(const std::string& path,
+                                       const std::string& localCachePath);
+
+    void uploadFileBytes(const std::string& path,
+                         const std::vector<uint8_t>& bytes);
+
+    void uploadFileString(const std::string& path, const std::string& bytes);
 };
 
 FileLoader& getFileLoader();
@@ -105,4 +109,5 @@ class SharedFileIsDirectoryException : public faabric::util::FaabricException
       : faabric::util::FaabricException(filePath + " is a directory")
     {}
 };
-};
+}
+

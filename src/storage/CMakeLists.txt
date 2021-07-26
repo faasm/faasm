@@ -9,10 +9,8 @@ set(LIB_FILES
         FileDescriptor.cpp
         FileLoader.cpp
         FileSystem.cpp
-        S3FileLoader.cpp
         S3Wrapper.cpp
         SharedFiles.cpp
-        instance.cpp
         ${HEADERS}
         )
 
