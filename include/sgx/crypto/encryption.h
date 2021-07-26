@@ -18,9 +18,9 @@ extern "C"
     FaasmSgxMsg* doSymDecrypt(FaasmSgxEncryptedMsg* encryptedMsg,
                               FaasmSgxSymKey symKey);
 
-    FaasmSgxEncryptedMsg* doAesGcmEncrypt(FaasmSgxMsg* decryptedMsg,
-                                          FaasmSgxSymKey symKey);
+    static FaasmSgxEncryptedMsg* doAesGcmEncrypt(FaasmSgxMsg* decryptedMsg,
+                                                 FaasmSgxSymKey symKey);
 
-    FaasmSgxMsg* doAesGcmDecrypt(FaasmSgxEncryptedMsg* encryptedMsg,
-                                 FaasmSgxSymKey symKey);
+    static FaasmSgxMsg* doAesGcmDecrypt(FaasmSgxEncryptedMsg* encryptedMsg,
+                                        FaasmSgxSymKey symKey);
 }

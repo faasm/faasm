@@ -38,7 +38,8 @@ typedef enum _faasm_error
     // Crypto module errros
     FAASM_SGX_READ_RAND_FAILED = FAASM_SGX_ERROR(0x1E),
     FAASM_SGX_ENCRYPTION_FAILED = FAASM_SGX_ERROR(0x1F),
-    FAASM_SGX_DECRYPTION_FAILED = FAASM_SGX_ERROR(0x20)
+    FAASM_SGX_DECRYPTION_FAILED = FAASM_SGX_ERROR(0x20),
+    FAASM_SGX_HASH_FAILED = FAASM_SGX_ERROR(0x21)
 } faasm_sgx_status_t;
 
 #define FAASM_SGX_OCALL_ERROR(X)                                               \

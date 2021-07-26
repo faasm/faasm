@@ -1,10 +1,12 @@
 set(FAASM_SGX_CRYPTO_HEADERS
+    ${FAASM_INCLUDE_DIR}/sgx/crypto/hash.h
     ${FAASM_INCLUDE_DIR}/sgx/crypto/types.h
     ${FAASM_INCLUDE_DIR}/sgx/crypto/encryption.h
     )
 
 set(FAASM_SGX_CRYPTO_SRC
     encryption.cpp
+    hash.cpp
     ${FAASM_SGX_CRYPTO_HEADERS}
     )
 
