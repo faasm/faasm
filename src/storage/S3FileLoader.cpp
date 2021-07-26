@@ -35,6 +35,12 @@ std::string getKey(const faabric::Message& msg, const std::string& filename)
 
 S3FileLoader::S3FileLoader()
   : conf(conf::getFaasmConfig())
+  , useLocalFsCache(true)
+{}
+
+S3FileLoader::S3FileLoader(bool useLocalFsCacheIn)
+  : conf(conf::getFaasmConfig())
+  , useLocalFsCache(useLocalFsCacheIn)
 {}
 
 std::vector<uint8_t> S3FileLoader::loadFileBytes(
@@ -42,7 +48,7 @@ std::vector<uint8_t> S3FileLoader::loadFileBytes(
   const std::string& localCachePath)
 {
     // Check locally first
-    if (boost::filesystem::exists(localCachePath)) {
+    if (useLocalFsCache && boost::filesystem::exists(localCachePath)) {
         if (boost::filesystem::is_directory(localCachePath)) {
             throw SharedFileIsDirectoryException(localCachePath);
         } else {
@@ -118,7 +124,8 @@ std::vector<uint8_t> S3FileLoader::loadFunctionObjectHash(
 {
     std::string cachePath = conf::getFunctionObjectFile(msg);
     std::string key = getKey(msg, objFile);
-    return loadFileBytes(getHashFilePath(key), getHashFilePath(cachePath));
+    return loadFileBytes(conf::getHashFilePath(key),
+                         conf::getHashFilePath(cachePath));
 }
 
 std::vector<uint8_t> S3FileLoader::loadFunctionWamrAotHash(
@@ -126,13 +133,14 @@ std::vector<uint8_t> S3FileLoader::loadFunctionWamrAotHash(
 {
     std::string cachePath = conf::getFunctionAotFile(msg);
     std::string key = getKey(msg, wamrAotFile);
-    return loadFileBytes(getHashFilePath(key), getHashFilePath(cachePath));
+    return loadFileBytes(conf::getHashFilePath(key),
+                         conf::getHashFilePath(cachePath));
 }
 
 std::vector<uint8_t> S3FileLoader::loadSharedObjectObjectHash(
   const std::string& path)
 {
-    const std::string hashPath = getHashFilePath(path);
+    const std::string hashPath = conf::getHashFilePath(path);
     return loadFileBytes(hashPath, hashPath);
 }
 
@@ -140,7 +148,7 @@ void S3FileLoader::uploadFunctionObjectHash(const faabric::Message& msg,
                                             const std::vector<uint8_t>& hash)
 {
     std::string key = getKey(msg, objFile);
-    key = getHashFilePath(key);
+    key = conf::getHashFilePath(key);
     uploadFileBytes(key, hash);
 }
 
@@ -148,7 +156,7 @@ void S3FileLoader::uploadFunctionWamrAotHash(const faabric::Message& msg,
                                              const std::vector<uint8_t>& hash)
 {
     std::string key = getKey(msg, wamrAotFile);
-    key = getHashFilePath(key);
+    key = conf::getHashFilePath(key);
     uploadFileBytes(key, hash);
 }
 
@@ -156,14 +164,14 @@ void S3FileLoader::uploadSharedObjectObjectHash(
   const std::string& path,
   const std::vector<uint8_t>& hash)
 {
-    const std::string key = getHashFilePath(path);
+    const std::string key = conf::getHashFilePath(path);
     uploadFileBytes(key, hash);
 }
 
 void S3FileLoader::uploadSharedObjectAotHash(const std::string& path,
                                              const std::vector<uint8_t>& hash)
 {
-    const std::string key = getHashFilePath(path);
+    const std::string key = conf::getHashFilePath(path);
     uploadFileBytes(key, hash);
 }
 

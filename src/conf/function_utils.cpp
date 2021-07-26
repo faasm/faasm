@@ -209,4 +209,9 @@ void convertMessageToPython(faabric::Message& msg)
     msg.set_user(PYTHON_USER);
     msg.set_function(PYTHON_FUNC);
 }
+
+std::string getHashFilePath(const std::string& path)
+{
+    return path + HASH_EXT;
+}
 }

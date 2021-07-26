@@ -9,6 +9,8 @@
 
 #define SHARED_OBJ_EXT ".o"
 
+#define HASH_EXT ".md5"
+
 #define PYTHON_USER "python"
 #define PYTHON_FUNC "py_func"
 #define PYTHON_FUNC_DIR "pyfuncs"
@@ -38,6 +40,8 @@ std::string getSharedFileFile(const std::string& path);
 bool isValidFunction(const faabric::Message& msg);
 
 void convertMessageToPython(faabric::Message& msg);
+
+std::string getHashFilePath(const std::string& path);
 
 class InvalidFunctionException : public faabric::util::FaabricException
 {

@@ -6,8 +6,6 @@
 #include <string>
 #include <vector>
 
-#define HASH_EXT ".md5"
-
 #define EMPTY_FILE_RESPONSE "Empty response"
 #define IS_DIR_RESPONSE "IS_DIR"
 #define FILE_PATH_HEADER "FilePath"
@@ -92,8 +90,6 @@ class FileLoader
                                    bool isSgx = false);
 
     std::vector<uint8_t> hashBytes(const std::vector<uint8_t>& bytes);
-
-    std::string getHashFilePath(const std::string& path);
 };
 
 FileLoader& getFileLoader();

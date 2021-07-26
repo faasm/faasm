@@ -145,7 +145,7 @@ TEST_CASE("Upload tests", "[upload]")
         // Ensure environment is clean before running
         std::string expectedFile = "/tmp/func/gamma/delta/function.wasm";
         std::string expectedObjFile = "/tmp/obj/gamma/delta/function.wasm.o";
-        std::string expectedHashFile = expectedObjFile + HASH_EXT;
+        std::string expectedHashFile = conf::getHashFilePath(expectedObjFile);
         boost::filesystem::remove(expectedFile);
         boost::filesystem::remove(expectedObjFile);
         boost::filesystem::remove(expectedHashFile);

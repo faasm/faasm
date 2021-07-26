@@ -12,6 +12,8 @@ class S3FileLoader final : public FileLoader
   public:
     S3FileLoader();
 
+    S3FileLoader(bool useLocalFsCacheIn);
+
     std::vector<uint8_t> loadFunctionWasm(const faabric::Message& msg) override;
 
     std::vector<uint8_t> loadSharedObjectWasm(const std::string& path) override;
@@ -76,6 +78,8 @@ class S3FileLoader final : public FileLoader
   private:
     conf::FaasmConfig& conf;
     storage::S3Wrapper s3;
+
+    bool useLocalFsCache = true;
 
     std::vector<uint8_t> loadFileBytes(const std::string& path,
                                        const std::string& localCachePath);

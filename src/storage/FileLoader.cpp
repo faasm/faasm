@@ -32,11 +32,6 @@ std::vector<uint8_t> FileLoader::hashBytes(const std::vector<uint8_t>& bytes)
     return result;
 }
 
-std::string FileLoader::getHashFilePath(const std::string& path)
-{
-    return path + HASH_EXT;
-}
-
 std::vector<uint8_t> FileLoader::doCodegen(std::vector<uint8_t>& bytes,
                                            const std::string& fileName,
                                            bool isSgx)
