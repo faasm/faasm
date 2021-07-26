@@ -26,19 +26,26 @@ extern "C"
         // Symmetric decrypt
         FaasmSgxMsg* decrypted = doSymDecrypt(encrypted, key);
         if (decrypted == NULL) {
+            free(encrypted);
             return FAASM_SGX_DECRYPTION_FAILED;
         }
 
         if (strncmp((char*)&tmpPlainText[0],
                     (char*)decrypted->buffer,
                     plainText.bufferLen) != 0) {
+            free(encrypted);
+            free(decrypted);
             return FAASM_SGX_DECRYPTION_FAILED;
         }
+
+        // Free messages
+        free(encrypted);
+        free(decrypted);
 
         // Hashing
         FaasmSgxMsg plainText2 = { .buffer = &tmpPlainText[0],
                                    .bufferLen = 12 };
-        FaasmSgxHashedMsg* hashedMsg = doHash(&plainText2);
+        FaasmSgxHashedMsg* hashedMsg = doSha256(&plainText2);
         if (hashedMsg == NULL) {
             return FAASM_SGX_HASH_FAILED;
         }
@@ -55,8 +62,12 @@ extern "C"
         if (strncmp((char*)expectedHash,
                     (char*)*hashedMsg,
                     SGX_SHA256_HASH_SIZE) != 0) {
+            free(hashedMsg);
             return FAASM_SGX_HASH_FAILED;
         }
+
+        // Free message
+        free(hashedMsg);
 
         return FAASM_SGX_SUCCESS;
     }

@@ -10,7 +10,5 @@ extern "C"
     // Hashing
     // --------------------------------------
 
-    FaasmSgxHashedMsg* doHash(FaasmSgxMsg* srcMsg);
-
-    static FaasmSgxHashedMsg* doSha256(FaasmSgxMsg* srcMsg);
+    FaasmSgxHashedMsg* doSha256(FaasmSgxMsg* srcMsg);
 }
