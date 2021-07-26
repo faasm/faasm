@@ -23,7 +23,8 @@ class S3TestFixture
         s3.createBucket(conf.s3Bucket);
     };
 
-    ~S3TestFixture() {
+    ~S3TestFixture()
+    {
         s3.deleteBucket(conf.s3Bucket);
         conf.reset();
     };
@@ -95,57 +96,23 @@ TEST_CASE_METHOD(S3TestFixture, "Test read/write keys in bucket", "[s3]")
         REQUIRE(actualB == byteDataB);
     }
 
+    SECTION("Test tolerate missing key")
+    {
+        const std::vector<uint8_t> actual =
+          s3.getKeyBytes(conf.s3Bucket, "blahblah", true);
+        REQUIRE(actual.empty());
+    }
+
+    SECTION("Test don't tolerate missing key")
+    {
+        REQUIRE_THROWS(s3.getKeyBytes(conf.s3Bucket, "blahblah"));
+    }
+
     s3.deleteKey(conf.s3Bucket, "alpha");
     s3.deleteKey(conf.s3Bucket, "beta");
     s3.deleteKey(conf.s3Bucket, "simple");
 
     std::vector<std::string> actualEmpty = s3.listKeys(conf.s3Bucket);
     REQUIRE(actualEmpty.empty());
-}
-
-TEST_CASE_METHOD(S3TestFixture,
-                 "Test read/write function data in bucket",
-                 "[s3]")
-{
-    faabric::Message msg;
-    msg.set_user("demo");
-    msg.set_function("echo");
-
-    // Upload wasm data
-    const std::string& funcPath = conf::getFunctionFile(msg);
-    const std::vector<uint8_t>& wasmBytes =
-      faabric::util::readFileToBytes(funcPath);
-    msg.set_inputdata(wasmBytes.data(), wasmBytes.size());
-
-    storage::FileLoader& loader = storage::getFileLoader();
-    loader.uploadFunction(msg);
-
-    // Get the expected object data
-    const std::string& objPath = conf::getFunctionObjectFile(msg);
-    const std::vector<uint8_t>& objectBytes =
-      faabric::util::readFileToBytes(objPath);
-
-    // Download again
-    const std::vector<uint8_t>& actualWasmBytes = loader.loadFunctionWasm(msg);
-    const std::vector<uint8_t>& actualObjectBytes =
-      loader.loadFunctionObjectFile(msg);
-    REQUIRE(actualWasmBytes == wasmBytes);
-    REQUIRE(actualObjectBytes == objectBytes);
-
-    // Check both keys present
-    std::vector<std::string> keys = s3.listKeys(conf.s3Bucket);
-    REQUIRE(keys.size() == 2);
-
-    // Download in a different thread and check for any thread-local issues
-    std::thread t([&msg, &wasmBytes, &objectBytes] {
-        storage::FileLoader& l = storage::getFileLoader();
-        const std::vector<uint8_t>& actualWasmBytes2 = l.loadFunctionWasm(msg);
-        const std::vector<uint8_t>& actualObjectBytes2 =
-          l.loadFunctionObjectFile(msg);
-        REQUIRE(actualWasmBytes2 == wasmBytes);
-        REQUIRE(actualObjectBytes2 == objectBytes);
-    });
-
-    t.join();
 }
 }

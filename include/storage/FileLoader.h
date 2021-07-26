@@ -69,17 +69,17 @@ class FileLoader
     void uploadSharedFile(const std::string& path,
                           const std::vector<uint8_t>& fileBytes);
 
-    void flushFunctionFiles();
+    void codegenForFunction(faabric::Message& msg);
 
+    void codegenForSharedObject(const std::string& inputPath);
+
+    void flushFunctionFiles();
   private:
     conf::FaasmConfig& conf;
     storage::S3Wrapper s3;
 
     bool useLocalFsCache = true;
 
-    void codegenForFunction(faabric::Message& msg);
-
-    void codegenForSharedObject(const std::string& inputPath);
 
     std::vector<uint8_t> doCodegen(std::vector<uint8_t>& bytes,
                                    const std::string& fileName,
@@ -88,7 +88,8 @@ class FileLoader
     std::vector<uint8_t> hashBytes(const std::vector<uint8_t>& bytes);
 
     std::vector<uint8_t> loadFileBytes(const std::string& path,
-                                       const std::string& localCachePath);
+                       const std::string& localCachePath,
+                       bool tolerateMissing = false);
 
     void uploadFileBytes(const std::string& path,
                          const std::vector<uint8_t>& bytes);
@@ -97,10 +98,6 @@ class FileLoader
 };
 
 FileLoader& getFileLoader();
-
-void checkFileExists(const std::string& path);
-
-std::vector<uint8_t> loadFileBytes(const std::string& path);
 
 class SharedFileIsDirectoryException : public faabric::util::FaabricException
 {

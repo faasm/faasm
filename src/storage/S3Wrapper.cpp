@@ -247,12 +247,25 @@ void S3Wrapper::addKeyStr(const std::string& bucketName,
 }
 
 std::vector<uint8_t> S3Wrapper::getKeyBytes(const std::string& bucketName,
-                                            const std::string& keyName)
+                                            const std::string& keyName,
+                                            bool tolerateMissing)
 {
     SPDLOG_DEBUG("Getting key {}/{} as bytes", bucketName, keyName);
     auto request = reqFactory<GetObjectRequest>(bucketName, keyName);
     GetObjectOutcome response = client.GetObject(request);
-    CHECK_ERRORS(response);
+
+    if (!response.IsSuccess()) {
+        const auto& err = response.GetError();
+        auto errType = err.GetErrorType();
+
+        if (tolerateMissing && (errType == Aws::S3::S3Errors::NO_SUCH_KEY)) {
+            SPDLOG_DEBUG("Tolerating missing key {}", keyName);
+            std::vector<uint8_t> empty;
+            return empty;
+        }
+
+        CHECK_ERRORS(response);
+    }
 
     std::vector<uint8_t> rawData(response.GetResult().GetContentLength());
     response.GetResult().GetBody().read((char*)rawData.data(), rawData.size());

@@ -39,11 +39,6 @@ void checkFileExists(const std::string& path)
     }
 }
 
-std::vector<uint8_t> loadFileBytes(const std::string& path)
-{
-    checkFileExists(path);
-    return faabric::util::readFileToBytes(path);
-}
 std::string getKey(const faabric::Message& msg, const std::string& filename)
 {
     std::string key = conf::getFaasmConfig().s3Bucket;
@@ -70,7 +65,8 @@ FileLoader::FileLoader(bool useLocalFsCacheIn)
 
 std::vector<uint8_t> FileLoader::loadFileBytes(
   const std::string& path,
-  const std::string& localCachePath)
+  const std::string& localCachePath,
+  bool tolerateMissing)
 {
     // Check locally first
     if (useLocalFsCache && boost::filesystem::exists(localCachePath)) {
@@ -84,8 +80,10 @@ std::vector<uint8_t> FileLoader::loadFileBytes(
     } else {
         // Load from S3
         SPDLOG_DEBUG("Loading bytes from S3 for {}/{}", conf.s3Bucket, path);
-        std::vector<uint8_t> bytes = s3.getKeyBytes(conf.s3Bucket, path);
+        std::vector<uint8_t> bytes =
+          s3.getKeyBytes(conf.s3Bucket, path, tolerateMissing);
         faabric::util::writeBytesToFile(localCachePath, bytes);
+
         return bytes;
     }
 }
@@ -149,8 +147,8 @@ std::vector<uint8_t> FileLoader::loadFunctionObjectHash(
 {
     std::string cachePath = conf::getFunctionObjectFile(msg);
     std::string key = getKey(msg, objFile);
-    return loadFileBytes(conf::getHashFilePath(key),
-                         conf::getHashFilePath(cachePath));
+    return loadFileBytes(
+      conf::getHashFilePath(key), conf::getHashFilePath(cachePath), true);
 }
 
 std::vector<uint8_t> FileLoader::loadFunctionWamrAotHash(
@@ -158,8 +156,8 @@ std::vector<uint8_t> FileLoader::loadFunctionWamrAotHash(
 {
     std::string cachePath = conf::getFunctionAotFile(msg);
     std::string key = getKey(msg, wamrAotFile);
-    return loadFileBytes(conf::getHashFilePath(key),
-                         conf::getHashFilePath(cachePath));
+    return loadFileBytes(
+      conf::getHashFilePath(key), conf::getHashFilePath(cachePath), true);
 }
 
 std::vector<uint8_t> FileLoader::loadSharedObjectObjectHash(
@@ -345,7 +343,6 @@ void FileLoader::codegenForFunction(faabric::Message& msg)
 
 void FileLoader::codegenForSharedObject(const std::string& inputPath)
 {
-
     // Load the wasm
     std::vector<uint8_t> bytes = loadSharedObjectWasm(inputPath);
 
