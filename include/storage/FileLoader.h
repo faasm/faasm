@@ -67,7 +67,7 @@ class FileLoader
 
     void codegenForSharedObject(const std::string& inputPath);
 
-    void flushFunctionFiles();
+    void clearLocalCache();
 
   private:
     conf::FaasmConfig& conf;

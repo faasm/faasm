@@ -134,7 +134,7 @@ TEST_CASE_METHOD(S3FilesTestFixture,
 
     // Now flush
     storage::FileLoader& loader = storage::getFileLoader();
-    loader.flushFunctionFiles();
+    loader.clearLocalCache();
 
     // Check files don't exist
     REQUIRE(!boost::filesystem::exists(funcFile));
@@ -274,7 +274,7 @@ TEST_CASE_METHOD(S3FilesTestFixture,
     std::vector<uint8_t> objABefore =
       faabric::util::readFileToBytes(objectFileA);
 
-    loader.flushFunctionFiles();
+    loader.clearLocalCache();
 
     // Now write some dummy content directly to the object file (to check it
     // doesn't get overwritten)
@@ -288,7 +288,7 @@ TEST_CASE_METHOD(S3FilesTestFixture,
     REQUIRE(dummyBytesAfter == dummyBytes);
 
     // Flush again
-    loader.flushFunctionFiles();
+    loader.clearLocalCache();
 
     // Now change the hash file and check the object file *is* overwritten
     loader.uploadFunctionObjectHash(msgA, dummyBytes);
@@ -339,7 +339,7 @@ TEST_CASE_METHOD(S3FilesTestFixture,
     loader.uploadSharedObjectObjectFile(inputPath, originalObjBytes);
 
     // Flush anything cached locally
-    loader.flushFunctionFiles();
+    loader.clearLocalCache();
 
     // Run the codegen
     loader.codegenForSharedObject(inputPath);
@@ -358,7 +358,7 @@ TEST_CASE_METHOD(S3FilesTestFixture,
     REQUIRE(boost::filesystem::exists(hashFile) == localCache);
 
     // Remove local cache and write dummy object data
-    loader.flushFunctionFiles();
+    loader.clearLocalCache();
     std::vector<uint8_t> dummyBytes = { 0, 1, 2, 3 };
     loader.uploadSharedObjectObjectFile(inputPath, dummyBytes);
 
@@ -370,7 +370,7 @@ TEST_CASE_METHOD(S3FilesTestFixture,
 
     // Now write the dummy bytes to the hash file and rerun the upload
     loader.uploadSharedObjectObjectHash(inputPath, dummyBytes);
-    loader.flushFunctionFiles();
+    loader.clearLocalCache();
     loader.codegenForSharedObject(inputPath);
 
     // Check the object file is updated
@@ -419,7 +419,7 @@ TEST_CASE_METHOD(S3FilesTestFixture,
 
     // Now flush
     storage::FileLoader loader;
-    loader.flushFunctionFiles();
+    loader.clearLocalCache();
 
     // Check files no longer exist
     REQUIRE(!boost::filesystem::exists(funcFile));

@@ -158,7 +158,7 @@ void FaasletFactory::flushHost()
 
     // Clear cached wasm and object files
     storage::FileLoader& fileLoader = storage::getFileLoader();
-    fileLoader.flushFunctionFiles();
+    fileLoader.clearLocalCache();
 
     // WAVM-specific flushing
     const conf::FaasmConfig& conf = conf::getFaasmConfig();

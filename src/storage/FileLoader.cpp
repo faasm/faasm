@@ -289,7 +289,7 @@ void FileLoader::uploadSharedFile(const std::string& path,
     uploadFileBytes(path, localCachePath, fileBytes);
 }
 
-void FileLoader::flushFunctionFiles()
+void FileLoader::clearLocalCache()
 {
     // Nuke the function directory
     SPDLOG_DEBUG("Clearing all files from {}", conf.functionDir);
