@@ -47,9 +47,6 @@ class FileLoader
     void uploadSharedObjectObjectHash(const std::string& path,
                                       const std::vector<uint8_t>& hash);
 
-    void uploadSharedObjectAotHash(const std::string& path,
-                                   const std::vector<uint8_t>& hash);
-
     void uploadFunction(faabric::Message& msg);
 
     void uploadPythonFunction(faabric::Message& msg);
@@ -57,14 +54,11 @@ class FileLoader
     void uploadFunctionObjectFile(const faabric::Message& msg,
                                   const std::vector<uint8_t>& objBytes);
 
-    void uploadFunctionAotFile(const faabric::Message& msg,
-                               const std::vector<uint8_t>& objBytes);
+    void uploadFunctionWamrAotFile(const faabric::Message& msg,
+                                   const std::vector<uint8_t>& objBytes);
 
     void uploadSharedObjectObjectFile(const std::string& path,
                                       const std::vector<uint8_t>& objBytes);
-
-    void uploadSharedObjectAotFile(const std::string& path,
-                                   const std::vector<uint8_t>& objBytes);
 
     void uploadSharedFile(const std::string& path,
                           const std::vector<uint8_t>& fileBytes);
@@ -74,12 +68,12 @@ class FileLoader
     void codegenForSharedObject(const std::string& inputPath);
 
     void flushFunctionFiles();
+
   private:
     conf::FaasmConfig& conf;
     storage::S3Wrapper s3;
 
     bool useLocalFsCache = true;
-
 
     std::vector<uint8_t> doCodegen(std::vector<uint8_t>& bytes,
                                    const std::string& fileName,
@@ -88,13 +82,16 @@ class FileLoader
     std::vector<uint8_t> hashBytes(const std::vector<uint8_t>& bytes);
 
     std::vector<uint8_t> loadFileBytes(const std::string& path,
-                       const std::string& localCachePath,
-                       bool tolerateMissing = false);
+                                       const std::string& localCachePath,
+                                       bool tolerateMissing = false);
 
     void uploadFileBytes(const std::string& path,
+                         const std::string& localCachePath,
                          const std::vector<uint8_t>& bytes);
 
-    void uploadFileString(const std::string& path, const std::string& bytes);
+    void uploadFileString(const std::string& path,
+                          const std::string& localCachePath,
+                          const std::string& bytes);
 };
 
 FileLoader& getFileLoader();

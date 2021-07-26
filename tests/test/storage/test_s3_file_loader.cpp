@@ -321,6 +321,8 @@ TEST_CASE_METHOD(S3FilesTestFixture,
 
     std::string localSharedObjFile =
       "/usr/local/faasm/runtime_root/lib/python3.8/lib-dynload/mmap.so";
+    std::vector<uint8_t> originalObjBytes =
+      faabric::util::readFileToBytes(localSharedObjFile);
 
     std::string inputPath = localSharedObjFile;
     std::string objFile =
@@ -332,43 +334,50 @@ TEST_CASE_METHOD(S3FilesTestFixture,
 
     SECTION("Without local cache") { localCache = false; }
 
-    // Run the codegen
+    // Upload the file first
     storage::FileLoader loader(localCache);
+    loader.uploadSharedObjectObjectFile(inputPath, originalObjBytes);
+
+    // Flush anything cached locally
     loader.flushFunctionFiles();
 
     // Run the codegen
     loader.codegenForSharedObject(inputPath);
 
-    // Read object file and hash to check results later
+    // Read object file and hash
     std::vector<uint8_t> objBefore =
       loader.loadSharedObjectObjectFile(inputPath);
     std::vector<uint8_t> hashBefore =
       loader.loadSharedObjectObjectHash(inputPath);
 
-    // Check files exist if necessary
+    REQUIRE(!objBefore.empty());
+    REQUIRE(!hashBefore.empty());
+
+    // Check files exist locally if caching
     REQUIRE(boost::filesystem::exists(objFile) == localCache);
     REQUIRE(boost::filesystem::exists(hashFile) == localCache);
 
-    // Flush and set dummy object data
+    // Remove local cache and write dummy object data
     loader.flushFunctionFiles();
     std::vector<uint8_t> dummyBytes = { 0, 1, 2, 3 };
     loader.uploadSharedObjectObjectFile(inputPath, dummyBytes);
 
-    // Rerun codegen and check not overwritten
+    // Rerun codegen and check dummy data not overwritten (i.e. codegen skipped)
     loader.codegenForSharedObject(inputPath);
-    std::vector<uint8_t> dummyBytesAfter =
+    std::vector<uint8_t> objAfterA =
       loader.loadSharedObjectObjectFile(inputPath);
-    REQUIRE(dummyBytesAfter == dummyBytes);
+    REQUIRE(objAfterA == dummyBytes);
 
     // Now write the dummy bytes to the hash file and rerun the upload
-    loader.flushFunctionFiles();
     loader.uploadSharedObjectObjectHash(inputPath, dummyBytes);
+    loader.flushFunctionFiles();
     loader.codegenForSharedObject(inputPath);
 
     // Check the object file is updated
-    std::vector<uint8_t> objAfter =
+    std::vector<uint8_t> objAfterB =
       loader.loadSharedObjectObjectFile(inputPath);
-    REQUIRE(objAfter == objBefore);
+    REQUIRE(objAfterB.size() == objBefore.size());
+    REQUIRE(objAfterB == objBefore);
 
     // Check the hash is updated
     std::vector<uint8_t> hashAfter =
@@ -417,4 +426,3 @@ TEST_CASE_METHOD(S3FilesTestFixture,
     REQUIRE(!boost::filesystem::exists(objFile));
 }
 }
-

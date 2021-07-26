@@ -12,7 +12,6 @@
 namespace wasm {
 std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
 {
-
     // Make sure WAMR is initialised
     WAMRWasmModule::initialiseWAMRGlobally();
 

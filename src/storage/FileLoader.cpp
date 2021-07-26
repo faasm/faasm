@@ -101,7 +101,7 @@ std::vector<uint8_t> FileLoader::loadFileBytes(
     std::vector<uint8_t> bytes =
       s3.getKeyBytes(conf.s3Bucket, pathCopy, tolerateMissing);
 
-    if (!bytes.empty()) {
+    if (!bytes.empty() && useLocalFsCache) {
         SPDLOG_DEBUG("Caching S3 key {}/{} at {}",
                      conf.s3Bucket,
                      pathCopy,
@@ -113,23 +113,36 @@ std::vector<uint8_t> FileLoader::loadFileBytes(
 }
 
 void FileLoader::uploadFileBytes(const std::string& path,
+                                 const std::string& localCachePath,
                                  const std::vector<uint8_t>& bytes)
 {
     std::string pathCopy = trimLeadingSlashes(path);
-    SPDLOG_DEBUG(
-      "Uploading {} bytes to {}/{}", bytes.size(), conf.s3Bucket, pathCopy);
     s3.addKeyBytes(conf.s3Bucket, pathCopy, bytes);
+
+    if (useLocalFsCache && !localCachePath.empty()) {
+        SPDLOG_DEBUG("Caching S3 key {}/{} at {}",
+                     conf.s3Bucket,
+                     pathCopy,
+                     localCachePath);
+        faabric::util::writeBytesToFile(localCachePath, bytes);
+    }
 }
 
 void FileLoader::uploadFileString(const std::string& path,
+                                  const std::string& localCachePath,
                                   const std::string& bytes)
 {
     std::string pathCopy = trimLeadingSlashes(path);
-    SPDLOG_DEBUG("Uploading {} bytes to {}/{} (string)",
-                 bytes.size(),
-                 conf.s3Bucket,
-                 pathCopy);
     s3.addKeyStr(conf.s3Bucket, pathCopy, bytes);
+
+    if (useLocalFsCache && !localCachePath.empty()) {
+        SPDLOG_DEBUG("Caching S3 key {}/{} at {}",
+                     conf.s3Bucket,
+                     pathCopy,
+                     localCachePath);
+        faabric::util::writeBytesToFile(localCachePath,
+                                        faabric::util::stringToBytes(bytes));
+    }
 }
 
 std::vector<uint8_t> FileLoader::loadFunctionWasm(const faabric::Message& msg)
@@ -204,38 +217,35 @@ void FileLoader::uploadFunctionObjectHash(const faabric::Message& msg,
 {
     std::string key = getKey(msg, objFile);
     key = conf::getHashFilePath(key);
-    uploadFileBytes(key, hash);
+    std::string cachePath = conf::getFunctionObjectFile(msg);
+    uploadFileBytes(key, cachePath, hash);
 }
 
 void FileLoader::uploadFunctionWamrAotHash(const faabric::Message& msg,
                                            const std::vector<uint8_t>& hash)
 {
     std::string key = getKey(msg, wamrAotFile);
-    key = conf::getHashFilePath(key);
-    uploadFileBytes(key, hash);
+    std::string cachePath = conf::getFunctionAotFile(msg);
+    uploadFileBytes(
+      conf::getHashFilePath(key), conf::getHashFilePath(cachePath), hash);
 }
 
 void FileLoader::uploadSharedObjectObjectHash(const std::string& path,
                                               const std::vector<uint8_t>& hash)
 {
-    const std::string key = conf::getHashFilePath(path);
-    uploadFileBytes(key, hash);
-}
-
-void FileLoader::uploadSharedObjectAotHash(const std::string& path,
-                                           const std::vector<uint8_t>& hash)
-{
-    const std::string key = conf::getHashFilePath(path);
-    uploadFileBytes(key, hash);
+    std::string key = conf::getHashFilePath(path);
+    std::string localCachePath =
+      conf::getHashFilePath(conf::getSharedObjectObjectFile(path));
+    uploadFileBytes(key, localCachePath, hash);
 }
 
 void FileLoader::uploadFunction(faabric::Message& msg)
 {
     // Note, when uploading, the input data is the function body
     const std::string& inputBytes = msg.inputdata();
-
     const std::string key = getKey(msg, funcFile);
-    uploadFileString(key, inputBytes);
+    const std::string localCachePath = conf::getFunctionFile(msg);
+    uploadFileString(key, localCachePath, inputBytes);
 
     // Build the object file from the file we've just received
     codegenForFunction(msg);
@@ -245,40 +255,38 @@ void FileLoader::uploadPythonFunction(faabric::Message& msg)
 {
     const std::string key = getKey(msg, pyFile);
     const std::string& inputBytes = msg.inputdata();
-    uploadFileString(key, inputBytes);
+    uploadFileString(key, "", inputBytes);
 }
 
 void FileLoader::uploadFunctionObjectFile(const faabric::Message& msg,
                                           const std::vector<uint8_t>& objBytes)
 {
     const std::string key = getKey(msg, objFile);
-    uploadFileBytes(key, objBytes);
+    const std::string localCachePath = conf::getFunctionObjectFile(msg);
+    uploadFileBytes(key, localCachePath, objBytes);
 }
 
-void FileLoader::uploadFunctionAotFile(const faabric::Message& msg,
-                                       const std::vector<uint8_t>& objBytes)
+void FileLoader::uploadFunctionWamrAotFile(const faabric::Message& msg,
+                                           const std::vector<uint8_t>& objBytes)
 {
     const std::string key = getKey(msg, objFile);
-    uploadFileBytes(key, objBytes);
+    const std::string localCachePath = conf::getFunctionAotFile(msg);
+    uploadFileBytes(key, localCachePath, objBytes);
 }
 
 void FileLoader::uploadSharedObjectObjectFile(
   const std::string& path,
   const std::vector<uint8_t>& objBytes)
 {
-    uploadFileBytes(path, objBytes);
-}
-
-void FileLoader::uploadSharedObjectAotFile(const std::string& path,
-                                           const std::vector<uint8_t>& objBytes)
-{
-    uploadFileBytes(path, objBytes);
+    const std::string localCachePath = conf::getSharedObjectObjectFile(path);
+    uploadFileBytes(path, localCachePath, objBytes);
 }
 
 void FileLoader::uploadSharedFile(const std::string& path,
                                   const std::vector<uint8_t>& fileBytes)
 {
-    uploadFileBytes(path, fileBytes);
+    const std::string localCachePath = conf::getSharedFileFile(path);
+    uploadFileBytes(path, localCachePath, fileBytes);
 }
 
 void FileLoader::flushFunctionFiles()
@@ -361,7 +369,7 @@ void FileLoader::codegenForFunction(faabric::Message& msg)
 
     // Upload the file contents and the hash
     if (conf.wasmVm == "wamr") {
-        uploadFunctionAotFile(msg, objBytes);
+        uploadFunctionWamrAotFile(msg, objBytes);
         uploadFunctionWamrAotHash(msg, newHash);
     } else {
         uploadFunctionObjectFile(msg, objBytes);
@@ -388,12 +396,12 @@ void FileLoader::codegenForSharedObject(const std::string& inputPath)
 
     // Do the upload
     if (conf.wasmVm == "wamr") {
-        uploadSharedObjectAotFile(inputPath, objBytes);
-        uploadSharedObjectAotHash(inputPath, newHash);
-    } else {
-        uploadSharedObjectObjectFile(inputPath, objBytes);
-        uploadSharedObjectObjectHash(inputPath, newHash);
+        throw std::runtime_error(
+          "Codegen for shared objects not supported with WAMR");
     }
+
+    uploadSharedObjectObjectFile(inputPath, objBytes);
+    uploadSharedObjectObjectHash(inputPath, newHash);
 }
 
 FileLoader& getFileLoader()
