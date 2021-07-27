@@ -29,6 +29,7 @@ class S3FilesTestFixture
     S3FilesTestFixture()
       : conf(conf::getFaasmConfig())
     {
+        conf.s3Bucket = "faasm-test";
         s3.createBucket(conf.s3Bucket);
     };
 

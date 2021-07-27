@@ -7,6 +7,7 @@
 #include <faabric/util/config.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
+#include <faabric/util/testing.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
@@ -99,6 +100,11 @@ FileLoader& getFileLoader()
 
 void FileLoader::clearLocalCache()
 {
+    if (faabric::util::isTestMode()) {
+        SPDLOG_DEBUG("Not clearing local file loader cache in test mode");
+        return;
+    }
+
     // Nuke the function directory
     SPDLOG_DEBUG("Clearing all files from {}", conf.functionDir);
     boost::filesystem::remove_all(conf.functionDir);
@@ -125,7 +131,7 @@ std::vector<uint8_t> FileLoader::loadFileBytes(
             throw SharedFileIsDirectoryException(localCachePath);
         }
 
-        SPDLOG_DEBUG("Loading {} from filesystem at {}", path, localCachePath);
+        SPDLOG_TRACE("Loading {} from filesystem at {}", path, localCachePath);
         return readFileToBytes(localCachePath);
     }
 
@@ -135,7 +141,7 @@ std::vector<uint8_t> FileLoader::loadFileBytes(
       s3.getKeyBytes(conf.s3Bucket, pathCopy, tolerateMissing);
 
     if (!bytes.empty() && useLocalFsCache) {
-        SPDLOG_DEBUG("Caching S3 key {}/{} at {}",
+        SPDLOG_TRACE("Caching S3 key {}/{} at {}",
                      conf.s3Bucket,
                      pathCopy,
                      localCachePath);
@@ -153,7 +159,7 @@ void FileLoader::uploadFileBytes(const std::string& path,
     s3.addKeyBytes(conf.s3Bucket, pathCopy, bytes);
 
     if (useLocalFsCache && !localCachePath.empty()) {
-        SPDLOG_DEBUG("Caching S3 key {}/{} at {}",
+        SPDLOG_TRACE("Caching S3 key {}/{} at {}",
                      conf.s3Bucket,
                      pathCopy,
                      localCachePath);
@@ -169,7 +175,7 @@ void FileLoader::uploadFileString(const std::string& path,
     s3.addKeyStr(conf.s3Bucket, pathCopy, bytes);
 
     if (useLocalFsCache && !localCachePath.empty()) {
-        SPDLOG_DEBUG("Caching S3 key {}/{} at {}",
+        SPDLOG_TRACE("Caching S3 key {}/{} at {}",
                      conf.s3Bucket,
                      pathCopy,
                      localCachePath);

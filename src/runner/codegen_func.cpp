@@ -8,6 +8,7 @@
 #include <codegen/MachineCodeGenerator.h>
 #include <conf/FaasmConfig.h>
 #include <storage/FileLoader.h>
+#include <storage/S3Wrapper.h>
 
 using namespace boost::filesystem;
 
@@ -38,6 +39,7 @@ void codegenForFunc(const std::string& user,
 int main(int argc, char* argv[])
 {
     faabric::util::initLogging();
+    storage::initSDK();
 
     if (argc == 3) {
         std::string user = argv[1];
@@ -111,4 +113,6 @@ int main(int argc, char* argv[])
         SPDLOG_ERROR("Must provide function user and optional function name");
         return 0;
     }
+
+    storage::cleanUpSDK();
 }
