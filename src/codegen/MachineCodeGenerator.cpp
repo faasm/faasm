@@ -1,12 +1,11 @@
-#include "storage/FileLoader.h"
-#include <codegen/MachineCodeGenerator.h>
-
 #if (WAMR_EXECUTION_MODE_INTERP)
 // Import for codegen not needed as it's not supported
 #else
 #include <wamr/WAMRWasmModule.h>
 #endif
 
+#include <codegen/MachineCodeGenerator.h>
+#include <storage/FileLoader.h>
 #include <wavm/WAVMWasmModule.h>
 
 #include <openssl/md5.h>

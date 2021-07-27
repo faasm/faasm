@@ -1,6 +1,5 @@
 include_directories(
         ${FAASM_INCLUDE_DIR}/codegen
-        ${FAASM_WAVM_SOURCE_DIR}/Lib
 )
 
 set(HEADERS
@@ -15,6 +14,7 @@ set(LIB_FILES
 faasm_private_lib(codegen "${LIB_FILES}")
 
 target_link_libraries(codegen
+    storage
     wavmmodule
     wamrmodule
 )

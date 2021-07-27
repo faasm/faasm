@@ -1,8 +1,9 @@
 #pragma once
 
 #include <conf/FaasmConfig.h>
-#include <cstdint>
 #include <storage/FileLoader.h>
+
+#include <cstdint>
 
 namespace codegen {
 
