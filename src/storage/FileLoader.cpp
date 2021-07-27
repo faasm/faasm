@@ -117,6 +117,8 @@ std::vector<uint8_t> FileLoader::loadFileBytes(
   const std::string& localCachePath,
   bool tolerateMissing)
 {
+    SPDLOG_TRACE("Loading file {} ({})", path, localCachePath);
+
     // Check locally first
     if (useLocalFsCache && boost::filesystem::exists(localCachePath)) {
         if (boost::filesystem::is_directory(localCachePath)) {
