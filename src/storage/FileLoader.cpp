@@ -70,7 +70,7 @@ static boost::filesystem::path getDir(std::string baseDir,
     path.append(msg.user());
     path.append(msg.function());
 
-    // Create directory if doesn't exist
+    // Create directory if required
     if (create) {
         boost::filesystem::create_directories(path);
     }

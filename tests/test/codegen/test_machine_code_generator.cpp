@@ -1,6 +1,5 @@
 #include <catch2/catch.hpp>
 
-#include "faabric/util/testing.h"
 #include "faabric_utils.h"
 #include "utils.h"
 
@@ -8,6 +7,7 @@
 #include <faabric/util/config.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
+#include <faabric/util/testing.h>
 
 #include <codegen/MachineCodeGenerator.h>
 #include <conf/FaasmConfig.h>
@@ -34,12 +34,15 @@ class CodegenTestFixture
         faabric::Message msgA = faabric::util::messageFactory("demo", "echo");
         faabric::Message msgB = faabric::util::messageFactory("demo", "x2");
 
-        // Load some wasm data for existing functions
         std::string pathA = loader.getFunctionFile(msgA);
         std::string pathB = loader.getFunctionFile(msgB);
 
         wasmBytesA = faabric::util::readFileToBytes(pathA);
         wasmBytesB = faabric::util::readFileToBytes(pathB);
+
+        // Use a shared object we know exists
+        localSharedObjFile =
+          conf.runtimeFilesDir + "/lib/python3.8/lib-dynload/mmap.so";
         sharedObjWasm = faabric::util::readFileToBytes(localSharedObjFile);
 
         // Note that we deliberately switch off test mode here so that we can
@@ -69,8 +72,7 @@ class CodegenTestFixture
     codegen::MachineCodeGenerator& gen;
     storage::S3Wrapper s3;
 
-    std::string localSharedObjFile =
-      "/usr/local/faasm/runtime_root/lib/python3.8/lib-dynload/mmap.so";
+    std::string localSharedObjFile;
 
     std::vector<uint8_t> wasmBytesA;
     std::vector<uint8_t> wasmBytesB;

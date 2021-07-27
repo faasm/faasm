@@ -199,7 +199,8 @@ TEST_CASE_METHOD(FileLoaderTestFixture,
     REQUIRE(!boost::filesystem::exists(fullPath));
 
     // Check we can still load from S3
-    const std::vector<uint8_t> actualAfter = loader.loadSharedFile(relativePath);
+    const std::vector<uint8_t> actualAfter =
+      loader.loadSharedFile(relativePath);
     REQUIRE(actualAfter == expected);
 }
 }
