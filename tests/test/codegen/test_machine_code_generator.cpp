@@ -26,7 +26,6 @@ class CodegenTestFixture
   public:
     CodegenTestFixture()
       : conf(conf::getFaasmConfig())
-      , gen(codegen::getMachineCodeGenerator())
       , loader(storage::getFileLoader())
     {
         s3.createBucket(conf.s3Bucket);
@@ -41,14 +40,13 @@ class CodegenTestFixture
 
   protected:
     conf::FaasmConfig& conf;
-    codegen::MachineCodeGenerator& gen;
     storage::FileLoader& loader;
     storage::S3Wrapper s3;
 };
 
 TEST_CASE_METHOD(CodegenTestFixture,
                  "Check function codegen hashing",
-                 "[storage]")
+                 "[codegen]")
 {
     std::string objectFileA;
     std::string objectFileB;
@@ -71,6 +69,8 @@ TEST_CASE_METHOD(CodegenTestFixture,
         // time, but they are the same length. Perhaps a timestamp is included.
         isCodegenRepeatable = false;
     }
+
+    codegen::MachineCodeGenerator gen(loader);
 
     // Use two functions we know exist
     faabric::Message msgA = faabric::util::messageFactory("demo", "echo");
@@ -170,7 +170,7 @@ TEST_CASE_METHOD(CodegenTestFixture,
 
 TEST_CASE_METHOD(CodegenTestFixture,
                  "Check shared object codegen hashing",
-                 "[storage]")
+                 "[codegen]")
 {
     bool localCache;
     SECTION("With local cache") { localCache = true; }
@@ -178,6 +178,7 @@ TEST_CASE_METHOD(CodegenTestFixture,
     SECTION("Without local cache") { localCache = false; }
 
     storage::FileLoader loader(localCache);
+    codegen::MachineCodeGenerator gen(loader);
 
     conf.objectFileDir = "/tmp/obj";
 
