@@ -1,5 +1,4 @@
 #include <conf/FaasmConfig.h>
-#include <conf/function_utils.h>
 #include <storage/FileLoader.h>
 #include <wavm/WAVMWasmModule.h>
 
@@ -15,11 +14,14 @@
 #include <faabric/util/config.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
-#include <faabric/util/logging.h>
 
+#include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <openssl/md5.h>
+
+using namespace faabric::util;
 
 namespace storage {
 
@@ -93,7 +95,7 @@ std::vector<uint8_t> FileLoader::loadFileBytes(
         }
 
         SPDLOG_DEBUG("Loading {} from filesystem at {}", path, localCachePath);
-        return faabric::util::readFileToBytes(localCachePath);
+        return readFileToBytes(localCachePath);
     }
 
     // Load from S3 if not found
@@ -106,7 +108,7 @@ std::vector<uint8_t> FileLoader::loadFileBytes(
                      conf.s3Bucket,
                      pathCopy,
                      localCachePath);
-        faabric::util::writeBytesToFile(localCachePath, bytes);
+        writeBytesToFile(localCachePath, bytes);
     }
 
     return bytes;
@@ -124,7 +126,7 @@ void FileLoader::uploadFileBytes(const std::string& path,
                      conf.s3Bucket,
                      pathCopy,
                      localCachePath);
-        faabric::util::writeBytesToFile(localCachePath, bytes);
+        writeBytesToFile(localCachePath, bytes);
     }
 }
 
@@ -140,15 +142,14 @@ void FileLoader::uploadFileString(const std::string& path,
                      conf.s3Bucket,
                      pathCopy,
                      localCachePath);
-        faabric::util::writeBytesToFile(localCachePath,
-                                        faabric::util::stringToBytes(bytes));
+        writeBytesToFile(localCachePath, stringToBytes(bytes));
     }
 }
 
 std::vector<uint8_t> FileLoader::loadFunctionWasm(const faabric::Message& msg)
 {
     const std::string key = getKey(msg, funcFile);
-    return loadFileBytes(key, conf::getFunctionFile(msg));
+    return loadFileBytes(key, getFunctionFile(msg));
 }
 
 std::vector<uint8_t> FileLoader::loadSharedObjectWasm(const std::string& path)
@@ -160,54 +161,54 @@ std::vector<uint8_t> FileLoader::loadFunctionObjectFile(
   const faabric::Message& msg)
 {
     const std::string key = getKey(msg, objFile);
-    return loadFileBytes(key, conf::getFunctionObjectFile(msg));
+    return loadFileBytes(key, getFunctionObjectFile(msg));
 }
 
 std::vector<uint8_t> FileLoader::loadFunctionWamrAotFile(
   const faabric::Message& msg)
 {
     const std::string key = getKey(msg, wamrAotFile);
-    return loadFileBytes(key, conf::getFunctionAotFile(msg));
+    return loadFileBytes(key, getFunctionAotFile(msg));
 }
 
 std::vector<uint8_t> FileLoader::loadSharedObjectObjectFile(
   const std::string& path)
 {
-    return loadFileBytes(path, conf::getSharedObjectObjectFile(path));
+    return loadFileBytes(path, getSharedObjectObjectFile(path));
 }
 
 std::vector<uint8_t> FileLoader::loadSharedFile(const std::string& path)
 {
-    return loadFileBytes(path, conf::getSharedFileFile(path));
+    return loadFileBytes(path, getSharedFileFile(path));
 }
 
 std::vector<uint8_t> FileLoader::loadFunctionObjectHash(
   const faabric::Message& msg)
 {
     std::string key = getKey(msg, objFile);
-    std::string cachePath = conf::getFunctionObjectFile(msg);
+    std::string cachePath = getFunctionObjectFile(msg);
 
     return loadFileBytes(
-      conf::getHashFilePath(key), conf::getHashFilePath(cachePath), true);
+      getHashFilePath(key), getHashFilePath(cachePath), true);
 }
 
 std::vector<uint8_t> FileLoader::loadFunctionWamrAotHash(
   const faabric::Message& msg)
 {
     std::string key = getKey(msg, wamrAotFile);
-    std::string cachePath = conf::getFunctionAotFile(msg);
+    std::string cachePath = getFunctionAotFile(msg);
 
     return loadFileBytes(
-      conf::getHashFilePath(key), conf::getHashFilePath(cachePath), true);
+      getHashFilePath(key), getHashFilePath(cachePath), true);
 }
 
 std::vector<uint8_t> FileLoader::loadSharedObjectObjectHash(
   const std::string& path)
 {
-    const std::string hashPath = conf::getHashFilePath(path);
+    const std::string hashPath = getHashFilePath(path);
 
     const std::string localCachePath =
-      conf::getHashFilePath(conf::getSharedObjectObjectFile(path));
+      getHashFilePath(getSharedObjectObjectFile(path));
 
     return loadFileBytes(hashPath, localCachePath, true);
 }
@@ -216,8 +217,8 @@ void FileLoader::uploadFunctionObjectHash(const faabric::Message& msg,
                                           const std::vector<uint8_t>& hash)
 {
     std::string key = getKey(msg, objFile);
-    key = conf::getHashFilePath(key);
-    std::string cachePath = conf::getFunctionObjectFile(msg);
+    key = getHashFilePath(key);
+    std::string cachePath = getFunctionObjectFile(msg);
     uploadFileBytes(key, cachePath, hash);
 }
 
@@ -225,17 +226,16 @@ void FileLoader::uploadFunctionWamrAotHash(const faabric::Message& msg,
                                            const std::vector<uint8_t>& hash)
 {
     std::string key = getKey(msg, wamrAotFile);
-    std::string cachePath = conf::getFunctionAotFile(msg);
-    uploadFileBytes(
-      conf::getHashFilePath(key), conf::getHashFilePath(cachePath), hash);
+    std::string cachePath = getFunctionAotFile(msg);
+    uploadFileBytes(getHashFilePath(key), getHashFilePath(cachePath), hash);
 }
 
 void FileLoader::uploadSharedObjectObjectHash(const std::string& path,
                                               const std::vector<uint8_t>& hash)
 {
-    std::string key = conf::getHashFilePath(path);
+    std::string key = getHashFilePath(path);
     std::string localCachePath =
-      conf::getHashFilePath(conf::getSharedObjectObjectFile(path));
+      getHashFilePath(getSharedObjectObjectFile(path));
     uploadFileBytes(key, localCachePath, hash);
 }
 
@@ -244,7 +244,7 @@ void FileLoader::uploadFunction(faabric::Message& msg)
     // Note, when uploading, the input data is the function body
     const std::string& inputBytes = msg.inputdata();
     const std::string key = getKey(msg, funcFile);
-    const std::string localCachePath = conf::getFunctionFile(msg);
+    const std::string localCachePath = getFunctionFile(msg);
     uploadFileString(key, localCachePath, inputBytes);
 
     // Build the object file from the file we've just received
@@ -262,7 +262,7 @@ void FileLoader::uploadFunctionObjectFile(const faabric::Message& msg,
                                           const std::vector<uint8_t>& objBytes)
 {
     const std::string key = getKey(msg, objFile);
-    const std::string localCachePath = conf::getFunctionObjectFile(msg);
+    const std::string localCachePath = getFunctionObjectFile(msg);
     uploadFileBytes(key, localCachePath, objBytes);
 }
 
@@ -270,7 +270,7 @@ void FileLoader::uploadFunctionWamrAotFile(const faabric::Message& msg,
                                            const std::vector<uint8_t>& objBytes)
 {
     const std::string key = getKey(msg, objFile);
-    const std::string localCachePath = conf::getFunctionAotFile(msg);
+    const std::string localCachePath = getFunctionAotFile(msg);
     uploadFileBytes(key, localCachePath, objBytes);
 }
 
@@ -278,14 +278,14 @@ void FileLoader::uploadSharedObjectObjectFile(
   const std::string& path,
   const std::vector<uint8_t>& objBytes)
 {
-    const std::string localCachePath = conf::getSharedObjectObjectFile(path);
+    const std::string localCachePath = getSharedObjectObjectFile(path);
     uploadFileBytes(path, localCachePath, objBytes);
 }
 
 void FileLoader::uploadSharedFile(const std::string& path,
                                   const std::vector<uint8_t>& fileBytes)
 {
-    const std::string localCachePath = conf::getSharedFileFile(path);
+    const std::string localCachePath = getSharedFileFile(path);
     uploadFileBytes(path, localCachePath, fileBytes);
 }
 
@@ -331,7 +331,7 @@ void FileLoader::codegenForFunction(faabric::Message& msg)
 {
     std::vector<uint8_t> bytes = loadFunctionWasm(msg);
 
-    const std::string funcStr = faabric::util::funcToString(msg, false);
+    const std::string funcStr = funcToString(msg, false);
 
     if (bytes.empty()) {
         throw std::runtime_error("Loaded empty bytes for " + funcStr);
@@ -402,6 +402,179 @@ void FileLoader::codegenForSharedObject(const std::string& inputPath)
 
     uploadSharedObjectObjectFile(inputPath, objBytes);
     uploadSharedObjectObjectHash(inputPath, newHash);
+}
+
+std::string _doGetPythonFunctionFile(const faabric::Message& msg,
+                                     const std::string& parentDir,
+                                     bool createDirs)
+{
+    if (!msg.ispython()) {
+        throw std::runtime_error(
+          "Getting python function file for non-Python function " +
+          funcToString(msg, false));
+    }
+
+    if (msg.pythonuser().empty() || msg.pythonfunction().empty()) {
+        throw std::runtime_error(
+          "Invalid Python call: user=" + msg.pythonuser() +
+          " func=" + msg.pythonfunction());
+    }
+    boost::filesystem::path path(parentDir);
+
+    path.append(PYTHON_FUNC_DIR);
+    path.append(msg.pythonuser());
+    path.append(msg.pythonfunction());
+
+    if (createDirs) {
+        boost::filesystem::create_directories(path);
+    }
+
+    path.append(pyFile);
+    return path.string();
+}
+
+boost::filesystem::path _doGetDir(std::string baseDir,
+                                  const faabric::Message& msg,
+                                  bool create)
+{
+    boost::filesystem::path path(baseDir);
+    path.append(msg.user());
+    path.append(msg.function());
+
+    // Create directory if doesn't exist
+    if (create) {
+        boost::filesystem::create_directories(path);
+    }
+
+    return path;
+}
+
+bool FileLoader::isValidFunction(const faabric::Message& msg)
+{
+    if (msg.user().empty() || msg.function().empty()) {
+        return false;
+    }
+
+    auto path = _doGetDir(conf.functionDir, msg, false);
+    path.append("function.wasm");
+
+    bool isValid = boost::filesystem::exists(path);
+    return isValid;
+}
+
+std::string FileLoader::getPythonFunctionFile(const faabric::Message& msg)
+{
+    // Python functions are stored as shared files to make it easier to
+    // share them through the system
+    return _doGetPythonFunctionFile(msg, conf.sharedFilesStorageDir, true);
+}
+
+std::string FileLoader::getPythonFunctionFileSharedPath(
+  const faabric::Message& msg)
+{
+    // This is the shared path of the form faasm:// used to access the Python
+    // file
+    return _doGetPythonFunctionFile(msg, SHARED_FILE_PREFIX, false);
+}
+
+std::string FileLoader::getPythonRuntimeFunctionFile(
+  const faabric::Message& msg)
+{
+    // This is the path where the file is placed at runtime to be
+    // accessible to the function
+    return _doGetPythonFunctionFile(msg, conf.runtimeFilesDir, true);
+}
+
+std::string FileLoader::getFunctionFile(const faabric::Message& msg)
+{
+    auto path = _doGetDir(conf.functionDir, msg, true);
+    path.append(funcFile);
+
+    return path.string();
+}
+
+std::string FileLoader::getEncryptedFunctionFile(const faabric::Message& msg)
+{
+    auto path = _doGetDir(conf.functionDir, msg, true);
+    path.append(encryptedFuncFile);
+
+    return path.string();
+}
+
+std::string FileLoader::getFunctionSymbolsFile(const faabric::Message& msg)
+{
+    auto path = _doGetDir(conf.functionDir, msg, true);
+    path.append(symFile);
+
+    return path.string();
+}
+
+std::string FileLoader::getFunctionObjectFile(const faabric::Message& msg)
+{
+    auto path = _doGetDir(conf.objectFileDir, msg, true);
+    path.append(objFile);
+
+    return path.string();
+}
+
+std::string FileLoader::getFunctionAotFile(const faabric::Message& msg)
+{
+    auto path = _doGetDir(conf.objectFileDir, msg, true);
+    if (msg.issgx()) {
+        path.append(sgxWamrAotFile);
+    } else {
+        path.append(wamrAotFile);
+    }
+
+    return path.string();
+}
+
+std::string FileLoader::getSharedObjectObjectFile(const std::string& realPath)
+{
+    boost::filesystem::directory_entry f(realPath);
+    const std::string directory = f.path().parent_path().string();
+    const std::string fileName = f.path().filename().string();
+
+    // Work out the final destination for the object file. This will be the
+    // object path with the directory of the original file appended
+    boost::filesystem::path objPath(conf.objectFileDir);
+    objPath.append(directory);
+
+    // Create directory (if necessary)
+    create_directories(objPath);
+
+    // Add the filename
+    std::string outputFile = objPath.append(fileName).string();
+    outputFile += SHARED_OBJ_EXT;
+
+    return outputFile;
+}
+
+std::string FileLoader::getSharedFileFile(const std::string& path)
+{
+    boost::filesystem::path p(conf.sharedFilesStorageDir);
+    p.append(path);
+
+    if (!boost::filesystem::exists(p.parent_path())) {
+        boost::filesystem::create_directories(p.parent_path());
+    }
+
+    return p.string();
+}
+
+void convertMessageToPython(faabric::Message& msg)
+{
+    msg.set_ispython(true);
+    msg.set_pythonfunction(msg.function());
+    msg.set_pythonuser(msg.user());
+
+    msg.set_user(PYTHON_USER);
+    msg.set_function(PYTHON_FUNC);
+}
+
+std::string getHashFilePath(const std::string& path)
+{
+    return path + HASH_EXT;
 }
 
 FileLoader& getFileLoader()

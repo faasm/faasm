@@ -1,7 +1,6 @@
 #include <faaslet/Faaslet.h>
 
 #include <conf/FaasmConfig.h>
-#include <conf/function_utils.h>
 #include <system/CGroup.h>
 #include <system/NetworkNamespace.h>
 #include <threads/ThreadState.h>

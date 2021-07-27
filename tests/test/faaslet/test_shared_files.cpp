@@ -2,12 +2,12 @@
 
 #include "utils.h"
 
+#include <storage/FileLoader.h>
+
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
-
-#include <conf/function_utils.h>
 
 #include <boost/filesystem.hpp>
 
@@ -17,8 +17,9 @@ TEST_CASE("Test accessing shared files from wasm", "[faaslet]")
     cleanSystem();
 
     // Set up a dummy file
+    storage::FileLoader &loader = storage::getFileLoader();
     std::string relativePath = "test/shared-wasm.txt";
-    std::string fullPath = conf::getSharedFileFile(relativePath);
+    std::string fullPath = loader.getSharedFileFile(relativePath);
     if (boost::filesystem::exists(fullPath)) {
         boost::filesystem::remove(fullPath);
     }

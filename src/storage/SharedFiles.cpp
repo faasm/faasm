@@ -9,7 +9,6 @@
 #include <faabric/util/string_tools.h>
 
 #include <conf/FaasmConfig.h>
-#include <conf/function_utils.h>
 #include <storage/FileLoader.h>
 
 namespace storage {
@@ -147,8 +146,9 @@ void SharedFiles::syncPythonFunctionFile(const faabric::Message& msg)
         return;
     }
 
-    std::string sharedPath = conf::getPythonFunctionFileSharedPath(msg);
-    std::string runtimeFilePath = conf::getPythonRuntimeFunctionFile(msg);
+    FileLoader& loader = getFileLoader();
+    std::string sharedPath = loader.getPythonFunctionFileSharedPath(msg);
+    std::string runtimeFilePath = loader.getPythonRuntimeFunctionFile(msg);
 
     syncSharedFile(sharedPath, runtimeFilePath);
 }

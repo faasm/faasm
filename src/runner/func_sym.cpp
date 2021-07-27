@@ -6,7 +6,7 @@
 #include <faabric/util/logging.h>
 
 #include <conf/FaasmConfig.h>
-#include <conf/function_utils.h>
+#include <storage/FileLoader.h>
 #include <wasm/WasmModule.h>
 #include <wavm/WAVMWasmModule.h>
 
@@ -33,7 +33,8 @@ int main(int argc, char* argv[])
 
     std::map<std::string, std::string> disasMap = module.buildDisassemblyMap();
 
-    std::string outPath = conf::getFunctionSymbolsFile(call);
+    storage::FileLoader &loader = storage::getFileLoader();
+    std::string outPath = loader.getFunctionSymbolsFile(call);
     std::ofstream outfile;
     outfile.open(outPath, std::ios::out);
 

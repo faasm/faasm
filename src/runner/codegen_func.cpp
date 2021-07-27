@@ -6,7 +6,6 @@
 #include <faabric/util/logging.h>
 
 #include <conf/FaasmConfig.h>
-#include <conf/function_utils.h>
 #include <storage/FileLoader.h>
 
 using namespace boost::filesystem;
@@ -15,9 +14,9 @@ void codegenForFunc(const std::string& user,
                     const std::string& func,
                     bool isSgx = false)
 {
-
+    storage::FileLoader& loader = storage::getFileLoader();
     faabric::Message msg = faabric::util::messageFactory(user, func);
-    if (!conf::isValidFunction(msg)) {
+    if (!loader.isValidFunction(msg)) {
         SPDLOG_WARN("Invalid function: {}/{}", user, func);
         return;
     }
@@ -28,7 +27,6 @@ void codegenForFunc(const std::string& user,
         SPDLOG_INFO("Generating machine code for {}/{}", user, func);
     }
 
-    storage::FileLoader& loader = storage::getFileLoader();
     loader.codegenForFunction(msg);
 }
 

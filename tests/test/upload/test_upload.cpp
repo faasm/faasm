@@ -11,7 +11,6 @@
 #include <boost/filesystem.hpp>
 
 #include <conf/FaasmConfig.h>
-#include <conf/function_utils.h>
 #include <storage/FileLoader.h>
 #include <upload/UploadServer.h>
 
@@ -73,6 +72,8 @@ TEST_CASE("Upload tests", "[upload]")
 {
     faabric::redis::Redis& redisQueue = faabric::redis::Redis::getQueue();
     redisQueue.flushAll();
+
+    storage::FileLoader& loader = storage::getFileLoader();
 
     std::vector<uint8_t> empty;
 
@@ -145,7 +146,7 @@ TEST_CASE("Upload tests", "[upload]")
         // Ensure environment is clean before running
         std::string expectedFile = "/tmp/func/gamma/delta/function.wasm";
         std::string expectedObjFile = "/tmp/obj/gamma/delta/function.wasm.o";
-        std::string expectedHashFile = conf::getHashFilePath(expectedObjFile);
+        std::string expectedHashFile = loader.getHashFilePath(expectedObjFile);
         boost::filesystem::remove(expectedFile);
         boost::filesystem::remove(expectedObjFile);
         boost::filesystem::remove(expectedHashFile);
@@ -183,7 +184,7 @@ TEST_CASE("Upload tests", "[upload]")
 
         // Clear out any existing
         const char* relativePath = "test/dummy_file.txt";
-        std::string fullPath = conf::getSharedFileFile(relativePath);
+        std::string fullPath = loader.getSharedFileFile(relativePath);
         if (boost::filesystem::exists(fullPath)) {
             boost::filesystem::remove(fullPath);
         }
@@ -211,8 +212,9 @@ TEST_CASE("Function fileserver test", "[upload]")
     std::string expectedFilePath;
 
     faabric::Message msg = faabric::util::messageFactory("demo", "echo");
-    std::string wasmFile = conf::getFunctionFile(msg);
-    std::string objFile = conf::getFunctionObjectFile(msg);
+    storage::FileLoader& loader = storage::getFileLoader();
+    std::string wasmFile = loader.getFunctionFile(msg);
+    std::string objFile = loader.getFunctionObjectFile(msg);
 
     SECTION("Function wasm")
     {
@@ -248,8 +250,8 @@ TEST_CASE("Python fileserver test", "[upload]")
     // Check file exists as expected
     faabric::Message tempMsg =
       faabric::util::messageFactory("python", "foobar");
-    conf::convertMessageToPython(tempMsg);
-    const std::string filePath = conf::getPythonFunctionFile(tempMsg);
+    loader.convertMessageToPython(tempMsg);
+    const std::string filePath = loader.getPythonFunctionFile(tempMsg);
     const std::vector<uint8_t> actualBytes =
       faabric::util::readFileToBytes(filePath);
     REQUIRE(actualBytes == expected);
@@ -297,12 +299,12 @@ TEST_CASE("Shared file fileserver test", "[upload]")
     std::string relativePath = "test/fileserver.txt";
     std::vector<uint8_t> fileBytes = { 3, 4, 5, 0, 1, 2, 3 };
 
-    std::string fullPath = conf::getSharedFileFile(relativePath);
+    storage::FileLoader& loader = storage::getFileLoader();
+    std::string fullPath = loader.getSharedFileFile(relativePath);
     if (boost::filesystem::exists(fullPath)) {
         boost::filesystem::remove(fullPath);
     }
 
-    storage::FileLoader& loader = storage::getFileLoader();
     bool valid;
 
     SECTION("Valid file")

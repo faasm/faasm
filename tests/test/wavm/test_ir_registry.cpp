@@ -4,7 +4,6 @@
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
 
-#include <conf/function_utils.h>
 #include <storage/FileLoader.h>
 #include <wavm/IRModuleCache.h>
 
@@ -69,8 +68,9 @@ TEST_CASE("Test main module caching", "[wasm]")
     REQUIRE(std::addressof(moduleRefA1) != std::addressof(moduleRefB1));
     REQUIRE(objRefA1 != objRefB1);
 
-    const std::string objPathA = conf::getFunctionObjectFile(msgA);
-    const std::string objPathB = conf::getFunctionObjectFile(msgB);
+    storage::FileLoader &loader = storage::getFileLoader();
+    const std::string objPathA = loader.getFunctionObjectFile(msgA);
+    const std::string objPathB = loader.getFunctionObjectFile(msgB);
 
     checkObjCode(objRefA1, objPathA);
     checkObjCode(objRefB1, objPathB);
@@ -131,8 +131,9 @@ TEST_CASE("Test shared library caching", "[wasm]")
     REQUIRE(objRefA1 != objRefB1);
 
     // Check object code loaded matches file
-    std::string objPathA = conf::getSharedObjectObjectFile(pathA);
-    std::string objPathB = conf::getSharedObjectObjectFile(pathB);
+    storage::FileLoader &loader = storage::getFileLoader();
+    std::string objPathA = loader.getSharedObjectObjectFile(pathA);
+    std::string objPathB = loader.getSharedObjectObjectFile(pathB);
 
     checkObjCode(objRefA1, objPathA);
     checkObjCode(objRefB1, objPathB);

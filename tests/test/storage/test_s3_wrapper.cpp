@@ -7,8 +7,6 @@
 #include <faabric/util/func.h>
 
 #include <conf/FaasmConfig.h>
-#include <conf/function_utils.h>
-#include <storage/FileLoader.h>
 #include <storage/S3Wrapper.h>
 
 namespace tests {

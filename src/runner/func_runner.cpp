@@ -1,7 +1,6 @@
 #include <conf/FaasmConfig.h>
-#include <conf/function_utils.h>
 #include <faaslet/Faaslet.h>
-#include <storage/S3Wrapper.h>
+#include <storage/FileLoader.h>
 #include <wasm/WasmModule.h>
 
 #include <faabric/redis/Redis.h>
@@ -67,7 +66,8 @@ int doRunner(int argc, char* argv[])
     redis.flushAll();
 
     if (user == "python") {
-        conf::convertMessageToPython(msg);
+        storage::FileLoader &loader = storage::getFileLoader();
+        loader.convertMessageToPython(msg);
         SPDLOG_INFO("Running Python function {}/{}",
                     msg.pythonuser(),
                     msg.pythonfunction());

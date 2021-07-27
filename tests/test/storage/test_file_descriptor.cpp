@@ -7,8 +7,8 @@
 #include <faabric/util/files.h>
 
 #include <conf/FaasmConfig.h>
-#include <conf/function_utils.h>
 #include <storage/FileDescriptor.h>
+#include <storage/FileLoader.h>
 #include <storage/SharedFiles.h>
 
 using namespace storage;
@@ -182,6 +182,7 @@ TEST_CASE("Test seek", "[storage]")
     FileSystem fs;
     fs.prepareFilesystem();
 
+    storage::FileLoader& loader = storage::getFileLoader();
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string dummyPath;
     std::string realPath;
@@ -200,7 +201,7 @@ TEST_CASE("Test seek", "[storage]")
     SECTION("Shared file")
     {
         dummyPath = "faasm://dummy_test_file.txt";
-        contentPath = conf::getSharedFileFile("dummy_test_file.txt");
+        contentPath = loader.getSharedFileFile("dummy_test_file.txt");
 
         // This is the path where the file should end up after being synced
         realPath = SharedFiles::realPathForSharedFile(dummyPath);
@@ -259,8 +260,9 @@ TEST_CASE("Test stat and read shared file", "[storage]")
     FileDescriptor& rootFileDesc = fs.getFileDescriptor(DEFAULT_ROOT_FD);
 
     // Set up the shared file
+    storage::FileLoader& loader = storage::getFileLoader();
     std::string relativePath = "test/shared-file-stat.txt";
-    std::string fullPath = conf::getSharedFileFile(relativePath);
+    std::string fullPath = loader.getSharedFileFile(relativePath);
     if (boost::filesystem::exists(fullPath)) {
         boost::filesystem::remove(fullPath);
     }

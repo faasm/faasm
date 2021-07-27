@@ -10,7 +10,6 @@
 #include <faabric/util/macros.h>
 
 #include <conf/FaasmConfig.h>
-#include <conf/function_utils.h>
 #include <storage/FileLoader.h>
 #include <upload/UploadServer.h>
 
@@ -47,29 +46,6 @@ TEST_CASE_METHOD(S3FilesTestFixture,
                  "Test file loader pulling files from S3",
                  "[storage]")
 {
-    // Load the expected bytes from the function file
-    faabric::Message msg = faabric::util::messageFactory("demo", "echo");
-    std::string expectedPath = conf::getFunctionFile(msg);
-    std::vector<uint8_t> wasmBytes =
-      faabric::util::readFileToBytes(expectedPath);
-
-    // Get the expected object data
-    std::string objPath = conf::getFunctionObjectFile(msg);
-    std::vector<uint8_t> objectBytes = faabric::util::readFileToBytes(objPath);
-
-    // Set the input data to the message for the upload
-    msg.set_inputdata(wasmBytes.data(), wasmBytes.size());
-
-    std::string cachedWasmFile = conf::getFunctionFile(msg);
-    std::string cachedObjFile = conf::getFunctionObjectFile(msg);
-    std::string cachedObjectHash = conf::getHashFilePath(cachedObjFile);
-
-    // Delete the cached hash to make sure we regenerate the machine code
-    boost::filesystem::remove(cachedObjectHash);
-
-    // Check nothing in S3 to start with
-    REQUIRE(s3.listKeys(conf.s3Bucket).empty());
-
     // Use the fileserver loader to load the file both with and without
     // filesystem caching
     bool useFsCache;
@@ -78,6 +54,29 @@ TEST_CASE_METHOD(S3FilesTestFixture,
     SECTION("Without cache") { useFsCache = false; }
 
     storage::FileLoader loader(useFsCache);
+
+    // Load the expected bytes from the function file
+    faabric::Message msg = faabric::util::messageFactory("demo", "echo");
+    std::string expectedPath = loader.getFunctionFile(msg);
+    std::vector<uint8_t> wasmBytes =
+      faabric::util::readFileToBytes(expectedPath);
+
+    // Get the expected object data
+    std::string objPath = loader.getFunctionObjectFile(msg);
+    std::vector<uint8_t> objectBytes = faabric::util::readFileToBytes(objPath);
+
+    // Set the input data to the message for the upload
+    msg.set_inputdata(wasmBytes.data(), wasmBytes.size());
+
+    std::string cachedWasmFile = loader.getFunctionFile(msg);
+    std::string cachedObjFile = loader.getFunctionObjectFile(msg);
+    std::string cachedObjectHash = loader.getHashFilePath(cachedObjFile);
+
+    // Delete the cached hash to make sure we regenerate the machine code
+    boost::filesystem::remove(cachedObjectHash);
+
+    // Check nothing in S3 to start with
+    REQUIRE(s3.listKeys(conf.s3Bucket).empty());
 
     // Upload the function and make sure it's written to S3 along with the
     // machine code and the machine code's hash
@@ -108,9 +107,6 @@ TEST_CASE_METHOD(S3FilesTestFixture,
                  "Test flushing function files deletes them locally",
                  "[storage]")
 {
-    std::string origFunctionDir = conf.functionDir;
-    std::string origObjDir = conf.objectFileDir;
-
     conf.functionDir = "/tmp/faasm/funcs";
     conf.objectFileDir = "/tmp/faasm/objs";
 
@@ -179,34 +175,8 @@ TEST_CASE_METHOD(S3FilesTestFixture,
                  "Check function codegen hashing",
                  "[storage]")
 {
-    // Use two functions we know exist
-    faabric::Message msgA = faabric::util::messageFactory("demo", "echo");
-    faabric::Message msgB = faabric::util::messageFactory("demo", "x2");
-
-    // Load the existing wasm
-    std::string pathA = conf::getFunctionFile(msgA);
-    std::string pathB = conf::getFunctionFile(msgB);
-    std::vector<uint8_t> wasmA = faabric::util::readFileToBytes(pathA);
-    std::vector<uint8_t> wasmB = faabric::util::readFileToBytes(pathB);
-
-    msgA.set_inputdata(faabric::util::bytesToString(wasmA));
-    msgB.set_inputdata(faabric::util::bytesToString(wasmB));
-
-    // Override the storage directories
-    std::string origFuncDir = conf.functionDir;
-    std::string origObjDir = conf.objectFileDir;
-    conf.functionDir = "/tmp/func";
-    conf.objectFileDir = "/tmp/obj";
-
-    // Test for different wasm VMs
-    std::string origWasmVm = conf.wasmVm;
     std::string objectFileA;
     std::string objectFileB;
-
-    std::string wasmFileA = "/tmp/func/demo/echo/function.wasm";
-    std::string wasmFileB = "/tmp/func/demo/x2/function.wasm";
-    std::string hashFileA = objectFileA + HASH_EXT;
-    std::string hashFileB = objectFileB + HASH_EXT;
 
     bool isCodegenRepeatable = true;
     bool localCache = false;
@@ -237,6 +207,28 @@ TEST_CASE_METHOD(S3FilesTestFixture,
     }
 
     storage::FileLoader loader(localCache);
+
+    // Use two functions we know exist
+    faabric::Message msgA = faabric::util::messageFactory("demo", "echo");
+    faabric::Message msgB = faabric::util::messageFactory("demo", "x2");
+
+    // Load the existing wasm
+    std::string pathA = loader.getFunctionFile(msgA);
+    std::string pathB = loader.getFunctionFile(msgB);
+    std::vector<uint8_t> wasmA = faabric::util::readFileToBytes(pathA);
+    std::vector<uint8_t> wasmB = faabric::util::readFileToBytes(pathB);
+
+    msgA.set_inputdata(faabric::util::bytesToString(wasmA));
+    msgB.set_inputdata(faabric::util::bytesToString(wasmB));
+
+    // Override the storage directories
+    conf.functionDir = "/tmp/func";
+    conf.objectFileDir = "/tmp/obj";
+
+    std::string wasmFileA = "/tmp/func/demo/echo/function.wasm";
+    std::string wasmFileB = "/tmp/func/demo/x2/function.wasm";
+    std::string hashFileA = objectFileA + HASH_EXT;
+    std::string hashFileB = objectFileB + HASH_EXT;
 
     // Make sure directories are empty to start with
     boost::filesystem::remove_all(conf.functionDir);
@@ -316,7 +308,13 @@ TEST_CASE_METHOD(S3FilesTestFixture,
                  "Check shared object codegen hashing",
                  "[storage]")
 {
-    std::string origObjDir = conf.objectFileDir;
+    bool localCache;
+    SECTION("With local cache") { localCache = true; }
+
+    SECTION("Without local cache") { localCache = false; }
+
+    storage::FileLoader loader(localCache);
+
     conf.objectFileDir = "/tmp/obj";
 
     std::string localSharedObjFile =
@@ -329,13 +327,6 @@ TEST_CASE_METHOD(S3FilesTestFixture,
       std::string("/tmp/obj") + std::string(localSharedObjFile) + ".o";
     std::string hashFile = objFile + HASH_EXT;
 
-    bool localCache;
-    SECTION("With local cache") { localCache = true; }
-
-    SECTION("Without local cache") { localCache = false; }
-
-    // Upload the file first
-    storage::FileLoader loader(localCache);
     loader.uploadSharedObjectObjectFile(inputPath, originalObjBytes);
 
     // Flush anything cached locally
@@ -392,10 +383,6 @@ TEST_CASE_METHOD(S3FilesTestFixture,
                  "Test flushing function files clears local directories",
                  "[storage]")
 {
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
-    std::string origFunctionDir = conf.functionDir;
-    std::string origObjDir = conf.objectFileDir;
-
     conf.functionDir = "/tmp/faasm/funcs";
     conf.objectFileDir = "/tmp/faasm/objs";
 
