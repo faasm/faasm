@@ -43,7 +43,7 @@ class CodegenTestFixture
         sharedObjWasm = faabric::util::readFileToBytes(localSharedObjFile);
 
         // Note that we deliberately switch off test mode here so that we can
-        // clear the local file loaded cache
+        // clear the local file loader cache
         faabric::util::setTestMode(false);
 
         conf.s3Bucket = "faasm-test";

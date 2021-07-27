@@ -23,29 +23,60 @@ using namespace storage;
 
 namespace tests {
 
-class S3FilesTestFixture
+class FileLoaderTestFixture
 {
   public:
-    S3FilesTestFixture()
+    FileLoaderTestFixture()
       : conf(conf::getFaasmConfig())
     {
+        // Load the wasm for an existing function
+        faabric::Message msg = faabric::util::messageFactory("demo", "echo");
+        wasmFilePath = conf.functionDir + "/demo/echo/function.wasm";
+        objFilePath = conf.objectFileDir + "/demo/echo/function.wasm.o";
+
+        if (!boost::filesystem::exists(wasmFilePath)) {
+            SPDLOG_ERROR("Did not find function wasm file at {}", wasmFilePath);
+            throw std::runtime_error("Did not find expected wasm file");
+        }
+
+        if (!boost::filesystem::exists(objFilePath)) {
+            SPDLOG_ERROR("Did not find function object file at {}",
+                         objFilePath);
+            throw std::runtime_error("Did not find expected object file");
+        }
+
+        wasmBytes = faabric::util::readFileToBytes(wasmFilePath);
+        objBytes = faabric::util::readFileToBytes(objFilePath);
+
+        // Note that we deliberately switch off test mode here so that we can
+        // clear the local file loader cache
+        faabric::util::setTestMode(false);
         conf.s3Bucket = "faasm-test";
+        conf.functionDir = "/tmp/func";
+        conf.objectFileDir = "/tmp/obj";
         s3.createBucket(conf.s3Bucket);
     };
 
-    ~S3FilesTestFixture()
+    ~FileLoaderTestFixture()
     {
         s3.deleteBucket(conf.s3Bucket);
+
+        faabric::util::setTestMode(true);
         conf.reset();
     };
 
   protected:
     conf::FaasmConfig& conf;
     storage::S3Wrapper s3;
+
+    std::string wasmFilePath;
+    std::string objFilePath;
+    std::vector<uint8_t> wasmBytes;
+    std::vector<uint8_t> objBytes;
 };
 
-TEST_CASE_METHOD(S3FilesTestFixture,
-                 "Test file loader pulling files from S3",
+TEST_CASE_METHOD(FileLoaderTestFixture,
+                 "Test file loader pulling function files from S3",
                  "[storage]")
 {
     // Use the fileserver loader to load the file both with and without
@@ -56,17 +87,11 @@ TEST_CASE_METHOD(S3FilesTestFixture,
     SECTION("Without cache") { useFsCache = false; }
 
     storage::FileLoader loader(useFsCache);
+    loader.clearLocalCache();
+
     codegen::MachineCodeGenerator gen(loader);
 
-    // Load the expected bytes from the function file
     faabric::Message msg = faabric::util::messageFactory("demo", "echo");
-    std::string expectedPath = loader.getFunctionFile(msg);
-    std::vector<uint8_t> wasmBytes =
-      faabric::util::readFileToBytes(expectedPath);
-
-    // Get the expected object data
-    std::string objPath = loader.getFunctionObjectFile(msg);
-    std::vector<uint8_t> objectBytes = faabric::util::readFileToBytes(objPath);
 
     // Set the input data to the message for the upload
     msg.set_inputdata(wasmBytes.data(), wasmBytes.size());
@@ -75,9 +100,6 @@ TEST_CASE_METHOD(S3FilesTestFixture,
     std::string cachedObjFile = loader.getFunctionObjectFile(msg);
     std::string cachedObjectHash = loader.getHashFilePath(cachedObjFile);
 
-    // Delete the cached hash to make sure we regenerate the machine code
-    boost::filesystem::remove(cachedObjectHash);
-
     // Check nothing in S3 to start with
     REQUIRE(s3.listKeys(conf.s3Bucket).empty());
 
@@ -85,28 +107,34 @@ TEST_CASE_METHOD(S3FilesTestFixture,
     loader.uploadFunction(msg);
     gen.codegenForFunction(msg);
     REQUIRE(s3.listKeys(conf.s3Bucket).size() == 3);
+    REQUIRE(boost::filesystem::exists(cachedWasmFile) == useFsCache);
+    REQUIRE(boost::filesystem::exists(cachedObjFile) == useFsCache);
+    REQUIRE(boost::filesystem::exists(cachedObjectHash) == useFsCache);
+
+    // Clear everything locally
+    loader.clearLocalCache();
+    REQUIRE(!boost::filesystem::exists(cachedWasmFile));
+    REQUIRE(!boost::filesystem::exists(cachedObjFile));
+    REQUIRE(!boost::filesystem::exists(cachedObjectHash));
 
     // Load the function
     std::vector<uint8_t> actualWasmBytes = loader.loadFunctionWasm(msg);
     REQUIRE(actualWasmBytes.size() > 1000);
     REQUIRE(actualWasmBytes.size() == wasmBytes.size());
-    REQUIRE(wasmBytes == actualWasmBytes);
+    REQUIRE(actualWasmBytes == wasmBytes);
 
     // Load the machine code
     std::vector<uint8_t> actualObjectBytes = loader.loadFunctionObjectFile(msg);
-    REQUIRE(actualObjectBytes == objectBytes);
-    REQUIRE(actualObjectBytes.size() == objectBytes.size());
-    REQUIRE(objectBytes == actualObjectBytes);
+    REQUIRE(actualObjectBytes.size() == objBytes.size());
+    REQUIRE(actualObjectBytes == objBytes);
 
-    // Check it's cached locally if necessary
-    if (useFsCache) {
-        REQUIRE(boost::filesystem::exists(cachedWasmFile));
-    } else {
-        REQUIRE(!boost::filesystem::exists(cachedWasmFile));
-    }
+    // Check downloaded files are cached and non-download files aren't
+    REQUIRE(boost::filesystem::exists(cachedWasmFile) == useFsCache);
+    REQUIRE(boost::filesystem::exists(cachedObjFile) == useFsCache);
+    REQUIRE(!boost::filesystem::exists(cachedObjectHash));
 }
 
-TEST_CASE_METHOD(S3FilesTestFixture,
+TEST_CASE_METHOD(FileLoaderTestFixture,
                  "Test clearing local file loader cache",
                  "[storage]")
 {
@@ -140,7 +168,7 @@ TEST_CASE_METHOD(S3FilesTestFixture,
     REQUIRE(!boost::filesystem::exists(funcFile));
 }
 
-TEST_CASE_METHOD(S3FilesTestFixture,
+TEST_CASE_METHOD(FileLoaderTestFixture,
                  "Check uploading and loading shared files",
                  "[storage]")
 {
