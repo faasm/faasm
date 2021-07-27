@@ -1,7 +1,6 @@
 #include <catch2/catch.hpp>
 
 #include "faabric_utils.h"
-#include "storage/FileLoader.h"
 #include "utils.h"
 
 #include <faabric/util/bytes.h>
@@ -11,6 +10,7 @@
 
 #include <codegen/MachineCodeGenerator.h>
 #include <conf/FaasmConfig.h>
+#include <storage/FileLoader.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -42,7 +42,7 @@ class CodegenTestFixture
   protected:
     conf::FaasmConfig& conf;
     codegen::MachineCodeGenerator& gen;
-    storage::FileLoader &loader;
+    storage::FileLoader& loader;
     storage::S3Wrapper s3;
 };
 

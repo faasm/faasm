@@ -6,8 +6,8 @@
 
 #include <conf/FaasmConfig.h>
 #include <faabric/util/files.h>
-#include <storage/SharedFiles.h>
 #include <storage/FileLoader.h>
+#include <storage/SharedFiles.h>
 
 using namespace storage;
 
@@ -16,7 +16,7 @@ TEST_CASE("Check sync shared file", "[storage]")
 {
     SharedFiles::clear();
 
-    storage::FileLoader &loader = storage::getFileLoader();
+    storage::FileLoader& loader = storage::getFileLoader();
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string relPath = "shared_test_dir/dummy_file.txt";
     std::string sharedPath = "faasm://" + relPath;

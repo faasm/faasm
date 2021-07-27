@@ -1,4 +1,3 @@
-#include "faabric/util/string_tools.h"
 #include <conf/FaasmConfig.h>
 #include <storage/S3Wrapper.h>
 

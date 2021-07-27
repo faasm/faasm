@@ -55,7 +55,5 @@ class S3Wrapper
     const conf::FaasmConfig& faasmConf;
     Aws::Client::ClientConfiguration clientConf;
     Aws::S3::S3Client client;
-
-    std::string sanitiseKey(const std::string& keyIn);
 };
 }

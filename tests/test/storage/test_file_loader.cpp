@@ -1,6 +1,5 @@
 #include <catch2/catch.hpp>
 
-#include "codegen/MachineCodeGenerator.h"
 #include "faabric_utils.h"
 #include "utils.h"
 
@@ -10,6 +9,7 @@
 #include <faabric/util/func.h>
 #include <faabric/util/macros.h>
 
+#include <codegen/MachineCodeGenerator.h>
 #include <conf/FaasmConfig.h>
 #include <storage/FileLoader.h>
 #include <upload/UploadServer.h>
@@ -106,7 +106,7 @@ TEST_CASE_METHOD(S3FilesTestFixture,
 }
 
 TEST_CASE_METHOD(S3FilesTestFixture,
-                 "Test flushing function files deletes them locally",
+                 "Test clearing local file loader cache",
                  "[storage]")
 {
     conf.functionDir = "/tmp/faasm/funcs";
@@ -171,39 +171,5 @@ TEST_CASE_METHOD(S3FilesTestFixture,
     } else {
         REQUIRE(!boost::filesystem::exists(fullPath));
     }
-}
-
-TEST_CASE_METHOD(S3FilesTestFixture,
-                 "Test flushing function files clears local directories",
-                 "[storage]")
-{
-    conf.functionDir = "/tmp/faasm/funcs";
-    conf.objectFileDir = "/tmp/faasm/objs";
-
-    std::string funcFile = conf.functionDir + "/function.wasm";
-    std::string objFile = conf.objectFileDir + "/function.obj";
-
-    // Clean directories
-    boost::filesystem::remove_all(conf.functionDir);
-    boost::filesystem::remove_all(conf.objectFileDir);
-
-    boost::filesystem::create_directories(conf.functionDir);
-    boost::filesystem::create_directories(conf.objectFileDir);
-
-    // Write some junk to a couple of files
-    std::vector<uint8_t> bytes = { 0, 1, 2, 3 };
-    faabric::util::writeBytesToFile(funcFile, bytes);
-    faabric::util::writeBytesToFile(objFile, bytes);
-
-    REQUIRE(boost::filesystem::exists(funcFile));
-    REQUIRE(boost::filesystem::exists(objFile));
-
-    // Now flush
-    storage::FileLoader loader;
-    loader.clearLocalCache();
-
-    // Check files no longer exist
-    REQUIRE(!boost::filesystem::exists(funcFile));
-    REQUIRE(!boost::filesystem::exists(objFile));
 }
 }

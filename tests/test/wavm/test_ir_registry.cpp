@@ -68,7 +68,7 @@ TEST_CASE("Test main module caching", "[wasm]")
     REQUIRE(std::addressof(moduleRefA1) != std::addressof(moduleRefB1));
     REQUIRE(objRefA1 != objRefB1);
 
-    storage::FileLoader &loader = storage::getFileLoader();
+    storage::FileLoader& loader = storage::getFileLoader();
     const std::string objPathA = loader.getFunctionObjectFile(msgA);
     const std::string objPathB = loader.getFunctionObjectFile(msgB);
 
@@ -131,7 +131,7 @@ TEST_CASE("Test shared library caching", "[wasm]")
     REQUIRE(objRefA1 != objRefB1);
 
     // Check object code loaded matches file
-    storage::FileLoader &loader = storage::getFileLoader();
+    storage::FileLoader& loader = storage::getFileLoader();
     std::string objPathA = loader.getSharedObjectObjectFile(pathA);
     std::string objPathB = loader.getSharedObjectObjectFile(pathB);
 

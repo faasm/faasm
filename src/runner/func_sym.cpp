@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
 
     std::map<std::string, std::string> disasMap = module.buildDisassemblyMap();
 
-    storage::FileLoader &loader = storage::getFileLoader();
+    storage::FileLoader& loader = storage::getFileLoader();
     std::string outPath = loader.getFunctionSymbolsFile(call);
     std::ofstream outfile;
     outfile.open(outPath, std::ios::out);

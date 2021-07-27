@@ -66,7 +66,7 @@ int doRunner(int argc, char* argv[])
     redis.flushAll();
 
     if (user == "python") {
-        storage::FileLoader &loader = storage::getFileLoader();
+        storage::FileLoader& loader = storage::getFileLoader();
         loader.convertMessageToPython(msg);
         SPDLOG_INFO("Running Python function {}/{}",
                     msg.pythonuser(),

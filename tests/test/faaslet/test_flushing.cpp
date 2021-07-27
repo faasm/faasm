@@ -133,7 +133,7 @@ TEST_CASE("Test flushing picks up new version of function", "[flush]")
     fileLoader.uploadFunction(uploadMsgA);
 
     // Run the codegen
-    codegen::MachineCodeGenerator &gen = codegen::getMachineCodeGenerator();
+    codegen::MachineCodeGenerator& gen = codegen::getMachineCodeGenerator();
     gen.codegenForFunction(uploadMsgA);
 
     // Set up faaslet to listen for relevant function

@@ -184,7 +184,6 @@ std::string FileLoader::getHashFilePath(const std::string& path)
     return path + HASH_EXT;
 }
 
-
 std::vector<uint8_t> FileLoader::loadHashFileBytes(
   const std::string& path,
   const std::string& localCachePath)
