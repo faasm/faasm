@@ -202,6 +202,22 @@ std::vector<uint8_t> FileLoader::hashBytes(const std::vector<uint8_t>& bytes)
     return result;
 }
 
+std::vector<uint8_t> FileLoader::loadHashFileBytes(
+  const std::string& path,
+  const std::string& localCachePath)
+{
+    return loadFileBytes(
+      getHashFilePath(path), getHashFilePath(localCachePath), true);
+}
+
+void FileLoader::uploadHashFileBytes(const std::string& path,
+                                     const std::string& localCachePath,
+                                     const std::vector<uint8_t>& bytes)
+{
+    uploadFileBytes(
+      getHashFilePath(path), getHashFilePath(localCachePath), bytes);
+}
+
 // -------------------------------------
 // FUNCTION WASM
 // -------------------------------------
@@ -210,22 +226,23 @@ std::string FileLoader::getFunctionFile(const faabric::Message& msg)
 {
     auto path = getDir(conf.functionDir, msg, true);
     path.append(FUNC_FILENAME);
-
     return path.string();
 }
 
 std::vector<uint8_t> FileLoader::loadFunctionWasm(const faabric::Message& msg)
 {
     const std::string key = getKey(msg, FUNC_FILENAME);
-    return loadFileBytes(key, getFunctionFile(msg));
+    const std::string localCachePath = getFunctionFile(msg);
+    return loadFileBytes(key, localCachePath);
 }
 
 void FileLoader::uploadFunction(faabric::Message& msg)
 {
-    // Note, when uploading, the input data is the function body
-    const std::string& inputBytes = msg.inputdata();
     const std::string key = getKey(msg, FUNC_FILENAME);
     const std::string localCachePath = getFunctionFile(msg);
+
+    // Note, when uploading, the input data is the function body
+    const std::string& inputBytes = msg.inputdata();
     uploadFileString(key, localCachePath, inputBytes);
 
     // Build the object file from the file we've just received
@@ -240,7 +257,6 @@ std::string FileLoader::getFunctionObjectFile(const faabric::Message& msg)
 {
     auto path = getDir(conf.objectFileDir, msg, true);
     path.append(FUNC_OBJECT_FILENAME);
-
     return path.string();
 }
 
@@ -248,17 +264,16 @@ std::vector<uint8_t> FileLoader::loadFunctionObjectFile(
   const faabric::Message& msg)
 {
     const std::string key = getKey(msg, FUNC_OBJECT_FILENAME);
-    return loadFileBytes(key, getFunctionObjectFile(msg));
+    const std::string localCachePath = getFunctionObjectFile(msg);
+    return loadFileBytes(key, localCachePath);
 }
 
 std::vector<uint8_t> FileLoader::loadFunctionObjectHash(
   const faabric::Message& msg)
 {
-    std::string key = getKey(msg, FUNC_OBJECT_FILENAME);
-    std::string cachePath = getFunctionObjectFile(msg);
-
-    return loadFileBytes(
-      getHashFilePath(key), getHashFilePath(cachePath), true);
+    const std::string key = getKey(msg, FUNC_OBJECT_FILENAME);
+    const std::string localCachePath = getFunctionObjectFile(msg);
+    return loadHashFileBytes(key, localCachePath);
 }
 
 void FileLoader::uploadFunctionObjectFile(const faabric::Message& msg,
@@ -272,10 +287,9 @@ void FileLoader::uploadFunctionObjectFile(const faabric::Message& msg,
 void FileLoader::uploadFunctionObjectHash(const faabric::Message& msg,
                                           const std::vector<uint8_t>& hash)
 {
-    std::string key = getKey(msg, FUNC_OBJECT_FILENAME);
-    key = getHashFilePath(key);
-    std::string cachePath = getFunctionObjectFile(msg);
-    uploadFileBytes(key, cachePath, hash);
+    const std::string key = getKey(msg, FUNC_OBJECT_FILENAME);
+    const std::string localCachePath = getFunctionObjectFile(msg);
+    uploadHashFileBytes(key, localCachePath, hash);
 }
 
 // -------------------------------------
@@ -298,23 +312,22 @@ std::vector<uint8_t> FileLoader::loadFunctionWamrAotFile(
   const faabric::Message& msg)
 {
     const std::string key = getKey(msg, WAMR_AOT_FILENAME);
-    return loadFileBytes(key, getFunctionAotFile(msg));
+    const std::string localCachePath = getFunctionAotFile(msg);
+    return loadFileBytes(key, localCachePath);
 }
 
 std::vector<uint8_t> FileLoader::loadFunctionWamrAotHash(
   const faabric::Message& msg)
 {
-    std::string key = getKey(msg, WAMR_AOT_FILENAME);
-    std::string cachePath = getFunctionAotFile(msg);
-
-    return loadFileBytes(
-      getHashFilePath(key), getHashFilePath(cachePath), true);
+    const std::string key = getKey(msg, WAMR_AOT_FILENAME);
+    const std::string localCachePath = getFunctionAotFile(msg);
+    return loadHashFileBytes(key, localCachePath);
 }
 
 void FileLoader::uploadFunctionWamrAotFile(const faabric::Message& msg,
                                            const std::vector<uint8_t>& objBytes)
 {
-    const std::string key = getKey(msg, FUNC_OBJECT_FILENAME);
+    const std::string key = getKey(msg, WAMR_AOT_FILENAME);
     const std::string localCachePath = getFunctionAotFile(msg);
     uploadFileBytes(key, localCachePath, objBytes);
 }
@@ -322,9 +335,9 @@ void FileLoader::uploadFunctionWamrAotFile(const faabric::Message& msg,
 void FileLoader::uploadFunctionWamrAotHash(const faabric::Message& msg,
                                            const std::vector<uint8_t>& hash)
 {
-    std::string key = getKey(msg, WAMR_AOT_FILENAME);
-    std::string cachePath = getFunctionAotFile(msg);
-    uploadFileBytes(getHashFilePath(key), getHashFilePath(cachePath), hash);
+    const std::string key = getKey(msg, WAMR_AOT_FILENAME);
+    const std::string localCachePath = getFunctionAotFile(msg);
+    uploadHashFileBytes(key, localCachePath, hash);
 }
 
 // -------------------------------------
@@ -335,7 +348,6 @@ std::string FileLoader::getEncryptedFunctionFile(const faabric::Message& msg)
 {
     auto path = getDir(conf.functionDir, msg, true);
     path.append(FUNC_ENCRYPTED_FILENAME);
-
     return path.string();
 }
 
@@ -347,7 +359,6 @@ std::string FileLoader::getFunctionSymbolsFile(const faabric::Message& msg)
 {
     auto path = getDir(conf.functionDir, msg, true);
     path.append(FUNCTION_SYMBOLS_FILENAME);
-
     return path.string();
 }
 
@@ -388,18 +399,15 @@ std::string FileLoader::getSharedObjectObjectFile(const std::string& realPath)
 std::vector<uint8_t> FileLoader::loadSharedObjectObjectFile(
   const std::string& path)
 {
-    return loadFileBytes(path, getSharedObjectObjectFile(path));
+    const std::string localCachePath = getSharedObjectObjectFile(path);
+    return loadFileBytes(path, localCachePath);
 }
 
 std::vector<uint8_t> FileLoader::loadSharedObjectObjectHash(
   const std::string& path)
 {
-    const std::string hashPath = getHashFilePath(path);
-
-    const std::string localCachePath =
-      getHashFilePath(getSharedObjectObjectFile(path));
-
-    return loadFileBytes(hashPath, localCachePath, true);
+    const std::string localCachePath = getSharedObjectObjectFile(path);
+    return loadHashFileBytes(path, localCachePath);
 }
 
 void FileLoader::uploadSharedObjectObjectFile(
@@ -413,10 +421,8 @@ void FileLoader::uploadSharedObjectObjectFile(
 void FileLoader::uploadSharedObjectObjectHash(const std::string& path,
                                               const std::vector<uint8_t>& hash)
 {
-    std::string key = getHashFilePath(path);
-    std::string localCachePath =
-      getHashFilePath(getSharedObjectObjectFile(path));
-    uploadFileBytes(key, localCachePath, hash);
+    const std::string localCachePath = getSharedObjectObjectFile(path);
+    uploadHashFileBytes(path, localCachePath, hash);
 }
 
 // -------------------------------------
@@ -427,10 +433,7 @@ std::string FileLoader::getSharedFileFile(const std::string& path)
 {
     boost::filesystem::path p(conf.sharedFilesStorageDir);
     p.append(path);
-
-    if (!boost::filesystem::exists(p.parent_path())) {
-        boost::filesystem::create_directories(p.parent_path());
-    }
+    boost::filesystem::create_directories(p.parent_path());
 
     return p.string();
 }

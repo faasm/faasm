@@ -129,7 +129,14 @@ class FileLoader
                                        const std::string& localCachePath,
                                        bool tolerateMissing = false);
 
+    std::vector<uint8_t> loadHashFileBytes(const std::string& path,
+                                       const std::string& localCachePath);
+
     void uploadFileBytes(const std::string& path,
+                         const std::string& localCachePath,
+                         const std::vector<uint8_t>& bytes);
+
+    void uploadHashFileBytes(const std::string& path,
                          const std::string& localCachePath,
                          const std::vector<uint8_t>& bytes);
 
