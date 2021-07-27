@@ -105,13 +105,14 @@ void FileLoader::clearLocalCache()
         return;
     }
 
-    // Nuke the function directory
-    SPDLOG_DEBUG("Clearing all files from {}", conf.functionDir);
+    SPDLOG_DEBUG("Clearing function wasm files from {}", conf.functionDir);
     boost::filesystem::remove_all(conf.functionDir);
 
-    // Nuke the machine code directory
-    SPDLOG_DEBUG("Clearing all files from {}", conf.objectFileDir);
+    SPDLOG_DEBUG("Clearing function object files from {}", conf.objectFileDir);
     boost::filesystem::remove_all(conf.objectFileDir);
+
+    SPDLOG_DEBUG("Clearing shared files from {}", conf.sharedFilesDir);
+    boost::filesystem::remove_all(conf.sharedFilesDir);
 }
 
 // -------------------------------------
@@ -418,7 +419,7 @@ void FileLoader::uploadSharedObjectObjectHash(const std::string& path,
 
 std::string FileLoader::getSharedFileFile(const std::string& path)
 {
-    boost::filesystem::path p(conf.sharedFilesStorageDir);
+    boost::filesystem::path p(conf.sharedFilesDir);
     p.append(path);
     boost::filesystem::create_directories(p.parent_path());
 
@@ -475,7 +476,7 @@ std::string FileLoader::getPythonFunctionFile(const faabric::Message& msg)
 {
     // Python functions are stored as shared files to make it easier to
     // share them through the system
-    return _getPythonFunctionFile(msg, conf.sharedFilesStorageDir, true);
+    return _getPythonFunctionFile(msg, conf.sharedFilesDir, true);
 }
 
 std::string FileLoader::getPythonFunctionFileSharedPath(

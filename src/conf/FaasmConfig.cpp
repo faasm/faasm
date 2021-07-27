@@ -35,7 +35,6 @@ void FaasmConfig::initialise()
     objectFileDir = fmt::format("{}/{}", faasmLocalDir, "object");
     runtimeFilesDir = fmt::format("{}/{}", faasmLocalDir, "runtime_root");
     sharedFilesDir = fmt::format("{}/{}", faasmLocalDir, "shared");
-    sharedFilesStorageDir = fmt::format("{}/{}", faasmLocalDir, "shared_store");
 
     s3Bucket = getEnvVar("S3_BUCKET", "faasm");
     s3Host = getEnvVar("S3_HOST", "minio");
@@ -74,6 +73,5 @@ void FaasmConfig::print()
     SPDLOG_INFO("Object file dir:      {}", objectFileDir);
     SPDLOG_INFO("Runtime files dir:    {}", runtimeFilesDir);
     SPDLOG_INFO("Shared files dir:     {}", sharedFilesDir);
-    SPDLOG_INFO("Shared storage dir:   {}", sharedFilesStorageDir);
 }
 }

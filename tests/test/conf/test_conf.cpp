@@ -72,7 +72,6 @@ TEST_CASE("Test overriding faasm config initialisation", "[conf]")
     REQUIRE(conf.objectFileDir == "/tmp/blah/object");
     REQUIRE(conf.runtimeFilesDir == "/tmp/blah/runtime_root");
     REQUIRE(conf.sharedFilesDir == "/tmp/blah/shared");
-    REQUIRE(conf.sharedFilesStorageDir == "/tmp/blah/shared_store");
 
     REQUIRE(conf.s3Bucket == "dummy-bucket");
     REQUIRE(conf.s3Host == "dummy-host");

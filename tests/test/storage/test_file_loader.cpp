@@ -169,18 +169,13 @@ TEST_CASE_METHOD(FileLoaderTestFixture,
 }
 
 TEST_CASE_METHOD(FileLoaderTestFixture,
-                 "Check uploading and loading shared files",
+                 "Test uploading and loading shared files",
                  "[storage]")
 {
     std::string relativePath = "test/local_file_loader.txt";
     std::vector<uint8_t> expected = { 1, 5, 3, 2, 4 };
 
-    bool localCache = false;
-    SECTION("With local cache") { localCache = true; }
-
-    SECTION("Without local cache") { localCache = false; }
-
-    storage::FileLoader loader(localCache);
+    storage::FileLoader loader;
     loader.uploadSharedFile(relativePath, expected);
 
     REQUIRE(s3.listKeys(conf.s3Bucket).size() == 1);
@@ -188,17 +183,23 @@ TEST_CASE_METHOD(FileLoaderTestFixture,
     const std::vector<uint8_t> actual = loader.loadSharedFile(relativePath);
     REQUIRE(actual == expected);
 
-    // Check it's written where we expect it to be too
+    // Check the expected path
     conf::FaasmConfig& conf = conf::getFaasmConfig();
-    boost::filesystem::path fullPath(conf.sharedFilesStorageDir);
+    boost::filesystem::path fullPath(conf.sharedFilesDir);
     fullPath.append(relativePath);
+    REQUIRE(boost::filesystem::exists(fullPath));
 
-    if (localCache) {
-        const std::vector<uint8_t> actualBytes =
-          faabric::util::readFileToBytes(fullPath.string());
-        REQUIRE(actualBytes == expected);
-    } else {
-        REQUIRE(!boost::filesystem::exists(fullPath));
-    }
+    // Check data is as expected
+    const std::vector<uint8_t> actualBytes =
+      faabric::util::readFileToBytes(fullPath.string());
+    REQUIRE(actualBytes == expected);
+
+    // Check it's cleared away when local cache is cleared
+    loader.clearLocalCache();
+    REQUIRE(!boost::filesystem::exists(fullPath));
+
+    // Check we can still load from S3
+    const std::vector<uint8_t> actualAfter = loader.loadSharedFile(relativePath);
+    REQUIRE(actualAfter == expected);
 }
 }

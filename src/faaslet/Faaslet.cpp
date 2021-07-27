@@ -152,9 +152,6 @@ std::shared_ptr<faabric::scheduler::Executor> FaasletFactory::createExecutor(
 
 void FaasletFactory::flushHost()
 {
-    // Clear cached shared files
-    storage::FileSystem::clearSharedFiles();
-
     // Clear cached wasm and object files
     storage::FileLoader& fileLoader = storage::getFileLoader();
     fileLoader.clearLocalCache();

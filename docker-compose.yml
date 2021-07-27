@@ -29,7 +29,7 @@ services:
       - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
       - ./dev/wasm/:/usr/local/code/faasm/wasm/
       - ./dev/container/machine-code/:/usr/local/faasm/object/
-      - ./dev/container/shared_store/:/usr/local/faasm/shared_store/
+      - ./dev/container/shared/:/usr/local/faasm/shared/
     environment:
       - LOG_LEVEL=info
       - PYTHON_CODEGEN=off

@@ -22,7 +22,6 @@ class FaasmConfig
     std::string objectFileDir;
     std::string runtimeFilesDir;
     std::string sharedFilesDir;
-    std::string sharedFilesStorageDir;
 
     std::string s3Bucket;
     std::string s3Host;
