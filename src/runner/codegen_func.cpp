@@ -16,10 +16,13 @@ void codegenForFunc(const std::string& user,
 {
     storage::FileLoader& loader = storage::getFileLoader();
     faabric::Message msg = faabric::util::messageFactory(user, func);
-    if (!loader.isValidFunction(msg)) {
+
+    std::string funcFile = loader.getFunctionFile(msg);
+    if (!boost::filesystem::exists(funcFile)) {
         SPDLOG_WARN("Invalid function: {}/{}", user, func);
         return;
     }
+
     if (isSgx) {
         msg.set_issgx(true);
         SPDLOG_INFO("Generating SGX machine code for {}/{}", user, func);

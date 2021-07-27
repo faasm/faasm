@@ -30,80 +30,88 @@ class FileLoader
 
     FileLoader(bool useLocalFsCacheIn);
 
+    void clearLocalCache();
+
+    std::string getHashFilePath(const std::string& path);
+
+    // ----- Function wasm -----
+    std::string getFunctionFile(const faabric::Message& msg);
+
     std::vector<uint8_t> loadFunctionWasm(const faabric::Message& msg);
-
-    std::vector<uint8_t> loadSharedObjectWasm(const std::string& path);
-
-    std::vector<uint8_t> loadFunctionObjectFile(const faabric::Message& msg);
-
-    std::vector<uint8_t> loadFunctionWamrAotFile(const faabric::Message& msg);
-
-    std::vector<uint8_t> loadSharedObjectObjectFile(const std::string& path);
-
-    std::vector<uint8_t> loadSharedFile(const std::string& path);
-
-    std::vector<uint8_t> loadFunctionObjectHash(const faabric::Message& msg);
-
-    std::vector<uint8_t> loadFunctionWamrAotHash(const faabric::Message& msg);
-
-    std::vector<uint8_t> loadSharedObjectObjectHash(const std::string& path);
-
-    void uploadFunctionObjectHash(const faabric::Message& msg,
-                                  const std::vector<uint8_t>& hash);
-
-    void uploadFunctionWamrAotHash(const faabric::Message& msg,
-                                   const std::vector<uint8_t>& hash);
-
-    void uploadSharedObjectObjectHash(const std::string& path,
-                                      const std::vector<uint8_t>& hash);
 
     void uploadFunction(faabric::Message& msg);
 
-    void uploadPythonFunction(faabric::Message& msg);
+    // ----- Function object files -----
+    std::string getFunctionObjectFile(const faabric::Message& msg);
+
+    std::vector<uint8_t> loadFunctionObjectFile(const faabric::Message& msg);
+
+    std::vector<uint8_t> loadFunctionObjectHash(const faabric::Message& msg);
 
     void uploadFunctionObjectFile(const faabric::Message& msg,
                                   const std::vector<uint8_t>& objBytes);
 
+    void uploadFunctionObjectHash(const faabric::Message& msg,
+                                  const std::vector<uint8_t>& hash);
+
+    // ----- Function WAMR AoT files -----
+    std::string getFunctionAotFile(const faabric::Message& msg);
+
+    std::vector<uint8_t> loadFunctionWamrAotFile(const faabric::Message& msg);
+
+    std::vector<uint8_t> loadFunctionWamrAotHash(const faabric::Message& msg);
+
     void uploadFunctionWamrAotFile(const faabric::Message& msg,
                                    const std::vector<uint8_t>& objBytes);
+
+    void uploadFunctionWamrAotHash(const faabric::Message& msg,
+                                   const std::vector<uint8_t>& hash);
+
+    // ----- Encrypted function wasm -----
+    std::string getEncryptedFunctionFile(const faabric::Message& msg);
+
+    // ----- Function symbols -----
+    std::string getFunctionSymbolsFile(const faabric::Message& msg);
+
+    // ----- Shared object wasm -----
+    std::vector<uint8_t> loadSharedObjectWasm(const std::string& path);
+
+    // ----- Shared object object files -----
+    std::string getSharedObjectObjectFile(const std::string& realPath);
+
+    std::vector<uint8_t> loadSharedObjectObjectFile(const std::string& path);
+
+    std::vector<uint8_t> loadSharedObjectObjectHash(const std::string& path);
 
     void uploadSharedObjectObjectFile(const std::string& path,
                                       const std::vector<uint8_t>& objBytes);
 
+    void uploadSharedObjectObjectHash(const std::string& path,
+                                      const std::vector<uint8_t>& hash);
+
+    // ----- Shared files -----
+    std::string getSharedFileFile(const std::string& path);
+
+    std::vector<uint8_t> loadSharedFile(const std::string& path);
+
     void uploadSharedFile(const std::string& path,
                           const std::vector<uint8_t>& fileBytes);
 
+    // ----- Codegen -----
     void codegenForFunction(faabric::Message& msg);
 
     void codegenForSharedObject(const std::string& inputPath);
 
-    void clearLocalCache();
-
-    std::string getFunctionFile(const faabric::Message& msg);
-
-    std::string getEncryptedFunctionFile(const faabric::Message& msg);
-
+    // ----- Python files -----
     std::string getPythonFunctionFile(const faabric::Message& msg);
 
     std::string getPythonFunctionFileSharedPath(const faabric::Message& msg);
 
     std::string getPythonRuntimeFunctionFile(const faabric::Message& msg);
 
-    std::string getFunctionSymbolsFile(const faabric::Message& msg);
-
-    std::string getFunctionObjectFile(const faabric::Message& msg);
-
-    std::string getFunctionAotFile(const faabric::Message& msg);
-
-    std::string getSharedObjectObjectFile(const std::string& realPath);
-
-    std::string getSharedFileFile(const std::string& path);
-
-    bool isValidFunction(const faabric::Message& msg);
+    void uploadPythonFunction(faabric::Message& msg);
 
     void convertMessageToPython(faabric::Message& msg);
-
-    std::string getHashFilePath(const std::string& path);
 
   private:
     conf::FaasmConfig& conf;
