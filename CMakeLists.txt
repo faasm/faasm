@@ -160,6 +160,7 @@ include_directories(
 )
 
 # Faasm runtime
+add_subdirectory(src/codegen)
 add_subdirectory(src/conf)
 add_subdirectory(src/faaslet)
 add_subdirectory(src/runner)

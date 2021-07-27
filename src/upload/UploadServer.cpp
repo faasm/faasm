@@ -7,6 +7,7 @@
 #include <faabric/util/func.h>
 #include <faabric/util/logging.h>
 
+#include <codegen/MachineCodeGenerator.h>
 #include <conf/FaasmConfig.h>
 #include <storage/FileLoader.h>
 
@@ -271,6 +272,9 @@ void UploadServer::handleFunctionUpload(const http_request& request)
     // Do the upload
     storage::FileLoader& l = storage::getFileLoader();
     l.uploadFunction(msg);
+
+    codegen::MachineCodeGenerator& gen = codegen::getMachineCodeGenerator();
+    gen.codegenForFunction(msg);
 
     request.reply(status_codes::OK, "Function upload complete\n");
 }

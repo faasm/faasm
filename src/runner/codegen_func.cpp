@@ -5,6 +5,7 @@
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
 
+#include <codegen/MachineCodeGenerator.h>
 #include <conf/FaasmConfig.h>
 #include <storage/FileLoader.h>
 
@@ -14,6 +15,7 @@ void codegenForFunc(const std::string& user,
                     const std::string& func,
                     bool isSgx = false)
 {
+    codegen::MachineCodeGenerator& gen = codegen::getMachineCodeGenerator();
     storage::FileLoader& loader = storage::getFileLoader();
     faabric::Message msg = faabric::util::messageFactory(user, func);
 
@@ -30,7 +32,7 @@ void codegenForFunc(const std::string& user,
         SPDLOG_INFO("Generating machine code for {}/{}", user, func);
     }
 
-    loader.codegenForFunction(msg);
+    gen.codegenForFunction(msg);
 }
 
 int main(int argc, char* argv[])

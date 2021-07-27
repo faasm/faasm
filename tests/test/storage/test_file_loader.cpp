@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "codegen/MachineCodeGenerator.h"
 #include "faabric_utils.h"
 #include "utils.h"
 
@@ -54,6 +55,7 @@ TEST_CASE_METHOD(S3FilesTestFixture,
     SECTION("Without cache") { useFsCache = false; }
 
     storage::FileLoader loader(useFsCache);
+    codegen::MachineCodeGenerator gen(loader);
 
     // Load the expected bytes from the function file
     faabric::Message msg = faabric::util::messageFactory("demo", "echo");
@@ -78,9 +80,9 @@ TEST_CASE_METHOD(S3FilesTestFixture,
     // Check nothing in S3 to start with
     REQUIRE(s3.listKeys(conf.s3Bucket).empty());
 
-    // Upload the function and make sure it's written to S3 along with the
-    // machine code and the machine code's hash
+    // Upload the function and machine code
     loader.uploadFunction(msg);
+    gen.codegenForFunction(msg);
     REQUIRE(s3.listKeys(conf.s3Bucket).size() == 3);
 
     // Load the function
@@ -169,214 +171,6 @@ TEST_CASE_METHOD(S3FilesTestFixture,
     } else {
         REQUIRE(!boost::filesystem::exists(fullPath));
     }
-}
-
-TEST_CASE_METHOD(S3FilesTestFixture,
-                 "Check function codegen hashing",
-                 "[storage]")
-{
-    std::string objectFileA;
-    std::string objectFileB;
-
-    bool isCodegenRepeatable = true;
-    bool localCache = false;
-    SECTION("WAVM codegen")
-    {
-        conf.wasmVm = "wavm";
-        objectFileA = "/tmp/obj/demo/echo/function.wasm.o";
-        objectFileB = "/tmp/obj/demo/x2/function.wasm.o";
-
-        SECTION("WAVM with local cache") { localCache = true; }
-
-        SECTION("WAVM without local cache") { localCache = false; }
-    }
-
-    SECTION("WAMR codegen")
-    {
-        conf.wasmVm = "wamr";
-        objectFileA = "/tmp/obj/demo/echo/function.aot";
-        objectFileB = "/tmp/obj/demo/x2/function.aot";
-
-        // It seems that WAMR codegen doesn't produce the same results every
-        // time, but they are the same length. Perhaps a timestamp is included.
-        isCodegenRepeatable = false;
-
-        SECTION("WAMR with local cache") { localCache = true; }
-
-        SECTION("WAMR without local cache") { localCache = false; }
-    }
-
-    storage::FileLoader loader(localCache);
-
-    // Use two functions we know exist
-    faabric::Message msgA = faabric::util::messageFactory("demo", "echo");
-    faabric::Message msgB = faabric::util::messageFactory("demo", "x2");
-
-    // Load the existing wasm
-    std::string pathA = loader.getFunctionFile(msgA);
-    std::string pathB = loader.getFunctionFile(msgB);
-    std::vector<uint8_t> wasmA = faabric::util::readFileToBytes(pathA);
-    std::vector<uint8_t> wasmB = faabric::util::readFileToBytes(pathB);
-
-    msgA.set_inputdata(faabric::util::bytesToString(wasmA));
-    msgB.set_inputdata(faabric::util::bytesToString(wasmB));
-
-    // Override the storage directories
-    conf.functionDir = "/tmp/func";
-    conf.objectFileDir = "/tmp/obj";
-
-    std::string wasmFileA = "/tmp/func/demo/echo/function.wasm";
-    std::string wasmFileB = "/tmp/func/demo/x2/function.wasm";
-    std::string hashFileA = objectFileA + HASH_EXT;
-    std::string hashFileB = objectFileB + HASH_EXT;
-
-    // Make sure directories are empty to start with
-    boost::filesystem::remove_all(conf.functionDir);
-    boost::filesystem::remove_all(conf.objectFileDir);
-
-    // Check files don't yet exist
-    REQUIRE(!boost::filesystem::exists(hashFileA));
-    REQUIRE(!boost::filesystem::exists(hashFileB));
-
-    // Upload both
-    loader.uploadFunction(msgA);
-    loader.uploadFunction(msgB);
-
-    // Check keys exist in S3
-    REQUIRE(s3.listKeys(conf.s3Bucket).size() == 6);
-
-    // Read in hashes
-    std::vector<uint8_t> actualHashA =
-      faabric::util::readFileToBytes(hashFileA);
-    std::vector<uint8_t> actualHashB =
-      faabric::util::readFileToBytes(hashFileB);
-
-    // Check hashes now exist locally if necessary
-    REQUIRE(boost::filesystem::exists(hashFileA) == localCache);
-    REQUIRE(boost::filesystem::exists(hashFileB) == localCache);
-
-    // Check they're not empty
-    REQUIRE(!actualHashA.empty());
-    REQUIRE(!actualHashB.empty());
-
-    // Check they're different
-    REQUIRE(actualHashA != actualHashB);
-
-    // Load the object file before, then flush
-    std::vector<uint8_t> objABefore =
-      faabric::util::readFileToBytes(objectFileA);
-
-    loader.clearLocalCache();
-
-    // Now write some dummy content directly to the object file (to check it
-    // doesn't get overwritten)
-    std::vector<uint8_t> dummyBytes = { 0, 1, 2, 3 };
-    loader.uploadFunctionObjectFile(msgA, dummyBytes);
-
-    // Upload the same function and check the object file isn't regenerated
-    loader.uploadFunction(msgA);
-
-    std::vector<uint8_t> dummyBytesAfter = loader.loadFunctionObjectFile(msgA);
-    REQUIRE(dummyBytesAfter == dummyBytes);
-
-    // Flush again
-    loader.clearLocalCache();
-
-    // Now change the hash file and check the object file *is* overwritten
-    loader.uploadFunctionObjectHash(msgA, dummyBytes);
-    loader.uploadFunction(msgA);
-
-    std::vector<uint8_t> objAAfter = loader.loadFunctionObjectFile(msgA);
-
-    if (isCodegenRepeatable) {
-        REQUIRE(objAAfter == objABefore);
-    } else {
-        // Just check the length of the machine code if codegen not repeatable
-        REQUIRE(objAAfter.size() == objABefore.size());
-    }
-
-    // Check the hash is updated
-    std::vector<uint8_t> hashAAfter = loader.loadFunctionObjectHash(msgA);
-    REQUIRE(hashAAfter == actualHashA);
-
-    // Clean up
-    boost::filesystem::remove_all(conf.functionDir);
-    boost::filesystem::remove_all(conf.objectFileDir);
-}
-
-TEST_CASE_METHOD(S3FilesTestFixture,
-                 "Check shared object codegen hashing",
-                 "[storage]")
-{
-    bool localCache;
-    SECTION("With local cache") { localCache = true; }
-
-    SECTION("Without local cache") { localCache = false; }
-
-    storage::FileLoader loader(localCache);
-
-    conf.objectFileDir = "/tmp/obj";
-
-    std::string localSharedObjFile =
-      "/usr/local/faasm/runtime_root/lib/python3.8/lib-dynload/mmap.so";
-    std::vector<uint8_t> originalObjBytes =
-      faabric::util::readFileToBytes(localSharedObjFile);
-
-    std::string inputPath = localSharedObjFile;
-    std::string objFile =
-      std::string("/tmp/obj") + std::string(localSharedObjFile) + ".o";
-    std::string hashFile = objFile + HASH_EXT;
-
-    loader.uploadSharedObjectObjectFile(inputPath, originalObjBytes);
-
-    // Flush anything cached locally
-    loader.clearLocalCache();
-
-    // Run the codegen
-    loader.codegenForSharedObject(inputPath);
-
-    // Read object file and hash
-    std::vector<uint8_t> objBefore =
-      loader.loadSharedObjectObjectFile(inputPath);
-    std::vector<uint8_t> hashBefore =
-      loader.loadSharedObjectObjectHash(inputPath);
-
-    REQUIRE(!objBefore.empty());
-    REQUIRE(!hashBefore.empty());
-
-    // Check files exist locally if caching
-    REQUIRE(boost::filesystem::exists(objFile) == localCache);
-    REQUIRE(boost::filesystem::exists(hashFile) == localCache);
-
-    // Remove local cache and write dummy object data
-    loader.clearLocalCache();
-    std::vector<uint8_t> dummyBytes = { 0, 1, 2, 3 };
-    loader.uploadSharedObjectObjectFile(inputPath, dummyBytes);
-
-    // Rerun codegen and check dummy data not overwritten (i.e. codegen skipped)
-    loader.codegenForSharedObject(inputPath);
-    std::vector<uint8_t> objAfterA =
-      loader.loadSharedObjectObjectFile(inputPath);
-    REQUIRE(objAfterA == dummyBytes);
-
-    // Now write the dummy bytes to the hash file and rerun the upload
-    loader.uploadSharedObjectObjectHash(inputPath, dummyBytes);
-    loader.clearLocalCache();
-    loader.codegenForSharedObject(inputPath);
-
-    // Check the object file is updated
-    std::vector<uint8_t> objAfterB =
-      loader.loadSharedObjectObjectFile(inputPath);
-    REQUIRE(objAfterB.size() == objBefore.size());
-    REQUIRE(objAfterB == objBefore);
-
-    // Check the hash is updated
-    std::vector<uint8_t> hashAfter =
-      loader.loadSharedObjectObjectHash(inputPath);
-    REQUIRE(hashAfter == hashBefore);
-
-    // Tidy up
-    boost::filesystem::remove_all(conf.objectFileDir);
 }
 
 TEST_CASE_METHOD(S3FilesTestFixture,

@@ -19,7 +19,6 @@ add_dependencies(storage aws_ext)
 
 target_link_libraries(storage
     wavmmodule
-    wamrmodule
     aws_ext_core
     aws_ext_s3
     cpprestsdk::cpprest

@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "codegen/MachineCodeGenerator.h"
 #include "utils.h"
 
 #include <boost/filesystem.hpp>
@@ -131,6 +132,10 @@ TEST_CASE("Test flushing picks up new version of function", "[flush]")
     // Upload the first version
     fileLoader.uploadFunction(uploadMsgA);
 
+    // Run the codegen
+    codegen::MachineCodeGenerator &gen = codegen::getMachineCodeGenerator();
+    gen.codegenForFunction(uploadMsgA);
+
     // Set up faaslet to listen for relevant function
     auto fac = std::make_shared<faaslet::FaasletFactory>();
     faabric::runner::FaabricMain m(fac);
@@ -155,6 +160,8 @@ TEST_CASE("Test flushing picks up new version of function", "[flush]")
     // Upload the second version and check wasm is as expected
     faabric::Message invokeMsgB = faabric::util::messageFactory("demo", "foo");
     fileLoader.uploadFunction(uploadMsgB);
+    gen.codegenForFunction(uploadMsgB);
+
     std::vector<uint8_t> wasmAfterUpload =
       fileLoader.loadFunctionWasm(invokeMsgB);
     REQUIRE(wasmAfterUpload == wasmB);

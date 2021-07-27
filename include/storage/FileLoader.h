@@ -97,11 +97,6 @@ class FileLoader
     void uploadSharedFile(const std::string& path,
                           const std::vector<uint8_t>& fileBytes);
 
-    // ----- Codegen -----
-    void codegenForFunction(faabric::Message& msg);
-
-    void codegenForSharedObject(const std::string& inputPath);
-
     // ----- Python files -----
     std::string getPythonFunctionFile(const faabric::Message& msg);
 
@@ -122,8 +117,6 @@ class FileLoader
     std::vector<uint8_t> doCodegen(std::vector<uint8_t>& bytes,
                                    const std::string& fileName,
                                    bool isSgx = false);
-
-    std::vector<uint8_t> hashBytes(const std::vector<uint8_t>& bytes);
 
     std::vector<uint8_t> loadFileBytes(const std::string& path,
                                        const std::string& localCachePath,
