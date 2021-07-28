@@ -1,6 +1,7 @@
 #include <catch2/catch.hpp>
 
 #include "faabric_utils.h"
+#include "faasm_fixtures.h"
 
 #include <faabric/util/config.h>
 #include <faabric/util/files.h>
@@ -10,27 +11,6 @@
 #include <storage/S3Wrapper.h>
 
 namespace tests {
-
-class S3TestFixture
-{
-  public:
-    S3TestFixture()
-      : conf(conf::getFaasmConfig())
-    {
-        conf.s3Bucket = "faasm-test";
-        s3.createBucket(conf.s3Bucket);
-    };
-
-    ~S3TestFixture()
-    {
-        s3.deleteBucket(conf.s3Bucket);
-        conf.reset();
-    };
-
-  protected:
-    conf::FaasmConfig& conf;
-    storage::S3Wrapper s3;
-};
 
 TEST_CASE_METHOD(S3TestFixture, "Test read/write keys in bucket", "[s3]")
 {

@@ -1,6 +1,6 @@
 #include <catch2/catch.hpp>
 
-#include "codegen/MachineCodeGenerator.h"
+#include "faasm_fixtures.h"
 #include "utils.h"
 
 #include <boost/filesystem.hpp>
@@ -10,7 +10,10 @@
 #include <faabric/util/config.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
+#include <faabric/util/macros.h>
+#include <faabric/util/testing.h>
 
+#include <codegen/MachineCodeGenerator.h>
 #include <conf/FaasmConfig.h>
 #include <storage/FileLoader.h>
 #include <wavm/IRModuleCache.h>
@@ -18,12 +21,61 @@
 
 namespace tests {
 
-TEST_CASE("Test flushing clears shared files", "[flush]")
+class FlushingTestFixture : public S3TestFixture
 {
-    cleanSystem();
+  public:
+    FlushingTestFixture()
+      : faabricConf(faabric::util::getSystemConfig())
+      , loader(storage::getFileLoader())
+      , gen(codegen::getMachineCodeGenerator())
+    {
+        // Load some known functions before changing storage
+        msgA = faabric::util::messageFactory("demo", "hello");
+        msgB = faabric::util::messageFactory("demo", "echo");
+        wasmBytesA = loader.loadFunctionWasm(msgA);
+        wasmBytesB = loader.loadFunctionWasm(msgB);
+        msgA.set_inputdata(wasmBytesA.data(), wasmBytesA.size());
+        msgB.set_inputdata(wasmBytesB.data(), wasmBytesB.size());
 
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
+        // Switch off test mode to allow proper flushing
+        faabric::util::setTestMode(false);
 
+        // Dummy directories for functions and object files
+        conf.functionDir = "/tmp/func";
+        conf.sharedFilesDir = "/tmp/shared";
+        conf.objectFileDir = "/tmp/obj";
+
+        // Upload functions to new dummy locations
+        loader.uploadFunction(msgA);
+        gen.codegenForFunction(msgA);
+        loader.uploadFunction(msgB);
+        gen.codegenForFunction(msgB);
+    }
+
+    ~FlushingTestFixture()
+    {
+        loader.clearLocalCache();
+        faabric::util::setTestMode(true);
+
+        faabricConf.reset();
+    }
+
+  protected:
+    faabric::util::SystemConfig& faabricConf;
+    storage::FileLoader& loader;
+    codegen::MachineCodeGenerator& gen;
+
+    faabric::Message msgA;
+    faabric::Message msgB;
+
+    std::vector<uint8_t> wasmBytesA;
+    std::vector<uint8_t> wasmBytesB;
+};
+
+TEST_CASE_METHOD(FlushingTestFixture,
+                 "Test flushing clears shared files",
+                 "[flush]")
+{
     std::string relativePath = "flush-test.txt";
     boost::filesystem::path sharedPath(conf.sharedFilesDir);
     sharedPath.append(relativePath);
@@ -43,20 +95,17 @@ TEST_CASE("Test flushing clears shared files", "[flush]")
     REQUIRE(!boost::filesystem::exists(sharedPath));
 }
 
-TEST_CASE("Test flushing clears cached modules", "[flush]")
+TEST_CASE_METHOD(FlushingTestFixture,
+                 "Test flushing clears cached modules",
+                 "[flush]")
 {
-    cleanSystem();
-
-    faabric::Message msgA = faabric::util::messageFactory("demo", "echo");
-    faabric::Message msgB = faabric::util::messageFactory("demo", "dummy");
-
     // Note, these have to be executed in a separate thread to fit with the
     // module's isolation expectation
     std::thread tA(
-      [&msgA] { wasm::getWAVMModuleCache().getCachedModule(msgA); });
+      [this] { wasm::getWAVMModuleCache().getCachedModule(msgA); });
 
     std::thread tB(
-      [&msgB] { wasm::getWAVMModuleCache().getCachedModule(msgB); });
+      [this] { wasm::getWAVMModuleCache().getCachedModule(msgB); });
 
     if (tA.joinable()) {
         tA.join();
@@ -72,10 +121,10 @@ TEST_CASE("Test flushing clears cached modules", "[flush]")
     REQUIRE(cache.getTotalCachedModuleCount() == 0);
 }
 
-TEST_CASE("Test flushing clears IR module cache", "[flush]")
+TEST_CASE_METHOD(FlushingTestFixture,
+                 "Test flushing clears IR module cache",
+                 "[flush]")
 {
-    cleanSystem();
-
     // Execute a task
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory("demo", "echo", 1);
@@ -92,26 +141,14 @@ TEST_CASE("Test flushing clears IR module cache", "[flush]")
     REQUIRE(!cache.isModuleCached("demo", "echo", ""));
 }
 
-TEST_CASE("Test flushing picks up new version of function", "[flush]")
+TEST_CASE_METHOD(FlushingTestFixture,
+                 "Test flushing picks up new version of function",
+                 "[flush]")
 {
-    cleanSystem();
+    faabricConf.boundTimeout = 1000;
 
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    int origBoundTimeout = conf.boundTimeout;
-    conf.boundTimeout = 1000;
-
-    conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
-
-    // Load the wasm for two real functions
-    faabric::Message origMsgA = faabric::util::messageFactory("demo", "hello");
-    faabric::Message origMsgB = faabric::util::messageFactory("demo", "echo");
-
-    storage::FileLoader& fileLoader = storage::getFileLoader();
-    std::vector<uint8_t> wasmA = fileLoader.loadFunctionWasm(origMsgA);
-    std::vector<uint8_t> wasmB = fileLoader.loadFunctionWasm(origMsgB);
-
-    // Check they're different
-    REQUIRE(wasmA.size() != wasmB.size());
+    // Confirm functions are different to start with
+    REQUIRE(wasmBytesA.size() != wasmBytesB.size());
 
     // Set up input/ output
     std::string expectedOutputA = "Hello Faasm!";
@@ -119,18 +156,12 @@ TEST_CASE("Test flushing picks up new version of function", "[flush]")
 
     // Prepare upload messages for the same dummy function with different wasm
     faabric::Message uploadMsgA = faabric::util::messageFactory("demo", "foo");
-    uploadMsgA.set_inputdata(wasmA.data(), wasmA.size());
+    uploadMsgA.set_inputdata(wasmBytesA.data(), wasmBytesA.size());
     faabric::Message uploadMsgB = faabric::util::messageFactory("demo", "foo");
-    uploadMsgB.set_inputdata(wasmB.data(), wasmB.size());
-
-    // Set up dummy directories for storage
-    faasmConf.functionDir = "/tmp/faasm/funcs";
-    faasmConf.objectFileDir = "/tmp/faasm/objs";
-    std::string origFunctionDir = faasmConf.functionDir;
-    std::string origObjDir = faasmConf.objectFileDir;
+    uploadMsgB.set_inputdata(wasmBytesB.data(), wasmBytesB.size());
 
     // Upload the first version
-    fileLoader.uploadFunction(uploadMsgA);
+    loader.uploadFunction(uploadMsgA);
 
     // Run the codegen
     codegen::MachineCodeGenerator& gen = codegen::getMachineCodeGenerator();
@@ -152,19 +183,18 @@ TEST_CASE("Test flushing picks up new version of function", "[flush]")
     REQUIRE(resultA.outputdata() == expectedOutputA);
 
     // Wait for the executor to have cleared up
-    usleep(1000 * 1000);
+    SLEEP_MS(1000);
 
     // Flush
     sch.flushLocally();
 
     // Upload the second version and check wasm is as expected
     faabric::Message invokeMsgB = faabric::util::messageFactory("demo", "foo");
-    fileLoader.uploadFunction(uploadMsgB);
+    loader.uploadFunction(uploadMsgB);
     gen.codegenForFunction(uploadMsgB);
 
-    std::vector<uint8_t> wasmAfterUpload =
-      fileLoader.loadFunctionWasm(invokeMsgB);
-    REQUIRE(wasmAfterUpload == wasmB);
+    std::vector<uint8_t> wasmAfterUpload = loader.loadFunctionWasm(invokeMsgB);
+    REQUIRE(wasmAfterUpload == wasmBytesB);
 
     // Invoke for the second time
     invokeMsgB.set_inputdata(inputB);
@@ -174,10 +204,6 @@ TEST_CASE("Test flushing picks up new version of function", "[flush]")
     faabric::Message resultB = sch.getFunctionResult(invokeMsgB.id(), 1);
     REQUIRE(resultB.returnvalue() == 0);
     REQUIRE(resultB.outputdata() == inputB);
-
-    conf.boundTimeout = origBoundTimeout;
-    faasmConf.functionDir = origFunctionDir;
-    faasmConf.objectFileDir = origObjDir;
 
     m.shutdown();
 }

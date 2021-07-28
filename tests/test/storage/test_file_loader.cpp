@@ -2,6 +2,7 @@
 
 #include "faabric_utils.h"
 #include "utils.h"
+#include "faasm_fixtures.h"
 
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
@@ -23,11 +24,10 @@ using namespace storage;
 
 namespace tests {
 
-class FileLoaderTestFixture
+class FileLoaderTestFixture : public S3TestFixture
 {
   public:
     FileLoaderTestFixture()
-      : conf(conf::getFaasmConfig())
     {
         // Load the wasm for an existing function
         faabric::Message msg = faabric::util::messageFactory("demo", "echo");
@@ -51,24 +51,18 @@ class FileLoaderTestFixture
         // Note that we deliberately switch off test mode here so that we can
         // clear the local file loader cache
         faabric::util::setTestMode(false);
-        conf.s3Bucket = "faasm-test";
+
+        // Dummy directories for functions and object files
         conf.functionDir = "/tmp/func";
         conf.objectFileDir = "/tmp/obj";
-        s3.createBucket(conf.s3Bucket);
     };
 
     ~FileLoaderTestFixture()
     {
-        s3.deleteBucket(conf.s3Bucket);
-
         faabric::util::setTestMode(true);
-        conf.reset();
     };
 
   protected:
-    conf::FaasmConfig& conf;
-    storage::S3Wrapper s3;
-
     std::string wasmFilePath;
     std::string objFilePath;
     std::vector<uint8_t> wasmBytes;
