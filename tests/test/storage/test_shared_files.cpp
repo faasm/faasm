@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "faasm_fixtures.h"
 #include "utils.h"
 
 #include <boost/filesystem.hpp>
@@ -12,22 +13,34 @@
 using namespace storage;
 
 namespace tests {
-TEST_CASE("Check sync shared file", "[storage]")
-{
-    SharedFiles::clear();
 
-    storage::FileLoader& loader = storage::getFileLoader();
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
+class SharedFilesTestFixture : public S3TestFixture
+{
+  public:
+    SharedFilesTestFixture()
+      : loader(storage::getFileLoader())
+    {
+        SharedFiles::clear();
+    }
+
+    ~SharedFilesTestFixture() { SharedFiles::clear(); }
+
+  protected:
+    storage::FileLoader& loader;
+};
+
+TEST_CASE_METHOD(SharedFilesTestFixture, "Check sync shared file", "[storage]")
+{
     std::string relPath = "shared_test_dir/dummy_file.txt";
     std::string sharedPath = "faasm://" + relPath;
-    std::string realPath = loader.getSharedFileFile(relPath);
 
+    std::string defaultSyncedPath = loader.getSharedFileFile(relPath);
     std::string syncedPath;
     std::string overridePath;
 
     SECTION("Default location")
     {
-        syncedPath = conf.sharedFilesDir + "/" + relPath;
+        syncedPath = defaultSyncedPath;
         overridePath = "";
     }
 
@@ -39,15 +52,12 @@ TEST_CASE("Check sync shared file", "[storage]")
 
     std::vector<uint8_t> bytes = { 0, 1, 2, 3, 4, 5 };
 
-    // Set up file
-    if (boost::filesystem::exists(realPath)) {
-        boost::filesystem::remove(realPath);
-    }
-    faabric::util::writeBytesToFile(realPath, bytes);
+    // Upload the file
+    loader.uploadSharedFile(relPath, bytes);
 
-    if (boost::filesystem::exists(syncedPath)) {
-        boost::filesystem::remove(syncedPath);
-    }
+    // Clear up local files
+    boost::filesystem::remove(defaultSyncedPath);
+    boost::filesystem::remove(syncedPath);
 
     // Do the sync
     SharedFiles::syncSharedFile(sharedPath, overridePath);

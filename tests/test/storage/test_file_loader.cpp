@@ -1,8 +1,8 @@
 #include <catch2/catch.hpp>
 
 #include "faabric_utils.h"
-#include "utils.h"
 #include "faasm_fixtures.h"
+#include "utils.h"
 
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
@@ -57,10 +57,7 @@ class FileLoaderTestFixture : public S3TestFixture
         conf.objectFileDir = "/tmp/obj";
     };
 
-    ~FileLoaderTestFixture()
-    {
-        faabric::util::setTestMode(true);
-    };
+    ~FileLoaderTestFixture() { faabric::util::setTestMode(true); };
 
   protected:
     std::string wasmFilePath;
