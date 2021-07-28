@@ -74,13 +74,16 @@ ClientConfiguration getClientConf(long timeout)
     return config;
 }
 
-void initSDK()
+void initFaasmS3()
 {
-    SPDLOG_INFO("Initialising AWS SDK");
+    SPDLOG_INFO("Initialising Faasm S3 setup");
     Aws::InitAPI(options);
+
+    S3Wrapper s3;
+    s3.createBucket(conf::getFaasmConfig().s3Bucket);
 }
 
-void cleanUpSDK()
+void shutdownFaasmS3()
 {
     Aws::ShutdownAPI(options);
 }

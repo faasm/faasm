@@ -113,7 +113,7 @@ int doRunner(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
-    storage::initSDK();
+    storage::initFaasmS3();
     faabric::transport::initGlobalMessageContext();
 
     // WARNING: All 0MQ-related operations must take place in a self-contined
@@ -121,6 +121,6 @@ int main(int argc, char* argv[])
     int result = doRunner(argc, argv);
 
     faabric::transport::closeGlobalMessageContext();
-    storage::cleanUpSDK();
+    storage::shutdownFaasmS3();
     return result;
 }

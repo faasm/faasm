@@ -69,7 +69,7 @@ void codegenForDirectory(std::string& inputPath)
 int main(int argc, char* argv[])
 {
     faabric::util::initLogging();
-    storage::initSDK();
+    storage::initFaasmS3();
 
     if (argc < 2) {
         SPDLOG_ERROR("Must provide path to shared object dir");
@@ -84,5 +84,5 @@ int main(int argc, char* argv[])
         gen.codegenForSharedObject(inputPath);
     }
 
-    storage::cleanUpSDK();
+    storage::shutdownFaasmS3();
 }

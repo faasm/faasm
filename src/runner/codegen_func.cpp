@@ -39,7 +39,7 @@ void codegenForFunc(const std::string& user,
 int main(int argc, char* argv[])
 {
     faabric::util::initLogging();
-    storage::initSDK();
+    storage::initFaasmS3();
 
     if (argc == 3) {
         std::string user = argv[1];
@@ -114,5 +114,5 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    storage::cleanUpSDK();
+    storage::shutdownFaasmS3();
 }

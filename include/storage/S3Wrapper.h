@@ -17,9 +17,9 @@
 
 namespace storage {
 
-void initSDK();
+void initFaasmS3();
 
-void cleanUpSDK();
+void shutdownFaasmS3();
 
 class S3Wrapper
 {
