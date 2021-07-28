@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "faasm_fixtures.h"
 #include "utils.h"
 
 #include <boost/tokenizer.hpp>
@@ -12,6 +13,14 @@ using namespace std;
 using namespace boost;
 
 namespace tests {
+
+class FilesystemTestFixture : public FunctionExecTestFixture
+{
+  public:
+    FilesystemTestFixture() {}
+    ~FilesystemTestFixture() {}
+};
+
 std::vector<std::string> splitString(const std::string& strIn, const char* sep)
 {
     char_separator<char> separator(sep);
@@ -25,10 +34,8 @@ std::vector<std::string> splitString(const std::string& strIn, const char* sep)
     return result;
 }
 
-TEST_CASE("Test getdents", "[faaslet]")
+TEST_CASE_METHOD(FilesystemTestFixture, "Test getdents", "[faaslet]")
 {
-    cleanSystem();
-
     // Note, our test function adds an extra comma, hence the blank
     // These are all the files we _might_ see
     std::vector<std::string> expected = { "",      ".",      "..",
@@ -52,45 +59,38 @@ TEST_CASE("Test getdents", "[faaslet]")
     }
 }
 
-TEST_CASE("Test listdir", "[faaslet]")
+TEST_CASE_METHOD(FilesystemTestFixture, "Test listdir", "[faaslet]")
 {
-    cleanSystem();
-
     faabric::Message msg = faabric::util::messageFactory("demo", "listdir");
     execFunction(msg);
 }
 
-TEST_CASE("Test fcntl", "[faaslet]")
+TEST_CASE_METHOD(FilesystemTestFixture, "Test fcntl", "[faaslet]")
 {
-    cleanSystem();
     faabric::Message msg = faabric::util::messageFactory("demo", "fcntl");
     execFunction(msg);
 }
 
-TEST_CASE("Test fread", "[faaslet]")
+TEST_CASE_METHOD(FilesystemTestFixture, "Test fread", "[faaslet]")
 {
-    cleanSystem();
     faabric::Message msg = faabric::util::messageFactory("demo", "fread");
     execFunction(msg);
 }
 
-TEST_CASE("Test fstat", "[faaslet]")
+TEST_CASE_METHOD(FilesystemTestFixture, "Test fstat", "[faaslet]")
 {
-    cleanSystem();
     faabric::Message msg = faabric::util::messageFactory("demo", "fstat");
     execFunction(msg);
 }
 
-TEST_CASE("Test file operations", "[faaslet]")
+TEST_CASE_METHOD(FilesystemTestFixture, "Test file operations", "[faaslet]")
 {
-    cleanSystem();
     faabric::Message msg = faabric::util::messageFactory("demo", "file");
     execFunction(msg);
 }
 
-TEST_CASE("Test file descriptors", "[faaslet]")
+TEST_CASE_METHOD(FilesystemTestFixture, "Test file descriptors", "[faaslet]")
 {
-    cleanSystem();
     faabric::Message msg =
       faabric::util::messageFactory("demo", "filedescriptor");
     execFunction(msg);

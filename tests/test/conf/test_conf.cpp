@@ -75,7 +75,7 @@ TEST_CASE("Test overriding faasm config initialisation", "[conf]")
 
     REQUIRE(conf.s3Bucket == "dummy-bucket");
     REQUIRE(conf.s3Host == "dummy-host");
-    REQUIRE(conf.s3Port == "dummy-port");
+    REQUIRE(conf.s3Port == "123456");
     REQUIRE(conf.s3User == "dummy-user");
     REQUIRE(conf.s3Password == "dummy-password");
 

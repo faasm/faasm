@@ -57,7 +57,8 @@ std::string execFunctionWithStringResult(faabric::Message& call)
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.callFunction(call);
 
-    const faabric::Message result = sch.getFunctionResult(call.id(), 1);
+    // This timeout needs to be long enough for slow functions to execute
+    const faabric::Message result = sch.getFunctionResult(call.id(), 20000);
     if (result.returnvalue() != 0) {
         SPDLOG_ERROR("Function failed: {}", result.outputdata());
         FAIL();

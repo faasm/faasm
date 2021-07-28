@@ -97,36 +97,14 @@ void UploadServer::handleGet(const http_request& request)
     std::string pathType = pathParts[0];
     std::vector<uint8_t> returnBytes;
 
-    if (pathType == "sobjwasm" || pathType == "sobjobj" || pathType == "file") {
-        std::string filePath = getHeaderFromRequest(request, FILE_PATH_HEADER);
+    SPDLOG_DEBUG("GET request to {}", request.absolute_uri().to_string());
 
-        SPDLOG_DEBUG("GET request to {} ({})",
-                     request.absolute_uri().to_string(),
-                     filePath);
-        if (pathType == "sobjwasm") {
-            returnBytes = l.loadSharedObjectWasm(filePath);
-        } else if (pathType == "sobjobj") {
-            returnBytes = l.loadSharedObjectObjectFile(filePath);
-        } else {
-            try {
-                returnBytes = l.loadSharedFile(filePath);
-            } catch (storage::SharedFileIsDirectoryException& e) {
-                // If shared file is a directory, say so
-                returnBytes = faabric::util::stringToBytes(IS_DIR_RESPONSE);
-            }
-        }
+    faabric::Message msg = UploadServer::buildMessageFromRequest(request);
+
+    if (pathType == "s") {
+        returnBytes = getState(request);
     } else {
-        SPDLOG_DEBUG("GET request to {}", request.absolute_uri().to_string());
-
-        faabric::Message msg = UploadServer::buildMessageFromRequest(request);
-
-        if (pathType == "s") {
-            returnBytes = getState(request);
-        } else if (pathType == "fo") {
-            returnBytes = l.loadFunctionObjectFile(msg);
-        } else {
-            returnBytes = l.loadFunctionWasm(msg);
-        }
+        returnBytes = l.loadFunctionWasm(msg);
     }
 
     http_response response;
@@ -145,7 +123,6 @@ void UploadServer::handleGet(const http_request& request)
 
 void UploadServer::handlePut(const http_request& request)
 {
-
     SPDLOG_DEBUG("PUT request to {}", request.absolute_uri().to_string());
 
     const std::vector<std::string> pathParts =
@@ -164,7 +141,6 @@ void UploadServer::handlePut(const http_request& request)
 
 void UploadServer::handleOptions(const http_request& request)
 {
-
     SPDLOG_DEBUG("OPTIONS request to {}", request.absolute_uri().to_string());
 
     http_response response(status_codes::OK);
@@ -174,7 +150,6 @@ void UploadServer::handleOptions(const http_request& request)
 
 std::vector<uint8_t> UploadServer::getState(const http_request& request)
 {
-
     const std::vector<std::string> pathParts =
       UploadServer::getPathParts(request);
     std::string user = pathParts[1];
@@ -193,7 +168,6 @@ std::vector<uint8_t> UploadServer::getState(const http_request& request)
 
 void UploadServer::handleStateUpload(const http_request& request)
 {
-
     const std::vector<std::string> pathParts =
       UploadServer::getPathParts(request);
     std::string user = pathParts[1];
@@ -228,7 +202,6 @@ void UploadServer::handleStateUpload(const http_request& request)
 
 void UploadServer::handlePythonFunctionUpload(const http_request& request)
 {
-
     faabric::Message msg = UploadServer::buildMessageFromRequest(request);
     SPDLOG_INFO("Uploading Python function {}",
                 faabric::util::funcToString(msg, false));
@@ -242,7 +215,6 @@ void UploadServer::handlePythonFunctionUpload(const http_request& request)
 
 void UploadServer::handleSharedFileUpload(const http_request& request)
 {
-
     std::string filePath = getHeaderFromRequest(request, FILE_PATH_HEADER);
     SPDLOG_INFO("Uploading shared file {}", filePath);
 
@@ -265,7 +237,6 @@ void UploadServer::handleSharedFileUpload(const http_request& request)
 
 void UploadServer::handleFunctionUpload(const http_request& request)
 {
-
     faabric::Message msg = UploadServer::buildMessageFromRequest(request);
     SPDLOG_INFO("Uploading {}", faabric::util::funcToString(msg, false));
 

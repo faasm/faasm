@@ -21,55 +21,24 @@
 
 namespace tests {
 
-class FlushingTestFixture : public S3TestFixture
+class FlushingTestFixture : public FunctionLoaderTestFixture
 {
   public:
     FlushingTestFixture()
       : faabricConf(faabric::util::getSystemConfig())
-      , loader(storage::getFileLoader())
-      , gen(codegen::getMachineCodeGenerator())
     {
-        // Load some known functions before changing storage
-        msgA = faabric::util::messageFactory("demo", "hello");
-        msgB = faabric::util::messageFactory("demo", "echo");
-        wasmBytesA = loader.loadFunctionWasm(msgA);
-        wasmBytesB = loader.loadFunctionWasm(msgB);
-        msgA.set_inputdata(wasmBytesA.data(), wasmBytesA.size());
-        msgB.set_inputdata(wasmBytesB.data(), wasmBytesB.size());
-
         // Switch off test mode to allow proper flushing
         faabric::util::setTestMode(false);
-
-        // Dummy directories for functions and object files
-        conf.functionDir = "/tmp/func";
-        conf.sharedFilesDir = "/tmp/shared";
-        conf.objectFileDir = "/tmp/obj";
-
-        // Upload functions to new dummy locations
-        loader.uploadFunction(msgA);
-        gen.codegenForFunction(msgA);
-        loader.uploadFunction(msgB);
-        gen.codegenForFunction(msgB);
     }
 
     ~FlushingTestFixture()
     {
-        loader.clearLocalCache();
         faabric::util::setTestMode(true);
-
         faabricConf.reset();
     }
 
   protected:
     faabric::util::SystemConfig& faabricConf;
-    storage::FileLoader& loader;
-    codegen::MachineCodeGenerator& gen;
-
-    faabric::Message msgA;
-    faabric::Message msgB;
-
-    std::vector<uint8_t> wasmBytesA;
-    std::vector<uint8_t> wasmBytesB;
 };
 
 TEST_CASE_METHOD(FlushingTestFixture,
