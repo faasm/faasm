@@ -43,7 +43,7 @@ class DistTestsFixture
         faabric::Message msg = faabric::util::messageFactory(user, func);
 
         storage::FileLoader& loader = storage::getFileLoader();
-        codegen::MachineCodeGenerator &gen = codegen::getMachineCodeGenerator();
+        codegen::MachineCodeGenerator& gen = codegen::getMachineCodeGenerator();
 
         std::vector<uint8_t> bytes = loader.loadFunctionWasm(msg);
         msg.set_inputdata(bytes.data(), bytes.size());

@@ -98,11 +98,9 @@ class FileLoader
                           const std::vector<uint8_t>& fileBytes);
 
     // ----- Python files -----
+    std::string getPythonFunctionSharedFilePath(const faabric::Message& msg);
+
     std::string getPythonFunctionFile(const faabric::Message& msg);
-
-    std::string getPythonFunctionFileSharedPath(const faabric::Message& msg);
-
-    std::string getPythonRuntimeFunctionFile(const faabric::Message& msg);
 
     void uploadPythonFunction(faabric::Message& msg);
 

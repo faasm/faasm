@@ -92,6 +92,7 @@ services:
     privileged: true
     depends_on:
       - worker
+      - upload
     volumes:
       - ./clients/cpp:/code/cpp
       - ./dev/cpp/build:/build/cpp
@@ -104,5 +105,6 @@ services:
     privileged: true
     depends_on:
       - worker
+      - upload
     volumes:
       - ./clients/python:/code/python

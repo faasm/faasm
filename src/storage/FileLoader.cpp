@@ -421,6 +421,8 @@ std::string FileLoader::getSharedFileFile(const std::string& path)
 {
     boost::filesystem::path p(conf.sharedFilesDir);
     p.append(path);
+
+    // Create directories if necessary
     boost::filesystem::create_directories(p.parent_path());
 
     return p.string();
@@ -442,64 +444,41 @@ void FileLoader::uploadSharedFile(const std::string& path,
 // PYTHON FUNCTIONS
 // -------------------------------------
 
-static std::string _getPythonFunctionFile(const faabric::Message& msg,
-                                          const std::string& parentDir,
-                                          bool createDirs)
+std::string getPythonFunctionRelativePath(const faabric::Message& msg)
 {
-    if (!msg.ispython()) {
-        throw std::runtime_error(
-          "Getting python function file for non-Python function " +
-          funcToString(msg, false));
-    }
-
-    if (msg.pythonuser().empty() || msg.pythonfunction().empty()) {
-        throw std::runtime_error(
-          "Invalid Python call: user=" + msg.pythonuser() +
-          " func=" + msg.pythonfunction());
-    }
-
-    boost::filesystem::path path(parentDir);
-
-    path.append(PYTHON_FUNC_DIR);
+    boost::filesystem::path path(PYTHON_FUNC_DIR);
     path.append(msg.pythonuser());
     path.append(msg.pythonfunction());
-
-    if (createDirs) {
-        boost::filesystem::create_directories(path);
-    }
-
     path.append(PYTHON_FUNCTION_FILENAME);
+    return path.string();
+}
+
+std::string FileLoader::getPythonFunctionSharedFilePath(
+  const faabric::Message& msg)
+{
+    // This is the shared path of the form faasm:// used to access the Python
+    // file
+    boost::filesystem::path path(SHARED_FILE_PREFIX);
+    path.append(getPythonFunctionRelativePath(msg));
     return path.string();
 }
 
 std::string FileLoader::getPythonFunctionFile(const faabric::Message& msg)
 {
-    // Python functions are stored as shared files to make it easier to
-    // share them through the system
-    return _getPythonFunctionFile(msg, conf.sharedFilesDir, true);
-}
-
-std::string FileLoader::getPythonFunctionFileSharedPath(
-  const faabric::Message& msg)
-{
-    // This is the shared path of the form faasm:// used to access the Python
-    // file
-    return _getPythonFunctionFile(msg, SHARED_FILE_PREFIX, false);
-}
-
-std::string FileLoader::getPythonRuntimeFunctionFile(
-  const faabric::Message& msg)
-{
-    // This is the path where the file is placed at runtime to be
-    // accessible to the function
-    return _getPythonFunctionFile(msg, conf.runtimeFilesDir, true);
+    // This is the path where the file is actually placed to be accessible to
+    // the function. This is just as a shared file.
+    return getSharedFileFile(getPythonFunctionRelativePath(msg));
 }
 
 void FileLoader::uploadPythonFunction(faabric::Message& msg)
 {
-    const std::string key = getKey(msg, PYTHON_FUNCTION_FILENAME);
-    const std::string& inputBytes = msg.inputdata();
-    uploadFileString(key, "", inputBytes);
+    // Need to convert message to an internal python message
+    convertMessageToPython(msg);
+
+    // Note that Python functions are handled like shared files
+    std::string relativePath = getPythonFunctionRelativePath(msg);
+    const std::string localCachePath = getSharedFileFile(relativePath);
+    uploadFileString(relativePath, localCachePath, msg.inputdata());
 }
 
 void FileLoader::convertMessageToPython(faabric::Message& msg)

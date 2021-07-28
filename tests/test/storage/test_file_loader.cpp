@@ -194,4 +194,38 @@ TEST_CASE_METHOD(FileLoaderTestFixture,
       loader.loadSharedFile(relativePath);
     REQUIRE(actualAfter == expected);
 }
+
+TEST_CASE_METHOD(FileLoaderTestFixture,
+                 "Test uploading and loading python files",
+                 "[storage]")
+{
+    std::vector<uint8_t> contents = { 0, 1, 2, 3 };
+
+    std::string pythonUser = "foo";
+    std::string pythonFunction = "bar";
+
+    std::string relativePath = "pyfuncs/foo/bar/function.py";
+    std::string expectedSharedFilePath = "faasm://" + relativePath;
+    std::string expectedRuntimePath = conf.sharedFilesDir + "/" + relativePath;
+
+    faabric::Message msg =
+      faabric::util::messageFactory(pythonUser, pythonFunction);
+    msg.set_user(pythonUser);
+    msg.set_function(pythonFunction);
+    msg.set_inputdata(contents.data(), contents.size());
+
+    storage::FileLoader loader;
+    loader.uploadPythonFunction(msg);
+
+    REQUIRE(boost::filesystem::exists(expectedRuntimePath));
+    REQUIRE(loader.getPythonFunctionSharedFilePath(msg) ==
+            expectedSharedFilePath);
+
+    loader.clearLocalCache();
+    REQUIRE(!boost::filesystem::exists(expectedRuntimePath));
+
+    std::vector<uint8_t> actualBytes = loader.loadSharedFile(relativePath);
+    REQUIRE(actualBytes == contents);
+    REQUIRE(boost::filesystem::exists(expectedRuntimePath));
+}
 }

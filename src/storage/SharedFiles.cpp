@@ -147,8 +147,12 @@ void SharedFiles::syncPythonFunctionFile(const faabric::Message& msg)
     }
 
     FileLoader& loader = getFileLoader();
-    std::string sharedPath = loader.getPythonFunctionFileSharedPath(msg);
-    std::string runtimeFilePath = loader.getPythonRuntimeFunctionFile(msg);
+
+    // Shared path used by the functions themselves
+    std::string sharedPath = loader.getPythonFunctionSharedFilePath(msg);
+
+    // Actual path to the function file to allow runtime access
+    std::string runtimeFilePath = loader.getPythonFunctionFile(msg);
 
     syncSharedFile(sharedPath, runtimeFilePath);
 }
