@@ -14,6 +14,19 @@ services:
       faasmdist:
         ipv4_address: 172.60.0.3
 
+  minio:
+    image: faasm/minio:${FAASM_VERSION}
+    expose:
+      - "9000"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    volumes:
+      - ./dev/minio/data:/data/minio
+    networks:
+      faasmdist:
+        ipv4_address: 172.60.0.4
+
   builder:
     image: ${FAASM_CLI_IMAGE}
     volumes:
@@ -39,7 +52,7 @@ services:
       - CGROUP_MODE=off
     networks:
       faasmdist:
-        ipv4_address: 172.60.0.4
+        ipv4_address: 172.60.0.5
     depends_on:
       - redis
       - worker
@@ -60,6 +73,6 @@ services:
     command: ./bin/dist_test_server
     networks:
       faasmdist:
-        ipv4_address: 172.60.0.5
+        ipv4_address: 172.60.0.6
     depends_on:
       - redis

@@ -1,11 +1,14 @@
 #pragma once
 
+#include "codegen/MachineCodeGenerator.h"
+#include "faabric/util/func.h"
+#include "storage/FileLoader.h"
 #include <conf/FaasmConfig.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faaslet/Faaslet.h>
 
-#define MASTER_IP "172.60.0.4"
-#define WORKER_IP "172.60.0.5"
+#define MASTER_IP "172.60.0.5"
+#define WORKER_IP "172.60.0.6"
 
 namespace tests {
 class DistTestsFixture
@@ -30,6 +33,23 @@ class DistTestsFixture
         std::shared_ptr<faaslet::FaasletFactory> fac =
           std::make_shared<faaslet::FaasletFactory>();
         faabric::scheduler::setExecutorFactory(fac);
+    }
+
+    void uploadExistingFunction(const std::string& user,
+                                const std::string& func)
+    {
+        // Although we may have the function data locally, we need to upload it
+        // again to make sure it's written to S3
+        faabric::Message msg = faabric::util::messageFactory(user, func);
+
+        storage::FileLoader& loader = storage::getFileLoader();
+        codegen::MachineCodeGenerator &gen = codegen::getMachineCodeGenerator();
+
+        std::vector<uint8_t> bytes = loader.loadFunctionWasm(msg);
+        msg.set_inputdata(bytes.data(), bytes.size());
+
+        loader.uploadFunction(msg);
+        gen.codegenForFunction(msg);
     }
 
     ~DistTestsFixture()

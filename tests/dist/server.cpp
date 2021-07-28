@@ -12,7 +12,7 @@ using namespace faabric::scheduler;
 
 int main()
 {
-    storage::initSDK();
+    storage::initFaasmS3();
     faabric::transport::initGlobalMessageContext();
     faabric::util::initLogging();
 
@@ -34,7 +34,7 @@ int main()
     }
 
     faabric::transport::closeGlobalMessageContext();
-    storage::cleanUpSDK();
+    storage::shutdownFaasmS3();
 
     return 0;
 }
