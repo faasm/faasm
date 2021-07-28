@@ -76,3 +76,4 @@ services:
         ipv4_address: 172.60.0.6
     depends_on:
       - redis
+      - minio

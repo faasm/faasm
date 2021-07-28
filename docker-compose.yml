@@ -27,12 +27,9 @@ services:
       - minio
     volumes:
       - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
-      - ./dev/wasm/:/usr/local/code/faasm/wasm/
-      - ./dev/container/machine-code/:/usr/local/faasm/object/
-      - ./dev/container/shared/:/usr/local/faasm/shared/
     environment:
-      - LOG_LEVEL=info
-      - PYTHON_CODEGEN=off
+      - LOG_LEVEL=trace
+      - PYTHON_CODEGEN=on
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
@@ -50,7 +47,7 @@ services:
       - CAPTURE_STDOUT=on
       - CGROUP_MODE=on
       - GLOBAL_MESSAGE_TIMEOUT=600000
-      - LOG_LEVEL=info
+      - LOG_LEVEL=trace
       - NETNS_MODE=off
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
@@ -76,7 +73,7 @@ services:
     environment:
       - UPLOAD_HOST=${UPLOAD_HOST:-upload}
       - INVOKE_HOST=${INVOKE_HOST:-nginx}
-      - LOG_LEVEL=debug
+      - LOG_LEVEL=trace
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
@@ -98,3 +95,14 @@ services:
     volumes:
       - ./clients/cpp:/code/cpp
       - ./dev/cpp/build:/build/cpp
+
+  python:
+    image: ${PYTHON_CLI_IMAGE}
+    working_dir: /code/python
+    stdin_open: true
+    tty: true
+    privileged: true
+    depends_on:
+      - worker
+    volumes:
+      - ./clients/python:/code/python

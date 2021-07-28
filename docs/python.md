@@ -1,4 +1,4 @@
-# Python 
+# Python
 
 Faasm executes functions compiled to WebAssembly, which rules out _directly_
 executing languages which can't be compiled to WebAssembly. However, we can
@@ -11,7 +11,7 @@ repo](https://github.com/faasm/python).
 
 A separate Python library, [Pyfaasm](https://github.com/faasm/pyfaasm),
 contains the custom C-extensions and decorators to support the [Faasm host
-interface](host_interface.md). 
+interface](host_interface.md).
 
 ## Enabling Python support
 
@@ -24,16 +24,27 @@ PYTHON_CODEGEN=on
 ```
 
 The first time the system runs it will generate machine code for python and all
-the Python C-extensions. This can take around a minute. 
+the Python C-extensions. This can take up to a couple of minutes depending on
+your machine, but is a one-off job.
 
 ## Running a Python function
 
 An example Python function is found at `func/python/hello.py`. This can be
-uploaded and invoked from the Faasm CLI with:
+uploaded and invoked from the Python CLI with:
 
 ```bash
-inv upload python hello --py
-inv invoke python hello --py
+# Run the Python CLI
+./bin/cli.sh python
+
+# Build and upload the Python runtime
+inv func
+inv func.upload
+
+# Upload all the Python functions
+inv func.uploadpy
+
+# Invoke the hello function
+inv func.invoke python hello
 ```
 
 This should give a message and the version of Python being run.

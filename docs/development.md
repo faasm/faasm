@@ -289,7 +289,9 @@ Now you can run a `cpp` container, compile upload and invoke a function:
 ./bin/cluster_dev.sh cpp
 
 # Compile, upload, invoke a function
-inv compile demo hello upload demo hello invoke demo hello
+inv func demo hello
+inv func.upload demo hello
+inv func.invoke demo hello
 ```
 
 Now you can make some changes and check:
