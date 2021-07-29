@@ -49,9 +49,7 @@ TEST_CASE_METHOD(FlushingTestFixture,
     boost::filesystem::path sharedPath(conf.sharedFilesDir);
     sharedPath.append(relativePath);
 
-    if (boost::filesystem::exists(sharedPath)) {
-        boost::filesystem::remove(sharedPath);
-    }
+    boost::filesystem::remove(sharedPath);
     boost::filesystem::create_directories(conf.sharedFilesDir);
 
     // Enter some data

@@ -224,6 +224,11 @@ void UploadServer::handlePythonFunctionUpload(const http_request& request)
     SPDLOG_INFO("Uploading Python function {}",
                 faabric::util::funcToString(msg, false));
 
+    // Note that we must actually set the _python_ user and function on the
+    // message
+    msg.set_pythonuser(msg.user());
+    msg.set_pythonfunction(msg.function());
+
     // Do the upload
     storage::FileLoader& l = storage::getFileLoader();
     l.uploadPythonFunction(msg);

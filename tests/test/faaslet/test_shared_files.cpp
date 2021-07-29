@@ -20,9 +20,7 @@ TEST_CASE("Test accessing shared files from wasm", "[faaslet]")
     storage::FileLoader& loader = storage::getFileLoader();
     std::string relativePath = "test/shared-wasm.txt";
     std::string fullPath = loader.getSharedFileFile(relativePath);
-    if (boost::filesystem::exists(fullPath)) {
-        boost::filesystem::remove(fullPath);
-    }
+    boost::filesystem::remove(fullPath);
 
     // Enter some data
     std::string expected = "I am some test content\r";

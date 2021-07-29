@@ -71,6 +71,7 @@ int SharedFiles::syncSharedFile(const std::string& sharedPath,
 {
     // See if file already synced
     {
+        SPDLOG_TRACE("Not syncing {}, cached at {}", sharedPath, localPath);
         faabric::util::SharedLock lock(sharedFileMapMutex);
 
         if (sharedFileMap.count(sharedPath) > 0) {
@@ -83,8 +84,11 @@ int SharedFiles::syncSharedFile(const std::string& sharedPath,
 
     // Check again
     if (sharedFileMap.count(sharedPath) > 0) {
+        SPDLOG_TRACE("Not syncing {}, cached at {}", sharedPath, localPath);
         return getReturnValueForSharedFileState(sharedPath);
     }
+
+    SPDLOG_TRACE("Syncing {} to {}", sharedPath, localPath);
 
     // Work out the real path
     std::string strippedPath =
@@ -151,7 +155,9 @@ void SharedFiles::syncPythonFunctionFile(const faabric::Message& msg)
     // Shared path used by the functions themselves
     std::string sharedPath = loader.getPythonFunctionSharedFilePath(msg);
 
-    // Write the Python file to a real filesystem location accessible at runtime
+    // Write the Python file to location _directly_ accessible at runtime.
+    // Python function must be able to access the whole directory, so shared
+    // files are insufficient.
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     boost::filesystem::path path(conf.runtimeFilesDir);
     path.append(loader.getPythonFunctionRelativePath(msg));

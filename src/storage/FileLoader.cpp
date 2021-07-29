@@ -441,6 +441,14 @@ void FileLoader::uploadSharedFile(const std::string& path,
 std::string FileLoader::getPythonFunctionRelativePath(
   const faabric::Message& msg)
 {
+    if (msg.pythonuser().empty() || msg.pythonfunction().empty()) {
+        std::string errorMsg =
+          "Accessing Python function without python user and function set";
+
+        SPDLOG_ERROR(errorMsg);
+        throw std::runtime_error(errorMsg);
+    }
+
     boost::filesystem::path path(PYTHON_FUNC_DIR);
     path.append(msg.pythonuser());
     path.append(msg.pythonfunction());
@@ -467,22 +475,9 @@ std::string FileLoader::getPythonFunctionFile(const faabric::Message& msg)
 
 void FileLoader::uploadPythonFunction(faabric::Message& msg)
 {
-    // Need to convert message to an internal python message
-    convertMessageToPython(msg);
-
     // Note that Python functions are handled like shared files
-    std::string relativePath = getPythonFunctionRelativePath(msg);
+    const std::string relativePath = getPythonFunctionRelativePath(msg);
     const std::string localCachePath = getSharedFileFile(relativePath);
     uploadFileString(relativePath, localCachePath, msg.inputdata());
-}
-
-void FileLoader::convertMessageToPython(faabric::Message& msg)
-{
-    msg.set_ispython(true);
-    msg.set_pythonfunction(msg.function());
-    msg.set_pythonuser(msg.user());
-
-    msg.set_user(PYTHON_USER);
-    msg.set_function(PYTHON_FUNC);
 }
 }

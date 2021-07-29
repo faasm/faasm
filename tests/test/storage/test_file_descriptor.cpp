@@ -127,9 +127,7 @@ TEST_CASE("Test creating, renaming and deleting a file", "[storage]")
 
     // Remove the file
     std::string realPath = conf.runtimeFilesDir + "/" + dummyPath;
-    if (boost::filesystem::exists(realPath)) {
-        boost::filesystem::remove(realPath);
-    }
+    boost::filesystem::remove(realPath);
 
     // Stat the file to begin with
     Stat fileStat = rootFileDesc.stat(dummyPath);
@@ -208,9 +206,7 @@ TEST_CASE("Test seek", "[storage]")
     }
 
     // Set up the file
-    if (boost::filesystem::exists(realPath)) {
-        boost::filesystem::remove(realPath);
-    }
+    boost::filesystem::remove(realPath);
     faabric::util::writeBytesToFile(contentPath, contents);
 
     // Open file descriptor for the file
@@ -263,9 +259,7 @@ TEST_CASE("Test stat and read shared file", "[storage]")
     storage::FileLoader& loader = storage::getFileLoader();
     std::string relativePath = "test/shared-file-stat.txt";
     std::string fullPath = loader.getSharedFileFile(relativePath);
-    if (boost::filesystem::exists(fullPath)) {
-        boost::filesystem::remove(fullPath);
-    }
+    boost::filesystem::remove(fullPath);
 
     std::vector<uint8_t> contents = { 0, 1, 2, 3, 4, 5 };
     faabric::util::writeBytesToFile(fullPath, contents);

@@ -178,9 +178,7 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
         // Clear out any existing
         std::string relativePath = "test/dummy_file.txt";
         std::string fullPath = loader.getSharedFileFile(relativePath);
-        if (boost::filesystem::exists(fullPath)) {
-            boost::filesystem::remove(fullPath);
-        }
+        boost::filesystem::remove(fullPath);
 
         // Check putting the file
         std::string url = fmt::format("/{}/", SHARED_FILE_UPLOAD_PART);
@@ -198,18 +196,20 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
     SECTION("Test uploading and downloading python file")
     {
         std::vector<uint8_t> fileBytes = { 8, 8, 7, 7, 6, 6 };
-        std::string user = "blah";
-        std::string function = "hlab";
+        std::string user = PYTHON_USER;
+        std::string function = PYTHON_FUNC;
+        std::string pythonUser = "blah";
+        std::string pythonFunction = "hlab";
 
-        faabric::Message msg = faabric::util::messageFactory(user, function);
-        loader.convertMessageToPython(msg);
+        faabric::Message msg;
+        msg.set_ispython(true);
+        msg.set_pythonuser(pythonUser);
+        msg.set_pythonfunction(pythonFunction);
 
         // Clear out any existing
         std::string fullPath = loader.getPythonFunctionFile(msg);
         std::string relativePath = loader.getPythonFunctionRelativePath(msg);
-        if (boost::filesystem::exists(fullPath)) {
-            boost::filesystem::remove(fullPath);
-        }
+        boost::filesystem::remove(fullPath);
 
         // Check putting the file
         std::string url =

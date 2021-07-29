@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "faabric/util/func.h"
 #include "faasm_fixtures.h"
 #include "utils.h"
 
@@ -67,5 +68,50 @@ TEST_CASE_METHOD(SharedFilesTestFixture, "Check sync shared file", "[storage]")
     std::vector<uint8_t> actualBytes =
       faabric::util::readFileToBytes(syncedPath);
     REQUIRE(actualBytes == bytes);
+}
+
+TEST_CASE_METHOD(SharedFilesTestFixture, "Check sync python file", "[storage]")
+{
+    // Upload a python function
+    std::string user = "alpha";
+    std::string function = "beta";
+    std::vector<uint8_t> contents = { 0, 1, 2, 3, 4 };
+
+    faabric::Message msg;
+    msg.set_ispython(true);
+    msg.set_pythonuser(user);
+    msg.set_pythonfunction(function);
+    msg.set_inputdata(contents.data(), contents.size());
+
+    // Prepare paths
+    std::string sharedFilePath = loader.getPythonFunctionFile(msg);
+    std::string runtimeFilePath = fmt::format(
+      "{}/{}", conf.runtimeFilesDir, loader.getPythonFunctionRelativePath(msg));
+
+    // Ensure files don't exist already
+    boost::filesystem::remove(sharedFilePath);
+    boost::filesystem::remove(runtimeFilePath);
+
+    // Upload the function
+    loader.uploadPythonFunction(msg);
+
+    // Check the shared file is created, but not the runtime one
+    REQUIRE(boost::filesystem::exists(sharedFilePath));
+    REQUIRE(!boost::filesystem::exists(runtimeFilePath));
+
+    // Delete the local shared file
+    boost::filesystem::remove(sharedFilePath);
+
+    // Sync as a shared file
+    SharedFiles::syncPythonFunctionFile(msg);
+
+    // Check both files now in place
+    REQUIRE(boost::filesystem::exists(sharedFilePath));
+    REQUIRE(boost::filesystem::exists(runtimeFilePath));
+
+    std::vector<uint8_t> actualBytes =
+      faabric::util::readFileToBytes(runtimeFilePath);
+    REQUIRE(actualBytes.size() == contents.size());
+    REQUIRE(actualBytes == contents);
 }
 }

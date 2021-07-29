@@ -208,10 +208,9 @@ TEST_CASE_METHOD(FileLoaderTestFixture,
     std::string expectedSharedFilePath = "faasm://" + relativePath;
     std::string expectedRuntimePath = conf.sharedFilesDir + "/" + relativePath;
 
-    faabric::Message msg =
-      faabric::util::messageFactory(pythonUser, pythonFunction);
-    msg.set_user(pythonUser);
-    msg.set_function(pythonFunction);
+    faabric::Message msg;
+    msg.set_pythonuser(pythonUser);
+    msg.set_pythonfunction(pythonFunction);
     msg.set_inputdata(contents.data(), contents.size());
 
     storage::FileLoader loader;
@@ -227,5 +226,22 @@ TEST_CASE_METHOD(FileLoaderTestFixture,
     std::vector<uint8_t> actualBytes = loader.loadSharedFile(relativePath);
     REQUIRE(actualBytes == contents);
     REQUIRE(boost::filesystem::exists(expectedRuntimePath));
+}
+
+TEST_CASE_METHOD(FileLoaderTestFixture,
+                 "Test badly formed python upload messages",
+                 "[storage]")
+{
+    std::vector<uint8_t> contents = { 0, 1, 2, 3 };
+
+    faabric::Message msg;
+
+    SECTION("No function set") { msg.set_pythonuser("foo"); }
+    SECTION("No user set") { msg.set_pythonfunction("bar"); }
+
+    msg.set_inputdata(contents.data(), contents.size());
+
+    storage::FileLoader loader;
+    REQUIRE_THROWS(loader.uploadPythonFunction(msg));
 }
 }

@@ -106,8 +106,6 @@ class FileLoader
 
     void uploadPythonFunction(faabric::Message& msg);
 
-    void convertMessageToPython(faabric::Message& msg);
-
   private:
     conf::FaasmConfig& conf;
     storage::S3Wrapper s3;
