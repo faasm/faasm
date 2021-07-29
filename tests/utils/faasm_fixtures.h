@@ -65,6 +65,12 @@ class FunctionLoaderTestFixture : public S3TestFixture
         msgA.set_inputdata(wasmBytesA.data(), wasmBytesA.size());
         msgB.set_inputdata(wasmBytesB.data(), wasmBytesB.size());
 
+        objBytesA = loader.loadFunctionObjectFile(msgA);
+        objBytesB = loader.loadFunctionObjectFile(msgB);
+
+        hashBytesA = loader.loadFunctionObjectHash(msgA);
+        hashBytesB = loader.loadFunctionObjectHash(msgB);
+
         // Dummy directories for functions and object files
         conf.functionDir = "/tmp/func";
         conf.sharedFilesDir = "/tmp/shared";
@@ -88,5 +94,9 @@ class FunctionLoaderTestFixture : public S3TestFixture
 
     std::vector<uint8_t> wasmBytesA;
     std::vector<uint8_t> wasmBytesB;
+    std::vector<uint8_t> objBytesA;
+    std::vector<uint8_t> objBytesB;
+    std::vector<uint8_t> hashBytesA;
+    std::vector<uint8_t> hashBytesB;
 };
 }

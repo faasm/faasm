@@ -49,6 +49,13 @@ http_request createRequest(const std::string& path,
     return request;
 }
 
+void addRequestFilePathHeader(http_request request,
+                              const std::string& relativePath)
+{
+    http_headers& h = request.headers();
+    h.add(FILE_PATH_HEADER, relativePath);
+}
+
 void checkPut(const std::string& path,
               const std::string& expectedFile,
               const std::vector<uint8_t>& bytes)
@@ -66,10 +73,8 @@ void checkPut(const std::string& path,
     REQUIRE(actualBytes == bytes);
 }
 
-void checkGet(const std::string& url, const std::vector<uint8_t>& bytes)
+void checkGet(http_request& request, const std::vector<uint8_t>& bytes)
 {
-    std::vector<uint8_t> empty;
-    http_request request = createRequest(url, empty);
     edge::UploadServer::handleGet(request);
 
     http_response response = request.get_response().get();
@@ -136,12 +141,11 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
         edge::UploadServer::handlePut(request);
 
         // Retrieve the state
-        const std::vector<uint8_t> actual =
-          edge::UploadServer::getState(request);
-        REQUIRE(actual == state);
+        http_request requestB = createRequest(path, state);
+        checkGet(requestB, state);
     }
 
-    SECTION("Test uploading and downloading wasm file")
+    SECTION("Test uploading function wasm file")
     {
         // Ensure environment is clean before running
         std::string expectedFile = "/tmp/func/gamma/delta/function.wasm";
@@ -155,25 +159,29 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
         std::string url = "/f/gamma/delta";
         checkPut(url, expectedFile, wasmBytesA);
 
-        // Check object file is generated
+        // Check object file and hash generated
         REQUIRE(boost::filesystem::exists(expectedObjFile));
         REQUIRE(boost::filesystem::exists(expectedHashFile));
 
         std::vector<uint8_t> objBytes =
           faabric::util::readFileToBytes(expectedObjFile);
+        REQUIRE(objBytes.size() == objBytesA.size());
+        REQUIRE(objBytes == objBytesA);
 
-        // Check getting the file
-        checkGet(url, wasmBytesA);
+        std::vector<uint8_t> hashBytes =
+          faabric::util::readFileToBytes(expectedHashFile);
+        REQUIRE(hashBytes.size() == hashBytesA.size());
+        REQUIRE(hashBytes == hashBytesA);
     }
 
-    SECTION("Test uploading shared file")
+    SECTION("Test uploading and downloading shared file")
     {
-        const char* realPath = DUMMY_FILE;
+        std::string realPath = DUMMY_FILE;
         std::vector<uint8_t> fileBytes =
           faabric::util::readFileToBytes(realPath);
 
         // Clear out any existing
-        const char* relativePath = "test/dummy_file.txt";
+        std::string relativePath = "test/dummy_file.txt";
         std::string fullPath = loader.getSharedFileFile(relativePath);
         if (boost::filesystem::exists(fullPath)) {
             boost::filesystem::remove(fullPath);
@@ -182,15 +190,21 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
         // Check putting the file
         std::string url = "/file";
         http_request request = createRequest(url, fileBytes);
-        http_headers& h = request.headers();
-        h.add(FILE_PATH_HEADER, relativePath);
+        addRequestFilePathHeader(request, relativePath);
+
         edge::UploadServer::handlePut(request);
 
-        // Check file
+        // Check file on the filesystem
         REQUIRE(boost::filesystem::exists(fullPath));
         std::vector<uint8_t> actualBytes =
           faabric::util::readFileToBytes(fullPath);
+        REQUIRE(actualBytes.size() == fileBytes.size());
         REQUIRE(actualBytes == fileBytes);
+
+        // Check downloading the file
+        http_request requestB = createRequest(url, fileBytes);
+        addRequestFilePathHeader(requestB, relativePath);
+        checkGet(requestB, fileBytes);
     }
 }
 }

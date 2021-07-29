@@ -6,10 +6,16 @@
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
 #include <faabric/util/logging.h>
+#include <faabric/util/macros.h>
 
 #include <codegen/MachineCodeGenerator.h>
 #include <conf/FaasmConfig.h>
 #include <storage/FileLoader.h>
+
+#define FUNCTION_UPLOAD_PART "f"
+#define PYTHON_UPLOAD_PART "p"
+#define STATE_UPLOAD_PART "s"
+#define SHARED_FILE_UPLOAD_PART "file"
 
 namespace edge {
 void setPermissiveHeaders(http_response& response)
@@ -27,9 +33,9 @@ std::string getHeaderFromRequest(const http_request& request,
     http_headers headers = request.headers();
     if (headers.has(key)) {
         return headers[key];
-    } else {
-        return "";
     }
+
+    return "";
 }
 
 std::vector<std::string> UploadServer::getPathParts(const http_request& request)
@@ -42,24 +48,20 @@ std::vector<std::string> UploadServer::getPathParts(const http_request& request)
     if (pathParts.size() == 3) {
         // Check if one of the valid path types
         std::string pathType = pathParts[0];
-        std::vector<std::string> validTypes = {
-            "f", "fo", "fa", "s", "p", "pa"
-        };
+        std::vector<std::string> validTypes = { FUNCTION_UPLOAD_PART,
+                                                STATE_UPLOAD_PART,
+                                                PYTHON_UPLOAD_PART };
 
         if (std::find(validTypes.begin(), validTypes.end(), pathType) !=
             validTypes.end()) {
             return pathParts;
         }
-    } else if (pathParts.size() == 1) {
-        if (pathParts[0] == "sobjwasm" || pathParts[0] == "sobjobj" ||
-            pathParts[0] == "file") {
-            return pathParts;
-        }
-    } else if (pathParts.size() > 0 && pathParts[0] == "file") {
+
+    } else if (!pathParts.empty() && pathParts[0] == SHARED_FILE_UPLOAD_PART) {
         return pathParts;
     }
 
-    request.reply(status_codes::OK, "Invalid path\n");
+    request.reply(status_codes::BadRequest, "Invalid path\n");
     throw InvalidPathException("Invalid request path");
 }
 
@@ -79,7 +81,7 @@ void UploadServer::listen(const std::string& port)
     // Continuous loop required to allow listening apparently
     SPDLOG_INFO("Listening for requests on localhost:{}", port);
     while (!stopped) {
-        usleep(2 * 1000 * 1000);
+        SLEEP_MS(2000);
     }
 }
 
@@ -93,18 +95,33 @@ void UploadServer::handleGet(const http_request& request)
     const std::vector<std::string> pathParts =
       UploadServer::getPathParts(request);
 
+    std::string uri = request.absolute_uri().to_string();
+
     storage::FileLoader& l = storage::getFileLoader();
     std::string pathType = pathParts[0];
     std::vector<uint8_t> returnBytes;
 
-    SPDLOG_DEBUG("GET request to {}", request.absolute_uri().to_string());
-
-    faabric::Message msg = UploadServer::buildMessageFromRequest(request);
-
-    if (pathType == "s") {
+    if (pathType == STATE_UPLOAD_PART) {
+        SPDLOG_DEBUG("GET request for state at {}", uri);
         returnBytes = getState(request);
+
+    } else if (pathType == SHARED_FILE_UPLOAD_PART) {
+        std::string filePath = getHeaderFromRequest(request, FILE_PATH_HEADER);
+
+        if(filePath.empty()) {
+            SPDLOG_ERROR("Shared file path empty");
+            request.reply(status_codes::BadRequest, "Shared file path empty");
+            return;
+        }
+
+        SPDLOG_DEBUG("GET request for shared file {} at {}", filePath, uri);
+        returnBytes = l.loadSharedFile(filePath);
+
     } else {
-        returnBytes = l.loadFunctionWasm(msg);
+        std::string errMessage =
+          fmt::format("Unrecognised GET request to {}", uri);
+        request.reply(status_codes::BadRequest, errMessage);
+        return;
     }
 
     http_response response;
@@ -125,17 +142,23 @@ void UploadServer::handlePut(const http_request& request)
 {
     SPDLOG_DEBUG("PUT request to {}", request.absolute_uri().to_string());
 
+    std::string uri = request.absolute_uri().to_string();
+
     const std::vector<std::string> pathParts =
       UploadServer::getPathParts(request);
     std::string pathType = pathParts[0];
-    if (pathType == "s") {
+    if (pathType == STATE_UPLOAD_PART) {
         handleStateUpload(request);
-    } else if (pathType == "p" || pathType == "pa") {
+    } else if (pathType == PYTHON_UPLOAD_PART) {
         handlePythonFunctionUpload(request);
-    } else if (pathType == "file") {
+    } else if (pathType == SHARED_FILE_UPLOAD_PART) {
         handleSharedFileUpload(request);
-    } else {
+    } else if (pathType == FUNCTION_UPLOAD_PART) {
         handleFunctionUpload(request);
+    } else {
+        std::string errMessage =
+          fmt::format("Unrecognised PUT request to {}", uri);
+        request.reply(status_codes::BadRequest, errMessage);
     }
 }
 
@@ -253,23 +276,23 @@ void UploadServer::handleFunctionUpload(const http_request& request)
 faabric::Message UploadServer::buildMessageFromRequest(
   const http_request& request)
 {
-
     const std::vector<std::string> pathParts =
       UploadServer::getPathParts(request);
 
     if (pathParts.size() != 3) {
-        const char* msg = "Invalid path (must be /f|fa|p|pa/<user>/<func>/ \n";
+        std::string uri = request.absolute_uri().to_string();
+        std::string errMessage =
+          fmt::format("Invalid path {}, must be /[fp]/<user>/<func>/", uri);
 
-        SPDLOG_ERROR(msg);
+        SPDLOG_ERROR(errMessage);
 
-        request.reply(status_codes::OK, msg);
-        throw InvalidPathException(msg);
+        request.reply(status_codes::BadRequest, errMessage);
+        throw InvalidPathException(errMessage);
     }
 
     // Check URI
     faabric::Message msg =
       faabric::util::messageFactory(pathParts[1], pathParts[2]);
-    msg.set_isasync(pathParts[0] == "fa" || pathParts[0] == "pa");
 
     // Read request into msg input data
     const concurrency::streams::istream bodyStream = request.body();
