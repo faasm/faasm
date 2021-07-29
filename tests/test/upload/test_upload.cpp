@@ -212,8 +212,8 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
         boost::filesystem::remove(fullPath);
 
         // Check putting the file
-        std::string url =
-          fmt::format("/{}/{}/{}", PYTHON_UPLOAD_PART, user, function);
+        std::string url = fmt::format(
+          "/{}/{}/{}", PYTHON_UPLOAD_PART, pythonUser, pythonFunction);
         http_request request = createRequest(url, fileBytes);
         checkPut(request, fullPath, fileBytes);
 
