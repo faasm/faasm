@@ -444,7 +444,8 @@ void FileLoader::uploadSharedFile(const std::string& path,
 // PYTHON FUNCTIONS
 // -------------------------------------
 
-std::string getPythonFunctionRelativePath(const faabric::Message& msg)
+std::string FileLoader::getPythonFunctionRelativePath(
+  const faabric::Message& msg)
 {
     boost::filesystem::path path(PYTHON_FUNC_DIR);
     path.append(msg.pythonuser());

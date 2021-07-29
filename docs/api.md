@@ -3,12 +3,11 @@
 Most interactions with Faasm can be performed through the [CLI](cli.md),
 which itself uses the Faasm HTTP API.
 
-You should only need to interact with the HTTP API directly when performing 
+You should only need to interact with the HTTP API directly when performing
 benchmarking or integrating with another system.
 
-Note that the API currently has no authentication (as this is still a research
-project). 
- 
+Note that the API currently has no authentication.
+
 ## Endpoints
 
 The Faasm API is split into two parts which correspond to two endpoints:
@@ -18,12 +17,12 @@ The Faasm API is split into two parts which correspond to two endpoints:
 
 Generally `upload` is on port 8002, and `invoke` on port 8080. The specifics of
 the endpoints themselves will depend on the deployment of Faasm. Locally these
-are available on `localhost`, whereas in a [Knative deployment](kubernetes.md) 
+are available on `localhost`, whereas in a [Knative deployment](kubernetes.md)
 these will be provided by the Kubernetes infrastructure.
- 
-In some deployments the `upload` server will also act as a file server for the 
+
+In some deployments the `upload` server will also act as a file server for the
 Faasm runtime instances.
- 
+
 ## Upload
 
 The upload API is REST-ish and a list of interactions with cURL are shown below.
@@ -50,7 +49,7 @@ curl -X GET <host>:8002/p/<user>/<name> -o <out_file>
 
 State values all have a `user` and a `key`.
 
-These `key`s are then accessible to functions at runtime. 
+These `key`s are then accessible to functions at runtime.
 
 ```bash
 # Upload state data directly
@@ -77,20 +76,20 @@ curl -X GET <host>:8002/file -o <out_file>
 
 ## Invoke
 
-The invoke API is handled with JSON messages over HTTP. 
+The invoke API is handled with JSON messages over HTTP.
 
-Functions can be invoked synchronously while the client awaits the result, or 
+Functions can be invoked synchronously while the client awaits the result, or
 asynchronously when a call ID is returned which can be used to poll
 the function's status.
 
 ### JSON Format
 
-All Faasm invoke API calls use the same JSON message format. Possible  
+All Faasm invoke API calls use the same JSON message format. Possible
 fields are as follows:
 
 | Field | Type | Description | Use |
 |---|---|---|---|
-| `user` | string | User associated with the function | Invoking | 
+| `user` | string | User associated with the function | Invoking |
 | `function` | string | The function name | Invoking |
 | `async` | bool | Flag for asynchronous calls | Invoking |
 | `input_data` | bool | Input data for the function call | Invoking |

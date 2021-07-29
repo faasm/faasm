@@ -9,6 +9,11 @@ using namespace web::http;
 
 #define UPLOAD_PORT "8002"
 
+#define FUNCTION_UPLOAD_PART "f"
+#define PYTHON_UPLOAD_PART "p"
+#define STATE_UPLOAD_PART "s"
+#define SHARED_FILE_UPLOAD_PART "file"
+
 namespace edge {
 class UploadServer
 {

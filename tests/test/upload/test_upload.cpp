@@ -19,10 +19,6 @@
 using namespace web::http::experimental::listener;
 using namespace web::http;
 
-// TODO - possible to avoid hard-coding this?
-#define DUMMY_WASM_FILE "/usr/local/code/faasm/tests/test/upload/dummy.wasm"
-#define DUMMY_FILE "/usr/local/code/faasm/tests/test/upload/dummy_file.txt"
-
 namespace tests {
 
 class UploadTestFixture
@@ -56,12 +52,11 @@ void addRequestFilePathHeader(http_request request,
     h.add(FILE_PATH_HEADER, relativePath);
 }
 
-void checkPut(const std::string& path,
+void checkPut(http_request request,
               const std::string& expectedFile,
               const std::vector<uint8_t>& bytes)
 {
     // Submit PUT request
-    http_request request = createRequest(path, bytes);
     edge::UploadServer::handlePut(request);
 
     // Check file created
@@ -70,6 +65,7 @@ void checkPut(const std::string& path,
     // Check contents
     std::vector<uint8_t> actualBytes =
       faabric::util::readFileToBytes(expectedFile);
+    REQUIRE(actualBytes.size() == bytes.size());
     REQUIRE(actualBytes == bytes);
 }
 
@@ -92,9 +88,9 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
     SECTION("Test uploading state")
     {
         // Create multiple upload requests for different users
-        std::string pathA1 = "/s/foo/bar";
-        std::string pathA2 = "/s/foo/baz";
-        std::string pathB = "/s/bat/qux";
+        std::string pathA1 = fmt::format("/{}/foo/bar", STATE_UPLOAD_PART);
+        std::string pathA2 = fmt::format("/{}/foo/baz", STATE_UPLOAD_PART);
+        std::string pathB = fmt::format("/{}/bat/qux", STATE_UPLOAD_PART);
 
         std::vector<uint8_t> stateA1 = { 0, 1, 2, 3, 4, 5 };
         std::vector<uint8_t> stateA2 = { 9, 10, 11 };
@@ -133,7 +129,7 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
 
     SECTION("Test uploading and downloading state")
     {
-        std::string path = "/s/foo/bar";
+        std::string path = fmt::format("/{}/foo/bar", STATE_UPLOAD_PART);
         std::vector<uint8_t> state = { 0, 1, 2, 3, 4, 5 };
         const http_request request = createRequest(path, state);
 
@@ -156,8 +152,9 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
         boost::filesystem::remove(expectedHashFile);
 
         // Check putting the file
-        std::string url = "/f/gamma/delta";
-        checkPut(url, expectedFile, wasmBytesA);
+        std::string url = fmt::format("/{}/gamma/delta", FUNCTION_UPLOAD_PART);
+        http_request request = createRequest(url, wasmBytesA);
+        checkPut(request, expectedFile, wasmBytesA);
 
         // Check object file and hash generated
         REQUIRE(boost::filesystem::exists(expectedObjFile));
@@ -176,9 +173,7 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
 
     SECTION("Test uploading and downloading shared file")
     {
-        std::string realPath = DUMMY_FILE;
-        std::vector<uint8_t> fileBytes =
-          faabric::util::readFileToBytes(realPath);
+        std::vector<uint8_t> fileBytes = { 0, 0, 1, 1, 2, 2, 3, 3 };
 
         // Clear out any existing
         std::string relativePath = "test/dummy_file.txt";
@@ -188,21 +183,44 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
         }
 
         // Check putting the file
-        std::string url = "/file";
+        std::string url = fmt::format("/{}/", SHARED_FILE_UPLOAD_PART);
         http_request request = createRequest(url, fileBytes);
         addRequestFilePathHeader(request, relativePath);
 
-        edge::UploadServer::handlePut(request);
-
-        // Check file on the filesystem
-        REQUIRE(boost::filesystem::exists(fullPath));
-        std::vector<uint8_t> actualBytes =
-          faabric::util::readFileToBytes(fullPath);
-        REQUIRE(actualBytes.size() == fileBytes.size());
-        REQUIRE(actualBytes == fileBytes);
+        checkPut(request, fullPath, fileBytes);
 
         // Check downloading the file
         http_request requestB = createRequest(url, fileBytes);
+        addRequestFilePathHeader(requestB, relativePath);
+        checkGet(requestB, fileBytes);
+    }
+
+    SECTION("Test uploading and downloading python file")
+    {
+        std::vector<uint8_t> fileBytes = { 8, 8, 7, 7, 6, 6 };
+        std::string user = "blah";
+        std::string function = "hlab";
+
+        faabric::Message msg = faabric::util::messageFactory(user, function);
+        loader.convertMessageToPython(msg);
+
+        // Clear out any existing
+        std::string fullPath = loader.getPythonFunctionFile(msg);
+        std::string relativePath = loader.getPythonFunctionRelativePath(msg);
+        if (boost::filesystem::exists(fullPath)) {
+            boost::filesystem::remove(fullPath);
+        }
+
+        // Check putting the file
+        std::string url =
+          fmt::format("/{}/{}/{}", PYTHON_UPLOAD_PART, user, function);
+        http_request request = createRequest(url, fileBytes);
+        checkPut(request, fullPath, fileBytes);
+
+        // Check getting as shared file
+        std::string sharedFileUrl =
+          fmt::format("/{}/", SHARED_FILE_UPLOAD_PART);
+        http_request requestB = createRequest(sharedFileUrl);
         addRequestFilePathHeader(requestB, relativePath);
         checkGet(requestB, fileBytes);
     }

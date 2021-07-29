@@ -12,11 +12,6 @@
 #include <conf/FaasmConfig.h>
 #include <storage/FileLoader.h>
 
-#define FUNCTION_UPLOAD_PART "f"
-#define PYTHON_UPLOAD_PART "p"
-#define STATE_UPLOAD_PART "s"
-#define SHARED_FILE_UPLOAD_PART "file"
-
 namespace edge {
 void setPermissiveHeaders(http_response& response)
 {
@@ -108,7 +103,7 @@ void UploadServer::handleGet(const http_request& request)
     } else if (pathType == SHARED_FILE_UPLOAD_PART) {
         std::string filePath = getHeaderFromRequest(request, FILE_PATH_HEADER);
 
-        if(filePath.empty()) {
+        if (filePath.empty()) {
             SPDLOG_ERROR("Shared file path empty");
             request.reply(status_codes::BadRequest, "Shared file path empty");
             return;

@@ -100,6 +100,8 @@ class FileLoader
     // ----- Python files -----
     std::string getPythonFunctionSharedFilePath(const faabric::Message& msg);
 
+    std::string getPythonFunctionRelativePath(const faabric::Message& msg);
+
     std::string getPythonFunctionFile(const faabric::Message& msg);
 
     void uploadPythonFunction(faabric::Message& msg);
