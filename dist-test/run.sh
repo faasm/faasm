@@ -3,10 +3,11 @@
 export PROJ_ROOT=$(dirname $(dirname $(readlink -f $0)))
 pushd ${PROJ_ROOT}/dist-test >> /dev/null
 
+FAASM_VERSION=$(cat ../VERSION)
+
 # Set up image name
 if [[ -z "${FAASM_CLI_IMAGE}" ]]; then
-    VERSION=$(cat ../VERSION)
-    export FAASM_CLI_IMAGE=faasm/cli:${VERSION}
+    export FAASM_CLI_IMAGE=faasm/cli:${FAASM_VERSION}
 fi
 
 RETURN_VAL=0
