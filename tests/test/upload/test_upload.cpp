@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "faabric/util/string_tools.h"
 #include "faasm_fixtures.h"
 
 #include <faabric/proto/faabric.pb.h>
@@ -227,31 +228,55 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
 }
 
 TEST_CASE_METHOD(UploadTestFixture,
-                 "Test upload server error handling",
+                 "Test upload server invalid requests",
                  "[upload]")
 {
-    SECTION("Invalid GET URLs")
+    std::string url;
+    bool isGet = true;
+
+    SECTION("Complete junk")
     {
-        std::string url;
-        SECTION("Complete junk")
-        {
-            url = "iamjunk";
-        }
-
-        SECTION("Missing URL part")
-        {
-            url = fmt::format("{}/{}/", FUNCTION_UPLOAD_PART, "blah");
-        }
-
-        SECTION("Invalid first URL part") {
-            url = "/x/demo/echo";
-        }
-
-        http_request req = createRequest(url);
-        edge::UploadServer::handleGet(req);
-
-        http_response response = req.get_response().get();
-        REQUIRE(response.status_code() == status_codes::BadRequest);
+        url = "iamjunk";
+        SECTION("GET") { isGet = true; }
+        SECTION("PUT") { isGet = false; }
     }
+
+    SECTION("Missing URL part")
+    {
+        url = fmt::format("{}/{}/", FUNCTION_UPLOAD_PART, "blah");
+        SECTION("GET") { isGet = true; }
+        SECTION("PUT") { isGet = false; }
+    }
+
+    SECTION("Invalid first URL part")
+    {
+        url = "/x/demo/echo";
+        SECTION("GET") { isGet = true; }
+        SECTION("PUT") { isGet = false; }
+    }
+
+    SECTION("Invalid GET operation")
+    {
+        url = fmt::format("/{}/demo/echo", FUNCTION_UPLOAD_PART);
+        isGet = true;
+    }
+
+    SECTION("Shared file with no path")
+    {
+        url = fmt::format("/{}/", SHARED_FILE_UPLOAD_PART);
+        SECTION("GET") { isGet = true; }
+        SECTION("PUT") { isGet = false; }
+    }
+
+    http_request req = createRequest(url);
+
+    if (isGet) {
+        edge::UploadServer::handleGet(req);
+    } else {
+        edge::UploadServer::handlePut(req);
+    }
+
+    http_response response = req.get_response().get();
+    REQUIRE(response.status_code() == status_codes::BadRequest);
 }
 }
