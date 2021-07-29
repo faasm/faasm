@@ -29,8 +29,9 @@ TEST_CASE_METHOD(S3TestFixture, "Test read/write keys in bucket", "[s3]")
 
         s3.deleteBucket(conf.s3Bucket);
 
+        std::vector<std::string> expectedAfter = { "faasm" };
         std::vector<std::string> bucketsAfter = s3.listBuckets();
-        REQUIRE(bucketsAfter.empty());
+        REQUIRE(bucketsAfter == expectedAfter);
     }
 
     SECTION("Test simple string read/ write")
