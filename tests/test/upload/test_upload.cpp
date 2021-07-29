@@ -28,58 +28,58 @@ class UploadTestFixture
   public:
     UploadTestFixture() {}
     ~UploadTestFixture() {}
+
+    http_request createRequest(const std::string& path,
+                               const std::vector<uint8_t>& inputData = {})
+    {
+        uri_builder builder;
+
+        builder.set_path(path, false);
+        const uri requestUri = builder.to_uri();
+
+        http_request request;
+        request.set_request_uri(requestUri);
+        request.set_body(inputData);
+
+        return request;
+    }
+
+    void addRequestFilePathHeader(http_request request,
+                                  const std::string& relativePath)
+    {
+        http_headers& h = request.headers();
+        h.add(FILE_PATH_HEADER, relativePath);
+    }
+
+    void checkPut(http_request request,
+                  const std::string& expectedFile,
+                  const std::vector<uint8_t>& bytes)
+    {
+        // Submit PUT request
+        edge::UploadServer::handlePut(request);
+
+        // Check file created
+        REQUIRE(boost::filesystem::exists(expectedFile));
+
+        // Check contents
+        std::vector<uint8_t> actualBytes =
+          faabric::util::readFileToBytes(expectedFile);
+        REQUIRE(actualBytes.size() == bytes.size());
+        REQUIRE(actualBytes == bytes);
+    }
+
+    void checkGet(http_request& request, const std::vector<uint8_t>& bytes)
+    {
+        edge::UploadServer::handleGet(request);
+
+        http_response response = request.get_response().get();
+        const utility::string_t responseStr = response.to_string();
+
+        const std::vector<unsigned char> responseBytes =
+          response.extract_vector().get();
+        REQUIRE(responseBytes == bytes);
+    }
 };
-
-http_request createRequest(const std::string& path,
-                           const std::vector<uint8_t>& inputData = {})
-{
-    uri_builder builder;
-
-    builder.set_path(path, false);
-    const uri requestUri = builder.to_uri();
-
-    http_request request;
-    request.set_request_uri(requestUri);
-    request.set_body(inputData);
-
-    return request;
-}
-
-void addRequestFilePathHeader(http_request request,
-                              const std::string& relativePath)
-{
-    http_headers& h = request.headers();
-    h.add(FILE_PATH_HEADER, relativePath);
-}
-
-void checkPut(http_request request,
-              const std::string& expectedFile,
-              const std::vector<uint8_t>& bytes)
-{
-    // Submit PUT request
-    edge::UploadServer::handlePut(request);
-
-    // Check file created
-    REQUIRE(boost::filesystem::exists(expectedFile));
-
-    // Check contents
-    std::vector<uint8_t> actualBytes =
-      faabric::util::readFileToBytes(expectedFile);
-    REQUIRE(actualBytes.size() == bytes.size());
-    REQUIRE(actualBytes == bytes);
-}
-
-void checkGet(http_request& request, const std::vector<uint8_t>& bytes)
-{
-    edge::UploadServer::handleGet(request);
-
-    http_response response = request.get_response().get();
-    const utility::string_t responseStr = response.to_string();
-
-    const std::vector<unsigned char> responseBytes =
-      response.extract_vector().get();
-    REQUIRE(responseBytes == bytes);
-}
 
 TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
 {
@@ -223,6 +223,35 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
         http_request requestB = createRequest(sharedFileUrl);
         addRequestFilePathHeader(requestB, relativePath);
         checkGet(requestB, fileBytes);
+    }
+}
+
+TEST_CASE_METHOD(UploadTestFixture,
+                 "Test upload server error handling",
+                 "[upload]")
+{
+    SECTION("Invalid GET URLs")
+    {
+        std::string url;
+        SECTION("Complete junk")
+        {
+            url = "iamjunk";
+        }
+
+        SECTION("Missing URL part")
+        {
+            url = fmt::format("{}/{}/", FUNCTION_UPLOAD_PART, "blah");
+        }
+
+        SECTION("Invalid first URL part") {
+            url = "/x/demo/echo";
+        }
+
+        http_request req = createRequest(url);
+        edge::UploadServer::handleGet(req);
+
+        http_response response = req.get_response().get();
+        REQUIRE(response.status_code() == status_codes::BadRequest);
     }
 }
 }

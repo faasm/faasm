@@ -28,23 +28,29 @@ class UploadServer
 
     static void handleOptions(const http_request& request);
 
-    static faabric::Message buildMessageFromRequest(
-      const http_request& request);
-
-    static std::vector<std::string> getPathParts(const http_request& request);
-
-    static std::vector<uint8_t> getState(const http_request& request);
-
   private:
     bool stopped = false;
 
-    static void handlePythonFunctionUpload(const http_request& request);
+    static std::vector<uint8_t> getState(const std::string& user,
+                                         const std::string& key);
 
-    static void handleFunctionUpload(const http_request& request);
+    static void handlePythonFunctionUpload(const http_request& request,
+                                           const std::string& user,
+                                           const std::string& function);
 
-    static void handleStateUpload(const http_request& request);
+    static void handleFunctionUpload(const http_request& request,
+                                     const std::string& user,
+                                     const std::string& function);
 
-    static void handleSharedFileUpload(const http_request& request);
+    static void handleStateUpload(const http_request& request,
+                                  const std::string& user,
+                                  const std::string& key);
+
+    static void handleSharedFileUpload(const http_request& request,
+                                       const std::string& path);
+
+    static void extractRequestBody(const http_request& req,
+                                   faabric::Message& msg);
 };
 
 class InvalidPathException : public faabric::util::FaabricException
