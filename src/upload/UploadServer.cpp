@@ -63,10 +63,12 @@ class PathParts
         http_headers headers = request.headers();                              \
         if (headers.has(FILE_PATH_HEADER)) {                                   \
             varName = headers[FILE_PATH_HEADER];                               \
+        } else {                                                               \
+            std::string errorMsg = fmt::format(                                \
+              "Bad request, expected file path header {}", FILE_PATH_HEADER);  \
+            request.reply(status_codes::BadRequest, errorMsg);                 \
+            return;                                                            \
         }                                                                      \
-        std::string errorMsg = fmt::format(                                    \
-          "Bad request, expected file path header {}", FILE_PATH_HEADER);      \
-        request.reply(status_codes::BadRequest, errorMsg);                     \
     }
 
 void setPermissiveHeaders(http_response& response)
