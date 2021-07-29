@@ -40,8 +40,8 @@ uploaded and invoked from the Python CLI with:
 inv func
 inv func.upload
 
-# Upload all the Python functions
-inv func.uploadpy
+# Upload the hello function
+inv func.uploadpy hello
 
 # Invoke the hello function
 inv func.invoke python hello

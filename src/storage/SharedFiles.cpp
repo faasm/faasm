@@ -151,10 +151,12 @@ void SharedFiles::syncPythonFunctionFile(const faabric::Message& msg)
     // Shared path used by the functions themselves
     std::string sharedPath = loader.getPythonFunctionSharedFilePath(msg);
 
-    // Actual path to the function file to allow runtime access
-    std::string runtimeFilePath = loader.getPythonFunctionFile(msg);
+    // Write the Python file to a real filesystem location accessible at runtime
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
+    boost::filesystem::path path(conf.runtimeFilesDir);
+    path.append(loader.getPythonFunctionRelativePath(msg));
 
-    syncSharedFile(sharedPath, runtimeFilePath);
+    syncSharedFile(sharedPath, path.string());
 }
 
 void SharedFiles::clear()

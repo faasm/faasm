@@ -50,14 +50,8 @@ static std::string trimLeadingSlashes(const std::string& pathIn)
 static std::string getKey(const faabric::Message& msg,
                           const std::string& filename)
 {
-    std::string key = conf::getFaasmConfig().s3Bucket;
-
-    key += "/";
-    key += msg.user();
-    key += "/";
-    key += msg.function();
-    key += "/";
-    key += filename;
+    std::string key =
+      fmt::format("{}/{}/{}", msg.user(), msg.function(), filename);
 
     return key;
 }
@@ -466,8 +460,8 @@ std::string FileLoader::getPythonFunctionSharedFilePath(
 
 std::string FileLoader::getPythonFunctionFile(const faabric::Message& msg)
 {
-    // This is the path where the file is actually placed to be accessible to
-    // the function. This is just as a shared file.
+    // This is the path where the file is actually stored to be available as a
+    // shared file
     return getSharedFileFile(getPythonFunctionRelativePath(msg));
 }
 

@@ -83,7 +83,7 @@ inv libfake
 inv func
 
 # Upload the Python functions
-inv func.uploadpy --local
+inv func.upload-all --local
 
 # --- Faasm CLI ---
 # Build the development tools

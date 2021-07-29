@@ -80,7 +80,7 @@ jobs:
       - name: "Build CPython function"
         run: inv func
       - name: "Put Python functions in place"
-        run: inv func.uploadpy --local
+        run: inv func.upload-all --local
       - name: "Upload python wasm"
         uses: actions/upload-artifact@v2
         with:

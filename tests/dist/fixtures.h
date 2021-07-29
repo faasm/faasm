@@ -1,11 +1,12 @@
 #pragma once
 
-#include "codegen/MachineCodeGenerator.h"
-#include "faabric/util/func.h"
-#include "storage/FileLoader.h"
+#include <codegen/MachineCodeGenerator.h>
 #include <conf/FaasmConfig.h>
-#include <faabric/scheduler/Scheduler.h>
 #include <faaslet/Faaslet.h>
+#include <storage/FileLoader.h>
+
+#include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/func.h>
 
 #define MASTER_IP "172.60.0.5"
 #define WORKER_IP "172.60.0.6"
