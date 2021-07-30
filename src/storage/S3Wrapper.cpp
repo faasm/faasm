@@ -81,6 +81,19 @@ void initFaasmS3()
 
     S3Wrapper s3;
     s3.createBucket(conf::getFaasmConfig().s3Bucket);
+
+    // Check we can write/ read
+    const auto& conf = conf::getFaasmConfig();
+    s3.addKeyStr(conf.s3Bucket, "ping", "pong");
+    std::string response = s3.getKeyStr(conf.s3Bucket, "ping");
+    if (response != "pong") {
+        std::string errorMsg =
+          fmt::format("Unable to write/ read to/ from S3 ({})", response);
+        SPDLOG_ERROR(errorMsg);
+        throw std::runtime_error(errorMsg);
+    }
+
+    SPDLOG_INFO("Successfully pinged S3 at {}:{}", conf.s3Host, conf.s3Port);
 }
 
 void shutdownFaasmS3()

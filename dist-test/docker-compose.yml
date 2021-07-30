@@ -10,20 +10,12 @@ networks:
 services:
   redis:
     image: redis
-    networks:
-      faasmdist:
-        ipv4_address: 172.60.0.3
 
   minio:
     image: faasm/minio:${FAASM_VERSION}
-    expose:
-      - "9000"
     environment:
       MINIO_ROOT_USER: minio
       MINIO_ROOT_PASSWORD: minio123
-    networks:
-      faasmdist:
-        ipv4_address: 172.60.0.4
 
   builder:
     image: ${FAASM_CLI_IMAGE}
@@ -32,6 +24,8 @@ services:
       - ./build/dist-test/:/build/dist-test
       - ./build/faasm-local/:/build/faasm-local
     working_dir: /usr/local/code/faasm
+    depends_on:
+      - minio
 
   master:
     image: ${FAASM_CLI_IMAGE}
@@ -53,6 +47,7 @@ services:
         ipv4_address: 172.60.0.5
     depends_on:
       - redis
+      - minio
       - worker
 
   worker:

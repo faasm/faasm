@@ -13,9 +13,9 @@ FAABRIC_CATCH_LOGGER
 
 int main(int argc, char* argv[])
 {
+    faabric::util::initLogging();
     storage::initFaasmS3();
     faabric::transport::initGlobalMessageContext();
-    faabric::util::initLogging();
 
     tests::cleanSystem();
 
