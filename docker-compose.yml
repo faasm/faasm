@@ -16,6 +16,11 @@ services:
       MINIO_ROOT_PASSWORD: minio123
     volumes:
       - ./dev/minio/data:/data/minio
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
 
   upload:
     image: faasm/upload:${FAASM_VERSION}

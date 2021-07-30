@@ -26,6 +26,11 @@ services:
     networks:
       faasmdist:
         ipv4_address: 172.60.0.4
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
 
   builder:
     image: ${FAASM_CLI_IMAGE}
