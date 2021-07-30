@@ -23,6 +23,9 @@ docker-compose \
     builder \
     /usr/local/code/faasm/dist-test/build_internal.sh
 
+# Use the faasm-local dir set up by the build
+export FAASM_LOCAL_DIR=${PROJ_ROOT}/dist-test/build/faasm-local
+
 # Run the function build and upload
 docker-compose \
     run \
