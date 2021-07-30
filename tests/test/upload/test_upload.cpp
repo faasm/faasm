@@ -1,6 +1,5 @@
 #include <catch2/catch.hpp>
 
-#include "faabric/util/string_tools.h"
 #include "faasm_fixtures.h"
 
 #include <faabric/proto/faabric.pb.h>
@@ -10,6 +9,7 @@
 #include <faabric/util/environment.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
+#include <faabric/util/string_tools.h>
 
 #include <boost/filesystem.hpp>
 
