@@ -10,12 +10,22 @@ networks:
 services:
   redis:
     image: redis
+    networks:
+      faasmdist:
+        ipv4_address: 172.60.0.3
 
   minio:
     image: faasm/minio:${FAASM_VERSION}
+    expose:
+      - "9000"
     environment:
       MINIO_ROOT_USER: minio
       MINIO_ROOT_PASSWORD: minio123
+    volumes:
+      - ./build/dist-test-minio:/data/minio
+    networks:
+      faasmdist:
+        ipv4_address: 172.60.0.4
 
   builder:
     image: ${FAASM_CLI_IMAGE}

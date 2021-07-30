@@ -76,14 +76,15 @@ ClientConfiguration getClientConf(long timeout)
 
 void initFaasmS3()
 {
-    SPDLOG_INFO("Initialising Faasm S3 setup");
+    const auto& conf = conf::getFaasmConfig();
+    SPDLOG_INFO(
+      "Initialising Faasm S3 setup at {}:{}", conf.s3Host, conf.s3Port);
     Aws::InitAPI(options);
 
     S3Wrapper s3;
-    s3.createBucket(conf::getFaasmConfig().s3Bucket);
+    s3.createBucket(conf.s3Bucket);
 
     // Check we can write/ read
-    const auto& conf = conf::getFaasmConfig();
     s3.addKeyStr(conf.s3Bucket, "ping", "pong");
     std::string response = s3.getKeyStr(conf.s3Bucket, "ping");
     if (response != "pong") {
