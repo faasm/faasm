@@ -121,14 +121,14 @@ void UploadServer::handleGet(const http_request& request)
     PATH_PART(pathType, pathParts, 0);
     std::vector<uint8_t> returnBytes;
 
-    if (pathType == STATE_UPLOAD_PART) {
+    if (pathType == STATE_URL_PART) {
         SPDLOG_DEBUG("GET request for state at {}", pathParts.relativeUri);
 
         PATH_PART(user, pathParts, 1);
         PATH_PART(key, pathParts, 2);
         returnBytes = getState(user, key);
 
-    } else if (pathType == SHARED_FILE_UPLOAD_PART) {
+    } else if (pathType == SHARED_FILE_URL_PART) {
         SPDLOG_DEBUG("GET request for shared file at {}",
                      pathParts.relativeUri);
 
@@ -194,14 +194,14 @@ void UploadServer::handlePut(const http_request& request)
     PathParts pathParts(request);
     PATH_PART(pathType, pathParts, 0);
 
-    if (pathType == STATE_UPLOAD_PART) {
+    if (pathType == STATE_URL_PART) {
         SPDLOG_DEBUG("PUT request for state at {}", pathParts.relativeUri);
 
         PATH_PART(user, pathParts, 1);
         PATH_PART(key, pathParts, 2);
         handleStateUpload(request, user, key);
 
-    } else if (pathType == PYTHON_UPLOAD_PART) {
+    } else if (pathType == PYTHON_URL_PART) {
         SPDLOG_DEBUG("PUT request for Python function at {}",
                      pathParts.relativeUri);
 
@@ -209,14 +209,14 @@ void UploadServer::handlePut(const http_request& request)
         PATH_PART(function, pathParts, 2);
         handlePythonFunctionUpload(request, user, function);
 
-    } else if (pathType == SHARED_FILE_UPLOAD_PART) {
+    } else if (pathType == SHARED_FILE_URL_PART) {
         SPDLOG_DEBUG("PUT request for shared file at {}",
                      pathParts.relativeUri);
 
         PATH_HEADER(filePath, request);
         handleSharedFileUpload(request, filePath);
 
-    } else if (pathType == FUNCTION_UPLOAD_PART) {
+    } else if (pathType == FUNCTION_URL_PART) {
         SPDLOG_DEBUG("PUT request for function at {}", pathParts.relativeUri);
 
         PATH_PART(user, pathParts, 1);

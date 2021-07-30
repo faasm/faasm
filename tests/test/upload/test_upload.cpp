@@ -92,9 +92,9 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
     SECTION("Test uploading state")
     {
         // Create multiple upload requests for different users
-        std::string pathA1 = fmt::format("/{}/foo/bar", STATE_UPLOAD_PART);
-        std::string pathA2 = fmt::format("/{}/foo/baz", STATE_UPLOAD_PART);
-        std::string pathB = fmt::format("/{}/bat/qux", STATE_UPLOAD_PART);
+        std::string pathA1 = fmt::format("/{}/foo/bar", STATE_URL_PART);
+        std::string pathA2 = fmt::format("/{}/foo/baz", STATE_URL_PART);
+        std::string pathB = fmt::format("/{}/bat/qux", STATE_URL_PART);
 
         std::vector<uint8_t> stateA1 = { 0, 1, 2, 3, 4, 5 };
         std::vector<uint8_t> stateA2 = { 9, 10, 11 };
@@ -133,7 +133,7 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
 
     SECTION("Test uploading and downloading state")
     {
-        std::string path = fmt::format("/{}/foo/bar", STATE_UPLOAD_PART);
+        std::string path = fmt::format("/{}/foo/bar", STATE_URL_PART);
         std::vector<uint8_t> state = { 0, 1, 2, 3, 4, 5 };
         const http_request request = createRequest(path, state);
 
@@ -156,7 +156,7 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
         boost::filesystem::remove(expectedHashFile);
 
         // Check putting the file
-        std::string url = fmt::format("/{}/gamma/delta", FUNCTION_UPLOAD_PART);
+        std::string url = fmt::format("/{}/gamma/delta", FUNCTION_URL_PART);
         http_request request = createRequest(url, wasmBytesA);
         checkPut(request, expectedFile, wasmBytesA);
 
@@ -185,7 +185,7 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
         boost::filesystem::remove(fullPath);
 
         // Check putting the file
-        std::string url = fmt::format("/{}/", SHARED_FILE_UPLOAD_PART);
+        std::string url = fmt::format("/{}/", SHARED_FILE_URL_PART);
         http_request request = createRequest(url, fileBytes);
         addRequestFilePathHeader(request, relativePath);
 
@@ -214,14 +214,13 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
         boost::filesystem::remove(fullPath);
 
         // Check putting the file
-        std::string url = fmt::format(
-          "/{}/{}/{}", PYTHON_UPLOAD_PART, pythonUser, pythonFunction);
+        std::string url =
+          fmt::format("/{}/{}/{}", PYTHON_URL_PART, pythonUser, pythonFunction);
         http_request request = createRequest(url, fileBytes);
         checkPut(request, fullPath, fileBytes);
 
         // Check getting as shared file
-        std::string sharedFileUrl =
-          fmt::format("/{}/", SHARED_FILE_UPLOAD_PART);
+        std::string sharedFileUrl = fmt::format("/{}/", SHARED_FILE_URL_PART);
         http_request requestB = createRequest(sharedFileUrl);
         addRequestFilePathHeader(requestB, relativePath);
         checkGet(requestB, fileBytes);
@@ -244,7 +243,7 @@ TEST_CASE_METHOD(UploadTestFixture,
 
     SECTION("Missing URL part")
     {
-        url = fmt::format("{}/{}/", FUNCTION_UPLOAD_PART, "blah");
+        url = fmt::format("{}/{}/", FUNCTION_URL_PART, "blah");
         SECTION("GET") { isGet = true; }
         SECTION("PUT") { isGet = false; }
     }
@@ -258,13 +257,13 @@ TEST_CASE_METHOD(UploadTestFixture,
 
     SECTION("Invalid GET operation")
     {
-        url = fmt::format("/{}/demo/echo", FUNCTION_UPLOAD_PART);
+        url = fmt::format("/{}/demo/echo", FUNCTION_URL_PART);
         isGet = true;
     }
 
     SECTION("Shared file with no path")
     {
-        url = fmt::format("/{}/", SHARED_FILE_UPLOAD_PART);
+        url = fmt::format("/{}/", SHARED_FILE_URL_PART);
         SECTION("GET") { isGet = true; }
         SECTION("PUT") { isGet = false; }
     }

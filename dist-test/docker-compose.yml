@@ -47,7 +47,7 @@ services:
       - ./build/dist-test/:/build/faasm
       - ${FAASM_LOCAL_DIR}:/usr/local/faasm
     environment:
-      - LOG_LEVEL=trace
+      - LOG_LEVEL=info
       - REDIS_STATE_HOST=redis
       - REDIS_QUEUE_HOST=redis
     networks:
@@ -77,7 +77,7 @@ services:
     stdin_open: true
     tty: true
     environment:
-      - LOG_LEVEL=trace
+      - LOG_LEVEL=info
       - REDIS_STATE_HOST=redis
       - REDIS_QUEUE_HOST=redis
       - OVERRIDE_CPU_COUNT=4
@@ -97,7 +97,7 @@ services:
       - ./build/dist-test/:/build/faasm
     working_dir: /build/faasm
     environment:
-      - LOG_LEVEL=trace
+      - LOG_LEVEL=info
       - REDIS_STATE_HOST=redis
       - REDIS_QUEUE_HOST=redis
       - OVERRIDE_CPU_COUNT=4
