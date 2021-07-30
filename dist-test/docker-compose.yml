@@ -41,6 +41,9 @@ services:
     working_dir: /usr/local/code/faasm
     depends_on:
       - minio
+    networks:
+      faasmdist:
+        ipv4_address: 172.60.0.5
 
   master:
     image: ${FAASM_CLI_IMAGE}
@@ -59,7 +62,7 @@ services:
       - CGROUP_MODE=off
     networks:
       faasmdist:
-        ipv4_address: 172.60.0.5
+        ipv4_address: 172.60.0.6
     depends_on:
       - redis
       - minio
@@ -81,7 +84,7 @@ services:
     command: ./bin/dist_test_server
     networks:
       faasmdist:
-        ipv4_address: 172.60.0.6
+        ipv4_address: 172.60.0.7
     depends_on:
       - redis
       - minio
