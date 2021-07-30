@@ -191,6 +191,8 @@ jobs:
         uses: actions/checkout@v2
       - name: "Update faabric submodule"
         run: git submodule update --init faabric
+      - name: "Update cpp client submodule"
+        run: git submodule update --init clients/cpp
         # --- Set up and run ---
       - name: "Set up directory for wasm"
         run: mkdir -p ./dist-test/build/faasm-local
