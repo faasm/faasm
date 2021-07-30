@@ -8,6 +8,8 @@
 #include <storage/S3Wrapper.h>
 #include <wavm/WAVMWasmModule.h>
 
+#include <faabric/util/files.h>
+
 namespace tests {
 
 class FaasmConfTestFixture
@@ -71,11 +73,19 @@ class FunctionLoaderTestFixture : public S3TestFixture
         hashBytesA = loader.loadFunctionObjectHash(msgA);
         hashBytesB = loader.loadFunctionObjectHash(msgB);
 
+        // Use a shared object we know exists
+        localSharedObjFile =
+          conf.runtimeFilesDir + "/lib/python3.8/lib-dynload/mmap.so";
+        sharedObjWasm = faabric::util::readFileToBytes(localSharedObjFile);
+
         // Dummy directories for functions and object files
         conf.functionDir = "/tmp/func";
-        conf.sharedFilesDir = "/tmp/shared";
         conf.objectFileDir = "/tmp/obj";
+        conf.sharedFilesDir = "/tmp/shared";
+    }
 
+    void uploadTestWasm()
+    {
         // Upload functions to new dummy locations
         loader.uploadFunction(msgA);
         gen.codegenForFunction(msgA);
@@ -98,5 +108,8 @@ class FunctionLoaderTestFixture : public S3TestFixture
     std::vector<uint8_t> objBytesB;
     std::vector<uint8_t> hashBytesA;
     std::vector<uint8_t> hashBytesB;
+
+    std::string localSharedObjFile;
+    std::vector<uint8_t> sharedObjWasm;
 };
 }

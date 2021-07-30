@@ -24,7 +24,7 @@ class PathParts
     PathParts(http_request requestIn)
       : request(requestIn)
     {
-        std::string relativeUri = uri::decode(request.relative_uri().path());
+        relativeUri = uri::decode(request.relative_uri().path());
         pathParts = uri::split_path(relativeUri);
     }
 
@@ -213,8 +213,8 @@ void UploadServer::handlePut(const http_request& request)
         SPDLOG_DEBUG("PUT request for shared file at {}",
                      pathParts.relativeUri);
 
-        PATH_PART(path, pathParts, 1);
-        handleSharedFileUpload(request, path);
+        PATH_HEADER(filePath, request);
+        handleSharedFileUpload(request, filePath);
 
     } else if (pathType == FUNCTION_UPLOAD_PART) {
         SPDLOG_DEBUG("PUT request for function at {}", pathParts.relativeUri);
@@ -266,6 +266,7 @@ void UploadServer::handlePythonFunctionUpload(const http_request& request,
                                               const std::string& function)
 {
     faabric::Message msg;
+    msg.set_ispython(true);
     msg.set_pythonuser(user);
     msg.set_pythonfunction(function);
     UploadServer::extractRequestBody(request, msg);
@@ -273,11 +274,6 @@ void UploadServer::handlePythonFunctionUpload(const http_request& request,
     SPDLOG_INFO("Uploading Python function {}/{}",
                 msg.pythonuser(),
                 msg.pythonfunction());
-
-    // Note that we must actually set the _python_ user and function on the
-    // message
-    msg.set_pythonuser(msg.user());
-    msg.set_pythonfunction(msg.function());
 
     // Do the upload
     storage::FileLoader& l = storage::getFileLoader();

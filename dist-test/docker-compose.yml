@@ -21,8 +21,6 @@ services:
     environment:
       MINIO_ROOT_USER: minio
       MINIO_ROOT_PASSWORD: minio123
-    volumes:
-      - ./dev/minio/data:/data/minio
     networks:
       faasmdist:
         ipv4_address: 172.60.0.4

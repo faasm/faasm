@@ -27,6 +27,8 @@ class FlushingTestFixture : public FunctionLoaderTestFixture
     FlushingTestFixture()
       : faabricConf(faabric::util::getSystemConfig())
     {
+        uploadTestWasm();
+
         // Switch off test mode to allow proper flushing
         faabric::util::setTestMode(false);
     }

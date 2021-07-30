@@ -71,10 +71,9 @@ int SharedFiles::syncSharedFile(const std::string& sharedPath,
 {
     // See if file already synced
     {
-        SPDLOG_TRACE("Not syncing {}, cached at {}", sharedPath, localPath);
         faabric::util::SharedLock lock(sharedFileMapMutex);
-
         if (sharedFileMap.count(sharedPath) > 0) {
+            SPDLOG_TRACE("Not syncing {}, cached at {}", sharedPath, localPath);
             return getReturnValueForSharedFileState(sharedPath);
         }
     }
@@ -150,19 +149,26 @@ void SharedFiles::syncPythonFunctionFile(const faabric::Message& msg)
         return;
     }
 
-    FileLoader& loader = getFileLoader();
+    SPDLOG_TRACE("Syncing file for Python function {}/{}",
+                 msg.pythonuser(),
+                 msg.pythonfunction());
 
-    // Shared path used by the functions themselves
-    std::string sharedPath = loader.getPythonFunctionSharedFilePath(msg);
-
-    // Write the Python file to location _directly_ accessible at runtime.
-    // Python function must be able to access the whole directory, so shared
-    // files are insufficient.
     conf::FaasmConfig& conf = conf::getFaasmConfig();
-    boost::filesystem::path path(conf.runtimeFilesDir);
-    path.append(loader.getPythonFunctionRelativePath(msg));
+    FileLoader& loader = getFileLoader();
+    std::string relativePath = loader.getPythonFunctionRelativePath(msg);
 
-    syncSharedFile(sharedPath, path.string());
+    // This is the shared path of the form faasm:// used to access the Python
+    // file as a shared file
+    boost::filesystem::path sharedUrl(SHARED_FILE_PREFIX);
+    sharedUrl.append(relativePath);
+
+    // This is where we want to write the file to make it _directly_ accessible
+    // at runtime.  Python function must be able to access the whole directory,
+    // so shared files are insufficient.
+    boost::filesystem::path runtimePath(conf.runtimeFilesDir);
+    runtimePath.append(relativePath);
+
+    syncSharedFile(sharedUrl.string(), runtimePath.string());
 }
 
 void SharedFiles::clear()

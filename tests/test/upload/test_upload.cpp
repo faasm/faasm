@@ -58,6 +58,8 @@ class UploadTestFixture
     {
         // Submit PUT request
         edge::UploadServer::handlePut(request);
+        http_response response = request.get_response().get();
+        REQUIRE(response.status_code() == status_codes::OK);
 
         // Check file created
         REQUIRE(boost::filesystem::exists(expectedFile));
@@ -74,8 +76,9 @@ class UploadTestFixture
         edge::UploadServer::handleGet(request);
 
         http_response response = request.get_response().get();
-        const utility::string_t responseStr = response.to_string();
+        REQUIRE(response.status_code() == status_codes::OK);
 
+        const utility::string_t responseStr = response.to_string();
         const std::vector<unsigned char> responseBytes =
           response.extract_vector().get();
         REQUIRE(responseBytes == bytes);
@@ -197,8 +200,6 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
     SECTION("Test uploading and downloading python file")
     {
         std::vector<uint8_t> fileBytes = { 8, 8, 7, 7, 6, 6 };
-        std::string user = PYTHON_USER;
-        std::string function = PYTHON_FUNC;
         std::string pythonUser = "blah";
         std::string pythonFunction = "hlab";
 

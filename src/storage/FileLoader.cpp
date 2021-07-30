@@ -441,17 +441,23 @@ void FileLoader::uploadSharedFile(const std::string& path,
 std::string FileLoader::getPythonFunctionRelativePath(
   const faabric::Message& msg)
 {
-    if (msg.pythonuser().empty() || msg.pythonfunction().empty()) {
+    std::string pythonUser = msg.pythonuser();
+    std::string pythonFunction = msg.pythonfunction();
+
+    if (pythonUser.empty() || pythonFunction.empty()) {
         std::string errorMsg =
-          "Accessing Python function without python user and function set";
+          fmt::format("Accessing Python function without python user and "
+                      "function set ({}/{})",
+                      pythonUser,
+                      pythonFunction);
 
         SPDLOG_ERROR(errorMsg);
         throw std::runtime_error(errorMsg);
     }
 
     boost::filesystem::path path(PYTHON_FUNC_DIR);
-    path.append(msg.pythonuser());
-    path.append(msg.pythonfunction());
+    path.append(pythonUser);
+    path.append(pythonFunction);
     path.append(PYTHON_FUNCTION_FILENAME);
     return path.string();
 }

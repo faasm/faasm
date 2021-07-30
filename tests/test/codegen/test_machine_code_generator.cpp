@@ -1,6 +1,7 @@
 #include <catch2/catch.hpp>
 
 #include "faabric_utils.h"
+#include "faasm_fixtures.h"
 #include "utils.h"
 
 #include <faabric/util/bytes.h>
@@ -22,61 +23,21 @@ using namespace codegen;
 
 namespace tests {
 
-class CodegenTestFixture
+class CodegenTestFixture : public FunctionLoaderTestFixture
 {
   public:
     CodegenTestFixture()
-      : conf(conf::getFaasmConfig())
-      , loader(storage::getFileLoader())
-      , gen(codegen::getMachineCodeGenerator())
     {
-        // Use two functions we know exist
-        faabric::Message msgA = faabric::util::messageFactory("demo", "echo");
-        faabric::Message msgB = faabric::util::messageFactory("demo", "x2");
-
-        std::string pathA = loader.getFunctionFile(msgA);
-        std::string pathB = loader.getFunctionFile(msgB);
-
-        wasmBytesA = faabric::util::readFileToBytes(pathA);
-        wasmBytesB = faabric::util::readFileToBytes(pathB);
-
-        // Use a shared object we know exists
-        localSharedObjFile =
-          conf.runtimeFilesDir + "/lib/python3.8/lib-dynload/mmap.so";
-        sharedObjWasm = faabric::util::readFileToBytes(localSharedObjFile);
-
         // Note that we deliberately switch off test mode here so that we can
         // clear the local file loader cache
         faabric::util::setTestMode(false);
-
-        conf.s3Bucket = "faasm-test";
-        conf.functionDir = "/tmp/func";
-        conf.objectFileDir = "/tmp/obj";
-
-        s3.createBucket(conf.s3Bucket);
     };
 
     ~CodegenTestFixture()
     {
         loader.clearLocalCache();
-
-        s3.deleteBucket(conf.s3Bucket);
-
         faabric::util::setTestMode(true);
-        conf.reset();
     };
-
-  protected:
-    conf::FaasmConfig& conf;
-    storage::FileLoader& loader;
-    codegen::MachineCodeGenerator& gen;
-    storage::S3Wrapper s3;
-
-    std::string localSharedObjFile;
-
-    std::vector<uint8_t> wasmBytesA;
-    std::vector<uint8_t> wasmBytesB;
-    std::vector<uint8_t> sharedObjWasm;
 };
 
 TEST_CASE_METHOD(CodegenTestFixture, "Test basic codegen", "[codegen]")
@@ -122,15 +83,15 @@ TEST_CASE_METHOD(CodegenTestFixture,
     SECTION("WAVM codegen")
     {
         conf.wasmVm = "wavm";
-        objectFileA = "/tmp/obj/demo/echo/function.wasm.o";
-        objectFileB = "/tmp/obj/demo/x2/function.wasm.o";
+        objectFileA = "/tmp/obj/demo/hello/function.wasm.o";
+        objectFileB = "/tmp/obj/demo/echo/function.wasm.o";
     }
 
     SECTION("WAMR codegen")
     {
         conf.wasmVm = "wamr";
-        objectFileA = "/tmp/obj/demo/echo/function.aot";
-        objectFileB = "/tmp/obj/demo/x2/function.aot";
+        objectFileA = "/tmp/obj/demo/hello/function.aot";
+        objectFileB = "/tmp/obj/demo/echo/function.aot";
 
         // It seems that WAMR codegen doesn't produce the same results every
         // time, but they are the same length. Perhaps a timestamp is included.
@@ -139,19 +100,12 @@ TEST_CASE_METHOD(CodegenTestFixture,
 
     codegen::MachineCodeGenerator gen(loader);
 
-    // Use two functions we know exist
-    faabric::Message msgA = faabric::util::messageFactory("demo", "echo");
-    faabric::Message msgB = faabric::util::messageFactory("demo", "x2");
-
-    msgA.set_inputdata(wasmBytesA.data(), wasmBytesA.size());
-    msgB.set_inputdata(wasmBytesB.data(), wasmBytesB.size());
-
     // Upload the functions
     loader.uploadFunction(msgA);
     loader.uploadFunction(msgB);
 
-    std::string wasmFileA = "/tmp/func/demo/echo/function.wasm";
-    std::string wasmFileB = "/tmp/func/demo/x2/function.wasm";
+    std::string wasmFileA = "/tmp/func/demo/hello/function.wasm";
+    std::string wasmFileB = "/tmp/func/demo/echo/function.wasm";
     std::string hashFileA = objectFileA + HASH_EXT;
     std::string hashFileB = objectFileB + HASH_EXT;
 
