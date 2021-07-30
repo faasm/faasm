@@ -39,18 +39,40 @@ services:
       - ./build/dist-test/:/build/dist-test
       - ./build/faasm-local/:/build/faasm-local
     working_dir: /usr/local/code/faasm
-    depends_on:
-      - minio
+
+  upload:
+    image: faasm/upload:${FAASM_VERSION}
+    volumes:
+      - ${PROJ_ROOT}:/usr/local/code/faasm
+      - ./build/dist-test/:/build/faasm
+      - ${FAASM_LOCAL_DIR}:/usr/local/faasm
+    environment:
+      - LOG_LEVEL=trace
+      - REDIS_STATE_HOST=redis
+      - REDIS_QUEUE_HOST=redis
     networks:
       faasmdist:
         ipv4_address: 172.60.0.5
+    depends_on:
+      - redis
+      - minio
+
+  cpp:
+    image: ${CPP_CLI_IMAGE}
+    working_dir: /code/cpp
+    volumes:
+      - ${PROJ_ROOT}/clients/cpp:/code/cpp
+    depends_on:
+      - upload
+    networks:
+      faasmdist:
+        ipv4_address: 172.60.0.6
 
   master:
     image: ${FAASM_CLI_IMAGE}
     volumes:
       - ${PROJ_ROOT}:/usr/local/code/faasm
       - ./build/dist-test/:/build/faasm
-      - ${FAASM_LOCAL_DIR}:/usr/local/faasm
     working_dir: /usr/local/code/faasm
     stdin_open: true
     tty: true
@@ -62,7 +84,7 @@ services:
       - CGROUP_MODE=off
     networks:
       faasmdist:
-        ipv4_address: 172.60.0.6
+        ipv4_address: 172.60.0.7
     depends_on:
       - redis
       - minio
@@ -73,7 +95,6 @@ services:
     volumes:
       - ${PROJ_ROOT}:/usr/local/code/faasm
       - ./build/dist-test/:/build/faasm
-      - ${FAASM_LOCAL_DIR}:/usr/local/faasm
     working_dir: /build/faasm
     environment:
       - LOG_LEVEL=trace
@@ -84,7 +105,7 @@ services:
     command: ./bin/dist_test_server
     networks:
       faasmdist:
-        ipv4_address: 172.60.0.7
+        ipv4_address: 172.60.0.8
     depends_on:
       - redis
       - minio

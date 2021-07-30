@@ -8,8 +8,8 @@
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/func.h>
 
-#define MASTER_IP "172.60.0.6"
-#define WORKER_IP "172.60.0.7"
+#define MASTER_IP "172.60.0.7"
+#define WORKER_IP "172.60.0.8"
 
 namespace tests {
 class DistTestsFixture
