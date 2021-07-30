@@ -9,15 +9,16 @@ pushd ${PROJ_ROOT} >> /dev/null
 echo "Copying local dir into place"
 cp -r /usr/local/faasm/* /build/faasm-local/
 
+# Run the build
+inv -r faasmcli/faasmcli dev.cmake --build=Debug
+inv -r faasmcli/faasmcli dev.cc codegen_func
+inv -r faasmcli/faasmcli dev.cc dist_tests
+inv -r faasmcli/faasmcli dev.cc dist_test_server
+
 # Run codegen on the shared mount
 export FAASM_LOCAL_DIR=/build/faasm-local
 inv -r faasmcli/faasmcli codegen.user demo
 inv -r faasmcli/faasmcli codegen.user omp
-
-# Run the build
-inv -r faasmcli/faasmcli dev.cmake --build=Debug
-inv -r faasmcli/faasmcli dev.cc dist_tests
-inv -r faasmcli/faasmcli dev.cc dist_test_server
 
 # Copy the results
 echo "Copying build outputs into place"
