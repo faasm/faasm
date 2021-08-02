@@ -8,6 +8,7 @@
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/func.h>
 
+// Note that this must match the dist test docker-compose config
 #define MASTER_IP "172.60.0.7"
 #define WORKER_IP "172.60.0.8"
 

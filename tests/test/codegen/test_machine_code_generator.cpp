@@ -79,7 +79,8 @@ TEST_CASE_METHOD(CodegenTestFixture,
     std::string objectFileA;
     std::string objectFileB;
 
-    bool isCodegenRepeatable = true;
+    bool isCodegenExactlySame = true;
+    bool isCodegenSameLength = true;
     SECTION("WAVM codegen")
     {
         conf.wasmVm = "wavm";
@@ -90,12 +91,30 @@ TEST_CASE_METHOD(CodegenTestFixture,
     SECTION("WAMR codegen")
     {
         conf.wasmVm = "wamr";
-        objectFileA = "/tmp/obj/demo/hello/function.aot";
-        objectFileB = "/tmp/obj/demo/echo/function.aot";
 
-        // It seems that WAMR codegen doesn't produce the same results every
-        // time, but they are the same length. Perhaps a timestamp is included.
-        isCodegenRepeatable = false;
+        SECTION("Non-SGX")
+        {
+            objectFileA = "/tmp/obj/demo/hello/function.aot";
+            objectFileB = "/tmp/obj/demo/echo/function.aot";
+
+            // It seems that WAMR codegen doesn't produce the same results every
+            // time, but they are the same length. Perhaps a timestamp is
+            // included.
+            isCodegenExactlySame = false;
+        }
+
+        SECTION("SGX")
+        {
+            objectFileA = "/tmp/obj/demo/hello/function.aot.sgx";
+            objectFileB = "/tmp/obj/demo/echo/function.aot.sgx";
+            msgA.set_issgx(true);
+            msgB.set_issgx(true);
+
+            // It seems that WAMR SGX codegen is only approximately the same
+            // each time, so we cannot compare results from successive runs.
+            isCodegenExactlySame = false;
+            isCodegenSameLength = false;
+        }
     }
 
     codegen::MachineCodeGenerator gen(loader);
@@ -164,10 +183,10 @@ TEST_CASE_METHOD(CodegenTestFixture,
     std::vector<uint8_t> objAAfter =
       faabric::util::readFileToBytes(objectFileA);
 
-    if (isCodegenRepeatable) {
+    if (isCodegenExactlySame) {
         REQUIRE(objAAfter == objABefore);
-    } else {
-        // Just check the length of the machine code if codegen not repeatable
+    } else if (isCodegenSameLength) {
+        // Just check the length of the machine code
         REQUIRE(objAAfter.size() == objABefore.size());
     }
 
