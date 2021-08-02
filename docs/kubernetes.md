@@ -2,18 +2,33 @@
 
 Faasm runs on K8s using [Knative](https://knative.dev/).
 
-Faasm's K8s/ Knative configuration can be found in the [k8s](../deploy/k8s)
-directory, and the relevant parts of the Faasm CLI can be found in the [Knative
+Faasm's K8s configuration can be found in the [k8s](../deploy/k8s) directory,
+and the relevant parts of the Faasm CLI can be found in the [Knative
 tasks](../tasks/knative.py).
 
-Faasm assumes a K8s cluster is set up, with Knative installed, and accessible
-via the following two commands:
-
-- [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
-- [`kn`](https://knative.dev/docs/install/install-kn/)
+Faasm assumes a K8s cluster is set up with
+[`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/) working.
 
 If you don't have a cluster set up, see the instructions at the bottom of this
 page.
+
+## Installing Knative
+
+Faasm requires a minimal install of [Knative
+serving](https://knative.dev/docs/install/any-kubernetes-cluster/).
+
+If your cluster doesn't already have Knative installed, you can run:
+
+```bash
+# Install
+inv knative.install
+
+# Check
+kubectl get pods -n knative-serving
+```
+
+Faasm also requires a working install of the Knative CLI,
+[`kn`](https://knative.dev/docs/install/install-kn/).
 
 ## Deplying Faasm to K8s
 
@@ -137,7 +152,7 @@ To set up Faasm on AKS, you can do the following:
 - Aim for >=4 nodes with more than one vCPU.
 - Ensure `istio` is installed in K8s.
 - Set up the local `kubectl` via the `get credentials` command.
-- Install Knative as described below.
+- Continue with Faasm installation as described above.
 
 ## MicroK8s
 
@@ -160,7 +175,7 @@ mkdir ~/.kube
 microk8s config > ~/.kube/config
 ```
 
-You can then install Knative as described below.
+You can then continue with Faasm installation as described above.
 
 ## Bare metal
 
@@ -192,19 +207,3 @@ net.core.somaxconn = 65535
 # Memory-related
 vm.overcommit_memory=1
 ```
-
-## Installing Knative
-
-Faasm requires a minimal install of [Knative
-serving](https://knative.dev/docs/install/any-kubernetes-cluster/).
-
-If your cluster doesn't already have Knative installed, you can run:
-
-```bash
-# Install
-inv knative.install
-
-# Check
-kubectl get pods -n knative-serving
-```
-
