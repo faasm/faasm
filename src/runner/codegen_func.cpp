@@ -5,9 +5,10 @@
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
 
+#include <codegen/MachineCodeGenerator.h>
 #include <conf/FaasmConfig.h>
-#include <conf/function_utils.h>
 #include <storage/FileLoader.h>
+#include <storage/S3Wrapper.h>
 
 using namespace boost::filesystem;
 
@@ -15,12 +16,16 @@ void codegenForFunc(const std::string& user,
                     const std::string& func,
                     bool isSgx = false)
 {
-
+    codegen::MachineCodeGenerator& gen = codegen::getMachineCodeGenerator();
+    storage::FileLoader& loader = storage::getFileLoader();
     faabric::Message msg = faabric::util::messageFactory(user, func);
-    if (!conf::isValidFunction(msg)) {
+
+    std::string funcFile = loader.getFunctionFile(msg);
+    if (!boost::filesystem::exists(funcFile)) {
         SPDLOG_WARN("Invalid function: {}/{}", user, func);
         return;
     }
+
     if (isSgx) {
         msg.set_issgx(true);
         SPDLOG_INFO("Generating SGX machine code for {}/{}", user, func);
@@ -28,13 +33,13 @@ void codegenForFunc(const std::string& user,
         SPDLOG_INFO("Generating machine code for {}/{}", user, func);
     }
 
-    storage::FileLoader& loader = storage::getFileLoader();
-    loader.codegenForFunction(msg);
+    gen.codegenForFunction(msg);
 }
 
 int main(int argc, char* argv[])
 {
     faabric::util::initLogging();
+    storage::initFaasmS3();
 
     if (argc == 3) {
         std::string user = argv[1];
@@ -108,4 +113,6 @@ int main(int argc, char* argv[])
         SPDLOG_ERROR("Must provide function user and optional function name");
         return 0;
     }
+
+    storage::shutdownFaasmS3();
 }

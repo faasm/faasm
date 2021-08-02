@@ -24,8 +24,6 @@ FAASM_DATA_DIR = join(HOME_DIR, "faasm", "data")
 FAASM_MACHINE_CODE_DIR = join(FAASM_LOCAL_DIR, "object")
 FAASM_RUNTIME_ROOT = join(FAASM_LOCAL_DIR, "runtime_root")
 FAASM_SHARED_ROOT = join(FAASM_LOCAL_DIR, "shared")
-FAASM_SHARED_STORAGE_ROOT = join(FAASM_LOCAL_DIR, "shared_store")
-FAASM_SHARED_ROOT = join(FAASM_LOCAL_DIR, "shared")
 WASM_DIR = join(FAASM_LOCAL_DIR, "wasm")
 
 FAASM_BUILD_DIR = _get_dir("FAASM_BUILD_DIR", "/build/faasm")

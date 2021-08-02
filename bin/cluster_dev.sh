@@ -9,6 +9,7 @@ pushd ${PROJ_ROOT} > /dev/null
 
 export FAASM_VERSION=$(cat VERSION)
 export CPP_VERSION=$(cat clients/cpp/VERSION)
+export PYTHON_VERSION=$(cat clients/python/VERSION)
 
 # Mount our local build into the local cluster
 export FAASM_BUILD_MOUNT=/build/faasm
@@ -19,6 +20,10 @@ fi
 
 if [[ -z "$CPP_CLI_IMAGE" ]]; then
     export CPP_CLI_IMAGE=faasm/cpp-sysroot:${CPP_VERSION}
+fi
+
+if [[ -z "$PYTHON_CLI_IMAGE" ]]; then
+    export PYTHON_CLI_IMAGE=faasm/python:${PYTHON_VERSION}
 fi
 
 INNER_SHELL=${SHELL:-"/bin/bash"}
@@ -32,6 +37,8 @@ if [[ "$1" == "faasm" ]]; then
     CLI_CONTAINER="faasm-cli"
 elif [[ "$1" == "cpp" ]]; then
     CLI_CONTAINER="cpp"
+elif [[ "$1" == "python" ]]; then
+    CLI_CONTAINER="python"
 else
     echo "Not starting a CLI container"
     exit 0

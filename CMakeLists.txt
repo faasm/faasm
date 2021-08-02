@@ -147,19 +147,20 @@ set(WAMR_NO_LLVM_IMPORT ON)
 
 # WAMR includes
 include_directories(
-        ${WAMR_SHARED_DIR}/include
-        ${WAMR_SHARED_DIR}/utils
-        ${WAMR_IWASM_DIR}/include
-        ${WAMR_IWASM_DIR}/common
+    ${WAMR_SHARED_DIR}/include
+    ${WAMR_SHARED_DIR}/utils
+    ${WAMR_IWASM_DIR}/include
+    ${WAMR_IWASM_DIR}/common
 )
 
 # More include directories
 include_directories(
-        ${FAASM_INCLUDE_DIR}
-        ${FAASM_PYTHON_LIB_DIR}
+    ${FAASM_INCLUDE_DIR}
+    ${FAASM_PYTHON_LIB_DIR}
 )
 
 # Faasm runtime
+add_subdirectory(src/codegen)
 add_subdirectory(src/conf)
 add_subdirectory(src/faaslet)
 add_subdirectory(src/runner)

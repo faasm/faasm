@@ -1,106 +1,142 @@
 #pragma once
 
-#include <faabric/proto/faabric.pb.h>
+#include <conf/FaasmConfig.h>
+#include <storage/S3Wrapper.h>
 
+#include <faabric/util/config.h>
 #include <faabric/util/exception.h>
-#include <string>
-#include <vector>
-
-#define HASH_EXT ".md5"
+#include <faabric/util/func.h>
 
 #define EMPTY_FILE_RESPONSE "Empty response"
 #define IS_DIR_RESPONSE "IS_DIR"
 #define FILE_PATH_HEADER "FilePath"
 
+#define SHARED_FILE_PREFIX "faasm://"
+
+#define SHARED_OBJ_EXT ".o"
+
+#define HASH_EXT ".md5"
+
+#define PYTHON_USER "python"
+#define PYTHON_FUNC "py_func"
+#define PYTHON_FUNC_DIR "pyfuncs"
+
 namespace storage {
+
 class FileLoader
 {
   public:
-    virtual std::vector<uint8_t> loadFunctionWasm(
-      const faabric::Message& msg) = 0;
+    FileLoader();
 
-    virtual std::vector<uint8_t> loadSharedObjectWasm(
-      const std::string& path) = 0;
+    FileLoader(bool useLocalFsCacheIn);
 
-    virtual std::vector<uint8_t> loadFunctionObjectFile(
-      const faabric::Message& msg) = 0;
+    void clearLocalCache();
 
-    virtual std::vector<uint8_t> loadFunctionWamrAotFile(
-      const faabric::Message& msg) = 0;
+    std::string getHashFilePath(const std::string& path);
 
-    virtual std::vector<uint8_t> loadSharedObjectObjectFile(
-      const std::string& path) = 0;
+    // ----- Function wasm -----
+    std::string getFunctionFile(const faabric::Message& msg);
 
-    virtual std::vector<uint8_t> loadSharedFile(const std::string& path) = 0;
+    std::vector<uint8_t> loadFunctionWasm(const faabric::Message& msg);
 
-    virtual std::vector<uint8_t> loadFunctionObjectHash(
-      const faabric::Message& msg) = 0;
+    void uploadFunction(faabric::Message& msg);
 
-    virtual std::vector<uint8_t> loadFunctionWamrAotHash(
-      const faabric::Message& msg) = 0;
+    // ----- Function object files -----
+    std::string getFunctionObjectFile(const faabric::Message& msg);
 
-    virtual std::vector<uint8_t> loadSharedObjectObjectHash(
-      const std::string& path) = 0;
+    std::vector<uint8_t> loadFunctionObjectFile(const faabric::Message& msg);
 
-    virtual void uploadFunctionObjectHash(const faabric::Message& msg,
-                                          const std::vector<uint8_t>& hash) = 0;
+    std::vector<uint8_t> loadFunctionObjectHash(const faabric::Message& msg);
 
-    virtual void uploadFunctionWamrAotHash(
-      const faabric::Message& msg,
-      const std::vector<uint8_t>& hash) = 0;
+    void uploadFunctionObjectFile(const faabric::Message& msg,
+                                  const std::vector<uint8_t>& objBytes);
 
-    virtual void uploadSharedObjectObjectHash(
-      const std::string& path,
-      const std::vector<uint8_t>& hash) = 0;
+    void uploadFunctionObjectHash(const faabric::Message& msg,
+                                  const std::vector<uint8_t>& hash);
 
-    virtual void uploadSharedObjectAotHash(
-      const std::string& path,
-      const std::vector<uint8_t>& hash) = 0;
+    // ----- Function WAMR AoT files -----
+    std::string getFunctionAotFile(const faabric::Message& msg);
 
-    virtual void uploadFunction(faabric::Message& msg) = 0;
+    std::vector<uint8_t> loadFunctionWamrAotFile(const faabric::Message& msg);
 
-    virtual void uploadPythonFunction(faabric::Message& msg) = 0;
+    std::vector<uint8_t> loadFunctionWamrAotHash(const faabric::Message& msg);
 
-    virtual void uploadFunctionObjectFile(
-      const faabric::Message& msg,
-      const std::vector<uint8_t>& objBytes) = 0;
+    void uploadFunctionWamrAotFile(const faabric::Message& msg,
+                                   const std::vector<uint8_t>& objBytes);
 
-    virtual void uploadFunctionAotFile(
-      const faabric::Message& msg,
-      const std::vector<uint8_t>& objBytes) = 0;
+    void uploadFunctionWamrAotHash(const faabric::Message& msg,
+                                   const std::vector<uint8_t>& hash);
 
-    virtual void uploadSharedObjectObjectFile(
-      const std::string& path,
-      const std::vector<uint8_t>& objBytes) = 0;
+    // ----- Encrypted function wasm -----
+    std::string getEncryptedFunctionFile(const faabric::Message& msg);
 
-    virtual void uploadSharedObjectAotFile(
-      const std::string& path,
-      const std::vector<uint8_t>& objBytes) = 0;
+    // ----- Function symbols -----
+    std::string getFunctionSymbolsFile(const faabric::Message& msg);
 
-    virtual void uploadSharedFile(const std::string& path,
-                                  const std::vector<uint8_t>& fileBytes) = 0;
+    // ----- Shared object wasm -----
+    std::vector<uint8_t> loadSharedObjectWasm(const std::string& path);
 
-    virtual void flushFunctionFiles() = 0;
+    // ----- Shared object object files -----
+    std::string getSharedObjectObjectFile(const std::string& realPath);
 
-    void codegenForFunction(faabric::Message& msg);
+    std::vector<uint8_t> loadSharedObjectObjectFile(const std::string& path);
 
-    void codegenForSharedObject(const std::string& inputPath);
+    std::vector<uint8_t> loadSharedObjectObjectHash(const std::string& path);
 
-  protected:
+    void uploadSharedObjectObjectFile(const std::string& path,
+                                      const std::vector<uint8_t>& objBytes);
+
+    void uploadSharedObjectObjectHash(const std::string& path,
+                                      const std::vector<uint8_t>& hash);
+
+    // ----- Shared files -----
+    std::string getSharedFileFile(const std::string& path);
+
+    std::vector<uint8_t> loadSharedFile(const std::string& path);
+
+    void uploadSharedFile(const std::string& path,
+                          const std::vector<uint8_t>& fileBytes);
+
+    // ----- Python files -----
+    std::string getPythonFunctionSharedFilePath(const faabric::Message& msg);
+
+    std::string getPythonFunctionRelativePath(const faabric::Message& msg);
+
+    std::string getPythonFunctionFile(const faabric::Message& msg);
+
+    void uploadPythonFunction(faabric::Message& msg);
+
+  private:
+    conf::FaasmConfig& conf;
+    storage::S3Wrapper s3;
+
+    bool useLocalFsCache = true;
+
     std::vector<uint8_t> doCodegen(std::vector<uint8_t>& bytes,
                                    const std::string& fileName,
                                    bool isSgx = false);
 
-    std::vector<uint8_t> hashBytes(const std::vector<uint8_t>& bytes);
+    std::vector<uint8_t> loadFileBytes(const std::string& path,
+                                       const std::string& localCachePath,
+                                       bool tolerateMissing = false);
 
-    std::string getHashFilePath(const std::string& path);
+    std::vector<uint8_t> loadHashFileBytes(const std::string& path,
+                                           const std::string& localCachePath);
+
+    void uploadFileBytes(const std::string& path,
+                         const std::string& localCachePath,
+                         const std::vector<uint8_t>& bytes);
+
+    void uploadHashFileBytes(const std::string& path,
+                             const std::string& localCachePath,
+                             const std::vector<uint8_t>& bytes);
+
+    void uploadFileString(const std::string& path,
+                          const std::string& localCachePath,
+                          const std::string& bytes);
 };
 
 FileLoader& getFileLoader();
-
-void checkFileExists(const std::string& path);
-
-std::vector<uint8_t> loadFileBytes(const std::string& path);
 
 class SharedFileIsDirectoryException : public faabric::util::FaabricException
 {
@@ -109,4 +145,4 @@ class SharedFileIsDirectoryException : public faabric::util::FaabricException
       : faabric::util::FaabricException(filePath + " is a directory")
     {}
 };
-};
+}

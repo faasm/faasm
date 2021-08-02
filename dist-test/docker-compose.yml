@@ -14,6 +14,24 @@ services:
       faasmdist:
         ipv4_address: 172.60.0.3
 
+  minio:
+    image: faasm/minio:${FAASM_VERSION}
+    expose:
+      - "9000"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    volumes:
+      - ./build/dist-test-minio:/data/minio
+    networks:
+      faasmdist:
+        ipv4_address: 172.60.0.4
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
   builder:
     image: ${FAASM_CLI_IMAGE}
     volumes:
@@ -22,26 +40,54 @@ services:
       - ./build/faasm-local/:/build/faasm-local
     working_dir: /usr/local/code/faasm
 
+  upload:
+    image: faasm/upload:${FAASM_VERSION}
+    volumes:
+      - ${PROJ_ROOT}:/usr/local/code/faasm
+      - ./build/dist-test/:/build/faasm
+      - ${FAASM_LOCAL_DIR}:/usr/local/faasm
+    environment:
+      - LOG_LEVEL=info
+      - REDIS_STATE_HOST=redis
+      - REDIS_QUEUE_HOST=redis
+    networks:
+      faasmdist:
+        ipv4_address: 172.60.0.5
+    depends_on:
+      - redis
+      - minio
+
+  cpp:
+    image: ${CPP_CLI_IMAGE}
+    working_dir: /code/cpp
+    volumes:
+      - ${PROJ_ROOT}/clients/cpp:/code/cpp
+    depends_on:
+      - upload
+    networks:
+      faasmdist:
+        ipv4_address: 172.60.0.6
+
   master:
     image: ${FAASM_CLI_IMAGE}
     volumes:
       - ${PROJ_ROOT}:/usr/local/code/faasm
       - ./build/dist-test/:/build/faasm
-      - ${FAASM_LOCAL_DIR}:/usr/local/faasm
     working_dir: /usr/local/code/faasm
     stdin_open: true
     tty: true
     environment:
-      - LOG_LEVEL=debug
+      - LOG_LEVEL=info
       - REDIS_STATE_HOST=redis
       - REDIS_QUEUE_HOST=redis
       - OVERRIDE_CPU_COUNT=4
       - CGROUP_MODE=off
     networks:
       faasmdist:
-        ipv4_address: 172.60.0.4
+        ipv4_address: 172.60.0.7
     depends_on:
       - redis
+      - minio
       - worker
 
   worker:
@@ -49,10 +95,9 @@ services:
     volumes:
       - ${PROJ_ROOT}:/usr/local/code/faasm
       - ./build/dist-test/:/build/faasm
-      - ${FAASM_LOCAL_DIR}:/usr/local/faasm
     working_dir: /build/faasm
     environment:
-      - LOG_LEVEL=debug
+      - LOG_LEVEL=info
       - REDIS_STATE_HOST=redis
       - REDIS_QUEUE_HOST=redis
       - OVERRIDE_CPU_COUNT=4
@@ -60,6 +105,7 @@ services:
     command: ./bin/dist_test_server
     networks:
       faasmdist:
-        ipv4_address: 172.60.0.5
+        ipv4_address: 172.60.0.8
     depends_on:
       - redis
+      - minio

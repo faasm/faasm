@@ -12,9 +12,9 @@ using namespace faabric::scheduler;
 
 int main()
 {
-    storage::initSDK();
-    faabric::transport::initGlobalMessageContext();
     faabric::util::initLogging();
+    storage::initFaasmS3();
+    faabric::transport::initGlobalMessageContext();
 
     // WARNING: All 0MQ-related operations must take place in a self-contined
     // scope to ensure all sockets are destructed before closing the context.
@@ -34,7 +34,7 @@ int main()
     }
 
     faabric::transport::closeGlobalMessageContext();
-    storage::cleanUpSDK();
+    storage::shutdownFaasmS3();
 
     return 0;
 }

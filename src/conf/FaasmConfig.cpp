@@ -19,8 +19,6 @@ FaasmConfig::FaasmConfig()
 void FaasmConfig::initialise()
 {
     hostType = getEnvVar("HOST_TYPE", "default");
-    functionStorage = getEnvVar("FUNCTION_STORAGE", "local");
-    fileserverUrl = getEnvVar("FILESERVER_URL", "");
 
     cgroupMode = getEnvVar("CGROUP_MODE", "on");
     netNsMode = getEnvVar("NETNS_MODE", "off");
@@ -37,7 +35,6 @@ void FaasmConfig::initialise()
     objectFileDir = fmt::format("{}/{}", faasmLocalDir, "object");
     runtimeFilesDir = fmt::format("{}/{}", faasmLocalDir, "runtime_root");
     sharedFilesDir = fmt::format("{}/{}", faasmLocalDir, "shared");
-    sharedFilesStorageDir = fmt::format("{}/{}", faasmLocalDir, "shared_store");
 
     s3Bucket = getEnvVar("S3_BUCKET", "faasm");
     s3Host = getEnvVar("S3_HOST", "minio");
@@ -72,12 +69,9 @@ void FaasmConfig::print()
     SPDLOG_INFO("Wasm VM:              {}", wasmVm);
 
     SPDLOG_INFO("--- STORAGE ---");
-    SPDLOG_INFO("Fileserver:           {}", fileserverUrl);
-    SPDLOG_INFO("Function storage:     {}", functionStorage);
     SPDLOG_INFO("Function dir:         {}", functionDir);
     SPDLOG_INFO("Object file dir:      {}", objectFileDir);
     SPDLOG_INFO("Runtime files dir:    {}", runtimeFilesDir);
     SPDLOG_INFO("Shared files dir:     {}", sharedFilesDir);
-    SPDLOG_INFO("Shared storage dir:   {}", sharedFilesStorageDir);
 }
 }

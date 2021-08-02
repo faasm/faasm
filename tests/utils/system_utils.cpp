@@ -2,6 +2,7 @@
 
 #include "faabric_utils.h"
 
+#include "storage/SharedFiles.h"
 #include "utils.h"
 
 #include <conf/FaasmConfig.h>
@@ -17,11 +18,11 @@ void cleanSystem()
     // Reset config
     conf::getFaasmConfig().reset();
 
+    // Clear local cache of shared files
+    storage::SharedFiles::clear();
+
     // Clear thread state
     threads::clearThreadState();
-
-    // Clear shared files
-    storage::FileSystem::clearSharedFiles();
 
     // Clear cached modules
     wasm::getWAVMModuleCache().clear();

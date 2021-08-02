@@ -6,7 +6,7 @@ from invoke import task
 
 from faasmcli.util.endpoints import get_upload_host_port
 from faasmcli.util.env import (
-    FAASM_SHARED_STORAGE_ROOT,
+    FAASM_SHARED_ROOT,
     FAASM_RUNTIME_ROOT,
 )
 from faasmcli.util.upload_util import curl_file
@@ -20,7 +20,7 @@ def upload(ctx, user, func, func_file, py=False, local_copy=False):
     host, port = get_upload_host_port()
 
     if py and local_copy:
-        storage_dir = join(FAASM_SHARED_STORAGE_ROOT, "pyfuncs", user, func)
+        storage_dir = join(FAASM_SHARED_ROOT, "pyfuncs", user, func)
         runtime_dir = join(FAASM_RUNTIME_ROOT, "pyfuncs", user, func)
 
         if exists(runtime_dir):

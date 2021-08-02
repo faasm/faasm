@@ -3,8 +3,8 @@
 #include <faabric/scheduler/ExecutorFactory.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/func.h>
-#include <system/NetworkNamespace.h>
 
+#include <system/NetworkNamespace.h>
 #include <wasm/WasmModule.h>
 
 #include <string>

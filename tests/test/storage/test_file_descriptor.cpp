@@ -7,8 +7,8 @@
 #include <faabric/util/files.h>
 
 #include <conf/FaasmConfig.h>
-#include <conf/function_utils.h>
 #include <storage/FileDescriptor.h>
+#include <storage/FileLoader.h>
 #include <storage/SharedFiles.h>
 
 using namespace storage;
@@ -127,9 +127,7 @@ TEST_CASE("Test creating, renaming and deleting a file", "[storage]")
 
     // Remove the file
     std::string realPath = conf.runtimeFilesDir + "/" + dummyPath;
-    if (boost::filesystem::exists(realPath)) {
-        boost::filesystem::remove(realPath);
-    }
+    boost::filesystem::remove(realPath);
 
     // Stat the file to begin with
     Stat fileStat = rootFileDesc.stat(dummyPath);
@@ -182,6 +180,7 @@ TEST_CASE("Test seek", "[storage]")
     FileSystem fs;
     fs.prepareFilesystem();
 
+    storage::FileLoader& loader = storage::getFileLoader();
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string dummyPath;
     std::string realPath;
@@ -200,16 +199,14 @@ TEST_CASE("Test seek", "[storage]")
     SECTION("Shared file")
     {
         dummyPath = "faasm://dummy_test_file.txt";
-        contentPath = conf::getSharedFileFile("dummy_test_file.txt");
+        contentPath = loader.getSharedFileFile("dummy_test_file.txt");
 
         // This is the path where the file should end up after being synced
         realPath = SharedFiles::realPathForSharedFile(dummyPath);
     }
 
     // Set up the file
-    if (boost::filesystem::exists(realPath)) {
-        boost::filesystem::remove(realPath);
-    }
+    boost::filesystem::remove(realPath);
     faabric::util::writeBytesToFile(contentPath, contents);
 
     // Open file descriptor for the file
@@ -259,11 +256,10 @@ TEST_CASE("Test stat and read shared file", "[storage]")
     FileDescriptor& rootFileDesc = fs.getFileDescriptor(DEFAULT_ROOT_FD);
 
     // Set up the shared file
+    storage::FileLoader& loader = storage::getFileLoader();
     std::string relativePath = "test/shared-file-stat.txt";
-    std::string fullPath = conf::getSharedFileFile(relativePath);
-    if (boost::filesystem::exists(fullPath)) {
-        boost::filesystem::remove(fullPath);
-    }
+    std::string fullPath = loader.getSharedFileFile(relativePath);
+    boost::filesystem::remove(fullPath);
 
     std::vector<uint8_t> contents = { 0, 1, 2, 3, 4, 5 };
     faabric::util::writeBytesToFile(fullPath, contents);

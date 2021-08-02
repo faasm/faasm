@@ -1,20 +1,23 @@
 #include <boost/filesystem.hpp>
+
 #include <faabric/util/environment.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/string_tools.h>
-#include <storage/FileLoader.h>
+
+#include <codegen/MachineCodeGenerator.h>
+#include <storage/S3Wrapper.h>
 
 using namespace boost::filesystem;
 
 void codegenForDirectory(std::string& inputPath)
 {
     SPDLOG_INFO("Running codegen on directory {}", inputPath);
-    storage::FileLoader& loader = storage::getFileLoader();
 
     // Iterate through the directory
     path inputFilePath(inputPath);
-    recursive_directory_iterator iter(inputFilePath), end;
+    recursive_directory_iterator iter(inputFilePath);
+    recursive_directory_iterator end;
     std::mutex mx;
 
     // Run multiple threads to do codegen
@@ -22,8 +25,10 @@ void codegenForDirectory(std::string& inputPath)
     std::vector<std::thread> threads;
 
     for (unsigned int i = 0; i < nThreads; i++) {
-        threads.emplace_back([&iter, &mx, &end, &loader] {
+        threads.emplace_back([&iter, &mx, &end] {
             SPDLOG_INFO("Spawning codegen thread");
+            codegen::MachineCodeGenerator& gen =
+              codegen::getMachineCodeGenerator();
 
             while (true) {
                 std::string thisPath;
@@ -48,7 +53,7 @@ void codegenForDirectory(std::string& inputPath)
                 if (faabric::util::endsWith(fileName, ".so") ||
                     faabric::util::endsWith(fileName, ".wasm")) {
                     SPDLOG_INFO("Generating machine code for {}", thisPath);
-                    loader.codegenForSharedObject(thisPath);
+                    gen.codegenForSharedObject(thisPath);
                 }
             }
         });
@@ -64,6 +69,7 @@ void codegenForDirectory(std::string& inputPath)
 int main(int argc, char* argv[])
 {
     faabric::util::initLogging();
+    storage::initFaasmS3();
 
     if (argc < 2) {
         SPDLOG_ERROR("Must provide path to shared object dir");
@@ -74,7 +80,9 @@ int main(int argc, char* argv[])
     if (is_directory(inputPath)) {
         codegenForDirectory(inputPath);
     } else {
-        storage::FileLoader& loader = storage::getFileLoader();
-        loader.codegenForSharedObject(inputPath);
+        codegen::MachineCodeGenerator& gen = codegen::getMachineCodeGenerator();
+        gen.codegenForSharedObject(inputPath);
     }
+
+    storage::shutdownFaasmS3();
 }

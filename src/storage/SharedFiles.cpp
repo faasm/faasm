@@ -9,7 +9,6 @@
 #include <faabric/util/string_tools.h>
 
 #include <conf/FaasmConfig.h>
-#include <conf/function_utils.h>
 #include <storage/FileLoader.h>
 
 namespace storage {
@@ -73,8 +72,8 @@ int SharedFiles::syncSharedFile(const std::string& sharedPath,
     // See if file already synced
     {
         faabric::util::SharedLock lock(sharedFileMapMutex);
-
         if (sharedFileMap.count(sharedPath) > 0) {
+            SPDLOG_TRACE("Not syncing {}, cached at {}", sharedPath, localPath);
             return getReturnValueForSharedFileState(sharedPath);
         }
     }
@@ -84,8 +83,11 @@ int SharedFiles::syncSharedFile(const std::string& sharedPath,
 
     // Check again
     if (sharedFileMap.count(sharedPath) > 0) {
+        SPDLOG_TRACE("Not syncing {}, cached at {}", sharedPath, localPath);
         return getReturnValueForSharedFileState(sharedPath);
     }
+
+    SPDLOG_TRACE("Syncing {} to {}", sharedPath, localPath);
 
     // Work out the real path
     std::string strippedPath =
@@ -147,10 +149,26 @@ void SharedFiles::syncPythonFunctionFile(const faabric::Message& msg)
         return;
     }
 
-    std::string sharedPath = conf::getPythonFunctionFileSharedPath(msg);
-    std::string runtimeFilePath = conf::getPythonRuntimeFunctionFile(msg);
+    SPDLOG_TRACE("Syncing file for Python function {}/{}",
+                 msg.pythonuser(),
+                 msg.pythonfunction());
 
-    syncSharedFile(sharedPath, runtimeFilePath);
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
+    FileLoader& loader = getFileLoader();
+    std::string relativePath = loader.getPythonFunctionRelativePath(msg);
+
+    // This is the shared path of the form faasm:// used to access the Python
+    // file as a shared file
+    boost::filesystem::path sharedUrl(SHARED_FILE_PREFIX);
+    sharedUrl.append(relativePath);
+
+    // This is where we want to write the file to make it _directly_ accessible
+    // at runtime.  Python function must be able to access the whole directory,
+    // so shared files are insufficient.
+    boost::filesystem::path runtimePath(conf.runtimeFilesDir);
+    runtimePath.append(relativePath);
+
+    syncSharedFile(sharedUrl.string(), runtimePath.string());
 }
 
 void SharedFiles::clear()

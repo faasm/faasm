@@ -152,16 +152,6 @@ void FileSystem::tearDown()
     }
 }
 
-void FileSystem::clearSharedFiles()
-{
-    SharedFiles::clear();
-
-    // Just nuke the whole shared directory
-    // Note that we're not deleting the master copies in the shared store
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
-    boost::filesystem::remove_all(conf.sharedFilesDir);
-}
-
 void FileSystem::printDebugInfo()
 {
     printf("--- Open file descriptors ---\n");

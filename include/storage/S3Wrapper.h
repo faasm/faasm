@@ -17,9 +17,9 @@
 
 namespace storage {
 
-void initSDK();
+void initFaasmS3();
 
-void cleanUpSDK();
+void shutdownFaasmS3();
 
 class S3Wrapper
 {
@@ -45,7 +45,8 @@ class S3Wrapper
                    const std::string& data);
 
     std::vector<uint8_t> getKeyBytes(const std::string& bucketName,
-                                     const std::string& keyName);
+                                     const std::string& keyName,
+                                     bool tolerateMissing = false);
 
     std::string getKeyStr(const std::string& bucketName,
                           const std::string& keyName);
