@@ -23,7 +23,7 @@ You can deploy Faasm with:
 # Bare-metal/ GKE/ AKS
 inv knative.deploy --replicas=4
 
-# Local
+# Local (e.g. microk8s)
 inv knative.deploy --local
 ```
 
@@ -72,11 +72,19 @@ inv redis.clear-queue --knative
 
 # Troubleshooting
 
-To look at the logs for the faasm containers:
+First off you need to check that everything else is running. List all pods in
+all namespaces and check for any whose status is not `Running`:
+
+```bash
+kubectl get pods --all-namespaces
+```
+
+Provided everything looks normal, or you find a container with something wrong,
+you can look at logs. E.g. for a Faasm worker:
 
 ```
 # Find the faasm-worker-xxx pod
-kubectl --namespace=faasm get pods
+kubectl -n faasm get pods
 
 # Tail the logs for a specific pod
 kubectl -n faasm logs -f faasm-worker-xxx user-container
@@ -89,7 +97,7 @@ kubectl -n faasm logs -f -c user-container -l serving.knative.dev/service=faasm-
 kubectl -n faasm logs --tail=100000 -c user-container -l serving.knative.dev/service=faasm-worker --max-log-requests=10 > /tmp/out.log
 ```
 
-# Isolation and privileges
+## Isolation and privileges
 
 Faasm uses namespaces and cgroups to achieve isolation, therefore containers
 running Faasm workers need privileges that they don't otherwise have. The
@@ -110,13 +118,13 @@ To set up Faasm on [GKE](https://console.cloud.google.com/kubernetes) you can do
 the following:
 
 - Set up an account and the [Cloud SDK](https://cloud.google.com/sdk) ([Ubuntu
-  quick start](https://cloud.google.com/sdk/docs/quickstart-debian-ubuntu))
-- Create a Kubernetes cluster **with Istio enabled and version >=v1.15**
-- Aim for >=4 nodes with more than one vCPU
+  quick start](https://cloud.google.com/sdk/docs/quickstart-debian-ubuntu)).
+- Create a Kubernetes cluster **with Istio enabled and version >=v1.15**.
+- Aim for >=4 nodes with more than one vCPU.
 - Set up your local `kubectl` to connect to your cluster (click the "Connect"
-  button in the web interface)
-- Check things are working by running `kubectl get nodes`
-- Install Knative serving as described below
+  button in the web interface).
+- Check things are working by running `kubectl get nodes`.
+- Install Knative serving as described below.
 
 ## Azure Kubernetes Service
 
@@ -126,22 +134,33 @@ To set up Faasm on AKS, you can do the following:
   [`az`](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) client.
 - Create a resource group with sufficient quota.
 - Create an AKS cluster under said resource group.
-- Aim for >=4 nodes with more than one vCPU
-- Set up the local `kubectl` via the `get credentials` command
-- Install Knative as described below
+- Aim for >=4 nodes with more than one vCPU.
+- Ensure `istio` is installed in K8s.
+- Set up the local `kubectl` via the `get credentials` command.
+- Install Knative as described below.
 
 ## MicroK8s
 
 Install according to the [official docs](https://microk8s.io/).
 
-Because MicroK8s uses a custom `kubectl` command (`microk8s kubectl`), you need
-to tell Faasm about it by editing the `faasm.ini` file at the root of this
-project with the `kubectl_cmd` field:
+Note that you may have to set up different permissions to run without `sudo`
+(although this is not necessarily required).
 
+You should also enable `istio` with:
+
+```bash
+microk8s.enable istio
 ```
-[Faasm]
-kubectl_cmd: microk8s kubectl
+
+Finally, set up your `kubectl` to use this with:
+
+```bash
+rm -rf ~/.kube
+mkdir ~/.kube
+microk8s config > ~/.kube/config
 ```
+
+You can then install Knative as described below.
 
 ## Bare metal
 
@@ -174,7 +193,7 @@ net.core.somaxconn = 65535
 vm.overcommit_memory=1
 ```
 
-## Knative Installation
+## Installing Knative
 
 Faasm requires a minimal install of [Knative
 serving](https://knative.dev/docs/install/any-kubernetes-cluster/).
