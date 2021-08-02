@@ -1,72 +1,26 @@
 # Faasm Kubernetes/ Knative integration
 
-Faasm is a runtime designed to be integrated into other serverless platforms.
-The recommended integration is with [Knative](https://knative.dev/).
+Faasm runs on K8s using [Knative](https://knative.dev/).
 
-All of Faasm's Kubernetes and Knative configuration can be found in the 
-[k8s](../deploy/k8s) directory, and the relevant parts of the Faasm CLI can be 
-found in the [Knative tasks](../tasks/knative.py).  
+Faasm's K8s/ Knative configuration can be found in the [k8s](../deploy/k8s)
+directory, and the relevant parts of the Faasm CLI can be found in the [Knative
+tasks](../tasks/knative.py).
 
-These steps generally assume that you have 
-[`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/) 
-and [`kn`](https://knative.dev/docs/install/install-kn/) installed
-and these are able to connect to your cluster.
+Faasm assumes a K8s cluster is set up, with Knative installed, and accessible
+via the following two commands:
 
-## Cluster Set-up
+- [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- [`kn`](https://knative.dev/docs/install/install-kn/)
 
-### Google Kubernetes Engine
+If you don't have a cluster set up, see the instructions at the bottom of this
+page.
 
-To set up Faasm on [GKE](https://console.cloud.google.com/kubernetes) you can do the following:
+## Deplying Faasm to K8s
 
-- Set up an account and the [Cloud SDK](https://cloud.google.com/sdk) ([Ubuntu quick start](https://cloud.google.com/sdk/docs/quickstart-debian-ubuntu))
-- Create a Kubernetes cluster **with Istio enabled and version >=v1.15**
-- Aim for >=4 nodes with more than one vCPU
-- Set up your local `kubectl` to connect to your cluster (click the "Connect" button in the web interface)
-- Check things are working by running `kubectl get nodes`
-- Install Knative serving as described below
-
-### Azure Kubernetes Service
-
-To set up Faasm on AKS, you can do the following:
-- Set up an account and install the [`az`](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) client.
-- Create a resource group with sufficient quota.
-- Create an AKS cluster under said resource group.
-- Aim for >=4 nodes with more than one vCPU
-- Set up the local `kubectl` via the `get credentials` command
-- Install Knative as described below
-
-### Bare metal
-
-If you're deploying on a bare-metal cluster then you need to update the `externalIPs` 
-field in the `upload-service.yml` file to match your k8s master node. 
-
-You also need to install Istio as described in [the Knative docs](https://knative.dev/docs/install/any-kubernetes-cluster/).
-
-## Installation
-
-### Knative
-
-Faasm requires a minimal install of [Knative serving](https://knative.dev/docs/install/any-kubernetes-cluster/).
-If your cluster doesn't already have Knative installed, you can run:
+You can deply Faasm with:
 
 ```bash
-# Install
-inv knative.install
-
-# Check
-kubectl get pods -n knative-serving
-```
-
-If you are running a local cluster or one on AKS, you will have to update the `externalIPs`
-field in the `upload-service.yml`.
-You can query it with `./bin/knative_route.sh` (it corresponds to `invoke_host`)
-
-### Faasm
-
-You can then run the Faasm deploy (where `replicas` is the number of replicas in the Faasm pod):
-
-```bash 
-# Bare-metal/ GKE
+# Bare-metal/ GKE/ AKS
 inv knative.deploy --replicas=4
 
 # Local
@@ -75,10 +29,10 @@ inv knative.deploy --local
 
 This might take a couple of minutes depending on the underlying cluster.
 
-## Config file
+### Config file
 
-Once everything has started up, you can populate your `~/faasm/faasm.ini` file to avoid
-typing in hostnames all the time. To do this, run:
+Once everything has started up, you can populate your `~/faasm/faasm.ini` file
+to avoid typing in hostnames all the time. To do this, run:
 
 ```
 ./bin/knative_route.sh
@@ -94,15 +48,17 @@ upload_host = ...   # IP of the upload service
 upload_port = ...   # Usually 8002
 ```
 
-You can then copy-paste this into `~/faasm/faasm.ini`.
+You can then copy-paste this into `faasm.ini` at the project root.
 
 ## Uploading functions
 
-Once you have configured your `~/faasm/faasm.ini` file, you can use the Faasm 
-CLI as normal, e.g.
+Once you have configured your `faasm.ini` file, you can use the Faasm, CPP,
+Python CLIs as normal, e.g.
 
 ```
-inv upload demo hello
+./bin/cli.sh cpp
+
+inv upload demo hello /usr/local/faasm/wasm/demo/echo/function.wasm
 inv invoke demo hello
 ```
 
@@ -114,7 +70,7 @@ When workers die or are killed, you'll need to clear the queue:
 inv redis.clear-queue --knative
 ```
 
-## Troubleshooting
+# Troubleshooting
 
 To look at the logs for the faasm containers:
 
@@ -135,25 +91,64 @@ kubectl -n faasm logs --tail=100000 -c user-container -l serving.knative.dev/ser
 
 # Isolation and privileges
 
-Faasm uses namespaces and cgroups to achieve isolation, therefore containers running 
-Faasm workers need privileges that they don't otherwise have. The current solution to 
-this is to run containers in `privileged` mode. This may not be available on certain 
-clusters, in which case you'll need to set the following environment vars:
- 
+Faasm uses namespaces and cgroups to achieve isolation, therefore containers
+running Faasm workers need privileges that they don't otherwise have. The
+current solution to this is to run containers in `privileged` mode. This may not
+be available on certain clusters, in which case you'll need to set the following
+environment vars:
+
 ```
 CGROUP_MODE=off
 NETNS_MODE=off
 ```
 
-## Redis-related set-up
+# Cluster set-up
 
-There are a couple of tweaks required to handle running Redis, as detailed in the
-[Redis admin docs](https://redis.io/topics/admin).
+## Google Kubernetes Engine
 
-First you can turn off transparent huge pages (add `transparent_hugepage=never` 
+To set up Faasm on [GKE](https://console.cloud.google.com/kubernetes) you can do
+the following:
+
+- Set up an account and the [Cloud SDK](https://cloud.google.com/sdk) ([Ubuntu
+  quick start](https://cloud.google.com/sdk/docs/quickstart-debian-ubuntu))
+- Create a Kubernetes cluster **with Istio enabled and version >=v1.15**
+- Aim for >=4 nodes with more than one vCPU
+- Set up your local `kubectl` to connect to your cluster (click the "Connect"
+  button in the web interface)
+- Check things are working by running `kubectl get nodes`
+- Install Knative serving as described below
+
+## Azure Kubernetes Service
+
+To set up Faasm on AKS, you can do the following:
+
+- Set up an account and install the
+  [`az`](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) client.
+- Create a resource group with sufficient quota.
+- Create an AKS cluster under said resource group.
+- Aim for >=4 nodes with more than one vCPU
+- Set up the local `kubectl` via the `get credentials` command
+- Install Knative as described below
+
+## Bare metal
+
+If you're deploying on a bare-metal cluster then you need to update the
+`externalIPs` field in the `upload-service.yml` file to match your k8s master
+node.
+
+You also need to install Istio as described in [the Knative
+docs](https://knative.dev/docs/install/any-kubernetes-cluster/).
+
+### Redis bare-metal set-up
+
+There are a couple of tweaks required to handle running Redis, as detailed in
+the [Redis admin docs](https://redis.io/topics/admin).
+
+First you can turn off transparent huge pages (add `transparent_hugepage=never`
 to `GRUB_CMDLINE_LINUX` in `/etc/default/grub` and run `sudo update-grub`).
 
-Then if testing under very high throughput you can set the following in `etc/sysctl.conf`:
+Then if testing under very high throughput you can set the following in
+`etc/sysctl.conf`:
 
 ```
 # Connection-related
@@ -165,3 +160,19 @@ net.core.somaxconn = 65535
 # Memory-related
 vm.overcommit_memory=1
 ```
+
+## Knative Installation
+
+Faasm requires a minimal install of [Knative
+serving](https://knative.dev/docs/install/any-kubernetes-cluster/).
+
+If your cluster doesn't already have Knative installed, you can run:
+
+```bash
+# Install
+inv knative.install
+
+# Check
+kubectl get pods -n knative-serving
+```
+
