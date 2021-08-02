@@ -6,6 +6,16 @@ from invoke import task
 
 from faasmcli.util.env import PROJ_ROOT
 from faasmcli.util.version import get_faasm_version
+from faasmcli.util.config import get_faasm_config
+
+
+def _get_kubectl_cmd():
+    faasm_config = get_faasm_config()
+    cmd = "kubectl"
+    if faasm_config.has_section("Faasm"):
+        cmd = faasm_config["Faasm"].get("kubectl_cmd", "kubectl")
+    return cmd
+
 
 K8S_DIR = join(PROJ_ROOT, "deploy", "k8s")
 BARE_METAL_CONF = join(K8S_DIR, "bare-metal")
@@ -83,7 +93,7 @@ def _fn_name(function):
 
 
 def _kubectl_cmd(path, action, env=None):
-    cmd = ["kubectl", action, "-f", path]
+    cmd = [_get_kubectl_cmd(), action, "-f", path]
 
     shell_env_dict = os.environ.copy()
     if env:
@@ -112,8 +122,10 @@ def delete_worker(ctx, hard=False):
     Delete the Faasm worker pod
     """
     # Clear redis queue
-    flush_cmd = "kubectl exec -n faasm redis-queue -- redis-cli flushall"
-    call(flush_cmd, shell=True)
+    cmd = "{} exec -n faasm redis-queue -- redis-cli flushall".format(
+        _get_kubectl_cmd()
+    )
+    call(cmd, shell=True)
 
     _delete_knative_fn("worker", hard)
 
@@ -172,8 +184,8 @@ def _delete_knative_fn(name, hard):
     else:
         # Delete the pods (they'll respawn)
         label = "serving.knative.dev/service={}".format(func_name)
-        cmd = "kubectl -n faasm delete pods -l {} --wait=false --now".format(
-            label
+        cmd = "{} -n faasm delete pods -l {} --wait=false --now".format(
+            _get_kubectl_cmd(), label
         )
         call(cmd, shell=True)
 

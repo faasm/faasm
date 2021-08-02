@@ -17,7 +17,7 @@ page.
 
 ## Deplying Faasm to K8s
 
-You can deply Faasm with:
+You can deploy Faasm with:
 
 ```bash
 # Bare-metal/ GKE/ AKS
@@ -102,7 +102,7 @@ CGROUP_MODE=off
 NETNS_MODE=off
 ```
 
-# Cluster set-up
+# K8s Cluster set-up
 
 ## Google Kubernetes Engine
 
@@ -129,6 +129,19 @@ To set up Faasm on AKS, you can do the following:
 - Aim for >=4 nodes with more than one vCPU
 - Set up the local `kubectl` via the `get credentials` command
 - Install Knative as described below
+
+## MicroK8s
+
+Install according to the [official docs](https://microk8s.io/).
+
+Because MicroK8s uses a custom `kubectl` command (`microk8s kubectl`), you need
+to tell Faasm about it by editing the `faasm.ini` file at the root of this
+project with the `kubectl_cmd` field:
+
+```
+[Faasm]
+kubectl_cmd: microk8s kubectl
+```
 
 ## Bare metal
 
