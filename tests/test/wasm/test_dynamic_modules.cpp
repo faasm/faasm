@@ -4,7 +4,7 @@
 #include <faabric/util/logging.h>
 
 #include <conf/FaasmConfig.h>
-#include <conf/function_utils.h>
+#include <storage/FileLoader.h>
 #include <wavm/IRModuleCache.h>
 #include <wavm/WAVMWasmModule.h>
 

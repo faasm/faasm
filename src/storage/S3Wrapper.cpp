@@ -74,13 +74,30 @@ ClientConfiguration getClientConf(long timeout)
     return config;
 }
 
-void initSDK()
+void initFaasmS3()
 {
-    SPDLOG_INFO("Initialising AWS SDK");
+    const auto& conf = conf::getFaasmConfig();
+    SPDLOG_INFO(
+      "Initialising Faasm S3 setup at {}:{}", conf.s3Host, conf.s3Port);
     Aws::InitAPI(options);
+
+    S3Wrapper s3;
+    s3.createBucket(conf.s3Bucket);
+
+    // Check we can write/ read
+    s3.addKeyStr(conf.s3Bucket, "ping", "pong");
+    std::string response = s3.getKeyStr(conf.s3Bucket, "ping");
+    if (response != "pong") {
+        std::string errorMsg =
+          fmt::format("Unable to write/ read to/ from S3 ({})", response);
+        SPDLOG_ERROR(errorMsg);
+        throw std::runtime_error(errorMsg);
+    }
+
+    SPDLOG_INFO("Successfully pinged S3 at {}:{}", conf.s3Host, conf.s3Port);
 }
 
-void cleanUpSDK()
+void shutdownFaasmS3()
 {
     Aws::ShutdownAPI(options);
 }
@@ -121,7 +138,6 @@ void S3Wrapper::deleteBucket(const std::string& bucketName)
 
     if (!response.IsSuccess()) {
         const auto& err = response.GetError();
-
         auto errType = err.GetErrorType();
         if (errType == Aws::S3::S3Errors::NO_SUCH_BUCKET) {
             SPDLOG_DEBUG("Bucket already deleted {}", bucketName);
@@ -142,7 +158,7 @@ void S3Wrapper::deleteBucket(const std::string& bucketName)
 
 std::vector<std::string> S3Wrapper::listBuckets()
 {
-    SPDLOG_DEBUG("Listing buckets");
+    SPDLOG_TRACE("Listing buckets");
     auto response = client.ListBuckets();
     CHECK_ERRORS(response);
 
@@ -151,7 +167,7 @@ std::vector<std::string> S3Wrapper::listBuckets()
     std::vector<std::string> bucketNames;
     for (auto const& bucketObject : bucketObjects) {
         const Aws::String& awsStr = bucketObject.GetName();
-        bucketNames.emplace_back(awsStr.c_str());
+        bucketNames.emplace_back(awsStr.c_str(), awsStr.size());
     }
 
     return bucketNames;
@@ -159,7 +175,7 @@ std::vector<std::string> S3Wrapper::listBuckets()
 
 std::vector<std::string> S3Wrapper::listKeys(const std::string& bucketName)
 {
-    SPDLOG_DEBUG("Listing keys in bucket {}", bucketName);
+    SPDLOG_TRACE("Listing keys in bucket {}", bucketName);
     auto request = reqFactory<ListObjectsRequest>(bucketName);
     auto response = client.ListObjects(request);
 
@@ -177,6 +193,9 @@ std::vector<std::string> S3Wrapper::listKeys(const std::string& bucketName)
     }
 
     Aws::Vector<Object> keyObjects = response.GetResult().GetContents();
+    if (keyObjects.empty()) {
+        return keys;
+    }
 
     for (auto const& keyObject : keyObjects) {
         const Aws::String& awsStr = keyObject.GetKey();
@@ -189,7 +208,7 @@ std::vector<std::string> S3Wrapper::listKeys(const std::string& bucketName)
 void S3Wrapper::deleteKey(const std::string& bucketName,
                           const std::string& keyName)
 {
-    SPDLOG_DEBUG("Deleting key {}/{}", bucketName, keyName);
+    SPDLOG_TRACE("Deleting S3 key {}/{}", bucketName, keyName);
     auto request = reqFactory<DeleteObjectRequest>(bucketName, keyName);
     auto response = client.DeleteObject(request);
 
@@ -213,7 +232,7 @@ void S3Wrapper::addKeyBytes(const std::string& bucketName,
 {
     // See example:
     // https://github.com/awsdocs/aws-doc-sdk-examples/blob/master/cpp/example_code/s3/put_object_buffer.cpp
-    SPDLOG_DEBUG("Writing {} to bucket {} as bytes", keyName, bucketName);
+    SPDLOG_TRACE("Writing S3 key {}/{} as bytes", bucketName, keyName);
     auto request = reqFactory<PutObjectRequest>(bucketName, keyName);
 
     const std::shared_ptr<Aws::IOStream> dataStream =
@@ -233,7 +252,7 @@ void S3Wrapper::addKeyStr(const std::string& bucketName,
 {
     // See example:
     // https://github.com/awsdocs/aws-doc-sdk-examples/blob/master/cpp/example_code/s3/put_object_buffer.cpp
-    SPDLOG_DEBUG("Writing {} to bucket {} as string", keyName, bucketName);
+    SPDLOG_TRACE("Writing S3 key {}/{} as string", bucketName, keyName);
 
     auto request = reqFactory<PutObjectRequest>(bucketName, keyName);
 
@@ -248,12 +267,26 @@ void S3Wrapper::addKeyStr(const std::string& bucketName,
 }
 
 std::vector<uint8_t> S3Wrapper::getKeyBytes(const std::string& bucketName,
-                                            const std::string& keyName)
+                                            const std::string& keyName,
+                                            bool tolerateMissing)
 {
-    SPDLOG_DEBUG("Getting key {}/{} as bytes", bucketName, keyName);
+    SPDLOG_TRACE("Getting S3 key {}/{} as bytes", bucketName, keyName);
     auto request = reqFactory<GetObjectRequest>(bucketName, keyName);
     GetObjectOutcome response = client.GetObject(request);
-    CHECK_ERRORS(response);
+
+    if (!response.IsSuccess()) {
+        const auto& err = response.GetError();
+        auto errType = err.GetErrorType();
+
+        if (tolerateMissing && (errType == Aws::S3::S3Errors::NO_SUCH_KEY)) {
+            SPDLOG_TRACE(
+              "Tolerating missing S3 key {}/{}", bucketName, keyName);
+            std::vector<uint8_t> empty;
+            return empty;
+        }
+
+        CHECK_ERRORS(response);
+    }
 
     std::vector<uint8_t> rawData(response.GetResult().GetContentLength());
     response.GetResult().GetBody().read((char*)rawData.data(), rawData.size());
@@ -263,7 +296,7 @@ std::vector<uint8_t> S3Wrapper::getKeyBytes(const std::string& bucketName,
 std::string S3Wrapper::getKeyStr(const std::string& bucketName,
                                  const std::string& keyName)
 {
-    SPDLOG_DEBUG("Getting key {}/{} as string", bucketName, keyName);
+    SPDLOG_TRACE("Getting S3 key {}/{} as string", bucketName, keyName);
     auto request = reqFactory<GetObjectRequest>(bucketName, keyName);
     GetObjectOutcome response = client.GetObject(request);
     CHECK_ERRORS(response);

@@ -30,8 +30,6 @@ class FileSystem
 
     void tearDown();
 
-    static void clearSharedFiles();
-
     std::string getPathForFd(int fd);
 
     void printDebugInfo();

@@ -16,6 +16,11 @@ services:
       MINIO_ROOT_PASSWORD: minio123
     volumes:
       - ./dev/minio/data:/data/minio
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
 
   upload:
     image: faasm/upload:${FAASM_VERSION}
@@ -27,13 +32,9 @@ services:
       - minio
     volumes:
       - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
-      - ./dev/wasm/:/usr/local/code/faasm/wasm/
-      - ./dev/container/machine-code/:/usr/local/faasm/object/
-      - ./dev/container/shared_store/:/usr/local/faasm/shared_store/
     environment:
-      - FUNCTION_STORAGE=local
       - LOG_LEVEL=info
-      - PYTHON_CODEGEN=off
+      - PYTHON_CODEGEN=on
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
@@ -50,8 +51,6 @@ services:
     environment:
       - CAPTURE_STDOUT=on
       - CGROUP_MODE=on
-      - FILESERVER_URL=http://${UPLOAD_HOST:-upload}:8002
-      - FUNCTION_STORAGE=fileserver
       - GLOBAL_MESSAGE_TIMEOUT=600000
       - LOG_LEVEL=info
       - NETNS_MODE=off
@@ -79,7 +78,7 @@ services:
     environment:
       - UPLOAD_HOST=${UPLOAD_HOST:-upload}
       - INVOKE_HOST=${INVOKE_HOST:-nginx}
-      - LOG_LEVEL=debug
+      - LOG_LEVEL=info
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
@@ -98,6 +97,19 @@ services:
     privileged: true
     depends_on:
       - worker
+      - upload
     volumes:
       - ./clients/cpp:/code/cpp
       - ./dev/cpp/build:/build/cpp
+
+  python:
+    image: ${PYTHON_CLI_IMAGE}
+    working_dir: /code/python
+    stdin_open: true
+    tty: true
+    privileged: true
+    depends_on:
+      - worker
+      - upload
+    volumes:
+      - ./clients/python:/code/python

@@ -16,8 +16,7 @@ add_executable(pool_runner pool_runner.cpp)
 target_link_libraries(pool_runner ${RUNNER_LIBS})
 
 set(CODEGEN_LIBS
-        wavmmodule
-        wamrmodule
+        codegen
         system
 )
 

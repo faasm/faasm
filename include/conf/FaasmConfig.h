@@ -7,8 +7,6 @@ class FaasmConfig
 {
   public:
     std::string hostType;
-    std::string functionStorage;
-    std::string fileserverUrl;
 
     std::string cgroupMode;
     std::string netNsMode;
@@ -24,7 +22,6 @@ class FaasmConfig
     std::string objectFileDir;
     std::string runtimeFilesDir;
     std::string sharedFilesDir;
-    std::string sharedFilesStorageDir;
 
     std::string s3Bucket;
     std::string s3Host;

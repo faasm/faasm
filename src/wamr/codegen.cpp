@@ -1,5 +1,6 @@
 #include "WAMRWasmModule.h"
 
+#include <boost/filesystem/operations.hpp>
 #include <faabric/util/files.h>
 #include <faabric/util/logging.h>
 #include <stdexcept>
@@ -12,7 +13,6 @@
 namespace wasm {
 std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
 {
-
     // Make sure WAMR is initialised
     WAMRWasmModule::initialiseWAMRGlobally();
 
@@ -75,6 +75,10 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
     // Read object bytes back in
     std::vector<uint8_t> objBytes =
       faabric::util::readFileToBytes(temp.c_str());
+
+    // Delete the file
+    boost::filesystem::remove(temp.c_str());
+
     return objBytes;
 }
 }

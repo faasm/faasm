@@ -123,11 +123,6 @@ def deploy(ctx, replicas=DEFAULT_REPLICAS, local=False):
     """
     Deploy Faasm to knative
     """
-    extra_env = {
-        "FUNCTION_STORAGE": "fileserver",
-        "FILESERVER_URL": "http://upload:8002",
-    }
-
     # Deploy the other K8s stuff (e.g. redis)
     _kubectl_apply(join(COMMON_CONF, "namespace.yml"))
     _kubectl_apply(COMMON_CONF)
@@ -144,7 +139,6 @@ def deploy(ctx, replicas=DEFAULT_REPLICAS, local=False):
         replicas,
         FAASM_WORKER_CONCURRENCY,
         FAASM_WORKER_ANNOTATIONS,
-        extra_env=extra_env,
     )
 
 

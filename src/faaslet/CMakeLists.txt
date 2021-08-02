@@ -15,7 +15,7 @@ target_link_libraries(faaslet_lib
         faabric
         system
         threads
-        wamrmodule
+        storage
         )
 
 # Include SGX lib if enabled

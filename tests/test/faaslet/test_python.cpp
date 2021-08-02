@@ -4,10 +4,10 @@
 #include <boost/algorithm/string.hpp>
 #include <dirent.h>
 
-#include <conf/function_utils.h>
-
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
+
+#include <storage/FileLoader.h>
 
 namespace tests {
 void checkPythonFunction(const std::string& funcName, bool withPool)

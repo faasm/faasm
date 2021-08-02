@@ -19,9 +19,9 @@ FAABRIC_CATCH_LOGGER
 
 int main(int argc, char* argv[])
 {
-    storage::initSDK();
-    faabric::transport::initGlobalMessageContext();
     faabric::util::initLogging();
+    storage::initFaasmS3();
+    faabric::transport::initGlobalMessageContext();
 
     // Start everything up
     SPDLOG_INFO("Starting distributed test server on master");
@@ -49,6 +49,6 @@ int main(int argc, char* argv[])
     }
 
     faabric::transport::closeGlobalMessageContext();
-    storage::cleanUpSDK();
+    storage::shutdownFaasmS3();
     return result;
 }

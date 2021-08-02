@@ -7,6 +7,9 @@
 namespace tests {
 TEST_CASE_METHOD(DistTestsFixture, "Test OpenMP across hosts", "[scheduler]")
 {
+    uploadExistingFunction("omp", "hellomp");
+    uploadExistingFunction("omp", "omp_checks");
+
     conf.overrideCpuCount = 6;
 
     // Set this host up to have fewer slots than the number of threads

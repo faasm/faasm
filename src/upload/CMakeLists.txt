@@ -8,8 +8,7 @@ set(LIB_FILES
 faasm_private_lib(upload_lib "${LIB_FILES}")
 
 target_link_libraries(upload_lib
-        wasm
-        wavmmodule
+        codegen
         faabric
         cpprestsdk::cpprest
         )

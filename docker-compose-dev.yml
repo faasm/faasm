@@ -13,6 +13,11 @@ services:
       MINIO_ROOT_PASSWORD: minio123
     volumes:
       - ./dev/minio/data:/data/minio
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
 
   faabric-cli:
     image: ${FAABRIC_CLI_IMAGE}
@@ -24,7 +29,6 @@ services:
       - redis
       - minio
     environment:
-      - FUNCTION_STORAGE=local
       - LOG_LEVEL=debug
       - REDIS_STATE_HOST=redis
       - REDIS_QUEUE_HOST=redis

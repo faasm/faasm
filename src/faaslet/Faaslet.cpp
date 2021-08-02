@@ -1,7 +1,6 @@
 #include <faaslet/Faaslet.h>
 
 #include <conf/FaasmConfig.h>
-#include <conf/function_utils.h>
 #include <system/CGroup.h>
 #include <system/NetworkNamespace.h>
 #include <threads/ThreadState.h>
@@ -153,12 +152,9 @@ std::shared_ptr<faabric::scheduler::Executor> FaasletFactory::createExecutor(
 
 void FaasletFactory::flushHost()
 {
-    // Clear cached shared files
-    storage::FileSystem::clearSharedFiles();
-
     // Clear cached wasm and object files
     storage::FileLoader& fileLoader = storage::getFileLoader();
-    fileLoader.flushFunctionFiles();
+    fileLoader.clearLocalCache();
 
     // WAVM-specific flushing
     const conf::FaasmConfig& conf = conf::getFaasmConfig();

@@ -1,5 +1,7 @@
 #include <catch2/catch.hpp>
 
+#include "faasm_fixtures.h"
+
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/redis/Redis.h>
 #include <faabric/state/State.h>
@@ -7,91 +9,92 @@
 #include <faabric/util/environment.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
+#include <faabric/util/string_tools.h>
 
 #include <boost/filesystem.hpp>
 
 #include <conf/FaasmConfig.h>
-#include <conf/function_utils.h>
 #include <storage/FileLoader.h>
 #include <upload/UploadServer.h>
 
 using namespace web::http::experimental::listener;
 using namespace web::http;
 
-// TODO - possible to avoid hard-coding this?
-#define DUMMY_WASM_FILE "/usr/local/code/faasm/tests/test/upload/dummy.wasm"
-#define DUMMY_FILE "/usr/local/code/faasm/tests/test/upload/dummy_file.txt"
-
 namespace tests {
-http_request createRequest(const std::string& path,
-                           const std::vector<uint8_t>& inputData = {})
+
+class UploadTestFixture
+  : public FunctionLoaderTestFixture
+  , public RedisTestFixture
 {
-    uri_builder builder;
+  public:
+    UploadTestFixture() {}
+    ~UploadTestFixture() {}
 
-    builder.set_path(path, false);
-    const uri requestUri = builder.to_uri();
+    http_request createRequest(const std::string& path,
+                               const std::vector<uint8_t>& inputData = {})
+    {
+        uri_builder builder;
 
-    http_request request;
-    request.set_request_uri(requestUri);
-    request.set_body(inputData);
+        builder.set_path(path, false);
+        const uri requestUri = builder.to_uri();
 
-    return request;
-}
+        http_request request;
+        request.set_request_uri(requestUri);
+        request.set_body(inputData);
 
-void checkPut(const std::string& path,
-              const std::string& expectedFile,
-              const std::vector<uint8_t>& bytes)
+        return request;
+    }
+
+    void addRequestFilePathHeader(http_request request,
+                                  const std::string& relativePath)
+    {
+        http_headers& h = request.headers();
+        h.add(FILE_PATH_HEADER, relativePath);
+    }
+
+    void checkPut(http_request request,
+                  const std::string& expectedFile,
+                  const std::vector<uint8_t>& bytes)
+    {
+        // Submit PUT request
+        edge::UploadServer::handlePut(request);
+        http_response response = request.get_response().get();
+        REQUIRE(response.status_code() == status_codes::OK);
+
+        // Check file created
+        REQUIRE(boost::filesystem::exists(expectedFile));
+
+        // Check contents
+        std::vector<uint8_t> actualBytes =
+          faabric::util::readFileToBytes(expectedFile);
+        REQUIRE(actualBytes.size() == bytes.size());
+        REQUIRE(actualBytes == bytes);
+    }
+
+    void checkGet(http_request& request, const std::vector<uint8_t>& bytes)
+    {
+        edge::UploadServer::handleGet(request);
+
+        http_response response = request.get_response().get();
+        REQUIRE(response.status_code() == status_codes::OK);
+
+        const utility::string_t responseStr = response.to_string();
+        const std::vector<unsigned char> responseBytes =
+          response.extract_vector().get();
+        REQUIRE(responseBytes == bytes);
+    }
+};
+
+TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
 {
-    // Submit PUT request
-    http_request request = createRequest(path, bytes);
-    edge::UploadServer::handlePut(request);
-
-    // Check file created
-    REQUIRE(boost::filesystem::exists(expectedFile));
-
-    // Check contents
-    std::vector<uint8_t> actualBytes =
-      faabric::util::readFileToBytes(expectedFile);
-    REQUIRE(actualBytes == bytes);
-}
-
-void checkGet(const std::string& url, const std::vector<uint8_t>& bytes)
-{
-    std::vector<uint8_t> empty;
-    http_request request = createRequest(url, empty);
-    edge::UploadServer::handleGet(request);
-
-    http_response response = request.get_response().get();
-    const utility::string_t responseStr = response.to_string();
-
-    const std::vector<unsigned char> responseBytes =
-      response.extract_vector().get();
-    REQUIRE(responseBytes == bytes);
-}
-
-TEST_CASE("Check upload overrides fileserver storage", "[upload]")
-{
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
-    conf.functionStorage = "fileserver";
-
-    // Instantiate a server
-    edge::UploadServer server;
-    REQUIRE(conf.functionStorage == "local");
-}
-
-TEST_CASE("Upload tests", "[upload]")
-{
-    faabric::redis::Redis& redisQueue = faabric::redis::Redis::getQueue();
-    redisQueue.flushAll();
-
     std::vector<uint8_t> empty;
 
     SECTION("Test uploading state")
     {
         // Create multiple upload requests for different users
-        std::string pathA1 = "/s/foo/bar";
-        std::string pathA2 = "/s/foo/baz";
-        std::string pathB = "/s/bat/qux";
+        std::string pathA1 = fmt::format("/{}/foo/bar", STATE_URL_PART);
+        std::string pathA2 = fmt::format("/{}/foo/baz", STATE_URL_PART);
+        std::string pathB = fmt::format("/{}/bat/qux", STATE_URL_PART);
 
         std::vector<uint8_t> stateA1 = { 0, 1, 2, 3, 4, 5 };
         std::vector<uint8_t> stateA2 = { 9, 10, 11 };
@@ -130,7 +133,7 @@ TEST_CASE("Upload tests", "[upload]")
 
     SECTION("Test uploading and downloading state")
     {
-        std::string path = "/s/foo/bar";
+        std::string path = fmt::format("/{}/foo/bar", STATE_URL_PART);
         std::vector<uint8_t> state = { 0, 1, 2, 3, 4, 5 };
         const http_request request = createRequest(path, state);
 
@@ -138,212 +141,142 @@ TEST_CASE("Upload tests", "[upload]")
         edge::UploadServer::handlePut(request);
 
         // Retrieve the state
-        const std::vector<uint8_t> actual =
-          edge::UploadServer::getState(request);
-        REQUIRE(actual == state);
+        http_request requestB = createRequest(path, state);
+        checkGet(requestB, state);
     }
 
-    SECTION("Test uploading wasm file")
+    SECTION("Test uploading function wasm file")
     {
-        // Override the function directory with junk
-        conf::FaasmConfig& conf = conf::getFaasmConfig();
-        std::string origFuncDir = conf.functionDir;
-        std::string origObjDir = conf.objectFileDir;
-        conf.functionDir = "/tmp/func";
-        conf.objectFileDir = "/tmp/obj";
-
         // Ensure environment is clean before running
         std::string expectedFile = "/tmp/func/gamma/delta/function.wasm";
         std::string expectedObjFile = "/tmp/obj/gamma/delta/function.wasm.o";
-        std::string expectedHashFile = expectedObjFile + HASH_EXT;
+        std::string expectedHashFile = loader.getHashFilePath(expectedObjFile);
         boost::filesystem::remove(expectedFile);
         boost::filesystem::remove(expectedObjFile);
         boost::filesystem::remove(expectedHashFile);
 
-        // Load some valid dummy wasm bytes
-        std::vector<uint8_t> wasmBytes =
-          faabric::util::readFileToBytes(DUMMY_WASM_FILE);
-
         // Check putting the file
-        std::string url = "/f/gamma/delta";
-        checkPut(url, expectedFile, wasmBytes);
+        std::string url = fmt::format("/{}/gamma/delta", FUNCTION_URL_PART);
+        http_request request = createRequest(url, wasmBytesA);
+        checkPut(request, expectedFile, wasmBytesA);
 
-        // Check object file is generated
+        // Check object file and hash generated
         REQUIRE(boost::filesystem::exists(expectedObjFile));
         REQUIRE(boost::filesystem::exists(expectedHashFile));
 
         std::vector<uint8_t> objBytes =
           faabric::util::readFileToBytes(expectedObjFile);
+        REQUIRE(objBytes.size() == objBytesA.size());
+        REQUIRE(objBytes == objBytesA);
 
-        // Check getting the file
-        checkGet(url, wasmBytes);
-
-        // Check getting the object file
-        checkGet("/fo/gamma/delta", objBytes);
-
-        conf.functionDir = origFuncDir;
-        conf.objectFileDir = origObjDir;
+        std::vector<uint8_t> hashBytes =
+          faabric::util::readFileToBytes(expectedHashFile);
+        REQUIRE(hashBytes.size() == hashBytesA.size());
+        REQUIRE(hashBytes == hashBytesA);
     }
 
-    SECTION("Test uploading shared file")
+    SECTION("Test uploading and downloading shared file")
     {
-        const char* realPath = DUMMY_FILE;
-        std::vector<uint8_t> fileBytes =
-          faabric::util::readFileToBytes(realPath);
+        std::vector<uint8_t> fileBytes = { 0, 0, 1, 1, 2, 2, 3, 3 };
 
         // Clear out any existing
-        const char* relativePath = "test/dummy_file.txt";
-        std::string fullPath = conf::getSharedFileFile(relativePath);
-        if (boost::filesystem::exists(fullPath)) {
-            boost::filesystem::remove(fullPath);
-        }
+        std::string relativePath = "test/dummy_file.txt";
+        std::string fullPath = loader.getSharedFileFile(relativePath);
+        boost::filesystem::remove(fullPath);
 
         // Check putting the file
-        std::string url = "/file";
+        std::string url = fmt::format("/{}/", SHARED_FILE_URL_PART);
         http_request request = createRequest(url, fileBytes);
-        http_headers& h = request.headers();
-        h.add(FILE_PATH_HEADER, relativePath);
-        edge::UploadServer::handlePut(request);
+        addRequestFilePathHeader(request, relativePath);
 
-        // Check file
-        REQUIRE(boost::filesystem::exists(fullPath));
-        std::vector<uint8_t> actualBytes =
-          faabric::util::readFileToBytes(fullPath);
-        REQUIRE(actualBytes == fileBytes);
+        checkPut(request, fullPath, fileBytes);
+
+        // Check downloading the file
+        http_request requestB = createRequest(url, fileBytes);
+        addRequestFilePathHeader(requestB, relativePath);
+        checkGet(requestB, fileBytes);
     }
-}
 
-TEST_CASE("Function fileserver test", "[upload]")
-{
-    std::string urlPath;
-    std::string user = "demo";
-    std::string funcName = "echo";
-    std::string expectedFilePath;
-
-    faabric::Message msg = faabric::util::messageFactory("demo", "echo");
-    std::string wasmFile = conf::getFunctionFile(msg);
-    std::string objFile = conf::getFunctionObjectFile(msg);
-
-    SECTION("Function wasm")
+    SECTION("Test uploading and downloading python file")
     {
-        urlPath = "/f";
-        expectedFilePath = wasmFile;
-    }
-    SECTION("Function object file")
-    {
-        urlPath = "/fo";
-        expectedFilePath = objFile;
-    }
+        std::vector<uint8_t> fileBytes = { 8, 8, 7, 7, 6, 6 };
+        std::string pythonUser = "blah";
+        std::string pythonFunction = "hlab";
 
-    std::string url = urlPath + "/" + user + "/" + funcName;
-    const std::vector<uint8_t>& expected =
-      faabric::util::readFileToBytes(expectedFilePath);
-    checkGet(url, expected);
-}
+        faabric::Message msg;
+        msg.set_ispython(true);
+        msg.set_pythonuser(pythonUser);
+        msg.set_pythonfunction(pythonFunction);
 
-TEST_CASE("Python fileserver test", "[upload]")
-{
-    std::string urlPath;
-    std::string user = "python";
-    std::string funcName = "foobar";
-
-    // Upload a dummy function
-    std::vector<uint8_t> expected = { 0, 2, 4, 1, 3 };
-    faabric::Message msg = faabric::util::messageFactory(user, funcName);
-    msg.set_inputdata(faabric::util::bytesToString(expected));
-
-    storage::FileLoader& loader = storage::getFileLoader();
-    loader.uploadPythonFunction(msg);
-
-    // Check file exists as expected
-    faabric::Message tempMsg =
-      faabric::util::messageFactory("python", "foobar");
-    conf::convertMessageToPython(tempMsg);
-    const std::string filePath = conf::getPythonFunctionFile(tempMsg);
-    const std::vector<uint8_t> actualBytes =
-      faabric::util::readFileToBytes(filePath);
-    REQUIRE(actualBytes == expected);
-}
-
-TEST_CASE("Shared object fileserver test", "[upload]")
-{
-    std::string urlPath;
-    std::string filePath = "/usr/local/faasm/runtime_root/lib/python3.8/"
-                           "site-packages/numpy/core/_multiarray_umath.so";
-    std::string expectedFilePath;
-
-    SECTION("Shared object wasm")
-    {
-        urlPath = "/sobjwasm";
-        expectedFilePath = filePath;
-    }
-    SECTION("Shared object object file")
-    {
-        urlPath = "/sobjobj";
-        expectedFilePath =
-          "/usr/local/faasm/object/usr/local/faasm/runtime_root/lib/python3.8/"
-          "site-packages/numpy/core/_multiarray_umath.so.o";
-    }
-
-    http_request request = createRequest(urlPath);
-    http_headers& h = request.headers();
-    h.add(FILE_PATH_HEADER, filePath);
-
-    // Submit request
-    edge::UploadServer::handleGet(request);
-    http_response response = request.get_response().get();
-    const utility::string_t responseStr = response.to_string();
-
-    const std::vector<uint8_t>& expected =
-      faabric::util::readFileToBytes(expectedFilePath);
-
-    const std::vector<unsigned char> responseBytes =
-      response.extract_vector().get();
-    REQUIRE(responseBytes == expected);
-}
-
-TEST_CASE("Shared file fileserver test", "[upload]")
-{
-    std::string relativePath = "test/fileserver.txt";
-    std::vector<uint8_t> fileBytes = { 3, 4, 5, 0, 1, 2, 3 };
-
-    std::string fullPath = conf::getSharedFileFile(relativePath);
-    if (boost::filesystem::exists(fullPath)) {
+        // Clear out any existing
+        std::string fullPath = loader.getPythonFunctionFile(msg);
+        std::string relativePath = loader.getPythonFunctionRelativePath(msg);
         boost::filesystem::remove(fullPath);
+
+        // Check putting the file
+        std::string url =
+          fmt::format("/{}/{}/{}", PYTHON_URL_PART, pythonUser, pythonFunction);
+        http_request request = createRequest(url, fileBytes);
+        checkPut(request, fullPath, fileBytes);
+
+        // Check getting as shared file
+        std::string sharedFileUrl = fmt::format("/{}/", SHARED_FILE_URL_PART);
+        http_request requestB = createRequest(sharedFileUrl);
+        addRequestFilePathHeader(requestB, relativePath);
+        checkGet(requestB, fileBytes);
     }
+}
 
-    storage::FileLoader& loader = storage::getFileLoader();
-    bool valid;
+TEST_CASE_METHOD(UploadTestFixture,
+                 "Test upload server invalid requests",
+                 "[upload]")
+{
+    std::string url;
+    bool isGet = true;
 
-    SECTION("Valid file")
+    SECTION("Complete junk")
     {
-        loader.uploadSharedFile(relativePath, fileBytes);
-        valid = true;
+        url = "iamjunk";
+        SECTION("GET") { isGet = true; }
+        SECTION("PUT") { isGet = false; }
     }
 
-    SECTION("Invalid file") { valid = false; }
+    SECTION("Missing URL part")
+    {
+        url = fmt::format("{}/{}/", FUNCTION_URL_PART, "blah");
+        SECTION("GET") { isGet = true; }
+        SECTION("PUT") { isGet = false; }
+    }
 
-    // Prepare the request
-    std::string urlPath = "/file";
-    http_request request = createRequest(urlPath);
-    http_headers& h = request.headers();
-    h.add(FILE_PATH_HEADER, relativePath);
+    SECTION("Invalid first URL part")
+    {
+        url = "/x/demo/echo";
+        SECTION("GET") { isGet = true; }
+        SECTION("PUT") { isGet = false; }
+    }
 
-    // Submit request and get response data
-    edge::UploadServer::handleGet(request);
-    http_response response = request.get_response().get();
-    const utility::string_t responseStr = response.to_string();
+    SECTION("Invalid GET operation")
+    {
+        url = fmt::format("/{}/demo/echo", FUNCTION_URL_PART);
+        isGet = true;
+    }
 
-    const std::vector<unsigned char> responseBytes =
-      response.extract_vector().get();
+    SECTION("Shared file with no path")
+    {
+        url = fmt::format("/{}/", SHARED_FILE_URL_PART);
+        SECTION("GET") { isGet = true; }
+        SECTION("PUT") { isGet = false; }
+    }
 
-    if (valid) {
-        // Check we get back what we wrote in the file
-        REQUIRE(response.status_code() == status_codes::OK);
-        REQUIRE(responseBytes == fileBytes);
+    http_request req = createRequest(url);
+
+    if (isGet) {
+        edge::UploadServer::handleGet(req);
     } else {
-        // Check response is an error
-        REQUIRE(response.status_code() == status_codes::InternalError);
+        edge::UploadServer::handlePut(req);
     }
+
+    http_response response = req.get_response().get();
+    REQUIRE(response.status_code() == status_codes::BadRequest);
 }
 }
