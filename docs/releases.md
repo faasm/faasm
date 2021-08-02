@@ -58,7 +58,7 @@ commit log. To do so, once the PR has been merged:
 git checkout master
 git pull origin master
 cat VERSION # ensure VERSION has the correct tag
-inv git.tag --force
+inv release.tag --force
 ```
 
 ## 5. Create the Github release
