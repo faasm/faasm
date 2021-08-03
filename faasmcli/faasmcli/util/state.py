@@ -1,4 +1,4 @@
-from os.path import join, basename
+from os.path import join
 
 from faasmcli.util.download import get_file
 from faasmcli.util.upload_util import upload_file_to_s3, curl_file
@@ -41,19 +41,3 @@ def upload_binary_state(user, key, binary_file, host=None, s3_bucket=None):
     else:
         url = "http://{}:8002/s/{}/{}".format(host, user, key)
         curl_file(url, binary_file)
-
-
-def upload_shared_file(host, local_path, shared_path, quiet=False):
-    url = "http://{}:8002/file/".format(host)
-
-    local_filename = basename(local_path)
-    print("Uploading {} to {}".format(local_filename, shared_path))
-
-    curl_file(
-        url,
-        local_path,
-        headers={
-            "FilePath": shared_path,
-        },
-        quiet=quiet,
-    )
