@@ -1,6 +1,5 @@
 #include <catch2/catch.hpp>
 
-#include "faasm_fixtures.h"
 #include "utils.h"
 
 #include <storage/FileLoader.h>
@@ -13,23 +12,20 @@
 #include <boost/filesystem.hpp>
 
 namespace tests {
-TEST_CASE_METHOD(SharedFilesTestFixture,
-                 "Test accessing shared files from wasm",
-                 "[faaslet]")
+TEST_CASE("Test accessing shared files from wasm", "[faaslet]")
 {
-    // Set up a dummy file location
+    cleanSystem();
+
+    // Set up a dummy file
+    storage::FileLoader& loader = storage::getFileLoader();
     std::string relativePath = "test/shared-wasm.txt";
     std::string fullPath = loader.getSharedFileFile(relativePath);
-    REQUIRE(!boost::filesystem::exists(fullPath));
-
-    // Upload some data
-    std::string expected = "I am some test content\r";
-    std::vector<uint8_t> expectedBytes = faabric::util::stringToBytes(expected);
-    loader.uploadSharedFile(relativePath, expectedBytes);
-
-    // Check file now exists, then delete
-    REQUIRE(boost::filesystem::exists(fullPath));
     boost::filesystem::remove(fullPath);
+
+    // Enter some data
+    std::string expected = "I am some test content\r";
+    faabric::util::writeBytesToFile(fullPath,
+                                    faabric::util::stringToBytes(expected));
 
     // Set up the function
     faabric::Message call =
@@ -37,11 +33,7 @@ TEST_CASE_METHOD(SharedFilesTestFixture,
     std::string sharedPath = std::string(SHARED_FILE_PREFIX) + relativePath;
     call.set_inputdata(sharedPath);
 
-    // Invoke the function and make sure result is echoing the file content
     std::string actual = execFunctionWithStringResult(call);
     REQUIRE(actual == expected);
-
-    // Check file has been synced locally
-    REQUIRE(boost::filesystem::exists(fullPath));
 }
 }
