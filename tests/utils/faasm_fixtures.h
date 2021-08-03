@@ -6,6 +6,7 @@
 #include <conf/FaasmConfig.h>
 #include <storage/FileLoader.h>
 #include <storage/S3Wrapper.h>
+#include <storage/SharedFiles.h>
 #include <wavm/WAVMWasmModule.h>
 
 #include <faabric/util/files.h>
@@ -43,6 +44,21 @@ class S3TestFixture
   protected:
     storage::S3Wrapper s3;
     conf::FaasmConfig& conf;
+};
+
+class SharedFilesTestFixture : public S3TestFixture
+{
+  public:
+    SharedFilesTestFixture()
+      : loader(storage::getFileLoader())
+    {
+        storage::SharedFiles::clear();
+    }
+
+    ~SharedFilesTestFixture() { storage::SharedFiles::clear(); }
+
+  protected:
+    storage::FileLoader& loader;
 };
 
 class FunctionExecTestFixture : public SchedulerTestFixture

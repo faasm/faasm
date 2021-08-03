@@ -1,6 +1,5 @@
 #include <catch2/catch.hpp>
 
-#include "faabric/util/func.h"
 #include "faasm_fixtures.h"
 #include "utils.h"
 
@@ -8,27 +7,12 @@
 
 #include <conf/FaasmConfig.h>
 #include <faabric/util/files.h>
+#include <faabric/util/func.h>
 #include <storage/FileLoader.h>
-#include <storage/SharedFiles.h>
 
 using namespace storage;
 
 namespace tests {
-
-class SharedFilesTestFixture : public S3TestFixture
-{
-  public:
-    SharedFilesTestFixture()
-      : loader(storage::getFileLoader())
-    {
-        SharedFiles::clear();
-    }
-
-    ~SharedFilesTestFixture() { SharedFiles::clear(); }
-
-  protected:
-    storage::FileLoader& loader;
-};
 
 TEST_CASE_METHOD(SharedFilesTestFixture, "Check sync shared file", "[storage]")
 {
