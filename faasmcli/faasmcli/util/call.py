@@ -172,7 +172,5 @@ def _do_single_call(host, port, msg, quiet):
     if port != 80:
         url += ":{}/".format(port)
 
-    # If wasm, can always use the faasm worker for getting status
     headers = get_knative_headers()
-
     return do_post(url, msg, headers=headers, quiet=quiet, json=True)
