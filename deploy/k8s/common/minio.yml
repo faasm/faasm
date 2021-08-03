@@ -1,0 +1,41 @@
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: faasm
+spec:
+  ports:
+    - port: 9000
+      targetPort: 9000
+  selector:
+    role: minio
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: minio
+  namespace: faasm
+  labels:
+    app: faasm
+    role: minio
+spec:
+  containers:
+    - name: minio-main
+      image: faasm/minio:0.6.3
+      env:
+        - name: MINIO_ROOT_USER
+          value: "minio"
+        - name: MINIO_ROOT_PASSWORD
+          value: "minio123"
+      ports:
+        - containerPort: 9000
+      volumeMounts:
+        - mountPath: /data/minio
+          name: minio-volume
+  volumes:
+    - name: minio-volume
+      emptyDir: {}
