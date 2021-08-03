@@ -59,13 +59,11 @@ KNATIVE_ENV = {
     "REDIS_STATE_HOST": "redis-state",
     "REDIS_QUEUE_HOST": "redis-queue",
     "HOST_TYPE": "knative",
-    "LOG_LEVEL": "info",
+    "LOG_LEVEL": "debug",
     "CGROUP_MODE": "off",
     "NETNS_MODE": "off",
-    "STATE_MODE": "redis",
     "PYTHON_PRELOAD": "off",  # Switch on/ off preloading of Python runtime
     "PYTHON_CODEGEN": "off",  # Switch on/ off up-front codegen for Python
-    "NO_SCHEDULER": "0",  # Turn on/ off Faasm scheduler
     "BOUND_TIMEOUT": str(
         THIRTY_SECS
     ),  # How long a bound worker sticks around for
