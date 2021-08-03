@@ -10,7 +10,7 @@ def _get_dir(variable, default):
 
 
 FAABRIC_MSG_TYPE_CALL = 0
-FAABRIC_MSG_TYPE_FLUSH = 4
+FAABRIC_MSG_TYPE_FLUSH = 3
 
 HOME_DIR = expanduser("~")
 PROJ_ROOT = dirname(dirname(dirname(dirname(realpath(__file__)))))
