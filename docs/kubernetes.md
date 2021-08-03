@@ -7,7 +7,8 @@ and the relevant parts of the Faasm CLI can be found in the [Knative
 tasks](../tasks/knative.py).
 
 Faasm assumes a K8s cluster is set up with
-[`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/) working.
+[`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/) available
+on the commandline.
 
 If you don't have a cluster set up, see the instructions at the bottom of this
 page.
@@ -46,14 +47,18 @@ This might take a couple of minutes depending on the underlying cluster.
 
 ### Config file
 
-Once everything has started up, you can populate your `~/faasm/faasm.ini` file
-to avoid typing in hostnames all the time. To do this, run:
+Once everything has started up, you can populate your `faasm.ini` file at the
+root of this project. To do this, run:
 
 ```
-./bin/knative_route.sh
+# Update the file
+./bin/update_ini.sh
+
+# Check contents of file
+cat faasm.ini
 ```
 
-Which should print out something like:
+The file should look something like:
 
 ```
 [Faasm]
@@ -63,17 +68,13 @@ upload_host = ...   # IP of the upload service
 upload_port = ...   # Usually 8002
 ```
 
-You can then copy-paste this into `faasm.ini` at the project root.
-
 ## Uploading functions
 
 Once you have configured your `faasm.ini` file, you can use the Faasm, CPP,
 Python CLIs as normal, e.g.
 
 ```
-./bin/cli.sh cpp
-
-inv upload demo hello /usr/local/faasm/wasm/demo/echo/function.wasm
+inv upload demo hello /usr/local/faasm/wasm/demo/hello/function.wasm
 inv invoke demo hello
 ```
 
