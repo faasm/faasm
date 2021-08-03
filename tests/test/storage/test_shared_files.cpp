@@ -9,26 +9,10 @@
 #include <conf/FaasmConfig.h>
 #include <faabric/util/files.h>
 #include <storage/FileLoader.h>
-#include <storage/SharedFiles.h>
 
 using namespace storage;
 
 namespace tests {
-
-class SharedFilesTestFixture : public S3TestFixture
-{
-  public:
-    SharedFilesTestFixture()
-      : loader(storage::getFileLoader())
-    {
-        SharedFiles::clear();
-    }
-
-    ~SharedFilesTestFixture() { SharedFiles::clear(); }
-
-  protected:
-    storage::FileLoader& loader;
-};
 
 TEST_CASE_METHOD(SharedFilesTestFixture, "Check sync shared file", "[storage]")
 {
