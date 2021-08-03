@@ -174,6 +174,9 @@ Finally, set up your `kubectl` to use this with:
 rm -rf ~/.kube
 mkdir ~/.kube
 microk8s config > ~/.kube/config
+
+# Check
+kubectl get nodes
 ```
 
 You can then continue with Faasm installation as described above.
