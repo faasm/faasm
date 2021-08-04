@@ -60,6 +60,7 @@ KNATIVE_ENV = {
     "REDIS_QUEUE_HOST": "redis-queue",
     "HOST_TYPE": "knative",
     "LOG_LEVEL": "info",
+    "CAPTURE_STDOUT": "on",  # Needed for experiment outputs
     "CGROUP_MODE": "off",
     "NETNS_MODE": "off",
     "PYTHON_PRELOAD": "off",  # Switch on/ off preloading of Python runtime
