@@ -1,6 +1,6 @@
 from time import sleep
 
-from faasmcli.util.env import PYTHON_USER, PYTHON_FUNC, FAABRIC_MSG_TYPE_FLUSH
+from faasmcli.util.env import PYTHON_USER, PYTHON_FUNC
 from faasmcli.util.http import do_post
 from faasmcli.util.endpoints import get_invoke_host_port, get_knative_headers
 
@@ -128,13 +128,6 @@ def invoke_impl(
         return do_post(url, msg, headers=headers, json=True, debug=debug)
 
 
-def flush_call_impl(host, port):
-    msg = {
-        "type": FAABRIC_MSG_TYPE_FLUSH,
-    }
-    return _do_single_call(host, port, msg, False)
-
-
 def status_call_impl(user, func, call_id, host, port, quiet=False):
     msg = {
         "user": user,
@@ -172,7 +165,5 @@ def _do_single_call(host, port, msg, quiet):
     if port != 80:
         url += ":{}/".format(port)
 
-    # If wasm, can always use the faasm worker for getting status
     headers = get_knative_headers()
-
     return do_post(url, msg, headers=headers, quiet=quiet, json=True)

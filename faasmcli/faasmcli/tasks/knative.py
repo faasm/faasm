@@ -7,6 +7,7 @@ from invoke import task
 from faasmcli.util.env import PROJ_ROOT
 from faasmcli.util.version import get_faasm_version
 
+
 K8S_DIR = join(PROJ_ROOT, "deploy", "k8s")
 BARE_METAL_CONF = join(K8S_DIR, "bare-metal")
 BARE_METAL_REMOTE_CONF = join(K8S_DIR, "bare-metal-remote")
@@ -59,12 +60,11 @@ KNATIVE_ENV = {
     "REDIS_QUEUE_HOST": "redis-queue",
     "HOST_TYPE": "knative",
     "LOG_LEVEL": "info",
+    "CAPTURE_STDOUT": "on",  # Needed for experiment outputs
     "CGROUP_MODE": "off",
     "NETNS_MODE": "off",
-    "STATE_MODE": "redis",
     "PYTHON_PRELOAD": "off",  # Switch on/ off preloading of Python runtime
     "PYTHON_CODEGEN": "off",  # Switch on/ off up-front codegen for Python
-    "NO_SCHEDULER": "0",  # Turn on/ off Faasm scheduler
     "BOUND_TIMEOUT": str(
         THIRTY_SECS
     ),  # How long a bound worker sticks around for
@@ -112,8 +112,8 @@ def delete_worker(ctx, hard=False):
     Delete the Faasm worker pod
     """
     # Clear redis queue
-    flush_cmd = "kubectl exec -n faasm redis-queue -- redis-cli flushall"
-    call(flush_cmd, shell=True)
+    cmd = "kubectl exec -n faasm redis-queue -- redis-cli flushall"
+    call(cmd, shell=True)
 
     _delete_knative_fn("worker", hard)
 
