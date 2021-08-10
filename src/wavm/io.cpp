@@ -903,6 +903,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "msync", I32, msync, I32 a, I32 b, I32 c)
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "tempnam", I32, tempnam, I32 a, I32 b)
+{
+    SPDLOG_TRACE("S - tempnam - {} {}", a, b);
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "memfd_create",
                                I32,
