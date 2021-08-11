@@ -26,7 +26,6 @@ services:
     working_dir: /code/faabric
     stdin_open: true
     tty: true
-    privileged: true
     depends_on:
       - redis
       - minio
@@ -69,7 +68,6 @@ services:
     working_dir: /code/cpp
     stdin_open: true
     tty: true
-    privileged: true
     depends_on:
       - redis
       - minio
@@ -90,7 +88,6 @@ services:
     working_dir: /code/python
     stdin_open: true
     tty: true
-    privileged: true
     depends_on:
       - redis
       - minio

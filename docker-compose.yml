@@ -94,7 +94,6 @@ services:
     working_dir: /code/cpp
     stdin_open: true
     tty: true
-    privileged: true
     depends_on:
       - worker
       - upload
@@ -107,7 +106,6 @@ services:
     working_dir: /code/python
     stdin_open: true
     tty: true
-    privileged: true
     depends_on:
       - worker
       - upload
