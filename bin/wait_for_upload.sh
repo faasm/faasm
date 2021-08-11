@@ -23,7 +23,7 @@ if [ ! -f "$WAIT_FOR" ]; then
 fi
 
 ${WAIT_FOR} \
-    -t 120 \
+    -t 300 \
     http://${UPLOAD_HOST}:${UPLOAD_PORT}/ping \
     -- echo "Upload server up"
 
