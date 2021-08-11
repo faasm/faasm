@@ -206,3 +206,40 @@ jobs:
       - name: "Run the distributed tests"
         run: ./dist-test/run.sh
 
+  quick-start:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    env:
+      PYTHON_CODEGEN: "on"
+    steps:
+      # --- Code update ---
+      - name: "Check out code"
+        uses: actions/checkout@v2
+      - name: "CPP submodule"
+        run: git submodule update --init clients/cpp
+      - name: "Python submodule"
+        run: git submodule update --init clients/python
+      # --- Setup ---
+      - name: "Start docker-compose"
+        run: docker-compose up -d
+      - name: "Wait for upload server to be available"
+        run: docker-compose exec -T worker /usr/local/code/faasm/bin/wait_for_upload.sh upload 8002
+      # --- CPP ---
+      - name: "Build cpp function"
+        run: docker-compose exec -T cpp inv func demo hello
+      - name: "Upload cpp function"
+        run: docker-compose exec -T cpp inv func.upload demo hello
+      - name: "Invoke cpp function"
+        run: docker-compose exec -T cpp inv func.invoke demo hello
+      # --- Python ---
+      - name: "Build python function"
+        run: docker-compose exec -T python inv func
+      - name: "Upload python runtime function"
+        run: docker-compose exec -T python inv func.upload
+      - name: "Upload python hello function"
+        run: docker-compose exec -T python inv func.uploadpy hello
+      - name: "Invoke python hello function"
+        run: docker-compose exec -T python inv func.invoke python hello
+      # --- Shutdown ---
+      - name: "Stop docker-compose"
+        run: docker-compose down

@@ -34,10 +34,15 @@ services:
       - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
     environment:
       - LOG_LEVEL=info
-      - PYTHON_CODEGEN=on
+      - PYTHON_CODEGEN=${PYTHON_CODEGEN}
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   worker:
     image: faasm/worker:${FAASM_VERSION}
@@ -45,7 +50,7 @@ services:
       - upload
     expose:
       - "8080"
-    privileged: yes
+    privileged: true
     volumes:
       - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
     environment:
@@ -67,12 +72,35 @@ services:
     ports:
       - "8080:8080"
 
+  cpp:
+    image: ${CPP_CLI_IMAGE}
+    working_dir: /code/cpp
+    stdin_open: true
+    tty: true
+    depends_on:
+      - worker
+      - upload
+    volumes:
+      - ./clients/cpp:/code/cpp
+
+  python:
+    image: ${PYTHON_CLI_IMAGE}
+    working_dir: /code/python
+    stdin_open: true
+    tty: true
+    depends_on:
+      - worker
+      - upload
+    volumes:
+      - ./clients/python:/code/python
+
+  # --- Local cluster dev ---
+  # The following containers are only needed for local cluster dev
   faasm-cli:
     image: ${FAASM_CLI_IMAGE}
     working_dir: /usr/local/code/faasm
     stdin_open: true
     tty: true
-    privileged: true
     depends_on:
       - worker
     environment:
@@ -86,30 +114,4 @@ services:
       - ./:/usr/local/code/faasm/
       - ./dev/faasm/build/:/build/faasm/
       - ./dev/faasm-local:/usr/local/faasm
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /usr/bin/docker:/usr/bin/docker
 
-  cpp:
-    image: ${CPP_CLI_IMAGE}
-    working_dir: /code/cpp
-    stdin_open: true
-    tty: true
-    privileged: true
-    depends_on:
-      - worker
-      - upload
-    volumes:
-      - ./clients/cpp:/code/cpp
-      - ./dev/cpp/build:/build/cpp
-
-  python:
-    image: ${PYTHON_CLI_IMAGE}
-    working_dir: /code/python
-    stdin_open: true
-    tty: true
-    privileged: true
-    depends_on:
-      - worker
-      - upload
-    volumes:
-      - ./clients/python:/code/python

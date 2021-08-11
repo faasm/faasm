@@ -24,7 +24,6 @@ services:
     working_dir: /code/faabric
     stdin_open: true
     tty: true
-    privileged: true
     depends_on:
       - redis
       - minio
@@ -36,8 +35,6 @@ services:
       - ./faabric:/code/faabric
       - ./dev/faabric/build:/build/faabric
       - ./dev/faasm-local:/usr/local/faasm
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /usr/bin/docker:/usr/bin/docker
 
   faasm-cli:
     image: ${FAASM_CLI_IMAGE}
@@ -57,15 +54,12 @@ services:
       - ./:/usr/local/code/faasm/
       - ./dev/faasm/build:/build/faasm/
       - ./dev/faasm-local:/usr/local/faasm
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /usr/bin/docker:/usr/bin/docker
 
   cpp-cli:
     image: ${CPP_CLI_IMAGE}
     working_dir: /code/cpp
     stdin_open: true
     tty: true
-    privileged: true
     depends_on:
       - redis
       - minio
@@ -77,15 +71,12 @@ services:
       - ./clients/cpp:/code/cpp
       - ./dev/cpp/build:/build/cpp
       - ./dev/faasm-local:/usr/local/faasm
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /usr/bin/docker:/usr/bin/docker
 
   python-cli:
     image: ${PYTHON_CLI_IMAGE}
     working_dir: /code/python
     stdin_open: true
     tty: true
-    privileged: true
     depends_on:
       - redis
       - minio
@@ -96,8 +87,6 @@ services:
     volumes:
       - ./clients/python:/code/python
       - ./dev/faasm-local:/usr/local/faasm
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /usr/bin/docker:/usr/bin/docker
 
   vector:
     image: netflixoss/vector:latest

@@ -23,7 +23,7 @@ if [[ -z "$CPP_CLI_IMAGE" ]]; then
 fi
 
 if [[ -z "$PYTHON_CLI_IMAGE" ]]; then
-    export PYTHON_CLI_IMAGE=faasm/python:${PYTHON_VERSION}
+    export PYTHON_CLI_IMAGE=faasm/cpython:${PYTHON_VERSION}
 fi
 
 INNER_SHELL=${SHELL:-"/bin/bash"}

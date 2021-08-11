@@ -16,16 +16,28 @@ interface](host_interface.md).
 ## Enabling Python support
 
 Full Python support is **not enabled by default**. To enable the Python runtime
-you must set up the relevant environment variables:
+you must set up the relevant environment variables for the `upload` container:
 
 ```bash
-# On the "upload" container/ endpoint (see docker-compose.yml locally)
-PYTHON_CODEGEN=on
+export PYTHON_CODEGEN=on
 ```
 
 The first time the system runs it will generate machine code for python and all
 the Python C-extensions. This can take up to a couple of minutes depending on
 your machine, but is a one-off job.
+
+In a local environment the `upload` container has a health check which you can
+inspect with:
+
+```bash
+docker ps
+```
+
+Or explicitly await with:
+
+```bash
+docker-compose exec worker /usr/local/code/faasm/bin/wait_for_upload.sh upload 8002
+```
 
 ## Running a Python function
 
@@ -34,7 +46,7 @@ uploaded and invoked from the Python CLI with:
 
 ```bash
 # Run the Python CLI
-./bin/cli.sh python
+docker-compose exec python /bin/bash
 
 # Build and upload the Python runtime
 inv func

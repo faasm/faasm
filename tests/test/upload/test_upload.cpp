@@ -279,4 +279,25 @@ TEST_CASE_METHOD(UploadTestFixture,
     http_response response = req.get_response().get();
     REQUIRE(response.status_code() == status_codes::BadRequest);
 }
+
+TEST_CASE_METHOD(UploadTestFixture, "Test upload server ping", "[upload]")
+{
+    http_request req = createRequest("/ping");
+    edge::UploadServer::handleGet(req);
+    http_response response = req.get_response().get();
+    REQUIRE(response.status_code() == status_codes::OK);
+
+    concurrency::streams::stringstreambuf inputStream;
+    std::string responseStr;
+    response.body()
+      .read_to_end(inputStream)
+      .then([&inputStream, &responseStr](size_t size) {
+          if (size > 0) {
+              responseStr = inputStream.collection();
+          }
+      })
+      .wait();
+
+    REQUIRE(responseStr == "PONG");
+}
 }

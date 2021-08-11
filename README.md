@@ -4,7 +4,7 @@
 
 # Faasm [![Tests](https://github.com/faasm/faasm/workflows/Tests/badge.svg?branch=master)](https://github.com/faasm/faasm/actions)  [![License](https://img.shields.io/github/license/faasm/faasm.svg)](https://github.com/faasm/faasm/blob/master/LICENSE.md)  [![Release](https://img.shields.io/github/release/faasm/faasm.svg)](https://github.com/faasm/faasm/releases/)  [![Contributors](https://img.shields.io/github/contributors/faasm/faasm.svg)](https://github.com/faasm/faasm/graphs/contributors/)
 
-Faasm is a high-performance stateful serverless runtime. 
+Faasm is a high-performance stateful serverless runtime.
 
 Faasm provides multi-tenant isolation, yet allows functions to share regions of
 memory. These shared memory regions give low-latency concurrent access to data,
@@ -13,38 +13,43 @@ and are synchronised globally to support large-scale parallelism.
 Faasm combines software fault isolation from WebAssembly with standard Linux
 tooling, to provide security and resource isolation at low cost. Faasm runs
 functions side-by-side as threads of a single runtime process, with low
-overheads and fast boot times. 
+overheads and fast boot times.
 
 Faasm is built on [Faabric](http://github.com/faasm/faabric) which provides
-the distributed messaging and state layer. 
+the distributed messaging and state layer.
 
 The underlying WebAssembly execution and code generation is built using
-[WAVM](https://github.com/WAVM/WAVM). 
+[WAVM](https://github.com/WAVM/WAVM).
 Support for running functions inside SGX enclaves is achieved using
 [WAMR](https://github.com/bytecodealliance/wasm-micro-runtime).
 
 Faasm defines a custom [host interface](docs/host_interface.md) which extends
 [WASI](https://wasi.dev/) to include function inputs and outputs, chaining
 functions, managing state, accessing the distributed filesystem, dynamic
-linking, pthreads, OpenMP and MPI.   
+linking, pthreads, OpenMP and MPI.
 
 Our paper from Usenix ATC '20 on Faasm can be found
 [here](https://www.usenix.org/conference/atc20/presentation/shillaker).
 
 # Quick start
 
-You can start a Faasm cluster locally using the `docker-compose.yml` file in the
-root of the project:
+Update submodules:
+
+```bash
+git submodule update
+```
+
+Start a Faasm cluster locally using `docker-compose`:
 
 ```bash
 docker-compose up -d
 ```
 
-To compile, upload and invoke a C++ function using this local cluster you can 
+To compile, upload and invoke a C++ function using this local cluster you can
 use the [faasm/cpp](https://github.com/faasm/cpp) container:
 
 ```bash
-docker-compose run cpp /bin/bash
+docker-compose exec cpp /bin/bash
 
 # Compile the demo function
 inv func demo hello
@@ -58,7 +63,7 @@ inv func.invoke demo hello
 
 ## More information
 
-More detail on some key features and implementations can be found below: 
+More detail on some key features and implementations can be found below:
 
 - [Usage and set-up](docs/setup.md) - using the CLI and other features.
 - [C/C++ functions](https://github.com/faasm/cpp) - writing and deploying Faasm functions in C/C++.
@@ -71,7 +76,7 @@ More detail on some key features and implementations can be found below:
 - [MPI](docs/mpi.md) and [OpenMP](docs/openmp.md) - executing existing MPI and OpenMP applications in Faasm.
 - [Developing Faasm](docs/development.md) - developing and modifying Faasm.
 - [Releases](docs/releases.md) - instructions for releasing new versions and building container tags.
-- [Faasm.js](https://github.com/faasm/faasmjs) - executing Faasm functions in the browser and on the server. 
+- [Faasm.js](https://github.com/faasm/faasmjs) - executing Faasm functions in the browser and on the server.
 - [Threading](docs/threads.md) - executing multi-threaded applications.
 - [Proto-Faaslets](docs/proto_faaslets.md) - snapshot-and-restore to reduce cold starts.
 - [WAMR support](docs/wamr.md) - support for the [wasm-micro-runtime](https://github.com/bytecodealliance/wasm-micro-runtime) (WIP).
