@@ -289,7 +289,8 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload server ping", "[upload]")
 
     concurrency::streams::stringstreambuf inputStream;
     std::string responseStr;
-    response.body().read_to_end(inputStream)
+    response.body()
+      .read_to_end(inputStream)
       .then([&inputStream, &responseStr](size_t size) {
           if (size > 0) {
               responseStr = inputStream.collection();
