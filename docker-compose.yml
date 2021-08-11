@@ -34,7 +34,7 @@ services:
       - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
     environment:
       - LOG_LEVEL=info
-      - PYTHON_CODEGEN=on
+      - PYTHON_CODEGEN=${PYTHON_CODEGEN}
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
