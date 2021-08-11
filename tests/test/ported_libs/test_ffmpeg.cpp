@@ -7,79 +7,55 @@
 #include <iterator>
 #include <vector>
 
+#include <faabric/util/files.h>
 #include <storage/FileLoader.h>
 #include <storage/SharedFiles.h>
 #include <upload/UploadServer.h>
 
 namespace tests {
-
-class FileUploadTestFixture
+// NOTE: we must be careful with this fixture that we don't have to rerun the
+// codegen for the ffmpeg function as it's over 40MB of wasm and takes several
+// minutes.
+class FFmpegTestFixture
 {
+
   public:
-    FileUploadTestFixture()
+    FFmpegTestFixture()
       : loader(storage::getFileLoader())
     {
         storage::SharedFiles::clear();
+
+        // Remove the file
+        filePath = loader.getSharedFileFile(relativeSharedFilePath);
+        boost::filesystem::remove(filePath);
+
+        // Upload the file
+        fileBytes = faabric::util::readFileToBytes(testFilePath);
+        loader.uploadSharedFile(relativeSharedFilePath, fileBytes);
     }
 
-    ~FileUploadTestFixture() { storage::SharedFiles::clear(); }
-
-    void uploadFile(const std::string& hostPath, const std::string& sharedPath)
+    ~FFmpegTestFixture()
     {
-        // Clear out any existing files with the same path
-        std::string fullSharedPath = loader.getSharedFileFile(sharedPath);
+        storage::SharedFiles::clear();
 
-        // Dump contents of input file to byte array
-        std::ifstream inFile(hostPath, std::ios::binary);
-        std::vector<char> signedFileBytes(
-          (std::istreambuf_iterator<char>(inFile)),
-          (std::istreambuf_iterator<char>()));
-        inFile.close();
-        std::vector<unsigned char> fileBytes(signedFileBytes.begin(),
-                                             signedFileBytes.end());
-
-        // Submit PUT request
-        std::string url = fmt::format("/{}/", SHARED_FILE_URL_PART);
-        web::http::http_request request = createRequest(url, fileBytes);
-        addRequestFilePathHeader(request, sharedPath);
-        edge::UploadServer::handlePut(request);
-        web::http::http_response response = request.get_response().get();
-        REQUIRE(response.status_code() == status_codes::OK);
+        boost::filesystem::remove(filePath);
     }
 
   protected:
     storage::FileLoader& loader;
 
-    void addRequestFilePathHeader(web::http::http_request request,
-                                  const std::string& relativePath)
-    {
-        web::http::http_headers& h = request.headers();
-        h.add(FILE_PATH_HEADER, relativePath);
-    }
-
-    web::http::http_request createRequest(
-      const std::string& path,
-      const std::vector<unsigned char>& inputData = {})
-    {
-        web::http::uri_builder builder;
-
-        builder.set_path(path, false);
-        const uri requestUri = builder.to_uri();
-
-        web::http::http_request request;
-        request.set_request_uri(requestUri);
-        request.set_body(inputData);
-
-        return request;
-    }
+    std::string testFilePath =
+      "./tests/test/ported_libs/files/ffmpeg_video.mp4";
+    std::string filePath;
+    std::string relativeSharedFilePath = "ffmpeg/sample_video.mp4";
+    std::vector<uint8_t> fileBytes;
 };
 
-TEST_CASE_METHOD(FileUploadTestFixture,
+TEST_CASE_METHOD(FFmpegTestFixture,
                  "Test executing FFmpeg checks in WAVM",
                  "[libs]")
 {
-    uploadFile("./files/ffmpeg_video.mp4", "ffmpeg/sample_video.mp4");
-
-    executeWithWavmPool("ffmpeg", "check");
+    faabric::Message msg = faabric::util::messageFactory("ffmpeg", "check");
+    execFunction(msg);
 }
 }

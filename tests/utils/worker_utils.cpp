@@ -164,12 +164,6 @@ void execFuncWithPool(faabric::Message& call, bool clean, int timeout)
     cleanSystem();
 }
 
-void executeWithWavmPool(const std::string& user, const std::string& func)
-{
-    faabric::Message msg = faabric::util::messageFactory(user, func);
-    execFuncWithPool(msg, false);
-}
-
 void doWamrPoolExecution(faabric::Message& msg)
 {
     conf::FaasmConfig& conf = conf::getFaasmConfig();

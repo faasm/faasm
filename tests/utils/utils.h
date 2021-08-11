@@ -19,8 +19,6 @@ void execFuncWithPool(faabric::Message& call,
                       bool clean = true,
                       int timeout = 1000);
 
-void executeWithWavmPool(const std::string& user, const std::string& func);
-
 void executeWithWamrPool(const std::string& user, const std::string& func);
 
 void executeWithSGX(const std::string& user, const std::string& func);
