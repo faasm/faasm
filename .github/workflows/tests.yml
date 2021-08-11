@@ -222,20 +222,20 @@ jobs:
         run: sleep 20s
       # --- CPP ---
       - name: "Build cpp function"
-        run: docker-compose exec cpp inv func demo hello
+        run: docker-compose exec -T cpp inv func demo hello
       - name: "Upload cpp function"
-        run: docker-compose exec cpp inv func.upload demo hello
+        run: docker-compose exec -T cpp inv func.upload demo hello
       - name: "Invoke cpp function"
-        run: docker-compose exec cpp inv func.invoke demo hello
+        run: docker-compose exec -T cpp inv func.invoke demo hello
       # --- Python ---
       - name: "Build python function"
-        run: docker-compose exec python inv func
+        run: docker-compose exec -T python inv func
       - name: "Upload python runtime function"
-        run: docker-compose exec python inv func.upload
+        run: docker-compose exec -T python inv func.upload
       - name: "Upload python hello function"
-        run: docker-compose exec python inv func.uploadpy hello
+        run: docker-compose exec -T python inv func.uploadpy hello
       - name: "Invoke python hello function"
-        run: docker-compose exec python inv func.invoke python hello
+        run: docker-compose exec -T python inv func.invoke python hello
       # --- Shutdown ---
       - name: "Stop docker-compose"
         run: docker-compose down
