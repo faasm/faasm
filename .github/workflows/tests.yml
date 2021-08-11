@@ -25,7 +25,7 @@ jobs:
       - name: "Start docker-compose"
         run: docker-compose up -d
       - name: "Wait for upload server to be available"
-        run: docker-compose exec -T cpp ./bin/wait_for_upload.sh
+        run: docker-compose exec -T cpp ./bin/wait_for_upload.sh upload 8002
       # --- CPP ---
       - name: "Build cpp function"
         run: docker-compose exec -T cpp inv func demo hello
