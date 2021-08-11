@@ -38,6 +38,11 @@ services:
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   worker:
     image: faasm/worker:${FAASM_VERSION}
@@ -45,7 +50,7 @@ services:
       - upload
     expose:
       - "8080"
-    privileged: yes
+    privileged: true
     volumes:
       - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
     environment:

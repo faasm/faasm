@@ -24,8 +24,8 @@ jobs:
       # --- Setup ---
       - name: "Start docker-compose"
         run: docker-compose up -d
-      - name: "Give time for python codegen to run"
-        run: sleep 30s
+      - name: "Wait for upload server to be available"
+        run: docker-compose exec -T cpp ./bin/wait_for_upload.sh
       # --- CPP ---
       - name: "Build cpp function"
         run: docker-compose exec -T cpp inv func demo hello
