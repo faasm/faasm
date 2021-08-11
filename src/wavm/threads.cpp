@@ -427,5 +427,15 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "pthread_once",
+                               I32,
+                               s__pthread_once,
+                               I32 a,
+                               I32 b)
+{
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
 void threadsLink() {}
 }
