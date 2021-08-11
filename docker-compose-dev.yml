@@ -3,13 +3,11 @@ version: "3"
 services:
   redis:
     image: faasm/redis:${FAASM_VERSION}
-    network_mode: host
 
   minio:
     image: faasm/minio:${FAASM_VERSION}
     expose:
       - "9000"
-    network_mode: host
     environment:
       MINIO_ROOT_USER: minio
       MINIO_ROOT_PASSWORD: minio123
@@ -30,7 +28,6 @@ services:
     depends_on:
       - redis
       - minio
-    network_mode: host
     environment:
       - LOG_LEVEL=debug
       - REDIS_STATE_HOST=redis
@@ -51,7 +48,6 @@ services:
     depends_on:
       - redis
       - minio
-    network_mode: host
     environment:
       - LOG_LEVEL=debug
       - REDIS_QUEUE_HOST=redis
@@ -73,7 +69,6 @@ services:
     depends_on:
       - redis
       - minio
-    network_mode: host
     environment:
       - LOG_LEVEL=debug
       - REDIS_STATE_HOST=redis
@@ -94,7 +89,6 @@ services:
     depends_on:
       - redis
       - minio
-    network_mode: host
     environment:
       - LOG_LEVEL=debug
       - REDIS_STATE_HOST=redis
@@ -109,6 +103,5 @@ services:
     image: netflixoss/vector:latest
     depends_on:
       - faasm-cli
-    network_mode: host
     ports:
       - "80:80"
