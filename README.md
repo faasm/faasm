@@ -33,8 +33,13 @@ Our paper from Usenix ATC '20 on Faasm can be found
 
 # Quick start
 
-You can start a Faasm cluster locally using the `docker-compose.yml` file in the
-root of the project:
+Update submodules:
+
+```bash
+git submodule update
+```
+
+Start a Faasm cluster locally using `docker-compose`:
 
 ```bash
 docker-compose up -d

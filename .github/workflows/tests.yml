@@ -17,6 +17,10 @@ jobs:
       # --- Code update ---
       - name: "Check out code"
         uses: actions/checkout@v2
+      - name: "CPP submodule"
+        run: git submodule update --init clients/cpp
+      - name: "Python submodule"
+        run: git submodule update --init clients/python
       # --- Setup ---
       - name: "Start docker-compose"
         run: docker-compose up -d
