@@ -24,8 +24,8 @@ jobs:
       # --- Setup ---
       - name: "Start docker-compose"
         run: docker-compose up -d
-        #- name: "Give time for python codegen to run"
-        #  run: sleep 20s
+      - name: "Give time for python codegen to run"
+        run: sleep 30s
       # --- CPP ---
       - name: "Build cpp function"
         run: docker-compose exec -T cpp inv func demo hello
