@@ -7,6 +7,9 @@ RUN cmake --build . --target upload
 RUN cmake --build . --target codegen_shared_obj
 RUN cmake --build . --target codegen_func
 
+# Install hoststats
+RUN pip3 install hoststats
+
 # Set up entrypoint
 COPY bin/entrypoint_codegen.sh /entrypoint_codegen.sh
 COPY bin/entrypoint_upload.sh /entrypoint.sh
