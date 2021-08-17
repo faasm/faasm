@@ -45,6 +45,12 @@ inv knative.deploy --local
 
 This might take a couple of minutes depending on the underlying cluster.
 
+Check with:
+
+```bash
+kubectl -n faasm get pods --watch
+```
+
 ### Config file
 
 Once everything has started up, you can populate your `faasm.ini` file at the
@@ -76,14 +82,6 @@ Python CLIs as normal, e.g.
 ```
 inv upload demo hello /usr/local/faasm/wasm/demo/hello/function.wasm
 inv invoke demo hello
-```
-
-## Flushing Redis
-
-When workers die or are killed, you'll need to clear the queue:
-
-```
-inv redis.clear-queue --knative
 ```
 
 # Troubleshooting

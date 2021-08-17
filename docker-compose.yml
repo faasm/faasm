@@ -26,6 +26,8 @@ services:
     image: faasm/upload:${FAASM_VERSION}
     ports:
       - "8002:8002"
+    expose:
+      - "5000"
     depends_on:
       - redis-queue
       - redis-state
@@ -50,6 +52,7 @@ services:
       - upload
     expose:
       - "8080"
+      - "5000"
     privileged: true
     volumes:
       - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
