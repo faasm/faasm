@@ -1,16 +1,9 @@
 ansible
-awscli
 black
-botocore
-boto
-boto3
 configparser
 cryptography
 docker
-dulwich
 flake8
-flask
-genshi
 gunicorn
 hiredis
 invoke
@@ -20,12 +13,10 @@ networkx
 numpy
 packaging
 pydot
-pyperformance
 psutil
 pyaes
 PyGithub
 pycairo
-# Explicitly don't put pyfaasm here, install separately
 PyOpenSSL
 redis
 requests
