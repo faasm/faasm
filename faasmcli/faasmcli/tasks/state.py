@@ -1,10 +1,8 @@
 from invoke import task
 
+from subprocess import run
+from faasmcli.util.upload_util import curl_file
 from faasmcli.util.endpoints import get_upload_host_port
-from faasmcli.util.state import (
-    download_binary_state,
-    upload_binary_state,
-)
 
 
 @task
@@ -14,7 +12,10 @@ def upload(ctx, user, key, in_path):
     """
     host, _ = get_upload_host_port()
 
-    upload_binary_state(user, key, in_path, host=host)
+    print("Uploading state file at {} for user {}".format(in_path, user))
+
+    url = "http://{}:8002/s/{}/{}".format(host, user, key)
+    curl_file(url, in_path)
 
 
 @task
@@ -24,4 +25,11 @@ def download(ctx, user, key, out_path):
     """
     host, port = get_upload_host_port()
 
-    download_binary_state(user, key, out_path, host=host, port=port)
+    print("Downloading state file {} for user {}".format(key, user))
+
+    url = "http://{}:{}/s/{}/{}".format(host, port, user, key)
+    cmd = ["curl", "-X", "GET", url, "-o", out_path]
+    cmd = " ".join(cmd)
+
+    print(cmd)
+    run(cmd, shell=True, check=True)

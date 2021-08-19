@@ -1,14 +1,10 @@
 import configparser
-from os import makedirs
 from os.path import exists
 
-from faasmcli.util.env import FAASM_CONFIG_FILE, FAASM_HOME
+from faasmcli.util.env import FAASM_CONFIG_FILE
 
 
 def get_faasm_config():
-    if not exists(FAASM_HOME):
-        makedirs(FAASM_HOME, exist_ok=True)
-
     config = configparser.ConfigParser()
 
     if not exists(FAASM_CONFIG_FILE):
