@@ -9,10 +9,7 @@ from faasmcli.util.version import get_faasm_version
 
 
 K8S_DIR = join(PROJ_ROOT, "deploy", "k8s")
-BARE_METAL_CONF = join(K8S_DIR, "bare-metal")
-BARE_METAL_REMOTE_CONF = join(K8S_DIR, "bare-metal-remote")
-LOCAL_CONF = join(K8S_DIR, "local")
-COMMON_CONF = join(K8S_DIR, "common")
+NAMESPACE_FILE = join(K8S_DIR, "namespace.yml")
 
 KNATIVE_VERSION = "0.21.0"
 KNATIVE_SPECS = [
@@ -41,11 +38,6 @@ FAASM_WORKER_ANNOTATIONS = [
 ]
 
 FAASM_WORKER_CONCURRENCY = 0
-
-NATIVE_WORKER_ANNOTATIONS = [
-    "autoscaling.knative.dev/enable-scale-to-zero=true",
-    "autoscaling.knative.dev/stable-window=20s",
-]
 
 KNATIVE_FUNC_PREFIX = "faasm-"
 
@@ -119,19 +111,14 @@ def delete_worker(ctx, hard=False):
 
 
 @task
-def deploy(ctx, replicas=DEFAULT_REPLICAS, local=False):
+def deploy(ctx, replicas=DEFAULT_REPLICAS):
     """
     Deploy Faasm to knative
     """
-    # Deploy the other K8s stuff (e.g. redis)
-    _kubectl_apply(join(COMMON_CONF, "namespace.yml"))
-    _kubectl_apply(COMMON_CONF)
-    _kubectl_apply(BARE_METAL_CONF)
 
-    if local:
-        _kubectl_apply(LOCAL_CONF)
-    else:
-        _kubectl_apply(BARE_METAL_REMOTE_CONF)
+    # Set up the namespace first, then the rest
+    _kubectl_apply(NAMESPACE_FILE)
+    _kubectl_apply(K8S_DIR)
 
     _deploy_knative_fn(
         FAASM_WORKER_NAME,
@@ -150,15 +137,8 @@ def delete_full(ctx, local=False):
     # First hard-delete the worker
     delete_worker(ctx, hard=True)
 
-    # Delete common stuff
-    _kubectl_delete(COMMON_CONF)
-    _kubectl_delete(BARE_METAL_CONF)
-
-    # Delete env-specific stuff
-    if local:
-        _kubectl_delete(LOCAL_CONF)
-    else:
-        _kubectl_delete(BARE_METAL_REMOTE_CONF)
+    # Delete the rest
+    _kubectl_delete(K8S_DIR)
 
 
 def _delete_knative_fn(name, hard):

@@ -1,0 +1,40 @@
+version: "3"
+
+services:
+  faasm-cli:
+    image: ${FAASM_CLI_IMAGE}
+    working_dir: /usr/local/code/faasm
+    network_mode: host
+    stdin_open: true
+    tty: true
+    environment:
+      - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
+    volumes:
+      - ./:/usr/local/code/faasm/
+      - ./dev/faasm/build:/build/faasm/
+      - ./dev/faasm-local:/usr/local/faasm
+
+  cpp-cli:
+    image: ${CPP_CLI_IMAGE}
+    working_dir: /code/cpp
+    network_mode: host
+    stdin_open: true
+    tty: true
+    environment:
+      - LOG_LEVEL=debug
+    volumes:
+      - ./clients/cpp:/code/cpp
+      - ./dev/cpp/build:/build/cpp
+      - ./dev/faasm-local:/usr/local/faasm
+
+  python-cli:
+    image: ${PYTHON_CLI_IMAGE}
+    working_dir: /code/python
+    network_mode: host
+    stdin_open: true
+    tty: true
+    environment:
+      - LOG_LEVEL=debug
+    volumes:
+      - ./clients/python:/code/python
+      - ./dev/faasm-local:/usr/local/faasm

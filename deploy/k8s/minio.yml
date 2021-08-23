@@ -1,20 +1,6 @@
 ---
 
 apiVersion: v1
-kind: Service
-metadata:
-  name: minio
-  namespace: faasm
-spec:
-  ports:
-    - port: 9000
-      targetPort: 9000
-  selector:
-    role: minio
-
----
-
-apiVersion: v1
 kind: Pod
 metadata:
   name: minio
@@ -39,3 +25,18 @@ spec:
   volumes:
     - name: minio-volume
       emptyDir: {}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: faasm
+spec:
+  ports:
+    - port: 9000
+      targetPort: 9000
+  selector:
+    role: minio
+
