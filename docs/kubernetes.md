@@ -36,11 +36,7 @@ Faasm also requires a working install of the Knative CLI,
 You can deploy Faasm with:
 
 ```bash
-# Bare-metal/ GKE/ AKS
 inv knative.deploy --replicas=4
-
-# Local (e.g. microk8s)
-inv knative.deploy --local
 ```
 
 This might take a couple of minutes depending on the underlying cluster.
@@ -68,8 +64,8 @@ The file should look something like:
 
 ```
 [Faasm]
-invoke_host = ...   # Usually the IP of your master host
-inoke_port = ...    # E.g. 31380
+invoke_host = ...   # IP of the knative-managed endpoint
+inoke_port = ...    # Usually 80 for knative
 upload_host = ...   # IP of the upload service
 upload_port = ...   # Usually 8002
 ```
@@ -77,11 +73,16 @@ upload_port = ...   # Usually 8002
 ## Uploading functions
 
 Once you have configured your `faasm.ini` file, you can use the Faasm, CPP,
-Python CLIs as normal, e.g.
+Python CLIs via the [`docker-compose-k8s.yml`](../docker-compose-k8s.yml) file
+in this repo:
 
 ```
-inv upload demo hello /usr/local/faasm/wasm/demo/hello/function.wasm
-inv invoke demo hello
+# Start the container (be sure to have stopped all other docker-compose stuff)
+docker-compose -f docker-compose-k8s.yml run cpp-cli /bin/bash
+
+# Compile and upload a function
+inv func demo hello
+inv func.upload demo hello --host=<upload_host>
 ```
 
 # Troubleshooting

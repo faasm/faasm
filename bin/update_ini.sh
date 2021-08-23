@@ -63,6 +63,9 @@ echo ""
 cat ${INI_FILE}
 
 # Place symlink to file at standard location to allow other projects access
+echo ""
+echo "-----       Symlink        -----"
+echo ""
 echo "Symlinking ${GLOBAL_INI_FILE} to ${INI_FILE}"
 rm -f ${GLOBAL_INI_FILE}
 ln -s ${INI_FILE} ${GLOBAL_INI_FILE}

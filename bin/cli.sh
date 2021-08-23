@@ -64,7 +64,7 @@ docker-compose -f docker-compose-dev.yml \
     up \
     --no-recreate \
     -d \
-    ${CLI_CONTAINER}    
+    ${CLI_CONTAINER}
 
 # Attach to the CLI container
 docker-compose -f docker-compose-dev.yml \
