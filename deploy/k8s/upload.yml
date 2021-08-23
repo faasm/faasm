@@ -14,6 +14,7 @@ spec:
       image: faasm/upload:0.6.6
       ports:
         - containerPort: 8002
+        - containerPort: 5000
       env:
         - name: REDIS_STATE_HOST
           value: redis-state
@@ -36,6 +37,10 @@ spec:
     role: upload
   type: NodePort
   ports:
-    - port: 8002
+    - name: "faasm-upload"
+      port: 8002
       targetPort: 8002
+    - name: "hoststats"
+      port: 5000
+      targetPort: 5000
 
