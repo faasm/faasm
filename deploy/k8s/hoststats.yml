@@ -1,0 +1,31 @@
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hoststats-proxy
+  namespace: faasm
+  labels:
+    app: faasm
+    role: hoststats-proxy
+spec:
+  containers:
+    - name: hostats-proxy
+      image: shillaker/hoststats:0.0.7
+      ports:
+        - containerPort: 5000
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: hoststats-proxy
+  namespace: faasm
+spec:
+  ports:
+    - port: 5000
+      targetPort: 5000
+  selector:
+    role: hoststats-proxy
+
