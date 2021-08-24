@@ -188,9 +188,6 @@ def deploy(ctx, replicas=DEFAULT_REPLICAS):
         FAASM_WORKER_ANNOTATIONS,
     )
 
-    print("Waiting for pods to be created")
-    sleep(20)
-
     # Add nodeports for hoststats on each of the workers
     pod_names, _ = _get_faasm_worker_pods()
     for i, pod_name in enumerate(pod_names):
@@ -202,7 +199,6 @@ def deploy(ctx, replicas=DEFAULT_REPLICAS):
             "pod",
             pod_name,
             "--type=NodePort",
-            "--name=faasm-worker-{}-hoststats".format(i),
             "--port=5000",
             "--target-port=5000",
             '--labels="role=faasm-worker-nodeport"',
@@ -246,7 +242,6 @@ def _deploy_knative_fn(
         "--namespace",
         "faasm",
         "--force",
-        "--no-wait",
     ]
 
     cmd.extend(
