@@ -56,7 +56,7 @@ root of this project. To do this, run:
 
 ```
 # Update the file
-./bin/update_ini.sh
+inv knative.ini-file
 ```
 
 ## Uploading functions

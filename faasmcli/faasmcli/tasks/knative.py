@@ -1,10 +1,17 @@
 import os
+from os import makedirs
 from os.path import join
-from subprocess import call
+from subprocess import run, PIPE
+from datetime import datetime
 
 from invoke import task
 
-from faasmcli.util.env import PROJ_ROOT
+from faasmcli.util.env import (
+    PROJ_ROOT,
+    FAASM_CONFIG_FILE,
+    GLOBAL_FAASM_CONFIG_FILE,
+    GLOBAL_FAASM_CONFIG_DIR,
+)
 from faasmcli.util.version import get_faasm_version
 
 
@@ -84,10 +91,7 @@ def _kubectl_cmd(path, action, env=None):
     cmd_str = " ".join(cmd)
     print(cmd_str)
 
-    ret_code = call(cmd_str, shell=True, env=shell_env_dict)
-
-    if ret_code != 0:
-        raise RuntimeError("Command failed: {}".format(cmd_str))
+    run(cmd_str, shell=True, check=True, env=shell_env_dict)
 
 
 def _kubectl_apply(path, env=None):
@@ -105,7 +109,7 @@ def delete_worker(ctx, hard=False):
     """
     # Clear redis queue
     cmd = "kubectl exec -n faasm redis-queue -- redis-cli flushall"
-    call(cmd, shell=True)
+    run(cmd, shell=True, check=True)
 
     _delete_knative_fn("worker", hard)
 
@@ -148,14 +152,15 @@ def _delete_knative_fn(name, hard):
 
         cmd_str = " ".join(cmd)
         print(cmd_str)
-        call(cmd_str, shell=True)
+        run(cmd_str, shell=True, check=True)
     else:
         # Delete the pods (they'll respawn)
         label = "serving.knative.dev/service={}".format(func_name)
         cmd = "kubectl -n faasm delete pods -l {} --wait=false --now".format(
             label
         )
-        call(cmd, shell=True)
+        print(cmd)
+        run(cmd, shell=True, check=True)
 
 
 def _deploy_knative_fn(
@@ -212,7 +217,7 @@ def _deploy_knative_fn(
     if shell_env:
         shell_env_dict.update(shell_env)
 
-    call(cmd_string, shell=True, env=shell_env_dict)
+    run(cmd_string, shell=True, check=True, env=shell_env_dict)
 
 
 @task
@@ -241,3 +246,151 @@ def uninstall(ctx):
                 s[0], KNATIVE_VERSION, s[1]
             )
         )
+
+
+def _capture_cmd_output(cmd):
+    cmd = " ".join(cmd)
+    print(cmd)
+    res = run(cmd, shell=True, check=True, stdout=PIPE, stderr=PIPE)
+    output = res.stdout.decode("utf-8")
+    return output
+
+
+def get_faasm_worker_pods():
+    kubecmd = [
+        "kubectl",
+        "-n faasm",
+        "get pods",
+        "-l serving.knative.dev/service=faasm-worker",
+        "-o wide",
+    ]
+
+    kubecmd = " ".join(kubecmd)
+    print(kubecmd)
+    res = run(
+        kubecmd,
+        stdout=PIPE,
+        stderr=PIPE,
+        shell=True,
+        check=True,
+    )
+
+    cmd_out = res.stdout.decode("utf-8")
+
+    # Split output into list of strings
+    lines = cmd_out.split("\n")[1:]
+    lines = [l.strip() for l in lines if l.strip()]
+
+    pod_names = list()
+    pod_ips = list()
+    for line in lines:
+        line_parts = line.split(" ")
+        line_parts = [p.strip() for p in line_parts if p.strip()]
+
+        pod_names.append(line_parts[0])
+        pod_ips.append(line_parts[5])
+
+    print("Using faasm worker pods: {}".format(pod_ips))
+    return pod_names, pod_ips
+
+
+@task
+def ini_file(ctx):
+    """
+    Set up the faasm config file for interacting with k8s
+    """
+    makedirs(GLOBAL_FAASM_CONFIG_DIR, exist_ok=True)
+
+    print("\n----- Kubectl commands -----\n")
+    # TODO - work out how to get the right kn headers
+    knative_host = _capture_cmd_output(
+        [
+            "kubectl",
+            "-n faasm",
+            "get",
+            "service",
+            "faasm-worker",
+            "-o 'jsonpath={.spec.externalName}'",
+        ]
+    )
+
+    istio_ip = _capture_cmd_output(
+        [
+            "kubectl",
+            "-n istio-system",
+            "get",
+            "service",
+            "istio-ingressgateway",
+            "-o 'jsonpath={.status.loadBalancer.ingress[0].ip}'",
+        ]
+    )
+    istio_port = 80
+
+    upload_ip = _capture_cmd_output(
+        [
+            "kubectl",
+            "-n faasm",
+            "get",
+            "service",
+            "upload-lb",
+            "-o 'jsonpath={.status.loadBalancer.ingress[0].ip}'",
+        ]
+    )
+    upload_port = 8002
+
+    hoststats_ip = _capture_cmd_output(
+        [
+            "kubectl",
+            "-n faasm",
+            "get",
+            "service",
+            "hoststats-proxy-lb",
+            "-o 'jsonpath={.status.loadBalancer.ingress[0].ip}'",
+        ]
+    )
+    hoststats_port = 5000
+
+    worker_names, worker_ips = get_faasm_worker_pods()
+
+    print("\n----- INI file -----\n")
+    print("Overwriting config file at {}\n".format(FAASM_CONFIG_FILE))
+
+    with open(FAASM_CONFIG_FILE, "w") as fh:
+        fh.write("# Auto-generated at {}\n".format(datetime.now()))
+        fh.write("invoke_host = {}\n".format(istio_ip))
+        fh.write("invoke_port = {}\n".format(istio_port))
+        fh.write("upload_host = {}\n".format(upload_ip))
+        fh.write("upload_port= {}\n".format(upload_port))
+        fh.write("hoststats_host = {}\n".format(hoststats_ip))
+        fh.write("hoststats_port= {}\n".format(hoststats_port))
+        fh.write("knative_host = {}\n".format(knative_host))
+        fh.write("worker_ips = {}\n".format(",".join(worker_ips)))
+
+    with open(FAASM_CONFIG_FILE, "r") as fh:
+        print(fh.read())
+
+    print(
+        "Symlinking {} to {}".format(
+            FAASM_CONFIG_FILE, GLOBAL_FAASM_CONFIG_FILE
+        )
+    )
+
+    run("rm -f {}".format(GLOBAL_FAASM_CONFIG_FILE), shell=True, check=True)
+    run(
+        "ln -s {} {}".format(FAASM_CONFIG_FILE, GLOBAL_FAASM_CONFIG_FILE),
+        shell=True,
+        check=True,
+    )
+
+    print("\n----- Examples -----\n")
+
+    print("Invoke:")
+    print("curl -H 'Host: {}' http://{}".format(knative_host, istio_ip))
+
+    print("\nUpload:")
+    print(
+        "curl -X PUT http://{}:${}/f/<user>/<func> -T <wasm_file>".format(
+            upload_ip, upload_port
+        )
+    )
+    print("\n")
