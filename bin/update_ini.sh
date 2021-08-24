@@ -37,15 +37,6 @@ UPLOAD_IP=$(service_ip faasm upload)
 UPLOAD_PORT=8002
 
 echo ""
-echo "-----        Invoke        -----"
-echo ""
-echo "curl -H 'Host: ${KNATIVE_HOST}' http://${ISTIO_IP}"
-
-echo ""
-echo "-----        Upload        -----"
-echo ""
-echo "curl -X PUT http://${UPLOAD_IP}:${UPLOAD_PORT}/f/<user>/<func> -T <wasm_file>"
-
 echo "Overwriting config file at ${INI_FILE}"
 
 # Write the file into place
@@ -69,3 +60,12 @@ echo ""
 echo "Symlinking ${GLOBAL_INI_FILE} to ${INI_FILE}"
 rm -f ${GLOBAL_INI_FILE}
 ln -s ${INI_FILE} ${GLOBAL_INI_FILE}
+
+echo ""
+echo "-----       Examples       -----"
+echo ""
+echo "Invoke:"
+echo "curl -H 'Host: ${KNATIVE_HOST}' http://${ISTIO_IP}"
+echo ""
+echo "Upload:"
+echo "curl -X PUT http://${UPLOAD_IP}:${UPLOAD_PORT}/f/<user>/<func> -T <wasm_file>"

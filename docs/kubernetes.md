@@ -22,6 +22,7 @@ If your cluster doesn't already have Knative installed, you can run:
 
 ```bash
 # Install
+# NOTE: if the istio step throws errors, just wait a minute and rerun it
 inv knative.install
 
 # Check
@@ -33,7 +34,8 @@ Faasm also requires a working install of the Knative CLI,
 
 ## Deplying Faasm to K8s
 
-You can deploy Faasm with:
+You can deploy Faasm as follows, matching the replicas to the number of nodes in
+your k8s cluster:
 
 ```bash
 inv knative.deploy --replicas=4
@@ -55,19 +57,6 @@ root of this project. To do this, run:
 ```
 # Update the file
 ./bin/update_ini.sh
-
-# Check contents of file
-cat faasm.ini
-```
-
-The file should look something like:
-
-```
-[Faasm]
-invoke_host = ...   # IP of the knative-managed endpoint
-inoke_port = ...    # Usually 80 for knative
-upload_host = ...   # IP of the upload service
-upload_port = ...   # Usually 8002
 ```
 
 ## Uploading functions
