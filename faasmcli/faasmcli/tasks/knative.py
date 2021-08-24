@@ -3,6 +3,7 @@ from os import makedirs
 from os.path import join
 from subprocess import run, PIPE
 from datetime import datetime
+from time import sleep
 
 from invoke import task
 
@@ -102,8 +103,54 @@ def _kubectl_delete(path, env=None):
     _kubectl_cmd(path, "delete", env=env)
 
 
+def _capture_cmd_output(cmd):
+    cmd = " ".join(cmd)
+    print(cmd)
+    res = run(cmd, shell=True, check=True, stdout=PIPE, stderr=PIPE)
+    output = res.stdout.decode("utf-8")
+    return output
+
+
+def _get_faasm_worker_nodeport_ips():
+    cmd = [
+        "kubectl",
+        "-n faasm",
+        "get services",
+        "-l role=faasm-worker-nodeport",
+        "-o jsonpath='{range .items[*]}{@.spec.clusterIP}{\" \"}{end}'",
+    ]
+    output = _capture_cmd_output(cmd)
+    ips = [o.strip() for o in output.split(" ") if o.strip()]
+    return ips
+
+
+def _get_faasm_worker_pods():
+    cmd = [
+        "kubectl",
+        "-n faasm",
+        "get pods",
+        "-l serving.knative.dev/service=faasm-worker",
+        "-o jsonpath='{range .items[*]}{@.metadata.name}{\" \"}{end}'",
+    ]
+    output = _capture_cmd_output(cmd)
+    names = [o.strip() for o in output.split(" ") if o.strip()]
+
+    cmd = [
+        "kubectl",
+        "-n faasm",
+        "get pods",
+        "-l serving.knative.dev/service=faasm-worker",
+        "-o jsonpath='{range .items[*]}{@.status.podIP}{\" \"}{end}'",
+    ]
+    output = _capture_cmd_output(cmd)
+    ips = [o.strip() for o in output.split(" ") if o.strip()]
+
+    print("Using faasm worker pods: {}".format(ips))
+    return names, ips
+
+
 @task
-def delete_worker(ctx, hard=False):
+def delete_worker(ctx):
     """
     Delete the Faasm worker pod
     """
@@ -111,7 +158,15 @@ def delete_worker(ctx, hard=False):
     cmd = "kubectl exec -n faasm redis-queue -- redis-cli flushall"
     run(cmd, shell=True, check=True)
 
-    _delete_knative_fn("worker", hard)
+    # Remove all nodeports assigned to workers
+    cmd = "kubectl -n faasm delete service -l role=faasm-worker-nodeport"
+    run(cmd, shell=True, check=True)
+
+    func_name = _fn_name("worker")
+    cmd = "kn -n faasm service delete {}".format(func_name)
+
+    print(cmd)
+    run(cmd, shell=True, check=True)
 
 
 @task
@@ -124,6 +179,7 @@ def deploy(ctx, replicas=DEFAULT_REPLICAS):
     _kubectl_apply(NAMESPACE_FILE)
     _kubectl_apply(K8S_DIR)
 
+    # Deploy the knative function
     _deploy_knative_fn(
         FAASM_WORKER_NAME,
         FAASM_WORKER_IMAGE,
@@ -132,6 +188,29 @@ def deploy(ctx, replicas=DEFAULT_REPLICAS):
         FAASM_WORKER_ANNOTATIONS,
     )
 
+    print("Waiting for pods to be created")
+    sleep(20)
+
+    # Add nodeports for hoststats on each of the workers
+    pod_names, _ = _get_faasm_worker_pods()
+    for i, pod_name in enumerate(pod_names):
+        print("Adding nodeport for {}".format(pod_name))
+        cmd = [
+            "kubectl",
+            "-n faasm",
+            "expose",
+            "pod",
+            pod_name,
+            "--type=NodePort",
+            "--name=faasm-worker-{}-hoststats".format(i),
+            "--port=5000",
+            "--target-port=5000",
+            '--labels="role=faasm-worker-nodeport"',
+        ]
+        cmd = " ".join(cmd)
+        print(cmd)
+        run(cmd, shell=True, check=True)
+
 
 @task
 def delete_full(ctx, local=False):
@@ -139,28 +218,10 @@ def delete_full(ctx, local=False):
     Fully delete Faasm from Knative
     """
     # First hard-delete the worker
-    delete_worker(ctx, hard=True)
+    delete_worker(ctx)
 
     # Delete the rest
     _kubectl_delete(K8S_DIR)
-
-
-def _delete_knative_fn(name, hard):
-    func_name = _fn_name(name)
-    if hard:
-        cmd = ["kn", "service", "delete", func_name, "--namespace=faasm"]
-
-        cmd_str = " ".join(cmd)
-        print(cmd_str)
-        run(cmd_str, shell=True, check=True)
-    else:
-        # Delete the pods (they'll respawn)
-        label = "serving.knative.dev/service={}".format(func_name)
-        cmd = "kubectl -n faasm delete pods -l {} --wait=false --now".format(
-            label
-        )
-        print(cmd)
-        run(cmd, shell=True, check=True)
 
 
 def _deploy_knative_fn(
@@ -185,6 +246,7 @@ def _deploy_knative_fn(
         "--namespace",
         "faasm",
         "--force",
+        "--no-wait",
     ]
 
     cmd.extend(
@@ -248,52 +310,6 @@ def uninstall(ctx):
         )
 
 
-def _capture_cmd_output(cmd):
-    cmd = " ".join(cmd)
-    print(cmd)
-    res = run(cmd, shell=True, check=True, stdout=PIPE, stderr=PIPE)
-    output = res.stdout.decode("utf-8")
-    return output
-
-
-def get_faasm_worker_pods():
-    kubecmd = [
-        "kubectl",
-        "-n faasm",
-        "get pods",
-        "-l serving.knative.dev/service=faasm-worker",
-        "-o wide",
-    ]
-
-    kubecmd = " ".join(kubecmd)
-    print(kubecmd)
-    res = run(
-        kubecmd,
-        stdout=PIPE,
-        stderr=PIPE,
-        shell=True,
-        check=True,
-    )
-
-    cmd_out = res.stdout.decode("utf-8")
-
-    # Split output into list of strings
-    lines = cmd_out.split("\n")[1:]
-    lines = [l.strip() for l in lines if l.strip()]
-
-    pod_names = list()
-    pod_ips = list()
-    for line in lines:
-        line_parts = line.split(" ")
-        line_parts = [p.strip() for p in line_parts if p.strip()]
-
-        pod_names.append(line_parts[0])
-        pod_ips.append(line_parts[5])
-
-    print("Using faasm worker pods: {}".format(pod_ips))
-    return pod_names, pod_ips
-
-
 @task
 def ini_file(ctx):
     """
@@ -301,18 +317,18 @@ def ini_file(ctx):
     """
     makedirs(GLOBAL_FAASM_CONFIG_DIR, exist_ok=True)
 
-    print("\n----- Kubectl commands -----\n")
-    # TODO - work out how to get the right kn headers
+    print("\n----- Extracting info from k8s -----\n")
     knative_host = _capture_cmd_output(
         [
-            "kubectl",
+            "kn",
             "-n faasm",
-            "get",
             "service",
+            "describe",
             "faasm-worker",
-            "-o 'jsonpath={.spec.externalName}'",
+            "-o url",
         ]
     )
+    knative_host = knative_host.strip()
 
     istio_ip = _capture_cmd_output(
         [
@@ -336,7 +352,16 @@ def ini_file(ctx):
             "-o 'jsonpath={.status.loadBalancer.ingress[0].ip}'",
         ]
     )
-    upload_port = 8002
+    upload_port = _capture_cmd_output(
+        [
+            "kubectl",
+            "-n faasm",
+            "get",
+            "service",
+            "upload-lb",
+            "-o 'jsonpath={.spec.ports[0].port}'",
+        ]
+    )
 
     hoststats_ip = _capture_cmd_output(
         [
@@ -348,23 +373,37 @@ def ini_file(ctx):
             "-o 'jsonpath={.status.loadBalancer.ingress[0].ip}'",
         ]
     )
-    hoststats_port = 5000
+    hoststats_port = _capture_cmd_output(
+        [
+            "kubectl",
+            "-n faasm",
+            "get",
+            "service",
+            "hoststats-proxy-lb",
+            "-o 'jsonpath={.spec.ports[0].port}'",
+        ]
+    )
 
-    worker_names, worker_ips = get_faasm_worker_pods()
+    worker_hoststats_ips = _get_faasm_worker_nodeport_ips()
 
     print("\n----- INI file -----\n")
     print("Overwriting config file at {}\n".format(FAASM_CONFIG_FILE))
 
     with open(FAASM_CONFIG_FILE, "w") as fh:
+        fh.write("[Faasm]\n")
         fh.write("# Auto-generated at {}\n".format(datetime.now()))
         fh.write("invoke_host = {}\n".format(istio_ip))
         fh.write("invoke_port = {}\n".format(istio_port))
         fh.write("upload_host = {}\n".format(upload_ip))
         fh.write("upload_port= {}\n".format(upload_port))
+        fh.write("knative_host = {}\n".format(knative_host))
         fh.write("hoststats_host = {}\n".format(hoststats_ip))
         fh.write("hoststats_port= {}\n".format(hoststats_port))
-        fh.write("knative_host = {}\n".format(knative_host))
-        fh.write("worker_ips = {}\n".format(",".join(worker_ips)))
+        fh.write(
+            "worker_hoststats_ips = {}\n".format(
+                ",".join(worker_hoststats_ips)
+            )
+        )
 
     with open(FAASM_CONFIG_FILE, "r") as fh:
         print(fh.read())
@@ -389,8 +428,8 @@ def ini_file(ctx):
 
     print("\nUpload:")
     print(
-        "curl -X PUT http://{}:${}/f/<user>/<func> -T <wasm_file>".format(
+        "curl -X PUT http://{}:{}/f/<user>/<func> -T <wasm_file>".format(
             upload_ip, upload_port
         )
     )
-    print("\n")
+    print("")
