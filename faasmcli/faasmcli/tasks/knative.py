@@ -2,7 +2,6 @@ import os
 from os import makedirs
 from os.path import join
 from subprocess import run, PIPE
-from time import sleep
 from datetime import datetime
 
 from invoke import task
@@ -19,13 +18,12 @@ from faasmcli.util.version import get_faasm_version
 K8S_DIR = join(PROJ_ROOT, "deploy", "k8s")
 NAMESPACE_FILE = join(K8S_DIR, "namespace.yml")
 
-KNATIVE_VERSION = "0.21.0"
+KNATIVE_VERSION = "0.25.0"
 KNATIVE_SPECS = [
-    [0, "knative/serving", "serving-crds.yaml"],
-    [0, "knative/serving", "serving-core.yaml"],
-    [5, "knative/net-istio", "istio.yaml"],
-    [5, "knative/net-istio", "net-istio.yaml"],
-    [5, "knative/serving", "serving-default-domain.yaml"],
+    ["knative/serving", "serving-crds.yaml"],
+    ["knative/serving", "serving-core.yaml"],
+    ["knative/net-istio", "net-istio.yaml"],
+    ["knative/serving", "serving-default-domain.yaml"],
 ]
 
 
@@ -298,11 +296,9 @@ def install(ctx):
     Install knative on an existing k8s cluster
     """
     for s in KNATIVE_SPECS:
-        sleep(s[0])
-
         _kubectl_apply(
             "https://github.com/{}/releases/download/v{}/{}".format(
-                s[1], KNATIVE_VERSION, s[2]
+                s[0], KNATIVE_VERSION, s[1]
             )
         )
 
@@ -314,10 +310,10 @@ def uninstall(ctx):
     """
     # We delete in the reverse order we apply, and the last component
     # needs not to be deleted.
-    for s in reversed(KNATIVE_SPECS[:-1]):
+    for s in KNATIVE_SPECS:
         _kubectl_delete(
             "https://github.com/{}/releases/download/v{}/{}".format(
-                s[1], KNATIVE_VERSION, s[2]
+                s[0], KNATIVE_VERSION, s[1]
             )
         )
 

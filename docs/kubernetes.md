@@ -23,7 +23,6 @@ If your cluster doesn't already have Knative installed, you can run:
 
 ```bash
 # Install
-# NOTE: if the istio step throws errors, just wait a minute and rerun it
 inv knative.install
 
 # Check
@@ -138,8 +137,9 @@ To set up Faasm on AKS, you can do the following:
 - Create a resource group with sufficient quota.
 - Create an AKS cluster under said resource group.
 - Aim for >=4 nodes with more than one vCPU.
-- Ensure `istio` is installed in K8s.
 - Set up the local `kubectl` via the `get credentials` command.
+- Manually install istio [using
+  `istioctl`](https://istio.io/latest/docs/setup/getting-started)
 - Continue with Faasm installation as described above.
 
 ## MicroK8s
