@@ -8,7 +8,8 @@ tasks](../tasks/knative.py).
 
 Faasm assumes a K8s cluster is set up with
 [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/) available
-on the commandline.
+on the commandline, along with [`kn`](https://github.com/knative/client), the
+Knative client.
 
 If you don't have a cluster set up, see the instructions at the bottom of this
 page.
@@ -27,10 +28,8 @@ inv knative.install
 
 # Check
 kubectl get pods -n knative-serving
+kubectl get pods -n istio-system
 ```
-
-Faasm also requires a working install of the Knative CLI,
-[`kn`](https://knative.dev/docs/install/install-kn/).
 
 ## Deplying Faasm to K8s
 
