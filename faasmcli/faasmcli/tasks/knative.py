@@ -75,19 +75,6 @@ def _capture_cmd_output(cmd):
     return output
 
 
-def _get_faasm_worker_nodeport_ips():
-    cmd = [
-        "kubectl",
-        "-n faasm",
-        "get services",
-        "-l role=faasm-worker-nodeport",
-        "-o jsonpath='{range .items[*]}{@.spec.clusterIP}{\" \"}{end}'",
-    ]
-    output = _capture_cmd_output(cmd)
-    ips = [o.strip() for o in output.split(" ") if o.strip()]
-    return ips
-
-
 def _get_faasm_worker_pods():
     knative_service = _get_knative_service()
     cmd = [
@@ -145,10 +132,6 @@ def delete_worker(ctx):
     cmd = "kubectl exec -n faasm redis-queue -- redis-cli flushall"
     run(cmd, shell=True, check=True)
 
-    # Remove all nodeports assigned to workers
-    cmd = "kubectl -n faasm delete service -l role=faasm-worker-nodeport"
-    run(cmd, shell=True, check=True)
-
     # Delete kn service if it exists
     kn_service = _get_knative_service(ok_none=True)
     if kn_service:
@@ -165,8 +148,6 @@ def deploy(ctx, replicas=DEFAULT_REPLICAS):
     _deploy_faasm_services()
 
     _deploy_faasm_worker(replicas)
-
-    _expose_faasm_worker_hoststats()
 
     ini_file(ctx)
 
@@ -221,7 +202,6 @@ def _deploy_faasm_worker(replicas):
         worker_name,
         "--image {}".format(image),
         "--namespace faasm",
-        "--force",
         "--min-scale={}".format(replicas),
         "--max-scale={}".format(replicas),
     ]
@@ -238,27 +218,6 @@ def _deploy_faasm_worker(replicas):
     print(cmd_string)
 
     run(cmd_string, shell=True, check=True)
-
-
-def _expose_faasm_worker_hoststats():
-    # Add nodeports for hoststats on each of the workers
-    pod_names, _ = _get_faasm_worker_pods()
-    for i, pod_name in enumerate(pod_names):
-        print("Adding nodeport for {}".format(pod_name))
-        cmd = [
-            "kubectl",
-            "-n faasm",
-            "expose",
-            "pod",
-            pod_name,
-            "--type=ClusterIP",
-            "--port=5000",
-            "--target-port=5000",
-            '--labels="role=faasm-worker-nodeport"',
-        ]
-        cmd = " ".join(cmd)
-        print(cmd)
-        run(cmd, shell=True, check=True)
 
 
 @task
@@ -393,7 +352,7 @@ def ini_file(ctx):
         ]
     )
 
-    worker_hoststats_ips = _get_faasm_worker_nodeport_ips()
+    worker_names, worker_ips = _get_faasm_worker_pods()
 
     print("\n----- INI file -----\n")
     print("Overwriting config file at {}\n".format(FAASM_CONFIG_FILE))
@@ -408,11 +367,8 @@ def ini_file(ctx):
         fh.write("knative_host = {}\n".format(knative_host))
         fh.write("hoststats_host = {}\n".format(hoststats_ip))
         fh.write("hoststats_port= {}\n".format(hoststats_port))
-        fh.write(
-            "worker_hoststats_ips = {}\n".format(
-                ",".join(worker_hoststats_ips)
-            )
-        )
+        fh.write("worker_names = {}\n".format(",".join(worker_names)))
+        fh.write("worker_ips = {}\n".format(",".join(worker_ips)))
 
     with open(FAASM_CONFIG_FILE, "r") as fh:
         print(fh.read())
