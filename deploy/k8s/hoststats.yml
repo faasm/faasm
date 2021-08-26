@@ -20,20 +20,6 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: hoststats-proxy
-  namespace: faasm
-spec:
-  ports:
-    - port: 5000
-      targetPort: 5000
-  selector:
-    role: hoststats-proxy
-
----
-
-apiVersion: v1
-kind: Service
-metadata:
   name: hoststats-proxy-lb
   namespace: faasm
 spec:

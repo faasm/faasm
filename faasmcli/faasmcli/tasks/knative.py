@@ -114,7 +114,7 @@ def _get_faasm_worker_pods():
     return names, ips
 
 
-def _get_knative_service():
+def _get_knative_service(ok_none=False):
     cmd = [
         "kn",
         "-n faasm",
@@ -124,6 +124,10 @@ def _get_knative_service():
     ]
     output = _capture_cmd_output(cmd)
     names = [o.strip() for o in output.split(" ") if o.strip()]
+
+    if ok_none and len(names) == 0:
+        return None
+
     if len(names) != 1:
         raise RuntimeError(
             "Could not find single knative service in {}".format(output)
@@ -145,11 +149,12 @@ def delete_worker(ctx):
     cmd = "kubectl -n faasm delete service -l role=faasm-worker-nodeport"
     run(cmd, shell=True, check=True)
 
-    kn_service = _get_knative_service()
-    cmd = "kn -n faasm service delete {}".format(kn_service)
-
-    print(cmd)
-    run(cmd, shell=True, check=True)
+    # Delete kn service if it exists
+    kn_service = _get_knative_service(ok_none=True)
+    if kn_service:
+        cmd = "kn -n faasm service delete {}".format(kn_service)
+        print(cmd)
+        run(cmd, shell=True, check=True)
 
 
 @task
@@ -162,6 +167,8 @@ def deploy(ctx, replicas=DEFAULT_REPLICAS):
     _deploy_faasm_worker(replicas)
 
     _expose_faasm_worker_hoststats()
+
+    ini_file(ctx)
 
 
 def _deploy_faasm_services():
@@ -194,7 +201,7 @@ def _deploy_faasm_services():
             print("All Faasm pods ready, continuing...")
             break
 
-        print("Faasm pods not ready, waiting".format(output))
+        print("Faasm pods not ready, waiting ({})".format(output))
         sleep(5)
 
 
@@ -244,7 +251,7 @@ def _expose_faasm_worker_hoststats():
             "expose",
             "pod",
             pod_name,
-            "--type=NodePort",
+            "--type=ClusterIP",
             "--port=5000",
             "--target-port=5000",
             '--labels="role=faasm-worker-nodeport"',
@@ -263,7 +270,9 @@ def delete_full(ctx, local=False):
     delete_worker(ctx)
 
     # Delete the rest
-    run("kubectl -n faasm delete -f {}".format(K8S_DIR))
+    run(
+        "kubectl -n faasm delete -f {}".format(K8S_DIR), shell=True, check=True
+    )
 
 
 @task
@@ -293,6 +302,7 @@ def install(ctx, reverse=False):
     # If installing, apply CRDs first
     if not reverse:
         url = github_url("knative/net-istio", "istio.yaml")
+
         run(
             "kubectl apply -l knative.dev/crd-install=true -f {}".format(url),
             shell=True,

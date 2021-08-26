@@ -22,6 +22,7 @@ installed.
 To install both:
 
 ```bash
+# NOTE: this often fails, just rerun and it should work
 inv knative.install
 ```
 
@@ -49,13 +50,12 @@ Check with:
 kubectl -n faasm get pods --watch
 ```
 
-### Config file
+Once everything has started up, Faasm should also generate a config file,
+`faasm.ini` at root of this project.
 
-Once everything has started up, you can populate your `faasm.ini` file at the
-root of this project. To do this, run:
+If you need to regenerate this, you can run:
 
 ```
-# Update the file
 inv knative.ini-file
 ```
 
