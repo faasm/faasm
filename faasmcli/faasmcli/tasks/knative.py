@@ -157,7 +157,14 @@ def deploy(ctx, replicas=DEFAULT_REPLICAS):
     """
     Deploy Faasm to knative
     """
+    _deploy_faasm_services()
 
+    _deploy_faasm_worker(replicas)
+
+    _expose_faasm_worker_hoststats()
+
+
+def _deploy_faasm_services():
     # Set up the namespace first, then the rest
     run(
         "kubectl -n faasm apply -f {}".format(NAMESPACE_FILE),
@@ -190,18 +197,43 @@ def deploy(ctx, replicas=DEFAULT_REPLICAS):
         print("Faasm pods not ready, waiting".format(output))
         sleep(5)
 
+
+def _deploy_faasm_worker(replicas):
     # Deploy the knative function
     worker_name = "faasm-worker-{}".format(
         datetime.now().strftime("%y%m%d-%H%M")
     )
-    _deploy_knative_fn(
-        worker_name,
-        FAASM_WORKER_IMAGE,
-        replicas,
-        FAASM_WORKER_CONCURRENCY,
-        FAASM_WORKER_ANNOTATIONS,
-    )
 
+    faasm_ver = get_faasm_version()
+    image = "{}:{}".format(FAASM_WORKER_IMAGE, faasm_ver)
+
+    cmd = [
+        "kn",
+        "service",
+        "create",
+        worker_name,
+        "--image {}".format(image),
+        "--namespace faasm",
+        "--force",
+        "--min-scale={}".format(replicas),
+        "--max-scale={}".format(replicas),
+    ]
+
+    # Add annotations
+    for annotation in FAASM_WORKER_ANNOTATIONS:
+        cmd.append("--annotation {}".format(annotation))
+
+    # Add standard environment
+    for key, value in KNATIVE_ENV.items():
+        cmd.append("--env {}={}".format(key, value))
+
+    cmd_string = " ".join(cmd)
+    print(cmd_string)
+
+    run(cmd_string, shell=True, check=True)
+
+
+def _expose_faasm_worker_hoststats():
     # Add nodeports for hoststats on each of the workers
     pod_names, _ = _get_faasm_worker_pods()
     for i, pod_name in enumerate(pod_names):
@@ -232,63 +264,6 @@ def delete_full(ctx, local=False):
 
     # Delete the rest
     run("kubectl -n faasm delete -f {}".format(K8S_DIR))
-
-
-def _deploy_knative_fn(
-    name,
-    image,
-    replicas,
-    concurrency,
-    annotations,
-    extra_env=None,
-    shell_env=None,
-):
-    faasm_ver = get_faasm_version()
-    image = "{}:{}".format(image, faasm_ver)
-
-    cmd = [
-        "kn",
-        "service",
-        "create",
-        name,
-        "--image",
-        image,
-        "--namespace",
-        "faasm",
-        "--force",
-    ]
-
-    cmd.extend(
-        {
-            "--min-scale={}".format(replicas),
-            "--max-scale={}".format(replicas),
-            "--concurrency-limit={}".format(concurrency)
-            if concurrency
-            else "",
-        }
-    )
-
-    # Add annotations
-    for annotation in annotations:
-        cmd.append("--annotation {}".format(annotation))
-
-    # Add standard environment
-    for key, value in KNATIVE_ENV.items():
-        cmd.append("--env {}={}".format(key, value))
-
-    # Add extra environment
-    extra_env = extra_env if extra_env else {}
-    for key, value in extra_env.items():
-        cmd.append("--env {}={}".format(key, value))
-
-    cmd_string = " ".join(cmd)
-    print(cmd_string)
-
-    shell_env_dict = os.environ.copy()
-    if shell_env:
-        shell_env_dict.update(shell_env)
-
-    run(cmd_string, shell=True, check=True, env=shell_env_dict)
 
 
 @task
@@ -349,6 +324,10 @@ def ini_file(ctx):
         ]
     )
     knative_host = knative_host.strip()
+
+    # NOTE: we have to remove the http:// prefix from this url otherwise Istio
+    # won't recognise it
+    knative_host = knative_host.replace("http://", "")
 
     istio_ip = _capture_cmd_output(
         [
