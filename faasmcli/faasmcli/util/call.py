@@ -116,11 +116,11 @@ def invoke_impl(
         msg["mpi_world_size"] = mpi_world_size
 
     # Knative must pass custom headers
+    headers = dict()
     if knative:
         headers = get_knative_headers()
         print("Invoking function at {} ({})".format(url, headers))
     else:
-        headers = {}
         print("Invoking function at {}".format(url))
 
     print("Payload:")

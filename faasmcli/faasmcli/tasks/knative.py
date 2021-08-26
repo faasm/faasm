@@ -1,4 +1,5 @@
 import os
+from time import sleep
 from os import makedirs
 from os.path import join
 from subprocess import run, PIPE
@@ -19,13 +20,6 @@ K8S_DIR = join(PROJ_ROOT, "deploy", "k8s")
 NAMESPACE_FILE = join(K8S_DIR, "namespace.yml")
 
 KNATIVE_VERSION = "0.25.0"
-KNATIVE_SPECS = [
-    ["knative/serving", "serving-crds.yaml"],
-    ["knative/serving", "serving-core.yaml"],
-    ["knative/net-istio", "net-istio.yaml"],
-    ["knative/serving", "serving-default-domain.yaml"],
-]
-
 
 # Number of replicas in the Faasm worker pod
 DEFAULT_REPLICAS = 4
@@ -71,27 +65,6 @@ KNATIVE_ENV = {
     ),  # How long things wait for messages on global bus
     "ENDPOINT_INTERFACE": "eth0",  # Assuming eth0 is accessible to other hosts
 }
-
-
-def _kubectl_cmd(path, action, env=None):
-    cmd = ["kubectl", action, "-f", path]
-
-    shell_env_dict = os.environ.copy()
-    if env:
-        shell_env_dict.update(env)
-
-    cmd_str = " ".join(cmd)
-    print(cmd_str)
-
-    run(cmd_str, shell=True, check=True, env=shell_env_dict)
-
-
-def _kubectl_apply(path, env=None):
-    _kubectl_cmd(path, "apply", env=env)
-
-
-def _kubectl_delete(path, env=None):
-    _kubectl_cmd(path, "delete", env=env)
 
 
 def _capture_cmd_output(cmd):
@@ -186,8 +159,36 @@ def deploy(ctx, replicas=DEFAULT_REPLICAS):
     """
 
     # Set up the namespace first, then the rest
-    _kubectl_apply(NAMESPACE_FILE)
-    _kubectl_apply(K8S_DIR)
+    run(
+        "kubectl -n faasm apply -f {}".format(NAMESPACE_FILE),
+        check=True,
+        shell=True,
+    )
+
+    run(
+        "kubectl -n faasm apply -f {}".format(K8S_DIR),
+        check=True,
+        shell=True,
+    )
+
+    # Wait for the faasm pods to be ready
+    while True:
+        print("Waiting for Faasm pods...")
+        cmd = [
+            "kubectl",
+            "-n faasm",
+            "get pods -l app=faasm",
+            "-o jsonpath='{..status.conditions[?(@.type==\"Ready\")].status}'",
+        ]
+
+        output = _capture_cmd_output(cmd)
+        statuses = [o.strip() for o in output.split(" ") if o.strip()]
+        if all([s == "True" for s in statuses]):
+            print("All Faasm pods ready, continuing...")
+            break
+
+        print("Faasm pods not ready, waiting".format(output))
+        sleep(5)
 
     # Deploy the knative function
     worker_name = "faasm-worker-{}".format(
@@ -230,7 +231,7 @@ def delete_full(ctx, local=False):
     delete_worker(ctx)
 
     # Delete the rest
-    _kubectl_delete(K8S_DIR)
+    run("kubectl -n faasm delete -f {}".format(K8S_DIR))
 
 
 def _deploy_knative_fn(
@@ -291,31 +292,41 @@ def _deploy_knative_fn(
 
 
 @task
-def install(ctx):
+def install(ctx, reverse=False):
     """
     Install knative on an existing k8s cluster
     """
-    for s in KNATIVE_SPECS:
-        _kubectl_apply(
-            "https://github.com/{}/releases/download/v{}/{}".format(
-                s[0], KNATIVE_VERSION, s[1]
-            )
+
+    # See docs:
+    # https://knative.dev/docs/admin/install/serving/install-serving-with-yaml/
+
+    def github_url(repo, filename):
+        url = [
+            "https://github.com/",
+            repo,
+            "/releases/download/v{}/".format(KNATIVE_VERSION),
+            filename,
+        ]
+        return "".join(url)
+
+    action = "delete" if reverse else "apply"
+
+    for s in ["serving-crds.yaml", "serving-core.yaml"]:
+        url = github_url("knative/serving", s)
+        run("kubectl {} -f {}".format(action, url), shell=True, check=True)
+
+    # If installing, apply CRDs first
+    if not reverse:
+        url = github_url("knative/net-istio", "istio.yaml")
+        run(
+            "kubectl apply -l knative.dev/crd-install=true -f {}".format(url),
+            shell=True,
+            check=True,
         )
 
-
-@task
-def uninstall(ctx):
-    """
-    Uninstall knative from an existing k8s cluster
-    """
-    # We delete in the reverse order we apply, and the last component
-    # needs not to be deleted.
-    for s in KNATIVE_SPECS:
-        _kubectl_delete(
-            "https://github.com/{}/releases/download/v{}/{}".format(
-                s[0], KNATIVE_VERSION, s[1]
-            )
-        )
+    for s in ["istio.yaml", "net-istio.yaml"]:
+        url = github_url("knative/net-istio", s)
+        run("kubectl {} -f {}".format(action, url), shell=True, check=True)
 
 
 @task

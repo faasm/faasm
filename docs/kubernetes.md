@@ -14,18 +14,20 @@ Knative client.
 If you don't have a cluster set up, see the instructions at the bottom of this
 page.
 
-## Installing Knative
+## Installing Knative and Istio
 
-Faasm requires a minimal install of [Knative
-serving](https://knative.dev/docs/install/any-kubernetes-cluster/).
+Faasm requires the underlying K8s cluster to have both Knative Serving and Istio
+installed.
 
-If your cluster doesn't already have Knative installed, you can run:
+To install both:
 
 ```bash
-# Install
 inv knative.install
+```
 
-# Check
+You can check with:
+
+```bash
 kubectl get pods -n knative-serving
 kubectl get pods -n istio-system
 ```
@@ -121,7 +123,7 @@ the following:
 
 - Set up an account and the [Cloud SDK](https://cloud.google.com/sdk) ([Ubuntu
   quick start](https://cloud.google.com/sdk/docs/quickstart-debian-ubuntu)).
-- Create a Kubernetes cluster **with Istio enabled and version >=v1.15**.
+- Create a Kubernetes cluster **without Istio enabled**.
 - Aim for >=4 nodes with more than one vCPU.
 - Set up your local `kubectl` to connect to your cluster (click the "Connect"
   button in the web interface).
@@ -138,8 +140,6 @@ To set up Faasm on AKS, you can do the following:
 - Create an AKS cluster under said resource group.
 - Aim for >=4 nodes with more than one vCPU.
 - Set up the local `kubectl` via the `get credentials` command.
-- Manually install istio [using
-  `istioctl`](https://istio.io/latest/docs/setup/getting-started)
 - Continue with Faasm installation as described above.
 
 ## MicroK8s
@@ -149,13 +149,7 @@ Install according to the [official docs](https://microk8s.io/).
 Note that you may have to set up different permissions to run without `sudo`
 (although this is not necessarily required).
 
-You should also enable `istio` with:
-
-```bash
-microk8s.enable istio
-```
-
-Finally, set up your `kubectl` to use this with:
+Set up `kubectl` to use this with:
 
 ```bash
 rm -rf ~/.kube
@@ -167,15 +161,6 @@ kubectl get nodes
 ```
 
 You can then continue with Faasm installation as described above.
-
-## Bare metal
-
-If you're deploying on a bare-metal cluster then you need to update the
-`externalIPs` field in the `upload-service.yml` file to match your k8s master
-node.
-
-You also need to install Istio as described in [the Knative
-docs](https://knative.dev/docs/install/any-kubernetes-cluster/).
 
 ### Redis bare-metal set-up
 
