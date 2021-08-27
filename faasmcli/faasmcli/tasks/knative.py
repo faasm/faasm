@@ -127,16 +127,18 @@ def delete_worker(ctx):
     """
     Delete the Faasm worker pod
     """
-    # Clear redis queue
+    kn_service = _get_knative_service(ok_none=True)
+    if not kn_service:
+        print("No worker found to delete")
+        return
+
+    # Flush redis
     cmd = "kubectl exec -n faasm redis-queue -- redis-cli flushall"
     run(cmd, shell=True, check=True)
 
-    # Delete kn service if it exists
-    kn_service = _get_knative_service(ok_none=True)
-    if kn_service:
-        cmd = "kn -n faasm service delete {}".format(kn_service)
-        print(cmd)
-        run(cmd, shell=True, check=True)
+    cmd = "kn -n faasm service delete {}".format(kn_service)
+    print(cmd)
+    run(cmd, shell=True, check=True)
 
 
 @task
@@ -154,13 +156,13 @@ def deploy(ctx, replicas=DEFAULT_REPLICAS):
 def _deploy_faasm_services():
     # Set up the namespace first, then the rest
     run(
-        "kubectl -n faasm apply -f {}".format(NAMESPACE_FILE),
+        "kubectl apply -f {}".format(NAMESPACE_FILE),
         check=True,
         shell=True,
     )
 
     run(
-        "kubectl -n faasm apply -f {}".format(K8S_DIR),
+        "kubectl apply -f {}".format(K8S_DIR),
         check=True,
         shell=True,
     )
@@ -228,9 +230,7 @@ def delete_full(ctx, local=False):
     delete_worker(ctx)
 
     # Delete the rest
-    run(
-        "kubectl -n faasm delete -f {}".format(K8S_DIR), shell=True, check=True
-    )
+    run("kubectl delete --all -f {}".format(K8S_DIR), shell=True, check=True)
 
 
 @task
@@ -330,27 +330,6 @@ def ini_file(ctx):
         ]
     )
 
-    hoststats_ip = _capture_cmd_output(
-        [
-            "kubectl",
-            "-n faasm",
-            "get",
-            "service",
-            "hoststats-proxy-lb",
-            "-o 'jsonpath={.status.loadBalancer.ingress[0].ip}'",
-        ]
-    )
-    hoststats_port = _capture_cmd_output(
-        [
-            "kubectl",
-            "-n faasm",
-            "get",
-            "service",
-            "hoststats-proxy-lb",
-            "-o 'jsonpath={.spec.ports[0].port}'",
-        ]
-    )
-
     worker_names, worker_ips = _get_faasm_worker_pods()
 
     print("\n----- INI file -----\n")
@@ -364,8 +343,6 @@ def ini_file(ctx):
         fh.write("upload_host = {}\n".format(upload_ip))
         fh.write("upload_port= {}\n".format(upload_port))
         fh.write("knative_host = {}\n".format(knative_host))
-        fh.write("hoststats_host = {}\n".format(hoststats_ip))
-        fh.write("hoststats_port= {}\n".format(hoststats_port))
         fh.write("worker_names = {}\n".format(",".join(worker_names)))
         fh.write("worker_ips = {}\n".format(",".join(worker_ips)))
 

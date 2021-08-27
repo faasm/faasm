@@ -22,11 +22,11 @@ installed.
 To install both:
 
 ```bash
-# NOTE: this often fails, just rerun and it should work
+# NOTE: this often fails on the first run, just rerun and it should work
 inv knative.install
 ```
 
-You can check with:
+You can check whether the pods are ready with:
 
 ```bash
 kubectl get pods -n knative-serving
@@ -35,8 +35,8 @@ kubectl get pods -n istio-system
 
 ## Deplying Faasm to K8s
 
-You can deploy Faasm as follows, matching the replicas to the number of nodes in
-your k8s cluster:
+Once Knative and Istio are installed, you can deploy Faasm as follows, matching
+the replicas to the number of nodes in your k8s cluster:
 
 ```bash
 inv knative.deploy --replicas=4
@@ -44,18 +44,12 @@ inv knative.deploy --replicas=4
 
 This might take a couple of minutes depending on the underlying cluster.
 
-Check with:
-
-```bash
-kubectl -n faasm get pods --watch
-```
-
 Once everything has started up, Faasm should also generate a config file,
 `faasm.ini` at root of this project.
 
 If you need to regenerate this, you can run:
 
-```
+```bash
 inv knative.ini-file
 ```
 
@@ -65,7 +59,7 @@ Once you have configured your `faasm.ini` file, you can use the Faasm, CPP,
 Python CLIs via the [`docker-compose-k8s.yml`](../docker-compose-k8s.yml) file
 in this repo:
 
-```
+```bash
 # Start the container (be sure to have stopped all other docker-compose stuff)
 docker-compose -f docker-compose-k8s.yml run cpp-cli /bin/bash
 
@@ -86,7 +80,7 @@ kubectl get pods --all-namespaces
 Provided everything looks normal, or you find a container with something wrong,
 you can look at logs. E.g. for a Faasm worker:
 
-```
+```bash
 # Find the faasm-worker-xxx pod
 kubectl -n faasm get pods
 
@@ -94,7 +88,7 @@ kubectl -n faasm get pods
 kubectl -n faasm logs -f faasm-worker-xxx user-container
 
 # Tail the logs for all containers in the deployment
-# You only need to specify the max-log-requests if you have more than 5 containers
+# You only need to specify the max-log-requests if you have more than 5
 kubectl -n faasm logs -f -c user-container -l serving.knative.dev/service=faasm-worker --max-log-requests=<N_CONTAINERS>
 
 # Get all logs from the given deployment (add a very large --tail)
