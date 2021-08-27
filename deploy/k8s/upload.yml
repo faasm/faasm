@@ -30,17 +30,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: upload
+  name: upload-lb
   namespace: faasm
 spec:
+  type: LoadBalancer
+  ports:
+  - port: 8002
   selector:
     role: upload
-  type: NodePort
-  ports:
-    - name: "faasm-upload"
-      port: 8002
-      targetPort: 8002
-    - name: "hoststats"
-      port: 5000
-      targetPort: 5000
 

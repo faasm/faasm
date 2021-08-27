@@ -28,12 +28,14 @@ spec:
 
 ---
 
+# Allow minio to be accessed by other pods
 apiVersion: v1
 kind: Service
 metadata:
   name: minio
   namespace: faasm
 spec:
+  type: ClusterIP
   ports:
     - port: 9000
       targetPort: 9000

@@ -8,32 +8,35 @@ tasks](../tasks/knative.py).
 
 Faasm assumes a K8s cluster is set up with
 [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/) available
-on the commandline.
+on the commandline, along with [`kn`](https://github.com/knative/client), the
+Knative client.
 
 If you don't have a cluster set up, see the instructions at the bottom of this
 page.
 
-## Installing Knative
+## Installing Knative and Istio
 
-Faasm requires a minimal install of [Knative
-serving](https://knative.dev/docs/install/any-kubernetes-cluster/).
+Faasm requires the underlying K8s cluster to have both Knative Serving and Istio
+installed.
 
-If your cluster doesn't already have Knative installed, you can run:
+To install both:
 
 ```bash
-# Install
+# NOTE: this often fails on the first run, just rerun and it should work
 inv knative.install
-
-# Check
-kubectl get pods -n knative-serving
 ```
 
-Faasm also requires a working install of the Knative CLI,
-[`kn`](https://knative.dev/docs/install/install-kn/).
+You can check whether the pods are ready with:
+
+```bash
+kubectl get pods -n knative-serving
+kubectl get pods -n istio-system
+```
 
 ## Deplying Faasm to K8s
 
-You can deploy Faasm with:
+Once Knative and Istio are installed, you can deploy Faasm as follows, matching
+the replicas to the number of nodes in your k8s cluster:
 
 ```bash
 inv knative.deploy --replicas=4
@@ -41,33 +44,13 @@ inv knative.deploy --replicas=4
 
 This might take a couple of minutes depending on the underlying cluster.
 
-Check with:
+Once everything has started up, Faasm should also generate a config file,
+`faasm.ini` at root of this project.
+
+If you need to regenerate this, you can run:
 
 ```bash
-kubectl -n faasm get pods --watch
-```
-
-### Config file
-
-Once everything has started up, you can populate your `faasm.ini` file at the
-root of this project. To do this, run:
-
-```
-# Update the file
-./bin/update_ini.sh
-
-# Check contents of file
-cat faasm.ini
-```
-
-The file should look something like:
-
-```
-[Faasm]
-invoke_host = ...   # IP of the knative-managed endpoint
-inoke_port = ...    # Usually 80 for knative
-upload_host = ...   # IP of the upload service
-upload_port = ...   # Usually 8002
+inv knative.ini-file
 ```
 
 ## Uploading functions
@@ -76,7 +59,7 @@ Once you have configured your `faasm.ini` file, you can use the Faasm, CPP,
 Python CLIs via the [`docker-compose-k8s.yml`](../docker-compose-k8s.yml) file
 in this repo:
 
-```
+```bash
 # Start the container (be sure to have stopped all other docker-compose stuff)
 docker-compose -f docker-compose-k8s.yml run cpp-cli /bin/bash
 
@@ -97,7 +80,7 @@ kubectl get pods --all-namespaces
 Provided everything looks normal, or you find a container with something wrong,
 you can look at logs. E.g. for a Faasm worker:
 
-```
+```bash
 # Find the faasm-worker-xxx pod
 kubectl -n faasm get pods
 
@@ -105,7 +88,7 @@ kubectl -n faasm get pods
 kubectl -n faasm logs -f faasm-worker-xxx user-container
 
 # Tail the logs for all containers in the deployment
-# You only need to specify the max-log-requests if you have more than 5 containers
+# You only need to specify the max-log-requests if you have more than 5
 kubectl -n faasm logs -f -c user-container -l serving.knative.dev/service=faasm-worker --max-log-requests=<N_CONTAINERS>
 
 # Get all logs from the given deployment (add a very large --tail)
@@ -134,7 +117,7 @@ the following:
 
 - Set up an account and the [Cloud SDK](https://cloud.google.com/sdk) ([Ubuntu
   quick start](https://cloud.google.com/sdk/docs/quickstart-debian-ubuntu)).
-- Create a Kubernetes cluster **with Istio enabled and version >=v1.15**.
+- Create a Kubernetes cluster **without Istio enabled**.
 - Aim for >=4 nodes with more than one vCPU.
 - Set up your local `kubectl` to connect to your cluster (click the "Connect"
   button in the web interface).
@@ -150,7 +133,6 @@ To set up Faasm on AKS, you can do the following:
 - Create a resource group with sufficient quota.
 - Create an AKS cluster under said resource group.
 - Aim for >=4 nodes with more than one vCPU.
-- Ensure `istio` is installed in K8s.
 - Set up the local `kubectl` via the `get credentials` command.
 - Continue with Faasm installation as described above.
 
@@ -161,13 +143,7 @@ Install according to the [official docs](https://microk8s.io/).
 Note that you may have to set up different permissions to run without `sudo`
 (although this is not necessarily required).
 
-You should also enable `istio` with:
-
-```bash
-microk8s.enable istio
-```
-
-Finally, set up your `kubectl` to use this with:
+Set up `kubectl` to use this with:
 
 ```bash
 rm -rf ~/.kube
@@ -179,15 +155,6 @@ kubectl get nodes
 ```
 
 You can then continue with Faasm installation as described above.
-
-## Bare metal
-
-If you're deploying on a bare-metal cluster then you need to update the
-`externalIPs` field in the `upload-service.yml` file to match your k8s master
-node.
-
-You also need to install Istio as described in [the Knative
-docs](https://knative.dev/docs/install/any-kubernetes-cluster/).
 
 ### Redis bare-metal set-up
 

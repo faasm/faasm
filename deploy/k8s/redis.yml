@@ -34,12 +34,14 @@ spec:
 
 ---
 
+# Allow redis services to be accessed by other pods
 apiVersion: v1
 kind: Service
 metadata:
   name: redis-queue
   namespace: faasm
 spec:
+  type: ClusterIP
   ports:
     - port: 6379
       targetPort: 6379
@@ -54,6 +56,7 @@ metadata:
   name: redis-state
   namespace: faasm
 spec:
+  type: ClusterIP
   ports:
     - port: 6379
       targetPort: 6379

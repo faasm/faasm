@@ -25,6 +25,8 @@ FAASM_BUILD_DIR = _get_dir("FAASM_BUILD_DIR", "/build/faasm")
 FAASM_INSTALL_DIR = _get_dir("FAASM_INSTALL_DIR", "/usr/local")
 
 FAASM_CONFIG_FILE = join(PROJ_ROOT, "faasm.ini")
+GLOBAL_FAASM_CONFIG_DIR = join(HOME_DIR, ".config")
+GLOBAL_FAASM_CONFIG_FILE = join(GLOBAL_FAASM_CONFIG_DIR, "faasm.ini")
 
 PY_RUNTIME_ROOT = join(FAASM_RUNTIME_ROOT, "lib", "python3.8")
 
