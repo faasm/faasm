@@ -213,7 +213,7 @@ to see where things might have gone wrong.
 
 ```bash
 # To start the container
-docker-compose -f docker/docker-compose-ci.yml run cli /bin/bash
+docker-compose -f docker/docker-compose-ci.yml --env-file ./.env run cli /bin/bash
 ```
 
 ## Code style

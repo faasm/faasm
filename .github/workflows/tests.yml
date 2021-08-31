@@ -12,7 +12,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     container:
-      image: faasm/cli:0.6.4
+      image: faasm/cli:0.6.7
     defaults:
       run:
         working-directory: /usr/local/code/faasm
@@ -38,7 +38,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     container:
-      image: faasm/cpp-sysroot:0.0.27
+      image: faasm/cpp-sysroot:0.0.28
     defaults:
       run:
         working-directory: /__w/faasm/faasm/clients/cpp
@@ -105,17 +105,17 @@ jobs:
       REDIS_QUEUE_HOST: redis
       REDIS_STATE_HOST: redis
     container:
-      image: faasm/cli:0.6.4
+      image: faasm/cli:0.6.7
     defaults:
       run:
         working-directory: /usr/local/code/faasm
     services:
       redis:
-        image: faasm/redis:0.6.4
+        image: faasm/redis:0.6.7
         ports:
           - 6379:6379
       minio:
-        image: faasm/minio:0.6.4
+        image: faasm/minio:0.6.7
         env:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
