@@ -15,11 +15,7 @@
 #include <storage/FileLoader.h>
 #include <wasm_export.h>
 
-#if (WAMR_EXECUTION_MODE_INTERP)
-#include <wasm_runtime.h>
-#else
 #include <aot_runtime.h>
-#endif
 
 namespace wasm {
 static bool wamrInitialised = false;
@@ -80,12 +76,8 @@ void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 
     // Load the wasm file
     storage::FileLoader& functionLoader = storage::getFileLoader();
-#if (WAMR_EXECUTION_MODE_INTERP)
-    wasmBytes = functionLoader.loadFunctionWasm(msg);
-#else
     std::vector<uint8_t> wasmBytes =
       functionLoader.loadFunctionWamrAotFile(msg);
-#endif
 
     // Load wasm module
     wasmModule = wasm_runtime_load(
@@ -183,31 +175,18 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
     std::vector<uint32_t> argv = { 0 };
 
     // Invoke the function
-#if (WAMR_EXECUTION_MODE_INTERP)
-    bool success = wasm_create_exec_env_and_call_function(
-      reinterpret_cast<WASMModuleInstance*>(moduleInstance),
-      reinterpret_cast<WASMFunctionInstance*>(func),
-      0x0,
-      argv.data());
-#else
     bool success = aot_create_exec_env_and_call_function(
       reinterpret_cast<AOTModuleInstance*>(moduleInstance),
       reinterpret_cast<AOTFunctionInstance*>(func),
       0x0,
       argv.data());
-#endif
 
     // Check function result
     if (success) {
         SPDLOG_DEBUG("{} finished", funcName);
     } else {
-#if (WAMR_EXECUTION_MODE_INTERP)
-        std::string errorMessage(
-          ((WASMModuleInstance*)moduleInstance)->cur_exception);
-#else
         std::string errorMessage(
           ((AOTModuleInstance*)moduleInstance)->cur_exception);
-#endif
         SPDLOG_ERROR("Function failed: {}", errorMessage);
 
         return 1;
@@ -253,17 +232,10 @@ uint8_t* WAMRWasmModule::wasmPointerToNative(int32_t wasmPtr)
 
 size_t WAMRWasmModule::getMemorySizeBytes()
 {
-#if (WAMR_EXECUTION_MODE_INTERP)
-    auto interpModule = reinterpret_cast<WASMModuleInstance*>(moduleInstance);
-    WASMMemoryInstance* interpMem =
-      ((WASMMemoryInstance**)interpModule->memories)[0];
-    return interpMem->cur_page_count * interpMem->num_bytes_per_page;
-#else
     auto aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
     AOTMemoryInstance* aotMem =
       ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
     return aotMem->cur_page_count * aotMem->num_bytes_per_page;
-#endif
 }
 
 uint32_t WAMRWasmModule::mmapFile(uint32_t fp, uint32_t length)
