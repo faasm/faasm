@@ -53,7 +53,7 @@ If you need to regenerate this, you can run:
 inv knative.ini-file
 ```
 
-## Uploading functions
+## Uploading and running functions
 
 Once you have configured your `faasm.ini` file, you can use the Faasm, CPP,
 Python CLIs via the [`docker-compose-k8s.yml`](../docker-compose-k8s.yml) file
@@ -64,8 +64,14 @@ in this repo:
 docker-compose -f docker-compose-k8s.yml run cpp-cli /bin/bash
 
 # Compile and upload a function
-inv func demo hello
-inv func.upload demo hello --host=<upload_host>
+(cpp) inv func demo hello
+(cpp) inv func.upload demo hello --host=<upload_host>
+
+# In a different terminal, start the Faasm CLI container and run a function
+docker-compose -f docker-compose-k8s.yml run faasm-cli /bin/bash
+(faasm) inv invoke demo hello
+
+// Hello Faasm!
 ```
 
 # Troubleshooting

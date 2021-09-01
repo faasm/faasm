@@ -114,12 +114,12 @@ def _get_knative_service(ok_none=False):
     if ok_none and len(names) == 0:
         return None
 
-    if len(names) != 1:
+    if len(names) == 0:
         raise RuntimeError(
             "Could not find single knative service in {}".format(output)
         )
 
-    return names[0]
+    return " ".join(names)
 
 
 @task
