@@ -58,6 +58,7 @@ set(LIB_FILES
         WAMRWasmModule.cpp
         codegen.cpp
         dynlink.cpp
+        env.cpp
         filesystem.cpp
         funcs.cpp
         memory.cpp
@@ -65,6 +66,7 @@ set(LIB_FILES
         pthread.cpp
         state.cpp
         stubs.cpp
+        timing.cpp
         ${HEADERS}
         )
 

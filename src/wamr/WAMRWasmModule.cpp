@@ -18,6 +18,8 @@
 #include <aot_runtime.h>
 
 namespace wasm {
+// The high level API for WAMR can be found here:
+// https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/core/iwasm/include/wasm_export.h
 static bool wamrInitialised = false;
 std::mutex wamrInitMx;
 
@@ -32,7 +34,10 @@ void WAMRWasmModule::initialiseWAMRGlobally()
             return;
         }
 
-        // Initialise runtime
+        // Initialise WAMR runtime:
+        // - Define memory allocators
+        // - Register WAMR's native symbols: we use builtin libc but not wasi
+        // - Define signaling method
         bool success = wasm_runtime_init();
         if (!success) {
             throw std::runtime_error("Failed to initialise WAMR");
@@ -40,7 +45,7 @@ void WAMRWasmModule::initialiseWAMRGlobally()
 
         SPDLOG_DEBUG("Successfully initialised WAMR");
 
-        // Initialise native functions
+        // Initialise Faasm's own native symbols
         initialiseWAMRNatives();
     }
 }
