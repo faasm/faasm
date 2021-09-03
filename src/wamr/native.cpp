@@ -2,8 +2,6 @@
 #include <wasm_export.h>
 #include <wasm_native.h>
 
-#include <faabric/util/logging.h>
-
 namespace wasm {
 void doSymbolRegistration(uint32_t (*f)(NativeSymbol** ns))
 {

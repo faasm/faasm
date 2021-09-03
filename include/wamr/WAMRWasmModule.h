@@ -7,6 +7,26 @@
 #define STACK_SIZE_KB 8192
 #define HEAP_SIZE_KB 8192
 
+// Address translation macros
+
+#define VALIDATE_NATIVE_ADDR(ptr, size)                                        \
+    if (!wasm_runtime_validate_native_addr(                                    \
+          module->getModuleInstance(), ptr, size)) {                           \
+        return __WASI_EBADF;                                                   \
+    }
+
+#define VALIDATE_APP_ADDR(ptr, size)                                           \
+    if (!wasm_runtime_validate_app_addr(                                       \
+          module->getModuleInstance(), ptr, size)) {                           \
+        return __WASI_EBADF;                                                   \
+    }
+
+#define ADDR_APP_TO_NATIVE(appPtr)                                             \
+    wasm_runtime_addr_app_to_native(module->getModuleInstance(), appPtr)
+
+#define ADDR_NATIVE_TO_APP(nativePtr)                                          \
+    wasm_runtime_addr_native_to_app(module->getModuleInstance(), nativePtr)
+
 namespace wasm {
 
 std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx);
@@ -40,6 +60,8 @@ class WAMRWasmModule final : public WasmModule
 
     size_t getMemorySizeBytes() override;
 
+    WASMModuleInstanceCommon* getModuleInstance();
+
   private:
     char errorBuffer[ERROR_BUFFER_SIZE];
 
@@ -50,6 +72,8 @@ class WAMRWasmModule final : public WasmModule
 
     int executeWasmFunctionFromPointer(int wasmFuncPtr);
 };
+
+WAMRWasmModule* getExecutingWAMRModule();
 
 void tearDownWAMRGlobally();
 }

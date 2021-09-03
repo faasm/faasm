@@ -1,24 +1,59 @@
 #include <faabric/util/logging.h>
+#include <storage/FileDescriptor.h>
+#include <wamr/WAMRWasmModule.h>
 #include <wamr/native.h>
 
 #include <stdexcept>
+
+// WAMR includes
 #include <wasm_export.h>
+#include <wasmtime_ssp.h>
 
 namespace wasm {
-uint32_t wasi_environ_get(wasm_exec_env_t exec_env, int32_t* a, int32_t* b)
+uint32_t wasi_environ_get(wasm_exec_env_t exec_env,
+                          int32_t* envOffsetsApp,
+                          char* envBuffApp)
 {
     SPDLOG_DEBUG("S - environ_get");
-    throw std::runtime_error("environ_get not implemented");
-    return 0;
+
+    WAMRWasmModule* module = getExecutingWAMRModule();
+    WasmEnvironment wasmEnv = module->getWasmEnvironment();
+    const std::vector<std::string>& envVars = wasmEnv.getVars();
+
+    // Validate offset vector at once
+    VALIDATE_NATIVE_ADDR(envOffsetsApp, envVars.size() * sizeof(int32_t));
+
+    for (const auto& envVar : envVars) {
+        // To validate the buffer we must account for the null terminator
+        VALIDATE_NATIVE_ADDR(envBuffApp, envVar.size() + 1)
+
+        // Copy contents to buffer and update offsets
+        std::copy(envVar.begin(), envVar.end(), envBuffApp);
+        *envOffsetsApp = ADDR_NATIVE_TO_APP(envBuffApp);
+
+        envBuffApp += envVar.size() + 1;
+        envOffsetsApp += sizeof(int32_t);
+    }
+
+    return __WASI_ESUCCESS;
 }
 
 uint32_t wasi_environ_sizes_get(wasm_exec_env_t exec_env,
-                                int32_t* a,
-                                int32_t* b)
+                                int32_t* envCountApp,
+                                int32_t* envBufferSizeApp)
 {
     SPDLOG_DEBUG("S - environ_sizes_get");
-    throw std::runtime_error("environ_sizes_get not implemented");
-    return 0;
+
+    WAMRWasmModule* module = getExecutingWAMRModule();
+    WasmEnvironment& wasmEnv = module->getWasmEnvironment();
+
+    VALIDATE_NATIVE_ADDR(envCountApp, sizeof(uint32_t))
+    VALIDATE_NATIVE_ADDR(envBufferSizeApp, sizeof(uint32_t))
+
+    *envCountApp = wasmEnv.getEnvCount();
+    *envBufferSizeApp = wasmEnv.getEnvBufferSize();
+
+    return __WASI_ESUCCESS;
 }
 
 uint32_t wasi_proc_exit(wasm_exec_env_t exec_env)

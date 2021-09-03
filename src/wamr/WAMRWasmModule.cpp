@@ -1,21 +1,20 @@
-#include "WAMRWasmModule.h"
-#include "aot_runtime.h"
-#include "platform_common.h"
-#include "wasm_exec_env.h"
-#include "wasm_runtime.h"
-
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
+#include <storage/FileLoader.h>
+#include <wamr/WAMRWasmModule.h>
 #include <wamr/native.h>
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 
 #include <cstdint>
 #include <stdexcept>
-#include <storage/FileLoader.h>
-#include <wasm_export.h>
 
+// WAMR includes
 #include <aot_runtime.h>
+#include <platform_common.h>
+#include <wasm_exec_env.h>
+#include <wasm_export.h>
+#include <wasm_runtime.h>
 
 namespace wasm {
 // The high level API for WAMR can be found here:
@@ -70,6 +69,11 @@ WAMRWasmModule::~WAMRWasmModule()
 {
     wasm_runtime_deinstantiate(moduleInstance);
     wasm_runtime_unload(wasmModule);
+}
+
+WAMRWasmModule* getExecutingWAMRModule()
+{
+    return reinterpret_cast<WAMRWasmModule*>(getExecutingModule());
 }
 
 // ----- Module lifecycle -----
@@ -241,6 +245,15 @@ size_t WAMRWasmModule::getMemorySizeBytes()
     AOTMemoryInstance* aotMem =
       ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
     return aotMem->cur_page_count * aotMem->num_bytes_per_page;
+}
+
+WASMModuleInstanceCommon* WAMRWasmModule::getModuleInstance()
+{
+    if (moduleInstance == nullptr) {
+        SPDLOG_ERROR("Trying to get a null-pointing module instance");
+        throw std::runtime_error("Null WAMR module instance");
+    }
+    return moduleInstance;
 }
 
 uint32_t WAMRWasmModule::mmapFile(uint32_t fp, uint32_t length)
