@@ -95,6 +95,7 @@ def local(ctx):
     # Run the WAMR codegen required by the tests
     codegen(ctx, "demo", "echo", wamr=True)
     codegen(ctx, "demo", "chain", wamr=True)
+    codegen(ctx, "ffmpeg", "check", wamr=True)
 
     # Run the SGX codegen required by the tests
     codegen(ctx, "demo", "hello", wamr=True, sgx=True)
