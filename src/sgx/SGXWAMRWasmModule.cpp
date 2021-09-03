@@ -1,10 +1,10 @@
-#include <cstdio>
-
 #include <faabric/util/func.h>
 #include <sgx/SGXWAMRWasmModule.h>
-#include <sgx/faasm_sgx_attestation.h>
-#include <sgx/faasm_sgx_system.h>
+#include <sgx/attestation.h>
+#include <sgx/system.h>
 #include <wasm/WasmExecutionContext.h>
+
+#include <cstdio>
 
 extern "C"
 {

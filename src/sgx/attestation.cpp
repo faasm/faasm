@@ -1,5 +1,5 @@
-#include <sgx/faasm_sgx_attestation.h>
-#include <sgx/faasm_sgx_error.h>
+#include <sgx/attestation.h>
+#include <sgx/error.h>
 #include <sgx/rw_lock.h>
 
 #include <arpa/inet.h>

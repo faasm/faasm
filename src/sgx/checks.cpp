@@ -1,11 +1,11 @@
-#include <sgx.h>
-#include <sgx_defs.h>
-#include <tlibc/string.h>
-
 #include <sgx/crypto/encryption.h>
 #include <sgx/crypto/hash.h>
 #include <sgx/crypto/types.h>
-#include <sgx/faasm_sgx_error.h>
+#include <sgx/error.h>
+
+#include <sgx.h>
+#include <sgx_defs.h>
+#include <tlibc/string.h>
 
 extern "C"
 {

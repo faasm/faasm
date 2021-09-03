@@ -1,10 +1,12 @@
-#include <sgx/enclaveConfig.h>
-#include <sgx/faasm_sgx_enclave_types.h>
-#include <sgx/faasm_sgx_error.h>
-#include <sgx/faasm_sgx_native_symbols_wrapper.h>
+#if (FAASM_SGX_ATTESTATION)
+#include <sgx/attestation.h>
+#endif
+#include <sgx/enclave_config.h>
+#include <sgx/enclave_types.h>
+#include <sgx/error.h>
+#include <sgx/native_symbols_wrapper.h>
 #include <sgx/rw_lock.h>
 
-#include <iwasm/include/wasm_export.h>
 #include <libcxx/cstdlib>
 #include <sgx.h>
 #include <sgx_defs.h>
@@ -12,10 +14,7 @@
 #include <tlibc/mbusafecrt.h>
 
 #include <iwasm/aot/aot_runtime.h>
-
-#if (FAASM_SGX_ATTESTATION)
-#include <sgx/faasm_sgx_attestation.h>
-#endif
+#include <iwasm/include/wasm_export.h>
 
 #define WASM_CTORS_FUNC_NAME "__wasm_call_ctors"
 #define WASM_ENTRY_FUNC "_start"

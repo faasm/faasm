@@ -1,6 +1,6 @@
-#include <sgx/faasm_sgx_enclave_types.h>
-#include <sgx/faasm_sgx_error.h>
-#include <sgx/faasm_sgx_native_symbols_wrapper.h>
+#include <sgx/enclave_types.h>
+#include <sgx/error.h>
+#include <sgx/native_symbols_wrapper.h>
 
 #include <iwasm/aot/aot_runtime.h>
 #include <iwasm/common/wasm_exec_env.h>

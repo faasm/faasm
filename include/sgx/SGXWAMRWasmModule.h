@@ -1,14 +1,12 @@
 #pragma once
 
-#include <sgx/faasm_sgx_attestation.h>
-#include <sgx/faasm_sgx_error.h>
-
+#include <sgx/attestation.h>
+#include <sgx/error.h>
 #include <storage/FileLoader.h>
 #include <storage/FileSystem.h>
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 
-// Non-faasm SGX includes
 #include <sgx.h>
 #include <sgx_urts.h>
 

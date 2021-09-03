@@ -1,7 +1,7 @@
 #pragma once
 
 #include <sgx/crypto/types.h>
-#include <sgx/faasm_sgx_error.h>
+#include <sgx/error.h>
 
 #include <sgx_tcrypto.h>
 #include <sgx_trts.h>

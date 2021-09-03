@@ -1,6 +1,6 @@
 #include <sgx/SGXWAMRWasmModule.h>
-#include <sgx/faasm_sgx_error.h>
-#include <sgx/faasm_sgx_system.h>
+#include <sgx/error.h>
+#include <sgx/system.h>
 
 #include <boost/filesystem/operations.hpp>
 #include <sgx_urts.h>

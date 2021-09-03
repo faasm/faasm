@@ -11,7 +11,7 @@ set(CMAKE_ASM_NASM_FLAGS -felf64)
 set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <INCLUDES> ${CMAKE_ASM_NASM_FLAGS} -o <OBJECT> <SOURCE>")
 
 # FAASM-SGX enclave configuration
-set(FAASM_SGX_ENCLAVE_PATH "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/faasm_sgx_enclave.sign.so")
+set(FAASM_SGX_ENCLAVE_PATH "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/enclave.sign.so")
 
 # Enable(1)/ Disable(0) SGX-specific debug/error messages
 # Disable for better performance
@@ -67,14 +67,14 @@ set(FAASM_SGX_WAMR_SRC_UNTRUSTED
 # --------------------------------------------------------
 
 set(FAASM_SGX_HEADERS
-        ${FAASM_INCLUDE_DIR}/sgx/enclaveConfig.h
-        ${FAASM_INCLUDE_DIR}/sgx/faasm_sgx_attestation.h
-        ${FAASM_INCLUDE_DIR}/sgx/faasm_sgx_enclave_types.h
-        ${FAASM_INCLUDE_DIR}/sgx/faasm_sgx_error.h
-        ${FAASM_INCLUDE_DIR}/sgx/faasm_sgx_native_symbols_wrapper.h
-        ${FAASM_INCLUDE_DIR}/sgx/faasm_sgx_system.h
+        ${FAASM_INCLUDE_DIR}/sgx/attestation.h
+        ${FAASM_INCLUDE_DIR}/sgx/enclave_config.h
+        ${FAASM_INCLUDE_DIR}/sgx/enclave_types.h
+        ${FAASM_INCLUDE_DIR}/sgx/error.h
+        ${FAASM_INCLUDE_DIR}/sgx/native_symbols_wrapper.h
         ${FAASM_INCLUDE_DIR}/sgx/rw_lock.h
         ${FAASM_INCLUDE_DIR}/sgx/SGXWAMRWasmModule.h
+        ${FAASM_INCLUDE_DIR}/sgx/system.h
 )
 
 add_library(wamr_sgx STATIC
@@ -200,9 +200,9 @@ endif ()
 
 # SGX WAMR enclave library
 set(FAASM_SGX_ENCLAVE_SRC
-        faasm_sgx_checks.cpp
-        faasm_sgx_enclave.cpp
-        faasm_sgx_native_symbols_wrapper.cpp
+        checks.cpp
+        enclave.cpp
+        native_symbols_wrapper.cpp
         rw_lock.cpp
         )
 
@@ -236,7 +236,7 @@ target_compile_options(faasm_sgx_enclave PRIVATE
         )
 
 target_link_options(faasm_sgx_enclave PRIVATE
-        ${CMAKE_CURRENT_BINARY_DIR}/faasm_sgx_enclave_t.o
+        ${CMAKE_CURRENT_BINARY_DIR}/enclave_t.o
         ${SGX_C_GLOBAL_FLAGS}
         -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles
         -Bstatic -Bsymbolic
@@ -244,7 +244,7 @@ target_link_options(faasm_sgx_enclave PRIVATE
         -Wl,--export-dynamic
         -Wl,--defsym,__ImageBase=0
         -Wl,--gc-sections
-        -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/faasm_sgx_enclave.lds
+        -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/enclave.lds
         )
 
 if (FAASM_SGX_SIM_MODE)
@@ -304,13 +304,13 @@ set_source_files_properties(${FAASM_SGX_ASM_SRC}
 
 set(FAASM_SGX_SRC
         SGXWAMRWasmModule.cpp
-        faasm_sgx_system.cpp
-        faasm_sgx_native_symbols.cpp
+        native_symbols.cpp
+        system.cpp
         )
 
 if (FAASM_SGX_ATTESTATION)
     set(FAASM_SGX_SRC ${FAASM_SGX_SRC}
-            faasm_sgx_attestation.cpp
+            attestation.cpp
             rw_lock.cpp
             )
 endif ()
@@ -353,7 +353,7 @@ target_compile_options(faasm_sgx PRIVATE
         )
 
 target_link_options(faasm_sgx PUBLIC
-        ${CMAKE_CURRENT_BINARY_DIR}/faasm_sgx_enclave_u.o
+        ${CMAKE_CURRENT_BINARY_DIR}/enclave_u.o
         -Wl,--gc-sections
         )
 
@@ -381,7 +381,7 @@ target_link_libraries(faasm_sgx
 
 add_custom_command(TARGET faasm_sgx_enclave
         PRE_BUILD COMMAND ${SGX_SDK_ENCLAVE_EDGER8R}
-        --trusted faasm_sgx_enclave.edl
+        --trusted enclave.edl
         --search-path ${FAASM_SOURCE_DIR}/sgx
         --search-path ${SGX_SDK_PATH}/include
         --search-path ${WAMR_SHARED_DIR}/platform/linux-sgx/
@@ -392,17 +392,17 @@ add_custom_command(TARGET faasm_sgx_enclave
         ${FAASM_SGX_ENCLAVE_C_FLAGS}
         -I${SGX_SDK_PATH}/include
         -I${SGX_SDK_PATH}/include/tlibc
-        -c faasm_sgx_enclave_t.c
-        -o faasm_sgx_enclave_t.o
+        -c enclave_t.c
+        -o enclave_t.o
         )
 
 add_custom_command(TARGET faasm_sgx_enclave
         POST_BUILD COMMAND
         ${SGX_SDK_ENCLAVE_SIGNER} sign
-        -key ${CMAKE_CURRENT_SOURCE_DIR}/faasm_sgx_enclave.pem
+        -key ${CMAKE_CURRENT_SOURCE_DIR}/enclave.pem
         -enclave ${CMAKE_BINARY_DIR}/lib/faasm_sgx_enclave.so
-        -out ${CMAKE_BINARY_DIR}/bin/faasm_sgx_enclave.sign.so
-        -config ${CMAKE_CURRENT_SOURCE_DIR}/faasm_sgx_enclave.config
+        -out ${CMAKE_BINARY_DIR}/bin/enclave.sign.so
+        -config ${CMAKE_CURRENT_SOURCE_DIR}/enclave.config
         )
 
 # --------------------------------------------------------
@@ -411,7 +411,7 @@ add_custom_command(TARGET faasm_sgx_enclave
 
 add_custom_command(TARGET faasm_sgx
         PRE_BUILD COMMAND ${SGX_SDK_ENCLAVE_EDGER8R}
-        --untrusted faasm_sgx_enclave.edl
+        --untrusted enclave.edl
         --search-path ${FAASM_SOURCE_DIR}/sgx
         --search-path ${SGX_SDK_PATH}/include
         --search-path ${WAMR_SHARED_DIR}/platform/linux-sgx/
@@ -421,6 +421,6 @@ add_custom_command(TARGET faasm_sgx
         PRE_BUILD COMMAND gcc
         ${FAASM_SGX_C_FLAGS}
         -I${SGX_SDK_PATH}/include
-        -c faasm_sgx_enclave_u.c
-        -o faasm_sgx_enclave_u.o
+        -c enclave_u.c
+        -o enclave_u.o
         )
