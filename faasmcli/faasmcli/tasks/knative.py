@@ -12,7 +12,6 @@ from faasmcli.util.env import (
     GLOBAL_FAASM_CONFIG_FILE,
     GLOBAL_FAASM_CONFIG_DIR,
 )
-from faasmcli.util.version import get_faasm_version
 
 
 K8S_DIR = join(PROJ_ROOT, "deploy", "k8s")
@@ -38,33 +37,6 @@ FAASM_WORKER_ANNOTATIONS = [
 
 FAASM_WORKER_CONCURRENCY = 0
 
-FAASM_WORKER_IMAGE = "faasm/worker"
-
-ONE_MIN = 60000
-THIRTY_SECS = 30000
-
-KNATIVE_ENV = {
-    "REDIS_STATE_HOST": "redis-state",
-    "REDIS_QUEUE_HOST": "redis-queue",
-    "HOST_TYPE": "knative",
-    "LOG_LEVEL": "info",
-    "CAPTURE_STDOUT": "on",  # Needed for experiment outputs
-    "CGROUP_MODE": "off",
-    "NETNS_MODE": "off",
-    "PYTHON_PRELOAD": "off",  # Switch on/ off preloading of Python runtime
-    "PYTHON_CODEGEN": "off",  # Switch on/ off up-front codegen for Python
-    "BOUND_TIMEOUT": str(
-        THIRTY_SECS
-    ),  # How long a bound worker sticks around for
-    "UNBOUND_TIMEOUT": str(
-        10 * ONE_MIN
-    ),  # How long an unbound worker sticks around for
-    "GLOBAL_MESSAGE_TIMEOUT": str(
-        2 * ONE_MIN
-    ),  # How long things wait for messages on global bus
-    "ENDPOINT_INTERFACE": "eth0",  # Assuming eth0 is accessible to other hosts
-}
-
 
 def _capture_cmd_output(cmd):
     cmd = " ".join(cmd)
@@ -75,12 +47,11 @@ def _capture_cmd_output(cmd):
 
 
 def _get_faasm_worker_pods():
-    knative_service = _get_knative_service()
     cmd = [
         "kubectl",
         "-n faasm",
         "get pods",
-        "-l serving.knative.dev/service={}".format(knative_service),
+        "-l serving.knative.dev/service=faasm-worker",
         "-o jsonpath='{range .items[*]}{@.metadata.name}{\" \"}{end}'",
     ]
     output = _capture_cmd_output(cmd)
@@ -90,7 +61,7 @@ def _get_faasm_worker_pods():
         "kubectl",
         "-n faasm",
         "get pods",
-        "-l serving.knative.dev/service={}".format(knative_service),
+        "-l serving.knative.dev/service=faasm-worker",
         "-o jsonpath='{range .items[*]}{@.status.podIP}{\" \"}{end}'",
     ]
     output = _capture_cmd_output(cmd)
@@ -100,43 +71,16 @@ def _get_faasm_worker_pods():
     return names, ips
 
 
-def _get_knative_service(ok_none=False):
-    cmd = [
-        "kn",
-        "-n faasm",
-        "service",
-        "list",
-        "-o jsonpath='{range .items[*]}{@.metadata.name}{\" \"}{end}'",
-    ]
-    output = _capture_cmd_output(cmd)
-    names = [o.strip() for o in output.split(" ") if o.strip()]
-
-    if ok_none and len(names) == 0:
-        return None
-
-    if len(names) != 1:
-        raise RuntimeError(
-            "Could not find single knative service in {}".format(output)
-        )
-
-    return names[0]
-
-
 @task
 def delete_worker(ctx):
     """
     Delete the Faasm worker pod
     """
-    kn_service = _get_knative_service(ok_none=True)
-    if not kn_service:
-        print("No worker found to delete")
-        return
-
     # Flush redis
     cmd = "kubectl exec -n faasm redis-queue -- redis-cli flushall"
     run(cmd, shell=True, check=True)
 
-    cmd = "kn -n faasm service delete {}".format(kn_service)
+    cmd = "kn -n faasm service delete faasm-worker"
     print(cmd)
     run(cmd, shell=True, check=True)
 
@@ -188,36 +132,21 @@ def _deploy_faasm_services():
 
 
 def _deploy_faasm_worker(replicas):
-    # Deploy the knative function
-    worker_name = "faasm-worker-{}".format(
-        datetime.now().strftime("%y%m%d-%H%M")
-    )
-
-    faasm_ver = get_faasm_version()
-    image = "{}:{}".format(FAASM_WORKER_IMAGE, faasm_ver)
-
     cmd = [
         "kn",
         "service",
-        "create",
-        worker_name,
-        "--image {}".format(image),
-        "--namespace faasm",
-        "--min-scale={}".format(replicas),
-        "--max-scale={}".format(replicas),
+        "update",
+        "faasm-worker",
+        "--scale-min={}".format(replicas),
+        "--scale-max={}".format(replicas),
     ]
 
     # Add annotations
     for annotation in FAASM_WORKER_ANNOTATIONS:
         cmd.append("--annotation {}".format(annotation))
 
-    # Add standard environment
-    for key, value in KNATIVE_ENV.items():
-        cmd.append("--env {}={}".format(key, value))
-
     cmd_string = " ".join(cmd)
     print(cmd_string)
-
     run(cmd_string, shell=True, check=True)
 
 
@@ -230,11 +159,23 @@ def delete_full(ctx, local=False):
     delete_worker(ctx)
 
     # Delete the rest
-    run("kubectl delete --all -f {}".format(K8S_DIR), shell=True, check=True)
+    cmd = "kubectl delete --all -f {}".format(K8S_DIR)
+    print(cmd)
+    run(cmd, shell=True, check=True)
+
+
+def _kn_github_url(repo, filename):
+    url = [
+        "https://github.com/",
+        repo,
+        "/releases/download/v{}/".format(KNATIVE_VERSION),
+        filename,
+    ]
+    return "".join(url)
 
 
 @task
-def install(ctx, reverse=False):
+def install(ctx, reverse=False, noistio=False):
     """
     Install knative on an existing k8s cluster
     """
@@ -242,34 +183,31 @@ def install(ctx, reverse=False):
     # See docs:
     # https://knative.dev/docs/admin/install/serving/install-serving-with-yaml/
 
-    def github_url(repo, filename):
-        url = [
-            "https://github.com/",
-            repo,
-            "/releases/download/v{}/".format(KNATIVE_VERSION),
-            filename,
-        ]
-        return "".join(url)
-
     action = "delete" if reverse else "apply"
 
     for s in ["serving-crds.yaml", "serving-core.yaml"]:
-        url = github_url("knative/serving", s)
+        url = _kn_github_url("knative/serving", s)
         run("kubectl {} -f {}".format(action, url), shell=True, check=True)
 
-    # If installing, apply CRDs first
-    if not reverse:
-        url = github_url("knative/net-istio", "istio.yaml")
+    # If installing Istio, apply CRDs first
+    if not noistio:
+        url = _kn_github_url("knative/net-istio", "istio.yaml")
 
-        run(
-            "kubectl apply -l knative.dev/crd-install=true -f {}".format(url),
-            shell=True,
-            check=True,
-        )
+        if not reverse:
+            run(
+                "kubectl apply -l knative.dev/crd-install=true -f {}".format(
+                    url
+                ),
+                shell=True,
+                check=True,
+            )
 
-    for s in ["istio.yaml", "net-istio.yaml"]:
-        url = github_url("knative/net-istio", s)
+        # Run the apply/ delete
         run("kubectl {} -f {}".format(action, url), shell=True, check=True)
+
+    # Set up knative networking
+    url = _kn_github_url("knative/net-istio", "net-istio.yaml")
+    run("kubectl {} -f {}".format(action, url), shell=True, check=True)
 
 
 @task
@@ -280,14 +218,13 @@ def ini_file(ctx):
     makedirs(GLOBAL_FAASM_CONFIG_DIR, exist_ok=True)
 
     print("\n----- Extracting info from k8s -----\n")
-    knative_service = _get_knative_service()
     knative_host = _capture_cmd_output(
         [
             "kn",
             "-n faasm",
             "service",
             "describe",
-            knative_service,
+            "faasm-worker",
             "-o url",
         ]
     )

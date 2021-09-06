@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-autoscaler
+  namespace: knative-serving
+data:
+  # This is an example configuration for the Knative autoscaler. See the
+  # official version for explanations of parameters:
+  # https://github.com/knative/serving/blob/master/config/core/configmaps/autoscaler.yaml
+
+  # Container concurrency
+  container-concurrency-target-percentage: "100"
+  container-concurrency-target-default: "100"
+  stable-window: "60s"
+
+  # Panic window
+  panic-window-percentage: "10.0"
+  panic-window: "6s"
+  panic-threshold-percentage: "200.0"
+
+  # Scaling
+  max-scale-up-rate: "10"
+  enable-scale-to-zero: "true"
+  tick-interval: "2s"
+  scale-to-zero-grace-period: "30s"
+
