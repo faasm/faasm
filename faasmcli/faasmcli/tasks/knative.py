@@ -17,7 +17,7 @@ from faasmcli.util.env import (
 K8S_DIR = join(PROJ_ROOT, "deploy", "k8s")
 NAMESPACE_FILE = join(K8S_DIR, "namespace.yml")
 
-KNATIVE_VERSION = "0.25.0"
+KNATIVE_VERSION = "0.24.0"
 
 # Number of replicas in the Faasm worker pod
 DEFAULT_REPLICAS = 4
@@ -175,7 +175,7 @@ def _kn_github_url(repo, filename):
 
 
 @task
-def install(ctx, reverse=False, noistio=False):
+def install(ctx, reverse=False):
     """
     Install knative on an existing k8s cluster
     """
@@ -190,24 +190,22 @@ def install(ctx, reverse=False, noistio=False):
         run("kubectl {} -f {}".format(action, url), shell=True, check=True)
 
     # If installing Istio, apply CRDs first
-    if not noistio:
-        url = _kn_github_url("knative/net-istio", "istio.yaml")
+    istio_url = _kn_github_url("knative/net-istio", "istio.yaml")
+    if not reverse:
+        run(
+            "kubectl apply -l knative.dev/crd-install=true -f {}".format(
+                istio_url
+            ),
+            shell=True,
+            check=True,
+        )
 
-        if not reverse:
-            run(
-                "kubectl apply -l knative.dev/crd-install=true -f {}".format(
-                    url
-                ),
-                shell=True,
-                check=True,
-            )
-
-        # Run the apply/ delete
-        run("kubectl {} -f {}".format(action, url), shell=True, check=True)
+    # Run the apply/ delete
+    run("kubectl {} -f {}".format(action, istio_url), shell=True, check=True)
 
     # Set up knative networking
-    url = _kn_github_url("knative/net-istio", "net-istio.yaml")
-    run("kubectl {} -f {}".format(action, url), shell=True, check=True)
+    net_url = _kn_github_url("knative/net-istio", "net-istio.yaml")
+    run("kubectl {} -f {}".format(action, net_url), shell=True, check=True)
 
 
 @task
