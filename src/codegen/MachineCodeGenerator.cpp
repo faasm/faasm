@@ -1,11 +1,6 @@
-#if (WAMR_EXECUTION_MODE_INTERP)
-// Import for codegen not needed as it's not supported
-#else
-#include <wamr/WAMRWasmModule.h>
-#endif
-
 #include <codegen/MachineCodeGenerator.h>
 #include <storage/FileLoader.h>
+#include <wamr/WAMRWasmModule.h>
 #include <wavm/WAVMWasmModule.h>
 
 #include <openssl/md5.h>
@@ -53,12 +48,7 @@ std::vector<uint8_t> MachineCodeGenerator::doCodegen(
   bool isSgx)
 {
     if (conf.wasmVm == "wamr") {
-#if (WAMR_EXECTION_MODE_INTERP)
-        throw std::runtime_error(
-          "WAMR codegen not supported with WAMR interp mode");
-#else
         return wasm::wamrCodegen(bytes, isSgx);
-#endif
     } else {
         assert(isSgx == false);
         return wasm::wavmCodegen(bytes, fileName);
