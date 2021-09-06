@@ -10,6 +10,49 @@
 #include <wasmtime_ssp.h>
 
 namespace wasm {
+uint32_t wasi_args_get(wasm_exec_env_t exec_env,
+                       int32_t* argvOffsetsApp,
+                       char* argvBuffApp)
+{
+    SPDLOG_DEBUG("S - args_get");
+
+    WAMRWasmModule* module = getExecutingWAMRModule();
+    const std::vector<std::string>& argvsHost = module->getArgv();
+
+    VALIDATE_NATIVE_ADDR(argvOffsetsApp, argvsHost.size() * sizeof(int32_t));
+
+    for (const auto& argvHost : argvsHost) {
+        // To validate the buffer we must account for the null terminator
+        VALIDATE_NATIVE_ADDR(argvBuffApp, argvHost.size() + 1);
+
+        // Copy contents to buffer and update offsets
+        std::copy(argvHost.begin(), argvHost.end(), argvBuffApp);
+        *argvOffsetsApp = ADDR_NATIVE_TO_APP(argvBuffApp);
+
+        argvBuffApp += argvHost.size() + 1;
+        argvOffsetsApp += sizeof(int32_t);
+    }
+
+    return __WASI_ESUCCESS;
+}
+
+uint32_t wasi_args_sizes_get(wasm_exec_env_t exec_env,
+                             uint32_t* argcApp,
+                             uint32_t* argcBuffSizeApp)
+{
+    SPDLOG_DEBUG("S - args_sizes_get");
+
+    WAMRWasmModule* module = getExecutingWAMRModule();
+
+    VALIDATE_NATIVE_ADDR(argcApp, sizeof(uint32_t));
+    VALIDATE_NATIVE_ADDR(argcBuffSizeApp, sizeof(uint32_t));
+
+    *argcApp = module->getArgc();
+    *argcBuffSizeApp = module->getArgvBufferSize();
+
+    return __WASI_ESUCCESS;
+}
+
 uint32_t wasi_environ_get(wasm_exec_env_t exec_env,
                           int32_t* envOffsetsApp,
                           char* envBuffApp)
@@ -56,14 +99,15 @@ uint32_t wasi_environ_sizes_get(wasm_exec_env_t exec_env,
     return __WASI_ESUCCESS;
 }
 
-uint32_t wasi_proc_exit(wasm_exec_env_t exec_env)
+uint32_t wasi_proc_exit(wasm_exec_env_t exec_env, int32_t retCode)
 {
-    SPDLOG_DEBUG("S - proc_exit");
-    throw std::runtime_error("proc_exit not implemented");
-    return 0;
+    SPDLOG_DEBUG("S - proc_exit {}", retCode);
+    throw(WasmExitException(retCode));
 }
 
 static NativeSymbol wasiNs[] = {
+    REG_WASI_NATIVE_FUNC(args_get, "(**)i"),
+    REG_WASI_NATIVE_FUNC(args_sizes_get, "(**)i"),
     REG_WASI_NATIVE_FUNC(environ_get, "(**)i"),
     REG_WASI_NATIVE_FUNC(environ_sizes_get, "(**)i"),
     REG_WASI_NATIVE_FUNC(proc_exit, "(i)"),

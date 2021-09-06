@@ -129,6 +129,8 @@ int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
         // Run the function from the pointer
         executeWasmFunctionFromPointer(msg.funcptr());
     } else {
+        prepareArgcArgv(msg);
+
         // Run the main function
         executeWasmFunction(ENTRY_FUNC_NAME);
     }
