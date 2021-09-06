@@ -21,32 +21,32 @@ enclave{
 #endif
 
     trusted{
-        public faasm_sgx_status_t faasm_sgx_enclave_unload_module(
+        public faasm_sgx_status_t enclaveUnloadModule(
             uint32_t thread_id
         );
 
-        public faasm_sgx_status_t faasm_sgx_enclave_call_function(
+        public faasm_sgx_status_t enclaveCallFunction(
             uint32_t thread_id
         );
 
 #if(FAASM_SGX_ATTESTATION)
-        public faasm_sgx_status_t faasm_sgx_enclave_load_module(
+        public faasm_sgx_status_t enclaveLoadModule(
             [user_check]    const void *wasm_opcode_ptr,
                             uint32_t wasm_opcode_size,
             [out]           uint32_t *thread_id,
             [user_check]    sgx_wamr_msg_t **response_ptr
         );
 #else
-        public faasm_sgx_status_t faasm_sgx_enclave_load_module(
+        public faasm_sgx_status_t enclaveLoadModule(
             [in, size=wasm_opcode_size]     const void *wasm_opcode_ptr,
                                             uint32_t wasm_opcode_size,
             [out]                           uint32_t *thread_id
         );
 #endif
 
-        public faasm_sgx_status_t faasm_sgx_enclave_init_wamr(void);
+        public faasm_sgx_status_t enclaveInitWamr(void);
 
-        public faasm_sgx_status_t faasm_sgx_enclave_crypto_checks(void);
+        public faasm_sgx_status_t enclaveCryptoChecks(void);
     };
 
     untrusted{
@@ -152,7 +152,7 @@ enclave{
             [in, string]            const char* name,
             [in, size=input_size]   uint8_t* input,
                                     long input_size
-        ) allow(faasm_sgx_enclave_load_module);
+        ) allow(enclaveLoadModule);
 
         unsigned int ocall_faasm_chain_ptr(
                                     int wasmFuncPtr,

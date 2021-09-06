@@ -66,7 +66,7 @@ void checkSgxSetup()
 
     SPDLOG_DEBUG("Created SGX enclave: {}", globalEnclaveId);
 
-    sgxReturnValue = faasm_sgx_enclave_init_wamr(globalEnclaveId, &returnValue);
+    sgxReturnValue = enclaveInitWamr(globalEnclaveId, &returnValue);
     if (sgxReturnValue != SGX_SUCCESS) {
         SPDLOG_ERROR("Unable to enter enclave: {}",
                      sgxErrorString(sgxReturnValue));
@@ -112,7 +112,7 @@ void checkSgxCrypto()
     sgx_status_t sgxReturnValue;
 
     sgxReturnValue =
-      faasm_sgx_enclave_crypto_checks(globalEnclaveId, &faasmReturnValue);
+      enclaveCryptoChecks(globalEnclaveId, &faasmReturnValue);
 
     if (sgxReturnValue != SGX_SUCCESS) {
         SPDLOG_ERROR("SGX error in crypto checks: {}",

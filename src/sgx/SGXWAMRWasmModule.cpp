@@ -63,7 +63,7 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
     // Note - loading and instantiating happen in the same ecall
     faasm_sgx_status_t returnValue;
     sgx_status_t status =
-      faasm_sgx_enclave_load_module(sgx::getGlobalEnclaveId(),
+      enclaveLoadModule(sgx::getGlobalEnclaveId(),
                                     &returnValue,
                                     (void*)wasmBytes.data(),
                                     (uint32_t)wasmBytes.size(),
@@ -101,7 +101,7 @@ bool SGXWAMRWasmModule::unbindFunction()
     SPDLOG_DEBUG("Unloading SGX wasm module");
 
     faasm_sgx_status_t returnValue;
-    sgx_status_t sgxReturnValue = faasm_sgx_enclave_unload_module(
+    sgx_status_t sgxReturnValue = enclaveUnloadModule(
       sgx::getGlobalEnclaveId(), &returnValue, threadId);
 
     if (sgxReturnValue != SGX_SUCCESS) {
@@ -132,7 +132,7 @@ int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
 
     // Enter enclave and call function
     faasm_sgx_status_t returnValue;
-    sgx_status_t sgxReturnValue = faasm_sgx_enclave_call_function(
+    sgx_status_t sgxReturnValue = enclaveCallFunction(
       sgx::getGlobalEnclaveId(), &returnValue, threadId);
 
     if (sgxReturnValue != SGX_SUCCESS) {

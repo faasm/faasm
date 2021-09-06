@@ -9,7 +9,7 @@
 
 extern "C"
 {
-    faasm_sgx_status_t faasm_sgx_enclave_crypto_checks(void)
+    faasm_sgx_status_t enclaveCryptoChecks(void)
     {
         // Test string of size 13 (including trailing nullptr)
         uint8_t tmpPlainText[] = "Hello world!";

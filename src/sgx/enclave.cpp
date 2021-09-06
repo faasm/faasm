@@ -209,7 +209,7 @@ extern "C"
     }
 
     // Execute the main function
-    faasm_sgx_status_t faasm_sgx_enclave_call_function(const uint32_t thread_id)
+    faasm_sgx_status_t enclaveCallFunction(const uint32_t thread_id)
     {
         // Check if thread_id is in range
         if (thread_id >= _faasm_sgx_tcs_len) {
@@ -259,7 +259,7 @@ extern "C"
         return FAASM_SGX_SUCCESS;
     }
 
-    faasm_sgx_status_t faasm_sgx_enclave_unload_module(const uint32_t thread_id)
+    faasm_sgx_status_t enclaveUnloadModule(const uint32_t thread_id)
     {
         // Important possibility check before unloading a module
         if (thread_id >= _faasm_sgx_tcs_len) {
@@ -287,7 +287,7 @@ extern "C"
     }
 
     // Load the provided web assembly module to the enclave's runtime
-    faasm_sgx_status_t faasm_sgx_enclave_load_module(
+    faasm_sgx_status_t enclaveLoadModule(
       const void* wasm_opcode_ptr,
       const uint32_t wasm_opcode_size,
       uint32_t* thread_id
@@ -370,7 +370,7 @@ extern "C"
     // Set up the WAMR runtime, and initialise all enclave-related
     // variables. Currently, this happens _once_ per Faasm instance. This is,
     // we only run one enclave per Faasm instance.
-    faasm_sgx_status_t faasm_sgx_enclave_init_wamr(void)
+    faasm_sgx_status_t enclaveInitWamr(void)
     {
         os_set_print_function((os_print_function_t)SGX_DEBUG_LOG);
 

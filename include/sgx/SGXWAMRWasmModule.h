@@ -20,11 +20,11 @@ extern "C"
 
     extern faasm_sgx_status_t faasm_sgx_get_sgx_support(void);
 
-    extern sgx_status_t faasm_sgx_enclave_init_wamr(
+    extern sgx_status_t enclaveInitWamr(
       sgx_enclave_id_t enclave_id,
       faasm_sgx_status_t* ret_val);
 
-    extern sgx_status_t faasm_sgx_enclave_load_module(
+    extern sgx_status_t enclaveLoadModule(
       sgx_enclave_id_t enclave_id,
       faasm_sgx_status_t* ret_val,
       const void* wasm_opcode_ptr,
@@ -36,17 +36,17 @@ extern "C"
 #endif
     );
 
-    extern sgx_status_t faasm_sgx_enclave_unload_module(
+    extern sgx_status_t enclaveUnloadModule(
       sgx_enclave_id_t enclave_id,
       faasm_sgx_status_t* ret_val,
       const unsigned int thread_id);
 
-    extern sgx_status_t faasm_sgx_enclave_call_function(
+    extern sgx_status_t enclaveCallFunction(
       sgx_enclave_id_t enclave_id,
       faasm_sgx_status_t* ret_val,
       const uint32_t thread_id);
 
-    extern sgx_status_t faasm_sgx_enclave_crypto_checks(
+    extern sgx_status_t enclaveCryptoChecks(
       sgx_enclave_id_t enclave_id,
       faasm_sgx_status_t* ret_val);
 }
