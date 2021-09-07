@@ -34,9 +34,6 @@ void WAMRWasmModule::initialiseWAMRGlobally()
         }
 
         // Initialise WAMR runtime:
-        // - Define memory allocators
-        // - Register WAMR's native symbols: we use builtin libc but not wasi
-        // - Define signaling method
         bool success = wasm_runtime_init();
         if (!success) {
             throw std::runtime_error("Failed to initialise WAMR");
@@ -239,6 +236,11 @@ uint8_t* WAMRWasmModule::wasmPointerToNative(int32_t wasmPtr)
 {
     void* nativePtr = wasm_runtime_addr_app_to_native(moduleInstance, wasmPtr);
     return static_cast<uint8_t*>(nativePtr);
+}
+
+int32_t WAMRWasmModule::nativePointerToWasm(uint8_t* nativePtr)
+{
+    return wasm_runtime_addr_native_to_app(moduleInstance, nativePtr);
 }
 
 size_t WAMRWasmModule::getMemorySizeBytes()

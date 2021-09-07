@@ -200,7 +200,7 @@ static int32_t wasi_fd_read(wasm_exec_env_t exec_env,
                           sizeof(char) * ioVecBuffApp[i].buffLen);
 
         ::iovec ioVecNative{
-            .iov_base = ADDR_APP_TO_NATIVE(ioVecBuffApp[i].buffOffset),
+            .iov_base = module->wasmPointerToNative(ioVecBuffApp[i].buffOffset),
             .iov_len = ioVecBuffApp[i].buffLen,
         };
 
@@ -269,7 +269,7 @@ static int32_t wasi_fd_write(wasm_exec_env_t exec_env,
                           sizeof(char) * ioVecBuffApp[i].buffLen);
 
         ::iovec ioVecNative{
-            .iov_base = ADDR_APP_TO_NATIVE(ioVecBuffApp[i].buffOffset),
+            .iov_base = module->wasmPointerToNative(ioVecBuffApp[i].buffOffset),
             .iov_len = ioVecBuffApp[i].buffLen,
         };
 

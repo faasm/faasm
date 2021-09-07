@@ -21,12 +21,6 @@
         return __WASI_EBADF;                                                   \
     }
 
-#define ADDR_APP_TO_NATIVE(appPtr)                                             \
-    wasm_runtime_addr_app_to_native(module->getModuleInstance(), appPtr)
-
-#define ADDR_NATIVE_TO_APP(nativePtr)                                          \
-    wasm_runtime_addr_native_to_app(module->getModuleInstance(), nativePtr)
-
 namespace wasm {
 
 std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx);
@@ -57,6 +51,8 @@ class WAMRWasmModule final : public WasmModule
     uint32_t mmapFile(uint32_t fp, uint32_t length) override;
 
     uint8_t* wasmPointerToNative(int32_t wasmPtr) override;
+
+    int32_t nativePointerToWasm(uint8_t* nativePtr);
 
     size_t getMemorySizeBytes() override;
 

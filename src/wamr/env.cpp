@@ -27,7 +27,8 @@ uint32_t wasi_args_get(wasm_exec_env_t exec_env,
 
         // Copy contents to buffer and update offsets
         std::copy(argvHost.begin(), argvHost.end(), argvBuffApp);
-        *argvOffsetsApp = ADDR_NATIVE_TO_APP(argvBuffApp);
+        *argvOffsetsApp =
+          module->nativePointerToWasm(reinterpret_cast<uint8_t*>(argvBuffApp));
 
         argvBuffApp += argvHost.size() + 1;
         argvOffsetsApp += sizeof(int32_t);
@@ -72,7 +73,8 @@ uint32_t wasi_environ_get(wasm_exec_env_t exec_env,
 
         // Copy contents to buffer and update offsets
         std::copy(envVar.begin(), envVar.end(), envBuffApp);
-        *envOffsetsApp = ADDR_NATIVE_TO_APP(envBuffApp);
+        *envOffsetsApp =
+          module->nativePointerToWasm(reinterpret_cast<uint8_t*>(envBuffApp));
 
         envBuffApp += envVar.size() + 1;
         envOffsetsApp += sizeof(int32_t);
