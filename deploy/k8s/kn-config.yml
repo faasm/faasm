@@ -6,8 +6,8 @@ metadata:
   name: config-autoscaler
   namespace: knative-serving
 data:
-  # This is an example configuration for the Knative autoscaler. See the
-  # official version for explanations of parameters:
+  # This is our custom configuration for the Knative autoscaler. See the default
+  # version for explanations of parameters:
   # https://github.com/knative/serving/blob/master/config/core/configmaps/autoscaler.yaml
 
   # Container concurrency

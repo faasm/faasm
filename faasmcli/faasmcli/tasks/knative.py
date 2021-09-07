@@ -209,7 +209,7 @@ def install(ctx, reverse=False):
             check=True,
         )
 
-    # Run the apply/ delete
+    # Run the Istio apply/ delete
     run("kubectl {} -f {}".format(action, istio_url), shell=True, check=True)
 
     # Set up knative networking
