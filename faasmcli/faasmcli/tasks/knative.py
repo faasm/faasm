@@ -106,6 +106,7 @@ def _deploy_faasm_services():
     )
 
     k8s_files = listdir(K8S_DIR)
+    k8s_files = [f for f in k8s_files if f.endswith(".yml")]
     k8s_files = [f for f in k8s_files if f != "worker.yml"]
 
     print("Applying k8s files: {}".format(k8s_files))
@@ -148,6 +149,7 @@ def _deploy_faasm_worker(replicas):
         join(K8S_DIR, "worker.yml"),
         "--scale-min={}".format(replicas),
         "--scale-max={}".format(replicas),
+        "--wait",
     ]
 
     # Add annotations

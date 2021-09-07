@@ -18,6 +18,9 @@ spec:
                 labelSelector:
                   matchLabels:
                     app: faasm-worker
+                topologyKey: kubernetes.io/hostname
+              weight: 100
+
       containers:
         - image: faasm/worker:0.6.7
           env:
