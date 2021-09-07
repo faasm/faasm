@@ -1,3 +1,4 @@
+#include <sgx/SGXWAMRWasmModuleEnclave.h>
 #if (FAASM_SGX_ATTESTATION)
 #include <sgx/attestation.h>
 #endif
@@ -42,10 +43,6 @@ extern "C"
         ;
 #endif
     }
-
-    // WAMR native symbols
-    extern NativeSymbol faasm_sgx_native_symbols[FAASM_SGX_NATIVE_SYMBOLS_LEN];
-    extern NativeSymbol faasm_sgx_wasi_symbols[FAASM_SGX_WASI_SYMBOLS_LEN];
 
 #if (FAASM_SGX_ATTESTATION)
 #define INCREMENT_MSG_ID() __sync_fetch_and_add(&_sgx_wamr_msg_id, 1)
@@ -287,13 +284,12 @@ extern "C"
     }
 
     // Load the provided web assembly module to the enclave's runtime
-    faasm_sgx_status_t enclaveLoadModule(
-      const void* wasm_opcode_ptr,
-      const uint32_t wasm_opcode_size,
-      uint32_t* thread_id
+    faasm_sgx_status_t enclaveLoadModule(const void* wasm_opcode_ptr,
+                                         const uint32_t wasm_opcode_size,
+                                         uint32_t* thread_id
 #if (FAASM_SGX_ATTESTATION)
-      ,
-      sgx_wamr_msg_t** response_ptr
+                                         ,
+                                         sgx_wamr_msg_t** response_ptr
 #endif
     )
     {
@@ -375,48 +371,23 @@ extern "C"
         os_set_print_function((os_print_function_t)SGX_DEBUG_LOG);
 
         // Initialize FAASM-SGX TCS
+        /*
         _faasm_sgx_tcs_len = FAASM_SGX_INIT_TCS_SLOTS;
         if (!(faasm_sgx_tcs = (_faasm_sgx_tcs_t**)calloc(
                 FAASM_SGX_INIT_TCS_SLOTS, sizeof(_faasm_sgx_tcs_t*)))) {
             SGX_DEBUG_LOG("OOM error initialising TCS\n");
             return FAASM_SGX_OUT_OF_MEMORY;
         }
+        */
 
         // Initialise the WAMR runtime
-        RuntimeInitArgs wamr_rte_args;
-        memset(&wamr_rte_args, 0x0, sizeof(wamr_rte_args));
-        wamr_rte_args.mem_alloc_type = Alloc_With_Pool;
-        wamr_rte_args.mem_alloc_option.pool.heap_buf =
-          (void*)_wamr_global_heap_buffer;
-        wamr_rte_args.mem_alloc_option.pool.heap_size =
-          sizeof(_wamr_global_heap_buffer);
-
-        if (!wasm_runtime_full_init(&wamr_rte_args)) {
-            return FAASM_SGX_WAMR_RTE_INIT_FAILED;
+        // Initialise the SGXWAMRWasmModuleEnclave object
+        wasm::SGXWAMRWasmModuleEnclave* moduleEnclave =
+          wasm::getModuleEnclave();
+        if (!moduleEnclave) {
+            SGX_DEBUG_LOG("Error initialising WAMR enclave module");
+            return FAASM_SGX_OUT_OF_MEMORY;
         }
-
-        // Set up native symbols
-        wasm_native_register_natives(
-          "env", faasm_sgx_native_symbols, FAASM_SGX_NATIVE_SYMBOLS_LEN);
-
-        wasm_native_register_natives("wasi_snapshot_preview1",
-                                     faasm_sgx_wasi_symbols,
-                                     FAASM_SGX_WASI_SYMBOLS_LEN);
-
-#if (FAASM_SGX_ATTESTATION)
-        // Initialize necessary attestation stuff if FAASM-SGX Attestation
-        // extension is enabled
-        sgx_status_t sgx_return_value;
-        faasm_sgx_status_t return_value;
-
-        if ((sgx_return_value = ocall_init_crt(&return_value)) != SGX_SUCCESS) {
-            return FAASM_SGX_OCALL_ERROR(sgx_return_value);
-        }
-
-        if (return_value != FAASM_SGX_SUCCESS) {
-            return return_value;
-        }
-#endif
 
         return FAASM_SGX_SUCCESS;
     }

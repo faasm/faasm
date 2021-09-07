@@ -13,12 +13,8 @@ set(FAASM_SGX_CRYPTO_SRC
 add_library(faasm_sgx_crypto STATIC ${FAASM_SGX_CRYPTO_SRC})
 
 target_compile_options(faasm_sgx_crypto PRIVATE
-    -nostdinc
-    -fvisibility=hidden
-    -fpie
-    -ffunction-sections
-    -fdata-sections
-    -fstack-protector-strong
+    ${FAASM_SGX_ENCLAVE_C_FLAGS}
+    ${FAASM_SGX_ENCLAVE_CXX_FLAGS}
     )
 
 target_include_directories(faasm_sgx_crypto PRIVATE
@@ -28,6 +24,9 @@ target_include_directories(faasm_sgx_crypto PRIVATE
     )
 
 target_link_libraries(faasm_sgx_crypto
+    -Wl,--start-group
+    ${SGX_SDK_LIB_PATH}/libsgx_tcxx.a
     ${SGX_SDK_LIB_PATH}/libsgx_tstdc.a
     ${SGX_SDK_LIB_PATH}/libsgx_tcrypto.a
+    -Wl,--end-group
     )

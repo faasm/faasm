@@ -92,6 +92,10 @@ void checkSgxSetup()
 
 void tearDownEnclave()
 {
+    if (globalEnclaveId == 0) {
+        SPDLOG_DEBUG("No enclave to tear down (id = 0)");
+        return;
+    }
 
     SPDLOG_DEBUG("Destroying enclave {}", globalEnclaveId);
 
@@ -111,8 +115,7 @@ void checkSgxCrypto()
     faasm_sgx_status_t faasmReturnValue;
     sgx_status_t sgxReturnValue;
 
-    sgxReturnValue =
-      enclaveCryptoChecks(globalEnclaveId, &faasmReturnValue);
+    sgxReturnValue = enclaveCryptoChecks(globalEnclaveId, &faasmReturnValue);
 
     if (sgxReturnValue != SGX_SUCCESS) {
         SPDLOG_ERROR("SGX error in crypto checks: {}",

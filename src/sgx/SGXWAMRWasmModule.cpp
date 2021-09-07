@@ -64,13 +64,13 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
     faasm_sgx_status_t returnValue;
     sgx_status_t status =
       enclaveLoadModule(sgx::getGlobalEnclaveId(),
-                                    &returnValue,
-                                    (void*)wasmBytes.data(),
-                                    (uint32_t)wasmBytes.size(),
-                                    &threadId
+                        &returnValue,
+                        (void*)wasmBytes.data(),
+                        (uint32_t)wasmBytes.size(),
+                        &threadId
 #if (FAASM_SGX_ATTESTATION)
-                                    ,
-                                    &(faasletSgxMsgBufferPtr->buffer_ptr)
+                        ,
+                        &(faasletSgxMsgBufferPtr->buffer_ptr)
 #endif
       );
 
@@ -101,8 +101,8 @@ bool SGXWAMRWasmModule::unbindFunction()
     SPDLOG_DEBUG("Unloading SGX wasm module");
 
     faasm_sgx_status_t returnValue;
-    sgx_status_t sgxReturnValue = enclaveUnloadModule(
-      sgx::getGlobalEnclaveId(), &returnValue, threadId);
+    sgx_status_t sgxReturnValue =
+      enclaveUnloadModule(sgx::getGlobalEnclaveId(), &returnValue, threadId);
 
     if (sgxReturnValue != SGX_SUCCESS) {
         SPDLOG_ERROR("Unable to unbind function due to SGX error: {}",
@@ -132,8 +132,8 @@ int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
 
     // Enter enclave and call function
     faasm_sgx_status_t returnValue;
-    sgx_status_t sgxReturnValue = enclaveCallFunction(
-      sgx::getGlobalEnclaveId(), &returnValue, threadId);
+    sgx_status_t sgxReturnValue =
+      enclaveCallFunction(sgx::getGlobalEnclaveId(), &returnValue, threadId);
 
     if (sgxReturnValue != SGX_SUCCESS) {
         SPDLOG_ERROR("Unable to enter enclave: {}",
