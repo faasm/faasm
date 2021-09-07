@@ -1,5 +1,5 @@
 from time import sleep
-from os import makedirs
+from os import makedirs, listdir
 from os.path import join
 from subprocess import run, PIPE
 from datetime import datetime
@@ -98,18 +98,25 @@ def deploy(ctx, replicas=DEFAULT_REPLICAS):
 
 
 def _deploy_faasm_services():
-    # Set up the namespace first, then the rest
+    # Set up the namespace first, then the rest, excluding the worker
     run(
         "kubectl apply -f {}".format(NAMESPACE_FILE),
         check=True,
         shell=True,
     )
 
-    run(
-        "kubectl apply -f {}".format(K8S_DIR),
-        check=True,
-        shell=True,
-    )
+    k8s_files = listdir(K8S_DIR)
+    k8s_files = [f for f in k8s_files if f != "worker.yml"]
+
+    print("Applying k8s files: {}".format(k8s_files))
+
+    for f in k8s_files:
+        file_path = join(K8S_DIR, f)
+        run(
+            "kubectl apply -f {}".format(file_path),
+            check=True,
+            shell=True,
+        )
 
     # Wait for the faasm pods to be ready
     while True:
@@ -135,8 +142,10 @@ def _deploy_faasm_worker(replicas):
     cmd = [
         "kn",
         "service",
-        "update",
-        "faasm-worker",
+        "-n faasm",
+        "apply",
+        "-f",
+        join(K8S_DIR, "worker.yml"),
         "--scale-min={}".format(replicas),
         "--scale-max={}".format(replicas),
     ]

@@ -36,7 +36,7 @@ kubectl get pods -n istio-system
 ## Deplying Faasm to K8s
 
 Once Knative and Istio are installed, you can deploy Faasm as follows, matching
-the replicas to the number of nodes in your k8s cluster:
+the replicas to the number of nodes in your k8s cluster (minimum of 2):
 
 ```bash
 inv knative.deploy --replicas=4
@@ -140,19 +140,17 @@ To set up Faasm on AKS, you can do the following:
 
 Install according to the [official docs](https://microk8s.io/).
 
+Then enable RBAC, DNS and load balancer plugins with:
+
+```bash
+microk8s.enable dns rbac metallb:192.168.1.240/24
+```
+
 Note that you may have to set up different permissions to run without `sudo`
 (although this is not necessarily required).
 
-Set up `kubectl` to use this with:
-
-```bash
-rm -rf ~/.kube
-mkdir ~/.kube
-microk8s config > ~/.kube/config
-
-# Check
-kubectl get nodes
-```
+Make sure you have set up `kubectl` as per the
+[docs](https://microk8s.io/docs/working-with-kubectl).
 
 You can then continue with Faasm installation as described above.
 
