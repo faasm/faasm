@@ -35,17 +35,29 @@ kubectl get pods -n istio-system
 
 ## Deplying Faasm to K8s
 
-Once Knative and Istio are installed, you can deploy Faasm as follows, matching
-the replicas to the number of nodes in your k8s cluster (minimum of 2):
+Once Knative and Istio are installed, you can deploy Faasm as follows:
 
 ```bash
+# Deploy with Knative auto-scaling
+inv knative.deploy
+
+# Deploy with fixed number of replicas
 inv knative.deploy --replicas=4
 ```
 
-This might take a couple of minutes depending on the underlying cluster.
+If specifying `replicas`, the max should usually be one less than the number
+of K8s nodes. This leaves enough space for the scheduler to place one Faasm
+worker on each K8s node, while still respecting resource constraints.
+
+If Faasm workers are getting colocated on nodes, this means that there is not
+enough space on the nodes that aren't being used, so you may need to reduce the
+number of replicas.
+
+The deploy can take up to a couple of minutes.
 
 Once everything has started up, Faasm should also generate a config file,
-`faasm.ini` at root of this project.
+`faasm.ini` at root of this project. This contains the relevant endpoints for
+accessing the Faasm deployment.
 
 If you need to regenerate this, you can run:
 
@@ -53,19 +65,22 @@ If you need to regenerate this, you can run:
 inv knative.ini-file
 ```
 
-## Uploading functions
+## Uploading and invoking functions
 
 Once you have configured your `faasm.ini` file, you can use the Faasm, CPP,
 Python CLIs via the [`docker-compose-k8s.yml`](../docker-compose-k8s.yml) file
-in this repo:
+in this repo as normal, for example:
 
 ```bash
-# Start the container (be sure to have stopped all other docker-compose stuff)
+# Start the cpp container (make sure you've stopped all other Faasm containers)
 docker-compose -f docker-compose-k8s.yml run cpp-cli /bin/bash
 
 # Compile and upload a function
 inv func demo hello
 inv func.upload demo hello --host=<upload_host>
+
+# Invoke the function
+inv func.invoke demo hello --host=<invoke_host> --port=<invoke_port>
 ```
 
 # Troubleshooting

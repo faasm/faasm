@@ -19,23 +19,11 @@ NAMESPACE_FILE = join(K8S_DIR, "namespace.yml")
 
 KNATIVE_VERSION = "0.24.0"
 
-# Number of replicas in the Faasm worker pod
-DEFAULT_REPLICAS = 4
-
 # Notes on Knative client
 # https://github.com/knative/client/blob/master/docs/cmd/kn_service_create.md
 #
 # Configuring the scheduler:
 # https://knative.dev/docs/serving/configuring-the-autoscaler/
-
-# TODO: Use the knative autoscaler rather than hard-coding a number of workers
-# Longer window means fewer knative interventions
-FAASM_WORKER_ANNOTATIONS = [
-    "autoscaling.knative.dev/enable-scale-to-zero=false",
-    "autoscaling.knative.dev/stable-window=120s",
-]
-
-FAASM_WORKER_CONCURRENCY = 0
 
 
 def _capture_cmd_output(cmd):
@@ -86,12 +74,14 @@ def delete_worker(ctx):
 
 
 @task
-def deploy(ctx, replicas=DEFAULT_REPLICAS):
+def deploy(ctx, replicas=0):
     """
     Deploy Faasm to knative
     """
     _deploy_faasm_services()
 
+    replicas = int(replicas)
+    print("Deploying Faasm worker with {} fixed replicas".format(replicas))
     _deploy_faasm_worker(replicas)
 
     ini_file(ctx)
@@ -147,14 +137,13 @@ def _deploy_faasm_worker(replicas):
         "apply",
         "-f",
         join(K8S_DIR, "worker.yml"),
-        "--scale-min={}".format(replicas),
-        "--scale-max={}".format(replicas),
         "--wait",
     ]
 
-    # Add annotations
-    for annotation in FAASM_WORKER_ANNOTATIONS:
-        cmd.append("--annotation {}".format(annotation))
+    # Fix number of replicas if provided
+    if replicas > 0:
+        cmd.append("--scale-min={}".format(replicas))
+        cmd.append("--scale-max={}".format(replicas))
 
     cmd_string = " ".join(cmd)
     print(cmd_string)
