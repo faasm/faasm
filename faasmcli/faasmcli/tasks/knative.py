@@ -13,6 +13,7 @@ from faasmcli.util.env import (
     GLOBAL_FAASM_CONFIG_DIR,
 )
 
+LOCALHOST_IP = "127.0.0.1"
 
 K8S_DIR = join(PROJ_ROOT, "deploy", "k8s")
 NAMESPACE_FILE = join(K8S_DIR, "namespace.yml")
@@ -209,63 +210,76 @@ def install(ctx, reverse=False):
 
 
 @task
-def ini_file(ctx):
+def ini_file(ctx, local=False):
     """
     Set up the faasm config file for interacting with k8s
     """
     makedirs(GLOBAL_FAASM_CONFIG_DIR, exist_ok=True)
 
-    print("\n----- Extracting info from k8s -----\n")
-    knative_host = _capture_cmd_output(
-        [
-            "kn",
-            "-n faasm",
-            "service",
-            "describe",
-            "faasm-worker",
-            "-o url",
-        ]
-    )
-    knative_host = knative_host.strip()
+    if local:
+        print("\n----- Setting up local config -----\n")
+        knative_host = LOCALHOST_IP
+        invoke_port = "8080"
+        invoke_ip = LOCALHOST_IP
+        upload_ip = LOCALHOST_IP
+        upload_port = "8002"
 
-    # NOTE: we have to remove the http:// prefix from this url otherwise Istio
-    # won't recognise it
-    knative_host = knative_host.replace("http://", "")
+        knative_host = "foo"
 
-    istio_ip = _capture_cmd_output(
-        [
-            "kubectl",
-            "-n istio-system",
-            "get",
-            "service",
-            "istio-ingressgateway",
-            "-o 'jsonpath={.status.loadBalancer.ingress[0].ip}'",
-        ]
-    )
-    istio_port = 80
+        worker_names = list()
+        worker_ips = list()
+    else:
+        print("\n----- Extracting info from k8s -----\n")
+        knative_host = _capture_cmd_output(
+            [
+                "kn",
+                "-n faasm",
+                "service",
+                "describe",
+                "faasm-worker",
+                "-o url",
+            ]
+        )
+        knative_host = knative_host.strip()
 
-    upload_ip = _capture_cmd_output(
-        [
-            "kubectl",
-            "-n faasm",
-            "get",
-            "service",
-            "upload-lb",
-            "-o 'jsonpath={.status.loadBalancer.ingress[0].ip}'",
-        ]
-    )
-    upload_port = _capture_cmd_output(
-        [
-            "kubectl",
-            "-n faasm",
-            "get",
-            "service",
-            "upload-lb",
-            "-o 'jsonpath={.spec.ports[0].port}'",
-        ]
-    )
+        # NOTE: we have to remove the http:// prefix from this url otherwise Istio
+        # won't recognise it
+        knative_host = knative_host.replace("http://", "")
 
-    worker_names, worker_ips = _get_faasm_worker_pods()
+        invoke_ip = _capture_cmd_output(
+            [
+                "kubectl",
+                "-n istio-system",
+                "get",
+                "service",
+                "istio-ingressgateway",
+                "-o 'jsonpath={.status.loadBalancer.ingress[0].ip}'",
+            ]
+        )
+        invoke_port = 80
+
+        upload_ip = _capture_cmd_output(
+            [
+                "kubectl",
+                "-n faasm",
+                "get",
+                "service",
+                "upload-lb",
+                "-o 'jsonpath={.status.loadBalancer.ingress[0].ip}'",
+            ]
+        )
+        upload_port = _capture_cmd_output(
+            [
+                "kubectl",
+                "-n faasm",
+                "get",
+                "service",
+                "upload-lb",
+                "-o 'jsonpath={.spec.ports[0].port}'",
+            ]
+        )
+
+        worker_names, worker_ips = _get_faasm_worker_pods()
 
     print("\n----- INI file -----\n")
     print("Overwriting config file at {}\n".format(FAASM_CONFIG_FILE))
@@ -273,8 +287,8 @@ def ini_file(ctx):
     with open(FAASM_CONFIG_FILE, "w") as fh:
         fh.write("[Faasm]\n")
         fh.write("# Auto-generated at {}\n".format(datetime.now()))
-        fh.write("invoke_host = {}\n".format(istio_ip))
-        fh.write("invoke_port = {}\n".format(istio_port))
+        fh.write("invoke_host = {}\n".format(invoke_ip))
+        fh.write("invoke_port = {}\n".format(invoke_port))
         fh.write("upload_host = {}\n".format(upload_ip))
         fh.write("upload_port= {}\n".format(upload_port))
         fh.write("knative_host = {}\n".format(knative_host))
@@ -300,7 +314,7 @@ def ini_file(ctx):
     print("\n----- Examples -----\n")
 
     print("Invoke:")
-    print("curl -H 'Host: {}' http://{}".format(knative_host, istio_ip))
+    print("curl -H 'Host: {}' http://{}".format(knative_host, invoke_ip))
 
     print("\nUpload:")
     print(
@@ -309,3 +323,4 @@ def ini_file(ctx):
         )
     )
     print("")
+
