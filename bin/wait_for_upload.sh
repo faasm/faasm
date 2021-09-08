@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 if [ "$#" -ne 2 ]; then
     echo "Error, must provide upload host and port"
     exit 1
@@ -7,32 +9,21 @@ fi
 
 UPLOAD_HOST=$1
 UPLOAD_PORT=$2
-URL=http://${UPLOAD_HOST}:${UPLOAD_PORT}/ping
 
-HTTP_STATUS="0"
-CHECK_COUNT=0
-SLEEP_TIME=5
-MAX_CHECKS=3
+WAIT_FOR=/tmp/wait-for
 
-while [ true ]
-do
-    echo "Checking upload server at ${URL}"
-    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${URL}")
+if [ ! -f "$WAIT_FOR" ]; then
+    pushd /tmp >> /dev/null
 
-    ((CHECK_COUNT++))
+    SCRIPT_URL=https://raw.githubusercontent.com/eficode/wait-for/v2.1.3/wait-for
+    wget ${SCRIPT_URL}
+    chmod +x ${WAIT_FOR}
 
-    if [[ "$HTTP_STATUS" == "200" ]]; then
-        echo "Got 200 response, done"
-        break
-    fi
+    popd >> /dev/null
+fi
 
-    echo "Got ${HTTP_STATUS} response, checking again (${CHECK_COUNT}) ..."
-
-    if [[ $CHECK_COUNT -gt $MAX_CHECKS ]]; then
-        echo "Reached maximum checks without success."
-        exit 1
-    fi
-
-    sleep ${SLEEP_TIME}
-done
+${WAIT_FOR} \
+    -t 300 \
+    http://${UPLOAD_HOST}:${UPLOAD_PORT}/ping \
+    -- echo "Upload server up"
 
