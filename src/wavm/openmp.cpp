@@ -396,14 +396,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     // Check if we're only doing single-threaded
     bool isSingleThread = nextLevel->numThreads == 1;
 
-    // Take memory snapshot
-    std::string snapshotKey;
-    if (!isSingleThread) {
-        snapshotKey = parentModule->snapshot(false);
-        SPDLOG_DEBUG("Created OpenMP snapshot: {}", snapshotKey);
-    } else {
-        SPDLOG_DEBUG("Not creating OpenMP snapshot for single thread");
-    }
+    // Set up the master snapshot if not already set up
+    std::string snapshotKey = parentModule->createAppSnapshot(*parentCall);
 
     // Prepare arguments for main thread and all others
     std::vector<IR::UntaggedValue> mainArguments = { 0, argc };
@@ -437,6 +431,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         // Configure the mesages
         for (int i = 0; i < req->messages_size(); i++) {
             faabric::Message& call = req->mutable_messages()->at(i);
+
+            // Propagte app id
+            call.set_appid(parentCall->appid());
 
             // Snapshot details
             call.set_snapshotkey(snapshotKey);
@@ -494,18 +491,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                 failures.emplace_back(result, messageId);
             }
         }
-
-        // Delete the snapshot
-        PROF_START(BroadcastDeleteSnapshot)
-        sch.broadcastSnapshotDelete(*parentCall, snapshotKey);
-        PROF_END(BroadcastDeleteSnapshot)
-
-        // Delete the snapshot locally
-        PROF_START(DeleteSnapshot)
-        faabric::snapshot::SnapshotRegistry& reg =
-          faabric::snapshot::getSnapshotRegistry();
-        reg.deleteSnapshot(snapshotKey);
-        PROF_END(DeleteSnapshot)
 
         if (!failures.empty()) {
             for (auto f : failures) {

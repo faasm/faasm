@@ -87,15 +87,54 @@ faabric::util::SnapshotData WasmModule::getSnapshotData()
     return data;
 }
 
-std::string WasmModule::snapshot(bool locallyRestorable)
+std::string getAppSnapshotKey(const faabric::Message& msg)
+{
+    std::string funcStr = faabric::util::funcToString(msg, false);
+    if (msg.appid() == 0) {
+        SPDLOG_ERROR("OpenMP call without app ID set for {}", funcStr);
+        throw std::runtime_error("OpenMP call without app ID");
+    }
+
+    std::string snapshotKey = funcStr + std::to_string(msg.appid());
+    return snapshotKey;
+}
+
+std::string WasmModule::createAppSnapshot(const faabric::Message& msg)
+{
+    std::string snapshotKey = getAppSnapshotKey(msg);
+
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+
+    if (reg.snapshotExists(snapshotKey)) {
+        SPDLOG_DEBUG("OpenMP snapshot already exists: {}", snapshotKey);
+    } else {
+        SPDLOG_DEBUG("Creating OpenMP snapshot: {}", snapshotKey);
+        snapshotWithKey(snapshotKey, false);
+    }
+}
+
+void WasmModule::deleteAppSnapshot(const faabric::Message& msg)
+{
+    std::string snapshotKey = getAppSnapshotKey(msg);
+
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+
+    if (reg.snapshotExists(snapshotKey)) {
+        // Broadcast the deletion
+        faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
+        sch.broadcastSnapshotDelete(msg, snapshotKey);
+
+        // Delete locally
+        reg.deleteSnapshot(snapshotKey);
+    }
+}
+
+void WasmModule::snapshotWithKey(const std::string& snapKey,
+                                 bool locallyRestorable)
 {
     PROF_START(wasmSnapshot)
-
-    // Create snapshot key
-    uint32_t gid = faabric::util::generateGid();
-    std::string snapKey =
-      this->boundUser + "_" + this->boundFunction + "_" + std::to_string(gid);
-
     faabric::util::SnapshotData data = getSnapshotData();
 
     faabric::snapshot::SnapshotRegistry& reg =
@@ -103,6 +142,15 @@ std::string WasmModule::snapshot(bool locallyRestorable)
     reg.takeSnapshot(snapKey, data, locallyRestorable);
 
     PROF_END(wasmSnapshot)
+}
+
+std::string WasmModule::snapshot(bool locallyRestorable)
+{
+    uint32_t gid = faabric::util::generateGid();
+    std::string snapKey =
+      this->boundUser + "_" + this->boundFunction + "_" + std::to_string(gid);
+
+    snapshotWithKey(snapKey, locallyRestorable);
 
     return snapKey;
 }
@@ -129,11 +177,13 @@ void WasmModule::restore(const std::string& snapshotKey)
         SPDLOG_DEBUG("Growing memory by {} bytes to restore snapshot",
                      bytesRequired);
         this->growMemory(bytesRequired);
-    } else {
+    } else if (data.size < memSize) {
         size_t shrinkBy = memSize - data.size;
         SPDLOG_DEBUG("Shrinking memory by {} bytes to restore snapshot",
                      shrinkBy);
         this->shrinkMemory(shrinkBy);
+    } else {
+        SPDLOG_DEBUG("Memory already correct size for snapshot ({})", memSize);
     }
 
     // Map the snapshot into memory
@@ -370,6 +420,8 @@ int32_t WasmModule::executeTask(
         // Vanilla function
         SPDLOG_TRACE("Executing {} as standard function", funcStr);
         returnValue = executeFunction(msg);
+
+        deleteAppSnapshot(msg);
     }
 
     if (returnValue != 0) {
@@ -445,6 +497,9 @@ int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
             for (int i = 0; i < nPthreadCalls; i++) {
                 threads::PthreadCall p = queuedPthreadCalls.at(i);
                 faabric::Message& m = req->mutable_messages()->at(i);
+
+                // Propagate app ID
+                m.set_appid(msg->appid());
 
                 // Snapshot details
                 m.set_snapshotkey(snapshotKey);

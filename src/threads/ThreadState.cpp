@@ -74,10 +74,11 @@ void setCurrentOpenMPLevel(
 
     std::string funcStr = faabric::util::funcToString(req);
     currentLevel = levelFromBatchRequest(req);
-    SPDLOG_TRACE("Deserialised from {} bytes for {}, {}",
-                 req->contextdata().size(),
-                 funcStr,
-                 currentLevel->toString());
+    SPDLOG_TRACE(
+      "Deserialised thread-local OpenMP level from {} bytes for {}, {}",
+      req->contextdata().size(),
+      funcStr,
+      currentLevel->toString());
 }
 
 std::shared_ptr<Level> getCurrentOpenMPLevel()
