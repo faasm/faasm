@@ -60,11 +60,10 @@ services:
       - CAPTURE_STDOUT=on
       - CGROUP_MODE=on
       - GLOBAL_MESSAGE_TIMEOUT=600000
-      - LOG_LEVEL=trace
+      - LOG_LEVEL=info
       - NETNS_MODE=off
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
-      - OVERRIDE_CPU_COUNT=4
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
 
   nginx:

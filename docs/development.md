@@ -276,9 +276,6 @@ docker ps -aq | xargs docker rm -f
 # Start the dev cluster
 ./bin/cluster_dev.sh faasm
 
-# Set ini file to point to local
-inv knative.ini-file --local
-
 # Build everything (inside the container you're dropped into)
 inv dev.tools
 
@@ -288,7 +285,7 @@ inv dev.tools
 Now you can run a `cpp` container, compile upload and invoke a function:
 
 ```bash
-# Work from the cpp container
+# Restart, drops you into a cpp container
 ./bin/cluster_dev.sh cpp
 
 # Compile, upload, invoke a function
