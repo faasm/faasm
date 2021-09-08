@@ -95,7 +95,7 @@ std::string getAppSnapshotKey(const faabric::Message& msg)
         throw std::runtime_error("OpenMP call without app ID");
     }
 
-    std::string snapshotKey = funcStr + std::to_string(msg.appid());
+    std::string snapshotKey = funcStr + "_" + std::to_string(msg.appid());
     return snapshotKey;
 }
 
@@ -107,11 +107,15 @@ std::string WasmModule::createAppSnapshot(const faabric::Message& msg)
       faabric::snapshot::getSnapshotRegistry();
 
     if (reg.snapshotExists(snapshotKey)) {
-        SPDLOG_DEBUG("OpenMP snapshot already exists: {}", snapshotKey);
+        SPDLOG_DEBUG(
+          "Snapshot already exists for app {} ({})", msg.appid(), snapshotKey);
     } else {
-        SPDLOG_DEBUG("Creating OpenMP snapshot: {}", snapshotKey);
+        SPDLOG_DEBUG(
+          "Creating app snapshot: {} for app {}", snapshotKey, msg.appid());
         snapshotWithKey(snapshotKey, false);
     }
+
+    return snapshotKey;
 }
 
 void WasmModule::deleteAppSnapshot(const faabric::Message& msg)

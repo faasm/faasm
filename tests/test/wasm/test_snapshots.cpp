@@ -189,4 +189,46 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
         REQUIRE(!actual.empty());
     }
 }
+
+TEST_CASE_METHOD(WasmSnapTestFixture,
+                 "Test app snapshots for wasm module",
+                 "[wasm][snapshot]")
+{
+    std::string user = "demo";
+    std::string function = "echo";
+
+    faabric::Message mA = faabric::util::messageFactory(user, function);
+    faabric::Message mB = faabric::util::messageFactory(user, function);
+
+    wasm::WAVMWasmModule moduleA;
+    moduleA.bindToFunction(mA);
+    std::string keyA = moduleA.createAppSnapshot(mA);
+
+    REQUIRE(reg.getSnapshotCount() == 1);
+
+    wasm::WAVMWasmModule moduleB;
+    moduleB.bindToFunction(mB);
+    std::string keyB = moduleB.createAppSnapshot(mA);
+
+    // Make sure repeated calls don't recreate
+    moduleB.createAppSnapshot(mA);
+    moduleB.createAppSnapshot(mA);
+
+    REQUIRE(reg.getSnapshotCount() == 2);
+    REQUIRE(keyA != keyB);
+
+    faabric::util::SnapshotData snapA = reg.getSnapshot(keyA);
+    faabric::util::SnapshotData snapB = reg.getSnapshot(keyB);
+
+    REQUIRE(snapA.data != snapB.data);
+    REQUIRE(snapA.size == snapB.size);
+
+    // TODO - check actual data is the same
+
+    moduleA.deleteAppSnapshot(mA);
+    REQUIRE(reg.getSnapshotCount() == 1);
+
+    moduleB.deleteAppSnapshot(mB);
+    REQUIRE(reg.getSnapshotCount() == 0);
+}
 }
