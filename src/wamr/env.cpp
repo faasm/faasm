@@ -11,74 +11,42 @@
 
 namespace wasm {
 uint32_t wasi_args_get(wasm_exec_env_t exec_env,
-                       int32_t* argvOffsetsApp,
-                       char* argvBuffApp)
+                       uint32_t* argvOffsetsWasm,
+                       char* argvBuffWasm)
 {
     SPDLOG_DEBUG("S - args_get");
 
     WAMRWasmModule* module = getExecutingWAMRModule();
-    const std::vector<std::string>& argvsHost = module->getArgv();
-
-    VALIDATE_NATIVE_ADDR(argvOffsetsApp, argvsHost.size() * sizeof(int32_t));
-
-    for (const auto& argvHost : argvsHost) {
-        // To validate the buffer we must account for the null terminator
-        VALIDATE_NATIVE_ADDR(argvBuffApp, argvHost.size() + 1);
-
-        // Copy contents to buffer and update offsets
-        std::copy(argvHost.begin(), argvHost.end(), argvBuffApp);
-        *argvOffsetsApp =
-          module->nativePointerToWasm(reinterpret_cast<uint8_t*>(argvBuffApp));
-
-        argvBuffApp += argvHost.size() + 1;
-        argvOffsetsApp += sizeof(int32_t);
-    }
+    module->writeArgvToWamrMemory(argvOffsetsWasm, argvBuffWasm);
 
     return __WASI_ESUCCESS;
 }
 
 uint32_t wasi_args_sizes_get(wasm_exec_env_t exec_env,
-                             uint32_t* argcApp,
-                             uint32_t* argcBuffSizeApp)
+                             uint32_t* argcWasm,
+                             uint32_t* argvBuffSizeWasm)
 {
     SPDLOG_DEBUG("S - args_sizes_get");
 
     WAMRWasmModule* module = getExecutingWAMRModule();
 
-    VALIDATE_NATIVE_ADDR(argcApp, sizeof(uint32_t));
-    VALIDATE_NATIVE_ADDR(argcBuffSizeApp, sizeof(uint32_t));
+    VALIDATE_NATIVE_ADDR(argcWasm, sizeof(uint32_t));
+    VALIDATE_NATIVE_ADDR(argvBuffSizeWasm, sizeof(uint32_t));
 
-    *argcApp = module->getArgc();
-    *argcBuffSizeApp = module->getArgvBufferSize();
+    *argcWasm = module->getArgc();
+    *argvBuffSizeWasm = module->getArgvBufferSize();
 
     return __WASI_ESUCCESS;
 }
 
 uint32_t wasi_environ_get(wasm_exec_env_t exec_env,
-                          int32_t* envOffsetsApp,
-                          char* envBuffApp)
+                          uint32_t* envOffsetsWasm,
+                          char* envBuffWasm)
 {
     SPDLOG_DEBUG("S - environ_get");
 
     WAMRWasmModule* module = getExecutingWAMRModule();
-    WasmEnvironment wasmEnv = module->getWasmEnvironment();
-    const std::vector<std::string>& envVars = wasmEnv.getVars();
-
-    // Validate offset vector at once
-    VALIDATE_NATIVE_ADDR(envOffsetsApp, envVars.size() * sizeof(int32_t));
-
-    for (const auto& envVar : envVars) {
-        // To validate the buffer we must account for the null terminator
-        VALIDATE_NATIVE_ADDR(envBuffApp, envVar.size() + 1)
-
-        // Copy contents to buffer and update offsets
-        std::copy(envVar.begin(), envVar.end(), envBuffApp);
-        *envOffsetsApp =
-          module->nativePointerToWasm(reinterpret_cast<uint8_t*>(envBuffApp));
-
-        envBuffApp += envVar.size() + 1;
-        envOffsetsApp += sizeof(int32_t);
-    }
+    module->writeWasmEnvToWamrMemory(envOffsetsWasm, envBuffWasm);
 
     return __WASI_ESUCCESS;
 }
@@ -101,10 +69,16 @@ uint32_t wasi_environ_sizes_get(wasm_exec_env_t exec_env,
     return __WASI_ESUCCESS;
 }
 
-uint32_t wasi_proc_exit(wasm_exec_env_t exec_env, int32_t retCode)
+void wasi_proc_exit(wasm_exec_env_t exec_env, int32_t retCode)
 {
     SPDLOG_DEBUG("S - proc_exit {}", retCode);
-    throw(WasmExitException(retCode));
+
+    // 08/09/2021 - WAMR doesn't support throwing and catching exceptions.
+    // Alternatively, set the error message.
+    WAMRWasmModule* module = getExecutingWAMRModule();
+    char buf[32];
+    snprintf(buf, sizeof buf, "%i", retCode);
+    wasm_runtime_set_exception(module->getModuleInstance(), buf);
 }
 
 static NativeSymbol wasiNs[] = {

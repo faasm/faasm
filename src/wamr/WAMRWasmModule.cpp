@@ -111,13 +111,48 @@ void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
     createThreadStacks();
 }
 
+void WAMRWasmModule::writeStringArrayToMemory(
+  const std::vector<std::string>& strings,
+  uint32_t* strOffsets,
+  char* strBuffer)
+{
+    // VALIDATE_NATIVE_ADDR(argvOffsetsApp, argvsHost.size() *
+    // sizeof(uint32_t));
+
+    char* nextBuffer = strBuffer;
+    size_t i;
+    for (i = 0; i < strings.size(); ++i) {
+        const std::string& thisStr = strings.at(i);
+
+        // VALIDATE_NATIVE_ADDR(strBuffer, thisStr.size() + 1);
+
+        std::copy(thisStr.begin(), thisStr.end(), nextBuffer);
+        strOffsets[i] = this->nativePointerToWasm(nextBuffer);
+
+        nextBuffer += thisStr.size() + 1;
+    }
+}
+
+void WAMRWasmModule::writeArgvToWamrMemory(uint32_t* argvOffsetsWasm,
+                                           char* argvBuffWasm)
+{
+    writeStringArrayToMemory(argv, argvOffsetsWasm, argvBuffWasm);
+}
+
+void WAMRWasmModule::writeWasmEnvToWamrMemory(uint32_t* envOffsetsWasm,
+                                              char* envBuffWasm)
+{
+    writeStringArrayToMemory(
+      wasmEnvironment.getVars(), envOffsetsWasm, envBuffWasm);
+}
+
 int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
 {
-
     SPDLOG_DEBUG("WAMR executing message {}", msg.id());
 
     // Make sure context is set
     WasmExecutionContext ctx(this, &msg);
+    int returnValue = 0;
 
     // Run wasm initialisers
     executeWasmFunction(WASM_CTORS_FUNC_NAME);
@@ -129,10 +164,13 @@ int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
         prepareArgcArgv(msg);
 
         // Run the main function
-        executeWasmFunction(ENTRY_FUNC_NAME);
+        returnValue = executeWasmFunction(ENTRY_FUNC_NAME);
     }
 
-    return 0;
+    // Record the return value
+    msg.set_returnvalue(returnValue);
+
+    return returnValue;
 }
 
 int WAMRWasmModule::executeWasmFunctionFromPointer(int wasmFuncPtr)
@@ -195,7 +233,14 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
     } else {
         std::string errorMessage(
           ((AOTModuleInstance*)moduleInstance)->cur_exception);
-        SPDLOG_ERROR("Function failed: {}", errorMessage);
+        SPDLOG_ERROR("Caught wasm runtime exception: {}", errorMessage);
+
+        // TODO - agree on a protocol to send the return code through the error
+        // message (throwing exceptions not supported). For the moment, if the
+        // error message is a "Exception: 0" we assume no errors (i.e. exit(0))
+        if (errorMessage == "Exception: 0") {
+            return 0;
+        }
 
         return 1;
     }
@@ -238,7 +283,7 @@ uint8_t* WAMRWasmModule::wasmPointerToNative(int32_t wasmPtr)
     return static_cast<uint8_t*>(nativePtr);
 }
 
-int32_t WAMRWasmModule::nativePointerToWasm(uint8_t* nativePtr)
+int32_t WAMRWasmModule::nativePointerToWasm(void* nativePtr)
 {
     return wasm_runtime_addr_native_to_app(moduleInstance, nativePtr);
 }

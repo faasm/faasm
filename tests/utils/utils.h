@@ -9,6 +9,9 @@ void cleanSystem();
 void execFunction(faabric::Message& msg,
                   const std::string& expectedOutput = "");
 
+void execWamrFunction(faabric::Message& msg,
+                      const std::string& expectedOutput = "");
+
 std::string execFunctionWithStringResult(faabric::Message& msg);
 
 void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,

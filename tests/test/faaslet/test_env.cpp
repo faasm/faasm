@@ -11,7 +11,10 @@ TEST_CASE("Test getenv", "[faaslet]")
     cleanSystem();
 
     faabric::Message msg = faabric::util::messageFactory("demo", "getenv");
-    execFunction(msg);
+
+    SECTION("WAVM") { execFunction(msg); }
+
+    SECTION("WAMR") { execWamrFunction(msg); }
 }
 
 TEST_CASE("Test conf flags", "[faaslet]")
@@ -27,7 +30,10 @@ TEST_CASE("Test exit", "[faaslet]")
     cleanSystem();
 
     faabric::Message msg = faabric::util::messageFactory("demo", "exit");
-    execFunction(msg);
+
+    SECTION("WAVM") { execFunction(msg); }
+
+    SECTION("WAMR") { execWamrFunction(msg); }
 }
 
 TEST_CASE("Test optarg", "[faaslet]")
@@ -77,6 +83,8 @@ TEST_CASE("Test argc/argv", "[faaslet]")
       faabric::util::messageFactory("demo", "argc_argv_test");
     msg.set_cmdline("alpha B_eta G$mma d3-lt4");
 
-    execFunction(msg);
+    SECTION("WAVM") { execFunction(msg); }
+
+    SECTION("WAMR") { execWamrFunction(msg); }
 }
 }

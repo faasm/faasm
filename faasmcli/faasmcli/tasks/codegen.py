@@ -93,9 +93,15 @@ def local(ctx):
         _do_codegen_file(so)
 
     # Run the WAMR codegen required by the tests
+    # Random
     codegen(ctx, "demo", "echo", wamr=True)
     codegen(ctx, "demo", "chain", wamr=True)
     codegen(ctx, "ffmpeg", "check", wamr=True)
+
+    # Environment tests
+    codegen(ctx, "demo", "argc_argv_test", wamr=True)
+    codegen(ctx, "demo", "exit", wamr=True)
+    codegen(ctx, "demo", "getenv", wamr=True)
 
     # Run the SGX codegen required by the tests
     codegen(ctx, "demo", "hello", wamr=True, sgx=True)

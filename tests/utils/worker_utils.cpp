@@ -14,6 +14,7 @@
 #include <faaslet/Faaslet.h>
 
 #include <conf/FaasmConfig.h>
+#include <wamr/WAMRWasmModule.h>
 #include <wavm/WAVMWasmModule.h>
 
 using namespace faaslet;
@@ -28,6 +29,28 @@ void execFunction(faabric::Message& call, const std::string& expectedOutput)
     conf.pythonPreload = "off";
 
     wasm::WAVMWasmModule module;
+    module.bindToFunction(call);
+    int returnValue = module.executeFunction(call);
+
+    if (!expectedOutput.empty()) {
+        std::string actualOutput = call.outputdata();
+        REQUIRE(actualOutput == expectedOutput);
+    }
+
+    REQUIRE(returnValue == 0);
+    REQUIRE(call.returnvalue() == 0);
+
+    conf.pythonPreload = originalPreload;
+}
+
+void execWamrFunction(faabric::Message& call, const std::string& expectedOutput)
+{
+    // Turn off python preloading
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
+    std::string originalPreload = conf.pythonPreload;
+    conf.pythonPreload = "off";
+
+    wasm::WAMRWasmModule module;
     module.bindToFunction(call);
     int returnValue = module.executeFunction(call);
 

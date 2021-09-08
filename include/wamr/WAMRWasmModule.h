@@ -39,6 +39,14 @@ class WAMRWasmModule final : public WasmModule
     // ----- Module lifecycle -----
     void doBindToFunction(faabric::Message& msg, bool cache) override;
 
+    void writeStringArrayToMemory(const std::vector<std::string>& strings,
+                                  uint32_t* strOffsets,
+                                  char* strBuffer);
+
+    void writeArgvToWamrMemory(uint32_t* argvOffsetsWasm, char* argvBuffWasm);
+
+    void writeWasmEnvToWamrMemory(uint32_t* envOffsetsWasm, char* envBuffWasm);
+
     int32_t executeFunction(faabric::Message& msg) override;
 
     // ----- Memory management -----
@@ -52,7 +60,7 @@ class WAMRWasmModule final : public WasmModule
 
     uint8_t* wasmPointerToNative(int32_t wasmPtr) override;
 
-    int32_t nativePointerToWasm(uint8_t* nativePtr);
+    int32_t nativePointerToWasm(void* nativePtr);
 
     size_t getMemorySizeBytes() override;
 
