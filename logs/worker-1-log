@@ -1,0 +1,431 @@
+[33mworker_1       |[0m Setting up cgroup
+[33mworker_1       |[0m Setting up cgroup cpu:faasm for root
+[33mworker_1       |[0m Setting up namespaces
+[33mworker_1       |[0m Network namespace support is off
+[33mworker_1       |[0m [2021-09-08 07:55:44.598] [info] [S3Wrapper.cpp:81] Initialising Faasm S3 setup at minio:9000
+[33mworker_1       |[0m AWS libcrypto resolve: searching process and loaded modules
+[33mworker_1       |[0m AWS libcrypto resolve: did not find aws-lc symbols linked
+[33mworker_1       |[0m AWS libcrypto resolve: did not find libcrypto 1.0.2 symbols linked
+[33mworker_1       |[0m AWS libcrypto resolve: found static libcrypto 1.1.1 HMAC symbols
+[33mworker_1       |[0m AWS libcrypto resolve: found static libcrypto 1.1.1 EVP_MD symbols
+[33mworker_1       |[0m [2021-09-08 07:55:46.703] [info] [S3Wrapper.cpp:97] Successfully pinged S3 at minio:9000
+[33mworker_1       |[0m [07:55:46:704] [15] [trace] New socket: push 127.0.0.1:8003 (timeout 20000ms)
+[33mworker_1       |[0m [07:55:46:704] [15] [trace] New socket: req 127.0.0.1:8004 (timeout 20000ms)
+[33mworker_1       |[0m [07:55:46:704] [15] [trace] New socket: push 127.0.0.1:8005 (timeout 20000ms)
+[33mworker_1       |[0m [07:55:46:704] [15] [trace] New socket: req 127.0.0.1:8006 (timeout 20000ms)
+[33mworker_1       |[0m [07:55:46:704] [15] [trace] New socket: push 127.0.0.1:8007 (timeout 20000ms)
+[33mworker_1       |[0m [07:55:46:704] [15] [trace] New socket: req 127.0.0.1:8008 (timeout 20000ms)
+[33mworker_1       |[0m Loading scripts for Redis instance at redis-queue
+[33mworker_1       |[0m [07:55:46:705] [15] [debug] Pinging redis at redis-queue
+[33mworker_1       |[0m [07:55:46:706] [15] [debug] Successfully pinged redis
+[33mworker_1       |[0m Loading scripts for Redis instance at redis-state
+[33mworker_1       |[0m [07:55:46:707] [15] [debug] Pinging redis at redis-state
+[33mworker_1       |[0m [07:55:46:707] [15] [debug] Successfully pinged redis
+[33mworker_1       |[0m [07:55:46:761] [15] [debug] Created SGX enclave: 64424509442
+[33mworker_1       |[0m [07:55:46:829] [15] [debug] Initialised WAMR in SGX enclave 64424509442
+[33mworker_1       |[0m [07:55:46:829] [15] [info] Starting state server
+[33mworker_1       |[0m [07:55:46:830] [71] [trace] New socket: pull 0.0.0.0:8003 (timeout 20000ms)
+[33mworker_1       |[0m [07:55:46:830] [72] [trace] New socket: rep 0.0.0.0:8004 (timeout 20000ms)
+[33mworker_1       |[0m [07:55:46:830] [15] [info] Starting snapshot server
+[33mworker_1       |[0m [07:55:46:830] [71] [trace] PULL 8003 (0 bytes)
+[33mworker_1       |[0m [07:55:46:830] [72] [trace] RECV (REP) 8004 (0 bytes)
+[33mworker_1       |[0m [07:55:46:830] [73] [trace] New socket: pull 0.0.0.0:8007 (timeout 20000ms)
+[33mworker_1       |[0m [07:55:46:830] [74] [trace] New socket: rep 0.0.0.0:8008 (timeout 20000ms)
+[33mworker_1       |[0m [07:55:46:831] [15] [info] Starting function call server
+[33mworker_1       |[0m [07:55:46:831] [73] [trace] PULL 8007 (0 bytes)
+[33mworker_1       |[0m [07:55:46:831] [74] [trace] RECV (REP) 8008 (0 bytes)
+[33mworker_1       |[0m [07:55:46:831] [75] [trace] New socket: pull 0.0.0.0:8005 (timeout 20000ms)
+[33mworker_1       |[0m [07:55:46:831] [76] [trace] New socket: rep 0.0.0.0:8006 (timeout 20000ms)
+[33mworker_1       |[0m [07:55:46:831] [76] [trace] RECV (REP) 8006 (0 bytes)
+[33mworker_1       |[0m [07:55:46:831] [15] [info] Starting endpoint
+[33mworker_1       |[0m [07:55:46:831] [75] [trace] PULL 8005 (0 bytes)
+[33mworker_1       |[0m [07:55:46:831] [15] [info] Starting HTTP endpoint on 8080, 4 threads
+[33mworker_1       |[0m [07:55:46:872] [15] [info] Awaiting signal
+[33mworker_1       |[0m [07:56:06:838] [71] [trace] Timed out receiving message with no size
+[33mworker_1       |[0m [07:56:06:838] [71] [trace] Server on port 8003, looping after no message
+[33mworker_1       |[0m [07:56:06:838] [71] [trace] PULL 8003 (0 bytes)
+[33mworker_1       |[0m [07:56:06:840] [75] [trace] Timed out receiving message with no size
+[33mworker_1       |[0m [07:56:06:840] [75] [trace] Server on port 8005, looping after no message
+[33mworker_1       |[0m [07:56:06:840] [75] [trace] PULL 8005 (0 bytes)
+[33mworker_1       |[0m [07:56:06:845] [73] [trace] Timed out receiving message with no size
+[33mworker_1       |[0m [07:56:06:845] [73] [trace] Server on port 8007, looping after no message
+[33mworker_1       |[0m [07:56:06:845] [73] [trace] PULL 8007 (0 bytes)
+[33mworker_1       |[0m [07:56:06:850] [74] [trace] Timed out receiving message with no size
+[33mworker_1       |[0m [07:56:06:850] [74] [trace] Server on port 8008, looping after no message
+[33mworker_1       |[0m [07:56:06:850] [74] [trace] RECV (REP) 8008 (0 bytes)
+[33mworker_1       |[0m [07:56:06:851] [72] [trace] Timed out receiving message with no size
+[33mworker_1       |[0m [07:56:06:851] [72] [trace] Server on port 8004, looping after no message
+[33mworker_1       |[0m [07:56:06:851] [72] [trace] RECV (REP) 8004 (0 bytes)
+[33mworker_1       |[0m [07:56:06:851] [76] [trace] Timed out receiving message with no size
+[33mworker_1       |[0m [07:56:06:851] [76] [trace] Server on port 8006, looping after no message
+[33mworker_1       |[0m [07:56:06:851] [76] [trace] RECV (REP) 8006 (0 bytes)
+[33mworker_1       |[0m [07:56:26:840] [71] [trace] Timed out receiving message with no size
+[33mworker_1       |[0m [07:56:26:840] [71] [trace] Server on port 8003, looping after no message
+[33mworker_1       |[0m [07:56:26:840] [71] [trace] PULL 8003 (0 bytes)
+[33mworker_1       |[0m [07:56:26:860] [75] [trace] Timed out receiving message with no size
+[33mworker_1       |[0m [07:56:26:860] [75] [trace] Server on port 8005, looping after no message
+[33mworker_1       |[0m [07:56:26:860] [75] [trace] PULL 8005 (0 bytes)
+[33mworker_1       |[0m [07:56:26:865] [73] [trace] Timed out receiving message with no size
+[33mworker_1       |[0m [07:56:26:865] [73] [trace] Server on port 8007, looping after no message
+[33mworker_1       |[0m [07:56:26:865] [73] [trace] PULL 8007 (0 bytes)
+[33mworker_1       |[0m [07:56:26:867] [72] [trace] Timed out receiving message with no size
+[33mworker_1       |[0m [07:56:26:867] [72] [trace] Server on port 8004, looping after no message
+[33mworker_1       |[0m [07:56:26:867] [72] [trace] RECV (REP) 8004 (0 bytes)
+[33mworker_1       |[0m [07:56:26:871] [74] [trace] Timed out receiving message with no size
+[33mworker_1       |[0m [07:56:26:871] [74] [trace] Server on port 8008, looping after no message
+[33mworker_1       |[0m [07:56:26:871] [74] [trace] RECV (REP) 8008 (0 bytes)
+[33mworker_1       |[0m [07:56:26:871] [76] [trace] Timed out receiving message with no size
+[33mworker_1       |[0m [07:56:26:871] [76] [trace] Server on port 8006, looping after no message
+[33mworker_1       |[0m [07:56:26:871] [76] [trace] RECV (REP) 8006 (0 bytes)
+[33mworker_1       |[0m [07:56:46:860] [71] [trace] Timed out receiving message with no size
+[33mworker_1       |[0m [07:56:46:860] [71] [trace] Server on port 8003, looping after no message
+[33mworker_1       |[0m [07:56:46:860] [71] [trace] PULL 8003 (0 bytes)
+[33mworker_1       |[0m [07:56:46:880] [75] [trace] Timed out receiving message with no size
+[33mworker_1       |[0m [07:56:46:880] [75] [trace] Server on port 8005, looping after no message
+[33mworker_1       |[0m [07:56:46:880] [75] [trace] PULL 8005 (0 bytes)
+[33mworker_1       |[0m [07:56:46:880] [76] [trace] Timed out receiving message with no size
+[33mworker_1       |[0m [07:56:46:880] [76] [trace] Server on port 8006, looping after no message
+[33mworker_1       |[0m [07:56:46:880] [76] [trace] RECV (REP) 8006 (0 bytes)
+[33mworker_1       |[0m [07:56:46:885] [73] [trace] Timed out receiving message with no size
+[33mworker_1       |[0m [07:56:46:885] [73] [trace] Server on port 8007, looping after no message
+[33mworker_1       |[0m [07:56:46:885] [73] [trace] PULL 8007 (0 bytes)
+[33mworker_1       |[0m [07:56:46:887] [72] [trace] Timed out receiving message with no size
+[33mworker_1       |[0m [07:56:46:887] [74] [trace] Timed out receiving message with no size
+[33mworker_1       |[0m [07:56:46:887] [72] [trace] Server on port 8004, looping after no message
+[33mworker_1       |[0m [07:56:46:887] [74] [trace] Server on port 8008, looping after no message
+[33mworker_1       |[0m [07:56:46:887] [72] [trace] RECV (REP) 8004 (0 bytes)
+[33mworker_1       |[0m [07:56:46:887] [74] [trace] RECV (REP) 8008 (0 bytes)
+[33mworker_1       |[0m [07:57:06:880] [71] [trace] Timed out receiving message with no size
+[33mworker_1       |[0m [07:57:06:880] [71] [trace] Server on port 8003, looping after no message
+[33mworker_1       |[0m [07:57:06:880] [71] [trace] PULL 8003 (0 bytes)
+[33mworker_1       |[0m [07:57:06:888] [72] [trace] Timed out receiving message with no size
+[33mworker_1       |[0m [07:57:06:888] [72] [trace] Server on port 8004, looping after no message
+[33mworker_1       |[0m [07:57:06:888] [72] [trace] RECV (REP) 8004 (0 bytes)
+[33mworker_1       |[0m [07:57:06:896] [74] [trace] Timed out receiving message with no size
+[33mworker_1       |[0m [07:57:06:896] [74] [trace] Server on port 8008, looping after no message
+[33mworker_1       |[0m [07:57:06:896] [74] [trace] RECV (REP) 8008 (0 bytes)
+[33mworker_1       |[0m [07:57:06:900] [75] [trace] Timed out receiving message with no size
+[33mworker_1       |[0m [07:57:06:900] [75] [trace] Server on port 8005, looping after no message
+[33mworker_1       |[0m [07:57:06:900] [75] [trace] PULL 8005 (0 bytes)
+[33mworker_1       |[0m [07:57:06:900] [76] [trace] Timed out receiving message with no size
+[33mworker_1       |[0m [07:57:06:900] [76] [trace] Server on port 8006, looping after no message
+[33mworker_1       |[0m [07:57:06:900] [76] [trace] RECV (REP) 8006 (0 bytes)
+[33mworker_1       |[0m [07:57:06:904] [73] [trace] Timed out receiving message with no size
+[33mworker_1       |[0m [07:57:06:904] [73] [trace] Server on port 8007, looping after no message
+[33mworker_1       |[0m [07:57:06:904] [73] [trace] PULL 8007 (0 bytes)
+[33mworker_1       |[0m [07:57:12:060] [79] [debug] Faabric handler received request
+[33mworker_1       |[0m [07:57:12:060] [79] [debug] Processing status request
+[33mworker_1       |[0m [07:57:12:092] [76] [trace] RECV (REP) 8006 (0 bytes)
+[33mworker_1       |[0m [07:57:12:092] [76] [trace] REP 8006 (2 bytes)
+[33mworker_1       |[0m [07:57:12:092] [76] [trace] RECV (REP) 8006 (0 bytes)
+[33mworker_1       |[0m [07:57:12:306] [74] [trace] RECV (REP) 8008 (0 bytes)
+[33mworker_1       |[0m [07:57:12:386] [74] [debug] Receiving shapshot cov_sim_1652717413 (size 110166016)
+[33mworker_1       |[0m [07:57:12:449] [74] [trace] Registering snapshot cov_sim_1652717413 size 110166016 (restorable=true)
+[33mworker_1       |[0m [07:57:12:488] [74] [debug] Wrote snapshot cov_sim_1652717413 to fd 95
+[33mworker_1       |[0m [07:57:12:488] [74] [trace] REP 8008 (0 bytes)
+[33mworker_1       |[0m [07:57:12:493] [74] [trace] RECV (REP) 8008 (0 bytes)
+[33mworker_1       |[0m [07:57:12:497] [75] [trace] PULL 8005 (0 bytes)
+[33mworker_1       |[0m [07:57:12:498] [75] [debug] Scaling cov/sim from 0 -> 1
+[33mworker_1       |[0m [07:57:12:498] [75] [debug] Starting executor 192.168.64.7_874668359
+[33mworker_1       |[0m [07:57:12:498] [75] [debug] WAVM module cache initialising cov/sim
+[33mworker_1       |[0m [07:57:12:498] [75] [debug] Loading main module cov/sim
+[33mworker_1       |[0m [07:57:14:500] [75] [trace] Loading file cov/sim/function.wasm (/usr/local/faasm/wasm/cov/sim/function.wasm)
+[33mworker_1       |[0m [07:57:14:500] [75] [trace] Getting S3 key faasm/cov/sim/function.wasm as bytes
+[33mworker_1       |[0m [07:57:14:507] [75] [trace] Caching S3 key faasm/cov/sim/function.wasm at /usr/local/faasm/wasm/cov/sim/function.wasm
+[33mworker_1       |[0m [07:57:14:793] [75] [trace] Loading file cov/sim/function.wasm.o (/usr/local/faasm/object/cov/sim/function.wasm.o)
+[33mworker_1       |[0m [07:57:14:793] [75] [trace] Getting S3 key faasm/cov/sim/function.wasm.o as bytes
+[33mworker_1       |[0m [07:57:14:798] [75] [trace] Caching S3 key faasm/cov/sim/function.wasm.o at /usr/local/faasm/object/cov/sim/function.wasm.o
+[33mworker_1       |[0m [07:57:14:802] [75] [info] Instantiating module cov/sim
+[33mworker_1       |[0m [07:57:14:823] [75] [debug] Finished instantiating module cov/sim
+[33mworker_1       |[0m [07:57:14:823] [75] [debug] Opened preopened fd at /
+[33mworker_1       |[0m [07:57:14:823] [75] [debug] Opened preopened fd at .
+[33mworker_1       |[0m [07:57:14:823] [75] [debug] Creating 4 thread stacks
+[33mworker_1       |[0m [07:57:14:823] [75] [trace] MEM - Growing memory from 1472 to 1524 pages
+[33mworker_1       |[0m [07:57:14:823] [75] [trace] Created guard region 96468992-97124352
+[33mworker_1       |[0m [07:57:14:823] [75] [trace] Created guard region 99221504-99876864
+[33mworker_1       |[0m [07:57:14:823] [75] [trace] MEM - Growing memory from 1524 to 1576 pages
+[33mworker_1       |[0m [07:57:14:823] [75] [trace] Created guard region 99876864-100532224
+[33mworker_1       |[0m [07:57:14:823] [75] [trace] Created guard region 102629376-103284736
+[33mworker_1       |[0m [07:57:14:823] [75] [trace] MEM - Growing memory from 1576 to 1628 pages
+[33mworker_1       |[0m [07:57:14:823] [75] [trace] Created guard region 103284736-103940096
+[33mworker_1       |[0m [07:57:14:823] [75] [trace] Created guard region 106037248-106692608
+[33mworker_1       |[0m [07:57:14:823] [75] [trace] MEM - Growing memory from 1628 to 1680 pages
+[33mworker_1       |[0m [07:57:14:823] [75] [trace] Created guard region 106692608-107347968
+[33mworker_1       |[0m [07:57:14:823] [75] [trace] Created guard region 109445120-110100480
+[33mworker_1       |[0m [07:57:14:825] [75] [trace] S - fd_prestat_get - 3 4194296
+[33mworker_1       |[0m [07:57:14:825] [75] [trace] S - pthread_mutex_lock 96436780
+[33mworker_1       |[0m [07:57:14:825] [75] [trace] S - pthread_mutexattr_init 4194280
+[33mworker_1       |[0m [07:57:14:825] [75] [trace] S - pthread_mutex_init 96436732 4194280
+[33mworker_1       |[0m [07:57:14:825] [75] [trace] S - pthread_mutexattr_destroy 4194280
+[33mworker_1       |[0m [07:57:14:825] [75] [trace] S - pthread_mutex_unlock 96436780
+[33mworker_1       |[0m [07:57:14:825] [75] [trace] S - pthread_mutex_lock 96436732
+[33mworker_1       |[0m [07:57:14:825] [75] [trace] S - pthread_mutex_lock 96436780
+[33mworker_1       |[0m [07:57:14:825] [75] [debug] S - sbrk - 0
+[33mworker_1       |[0m [07:57:14:825] [75] [debug] S - sbrk - 65536
+[33mworker_1       |[0m [07:57:14:825] [75] [trace] MEM - Growing memory from 1680 to 1681 pages
+[33mworker_1       |[0m [07:57:14:825] [75] [trace] S - pthread_mutex_unlock 96436780
+[33mworker_1       |[0m [07:57:14:825] [75] [trace] S - pthread_mutex_unlock 96436732
+[33mworker_1       |[0m [07:57:14:825] [75] [trace] S - fd_prestat_dir_name - 3 110100496
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436732
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436732
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - fd_prestat_get - 4 4194296
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436732
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436732
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - fd_prestat_dir_name - 4 110100560
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - fd_prestat_get - 5 4194296
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436732
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436732
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436732
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436732
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436232
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436232
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436232
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436232
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436232
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436232
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436232
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436232
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436232
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436232
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436112
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_cond_broadcast 96436136
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436232
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436232
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436232
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436232
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_lock 96436232
+[33mworker_1       |[0m [07:57:14:826] [75] [trace] S - pthread_mutex_unlock 96436232
+[33mworker_1       |[0m [07:57:14:826] [75] [debug] Successfully executed __wasm_call_ctors for cov/sim
+[33mworker_1       |[0m [07:57:14:826] [75] [debug] heap_top=110166016 initial_pages=1681 initial_table=473
+[33mworker_1       |[0m [07:57:14:920] [75] [trace] 192.168.64.7_874668359 executing 4/4 tasks of cov/sim
+[33mworker_1       |[0m [07:57:14:920] [75] [debug] Restoring cov/sim from snapshot cov_sim_1652717413
+[33mworker_1       |[0m [07:57:14:920] [75] [debug] Restoring 192.168.64.7_874668359 from snapshot cov_sim_1652717413 before execution
+[33mworker_1       |[0m [07:57:14:920] [75] [debug] Shrinking memory by 0 bytes to restore snapshot
+[33mworker_1       |[0m [07:57:14:920] [75] [trace] MEM - shrinking memory 110166016 -> 110166016
+[33mworker_1       |[0m [07:57:14:925] [75] [trace] Assigning app index 4 to thread 2
+[33mworker_1       |[0m [07:57:14:925] [75] [trace] Assigning app index 5 to thread 3
+[33mworker_1       |[0m [07:57:14:925] [75] [trace] Assigning app index 6 to thread 1
+[33mworker_1       |[0m [07:57:14:925] [83] [debug] Thread pool thread 192.168.64.7_874668359:2 starting up
+[33mworker_1       |[0m [07:57:14:925] [84] [debug] Thread pool thread 192.168.64.7_874668359:3 starting up
+[33mworker_1       |[0m [07:57:14:925] [75] [trace] Assigning app index 7 to thread 2
+[33mworker_1       |[0m [07:57:14:925] [85] [debug] Thread pool thread 192.168.64.7_874668359:1 starting up
+[33mworker_1       |[0m [07:57:14:925] [85] [trace] Thread starting loop 192.168.64.7_874668359:1
+[33mworker_1       |[0m [07:57:14:926] [85] [trace] Thread 192.168.64.7_874668359:1 executing task 2 (1652717420, thread=true)
+[33mworker_1       |[0m [07:57:14:925] [83] [trace] Thread starting loop 192.168.64.7_874668359:2
+[33mworker_1       |[0m [07:57:14:925] [75] [trace] PULL 8005 (0 bytes)
+[33mworker_1       |[0m [07:57:14:926] [83] [trace] Thread 192.168.64.7_874668359:2 executing task 0 (1652717418, thread=true)
+[33mworker_1       |[0m [07:57:14:925] [84] [trace] Thread starting loop 192.168.64.7_874668359:3
+[33mworker_1       |[0m [07:57:14:926] [84] [trace] Thread 192.168.64.7_874668359:3 executing task 1 (1652717419, thread=true)
+[33mworker_1       |[0m [07:57:14:926] [85] [debug] Added thread id 85 to /sys/fs/cgroup/cpu/faasm/tasks
+[33mworker_1       |[0m [07:57:14:926] [85] [debug] Not using network ns, support off
+[33mworker_1       |[0m [07:57:14:926] [85] [trace] Executing cov/sim:1652717420 as OpenMP
+[33mworker_1       |[0m [07:57:14:926] [85] [trace] Deserialised from 48 bytes for cov/sim, Level 1652717412 depth=1 threads=30 shared={ }
+[33mworker_1       |[0m [07:57:14:926] [83] [debug] Added thread id 83 to /sys/fs/cgroup/cpu/faasm/tasks
+[33mworker_1       |[0m [07:57:14:926] [83] [debug] Not using network ns, support off
+[33mworker_1       |[0m [07:57:14:926] [83] [trace] Executing cov/sim:1652717418 as OpenMP
+[33mworker_1       |[0m [07:57:14:926] [83] [trace] Deserialised from 48 bytes for cov/sim, Level 1652717412 depth=1 threads=30 shared={ }
+[33mworker_1       |[0m [07:57:14:926] [84] [debug] Added thread id 84 to /sys/fs/cgroup/cpu/faasm/tasks
+[33mworker_1       |[0m [07:57:14:926] [84] [debug] Not using network ns, support off
+[33mworker_1       |[0m [07:57:14:926] [84] [trace] Executing cov/sim:1652717419 as OpenMP
+[33mworker_1       |[0m [07:57:14:926] [84] [trace] Deserialised from 48 bytes for cov/sim, Level 1652717412 depth=1 threads=30 shared={ }
+[33mworker_1       |[0m [07:57:14:930] [85] [debug] Executing OpenMP thread 1 for cov/sim
+[33mworker_1       |[0m [07:57:14:930] [83] [debug] Executing OpenMP thread 2 for cov/sim
+[33mworker_1       |[0m [07:57:14:931] [84] [debug] Executing OpenMP thread 3 for cov/sim
+[33mworker_1       |[0m [07:57:14:937] [83] [trace] OMP 4 (4): omp_get_thread_num
+[33mworker_1       |[0m [07:57:14:937] [84] [trace] OMP 5 (5): omp_get_thread_num
+[33mworker_1       |[0m [07:57:14:937] [85] [trace] OMP 6 (6): omp_get_thread_num
+[33mworker_1       |[0m Thread 45 initialised
+[33mworker_1       |[0m [07:57:14:937] [84] [trace] Task cov/sim:1652717419 finished by thread 192.168.64.7_874668359:3 (3 left)
+[33mworker_1       |[0m [07:57:14:937] [83] [trace] S - fd_write - 2 106036991 2 106036987 (/dev/stderr)
+[33mworker_1       |[0m [07:57:14:937] [84] [debug] Adding new snapshot client for 192.168.64.6
+[33mworker_1       |[0m [07:57:14:937] [85] [trace] Task cov/sim:1652717420 finished by thread 192.168.64.7_874668359:1 (2 left)
+[33mworker_1       |[0m [07:57:14:937] [85] [debug] Adding new snapshot client for 192.168.64.6
+[33mworker_1       |[0m [07:57:14:937] [83] [debug] Capturing stdout: fd=101
+[33mworker_1       |[0m [07:57:14:937] [84] [trace] New socket: push 192.168.64.6:8007 (timeout 20000ms)
+[33mworker_1       |[0m [07:57:14:937] [83] [debug] Captured 35 bytes of formatted stdout
+[33mworker_1       |[0m [07:57:14:937] [85] [trace] New socket: push 192.168.64.6:8007 (timeout 20000ms)
+[33mworker_1       |[0m [07:57:14:937] [83] [debug] Read stdout length 35:
+[33mworker_1       |[0m Thread 45 initialised
+[33mworker_1       |[0m              
+[33mworker_1       |[0m [07:57:14:937] [84] [trace] New socket: req 192.168.64.6:8008 (timeout 20000ms)
+[33mworker_1       |[0m [07:57:14:937] [83] [trace] Task cov/sim:1652717418 finished by thread 192.168.64.7_874668359:2 (1 left)
+[33mworker_1       |[0m [07:57:14:937] [83] [debug] Adding new snapshot client for 192.168.64.6
+[33mworker_1       |[0m [07:57:14:937] [84] [debug] Sending thread result for 1652717419 to 192.168.64.6
+[33mworker_1       |[0m [07:57:14:937] [85] [trace] New socket: req 192.168.64.6:8008 (timeout 20000ms)
+[33mworker_1       |[0m [07:57:14:937] [84] [trace] PUSH 192.168.64.6:8007 (20 bytes, more false)
+[33mworker_1       |[0m [07:57:14:937] [84] [trace] Thread starting loop 192.168.64.7_874668359:3
+[33mworker_1       |[0m [07:57:14:937] [83] [trace] New socket: push 192.168.64.6:8007 (timeout 20000ms)
+[33mworker_1       |[0m [07:57:14:937] [85] [debug] Sending thread result for 1652717420 to 192.168.64.6
+[33mworker_1       |[0m [07:57:14:937] [85] [trace] PUSH 192.168.64.6:8007 (20 bytes, more false)
+[33mworker_1       |[0m [07:57:14:937] [85] [trace] Thread starting loop 192.168.64.7_874668359:1
+[33mworker_1       |[0m [07:57:14:937] [83] [trace] New socket: req 192.168.64.6:8008 (timeout 20000ms)
+[33mworker_1       |[0m [07:57:14:937] [83] [debug] Sending thread result for 1652717418 to 192.168.64.6
+[33mworker_1       |[0m [07:57:14:937] [83] [trace] PUSH 192.168.64.6:8007 (20 bytes, more false)
+[33mworker_1       |[0m [07:57:14:937] [83] [trace] Thread starting loop 192.168.64.7_874668359:2
+[33mworker_1       |[0m [07:57:14:937] [83] [trace] Thread 192.168.64.7_874668359:2 executing task 3 (1652717421, thread=true)
+[33mworker_1       |[0m [07:57:14:937] [83] [trace] Executing cov/sim:1652717421 as OpenMP
+[33mworker_1       |[0m [07:57:14:937] [83] [trace] Deserialised from 48 bytes for cov/sim, Level 1652717412 depth=1 threads=30 shared={ }
+[33mworker_1       |[0m              Thread 7 initialised
+[33mworker_1       |[0m [07:57:14:937] [83] [debug] Executing OpenMP thread 2 for cov/sim
+[33mworker_1       |[0m [07:57:14:937] [83] [trace] OMP 7 (7): omp_get_thread_num
+[33mworker_1       |[0m [07:57:14:937] [83] [trace] S - fd_write - 2 106036991 2 106036987 (/dev/stderr)
+[33mworker_1       |[0m [07:57:14:937] [83] [debug] Capturing stdout: fd=109
+[33mworker_1       |[0m [07:57:14:937] [83] [debug] Captured 21 bytes of formatted stdout
+[33mworker_1       |[0m [07:57:14:937] [83] [debug] Read stdout length 21:
+[33mworker_1       |[0m Thread 7 initialised
+[33mworker_1       |[0m
+[33mworker_1       |[0m [07:57:14:937] [83] [trace] Task cov/sim:1652717421 finished by thread 192.168.64.7_874668359:2 (0 left)
+[33mworker_1       |[0m [07:57:14:938] [83] [debug] Pushing 13 diffs for snapshot cov_sim_1652717413 to 192.168.64.6
+[33mworker_1       |[0m [07:57:14:938] [83] [trace] REQ 192.168.64.6:8008 (432 bytes, more false)
+[33mworker_1       |[0m [07:57:14:938] [83] [trace] RECV (REQ) 8008
+[33mworker_1       |[0m [07:57:14:941] [83] [debug] Resetting after cov/sim:1652717421
+[33mworker_1       |[0m [07:57:15:002] [83] [debug] Sending thread result for 1652717421 to 192.168.64.6
+[33mworker_1       |[0m [07:57:15:002] [83] [trace] PUSH 192.168.64.6:8007 (20 bytes, more false)
+[33mworker_1       |[0m [07:57:15:002] [83] [trace] Thread starting loop 192.168.64.7_874668359:2
+[33mworker_1       |[0m [07:57:15:003] [73] [trace] PULL 8007 (0 bytes)
+[33mworker_1       |[0m [07:57:15:003] [73] [info] Deleting shapshot cov_sim_1652717413
+[33mworker_1       |[0m [07:57:15:017] [73] [trace] PULL 8007 (0 bytes)
+[33mworker_1       |[0m [07:57:15:787] [74] [trace] RECV (REP) 8008 (0 bytes)
+[33mworker_1       |[0m [07:57:15:913] [74] [debug] Applying 40560 diffs to snapshot cov_sim_1652717476
+[33mworker_1       |[0m [07:57:15:913] [74] [error] Snapshot for cov_sim_1652717476 does not exist
+[33mworker_1       |[0m terminate called after throwing an instance of 'std::runtime_error'
+[33mworker_1       |[0m   what():  Snapshot doesn't exist
+[33mworker_1       |[0m Aborted (core dumped)
