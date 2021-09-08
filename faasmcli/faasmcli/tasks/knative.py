@@ -323,4 +323,3 @@ def ini_file(ctx, local=False):
         )
     )
     print("")
-
