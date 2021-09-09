@@ -449,6 +449,29 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         sch.callFunctions(req);
     }
 
+    // NOTE - PUT THIS BACK WHERE IT CAME FROM, ONLY FOR EXPERIMENTATION!
+    if (!isSingleThread) {
+        std::vector<std::pair<int, uint32_t>> failures;
+        // Await all child threads
+        for (int i = 0; i < req->messages_size(); i++) {
+            uint32_t messageId = req->messages().at(i).id();
+            int result = sch.awaitThreadResult(messageId);
+            if (result != 0) {
+                failures.emplace_back(result, messageId);
+            }
+        }
+
+        if (!failures.empty()) {
+            for (auto f : failures) {
+                SPDLOG_ERROR("OpenMP thread failed, result {} on message {}",
+                             f.first,
+                             f.second);
+            }
+
+            throw std::runtime_error("OpenMP threads failed");
+        }
+    }
+
     // Execute the master task in this thread (i.e. just invoke the microtask
     // directly).
     // This requires a different set-up and duplicates some logic, but it's
@@ -477,28 +500,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         threads::setCurrentOpenMPLevel(parentLevel);
         if (masterThreadResult.i32 > 0) {
             throw std::runtime_error("Master OpenMP thread failed");
-        }
-    }
-
-    if (!isSingleThread) {
-        std::vector<std::pair<int, uint32_t>> failures;
-        // Await all child threads
-        for (int i = 0; i < req->messages_size(); i++) {
-            uint32_t messageId = req->messages().at(i).id();
-            int result = sch.awaitThreadResult(messageId);
-            if (result != 0) {
-                failures.emplace_back(result, messageId);
-            }
-        }
-
-        if (!failures.empty()) {
-            for (auto f : failures) {
-                SPDLOG_ERROR("OpenMP thread failed, result {} on message {}",
-                             f.first,
-                             f.second);
-            }
-
-            throw std::runtime_error("OpenMP threads failed");
         }
     }
 
@@ -741,14 +742,26 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 // ---------------------------------------------------
 
 /**
+ * Called to enter the critical section used to perform a reduction.
+ */
+void startReduceCritical()
+{
+    // Lock the critical section
+    std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
+    level->lockCritical();
+}
+/**
  *  Called to finish off a reduction.
  */
-void finaliseReduce(bool barrier)
+void endReduceCritical(bool barrier)
 {
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
     faabric::Message* msg = getExecutingCall();
     int localThreadNum = level->getLocalThreadNum(msg);
     int globalThreadNum = level->getGlobalThreadNum(msg);
+
+    // Unlock the critical section
+    level->unlockCritical();
 
     // Master must make sure all other threads are done
     if (localThreadNum == 0) {
@@ -773,6 +786,10 @@ void finaliseReduce(bool barrier)
 }
 
 /**
+ * This function is called to start the critical section required to perform the
+ * reduction operation by each thread. It will then call __kmpc_end_reduce (and
+ * its nowait equivalent), when it's finished.
+ *
  * It seems that in our case, always returning 1 for both kmpc_reduce and
  * kmpc_reduce_nowait gets the right result.
  *
@@ -800,7 +817,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceData,
                   reduceFunc,
                   lockPtr);
-
+    startReduceCritical();
     return 1;
 }
 
@@ -827,7 +844,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceData,
                   reduceFunc,
                   lockPtr);
-
+    startReduceCritical();
     return 1;
 }
 
@@ -843,7 +860,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 lck)
 {
     OMP_FUNC_ARGS("__kmpc_end_reduce {} {} {}", loc, gtid, lck);
-    finaliseReduce(true);
+    endReduceCritical(true);
 }
 
 /**
@@ -858,7 +875,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 lck)
 {
     OMP_FUNC_ARGS("__kmpc_end_reduce_nowait {} {} {}", loc, gtid, lck);
-    finaliseReduce(false);
+    endReduceCritical(false);
 }
 
 // ----------------------------------------------
