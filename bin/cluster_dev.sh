@@ -32,6 +32,7 @@ docker-compose -f docker-compose.yml \
     up \
     --no-recreate \
     -d \
+    --scale worker=2
 
 if [[ "$1" == "faasm" ]]; then
     CLI_CONTAINER="faasm-cli"
