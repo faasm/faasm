@@ -13,9 +13,27 @@
 #include <wasmtime_ssp.h>
 
 namespace wasm {
-static int32_t __wasi_fd_dup_wrapper(wasm_exec_env_t exec_env, int32_t a)
+uint32_t doWasiDup(uint32_t fd)
 {
-    throw std::runtime_error("Native WASI fd dup not implemented");
+    storage::FileSystem& fs = getExecutingWAMRModule()->getFileSystem();
+    return fs.dup(fd);
+}
+
+static uint32_t __wasi_fd_dup_wrapper(wasm_exec_env_t exec_env,
+                                      uint32_t fd,
+                                      uint32_t* resFd)
+{
+    SPDLOG_DEBUG("S - __wasi_fd_dup {}");
+
+    *resFd = doWasiDup(fd);
+
+    return __WASI_ESUCCESS;
+}
+
+static uint32_t dup_wrapper(wasm_exec_env_t exec_env, uint32_t fd)
+{
+    SPDLOG_DEBUG("S - dup {}");
+    return doWasiDup(fd);
 }
 
 static int32_t tempnam_wrapper(wasm_exec_env_t exec_env, int32_t a, int32_t b)
@@ -25,6 +43,7 @@ static int32_t tempnam_wrapper(wasm_exec_env_t exec_env, int32_t a, int32_t b)
 
 static NativeSymbol ns[] = {
     REG_NATIVE_FUNC(__wasi_fd_dup, "(i*)i"),
+    REG_NATIVE_FUNC(dup, "(i)i"),
     REG_NATIVE_FUNC(tempnam, "(ii)i"),
 };
 
@@ -47,21 +66,19 @@ static int32_t wasi_fd_close(wasm_exec_env_t exec_env, int32_t fd)
 
 static int32_t wasi_fd_fdstat_get(wasm_exec_env_t exec_env,
                                   int32_t fd,
-                                  __wasi_fdstat_t* statApp)
+                                  __wasi_fdstat_t* statWasm)
 {
-    std::string path =
-      getExecutingWAMRModule()->getFileSystem().getPathForFd(fd);
+    storage::FileSystem& fs = getExecutingWAMRModule()->getFileSystem();
+    std::string path = fs.getPathForFd(fd);
     SPDLOG_DEBUG("S - fd_fdstat_get {} ({})", fd, path);
 
-    WAMRWasmModule* module = getExecutingWAMRModule();
-    if (!module->getFileSystem().fileDescriptorExists(fd)) {
+    if (!fs.fileDescriptorExists(fd)) {
         return __WASI_EBADF;
     }
 
-    VALIDATE_NATIVE_ADDR(statApp, sizeof(__wasi_fdstat_t))
+    // VALIDATE_NATIVE_ADDR(statWasm, sizeof(__wasi_fdstat_t))
 
-    storage::FileDescriptor& fileDesc =
-      module->getFileSystem().getFileDescriptor(fd);
+    storage::FileDescriptor& fileDesc = fs.getFileDescriptor(fd);
     storage::Stat statNative = fileDesc.stat();
 
     if (statNative.failed) {
@@ -69,12 +86,12 @@ static int32_t wasi_fd_fdstat_get(wasm_exec_env_t exec_env,
         return statNative.wasiErrno;
     }
 
-    statApp->fs_filetype = statNative.wasiFiletype;
-    statApp->fs_rights_base = fileDesc.getActualRightsBase();
-    statApp->fs_rights_inheriting = fileDesc.getActualRightsInheriting();
+    statWasm->fs_filetype = statNative.wasiFiletype;
+    statWasm->fs_rights_base = fileDesc.getActualRightsBase();
+    statWasm->fs_rights_inheriting = fileDesc.getActualRightsInheriting();
 
     // TODO - set fs flags
-    statApp->fs_flags = 0;
+    statWasm->fs_flags = 0;
 
     return __WASI_ESUCCESS;
 }
@@ -88,39 +105,49 @@ static int32_t wasi_fd_fdstat_set_flags(wasm_exec_env_t exec_env,
     return 0;
 }
 
-static int32_t doFileStat(int32_t fd,
+static int32_t doFileStat(uint32_t fd,
                           const std::string& relativePath,
-                          __wasi_filestat_t* statApp)
+                          __wasi_filestat_t* statWasm)
 {
     WAMRWasmModule* module = getExecutingWAMRModule();
     storage::FileDescriptor& fileDesc =
       module->getFileSystem().getFileDescriptor(fd);
+
     storage::Stat statNative = fileDesc.stat(relativePath);
     if (statNative.failed) {
         SPDLOG_ERROR("Failed stat: {}", statNative.wasiErrno);
         return statNative.wasiErrno;
     }
 
-    VALIDATE_NATIVE_ADDR(statApp, sizeof(__wasi_filestat_t));
-    statApp->st_dev = statNative.st_dev;
-    statApp->st_ino = statNative.st_ino;
-    statApp->st_filetype = statNative.wasiFiletype;
-    statApp->st_nlink = statNative.st_nlink;
-    statApp->st_size = statNative.st_size;
-    statApp->st_atim = statNative.st_atim;
-    statApp->st_mtim = statNative.st_mtim;
-    statApp->st_ctim = statNative.st_ctim;
+    VALIDATE_NATIVE_ADDR(statWasm, sizeof(__wasi_filestat_t));
+    statWasm->st_dev = statNative.st_dev;
+    statWasm->st_ino = statNative.st_ino;
+    statWasm->st_filetype = statNative.wasiFiletype;
+    statWasm->st_nlink = statNative.st_nlink;
+    statWasm->st_size = statNative.st_size;
+    statWasm->st_atim = statNative.st_atim;
+    statWasm->st_mtim = statNative.st_mtim;
+    statWasm->st_ctim = statNative.st_ctim;
+
+    SPDLOG_DEBUG("st_dev: {} <-> {}", statWasm->st_dev, statNative.st_dev);
+    SPDLOG_DEBUG("st_ino: {} <-> {}", statWasm->st_ino, statNative.st_ino);
+    SPDLOG_DEBUG("st_filetype: {} <-> {}", statWasm->st_filetype, statNative.wasiFiletype);
+    SPDLOG_DEBUG("st_nlink: {} <-> {}", statWasm->st_nlink, statNative.st_nlink);
+    SPDLOG_DEBUG("st_size: {} <-> {}", statWasm->st_size, statNative.st_size);
+    SPDLOG_DEBUG("st_atim: {} <-> {}", statWasm->st_atim, statNative.st_atim);
+    SPDLOG_DEBUG("st_ctim: {} <-> {}", statWasm->st_mtim, statNative.st_mtim);
+    SPDLOG_DEBUG("st_mtim: {} <-> {}", statWasm->st_ctim, statNative.st_ctim);
 
     return __WASI_ESUCCESS;
 }
 
 static int32_t wasi_fd_filestat_get(wasm_exec_env_t exec_env,
                                     int32_t fd,
-                                    __wasi_filestat_t* statApp)
+                                    __wasi_filestat_t* statWasm)
 {
     SPDLOG_DEBUG("S - fd_filestat_get {}", fd);
 
-    return doFileStat(fd, "", statApp);
+    return doFileStat(fd, "", statWasm);
 }
 
 static int32_t wasi_fd_prestat_dir_name(wasm_exec_env_t exec_env,
@@ -137,10 +164,7 @@ static int32_t wasi_fd_prestat_dir_name(wasm_exec_env_t exec_env,
 
     storage::FileDescriptor& fileDesc =
       module->getFileSystem().getFileDescriptor(fd);
-    const std::string& pathStr = fileDesc.getPath();
-
-    VALIDATE_NATIVE_ADDR(path, pathStr.size());
-    std::copy(pathStr.begin(), pathStr.end(), path);
+    module->writeStringToWasmMemory(fileDesc.getPath(), path);
 
     return __WASI_ESUCCESS;
 }
@@ -382,26 +406,48 @@ static int32_t wasi_path_remove_directory(wasm_exec_env_t exec_env,
 }
 
 static int32_t wasi_path_rename(wasm_exec_env_t exec_env,
-                                int32_t a,
-                                int32_t* b,
-                                char* c,
-                                int32_t d,
-                                int32_t* e,
-                                char* f)
+                                uint32_t oldFd,
+                                char* oldPath,
+                                uint32_t oldPathLen,
+                                uint32_t newFd,
+                                char* newPath,
+                                uint32_t newPathLen)
 {
-    SPDLOG_DEBUG("S - path_rename");
-    throw std::runtime_error("path_rename not implemented");
-    return 0;
+    SPDLOG_DEBUG("S - path_rename {} (fd: {}) -> {} (fd: {})", oldPath, oldFd, newPath, newFd);
+
+    std::string oldPathStr(oldPath, oldPathLen);
+    std::string newPathStr(newPath, newPathLen);
+
+    storage::FileSystem& fs = getExecutingWAMRModule()->getFileSystem();
+    storage::FileDescriptor& oldFileDesc = fs.getFileDescriptor(oldFd);
+    storage::FileDescriptor& newFileDesc = fs.getFileDescriptor(newFd);
+
+    const std::string& fullNewPath = newFileDesc.absPath(newPathStr);
+    bool success = oldFileDesc.rename(fullNewPath, oldPathStr);
+    if (!success) {
+        return oldFileDesc.getWasiErrno();
+    }
+
+    return __WASI_ESUCCESS;
 }
 
 static int32_t wasi_path_unlink_file(wasm_exec_env_t exec_env,
-                                     int32_t a,
-                                     int32_t* b,
-                                     char* c)
+                                     uint32_t fd,
+                                     char* path,
+                                     uint32_t pathLen)
 {
     SPDLOG_DEBUG("S - path_unlink_file");
-    throw std::runtime_error("path_unlink_file not implemented");
-    return 0;
+
+    std::string pathStr(path, pathLen);
+    storage::FileDescriptor& fileDesc =
+      getExecutingWAMRModule()->getFileSystem().getFileDescriptor(fd);
+    bool success = fileDesc.unlink(pathStr);
+
+    if (!success) {
+        return fileDesc.getWasiErrno();
+    }
+
+    return __WASI_ESUCCESS;
 }
 
 static NativeSymbol wasiNs[] = {

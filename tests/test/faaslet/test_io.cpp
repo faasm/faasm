@@ -15,7 +15,9 @@ TEST_CASE("Test fixed input with colon", "[faaslet]")
       faabric::util::messageFactory("demo", "check_input");
     call.set_inputdata("http://www.foobar.com");
 
-    execFunction(call);
+    SECTION("WAVM") { execFunction(call); }
+
+    SECTION("WAMR") { execWamrFunction(call); }
 }
 
 TEST_CASE("Test execution of echo function", "[faaslet]")
@@ -24,6 +26,11 @@ TEST_CASE("Test execution of echo function", "[faaslet]")
     faabric::Message call = faabric::util::messageFactory("demo", "echo");
     std::string inputData = "http://www.testinput/foo.com";
     call.set_inputdata(inputData.c_str());
+
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
+    SECTION("WAVM") { conf.wasmVm = "wavm"; }
+
+    SECTION("WAMR") { conf.wasmVm = "wamr"; }
 
     const std::string actual = execFunctionWithStringResult(call);
     REQUIRE(actual == inputData);
@@ -40,6 +47,10 @@ TEST_CASE("Test capturing stdout", "[faaslet]")
 
     SECTION("Capture off")
     {
+        SECTION("WAVM") { conf.wasmVm = "wavm"; }
+
+        SECTION("WAMR") { conf.wasmVm = "wamr"; }
+
         call.set_inputdata("21");
         conf.captureStdout = "off";
         expected = "Normal Faasm output";
@@ -47,6 +58,10 @@ TEST_CASE("Test capturing stdout", "[faaslet]")
 
     SECTION("Capture on")
     {
+        SECTION("WAVM") { conf.wasmVm = "wavm"; }
+
+        SECTION("WAMR") { conf.wasmVm = "wamr"; }
+
         call.set_inputdata("23");
         conf.captureStdout = "on";
         expected = "Input value = 23\n"
@@ -70,10 +85,21 @@ TEST_CASE("Test capturing stderr", "[faaslet]")
 
     std::string expected;
 
-    SECTION("Capture off") { conf.captureStdout = "off"; }
+    SECTION("Capture off")
+    {
+        SECTION("WAVM") { conf.wasmVm = "wavm"; }
+
+        SECTION("WAMR") { conf.wasmVm = "wamr"; }
+
+        conf.captureStdout = "off";
+    }
 
     SECTION("Capture on")
     {
+        SECTION("WAVM") { conf.wasmVm = "wavm"; }
+
+        SECTION("WAMR") { conf.wasmVm = "wamr"; }
+
         conf.captureStdout = "on";
         expected = "stdin=0  stdout=1  stderr=2\n"
                    "This is for stderr\n\n";

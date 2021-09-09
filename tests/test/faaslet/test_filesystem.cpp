@@ -65,34 +65,50 @@ TEST_CASE_METHOD(FilesystemTestFixture, "Test listdir", "[faaslet]")
     execFunction(msg);
 }
 
-TEST_CASE_METHOD(FilesystemTestFixture, "Test fcntl", "[faaslet]")
+TEST_CASE_METHOD(FilesystemTestFixture, "Test fcntl", "[faaslet][wamr]")
 {
     faabric::Message msg = faabric::util::messageFactory("demo", "fcntl");
-    execFunction(msg);
+
+    SECTION("WAVM") { execFunction(msg); }
+
+    SECTION("WAMR") { execWamrFunction(msg); }
 }
 
+// TODO - this is not working ATM
 TEST_CASE_METHOD(FilesystemTestFixture, "Test fread", "[faaslet]")
 {
     faabric::Message msg = faabric::util::messageFactory("demo", "fread");
-    execFunction(msg);
+
+    SECTION("WAVM") { execFunction(msg); }
+
+    // SECTION("WAMR") { execWamrFunction(msg); }
 }
 
-TEST_CASE_METHOD(FilesystemTestFixture, "Test fstat", "[faaslet]")
+TEST_CASE_METHOD(FilesystemTestFixture, "Test fstat", "[faaslet][wamr]")
 {
     faabric::Message msg = faabric::util::messageFactory("demo", "fstat");
-    execFunction(msg);
+
+    SECTION("WAVM") { execFunction(msg); }
+
+    SECTION("WAMR") { execWamrFunction(msg); }
 }
 
-TEST_CASE_METHOD(FilesystemTestFixture, "Test file operations", "[faaslet]")
+TEST_CASE_METHOD(FilesystemTestFixture, "Test file operations", "[faaslet][wamr]")
 {
     faabric::Message msg = faabric::util::messageFactory("demo", "file");
-    execFunction(msg);
+
+    SECTION("WAVM") { execFunction(msg); }
+
+    SECTION("WAMR") { execWamrFunction(msg); }
 }
 
-TEST_CASE_METHOD(FilesystemTestFixture, "Test file descriptors", "[faaslet]")
+TEST_CASE_METHOD(FilesystemTestFixture, "Test file descriptors", "[faaslet][wamr]")
 {
     faabric::Message msg =
       faabric::util::messageFactory("demo", "filedescriptor");
-    execFunction(msg);
+
+    SECTION("WAVM") { execFunction(msg); }
+
+    SECTION("WAMR") { execWamrFunction(msg); }
 }
 }

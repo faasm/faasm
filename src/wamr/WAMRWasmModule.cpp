@@ -14,7 +14,6 @@
 #include <platform_common.h>
 #include <wasm_exec_env.h>
 #include <wasm_export.h>
-#include <wasm_runtime.h>
 
 namespace wasm {
 // The high level API for WAMR can be found here:
@@ -109,41 +108,6 @@ void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 
     // Set up thread stacks
     createThreadStacks();
-}
-
-void WAMRWasmModule::writeStringArrayToMemory(
-  const std::vector<std::string>& strings,
-  uint32_t* strOffsets,
-  char* strBuffer)
-{
-    // VALIDATE_NATIVE_ADDR(argvOffsetsApp, argvsHost.size() *
-    // sizeof(uint32_t));
-
-    char* nextBuffer = strBuffer;
-    size_t i;
-    for (i = 0; i < strings.size(); ++i) {
-        const std::string& thisStr = strings.at(i);
-
-        // VALIDATE_NATIVE_ADDR(strBuffer, thisStr.size() + 1);
-
-        std::copy(thisStr.begin(), thisStr.end(), nextBuffer);
-        strOffsets[i] = this->nativePointerToWasm(nextBuffer);
-
-        nextBuffer += thisStr.size() + 1;
-    }
-}
-
-void WAMRWasmModule::writeArgvToWamrMemory(uint32_t* argvOffsetsWasm,
-                                           char* argvBuffWasm)
-{
-    writeStringArrayToMemory(argv, argvOffsetsWasm, argvBuffWasm);
-}
-
-void WAMRWasmModule::writeWasmEnvToWamrMemory(uint32_t* envOffsetsWasm,
-                                              char* envBuffWasm)
-{
-    writeStringArrayToMemory(
-      wasmEnvironment.getVars(), envOffsetsWasm, envBuffWasm);
 }
 
 int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
@@ -248,6 +212,65 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
     return 0;
 }
 
+void WAMRWasmModule::writeStringToWasmMemory(const std::string& strHost,
+                                             char* strWasm)
+{
+    // TODO - what happens with null-terminator here?
+    this->validateNativeAddress(strWasm, strHost.size());
+    std::copy(strHost.begin(), strHost.end(), strWasm);
+}
+
+void WAMRWasmModule::writeStringArrayToMemory(
+  const std::vector<std::string>& strings,
+  uint32_t* strOffsets,
+  char* strBuffer)
+{
+    // VALIDATE_NATIVE_ADDR(argvOffsetsApp, argvsHost.size() *
+    // sizeof(uint32_t));
+
+    char* nextBuffer = strBuffer;
+    size_t i;
+    for (i = 0; i < strings.size(); ++i) {
+        const std::string& thisStr = strings.at(i);
+
+        // VALIDATE_NATIVE_ADDR(strBuffer, thisStr.size() + 1);
+
+        std::copy(thisStr.begin(), thisStr.end(), nextBuffer);
+        strOffsets[i] = this->nativePointerToWasm(nextBuffer);
+
+        nextBuffer += thisStr.size() + 1;
+    }
+}
+
+void WAMRWasmModule::writeArgvToWamrMemory(uint32_t* argvOffsetsWasm,
+                                           char* argvBuffWasm)
+{
+    writeStringArrayToMemory(argv, argvOffsetsWasm, argvBuffWasm);
+}
+
+void WAMRWasmModule::writeWasmEnvToWamrMemory(uint32_t* envOffsetsWasm,
+                                              char* envBuffWasm)
+{
+    writeStringArrayToMemory(
+      wasmEnvironment.getVars(), envOffsetsWasm, envBuffWasm);
+}
+
+void WAMRWasmModule::validateNativeAddress(void* nativePtr, size_t size)
+{
+    wasm_runtime_validate_native_addr(moduleInstance, nativePtr, size);
+}
+
+uint8_t* WAMRWasmModule::wasmPointerToNative(int32_t wasmPtr)
+{
+    void* nativePtr = wasm_runtime_addr_app_to_native(moduleInstance, wasmPtr);
+    return static_cast<uint8_t*>(nativePtr);
+}
+
+int32_t WAMRWasmModule::nativePointerToWasm(void* nativePtr)
+{
+    return wasm_runtime_addr_native_to_app(moduleInstance, nativePtr);
+}
+
 uint32_t WAMRWasmModule::growMemory(uint32_t nBytes)
 {
 
@@ -275,17 +298,6 @@ uint32_t WAMRWasmModule::shrinkMemory(uint32_t nBytes)
 uint32_t WAMRWasmModule::mmapMemory(uint32_t nBytes)
 {
     return growMemory(nBytes);
-}
-
-uint8_t* WAMRWasmModule::wasmPointerToNative(int32_t wasmPtr)
-{
-    void* nativePtr = wasm_runtime_addr_app_to_native(moduleInstance, wasmPtr);
-    return static_cast<uint8_t*>(nativePtr);
-}
-
-int32_t WAMRWasmModule::nativePointerToWasm(void* nativePtr)
-{
-    return wasm_runtime_addr_native_to_app(moduleInstance, nativePtr);
 }
 
 size_t WAMRWasmModule::getMemorySizeBytes()

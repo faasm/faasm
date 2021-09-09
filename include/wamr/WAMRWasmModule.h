@@ -39,6 +39,11 @@ class WAMRWasmModule final : public WasmModule
     // ----- Module lifecycle -----
     void doBindToFunction(faabric::Message& msg, bool cache) override;
 
+    int32_t executeFunction(faabric::Message& msg) override;
+
+    // ----- Helper functions -----
+    void writeStringToWasmMemory(const std::string& strHost, char* strWasm);
+
     void writeStringArrayToMemory(const std::vector<std::string>& strings,
                                   uint32_t* strOffsets,
                                   char* strBuffer);
@@ -47,7 +52,16 @@ class WAMRWasmModule final : public WasmModule
 
     void writeWasmEnvToWamrMemory(uint32_t* envOffsetsWasm, char* envBuffWasm);
 
-    int32_t executeFunction(faabric::Message& msg) override;
+    // ----- Address translation and validation -----
+    // Validate that the native address belongs to the module's instance address
+    // space
+    void validateNativeAddress(void* nativePtr, size_t size);
+
+    // Convert relative address to absolute address (pointer to memory)
+    uint8_t* wasmPointerToNative(int32_t wasmPtr) override;
+
+    // Convert absolute address to relative address (offset in WASM memory)
+    int32_t nativePointerToWasm(void* nativePtr);
 
     // ----- Memory management -----
     uint32_t growMemory(uint32_t nBytes) override;
@@ -57,10 +71,6 @@ class WAMRWasmModule final : public WasmModule
     uint32_t mmapMemory(uint32_t nBytes) override;
 
     uint32_t mmapFile(uint32_t fp, uint32_t length) override;
-
-    uint8_t* wasmPointerToNative(int32_t wasmPtr) override;
-
-    int32_t nativePointerToWasm(void* nativePtr);
 
     size_t getMemorySizeBytes() override;
 

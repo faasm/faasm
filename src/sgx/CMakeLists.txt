@@ -48,6 +48,7 @@ set (WAMR_BUILD_SPEC_TEST)
 # Set AOT mode, disable JIT
 set (WAMR_BUILD_AOT 1)
 set (WAMR_BUILD_JIT 0)
+set (WAMR_BUILD_LAZY_JIT 0)
 
 # Set libraries
 set (WAMR_BUILD_LIBC_BUILTIN 1)

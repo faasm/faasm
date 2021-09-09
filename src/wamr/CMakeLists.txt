@@ -5,70 +5,87 @@
 # We have our own custom CMake set-up which looks a bit like the wamrc build:
 # https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/wamr-compiler/CMakeLists.txt
 
-# Turn on WAMR features
-add_definitions(-DWASM_ENABLE_BULK_MEMORY=1)
-add_definitions(-DWASM_ENABLE_WAMR_COMPILER=1)
-add_definitions(-DWASM_ENABLE_MULTI_MODULE=1)
+## Turn on WAMR features
+#add_definitions(-DWASM_ENABLE_BULK_MEMORY=1)
+#add_definitions(-DWASM_ENABLE_WAMR_COMPILER=1)
+#add_definitions(-DWASM_ENABLE_MULTI_MODULE=1)
+#
+## Here we include all the components of WAMR we want
+#include(${WAMR_SHARED_DIR}/platform/linux/shared_platform.cmake)
+#include(${WAMR_SHARED_DIR}/mem-alloc/mem_alloc.cmake)
+#include(${WAMR_SHARED_DIR}/utils/shared_utils.cmake)
+#include(${WAMR_SHARED_DIR}/utils/uncommon/shared_uncommon.cmake)
+#include(${WAMR_IWASM_DIR}/common/iwasm_common.cmake)
+#include(${WAMR_IWASM_DIR}/libraries/libc-wasi/libc_wasi.cmake)
+#
+## enable AOT
+#include(${WAMR_IWASM_DIR}/aot/iwasm_aot.cmake)
+#include(${WAMR_IWASM_DIR}/interpreter/iwasm_interp.cmake)
+#include(${WAMR_IWASM_DIR}/compilation/iwasm_compl.cmake)
+#faasm_private_lib(aotclib "${IWASM_COMPL_SOURCE}")
+#
+#set(COMMON_WAMR_SRC
+#        ${PLATFORM_SHARED_SOURCE}
+#        ${MEM_ALLOC_SHARED_SOURCE}
+#        ${IWASM_COMMON_SOURCE}
+#        ${UTILS_SHARED_SOURCE}
+#        ${IWASM_INTERP_SOURCE}
+#        ${IWASM_AOT_SOURCE}
+#        ${LIBC_WASI_SOURCE}
+#)
+#
+## Build the WAMR lib
+#set(ALL_WAMR_SRC ${COMMON_WAMR_SRC} ${EXTRA_WAMR_SRC})
+#faasm_private_lib(wamrlib "${ALL_WAMR_SRC}")
+#
+## -----------------------------
+## Faasm-specific configuration
+## -----------------------------
+#
 
-# Here we include all the components of WAMR we want
-include(${WAMR_SHARED_DIR}/platform/linux/shared_platform.cmake)
-include(${WAMR_SHARED_DIR}/mem-alloc/mem_alloc.cmake)
-include(${WAMR_SHARED_DIR}/utils/shared_utils.cmake)
-include(${WAMR_SHARED_DIR}/utils/uncommon/shared_uncommon.cmake)
-include(${WAMR_IWASM_DIR}/common/iwasm_common.cmake)
-include(${WAMR_IWASM_DIR}/libraries/libc-wasi/libc_wasi.cmake)
+# Set target platform details
+set (WAMR_BUILD_PLATFORM "linux")
+set (WAMR_BUILD_TARGET X86_64)
+set (WAMR_BUILD_SPEC_TEST)
 
-# enable AOT
-include(${WAMR_IWASM_DIR}/aot/iwasm_aot.cmake)
-include(${WAMR_IWASM_DIR}/interpreter/iwasm_interp.cmake)
-include(${WAMR_IWASM_DIR}/compilation/iwasm_compl.cmake)
-faasm_private_lib(aotclib "${IWASM_COMPL_SOURCE}")
+# Set AOT mode and JIT for code generation
+set (WAMR_BUILD_AOT 1)
+set (WAMR_BUILD_JIT 1)
+set (WAMR_BUILD_LAZY_JIT 0)
 
-set(COMMON_WAMR_SRC
-        ${PLATFORM_SHARED_SOURCE}
-        ${MEM_ALLOC_SHARED_SOURCE}
-        ${IWASM_COMMON_SOURCE}
-        ${UTILS_SHARED_SOURCE}
-        ${IWASM_INTERP_SOURCE}
-        ${IWASM_AOT_SOURCE}
-        ${LIBC_WASI_SOURCE}
+# Set libraries
+set (WAMR_BUILD_LIBC_BUILTIN 1)
+set (WAMR_BUILD_LIBC_WASI 1)
+set (WAMR_BUILD_LIB_PTHREAD 0)
+
+# Let WAMR do the including and importing of the sources
+include (${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
+add_library(wamrlib ${WAMR_RUNTIME_LIB_SOURCE})
+
+target_include_directories(wamrlib PUBLIC
+     ${PLATFORM_SHARED_DIR}
 )
 
-# Build the WAMR lib
-set(ALL_WAMR_SRC ${COMMON_WAMR_SRC} ${EXTRA_WAMR_SRC})
-faasm_private_lib(wamrlib "${ALL_WAMR_SRC}")
+set(FAASM_WAMR_HEADERS
+    "${FAASM_INCLUDE_DIR}/wamr/native.h"
+    "${FAASM_INCLUDE_DIR}/wamr/WAMRWasmModule.h"
+)
 
-# -----------------------------
-# Faasm-specific configuration
-# -----------------------------
-
-set(PLATFORM_HEADER ${WAMR_SHARED_DIR}/platform/linux)
-
-target_include_directories(
-    wamrlib PUBLIC
-    ${FAASM_INCLUDE_DIR}/wamr
-    ${PLATFORM_HEADER}
-    )
-
-set(HEADERS
-        "${FAASM_INCLUDE_DIR}/wamr/WAMRWasmModule.h"
-        )
-
-set(LIB_FILES
-        WAMRWasmModule.cpp
-        codegen.cpp
-        dynlink.cpp
-        env.cpp
-        filesystem.cpp
-        funcs.cpp
-        memory.cpp
-        native.cpp
-        pthread.cpp
-        state.cpp
-        stubs.cpp
-        timing.cpp
-        ${HEADERS}
-        )
+set(FAASM_WAMR_SRC
+    WAMRWasmModule.cpp
+    codegen.cpp
+    dynlink.cpp
+    env.cpp
+    filesystem.cpp
+    funcs.cpp
+    memory.cpp
+    native.cpp
+    pthread.cpp
+    state.cpp
+    stubs.cpp
+    timing.cpp
+    ${FAASM_WAMR_HEADERS}
+)
 
 # Link the specific LLVM libraries that WAMR needs
 llvm_map_components_to_libnames(
@@ -80,13 +97,7 @@ llvm_map_components_to_libnames(
 )
 
 # Link everything together
-faasm_private_lib(wamrmodule "${LIB_FILES}")
-target_link_libraries(wamrmodule
-        wasm
-        wamrlib
-        )
+# faasm_private_lib(wamrmodule ${FAASM_WAMR_SRC})
+add_library(wamrmodule ${FAASM_WAMR_SRC})
 
-target_link_libraries(wamrmodule
-        aotclib
-        ${WAMR_LLVM_LIBRARIES}
-        )
+target_link_libraries(wamrmodule wasm wamrlib ${WAMR_LLVM_LIBRARIES})
