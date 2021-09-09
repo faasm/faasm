@@ -146,8 +146,6 @@ class WasmModule
 
     void deleteAppSnapshot(const faabric::Message& msg);
 
-    void snapshotWithKey(const std::string& snapKey, bool locallyRestorable);
-
     std::string snapshot(bool locallyRestorable = true);
 
     void restore(const std::string& snapshotKey);
@@ -205,6 +203,9 @@ class WasmModule
 
     // Module-specific binding
     virtual void doBindToFunction(faabric::Message& msg, bool cache);
+
+    // Snapshots
+    void snapshotWithKey(const std::string& snapKey, bool locallyRestorable);
 
     // Threads
     void createThreadStacks();

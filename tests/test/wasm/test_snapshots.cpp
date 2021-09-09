@@ -208,7 +208,7 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
 
     wasm::WAVMWasmModule moduleB;
     moduleB.bindToFunction(mB);
-    std::string keyB = moduleB.createAppSnapshot(mA);
+    std::string keyB = moduleB.createAppSnapshot(mB);
 
     // Make sure repeated calls don't recreate
     moduleB.createAppSnapshot(mA);
@@ -217,14 +217,14 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
     REQUIRE(reg.getSnapshotCount() == 2);
     REQUIRE(keyA != keyB);
 
+    // Check the snapshots
     faabric::util::SnapshotData snapA = reg.getSnapshot(keyA);
     faabric::util::SnapshotData snapB = reg.getSnapshot(keyB);
 
     REQUIRE(snapA.data != snapB.data);
     REQUIRE(snapA.size == snapB.size);
 
-    // TODO - check actual data is the same
-
+    // Delete and check they've gone
     moduleA.deleteAppSnapshot(mA);
     REQUIRE(reg.getSnapshotCount() == 1);
 

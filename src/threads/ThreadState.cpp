@@ -160,12 +160,12 @@ int Level::getMaxThreadsAtNextLevel() const
 
 void Level::masterWait(int threadNum)
 {
+    // All threads must lock when entering this function
     FROM_MAP(nowaitMutex, std::mutex, nowaitMutexes)
+    std::unique_lock<std::mutex> lock(*nowaitMutex);
+
     FROM_MAP(nowaitCount, std::atomic<int>, nowaitCounts)
     FROM_MAP(nowaitCv, std::condition_variable, nowaitCvs)
-
-    // All threads must lock when entering this function
-    std::unique_lock<std::mutex> lock(*nowaitMutex);
 
     if (threadNum == 0) {
         // Wait until all non-master threads have finished
@@ -251,21 +251,20 @@ void Level::waitOnBarrier()
 
     // Create if necessary
     if (barriers.find(id) == barriers.end()) {
-        bool locked = sharedMutex.try_lock();
-        if (locked && (barriers.find(id) == barriers.end())) {
+        faabric::util::FullLock lock(sharedMutex);
+        if (barriers.find(id) == barriers.end()) {
             barriers[id] = Barrier::create(numThreads);
-        }
-
-        if (locked) {
-            sharedMutex.unlock();
         }
     }
 
     // Wait
+    std::shared_ptr<faabric::util::Barrier> barrier;
     {
         faabric::util::SharedLock lock(sharedMutex);
-        barriers[id]->wait();
+        barrier = barriers[id];
     }
+
+    barrier->wait();
 }
 
 void Level::lockCritical()
@@ -284,7 +283,7 @@ void Level::unlockCritical()
 // numbers. The global thread number must be unique in the system, while the
 // local thread number must fit with that expected by OpenMP within the team/
 // level. We use Faabric messages to hold the global thread number and can
-// translated back and forth.
+// translate back and forth.
 int Level::getLocalThreadNum(faabric::Message* msg)
 {
     if (depth == 0) {

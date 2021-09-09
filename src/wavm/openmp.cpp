@@ -260,7 +260,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_flush", void, __kmpc_flush, I32 loc)
 {
-    OMP_FUNC_ARGS("__kmpc_flush{}", loc);
+    OMP_FUNC_ARGS("__kmpc_flush {}", loc);
 
     // Full memory fence, a bit overkill maybe for Wasm
     __sync_synchronize();
@@ -449,10 +449,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         sch.callFunctions(req);
     }
 
-    // Execute the master task (just invoke the microtask directly).
-    // Note that we're using a slightly different set-up to execute this thread,
-    // so there's double the logic, but it's worth it for the performance boost,
-    // especially in the single-host case.
+    // Execute the master task in this thread (i.e. just invoke the microtask
+    // directly).
+    // This requires a different set-up and duplicates some logic, but it's
+    // worth it for the performance boost, especially in the single-host case.
     {
         faabric::Message masterMsg = faabric::util::messageFactory(
           parentCall->user(), parentCall->function());
@@ -473,9 +473,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
               microtaskFunc, mainArguments, masterThreadResult);
         }
 
-        // Reset the context
+        // Reset to the parent context
         threads::setCurrentOpenMPLevel(parentLevel);
-
         if (masterThreadResult.i32 > 0) {
             throw std::runtime_error("Master OpenMP thread failed");
         }
@@ -741,34 +740,28 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 // REDUCTION
 // ---------------------------------------------------
 
-int reduceFinished()
-{
-    std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
-    faabric::Message* msg = getExecutingCall();
-    int localThreadNum = level->getLocalThreadNum(msg);
-
-    // Notify the master thread that we've done our reduction
-    if (localThreadNum != 0) {
-        level->masterWait(localThreadNum);
-    }
-
-    return 1;
-}
-
 /**
  *  Called to finish off a reduction.
- *  In a nowait scenario, just the master calls this function (the other threads
- *  have continued on).
  */
 void finaliseReduce(bool barrier)
 {
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
     faabric::Message* msg = getExecutingCall();
     int localThreadNum = level->getLocalThreadNum(msg);
+    int globalThreadNum = level->getGlobalThreadNum(msg);
 
     // Master must make sure all other threads are done
     if (localThreadNum == 0) {
+        SPDLOG_DEBUG("OMP 0 ({}): reduce master waiting for others.",
+                     globalThreadNum);
         level->masterWait(0);
+        SPDLOG_DEBUG("OMP 0 ({}): reduce master continuing, finished waiting.",
+                     globalThreadNum);
+    } else {
+        SPDLOG_DEBUG("OMP {} ({}): Notifying master of finished reduce",
+                     localThreadNum,
+                     globalThreadNum);
+        level->masterWait(localThreadNum);
     }
 
     // Everyone waits if there's a barrier
@@ -784,7 +777,7 @@ void finaliseReduce(bool barrier)
  * kmpc_reduce_nowait gets the right result.
  *
  * In the OpenMP source we can see a more varied set of return values, but these
- * are for cases we don't yet support:
+ * are for cases we don't yet support (notably teams):
  * https://github.com/llvm/llvm-project/blob/main/openmp/runtime/src/kmp_csupport.cpp
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -808,7 +801,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceFunc,
                   lockPtr);
 
-    return reduceFinished();
+    return 1;
 }
 
 /**
@@ -835,7 +828,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceFunc,
                   lockPtr);
 
-    return reduceFinished();
+    return 1;
 }
 
 /**
@@ -854,7 +847,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 }
 
 /**
- * Finalises a non-blocking reduce, called only by the master.
+ * Finalises a non-blocking reduce, called by all threads
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__kmpc_end_reduce_nowait",

@@ -153,7 +153,7 @@ void execFuncWithPool(faabric::Message& call, bool clean, int timeout)
     // Await the result of the main function
     // NOTE - this timeout will only get hit when things have failed.
     // It also needs to be long enough to let longer tests complete
-    faabric::Message result = sch.getFunctionResult(call.id(), 30000);
+    faabric::Message result = sch.getFunctionResult(call.id(), timeout);
     REQUIRE(result.returnvalue() == 0);
 
     // Shut down the pool
