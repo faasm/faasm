@@ -107,7 +107,7 @@ std::string WasmModule::createAppSnapshot(const faabric::Message& msg)
       faabric::snapshot::getSnapshotRegistry();
 
     if (reg.snapshotExists(snapshotKey)) {
-        SPDLOG_DEBUG(
+        SPDLOG_TRACE(
           "Snapshot already exists for app {} ({})", msg.appid(), snapshotKey);
     } else {
         SPDLOG_DEBUG(

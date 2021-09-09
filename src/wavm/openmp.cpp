@@ -449,29 +449,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         sch.callFunctions(req);
     }
 
-    // NOTE - PUT THIS BACK WHERE IT CAME FROM, ONLY FOR EXPERIMENTATION!
-    if (!isSingleThread) {
-        std::vector<std::pair<int, uint32_t>> failures;
-        // Await all child threads
-        for (int i = 0; i < req->messages_size(); i++) {
-            uint32_t messageId = req->messages().at(i).id();
-            int result = sch.awaitThreadResult(messageId);
-            if (result != 0) {
-                failures.emplace_back(result, messageId);
-            }
-        }
-
-        if (!failures.empty()) {
-            for (auto f : failures) {
-                SPDLOG_ERROR("OpenMP thread failed, result {} on message {}",
-                             f.first,
-                             f.second);
-            }
-
-            throw std::runtime_error("OpenMP threads failed");
-        }
-    }
-
     // Execute the master task in this thread (i.e. just invoke the microtask
     // directly).
     // This requires a different set-up and duplicates some logic, but it's
@@ -500,6 +477,28 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         threads::setCurrentOpenMPLevel(parentLevel);
         if (masterThreadResult.i32 > 0) {
             throw std::runtime_error("Master OpenMP thread failed");
+        }
+    }
+
+    if (!isSingleThread) {
+        std::vector<std::pair<int, uint32_t>> failures;
+        // Await all child threads
+        for (int i = 0; i < req->messages_size(); i++) {
+            uint32_t messageId = req->messages().at(i).id();
+            int result = sch.awaitThreadResult(messageId);
+            if (result != 0) {
+                failures.emplace_back(result, messageId);
+            }
+        }
+
+        if (!failures.empty()) {
+            for (auto f : failures) {
+                SPDLOG_ERROR("OpenMP thread failed, result {} on message {}",
+                             f.first,
+                             f.second);
+            }
+
+            throw std::runtime_error("OpenMP threads failed");
         }
     }
 
@@ -758,22 +757,14 @@ void endReduceCritical(bool barrier)
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
     faabric::Message* msg = getExecutingCall();
     int localThreadNum = level->getLocalThreadNum(msg);
-    int globalThreadNum = level->getGlobalThreadNum(msg);
 
     // Unlock the critical section
     level->unlockCritical();
 
     // Master must make sure all other threads are done
     if (localThreadNum == 0) {
-        SPDLOG_DEBUG("OMP 0 ({}): reduce master waiting for others.",
-                     globalThreadNum);
         level->masterWait(0);
-        SPDLOG_DEBUG("OMP 0 ({}): reduce master continuing, finished waiting.",
-                     globalThreadNum);
     } else {
-        SPDLOG_DEBUG("OMP {} ({}): Notifying master of finished reduce",
-                     localThreadNum,
-                     globalThreadNum);
         level->masterWait(localThreadNum);
     }
 
