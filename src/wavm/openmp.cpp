@@ -260,7 +260,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_flush", void, __kmpc_flush, I32 loc)
 {
-    OMP_FUNC_ARGS("__kmpc_flush{}", loc);
+    OMP_FUNC_ARGS("__kmpc_flush {}", loc);
 
     // Full memory fence, a bit overkill maybe for Wasm
     __sync_synchronize();
@@ -396,14 +396,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     // Check if we're only doing single-threaded
     bool isSingleThread = nextLevel->numThreads == 1;
 
-    // Take memory snapshot
-    std::string snapshotKey;
-    if (!isSingleThread) {
-        snapshotKey = parentModule->snapshot(false);
-        SPDLOG_DEBUG("Created OpenMP snapshot: {}", snapshotKey);
-    } else {
-        SPDLOG_DEBUG("Not creating OpenMP snapshot for single thread");
-    }
+    // Set up the master snapshot if not already set up
+    std::string snapshotKey = parentModule->createAppSnapshot(*parentCall);
 
     // Prepare arguments for main thread and all others
     std::vector<IR::UntaggedValue> mainArguments = { 0, argc };
@@ -438,6 +432,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         for (int i = 0; i < req->messages_size(); i++) {
             faabric::Message& call = req->mutable_messages()->at(i);
 
+            // Propagte app id
+            call.set_appid(parentCall->appid());
+
             // Snapshot details
             call.set_snapshotkey(snapshotKey);
 
@@ -452,10 +449,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         sch.callFunctions(req);
     }
 
-    // Execute the master task (just invoke the microtask directly).
-    // Note that we're using a slightly different set-up to execute this thread,
-    // so there's double the logic, but it's worth it for the performance boost,
-    // especially in the single-host case.
+    // Execute the master task in this thread (i.e. just invoke the microtask
+    // directly).
+    // This requires a different set-up and duplicates some logic, but it's
+    // worth it for the performance boost, especially in the single-host case.
     {
         faabric::Message masterMsg = faabric::util::messageFactory(
           parentCall->user(), parentCall->function());
@@ -476,9 +473,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
               microtaskFunc, mainArguments, masterThreadResult);
         }
 
-        // Reset the context
+        // Reset to the parent context
         threads::setCurrentOpenMPLevel(parentLevel);
-
         if (masterThreadResult.i32 > 0) {
             throw std::runtime_error("Master OpenMP thread failed");
         }
@@ -494,18 +490,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                 failures.emplace_back(result, messageId);
             }
         }
-
-        // Delete the snapshot
-        PROF_START(BroadcastDeleteSnapshot)
-        sch.broadcastSnapshotDelete(*parentCall, snapshotKey);
-        PROF_END(BroadcastDeleteSnapshot)
-
-        // Delete the snapshot locally
-        PROF_START(DeleteSnapshot)
-        faabric::snapshot::SnapshotRegistry& reg =
-          faabric::snapshot::getSnapshotRegistry();
-        reg.deleteSnapshot(snapshotKey);
-        PROF_END(DeleteSnapshot)
 
         if (!failures.empty()) {
             for (auto f : failures) {
@@ -756,34 +740,32 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 // REDUCTION
 // ---------------------------------------------------
 
-int reduceFinished()
+/**
+ * Called to enter the critical section used to perform a reduction.
+ */
+void startReduceCritical()
 {
+    // Lock the critical section
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
-    faabric::Message* msg = getExecutingCall();
-    int localThreadNum = level->getLocalThreadNum(msg);
-
-    // Notify the master thread that we've done our reduction
-    if (localThreadNum != 0) {
-        level->masterWait(localThreadNum);
-    }
-
-    return 1;
+    level->lockCritical();
 }
-
 /**
  *  Called to finish off a reduction.
- *  In a nowait scenario, just the master calls this function (the other threads
- *  have continued on).
  */
-void finaliseReduce(bool barrier)
+void endReduceCritical(bool barrier)
 {
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
     faabric::Message* msg = getExecutingCall();
     int localThreadNum = level->getLocalThreadNum(msg);
+
+    // Unlock the critical section
+    level->unlockCritical();
 
     // Master must make sure all other threads are done
     if (localThreadNum == 0) {
         level->masterWait(0);
+    } else {
+        level->masterWait(localThreadNum);
     }
 
     // Everyone waits if there's a barrier
@@ -795,11 +777,15 @@ void finaliseReduce(bool barrier)
 }
 
 /**
+ * This function is called to start the critical section required to perform the
+ * reduction operation by each thread. It will then call __kmpc_end_reduce (and
+ * its nowait equivalent), when it's finished.
+ *
  * It seems that in our case, always returning 1 for both kmpc_reduce and
  * kmpc_reduce_nowait gets the right result.
  *
  * In the OpenMP source we can see a more varied set of return values, but these
- * are for cases we don't yet support:
+ * are for cases we don't yet support (notably teams):
  * https://github.com/llvm/llvm-project/blob/main/openmp/runtime/src/kmp_csupport.cpp
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -822,8 +808,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceData,
                   reduceFunc,
                   lockPtr);
-
-    return reduceFinished();
+    startReduceCritical();
+    return 1;
 }
 
 /**
@@ -849,8 +835,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceData,
                   reduceFunc,
                   lockPtr);
-
-    return reduceFinished();
+    startReduceCritical();
+    return 1;
 }
 
 /**
@@ -865,11 +851,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 lck)
 {
     OMP_FUNC_ARGS("__kmpc_end_reduce {} {} {}", loc, gtid, lck);
-    finaliseReduce(true);
+    endReduceCritical(true);
 }
 
 /**
- * Finalises a non-blocking reduce, called only by the master.
+ * Finalises a non-blocking reduce, called by all threads
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__kmpc_end_reduce_nowait",
@@ -880,7 +866,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 lck)
 {
     OMP_FUNC_ARGS("__kmpc_end_reduce_nowait {} {} {}", loc, gtid, lck);
-    finaliseReduce(false);
+    endReduceCritical(false);
 }
 
 // ----------------------------------------------

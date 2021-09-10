@@ -9,8 +9,9 @@
 #include <faabric/util/environment.h>
 #include <faabric/util/func.h>
 
-// Longer timeout to allow longer-running functions to finish
-#define OMP_TEST_TIMEOUT_MS 10000
+// Longer timeout to allow longer-running functions to finish even when doing
+// trace-level logging
+#define OMP_TEST_TIMEOUT_MS 60000
 
 namespace tests {
 
@@ -117,6 +118,11 @@ TEST_CASE("Test single-threaded reduction", "[wasm][openmp]")
 TEST_CASE("Test more complex reduction", "[wasm][openmp]")
 {
     doOmpTestLocal("complex_reduce");
+}
+
+TEST_CASE("Test repeated reductions", "[wasm][openmp]")
+{
+    doOmpTestLocal("repeated_reduce");
 }
 
 TEST_CASE("Run openmp memory stress test", "[wasm][openmp]")
