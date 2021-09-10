@@ -107,6 +107,7 @@ def local(ctx):
     codegen(ctx, "demo", "file", wamr=True)
     codegen(ctx, "demo", "filedescriptor", wamr=True)
     codegen(ctx, "demo", "fstat", wamr=True)
+    codegen(ctx, "demo", "fread", wamr=True)
 
     # IO
     codegen(ctx, "demo", "echo", wamr=True)

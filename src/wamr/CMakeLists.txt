@@ -53,6 +53,11 @@ set (WAMR_BUILD_AOT 1)
 set (WAMR_BUILD_JIT 1)
 set (WAMR_BUILD_LAZY_JIT 0)
 
+set (WAMR_BUILD_MULTI_MODULE 1)
+set (WAMR_DISABLE_HW_BOUND_CHECK 1)
+set (WAMR_BUILD_DUMP_CALL_STACK 0)
+add_definitions(-DWASM_ENABLE_WAMR_COMPILER=1)
+
 # Set libraries
 set (WAMR_BUILD_LIBC_BUILTIN 1)
 set (WAMR_BUILD_LIBC_WASI 1)
@@ -98,6 +103,7 @@ llvm_map_components_to_libnames(
 
 # Link everything together
 # faasm_private_lib(wamrmodule ${FAASM_WAMR_SRC})
-add_library(wamrmodule ${FAASM_WAMR_SRC})
+add_library(wamrmodule STATIC ${FAASM_WAMR_SRC})
+target_compile_options(wamrmodule PRIVATE "-fPIC")
 
 target_link_libraries(wamrmodule wasm wamrlib ${WAMR_LLVM_LIBRARIES})
