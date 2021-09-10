@@ -5,10 +5,32 @@
 # We have our own custom CMake set-up which looks a bit like the wamrc build:
 # https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/wamr-compiler/CMakeLists.txt
 
-# Turn on WAMR features
-add_definitions(-DWASM_ENABLE_BULK_MEMORY=1)
+# Turn on features progressively
+# Set target platform details
+set (WAMR_BUILD_PLATFORM "linux")
+set (WAMR_BUILD_TARGET X86_64)
+set (WAMR_BUILD_SPEC_TEST)
+
+# Set AOT mode and JIT for code generation
+set (WAMR_BUILD_AOT 1)
+set (WAMR_BUILD_JIT 1)
+set (WAMR_BUILD_LAZY_JIT 0)
+
+# Set libraries
+set (WAMR_BUILD_LIBC_BUILTIN 1)
+set (WAMR_BUILD_LIBC_WASI 1)
+set (WAMR_BUILD_LIB_PTHREAD 0)
+
+set (WAMR_BUILD_MULTI_MODULE 1)
+set (WAMR_BUILD_BULK_MEMORY 1)
+# Somehow this definition prevents a buffer underflow
 add_definitions(-DWASM_ENABLE_WAMR_COMPILER=1)
-add_definitions(-DWASM_ENABLE_MULTI_MODULE=1)
+# set (WAMR_DISABLE_HW_BOUND_CHECK 1)
+# set (WAMR_BUILD_DUMP_CALL_STACK 0)
+
+# Turn on WAMR features
+# add_definitions(-DWASM_ENABLE_BULK_MEMORY=1)
+# add_definitions(-DWASM_ENABLE_MULTI_MODULE=1)
 
 # Here we include all the components of WAMR we want
 include(${WAMR_SHARED_DIR}/platform/linux/shared_platform.cmake)
@@ -22,7 +44,9 @@ include(${WAMR_IWASM_DIR}/libraries/libc-wasi/libc_wasi.cmake)
 include(${WAMR_IWASM_DIR}/aot/iwasm_aot.cmake)
 include(${WAMR_IWASM_DIR}/interpreter/iwasm_interp.cmake)
 include(${WAMR_IWASM_DIR}/compilation/iwasm_compl.cmake)
-faasm_private_lib(aotclib "${IWASM_COMPL_SOURCE}")
+
+# Enable all together
+# include (${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
 
 set(COMMON_WAMR_SRC
         ${PLATFORM_SHARED_SOURCE}
@@ -32,6 +56,7 @@ set(COMMON_WAMR_SRC
         ${IWASM_INTERP_SOURCE}
         ${IWASM_AOT_SOURCE}
         ${LIBC_WASI_SOURCE}
+        ${IWASM_COMPL_SOURCE} # new
 )
 
 # Build the WAMR lib
@@ -51,8 +76,9 @@ target_include_directories(
     )
 
 set(HEADERS
-        "${FAASM_INCLUDE_DIR}/wamr/WAMRWasmModule.h"
-        )
+    "${FAASM_INCLUDE_DIR}/wamr/native.h"
+    "${FAASM_INCLUDE_DIR}/wamr/WAMRWasmModule.h"
+)
 
 set(LIB_FILES
         WAMRWasmModule.cpp
@@ -70,21 +96,17 @@ set(LIB_FILES
 
 # Link the specific LLVM libraries that WAMR needs
 llvm_map_components_to_libnames(
-        WAMR_LLVM_LIBRARIES
-        core
-        lto
-        executionengine
-        mcjit
+    WAMR_LLVM_LIBRARIES
+    core
+    lto
+    executionengine
+    mcjit
 )
 
 # Link everything together
 faasm_private_lib(wamrmodule "${LIB_FILES}")
 target_link_libraries(wamrmodule
-        wasm
-        wamrlib
-        )
-
-target_link_libraries(wamrmodule
-        aotclib
-        ${WAMR_LLVM_LIBRARIES}
-        )
+    wasm
+    wamrlib
+    ${WAMR_LLVM_LIBRARIES}
+)
