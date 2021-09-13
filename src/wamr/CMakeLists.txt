@@ -5,63 +5,36 @@
 # We have our own custom CMake set-up which looks a bit like the wamrc build:
 # https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/wamr-compiler/CMakeLists.txt
 
-# Turn on features progressively
 # Set target platform details
 set (WAMR_BUILD_PLATFORM "linux")
 set (WAMR_BUILD_TARGET X86_64)
-set (WAMR_BUILD_SPEC_TEST)
+set (WAMR_BUILD_SPEC_TEST 0)
 
-# Set AOT mode and JIT for code generation
+# # Set AOT mode and JIT for code generation
 set (WAMR_BUILD_AOT 1)
 set (WAMR_BUILD_JIT 1)
 set (WAMR_BUILD_LAZY_JIT 0)
 
 # Set libraries
-set (WAMR_BUILD_LIBC_BUILTIN 1)
+set (WAMR_BUILD_LIBC_BUILTIN 0)
 set (WAMR_BUILD_LIBC_WASI 1)
 set (WAMR_BUILD_LIB_PTHREAD 0)
 
 set (WAMR_BUILD_MULTI_MODULE 1)
-set (WAMR_BUILD_BULK_MEMORY 1)
+# Explicitely disable these two options, as they cause runtime errors
+set (WAMR_BUILD_BULK_MEMORY 0)
+set (WAMR_DISABLE_HW_BOUND_CHECK 0)
+# TODO: why?
 # Somehow this definition prevents a buffer underflow
 add_definitions(-DWASM_ENABLE_WAMR_COMPILER=1)
-# set (WAMR_DISABLE_HW_BOUND_CHECK 1)
-# set (WAMR_BUILD_DUMP_CALL_STACK 0)
 
-# Turn on WAMR features
-# add_definitions(-DWASM_ENABLE_BULK_MEMORY=1)
-# add_definitions(-DWASM_ENABLE_MULTI_MODULE=1)
-
-# Here we include all the components of WAMR we want
-include(${WAMR_SHARED_DIR}/platform/linux/shared_platform.cmake)
-include(${WAMR_SHARED_DIR}/mem-alloc/mem_alloc.cmake)
-include(${WAMR_SHARED_DIR}/utils/shared_utils.cmake)
-include(${WAMR_SHARED_DIR}/utils/uncommon/shared_uncommon.cmake)
-include(${WAMR_IWASM_DIR}/common/iwasm_common.cmake)
-include(${WAMR_IWASM_DIR}/libraries/libc-wasi/libc_wasi.cmake)
-
-# enable AOT
-include(${WAMR_IWASM_DIR}/aot/iwasm_aot.cmake)
-include(${WAMR_IWASM_DIR}/interpreter/iwasm_interp.cmake)
-include(${WAMR_IWASM_DIR}/compilation/iwasm_compl.cmake)
-
-# Enable all together
-# include (${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
-
-set(COMMON_WAMR_SRC
-        ${PLATFORM_SHARED_SOURCE}
-        ${MEM_ALLOC_SHARED_SOURCE}
-        ${IWASM_COMMON_SOURCE}
-        ${UTILS_SHARED_SOURCE}
-        ${IWASM_INTERP_SOURCE}
-        ${IWASM_AOT_SOURCE}
-        ${LIBC_WASI_SOURCE}
-        ${IWASM_COMPL_SOURCE} # new
-)
-
-# Build the WAMR lib
-set(ALL_WAMR_SRC ${COMMON_WAMR_SRC} ${EXTRA_WAMR_SRC})
-faasm_private_lib(wamrlib "${ALL_WAMR_SRC}")
+# TODO: At this point we will need to use the system LLVM first
+include (${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
+# Enabling JIT-ing introduces a warning with libunwind and a segfault when
+# generating code. Setting the CMake flag includes the code required to run
+# code generation, but the pre-processor macro introduces LLVM errors.
+remove_definitions("-DWASM_ENABLE_JIT=1")
+faasm_private_lib(wamrlib "${WAMR_RUNTIME_LIB_SOURCE}")
 
 # -----------------------------
 # Faasm-specific configuration
