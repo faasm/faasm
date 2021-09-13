@@ -1,9 +1,6 @@
-# Unfortunately the pre-canned WAMR CMake file modifies too many top-level
-# variables (e.g. through use of include_directories or changing global
-# CFLAGS).
-#
-# We have our own custom CMake set-up which looks a bit like the wamrc build:
-# https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/wamr-compiler/CMakeLists.txt
+# WARNING: the CMake flags and pre-processor definitions that we set in this
+# file are carefully chosen for the WAMR build to run. Adding or removing flags
+# may break Faasm.
 
 # Set target platform details
 set (WAMR_BUILD_PLATFORM "linux")
@@ -24,8 +21,7 @@ set (WAMR_BUILD_MULTI_MODULE 1)
 # Explicitely disable these two options, as they cause runtime errors
 set (WAMR_BUILD_BULK_MEMORY 0)
 set (WAMR_DISABLE_HW_BOUND_CHECK 0)
-# TODO: why?
-# Somehow this definition prevents a buffer underflow
+# This definition prevents a buffer underflow during code generation
 add_definitions(-DWASM_ENABLE_WAMR_COMPILER=1)
 
 # TODO: At this point we will need to use the system LLVM first
@@ -40,32 +36,28 @@ faasm_private_lib(wamrlib "${WAMR_RUNTIME_LIB_SOURCE}")
 # Faasm-specific configuration
 # -----------------------------
 
-set(PLATFORM_HEADER ${WAMR_SHARED_DIR}/platform/linux)
+target_include_directories(wamrlib PUBLIC
+    ${PLATFORM_SHARED_DIR}
+)
 
-target_include_directories(
-    wamrlib PUBLIC
-    ${FAASM_INCLUDE_DIR}/wamr
-    ${PLATFORM_HEADER}
-    )
-
-set(HEADERS
+set(FAASM_WAMR_HEADERS
     "${FAASM_INCLUDE_DIR}/wamr/native.h"
     "${FAASM_INCLUDE_DIR}/wamr/WAMRWasmModule.h"
 )
 
-set(LIB_FILES
-        WAMRWasmModule.cpp
-        codegen.cpp
-        dynlink.cpp
-        filesystem.cpp
-        funcs.cpp
-        memory.cpp
-        native.cpp
-        pthread.cpp
-        state.cpp
-        stubs.cpp
-        ${HEADERS}
-        )
+set(FAASM_WAMR_SRC
+    WAMRWasmModule.cpp
+    codegen.cpp
+    dynlink.cpp
+    filesystem.cpp
+    funcs.cpp
+    memory.cpp
+    native.cpp
+    pthread.cpp
+    state.cpp
+    stubs.cpp
+    ${FAASM_WAMR_HEADERS}
+)
 
 # Link the specific LLVM libraries that WAMR needs
 llvm_map_components_to_libnames(
@@ -77,7 +69,7 @@ llvm_map_components_to_libnames(
 )
 
 # Link everything together
-faasm_private_lib(wamrmodule "${LIB_FILES}")
+faasm_private_lib(wamrmodule "${FAASM_WAMR_SRC}")
 target_link_libraries(wamrmodule
     wasm
     wamrlib

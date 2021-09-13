@@ -1,4 +1,4 @@
-#include "WAMRWasmModule.h"
+#include <wamr/WAMRWasmModule.h>
 
 #include <boost/filesystem/operations.hpp>
 #include <faabric/util/files.h>

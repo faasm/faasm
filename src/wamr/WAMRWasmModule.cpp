@@ -1,4 +1,4 @@
-#include "WAMRWasmModule.h"
+#include <wamr/WAMRWasmModule.h>
 #include "aot_runtime.h"
 #include "platform_common.h"
 #include "wasm_exec_env.h"
