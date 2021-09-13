@@ -21,9 +21,6 @@ void cleanSystem()
     // Clear local cache of shared files
     storage::SharedFiles::clear();
 
-    // Clear thread state
-    threads::clearThreadState();
-
     // Clear cached modules
     wasm::getWAVMModuleCache().clear();
 

@@ -6,6 +6,7 @@
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/state/StateKeyValue.h>
+#include <faabric/sync/DistributedSync.h>
 #include <faabric/util/func.h>
 #include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
@@ -197,7 +198,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 globalTid)
 {
     OMP_FUNC_ARGS("__kmpc_barrier {} {}", loc, globalTid);
-    level->waitOnBarrier();
+    faabric::sync::getDistributedSync().barrier(*msg);
 }
 
 // ----------------------------------------------------
@@ -225,7 +226,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS("__kmpc_critical {} {} {}", loc, globalTid, crit);
 
     if (level->numThreads > 1) {
-        level->lockCritical();
+        faabric::sync::getDistributedSync().lock(*msg);
     }
 }
 
@@ -247,7 +248,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS("__kmpc_end_critical {} {} {}", loc, globalTid, crit);
 
     if (level->numThreads > 1) {
-        level->unlockCritical();
+        faabric::sync::getDistributedSync().unlock(*msg);
     }
 }
 
@@ -741,15 +742,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 // ---------------------------------------------------
 
 /**
- * Called to enter the critical section used to perform a reduction.
- */
-void startReduceCritical()
-{
-    // Lock the critical section
-    std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
-    level->lockCritical();
-}
-/**
  *  Called to finish off a reduction.
  */
 void endReduceCritical(bool barrier)
@@ -759,19 +751,20 @@ void endReduceCritical(bool barrier)
     int localThreadNum = level->getLocalThreadNum(msg);
 
     // Unlock the critical section
-    level->unlockCritical();
+    faabric::sync::DistributedSync& sync = faabric::sync::getDistributedSync();
+    sync.unlock(*msg);
 
     // Master must make sure all other threads are done
     if (localThreadNum == 0) {
-        level->masterWait(0);
+        sync.localNotifyMaster(msg->appid());
     } else {
-        level->masterWait(localThreadNum);
+        sync.notify(*msg);
     }
 
     // Everyone waits if there's a barrier
     if (barrier) {
         PROF_START(FinaliseReduceBarrier)
-        level->waitOnBarrier();
+        sync.barrier(*msg);
         PROF_END(FinaliseReduceBarrier)
     }
 }
@@ -808,7 +801,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceData,
                   reduceFunc,
                   lockPtr);
-    startReduceCritical();
+    faabric::sync::getDistributedSync().lock(*msg);
     return 1;
 }
 
@@ -835,7 +828,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceData,
                   reduceFunc,
                   lockPtr);
-    startReduceCritical();
+    faabric::sync::getDistributedSync().lock(*msg);
     return 1;
 }
 
