@@ -42,6 +42,7 @@ target_include_directories(wamrlib PUBLIC
 
 set(FAASM_WAMR_HEADERS
     "${FAASM_INCLUDE_DIR}/wamr/native.h"
+    "${FAASM_INCLUDE_DIR}/wamr/types.h"
     "${FAASM_INCLUDE_DIR}/wamr/WAMRWasmModule.h"
 )
 

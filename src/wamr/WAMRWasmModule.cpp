@@ -224,15 +224,14 @@ void WAMRWasmModule::writeStringArrayToMemory(
   uint32_t* strOffsets,
   char* strBuffer)
 {
-    // VALIDATE_NATIVE_ADDR(argvOffsetsApp, argvsHost.size() *
-    // sizeof(uint32_t));
+    this->validateNativeAddress(strOffsets, strings.size() * sizeof(uint32_t));
 
     char* nextBuffer = strBuffer;
     size_t i;
     for (i = 0; i < strings.size(); ++i) {
         const std::string& thisStr = strings.at(i);
 
-        // VALIDATE_NATIVE_ADDR(strBuffer, thisStr.size() + 1);
+        this->validateNativeAddress(nextBuffer, thisStr.size() + 1);
 
         std::copy(thisStr.begin(), thisStr.end(), nextBuffer);
         strOffsets[i] = this->nativePointerToWasm(nextBuffer);
@@ -256,7 +255,19 @@ void WAMRWasmModule::writeWasmEnvToWamrMemory(uint32_t* envOffsetsWasm,
 
 void WAMRWasmModule::validateNativeAddress(void* nativePtr, size_t size)
 {
-    wasm_runtime_validate_native_addr(moduleInstance, nativePtr, size);
+    if (!wasm_runtime_validate_native_addr(moduleInstance, nativePtr, size)) {
+        SPDLOG_ERROR("Native pointer does not point to a valid address in the "
+                     "WAMR's module address space");
+        throw std::runtime_error("Pointer out of WAMR's module address space");
+    }
+}
+
+void WAMRWasmModule::validateWasmOffset(uint32_t wasmOffset, size_t size)
+{
+    if (!wasm_runtime_validate_app_addr(moduleInstance, wasmOffset, size)) {
+        SPDLOG_ERROR("WASM offset outside WAMR module instance memory");
+        throw std::runtime_error("Offset outside WAMR's memory");
+    }
 }
 
 uint8_t* WAMRWasmModule::wasmPointerToNative(int32_t wasmPtr)

@@ -7,20 +7,6 @@
 #define STACK_SIZE_KB 8192
 #define HEAP_SIZE_KB 8192
 
-// Address translation macros
-
-#define VALIDATE_NATIVE_ADDR(ptr, size)                                        \
-    if (!wasm_runtime_validate_native_addr(                                    \
-          module->getModuleInstance(), ptr, size)) {                           \
-        return __WASI_EBADF;                                                   \
-    }
-
-#define VALIDATE_APP_ADDR(ptr, size)                                           \
-    if (!wasm_runtime_validate_app_addr(                                       \
-          module->getModuleInstance(), ptr, size)) {                           \
-        return __WASI_EBADF;                                                   \
-    }
-
 namespace wasm {
 
 std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx);
@@ -56,6 +42,9 @@ class WAMRWasmModule final : public WasmModule
     // Validate that the native address belongs to the module's instance address
     // space
     void validateNativeAddress(void* nativePtr, size_t size);
+
+    // Check if WASM offset belongs to WASM memory
+    void validateWasmOffset(uint32_t wasmOffset, size_t size);
 
     // Convert relative address to absolute address (pointer to memory)
     uint8_t* wasmPointerToNative(int32_t wasmPtr) override;

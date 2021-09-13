@@ -30,8 +30,8 @@ uint32_t wasi_args_sizes_get(wasm_exec_env_t exec_env,
 
     WAMRWasmModule* module = getExecutingWAMRModule();
 
-    VALIDATE_NATIVE_ADDR(argcWasm, sizeof(uint32_t));
-    VALIDATE_NATIVE_ADDR(argvBuffSizeWasm, sizeof(uint32_t));
+    module->validateNativeAddress(argcWasm, sizeof(uint32_t));
+    module->validateNativeAddress(argvBuffSizeWasm, sizeof(uint32_t));
 
     *argcWasm = module->getArgc();
     *argvBuffSizeWasm = module->getArgvBufferSize();
@@ -52,19 +52,19 @@ uint32_t wasi_environ_get(wasm_exec_env_t exec_env,
 }
 
 uint32_t wasi_environ_sizes_get(wasm_exec_env_t exec_env,
-                                int32_t* envCountApp,
-                                int32_t* envBufferSizeApp)
+                                int32_t* envCountWasm,
+                                int32_t* envBufferSizeWasm)
 {
     SPDLOG_DEBUG("S - environ_sizes_get");
 
     WAMRWasmModule* module = getExecutingWAMRModule();
     WasmEnvironment& wasmEnv = module->getWasmEnvironment();
 
-    VALIDATE_NATIVE_ADDR(envCountApp, sizeof(uint32_t))
-    VALIDATE_NATIVE_ADDR(envBufferSizeApp, sizeof(uint32_t))
+    module->validateNativeAddress(envCountWasm, sizeof(uint32_t));
+    module->validateNativeAddress(envBufferSizeWasm, sizeof(uint32_t));
 
-    *envCountApp = wasmEnv.getEnvCount();
-    *envBufferSizeApp = wasmEnv.getEnvBufferSize();
+    *envCountWasm = wasmEnv.getEnvCount();
+    *envBufferSizeWasm = wasmEnv.getEnvBufferSize();
 
     return __WASI_ESUCCESS;
 }
