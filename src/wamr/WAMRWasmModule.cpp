@@ -32,7 +32,7 @@ void WAMRWasmModule::initialiseWAMRGlobally()
             return;
         }
 
-        // Initialise WAMR runtime:
+        // Initialise WAMR runtime
         bool success = wasm_runtime_init();
         if (!success) {
             throw std::runtime_error("Failed to initialise WAMR");
@@ -215,7 +215,6 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
 void WAMRWasmModule::writeStringToWasmMemory(const std::string& strHost,
                                              char* strWasm)
 {
-    // TODO - what happens with null-terminator here?
     this->validateNativeAddress(strWasm, strHost.size());
     std::copy(strHost.begin(), strHost.end(), strWasm);
 }

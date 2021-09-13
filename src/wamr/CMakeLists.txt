@@ -7,30 +7,28 @@ set (WAMR_BUILD_PLATFORM "linux")
 set (WAMR_BUILD_TARGET X86_64)
 set (WAMR_BUILD_SPEC_TEST 0)
 
-# # Set AOT mode and JIT for code generation
+# Set AOT mode and JIT for code generation
 set (WAMR_BUILD_AOT 1)
 set (WAMR_BUILD_JIT 1)
 set (WAMR_BUILD_LAZY_JIT 0)
 
 # Set libraries
-set (WAMR_BUILD_LIBC_BUILTIN 1) # used to be a 0 when it ran in the previous commit
+set (WAMR_BUILD_LIBC_BUILTIN 1)
 set (WAMR_BUILD_LIBC_WASI 1)
 set (WAMR_BUILD_LIB_PTHREAD 0)
 
+# WAMR features
 set (WAMR_BUILD_SIMD 0)
-
 set (WAMR_BUILD_MULTI_MODULE 1)
-# Explicitely disable these two options, as they cause runtime errors
 set (WAMR_BUILD_BULK_MEMORY 0)
 set (WAMR_DISABLE_HW_BOUND_CHECK 1)
 # This definition prevents a buffer underflow during code generation
 add_definitions(-DWASM_ENABLE_WAMR_COMPILER=1)
 
-# TODO: At this point we will need to use the system LLVM first
 include (${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
-# Enabling JIT-ing introduces a warning with libunwind and a segfault when
-# generating code. Setting the CMake flag includes the code required to run
-# code generation, but the pre-processor macro introduces LLVM errors.
+# 13/09/2021 - Setting the CMake flag includes the code required to run
+# code generation, but the pre-processor macro introduces LLVM errors. It is
+# safe to disable as we actually don't run JITed code.
 remove_definitions("-DWASM_ENABLE_JIT=1")
 faasm_private_lib(wamrlib "${WAMR_RUNTIME_LIB_SOURCE}")
 
