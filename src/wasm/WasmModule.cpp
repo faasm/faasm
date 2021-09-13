@@ -462,7 +462,9 @@ uint32_t WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
     // NOTE: we want to protect these regions from _writes_, but we don't
     // want to stop them being read, otherwise snapshotting will fail.
     // Therefore we make them read-only
-    int res = mprotect(nativePtr, regionSize, PROT_READ);
+    // TODO - mprotect not working
+    // int res = mprotect(nativePtr, regionSize, PROT_READ);
+    int res = 0;
     if (res != 0) {
         SPDLOG_ERROR("Failed to create memory guard: {}", std::strerror(errno));
         throw std::runtime_error("Failed to create memory guard");

@@ -93,7 +93,9 @@ TEST_CASE_METHOD(FilesystemTestFixture, "Test fstat", "[faaslet][wamr]")
     SECTION("WAMR") { execWamrFunction(msg); }
 }
 
-TEST_CASE_METHOD(FilesystemTestFixture, "Test file operations", "[faaslet][wamr]")
+TEST_CASE_METHOD(FilesystemTestFixture,
+                 "Test file operations",
+                 "[faaslet][wamr]")
 {
     faabric::Message msg = faabric::util::messageFactory("demo", "file");
 
@@ -102,7 +104,9 @@ TEST_CASE_METHOD(FilesystemTestFixture, "Test file operations", "[faaslet][wamr]
     SECTION("WAMR") { execWamrFunction(msg); }
 }
 
-TEST_CASE_METHOD(FilesystemTestFixture, "Test file descriptors", "[faaslet][wamr]")
+TEST_CASE_METHOD(FilesystemTestFixture,
+                 "Test file descriptors",
+                 "[faaslet][wamr]")
 {
     faabric::Message msg =
       faabric::util::messageFactory("demo", "filedescriptor");

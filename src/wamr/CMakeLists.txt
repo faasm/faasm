@@ -1,74 +1,45 @@
-# Unfortunately the pre-canned WAMR CMake file modifies too many top-level
-# variables (e.g. through use of include_directories or changing global
-# CFLAGS).
-#
-# We have our own custom CMake set-up which looks a bit like the wamrc build:
-# https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/wamr-compiler/CMakeLists.txt
-
-## Turn on WAMR features
-#add_definitions(-DWASM_ENABLE_BULK_MEMORY=1)
-#add_definitions(-DWASM_ENABLE_WAMR_COMPILER=1)
-#add_definitions(-DWASM_ENABLE_MULTI_MODULE=1)
-#
-## Here we include all the components of WAMR we want
-#include(${WAMR_SHARED_DIR}/platform/linux/shared_platform.cmake)
-#include(${WAMR_SHARED_DIR}/mem-alloc/mem_alloc.cmake)
-#include(${WAMR_SHARED_DIR}/utils/shared_utils.cmake)
-#include(${WAMR_SHARED_DIR}/utils/uncommon/shared_uncommon.cmake)
-#include(${WAMR_IWASM_DIR}/common/iwasm_common.cmake)
-#include(${WAMR_IWASM_DIR}/libraries/libc-wasi/libc_wasi.cmake)
-#
-## enable AOT
-#include(${WAMR_IWASM_DIR}/aot/iwasm_aot.cmake)
-#include(${WAMR_IWASM_DIR}/interpreter/iwasm_interp.cmake)
-#include(${WAMR_IWASM_DIR}/compilation/iwasm_compl.cmake)
-#faasm_private_lib(aotclib "${IWASM_COMPL_SOURCE}")
-#
-#set(COMMON_WAMR_SRC
-#        ${PLATFORM_SHARED_SOURCE}
-#        ${MEM_ALLOC_SHARED_SOURCE}
-#        ${IWASM_COMMON_SOURCE}
-#        ${UTILS_SHARED_SOURCE}
-#        ${IWASM_INTERP_SOURCE}
-#        ${IWASM_AOT_SOURCE}
-#        ${LIBC_WASI_SOURCE}
-#)
-#
-## Build the WAMR lib
-#set(ALL_WAMR_SRC ${COMMON_WAMR_SRC} ${EXTRA_WAMR_SRC})
-#faasm_private_lib(wamrlib "${ALL_WAMR_SRC}")
-#
-## -----------------------------
-## Faasm-specific configuration
-## -----------------------------
-#
+# WARNING: the CMake flags and pre-processor definitions that we set in this
+# file are carefully chosen for the WAMR build to run. Adding or removing flags
+# may break Faasm.
 
 # Set target platform details
 set (WAMR_BUILD_PLATFORM "linux")
 set (WAMR_BUILD_TARGET X86_64)
-set (WAMR_BUILD_SPEC_TEST)
+set (WAMR_BUILD_SPEC_TEST 0)
 
-# Set AOT mode and JIT for code generation
+# # Set AOT mode and JIT for code generation
 set (WAMR_BUILD_AOT 1)
 set (WAMR_BUILD_JIT 1)
 set (WAMR_BUILD_LAZY_JIT 0)
 
-set (WAMR_BUILD_MULTI_MODULE 1)
-set (WAMR_DISABLE_HW_BOUND_CHECK 1)
-set (WAMR_BUILD_DUMP_CALL_STACK 0)
-add_definitions(-DWASM_ENABLE_WAMR_COMPILER=1)
-
 # Set libraries
-set (WAMR_BUILD_LIBC_BUILTIN 1)
+set (WAMR_BUILD_LIBC_BUILTIN 1) # used to be a 0 when it ran in the previous commit
 set (WAMR_BUILD_LIBC_WASI 1)
 set (WAMR_BUILD_LIB_PTHREAD 0)
 
-# Let WAMR do the including and importing of the sources
+set (WAMR_BUILD_SIMD 0)
+
+set (WAMR_BUILD_MULTI_MODULE 1)
+# Explicitely disable these two options, as they cause runtime errors
+set (WAMR_BUILD_BULK_MEMORY 0)
+set (WAMR_DISABLE_HW_BOUND_CHECK 1)
+# This definition prevents a buffer underflow during code generation
+add_definitions(-DWASM_ENABLE_WAMR_COMPILER=1)
+
+# TODO: At this point we will need to use the system LLVM first
 include (${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
-add_library(wamrlib ${WAMR_RUNTIME_LIB_SOURCE})
+# Enabling JIT-ing introduces a warning with libunwind and a segfault when
+# generating code. Setting the CMake flag includes the code required to run
+# code generation, but the pre-processor macro introduces LLVM errors.
+remove_definitions("-DWASM_ENABLE_JIT=1")
+faasm_private_lib(wamrlib "${WAMR_RUNTIME_LIB_SOURCE}")
+
+# -----------------------------
+# Faasm-specific configuration
+# -----------------------------
 
 target_include_directories(wamrlib PUBLIC
-     ${PLATFORM_SHARED_DIR}
+    ${PLATFORM_SHARED_DIR}
 )
 
 set(FAASM_WAMR_HEADERS
@@ -94,16 +65,17 @@ set(FAASM_WAMR_SRC
 
 # Link the specific LLVM libraries that WAMR needs
 llvm_map_components_to_libnames(
-        WAMR_LLVM_LIBRARIES
-        core
-        lto
-        executionengine
-        mcjit
+    WAMR_LLVM_LIBRARIES
+    core
+    lto
+    executionengine
+    mcjit
 )
 
 # Link everything together
-# faasm_private_lib(wamrmodule ${FAASM_WAMR_SRC})
-add_library(wamrmodule STATIC ${FAASM_WAMR_SRC})
-target_compile_options(wamrmodule PRIVATE "-fPIC")
-
-target_link_libraries(wamrmodule wasm wamrlib ${WAMR_LLVM_LIBRARIES})
+faasm_private_lib(wamrmodule "${FAASM_WAMR_SRC}")
+target_link_libraries(wamrmodule
+    wasm
+    wamrlib
+    ${WAMR_LLVM_LIBRARIES}
+)

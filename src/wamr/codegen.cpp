@@ -9,7 +9,6 @@
 #include <aot_export.h>
 #include <wasm_export.h>
 
-
 namespace wasm {
 std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
 {

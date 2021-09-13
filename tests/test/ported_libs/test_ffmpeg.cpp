@@ -61,7 +61,7 @@ TEST_CASE_METHOD(FFmpegTestFixture,
 
 TEST_CASE_METHOD(FFmpegTestFixture,
                  "Test executing FFmpeg checks in WAMR",
-                 "[libs]")
+                 "[libs][wamr]")
 {
     executeWithWamrPool("ffmpeg", "check");
 }

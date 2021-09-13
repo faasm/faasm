@@ -3,8 +3,5 @@
 #include <string>
 
 namespace wasm {
-std::string getStringFromWasm(char* strWasm)
-{
-
-}
+std::string getStringFromWasm(char* strWasm) {}
 }

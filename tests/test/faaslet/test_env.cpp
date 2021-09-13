@@ -6,7 +6,7 @@
 #include <faabric/util/func.h>
 
 namespace tests {
-TEST_CASE("Test getenv", "[faaslet]")
+TEST_CASE("Test getenv", "[faaslet][wamr]")
 {
     cleanSystem();
 
@@ -25,7 +25,7 @@ TEST_CASE("Test conf flags", "[faaslet]")
     execFunction(msg);
 }
 
-TEST_CASE("Test exit", "[faaslet]")
+TEST_CASE("Test exit", "[faaslet][wamr]")
 {
     cleanSystem();
 
@@ -76,7 +76,7 @@ TEST_CASE("Test getcwd", "[faaslet]")
     execFunction(msg);
 }
 
-TEST_CASE("Test argc/argv", "[faaslet]")
+TEST_CASE("Test argc/argv", "[faaslet][wamr]")
 {
     cleanSystem();
     faabric::Message msg =

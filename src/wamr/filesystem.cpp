@@ -131,8 +131,10 @@ static int32_t doFileStat(uint32_t fd,
 
     SPDLOG_DEBUG("st_dev: {} <-> {}", statWasm->st_dev, statNative.st_dev);
     SPDLOG_DEBUG("st_ino: {} <-> {}", statWasm->st_ino, statNative.st_ino);
-    SPDLOG_DEBUG("st_filetype: {} <-> {}", statWasm->st_filetype, statNative.wasiFiletype);
-    SPDLOG_DEBUG("st_nlink: {} <-> {}", statWasm->st_nlink, statNative.st_nlink);
+    SPDLOG_DEBUG(
+      "st_filetype: {} <-> {}", statWasm->st_filetype, statNative.wasiFiletype);
+    SPDLOG_DEBUG(
+      "st_nlink: {} <-> {}", statWasm->st_nlink, statNative.st_nlink);
     SPDLOG_DEBUG("st_size: {} <-> {}", statWasm->st_size, statNative.st_size);
     SPDLOG_DEBUG("st_atim: {} <-> {}", statWasm->st_atim, statNative.st_atim);
     SPDLOG_DEBUG("st_ctim: {} <-> {}", statWasm->st_mtim, statNative.st_mtim);
@@ -413,7 +415,11 @@ static int32_t wasi_path_rename(wasm_exec_env_t exec_env,
                                 char* newPath,
                                 uint32_t newPathLen)
 {
-    SPDLOG_DEBUG("S - path_rename {} (fd: {}) -> {} (fd: {})", oldPath, oldFd, newPath, newFd);
+    SPDLOG_DEBUG("S - path_rename {} (fd: {}) -> {} (fd: {})",
+                 oldPath,
+                 oldFd,
+                 newPath,
+                 newFd);
 
     std::string oldPathStr(oldPath, oldPathLen);
     std::string newPathStr(newPath, newPathLen);
