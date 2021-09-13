@@ -34,6 +34,7 @@ services:
       - minio
     volumes:
       - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
+      - ./dev/faasm-local/object/:/usr/local/faasm/object
     environment:
       - LOG_LEVEL=info
       - PYTHON_CODEGEN=${PYTHON_CODEGEN}

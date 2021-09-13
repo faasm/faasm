@@ -219,6 +219,17 @@ jobs:
         run: git submodule update --init clients/cpp
       - name: "Python submodule"
         run: git submodule update --init clients/python
+      # --- Host information ---
+      - name: "Get CPU model name"
+        run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
+      - name: "Print CPU model"
+        run: echo "${{ env.CPU_MODEL}}"
+      # --- Cache ---
+      - name: "Configure machine code cache"
+        uses: actions/cache@v2
+        with:
+          path: ./dev/faasm-local/object
+          key: ${{ env.CPU_MODEL }}-machine-code
       # --- Setup ---
       - name: "Start docker-compose"
         run: docker-compose up -d
