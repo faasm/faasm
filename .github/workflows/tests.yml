@@ -12,7 +12,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     container:
-      image: faasm/cli:0.6.7
+      image: faasm/cli:0.6.8
     defaults:
       run:
         working-directory: /usr/local/code/faasm
@@ -99,23 +99,23 @@ jobs:
     env:
       CGROUP_MODE: off
       HOST_TYPE: ci
-      LOG_LEVEL: trace
+      LOG_LEVEL: info
       MAX_FAASLETS: 5
       NETNS_MODE: off
       REDIS_QUEUE_HOST: redis
       REDIS_STATE_HOST: redis
     container:
-      image: faasm/cli:0.6.7
+      image: faasm/cli:0.6.8
     defaults:
       run:
         working-directory: /usr/local/code/faasm
     services:
       redis:
-        image: faasm/redis:0.6.7
+        image: faasm/redis:0.6.8
         ports:
           - 6379:6379
       minio:
-        image: faasm/minio:0.6.7
+        image: faasm/minio:0.6.8
         env:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
@@ -219,6 +219,17 @@ jobs:
         run: git submodule update --init clients/cpp
       - name: "Python submodule"
         run: git submodule update --init clients/python
+      # --- Host information ---
+      - name: "Get CPU model name"
+        run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
+      - name: "Print CPU model"
+        run: echo "${{ env.CPU_MODEL}}"
+      # --- Cache ---
+      - name: "Configure machine code cache"
+        uses: actions/cache@v2
+        with:
+          path: ./dev/faasm-local/object
+          key: ${{ env.CPU_MODEL }}-machine-code
       # --- Setup ---
       - name: "Start docker-compose"
         run: docker-compose up -d
