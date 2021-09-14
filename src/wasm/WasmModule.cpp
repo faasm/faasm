@@ -566,11 +566,6 @@ void WasmModule::createThreadStacks()
     }
 }
 
-threads::MutexManager& WasmModule::getMutexes()
-{
-    return mutexes;
-}
-
 bool WasmModule::isBound()
 {
     return _isBound;

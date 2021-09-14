@@ -162,8 +162,6 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
     threadStacks = other.threadStacks;
     openMPContexts = std::vector<Runtime::Context*>(threadPoolSize, nullptr);
 
-    mutexes.clear();
-
     // Do not copy over any captured stdout
     stdoutMemFd = 0;
     stdoutSize = 0;

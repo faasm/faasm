@@ -3,6 +3,7 @@
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
+#include <faabric/sync/DistributedSync.h>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 #include <faabric/util/logging.h>
@@ -178,7 +179,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 attr)
 {
     SPDLOG_TRACE("S - pthread_mutex_init {} {}", mx, attr);
-    getExecutingWAVMModule()->getMutexes().createMutex(mx);
     return 0;
 }
 
@@ -189,7 +189,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 mx)
 {
     SPDLOG_TRACE("S - pthread_mutex_lock {}", mx);
-    getExecutingWAVMModule()->getMutexes().lockMutex(mx);
+    faabric::sync::getDistributedSync().localLock(mx);
     return 0;
 }
 
@@ -200,12 +200,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 mx)
 {
     SPDLOG_TRACE("S - pthread_mutex_trylock {}", mx);
-    bool success = getExecutingWAVMModule()->getMutexes().tryLockMutex(mx);
-    if (success) {
-        return 0;
-    } else {
+    bool success = faabric::sync::getDistributedSync().localTryLock(mx);
+    if (!success) {
         return EBUSY;
     }
+    return 0;
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -215,7 +214,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 mx)
 {
     SPDLOG_TRACE("S - pthread_mutex_unlock {}", mx);
-    getExecutingWAVMModule()->getMutexes().unlockMutex(mx);
+    faabric::sync::getDistributedSync().localUnlock(mx);
     return 0;
 }
 
@@ -226,7 +225,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 mx)
 {
     SPDLOG_TRACE("S - pthread_mutex_destroy {}", mx);
-    getExecutingWAVMModule()->getMutexes().destroyMutex(mx);
     return 0;
 }
 

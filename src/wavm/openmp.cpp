@@ -226,7 +226,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS("__kmpc_critical {} {} {}", loc, globalTid, crit);
 
     if (level->numThreads > 1) {
-        faabric::sync::getDistributedSync().lock(*msg);
+        // Get lock locally
+        faabric::sync::getDistributedSync().localLockRecursive(msg->appid());
+
+        // TODO work out distributed recursive locking
+
+        // TODO - pull snapshot diffs
     }
 }
 
@@ -248,7 +253,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS("__kmpc_end_critical {} {} {}", loc, globalTid, crit);
 
     if (level->numThreads > 1) {
-        faabric::sync::getDistributedSync().unlock(*msg);
+        // TODO - push snapshot diffs
+
+        faabric::sync::getDistributedSync().localUnlockRecursive(msg->appid());
     }
 }
 
@@ -742,7 +749,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 // ---------------------------------------------------
 
 /**
- *  Called to finish off a reduction.
+ * Called to finish off a reduction.
  */
 void endReduceCritical(bool barrier)
 {
@@ -752,11 +759,11 @@ void endReduceCritical(bool barrier)
 
     // Unlock the critical section
     faabric::sync::DistributedSync& sync = faabric::sync::getDistributedSync();
-    sync.unlock(*msg);
+    sync.localUnlock(msg->appid());
 
     // Master must make sure all other threads are done
     if (localThreadNum == 0) {
-        sync.localNotifyMaster(msg->appid());
+        sync.awaitNotify(msg->appid());
     } else {
         sync.notify(*msg);
     }
@@ -801,7 +808,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceData,
                   reduceFunc,
                   lockPtr);
-    faabric::sync::getDistributedSync().lock(*msg);
+    faabric::sync::getDistributedSync().localLock(msg->appid());
     return 1;
 }
 
@@ -828,7 +835,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceData,
                   reduceFunc,
                   lockPtr);
-    faabric::sync::getDistributedSync().lock(*msg);
+    faabric::sync::getDistributedSync().localLock(msg->appid());
     return 1;
 }
 
