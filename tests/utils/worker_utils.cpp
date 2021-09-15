@@ -187,22 +187,24 @@ void execFuncWithPool(faabric::Message& call, bool clean, int timeout)
     cleanSystem();
 }
 
-void doWamrPoolExecution(faabric::Message& msg)
+void doWamrPoolExecution(faabric::Message& msg, int timeout = 1000)
 {
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     const std::string originalVm = conf.wasmVm;
     conf.wasmVm = "wamr";
 
     // Don't clean so that the WAMR configuration persists
-    execFuncWithPool(msg, false);
+    execFuncWithPool(msg, false, timeout);
 
     conf.wasmVm = originalVm;
 }
 
-void executeWithWamrPool(const std::string& user, const std::string& func)
+void executeWithWamrPool(const std::string& user,
+                         const std::string& func,
+                         int timeout)
 {
     faabric::Message call = faabric::util::messageFactory(user, func);
-    doWamrPoolExecution(call);
+    doWamrPoolExecution(call, timeout);
 }
 
 void executeWithSGX(const std::string& user, const std::string& func)

@@ -74,7 +74,8 @@ TEST_CASE_METHOD(FilesystemTestFixture, "Test fcntl", "[faaslet][wamr]")
     SECTION("WAMR") { execWamrFunction(msg); }
 }
 
-// TODO - this is not working ATM
+// TODO - bug in WAMR's WASI implementation makes this test fail. Will uncomment
+// when fixed.
 TEST_CASE_METHOD(FilesystemTestFixture, "Test fread", "[faaslet]")
 {
     faabric::Message msg = faabric::util::messageFactory("demo", "fread");

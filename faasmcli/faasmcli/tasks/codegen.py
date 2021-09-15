@@ -110,7 +110,7 @@ def local(ctx):
     codegen(ctx, "demo", "fread", wamr=True)  # not working
 
     # IO
-    codegen(ctx, "demo", "check_input", wamr=True)  # not working
+    codegen(ctx, "demo", "check_input", wamr=True)
     codegen(ctx, "demo", "echo", wamr=True)
     codegen(ctx, "demo", "stdout", wamr=True)
     codegen(ctx, "demo", "stderr", wamr=True)

@@ -55,6 +55,6 @@ TEST_CASE("Test WAMR sbrk", "[wamr]")
 
 TEST_CASE("Test executing chain function with WAMR", "[wamr]")
 {
-    executeWithWamrPool("demo", "chain");
+    executeWithWamrPool("demo", "chain", 10000);
 }
 }

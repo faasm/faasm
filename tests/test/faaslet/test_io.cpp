@@ -8,7 +8,6 @@
 using namespace faaslet;
 
 namespace tests {
-// TODO - this is not working
 TEST_CASE("Test fixed input with colon", "[faaslet][wamr]")
 {
     cleanSystem();
@@ -18,7 +17,7 @@ TEST_CASE("Test fixed input with colon", "[faaslet][wamr]")
 
     SECTION("WAVM") { execFunction(call); }
 
-    // SECTION("WAMR") { execWamrFunction(call); }
+    SECTION("WAMR") { execWamrFunction(call); }
 }
 
 TEST_CASE("Test execution of echo function", "[faaslet][wamr]")
