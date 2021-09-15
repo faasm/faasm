@@ -19,9 +19,9 @@ set (WAMR_BUILD_LIB_PTHREAD 0)
 
 # WAMR features
 set (WAMR_BUILD_SIMD 0)
-set (WAMR_BUILD_MULTI_MODULE 1)
-set (WAMR_BUILD_BULK_MEMORY 0)
-set (WAMR_DISABLE_HW_BOUND_CHECK 1)
+# Explicitely set to 0. If set to 1, WAMR will allocate the module's instance
+# memory using `malloc` instead of `mmap` and calls to `mprotect` fail.
+set (WAMR_DISABLE_HW_BOUND_CHECK 0)
 # This definition prevents a buffer underflow during code generation
 add_definitions(-DWASM_ENABLE_WAMR_COMPILER=1)
 

@@ -53,7 +53,7 @@ class WAVMWasmModule final
 
     void unmapMemory(uint32_t offset, uint32_t nBytes) override;
 
-    uint8_t* wasmPointerToNative(int32_t wasmPtr) override;
+    uint8_t* wasmPointerToNative(uint32_t wasmPtr) override;
 
     size_t getMemorySizeBytes() override;
 

@@ -8,6 +8,8 @@
 
 #include <cstdint>
 #include <stdexcept>
+#include <stdlib.h>
+#include <sys/mman.h>
 
 // WAMR includes
 #include <aot_runtime.h>
@@ -270,13 +272,18 @@ void WAMRWasmModule::validateWasmOffset(uint32_t wasmOffset, size_t size)
     }
 }
 
-uint8_t* WAMRWasmModule::wasmPointerToNative(int32_t wasmPtr)
+uint8_t* WAMRWasmModule::wasmPointerToNative(uint32_t wasmPtr)
 {
     void* nativePtr = wasm_runtime_addr_app_to_native(moduleInstance, wasmPtr);
+    if (nativePtr == nullptr) {
+        SPDLOG_ERROR(
+          "WASM offset {} is out of the WAMR module's address space");
+        throw std::runtime_error("Offset out of WAMR memory");
+    }
     return static_cast<uint8_t*>(nativePtr);
 }
 
-int32_t WAMRWasmModule::nativePointerToWasm(void* nativePtr)
+uint32_t WAMRWasmModule::nativePointerToWasm(void* nativePtr)
 {
     return wasm_runtime_addr_native_to_app(moduleInstance, nativePtr);
 }
@@ -284,18 +291,47 @@ int32_t WAMRWasmModule::nativePointerToWasm(void* nativePtr)
 uint32_t WAMRWasmModule::growMemory(uint32_t nBytes)
 {
 
-    SPDLOG_DEBUG("WAMR growing memory by {}", nBytes);
+    uint32_t oldBytes = getMemorySizeBytes();
+    uint32_t oldBrk = currentBrk;
+    uint32_t newBrk = currentBrk + nBytes;
 
-    uint32_t memBase = currentBrk;
+    if (!isWasmPageAligned(newBrk)) {
+        SPDLOG_ERROR("Growing WAMR memory by {} is not wasm page aligned",
+                     nBytes);
+        throw std::runtime_error("Non-wasm-page-aligned WAMR memory growth");
+    }
 
-    uint32_t nPages = getNumberOfWasmPagesForBytes(nBytes);
-    bool success = wasm_runtime_enlarge_memory(moduleInstance, nPages);
+    size_t newBytes = oldBytes + nBytes;
+    uint32_t oldPages = getNumberOfWasmPagesForBytes(oldBytes);
+    uint32_t newPages = getNumberOfWasmPagesForBytes(newBytes);
+    size_t maxPages = getMaxMemoryPages();
+
+    if (newPages > maxPages) {
+        SPDLOG_ERROR(
+          "WAMR grow memory would exceed max of {} pages (requested {})",
+          maxPages,
+          newPages);
+        throw std::runtime_error("WAMR grow memory exceeding max");
+    }
+
+    uint32_t pageChange = newPages - oldPages;
+    bool success = wasm_runtime_enlarge_memory(moduleInstance, pageChange);
     if (!success) {
         throw std::runtime_error("Failed to grow WAMR memory");
     }
 
-    currentBrk = memBase + (nPages * WASM_BYTES_PER_PAGE);
-    return memBase;
+    SPDLOG_TRACE("Growing WAMR memory from {} to {} pages", oldPages, newPages);
+
+    currentBrk = getMemorySizeBytes();
+    if (currentBrk != newBytes) {
+        SPDLOG_ERROR(
+          "Expected new brk ({}) to be old WAMR memory plus new bytes ({})",
+          currentBrk,
+          newBytes);
+        throw std::runtime_error("WAMR memory growth discrepancy");
+    }
+
+    return oldBrk;
 }
 
 uint32_t WAMRWasmModule::shrinkMemory(uint32_t nBytes)
@@ -316,6 +352,14 @@ size_t WAMRWasmModule::getMemorySizeBytes()
     AOTMemoryInstance* aotMem =
       ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
     return aotMem->cur_page_count * aotMem->num_bytes_per_page;
+}
+
+size_t WAMRWasmModule::getMaxMemoryPages()
+{
+    auto aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
+    AOTMemoryInstance* aotMem =
+      ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
+    return aotMem->max_page_count;
 }
 
 WASMModuleInstanceCommon* WAMRWasmModule::getModuleInstance()

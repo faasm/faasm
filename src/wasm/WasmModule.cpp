@@ -462,9 +462,7 @@ uint32_t WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
     // NOTE: we want to protect these regions from _writes_, but we don't
     // want to stop them being read, otherwise snapshotting will fail.
     // Therefore we make them read-only
-    // TODO - mprotect not working
-    // int res = mprotect(nativePtr, regionSize, PROT_READ);
-    int res = 0;
+    int res = mprotect(nativePtr, regionSize, PROT_READ);
     if (res != 0) {
         SPDLOG_ERROR("Failed to create memory guard: {}", std::strerror(errno));
         throw std::runtime_error("Failed to create memory guard");
@@ -633,7 +631,7 @@ void WasmModule::unmapMemory(uint32_t offset, uint32_t nBytes)
     throw std::runtime_error("unmapMemory not implemented");
 }
 
-uint8_t* WasmModule::wasmPointerToNative(int32_t wasmPtr)
+uint8_t* WasmModule::wasmPointerToNative(uint32_t wasmPtr)
 {
     throw std::runtime_error("wasmPointerToNative not implemented");
 }

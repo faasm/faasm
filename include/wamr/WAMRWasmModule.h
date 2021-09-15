@@ -47,10 +47,10 @@ class WAMRWasmModule final : public WasmModule
     void validateWasmOffset(uint32_t wasmOffset, size_t size);
 
     // Convert relative address to absolute address (pointer to memory)
-    uint8_t* wasmPointerToNative(int32_t wasmPtr) override;
+    uint8_t* wasmPointerToNative(uint32_t wasmPtr) override;
 
     // Convert absolute address to relative address (offset in WASM memory)
-    int32_t nativePointerToWasm(void* nativePtr);
+    uint32_t nativePointerToWasm(void* nativePtr);
 
     // ----- Memory management -----
     uint32_t growMemory(uint32_t nBytes) override;
@@ -62,6 +62,8 @@ class WAMRWasmModule final : public WasmModule
     uint32_t mmapFile(uint32_t fp, uint32_t length) override;
 
     size_t getMemorySizeBytes() override;
+
+    size_t getMaxMemoryPages();
 
     WASMModuleInstanceCommon* getModuleInstance();
 

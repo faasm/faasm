@@ -16,7 +16,7 @@ FetchContent_Declare(wavm_ext
 
 FetchContent_Declare(wamr_ext
     GIT_REPOSITORY "https://github.com/faasm/wasm-micro-runtime"
-    GIT_TAG "67bf52c95f5ce8b61ec29e00f1db21edfccd42ff"
+    GIT_TAG "5ac9493230902dd6ffdcbef0eeb6d5cc20fa81df"
 )
 
 FetchContent_MakeAvailable(wavm_ext wamr_ext)
