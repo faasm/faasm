@@ -1554,7 +1554,8 @@ Runtime::Function* WAVMWasmModule::getFunctionFromPtr(int funcPtr) const
         throw std::runtime_error("Function pointer not found");
     }
 
-    return Runtime::asFunction(funcObj);
+    Runtime::Function* f = Runtime::asFunction(funcObj);
+    return f;
 }
 
 void WAVMWasmModule::printDebugInfo()

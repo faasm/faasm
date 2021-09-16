@@ -1,3 +1,5 @@
+#include "faabric/util/snapshot.h"
+#include "wasm/WasmExecutionContext.h"
 #include <WAVM/Platform/Thread.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
@@ -808,6 +810,18 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceData,
                   reduceFunc,
                   lockPtr);
+    std::string snapKey = getExecutingCall()->snapshotkey();
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+
+    // TODO work out a way to detect what sort of reduction this is.
+    // HACK for now, assume it's an integer sum
+    reg.getSnapshot(snapKey).addMergeRegion(
+      reduceData,
+      reduceSize,
+      faabric::util::SnapshotDataType::Int,
+      faabric::util::SnapshotMergeOperation::Sum);
+
     startReduceCritical();
     return 1;
 }
@@ -835,6 +849,18 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceData,
                   reduceFunc,
                   lockPtr);
+    std::string snapKey = getExecutingCall()->snapshotkey();
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+
+    // TODO work out a way to detect what sort of reduction this is.
+    // HACK for now, assume it's an integer sum
+    reg.getSnapshot(snapKey).addMergeRegion(
+      reduceData,
+      reduceSize,
+      faabric::util::SnapshotDataType::Int,
+      faabric::util::SnapshotMergeOperation::Sum);
+
     startReduceCritical();
     return 1;
 }
