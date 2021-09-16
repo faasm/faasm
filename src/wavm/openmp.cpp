@@ -815,7 +815,22 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
       faabric::snapshot::getSnapshotRegistry();
 
     // TODO work out a way to detect what sort of reduction this is.
-    // HACK for now, assume it's an integer sum
+    //
+    // This is tricky as OpenMP doesn't specify what sort of reduction it's
+    // doing, just uses a function with the same name every time, regardless of
+    // the operation.
+    //
+    // For now based on the applications we run, we can assume it's an integer
+    // sum.
+    //
+    // Options for changing this include:
+    //
+    // - Use reduceSize to work out data type (allows us to support more types
+    // of sum)
+    // - Change the OpenMP directive to name the function appropriately when
+    // it's a standard operation (e.g. sum, product etc.)
+    // - Use a strict global critical sections where memory is synced (this
+    // will be terrible for performance)
     reg.getSnapshot(snapKey).addMergeRegion(
       reduceData,
       reduceSize,
