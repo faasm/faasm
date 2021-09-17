@@ -31,8 +31,6 @@ std::shared_ptr<NetworkNamespace> claimNetworkNamespace()
         faabric::util::UniqueLock lock(namespacesLock);
 
         if (namespaces.empty() && !namespacesInitialised) {
-            namespacesInitialised = true;
-
             // Note that the availability of namespaces depends on the Faasm
             // configuration for the relevant host
             // TODO - connect these two up properly
@@ -43,6 +41,8 @@ std::shared_ptr<NetworkNamespace> claimNetworkNamespace()
                 namespaces.emplace_back(
                   std::make_shared<NetworkNamespace>(netnsName));
             }
+
+            namespacesInitialised = true;
         }
     } else if (namespaces.empty()) {
         throw std::runtime_error("Namespaces have run out");
