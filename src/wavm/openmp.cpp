@@ -748,33 +748,33 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 void startReduceCritical(int32_t reduceData, int32_t reduceSize)
 {
     std::string snapKey = getExecutingCall()->snapshotkey();
-    if(!snapKey.empty()) {
+    if (!snapKey.empty()) {
 
-    faabric::snapshot::SnapshotRegistry& reg =
-      faabric::snapshot::getSnapshotRegistry();
+        faabric::snapshot::SnapshotRegistry& reg =
+          faabric::snapshot::getSnapshotRegistry();
 
-    // TODO here we need to set up the merge operation for DSM.
-    //
-    // This is tricky as OpenMP doesn't specify what sort of reduction it's
-    // doing, just uses a function with the same name every time, regardless of
-    // the operation.
-    //
-    // For now based on the applications we run, we can assume it's an integer
-    // sum.
-    //
-    // Options for changing this include:
-    //
-    // - Use reduceSize to work out data type (allows us to support more types
-    // of sum)
-    // - Change the OpenMP directive to name the function appropriately when
-    // it's a standard operation (e.g. sum, product etc.)
-    // - Use a strict global critical sections where memory is synced (this
-    // will be terrible for performance)
-    reg.getSnapshot(snapKey).addMergeRegion(
-      reduceData,
-      reduceSize,
-      faabric::util::SnapshotDataType::Int,
-      faabric::util::SnapshotMergeOperation::Sum);
+        // TODO here we need to set up the merge operation for DSM.
+        //
+        // This is tricky as OpenMP doesn't specify what sort of reduction it's
+        // doing, just uses a function with the same name every time, regardless
+        // of the operation.
+        //
+        // For now based on the applications we run, we can assume it's an
+        // integer sum.
+        //
+        // Options for changing this include:
+        //
+        // - Use reduceSize to work out data type (allows us to support more
+        // types of sum)
+        // - Change the OpenMP directive to name the function appropriately when
+        // it's a standard operation (e.g. sum, product etc.)
+        // - Use a strict global critical sections where memory is synced (this
+        // will be terrible for performance)
+        reg.getSnapshot(snapKey).addMergeRegion(
+          reduceData,
+          reduceSize,
+          faabric::util::SnapshotDataType::Int,
+          faabric::util::SnapshotMergeOperation::Sum);
     }
 
     // Lock the critical section

@@ -9,6 +9,7 @@ TEST_CASE_METHOD(DistTestsFixture, "Test OpenMP across hosts", "[scheduler]")
 {
     uploadExistingFunction("omp", "hellomp");
     uploadExistingFunction("omp", "omp_checks");
+    uploadExistingFunction("omp", "repeated_reduce");
 
     conf.overrideCpuCount = 6;
 
@@ -22,6 +23,8 @@ TEST_CASE_METHOD(DistTestsFixture, "Test OpenMP across hosts", "[scheduler]")
     SECTION("Not using shared memory") { function = "hellomp"; }
 
     SECTION("Using shared memory") { function = "omp_checks"; }
+
+    SECTION("Repeated reduce") { function = "repeated_reduce"; }
 
     // Set up the message
     std::shared_ptr<faabric::BatchExecuteRequest> req =
