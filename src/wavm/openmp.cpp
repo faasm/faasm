@@ -748,6 +748,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 void startReduceCritical(int32_t reduceData, int32_t reduceSize)
 {
     std::string snapKey = getExecutingCall()->snapshotkey();
+    if(!snapKey.empty()) {
+
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
 
@@ -773,6 +775,7 @@ void startReduceCritical(int32_t reduceData, int32_t reduceSize)
       reduceSize,
       faabric::util::SnapshotDataType::Int,
       faabric::util::SnapshotMergeOperation::Sum);
+    }
 
     // Lock the critical section
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
