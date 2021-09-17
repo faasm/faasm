@@ -357,6 +357,7 @@ cp -r dev/faasm-local/wasm dist-test/build/faasm-local/wasm
 cd dist-test
 docker-compose stop
 docker-compose rm
+cd ..
 
 # Build
 ./dist-test/build.sh
