@@ -1,5 +1,3 @@
-#include "faabric/util/snapshot.h"
-#include "wasm/WasmExecutionContext.h"
 #include <WAVM/Platform/Thread.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
@@ -13,9 +11,11 @@
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
+#include <faabric/util/snapshot.h>
 #include <faabric/util/timing.h>
 
 #include <threads/ThreadState.h>
+#include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 #include <wavm/WAVMWasmModule.h>
 
@@ -745,8 +745,35 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 /**
  * Called to enter the critical section used to perform a reduction.
  */
-void startReduceCritical()
+void startReduceCritical(int32_t reduceData, int32_t reduceSize)
 {
+    std::string snapKey = getExecutingCall()->snapshotkey();
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+
+    // TODO here we need to set up the merge operation for DSM.
+    //
+    // This is tricky as OpenMP doesn't specify what sort of reduction it's
+    // doing, just uses a function with the same name every time, regardless of
+    // the operation.
+    //
+    // For now based on the applications we run, we can assume it's an integer
+    // sum.
+    //
+    // Options for changing this include:
+    //
+    // - Use reduceSize to work out data type (allows us to support more types
+    // of sum)
+    // - Change the OpenMP directive to name the function appropriately when
+    // it's a standard operation (e.g. sum, product etc.)
+    // - Use a strict global critical sections where memory is synced (this
+    // will be terrible for performance)
+    reg.getSnapshot(snapKey).addMergeRegion(
+      reduceData,
+      reduceSize,
+      faabric::util::SnapshotDataType::Int,
+      faabric::util::SnapshotMergeOperation::Sum);
+
     // Lock the critical section
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
     level->lockCritical();
@@ -810,34 +837,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceData,
                   reduceFunc,
                   lockPtr);
-    std::string snapKey = getExecutingCall()->snapshotkey();
-    faabric::snapshot::SnapshotRegistry& reg =
-      faabric::snapshot::getSnapshotRegistry();
-
-    // TODO work out a way to detect what sort of reduction this is.
-    //
-    // This is tricky as OpenMP doesn't specify what sort of reduction it's
-    // doing, just uses a function with the same name every time, regardless of
-    // the operation.
-    //
-    // For now based on the applications we run, we can assume it's an integer
-    // sum.
-    //
-    // Options for changing this include:
-    //
-    // - Use reduceSize to work out data type (allows us to support more types
-    // of sum)
-    // - Change the OpenMP directive to name the function appropriately when
-    // it's a standard operation (e.g. sum, product etc.)
-    // - Use a strict global critical sections where memory is synced (this
-    // will be terrible for performance)
-    reg.getSnapshot(snapKey).addMergeRegion(
-      reduceData,
-      reduceSize,
-      faabric::util::SnapshotDataType::Int,
-      faabric::util::SnapshotMergeOperation::Sum);
-
-    startReduceCritical();
+    startReduceCritical(reduceData, reduceSize);
     return 1;
 }
 
@@ -864,19 +864,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceData,
                   reduceFunc,
                   lockPtr);
-    std::string snapKey = getExecutingCall()->snapshotkey();
-    faabric::snapshot::SnapshotRegistry& reg =
-      faabric::snapshot::getSnapshotRegistry();
-
-    // TODO work out a way to detect what sort of reduction this is.
-    // HACK for now, assume it's an integer sum
-    reg.getSnapshot(snapKey).addMergeRegion(
-      reduceData,
-      reduceSize,
-      faabric::util::SnapshotDataType::Int,
-      faabric::util::SnapshotMergeOperation::Sum);
-
-    startReduceCritical();
+    startReduceCritical(reduceData, reduceSize);
     return 1;
 }
 
