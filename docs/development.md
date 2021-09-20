@@ -264,32 +264,28 @@ distributed test suite.
 It shares the [`docker-compose.yml`](../docker-compose.yml) file with the
 quick-start deployment, but mounts your local builds inside the containers.
 
-### Running local changes in the cluster
-
-To demonstrate, we can make a change to the `pool_runner` which is executed by
-the `worker` container. To set up the local cluster:
+To check the set-up:
 
 ```bash
-# Nuke everything that might already have been set up
-docker ps -aq | xargs docker rm -f
+# Nuke any existing containers
+docker-compose stop
+docker-compose rm
 
 # Start the dev cluster
 ./deploy/local/cli.sh faasm
 
-# Set ini file to point to local
-inv knative.ini-file --local
-
 # Build everything (inside the container you're dropped into)
 inv dev.tools
 
-# Leave the container
+# Make sure you remove any existing cluster-related config
+rm -f faasm.ini
 ```
 
-Now you can run a `cpp` container, compile upload and invoke a function:
+Now from the `cpp` container you can compile, upload and invoke a function:
 
 ```bash
 # Work from the cpp container
-./bin/cluster_dev.sh cpp
+./deploy/local/cli.sh cpp
 
 # Compile, upload, invoke a function
 inv func demo hello
@@ -297,11 +293,13 @@ inv func.upload demo hello
 inv func.invoke demo hello
 ```
 
-Now you can make some changes and check:
+### Picking up local changes
+
+Assuming you've changed something related to the `pool_runner` target (which is
+executed by the `worker` container), you can pick up the changes with:
 
 ```bash
-# Drop into the faasm-cli container
-./bin/cluster_dev.sh faasm
+./deploy/local/cli.sh faasm
 
 # Make some modifications to pool_runner
 
@@ -317,27 +315,19 @@ docker-compose restart worker
 docker-compose logs -f
 ```
 
-## Distributed tests
-
-The distributed tests are aimed at testing a more "realistic" distributed
-environment than the normal tests.
-
 ### Running distributed tests locally
 
-When running locally, the distributed tests use a separate build and execution
-environment to the normal dev set-up. This more accurately replicates a distributed deployment.
+The distributed tests check the interactions of the Faasm workers, file storage,
+redis and upload containers.
 
-Note that this means they don't share builds of the code, the wasm functions or
-machine code, so be careful to rebuild them when developing.
-
-To get started:
+To run them in your local dev cluster:
 
 ```bash
 # Upload the functions
-./dist-test/upload.sh
+./deploy/local/upload.sh
 
-# Start up the CLI container
-./dist-test/run.sh local
+# Enter the Faasm CLI container
+./deploy/local/cli.sh faasm
 
 # Rebuild the tests and server
 inv dev.cc dist_tests
@@ -347,9 +337,7 @@ inv dev.cc dist_test_server
 You can then restart the server and look at logs from outside the container:
 
 ```bash
-cd dist-test
-
-./restart_server.sh
+./deploy/local/restart_server.sh
 
 docker-compose logs -f
 ```
@@ -369,18 +357,14 @@ dist_tests
 To run the distributed tests as if in CI:
 
 ```bash
-# Copy wasm files into place
-cp -r dev/faasm-local/wasm dist-test/build/faasm-local/wasm
-
-# Clean up
-cd dist-test
+# Clean up everything already in place
 docker-compose stop
 docker-compose rm
 
 # Build
-./dist-test/build.sh
-./dist-test/upload.sh
+./deploy/local/build.sh
+./deploy/local/upload.sh
 
 # Run once through
-./dist-test/run.sh
+./deploy/local/run.sh
 ```

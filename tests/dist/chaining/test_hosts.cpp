@@ -12,7 +12,9 @@ TEST_CASE("Test available hosts", "[scheduler]")
 
     std::set<std::string> actual = sch.getAvailableHosts();
 
-    std::set<std::string> expected = { MASTER_IP, WORKER_IP };
+    std::set<std::string> expected = { getDistTestMasterIp(),
+                                       getDistTestWorkerIp() };
+
     REQUIRE(actual == expected);
 }
 }

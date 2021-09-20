@@ -7,12 +7,20 @@
 
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/func.h>
-
-// Note that this must match the dist test docker-compose config
-#define MASTER_IP "172.60.0.7"
-#define WORKER_IP "172.60.0.8"
+#include <faabric/util/network.h>
 
 namespace tests {
+
+std::string getDistTestMasterIp()
+{
+    return faabric::util::getIpFromHostname("faasm-cli");
+}
+
+std::string getDistTestWorkerIp()
+{
+    return faabric::util::getIpFromHostname("dist-test-server");
+}
+
 class DistTestsFixture
 {
   protected:

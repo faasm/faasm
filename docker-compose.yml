@@ -1,24 +1,11 @@
 version: "3"
 
-networks:
-  faasmdist:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.60.0.0/24
-
 services:
   redis-state:
     image: faasm/redis:${FAASM_VERSION}
-    networks:
-      faasmdist:
-        ipv4_address: 172.60.0.2
 
   redis-queue:
     image: faasm/redis:${FAASM_VERSION}
-    networks:
-      faasmdist:
-        ipv4_address: 172.60.0.3
 
   minio:
     image: faasm/minio:${FAASM_VERSION}
@@ -29,9 +16,6 @@ services:
       MINIO_ROOT_PASSWORD: minio123
     volumes:
       - ./dev/minio/data:/data/minio
-    networks:
-      faasmdist:
-        ipv4_address: 172.60.0.4
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 5s
@@ -57,9 +41,6 @@ services:
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
-    networks:
-      faasmdist:
-        ipv4_address: 172.60.0.5
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8002/ping"]
       interval: 5s
@@ -135,9 +116,6 @@ services:
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
-    networks:
-      faasmdist:
-        ipv4_address: 172.60.0.7
     volumes:
       - ./:/usr/local/code/faasm/
       - ./dev/faasm/build/:/build/faasm/
@@ -149,7 +127,8 @@ services:
     image: ${FAASM_CLI_IMAGE}
     working_dir: /build/faasm
     depends_on:
-      - redis
+      - redis-queue
+      - redis-state
       - minio
     environment:
       - LOG_LEVEL=info
@@ -158,10 +137,6 @@ services:
       - OVERRIDE_CPU_COUNT=4
       - CGROUP_MODE=off
     command: ./bin/dist_test_server
-    networks:
-      faasmdist:
-        ipv4_address: 172.60.0.8
     volumes:
       - ./:/usr/local/code/faasm/
       - ./dev/faasm/build/:/build/faasm/
-
