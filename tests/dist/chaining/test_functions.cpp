@@ -11,7 +11,7 @@ TEST_CASE_METHOD(DistTestsFixture,
                  "Test invoking a function on another host",
                  "[scheduler]")
 {
-    uploadExistingFunction("demo", "echo");
+    // uploadExistingFunction("demo", "echo");
     int nMessages = 3;
 
     // Remove slots from this host
@@ -48,7 +48,7 @@ TEST_CASE_METHOD(DistTestsFixture,
 
 TEST_CASE_METHOD(DistTestsFixture, "Test chaining across hosts", "[scheduler]")
 {
-    uploadExistingFunction("demo", "chain");
+    // uploadExistingFunction("demo", "chain");
 
     // Set up this host's resources
     int nLocalSlots = 2;

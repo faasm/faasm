@@ -99,8 +99,7 @@ services:
     volumes:
       - ./clients/python:/code/python
 
-  # --- Local cluster dev ---
-  # The following containers are only needed for local cluster dev
+  # --- Local cluster dev CLI ---
   faasm-cli:
     image: ${FAASM_CLI_IMAGE}
     working_dir: /usr/local/code/faasm
@@ -121,8 +120,7 @@ services:
       - ./dev/faasm/build/:/build/faasm/
       - ./dev/faasm-local:/usr/local/faasm
 
-  # --- Distributed tests ---
-  # The following containers are only needed for running the distributed tests
+  # --- Distributed tests server ---
   dist-test-server:
     image: ${FAASM_CLI_IMAGE}
     working_dir: /build/faasm

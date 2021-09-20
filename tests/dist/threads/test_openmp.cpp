@@ -7,8 +7,8 @@
 namespace tests {
 TEST_CASE_METHOD(DistTestsFixture, "Test OpenMP across hosts", "[scheduler]")
 {
-    uploadExistingFunction("omp", "hellomp");
-    uploadExistingFunction("omp", "omp_checks");
+    // uploadExistingFunction("omp", "hellomp");
+    // uploadExistingFunction("omp", "omp_checks");
 
     conf.overrideCpuCount = 6;
 

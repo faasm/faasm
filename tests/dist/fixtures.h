@@ -14,6 +14,7 @@ namespace tests {
 class DistTestsFixture
 {
   protected:
+    faabric::redis::Redis& redis;
     faabric::scheduler::Scheduler& sch;
     faabric::util::SystemConfig& conf;
     conf::FaasmConfig& faasmConf;
@@ -23,10 +24,13 @@ class DistTestsFixture
 
   public:
     DistTestsFixture()
-      : sch(faabric::scheduler::getScheduler())
+      : redis(faabric::redis::Redis::getQueue())
+      , sch(faabric::scheduler::getScheduler())
       , conf(faabric::util::getSystemConfig())
       , faasmConf(conf::getFaasmConfig())
     {
+        redis.flushAll();
+
         // Clean up the scheduler and make sure this host is available
         sch.shutdown();
         sch.addHostToGlobalSet();
