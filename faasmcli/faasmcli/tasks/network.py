@@ -1,7 +1,5 @@
 from invoke import task
-from faasmcli.util.env import PROJ_ROOT
-from os import environ
-from os.path import isfile, join
+from os.path import isfile
 from subprocess import run
 import sys
 
@@ -134,7 +132,8 @@ def _setup_single_ns(
         check=True,
     )
     run(
-        "ip netns exec {} tc class add dev {} parent 1: classid 1:1 htb rate {} ceil {}".format(
+        "ip netns exec {} tc class add dev {} parent 1: classid 1:1 htb rate {}\
+                ceil {}".format(
             ns_name, vif_peer, egress_rate, egress_ceil
         ),
         shell=True,
@@ -189,7 +188,7 @@ def create_ns(
     do_create_ns(ns_prefix, max_net_ns, egress_kb, ingress_kb, ip_base)
 
     print(
-        "If you want the namespace limit to persist, make sure to update the env. variable:"
+        "If you want the ns limit to persist, make sure to update the env. variable:"
     )
     print("export MAX_NET_NAMESPACES={}".format(max_net_ns))
 
@@ -243,8 +242,6 @@ def test_ns_limit(ctx, server_ip):
     """
     prefix = "tester"
     ns_name = "testerns1"
-    vif_name = "tester1"
-    vif_peer = "testerp1"
 
     egress_kb = 100
     ingress_kb = 200
