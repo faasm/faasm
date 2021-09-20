@@ -226,10 +226,11 @@ you can skip this step.
 - Run `sudo update-grub`
 - Restart the machine
 
-This script will then set up the namespaces
+Then, this script will set up the namespaces. From outside the container run:
 
 ```bash
-sudo ./bin/netns.sh 20
+source ./bin/workon.sh
+(faasm) inv network.create-ns 100
 ```
 
 ## Cgroups

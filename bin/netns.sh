@@ -2,9 +2,6 @@
 
 set -e
 
-THIS_DIR=$(dirname $(readlink -f $0))
-INNER_SCRIPT=${THIS_DIR}/netns_inner.sh
-
 if [ "$NETNS_MODE" == "off" ];
 then
     echo "Network namespace support is off"
@@ -16,11 +13,6 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
-MAX_FAASLETS=$1;
+MAX_NET_NAMESPACES=$1;
 
-EGRESS_KB=1024
-INGRESS_KB=1024
-IP_BASE=200
-NAMESPACE_PREFIX=faasm
-
-${INNER_SCRIPT} ${NAMESPACE_PREFIX} ${MAX_FAASLETS} ${EGRESS_KB} ${INGRESS_KB} ${IP_BASE}
+python3 faasmcli/faasmcli/tasks/network.py ${MAX_NET_NAMESPACES}

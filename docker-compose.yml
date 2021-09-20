@@ -68,6 +68,7 @@ services:
       - GLOBAL_MESSAGE_TIMEOUT=600000
       - LOG_LEVEL=info
       - NETNS_MODE=off
+      - MAX_NET_NAMESPACES=100
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - OVERRIDE_CPU_COUNT=4

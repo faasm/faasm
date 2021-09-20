@@ -38,6 +38,8 @@ spec:
               value: "off"
             - name: NETNS_MODE
               value: "off"
+            - name: MAX_NET_NAMESPACES
+              value: 100
             - name: PYTHON_PRELOAD
               value: "off"
             - name: PYTHON_CODEGEN

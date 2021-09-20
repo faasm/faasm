@@ -21,6 +21,9 @@ std::mutex namespacesLock;
 
 void returnNetworkNamespace(std::shared_ptr<NetworkNamespace> ns)
 {
+    if (ns->getMode() == NetworkIsolationMode::ns_off) {
+        return;
+    }
     faabric::util::UniqueLock lock(namespacesLock);
     namespaces.emplace_back(ns);
 }
@@ -29,9 +32,8 @@ std::shared_ptr<NetworkNamespace> claimNetworkNamespace()
 {
     faabric::util::UniqueLock lock(namespacesLock);
     if (namespaces.empty() && !namespacesInitialised) {
-        // Note that the availability of namespaces depends on the Faasm
-        // configuration for the relevant host
-        int nNamespaces = faabric::util::getUsableCores() * 10;
+        conf::FaasmConfig& conf = conf::getFaasmConfig();
+        int nNamespaces = conf.maxNetNs;
 
         for (int i = 0; i < nNamespaces; i++) {
             std::string netnsName = BASE_NETNS_NAME + std::to_string(i);
@@ -40,11 +42,20 @@ std::shared_ptr<NetworkNamespace> claimNetworkNamespace()
         }
 
         namespacesInitialised = true;
-    } else if (namespaces.empty()) {
+    }
+
+    if (namespaces.empty()) {
         throw std::runtime_error("Namespaces have run out");
     }
 
     std::shared_ptr<NetworkNamespace> res = namespaces.back();
+
+    // If network namespaces are turned off, we return a valid pointer but
+    // don't remove the resource, as no isolation is actually taking place
+    if (res->getMode() == NetworkIsolationMode::ns_off) {
+        return res;
+    }
+
     namespaces.pop_back();
     return res;
 }
@@ -74,6 +85,10 @@ const NetworkIsolationMode NetworkNamespace::getMode()
 
 void joinNamespace(const boost::filesystem::path& nsPath)
 {
+    const auto& conf = conf::getFaasmConfig();
+    if (conf.netNsMode == "off") {
+        return;
+    }
 
     SPDLOG_DEBUG("Setting network ns to {}", nsPath.string());
 
@@ -98,7 +113,6 @@ void joinNamespace(const boost::filesystem::path& nsPath)
 
 void NetworkNamespace::addCurrentThread()
 {
-
     if (mode == NetworkIsolationMode::ns_off) {
         SPDLOG_DEBUG("Not using network ns, support off");
         return;
@@ -117,7 +131,6 @@ void NetworkNamespace::addCurrentThread()
 
 void NetworkNamespace::removeCurrentThread()
 {
-
     if (mode == NetworkIsolationMode::ns_off) {
         SPDLOG_DEBUG("Not using network ns, support off");
         return;

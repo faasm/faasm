@@ -10,6 +10,7 @@ class FaasmConfig
 
     std::string cgroupMode;
     std::string netNsMode;
+    int maxNetNs;
 
     std::string pythonPreload;
     std::string captureStdout;

@@ -10,7 +10,7 @@ using namespace isolation;
 
 namespace tests {
 
-TEST_CASE("Test basic network properties", "[faaslet]")
+TEST_CASE("Test basic network properties", "[faaslet][network]")
 {
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string original = conf.netNsMode;
@@ -40,6 +40,25 @@ TEST_CASE("Test basic network properties", "[faaslet]")
 
     // Reset conf
     faabric::util::setEnvVar("NETNS_MODE", original);
+    conf.reset();
+}
+
+TEST_CASE("Test running out of namespaces", "[faaslet][network]")
+{
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
+    int originalMaxNetNs = conf.maxNetNs;
+
+    faabric::util::setEnvVar("MAX_NET_NAMESPACES", "0");
+    conf.reset();
+
+    assert(conf.maxNetNs == 0);
+
+    // Try claiming namespaces and fail
+    REQUIRE_THROWS(claimNetworkNamespace());
+
+    // Reset conf
+    faabric::util::setEnvVar("MAX_NET_NAMESPACES",
+                             std::to_string(originalMaxNetNs));
     conf.reset();
 }
 }
