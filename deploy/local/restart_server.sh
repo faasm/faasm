@@ -7,8 +7,6 @@ export PROJ_ROOT=${THIS_DIR}/../..
 
 pushd ${PROJ_ROOT} >> /dev/null
 
-export FAASM_VERSION=$(cat VERSION)
-
 # Restart the worker
 docker-compose \
     restart \

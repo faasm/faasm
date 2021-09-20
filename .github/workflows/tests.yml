@@ -195,18 +195,18 @@ jobs:
         run: git submodule update --init clients/cpp
         # --- Set up and run ---
       - name: "Set up directory for wasm"
-        run: mkdir -p ./dist-test/build/faasm-local
+        run: mkdir -p ./dev/faasm-local/wasm
       - name: "Download CPP wasm"
         uses: actions/download-artifact@v2
         with:
           name: cpp-wasm
-          path: ./dist-test/build/faasm-local/wasm
+          path: ./dev/faasm-local/wasm
       - name: "Build distributed tests"
-        run: ./dist-test/build.sh
+        run: ./deploy/local/build.sh
       - name: "Upload files in distributed env"
-        run: ./dist-test/upload.sh
+        run: ./deploy/local/upload.sh
       - name: "Run the distributed tests"
-        run: ./dist-test/dist_tests.sh
+        run: ./deploy/local/dist_tests.sh
 
   quick-start:
     if: github.event.pull_request.draft == false

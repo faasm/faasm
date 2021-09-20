@@ -7,12 +7,6 @@ export PROJ_ROOT=${THIS_DIR}/../..
 
 pushd ${PROJ_ROOT} >> /dev/null
 
-# Set up image name
-export FAASM_VERSION=$(cat VERSION)
-if [[ -z "${FAASM_CLI_IMAGE}" ]]; then
-    export FAASM_CLI_IMAGE=faasm/cli:${FAASM_VERSION}
-fi
-
 # Run the build
 docker-compose \
     run \

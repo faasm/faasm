@@ -7,24 +7,8 @@ export PROJ_ROOT=${THIS_DIR}/../..
 
 pushd ${PROJ_ROOT} > /dev/null
 
-export FAASM_VERSION=$(cat VERSION)
-export CPP_VERSION=$(cat clients/cpp/VERSION)
-export PYTHON_VERSION=$(cat clients/python/VERSION)
-
 # Mount our local build into the local cluster
 export FAASM_BUILD_MOUNT=/build/faasm
-
-if [[ -z "$FAASM_CLI_IMAGE" ]]; then
-    export FAASM_CLI_IMAGE=faasm/cli:${FAASM_VERSION}
-fi
-
-if [[ -z "$CPP_CLI_IMAGE" ]]; then
-    export CPP_CLI_IMAGE=faasm/cpp-sysroot:${CPP_VERSION}
-fi
-
-if [[ -z "$PYTHON_CLI_IMAGE" ]]; then
-    export PYTHON_CLI_IMAGE=faasm/cpython:${PYTHON_VERSION}
-fi
 
 INNER_SHELL=${SHELL:-"/bin/bash"}
 

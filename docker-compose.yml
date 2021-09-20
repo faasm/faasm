@@ -111,7 +111,7 @@ services:
     environment:
       - UPLOAD_HOST=${UPLOAD_HOST:-upload}
       - INVOKE_HOST=${INVOKE_HOST:-nginx}
-      - LOG_LEVEL=info
+      - LOG_LEVEL=trace
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
@@ -129,7 +129,7 @@ services:
       - redis-state
       - minio
     environment:
-      - LOG_LEVEL=info
+      - LOG_LEVEL=trace
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - OVERRIDE_CPU_COUNT=4
