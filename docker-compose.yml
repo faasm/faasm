@@ -135,6 +135,8 @@ services:
       - REDIS_STATE_HOST=redis-state
       - OVERRIDE_CPU_COUNT=4
       - CGROUP_MODE=off
+      - GLOBAL_MESSAGE_TIMEOUT=120000
+      - BOUND_TIMEOUT=60000
     command: ./bin/dist_test_server
     volumes:
       - ./:/usr/local/code/faasm/

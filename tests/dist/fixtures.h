@@ -19,6 +19,8 @@ class DistTestsFixture
     faabric::util::SystemConfig& conf;
     conf::FaasmConfig& faasmConf;
 
+    int functionCallTimeout = 10000;
+
     std::string masterIp;
     std::string workerIp;
 
@@ -56,23 +58,6 @@ class DistTestsFixture
             workerIp = faabric::util::getIPFromHostname("dist-test-server");
         }
         return workerIp;
-    }
-
-    void uploadExistingFunction(const std::string& user,
-                                const std::string& func)
-    {
-        // Although we may have the function data locally, we need to upload it
-        // again to make sure it's written to S3
-        faabric::Message msg = faabric::util::messageFactory(user, func);
-
-        storage::FileLoader& loader = storage::getFileLoader();
-        codegen::MachineCodeGenerator& gen = codegen::getMachineCodeGenerator();
-
-        std::vector<uint8_t> bytes = loader.loadFunctionWasm(msg);
-        msg.set_inputdata(bytes.data(), bytes.size());
-
-        loader.uploadFunction(msg);
-        gen.codegenForFunction(msg);
     }
 
     ~DistTestsFixture()

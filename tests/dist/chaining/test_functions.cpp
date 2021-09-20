@@ -11,7 +11,6 @@ TEST_CASE_METHOD(DistTestsFixture,
                  "Test invoking a function on another host",
                  "[scheduler]")
 {
-    // uploadExistingFunction("demo", "echo");
     int nMessages = 3;
 
     // Remove slots from this host
@@ -39,7 +38,8 @@ TEST_CASE_METHOD(DistTestsFixture,
 
     // Check it's successful
     for (int i = 0; i < 3; i++) {
-        faabric::Message result = sch.getFunctionResult(msgIds.at(i), 1000);
+        faabric::Message result =
+          sch.getFunctionResult(msgIds.at(i), functionCallTimeout);
         REQUIRE(result.returnvalue() == 0);
         REQUIRE(result.outputdata() == fmt::format("foobar {}", i));
         REQUIRE(result.executedhost() == workerIp);
@@ -48,8 +48,6 @@ TEST_CASE_METHOD(DistTestsFixture,
 
 TEST_CASE_METHOD(DistTestsFixture, "Test chaining across hosts", "[scheduler]")
 {
-    // uploadExistingFunction("demo", "chain");
-
     // Set up this host's resources
     int nLocalSlots = 2;
     faabric::HostResources res;
@@ -65,7 +63,8 @@ TEST_CASE_METHOD(DistTestsFixture, "Test chaining across hosts", "[scheduler]")
     sch.callFunctions(req);
 
     // Check it's successful
-    faabric::Message result = sch.getFunctionResult(msg.id(), 1000);
+    faabric::Message result =
+      sch.getFunctionResult(msg.id(), functionCallTimeout);
     REQUIRE(result.returnvalue() == 0);
 
     // Check executors on this host
