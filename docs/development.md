@@ -257,14 +257,14 @@ sudo ./bin/cgroup.sh
 
 ## Developing with a local cluster
 
-If you need to debug issues with the standard containers, or run multiple Faasm
-instances locally, you can use the [`bin/cluster_dev.sh`](../bin/cluster_dev.sh)
-script.
-This will mount your local build of Faasm inside a local cluster defined in
-[`docker-compose.yml`](../docker-compose.yml).
+The local development cluster is ueed for testing out distributed operations
+like file syncing and function chaining. It is also used for running the
+distributed test suite.
 
-Before doing so, make sure you've completely removed any existing faasm
-containers.
+It shares the [`docker-compose.yml`](../docker-compose.yml) file with the
+quick-start deployment, but mounts your local builds inside the containers.
+
+### Running local changes in the cluster
 
 To demonstrate, we can make a change to the `pool_runner` which is executed by
 the `worker` container. To set up the local cluster:
@@ -274,7 +274,7 @@ the `worker` container. To set up the local cluster:
 docker ps -aq | xargs docker rm -f
 
 # Start the dev cluster
-./bin/cluster_dev.sh faasm
+./deploy/local/cli.sh faasm
 
 # Set ini file to point to local
 inv knative.ini-file --local
@@ -320,34 +320,53 @@ docker-compose logs -f
 ## Distributed tests
 
 The distributed tests are aimed at testing a more "realistic" distributed
-environment than the normal tests and use multiple containers.
+environment than the normal tests.
 
-To run and develop locally:
+### Running distributed tests locally
+
+When running locally, the distributed tests use a separate build and execution
+environment to the normal dev set-up. This more accurately replicates a distributed deployment.
+
+Note that this means they don't share builds of the code, the wasm functions or
+machine code, so be careful to rebuild them when developing.
+
+To get started:
 
 ```bash
+# Upload the functions
+./dist-test/upload.sh
+
 # Start up the CLI container
 ./dist-test/run.sh local
 
-# Rebuild and run inside CLI container as usual
-inv dev.cmake --build=Debug
+# Rebuild the tests and server
 inv dev.cc dist_tests
-dist_tests
-
-# To rebuild the server, you'll need to rebuild and restart
 inv dev.cc dist_test_server
-
-# Outside the container
-./dist-test/restart_server.sh
 ```
 
-To see logs locally:
+You can then restart the server and look at logs from outside the container:
 
 ```bash
 cd dist-test
+
+./restart_server.sh
+
 docker-compose logs -f
 ```
 
-To run as if in CI:
+Back inside the container, you can rebuild and run the tests as necessary
+(remembering to rebuild and restart the server if anything changes on the server
+side):
+
+```bash
+inv dev.cc dist_tests
+
+dist_tests
+```
+
+### Replicating CI
+
+To run the distributed tests as if in CI:
 
 ```bash
 # Copy wasm files into place
@@ -360,6 +379,7 @@ docker-compose rm
 
 # Build
 ./dist-test/build.sh
+./dist-test/upload.sh
 
 # Run once through
 ./dist-test/run.sh

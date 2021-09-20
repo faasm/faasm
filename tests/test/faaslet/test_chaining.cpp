@@ -10,14 +10,14 @@ namespace tests {
 TEST_CASE("Test function chaining", "[faaslet]")
 {
     faabric::Message call = faabric::util::messageFactory("demo", "chain");
-    execFuncWithPool(call);
+    execFuncWithPool(call, true, 5000);
 }
 
 TEST_CASE("Test named function chaining", "[faaslet]")
 {
     faabric::Message call =
       faabric::util::messageFactory("demo", "chain_named_a");
-    execFuncWithPool(call);
+    execFuncWithPool(call, true, 5000);
 }
 
 }
