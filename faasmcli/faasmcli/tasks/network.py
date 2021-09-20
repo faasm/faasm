@@ -281,5 +281,7 @@ def test_ns_limit(ctx, server_ip):
     print("\nDone")
 
 
+# This entrypoint is used to create namespaces without installing invoke and
+# related python dependencies (used in the worker entrypoint)
 if __name__ == "__main__":
     do_create_ns("faasm", sys.argv[1], 1024, 1024, 200)
