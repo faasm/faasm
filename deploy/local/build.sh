@@ -17,6 +17,6 @@ fi
 docker-compose \
     run \
     faasm-cli \
-    /usr/local/code/faasm/dist-test/build_internal.sh
+    /usr/local/code/faasm/deploy/local/build_internal.sh
 
 popd >> /dev/null

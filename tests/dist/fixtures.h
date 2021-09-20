@@ -11,22 +11,15 @@
 
 namespace tests {
 
-std::string getDistTestMasterIp()
-{
-    return faabric::util::getIpFromHostname("faasm-cli");
-}
-
-std::string getDistTestWorkerIp()
-{
-    return faabric::util::getIpFromHostname("dist-test-server");
-}
-
 class DistTestsFixture
 {
   protected:
     faabric::scheduler::Scheduler& sch;
     faabric::util::SystemConfig& conf;
     conf::FaasmConfig& faasmConf;
+
+    std::string masterIp;
+    std::string workerIp;
 
   public:
     DistTestsFixture()
@@ -37,12 +30,28 @@ class DistTestsFixture
         // Clean up the scheduler and make sure this host is available
         sch.shutdown();
         sch.addHostToGlobalSet();
-        sch.addHostToGlobalSet(WORKER_IP);
+        sch.addHostToGlobalSet(getDistTestWorkerIp());
 
         // Set up executor
         std::shared_ptr<faaslet::FaasletFactory> fac =
           std::make_shared<faaslet::FaasletFactory>();
         faabric::scheduler::setExecutorFactory(fac);
+    }
+
+    std::string getDistTestMasterIp()
+    {
+        if (masterIp.empty()) {
+            masterIp = faabric::util::getIPFromHostname("faasm-cli");
+        }
+        return masterIp;
+    }
+
+    std::string getDistTestWorkerIp()
+    {
+        if (workerIp.empty()) {
+            workerIp = faabric::util::getIPFromHostname("dist-test-server");
+        }
+        return workerIp;
     }
 
     void uploadExistingFunction(const std::string& user,

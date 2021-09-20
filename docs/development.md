@@ -320,12 +320,9 @@ docker-compose logs -f
 The distributed tests check the interactions of the Faasm workers, file storage,
 redis and upload containers.
 
-To run them in your local dev cluster:
+To build the code:
 
 ```bash
-# Upload the functions
-./deploy/local/upload.sh
-
 # Enter the Faasm CLI container
 ./deploy/local/cli.sh faasm
 
@@ -334,17 +331,19 @@ inv dev.cc dist_tests
 inv dev.cc dist_test_server
 ```
 
-You can then restart the server and look at logs from outside the container:
+Then from outside the container, you need to upload the functions and restart:
 
 ```bash
+# Upload all the required functions
+./deploy/local/upload.sh
+
+# Restart the server
 ./deploy/local/restart_server.sh
 
 docker-compose logs -f
 ```
 
-Back inside the container, you can rebuild and run the tests as necessary
-(remembering to rebuild and restart the server if anything changes on the server
-side):
+Back inside the container, you can run the tests:
 
 ```bash
 inv dev.cc dist_tests
