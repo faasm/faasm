@@ -10,6 +10,7 @@ pushd ${PROJ_ROOT} >> /dev/null
 # Run the build
 docker-compose \
     run \
+    --rm \
     faasm-cli \
     /usr/local/code/faasm/deploy/local/build_internal.sh
 
