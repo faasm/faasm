@@ -59,7 +59,7 @@ The test itself can be run with the script in this repo on the other machine:
 
 ```
 source ./bin/workon.sh
-(faasm) inv network.test-ns-limit
+inv network.test-ns-limit
 ```
 
 Note that for the actual system we use a permissive limit on ingress/egress (>1MiB) so to run the test we need to create an artificially restrictive namespace.

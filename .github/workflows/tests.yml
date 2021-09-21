@@ -178,7 +178,7 @@ jobs:
         run: inv -r faasmcli/faasmcli python.clear-runtime-pyc
       # --- Test run ---
       - name: "Run the tests"
-        run: /build/faasm/bin/tests --abort
+        run: /build/faasm/bin/tests
 
   dist-tests:
     if: github.event.pull_request.draft == false

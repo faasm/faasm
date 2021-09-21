@@ -33,17 +33,16 @@ std::shared_ptr<NetworkNamespace> claimNetworkNamespace()
     faabric::util::UniqueLock lock(namespacesLock);
     if (namespaces.empty() && !namespacesInitialised) {
         conf::FaasmConfig& conf = conf::getFaasmConfig();
-        int nNamespaces = conf.maxNetNs;
 
         // If network namespaces are disabled, overwrite the env. variable and
         // create a single pointer to use as a placeholder
         if (conf.netNsMode == "off") {
             SPDLOG_DEBUG("Network ns off, ignoring MAX_NET_NAMESPACES ({})",
-                         nNamespaces);
-            nNamespaces = 1;
+                         conf.maxNetNs);
+            conf.maxNetNs = 1;
         }
 
-        for (int i = 0; i < nNamespaces; i++) {
+        for (int i = 0; i < conf.maxNetNs; i++) {
             std::string netnsName = BASE_NETNS_NAME + std::to_string(i);
             namespaces.emplace_back(
               std::make_shared<NetworkNamespace>(netnsName));

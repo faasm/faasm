@@ -230,7 +230,7 @@ Then, this script will set up the namespaces. From outside the container run:
 
 ```bash
 source ./bin/workon.sh
-(faasm) inv network.create-ns 100
+inv network.create-ns 100
 ```
 
 ## Cgroups

@@ -1,5 +1,7 @@
 #include <catch2/catch.hpp>
 
+#include "faasm_fixtures.h"
+
 #include <faabric/util/config.h>
 #include <faabric/util/environment.h>
 
@@ -10,11 +12,10 @@ using namespace isolation;
 
 namespace tests {
 
-TEST_CASE("Test basic network properties", "[faaslet][network]")
+TEST_CASE_METHOD(FaasmConfTestFixture,
+                 "Test basic network properties",
+                 "[faaslet][network]")
 {
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
-    std::string original = conf.netNsMode;
-
     std::string envValue;
     NetworkIsolationMode expected;
     SECTION("Test network namespace on")
@@ -37,19 +38,13 @@ TEST_CASE("Test basic network properties", "[faaslet][network]")
     NetworkNamespace ns("foo");
     REQUIRE(ns.getMode() == expected);
     REQUIRE(ns.getName() == "foo");
-
-    // Reset conf
-    faabric::util::setEnvVar("NETNS_MODE", original);
-    conf.reset();
 }
 
-TEST_CASE("Test running out of namespaces", "[faaslet][network]")
+TEST_CASE_METHOD(FaasmConfTestFixture,
+                 "Test running out of namespaces",
+                 "[faaslet][network]")
 {
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
-    std::string originalNetNsMode = conf.netNsMode;
-
-    faabric::util::setEnvVar("NETNS_MODE", "on");
-    conf.reset();
+    conf.netNsMode = "on";
 
     // Drain the existing namespaces
     std::vector<std::shared_ptr<NetworkNamespace>> namespaces(conf.maxNetNs);
@@ -64,9 +59,5 @@ TEST_CASE("Test running out of namespaces", "[faaslet][network]")
     for (auto& ns : namespaces) {
         returnNetworkNamespace(ns);
     }
-
-    // Reset conf
-    faabric::util::setEnvVar("NETNS_MODE", originalNetNsMode);
-    conf.reset();
 }
 }
