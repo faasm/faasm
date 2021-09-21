@@ -87,9 +87,6 @@ services:
     working_dir: /code/cpp
     stdin_open: true
     tty: true
-    depends_on:
-      - worker
-      - upload
     volumes:
       - ./clients/cpp:/code/cpp
       - ./dev/faasm-local/:${FAASM_LOCAL_MOUNT}
@@ -100,9 +97,6 @@ services:
     working_dir: /code/python
     stdin_open: true
     tty: true
-    depends_on:
-      - worker
-      - upload
     volumes:
       - ./clients/python:/code/python
       - ./dev/faasm-local/:${FAASM_LOCAL_MOUNT}

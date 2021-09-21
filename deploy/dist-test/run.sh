@@ -14,7 +14,7 @@ docker-compose \
     -d \
     dist-test-server
 
-# Run the tests directly
+# Run the tests
 docker-compose \
     run \
     --rm \
@@ -24,9 +24,9 @@ docker-compose \
 RETURN_VAL=$?
 
 echo "-------------------------------------------"
-echo "                WORKER LOGS                "
+echo "                SERVER LOGS                "
 echo "-------------------------------------------"
-docker-compose logs worker
+docker-compose logs dist-test-server
 
 # Stop everything
 docker-compose stop

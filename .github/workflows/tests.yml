@@ -236,7 +236,7 @@ jobs:
       - name: "Start docker-compose"
         run: docker-compose up -d --scale worker=2 worker
       - name: "Wait for upload server to be available"
-        run: docker-compose exec -T worker /usr/local/code/faasm/bin/wait_for_upload.sh upload 8002
+        run: docker-compose exec -T worker /usr/local/code/faasm/deploy/local/wait_for_upload.sh upload 8002
       # --- CPP ---
       - name: "Build and upload cpp function"
         run: docker-compose run -T cpp inv func demo hello func.upload demo hello

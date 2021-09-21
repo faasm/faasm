@@ -46,10 +46,7 @@ class DistTestsFixture
 
     std::string getDistTestMasterIp()
     {
-        if (masterIp.empty()) {
-            masterIp = faabric::util::getIPFromHostname("faasm-cli");
-        }
-        return masterIp;
+        return conf.endpointHost;
     }
 
     std::string getDistTestWorkerIp()

@@ -6,11 +6,6 @@ PROJ_ROOT=${THIS_DIR}/..
 
 pushd ${PROJ_ROOT} > /dev/null
 
-export FAABRIC_VERSION=$(cat faabric/VERSION)
-export FAASM_VERSION=$(cat VERSION)
-export CPP_VERSION=$(cat clients/cpp/VERSION)
-export PYTHON_VERSION=$(cat clients/python/VERSION)
-
 function usage() {
     echo "Usage: "
     echo "./bin/cli.sh <container>"
@@ -47,14 +42,14 @@ export FAASM_LOCAL_MOUNT=/usr/local/faasm
 
 # Make sure the CLI is running already in the background (avoids creating a new
 # container every time)
-docker-compose -f docker-compose.yml \
+docker-compose \
     up \
     --no-recreate \
     -d \
     ${CLI_CONTAINER}
 
 # Attach to the CLI container
-docker-compose -f docker-compose.yml \
+docker-compose \
     exec \
     ${CLI_CONTAINER} \
     ${INNER_SHELL}
