@@ -234,25 +234,19 @@ jobs:
           key: ${{ env.CPU_MODEL }}-machine-code
       # --- Setup ---
       - name: "Start docker-compose"
-        run: docker-compose up -d
+        run: docker-compose up -d --scale worker=2 worker
       - name: "Wait for upload server to be available"
         run: docker-compose exec -T worker /usr/local/code/faasm/bin/wait_for_upload.sh upload 8002
       # --- CPP ---
-      - name: "Build cpp function"
-        run: docker-compose exec -T cpp inv func demo hello
-      - name: "Upload cpp function"
-        run: docker-compose exec -T cpp inv func.upload demo hello
+      - name: "Build and upload cpp function"
+        run: docker-compose run -T cpp inv func demo hello func.upload demo hello
       - name: "Invoke cpp function"
-        run: docker-compose exec -T cpp inv func.invoke demo hello
+        run: docker-compose run -T cpp inv func.invoke demo hello
       # --- Python ---
-      - name: "Build python function"
-        run: docker-compose exec -T python inv func
-      - name: "Upload python runtime function"
-        run: docker-compose exec -T python inv func.upload
-      - name: "Upload python hello function"
-        run: docker-compose exec -T python inv func.uploadpy hello
+      - name: "Build and upload python function"
+        run: docker-compose run -T python inv func func.upload func.uploadpy hello
       - name: "Invoke python hello function"
-        run: docker-compose exec -T python inv func.invoke python hello
+        run: docker-compose run -T python inv func.invoke python hello
       # --- Shutdown ---
       - name: "Stop docker-compose"
         run: docker-compose down

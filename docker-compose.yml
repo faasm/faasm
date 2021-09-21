@@ -114,7 +114,8 @@ services:
     stdin_open: true
     tty: true
     depends_on:
-      - redis
+      - redis-state
+      - redis-queue
       - minio
     environment:
       - LOG_LEVEL=debug
@@ -132,8 +133,9 @@ services:
     tty: true
     privileged: true
     depends_on:
-      - worker
-      - dist-test-server
+      - redis-state
+      - redis-queue
+      - minio
     environment:
       - UPLOAD_HOST=${UPLOAD_HOST:-upload}
       - INVOKE_HOST=${INVOKE_HOST:-nginx}
