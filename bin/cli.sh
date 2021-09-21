@@ -11,63 +11,50 @@ export FAASM_VERSION=$(cat VERSION)
 export CPP_VERSION=$(cat clients/cpp/VERSION)
 export PYTHON_VERSION=$(cat clients/python/VERSION)
 
-if [[ -z "$FAABRIC_CLI_IMAGE" ]]; then
-    export FAABRIC_CLI_IMAGE=faasm/faabric:${FAABRIC_VERSION}
-fi
-
-if [[ -z "$FAASM_CLI_IMAGE" ]]; then
-    export FAASM_CLI_IMAGE=faasm/cli:${FAASM_VERSION}
-fi
-
-if [[ -z "$CPP_CLI_IMAGE" ]]; then
-    export CPP_CLI_IMAGE=faasm/cpp-sysroot:${CPP_VERSION}
-fi
-
-if [[ -z "$PYTHON_CLI_IMAGE" ]]; then
-    export PYTHON_CLI_IMAGE=faasm/cpython:${PYTHON_VERSION}
-fi
+function usage() {
+    echo "Usage: "
+    echo "./bin/cli.sh <container>"
+    echo ""
+    echo "container being one of: "
+    echo "- cpp         C/C++ functions"
+    echo "- faabric     Faabric development"
+    echo "- faasm       Managing Faasm cluster"
+    echo "- python      Python functions"
+}
 
 if [[ -z "$1" ]]; then
-    echo "Must specify which CLI"
+    usage
     exit 1
-
 elif [[ "$1" == "faabric" ]]; then
-    MODE="faabric"
-    CLI_CONTAINER="faabric-cli"
-    echo "Faabric CLI (${FAABRIC_CLI_IMAGE})"
-
+    CLI_CONTAINER="faabric"
 elif [[ "$1" == "faasm" ]]; then
-    MODE="faasm"
     CLI_CONTAINER="faasm-cli"
-    echo "Faasm CLI (${FAASM_CLI_IMAGE})"
-
 elif [[ "$1" == "cpp" ]]; then
-    MODE="cpp"
-    CLI_CONTAINER="cpp-cli"
-    echo "CPP CLI (${CPP_CLI_IMAGE})"
-
+    CLI_CONTAINER="cpp"
 elif [[ "$1" == "python" ]]; then
-    MODE="python"
-    CLI_CONTAINER="python-cli"
-    echo "Python CLI (${PYTHON_CLI_IMAGE})"
-
+    CLI_CONTAINER="python"
 else
-    echo "Unrecognised CLI. Must be one of faabric, faasm, cpp or python"
+    usage
     exit 1
 fi
 
 INNER_SHELL=${SHELL:-"/bin/bash"}
 
+# This is how we ensure the development mode is on, mounting our local
+# directories into the containers to override what's already there
+export FAASM_BUILD_MOUNT=/faasm/build
+export FAASM_LOCAL_MOUNT=/usr/local/faasm
+
 # Make sure the CLI is running already in the background (avoids creating a new
 # container every time)
-docker-compose -f docker-compose-dev.yml \
+docker-compose -f docker-compose.yml \
     up \
     --no-recreate \
     -d \
     ${CLI_CONTAINER}
 
 # Attach to the CLI container
-docker-compose -f docker-compose-dev.yml \
+docker-compose -f docker-compose.yml \
     exec \
     ${CLI_CONTAINER} \
     ${INNER_SHELL}

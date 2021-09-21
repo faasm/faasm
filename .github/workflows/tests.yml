@@ -202,11 +202,11 @@ jobs:
           name: cpp-wasm
           path: ./dev/faasm-local/wasm
       - name: "Build distributed tests"
-        run: ./deploy/local/build.sh
+        run: ./deploy/dist-test/build.sh
       - name: "Upload files in distributed env"
-        run: ./deploy/local/upload.sh
+        run: ./deploy/dist-test/upload.sh
       - name: "Run the distributed tests"
-        run: ./deploy/local/dist_tests.sh
+        run: ./deploy/dist-test/run.sh
 
   quick-start:
     if: github.event.pull_request.draft == false
