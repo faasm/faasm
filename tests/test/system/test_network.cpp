@@ -46,21 +46,26 @@ TEST_CASE("Test basic network properties", "[faaslet][network]")
 TEST_CASE("Test running out of namespaces", "[faaslet][network]")
 {
     conf::FaasmConfig& conf = conf::getFaasmConfig();
-    int originalMaxNetNs = conf.maxNetNs;
     std::string originalNetNsMode = conf.netNsMode;
 
-    faabric::util::setEnvVar("MAX_NET_NAMESPACES", "0");
     faabric::util::setEnvVar("NETNS_MODE", "on");
     conf.reset();
 
-    assert(conf.maxNetNs == 0);
+    // Drain the existing namespaces
+    std::vector<std::shared_ptr<NetworkNamespace>> namespaces(conf.maxNetNs);
+    for (int i = 0; i < conf.maxNetNs; i++) {
+        namespaces.at(i) = claimNetworkNamespace();
+    }
 
-    // Try claiming namespaces and fail
+    // Try claiming another namespaces and fail
     REQUIRE_THROWS(claimNetworkNamespace());
 
+    // Return all the claimed namespaces
+    for (auto& ns : namespaces) {
+        returnNetworkNamespace(ns);
+    }
+
     // Reset conf
-    faabric::util::setEnvVar("MAX_NET_NAMESPACES",
-                             std::to_string(originalMaxNetNs));
     faabric::util::setEnvVar("NETNS_MODE", originalNetNsMode);
     conf.reset();
 }

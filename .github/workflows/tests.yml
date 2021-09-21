@@ -100,7 +100,6 @@ jobs:
       CGROUP_MODE: off
       HOST_TYPE: ci
       LOG_LEVEL: info
-      MAX_NET_NAMESPACES: 5
       NETNS_MODE: off
       REDIS_QUEUE_HOST: redis
       REDIS_STATE_HOST: redis
