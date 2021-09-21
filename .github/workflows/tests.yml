@@ -184,7 +184,6 @@ jobs:
   dist-tests:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
-    needs: [cpp-funcs]
     steps:
       # --- Code update ---
       - name: "Check out code"

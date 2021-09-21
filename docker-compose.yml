@@ -141,8 +141,8 @@ services:
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
     volumes:
       - ./:/usr/local/code/faasm/
-      - ./dev/faasm/build/:/build/faasm/
-      - ./dev/faasm-local:/usr/local/faasm
+      - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
+      - ./dev/faasm-local/:${FAASM_LOCAL_MOUNT}
 
   # Distributed tests server
   dist-test-server:
@@ -163,7 +163,7 @@ services:
     command: ./bin/dist_test_server
     volumes:
       - ./:/usr/local/code/faasm/
-      - ./dev/faasm/build/:/build/faasm/
+      - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
 
   # Profiling/ perf testing
   vector:
