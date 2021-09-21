@@ -234,19 +234,19 @@ jobs:
           key: ${{ env.CPU_MODEL }}-machine-code
       # --- Setup ---
       - name: "Start docker-compose"
-        run: docker-compose up -d --scale worker=2 worker
+        run: docker-compose up -d --scale worker=2 nginx
       - name: "Wait for upload server to be available"
-        run: docker-compose exec -T worker /usr/local/code/faasm/deploy/local/wait_for_upload.sh upload 8002
-      # --- CPP ---
+        run: docker-compose exec -T faasm-cli /usr/local/code/faasm/deploy/local/wait_for_upload.sh upload 8002
+      # --- Function upload ---
       - name: "Build and upload cpp function"
         run: docker-compose run -T cpp inv func demo hello func.upload demo hello
-      - name: "Invoke cpp function"
-        run: docker-compose run -T cpp inv func.invoke demo hello
-      # --- Python ---
       - name: "Build and upload python function"
         run: docker-compose run -T python inv func func.upload func.uploadpy hello
+      # --- Function invocation
+      - name: "Invoke cpp function"
+        run: docker-compose run -T cpp inv func.invoke --host=nginx demo hello
       - name: "Invoke python hello function"
-        run: docker-compose run -T python inv func.invoke python hello
+        run: docker-compose run -T python inv func.invoke --host=nginx python hello
       # --- Shutdown ---
       - name: "Stop docker-compose"
         run: docker-compose down
