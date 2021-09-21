@@ -226,12 +226,12 @@ jobs:
         run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
       - name: "Print CPU model"
         run: echo "${{ env.CPU_MODEL}}"
-      # --- Cache ---
+      # --- Cache - use minio directory to share between containers ---
       - name: "Configure machine code cache"
         uses: actions/cache@v2
         with:
-          path: ./dev/faasm-local/object
-          key: ${{ env.CPU_MODEL }}-machine-code
+          path: ./dev/minio/data/faasm
+          key: ${{ env.CPU_MODEL }}-s3-data
       # --- Setup ---
       - name: "Start docker-compose"
         run: docker-compose up -d --scale worker=2 nginx
