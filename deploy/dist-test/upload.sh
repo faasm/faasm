@@ -14,8 +14,8 @@ docker-compose \
     -d \
     upload
 
-# Wait for it to be up
-./deploy/local/wait_for_upload.sh localhost 8002
+# Give the upload server time to start
+sleep 5
 
 # Run the function build and upload
 docker-compose \
