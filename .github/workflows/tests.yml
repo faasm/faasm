@@ -193,19 +193,23 @@ jobs:
         run: git submodule update --init faabric
       - name: "Update cpp client submodule"
         run: git submodule update --init clients/cpp
-        # --- Set up and run ---
-      - name: "Set up directory for wasm"
-        run: mkdir -p ./dev/faasm-local/wasm
-      - name: "Download CPP wasm"
-        uses: actions/download-artifact@v2
+      # --- Host information ---
+      - name: "Get CPU model name"
+        run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
+      - name: "Print CPU model"
+        run: echo "${{ env.CPU_MODEL}}"
+      # --- Cache - use minio directory to share between containers ---
+      - name: "Configure S3 cache"
+        uses: actions/cache@v2
         with:
-          name: cpp-wasm
-          path: ./dev/faasm-local/wasm
-      - name: "Build distributed tests"
+          path: ./dev/minio/data/faasm
+          key: ${{ env.CPU_MODEL }}-s3-data
+      # --- Set up and run ---
+      - name: "Build tests"
         run: ./deploy/dist-test/build.sh
-      - name: "Upload files in distributed env"
+      - name: "Build and upload functions for tests"
         run: ./deploy/dist-test/upload.sh
-      - name: "Run the distributed tests"
+      - name: "Run tests"
         run: ./deploy/dist-test/run.sh
 
   quick-start:
@@ -227,7 +231,7 @@ jobs:
       - name: "Print CPU model"
         run: echo "${{ env.CPU_MODEL}}"
       # --- Cache - use minio directory to share between containers ---
-      - name: "Configure machine code cache"
+      - name: "Configure S3 cache"
         uses: actions/cache@v2
         with:
           path: ./dev/minio/data/faasm

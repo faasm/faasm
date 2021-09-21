@@ -8,6 +8,7 @@ pushd ${PROJ_ROOT} > /dev/null
 
 # Run the build
 inv -r faasmcli/faasmcli dev.cmake --build=Debug
+inv -r faasmcli/faasmcli dev.tools
 inv -r faasmcli/faasmcli dev.cc dist_tests
 inv -r faasmcli/faasmcli dev.cc dist_test_server
 
