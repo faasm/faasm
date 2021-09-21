@@ -36,7 +36,7 @@ docker ps
 Or explicitly await with:
 
 ```bash
-docker-compose exec worker /usr/local/code/faasm/deploy/local/wait_for_upload.sh upload 8002
+docker-compose exec upload /usr/local/code/faasm/deploy/local/wait_for_upload.sh localhost 8002
 ```
 
 ## Running a Python function
