@@ -44,10 +44,7 @@ class DistTestsFixture
         faabric::scheduler::setExecutorFactory(fac);
     }
 
-    std::string getDistTestMasterIp()
-    {
-        return conf.endpointHost;
-    }
+    std::string getDistTestMasterIp() { return conf.endpointHost; }
 
     std::string getDistTestWorkerIp()
     {
