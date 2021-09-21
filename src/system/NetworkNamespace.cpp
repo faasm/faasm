@@ -21,9 +21,11 @@ std::mutex namespacesLock;
 
 void returnNetworkNamespace(std::shared_ptr<NetworkNamespace> ns)
 {
-    if (ns->getMode() == NetworkIsolationMode::ns_off) {
+    const auto& conf = conf::getFaasmConfig();
+    if (conf.netNsMode == "off") {
         return;
     }
+
     faabric::util::UniqueLock lock(namespacesLock);
     namespaces.emplace_back(ns);
 }
@@ -31,15 +33,13 @@ void returnNetworkNamespace(std::shared_ptr<NetworkNamespace> ns)
 std::shared_ptr<NetworkNamespace> claimNetworkNamespace()
 {
     faabric::util::UniqueLock lock(namespacesLock);
-    if (namespaces.empty() && !namespacesInitialised) {
-        conf::FaasmConfig& conf = conf::getFaasmConfig();
+    const auto& conf = conf::getFaasmConfig();
 
-        // If network namespaces are disabled, overwrite the env. variable and
-        // create a single pointer to use as a placeholder
-        if (conf.netNsMode == "off") {
-            SPDLOG_DEBUG("Network ns off, ignoring MAX_NET_NAMESPACES ({})",
-                         conf.maxNetNs);
-            conf.maxNetNs = 1;
+    if (namespaces.empty() && !namespacesInitialised) {
+
+        if (conf.maxNetNs == 0) {
+            SPDLOG_ERROR("Can't provide a MAX_NET_NAMESPACES value of 0");
+            throw std::runtime_error("Invalid env. var MAX_NET_NAMESPACES");
         }
 
         for (int i = 0; i < conf.maxNetNs; i++) {
@@ -59,7 +59,7 @@ std::shared_ptr<NetworkNamespace> claimNetworkNamespace()
 
     // If network namespaces are turned off, we return a valid pointer but
     // don't remove the resource, as no isolation is actually taking place
-    if (res->getMode() == NetworkIsolationMode::ns_off) {
+    if (conf.netNsMode == "off") {
         return res;
     }
 
@@ -68,26 +68,11 @@ std::shared_ptr<NetworkNamespace> claimNetworkNamespace()
 }
 
 NetworkNamespace::NetworkNamespace(const std::string& name)
-  : name(name)
-{
-    // Get which mode we're operating in
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
-
-    if (conf.netNsMode == "on") {
-        mode = NetworkIsolationMode::ns_on;
-    } else {
-        mode = NetworkIsolationMode::ns_off;
-    }
-};
+  : name(name){};
 
 const std::string NetworkNamespace::getName()
 {
     return this->name;
-}
-
-const NetworkIsolationMode NetworkNamespace::getMode()
-{
-    return this->mode;
 }
 
 void joinNamespace(const boost::filesystem::path& nsPath)
@@ -120,7 +105,8 @@ void joinNamespace(const boost::filesystem::path& nsPath)
 
 void NetworkNamespace::addCurrentThread()
 {
-    if (mode == NetworkIsolationMode::ns_off) {
+    const auto& conf = conf::getFaasmConfig();
+    if (conf.netNsMode == "off") {
         SPDLOG_DEBUG("Not using network ns, support off");
         return;
     }
@@ -138,7 +124,8 @@ void NetworkNamespace::addCurrentThread()
 
 void NetworkNamespace::removeCurrentThread()
 {
-    if (mode == NetworkIsolationMode::ns_off) {
+    const auto& conf = conf::getFaasmConfig();
+    if (conf.netNsMode == "off") {
         SPDLOG_DEBUG("Not using network ns, support off");
         return;
     }
