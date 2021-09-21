@@ -5,9 +5,6 @@ THIS_DIR=$(dirname $(readlink -f $0))
 PROJ_ROOT=${THIS_DIR}/../..
 pushd ${PROJ_ROOT} > /dev/null
 
-export FAASM_BUILD_MOUNT=/faasm/build
-export FAASM_LOCAL_MOUNT=/usr/local/faasm
-
 if [[ -z "$1" ]]; then
     docker-compose \
         up \
