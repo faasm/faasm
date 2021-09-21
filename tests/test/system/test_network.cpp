@@ -47,8 +47,10 @@ TEST_CASE("Test running out of namespaces", "[faaslet][network]")
 {
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     int originalMaxNetNs = conf.maxNetNs;
+    std::string originalNetNsMode = conf.netNsMode;
 
     faabric::util::setEnvVar("MAX_NET_NAMESPACES", "0");
+    faabric::util::setEnvVar("NETNS_MODE", "on");
     conf.reset();
 
     assert(conf.maxNetNs == 0);
@@ -59,6 +61,7 @@ TEST_CASE("Test running out of namespaces", "[faaslet][network]")
     // Reset conf
     faabric::util::setEnvVar("MAX_NET_NAMESPACES",
                              std::to_string(originalMaxNetNs));
+    faabric::util::setEnvVar("NETNS_MODE", originalNetNsMode);
     conf.reset();
 }
 }

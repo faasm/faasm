@@ -35,6 +35,14 @@ std::shared_ptr<NetworkNamespace> claimNetworkNamespace()
         conf::FaasmConfig& conf = conf::getFaasmConfig();
         int nNamespaces = conf.maxNetNs;
 
+        // If network namespaces are disabled, overwrite the env. variable and
+        // create a single pointer to use as a placeholder
+        if (conf.netNsMode == "off") {
+            SPDLOG_DEBUG("Network ns off, ignoring MAX_NET_NAMESPACES ({})",
+                         nNamespaces);
+            nNamespaces = 1;
+        }
+
         for (int i = 0; i < nNamespaces; i++) {
             std::string netnsName = BASE_NETNS_NAME + std::to_string(i);
             namespaces.emplace_back(
