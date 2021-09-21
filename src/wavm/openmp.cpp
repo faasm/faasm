@@ -491,6 +491,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
             if (result != 0) {
                 failures.emplace_back(result, messageId);
             }
+
+            // Make sure we remove any outstanding master waits
+            int thisThreadLocalNum =
+              level->getLocalThreadNum(&req->messages().at(i));
+            level->masterWait(thisThreadLocalNum);
         }
 
         if (!failures.empty()) {
