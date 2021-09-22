@@ -42,14 +42,14 @@ git submodule update
 Start a Faasm cluster locally using `docker-compose`:
 
 ```bash
-docker-compose up -d
+docker-compose up -d --scale worker=2 nginx
 ```
 
 To compile, upload and invoke a C++ function using this local cluster you can
 use the [faasm/cpp](https://github.com/faasm/cpp) container:
 
 ```bash
-docker-compose exec cpp /bin/bash
+docker-compose run cpp /bin/bash
 
 # Compile the demo function
 inv func demo hello
@@ -58,7 +58,7 @@ inv func demo hello
 inv func.upload demo hello
 
 # Invoke the function
-inv func.invoke demo hello
+inv func.invoke --host=nginx demo hello
 ```
 
 ## More information

@@ -16,8 +16,8 @@ The most important repos
 
 ## Initial Set-up
 
-The Faasm development environment is containerised, as defined in the [dev
-Docker compose config](docker-compose-dev.yml).
+The Faasm development environment is containerised, as defined in the [Docker
+compose config](docker-compose.yml).
 
 We mount local checkouts of all the code into these containers, so first you'll
 need to update all the submodules (may take a while):
@@ -122,6 +122,8 @@ CPP_CLI_IMAGE
 PYTHON_CLI_IMAGE
 ```
 
+The defaults for these are set in [`.env`](../.env).
+
 ## Testing
 
 We use [Catch2](https://github.com/catchorg/Catch2) for testing and your life
@@ -199,23 +201,6 @@ which func_runner
 func_runner demo hello
 ```
 
-## Troubleshooting CI
-
-If the CI build fails and you can't work out why, you can replicate the test
-environment locally.
-
-First, make sure the environment variables and Docker image in
-[`docker/docker-compose-ci.yml`](../docker/docker-compose-ci.yml) exactly match
-those in [`.github/workflows/tests.yml`](../.github/workflows/tests.yml).
-
-Then, run the container and work through the steps in the Github Actions file,
-to see where things might have gone wrong.
-
-```bash
-# To start the container
-docker-compose -f docker/docker-compose-ci.yml --env-file ./.env run cli /bin/bash
-```
-
 ## Code style
 
 Code style is checked as part of the CI build and uses the following
@@ -255,57 +240,24 @@ To use cgroup isolation, you'll need to run:
 sudo ./bin/cgroup.sh
 ```
 
-## Developing with a local cluster
+## Running a local development cluster
 
-If you need to debug issues with the standard containers, or run multiple Faasm
-instances locally, you can use the [`bin/cluster_dev.sh`](../bin/cluster_dev.sh)
-script.
-This will mount your local build of Faasm inside a local cluster defined in
-[`docker-compose.yml`](../docker-compose.yml).
-
-Before doing so, make sure you've completely removed any existing faasm
-containers.
-
-To demonstrate, we can make a change to the `pool_runner` which is executed by
-the `worker` container. To set up the local cluster:
+To start the local development cluster, you can run:
 
 ```bash
-# Nuke everything that might already have been set up
-docker ps -aq | xargs docker rm -f
-
-# Start the dev cluster
-./bin/cluster_dev.sh faasm
-
-# Set ini file to point to local
-inv knative.ini-file --local
-
-# Build everything (inside the container you're dropped into)
-inv dev.tools
-
-# Leave the container
+./deploy/local/dev_cluster.sh
 ```
 
-Now you can run a `cpp` container, compile upload and invoke a function:
+### Making changes in your local cluster
+
+Assuming you've changed something related to the `pool_runner` target (which is
+executed by the `worker` container), you can pick up the changes with:
 
 ```bash
-# Work from the cpp container
-./bin/cluster_dev.sh cpp
+# Start the Faasm CLI
+./bin/cli.sh faasm
 
-# Compile, upload, invoke a function
-inv func demo hello
-inv func.upload demo hello
-inv func.invoke demo hello
-```
-
-Now you can make some changes and check:
-
-```bash
-# Drop into the faasm-cli container
-./bin/cluster_dev.sh faasm
-
-# Make some modifications to pool_runner
-
-# Rebuild pool_runner
+# Rebuild the pool_runner target
 inv dev.cc pool_runner
 ```
 
@@ -317,50 +269,59 @@ docker-compose restart worker
 docker-compose logs -f
 ```
 
-## Distributed tests
+### Running distributed tests locally
 
-The distributed tests are aimed at testing a more "realistic" distributed
-environment than the normal tests and use multiple containers.
+The distributed tests check the interactions of the Faasm workers, file storage,
+redis and upload containers.
 
-To run and develop locally:
+First of all, you need to make sure everything else is shut down to avoid
+interfering with the tests:
 
 ```bash
-# Start up the CLI container
-./dist-test/run.sh local
+docker-compose down
+```
 
-# Rebuild and run inside CLI container as usual
-inv dev.cmake --build=Debug
+Start the distributed tests server:
+
+```bash
+./deploy/dist-test/dev_server.sh
+```
+
+Build and run the tests:
+
+```bash
+# Enter the Faasm CLI container
+./bin/cli.sh faasm
+
+# Build and run the tests
 inv dev.cc dist_tests
 dist_tests
+```
 
-# To rebuild the server, you'll need to rebuild and restart
+To rebuild the server (inside the Faasm CLI container):
+
+```bash
 inv dev.cc dist_test_server
-
-# Outside the container
-./dist-test/restart_server.sh
 ```
 
-To see logs locally:
+Then from outside the container, you can restart the server:
 
 ```bash
-cd dist-test
-docker-compose logs -f
+./deploy/dist-test/dev_server.sh restart
 ```
 
-To run as if in CI:
+### Replicating CI
+
+To run the distributed tests as if in CI:
 
 ```bash
-# Copy wasm files into place
-cp -r dev/faasm-local/wasm dist-test/build/faasm-local/wasm
+# Clear up
+docker-compose down
 
-# Clean up
-cd dist-test
-docker-compose stop
-docker-compose rm
-
-# Build
-./dist-test/build.sh
+# Set up
+./deploy/dist-test/build.sh
+./deploy/dist-test/upload.sh
 
 # Run once through
-./dist-test/run.sh
+./deploy/dist-test/run.sh
 ```

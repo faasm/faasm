@@ -33,11 +33,13 @@ services:
       - redis-state
       - minio
     volumes:
+      - ./:/usr/local/code/faasm/
       - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
+      - ./dev/faasm-local/wasm/:/usr/local/faasm/wasm
       - ./dev/faasm-local/object/:/usr/local/faasm/object
     environment:
       - LOG_LEVEL=info
-      - PYTHON_CODEGEN=${PYTHON_CODEGEN}
+      - PYTHON_CODEGEN=${PYTHON_CODEGEN:-off}
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
@@ -47,6 +49,7 @@ services:
       timeout: 3s
       retries: 10
 
+  # Distributed worker, used for executing as a local cluster
   worker:
     image: faasm/worker:${FAASM_VERSION}
     depends_on:
@@ -56,7 +59,9 @@ services:
       - "5000"
     privileged: true
     volumes:
+      - ./:/usr/local/code/faasm/
       - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
+      - ./dev/faasm-local/:${FAASM_LOCAL_MOUNT}
     environment:
       - CAPTURE_STDOUT=on
       - CGROUP_MODE=on
@@ -68,6 +73,7 @@ services:
       - OVERRIDE_CPU_COUNT=4
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
 
+  # Load balancer for local cluster
   nginx:
     image: nginx:latest
     volumes:
@@ -77,46 +83,92 @@ services:
     ports:
       - "8080:8080"
 
+  # C/C++ functions
   cpp:
     image: ${CPP_CLI_IMAGE}
     working_dir: /code/cpp
     stdin_open: true
     tty: true
-    depends_on:
-      - worker
-      - upload
     volumes:
       - ./clients/cpp:/code/cpp
+      - ./dev/faasm-local/:${FAASM_LOCAL_MOUNT}
 
+  # Python functions
   python:
     image: ${PYTHON_CLI_IMAGE}
     working_dir: /code/python
     stdin_open: true
     tty: true
-    depends_on:
-      - worker
-      - upload
     volumes:
       - ./clients/python:/code/python
+      - ./dev/faasm-local/:${FAASM_LOCAL_MOUNT}
 
-  # --- Local cluster dev ---
-  # The following containers are only needed for local cluster dev
+  # Faabric dev
+  faabric:
+    image: ${FAABRIC_CLI_IMAGE}
+    working_dir: /code/faabric
+    stdin_open: true
+    tty: true
+    depends_on:
+      - redis-state
+      - redis-queue
+      - minio
+    environment:
+      - LOG_LEVEL=debug
+      - REDIS_STATE_HOST=redis
+      - REDIS_QUEUE_HOST=redis
+    volumes:
+      - ./faabric:/code/faabric
+      - ./dev/faabric/build/:/build/faabric
+
+  # Faasm dev
   faasm-cli:
     image: ${FAASM_CLI_IMAGE}
     working_dir: /usr/local/code/faasm
     stdin_open: true
     tty: true
+    privileged: true
     depends_on:
-      - worker
+      - redis-state
+      - redis-queue
+      - minio
     environment:
       - UPLOAD_HOST=${UPLOAD_HOST:-upload}
       - INVOKE_HOST=${INVOKE_HOST:-nginx}
-      - LOG_LEVEL=info
+      - LOG_LEVEL=debug
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
     volumes:
       - ./:/usr/local/code/faasm/
-      - ./dev/faasm/build/:/build/faasm/
-      - ./dev/faasm-local:/usr/local/faasm
+      - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
+      - ./dev/faasm-local/:${FAASM_LOCAL_MOUNT}
 
+  # Distributed tests server
+  dist-test-server:
+    image: ${FAASM_CLI_IMAGE}
+    working_dir: /build/faasm
+    depends_on:
+      - redis-queue
+      - redis-state
+      - minio
+    environment:
+      - LOG_LEVEL=debug
+      - REDIS_QUEUE_HOST=redis-queue
+      - REDIS_STATE_HOST=redis-state
+      - OVERRIDE_CPU_COUNT=4
+      - CGROUP_MODE=off
+      - GLOBAL_MESSAGE_TIMEOUT=120000
+      - BOUND_TIMEOUT=60000
+    command: ./bin/dist_test_server
+    volumes:
+      - ./:/usr/local/code/faasm/
+      - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
+
+  # Profiling/ perf testing
+  vector:
+    image: netflixoss/vector:latest
+    depends_on:
+      - faasm-cli
+    ports:
+      - "80:80"
