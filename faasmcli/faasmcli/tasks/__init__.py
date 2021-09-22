@@ -11,6 +11,7 @@ from . import files
 from . import flame
 from . import flush
 from . import knative
+from . import network
 from . import python
 from . import redis
 from . import release
@@ -29,6 +30,7 @@ ns = Collection(
     flame,
     flush,
     knative,
+    network,
     python,
     redis,
     release,

@@ -1,7 +1,7 @@
 # Network Isolation
 
-To isolate networking we can user a combination of network namespaces, 
-virtual interfaces and standard Linux traffic shaping tools. 
+To isolate networking we can use a combination of network namespaces,
+virtual interfaces and standard Linux traffic shaping tools.
 
 Each function (the `N`th on the system):
 
@@ -27,11 +27,12 @@ To run a quick check on the Faasm namespaces you can run:
 
 ```
 # Create ten namespaces
-sudo ./bin/netns.sh 10
+source ./bin/workon.sh
+inv network.create-ns 10
 
 # Check one or two
-sudo ./bin/netns_check.sh faasm 1
-sudo ./bin/netns_check.sh faasm 5
+inv network.check-ns faasm 1
+inv network.check-ns faasm 5
 ```
 
 You can then make sure the limits are set up properly.
@@ -57,7 +58,8 @@ iperf3 -s
 The test itself can be run with the script in this repo on the other machine:
 
 ```
-sudo ./bin/netns_limit_test.sh <server_ip>
+source ./bin/workon.sh
+inv network.test-ns-limit
 ```
 
 Note that for the actual system we use a permissive limit on ingress/egress (>1MiB) so to run the test we need to create an artificially restrictive namespace.

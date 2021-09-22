@@ -19,8 +19,9 @@ TEST_CASE("Test default faasm config initialisation", "[conf]")
         cgroupExpected = "off";
     }
     REQUIRE(conf.cgroupMode == cgroupExpected);
-
     REQUIRE(conf.netNsMode == "off");
+    REQUIRE(conf.maxNetNs == 100);
+
     REQUIRE(conf.pythonPreload == "off");
     REQUIRE(conf.captureStdout == "off");
 
@@ -42,6 +43,8 @@ TEST_CASE("Test overriding faasm config initialisation", "[conf]")
     std::string hostType = setEnvVar("HOST_TYPE", "magic");
     std::string cgMode = setEnvVar("CGROUP_MODE", "off");
     std::string nsMode = setEnvVar("NETNS_MODE", "on");
+    std::string maxNetNs = setEnvVar("MAX_NET_NAMESPACES", "300");
+
     std::string pythonPre = setEnvVar("PYTHON_PRELOAD", "on");
     std::string captureStdout = setEnvVar("CAPTURE_STDOUT", "on");
     std::string wasmVm = setEnvVar("WASM_VM", "blah");
@@ -62,6 +65,8 @@ TEST_CASE("Test overriding faasm config initialisation", "[conf]")
     REQUIRE(conf.hostType == "magic");
     REQUIRE(conf.cgroupMode == "off");
     REQUIRE(conf.netNsMode == "on");
+    REQUIRE(conf.maxNetNs == 300);
+
     REQUIRE(conf.pythonPreload == "on");
     REQUIRE(conf.captureStdout == "on");
     REQUIRE(conf.wasmVm == "blah");
@@ -84,6 +89,8 @@ TEST_CASE("Test overriding faasm config initialisation", "[conf]")
 
     setEnvVar("CGROUP_MODE", cgMode);
     setEnvVar("NETNS_MODE", nsMode);
+    setEnvVar("MAX_NET_NAMESPACES", maxNetNs);
+
     setEnvVar("PYTHON_PRELOAD", pythonPre);
     setEnvVar("CAPTURE_STDOUT", captureStdout);
     setEnvVar("WASM_VM", wasmVm);
