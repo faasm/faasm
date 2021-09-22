@@ -1,5 +1,5 @@
+#include <faabric/scheduler/DistributedCoordination.h>
 #include <faabric/scheduler/Scheduler.h>
-#include <faabric/sync/DistributedSync.h>
 #include <faabric/util/barrier.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>

@@ -3,7 +3,7 @@
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
-#include <faabric/sync/DistributedSync.h>
+#include <faabric/scheduler/DistributedCoordination.h>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 #include <faabric/util/logging.h>
@@ -189,7 +189,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 mx)
 {
     SPDLOG_TRACE("S - pthread_mutex_lock {}", mx);
-    faabric::sync::getDistributedSync().localLock(mx);
+    faabric::scheduler::getDistributedCoordination().localLock(mx);
     return 0;
 }
 
@@ -200,7 +200,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 mx)
 {
     SPDLOG_TRACE("S - pthread_mutex_trylock {}", mx);
-    bool success = faabric::sync::getDistributedSync().localTryLock(mx);
+    bool success = faabric::scheduler::getDistributedCoordination().localTryLock(mx);
     if (!success) {
         return EBUSY;
     }
@@ -214,7 +214,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 mx)
 {
     SPDLOG_TRACE("S - pthread_mutex_unlock {}", mx);
-    faabric::sync::getDistributedSync().localUnlock(mx);
+    faabric::scheduler::getDistributedCoordination().localUnlock(mx);
     return 0;
 }
 

@@ -116,8 +116,8 @@ services:
       - minio
     environment:
       - LOG_LEVEL=debug
-      - REDIS_STATE_HOST=redis
-      - REDIS_QUEUE_HOST=redis
+      - REDIS_STATE_HOST=redis-state
+      - REDIS_QUEUE_HOST=redis-queue
     volumes:
       - ./faabric:/code/faabric
       - ./dev/faabric/build/:/build/faabric

@@ -3,10 +3,10 @@
 #include <WAVM/Runtime/Runtime.h>
 
 #include <faabric/proto/faabric.pb.h>
+#include <faabric/scheduler/DistributedCoordination.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/state/StateKeyValue.h>
-#include <faabric/sync/DistributedSync.h>
 #include <faabric/util/func.h>
 #include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
@@ -198,7 +198,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 globalTid)
 {
     OMP_FUNC_ARGS("__kmpc_barrier {} {}", loc, globalTid);
-    faabric::sync::getDistributedSync().barrier(*msg);
+    faabric::scheduler::getDistributedCoordination().barrier(*msg);
 }
 
 // ----------------------------------------------------
@@ -227,11 +227,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     if (level->numThreads > 1) {
         // Get lock locally
-        faabric::sync::getDistributedSync().localLockRecursive(msg->appid());
+        faabric::scheduler::getDistributedCoordination().localLockRecursive(
+          msg->appid());
 
-        // TODO work out distributed recursive locking
-
-        // TODO - pull snapshot diffs
+        // TODO implement distributed critical sections:
+        // - Get the global lock
+        // - Trigger latest snapshot diffs
+        // - Do local changes
+        // - Release global lock
     }
 }
 
@@ -253,9 +256,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS("__kmpc_end_critical {} {} {}", loc, globalTid, crit);
 
     if (level->numThreads > 1) {
-        // TODO - push snapshot diffs
-
-        faabric::sync::getDistributedSync().localUnlockRecursive(msg->appid());
+        faabric::scheduler::getDistributedCoordination().localUnlockRecursive(
+          msg->appid());
     }
 }
 
@@ -758,7 +760,8 @@ void endReduceCritical(bool barrier)
     int localThreadNum = level->getLocalThreadNum(msg);
 
     // Unlock the critical section
-    faabric::sync::DistributedSync& sync = faabric::sync::getDistributedSync();
+    faabric::scheduler::DistributedCoordination& sync =
+      faabric::scheduler::getDistributedCoordination();
     sync.localUnlock(msg->appid());
 
     // Master must make sure all other threads are done
@@ -808,7 +811,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceData,
                   reduceFunc,
                   lockPtr);
-    faabric::sync::getDistributedSync().localLock(msg->appid());
+    // Note - we only need to lock locally here, as threads on other hosts
+    // cannot edit the shared data
+    faabric::scheduler::getDistributedCoordination().localLock(msg->appid());
     return 1;
 }
 
@@ -835,7 +840,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceData,
                   reduceFunc,
                   lockPtr);
-    faabric::sync::getDistributedSync().localLock(msg->appid());
+    faabric::scheduler::getDistributedCoordination().localLock(msg->appid());
     return 1;
 }
 
