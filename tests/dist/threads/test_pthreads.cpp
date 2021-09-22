@@ -38,7 +38,7 @@ TEST_CASE_METHOD(DistTestsFixture, "Test pthreads across hosts", "[scheduler]")
     REQUIRE(sch.getFunctionExecutorCount(msg) == 1);
 
     // Check other host is registered
-    std::set<std::string> expectedRegisteredHosts = { WORKER_IP };
+    std::set<std::string> expectedRegisteredHosts = { getDistTestWorkerIp() };
     REQUIRE(sch.getFunctionRegisteredHosts(msg) == expectedRegisteredHosts);
 }
 }

@@ -16,7 +16,7 @@ echo "Setting up cgroup"
 ./bin/cgroup.sh
 
 echo "Setting up namespaces"
-./bin/netns.sh ${MAX_FAASLETS}
+./bin/netns.sh ${MAX_NET_NAMESPACES}
 
 popd >> /dev/null
 

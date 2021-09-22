@@ -22,6 +22,7 @@ void FaasmConfig::initialise()
 
     cgroupMode = getEnvVar("CGROUP_MODE", "on");
     netNsMode = getEnvVar("NETNS_MODE", "off");
+    maxNetNs = this->getIntParam("MAX_NET_NAMESPACES", "100");
 
     pythonPreload = getEnvVar("PYTHON_PRELOAD", "off");
     captureStdout = getEnvVar("CAPTURE_STDOUT", "off");
@@ -61,6 +62,7 @@ void FaasmConfig::print()
     SPDLOG_INFO("Cgroup mode:          {}", cgroupMode);
     SPDLOG_INFO("Host type:            {}", hostType);
     SPDLOG_INFO("Network ns mode:      {}", netNsMode);
+    SPDLOG_INFO("Max. network ns:      {}", maxNetNs);
 
     SPDLOG_INFO("--- MISC ---");
     SPDLOG_INFO("Capture stdout:       {}", captureStdout);

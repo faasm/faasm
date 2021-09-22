@@ -7,29 +7,36 @@
 
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/func.h>
-
-// Note that this must match the dist test docker-compose config
-#define MASTER_IP "172.60.0.7"
-#define WORKER_IP "172.60.0.8"
+#include <faabric/util/network.h>
 
 namespace tests {
+
 class DistTestsFixture
 {
   protected:
+    faabric::redis::Redis& redis;
     faabric::scheduler::Scheduler& sch;
     faabric::util::SystemConfig& conf;
     conf::FaasmConfig& faasmConf;
 
+    int functionCallTimeout = 10000;
+
+    std::string masterIp;
+    std::string workerIp;
+
   public:
     DistTestsFixture()
-      : sch(faabric::scheduler::getScheduler())
+      : redis(faabric::redis::Redis::getQueue())
+      , sch(faabric::scheduler::getScheduler())
       , conf(faabric::util::getSystemConfig())
       , faasmConf(conf::getFaasmConfig())
     {
+        redis.flushAll();
+
         // Clean up the scheduler and make sure this host is available
         sch.shutdown();
         sch.addHostToGlobalSet();
-        sch.addHostToGlobalSet(WORKER_IP);
+        sch.addHostToGlobalSet(getDistTestWorkerIp());
 
         // Set up executor
         std::shared_ptr<faaslet::FaasletFactory> fac =
@@ -37,21 +44,14 @@ class DistTestsFixture
         faabric::scheduler::setExecutorFactory(fac);
     }
 
-    void uploadExistingFunction(const std::string& user,
-                                const std::string& func)
+    std::string getDistTestMasterIp() { return conf.endpointHost; }
+
+    std::string getDistTestWorkerIp()
     {
-        // Although we may have the function data locally, we need to upload it
-        // again to make sure it's written to S3
-        faabric::Message msg = faabric::util::messageFactory(user, func);
-
-        storage::FileLoader& loader = storage::getFileLoader();
-        codegen::MachineCodeGenerator& gen = codegen::getMachineCodeGenerator();
-
-        std::vector<uint8_t> bytes = loader.loadFunctionWasm(msg);
-        msg.set_inputdata(bytes.data(), bytes.size());
-
-        loader.uploadFunction(msg);
-        gen.codegenForFunction(msg);
+        if (workerIp.empty()) {
+            workerIp = faabric::util::getIPFromHostname("dist-test-server");
+        }
+        return workerIp;
     }
 
     ~DistTestsFixture()

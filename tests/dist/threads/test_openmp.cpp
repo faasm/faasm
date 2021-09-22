@@ -7,9 +7,6 @@
 namespace tests {
 TEST_CASE_METHOD(DistTestsFixture, "Test OpenMP across hosts", "[scheduler]")
 {
-    uploadExistingFunction("omp", "hellomp");
-    uploadExistingFunction("omp", "omp_checks");
-
     conf.overrideCpuCount = 6;
 
     // Set this host up to have fewer slots than the number of threads
@@ -35,14 +32,15 @@ TEST_CASE_METHOD(DistTestsFixture, "Test OpenMP across hosts", "[scheduler]")
     sch.callFunctions(req);
 
     // Check it's successful
-    faabric::Message result = sch.getFunctionResult(msg.id(), 10000);
+    faabric::Message result =
+      sch.getFunctionResult(msg.id(), functionCallTimeout);
     REQUIRE(result.returnvalue() == 0);
 
     // Check one executor used on this host (always the case for threads)
     REQUIRE(sch.getFunctionExecutorCount(msg) == 1);
 
     // Check other host is registered
-    std::set<std::string> expectedRegisteredHosts = { WORKER_IP };
+    std::set<std::string> expectedRegisteredHosts = { getDistTestWorkerIp() };
     REQUIRE(sch.getFunctionRegisteredHosts(msg) == expectedRegisteredHosts);
 }
 }
