@@ -113,7 +113,7 @@ def invoke_impl(
         msg["cmdline"] = cmdline
 
     if mpi_world_size:
-        msg["mpi_world_size"] = mpi_world_size
+        msg["mpi_world_size"] = int(mpi_world_size)
 
     # Knative must pass custom headers
     headers = dict()
