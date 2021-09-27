@@ -19,6 +19,12 @@ set (WAMR_BUILD_LIB_PTHREAD 0)
 
 # WAMR features
 set (WAMR_BUILD_SIMD 0)
+
+set (WAMR_BUILD_MULTI_MODULE 1)
+# If bulk memory set, WAMR allocates one single page, breaking our brk memory
+# management model
+set (WAMR_BUILD_BULK_MEMORY 0)
+
 # Explicitely set to 0. If set to 1, WAMR will allocate the module's instance
 # memory using `malloc` instead of `mmap` and calls to `mprotect` fail.
 set (WAMR_DISABLE_HW_BOUND_CHECK 0)
