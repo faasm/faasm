@@ -293,7 +293,8 @@ std::string FileLoader::getFunctionAotFile(const faabric::Message& msg)
 std::vector<uint8_t> FileLoader::loadFunctionWamrAotFile(
   const faabric::Message& msg)
 {
-    const std::string key = getKey(msg, WAMR_AOT_FILENAME);
+    const std::string key =
+      getKey(msg, msg.issgx() ? SGX_WAMR_AOT_FILENAME : WAMR_AOT_FILENAME);
     const std::string localCachePath = getFunctionAotFile(msg);
     return loadFileBytes(key, localCachePath);
 }
@@ -301,7 +302,8 @@ std::vector<uint8_t> FileLoader::loadFunctionWamrAotFile(
 std::vector<uint8_t> FileLoader::loadFunctionWamrAotHash(
   const faabric::Message& msg)
 {
-    const std::string key = getKey(msg, WAMR_AOT_FILENAME);
+    const std::string key =
+      getKey(msg, msg.issgx() ? SGX_WAMR_AOT_FILENAME : WAMR_AOT_FILENAME);
     const std::string localCachePath = getFunctionAotFile(msg);
     return loadHashFileBytes(key, localCachePath);
 }
@@ -309,7 +311,8 @@ std::vector<uint8_t> FileLoader::loadFunctionWamrAotHash(
 void FileLoader::uploadFunctionWamrAotFile(const faabric::Message& msg,
                                            const std::vector<uint8_t>& objBytes)
 {
-    const std::string key = getKey(msg, WAMR_AOT_FILENAME);
+    const std::string key =
+      getKey(msg, msg.issgx() ? SGX_WAMR_AOT_FILENAME : WAMR_AOT_FILENAME);
     const std::string localCachePath = getFunctionAotFile(msg);
     uploadFileBytes(key, localCachePath, objBytes);
 }
@@ -317,7 +320,8 @@ void FileLoader::uploadFunctionWamrAotFile(const faabric::Message& msg,
 void FileLoader::uploadFunctionWamrAotHash(const faabric::Message& msg,
                                            const std::vector<uint8_t>& hash)
 {
-    const std::string key = getKey(msg, WAMR_AOT_FILENAME);
+    const std::string key =
+      getKey(msg, msg.issgx() ? SGX_WAMR_AOT_FILENAME : WAMR_AOT_FILENAME);
     const std::string localCachePath = getFunctionAotFile(msg);
     uploadHashFileBytes(key, localCachePath, hash);
 }
