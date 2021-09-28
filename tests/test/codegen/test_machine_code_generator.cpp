@@ -234,7 +234,7 @@ TEST_CASE_METHOD(CodegenTestFixture,
 
 TEST_CASE_METHOD(CodegenTestFixture,
                  "Test WAMR and WAMR + SGX codegen for same func in sequence",
-                 "[codegen]")
+                 "[codegen][wamr][sgx]")
 {
     std::string objectFile;
     std::string objectFileSgx;
@@ -246,8 +246,8 @@ TEST_CASE_METHOD(CodegenTestFixture,
 
     msg.set_issgx(false);
     msgSgx.set_issgx(true);
-    objectFile = "/tmp/obj/demo/hello/function.aot.sgx";
-    objectFileSgx = "/tmp/obj/demo/hello/function.aot";
+    objectFile = "/tmp/obj/demo/hello/function.aot";
+    objectFileSgx = "/tmp/obj/demo/hello/function.aot.sgx";
 
     codegen::MachineCodeGenerator gen(loader);
 
@@ -268,18 +268,22 @@ TEST_CASE_METHOD(CodegenTestFixture,
     SECTION("SGX first")
     {
         gen.codegenForFunction(msgSgx);
+        REQUIRE(boost::filesystem::exists(hashFileSgx));
+        REQUIRE(!boost::filesystem::exists(hashFile));
+
         gen.codegenForFunction(msg);
+        REQUIRE(boost::filesystem::exists(hashFile));
     }
 
     SECTION("SGX second")
     {
         gen.codegenForFunction(msg);
-        gen.codegenForFunction(msgSgx);
-    }
+        REQUIRE(boost::filesystem::exists(hashFile));
+        REQUIRE(!boost::filesystem::exists(hashFileSgx));
 
-    // Check hashes now exist locally
-    REQUIRE(boost::filesystem::exists(hashFile));
-    REQUIRE(boost::filesystem::exists(hashFileSgx));
+        gen.codegenForFunction(msgSgx);
+        REQUIRE(boost::filesystem::exists(hashFileSgx));
+    }
 
     // Check hashes in S3
     const std::string preffix = "/tmp/obj/";
