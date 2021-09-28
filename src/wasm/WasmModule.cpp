@@ -281,11 +281,6 @@ uint32_t WasmModule::getArgc()
     return argc;
 }
 
-std::vector<std::string> WasmModule::getArgv()
-{
-    return argv;
-}
-
 uint32_t WasmModule::getArgvBufferSize()
 {
     return argvBufferSize;

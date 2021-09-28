@@ -78,7 +78,7 @@ void MachineCodeGenerator::codegenForFunction(faabric::Message& msg)
     }
 
     if ((!oldHash.empty()) && newHash == oldHash) {
-        SPDLOG_INFO("Skipping codegen for {}", funcStr);
+        SPDLOG_DEBUG("Skipping codegen for {}", funcStr);
         return;
     } else if (oldHash.empty()) {
         SPDLOG_DEBUG("No old hash found for {}", funcStr);

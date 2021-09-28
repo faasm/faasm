@@ -93,8 +93,6 @@ class WasmModule
     // ----- argc/ argv -----
     uint32_t getArgc();
 
-    std::vector<std::string> getArgv();
-
     uint32_t getArgvBufferSize();
 
     virtual void writeArgvToMemory(uint32_t wasmArgvPointers,
