@@ -79,8 +79,6 @@ TEST_CASE_METHOD(CodegenTestFixture,
     std::string objectFileA;
     std::string objectFileB;
 
-    bool isCodegenExactlySame = true;
-    bool isCodegenSameLength = true;
     SECTION("WAVM codegen")
     {
         conf.wasmVm = "wavm";
@@ -96,11 +94,6 @@ TEST_CASE_METHOD(CodegenTestFixture,
         {
             objectFileA = "/tmp/obj/demo/hello/function.aot";
             objectFileB = "/tmp/obj/demo/echo/function.aot";
-
-            // It seems that WAMR codegen doesn't produce the same results every
-            // time, but they are the same length. Perhaps a timestamp is
-            // included.
-            isCodegenExactlySame = false;
         }
 
         SECTION("SGX")
@@ -109,11 +102,6 @@ TEST_CASE_METHOD(CodegenTestFixture,
             objectFileB = "/tmp/obj/demo/echo/function.aot.sgx";
             msgA.set_issgx(true);
             msgB.set_issgx(true);
-
-            // It seems that WAMR SGX codegen is only approximately the same
-            // each time, so we cannot compare results from successive runs.
-            isCodegenExactlySame = false;
-            isCodegenSameLength = false;
         }
     }
 
@@ -183,12 +171,7 @@ TEST_CASE_METHOD(CodegenTestFixture,
     std::vector<uint8_t> objAAfter =
       faabric::util::readFileToBytes(objectFileA);
 
-    if (isCodegenExactlySame) {
-        REQUIRE(objAAfter == objABefore);
-    } else if (isCodegenSameLength) {
-        // Just check the length of the machine code
-        REQUIRE(objAAfter.size() == objABefore.size());
-    }
+    REQUIRE(objAAfter == objABefore);
 
     // Check the hash is updated
     std::vector<uint8_t> hashAAfter = faabric::util::readFileToBytes(hashFileA);
@@ -247,5 +230,73 @@ TEST_CASE_METHOD(CodegenTestFixture,
     std::vector<uint8_t> hashAfter =
       loader.loadSharedObjectObjectHash(localSharedObjFile);
     REQUIRE(hashAfter == hashBefore);
+}
+
+TEST_CASE_METHOD(CodegenTestFixture,
+                 "Test WAMR and WAMR + SGX codegen for same func in sequence",
+                 "[codegen]")
+{
+    std::string objectFile;
+    std::string objectFileSgx;
+    conf.wasmVm = "wamr";
+
+    // Rename messages for more clarity
+    faabric::Message msg = msgA;
+    faabric::Message msgSgx = msgA;
+
+    msg.set_issgx(false);
+    msgSgx.set_issgx(true);
+    objectFile = "/tmp/obj/demo/hello/function.aot.sgx";
+    objectFileSgx = "/tmp/obj/demo/hello/function.aot";
+
+    codegen::MachineCodeGenerator gen(loader);
+
+    // Running codegen on same function, so only need to upload function once
+    loader.uploadFunction(msg);
+
+    std::string hashFile = objectFile + HASH_EXT;
+    std::string hashFileSgx = objectFileSgx + HASH_EXT;
+
+    // Make sure directories are empty to start with
+    loader.clearLocalCache();
+
+    // Check files don't yet exist
+    REQUIRE(!boost::filesystem::exists(hashFile));
+    REQUIRE(!boost::filesystem::exists(hashFileSgx));
+
+    // Do codegen for both in different orders
+    SECTION("SGX first")
+    {
+        gen.codegenForFunction(msgSgx);
+        gen.codegenForFunction(msg);
+    }
+
+    SECTION("SGX second")
+    {
+        gen.codegenForFunction(msg);
+        gen.codegenForFunction(msgSgx);
+    }
+
+    // Check hashes now exist locally
+    REQUIRE(boost::filesystem::exists(hashFile));
+    REQUIRE(boost::filesystem::exists(hashFileSgx));
+
+    // Check hashes in S3
+    const std::string preffix = "/tmp/obj/";
+    const std::vector<std::string> bucketKeys = s3.listKeys(conf.s3Bucket);
+    REQUIRE(std::find(bucketKeys.begin(),
+                      bucketKeys.end(),
+                      objectFile.substr(preffix.length())) != bucketKeys.end());
+    REQUIRE(std::find(bucketKeys.begin(),
+                      bucketKeys.end(),
+                      objectFileSgx.substr(preffix.length())) !=
+            bucketKeys.end());
+    REQUIRE(std::find(bucketKeys.begin(),
+                      bucketKeys.end(),
+                      hashFile.substr(preffix.length())) != bucketKeys.end());
+    REQUIRE(std::find(bucketKeys.begin(),
+                      bucketKeys.end(),
+                      hashFileSgx.substr(preffix.length())) !=
+            bucketKeys.end());
 }
 }
