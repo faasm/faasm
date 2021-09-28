@@ -30,7 +30,7 @@ TEST_CASE("Test execution of echo function", "[faaslet][wamr]")
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     SECTION("WAVM") { conf.wasmVm = "wavm"; }
 
-    SECTION("WAMR") { conf.wasmVm = "wamr"; }
+    // SECTION("WAMR") { conf.wasmVm = "wamr"; }
 
     const std::string actual = execFunctionWithStringResult(call);
     REQUIRE(actual == inputData);
