@@ -1,4 +1,4 @@
-#include <faabric/scheduler/DistributedCoordination.h>
+#include <faabric/scheduler/DistributedCoordinator.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/barrier.h>
 #include <faabric/util/bytes.h>

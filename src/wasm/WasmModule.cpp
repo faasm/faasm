@@ -498,6 +498,8 @@ int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
             req->set_type(faabric::BatchExecuteRequest::THREADS);
             req->set_subtype(wasm::ThreadRequestType::PTHREAD);
 
+            uint32_t groupGid = faabric::util::generateGid();
+
             for (int i = 0; i < nPthreadCalls; i++) {
                 threads::PthreadCall p = queuedPthreadCalls.at(i);
                 faabric::Message& m = req->mutable_messages()->at(i);
@@ -517,6 +519,8 @@ int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
                 // Assign a thread ID and increment. Our pthread IDs start
                 // at 1
                 m.set_appindex(i + 1);
+                m.set_groupid(groupGid);
+                m.set_groupsize(nPthreadCalls);
 
                 // Record this thread -> call ID
                 SPDLOG_TRACE(
