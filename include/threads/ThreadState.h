@@ -59,11 +59,11 @@ class Level
 
     std::vector<uint8_t> serialise();
 
-    int getLocalThreadNum(faabric::Message* msg);
+    int getLocalThreadNum(const faabric::Message* msg);
 
     int getGlobalThreadNum(int localThreadNum);
 
-    int getGlobalThreadNum(faabric::Message* msg);
+    int getGlobalThreadNum(const faabric::Message* msg);
 
     std::string toString();
 };

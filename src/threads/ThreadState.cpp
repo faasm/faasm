@@ -168,7 +168,7 @@ std::shared_ptr<Level> Level::deserialise(const std::vector<uint8_t>& bytes)
 // local thread number must fit with that expected by OpenMP within the team/
 // level. We use Faabric messages to hold the global thread number and can
 // translate back and forth.
-int Level::getLocalThreadNum(faabric::Message* msg)
+int Level::getLocalThreadNum(const faabric::Message* msg)
 {
     if (depth == 0) {
         return msg->appindex();
@@ -197,7 +197,7 @@ int Level::getGlobalThreadNum(int localThreadNum)
     return localThreadNum + globalTidOffset;
 }
 
-int Level::getGlobalThreadNum(faabric::Message* msg)
+int Level::getGlobalThreadNum(const faabric::Message* msg)
 {
     return msg->appindex();
 }

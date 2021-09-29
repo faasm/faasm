@@ -20,6 +20,8 @@ TEST_CASE_METHOD(DistTestsFixture, "Test OpenMP across hosts", "[scheduler]")
 
     SECTION("Using shared memory") { function = "omp_checks"; }
 
+    SECTION("Repeated reduce") { function = "repeated_reduce"; }
+
     // Set up the message
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory("omp", function, 1);
