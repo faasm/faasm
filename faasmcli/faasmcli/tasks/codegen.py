@@ -1,5 +1,6 @@
 from subprocess import run
 
+import errno
 from invoke import task
 from copy import copy
 from os import environ, remove
@@ -140,13 +141,23 @@ def remove_wamr_codegen(ctx):
     LOCAL_OBJECT_STORE_PREFIX = "/usr/local/faasm/object"
     WAMR_FUNC_NAME = "function.aot"
     SGX_FUNC_NAME = "function.aot.sgx"
+    HASH_SUFFIX = ".md5"
+
+    def remove_if_exists(filename):
+        try:
+            remove(filename)
+        except OSError as e:
+            if e.errno != errno.ENOENT:
+                raise
 
     print("Removing local WAMR machine code")
     for user, func in WAMR_WHITELISTED_FUNCS:
         file_path = join(LOCAL_OBJECT_STORE_PREFIX, user, func, WAMR_FUNC_NAME)
-        remove(file_path)
+        remove_if_exists(file_path)
+        remove_if_exists(file_path + HASH_SUFFIX)
 
     print("Removing local SGX machine code")
     for user, func in SGX_WHITELISTED_FUNCS:
         file_path = join(LOCAL_OBJECT_STORE_PREFIX, user, func, SGX_FUNC_NAME)
-        remove(file_path)
+        remove_if_exists(file_path)
+        remove_if_exists(file_path + HASH_SUFFIX)
