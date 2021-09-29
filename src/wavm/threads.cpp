@@ -1,5 +1,4 @@
 #include "syscalls.h"
-#include "wasm/WasmExecutionContext.h"
 
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/scheduler/DistributedCoordinator.h>
@@ -8,7 +7,9 @@
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 #include <faabric/util/logging.h>
+
 #include <threads/ThreadState.h>
+#include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 #include <wasm/chaining.h>
 #include <wavm/WAVMWasmModule.h>
@@ -180,6 +181,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 attr)
 {
     SPDLOG_TRACE("S - pthread_mutex_init {} {}", mx, attr);
+    faabric::scheduler::getDistributedCoordinator().initGroup(mx, 0);
     return 0;
 }
 
@@ -190,8 +192,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 mx)
 {
     SPDLOG_TRACE("S - pthread_mutex_lock {}", mx);
-    faabric::scheduler::getDistributedCoordinator().localLock(
-      *getExecutingCall());
+    faabric::scheduler::getDistributedCoordinator().localLock(mx, 0);
     return 0;
 }
 
@@ -202,8 +203,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 mx)
 {
     SPDLOG_TRACE("S - pthread_mutex_trylock {}", mx);
-    bool success = faabric::scheduler::getDistributedCoordinator().localTryLock(
-      *getExecutingCall());
+    bool success =
+      faabric::scheduler::getDistributedCoordinator().localTryLock(mx, 0);
     if (!success) {
         return EBUSY;
     }
@@ -217,8 +218,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 mx)
 {
     SPDLOG_TRACE("S - pthread_mutex_unlock {}", mx);
-    faabric::scheduler::getDistributedCoordinator().localUnlock(
-      *getExecutingCall());
+    faabric::scheduler::getDistributedCoordinator().localUnlock(mx, 0);
     return 0;
 }
 

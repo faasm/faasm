@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "faasm_fixtures.h"
 #include "utils.h"
 
 #include <faabric/proto/faabric.pb.h>
@@ -15,120 +16,149 @@
 
 namespace tests {
 
-void doOmpTestLocal(const std::string& function)
+class OmpLocalTestFixture
+  : public FunctionExecTestFixture
+  , public ConfTestFixture
 {
-    cleanSystem();
+  public:
+    void doOmpTestLocal(const std::string& function)
+    {
+        conf.overrideCpuCount = 15;
 
-    // Make sure we have enough thread pool capacity
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    int32_t initialCpu = conf.overrideCpuCount;
-    conf.overrideCpuCount = 15;
+        faabric::Message msg = faabric::util::messageFactory("omp", function);
+        execFuncWithPool(msg, false, OMP_TEST_TIMEOUT_MS);
+    }
+};
 
-    faabric::Message msg = faabric::util::messageFactory("omp", function);
-    execFuncWithPool(msg, false, OMP_TEST_TIMEOUT_MS);
-
-    conf.overrideCpuCount = initialCpu;
-}
-
-TEST_CASE("Test static for scheduling", "[wasm][openmp]")
+TEST_CASE_METHOD(OmpLocalTestFixture,
+                 "Test static for scheduling",
+                 "[wasm][openmp]")
 {
     doOmpTestLocal("for_static_schedule");
 }
 
-TEST_CASE("Test OMP header API functions", "[wasm][openmp]")
+TEST_CASE_METHOD(OmpLocalTestFixture,
+                 "Test OMP header API functions",
+                 "[wasm][openmp]")
 {
     doOmpTestLocal("header_api_support");
 }
 
-TEST_CASE("Test running OpenMP checks", "[wasm][openmp]")
+TEST_CASE_METHOD(OmpLocalTestFixture,
+                 "Test running OpenMP checks",
+                 "[wasm][openmp]")
 {
     doOmpTestLocal("omp_checks");
 }
 
-TEST_CASE("Test non-nested barrier pragma", "[wasm][openmp]")
+TEST_CASE_METHOD(OmpLocalTestFixture,
+                 "Test non-nested barrier pragma",
+                 "[wasm][openmp]")
 {
     doOmpTestLocal("simple_barrier");
 }
 
-TEST_CASE("Test basic omp parallel for pragma", "[wasm][openmp]")
+TEST_CASE_METHOD(OmpLocalTestFixture,
+                 "Test basic omp parallel for pragma",
+                 "[wasm][openmp]")
 {
     doOmpTestLocal("simple_for");
 }
 
-TEST_CASE("Test non-nested master pragma", "[wasm][openmp]")
+TEST_CASE_METHOD(OmpLocalTestFixture,
+                 "Test non-nested master pragma",
+                 "[wasm][openmp]")
 {
     doOmpTestLocal("simple_master");
 }
 
-TEST_CASE("Test simple reduction function", "[wasm][openmp]")
+TEST_CASE_METHOD(OmpLocalTestFixture,
+                 "Test simple reduction function",
+                 "[wasm][openmp]")
 {
     doOmpTestLocal("simple_reduce");
 }
 
-TEST_CASE("Test integrating using different constructs", "[wasm][openmp]")
+TEST_CASE_METHOD(OmpLocalTestFixture,
+                 "Test integrating using different constructs",
+                 "[wasm][openmp]")
 {
     doOmpTestLocal("reduction_integral");
 }
 
-TEST_CASE("Test critical section", "[wasm][openmp]")
+TEST_CASE_METHOD(OmpLocalTestFixture, "Test critical section", "[wasm][openmp]")
 {
     doOmpTestLocal("simple_critical");
 }
 
-TEST_CASE("Test single section", "[wasm][openmp]")
+TEST_CASE_METHOD(OmpLocalTestFixture, "Test single section", "[wasm][openmp]")
 {
     doOmpTestLocal("simple_single");
 }
 
-TEST_CASE("Test custom reduction function", "[wasm][openmp]")
+TEST_CASE_METHOD(OmpLocalTestFixture,
+                 "Test custom reduction function",
+                 "[wasm][openmp]")
 {
     doOmpTestLocal("custom_reduce");
 }
 
-TEST_CASE("Test nested API", "[wasm][openmp]")
+TEST_CASE_METHOD(OmpLocalTestFixture, "Test nested API", "[wasm][openmp]")
 {
     doOmpTestLocal("nested_levels_test");
 }
 
-TEST_CASE("Test nested parallel region support", "[wasm][openmp]")
+TEST_CASE_METHOD(OmpLocalTestFixture,
+                 "Test nested parallel region support",
+                 "[wasm][openmp]")
 {
     doOmpTestLocal("nested_parallel");
 }
 
-TEST_CASE("Test openmp Pi calculation", "[wasm][openmp]")
+TEST_CASE_METHOD(OmpLocalTestFixture,
+                 "Test openmp Pi calculation",
+                 "[wasm][openmp]")
 {
     doOmpTestLocal("mt_pi");
 }
 
-TEST_CASE("Test getting and setting num threads", "[wasm][openmp]")
+TEST_CASE_METHOD(OmpLocalTestFixture,
+                 "Test getting and setting num threads",
+                 "[wasm][openmp]")
 {
     doOmpTestLocal("setting_num_threads");
 }
 
-TEST_CASE("Test openmp wtime", "[wasm][openmp]")
+TEST_CASE_METHOD(OmpLocalTestFixture, "Test openmp wtime", "[wasm][openmp]")
 {
     doOmpTestLocal("wtime");
 }
 
-TEST_CASE("Test single-threaded reduction", "[wasm][openmp]")
+TEST_CASE_METHOD(OmpLocalTestFixture,
+                 "Test single-threaded reduction",
+                 "[wasm][openmp]")
 {
     doOmpTestLocal("single_thread_reduce");
 }
 
-TEST_CASE("Test more complex reduction", "[wasm][openmp]")
+TEST_CASE_METHOD(OmpLocalTestFixture,
+                 "Test more complex reduction",
+                 "[wasm][openmp]")
 {
     doOmpTestLocal("complex_reduce");
 }
 
-TEST_CASE("Test repeated reductions", "[wasm][openmp]")
+TEST_CASE_METHOD(OmpLocalTestFixture,
+                 "Test repeated reductions",
+                 "[wasm][openmp]")
 {
     doOmpTestLocal("repeated_reduce");
 }
 
-TEST_CASE("Run openmp memory stress test", "[wasm][openmp]")
+TEST_CASE_METHOD(OmpLocalTestFixture,
+                 "Run openmp memory stress test",
+                 "[wasm][openmp]")
 {
-    cleanSystem();
-
     // Overload the local resources
     int nSlots = 15;
     int nOmpThreads = 60;

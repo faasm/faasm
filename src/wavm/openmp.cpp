@@ -811,7 +811,7 @@ void endReduceCritical(bool barrier)
     // Unlock the critical section
     faabric::scheduler::DistributedCoordinator& sync =
       faabric::scheduler::getDistributedCoordinator();
-    sync.localUnlock(msg->appid());
+    sync.localUnlock(*msg);
 
     // Master must make sure all other threads are done
     if (localThreadNum == 0) {
