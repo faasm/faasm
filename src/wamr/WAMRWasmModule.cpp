@@ -11,7 +11,6 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 
-// WAMR includes
 #include <aot_runtime.h>
 #include <platform_common.h>
 #include <wasm_exec_env.h>
@@ -201,13 +200,6 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
           ((AOTModuleInstance*)moduleInstance)->cur_exception);
         SPDLOG_ERROR("Caught wasm runtime exception: {}", errorMessage);
 
-        // TODO - agree on a protocol to send the return code through the error
-        // message (throwing exceptions not supported). For the moment, if the
-        // error message is a "Exception: 0" we assume no errors (i.e. exit(0))
-        if (errorMessage == "Exception: 0") {
-            return 0;
-        }
-
         return 1;
     }
 
@@ -217,7 +209,7 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
 void WAMRWasmModule::writeStringToWasmMemory(const std::string& strHost,
                                              char* strWasm)
 {
-    this->validateNativeAddress(strWasm, strHost.size());
+    validateNativeAddress(strWasm, strHost.size());
     std::copy(strHost.begin(), strHost.end(), strWasm);
 }
 
@@ -226,17 +218,16 @@ void WAMRWasmModule::writeStringArrayToMemory(
   uint32_t* strOffsets,
   char* strBuffer)
 {
-    this->validateNativeAddress(strOffsets, strings.size() * sizeof(uint32_t));
+    validateNativeAddress(strOffsets, strings.size() * sizeof(uint32_t));
 
     char* nextBuffer = strBuffer;
-    size_t i;
-    for (i = 0; i < strings.size(); ++i) {
+    for (size_t i = 0; i < strings.size(); ++i) {
         const std::string& thisStr = strings.at(i);
 
-        this->validateNativeAddress(nextBuffer, thisStr.size() + 1);
+        validateNativeAddress(nextBuffer, thisStr.size() + 1);
 
         std::copy(thisStr.begin(), thisStr.end(), nextBuffer);
-        strOffsets[i] = this->nativePointerToWasm(nextBuffer);
+        strOffsets[i] = nativePointerToWasm(nextBuffer);
 
         nextBuffer += thisStr.size() + 1;
     }
@@ -258,16 +249,19 @@ void WAMRWasmModule::writeWasmEnvToWamrMemory(uint32_t* envOffsetsWasm,
 void WAMRWasmModule::validateNativeAddress(void* nativePtr, size_t size)
 {
     if (!wasm_runtime_validate_native_addr(moduleInstance, nativePtr, size)) {
-        SPDLOG_ERROR("Native pointer does not point to a valid address in the "
-                     "WAMR's module address space");
-        throw std::runtime_error("Pointer out of WAMR's module address space");
+        std::string errorMsg = "Pointer out of WAMR's module address space";
+        SPDLOG_ERROR(errorMsg);
+        throw std::runtime_error(errorMsg);
     }
 }
 
 void WAMRWasmModule::validateWasmOffset(uint32_t wasmOffset, size_t size)
 {
     if (!wasm_runtime_validate_app_addr(moduleInstance, wasmOffset, size)) {
-        SPDLOG_ERROR("WASM offset outside WAMR module instance memory");
+        SPDLOG_ERROR("WASM offset outside WAMR module instance memory"
+                     "(offset: {}, size: {})",
+                     wasmOffset,
+                     size);
         throw std::runtime_error("Offset outside WAMR's memory");
     }
 }
@@ -276,8 +270,8 @@ uint8_t* WAMRWasmModule::wasmPointerToNative(uint32_t wasmPtr)
 {
     void* nativePtr = wasm_runtime_addr_app_to_native(moduleInstance, wasmPtr);
     if (nativePtr == nullptr) {
-        SPDLOG_ERROR(
-          "WASM offset {} is out of the WAMR module's address space");
+        SPDLOG_ERROR("WASM offset {} is out of the WAMR module's address space",
+                     wasmPtr);
         throw std::runtime_error("Offset out of WAMR memory");
     }
     return static_cast<uint8_t*>(nativePtr);
@@ -296,8 +290,11 @@ uint32_t WAMRWasmModule::growMemory(uint32_t nBytes)
     uint32_t newBrk = currentBrk + nBytes;
 
     if (!isWasmPageAligned(newBrk)) {
-        SPDLOG_ERROR("Growing WAMR memory by {} is not wasm page aligned",
-                     nBytes);
+        SPDLOG_ERROR("Growing WAMR memory by {} is not wasm page aligned"
+                     " (current brk: {}, new brk: {})",
+                     nBytes,
+                     currentBrk,
+                     newBrk);
         throw std::runtime_error("Non-wasm-page-aligned WAMR memory growth");
     }
 

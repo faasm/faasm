@@ -13,14 +13,6 @@ using namespace std;
 using namespace boost;
 
 namespace tests {
-
-class FilesystemTestFixture : public FunctionExecTestFixture
-{
-  public:
-    FilesystemTestFixture() {}
-    ~FilesystemTestFixture() {}
-};
-
 std::vector<std::string> splitString(const std::string& strIn, const char* sep)
 {
     char_separator<char> separator(sep);
@@ -34,7 +26,9 @@ std::vector<std::string> splitString(const std::string& strIn, const char* sep)
     return result;
 }
 
-TEST_CASE_METHOD(FilesystemTestFixture, "Test getdents", "[faaslet]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
+                 "Test getdents",
+                 "[faaslet]")
 {
     // Note, our test function adds an extra comma, hence the blank
     // These are all the files we _might_ see
@@ -59,13 +53,17 @@ TEST_CASE_METHOD(FilesystemTestFixture, "Test getdents", "[faaslet]")
     }
 }
 
-TEST_CASE_METHOD(FilesystemTestFixture, "Test listdir", "[faaslet]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
+                 "Test listdir",
+                 "[faaslet]")
 {
     faabric::Message msg = faabric::util::messageFactory("demo", "listdir");
     execFunction(msg);
 }
 
-TEST_CASE_METHOD(FilesystemTestFixture, "Test fcntl", "[faaslet][wamr]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
+                 "Test fcntl",
+                 "[faaslet][wamr]")
 {
     faabric::Message msg = faabric::util::messageFactory("demo", "fcntl");
 
@@ -76,7 +74,7 @@ TEST_CASE_METHOD(FilesystemTestFixture, "Test fcntl", "[faaslet][wamr]")
 
 // TODO - bug in WAMR's WASI implementation makes this test fail. Will uncomment
 // when fixed.
-TEST_CASE_METHOD(FilesystemTestFixture, "Test fread", "[faaslet]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fread", "[faaslet]")
 {
     faabric::Message msg = faabric::util::messageFactory("demo", "fread");
 
@@ -85,7 +83,9 @@ TEST_CASE_METHOD(FilesystemTestFixture, "Test fread", "[faaslet]")
     // SECTION("WAMR") { execWamrFunction(msg); }
 }
 
-TEST_CASE_METHOD(FilesystemTestFixture, "Test fstat", "[faaslet][wamr]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
+                 "Test fstat",
+                 "[faaslet][wamr]")
 {
     faabric::Message msg = faabric::util::messageFactory("demo", "fstat");
 
@@ -94,7 +94,7 @@ TEST_CASE_METHOD(FilesystemTestFixture, "Test fstat", "[faaslet][wamr]")
     SECTION("WAMR") { execWamrFunction(msg); }
 }
 
-TEST_CASE_METHOD(FilesystemTestFixture,
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test file operations",
                  "[faaslet][wamr]")
 {
@@ -105,7 +105,7 @@ TEST_CASE_METHOD(FilesystemTestFixture,
     SECTION("WAMR") { execWamrFunction(msg); }
 }
 
-TEST_CASE_METHOD(FilesystemTestFixture,
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test file descriptors",
                  "[faaslet][wamr]")
 {

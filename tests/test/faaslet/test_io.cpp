@@ -1,3 +1,4 @@
+#include "faasm_fixtures.h"
 #include "utils.h"
 #include <catch2/catch.hpp>
 
@@ -8,9 +9,10 @@
 using namespace faaslet;
 
 namespace tests {
-TEST_CASE("Test fixed input with colon", "[faaslet][wamr]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
+                 "Test fixed input with colon",
+                 "[faaslet][wamr]")
 {
-    cleanSystem();
     faabric::Message call =
       faabric::util::messageFactory("demo", "check_input");
     call.set_inputdata("http://www.foobar.com");
@@ -20,9 +22,10 @@ TEST_CASE("Test fixed input with colon", "[faaslet][wamr]")
     SECTION("WAMR") { execWamrFunction(call); }
 }
 
-TEST_CASE("Test execution of echo function", "[faaslet][wamr]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
+                 "Test execution of echo function",
+                 "[faaslet][wamr]")
 {
-    cleanSystem();
     faabric::Message call = faabric::util::messageFactory("demo", "echo");
     std::string inputData = "http://www.testinput/foo.com";
     call.set_inputdata(inputData.c_str());
@@ -36,13 +39,11 @@ TEST_CASE("Test execution of echo function", "[faaslet][wamr]")
     REQUIRE(actual == inputData);
 }
 
-TEST_CASE("Test capturing stdout", "[faaslet][wamr]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
+                 "Test capturing stdout",
+                 "[faaslet][wamr]")
 {
-    cleanSystem();
-
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
     faabric::Message call = faabric::util::messageFactory("demo", "stdout");
-
     std::string expected;
 
     SECTION("Capture off")
@@ -76,11 +77,10 @@ TEST_CASE("Test capturing stdout", "[faaslet][wamr]")
     REQUIRE(actual == expected);
 }
 
-TEST_CASE("Test capturing stderr", "[faaslet]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
+                 "Test capturing stderr",
+                 "[faaslet]")
 {
-    cleanSystem();
-
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
     faabric::Message call = faabric::util::messageFactory("demo", "stderr");
 
     std::string expected;

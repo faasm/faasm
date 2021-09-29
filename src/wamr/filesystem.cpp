@@ -9,7 +9,6 @@
 #include <stdexcept>
 #include <sys/uio.h>
 
-// WAMR includes
 #include <wasm_export.h>
 #include <wasmtime_ssp.h>
 
@@ -104,7 +103,6 @@ static int32_t wasi_fd_fdstat_set_flags(wasm_exec_env_t exec_env,
 {
     SPDLOG_DEBUG("S - fd_fdstat_set_flags");
     throw std::runtime_error("fd_fdstat_set_flags not implemented");
-    return 0;
 }
 
 static int32_t doFileStat(uint32_t fd,
@@ -232,7 +230,6 @@ static int32_t wasi_fd_readdir(wasm_exec_env_t exec_env,
 {
     SPDLOG_DEBUG("S - fd_readdir");
     throw std::runtime_error("fd_readdir not implemented");
-    return 0;
 }
 
 static int32_t wasi_fd_seek(wasm_exec_env_t exec_env,
@@ -312,7 +309,6 @@ static int32_t wasi_path_create_directory(wasm_exec_env_t exec_env,
 {
     SPDLOG_DEBUG("S - path_create_directory");
     throw std::runtime_error("path_create_directory not implemented");
-    return 0;
 }
 
 static int32_t wasi_path_filestat_get(wasm_exec_env_t exec_env,
@@ -342,7 +338,6 @@ static int32_t wasi_path_link(wasm_exec_env_t exec_env,
 {
     SPDLOG_DEBUG("S - path_link");
     throw std::runtime_error("path_link not implemented");
-    return 0;
 }
 
 static int32_t wasi_path_open(wasm_exec_env_t exec_env,
@@ -386,7 +381,6 @@ static int32_t wasi_path_remove_directory(wasm_exec_env_t exec_env,
 {
     SPDLOG_DEBUG("S - path_remove_directory");
     throw std::runtime_error("path_remove_directory not implemented");
-    return 0;
 }
 
 static int32_t wasi_path_rename(wasm_exec_env_t exec_env,

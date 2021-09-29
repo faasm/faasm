@@ -1,33 +1,33 @@
-# WARNING: the CMake flags and pre-processor definitions that we set in this
+# WARNING: the CMake flags and pre-processor definitions that we setin this
 # file are carefully chosen for the WAMR build to run. Adding or removing flags
 # may break Faasm.
 
 # Set target platform details
-set (WAMR_BUILD_PLATFORM "linux")
-set (WAMR_BUILD_TARGET X86_64)
-set (WAMR_BUILD_SPEC_TEST 0)
+set(WAMR_BUILD_PLATFORM "linux")
+set(WAMR_BUILD_TARGET X86_64)
+set(WAMR_BUILD_SPEC_TEST 0)
 
 # Set AOT mode and JIT for code generation
-set (WAMR_BUILD_AOT 1)
-set (WAMR_BUILD_JIT 1)
-set (WAMR_BUILD_LAZY_JIT 0)
+set(WAMR_BUILD_AOT 1)
+set(WAMR_BUILD_JIT 1)
+set(WAMR_BUILD_LAZY_JIT 0)
 
 # Set libraries
-set (WAMR_BUILD_LIBC_BUILTIN 1)
-set (WAMR_BUILD_LIBC_WASI 1)
-set (WAMR_BUILD_LIB_PTHREAD 0)
+set(WAMR_BUILD_LIBC_BUILTIN 1)
+set(WAMR_BUILD_LIBC_WASI 1)
+set(WAMR_BUILD_LIB_PTHREAD 0)
 
 # WAMR features
-set (WAMR_BUILD_SIMD 0)
+set(WAMR_BUILD_SIMD 0)
 
-set (WAMR_BUILD_MULTI_MODULE 1)
+set(WAMR_BUILD_MULTI_MODULE 1)
 # If bulk memory set, WAMR allocates one single page, breaking our brk memory
 # management model
-set (WAMR_BUILD_BULK_MEMORY 0)
+set(WAMR_BUILD_BULK_MEMORY 0)
 
 # Explicitely set to 0. If set to 1, WAMR will allocate the module's instance
 # memory using `malloc` instead of `mmap` and calls to `mprotect` fail.
-set (WAMR_DISABLE_HW_BOUND_CHECK 0)
+set(WAMR_DISABLE_HW_BOUND_CHECK 0)
 # This definition prevents a buffer underflow during code generation
 add_definitions(-DWASM_ENABLE_WAMR_COMPILER=1)
 

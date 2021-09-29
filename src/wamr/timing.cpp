@@ -12,7 +12,6 @@ uint32_t wasi_clock_time_get(wasm_exec_env_t exec_env,
 {
     SPDLOG_DEBUG("S - clock_time_get");
     throw std::runtime_error("clock_time_get not implemented");
-    return 0;
 }
 
 uint32_t wasi_poll_oneoff(wasm_exec_env_t exec_env,
@@ -23,7 +22,6 @@ uint32_t wasi_poll_oneoff(wasm_exec_env_t exec_env,
 {
     SPDLOG_DEBUG("S - poll_oneoff");
     throw std::runtime_error("poll_oneoff not implemented");
-    return 0;
 }
 
 static NativeSymbol wasiNs[] = {

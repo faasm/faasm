@@ -160,6 +160,18 @@ jobs:
         run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
       - name: "Print CPU model"
         run: echo "${{ env.CPU_MODEL}}"
+      # --- Cache ---
+      - name: "Configure machine code cache"
+        uses: actions/cache@v2
+        with:
+          path: /usr/local/faasm/object
+          key: ${{ env.CPU_MODEL }}-machine-code
+      # --- Remove cache entries for WAMR ---
+      # 29/09/2021 - Generated code for different WAMR builds may not work due
+      # to binary missmatches. We remove the cached WAMR codegen until our
+      # port is more consolidated.
+      - name: "Remove WAMR cache entries"
+        run: inv -r faasmcli/faasmcli codegen.remove-wamr-codegen
       # --- Code build (Debug required for tests) ---
       - name: "Build dev tools"
         run: inv -r faasmcli/faasmcli dev.tools --build Debug

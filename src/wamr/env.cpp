@@ -5,9 +5,10 @@
 
 #include <stdexcept>
 
-// WAMR includes
 #include <wasm_export.h>
 #include <wasmtime_ssp.h>
+
+#define WAMR_PROC_EXIT_STRING "wasi proc exit"
 
 namespace wasm {
 uint32_t wasi_args_get(wasm_exec_env_t exec_env,
@@ -73,12 +74,12 @@ void wasi_proc_exit(wasm_exec_env_t exec_env, int32_t retCode)
 {
     SPDLOG_DEBUG("S - proc_exit {}", retCode);
 
-    // 08/09/2021 - WAMR doesn't support throwing and catching exceptions.
-    // Alternatively, set the error message.
+    // The WAMR runtime will detect this exception as a regular wasm app exit
+    // and remove the exception
+    // https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/core/iwasm/aot/aot_runtime.c#L874
     WAMRWasmModule* module = getExecutingWAMRModule();
-    char buf[32];
-    snprintf(buf, sizeof buf, "%i", retCode);
-    wasm_runtime_set_exception(module->getModuleInstance(), buf);
+    wasm_runtime_set_exception(module->getModuleInstance(),
+                               WAMR_PROC_EXIT_STRING);
 }
 
 static NativeSymbol wasiNs[] = {
