@@ -8,6 +8,11 @@
 #func_name, (void*)func_name##_wrapper, signature, nullptr             \
     }
 
+#define REG_WASI_NATIVE_FUNC(func_name, signature)                             \
+    {                                                                          \
+#func_name, (void*)wasi_##func_name, signature, nullptr                \
+    }
+
 /*
  * -- WAMR native signatures --
  *
@@ -44,4 +49,12 @@ uint32_t getFaasmPthreadApi(NativeSymbol** nativeSymbols);
 uint32_t getFaasmStateApi(NativeSymbol** nativeSymbols);
 
 uint32_t getFaasmStubs(NativeSymbol** nativeSymbols);
+
+// ---------- WASI symbols ----------
+
+uint32_t getFaasmWasiEnvApi(NativeSymbol** nativeSymbols);
+
+uint32_t getFaasmWasiFilesystemApi(NativeSymbol** nativeSymbols);
+
+uint32_t getFaasmWasiTimingApi(NativeSymbol** nativeSymbols);
 }

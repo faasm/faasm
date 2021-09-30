@@ -68,6 +68,15 @@ class FunctionExecTestFixture : public SchedulerTestFixture
     ~FunctionExecTestFixture() { wasm::getWAVMModuleCache().clear(); }
 };
 
+class MultiRuntimeFunctionExecTestFixture
+  : public FaasmConfTestFixture
+  , public FunctionExecTestFixture
+{
+  public:
+    MultiRuntimeFunctionExecTestFixture() {}
+    ~MultiRuntimeFunctionExecTestFixture() {}
+};
+
 class FunctionLoaderTestFixture : public S3TestFixture
 {
   public:
