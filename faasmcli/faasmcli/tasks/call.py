@@ -22,6 +22,7 @@ def invoke(
     knative=True,
     poll=False,
     cmdline=None,
+    mpi_world_size=None,
     debug=False,
     sgx=False,
 ):
@@ -37,6 +38,7 @@ def invoke(
         knative=knative,
         poll=poll,
         cmdline=cmdline,
+        mpi_world_size=mpi_world_size,
         debug=debug,
         sgx=sgx,
     )

@@ -278,6 +278,15 @@ void FileLoader::uploadFunctionObjectHash(const faabric::Message& msg,
 // FUNCTION WAMR AOT FILES
 // -------------------------------------
 
+static const std::string getWamrAotKey(const faabric::Message& msg)
+{
+    if (msg.issgx()) {
+        return getKey(msg, SGX_WAMR_AOT_FILENAME);
+    } else {
+        return getKey(msg, WAMR_AOT_FILENAME);
+    }
+}
+
 std::string FileLoader::getFunctionAotFile(const faabric::Message& msg)
 {
     auto path = getDir(conf.objectFileDir, msg, true);
@@ -293,7 +302,7 @@ std::string FileLoader::getFunctionAotFile(const faabric::Message& msg)
 std::vector<uint8_t> FileLoader::loadFunctionWamrAotFile(
   const faabric::Message& msg)
 {
-    const std::string key = getKey(msg, WAMR_AOT_FILENAME);
+    const std::string key = getWamrAotKey(msg);
     const std::string localCachePath = getFunctionAotFile(msg);
     return loadFileBytes(key, localCachePath);
 }
@@ -301,7 +310,7 @@ std::vector<uint8_t> FileLoader::loadFunctionWamrAotFile(
 std::vector<uint8_t> FileLoader::loadFunctionWamrAotHash(
   const faabric::Message& msg)
 {
-    const std::string key = getKey(msg, WAMR_AOT_FILENAME);
+    const std::string key = getWamrAotKey(msg);
     const std::string localCachePath = getFunctionAotFile(msg);
     return loadHashFileBytes(key, localCachePath);
 }
@@ -309,7 +318,7 @@ std::vector<uint8_t> FileLoader::loadFunctionWamrAotHash(
 void FileLoader::uploadFunctionWamrAotFile(const faabric::Message& msg,
                                            const std::vector<uint8_t>& objBytes)
 {
-    const std::string key = getKey(msg, WAMR_AOT_FILENAME);
+    const std::string key = getWamrAotKey(msg);
     const std::string localCachePath = getFunctionAotFile(msg);
     uploadFileBytes(key, localCachePath, objBytes);
 }
@@ -317,7 +326,7 @@ void FileLoader::uploadFunctionWamrAotFile(const faabric::Message& msg,
 void FileLoader::uploadFunctionWamrAotHash(const faabric::Message& msg,
                                            const std::vector<uint8_t>& hash)
 {
-    const std::string key = getKey(msg, WAMR_AOT_FILENAME);
+    const std::string key = getWamrAotKey(msg);
     const std::string localCachePath = getFunctionAotFile(msg);
     uploadHashFileBytes(key, localCachePath, hash);
 }

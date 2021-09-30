@@ -1,8 +1,9 @@
 from subprocess import run
 
+import errno
 from invoke import task
 from copy import copy
-from os import environ
+from os import environ, remove
 from os.path import join
 from sys import exit
 
@@ -12,6 +13,34 @@ from faasmcli.util.env import FAASM_RUNTIME_ROOT
 LIB_FAKE_FILES = [
     join(FAASM_RUNTIME_ROOT, "lib", "fake", "libfakeLibA.so"),
     join(FAASM_RUNTIME_ROOT, "lib", "fake", "libfakeLibB.so"),
+]
+
+WAMR_WHITELISTED_FUNCS = [
+    # Misc
+    ["demo", "chain"],
+    ["ffmpeg", "check"],
+    # Environment
+    ["demo", "argc_argv_test"],
+    ["demo", "exit"],
+    ["demo", "getenv"],
+    # Filesystem
+    ["demo", "fcntl"],
+    ["demo", "file"],
+    ["demo", "filedescriptor"],
+    ["demo", "fstat"],
+    ["demo", "fread"],
+    # Input output
+    ["demo", "check_input"],
+    ["demo", "echo"],
+    ["demo", "stdout"],
+    ["demo", "stderr"],
+]
+
+SGX_WHITELISTED_FUNCS = [
+    ["demo", "hello"],
+    ["demo", "chain_named_a"],
+    ["demo", "chain_named_b"],
+    ["demo", "chain_named_c"],
 ]
 
 
@@ -93,11 +122,42 @@ def local(ctx):
         _do_codegen_file(so)
 
     # Run the WAMR codegen required by the tests
-    codegen(ctx, "demo", "echo", wamr=True)
-    codegen(ctx, "demo", "chain", wamr=True)
+    for user, func in WAMR_WHITELISTED_FUNCS:
+        codegen(ctx, user, func, wamr=True)
 
     # Run the SGX codegen required by the tests
-    codegen(ctx, "demo", "hello", wamr=True, sgx=True)
-    codegen(ctx, "demo", "chain_named_a", wamr=True, sgx=True)
-    codegen(ctx, "demo", "chain_named_b", wamr=True, sgx=True)
-    codegen(ctx, "demo", "chain_named_c", wamr=True, sgx=True)
+    for user, func in SGX_WHITELISTED_FUNCS:
+        codegen(ctx, user, func, wamr=True, sgx=True)
+
+
+# 29/09/2021 - TODO: remove task when WAMR and SGX development is consolidated
+# This task is used in the tests, consequently we only need to delete the object
+# files from local storage, not minio.
+@task
+def remove_wamr_codegen(ctx):
+    """
+    Clean WAMR generated code
+    """
+    LOCAL_OBJECT_STORE_PREFIX = "/usr/local/faasm/object"
+    WAMR_FUNC_NAME = "function.aot"
+    SGX_FUNC_NAME = "function.aot.sgx"
+    HASH_SUFFIX = ".md5"
+
+    def remove_if_exists(filename):
+        try:
+            remove(filename)
+        except OSError as e:
+            if e.errno != errno.ENOENT:
+                raise
+
+    print("Removing local WAMR machine code")
+    for user, func in WAMR_WHITELISTED_FUNCS:
+        file_path = join(LOCAL_OBJECT_STORE_PREFIX, user, func, WAMR_FUNC_NAME)
+        remove_if_exists(file_path)
+        remove_if_exists(file_path + HASH_SUFFIX)
+
+    print("Removing local SGX machine code")
+    for user, func in SGX_WHITELISTED_FUNCS:
+        file_path = join(LOCAL_OBJECT_STORE_PREFIX, user, func, SGX_FUNC_NAME)
+        remove_if_exists(file_path)
+        remove_if_exists(file_path + HASH_SUFFIX)

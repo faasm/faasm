@@ -58,4 +58,11 @@ TEST_CASE_METHOD(FFmpegTestFixture,
     faabric::Message msg = faabric::util::messageFactory("ffmpeg", "check");
     execFunction(msg);
 }
+
+TEST_CASE_METHOD(FFmpegTestFixture,
+                 "Test executing FFmpeg checks in WAMR",
+                 "[libs][wamr]")
+{
+    executeWithWamrPool("ffmpeg", "check");
+}
 }

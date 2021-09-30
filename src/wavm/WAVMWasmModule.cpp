@@ -1156,7 +1156,7 @@ U32 WAVMWasmModule::mmapMemory(U32 nBytes)
     return growMemory(pageAligned);
 }
 
-uint8_t* WAVMWasmModule::wasmPointerToNative(int32_t wasmPtr)
+uint8_t* WAVMWasmModule::wasmPointerToNative(uint32_t wasmPtr)
 {
     auto* wasmMemoryRegionPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmPtr);
     return wasmMemoryRegionPtr;

@@ -1,82 +1,90 @@
 #include <catch2/catch.hpp>
 
+#include "faasm_fixtures.h"
 #include "utils.h"
 
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 
 namespace tests {
-TEST_CASE("Test getenv", "[faaslet]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
+                 "Test getenv",
+                 "[faaslet][wamr]")
 {
-    cleanSystem();
-
     faabric::Message msg = faabric::util::messageFactory("demo", "getenv");
-    execFunction(msg);
+
+    SECTION("WAVM") { execFunction(msg); }
+
+    SECTION("WAMR") { execWamrFunction(msg); }
 }
 
-TEST_CASE("Test conf flags", "[faaslet]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
+                 "Test conf flags",
+                 "[faaslet]")
 {
-    cleanSystem();
-
     faabric::Message msg = faabric::util::messageFactory("demo", "conf_flags");
     execFunction(msg);
 }
 
-TEST_CASE("Test exit", "[faaslet]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
+                 "Test exit",
+                 "[faaslet][wamr]")
 {
-    cleanSystem();
-
     faabric::Message msg = faabric::util::messageFactory("demo", "exit");
-    execFunction(msg);
+
+    SECTION("WAVM") { execFunction(msg); }
+
+    SECTION("WAMR") { execWamrFunction(msg); }
 }
 
-TEST_CASE("Test optarg", "[faaslet]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
+                 "Test optarg",
+                 "[faaslet]")
 {
-    cleanSystem();
-
     faabric::Message msg = faabric::util::messageFactory("demo", "optarg");
     execFunction(msg);
 }
 
-TEST_CASE("Test sysconf", "[faaslet]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
+                 "Test sysconf",
+                 "[faaslet]")
 {
-    cleanSystem();
-
     faabric::Message msg = faabric::util::messageFactory("demo", "sysconf");
     execFunction(msg);
 }
 
-TEST_CASE("Test uname", "[faaslet]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test uname", "[faaslet]")
 {
-    cleanSystem();
-
     faabric::Message msg = faabric::util::messageFactory("demo", "uname");
     execFunction(msg);
 }
 
-TEST_CASE("Test getpwuid", "[faaslet]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
+                 "Test getpwuid",
+                 "[faaslet]")
 {
-    cleanSystem();
-
     faabric::Message msg = faabric::util::messageFactory("demo", "getpwuid");
     execFunction(msg);
 }
 
-TEST_CASE("Test getcwd", "[faaslet]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
+                 "Test getcwd",
+                 "[faaslet]")
 {
-    cleanSystem();
-
     faabric::Message msg = faabric::util::messageFactory("demo", "getcwd");
     execFunction(msg);
 }
 
-TEST_CASE("Test argc/argv", "[faaslet]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
+                 "Test argc/argv",
+                 "[faaslet][wamr]")
 {
-    cleanSystem();
     faabric::Message msg =
       faabric::util::messageFactory("demo", "argc_argv_test");
     msg.set_cmdline("alpha B_eta G$mma d3-lt4");
 
-    execFunction(msg);
+    SECTION("WAVM") { execFunction(msg); }
+
+    SECTION("WAMR") { execWamrFunction(msg); }
 }
 }

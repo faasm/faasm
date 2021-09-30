@@ -134,7 +134,7 @@ class WasmModule
       long offset,
       uint32_t length);
 
-    virtual uint8_t* wasmPointerToNative(int32_t wasmPtr);
+    virtual uint8_t* wasmPointerToNative(uint32_t wasmPtr);
 
     virtual size_t getMemorySizeBytes();
 
