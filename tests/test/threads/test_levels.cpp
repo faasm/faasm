@@ -17,7 +17,6 @@ TEST_CASE("Check level serialisation and deserialisation", "[threads]")
     cleanSystem();
 
     Level lvlA(10);
-    REQUIRE(lvlA.id != 0);
 
     lvlA.activeLevels = 222;
     lvlA.maxActiveLevels = 333;
@@ -53,8 +52,6 @@ TEST_CASE("Check level serialisation and deserialisation", "[threads]")
 
     // Deserialise the nested level object
     std::shared_ptr<Level> lvlB = levelFromBatchRequest(reqB);
-
-    REQUIRE(lvlB->id == lvlA.id);
     REQUIRE(lvlB->activeLevels == lvlA.activeLevels);
     REQUIRE(lvlB->maxActiveLevels == lvlA.maxActiveLevels);
     REQUIRE(lvlB->depth == lvlA.depth);
@@ -69,13 +66,11 @@ TEST_CASE("Check level serialisation and deserialisation", "[threads]")
 TEST_CASE("Check level serialisation sizes", "[threads]")
 {
     Level lvlA(10);
-    REQUIRE(lvlA.id != 0);
 
     std::vector<uint32_t> sharedVarOffsets = { 22, 33, 44 };
     lvlA.setSharedVarOffsets(sharedVarOffsets.data(), sharedVarOffsets.size());
 
     Level lvlB(5);
-    REQUIRE(lvlB.id != 0);
 
     std::vector<uint8_t> serialisedA = lvlA.serialise();
     std::vector<uint8_t> serialisedB = lvlB.serialise();

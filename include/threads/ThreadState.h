@@ -15,9 +15,6 @@ namespace threads {
 class Level
 {
   public:
-    // Id for this level
-    uint32_t id;
-
     // Number of nested OpenMP constructs
     int32_t depth = 0;
 

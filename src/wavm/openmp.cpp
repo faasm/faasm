@@ -425,6 +425,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     // Set up the chained calls
     // Note that the spawning thread always executes the first task
     std::shared_ptr<faabric::BatchExecuteRequest> req = nullptr;
+    uint32_t groupId = faabric::util::generateGid();
     if (!isSingleThread) {
         // Set up the request
         int nOtherThreads = nextLevel->numThreads - 1;
@@ -455,7 +456,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
             call.set_appindex(nextLevel->getGlobalThreadNum(i + 1));
 
             // Group ID for distributed coordination
-            call.set_groupid(nextLevel->id);
+            call.set_groupid(groupId);
             call.set_groupsize(nextLevel->numThreads);
         }
 
@@ -472,7 +473,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
           parentCall->user(), parentCall->function());
 
         masterMsg.set_appindex(nextLevel->getGlobalThreadNum(0));
-        masterMsg.set_groupid(nextLevel->id);
+        masterMsg.set_groupid(groupId);
         masterMsg.set_groupsize(nextLevel->numThreads);
 
         IR::UntaggedValue masterThreadResult;

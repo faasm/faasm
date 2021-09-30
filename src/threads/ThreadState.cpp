@@ -205,7 +205,7 @@ int Level::getGlobalThreadNum(const faabric::Message* msg)
 std::string Level::toString()
 {
     std::stringstream ss;
-    ss << "Level " << id << " depth=" << depth << " threads=" << numThreads
+    ss << "Level:" << " depth=" << depth << " threads=" << numThreads
        << " shared={ ";
     for (int i = 0; i < nSharedVarOffsets; i++) {
         ss << sharedVarOffsets[i] << " ";

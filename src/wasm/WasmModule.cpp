@@ -408,7 +408,10 @@ int32_t WasmModule::executeTask(
                 break;
             }
             case ThreadRequestType::OPENMP: {
-                SPDLOG_TRACE("Executing {} as OpenMP", funcStr);
+                SPDLOG_TRACE("Executing {} as OpenMP (group {}, size {})",
+                             funcStr,
+                             msg.groupid(),
+                             msg.groupsize());
                 threads::setCurrentOpenMPLevel(req);
                 returnValue = executeOMPThread(threadPoolIdx, stackTop, msg);
                 break;
