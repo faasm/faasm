@@ -22,7 +22,7 @@ spec:
               weight: 100
 
       containers:
-        - image: faasm/worker:0.6.10
+        - image: faasm/worker:0.6.11
           env:
             - name: REDIS_STATE_HOST
               value: "redis-state"
@@ -49,7 +49,7 @@ spec:
             - name: BOUND_TIMEOUT
               value: "600000"
             - name: GLOBAL_MESSAGE_TIMEOUT
-              value: "120000"
+              value: "700000"
             - name: ENDPOINT_INTERFACE
               value: "eth0"
 
