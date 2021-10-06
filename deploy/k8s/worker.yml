@@ -49,7 +49,7 @@ spec:
             - name: BOUND_TIMEOUT
               value: "600000"
             - name: GLOBAL_MESSAGE_TIMEOUT
-              value: "120000"
+              value: "700000"
             - name: ENDPOINT_INTERFACE
               value: "eth0"
 
