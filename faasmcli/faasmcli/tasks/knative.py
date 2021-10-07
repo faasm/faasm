@@ -36,15 +36,21 @@ def _capture_cmd_output(cmd):
 
 
 def _get_faasm_worker_pods():
+    # To get pods with STATUS "Running" (not "Terminating") we need to use this
+    # long template. There's a long-going open discussion on GH about it:
+    # https://github.com/kubernetes/kubectl/issues/450
     cmd = [
         "kubectl",
         "-n faasm",
         "get pods",
         "-l serving.knative.dev/service=faasm-worker",
-        "-o jsonpath='{range .items[*]}{@.metadata.name}{\" \"}{end}'",
+        """--template "{{range .items}}{{ if not .metadata.deletionTimestamp"""
+        """ }}{{.metadata.name}}{{'\\n'}}{{end}}{{end}}" """,
     ]
     output = _capture_cmd_output(cmd)
-    names = [o.strip() for o in output.split(" ") if o.strip()]
+    names = [
+        "faasm" + o.strip("10") for o in output.split("faasm") if o.strip()
+    ]
 
     cmd = [
         "kubectl",
