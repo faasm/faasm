@@ -84,20 +84,14 @@ target_compile_options(wamrlib_untrusted PRIVATE
 )
 
 # --------------------------------------------------------
-# Crypto submodule
-# --------------------------------------------------------
-
-add_subdirectory(crypto)
-
-# --------------------------------------------------------
 # Attestation configuration
 # --------------------------------------------------------
 
 # IP-address or hostname is possible to specify host
 add_definitions(
-        -DFAASM_SGX_ATTESTATION_HOST="localhost"
-        -DFAASM_SGX_ATTESTATION_PORT=8009
-        -DFAASM_SGX_ATTESTATION_CALLBACK_STORE_INIT_LEN=4
+    -DFAASM_SGX_ATTESTATION_HOST="localhost"
+    -DFAASM_SGX_ATTESTATION_PORT=8009
+    -DFAASM_SGX_ATTESTATION_CALLBACK_STORE_INIT_LEN=4
 )
 
 # eXtended Remote Attestation XRA configuration
@@ -107,8 +101,8 @@ endif()
 
 # Create definitions if necessary
 add_definitions(
-        -DFAASM_SGX_DEBUG=${FAASM_SGX_DEBUG}
-        -DFAASM_SGX_ENCLAVE_PATH="${FAASM_SGX_ENCLAVE_PATH}"
+    -DFAASM_SGX_DEBUG=${FAASM_SGX_DEBUG}
+    -DFAASM_SGX_ENCLAVE_PATH="${FAASM_SGX_ENCLAVE_PATH}"
 )
 
 # Debug message
@@ -126,71 +120,70 @@ message("-- Faasm-SGX Configuration:
 
 # Check for SGX SDK
 find_package(Threads REQUIRED)
-if (EXISTS ${SGX_SDK_PATH})
+if(EXISTS ${SGX_SDK_PATH})
     message(STATUS "Found SGX-SDK: TRUE")
-else ()
+else()
     message(STATUS "Found SGX-SDK: FALSE")
     message(FATAL_ERROR "SGX-SDK not installed in ${SGX_SDK_PATH}")
-endif ()
+endif()
 
 # SGX compilation flags
-if (SGX_DEBUG_MODE)
+if(SGX_DEBUG_MODE)
     message(STATUS "Enclave will be built with debug information and -O0 optimization")
     set(SGX_C_GLOBAL_FLAGS ${SGX_C_GLOBAL_FLAGS} -O0 -g)
 
     set(FAASM_SGX_C_FLAGS ${SGX_C_GLOBAL_FLAGS}
-            -fPIC
-            -Wno-attributes
-            -DDEBUG
-            -UNDEBUG
-            -UEDEBUG
-            )
-else ()
+        -fPIC
+        -Wno-attributes
+        -DDEBUG
+        -UNDEBUG
+        -UEDEBUG
+    )
+else()
     message(STATUS "Enclave will be build without debug information and -O2 optimization")
     set(SGX_C_GLOBAL_FLAGS ${SGX_C_GLOBAL_FLAGS} -O2)
 
     set(FAASM_SGX_C_FLAGS ${SGX_C_GLOBAL_FLAGS}
-            -fPIC
-            -Wno-attributes
-            )
-
-endif ()
+        -fPIC
+        -Wno-attributes
+    )
+endif()
 
 # --------------------------------------------------------
 # Trusted Enclave Library
 # --------------------------------------------------------
 
 set(ENCLAVE_HEADERS
-        ${FAASM_INCLUDE_DIR}/sgx/enclaveConfig.h
-        ${FAASM_INCLUDE_DIR}/sgx/attestation.h
-        ${FAASM_INCLUDE_DIR}/sgx/enclave_types.h
-        ${FAASM_INCLUDE_DIR}/sgx/error.h
-        ${FAASM_INCLUDE_DIR}/sgx/native_symbols_wrapper.h
-        ${FAASM_INCLUDE_DIR}/sgx/system.h
-        ${FAASM_INCLUDE_DIR}/sgx/rw_lock.h
-        ${FAASM_INCLUDE_DIR}/sgx/SGXWAMRWasmModule.h
+    ${FAASM_INCLUDE_DIR}/sgx/enclaveConfig.h
+    ${FAASM_INCLUDE_DIR}/sgx/attestation.h
+    ${FAASM_INCLUDE_DIR}/sgx/enclave_types.h
+    ${FAASM_INCLUDE_DIR}/sgx/error.h
+    ${FAASM_INCLUDE_DIR}/sgx/native_symbols_wrapper.h
+    ${FAASM_INCLUDE_DIR}/sgx/system.h
+    ${FAASM_INCLUDE_DIR}/sgx/rw_lock.h
+    ${FAASM_INCLUDE_DIR}/sgx/SGXWAMRWasmModule.h
 )
 
 # SGX WAMR enclave library
 set(ENCLAVE_TRUSTED_SRC
-        checks.cpp
-        enclave.cpp
-        native_symbols_wrapper.cpp
-        rw_lock.cpp
-        ${ENCLAVE_HEADERS}
-        )
+    checks.cpp
+    enclave.cpp
+    native_symbols_wrapper.cpp
+    rw_lock.cpp
+    ${ENCLAVE_HEADERS}
+)
 
 # TODO - could we move to faasm_private_lib ?
 add_library(enclave_trusted SHARED "${ENCLAVE_TRUSTED_SRC}")
 
 target_include_directories(enclave_trusted PRIVATE
-        ${SGX_SDK_PATH}/include
-        ${SGX_SDK_PATH}/include/tlibc
-        ${SGX_SDK_PATH}/include/libcxx
-        ${WAMR_ROOT_DIR}/core
-        ${WAMR_ROOT_DIR}/core/shared/utils
-        ${WAMR_ROOT_DIR}/core/shared/platform/linux-sgx
-        )
+    ${SGX_SDK_PATH}/include
+    ${SGX_SDK_PATH}/include/tlibc
+    ${SGX_SDK_PATH}/include/libcxx
+    ${WAMR_ROOT_DIR}/core
+    ${WAMR_ROOT_DIR}/core/shared/utils
+    ${WAMR_ROOT_DIR}/core/shared/platform/linux-sgx
+)
 
 set_target_properties(enclave_trusted PROPERTIES PREFIX "")
 
@@ -219,16 +212,16 @@ target_compile_options(enclave_trusted PRIVATE
 
 target_link_directories(enclave_trusted PRIVATE ${SGX_SDK_LIB_PATH})
 target_link_options(enclave_trusted PRIVATE
-        ${CMAKE_CURRENT_BINARY_DIR}/enclave_t.o
-        ${SGX_C_GLOBAL_FLAGS}
-        -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles
-        -Bstatic -Bsymbolic
-        -Wl,-pie,-eenclave_entry
-        -Wl,--export-dynamic
-        -Wl,--defsym,__ImageBase=0
-        -Wl,--gc-sections
-        -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/enclave.lds
-        )
+    ${CMAKE_CURRENT_BINARY_DIR}/enclave_t.o
+    ${SGX_C_GLOBAL_FLAGS}
+    -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles
+    -Bstatic -Bsymbolic
+    -Wl,-pie,-eenclave_entry
+    -Wl,--export-dynamic
+    -Wl,--defsym,__ImageBase=0
+    -Wl,--gc-sections
+    -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/enclave.lds
+)
 
 if (FAASM_SGX_SIM_MODE)
     set(SGX_TRUSTED_RUNTIME_LIB ${SGX_SDK_LIB_PATH}/libsgx_trts_sim.a)
@@ -237,6 +230,10 @@ else ()
     set(SGX_TRUSTED_RUNTIME_LIB ${SGX_SDK_LIB_PATH}/libsgx_trts.a)
     set(SGX_SERVICE_LIB ${SGX_SDK_LIB_PATH}/libsgx_tservice.a)
 endif ()
+
+# Enclave trusted crypto
+add_subdirectory(crypto)
+
 
 # Common libraries
 target_link_libraries(enclave_trusted
@@ -249,7 +246,7 @@ target_link_libraries(enclave_trusted
     ${SGX_SDK_LIB_PATH}/libsgx_tcxx.a
     ${SGX_SDK_LIB_PATH}/libsgx_tcrypto.a
     ${SGX_SERVICE_LIB}
-    faasm_sgx_crypto
+    enclave_trusted_crypto
     wamrlib_trusted
     -Wl,--end-group
 )
@@ -269,21 +266,21 @@ set(ENCLAVE_UNTRUSTED_ASM_SRC
 )
 
 set_source_files_properties(${ENCLAVE_UNTRUSTED_ASM_SRC}
-        PROPERTIES LANGUAGE ASM_NASM
-        )
+    PROPERTIES LANGUAGE ASM_NASM
+)
 
 set(ENCLAVE_UNTRUSTED_SRC
-        SGXWAMRWasmModule.cpp
-        system.cpp
-        native_symbols.cpp
-        )
+    SGXWAMRWasmModule.cpp
+    system.cpp
+    native_symbols.cpp
+)
 
-if (ENCLAVE_UNTRUSTED_SRC)
+if(ENCLAVE_UNTRUSTED_SRC)
     set(ENCLAVE_UNTRUSTED_SRC ${ENCLAVE_UNTRUSTED_SRC}
             attestation.cpp
             rw_lock.cpp
-            )
-endif ()
+    )
+endif()
 
 
 # TODO - can we use faasm_private_lib ?
