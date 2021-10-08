@@ -207,11 +207,13 @@ void executeWithWamrPool(const std::string& user,
     doWamrPoolExecution(call, timeout);
 }
 
-void executeWithSGX(const std::string& user, const std::string& func)
+void executeWithSGX(const std::string& user,
+                    const std::string& func,
+                    int timeout)
 {
     faabric::Message call = faabric::util::messageFactory(user, func);
     call.set_issgx(true);
-    doWamrPoolExecution(call);
+    doWamrPoolExecution(call, timeout);
 }
 
 void checkCallingFunctionGivesBoolOutput(const std::string& user,

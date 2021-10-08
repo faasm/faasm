@@ -1,7 +1,7 @@
 #pragma once
 
 #if (FAASM_SGX_ATTESTATION)
-#include <sgx/faasm_sgx_attestation.h>
+#include <sgx/attestation.h>
 #endif
 
 #include <wasm_export.h>

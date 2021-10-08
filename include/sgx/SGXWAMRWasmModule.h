@@ -1,7 +1,7 @@
 #pragma once
 
-#include <sgx/faasm_sgx_attestation.h>
-#include <sgx/faasm_sgx_error.h>
+#include <sgx/attestation.h>
+#include <sgx/error.h>
 
 #include <storage/FileLoader.h>
 #include <storage/FileSystem.h>

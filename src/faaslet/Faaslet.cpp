@@ -18,7 +18,7 @@
 
 #if (FAASM_SGX)
 #include <sgx/SGXWAMRWasmModule.h>
-#include <sgx/faasm_sgx_system.h>
+#include <sgx/system.h>
 #else
 #include <storage/FileLoader.h>
 #include <storage/FileSystem.h>
