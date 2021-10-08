@@ -26,7 +26,7 @@
 extern "C"
 {
 
-#if (FAASM_SGX_DEBUG)
+#ifdef FAASM_SGX_DEBUG
     // Print functions
     typedef void (*os_print_function_t)(const char* msg);
     extern void os_set_print_function(os_print_function_t pf);
@@ -37,7 +37,7 @@ extern "C"
     // Print function wrapper
     void SGX_DEBUG_LOG(const char* message)
     {
-#if (FAASM_SGX_DEBUG)
+#ifdef FAASM_SGX_DEBUG
         ocall_printf(message);
 #else
         ;

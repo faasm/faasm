@@ -42,8 +42,8 @@ void checkSgxSetup()
 #endif
 
     // Check enclave file exists
-    if (!boost::filesystem::exists(FAASM_SGX_ENCLAVE_PATH)) {
-        SPDLOG_ERROR("Enclave file {} does not exist", FAASM_SGX_ENCLAVE_PATH);
+    if (!boost::filesystem::exists(FAASM_ENCLAVE_PATH)) {
+        SPDLOG_ERROR("Enclave file {} does not exist", FAASM_ENCLAVE_PATH);
         throw std::runtime_error("Could not find enclave file");
     }
 
@@ -51,7 +51,7 @@ void checkSgxSetup()
     sgx_status_t sgxReturnValue;
     sgx_launch_token_t sgxEnclaveToken = { 0 };
     uint32_t sgxEnclaveTokenUpdated = 0;
-    sgxReturnValue = sgx_create_enclave(FAASM_SGX_ENCLAVE_PATH,
+    sgxReturnValue = sgx_create_enclave(FAASM_ENCLAVE_PATH,
                                         SGX_DEBUG_FLAG,
                                         &sgxEnclaveToken,
                                         (int*)&sgxEnclaveTokenUpdated,

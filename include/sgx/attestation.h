@@ -10,6 +10,11 @@
 #define FAASM_SGX_ATTESTATION_PAYLOAD_HASH_SID 0x0
 #define FAASM_SGX_ATTESTATION_PAYLOAD_HASH_FCT 0x1
 
+// TODO - move this values to env. variables
+#define FAASM_SGX_ATTESTATION_HOST "localhost"
+#define FAASM_SGX_ATTESTATION_PORT 8009
+#define FAASM_SGX_ATTESTATION_CALLBACK_STORE_INIT_LEN 4
+
 typedef struct __attribute__((packed)) _msg
 {
     uint8_t msg_id;
