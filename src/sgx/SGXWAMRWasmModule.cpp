@@ -68,10 +68,6 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
                                     (void*)wasmBytes.data(),
                                     (uint32_t)wasmBytes.size(),
                                     &threadId
-#if (FAASM_SGX_ATTESTATION)
-                                    ,
-                                    &(faasletSgxMsgBufferPtr->buffer_ptr)
-#endif
       );
 
     if (status != SGX_SUCCESS) {

@@ -73,7 +73,6 @@ set(ENCLAVE_TRSUTED_CXX_FLAGS
     -nostdinc++
 )
 
-
 # --------------------------------------------------------
 # WAMR Build
 #
@@ -134,14 +133,14 @@ target_compile_options(wamrlib_untrusted PRIVATE
 # --------------------------------------------------------
 
 set(ENCLAVE_HEADERS
-    ${FAASM_INCLUDE_DIR}/sgx/enclaveConfig.h
     ${FAASM_INCLUDE_DIR}/sgx/attestation.h
+    ${FAASM_INCLUDE_DIR}/sgx/enclave_config.h
     ${FAASM_INCLUDE_DIR}/sgx/enclave_types.h
     ${FAASM_INCLUDE_DIR}/sgx/error.h
     ${FAASM_INCLUDE_DIR}/sgx/native_symbols_wrapper.h
-    ${FAASM_INCLUDE_DIR}/sgx/system.h
     ${FAASM_INCLUDE_DIR}/sgx/rw_lock.h
     ${FAASM_INCLUDE_DIR}/sgx/SGXWAMRWasmModule.h
+    ${FAASM_INCLUDE_DIR}/sgx/system.h
 )
 
 # SGX WAMR enclave library

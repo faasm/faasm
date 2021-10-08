@@ -1,4 +1,5 @@
-#include <sgx/enclaveConfig.h>
+#include <sgx/attestation.h>
+#include <sgx/enclave_config.h>
 #include <sgx/enclave_types.h>
 #include <sgx/error.h>
 #include <sgx/native_symbols_wrapper.h>
@@ -12,10 +13,6 @@
 #include <tlibc/mbusafecrt.h>
 
 #include <iwasm/aot/aot_runtime.h>
-
-#if (FAASM_SGX_ATTESTATION)
-#include <sgx/attestation.h>
-#endif
 
 #define WASM_CTORS_FUNC_NAME "__wasm_call_ctors"
 #define WASM_ENTRY_FUNC "_start"
@@ -48,20 +45,7 @@ extern "C"
     extern NativeSymbol faasm_sgx_native_symbols[FAASM_SGX_NATIVE_SYMBOLS_LEN];
     extern NativeSymbol faasm_sgx_wasi_symbols[FAASM_SGX_WASI_SYMBOLS_LEN];
 
-#if (FAASM_SGX_ATTESTATION)
-#define INCREMENT_MSG_ID() __sync_fetch_and_add(&_sgx_wamr_msg_id, 1)
-    extern sgx_status_t SGX_CDECL
-    ocall_init_crt(faasm_sgx_status_t* returnValue);
-    extern sgx_status_t SGX_CDECL
-    ocall_send_msg(faasm_sgx_status_t* returnValue,
-                   sgx_wamr_msg_t* msg,
-                   uint32_t msg_len);
-    static uint8_t _sgx_wamr_msg_id = 0;
-    __thread uint32_t tls_thread_id;
-    rwlock_t _rwlock_faasm_sgx_tcs_realloc = { 0 };
-#else
     static rwlock_t _rwlock_faasm_sgx_tcs_realloc = { 0 };
-#endif
 
     _faasm_sgx_tcs_t** faasm_sgx_tcs = NULL;
     static uint32_t _faasm_sgx_tcs_len;
@@ -69,92 +53,6 @@ extern "C"
       SGX_THREAD_MUTEX_INITIALIZER;
 
     static uint8_t _wamr_global_heap_buffer[FAASM_SGX_WAMR_HEAP_SIZE];
-
-#if (FAASM_SGX_ATTESTATION)
-    static inline faasm_sgx_status_t __get_response_msg(
-      const uint32_t thread_id,
-      sgx_wamr_msg_t** response_ptr)
-    {
-        read_lock(&_rwlock_faasm_sgx_tcs_realloc);
-        *response_ptr = *faasm_sgx_tcs[thread_id]->response_ptr;
-        read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
-        return FAASM_SGX_SUCCESS;
-    }
-
-    static faasm_sgx_status_t recv_msg(uint32_t thread_id,
-                                       void** payload_ptr,
-                                       uint32_t* payload_len)
-    {
-        // Check error conditions
-        // TODO: Maybe replace thread_id with __thread
-        if (thread_id >= _faasm_sgx_tcs_len) {
-            return FAASM_SGX_INVALID_THREAD_ID;
-        }
-
-        if (!payload_ptr || !payload_len) {
-            return FAASM_SGX_INVALID_PTR;
-        }
-
-        faasm_sgx_status_t returnValue;
-        sgx_wamr_msg_t* response_ptr;
-
-        if ((returnValue = __get_response_msg(thread_id, &response_ptr)) !=
-            FAASM_SGX_SUCCESS) {
-            return returnValue;
-        }
-
-        ///////////ENCRYPTION///////////
-        // TODO - implement encryption
-        ///////////ENCRYPTION///////////
-        *payload_ptr = (void*)response_ptr->payload;
-        *payload_len = response_ptr->payload_len;
-        return FAASM_SGX_SUCCESS;
-    }
-
-    static faasm_sgx_status_t send_msg(const void* payload_ptr,
-                                       const uint32_t payload_len)
-    {
-        sgx_wamr_msg_t* msg_ptr;
-        sgx_status_t sgxReturnValue;
-        faasm_sgx_status_t returnValue;
-
-        if (!payload_ptr) {
-            return FAASM_SGX_INVALID_PTR;
-        }
-
-        if (!payload_len) {
-            return FAASM_SGX_INVALID_PAYLOAD_LEN;
-        }
-
-        if (!(msg_ptr = (sgx_wamr_msg_t*)calloc(
-                (sizeof(sgx_wamr_msg_t) + payload_len), sizeof(uint8_t)))) {
-            SGX_DEBUG_LOG("Enclave send_msg failed, OOM\n");
-            return FAASM_SGX_OUT_OF_MEMORY;
-        }
-
-        msg_ptr->msg_id = INCREMENT_MSG_ID();
-
-        ///////////ENCRYPTION///////////
-        // TODO - implement encryption
-        ///////////ENCRYPTION///////////
-
-        ///////////REMOVE IF ENCRYPTION WORKS///////////
-        msg_ptr->payload_len = payload_len;
-        memcpy(((uint8_t*)msg_ptr->payload), payload_ptr, payload_len);
-        ///////////REMOVE IF ENCRYPTION WORKS///////////
-
-        if ((sgxReturnValue = ocall_send_msg(
-               &returnValue,
-               msg_ptr,
-               sizeof(sgx_wamr_msg_t) + msg_ptr->payload_len)) != SGX_SUCCESS) {
-            free(msg_ptr);
-            return FAASM_SGX_OCALL_ERROR(sgxReturnValue);
-        }
-
-        free(msg_ptr);
-        return returnValue;
-    }
-#endif
 
     static __attribute__((always_inline)) faasm_sgx_status_t __get_tcs_slot(
       uint32_t* thread_id)
@@ -227,11 +125,6 @@ extern "C"
             return FAASM_SGX_WAMR_FUNCTION_NOT_FOUND;
         }
 
-#if (FAASM_SGX_ATTESTATION)
-        // Set thread_id to fs/gs to make it accessible in native symbols
-        // wrapper
-        tls_thread_id = thread_id;
-#endif
         // Create an execution environment and call the wasm function
         if (!(aot_create_exec_env_and_call_function(
               (AOTModuleInstance*)tcs_ptr->module_inst,
@@ -292,10 +185,6 @@ extern "C"
       const void* wasm_opcode_ptr,
       const uint32_t wasm_opcode_size,
       uint32_t* thread_id
-#if (FAASM_SGX_ATTESTATION)
-      ,
-      sgx_wamr_msg_t** response_ptr
-#endif
     )
     {
         char wamr_error_buffer[FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE];
@@ -305,11 +194,7 @@ extern "C"
         if (!wasm_opcode_size) {
             return FAASM_SGX_INVALID_OPCODE_SIZE;
         }
-#if (FAASM_SGX_ATTESTATION)
-        if (!wasm_opcode_ptr || !response_ptr) {
-#else
         if (!wasm_opcode_ptr) {
-#endif
             return FAASM_SGX_INVALID_PTR;
         }
 
@@ -321,9 +206,6 @@ extern "C"
 
         // Initialize Faasm-SGX TCS slot and copy wasm code
         _FAASM_SGX_TCS_LOAD_SLOT(tcs_ptr, *thread_id);
-#if (FAASM_SGX_ATTESTATION)
-        tcs_ptr->response_ptr = response_ptr;
-#endif
         uint8_t* wasm_buffer_ptr =
           (uint8_t*)calloc(wasm_opcode_size, sizeof(uint8_t));
         if (!wasm_buffer_ptr) {
@@ -403,21 +285,6 @@ extern "C"
         wasm_native_register_natives("wasi_snapshot_preview1",
                                      faasm_sgx_wasi_symbols,
                                      FAASM_SGX_WASI_SYMBOLS_LEN);
-
-#if (FAASM_SGX_ATTESTATION)
-        // Initialize necessary attestation stuff if FAASM-SGX Attestation
-        // extension is enabled
-        sgx_status_t sgx_return_value;
-        faasm_sgx_status_t return_value;
-
-        if ((sgx_return_value = ocall_init_crt(&return_value)) != SGX_SUCCESS) {
-            return FAASM_SGX_OCALL_ERROR(sgx_return_value);
-        }
-
-        if (return_value != FAASM_SGX_SUCCESS) {
-            return return_value;
-        }
-#endif
 
         return FAASM_SGX_SUCCESS;
     }

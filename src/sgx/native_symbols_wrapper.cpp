@@ -5,14 +5,6 @@
 #include <iwasm/aot/aot_runtime.h>
 #include <iwasm/common/wasm_exec_env.h>
 
-#if (FAASM_SGX_ATTESTATION)
-extern "C"
-{
-    extern _faasm_sgx_tcs_t** faasm_sgx_tcs;
-    extern __thread uint32_t tls_thread_id;
-}
-#endif
-
 // SET_ERROR definition
 #define SET_ERROR(X)                                                           \
     memcpy(((AOTModuleInstance*)exec_env->module_inst)->cur_exception,         \
