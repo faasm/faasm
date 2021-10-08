@@ -5,7 +5,7 @@
 #include <sgx/crypto/encryption.h>
 #include <sgx/crypto/hash.h>
 #include <sgx/crypto/types.h>
-#include <sgx/faasm_sgx_error.h>
+#include <sgx/error.h>
 
 extern "C"
 {
