@@ -26,7 +26,9 @@ void executeWithWamrPool(const std::string& user,
                          const std::string& func,
                          int timeout = 1000);
 
-void executeWithSGX(const std::string& user, const std::string& func);
+void executeWithSGX(const std::string& user,
+                    const std::string& func,
+                    int timeout = 1000);
 
 void checkMultipleExecutions(faabric::Message& msg, int nExecs);
 
