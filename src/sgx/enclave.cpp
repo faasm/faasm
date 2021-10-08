@@ -184,8 +184,7 @@ extern "C"
     faasm_sgx_status_t faasm_sgx_enclave_load_module(
       const void* wasm_opcode_ptr,
       const uint32_t wasm_opcode_size,
-      uint32_t* thread_id
-    )
+      uint32_t* thread_id)
     {
         char wamr_error_buffer[FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE];
         faasm_sgx_status_t return_value;
