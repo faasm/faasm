@@ -67,12 +67,7 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
                                     &returnValue,
                                     (void*)wasmBytes.data(),
                                     (uint32_t)wasmBytes.size(),
-                                    &threadId
-#if (FAASM_SGX_ATTESTATION)
-                                    ,
-                                    &(faasletSgxMsgBufferPtr->buffer_ptr)
-#endif
-      );
+                                    &threadId);
 
     if (status != SGX_SUCCESS) {
         SPDLOG_ERROR("Unable to enter enclave: {}", sgxErrorString(status));

@@ -1,19 +1,11 @@
 // Annoyingly we have to redefine these here
 #define FAASM_SGX 1
-#define FAASM_SGX_ATTESTATION 0
 #define FAASM_SGX_WAMR_WASI_LIBC 0
-#define FAASM_DOCKER 1
 
 enclave{
-#if(FAASM_DOCKER)
     include "/usr/local/code/faasm/include/sgx/error.h"
     include "/usr/local/code/faasm/include/sgx/attestation.h"
     include "/build/faasm/_deps/wamr_ext-src/core/iwasm/include/wasm_export.h"
-#else
-    include "../../../include/sgx/error.h"
-    include "../../../include/sgx/attestation.h"
-    include "../../_deps/wamr_ext-src/core/iwasm/include/wasm_export.h"
-#endif
     from "sgx_tstdc.edl" import *;
     from "sgx_pthread.edl" import *;
 #if(FAASM_SGX_WAMR_WASI_LIBC)
@@ -29,20 +21,11 @@ enclave{
             uint32_t thread_id
         );
 
-#if(FAASM_SGX_ATTESTATION)
-        public faasm_sgx_status_t faasm_sgx_enclave_load_module(
-            [user_check]    const void *wasm_opcode_ptr,
-                            uint32_t wasm_opcode_size,
-            [out]           uint32_t *thread_id,
-            [user_check]    sgx_wamr_msg_t **response_ptr
-        );
-#else
         public faasm_sgx_status_t faasm_sgx_enclave_load_module(
             [in, size=wasm_opcode_size]     const void *wasm_opcode_ptr,
                                             uint32_t wasm_opcode_size,
             [out]                           uint32_t *thread_id
         );
-#endif
 
         public faasm_sgx_status_t faasm_sgx_enclave_init_wamr(void);
 
@@ -52,14 +35,6 @@ enclave{
     untrusted{
         void ocall_printf([in, string] const char* msg);
 
-#if(FAASM_SGX_ATTESTATION)
-        faasm_sgx_status_t ocall_init_crt(void);
-
-        faasm_sgx_status_t ocall_send_msg(
-            [in, size=msg_len]  sgx_wamr_msg_t* msg,
-                                uint32_t msg_len
-        );
-#endif
         uint64_t ocall_faasm_read_state(
             [in, string]            char* key,
             [out, size=buffer_len]  uint8_t* buffer_ptr,

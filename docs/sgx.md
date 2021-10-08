@@ -14,10 +14,10 @@ Note that the following will run in simulation mode.
 ./bin/cli.sh cpp
 
 # Compile the demo function
-(cpp) inv func demo hello
+inv func demo hello
 
 # Exit the cpp container, and log into the CLI one
-(cpp) exit
+exit
 ./bin/cli.sh faasm
 
 # Generate machine code for SGX
@@ -51,7 +51,7 @@ The Faasm build will automatically detect some properties of your SGX
 installation with [SGX-CMake](https://github.com/xzhangxa/SGX-CMake).
 
 High-level Faasm SGX support is configured with CMake options in the [main
-`CMakeLists.txt`](../CMakeLists.txt). 
+`CMakeLists.txt`](../CMakeLists.txt).
 
 Low-level SGX-related customisation is found in [the SGX-specific
 `CMakeLists.txt`](../src/sgx/CMakeLists.txt).
@@ -61,6 +61,3 @@ Low-level SGX-related customisation is found in [the SGX-specific
 - `FAASM_SGX_SIM_MODE` - Specifies the SGX execution mode whether the Simulation
   or Hardware mode is used. Enabling this option chooses the Simulation mode.
   Default is on.
-- `FAASM_SGX_ATTESTATION` - Enables the Attestation extension. Default is off.
-- `FAASM_SGX_XRA` - Enables the eXtended Remote Attestation mechanism. Default 
-  is off.
