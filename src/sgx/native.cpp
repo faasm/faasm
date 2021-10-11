@@ -1,5 +1,6 @@
 #include <sgx/native.h>
 
+namespace sgx {
 void doNativeSymbolRegistration(uint32_t (*f)(NativeSymbol** ns))
 {
     NativeSymbol* symbols;
@@ -16,6 +17,12 @@ void doWasiSymbolRegistration(uint32_t (*f)(NativeSymbol** ns))
 
 void initialiseSGXWAMRNatives()
 {
-    doNativeSymbolRegistration(getFaasmApi);
-    doWasiSymbolRegistration(getFaasmWasiApi);
+    doNativeSymbolRegistration(getFaasmFunctionsApi);
+    doNativeSymbolRegistration(getFaasmMemoryApi);
+    doNativeSymbolRegistration(getFaasmPthreadApi);
+    doNativeSymbolRegistration(getFaasmStateApi);
+
+    doWasiSymbolRegistration(getFaasmWasiEnvApi);
+    doWasiSymbolRegistration(getFaasmWasiFilesystemApi);
+}
 }

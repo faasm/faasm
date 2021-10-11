@@ -148,8 +148,13 @@ set(ENCLAVE_HEADERS
 set(ENCLAVE_TRUSTED_SRC
     checks.cpp
     enclave.cpp
+    env.cpp
+    filesystem.cpp
+    funcs.cpp
+    memory.cpp
     native.cpp
-    native_symbols_wrapper.cpp
+    pthread.cpp
+    state.cpp
     rw_lock.cpp
     ${ENCLAVE_HEADERS}
 )

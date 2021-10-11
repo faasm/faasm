@@ -275,15 +275,7 @@ extern "C"
         }
 
         // Set up native symbols
-        initialiseSGXWAMRNatives();
-        /*
-        wasm_native_register_natives(
-          "env", faasm_sgx_native_symbols, FAASM_SGX_NATIVE_SYMBOLS_LEN);
-
-        wasm_native_register_natives("wasi_snapshot_preview1",
-                                     faasm_sgx_wasi_symbols,
-                                     FAASM_SGX_WASI_SYMBOLS_LEN);
-        */
+        sgx::initialiseSGXWAMRNatives();
 
         return FAASM_SGX_SUCCESS;
     }
