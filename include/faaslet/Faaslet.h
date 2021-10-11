@@ -35,7 +35,7 @@ class Faaslet final : public faabric::scheduler::Executor
   private:
     bool isIsolated = false;
 
-    std::string resetSnapshotKey;
+    std::string localResetSnapshotKey;
 
     std::shared_ptr<isolation::NetworkNamespace> ns;
 };
