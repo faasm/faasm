@@ -4,11 +4,8 @@
 
 #include <sgx_tcrypto.h>
 
-extern "C"
-{
-    // --------------------------------------
-    // Hashing
-    // --------------------------------------
+// --------------------------------------
+// Hashing
+// --------------------------------------
 
-    FaasmSgxHashedMsg* doSha256(FaasmSgxMsg* srcMsg);
-}
+FaasmSgxHashedMsg* doSha256(FaasmSgxMsg* srcMsg);
