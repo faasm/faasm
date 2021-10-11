@@ -83,7 +83,7 @@ void WAVMWasmModule::reset(faabric::Message& msg,
     assert(msg.function() == boundFunction);
 
     std::string funcStr = faabric::util::funcToString(msg, true);
-    SPDLOG_DEBUG("Resetting after {}", funcStr);
+    SPDLOG_DEBUG("Resetting after {} (snap key {})", funcStr, snapshotKey);
     wasm::WAVMWasmModule& cachedModule =
       wasm::getWAVMModuleCache().getCachedModule(msg);
 

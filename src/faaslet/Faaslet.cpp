@@ -1,4 +1,4 @@
-#include "faabric/snapshot/SnapshotRegistry.h"
+#include "faabric/util/func.h"
 #include <faaslet/Faaslet.h>
 
 #include <conf/FaasmConfig.h>
@@ -9,6 +9,7 @@
 #include <wavm/WAVMWasmModule.h>
 
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/util/config.h>
 #include <faabric/util/environment.h>
 #include <faabric/util/locks.h>
@@ -79,11 +80,13 @@ Faaslet::Faaslet(faabric::Message& msg)
     // Bind to the function
     module->bindToFunction(msg);
 
-    // Create the reset snapshot
+    // Create the reset snapshot for this function if it doesn't already exist
+    resetSnapshotKey = faabric::util::funcToString(msg, false) + "_reset";
     faabric::util::SnapshotData snapData = module->getSnapshotData();
+
     faabric::snapshot::SnapshotRegistry& snapReg =
       faabric::snapshot::getSnapshotRegistry();
-    snapReg.takeSnapshot("reset_" + id, snapData, true);
+    snapReg.takeSnapshotIfNotExists(resetSnapshotKey, snapData, true);
 }
 
 int32_t Faaslet::executeTask(int threadPoolIdx,
