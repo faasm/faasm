@@ -1,3 +1,4 @@
+#include "faabric/snapshot/SnapshotRegistry.h"
 #include <conf/FaasmConfig.h>
 #include <faaslet/Faaslet.h>
 #include <fstream>
@@ -98,24 +99,24 @@ int doRunner(int argc, char* argv[])
     // Preflight if necessary
     bool preflight = true;
     if (preflight) {
-        f.restore(msg);
         f.executeTask(0, 0, req);
         f.reset(msg);
     }
 
+    std::string snapKey = "microbench";
+    SnapshotData snapData = f.snapshot();
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+    reg.takeSnapshot(snapKey, snapData, true);
+    msg.set_snapshotkey(snapKey);
+
     // Set up output file
     std::ofstream outFs;
     outFs.open(outFile);
-    outFs << "User,Function,RetVal,Restore(us),Exec(us),Reset(us)" << std::endl;
+    outFs << "User,Function,RetVal,Exec(us),Reset(us)" << std::endl;
 
     // Main loop
     for (int r = 0; r < nRuns; r++) {
-        // Restore
-        TimePoint restoreStart = startTimer();
-        f.restore(msg);
-        int restoreNanos = getTimeDiffNanos(restoreStart);
-        float restoreMicros = float(restoreNanos) / 1000;
-
         // Execute
         TimePoint execStart = startTimer();
         int returnValue = f.executeTask(0, 0, req);
@@ -124,14 +125,13 @@ int doRunner(int argc, char* argv[])
 
         // Reset
         TimePoint resetStart = startTimer();
-        f.reset(msg);
+        f.restore(msg);
         long resetNanos = getTimeDiffNanos(resetStart);
         float resetMicros = float(resetNanos) / 1000;
 
         // Write result line
         outFs << user << "," << function << "," << returnValue << ","
-              << restoreMicros << "," << execMicros << "," << resetMicros
-              << std::endl;
+              << execMicros << "," << resetMicros << std::endl;
     }
 
     outFs.close();
