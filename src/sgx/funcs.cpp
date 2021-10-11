@@ -1,11 +1,6 @@
 #include <sgx/native.h>
 
 namespace sgx {
-
-// ------------------------------------
-// FUNCTIONS
-// ------------------------------------
-
 static int32_t faasm_read_input_wrapper(wasm_exec_env_t exec_env,
                                         uint8_t* buffer,
                                         unsigned int buffer_size)

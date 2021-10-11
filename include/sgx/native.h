@@ -20,7 +20,7 @@
 
 #define REG_WASI_NATIVE_FUNC(func_name, signature)                             \
     {                                                                          \
-#func_name, (void*)func_name##_wrapper, signature, nullptr             \
+#func_name, (void*)wasi_##func_name, signature, nullptr                \
     }
 
 #define SET_ERROR(X)                                                           \

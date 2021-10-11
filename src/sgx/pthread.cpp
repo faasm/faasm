@@ -1,12 +1,6 @@
 #include <sgx/native.h>
 
 namespace sgx {
-
-// -------------------------------------------
-// PTHREADS
-// 28/06/21 - WAMR-SGX threading not implemented
-// -------------------------------------------
-
 static int32_t pthread_mutex_init_wrapper(wasm_exec_env_t exec_env,
                                           int32_t a,
                                           int32_t b)

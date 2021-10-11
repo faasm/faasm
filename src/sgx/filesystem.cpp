@@ -1,31 +1,22 @@
 #include <sgx/native.h>
 
 namespace sgx {
-
-static int fd_close_wrapper(wasm_exec_env_t exec_env, int a)
+static int wasi_fd_close(wasm_exec_env_t exec_env, int a)
 {
     return 0;
 }
 
-static int fd_seek_wrapper(wasm_exec_env_t exec_env,
-                           int a,
-                           int64 b,
-                           int c,
-                           int d)
+static int wasi_fd_seek(wasm_exec_env_t exec_env, int a, int64 b, int c, int d)
 {
     return 0;
 }
 
-static int fd_write_wrapper(wasm_exec_env_t exec_env,
-                            int a,
-                            int b,
-                            int c,
-                            int d)
+static int wasi_fd_write(wasm_exec_env_t exec_env, int a, int b, int c, int d)
 {
     return 0;
 }
 
-static int fd_fdstat_get_wrapper(wasm_exec_env_t exec_env, int a, int b)
+static int wasi_fd_fdstat_get(wasm_exec_env_t exec_env, int a, int b)
 {
     return 0;
 }
