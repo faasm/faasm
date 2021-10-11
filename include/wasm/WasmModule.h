@@ -64,7 +64,7 @@ class WasmModule
     virtual ~WasmModule();
 
     // ----- Module lifecycle -----
-    virtual void reset(faabric::Message& msg);
+    virtual void reset(faabric::Message& msg, const std::string& snapshotKey);
 
     void bindToFunction(faabric::Message& msg, bool cache = true);
 

@@ -1,3 +1,4 @@
+#include "faabric/snapshot/SnapshotRegistry.h"
 #include <faaslet/Faaslet.h>
 
 #include <conf/FaasmConfig.h>
@@ -77,6 +78,12 @@ Faaslet::Faaslet(faabric::Message& msg)
 
     // Bind to the function
     module->bindToFunction(msg);
+
+    // Create the reset snapshot
+    faabric::util::SnapshotData snapData = module->getSnapshotData();
+    faabric::snapshot::SnapshotRegistry& snapReg =
+      faabric::snapshot::getSnapshotRegistry();
+    snapReg.takeSnapshot("reset_" + id, snapData, true);
 }
 
 int32_t Faaslet::executeTask(int threadPoolIdx,
@@ -105,7 +112,7 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
 
 void Faaslet::reset(faabric::Message& msg)
 {
-    module->reset(msg);
+    module->reset(msg, resetSnapshotKey);
 }
 
 void Faaslet::postFinish()
