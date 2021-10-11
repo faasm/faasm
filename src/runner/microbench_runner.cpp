@@ -1,4 +1,3 @@
-#include "faabric/snapshot/SnapshotRegistry.h"
 #include <conf/FaasmConfig.h>
 #include <faaslet/Faaslet.h>
 #include <fstream>
@@ -102,13 +101,6 @@ int doRunner(int argc, char* argv[])
         f.executeTask(0, 0, req);
         f.reset(msg);
     }
-
-    std::string snapKey = "microbench";
-    SnapshotData snapData = f.snapshot();
-    faabric::snapshot::SnapshotRegistry& reg =
-      faabric::snapshot::getSnapshotRegistry();
-    reg.takeSnapshot(snapKey, snapData, true);
-    msg.set_snapshotkey(snapKey);
 
     // Set up output file
     std::ofstream outFs;
