@@ -436,7 +436,7 @@ static int fd_fdstat_get_wrapper(wasm_exec_env_t exec_env, int a, int b)
 
 static void proc_exit_wrapper(wasm_exec_env_t exec_env, int returnCode) {}
 
-NativeSymbol faasm_sgx_native_symbols[FAASM_SGX_NATIVE_SYMBOLS_LEN] = {
+static NativeSymbol faasmNs[] = {
     NATIVE_FUNC(faasm_read_input, "($i)i"),
     NATIVE_FUNC(faasm_write_output, "($i)"),
     NATIVE_FUNC(faasm_read_state, "($$i)i"),
@@ -472,7 +472,13 @@ NativeSymbol faasm_sgx_native_symbols[FAASM_SGX_NATIVE_SYMBOLS_LEN] = {
     MEMORY_NATIVE_FUNC(__sbrk, "(i)i"),
 };
 
-NativeSymbol faasm_sgx_wasi_symbols[FAASM_SGX_WASI_SYMBOLS_LEN] = {
+uint32_t getFaasmApi(NativeSymbol** nativeSymbols)
+{
+    *nativeSymbols = faasmNs;
+    return sizeof(faasmNs) / sizeof(NativeSymbol);
+}
+
+static NativeSymbol wasiNs[] = {
     WASI_NATIVE_FUNC(args_get, "(ii)i"),
     WASI_NATIVE_FUNC(args_sizes_get, "(ii)i"),
     WASI_NATIVE_FUNC(fd_close, "(i)i"),
@@ -481,3 +487,9 @@ NativeSymbol faasm_sgx_wasi_symbols[FAASM_SGX_WASI_SYMBOLS_LEN] = {
     WASI_NATIVE_FUNC(fd_fdstat_get, "(ii)i"),
     WASI_NATIVE_FUNC(proc_exit, "(i)"),
 };
+
+uint32_t getFaasmWasiApi(NativeSymbol** nativeSymbols)
+{
+    *nativeSymbols = wasiNs;
+    return sizeof(wasiNs) / sizeof(NativeSymbol);
+}

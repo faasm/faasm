@@ -137,6 +137,7 @@ set(ENCLAVE_HEADERS
     ${FAASM_INCLUDE_DIR}/sgx/enclave_config.h
     ${FAASM_INCLUDE_DIR}/sgx/enclave_types.h
     ${FAASM_INCLUDE_DIR}/sgx/error.h
+    ${FAASM_INCLUDE_DIR}/sgx/native.h
     ${FAASM_INCLUDE_DIR}/sgx/native_symbols_wrapper.h
     ${FAASM_INCLUDE_DIR}/sgx/rw_lock.h
     ${FAASM_INCLUDE_DIR}/sgx/SGXWAMRWasmModule.h
@@ -147,6 +148,7 @@ set(ENCLAVE_HEADERS
 set(ENCLAVE_TRUSTED_SRC
     checks.cpp
     enclave.cpp
+    native.cpp
     native_symbols_wrapper.cpp
     rw_lock.cpp
     ${ENCLAVE_HEADERS}

@@ -2,6 +2,7 @@
 #include <sgx/enclave_config.h>
 #include <sgx/enclave_types.h>
 #include <sgx/error.h>
+#include <sgx/native.h>
 #include <sgx/native_symbols_wrapper.h>
 #include <sgx/rw_lock.h>
 
@@ -40,10 +41,6 @@ extern "C"
         ;
 #endif
     }
-
-    // WAMR native symbols
-    extern NativeSymbol faasm_sgx_native_symbols[FAASM_SGX_NATIVE_SYMBOLS_LEN];
-    extern NativeSymbol faasm_sgx_wasi_symbols[FAASM_SGX_WASI_SYMBOLS_LEN];
 
     static rwlock_t _rwlock_faasm_sgx_tcs_realloc = { 0 };
 
@@ -278,12 +275,15 @@ extern "C"
         }
 
         // Set up native symbols
+        initialiseSGXWAMRNatives();
+        /*
         wasm_native_register_natives(
           "env", faasm_sgx_native_symbols, FAASM_SGX_NATIVE_SYMBOLS_LEN);
 
         wasm_native_register_natives("wasi_snapshot_preview1",
                                      faasm_sgx_wasi_symbols,
                                      FAASM_SGX_WASI_SYMBOLS_LEN);
+        */
 
         return FAASM_SGX_SUCCESS;
     }
