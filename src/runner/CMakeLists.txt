@@ -11,6 +11,9 @@ target_link_libraries(func_runner ${RUNNER_LIBS})
 add_executable(func_sym func_sym.cpp)
 target_link_libraries(func_sym ${RUNNER_LIBS})
 
+add_executable(microbench_runner microbench_runner.cpp)
+target_link_libraries(microbench_runner ${RUNNER_LIBS})
+
 # Main entrypoint for worker nodes
 add_executable(pool_runner pool_runner.cpp)
 target_link_libraries(pool_runner ${RUNNER_LIBS})
