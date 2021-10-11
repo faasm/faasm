@@ -1,49 +1,33 @@
-#include <cstdio>
-
 #include <faabric/util/func.h>
+#include <faabric/util/locks.h>
 #include <sgx/SGXWAMRWasmModule.h>
 #include <sgx/attestation.h>
 #include <sgx/system.h>
 #include <wasm/WasmExecutionContext.h>
 
+#include <cstdio>
+
+// TODO - move this declaration from here
 extern "C"
 {
     void ocall_printf(const char* msg) { printf("%s", msg); }
 }
 
-thread_local faaslet_sgx_msg_buffer_t* faasletSgxMsgBufferPtr;
-
 using namespace sgx;
 
 namespace wasm {
+std::mutex enclaveMx;
+
 SGXWAMRWasmModule::SGXWAMRWasmModule()
+  : wamrEnclave(sgx::getWamrEnclave())
 {
-    // Allocate memory for response
-    sgxWamrMsgResponse.buffer_len =
-      (sizeof(sgx_wamr_msg_t) + sizeof(sgx_wamr_msg_hdr_t));
-    sgxWamrMsgResponse.buffer_ptr =
-      (sgx_wamr_msg_t*)calloc(sgxWamrMsgResponse.buffer_len, sizeof(uint8_t));
-
-    if (!sgxWamrMsgResponse.buffer_ptr) {
-        SPDLOG_ERROR(
-          "Unable to allocate space for SGX message response buffer");
-        throw std::runtime_error(
-          "Unable to allocate space for SGX message response buffer");
-    }
-
-    faasletSgxMsgBufferPtr = &sgxWamrMsgResponse;
-
-    SPDLOG_DEBUG("Created SGX wasm module for enclave {}",
-                 sgx::getGlobalEnclaveId());
+    SPDLOG_DEBUG("Created SGX WAMR-Wasm module for enclave {}",
+                 wamrEnclave.getId());
 }
 
 SGXWAMRWasmModule::~SGXWAMRWasmModule()
 {
     unbindFunction();
-
-    if (sgxWamrMsgResponse.buffer_ptr) {
-        free(sgxWamrMsgResponse.buffer_ptr);
-    }
 }
 
 // ----- Module lifecycle -----
@@ -60,24 +44,16 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
       functionLoader.loadFunctionWamrAotFile(msg);
 
     // Load the wasm module
-    // Note - loading and instantiating happen in the same ecall
-    faasm_sgx_status_t returnValue;
-    sgx_status_t status =
-      faasm_sgx_enclave_load_module(sgx::getGlobalEnclaveId(),
-                                    &returnValue,
-                                    (void*)wasmBytes.data(),
-                                    (uint32_t)wasmBytes.size(),
-                                    &threadId);
+    if (!wamrEnclave.isWasmLoaded(wasmBytes)) {
+        faabric::util::UniqueLock lock(enclaveMx);
 
-    if (status != SGX_SUCCESS) {
-        SPDLOG_ERROR("Unable to enter enclave: {}", sgxErrorString(status));
-        throw std::runtime_error("Unable to enter enclave");
-    }
-
-    if (returnValue != FAASM_SGX_SUCCESS) {
-        SPDLOG_ERROR("Unable to load WASM module: {}",
-                     faasmSgxErrorString(returnValue));
-        throw std::runtime_error("Unable to load WASM module");
+        if (!wamrEnclave.isWasmLoaded(wasmBytes)) {
+            wamrEnclave.loadWasmModule(wasmBytes);
+        } else {
+            SPDLOG_DEBUG("Module already loaded to enclave, skipping load");
+        }
+    } else {
+        SPDLOG_DEBUG("Module already loaded to enclave, skipping load");
     }
 
     // Set up the thread stacks
@@ -89,27 +65,19 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 
 bool SGXWAMRWasmModule::unbindFunction()
 {
-    if (!isBound()) {
+    if (!wamrEnclave.isWasmLoaded()) {
+        SPDLOG_DEBUG("Module unloaded from enclave, skipping unbind");
         return true;
     }
 
-    SPDLOG_DEBUG("Unloading SGX wasm module");
+    faabric::util::UniqueLock lock(enclaveMx);
 
-    faasm_sgx_status_t returnValue;
-    sgx_status_t sgxReturnValue = faasm_sgx_enclave_unload_module(
-      sgx::getGlobalEnclaveId(), &returnValue, threadId);
-
-    if (sgxReturnValue != SGX_SUCCESS) {
-        SPDLOG_ERROR("Unable to unbind function due to SGX error: {}",
-                     sgxErrorString(sgxReturnValue));
-        throw std::runtime_error("Unable to unbind function due to SGX error");
+    if (!wamrEnclave.isWasmLoaded()) {
+        SPDLOG_DEBUG("Module unloaded from enclave, skipping unbind");
+        return true;
     }
 
-    if (returnValue != FAASM_SGX_SUCCESS) {
-        SPDLOG_ERROR("Unable to unbind function: {}",
-                     faasmSgxErrorString(returnValue));
-        throw std::runtime_error("Unable to unbind function");
-    }
+    wamrEnclave.unloadWasmModule();
 
     return true;
 }
@@ -120,35 +88,13 @@ int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
     std::string funcStr = faabric::util::funcToString(msg, true);
 
     SPDLOG_DEBUG(
-      "Entering enclave {} to execute {}", sgx::getGlobalEnclaveId(), funcStr);
+      "Entering enclave {} to execute {}", wamrEnclave.getId(), funcStr);
 
     // Set execution context
     wasm::WasmExecutionContext ctx(this, &msg);
 
-    // Enter enclave and call function
-    faasm_sgx_status_t returnValue;
-    sgx_status_t sgxReturnValue = faasm_sgx_enclave_call_function(
-      sgx::getGlobalEnclaveId(), &returnValue, threadId);
-
-    if (sgxReturnValue != SGX_SUCCESS) {
-        SPDLOG_ERROR("Unable to enter enclave: {}",
-                     sgxErrorString(sgxReturnValue));
-        throw std::runtime_error("Unable to enter enclave");
-    }
-
-    if (returnValue != FAASM_SGX_SUCCESS) {
-        // Check if an ocall has failed
-        sgxReturnValue =
-          (sgx_status_t)FAASM_SGX_OCALL_GET_SGX_ERROR(returnValue);
-        if (sgxReturnValue) {
-            SPDLOG_ERROR("An OCALL failed: {}", sgxErrorString(sgxReturnValue));
-            throw std::runtime_error("OCALL failed");
-        }
-
-        SPDLOG_ERROR("Error occurred during function execution: {}",
-                     faasmSgxErrorString(returnValue));
-        throw std::runtime_error("Error occurred during function execution");
-    }
+    // Call main function for module loaded into enclave
+    wamrEnclave.callMainFunction();
 
     return 0;
 }
