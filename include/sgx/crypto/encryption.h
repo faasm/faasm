@@ -6,21 +6,18 @@
 #include <sgx_tcrypto.h>
 #include <sgx_trts.h>
 
-extern "C"
-{
-    // --------------------------------------
-    // Symmetric encryption
-    // --------------------------------------
+// --------------------------------------
+// Symmetric encryption
+// --------------------------------------
 
-    FaasmSgxEncryptedMsg* doSymEncrypt(FaasmSgxMsg* decryptedMsg,
-                                       FaasmSgxSymKey symKey);
+FaasmSgxEncryptedMsg* doSymEncrypt(FaasmSgxMsg* decryptedMsg,
+                                   FaasmSgxSymKey symKey);
 
-    FaasmSgxMsg* doSymDecrypt(FaasmSgxEncryptedMsg* encryptedMsg,
-                              FaasmSgxSymKey symKey);
+FaasmSgxMsg* doSymDecrypt(FaasmSgxEncryptedMsg* encryptedMsg,
+                          FaasmSgxSymKey symKey);
 
-    static FaasmSgxEncryptedMsg* doAesGcmEncrypt(FaasmSgxMsg* decryptedMsg,
-                                                 FaasmSgxSymKey symKey);
+static FaasmSgxEncryptedMsg* doAesGcmEncrypt(FaasmSgxMsg* decryptedMsg,
+                                             FaasmSgxSymKey symKey);
 
-    static FaasmSgxMsg* doAesGcmDecrypt(FaasmSgxEncryptedMsg* encryptedMsg,
-                                        FaasmSgxSymKey symKey);
-}
+static FaasmSgxMsg* doAesGcmDecrypt(FaasmSgxEncryptedMsg* encryptedMsg,
+                                    FaasmSgxSymKey symKey);
