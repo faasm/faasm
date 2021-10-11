@@ -1,4 +1,5 @@
-#include <sgx/SGXWAMRWasmModule.h>
+#include <faabric/util/logging.h>
+#include <sgx/WamrEnclave.h>
 #include <sgx/error.h>
 #include <sgx/system.h>
 
@@ -6,113 +7,19 @@
 #include <sgx_urts.h>
 #include <string>
 
-// Global enclave ID
-sgx_enclave_id_t globalEnclaveId = 0;
-
 #define ERROR_PRINT_CASE(enumVal)                                              \
     case (enumVal): {                                                          \
         return std::string(#enumVal);                                          \
     }
 
 namespace sgx {
-
-sgx_enclave_id_t getGlobalEnclaveId()
-{
-    return globalEnclaveId;
-}
-
-void checkSgxSetup()
-{
-
-    // Skip set-up if enclave already exists
-    if (globalEnclaveId != 0) {
-        SPDLOG_DEBUG("SGX enclave already exists ({})", globalEnclaveId);
-        return;
-    }
-
-    faasm_sgx_status_t returnValue;
-
-#if (!SGX_SIM_MODE)
-    returnValue = faasm_sgx_get_sgx_support();
-    if (returnValue != FAASM_SGX_SUCCESS) {
-        SPDLOG_ERROR("Machine doesn't support SGX {}",
-                     faasmSgxErrorString(returnValue));
-        throw std::runtime_error("Machine doesn't support SGX");
-    }
-#endif
-
-    // Check enclave file exists
-    if (!boost::filesystem::exists(FAASM_ENCLAVE_PATH)) {
-        SPDLOG_ERROR("Enclave file {} does not exist", FAASM_ENCLAVE_PATH);
-        throw std::runtime_error("Could not find enclave file");
-    }
-
-    // Create the enclave
-    sgx_status_t sgxReturnValue;
-    sgx_launch_token_t sgxEnclaveToken = { 0 };
-    uint32_t sgxEnclaveTokenUpdated = 0;
-    sgxReturnValue = sgx_create_enclave(FAASM_ENCLAVE_PATH,
-                                        SGX_DEBUG_FLAG,
-                                        &sgxEnclaveToken,
-                                        (int*)&sgxEnclaveTokenUpdated,
-                                        &globalEnclaveId,
-                                        nullptr);
-
-    if (sgxReturnValue != SGX_SUCCESS) {
-        SPDLOG_ERROR("Unable to create enclave: {}",
-                     sgxErrorString(sgxReturnValue));
-        throw std::runtime_error("Unable to create enclave");
-    }
-
-    SPDLOG_DEBUG("Created SGX enclave: {}", globalEnclaveId);
-
-    sgxReturnValue = faasm_sgx_enclave_init_wamr(globalEnclaveId, &returnValue);
-    if (sgxReturnValue != SGX_SUCCESS) {
-        SPDLOG_ERROR("Unable to enter enclave: {}",
-                     sgxErrorString(sgxReturnValue));
-        throw std::runtime_error("Unable to enter enclave");
-    }
-
-    if (returnValue != FAASM_SGX_SUCCESS) {
-        if (FAASM_SGX_OCALL_GET_SGX_ERROR(returnValue)) {
-            SPDLOG_ERROR(
-              "Unable to initialise WAMR due to an SGX error: {}",
-              sgxErrorString(
-                (sgx_status_t)FAASM_SGX_OCALL_GET_SGX_ERROR(returnValue)));
-            throw std::runtime_error(
-              "Unable to initialise WAMR due to an SGX error");
-        }
-        SPDLOG_ERROR("Unable to initialise WAMR: {}",
-                     faasmSgxErrorString(returnValue));
-        throw std::runtime_error("Unable to initialise WAMR");
-    }
-
-    SPDLOG_DEBUG("Initialised WAMR in SGX enclave {}", globalEnclaveId);
-}
-
-void tearDownEnclave()
-{
-
-    SPDLOG_DEBUG("Destroying enclave {}", globalEnclaveId);
-
-    sgx_status_t sgxReturnValue = sgx_destroy_enclave(globalEnclaveId);
-    if (sgxReturnValue != SGX_SUCCESS) {
-        SPDLOG_ERROR("Unable to destroy enclave {}: {}",
-                     globalEnclaveId,
-                     sgxErrorString(sgxReturnValue));
-        throw std::runtime_error("Unable to destroy enclave");
-    }
-
-    globalEnclaveId = 0;
-}
-
 void checkSgxCrypto()
 {
     faasm_sgx_status_t faasmReturnValue;
     sgx_status_t sgxReturnValue;
 
-    sgxReturnValue =
-      faasm_sgx_enclave_crypto_checks(globalEnclaveId, &faasmReturnValue);
+    sgxReturnValue = faasm_sgx_enclave_crypto_checks(
+      sgx::getWamrEnclave().getId(), &faasmReturnValue);
 
     if (sgxReturnValue != SGX_SUCCESS) {
         SPDLOG_ERROR("SGX error in crypto checks: {}",

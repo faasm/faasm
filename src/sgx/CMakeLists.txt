@@ -226,6 +226,7 @@ set(ENCLAVE_UNTRUSTED_HEADERS
     ${FAASM_INCLUDE_DIR}/sgx/error.h
     ${FAASM_INCLUDE_DIR}/sgx/system.h
     ${FAASM_INCLUDE_DIR}/sgx/SGXWAMRWasmModule.h
+    ${FAASM_INCLUDE_DIR}/sgx/WamrEnclave.h
 )
 
 set(ENCLAVE_UNTRUSTED_ASM_SRC
@@ -242,6 +243,7 @@ set(ENCLAVE_UNTRUSTED_SRC
     rw_lock.cpp
     SGXWAMRWasmModule.cpp
     system.cpp
+    WamrEnclave.cpp
 )
 
 add_library(enclave_untrusted STATIC
