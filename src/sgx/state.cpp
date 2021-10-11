@@ -1,10 +1,6 @@
 #include <sgx/native.h>
 
 namespace sgx {
-// --------------------------------------
-// STATE
-// --------------------------------------
-
 static uint64_t faasm_read_state_wrapper(wasm_exec_env_t exec_env,
                                          const char* key,
                                          uint8_t* buffer_ptr,
