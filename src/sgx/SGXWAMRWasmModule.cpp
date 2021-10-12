@@ -7,12 +7,6 @@
 
 #include <cstdio>
 
-// TODO - move this declaration from here
-extern "C"
-{
-    void ocall_printf(const char* msg) { printf("%s", msg); }
-}
-
 using namespace sgx;
 
 namespace wasm {

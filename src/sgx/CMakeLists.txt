@@ -138,7 +138,7 @@ set(ENCLAVE_HEADERS
     ${FAASM_INCLUDE_DIR}/sgx/enclave_types.h
     ${FAASM_INCLUDE_DIR}/sgx/error.h
     ${FAASM_INCLUDE_DIR}/sgx/native.h
-    ${FAASM_INCLUDE_DIR}/sgx/native_symbols_wrapper.h
+    ${FAASM_INCLUDE_DIR}/sgx/ocalls.h
     ${FAASM_INCLUDE_DIR}/sgx/rw_lock.h
     ${FAASM_INCLUDE_DIR}/sgx/SGXWAMRWasmModule.h
     ${FAASM_INCLUDE_DIR}/sgx/system.h
@@ -222,6 +222,7 @@ target_link_libraries(enclave_trusted
 # --------------------------------------------------------
 
 set(ENCLAVE_UNTRUSTED_HEADERS
+    ${FAASM_INCLUDE_DIR}/sgx/ecalls.h
     ${FAASM_INCLUDE_DIR}/sgx/error.h
     ${FAASM_INCLUDE_DIR}/sgx/system.h
     ${FAASM_INCLUDE_DIR}/sgx/SGXWAMRWasmModule.h
@@ -238,7 +239,7 @@ set_source_files_properties(${ENCLAVE_UNTRUSTED_ASM_SRC}
 
 set(ENCLAVE_UNTRUSTED_SRC
     attestation.cpp
-    native_symbols.cpp
+    ocalls.cpp
     rw_lock.cpp
     SGXWAMRWasmModule.cpp
     system.cpp
