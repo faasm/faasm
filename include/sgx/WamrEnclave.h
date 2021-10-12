@@ -9,7 +9,6 @@
 // all function invocations (i.e. module instantiation).
 extern "C"
 {
-
     extern void ocall_printf(const char* msg);
 
     extern faasm_sgx_status_t faasm_sgx_get_sgx_support(void);
@@ -38,13 +37,15 @@ extern "C"
 
 namespace sgx {
 // This class encapsulates the logic to interact with an SGX enclave.
-// 11/10/2021 - Currently we only spawn one enclave per Faasm instance. Thus
-// it is meant to be only one instance of this class.
+// 11/10/2021 - Currently we only spawn one enclave per Faasm instance. Thus,
+// there will only be one instance of this class.
 class WamrEnclave
 {
   public:
     WamrEnclave();
 
+    // Delete the copy constructor to prevent not getting the object by
+    // reference through the getter
     WamrEnclave(const WamrEnclave&) = delete;
 
     void init();
