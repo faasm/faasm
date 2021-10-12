@@ -238,65 +238,95 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
 {
     std::string user = "demo";
     std::string function = "echo";
-
     faabric::Message m = faabric::util::messageFactory(user, function);
-    wasm::WAVMWasmModule module;
-    module.bindToFunction(m);
-
-    size_t postBindSize = module.getMemorySizeBytes();
-    uint8_t* memoryBase = module.getMemoryBase();
 
     // Set up some dummy data
     std::vector<uint8_t> dummyDataA(100, 1);
     std::vector<uint8_t> dummyDataB(100, 2);
 
-    // Record what the original data looks like
-    std::vector<uint8_t> defaultData(memoryBase,
-                                     memoryBase + dummyDataA.size());
+    std::string snapshotKey = "foobar-snap";
 
-    // Write some dummy data into memory (to check it gets overwritten)
-    std::memcpy(memoryBase, dummyDataA.data(), dummyDataA.size());
+    size_t snapSize = 64 * faabric::util::HOST_PAGE_SIZE;
+    uint8_t* snapMemory = (uint8_t*)mmap(
+      nullptr, snapSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
-    // Check the dummy data isn't the same as the default data
-    REQUIRE(dummyDataA != defaultData);
-    REQUIRE(dummyDataB != defaultData);
+    // Write dummy data to the snapshot
+    std::memcpy(snapMemory, dummyDataB.data(), dummyDataB.size());
 
-    SECTION("No snapshot key")
+    // Set up snapshot
+    faabric::util::SnapshotData snap;
+    snap.data = snapMemory;
+    snap.size = snapSize;
+    reg.takeSnapshot(snapshotKey, snap);
+
+    SECTION("Wasm module")
     {
-        module.reset(m, "");
+        wasm::WAVMWasmModule module;
+        module.bindToFunction(m);
 
-        // Check size is reset to default
-        REQUIRE(module.getMemorySizeBytes() == postBindSize);
+        size_t postBindSize = module.getMemorySizeBytes();
+        uint8_t* memoryBase = module.getMemoryBase();
 
-        // Check data overwritten with default
-        std::vector<uint8_t> dataAfter(memoryBase,
-                                       memoryBase + dummyDataA.size());
-        REQUIRE(dataAfter == defaultData);
+        // Record what the original data looks like
+        std::vector<uint8_t> defaultData(memoryBase,
+                                         memoryBase + dummyDataA.size());
+
+        // Write some dummy data into memory (to check it gets overwritten)
+        std::memcpy(memoryBase, dummyDataA.data(), dummyDataA.size());
+
+        // Check the dummy data isn't the same as the default data
+        REQUIRE(dummyDataA != defaultData);
+        REQUIRE(dummyDataB != defaultData);
+
+        SECTION("No snapshot key")
+        {
+            module.reset(m, "");
+
+            // Check size is reset to default
+            REQUIRE(module.getMemorySizeBytes() == postBindSize);
+
+            // Check data overwritten with default
+            std::vector<uint8_t> dataAfter(memoryBase,
+                                           memoryBase + dummyDataA.size());
+            REQUIRE(dataAfter == defaultData);
+        }
+
+        SECTION("With snapshot key")
+        {
+            // Reset the module and check it has the dummy data
+            module.reset(m, snapshotKey);
+
+            std::vector<uint8_t> dataAfter(memoryBase,
+                                           memoryBase + dummyDataA.size());
+            REQUIRE(dataAfter == dummyDataB);
+        }
     }
 
-    SECTION("With snapshot key")
+    SECTION("Faaslet")
     {
-        std::string snapshotKey = "foobar-snap";
+        faaslet::Faaslet f(m);
 
-        size_t snapSize = 64 * faabric::util::HOST_PAGE_SIZE;
-        uint8_t* snapMemory = (uint8_t*)mmap(
-          nullptr, snapSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        size_t defaultMemSize = f.module->getMemorySizeBytes();
 
-        // Write dummy data to the snapshot
-        std::memcpy(snapMemory, dummyDataB.data(), dummyDataB.size());
+        std::string resetKey = f.getLocalResetSnapshotKey();
+        REQUIRE(!resetKey.empty());
 
-        // Set up snapshot
-        faabric::util::SnapshotData snap;
-        snap.data = snapMemory;
-        snap.size = snapSize;
-        reg.takeSnapshot(snapshotKey, snap);
+        // Load the snapshot and check it's the right size by default
+        faabric::util::SnapshotData& initialSnap = reg.getSnapshot(resetKey);
+        REQUIRE(initialSnap.size == defaultMemSize);
 
-        // Reset the module and check it has the dummy data
-        module.reset(m, snapshotKey);
+        // Overwrite the snapshot to force the faaslet to restore ours
+        reg.takeSnapshot(resetKey, snap, true);
 
+        // Reset the faaslet, check dummy data is set in the module memory
+        f.reset(m);
+
+        uint8_t* memoryBase = f.module->getMemoryBase();
         std::vector<uint8_t> dataAfter(memoryBase,
-                                       memoryBase + dummyDataA.size());
+                                       memoryBase + dummyDataB.size());
+
         REQUIRE(dataAfter == dummyDataB);
+        REQUIRE(f.module->getCurrentBrk() == snapSize);
     }
 }
 }

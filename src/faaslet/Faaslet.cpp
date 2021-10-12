@@ -152,6 +152,11 @@ void Faaslet::restore(faabric::Message& msg)
     }
 }
 
+std::string Faaslet::getLocalResetSnapshotKey()
+{
+    return localResetSnapshotKey;
+}
+
 FaasletFactory::~FaasletFactory() {}
 
 std::shared_ptr<faabric::scheduler::Executor> FaasletFactory::createExecutor(
