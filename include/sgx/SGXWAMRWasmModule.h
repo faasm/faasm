@@ -24,12 +24,14 @@ class SGXWAMRWasmModule final : public WasmModule
 
     ~SGXWAMRWasmModule() override;
 
+    // ----- Module lifecycle -----
     void doBindToFunction(faabric::Message& msg, bool cache) override;
 
-    bool unbindFunction();
+    void reset(faabric::Message& msg) override;
 
     int32_t executeFunction(faabric::Message& msg) override;
 
+    // ----- Memory management -----
     uint32_t growMemory(uint32_t nBytes) override;
 
     uint32_t shrinkMemory(uint32_t nBytes) override;

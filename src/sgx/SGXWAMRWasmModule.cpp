@@ -19,10 +19,7 @@ SGXWAMRWasmModule::SGXWAMRWasmModule()
                  wamrEnclave.getId());
 }
 
-SGXWAMRWasmModule::~SGXWAMRWasmModule()
-{
-    unbindFunction();
-}
+SGXWAMRWasmModule::~SGXWAMRWasmModule() {}
 
 // ----- Module lifecycle -----
 void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
@@ -57,23 +54,23 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
     threadStacks.push_back(-1);
 }
 
-bool SGXWAMRWasmModule::unbindFunction()
+void SGXWAMRWasmModule::reset(faabric::Message& msg)
 {
     if (!wamrEnclave.isWasmLoaded()) {
-        SPDLOG_DEBUG("Module unloaded from enclave, skipping unbind");
-        return true;
+        SPDLOG_DEBUG("Module already unloaded from enclave, skipping unbind");
+        return;
     }
 
     faabric::util::UniqueLock lock(enclaveMx);
 
     if (!wamrEnclave.isWasmLoaded()) {
-        SPDLOG_DEBUG("Module unloaded from enclave, skipping unbind");
-        return true;
+        SPDLOG_DEBUG("Module already unloaded from enclave, skipping unbind");
+        return;
     }
 
     wamrEnclave.unloadWasmModule();
 
-    return true;
+    return;
 }
 
 int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
