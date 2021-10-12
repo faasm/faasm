@@ -180,7 +180,7 @@ class WAVMWasmModule final
                                   uint32_t strPoitners,
                                   uint32_t strBuffer) const;
 
-    void clone(const WAVMWasmModule& other, const std::string &snapshotKey);
+    void clone(const WAVMWasmModule& other, const std::string& snapshotKey);
 
     void addModuleToGOT(WAVM::IR::Module& mod, bool isMainModule);
 

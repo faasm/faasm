@@ -231,4 +231,72 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
     moduleB.deleteAppSnapshot(mB);
     REQUIRE(reg.getSnapshotCount() == 0);
 }
+
+TEST_CASE_METHOD(WasmSnapTestFixture,
+                 "Test reset from snapshot key",
+                 "[wasm][snapshot]")
+{
+    std::string user = "demo";
+    std::string function = "echo";
+
+    faabric::Message m = faabric::util::messageFactory(user, function);
+    wasm::WAVMWasmModule module;
+    module.bindToFunction(m);
+
+    size_t postBindSize = module.getMemorySizeBytes();
+    uint8_t* memoryBase = module.getMemoryBase();
+
+    // Set up some dummy data
+    std::vector<uint8_t> dummyDataA(100, 1);
+    std::vector<uint8_t> dummyDataB(100, 2);
+
+    // Record what the original data looks like
+    std::vector<uint8_t> defaultData(memoryBase,
+                                     memoryBase + dummyDataA.size());
+
+    // Write some dummy data into memory (to check it gets overwritten)
+    std::memcpy(memoryBase, dummyDataA.data(), dummyDataA.size());
+
+    // Check the dummy data isn't the same as the default data
+    REQUIRE(dummyDataA != defaultData);
+    REQUIRE(dummyDataB != defaultData);
+
+    SECTION("No snapshot key")
+    {
+        module.reset(m, "");
+
+        // Check size is reset to default
+        REQUIRE(module.getMemorySizeBytes() == postBindSize);
+
+        // Check data overwritten with default
+        std::vector<uint8_t> dataAfter(memoryBase,
+                                       memoryBase + dummyDataA.size());
+        REQUIRE(dataAfter == defaultData);
+    }
+
+    SECTION("With snapshot key")
+    {
+        std::string snapshotKey = "foobar-snap";
+
+        size_t snapSize = 64 * faabric::util::HOST_PAGE_SIZE;
+        uint8_t* snapMemory = (uint8_t*)mmap(
+          nullptr, snapSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+        // Write dummy data to the snapshot
+        std::memcpy(snapMemory, dummyDataB.data(), dummyDataB.size());
+
+        // Set up snapshot
+        faabric::util::SnapshotData snap;
+        snap.data = snapMemory;
+        snap.size = snapSize;
+        reg.takeSnapshot(snapshotKey, snap);
+
+        // Reset the module and check it has the dummy data
+        module.reset(m, snapshotKey);
+
+        std::vector<uint8_t> dataAfter(memoryBase,
+                                       memoryBase + dummyDataA.size());
+        REQUIRE(dataAfter == dummyDataB);
+    }
+}
 }
