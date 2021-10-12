@@ -81,12 +81,16 @@ Faaslet::Faaslet(faabric::Message& msg)
     module->bindToFunction(msg);
 
     // Create the reset snapshot for this function if it doesn't already exist
-    localResetSnapshotKey = faabric::util::funcToString(msg, false) + "_reset";
-    faabric::util::SnapshotData snapData = module->getSnapshotData();
+    // (currently only supported in WAVM)
+    if (conf.wasmVm == "wavm") {
+        localResetSnapshotKey =
+          faabric::util::funcToString(msg, false) + "_reset";
+        faabric::util::SnapshotData snapData = module->getSnapshotData();
 
-    faabric::snapshot::SnapshotRegistry& snapReg =
-      faabric::snapshot::getSnapshotRegistry();
-    snapReg.takeSnapshotIfNotExists(localResetSnapshotKey, snapData, true);
+        faabric::snapshot::SnapshotRegistry& snapReg =
+          faabric::snapshot::getSnapshotRegistry();
+        snapReg.takeSnapshotIfNotExists(localResetSnapshotKey, snapData, true);
+    }
 }
 
 int32_t Faaslet::executeTask(int threadPoolIdx,
