@@ -12,6 +12,7 @@ using namespace faabric::state;
 
 extern "C"
 {
+    void ocall_printf(const char* msg) { printf("%s", msg); }
 
     uint64_t ocall_faasm_read_state(const char* key,
                                     uint8_t* bufferPtr,
