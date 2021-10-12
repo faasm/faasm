@@ -10,9 +10,14 @@ class SgxModuleTestFixture
     {
         msg = faabric::util::messageFactory("demo", "hello");
         msg.set_issgx(true);
+        otherMsg = msg;
     }
 
-    ~SgxModuleTestFixture() {}
+    ~SgxModuleTestFixture()
+    {
+        module.reset(msg);
+        otherModule.reset(otherMsg);
+    }
 
   protected:
     wasm::SGXWAMRWasmModule module;
@@ -20,6 +25,8 @@ class SgxModuleTestFixture
     wasm::SGXWAMRWasmModule otherModule;
 
     faabric::Message msg;
+
+    faabric::Message otherMsg;
 };
 
 TEST_CASE_METHOD(SgxModuleTestFixture,
@@ -27,30 +34,34 @@ TEST_CASE_METHOD(SgxModuleTestFixture,
                  "[sgx]")
 {
     // We can unbind when nothing is bound
-    REQUIRE_NOTHROW(module.unbindFunction());
+    REQUIRE_NOTHROW(module.reset(msg));
 
     // Try binding to a function
     REQUIRE_NOTHROW(module.doBindToFunction(msg, false));
 
     // Then unbind
-    REQUIRE_NOTHROW(module.unbindFunction());
+    REQUIRE_NOTHROW(module.reset(msg));
 }
 
-// 12/10/2021 - TODO this test is failing due to the current threading
-// implementation in SGX
 TEST_CASE_METHOD(SgxModuleTestFixture,
-                 "Test two modules binding and unbinding",
+                 "Test calling function from module",
+                 "[sgx]")
+{
+    // Bind to function
+    REQUIRE_NOTHROW(module.doBindToFunction(msg, false));
+
+    // Execute function
+    REQUIRE_NOTHROW(module.executeFunction(msg));
+}
+
+TEST_CASE_METHOD(SgxModuleTestFixture,
+                 "Test two modules binding to the same function",
                  "[sgx]")
 {
     // Note that both modules operate on the same enclave
-    std::thread th([this] {
-        otherModule.unbindFunction();
-        otherModule.doBindToFunction(msg, false);
-        otherModule.unbindFunction();
-    });
+    std::thread th([this] { otherModule.doBindToFunction(otherMsg, false); });
 
-    REQUIRE_NOTHROW(module.unbindFunction());
     REQUIRE_NOTHROW(module.doBindToFunction(msg, false));
-    REQUIRE_NOTHROW(module.unbindFunction());
+    th.join();
 }
 }

@@ -1,8 +1,11 @@
 #pragma once
 
-// What follows are the definitions of the enclave-entry calls. This is, the
-// way we have to interact with a running enclave. These calls are shared among
-// all function invocations (i.e. module instantiation).
+#include <sgx/error.h>
+
+#include <sgx_urts.h>
+
+// This file defines the set of functions that can be called to access an SGX
+// enclave from the (untrusted) Faasm runtime. ECalls in SGX terminology.
 extern "C"
 {
     extern faasm_sgx_status_t faasm_sgx_get_sgx_support(void);

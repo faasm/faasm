@@ -23,3 +23,10 @@ typedef struct __faasm_sgx_tcs
     uint8_t* wasm_opcode;
 
 } _faasm_sgx_tcs_t;
+
+struct WamrModuleHandle
+{
+    wasm_module_t wasmModule;
+    wasm_module_inst_t moduleInstance;
+    uint8_t* wasmOpCode;
+};
