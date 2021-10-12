@@ -111,8 +111,6 @@ int doRunner(int argc, char* argv[])
 
     PROF_END(roundTrip)
 
-    m.shutdown();
-
     return 0;
 }
 

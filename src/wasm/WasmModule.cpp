@@ -580,7 +580,7 @@ bool WasmModule::isBound()
 // Functions to be implemented by subclasses
 // ------------------------------------------
 
-void WasmModule::reset(faabric::Message& msg)
+void WasmModule::reset(faabric::Message& msg, const std::string& snapshotKey)
 {
     SPDLOG_WARN("Using default reset of wasm module");
 }

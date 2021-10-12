@@ -40,7 +40,7 @@ class WAVMWasmModule final
 
     void bindToFunctionNoZygote(faabric::Message& msg);
 
-    void reset(faabric::Message& msg) override;
+    void reset(faabric::Message& msg, const std::string& snapshotKey) override;
 
     // ----- Memory management -----
     uint32_t growMemory(uint32_t nBytes) override;
@@ -180,7 +180,7 @@ class WAVMWasmModule final
                                   uint32_t strPoitners,
                                   uint32_t strBuffer) const;
 
-    void clone(const WAVMWasmModule& other);
+    void clone(const WAVMWasmModule& other, const std::string& snapshotKey);
 
     void addModuleToGOT(WAVM::IR::Module& mod, bool isMainModule);
 

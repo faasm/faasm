@@ -19,8 +19,6 @@ faabric::Message execErrorFunction(faabric::Message& call)
 
     faabric::Message result = sch.getFunctionResult(call.id(), 1);
 
-    m.shutdown();
-
     return result;
 }
 

@@ -90,8 +90,6 @@ std::string execFunctionWithStringResult(faabric::Message& call)
 
     conf.pythonPreload = originalPreload;
 
-    m.shutdown();
-
     return result.outputdata();
 }
 
@@ -105,7 +103,7 @@ void checkMultipleExecutions(faabric::Message& msg, int nExecs)
         REQUIRE(returnValue == 0);
 
         // Reset
-        module.reset(msg);
+        module.reset(msg, "");
     }
 }
 
@@ -144,8 +142,6 @@ void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
             REQUIRE(result.returnvalue() == 0);
         }
     }
-
-    m.shutdown();
 }
 
 void execFuncWithPool(faabric::Message& call, bool clean, int timeout)
@@ -178,9 +174,6 @@ void execFuncWithPool(faabric::Message& call, bool clean, int timeout)
     // It also needs to be long enough to let longer tests complete
     faabric::Message result = sch.getFunctionResult(call.id(), timeout);
     REQUIRE(result.returnvalue() == 0);
-
-    // Shut down the pool
-    m.shutdown();
 
     faasmConf.netNsMode = originalNsMode;
 

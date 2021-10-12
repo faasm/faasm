@@ -64,7 +64,7 @@ class WasmModule
     virtual ~WasmModule();
 
     // ----- Module lifecycle -----
-    virtual void reset(faabric::Message& msg);
+    virtual void reset(faabric::Message& msg, const std::string& snapshotKey);
 
     void bindToFunction(faabric::Message& msg, bool cache = true);
 
@@ -139,6 +139,8 @@ class WasmModule
 
     virtual size_t getMemorySizeBytes();
 
+    virtual uint8_t* getMemoryBase();
+
     // ----- Snapshot/ restore -----
     faabric::util::SnapshotData getSnapshotData();
 
@@ -198,8 +200,6 @@ class WasmModule
     int getStdoutFd();
 
     void prepareArgcArgv(const faabric::Message& msg);
-
-    virtual uint8_t* getMemoryBase();
 
     // Module-specific binding
     virtual void doBindToFunction(faabric::Message& msg, bool cache);
