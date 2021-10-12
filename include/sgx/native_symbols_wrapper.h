@@ -4,10 +4,6 @@
 #include <sgx.h>
 #include <sgx_defs.h>
 
-// Length of used native symbols
-#define FAASM_SGX_NATIVE_SYMBOLS_LEN 33
-#define FAASM_SGX_WASI_SYMBOLS_LEN 7
-
 // Define symbols that need to be available for functions inside enclaves
 extern "C"
 {
