@@ -1,13 +1,11 @@
 # Faasm
-bench/
-build/
-container/
 dev/
-download/
-ninja-build/
 perf/
 work/
-
+download/
+container/
+build/
+ninja-build/
 faasm.ini
 perf.data
 perf.data.*
