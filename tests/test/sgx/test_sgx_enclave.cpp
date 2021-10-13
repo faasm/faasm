@@ -44,8 +44,4 @@ TEST_CASE_METHOD(SgxTestFixture, "Test SGX crypto checks", "[sgx]")
 {
     REQUIRE_NOTHROW(sgx::checkSgxCrypto());
 }
-
-// Try unbinding twice
-//
-// Multi-threaded loading/unloading
 }

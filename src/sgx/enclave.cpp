@@ -12,6 +12,7 @@
 #include <sgx_defs.h>
 #include <sgx_thread.h>
 #include <tlibc/mbusafecrt.h>
+#include <vector>
 
 #include <iwasm/aot/aot_runtime.h>
 
@@ -44,7 +45,85 @@ extern "C"
 
     static WamrModuleHandle wamrModuleHandler;
 
-    static uint8_t _wamr_global_heap_buffer[FAASM_SGX_WAMR_HEAP_SIZE];
+    static uint8_t wamrHeapBuffer[WAMR_HEAP_SIZE];
+
+    // Set up the WAMR runtime, and initialise all enclave-related
+    // variables. Currently, this happens _once_ per Faasm instance. This is,
+    // we only run one enclave per Faasm instance.
+    faasm_sgx_status_t faasm_sgx_enclave_init_wamr(void)
+    {
+        os_set_print_function((os_print_function_t)SGX_DEBUG_LOG);
+
+        // Initialise the WAMR runtime
+        RuntimeInitArgs wamr_rte_args;
+        memset(&wamr_rte_args, 0x0, sizeof(wamr_rte_args));
+        wamr_rte_args.mem_alloc_type = Alloc_With_Pool;
+        wamr_rte_args.mem_alloc_option.pool.heap_buf = (void*)wamrHeapBuffer;
+        wamr_rte_args.mem_alloc_option.pool.heap_size = sizeof(wamrHeapBuffer);
+
+        if (!wasm_runtime_full_init(&wamr_rte_args)) {
+            return FAASM_SGX_WAMR_RTE_INIT_FAILED;
+        }
+
+        // Set up native symbols
+        sgx::initialiseSGXWAMRNatives();
+
+        return FAASM_SGX_SUCCESS;
+    }
+
+    // Load the provided web assembly module to the enclave's runtime
+    faasm_sgx_status_t faasm_sgx_enclave_load_module(
+      const void* wasm_opcode_ptr,
+      const uint32_t wasm_opcode_size,
+      uint32_t* thread_id)
+    {
+        char errorBuffer[ERROR_BUFFER_SIZE];
+
+        // Check if passed wasm opcode size or wasm opcode ptr is zero
+        if (!wasm_opcode_size) {
+            return FAASM_SGX_INVALID_OPCODE_SIZE;
+        }
+        if (!wasm_opcode_ptr) {
+            return FAASM_SGX_INVALID_PTR;
+        }
+        uint8_t* wasmBytes =
+          (uint8_t*)calloc(wasm_opcode_size, sizeof(uint8_t));
+        memcpy(wasmBytes, wasm_opcode_ptr, wasm_opcode_size);
+
+        // Load the WASM module
+        wamrModuleHandler.wasmModule = wasm_runtime_load(
+          wasmBytes, wasm_opcode_size, errorBuffer, sizeof(errorBuffer));
+
+        if (wamrModuleHandler.wasmModule == NULL) {
+            SGX_DEBUG_LOG(errorBuffer);
+            return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
+        }
+
+        // Instantiate the WASM module
+        wamrModuleHandler.moduleInstance =
+          wasm_runtime_instantiate(wamrModuleHandler.wasmModule,
+                                   (uint32_t)INSTANCE_STACK_SIZE,
+                                   (uint32_t)INSTANCE_HEAP_SIZE,
+                                   errorBuffer,
+                                   sizeof(errorBuffer));
+
+        if (wamrModuleHandler.moduleInstance == NULL) {
+            wasm_runtime_unload(wamrModuleHandler.wasmModule);
+            SGX_DEBUG_LOG(errorBuffer);
+            return FAASM_SGX_WAMR_MODULE_INSTANTIATION_FAILED;
+        }
+
+        return FAASM_SGX_SUCCESS;
+    }
+
+    faasm_sgx_status_t faasm_sgx_enclave_unload_module(const uint32_t thread_id)
+    {
+        // Unload the module and release the TCS slot
+        wasm_runtime_deinstantiate(wamrModuleHandler.moduleInstance);
+        wasm_runtime_unload(wamrModuleHandler.wasmModule);
+
+        return FAASM_SGX_SUCCESS;
+    }
 
     // Execute the main function
     faasm_sgx_status_t faasm_sgx_enclave_call_function(const uint32_t thread_id)
@@ -58,12 +137,15 @@ extern "C"
             return FAASM_SGX_WAMR_FUNCTION_NOT_FOUND;
         }
 
-        // Create an execution environment and call the wasm function
+        std::vector<uint32_t> argv = { 0 };
+
+        // Invoke the function
         bool success = aot_create_exec_env_and_call_function(
-          (AOTModuleInstance*)wamrModuleHandler.moduleInstance,
-          (AOTFunctionInstance*)func,
+          reinterpret_cast<AOTModuleInstance*>(
+            wamrModuleHandler.moduleInstance),
+          reinterpret_cast<AOTFunctionInstance*>(func),
           0x0,
-          0x0);
+          argv.data());
 
         if (!success) {
             // First, check if the _FAASM_SGX_ERROR_PREFIX is set
@@ -84,90 +166,6 @@ extern "C"
                             ->cur_exception);
             return FAASM_SGX_WAMR_FUNCTION_UNABLE_TO_CALL;
         }
-
-        return FAASM_SGX_SUCCESS;
-    }
-
-    faasm_sgx_status_t faasm_sgx_enclave_unload_module(const uint32_t thread_id)
-    {
-        // Unload the module and release the TCS slot
-        wasm_runtime_deinstantiate(wamrModuleHandler.moduleInstance);
-        wasm_runtime_unload(wamrModuleHandler.wasmModule);
-
-        return FAASM_SGX_SUCCESS;
-    }
-
-    // Load the provided web assembly module to the enclave's runtime
-    faasm_sgx_status_t faasm_sgx_enclave_load_module(
-      const void* wasm_opcode_ptr,
-      const uint32_t wasm_opcode_size,
-      uint32_t* thread_id)
-    {
-        char wamr_error_buffer[FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE];
-        faasm_sgx_status_t return_value;
-
-        // Check if passed wasm opcode size or wasm opcode ptr is zero
-        if (!wasm_opcode_size) {
-            return FAASM_SGX_INVALID_OPCODE_SIZE;
-        }
-        if (!wasm_opcode_ptr) {
-            return FAASM_SGX_INVALID_PTR;
-        }
-        uint8_t* wasm_buffer_ptr =
-          (uint8_t*)calloc(wasm_opcode_size, sizeof(uint8_t));
-        memcpy(wasm_buffer_ptr, wasm_opcode_ptr, wasm_opcode_size);
-
-        // Load the WASM module
-        wamrModuleHandler.wasmModule =
-          wasm_runtime_load(wasm_buffer_ptr,
-                            wasm_opcode_size,
-                            wamr_error_buffer,
-                            sizeof(wamr_error_buffer));
-
-        if (wamrModuleHandler.wasmModule == NULL) {
-            SGX_DEBUG_LOG(wamr_error_buffer);
-            return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
-        }
-
-        // Instantiate the WASM module
-        wamrModuleHandler.moduleInstance = wasm_runtime_instantiate(
-          wamrModuleHandler.wasmModule,
-          (uint32_t)FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE,
-          (uint32_t)FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE,
-          wamr_error_buffer,
-          sizeof(wamr_error_buffer));
-
-        if (wamrModuleHandler.moduleInstance == NULL) {
-            wasm_runtime_unload(wamrModuleHandler.wasmModule);
-            SGX_DEBUG_LOG(wamr_error_buffer);
-            return FAASM_SGX_WAMR_MODULE_INSTANTIATION_FAILED;
-        }
-
-        return FAASM_SGX_SUCCESS;
-    }
-
-    // Set up the WAMR runtime, and initialise all enclave-related
-    // variables. Currently, this happens _once_ per Faasm instance. This is,
-    // we only run one enclave per Faasm instance.
-    faasm_sgx_status_t faasm_sgx_enclave_init_wamr(void)
-    {
-        os_set_print_function((os_print_function_t)SGX_DEBUG_LOG);
-
-        // Initialise the WAMR runtime
-        RuntimeInitArgs wamr_rte_args;
-        memset(&wamr_rte_args, 0x0, sizeof(wamr_rte_args));
-        wamr_rte_args.mem_alloc_type = Alloc_With_Pool;
-        wamr_rte_args.mem_alloc_option.pool.heap_buf =
-          (void*)_wamr_global_heap_buffer;
-        wamr_rte_args.mem_alloc_option.pool.heap_size =
-          sizeof(_wamr_global_heap_buffer);
-
-        if (!wasm_runtime_full_init(&wamr_rte_args)) {
-            return FAASM_SGX_WAMR_RTE_INIT_FAILED;
-        }
-
-        // Set up native symbols
-        sgx::initialiseSGXWAMRNatives();
 
         return FAASM_SGX_SUCCESS;
     }
