@@ -54,7 +54,7 @@ void WamrEnclave::init()
 
     SPDLOG_DEBUG("Created SGX enclave: {}", enclaveId);
 
-    sgxReturnValue = faasm_sgx_enclave_init_wamr(enclaveId, &returnValue);
+    sgxReturnValue = enclaveInitWamr(enclaveId, &returnValue);
     if (sgxReturnValue != SGX_SUCCESS) {
         SPDLOG_ERROR("Unable to enter enclave: {}",
                      sgxErrorString(sgxReturnValue));
@@ -121,11 +121,8 @@ void WamrEnclave::loadWasmModule(std::vector<uint8_t>& data)
 {
     faasm_sgx_status_t returnValue;
     // Note - loading and instantiating happen in the same ecall
-    sgx_status_t status = faasm_sgx_enclave_load_module(enclaveId,
-                                                        &returnValue,
-                                                        (void*)data.data(),
-                                                        (uint32_t)data.size(),
-                                                        &threadId);
+    sgx_status_t status = enclaveLoadModule(
+      enclaveId, &returnValue, (void*)data.data(), (uint32_t)data.size());
 
     if (status != SGX_SUCCESS) {
         SPDLOG_ERROR("Unable to enter enclave: {}", sgxErrorString(status));
@@ -147,8 +144,7 @@ void WamrEnclave::unloadWasmModule()
     SPDLOG_DEBUG("Unloading SGX wasm module");
 
     faasm_sgx_status_t returnValue;
-    sgx_status_t sgxReturnValue =
-      faasm_sgx_enclave_unload_module(enclaveId, &returnValue, threadId);
+    sgx_status_t sgxReturnValue = enclaveUnloadModule(enclaveId, &returnValue);
 
     if (sgxReturnValue != SGX_SUCCESS) {
         SPDLOG_ERROR("Unable to unbind function due to SGX error: {}",
@@ -170,8 +166,7 @@ void WamrEnclave::callMainFunction()
 {
     // Enter enclave and call function
     faasm_sgx_status_t returnValue;
-    sgx_status_t sgxReturnValue =
-      faasm_sgx_enclave_call_function(enclaveId, &returnValue, threadId);
+    sgx_status_t sgxReturnValue = enclaveCallFunction(enclaveId, &returnValue);
 
     if (sgxReturnValue != SGX_SUCCESS) {
         SPDLOG_ERROR("Unable to enter enclave: {}",

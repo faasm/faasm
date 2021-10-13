@@ -50,7 +50,7 @@ extern "C"
     // Set up the WAMR runtime, and initialise all enclave-related
     // variables. Currently, this happens _once_ per Faasm instance. This is,
     // we only run one enclave per Faasm instance.
-    faasm_sgx_status_t faasm_sgx_enclave_init_wamr(void)
+    faasm_sgx_status_t enclaveInitWamr(void)
     {
         os_set_print_function((os_print_function_t)SGX_DEBUG_LOG);
 
@@ -72,27 +72,24 @@ extern "C"
     }
 
     // Load the provided web assembly module to the enclave's runtime
-    faasm_sgx_status_t faasm_sgx_enclave_load_module(
-      const void* wasm_opcode_ptr,
-      const uint32_t wasm_opcode_size,
-      uint32_t* thread_id)
+    faasm_sgx_status_t enclaveLoadModule(const void* wasmOpCodePtr,
+                                         const uint32_t wasmOpCodeSize)
     {
         char errorBuffer[ERROR_BUFFER_SIZE];
 
         // Check if passed wasm opcode size or wasm opcode ptr is zero
-        if (!wasm_opcode_size) {
+        if (!wasmOpCodeSize) {
             return FAASM_SGX_INVALID_OPCODE_SIZE;
         }
-        if (!wasm_opcode_ptr) {
+        if (wasmOpCodePtr == NULL) {
             return FAASM_SGX_INVALID_PTR;
         }
-        uint8_t* wasmBytes =
-          (uint8_t*)calloc(wasm_opcode_size, sizeof(uint8_t));
-        memcpy(wasmBytes, wasm_opcode_ptr, wasm_opcode_size);
+        uint8_t* wasmBytes = (uint8_t*)calloc(wasmOpCodeSize, sizeof(uint8_t));
+        memcpy(wasmBytes, wasmOpCodePtr, wasmOpCodeSize);
 
         // Load the WASM module
         wamrModuleHandler.wasmModule = wasm_runtime_load(
-          wasmBytes, wasm_opcode_size, errorBuffer, sizeof(errorBuffer));
+          wasmBytes, wasmOpCodeSize, errorBuffer, sizeof(errorBuffer));
 
         if (wamrModuleHandler.wasmModule == NULL) {
             SGX_DEBUG_LOG(errorBuffer);
@@ -116,7 +113,7 @@ extern "C"
         return FAASM_SGX_SUCCESS;
     }
 
-    faasm_sgx_status_t faasm_sgx_enclave_unload_module(const uint32_t thread_id)
+    faasm_sgx_status_t enclaveUnloadModule(const uint32_t thread_id)
     {
         // Unload the module and release the TCS slot
         wasm_runtime_deinstantiate(wamrModuleHandler.moduleInstance);
@@ -126,7 +123,7 @@ extern "C"
     }
 
     // Execute the main function
-    faasm_sgx_status_t faasm_sgx_enclave_call_function(const uint32_t thread_id)
+    faasm_sgx_status_t enclaveCallFunction()
     {
         // Get function to execute
         WASMFunctionInstanceCommon* func = wasm_runtime_lookup_function(

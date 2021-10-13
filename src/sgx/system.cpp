@@ -15,11 +15,11 @@
 namespace sgx {
 void checkSgxCrypto()
 {
-    faasm_sgx_status_t faasmReturnValue;
+    faasm_sgx_status_t returnValue;
     sgx_status_t sgxReturnValue;
 
-    sgxReturnValue = faasm_sgx_enclave_crypto_checks(
-      sgx::getWamrEnclave().getId(), &faasmReturnValue);
+    sgxReturnValue =
+      enclaveCryptoChecks(sgx::getWamrEnclave().getId(), &returnValue);
 
     if (sgxReturnValue != SGX_SUCCESS) {
         SPDLOG_ERROR("SGX error in crypto checks: {}",
@@ -27,12 +27,12 @@ void checkSgxCrypto()
         throw std::runtime_error("SGX error in crypto checks");
     }
 
-    if (faasmReturnValue != FAASM_SGX_SUCCESS) {
-        if (FAASM_SGX_OCALL_GET_SGX_ERROR(faasmReturnValue)) {
+    if (returnValue != FAASM_SGX_SUCCESS) {
+        if (FAASM_SGX_OCALL_GET_SGX_ERROR(returnValue)) {
             throw std::runtime_error("SGX error in crypto checks");
         }
         SPDLOG_ERROR("Error running SGX crypto checks: {}",
-                     faasmSgxErrorString(faasmReturnValue));
+                     faasmSgxErrorString(returnValue));
         throw std::runtime_error("Error running SGX crypto checks");
     }
 

@@ -43,8 +43,6 @@ class WamrEnclave
   private:
     sgx_enclave_id_t enclaveId = 0;
 
-    uint32_t threadId;
-
     std::vector<uint8_t> loadedBytes;
 };
 
