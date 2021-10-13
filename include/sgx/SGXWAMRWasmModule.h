@@ -27,7 +27,7 @@ class SGXWAMRWasmModule final : public WasmModule
     // ----- Module lifecycle -----
     void doBindToFunction(faabric::Message& msg, bool cache) override;
 
-    void reset(faabric::Message& msg) override;
+    void reset(faabric::Message& msg, const std::string& snapshotKey) override;
 
     int32_t executeFunction(faabric::Message& msg) override;
 

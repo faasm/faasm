@@ -15,8 +15,8 @@ class SgxModuleTestFixture
 
     ~SgxModuleTestFixture()
     {
-        module.reset(msg);
-        otherModule.reset(otherMsg);
+        module.reset(msg, "");
+        otherModule.reset(otherMsg, "");
     }
 
   protected:
@@ -34,13 +34,13 @@ TEST_CASE_METHOD(SgxModuleTestFixture,
                  "[sgx]")
 {
     // We can unbind when nothing is bound
-    REQUIRE_NOTHROW(module.reset(msg));
+    REQUIRE_NOTHROW(module.reset(msg, ""));
 
     // Try binding to a function
     REQUIRE_NOTHROW(module.doBindToFunction(msg, false));
 
     // Then unbind
-    REQUIRE_NOTHROW(module.reset(msg));
+    REQUIRE_NOTHROW(module.reset(msg, ""));
 }
 
 TEST_CASE_METHOD(SgxModuleTestFixture,

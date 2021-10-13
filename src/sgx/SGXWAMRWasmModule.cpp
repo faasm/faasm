@@ -54,7 +54,8 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
     threadStacks.push_back(-1);
 }
 
-void SGXWAMRWasmModule::reset(faabric::Message& msg)
+// TODO - reset from a snapshot key
+void SGXWAMRWasmModule::reset(faabric::Message& msg, const std::string& snapshotKey)
 {
     if (!wamrEnclave.isWasmLoaded()) {
         SPDLOG_DEBUG("Module already unloaded from enclave, skipping unbind");
