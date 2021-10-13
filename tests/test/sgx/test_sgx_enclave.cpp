@@ -1,46 +1,43 @@
 #include <catch2/catch.hpp>
 
-#include <sgx/WamrEnclave.h>
+#include <sgx/WAMREnclave.h>
 #include <sgx/system.h>
 
 namespace tests {
 class SgxTestFixture
 {
   public:
-    SgxTestFixture()
-      : wamrEnclave(sgx::getWamrEnclave())
-    {}
+    SgxTestFixture() {}
 
-    ~SgxTestFixture() { wamrEnclave.tearDown(); }
+    ~SgxTestFixture() {}
 
   protected:
-    sgx::WamrEnclave& wamrEnclave;
+    std::shared_ptr<sgx::WAMREnclave> wamrEnclave = nullptr;
 };
 
 TEST_CASE("Test enclave set up and tear down", "[sgx]")
 {
-    sgx::WamrEnclave& wamrEnclave = sgx::getWamrEnclave();
+    std::shared_ptr<sgx::WAMREnclave> wamrEnclave =
+      sgx::acquireGlobalWAMREnclave();
 
-    wamrEnclave.tearDown();
+    wamrEnclave->tearDown();
 
-    REQUIRE(!wamrEnclave.isSetUp());
+    REQUIRE(!wamrEnclave->isSetUp());
 
     // Initialise the global enclave
-    wamrEnclave.init();
+    wamrEnclave->init();
 
-    REQUIRE(wamrEnclave.isSetUp());
+    REQUIRE(wamrEnclave->isSetUp());
 
-    wamrEnclave.tearDown();
+    wamrEnclave->tearDown();
 
-    REQUIRE(wamrEnclave.getId() == 0);
+    REQUIRE(wamrEnclave->getId() == 0);
+
+    wamrEnclave = nullptr;
+    sgx::releaseGlobalWAMREnclave();
 }
 
-TEST_CASE_METHOD(SgxTestFixture, "Test enclave is not re-created", "[sgx]")
-{
-    REQUIRE(wamrEnclave.getId() == sgx::getWamrEnclave().getId());
-}
-
-TEST_CASE_METHOD(SgxTestFixture, "Test SGX crypto checks", "[sgx]")
+TEST_CASE("Test SGX crypto checks", "[sgx]")
 {
     REQUIRE_NOTHROW(sgx::checkSgxCrypto());
 }

@@ -1,5 +1,5 @@
 #include <faabric/util/logging.h>
-#include <sgx/WamrEnclave.h>
+#include <sgx/WAMREnclave.h>
 #include <sgx/error.h>
 #include <sgx/system.h>
 
@@ -18,8 +18,12 @@ void checkSgxCrypto()
     faasm_sgx_status_t returnValue;
     sgx_status_t sgxReturnValue;
 
-    sgxReturnValue =
-      enclaveCryptoChecks(sgx::getWamrEnclave().getId(), &returnValue);
+    std::shared_ptr<WAMREnclave> wamrEnclave = acquireGlobalWAMREnclave();
+
+    sgxReturnValue = enclaveCryptoChecks(wamrEnclave->getId(), &returnValue);
+
+    wamrEnclave = nullptr;
+    releaseGlobalWAMREnclave();
 
     if (sgxReturnValue != SGX_SUCCESS) {
         SPDLOG_ERROR("SGX error in crypto checks: {}",

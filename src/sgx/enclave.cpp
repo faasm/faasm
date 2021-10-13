@@ -45,7 +45,7 @@ extern "C"
 
     static sgx::ModuleStore wamrModules(10);
 
-    static uint8_t wamrHeapBuffer[WAMR_HEAP_SIZE];
+    static uint8_t wamrHeapBuffer[SGX_WAMR_HEAP_SIZE];
 
     // Set up the WAMR runtime, and initialise all enclave-related
     // variables. Currently, this happens _once_ per Faasm instance. This is,
@@ -76,7 +76,7 @@ extern "C"
                                          const uint32_t wasmOpCodeSize,
                                          uint32_t* moduleSlot)
     {
-        char errorBuffer[ERROR_BUFFER_SIZE];
+        char errorBuffer[SGX_ERROR_BUFFER_SIZE];
 
         // Check if passed wasm opcode size or wasm opcode ptr is zero
         if (!wasmOpCodeSize) {
@@ -101,8 +101,8 @@ extern "C"
         // Instantiate the WASM module
         wamrModuleHandler.moduleInstance =
           wasm_runtime_instantiate(wamrModuleHandler.wasmModule,
-                                   (uint32_t)INSTANCE_STACK_SIZE,
-                                   (uint32_t)INSTANCE_HEAP_SIZE,
+                                   (uint32_t)SGX_INSTANCE_STACK_SIZE,
+                                   (uint32_t)SGX_INSTANCE_HEAP_SIZE,
                                    errorBuffer,
                                    sizeof(errorBuffer));
 

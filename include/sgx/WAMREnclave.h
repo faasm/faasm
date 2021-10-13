@@ -5,20 +5,21 @@
 
 #include <sgx_urts.h>
 
+#include <memory>
 #include <vector>
 
 namespace sgx {
 // This class encapsulates the logic to interact with an SGX enclave.
 // 11/10/2021 - Currently we only spawn one enclave per Faasm instance. Thus,
 // there will only be one instance of this class.
-class WamrEnclave
+class WAMREnclave
 {
   public:
-    WamrEnclave();
+    WAMREnclave();
 
     // Delete the copy constructor to prevent not getting the object by
     // reference through the getter
-    WamrEnclave(const WamrEnclave&) = delete;
+    WAMREnclave(const WAMREnclave&) = delete;
 
     void init();
 
@@ -46,5 +47,7 @@ class WamrEnclave
     std::vector<uint8_t> loadedBytes;
 };
 
-WamrEnclave& getWamrEnclave();
+std::shared_ptr<WAMREnclave> acquireGlobalWAMREnclave();
+
+void releaseGlobalWAMREnclave();
 }

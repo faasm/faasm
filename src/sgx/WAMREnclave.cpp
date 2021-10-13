@@ -1,16 +1,19 @@
+#include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
-#include <sgx/WamrEnclave.h>
+#include <sgx/WAMREnclave.h>
 #include <sgx/system.h>
 
 #include <boost/filesystem/operations.hpp>
 
 namespace sgx {
-WamrEnclave::WamrEnclave()
+std::mutex enclaveMx;
+
+WAMREnclave::WAMREnclave()
 {
     init();
 }
 
-void WamrEnclave::init()
+void WAMREnclave::init()
 {
     // Skip set-up if enclave already exists
     if (enclaveId != 0) {
@@ -78,7 +81,7 @@ void WamrEnclave::init()
     SPDLOG_DEBUG("Initialised WAMR in SGX enclave {}", enclaveId);
 }
 
-void WamrEnclave::tearDown()
+void WAMREnclave::tearDown()
 {
     if (enclaveId == 0) {
         return;
@@ -97,27 +100,27 @@ void WamrEnclave::tearDown()
     enclaveId = 0;
 }
 
-bool WamrEnclave::isSetUp()
+bool WAMREnclave::isSetUp()
 {
     return enclaveId != 0;
 }
 
-bool WamrEnclave::isWasmLoaded()
+bool WAMREnclave::isWasmLoaded()
 {
     return !loadedBytes.empty();
 }
 
-bool WamrEnclave::isWasmLoaded(const std::vector<uint8_t>& dataToLoad)
+bool WAMREnclave::isWasmLoaded(const std::vector<uint8_t>& dataToLoad)
 {
     return loadedBytes == dataToLoad;
 }
 
-sgx_enclave_id_t WamrEnclave::getId()
+sgx_enclave_id_t WAMREnclave::getId()
 {
     return enclaveId;
 }
 
-void WamrEnclave::loadWasmModule(std::vector<uint8_t>& data)
+void WAMREnclave::loadWasmModule(std::vector<uint8_t>& data)
 {
     faasm_sgx_status_t returnValue;
     // Note - loading and instantiating happen in the same ecall
@@ -139,7 +142,7 @@ void WamrEnclave::loadWasmModule(std::vector<uint8_t>& data)
     loadedBytes = std::move(data);
 }
 
-void WamrEnclave::unloadWasmModule()
+void WAMREnclave::unloadWasmModule()
 {
     SPDLOG_DEBUG("Unloading SGX wasm module");
 
@@ -162,7 +165,7 @@ void WamrEnclave::unloadWasmModule()
     loadedBytes.clear();
 }
 
-void WamrEnclave::callMainFunction()
+void WAMREnclave::callMainFunction()
 {
     // Enter enclave and call function
     faasm_sgx_status_t returnValue;
@@ -189,10 +192,20 @@ void WamrEnclave::callMainFunction()
     }
 }
 
-WamrEnclave& getWamrEnclave()
+std::shared_ptr<WAMREnclave> acquireGlobalWAMREnclave()
 {
-    static WamrEnclave enclave;
-    enclave.init();
+    SPDLOG_TRACE("Locking WAMR Enclave");
+    enclaveMx.lock();
+
+    static std::shared_ptr<WAMREnclave> enclave =
+      std::make_shared<WAMREnclave>();
+    enclave->init();
     return enclave;
+}
+
+void releaseGlobalWAMREnclave()
+{
+    SPDLOG_TRACE("Unlocking WAMR Enclave");
+    enclaveMx.unlock();
 }
 }

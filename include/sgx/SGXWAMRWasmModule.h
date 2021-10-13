@@ -1,6 +1,6 @@
 #pragma once
 
-#include <sgx/WamrEnclave.h>
+#include <sgx/WAMREnclave.h>
 #include <sgx/attestation.h>
 #include <sgx/error.h>
 #include <storage/FileLoader.h>
@@ -37,6 +37,6 @@ class SGXWAMRWasmModule final : public WasmModule
     uint32_t shrinkMemory(uint32_t nBytes) override;
 
   private:
-    sgx::WamrEnclave& wamrEnclave;
+    std::shared_ptr<sgx::WAMREnclave> wamrEnclave = nullptr;
 };
 }

@@ -1,5 +1,4 @@
 #include <faabric/util/func.h>
-#include <faabric/util/locks.h>
 #include <sgx/SGXWAMRWasmModule.h>
 #include <sgx/attestation.h>
 #include <sgx/system.h>
@@ -10,13 +9,9 @@
 using namespace sgx;
 
 namespace wasm {
-std::mutex enclaveMx;
-
 SGXWAMRWasmModule::SGXWAMRWasmModule()
-  : wamrEnclave(sgx::getWamrEnclave())
 {
-    SPDLOG_DEBUG("Created SGX WAMR-Wasm module for enclave {}",
-                 wamrEnclave.getId());
+    SPDLOG_DEBUG("Created SGX WAMR-Wasm module");
 }
 
 SGXWAMRWasmModule::~SGXWAMRWasmModule() {}
@@ -33,19 +28,21 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 
     std::vector<uint8_t> wasmBytes =
       functionLoader.loadFunctionWamrAotFile(msg);
+    assert(!wasmBytes.empty());
 
     // Load the wasm module
-    if (!wamrEnclave.isWasmLoaded(wasmBytes)) {
-        faabric::util::UniqueLock lock(enclaveMx);
+    wamrEnclave = acquireGlobalWAMREnclave();
 
-        if (!wamrEnclave.isWasmLoaded(wasmBytes)) {
-            wamrEnclave.loadWasmModule(wasmBytes);
-        } else {
-            SPDLOG_DEBUG("Module already loaded to enclave, skipping load");
-        }
+    if (!wamrEnclave->isWasmLoaded(wasmBytes)) {
+        SPDLOG_DEBUG("Binding Wasm Module to enclave ({})",
+                     wamrEnclave->getId());
+        wamrEnclave->loadWasmModule(wasmBytes);
     } else {
         SPDLOG_DEBUG("Module already loaded to enclave, skipping load");
     }
+
+    wamrEnclave = nullptr;
+    releaseGlobalWAMREnclave();
 
     // Set up the thread stacks
     // 28/06/2021 - Threading is not supported in SGX-WAMR. However, the Faasm
@@ -58,19 +55,18 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 void SGXWAMRWasmModule::reset(faabric::Message& msg,
                               const std::string& snapshotKey)
 {
-    if (!wamrEnclave.isWasmLoaded()) {
+    wamrEnclave = acquireGlobalWAMREnclave();
+
+    if (!wamrEnclave->isWasmLoaded()) {
         SPDLOG_DEBUG("Module already unloaded from enclave, skipping unbind");
-        return;
+    } else {
+        SPDLOG_DEBUG("Unloading Wasm module from enclave ({})",
+                     wamrEnclave->getId());
+        wamrEnclave->unloadWasmModule();
     }
 
-    faabric::util::UniqueLock lock(enclaveMx);
-
-    if (!wamrEnclave.isWasmLoaded()) {
-        SPDLOG_DEBUG("Module already unloaded from enclave, skipping unbind");
-        return;
-    }
-
-    wamrEnclave.unloadWasmModule();
+    wamrEnclave = nullptr;
+    releaseGlobalWAMREnclave();
 
     return;
 }
@@ -80,14 +76,19 @@ int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
 
     std::string funcStr = faabric::util::funcToString(msg, true);
 
-    SPDLOG_DEBUG(
-      "Entering enclave {} to execute {}", wamrEnclave.getId(), funcStr);
-
     // Set execution context
     wasm::WasmExecutionContext ctx(this, &msg);
 
+    wamrEnclave = acquireGlobalWAMREnclave();
+
+    SPDLOG_DEBUG(
+      "Entering enclave {} to execute {}", wamrEnclave->getId(), funcStr);
+
     // Call main function for module loaded into enclave
-    wamrEnclave.callMainFunction();
+    wamrEnclave->callMainFunction();
+
+    wamrEnclave = nullptr;
+    releaseGlobalWAMREnclave();
 
     return 0;
 }
