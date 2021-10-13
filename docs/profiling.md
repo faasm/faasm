@@ -1,5 +1,48 @@
 # Profiling
 
+## Microbenchmarks
+
+Microbenchmarks to examine the raw function throughput or isolation overhead of
+Faasm may wish to use the
+[`microbenchmark_runner`](../src/runner/microbenchmark_runner.cpp) script.
+
+Once built, usage is:
+
+```bash
+microbenchmark_runner <spec_file> <out_file>
+```
+
+Where the `spec_file` specifies which functions to run and for how many
+iterations. This is a CSV of the format:
+
+```
+<user_a>,<func_a>,<n_runs>,<input_data>
+<user_b>,<func_b>,<n_runs>,<input_data>
+```
+
+For example,
+
+```
+demo,hello,100,
+demo,echo,200,this is input data
+```
+
+The runner will write the results to the output file in the form:
+
+```
+<user>,<function>,<return_value>,<run_time_us>,<reset_time_us>
+```
+
+E.g.
+
+```
+demo,hello,0,25.4,0.12
+demo,hello,0,29.0,0.18
+```
+
+These can then be parsed and plotted, as is done in the
+[experiment-microbench](https://github.com/faasm/experiment-microbench) repo.
+
 ## High-level
 
 To get a quick overview of how things are performing you can use
