@@ -135,8 +135,8 @@ target_compile_options(wamrlib_untrusted PRIVATE
 set(ENCLAVE_HEADERS
     ${FAASM_INCLUDE_DIR}/sgx/attestation.h
     ${FAASM_INCLUDE_DIR}/sgx/enclave_config.h
-    ${FAASM_INCLUDE_DIR}/sgx/enclave_types.h
     ${FAASM_INCLUDE_DIR}/sgx/error.h
+    ${FAASM_INCLUDE_DIR}/sgx/ModuleStore.h
     ${FAASM_INCLUDE_DIR}/sgx/native.h
     ${FAASM_INCLUDE_DIR}/sgx/ocalls.h
     ${FAASM_INCLUDE_DIR}/sgx/rw_lock.h
@@ -152,6 +152,7 @@ set(ENCLAVE_TRUSTED_SRC
     filesystem.cpp
     funcs.cpp
     memory.cpp
+    ModuleStore.cpp
     native.cpp
     pthread.cpp
     rw_lock.cpp

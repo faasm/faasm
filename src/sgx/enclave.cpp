@@ -43,7 +43,7 @@ extern "C"
 #endif
     }
 
-    static WamrModuleHandle wamrModuleHandler;
+    static sgx::ModuleStore wamrModules(10);
 
     static uint8_t wamrHeapBuffer[WAMR_HEAP_SIZE];
 
@@ -73,7 +73,8 @@ extern "C"
 
     // Load the provided web assembly module to the enclave's runtime
     faasm_sgx_status_t enclaveLoadModule(const void* wasmOpCodePtr,
-                                         const uint32_t wasmOpCodeSize)
+                                         const uint32_t wasmOpCodeSize,
+                                         uint32_t* moduleSlot)
     {
         char errorBuffer[ERROR_BUFFER_SIZE];
 
@@ -86,6 +87,7 @@ extern "C"
         }
         uint8_t* wasmBytes = (uint8_t*)calloc(wasmOpCodeSize, sizeof(uint8_t));
         memcpy(wasmBytes, wasmOpCodePtr, wasmOpCodeSize);
+        *moduleSlot = wamrModules.store(wasmOpCodePtr, wasmOpCodeSize);
 
         // Load the WASM module
         wamrModuleHandler.wasmModule = wasm_runtime_load(
