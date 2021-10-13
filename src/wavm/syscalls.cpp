@@ -153,6 +153,24 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     return executeSyscall(syscallNo, a, b, c, d, e, f, g);
 }
 
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "__syscall_cp",
+                               I32,
+                               __syscall_cp,
+                               I32 syscallNo,
+                               I32 a,
+                               I32 b,
+                               I32 c,
+                               I32 d,
+                               I32 e,
+                               I32 f)
+{
+    SPDLOG_DEBUG(
+      "S - __syscall_cp - {} {} {} {} {} {} {}", syscallNo, a, b, c, d, e, f);
+
+    return executeSyscall(syscallNo, a, b, c, d, e, f, 0);
+}
+
 I32 executeSyscall(int syscallNumber,
                    int a,
                    int b,
@@ -183,6 +201,8 @@ I32 executeSyscall(int syscallNumber,
             return s__mmap(a, b, c, d, e, f);
         case 102:
             return s__socketcall(a, b);
+        case 114:
+            return s__waitpid(a, b, c);
         case 125:
             return s__mprotect(a, b, c);
         case 162:

@@ -14,6 +14,16 @@ I32 s__fork()
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
+I32 s__waitpid(I32 pid, I32 statusPtr, I32 options)
+{
+    SPDLOG_DEBUG("S - waitpid {} {} {}", pid, statusPtr, options);
+
+    // Note, on success, waitpid returns the process ID that has changed state.
+    // We currently don't support waitpid, so we just return the pid we're given
+    // https://man7.org/linux/man-pages/man2/wait.2.html
+    return pid;
+}
+
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "fork", I32, fork)
 {
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);

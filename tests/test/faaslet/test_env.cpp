@@ -87,4 +87,12 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 
     SECTION("WAMR") { execWamrFunction(msg); }
 }
+
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
+                 "Test waitpid",
+                 "[faaslet]")
+{
+    faabric::Message msg = faabric::util::messageFactory("demo", "waitpid");
+    execFunction(msg);
+}
 }
