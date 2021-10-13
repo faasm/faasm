@@ -9,7 +9,7 @@ using namespace wasm;
 namespace tests {
 TEST_CASE("Test executing hello function with SGX", "[.][sgx]")
 {
-    executeWithSGX("demo", "hello", 1000000);
+    executeWithSGX("demo", "hello");
 }
 
 TEST_CASE("Test executing chaining by name with SGX", "[.][sgx]")
