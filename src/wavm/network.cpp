@@ -542,37 +542,37 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "atoi", I32, atoi, I32 a)
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
-WAVM_DEFINE_INTRINSIC_FUNCTION(env, "htons", I32, htons, I32 a)
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "htons", I32, _htons, I32 a)
 {
     SPDLOG_DEBUG("S - htons - {}", a);
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
-WAVM_DEFINE_INTRINSIC_FUNCTION(env, "ntohl", I32, ntohl, I32 a)
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "ntohl", I32, _ntohl, I32 a)
 {
     SPDLOG_DEBUG("S - ntohl - {}", a);
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
-WAVM_DEFINE_INTRINSIC_FUNCTION(env, "ntohs", I32, ntohs, I32 a)
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "ntohs", I32, _ntohs, I32 a)
 {
     SPDLOG_DEBUG("S - ntohl - {}", a);
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
-WAVM_DEFINE_INTRINSIC_FUNCTION(env, "htonl", I32, htonl, I32 a)
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "htonl", I32, _htonl, I32 a)
 {
     SPDLOG_DEBUG("S - htonl - {}", a);
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
-WAVM_DEFINE_INTRINSIC_FUNCTION(env, "inet_aton", I32, inet_aton, I32 a, I32 b)
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "inet_aton", I32, _inet_aton, I32 a, I32 b)
 {
     SPDLOG_DEBUG("S - inet_aton - {} {}", a, b);
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
-WAVM_DEFINE_INTRINSIC_FUNCTION(env, "shutdown", I32, shutdown, I32 a, I32 b)
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "shutdown", I32, _shutdown, I32 a, I32 b)
 {
     SPDLOG_DEBUG("S - shutdown - {} {}", a, b);
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
@@ -581,7 +581,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "shutdown", I32, shutdown, I32 a, I32 b)
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "inet_pton",
                                I32,
-                               inet_pton,
+                               _inet_pton,
                                I32 a,
                                I32 b,
                                I32 c)
@@ -593,7 +593,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "inet_ntop",
                                I32,
-                               inet_ntop,
+                               _inet_ntop,
                                I32 a,
                                I32 b,
                                I32 c,
@@ -606,7 +606,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "recv",
                                I32,
-                               recv,
+                               _recv,
                                I32 a,
                                I32 b,
                                I32 c,
@@ -619,7 +619,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "send",
                                I32,
-                               send,
+                               _send,
                                I32 a,
                                I32 b,
                                I32 c,
