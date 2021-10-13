@@ -12,6 +12,7 @@
 #include <sgx_defs.h>
 #include <sgx_thread.h>
 #include <tlibc/mbusafecrt.h>
+#include <vector>
 
 #include <iwasm/aot/aot_runtime.h>
 
@@ -44,6 +45,8 @@ extern "C"
 
     static rwlock_t _rwlock_faasm_sgx_tcs_realloc = { 0 };
 
+    static int nextFreeModule = 0;
+    static std::vector<WamrModuleHandle> moduleHandles(10);
     static WamrModuleHandle wamrModuleHandler;
     _faasm_sgx_tcs_t** faasm_sgx_tcs = NULL;
     static uint32_t _faasm_sgx_tcs_len;
@@ -119,8 +122,9 @@ extern "C"
         */
 
         // Get function to execute
+        WamrModuleHandle wamrHandle = moduleHandles.at(thread_id);
         WASMFunctionInstanceCommon* func = wasm_runtime_lookup_function(
-          wamrModuleHandler.moduleInstance, WASM_ENTRY_FUNC, NULL);
+          wamrHandle.moduleInstance, WASM_ENTRY_FUNC, NULL);
 
         if (func == NULL) {
             SGX_DEBUG_LOG("Failed to instantiate WAMR function in enclave");
@@ -129,7 +133,7 @@ extern "C"
 
         // Create an execution environment and call the wasm function
         bool success = aot_create_exec_env_and_call_function(
-          (AOTModuleInstance*)wamrModuleHandler.moduleInstance,
+          (AOTModuleInstance*)wamrHandle.moduleInstance,
           (AOTFunctionInstance*)func,
           0x0,
           0x0);
@@ -139,17 +143,17 @@ extern "C"
             // If so, then obtain and return the faasm_sgx_status_t error code
             // If not, just print the exception and return the matching
             // Faasm-SGX error code
-            if (!memcmp(((AOTModuleInstance*)wamrModuleHandler.moduleInstance)
+            if (!memcmp(((AOTModuleInstance*)wamrHandle.moduleInstance)
                           ->cur_exception,
                         _FAASM_SGX_ERROR_PREFIX,
                         sizeof(_FAASM_SGX_ERROR_PREFIX))) {
 
                 return *((faasm_sgx_status_t*)&(
-                  ((AOTModuleInstance*)wamrModuleHandler.moduleInstance)
+                  ((AOTModuleInstance*)wamrHandle.moduleInstance)
                     ->cur_exception[sizeof(_FAASM_SGX_ERROR_PREFIX)]));
             }
 
-            SGX_DEBUG_LOG(((AOTModuleInstance*)wamrModuleHandler.moduleInstance)
+            SGX_DEBUG_LOG(((AOTModuleInstance*)wamrHandle.moduleInstance)
                             ->cur_exception);
             return FAASM_SGX_WAMR_FUNCTION_UNABLE_TO_CALL;
         }
@@ -177,8 +181,10 @@ extern "C"
         // read_unlock(&_rwlock_faasm_sgx_tcs_realloc);
 
         // Unload the module and release the TCS slot
-        wasm_runtime_deinstantiate(wamrModuleHandler.moduleInstance);
-        wasm_runtime_unload(wamrModuleHandler.wasmModule);
+        WamrModuleHandle wamrHandle = moduleHandles.at(thread_id);
+        wasm_runtime_deinstantiate(wamrHandle.moduleInstance);
+        wasm_runtime_unload(wamrHandle.wasmModule);
+        moduleHandles.at(thread_id) = WamrModuleHandle();
         // free(tcs_ptr->wasm_opcode);
         // _FAASM_SGX_TCS_FREE_SLOT(thread_id);
         // free(tcs_ptr);
@@ -228,13 +234,18 @@ extern "C"
         // tcs_ptr->wasm_opcode = wasm_buffer_ptr;
 
         // Load the WASM module
-        wamrModuleHandler.wasmModule =
+        // TODO - merge into a nice object
+        WamrModuleHandle wamrHandle = moduleHandles.at(nextFreeModule);
+        *thread_id = nextFreeModule;
+        nextFreeModule++;
+
+        wamrHandle.wasmModule =
           wasm_runtime_load(wasm_buffer_ptr,
                             wasm_opcode_size,
                             wamr_error_buffer,
                             sizeof(wamr_error_buffer));
 
-        if (wamrModuleHandler.wasmModule == NULL) {
+        if (wamrHandle.wasmModule == NULL) {
             // Revert all changes due to a module load error
             // free(tcs_ptr->wasm_opcode);
             // _FAASM_SGX_TCS_FREE_SLOT(*thread_id);
@@ -244,14 +255,14 @@ extern "C"
         }
 
         // Instantiate the WASM module
-        wamrModuleHandler.moduleInstance = wasm_runtime_instantiate(
-          wamrModuleHandler.wasmModule,
+        wamrHandle.moduleInstance = wasm_runtime_instantiate(
+          wamrHandle.wasmModule,
           (uint32_t)FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE,
           (uint32_t)FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE,
           wamr_error_buffer,
           sizeof(wamr_error_buffer));
 
-        if (wamrModuleHandler.moduleInstance == NULL) {
+        if (wamrHandle.moduleInstance == NULL) {
             // Revert all changes due to a module instantiate error
             // free(tcs_ptr->wasm_opcode);
             // wasm_runtime_unload(tcs_ptr->module);
