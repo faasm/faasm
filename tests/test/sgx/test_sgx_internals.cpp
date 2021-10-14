@@ -11,7 +11,7 @@ class SgxTestFixture
     ~SgxTestFixture() { sgx::tearDownEnclave(); }
 };
 
-TEST_CASE("Test enclave set up and tear down", "[sgx]")
+TEST_CASE("Test enclave set up and tear down", "[.][sgx]")
 {
     sgx::tearDownEnclave();
 
@@ -27,7 +27,7 @@ TEST_CASE("Test enclave set up and tear down", "[sgx]")
     REQUIRE(sgx::getGlobalEnclaveId() == 0);
 }
 
-TEST_CASE_METHOD(SgxTestFixture, "Test SGX crypto checks", "[sgx]")
+TEST_CASE_METHOD(SgxTestFixture, "Test SGX crypto checks", "[.][sgx]")
 {
     REQUIRE_NOTHROW(sgx::checkSgxCrypto());
 }

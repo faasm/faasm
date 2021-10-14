@@ -92,6 +92,15 @@ int doRun(std::ofstream& outFs,
         // Write result line
         outFs << user << "," << function << "," << returnValue << ","
               << execMicros << "," << resetMicros << std::endl;
+
+        if (returnValue != 0) {
+            SPDLOG_ERROR("{}/{} failed on run {} with value {}",
+                         user,
+                         function,
+                         r,
+                         returnValue);
+            return 1;
+        }
     }
 
     return 0;
@@ -148,7 +157,10 @@ int MicrobenchRunner::execute(const std::string& inFile,
         SPDLOG_INFO(
           "Running {}/{} x{} (input [{}])", user, function, nRuns, inputData);
 
-        doRun(outFs, user, function, nRuns, inputData);
+        int returnValue = doRun(outFs, user, function, nRuns, inputData);
+        if (returnValue != 0) {
+            break;
+        }
     }
 
     outFs.close();
