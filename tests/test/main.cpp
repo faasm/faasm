@@ -4,6 +4,7 @@
 #include "utils.h"
 
 #include <catch2/catch.hpp>
+#include <faabric/util/crash.h>
 #include <faabric/transport/context.h>
 #include <faabric/util/logging.h>
 
@@ -13,6 +14,8 @@ FAABRIC_CATCH_LOGGER
 
 int main(int argc, char* argv[])
 {
+    faabric::util::setUpCrashHandler();
+
     faabric::util::initLogging();
     storage::initFaasmS3();
     faabric::transport::initGlobalMessageContext();

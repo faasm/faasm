@@ -243,7 +243,12 @@ jobs:
       # --- Setup ---
       - name: "Start docker-compose"
         run: docker-compose up -d --scale worker=2 nginx
+      # Note - this can fail when the container isn't ready, so we want to retry
       - name: "Wait for upload server to be available"
+        run: |
+          (echo "Attempt 1" && docker-compose exec -T upload /usr/local/code/faasm/deploy/local/wait_for_upload.sh localhost 8002) || \
+          (sleep 10s && echo "Attempt 2" && docker-compose exec -T upload /usr/local/code/faasm/deploy/local/wait_for_upload.sh localhost 8002) || \
+          (echo "Wait for upload failed after 2 attempts" && exit 1)
         run: docker-compose exec -T upload /usr/local/code/faasm/deploy/local/wait_for_upload.sh localhost 8002
       # --- Function upload ---
       - name: "Build and upload cpp function"
