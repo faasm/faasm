@@ -4,16 +4,20 @@
 #include "utils.h"
 
 #include <catch2/catch.hpp>
+
 #include <faabric/transport/context.h>
 #include <faabric/util/crash.h>
 #include <faabric/util/logging.h>
 
 #include <storage/S3Wrapper.h>
+#include <system/memory.h>
 
 FAABRIC_CATCH_LOGGER
 
 int main(int argc, char* argv[])
 {
+    isolation::checkStackSize();
+
     faabric::util::setUpCrashHandler();
 
     faabric::util::initLogging();

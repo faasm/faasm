@@ -151,7 +151,7 @@ TEST_CASE_METHOD(FunctionExecTestFixture, "Test mmap/munmap", "[faaslet]")
     checkCallingFunctionGivesBoolOutput("demo", "mmap", true);
 }
 
-TEST_CASE_METHOD(FunctionExecTestFixture, "Test big mmap", "[.][faaslet]")
+TEST_CASE_METHOD(FunctionExecTestFixture, "Test big mmap", "[faaslet]")
 {
     faabric::Message msg = faabric::util::messageFactory("demo", "mmap_big");
     execFunction(msg);
