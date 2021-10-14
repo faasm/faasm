@@ -4,8 +4,8 @@
 #include "utils.h"
 
 #include <catch2/catch.hpp>
-#include <faabric/util/crash.h>
 #include <faabric/transport/context.h>
+#include <faabric/util/crash.h>
 #include <faabric/util/logging.h>
 
 #include <storage/S3Wrapper.h>
