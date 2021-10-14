@@ -16,13 +16,16 @@ extern "C"
     extern sgx_status_t enclaveLoadModule(sgx_enclave_id_t enclaveId,
                                           faasm_sgx_status_t* returnValue,
                                           const void* wasmOpCodePtr,
-                                          const uint32_t wasmOpCodeSize);
+                                          uint32_t wasmOpCodeSize,
+                                          uint32_t* moduleSlot);
 
     extern sgx_status_t enclaveUnloadModule(sgx_enclave_id_t enclaveId,
-                                            faasm_sgx_status_t* returnValue);
+                                            faasm_sgx_status_t* returnValue,
+                                            uint32_t moduleSlot);
 
     extern sgx_status_t enclaveCallFunction(sgx_enclave_id_t enclaveId,
-                                            faasm_sgx_status_t* returnValue);
+                                            faasm_sgx_status_t* returnValue,
+                                            uint32_t moduleSlot);
 
     extern sgx_status_t enclaveCryptoChecks(sgx_enclave_id_t enclaveId,
                                             faasm_sgx_status_t* returnValue);

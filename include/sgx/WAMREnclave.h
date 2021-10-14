@@ -35,11 +35,11 @@ class WAMREnclave
 
     sgx_enclave_id_t getId();
 
-    void loadWasmModule(std::vector<uint8_t>& data);
+    void loadWasmModule(std::vector<uint8_t>& data, uint32_t* slot);
 
-    void unloadWasmModule();
+    void unloadWasmModule(const uint32_t slot);
 
-    void callMainFunction();
+    void callMainFunction(const uint32_t slot);
 
   private:
     sgx_enclave_id_t enclaveId = 0;

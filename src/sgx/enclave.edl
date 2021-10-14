@@ -16,13 +16,14 @@ enclave{
         public faasm_sgx_status_t enclaveInitWamr(void);
 
         public faasm_sgx_status_t enclaveLoadModule(
-            [in, size=wasm_opcode_size]     const void *wasm_opcode_ptr,
-                                            uint32_t wasm_opcode_size
+            [in, size=wasmOpCodeSize]       const void *wasmOpCodePtr,
+                                            uint32_t wasmOpCodeSize,
+            [out]                           uint32_t *moduleSlot
         );
 
-        public faasm_sgx_status_t enclaveUnloadModule();
+        public faasm_sgx_status_t enclaveUnloadModule(uint32_t moduleSlot);
 
-        public faasm_sgx_status_t enclaveCallFunction();
+        public faasm_sgx_status_t enclaveCallFunction(uint32_t moduleSlot);
 
         public faasm_sgx_status_t enclaveCryptoChecks(void);
     };

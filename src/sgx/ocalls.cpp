@@ -1,3 +1,4 @@
+#include <faabric/util/logging.h>
 #include <sgx/SGXWAMRWasmModule.h>
 #include <wasm/chaining.h>
 
@@ -12,7 +13,7 @@ using namespace faabric::state;
 
 extern "C"
 {
-    void ocall_printf(const char* msg) { printf("%s", msg); }
+    void ocall_printf(const char* msg) { SPDLOG_DEBUG("ENCLAVE: {}", msg); }
 
     uint64_t ocall_faasm_read_state(const char* key,
                                     uint8_t* bufferPtr,
