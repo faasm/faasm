@@ -1,9 +1,8 @@
 from subprocess import run
 
-import errno
 from invoke import task
 from copy import copy
-from os import environ, remove
+from os import environ
 from os.path import join
 from sys import exit
 
