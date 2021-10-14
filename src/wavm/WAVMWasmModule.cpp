@@ -72,7 +72,8 @@ void WAVMWasmModule::clearCaches()
     getWAVMModuleCache().clear();
 }
 
-void WAVMWasmModule::reset(faabric::Message& msg)
+void WAVMWasmModule::reset(faabric::Message& msg,
+                           const std::string& snapshotKey)
 {
     if (!_isBound) {
         return;
@@ -82,11 +83,11 @@ void WAVMWasmModule::reset(faabric::Message& msg)
     assert(msg.function() == boundFunction);
 
     std::string funcStr = faabric::util::funcToString(msg, true);
-    SPDLOG_DEBUG("Resetting after {}", funcStr);
+    SPDLOG_DEBUG("Resetting after {} (snap key {})", funcStr, snapshotKey);
     wasm::WAVMWasmModule& cachedModule =
       wasm::getWAVMModuleCache().getCachedModule(msg);
 
-    clone(cachedModule);
+    clone(cachedModule, snapshotKey);
 }
 
 Runtime::Instance* WAVMWasmModule::getEnvModule()
@@ -117,7 +118,7 @@ WAVMWasmModule& WAVMWasmModule::operator=(const WAVMWasmModule& other)
     PROF_START(wasmAssignOp)
 
     // Do the clone
-    clone(other);
+    clone(other, "");
 
     PROF_END(wasmAssignOp)
 
@@ -129,12 +130,13 @@ WAVMWasmModule::WAVMWasmModule(const WAVMWasmModule& other)
     PROF_START(wasmCopyConstruct)
 
     // Do the clone
-    clone(other);
+    clone(other, "");
 
     PROF_END(wasmCopyConstruct)
 }
 
-void WAVMWasmModule::clone(const WAVMWasmModule& other)
+void WAVMWasmModule::clone(const WAVMWasmModule& other,
+                           const std::string& snapshotKey)
 {
     // If bound, we want to reclaim all the memory we've created _before_
     // cloning from the zygote otherwise it's lost forever
@@ -172,7 +174,14 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
         assert(other.compartment != nullptr);
 
         // Clone compartment
-        compartment = Runtime::cloneCompartment(other.compartment);
+        if (snapshotKey.empty()) {
+            // Clone compartment with memory if no snapshot key provided
+            compartment = Runtime::cloneCompartment(other.compartment);
+        } else {
+            // Exclude memory if snapshot key provided
+            compartment =
+              Runtime::cloneCompartment(other.compartment, "", false);
+        }
 
         // Clone context
         executionContext =
@@ -189,6 +198,11 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
         // Extract the memory and table again
         defaultMemory = Runtime::getDefaultMemory(moduleInstance);
         defaultTable = Runtime::getDefaultTable(moduleInstance);
+
+        // Restore from snapshot
+        if (!snapshotKey.empty()) {
+            restore(snapshotKey);
+        }
 
         // Reset shared memory variables
         sharedMemWasmPtrs = other.sharedMemWasmPtrs;
@@ -220,6 +234,8 @@ WAVMWasmModule::~WAVMWasmModule()
 
 void WAVMWasmModule::doWAVMGarbageCollection()
 {
+    SPDLOG_TRACE("Performing WAVM GC");
+
     // To allow WAVM to perform GC, we need to ensure all of our own copies of
     // WAVM GCPointers have been set to nullptr, so that WAVM's own refcounts
     // will be zero. We can then call its GC method directly.
@@ -238,12 +254,13 @@ void WAVMWasmModule::doWAVMGarbageCollection()
     executionContext = nullptr;
 
     if (compartment != nullptr) {
-        // Release build complains that this is unused as the assertion is
-        // removed
         bool compartmentCleared =
           Runtime::tryCollectCompartment(std::move(compartment));
-        UNUSED(compartmentCleared);
-        assert(compartmentCleared);
+
+        if (!compartmentCleared) {
+            SPDLOG_ERROR("WAVM GC failed");
+            throw std::runtime_error("WAVM garbage collection failed");
+        }
     }
 }
 
@@ -408,7 +425,7 @@ void WAVMWasmModule::doBindToFunctionInternal(faabric::Message& msg,
      */
     if (useCache) {
         wasm::WAVMModuleCache& cache = getWAVMModuleCache();
-        clone(cache.getCachedModule(msg));
+        clone(cache.getCachedModule(msg), "");
         return;
     }
 

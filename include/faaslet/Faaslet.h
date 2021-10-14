@@ -29,11 +29,15 @@ class Faaslet final : public faabric::scheduler::Executor
 
     void restore(faabric::Message& call) override;
 
+    std::string getLocalResetSnapshotKey();
+
   protected:
     void postFinish() override;
 
   private:
     bool isIsolated = false;
+
+    std::string localResetSnapshotKey;
 
     std::shared_ptr<isolation::NetworkNamespace> ns;
 };

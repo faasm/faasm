@@ -1070,6 +1070,18 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "realpath", I32, realpath, I32 a, U32 b)
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "dirfd", I32, dirfd, I32 a)
+{
+    SPDLOG_DEBUG("S - dirfd - {}", a);
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "poll", I32, poll, I32 a, I32 b, I32 c)
+{
+    SPDLOG_DEBUG("S - poll - {}", a, b, c);
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
 // Emscripten-specific functions
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "fiprintf",

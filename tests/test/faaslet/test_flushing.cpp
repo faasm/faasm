@@ -173,7 +173,5 @@ TEST_CASE_METHOD(FlushingTestFixture,
     faabric::Message resultB = sch.getFunctionResult(invokeMsgB.id(), 1);
     REQUIRE(resultB.returnvalue() == 0);
     REQUIRE(resultB.outputdata() == inputB);
-
-    m.shutdown();
 }
 }
