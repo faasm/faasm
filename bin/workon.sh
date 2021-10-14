@@ -34,7 +34,7 @@ pushd ${PROJ_ROOT} >> /dev/null
 # ----------------------------
 
 if [ ! -d "venv" ]; then
-    python3 -m venv venv 
+    python3 -m venv venv
 fi
 
 export VIRTUAL_ENV_DISABLE_PROMPT=1
@@ -84,6 +84,12 @@ fi
 export PATH=${FAASM_BUILD_DIR}/bin:$PATH
 
 export PS1="(faasm) $PS1"
+
+# -----------------------------
+# Environment
+# -----------------------------
+
+ulimit -s 16384
 
 # -----------------------------
 # Splash

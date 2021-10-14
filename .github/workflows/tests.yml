@@ -154,6 +154,10 @@ jobs:
           name: py-funcs
           path: /usr/local/faasm/shared
       # --- Host information ---
+      - name: "Expand stack space"
+        run: ulimit -s 16384
+      - name: "Print rlimits"
+        run: ulimit -all
       - name: "CPU info"
         run: cat /proc/cpuinfo
       - name: "Get CPU model name"
