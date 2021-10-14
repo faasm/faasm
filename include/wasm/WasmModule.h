@@ -208,7 +208,7 @@ class WasmModule
     void snapshotWithKey(const std::string& snapKey, bool locallyRestorable);
 
     // Threads
-    void createThreadStacks();
+    void createThreadStacks(const faabric::Message &msg);
 };
 
 // Convenience functions

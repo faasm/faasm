@@ -1,4 +1,5 @@
 #include "wasm/WasmModule.h"
+#include "faabric/util/snapshot.h"
 
 #include <conf/FaasmConfig.h>
 #include <threads/ThreadState.h>
@@ -546,14 +547,22 @@ int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
     return returnValue;
 }
 
-void WasmModule::createThreadStacks()
+void WasmModule::createThreadStacks(const faabric::Message& msg)
 {
     SPDLOG_DEBUG("Creating {} thread stacks", threadPoolSize);
+
+    // Track where the region starts and ends
+    uint32_t stackRegionStart;
+    uint32_t stackRegionSize;
 
     for (int i = 0; i < threadPoolSize; i++) {
         // Allocate thread and guard pages
         uint32_t memSize = THREAD_STACK_SIZE + (2 * GUARD_REGION_SIZE);
         uint32_t memBase = growMemory(memSize);
+
+        if (i == 0) {
+            stackRegionStart = memBase;
+        }
 
         // Note that wasm stacks grow downwards, so we have to store the stack
         // top, which is the offset one below the guard region above the stack
@@ -563,6 +572,27 @@ void WasmModule::createThreadStacks()
         // Add guard regions
         createMemoryGuardRegion(memBase);
         createMemoryGuardRegion(stackTop + 1);
+
+        if (i == threadPoolSize - 1) {
+            stackRegionSize = stackTop - stackRegionStart;
+        }
+    }
+
+    if (!msg.snapshotkey().empty()) {
+        // Set up ignore region for thread stacks
+        SPDLOG_TRACE("Ignoring thread stack region for snapshot {}: {}-{}",
+                     msg.snapshotkey(),
+                     stackRegionStart,
+                     stackRegionEnd);
+
+        faabric::util::SnapshotData& snapData =
+          faabric::snapshot::getSnapshotRegistry().getSnapshot(
+            msg.snapshotkey());
+
+        snapData.addMergeRegion(stackRegionStart,
+                                stackRegionSize,
+                                faabric::util::SnapshotDataType::Raw,
+                                faabric::util::SnapshotMergeOperation::Ignore);
     }
 }
 
