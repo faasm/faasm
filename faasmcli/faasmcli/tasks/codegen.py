@@ -128,36 +128,3 @@ def local(ctx):
     # Run the SGX codegen required by the tests
     for user, func in SGX_WHITELISTED_FUNCS:
         codegen(ctx, user, func, wamr=True, sgx=True)
-
-
-# 29/09/2021 - TODO: remove task when WAMR and SGX development is consolidated
-# This task is used in the tests, consequently we only need to delete the object
-# files from local storage, not minio.
-@task
-def remove_wamr_codegen(ctx):
-    """
-    Clean WAMR generated code
-    """
-    LOCAL_OBJECT_STORE_PREFIX = "/usr/local/faasm/object"
-    WAMR_FUNC_NAME = "function.aot"
-    SGX_FUNC_NAME = "function.aot.sgx"
-    HASH_SUFFIX = ".md5"
-
-    def remove_if_exists(filename):
-        try:
-            remove(filename)
-        except OSError as e:
-            if e.errno != errno.ENOENT:
-                raise
-
-    print("Removing local WAMR machine code")
-    for user, func in WAMR_WHITELISTED_FUNCS:
-        file_path = join(LOCAL_OBJECT_STORE_PREFIX, user, func, WAMR_FUNC_NAME)
-        remove_if_exists(file_path)
-        remove_if_exists(file_path + HASH_SUFFIX)
-
-    print("Removing local SGX machine code")
-    for user, func in SGX_WHITELISTED_FUNCS:
-        file_path = join(LOCAL_OBJECT_STORE_PREFIX, user, func, SGX_FUNC_NAME)
-        remove_if_exists(file_path)
-        remove_if_exists(file_path + HASH_SUFFIX)
