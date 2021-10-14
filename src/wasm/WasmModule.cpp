@@ -585,6 +585,9 @@ void WasmModule::createThreadStacks(const faabric::Message& msg)
                      stackRegionStart,
                      stackRegionEnd);
 
+        // Note - the merge regions for a snapshot are keyed on the offset, so
+        // we will just overwrite the same region if another module has already
+        // set it
         faabric::util::SnapshotData& snapData =
           faabric::snapshot::getSnapshotRegistry().getSnapshot(
             msg.snapshotkey());
