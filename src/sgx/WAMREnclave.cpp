@@ -146,6 +146,9 @@ void WAMREnclave::unloadWasmModule()
 {
     SPDLOG_DEBUG("Unloading SGX wasm module");
 
+    // TODO - thing how to make reset work even if the module is not sent
+    // and wether we should keep track of the set modules outside the enclave
+    // as well
     faasm_sgx_status_t returnValue;
     sgx_status_t sgxReturnValue = enclaveUnloadModule(enclaveId, &returnValue);
 

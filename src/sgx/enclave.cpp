@@ -79,7 +79,7 @@ extern "C"
         char errorBuffer[SGX_ERROR_BUFFER_SIZE];
 
         // Check if passed wasm opcode size or wasm opcode ptr is zero
-        if (!wasmOpCodeSize) {
+        if (wasmOpCodeSize == 0) {
             return FAASM_SGX_INVALID_OPCODE_SIZE;
         }
         if (wasmOpCodePtr == NULL) {
