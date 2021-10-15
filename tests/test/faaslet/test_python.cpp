@@ -168,4 +168,9 @@ TEST_CASE("Test python picklinkg", "[python]")
 {
     checkPythonFunction("pickle_check", false);
 }
+
+TEST_CASE("Test python perf benchmark", "[python]")
+{
+    checkPythonFunction("bench_deltablue", false);
+}
 }

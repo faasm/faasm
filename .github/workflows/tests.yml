@@ -12,7 +12,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     container:
-      image: faasm/cli:0.6.11
+      image: faasm/cli:0.6.12
     defaults:
       run:
         working-directory: /usr/local/code/faasm
@@ -38,7 +38,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     container:
-      image: faasm/cpp-sysroot:0.0.28
+      image: faasm/cpp-sysroot:0.1.0
     defaults:
       run:
         working-directory: /__w/faasm/faasm/clients/cpp
@@ -67,7 +67,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     container:
-      image: faasm/cpython:0.0.12
+      image: faasm/cpython:0.1.0
     defaults:
       run:
         working-directory: /__w/faasm/faasm/clients/python
@@ -104,17 +104,17 @@ jobs:
       REDIS_QUEUE_HOST: redis
       REDIS_STATE_HOST: redis
     container:
-      image: faasm/cli:0.6.11
+      image: faasm/cli:0.6.12
     defaults:
       run:
         working-directory: /usr/local/code/faasm
     services:
       redis:
-        image: faasm/redis:0.6.11
+        image: faasm/redis:0.6.12
         ports:
           - 6379:6379
       minio:
-        image: faasm/minio:0.6.11
+        image: faasm/minio:0.6.12
         env:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
@@ -170,6 +170,9 @@ jobs:
         with:
           path: /usr/local/faasm/object
           key: ${{ env.CPU_MODEL }}-machine-code
+      # 15/10/21 Temporary step to refresh WAMR cache
+      - name: "Clear out WAMR codegen files"
+        run: find /usr/local/faasm/object | grep aot | xargs rm -f
       # --- Code build (Debug required for tests) ---
       - name: "Build dev tools"
         run: inv -r faasmcli/faasmcli dev.tools --build Debug

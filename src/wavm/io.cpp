@@ -1078,7 +1078,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "dirfd", I32, dirfd, I32 a)
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "poll", I32, poll, I32 a, I32 b, I32 c)
 {
-    SPDLOG_DEBUG("S - poll - {}", a, b, c);
+    SPDLOG_DEBUG("S - poll - {} {} {}", a, b, c);
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 

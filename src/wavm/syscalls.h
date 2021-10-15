@@ -271,6 +271,8 @@ int32_t s__fcntl64(int32_t fd, int32_t cmd, int32_t c);
 
 int32_t s__fork();
 
+int32_t s__waitpid(int32_t pid, int32_t statusPtr, int32_t options);
+
 int32_t s__fstat64(int32_t fd, int32_t statBufPtr);
 
 int32_t s__futex(int32_t uaddrPtr,

@@ -367,6 +367,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "socket", I32, socket, I32 a, I32 b, I32 c)
 {
+    SPDLOG_DEBUG("S - socket - {} {} {}", a, b, c);
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
@@ -532,6 +533,113 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 b,
                                I32 c)
 {
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "atoi", I32, atoi, I32 a)
+{
+    SPDLOG_DEBUG("S - atoi - {}", a);
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "htons", I32, _htons, I32 a)
+{
+    SPDLOG_DEBUG("S - htons - {}", a);
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "ntohl", I32, _ntohl, I32 a)
+{
+    SPDLOG_DEBUG("S - ntohl - {}", a);
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "ntohs", I32, _ntohs, I32 a)
+{
+    SPDLOG_DEBUG("S - ntohs - {}", a);
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "htonl", I32, _htonl, I32 a)
+{
+    SPDLOG_DEBUG("S - htonl - {}", a);
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "inet_aton", I32, _inet_aton, I32 a, I32 b)
+{
+    SPDLOG_DEBUG("S - inet_aton - {} {}", a, b);
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "shutdown", I32, _shutdown, I32 a, I32 b)
+{
+    SPDLOG_DEBUG("S - shutdown - {} {}", a, b);
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "inet_pton",
+                               I32,
+                               _inet_pton,
+                               I32 a,
+                               I32 b,
+                               I32 c)
+{
+    SPDLOG_DEBUG("S - inet_pton - {} {} {}", a, b, c);
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "inet_ntop",
+                               I32,
+                               _inet_ntop,
+                               I32 a,
+                               I32 b,
+                               I32 c,
+                               I32 d)
+{
+    SPDLOG_DEBUG("S - inet_ntop - {} {} {} {}", a, b, c, d);
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "recv",
+                               I32,
+                               _recv,
+                               I32 a,
+                               I32 b,
+                               I32 c,
+                               I32 d)
+{
+    SPDLOG_DEBUG("S - recv - {} {} {} {}", a, b, c, d);
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "send",
+                               I32,
+                               _send,
+                               I32 a,
+                               I32 b,
+                               I32 c,
+                               I32 d)
+{
+    SPDLOG_DEBUG("S - send - {} {} {} {}", a, b, c, d);
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "getsockopt",
+                               I32,
+                               getsockopt,
+                               I32 a,
+                               I32 b,
+                               I32 c,
+                               I32 d,
+                               I32 e)
+{
+    SPDLOG_DEBUG("S - getsockopt - {} {} {} {} {}", a, b, c, d, e);
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
