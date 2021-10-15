@@ -29,9 +29,7 @@ class WAMREnclave
 
     bool isSetUp();
 
-    bool isWasmLoaded();
-
-    bool isWasmLoaded(const std::vector<uint8_t>& dataToLoad);
+    bool isSlotLoaded(const uint32_t slot);
 
     sgx_enclave_id_t getId();
 
@@ -44,7 +42,7 @@ class WAMREnclave
   private:
     sgx_enclave_id_t enclaveId = 0;
 
-    std::vector<uint8_t> loadedBytes;
+    std::vector<bool> enclaveLoadedSlots;
 };
 
 std::shared_ptr<WAMREnclave> acquireGlobalWAMREnclave();

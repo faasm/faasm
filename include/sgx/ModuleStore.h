@@ -1,12 +1,11 @@
 #pragma once
 
+#include <sgx/system.h>
+
 #include <memory>
 #include <vector>
 
 #include <wasm_export.h>
-
-#define MAX_SGX_STORE_SIZE 32
-#define SGX_MODULE_STORE_ERROR (MAX_SGX_STORE_SIZE + 1)
 
 namespace sgx {
 struct WamrModuleHandle

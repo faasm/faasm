@@ -3,6 +3,7 @@
 #include <sgx/WAMREnclave.h>
 #include <sgx/attestation.h>
 #include <sgx/error.h>
+#include <sgx/system.h>
 #include <storage/FileLoader.h>
 #include <storage/FileSystem.h>
 #include <wasm/WasmExecutionContext.h>
@@ -38,5 +39,7 @@ class SGXWAMRWasmModule final : public WasmModule
 
   private:
     std::shared_ptr<sgx::WAMREnclave> wamrEnclave = nullptr;
+
+    uint32_t enclaveModuleSlot = SGX_MODULE_STORE_UNSET;
 };
 }

@@ -2,14 +2,8 @@
 
 namespace sgx {
 ModuleStore::ModuleStore(size_t size)
+  : storeSize(SGX_MODULE_STORE_SIZE)
 {
-    if (size > MAX_SGX_STORE_SIZE) {
-        // TODO - print warning
-        storeSize = MAX_SGX_STORE_SIZE;
-    } else {
-        storeSize = size;
-    }
-
     for (size_t i = 0; i < storeSize; i++) {
         modules.push_back(std::make_shared<sgx::WamrModuleHandle>());
     }
@@ -26,7 +20,7 @@ uint32_t ModuleStore::getFreeSlot()
         }
     }
 
-    return SGX_MODULE_STORE_ERROR;
+    return SGX_MODULE_STORE_UNSET;
 }
 
 std::shared_ptr<WamrModuleHandle> ModuleStore::store(const void* ptr,
@@ -35,7 +29,7 @@ std::shared_ptr<WamrModuleHandle> ModuleStore::store(const void* ptr,
 {
     uint32_t freeSlot = getFreeSlot();
 
-    if (freeSlot == SGX_MODULE_STORE_ERROR) {
+    if (freeSlot == SGX_MODULE_STORE_UNSET) {
         // Error here means the module store is full
         return NULL;
     }

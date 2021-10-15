@@ -181,7 +181,7 @@ void execFuncWithPool(faabric::Message& call, bool clean, int timeout)
 
     faasmConf.netNsMode = originalNsMode;
 
-    m.shutdown();
+    // m.shutdown();
 
     cleanSystem();
 }

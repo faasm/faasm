@@ -33,13 +33,9 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
     // Load the wasm module
     wamrEnclave = acquireGlobalWAMREnclave();
 
-    if (!wamrEnclave->isWasmLoaded(wasmBytes)) {
-        SPDLOG_DEBUG("Binding Wasm Module to enclave ({})",
-                     wamrEnclave->getId());
-        wamrEnclave->loadWasmModule(wasmBytes);
-    } else {
-        SPDLOG_DEBUG("Module already loaded to enclave, skipping load");
-    }
+    wamrEnclave->loadWasmModule(wasmBytes, &enclaveModuleSlot);
+    SPDLOG_DEBUG("Loaded module to enclave's store at slot {}",
+                 enclaveModuleSlot);
 
     wamrEnclave = nullptr;
     releaseGlobalWAMREnclave();
@@ -57,13 +53,17 @@ void SGXWAMRWasmModule::reset(faabric::Message& msg,
 {
     wamrEnclave = acquireGlobalWAMREnclave();
 
-    if (!wamrEnclave->isWasmLoaded()) {
-        SPDLOG_DEBUG("Module already unloaded from enclave, skipping unbind");
-    } else {
-        SPDLOG_DEBUG("Unloading Wasm module from enclave ({})",
+    if (wamrEnclave->isSlotLoaded(enclaveModuleSlot)) {
+        SPDLOG_DEBUG("Removing module (slot: {}) from the enclave (id: {}) store",
+                     enclaveModuleSlot,
                      wamrEnclave->getId());
-        wamrEnclave->unloadWasmModule();
+        wamrEnclave->unloadWasmModule(enclaveModuleSlot);
+    } else {
+        SPDLOG_DEBUG("Skipping removing module (slot: {}) from enclave (id: {})",
+                     enclaveModuleSlot,
+                     wamrEnclave->getId());
     }
+    assert(!wamrEnclave->isSlotLoaded(enclaveModuleSlot));
 
     wamrEnclave = nullptr;
     releaseGlobalWAMREnclave();
@@ -81,16 +81,29 @@ int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
 
     wamrEnclave = acquireGlobalWAMREnclave();
 
-    SPDLOG_DEBUG(
-      "Entering enclave {} to execute {}", wamrEnclave->getId(), funcStr);
+    int returnValue;
+    // Make sure our module slot has been loaded before
+    if (wamrEnclave->isSlotLoaded(enclaveModuleSlot)) {
+        SPDLOG_DEBUG(
+          "Entering enclave {} to execute {}", wamrEnclave->getId(), funcStr);
 
-    // Call main function for module loaded into enclave
-    wamrEnclave->callMainFunction();
+        // Call main function for module loaded into enclave
+        wamrEnclave->callMainFunction(enclaveModuleSlot);
+
+        returnValue = 0;
+    } else {
+        SPDLOG_ERROR("Enclave {} does not have function {} loaded in slot {}",
+                     wamrEnclave->getId(),
+                     funcStr,
+                     enclaveModuleSlot);
+
+        returnValue = 1;
+    }
 
     wamrEnclave = nullptr;
     releaseGlobalWAMREnclave();
 
-    return 0;
+    return returnValue;
 }
 
 uint32_t SGXWAMRWasmModule::growMemory(uint32_t nBytes)
