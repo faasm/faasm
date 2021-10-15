@@ -614,10 +614,10 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
     Runtime::ModuleRef compiledModule = moduleRegistry.getCompiledModule(
       boundUser, boundFunction, sharedModulePath);
 
-    SPDLOG_INFO("Instantiating module {}/{}  {}",
-                boundUser,
-                boundFunction,
-                sharedModulePath);
+    SPDLOG_DEBUG("Instantiating module {}/{}  {}",
+                 boundUser,
+                 boundFunction,
+                 sharedModulePath);
 
     Runtime::Instance* instance =
       instantiateModule(compartment,

@@ -26,7 +26,7 @@ docker-compose up -d nginx
 docker-compose exec upload /usr/local/code/faasm/deploy/local/wait_for_upload.sh localhost 8002
 ```
 
-Upload all Python functions with:
+Upload and invoke a Python function with:
 
 ```
 # Run the Python CLI
