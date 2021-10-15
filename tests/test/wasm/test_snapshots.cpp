@@ -1,5 +1,10 @@
 #include <catch2/catch.hpp>
 
+#include "faabric/runner/FaabricMain.h"
+#include "faabric/snapshot/SnapshotClient.h"
+#include "faabric/util/config.h"
+#include "faabric/util/environment.h"
+#include "faabric/util/testing.h"
 #include "faabric_utils.h"
 #include "utils.h"
 
@@ -21,6 +26,7 @@ class WasmSnapTestFixture
   : public RedisTestFixture
   , public SchedulerTestFixture
   , public SnapshotTestFixture
+  , public ConfTestFixture
 {
   public:
     WasmSnapTestFixture() {}
@@ -247,7 +253,7 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
     std::string snapshotKey = "foobar-snap";
 
     size_t snapSize = 64 * faabric::util::HOST_PAGE_SIZE;
-    uint8_t* snapMemory = (uint8_t*)mmap(
+    uint8_t* snapMemory = (uint8_t*)::mmap(
       nullptr, snapSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
     // Write dummy data to the snapshot
@@ -327,6 +333,93 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
 
         REQUIRE(dataAfter == dummyDataB);
         REQUIRE(f.module->getCurrentBrk() == snapSize);
+    }
+
+    ::munmap(snapMemory, snapSize);
+}
+
+TEST_CASE_METHOD(WasmSnapTestFixture,
+                 "Test ignoring thread stacks",
+                 "[wasm][snapshot]")
+{
+    faabric::util::setMockMode(true);
+
+    int nCores = 10;
+    conf.overrideCpuCount = nCores;
+
+    std::string user = "demo";
+    std::string function = "echo";
+    faabric::Message m = faabric::util::messageFactory(user, function);
+
+    // Set up an app snapshot
+    wasm::WAVMWasmModule moduleA;
+    moduleA.bindToFunction(m);
+    std::vector<uint32_t> threadStacksA = moduleA.getThreadStacks();
+
+    std::string appSnapshotKey = moduleA.createAppSnapshot(m);
+    m.set_snapshotkey(appSnapshotKey);
+
+    // Hack to make restorable
+    faabric::util::SnapshotData snapshotPreExecution =
+      reg.getSnapshot(appSnapshotKey);
+    reg.takeSnapshot(appSnapshotKey, snapshotPreExecution, true);
+
+    // Restore another module from this snapshot
+    wasm::WAVMWasmModule moduleB;
+    moduleB.bindToFunction(m);
+    std::vector<uint32_t> threadStacksB = moduleB.getThreadStacks();
+
+    REQUIRE(threadStacksA.size() == nCores);
+    REQUIRE(threadStacksB == threadStacksA);
+
+    // Reset dirty tracking
+    faabric::util::resetDirtyTracking();
+
+    // Execute the function
+    int32_t returnValue = moduleB.executeFunction(m);
+    REQUIRE(returnValue == 0);
+
+    // Modify the top and bottom of each stack
+    // Note that each stack grows downwards
+    for (auto t : threadStacksB) {
+        auto* stackTop = (int*)(moduleB.wasmPointerToNative(t - sizeof(int)));
+        auto* stackBottom =
+          (int*)(moduleB.wasmPointerToNative(t - THREAD_STACK_SIZE));
+
+        *stackTop = 123;
+        *stackBottom = 345;
+    }
+
+    std::string snapKeyPostExecution = moduleB.snapshot();
+    faabric::util::SnapshotData snapshotPostExecution =
+      reg.getSnapshot(snapKeyPostExecution);
+
+    // Diff with snapshot after execution
+    std::vector<faabric::util::SnapshotDiff> diffs =
+      snapshotPreExecution.getChangeDiffs(snapshotPostExecution.data,
+                                          snapshotPostExecution.size);
+
+    // Check that we have some diffs, but that none of them are in the thread
+    // stacks region
+    REQUIRE(diffs.size() > 0);
+    uint32_t stacksMin =
+      threadStacksB.at(0) + 1 - THREAD_STACK_SIZE - GUARD_REGION_SIZE;
+    uint32_t stacksMax = threadStacksB.back();
+
+    for (auto d : diffs) {
+        bool isBelow = (d.offset + d.size) < stacksMin;
+        bool isAbove = d.offset > stacksMax;
+        bool isNotInRegion = isBelow || isAbove;
+
+        if (!isNotInRegion) {
+            SPDLOG_ERROR("Stack not ignored, {} + {} between {} and {}",
+                         d.offset,
+                         d.size,
+                         stacksMin,
+                         stacksMax);
+        }
+
+        REQUIRE(isNotInRegion);
     }
 }
 }

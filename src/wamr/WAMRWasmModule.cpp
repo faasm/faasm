@@ -76,7 +76,6 @@ WAMRWasmModule* getExecutingWAMRModule()
 // ----- Module lifecycle -----
 void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 {
-
     // Prepare the filesystem
     filesystem.prepareFilesystem();
 
@@ -108,7 +107,7 @@ void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
     currentBrk = getMemorySizeBytes();
 
     // Set up thread stacks
-    createThreadStacks();
+    createThreadStacks(msg);
 }
 
 int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)

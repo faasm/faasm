@@ -1,9 +1,7 @@
-#include "wasm/WasmModule.h"
-#include "faabric/util/snapshot.h"
-
 #include <conf/FaasmConfig.h>
 #include <threads/ThreadState.h>
 #include <wasm/WasmExecutionContext.h>
+#include <wasm/WasmModule.h>
 
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
@@ -15,6 +13,7 @@
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/memory.h>
+#include <faabric/util/snapshot.h>
 #include <faabric/util/timing.h>
 
 #include <boost/filesystem.hpp>
@@ -88,7 +87,7 @@ faabric::util::SnapshotData WasmModule::getSnapshotData()
     return data;
 }
 
-std::string getAppSnapshotKey(const faabric::Message& msg)
+std::string WasmModule::getAppSnapshotKey(const faabric::Message& msg)
 {
     std::string funcStr = faabric::util::funcToString(msg, false);
     if (msg.appid() == 0) {
@@ -145,6 +144,9 @@ void WasmModule::snapshotWithKey(const std::string& snapKey,
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
     reg.takeSnapshot(snapKey, data, locallyRestorable);
+
+    // Make sure stack regions are ignored
+    ignoreStackRegionInSnapshot(snapKey);
 
     PROF_END(wasmSnapshot)
 }
@@ -300,6 +302,31 @@ void WasmModule::bindToFunction(faabric::Message& msg, bool cache)
     // Call into subclass hook, setting the context beforehand
     WasmExecutionContext ctx(this, &msg);
     doBindToFunction(msg, cache);
+}
+
+void WasmModule::ignoreStackRegionInSnapshot(const std::string& snapshotKey)
+{
+    uint32_t threadStackRegionStart =
+      threadStacks.at(0) + 1 - THREAD_STACK_SIZE - GUARD_REGION_SIZE;
+    uint32_t threadStackRegionSize =
+      threadStacks.back() - threadStackRegionStart;
+
+    // Set up ignore region for thread stacks
+    SPDLOG_TRACE("Ignoring snapshot diffs for {} for thread stacks: {}-{}",
+                 snapshotKey,
+                 threadStackRegionStart,
+                 threadStackRegionStart + threadStackRegionSize);
+
+    // Note - the merge regions for a snapshot are keyed on the offset, so
+    // we will just overwrite the same region if another module has already
+    // set it
+    faabric::util::SnapshotData& snapData =
+      faabric::snapshot::getSnapshotRegistry().getSnapshot(snapshotKey);
+
+    snapData.addMergeRegion(threadStackRegionStart,
+                            threadStackRegionSize,
+                            faabric::util::SnapshotDataType::Raw,
+                            faabric::util::SnapshotMergeOperation::Ignore);
 }
 
 void WasmModule::prepareArgcArgv(const faabric::Message& msg)
@@ -551,18 +578,10 @@ void WasmModule::createThreadStacks(const faabric::Message& msg)
 {
     SPDLOG_DEBUG("Creating {} thread stacks", threadPoolSize);
 
-    // Track where the region starts and ends
-    uint32_t stackRegionStart;
-    uint32_t stackRegionSize;
-
     for (int i = 0; i < threadPoolSize; i++) {
-        // Allocate thread and guard pages
+        // Allocate thread stack and guard pages
         uint32_t memSize = THREAD_STACK_SIZE + (2 * GUARD_REGION_SIZE);
         uint32_t memBase = growMemory(memSize);
-
-        if (i == 0) {
-            stackRegionStart = memBase;
-        }
 
         // Note that wasm stacks grow downwards, so we have to store the stack
         // top, which is the offset one below the guard region above the stack
@@ -572,31 +591,12 @@ void WasmModule::createThreadStacks(const faabric::Message& msg)
         // Add guard regions
         createMemoryGuardRegion(memBase);
         createMemoryGuardRegion(stackTop + 1);
-
-        if (i == threadPoolSize - 1) {
-            stackRegionSize = stackTop - stackRegionStart;
-        }
     }
+}
 
-    if (!msg.snapshotkey().empty()) {
-        // Set up ignore region for thread stacks
-        SPDLOG_TRACE("Ignoring thread stack region for snapshot {}: {}-{}",
-                     msg.snapshotkey(),
-                     stackRegionStart,
-                     stackRegionEnd);
-
-        // Note - the merge regions for a snapshot are keyed on the offset, so
-        // we will just overwrite the same region if another module has already
-        // set it
-        faabric::util::SnapshotData& snapData =
-          faabric::snapshot::getSnapshotRegistry().getSnapshot(
-            msg.snapshotkey());
-
-        snapData.addMergeRegion(stackRegionStart,
-                                stackRegionSize,
-                                faabric::util::SnapshotDataType::Raw,
-                                faabric::util::SnapshotMergeOperation::Ignore);
-    }
+std::vector<uint32_t> WasmModule::getThreadStacks()
+{
+    return threadStacks;
 }
 
 threads::MutexManager& WasmModule::getMutexes()
