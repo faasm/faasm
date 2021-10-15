@@ -170,6 +170,9 @@ jobs:
         with:
           path: /usr/local/faasm/object
           key: ${{ env.CPU_MODEL }}-machine-code
+      # 15/10/21 Temporary step to refresh WAMR cache
+      - name: "Clear out WAMR codegen files"
+        run: find /usr/local/faasm/object | grep aot | xargs rm -f
       # --- Code build (Debug required for tests) ---
       - name: "Build dev tools"
         run: inv -r faasmcli/faasmcli dev.tools --build Debug
