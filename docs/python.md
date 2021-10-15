@@ -13,40 +13,24 @@ A separate Python library, [Pyfaasm](https://github.com/faasm/pyfaasm),
 contains the custom C-extensions and decorators to support the [Faasm host
 interface](host_interface.md).
 
-## Enabling Python support
+## Quick start
 
-Full Python support is **not enabled by default**. To enable the Python runtime
-you must set up the relevant environment variables for the `upload` container:
+Start a cluster with:
 
 ```bash
 export PYTHON_CODEGEN=on
-```
 
-The first time the system runs it will generate machine code for python and all
-the Python C-extensions. This can take up to a couple of minutes depending on
-your machine, but is a one-off job.
+docker-compose up -d nginx
 
-In a local environment the `upload` container has a health check which you can
-inspect with:
-
-```bash
-docker ps
-```
-
-Or explicitly await with:
-
-```bash
+# Await machine code generation
 docker-compose exec upload /usr/local/code/faasm/deploy/local/wait_for_upload.sh localhost 8002
 ```
 
-## Running a Python function
+Upload all Python functions with:
 
-An example Python function is found at `func/python/hello.py`. This can be
-uploaded and invoked from the Python CLI with:
-
-```bash
+```
 # Run the Python CLI
-docker-compose exec python /bin/bash
+docker-compose run python /bin/bash
 
 # Build and upload the Python runtime
 inv func

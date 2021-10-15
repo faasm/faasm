@@ -154,6 +154,10 @@ jobs:
           name: py-funcs
           path: /usr/local/faasm/shared
       # --- Host information ---
+      - name: "Expand stack space"
+        run: ulimit -s 16384
+      - name: "Print rlimits"
+        run: ulimit -all
       - name: "CPU info"
         run: cat /proc/cpuinfo
       - name: "Get CPU model name"
@@ -166,12 +170,6 @@ jobs:
         with:
           path: /usr/local/faasm/object
           key: ${{ env.CPU_MODEL }}-machine-code
-      # --- Remove cache entries for WAMR ---
-      # 29/09/2021 - Generated code for different WAMR builds may not work due
-      # to binary missmatches. We remove the cached WAMR codegen until our
-      # port is more consolidated.
-      - name: "Remove WAMR cache entries"
-        run: inv -r faasmcli/faasmcli codegen.remove-wamr-codegen
       # --- Code build (Debug required for tests) ---
       - name: "Build dev tools"
         run: inv -r faasmcli/faasmcli dev.tools --build Debug
@@ -243,8 +241,13 @@ jobs:
       # --- Setup ---
       - name: "Start docker-compose"
         run: docker-compose up -d --scale worker=2 nginx
+      # Note - this can fail when the container isn't ready, so we want to retry
       - name: "Wait for upload server to be available"
-        run: docker-compose exec -T upload /usr/local/code/faasm/deploy/local/wait_for_upload.sh localhost 8002
+        run: |
+          (echo "Attempt 1" && docker-compose exec -T upload /usr/local/code/faasm/deploy/local/wait_for_upload.sh localhost 8002) || \
+          (sleep 30s && echo "Attempt 2" && docker-compose exec -T upload /usr/local/code/faasm/deploy/local/wait_for_upload.sh localhost 8002) || \
+          (sleep 30s && echo "Attempt 3" && docker-compose exec -T upload /usr/local/code/faasm/deploy/local/wait_for_upload.sh localhost 8002) || \
+          (echo "Wait for upload failed after retries" && exit 1)
       # --- Function upload ---
       - name: "Build and upload cpp function"
         run: docker-compose run -T cpp inv func demo hello func.upload demo hello

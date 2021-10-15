@@ -1,12 +1,15 @@
-#include "utils.h"
 #include <catch2/catch.hpp>
+
+#include "faasm_fixtures.h"
+#include "utils.h"
+
+#include <wavm/WAVMWasmModule.h>
 
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
-#include <faabric/util/func.h>
-#include <wavm/WAVMWasmModule.h>
-
 #include <faabric/util/files.h>
+#include <faabric/util/func.h>
+
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -14,10 +17,9 @@
 using namespace WAVM;
 
 namespace tests {
-TEST_CASE("Test mmapping a file", "[wasm]")
-{
-    cleanSystem();
 
+TEST_CASE_METHOD(FunctionExecTestFixture, "Test mmapping a file", "[wasm]")
+{
     faabric::Message call = faabric::util::messageFactory("demo", "echo");
 
     wasm::WAVMWasmModule module;
@@ -53,10 +55,10 @@ TEST_CASE("Test mmapping a file", "[wasm]")
     REQUIRE(expected == actual);
 }
 
-TEST_CASE("Test memory growth and shrinkage", "[wasm]")
+TEST_CASE_METHOD(FunctionExecTestFixture,
+                 "Test memory growth and shrinkage",
+                 "[wasm]")
 {
-    cleanSystem();
-
     faabric::Message call = faabric::util::messageFactory("demo", "echo");
     wasm::WAVMWasmModule module;
     module.bindToFunction(call);
@@ -144,17 +146,13 @@ TEST_CASE("Test memory growth and shrinkage", "[wasm]")
     REQUIRE(newBrk == oldBrk);
 }
 
-TEST_CASE("Test mmap/munmap", "[faaslet]")
+TEST_CASE_METHOD(FunctionExecTestFixture, "Test mmap/munmap", "[faaslet]")
 {
-    cleanSystem();
-
     checkCallingFunctionGivesBoolOutput("demo", "mmap", true);
 }
 
-TEST_CASE("Test big mmap", "[faaslet]")
+TEST_CASE_METHOD(FunctionExecTestFixture, "Test big mmap", "[faaslet]")
 {
-    cleanSystem();
-
     faabric::Message msg = faabric::util::messageFactory("demo", "mmap_big");
     execFunction(msg);
 }

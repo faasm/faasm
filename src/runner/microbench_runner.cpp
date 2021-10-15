@@ -1,6 +1,7 @@
 #include <string>
 
 #include <conf/FaasmConfig.h>
+#include <faaslet/Faaslet.h>
 #include <runner/MicrobenchRunner.h>
 #include <storage/S3Wrapper.h>
 
@@ -40,6 +41,11 @@ int main(int argc, char* argv[])
     conf.boundTimeout = 60000;
     conf.globalMessageTimeout = 60000;
     faasmConf.chainedCallTimeout = 60000;
+
+    // Set executor factory
+    std::shared_ptr<faaslet::FaasletFactory> fac =
+      std::make_shared<faaslet::FaasletFactory>();
+    faabric::scheduler::setExecutorFactory(fac);
 
     int returnValue = MicrobenchRunner::execute(inFile, outFile);
 

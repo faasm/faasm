@@ -36,6 +36,8 @@ TEST_CASE("Test repeat invocation with state", "[state]")
     faabric::Message resultB = sch.getFunctionResult(call.id(), 1);
     REQUIRE(resultB.returnvalue() == 0);
     REQUIRE(resultB.outputdata() == "Counter: 002");
+
+    m.shutdown();
 }
 
 void checkStateExample(const std::string& funcName,
@@ -69,6 +71,8 @@ void checkStateExample(const std::string& funcName,
     std::vector<uint8_t> actual(kv->size(), 0);
     kv->get(actual.data());
     REQUIRE(actual == expectedState);
+
+    m.shutdown();
 }
 
 TEST_CASE("Test asynchronous state", "[state]")

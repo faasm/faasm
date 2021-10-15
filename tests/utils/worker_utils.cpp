@@ -90,6 +90,8 @@ std::string execFunctionWithStringResult(faabric::Message& call)
 
     conf.pythonPreload = originalPreload;
 
+    m.shutdown();
+
     return result.outputdata();
 }
 
@@ -142,6 +144,8 @@ void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
             REQUIRE(result.returnvalue() == 0);
         }
     }
+
+    m.shutdown();
 }
 
 void execFuncWithPool(faabric::Message& call, bool clean, int timeout)
@@ -176,6 +180,8 @@ void execFuncWithPool(faabric::Message& call, bool clean, int timeout)
     REQUIRE(result.returnvalue() == 0);
 
     faasmConf.netNsMode = originalNsMode;
+
+    m.shutdown();
 
     cleanSystem();
 }
@@ -237,5 +243,7 @@ void checkCallingFunctionGivesBoolOutput(const std::string& user,
     }
 
     REQUIRE(outputBytes == expectedOutput);
+
+    m.shutdown();
 }
 }

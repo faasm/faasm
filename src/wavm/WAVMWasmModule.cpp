@@ -234,6 +234,8 @@ WAVMWasmModule::~WAVMWasmModule()
 
 void WAVMWasmModule::doWAVMGarbageCollection()
 {
+    SPDLOG_TRACE("Performing WAVM GC");
+
     // To allow WAVM to perform GC, we need to ensure all of our own copies of
     // WAVM GCPointers have been set to nullptr, so that WAVM's own refcounts
     // will be zero. We can then call its GC method directly.
@@ -252,12 +254,13 @@ void WAVMWasmModule::doWAVMGarbageCollection()
     executionContext = nullptr;
 
     if (compartment != nullptr) {
-        // Release build complains that this is unused as the assertion is
-        // removed
         bool compartmentCleared =
           Runtime::tryCollectCompartment(std::move(compartment));
-        UNUSED(compartmentCleared);
-        assert(compartmentCleared);
+
+        if (!compartmentCleared) {
+            SPDLOG_ERROR("WAVM GC failed");
+            throw std::runtime_error("WAVM garbage collection failed");
+        }
     }
 }
 
