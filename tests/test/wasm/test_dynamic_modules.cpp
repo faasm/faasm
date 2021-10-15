@@ -52,7 +52,7 @@ int funcBOffset = 39;
 std::string mainData = "PyBool_Type";
 std::string dataA = "PyArray_API";
 std::string dataB = "__pyx_module_is_main_numpy__random__mtrand";
-int mainDataOffset = 4862212;
+int mainDataOffset = 4863252;
 int dataAOffset = 16231136;
 int dataBOffset = 21692416;
 
