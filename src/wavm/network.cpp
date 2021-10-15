@@ -556,7 +556,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "ntohl", I32, _ntohl, I32 a)
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "ntohs", I32, _ntohs, I32 a)
 {
-    SPDLOG_DEBUG("S - ntohl - {}", a);
+    SPDLOG_DEBUG("S - ntohs - {}", a);
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
