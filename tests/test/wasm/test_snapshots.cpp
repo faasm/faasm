@@ -339,7 +339,7 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
 }
 
 TEST_CASE_METHOD(WasmSnapTestFixture,
-                 "Test ignoring thread stacks",
+                 "Test ignoring stacks",
                  "[wasm][snapshot]")
 {
     faabric::util::setMockMode(true);
@@ -349,25 +349,21 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
 
     std::string user = "demo";
     std::string function = "echo";
-    std::shared_ptr<faabric::BatchExecuteRequest> req =
-      faabric::util::batchExecFactory(user, function, 1);
-    faabric::Message& m = req->mutable_messages()->at(0);
 
-    // Set up an app snapshot
+    // Set up a snapshot for this function
+    faabric::Message msgA = faabric::util::messageFactory(user, function);
     wasm::WAVMWasmModule moduleA;
-    moduleA.bindToFunction(m);
-    std::string appSnapshotKey = moduleA.createAppSnapshot(m);
-
-    // Hack to make restorable
-    faabric::util::SnapshotData snapshotPreExecution =
-      reg.getSnapshot(appSnapshotKey);
-    reg.takeSnapshot(appSnapshotKey, snapshotPreExecution, true);
-    snapshotPreExecution = reg.getSnapshot(appSnapshotKey);
+    moduleA.bindToFunction(msgA);
+    std::string originalSnapshotKey = moduleA.snapshot(true);
 
     // Restore another module from the snapshot
-    m.set_snapshotkey(appSnapshotKey);
+    std::shared_ptr<faabric::BatchExecuteRequest> req =
+      faabric::util::batchExecFactory(user, function, 1);
+    faabric::Message& msgB = req->mutable_messages()->at(0);
+    msgB.set_snapshotkey(originalSnapshotKey);
+
     wasm::WAVMWasmModule moduleB;
-    moduleB.bindToFunction(m);
+    moduleB.bindToFunction(msgB);
     std::vector<uint32_t> threadStacksB = moduleB.getThreadStacks();
 
     // Check thread stacks are same size
@@ -382,10 +378,18 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
     int32_t returnValue = moduleB.executeTask(0, 0, req);
     REQUIRE(returnValue == 0);
 
-    // Modify the top and bottom of each stack
+    // Modify a couple of places in the wasm stack
+    auto* wasmStackBottom = (int*)(moduleB.wasmPointerToNative(0));
+    auto* wasmStackTop = (int*)(moduleB.wasmPointerToNative(STACK_SIZE - 1));
+
+    *wasmStackBottom = 345;
+    *wasmStackTop = 123;
+
+    // Modify the top and bottom of each thread stack
     // Note that each stack grows downwards
     for (auto t : threadStacksB) {
-        auto* stackTop = (int*)(moduleB.wasmPointerToNative(t - sizeof(int)));
+        auto* stackTop =
+          (int*)(moduleB.wasmPointerToNative((t - 1) - sizeof(int)));
         auto* stackBottom =
           (int*)(moduleB.wasmPointerToNative(t - THREAD_STACK_SIZE));
 
@@ -399,6 +403,7 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
       reg.getSnapshot(snapKeyPostExecution);
 
     // Diff with original snapshot
+    faabric::util::SnapshotData snapshotPreExecution = reg.getSnapshot(originalSnapshotKey);
     std::vector<faabric::util::SnapshotDiff> diffs =
       snapshotPreExecution.getChangeDiffs(snapshotPostExecution.data,
                                           snapshotPostExecution.size);

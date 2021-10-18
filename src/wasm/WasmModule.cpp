@@ -301,12 +301,25 @@ void WasmModule::bindToFunction(faabric::Message& msg, bool cache)
     doBindToFunction(msg, cache);
 }
 
-void WasmModule::ignoreStackRegionInSnapshot(const std::string& snapshotKey)
+void WasmModule::ignoreAllStacksInSnapshot(const std::string& snapshotKey)
 {
+    faabric::util::SnapshotData& snapData =
+      faabric::snapshot::getSnapshotRegistry().getSnapshot(snapshotKey);
+
+    // First ignore the main wasm stack
+    SPDLOG_TRACE("Ignoring snapshot diffs for {} for wasm stack: 0-{}",
+                 snapshotKey,
+                 STACK_SIZE);
+
+    snapData.addMergeRegion(0,
+                            STACK_SIZE,
+                            faabric::util::SnapshotDataType::Raw,
+                            faabric::util::SnapshotMergeOperation::Ignore);
+
     uint32_t threadStackRegionStart =
       threadStacks.at(0) + 1 - THREAD_STACK_SIZE - GUARD_REGION_SIZE;
     uint32_t threadStackRegionSize =
-      threadStacks.back() - threadStackRegionStart;
+      threadPoolSize * (THREAD_STACK_SIZE + (2 * GUARD_REGION_SIZE));
 
     SPDLOG_TRACE("Ignoring snapshot diffs for {} for thread stacks: {}-{}",
                  snapshotKey,
@@ -316,9 +329,6 @@ void WasmModule::ignoreStackRegionInSnapshot(const std::string& snapshotKey)
     // Note - the merge regions for a snapshot are keyed on the offset, so
     // we will just overwrite the same region if another module has already
     // set it
-    faabric::util::SnapshotData& snapData =
-      faabric::snapshot::getSnapshotRegistry().getSnapshot(snapshotKey);
-
     snapData.addMergeRegion(threadStackRegionStart,
                             threadStackRegionSize,
                             faabric::util::SnapshotDataType::Raw,
@@ -424,7 +434,7 @@ int32_t WasmModule::executeTask(
 
     // Ensure we ignore the thread stacks in a snapshot if it exists
     if (!msg.snapshotkey().empty()) {
-        ignoreStackRegionInSnapshot(msg.snapshotkey());
+        ignoreAllStacksInSnapshot(msg.snapshotkey());
     }
 
     // Perform the appropriate type of execution

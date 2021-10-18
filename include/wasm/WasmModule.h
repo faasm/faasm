@@ -198,8 +198,6 @@ class WasmModule
     std::vector<threads::PthreadCall> queuedPthreadCalls;
     std::unordered_map<int32_t, uint32_t> pthreadPtrsToChainedCalls;
 
-    void ignoreStackRegionInSnapshot(const std::string& snapshotKey);
-
     // Shared memory regions
     std::unordered_map<std::string, uint32_t> sharedMemWasmPtrs;
 
@@ -212,6 +210,8 @@ class WasmModule
 
     // Snapshots
     void snapshotWithKey(const std::string& snapKey, bool locallyRestorable);
+
+    void ignoreAllStacksInSnapshot(const std::string& snapshotKey);
 
     // Threads
     void createThreadStacks();
