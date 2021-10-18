@@ -250,7 +250,7 @@ jobs:
           (echo "Attempt 1" && docker-compose exec -T upload /usr/local/code/faasm/deploy/local/wait_for_upload.sh localhost 8002) || \
           (sleep 30s && echo "Attempt 2" && docker-compose exec -T upload /usr/local/code/faasm/deploy/local/wait_for_upload.sh localhost 8002) || \
           (sleep 30s && echo "Attempt 3" && docker-compose exec -T upload /usr/local/code/faasm/deploy/local/wait_for_upload.sh localhost 8002) || \
-          (echo "Wait for upload failed after retries" && exit 1)
+          (echo "Wait for upload failed after retries" && docker-compose logs upload && exit 1)
       # --- Function upload ---
       - name: "Build and upload cpp function"
         run: docker-compose run -T cpp inv func demo hello func.upload demo hello
