@@ -349,34 +349,37 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
 
     std::string user = "demo";
     std::string function = "echo";
-    faabric::Message m = faabric::util::messageFactory(user, function);
+    std::shared_ptr<faabric::BatchExecuteRequest> req =
+      faabric::util::batchExecFactory(user, function, 1);
+    faabric::Message& m = req->mutable_messages()->at(0);
 
     // Set up an app snapshot
     wasm::WAVMWasmModule moduleA;
     moduleA.bindToFunction(m);
-    std::vector<uint32_t> threadStacksA = moduleA.getThreadStacks();
-
     std::string appSnapshotKey = moduleA.createAppSnapshot(m);
-    m.set_snapshotkey(appSnapshotKey);
 
     // Hack to make restorable
     faabric::util::SnapshotData snapshotPreExecution =
       reg.getSnapshot(appSnapshotKey);
     reg.takeSnapshot(appSnapshotKey, snapshotPreExecution, true);
+    snapshotPreExecution = reg.getSnapshot(appSnapshotKey);
 
-    // Restore another module from this snapshot
+    // Restore another module from the snapshot
+    m.set_snapshotkey(appSnapshotKey);
     wasm::WAVMWasmModule moduleB;
     moduleB.bindToFunction(m);
     std::vector<uint32_t> threadStacksB = moduleB.getThreadStacks();
 
+    // Check thread stacks are same size
+    std::vector<uint32_t> threadStacksA = moduleA.getThreadStacks();
     REQUIRE(threadStacksA.size() == nCores);
     REQUIRE(threadStacksB == threadStacksA);
 
     // Reset dirty tracking
     faabric::util::resetDirtyTracking();
 
-    // Execute the function
-    int32_t returnValue = moduleB.executeFunction(m);
+    // Execute the function to ensure some non-ignored diffs
+    int32_t returnValue = moduleB.executeTask(0, 0, req);
     REQUIRE(returnValue == 0);
 
     // Modify the top and bottom of each stack
@@ -390,11 +393,12 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
         *stackBottom = 345;
     }
 
+    // Get post execution snapshot
     std::string snapKeyPostExecution = moduleB.snapshot();
     faabric::util::SnapshotData snapshotPostExecution =
       reg.getSnapshot(snapKeyPostExecution);
 
-    // Diff with snapshot after execution
+    // Diff with original snapshot
     std::vector<faabric::util::SnapshotDiff> diffs =
       snapshotPreExecution.getChangeDiffs(snapshotPostExecution.data,
                                           snapshotPostExecution.size);

@@ -308,7 +308,6 @@ void WasmModule::ignoreStackRegionInSnapshot(const std::string& snapshotKey)
     uint32_t threadStackRegionSize =
       threadStacks.back() - threadStackRegionStart;
 
-    // Set up ignore region for thread stacks
     SPDLOG_TRACE("Ignoring snapshot diffs for {} for thread stacks: {}-{}",
                  snapshotKey,
                  threadStackRegionStart,
