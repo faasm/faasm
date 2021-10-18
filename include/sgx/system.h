@@ -15,4 +15,6 @@ std::string sgxErrorString(sgx_status_t status);
 std::string faasmSgxErrorString(faasm_sgx_status_t status);
 
 void checkSgxCrypto();
+
+void checkSgxModuleStore();
 }

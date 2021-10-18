@@ -26,7 +26,7 @@ struct WamrModuleHandle
 class ModuleStore
 {
   public:
-    ModuleStore(size_t size);
+    ModuleStore();
 
     std::shared_ptr<sgx::WamrModuleHandle> store(const char* key,
                                                  const void* ptr,

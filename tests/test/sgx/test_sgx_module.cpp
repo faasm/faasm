@@ -56,6 +56,35 @@ TEST_CASE_METHOD(SgxModuleTestFixture,
 }
 
 TEST_CASE_METHOD(SgxModuleTestFixture,
+                 "Test calling same function twice from same module",
+                 "[sgx]")
+{
+    // Bind to function
+    REQUIRE_NOTHROW(module.doBindToFunction(msg, false));
+
+    // Execute function
+    REQUIRE_NOTHROW(module.executeFunction(msg));
+
+    // Message copy
+    faabric::Message msgCopy;
+
+    SECTION("Same message id")
+    {
+        // Copy message
+        msgCopy = msg;
+    }
+
+    SECTION("Different message id")
+    {
+        // New message with same function
+        msgCopy = faabric::util::messageFactory(msg.user(), msg.function());
+        msgCopy.set_issgx(true);
+    }
+
+    REQUIRE_NOTHROW(module.executeFunction(msgCopy));
+}
+
+TEST_CASE_METHOD(SgxModuleTestFixture,
                  "Test two modules binding to different functions",
                  "[sgx]")
 {

@@ -87,9 +87,6 @@ int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
     // Call main function for module loaded into enclave
     wamrEnclave->callMainFunction(funcStr);
 
-    // wamrEnclave = nullptr;
-    // releaseGlobalWAMREnclave();
-
     return 0;
 }
 

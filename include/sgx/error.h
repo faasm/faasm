@@ -43,7 +43,8 @@ typedef enum _faasm_error
     // Module store errors
     FAASM_SGX_MODULE_STORE_FULL = FAASM_SGX_ERROR(0x22),
     FAASM_SGX_MODULE_STORE_INVALID_SLOT = FAASM_SGX_ERROR(0x23),
-    FAASM_SGX_MODULE_STORE_CLEAR_FAILED = FAASM_SGX_ERROR(0x24)
+    FAASM_SGX_MODULE_STORE_CLEAR_FAILED = FAASM_SGX_ERROR(0x24),
+    FAASM_SGX_MODULE_STORE_TEST_FAILED = FAASM_SGX_ERROR(0x25)
 } faasm_sgx_status_t;
 
 #define FAASM_SGX_OCALL_ERROR(X)                                               \

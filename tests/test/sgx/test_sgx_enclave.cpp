@@ -41,4 +41,9 @@ TEST_CASE("Test SGX crypto checks", "[sgx]")
 {
     REQUIRE_NOTHROW(sgx::checkSgxCrypto());
 }
+
+TEST_CASE("Test SGX module store", "[sgx]")
+{
+    REQUIRE_NOTHROW(sgx::checkSgxModuleStore());
+}
 }

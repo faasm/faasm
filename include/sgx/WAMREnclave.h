@@ -23,7 +23,7 @@ class WAMREnclave
 
     void init();
 
-    // As enclaves are persited across function executions, we must ensure we
+    // As enclaves are persisted across function executions, we must ensure we
     // clean everything up without relying on the constructor.
     void tearDown();
 

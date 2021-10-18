@@ -29,7 +29,11 @@ enclave{
             [in, string]                    char *funcStr
         );
 
+        // ----- ECalls used for testing purposes -----
+
         public faasm_sgx_status_t enclaveCryptoChecks(void);
+
+        public faasm_sgx_status_t enclaveModuleStoreChecks(void);
     };
 
     untrusted{

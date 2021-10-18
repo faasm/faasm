@@ -46,7 +46,7 @@ extern "C"
 #endif
     }
 
-    static sgx::ModuleStore wamrModules(SGX_MODULE_STORE_SIZE);
+    static sgx::ModuleStore wamrModules;
 
     static uint8_t wamrHeapBuffer[SGX_WAMR_HEAP_SIZE];
 

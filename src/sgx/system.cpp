@@ -43,6 +43,37 @@ void checkSgxCrypto()
     SPDLOG_DEBUG("Succesful SGX crypto checks");
 }
 
+void checkSgxModuleStore()
+{
+    faasm_sgx_status_t returnValue;
+    sgx_status_t sgxReturnValue;
+
+    std::shared_ptr<WAMREnclave> wamrEnclave = acquireGlobalWAMREnclaveLock();
+
+    sgxReturnValue =
+      enclaveModuleStoreChecks(wamrEnclave->getId(), &returnValue);
+
+    wamrEnclave = nullptr;
+    releaseGlobalWAMREnclaveLock();
+
+    if (sgxReturnValue != SGX_SUCCESS) {
+        SPDLOG_ERROR("SGX error in module store checks: {}",
+                     sgxErrorString(sgxReturnValue));
+        throw std::runtime_error("SGX error in module store checks");
+    }
+
+    if (returnValue != FAASM_SGX_SUCCESS) {
+        if (FAASM_SGX_OCALL_GET_SGX_ERROR(returnValue)) {
+            throw std::runtime_error("SGX error in module store checks");
+        }
+        SPDLOG_ERROR("Error running SGX crypto checks: {}",
+                     faasmSgxErrorString(returnValue));
+        throw std::runtime_error("Error running SGX module store checks");
+    }
+
+    SPDLOG_DEBUG("Succesful SGX module store checks");
+}
+
 std::string sgxErrorString(sgx_status_t status)
 {
     switch (status) {

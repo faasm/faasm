@@ -1,7 +1,7 @@
 #include <sgx/ModuleStore.h>
 
 namespace sgx {
-ModuleStore::ModuleStore(size_t size)
+ModuleStore::ModuleStore()
   : storeSize(SGX_MODULE_STORE_SIZE)
   , modules(SGX_MODULE_STORE_SIZE)
   , keyToSlot(SGX_MODULE_STORE_SIZE)
@@ -22,7 +22,7 @@ uint32_t ModuleStore::getSlot(const std::string& keyStr)
     for (i = 0; i < storeSize; i++) {
         if (keyToSlot.at(i) == keyStr) {
             // If we find the key, but the module is not set error out
-            if (modules.at(i) == nullptr || !modules.at(i)->isSet) {
+            if (!modules.at(i)->isSet) {
                 return SGX_MODULE_STORE_UNSET;
             }
             return i;
@@ -35,10 +35,8 @@ uint32_t ModuleStore::getSlot(const std::string& keyStr)
     // free slot if such a slot exists
     if (firstFree != SGX_MODULE_STORE_UNSET) {
         // Double-check that the corresponding slot has not a loaded module
-        if (modules.at(firstFree) == nullptr || !modules.at(firstFree)->isSet) {
+        if (!modules.at(firstFree)->isSet) {
             return firstFree;
-        } else {
-            return SGX_MODULE_STORE_UNSET;
         }
     }
 
@@ -58,7 +56,6 @@ std::shared_ptr<WamrModuleHandle> ModuleStore::store(const char* key,
 
     std::shared_ptr<WamrModuleHandle> module = modules.at(slot);
 
-    // TODO - move to uint8_t vector?
     module->wasmOpCodePtr = (uint8_t*)calloc(size, sizeof(uint8_t));
     memcpy(module->wasmOpCodePtr, ptr, size);
     module->wasmOpCodeSize = size;
@@ -79,29 +76,32 @@ std::shared_ptr<WamrModuleHandle> ModuleStore::get(const char* key)
         return nullptr;
     }
 
-    // From the slot, we return the module handler
-    if (modules.at(slot) == nullptr || !modules.at(slot)->isSet) {
+    if (!modules.at(slot)->isSet) {
         return nullptr;
     }
 
+    // From the slot, we return the module handler
     return modules.at(slot);
 }
 
 // What if someone wants to clean, while another one is using it
 bool ModuleStore::clear(const char* key)
 {
+    uint32_t slot = getSlot(key);
     std::shared_ptr<WamrModuleHandle> module = get(key);
-    if (!module->isSet) {
+    if (module == nullptr || !module->isSet) {
         // This is an error as only one thread should be operating on this
         // module. Thus no-one should have unset it before.
         return false;
     }
 
     // Clean the other fields
-    // TODO - use a vector instead?
     module->wasmOpCodePtr = NULL;
     module->wasmOpCodeSize = 0;
     module->isSet = false;
+
+    // Remove the entry from the key to slots vector
+    keyToSlot.at(slot).clear();
 
     return true;
 }

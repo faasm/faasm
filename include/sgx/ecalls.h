@@ -27,6 +27,12 @@ extern "C"
                                             faasm_sgx_status_t* returnValue,
                                             const char* funcStr);
 
+    // ----- ECalls for testing purposes ----
+
     extern sgx_status_t enclaveCryptoChecks(sgx_enclave_id_t enclaveId,
                                             faasm_sgx_status_t* returnValue);
+
+    extern sgx_status_t enclaveModuleStoreChecks(
+      sgx_enclave_id_t enclaveId,
+      faasm_sgx_status_t* returnValue);
 }
