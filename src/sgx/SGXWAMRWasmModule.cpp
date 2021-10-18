@@ -20,7 +20,7 @@ SGXWAMRWasmModule::~SGXWAMRWasmModule() {}
 void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 {
     // Note that we set the second argument to true, so the string includes
-    // the message id, making the key unique to the current executing module
+    // the message id, making the key unique to the current executing task
     std::string funcStr = faabric::util::funcToString(msg, true);
 
     // Set up filesystem
@@ -42,6 +42,9 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
     // wamrEnclave = nullptr;
     releaseGlobalWAMREnclaveLock();
 
+    SPDLOG_DEBUG("Binding SGX-WAMR module to function {}", funcStr);
+    boundFuncStr = funcStr;
+
     // Set up the thread stacks
     // 28/06/2021 - Threading is not supported in SGX-WAMR. However, the Faasm
     // runtime expects (asserts) this vector to be non-empty. Change when
@@ -53,22 +56,28 @@ void SGXWAMRWasmModule::reset(faabric::Message& msg,
                               const std::string& snapshotKey)
 {
     // Note that we set the second argument to true, so the string includes
-    // the message id, making the key unique to the current executing module
+    // the message id, making the key unique to the current executing task
     std::string funcStr = faabric::util::funcToString(msg, true);
 
     wamrEnclave = acquireGlobalWAMREnclaveLock();
-
     wamrEnclave->unloadWasmModule(funcStr);
-
     releaseGlobalWAMREnclaveLock();
+
+    boundFuncStr.clear();
 
     return;
 }
 
 int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
 {
-
     std::string funcStr = faabric::util::funcToString(msg, true);
+
+    // Re-using WAMR modules across different tasks (running in the same
+    // executor) is not supported. Thus, it may happen that we call this method
+    // without having bound the module to the function (again).
+    if (boundFuncStr != funcStr) {
+        doBindToFunction(msg, false);
+    }
 
     // Set execution context
     wasm::WasmExecutionContext ctx(this, &msg);

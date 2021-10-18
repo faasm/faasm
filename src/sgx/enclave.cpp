@@ -133,8 +133,8 @@ extern "C"
         std::shared_ptr<sgx::WamrModuleHandle> moduleHandle =
           wamrModules.get(funcStr);
         if (moduleHandle == nullptr) {
-            SGX_DEBUG_LOG("Module slot is not set");
-            return FAASM_SGX_MODULE_STORE_INVALID_SLOT;
+            SGX_DEBUG_LOG("Module slot is not set, skipping unload");
+            return FAASM_SGX_SUCCESS;
         }
 
         // Unload the module and release the TCS slot

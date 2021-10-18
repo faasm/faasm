@@ -40,6 +40,6 @@ class SGXWAMRWasmModule final : public WasmModule
   private:
     std::shared_ptr<sgx::WAMREnclave> wamrEnclave = nullptr;
 
-    uint32_t enclaveModuleSlot = SGX_MODULE_STORE_UNSET;
+    std::string boundFuncStr;
 };
 }

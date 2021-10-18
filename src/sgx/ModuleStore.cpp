@@ -3,30 +3,43 @@
 namespace sgx {
 ModuleStore::ModuleStore(size_t size)
   : storeSize(SGX_MODULE_STORE_SIZE)
+  , modules(SGX_MODULE_STORE_SIZE)
   , keyToSlot(SGX_MODULE_STORE_SIZE)
 {
-    // TODO -add to constructor list
     for (size_t i = 0; i < storeSize; i++) {
-        modules.push_back(std::make_shared<sgx::WamrModuleHandle>());
+        modules.at(i) = std::make_shared<sgx::WamrModuleHandle>();
     }
 }
 
 // This could be made more efficient, but we expect the module store to be
 // quite small and not take up a lot of memory
+// Return the first (and only) loaded module matching the input key, or in the
+// absence of it the first free slot where to load it
 uint32_t ModuleStore::getSlot(const std::string& keyStr)
 {
     uint32_t firstFree = SGX_MODULE_STORE_UNSET;
     uint32_t i;
     for (i = 0; i < storeSize; i++) {
         if (keyToSlot.at(i) == keyStr) {
+            // If we find the key, but the module is not set error out
+            if (modules.at(i) == nullptr || !modules.at(i)->isSet) {
+                return SGX_MODULE_STORE_UNSET;
+            }
             return i;
         } else if (firstFree > i && keyToSlot.at(i) == "") {
             firstFree = i;
         }
     }
 
-    if (firstFree != SGX_MODULE_STORE_UNSET && !modules.at(i)->isSet) {
-        return firstFree;
+    // If we reach here it means that the module is not set, we return the first
+    // free slot if such a slot exists
+    if (firstFree != SGX_MODULE_STORE_UNSET) {
+        // Double-check that the corresponding slot has not a loaded module
+        if (modules.at(firstFree) == nullptr || !modules.at(firstFree)->isSet) {
+            return firstFree;
+        } else {
+            return SGX_MODULE_STORE_UNSET;
+        }
     }
 
     return SGX_MODULE_STORE_UNSET;
@@ -67,7 +80,7 @@ std::shared_ptr<WamrModuleHandle> ModuleStore::get(const char* key)
     }
 
     // From the slot, we return the module handler
-    if (!modules.at(slot)->isSet) {
+    if (modules.at(slot) == nullptr || !modules.at(slot)->isSet) {
         return nullptr;
     }
 

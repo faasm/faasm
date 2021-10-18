@@ -22,13 +22,12 @@ struct WamrModuleHandle
 // module. This is to avoid in-enclave concurrency control.
 // Writes to the module store are protected by the locking mechanism outside
 // the enclave. We may potentially have multiple readers at the same
-// time, but never of the same
+// time, but never of the same store entry.
 class ModuleStore
 {
   public:
     ModuleStore(size_t size);
 
-    // Store a module, set the slot value, and return a pointer to it
     std::shared_ptr<sgx::WamrModuleHandle> store(const char* key,
                                                  const void* ptr,
                                                  const uint32_t size);
