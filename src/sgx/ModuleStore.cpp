@@ -21,7 +21,6 @@ std::shared_ptr<WamrModuleHandle> ModuleStore::store(const char* key,
 
 std::shared_ptr<WamrModuleHandle> ModuleStore::get(const char* key)
 {
-    // From the key, we obtain the slot
     std::string keyStr = std::string(key);
     auto it = modules.find(keyStr);
 
@@ -32,14 +31,12 @@ std::shared_ptr<WamrModuleHandle> ModuleStore::get(const char* key)
     return it->second;
 }
 
-// What if someone wants to clean, while another one is using it
 bool ModuleStore::clear(const char* key)
 {
     std::string keyStr = std::string(key);
     auto it = modules.find(keyStr);
 
     if (it == modules.end()) {
-        // Return false if the method deletes nothing
         return false;
     }
 

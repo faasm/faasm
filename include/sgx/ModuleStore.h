@@ -4,7 +4,6 @@
 
 #include <memory>
 #include <unordered_map>
-#include <vector>
 
 #include <wasm_export.h>
 

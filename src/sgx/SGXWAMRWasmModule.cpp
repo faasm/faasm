@@ -32,7 +32,14 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 
     std::vector<uint8_t> wasmBytes =
       functionLoader.loadFunctionWamrAotFile(msg);
-    assert(!wasmBytes.empty());
+    if (wasmBytes.empty()) {
+        SPDLOG_ERROR("SGX-WAMR machine code for function {}/{} not found",
+                     msg.user(),
+                     msg.function());
+        SPDLOG_ERROR("Make sure the WASM code has been uploaded beforehand with"
+                     "the right flags for SGX-WAMR code generation");
+        throw std::runtime_error("SGX-WAMR machine code not found");
+    }
 
     // Load the wasm module
     wamrEnclave = acquireGlobalWAMREnclaveLock();

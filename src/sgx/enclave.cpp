@@ -37,8 +37,7 @@ extern "C"
     void SGX_DEBUG_LOG(const char* fmt, ...)
     {
 #ifdef FAASM_SGX_DEBUG
-        // TODO - hardcode message size
-        char message[256];
+        char message[SGX_MSG_BUFFER_SIZE];
         snprintf(message, 256, fmt, ...);
         ocall_printf(message);
 #else
@@ -93,9 +92,8 @@ extern "C"
         std::shared_ptr<sgx::WamrModuleHandle> moduleHandle =
           wamrModules.store(funcStr, wasmOpCodePtr, wasmOpCodeSize);
         if (moduleHandle == nullptr) {
-            // A null handle means the store is already full
-            SGX_DEBUG_LOG("Can't load module as the SGX store is full");
-            return FAASM_SGX_MODULE_STORE_FULL;
+            SGX_DEBUG_LOG("Can't load module to the SGX store");
+            return FAASM_SGX_MODULE_STORE_FAILED;
         }
         SGX_DEBUG_LOG("Loaded module %s in the module store", funcStr);
 
@@ -157,7 +155,7 @@ extern "C"
         std::shared_ptr<sgx::WamrModuleHandle> moduleHandle =
           wamrModules.get(key);
         if (moduleHandle == nullptr) {
-            // TODO - error
+            SGX_DEBUG_LOG("SGX-WAMR module not found in enclave");
             return FAASM_SGX_INVALID_PTR;
         }
 
