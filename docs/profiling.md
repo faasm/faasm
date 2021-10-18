@@ -198,3 +198,28 @@ valgrind --tool=callgrind --main-stacksize=16777216 func_runner demo hello
 Unfortunately we've not yet worked out a way to get valgrind to include the
 JITed wasm symbols, so at the moment it's only useful for profiling the Faasm
 runtime itself.
+
+## Execution Graphs
+
+Faasm supports generating execution graphs with details about how many instances
+of each function ran, which host they where scheduled, for how long they ran,
+among others.
+
+To generate an execution graph, first invoke the function whose execution you
+want to plot with the `asynch` flag set.
+
+```bash
+inv invoke demo hello --asynch
+```
+
+The call will return a call id. With the id you can query the function status:
+
+```bash
+inv invoke.status --call-id <CALL_ID>
+```
+
+Once the call has `SUCCEDED` you may generate the execution graph with:
+
+```bash
+inv invoke.exec-graph --call-id <CALL_ID>
+```
