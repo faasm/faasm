@@ -145,9 +145,6 @@ void WasmModule::snapshotWithKey(const std::string& snapKey,
       faabric::snapshot::getSnapshotRegistry();
     reg.takeSnapshot(snapKey, data, locallyRestorable);
 
-    // Make sure stack regions are ignored
-    ignoreStackRegionInSnapshot(snapKey);
-
     PROF_END(wasmSnapshot)
 }
 
@@ -426,6 +423,11 @@ int32_t WasmModule::executeTask(
     assert(!threadStacks.empty());
     uint32_t stackTop = threadStacks.at(threadPoolIdx);
 
+    // Ensure we ignore the thread stacks in a snapshot if it exists
+    if (!msg.snapshotkey().empty()) {
+        ignoreStackRegionInSnapshot(msg.snapshotkey());
+    }
+
     // Perform the appropriate type of execution
     int returnValue;
     if (req->type() == faabric::BatchExecuteRequest::THREADS) {
@@ -574,7 +576,7 @@ int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
     return returnValue;
 }
 
-void WasmModule::createThreadStacks(const faabric::Message& msg)
+void WasmModule::createThreadStacks()
 {
     SPDLOG_DEBUG("Creating {} thread stacks", threadPoolSize);
 

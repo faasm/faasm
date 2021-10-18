@@ -452,7 +452,7 @@ void WAVMWasmModule::doBindToFunctionInternal(faabric::Message& msg,
     currentBrk = getMemorySizeBytes();
 
     // Set up thread stacks
-    createThreadStacks(msg);
+    createThreadStacks();
 
     // Allocate a pool of OpenMP contexts
     openMPContexts = std::vector<Runtime::Context*>(threadPoolSize, nullptr);

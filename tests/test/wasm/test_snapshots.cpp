@@ -1,19 +1,19 @@
 #include <catch2/catch.hpp>
 
-#include "faabric/runner/FaabricMain.h"
-#include "faabric/snapshot/SnapshotClient.h"
-#include "faabric/util/config.h"
-#include "faabric/util/environment.h"
-#include "faabric/util/testing.h"
-#include "faabric_utils.h"
-#include "utils.h"
+#include <faabric_utils.h>
+#include <utils.h>
 
 #include <boost/filesystem.hpp>
 
 #include <faabric/proto/faabric.pb.h>
+#include <faabric/runner/FaabricMain.h>
+#include <faabric/snapshot/SnapshotClient.h>
+#include <faabric/util/config.h>
+#include <faabric/util/environment.h>
 #include <faabric/util/func.h>
 #include <faabric/util/memory.h>
 #include <faabric/util/snapshot.h>
+#include <faabric/util/testing.h>
 
 #include <faaslet/Faaslet.h>
 #include <wavm/WAVMWasmModule.h>
