@@ -29,23 +29,19 @@ class WAMREnclave
 
     bool isSetUp();
 
-    bool isSlotLoaded(const uint32_t slot);
-
     sgx_enclave_id_t getId();
 
-    void loadWasmModule(std::vector<uint8_t>& data, uint32_t* slot);
+    void loadWasmModule(const std::string& funcStr, std::vector<uint8_t>& data);
 
-    void unloadWasmModule(const uint32_t slot);
+    void unloadWasmModule(const std::string& funcStr);
 
-    void callMainFunction(const uint32_t slot);
+    void callMainFunction(const std::string& funcStr);
 
   private:
     sgx_enclave_id_t enclaveId = 0;
-
-    std::vector<bool> enclaveLoadedSlots;
 };
 
-std::shared_ptr<WAMREnclave> acquireGlobalWAMREnclave();
+std::shared_ptr<WAMREnclave> acquireGlobalWAMREnclaveLock();
 
-void releaseGlobalWAMREnclave();
+void releaseGlobalWAMREnclaveLock();
 }

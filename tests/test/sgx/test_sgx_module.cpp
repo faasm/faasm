@@ -10,7 +10,8 @@ class SgxModuleTestFixture
     {
         msg = faabric::util::messageFactory("demo", "hello");
         msg.set_issgx(true);
-        otherMsg = msg;
+        otherMsg = faabric::util::messageFactory("demo", "chain_named_a");
+        otherMsg.set_issgx(true);
     }
 
     ~SgxModuleTestFixture()
@@ -55,7 +56,7 @@ TEST_CASE_METHOD(SgxModuleTestFixture,
 }
 
 TEST_CASE_METHOD(SgxModuleTestFixture,
-                 "Test two modules binding to the same function",
+                 "Test two modules binding to different functions",
                  "[sgx]")
 {
     // Note that both modules operate on the same enclave

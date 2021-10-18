@@ -18,12 +18,12 @@ void checkSgxCrypto()
     faasm_sgx_status_t returnValue;
     sgx_status_t sgxReturnValue;
 
-    std::shared_ptr<WAMREnclave> wamrEnclave = acquireGlobalWAMREnclave();
+    std::shared_ptr<WAMREnclave> wamrEnclave = acquireGlobalWAMREnclaveLock();
 
     sgxReturnValue = enclaveCryptoChecks(wamrEnclave->getId(), &returnValue);
 
     wamrEnclave = nullptr;
-    releaseGlobalWAMREnclave();
+    releaseGlobalWAMREnclaveLock();
 
     if (sgxReturnValue != SGX_SUCCESS) {
         SPDLOG_ERROR("SGX error in crypto checks: {}",

@@ -75,9 +75,9 @@ extern "C"
     }
 
     // Load the provided web assembly module to the enclave's runtime
-    faasm_sgx_status_t enclaveLoadModule(const void* wasmOpCodePtr,
-                                         uint32_t wasmOpCodeSize,
-                                         uint32_t* moduleSlot)
+    faasm_sgx_status_t enclaveLoadModule(const char* funcStr,
+                                         const void* wasmOpCodePtr,
+                                         uint32_t wasmOpCodeSize)
     {
         char errorBuffer[SGX_ERROR_BUFFER_SIZE];
 
@@ -91,13 +91,13 @@ extern "C"
 
         // Load the WASM module to the module store
         std::shared_ptr<sgx::WamrModuleHandle> moduleHandle =
-          wamrModules.store(wasmOpCodePtr, wasmOpCodeSize, moduleSlot);
+          wamrModules.store(funcStr, wasmOpCodePtr, wasmOpCodeSize);
         if (moduleHandle == nullptr) {
             // A null handle means the store is already full
             SGX_DEBUG_LOG("Can't load module as the SGX store is full");
             return FAASM_SGX_MODULE_STORE_FULL;
         }
-        SGX_DEBUG_LOG("Loaded module %i in the module store", moduleSlot);
+        SGX_DEBUG_LOG("Loaded module %s in the module store", funcStr);
 
         // Load the WASM module to the WAMR runtime
         moduleHandle->wasmModule =
@@ -109,8 +109,6 @@ extern "C"
             SGX_DEBUG_LOG(errorBuffer);
             return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
         }
-        SGX_DEBUG_LOG("Loaded WASM module to the runtime (slot: %i)",
-                      moduleSlot);
 
         // Instantiate the WASM module
         moduleHandle->moduleInstance =
@@ -125,16 +123,15 @@ extern "C"
             SGX_DEBUG_LOG(errorBuffer);
             return FAASM_SGX_WAMR_MODULE_INSTANTIATION_FAILED;
         }
-        SGX_DEBUG_LOG("Loaded WASM module to the runtime (slot: %i)",
-                      moduleSlot);
+        SGX_DEBUG_LOG("Loaded WASM module (%s) to the runtime", funcStr);
 
         return FAASM_SGX_SUCCESS;
     }
 
-    faasm_sgx_status_t enclaveUnloadModule(uint32_t moduleSlot)
+    faasm_sgx_status_t enclaveUnloadModule(const char* funcStr)
     {
         std::shared_ptr<sgx::WamrModuleHandle> moduleHandle =
-          wamrModules.get(moduleSlot);
+          wamrModules.get(funcStr);
         if (moduleHandle == nullptr) {
             SGX_DEBUG_LOG("Module slot is not set");
             return FAASM_SGX_MODULE_STORE_INVALID_SLOT;
@@ -145,7 +142,7 @@ extern "C"
         wasm_runtime_unload(moduleHandle->wasmModule);
 
         // Clean the module slot
-        bool success = wamrModules.clear(moduleSlot);
+        bool success = wamrModules.clear(funcStr);
         if (!success) {
             SGX_DEBUG_LOG("Error clearing module from module store");
             return FAASM_SGX_MODULE_STORE_CLEAR_FAILED;
@@ -155,11 +152,11 @@ extern "C"
     }
 
     // Execute the main function
-    faasm_sgx_status_t enclaveCallFunction(uint32_t moduleSlot)
+    faasm_sgx_status_t enclaveCallFunction(const char* key)
     {
         std::shared_ptr<sgx::WamrModuleHandle> moduleHandle =
-          wamrModules.get(moduleSlot);
-        if (moduleHandle == NULL) {
+          wamrModules.get(key);
+        if (moduleHandle == nullptr) {
             // TODO - error
             return FAASM_SGX_INVALID_PTR;
         }
@@ -168,7 +165,7 @@ extern "C"
         WASMFunctionInstanceCommon* func = wasm_runtime_lookup_function(
           moduleHandle->moduleInstance, WASM_ENTRY_FUNC, NULL);
 
-        if (func == NULL) {
+        if (func == nullptr) {
             SGX_DEBUG_LOG("Failed to instantiate WAMR function in enclave");
             return FAASM_SGX_WAMR_FUNCTION_NOT_FOUND;
         }

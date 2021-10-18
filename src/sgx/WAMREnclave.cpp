@@ -17,7 +17,7 @@ void WAMREnclave::init()
 {
     // Skip set-up if enclave already exists
     if (enclaveId != 0) {
-        SPDLOG_DEBUG("SGX enclave already exists ({})", enclaveId);
+        SPDLOG_DEBUG("SGX-WAMR enclave already exists (id: {})", enclaveId);
         return;
     }
 
@@ -55,7 +55,7 @@ void WAMREnclave::init()
         throw std::runtime_error("Unable to create enclave");
     }
 
-    SPDLOG_DEBUG("Created SGX enclave: {}", enclaveId);
+    SPDLOG_DEBUG("Created SGX-WAMR enclave (id: {})", enclaveId);
 
     sgxReturnValue = enclaveInitWamr(enclaveId, &returnValue);
     if (sgxReturnValue != SGX_SUCCESS) {
@@ -78,11 +78,7 @@ void WAMREnclave::init()
         throw std::runtime_error("Unable to initialise WAMR");
     }
 
-    // Initialise the used module slots tracking
-    enclaveLoadedSlots.resize(SGX_MODULE_STORE_SIZE);
-    std::fill(enclaveLoadedSlots.begin(), enclaveLoadedSlots.end(), false);
-
-    SPDLOG_DEBUG("Initialised WAMR in SGX enclave {}", enclaveId);
+    SPDLOG_DEBUG("Initialised SGX-WAMR enclave (id: {})", enclaveId);
 }
 
 void WAMREnclave::tearDown()
@@ -91,7 +87,7 @@ void WAMREnclave::tearDown()
         return;
     }
 
-    SPDLOG_DEBUG("Destroying enclave {}", enclaveId);
+    SPDLOG_DEBUG("Destroying enclave (id: {})", enclaveId);
 
     sgx_status_t sgxReturnValue = sgx_destroy_enclave(enclaveId);
     if (sgxReturnValue != SGX_SUCCESS) {
@@ -109,28 +105,22 @@ bool WAMREnclave::isSetUp()
     return enclaveId != 0;
 }
 
-// TODO - could we re-use the slots eventually?
-bool WAMREnclave::isSlotLoaded(const uint32_t slot)
-{
-    // If the slot hasn't been set at all yet, return false
-    if (slot == SGX_MODULE_STORE_UNSET) {
-        return false;
-    }
-
-    return enclaveLoadedSlots.at(slot);
-}
-
 sgx_enclave_id_t WAMREnclave::getId()
 {
     return enclaveId;
 }
 
-void WAMREnclave::loadWasmModule(std::vector<uint8_t>& data, uint32_t* slot)
+void WAMREnclave::loadWasmModule(const std::string& funcStr,
+                                 std::vector<uint8_t>& data)
 {
     faasm_sgx_status_t returnValue;
     // Note - loading and instantiating happen in the same ecall
-    sgx_status_t status = enclaveLoadModule(
-      enclaveId, &returnValue, (void*)data.data(), (uint32_t)data.size(), slot);
+    SPDLOG_DEBUG("Loading module ({}) to enclave (id: {})", funcStr, enclaveId);
+    sgx_status_t status = enclaveLoadModule(enclaveId,
+                                            &returnValue,
+                                            funcStr.c_str(),
+                                            (void*)data.data(),
+                                            (uint32_t)data.size());
 
     if (status != SGX_SUCCESS) {
         SPDLOG_ERROR("Unable to enter enclave: {}", sgxErrorString(status));
@@ -142,21 +132,17 @@ void WAMREnclave::loadWasmModule(std::vector<uint8_t>& data, uint32_t* slot)
                      faasmSgxErrorString(returnValue));
         throw std::runtime_error("Unable to load WASM module");
     }
-
-    // If succesful, mark the slot as taken
-    enclaveLoadedSlots.at(*slot) = true;
 }
 
-void WAMREnclave::unloadWasmModule(const uint32_t slot)
+void WAMREnclave::unloadWasmModule(const std::string& funcStr)
 {
-    SPDLOG_DEBUG("Unloading SGX wasm module");
+    SPDLOG_DEBUG("Removing module ({}) from the enclave (id: {}) store",
+                 funcStr,
+                 enclaveId);
 
-    // TODO - thing how to make reset work even if the module is not sent
-    // and wether we should keep track of the set modules outside the enclave
-    // as well
     faasm_sgx_status_t returnValue;
     sgx_status_t sgxReturnValue =
-      enclaveUnloadModule(enclaveId, &returnValue, slot);
+      enclaveUnloadModule(enclaveId, &returnValue, funcStr.c_str());
 
     if (sgxReturnValue != SGX_SUCCESS) {
         SPDLOG_ERROR("Unable to unbind function due to SGX error: {}",
@@ -169,17 +155,17 @@ void WAMREnclave::unloadWasmModule(const uint32_t slot)
                      faasmSgxErrorString(returnValue));
         throw std::runtime_error("Unable to unbind function");
     }
-
-    // If succesful, mark the slot as not loaded
-    enclaveLoadedSlots.at(slot) = false;
 }
 
-void WAMREnclave::callMainFunction(const uint32_t slot)
+void WAMREnclave::callMainFunction(const std::string& funcStr)
 {
+    SPDLOG_DEBUG(
+      "Entering enclave (id: {}) to execute module ({})", enclaveId, funcStr);
+
     // Enter enclave and call function
     faasm_sgx_status_t returnValue;
     sgx_status_t sgxReturnValue =
-      enclaveCallFunction(enclaveId, &returnValue, slot);
+      enclaveCallFunction(enclaveId, &returnValue, funcStr.c_str());
 
     if (sgxReturnValue != SGX_SUCCESS) {
         SPDLOG_ERROR("Unable to enter enclave: {}",
@@ -192,7 +178,7 @@ void WAMREnclave::callMainFunction(const uint32_t slot)
         sgxReturnValue =
           (sgx_status_t)FAASM_SGX_OCALL_GET_SGX_ERROR(returnValue);
         if (sgxReturnValue) {
-            SPDLOG_ERROR("An OCALL failed: {}", sgxErrorString(sgxReturnValue));
+            SPDLOG_ERROR("OCALL failed: {}", sgxErrorString(sgxReturnValue));
             throw std::runtime_error("OCALL failed");
         }
 
@@ -202,20 +188,20 @@ void WAMREnclave::callMainFunction(const uint32_t slot)
     }
 }
 
-std::shared_ptr<WAMREnclave> acquireGlobalWAMREnclave()
+std::shared_ptr<WAMREnclave> acquireGlobalWAMREnclaveLock()
 {
-    SPDLOG_TRACE("Locking WAMR Enclave");
     enclaveMx.lock();
 
     static std::shared_ptr<WAMREnclave> enclave =
       std::make_shared<WAMREnclave>();
     enclave->init();
+    SPDLOG_TRACE("Locking SGX-WAMR enclave (id: {})", enclave->getId());
     return enclave;
 }
 
-void releaseGlobalWAMREnclave()
+void releaseGlobalWAMREnclaveLock()
 {
-    SPDLOG_TRACE("Unlocking WAMR Enclave");
+    SPDLOG_TRACE("Unlocking SGX-WAMR enclave");
     enclaveMx.unlock();
 }
 }

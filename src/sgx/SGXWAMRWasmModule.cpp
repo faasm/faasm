@@ -19,6 +19,10 @@ SGXWAMRWasmModule::~SGXWAMRWasmModule() {}
 // ----- Module lifecycle -----
 void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 {
+    // Note that we set the second argument to true, so the string includes
+    // the message id, making the key unique to the current executing module
+    std::string funcStr = faabric::util::funcToString(msg, true);
+
     // Set up filesystem
     storage::FileSystem fs;
     fs.prepareFilesystem();
@@ -31,14 +35,12 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
     assert(!wasmBytes.empty());
 
     // Load the wasm module
-    wamrEnclave = acquireGlobalWAMREnclave();
+    wamrEnclave = acquireGlobalWAMREnclaveLock();
 
-    wamrEnclave->loadWasmModule(wasmBytes, &enclaveModuleSlot);
-    SPDLOG_DEBUG("Loaded module to enclave's store at slot {}",
-                 enclaveModuleSlot);
+    wamrEnclave->loadWasmModule(funcStr, wasmBytes);
 
-    wamrEnclave = nullptr;
-    releaseGlobalWAMREnclave();
+    // wamrEnclave = nullptr;
+    releaseGlobalWAMREnclaveLock();
 
     // Set up the thread stacks
     // 28/06/2021 - Threading is not supported in SGX-WAMR. However, the Faasm
@@ -47,26 +49,18 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
     threadStacks.push_back(-1);
 }
 
-// TODO - reset from a snapshot key
 void SGXWAMRWasmModule::reset(faabric::Message& msg,
                               const std::string& snapshotKey)
 {
-    wamrEnclave = acquireGlobalWAMREnclave();
+    // Note that we set the second argument to true, so the string includes
+    // the message id, making the key unique to the current executing module
+    std::string funcStr = faabric::util::funcToString(msg, true);
 
-    if (wamrEnclave->isSlotLoaded(enclaveModuleSlot)) {
-        SPDLOG_DEBUG("Removing module (slot: {}) from the enclave (id: {}) store",
-                     enclaveModuleSlot,
-                     wamrEnclave->getId());
-        wamrEnclave->unloadWasmModule(enclaveModuleSlot);
-    } else {
-        SPDLOG_DEBUG("Skipping removing module (slot: {}) from enclave (id: {})",
-                     enclaveModuleSlot,
-                     wamrEnclave->getId());
-    }
-    assert(!wamrEnclave->isSlotLoaded(enclaveModuleSlot));
+    wamrEnclave = acquireGlobalWAMREnclaveLock();
 
-    wamrEnclave = nullptr;
-    releaseGlobalWAMREnclave();
+    wamrEnclave->unloadWasmModule(funcStr);
+
+    releaseGlobalWAMREnclaveLock();
 
     return;
 }
@@ -79,31 +73,15 @@ int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
     // Set execution context
     wasm::WasmExecutionContext ctx(this, &msg);
 
-    wamrEnclave = acquireGlobalWAMREnclave();
+    // Note that we don't acquire a lock to enter the enclave to execute a
+    // function. Multiple functions may run on the enclave at the same time
+    // Call main function for module loaded into enclave
+    wamrEnclave->callMainFunction(funcStr);
 
-    int returnValue;
-    // Make sure our module slot has been loaded before
-    if (wamrEnclave->isSlotLoaded(enclaveModuleSlot)) {
-        SPDLOG_DEBUG(
-          "Entering enclave {} to execute {}", wamrEnclave->getId(), funcStr);
+    // wamrEnclave = nullptr;
+    // releaseGlobalWAMREnclave();
 
-        // Call main function for module loaded into enclave
-        wamrEnclave->callMainFunction(enclaveModuleSlot);
-
-        returnValue = 0;
-    } else {
-        SPDLOG_ERROR("Enclave {} does not have function {} loaded in slot {}",
-                     wamrEnclave->getId(),
-                     funcStr,
-                     enclaveModuleSlot);
-
-        returnValue = 1;
-    }
-
-    wamrEnclave = nullptr;
-    releaseGlobalWAMREnclave();
-
-    return returnValue;
+    return 0;
 }
 
 uint32_t SGXWAMRWasmModule::growMemory(uint32_t nBytes)

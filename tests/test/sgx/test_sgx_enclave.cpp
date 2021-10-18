@@ -18,7 +18,7 @@ class SgxTestFixture
 TEST_CASE("Test enclave set up and tear down", "[sgx]")
 {
     std::shared_ptr<sgx::WAMREnclave> wamrEnclave =
-      sgx::acquireGlobalWAMREnclave();
+      sgx::acquireGlobalWAMREnclaveLock();
 
     wamrEnclave->tearDown();
 
@@ -34,7 +34,7 @@ TEST_CASE("Test enclave set up and tear down", "[sgx]")
     REQUIRE(wamrEnclave->getId() == 0);
 
     wamrEnclave = nullptr;
-    sgx::releaseGlobalWAMREnclave();
+    sgx::releaseGlobalWAMREnclaveLock();
 }
 
 TEST_CASE("Test SGX crypto checks", "[sgx]")

@@ -29,19 +29,20 @@ class ModuleStore
     ModuleStore(size_t size);
 
     // Store a module, set the slot value, and return a pointer to it
-    std::shared_ptr<sgx::WamrModuleHandle> store(const void* ptr,
-                                                 const uint32_t size,
-                                                 uint32_t* slot);
+    std::shared_ptr<sgx::WamrModuleHandle> store(const char* key,
+                                                 const void* ptr,
+                                                 const uint32_t size);
 
-    std::shared_ptr<sgx::WamrModuleHandle> get(const uint32_t slot);
+    std::shared_ptr<sgx::WamrModuleHandle> get(const char* key);
 
-    bool clear(const uint32_t slot);
+    bool clear(const char* key);
 
   private:
-    std::vector<std::shared_ptr<sgx::WamrModuleHandle>> modules;
-
     uint32_t storeSize;
 
-    uint32_t getFreeSlot();
+    std::vector<std::shared_ptr<sgx::WamrModuleHandle>> modules;
+    std::vector<std::string> keyToSlot;
+
+    uint32_t getSlot(const std::string& key);
 };
 }

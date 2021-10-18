@@ -9,7 +9,6 @@
 #define SGX_MODULE_STORE_SIZE 32
 #define SGX_MODULE_STORE_UNSET (SGX_MODULE_STORE_SIZE + 1)
 
-
 namespace sgx {
 std::string sgxErrorString(sgx_status_t status);
 
