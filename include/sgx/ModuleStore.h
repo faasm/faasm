@@ -3,6 +3,7 @@
 #include <sgx/system.h>
 
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 #include <wasm_export.h>
@@ -14,7 +15,6 @@ struct WamrModuleHandle
     wasm_module_inst_t moduleInstance;
     uint8_t* wasmOpCodePtr = NULL;
     uint32_t wasmOpCodeSize = 0;
-    bool isSet = false;
 };
 
 // This object stores the loaded modules inside the enclave. Modules may be
@@ -37,11 +37,7 @@ class ModuleStore
     bool clear(const char* key);
 
   private:
-    uint32_t storeSize;
-
-    std::vector<std::shared_ptr<sgx::WamrModuleHandle>> modules;
-    std::vector<std::string> keyToSlot;
-
-    uint32_t getSlot(const std::string& key);
+    std::unordered_map<std::string, std::shared_ptr<sgx::WamrModuleHandle>>
+      modules;
 };
 }

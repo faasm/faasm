@@ -82,60 +82,25 @@ extern "C"
         std::vector<uint8_t> moduleData = { 1, 2, 3 };
         std::shared_ptr<sgx::WamrModuleHandle> moduleHandle = nullptr;
 
-        // Fill up the module store
-        for (int i = 0; i < SGX_MODULE_STORE_SIZE; i++) {
-            std::string moduleName = "module-" + std::to_string(i);
-            // Try to get the module and check we can't find it (i.e. null)
-            moduleHandle = moduleStore.get(moduleName.c_str());
-            if (moduleHandle != nullptr) {
-                return FAASM_SGX_MODULE_STORE_TEST_FAILED;
-            }
-
-            // Load the module and check it is not null
-            moduleHandle = moduleStore.store(
-              moduleName.c_str(), (void*)moduleData.data(), moduleData.size());
-            if (moduleHandle == nullptr) {
-                return FAASM_SGX_MODULE_STORE_TEST_FAILED;
-            }
-        }
-
-        // We can't add more modules, i.e. store returns a nullptr
-        std::string moduleName = "i-dont-fit";
-        moduleHandle = moduleStore.store(
-          moduleName.c_str(), (void*)moduleData.data(), moduleData.size());
-        if (moduleHandle != nullptr) {
-            return FAASM_SGX_MODULE_STORE_TEST_FAILED;
-        }
-
-        // If we clear one module, we can then add the new one
-        std::string moduleToClearName = "module-0";
-        bool success = false;
-        success = moduleStore.clear(moduleToClearName.c_str());
-        if (!success) {
-            return FAASM_SGX_MODULE_STORE_TEST_FAILED;
-        }
+        // We can add modules to the module store
+        std::string moduleName = "foo-bar";
         moduleHandle = moduleStore.store(
           moduleName.c_str(), (void*)moduleData.data(), moduleData.size());
         if (moduleHandle == nullptr) {
             return FAASM_SGX_MODULE_STORE_TEST_FAILED;
         }
 
-        // We can't clear a module that is not there
-        success = moduleStore.clear(moduleToClearName.c_str());
-        if (success) {
+        // We can clear modules from the module store
+        bool success = false;
+        success = moduleStore.clear(moduleName.c_str());
+        if (!success) {
             return FAASM_SGX_MODULE_STORE_TEST_FAILED;
         }
 
-        // Lastly, we can clear all modules from the module store one by one
-        // Note - we re-use the moduleName defined previously for the slot i=0
-        // (as we deleted module-0 manually) and then update the slot name after
-        // clearing (with index i+1)
-        for (int i = 0; i < SGX_MODULE_STORE_SIZE; i++) {
-            success = moduleStore.clear(moduleName.c_str());
-            if (!success) {
-                return FAASM_SGX_MODULE_STORE_TEST_FAILED;
-            }
-            moduleName = "module-" + std::to_string(i + 1);
+        // We can't clear a module that is not there
+        success = moduleStore.clear(moduleName.c_str());
+        if (success) {
+            return FAASM_SGX_MODULE_STORE_TEST_FAILED;
         }
 
         return FAASM_SGX_SUCCESS;
