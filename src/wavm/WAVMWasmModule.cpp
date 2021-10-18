@@ -210,6 +210,9 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other,
         // Remap dynamic modules
         lastLoadedDynamicModuleHandle = other.lastLoadedDynamicModuleHandle;
         dynamicPathToHandleMap = other.dynamicPathToHandleMap;
+
+        // Recreate map of dynamic modules
+        dynamicModuleMap.clear();
         for (const auto& p : other.dynamicModuleMap) {
             Runtime::Instance* newInstance =
               Runtime::remapToClonedCompartment(p.second.ptr, compartment);
