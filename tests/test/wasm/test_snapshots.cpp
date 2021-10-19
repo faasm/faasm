@@ -29,9 +29,9 @@ class WasmSnapTestFixture
   , public ConfTestFixture
 {
   public:
-    WasmSnapTestFixture() {}
+    WasmSnapTestFixture() { wasm::getWAVMModuleCache().clear(); }
 
-    ~WasmSnapTestFixture() {}
+    ~WasmSnapTestFixture() { wasm::getWAVMModuleCache().clear(); }
 };
 
 TEST_CASE_METHOD(WasmSnapTestFixture,
