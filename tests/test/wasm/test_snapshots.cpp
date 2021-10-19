@@ -342,8 +342,6 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
                  "Test ignoring stacks",
                  "[wasm][snapshot]")
 {
-    faabric::util::setMockMode(true);
-
     int nCores = 10;
     conf.overrideCpuCount = nCores;
 
@@ -356,7 +354,7 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
     moduleA.bindToFunction(msgA);
     std::string originalSnapshotKey = moduleA.snapshot(true);
 
-    // Restore another module from the snapshot
+    // Set up another module from this snapshot
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory(user, function, 1);
     faabric::Message& msgB = req->mutable_messages()->at(0);
@@ -371,12 +369,13 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
     REQUIRE(threadStacksA.size() == nCores);
     REQUIRE(threadStacksB == threadStacksA);
 
-    // Reset dirty tracking
-    faabric::util::resetDirtyTracking();
-
-    // Execute the function to ensure some non-ignored diffs
+    // Execute the function to make sure the ignores are set up
     int32_t returnValue = moduleB.executeTask(0, 0, req);
     REQUIRE(returnValue == 0);
+
+    // Reset dirty tracking as the wasm memory will have all been written from
+    // the snapshot
+    faabric::util::resetDirtyTracking();
 
     // Modify a couple of places in the wasm stack
     auto* wasmStackBottom = (int*)(moduleB.wasmPointerToNative(0));
@@ -403,14 +402,15 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
       reg.getSnapshot(snapKeyPostExecution);
 
     // Diff with original snapshot
-    faabric::util::SnapshotData snapshotPreExecution = reg.getSnapshot(originalSnapshotKey);
+    faabric::util::SnapshotData snapshotPreExecution =
+      reg.getSnapshot(originalSnapshotKey);
     std::vector<faabric::util::SnapshotDiff> diffs =
       snapshotPreExecution.getChangeDiffs(snapshotPostExecution.data,
                                           snapshotPostExecution.size);
 
     // Check that we have some diffs, but that none of them are in the thread
     // stacks region
-    REQUIRE(diffs.size() > 0);
+    REQUIRE(!diffs.empty());
     uint32_t stacksMin =
       threadStacksB.at(0) + 1 - THREAD_STACK_SIZE - GUARD_REGION_SIZE;
     uint32_t stacksMax = threadStacksB.back();
