@@ -85,7 +85,7 @@ int doRun(std::ofstream& outFs,
 
         // Reset
         TimePoint resetStart = startTimer();
-        f.restore(msg);
+        f.reset(msg);
         long resetNanos = getTimeDiffNanos(resetStart);
         float resetMicros = float(resetNanos) / 1000;
 

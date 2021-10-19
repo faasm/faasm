@@ -12,7 +12,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     container:
-      image: faasm/cli:0.6.12
+      image: faasm/cli:0.6.13
     defaults:
       run:
         working-directory: /usr/local/code/faasm
@@ -104,17 +104,17 @@ jobs:
       REDIS_QUEUE_HOST: redis
       REDIS_STATE_HOST: redis
     container:
-      image: faasm/cli:0.6.12
+      image: faasm/cli:0.6.13
     defaults:
       run:
         working-directory: /usr/local/code/faasm
     services:
       redis:
-        image: faasm/redis:0.6.12
+        image: faasm/redis:0.6.13
         ports:
           - 6379:6379
       minio:
-        image: faasm/minio:0.6.12
+        image: faasm/minio:0.6.13
         env:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
@@ -250,7 +250,7 @@ jobs:
           (echo "Attempt 1" && docker-compose exec -T upload /usr/local/code/faasm/deploy/local/wait_for_upload.sh localhost 8002) || \
           (sleep 30s && echo "Attempt 2" && docker-compose exec -T upload /usr/local/code/faasm/deploy/local/wait_for_upload.sh localhost 8002) || \
           (sleep 30s && echo "Attempt 3" && docker-compose exec -T upload /usr/local/code/faasm/deploy/local/wait_for_upload.sh localhost 8002) || \
-          (echo "Wait for upload failed after retries" && exit 1)
+          (echo "Wait for upload failed after retries" && docker-compose logs upload && exit 1)
       # --- Function upload ---
       - name: "Build and upload cpp function"
         run: docker-compose run -T cpp inv func demo hello func.upload demo hello

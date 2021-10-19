@@ -32,6 +32,7 @@ services:
       - redis-queue
       - redis-state
       - minio
+    restart: on-failure
     volumes:
       - ./:/usr/local/code/faasm/
       - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}

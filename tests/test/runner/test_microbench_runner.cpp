@@ -53,6 +53,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 
     specFs << "demo,echo,4,blah" << std::endl;
     specFs << "demo,hello,3" << std::endl;
+    specFs << "python,hello,3" << std::endl;
     specFs.close();
 
     std::string outFile = "/tmp/microbench_out.csv";
@@ -63,7 +64,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     std::vector<std::string> lines;
     boost::split(lines, result, [](char c) { return c == '\n'; });
 
-    REQUIRE(lines.size() == 9);
+    REQUIRE(lines.size() == 12);
 
     REQUIRE(lines.at(0) ==
             "User,Function,Return value,Execution (us),Reset (us)");
@@ -76,6 +77,10 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
         checkLine(lines.at(i), "demo", "hello");
     }
 
-    REQUIRE(lines.at(8).empty());
+    for (int i = 8; i < 11; i++) {
+        checkLine(lines.at(i), "python", "hello");
+    }
+
+    REQUIRE(lines.at(11).empty());
 }
 }
