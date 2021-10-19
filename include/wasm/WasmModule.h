@@ -146,8 +146,6 @@ class WasmModule
 
     std::string createAppSnapshot(const faabric::Message& msg);
 
-    std::string getAppSnapshotKey(const faabric::Message& msg);
-
     void deleteAppSnapshot(const faabric::Message& msg);
 
     std::string snapshot(bool locallyRestorable = true);

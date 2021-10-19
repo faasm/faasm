@@ -87,7 +87,7 @@ faabric::util::SnapshotData WasmModule::getSnapshotData()
     return data;
 }
 
-std::string WasmModule::getAppSnapshotKey(const faabric::Message& msg)
+std::string getAppSnapshotKey(const faabric::Message& msg)
 {
     std::string funcStr = faabric::util::funcToString(msg, false);
     if (msg.appid() == 0) {
@@ -432,7 +432,7 @@ int32_t WasmModule::executeTask(
     assert(!threadStacks.empty());
     uint32_t stackTop = threadStacks.at(threadPoolIdx);
 
-    // Ensure we ignore the thread stacks in a snapshot if it exists
+    // Ensure we ignore all stacks in a snapshot if it exists
     if (!msg.snapshotkey().empty()) {
         ignoreAllStacksInSnapshot(msg.snapshotkey());
     }

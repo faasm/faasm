@@ -1,7 +1,7 @@
 #include <catch2/catch.hpp>
 
-#include <faabric_utils.h>
-#include <utils.h>
+#include "faabric_utils.h"
+#include "utils.h"
 
 #include <boost/filesystem.hpp>
 
@@ -373,8 +373,8 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
     int32_t returnValue = moduleB.executeTask(0, 0, req);
     REQUIRE(returnValue == 0);
 
-    // Reset dirty tracking as the wasm memory will have all been written from
-    // the snapshot
+    // Reset dirty tracking otherwise we'll have all wasm pages marked as dirty
+    // (after being restored from the snapshot)
     faabric::util::resetDirtyTracking();
 
     // Modify a couple of places in the wasm stack
@@ -395,6 +395,14 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
         *stackTop = 123;
         *stackBottom = 345;
     }
+
+    // Modify some other places in the heap
+    auto* heapA =
+      (int*)(moduleB.wasmPointerToNative(threadStacksB.back() + 100));
+    auto* heapB =
+      (int*)(moduleB.wasmPointerToNative(threadStacksB.back() + 300));
+    *heapA = 123;
+    *heapB = 345;
 
     // Get post execution snapshot
     std::string snapKeyPostExecution = moduleB.snapshot();
