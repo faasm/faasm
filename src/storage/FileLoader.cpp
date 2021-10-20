@@ -178,6 +178,25 @@ void FileLoader::uploadFileString(const std::string& path,
     }
 }
 
+void FileLoader::deleteFileBytes(const std::string& path,
+                                 const std::string& localCachePath)
+{
+    // Remove local cache path if it exists
+    if (useLocalFsCache && boost::filesystem::exists(localCachePath)) {
+        boost::filesystem::remove(localCachePath);
+    }
+
+    // Delete remote version
+    std::string pathCopy = trimLeadingSlashes(path);
+    s3.deleteKey(conf.s3Bucket, pathCopy);
+}
+
+void FileLoader::deleteHashFileBytes(const std::string& path,
+                                     const std::string& localCachePath)
+{
+    deleteFileBytes(getHashFilePath(path), getHashFilePath(localCachePath));
+}
+
 // -------------------------------------
 // HASHING
 // -------------------------------------
@@ -274,6 +293,20 @@ void FileLoader::uploadFunctionObjectHash(const faabric::Message& msg,
     uploadHashFileBytes(key, localCachePath, hash);
 }
 
+void FileLoader::deleteFunctionObjectFile(const faabric::Message& msg)
+{
+    const std::string key = getKey(msg, FUNC_OBJECT_FILENAME);
+    const std::string localCachePath = getFunctionObjectFile(msg);
+    deleteFileBytes(key, localCachePath);
+}
+
+void FileLoader::deleteFunctionObjectHash(const faabric::Message& msg)
+{
+    const std::string key = getKey(msg, FUNC_OBJECT_FILENAME);
+    const std::string localCachePath = getFunctionObjectFile(msg);
+    deleteHashFileBytes(key, localCachePath);
+}
+
 // -------------------------------------
 // FUNCTION WAMR AOT FILES
 // -------------------------------------
@@ -329,6 +362,20 @@ void FileLoader::uploadFunctionWamrAotHash(const faabric::Message& msg,
     const std::string key = getWamrAotKey(msg);
     const std::string localCachePath = getFunctionAotFile(msg);
     uploadHashFileBytes(key, localCachePath, hash);
+}
+
+void FileLoader::deleteFunctionObjectFile(const faabric::Message& msg)
+{
+    const std::string key = getWamrAotKey(msg);
+    const std::string localCachePath = getFunctionObjectFile(msg);
+    deleteFileBytes(key, localCachePath);
+}
+
+void FileLoader::deleteFunctionObjectHash(const faabric::Message& msg)
+{
+    const std::string key = getWamrAotKey(msg);
+    const std::string localCachePath = getFunctionObjectFile(msg);
+    deleteHashFileBytes(key, localCachePath);
 }
 
 // -------------------------------------

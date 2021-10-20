@@ -105,6 +105,17 @@ void MachineCodeGenerator::codegenForFunction(faabric::Message& msg)
     }
 }
 
+void MachineCodeGenerator::deleteCodegenForFunc(const faabric::Message& msg)
+{
+    if (conf.wasmVm == "wamr") {
+        loader.deleteFunctionObjectFile(msg);
+        loader.deleteFunctionObjectHash(msg);
+    } else {
+        loader.deleteFunctionObjectFile(msg);
+        loader.deleteFunctionObjectHash(msg);
+    }
+}
+
 void MachineCodeGenerator::codegenForSharedObject(const std::string& inputPath)
 {
     // Load the wasm

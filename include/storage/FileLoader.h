@@ -54,6 +54,10 @@ class FileLoader
     void uploadFunctionObjectHash(const faabric::Message& msg,
                                   const std::vector<uint8_t>& hash);
 
+    void deleteFunctionObjectFile(const faabric::Message& msg);
+
+    void deleteFunctionObjectHash(const faabric::Message& msg);
+
     // ----- Function WAMR AoT files -----
     std::string getFunctionAotFile(const faabric::Message& msg);
 
@@ -66,6 +70,10 @@ class FileLoader
 
     void uploadFunctionWamrAotHash(const faabric::Message& msg,
                                    const std::vector<uint8_t>& hash);
+
+    void deleteFunctionWamrAotFile(const faabric::Message& msg);
+
+    void deleteFunctionWamrAotHash(const faabric::Message& msg);
 
     // ----- Encrypted function wasm -----
     std::string getEncryptedFunctionFile(const faabric::Message& msg);
@@ -134,6 +142,12 @@ class FileLoader
     void uploadFileString(const std::string& path,
                           const std::string& localCachePath,
                           const std::string& bytes);
+
+    void deleteFileBytes(const std::string& path,
+                         const std::string& localCachePath);
+
+    void deleteHashFileBytes(const std::string& path,
+                         const std::string& localCachePath);
 };
 
 FileLoader& getFileLoader();
