@@ -107,6 +107,9 @@ void FileLoader::clearLocalCache()
 
     SPDLOG_DEBUG("Clearing shared files from {}", conf.sharedFilesDir);
     boost::filesystem::remove_all(conf.sharedFilesDir);
+
+    SPDLOG_DEBUG("Clearing the local shared files cache");
+    SharedFiles::clear();
 }
 
 // -------------------------------------
