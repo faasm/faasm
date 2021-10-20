@@ -78,6 +78,9 @@ void MachineCodeGenerator::codegenForFunction(faabric::Message& msg)
     }
 
     if ((!oldHash.empty()) && newHash == oldHash) {
+        // Even if we skip the code generation step, we want to sync the latest
+        // object file
+        (void)loader.loadFunctionObjectFile(msg);
         SPDLOG_DEBUG("Skipping codegen for {}", funcStr);
         return;
     } else if (oldHash.empty()) {
@@ -115,6 +118,9 @@ void MachineCodeGenerator::codegenForSharedObject(const std::string& inputPath)
     std::vector<uint8_t> oldHash = loader.loadSharedObjectObjectHash(inputPath);
 
     if ((!oldHash.empty()) && newHash == oldHash) {
+        // Even if we skip the code generation step, we want to sync the latest
+        // object file
+        // (void) loader.uploadFunctionObjectFile(msg);
         SPDLOG_DEBUG("Skipping codegen for {}", inputPath);
         return;
     }

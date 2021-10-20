@@ -73,6 +73,28 @@ TEST_CASE_METHOD(CodegenTestFixture, "Test basic codegen", "[codegen]")
 }
 
 TEST_CASE_METHOD(CodegenTestFixture,
+                 "Test machine code is synced even if codegen is skipped",
+                 "[codegen]")
+{
+    // Upload message and run codegen
+    loader.uploadFunction(msgA);
+    gen.codegenForFunction(msgA);
+
+    // Ensure machine code exists
+    std::string objFile = loader.getFunctionObjectFile(msgA);
+    SPDLOG_INFO("Does this path exist? {}", objFile);
+    REQUIRE(boost::filesystem::exists(objFile));
+
+    // Delete machine code locally
+    loader.clearLocalCache();
+    REQUIRE(!boost::filesystem::exists(objFile));
+
+    // Run codegen again, will skip, and ensure object is synced regardless
+    gen.codegenForFunction(msgA);
+    REQUIRE(boost::filesystem::exists(objFile));
+}
+
+TEST_CASE_METHOD(CodegenTestFixture,
                  "Test function codegen hashing",
                  "[codegen]")
 {
