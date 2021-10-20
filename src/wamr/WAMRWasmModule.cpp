@@ -76,7 +76,6 @@ WAMRWasmModule* getExecutingWAMRModule()
 // ----- Module lifecycle -----
 void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 {
-
     // Prepare the filesystem
     filesystem.prepareFilesystem();
 
