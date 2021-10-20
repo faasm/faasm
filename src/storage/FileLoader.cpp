@@ -1,5 +1,6 @@
 #include <conf/FaasmConfig.h>
 #include <storage/FileLoader.h>
+#include <storage/SharedFiles.h>
 
 #include <stdexcept>
 

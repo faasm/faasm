@@ -16,8 +16,12 @@
 #include <codegen/MachineCodeGenerator.h>
 #include <conf/FaasmConfig.h>
 #include <storage/FileLoader.h>
+#include <storage/SharedFiles.h>
 #include <wavm/IRModuleCache.h>
 #include <wavm/WAVMWasmModule.h>
+
+#include <fcntl.h>
+#include <sys/stat.h>
 
 namespace tests {
 
@@ -47,21 +51,39 @@ TEST_CASE_METHOD(FlushingTestFixture,
                  "Test flushing clears shared files",
                  "[flush]")
 {
-    std::string relativePath = "flush-test.txt";
+    std::string fileName = "flush-test.txt";
+    std::vector<uint8_t> fileBytes = { 0, 1, 2, 3 };
+
+    // Upload shared file
+    loader.uploadSharedFile(fileName, fileBytes);
+
+    // Check that the underlying shared file is in place
     boost::filesystem::path sharedPath(conf.sharedFilesDir);
-    sharedPath.append(relativePath);
-
-    boost::filesystem::remove(sharedPath);
-    boost::filesystem::create_directories(conf.sharedFilesDir);
-
-    // Enter some data
-    std::vector<uint8_t> bytes = { 0, 1, 2, 3 };
-    faabric::util::writeBytesToFile(sharedPath.string(), bytes);
+    sharedPath.append(fileName);
     REQUIRE(boost::filesystem::exists(sharedPath));
 
+    // Check that the shared file exists
+    std::string syncSharedPath = "faasm://" + fileName;
+    REQUIRE(storage::SharedFiles::syncSharedFile(syncSharedPath, "") == 0);
+
     // Flush and check file is gone
-    faabric::scheduler::getExecutorFactory()->flushHost();
+    loader.clearLocalCache();
     REQUIRE(!boost::filesystem::exists(sharedPath));
+
+    SECTION("Check using FileLoader")
+    {
+        loader.loadSharedFile(fileName);
+        REQUIRE(boost::filesystem::exists(sharedPath));
+    }
+
+    SECTION("Check using SharedFiles")
+    {
+        // Check that if we sync it back, we can open the file
+        REQUIRE(storage::SharedFiles::syncSharedFile(syncSharedPath, "") == 0);
+        std::string realPath =
+          storage::SharedFiles::realPathForSharedFile(syncSharedPath);
+        REQUIRE(::open(realPath.c_str(), O_RDONLY) > 0);
+    }
 }
 
 TEST_CASE_METHOD(FlushingTestFixture,
