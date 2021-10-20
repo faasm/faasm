@@ -119,8 +119,8 @@ void MachineCodeGenerator::codegenForSharedObject(const std::string& inputPath)
 
     if ((!oldHash.empty()) && newHash == oldHash) {
         // Even if we skip the code generation step, we want to sync the latest
-        // object file
-        // (void) loader.uploadFunctionObjectFile(msg);
+        // shared object object file
+        (void)loader.loadSharedObjectObjectFile(inputPath);
         SPDLOG_DEBUG("Skipping codegen for {}", inputPath);
         return;
     }
