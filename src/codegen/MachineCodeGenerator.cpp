@@ -80,7 +80,11 @@ void MachineCodeGenerator::codegenForFunction(faabric::Message& msg)
     if ((!oldHash.empty()) && newHash == oldHash) {
         // Even if we skip the code generation step, we want to sync the latest
         // object file
-        (void)loader.loadFunctionObjectFile(msg);
+        if (conf.wasmVm == "wamr") {
+            (void)loader.loadFunctionWamrAotHash(msg);
+        } else {
+            (void)loader.loadFunctionObjectFile(msg);
+        }
         SPDLOG_DEBUG("Skipping codegen for {}", funcStr);
         return;
     } else if (oldHash.empty()) {
