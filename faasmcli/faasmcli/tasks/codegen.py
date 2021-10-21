@@ -6,7 +6,11 @@ from os import environ
 from os.path import join
 from sys import exit
 
-from faasmcli.util.codegen import find_codegen_func, find_codegen_shared_lib
+from faasmcli.util.codegen import (
+    find_codegen_func,
+    find_codegen_shared_lib,
+    find_codegen_del,
+)
 from faasmcli.util.env import FAASM_RUNTIME_ROOT
 
 LIB_FAKE_FILES = [
@@ -61,6 +65,32 @@ def codegen(ctx, user, function, wamr=False, sgx=False):
         exit(1)
 
     binary = find_codegen_func()
+    run(
+        "{} {} {} {}".format(binary, user, function, "--sgx" if sgx else ""),
+        shell=True,
+        env=env,
+        check=True,
+    )
+
+
+@task
+def delete(ctx, user, function, wamr=False, sgx=False):
+    """
+    Delete machine code for the given function
+    """
+    env = copy(environ)
+    env.update(
+        {
+            "WASM_VM": "wamr" if wamr else "wavm",
+            "LD_LIBRARY_PATH": "/usr/local/lib/",
+        }
+    )
+
+    if (not wamr) and sgx:
+        print("Can't delete SGX codegen with WAVM. Add --wamr flag.")
+        exit(1)
+
+    binary = find_codegen_del()
     run(
         "{} {} {} {}".format(binary, user, function, "--sgx" if sgx else ""),
         shell=True,

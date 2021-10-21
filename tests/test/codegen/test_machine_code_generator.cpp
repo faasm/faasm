@@ -73,6 +73,81 @@ TEST_CASE_METHOD(CodegenTestFixture, "Test basic codegen", "[codegen]")
 }
 
 TEST_CASE_METHOD(CodegenTestFixture,
+                 "Test deleting generated code",
+                 "[codegen]")
+{
+    std::string hashFileA;
+    std::string objectFileA;
+
+    SECTION("WAVM codegen")
+    {
+        conf.wasmVm = "wavm";
+        objectFileA = "/tmp/obj/demo/hello/function.wasm.o";
+        hashFileA = objectFileA + HASH_EXT;
+
+        // Upload function and run codegen
+        loader.uploadFunction(msgA);
+        gen.codegenForFunction(msgA);
+
+        REQUIRE(boost::filesystem::exists(objectFileA));
+        REQUIRE(boost::filesystem::exists(hashFileA));
+        REQUIRE_NOTHROW(loader.loadFunctionObjectFile(msgA));
+
+        // Delete codegen
+        gen.deleteCodegenForFunction(msgA);
+
+        REQUIRE(!boost::filesystem::exists(objectFileA));
+        REQUIRE(!boost::filesystem::exists(hashFileA));
+        REQUIRE_THROWS(loader.loadFunctionObjectFile(msgA));
+    }
+
+    SECTION("WAMR codegen")
+    {
+        conf.wasmVm = "wamr";
+        objectFileA = "/tmp/obj/demo/hello/function.aot";
+        hashFileA = objectFileA + HASH_EXT;
+
+        // Upload function and run codegen
+        loader.uploadFunction(msgA);
+        gen.codegenForFunction(msgA);
+
+        REQUIRE(boost::filesystem::exists(objectFileA));
+        REQUIRE(boost::filesystem::exists(hashFileA));
+        REQUIRE_NOTHROW(loader.loadFunctionWamrAotFile(msgA));
+
+        // Delete codegen
+        gen.deleteCodegenForFunction(msgA);
+
+        REQUIRE(!boost::filesystem::exists(objectFileA));
+        REQUIRE(!boost::filesystem::exists(hashFileA));
+        REQUIRE_THROWS(loader.loadFunctionWamrAotFile(msgA));
+    }
+
+    SECTION("WAMR-SGX codegen")
+    {
+        conf.wasmVm = "wamr";
+        objectFileA = "/tmp/obj/demo/hello/function.aot.sgx";
+        hashFileA = objectFileA + HASH_EXT;
+        msgA.set_issgx(true);
+
+        // Upload function and run codegen
+        loader.uploadFunction(msgA);
+        gen.codegenForFunction(msgA);
+
+        REQUIRE(boost::filesystem::exists(objectFileA));
+        REQUIRE(boost::filesystem::exists(hashFileA));
+        REQUIRE_NOTHROW(loader.loadFunctionWamrAotFile(msgA));
+
+        // Delete codegen
+        gen.deleteCodegenForFunction(msgA);
+
+        REQUIRE(!boost::filesystem::exists(objectFileA));
+        REQUIRE(!boost::filesystem::exists(hashFileA));
+        REQUIRE_THROWS(loader.loadFunctionWamrAotFile(msgA));
+    }
+}
+
+TEST_CASE_METHOD(CodegenTestFixture,
                  "Test function codegen hashing",
                  "[codegen]")
 {

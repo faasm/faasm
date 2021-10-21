@@ -16,6 +16,8 @@ class MachineCodeGenerator
 
     void codegenForFunction(faabric::Message& msg);
 
+    void deleteCodegenForFunction(const faabric::Message& msg);
+
     void codegenForSharedObject(const std::string& inputPath);
 
   private:

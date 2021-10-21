@@ -147,7 +147,7 @@ class FileLoader
                          const std::string& localCachePath);
 
     void deleteHashFileBytes(const std::string& path,
-                         const std::string& localCachePath);
+                             const std::string& localCachePath);
 };
 
 FileLoader& getFileLoader();

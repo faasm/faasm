@@ -7,3 +7,7 @@ def find_codegen_shared_lib():
 
 def find_codegen_func():
     return find_command("codegen_func")
+
+
+def find_codegen_del():
+    return find_command("codegen_del")

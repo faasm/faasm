@@ -37,3 +37,7 @@ target_link_libraries(codegen_shared_obj ${CODEGEN_LIBS})
 
 add_executable(codegen_func codegen_func.cpp)
 target_link_libraries(codegen_func ${CODEGEN_LIBS})
+
+add_executable(codegen_del codegen_del.cpp)
+target_link_libraries(codegen_del ${CODEGEN_LIBS})
+add_dependencies(codegen_del codegen_func)

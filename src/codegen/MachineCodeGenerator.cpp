@@ -105,11 +105,11 @@ void MachineCodeGenerator::codegenForFunction(faabric::Message& msg)
     }
 }
 
-void MachineCodeGenerator::deleteCodegenForFunc(const faabric::Message& msg)
+void MachineCodeGenerator::deleteCodegenForFunction(const faabric::Message& msg)
 {
     if (conf.wasmVm == "wamr") {
-        loader.deleteFunctionObjectFile(msg);
-        loader.deleteFunctionObjectHash(msg);
+        loader.deleteFunctionWamrAotFile(msg);
+        loader.deleteFunctionWamrAotHash(msg);
     } else {
         loader.deleteFunctionObjectFile(msg);
         loader.deleteFunctionObjectHash(msg);
