@@ -115,7 +115,6 @@ TEST_CASE_METHOD(FileLoaderTestFixture,
     REQUIRE(boost::filesystem::exists(funcFile));
 
     // Now flush
-    storage::FileLoader& loader = storage::getFileLoader();
     loader.clearLocalCache();
 
     // Check files don't exist
