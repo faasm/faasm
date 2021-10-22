@@ -81,9 +81,9 @@ void MachineCodeGenerator::codegenForFunction(faabric::Message& msg)
         // Even if we skip the code generation step, we want to sync the latest
         // object file
         if (conf.wasmVm == "wamr") {
-            (void)loader.loadFunctionWamrAotHash(msg);
+            UNUSED(loader.loadFunctionWamrAotHash(msg));
         } else {
-            (void)loader.loadFunctionObjectFile(msg);
+            UNUSED(loader.loadFunctionObjectFile(msg));
         }
         SPDLOG_DEBUG("Skipping codegen for {}", funcStr);
         return;
@@ -124,7 +124,7 @@ void MachineCodeGenerator::codegenForSharedObject(const std::string& inputPath)
     if ((!oldHash.empty()) && newHash == oldHash) {
         // Even if we skip the code generation step, we want to sync the latest
         // shared object object file
-        (void)loader.loadSharedObjectObjectFile(inputPath);
+        UNUSED(loader.loadSharedObjectObjectFile(inputPath));
         SPDLOG_DEBUG("Skipping codegen for {}", inputPath);
         return;
     }

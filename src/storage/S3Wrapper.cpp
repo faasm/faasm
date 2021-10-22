@@ -40,8 +40,14 @@ R reqFactory(const std::string& bucket, const std::string& key)
     {                                                                          \
         if (!response.IsSuccess()) {                                           \
             const auto& err = response.GetError();                             \
-            SPDLOG_ERROR(                                                      \
-              "S3 error with bucket/key: {}/{}", bucketName, keyName);         \
+            if (std::string(bucketName).empty()) {                             \
+                SPDLOG_ERROR("General S3 error", bucketName);                  \
+            } else if (std::string(keyName).empty()) {                         \
+                SPDLOG_ERROR("S3 error with bucket: {}", bucketName);          \
+            } else {                                                           \
+                SPDLOG_ERROR(                                                  \
+                  "S3 error with bucket/key: {}/{}", bucketName, keyName);     \
+            }                                                                  \
             SPDLOG_ERROR("S3 error: {}. {}",                                   \
                          err.GetExceptionName().c_str(),                       \
                          err.GetMessage().c_str());                            \
@@ -127,7 +133,7 @@ void S3Wrapper::createBucket(const std::string& bucketName)
             errType == Aws::S3::S3Errors::BUCKET_ALREADY_EXISTS) {
             SPDLOG_DEBUG("Bucket already exists {}", bucketName);
         } else {
-            CHECK_ERRORS(response, bucketName, "no key");
+            CHECK_ERRORS(response, bucketName, "");
         }
     }
 }
@@ -153,7 +159,7 @@ void S3Wrapper::deleteBucket(const std::string& bucketName)
             // Recursively delete
             deleteBucket(bucketName);
         } else {
-            CHECK_ERRORS(response, bucketName, "no key");
+            CHECK_ERRORS(response, bucketName, "");
         }
     }
 }
@@ -162,7 +168,7 @@ std::vector<std::string> S3Wrapper::listBuckets()
 {
     SPDLOG_TRACE("Listing buckets");
     auto response = client.ListBuckets();
-    CHECK_ERRORS(response, "no bucket", "no key");
+    CHECK_ERRORS(response, "", "");
 
     Aws::Vector<Bucket> bucketObjects = response.GetResult().GetBuckets();
 
@@ -191,7 +197,7 @@ std::vector<std::string> S3Wrapper::listKeys(const std::string& bucketName)
             return keys;
         }
 
-        CHECK_ERRORS(response, bucketName, "no key");
+        CHECK_ERRORS(response, bucketName, "");
     }
 
     Aws::Vector<Object> keyObjects = response.GetResult().GetContents();
