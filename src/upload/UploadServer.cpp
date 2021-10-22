@@ -128,7 +128,7 @@ void UploadServer::handleGet(const http_request& request)
 
     PathParts pathParts(request);
 
-    storage::FileLoader& l = storage::getFileLoader();
+    storage::FileLoader& l = storage::getFileLoader(false);
     PATH_PART(pathType, pathParts, 0);
     std::vector<uint8_t> returnBytes;
 
@@ -286,7 +286,7 @@ void UploadServer::handlePythonFunctionUpload(const http_request& request,
                 msg.pythonfunction());
 
     // Do the upload
-    storage::FileLoader& l = storage::getFileLoader();
+    storage::FileLoader& l = storage::getFileLoader(false);
     l.uploadPythonFunction(msg);
 
     request.reply(status_codes::OK, "Python function upload complete\n");
@@ -305,7 +305,7 @@ void UploadServer::handleSharedFileUpload(const http_request& request,
               std::string s = inputStream.collection();
               const std::vector<uint8_t> bytesData =
                 faabric::util::stringToBytes(s);
-              storage::FileLoader& l = storage::getFileLoader();
+              storage::FileLoader& l = storage::getFileLoader(false);
               l.uploadSharedFile(path, bytesData);
           }
       })
@@ -324,7 +324,7 @@ void UploadServer::handleFunctionUpload(const http_request& request,
     SPDLOG_INFO("Uploading {}", faabric::util::funcToString(msg, false));
 
     // Do the upload
-    storage::FileLoader& l = storage::getFileLoader();
+    storage::FileLoader& l = storage::getFileLoader(false);
     l.uploadFunction(msg);
 
     codegen::MachineCodeGenerator& gen = codegen::getMachineCodeGenerator();

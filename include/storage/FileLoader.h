@@ -136,7 +136,7 @@ class FileLoader
                           const std::string& bytes);
 };
 
-FileLoader& getFileLoader();
+FileLoader& getFileLoader(bool useLocalFsCache = true);
 
 class SharedFileIsDirectoryException : public faabric::util::FaabricException
 {
