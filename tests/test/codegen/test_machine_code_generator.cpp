@@ -73,6 +73,31 @@ TEST_CASE_METHOD(CodegenTestFixture, "Test basic codegen", "[codegen]")
 }
 
 TEST_CASE_METHOD(CodegenTestFixture,
+                 "Test machine code is synced even if codegen is skipped",
+                 "[codegen]")
+{
+    // Upload message and run codegen
+    loader.uploadFunction(msgA);
+    gen.codegenForFunction(msgA);
+
+    // Ensure machine code exists
+    std::string objFile = loader.getFunctionObjectFile(msgA);
+    std::string hashFile = objFile + HASH_EXT;
+    REQUIRE(boost::filesystem::exists(objFile));
+    REQUIRE(boost::filesystem::exists(hashFile));
+
+    // Delete machine code locally
+    loader.clearLocalCache();
+    REQUIRE(!boost::filesystem::exists(objFile));
+    REQUIRE(!boost::filesystem::exists(hashFile));
+
+    // Run codegen again, will skip, and ensure object is synced regardless
+    gen.codegenForFunction(msgA);
+    REQUIRE(boost::filesystem::exists(objFile));
+    REQUIRE(boost::filesystem::exists(hashFile));
+}
+
+TEST_CASE_METHOD(CodegenTestFixture,
                  "Test function codegen hashing",
                  "[codegen]")
 {
@@ -230,6 +255,15 @@ TEST_CASE_METHOD(CodegenTestFixture,
     std::vector<uint8_t> hashAfter =
       loader.loadSharedObjectObjectHash(localSharedObjFile);
     REQUIRE(hashAfter == hashBefore);
+
+    // Clear the local file, re-run the codegen, and check that the object
+    // file and hash are synced back
+    loader.clearLocalCache();
+    REQUIRE(!boost::filesystem::exists(objFile));
+    REQUIRE(!boost::filesystem::exists(hashFile));
+    gen.codegenForSharedObject(localSharedObjFile);
+    REQUIRE(boost::filesystem::exists(objFile));
+    REQUIRE(boost::filesystem::exists(hashFile));
 }
 
 TEST_CASE_METHOD(CodegenTestFixture,

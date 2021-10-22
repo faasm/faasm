@@ -36,10 +36,18 @@ R reqFactory(const std::string& bucket, const std::string& key)
     return req;
 }
 
-#define CHECK_ERRORS(response)                                                 \
+#define CHECK_ERRORS(response, bucketName, keyName)                            \
     {                                                                          \
         if (!response.IsSuccess()) {                                           \
             const auto& err = response.GetError();                             \
+            if (std::string(bucketName).empty()) {                             \
+                SPDLOG_ERROR("General S3 error", bucketName);                  \
+            } else if (std::string(keyName).empty()) {                         \
+                SPDLOG_ERROR("S3 error with bucket: {}", bucketName);          \
+            } else {                                                           \
+                SPDLOG_ERROR(                                                  \
+                  "S3 error with bucket/key: {}/{}", bucketName, keyName);     \
+            }                                                                  \
             SPDLOG_ERROR("S3 error: {}. {}",                                   \
                          err.GetExceptionName().c_str(),                       \
                          err.GetMessage().c_str());                            \
@@ -125,7 +133,7 @@ void S3Wrapper::createBucket(const std::string& bucketName)
             errType == Aws::S3::S3Errors::BUCKET_ALREADY_EXISTS) {
             SPDLOG_DEBUG("Bucket already exists {}", bucketName);
         } else {
-            CHECK_ERRORS(response);
+            CHECK_ERRORS(response, bucketName, "");
         }
     }
 }
@@ -151,7 +159,7 @@ void S3Wrapper::deleteBucket(const std::string& bucketName)
             // Recursively delete
             deleteBucket(bucketName);
         } else {
-            CHECK_ERRORS(response);
+            CHECK_ERRORS(response, bucketName, "");
         }
     }
 }
@@ -160,7 +168,7 @@ std::vector<std::string> S3Wrapper::listBuckets()
 {
     SPDLOG_TRACE("Listing buckets");
     auto response = client.ListBuckets();
-    CHECK_ERRORS(response);
+    CHECK_ERRORS(response, "", "");
 
     Aws::Vector<Bucket> bucketObjects = response.GetResult().GetBuckets();
 
@@ -189,7 +197,7 @@ std::vector<std::string> S3Wrapper::listKeys(const std::string& bucketName)
             return keys;
         }
 
-        CHECK_ERRORS(response);
+        CHECK_ERRORS(response, bucketName, "");
     }
 
     Aws::Vector<Object> keyObjects = response.GetResult().GetContents();
@@ -221,7 +229,7 @@ void S3Wrapper::deleteKey(const std::string& bucketName,
         } else if (errType == Aws::S3::S3Errors::NO_SUCH_BUCKET) {
             SPDLOG_DEBUG("Bucket already deleted {}", bucketName);
         } else {
-            CHECK_ERRORS(response);
+            CHECK_ERRORS(response, bucketName, keyName);
         }
     }
 }
@@ -243,7 +251,7 @@ void S3Wrapper::addKeyBytes(const std::string& bucketName,
     request.SetBody(dataStream);
 
     auto response = client.PutObject(request);
-    CHECK_ERRORS(response);
+    CHECK_ERRORS(response, bucketName, keyName);
 }
 
 void S3Wrapper::addKeyStr(const std::string& bucketName,
@@ -263,7 +271,7 @@ void S3Wrapper::addKeyStr(const std::string& bucketName,
 
     request.SetBody(dataStream);
     auto response = client.PutObject(request);
-    CHECK_ERRORS(response);
+    CHECK_ERRORS(response, bucketName, keyName);
 }
 
 std::vector<uint8_t> S3Wrapper::getKeyBytes(const std::string& bucketName,
@@ -285,7 +293,7 @@ std::vector<uint8_t> S3Wrapper::getKeyBytes(const std::string& bucketName,
             return empty;
         }
 
-        CHECK_ERRORS(response);
+        CHECK_ERRORS(response, bucketName, keyName);
     }
 
     std::vector<uint8_t> rawData(response.GetResult().GetContentLength());
@@ -299,7 +307,7 @@ std::string S3Wrapper::getKeyStr(const std::string& bucketName,
     SPDLOG_TRACE("Getting S3 key {}/{} as string", bucketName, keyName);
     auto request = reqFactory<GetObjectRequest>(bucketName, keyName);
     GetObjectOutcome response = client.GetObject(request);
-    CHECK_ERRORS(response);
+    CHECK_ERRORS(response, bucketName, keyName);
 
     std::ostringstream ss;
     auto* responseStream = response.GetResultWithOwnership().GetBody().rdbuf();
