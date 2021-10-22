@@ -79,8 +79,8 @@ class UploadTestFixture
     }
 
     void checkS3bytes(const std::string& bucket,
-                 const std::string& key,
-                 const std::vector<uint8_t>& expectedBytes)
+                      const std::string& key,
+                      const std::vector<uint8_t>& expectedBytes)
     {
         std::vector<uint8_t> s3bytes = s3.getKeyBytes(bucket, key);
         REQUIRE(s3bytes.size() == expectedBytes.size());
