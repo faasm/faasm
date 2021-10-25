@@ -20,16 +20,16 @@ TEST_CASE("Test enclave set up and tear down", "[sgx]")
     std::shared_ptr<sgx::WAMREnclave> wamrEnclave =
       sgx::acquireGlobalWAMREnclaveLock();
 
-    wamrEnclave->tearDown();
+    wamrEnclave->tearDownSgxEnclave();
 
-    REQUIRE(!wamrEnclave->isSetUp());
+    REQUIRE(!wamrEnclave->isSgxEnclaveSetUp());
 
     // Initialise the global enclave
-    wamrEnclave->init();
+    wamrEnclave->initSgxEnclave();
 
-    REQUIRE(wamrEnclave->isSetUp());
+    REQUIRE(wamrEnclave->isSgxEnclaveSetUp());
 
-    wamrEnclave->tearDown();
+    wamrEnclave->tearDownSgxEnclave();
 
     REQUIRE(wamrEnclave->getId() == 0);
 

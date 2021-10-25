@@ -58,6 +58,15 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
     threadStacks.push_back(-1);
 }
 
+void SGXWAMRWasmModule::clearCaches()
+{
+    std::shared_ptr<WAMREnclave> wamrEnclave = acquireGlobalWAMREnclaveLock();
+
+    wamrEnclave->tearDownSgxEnclave();
+
+    releaseGlobalWAMREnclaveLock();
+}
+
 void SGXWAMRWasmModule::reset(faabric::Message& msg,
                               const std::string& snapshotKey)
 {

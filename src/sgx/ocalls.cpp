@@ -13,11 +13,11 @@ using namespace faabric::state;
 
 extern "C"
 {
-    void ocall_printf(const char* msg) { SPDLOG_DEBUG("ENCLAVE: {}", msg); }
+    void ocall_printf(const char* msg) { SPDLOG_DEBUG("[enclave] {}", msg); }
 
     void ocall_faasm_log_error(const char* msg)
     {
-        SPDLOG_ERROR("ENCLAVE: {}", msg);
+        SPDLOG_ERROR("[enclave] {}", msg);
     }
 
     uint64_t ocall_faasm_read_state(const char* key,

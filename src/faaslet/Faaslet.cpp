@@ -179,6 +179,8 @@ void FaasletFactory::flushHost()
     const conf::FaasmConfig& conf = conf::getFaasmConfig();
     if (conf.wasmVm == "wavm") {
         wasm::WAVMWasmModule::clearCaches();
+    } else if (conf.wasmVm == "wamr") {
+        wasm::SGXWAMRWasmModule::clearCaches();
     }
 }
 }

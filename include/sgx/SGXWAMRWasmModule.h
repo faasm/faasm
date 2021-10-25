@@ -25,6 +25,8 @@ class SGXWAMRWasmModule final : public WasmModule
 
     ~SGXWAMRWasmModule() override;
 
+    static void clearCaches();
+
     // ----- Module lifecycle -----
     void doBindToFunction(faabric::Message& msg, bool cache) override;
 

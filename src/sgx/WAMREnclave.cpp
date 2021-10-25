@@ -10,12 +10,12 @@ std::mutex enclaveMx;
 
 WAMREnclave::WAMREnclave() {}
 
-void WAMREnclave::init()
+void WAMREnclave::initSgxEnclave()
 {
     // Skip set-up if enclave already exists
     if (enclaveId != 0) {
-        SPDLOG_DEBUG("SGX-WAMR enclave already exists (id: {})", enclaveId);
-        return;
+        SPDLOG_ERROR("SGX-WAMR enclave already exists (id: {})", enclaveId);
+        throw std::runtime_error("SGX enclave already exists");
     }
 
     faasm_sgx_status_t returnValue;
@@ -78,9 +78,9 @@ void WAMREnclave::init()
     SPDLOG_DEBUG("Initialised SGX-WAMR enclave (id: {})", enclaveId);
 }
 
-void WAMREnclave::tearDown()
+void WAMREnclave::tearDownSgxEnclave()
 {
-    if (enclaveId == 0) {
+    if (!isSgxEnclaveSetUp()) {
         return;
     }
 
@@ -97,7 +97,7 @@ void WAMREnclave::tearDown()
     enclaveId = 0;
 }
 
-bool WAMREnclave::isSetUp()
+bool WAMREnclave::isSgxEnclaveSetUp()
 {
     return enclaveId != 0;
 }
@@ -191,7 +191,9 @@ std::shared_ptr<WAMREnclave> acquireGlobalWAMREnclaveLock()
 
     static std::shared_ptr<WAMREnclave> enclave =
       std::make_shared<WAMREnclave>();
-    enclave->init();
+    if (!enclave->isSgxEnclaveSetUp()) {
+        enclave->initSgxEnclave();
+    }
     SPDLOG_TRACE("Locking SGX-WAMR enclave (id: {})", enclave->getId());
     return enclave;
 }

@@ -21,13 +21,11 @@ class WAMREnclave
     // reference through the getter
     WAMREnclave(const WAMREnclave&) = delete;
 
-    void init();
+    void initSgxEnclave();
 
-    // As enclaves are persisted across function executions, we must ensure we
-    // clean everything up without relying on the destructor.
-    void tearDown();
+    void tearDownSgxEnclave();
 
-    bool isSetUp();
+    bool isSgxEnclaveSetUp();
 
     sgx_enclave_id_t getId();
 
