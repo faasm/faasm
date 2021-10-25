@@ -6,6 +6,7 @@
   roles:
     - linux
     - llvm10
+    - llvm13
     - grpc
     - eigen
     - pistache

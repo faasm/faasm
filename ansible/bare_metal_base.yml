@@ -9,6 +9,7 @@
     - linux
     - cmake
     - llvm10
+    - llvm13
     - grpc
     - code
     - python

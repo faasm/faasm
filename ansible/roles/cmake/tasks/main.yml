@@ -1,18 +1,19 @@
 ---
 
-- name: "Remove existing cmake"
+- name: "Add CMake APT GPG key"
   become: yes
-  shell: "apt remove --purge cmake -y"
+  apt_key: url=https://apt.kitware.com/keys/kitware-archive-latest.asc
 
-- name: "Download cmake script"
-  get_url:
-    url: https://github.com/Kitware/CMake/releases/download/v3.18.2/cmake-3.18.2-Linux-x86_64.sh
-    dest: /tmp/cmake-linux.sh
-    mode: 755
-
-- name: "Run cmake install"
+- name: "Install CMake repo"
   become: yes
-  shell: "sh cmake-linux.sh -- --skip-license --prefix=/usr/local"
-  args:
-    chdir: "/tmp"
+  apt_repository:
+    repo: "deb https://apt.kitware.com/ubuntu/ {{ ansible_distribution_release }} main"
+    state: present
+
+- name: "Install CMake"
+  become: yes
+  apt:
+    name:
+      - cmake
+    update_cache: yes
 
