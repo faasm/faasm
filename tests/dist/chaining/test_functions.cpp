@@ -33,7 +33,7 @@ TEST_CASE_METHOD(DistTestsFixture,
     }
 
     // Call the functions
-    std::vector<std::string> actualHosts = sch.callFunctions(req);
+    std::vector<std::string> actualHosts = sch.callFunctions(req).hosts;
     REQUIRE(actualHosts == expectedHosts);
 
     // Check it's successful
