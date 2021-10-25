@@ -7,6 +7,7 @@ SHELL ["/bin/bash", "-c"]
 RUN apt-get update
 RUN apt-get install -y \
     clang-tidy-10 \
+    clang-tidy-13 \
     libpython3-dev \
     python3-dev \
     python3-pip \
@@ -29,6 +30,9 @@ RUN rm -r /tmp/wabt
 WORKDIR /usr/local/code
 RUN git clone https://github.com/faasm/cpp
 WORKDIR /usr/local/code/cpp
+RUN pip3 install -U pip
+RUN pip3 install -U setuptools
+RUN pip3 install -U wheel
 RUN pip3 install -e .
 
 # Python set-up

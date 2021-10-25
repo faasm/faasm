@@ -16,7 +16,8 @@ COPY --from=python /usr/local/faasm/runtime_root /usr/local/faasm/runtime_root
 
 # Set up SGX SDK
 COPY --from=sgx /opt/intel /opt/intel
-RUN apt install -y nasm
+RUN apt-get update
+RUN apt-get install -y nasm libssl-dev
 
 # Check out code (clean beforehand just in case)
 WORKDIR /usr/local/code
