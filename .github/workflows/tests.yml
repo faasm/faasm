@@ -265,9 +265,7 @@ jobs:
       - name: "Flush workers"
         run: docker-compose run -T cpp inv func.flush --host=nginx
       - name: "Build echo function"
-        run: docker-compose run -T cpp bash -c "inv func demo echo && \
-          cp ./build/func/demo/echo.wasm ./build/func/demo/hello.wasm && \
-          inv func.upload demo hello"
+        run: docker-compose run -T cpp bash -c "inv func demo echo && /usr/bin/cp /code/cpp/build/func/demo/echo.wasm /code/cpp/build/func/demo/hello.wasm && inv func.upload demo hello"
       - name: "Invoke cpp function"
         run: docker-compose run -T cpp inv func.invoke --host=nginx demo hello > output_2.log
       - name: "Check both outputs are different"
