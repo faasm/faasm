@@ -15,6 +15,11 @@ extern "C"
 {
     void ocall_printf(const char* msg) { SPDLOG_DEBUG("ENCLAVE: {}", msg); }
 
+    void ocall_faasm_log_error(const char* msg)
+    {
+        SPDLOG_ERROR("ENCLAVE: {}", msg);
+    }
+
     uint64_t ocall_faasm_read_state(const char* key,
                                     uint8_t* bufferPtr,
                                     const uint32_t bufferLen)

@@ -13,10 +13,10 @@
 section .rodata
 section .data
 
-global faasm_sgx_get_sgx_support
+global enclaveGetSgxSupport
 
 section .text
-faasm_sgx_get_sgx_support:;There is no need to safe base pointer, hence we won't do this.
+enclaveGetSgxSupport:;There is no need to safe base pointer, hence we won't do this.
     mov r8, rbx
     xor rax, rax
     xor rcx, rcx

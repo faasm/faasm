@@ -92,6 +92,9 @@ TEST_CASE_METHOD(SgxModuleTestFixture,
     std::thread th([this] { otherModule.doBindToFunction(otherMsg, false); });
 
     REQUIRE_NOTHROW(module.doBindToFunction(msg, false));
-    th.join();
+
+    if (th.joinable()) {
+        th.join();
+    }
 }
 }

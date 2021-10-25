@@ -8,7 +8,9 @@
 // to the outside (untrusted) Faasm runtime. OCalls in SGX terminology.
 extern "C"
 {
-    extern void ocall_printf(const char* msg);
+    extern sgx_status_t SGX_CDECL ocall_printf(const char* msg);
+
+    extern sgx_status_t SGX_CDECL ocall_faasm_log_error(const char* msg);
 
     extern sgx_status_t SGX_CDECL
     ocall_faasm_read_state(uint64_t* returnValue,

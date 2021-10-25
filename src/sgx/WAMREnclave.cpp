@@ -8,10 +8,7 @@
 namespace sgx {
 std::mutex enclaveMx;
 
-WAMREnclave::WAMREnclave()
-{
-    init();
-}
+WAMREnclave::WAMREnclave() {}
 
 void WAMREnclave::init()
 {
@@ -24,7 +21,7 @@ void WAMREnclave::init()
     faasm_sgx_status_t returnValue;
 
 #if (!SGX_SIM_MODE)
-    returnValue = faasm_sgx_get_sgx_support();
+    returnValue = enclaveGetSgxSupport();
     if (returnValue != FAASM_SGX_SUCCESS) {
         SPDLOG_ERROR("Machine doesn't support SGX {}",
                      faasmSgxErrorString(returnValue));

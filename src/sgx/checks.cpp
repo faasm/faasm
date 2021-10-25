@@ -80,19 +80,17 @@ extern "C"
         sgx::ModuleStore moduleStore;
 
         std::vector<uint8_t> moduleData = { 1, 2, 3 };
-        std::shared_ptr<sgx::WamrModuleHandle> moduleHandle = nullptr;
 
         // We can add modules to the module store
         std::string moduleName = "foo-bar";
-        moduleHandle = moduleStore.store(
+        std::shared_ptr<sgx::WamrModuleHandle> moduleHandle = moduleStore.store(
           moduleName.c_str(), (void*)moduleData.data(), moduleData.size());
         if (moduleHandle == nullptr) {
             return FAASM_SGX_MODULE_STORE_TEST_FAILED;
         }
 
         // We can clear modules from the module store
-        bool success = false;
-        success = moduleStore.clear(moduleName.c_str());
+        bool success = moduleStore.clear(moduleName.c_str());
         if (!success) {
             return FAASM_SGX_MODULE_STORE_TEST_FAILED;
         }

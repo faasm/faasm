@@ -46,7 +46,6 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 
     wamrEnclave->loadWasmModule(funcStr, wasmBytes);
 
-    // wamrEnclave = nullptr;
     releaseGlobalWAMREnclaveLock();
 
     SPDLOG_DEBUG("Binding SGX-WAMR module to function {}", funcStr);
@@ -71,8 +70,6 @@ void SGXWAMRWasmModule::reset(faabric::Message& msg,
     releaseGlobalWAMREnclaveLock();
 
     boundFuncStr.clear();
-
-    return;
 }
 
 int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)

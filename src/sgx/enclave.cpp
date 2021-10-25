@@ -24,8 +24,7 @@
 // interacts with the WAMR runtime.
 extern "C"
 {
-
-#ifdef FAASM_SGX_DEBUG
+#ifndef NDEBUG
     // Print functions
     typedef void (*os_print_function_t)(const char* msg);
     extern void os_set_print_function(os_print_function_t pf);
@@ -36,9 +35,12 @@ extern "C"
     // Print function wrapper
     void SGX_DEBUG_LOG(const char* fmt, ...)
     {
-#ifdef FAASM_SGX_DEBUG
+#ifndef NDEBUG
+        va_list args;
+        va_start(args, fmt);
         char message[SGX_MSG_BUFFER_SIZE];
-        snprintf(message, 256, fmt, ...);
+        vsnprintf(message, SGX_MSG_BUFFER_SIZE, fmt, args);
+        va_end(args);
         ocall_printf(message);
 #else
         ;
@@ -54,16 +56,15 @@ extern "C"
     // we only run one enclave per Faasm instance.
     faasm_sgx_status_t enclaveInitWamr(void)
     {
-        os_set_print_function((os_print_function_t)SGX_DEBUG_LOG);
-
         // Initialise the WAMR runtime
-        RuntimeInitArgs wamr_rte_args;
-        memset(&wamr_rte_args, 0x0, sizeof(wamr_rte_args));
-        wamr_rte_args.mem_alloc_type = Alloc_With_Pool;
-        wamr_rte_args.mem_alloc_option.pool.heap_buf = (void*)wamrHeapBuffer;
-        wamr_rte_args.mem_alloc_option.pool.heap_size = sizeof(wamrHeapBuffer);
+        RuntimeInitArgs wamrRuntimeArgs;
+        memset(&wamrRuntimeArgs, 0x0, sizeof(wamrRuntimeArgs));
+        wamrRuntimeArgs.mem_alloc_type = Alloc_With_Pool;
+        wamrRuntimeArgs.mem_alloc_option.pool.heap_buf = (void*)wamrHeapBuffer;
+        wamrRuntimeArgs.mem_alloc_option.pool.heap_size =
+          sizeof(wamrHeapBuffer);
 
-        if (!wasm_runtime_full_init(&wamr_rte_args)) {
+        if (!wasm_runtime_full_init(&wamrRuntimeArgs)) {
             return FAASM_SGX_WAMR_RTE_INIT_FAILED;
         }
 
@@ -92,7 +93,7 @@ extern "C"
         std::shared_ptr<sgx::WamrModuleHandle> moduleHandle =
           wamrModules.store(funcStr, wasmOpCodePtr, wasmOpCodeSize);
         if (moduleHandle == nullptr) {
-            SGX_DEBUG_LOG("Can't load module to the SGX store");
+            ocall_faasm_log_error("Can't load module to the SGX store");
             return FAASM_SGX_MODULE_STORE_FAILED;
         }
         SGX_DEBUG_LOG("Loaded module %s in the module store", funcStr);
@@ -104,7 +105,7 @@ extern "C"
                             errorBuffer,
                             sizeof(errorBuffer));
         if (moduleHandle->wasmModule == nullptr) {
-            SGX_DEBUG_LOG(errorBuffer);
+            ocall_faasm_log_error(errorBuffer);
             return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
         }
 
@@ -118,7 +119,7 @@ extern "C"
 
         if (moduleHandle->moduleInstance == NULL) {
             wasm_runtime_unload(moduleHandle->wasmModule);
-            SGX_DEBUG_LOG(errorBuffer);
+            ocall_faasm_log_error(errorBuffer);
             return FAASM_SGX_WAMR_MODULE_INSTANTIATION_FAILED;
         }
         SGX_DEBUG_LOG("Loaded WASM module (%s) to the runtime", funcStr);
@@ -142,7 +143,7 @@ extern "C"
         // Clean the module slot
         bool success = wamrModules.clear(funcStr);
         if (!success) {
-            SGX_DEBUG_LOG("Error clearing module from module store");
+            ocall_faasm_log_error("Error clearing module from module store");
             return FAASM_SGX_MODULE_STORE_CLEAR_FAILED;
         }
 
@@ -155,7 +156,7 @@ extern "C"
         std::shared_ptr<sgx::WamrModuleHandle> moduleHandle =
           wamrModules.get(key);
         if (moduleHandle == nullptr) {
-            SGX_DEBUG_LOG("SGX-WAMR module not found in enclave");
+            ocall_faasm_log_error("SGX-WAMR module not found in enclave");
             return FAASM_SGX_INVALID_PTR;
         }
 
@@ -164,7 +165,8 @@ extern "C"
           moduleHandle->moduleInstance, WASM_ENTRY_FUNC, NULL);
 
         if (func == nullptr) {
-            SGX_DEBUG_LOG("Failed to instantiate WAMR function in enclave");
+            ocall_faasm_log_error(
+              "Failed to instantiate WAMR function in enclave");
             return FAASM_SGX_WAMR_FUNCTION_NOT_FOUND;
         }
 
@@ -192,8 +194,9 @@ extern "C"
                     ->cur_exception[sizeof(_FAASM_SGX_ERROR_PREFIX)]));
             }
 
-            SGX_DEBUG_LOG(((AOTModuleInstance*)moduleHandle->moduleInstance)
-                            ->cur_exception);
+            ocall_faasm_log_error(
+              ((AOTModuleInstance*)moduleHandle->moduleInstance)
+                ->cur_exception);
             return FAASM_SGX_WAMR_FUNCTION_UNABLE_TO_CALL;
         }
 

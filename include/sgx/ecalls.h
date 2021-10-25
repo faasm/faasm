@@ -8,7 +8,7 @@
 // enclave from the (untrusted) Faasm runtime. ECalls in SGX terminology.
 extern "C"
 {
-    extern faasm_sgx_status_t faasm_sgx_get_sgx_support(void);
+    extern faasm_sgx_status_t enclaveGetSgxSupport(void);
 
     extern sgx_status_t enclaveInitWamr(sgx_enclave_id_t enclaveId,
                                         faasm_sgx_status_t* returnValue);

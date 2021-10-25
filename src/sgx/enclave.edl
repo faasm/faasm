@@ -39,6 +39,8 @@ enclave{
     untrusted{
         void ocall_printf([in, string] const char* msg);
 
+        void ocall_faasm_log_error([in, string] const char* msg);
+
         uint64_t ocall_faasm_read_state(
             [in, string]            char* key,
             [out, size=buffer_len]  uint8_t* buffer_ptr,
