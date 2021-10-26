@@ -87,9 +87,15 @@ FileLoader::FileLoader(bool useLocalFsCacheIn)
   , useLocalFsCache(useLocalFsCacheIn)
 {}
 
-FileLoader& getFileLoader(bool useLocalFsCache)
+FileLoader& getFileLoader()
 {
-    static thread_local FileLoader fl(useLocalFsCache);
+    static thread_local FileLoader fl(true);
+    return fl;
+}
+
+FileLoader& getFileLoaderWithoutLocalCache()
+{
+    static thread_local FileLoader fl(false);
     return fl;
 }
 
