@@ -27,16 +27,6 @@ RUN apt-get install -y \
     libboost-all-dev \
     libcpprest-dev
 
-# We could be more tactical here, adding only what's required, thus
-# avoiding invalidating the Docker cache when anything Ansible-related
-# changes. However, this image is not rebuilt often, so it's probably
-# unnecessary.
-
-COPY ansible /usr/local/code/faasm/ansible
-WORKDIR /usr/local/code/faasm/ansible
-
-RUN ansible-playbook llvm.yml
-
 RUN apt-get clean autoclean
 RUN apt-get autoremove
 
