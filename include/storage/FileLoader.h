@@ -138,6 +138,8 @@ class FileLoader
 
 FileLoader& getFileLoader();
 
+FileLoader& getFileLoaderWithoutLocalCache();
+
 class SharedFileIsDirectoryException : public faabric::util::FaabricException
 {
   public:

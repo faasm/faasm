@@ -52,23 +52,17 @@ class UploadTestFixture
         h.add(FILE_PATH_HEADER, relativePath);
     }
 
-    void checkPut(http_request request,
-                  const std::string& expectedFile,
-                  const std::vector<uint8_t>& bytes)
+    void checkPut(http_request request, int numAddedKeys)
     {
+        int expectedNumKeys = s3.listKeys(conf.s3Bucket).size() + numAddedKeys;
+
         // Submit PUT request
         edge::UploadServer::handlePut(request);
         http_response response = request.get_response().get();
         REQUIRE(response.status_code() == status_codes::OK);
 
-        // Check file created
-        REQUIRE(boost::filesystem::exists(expectedFile));
-
-        // Check contents
-        std::vector<uint8_t> actualBytes =
-          faabric::util::readFileToBytes(expectedFile);
-        REQUIRE(actualBytes.size() == bytes.size());
-        REQUIRE(actualBytes == bytes);
+        // Check keys are added
+        REQUIRE(s3.listKeys(conf.s3Bucket).size() == expectedNumKeys);
     }
 
     void checkGet(http_request& request, const std::vector<uint8_t>& bytes)
@@ -82,6 +76,15 @@ class UploadTestFixture
         const std::vector<unsigned char> responseBytes =
           response.extract_vector().get();
         REQUIRE(responseBytes == bytes);
+    }
+
+    void checkS3bytes(const std::string& bucket,
+                      const std::string& key,
+                      const std::vector<uint8_t>& expectedBytes)
+    {
+        std::vector<uint8_t> s3bytes = s3.getKeyBytes(bucket, key);
+        REQUIRE(s3bytes.size() == expectedBytes.size());
+        REQUIRE(s3bytes == expectedBytes);
     }
 };
 
@@ -148,31 +151,22 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
     SECTION("Test uploading function wasm file")
     {
         // Ensure environment is clean before running
-        std::string expectedFile = "/tmp/func/gamma/delta/function.wasm";
-        std::string expectedObjFile = "/tmp/obj/gamma/delta/function.wasm.o";
-        std::string expectedHashFile = loader.getHashFilePath(expectedObjFile);
-        boost::filesystem::remove(expectedFile);
-        boost::filesystem::remove(expectedObjFile);
-        boost::filesystem::remove(expectedHashFile);
+        std::string fileKey = "gamma/delta/function.wasm";
+        std::string objFileKey = "gamma/delta/function.wasm.o";
+        std::string objFileHashKey = "gamma/delta/function.wasm.o.md5";
+        s3.deleteKey(conf.s3Bucket, fileKey);
+        s3.deleteKey(conf.s3Bucket, objFileKey);
+        s3.deleteKey(conf.s3Bucket, objFileHashKey);
 
-        // Check putting the file
+        // Check putting the file adds three keys
         std::string url = fmt::format("/{}/gamma/delta", FUNCTION_URL_PART);
         http_request request = createRequest(url, wasmBytesA);
-        checkPut(request, expectedFile, wasmBytesA);
+        checkPut(request, 3);
 
-        // Check object file and hash generated
-        REQUIRE(boost::filesystem::exists(expectedObjFile));
-        REQUIRE(boost::filesystem::exists(expectedHashFile));
-
-        std::vector<uint8_t> objBytes =
-          faabric::util::readFileToBytes(expectedObjFile);
-        REQUIRE(objBytes.size() == objBytesA.size());
-        REQUIRE(objBytes == objBytesA);
-
-        std::vector<uint8_t> hashBytes =
-          faabric::util::readFileToBytes(expectedHashFile);
-        REQUIRE(hashBytes.size() == hashBytesA.size());
-        REQUIRE(hashBytes == hashBytesA);
+        // Check wasm, object file and hash stored in s3
+        checkS3bytes(conf.s3Bucket, fileKey, wasmBytesA);
+        checkS3bytes(conf.s3Bucket, objFileKey, objBytesA);
+        checkS3bytes(conf.s3Bucket, objFileHashKey, hashBytesA);
     }
 
     SECTION("Test uploading and downloading shared file")
@@ -180,20 +174,21 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
         std::vector<uint8_t> fileBytes = { 0, 0, 1, 1, 2, 2, 3, 3 };
 
         // Clear out any existing
-        std::string relativePath = "test/dummy_file.txt";
-        std::string fullPath = loader.getSharedFileFile(relativePath);
-        boost::filesystem::remove(fullPath);
+        std::string fileKey = "test/dummy_file.txt";
+        s3.deleteKey(conf.s3Bucket, fileKey);
 
         // Check putting the file
         std::string url = fmt::format("/{}/", SHARED_FILE_URL_PART);
         http_request request = createRequest(url, fileBytes);
-        addRequestFilePathHeader(request, relativePath);
+        addRequestFilePathHeader(request, fileKey);
 
-        checkPut(request, fullPath, fileBytes);
+        checkPut(request, 1);
+
+        checkS3bytes(conf.s3Bucket, fileKey, fileBytes);
 
         // Check downloading the file
         http_request requestB = createRequest(url, fileBytes);
-        addRequestFilePathHeader(requestB, relativePath);
+        addRequestFilePathHeader(requestB, fileKey);
         checkGet(requestB, fileBytes);
     }
 
@@ -208,21 +203,20 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
         msg.set_pythonuser(pythonUser);
         msg.set_pythonfunction(pythonFunction);
 
-        // Clear out any existing
-        std::string fullPath = loader.getPythonFunctionFile(msg);
-        std::string relativePath = loader.getPythonFunctionRelativePath(msg);
-        boost::filesystem::remove(fullPath);
+        std::string pythonFuncKey = loader.getPythonFunctionRelativePath(msg);
 
         // Check putting the file
         std::string url =
           fmt::format("/{}/{}/{}", PYTHON_URL_PART, pythonUser, pythonFunction);
         http_request request = createRequest(url, fileBytes);
-        checkPut(request, fullPath, fileBytes);
+        checkPut(request, 1);
+
+        checkS3bytes(conf.s3Bucket, pythonFuncKey, fileBytes);
 
         // Check getting as shared file
         std::string sharedFileUrl = fmt::format("/{}/", SHARED_FILE_URL_PART);
         http_request requestB = createRequest(sharedFileUrl);
-        addRequestFilePathHeader(requestB, relativePath);
+        addRequestFilePathHeader(requestB, pythonFuncKey);
         checkGet(requestB, fileBytes);
     }
 }
