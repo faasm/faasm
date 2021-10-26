@@ -305,7 +305,8 @@ void UploadServer::handleSharedFileUpload(const http_request& request,
               std::string s = inputStream.collection();
               const std::vector<uint8_t> bytesData =
                 faabric::util::stringToBytes(s);
-              storage::FileLoader& l = storage::getFileLoaderWithoutLocalCache();
+              storage::FileLoader& l =
+                storage::getFileLoaderWithoutLocalCache();
               l.uploadSharedFile(path, bytesData);
           }
       })
