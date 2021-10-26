@@ -98,7 +98,7 @@ def do_tidy(file_list):
 def inner_tidy(file_chunk):
     print("Running clang-tidy on chunk of {} files".format(len(file_chunk)))
     cmd = [
-        "clang-tidy-10",
+        "clang-tidy-13",
         '-config "{}"'.format(CONFIG),
         "--fix",
         "--fix-errors",

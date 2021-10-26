@@ -40,8 +40,8 @@ WORKDIR /build/faasm
 # Build the basics here to set up the CMake build
 RUN cmake \
     -GNinja \
-    -DCMAKE_CXX_COMPILER=/usr/bin/clang++-10 \
-    -DCMAKE_C_COMPILER=/usr/bin/clang-10 \
+    -DCMAKE_CXX_COMPILER=/usr/bin/clang++-13 \
+    -DCMAKE_C_COMPILER=/usr/bin/clang-13 \
     -DCMAKE_BUILD_TYPE=Release \
     /usr/local/code/faasm
 
