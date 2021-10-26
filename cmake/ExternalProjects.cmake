@@ -42,14 +42,6 @@ if(FAASM_SGX_XRA)
     set(FAASM_XRA_INCLUDE_PATH ${FAASM_XRA_ROOT_DIR}/include)
 endif()
 
-# General 3rd party dependencies
-# Eigen is currently not used for anything anywhere currently
-# FetchContent_Declare(eigen_ext
-#     GIT_REPOSITORY "https://gitlab.com/shillaker/eigen.git"
-#     GIT_TAG "faasm"
-# )
-# FetchContent_MakeAvailable(eigen_ext)
-
 # There are some AWS docs on using the cpp sdk as an external project:
 # https://github.com/aws/aws-sdk-cpp/blob/main/Docs/CMake_External_Project.md
 # but they don't specify how to link the libraries, which required adding an
