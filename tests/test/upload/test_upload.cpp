@@ -27,8 +27,8 @@ class UploadTestFixture
   , public RedisTestFixture
 {
   public:
-    UploadTestFixture() { faabric::util::setTestMode(false); }
-    ~UploadTestFixture() { faabric::util::setTestMode(true); }
+    UploadTestFixture() {}
+    ~UploadTestFixture() {}
 
     http_request createRequest(const std::string& path,
                                const std::vector<uint8_t>& inputData = {})
@@ -90,7 +90,6 @@ class UploadTestFixture
 
 TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
 {
-    loader.clearLocalCache();
     std::vector<uint8_t> empty;
 
     SECTION("Test uploading state")
