@@ -10,40 +10,22 @@ FROM faasm/faabric-base:0.1.0
 
 RUN apt-get update
 RUN apt-get install -y software-properties-common
+# Make sure packages from faabric-base are up-to-date
+RUN apt-get upgrade -y
 
-# All apt packages
+# Faasm-specific dependencies
 RUN apt-get install -y \
     ansible \
-    autoconf \
-    automake \
-    build-essential \
-    clang-10 \
-    clang-format-10 \
-    clang-tidy-10 \
     cgroup-tools \
-    curl \
-    git \
     iproute2 \
     iptables \
+    libcgroup-dev
+
+# Apt packages that will be removed once the new dependency management is in place
+RUN apt-get install -y \
     libboost-dev \
     libboost-all-dev \
-    libcpprest-dev \
-    libcgroup-dev \
-    libcurl4-openssl-dev \
-    libhiredis-dev \
-    libpython3-dev \
-    libtool \
-    libz-dev \
-    make \
-    ninja-build \
-    pkg-config \
-    python3-dev \
-    python3-pip \
-    python3-venv \
-    redis-tools \
-    sudo \
-    unzip \
-    wget
+    libcpprest-dev
 
 # We could be more tactical here, adding only what's required, thus
 # avoiding invalidating the Docker cache when anything Ansible-related
