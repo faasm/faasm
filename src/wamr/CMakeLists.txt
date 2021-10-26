@@ -46,13 +46,17 @@ target_include_directories(wamrlib PUBLIC
     ${PLATFORM_SHARED_DIR}
 )
 
-set(FAASM_WAMR_HEADERS
-    "${FAASM_INCLUDE_DIR}/wamr/native.h"
-    "${FAASM_INCLUDE_DIR}/wamr/types.h"
-    "${FAASM_INCLUDE_DIR}/wamr/WAMRWasmModule.h"
+# Link the specific LLVM libraries that WAMR needs
+llvm_map_components_to_libnames(
+    WAMR_LLVM_LIBRARIES
+    core
+    lto
+    executionengine
+    mcjit
 )
 
-set(FAASM_WAMR_SRC
+# Link everything together
+faasm_private_lib(wamrmodule
     WAMRWasmModule.cpp
     codegen.cpp
     dynlink.cpp
@@ -65,22 +69,9 @@ set(FAASM_WAMR_SRC
     state.cpp
     stubs.cpp
     timing.cpp
-    ${FAASM_WAMR_HEADERS}
 )
-
-# Link the specific LLVM libraries that WAMR needs
-llvm_map_components_to_libnames(
-    WAMR_LLVM_LIBRARIES
-    core
-    lto
-    executionengine
-    mcjit
-)
-
-# Link everything together
-faasm_private_lib(wamrmodule "${FAASM_WAMR_SRC}")
-target_link_libraries(wamrmodule
-    wasm
-    wamrlib
+target_link_libraries(wamrmodule PUBLIC
+    faasm::wasm
+    faasm::wamrlib
     ${WAMR_LLVM_LIBRARIES}
 )

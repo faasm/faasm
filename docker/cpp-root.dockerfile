@@ -21,12 +21,6 @@ RUN apt-get install -y \
     iptables \
     libcgroup-dev
 
-# Apt packages that will be removed once the new dependency management is in place
-RUN apt-get install -y \
-    libboost-dev \
-    libboost-all-dev \
-    libcpprest-dev
-
 RUN apt-get clean autoclean
 RUN apt-get autoremove
 

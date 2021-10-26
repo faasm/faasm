@@ -1,25 +1,15 @@
-include_directories(
-        ${FAASM_INCLUDE_DIR}/faaslet
+
+faasm_private_lib(faaslet_lib
+    Faaslet.cpp
 )
-
-file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/faaslet/*.h")
-
-set(LIB_FILES
-        Faaslet.cpp
-        ${HEADERS}
-        )
-
-faasm_private_lib(faaslet_lib "${LIB_FILES}")
-
-target_link_libraries(faaslet_lib
-        faabric
-        system
-        threads
-        storage
-        )
+target_include_directories(faaslet_lib PRIVATE ${FAASM_INCLUDE_DIR}/faaslet)
+target_link_libraries(faaslet_lib PUBLIC
+    faasm::system
+    faasm::threads
+    faasm::storage
+)
 
 # Include SGX lib if enabled
 if(SGX_FOUND)
-    target_link_libraries(faaslet_lib enclave_untrusted)
-    target_include_directories(faaslet_lib PUBLIC ${FAASM_INCLUDE_DIR}/sgx)
+    target_link_libraries(faaslet_lib PUBLIC faasm::sgx)
 endif()

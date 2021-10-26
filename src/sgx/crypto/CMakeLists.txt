@@ -22,7 +22,7 @@ target_include_directories(enclave_trusted_crypto PRIVATE
     ${SGX_SDK_PATH}/include/libcxx
 )
 
-target_link_libraries(enclave_trusted_crypto
+target_link_libraries(enclave_trusted_crypto PUBLIC
     ${SGX_SDK_LIB_PATH}/libsgx_tstdc.a
     ${SGX_SDK_LIB_PATH}/libsgx_tcrypto.a
 )
