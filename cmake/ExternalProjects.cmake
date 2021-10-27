@@ -53,12 +53,20 @@ conan_cmake_install(PATH_OR_REFERENCE .
 include(${CMAKE_CURRENT_BINARY_DIR}/conan_paths.cmake)
 
 find_package(Catch2 REQUIRED)
+
+# There are some AWS docs on using the cpp sdk as an external project:
+# https://github.com/aws/aws-sdk-cpp/blob/main/Docs/CMake_External_Project.md
+# but they don't specify how to link the libraries, which required adding an
+# extra couple of CMake targets.
+# We now use the Conan package for aws-sdk-cpp: https://conan.io/center/aws-sdk-cpp
+# To enable only S3, all default targets from the Conan recipe
+# have to be explicitly disabled above
 find_package(AWSSDK REQUIRED)
 
 # Tightly-coupled dependencies
 set(FETCHCONTENT_QUIET OFF)
 FetchContent_Declare(wavm_ext
-    GIT_REPOSITORY "https://github.com/auto-ndp/WAVM.git"
+    GIT_REPOSITORY "https://github.com/faasm/WAVM.git"
     GIT_TAG "faasm"
     CMAKE_ARGS "-DDLL_EXPORT= \
         -DDLL_IMPORT="
@@ -69,7 +77,6 @@ FetchContent_Declare(wamr_ext
     GIT_TAG "5ac9493230902dd6ffdcbef0eeb6d5cc20fa81df"
 )
 
-set(WAVM_ENABLE_STATIC_LINKING ON CACHE INTERNAL "")
 FetchContent_MakeAvailable(wavm_ext wamr_ext)
 
 # Allow access to headers nested in other projects

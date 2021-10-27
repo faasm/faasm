@@ -1,7 +1,6 @@
 
 faasm_private_lib(wavmmodule
     WAVMWasmModule.cpp
-    NdpBuiltinModule.cpp
     WAVMModuleCache.cpp
     IRModuleCache.cpp
     LoadedDynamicModule.cpp
@@ -17,7 +16,6 @@ faasm_private_lib(wavmmodule
     memory.cpp
     messages.cpp
     mpi.cpp
-    ndp_objects.cpp
     network.cpp
     openmp.cpp
     process.cpp

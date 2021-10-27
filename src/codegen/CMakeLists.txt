@@ -1,4 +1,4 @@
-faasm_private_lib(conf
-    FaasmConfig.cpp
+faasm_private_lib(codegen
+    MachineCodeGenerator.cpp
 )
-target_include_directories(conf PRIVATE ${FAASM_INCLUDE_DIR}/conf)
+target_include_directories(codegen PRIVATE ${FAASM_INCLUDE_DIR}/codegen)
