@@ -77,6 +77,11 @@ FetchContent_Declare(wamr_ext
     GIT_TAG "5ac9493230902dd6ffdcbef0eeb6d5cc20fa81df"
 )
 
+# WAMR and WAVM both link to LLVM
+# If WAVM is not linked statically like WAMR, there are some obscure
+# static constructor errors in LLVM due to double-registration
+set(WAVM_ENABLE_STATIC_LINKING ON CACHE INTERNAL "")
+
 FetchContent_MakeAvailable(wavm_ext wamr_ext)
 
 # Allow access to headers nested in other projects

@@ -12,10 +12,9 @@ target_include_directories(
     dist_tests
     PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
-    ${CMAKE_CURRENT_LIST_DIR}/../utils
 )
 
-target_link_libraries(dist_tests test_utils)
+target_link_libraries(dist_tests PRIVATE faasm::test_utils)
 
 add_test(NAME dist_tests COMMAND "tests/dist/dist_tests")
 
@@ -29,8 +28,7 @@ target_include_directories(
     dist_test_server
     PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
-    ${CMAKE_CURRENT_LIST_DIR}/../utils
 )
 
-target_link_libraries(dist_test_server test_utils)
+target_link_libraries(dist_test_server PRIVATE faasm::runner_lib)
 
