@@ -5,7 +5,7 @@ FROM faasm/cpython:0.1.0 as python
 FROM faasm/sgx:0.5.3 as sgx
 
 # Note - we don't often rebuild cpp-root so this dep may be behind
-FROM faasm/cpp-root:0.6.0
+FROM faasm/cpp-root:0.7.0
 ARG FAASM_VERSION
 
 # Flag to say we're in a container
@@ -16,7 +16,8 @@ COPY --from=python /usr/local/faasm/runtime_root /usr/local/faasm/runtime_root
 
 # Set up SGX SDK
 COPY --from=sgx /opt/intel /opt/intel
-RUN apt install -y nasm
+RUN apt-get update
+RUN apt-get install -y nasm
 
 # Check out code (clean beforehand just in case)
 WORKDIR /usr/local/code

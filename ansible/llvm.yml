@@ -1,7 +1,7 @@
----                    
-                       
-- hosts: localhost     
-  gather_facts: yes    
-  roles:               
-    - llvm10            
+---
+
+- hosts: localhost
+  gather_facts: yes
+  roles:
+    - llvm10
 

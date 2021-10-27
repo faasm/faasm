@@ -145,6 +145,7 @@ services:
       - ./:/usr/local/code/faasm/
       - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
       - ./dev/faasm-local/:${FAASM_LOCAL_MOUNT}
+      - ./dev/faasm/conan/:/root/.conan
 
   # Distributed tests server
   dist-test-server:

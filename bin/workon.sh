@@ -35,6 +35,15 @@ pushd ${PROJ_ROOT} >> /dev/null
 
 if [ ! -d "venv" ]; then
     python3 -m venv venv
+    (
+        source venv/bin/activate
+        pip install -U pip
+        pip install -U setuptools
+        pip install -U wheel
+        pip install -r faasmcli/requirements.txt
+        pip install -e faasmcli/
+        pip install -e clients/cpp/
+    )
 fi
 
 export VIRTUAL_ENV_DISABLE_PROMPT=1

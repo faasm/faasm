@@ -49,7 +49,7 @@ def cmake(ctx, clean=False, build="Debug", perf=False, prof=False):
 
 
 @task
-def tools(ctx, clean=False, build="Debug"):
+def tools(ctx, clean=False, build="Debug", parallel=0):
     """
     Builds all the targets commonly used for development
     """
@@ -58,6 +58,8 @@ def tools(ctx, clean=False, build="Debug"):
     targets = " ".join(DEV_TARGETS)
 
     cmake_cmd = "cmake --build . --target {}".format(targets)
+    if parallel > 0:
+        cmake_cmd += " --parallel {}".format(parallel)
     print(cmake_cmd)
     run(
         cmake_cmd,
@@ -68,7 +70,7 @@ def tools(ctx, clean=False, build="Debug"):
 
 
 @task
-def cc(ctx, target, clean=False):
+def cc(ctx, target, clean=False, parallel=0):
     """
     Compiles the given CMake target
     """
@@ -80,8 +82,11 @@ def cc(ctx, target, clean=False):
     else:
         target = "--target {}".format(target)
 
+    cmake_cmd = "cmake --build . {}".format(target)
+    if parallel > 0:
+        cmake_cmd += " --parallel {}".format(parallel)
     run(
-        "cmake --build . {}".format(target),
+        cmake_cmd,
         cwd=FAASM_BUILD_DIR,
         shell=True,
         check=True,
