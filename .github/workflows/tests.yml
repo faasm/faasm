@@ -270,6 +270,10 @@ jobs:
         run: docker-compose run -T cpp inv func.invoke --host=nginx demo hello > output_2.log
       - name: "Check both outputs are different"
         run: (cmp output_1.log output_2.log && exit 1 || exit 0)
+      # --- Print logs from containers ---
+      - name: Docker-Compose logs
+        if: always()
+        run: docker-compose logs
       # --- Shutdown ---
       - name: "Stop docker-compose"
         run: docker-compose down
