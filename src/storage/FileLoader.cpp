@@ -10,9 +10,7 @@
 #include <faabric/util/func.h>
 #include <faabric/util/testing.h>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/filesystem/operations.hpp>
+#include <filesystem>
 
 using namespace faabric::util;
 
@@ -29,6 +27,22 @@ namespace storage {
 #define FUNCTION_SYMBOLS_FILENAME "function.symbols"
 #define WAMR_AOT_FILENAME "function.aot"
 #define SGX_WAMR_AOT_FILENAME "function.aot.sgx"
+
+static std::uintmax_t removeAllInside(const std::filesystem::path& dir)
+{
+    std::uintmax_t removedItemsCount{ 0 };
+
+    if (not is_directory(dir)) {
+        SPDLOG_TRACE("Not removing {} as the directory does not exist",
+                     dir.string());
+        return removedItemsCount;
+    }
+
+    for (auto& dirElement : std::filesystem::directory_iterator(dir)) {
+        removedItemsCount += std::filesystem::remove_all(dirElement.path());
+    }
+    return removedItemsCount;
+}
 
 static std::string trimLeadingSlashes(const std::string& pathIn)
 {
@@ -57,17 +71,26 @@ static std::string getKey(const faabric::Message& msg,
     return key;
 }
 
-static boost::filesystem::path getDir(std::string baseDir,
-                                      const faabric::Message& msg,
-                                      bool create)
+static std::filesystem::path getDir(std::string baseDir,
+                                    const faabric::Message& msg,
+                                    bool create)
 {
-    boost::filesystem::path path(baseDir);
+    std::filesystem::path path(baseDir);
     path.append(msg.user());
     path.append(msg.function());
 
     // Create directory if required
     if (create) {
-        boost::filesystem::create_directories(path);
+        try {
+            std::filesystem::create_directories(path);
+        } catch (const std::filesystem::filesystem_error& ex) {
+            SPDLOG_ERROR(
+              "Call to create_directories ({}) failed with error ({}): {}",
+              path.string(),
+              ex.code().value(),
+              ex.what());
+            throw std::runtime_error("Filesystem error creating directories");
+        }
     }
 
     return path;
@@ -107,13 +130,13 @@ void FileLoader::clearLocalCache()
     }
 
     SPDLOG_DEBUG("Clearing function wasm files from {}", conf.functionDir);
-    boost::filesystem::remove_all(conf.functionDir);
+    removeAllInside(conf.functionDir);
 
     SPDLOG_DEBUG("Clearing function object files from {}", conf.objectFileDir);
-    boost::filesystem::remove_all(conf.objectFileDir);
+    removeAllInside(conf.objectFileDir);
 
     SPDLOG_DEBUG("Clearing shared files from {}", conf.sharedFilesDir);
-    boost::filesystem::remove_all(conf.sharedFilesDir);
+    removeAllInside(conf.sharedFilesDir);
 
     SPDLOG_DEBUG("Clearing the local shared files cache");
     SharedFiles::clear();
@@ -131,8 +154,8 @@ std::vector<uint8_t> FileLoader::loadFileBytes(
     SPDLOG_TRACE("Loading file {} ({})", path, localCachePath);
 
     // Check locally first
-    if (useLocalFsCache && boost::filesystem::exists(localCachePath)) {
-        if (boost::filesystem::is_directory(localCachePath)) {
+    if (useLocalFsCache && std::filesystem::exists(localCachePath)) {
+        if (std::filesystem::is_directory(localCachePath)) {
             throw SharedFileIsDirectoryException(localCachePath);
         }
 
@@ -176,6 +199,8 @@ void FileLoader::uploadFileString(const std::string& path,
                                   const std::string& localCachePath,
                                   const std::string& bytes)
 {
+    SPDLOG_TRACE("Uploading file string {} ({})", path, localCachePath);
+
     std::string pathCopy = trimLeadingSlashes(path);
     s3.addKeyStr(conf.s3Bucket, pathCopy, bytes);
 
@@ -378,17 +403,26 @@ std::vector<uint8_t> FileLoader::loadSharedObjectWasm(const std::string& path)
 
 std::string FileLoader::getSharedObjectObjectFile(const std::string& realPath)
 {
-    boost::filesystem::directory_entry f(realPath);
+    std::filesystem::directory_entry f(realPath);
     const std::string directory = f.path().parent_path().string();
     const std::string fileName = f.path().filename().string();
 
     // Work out the final destination for the object file. This will be the
     // object path with the directory of the original file appended
-    boost::filesystem::path objPath(conf.objectFileDir);
+    std::filesystem::path objPath(conf.objectFileDir);
     objPath.append(directory);
 
     // Create directory (if necessary)
-    create_directories(objPath);
+    try {
+        std::filesystem::create_directories(objPath);
+    } catch (const std::filesystem::filesystem_error& ex) {
+        SPDLOG_ERROR(
+          "Call to create_directories ({}) failed with error ({}): {}",
+          objPath.string(),
+          ex.code().value(),
+          ex.what());
+        throw std::runtime_error("Filesystem error creating directories");
+    }
 
     // Add the filename
     std::string outputFile = objPath.append(fileName).string();
@@ -432,11 +466,20 @@ void FileLoader::uploadSharedObjectObjectHash(const std::string& path,
 
 std::string FileLoader::getSharedFileFile(const std::string& path)
 {
-    boost::filesystem::path p(conf.sharedFilesDir);
+    std::filesystem::path p(conf.sharedFilesDir);
     p.append(path);
 
     // Create directories if necessary
-    boost::filesystem::create_directories(p.parent_path());
+    try {
+        std::filesystem::create_directories(p.parent_path());
+    } catch (const std::filesystem::filesystem_error& ex) {
+        SPDLOG_ERROR(
+          "Call to create_directories ({}) failed with error ({}): {}",
+          p.string(),
+          ex.code().value(),
+          ex.what());
+        throw std::runtime_error("Filesystem error creating directories");
+    }
 
     return p.string();
 }
@@ -474,7 +517,7 @@ std::string FileLoader::getPythonFunctionRelativePath(
         throw std::runtime_error(errorMsg);
     }
 
-    boost::filesystem::path path(PYTHON_FUNC_DIR);
+    std::filesystem::path path(PYTHON_FUNC_DIR);
     path.append(pythonUser);
     path.append(pythonFunction);
     path.append(PYTHON_FUNCTION_FILENAME);
@@ -486,7 +529,7 @@ std::string FileLoader::getPythonFunctionSharedFilePath(
 {
     // This is the shared path of the form faasm:// used to access the Python
     // file
-    boost::filesystem::path path(SHARED_FILE_PREFIX);
+    std::filesystem::path path(SHARED_FILE_PREFIX);
     path.append(getPythonFunctionRelativePath(msg));
     return path.string();
 }
