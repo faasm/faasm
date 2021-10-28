@@ -39,7 +39,15 @@ static std::uintmax_t removeAllInside(const std::filesystem::path& dir)
     }
 
     for (auto& dirElement : std::filesystem::directory_iterator(dir)) {
-        removedItemsCount += std::filesystem::remove_all(dirElement.path());
+        try {
+            removedItemsCount += std::filesystem::remove_all(dirElement.path());
+        } catch (const std::filesystem::filesystem_error& ex) {
+            SPDLOG_ERROR("Call to remove_all ({}) failed with error ({}): {}",
+                         dirElement.path().string(),
+                         ex.code().value(),
+                         ex.what());
+            throw std::runtime_error("Filesystem error removing directories");
+        }
     }
     return removedItemsCount;
 }
@@ -156,6 +164,8 @@ std::vector<uint8_t> FileLoader::loadFileBytes(
     // Check locally first
     if (useLocalFsCache && std::filesystem::exists(localCachePath)) {
         if (std::filesystem::is_directory(localCachePath)) {
+            SPDLOG_ERROR("Local cache path ({}) exists but is a directory",
+                         localCachePath);
             throw SharedFileIsDirectoryException(localCachePath);
         }
 
