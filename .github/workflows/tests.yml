@@ -208,7 +208,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ./dev/minio/data/faasm
-          key: ${{ env.CPU_MODEL }}-s3-data
+          key: ${{ env.CPU_MODEL }}-s3-data-1
       # --- Set up and run ---
       - name: "Build tests"
         run: ./deploy/dist-test/build.sh
@@ -240,7 +240,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ./dev/minio/data/faasm
-          key: ${{ env.CPU_MODEL }}-s3-data
+          key: ${{ env.CPU_MODEL }}-s3-data-1
       # --- Setup ---
       - name: "Start docker-compose"
         run: docker-compose up -d --scale worker=2 nginx
