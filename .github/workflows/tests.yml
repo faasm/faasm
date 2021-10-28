@@ -169,7 +169,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /usr/local/faasm/object
-          key: ${{ env.CPU_MODEL }}-machine-code
+          key: ${{ env.CPU_MODEL }}-machine-code-${{ secrets.CACHE_VERSION }}
       # 15/10/21 Temporary step to refresh WAMR cache
       - name: "Clear out WAMR codegen files"
         run: find /usr/local/faasm/object | grep aot | xargs rm -f
@@ -208,7 +208,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ./dev/minio/data/faasm
-          key: ${{ env.CPU_MODEL }}-s3-data-1
+          key: ${{ env.CPU_MODEL }}-s3-data-${{ secrets.CACHE_VERSION }}
       # --- Set up and run ---
       - name: "Build tests"
         run: ./deploy/dist-test/build.sh
@@ -240,7 +240,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ./dev/minio/data/faasm
-          key: ${{ env.CPU_MODEL }}-s3-data-1
+          key: ${{ env.CPU_MODEL }}-s3-data-${{ secrets.CACHE_VERSION }}
       # --- Setup ---
       - name: "Start docker-compose"
         run: docker-compose up -d --scale worker=2 nginx
