@@ -1,18 +1,9 @@
-include_directories(
-    ${FAASM_INCLUDE_DIR}/codegen
-)
-
-set(HEADERS
-    "${FAASM_INCLUDE_DIR}/codegen/MachineCodeGenerator.h"
-    )
-
-set(LIB_FILES
+faasm_private_lib(codegen
     MachineCodeGenerator.cpp
-    ${HEADERS}
-    )
-
-faasm_private_lib(codegen "${LIB_FILES}")
-
-target_link_libraries(codegen
-    storage
+)
+target_include_directories(codegen PRIVATE ${FAASM_INCLUDE_DIR}/codegen)
+target_link_libraries(codegen PUBLIC
+    faasm::storage
+    faasm::wamrmodule
+    faasm::wavmmodule
 )

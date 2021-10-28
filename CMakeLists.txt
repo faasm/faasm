@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13.0)
+cmake_minimum_required(VERSION 3.21.0)
 project(faasm)
 
 # Optional functionality
@@ -21,8 +21,8 @@ option(FAASM_SGX_XRA "Turn on support for XRA" OFF)
 
 # Top-level CMake config
 set(CMAKE_CXX_FLAGS "-Wall")
-set(CMAKE_CXX_FLAGS_DEBUG "-Wall -g")
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -40,9 +40,12 @@ set(FAASM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(FAASM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
 set(FAASM_NATIVE_INSTALL "/usr/local/faasm/native")
 
-# CPP REST SDK
-set(cpprestsdk_DIR /usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}/cmake/)
-find_package(cpprestsdk REQUIRED NAMES cpprestsdk cpprest)
+# Faabric
+add_subdirectory(faabric)
+list(PREPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR}/faabric)
+list(PREPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_BINARY_DIR}/faabric)
+include(${CMAKE_CURRENT_BINARY_DIR}/faabric/conan_paths.cmake)
+find_package(cpprestsdk REQUIRED)
 
 # Detect SGX
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
@@ -93,20 +96,28 @@ add_definitions(-DWAMR_EXECUTION_MODE_INTERP=0)
 # Library type (for shared libraries)
 if (FAASM_STATIC_LIBS)
     set(FAABRIC_STATIC_LIBS ON CACHE BOOL "Faabric static")
-    function(faasm_public_lib lib_name lib_deps)
-        add_library(${lib_name} STATIC ${lib_deps})
+    function(faasm_public_lib lib_name)
+        add_library(${lib_name} STATIC ${ARGN})
+        target_link_libraries(${lib_name} PRIVATE faasm::common_deps)
+        add_library(faasm::${lib_name} ALIAS ${lib_name})
     endfunction()
-    function(faasm_private_lib lib_name lib_deps)
-        add_library(${lib_name} STATIC ${lib_deps})
+    function(faasm_private_lib lib_name)
+        add_library(${lib_name} STATIC ${ARGN})
+        target_link_libraries(${lib_name} PRIVATE faasm::common_deps)
+        add_library(faasm::${lib_name} ALIAS ${lib_name})
     endfunction()
 else ()
     set(FAABRIC_STATIC_LIBS OFF CACHE BOOL "Faabric static")
-    function(faasm_public_lib lib_name lib_deps)
-        add_library(${lib_name} SHARED ${lib_deps})
+    function(faasm_public_lib lib_name)
+        add_library(${lib_name} SHARED ${ARGN})
+        target_link_libraries(${lib_name} PRIVATE faasm::common_deps)
+        add_library(faasm::${lib_name} ALIAS ${lib_name})
     endfunction()
-    function(faasm_private_lib lib_name lib_deps)
-        add_library(${lib_name} STATIC ${lib_deps})
+    function(faasm_private_lib lib_name)
+        add_library(${lib_name} STATIC ${ARGN})
+        target_link_libraries(${lib_name} PRIVATE faasm::common_deps)
         target_compile_options(${lib_name} PRIVATE "-fPIC")
+        add_library(faasm::${lib_name} ALIAS ${lib_name})
     endfunction()
 endif ()
 
@@ -139,29 +150,32 @@ add_definitions(${LLVM_DEFINITIONS})
 # Third party deps
 include(cmake/ExternalProjects.cmake)
 
-# Faabric
-add_subdirectory(faabric)
-include_directories(${CMAKE_CURRENT_LIST_DIR}/faabric/include)
-
 # See https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/build_wamr.md
 set(WAMR_SHARED_DIR ${WAMR_ROOT_DIR}/core/shared)
 set(WAMR_IWASM_DIR ${WAMR_ROOT_DIR}/core/iwasm)
 set(WAMR_BUILD_TARGET X86_64)
 set(WAMR_NO_LLVM_IMPORT ON)
 
-# WAMR includes
-include_directories(
+add_library(faasm_common_deps INTERFACE)
+add_library(faasm::common_deps ALIAS faasm_common_deps)
+target_link_libraries(faasm_common_deps INTERFACE
+    faabric::faabric
+)
+target_include_directories(faasm_common_deps INTERFACE
+    # WAMR includes
     ${WAMR_SHARED_DIR}/include
     ${WAMR_SHARED_DIR}/utils
     ${WAMR_IWASM_DIR}/include
     ${WAMR_IWASM_DIR}/common
-)
-
-# More include directories
-include_directories(
+    # Faasm
     ${FAASM_INCLUDE_DIR}
     ${FAASM_PYTHON_LIB_DIR}
 )
+
+# Faasm SGX support
+if (SGX_FOUND)
+    add_subdirectory(src/sgx)
+endif ()
 
 # Faasm runtime
 add_subdirectory(src/codegen)
@@ -175,11 +189,6 @@ add_subdirectory(src/upload)
 add_subdirectory(src/wasm)
 add_subdirectory(src/wamr)
 add_subdirectory(src/wavm)
-
-# Faasm SGX support
-if (SGX_FOUND)
-    add_subdirectory(src/sgx)
-endif ()
 
 # Tests
 add_subdirectory(tests/test)

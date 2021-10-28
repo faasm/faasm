@@ -28,8 +28,8 @@
     -DgRPC_INSTALL=ON  \
     -DgRPC_BUILD_TESTS=OFF \
     -DCMAKE_INSTALL_PREFIX=/usr/local \
-    -DCMAKE_CXX_COMPILER=/usr/bin/clang++-10 \
-    -DCMAKE_C_COMPILER=/usr/bin/clang-10 \
+    -DCMAKE_CXX_COMPILER=/usr/bin/clang++-13 \
+    -DCMAKE_C_COMPILER=/usr/bin/clang-13 \
     ../..
   args:
     chdir: "/tmp/grpc/cmake/build"

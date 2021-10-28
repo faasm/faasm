@@ -1,15 +1,7 @@
-include_directories(
-    ${FAASM_INCLUDE_DIR}/system
-)
 
-file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/system/*.h")
-
-set(LIB_FILES
+faasm_private_lib(system
     CGroup.cpp
     NetworkNamespace.cpp
     memory.cpp
-    ${HEADERS}
 )
-
-add_library(system "${LIB_FILES}")
-target_link_libraries(system faabric)
+target_include_directories(system PRIVATE ${FAASM_INCLUDE_DIR}/system)

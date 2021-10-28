@@ -22,7 +22,7 @@ pushd ${TARGET_DIR} >> /dev/null
 FILES=$(git ls-files "*.h" "*.cpp" "*.c")
 
 # Run clang-format
-clang-format-10 -i ${FILES}
+clang-format-13 -i ${FILES}
 
 # Check newlines
 for f in ${FILES}; do

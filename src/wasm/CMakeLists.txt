@@ -1,20 +1,13 @@
-include_directories(
-        ${FAASM_INCLUDE_DIR}/wasm
+
+faasm_private_lib(wasm
+    WasmEnvironment.cpp
+    WasmExecutionContext.cpp
+    WasmModule.cpp
+    chaining_util.cpp
 )
-
-set(HEADERS
-        "${FAASM_INCLUDE_DIR}/wasm/chaining.h"
-        "${FAASM_INCLUDE_DIR}/wasm/WasmEnvironment.h"
-        "${FAASM_INCLUDE_DIR}/wasm/WasmModule.h"
-        )
-
-set(LIB_FILES
-        WasmEnvironment.cpp
-        WasmExecutionContext.cpp
-        WasmModule.cpp
-        chaining_util.cpp
-        ${HEADERS}
-        )
-
-faasm_private_lib(wasm "${LIB_FILES}")
-target_link_libraries(wasm conf storage threads)
+target_include_directories(wasm PRIVATE ${FAASM_INCLUDE_DIR}/wasm)
+target_link_libraries(wasm PUBLIC
+    faasm::conf
+    faasm::storage
+    faasm::threads
+)
