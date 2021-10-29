@@ -555,7 +555,7 @@ int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
 
                 // Assign a thread ID and increment. Our pthread IDs start
                 // at 1
-                m.set_appindex(i + 1);
+                m.set_appidx(i + 1);
 
                 // Record this thread -> call ID
                 SPDLOG_TRACE(
