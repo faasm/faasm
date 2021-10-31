@@ -420,7 +420,7 @@ std::string FileLoader::getSharedObjectObjectFile(const std::string& realPath)
     // Work out the final destination for the object file. This will be the
     // object path with the directory of the original file appended
     std::filesystem::path objPath(conf.objectFileDir);
-    objPath.append(directory);
+    objPath += directory;
 
     // Create directory (if necessary)
     try {

@@ -106,7 +106,6 @@ class FunctionLoaderTestFixture : public S3TestFixture
         // Dummy directories for functions and object files
         conf.functionDir = "/tmp/func";
         conf.objectFileDir = "/tmp/obj";
-        conf.runtimeFilesDir = "/tmp/obj";
         conf.sharedFilesDir = "/tmp/shared";
     }
 
