@@ -287,14 +287,14 @@ void Level::unlockCritical()
 int Level::getLocalThreadNum(faabric::Message* msg)
 {
     if (depth == 0) {
-        return msg->appindex();
+        return msg->appidx();
     }
 
-    int localThreadNum = msg->appindex() - globalTidOffset;
+    int localThreadNum = msg->appidx() - globalTidOffset;
 
     if (localThreadNum < 0) {
         SPDLOG_ERROR("Local thread num negative: {} - {} @ {}",
-                     msg->appindex(),
+                     msg->appidx(),
                      globalTidOffset,
                      depth);
 
@@ -315,7 +315,7 @@ int Level::getGlobalThreadNum(int localThreadNum)
 
 int Level::getGlobalThreadNum(faabric::Message* msg)
 {
-    return msg->appindex();
+    return msg->appidx();
 }
 
 std::string Level::toString()

@@ -442,7 +442,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
             call.set_funcptr(microtaskPtr);
 
             // OpenMP thread number
-            call.set_appindex(nextLevel->getGlobalThreadNum(i + 1));
+            call.set_appidx(nextLevel->getGlobalThreadNum(i + 1));
         }
 
         // Submit the request
@@ -456,7 +456,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     {
         faabric::Message masterMsg = faabric::util::messageFactory(
           parentCall->user(), parentCall->function());
-        masterMsg.set_appindex(nextLevel->getGlobalThreadNum(0));
+        masterMsg.set_appidx(nextLevel->getGlobalThreadNum(0));
 
         IR::UntaggedValue masterThreadResult;
 
