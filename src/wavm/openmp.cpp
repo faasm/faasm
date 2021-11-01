@@ -15,6 +15,7 @@
 #include <faabric/util/timing.h>
 
 #include <threads/ThreadState.h>
+#include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 #include <wavm/WAVMWasmModule.h>
 
@@ -50,6 +51,14 @@ namespace wasm {
                  localThreadNum,                                               \
                  globalThreadNum,                                              \
                  __VA_ARGS__);
+
+std::shared_ptr<faabric::transport::PointToPointGroup>
+getExecutingPointToPointGroup()
+{
+    faabric::Message* msg = getExecutingCall();
+    return faabric::transport::PointToPointGroup::getOrAwaitGroup(
+      msg->groupid());
+}
 
 // ------------------------------------------------
 // THREAD NUMS AND LEVELS
@@ -198,9 +207,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 globalTid)
 {
     OMP_FUNC_ARGS("__kmpc_barrier {} {}", loc, globalTid);
-    std::shared_ptr<faabric::transport::PointToPointGroup> group =
-      faabric::transport::PointToPointGroup::getGroup(msg->groupid());
-    group->barrier(msg->groupidx());
+    getExecutingPointToPointGroup()->barrier(msg->groupidx());
 }
 
 // ----------------------------------------------------
@@ -228,10 +235,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS("__kmpc_critical {} {} {}", loc, globalTid, crit);
 
     if (level->numThreads > 1) {
-        std::shared_ptr<faabric::transport::PointToPointGroup> group =
-          faabric::transport::PointToPointGroup::getGroup(msg->groupid());
-
-        group->lock(msg->groupidx(), true);
+        getExecutingPointToPointGroup()->lock(msg->groupidx(), true);
 
         // TODO - pull latest snapshot diffs from master
     }
@@ -255,10 +259,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS("__kmpc_end_critical {} {} {}", loc, globalTid, crit);
 
     if (level->numThreads > 1) {
-        std::shared_ptr<faabric::transport::PointToPointGroup> group =
-          faabric::transport::PointToPointGroup::getGroup(msg->groupid());
-
-        group->unlock(msg->groupidx(), true);
+        getExecutingPointToPointGroup()->unlock(msg->groupidx(), true);
     }
 }
 
@@ -452,7 +453,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         msg.set_groupsize(nextLevel->numThreads);
     }
 
-    // TODO - give a slot back to this host before calling
+    // TODO - give a slot back to this host before calling to avoid
+    // unnecessarily spreading across hosts
 
     // Submit the request
     sch.callFunctions(req);
@@ -726,10 +728,10 @@ void startReduceCritical(faabric::Message* msg,
 {
     // Note - we only need to lock locally here, as threads on other hosts
     // cannot edit the shared data
-    faabric::transport::PointToPointGroup::getGroup(msg->groupid())
+    faabric::transport::PointToPointGroup::getOrAwaitGroup(msg->groupid())
       ->localLock();
 
-    std::string snapKey = getExecutingCall()->snapshotkey();
+    std::string snapKey = msg->snapshotkey();
     if (!snapKey.empty()) {
 
         faabric::snapshot::SnapshotRegistry& reg =
@@ -762,10 +764,9 @@ void startReduceCritical(faabric::Message* msg,
 /**
  * Called to finish off a reduction.
  */
-void endReduceCritical(bool barrier)
+void endReduceCritical(faabric::Message* msg, bool barrier)
 {
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
-    faabric::Message* msg = getExecutingCall();
     int localThreadNum = level->getLocalThreadNum(msg);
 
     // Unlock the critical section
@@ -859,7 +860,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 lck)
 {
     OMP_FUNC_ARGS("__kmpc_end_reduce {} {} {}", loc, gtid, lck);
-    endReduceCritical(true);
+    endReduceCritical(msg, true);
 }
 
 /**
@@ -874,7 +875,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 lck)
 {
     OMP_FUNC_ARGS("__kmpc_end_reduce_nowait {} {} {}", loc, gtid, lck);
-    endReduceCritical(false);
+    endReduceCritical(msg, false);
 }
 
 // ----------------------------------------------
