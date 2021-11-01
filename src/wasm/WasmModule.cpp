@@ -447,7 +447,7 @@ int32_t WasmModule::executeTask(
                 break;
             }
             case ThreadRequestType::OPENMP: {
-                SPDLOG_TRACE("Executing {} as OpenMP (group {}, size{})",
+                SPDLOG_TRACE("Executing {} as OpenMP (group {}, size {})",
                              funcStr,
                              msg.groupid(),
                              msg.groupsize());
@@ -562,6 +562,7 @@ int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
                 // at 1. Set this as part of the group with the other threads.
                 m.set_appidx(i + 1);
                 m.set_groupid(groupGid);
+                m.set_groupidx(i + 1);
                 m.set_groupsize(nPthreadCalls);
 
                 // Record this thread -> call ID

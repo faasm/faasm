@@ -1,4 +1,3 @@
-#include "faabric/transport/PointToPointBroker.h"
 #include <WAVM/Platform/Thread.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
@@ -7,6 +6,7 @@
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/state/StateKeyValue.h>
+#include <faabric/transport/PointToPointBroker.h>
 #include <faabric/util/func.h>
 #include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
@@ -404,120 +404,78 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
       std::make_shared<threads::Level>(parentLevel->getMaxThreadsAtNextLevel());
     nextLevel->fromParentLevel(parentLevel);
 
-    // Check if we're only doing single-threaded
-    bool isSingleThread = nextLevel->numThreads == 1;
-
     // Set up the master snapshot if not already set up
     std::string snapshotKey = parentModule->createAppSnapshot(*parentCall);
 
-    // Prepare arguments for main thread and all others
-    std::vector<IR::UntaggedValue> mainArguments = { 0, argc };
+    // Build list of offsets to shared variables
     if (argc > 0) {
-        // Build list of offsets to shared variables
         uint32_t* sharedVarsPtr =
           Runtime::memoryArrayPtr<uint32_t>(memoryPtr, argsPtr, argc);
         nextLevel->setSharedVarOffsets(sharedVarsPtr, argc);
-
-        // Append to main arguments
-        mainArguments.insert(
-          mainArguments.end(), sharedVarsPtr, sharedVarsPtr + argc);
     }
 
     // Set up the chained calls
-    // Note that the spawning thread always executes the first task
-    std::shared_ptr<faabric::BatchExecuteRequest> req = nullptr;
+    std::shared_ptr<faabric::BatchExecuteRequest> req =
+      faabric::util::batchExecFactory(
+        parentCall->user(), parentCall->function(), nextLevel->numThreads);
+    req->set_type(faabric::BatchExecuteRequest::THREADS);
+    req->set_subtype(ThreadRequestType::OPENMP);
+
+    // Add remote context
+    // TODO - avoid copy
+    std::vector<uint8_t> serialisedLevel = nextLevel->serialise();
+    req->set_contextdata(serialisedLevel.data(), serialisedLevel.size());
+
+    // Configure the mesages
     uint32_t groupId = faabric::util::generateGid();
-    if (!isSingleThread) {
-        // Set up the request
-        int nOtherThreads = nextLevel->numThreads - 1;
-        req = faabric::util::batchExecFactory(
-          parentCall->user(), parentCall->function(), nOtherThreads);
-        req->set_type(faabric::BatchExecuteRequest::THREADS);
-        req->set_subtype(ThreadRequestType::OPENMP);
+    for (int i = 0; i < req->messages_size(); i++) {
+        faabric::Message& msg = req->mutable_messages()->at(i);
 
-        // Add remote context
-        // TODO - avoid copy
-        std::vector<uint8_t> serialisedLevel = nextLevel->serialise();
-        req->set_contextdata(serialisedLevel.data(), serialisedLevel.size());
+        // Propagte app id
+        msg.set_appid(parentCall->appid());
 
-        // Configure the mesages
-        for (int i = 0; i < req->messages_size(); i++) {
-            faabric::Message& call = req->mutable_messages()->at(i);
+        // Snapshot details
+        msg.set_snapshotkey(snapshotKey);
 
-            // Propagte app id
-            call.set_appid(parentCall->appid());
+        // Function pointer
+        msg.set_funcptr(microtaskPtr);
 
-            // Snapshot details
-            call.set_snapshotkey(snapshotKey);
+        // OpenMP thread number
+        int threadNum = nextLevel->getGlobalThreadNum(i);
+        msg.set_appidx(threadNum);
 
-            // Function pointer
-            call.set_funcptr(microtaskPtr);
-
-            // OpenMP thread number
-            call.set_appidx(nextLevel->getGlobalThreadNum(i + 1));
-
-            // Group ID for distributed coordination
-            call.set_groupid(groupId);
-            call.set_groupsize(nextLevel->numThreads);
-        }
-
-        // Submit the request
-        sch.callFunctions(req);
+        // Group setup for distributed coordination. Note that the group index
+        // is just within this function group, and not the global OpenMP
+        // thread number
+        msg.set_groupid(groupId);
+        msg.set_groupidx(i);
+        msg.set_groupsize(nextLevel->numThreads);
     }
 
-    // Execute the master task in this thread (i.e. just invoke the microtask
-    // directly).
-    // This requires a different set-up and duplicates some logic, but it's
-    // worth it for the performance boost, especially in the single-host case.
-    {
-        faabric::Message masterMsg = faabric::util::messageFactory(
-          parentCall->user(), parentCall->function());
-        masterMsg.set_appidx(nextLevel->getGlobalThreadNum(0));
-        masterMsg.set_groupid(groupId);
-        masterMsg.set_groupsize(nextLevel->numThreads);
+    // TODO - give a slot back to this host before calling
 
-        IR::UntaggedValue masterThreadResult;
+    // Submit the request
+    sch.callFunctions(req);
 
-        // Set up the context for the next level
-        threads::setCurrentOpenMPLevel(nextLevel);
-        {
-            wasm::WasmExecutionContext ctx(parentModule, &masterMsg);
+    // Await all child threads
+    std::vector<std::pair<int, uint32_t>> failures;
+    for (int i = 0; i < req->messages_size(); i++) {
+        uint32_t messageId = req->messages().at(i).id();
 
-            // Execute the task
-            SPDLOG_DEBUG("OpenMP 0: executing OMP thread 0 (master)");
-            WAVM::Runtime::Function* microtaskFunc =
-              parentModule->getFunctionFromPtr(microtaskPtr);
-            parentModule->executeWasmFunction(
-              microtaskFunc, mainArguments, masterThreadResult);
-        }
-
-        // Reset to the parent context
-        threads::setCurrentOpenMPLevel(parentLevel);
-        if (masterThreadResult.i32 > 0) {
-            throw std::runtime_error("Master OpenMP thread failed");
+        int result = sch.awaitThreadResult(messageId);
+        if (result != 0) {
+            failures.emplace_back(result, messageId);
         }
     }
 
-    if (!isSingleThread) {
-        std::vector<std::pair<int, uint32_t>> failures;
-        // Await all child threads
-        for (int i = 0; i < req->messages_size(); i++) {
-            uint32_t messageId = req->messages().at(i).id();
-            int result = sch.awaitThreadResult(messageId);
-            if (result != 0) {
-                failures.emplace_back(result, messageId);
-            }
+    if (!failures.empty()) {
+        for (auto f : failures) {
+            SPDLOG_ERROR("OpenMP thread failed, result {} on message {}",
+                         f.first,
+                         f.second);
         }
 
-        if (!failures.empty()) {
-            for (auto f : failures) {
-                SPDLOG_ERROR("OpenMP thread failed, result {} on message {}",
-                             f.first,
-                             f.second);
-            }
-
-            throw std::runtime_error("OpenMP threads failed");
-        }
+        throw std::runtime_error("OpenMP threads failed");
     }
 
     // Reset parent level for next setting of threads

@@ -1,14 +1,15 @@
-#include "faabric/transport/PointToPointBroker.h"
 #include "syscalls.h"
-#include "wasm/WasmExecutionContext.h"
 
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
+#include <faabric/transport/PointToPointBroker.h>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 #include <faabric/util/logging.h>
+
 #include <threads/ThreadState.h>
+#include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 #include <wasm/chaining.h>
 #include <wavm/WAVMWasmModule.h>
@@ -172,6 +173,15 @@ I32 s__futex(I32 uaddrPtr,
 // Note we use trace logging here as these are invoked a lot
 // --------------------------
 
+std::shared_ptr<faabric::transport::PointToPointGroup> getPthreadGroup(int mx)
+{
+    faabric::Message* msg = getExecutingCall();
+    faabric::transport::PointToPointGroup::addGroupIfNotExists(
+      msg->appid(), mx, 0);
+
+    return faabric::transport::PointToPointGroup::getGroup(mx);
+}
+
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "pthread_mutex_init",
                                I32,
@@ -181,8 +191,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     SPDLOG_TRACE("S - pthread_mutex_init {} {}", mx, attr);
 
-    // TODO - we do nothing here as we use the communication group set up by the
-    // scheduler by default.
+    faabric::Message* msg = getExecutingCall();
+    faabric::transport::PointToPointGroup::addGroupIfNotExists(
+      msg->appid(), mx, 0);
 
     return 0;
 }
@@ -195,9 +206,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     SPDLOG_TRACE("S - pthread_mutex_lock {}", mx);
 
-    faabric::Message* msg = getExecutingCall();
-    faabric::transport::PointToPointGroup::getGroup(msg->groupid())
-      ->localLock();
+    getPthreadGroup(mx)->localLock();
 
     return 0;
 }
@@ -210,15 +219,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     SPDLOG_TRACE("S - pthread_mutex_trylock {}", mx);
 
-    faabric::Message* msg = getExecutingCall();
-    bool success =
-      faabric::transport::PointToPointGroup::getGroup(msg->groupid())
-        ->localTryLock();
-    if (success) {
-        return 0;
-    } else {
+    bool success = getPthreadGroup(mx)->localTryLock();
+
+    if (!success) {
         return EBUSY;
     }
+
+    return 0;
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -228,9 +235,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 mx)
 {
     SPDLOG_TRACE("S - pthread_mutex_unlock {}", mx);
-    faabric::Message* msg = getExecutingCall();
-    faabric::transport::PointToPointGroup::getGroup(msg->groupid())
-      ->localUnlock();
+    getPthreadGroup(mx)->localUnlock();
 
     return 0;
 }
