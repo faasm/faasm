@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include <faabric/scheduler/Scheduler.h>
 #include <sgx/SGXWAMRWasmModule.h>
 
 namespace tests {
@@ -10,7 +11,7 @@ class SgxModuleTestFixture
     {
         msg = faabric::util::messageFactory("demo", "hello");
         msg.set_issgx(true);
-        otherMsg = faabric::util::messageFactory("demo", "chain_named_a");
+        otherMsg = faabric::util::messageFactory("demo", "echo");
         otherMsg.set_issgx(true);
     }
 
@@ -95,6 +96,51 @@ TEST_CASE_METHOD(SgxModuleTestFixture,
 
     if (th.joinable()) {
         th.join();
+    }
+}
+
+TEST_CASE_METHOD(SgxModuleTestFixture,
+                 "Test two modules executing different functions repeatedly",
+                 "[sgx2]")
+{
+    int numExec = 10;
+
+    // Note that both modules operate on the same enclave
+    std::thread th([this, numExec] {
+        otherModule.doBindToFunction(otherMsg, false);
+
+        for (int i = 0; i < numExec; i++) {
+            otherModule.executeFunction(otherMsg);
+        }
+    });
+
+    REQUIRE_NOTHROW(module.doBindToFunction(msg, false));
+
+    for (int i = 0; i < numExec; i++) {
+        REQUIRE_NOTHROW(module.executeFunction(msg));
+    }
+
+    if (th.joinable()) {
+        th.join();
+    }
+
+    // Flush enclave module
+    faabric::scheduler::getScheduler().flushLocally();
+
+    // Run functions again changing the module they run on
+    // Note that calling execute on a new function implicitly calls bind
+    std::thread th2([this, numExec] {
+        for (int i = 0; i < numExec; i++) {
+            otherModule.executeFunction(msg);
+        }
+    });
+
+    for (int i = 0; i < numExec; i++) {
+        REQUIRE_NOTHROW(module.executeFunction(otherMsg));
+    }
+
+    if (th2.joinable()) {
+        th2.join();
     }
 }
 }
