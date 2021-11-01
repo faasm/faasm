@@ -1,4 +1,6 @@
+#include "faabric/transport/PointToPointBroker.h"
 #include "syscalls.h"
+#include "wasm/WasmExecutionContext.h"
 
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/scheduler/Scheduler.h>
@@ -178,7 +180,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 attr)
 {
     SPDLOG_TRACE("S - pthread_mutex_init {} {}", mx, attr);
-    getExecutingWAVMModule()->getMutexes().createMutex(mx);
+
+    // TODO - we do nothing here as we use the communication group set up by the
+    // scheduler by default.
+
     return 0;
 }
 
@@ -189,7 +194,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 mx)
 {
     SPDLOG_TRACE("S - pthread_mutex_lock {}", mx);
-    getExecutingWAVMModule()->getMutexes().lockMutex(mx);
+
+    faabric::Message* msg = getExecutingCall();
+    faabric::transport::PointToPointGroup::getGroup(msg->groupid())
+      ->localLock();
+
     return 0;
 }
 
@@ -200,7 +209,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 mx)
 {
     SPDLOG_TRACE("S - pthread_mutex_trylock {}", mx);
-    bool success = getExecutingWAVMModule()->getMutexes().tryLockMutex(mx);
+
+    faabric::Message* msg = getExecutingCall();
+    bool success =
+      faabric::transport::PointToPointGroup::getGroup(msg->groupid())
+        ->localTryLock();
     if (success) {
         return 0;
     } else {
@@ -215,7 +228,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 mx)
 {
     SPDLOG_TRACE("S - pthread_mutex_unlock {}", mx);
-    getExecutingWAVMModule()->getMutexes().unlockMutex(mx);
+    faabric::Message* msg = getExecutingCall();
+    faabric::transport::PointToPointGroup::getGroup(msg->groupid())
+      ->localUnlock();
+
     return 0;
 }
 
@@ -226,7 +242,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 mx)
 {
     SPDLOG_TRACE("S - pthread_mutex_destroy {}", mx);
-    getExecutingWAVMModule()->getMutexes().destroyMutex(mx);
     return 0;
 }
 

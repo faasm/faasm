@@ -447,7 +447,10 @@ int32_t WasmModule::executeTask(
                 break;
             }
             case ThreadRequestType::OPENMP: {
-                SPDLOG_TRACE("Executing {} as OpenMP", funcStr);
+                SPDLOG_TRACE("Executing {} as OpenMP (group {}, size{})",
+                             funcStr,
+                             msg.groupid(),
+                             msg.groupsize());
                 threads::setCurrentOpenMPLevel(req);
                 returnValue = executeOMPThread(threadPoolIdx, stackTop, msg);
                 break;
@@ -537,6 +540,8 @@ int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
             req->set_type(faabric::BatchExecuteRequest::THREADS);
             req->set_subtype(wasm::ThreadRequestType::PTHREAD);
 
+            uint32_t groupGid = faabric::util::generateGid();
+
             for (int i = 0; i < nPthreadCalls; i++) {
                 threads::PthreadCall p = queuedPthreadCalls.at(i);
                 faabric::Message& m = req->mutable_messages()->at(i);
@@ -554,8 +559,10 @@ int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
                 m.set_inputdata(std::to_string(p.argsPtr));
 
                 // Assign a thread ID and increment. Our pthread IDs start
-                // at 1
+                // at 1. Set this as part of the group with the other threads.
                 m.set_appidx(i + 1);
+                m.set_groupid(groupGid);
+                m.set_groupsize(nPthreadCalls);
 
                 // Record this thread -> call ID
                 SPDLOG_TRACE(
@@ -608,11 +615,6 @@ void WasmModule::createThreadStacks()
 std::vector<uint32_t> WasmModule::getThreadStacks()
 {
     return threadStacks;
-}
-
-threads::MutexManager& WasmModule::getMutexes()
-{
-    return mutexes;
 }
 
 bool WasmModule::isBound()

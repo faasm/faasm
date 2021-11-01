@@ -7,7 +7,6 @@
 #include <faabric/util/memory.h>
 #include <faabric/util/queue.h>
 #include <faabric/util/snapshot.h>
-#include <threads/MutexManager.h>
 #include <threads/ThreadState.h>
 
 #include <exception>
@@ -162,8 +161,6 @@ class WasmModule
     // ----- Debugging -----
     virtual void printDebugInfo();
 
-    threads::MutexManager& getMutexes();
-
   protected:
     uint32_t currentBrk = 0;
 
@@ -180,8 +177,6 @@ class WasmModule
 
     int threadPoolSize = 0;
     std::vector<uint32_t> threadStacks;
-
-    threads::MutexManager mutexes;
 
     std::shared_mutex moduleMemoryMutex;
     std::mutex modulePthreadsMutex;

@@ -1,3 +1,4 @@
+#include "faabric/transport/PointToPointBroker.h"
 #include <WAVM/Platform/Thread.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
@@ -197,7 +198,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 globalTid)
 {
     OMP_FUNC_ARGS("__kmpc_barrier {} {}", loc, globalTid);
-    level->waitOnBarrier();
+    std::shared_ptr<faabric::transport::PointToPointGroup> group =
+      faabric::transport::PointToPointGroup::getGroup(msg->groupid());
+    group->barrier(msg->groupidx());
 }
 
 // ----------------------------------------------------
@@ -225,7 +228,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS("__kmpc_critical {} {} {}", loc, globalTid, crit);
 
     if (level->numThreads > 1) {
-        level->lockCritical();
+        std::shared_ptr<faabric::transport::PointToPointGroup> group =
+          faabric::transport::PointToPointGroup::getGroup(msg->groupid());
+
+        group->lock(msg->groupidx(), true);
+
+        // TODO - pull latest snapshot diffs from master
     }
 }
 
@@ -247,7 +255,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS("__kmpc_end_critical {} {} {}", loc, globalTid, crit);
 
     if (level->numThreads > 1) {
-        level->unlockCritical();
+        std::shared_ptr<faabric::transport::PointToPointGroup> group =
+          faabric::transport::PointToPointGroup::getGroup(msg->groupid());
+
+        group->unlock(msg->groupidx(), true);
     }
 }
 
@@ -415,6 +426,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     // Set up the chained calls
     // Note that the spawning thread always executes the first task
     std::shared_ptr<faabric::BatchExecuteRequest> req = nullptr;
+    uint32_t groupId = faabric::util::generateGid();
     if (!isSingleThread) {
         // Set up the request
         int nOtherThreads = nextLevel->numThreads - 1;
@@ -443,6 +455,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
             // OpenMP thread number
             call.set_appidx(nextLevel->getGlobalThreadNum(i + 1));
+
+            // Group ID for distributed coordination
+            call.set_groupid(groupId);
+            call.set_groupsize(nextLevel->numThreads);
         }
 
         // Submit the request
@@ -457,6 +473,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         faabric::Message masterMsg = faabric::util::messageFactory(
           parentCall->user(), parentCall->function());
         masterMsg.set_appidx(nextLevel->getGlobalThreadNum(0));
+        masterMsg.set_groupid(groupId);
+        masterMsg.set_groupsize(nextLevel->numThreads);
 
         IR::UntaggedValue masterThreadResult;
 
@@ -741,16 +759,50 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 // ---------------------------------------------------
 
 /**
- * Called to enter the critical section used to perform a reduction.
+ * Called to start a reduction.
  */
-void startReduceCritical()
+void startReduceCritical(faabric::Message* msg,
+                         int32_t reduceData,
+                         int32_t reduceSize)
+
 {
-    // Lock the critical section
-    std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
-    level->lockCritical();
+    // Note - we only need to lock locally here, as threads on other hosts
+    // cannot edit the shared data
+    faabric::transport::PointToPointGroup::getGroup(msg->groupid())
+      ->localLock();
+
+    std::string snapKey = getExecutingCall()->snapshotkey();
+    if (!snapKey.empty()) {
+
+        faabric::snapshot::SnapshotRegistry& reg =
+          faabric::snapshot::getSnapshotRegistry();
+
+        // TODO here we need to set up the merge operation for DSM.
+        //
+        // This is tricky as OpenMP doesn't specify what sort of reduction it's
+        // doing, just uses a function with the same name every time, regardless
+        // of the operation.
+        //
+        // For now based on the applications we run, we can assume it's an
+        // integer sum.
+        //
+        // Options for changing this include:
+        //
+        // - Use reduceSize to work out data type (allows us to support more
+        // types of sum)
+        // - Change the OpenMP directive to name the function appropriately when
+        // it's a standard operation (e.g. sum, product etc.)
+        // - Use a strict global critical sections where memory is synced (this
+        // will be terrible for performance)
+        reg.getSnapshot(snapKey).addMergeRegion(
+          reduceData,
+          reduceSize,
+          faabric::util::SnapshotDataType::Int,
+          faabric::util::SnapshotMergeOperation::Sum);
+    }
 }
 /**
- *  Called to finish off a reduction.
+ * Called to finish off a reduction.
  */
 void endReduceCritical(bool barrier)
 {
@@ -759,19 +811,17 @@ void endReduceCritical(bool barrier)
     int localThreadNum = level->getLocalThreadNum(msg);
 
     // Unlock the critical section
-    level->unlockCritical();
+    std::shared_ptr<faabric::transport::PointToPointGroup> group =
+      faabric::transport::PointToPointGroup::getGroup(msg->groupid());
+    group->localUnlock();
 
     // Master must make sure all other threads are done
-    if (localThreadNum == 0) {
-        level->masterWait(0);
-    } else {
-        level->masterWait(localThreadNum);
-    }
+    group->notify(localThreadNum);
 
     // Everyone waits if there's a barrier
     if (barrier) {
         PROF_START(FinaliseReduceBarrier)
-        level->waitOnBarrier();
+        group->barrier(localThreadNum);
         PROF_END(FinaliseReduceBarrier)
     }
 }
@@ -808,7 +858,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceData,
                   reduceFunc,
                   lockPtr);
-    startReduceCritical();
+    startReduceCritical(msg, reduceSize, reduceData);
     return 1;
 }
 
@@ -835,7 +885,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceData,
                   reduceFunc,
                   lockPtr);
-    startReduceCritical();
+    startReduceCritical(msg, reduceSize, reduceData);
     return 1;
 }
 

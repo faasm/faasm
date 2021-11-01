@@ -161,8 +161,6 @@ TEST_CASE_METHOD(OpenMPTestFixture,
                  "Run openmp memory stress test",
                  "[wasm][openmp]")
 {
-    cleanSystem();
-
     // Overload the local resources
     int nSlots = 15;
     int nOmpThreads = 60;
