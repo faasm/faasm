@@ -21,7 +21,7 @@ class OpenMPTestFixture
   , ConfTestFixture
 {
   public:
-    OpenMPTestFixture() { conf.overrideCpuCount = 15; }
+    OpenMPTestFixture() { conf.overrideCpuCount = 30; }
 
     ~OpenMPTestFixture() {}
 
