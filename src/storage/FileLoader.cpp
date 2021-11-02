@@ -28,11 +28,11 @@ namespace storage {
 #define WAMR_AOT_FILENAME "function.aot"
 #define SGX_WAMR_AOT_FILENAME "function.aot.sgx"
 
-static std::uintmax_t removeAllInside(const std::filesystem::path& dir)
+static int removeAllInside(const std::filesystem::path& dir)
 {
-    std::uintmax_t removedItemsCount{ 0 };
+    int removedItemsCount = 0;
 
-    if (not is_directory(dir)) {
+    if (!std::filesystem::is_directory(dir)) {
         SPDLOG_TRACE("Not removing {} as the directory does not exist",
                      dir.string());
         return removedItemsCount;
@@ -50,6 +50,20 @@ static std::uintmax_t removeAllInside(const std::filesystem::path& dir)
         }
     }
     return removedItemsCount;
+}
+
+static void createDirectories(const std::filesystem::path& path)
+{
+    try {
+        std::filesystem::create_directories(path);
+    } catch (const std::filesystem::filesystem_error& ex) {
+        SPDLOG_ERROR(
+          "Call to create_directories ({}) failed with error ({}): {}",
+          path.string(),
+          ex.code().value(),
+          ex.what());
+        throw std::runtime_error("Filesystem error creating directories");
+    }
 }
 
 static std::string trimLeadingSlashes(const std::string& pathIn)
@@ -89,16 +103,7 @@ static std::filesystem::path getDir(std::string baseDir,
 
     // Create directory if required
     if (create) {
-        try {
-            std::filesystem::create_directories(path);
-        } catch (const std::filesystem::filesystem_error& ex) {
-            SPDLOG_ERROR(
-              "Call to create_directories ({}) failed with error ({}): {}",
-              path.string(),
-              ex.code().value(),
-              ex.what());
-            throw std::runtime_error("Filesystem error creating directories");
-        }
+        createDirectories(path);
     }
 
     return path;
@@ -419,20 +424,14 @@ std::string FileLoader::getSharedObjectObjectFile(const std::string& realPath)
 
     // Work out the final destination for the object file. This will be the
     // object path with the directory of the original file appended
+    // 02/11/21 - std's filesystem path::append ignores the path being appended
+    // to if both paths are absolute paths (i.e. begin with '/'). Here we make
+    // sure they are indeed apended
     std::filesystem::path objPath(conf.objectFileDir);
     objPath += directory;
 
     // Create directory (if necessary)
-    try {
-        std::filesystem::create_directories(objPath);
-    } catch (const std::filesystem::filesystem_error& ex) {
-        SPDLOG_ERROR(
-          "Call to create_directories ({}) failed with error ({}): {}",
-          objPath.string(),
-          ex.code().value(),
-          ex.what());
-        throw std::runtime_error("Filesystem error creating directories");
-    }
+    createDirectories(objPath);
 
     // Add the filename
     std::string outputFile = objPath.append(fileName).string();
@@ -480,16 +479,7 @@ std::string FileLoader::getSharedFileFile(const std::string& path)
     p.append(path);
 
     // Create directories if necessary
-    try {
-        std::filesystem::create_directories(p.parent_path());
-    } catch (const std::filesystem::filesystem_error& ex) {
-        SPDLOG_ERROR(
-          "Call to create_directories ({}) failed with error ({}): {}",
-          p.string(),
-          ex.code().value(),
-          ex.what());
-        throw std::runtime_error("Filesystem error creating directories");
-    }
+    createDirectories(p.parent_path());
 
     return p.string();
 }
