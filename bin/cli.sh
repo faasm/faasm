@@ -12,7 +12,6 @@ function usage() {
     echo ""
     echo "container being one of: "
     echo "- cpp         C/C++ functions"
-    echo "- faabric     Faabric development"
     echo "- faasm       Managing Faasm cluster"
     echo "- python      Python functions"
 }
@@ -20,8 +19,6 @@ function usage() {
 if [[ -z "$1" ]]; then
     usage
     exit 1
-elif [[ "$1" == "faabric" ]]; then
-    CLI_CONTAINER="faabric"
 elif [[ "$1" == "faasm" ]]; then
     CLI_CONTAINER="faasm-cli"
 elif [[ "$1" == "cpp" ]]; then
