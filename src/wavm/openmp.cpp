@@ -761,6 +761,7 @@ void startReduceCritical(faabric::Message* msg,
           faabric::util::SnapshotMergeOperation::Sum);
     }
 }
+
 /**
  * Called to finish off a reduction.
  */
