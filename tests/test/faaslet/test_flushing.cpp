@@ -3,8 +3,6 @@
 #include "faasm_fixtures.h"
 #include "utils.h"
 
-#include <boost/filesystem.hpp>
-
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/runner/FaabricMain.h>
 #include <faabric/util/config.h>
@@ -22,6 +20,8 @@
 
 #include <fcntl.h>
 #include <sys/stat.h>
+
+#include <filesystem>
 
 namespace tests {
 
@@ -58,9 +58,9 @@ TEST_CASE_METHOD(FlushingTestFixture,
     loader.uploadSharedFile(fileName, fileBytes);
 
     // Check that the underlying shared file is in place
-    boost::filesystem::path sharedPath(conf.sharedFilesDir);
+    std::filesystem::path sharedPath(conf.sharedFilesDir);
     sharedPath.append(fileName);
-    REQUIRE(boost::filesystem::exists(sharedPath));
+    REQUIRE(std::filesystem::exists(sharedPath));
 
     // Check that the shared file exists
     std::string syncSharedPath = "faasm://" + fileName;
@@ -68,12 +68,15 @@ TEST_CASE_METHOD(FlushingTestFixture,
 
     // Flush and check file is gone
     loader.clearLocalCache();
-    REQUIRE(!boost::filesystem::exists(sharedPath));
+
+    // Check the shared files dir exists, but not the specific shared file path
+    REQUIRE(std::filesystem::exists(conf.sharedFilesDir));
+    REQUIRE(!std::filesystem::exists(sharedPath));
 
     SECTION("Check using FileLoader")
     {
         loader.loadSharedFile(fileName);
-        REQUIRE(boost::filesystem::exists(sharedPath));
+        REQUIRE(std::filesystem::exists(sharedPath));
     }
 
     SECTION("Check using SharedFiles")
