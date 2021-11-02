@@ -5,8 +5,10 @@
 
 #include <boost/filesystem/operations.hpp>
 
+#include <shared_mutex>
+
 namespace sgx {
-std::mutex enclaveMx;
+std::shared_mutex enclaveMx;
 
 WAMREnclave::WAMREnclave() {}
 
@@ -156,6 +158,8 @@ void WAMREnclave::unloadWasmModule(const std::string& funcStr)
 
 void WAMREnclave::callMainFunction(const std::string& funcStr)
 {
+    // faabric::util::SharedLock lock(enclaveMx);
+
     SPDLOG_DEBUG(
       "Entering enclave (id: {}) to execute module ({})", enclaveId, funcStr);
 

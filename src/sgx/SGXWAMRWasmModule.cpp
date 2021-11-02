@@ -85,19 +85,22 @@ int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
 {
     std::string funcStr = faabric::util::funcToString(msg, true);
 
+    if (!isBound()) {
+        SPDLOG_ERROR("SGX-WAMR module must be bound before executing task: {}", funcStr);
+        throw std::runtime_error("Module must be bound before executing");
+    }
+
     // Re-using WAMR modules across different tasks (running in the same
     // executor) is not supported. Thus, it may happen that we call this method
     // without having bound the module to the function (again).
     if (boundFuncStr != funcStr) {
+        SPDLOG_ERROR("THIS IS HAPPENINGGG");
         doBindToFunction(msg, false);
     }
 
     // Set execution context
     wasm::WasmExecutionContext ctx(this, &msg);
 
-    // Note that we don't acquire a lock to enter the enclave to execute a
-    // function. Multiple functions may run on the enclave at the same time
-    // Call main function for module loaded into enclave
     wamrEnclave->callMainFunction(funcStr);
 
     return 0;

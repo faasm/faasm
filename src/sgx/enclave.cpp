@@ -48,6 +48,7 @@ extern "C"
     }
 
     static sgx::ModuleStore wamrModules;
+    static thread_local std::shared_ptr<sgx::WamrModuleHandle> moduleHandle = nullptr;
 
     static uint8_t wamrHeapBuffer[SGX_WAMR_HEAP_SIZE];
 
@@ -90,8 +91,8 @@ extern "C"
         }
 
         // Load the WASM module to the module store
-        std::shared_ptr<sgx::WamrModuleHandle> moduleHandle =
-          wamrModules.store(funcStr, wasmOpCodePtr, wasmOpCodeSize);
+        // std::shared_ptr<sgx::WamrModuleHandle> moduleHandle =
+        moduleHandle = wamrModules.store(funcStr, wasmOpCodePtr, wasmOpCodeSize);
         if (moduleHandle == nullptr) {
             ocall_faasm_log_error("Can't load module to the SGX store");
             return FAASM_SGX_MODULE_STORE_FAILED;
@@ -129,8 +130,10 @@ extern "C"
 
     faasm_sgx_status_t enclaveUnloadModule(const char* funcStr)
     {
+        /* jaja
         std::shared_ptr<sgx::WamrModuleHandle> moduleHandle =
           wamrModules.get(funcStr);
+          */
         if (moduleHandle == nullptr) {
             SGX_DEBUG_LOG("Module slot is not set, skipping unload");
             return FAASM_SGX_SUCCESS;
@@ -147,16 +150,20 @@ extern "C"
             return FAASM_SGX_MODULE_STORE_CLEAR_FAILED;
         }
 
+        moduleHandle = nullptr;
+
         return FAASM_SGX_SUCCESS;
     }
 
     // Execute the main function
     faasm_sgx_status_t enclaveCallFunction(const char* key)
     {
+        /*
         std::shared_ptr<sgx::WamrModuleHandle> moduleHandle =
           wamrModules.get(key);
+        */
         if (moduleHandle == nullptr) {
-            ocall_faasm_log_error("SGX-WAMR module not found in enclave");
+            ocall_faasm_log_error("SGX-WAMR module not loaded. Has module been bound?");
             return FAASM_SGX_INVALID_PTR;
         }
 
@@ -203,3 +210,6 @@ extern "C"
         return FAASM_SGX_SUCCESS;
     }
 }
+
+// TODO - waatt
+extern "C" int __cxa_thread_atexit(void (*dtor)(void *), void *obj, void *dso_symbol) { return 0; }

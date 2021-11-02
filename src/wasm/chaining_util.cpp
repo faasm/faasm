@@ -84,6 +84,8 @@ int makeChainedCall(const std::string& functionName,
     sch.callFunctions(req);
     sch.logChainedFunction(originalCall->id(), msg.id());
 
+    SPDLOG_INFO("we done?");
+
     return msg.id();
 }
 
