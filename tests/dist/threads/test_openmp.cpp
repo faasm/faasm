@@ -5,7 +5,9 @@
 #include <faabric/scheduler/Scheduler.h>
 
 namespace tests {
-TEST_CASE_METHOD(DistTestsFixture, "Test OpenMP across hosts", "[scheduler]")
+TEST_CASE_METHOD(DistTestsFixture,
+                 "Test OpenMP across hosts",
+                 "[threads][openmp]")
 {
     conf.overrideCpuCount = 6;
 

@@ -137,6 +137,7 @@ services:
       - redis-queue
       - redis-state
       - minio
+      - upload
     environment:
       - LOG_LEVEL=debug
       - REDIS_QUEUE_HOST=redis-queue
