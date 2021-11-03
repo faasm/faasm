@@ -65,6 +65,10 @@ int makeChainedCall(const std::string& functionName,
         msg.set_issgx(true);
     }
 
+    if (originalCall->recordexecgraph()) {
+        msg.set_recordexecgraph(true);
+    }
+
     if (msg.funcptr() == 0) {
         SPDLOG_INFO("Chaining call {}/{} -> {}/{} (ids: {} -> {})",
                     originalCall->user(),
@@ -82,7 +86,9 @@ int makeChainedCall(const std::string& functionName,
     }
 
     sch.callFunctions(req);
-    sch.logChainedFunction(originalCall->id(), msg.id());
+    if (originalCall->recordexecgraph()) {
+        sch.logChainedFunction(originalCall->id(), msg.id());
+    }
 
     return msg.id();
 }
