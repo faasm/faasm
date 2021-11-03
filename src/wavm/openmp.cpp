@@ -367,28 +367,37 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
  * It calls into __kmp_fork call to do most of the work, which is here:
  * https://github.com/llvm/llvm-project/blob/main/openmp/runtime/src/kmp_runtime.cpp
  *
- * @param locPtr pointer to the source location info (type ident_t)
- * @param argc number of arguments to pass to the microtask
- * @param microtaskPtr function pointer for the microtask itself (microtask_t)
- * @param argsPtr pointer to the arguments for the microtask (if applicable)
+ * Arguments:
+ * - locPtr = pointer to the source location info (type ident_t)
+ * - nSharedVars = number of non-global shared variables
+ * - microtaskPtr = function pointer for the microtask itself (microtask_t)
+ * - sharedVarPtrs = pointer to an array of pointers to the non-global shared
+ *   variables
  *
- * The microtask function takes two or more arguments:
- * 1. The thread ID within its current team
- * 2. The number of non-global shared variables it has access to
- * 3+. Separate arguments, each of which is a pointer to one of the non-global
- * shared variables
+ * NOTE: the non-global shared variables include:
+ * - those listed in a shared() directive
+ * - those listed in a reduce() directive
+ *
+ * TODO: currently there is no way of telling whether a variable in this list of
+ * shared variables is from a shared() or a reduce() directive, so, we make the
+ * assumtion that the *last* ones in the list are reduce variables (relevant
+ * when it comes to doing the reduction).
  */
+
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__kmpc_fork_call",
                                void,
                                __kmpc_fork_call,
                                I32 locPtr,
-                               I32 argc,
+                               I32 nSharedVars,
                                I32 microtaskPtr,
-                               I32 argsPtr)
+                               I32 sharedVarPtrs)
 {
-    OMP_FUNC_ARGS(
-      "__kmpc_fork_call {} {} {} {}", locPtr, argc, microtaskPtr, argsPtr);
+    OMP_FUNC_ARGS("__kmpc_fork_call {} {} {} {}",
+                  locPtr,
+                  nSharedVars,
+                  microtaskPtr,
+                  sharedVarPtrs);
 
     auto& sch = faabric::scheduler::getScheduler();
 
@@ -409,10 +418,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     std::string snapshotKey = parentModule->createAppSnapshot(*parentCall);
 
     // Build list of offsets to shared variables
-    if (argc > 0) {
-        uint32_t* sharedVarsPtr =
-          Runtime::memoryArrayPtr<uint32_t>(memoryPtr, argsPtr, argc);
-        nextLevel->setSharedVarOffsets(sharedVarsPtr, argc);
+    if (nSharedVars > 0) {
+        uint32_t* sharedVarsPtr = Runtime::memoryArrayPtr<uint32_t>(
+          memoryPtr, sharedVarPtrs, nSharedVars);
+
+        nextLevel->setSharedVarOffsets(sharedVarsPtr, nSharedVars);
     }
 
     // Set up the chained calls
@@ -722,8 +732,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
  * Called to start a reduction.
  */
 void startReduceCritical(faabric::Message* msg,
-                         int32_t reduceData,
-                         int32_t reduceSize)
+                         int32_t reduceVarPtrs,
+                         int32_t reduceVarsSize)
 
 {
     // Note - we only need to lock locally here, as threads on other hosts
@@ -748,15 +758,15 @@ void startReduceCritical(faabric::Message* msg,
         //
         // Options for changing this include:
         //
-        // - Use reduceSize to work out data type (allows us to support more
+        // - Use reduceVarsSize to work out data type (allows us to support more
         // types of sum)
         // - Change the OpenMP directive to name the function appropriately when
         // it's a standard operation (e.g. sum, product etc.)
         // - Use a strict global critical sections where memory is synced (this
         // will be terrible for performance)
         reg.getSnapshot(snapKey).addMergeRegion(
-          reduceData,
-          reduceSize,
+          reduceVarPtrs,
+          reduceVarsSize,
           faabric::util::SnapshotDataType::Int,
           faabric::util::SnapshotMergeOperation::Sum);
     }
@@ -797,6 +807,11 @@ void endReduceCritical(faabric::Message* msg, bool barrier)
  * In the OpenMP source we can see a more varied set of return values, but these
  * are for cases we don't yet support (notably teams):
  * https://github.com/llvm/llvm-project/blob/main/openmp/runtime/src/kmp_csupport.cpp
+ *
+ * Note that the reduce vars passed into this function are the *LOCAL* copies
+ * on the thread's own stack used to hold intermediate results. There is
+ * apparently no way to get a reference to the final destination of the
+ * reduction result in this function, that is only known in kmpc_fork_call.
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__kmpc_reduce",
@@ -804,21 +819,21 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                __kmpc_reduce,
                                I32 loc,
                                I32 gtid,
-                               I32 numVars,
-                               I32 reduceSize,
-                               I32 reduceData,
+                               I32 numReduceVars,
+                               I32 reduceVarsSize,
+                               I32 reduceVarPtrs,
                                I32 reduceFunc,
                                I32 lockPtr)
 {
     OMP_FUNC_ARGS("__kmpc_reduce {} {} {} {} {} {} {}",
                   loc,
                   gtid,
-                  numVars,
-                  reduceSize,
-                  reduceData,
+                  numReduceVars,
+                  reduceVarsSize,
+                  reduceVarPtrs,
                   reduceFunc,
                   lockPtr);
-    startReduceCritical(msg, reduceSize, reduceData);
+    startReduceCritical(msg, reduceVarPtrs, reduceVarsSize);
     return 1;
 }
 
@@ -831,21 +846,21 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                __kmpc_reduce_nowait,
                                I32 loc,
                                I32 gtid,
-                               I32 numVars,
-                               I32 reduceSize,
-                               I32 reduceData,
+                               I32 numReduceVars,
+                               I32 reduceVarsSize,
+                               I32 reduceVarPtrs,
                                I32 reduceFunc,
                                I32 lockPtr)
 {
     OMP_FUNC_ARGS("__kmpc_reduce_nowait {} {} {} {} {} {} {}",
                   loc,
                   gtid,
-                  numVars,
-                  reduceSize,
-                  reduceData,
+                  numReduceVars,
+                  reduceVarsSize,
+                  reduceVarPtrs,
                   reduceFunc,
                   lockPtr);
-    startReduceCritical(msg, reduceSize, reduceData);
+    startReduceCritical(msg, reduceVarPtrs, reduceVarsSize);
     return 1;
 }
 

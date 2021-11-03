@@ -948,6 +948,10 @@ int32_t WAVMWasmModule::executeOMPThread(int threadPoolIdx,
     SPDLOG_DEBUG("Executing OpenMP thread {} for {}", threadPoolIdx, funcStr);
 
     // Set up function args
+    // NOTE: an OpenMP microtask takes the following arguments:
+    // - The thread ID within its current team
+    // - The number of non-global shared variables it has access to
+    // - A pointer to each of the non-global shared variables
     std::shared_ptr<threads::Level> ompLevel = threads::getCurrentOpenMPLevel();
     int argc = ompLevel->nSharedVarOffsets;
     std::vector<IR::UntaggedValue> invokeArgs = { msg.appidx(), argc };
