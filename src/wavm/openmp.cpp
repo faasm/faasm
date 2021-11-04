@@ -21,6 +21,8 @@
 
 using namespace WAVM;
 
+#define DEFAULT_MERGE_REGION_SIZE (2 * WASM_BYTES_PER_PAGE)
+
 namespace wasm {
 
 // ------------------------------------------------
@@ -425,27 +427,47 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         uint32_t* sharedVarsPtr = Runtime::memoryArrayPtr<uint32_t>(
           memoryPtr, sharedVarPtrs, nSharedVars);
 
+        // Set up the level
         nextLevel->setSharedVarOffsets(sharedVarsPtr, nSharedVars);
 
-        // Set up merge regions for these shared variables. Note that any that
-        // are later discovered to be reduce results will get overridden
-        for (int i = 0; i < nSharedVars; i++) {
-            uint32_t offset = sharedVarsPtr[i];
+        if (!snapshotKey.empty()) {
+            // Create ordered list of offsets
+            std::vector<uint32_t> sortedOffsets(sharedVarsPtr,
+                                                sharedVarsPtr + nSharedVars);
+            std::sort(sortedOffsets.begin(), sortedOffsets.end());
 
-            // TODO - what size to set here? This could be an array of integers
-            // provisioned on the fly. We also can't overlap the merge regions
-            // for any other variables
-            size_t size = sizeof(int);
-
+            // Get the snapshot
             faabric::snapshot::SnapshotRegistry& reg =
               faabric::snapshot::getSnapshotRegistry();
-
             faabric::util::SnapshotData& snap = reg.getSnapshot(snapshotKey);
 
-            snap.addMergeRegion(offset,
-                                size,
-                                faabric::util::SnapshotDataType::Int,
-                                faabric::util::SnapshotMergeOperation::Sum);
+            // Set up merge regions for these shared variables. Note that any
+            // that are later discovered to be reduce results will get
+            // overridden
+            for (int i = 0; i < sortedOffsets.size(); i++) {
+                // TODO - currently we don't know what size to set for a given
+                // merge region, it could be an array of values, or just a
+                // single byte. For now we just set it to some arbitrarily large
+                // size and make sure it doesn't overlap with any others.
+                uint32_t regionStart = sortedOffsets.at(i);
+                uint32_t regionEnd = regionStart + DEFAULT_MERGE_REGION_SIZE;
+                if (i < sortedOffsets.size() - 1) {
+                    uint32_t nextOffset = sortedOffsets.at(i + 1);
+                    regionEnd = std::min(regionEnd, nextOffset);
+                }
+
+                SPDLOG_TRACE("Adding merge region for shared var {} at {}-{}",
+                             i,
+                             regionStart,
+                             regionEnd);
+
+                size_t size = regionEnd - regionStart;
+                snap.addMergeRegion(
+                  regionStart,
+                  size,
+                  faabric::util::SnapshotDataType::Raw,
+                  faabric::util::SnapshotMergeOperation::Overwrite);
+            }
         }
     }
 
@@ -798,8 +820,6 @@ void startReduceCritical(faabric::Message* msg,
         //   types of sum)
         // - Change the OpenMP directive to name the function appropriately when
         //   it's a standard operation (e.g. sum, product etc.)
-        // - Use a strict global critical sections where memory is synced (this
-        //   will be terrible for performance)
         faabric::snapshot::SnapshotRegistry& reg =
           faabric::snapshot::getSnapshotRegistry();
 

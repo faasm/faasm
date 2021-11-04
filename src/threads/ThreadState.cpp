@@ -7,6 +7,7 @@
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
+#include <faabric/util/snapshot.h>
 #include <faabric/util/timing.h>
 
 #include <threads/ThreadState.h>
@@ -71,9 +72,9 @@ std::vector<uint32_t> Level::getSharedVarOffsets()
 
 void Level::setSharedVarOffsets(uint32_t* ptr, int nVars)
 {
+    // Record the offsets themselves
     sharedVarOffsets = new uint32_t[nVars];
     nSharedVarOffsets = nVars;
-
     std::memcpy(sharedVarOffsets, ptr, nVars * sizeof(uint32_t));
 }
 

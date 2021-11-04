@@ -381,7 +381,6 @@ void WAVMWasmModule::executeWasmFunction(
   WAVM::IR::UntaggedValue& result)
 {
     const IR::FunctionType funcType = Runtime::getFunctionType(func);
-
     Runtime::invokeFunction(ctx, func, funcType, arguments.data(), &result);
 }
 

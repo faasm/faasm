@@ -439,10 +439,7 @@ int32_t WasmModule::executeTask(
             case ThreadRequestType::PTHREAD: {
                 SPDLOG_TRACE("Executing {} as pthread", funcStr);
 
-                // Ensure we ignore all stacks in a snapshot if it exists
-                if (!msg.snapshotkey().empty()) {
-                    ignoreAllStacksInSnapshot(msg.snapshotkey());
-                }
+                // TODO - add overwrite merge region for the whole heap
 
                 returnValue = executePthread(threadPoolIdx, stackTop, msg);
                 break;
@@ -452,15 +449,6 @@ int32_t WasmModule::executeTask(
                              funcStr,
                              msg.groupid(),
                              msg.groupsize());
-
-                // Set up custom merge strategy for OpenMP
-                if (!msg.snapshotkey().empty()) {
-                    faabric::util::SnapshotData& snapData =
-                      faabric::snapshot::getSnapshotRegistry().getSnapshot(
-                        msg.snapshotkey());
-
-                    snapData.setIsCustomMerge(true);
-                }
 
                 threads::setCurrentOpenMPLevel(req);
                 returnValue = executeOMPThread(threadPoolIdx, stackTop, msg);
