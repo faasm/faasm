@@ -361,11 +361,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 // ----------------------------------------------------
 
 /**
- * The "real" version of this function is implemented in the openmp source at:
+ * The LLVM version of this function is implemented in the openmp source at:
  * https://github.com/llvm/llvm-project/blob/main/openmp/runtime/src/kmp_csupport.cpp
  *
  * It calls into __kmp_fork call to do most of the work, which is here:
  * https://github.com/llvm/llvm-project/blob/main/openmp/runtime/src/kmp_runtime.cpp
+ *
+ * The structs passed in are defined in this file:
+ * https://github.com/llvm/llvm-project/blob/main/openmp/runtime/src/kmp.h
  *
  * Arguments:
  * - locPtr = pointer to the source location info (type ident_t)
@@ -423,6 +426,27 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
           memoryPtr, sharedVarPtrs, nSharedVars);
 
         nextLevel->setSharedVarOffsets(sharedVarsPtr, nSharedVars);
+
+        // Set up merge regions for these shared variables. Note that any that
+        // are later discovered to be reduce results will get overridden
+        for (int i = 0; i < nSharedVars; i++) {
+            uint32_t offset = sharedVarsPtr[i];
+
+            // TODO - what size to set here? This could be an array of integers
+            // provisioned on the fly. We also can't overlap the merge regions
+            // for any other variables
+            size_t size = sizeof(int);
+
+            faabric::snapshot::SnapshotRegistry& reg =
+              faabric::snapshot::getSnapshotRegistry();
+
+            faabric::util::SnapshotData& snap = reg.getSnapshot(snapshotKey);
+
+            snap.addMergeRegion(offset,
+                                size,
+                                faabric::util::SnapshotDataType::Int,
+                                faabric::util::SnapshotMergeOperation::Sum);
+        }
     }
 
     // Set up the chained calls
@@ -732,6 +756,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
  * Called to start a reduction.
  */
 void startReduceCritical(faabric::Message* msg,
+                         std::shared_ptr<threads::Level> level,
+                         int32_t numReduceVars,
                          int32_t reduceVarPtrs,
                          int32_t reduceVarsSize)
 
@@ -743,32 +769,55 @@ void startReduceCritical(faabric::Message* msg,
 
     std::string snapKey = msg->snapshotkey();
     if (!snapKey.empty()) {
-
-        faabric::snapshot::SnapshotRegistry& reg =
-          faabric::snapshot::getSnapshotRegistry();
-
-        // TODO here we need to set up the merge operation for DSM.
+        // Here we have to set up the custom merge region for the reduce
+        // variables. The reduce variables passed in here are the *local*
+        // targets for this thread's reduction, but we need to get a reference
+        // to the *shared* value to which the final result is written. To do
+        // this, we need to go back to the original list of shared variables
+        // from __kmpc_fork_call.
         //
-        // This is tricky as OpenMP doesn't specify what sort of reduction it's
-        // doing, just uses a function with the same name every time, regardless
-        // of the operation.
+        // TODO we are making an assumption that the N variables listed here
+        // correspond to the final N shared variables passed to
+        // __kmpc_fork_call, would be nice to find a more robust way to do this.
+        //
+        // TODO working out what sort of reduce is tricky as OpenMP doesn't
+        // specify what sort of reduction it's doing, just uses a function with
+        // the same name every time, regardless of the operation. However, if we
+        // can interrogate the type of the function, we might be able to work it
+        // out.
         //
         // For now based on the applications we run, we can assume it's an
         // integer sum.
         //
         // Options for changing this include:
         //
+        // - Interrogate some other data/ memory/ function definition to work
+        //   out variable types. The microtask definition definitely holds this
+        //   information.
         // - Use reduceVarsSize to work out data type (allows us to support more
-        // types of sum)
+        //   types of sum)
         // - Change the OpenMP directive to name the function appropriately when
-        // it's a standard operation (e.g. sum, product etc.)
+        //   it's a standard operation (e.g. sum, product etc.)
         // - Use a strict global critical sections where memory is synced (this
-        // will be terrible for performance)
-        reg.getSnapshot(snapKey).addMergeRegion(
-          reduceVarPtrs,
-          reduceVarsSize,
-          faabric::util::SnapshotDataType::Int,
-          faabric::util::SnapshotMergeOperation::Sum);
+        //   will be terrible for performance)
+        faabric::snapshot::SnapshotRegistry& reg =
+          faabric::snapshot::getSnapshotRegistry();
+
+        faabric::util::SnapshotData& snap = reg.getSnapshot(snapKey);
+        for (int i = 0; i < numReduceVars; i++) {
+            int sharedVarIdx = level->nSharedVarOffsets - 1 - numReduceVars + i;
+            uint32_t globalReduceVar = level->sharedVarOffsets[sharedVarIdx];
+
+            SPDLOG_TRACE("Adding merge region for reduce var {} at {} ({})",
+                         i,
+                         globalReduceVar,
+                         sharedVarIdx);
+
+            snap.addMergeRegion(globalReduceVar,
+                                sizeof(int32_t),
+                                faabric::util::SnapshotDataType::Int,
+                                faabric::util::SnapshotMergeOperation::Sum);
+        }
     }
 }
 
@@ -833,7 +882,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceVarPtrs,
                   reduceFunc,
                   lockPtr);
-    startReduceCritical(msg, reduceVarPtrs, reduceVarsSize);
+    startReduceCritical(
+      msg, level, numReduceVars, reduceVarPtrs, reduceVarsSize);
     return 1;
 }
 
@@ -860,7 +910,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceVarPtrs,
                   reduceFunc,
                   lockPtr);
-    startReduceCritical(msg, reduceVarPtrs, reduceVarsSize);
+    startReduceCritical(
+      msg, level, numReduceVars, reduceVarPtrs, reduceVarsSize);
     return 1;
 }
 
