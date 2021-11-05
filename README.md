@@ -91,4 +91,7 @@ More detail on some key features and implementations can be found below:
 
 # Acknowledgements
 
-This project has received funding from the European Union's Horizon 2020 research and innovation programme under grant agreement No 825184 (CloudButton).
+This project has received funding from the European Union's Horizon 2020
+research and innovation programme under grant agreement No 825184 (CloudButton),
+the UK Engineering and Physical Sciences Research Council (EPSRC) award 1973141,
+and a gift from Intel Corporation under the TFaaS project.
