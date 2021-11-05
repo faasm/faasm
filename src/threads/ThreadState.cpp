@@ -1,4 +1,5 @@
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/util/barrier.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
@@ -10,11 +11,14 @@
 #include <faabric/util/snapshot.h>
 #include <faabric/util/timing.h>
 
+#include <conf/FaasmConfig.h>
 #include <threads/ThreadState.h>
 
 using namespace faabric::util;
 
 #define LEVEL_WAIT_TIMEOUT_MS 20000
+
+#define DEFAULT_MERGE_REGION_SIZE (2 * WASM_BYTES_PER_PAGE)
 
 namespace threads {
 
@@ -34,12 +38,15 @@ void setCurrentOpenMPLevel(
     }
 
     std::string funcStr = faabric::util::funcToString(req);
+
     currentLevel = levelFromBatchRequest(req);
     SPDLOG_TRACE(
       "Deserialised thread-local OpenMP level from {} bytes for {}, {}",
       req->contextdata().size(),
       funcStr,
       currentLevel->toString());
+
+    currentLevel->addSharedVarMergeRegions(req->messages(0).snapshotkey());
 }
 
 std::shared_ptr<Level> getCurrentOpenMPLevel()
@@ -212,5 +219,51 @@ std::string Level::toString()
     ss << "}";
 
     return ss.str();
+}
+
+void Level::addSharedVarMergeRegions(const std::string& snapshotKey)
+{
+    if (snapshotKey.empty()) {
+        return;
+    }
+
+    // Create ordered list of offsets
+    std::vector<uint32_t> sortedOffsets(sharedVarOffsets,
+                                        sharedVarOffsets + nSharedVarOffsets);
+
+    std::sort(sortedOffsets.begin(), sortedOffsets.end());
+
+    // Get the snapshot
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+    faabric::util::SnapshotData& snap = reg.getSnapshot(snapshotKey);
+
+    // Set up merge regions for these shared variables. Note that any
+    // that are later discovered to be reduce results will get
+    // overridden
+    for (int i = 0; i < sortedOffsets.size(); i++) {
+        // TODO - currently we don't know what size to set for a given
+        // merge region, it could be an array of values, or just a
+        // single byte. For now we just set it to some arbitrarily large
+        // size and make sure it doesn't overlap with any others.
+        uint32_t regionStart = sortedOffsets.at(i);
+        uint32_t regionEnd = regionStart + DEFAULT_MERGE_REGION_SIZE;
+        if (i < sortedOffsets.size() - 1) {
+            uint32_t nextOffset = sortedOffsets.at(i + 1);
+            regionEnd = std::min(regionEnd, nextOffset);
+        }
+
+        SPDLOG_TRACE("Adding merge region for shared var {} at {}-{}",
+                     i,
+                     regionStart,
+                     regionEnd);
+
+        size_t size = regionEnd - regionStart;
+        snap.addMergeRegion(regionStart,
+                            size,
+                            faabric::util::SnapshotDataType::Raw,
+                            faabric::util::SnapshotMergeOperation::Overwrite,
+                            true);
+    }
 }
 }

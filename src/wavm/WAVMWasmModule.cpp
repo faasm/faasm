@@ -15,6 +15,7 @@
 #include <faabric/util/memory.h>
 #include <faabric/util/timing.h>
 
+#include <conf/FaasmConfig.h>
 #include <storage/SharedFiles.h>
 #include <threads/ThreadState.h>
 #include <wasm/WasmExecutionContext.h>

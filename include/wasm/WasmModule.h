@@ -18,22 +18,6 @@
 
 #include <storage/FileSystem.h>
 
-#define ONE_MB_BYTES 1024 * 1024
-
-#define WASM_BYTES_PER_PAGE 65536
-
-// Note: this is *not* controlling the size provisioned by the linker, that is
-// hard-coded in the build. This variable is just here for reference and must be
-// updated to match the value in the build.
-#define STACK_SIZE (4 * ONE_MB_BYTES)
-#define THREAD_STACK_SIZE (2 * ONE_MB_BYTES)
-
-// Properties of dynamic modules. Heap size must be wasm-module-page-aligned.
-// One page is 64kB
-#define DYNAMIC_MODULE_STACK_SIZE (2 * ONE_MB_BYTES)
-#define DYNAMIC_MODULE_MEMORY_SIZE (66 * WASM_BYTES_PER_PAGE)
-#define GUARD_REGION_SIZE (10 * WASM_BYTES_PER_PAGE)
-
 // Special known function names
 // Zygote function (must match faasm.h linked into the functions themselves)
 #define ZYGOTE_FUNC_NAME "_faasm_zygote"
@@ -203,8 +187,6 @@ class WasmModule
 
     // Snapshots
     void snapshotWithKey(const std::string& snapKey, bool locallyRestorable);
-
-    void ignoreAllStacksInSnapshot(const std::string& snapshotKey);
 
     // Threads
     void createThreadStacks();

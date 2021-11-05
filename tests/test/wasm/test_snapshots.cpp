@@ -15,6 +15,7 @@
 #include <faabric/util/snapshot.h>
 #include <faabric/util/testing.h>
 
+#include <conf/FaasmConfig.h>
 #include <faaslet/Faaslet.h>
 #include <wavm/WAVMWasmModule.h>
 

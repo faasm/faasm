@@ -63,6 +63,8 @@ class Level
     int getGlobalThreadNum(const faabric::Message* msg);
 
     std::string toString();
+
+    void addSharedVarMergeRegions(const std::string &snapshotKey);
 };
 
 class PthreadCall
