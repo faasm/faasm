@@ -113,6 +113,10 @@ std::string WasmModule::createAppSnapshot(const faabric::Message& msg)
         SPDLOG_DEBUG(
           "Creating app snapshot: {} for app {}", snapshotKey, msg.appid());
         snapshotWithKey(snapshotKey, false);
+
+        // Reset all dirty tracking here; we only want to pick up the diffs
+        // after this is first created
+        faabric::util::resetDirtyTracking();
     }
 
     return snapshotKey;
