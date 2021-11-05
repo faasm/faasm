@@ -19,7 +19,7 @@ class DistTestsFixture
     faabric::util::SystemConfig& conf;
     conf::FaasmConfig& faasmConf;
 
-    int functionCallTimeout = 10000;
+    int functionCallTimeout = 60000;
 
     std::string masterIp;
     std::string workerIp;
