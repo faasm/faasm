@@ -495,6 +495,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         throw std::runtime_error("OpenMP threads failed");
     }
 
+    // Clear up the point-to-point group as it's no longer needed
+    faabric::transport::getPointToPointBroker().clearGroup(groupId);
+
     // Reset parent level for next setting of threads
     parentLevel->pushedThreads = -1;
 }
