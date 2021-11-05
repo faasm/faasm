@@ -89,3 +89,6 @@ More detail on some key features and implementations can be found below:
 - [ParRes Kernels](https://github.com/faasm/faasm-experiments/blob/master/docs/prk.md) - benchmarking with the [ParRes Kernels](https://github.com/ParRes/Kernels)
 - [Python performance](https://github.com/faasm/faasm-experiments/blob/master/docs/python.md) - executing the [Python performance benchmarks](https://github.com/python/pyperformance)
 
+# Acknowledgements
+
+This project has received funding from the European Union's Horizon 2020 research and innovation programme under grant agreement No 825184 (CloudButton).
