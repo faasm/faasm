@@ -1,3 +1,4 @@
+#include "faabric/util/scheduling.h"
 #include <WAVM/Platform/Thread.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
@@ -23,6 +24,61 @@
 using namespace WAVM;
 
 namespace wasm {
+
+// ------------------------------------------------
+// SCHEDULING
+// ------------------------------------------------
+std::unordered_map<std::string, int> cachedGroupIds;
+std::unordered_map<std::string, std::vector<std::string>> cachedDecisionHosts;
+
+std::string getDecisionCacheKey(
+  std::shared_ptr<faabric::BatchExecuteRequest> req,
+  threads::Level& lvl)
+{
+    // Build key for this level
+    std::string key = std::to_string(req->messages().at(0).appid()) + "_" +
+                      std::to_string(lvl.numThreads) + "_" +
+                      std::to_string(lvl.depth);
+
+    return key;
+}
+
+faabric::util::SchedulingDecision getDecisionForLevel(
+  std::shared_ptr<faabric::BatchExecuteRequest> req,
+  threads::Level& lvl)
+{
+    faabric::Message& firstMsg = req->mutable_messages()->at(0);
+    int appId = firstMsg.appid();
+    std::string key = getDecisionCacheKey(req, lvl);
+
+    if (cachedDecisionHosts.find(key) == cachedDecisionHosts.end()) {
+        return faabric::util::SchedulingDecision(0, 0);
+    }
+
+    int groupId = cachedGroupIds[key];
+    std::vector<std::string> hosts = cachedDecisionHosts[key];
+
+    // Sanity check we've got the same sizes
+    assert(hosts.size() == req->messages().size());
+
+    faabric::util::SchedulingDecision decision(appId, groupId);
+    for (int i = 0; i < hosts.size(); i++) {
+        decision.addMessage(hosts.at(i), req->messages().at(i));
+    }
+
+    return decision;
+}
+
+void cacheDecisionForLevel(std::shared_ptr<faabric::BatchExecuteRequest> req,
+                           threads::Level& lvl,
+                           faabric::util::SchedulingDecision& decision)
+{
+    faabric::Message& firstMsg = req->mutable_messages()->at(0);
+    std::string key = getDecisionCacheKey(req, lvl);
+
+    cachedGroupIds[key] = firstMsg.groupid();
+    cachedDecisionHosts[key] = decision.hosts;
+}
 
 // ------------------------------------------------
 // LOGGING
@@ -471,8 +527,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     // TODO - give a slot back to this host before calling to avoid
     // unnecessarily spreading across hosts
 
+    faabric::util::SchedulingDecision hint =
+      getDecisionForLevel(req, nextLevel);
+
     // Submit the request
-    sch.callFunctions(req);
+    if (hint.hosts.empty()) {
+        faabric::util::SchedulingDecision decision = sch.callFunctions(req);
+        cacheDecisionForLevel(req, nextLevel, decision);
+    } else {
+        sch.callFunctions(req, hint);
+    }
 
     // Await all child threads
     std::vector<std::pair<int, uint32_t>> failures;
