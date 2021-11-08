@@ -33,6 +33,12 @@ int main(int argc, char* argv[])
     // Process input args
     std::string inFile = argv[1];
     std::string outFile = argv[2];
+    bool isSgx = false;
+
+    // Check if SGX flag is set
+    if (argc == 4 && (strcmp(argv[3], "--sgx") == 0)) {
+        isSgx = true;
+    }
 
     // Set up config
     SystemConfig& conf = getSystemConfig();
@@ -41,6 +47,9 @@ int main(int argc, char* argv[])
     conf.boundTimeout = 60000;
     conf.globalMessageTimeout = 60000;
     faasmConf.chainedCallTimeout = 60000;
+    if (isSgx) {
+        faasmConf.wasmVm = "wamr";
+    }
 
     // Set executor factory
     std::shared_ptr<faaslet::FaasletFactory> fac =

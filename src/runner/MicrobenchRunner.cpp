@@ -49,6 +49,10 @@ int doRun(std::ofstream& outFs,
         msg.set_function(PYTHON_FUNC);
     }
 
+    if (conf::getFaasmConfig().wasmVm == "wamr") {
+        msg.set_issgx(true);
+    }
+
     msg.set_inputdata(inputData);
 
     // Check files have been uploaded
@@ -59,7 +63,12 @@ int doRun(std::ofstream& outFs,
         return 1;
     }
 
-    std::vector<uint8_t> objBytes = loader.loadFunctionObjectFile(msg);
+    std::vector<uint8_t> objBytes;
+    if (msg.issgx()) {
+        objBytes = loader.loadFunctionWamrAotFile(msg);
+    } else {
+        objBytes = loader.loadFunctionObjectFile(msg);
+    }
     if (objBytes.empty()) {
         SPDLOG_ERROR(
           "Could not load object file for {}/{}. Make sure you've run codegen");
