@@ -48,7 +48,8 @@ extern "C"
     }
 
     static sgx::ModuleStore wamrModules;
-    static thread_local std::shared_ptr<sgx::WamrModuleHandle> moduleHandle = nullptr;
+    static thread_local std::shared_ptr<sgx::WamrModuleHandle> moduleHandle =
+      nullptr;
 
     static uint8_t wamrHeapBuffer[SGX_WAMR_HEAP_SIZE];
 
@@ -90,9 +91,22 @@ extern "C"
             return FAASM_SGX_INVALID_PTR;
         }
 
+        // Check if module has already been bound
+        if (moduleHandle != nullptr) {
+            SGX_DEBUG_LOG("Module already bound to function: %s", funcStr);
+            return FAASM_SGX_SUCCESS;
+        }
+
+        // Check if module instance is cached
+        moduleHandle = wamrModules.get(funcStr);
+        if (wamrModules.get(funcStr) != nullptr) {
+            SGX_DEBUG_LOG("Module function (%s) found in SGX cache", funcStr);
+            return FAASM_SGX_SUCCESS;
+        }
+
         // Load the WASM module to the module store
-        // std::shared_ptr<sgx::WamrModuleHandle> moduleHandle =
-        moduleHandle = wamrModules.store(funcStr, wasmOpCodePtr, wasmOpCodeSize);
+        moduleHandle =
+          wamrModules.store(funcStr, wasmOpCodePtr, wasmOpCodeSize);
         if (moduleHandle == nullptr) {
             ocall_faasm_log_error("Can't load module to the SGX store");
             return FAASM_SGX_MODULE_STORE_FAILED;
@@ -128,42 +142,14 @@ extern "C"
         return FAASM_SGX_SUCCESS;
     }
 
-    faasm_sgx_status_t enclaveUnloadModule(const char* funcStr)
-    {
-        /* jaja
-        std::shared_ptr<sgx::WamrModuleHandle> moduleHandle =
-          wamrModules.get(funcStr);
-          */
-        if (moduleHandle == nullptr) {
-            SGX_DEBUG_LOG("Module slot is not set, skipping unload");
-            return FAASM_SGX_SUCCESS;
-        }
-
-        // Unload the module and release the TCS slot
-        wasm_runtime_deinstantiate(moduleHandle->moduleInstance);
-        wasm_runtime_unload(moduleHandle->wasmModule);
-
-        // Clean the module slot
-        bool success = wamrModules.clear(funcStr);
-        if (!success) {
-            ocall_faasm_log_error("Error clearing module from module store");
-            return FAASM_SGX_MODULE_STORE_CLEAR_FAILED;
-        }
-
-        moduleHandle = nullptr;
-
-        return FAASM_SGX_SUCCESS;
-    }
-
     // Execute the main function
     faasm_sgx_status_t enclaveCallFunction(const char* key)
     {
-        /*
-        std::shared_ptr<sgx::WamrModuleHandle> moduleHandle =
-          wamrModules.get(key);
-        */
+        SGX_DEBUG_LOG("Executing function: %s", key);
+
         if (moduleHandle == nullptr) {
-            ocall_faasm_log_error("SGX-WAMR module not loaded. Has module been bound?");
+            ocall_faasm_log_error(
+              "SGX-WAMR module not loaded. Has module been bound?");
             return FAASM_SGX_INVALID_PTR;
         }
 
@@ -207,9 +193,30 @@ extern "C"
             return FAASM_SGX_WAMR_FUNCTION_UNABLE_TO_CALL;
         }
 
+        SGX_DEBUG_LOG("Finished executing function: %s", key);
+
+        return FAASM_SGX_SUCCESS;
+    }
+
+    faasm_sgx_status_t enclaveTearDown(void)
+    {
+        // Null-out the thread local module handle
+        moduleHandle = nullptr;
+
+        // Deinstantiate and unload all cached modules
+        wamrModules.clear();
+
         return FAASM_SGX_SUCCESS;
     }
 }
 
-// TODO - waatt
-extern "C" int __cxa_thread_atexit(void (*dtor)(void *), void *obj, void *dso_symbol) { return 0; }
+// 08/11/2021 - The SGX runtime can't provide a safe implementation of this
+// method, but we need to no-op it to build the enclave without issues.
+// - https://github.com/intel/linux-sgx/issues/349
+// - https://github.com/intel/linux-sgx/issues/454
+extern "C" int __cxa_thread_atexit(void (*dtor)(void*),
+                                   void* obj,
+                                   void* dso_symbol)
+{
+    return 0;
+}

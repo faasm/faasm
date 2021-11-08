@@ -21,13 +21,11 @@ enclave{
                                             uint32_t wasmOpCodeSize
         );
 
-        public faasm_sgx_status_t enclaveUnloadModule(
-            [in, string]                    char *funcStr
-        );
-
         public faasm_sgx_status_t enclaveCallFunction(
             [in, string]                    char *funcStr
         );
+
+        public faasm_sgx_status_t enclaveTearDown(void);
 
         // ----- ECalls used for testing purposes -----
 

@@ -31,8 +31,6 @@ class WAMREnclave
 
     void loadWasmModule(const std::string& funcStr, std::vector<uint8_t>& data);
 
-    void unloadWasmModule(const std::string& funcStr);
-
     void callMainFunction(const std::string& funcStr);
 
   private:

@@ -19,13 +19,12 @@ extern "C"
                                           const void* wasmOpCodePtr,
                                           uint32_t wasmOpCodeSize);
 
-    extern sgx_status_t enclaveUnloadModule(sgx_enclave_id_t enclaveId,
-                                            faasm_sgx_status_t* returnValue,
-                                            const char* funcStr);
-
     extern sgx_status_t enclaveCallFunction(sgx_enclave_id_t enclaveId,
                                             faasm_sgx_status_t* returnValue,
                                             const char* funcStr);
+
+    extern sgx_status_t enclaveTearDown(sgx_enclave_id_t enclaveId,
+                                        faasm_sgx_status_t* returnValue);
 
     // ----- ECalls for testing purposes ----
 

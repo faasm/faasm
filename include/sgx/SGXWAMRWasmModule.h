@@ -28,6 +28,9 @@ class SGXWAMRWasmModule final : public WasmModule
     static void clearCaches();
 
     // ----- Module lifecycle -----
+    void doFunctionLoad(std::shared_ptr<sgx::WAMREnclave> wamrEnclave,
+                        const faabric::Message& msg);
+
     void doBindToFunction(faabric::Message& msg, bool cache) override;
 
     void reset(faabric::Message& msg, const std::string& snapshotKey) override;

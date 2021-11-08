@@ -16,12 +16,9 @@ struct WamrModuleHandle
     uint32_t wasmOpCodeSize = 0;
 };
 
-// This object stores the loaded modules inside the enclave. Modules may be
-// repeated if different threads accessing the enclave want to use the same
-// module. This is to avoid in-enclave concurrency control.
 // Writes to the module store are protected by the locking mechanism outside
 // the enclave. We may potentially have multiple readers at the same
-// time, but never of the same store entry.
+// time.
 class ModuleStore
 {
   public:
@@ -33,7 +30,7 @@ class ModuleStore
 
     std::shared_ptr<sgx::WamrModuleHandle> get(const char* key);
 
-    bool clear(const char* key);
+    void clear();
 
   private:
     std::unordered_map<std::string, std::shared_ptr<sgx::WamrModuleHandle>>

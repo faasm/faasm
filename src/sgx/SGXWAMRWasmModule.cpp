@@ -17,11 +17,15 @@ SGXWAMRWasmModule::SGXWAMRWasmModule()
 SGXWAMRWasmModule::~SGXWAMRWasmModule() {}
 
 // ----- Module lifecycle -----
-void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
+static std::string getSgxFunctionKey(const faabric::Message& msg)
 {
-    // Note that we set the second argument to true, so the string includes
-    // the message id, making the key unique to the current executing task
-    std::string funcStr = faabric::util::funcToString(msg, true);
+    return faabric::util::funcToString(msg, true);
+}
+
+void SGXWAMRWasmModule::doFunctionLoad(std::shared_ptr<WAMREnclave> wamrEnclave,
+                                       const faabric::Message& msg)
+{
+    std::string funcStr = getSgxFunctionKey(msg);
 
     // Set up filesystem
     storage::FileSystem fs;
@@ -41,12 +45,14 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
         throw std::runtime_error("SGX-WAMR machine code not found");
     }
 
-    // Load the wasm module
-    wamrEnclave = acquireGlobalWAMREnclaveLock();
-
     wamrEnclave->loadWasmModule(funcStr, wasmBytes);
+}
 
-    releaseGlobalWAMREnclaveLock();
+void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
+{
+    // Note that we defer the actual loading of the function to the enclave
+    // to execute-time
+    std::string funcStr = getSgxFunctionKey(msg);
 
     SPDLOG_DEBUG("Binding SGX-WAMR module to function {}", funcStr);
     boundFuncStr = funcStr;
@@ -60,33 +66,40 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 
 void SGXWAMRWasmModule::clearCaches()
 {
+    SPDLOG_DEBUG("Clearing SGX enclave and caches");
+
     std::shared_ptr<WAMREnclave> wamrEnclave = acquireGlobalWAMREnclaveLock();
-
     wamrEnclave->tearDownSgxEnclave();
-
     releaseGlobalWAMREnclaveLock();
 }
 
 void SGXWAMRWasmModule::reset(faabric::Message& msg,
                               const std::string& snapshotKey)
 {
-    // Note that we set the second argument to true, so the string includes
-    // the message id, making the key unique to the current executing task
-    std::string funcStr = faabric::util::funcToString(msg, true);
+    if (!isBound()) {
+        return;
+    }
 
-    wamrEnclave = acquireGlobalWAMREnclaveLock();
-    wamrEnclave->unloadWasmModule(funcStr);
-    releaseGlobalWAMREnclaveLock();
-
-    boundFuncStr.clear();
+    std::string funcStr = getSgxFunctionKey(msg);
+    assert(funcStr == boundFuncStr);
 }
 
 int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
 {
-    std::string funcStr = faabric::util::funcToString(msg, true);
+    std::string funcStr = getSgxFunctionKey(msg);
+
+    SPDLOG_DEBUG("Executing SGX-WAMR module {}", funcStr);
 
     if (!isBound()) {
-        SPDLOG_ERROR("SGX-WAMR module must be bound before executing task: {}", funcStr);
+        SPDLOG_ERROR("SGX-WAMR module must be bound before executing task: {}",
+                     funcStr);
+        throw std::runtime_error("Module must be bound before executing");
+    }
+
+    if (boundFuncStr.empty()) {
+        SPDLOG_ERROR("SGX-WAMR module is bound but bounded function is empty "
+                     "(funcStr: {})",
+                     funcStr);
         throw std::runtime_error("Module must be bound before executing");
     }
 
@@ -94,14 +107,28 @@ int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
     // executor) is not supported. Thus, it may happen that we call this method
     // without having bound the module to the function (again).
     if (boundFuncStr != funcStr) {
-        SPDLOG_ERROR("THIS IS HAPPENINGGG");
+        SPDLOG_ERROR("Requested function to execute different to the one the"
+                     "module is bound to (bound: {} != req: {})",
+                     boundFuncStr,
+                     funcStr);
         doBindToFunction(msg, false);
     }
+
+    // Given that the enclave is shared across all Faaslets, function upload
+    // a global lock as it modifies the in-enclave module cache
+    wamrEnclave = acquireGlobalWAMREnclaveLock();
+
+    // Load the WAMR machine code to the enclave
+    doFunctionLoad(wamrEnclave, msg);
+
+    releaseGlobalWAMREnclaveLock();
 
     // Set execution context
     wasm::WasmExecutionContext ctx(this, &msg);
 
     wamrEnclave->callMainFunction(funcStr);
+
+    SPDLOG_DEBUG("Finished executing SGX-WAMR module {}", funcStr);
 
     return 0;
 }

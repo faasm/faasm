@@ -8,38 +8,42 @@ class SgxModuleTestFixture
 {
   public:
     SgxModuleTestFixture()
+      : module(std::make_shared<wasm::SGXWAMRWasmModule>())
+      , otherModule(std::make_shared<wasm::SGXWAMRWasmModule>())
+      , msg(faabric::util::messageFactory("demo", "hello"))
+      , otherMsg(faabric::util::messageFactory("demo", "echo"))
     {
-        msg = faabric::util::messageFactory("demo", "hello");
+        // msg = faabric::util::messageFactory("demo", "hello");
         msg.set_issgx(true);
-        otherMsg = faabric::util::messageFactory("demo", "echo");
+        // otherMsg = faabric::util::messageFactory("demo", "echo");
         otherMsg.set_issgx(true);
     }
 
-    ~SgxModuleTestFixture() {}
+    ~SgxModuleTestFixture()
+    {
+        module->clearCaches();
+        otherModule->clearCaches();
+
+        module = nullptr;
+        otherModule = nullptr;
+    }
 
   protected:
-    wasm::SGXWAMRWasmModule module;
-
-    wasm::SGXWAMRWasmModule otherModule;
+    std::shared_ptr<wasm::SGXWAMRWasmModule> module;
+    std::shared_ptr<wasm::SGXWAMRWasmModule> otherModule;
 
     faabric::Message msg;
-
     faabric::Message otherMsg;
 };
 
-TEST_CASE_METHOD(SgxModuleTestFixture,
-                 "Test binding and unbinding to function",
-                 "[sgx]")
+TEST_CASE_METHOD(SgxModuleTestFixture, "Test binding to function", "[sgx]")
 {
-    // We can unbind when nothing is bound
-    module.reset(msg, "");
+    // We can reset when nothing is bound
+    module->reset(msg, "");
 
     // Try binding to a function
-    module.bindToFunction(msg, false);
-    REQUIRE(module.isBound());
-
-    // Then unbind
-    module.reset(msg, "");
+    module->bindToFunction(msg, false);
+    REQUIRE(module->isBound());
 }
 
 TEST_CASE_METHOD(SgxModuleTestFixture,
@@ -47,10 +51,10 @@ TEST_CASE_METHOD(SgxModuleTestFixture,
                  "[sgx]")
 {
     // Bind to function
-    module.bindToFunction(msg, false);
+    module->bindToFunction(msg, false);
 
     // Execute function
-    int retVal = module.executeFunction(msg);
+    int retVal = module->executeFunction(msg);
     REQUIRE(retVal == 0);
 }
 
@@ -59,29 +63,13 @@ TEST_CASE_METHOD(SgxModuleTestFixture,
                  "[sgx]")
 {
     // Bind to function
-    module.bindToFunction(msg, false);
+    module->bindToFunction(msg, false);
 
     // Execute function
-    int retVal = module.executeFunction(msg);
+    int retVal = module->executeFunction(msg);
     REQUIRE(retVal == 0);
 
-    // Message copy
-    faabric::Message msgCopy;
-
-    SECTION("Same message id")
-    {
-        // Copy message
-        msgCopy = msg;
-    }
-
-    SECTION("Different message id")
-    {
-        // New message with same function
-        msgCopy = faabric::util::messageFactory(msg.user(), msg.function());
-        msgCopy.set_issgx(true);
-    }
-
-    retVal = module.executeFunction(msgCopy);
+    retVal = module->executeFunction(msg);
     REQUIRE(retVal == 0);
 }
 
@@ -90,10 +78,10 @@ TEST_CASE_METHOD(SgxModuleTestFixture,
                  "[sgx]")
 {
     // Note that both modules operate on the same enclave
-    std::thread th([this] { otherModule.bindToFunction(otherMsg, false); });
+    std::thread th([this] { otherModule->bindToFunction(otherMsg, false); });
 
-    module.bindToFunction(msg, false);
-    REQUIRE(module.isBound());
+    module->bindToFunction(msg, false);
+    REQUIRE(module->isBound());
 
     if (th.joinable()) {
         th.join();
@@ -101,24 +89,26 @@ TEST_CASE_METHOD(SgxModuleTestFixture,
 }
 
 TEST_CASE_METHOD(SgxModuleTestFixture,
-                 "Test two modules executing different functions repeatedly",
-                 "[sgx]")
+                 "Test two modules executing the same function repeatedly",
+                 "[sgx2]")
 {
     int numExec = 10;
 
     // Note that both modules operate on the same enclave
     std::thread th([this, numExec] {
-        otherModule.bindToFunction(otherMsg, false);
+        otherModule->bindToFunction(msg, false);
 
         for (int i = 0; i < numExec; i++) {
-            otherModule.executeFunction(otherMsg);
+            otherModule->executeFunction(msg);
         }
     });
 
-    module.bindToFunction(msg, false);
+    module->bindToFunction(msg, false);
 
+    int retVal;
     for (int i = 0; i < numExec; i++) {
-        module.executeFunction(msg);
+        retVal = module->executeFunction(msg);
+        REQUIRE(retVal == 0);
     }
 
     if (th.joinable()) {
@@ -127,23 +117,36 @@ TEST_CASE_METHOD(SgxModuleTestFixture,
 
     // Flush enclave module
     faabric::scheduler::getScheduler().flushLocally();
+}
 
-    /*
-    // Run functions again changing the module they run on
-    // Note that calling execute on a new function implicitly calls bind
-    std::thread th2([this, numExec] {
+TEST_CASE_METHOD(SgxModuleTestFixture,
+                 "Test two modules executing different functions repeatedly",
+                 "[sgx2]")
+{
+    int numExec = 10;
+
+    // Note that both modules operate on the same enclave
+    std::thread th([this, numExec] {
+        otherModule->bindToFunction(otherMsg, false);
+
         for (int i = 0; i < numExec; i++) {
-            otherModule.executeFunction(msg);
+            otherModule->executeFunction(otherMsg);
         }
     });
 
+    module->bindToFunction(msg, false);
+
+    int retVal;
     for (int i = 0; i < numExec; i++) {
-        module.executeFunction(otherMsg);
+        retVal = module->executeFunction(msg);
+        REQUIRE(retVal == 0);
     }
 
-    if (th2.joinable()) {
-        th2.join();
+    if (th.joinable()) {
+        th.join();
     }
-    */
+
+    // Flush enclave module
+    faabric::scheduler::getScheduler().flushLocally();
 }
 }

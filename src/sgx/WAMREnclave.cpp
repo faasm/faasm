@@ -88,7 +88,23 @@ void WAMREnclave::tearDownSgxEnclave()
 
     SPDLOG_DEBUG("Destroying enclave (id: {})", enclaveId);
 
-    sgx_status_t sgxReturnValue = sgx_destroy_enclave(enclaveId);
+    faasm_sgx_status_t returnValue;
+    sgx_status_t sgxReturnValue = enclaveTearDown(enclaveId, &returnValue);
+    if (sgxReturnValue != SGX_SUCCESS) {
+        SPDLOG_ERROR("Error tearing down enclave {}: {}",
+                     enclaveId,
+                     sgxErrorString(sgxReturnValue));
+        throw std::runtime_error("Error tearing down enclave");
+    }
+
+    if (returnValue != FAASM_SGX_SUCCESS) {
+        SPDLOG_ERROR("Error tearing down enclave {}: {}",
+                     enclaveId,
+                     faasmSgxErrorString(returnValue));
+        throw std::runtime_error("Error tearing down enclave");
+    }
+
+    sgxReturnValue = sgx_destroy_enclave(enclaveId);
     if (sgxReturnValue != SGX_SUCCESS) {
         SPDLOG_ERROR("Unable to destroy enclave {}: {}",
                      enclaveId,
@@ -113,6 +129,7 @@ void WAMREnclave::loadWasmModule(const std::string& funcStr,
                                  std::vector<uint8_t>& data)
 {
     faasm_sgx_status_t returnValue;
+
     // Note - loading and instantiating happen in the same ecall
     SPDLOG_DEBUG("Loading module ({}) to enclave (id: {})", funcStr, enclaveId);
     sgx_status_t status = enclaveLoadModule(enclaveId,
@@ -133,33 +150,8 @@ void WAMREnclave::loadWasmModule(const std::string& funcStr,
     }
 }
 
-void WAMREnclave::unloadWasmModule(const std::string& funcStr)
-{
-    SPDLOG_DEBUG("Removing module ({}) from the enclave (id: {}) store",
-                 funcStr,
-                 enclaveId);
-
-    faasm_sgx_status_t returnValue;
-    sgx_status_t sgxReturnValue =
-      enclaveUnloadModule(enclaveId, &returnValue, funcStr.c_str());
-
-    if (sgxReturnValue != SGX_SUCCESS) {
-        SPDLOG_ERROR("Unable to unbind function due to SGX error: {}",
-                     sgxErrorString(sgxReturnValue));
-        throw std::runtime_error("Unable to unbind function due to SGX error");
-    }
-
-    if (returnValue != FAASM_SGX_SUCCESS) {
-        SPDLOG_ERROR("Unable to unbind function: {}",
-                     faasmSgxErrorString(returnValue));
-        throw std::runtime_error("Unable to unbind function");
-    }
-}
-
 void WAMREnclave::callMainFunction(const std::string& funcStr)
 {
-    // faabric::util::SharedLock lock(enclaveMx);
-
     SPDLOG_DEBUG(
       "Entering enclave (id: {}) to execute module ({})", enclaveId, funcStr);
 

@@ -89,17 +89,8 @@ extern "C"
             return FAASM_SGX_MODULE_STORE_TEST_FAILED;
         }
 
-        // We can clear modules from the module store
-        bool success = moduleStore.clear(moduleName.c_str());
-        if (!success) {
-            return FAASM_SGX_MODULE_STORE_TEST_FAILED;
-        }
-
-        // We can't clear a module that is not there
-        success = moduleStore.clear(moduleName.c_str());
-        if (success) {
-            return FAASM_SGX_MODULE_STORE_TEST_FAILED;
-        }
+        // We can clear all modules from the module store
+        moduleStore.clear();
 
         return FAASM_SGX_SUCCESS;
     }

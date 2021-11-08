@@ -1,5 +1,7 @@
 #include <sgx/ModuleStore.h>
 
+#include <iwasm/aot/aot_runtime.h>
+
 namespace sgx {
 ModuleStore::ModuleStore() {}
 
@@ -31,17 +33,13 @@ std::shared_ptr<WamrModuleHandle> ModuleStore::get(const char* key)
     return it->second;
 }
 
-bool ModuleStore::clear(const char* key)
+void ModuleStore::clear()
 {
-    std::string keyStr = std::string(key);
-    auto it = modules.find(keyStr);
-
-    if (it == modules.end()) {
-        return false;
+    for (auto& it : modules) {
+        wasm_runtime_deinstantiate(it.second->moduleInstance);
+        wasm_runtime_unload(it.second->wasmModule);
     }
 
-    modules.erase(it);
-
-    return true;
+    modules.clear();
 }
 }
