@@ -25,6 +25,7 @@ def invoke(
     mpi_world_size=None,
     debug=False,
     sgx=False,
+    graph=False,
 ):
     """
     Invoke a function
@@ -41,6 +42,7 @@ def invoke(
         mpi_world_size=mpi_world_size,
         debug=debug,
         sgx=sgx,
+        graph=graph,
     )
 
     if asynch:

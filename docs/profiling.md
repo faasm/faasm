@@ -206,10 +206,10 @@ of each function ran, which host they where scheduled, for how long they ran,
 among others.
 
 To generate an execution graph, first invoke the function whose execution you
-want to plot with the `asynch` flag set.
+want to plot with the `asynch` and `graph` flag set.
 
 ```bash
-inv invoke demo hello --asynch
+inv invoke demo hello --asynch --graph
 ```
 
 The call will return a call id. With the id you can query the function status:
