@@ -63,6 +63,10 @@ faabric::util::SchedulingDecision getDecisionForLevel(
 
     faabric::util::SchedulingDecision decision(appId, groupId);
     for (int i = 0; i < hosts.size(); i++) {
+        // Reuse the group id
+        req->mutable_messages()->at(i).set_groupid(groupId);
+
+        // Add to the decision
         decision.addMessage(hosts.at(i), req->messages().at(i));
     }
 
