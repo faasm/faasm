@@ -139,7 +139,7 @@ services:
       - minio
       - upload
     environment:
-      - LOG_LEVEL=trace
+      - LOG_LEVEL=debug
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - OVERRIDE_CPU_COUNT=4
