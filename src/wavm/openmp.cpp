@@ -1,4 +1,3 @@
-#include "faabric/util/scheduling.h"
 #include <WAVM/Platform/Thread.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
@@ -14,6 +13,8 @@
 #include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
 #include <faabric/util/memory.h>
+#include <faabric/util/scheduling.h>
+#include <faabric/util/string_tools.h>
 #include <faabric/util/timing.h>
 
 #include <threads/ThreadState.h>
@@ -30,59 +31,6 @@ namespace wasm {
 // ------------------------------------------------
 std::unordered_map<std::string, int> cachedGroupIds;
 std::unordered_map<std::string, std::vector<std::string>> cachedDecisionHosts;
-
-std::string getDecisionCacheKey(
-  std::shared_ptr<faabric::BatchExecuteRequest> req,
-  threads::Level& lvl)
-{
-    // Build key for this level
-    std::string key = std::to_string(req->messages().at(0).appid()) + "_" +
-                      std::to_string(lvl.numThreads) + "_" +
-                      std::to_string(lvl.depth);
-
-    return key;
-}
-
-faabric::util::SchedulingDecision getDecisionForLevel(
-  std::shared_ptr<faabric::BatchExecuteRequest> req,
-  threads::Level& lvl)
-{
-    faabric::Message& firstMsg = req->mutable_messages()->at(0);
-    int appId = firstMsg.appid();
-    std::string key = getDecisionCacheKey(req, lvl);
-
-    if (cachedDecisionHosts.find(key) == cachedDecisionHosts.end()) {
-        return faabric::util::SchedulingDecision(0, 0);
-    }
-
-    int groupId = cachedGroupIds[key];
-    std::vector<std::string> hosts = cachedDecisionHosts[key];
-
-    // Sanity check we've got the same sizes
-    assert(hosts.size() == req->messages().size());
-
-    faabric::util::SchedulingDecision decision(appId, groupId);
-    for (int i = 0; i < hosts.size(); i++) {
-        // Reuse the group id
-        req->mutable_messages()->at(i).set_groupid(groupId);
-
-        // Add to the decision
-        decision.addMessage(hosts.at(i), req->messages().at(i));
-    }
-
-    return decision;
-}
-
-void cacheDecisionForLevel(std::shared_ptr<faabric::BatchExecuteRequest> req,
-                           threads::Level& lvl,
-                           faabric::util::SchedulingDecision& decision)
-{
-    faabric::Message& firstMsg = req->mutable_messages()->at(0);
-    std::string key = getDecisionCacheKey(req, lvl);
-
-    cachedGroupIds[key] = firstMsg.groupid();
-    cachedDecisionHosts[key] = decision.hosts;
-}
 
 // ------------------------------------------------
 // LOGGING
@@ -503,42 +451,91 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     req->set_contextdata(serialisedLevel.data(), serialisedLevel.size());
 
     // Configure the mesages
-    uint32_t groupId = faabric::util::generateGid();
     for (int i = 0; i < req->messages_size(); i++) {
-        faabric::Message& msg = req->mutable_messages()->at(i);
+        faabric::Message& m = req->mutable_messages()->at(i);
 
         // Propagte app id
-        msg.set_appid(parentCall->appid());
+        m.set_appid(parentCall->appid());
 
         // Snapshot details
-        msg.set_snapshotkey(snapshotKey);
+        m.set_snapshotkey(snapshotKey);
 
         // Function pointer
-        msg.set_funcptr(microtaskPtr);
+        m.set_funcptr(microtaskPtr);
 
         // OpenMP thread number
         int threadNum = nextLevel->getGlobalThreadNum(i);
-        msg.set_appidx(threadNum);
+        m.set_appidx(threadNum);
 
         // Group setup for distributed coordination. Note that the group index
         // is just within this function group, and not the global OpenMP
         // thread number
-        msg.set_groupid(groupId);
-        msg.set_groupidx(i);
-        msg.set_groupsize(nextLevel->numThreads);
+        m.set_groupidx(i);
+        m.set_groupsize(nextLevel->numThreads);
     }
 
     // TODO - give a slot back to this host before calling to avoid
     // unnecessarily spreading across hosts
+    std::string cacheKey = std::to_string(req->messages().at(0).appid()) + "_" +
+                           std::to_string(nextLevel->numThreads) + "_" +
+                           std::to_string(nextLevel->depth);
 
-    faabric::util::SchedulingDecision hint =
-      getDecisionForLevel(req, nextLevel);
+    if (cachedDecisionHosts.find(cacheKey) == cachedDecisionHosts.end()) {
+        // Set up a new group
+        int groupId = faabric::util::generateGid();
+        for (auto& m : *req->mutable_messages()) {
+            m.set_groupid(groupId);
+        }
 
-    // Submit the request
-    if (hint.hosts.empty()) {
+        // Invoke the functions
         faabric::util::SchedulingDecision decision = sch.callFunctions(req);
-        cacheDecisionForLevel(req, nextLevel, decision);
+
+        // Cache the decision for next time
+        SPDLOG_DEBUG(
+          "No cached decision for {} x {}/{}, caching group {}, hosts: {}",
+          req->messages().size(),
+          msg->user(),
+          msg->function(),
+          groupId,
+          faabric::util::vectorToString<std::string>(decision.hosts));
+
+        cachedGroupIds[cacheKey] = groupId;
+        cachedDecisionHosts[cacheKey] = decision.hosts;
     } else {
+        // Get the cached group ID and hosts
+        int groupId = cachedGroupIds[cacheKey];
+        std::vector<std::string> hosts = cachedDecisionHosts[cacheKey];
+
+        // Sanity check we've got something the right size
+        if (hosts.size() != req->messages().size()) {
+            SPDLOG_ERROR("Cached decision for {}/{} has {} hosts, expected {}",
+                         parentCall->user(),
+                         parentCall->function(),
+                         hosts.size(),
+                         req->messages().size());
+
+            throw std::runtime_error(
+              "Cached OpenMP scheduling decision invalid");
+        }
+
+        // Create the scheduling hint
+        faabric::util::SchedulingDecision hint(parentCall->appid(), groupId);
+        for (int i = 0; i < hosts.size(); i++) {
+            // Reuse the group id
+            faabric::Message& m = req->mutable_messages()->at(i);
+            m.set_groupid(groupId);
+
+            // Add to the decision
+            hint.addMessage(hosts.at(i), m);
+        }
+
+        SPDLOG_DEBUG("Using cached decision for {}/{} {}, group {}",
+                     msg->user(),
+                     msg->function(),
+                     msg->appid(),
+                     hint.groupId);
+
+        // Invoke the functions
         sch.callFunctions(req, hint);
     }
 
@@ -562,9 +559,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
         throw std::runtime_error("OpenMP threads failed");
     }
-
-    // Clear up the point-to-point group as it's no longer needed
-    faabric::transport::getPointToPointBroker().clearGroup(groupId);
 
     // Reset parent level for next setting of threads
     parentLevel->pushedThreads = -1;
