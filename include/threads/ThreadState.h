@@ -64,7 +64,7 @@ class Level
 
     std::string toString();
 
-    void addSharedVarMergeRegions(const std::string &snapshotKey);
+    void addSharedVarMergeRegions(const std::string& snapshotKey);
 };
 
 class PthreadCall
