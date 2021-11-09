@@ -81,9 +81,7 @@ def exec_graph(ctx, call_id=None, headless=True, output_file=None):
     host, port = get_invoke_host_port()
     call_id = get_call_id(call_id)
 
-    json_str = exec_graph_call_impl(
-        None, None, call_id, host, port, quiet=True
-    )
+    json_str = exec_graph_call_impl(call_id, host, port, quiet=True)
 
     graph = parse_exec_graph_json(json_str)
 

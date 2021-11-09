@@ -155,7 +155,7 @@ def status_call_impl(user, func, call_id, host, port, quiet=False):
         return STATUS_RUNNING, call_result
 
 
-def exec_graph_call_impl(user, func, call_id, host, port, quiet=False):
+def exec_graph_call_impl(call_id, host, port, quiet=False):
     msg = {
         "user": "",
         "function": "",
