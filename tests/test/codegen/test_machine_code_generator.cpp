@@ -14,9 +14,7 @@
 #include <conf/FaasmConfig.h>
 #include <storage/FileLoader.h>
 
-#include <boost/filesystem.hpp>
-#include <boost/filesystem/operations.hpp>
-
+#include <filesystem>
 #include <stdlib.h>
 
 using namespace codegen;
@@ -55,7 +53,7 @@ TEST_CASE_METHOD(CodegenTestFixture, "Test basic codegen", "[codegen]")
 
     // Read in the object data
     std::string objFile = loader.getFunctionObjectFile(msg);
-    REQUIRE(boost::filesystem::exists(objFile));
+    REQUIRE(std::filesystem::exists(objFile));
     std::vector<uint8_t> objBytes = faabric::util::readFileToBytes(objFile);
     REQUIRE(!objBytes.empty());
 
@@ -64,7 +62,7 @@ TEST_CASE_METHOD(CodegenTestFixture, "Test basic codegen", "[codegen]")
 
     // Clear the local cache to remove local copies
     loader.clearLocalCache();
-    REQUIRE(!boost::filesystem::exists(objFile));
+    REQUIRE(!std::filesystem::exists(objFile));
 
     // Load object data from file loader and check it's the same
     std::vector<uint8_t> loadedBytes = loader.loadFunctionObjectFile(msg);
@@ -83,18 +81,18 @@ TEST_CASE_METHOD(CodegenTestFixture,
     // Ensure machine code exists
     std::string objFile = loader.getFunctionObjectFile(msgA);
     std::string hashFile = objFile + HASH_EXT;
-    REQUIRE(boost::filesystem::exists(objFile));
-    REQUIRE(boost::filesystem::exists(hashFile));
+    REQUIRE(std::filesystem::exists(objFile));
+    REQUIRE(std::filesystem::exists(hashFile));
 
     // Delete machine code locally
     loader.clearLocalCache();
-    REQUIRE(!boost::filesystem::exists(objFile));
-    REQUIRE(!boost::filesystem::exists(hashFile));
+    REQUIRE(!std::filesystem::exists(objFile));
+    REQUIRE(!std::filesystem::exists(hashFile));
 
     // Run codegen again, will skip, and ensure object is synced regardless
     gen.codegenForFunction(msgA);
-    REQUIRE(boost::filesystem::exists(objFile));
-    REQUIRE(boost::filesystem::exists(hashFile));
+    REQUIRE(std::filesystem::exists(objFile));
+    REQUIRE(std::filesystem::exists(hashFile));
 }
 
 TEST_CASE_METHOD(CodegenTestFixture,
@@ -145,8 +143,8 @@ TEST_CASE_METHOD(CodegenTestFixture,
     loader.clearLocalCache();
 
     // Check files don't yet exist
-    REQUIRE(!boost::filesystem::exists(hashFileA));
-    REQUIRE(!boost::filesystem::exists(hashFileB));
+    REQUIRE(!std::filesystem::exists(hashFileA));
+    REQUIRE(!std::filesystem::exists(hashFileB));
 
     // Do codegen for both
     gen.codegenForFunction(msgA);
@@ -156,8 +154,8 @@ TEST_CASE_METHOD(CodegenTestFixture,
     REQUIRE(s3.listKeys(conf.s3Bucket).size() == 6);
 
     // Check hashes now exist locally
-    REQUIRE(boost::filesystem::exists(hashFileA));
-    REQUIRE(boost::filesystem::exists(hashFileB));
+    REQUIRE(std::filesystem::exists(hashFileA));
+    REQUIRE(std::filesystem::exists(hashFileB));
 
     // Read in hashes
     std::vector<uint8_t> actualHashA =
@@ -173,7 +171,7 @@ TEST_CASE_METHOD(CodegenTestFixture,
     REQUIRE(actualHashA != actualHashB);
 
     // Load the object file before, then flush
-    REQUIRE(boost::filesystem::exists(objectFileA));
+    REQUIRE(std::filesystem::exists(objectFileA));
     std::vector<uint8_t> objABefore =
       faabric::util::readFileToBytes(objectFileA);
 
@@ -219,6 +217,9 @@ TEST_CASE_METHOD(CodegenTestFixture,
     // Run the codegen
     gen.codegenForSharedObject(localSharedObjFile);
 
+    // Check the locally cached path matches the expected one
+    REQUIRE(loader.getSharedObjectObjectFile(localSharedObjFile) == objFile);
+
     // Read object file and hash
     std::vector<uint8_t> objBefore =
       loader.loadSharedObjectObjectFile(localSharedObjFile);
@@ -229,8 +230,8 @@ TEST_CASE_METHOD(CodegenTestFixture,
     REQUIRE(!hashBefore.empty());
 
     // Check files exist locally
-    REQUIRE(boost::filesystem::exists(objFile));
-    REQUIRE(boost::filesystem::exists(hashFile));
+    REQUIRE(std::filesystem::exists(objFile));
+    REQUIRE(std::filesystem::exists(hashFile));
 
     std::vector<uint8_t> dummyBytes = { 0, 1, 2, 3 };
     loader.uploadSharedObjectObjectFile(localSharedObjFile, dummyBytes);
@@ -259,11 +260,11 @@ TEST_CASE_METHOD(CodegenTestFixture,
     // Clear the local file, re-run the codegen, and check that the object
     // file and hash are synced back
     loader.clearLocalCache();
-    REQUIRE(!boost::filesystem::exists(objFile));
-    REQUIRE(!boost::filesystem::exists(hashFile));
+    REQUIRE(!std::filesystem::exists(objFile));
+    REQUIRE(!std::filesystem::exists(hashFile));
     gen.codegenForSharedObject(localSharedObjFile);
-    REQUIRE(boost::filesystem::exists(objFile));
-    REQUIRE(boost::filesystem::exists(hashFile));
+    REQUIRE(std::filesystem::exists(objFile));
+    REQUIRE(std::filesystem::exists(hashFile));
 }
 
 TEST_CASE_METHOD(CodegenTestFixture,
@@ -295,28 +296,28 @@ TEST_CASE_METHOD(CodegenTestFixture,
     loader.clearLocalCache();
 
     // Check files don't yet exist
-    REQUIRE(!boost::filesystem::exists(hashFile));
-    REQUIRE(!boost::filesystem::exists(hashFileSgx));
+    REQUIRE(!std::filesystem::exists(hashFile));
+    REQUIRE(!std::filesystem::exists(hashFileSgx));
 
     // Do codegen for both in different orders
     SECTION("SGX first")
     {
         gen.codegenForFunction(msgSgx);
-        REQUIRE(boost::filesystem::exists(hashFileSgx));
-        REQUIRE(!boost::filesystem::exists(hashFile));
+        REQUIRE(std::filesystem::exists(hashFileSgx));
+        REQUIRE(!std::filesystem::exists(hashFile));
 
         gen.codegenForFunction(msg);
-        REQUIRE(boost::filesystem::exists(hashFile));
+        REQUIRE(std::filesystem::exists(hashFile));
     }
 
     SECTION("SGX second")
     {
         gen.codegenForFunction(msg);
-        REQUIRE(boost::filesystem::exists(hashFile));
-        REQUIRE(!boost::filesystem::exists(hashFileSgx));
+        REQUIRE(std::filesystem::exists(hashFile));
+        REQUIRE(!std::filesystem::exists(hashFileSgx));
 
         gen.codegenForFunction(msgSgx);
-        REQUIRE(boost::filesystem::exists(hashFileSgx));
+        REQUIRE(std::filesystem::exists(hashFileSgx));
     }
 
     // Check hashes in S3
