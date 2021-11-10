@@ -2,43 +2,12 @@
 
 #include "faasm_fixtures.h"
 
-#include <faabric/runner/FaabricMain.h>
 #include <faabric/scheduler/ExecGraph.h>
 #include <faabric/scheduler/Scheduler.h>
-#include <faaslet/Faaslet.h>
 
 namespace tests {
-class ExecGraphTestFixture : public FunctionExecTestFixture
-{
-  public:
-    ExecGraphTestFixture()
-      : m(std::make_shared<faaslet::FaasletFactory>())
-    {
-        // Modify system config (network ns requires root)
-        auto& conf = faabric::util::getSystemConfig();
-        conf.boundTimeout = 5000;
-
-        m.startRunner();
-    }
-
-    ~ExecGraphTestFixture() { m.shutdown(); }
-
-    faabric::Message callFunctionGetResult(faabric::Message& call,
-                                           int timeout = 5000)
-    {
-        sch.callFunction(call);
-
-        faabric::Message result = sch.getFunctionResult(call.id(), timeout);
-        REQUIRE(result.returnvalue() == 0);
-        return result;
-    }
-
-  protected:
-    faabric::runner::FaabricMain m;
-};
-
 TEST_CASE_METHOD(
-  ExecGraphTestFixture,
+  FunctionExecTestFixture,
   "Test function chaining can be recorded in the execution graph",
   "[exec-graph][chaining]")
 {
@@ -54,7 +23,9 @@ TEST_CASE_METHOD(
 
     SECTION("Recording off (default)") { expectedNumNodes = 1; }
 
-    faabric::Message result = callFunctionGetResult(call);
+    sch.callFunction(call);
+    faabric::Message result = sch.getFunctionResult(call.id(), 5000);
+    REQUIRE(result.returnvalue() == 0);
 
     auto execGraph = sch.getFunctionExecGraph(call.id());
     int numNodes = faabric::scheduler::countExecGraphNodes(execGraph);
@@ -62,9 +33,9 @@ TEST_CASE_METHOD(
     REQUIRE(execGraph.rootNode.msg.id() == call.id());
 }
 
-TEST_CASE_METHOD(ExecGraphTestFixture,
+TEST_CASE_METHOD(FunctionExecTestFixture,
                  "Test MPI executions can be recorded in the execution graph",
-                 "[exec-graph][mpiT]")
+                 "[exec-graph][mpi]")
 {
     faabric::Message call = faabric::util::messageFactory("mpi", "mpi_bcast");
     call.set_mpiworldsize(5);
@@ -78,7 +49,9 @@ TEST_CASE_METHOD(ExecGraphTestFixture,
 
     SECTION("Recording off (default)") { expectedNumNodes = 1; }
 
-    faabric::Message result = callFunctionGetResult(call);
+    sch.callFunction(call);
+    faabric::Message result = sch.getFunctionResult(call.id(), 5000);
+    REQUIRE(result.returnvalue() == 0);
 
     auto execGraph = sch.getFunctionExecGraph(call.id());
     int numNodes = faabric::scheduler::countExecGraphNodes(execGraph);
