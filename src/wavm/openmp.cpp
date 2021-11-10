@@ -244,7 +244,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS("__kmpc_critical {} {} {}", loc, globalTid, crit);
 
     if (level->numThreads > 1) {
-        getExecutingPointToPointGroup()->lock(msg->groupid(), true);
+        getExecutingPointToPointGroup()->lock(msg->groupidx(), true);
 
         // NOTE: here we need to pull the latest snapshot diffs from master.
         // This is a really inefficient way to implement a critical, and needs
@@ -271,7 +271,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS("__kmpc_end_critical {} {} {}", loc, globalTid, crit);
 
     if (level->numThreads > 1) {
-        getExecutingPointToPointGroup()->unlock(msg->groupid(), true);
+        getExecutingPointToPointGroup()->unlock(msg->groupidx(), true);
     }
 }
 
