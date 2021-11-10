@@ -5,8 +5,6 @@
 #include <faabric/runner/FaabricMain.h>
 #include <faabric/scheduler/ExecGraph.h>
 #include <faabric/scheduler/Scheduler.h>
-// DELETE MEEEE
-#include <faabric/util/logging.h>
 #include <faaslet/Faaslet.h>
 
 namespace tests {
