@@ -244,9 +244,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS("__kmpc_critical {} {} {}", loc, globalTid, crit);
 
     if (level->numThreads > 1) {
-        getExecutingPointToPointGroup()->lock(msg->groupidx(), true);
+        getExecutingPointToPointGroup()->lock(msg->groupid(), true);
 
-        // TODO - pull latest snapshot diffs from master
+        // NOTE: here we need to pull the latest snapshot diffs from master.
+        // This is a really inefficient way to implement a critical, and needs
+        // more thought as to whether we can avoid doing a request/ response
+        // every time.
     }
 }
 
@@ -268,7 +271,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS("__kmpc_end_critical {} {} {}", loc, globalTid, crit);
 
     if (level->numThreads > 1) {
-        getExecutingPointToPointGroup()->unlock(msg->groupidx(), true);
+        getExecutingPointToPointGroup()->unlock(msg->groupid(), true);
     }
 }
 

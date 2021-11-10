@@ -409,7 +409,11 @@ int32_t WasmModule::executeTask(
             case ThreadRequestType::PTHREAD: {
                 SPDLOG_TRACE("Executing {} as pthread", funcStr);
 
-                // TODO - add overwrite merge region for the whole heap
+                // NOTE: we don't yet support pthread snapshot merging as we
+                // don't know where the shared data lives.  To implement a naive
+                // solution we could add an overwrite merge region for the whole
+                // heap here, but the performance would not be great and only
+                // offer weak consistency guarantees.
 
                 returnValue = executePthread(threadPoolIdx, stackTop, msg);
                 break;
