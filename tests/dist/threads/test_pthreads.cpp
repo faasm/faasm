@@ -5,7 +5,12 @@
 #include <faabric/scheduler/Scheduler.h>
 
 namespace tests {
-TEST_CASE_METHOD(DistTestsFixture, "Test pthreads across hosts", "[scheduler]")
+
+// 2021/11/10 - snapshot merging is currently not supported for pthreads, so
+// this test won't work.
+TEST_CASE_METHOD(DistTestsFixture,
+                 "Test pthreads across hosts",
+                 "[.][scheduler]")
 {
     conf.overrideCpuCount = 6;
 

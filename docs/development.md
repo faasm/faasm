@@ -288,6 +288,12 @@ Start the distributed tests server:
 ./deploy/dist-test/dev_server.sh
 ```
 
+Then you need to make sure all the functions are up to date:
+
+```bash
+./deploy/dist-test/upload.sh
+```
+
 Build and run the tests:
 
 ```bash

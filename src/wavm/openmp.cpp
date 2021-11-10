@@ -437,8 +437,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         uint32_t* sharedVarsPtr = Runtime::memoryArrayPtr<uint32_t>(
           memoryPtr, sharedVarPtrs, nSharedVars);
         nextLevel->setSharedVarOffsets(sharedVarsPtr, nSharedVars);
-
-        nextLevel->addSharedVarMergeRegions(snapshotKey);
     }
 
     // Set up the chained calls

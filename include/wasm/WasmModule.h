@@ -140,6 +140,9 @@ class WasmModule
 
     int awaitPthreadCall(const faabric::Message* msg, int pthreadPtr);
 
+    void setUpOpenMPMergeRegions(const faabric::Message& msg,
+                                 std::shared_ptr<threads::Level> ompLevel);
+
     std::vector<uint32_t> getThreadStacks();
 
     // ----- Debugging -----
