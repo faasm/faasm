@@ -75,6 +75,7 @@ def invoke_impl(
     mpi_world_size=None,
     debug=False,
     sgx=False,
+    graph=False,
 ):
     host, port = get_invoke_host_port()
 
@@ -115,6 +116,9 @@ def invoke_impl(
     if mpi_world_size:
         msg["mpi_world_size"] = int(mpi_world_size)
 
+    if graph:
+        msg["record_exec_graph"] = graph
+
     # Knative must pass custom headers
     headers = dict()
     if knative:
@@ -151,10 +155,10 @@ def status_call_impl(user, func, call_id, host, port, quiet=False):
         return STATUS_RUNNING, call_result
 
 
-def exec_graph_call_impl(user, func, call_id, host, port, quiet=False):
+def exec_graph_call_impl(call_id, host, port, quiet=False):
     msg = {
-        "user": user,
-        "function": func,
+        "user": "",
+        "function": "",
         "exec_graph": True,
         "id": int(call_id),
     }
