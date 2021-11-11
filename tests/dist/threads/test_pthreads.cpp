@@ -6,9 +6,7 @@
 
 namespace tests {
 
-TEST_CASE_METHOD(DistTestsFixture,
-                 "Test pthreads across hosts",
-                 "[scheduler]")
+TEST_CASE_METHOD(DistTestsFixture, "Test pthreads across hosts", "[scheduler]")
 {
     conf.overrideCpuCount = 6;
 
