@@ -498,9 +498,11 @@ int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
 
         if (!queuedPthreadCalls.empty()) {
             int nPthreadCalls = queuedPthreadCalls.size();
-            std::string snapshotKey = snapshot(false);
-            std::string funcStr = faabric::util::funcToString(*msg, true);
 
+            // Set up the master snapshot if not already set up
+            std::string snapshotKey = createAppSnapshot(*msg);
+
+            std::string funcStr = faabric::util::funcToString(*msg, true);
             SPDLOG_DEBUG("Executing {} pthread calls for {} with snapshot {}",
                          nPthreadCalls,
                          funcStr,
@@ -524,6 +526,7 @@ int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
 
                 // Snapshot details
                 m.set_snapshotkey(snapshotKey);
+
                 // Function pointer and args
                 // NOTE - with a pthread interface we only ever pass the
                 // function a single pointer argument, hence we use the

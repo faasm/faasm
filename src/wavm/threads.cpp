@@ -90,6 +90,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     faabric::Message* call = getExecutingCall();
     WasmModule* thisModule = getExecutingModule();
+
+    // Await the result
     int returnValue = thisModule->awaitPthreadCall(call, pthreadPtr);
 
     // This function is passed a pointer to a pointer for the result,
