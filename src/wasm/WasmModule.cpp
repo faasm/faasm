@@ -680,7 +680,7 @@ void WasmModule::setUpPthreadMergeRegions(
 
     uint32_t wasmStackRegionSize = threadStackRegionStart - STACK_SIZE;
 
-    SPDLOG_TRACE("Adding merge regions for pthread stack {}-{} and {}-eom",
+    SPDLOG_TRACE("Adding merge regions for pthread heap: {}-{} and {}-eom",
                  STACK_SIZE,
                  threadStackRegionStart,
                  threadStackRegionEnd);
@@ -688,12 +688,14 @@ void WasmModule::setUpPthreadMergeRegions(
     snapData.addMergeRegion(STACK_SIZE,
                             wasmStackRegionSize,
                             faabric::util::SnapshotDataType::Raw,
-                            faabric::util::SnapshotMergeOperation::Overwrite);
+                            faabric::util::SnapshotMergeOperation::Overwrite,
+                            true);
 
     snapData.addMergeRegion(threadStackRegionEnd,
                             0,
                             faabric::util::SnapshotDataType::Raw,
-                            faabric::util::SnapshotMergeOperation::Overwrite);
+                            faabric::util::SnapshotMergeOperation::Overwrite,
+                            true);
 }
 
 void WasmModule::createThreadStacks()
