@@ -411,12 +411,7 @@ int32_t WasmModule::executeTask(
             case ThreadRequestType::PTHREAD: {
                 SPDLOG_TRACE("Executing {} as pthread", funcStr);
 
-                // NOTE: we don't yet support pthread snapshot merging as we
-                // don't know where the shared data lives.  To implement a naive
-                // solution we could add an overwrite merge region for the whole
-                // heap here, but the performance would not be great and only
-                // offer weak consistency guarantees.
-
+                setUpPthreadMergeRegions(msg, threads::getCurrentOpenMPLevel());
                 returnValue = executePthread(threadPoolIdx, stackTop, msg);
                 break;
             }
@@ -651,6 +646,51 @@ void WasmModule::setUpOpenMPMergeRegions(
                             faabric::util::SnapshotMergeOperation::Overwrite,
                             true);
     }
+}
+
+void WasmModule::setUpPthreadMergeRegions(
+  const faabric::Message& msg,
+  std::shared_ptr<threads::Level> ompLevel)
+{
+    // NOTE: we don't know where the shared data lives in a generic pthreaded
+    // application, therefore we just add merge regions that cover the whole
+    // heap. We don't know what the final size of the heap will be, so we set
+    // the end of the second region to zero, and faabric goes to the end of the
+    // memory when diffing.
+    //
+    // There are two of these, because the thread stacks will be provisioned
+    // somewhere in the middle.
+    //
+    // This means we do a lot of unnecessary scanning of memory, and something
+    // more fine-grained would be better (if possible).
+
+    std::string snapshotKey = msg.snapshotkey();
+    faabric::util::SnapshotData& snapData =
+      faabric::snapshot::getSnapshotRegistry().getSnapshot(snapshotKey);
+
+    uint32_t threadStackRegionStart =
+      threadStacks.at(0) + 1 - THREAD_STACK_SIZE - GUARD_REGION_SIZE;
+    uint32_t threadStackRegionSize =
+      threadPoolSize * (THREAD_STACK_SIZE + (2 * GUARD_REGION_SIZE));
+    uint32_t threadStackRegionEnd =
+      threadStackRegionStart + threadStackRegionSize;
+
+    uint32_t wasmStackRegionSize = threadStackRegionStart - STACK_SIZE;
+
+    SPDLOG_TRACE("Adding merge regions for pthread stack {}-{} and {}-eom",
+                 STACK_SIZE,
+                 threadStackRegionStart,
+                 threadStackRegionEnd);
+
+    snapData.addMergeRegion(STACK_SIZE,
+                            wasmStackRegionSize,
+                            faabric::util::SnapshotDataType::Raw,
+                            faabric::util::SnapshotMergeOperation::Overwrite);
+
+    snapData.addMergeRegion(threadStackRegionEnd,
+                            0,
+                            faabric::util::SnapshotDataType::Raw,
+                            faabric::util::SnapshotMergeOperation::Overwrite);
 }
 
 void WasmModule::createThreadStacks()
