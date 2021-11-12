@@ -6,20 +6,31 @@
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/state/StateKeyValue.h>
+#include <faabric/transport/PointToPointBroker.h>
 #include <faabric/util/func.h>
 #include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
+#include <faabric/util/memory.h>
+#include <faabric/util/scheduling.h>
+#include <faabric/util/string_tools.h>
 #include <faabric/util/timing.h>
 
 #include <threads/ThreadState.h>
+#include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 #include <wavm/WAVMWasmModule.h>
 
 using namespace WAVM;
 
 namespace wasm {
+
+// ------------------------------------------------
+// SCHEDULING
+// ------------------------------------------------
+std::unordered_map<std::string, int> cachedGroupIds;
+std::unordered_map<std::string, std::vector<std::string>> cachedDecisionHosts;
 
 // ------------------------------------------------
 // LOGGING
@@ -49,6 +60,14 @@ namespace wasm {
                  localThreadNum,                                               \
                  globalThreadNum,                                              \
                  __VA_ARGS__);
+
+std::shared_ptr<faabric::transport::PointToPointGroup>
+getExecutingPointToPointGroup()
+{
+    faabric::Message* msg = getExecutingCall();
+    return faabric::transport::PointToPointGroup::getOrAwaitGroup(
+      msg->groupid());
+}
 
 // ------------------------------------------------
 // THREAD NUMS AND LEVELS
@@ -197,7 +216,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 globalTid)
 {
     OMP_FUNC_ARGS("__kmpc_barrier {} {}", loc, globalTid);
-    level->waitOnBarrier();
+    getExecutingPointToPointGroup()->barrier(msg->groupidx());
 }
 
 // ----------------------------------------------------
@@ -225,7 +244,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS("__kmpc_critical {} {} {}", loc, globalTid, crit);
 
     if (level->numThreads > 1) {
-        level->lockCritical();
+        getExecutingPointToPointGroup()->lock(msg->groupidx(), true);
+
+        // NOTE: here we need to pull the latest snapshot diffs from master.
+        // This is a really inefficient way to implement a critical, and needs
+        // more thought as to whether we can avoid doing a request/ response
+        // every time.
     }
 }
 
@@ -247,7 +271,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     OMP_FUNC_ARGS("__kmpc_end_critical {} {} {}", loc, globalTid, crit);
 
     if (level->numThreads > 1) {
-        level->unlockCritical();
+        getExecutingPointToPointGroup()->unlock(msg->groupidx(), true);
     }
 }
 
@@ -349,34 +373,46 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 // ----------------------------------------------------
 
 /**
- * The "real" version of this function is implemented in the openmp source at:
+ * The LLVM version of this function is implemented in the openmp source at:
  * https://github.com/llvm/llvm-project/blob/main/openmp/runtime/src/kmp_csupport.cpp
  *
  * It calls into __kmp_fork call to do most of the work, which is here:
  * https://github.com/llvm/llvm-project/blob/main/openmp/runtime/src/kmp_runtime.cpp
  *
- * @param locPtr pointer to the source location info (type ident_t)
- * @param argc number of arguments to pass to the microtask
- * @param microtaskPtr function pointer for the microtask itself (microtask_t)
- * @param argsPtr pointer to the arguments for the microtask (if applicable)
+ * The structs passed in are defined in this file:
+ * https://github.com/llvm/llvm-project/blob/main/openmp/runtime/src/kmp.h
  *
- * The microtask function takes two or more arguments:
- * 1. The thread ID within its current team
- * 2. The number of non-global shared variables it has access to
- * 3+. Separate arguments, each of which is a pointer to one of the non-global
- * shared variables
+ * Arguments:
+ * - locPtr = pointer to the source location info (type ident_t)
+ * - nSharedVars = number of non-global shared variables
+ * - microtaskPtr = function pointer for the microtask itself (microtask_t)
+ * - sharedVarPtrs = pointer to an array of pointers to the non-global shared
+ *   variables
+ *
+ * NOTE: the non-global shared variables include:
+ * - those listed in a shared() directive
+ * - those listed in a reduce() directive
+ *
+ * TODO: currently there is no way of telling whether a variable in this list of
+ * shared variables is from a shared() or a reduce() directive, so, we make the
+ * assumtion that the *last* ones in the list are reduce variables (relevant
+ * when it comes to doing the reduction).
  */
+
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__kmpc_fork_call",
                                void,
                                __kmpc_fork_call,
                                I32 locPtr,
-                               I32 argc,
+                               I32 nSharedVars,
                                I32 microtaskPtr,
-                               I32 argsPtr)
+                               I32 sharedVarPtrs)
 {
-    OMP_FUNC_ARGS(
-      "__kmpc_fork_call {} {} {} {}", locPtr, argc, microtaskPtr, argsPtr);
+    OMP_FUNC_ARGS("__kmpc_fork_call {} {} {} {}",
+                  locPtr,
+                  nSharedVars,
+                  microtaskPtr,
+                  sharedVarPtrs);
 
     auto& sch = faabric::scheduler::getScheduler();
 
@@ -393,113 +429,136 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
       std::make_shared<threads::Level>(parentLevel->getMaxThreadsAtNextLevel());
     nextLevel->fromParentLevel(parentLevel);
 
-    // Check if we're only doing single-threaded
-    bool isSingleThread = nextLevel->numThreads == 1;
-
     // Set up the master snapshot if not already set up
     std::string snapshotKey = parentModule->createAppSnapshot(*parentCall);
 
-    // Prepare arguments for main thread and all others
-    std::vector<IR::UntaggedValue> mainArguments = { 0, argc };
-    if (argc > 0) {
-        // Build list of offsets to shared variables
-        uint32_t* sharedVarsPtr =
-          Runtime::memoryArrayPtr<uint32_t>(memoryPtr, argsPtr, argc);
-        nextLevel->setSharedVarOffsets(sharedVarsPtr, argc);
-
-        // Append to main arguments
-        mainArguments.insert(
-          mainArguments.end(), sharedVarsPtr, sharedVarsPtr + argc);
+    // Set up shared variables
+    if (nSharedVars > 0) {
+        uint32_t* sharedVarsPtr = Runtime::memoryArrayPtr<uint32_t>(
+          memoryPtr, sharedVarPtrs, nSharedVars);
+        nextLevel->setSharedVarOffsets(sharedVarsPtr, nSharedVars);
     }
 
     // Set up the chained calls
-    // Note that the spawning thread always executes the first task
-    std::shared_ptr<faabric::BatchExecuteRequest> req = nullptr;
-    if (!isSingleThread) {
-        // Set up the request
-        int nOtherThreads = nextLevel->numThreads - 1;
-        req = faabric::util::batchExecFactory(
-          parentCall->user(), parentCall->function(), nOtherThreads);
-        req->set_type(faabric::BatchExecuteRequest::THREADS);
-        req->set_subtype(ThreadRequestType::OPENMP);
+    std::shared_ptr<faabric::BatchExecuteRequest> req =
+      faabric::util::batchExecFactory(
+        parentCall->user(), parentCall->function(), nextLevel->numThreads);
+    req->set_type(faabric::BatchExecuteRequest::THREADS);
+    req->set_subtype(ThreadRequestType::OPENMP);
 
-        // Add remote context
-        // TODO - avoid copy
-        std::vector<uint8_t> serialisedLevel = nextLevel->serialise();
-        req->set_contextdata(serialisedLevel.data(), serialisedLevel.size());
+    // Add remote context
+    // TODO - avoid copy
+    std::vector<uint8_t> serialisedLevel = nextLevel->serialise();
+    req->set_contextdata(serialisedLevel.data(), serialisedLevel.size());
 
-        // Configure the mesages
-        for (int i = 0; i < req->messages_size(); i++) {
-            faabric::Message& call = req->mutable_messages()->at(i);
+    // Configure the mesages
+    for (int i = 0; i < req->messages_size(); i++) {
+        faabric::Message& m = req->mutable_messages()->at(i);
 
-            // Propagte app id
-            call.set_appid(parentCall->appid());
+        // Propagte app id
+        m.set_appid(parentCall->appid());
 
-            // Snapshot details
-            call.set_snapshotkey(snapshotKey);
+        // Snapshot details
+        m.set_snapshotkey(snapshotKey);
 
-            // Function pointer
-            call.set_funcptr(microtaskPtr);
+        // Function pointer
+        m.set_funcptr(microtaskPtr);
 
-            // OpenMP thread number
-            call.set_appidx(nextLevel->getGlobalThreadNum(i + 1));
-        }
+        // OpenMP thread number
+        int threadNum = nextLevel->getGlobalThreadNum(i);
+        m.set_appidx(threadNum);
 
-        // Submit the request
-        sch.callFunctions(req);
+        // Group setup for distributed coordination. Note that the group index
+        // is just within this function group, and not the global OpenMP
+        // thread number
+        m.set_groupidx(i);
+        m.set_groupsize(nextLevel->numThreads);
     }
 
-    // Execute the master task in this thread (i.e. just invoke the microtask
-    // directly).
-    // This requires a different set-up and duplicates some logic, but it's
-    // worth it for the performance boost, especially in the single-host case.
-    {
-        faabric::Message masterMsg = faabric::util::messageFactory(
-          parentCall->user(), parentCall->function());
-        masterMsg.set_appidx(nextLevel->getGlobalThreadNum(0));
+    // TODO - give a slot back to this host before calling to avoid
+    // unnecessarily spreading across hosts
+    std::string cacheKey = std::to_string(req->messages().at(0).appid()) + "_" +
+                           std::to_string(nextLevel->numThreads) + "_" +
+                           std::to_string(nextLevel->depth);
 
-        IR::UntaggedValue masterThreadResult;
-
-        // Set up the context for the next level
-        threads::setCurrentOpenMPLevel(nextLevel);
-        {
-            wasm::WasmExecutionContext ctx(parentModule, &masterMsg);
-
-            // Execute the task
-            SPDLOG_DEBUG("OpenMP 0: executing OMP thread 0 (master)");
-            WAVM::Runtime::Function* microtaskFunc =
-              parentModule->getFunctionFromPtr(microtaskPtr);
-            parentModule->executeWasmFunction(
-              microtaskFunc, mainArguments, masterThreadResult);
+    if (cachedDecisionHosts.find(cacheKey) == cachedDecisionHosts.end()) {
+        // Set up a new group
+        int groupId = faabric::util::generateGid();
+        for (auto& m : *req->mutable_messages()) {
+            m.set_groupid(groupId);
         }
 
-        // Reset to the parent context
-        threads::setCurrentOpenMPLevel(parentLevel);
-        if (masterThreadResult.i32 > 0) {
-            throw std::runtime_error("Master OpenMP thread failed");
+        // Invoke the functions
+        faabric::util::SchedulingDecision decision = sch.callFunctions(req);
+
+        // Cache the decision for next time
+        SPDLOG_DEBUG(
+          "No cached decision for {} x {}/{}, caching group {}, hosts: {}",
+          req->messages().size(),
+          msg->user(),
+          msg->function(),
+          groupId,
+          faabric::util::vectorToString<std::string>(decision.hosts));
+
+        cachedGroupIds[cacheKey] = groupId;
+        cachedDecisionHosts[cacheKey] = decision.hosts;
+    } else {
+        // Get the cached group ID and hosts
+        int groupId = cachedGroupIds[cacheKey];
+        std::vector<std::string> hosts = cachedDecisionHosts[cacheKey];
+
+        // Sanity check we've got something the right size
+        if (hosts.size() != req->messages().size()) {
+            SPDLOG_ERROR("Cached decision for {}/{} has {} hosts, expected {}",
+                         parentCall->user(),
+                         parentCall->function(),
+                         hosts.size(),
+                         req->messages().size());
+
+            throw std::runtime_error(
+              "Cached OpenMP scheduling decision invalid");
+        }
+
+        // Create the scheduling hint
+        faabric::util::SchedulingDecision hint(parentCall->appid(), groupId);
+        for (int i = 0; i < hosts.size(); i++) {
+            // Reuse the group id
+            faabric::Message& m = req->mutable_messages()->at(i);
+            m.set_groupid(groupId);
+
+            // Add to the decision
+            hint.addMessage(hosts.at(i), m);
+        }
+
+        SPDLOG_DEBUG("Using cached decision for {}/{} {}, group {}",
+                     msg->user(),
+                     msg->function(),
+                     msg->appid(),
+                     hint.groupId);
+
+        // Invoke the functions
+        sch.callFunctions(req, hint);
+    }
+
+    // Await all child threads
+    std::vector<std::pair<int, uint32_t>> failures;
+    for (int i = 0; i < req->messages_size(); i++) {
+        uint32_t messageId = req->messages().at(i).id();
+
+        int result = sch.awaitThreadResult(messageId);
+        if (result != 0) {
+            failures.emplace_back(result, messageId);
         }
     }
 
-    if (!isSingleThread) {
-        std::vector<std::pair<int, uint32_t>> failures;
-        // Await all child threads
-        for (int i = 0; i < req->messages_size(); i++) {
-            uint32_t messageId = req->messages().at(i).id();
-            int result = sch.awaitThreadResult(messageId);
-            if (result != 0) {
-                failures.emplace_back(result, messageId);
-            }
+    if (!failures.empty()) {
+        for (auto f : failures) {
+            SPDLOG_ERROR("OpenMP thread failed, result {} on message {}",
+                         f.first,
+                         f.second);
         }
 
-        if (!failures.empty()) {
-            for (auto f : failures) {
-                SPDLOG_ERROR("OpenMP thread failed, result {} on message {}",
-                             f.first,
-                             f.second);
-            }
-
-            throw std::runtime_error("OpenMP threads failed");
-        }
+        throw std::runtime_error("OpenMP threads failed");
     }
 
     // Reset parent level for next setting of threads
@@ -741,37 +800,94 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 // ---------------------------------------------------
 
 /**
- * Called to enter the critical section used to perform a reduction.
+ * Called to start a reduction.
  */
-void startReduceCritical()
+void startReduceCritical(faabric::Message* msg,
+                         std::shared_ptr<threads::Level> level,
+                         int32_t numReduceVars,
+                         int32_t reduceVarPtrs,
+                         int32_t reduceVarsSize)
+
 {
-    // Lock the critical section
-    std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
-    level->lockCritical();
+    // Note - we only need to lock locally here, as threads on other hosts
+    // cannot edit the shared data
+    faabric::transport::PointToPointGroup::getOrAwaitGroup(msg->groupid())
+      ->localLock();
+
+    std::string snapKey = msg->snapshotkey();
+    if (!snapKey.empty()) {
+        // Here we have to set up the custom merge region for the reduce
+        // variables. The reduce variables passed in here are the *local*
+        // targets for this thread's reduction, but we need to get a reference
+        // to the *shared* value to which the final result is written. To do
+        // this, we need to go back to the original list of shared variables
+        // from __kmpc_fork_call.
+        //
+        // TODO we are making an assumption that the N variables listed here
+        // correspond to the final N shared variables passed to
+        // __kmpc_fork_call, would be nice to find a more robust way to do this.
+        //
+        // TODO working out what sort of reduce is tricky as OpenMP doesn't
+        // specify what sort of reduction it's doing, just uses a function with
+        // the same name every time, regardless of the operation. However, if we
+        // can interrogate the type of the function, we might be able to work it
+        // out.
+        //
+        // For now based on the applications we run, we can assume it's an
+        // integer sum.
+        //
+        // Options for changing this include:
+        //
+        // - Interrogate some other data/ memory/ function definition to work
+        //   out variable types. The microtask definition definitely holds this
+        //   information.
+        // - Use reduceVarsSize to work out data type (allows us to support more
+        //   types of sum)
+        // - Change the OpenMP directive to name the function appropriately when
+        //   it's a standard operation (e.g. sum, product etc.)
+        faabric::snapshot::SnapshotRegistry& reg =
+          faabric::snapshot::getSnapshotRegistry();
+
+        faabric::util::SnapshotData& snap = reg.getSnapshot(snapKey);
+        for (int i = 0; i < numReduceVars; i++) {
+            int sharedVarIdx = level->nSharedVarOffsets - 1 - numReduceVars + i;
+            uint32_t globalReduceVar = level->sharedVarOffsets[sharedVarIdx];
+
+            SPDLOG_TRACE("Adding merge region for reduce var {} at {} ({})",
+                         i,
+                         globalReduceVar,
+                         sharedVarIdx);
+
+            // Note we allow overwrites here
+            snap.addMergeRegion(globalReduceVar,
+                                sizeof(int32_t),
+                                faabric::util::SnapshotDataType::Int,
+                                faabric::util::SnapshotMergeOperation::Sum,
+                                true);
+        }
+    }
 }
+
 /**
- *  Called to finish off a reduction.
+ * Called to finish off a reduction.
  */
-void endReduceCritical(bool barrier)
+void endReduceCritical(faabric::Message* msg, bool barrier)
 {
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
-    faabric::Message* msg = getExecutingCall();
     int localThreadNum = level->getLocalThreadNum(msg);
 
     // Unlock the critical section
-    level->unlockCritical();
+    std::shared_ptr<faabric::transport::PointToPointGroup> group =
+      faabric::transport::PointToPointGroup::getGroup(msg->groupid());
+    group->localUnlock();
 
     // Master must make sure all other threads are done
-    if (localThreadNum == 0) {
-        level->masterWait(0);
-    } else {
-        level->masterWait(localThreadNum);
-    }
+    group->notify(localThreadNum);
 
     // Everyone waits if there's a barrier
     if (barrier) {
         PROF_START(FinaliseReduceBarrier)
-        level->waitOnBarrier();
+        group->barrier(localThreadNum);
         PROF_END(FinaliseReduceBarrier)
     }
 }
@@ -787,6 +903,11 @@ void endReduceCritical(bool barrier)
  * In the OpenMP source we can see a more varied set of return values, but these
  * are for cases we don't yet support (notably teams):
  * https://github.com/llvm/llvm-project/blob/main/openmp/runtime/src/kmp_csupport.cpp
+ *
+ * Note that the reduce vars passed into this function are the *LOCAL* copies
+ * on the thread's own stack used to hold intermediate results. There is
+ * apparently no way to get a reference to the final destination of the
+ * reduction result in this function, that is only known in kmpc_fork_call.
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__kmpc_reduce",
@@ -794,21 +915,22 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                __kmpc_reduce,
                                I32 loc,
                                I32 gtid,
-                               I32 numVars,
-                               I32 reduceSize,
-                               I32 reduceData,
+                               I32 numReduceVars,
+                               I32 reduceVarsSize,
+                               I32 reduceVarPtrs,
                                I32 reduceFunc,
                                I32 lockPtr)
 {
     OMP_FUNC_ARGS("__kmpc_reduce {} {} {} {} {} {} {}",
                   loc,
                   gtid,
-                  numVars,
-                  reduceSize,
-                  reduceData,
+                  numReduceVars,
+                  reduceVarsSize,
+                  reduceVarPtrs,
                   reduceFunc,
                   lockPtr);
-    startReduceCritical();
+    startReduceCritical(
+      msg, level, numReduceVars, reduceVarPtrs, reduceVarsSize);
     return 1;
 }
 
@@ -821,21 +943,22 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                __kmpc_reduce_nowait,
                                I32 loc,
                                I32 gtid,
-                               I32 numVars,
-                               I32 reduceSize,
-                               I32 reduceData,
+                               I32 numReduceVars,
+                               I32 reduceVarsSize,
+                               I32 reduceVarPtrs,
                                I32 reduceFunc,
                                I32 lockPtr)
 {
     OMP_FUNC_ARGS("__kmpc_reduce_nowait {} {} {} {} {} {} {}",
                   loc,
                   gtid,
-                  numVars,
-                  reduceSize,
-                  reduceData,
+                  numReduceVars,
+                  reduceVarsSize,
+                  reduceVarPtrs,
                   reduceFunc,
                   lockPtr);
-    startReduceCritical();
+    startReduceCritical(
+      msg, level, numReduceVars, reduceVarPtrs, reduceVarsSize);
     return 1;
 }
 
@@ -851,7 +974,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 lck)
 {
     OMP_FUNC_ARGS("__kmpc_end_reduce {} {} {}", loc, gtid, lck);
-    endReduceCritical(true);
+    endReduceCritical(msg, true);
 }
 
 /**
@@ -866,7 +989,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 lck)
 {
     OMP_FUNC_ARGS("__kmpc_end_reduce_nowait {} {} {}", loc, gtid, lck);
-    endReduceCritical(false);
+    endReduceCritical(msg, false);
 }
 
 // ----------------------------------------------

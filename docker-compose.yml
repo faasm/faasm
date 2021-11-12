@@ -105,24 +105,6 @@ services:
       - ./clients/python:/code/python
       - ./dev/faasm-local/:${FAASM_LOCAL_MOUNT}
 
-  # Faabric dev
-  faabric:
-    image: ${FAABRIC_CLI_IMAGE}
-    working_dir: /code/faabric
-    stdin_open: true
-    tty: true
-    depends_on:
-      - redis-state
-      - redis-queue
-      - minio
-    environment:
-      - LOG_LEVEL=debug
-      - REDIS_STATE_HOST=redis
-      - REDIS_QUEUE_HOST=redis
-    volumes:
-      - ./faabric:/code/faabric
-      - ./dev/faabric/build/:/build/faabric
-
   # Faasm dev
   faasm-cli:
     image: ${FAASM_CLI_IMAGE}
@@ -155,6 +137,7 @@ services:
       - redis-queue
       - redis-state
       - minio
+      - upload
     environment:
       - LOG_LEVEL=debug
       - REDIS_QUEUE_HOST=redis-queue

@@ -7,7 +7,6 @@
 #include <faabric/util/memory.h>
 #include <faabric/util/queue.h>
 #include <faabric/util/snapshot.h>
-#include <threads/MutexManager.h>
 #include <threads/ThreadState.h>
 
 #include <exception>
@@ -18,22 +17,6 @@
 #include <tuple>
 
 #include <storage/FileSystem.h>
-
-#define ONE_MB_BYTES 1024 * 1024
-
-#define WASM_BYTES_PER_PAGE 65536
-
-// Note: this is *not* controlling the size provisioned by the linker, that is
-// hard-coded in the build. This variable is just here for reference and must be
-// updated to match the value in the build.
-#define STACK_SIZE (4 * ONE_MB_BYTES)
-#define THREAD_STACK_SIZE (2 * ONE_MB_BYTES)
-
-// Properties of dynamic modules. Heap size must be wasm-module-page-aligned.
-// One page is 64kB
-#define DYNAMIC_MODULE_STACK_SIZE (2 * ONE_MB_BYTES)
-#define DYNAMIC_MODULE_MEMORY_SIZE (66 * WASM_BYTES_PER_PAGE)
-#define GUARD_REGION_SIZE (10 * WASM_BYTES_PER_PAGE)
 
 // Special known function names
 // Zygote function (must match faasm.h linked into the functions themselves)
@@ -157,12 +140,16 @@ class WasmModule
 
     int awaitPthreadCall(const faabric::Message* msg, int pthreadPtr);
 
+    void setUpOpenMPMergeRegions(const faabric::Message& msg,
+                                 std::shared_ptr<threads::Level> ompLevel);
+
+    void setUpPthreadMergeRegions(const faabric::Message& msg,
+                                  std::shared_ptr<threads::Level> ompLevel);
+
     std::vector<uint32_t> getThreadStacks();
 
     // ----- Debugging -----
     virtual void printDebugInfo();
-
-    threads::MutexManager& getMutexes();
 
   protected:
     uint32_t currentBrk = 0;
@@ -180,8 +167,6 @@ class WasmModule
 
     int threadPoolSize = 0;
     std::vector<uint32_t> threadStacks;
-
-    threads::MutexManager mutexes;
 
     std::shared_mutex moduleMemoryMutex;
     std::mutex modulePthreadsMutex;
@@ -208,8 +193,6 @@ class WasmModule
 
     // Snapshots
     void snapshotWithKey(const std::string& snapKey, bool locallyRestorable);
-
-    void ignoreAllStacksInSnapshot(const std::string& snapshotKey);
 
     // Threads
     void createThreadStacks();
