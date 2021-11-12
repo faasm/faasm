@@ -2,10 +2,10 @@
 
 #include "faabric_utils.h"
 
-#include "storage/SharedFiles.h"
 #include "utils.h"
 
 #include <conf/FaasmConfig.h>
+#include <storage/SharedFiles.h>
 #include <threads/ThreadState.h>
 #include <wavm/WAVMWasmModule.h>
 
@@ -20,9 +20,6 @@ void cleanSystem()
 
     // Clear local cache of shared files
     storage::SharedFiles::clear();
-
-    // Clear thread state
-    threads::clearThreadState();
 
     // Clear cached modules
     wasm::getWAVMModuleCache().clear();

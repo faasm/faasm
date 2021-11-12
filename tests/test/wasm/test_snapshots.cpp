@@ -15,6 +15,7 @@
 #include <faabric/util/snapshot.h>
 #include <faabric/util/testing.h>
 
+#include <conf/FaasmConfig.h>
 #include <faaslet/Faaslet.h>
 #include <wavm/WAVMWasmModule.h>
 
@@ -336,107 +337,5 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
     }
 
     ::munmap(snapMemory, snapSize);
-}
-
-TEST_CASE_METHOD(WasmSnapTestFixture,
-                 "Test ignoring stacks",
-                 "[wasm][snapshot]")
-{
-    int nCores = 10;
-    conf.overrideCpuCount = nCores;
-
-    std::string user = "demo";
-    std::string function = "echo";
-
-    // Set up a snapshot for this function
-    faabric::Message msgA = faabric::util::messageFactory(user, function);
-    wasm::WAVMWasmModule moduleA;
-    moduleA.bindToFunction(msgA);
-    std::string originalSnapshotKey = moduleA.snapshot(true);
-
-    // Set up another module from this snapshot
-    std::shared_ptr<faabric::BatchExecuteRequest> req =
-      faabric::util::batchExecFactory(user, function, 1);
-    faabric::Message& msgB = req->mutable_messages()->at(0);
-    msgB.set_snapshotkey(originalSnapshotKey);
-
-    wasm::WAVMWasmModule moduleB;
-    moduleB.bindToFunction(msgB);
-    std::vector<uint32_t> threadStacksB = moduleB.getThreadStacks();
-
-    // Check thread stacks are same size
-    std::vector<uint32_t> threadStacksA = moduleA.getThreadStacks();
-    REQUIRE(threadStacksA.size() == nCores);
-    REQUIRE(threadStacksB == threadStacksA);
-
-    // Execute the function to make sure the ignores are set up
-    int32_t returnValue = moduleB.executeTask(0, 0, req);
-    REQUIRE(returnValue == 0);
-
-    // Reset dirty tracking otherwise we'll have all wasm pages marked as dirty
-    // (after being restored from the snapshot)
-    faabric::util::resetDirtyTracking();
-
-    // Modify a couple of places in the wasm stack
-    auto* wasmStackBottom = (int*)(moduleB.wasmPointerToNative(0));
-    auto* wasmStackTop = (int*)(moduleB.wasmPointerToNative(STACK_SIZE - 1));
-
-    *wasmStackBottom = 345;
-    *wasmStackTop = 123;
-
-    // Modify the top and bottom of each thread stack
-    // Note that each stack grows downwards
-    for (auto t : threadStacksB) {
-        auto* stackTop =
-          (int*)(moduleB.wasmPointerToNative((t - 1) - sizeof(int)));
-        auto* stackBottom =
-          (int*)(moduleB.wasmPointerToNative(t - THREAD_STACK_SIZE));
-
-        *stackTop = 123;
-        *stackBottom = 345;
-    }
-
-    // Modify some other places in the heap
-    auto* heapA =
-      (int*)(moduleB.wasmPointerToNative(threadStacksB.back() + 100));
-    auto* heapB =
-      (int*)(moduleB.wasmPointerToNative(threadStacksB.back() + 300));
-    *heapA = 123;
-    *heapB = 345;
-
-    // Get post execution snapshot
-    std::string snapKeyPostExecution = moduleB.snapshot();
-    faabric::util::SnapshotData snapshotPostExecution =
-      reg.getSnapshot(snapKeyPostExecution);
-
-    // Diff with original snapshot
-    faabric::util::SnapshotData snapshotPreExecution =
-      reg.getSnapshot(originalSnapshotKey);
-    std::vector<faabric::util::SnapshotDiff> diffs =
-      snapshotPreExecution.getChangeDiffs(snapshotPostExecution.data,
-                                          snapshotPostExecution.size);
-
-    // Check that we have some diffs, but that none of them are in the thread
-    // stacks region
-    REQUIRE(!diffs.empty());
-    uint32_t stacksMin =
-      threadStacksB.at(0) + 1 - THREAD_STACK_SIZE - GUARD_REGION_SIZE;
-    uint32_t stacksMax = threadStacksB.back();
-
-    for (auto d : diffs) {
-        bool isBelow = (d.offset + d.size) < stacksMin;
-        bool isAbove = d.offset > stacksMax;
-        bool isNotInRegion = isBelow || isAbove;
-
-        if (!isNotInRegion) {
-            SPDLOG_ERROR("Stack not ignored, {} + {} between {} and {}",
-                         d.offset,
-                         d.size,
-                         stacksMin,
-                         stacksMax);
-        }
-
-        REQUIRE(isNotInRegion);
-    }
 }
 }

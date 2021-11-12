@@ -1,4 +1,5 @@
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/util/barrier.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
@@ -7,57 +8,19 @@
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
+#include <faabric/util/snapshot.h>
 #include <faabric/util/timing.h>
 
+#include <conf/FaasmConfig.h>
 #include <threads/ThreadState.h>
 
 using namespace faabric::util;
 
 #define LEVEL_WAIT_TIMEOUT_MS 20000
 
-#define FROM_MAP(varName, T, m, ...)                                           \
-    {                                                                          \
-        if (m.find(id) == m.end()) {                                           \
-            faabric::util::FullLock lock(sharedMutex);                         \
-            if (m.find(id) == m.end()) {                                       \
-                m[id] = std::make_shared<T>(__VA_ARGS__);                      \
-            }                                                                  \
-        }                                                                      \
-    }                                                                          \
-    std::shared_ptr<T> varName;                                                \
-    {                                                                          \
-        faabric::util::SharedLock lock(sharedMutex);                           \
-        varName = m[id];                                                       \
-    }
-
 namespace threads {
 
 static thread_local std::shared_ptr<Level> currentLevel = nullptr;
-
-std::shared_mutex sharedMutex;
-
-static std::unordered_map<uint32_t, std::shared_ptr<faabric::util::Barrier>>
-  barriers;
-
-static std::unordered_map<uint32_t, std::shared_ptr<std::recursive_mutex>>
-  levelMutexes;
-
-static std::unordered_map<uint32_t, std::shared_ptr<std::mutex>> nowaitMutexes;
-static std::unordered_map<uint32_t, std::shared_ptr<std::atomic<int>>>
-  nowaitCounts;
-static std::unordered_map<uint32_t, std::shared_ptr<std::condition_variable>>
-  nowaitCvs;
-
-void clearThreadState()
-{
-    barriers.clear();
-
-    levelMutexes.clear();
-
-    nowaitMutexes.clear();
-    nowaitCounts.clear();
-    nowaitCvs.clear();
-}
 
 void setCurrentOpenMPLevel(const std::shared_ptr<Level>& level)
 {
@@ -73,6 +36,7 @@ void setCurrentOpenMPLevel(
     }
 
     std::string funcStr = faabric::util::funcToString(req);
+
     currentLevel = levelFromBatchRequest(req);
     SPDLOG_TRACE(
       "Deserialised thread-local OpenMP level from {} bytes for {}, {}",
@@ -100,8 +64,7 @@ std::shared_ptr<Level> levelFromBatchRequest(
 }
 
 Level::Level(int numThreadsIn)
-  : id(faabric::util::generateGid())
-  , numThreads(numThreadsIn)
+  : numThreads(numThreadsIn)
 {}
 
 std::vector<uint32_t> Level::getSharedVarOffsets()
@@ -112,9 +75,9 @@ std::vector<uint32_t> Level::getSharedVarOffsets()
 
 void Level::setSharedVarOffsets(uint32_t* ptr, int nVars)
 {
+    // Record the offsets themselves
     sharedVarOffsets = new uint32_t[nVars];
     nSharedVarOffsets = nVars;
-
     std::memcpy(sharedVarOffsets, ptr, nVars * sizeof(uint32_t));
 }
 
@@ -156,45 +119,6 @@ int Level::getMaxThreadsAtNextLevel() const
 
     int defaultNumThreads = faabric::util::getUsableCores();
     return defaultNumThreads;
-}
-
-void Level::masterWait(int threadNum)
-{
-    // All threads must lock when entering this function
-    FROM_MAP(nowaitMutex, std::mutex, nowaitMutexes)
-    std::unique_lock<std::mutex> lock(*nowaitMutex);
-
-    FROM_MAP(nowaitCount, std::atomic<int>, nowaitCounts)
-    FROM_MAP(nowaitCv, std::condition_variable, nowaitCvs)
-
-    if (threadNum == 0) {
-        // Wait until all non-master threads have finished
-        auto timePoint = std::chrono::system_clock::now() +
-                         std::chrono::milliseconds(LEVEL_WAIT_TIMEOUT_MS);
-
-        if (!nowaitCv->wait_until(lock, timePoint, [&] {
-                return nowaitCount->load() >= numThreads - 1;
-            })) {
-
-            SPDLOG_ERROR("Level {} master wait timed out", id);
-            throw std::runtime_error("Level wait on master timed out");
-        }
-
-        // Reset, after we've finished
-        nowaitCount->store(0);
-    } else {
-        // If this is the last non-master thread, notify
-        int countBefore = nowaitCount->fetch_add(1);
-        if (countBefore == numThreads - 2) {
-            nowaitCv->notify_one();
-        } else if (countBefore > numThreads - 2) {
-            SPDLOG_ERROR("Level {} master wait error, {} > {}",
-                         id,
-                         countBefore,
-                         numThreads - 2);
-            throw std::runtime_error("OpenMP master wait error");
-        }
-    }
 }
 
 std::vector<uint8_t> Level::serialise()
@@ -242,49 +166,12 @@ std::shared_ptr<Level> Level::deserialise(const std::vector<uint8_t>& bytes)
     return result;
 }
 
-void Level::waitOnBarrier()
-{
-    // Ignore if single threaded
-    if (numThreads <= 1) {
-        return;
-    }
-
-    // Create if necessary
-    if (barriers.find(id) == barriers.end()) {
-        faabric::util::FullLock lock(sharedMutex);
-        if (barriers.find(id) == barriers.end()) {
-            barriers[id] = Barrier::create(numThreads);
-        }
-    }
-
-    // Wait
-    std::shared_ptr<faabric::util::Barrier> barrier;
-    {
-        faabric::util::SharedLock lock(sharedMutex);
-        barrier = barriers[id];
-    }
-
-    barrier->wait();
-}
-
-void Level::lockCritical()
-{
-    FROM_MAP(mx, std::recursive_mutex, levelMutexes);
-    mx->lock();
-}
-
-void Level::unlockCritical()
-{
-    FROM_MAP(mx, std::recursive_mutex, levelMutexes);
-    mx->unlock();
-}
-
 // Note that we need be able to translate between local and global thread
 // numbers. The global thread number must be unique in the system, while the
 // local thread number must fit with that expected by OpenMP within the team/
 // level. We use Faabric messages to hold the global thread number and can
 // translate back and forth.
-int Level::getLocalThreadNum(faabric::Message* msg)
+int Level::getLocalThreadNum(const faabric::Message* msg)
 {
     if (depth == 0) {
         return msg->appidx();
@@ -313,7 +200,7 @@ int Level::getGlobalThreadNum(int localThreadNum)
     return localThreadNum + globalTidOffset;
 }
 
-int Level::getGlobalThreadNum(faabric::Message* msg)
+int Level::getGlobalThreadNum(const faabric::Message* msg)
 {
     return msg->appidx();
 }
@@ -321,8 +208,7 @@ int Level::getGlobalThreadNum(faabric::Message* msg)
 std::string Level::toString()
 {
     std::stringstream ss;
-    ss << "Level " << id << " depth=" << depth << " threads=" << numThreads
-       << " shared={ ";
+    ss << "Level: depth=" << depth << " threads=" << numThreads << " shared={ ";
     for (int i = 0; i < nSharedVarOffsets; i++) {
         ss << sharedVarOffsets[i] << " ";
     }

@@ -73,7 +73,7 @@ More detail on some key features and implementations can be found below:
 - [Kubernetes and Knative integration](docs/kubernetes.md)- deploying Faasm as part of a full serverless platform.
 - [Bare metal/ VM deployment](docs/bare_metal.md) - deploying Faasm on bare metal or VMs as a stand-alone system.
 - [API](docs/api.md) - invoking and managing functions and state through Faasm's HTTP API.
-- [MPI](docs/mpi.md) and [OpenMP](docs/openmp.md) - executing existing MPI and OpenMP applications in Faasm.
+- [MPI](docs/mpi.md) - executing existing MPI applications in Faasm.
 - [Developing Faasm](docs/development.md) - developing and modifying Faasm.
 - [Releases](docs/releases.md) - instructions for releasing new versions and building container tags.
 - [Faasm.js](https://github.com/faasm/faasmjs) - executing Faasm functions in the browser and on the server.

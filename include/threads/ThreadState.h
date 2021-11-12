@@ -10,16 +10,11 @@
 
 namespace threads {
 
-void clearThreadState();
-
 // A Level is a layer of threads in an OpenMP application.
 // Note, defaults are set to replicate the behaviour as of Clang 9.0.1
 class Level
 {
   public:
-    // Id for this level
-    uint32_t id;
-
     // Number of nested OpenMP constructs
     int32_t depth = 0;
 
@@ -59,21 +54,13 @@ class Level
     // Instance functions
     int getMaxThreadsAtNextLevel() const;
 
-    void masterWait(int threadNum);
-
     std::vector<uint8_t> serialise();
 
-    void waitOnBarrier();
-
-    void lockCritical();
-
-    void unlockCritical();
-
-    int getLocalThreadNum(faabric::Message* msg);
+    int getLocalThreadNum(const faabric::Message* msg);
 
     int getGlobalThreadNum(int localThreadNum);
 
-    int getGlobalThreadNum(faabric::Message* msg);
+    int getGlobalThreadNum(const faabric::Message* msg);
 
     std::string toString();
 };
