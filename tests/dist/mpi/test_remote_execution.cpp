@@ -3,7 +3,6 @@
 #include "fixtures.h"
 
 #include <faabric/scheduler/Scheduler.h>
-#include <faabric/util/logging.h>
 
 namespace tests {
 
@@ -31,12 +30,5 @@ TEST_CASE_METHOD(DistTestsFixture,
     faabric::Message result =
       sch.getFunctionResult(msg.id(), functionCallTimeout);
     REQUIRE(result.returnvalue() == 0);
-
-    // Check executors on this host
-    REQUIRE(sch.getFunctionExecutorCount(msg) == 2);
-
-    // Check other host is registered
-    std::set<std::string> expectedRegisteredHosts = { getDistTestWorkerIp() };
-    REQUIRE(sch.getFunctionRegisteredHosts(msg) == expectedRegisteredHosts);
 }
 }
