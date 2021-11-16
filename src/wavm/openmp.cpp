@@ -27,6 +27,21 @@ using namespace WAVM;
 namespace wasm {
 
 // ------------------------------------------------
+// OPENMP STRUCTS
+// ------------------------------------------------
+// As defined in:
+// https://github.com/llvm/llvm-project/blob/main/openmp/runtime/src/kmp.h
+
+struct ident_t_wasm
+{
+    int32_t reserved_1;
+    int32_t flags;
+    int32_t reserved_2;
+    int32_t reserved_3;
+    uint32_t psourcePtr;
+};
+
+// ------------------------------------------------
 // SCHEDULING
 // ------------------------------------------------
 std::unordered_map<std::string, int> cachedGroupIds;
@@ -414,8 +429,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   microtaskPtr,
                   sharedVarPtrs);
 
-    auto& sch = faabric::scheduler::getScheduler();
-
     WAVMWasmModule* parentModule = getExecutingWAVMModule();
     Runtime::Memory* memoryPtr = parentModule->defaultMemory;
     faabric::Message* parentCall = getExecutingCall();
@@ -481,6 +494,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                            std::to_string(nextLevel->numThreads) + "_" +
                            std::to_string(nextLevel->depth);
 
+    auto& sch = faabric::scheduler::getScheduler();
     if (cachedDecisionHosts.find(cacheKey) == cachedDecisionHosts.end()) {
         // Set up a new group
         int groupId = faabric::util::generateGid();
