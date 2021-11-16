@@ -1,3 +1,5 @@
+#include "faabric/proto/faabric.pb.h"
+#include "faabric/runner/FaabricMain.h"
 #include "faabric/transport/context.h"
 #include "faaslet/Faaslet.h"
 #include "storage/S3Wrapper.h"
@@ -21,10 +23,27 @@
 #include <wasm/WasmModule.h>
 #include <wavm/WAVMWasmModule.h>
 
-void execCovid(int nThreads, int nLoops, const std::string& country)
+int doCovidRun(int argc, char* argv[])
 {
-    SPDLOG_INFO(
-      "Running covid sim with {} threads, {} loops", nThreads, nLoops);
+    faabric::util::setUpCrashHandler();
+    faabric::util::initLogging();
+
+    // Set short timeouts to die quickly
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
+    faasmConf.chainedCallTimeout = 480000;
+    conf.boundTimeout = 480000;
+    conf.globalMessageTimeout = 480000;
+
+    std::string country = "Guam";
+    if (argc >= 3) {
+        country = argv[2];
+    }
+
+    int nThreads = faabric::util::getUsableCores();
+    if (argc >= 2) {
+        nThreads = std::stoi(argv[1]);
+    }
 
     std::string cmdlineArgs = "/c:" + std::to_string(nThreads) + " ";
 
@@ -60,66 +79,45 @@ void execCovid(int nThreads, int nLoops, const std::string& country)
         throw std::runtime_error("Unrecognised country");
     }
 
-    faabric::Message msg = faabric::util::messageFactory("cov", "sim");
+    auto req = faabric::util::batchExecFactory("cov", "sim", 1);
+    auto& msg = req->mutable_messages()->at(0);
     msg.set_cmdline(cmdlineArgs);
-
-    // Set short timeouts to die quickly
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    conf.boundTimeout = 480000;
-    conf.globalMessageTimeout = 480000;
-
-    conf.print();
 
     // Clear out redis
     faabric::redis::Redis& redis = faabric::redis::Redis::getQueue();
     redis.flushAll();
 
-    // Run repeated executions
-    for (int i = 0; i < nLoops; i++) {
-        wasm::WAVMWasmModule module;
-        module.bindToFunction(msg);
+    // Set up the system
+    auto fac = std::make_shared<faaslet::FaasletFactory>();
+    faabric::runner::FaabricMain m(fac);
+    m.startRunner();
 
-        int returnValue = module.executeFunction(msg);
-        if (returnValue != 0) {
-            module.printDebugInfo();
-            SPDLOG_ERROR("Execution failed");
-            break;
-        }
+    // Submit the invocation
+    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
+    sch.callFunctions(req);
+
+    // Await the result
+    const faabric::Message& result =
+      sch.getFunctionResult(msg.id(), conf.globalMessageTimeout);
+    if (result.returnvalue() != 0) {
+        SPDLOG_ERROR("Execution failed: {}", result.outputdata());
+        throw std::runtime_error("Executing function failed");
     }
+
+    m.shutdown();
+
+    return 0;
 }
 
 int main(int argc, char* argv[])
 {
-    faabric::util::setUpCrashHandler();
-
-    faabric::util::initLogging();
     storage::initFaasmS3();
     faabric::transport::initGlobalMessageContext();
 
-    std::shared_ptr<faaslet::FaasletFactory> fac =
-      std::make_shared<faaslet::FaasletFactory>();
-    faabric::scheduler::setExecutorFactory(fac);
-
-    std::string country = "Guam";
-    if (argc >= 4) {
-        country = argv[3];
-    }
-
-    int nLoops = 1;
-    if (argc >= 3) {
-        nLoops = std::stoi(argv[2]);
-    }
-
-    int nThreads = faabric::util::getUsableCores();
-    if (argc >= 2) {
-        nThreads = std::stoi(argv[1]);
-    }
-
-    execCovid(nThreads, nLoops, country);
+    int result = doCovidRun(argc, argv);
 
     faabric::transport::closeGlobalMessageContext();
-
     storage::shutdownFaasmS3();
 
-    return 0;
+    return result;
 }
