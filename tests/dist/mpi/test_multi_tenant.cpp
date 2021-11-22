@@ -36,7 +36,6 @@ TEST_CASE_METHOD(DistTestsFixture,
     msgCopy.set_ismpi(true);
     msgCopy.set_mpiworldsize(4);
 
-
     // Check both results are successful
     faabric::Message result =
       sch.getFunctionResult(msg.id(), functionCallTimeout);

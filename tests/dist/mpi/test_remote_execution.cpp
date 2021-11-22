@@ -4,6 +4,8 @@
 
 #include <faabric/scheduler/Scheduler.h>
 
+#include <set>
+
 namespace tests {
 
 TEST_CASE_METHOD(DistTestsFixture,
@@ -37,5 +39,8 @@ TEST_CASE_METHOD(DistTestsFixture,
     auto execGraph = sch.getFunctionExecGraph(result.id());
     int numNodes = faabric::scheduler::countExecGraphNodes(execGraph);
     REQUIRE(numNodes == mpiWorldSize);
+    std::set<std::string> hosts =
+      faabric::scheduler::getExecGraphHosts(execGraph);
+    REQUIRE(hosts.size() == 2);
 }
 }
