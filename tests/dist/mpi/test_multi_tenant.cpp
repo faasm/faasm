@@ -6,12 +6,12 @@
 
 namespace tests {
 
-/* 12/11/2021 - This test deliberately fails as multi-tenant MPI execution is
- * still not supported. We keep it here to showcase this is the use case we
- * want to support.
+// 12/11/2021 - This test deliberately fails as multi-tenant MPI execution is
+// still not supported. We keep it here to showcase this is the use case we
+// want to support.
 TEST_CASE_METHOD(DistTestsFixture,
                  "Test running two MPI functions at the same time",
-                 "[mpi]")
+                 "[.][mpi]")
 {
     // Set up this host's resources
     int nLocalSlots = 5;
@@ -45,5 +45,4 @@ TEST_CASE_METHOD(DistTestsFixture,
       sch.getFunctionResult(msgCopy.id(), functionCallTimeout);
     REQUIRE(result.returnvalue() == 0);
 }
-*/
 }
