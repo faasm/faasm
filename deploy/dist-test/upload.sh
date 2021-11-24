@@ -24,6 +24,8 @@ docker-compose \
     cpp \
     inv func.user demo \
     func.upload-user demo \
+    func.user mpi \
+    func.upload-user mpi \
     func.user omp \
     func.upload-user omp
 

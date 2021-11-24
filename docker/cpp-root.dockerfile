@@ -1,4 +1,4 @@
-FROM faasm/faabric-base:0.2.0
+FROM faasm/faabric-base:0.2.2
 
 # -------------------------------------------------------------
 # NOTE - extensive use of Ansible in this Dockerfile makes it
