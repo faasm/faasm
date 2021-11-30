@@ -221,12 +221,26 @@ jobs:
         run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
       - name: "Print CPU model"
         run: echo "${{ env.CPU_MODEL}}"
+      # --- Cache - use minio directory to share between containers ---
+      - name: "Configure S3 cache"
+        uses: actions/cache@v2
+        with:
+          path: ./dev/minio/data/faasm
+          key: ${{ env.CPU_MODEL }}-s3-data-${{ secrets.CACHE_VERSION }}
       # --- Cache based on Conan version and ExternalProjects cmake source
       - name: Get Conan version
         id: get-conan-version
         run: |
-          echo "::set-output name=conan-version::$(conan --version | tr -d '[:alpha:] ')"
+          docker-compose run --rm faasm-cli conan --version 2>/tmp/conan-ver-log | tee /tmp/conan-ver
+          grep 'Conan version' /tmp/conan-ver || exit 1
+          echo "::set-output name=conan-version::$(grep 'Conan version' /tmp/conan-ver | tr -d '[:alpha:] ')"
         shell: bash
+        env:
+          FAASM_BUILD_MOUNT: /build/faasm
+          CONAN_CACHE_MOUNT_SOURCE: ~/.conan/
+      - name: Get Conan Version - Show Log
+        if: always()
+        run: cat /tmp/conan-ver-log
       - name: Hash ExternalProjects
         id: hash-external
         run: |
@@ -239,12 +253,6 @@ jobs:
           restore-keys: |
             ${{ secrets.CACHE_VERSION }}-${{ runner.os }}-${{ steps.get-conan-version.outputs.conan-version }}-
             ${{ secrets.CACHE_VERSION }}-${{ runner.os }}-
-      # --- Cache - use minio directory to share between containers ---
-      - name: "Configure S3 cache"
-        uses: actions/cache@v2
-        with:
-          path: ./dev/minio/data/faasm
-          key: ${{ env.CPU_MODEL }}-s3-data-${{ secrets.CACHE_VERSION }}
       # --- Set up and run ---
       - name: "Build tests"
         run: ./deploy/dist-test/build.sh
