@@ -130,7 +130,7 @@ void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
     m.startRunner();
 
     // Execute forcing local
-    sch.callFunctions(req, true);
+    sch.callFunctions(req, faabric::util::SchedulingTopologyHint::FORCE_LOCAL);
 
     usleep(1000 * 500);
 
