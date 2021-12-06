@@ -18,7 +18,14 @@ DEV_TARGETS = [
 
 
 @task
-def cmake(ctx, clean=False, build="Debug", perf=False, prof=False):
+def cmake(
+    ctx,
+    clean=False,
+    build="Debug",
+    perf=False,
+    prof=False,
+    sanitiser="None",
+):
     """
     Configures the CMake build
     """
@@ -40,6 +47,8 @@ def cmake(ctx, clean=False, build="Debug", perf=False, prof=False):
         "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_INSTALL_DIR),
         "-DFAASM_PERF_PROFILING=ON" if perf else "",
         "-DFAASM_SELF_TRACING=ON" if prof else "",
+        "-DFAABRIC_USE_SANITISER={}".format(sanitiser),
+        "-DFAASM_USE_SANITISER={}".format(sanitiser),
         PROJ_ROOT,
     ]
 
@@ -49,11 +58,11 @@ def cmake(ctx, clean=False, build="Debug", perf=False, prof=False):
 
 
 @task
-def tools(ctx, clean=False, build="Debug", parallel=0):
+def tools(ctx, clean=False, build="Debug", parallel=0, sanitiser="None"):
     """
     Builds all the targets commonly used for development
     """
-    cmake(ctx, clean=clean, build=build)
+    cmake(ctx, clean=clean, build=build, sanitiser=sanitiser)
 
     targets = " ".join(DEV_TARGETS)
 

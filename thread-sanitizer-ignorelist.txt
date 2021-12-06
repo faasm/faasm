@@ -1,0 +1,14 @@
+# TSan detects a race on pistache shutdown
+race:*Pistache*
+race:close
+race:socket
+# Ignore ZeroMQ races
+race:zmq::*
+# Config only changes in tests, and in places where being slightly racy doesn't matter
+race:faabric::util::SystemConfig::*
+race:conf::FaasmConfig::*
+# Catch2 allocates in its signal handler, this prevents showing the wrong crash report
+signal:*
+
+# TODO: Remove: There's something weird going on with MPI code I don't understand
+race:faabric::scheduler::MpiWorld::*
