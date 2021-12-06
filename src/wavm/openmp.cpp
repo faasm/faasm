@@ -29,6 +29,7 @@ namespace wasm {
 // ------------------------------------------------
 // SCHEDULING
 // ------------------------------------------------
+std::shared_mutex cachedSchedulingMutex;
 std::unordered_map<std::string, int> cachedGroupIds;
 std::unordered_map<std::string, std::vector<std::string>> cachedDecisionHosts;
 
@@ -481,7 +482,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                            std::to_string(nextLevel->numThreads) + "_" +
                            std::to_string(nextLevel->depth);
 
+    faabric::util::SharedLock lock(cachedSchedulingMutex);
     if (cachedDecisionHosts.find(cacheKey) == cachedDecisionHosts.end()) {
+        lock.unlock();
         // Set up a new group
         int groupId = faabric::util::generateGid();
         for (auto& m : *req->mutable_messages()) {
@@ -500,12 +503,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
           groupId,
           faabric::util::vectorToString<std::string>(decision.hosts));
 
+        faabric::util::FullLock fullLock(cachedSchedulingMutex);
         cachedGroupIds[cacheKey] = groupId;
         cachedDecisionHosts[cacheKey] = decision.hosts;
     } else {
         // Get the cached group ID and hosts
         int groupId = cachedGroupIds[cacheKey];
         std::vector<std::string> hosts = cachedDecisionHosts[cacheKey];
+        lock.unlock();
 
         // Sanity check we've got something the right size
         if (hosts.size() != req->messages().size()) {
