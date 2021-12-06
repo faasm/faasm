@@ -1,5 +1,7 @@
 #pragma once
 
+#include <faabric/util/locks.h>
+
 #include <threads/ThreadState.h>
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
@@ -207,7 +209,8 @@ class WAVMWasmModule final
 class WAVMModuleCache
 {
   public:
-    wasm::WAVMWasmModule& getCachedModule(faabric::Message& msg);
+    std::pair<wasm::WAVMWasmModule&, faabric::util::SharedLock> getCachedModule(
+      faabric::Message& msg);
 
     void initialiseCachedModule(faabric::Message& msg);
 

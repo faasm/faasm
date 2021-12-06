@@ -85,8 +85,7 @@ void WAVMWasmModule::reset(faabric::Message& msg,
 
     std::string funcStr = faabric::util::funcToString(msg, true);
     SPDLOG_DEBUG("Resetting after {} (snap key {})", funcStr, snapshotKey);
-    wasm::WAVMWasmModule& cachedModule =
-      wasm::getWAVMModuleCache().getCachedModule(msg);
+    auto [cachedModule, lock] = wasm::getWAVMModuleCache().getCachedModule(msg);
 
     clone(cachedModule, snapshotKey);
 }
@@ -426,7 +425,8 @@ void WAVMWasmModule::doBindToFunctionInternal(faabric::Message& msg,
      */
     if (useCache) {
         wasm::WAVMModuleCache& cache = getWAVMModuleCache();
-        clone(cache.getCachedModule(msg), "");
+        auto [cached, lock] = cache.getCachedModule(msg);
+        clone(cached, "");
         return;
     }
 
