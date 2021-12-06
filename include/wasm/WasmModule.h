@@ -9,6 +9,7 @@
 #include <faabric/util/snapshot.h>
 #include <threads/ThreadState.h>
 
+#include <atomic>
 #include <exception>
 #include <mutex>
 #include <string>
@@ -152,7 +153,7 @@ class WasmModule
     virtual void printDebugInfo();
 
   protected:
-    uint32_t currentBrk = 0;
+    std::atomic<uint32_t> currentBrk = 0;
 
     std::string boundUser;
     std::string boundFunction;

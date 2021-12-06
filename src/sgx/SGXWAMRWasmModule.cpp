@@ -157,12 +157,13 @@ uint32_t SGXWAMRWasmModule::growMemory(uint32_t nBytes)
 {
     SPDLOG_DEBUG("SGX-WAMR growing memory by {}", nBytes);
 
-    uint32_t memBase = currentBrk;
+    uint32_t memBase = currentBrk.load(std::memory_order_acquire);
 
     uint32_t nPages = getNumberOfWasmPagesForBytes(nBytes);
     SPDLOG_WARN("Growing memory in SGX-WAMR never allocates new memory");
 
-    currentBrk = memBase + (nPages * WASM_BYTES_PER_PAGE);
+    currentBrk.store(memBase + (nPages * WASM_BYTES_PER_PAGE),
+                     std::memory_order_release);
     return memBase;
 }
 

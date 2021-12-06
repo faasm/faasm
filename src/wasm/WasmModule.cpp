@@ -84,7 +84,7 @@ faabric::util::SnapshotData WasmModule::getSnapshotData()
     // of the allocated memory
     faabric::util::SnapshotData data;
     data.data = getMemoryBase();
-    data.size = currentBrk;
+    data.size = currentBrk.load(std::memory_order_acquire);
 
     return data;
 }
@@ -377,8 +377,7 @@ uint32_t WasmModule::mapSharedStateMemory(
 
 uint32_t WasmModule::getCurrentBrk()
 {
-    faabric::util::SharedLock lock(moduleMemoryMutex);
-    return currentBrk;
+    return currentBrk.load(std::memory_order_acquire);
 }
 
 int32_t WasmModule::executeTask(
@@ -614,13 +613,13 @@ void WasmModule::setUpOpenMPMergeRegions(
         // pointer to a pointer, so we should add a merge region
         uint32_t intValue = *(uint32_t*)wasmPointerToNative(regionStart);
         uint32_t stacksTop = threadStacks.back();
-        if (intValue > stacksTop && intValue < currentBrk) {
+        uint32_t memMax = currentBrk.load(std::memory_order_acquire);
+        if (intValue > stacksTop && intValue < memMax) {
             SPDLOG_TRACE("Shared var points to {}, could be pointer ({}-{})",
                          intValue,
                          stacksTop,
-                         currentBrk);
+                         memMax);
 
-            uint32_t memMax = currentBrk;
             uint32_t derefPointerEnd =
               std::min<uint32_t>(intValue + DEFAULT_MERGE_REGION_SIZE, memMax);
 
