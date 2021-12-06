@@ -848,7 +848,7 @@ void startReduceCritical(faabric::Message* msg,
         faabric::snapshot::SnapshotRegistry& reg =
           faabric::snapshot::getSnapshotRegistry();
 
-        faabric::util::SnapshotData& snap = reg.getSnapshot(snapKey);
+        auto snap = reg.getSnapshot(snapKey);
         for (int i = 0; i < numReduceVars; i++) {
             int sharedVarIdx = level->nSharedVarOffsets - 1 - numReduceVars + i;
             uint32_t globalReduceVar = level->sharedVarOffsets[sharedVarIdx];
@@ -859,11 +859,11 @@ void startReduceCritical(faabric::Message* msg,
                          sharedVarIdx);
 
             // Note we allow overwrites here
-            snap.addMergeRegion(globalReduceVar,
-                                sizeof(int32_t),
-                                faabric::util::SnapshotDataType::Int,
-                                faabric::util::SnapshotMergeOperation::Sum,
-                                true);
+            snap->addMergeRegion(globalReduceVar,
+                                 sizeof(int32_t),
+                                 faabric::util::SnapshotDataType::Int,
+                                 faabric::util::SnapshotMergeOperation::Sum,
+                                 true);
         }
     }
 }

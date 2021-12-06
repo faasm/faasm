@@ -225,11 +225,11 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
     REQUIRE(keyA != keyB);
 
     // Check the snapshots
-    faabric::util::SnapshotData snapA = reg.getSnapshot(keyA);
-    faabric::util::SnapshotData snapB = reg.getSnapshot(keyB);
+    auto snapA = reg.getSnapshot(keyA);
+    auto snapB = reg.getSnapshot(keyB);
 
-    REQUIRE(snapA.data != snapB.data);
-    REQUIRE(snapA.size == snapB.size);
+    REQUIRE(snapA->data != snapB->data);
+    REQUIRE(snapA->size == snapB->size);
 
     // Delete and check they've gone
     moduleA.deleteAppSnapshot(mA);
@@ -319,8 +319,8 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
         REQUIRE(!resetKey.empty());
 
         // Load the snapshot and check it's the right size by default
-        faabric::util::SnapshotData& initialSnap = reg.getSnapshot(resetKey);
-        REQUIRE(initialSnap.size == defaultMemSize);
+        auto initialSnap = reg.getSnapshot(resetKey);
+        REQUIRE(initialSnap->size == defaultMemSize);
 
         // Overwrite the snapshot to force the faaslet to restore ours
         reg.takeSnapshot(resetKey, snap, true);

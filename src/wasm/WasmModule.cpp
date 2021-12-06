@@ -179,16 +179,16 @@ void WasmModule::restore(const std::string& snapshotKey)
       faabric::snapshot::getSnapshotRegistry();
 
     // Expand memory if necessary
-    faabric::util::SnapshotData data = reg.getSnapshot(snapshotKey);
+    auto data = reg.getSnapshot(snapshotKey);
     uint32_t memSize = getCurrentBrk();
 
-    if (data.size > memSize) {
-        size_t bytesRequired = data.size - memSize;
+    if (data->size > memSize) {
+        size_t bytesRequired = data->size - memSize;
         SPDLOG_DEBUG("Growing memory by {} bytes to restore snapshot",
                      bytesRequired);
         this->growMemory(bytesRequired);
-    } else if (data.size < memSize) {
-        size_t shrinkBy = memSize - data.size;
+    } else if (data->size < memSize) {
+        size_t shrinkBy = memSize - data->size;
         SPDLOG_DEBUG("Shrinking memory by {} bytes to restore snapshot",
                      shrinkBy);
         this->shrinkMemory(shrinkBy);
@@ -589,7 +589,7 @@ void WasmModule::setUpOpenMPMergeRegions(
     // Get the snapshot
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
-    faabric::util::SnapshotData& snap = reg.getSnapshot(snapshotKey);
+    auto snap = reg.getSnapshot(snapshotKey);
 
     // Set up merge regions for these shared variables. Note that any
     // that are later discovered to be reduce results will get
@@ -624,7 +624,7 @@ void WasmModule::setUpOpenMPMergeRegions(
             uint32_t derefPointerEnd =
               std::min<uint32_t>(intValue + DEFAULT_MERGE_REGION_SIZE, memMax);
 
-            snap.addMergeRegion(
+            snap->addMergeRegion(
               intValue,
               derefPointerEnd - intValue,
               faabric::util::SnapshotDataType::Raw,
@@ -643,11 +643,11 @@ void WasmModule::setUpOpenMPMergeRegions(
                      regionEnd);
 
         size_t size = regionEnd - regionStart;
-        snap.addMergeRegion(regionStart,
-                            size,
-                            faabric::util::SnapshotDataType::Raw,
-                            faabric::util::SnapshotMergeOperation::Overwrite,
-                            true);
+        snap->addMergeRegion(regionStart,
+                             size,
+                             faabric::util::SnapshotDataType::Raw,
+                             faabric::util::SnapshotMergeOperation::Overwrite,
+                             true);
     }
 }
 
@@ -668,7 +668,7 @@ void WasmModule::setUpPthreadMergeRegions(
     // more fine-grained would be better (if possible).
 
     std::string snapshotKey = msg.snapshotkey();
-    faabric::util::SnapshotData& snapData =
+    auto snapData =
       faabric::snapshot::getSnapshotRegistry().getSnapshot(snapshotKey);
 
     uint32_t threadStackRegionStart =
@@ -685,17 +685,17 @@ void WasmModule::setUpPthreadMergeRegions(
                  threadStackRegionStart,
                  threadStackRegionEnd);
 
-    snapData.addMergeRegion(STACK_SIZE,
-                            wasmStackRegionSize,
-                            faabric::util::SnapshotDataType::Raw,
-                            faabric::util::SnapshotMergeOperation::Overwrite,
-                            true);
+    snapData->addMergeRegion(STACK_SIZE,
+                             wasmStackRegionSize,
+                             faabric::util::SnapshotDataType::Raw,
+                             faabric::util::SnapshotMergeOperation::Overwrite,
+                             true);
 
-    snapData.addMergeRegion(threadStackRegionEnd,
-                            0,
-                            faabric::util::SnapshotDataType::Raw,
-                            faabric::util::SnapshotMergeOperation::Overwrite,
-                            true);
+    snapData->addMergeRegion(threadStackRegionEnd,
+                             0,
+                             faabric::util::SnapshotDataType::Raw,
+                             faabric::util::SnapshotMergeOperation::Overwrite,
+                             true);
 }
 
 void WasmModule::createThreadStacks()
