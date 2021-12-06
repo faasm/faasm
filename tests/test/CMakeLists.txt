@@ -1,5 +1,5 @@
-file(GLOB_RECURSE TEST_FILES ${CMAKE_CURRENT_SOURCE_DIR} test_*.cpp)
-file(GLOB_RECURSE SGX_TEST_FILES ${CMAKE_CURRENT_SOURCE_DIR}/sgx test_*.cpp)
+file(GLOB_RECURSE TEST_FILES test_*.cpp)
+file(GLOB_RECURSE SGX_TEST_FILES sgx/test_*.cpp)
 
 # Remove SGX tests if SGX disabled or not found
 if (NOT SGX_FOUND)

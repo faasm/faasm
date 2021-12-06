@@ -96,6 +96,11 @@ inv python.codegen
 # Set up cgroup
 ./bin/cgroup.sh
 
+# If running with sanitisers, set their options
+export ASAN_OPTIONS="halt_on_error=1"
+export TSAN_OPTIONS="halt_on_error=1:suppressions=/usr/local/code/faasm/thread-sanitizer-ignorelist.txt:history_size=7"
+export UBSAN_OPTIONS="print_stacktrace=1:halt_on_error=1"
+
 # Run the tests
 tests
 ```
