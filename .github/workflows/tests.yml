@@ -162,8 +162,9 @@ jobs:
       NETNS_MODE: off
       REDIS_QUEUE_HOST: redis
       REDIS_STATE_HOST: redis
-      ASAN_OPTIONS: "verbosity=1:halt_on_error=1"
-      TSAN_OPTIONS: "verbosity=1:halt_on_error=1:suppressions=/usr/local/code/faasm/thread-sanitizer-ignorelist.txt:history_size=7"
+      ASAN_OPTIONS: "halt_on_error=1"
+      LSAN_OPTIONS: "suppressions=/usr/local/code/faasm/leak-sanitizer-ignorelist.txt"
+      TSAN_OPTIONS: "halt_on_error=1:suppressions=/usr/local/code/faasm/thread-sanitizer-ignorelist.txt:history_size=7"
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1"
     container:
       image: faasm/cli:0.7.6
