@@ -4,6 +4,12 @@ project(faasm)
 # Optional functionality
 option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
 
+if (FAASM_STATIC_LIBS)
+    set(BUILD_SHARED_LIBS FALSE CACHE BOOL "" FORCE)
+    # Resolve mixed RTTI linking issues when using static libraries
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>)
+endif ()
+
 # Performance functionality
 option(FAASM_SELF_TRACING "Turn on system tracing using the logger" OFF)
 option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md" OFF)
@@ -33,12 +39,18 @@ add_compile_options(-fno-omit-frame-pointer)
 add_link_options(-Wl,--export-dynamic)
 
 # Set-up use of sanitisers
+set(WAVM_ENABLE_ASAN OFF CACHE BOOL "" FORCE)
+set(WAVM_ENABLE_UBSAN OFF CACHE BOOL "" FORCE)
+set(WAVM_ENABLE_TSAN OFF CACHE BOOL "" FORCE)
 if (FAASM_USE_SANITISER STREQUAL "Address")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+    set(WAVM_ENABLE_ASAN ON CACHE BOOL "" FORCE)
 elseif (FAASM_USE_SANITISER STREQUAL "Thread")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -fsanitize-ignorelist=${CMAKE_CURRENT_LIST_DIR}/thread-sanitizer-ignorelist.txt")
+    set(WAVM_ENABLE_TSAN ON CACHE BOOL "" FORCE)
 elseif (FAASM_USE_SANITISER STREQUAL "Undefined")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+    set(WAVM_ENABLE_UBSAN ON CACHE BOOL "" FORCE)
 elseif (FAASM_USE_SANITISER STREQUAL "Leak")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=leak")
 elseif (FAASM_USE_SANITISER STREQUAL "Memory")
@@ -46,6 +58,13 @@ elseif (FAASM_USE_SANITISER STREQUAL "Memory")
 elseif (NOT ((FAASM_USE_SANITISER STREQUAL "None") OR (NOT FAASM_USE_SANITISER)))
     message(FATAL_ERROR "Invalid FAASM_USE_SANITISER setting: ${FAASM_USE_SANITISER}")
 endif()
+
+# Disable SGX when building with sanitisers due to linking problems
+if (NOT ((FAASM_USE_SANITISER STREQUAL "None") OR (NOT FAASM_USE_SANITISER)))
+    set(SANITISER_DISABLE_SGX ON CACHE BOOL "" FORCE)
+else ()
+    set(SANITISER_DISABLE_SGX OFF CACHE BOOL "" FORCE)
+endif ()
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -65,15 +84,14 @@ find_package(cpprestsdk REQUIRED)
 
 # Detect SGX
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
-find_package(SGX)
+if (NOT SANITISER_DISABLE_SGX)
+    find_package(SGX)
+endif ()
 
 # SGX configuration
 if (SGX_FOUND)
     # SGX includes
     include_directories(${SGX_SDK_PATH}/include)
-
-    # Switch off Werror only when in SGX mode
-    set(CMAKE_CXX_FLAGS "-Wall")
 
     # Set up SGX definitions
     add_definitions(-DFAASM_SGX=1)
@@ -93,7 +111,6 @@ if (SGX_FOUND)
         add_definitions(-DFAASM_SGX_ATTESTATION=0)
     endif()
 else ()
-    set(CMAKE_CXX_FLAGS "-Wall -Werror")
     add_definitions(-DFAASM_SGX=0)
 endif ()
 
@@ -192,6 +209,9 @@ target_include_directories(faasm_common_deps INTERFACE
 # Faasm SGX support
 if (SGX_FOUND)
     add_subdirectory(src/sgx)
+else ()
+    add_library(faasm_sgx_dummy INTERFACE)
+    add_library(faasm::sgx ALIAS faasm_sgx_dummy)
 endif ()
 
 # Faasm runtime
