@@ -675,12 +675,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     auto inputs = Runtime::memoryArrayPtr<uint8_t>(
       ctx.memory, buffer, count * hostDtype->size);
 
-    // See if this is a send broadcast or receive broadcast
-    if (ctx.rank == root) {
-        ctx.world.broadcast(ctx.rank, inputs, hostDtype, count);
-    } else {
-        ctx.world.recv(root, ctx.rank, inputs, hostDtype, count, nullptr);
-    }
+    ctx.world.broadcast(
+      root, ctx.rank, inputs, hostDtype, count, faabric::MPIMessage::BROADCAST);
 
     return MPI_SUCCESS;
 }
