@@ -1,0 +1,4 @@
+# S3 SDK doesn't fully clean up after openssl random number generation
+leak:Aws::Utils::Crypto::SecureRandomBytes_OpenSSLImpl
+# Global WAVM modules
+leak:wasm::instantiateBaseModules
