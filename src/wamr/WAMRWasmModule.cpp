@@ -144,21 +144,23 @@ int WAMRWasmModule::executeWasmFunctionFromPointer(int wasmFuncPtr)
     // function pointers, so we have to call a few more low-level functions to
     // get it to work.
 
-    WASMExecEnv* execEnv = wasm_exec_env_create(moduleInstance, STACK_SIZE_KB);
+    std::unique_ptr<WASMExecEnv, decltype(&wasm_exec_env_destroy)> execEnv(
+      wasm_exec_env_create(moduleInstance, STACK_SIZE_KB),
+      &wasm_exec_env_destroy);
     if (execEnv == nullptr) {
         SPDLOG_ERROR("Failed to create exec env for func ptr {}", wasmFuncPtr);
         throw std::runtime_error("Failed to create WAMR exec env");
     }
 
     // Set thread handle and stack boundary (required by WAMR)
-    wasm_exec_env_set_thread_info(execEnv);
+    wasm_exec_env_set_thread_info(execEnv.get());
 
     // Call the function pointer
     // NOTE: for some reason WAMR uses the argv array to pass the function
     // return value, so we have to provide something big enough
     std::vector<uint32_t> argv = { 0 };
     bool success =
-      wasm_runtime_call_indirect(execEnv, wasmFuncPtr, 0, argv.data());
+      wasm_runtime_call_indirect(execEnv.get(), wasmFuncPtr, 0, argv.data());
 
     // Handle errors
     if (!success) {
