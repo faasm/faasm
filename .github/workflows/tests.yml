@@ -254,9 +254,13 @@ jobs:
       # 15/10/21 Temporary step to refresh WAMR cache
       - name: "Clear out WAMR codegen files"
         run: find /usr/local/faasm/object | grep aot | xargs rm -f
-      # --- Code build (Debug required for tests) ---
-      - name: "Build dev tools"
-        run: inv -r faasmcli/faasmcli dev.tools --build Debug --sanitiser ${{ matrix.sanitiser }}
+      # --- Codegen build without sanitisers
+      - name: "Build codegen - CMake"
+        run: inv -r faasmcli/faasmcli dev.cmake --build Debug --sanitiser None
+      - name: "Build codegen - Codegen Func"
+        run: inv -r faasmcli/faasmcli dev.cc codegen_func
+      - name: "Build codegen - Codegen Shared Obj"
+        run: inv -r faasmcli/faasmcli dev.cc codegen_shared_obj
       # --- Environment set-up ---
       - name: "Run codegen"
         run: inv -r faasmcli/faasmcli codegen.local
@@ -264,6 +268,9 @@ jobs:
         run: inv -r faasmcli/faasmcli python.codegen
       - name: "Clear existing pyc files"
         run: inv -r faasmcli/faasmcli python.clear-runtime-pyc
+      # --- Code build (Debug required for tests) ---
+      - name: "Build dev tools"
+        run: inv -r faasmcli/faasmcli dev.tools --build Debug --sanitiser ${{ matrix.sanitiser }}
       # --- Test run ---
       - name: "Run the tests"
         run: /build/faasm/bin/tests
