@@ -1496,7 +1496,7 @@ Runtime::Context* WAVMWasmModule::createThreadContext(
         throw std::runtime_error("Unexpected mutable global format");
     }
 
-    if ((stackTop & ~16) != 0) {
+    if ((stackTop & 15) != 0) {
         SPDLOG_CRITICAL("Thread stack top {} is not 16 byte aligned, violating "
                         "ABI requirements.",
                         stackTop);

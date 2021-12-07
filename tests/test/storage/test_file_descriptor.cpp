@@ -4,12 +4,15 @@
 
 #include <WAVM/WASI/WASIABI.h>
 #include <boost/filesystem.hpp>
+#include <faabric/util/bytes.h>
 #include <faabric/util/files.h>
 
 #include <conf/FaasmConfig.h>
 #include <storage/FileDescriptor.h>
 #include <storage/FileLoader.h>
 #include <storage/SharedFiles.h>
+
+#include <string_view>
 
 using namespace storage;
 
@@ -296,10 +299,10 @@ TEST_CASE("Test stat and read shared file", "[storage]")
 void checkWasiDirentInBuffer(uint8_t* buffer, DirEnt e)
 {
     size_t wasiDirentSize = sizeof(__wasi_dirent_t);
-    __wasi_dirent_t wasiDirent;
-    ::memcpy(&wasiDirent, buffer, wasiDirentSize);
+    auto wasiDirent = faabric::util::unalignedRead<__wasi_dirent_t>(
+      reinterpret_cast<std::byte*>(buffer));
     auto direntPathPtr = reinterpret_cast<const char*>(buffer + wasiDirentSize);
-    std::string direntPath(direntPathPtr, direntPathPtr + e.path.size());
+    std::string_view direntPath(direntPathPtr, direntPathPtr + e.path.size());
 
     REQUIRE(wasiDirent.d_namlen == e.path.size());
     REQUIRE(direntPath == e.path);

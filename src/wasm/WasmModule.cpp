@@ -707,12 +707,15 @@ void WasmModule::createThreadStacks()
 
         // Note that wasm stacks grow downwards, so we have to store the stack
         // top, which is the offset one below the guard region above the stack
-        uint32_t stackTop = memBase + GUARD_REGION_SIZE + THREAD_STACK_SIZE - 1;
+        // Subtract 16 to make sure the stack is 16-aligned as required by the C
+        // ABI
+        uint32_t stackTop =
+          memBase + GUARD_REGION_SIZE + THREAD_STACK_SIZE - 16;
         threadStacks.push_back(stackTop);
 
         // Add guard regions
         createMemoryGuardRegion(memBase);
-        createMemoryGuardRegion(stackTop + 1);
+        createMemoryGuardRegion(stackTop + 16);
     }
 }
 
