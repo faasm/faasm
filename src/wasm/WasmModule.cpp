@@ -610,7 +610,8 @@ void WasmModule::setUpOpenMPMergeRegions(
 
         // Check if the var points to a wasm address. If so, it may be a
         // pointer to a pointer, so we should add a merge region
-        uint32_t intValue = *(uint32_t*)wasmPointerToNative(regionStart);
+        uint32_t intValue = faabric::util::unalignedRead<uint32_t>(
+          reinterpret_cast<std::byte*>(wasmPointerToNative(regionStart)));
         uint32_t stacksTop = threadStacks.back();
         uint32_t memMax = currentBrk.load(std::memory_order_acquire);
         if (intValue > stacksTop && intValue < memMax) {
