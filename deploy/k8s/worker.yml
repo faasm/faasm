@@ -22,7 +22,7 @@ spec:
               weight: 100
 
       containers:
-        - image: faasm/worker:0.7.6
+        - image: faasm/worker:0.7.7
           env:
             - name: REDIS_STATE_HOST
               value: "redis-state"
@@ -52,4 +52,6 @@ spec:
               value: "700000"
             - name: ENDPOINT_INTERFACE
               value: "eth0"
+            - name: NO_TOPOLOGY_HINTS
+              value: "on"
 
