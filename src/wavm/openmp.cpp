@@ -855,7 +855,7 @@ void startReduceCritical(faabric::Message* msg,
 
         auto snap = reg.getSnapshot(snapKey);
         for (int i = 0; i < numReduceVars; i++) {
-            int sharedVarIdx = level->nSharedVarOffsets - 1 - numReduceVars + i;
+            int sharedVarIdx = level->nSharedVarOffsets - numReduceVars + i;
             uint32_t globalReduceVar = level->sharedVarOffsets[sharedVarIdx];
 
             SPDLOG_TRACE("Adding merge region for reduce var {} at {} ({})",
