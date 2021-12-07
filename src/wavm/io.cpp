@@ -244,24 +244,22 @@ I32 s__getdents64(I32 fd, I32 wasmDirentBuf, I32 wasmDirentBufLen)
     U32 wasmBytesRead = 0;
     int wasmDirentCount = 0;
 
+    std::vector<std::byte> nativeBuf(nativeBufLen, std::byte(0));
     // Here we will iterate getting native dirents until we've filled up the
     // wasm buffer supplied
     for (wasmBytesRead = 0;
          wasmBytesRead < wasmDirentBufLen - (2 * wasmDirentSize);) {
         // Make the native syscall. This will read in a list of dirent structs
         // to the buffer We need to read at most two native dirents.
-        auto nativeBuf = new char[nativeBufLen];
         long nativeBytesRead =
-          syscall(SYS_getdents64, fd, nativeBuf, nativeBufLen);
+          syscall(SYS_getdents64, fd, nativeBuf.data(), nativeBuf.size());
 
         if (nativeBytesRead < 0) {
             // Error reading native dirents
             int newErrno = errno;
-            delete[] nativeBuf;
             return -newErrno;
         } else if (nativeBytesRead == 0) {
             // End of directory
-            delete[] nativeBuf;
             return wasmBytesRead;
         } else {
             // Now we iterate through the dirents we just got back from the host
@@ -275,7 +273,8 @@ I32 s__getdents64(I32 fd, I32 wasmDirentBuf, I32 wasmDirentBufLen)
                 }
 
                 // Get a pointer to the native dirent
-                auto d = (struct dirent64*)(nativeBuf + nativeOffset);
+                auto d =
+                  reinterpret_cast<::dirent64*>(&nativeBuf.at(nativeOffset));
 
                 // Copy the relevant info into the wasm dirent.
                 struct wasm_dirent64 dWasm
@@ -300,8 +299,6 @@ I32 s__getdents64(I32 fd, I32 wasmDirentBuf, I32 wasmDirentBufLen)
                 wasmDirentCount++;
             }
         }
-
-        delete[] nativeBuf;
     }
 
     return wasmBytesRead;

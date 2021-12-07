@@ -197,26 +197,22 @@ static int32_t wasi_fd_read(wasm_exec_env_t exec_env,
     storage::FileDescriptor fileDesc = fileSystem.getFileDescriptor(fd);
 
     // Translate app iovecs to native ones
-    auto ioVecBuffNative = new ::iovec[ioVecCountWasm];
+    std::vector<::iovec> ioVecBuffNative(ioVecCountWasm, (::iovec){});
     for (int i = 0; i < ioVecCountWasm; i++) {
         module->validateWasmOffset(ioVecBuffWasm[i].buffOffset,
                                    sizeof(char) * ioVecBuffWasm[i].buffLen);
 
-        ::iovec ioVecNative{
+        ioVecBuffNative[i] = {
             .iov_base =
               module->wasmPointerToNative(ioVecBuffWasm[i].buffOffset),
             .iov_len = ioVecBuffWasm[i].buffLen,
         };
-
-        ioVecBuffNative[i] = ioVecNative;
     }
 
     // Read from fd
     module->validateNativeAddress(bytesRead, sizeof(int32_t));
     *bytesRead =
-      ::readv(fileDesc.getLinuxFd(), ioVecBuffNative, ioVecCountWasm);
-
-    delete[] ioVecBuffNative;
+      ::readv(fileDesc.getLinuxFd(), ioVecBuffNative.data(), ioVecCountWasm);
 
     return __WASI_ESUCCESS;
 }
@@ -267,24 +263,22 @@ static int32_t wasi_fd_write(wasm_exec_env_t exec_env,
     // Translate the app iovecs into native iovecs
     module->validateNativeAddress(reinterpret_cast<void*>(ioVecBuffWasm),
                                   sizeof(iovec_app_t) * ioVecCountWasm);
-    auto ioVecBuffNative = new ::iovec[ioVecCountWasm];
+    std::vector<::iovec> ioVecBuffNative(ioVecCountWasm, (::iovec){});
     for (int i = 0; i < ioVecCountWasm; i++) {
         module->validateWasmOffset(ioVecBuffWasm[i].buffOffset,
                                    sizeof(char) * ioVecBuffWasm[i].buffLen);
 
-        ::iovec ioVecNative{
+        ioVecBuffNative[i] = {
             .iov_base =
               module->wasmPointerToNative(ioVecBuffWasm[i].buffOffset),
             .iov_len = ioVecBuffWasm[i].buffLen,
         };
-
-        ioVecBuffNative[i] = ioVecNative;
     }
 
     // Write to fd
     module->validateNativeAddress(bytesWritten, sizeof(int32_t));
     *bytesWritten =
-      ::writev(fileDesc.getLinuxFd(), ioVecBuffNative, ioVecCountWasm);
+      ::writev(fileDesc.getLinuxFd(), ioVecBuffNative.data(), ioVecCountWasm);
     if (*bytesWritten < 0) {
         SPDLOG_ERROR(
           "writev failed on fd {}: {}", fileDesc.getLinuxFd(), strerror(errno));
@@ -294,10 +288,8 @@ static int32_t wasi_fd_write(wasm_exec_env_t exec_env,
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     bool isStd = fd <= 2;
     if (isStd && conf.captureStdout == "on") {
-        module->captureStdout(ioVecBuffNative, ioVecCountWasm);
+        module->captureStdout(ioVecBuffNative.data(), ioVecCountWasm);
     }
-
-    delete[] ioVecBuffNative;
 
     return __WASI_ESUCCESS;
 }

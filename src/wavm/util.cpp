@@ -97,8 +97,8 @@ void writeNativeStatToWasmStat(struct ::stat64* nativeStatPtr, I32 wasmStatPtr)
     wasmHostPtr->st_ino = nativeStatPtr->st_ino;
 }
 
-std::vector<iovec> wasmIovecsToNativeIovecs(I32 wasmIovecPtr,
-                                            I32 wasmIovecCount)
+std::vector<::iovec> wasmIovecsToNativeIovecs(I32 wasmIovecPtr,
+                                              I32 wasmIovecCount)
 {
     // Get array of wasm iovecs from memory
     Runtime::Memory* memoryPtr = getExecutingWAVMModule()->defaultMemory;
@@ -106,7 +106,7 @@ std::vector<iovec> wasmIovecsToNativeIovecs(I32 wasmIovecPtr,
       memoryPtr, wasmIovecPtr, wasmIovecCount);
 
     // Convert to native iovecs
-    std::vector<iovec> nativeIovecs(wasmIovecCount, (iovec){});
+    std::vector<::iovec> nativeIovecs(wasmIovecCount, (::iovec){});
     for (int i = 0; i < wasmIovecCount; i++) {
 
         wasm_iovec wasmIovec = wasmIovecs[i];
@@ -121,8 +121,8 @@ std::vector<iovec> wasmIovecsToNativeIovecs(I32 wasmIovecPtr,
     return nativeIovecs;
 }
 
-std::vector<iovec> wasiIovecsToNativeIovecs(I32 wasiIovecPtr,
-                                            I32 wasiIovecCount)
+std::vector<::iovec> wasiIovecsToNativeIovecs(I32 wasiIovecPtr,
+                                              I32 wasiIovecCount)
 {
     // Get array of wasi iovecs from memory
     Runtime::Memory* memoryPtr = getExecutingWAVMModule()->defaultMemory;
@@ -131,7 +131,7 @@ std::vector<iovec> wasiIovecsToNativeIovecs(I32 wasiIovecPtr,
       memoryPtr, wasiIovecPtr, wasiIovecCount);
 
     // Convert to native iovecs
-    std::vector<iovec> nativeIovecs(wasiIovecCount, (iovec){});
+    std::vector<::iovec> nativeIovecs(wasiIovecCount, (::iovec){});
     for (int i = 0; i < wasiIovecCount; i++) {
         __wasi_ciovec_t wasiIovec = wasmIovecs[i];
         U8* outputPtr = &Runtime::memoryRef<U8>(memoryPtr, wasiIovec.buf);
