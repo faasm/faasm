@@ -138,6 +138,7 @@ WAVMWasmModule::WAVMWasmModule(const WAVMWasmModule& other)
 void WAVMWasmModule::clone(const WAVMWasmModule& other,
                            const std::string& snapshotKey)
 {
+    faabric::util::FullLock lock(resetMx);
     // If bound, we want to reclaim all the memory we've created _before_
     // cloning from the zygote otherwise it's lost forever
     if (_isBound) {
@@ -826,6 +827,7 @@ uint32_t WAVMWasmModule::addFunctionToTable(Runtime::Object* exportedFunc) const
 
 int32_t WAVMWasmModule::executeFunction(faabric::Message& msg)
 {
+    faabric::util::SharedLock lock(resetMx);
     if (!_isBound) {
         throw std::runtime_error("Module must be bound before executing");
     }
@@ -914,6 +916,7 @@ int32_t WAVMWasmModule::executePthread(int threadPoolIdx,
                                        uint32_t stackTop,
                                        faabric::Message& msg)
 {
+    faabric::util::SharedLock lock(resetMx);
     std::string funcStr = faabric::util::funcToString(msg, false);
 
     SPDLOG_DEBUG(
@@ -943,6 +946,7 @@ int32_t WAVMWasmModule::executeOMPThread(int threadPoolIdx,
                                          uint32_t stackTop,
                                          faabric::Message& msg)
 {
+    faabric::util::SharedLock lock(resetMx);
     Runtime::Function* funcInstance = getFunctionFromPtr(msg.funcptr());
 
     std::string funcStr = faabric::util::funcToString(msg, false);

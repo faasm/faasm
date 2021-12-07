@@ -171,6 +171,7 @@ class WAVMWasmModule final
                            faabric::Message& msg) override;
 
   private:
+    std::shared_mutex resetMx;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> envModule;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> wasiModule;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> moduleInstance;
