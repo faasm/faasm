@@ -79,13 +79,15 @@ void WAVMWasmModule::reset(faabric::Message& msg,
     if (!_isBound) {
         return;
     }
+    faabric::util::FullLock moduleLock(resetMx);
 
     assert(msg.user() == boundUser);
     assert(msg.function() == boundFunction);
 
     std::string funcStr = faabric::util::funcToString(msg, true);
     SPDLOG_DEBUG("Resetting after {} (snap key {})", funcStr, snapshotKey);
-    auto [cachedModule, lock] = wasm::getWAVMModuleCache().getCachedModule(msg);
+    auto [cachedModule, cacheLock] =
+      wasm::getWAVMModuleCache().getCachedModule(msg);
 
     clone(cachedModule, snapshotKey);
 }
@@ -138,7 +140,6 @@ WAVMWasmModule::WAVMWasmModule(const WAVMWasmModule& other)
 void WAVMWasmModule::clone(const WAVMWasmModule& other,
                            const std::string& snapshotKey)
 {
-    faabric::util::FullLock lock(resetMx);
     // If bound, we want to reclaim all the memory we've created _before_
     // cloning from the zygote otherwise it's lost forever
     if (_isBound) {
