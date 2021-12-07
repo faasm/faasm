@@ -296,11 +296,12 @@ TEST_CASE("Test stat and read shared file", "[storage]")
 void checkWasiDirentInBuffer(uint8_t* buffer, DirEnt e)
 {
     size_t wasiDirentSize = sizeof(__wasi_dirent_t);
-    auto wasiDirent = reinterpret_cast<__wasi_dirent_t*>(buffer);
+    __wasi_dirent_t wasiDirent;
+    ::memcpy(&wasiDirent, buffer, wasiDirentSize);
     auto direntPathPtr = reinterpret_cast<const char*>(buffer + wasiDirentSize);
     std::string direntPath(direntPathPtr, direntPathPtr + e.path.size());
 
-    REQUIRE(wasiDirent->d_namlen == e.path.size());
+    REQUIRE(wasiDirent.d_namlen == e.path.size());
     REQUIRE(direntPath == e.path);
 }
 
