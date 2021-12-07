@@ -579,8 +579,8 @@ void WasmModule::setUpOpenMPMergeRegions(
     }
 
     // Create ordered list of offsets
-    std::vector<uint32_t> sortedOffsets(ompLevel->sharedVarOffsets,
-                                        ompLevel->sharedVarOffsets +
+    std::vector<uint32_t> sortedOffsets(ompLevel->sharedVarOffsets.get(),
+                                        ompLevel->sharedVarOffsets.get() +
                                           ompLevel->nSharedVarOffsets);
 
     std::sort(sortedOffsets.begin(), sortedOffsets.end());

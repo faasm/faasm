@@ -38,7 +38,8 @@ class Level
     int32_t globalTidOffset = 0;
 
     uint32_t nSharedVarOffsets = 0;
-    uint32_t* sharedVarOffsets;
+    std::unique_ptr<uint32_t[]> sharedVarOffsets;
+    static_assert(sizeof(sharedVarOffsets) == sizeof(uint32_t*));
 
     static std::shared_ptr<Level> deserialise(
       const std::vector<uint8_t>& bytes);
