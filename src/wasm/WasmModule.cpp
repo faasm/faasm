@@ -267,9 +267,8 @@ std::string WasmModule::getCapturedStdout()
     lseek(memFd, 0, SEEK_SET);
 
     // Read in and return
-    char* buf = new char[stdoutSize];
-    read(memFd, buf, stdoutSize);
-    std::string stdoutString(buf, stdoutSize);
+    std::string stdoutString(stdoutSize, '\0');
+    read(memFd, stdoutString.data(), stdoutSize);
     SPDLOG_DEBUG("Read stdout length {}:\n{}", stdoutSize, stdoutString);
 
     return stdoutString;
