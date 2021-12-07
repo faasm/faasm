@@ -97,7 +97,8 @@ void writeNativeStatToWasmStat(struct ::stat64* nativeStatPtr, I32 wasmStatPtr)
     wasmHostPtr->st_ino = nativeStatPtr->st_ino;
 }
 
-iovec* wasmIovecsToNativeIovecs(I32 wasmIovecPtr, I32 wasmIovecCount)
+std::vector<iovec> wasmIovecsToNativeIovecs(I32 wasmIovecPtr,
+                                            I32 wasmIovecCount)
 {
     // Get array of wasm iovecs from memory
     Runtime::Memory* memoryPtr = getExecutingWAVMModule()->defaultMemory;
@@ -105,23 +106,23 @@ iovec* wasmIovecsToNativeIovecs(I32 wasmIovecPtr, I32 wasmIovecCount)
       memoryPtr, wasmIovecPtr, wasmIovecCount);
 
     // Convert to native iovecs
-    auto nativeIovecs = new iovec[wasmIovecCount];
+    std::vector<iovec> nativeIovecs(wasmIovecCount, (iovec){});
     for (int i = 0; i < wasmIovecCount; i++) {
 
         wasm_iovec wasmIovec = wasmIovecs[i];
         U8* outputPtr = &Runtime::memoryRef<U8>(memoryPtr, wasmIovec.iov_base);
-        iovec nativeIovec{
+
+        nativeIovecs[i] = {
             .iov_base = outputPtr,
             .iov_len = wasmIovec.iov_len,
         };
-
-        nativeIovecs[i] = nativeIovec;
     }
 
     return nativeIovecs;
 }
 
-iovec* wasiIovecsToNativeIovecs(I32 wasiIovecPtr, I32 wasiIovecCount)
+std::vector<iovec> wasiIovecsToNativeIovecs(I32 wasiIovecPtr,
+                                            I32 wasiIovecCount)
 {
     // Get array of wasi iovecs from memory
     Runtime::Memory* memoryPtr = getExecutingWAVMModule()->defaultMemory;
@@ -130,17 +131,15 @@ iovec* wasiIovecsToNativeIovecs(I32 wasiIovecPtr, I32 wasiIovecCount)
       memoryPtr, wasiIovecPtr, wasiIovecCount);
 
     // Convert to native iovecs
-    auto nativeIovecs = new iovec[wasiIovecCount];
+    std::vector<iovec> nativeIovecs(wasiIovecCount, (iovec){});
     for (int i = 0; i < wasiIovecCount; i++) {
         __wasi_ciovec_t wasiIovec = wasmIovecs[i];
-
         U8* outputPtr = &Runtime::memoryRef<U8>(memoryPtr, wasiIovec.buf);
-        iovec nativeIovec{
+
+        nativeIovecs[i] = {
             .iov_base = outputPtr,
             .iov_len = wasiIovec.buf_len,
         };
-
-        nativeIovecs[i] = nativeIovec;
     }
 
     return nativeIovecs;

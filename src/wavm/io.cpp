@@ -341,10 +341,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
 
     storage::FileDescriptor& fileDesc = fileSystem.getFileDescriptor(fd);
 
-    ::iovec* nativeIovecs = wasiIovecsToNativeIovecs(iovecsPtr, iovecCount);
+    auto nativeIovecs = wasiIovecsToNativeIovecs(iovecsPtr, iovecCount);
 
     ssize_t bytesWritten =
-      ::writev(fileDesc.getLinuxFd(), nativeIovecs, iovecCount);
+      ::writev(fileDesc.getLinuxFd(), nativeIovecs.data(), iovecCount);
 
     if (bytesWritten < 0) {
         SPDLOG_ERROR(
@@ -354,13 +354,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
     // Catpure stdout if necessary, otherwise write as normal
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     if (isStd && conf.captureStdout == "on") {
-        getExecutingWAVMModule()->captureStdout(nativeIovecs, iovecCount);
+        getExecutingWAVMModule()->captureStdout(nativeIovecs.data(),
+                                                iovecCount);
     }
 
     Runtime::memoryRef<int32_t>(getExecutingWAVMModule()->defaultMemory,
                                 resBytesWrittenPtr) = bytesWritten;
-
-    delete[] nativeIovecs;
 
     if (!isStd) {
         // This function is used for printing, and we're only interested in
@@ -392,9 +391,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
       "S - fd_read - {} {} {} ({})", fd, iovecsPtr, iovecCount, path);
 
     storage::FileDescriptor& fileDesc = fileSystem.getFileDescriptor(fd);
-    iovec* nativeIovecs = wasiIovecsToNativeIovecs(iovecsPtr, iovecCount);
+    auto nativeIovecs = wasiIovecsToNativeIovecs(iovecsPtr, iovecCount);
 
-    int bytesRead = readv(fileDesc.getLinuxFd(), nativeIovecs, iovecCount);
+    int bytesRead =
+      readv(fileDesc.getLinuxFd(), nativeIovecs.data(), iovecCount);
     Runtime::memoryRef<int>(getExecutingWAVMModule()->defaultMemory,
                             resBytesRead) = (int)bytesRead;
 
