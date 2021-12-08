@@ -14,3 +14,9 @@ target_link_libraries(test_utils PUBLIC
     Catch2::Catch2
     faabric::test_utils
 )
+
+# Catch2 signal handler interferes with faasm and sanitiser signal handlers
+# Disabling it makes logs easier to understand
+target_compile_definitions(test_utils PUBLIC
+    CATCH_CONFIG_NO_POSIX_SIGNALS=1
+)
