@@ -7,7 +7,7 @@
 namespace tests {
 TEST_CASE_METHOD(DistTestsFixture,
                  "Test OpenMP across hosts",
-                 "[threads][openmp]")
+                 "[threads][openmp][.]")
 {
     conf.overrideCpuCount = 6;
 
