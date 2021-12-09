@@ -16,6 +16,7 @@ WAVMModuleCache& getWAVMModuleCache()
 
 size_t WAVMModuleCache::getTotalCachedModuleCount()
 {
+    faabric::util::SharedLock lock(mx);
     return cachedModuleMap.size();
 }
 
@@ -26,12 +27,15 @@ int WAVMModuleCache::getCachedModuleCount(const std::string& key)
     return count;
 }
 
-wasm::WAVMWasmModule& WAVMModuleCache::getCachedModule(faabric::Message& msg)
+std::pair<wasm::WAVMWasmModule&, faabric::util::SharedLock>
+WAVMModuleCache::getCachedModule(faabric::Message& msg)
 {
     std::string key = faabric::util::funcToString(msg, false);
 
     // If there's no cached module, we need to create it
+    faabric::util::SharedLock readLock(mx);
     if (cachedModuleMap.find(key) == cachedModuleMap.end()) {
+        readLock.unlock();
         faabric::util::FullLock lock(mx);
 
         // Re-check condition
@@ -49,12 +53,14 @@ wasm::WAVMWasmModule& WAVMModuleCache::getCachedModule(faabric::Message& msg)
         // Note that we need a shared lock here to avoid a race condition on
         // initialising the module
         faabric::util::SharedLock lock(mx);
-        return cachedModuleMap[key];
+        return std::pair<wasm::WAVMWasmModule&, faabric::util::SharedLock>(
+          cachedModuleMap[key], std::move(lock));
     }
 }
 
 void WAVMModuleCache::clear()
 {
+    faabric::util::FullLock lock(mx);
     cachedModuleMap.clear();
 }
 }

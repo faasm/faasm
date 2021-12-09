@@ -12,7 +12,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     container:
-      image: faasm/cli:0.7.5
+      image: faasm/cli:0.7.6
     defaults:
       run:
         working-directory: /usr/local/code/faasm
@@ -92,9 +92,8 @@ jobs:
           name: py-funcs
           path: /usr/local/faasm/shared
 
-  build:
+  conan-cache:
     if: github.event.pull_request.draft == false
-    needs: [cpp-funcs, py-funcs]
     runs-on: ubuntu-20.04
     env:
       CGROUP_MODE: off
@@ -104,17 +103,81 @@ jobs:
       REDIS_QUEUE_HOST: redis
       REDIS_STATE_HOST: redis
     container:
-      image: faasm/cli:0.7.5
+      image: faasm/cli:0.7.6
+    defaults:
+      run:
+        working-directory: /usr/local/code/faasm
+    steps:
+      - name: "Fetch ref"
+        run: git fetch origin ${GITHUB_REF}:ci-branch
+      - name: "Check out branch"
+        run: git checkout --force ci-branch
+      - name: "Update faabric submodule"
+        run: git submodule update faabric
+      # --- Host information ---
+      - name: "Expand stack space"
+        run: ulimit -s 16384
+      - name: "Print rlimits"
+        run: ulimit -all
+      - name: "CPU info"
+        run: cat /proc/cpuinfo
+      - name: "Get CPU model name"
+        run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
+      - name: "Print CPU model"
+        run: echo "${{ env.CPU_MODEL}}"
+      # --- Cache based on Conan version and ExternalProjects cmake source
+      - name: Get Conan version
+        id: get-conan-version
+        run: |
+          echo "::set-output name=conan-version::$(conan --version | tr -d '[:alpha:] ')"
+        shell: bash
+      - name: Hash ExternalProjects
+        id: hash-external
+        run: |
+          echo "::set-output name=hash-external::$(sha256sum cmake/ExternalProjects.cmake | cut '-d ' -f 1)-$(sha256sum faabric/cmake/ExternalProjects.cmake | cut '-d ' -f 1)"
+        shell: bash
+      - uses: actions/cache@v2
+        with:
+          path: '~/.conan'
+          key: ${{ secrets.CACHE_VERSION }}-${{ runner.os }}-${{ steps.get-conan-version.outputs.conan-version }}-${{ steps.hash-external.outputs.hash-external }}
+          restore-keys: |
+            ${{ secrets.CACHE_VERSION }}-${{ runner.os }}-${{ steps.get-conan-version.outputs.conan-version }}-
+            ${{ secrets.CACHE_VERSION }}-${{ runner.os }}-
+      # --- Code build (Debug required for tests) ---
+      - name: "Build dev dependencies"
+        run: inv -r faasmcli/faasmcli dev.cmake --build Debug
+
+  build:
+    if: github.event.pull_request.draft == false
+    needs: [cpp-funcs, py-funcs, conan-cache]
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitiser: [None, Address, Thread, Undefined, Leak]
+    env:
+      CGROUP_MODE: off
+      HOST_TYPE: ci
+      LOG_LEVEL: info
+      NETNS_MODE: off
+      REDIS_QUEUE_HOST: redis
+      REDIS_STATE_HOST: redis
+      ASAN_OPTIONS: "halt_on_error=1"
+      LSAN_OPTIONS: "suppressions=/usr/local/code/faasm/leak-sanitizer-ignorelist.txt"
+      TSAN_OPTIONS: "halt_on_error=1:suppressions=/usr/local/code/faasm/thread-sanitizer-ignorelist.txt:history_size=7:second_deadlock_stack=1"
+      UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1"
+    container:
+      image: faasm/cli:0.7.6
     defaults:
       run:
         working-directory: /usr/local/code/faasm
     services:
       redis:
-        image: faasm/redis:0.7.5
+        image: faasm/redis:0.7.6
         ports:
           - 6379:6379
       minio:
-        image: faasm/minio:0.7.5
+        image: faasm/minio:0.7.6
         env:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
@@ -191,9 +254,13 @@ jobs:
       # 15/10/21 Temporary step to refresh WAMR cache
       - name: "Clear out WAMR codegen files"
         run: find /usr/local/faasm/object | grep aot | xargs rm -f
-      # --- Code build (Debug required for tests) ---
-      - name: "Build dev tools"
-        run: inv -r faasmcli/faasmcli dev.tools --build Debug
+      # --- Codegen build without sanitisers
+      - name: "Build codegen - CMake"
+        run: inv -r faasmcli/faasmcli dev.cmake --build Debug --sanitiser None
+      - name: "Build codegen - Codegen Func"
+        run: inv -r faasmcli/faasmcli dev.cc codegen_func
+      - name: "Build codegen - Codegen Shared Obj"
+        run: inv -r faasmcli/faasmcli dev.cc codegen_shared_obj
       # --- Environment set-up ---
       - name: "Run codegen"
         run: inv -r faasmcli/faasmcli codegen.local
@@ -201,6 +268,9 @@ jobs:
         run: inv -r faasmcli/faasmcli python.codegen
       - name: "Clear existing pyc files"
         run: inv -r faasmcli/faasmcli python.clear-runtime-pyc
+      # --- Code build (Debug required for tests) ---
+      - name: "Build dev tools"
+        run: inv -r faasmcli/faasmcli dev.tools --build Debug --sanitiser ${{ matrix.sanitiser }}
       # --- Test run ---
       - name: "Run the tests"
         run: /build/faasm/bin/tests
@@ -208,6 +278,7 @@ jobs:
   dist-tests:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    needs: [conan-cache]
     steps:
       # --- Code update ---
       - name: "Check out code"

@@ -3,6 +3,7 @@ faasm_private_lib(runner_lib
     MicrobenchRunner.cpp
 )
 target_link_libraries(runner_lib PUBLIC
+    faasm::common_deps
     faasm::faaslet_lib
     faasm::wavmmodule
     faasm::wamrmodule

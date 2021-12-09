@@ -29,6 +29,7 @@ namespace wasm {
 // ------------------------------------------------
 // SCHEDULING
 // ------------------------------------------------
+std::shared_mutex cachedSchedulingMutex;
 std::unordered_map<std::string, int> cachedGroupIds;
 std::unordered_map<std::string, std::vector<std::string>> cachedDecisionHosts;
 
@@ -481,7 +482,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                            std::to_string(nextLevel->numThreads) + "_" +
                            std::to_string(nextLevel->depth);
 
+    faabric::util::SharedLock lock(cachedSchedulingMutex);
     if (cachedDecisionHosts.find(cacheKey) == cachedDecisionHosts.end()) {
+        lock.unlock();
         // Set up a new group
         int groupId = faabric::util::generateGid();
         for (auto& m : *req->mutable_messages()) {
@@ -500,12 +503,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
           groupId,
           faabric::util::vectorToString<std::string>(decision.hosts));
 
+        faabric::util::FullLock fullLock(cachedSchedulingMutex);
         cachedGroupIds[cacheKey] = groupId;
         cachedDecisionHosts[cacheKey] = decision.hosts;
     } else {
         // Get the cached group ID and hosts
         int groupId = cachedGroupIds[cacheKey];
         std::vector<std::string> hosts = cachedDecisionHosts[cacheKey];
+        lock.unlock();
 
         // Sanity check we've got something the right size
         if (hosts.size() != req->messages().size()) {
@@ -848,9 +853,9 @@ void startReduceCritical(faabric::Message* msg,
         faabric::snapshot::SnapshotRegistry& reg =
           faabric::snapshot::getSnapshotRegistry();
 
-        faabric::util::SnapshotData& snap = reg.getSnapshot(snapKey);
+        auto snap = reg.getSnapshot(snapKey);
         for (int i = 0; i < numReduceVars; i++) {
-            int sharedVarIdx = level->nSharedVarOffsets - 1 - numReduceVars + i;
+            int sharedVarIdx = level->nSharedVarOffsets - numReduceVars + i;
             uint32_t globalReduceVar = level->sharedVarOffsets[sharedVarIdx];
 
             SPDLOG_TRACE("Adding merge region for reduce var {} at {} ({})",
@@ -859,11 +864,11 @@ void startReduceCritical(faabric::Message* msg,
                          sharedVarIdx);
 
             // Note we allow overwrites here
-            snap.addMergeRegion(globalReduceVar,
-                                sizeof(int32_t),
-                                faabric::util::SnapshotDataType::Int,
-                                faabric::util::SnapshotMergeOperation::Sum,
-                                true);
+            snap->addMergeRegion(globalReduceVar,
+                                 sizeof(int32_t),
+                                 faabric::util::SnapshotDataType::Int,
+                                 faabric::util::SnapshotMergeOperation::Sum,
+                                 true);
         }
     }
 }

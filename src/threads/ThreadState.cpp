@@ -69,16 +69,16 @@ Level::Level(int numThreadsIn)
 
 std::vector<uint32_t> Level::getSharedVarOffsets()
 {
-    return std::vector<uint32_t>(sharedVarOffsets,
-                                 sharedVarOffsets + nSharedVarOffsets);
+    return std::vector<uint32_t>(sharedVarOffsets.get(),
+                                 sharedVarOffsets.get() + nSharedVarOffsets);
 }
 
 void Level::setSharedVarOffsets(uint32_t* ptr, int nVars)
 {
     // Record the offsets themselves
-    sharedVarOffsets = new uint32_t[nVars];
+    sharedVarOffsets = std::make_unique<uint32_t[]>(nVars);
     nSharedVarOffsets = nVars;
-    std::memcpy(sharedVarOffsets, ptr, nVars * sizeof(uint32_t));
+    std::memcpy(sharedVarOffsets.get(), ptr, nVars * sizeof(uint32_t));
 }
 
 void Level::fromParentLevel(const std::shared_ptr<Level>& parent)
@@ -137,7 +137,7 @@ std::vector<uint8_t> Level::serialise()
     // Copy the shared offsets
     if (nSharedVarOffsets > 0) {
         std::memcpy(bytes.data() + sizeof(Level),
-                    sharedVarOffsets,
+                    sharedVarOffsets.get(),
                     nSharedVarOffsets * sizeof(uint32_t));
     }
 
@@ -153,14 +153,17 @@ std::shared_ptr<Level> Level::deserialise(const std::vector<uint8_t>& bytes)
     std::shared_ptr<Level> result = std::make_shared<Level>(0);
     std::memcpy(result.get(), bytes.data(), sizeof(Level));
 
+    // Make sure a valid (null) pointer is present
+    new (&result->sharedVarOffsets) std::unique_ptr<uint32_t[]>(nullptr);
+
     // Copy in shared offsets if necessary
     if (result->nSharedVarOffsets > 0) {
-        result->sharedVarOffsets = new uint32_t[result->nSharedVarOffsets];
-        std::memcpy(result->sharedVarOffsets,
+        // Avoid destructing garbage pointer
+        result->sharedVarOffsets =
+          std::make_unique<uint32_t[]>(result->nSharedVarOffsets);
+        std::memcpy(result->sharedVarOffsets.get(),
                     bytes.data() + sizeof(Level),
                     result->nSharedVarOffsets * sizeof(uint32_t));
-    } else {
-        result->sharedVarOffsets = nullptr;
     }
 
     return result;

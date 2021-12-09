@@ -5,6 +5,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <stdexcept>
+#include <type_traits>
 
 #include <aot_export.h>
 #include <wasm_export.h>
@@ -21,15 +22,22 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
 
     // Load the module
     char errorBuffer[128];
-    wasm_module_t wasmModule = wasm_runtime_load(
-      wasmBytes.data(), wasmBytes.size(), errorBuffer, sizeof(errorBuffer));
+    // Sadly, non-pointer types are not portably provided by the WASM headers
+    using wasm_module = std::pointer_traits<wasm_module_t>::element_type;
+    std::unique_ptr<wasm_module, decltype(&wasm_runtime_unload)> wasmModule(
+      wasm_runtime_load(
+        wasmBytes.data(), wasmBytes.size(), errorBuffer, sizeof(errorBuffer)),
+      &wasm_runtime_unload);
 
     if (wasmModule == nullptr) {
         SPDLOG_ERROR("Failed to import module: {}", errorBuffer);
         throw std::runtime_error("Failed to load module");
     }
 
-    aot_comp_data_t compileData = aot_create_comp_data(wasmModule);
+    using aot_comp_data = std::pointer_traits<aot_comp_data_t>::element_type;
+    std::unique_ptr<aot_comp_data, decltype(&aot_destroy_comp_data)>
+      compileData(aot_create_comp_data(wasmModule.get()),
+                  &aot_destroy_comp_data);
     if (compileData == nullptr) {
         SPDLOG_ERROR("Failed to generat AOT data: {}", aot_get_last_error());
         throw std::runtime_error("Failed to generate AOT data");
@@ -46,15 +54,18 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
         option.is_sgx_platform = true;
     }
 
-    aot_comp_context_t compileContext =
-      aot_create_comp_context(compileData, &option);
+    using aot_comp_context =
+      std::pointer_traits<aot_comp_context_t>::element_type;
+    std::unique_ptr<aot_comp_context, decltype(&aot_destroy_comp_context)>
+      compileContext(aot_create_comp_context(compileData.get(), &option),
+                     &aot_destroy_comp_context);
 
     if (compileContext == nullptr) {
         SPDLOG_ERROR("Failed to generat AOT context: {}", aot_get_last_error());
         throw std::runtime_error("Failed to generate AOT context");
     }
 
-    bool compileSuccess = aot_compile_wasm(compileContext);
+    bool compileSuccess = aot_compile_wasm(compileContext.get());
     if (!compileSuccess) {
         SPDLOG_ERROR("Failed to run codegen on wasm: {}", aot_get_last_error());
         throw std::runtime_error("Failed to run codegen");
@@ -65,7 +76,7 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
     // write to a temp file, then load the bytes again
     boost::filesystem::path temp = boost::filesystem::unique_path();
     bool aotSuccess =
-      aot_emit_aot_file(compileContext, compileData, temp.c_str());
+      aot_emit_aot_file(compileContext.get(), compileData.get(), temp.c_str());
     if (!aotSuccess) {
         SPDLOG_ERROR("Failed to write AOT file to {}", temp.string());
         throw std::runtime_error("Failed to emit AOT file");

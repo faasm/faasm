@@ -17,7 +17,7 @@ using namespace WAVM;
 #define FFI_TYPE_CASE(nativeType)                                              \
     {                                                                          \
         nativeType argValue =                                                  \
-          Runtime::memoryRef<nativeType>(module->defaultMemory, argPtr);       \
+          unalignedWavmRead<nativeType>(module->defaultMemory, argPtr);        \
         wavmArguments.emplace_back(argValue);                                  \
         break;                                                                 \
     }
@@ -171,35 +171,29 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     const IR::FunctionType funcType = Runtime::getFunctionType(func);
 
     // Extract the libffi structs
-    libffi_cif* cif =
-      &Runtime::memoryRef<libffi_cif>(module->defaultMemory, cifPtr);
-
-    uint32_t* argTypesPtrs = Runtime::memoryArrayPtr<uint32_t>(
-      module->defaultMemory, cif->argTypesPtrPtr, cif->nargs);
-
-    uint32_t* argsPtrs = Runtime::memoryArrayPtr<uint32_t>(
-      module->defaultMemory, argsPtrPtr, cif->nargs);
+    auto cif = unalignedWavmRead<libffi_cif>(module->defaultMemory, cifPtr);
 
     // Check types agree
     auto expectedNArgs = (uint32_t)funcType.params().size();
-    if (expectedNArgs != cif->nargs) {
+    if (expectedNArgs != cif.nargs) {
         SPDLOG_ERROR("Unexpected function param length {} != {}",
                      expectedNArgs,
-                     cif->nargs);
+                     cif.nargs);
 
         throw std::runtime_error("Mismatched function param lengths");
     }
 
     // Create the array of arguments
     std::vector<IR::UntaggedValue> wavmArguments;
-    for (int i = 0; i < cif->nargs; i++) {
-        uint32_t argTypePtr = argTypesPtrs[i];
-        uint32_t argPtr = argsPtrs[i];
+    for (int i = 0; i < cif.nargs; i++) {
+        uint32_t argTypePtr = unalignedWavmRead<uint32_t>(
+          module->defaultMemory, cif.argTypesPtrPtr + sizeof(uint32_t) * i);
+        uint32_t argPtr = unalignedWavmRead<uint32_t>(
+          module->defaultMemory, argsPtrPtr + sizeof(uint32_t) * i);
+        libffi_type argType =
+          unalignedWavmRead<libffi_type>(module->defaultMemory, argTypePtr);
 
-        libffi_type* argType =
-          &Runtime::memoryRef<libffi_type>(module->defaultMemory, argTypePtr);
-
-        switch (argType->type) {
+        switch (argType.type) {
             case (libffi_type_value::UINT8):
                 FFI_TYPE_CASE(uint8_t)
             case (libffi_type_value::SINT8):
@@ -220,28 +214,28 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
             case (libffi_type_value::SINT64):
                 FFI_TYPE_CASE(int64_t)
             default: {
-                SPDLOG_ERROR("FFI type not yet implemented: {}", argType->type);
+                SPDLOG_ERROR("FFI type not yet implemented: {}", argType.type);
                 throw std::runtime_error("FFI type not yet implemented");
             }
         }
 
-        SPDLOG_DEBUG("ffi arg: bytes={} type={}", argType->size, argType->type);
+        SPDLOG_DEBUG("ffi arg: bytes={} type={}", argType.size, argType.type);
     }
 
-    libffi_type* returnType =
-      &Runtime::memoryRef<libffi_type>(module->defaultMemory, cif->retTypePtr);
+    auto returnType =
+      unalignedWavmRead<libffi_type>(module->defaultMemory, cif.retTypePtr);
     UNUSED(returnType);
     SPDLOG_DEBUG("ffi_call: fn={}, nargs={}, retType={}",
                  fnPtr,
-                 cif->nargs,
-                 returnType->type);
+                 cif.nargs,
+                 returnType.type);
 
     // Execute the function
     IR::UntaggedValue result;
     module->executeWasmFunction(func, funcType, wavmArguments, result);
 
     // Set the return value
-    Runtime::memoryRef<I32>(module->defaultMemory, retPtr) = result.i32;
+    unalignedWavmWrite<I32>(result.i32, module->defaultMemory, retPtr);
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,

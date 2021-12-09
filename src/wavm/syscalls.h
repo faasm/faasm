@@ -235,9 +235,11 @@ sockaddr getSockAddr(int32_t addrPtr);
 void writeNativeStatToWasmStat(struct ::stat64* nativeStatPtr,
                                int32_t wasmStatPtr);
 
-iovec* wasmIovecsToNativeIovecs(int32_t wasmIovecPtr, int32_t wasmIovecCount);
+std::vector<iovec> wasmIovecsToNativeIovecs(int32_t wasmIovecPtr,
+                                            int32_t wasmIovecCount);
 
-iovec* wasiIovecsToNativeIovecs(int32_t wasiIovecPtr, int32_t wasiIovecCount);
+std::vector<iovec> wasiIovecsToNativeIovecs(int32_t wasiIovecPtr,
+                                            int32_t wasiIovecCount);
 
 // Faasm
 

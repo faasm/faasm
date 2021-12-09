@@ -104,7 +104,7 @@ void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
         throw std::runtime_error("Failed to instantiate WAMR module");
     }
 
-    currentBrk = getMemorySizeBytes();
+    currentBrk.store(getMemorySizeBytes(), std::memory_order_release);
 
     // Set up thread stacks
     createThreadStacks();
@@ -144,21 +144,23 @@ int WAMRWasmModule::executeWasmFunctionFromPointer(int wasmFuncPtr)
     // function pointers, so we have to call a few more low-level functions to
     // get it to work.
 
-    WASMExecEnv* execEnv = wasm_exec_env_create(moduleInstance, STACK_SIZE_KB);
+    std::unique_ptr<WASMExecEnv, decltype(&wasm_exec_env_destroy)> execEnv(
+      wasm_exec_env_create(moduleInstance, STACK_SIZE_KB),
+      &wasm_exec_env_destroy);
     if (execEnv == nullptr) {
         SPDLOG_ERROR("Failed to create exec env for func ptr {}", wasmFuncPtr);
         throw std::runtime_error("Failed to create WAMR exec env");
     }
 
     // Set thread handle and stack boundary (required by WAMR)
-    wasm_exec_env_set_thread_info(execEnv);
+    wasm_exec_env_set_thread_info(execEnv.get());
 
     // Call the function pointer
     // NOTE: for some reason WAMR uses the argv array to pass the function
     // return value, so we have to provide something big enough
     std::vector<uint32_t> argv = { 0 };
     bool success =
-      wasm_runtime_call_indirect(execEnv, wasmFuncPtr, 0, argv.data());
+      wasm_runtime_call_indirect(execEnv.get(), wasmFuncPtr, 0, argv.data());
 
     // Handle errors
     if (!success) {
@@ -285,14 +287,14 @@ uint32_t WAMRWasmModule::growMemory(uint32_t nBytes)
 {
 
     uint32_t oldBytes = getMemorySizeBytes();
-    uint32_t oldBrk = currentBrk;
-    uint32_t newBrk = currentBrk + nBytes;
+    uint32_t oldBrk = currentBrk.load(std::memory_order_acquire);
+    uint32_t newBrk = oldBrk + nBytes;
 
     if (!isWasmPageAligned(newBrk)) {
         SPDLOG_ERROR("Growing WAMR memory by {} is not wasm page aligned"
                      " (current brk: {}, new brk: {})",
                      nBytes,
-                     currentBrk,
+                     oldBrk,
                      newBrk);
         throw std::runtime_error("Non-wasm-page-aligned WAMR memory growth");
     }
@@ -318,11 +320,12 @@ uint32_t WAMRWasmModule::growMemory(uint32_t nBytes)
 
     SPDLOG_TRACE("Growing WAMR memory from {} to {} pages", oldPages, newPages);
 
-    currentBrk = getMemorySizeBytes();
-    if (currentBrk != newBytes) {
+    size_t newMemorySize = getMemorySizeBytes();
+    currentBrk.store(newMemorySize, std::memory_order_release);
+    if (newMemorySize != newBytes) {
         SPDLOG_ERROR(
           "Expected new brk ({}) to be old WAMR memory plus new bytes ({})",
-          currentBrk,
+          newMemorySize,
           newBytes);
         throw std::runtime_error("WAMR memory growth discrepancy");
     }

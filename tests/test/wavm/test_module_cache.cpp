@@ -29,8 +29,9 @@ TEST_CASE("Test creating cached WAVM modules", "[wasm]")
     msgA.set_inputdata(BYTES(input), 3 * sizeof(int));
 
     wasm::WAVMModuleCache& registry = wasm::getWAVMModuleCache();
-    wasm::WasmModule& moduleA = registry.getCachedModule(msgA);
-    wasm::WasmModule& moduleB = registry.getCachedModule(msgB);
+    auto [moduleA, lockA] = registry.getCachedModule(msgA);
+    lockA.unlock();
+    auto [moduleB, lockB] = registry.getCachedModule(msgB);
 
     // Check modules are the same
     REQUIRE(std::addressof(moduleA) == std::addressof(moduleB));

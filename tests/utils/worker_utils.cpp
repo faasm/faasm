@@ -135,7 +135,7 @@ void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
     usleep(1000 * 500);
 
     // Wait for all functions to complete
-    for (auto m : req->messages()) {
+    for (auto& m : req->messages()) {
         if (req->type() == faabric::BatchExecuteRequest::THREADS) {
             int returnValue = sch.awaitThreadResult(m.id());
             REQUIRE(returnValue == 0);
