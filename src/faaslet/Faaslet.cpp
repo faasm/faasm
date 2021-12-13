@@ -85,11 +85,12 @@ Faaslet::Faaslet(faabric::Message& msg)
     if (conf.wasmVm == "wavm") {
         localResetSnapshotKey =
           faabric::util::funcToString(msg, false) + "_reset";
-        faabric::util::SnapshotData snapData = module->getSnapshotData();
+        std::shared_ptr<faabric::util::SnapshotData> snapData =
+          module->getSnapshotData();
 
         faabric::snapshot::SnapshotRegistry& snapReg =
           faabric::snapshot::getSnapshotRegistry();
-        snapReg.takeSnapshotIfNotExists(localResetSnapshotKey, snapData, true);
+        snapReg.registerSnapshotIfNotExists(localResetSnapshotKey, snapData);
     }
 }
 
@@ -130,7 +131,7 @@ void Faaslet::postFinish()
     }
 }
 
-faabric::util::SnapshotData Faaslet::snapshot()
+std::shared_ptr<faabric::util::SnapshotData> Faaslet::snapshot()
 {
     return module->getSnapshotData();
 }

@@ -101,6 +101,15 @@ export PS1="(faasm) $PS1"
 ulimit -s 16384
 
 # -----------------------------
+# Sanitizers
+# -----------------------------
+# Check these match the CI build
+export ASAN_OPTIONS="halt_on_error=1"
+export LSAN_OPTIONS="suppressions=${PROJ_ROOT}/leak-sanitizer-ignorelist.txt"
+export TSAN_OPTIONS="halt_on_error=1:suppressions=${PROJ_ROOT}/thread-sanitizer-ignorelist.txt:history_size=7:second_deadlock_stack=1"
+export UBSAN_OPTIONS="print_stacktrace=1:halt_on_error=1"
+
+# -----------------------------
 # Splash
 # -----------------------------
 

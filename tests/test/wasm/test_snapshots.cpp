@@ -135,16 +135,18 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
         faabric::util::resetDirtyTracking();
 
         // Check no dirty pages initially
-        faabric::util::SnapshotData snapBefore = module.getSnapshotData();
-        REQUIRE(snapBefore.getDirtyPages().empty());
+        std::shared_ptr<faabric::util::SnapshotData> snapBefore =
+          module.getSnapshotData();
+        REQUIRE(snapBefore->getDirtyRegions().empty());
 
         // Execute the function
         module.executeFunction(m);
 
         // Check some dirty pages are registered
-        faabric::util::SnapshotData snapAfter = module.getSnapshotData();
+        std::shared_ptr<faabric::util::SnapshotData> snapAfter =
+          module.getSnapshotData();
         std::vector<faabric::util::SnapshotDiff> actual =
-          snapAfter.getDirtyPages();
+          snapAfter->getDirtyRegions();
         REQUIRE(!actual.empty());
     }
 
@@ -159,21 +161,21 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
         faabric::util::resetDirtyTracking();
 
         // Check no dirty pages initially
-        faabric::util::SnapshotData snapBefore = f.snapshot();
-        REQUIRE(snapBefore.getDirtyPages().empty());
+        std::shared_ptr<faabric::util::SnapshotData> snapBefore = f.snapshot();
+        REQUIRE(snapBefore->getDirtyRegions().empty());
 
         // Execute the function
         f.executeTask(0, 0, req);
 
         // Check some dirty pages are registered
-        faabric::util::SnapshotData snapAfter = f.snapshot();
+        std::shared_ptr<faabric::util::SnapshotData> snapAfter = f.snapshot();
         std::vector<faabric::util::SnapshotDiff> actual =
-          snapAfter.getDirtyPages();
+          snapAfter->getDirtyRegions();
         REQUIRE(!actual.empty());
 
         // Set up a snapshot with this data
         std::string snapKey = "dirty-check";
-        reg.takeSnapshot(snapKey, snapAfter);
+        reg.registerSnapshot(snapKey, snapAfter);
 
         // Restore a Faaslet with this snapshot
         std::shared_ptr<faabric::BatchExecuteRequest> reqSnap =
@@ -190,9 +192,10 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
         fSnap.executeTask(0, 0, reqSnap);
 
         // Check some dirty pages are registered
-        faabric::util::SnapshotData afterSnap = fSnap.snapshot();
+        std::shared_ptr<faabric::util::SnapshotData> afterSnap =
+          fSnap.snapshot();
         std::vector<faabric::util::SnapshotDiff> actualSnap =
-          afterSnap.getDirtyPages();
+          afterSnap->getDirtyRegions();
         REQUIRE(!actual.empty());
     }
 }
@@ -228,7 +231,7 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
     auto snapA = reg.getSnapshot(keyA);
     auto snapB = reg.getSnapshot(keyB);
 
-    REQUIRE(snapA->data != snapB->data);
+    REQUIRE(snapA->getDataPtr() != snapB->getDataPtr());
     REQUIRE(snapA->size == snapB->size);
 
     // Delete and check they've gone
@@ -254,17 +257,16 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
     std::string snapshotKey = "foobar-snap";
 
     size_t snapSize = 64 * faabric::util::HOST_PAGE_SIZE;
-    uint8_t* snapMemory = (uint8_t*)::mmap(
-      nullptr, snapSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-
-    // Write dummy data to the snapshot
-    std::memcpy(snapMemory, dummyDataB.data(), dummyDataB.size());
 
     // Set up snapshot
-    faabric::util::SnapshotData snap;
-    snap.data = snapMemory;
-    snap.size = snapSize;
-    reg.takeSnapshot(snapshotKey, snap);
+    auto snap = std::make_shared<faabric::util::SnapshotData>(snapSize);
+
+    // Write dummy data to the snapshot and make restorable
+    snap->copyInData(dummyDataB);
+    snap->makeRestorable(snapshotKey);
+
+    reg.registerSnapshot(snapshotKey, snap);
+    uint8_t* snapMemory = snap->getMutableDataPtr();
 
     SECTION("Wasm module")
     {
@@ -280,6 +282,9 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
 
         // Write some dummy data into memory (to check it gets overwritten)
         std::memcpy(memoryBase, dummyDataA.data(), dummyDataA.size());
+
+        // Make restorable
+        snap->makeRestorable("snap-test");
 
         // Check the dummy data isn't the same as the default data
         REQUIRE(dummyDataA != defaultData);
@@ -323,7 +328,7 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
         REQUIRE(initialSnap->size == defaultMemSize);
 
         // Overwrite the snapshot to force the faaslet to restore ours
-        reg.takeSnapshot(resetKey, snap, true);
+        reg.registerSnapshot(resetKey, snap);
 
         // Reset the faaslet, check dummy data is set in the module memory
         f.reset(m);

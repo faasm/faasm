@@ -78,15 +78,23 @@ wasm::WasmEnvironment& WasmModule::getWasmEnvironment()
     return wasmEnvironment;
 }
 
-faabric::util::SnapshotData WasmModule::getSnapshotData()
+std::shared_ptr<faabric::util::SnapshotData> WasmModule::getSnapshotData()
 {
     // Note - we only want to take the snapshot to the current brk, not the top
     // of the allocated memory
-    faabric::util::SnapshotData data;
-    data.data = getMemoryBase();
-    data.size = currentBrk.load(std::memory_order_acquire);
+    uint8_t* memBase = getMemoryBase();
+    size_t currentSize = currentBrk.load(std::memory_order_acquire);
+    size_t maxSize = MAX_WASM_MEM;
 
-    return data;
+    // Create the snapshot
+    auto snap = std::make_shared<faabric::util::SnapshotData>(
+      memBase, currentSize, maxSize);
+
+    // Make it restorable
+    std::string label = "snap_" + std::to_string(faabric::util::generateGid());
+    snap->makeRestorable(label);
+
+    return snap;
 }
 
 std::string getAppSnapshotKey(const faabric::Message& msg)
@@ -145,11 +153,15 @@ void WasmModule::snapshotWithKey(const std::string& snapKey,
                                  bool locallyRestorable)
 {
     PROF_START(wasmSnapshot)
-    faabric::util::SnapshotData data = getSnapshotData();
+    std::shared_ptr<faabric::util::SnapshotData> data = getSnapshotData();
+
+    if (locallyRestorable) {
+        data->makeRestorable(snapKey);
+    }
 
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
-    reg.takeSnapshot(snapKey, data, locallyRestorable);
+    reg.registerSnapshot(snapKey, data);
 
     PROF_END(wasmSnapshot)
 }

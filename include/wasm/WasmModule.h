@@ -25,6 +25,8 @@
 #define WASM_CTORS_FUNC_NAME "__wasm_call_ctors"
 #define ENTRY_FUNC_NAME "_start"
 
+#define MAX_WASM_MEM (1024L * 1024L * 1024L * 4L)
+
 namespace wasm {
 
 // Note - avoid a zero default on the thread request type otherwise it can
@@ -126,7 +128,7 @@ class WasmModule
     virtual uint8_t* getMemoryBase();
 
     // ----- Snapshot/ restore -----
-    faabric::util::SnapshotData getSnapshotData();
+    std::shared_ptr<faabric::util::SnapshotData> getSnapshotData();
 
     std::string createAppSnapshot(const faabric::Message& msg);
 
