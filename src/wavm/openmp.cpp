@@ -27,21 +27,6 @@ using namespace WAVM;
 namespace wasm {
 
 // ------------------------------------------------
-// OPENMP STRUCTS
-// ------------------------------------------------
-// As defined in:
-// https://github.com/llvm/llvm-project/blob/main/openmp/runtime/src/kmp.h
-
-struct ident_t_wasm
-{
-    int32_t reserved_1;
-    int32_t flags;
-    int32_t reserved_2;
-    int32_t reserved_3;
-    uint32_t psourcePtr;
-};
-
-// ------------------------------------------------
 // SCHEDULING
 // ------------------------------------------------
 std::unordered_map<std::string, int> cachedGroupIds;
