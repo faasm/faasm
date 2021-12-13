@@ -90,10 +90,6 @@ std::shared_ptr<faabric::util::SnapshotData> WasmModule::getSnapshotData()
     auto snap = std::make_shared<faabric::util::SnapshotData>(
       memBase, currentSize, maxSize);
 
-    // Make it restorable
-    std::string label = "snap_" + std::to_string(faabric::util::generateGid());
-    snap->makeRestorable(label);
-
     return snap;
 }
 

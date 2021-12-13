@@ -12,6 +12,7 @@
 #include <faabric/util/config.h>
 #include <faabric/util/environment.h>
 #include <faabric/util/func.h>
+#include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/timing.h>
@@ -88,6 +89,9 @@ Faaslet::Faaslet(faabric::Message& msg)
         std::shared_ptr<faabric::util::SnapshotData> snapData =
           module->getSnapshotData();
 
+        // Allow the snapshot to be restored
+        snapData->makeRestorable(localResetSnapshotKey);
+
         faabric::snapshot::SnapshotRegistry& snapReg =
           faabric::snapshot::getSnapshotRegistry();
         snapReg.registerSnapshotIfNotExists(localResetSnapshotKey, snapData);
@@ -133,7 +137,13 @@ void Faaslet::postFinish()
 
 std::shared_ptr<faabric::util::SnapshotData> Faaslet::snapshot()
 {
-    return module->getSnapshotData();
+    auto snapData = module->getSnapshotData();
+
+    // Make it restorable
+    std::string label = "snap_" + std::to_string(faabric::util::generateGid());
+    snapData->makeRestorable(label);
+
+    return snapData;
 }
 
 void Faaslet::restore(faabric::Message& msg)
