@@ -57,10 +57,11 @@ def _get_faasm_worker_pods():
         "-n faasm",
         "get pods",
         "-l serving.knative.dev/service=faasm-worker",
-        "-o jsonpath='{range .items[*]}{@.status.podIP}{\" \"}{end}'",
+        """--template "{{range .items}}{{ if not .metadata.deletionTimestamp"""
+        """ }}{{.status.podIP}}:{{end}}{{end}}" """,
     ]
     output = _capture_cmd_output(cmd)
-    ips = [o.strip() for o in output.split(" ") if o.strip()]
+    ips = [o.strip() for o in output.split(":") if o.strip()]
 
     print("Using faasm worker pods: {}".format(ips))
     return names, ips
