@@ -195,7 +195,7 @@ class WasmModule
     virtual void doBindToFunction(faabric::Message& msg, bool cache);
 
     // Snapshots
-    void snapshotWithKey(const std::string& snapKey, bool locallyRestorable);
+    void snapshotWithKey(const std::string& snapKey);
 
     // Threads
     void createThreadStacks();

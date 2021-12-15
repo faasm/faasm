@@ -89,9 +89,6 @@ Faaslet::Faaslet(faabric::Message& msg)
         std::shared_ptr<faabric::util::SnapshotData> snapData =
           module->getSnapshotData();
 
-        // Allow the snapshot to be restored
-        snapData->makeRestorable(localResetSnapshotKey);
-
         faabric::snapshot::SnapshotRegistry& snapReg =
           faabric::snapshot::getSnapshotRegistry();
         snapReg.registerSnapshotIfNotExists(localResetSnapshotKey, snapData);
@@ -135,15 +132,12 @@ void Faaslet::postFinish()
     }
 }
 
-std::shared_ptr<faabric::util::SnapshotData> Faaslet::snapshot()
+std::shared_ptr<faabric::util::MemoryView> Faaslet::getMemoryView()
 {
-    auto snapData = module->getSnapshotData();
-
-    // Make it restorable
-    std::string label = "snap_" + std::to_string(faabric::util::generateGid());
-    snapData->makeRestorable(label);
-
-    return snapData;
+    uint8_t* memBase = module->getMemoryBase();
+    size_t currentSize = module->getMemorySizeBytes();
+    return std::make_shared<faabric::util::MemoryView>(
+      std::span<const uint8_t>(memBase, currentSize));
 }
 
 void Faaslet::restore(faabric::Message& msg)

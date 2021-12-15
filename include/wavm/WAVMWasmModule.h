@@ -24,8 +24,8 @@ std::vector<uint8_t> wavmCodegen(std::vector<uint8_t>& wasmBytes,
 template<class T>
 T unalignedWavmRead(WAVM::Runtime::Memory* memory, WAVM::Uptr offset)
 {
-    const std::byte* bytes =
-      WAVM::Runtime::memoryArrayPtr<std::byte>(memory, offset, sizeof(T));
+    const uint8_t* bytes =
+      WAVM::Runtime::memoryArrayPtr<uint8_t>(memory, offset, sizeof(T));
     return faabric::util::unalignedRead<T>(bytes);
 }
 
@@ -34,8 +34,8 @@ void unalignedWavmWrite(const T& value,
                         WAVM::Runtime::Memory* memory,
                         WAVM::Uptr offset)
 {
-    std::byte* bytes =
-      WAVM::Runtime::memoryArrayPtr<std::byte>(memory, offset, sizeof(T));
+    uint8_t* bytes =
+      WAVM::Runtime::memoryArrayPtr<uint8_t>(memory, offset, sizeof(T));
     faabric::util::unalignedWrite<T>(value, bytes);
 }
 

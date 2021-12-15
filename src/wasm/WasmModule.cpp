@@ -88,7 +88,7 @@ std::shared_ptr<faabric::util::SnapshotData> WasmModule::getSnapshotData()
 
     // Create the snapshot
     auto snap = std::make_shared<faabric::util::SnapshotData>(
-      memBase, currentSize, maxSize);
+      std::span<const uint8_t>(memBase, currentSize), maxSize);
 
     return snap;
 }
@@ -118,7 +118,7 @@ std::string WasmModule::createAppSnapshot(const faabric::Message& msg)
     } else {
         SPDLOG_DEBUG(
           "Creating app snapshot: {} for app {}", snapshotKey, msg.appid());
-        snapshotWithKey(snapshotKey, false);
+        snapshotWithKey(snapshotKey);
 
         // Reset all dirty tracking here; we only want to pick up the diffs
         // after this is first created
@@ -145,15 +145,11 @@ void WasmModule::deleteAppSnapshot(const faabric::Message& msg)
     }
 }
 
-void WasmModule::snapshotWithKey(const std::string& snapKey,
-                                 bool locallyRestorable)
+void WasmModule::snapshotWithKey(const std::string& snapKey)
+
 {
     PROF_START(wasmSnapshot)
     std::shared_ptr<faabric::util::SnapshotData> data = getSnapshotData();
-
-    if (locallyRestorable) {
-        data->makeRestorable(snapKey);
-    }
 
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
@@ -168,7 +164,7 @@ std::string WasmModule::snapshot(bool locallyRestorable)
     std::string snapKey =
       this->boundUser + "_" + this->boundFunction + "_" + std::to_string(gid);
 
-    snapshotWithKey(snapKey, locallyRestorable);
+    snapshotWithKey(snapKey);
 
     return snapKey;
 }
@@ -190,13 +186,13 @@ void WasmModule::restore(const std::string& snapshotKey)
     auto data = reg.getSnapshot(snapshotKey);
     uint32_t memSize = getCurrentBrk();
 
-    if (data->size > memSize) {
-        size_t bytesRequired = data->size - memSize;
+    if (data->getSize() > memSize) {
+        size_t bytesRequired = data->getSize() - memSize;
         SPDLOG_DEBUG("Growing memory by {} bytes to restore snapshot",
                      bytesRequired);
         this->growMemory(bytesRequired);
-    } else if (data->size < memSize) {
-        size_t shrinkBy = memSize - data->size;
+    } else if (data->getSize() < memSize) {
+        size_t shrinkBy = memSize - data->getSize();
         SPDLOG_DEBUG("Shrinking memory by {} bytes to restore snapshot",
                      shrinkBy);
         this->shrinkMemory(shrinkBy);
@@ -619,9 +615,11 @@ void WasmModule::setUpOpenMPMergeRegions(
         // Check if the var points to a wasm address. If so, it may be a
         // pointer to a pointer, so we should add a merge region
         uint32_t intValue = faabric::util::unalignedRead<uint32_t>(
-          reinterpret_cast<std::byte*>(wasmPointerToNative(regionStart)));
+          reinterpret_cast<uint8_t*>(wasmPointerToNative(regionStart)));
+
         uint32_t stacksTop = threadStacks.back();
         uint32_t memMax = currentBrk.load(std::memory_order_acquire);
+
         if (intValue > stacksTop && intValue < memMax) {
             SPDLOG_TRACE("Shared var points to {}, could be pointer ({}-{})",
                          intValue,

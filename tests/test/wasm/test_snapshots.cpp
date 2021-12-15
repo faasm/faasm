@@ -232,7 +232,7 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
     auto snapB = reg.getSnapshot(keyB);
 
     REQUIRE(snapA->getDataPtr() != snapB->getDataPtr());
-    REQUIRE(snapA->size == snapB->size);
+    REQUIRE(snapA->getSize() == snapB->getSize());
 
     // Delete and check they've gone
     moduleA.deleteAppSnapshot(mA);
@@ -263,10 +263,8 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
 
     // Write dummy data to the snapshot and make restorable
     snap->copyInData(dummyDataB);
-    snap->makeRestorable(snapshotKey);
 
     reg.registerSnapshot(snapshotKey, snap);
-    uint8_t* snapMemory = snap->getMutableDataPtr();
 
     SECTION("Wasm module")
     {
@@ -282,9 +280,6 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
 
         // Write some dummy data into memory (to check it gets overwritten)
         std::memcpy(memoryBase, dummyDataA.data(), dummyDataA.size());
-
-        // Make restorable
-        snap->makeRestorable("snap-test");
 
         // Check the dummy data isn't the same as the default data
         REQUIRE(dummyDataA != defaultData);
@@ -325,7 +320,7 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
 
         // Load the snapshot and check it's the right size by default
         auto initialSnap = reg.getSnapshot(resetKey);
-        REQUIRE(initialSnap->size == defaultMemSize);
+        REQUIRE(initialSnap->getSize() == defaultMemSize);
 
         // Overwrite the snapshot to force the faaslet to restore ours
         reg.registerSnapshot(resetKey, snap);
@@ -340,7 +335,5 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
         REQUIRE(dataAfter == dummyDataB);
         REQUIRE(f.module->getCurrentBrk() == snapSize);
     }
-
-    ::munmap(snapMemory, snapSize);
 }
 }
