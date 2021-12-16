@@ -135,18 +135,18 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
         faabric::util::resetDirtyTracking();
 
         // Check no dirty pages initially
-        std::shared_ptr<faabric::util::SnapshotData> snapBefore =
-          module.getSnapshotData();
-        REQUIRE(snapBefore->getDirtyRegions().empty());
+        std::shared_ptr<faabric::util::MemoryView> memBefore =
+          module.getMemoryView();
+        REQUIRE(memBefore->getDirtyRegions().empty());
 
         // Execute the function
         module.executeFunction(m);
 
         // Check some dirty pages are registered
-        std::shared_ptr<faabric::util::SnapshotData> snapAfter =
-          module.getSnapshotData();
+        std::shared_ptr<faabric::util::MemoryView> memAfter =
+          module.getMemoryView();
         std::vector<faabric::util::SnapshotDiff> actual =
-          snapAfter->getDirtyRegions();
+          memAfter->getDirtyRegions();
         REQUIRE(!actual.empty());
     }
 
@@ -161,20 +161,23 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
         faabric::util::resetDirtyTracking();
 
         // Check no dirty pages initially
-        std::shared_ptr<faabric::util::SnapshotData> snapBefore = f.snapshot();
-        REQUIRE(snapBefore->getDirtyRegions().empty());
+        std::shared_ptr<faabric::util::MemoryView> memBefore =
+          f.getMemoryView();
+        REQUIRE(memBefore->getDirtyRegions().empty());
 
         // Execute the function
         f.executeTask(0, 0, req);
 
         // Check some dirty pages are registered
-        std::shared_ptr<faabric::util::SnapshotData> snapAfter = f.snapshot();
+        std::shared_ptr<faabric::util::MemoryView> memAfter = f.getMemoryView();
         std::vector<faabric::util::SnapshotDiff> actual =
-          snapAfter->getDirtyRegions();
+          memAfter->getDirtyRegions();
         REQUIRE(!actual.empty());
 
         // Set up a snapshot with this data
         std::string snapKey = "dirty-check";
+        std::shared_ptr<faabric::util::SnapshotData> snapAfter =
+          f.module->getSnapshotData();
         reg.registerSnapshot(snapKey, snapAfter);
 
         // Restore a Faaslet with this snapshot
@@ -192,11 +195,11 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
         fSnap.executeTask(0, 0, reqSnap);
 
         // Check some dirty pages are registered
-        std::shared_ptr<faabric::util::SnapshotData> afterSnap =
-          fSnap.snapshot();
-        std::vector<faabric::util::SnapshotDiff> actualSnap =
-          afterSnap->getDirtyRegions();
-        REQUIRE(!actual.empty());
+        std::shared_ptr<faabric::util::MemoryView> memAfterSnap =
+          f.getMemoryView();
+        std::vector<faabric::util::SnapshotDiff> actualAfterSnap =
+          memAfter->getDirtyRegions();
+        REQUIRE(!actualAfterSnap.empty());
     }
 }
 

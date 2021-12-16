@@ -93,6 +93,14 @@ std::shared_ptr<faabric::util::SnapshotData> WasmModule::getSnapshotData()
     return snap;
 }
 
+std::shared_ptr<faabric::util::MemoryView> WasmModule::getMemoryView()
+{
+    uint8_t* memBase = getMemoryBase();
+    size_t currentSize = getMemorySizeBytes();
+    return std::make_shared<faabric::util::MemoryView>(
+      std::span<const uint8_t>(memBase, currentSize));
+}
+
 std::string getAppSnapshotKey(const faabric::Message& msg)
 {
     std::string funcStr = faabric::util::funcToString(msg, false);

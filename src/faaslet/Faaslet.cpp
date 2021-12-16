@@ -134,10 +134,7 @@ void Faaslet::postFinish()
 
 std::shared_ptr<faabric::util::MemoryView> Faaslet::getMemoryView()
 {
-    uint8_t* memBase = module->getMemoryBase();
-    size_t currentSize = module->getMemorySizeBytes();
-    return std::make_shared<faabric::util::MemoryView>(
-      std::span<const uint8_t>(memBase, currentSize));
+    return module->getMemoryView();
 }
 
 void Faaslet::restore(faabric::Message& msg)

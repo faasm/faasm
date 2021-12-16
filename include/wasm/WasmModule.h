@@ -130,6 +130,8 @@ class WasmModule
     // ----- Snapshot/ restore -----
     std::shared_ptr<faabric::util::SnapshotData> getSnapshotData();
 
+    std::shared_ptr<faabric::util::MemoryView> getMemoryView();
+
     std::string createAppSnapshot(const faabric::Message& msg);
 
     void deleteAppSnapshot(const faabric::Message& msg);
