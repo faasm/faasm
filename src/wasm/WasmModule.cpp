@@ -21,7 +21,12 @@
 #include <sys/mman.h>
 #include <sys/uio.h>
 
-#define DEFAULT_MERGE_REGION_SIZE (10 * sizeof(int32_t))
+// This is the default merge region size for shared OpenMP variables. The larger
+// this is, the more likely we are to catch larger objects like arrays of
+// structs. The downside to making it large is that it adds potentially
+// unnecessary overhead to the diffing process (e.g. if the shared var is just a
+// single numeric value).
+#define DEFAULT_MERGE_REGION_SIZE (4 * 1024)
 
 namespace wasm {
 

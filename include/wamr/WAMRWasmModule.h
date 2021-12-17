@@ -63,6 +63,8 @@ class WAMRWasmModule final : public WasmModule
 
     size_t getMemorySizeBytes() override;
 
+    uint8_t* getMemoryBase() override;
+
     size_t getMaxMemoryPages();
 
     WASMModuleInstanceCommon* getModuleInstance();

@@ -353,6 +353,12 @@ size_t WAMRWasmModule::getMemorySizeBytes()
     return aotMem->cur_page_count * aotMem->num_bytes_per_page;
 }
 
+uint8_t* WAMRWasmModule::getMemoryBase()
+{
+    SPDLOG_WARN("WAMR getMemoryBase not implemented");
+    return nullptr;
+}
+
 size_t WAMRWasmModule::getMaxMemoryPages()
 {
     auto aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);

@@ -14,6 +14,7 @@
 #include <faabric/util/macros.h>
 #include <faabric/util/memory.h>
 #include <faabric/util/scheduling.h>
+#include <faabric/util/snapshot.h>
 #include <faabric/util/string_tools.h>
 #include <faabric/util/timing.h>
 
@@ -432,6 +433,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     // Set up the master snapshot if not already set up
     std::string snapshotKey = parentModule->createAppSnapshot(*parentCall);
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+    std::shared_ptr<faabric::util::SnapshotData> snap =
+      reg.getSnapshot(snapshotKey);
 
     // Set up shared variables
     if (nSharedVars > 0) {
@@ -448,7 +453,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     req->set_subtype(ThreadRequestType::OPENMP);
 
     // Add remote context
-    // TODO - avoid copy
+    // TODO - avoid copy (mark as not owned by protobuf)
     std::vector<uint8_t> serialisedLevel = nextLevel->serialise();
     req->set_contextdata(serialisedLevel.data(), serialisedLevel.size());
 
@@ -565,6 +570,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
         throw std::runtime_error("OpenMP threads failed");
     }
+
+    // Sync changes to the snapshot
+    snap->writeQueuedDiffs();
+    parentModule->restore(snapshotKey);
 
     // Reset parent level for next setting of threads
     parentLevel->pushedThreads = -1;
@@ -934,6 +943,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceVarPtrs,
                   reduceFunc,
                   lockPtr);
+
     startReduceCritical(
       msg, level, numReduceVars, reduceVarPtrs, reduceVarsSize);
     return 1;
@@ -962,6 +972,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceVarPtrs,
                   reduceFunc,
                   lockPtr);
+
     startReduceCritical(
       msg, level, numReduceVars, reduceVarPtrs, reduceVarsSize);
     return 1;
