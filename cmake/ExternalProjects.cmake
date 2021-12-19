@@ -19,12 +19,19 @@ endif()
 
 include(${CMAKE_CURRENT_BINARY_DIR}/conan.cmake)
 
-conan_check(VERSION 1.41.0 REQUIRED)
+conan_check(VERSION 1.43.0 REQUIRED)
+
+# Enable revisions in the conan config
+execute_process(COMMAND ${CONAN_CMD} config set general.revisions_enabled=1
+                RESULT_VARIABLE RET_CODE)
+if(NOT "${RET_CODE}" STREQUAL "0")
+    message(FATAL_ERROR "Error setting revisions for Conan: '${RET_CODE}'")
+endif()
 
 conan_cmake_configure(
     REQUIRES
-        catch2/2.13.7
-        aws-sdk-cpp/1.9.100
+        catch2/2.13.7@#31c8cd08e3c957a9eac8cb1377cf5863
+        aws-sdk-cpp/1.9.100@#e53fc3056c45acadb11bf4275e96d6d2
     GENERATORS
         cmake_find_package
         cmake_paths
