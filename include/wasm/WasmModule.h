@@ -130,9 +130,9 @@ class WasmModule
     // ----- Snapshot/ restore -----
     std::shared_ptr<faabric::util::SnapshotData> getSnapshotData();
 
-    std::shared_ptr<faabric::util::MemoryView> getMemoryView();
+    faabric::util::MemoryView getMemoryView();
 
-    std::string createAppSnapshot(const faabric::Message& msg);
+    std::string getOrCreateAppSnapshot(const faabric::Message& msg);
 
     void deleteAppSnapshot(const faabric::Message& msg);
 
@@ -144,9 +144,6 @@ class WasmModule
     void queuePthreadCall(threads::PthreadCall call);
 
     int awaitPthreadCall(const faabric::Message* msg, int pthreadPtr);
-
-    void setUpOpenMPMergeRegions(const faabric::Message& msg,
-                                 std::shared_ptr<threads::Level> ompLevel);
 
     void setUpPthreadMergeRegions(const faabric::Message& msg,
                                   std::shared_ptr<threads::Level> ompLevel);

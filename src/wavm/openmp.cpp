@@ -394,12 +394,36 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
  * NOTE: the non-global shared variables include:
  * - those listed in a shared() directive
  * - those listed in a reduce() directive
- *
- * TODO: currently there is no way of telling whether a variable in this list of
- * shared variables is from a shared() or a reduce() directive, so, we make the
- * assumtion that the *last* ones in the list are reduce variables (relevant
- * when it comes to doing the reduction).
  */
+
+void checkSharedVarsRegistered(const std::string& snapKey,
+                               std::shared_ptr<threads::Level> ompLevel)
+{
+    // Get the snapshot
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+    auto snap = reg.getSnapshot(snapKey);
+
+    std::map<uint32_t, faabric::util::SnapshotMergeRegion> mergeRegions =
+      snap->getMergeRegions();
+    // Go through variables and check they're registered as merge regions
+    bool success = true;
+    for (int i = 0; i < ompLevel->nSharedVarOffsets; i++) {
+        uint32_t offset = ompLevel->sharedVarOffsets[i];
+
+        // TODO - avoid doing map lookups every time, check set of keys
+        if (mergeRegions.find(offset) == mergeRegions.end()) {
+            SPDLOG_ERROR(
+              "{} did not declare shared var at {}", snapKey, offset);
+            success = false;
+        }
+    }
+
+    if (!success) {
+        throw std::runtime_error(
+          "Did not find declarations for all shared vars");
+    }
+}
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__kmpc_fork_call",
@@ -432,7 +456,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     nextLevel->fromParentLevel(parentLevel);
 
     // Set up the master snapshot if not already set up
-    std::string snapshotKey = parentModule->createAppSnapshot(*parentCall);
+    std::string snapshotKey = parentModule->getOrCreateAppSnapshot(*parentCall);
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
     std::shared_ptr<faabric::util::SnapshotData> snap =
@@ -444,6 +468,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
           memoryPtr, sharedVarPtrs, nSharedVars);
         nextLevel->setSharedVarOffsets(sharedVarsPtr, nSharedVars);
     }
+
+    checkSharedVarsRegistered(snapshotKey, nextLevel);
 
     // Set up the chained calls
     std::shared_ptr<faabric::BatchExecuteRequest> req =
@@ -823,63 +849,13 @@ void startReduceCritical(faabric::Message* msg,
                          int32_t reduceVarsSize)
 
 {
-    // Note - we only need to lock locally here, as threads on other hosts
-    // cannot edit the shared data
+    // This function synchronises updates to shared reduce variables.
+    // Each host will have its own copy of these variables, which will be merged
+    // at the end of the parallel section via Faasm shared memory.
+    // This means we only need to synchronise local accesses here, so we only
+    // need a local lock.
     faabric::transport::PointToPointGroup::getOrAwaitGroup(msg->groupid())
       ->localLock();
-
-    std::string snapKey = msg->snapshotkey();
-    if (!snapKey.empty()) {
-        // Here we have to set up the custom merge region for the reduce
-        // variables. The reduce variables passed in here are the *local*
-        // targets for this thread's reduction, but we need to get a reference
-        // to the *shared* value to which the final result is written. To do
-        // this, we need to go back to the original list of shared variables
-        // from __kmpc_fork_call.
-        //
-        // TODO we are making an assumption that the N variables listed here
-        // correspond to the final N shared variables passed to
-        // __kmpc_fork_call, would be nice to find a more robust way to do this.
-        //
-        // TODO working out what sort of reduce is tricky as OpenMP doesn't
-        // specify what sort of reduction it's doing, just uses a function with
-        // the same name every time, regardless of the operation. However, if we
-        // can interrogate the type of the function, we might be able to work it
-        // out.
-        //
-        // For now based on the applications we run, we can assume it's an
-        // integer sum.
-        //
-        // Options for changing this include:
-        //
-        // - Interrogate some other data/ memory/ function definition to work
-        //   out variable types. The microtask definition definitely holds this
-        //   information.
-        // - Use reduceVarsSize to work out data type (allows us to support more
-        //   types of sum)
-        // - Change the OpenMP directive to name the function appropriately when
-        //   it's a standard operation (e.g. sum, product etc.)
-        faabric::snapshot::SnapshotRegistry& reg =
-          faabric::snapshot::getSnapshotRegistry();
-
-        auto snap = reg.getSnapshot(snapKey);
-        for (int i = 0; i < numReduceVars; i++) {
-            int sharedVarIdx = level->nSharedVarOffsets - numReduceVars + i;
-            uint32_t globalReduceVar = level->sharedVarOffsets[sharedVarIdx];
-
-            SPDLOG_TRACE("Adding merge region for reduce var {} at {} ({})",
-                         i,
-                         globalReduceVar,
-                         sharedVarIdx);
-
-            // Note we allow overwrites here
-            snap->addMergeRegion(globalReduceVar,
-                                 sizeof(int32_t),
-                                 faabric::util::SnapshotDataType::Int,
-                                 faabric::util::SnapshotMergeOperation::Sum,
-                                 true);
-        }
-    }
 }
 
 /**

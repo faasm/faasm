@@ -25,7 +25,7 @@ class Faaslet final : public faabric::scheduler::Executor
       int msgIdx,
       std::shared_ptr<faabric::BatchExecuteRequest> req) override;
 
-    std::shared_ptr<faabric::util::MemoryView> getMemoryView() override;
+    faabric::util::MemoryView getMemoryView() override;
 
     void restore(faabric::Message& call) override;
 

@@ -132,7 +132,7 @@ void Faaslet::postFinish()
     }
 }
 
-std::shared_ptr<faabric::util::MemoryView> Faaslet::getMemoryView()
+faabric::util::MemoryView Faaslet::getMemoryView()
 {
     return module->getMemoryView();
 }

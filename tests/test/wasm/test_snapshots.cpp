@@ -135,18 +135,16 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
         faabric::util::resetDirtyTracking();
 
         // Check no dirty pages initially
-        std::shared_ptr<faabric::util::MemoryView> memBefore =
-          module.getMemoryView();
-        REQUIRE(memBefore->getDirtyRegions().empty());
+        faabric::util::MemoryView memBefore = module.getMemoryView();
+        REQUIRE(memBefore.getDirtyRegions().empty());
 
         // Execute the function
         module.executeFunction(m);
 
         // Check some dirty pages are registered
-        std::shared_ptr<faabric::util::MemoryView> memAfter =
-          module.getMemoryView();
+        faabric::util::MemoryView memAfter = module.getMemoryView();
         std::vector<faabric::util::SnapshotDiff> actual =
-          memAfter->getDirtyRegions();
+          memAfter.getDirtyRegions();
         REQUIRE(!actual.empty());
     }
 
@@ -161,17 +159,16 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
         faabric::util::resetDirtyTracking();
 
         // Check no dirty pages initially
-        std::shared_ptr<faabric::util::MemoryView> memBefore =
-          f.getMemoryView();
-        REQUIRE(memBefore->getDirtyRegions().empty());
+        faabric::util::MemoryView memBefore = f.getMemoryView();
+        REQUIRE(memBefore.getDirtyRegions().empty());
 
         // Execute the function
         f.executeTask(0, 0, req);
 
         // Check some dirty pages are registered
-        std::shared_ptr<faabric::util::MemoryView> memAfter = f.getMemoryView();
+        faabric::util::MemoryView memAfter = f.getMemoryView();
         std::vector<faabric::util::SnapshotDiff> actual =
-          memAfter->getDirtyRegions();
+          memAfter.getDirtyRegions();
         REQUIRE(!actual.empty());
 
         // Set up a snapshot with this data
@@ -195,10 +192,9 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
         fSnap.executeTask(0, 0, reqSnap);
 
         // Check some dirty pages are registered
-        std::shared_ptr<faabric::util::MemoryView> memAfterSnap =
-          f.getMemoryView();
+        faabric::util::MemoryView memAfterSnap = f.getMemoryView();
         std::vector<faabric::util::SnapshotDiff> actualAfterSnap =
-          memAfter->getDirtyRegions();
+          memAfterSnap.getDirtyRegions();
         REQUIRE(!actualAfterSnap.empty());
     }
 }
@@ -215,17 +211,17 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
 
     wasm::WAVMWasmModule moduleA;
     moduleA.bindToFunction(mA);
-    std::string keyA = moduleA.createAppSnapshot(mA);
+    std::string keyA = moduleA.getOrCreateAppSnapshot(mA);
 
     REQUIRE(reg.getSnapshotCount() == 1);
 
     wasm::WAVMWasmModule moduleB;
     moduleB.bindToFunction(mB);
-    std::string keyB = moduleB.createAppSnapshot(mB);
+    std::string keyB = moduleB.getOrCreateAppSnapshot(mB);
 
     // Make sure repeated calls don't recreate
-    moduleB.createAppSnapshot(mA);
-    moduleB.createAppSnapshot(mA);
+    moduleB.getOrCreateAppSnapshot(mA);
+    moduleB.getOrCreateAppSnapshot(mA);
 
     REQUIRE(reg.getSnapshotCount() == 2);
     REQUIRE(keyA != keyB);
