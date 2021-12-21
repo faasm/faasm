@@ -646,7 +646,7 @@ void addSharedMemMergeRegion(I32 varPtr,
         snapKey = module->getOrCreateAppSnapshot(*msg);
     }
 
-    SPDLOG_ERROR("Registering shared memory region {}-{} for {}",
+    SPDLOG_DEBUG("Registering shared memory region {}-{} for {}",
                  varPtr,
                  varPtr + regionSize,
                  faabric::util::funcToString(*msg, false));

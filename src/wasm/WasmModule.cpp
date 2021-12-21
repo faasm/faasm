@@ -21,13 +21,6 @@
 #include <sys/mman.h>
 #include <sys/uio.h>
 
-// This is the default merge region size for shared OpenMP variables. The larger
-// this is, the more likely we are to catch larger objects like arrays of
-// structs. The downside to making it large is that it adds potentially
-// unnecessary overhead to the diffing process (e.g. if the shared var is just a
-// single numeric value).
-#define DEFAULT_MERGE_REGION_SIZE (4 * 1024)
-
 namespace wasm {
 
 bool isWasmPageAligned(int32_t offset)
@@ -101,7 +94,7 @@ std::shared_ptr<faabric::util::SnapshotData> WasmModule::getSnapshotData()
 faabric::util::MemoryView WasmModule::getMemoryView()
 {
     uint8_t* memBase = getMemoryBase();
-    size_t currentSize = getMemorySizeBytes();
+    size_t currentSize = currentBrk.load(std::memory_order_acquire);
     return faabric::util::MemoryView({ memBase, currentSize });
 }
 

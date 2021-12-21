@@ -406,22 +406,16 @@ void checkSharedVarsRegistered(const std::string& snapKey,
 
     std::map<uint32_t, faabric::util::SnapshotMergeRegion> mergeRegions =
       snap->getMergeRegions();
+
     // Go through variables and check they're registered as merge regions
-    bool success = true;
     for (int i = 0; i < ompLevel->nSharedVarOffsets; i++) {
         uint32_t offset = ompLevel->sharedVarOffsets[i];
 
         // TODO - avoid doing map lookups every time, check set of keys
         if (mergeRegions.find(offset) == mergeRegions.end()) {
-            SPDLOG_ERROR(
+            SPDLOG_WARN(
               "{} did not declare shared var at {}", snapKey, offset);
-            success = false;
         }
-    }
-
-    if (!success) {
-        throw std::runtime_error(
-          "Did not find declarations for all shared vars");
     }
 }
 
