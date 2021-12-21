@@ -25,23 +25,14 @@ RUN ninja install
 WORKDIR /
 RUN rm -r /tmp/wabt
 
-# Install faasm cpp Python module
-# TODO - include this via multi-stage Docker build
-WORKDIR /usr/local/code
-RUN git clone https://github.com/faasm/cpp
-WORKDIR /usr/local/code/cpp
-RUN pip3 install -U pip
-RUN pip3 install -U setuptools
-RUN pip3 install -U wheel
-RUN pip3 install --prefix=~/.local -e .
-
 # Python set-up
 WORKDIR /usr/local/code/faasm
-RUN pip3 install -r faasmcli/requirements.txt
-RUN pip3 install --prefix=~/.local -e faasmcli/
+RUN wget -O faasmcli/setup.py https://raw.githubusercontent.com/faasm/faasm/master/faasmcli/setup.py
+RUN wget -O bin/workon.sh https://raw.githubusercontent.com/faasm/faasm/master/bin/workon.sh
+RUN source ./bin/workon.sh
 
 # Build some useful targets
-RUN inv -r faasmcli/faasmcli dev.tools --build Release
+RUN source ./bin/workon.sh && inv -r faasmcli/faasmcli dev.tools --build Release
 
 # Remove worker entrypoint
 COPY bin/noop-entrypoint.sh /entrypoint.sh
