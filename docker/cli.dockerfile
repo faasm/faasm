@@ -27,12 +27,10 @@ RUN rm -r /tmp/wabt
 
 # Python set-up
 WORKDIR /usr/local/code/faasm
-RUN wget -O faasmcli/setup.py https://raw.githubusercontent.com/faasm/faasm/master/faasmcli/setup.py
-RUN wget -O bin/workon.sh https://raw.githubusercontent.com/faasm/faasm/master/bin/workon.sh
-RUN source ./bin/workon.sh
+RUN ./bin/create_venv.sh
 
 # Build some useful targets
-RUN source ./bin/workon.sh && inv -r faasmcli/faasmcli dev.tools --build Release
+RUN source venv/bin/activate && inv -r faasmcli/faasmcli dev.tools --build Release
 
 # Remove worker entrypoint
 COPY bin/noop-entrypoint.sh /entrypoint.sh

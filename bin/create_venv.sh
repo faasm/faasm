@@ -5,6 +5,8 @@ set -e
 THIS_DIR=$(dirname $(readlink -f $0))
 PROJ_ROOT=${THIS_DIR}/..
 
+# Set different virtual environment paths so that these don't clash when
+# mounting the code in a development container
 VENV_PATH="undetected"
 if [[ -z "$FAASM_DOCKER" ]]; then
     VENV_PATH="${PROJ_ROOT}/venv-bm"
@@ -12,8 +14,6 @@ else
     VENV_PATH="/usr/local/code/faasm/venv"
 fi
 
-THIS_DIR=$(dirname $(readlink -f $0))
-PROJ_ROOT=${THIS_DIR}/..
 PIP=${VENV_PATH}/bin/pip3
 
 function pip_cmd {

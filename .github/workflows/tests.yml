@@ -27,7 +27,7 @@ jobs:
       # --- Formatting checks ---
       - name: "Python formatting check"
         run: |
-          source ./bin/workon.sh
+          source venv/bin/activate
           ./bin/check_python.sh
         shell: bash
       - name: "Run C/C++ formatting"
@@ -147,7 +147,7 @@ jobs:
       # --- Code build (Debug required for tests) ---
       - name: "Build dev dependencies"
         run: |
-          source ./bin/workon.sh
+          source venv/bin/activate
           inv -r faasmcli/faasmcli dev.cmake --build Debug
         shell: bash
 
@@ -261,39 +261,39 @@ jobs:
       # --- Codegen build without sanitisers
       - name: "Build codegen - CMake"
         run: |
-          source ./bin/workon.sh
+          source venv/bin/activate
           inv -r faasmcli/faasmcli dev.cmake --build Debug --sanitiser None
         shell: bash
       - name: "Build codegen - Codegen Func"
         run: |
-          source ./bin/workon.sh
+          source venv/bin/activate
           inv -r faasmcli/faasmcli dev.cc codegen_func
         shell: bash
       - name: "Build codegen - Codegen Shared Obj"
         run: |
-          source ./bin/workon.sh
+          source venv/bin/activate
           inv -r faasmcli/faasmcli dev.cc codegen_shared_obj
         shell: bash
       # --- Environment set-up ---
       - name: "Run codegen"
         run: |
-          source ./bin/workon.sh
+          source venv/bin/activate
           inv -r faasmcli/faasmcli codegen.local
         shell: bash
       - name: "Run python codegen"
         run: |
-          source ./bin/workon.sh
+          source venv/bin/activate
           inv -r faasmcli/faasmcli python.codegen
         shell: bash
       - name: "Clear existing pyc files"
         run: |
-          source ./bin/workon.sh
+          source venv/bin/activate
           inv -r faasmcli/faasmcli python.clear-runtime-pyc
         shell: bash
       # --- Code build (Debug required for tests) ---
       - name: "Build dev tools"
         run: |
-          source ./bin/workon.sh
+          source venv/bin/activate
           inv -r faasmcli/faasmcli dev.tools --build Debug --sanitiser ${{ matrix.sanitiser }}
         shell: bash
       # --- Test run ---

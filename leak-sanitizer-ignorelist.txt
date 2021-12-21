@@ -1,5 +1,6 @@
 # S3 SDK doesn't fully clean up after itself
 leak:Aws::Utils::Crypto::SecureRandomBytes_OpenSSLImpl
 leak:Aws::Crt::Io::TlsContext::TlsContext
+leak:EVP_CIPHER_CTX_new
 # Global WAVM modules
 leak:wasm::instantiateBaseModules
