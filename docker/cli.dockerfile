@@ -33,12 +33,12 @@ WORKDIR /usr/local/code/cpp
 RUN pip3 install -U pip
 RUN pip3 install -U setuptools
 RUN pip3 install -U wheel
-RUN pip3 install -e .
+RUN pip3 install --prefix=~/.local -e .
 
 # Python set-up
 WORKDIR /usr/local/code/faasm
 RUN pip3 install -r faasmcli/requirements.txt
-RUN pip3 install -e faasmcli/
+RUN pip3 install --prefix=~/.local -e faasmcli/
 
 # Build some useful targets
 RUN inv -r faasmcli/faasmcli dev.tools --build Release
