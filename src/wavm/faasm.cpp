@@ -598,8 +598,20 @@ std::pair<uint32_t, faabric::util::SnapshotDataType> extractSnapshotDataType(
         case (faabric::util::SnapshotDataType::Raw): {
             SPDLOG_ERROR("Cannot declare untyped merge regions from code");
         }
+        case (faabric::util::SnapshotDataType::Bool): {
+            return { sizeof(I8), faabric::util::SnapshotDataType::Bool };
+        }
         case (faabric::util::SnapshotDataType::Int): {
             return { sizeof(I32), faabric::util::SnapshotDataType::Int };
+        }
+        case (faabric::util::SnapshotDataType::Long): {
+            return { sizeof(I64), faabric::util::SnapshotDataType::Long };
+        }
+        case (faabric::util::SnapshotDataType::Float): {
+            return { sizeof(F32), faabric::util::SnapshotDataType::Float };
+        }
+        case (faabric::util::SnapshotDataType::Double): {
+            return { sizeof(F64), faabric::util::SnapshotDataType::Double };
         }
         default: {
             SPDLOG_ERROR("Unrecognised memory data type: {}", varType);
@@ -610,15 +622,13 @@ std::pair<uint32_t, faabric::util::SnapshotDataType> extractSnapshotDataType(
 
 faabric::util::SnapshotMergeOperation extractSnapshotMergeOp(I32 mergeOp)
 {
-    switch (mergeOp) {
-        case (faabric::util::SnapshotMergeOperation::Overwrite): {
-            return faabric::util::SnapshotMergeOperation::Overwrite;
-        }
-        default: {
-            SPDLOG_ERROR("Unrecognised merge operation: {}", mergeOp);
-            throw std::runtime_error("Unrecognised merge operation");
-        }
+    if (faabric::util::SnapshotMergeOperation::Overwrite <= mergeOp &&
+        mergeOp <= faabric::util::SnapshotMergeOperation::Min) {
+        return static_cast<faabric::util::SnapshotMergeOperation>(mergeOp);
     }
+
+    SPDLOG_ERROR("Unrecognised merge operation: {}", mergeOp);
+    throw std::runtime_error("Unrecognised merge operation");
 }
 
 void addSharedMemMergeRegion(I32 varPtr,
@@ -695,10 +705,24 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     size_t dataSize = dataType.first * arraySize;
     addSharedMemMergeRegion(varPtr,
                             dataSize,
-                            dataType.second,
+                            faabric::util::SnapshotDataType::Raw,
                             faabric::util::SnapshotMergeOperation::Overwrite);
 }
 
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "__faasm_sm_raw",
+                               void,
+                               __faasm_sm_raw,
+                               I32 varPtr,
+                               I32 varSize)
+{
+    SPDLOG_DEBUG("S - sm_raw - {} {}", varPtr, varSize);
+
+    addSharedMemMergeRegion(varPtr,
+                            varSize,
+                            faabric::util::SnapshotDataType::Raw,
+                            faabric::util::SnapshotMergeOperation::Overwrite);
+}
 // ------------------------------------
 // LEGACY PYTHON
 // ------------------------------------

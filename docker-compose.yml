@@ -123,6 +123,10 @@ services:
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
+      - ASAN_OPTIONS=halt_on_error=1
+      - LSAN_OPTIONS=suppressions=${PROJ_ROOT}/leak-sanitizer-ignorelist.txt
+      - TSAN_OPTIONS=halt_on_error=1:suppressions=${PROJ_ROOT}/thread-sanitizer-ignorelist.txt:history_size=7:second_deadlock_stack=1
+      - UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1
     volumes:
       - ./:/usr/local/code/faasm/
       - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
