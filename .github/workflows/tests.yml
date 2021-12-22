@@ -7,6 +7,10 @@ on:
     branches: [master]
     types: [opened, synchronize, reopened, ready_for_review]
 
+defaults:
+  run:
+    shell: bash -c "source venv/bin/activate" && bash {0}
+
 jobs:
   formatting:
     if: github.event.pull_request.draft == false
@@ -26,10 +30,7 @@ jobs:
         run: git submodule update
       # --- Formatting checks ---
       - name: "Python formatting check"
-        run: |
-          source venv/bin/activate
-          ./bin/check_python.sh
-        shell: bash
+        run: ./bin/check_python.sh
       - name: "Run C/C++ formatting"
         run: ./bin/run_clang_format.sh
       - name: "Check C/C++ formatting changes"
@@ -149,7 +150,7 @@ jobs:
         run: |
           source venv/bin/activate
           inv -r faasmcli/faasmcli dev.cmake --build Debug
-        shell: bash
+        shell: bash -c "source venv/bin/activate && {0}"
 
   build:
     if: github.event.pull_request.draft == false
