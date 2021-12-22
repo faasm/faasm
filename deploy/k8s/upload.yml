@@ -11,7 +11,7 @@ metadata:
 spec:
   containers:
     - name: upload
-      image: faasm/upload:0.7.7
+      image: faasm/upload:0.7.8
       ports:
         - containerPort: 8002
         - containerPort: 5000
