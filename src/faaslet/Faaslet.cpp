@@ -85,13 +85,7 @@ Faaslet::Faaslet(faabric::Message& msg)
     // (currently only supported in WAVM)
     if (conf.wasmVm == "wavm") {
         localResetSnapshotKey =
-          faabric::util::funcToString(msg, false) + "_reset";
-        std::shared_ptr<faabric::util::SnapshotData> snapData =
-          module->getSnapshotData();
-
-        faabric::snapshot::SnapshotRegistry& snapReg =
-          faabric::snapshot::getSnapshotRegistry();
-        snapReg.registerSnapshotIfNotExists(localResetSnapshotKey, snapData);
+          wasm::getWAVMModuleCache().registerResetSnapshot(*module, msg);
     }
 }
 
@@ -102,7 +96,10 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
     // Lazily setup Faaslet isolation.
     // This has to be done within the same thread as the execution (hence we
     // leave it until just before execution).
-    if (!isIsolated) {
+    bool notIsolated = false;
+    bool shouldIsolate = isIsolated.compare_exchange_strong(notIsolated, true);
+
+    if (shouldIsolate) {
         // Add this thread to the cgroup
         CGroup cgroup(BASE_CGROUP_NAME);
         cgroup.addCurrentThread();

@@ -1,5 +1,6 @@
 #include <wavm/WAVMWasmModule.h>
 
+#include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 #include <faabric/util/locks.h>
@@ -55,6 +56,27 @@ WAVMModuleCache::getCachedModule(faabric::Message& msg)
         faabric::util::SharedLock lock(mx);
         return std::pair<wasm::WAVMWasmModule&, faabric::util::SharedLock>(
           cachedModuleMap[key], std::move(lock));
+    }
+}
+
+std::string WAVMModuleCache::registerResetSnapshot(wasm::WasmModule& module,
+                                                   faabric::Message& msg)
+{
+    std::string snapKey = faabric::util::funcToString(msg, false) + "_reset";
+
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+
+    if (!reg.snapshotExists(snapKey)) {
+        faabric::util::FullLock lock(mx);
+        if (!reg.snapshotExists(snapKey)) {
+            reg.registerSnapshot(snapKey, module.getSnapshotData());
+        }
+    }
+
+    {
+        faabric::util::SharedLock lock(mx);
+        return snapKey;
     }
 }
 

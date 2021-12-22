@@ -643,7 +643,7 @@ void addSharedMemMergeRegion(I32 varPtr,
     if (snapKey.empty()) {
         // Use app snapshot by default
         WasmModule* module = getExecutingModule();
-        snapKey = module->getOrCreateAppSnapshot(*msg);
+        snapKey = module->getOrCreateAppSnapshot(*msg, false);
     }
 
     SPDLOG_DEBUG("Registering shared memory region {}-{} for {}",

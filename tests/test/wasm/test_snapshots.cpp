@@ -191,11 +191,11 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
         // Execute and check again
         fSnap.executeTask(0, 0, reqSnap);
 
-        // Check some dirty pages are registered
+        // Check module resets dirty pages
         faabric::util::MemoryView memAfterSnap = f.getMemoryView();
         std::vector<faabric::util::SnapshotDiff> actualAfterSnap =
           memAfterSnap.getDirtyRegions();
-        REQUIRE(!actualAfterSnap.empty());
+        REQUIRE(actualAfterSnap.empty());
     }
 }
 
@@ -211,17 +211,17 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
 
     wasm::WAVMWasmModule moduleA;
     moduleA.bindToFunction(mA);
-    std::string keyA = moduleA.getOrCreateAppSnapshot(mA);
+    std::string keyA = moduleA.getOrCreateAppSnapshot(mA, true);
 
     REQUIRE(reg.getSnapshotCount() == 1);
 
     wasm::WAVMWasmModule moduleB;
     moduleB.bindToFunction(mB);
-    std::string keyB = moduleB.getOrCreateAppSnapshot(mB);
+    std::string keyB = moduleB.getOrCreateAppSnapshot(mB, true);
 
     // Make sure repeated calls don't recreate
-    moduleB.getOrCreateAppSnapshot(mA);
-    moduleB.getOrCreateAppSnapshot(mA);
+    moduleB.getOrCreateAppSnapshot(mA, true);
+    moduleB.getOrCreateAppSnapshot(mA, true);
 
     REQUIRE(reg.getSnapshotCount() == 2);
     REQUIRE(keyA != keyB);

@@ -35,7 +35,7 @@ class Faaslet final : public faabric::scheduler::Executor
     void postFinish() override;
 
   private:
-    bool isIsolated = false;
+    std::atomic<bool> isIsolated = false;
 
     std::string localResetSnapshotKey;
 

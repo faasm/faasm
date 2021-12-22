@@ -132,7 +132,7 @@ class WasmModule
 
     faabric::util::MemoryView getMemoryView();
 
-    std::string getOrCreateAppSnapshot(const faabric::Message& msg);
+    std::string getOrCreateAppSnapshot(const faabric::Message& msg, bool update);
 
     void deleteAppSnapshot(const faabric::Message& msg);
 
@@ -154,6 +154,8 @@ class WasmModule
     virtual void printDebugInfo();
 
   protected:
+    std::shared_mutex moduleMutex;
+
     std::atomic<uint32_t> currentBrk = 0;
 
     std::string boundUser;
@@ -170,20 +172,18 @@ class WasmModule
     int threadPoolSize = 0;
     std::vector<uint32_t> threadStacks;
 
-    std::shared_mutex moduleMemoryMutex;
-    std::mutex modulePthreadsMutex;
-    std::mutex moduleStateMutex;
-
     // Argc/argv
     unsigned int argc;
     std::vector<std::string> argv;
     size_t argvBufferSize;
 
     // Threads
+    std::atomic<bool> isQueuedPthreadCalls = false;
     std::vector<threads::PthreadCall> queuedPthreadCalls;
     std::unordered_map<int32_t, uint32_t> pthreadPtrsToChainedCalls;
 
     // Shared memory regions
+    std::shared_mutex sharedMemWasmPtrsMutex;
     std::unordered_map<std::string, uint32_t> sharedMemWasmPtrs;
 
     int getStdoutFd();

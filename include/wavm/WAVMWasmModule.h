@@ -232,7 +232,8 @@ class WAVMModuleCache
     std::pair<wasm::WAVMWasmModule&, faabric::util::SharedLock> getCachedModule(
       faabric::Message& msg);
 
-    void initialiseCachedModule(faabric::Message& msg);
+    std::string registerResetSnapshot(wasm::WasmModule& module,
+                                      faabric::Message& msg);
 
     void clear();
 

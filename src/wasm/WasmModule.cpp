@@ -102,25 +102,43 @@ std::string getAppSnapshotKey(const faabric::Message& msg)
 {
     std::string funcStr = faabric::util::funcToString(msg, false);
     if (msg.appid() == 0) {
-        SPDLOG_ERROR("OpenMP call without app ID set for {}", funcStr);
-        throw std::runtime_error("OpenMP call without app ID");
+        SPDLOG_ERROR("Cannot create app snapshot key without app ID for {}",
+                     funcStr);
+        throw std::runtime_error(
+          "Cannot create app snapshot key without app ID");
     }
 
     std::string snapshotKey = funcStr + "_" + std::to_string(msg.appid());
     return snapshotKey;
 }
 
-std::string WasmModule::getOrCreateAppSnapshot(const faabric::Message& msg)
+std::string WasmModule::getOrCreateAppSnapshot(const faabric::Message& msg,
+                                               bool update)
 {
     std::string snapshotKey = getAppSnapshotKey(msg);
 
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
 
-    if (reg.snapshotExists(snapshotKey)) {
-        SPDLOG_TRACE("Snapshot already exists for app {} ({}), updating",
-                     msg.appid(),
-                     snapshotKey);
+    bool exists = reg.snapshotExists(snapshotKey);
+    if (!exists) {
+        faabric::util::FullLock lock(moduleMutex);
+        exists = reg.snapshotExists(snapshotKey);
+
+        if (!exists) {
+            SPDLOG_DEBUG(
+              "Creating app snapshot: {} for app {}", snapshotKey, msg.appid());
+            snapshotWithKey(snapshotKey);
+
+            return snapshotKey;
+        }
+    }
+
+    if (update) {
+        faabric::util::FullLock lock(moduleMutex);
+
+        SPDLOG_DEBUG(
+          "Updating app snapshot: {} for app {}", snapshotKey, msg.appid());
 
         std::vector<faabric::util::SnapshotDiff> updates =
           getMemoryView().getDirtyRegions();
@@ -130,17 +148,15 @@ std::string WasmModule::getOrCreateAppSnapshot(const faabric::Message& msg)
 
         snap->queueDiffs(updates);
         snap->writeQueuedDiffs();
-    } else {
-        SPDLOG_DEBUG(
-          "Creating app snapshot: {} for app {}", snapshotKey, msg.appid());
-        snapshotWithKey(snapshotKey);
 
-        // Reset all dirty tracking here; we only want to pick up the diffs
-        // after this is first created
+        // Reset dirty tracking
         faabric::util::resetDirtyTracking();
     }
 
-    return snapshotKey;
+    {
+        faabric::util::SharedLock lock(moduleMutex);
+        return snapshotKey;
+    }
 }
 
 void WasmModule::deleteAppSnapshot(const faabric::Message& msg)
@@ -363,7 +379,8 @@ uint32_t WasmModule::mapSharedStateMemory(
                              std::to_string(length);
     if (sharedMemWasmPtrs.count(segmentKey) == 0) {
         // Lock and double check
-        faabric::util::UniqueLock lock(moduleStateMutex);
+        faabric::util::FullLock lock(sharedMemWasmPtrsMutex);
+
         if (sharedMemWasmPtrs.count(segmentKey) == 0) {
             // Page-align the chunk
             faabric::util::AlignedChunk chunk =
@@ -390,7 +407,10 @@ uint32_t WasmModule::mapSharedStateMemory(
     }
 
     // Return the wasm pointer
-    return sharedMemWasmPtrs[segmentKey];
+    {
+        faabric::util::SharedLock lock(sharedMemWasmPtrsMutex);
+        return sharedMemWasmPtrs[segmentKey];
+    }
 }
 
 uint32_t WasmModule::getCurrentBrk()
@@ -503,74 +523,72 @@ uint32_t WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
 void WasmModule::queuePthreadCall(threads::PthreadCall call)
 {
     queuedPthreadCalls.emplace_back(call);
+    isQueuedPthreadCalls = true;
 }
 
 int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
 {
     assert(msg != nullptr);
 
-    if (!queuedPthreadCalls.empty()) {
-        faabric::util::UniqueLock lock(modulePthreadsMutex);
+    bool isQueued = true;
+    bool mustDequeue =
+      isQueuedPthreadCalls.compare_exchange_strong(isQueued, false);
+    if (mustDequeue) {
+        int nPthreadCalls = queuedPthreadCalls.size();
 
-        if (!queuedPthreadCalls.empty()) {
-            int nPthreadCalls = queuedPthreadCalls.size();
+        // Set up the master snapshot if not already set up
+        std::string snapshotKey = getOrCreateAppSnapshot(*msg, true);
 
-            // Set up the master snapshot if not already set up
-            std::string snapshotKey = getOrCreateAppSnapshot(*msg);
+        std::string funcStr = faabric::util::funcToString(*msg, true);
+        SPDLOG_DEBUG("Executing {} pthread calls for {} with snapshot {}",
+                     nPthreadCalls,
+                     funcStr,
+                     snapshotKey);
 
-            std::string funcStr = faabric::util::funcToString(*msg, true);
-            SPDLOG_DEBUG("Executing {} pthread calls for {} with snapshot {}",
-                         nPthreadCalls,
-                         funcStr,
-                         snapshotKey);
+        std::shared_ptr<faabric::BatchExecuteRequest> req =
+          faabric::util::batchExecFactory(
+            msg->user(), msg->function(), nPthreadCalls);
 
-            std::shared_ptr<faabric::BatchExecuteRequest> req =
-              faabric::util::batchExecFactory(
-                msg->user(), msg->function(), nPthreadCalls);
+        req->set_type(faabric::BatchExecuteRequest::THREADS);
+        req->set_subtype(wasm::ThreadRequestType::PTHREAD);
 
-            req->set_type(faabric::BatchExecuteRequest::THREADS);
-            req->set_subtype(wasm::ThreadRequestType::PTHREAD);
+        uint32_t groupGid = faabric::util::generateGid();
 
-            uint32_t groupGid = faabric::util::generateGid();
+        for (int i = 0; i < nPthreadCalls; i++) {
+            threads::PthreadCall p = queuedPthreadCalls.at(i);
+            faabric::Message& m = req->mutable_messages()->at(i);
 
-            for (int i = 0; i < nPthreadCalls; i++) {
-                threads::PthreadCall p = queuedPthreadCalls.at(i);
-                faabric::Message& m = req->mutable_messages()->at(i);
+            // Propagate app ID
+            m.set_appid(msg->appid());
 
-                // Propagate app ID
-                m.set_appid(msg->appid());
+            // Snapshot details
+            m.set_snapshotkey(snapshotKey);
 
-                // Snapshot details
-                m.set_snapshotkey(snapshotKey);
+            // Function pointer and args
+            // NOTE - with a pthread interface we only ever pass the
+            // function a single pointer argument, hence we use the
+            // input data here to hold this argument as a string
+            m.set_funcptr(p.entryFunc);
+            m.set_inputdata(std::to_string(p.argsPtr));
 
-                // Function pointer and args
-                // NOTE - with a pthread interface we only ever pass the
-                // function a single pointer argument, hence we use the
-                // input data here to hold this argument as a string
-                m.set_funcptr(p.entryFunc);
-                m.set_inputdata(std::to_string(p.argsPtr));
+            // Assign a thread ID and increment. Our pthread IDs start
+            // at 1. Set this as part of the group with the other threads.
+            m.set_appidx(i + 1);
+            m.set_groupid(groupGid);
+            m.set_groupidx(i + 1);
+            m.set_groupsize(nPthreadCalls);
 
-                // Assign a thread ID and increment. Our pthread IDs start
-                // at 1. Set this as part of the group with the other threads.
-                m.set_appidx(i + 1);
-                m.set_groupid(groupGid);
-                m.set_groupidx(i + 1);
-                m.set_groupsize(nPthreadCalls);
-
-                // Record this thread -> call ID
-                SPDLOG_TRACE(
-                  "pthread {} mapped to call {}", p.pthreadPtr, m.id());
-                pthreadPtrsToChainedCalls.insert({ p.pthreadPtr, m.id() });
-            }
-
-            // Submit the call
-            faabric::scheduler::Scheduler& sch =
-              faabric::scheduler::getScheduler();
-            sch.callFunctions(req);
-
-            // Empty the queue
-            queuedPthreadCalls.clear();
+            // Record this thread -> call ID
+            SPDLOG_TRACE("pthread {} mapped to call {}", p.pthreadPtr, m.id());
+            pthreadPtrsToChainedCalls.insert({ p.pthreadPtr, m.id() });
         }
+
+        // Submit the call
+        faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
+        sch.callFunctions(req);
+
+        // Empty the queue
+        queuedPthreadCalls.clear();
     }
 
     // Await the results of this call

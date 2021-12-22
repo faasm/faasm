@@ -449,7 +449,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     nextLevel->fromParentLevel(parentLevel);
 
     // Set up the master snapshot if not already set up
-    std::string snapshotKey = parentModule->getOrCreateAppSnapshot(*parentCall);
+    std::string snapshotKey =
+      parentModule->getOrCreateAppSnapshot(*parentCall, true);
+
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
     std::shared_ptr<faabric::util::SnapshotData> snap =
@@ -590,12 +592,18 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         throw std::runtime_error("OpenMP threads failed");
     }
 
-    // Sync changes to the snapshot
+    // Sync changes to the snapshot and restore
     snap->writeQueuedDiffs();
     parentModule->restore(snapshotKey);
 
     // Reset parent level for next setting of threads
     parentLevel->pushedThreads = -1;
+
+    // If we're the top level, clear merge regions too
+    if (parentLevel->depth == 0) {
+        SPDLOG_DEBUG("Clearing merge regions for {}", snapshotKey);
+        snap->clearMergeRegions();
+    }
 }
 
 // -------------------------------------------------------
