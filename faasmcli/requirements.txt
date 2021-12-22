@@ -1,4 +1,4 @@
-ansible==4.0.0
+ansible==4.2.0
 black==21.9b0
 configparser==5.0.2
 cryptography==3.4.7
