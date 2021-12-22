@@ -132,7 +132,8 @@ class WasmModule
 
     faabric::util::MemoryView getMemoryView();
 
-    std::string getOrCreateAppSnapshot(const faabric::Message& msg, bool update);
+    std::string getOrCreateAppSnapshot(const faabric::Message& msg,
+                                       bool update);
 
     void deleteAppSnapshot(const faabric::Message& msg);
 
