@@ -200,6 +200,26 @@ std::string WasmModule::snapshot(bool locallyRestorable)
     return snapKey;
 }
 
+void WasmModule::syncAppSnapshot(const faabric::Message& msg)
+{
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+    std::string snapshotKey = getAppSnapshotKey(msg);
+
+    SPDLOG_DEBUG("{} syncing with snapshot {}",
+                 faabric::util::funcToString(msg, false),
+                 snapshotKey);
+
+    std::shared_ptr<faabric::util::SnapshotData> snap =
+      reg.getSnapshot(snapshotKey);
+
+    // Update the snapshot itself
+    snap->writeQueuedDiffs();
+
+    // Restore from snapshot
+    restore(snapshotKey);
+}
+
 void WasmModule::restore(const std::string& snapshotKey)
 {
     PROF_START(wasmSnapshotRestore)
@@ -448,7 +468,7 @@ int32_t WasmModule::executeTask(
             case ThreadRequestType::PTHREAD: {
                 SPDLOG_TRACE("Executing {} as pthread", funcStr);
 
-                setUpPthreadMergeRegions(msg, threads::getCurrentOpenMPLevel());
+                setUpPthreadMergeRegions(msg);
                 returnValue = executePthread(threadPoolIdx, stackTop, msg);
                 break;
             }
@@ -523,7 +543,8 @@ uint32_t WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
 void WasmModule::queuePthreadCall(threads::PthreadCall call)
 {
     queuedPthreadCalls.emplace_back(call);
-    isQueuedPthreadCalls = true;
+    isQueuedPthreadCalls.store(true);
+    queuedPthreadCallsCount.fetch_add(1);
 }
 
 int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
@@ -533,6 +554,7 @@ int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
     bool isQueued = true;
     bool mustDequeue =
       isQueuedPthreadCalls.compare_exchange_strong(isQueued, false);
+
     if (mustDequeue) {
         int nPthreadCalls = queuedPthreadCalls.size();
 
@@ -598,23 +620,26 @@ int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
 
     int returnValue = sch.awaitThreadResult(callId);
 
+    // Decrease the count and see if we're the last one
+    int prevValue = queuedPthreadCallsCount.fetch_sub(1);
+    bool isLastInBatch = prevValue == 1;
+
+    // Remove the mapping for this pointer
     pthreadPtrsToChainedCalls.erase(pthreadPtr);
+
+    // If we're the last, resync the snapshot
+    if (isLastInBatch) {
+        syncAppSnapshot(*msg);
+    }
 
     return returnValue;
 }
 
-void WasmModule::setUpPthreadMergeRegions(
-  const faabric::Message& msg,
-  std::shared_ptr<threads::Level> ompLevel)
+void WasmModule::setUpPthreadMergeRegions(const faabric::Message& msg)
 {
     // NOTE: we don't know where the shared data lives in a generic pthreaded
     // application, therefore we just add merge regions that cover the whole
-    // heap. We don't know what the final size of the heap will be, so we set
-    // the end of the second region to zero, and faabric goes to the end of the
-    // memory when diffing.
-    //
-    // There are two of these, because the thread stacks will be provisioned
-    // somewhere in the middle.
+    // memory excluding the thread stacks.
     //
     // This means we do a lot of unnecessary scanning of memory, and something
     // more fine-grained would be better (if possible).
@@ -630,15 +655,13 @@ void WasmModule::setUpPthreadMergeRegions(
     uint32_t threadStackRegionEnd =
       threadStackRegionStart + threadStackRegionSize;
 
-    uint32_t wasmStackRegionSize = threadStackRegionStart - STACK_SIZE;
+    SPDLOG_TRACE(
+      "Adding merge regions for main stack and heap: 0-{} and {}-eom",
+      STACK_SIZE,
+      threadStackRegionEnd);
 
-    SPDLOG_TRACE("Adding merge regions for pthread heap: {}-{} and {}-eom",
-                 STACK_SIZE,
-                 threadStackRegionStart,
-                 threadStackRegionEnd);
-
-    snapData->addMergeRegion(STACK_SIZE,
-                             wasmStackRegionSize,
+    snapData->addMergeRegion(0,
+                             STACK_SIZE,
                              faabric::util::SnapshotDataType::Raw,
                              faabric::util::SnapshotMergeOperation::Overwrite,
                              true);

@@ -593,17 +593,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     }
 
     // Sync changes to the snapshot and restore
-    snap->writeQueuedDiffs();
-    parentModule->restore(snapshotKey);
-
-    // Reset parent level for next setting of threads
-    parentLevel->pushedThreads = -1;
+    parentModule->syncAppSnapshot(*parentCall);
 
     // If we're the top level, clear merge regions too
     if (parentLevel->depth == 0) {
         SPDLOG_DEBUG("Clearing merge regions for {}", snapshotKey);
         snap->clearMergeRegions();
     }
+
+    // Reset parent level for next setting of threads
+    parentLevel->pushedThreads = -1;
 }
 
 // -------------------------------------------------------

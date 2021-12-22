@@ -139,6 +139,8 @@ class WasmModule
 
     std::string snapshot(bool locallyRestorable = true);
 
+    void syncAppSnapshot(const faabric::Message& msg);
+
     void restore(const std::string& snapshotKey);
 
     // ----- Threading -----
@@ -146,8 +148,7 @@ class WasmModule
 
     int awaitPthreadCall(const faabric::Message* msg, int pthreadPtr);
 
-    void setUpPthreadMergeRegions(const faabric::Message& msg,
-                                  std::shared_ptr<threads::Level> ompLevel);
+    void setUpPthreadMergeRegions(const faabric::Message& msg);
 
     std::vector<uint32_t> getThreadStacks();
 
@@ -180,6 +181,7 @@ class WasmModule
 
     // Threads
     std::atomic<bool> isQueuedPthreadCalls = false;
+    std::atomic<int> queuedPthreadCallsCount = 0;
     std::vector<threads::PthreadCall> queuedPthreadCalls;
     std::unordered_map<int32_t, uint32_t> pthreadPtrsToChainedCalls;
 
