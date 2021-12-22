@@ -455,13 +455,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     std::shared_ptr<faabric::util::SnapshotData> snap =
       reg.getSnapshot(snapshotKey);
 
-    // Push any changes from main thread to snapshot (only applicable after a
-    // parallel section has already executed)
-    std::vector<faabric::util::SnapshotDiff> diffs =
-      parentModule->getMemoryView().diffWithSnapshot(snap);
-    snap->queueDiffs(diffs);
-    snap->writeQueuedDiffs();
-
     // Set up shared variables
     if (nSharedVars > 0) {
         uint32_t* sharedVarsPtr = Runtime::memoryArrayPtr<uint32_t>(

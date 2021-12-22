@@ -118,8 +118,18 @@ std::string WasmModule::getOrCreateAppSnapshot(const faabric::Message& msg)
       faabric::snapshot::getSnapshotRegistry();
 
     if (reg.snapshotExists(snapshotKey)) {
-        SPDLOG_TRACE(
-          "Snapshot already exists for app {} ({})", msg.appid(), snapshotKey);
+        SPDLOG_TRACE("Snapshot already exists for app {} ({}), updating",
+                     msg.appid(),
+                     snapshotKey);
+
+        std::vector<faabric::util::SnapshotDiff> updates =
+          getMemoryView().getDirtyRegions();
+
+        std::shared_ptr<faabric::util::SnapshotData> snap =
+          reg.getSnapshot(snapshotKey);
+
+        snap->queueDiffs(updates);
+        snap->writeQueuedDiffs();
     } else {
         SPDLOG_DEBUG(
           "Creating app snapshot: {} for app {}", snapshotKey, msg.appid());
