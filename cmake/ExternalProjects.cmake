@@ -50,6 +50,9 @@ include(${CMAKE_CURRENT_BINARY_DIR}/conan_paths.cmake)
 
 find_package(Catch2 REQUIRED)
 
+# 22/12/2021 - WARNING: we don't install AWS through Conan as the recipe proved
+# very unstable and failed frequently.
+
 # There are some AWS docs on using the cpp sdk as an external project:
 # https://github.com/aws/aws-sdk-cpp/blob/main/Docs/CMake_External_Project.md
 # but they don't specify how to link the libraries, which required adding an

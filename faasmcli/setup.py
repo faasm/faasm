@@ -3,10 +3,6 @@ try:
 except ImportError:
     from distutils.core import setup
 
-import site
-
-site.ENABLE_USER_SITE = True
-
 PKG_NAME = "faasmcli"
 PKG_VERSION = "0.0.1"
 

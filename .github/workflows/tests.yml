@@ -7,10 +7,6 @@ on:
     branches: [master]
     types: [opened, synchronize, reopened, ready_for_review]
 
-defaults:
-  run:
-    shell: bash -c "source venv/bin/activate" && bash {0}
-
 jobs:
   formatting:
     if: github.event.pull_request.draft == false
@@ -31,6 +27,7 @@ jobs:
       # --- Formatting checks ---
       - name: "Python formatting check"
         run: ./bin/check_python.sh
+        shell: bash -c "source venv/bin/activate" && bash {0}
       - name: "Run C/C++ formatting"
         run: ./bin/run_clang_format.sh
       - name: "Check C/C++ formatting changes"
@@ -147,10 +144,8 @@ jobs:
             ${{ secrets.CACHE_VERSION }}-${{ runner.os }}-
       # --- Code build (Debug required for tests) ---
       - name: "Build dev dependencies"
-        run: |
-          source venv/bin/activate
-          inv -r faasmcli/faasmcli dev.cmake --build Debug
-        shell: bash -c "source venv/bin/activate && {0}"
+        run: inv -r faasmcli/faasmcli dev.cmake --build Debug
+        shell: bash -c "source venv/bin/activate" && bash {0}
 
   build:
     if: github.event.pull_request.draft == false
@@ -175,6 +170,7 @@ jobs:
       image: faasm/cli:0.7.7
     defaults:
       run:
+        shell: bash -c "source venv/bin/activate" && bash {0}
         working-directory: /usr/local/code/faasm
     services:
       redis:
@@ -261,42 +257,21 @@ jobs:
         run: find /usr/local/faasm/object | grep aot | xargs rm -f
       # --- Codegen build without sanitisers
       - name: "Build codegen - CMake"
-        run: |
-          source venv/bin/activate
-          inv -r faasmcli/faasmcli dev.cmake --build Debug --sanitiser None
-        shell: bash
+        run: inv -r faasmcli/faasmcli dev.cmake --build Debug --sanitiser None
       - name: "Build codegen - Codegen Func"
-        run: |
-          source venv/bin/activate
-          inv -r faasmcli/faasmcli dev.cc codegen_func
-        shell: bash
+        run: inv -r faasmcli/faasmcli dev.cc codegen_func
       - name: "Build codegen - Codegen Shared Obj"
-        run: |
-          source venv/bin/activate
-          inv -r faasmcli/faasmcli dev.cc codegen_shared_obj
-        shell: bash
+        run: inv -r faasmcli/faasmcli dev.cc codegen_shared_obj
       # --- Environment set-up ---
       - name: "Run codegen"
-        run: |
-          source venv/bin/activate
-          inv -r faasmcli/faasmcli codegen.local
-        shell: bash
+        run: inv -r faasmcli/faasmcli codegen.local
       - name: "Run python codegen"
-        run: |
-          source venv/bin/activate
-          inv -r faasmcli/faasmcli python.codegen
-        shell: bash
+        run: inv -r faasmcli/faasmcli python.codegen
       - name: "Clear existing pyc files"
-        run: |
-          source venv/bin/activate
-          inv -r faasmcli/faasmcli python.clear-runtime-pyc
-        shell: bash
+        run: inv -r faasmcli/faasmcli python.clear-runtime-pyc
       # --- Code build (Debug required for tests) ---
       - name: "Build dev tools"
-        run: |
-          source venv/bin/activate
-          inv -r faasmcli/faasmcli dev.tools --build Debug --sanitiser ${{ matrix.sanitiser }}
-        shell: bash
+        run: inv -r faasmcli/faasmcli dev.tools --build Debug --sanitiser ${{ matrix.sanitiser }}
       # --- Test run ---
       - name: "Run the tests"
         run: /build/faasm/bin/tests
