@@ -139,6 +139,7 @@ services:
       - minio
       - upload
     environment:
+      - LD_LIBRARY_PATH=/usr/local/lib
       - LOG_LEVEL=debug
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
