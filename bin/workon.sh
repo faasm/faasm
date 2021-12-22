@@ -14,12 +14,14 @@ if [[ -z "$FAASM_DOCKER" ]]; then
         THIS_DIR="$( cd "$( dirname "${ZSH_ARGZERO}" )" >/dev/null 2>&1 && pwd )"
     fi
     PROJ_ROOT="${THIS_DIR}/.."
+    VENV_PATH="${PROJ_ROOT}/venv-bm"
 
     # Normal terminal
     MODE="terminal"
 else
     # Running inside the container, we know the project root
     PROJ_ROOT="/usr/local/code/faasm"
+    VENV_PATH="${PROJ_ROOT}/venv"
 
     # Use containerised redis
     alias redis-cli="redis-cli -h redis"
@@ -33,21 +35,12 @@ pushd ${PROJ_ROOT} >> /dev/null
 # Virtualenv
 # ----------------------------
 
-if [ ! -d "venv" ]; then
-    python3 -m venv venv
-    (
-        source venv/bin/activate
-        pip install -U pip
-        pip install -U setuptools
-        pip install -U wheel
-        pip install -r faasmcli/requirements.txt
-        pip install -e faasmcli/
-        pip install -e clients/cpp/
-    )
+if [ ! -d ${VENV_PATH} ]; then
+    ${PROJ_ROOT}/bin/create_venv.sh
 fi
 
 export VIRTUAL_ENV_DISABLE_PROMPT=1
-source venv/bin/activate
+source ${VENV_PATH}/bin/activate
 
 # Aliases for invoke
 alias inv="inv -r faasmcli/faasmcli"

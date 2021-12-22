@@ -6,6 +6,9 @@ THIS_DIR=$(dirname $(readlink -f $0))
 export PROJ_ROOT=${THIS_DIR}/../..
 pushd ${PROJ_ROOT} > /dev/null
 
+# Set python dependencies
+source ./bin/workon.sh
+
 # Build everything required for the distributed tests
 inv -r faasmcli/faasmcli dev.cmake --build=Debug
 inv -r faasmcli/faasmcli dev.cc codegen_func
