@@ -413,8 +413,7 @@ void checkSharedVarsRegistered(const std::string& snapKey,
 
         // TODO - avoid doing map lookups every time, check set of keys
         if (mergeRegions.find(offset) == mergeRegions.end()) {
-            SPDLOG_WARN(
-              "{} did not declare shared var at {}", snapKey, offset);
+            SPDLOG_WARN("{} did not declare shared var at {}", snapKey, offset);
         }
     }
 }
@@ -455,6 +454,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
       faabric::snapshot::getSnapshotRegistry();
     std::shared_ptr<faabric::util::SnapshotData> snap =
       reg.getSnapshot(snapshotKey);
+
+    // Push any changes from main thread to snapshot (only applicable after a
+    // parallel section has already executed)
+    std::vector<faabric::util::SnapshotDiff> diffs =
+      parentModule->getMemoryView().diffWithSnapshot(snap);
+    snap->queueDiffs(diffs);
+    snap->writeQueuedDiffs();
 
     // Set up shared variables
     if (nSharedVars > 0) {
