@@ -2,5 +2,6 @@
 leak:Aws::Utils::Crypto::SecureRandomBytes_OpenSSLImpl
 leak:Aws::Crt::Io::TlsContext::TlsContext
 leak:EVP_CIPHER_CTX_new
+leak:EVP_EncryptInit_ex
 # Global WAVM modules
 leak:wasm::instantiateBaseModules
