@@ -74,9 +74,7 @@ TEST_CASE_METHOD(OpenMPTestFixture,
     doOmpTestLocal("simple_master");
 }
 
-TEST_CASE_METHOD(OpenMPTestFixture,
-                 "Test OpenMP reduction",
-                 "[wasm][openmp]")
+TEST_CASE_METHOD(OpenMPTestFixture, "Test OpenMP reduction", "[wasm][openmp]")
 {
     doOmpTestLocal("simple_reduce");
 }
@@ -88,12 +86,16 @@ TEST_CASE_METHOD(OpenMPTestFixture,
     doOmpTestLocal("reduction_integral");
 }
 
-TEST_CASE_METHOD(OpenMPTestFixture, "Test OpenMP critical section", "[wasm][openmp]")
+TEST_CASE_METHOD(OpenMPTestFixture,
+                 "Test OpenMP critical section",
+                 "[wasm][openmp]")
 {
     doOmpTestLocal("simple_critical");
 }
 
-TEST_CASE_METHOD(OpenMPTestFixture, "Test OpenMP single section", "[wasm][openmp]")
+TEST_CASE_METHOD(OpenMPTestFixture,
+                 "Test OpenMP single section",
+                 "[wasm][openmp]")
 {
     doOmpTestLocal("simple_single");
 }
