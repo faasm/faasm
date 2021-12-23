@@ -762,16 +762,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     getPointToPointGroup()->localUnlock();
 }
 
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "__faasm_sm_default_shared",
-                               void,
-                               __faasm_sm_default_shared)
-{
-    SPDLOG_DEBUG("S - sm_default_shared");
-
-    getSnapshot()->fillGapsWithOverwriteRegions();
-}
-
 // ------------------------------------
 // LEGACY PYTHON
 // ------------------------------------
