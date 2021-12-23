@@ -12,7 +12,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     container:
-      image: faasm/cli:0.7.7
+      image: faasm/cli:0.7.8
     defaults:
       run:
         working-directory: /usr/local/code/faasm
@@ -102,7 +102,7 @@ jobs:
       REDIS_QUEUE_HOST: redis
       REDIS_STATE_HOST: redis
     container:
-      image: faasm/cli:0.7.7
+      image: faasm/cli:0.7.8
     defaults:
       run:
         working-directory: /usr/local/code/faasm
@@ -167,18 +167,18 @@ jobs:
       TSAN_OPTIONS: "halt_on_error=1:suppressions=/usr/local/code/faasm/thread-sanitizer-ignorelist.txt:history_size=7:second_deadlock_stack=1"
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1"
     container:
-      image: faasm/cli:0.7.7
+      image: faasm/cli:0.7.8
     defaults:
       run:
         shell: bash -c "source venv/bin/activate" && bash {0}
         working-directory: /usr/local/code/faasm
     services:
       redis:
-        image: faasm/redis:0.7.7
+        image: faasm/redis:0.7.8
         ports:
           - 6379:6379
       minio:
-        image: faasm/minio:0.7.7
+        image: faasm/minio:0.7.8
         env:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
