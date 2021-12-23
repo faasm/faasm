@@ -153,6 +153,13 @@ TEST_CASE_METHOD(OpenMPTestFixture, "Test OpenMP atomic", "[wasm][openmp]")
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture,
+                 "Test OpenMP default shared",
+                 "[wasm][openmp]")
+{
+    doOmpTestLocal("default_shared");
+}
+
+TEST_CASE_METHOD(OpenMPTestFixture,
                  "Run openmp memory stress test",
                  "[wasm][openmp]")
 {

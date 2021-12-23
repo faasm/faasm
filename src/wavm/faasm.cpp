@@ -1,23 +1,26 @@
-#include "WAVMWasmModule.h"
-#include "faabric/snapshot/SnapshotRegistry.h"
-#include "faabric/util/func.h"
-#include "faabric/util/snapshot.h"
 #include "syscalls.h"
-#include "wasm/WasmExecutionContext.h"
+
+#include <wasm/WasmExecutionContext.h>
+#include <wavm/WAVMWasmModule.h>
 
 #include <WAVM/Platform/Diagnostics.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 
+#include <faabric/snapshot/SnapshotRegistry.h>
+#include <faabric/transport/PointToPointBroker.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/files.h>
+#include <faabric/util/func.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
+#include <faabric/util/snapshot.h>
 #include <faabric/util/state.h>
 
 #include <conf/FaasmConfig.h>
 
 using namespace WAVM;
+using namespace faabric::transport;
 
 namespace wasm {
 
@@ -591,8 +594,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 // SHARED MEMORY
 // ------------------------------------
 
-std::pair<uint32_t, faabric::util::SnapshotDataType> extractSnapshotDataType(
-  I32 varType)
+static std::shared_ptr<PointToPointGroup> getPointToPointGroup()
+{
+    faabric::Message* msg = getExecutingCall();
+    return PointToPointGroup::getOrAwaitGroup(msg->groupid());
+}
+
+static std::pair<uint32_t, faabric::util::SnapshotDataType>
+extractSnapshotDataType(I32 varType)
 {
     switch (varType) {
         case (faabric::util::SnapshotDataType::Raw): {
@@ -620,7 +629,7 @@ std::pair<uint32_t, faabric::util::SnapshotDataType> extractSnapshotDataType(
     }
 }
 
-faabric::util::SnapshotMergeOperation extractSnapshotMergeOp(I32 mergeOp)
+static faabric::util::SnapshotMergeOperation extractSnapshotMergeOp(I32 mergeOp)
 {
     if (faabric::util::SnapshotMergeOperation::Overwrite <= mergeOp &&
         mergeOp <= faabric::util::SnapshotMergeOperation::Min) {
@@ -631,12 +640,8 @@ faabric::util::SnapshotMergeOperation extractSnapshotMergeOp(I32 mergeOp)
     throw std::runtime_error("Unrecognised merge operation");
 }
 
-void addSharedMemMergeRegion(I32 varPtr,
-                             size_t regionSize,
-                             faabric::util::SnapshotDataType dataType,
-                             faabric::util::SnapshotMergeOperation mergeOp)
+static std::shared_ptr<faabric::util::SnapshotData> getSnapshot()
 {
-
     faabric::Message* msg = getExecutingCall();
     std::string snapKey = msg->snapshotkey();
 
@@ -646,15 +651,28 @@ void addSharedMemMergeRegion(I32 varPtr,
         snapKey = module->getOrCreateAppSnapshot(*msg, false);
     }
 
+    // Set up the corresponding merge region
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+    auto snap = reg.getSnapshot(snapKey);
+
+    return snap;
+}
+
+static void addSharedMemMergeRegion(
+  I32 varPtr,
+  size_t regionSize,
+  faabric::util::SnapshotDataType dataType,
+  faabric::util::SnapshotMergeOperation mergeOp)
+{
+    faabric::Message* msg = getExecutingCall();
+    auto snap = getSnapshot();
+
     SPDLOG_DEBUG("Registering shared memory region {}-{} for {}",
                  varPtr,
                  varPtr + regionSize,
                  faabric::util::funcToString(*msg, false));
 
-    // Set up the corresponding merge region
-    faabric::snapshot::SnapshotRegistry& reg =
-      faabric::snapshot::getSnapshotRegistry();
-    auto snap = reg.getSnapshot(snapKey);
     snap->addMergeRegion(varPtr, regionSize, dataType, mergeOp, true);
 }
 
@@ -723,6 +741,37 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                             faabric::util::SnapshotDataType::Raw,
                             faabric::util::SnapshotMergeOperation::Overwrite);
 }
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "__faasm_sm_critical_local",
+                               void,
+                               __faasm_sm_critical_local)
+{
+    SPDLOG_DEBUG("S - sm_critical_local");
+
+    getPointToPointGroup()->localLock();
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "__faasm_sm_critical_local_end",
+                               void,
+                               __faasm_sm_critical_local_end)
+{
+    SPDLOG_DEBUG("S - sm_critical_local_end");
+
+    getPointToPointGroup()->localUnlock();
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "__faasm_sm_default_shared",
+                               void,
+                               __faasm_sm_default_shared)
+{
+    SPDLOG_DEBUG("S - sm_default_shared");
+
+    getSnapshot()->fillGapsWithOverwriteRegions();
+}
+
 // ------------------------------------
 // LEGACY PYTHON
 // ------------------------------------

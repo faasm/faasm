@@ -63,7 +63,7 @@ std::unordered_map<std::string, std::vector<std::string>> cachedDecisionHosts;
                  globalThreadNum,                                              \
                  __VA_ARGS__);
 
-std::shared_ptr<faabric::transport::PointToPointGroup>
+static std::shared_ptr<faabric::transport::PointToPointGroup>
 getExecutingPointToPointGroup()
 {
     faabric::Message* msg = getExecutingCall();

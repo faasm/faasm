@@ -98,7 +98,7 @@ faabric::util::MemoryView WasmModule::getMemoryView()
     return faabric::util::MemoryView({ memBase, currentSize });
 }
 
-std::string getAppSnapshotKey(const faabric::Message& msg)
+static std::string getAppSnapshotKey(const faabric::Message& msg)
 {
     std::string funcStr = faabric::util::funcToString(msg, false);
     if (msg.appid() == 0) {
