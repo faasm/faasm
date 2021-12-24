@@ -11,7 +11,7 @@ metadata:
 spec:
   containers:
     - name: master
-      image: faasm/redis:0.7.8
+      image: faasm/redis:0.7.9
       ports:
         - containerPort: 6379
 
@@ -28,7 +28,7 @@ metadata:
 spec:
   containers:
     - name: master
-      image: faasm/redis:0.7.8
+      image: faasm/redis:0.7.9
       ports:
         - containerPort: 6379
 
