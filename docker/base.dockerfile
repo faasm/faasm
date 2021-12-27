@@ -5,7 +5,7 @@ FROM faasm/cpython:0.1.0 as python
 FROM faasm/sgx:0.5.3 as sgx
 
 # Note - we don't often rebuild cpp-root so this dep may be behind
-FROM faasm/cpp-root:0.7.4
+FROM faasm/cpp-root:0.7.7
 ARG FAASM_VERSION
 
 # Flag to say we're in a container

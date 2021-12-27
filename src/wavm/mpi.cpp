@@ -32,7 +32,7 @@ faabric::scheduler::MpiWorld& getExecutingWorld()
 {
     faabric::scheduler::MpiWorldRegistry& reg =
       faabric::scheduler::getMpiWorldRegistry();
-    return reg.getOrInitialiseWorld(*getExecutingCall());
+    return reg.getWorld(executingContext.getWorldId());
 }
 
 /**
@@ -42,32 +42,22 @@ faabric::scheduler::MpiWorld& getExecutingWorld()
 class ContextWrapper
 {
   public:
-    explicit ContextWrapper(I32 commPtr)
+    explicit ContextWrapper()
       : module(getExecutingWAVMModule())
       , memory(module->defaultMemory)
       , world(getExecutingWorld())
       , rank(executingContext.getRank())
-    {
-        if (commPtr >= 0 && !checkMpiComm(commPtr)) {
-            throw std::runtime_error("Unexpected comm type");
-        }
-    }
-
-    ContextWrapper()
-      : ContextWrapper(-1)
     {}
 
-    bool checkMpiComm(I32 wasmPtr)
+    void checkMpiComm(I32 wasmPtr)
     {
         faabric_communicator_t* hostComm =
           &Runtime::memoryRef<faabric_communicator_t>(memory, wasmPtr);
 
         if (hostComm->id != FAABRIC_COMM_WORLD) {
             SPDLOG_ERROR("Unrecognised communicator type {}", hostComm->id);
-            return false;
+            throw std::runtime_error("Unexpected comm type");
         }
-
-        return true;
     }
 
     faabric_datatype_t* getFaasmDataType(I32 wasmPtr)
@@ -125,6 +115,8 @@ class ContextWrapper
     int rank;
 };
 
+static thread_local std::unique_ptr<ContextWrapper> ctx = nullptr;
+
 /**
  * Sets up the MPI world. Arguments are argc/argv which are NULL, NULL in our
  * case
@@ -147,6 +139,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Init", I32, MPI_Init, I32 a, I32 b)
         // Join the world
         executingContext.joinWorld(*call);
     }
+
+    ctx = std::make_unique<ContextWrapper>();
 
     return 0;
 }
@@ -182,8 +176,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     MPI_FUNC_ARGS("S - MPI_Comm_size {} {}", comm, resPtr);
 
-    ContextWrapper ctx(comm);
-    ctx.writeMpiResult<int>(resPtr, ctx.world.getSize());
+    ctx->checkMpiComm(comm);
+    ctx->writeMpiResult<int>(resPtr, ctx->world.getSize());
 
     return MPI_SUCCESS;
 }
@@ -200,8 +194,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     MPI_FUNC_ARGS("S - MPI_Comm_rank {} {}", comm, resPtr);
 
-    ContextWrapper ctx(comm);
-    ctx.writeMpiResult<int>(resPtr, ctx.rank);
+    ctx->checkMpiComm(comm);
+    ctx->writeMpiResult<int>(resPtr, ctx->rank);
 
     return MPI_SUCCESS;
 }
@@ -322,10 +316,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   tag,
                   comm);
 
-    ContextWrapper ctx(comm);
-    faabric_datatype_t* hostDtype = ctx.getFaasmDataType(datatype);
-    auto inputs = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, buffer, count);
-    ctx.world.send(ctx.rank, destRank, inputs, hostDtype, count);
+    ctx->checkMpiComm(comm);
+    faabric_datatype_t* hostDtype = ctx->getFaasmDataType(datatype);
+    auto inputs = Runtime::memoryArrayPtr<uint8_t>(ctx->memory, buffer, count);
+    ctx->world.send(ctx->rank, destRank, inputs, hostDtype, count);
 
     return 0;
 }
@@ -360,11 +354,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
 int terminateMpi()
 {
-    // Wait for all processes to reach the terminate step
-    ContextWrapper ctx;
-
     // Destroy the MPI world
-    ctx.world.destroy();
+    ctx->world.destroy();
+
+    // Null-out the context
+    ctx = nullptr;
 
     return MPI_SUCCESS;
 }
@@ -393,14 +387,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   comm,
                   requestPtrPtr);
 
-    ContextWrapper ctx(comm);
-    faabric_datatype_t* hostDtype = ctx.getFaasmDataType(datatype);
+    ctx->checkMpiComm(comm);
+    faabric_datatype_t* hostDtype = ctx->getFaasmDataType(datatype);
 
-    auto inputs = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, buffer, count);
+    auto inputs = Runtime::memoryArrayPtr<uint8_t>(ctx->memory, buffer, count);
     int requestId =
-      ctx.world.isend(ctx.rank, destRank, inputs, hostDtype, count);
+      ctx->world.isend(ctx->rank, destRank, inputs, hostDtype, count);
 
-    ctx.writeFaasmRequestId(requestPtrPtr, requestId);
+    ctx->writeFaasmRequestId(requestPtrPtr, requestId);
 
     return MPI_SUCCESS;
 }
@@ -418,9 +412,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     SPDLOG_DEBUG("S - MPI_Get_count {} {} {}", statusPtr, datatype, countPtr);
 
-    ContextWrapper ctx;
-    MPI_Status* status = &Runtime::memoryRef<MPI_Status>(ctx.memory, statusPtr);
-    faabric_datatype_t* hostDtype = ctx.getFaasmDataType(datatype);
+    MPI_Status* status =
+      &Runtime::memoryRef<MPI_Status>(ctx->memory, statusPtr);
+    faabric_datatype_t* hostDtype = ctx->getFaasmDataType(datatype);
     if (status->bytesSize % hostDtype->size != 0) {
         SPDLOG_ERROR("Incomplete message (bytes {}, datatype size {})",
                      status->bytesSize,
@@ -429,7 +423,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     }
 
     int nVals = status->bytesSize / hostDtype->size;
-    ctx.writeMpiResult<int>(countPtr, nVals);
+    ctx->writeMpiResult<int>(countPtr, nVals);
 
     return MPI_SUCCESS;
 }
@@ -458,11 +452,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   comm,
                   statusPtr);
 
-    ContextWrapper ctx(comm);
-    MPI_Status* status = &Runtime::memoryRef<MPI_Status>(ctx.memory, statusPtr);
-    faabric_datatype_t* hostDtype = ctx.getFaasmDataType(datatype);
-    auto outputs = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, buffer, count);
-    ctx.world.recv(sourceRank, ctx.rank, outputs, hostDtype, count, status);
+    ctx->checkMpiComm(comm);
+    MPI_Status* status =
+      &Runtime::memoryRef<MPI_Status>(ctx->memory, statusPtr);
+    faabric_datatype_t* hostDtype = ctx->getFaasmDataType(datatype);
+    auto outputs = Runtime::memoryArrayPtr<uint8_t>(ctx->memory, buffer, count);
+    ctx->world.recv(sourceRank, ctx->rank, outputs, hostDtype, count, status);
 
     return 0;
 }
@@ -503,25 +498,26 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   comm,
                   statusPtr);
 
-    ContextWrapper ctx(comm);
-    faabric_datatype_t* hostSendDtype = ctx.getFaasmDataType(sendType);
-    faabric_datatype_t* hostRecvDtype = ctx.getFaasmDataType(recvType);
-    MPI_Status* status = &Runtime::memoryRef<MPI_Status>(ctx.memory, statusPtr);
+    ctx->checkMpiComm(comm);
+    faabric_datatype_t* hostSendDtype = ctx->getFaasmDataType(sendType);
+    faabric_datatype_t* hostRecvDtype = ctx->getFaasmDataType(recvType);
+    MPI_Status* status =
+      &Runtime::memoryRef<MPI_Status>(ctx->memory, statusPtr);
     auto hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(
-      ctx.memory, sendBuf, sendCount * hostSendDtype->size);
+      ctx->memory, sendBuf, sendCount * hostSendDtype->size);
     auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(
-      ctx.memory, recvBuf, recvCount * hostRecvDtype->size);
+      ctx->memory, recvBuf, recvCount * hostRecvDtype->size);
 
-    ctx.world.sendRecv(hostSendBuffer,
-                       sendCount,
-                       hostSendDtype,
-                       destination,
-                       hostRecvBuffer,
-                       recvCount,
-                       hostRecvDtype,
-                       source,
-                       ctx.rank,
-                       status);
+    ctx->world.sendRecv(hostSendBuffer,
+                        sendCount,
+                        hostSendDtype,
+                        destination,
+                        hostRecvBuffer,
+                        recvCount,
+                        hostRecvDtype,
+                        source,
+                        ctx->rank,
+                        status);
 
     return MPI_SUCCESS;
 }
@@ -541,7 +537,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 comm,
                                I32 requestPtrPtr)
 {
-    ContextWrapper ctx(comm);
     MPI_FUNC_ARGS("S - MPI_Irecv {} {} {} {} {} {} {}",
                   buffer,
                   count,
@@ -551,12 +546,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   comm,
                   requestPtrPtr);
 
-    faabric_datatype_t* hostDtype = ctx.getFaasmDataType(datatype);
-    auto outputs = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, buffer, count);
+    ctx->checkMpiComm(comm);
+    faabric_datatype_t* hostDtype = ctx->getFaasmDataType(datatype);
+    auto outputs = Runtime::memoryArrayPtr<uint8_t>(ctx->memory, buffer, count);
     int requestId =
-      ctx.world.irecv(sourceRank, ctx.rank, outputs, hostDtype, count);
+      ctx->world.irecv(sourceRank, ctx->rank, outputs, hostDtype, count);
 
-    ctx.writeFaasmRequestId(requestPtrPtr, requestId);
+    ctx->writeFaasmRequestId(requestPtrPtr, requestId);
 
     return MPI_SUCCESS;
 }
@@ -571,11 +567,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 requestPtrPtr,
                                I32 status)
 {
-    ContextWrapper ctx;
-    int requestId = ctx.getFaasmRequestId(requestPtrPtr);
+    int requestId = ctx->getFaasmRequestId(requestPtrPtr);
 
     MPI_FUNC_ARGS("S - MPI_Wait {} {}", requestPtrPtr, requestId);
-    ctx.world.awaitAsyncRequest(requestId);
+    ctx->world.awaitAsyncRequest(requestId);
 
     return MPI_SUCCESS;
 }
@@ -646,9 +641,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     MPI_FUNC_ARGS("S - MPI_Probe {} {} {} {}", source, tag, comm, statusPtr);
 
-    ContextWrapper ctx(comm);
-    MPI_Status* status = &Runtime::memoryRef<MPI_Status>(ctx.memory, statusPtr);
-    ctx.world.probe(source, ctx.rank, status);
+    ctx->checkMpiComm(comm);
+    MPI_Status* status =
+      &Runtime::memoryRef<MPI_Status>(ctx->memory, statusPtr);
+    ctx->world.probe(source, ctx->rank, status);
 
     return MPI_SUCCESS;
 }
@@ -670,13 +666,17 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     MPI_FUNC_ARGS(
       "S - MPI_Bcast {} {} {} {} {}", buffer, count, datatype, root, comm);
 
-    ContextWrapper ctx(comm);
-    faabric_datatype_t* hostDtype = ctx.getFaasmDataType(datatype);
+    ctx->checkMpiComm(comm);
+    faabric_datatype_t* hostDtype = ctx->getFaasmDataType(datatype);
     auto inputs = Runtime::memoryArrayPtr<uint8_t>(
-      ctx.memory, buffer, count * hostDtype->size);
+      ctx->memory, buffer, count * hostDtype->size);
 
-    ctx.world.broadcast(
-      root, ctx.rank, inputs, hostDtype, count, faabric::MPIMessage::BROADCAST);
+    ctx->world.broadcast(root,
+                         ctx->rank,
+                         inputs,
+                         hostDtype,
+                         count,
+                         faabric::MPIMessage::BROADCAST);
 
     return MPI_SUCCESS;
 }
@@ -689,8 +689,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Barrier", I32, MPI_Barrier, I32 comm)
 {
     MPI_FUNC_ARGS("S - MPI_Barrier {}", comm);
 
-    ContextWrapper ctx(comm);
-    ctx.world.barrier(ctx.rank);
+    ctx->checkMpiComm(comm);
+    ctx->world.barrier(ctx->rank);
 
     return MPI_SUCCESS;
 }
@@ -721,23 +721,23 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   root,
                   comm);
 
-    ContextWrapper ctx(comm);
-    faabric_datatype_t* hostSendDtype = ctx.getFaasmDataType(sendType);
-    faabric_datatype_t* hostRecvDtype = ctx.getFaasmDataType(recvType);
+    ctx->checkMpiComm(comm);
+    faabric_datatype_t* hostSendDtype = ctx->getFaasmDataType(sendType);
+    faabric_datatype_t* hostRecvDtype = ctx->getFaasmDataType(recvType);
 
     auto hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(
-      ctx.memory, sendBuf, sendCount * hostSendDtype->size);
+      ctx->memory, sendBuf, sendCount * hostSendDtype->size);
     auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(
-      ctx.memory, recvBuf, recvCount * hostRecvDtype->size);
+      ctx->memory, recvBuf, recvCount * hostRecvDtype->size);
 
-    ctx.world.scatter(root,
-                      ctx.rank,
-                      hostSendBuffer,
-                      hostSendDtype,
-                      sendCount,
-                      hostRecvBuffer,
-                      hostRecvDtype,
-                      recvCount);
+    ctx->world.scatter(root,
+                       ctx->rank,
+                       hostSendBuffer,
+                       hostSendDtype,
+                       sendCount,
+                       hostRecvBuffer,
+                       hostRecvDtype,
+                       recvCount);
 
     return MPI_SUCCESS;
 }
@@ -768,28 +768,28 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   root,
                   comm);
 
-    ContextWrapper ctx(comm);
-    faabric_datatype_t* hostSendDtype = ctx.getFaasmDataType(sendType);
-    faabric_datatype_t* hostRecvDtype = ctx.getFaasmDataType(recvType);
+    ctx->checkMpiComm(comm);
+    faabric_datatype_t* hostSendDtype = ctx->getFaasmDataType(sendType);
+    faabric_datatype_t* hostRecvDtype = ctx->getFaasmDataType(recvType);
 
     auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(
-      ctx.memory, recvBuf, recvCount * hostRecvDtype->size);
+      ctx->memory, recvBuf, recvCount * hostRecvDtype->size);
     uint8_t* hostSendBuffer;
     if (isInPlace(sendBuf)) {
         hostSendBuffer = hostRecvBuffer;
     } else {
         hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(
-          ctx.memory, sendBuf, sendCount * hostSendDtype->size);
+          ctx->memory, sendBuf, sendCount * hostSendDtype->size);
     }
 
-    ctx.world.gather(ctx.rank,
-                     root,
-                     hostSendBuffer,
-                     hostSendDtype,
-                     sendCount,
-                     hostRecvBuffer,
-                     hostRecvDtype,
-                     recvCount);
+    ctx->world.gather(ctx->rank,
+                      root,
+                      hostSendBuffer,
+                      hostSendDtype,
+                      sendCount,
+                      hostRecvBuffer,
+                      hostRecvDtype,
+                      recvCount);
 
     return MPI_SUCCESS;
 }
@@ -819,12 +819,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   recvType,
                   comm);
 
-    ContextWrapper ctx(comm);
-    faabric_datatype_t* hostSendDtype = ctx.getFaasmDataType(sendType);
-    faabric_datatype_t* hostRecvDtype = ctx.getFaasmDataType(recvType);
+    ctx->checkMpiComm(comm);
+    faabric_datatype_t* hostSendDtype = ctx->getFaasmDataType(sendType);
+    faabric_datatype_t* hostRecvDtype = ctx->getFaasmDataType(recvType);
 
     auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(
-      ctx.memory, recvBuf, recvCount * hostRecvDtype->size);
+      ctx->memory, recvBuf, recvCount * hostRecvDtype->size);
 
     // Check if we're in-place
     uint8_t* hostSendBuffer;
@@ -832,16 +832,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         hostSendBuffer = hostRecvBuffer;
     } else {
         hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(
-          ctx.memory, sendBuf, sendCount * hostSendDtype->size);
+          ctx->memory, sendBuf, sendCount * hostSendDtype->size);
     }
 
-    ctx.world.allGather(ctx.rank,
-                        hostSendBuffer,
-                        hostSendDtype,
-                        sendCount,
-                        hostRecvBuffer,
-                        hostRecvDtype,
-                        recvCount);
+    ctx->world.allGather(ctx->rank,
+                         hostSendBuffer,
+                         hostSendDtype,
+                         sendCount,
+                         hostRecvBuffer,
+                         hostRecvDtype,
+                         recvCount);
 
     return MPI_SUCCESS;
 }
@@ -904,11 +904,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   root,
                   comm);
 
-    ContextWrapper ctx(comm);
-    faabric_datatype_t* hostDtype = ctx.getFaasmDataType(datatype);
+    ctx->checkMpiComm(comm);
+    faabric_datatype_t* hostDtype = ctx->getFaasmDataType(datatype);
 
     auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(
-      ctx.memory, recvBuf, count * hostDtype->size);
+      ctx->memory, recvBuf, count * hostDtype->size);
 
     // Check if we're working in-place
     uint8_t* hostSendBuffer;
@@ -916,13 +916,18 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         hostSendBuffer = hostRecvBuffer;
     } else {
         hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(
-          ctx.memory, sendBuf, count * hostDtype->size);
+          ctx->memory, sendBuf, count * hostDtype->size);
     }
 
-    faabric_op_t* hostOp = ctx.getFaasmOp(op);
+    faabric_op_t* hostOp = ctx->getFaasmOp(op);
 
-    ctx.world.reduce(
-      ctx.rank, root, hostSendBuffer, hostRecvBuffer, hostDtype, count, hostOp);
+    ctx->world.reduce(ctx->rank,
+                      root,
+                      hostSendBuffer,
+                      hostRecvBuffer,
+                      hostDtype,
+                      count,
+                      hostOp);
 
     return MPI_SUCCESS;
 }
@@ -977,12 +982,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   op,
                   comm);
 
-    ContextWrapper ctx(comm);
-    faabric_datatype_t* hostDtype = ctx.getFaasmDataType(datatype);
-    faabric_op_t* hostOp = ctx.getFaasmOp(op);
+    ctx->checkMpiComm(comm);
+    faabric_datatype_t* hostDtype = ctx->getFaasmDataType(datatype);
+    faabric_op_t* hostOp = ctx->getFaasmOp(op);
 
     auto* hostRecvBuffer =
-      Runtime::memoryArrayPtr<uint8_t>(ctx.memory, recvBuf, count);
+      Runtime::memoryArrayPtr<uint8_t>(ctx->memory, recvBuf, count);
 
     // Check if we're operating in-place
     uint8_t* hostSendBuffer;
@@ -990,11 +995,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         hostSendBuffer = hostRecvBuffer;
     } else {
         hostSendBuffer =
-          Runtime::memoryArrayPtr<uint8_t>(ctx.memory, sendBuf, count);
+          Runtime::memoryArrayPtr<uint8_t>(ctx->memory, sendBuf, count);
     }
 
-    ctx.world.allReduce(
-      ctx.rank, hostSendBuffer, hostRecvBuffer, hostDtype, count, hostOp);
+    ctx->world.allReduce(
+      ctx->rank, hostSendBuffer, hostRecvBuffer, hostDtype, count, hostOp);
 
     return MPI_SUCCESS;
 }
@@ -1026,11 +1031,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   op,
                   comm);
 
-    ContextWrapper ctx(comm);
-    faabric_datatype_t* hostDtype = ctx.getFaasmDataType(datatype);
+    ctx->checkMpiComm(comm);
+    faabric_datatype_t* hostDtype = ctx->getFaasmDataType(datatype);
 
     auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(
-      ctx.memory, recvBuf, count * hostDtype->size);
+      ctx->memory, recvBuf, count * hostDtype->size);
 
     // Check if we're working in-place
     uint8_t* hostSendBuffer;
@@ -1038,13 +1043,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         hostSendBuffer = hostRecvBuffer;
     } else {
         hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(
-          ctx.memory, sendBuf, count * hostDtype->size);
+          ctx->memory, sendBuf, count * hostDtype->size);
     }
 
-    faabric_op_t* hostOp = ctx.getFaasmOp(op);
+    faabric_op_t* hostOp = ctx->getFaasmOp(op);
 
-    ctx.world.scan(
-      ctx.rank, hostSendBuffer, hostRecvBuffer, hostDtype, count, hostOp);
+    ctx->world.scan(
+      ctx->rank, hostSendBuffer, hostRecvBuffer, hostDtype, count, hostOp);
 
     return MPI_SUCCESS;
 }
@@ -1073,21 +1078,21 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   recvType,
                   comm);
 
-    ContextWrapper ctx(comm);
-    faabric_datatype_t* hostSendDtype = ctx.getFaasmDataType(sendType);
-    faabric_datatype_t* hostRecvDtype = ctx.getFaasmDataType(recvType);
+    ctx->checkMpiComm(comm);
+    faabric_datatype_t* hostSendDtype = ctx->getFaasmDataType(sendType);
+    faabric_datatype_t* hostRecvDtype = ctx->getFaasmDataType(recvType);
     auto hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(
-      ctx.memory, sendBuf, sendCount * hostSendDtype->size);
+      ctx->memory, sendBuf, sendCount * hostSendDtype->size);
     auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(
-      ctx.memory, recvBuf, recvCount * hostRecvDtype->size);
+      ctx->memory, recvBuf, recvCount * hostRecvDtype->size);
 
-    ctx.world.allToAll(ctx.rank,
-                       hostSendBuffer,
-                       hostSendDtype,
-                       sendCount,
-                       hostRecvBuffer,
-                       hostRecvDtype,
-                       recvCount);
+    ctx->world.allToAll(ctx->rank,
+                        hostSendBuffer,
+                        hostSendDtype,
+                        sendCount,
+                        hostRecvBuffer,
+                        hostRecvDtype,
+                        recvCount);
 
     return MPI_SUCCESS;
 }
@@ -1160,9 +1165,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     MPI_FUNC_ARGS("S - MPI_Type_size {} {}", typePtr, res);
 
-    ContextWrapper ctx;
-    faabric_datatype_t* hostType = ctx.getFaasmDataType(typePtr);
-    ctx.writeMpiResult<int>(res, hostType->size);
+    faabric_datatype_t* hostType = ctx->getFaasmDataType(typePtr);
+    ctx->writeMpiResult<int>(res, hostType->size);
 
     return MPI_SUCCESS;
 }
@@ -1180,8 +1184,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     MPI_FUNC_ARGS("S - MPI_Alloc_mem {} {} {}", memSize, info, resPtrPtr);
 
-    ContextWrapper ctx;
-    faabric_info_t* hostInfo = ctx.getFaasmInfoType(info);
+    faabric_info_t* hostInfo = ctx->getFaasmInfoType(info);
     if (hostInfo->id != FAABRIC_INFO_NULL) {
         throw std::runtime_error("Non-null info not supported");
     }
@@ -1232,20 +1235,19 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     I32 memSize = sizeof(faabric_communicator_t);
     U32 pageAlignedSize = roundUpToWasmPageAligned(memSize);
 
-    ContextWrapper ctx;
-    U32 mappedWasmPtr = ctx.module->growMemory(pageAlignedSize);
+    U32 mappedWasmPtr = ctx->module->growMemory(pageAlignedSize);
 
     // Write the value to wasm memory
-    I32* hostCommPtr = &Runtime::memoryRef<I32>(ctx.memory, newCommPtrPtr);
+    I32* hostCommPtr = &Runtime::memoryRef<I32>(ctx->memory, newCommPtrPtr);
     *hostCommPtr = mappedWasmPtr;
 
     // Cast the original communicator
     faabric_communicator_t* origComm =
-      &Runtime::memoryRef<faabric_communicator_t>(ctx.memory, commOld);
+      &Runtime::memoryRef<faabric_communicator_t>(ctx->memory, commOld);
 
     // Populate the new object
     faabric_communicator_t* newComm =
-      &Runtime::memoryRef<faabric_communicator_t>(ctx.memory, *hostCommPtr);
+      &Runtime::memoryRef<faabric_communicator_t>(ctx->memory, *hostCommPtr);
     *newComm = *origComm;
 
     return MPI_SUCCESS;
@@ -1264,13 +1266,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     MPI_FUNC_ARGS("S - MPI_Cart_rank {} {} {}", comm, coords, rankPtr);
 
-    ContextWrapper ctx;
     int* coordsArray = Runtime::memoryArrayPtr<int>(
-      ctx.memory, (Uptr)coords, MPI_CART_MAX_DIMENSIONS);
+      ctx->memory, (Uptr)coords, MPI_CART_MAX_DIMENSIONS);
 
     int rank;
-    ctx.world.getRankFromCoords(&rank, coordsArray);
-    ctx.writeMpiResult<int>(rankPtr, rank);
+    ctx->world.getRankFromCoords(&rank, coordsArray);
+    ctx->writeMpiResult<int>(rankPtr, rank);
 
     return MPI_SUCCESS;
 }
@@ -1306,16 +1307,15 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     }
 
     // Allocate the vectors in wasm memory
-    ContextWrapper ctx;
     int* dimsArray =
-      Runtime::memoryArrayPtr<int>(ctx.memory, (Uptr)dims, (Uptr)maxdims);
+      Runtime::memoryArrayPtr<int>(ctx->memory, (Uptr)dims, (Uptr)maxdims);
     int* periodsArray =
-      Runtime::memoryArrayPtr<int>(ctx.memory, (Uptr)periods, (Uptr)maxdims);
+      Runtime::memoryArrayPtr<int>(ctx->memory, (Uptr)periods, (Uptr)maxdims);
     int* coordsArray =
-      Runtime::memoryArrayPtr<int>(ctx.memory, (Uptr)coords, (Uptr)maxdims);
+      Runtime::memoryArrayPtr<int>(ctx->memory, (Uptr)coords, (Uptr)maxdims);
 
-    ctx.world.getCartesianRank(
-      ctx.rank, maxdims, dimsArray, periodsArray, coordsArray);
+    ctx->world.getCartesianRank(
+      ctx->rank, maxdims, dimsArray, periodsArray, coordsArray);
 
     return MPI_SUCCESS;
 }
@@ -1343,12 +1343,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     int hostSourceRank, hostDestRank;
 
-    ContextWrapper ctx;
-    ctx.world.shiftCartesianCoords(
-      ctx.rank, direction, disp, &hostSourceRank, &hostDestRank);
+    ctx->world.shiftCartesianCoords(
+      ctx->rank, direction, disp, &hostSourceRank, &hostDestRank);
 
-    ctx.writeMpiResult<int>(sourceRank, hostSourceRank);
-    ctx.writeMpiResult<int>(destRank, hostDestRank);
+    ctx->writeMpiResult<int>(sourceRank, hostSourceRank);
+    ctx->writeMpiResult<int>(destRank, hostDestRank);
 
     return MPI_SUCCESS;
 }
@@ -1611,8 +1610,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Wtime", F64, MPI_Wtime)
 {
     MPI_FUNC("S - MPI_Wtime");
 
-    ContextWrapper ctx;
-    double t = ctx.world.getWTime();
+    double t = ctx->world.getWTime();
     return (F64)t;
 }
 

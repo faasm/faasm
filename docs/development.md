@@ -148,13 +148,13 @@ local machine.
 This is not the recommended approach to developing Faasm, so it's not scripted,
 but you can work out what's required by looking at the following Dockerfiles:
 
-- [`faasm/grpc-root`](https://github.com/faasm/faabric/blob/master/docker/grpc-root.dockerfile)
+- [`faasm/faabric-base`](https://github.com/faasm/faabric/blob/master/docker/faabric-base.dockerfile)
 - [`faasm/cpp-root`](../docker/cpp-root.dockerfile)
 
 Most things can be done with `apt`, but the difficult bits might be:
 
 - LLVM and Clang
-- gRPC
+- Conan
 - Up-to-date CMake
 
 You will also need to set up the Python environment:
@@ -181,7 +181,7 @@ highly likely that the permissions will be messed up and cause cryptic error
 messages. To be safe, reset the permissions on everything:
 
 ```bash
-sudo chown -R ${SUDO_USER}:${SUDO_USER} .
+sudo sh -c 'chown -R ${SUDO_USER}:${SUDO_USER} .'
 ```
 
 Then you can try building one of the executables:
@@ -196,9 +196,24 @@ inv dev.cc func_runner
 
 # Check which binary is on the path
 which func_runner
+```
 
-# Run it
-func_runner demo hello
+Before running one of the executables, you must make sure that the `minio`
+container is running, and reachable from outside the container.
+
+```
+# Stop anything that may be running in the background
+docker-compose down
+
+docker-compose up -d redis-state redis-queue minio
+
+docker-compose ps
+```
+
+Take good note of the host and the port for `minio`, and then run:
+
+```
+S3_HOST="127.0.0.1" S3_PORT="9000" func_runner demo hello
 ```
 
 ## Code style

@@ -18,7 +18,7 @@ LOCALHOST_IP = "127.0.0.1"
 K8S_DIR = join(PROJ_ROOT, "deploy", "k8s")
 NAMESPACE_FILE = join(K8S_DIR, "namespace.yml")
 
-KNATIVE_VERSION = "0.24.0"
+KNATIVE_VERSION = "1.1.0"
 
 # Notes on Knative client
 # https://github.com/knative/client/blob/master/docs/cmd/kn_service_create.md
@@ -57,10 +57,11 @@ def _get_faasm_worker_pods():
         "-n faasm",
         "get pods",
         "-l serving.knative.dev/service=faasm-worker",
-        "-o jsonpath='{range .items[*]}{@.status.podIP}{\" \"}{end}'",
+        """--template "{{range .items}}{{ if not .metadata.deletionTimestamp"""
+        """ }}{{.status.podIP}}:{{end}}{{end}}" """,
     ]
     output = _capture_cmd_output(cmd)
-    ips = [o.strip() for o in output.split(" ") if o.strip()]
+    ips = [o.strip() for o in output.split(":") if o.strip()]
 
     print("Using faasm worker pods: {}".format(ips))
     return names, ips
@@ -175,7 +176,7 @@ def _kn_github_url(repo, filename):
     url = [
         "https://github.com/",
         repo,
-        "/releases/download/v{}/".format(KNATIVE_VERSION),
+        "/releases/download/knative-v{}/".format(KNATIVE_VERSION),
         filename,
     ]
     return "".join(url)

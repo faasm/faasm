@@ -19,25 +19,21 @@ endif()
 
 include(${CMAKE_CURRENT_BINARY_DIR}/conan.cmake)
 
-conan_check(VERSION 1.41.0 REQUIRED)
+conan_check(VERSION 1.43.0 REQUIRED)
+
+# Enable revisions in the conan config
+execute_process(COMMAND ${CONAN_CMD} config set general.revisions_enabled=1
+                RESULT_VARIABLE RET_CODE)
+if(NOT "${RET_CODE}" STREQUAL "0")
+    message(FATAL_ERROR "Error setting revisions for Conan: '${RET_CODE}'")
+endif()
 
 conan_cmake_configure(
     REQUIRES
-        catch2/2.13.7
-        aws-sdk-cpp/1.9.100
+        catch2/2.13.7@#31c8cd08e3c957a9eac8cb1377cf5863
     GENERATORS
         cmake_find_package
         cmake_paths
-    OPTIONS
-        aws-sdk-cpp:fPIC=True
-        aws-sdk-cpp:access-management=False
-        aws-sdk-cpp:identity-management=False
-        aws-sdk-cpp:monitoring=False
-        aws-sdk-cpp:queues=False
-        aws-sdk-cpp:s3-encryption=False
-        aws-sdk-cpp:s3=True
-        aws-sdk-cpp:text-to-speech=False
-        aws-sdk-cpp:transfer=False
 )
 
 conan_cmake_autodetect(FAABRIC_CONAN_SETTINGS)
@@ -54,14 +50,49 @@ include(${CMAKE_CURRENT_BINARY_DIR}/conan_paths.cmake)
 
 find_package(Catch2 REQUIRED)
 
+# 22/12/2021 - WARNING: we don't install AWS through Conan as the recipe proved
+# very unstable and failed frequently.
+
 # There are some AWS docs on using the cpp sdk as an external project:
 # https://github.com/aws/aws-sdk-cpp/blob/main/Docs/CMake_External_Project.md
 # but they don't specify how to link the libraries, which required adding an
 # extra couple of CMake targets.
-# We now use the Conan package for aws-sdk-cpp: https://conan.io/center/aws-sdk-cpp
-# To enable only S3, all default targets from the Conan recipe
-# have to be explicitly disabled above
-find_package(AWSSDK REQUIRED)
+# There are some AWS docs on using the cpp sdk as an external project:
+# https://github.com/aws/aws-sdk-cpp/blob/main/Docs/CMake_External_Project.md
+# but they don't specify how to link the libraries, which required adding an
+# extra couple of CMake targets.
+set(AWS_CORE_LIBRARY ${CMAKE_INSTALL_PREFIX}/lib/libaws-cpp-sdk-core.so)
+set(AWS_S3_LIBRARY ${CMAKE_INSTALL_PREFIX}/lib/libaws-cpp-sdk-s3.so)
+ExternalProject_Add(aws_ext
+    GIT_REPOSITORY   "https://github.com/aws/aws-sdk-cpp.git"
+    GIT_TAG          "b733384b16945818fa5da5b73e410dea1e9ab9d0"
+    BUILD_ALWAYS     0
+    TEST_COMMAND     ""
+    UPDATE_COMMAND   ""
+    BUILD_BYPRODUCTS ${AWS_S3_LIBRARY} ${AWS_CORE_LIBRARY}
+    CMAKE_CACHE_ARGS "-DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}"
+    LIST_SEPARATOR    "|"
+    CMAKE_ARGS       -DBUILD_SHARED_LIBS=ON
+                     -DBUILD_ONLY=s3|sts
+                     -DAUTORUN_UNIT_TESTS=OFF
+                     -DENABLE_TESTING=OFF
+                     -DCMAKE_BUILD_TYPE=Release
+)
+
+add_library(aws_ext_core SHARED IMPORTED)
+add_library(aws_ext_s3 SHARED IMPORTED)
+set_target_properties(aws_ext_core
+    PROPERTIES IMPORTED_LOCATION
+    ${CMAKE_INSTALL_PREFIX}/lib/libaws-cpp-sdk-core.so)
+set_target_properties(aws_ext_s3
+    PROPERTIES IMPORTED_LOCATION
+    ${CMAKE_INSTALL_PREFIX}/lib/libaws-cpp-sdk-s3.so)
+add_dependencies(aws_ext_core aws_ext)
+add_dependencies(aws_ext_s3 aws_ext)
+# Merge the two libraries in one aliased interface
+add_library(aws_ext_s3_lib INTERFACE)
+target_link_libraries(aws_ext_s3_lib INTERFACE aws_ext_s3 aws_ext_core)
+add_library(AWS::s3 ALIAS aws_ext_s3_lib)
 
 # Tightly-coupled dependencies
 set(FETCHCONTENT_QUIET OFF)
