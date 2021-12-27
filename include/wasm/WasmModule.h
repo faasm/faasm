@@ -148,8 +148,6 @@ class WasmModule
 
     int awaitPthreadCall(const faabric::Message* msg, int pthreadPtr);
 
-    void setUpPthreadMergeRegions(const faabric::Message& msg);
-
     std::vector<uint32_t> getThreadStacks();
 
     // ----- Debugging -----
@@ -198,6 +196,8 @@ class WasmModule
 
     // Snapshots
     void snapshotWithKey(const std::string& snapKey);
+
+    void ignoreThreadStacksInSnapshot(const std::string& snapKey);
 
     // Threads
     void createThreadStacks();

@@ -258,6 +258,31 @@ void WasmModule::restore(const std::string& snapshotKey)
     PROF_END(wasmSnapshotRestore)
 }
 
+void WasmModule::ignoreThreadStacksInSnapshot(const std::string& snapKey)
+{
+    std::shared_ptr<faabric::util::SnapshotData> snap =
+      faabric::snapshot::getSnapshotRegistry().getSnapshot(snapKey);
+
+    uint32_t threadStackRegionStart =
+      threadStacks.at(0) + 1 - THREAD_STACK_SIZE - GUARD_REGION_SIZE;
+    uint32_t threadStackRegionSize =
+      threadPoolSize * (THREAD_STACK_SIZE + (2 * GUARD_REGION_SIZE));
+
+    SPDLOG_TRACE("Ignoring snapshot diffs for {} for thread stacks: {}-{}",
+                 snapKey,
+                 threadStackRegionStart,
+                 threadStackRegionStart + threadStackRegionSize);
+
+    // Note - the merge regions for a snapshot are keyed on the offset, so
+    // we will just overwrite the same region if another module has already
+    // set it
+    snap->addMergeRegion(threadStackRegionStart,
+                         threadStackRegionSize,
+                         faabric::util::SnapshotDataType::Raw,
+                         faabric::util::SnapshotMergeOperation::Ignore,
+                         true);
+}
+
 std::string WasmModule::getBoundUser()
 {
     return boundUser;
@@ -364,9 +389,9 @@ void WasmModule::bindToFunction(faabric::Message& msg, bool cache)
 void WasmModule::prepareArgcArgv(const faabric::Message& msg)
 {
     // Here we set up the arguments to main(), i.e. argc and argv
-    // We allow passing of arbitrary commandline arguments via the invocation
-    // message. These are passed as a string with a space separating each
-    // argument.
+    // We allow passing of arbitrary commandline arguments via the
+    // invocation message. These are passed as a string with a space
+    // separating each argument.
     argv = faabric::util::getArgvForMessage(msg);
     argc = argv.size();
 
@@ -386,7 +411,8 @@ void WasmModule::prepareArgcArgv(const faabric::Message& msg)
  * will be created. Loading many chunks of the same value leads to
  * fragmentation, but usually only one or two chunks are loaded per module.
  *
- * To perform the mapping we need to ensure allocated memory is page-aligned.
+ * To perform the mapping we need to ensure allocated memory is
+ * page-aligned.
  */
 uint32_t WasmModule::mapSharedStateMemory(
   const std::shared_ptr<faabric::state::StateKeyValue>& kv,
@@ -407,10 +433,10 @@ uint32_t WasmModule::mapSharedStateMemory(
               faabric::util::getPageAlignedChunk(offset, length);
 
             // Create the wasm memory region and work out the offset to the
-            // start of the desired chunk in this region (this will be zero if
-            // the offset is already zero, or if the offset is page-aligned
-            // already).
-            // We need to round the allocation up to a wasm page boundary
+            // start of the desired chunk in this region (this will be zero
+            // if the offset is already zero, or if the offset is
+            // page-aligned already). We need to round the allocation up to
+            // a wasm page boundary
             uint32_t allocSize = roundUpToWasmPageAligned(chunk.nBytesLength);
             uint32_t wasmBasePtr = this->growMemory(allocSize);
             uint32_t wasmOffsetPtr = wasmBasePtr + chunk.offsetRemainder;
@@ -461,14 +487,17 @@ int32_t WasmModule::executeTask(
     assert(!threadStacks.empty());
     uint32_t stackTop = threadStacks.at(threadPoolIdx);
 
+    // Ignore stacks and guard pages in snapshot if present
+    if (!msg.snapshotkey().empty()) {
+        ignoreThreadStacksInSnapshot(msg.snapshotkey());
+    }
+
     // Perform the appropriate type of execution
     int returnValue;
     if (req->type() == faabric::BatchExecuteRequest::THREADS) {
         switch (req->subtype()) {
             case ThreadRequestType::PTHREAD: {
                 SPDLOG_TRACE("Executing {} as pthread", funcStr);
-
-                setUpPthreadMergeRegions(msg);
                 returnValue = executePthread(threadPoolIdx, stackTop, msg);
                 break;
             }
@@ -480,7 +509,6 @@ int32_t WasmModule::executeTask(
 
                 // Set up the level
                 threads::setCurrentOpenMPLevel(req);
-
                 returnValue = executeOMPThread(threadPoolIdx, stackTop, msg);
                 break;
             }
@@ -635,44 +663,6 @@ int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
     return returnValue;
 }
 
-void WasmModule::setUpPthreadMergeRegions(const faabric::Message& msg)
-{
-    // NOTE: we don't know where the shared data lives in a generic pthreaded
-    // application, therefore we just add merge regions that cover the whole
-    // memory excluding the thread stacks.
-    //
-    // This means we do a lot of unnecessary scanning of memory, and something
-    // more fine-grained would be better (if possible).
-
-    std::string snapshotKey = msg.snapshotkey();
-    auto snapData =
-      faabric::snapshot::getSnapshotRegistry().getSnapshot(snapshotKey);
-
-    uint32_t threadStackRegionStart =
-      threadStacks.at(0) + 1 - THREAD_STACK_SIZE - GUARD_REGION_SIZE;
-    uint32_t threadStackRegionSize =
-      threadPoolSize * (THREAD_STACK_SIZE + (2 * GUARD_REGION_SIZE));
-    uint32_t threadStackRegionEnd =
-      threadStackRegionStart + threadStackRegionSize;
-
-    SPDLOG_TRACE(
-      "Adding merge regions for main stack and heap: 0-{} and {}-eom",
-      STACK_SIZE,
-      threadStackRegionEnd);
-
-    snapData->addMergeRegion(0,
-                             STACK_SIZE,
-                             faabric::util::SnapshotDataType::Raw,
-                             faabric::util::SnapshotMergeOperation::Overwrite,
-                             true);
-
-    snapData->addMergeRegion(threadStackRegionEnd,
-                             0,
-                             faabric::util::SnapshotDataType::Raw,
-                             faabric::util::SnapshotMergeOperation::Overwrite,
-                             true);
-}
-
 void WasmModule::createThreadStacks()
 {
     SPDLOG_DEBUG("Creating {} thread stacks", threadPoolSize);
@@ -682,10 +672,10 @@ void WasmModule::createThreadStacks()
         uint32_t memSize = THREAD_STACK_SIZE + (2 * GUARD_REGION_SIZE);
         uint32_t memBase = growMemory(memSize);
 
-        // Note that wasm stacks grow downwards, so we have to store the stack
-        // top, which is the offset one below the guard region above the stack
-        // Subtract 16 to make sure the stack is 16-aligned as required by the C
-        // ABI
+        // Note that wasm stacks grow downwards, so we have to store the
+        // stack top, which is the offset one below the guard region above
+        // the stack Subtract 16 to make sure the stack is 16-aligned as
+        // required by the C ABI
         uint32_t stackTop =
           memBase + GUARD_REGION_SIZE + THREAD_STACK_SIZE - 16;
         threadStacks.push_back(stackTop);
