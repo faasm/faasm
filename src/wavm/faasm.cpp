@@ -694,55 +694,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "__faasm_sm_var",
-                               void,
-                               __faasm_sm_var,
-                               I32 varPtr,
-                               I32 varType)
-{
-    SPDLOG_DEBUG("S - sm_var - {} {}", varPtr, varType);
-
-    auto dataType = extractSnapshotDataType(varType);
-    addSharedMemMergeRegion(varPtr,
-                            dataType.first,
-                            dataType.second,
-                            faabric::util::SnapshotMergeOperation::Overwrite);
-}
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "__faasm_sm_array",
-                               void,
-                               __faasm_sm_array,
-                               I32 varPtr,
-                               I32 varType,
-                               I32 arraySize)
-{
-    SPDLOG_DEBUG("S - sm_array - {} {} {}", varPtr, varType, arraySize);
-
-    auto dataType = extractSnapshotDataType(varType);
-    size_t dataSize = dataType.first * arraySize;
-    addSharedMemMergeRegion(varPtr,
-                            dataSize,
-                            faabric::util::SnapshotDataType::Raw,
-                            faabric::util::SnapshotMergeOperation::Overwrite);
-}
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "__faasm_sm_raw",
-                               void,
-                               __faasm_sm_raw,
-                               I32 varPtr,
-                               I32 varSize)
-{
-    SPDLOG_DEBUG("S - sm_raw - {} {}", varPtr, varSize);
-
-    addSharedMemMergeRegion(varPtr,
-                            varSize,
-                            faabric::util::SnapshotDataType::Raw,
-                            faabric::util::SnapshotMergeOperation::Overwrite);
-}
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__faasm_sm_critical_local",
                                void,
                                __faasm_sm_critical_local)
