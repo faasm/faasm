@@ -22,7 +22,7 @@ function pip_cmd {
 
 pushd ${PROJ_ROOT} >> /dev/null
 
-if [ ! -d "venv" ]; then
+if [ ! -d ${VENV_PATH} ]; then
     python3 -m venv ${VENV_PATH}
 fi
 
