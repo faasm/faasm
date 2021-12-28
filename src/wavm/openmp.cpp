@@ -396,28 +396,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
  * - those listed in a reduce() directive
  */
 
-void checkSharedVarsRegistered(const std::string& snapKey,
-                               std::shared_ptr<threads::Level> ompLevel)
-{
-    // Get the snapshot
-    faabric::snapshot::SnapshotRegistry& reg =
-      faabric::snapshot::getSnapshotRegistry();
-    auto snap = reg.getSnapshot(snapKey);
-
-    std::map<uint32_t, faabric::util::SnapshotMergeRegion> mergeRegions =
-      snap->getMergeRegions();
-
-    // Go through variables and check they're registered as merge regions
-    for (int i = 0; i < ompLevel->nSharedVarOffsets; i++) {
-        uint32_t offset = ompLevel->sharedVarOffsets[i];
-
-        // TODO - avoid doing map lookups every time, check set of keys
-        if (mergeRegions.find(offset) == mergeRegions.end()) {
-            SPDLOG_WARN("{} did not declare shared var at {}", snapKey, offset);
-        }
-    }
-}
-
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__kmpc_fork_call",
                                void,
@@ -463,8 +441,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
           memoryPtr, sharedVarPtrs, nSharedVars);
         nextLevel->setSharedVarOffsets(sharedVarsPtr, nSharedVars);
     }
-
-    checkSharedVarsRegistered(snapshotKey, nextLevel);
 
     // Set up the chained calls
     std::shared_ptr<faabric::BatchExecuteRequest> req =
