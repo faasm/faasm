@@ -121,9 +121,13 @@ int main(int argc, char* argv[])
     storage::initFaasmS3();
     faabric::transport::initGlobalMessageContext();
 
+    PROF_BEGIN
+
     // WARNING: All 0MQ-related operations must take place in a self-contined
     // scope to ensure all sockets are destructed before closing the context.
     int result = doRunner(argc, argv);
+
+    PROF_SUMMARY
 
     faabric::transport::closeGlobalMessageContext();
     storage::shutdownFaasmS3();

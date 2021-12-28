@@ -222,8 +222,6 @@ void WasmModule::syncAppSnapshot(const faabric::Message& msg)
 
 void WasmModule::restore(const std::string& snapshotKey)
 {
-    PROF_START(wasmSnapshotRestore)
-
     if (!isBound()) {
         SPDLOG_ERROR("Must bind wasm module before restoring snapshot {}",
                      snapshotKey);
@@ -254,8 +252,6 @@ void WasmModule::restore(const std::string& snapshotKey)
     // Map the snapshot into memory
     uint8_t* memoryBase = getMemoryBase();
     reg.mapSnapshot(snapshotKey, memoryBase);
-
-    PROF_END(wasmSnapshotRestore)
 }
 
 void WasmModule::ignoreThreadStacksInSnapshot(const std::string& snapKey)

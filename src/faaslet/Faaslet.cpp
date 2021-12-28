@@ -142,15 +142,11 @@ void Faaslet::restore(faabric::Message& msg)
     // Restore from snapshot if necessary
     if (conf.wasmVm == "wavm") {
         if (!snapshotKey.empty() && !msg.issgx()) {
-            PROF_START(snapshotOverride)
-
             SPDLOG_DEBUG("Restoring {} from snapshot {} before execution",
                          id,
                          snapshotKey);
 
             module->restore(snapshotKey);
-
-            PROF_END(snapshotOverride)
         }
     }
 }
