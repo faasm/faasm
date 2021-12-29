@@ -35,8 +35,6 @@ class Faaslet final : public faabric::scheduler::Executor
     void postFinish() override;
 
   private:
-    std::atomic<bool> isIsolated = false;
-
     std::string localResetSnapshotKey;
 
     std::shared_ptr<isolation::NetworkNamespace> ns;

@@ -259,8 +259,10 @@ void WasmModule::ignoreThreadStacksInSnapshot(const std::string& snapKey)
     std::shared_ptr<faabric::util::SnapshotData> snap =
       faabric::snapshot::getSnapshotRegistry().getSnapshot(snapKey);
 
+    // Stacks grow downwards and snapshot diffs are inclusive, so we need to
+    // start the diff on the byte at the bottom of the stacks region
     uint32_t threadStackRegionStart =
-      threadStacks.at(0) + 1 - THREAD_STACK_SIZE - GUARD_REGION_SIZE;
+      threadStacks.at(0) - (THREAD_STACK_SIZE - 1) - GUARD_REGION_SIZE;
     uint32_t threadStackRegionSize =
       threadPoolSize * (THREAD_STACK_SIZE + (2 * GUARD_REGION_SIZE));
 
@@ -566,20 +568,21 @@ uint32_t WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
 
 void WasmModule::queuePthreadCall(threads::PthreadCall call)
 {
+    // We assume that all pthread calls are queued from the main thread before
+    // await is called from the same thread, so this doesn't need to be
+    // thread-safe.
     queuedPthreadCalls.emplace_back(call);
-    isQueuedPthreadCalls.store(true);
-    queuedPthreadCallsCount.fetch_add(1);
 }
 
 int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
 {
+    // We assume that await is called in a loop from the master thread, after
+    // all pthread calls have been queued, so this function doesn't need to be
+    // thread safe.
     assert(msg != nullptr);
 
-    bool isQueued = true;
-    bool mustDequeue =
-      isQueuedPthreadCalls.compare_exchange_strong(isQueued, false);
-
-    if (mustDequeue) {
+    // Execute the queued pthread calls
+    if (!queuedPthreadCalls.empty()) {
         int nPthreadCalls = queuedPthreadCalls.size();
 
         // Set up the master snapshot if not already set up
@@ -644,15 +647,11 @@ int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
 
     int returnValue = sch.awaitThreadResult(callId);
 
-    // Decrease the count and see if we're the last one
-    int prevValue = queuedPthreadCallsCount.fetch_sub(1);
-    bool isLastInBatch = prevValue == 1;
-
     // Remove the mapping for this pointer
     pthreadPtrsToChainedCalls.erase(pthreadPtr);
 
     // If we're the last, resync the snapshot
-    if (isLastInBatch) {
+    if (pthreadPtrsToChainedCalls.empty()) {
         syncAppSnapshot(*msg);
     }
 

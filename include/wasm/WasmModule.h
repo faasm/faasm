@@ -178,8 +178,6 @@ class WasmModule
     size_t argvBufferSize;
 
     // Threads
-    std::atomic<bool> isQueuedPthreadCalls = false;
-    std::atomic<int> queuedPthreadCallsCount = 0;
     std::vector<threads::PthreadCall> queuedPthreadCalls;
     std::unordered_map<int32_t, uint32_t> pthreadPtrsToChainedCalls;
 

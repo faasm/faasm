@@ -27,6 +27,8 @@
 #include <storage/FileSystem.h>
 #endif
 
+static thread_local bool threadIsIsolated = false;
+
 using namespace isolation;
 
 namespace faaslet {
@@ -96,10 +98,11 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
     // Lazily setup Faaslet isolation.
     // This has to be done within the same thread as the execution (hence we
     // leave it until just before execution).
-    bool notIsolated = false;
-    bool shouldIsolate = isIsolated.compare_exchange_strong(notIsolated, true);
+    // Because this is a thread-specific operation we don't need any
+    // synchronisation here, and rely on the cgroup and network namespace
+    // operations being thread-safe.
 
-    if (shouldIsolate) {
+    if (!threadIsIsolated) {
         // Add this thread to the cgroup
         CGroup cgroup(BASE_CGROUP_NAME);
         cgroup.addCurrentThread();
@@ -108,7 +111,7 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
         ns = claimNetworkNamespace();
         ns->addCurrentThread();
 
-        isIsolated = true;
+        threadIsIsolated = true;
     }
 
     int32_t returnValue = module->executeTask(threadPoolIdx, msgIdx, req);
