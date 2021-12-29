@@ -251,7 +251,7 @@ void WasmModule::restore(const std::string& snapshotKey)
 
     // Map the snapshot into memory
     uint8_t* memoryBase = getMemoryBase();
-    reg.mapSnapshot(snapshotKey, memoryBase);
+    data->mapToMemory({ memoryBase, data->getSize() });
 }
 
 void WasmModule::ignoreThreadStacksInSnapshot(const std::string& snapKey)

@@ -1,3 +1,4 @@
+#include "faabric/util/environment.h"
 #include <conf/FaasmConfig.h>
 #include <faaslet/Faaslet.h>
 #include <storage/FileLoader.h>
@@ -47,13 +48,13 @@ int doRunner(int argc, char* argv[])
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
 
-    // Set short timeouts to die quickly
-    conf.boundTimeout = 60000;
-    conf.globalMessageTimeout = 60000;
-    faasmConf.chainedCallTimeout = 60000;
+    // Set timeout to ensure longer functions can finish
+    conf.boundTimeout = 120000;
+    conf.globalMessageTimeout = 120000;
+    faasmConf.chainedCallTimeout = 120000;
 
     // Make sure we have enough space for chained calls
-    int nThreads = 10;
+    int nThreads = std::min<int>(faabric::util::getUsableCores(), 10);
     faabric::HostResources res;
     res.set_slots(nThreads);
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
@@ -98,7 +99,7 @@ int doRunner(int argc, char* argv[])
     m.startRunner();
 
     // Submit the invocation
-    PROF_START(roundTrip)
+    PROF_START(FunctionExec)
     sch.callFunctions(req);
 
     // Await the result
@@ -109,7 +110,7 @@ int doRunner(int argc, char* argv[])
         throw std::runtime_error("Executing function failed");
     }
 
-    PROF_END(roundTrip)
+    PROF_END(FunctionExec)
 
     m.shutdown();
 
