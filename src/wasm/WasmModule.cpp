@@ -21,8 +21,6 @@
 #include <sys/mman.h>
 #include <sys/uio.h>
 
-#define DEFAULT_MERGE_REGION_SIZE (10 * sizeof(int32_t))
-
 namespace wasm {
 
 bool isWasmPageAligned(int32_t offset)
@@ -78,50 +76,87 @@ wasm::WasmEnvironment& WasmModule::getWasmEnvironment()
     return wasmEnvironment;
 }
 
-faabric::util::SnapshotData WasmModule::getSnapshotData()
+std::shared_ptr<faabric::util::SnapshotData> WasmModule::getSnapshotData()
 {
     // Note - we only want to take the snapshot to the current brk, not the top
     // of the allocated memory
-    faabric::util::SnapshotData data;
-    data.data = getMemoryBase();
-    data.size = currentBrk.load(std::memory_order_acquire);
+    uint8_t* memBase = getMemoryBase();
+    size_t currentSize = currentBrk.load(std::memory_order_acquire);
+    size_t maxSize = MAX_WASM_MEM;
 
-    return data;
+    // Create the snapshot
+    auto snap = std::make_shared<faabric::util::SnapshotData>(
+      std::span<const uint8_t>(memBase, currentSize), maxSize);
+
+    return snap;
 }
 
-std::string getAppSnapshotKey(const faabric::Message& msg)
+faabric::util::MemoryView WasmModule::getMemoryView()
+{
+    uint8_t* memBase = getMemoryBase();
+    size_t currentSize = currentBrk.load(std::memory_order_acquire);
+    return faabric::util::MemoryView({ memBase, currentSize });
+}
+
+static std::string getAppSnapshotKey(const faabric::Message& msg)
 {
     std::string funcStr = faabric::util::funcToString(msg, false);
     if (msg.appid() == 0) {
-        SPDLOG_ERROR("OpenMP call without app ID set for {}", funcStr);
-        throw std::runtime_error("OpenMP call without app ID");
+        SPDLOG_ERROR("Cannot create app snapshot key without app ID for {}",
+                     funcStr);
+        throw std::runtime_error(
+          "Cannot create app snapshot key without app ID");
     }
 
     std::string snapshotKey = funcStr + "_" + std::to_string(msg.appid());
     return snapshotKey;
 }
 
-std::string WasmModule::createAppSnapshot(const faabric::Message& msg)
+std::string WasmModule::getOrCreateAppSnapshot(const faabric::Message& msg,
+                                               bool update)
 {
     std::string snapshotKey = getAppSnapshotKey(msg);
 
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
 
-    if (reg.snapshotExists(snapshotKey)) {
-        SPDLOG_TRACE(
-          "Snapshot already exists for app {} ({})", msg.appid(), snapshotKey);
-    } else {
-        SPDLOG_DEBUG(
-          "Creating app snapshot: {} for app {}", snapshotKey, msg.appid());
-        snapshotWithKey(snapshotKey, false);
+    bool exists = reg.snapshotExists(snapshotKey);
+    if (!exists) {
+        faabric::util::FullLock lock(moduleMutex);
+        exists = reg.snapshotExists(snapshotKey);
 
-        // Reset all dirty tracking here; we only want to pick up the diffs
-        // after this is first created
+        if (!exists) {
+            SPDLOG_DEBUG(
+              "Creating app snapshot: {} for app {}", snapshotKey, msg.appid());
+            snapshotWithKey(snapshotKey);
+
+            return snapshotKey;
+        }
+    }
+
+    if (update) {
+        faabric::util::FullLock lock(moduleMutex);
+
+        SPDLOG_DEBUG(
+          "Updating app snapshot: {} for app {}", snapshotKey, msg.appid());
+
+        std::vector<faabric::util::SnapshotDiff> updates =
+          getMemoryView().getDirtyRegions();
+
+        std::shared_ptr<faabric::util::SnapshotData> snap =
+          reg.getSnapshot(snapshotKey);
+
+        snap->queueDiffs(updates);
+        snap->writeQueuedDiffs();
+
+        // Reset dirty tracking
         faabric::util::resetDirtyTracking();
     }
 
-    return snapshotKey;
+    {
+        faabric::util::SharedLock lock(moduleMutex);
+        return snapshotKey;
+    }
 }
 
 void WasmModule::deleteAppSnapshot(const faabric::Message& msg)
@@ -141,15 +176,15 @@ void WasmModule::deleteAppSnapshot(const faabric::Message& msg)
     }
 }
 
-void WasmModule::snapshotWithKey(const std::string& snapKey,
-                                 bool locallyRestorable)
+void WasmModule::snapshotWithKey(const std::string& snapKey)
+
 {
     PROF_START(wasmSnapshot)
-    faabric::util::SnapshotData data = getSnapshotData();
+    std::shared_ptr<faabric::util::SnapshotData> data = getSnapshotData();
 
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
-    reg.takeSnapshot(snapKey, data, locallyRestorable);
+    reg.registerSnapshot(snapKey, data);
 
     PROF_END(wasmSnapshot)
 }
@@ -160,15 +195,33 @@ std::string WasmModule::snapshot(bool locallyRestorable)
     std::string snapKey =
       this->boundUser + "_" + this->boundFunction + "_" + std::to_string(gid);
 
-    snapshotWithKey(snapKey, locallyRestorable);
+    snapshotWithKey(snapKey);
 
     return snapKey;
 }
 
+void WasmModule::syncAppSnapshot(const faabric::Message& msg)
+{
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+    std::string snapshotKey = getAppSnapshotKey(msg);
+
+    SPDLOG_DEBUG("{} syncing with snapshot {}",
+                 faabric::util::funcToString(msg, false),
+                 snapshotKey);
+
+    std::shared_ptr<faabric::util::SnapshotData> snap =
+      reg.getSnapshot(snapshotKey);
+
+    // Update the snapshot itself
+    snap->writeQueuedDiffs();
+
+    // Restore from snapshot
+    restore(snapshotKey);
+}
+
 void WasmModule::restore(const std::string& snapshotKey)
 {
-    PROF_START(wasmSnapshotRestore)
-
     if (!isBound()) {
         SPDLOG_ERROR("Must bind wasm module before restoring snapshot {}",
                      snapshotKey);
@@ -182,13 +235,13 @@ void WasmModule::restore(const std::string& snapshotKey)
     auto data = reg.getSnapshot(snapshotKey);
     uint32_t memSize = getCurrentBrk();
 
-    if (data->size > memSize) {
-        size_t bytesRequired = data->size - memSize;
+    if (data->getSize() > memSize) {
+        size_t bytesRequired = data->getSize() - memSize;
         SPDLOG_DEBUG("Growing memory by {} bytes to restore snapshot",
                      bytesRequired);
         this->growMemory(bytesRequired);
-    } else if (data->size < memSize) {
-        size_t shrinkBy = memSize - data->size;
+    } else if (data->getSize() < memSize) {
+        size_t shrinkBy = memSize - data->getSize();
         SPDLOG_DEBUG("Shrinking memory by {} bytes to restore snapshot",
                      shrinkBy);
         this->shrinkMemory(shrinkBy);
@@ -198,9 +251,34 @@ void WasmModule::restore(const std::string& snapshotKey)
 
     // Map the snapshot into memory
     uint8_t* memoryBase = getMemoryBase();
-    reg.mapSnapshot(snapshotKey, memoryBase);
+    data->mapToMemory({ memoryBase, data->getSize() });
+}
 
-    PROF_END(wasmSnapshotRestore)
+void WasmModule::ignoreThreadStacksInSnapshot(const std::string& snapKey)
+{
+    std::shared_ptr<faabric::util::SnapshotData> snap =
+      faabric::snapshot::getSnapshotRegistry().getSnapshot(snapKey);
+
+    // Stacks grow downwards and snapshot diffs are inclusive, so we need to
+    // start the diff on the byte at the bottom of the stacks region
+    uint32_t threadStackRegionStart =
+      threadStacks.at(0) - (THREAD_STACK_SIZE - 1) - GUARD_REGION_SIZE;
+    uint32_t threadStackRegionSize =
+      threadPoolSize * (THREAD_STACK_SIZE + (2 * GUARD_REGION_SIZE));
+
+    SPDLOG_TRACE("Ignoring snapshot diffs for {} for thread stacks: {}-{}",
+                 snapKey,
+                 threadStackRegionStart,
+                 threadStackRegionStart + threadStackRegionSize);
+
+    // Note - the merge regions for a snapshot are keyed on the offset, so
+    // we will just overwrite the same region if another module has already
+    // set it
+    snap->addMergeRegion(threadStackRegionStart,
+                         threadStackRegionSize,
+                         faabric::util::SnapshotDataType::Raw,
+                         faabric::util::SnapshotMergeOperation::Ignore,
+                         true);
 }
 
 std::string WasmModule::getBoundUser()
@@ -309,9 +387,9 @@ void WasmModule::bindToFunction(faabric::Message& msg, bool cache)
 void WasmModule::prepareArgcArgv(const faabric::Message& msg)
 {
     // Here we set up the arguments to main(), i.e. argc and argv
-    // We allow passing of arbitrary commandline arguments via the invocation
-    // message. These are passed as a string with a space separating each
-    // argument.
+    // We allow passing of arbitrary commandline arguments via the
+    // invocation message. These are passed as a string with a space
+    // separating each argument.
     argv = faabric::util::getArgvForMessage(msg);
     argc = argv.size();
 
@@ -331,7 +409,8 @@ void WasmModule::prepareArgcArgv(const faabric::Message& msg)
  * will be created. Loading many chunks of the same value leads to
  * fragmentation, but usually only one or two chunks are loaded per module.
  *
- * To perform the mapping we need to ensure allocated memory is page-aligned.
+ * To perform the mapping we need to ensure allocated memory is
+ * page-aligned.
  */
 uint32_t WasmModule::mapSharedStateMemory(
   const std::shared_ptr<faabric::state::StateKeyValue>& kv,
@@ -344,17 +423,18 @@ uint32_t WasmModule::mapSharedStateMemory(
                              std::to_string(length);
     if (sharedMemWasmPtrs.count(segmentKey) == 0) {
         // Lock and double check
-        faabric::util::UniqueLock lock(moduleStateMutex);
+        faabric::util::FullLock lock(sharedMemWasmPtrsMutex);
+
         if (sharedMemWasmPtrs.count(segmentKey) == 0) {
             // Page-align the chunk
             faabric::util::AlignedChunk chunk =
               faabric::util::getPageAlignedChunk(offset, length);
 
             // Create the wasm memory region and work out the offset to the
-            // start of the desired chunk in this region (this will be zero if
-            // the offset is already zero, or if the offset is page-aligned
-            // already).
-            // We need to round the allocation up to a wasm page boundary
+            // start of the desired chunk in this region (this will be zero
+            // if the offset is already zero, or if the offset is
+            // page-aligned already). We need to round the allocation up to
+            // a wasm page boundary
             uint32_t allocSize = roundUpToWasmPageAligned(chunk.nBytesLength);
             uint32_t wasmBasePtr = this->growMemory(allocSize);
             uint32_t wasmOffsetPtr = wasmBasePtr + chunk.offsetRemainder;
@@ -371,7 +451,10 @@ uint32_t WasmModule::mapSharedStateMemory(
     }
 
     // Return the wasm pointer
-    return sharedMemWasmPtrs[segmentKey];
+    {
+        faabric::util::SharedLock lock(sharedMemWasmPtrsMutex);
+        return sharedMemWasmPtrs[segmentKey];
+    }
 }
 
 uint32_t WasmModule::getCurrentBrk()
@@ -402,14 +485,17 @@ int32_t WasmModule::executeTask(
     assert(!threadStacks.empty());
     uint32_t stackTop = threadStacks.at(threadPoolIdx);
 
+    // Ignore stacks and guard pages in snapshot if present
+    if (!msg.snapshotkey().empty()) {
+        ignoreThreadStacksInSnapshot(msg.snapshotkey());
+    }
+
     // Perform the appropriate type of execution
     int returnValue;
     if (req->type() == faabric::BatchExecuteRequest::THREADS) {
         switch (req->subtype()) {
             case ThreadRequestType::PTHREAD: {
                 SPDLOG_TRACE("Executing {} as pthread", funcStr);
-
-                setUpPthreadMergeRegions(msg, threads::getCurrentOpenMPLevel());
                 returnValue = executePthread(threadPoolIdx, stackTop, msg);
                 break;
             }
@@ -419,10 +505,8 @@ int32_t WasmModule::executeTask(
                              msg.groupid(),
                              msg.groupsize());
 
-                // Set up the level and merge regions
+                // Set up the level
                 threads::setCurrentOpenMPLevel(req);
-                setUpOpenMPMergeRegions(msg, threads::getCurrentOpenMPLevel());
-
                 returnValue = executeOMPThread(threadPoolIdx, stackTop, msg);
                 break;
             }
@@ -484,75 +568,76 @@ uint32_t WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
 
 void WasmModule::queuePthreadCall(threads::PthreadCall call)
 {
+    // We assume that all pthread calls are queued from the main thread before
+    // await is called from the same thread, so this doesn't need to be
+    // thread-safe.
     queuedPthreadCalls.emplace_back(call);
 }
 
 int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
 {
+    // We assume that await is called in a loop from the master thread, after
+    // all pthread calls have been queued, so this function doesn't need to be
+    // thread safe.
     assert(msg != nullptr);
 
+    // Execute the queued pthread calls
     if (!queuedPthreadCalls.empty()) {
-        faabric::util::UniqueLock lock(modulePthreadsMutex);
+        int nPthreadCalls = queuedPthreadCalls.size();
 
-        if (!queuedPthreadCalls.empty()) {
-            int nPthreadCalls = queuedPthreadCalls.size();
+        // Set up the master snapshot if not already set up
+        std::string snapshotKey = getOrCreateAppSnapshot(*msg, true);
 
-            // Set up the master snapshot if not already set up
-            std::string snapshotKey = createAppSnapshot(*msg);
+        std::string funcStr = faabric::util::funcToString(*msg, true);
+        SPDLOG_DEBUG("Executing {} pthread calls for {} with snapshot {}",
+                     nPthreadCalls,
+                     funcStr,
+                     snapshotKey);
 
-            std::string funcStr = faabric::util::funcToString(*msg, true);
-            SPDLOG_DEBUG("Executing {} pthread calls for {} with snapshot {}",
-                         nPthreadCalls,
-                         funcStr,
-                         snapshotKey);
+        std::shared_ptr<faabric::BatchExecuteRequest> req =
+          faabric::util::batchExecFactory(
+            msg->user(), msg->function(), nPthreadCalls);
 
-            std::shared_ptr<faabric::BatchExecuteRequest> req =
-              faabric::util::batchExecFactory(
-                msg->user(), msg->function(), nPthreadCalls);
+        req->set_type(faabric::BatchExecuteRequest::THREADS);
+        req->set_subtype(wasm::ThreadRequestType::PTHREAD);
 
-            req->set_type(faabric::BatchExecuteRequest::THREADS);
-            req->set_subtype(wasm::ThreadRequestType::PTHREAD);
+        uint32_t groupGid = faabric::util::generateGid();
 
-            uint32_t groupGid = faabric::util::generateGid();
+        for (int i = 0; i < nPthreadCalls; i++) {
+            threads::PthreadCall p = queuedPthreadCalls.at(i);
+            faabric::Message& m = req->mutable_messages()->at(i);
 
-            for (int i = 0; i < nPthreadCalls; i++) {
-                threads::PthreadCall p = queuedPthreadCalls.at(i);
-                faabric::Message& m = req->mutable_messages()->at(i);
+            // Propagate app ID
+            m.set_appid(msg->appid());
 
-                // Propagate app ID
-                m.set_appid(msg->appid());
+            // Snapshot details
+            m.set_snapshotkey(snapshotKey);
 
-                // Snapshot details
-                m.set_snapshotkey(snapshotKey);
+            // Function pointer and args
+            // NOTE - with a pthread interface we only ever pass the
+            // function a single pointer argument, hence we use the
+            // input data here to hold this argument as a string
+            m.set_funcptr(p.entryFunc);
+            m.set_inputdata(std::to_string(p.argsPtr));
 
-                // Function pointer and args
-                // NOTE - with a pthread interface we only ever pass the
-                // function a single pointer argument, hence we use the
-                // input data here to hold this argument as a string
-                m.set_funcptr(p.entryFunc);
-                m.set_inputdata(std::to_string(p.argsPtr));
+            // Assign a thread ID and increment. Our pthread IDs start
+            // at 1. Set this as part of the group with the other threads.
+            m.set_appidx(i + 1);
+            m.set_groupid(groupGid);
+            m.set_groupidx(i + 1);
+            m.set_groupsize(nPthreadCalls);
 
-                // Assign a thread ID and increment. Our pthread IDs start
-                // at 1. Set this as part of the group with the other threads.
-                m.set_appidx(i + 1);
-                m.set_groupid(groupGid);
-                m.set_groupidx(i + 1);
-                m.set_groupsize(nPthreadCalls);
-
-                // Record this thread -> call ID
-                SPDLOG_TRACE(
-                  "pthread {} mapped to call {}", p.pthreadPtr, m.id());
-                pthreadPtrsToChainedCalls.insert({ p.pthreadPtr, m.id() });
-            }
-
-            // Submit the call
-            faabric::scheduler::Scheduler& sch =
-              faabric::scheduler::getScheduler();
-            sch.callFunctions(req);
-
-            // Empty the queue
-            queuedPthreadCalls.clear();
+            // Record this thread -> call ID
+            SPDLOG_TRACE("pthread {} mapped to call {}", p.pthreadPtr, m.id());
+            pthreadPtrsToChainedCalls.insert({ p.pthreadPtr, m.id() });
         }
+
+        // Submit the call
+        faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
+        sch.callFunctions(req);
+
+        // Empty the queue
+        queuedPthreadCalls.clear();
     }
 
     // Await the results of this call
@@ -562,139 +647,15 @@ int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
 
     int returnValue = sch.awaitThreadResult(callId);
 
+    // Remove the mapping for this pointer
     pthreadPtrsToChainedCalls.erase(pthreadPtr);
 
+    // If we're the last, resync the snapshot
+    if (pthreadPtrsToChainedCalls.empty()) {
+        syncAppSnapshot(*msg);
+    }
+
     return returnValue;
-}
-
-void WasmModule::setUpOpenMPMergeRegions(
-  const faabric::Message& msg,
-  std::shared_ptr<threads::Level> ompLevel)
-{
-    std::string snapshotKey = msg.snapshotkey();
-
-    if (snapshotKey.empty()) {
-        return;
-    }
-
-    // Create ordered list of offsets
-    std::vector<uint32_t> sortedOffsets(ompLevel->sharedVarOffsets.get(),
-                                        ompLevel->sharedVarOffsets.get() +
-                                          ompLevel->nSharedVarOffsets);
-
-    std::sort(sortedOffsets.begin(), sortedOffsets.end());
-
-    // Get the snapshot
-    faabric::snapshot::SnapshotRegistry& reg =
-      faabric::snapshot::getSnapshotRegistry();
-    auto snap = reg.getSnapshot(snapshotKey);
-
-    // Set up merge regions for these shared variables. Note that any
-    // that are later discovered to be reduce results will get
-    // overridden
-    for (int i = 0; i < sortedOffsets.size(); i++) {
-        // TODO - currently we don't know the size of these shared variables,
-        // hence cannot accurately specify the size of the associated merge
-        // region.
-        //
-        // Furthermore, we don't know if it's a simple variable or a pointer, so
-        // we must add two regions, one catering for each.
-        //
-        // For now we just set it to some arbitrarily large size and make sure
-        // it doesn't overlap with any others.
-        //
-        // Note also that regions that don't cover any actual changes resulting
-        // from execution will be ignored
-        uint32_t regionStart = sortedOffsets.at(i);
-        uint32_t regionEnd = regionStart + DEFAULT_MERGE_REGION_SIZE;
-
-        // Check if the var points to a wasm address. If so, it may be a
-        // pointer to a pointer, so we should add a merge region
-        uint32_t intValue = faabric::util::unalignedRead<uint32_t>(
-          reinterpret_cast<std::byte*>(wasmPointerToNative(regionStart)));
-        uint32_t stacksTop = threadStacks.back();
-        uint32_t memMax = currentBrk.load(std::memory_order_acquire);
-        if (intValue > stacksTop && intValue < memMax) {
-            SPDLOG_TRACE("Shared var points to {}, could be pointer ({}-{})",
-                         intValue,
-                         stacksTop,
-                         memMax);
-
-            uint32_t derefPointerEnd =
-              std::min<uint32_t>(intValue + DEFAULT_MERGE_REGION_SIZE, memMax);
-
-            snap->addMergeRegion(
-              intValue,
-              derefPointerEnd - intValue,
-              faabric::util::SnapshotDataType::Raw,
-              faabric::util::SnapshotMergeOperation::Overwrite,
-              true);
-        }
-
-        if (i < sortedOffsets.size() - 1) {
-            uint32_t nextOffset = sortedOffsets.at(i + 1);
-            regionEnd = std::min(regionEnd, nextOffset);
-        }
-
-        SPDLOG_TRACE("Adding merge region for shared var {} at {}-{}",
-                     i,
-                     regionStart,
-                     regionEnd);
-
-        size_t size = regionEnd - regionStart;
-        snap->addMergeRegion(regionStart,
-                             size,
-                             faabric::util::SnapshotDataType::Raw,
-                             faabric::util::SnapshotMergeOperation::Overwrite,
-                             true);
-    }
-}
-
-void WasmModule::setUpPthreadMergeRegions(
-  const faabric::Message& msg,
-  std::shared_ptr<threads::Level> ompLevel)
-{
-    // NOTE: we don't know where the shared data lives in a generic pthreaded
-    // application, therefore we just add merge regions that cover the whole
-    // heap. We don't know what the final size of the heap will be, so we set
-    // the end of the second region to zero, and faabric goes to the end of the
-    // memory when diffing.
-    //
-    // There are two of these, because the thread stacks will be provisioned
-    // somewhere in the middle.
-    //
-    // This means we do a lot of unnecessary scanning of memory, and something
-    // more fine-grained would be better (if possible).
-
-    std::string snapshotKey = msg.snapshotkey();
-    auto snapData =
-      faabric::snapshot::getSnapshotRegistry().getSnapshot(snapshotKey);
-
-    uint32_t threadStackRegionStart =
-      threadStacks.at(0) + 1 - THREAD_STACK_SIZE - GUARD_REGION_SIZE;
-    uint32_t threadStackRegionSize =
-      threadPoolSize * (THREAD_STACK_SIZE + (2 * GUARD_REGION_SIZE));
-    uint32_t threadStackRegionEnd =
-      threadStackRegionStart + threadStackRegionSize;
-
-    uint32_t wasmStackRegionSize = threadStackRegionStart - STACK_SIZE;
-
-    SPDLOG_TRACE("Adding merge regions for pthread heap: {}-{} and {}-eom",
-                 STACK_SIZE,
-                 threadStackRegionStart,
-                 threadStackRegionEnd);
-
-    snapData->addMergeRegion(STACK_SIZE,
-                             wasmStackRegionSize,
-                             faabric::util::SnapshotDataType::Raw,
-                             faabric::util::SnapshotMergeOperation::Overwrite,
-                             true);
-
-    snapData->addMergeRegion(threadStackRegionEnd,
-                             0,
-                             faabric::util::SnapshotDataType::Raw,
-                             faabric::util::SnapshotMergeOperation::Overwrite,
-                             true);
 }
 
 void WasmModule::createThreadStacks()
@@ -706,10 +667,10 @@ void WasmModule::createThreadStacks()
         uint32_t memSize = THREAD_STACK_SIZE + (2 * GUARD_REGION_SIZE);
         uint32_t memBase = growMemory(memSize);
 
-        // Note that wasm stacks grow downwards, so we have to store the stack
-        // top, which is the offset one below the guard region above the stack
-        // Subtract 16 to make sure the stack is 16-aligned as required by the C
-        // ABI
+        // Note that wasm stacks grow downwards, so we have to store the
+        // stack top, which is the offset one below the guard region above
+        // the stack Subtract 16 to make sure the stack is 16-aligned as
+        // required by the C ABI
         uint32_t stackTop =
           memBase + GUARD_REGION_SIZE + THREAD_STACK_SIZE - 16;
         threadStacks.push_back(stackTop);

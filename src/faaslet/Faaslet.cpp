@@ -12,6 +12,7 @@
 #include <faabric/util/config.h>
 #include <faabric/util/environment.h>
 #include <faabric/util/func.h>
+#include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/timing.h>
@@ -25,6 +26,8 @@
 #include <storage/FileLoader.h>
 #include <storage/FileSystem.h>
 #endif
+
+static thread_local bool threadIsIsolated = false;
 
 using namespace isolation;
 
@@ -84,12 +87,7 @@ Faaslet::Faaslet(faabric::Message& msg)
     // (currently only supported in WAVM)
     if (conf.wasmVm == "wavm") {
         localResetSnapshotKey =
-          faabric::util::funcToString(msg, false) + "_reset";
-        faabric::util::SnapshotData snapData = module->getSnapshotData();
-
-        faabric::snapshot::SnapshotRegistry& snapReg =
-          faabric::snapshot::getSnapshotRegistry();
-        snapReg.takeSnapshotIfNotExists(localResetSnapshotKey, snapData, true);
+          wasm::getWAVMModuleCache().registerResetSnapshot(*module, msg);
     }
 }
 
@@ -100,7 +98,11 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
     // Lazily setup Faaslet isolation.
     // This has to be done within the same thread as the execution (hence we
     // leave it until just before execution).
-    if (!isIsolated) {
+    // Because this is a thread-specific operation we don't need any
+    // synchronisation here, and rely on the cgroup and network namespace
+    // operations being thread-safe.
+
+    if (!threadIsIsolated) {
         // Add this thread to the cgroup
         CGroup cgroup(BASE_CGROUP_NAME);
         cgroup.addCurrentThread();
@@ -109,7 +111,7 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
         ns = claimNetworkNamespace();
         ns->addCurrentThread();
 
-        isIsolated = true;
+        threadIsIsolated = true;
     }
 
     int32_t returnValue = module->executeTask(threadPoolIdx, msgIdx, req);
@@ -130,9 +132,9 @@ void Faaslet::postFinish()
     }
 }
 
-faabric::util::SnapshotData Faaslet::snapshot()
+faabric::util::MemoryView Faaslet::getMemoryView()
 {
-    return module->getSnapshotData();
+    return module->getMemoryView();
 }
 
 void Faaslet::restore(faabric::Message& msg)
@@ -143,15 +145,11 @@ void Faaslet::restore(faabric::Message& msg)
     // Restore from snapshot if necessary
     if (conf.wasmVm == "wavm") {
         if (!snapshotKey.empty() && !msg.issgx()) {
-            PROF_START(snapshotOverride)
-
             SPDLOG_DEBUG("Restoring {} from snapshot {} before execution",
                          id,
                          snapshotKey);
 
             module->restore(snapshotKey);
-
-            PROF_END(snapshotOverride)
         }
     }
 }

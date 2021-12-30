@@ -300,7 +300,8 @@ void checkWasiDirentInBuffer(uint8_t* buffer, DirEnt e)
 {
     size_t wasiDirentSize = sizeof(__wasi_dirent_t);
     auto wasiDirent = faabric::util::unalignedRead<__wasi_dirent_t>(
-      reinterpret_cast<std::byte*>(buffer));
+      reinterpret_cast<std::uint8_t*>(buffer));
+
     auto direntPathPtr = reinterpret_cast<const char*>(buffer + wasiDirentSize);
     std::string_view direntPath(direntPathPtr, direntPathPtr + e.path.size());
 

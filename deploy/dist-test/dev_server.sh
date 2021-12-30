@@ -14,12 +14,15 @@ elif [[ "$1" == "restart" ]]; then
     docker-compose restart dist-test-server
 elif [[ "$1" == "stop" ]]; then
     docker-compose stop dist-test-server
+elif [[ "$1" == "rm" ]]; then
+    docker-compose stop dist-test-server
+    docker-compose rm dist-test-server
 else
     echo "Unrecognised argument: $1"
     echo ""
     echo "Usage:"
     echo ""
-    echo "./deploy/dist-test/dev_server.sh [restart|stop]"
+    echo "./deploy/dist-test/dev_server.sh [restart|stop|rm]"
     exit 1
 fi
 

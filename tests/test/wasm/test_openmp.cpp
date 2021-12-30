@@ -33,128 +33,130 @@ class OpenMPTestFixture
 };
 
 TEST_CASE_METHOD(OpenMPTestFixture,
-                 "Test static for scheduling",
+                 "Test OpenMP static for scheduling",
                  "[wasm][openmp]")
 {
     doOmpTestLocal("for_static_schedule");
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture,
-                 "Test OMP header API functions",
+                 "Test OpenMP header API functions",
                  "[wasm][openmp]")
 {
     doOmpTestLocal("header_api_support");
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture,
-                 "Test running OpenMP checks",
+                 "Test OpenMP general conformance",
                  "[wasm][openmp]")
 {
     doOmpTestLocal("omp_checks");
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture,
-                 "Test non-nested barrier pragma",
+                 "Test OpenMP barrier pragma",
                  "[wasm][openmp]")
 {
     doOmpTestLocal("simple_barrier");
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture,
-                 "Test basic omp parallel for pragma",
+                 "Test OpenMP parallel for pragma",
                  "[wasm][openmp]")
 {
     doOmpTestLocal("simple_for");
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture,
-                 "Test non-nested master pragma",
+                 "Test OpenMP master pragma",
                  "[wasm][openmp]")
 {
     doOmpTestLocal("simple_master");
 }
 
-TEST_CASE_METHOD(OpenMPTestFixture,
-                 "Test simple reduction function",
-                 "[wasm][openmp]")
+TEST_CASE_METHOD(OpenMPTestFixture, "Test OpenMP reduction", "[wasm][openmp]")
 {
     doOmpTestLocal("simple_reduce");
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture,
-                 "Test integrating using different constructs",
+                 "Test a mix of OpenMP constructs",
                  "[wasm][openmp]")
 {
     doOmpTestLocal("reduction_integral");
 }
 
-TEST_CASE_METHOD(OpenMPTestFixture, "Test critical section", "[wasm][openmp]")
+TEST_CASE_METHOD(OpenMPTestFixture,
+                 "Test OpenMP critical section",
+                 "[wasm][openmp]")
 {
     doOmpTestLocal("simple_critical");
 }
 
-TEST_CASE_METHOD(OpenMPTestFixture, "Test single section", "[wasm][openmp]")
+TEST_CASE_METHOD(OpenMPTestFixture,
+                 "Test OpenMP single section",
+                 "[wasm][openmp]")
 {
     doOmpTestLocal("simple_single");
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture,
-                 "Test custom reduction function",
+                 "Test custom OpenMP reduction function",
                  "[wasm][openmp]")
 {
     doOmpTestLocal("custom_reduce");
 }
 
-TEST_CASE_METHOD(OpenMPTestFixture, "Test nested API", "[wasm][openmp]")
-{
-    doOmpTestLocal("nested_levels_test");
-}
-
 TEST_CASE_METHOD(OpenMPTestFixture,
-                 "Test nested parallel region support",
-                 "[wasm][openmp]")
-{
-    doOmpTestLocal("nested_parallel");
-}
-
-TEST_CASE_METHOD(OpenMPTestFixture,
-                 "Test openmp Pi calculation",
+                 "Test OpenMP Pi calculation",
                  "[wasm][openmp]")
 {
     doOmpTestLocal("mt_pi");
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture,
-                 "Test getting and setting num threads",
+                 "Test getting and setting number of OpenMP threads",
                  "[wasm][openmp]")
 {
     doOmpTestLocal("setting_num_threads");
 }
 
-TEST_CASE_METHOD(OpenMPTestFixture, "Test openmp wtime", "[wasm][openmp]")
+TEST_CASE_METHOD(OpenMPTestFixture, "Test OpenMP wtime", "[wasm][openmp]")
 {
     doOmpTestLocal("wtime");
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture,
-                 "Test single-threaded reduction",
+                 "Test single-threaded OpenMP reduction",
                  "[wasm][openmp]")
 {
     doOmpTestLocal("single_thread_reduce");
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture,
-                 "Test more complex reduction",
+                 "Test more complex OpenMP reduction",
                  "[wasm][openmp]")
 {
     doOmpTestLocal("complex_reduce");
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture,
-                 "Test repeated reductions",
+                 "Test repeated OpenMP reductions",
                  "[wasm][openmp]")
 {
     doOmpTestLocal("repeated_reduce");
+}
+
+TEST_CASE_METHOD(OpenMPTestFixture, "Test OpenMP atomic", "[wasm][openmp]")
+{
+    doOmpTestLocal("simple_atomic");
+}
+
+TEST_CASE_METHOD(OpenMPTestFixture,
+                 "Test OpenMP default shared",
+                 "[wasm][openmp]")
+{
+    doOmpTestLocal("default_shared");
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture,

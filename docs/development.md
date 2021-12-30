@@ -96,12 +96,6 @@ inv python.codegen
 # Set up cgroup
 ./bin/cgroup.sh
 
-# If running with sanitisers, set their options
-export ASAN_OPTIONS="halt_on_error=1"
-export LSAN_OPTIONS="suppressions=/usr/local/code/faasm/leak-sanitizer-ignorelist.txt"
-export TSAN_OPTIONS="halt_on_error=1:suppressions=/usr/local/code/faasm/thread-sanitizer-ignorelist.txt:history_size=7:second_deadlock_stack=1"
-export UBSAN_OPTIONS="print_stacktrace=1:halt_on_error=1"
-
 # Run the tests
 tests
 ```
@@ -268,6 +262,13 @@ To start the local development cluster, you can run:
 
 ```bash
 ./deploy/local/dev_cluster.sh
+```
+
+To run external applications and benchmarks against this cluster, you may also
+need to set up your config file to point at this cluster:
+
+```bash
+inv knative.ini-file --local
 ```
 
 ### Making changes in your local cluster

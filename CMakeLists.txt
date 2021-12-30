@@ -34,6 +34,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld")
 
+# Faasm profiling
+if (${FAASM_SELF_TRACING})
+    message("-- Activated FAASM tracing")
+    add_definitions(-DTRACE_ALL=1)
+    set(FAABRIC_SELF_TRACING 1)
+endif ()
+
 # Ensure all targets can generate readable stacktraces
 add_compile_options(-fno-omit-frame-pointer)
 add_link_options(-Wl,--export-dynamic)
@@ -153,12 +160,6 @@ else ()
         target_compile_options(${lib_name} PRIVATE "-fPIC")
         add_library(faasm::${lib_name} ALIAS ${lib_name})
     endfunction()
-endif ()
-
-# Faasm profiling
-if (${FAASM_SELF_TRACING})
-    message("-- Activated FAASM tracing")
-    add_definitions(-DTRACE_ALL=1)
 endif ()
 
 # LLVM config

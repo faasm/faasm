@@ -109,7 +109,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
     PROF_START(PathOpen)
     const std::string pathStr = getStringFromWasm(path);
 
-    SPDLOG_DEBUG("S - path_open - {} {} {}", rootFd, pathStr, pathLen);
+    SPDLOG_DEBUG("S - path_open - {} {} {} {} {} {} {} {} {}",
+                 rootFd,
+                 lookupFlags,
+                 pathStr,
+                 pathLen,
+                 openFlags,
+                 rightsBase,
+                 rightsInheriting,
+                 fdFlags,
+                 resFdPtr);
 
     // Open a new file descriptor
     // Returns a negative wasi errno if fails
@@ -125,12 +134,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
     PROF_END(PathOpen)
     if (fdRes < 0) {
         return -1 * fdRes;
-    } else {
-        // Write result to memory location
-        Runtime::memoryRef<int>(getExecutingWAVMModule()->defaultMemory,
-                                resFdPtr) = fdRes;
-        return __WASI_ESUCCESS;
     }
+
+    // Write result to memory location
+    Runtime::memoryRef<int>(getExecutingWAVMModule()->defaultMemory, resFdPtr) =
+      fdRes;
+    return __WASI_ESUCCESS;
 }
 
 int doWasiDup(I32 fd)

@@ -576,7 +576,6 @@ Stat FileDescriptor::stat(const std::string& relativePath)
     statResult.wasiErrno = 0;
 
     // Work out file type
-    bool isReadOnly = false;
     if (linuxFd == STDOUT_FILENO || linuxFd == STDIN_FILENO ||
         linuxFd == STDERR_FILENO) {
         statResult.wasiFiletype = __WASI_FILETYPE_CHARACTER_DEVICE;
@@ -586,7 +585,6 @@ Stat FileDescriptor::stat(const std::string& relativePath)
         statResult.wasiFiletype = __WASI_FILETYPE_BLOCK_DEVICE;
     } else if (S_ISDIR(nativeStat.st_mode)) {
         statResult.wasiFiletype = __WASI_FILETYPE_DIRECTORY;
-        isReadOnly = true;
     } else if (S_ISLNK(nativeStat.st_mode)) {
         statResult.wasiFiletype = __WASI_FILETYPE_SYMBOLIC_LINK;
     } else if (S_ISCHR(nativeStat.st_mode)) {

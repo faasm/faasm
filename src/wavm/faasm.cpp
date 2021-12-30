@@ -1,23 +1,34 @@
-#include "WAVMWasmModule.h"
 #include "syscalls.h"
+
+#include <wasm/WasmExecutionContext.h>
+#include <wavm/WAVMWasmModule.h>
 
 #include <WAVM/Platform/Diagnostics.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 
+#include <faabric/snapshot/SnapshotRegistry.h>
+#include <faabric/transport/PointToPointBroker.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/files.h>
+#include <faabric/util/func.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
+#include <faabric/util/snapshot.h>
 #include <faabric/util/state.h>
 
 #include <conf/FaasmConfig.h>
 
 using namespace WAVM;
+using namespace faabric::transport;
 
 namespace wasm {
 
 void faasmLink() {}
+
+// ------------------------------------
+// STATE
+// ------------------------------------
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__faasm_push_state",
@@ -430,6 +441,10 @@ I32 _readInputImpl(I32 bufferPtr, I32 bufferLen)
     return inputSize;
 }
 
+// ------------------------------------
+// FUNCTIONS
+// ------------------------------------
+
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__faasm_read_input",
                                I32,
@@ -546,6 +561,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     }
 }
 
+// ------------------------------------
+// DEBUGGING
+// ------------------------------------
+
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__faasm_backtrace",
                                void,
@@ -570,6 +589,133 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     fflush(stdout);
 }
+
+// ------------------------------------
+// SHARED MEMORY
+// ------------------------------------
+
+static std::shared_ptr<PointToPointGroup> getPointToPointGroup()
+{
+    faabric::Message* msg = getExecutingCall();
+    return PointToPointGroup::getOrAwaitGroup(msg->groupid());
+}
+
+static std::pair<uint32_t, faabric::util::SnapshotDataType>
+extractSnapshotDataType(I32 varType)
+{
+    switch (varType) {
+        case (faabric::util::SnapshotDataType::Raw): {
+            SPDLOG_ERROR("Cannot declare untyped merge regions from code");
+        }
+        case (faabric::util::SnapshotDataType::Bool): {
+            return { sizeof(I8), faabric::util::SnapshotDataType::Bool };
+        }
+        case (faabric::util::SnapshotDataType::Int): {
+            return { sizeof(I32), faabric::util::SnapshotDataType::Int };
+        }
+        case (faabric::util::SnapshotDataType::Long): {
+            return { sizeof(I64), faabric::util::SnapshotDataType::Long };
+        }
+        case (faabric::util::SnapshotDataType::Float): {
+            return { sizeof(F32), faabric::util::SnapshotDataType::Float };
+        }
+        case (faabric::util::SnapshotDataType::Double): {
+            return { sizeof(F64), faabric::util::SnapshotDataType::Double };
+        }
+        default: {
+            SPDLOG_ERROR("Unrecognised memory data type: {}", varType);
+            throw std::runtime_error("Unrecognised shared memory data type");
+        }
+    }
+}
+
+static faabric::util::SnapshotMergeOperation extractSnapshotMergeOp(I32 mergeOp)
+{
+    if (faabric::util::SnapshotMergeOperation::Overwrite <= mergeOp &&
+        mergeOp <= faabric::util::SnapshotMergeOperation::Min) {
+        return static_cast<faabric::util::SnapshotMergeOperation>(mergeOp);
+    }
+
+    SPDLOG_ERROR("Unrecognised merge operation: {}", mergeOp);
+    throw std::runtime_error("Unrecognised merge operation");
+}
+
+static std::shared_ptr<faabric::util::SnapshotData> getSnapshot()
+{
+    faabric::Message* msg = getExecutingCall();
+    std::string snapKey = msg->snapshotkey();
+
+    if (snapKey.empty()) {
+        // Use app snapshot by default
+        WasmModule* module = getExecutingModule();
+        snapKey = module->getOrCreateAppSnapshot(*msg, false);
+    }
+
+    // Set up the corresponding merge region
+    faabric::snapshot::SnapshotRegistry& reg =
+      faabric::snapshot::getSnapshotRegistry();
+    auto snap = reg.getSnapshot(snapKey);
+
+    return snap;
+}
+
+static void addSharedMemMergeRegion(
+  I32 varPtr,
+  size_t regionSize,
+  faabric::util::SnapshotDataType dataType,
+  faabric::util::SnapshotMergeOperation mergeOp)
+{
+    faabric::Message* msg = getExecutingCall();
+    auto snap = getSnapshot();
+
+    SPDLOG_DEBUG("Registering shared memory region {}-{} for {}",
+                 varPtr,
+                 varPtr + regionSize,
+                 faabric::util::funcToString(*msg, false));
+
+    snap->addMergeRegion(varPtr, regionSize, dataType, mergeOp, true);
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "__faasm_sm_reduce",
+                               void,
+                               __faasm_sm_reduce,
+                               I32 varPtr,
+                               I32 varType,
+                               I32 reduceOp)
+{
+    SPDLOG_DEBUG("S - sm_reduce - {} {} {}", varPtr, varType, reduceOp);
+
+    auto dataType = extractSnapshotDataType(varType);
+    faabric::util::SnapshotMergeOperation mergeOp =
+      extractSnapshotMergeOp(reduceOp);
+
+    addSharedMemMergeRegion(varPtr, dataType.first, dataType.second, mergeOp);
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "__faasm_sm_critical_local",
+                               void,
+                               __faasm_sm_critical_local)
+{
+    SPDLOG_DEBUG("S - sm_critical_local");
+
+    getPointToPointGroup()->localLock();
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "__faasm_sm_critical_local_end",
+                               void,
+                               __faasm_sm_critical_local_end)
+{
+    SPDLOG_DEBUG("S - sm_critical_local_end");
+
+    getPointToPointGroup()->localUnlock();
+}
+
+// ------------------------------------
+// LEGACY PYTHON
+// ------------------------------------
 
 // 02/12/20 - unfortunately some old Python wasm still needs this
 // Emulator API, should not be called from wasm but needs to be present for

@@ -25,6 +25,8 @@
 #define WASM_CTORS_FUNC_NAME "__wasm_call_ctors"
 #define ENTRY_FUNC_NAME "_start"
 
+#define MAX_WASM_MEM (1024L * 1024L * 1024L * 4L)
+
 namespace wasm {
 
 // Note - avoid a zero default on the thread request type otherwise it can
@@ -126,13 +128,18 @@ class WasmModule
     virtual uint8_t* getMemoryBase();
 
     // ----- Snapshot/ restore -----
-    faabric::util::SnapshotData getSnapshotData();
+    std::shared_ptr<faabric::util::SnapshotData> getSnapshotData();
 
-    std::string createAppSnapshot(const faabric::Message& msg);
+    faabric::util::MemoryView getMemoryView();
+
+    std::string getOrCreateAppSnapshot(const faabric::Message& msg,
+                                       bool update);
 
     void deleteAppSnapshot(const faabric::Message& msg);
 
     std::string snapshot(bool locallyRestorable = true);
+
+    void syncAppSnapshot(const faabric::Message& msg);
 
     void restore(const std::string& snapshotKey);
 
@@ -141,18 +148,14 @@ class WasmModule
 
     int awaitPthreadCall(const faabric::Message* msg, int pthreadPtr);
 
-    void setUpOpenMPMergeRegions(const faabric::Message& msg,
-                                 std::shared_ptr<threads::Level> ompLevel);
-
-    void setUpPthreadMergeRegions(const faabric::Message& msg,
-                                  std::shared_ptr<threads::Level> ompLevel);
-
     std::vector<uint32_t> getThreadStacks();
 
     // ----- Debugging -----
     virtual void printDebugInfo();
 
   protected:
+    std::shared_mutex moduleMutex;
+
     std::atomic<uint32_t> currentBrk = 0;
 
     std::string boundUser;
@@ -169,10 +172,6 @@ class WasmModule
     int threadPoolSize = 0;
     std::vector<uint32_t> threadStacks;
 
-    std::shared_mutex moduleMemoryMutex;
-    std::mutex modulePthreadsMutex;
-    std::mutex moduleStateMutex;
-
     // Argc/argv
     unsigned int argc;
     std::vector<std::string> argv;
@@ -183,6 +182,7 @@ class WasmModule
     std::unordered_map<int32_t, uint32_t> pthreadPtrsToChainedCalls;
 
     // Shared memory regions
+    std::shared_mutex sharedMemWasmPtrsMutex;
     std::unordered_map<std::string, uint32_t> sharedMemWasmPtrs;
 
     int getStdoutFd();
@@ -193,7 +193,9 @@ class WasmModule
     virtual void doBindToFunction(faabric::Message& msg, bool cache);
 
     // Snapshots
-    void snapshotWithKey(const std::string& snapKey, bool locallyRestorable);
+    void snapshotWithKey(const std::string& snapKey);
+
+    void ignoreThreadStacksInSnapshot(const std::string& snapKey);
 
     // Threads
     void createThreadStacks();
