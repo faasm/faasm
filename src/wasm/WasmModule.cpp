@@ -86,7 +86,14 @@ faabric::util::SnapshotData WasmModule::getSnapshotData()
     data.data = getMemoryBase();
     data.size = currentBrk.load(std::memory_order_acquire);
 
-    return data;
+    return snap;
+}
+
+std::span<uint8_t> WasmModule::getMemoryView()
+{
+    uint8_t* memBase = getMemoryBase();
+    size_t currentSize = currentBrk.load(std::memory_order_acquire);
+    return { memBase, currentSize };
 }
 
 std::string getAppSnapshotKey(const faabric::Message& msg)
@@ -116,9 +123,11 @@ std::string WasmModule::createAppSnapshot(const faabric::Message& msg)
           "Creating app snapshot: {} for app {}", snapshotKey, msg.appid());
         snapshotWithKey(snapshotKey, false);
 
-        // Reset all dirty tracking here; we only want to pick up the diffs
-        // after this is first created
-        faabric::util::resetDirtyTracking();
+        std::shared_ptr<faabric::util::SnapshotData> snap =
+          reg.getSnapshot(snapshotKey);
+
+        snap->queueDiffs(updates);
+        snap->writeQueuedDiffs();
     }
 
     return snapshotKey;

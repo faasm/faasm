@@ -126,7 +126,9 @@ class WasmModule
     virtual uint8_t* getMemoryBase();
 
     // ----- Snapshot/ restore -----
-    faabric::util::SnapshotData getSnapshotData();
+    std::shared_ptr<faabric::util::SnapshotData> getSnapshotData();
+
+    std::span<uint8_t> getMemoryView();
 
     std::string createAppSnapshot(const faabric::Message& msg);
 

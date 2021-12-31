@@ -130,7 +130,7 @@ void Faaslet::postFinish()
     }
 }
 
-faabric::util::SnapshotData Faaslet::snapshot()
+std::span<uint8_t> Faaslet::getMemoryView()
 {
     return module->getSnapshotData();
 }
