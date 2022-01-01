@@ -1,3 +1,4 @@
+#include "faabric/scheduler/Scheduler.h"
 #include "syscalls.h"
 
 #include <wasm/WasmExecutionContext.h>
@@ -640,25 +641,6 @@ static faabric::util::SnapshotMergeOperation extractSnapshotMergeOp(I32 mergeOp)
     throw std::runtime_error("Unrecognised merge operation");
 }
 
-static std::shared_ptr<faabric::util::SnapshotData> getSnapshot()
-{
-    faabric::Message* msg = getExecutingCall();
-    std::string snapKey = msg->snapshotkey();
-
-    if (snapKey.empty()) {
-        // Use app snapshot by default
-        WasmModule* module = getExecutingModule();
-        snapKey = module->getOrCreateAppSnapshot(*msg, false);
-    }
-
-    // Set up the corresponding merge region
-    faabric::snapshot::SnapshotRegistry& reg =
-      faabric::snapshot::getSnapshotRegistry();
-    auto snap = reg.getSnapshot(snapKey);
-
-    return snap;
-}
-
 static void addSharedMemMergeRegion(
   I32 varPtr,
   size_t regionSize,
@@ -666,7 +648,9 @@ static void addSharedMemMergeRegion(
   faabric::util::SnapshotMergeOperation mergeOp)
 {
     faabric::Message* msg = getExecutingCall();
-    auto snap = getSnapshot();
+    faabric::scheduler::Executor* executor =
+      faabric::scheduler::getExecutingExecutor();
+    auto snap = executor->getMainThreadSnapshot(*msg);
 
     SPDLOG_DEBUG("Registering shared memory region {}-{} for {}",
                  varPtr,

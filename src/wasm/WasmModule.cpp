@@ -116,6 +116,25 @@ std::string WasmModule::snapshot(bool locallyRestorable)
     return snapKey;
 }
 
+void WasmModule::setMemorySize(uint32_t nBytes)
+{
+    uint32_t memSize = getCurrentBrk();
+
+    if (nBytes > memSize) {
+        size_t bytesRequired = nBytes - memSize;
+        SPDLOG_DEBUG("Growing memory by {} bytes to restore snapshot",
+                     bytesRequired);
+        this->growMemory(bytesRequired);
+    } else if (nBytes < memSize) {
+        size_t shrinkBy = memSize - nBytes;
+        SPDLOG_DEBUG("Shrinking memory by {} bytes to restore snapshot",
+                     shrinkBy);
+        this->shrinkMemory(shrinkBy);
+    } else {
+        SPDLOG_DEBUG("Memory already correct size for snapshot ({})", memSize);
+    }
+}
+
 void WasmModule::restore(const std::string& snapshotKey)
 {
     if (!isBound()) {
@@ -129,21 +148,7 @@ void WasmModule::restore(const std::string& snapshotKey)
 
     // Expand memory if necessary
     auto data = reg.getSnapshot(snapshotKey);
-    uint32_t memSize = getCurrentBrk();
-
-    if (data->getSize() > memSize) {
-        size_t bytesRequired = data->getSize() - memSize;
-        SPDLOG_DEBUG("Growing memory by {} bytes to restore snapshot",
-                     bytesRequired);
-        this->growMemory(bytesRequired);
-    } else if (data->getSize() < memSize) {
-        size_t shrinkBy = memSize - data->getSize();
-        SPDLOG_DEBUG("Shrinking memory by {} bytes to restore snapshot",
-                     shrinkBy);
-        this->shrinkMemory(shrinkBy);
-    } else {
-        SPDLOG_DEBUG("Memory already correct size for snapshot ({})", memSize);
-    }
+    setMemorySize(data->getSize());
 
     // Map the snapshot into memory
     uint8_t* memoryBase = getMemoryBase();
@@ -468,7 +473,7 @@ void WasmModule::queuePthreadCall(threads::PthreadCall call)
     queuedPthreadCalls.emplace_back(call);
 }
 
-int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
+int WasmModule::awaitPthreadCall(faabric::Message* msg, int pthreadPtr)
 {
     // We assume that await is called in a loop from the master thread, after
     // all pthread calls have been queued, so this function doesn't need to be
@@ -476,13 +481,14 @@ int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
     assert(msg != nullptr);
 
     // Execute the queued pthread calls
+    faabric::scheduler::Executor* executor =
+      faabric::scheduler::getExecutingExecutor();
     if (!queuedPthreadCalls.empty()) {
         int nPthreadCalls = queuedPthreadCalls.size();
 
         std::string funcStr = faabric::util::funcToString(*msg, true);
-        SPDLOG_DEBUG("Executing {} pthread calls for {}",
-                     nPthreadCalls,
-                     funcStr);
+        SPDLOG_DEBUG(
+          "Executing {} pthread calls for {}", nPthreadCalls, funcStr);
 
         std::shared_ptr<faabric::BatchExecuteRequest> req =
           faabric::util::batchExecFactory(
@@ -499,9 +505,6 @@ int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
 
             // Propagate app ID
             m.set_appid(msg->appid());
-
-            // Snapshot details
-            m.set_snapshotkey(snapshotKey);
 
             // Function pointer and args
             // NOTE - with a pthread interface we only ever pass the
@@ -522,6 +525,9 @@ int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
             pthreadPtrsToChainedCalls.insert({ p.pthreadPtr, m.id() });
         }
 
+        // Update the main thread snapshot
+        executor->writeChangesToMainThreadSnapshot(*msg);
+
         // Submit the call
         faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
         sch.callFunctions(req);
@@ -540,9 +546,9 @@ int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
     // Remove the mapping for this pointer
     pthreadPtrsToChainedCalls.erase(pthreadPtr);
 
-    // If we're the last, resync the snapshot
+    // If we're the last, read in all the changes
     if (pthreadPtrsToChainedCalls.empty()) {
-        syncAppSnapshot(*msg);
+        executor->readChangesFromMainThreadSnapshot(*msg);
     }
 
     return returnValue;

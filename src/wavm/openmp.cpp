@@ -426,9 +426,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
       std::make_shared<threads::Level>(parentLevel->getMaxThreadsAtNextLevel());
     nextLevel->fromParentLevel(parentLevel);
 
-    // Set up the master snapshot if not already set up
-
-    // TODO - write changes to app snapshot
+    // Write changes to the main thread snapshot
+    faabric::scheduler::Executor* executor =
+      faabric::scheduler::getExecutingExecutor();
+    executor->writeChangesToMainThreadSnapshot(*parentCall);
 
     // Set up shared variables
     if (nSharedVars > 0) {
@@ -560,8 +561,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         throw std::runtime_error("OpenMP threads failed");
     }
 
-    // TODO - update memory size to fit app snapshot
-    // TODO - read changes from app snapshot
+    // Write queued changes to snapshot
+    executor->getMainThreadSnapshot(*parentCall)->writeQueuedDiffs();
+
+    // Read in changes from updated snapshot
+    executor->readChangesFromMainThreadSnapshot(*parentCall);
 
     // Reset parent level for next setting of threads
     parentLevel->pushedThreads = -1;

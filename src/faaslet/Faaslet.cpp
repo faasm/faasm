@@ -137,6 +137,11 @@ std::span<uint8_t> Faaslet::getMemoryView()
     return module->getMemoryView();
 }
 
+void Faaslet::setMemorySize(size_t newSize)
+{
+    module->setMemorySize(newSize);
+}
+
 void Faaslet::restore(faabric::Message& msg)
 {
     conf::FaasmConfig& conf = conf::getFaasmConfig();
@@ -144,7 +149,7 @@ void Faaslet::restore(faabric::Message& msg)
 
     // Restore from snapshot if necessary
     if (conf.wasmVm == "wavm") {
-        if (!snapshotKey.empty() && !msg.issgx()) {
+        if (!snapshotKey.empty() && !boundMessage.issgx()) {
             SPDLOG_DEBUG("Restoring {} from snapshot {} before execution",
                          id,
                          snapshotKey);

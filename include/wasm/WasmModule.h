@@ -104,6 +104,8 @@ class WasmModule
     // ----- Memory management -----
     uint32_t getCurrentBrk();
 
+    virtual void setMemorySize(uint32_t nBytes);
+
     virtual uint32_t growMemory(uint32_t nBytes);
 
     virtual uint32_t shrinkMemory(uint32_t nBytes);
@@ -139,7 +141,7 @@ class WasmModule
     // ----- Threading -----
     void queuePthreadCall(threads::PthreadCall call);
 
-    int awaitPthreadCall(const faabric::Message* msg, int pthreadPtr);
+    int awaitPthreadCall(faabric::Message* msg, int pthreadPtr);
 
     std::vector<uint32_t> getThreadStacks();
 
