@@ -43,3 +43,7 @@ target_include_directories(codegen_shared_obj PRIVATE ${FAASM_INCLUDE_DIR}/runne
 add_executable(codegen_func codegen_func.cpp)
 target_link_libraries(codegen_func PRIVATE faasm::codegen_common)
 target_include_directories(codegen_func PRIVATE ${FAASM_INCLUDE_DIR}/runner)
+
+add_executable(covid_runner covid_runner.cpp)
+target_link_libraries(covid_runner PRIVATE faasm::runner_lib)
+target_include_directories(covid_runner PRIVATE ${FAASM_INCLUDE_DIR}/runner)

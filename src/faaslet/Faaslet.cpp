@@ -132,7 +132,7 @@ void Faaslet::postFinish()
     }
 }
 
-faabric::util::MemoryView Faaslet::getMemoryView()
+std::span<uint8_t> Faaslet::getMemoryView()
 {
     return module->getMemoryView();
 }

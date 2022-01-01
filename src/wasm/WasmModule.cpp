@@ -91,102 +91,11 @@ std::shared_ptr<faabric::util::SnapshotData> WasmModule::getSnapshotData()
     return snap;
 }
 
-faabric::util::MemoryView WasmModule::getMemoryView()
+std::span<uint8_t> WasmModule::getMemoryView()
 {
     uint8_t* memBase = getMemoryBase();
     size_t currentSize = currentBrk.load(std::memory_order_acquire);
-    return faabric::util::MemoryView({ memBase, currentSize });
-}
-
-static std::string getAppSnapshotKey(const faabric::Message& msg)
-{
-    std::string funcStr = faabric::util::funcToString(msg, false);
-    if (msg.appid() == 0) {
-        SPDLOG_ERROR("Cannot create app snapshot key without app ID for {}",
-                     funcStr);
-        throw std::runtime_error(
-          "Cannot create app snapshot key without app ID");
-    }
-
-    std::string snapshotKey = funcStr + "_" + std::to_string(msg.appid());
-    return snapshotKey;
-}
-
-std::string WasmModule::getOrCreateAppSnapshot(const faabric::Message& msg,
-                                               bool update)
-{
-    std::string snapshotKey = getAppSnapshotKey(msg);
-
-    faabric::snapshot::SnapshotRegistry& reg =
-      faabric::snapshot::getSnapshotRegistry();
-
-    bool exists = reg.snapshotExists(snapshotKey);
-    if (!exists) {
-        faabric::util::FullLock lock(moduleMutex);
-        exists = reg.snapshotExists(snapshotKey);
-
-        if (!exists) {
-            SPDLOG_DEBUG(
-              "Creating app snapshot: {} for app {}", snapshotKey, msg.appid());
-            snapshotWithKey(snapshotKey);
-
-            return snapshotKey;
-        }
-    }
-
-    if (update) {
-        faabric::util::FullLock lock(moduleMutex);
-
-        SPDLOG_DEBUG(
-          "Updating app snapshot: {} for app {}", snapshotKey, msg.appid());
-
-        std::vector<faabric::util::SnapshotDiff> updates =
-          getMemoryView().getDirtyRegions();
-
-        std::shared_ptr<faabric::util::SnapshotData> snap =
-          reg.getSnapshot(snapshotKey);
-
-        snap->queueDiffs(updates);
-        snap->writeQueuedDiffs();
-
-        // Reset dirty tracking
-        faabric::util::resetDirtyTracking();
-    }
-
-    {
-        faabric::util::SharedLock lock(moduleMutex);
-        return snapshotKey;
-    }
-}
-
-void WasmModule::deleteAppSnapshot(const faabric::Message& msg)
-{
-    std::string snapshotKey = getAppSnapshotKey(msg);
-
-    faabric::snapshot::SnapshotRegistry& reg =
-      faabric::snapshot::getSnapshotRegistry();
-
-    if (reg.snapshotExists(snapshotKey)) {
-        // Broadcast the deletion
-        faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-        sch.broadcastSnapshotDelete(msg, snapshotKey);
-
-        // Delete locally
-        reg.deleteSnapshot(snapshotKey);
-    }
-}
-
-void WasmModule::snapshotWithKey(const std::string& snapKey)
-
-{
-    PROF_START(wasmSnapshot)
-    std::shared_ptr<faabric::util::SnapshotData> data = getSnapshotData();
-
-    faabric::snapshot::SnapshotRegistry& reg =
-      faabric::snapshot::getSnapshotRegistry();
-    reg.registerSnapshot(snapKey, data);
-
-    PROF_END(wasmSnapshot)
+    return std::span<uint8_t>(memBase, currentSize);
 }
 
 std::string WasmModule::snapshot(bool locallyRestorable)
@@ -195,29 +104,16 @@ std::string WasmModule::snapshot(bool locallyRestorable)
     std::string snapKey =
       this->boundUser + "_" + this->boundFunction + "_" + std::to_string(gid);
 
-    snapshotWithKey(snapKey);
+    PROF_START(wasmSnapshot)
+    std::shared_ptr<faabric::util::SnapshotData> data = getSnapshotData();
 
-    return snapKey;
-}
-
-void WasmModule::syncAppSnapshot(const faabric::Message& msg)
-{
     faabric::snapshot::SnapshotRegistry& reg =
       faabric::snapshot::getSnapshotRegistry();
-    std::string snapshotKey = getAppSnapshotKey(msg);
+    reg.registerSnapshot(snapKey, data);
 
-    SPDLOG_DEBUG("{} syncing with snapshot {}",
-                 faabric::util::funcToString(msg, false),
-                 snapshotKey);
+    PROF_END(wasmSnapshot)
 
-    std::shared_ptr<faabric::util::SnapshotData> snap =
-      reg.getSnapshot(snapshotKey);
-
-    // Update the snapshot itself
-    snap->writeQueuedDiffs();
-
-    // Restore from snapshot
-    restore(snapshotKey);
+    return snapKey;
 }
 
 void WasmModule::restore(const std::string& snapshotKey)
@@ -521,8 +417,6 @@ int32_t WasmModule::executeTask(
         // Vanilla function
         SPDLOG_TRACE("Executing {} as standard function", funcStr);
         returnValue = executeFunction(msg);
-
-        deleteAppSnapshot(msg);
     }
 
     if (returnValue != 0) {
@@ -585,14 +479,10 @@ int WasmModule::awaitPthreadCall(const faabric::Message* msg, int pthreadPtr)
     if (!queuedPthreadCalls.empty()) {
         int nPthreadCalls = queuedPthreadCalls.size();
 
-        // Set up the master snapshot if not already set up
-        std::string snapshotKey = getOrCreateAppSnapshot(*msg, true);
-
         std::string funcStr = faabric::util::funcToString(*msg, true);
-        SPDLOG_DEBUG("Executing {} pthread calls for {} with snapshot {}",
+        SPDLOG_DEBUG("Executing {} pthread calls for {}",
                      nPthreadCalls,
-                     funcStr,
-                     snapshotKey);
+                     funcStr);
 
         std::shared_ptr<faabric::BatchExecuteRequest> req =
           faabric::util::batchExecFactory(
