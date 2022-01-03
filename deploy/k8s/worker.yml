@@ -52,4 +52,6 @@ spec:
               value: "700000"
             - name: ENDPOINT_INTERFACE
               value: "eth0"
+            - name: NO_TOPOLOGY_HINTS
+              value: "on"
 
