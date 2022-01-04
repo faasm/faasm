@@ -60,14 +60,6 @@ class WasmModule
 
     virtual int32_t executeFunction(faabric::Message& msg);
 
-    virtual int32_t executeOMPThread(int threadPoolIdx,
-                                     uint32_t stackTop,
-                                     faabric::Message& msg);
-
-    virtual int32_t executePthread(int threadPoolIdx,
-                                   uint32_t stackTop,
-                                   faabric::Message& msg);
-
     bool isBound();
 
     std::string getBoundUser();
@@ -145,6 +137,24 @@ class WasmModule
 
     std::vector<uint32_t> getThreadStacks();
 
+    // Adds a merge region to be used in the next threaded operation
+    void addMergeRegion(uint32_t wasmPtr,
+                        size_t regionSize,
+                        faabric::util::SnapshotDataType dataType,
+                        faabric::util::SnapshotMergeOperation mergeOp);
+
+    std::vector<faabric::util::SnapshotMergeRegion> getMergeRegions();
+
+    void clearMergeRegions();
+
+    virtual int32_t executeOMPThread(int threadPoolIdx,
+                                     uint32_t stackTop,
+                                     faabric::Message& msg);
+
+    virtual int32_t executePthread(int threadPoolIdx,
+                                   uint32_t stackTop,
+                                   faabric::Message& msg);
+
     // ----- Debugging -----
     virtual void printDebugInfo();
 
@@ -175,6 +185,8 @@ class WasmModule
     // Threads
     std::vector<threads::PthreadCall> queuedPthreadCalls;
     std::unordered_map<int32_t, uint32_t> pthreadPtrsToChainedCalls;
+    std::vector<std::pair<uint32_t, int32_t>> lastPthreadResults;
+    std::vector<faabric::util::SnapshotMergeRegion> mergeRegions;
 
     // Shared memory regions
     std::shared_mutex sharedMemWasmPtrsMutex;

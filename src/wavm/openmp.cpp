@@ -28,13 +28,6 @@ using namespace WAVM;
 namespace wasm {
 
 // ------------------------------------------------
-// SCHEDULING
-// ------------------------------------------------
-std::shared_mutex cachedSchedulingMutex;
-std::unordered_map<std::string, int> cachedGroupIds;
-std::unordered_map<std::string, std::vector<std::string>> cachedDecisionHosts;
-
-// ------------------------------------------------
 // LOGGING
 // ------------------------------------------------
 
@@ -411,8 +404,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   microtaskPtr,
                   sharedVarPtrs);
 
-    auto& sch = faabric::scheduler::getScheduler();
-
     WAVMWasmModule* parentModule = getExecutingWAVMModule();
     Runtime::Memory* memoryPtr = parentModule->defaultMemory;
     faabric::Message* parentCall = getExecutingCall();
@@ -425,11 +416,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     auto nextLevel =
       std::make_shared<threads::Level>(parentLevel->getMaxThreadsAtNextLevel());
     nextLevel->fromParentLevel(parentLevel);
-
-    // Write changes to the main thread snapshot
-    faabric::scheduler::Executor* executor =
-      faabric::scheduler::getExecutingExecutor();
-    executor->writeChangesToMainThreadSnapshot(*parentCall);
 
     // Set up shared variables
     if (nSharedVars > 0) {
@@ -446,7 +432,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     req->set_subtype(ThreadRequestType::OPENMP);
 
     // Add remote context
-    // TODO - avoid copy (mark as not owned by protobuf)
     std::vector<uint8_t> serialisedLevel = nextLevel->serialise();
     req->set_contextdata(serialisedLevel.data(), serialisedLevel.size());
 
@@ -468,104 +453,24 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         // is just within this function group, and not the global OpenMP
         // thread number
         m.set_groupidx(i);
-        m.set_groupsize(nextLevel->numThreads);
     }
 
-    // TODO - give a slot back to this host before calling to avoid
-    // unnecessarily spreading across hosts
-    std::string cacheKey = std::to_string(req->messages().at(0).appid()) + "_" +
-                           std::to_string(nextLevel->numThreads) + "_" +
-                           std::to_string(nextLevel->depth);
+    // Execute the threads
+    faabric::scheduler::Executor* executor =
+      faabric::scheduler::getExecutingExecutor();
+    std::vector<std::pair<uint32_t, int>> results =
+      executor->executeThreads(req, parentModule->getMergeRegions());
 
-    faabric::util::SharedLock lock(cachedSchedulingMutex);
-    if (cachedDecisionHosts.find(cacheKey) == cachedDecisionHosts.end()) {
-        lock.unlock();
-        // Set up a new group
-        int groupId = faabric::util::generateGid();
-        for (auto& m : *req->mutable_messages()) {
-            m.set_groupid(groupId);
-        }
-
-        // Invoke the functions
-        faabric::util::SchedulingDecision decision = sch.callFunctions(req);
-
-        // Cache the decision for next time
-        SPDLOG_DEBUG(
-          "No cached decision for {} x {}/{}, caching group {}, hosts: {}",
-          req->messages().size(),
-          msg->user(),
-          msg->function(),
-          groupId,
-          faabric::util::vectorToString<std::string>(decision.hosts));
-
-        faabric::util::FullLock fullLock(cachedSchedulingMutex);
-        cachedGroupIds[cacheKey] = groupId;
-        cachedDecisionHosts[cacheKey] = decision.hosts;
-    } else {
-        // Get the cached group ID and hosts
-        int groupId = cachedGroupIds[cacheKey];
-        std::vector<std::string> hosts = cachedDecisionHosts[cacheKey];
-        lock.unlock();
-
-        // Sanity check we've got something the right size
-        if (hosts.size() != req->messages().size()) {
-            SPDLOG_ERROR("Cached decision for {}/{} has {} hosts, expected {}",
-                         parentCall->user(),
-                         parentCall->function(),
-                         hosts.size(),
-                         req->messages().size());
-
-            throw std::runtime_error(
-              "Cached OpenMP scheduling decision invalid");
-        }
-
-        // Create the scheduling hint
-        faabric::util::SchedulingDecision hint(parentCall->appid(), groupId);
-        for (int i = 0; i < hosts.size(); i++) {
-            // Reuse the group id
-            faabric::Message& m = req->mutable_messages()->at(i);
-            m.set_groupid(groupId);
-
-            // Add to the decision
-            hint.addMessage(hosts.at(i), m);
-        }
-
-        SPDLOG_DEBUG("Using cached decision for {}/{} {}, group {}",
-                     msg->user(),
-                     msg->function(),
-                     msg->appid(),
-                     hint.groupId);
-
-        // Invoke the functions
-        sch.callFunctions(req, hint);
-    }
-
-    // Await all child threads
-    std::vector<std::pair<int, uint32_t>> failures;
-    for (int i = 0; i < req->messages_size(); i++) {
-        uint32_t messageId = req->messages().at(i).id();
-
-        int result = sch.awaitThreadResult(messageId);
-        if (result != 0) {
-            failures.emplace_back(result, messageId);
+    for (auto [mid, res] : results) {
+        if (res != 0) {
+            SPDLOG_ERROR(
+              "OpenMP thread failed, result {} on message {}", res, mid);
+            throw std::runtime_error("OpenMP threads failed");
         }
     }
 
-    if (!failures.empty()) {
-        for (auto f : failures) {
-            SPDLOG_ERROR("OpenMP thread failed, result {} on message {}",
-                         f.first,
-                         f.second);
-        }
-
-        throw std::runtime_error("OpenMP threads failed");
-    }
-
-    // Write queued changes to snapshot
-    executor->getMainThreadSnapshot(*parentCall)->writeQueuedDiffs();
-
-    // Read in changes from updated snapshot
-    executor->readChangesFromMainThreadSnapshot(*parentCall);
+    // Clear this module's merge regions
+    parentModule->clearMergeRegions();
 
     // Reset parent level for next setting of threads
     parentLevel->pushedThreads = -1;

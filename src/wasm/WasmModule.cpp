@@ -1,3 +1,4 @@
+#include "faabric/proto/faabric.pb.h"
 #include <conf/FaasmConfig.h>
 #include <threads/ThreadState.h>
 #include <wasm/WasmExecutionContext.h>
@@ -465,6 +466,24 @@ uint32_t WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
     return wasmOffset + regionSize;
 }
 
+void WasmModule::addMergeRegion(uint32_t wasmPtr,
+                                size_t regionSize,
+                                faabric::util::SnapshotDataType dataType,
+                                faabric::util::SnapshotMergeOperation mergeOp)
+{
+    mergeRegions.emplace_back(wasmPtr, regionSize, dataType, mergeOp);
+}
+
+std::vector<faabric::util::SnapshotMergeRegion> WasmModule::getMergeRegions()
+{
+    return mergeRegions;
+}
+
+void WasmModule::clearMergeRegions()
+{
+    mergeRegions.clear();
+}
+
 void WasmModule::queuePthreadCall(threads::PthreadCall call)
 {
     // We assume that all pthread calls are queued from the main thread before
@@ -497,8 +516,6 @@ int WasmModule::awaitPthreadCall(faabric::Message* msg, int pthreadPtr)
         req->set_type(faabric::BatchExecuteRequest::THREADS);
         req->set_subtype(wasm::ThreadRequestType::PTHREAD);
 
-        uint32_t groupGid = faabric::util::generateGid();
-
         for (int i = 0; i < nPthreadCalls; i++) {
             threads::PthreadCall p = queuedPthreadCalls.at(i);
             faabric::Message& m = req->mutable_messages()->at(i);
@@ -516,42 +533,48 @@ int WasmModule::awaitPthreadCall(faabric::Message* msg, int pthreadPtr)
             // Assign a thread ID and increment. Our pthread IDs start
             // at 1. Set this as part of the group with the other threads.
             m.set_appidx(i + 1);
-            m.set_groupid(groupGid);
             m.set_groupidx(i + 1);
-            m.set_groupsize(nPthreadCalls);
 
             // Record this thread -> call ID
             SPDLOG_TRACE("pthread {} mapped to call {}", p.pthreadPtr, m.id());
             pthreadPtrsToChainedCalls.insert({ p.pthreadPtr, m.id() });
         }
 
-        // Update the main thread snapshot
-        executor->writeChangesToMainThreadSnapshot(*msg);
-
-        // Submit the call
-        faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-        sch.callFunctions(req);
+        // Execute the threads and await results
+        lastPthreadResults = executor->executeThreads(req, mergeRegions);
 
         // Empty the queue
         queuedPthreadCalls.clear();
     }
 
-    // Await the results of this call
-    unsigned int callId = pthreadPtrsToChainedCalls[pthreadPtr];
-    SPDLOG_DEBUG("Awaiting pthread: {} ({})", pthreadPtr, callId);
-    auto& sch = faabric::scheduler::getScheduler();
+    // Get the result of this call
+    unsigned int pthreadMsgId = pthreadPtrsToChainedCalls[pthreadPtr];
+    bool found = false;
+    int thisResult = 0;
+    for (auto [mid, res] : lastPthreadResults) {
+        if (pthreadMsgId == mid) {
+            thisResult = res;
+            found = true;
+            break;
+        }
+    }
 
-    int returnValue = sch.awaitThreadResult(callId);
+    if (!found) {
+        SPDLOG_ERROR("Did not find a result for pthread: ptr {}, mid {}",
+                     pthreadPtr,
+                     pthreadMsgId);
+        throw std::runtime_error("Result not found for pthread");
+    }
 
     // Remove the mapping for this pointer
     pthreadPtrsToChainedCalls.erase(pthreadPtr);
 
-    // If we're the last, read in all the changes
+    // If we're done, clear the results
     if (pthreadPtrsToChainedCalls.empty()) {
-        executor->readChangesFromMainThreadSnapshot(*msg);
+        lastPthreadResults.clear();
     }
 
-    return returnValue;
+    return thisResult;
 }
 
 void WasmModule::createThreadStacks()

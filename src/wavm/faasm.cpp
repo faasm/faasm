@@ -1,4 +1,3 @@
-#include "faabric/scheduler/Scheduler.h"
 #include "syscalls.h"
 
 #include <wasm/WasmExecutionContext.h>
@@ -8,6 +7,7 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 
+#include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/transport/PointToPointBroker.h>
 #include <faabric/util/bytes.h>
@@ -648,16 +648,14 @@ static void addSharedMemMergeRegion(
   faabric::util::SnapshotMergeOperation mergeOp)
 {
     faabric::Message* msg = getExecutingCall();
-    faabric::scheduler::Executor* executor =
-      faabric::scheduler::getExecutingExecutor();
-    auto snap = executor->getMainThreadSnapshot(*msg);
 
     SPDLOG_DEBUG("Registering shared memory region {}-{} for {}",
                  varPtr,
                  varPtr + regionSize,
                  faabric::util::funcToString(*msg, false));
 
-    snap->addMergeRegion(varPtr, regionSize, dataType, mergeOp, true);
+    wasm::WasmModule* module = getExecutingModule();
+    module->addMergeRegion(varPtr, regionSize, dataType, mergeOp);
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,

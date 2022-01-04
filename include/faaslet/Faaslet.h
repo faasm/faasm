@@ -25,7 +25,7 @@ class Faaslet final : public faabric::scheduler::Executor
       int msgIdx,
       std::shared_ptr<faabric::BatchExecuteRequest> req) override;
 
-    void restore(faabric::Message& call) override;
+    void restore(const std::string& snapshotKey) override;
 
     std::string getLocalResetSnapshotKey();
 
