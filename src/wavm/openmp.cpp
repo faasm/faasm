@@ -725,8 +725,12 @@ void startReduceCritical(faabric::Message* msg,
     // at the end of the parallel section via Faasm shared memory.
     // This means we only need to synchronise local accesses here, so we only
     // need a local lock.
-    faabric::transport::PointToPointGroup::getOrAwaitGroup(msg->groupid())
-      ->localLock();
+    SPDLOG_TRACE("Entering reduce critical section for group {}",
+                 msg->groupid());
+
+    std::shared_ptr<faabric::transport::PointToPointGroup> group =
+      faabric::transport::PointToPointGroup::getOrAwaitGroup(msg->groupid());
+    group->localLock();
 }
 
 /**
