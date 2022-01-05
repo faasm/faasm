@@ -466,10 +466,11 @@ uint32_t WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
     return wasmOffset + regionSize;
 }
 
-void WasmModule::addMergeRegion(uint32_t wasmPtr,
-                                size_t regionSize,
-                                faabric::util::SnapshotDataType dataType,
-                                faabric::util::SnapshotMergeOperation mergeOp)
+void WasmModule::addMergeRegionForNextThreads(
+  uint32_t wasmPtr,
+  size_t regionSize,
+  faabric::util::SnapshotDataType dataType,
+  faabric::util::SnapshotMergeOperation mergeOp)
 {
     mergeRegions.emplace_back(wasmPtr, regionSize, dataType, mergeOp);
 }

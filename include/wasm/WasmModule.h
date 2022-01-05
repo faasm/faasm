@@ -138,10 +138,11 @@ class WasmModule
     std::vector<uint32_t> getThreadStacks();
 
     // Adds a merge region to be used in the next threaded operation
-    void addMergeRegion(uint32_t wasmPtr,
-                        size_t regionSize,
-                        faabric::util::SnapshotDataType dataType,
-                        faabric::util::SnapshotMergeOperation mergeOp);
+    void addMergeRegionForNextThreads(
+      uint32_t wasmPtr,
+      size_t regionSize,
+      faabric::util::SnapshotDataType dataType,
+      faabric::util::SnapshotMergeOperation mergeOp);
 
     std::vector<faabric::util::SnapshotMergeRegion> getMergeRegions();
 

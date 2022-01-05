@@ -655,7 +655,7 @@ static void addSharedMemMergeRegion(
                  faabric::util::funcToString(*msg, false));
 
     wasm::WasmModule* module = getExecutingModule();
-    module->addMergeRegion(varPtr, regionSize, dataType, mergeOp);
+    module->addMergeRegionForNextThreads(varPtr, regionSize, dataType, mergeOp);
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
