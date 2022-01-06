@@ -19,6 +19,8 @@ TEST_CASE_METHOD(DistTestsFixture,
     sch.setThisHostResources(res);
 
     std::string function;
+    SECTION("Not using shared memory") { function = "hellomp"; }
+
     SECTION("Using shared memory") { function = "omp_checks"; }
 
     SECTION("Repeated reduce") { function = "repeated_reduce"; }
