@@ -303,16 +303,8 @@ jobs:
       - name: Get Conan version
         id: get-conan-version
         run: |
-          docker-compose run --rm faasm-cli conan --version 2>/tmp/conan-ver-log | tee /tmp/conan-ver
-          grep 'Conan version' /tmp/conan-ver || exit 1
-          echo "::set-output name=conan-version::$(grep 'Conan version' /tmp/conan-ver | tr -d '[:alpha:] ')"
+          echo "::set-output name=conan-version::$(conan --version | tr -d '[:alpha:] ')"
         shell: bash
-        env:
-          FAASM_BUILD_MOUNT: /build/faasm
-          CONAN_CACHE_MOUNT_SOURCE: ~/.conan/
-      - name: Get Conan Version - Show Log
-        if: always()
-        run: cat /tmp/conan-ver-log
       - name: Hash ExternalProjects
         id: hash-external
         run: |
