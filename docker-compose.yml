@@ -144,7 +144,7 @@ services:
       - upload
     environment:
       - LD_LIBRARY_PATH=/usr/local/lib
-      - LOG_LEVEL=debug
+      - LOG_LEVEL=trace
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - OVERRIDE_CPU_COUNT=4
