@@ -119,7 +119,7 @@ services:
     environment:
       - UPLOAD_HOST=${UPLOAD_HOST:-upload}
       - INVOKE_HOST=${INVOKE_HOST:-nginx}
-      - LOG_LEVEL=trace
+      - LOG_LEVEL=debug
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
@@ -144,7 +144,7 @@ services:
       - upload
     environment:
       - LD_LIBRARY_PATH=/usr/local/lib
-      - LOG_LEVEL=trace
+      - LOG_LEVEL=debug
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - OVERRIDE_CPU_COUNT=4
