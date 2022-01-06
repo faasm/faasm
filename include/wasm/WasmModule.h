@@ -131,13 +131,18 @@ class WasmModule
     void restore(const std::string& snapshotKey);
 
     // ----- Threading -----
+    // Queues a pthread call that will be executed along with all other queued
+    // calls on the first call to await
     void queuePthreadCall(threads::PthreadCall call);
 
+    // Executes all queued pthread calls and awaits the call relating to the
+    // given pointer
     int awaitPthreadCall(faabric::Message* msg, int pthreadPtr);
 
     std::vector<uint32_t> getThreadStacks();
 
-    // Adds a merge region to be used in the next threaded operation
+    // Adds a merge region to be used in the next threaded operation spawned by
+    // this module
     void addMergeRegionForNextThreads(
       uint32_t wasmPtr,
       size_t regionSize,

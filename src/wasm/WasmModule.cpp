@@ -1,9 +1,9 @@
-#include "faabric/proto/faabric.pb.h"
 #include <conf/FaasmConfig.h>
 #include <threads/ThreadState.h>
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 
+#include <faabric/proto/faabric.pb.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/util/bytes.h>
