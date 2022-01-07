@@ -12,6 +12,8 @@
 #include <storage/S3Wrapper.h>
 #include <system/memory.h>
 
+#define CATCH_CONFIG_NO_POSIX_SIGNALS
+
 FAABRIC_CATCH_LOGGER
 
 int main(int argc, char* argv[])
