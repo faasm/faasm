@@ -60,14 +60,6 @@ class WasmModule
 
     virtual int32_t executeFunction(faabric::Message& msg);
 
-    virtual int32_t executeOMPThread(int threadPoolIdx,
-                                     uint32_t stackTop,
-                                     faabric::Message& msg);
-
-    virtual int32_t executePthread(int threadPoolIdx,
-                                   uint32_t stackTop,
-                                   faabric::Message& msg);
-
     bool isBound();
 
     std::string getBoundUser();
@@ -104,6 +96,8 @@ class WasmModule
     // ----- Memory management -----
     uint32_t getCurrentBrk();
 
+    virtual void setMemorySize(uint32_t nBytes);
+
     virtual uint32_t growMemory(uint32_t nBytes);
 
     virtual uint32_t shrinkMemory(uint32_t nBytes);
@@ -130,25 +124,42 @@ class WasmModule
     // ----- Snapshot/ restore -----
     std::shared_ptr<faabric::util::SnapshotData> getSnapshotData();
 
-    faabric::util::MemoryView getMemoryView();
-
-    std::string getOrCreateAppSnapshot(const faabric::Message& msg,
-                                       bool update);
-
-    void deleteAppSnapshot(const faabric::Message& msg);
+    std::span<uint8_t> getMemoryView();
 
     std::string snapshot(bool locallyRestorable = true);
-
-    void syncAppSnapshot(const faabric::Message& msg);
 
     void restore(const std::string& snapshotKey);
 
     // ----- Threading -----
+    // Queues a pthread call that will be executed along with all other queued
+    // calls on the first call to await
     void queuePthreadCall(threads::PthreadCall call);
 
-    int awaitPthreadCall(const faabric::Message* msg, int pthreadPtr);
+    // Executes all queued pthread calls and awaits the call relating to the
+    // given pointer
+    int awaitPthreadCall(faabric::Message* msg, int pthreadPtr);
 
     std::vector<uint32_t> getThreadStacks();
+
+    // Adds a merge region to be used in the next threaded operation spawned by
+    // this module
+    void addMergeRegionForNextThreads(
+      uint32_t wasmPtr,
+      size_t regionSize,
+      faabric::util::SnapshotDataType dataType,
+      faabric::util::SnapshotMergeOperation mergeOp);
+
+    std::vector<faabric::util::SnapshotMergeRegion> getMergeRegions();
+
+    void clearMergeRegions();
+
+    virtual int32_t executeOMPThread(int threadPoolIdx,
+                                     uint32_t stackTop,
+                                     faabric::Message& msg);
+
+    virtual int32_t executePthread(int threadPoolIdx,
+                                   uint32_t stackTop,
+                                   faabric::Message& msg);
 
     // ----- Debugging -----
     virtual void printDebugInfo();
@@ -180,6 +191,8 @@ class WasmModule
     // Threads
     std::vector<threads::PthreadCall> queuedPthreadCalls;
     std::unordered_map<int32_t, uint32_t> pthreadPtrsToChainedCalls;
+    std::vector<std::pair<uint32_t, int32_t>> lastPthreadResults;
+    std::vector<faabric::util::SnapshotMergeRegion> mergeRegions;
 
     // Shared memory regions
     std::shared_mutex sharedMemWasmPtrsMutex;

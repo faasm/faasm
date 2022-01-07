@@ -132,19 +132,23 @@ void Faaslet::postFinish()
     }
 }
 
-faabric::util::MemoryView Faaslet::getMemoryView()
+std::span<uint8_t> Faaslet::getMemoryView()
 {
     return module->getMemoryView();
 }
 
-void Faaslet::restore(faabric::Message& msg)
+void Faaslet::setMemorySize(size_t newSize)
+{
+    module->setMemorySize(newSize);
+}
+
+void Faaslet::restore(const std::string& snapshotKey)
 {
     conf::FaasmConfig& conf = conf::getFaasmConfig();
-    const std::string snapshotKey = msg.snapshotkey();
 
     // Restore from snapshot if necessary
     if (conf.wasmVm == "wavm") {
-        if (!snapshotKey.empty() && !msg.issgx()) {
+        if (!snapshotKey.empty() && !boundMessage.issgx()) {
             SPDLOG_DEBUG("Restoring {} from snapshot {} before execution",
                          id,
                          snapshotKey);

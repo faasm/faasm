@@ -47,8 +47,9 @@ def cmake(
         "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_INSTALL_DIR),
         "-DFAASM_PERF_PROFILING=ON" if perf else "",
         "-DFAASM_SELF_TRACING=ON" if prof else "",
-        "-DFAABRIC_USE_SANITISER={}".format(sanitiser),
+        "-DFAABRIC_SELF_TRACING=ON" if prof else "",
         "-DFAASM_USE_SANITISER={}".format(sanitiser),
+        "-DFAABRIC_USE_SANITISER={}".format(sanitiser),
         PROJ_ROOT,
     ]
 

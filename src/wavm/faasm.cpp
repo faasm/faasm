@@ -7,6 +7,7 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 
+#include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/transport/PointToPointBroker.h>
 #include <faabric/util/bytes.h>
@@ -640,57 +641,42 @@ static faabric::util::SnapshotMergeOperation extractSnapshotMergeOp(I32 mergeOp)
     throw std::runtime_error("Unrecognised merge operation");
 }
 
-static std::shared_ptr<faabric::util::SnapshotData> getSnapshot()
-{
-    faabric::Message* msg = getExecutingCall();
-    std::string snapKey = msg->snapshotkey();
-
-    if (snapKey.empty()) {
-        // Use app snapshot by default
-        WasmModule* module = getExecutingModule();
-        snapKey = module->getOrCreateAppSnapshot(*msg, false);
-    }
-
-    // Set up the corresponding merge region
-    faabric::snapshot::SnapshotRegistry& reg =
-      faabric::snapshot::getSnapshotRegistry();
-    auto snap = reg.getSnapshot(snapKey);
-
-    return snap;
-}
-
-static void addSharedMemMergeRegion(
-  I32 varPtr,
-  size_t regionSize,
-  faabric::util::SnapshotDataType dataType,
-  faabric::util::SnapshotMergeOperation mergeOp)
-{
-    faabric::Message* msg = getExecutingCall();
-    auto snap = getSnapshot();
-
-    SPDLOG_DEBUG("Registering shared memory region {}-{} for {}",
-                 varPtr,
-                 varPtr + regionSize,
-                 faabric::util::funcToString(*msg, false));
-
-    snap->addMergeRegion(varPtr, regionSize, dataType, mergeOp, true);
-}
-
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "__faasm_sm_reduce",
                                void,
                                __faasm_sm_reduce,
                                I32 varPtr,
                                I32 varType,
-                               I32 reduceOp)
+                               I32 reduceOp,
+                               int currentBatch)
 {
-    SPDLOG_DEBUG("S - sm_reduce - {} {} {}", varPtr, varType, reduceOp);
+    SPDLOG_DEBUG(
+      "S - sm_reduce - {} {} {} {}", varPtr, varType, reduceOp, currentBatch);
 
     auto dataType = extractSnapshotDataType(varType);
     faabric::util::SnapshotMergeOperation mergeOp =
       extractSnapshotMergeOp(reduceOp);
 
-    addSharedMemMergeRegion(varPtr, dataType.first, dataType.second, mergeOp);
+    bool isCurrentBatch = currentBatch == 1;
+    faabric::Message* msg = getExecutingCall();
+
+    SPDLOG_DEBUG("Registering reduction variable {}-{} for {} {}",
+                 varPtr,
+                 varPtr + dataType.first,
+                 faabric::util::funcToString(*msg, false),
+                 isCurrentBatch ? "this batch" : "next batch");
+
+    if (isCurrentBatch) {
+        faabric::scheduler::Executor* executor =
+          faabric::scheduler::getExecutingExecutor();
+        auto snap = executor->getMainThreadSnapshot(*msg, false);
+        snap->addMergeRegion(
+          varPtr, dataType.first, dataType.second, mergeOp, true);
+    } else {
+        wasm::WasmModule* module = getExecutingModule();
+        module->addMergeRegionForNextThreads(
+          varPtr, dataType.first, dataType.second, mergeOp);
+    }
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
