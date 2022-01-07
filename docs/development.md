@@ -62,9 +62,6 @@ want to work on:
 
 # Faasm
 ./bin/cli.sh faasm
-
-# Faabric
-./bin/cli.sh faabric
 ```
 
 ## Tests
@@ -75,23 +72,18 @@ container you need to be in for each step):
 ```bash
 # --- CPP CLI ---
 # Build CPP functions and lib required for the tests
-inv func.local
-inv libfake
+inv func.local libfake
 
 # --- Python CLI ---
-# Build Python wrapper function
-inv func
-
-# Upload the Python functions
-inv func.upload-all --local
+# Build Python wrapper function and upload Python code
+inv func func.upload-all --local
 
 # --- Faasm CLI ---
 # Build the development tools
 inv dev.tools
 
 # Run codegen (this may take a while the first time it's run)
-inv codegen.local
-inv python.codegen
+inv codegen.local python.codegen
 
 # Set up cgroup
 ./bin/cgroup.sh

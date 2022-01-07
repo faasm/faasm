@@ -11,8 +11,9 @@ TEST_CASE_METHOD(DistTestsFixture,
 {
     conf.overrideCpuCount = 6;
 
-    // Set this host up to have fewer slots than the number of threads
-    int nLocalSlots = 2;
+    // Set this host up to have fewer slots than the number of threads, noting
+    // that we take up one local slot with the main thread
+    int nLocalSlots = 3;
     faabric::HostResources res;
     res.set_slots(nLocalSlots);
     sch.setThisHostResources(res);
