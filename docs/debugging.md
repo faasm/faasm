@@ -4,6 +4,15 @@ Code in Faasm has been cross-compiled to WebAssembly, so we lose a lot of
 debugging information. However, there are still some options for chasing down
 issues.
 
+## Segfaults
+
+Note that Faabric uses a segfault signal handler to do dirty tracking, so if
+using `gdb`, you must switch off segfault catching with:
+
+```
+handle SIGSEGV nostop noprint
+```
+
 ## Backtrace
 
 If you're seeing a failure nested somewhere deep in an application but can't
@@ -73,7 +82,7 @@ Note that because the function itself is loaded using LLVM JIT libraries, GDB
 doesn't have the symbols up front, but we can still set breakpoints pending a
 shared library load.
 
-## Debugging SGX 
+## Debugging SGX
 
 To debug SGX applications, you may need the `sgx-gdb` debugger to see the
 function symbols.
