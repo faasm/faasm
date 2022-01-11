@@ -4,14 +4,13 @@ Code in Faasm has been cross-compiled to WebAssembly, so we lose a lot of
 debugging information. However, there are still some options for chasing down
 issues.
 
-## Segfaults
+## `gdb`
 
-Note that Faabric uses a segfault signal handler to do dirty tracking, so if
-using `gdb`, you must switch off segfault catching with:
+This project contains a default `.gdbinit` file to set some defaults for using
+gdb (e.g. disabling the segfault signal handling which is used by Faabric to
+do dirty tracking).
 
-```
-handle SIGSEGV nostop noprint
-```
+This is configured by default in the CLI container.
 
 ## Backtrace
 

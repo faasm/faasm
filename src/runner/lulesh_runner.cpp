@@ -33,12 +33,13 @@ int doLuleshRun(int argc, char* argv[])
     conf.boundTimeout = 480000;
     conf.globalMessageTimeout = 480000;
 
-    int nThreads = faabric::util::getUsableCores();
+    int nThreads = 10;
     if (argc >= 2) {
         nThreads = std::stoi(argv[1]);
     }
+    conf.overrideCpuCount = nThreads + 1;
 
-    std::string cmdlineArgs = "-i 100 -s 30 -r 11 -c 1 -b 1";
+    std::string cmdlineArgs = "-i 2 -s 30 -r 11 -c 1 -b 1";
 
     auto req = faabric::util::batchExecFactory("lulesh", "func", 1);
     auto& msg = req->mutable_messages()->at(0);

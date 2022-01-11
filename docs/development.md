@@ -346,3 +346,20 @@ docker-compose down
 # Run once through
 ./deploy/dist-test/run.sh
 ```
+
+## Notes on Ubuntu 18.04
+
+C++20 needs a bit of extra fiddling on Ubuntu 18.04. As of 11/01/2022 steps are:
+
+```bash
+# Install latest LLVM
+wget https://apt.llvm.org/llvm.sh
+chmod +x llvm.sh
+./llvm.sh
+
+# Install all C++ environment
+sudo apt install libc++-dev libc++abi-13-dev clang-tools-13 clang-format-13 clang-tidy-13
+
+# Install conan
+curl -s -L -o /tmp/conan-latest.deb https://github.com/conan-io/conan/releases/download/1.43.0/conan-ubuntu-64.deb && sudo dpkg -i /tmp/conan-latest.deb && rm -f /tmp/conan-latest.deb
+```
