@@ -33,7 +33,7 @@ bool isWasmPageAligned(int32_t offset)
     }
 }
 
-size_t getNumberOfWasmPagesForBytes(uint32_t nBytes)
+size_t getNumberOfWasmPagesForBytes(size_t nBytes)
 {
     // Round up to nearest page
     size_t pageCount =
@@ -123,12 +123,12 @@ void WasmModule::setMemorySize(uint32_t nBytes)
 
     if (nBytes > memSize) {
         size_t bytesRequired = nBytes - memSize;
-        SPDLOG_DEBUG("Growing memory by {} bytes to restore snapshot",
+        SPDLOG_DEBUG("Growing memory by {} bytes to set memory size",
                      bytesRequired);
         this->growMemory(bytesRequired);
     } else if (nBytes < memSize) {
         size_t shrinkBy = memSize - nBytes;
-        SPDLOG_DEBUG("Shrinking memory by {} bytes to restore snapshot",
+        SPDLOG_DEBUG("Shrinking memory by {} bytes to set memory size",
                      shrinkBy);
         this->shrinkMemory(shrinkBy);
     } else {

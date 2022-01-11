@@ -1010,8 +1010,6 @@ U32 WAVMWasmModule::mmapFile(U32 fd, U32 length)
 
 U32 WAVMWasmModule::growMemory(U32 nBytes)
 {
-    U64 maxPages = getMemoryType(defaultMemory).size.max;
-
     // Check if we just need the size
     if (nBytes == 0) {
         return currentBrk.load(std::memory_order_acquire);
@@ -1029,6 +1027,20 @@ U32 WAVMWasmModule::growMemory(U32 nBytes)
         throw std::runtime_error("Non-wasm-page-aligned memory growth");
     }
 
+    size_t newBytes = oldBytes + nBytes;
+    Uptr oldPages = Runtime::getMemoryNumPages(defaultMemory);
+    Uptr newPages = getNumberOfWasmPagesForBytes(newBytes);
+
+    U64 maxPages = getMemoryType(defaultMemory).size.max;
+    if (newBytes > UINT32_MAX || newPages > maxPages || oldPages == maxPages) {
+        SPDLOG_ERROR("Growing memory would exceed max of {} pages (current {}, "
+                     "requested {})",
+                     maxPages,
+                     oldPages,
+                     newPages);
+        throw std::runtime_error("Memory growth exceeding max");
+    }
+
     // If we can reclaim old memory, just bump the break
     if (newBrk <= oldBytes) {
         SPDLOG_TRACE(
@@ -1039,18 +1051,18 @@ U32 WAVMWasmModule::growMemory(U32 nBytes)
 
         currentBrk.store(newBrk, std::memory_order_release);
 
+        // Make sure permissions on memory are open
+        size_t newTop = faabric::util::getRequiredHostPages(currentBrk);
+        size_t newStart = faabric::util::getRequiredHostPagesRoundDown(oldBrk);
+        newTop *= faabric::util::HOST_PAGE_SIZE;
+        newStart *= faabric::util::HOST_PAGE_SIZE;
+        SPDLOG_TRACE("Reclaiming memory {}-{}", newStart, newTop);
+
+        uint8_t* memBase = getMemoryBase();
+        faabric::util::claimVirtualMemory(
+          { memBase + newStart, memBase + newTop });
+
         return oldBrk;
-    }
-
-    size_t newBytes = oldBytes + nBytes;
-    Uptr oldPages = Runtime::getMemoryNumPages(defaultMemory);
-    Uptr newPages = getNumberOfWasmPagesForBytes(newBytes);
-
-    if (newPages > maxPages) {
-        SPDLOG_ERROR("mmap would exceed max of {} pages (requested {})",
-                     maxPages,
-                     newPages);
-        throw std::runtime_error("Mmap exceeding max");
     }
 
     Uptr newMemPageBase;
@@ -1121,7 +1133,6 @@ U32 WAVMWasmModule::growMemory(U32 nBytes)
 
 uint32_t WAVMWasmModule::shrinkMemory(U32 nBytes)
 {
-
     if (!isWasmPageAligned(nBytes)) {
         SPDLOG_ERROR("Shrink size not page aligned {}", nBytes);
         throw std::runtime_error("New break not page aligned");

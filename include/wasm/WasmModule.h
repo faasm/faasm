@@ -215,7 +215,7 @@ class WasmModule
 };
 
 // Convenience functions
-size_t getNumberOfWasmPagesForBytes(uint32_t nBytes);
+size_t getNumberOfWasmPagesForBytes(size_t nBytes);
 
 uint32_t roundUpToWasmPageAligned(uint32_t nBytes);
 

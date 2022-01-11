@@ -602,8 +602,8 @@ void for_static_init(I32 schedule,
             break;
         }
         default: {
-            throw std::runtime_error(
-              fmt::format("Unimplemented scheduler {}", schedule));
+            SPDLOG_ERROR("Unimplemented OpenMP scheduler {}", schedule);
+            throw std::runtime_error("Unimplemented OpenMP scheduler");
         }
     }
 }
