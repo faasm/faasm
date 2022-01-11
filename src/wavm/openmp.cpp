@@ -424,6 +424,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         nextLevel->setSharedVarOffsets(sharedVarsPtr, nSharedVars);
     }
 
+    if (nextLevel->depth > 1) {
+        SPDLOG_ERROR("Nested OpenMP support removed");
+        throw std::runtime_error("Nested OpenMP support removed");
+    }
+
     // Set up the chained calls
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory(
