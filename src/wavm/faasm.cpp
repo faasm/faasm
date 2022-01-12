@@ -716,18 +716,39 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     SPDLOG_DEBUG(
       "S - faasm_migrate_point {} {}", entrypointFuncPtr, entrypointFuncArg);
 
-    // TODO - get this from the scheduler
-    bool needToMigrate = false;
+    auto* call = getExecutingCall();
+    auto& sch = faabric::scheduler::getScheduler();
+
+    // Detect if there is a pending migration for the current app
+    auto pendingMigrations = sch.getPendingAppMigrations(call->appid());
+    bool appMustMigrate = pendingMigrations != nullptr;
+
+    // Detect if this particular function needs to be migrated or not
+    bool funcMustMigrate = false;
     std::string hostToMigrateTo = "otherHost";
+    if (appMustMigrate) {
+        for (int i = 0; i < pendingMigrations->migrations_size(); i++) {
+            auto m = pendingMigrations->mutable_migrations()->at(i);
+            if (m.msg().id() == call->id()) {
+                funcMustMigrate = true;
+                hostToMigrateTo = m.dsthost();
+                break;
+            }
+        }
+    }
 
-    // Do migration
-    if (needToMigrate) {
-        auto* call = getExecutingCall();
+    // Regardless if we have to individually migrate or not, we need to prepare
+    // for the app migration
+    if (appMustMigrate && call->ismpi()) {
+        auto& mpiWorld = faabric::scheduler::getMpiWorldRegistry().getWorld(call->mpiworldid());
+        mpiWorld.prepareMigration(call->mpirank(), pendingMigrations);
+    }
 
-        std::vector<uint8_t> inputData(BYTES(&entrypointFuncArg),
-                                       BYTES(&entrypointFuncArg) + sizeof(int));
+    // Do actual migration
+    if (funcMustMigrate) {
+        std::string argStr = std::to_string(entrypointFuncArg);
+        std::vector<uint8_t> inputData(argStr.begin(), argStr.end());
 
-        faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
         std::string user = call->user();
 
         std::shared_ptr<faabric::BatchExecuteRequest> req =
@@ -737,26 +758,39 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         msg.set_inputdata(inputData.data(), inputData.size());
         msg.set_funcptr(entrypointFuncPtr);
 
-        // Take snapshot of function (scheduler will push for us)
+        // Take snapshot of function and send it ourselves. Note that the
+        // scheduler only pushes snapshots from the master host of the app, and
+        // we are most likely migrating from a non-master host
+        // TODO - can we only take diffs here?
         auto* exec = faabric::scheduler::getExecutingExecutor();
         auto snap =
           std::make_shared<faabric::util::SnapshotData>(exec->getMemoryView());
         std::string snapKey = "migration_" + std::to_string(msg.id());
-
+        // TODO - we need to do this for the scheduler not to fail. Ideally
+        // we would have a different path in callFunctions for migrated funcs
         auto& reg = faabric::snapshot::getSnapshotRegistry();
         reg.registerSnapshot(snapKey, snap);
+        sch.getSnapshotClient(hostToMigrateTo).pushSnapshot(snapKey, snap);
 
         // Propagate the app ID and set the SAME message ID
         msg.set_id(call->id());
         msg.set_groupid(call->groupid());
         msg.set_appid(call->appid());
-        msg.set_snapshotkey(snapKey);
+        // msg.set_snapshotkey(snapKey);
+
+        // If message is MPI, propagate the necessary MPI bits
+        if (call->ismpi()) {
+            msg.set_ismpi(true);
+            msg.set_mpiworldid(call->mpiworldid());
+            msg.set_mpiworldsize(call->mpiworldsize());
+            msg.set_mpirank(call->mpirank());
+        }
 
         if (call->recordexecgraph()) {
             msg.set_recordexecgraph(true);
         }
 
-        SPDLOG_DEBUG("Migrating {}/{} {} to {}",
+        SPDLOG_INFO("Migrating {}/{} {} to {}",
                      msg.user(),
                      msg.function(),
                      call->id(),
@@ -775,6 +809,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         // - Migrate function group details
         // - Throw an exception which is caught by the executor, doesn't set
         // a result for the function, then terminates
+        throw faabric::util::FunctionMigratedException("Migrating MPI rank");
     }
 }
 
