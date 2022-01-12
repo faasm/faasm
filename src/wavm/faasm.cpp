@@ -1,3 +1,5 @@
+#include "faabric/snapshot/SnapshotClient.h"
+#include "faabric/util/scheduling.h"
 #include "syscalls.h"
 
 #include <wasm/WasmExecutionContext.h>
@@ -735,9 +737,20 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         msg.set_inputdata(inputData.data(), inputData.size());
         msg.set_funcptr(entrypointFuncPtr);
 
+        // Take snapshot of function (scheduler will push for us)
+        auto* exec = faabric::scheduler::getExecutingExecutor();
+        auto snap =
+          std::make_shared<faabric::util::SnapshotData>(exec->getMemoryView());
+        std::string snapKey = "migration_" + std::to_string(msg.id());
+
+        auto& reg = faabric::snapshot::getSnapshotRegistry();
+        reg.registerSnapshot(snapKey, snap);
+
         // Propagate the app ID and set the SAME message ID
         msg.set_id(call->id());
+        msg.set_groupid(call->groupid());
         msg.set_appid(call->appid());
+        msg.set_snapshotkey(snapKey);
 
         if (call->recordexecgraph()) {
             msg.set_recordexecgraph(true);
@@ -749,7 +762,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                      call->id(),
                      hostToMigrateTo);
 
-        sch.callFunctions(req);
+        // Build decision and send
+        faabric::util::SchedulingDecision decision(msg.appid(), msg.groupid());
+        decision.addMessage(hostToMigrateTo, msg);
+        sch.callFunctions(req, decision);
 
         if (call->recordexecgraph()) {
             sch.logChainedFunction(call->id(), msg.id());
