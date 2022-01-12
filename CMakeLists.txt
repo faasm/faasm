@@ -26,7 +26,7 @@ option(FAASM_SGX_ATTESTATION "Turn on attestation" OFF)
 option(FAASM_SGX_XRA "Turn on support for XRA" OFF)
 
 # Top-level CMake config
-set(CMAKE_CXX_FLAGS "-Wall")
+set(CMAKE_CXX_FLAGS "-Wall -march=skylake")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
