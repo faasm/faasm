@@ -859,8 +859,8 @@ int32_t WAVMWasmModule::executeFunction(faabric::Message& msg)
             }
             case (1): {
                 // NOTE - when we've got a function pointer that takes a
-                // single argument we assume the args, we assume it's a
-                // chained thread invocation.
+                // single argument we assume the message input data contains an
+                // argument that is an integer to be passed to the function
                 if (msg.inputdata().empty()) {
                     invokeArgs = { 0 };
                 } else {

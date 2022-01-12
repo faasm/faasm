@@ -1,6 +1,7 @@
 #include "syscalls.h"
 
 #include <wasm/WasmExecutionContext.h>
+#include <wasm/chaining.h>
 #include <wavm/WAVMWasmModule.h>
 
 #include <WAVM/Platform/Diagnostics.h>
@@ -697,6 +698,68 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     SPDLOG_DEBUG("S - sm_critical_local_end");
 
     getPointToPointGroup()->localUnlock();
+}
+
+// ------------------------------------
+// MIGRATION
+// ------------------------------------
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "__faasm_migrate_point",
+                               void,
+                               __faasm_migrate_point,
+                               I32 entrypointFuncPtr,
+                               I32 entrypointFuncArg)
+{
+    SPDLOG_DEBUG(
+      "S - faasm_migrate_point {} {}", entrypointFuncPtr, entrypointFuncArg);
+
+    // TODO - get this from the scheduler
+    bool needToMigrate = false;
+    std::string hostToMigrateTo = "otherHost";
+
+    // Do migration
+    if (needToMigrate) {
+        auto* call = getExecutingCall();
+
+        std::vector<uint8_t> inputData(BYTES(&entrypointFuncArg),
+                                       BYTES(&entrypointFuncArg) + sizeof(int));
+
+        faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
+        std::string user = call->user();
+
+        std::shared_ptr<faabric::BatchExecuteRequest> req =
+          faabric::util::batchExecFactory(call->user(), call->function(), 1);
+
+        faabric::Message& msg = req->mutable_messages()->at(0);
+        msg.set_inputdata(inputData.data(), inputData.size());
+        msg.set_funcptr(entrypointFuncPtr);
+
+        // Propagate the app ID and set the SAME message ID
+        msg.set_id(call->id());
+        msg.set_appid(call->appid());
+
+        if (call->recordexecgraph()) {
+            msg.set_recordexecgraph(true);
+        }
+
+        SPDLOG_DEBUG("Migrating {}/{} {} to {}",
+                     msg.user(),
+                     msg.function(),
+                     call->id(),
+                     hostToMigrateTo);
+
+        sch.callFunctions(req);
+
+        if (call->recordexecgraph()) {
+            sch.logChainedFunction(call->id(), msg.id());
+        }
+
+        // TODO Finish off the migration
+        // - Migrate function group details
+        // - Throw an exception which is caught by the executor, doesn't set
+        // a result for the function, then terminates
+    }
 }
 
 // ------------------------------------
