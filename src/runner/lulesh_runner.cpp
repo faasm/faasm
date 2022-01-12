@@ -30,11 +30,6 @@ int doLuleshRun(int argc, char* argv[])
     initLogging();
 
     SystemConfig& conf = getSystemConfig();
-    conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
-    faasmConf.chainedCallTimeout = 480000;
-    conf.boundTimeout = 480000;
-    conf.globalMessageTimeout = 480000;
-
     int nThreads = 10;
     if (argc >= 2) {
         nThreads = std::stoi(argv[1]);
@@ -81,6 +76,14 @@ int doLuleshRun(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
+    SystemConfig& conf = getSystemConfig();
+    conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
+
+    faasmConf.chainedCallTimeout = 480000;
+    faasmConf.s3Host = "localhost";
+    conf.boundTimeout = 480000;
+    conf.globalMessageTimeout = 480000;
+
     storage::initFaasmS3();
     faabric::transport::initGlobalMessageContext();
 
