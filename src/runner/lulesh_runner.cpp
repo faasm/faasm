@@ -22,12 +22,14 @@
 #include <wasm/WasmModule.h>
 #include <wavm/WAVMWasmModule.h>
 
+using namespace faabric::util;
+
 int doLuleshRun(int argc, char* argv[])
 {
-    faabric::util::setUpCrashHandler();
-    faabric::util::initLogging();
+    setUpCrashHandler();
+    initLogging();
 
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    SystemConfig& conf = getSystemConfig();
     conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
     faasmConf.chainedCallTimeout = 480000;
     conf.boundTimeout = 480000;
@@ -39,9 +41,9 @@ int doLuleshRun(int argc, char* argv[])
     }
     conf.overrideCpuCount = nThreads + 1;
 
-    std::string cmdlineArgs = "-i 1 -s 30 -r 11 -c 1 -b 1";
+    std::string cmdlineArgs = "-i 5 -s 10 -r 11 -c 1 -b 1";
 
-    auto req = faabric::util::batchExecFactory("lulesh", "func", 1);
+    auto req = batchExecFactory("lulesh", "func", 1);
     auto& msg = req->mutable_messages()->at(0);
     msg.set_cmdline(cmdlineArgs);
 
@@ -53,6 +55,9 @@ int doLuleshRun(int argc, char* argv[])
     auto fac = std::make_shared<faaslet::FaasletFactory>();
     faabric::runner::FaabricMain m(fac);
     m.startRunner();
+
+    // Timing
+    TimePoint tp = startTimer();
 
     // Submit the invocation
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
@@ -66,6 +71,9 @@ int doLuleshRun(int argc, char* argv[])
         throw std::runtime_error("Executing function failed");
     }
 
+    long timeTaken = getTimeDiffMillis(tp);
+    SPDLOG_INFO("TIME: {}", timeTaken);
+
     m.shutdown();
 
     return 0;
@@ -76,7 +84,11 @@ int main(int argc, char* argv[])
     storage::initFaasmS3();
     faabric::transport::initGlobalMessageContext();
 
+    PROF_BEGIN
+
     int result = doLuleshRun(argc, argv);
+
+    PROF_SUMMARY
 
     faabric::transport::closeGlobalMessageContext();
     storage::shutdownFaasmS3();
