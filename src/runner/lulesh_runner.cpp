@@ -36,7 +36,7 @@ int doLuleshRun(int argc, char* argv[])
     }
     conf.overrideCpuCount = nThreads + 1;
 
-    std::string cmdlineArgs = "-i 10 -s 10 -r 11 -c 1 -b 1";
+    std::string cmdlineArgs = "-i 5 -s 10 -r 11 -c 1 -b 1";
 
     auto req = batchExecFactory("lulesh", "func", 1);
     auto& msg = req->mutable_messages()->at(0);
