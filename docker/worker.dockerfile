@@ -1,5 +1,11 @@
 ARG FAASM_VERSION
 FROM faasm/base:${FAASM_VERSION}
+ARG FAASM_VERSION
+
+# Update code (allows for faster incremental builds without rebuilding base)
+WORKDIR /usr/local/code/faasm
+RUN git checkout v${FAASM_VERSION}
+RUN git submodule update --init
 
 # Build the worker binary
 WORKDIR /build/faasm
