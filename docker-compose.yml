@@ -39,7 +39,7 @@ services:
       - ./dev/faasm-local/wasm/:/usr/local/faasm/wasm
       - ./dev/faasm-local/object/:/usr/local/faasm/object
     environment:
-      - LOG_LEVEL=info
+      - LOG_LEVEL=debug
       - PYTHON_CODEGEN=${PYTHON_CODEGEN:-off}
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
@@ -67,7 +67,7 @@ services:
       - CAPTURE_STDOUT=on
       - CGROUP_MODE=on
       - GLOBAL_MESSAGE_TIMEOUT=600000
-      - LOG_LEVEL=info
+      - LOG_LEVEL=debug
       - NETNS_MODE=off
       - MAX_NET_NAMESPACES=100
       - REDIS_QUEUE_HOST=redis-queue
@@ -126,7 +126,7 @@ services:
       - ASAN_OPTIONS=halt_on_error=1
       - LSAN_OPTIONS=suppressions=/usr/local/code/faasm/leak-sanitizer-ignorelist.txt
       - TSAN_OPTIONS=halt_on_error=1:suppressions=/usr/local/code/faasm/thread-sanitizer-ignorelist.txt:history_size=7:second_deadlock_stack=1
-      - UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1
+      - UBSAN_OPTIONS=print_stackdebug=1:halt_on_error=1
     volumes:
       - ./:/usr/local/code/faasm/
       - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}

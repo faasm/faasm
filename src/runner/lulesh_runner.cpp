@@ -24,23 +24,25 @@
 
 using namespace faabric::util;
 
+#define LULESH_THREADS 8
+#define HOST_THREADS 18
+
 int doLuleshRun(int argc, char* argv[])
 {
     setUpCrashHandler();
     initLogging();
 
     SystemConfig& conf = getSystemConfig();
-    int nThreads = 10;
-    if (argc >= 2) {
-        nThreads = std::stoi(argv[1]);
-    }
-    conf.overrideCpuCount = nThreads + 1;
+    int nThreads = LULESH_THREADS;
+    conf.overrideCpuCount = HOST_THREADS;
 
-    std::string cmdlineArgs = "-i 50 -s 10 -r 11 -c 1 -b 1";
+    std::string cmdlineArgs = "-i 2 -s 10 -r 11 -c 1 -b 1";
+    std::string inputData = std::to_string(nThreads);
 
     auto req = batchExecFactory("lulesh", "func", 1);
     auto& msg = req->mutable_messages()->at(0);
     msg.set_cmdline(cmdlineArgs);
+    msg.set_inputdata(inputData);
 
     // Clear out redis
     faabric::redis::Redis& redis = faabric::redis::Redis::getQueue();
@@ -80,7 +82,7 @@ int main(int argc, char* argv[])
     conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
 
     faasmConf.chainedCallTimeout = 480000;
-    faasmConf.s3Host = "localhost";
+    // faasmConf.s3Host = "localhost";
     conf.boundTimeout = 480000;
     conf.globalMessageTimeout = 480000;
 
