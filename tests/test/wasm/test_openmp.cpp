@@ -178,4 +178,29 @@ TEST_CASE_METHOD(OpenMPTestFixture,
 
     execFuncWithPool(msg, false, OMP_TEST_TIMEOUT_MS);
 }
+
+TEST_CASE_METHOD(OpenMPTestFixture,
+                 "Test nested openmp explicitly disabled",
+                 "[wasm][openmp]")
+{
+    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
+
+    // Make sure there's definitely enough slots
+    int nSlots = 20;
+    faabric::HostResources res;
+    res.set_slots(nSlots);
+    sch.setThisHostResources(res);
+
+    faabric::Message msg =
+      faabric::util::messageFactory("omp", "nested_parallel");
+    faabric::Message result = execErrorFunction(msg);
+
+    // Get result
+    REQUIRE(result.returnvalue() > 0);
+
+    std::string expectedOutput = fmt::format(
+      "Task {} threw exception. What: OpenMP threads failed", msg.id());
+    const std::string actualOutput = result.outputdata();
+    REQUIRE(actualOutput == expectedOutput);
+}
 }
