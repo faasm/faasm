@@ -982,7 +982,7 @@ int32_t WAVMWasmModule::executeOMPThread(int threadPoolIdx,
     return returnValue.i32;
 }
 
-U32 WAVMWasmModule::mmapFile(U32 fd, U32 length)
+U32 WAVMWasmModule::mmapFile(U32 fd, size_t length)
 {
 
     // Create a new memory region
@@ -1008,7 +1008,7 @@ U32 WAVMWasmModule::mmapFile(U32 fd, U32 length)
     return wasmPtr;
 }
 
-U32 WAVMWasmModule::growMemory(U32 nBytes)
+U32 WAVMWasmModule::growMemory(size_t nBytes)
 {
     // Check if we just need the size
     if (nBytes == 0) {
@@ -1017,22 +1017,22 @@ U32 WAVMWasmModule::growMemory(U32 nBytes)
 
     faabric::util::FullLock lock(moduleMutex);
 
-    // Check if we can reclaim
-    size_t oldBytes = getMemorySizeBytes();
+    // Check if we can reclaim. Note that sizes must be large enough to capture
+    // allocations larger than a 32-bit integer can hold.
     uint32_t oldBrk = currentBrk.load(std::memory_order_acquire);
-    uint32_t newBrk = oldBrk + nBytes;
-
+    size_t newBrk = oldBrk + nBytes;
     if (!isWasmPageAligned(newBrk)) {
         SPDLOG_ERROR("Growing memory by {} is not wasm page aligned", nBytes);
         throw std::runtime_error("Non-wasm-page-aligned memory growth");
     }
 
+    size_t oldBytes = getMemorySizeBytes();
     size_t newBytes = oldBytes + nBytes;
-    Uptr oldPages = Runtime::getMemoryNumPages(defaultMemory);
-    Uptr newPages = getNumberOfWasmPagesForBytes(newBytes);
+    size_t oldPages = Runtime::getMemoryNumPages(defaultMemory);
+    size_t newPages = getNumberOfWasmPagesForBytes(newBytes);
 
     U64 maxPages = getMemoryType(defaultMemory).size.max;
-    if (newBytes > UINT32_MAX || newPages > maxPages || oldPages == maxPages) {
+    if (newBytes > UINT32_MAX || newPages > maxPages) {
         SPDLOG_ERROR("Growing memory would exceed max of {} pages (current {}, "
                      "requested {})",
                      maxPages,
@@ -1101,8 +1101,10 @@ U32 WAVMWasmModule::growMemory(U32 nBytes)
         throw std::runtime_error("Unknown memory mapping error");
     }
 
-    SPDLOG_TRACE(
-      "MEM - Growing memory from {} to {} pages", oldPages, newPages);
+    SPDLOG_TRACE("MEM - Growing memory from {} to {} pages (max {})",
+                 oldPages,
+                 newPages,
+                 maxPages);
 
     // Get offset of bottom of new range
     auto newMemBase = (U32)(newMemPageBase * WASM_BYTES_PER_PAGE);
@@ -1131,7 +1133,7 @@ U32 WAVMWasmModule::growMemory(U32 nBytes)
     return newMemBase;
 }
 
-uint32_t WAVMWasmModule::shrinkMemory(U32 nBytes)
+uint32_t WAVMWasmModule::shrinkMemory(size_t nBytes)
 {
     if (!isWasmPageAligned(nBytes)) {
         SPDLOG_ERROR("Shrink size not page aligned {}", nBytes);
@@ -1157,7 +1159,7 @@ uint32_t WAVMWasmModule::shrinkMemory(U32 nBytes)
     return oldBrk;
 }
 
-void WAVMWasmModule::unmapMemory(U32 offset, U32 nBytes)
+void WAVMWasmModule::unmapMemory(uint32_t offset, size_t nBytes)
 {
     if (nBytes == 0) {
         return;
@@ -1191,7 +1193,7 @@ void WAVMWasmModule::unmapMemory(U32 offset, U32 nBytes)
     }
 }
 
-U32 WAVMWasmModule::mmapMemory(U32 nBytes)
+U32 WAVMWasmModule::mmapMemory(size_t nBytes)
 {
     // Note - the mmap interface allows non page-aligned values, and rounds up.
     uint32_t pageAligned = roundUpToWasmPageAligned(nBytes);

@@ -283,9 +283,8 @@ uint32_t WAMRWasmModule::nativePointerToWasm(void* nativePtr)
     return wasm_runtime_addr_native_to_app(moduleInstance, nativePtr);
 }
 
-uint32_t WAMRWasmModule::growMemory(uint32_t nBytes)
+uint32_t WAMRWasmModule::growMemory(size_t nBytes)
 {
-
     uint32_t oldBytes = getMemorySizeBytes();
     uint32_t oldBrk = currentBrk.load(std::memory_order_acquire);
     uint32_t newBrk = oldBrk + nBytes;
@@ -333,14 +332,14 @@ uint32_t WAMRWasmModule::growMemory(uint32_t nBytes)
     return oldBrk;
 }
 
-uint32_t WAMRWasmModule::shrinkMemory(uint32_t nBytes)
+uint32_t WAMRWasmModule::shrinkMemory(size_t nBytes)
 {
 
     SPDLOG_WARN("WAMR ignoring shrink memory");
     return 0;
 }
 
-uint32_t WAMRWasmModule::mmapMemory(uint32_t nBytes)
+uint32_t WAMRWasmModule::mmapMemory(size_t nBytes)
 {
     return growMemory(nBytes);
 }
@@ -376,7 +375,7 @@ WASMModuleInstanceCommon* WAMRWasmModule::getModuleInstance()
     return moduleInstance;
 }
 
-uint32_t WAMRWasmModule::mmapFile(uint32_t fp, uint32_t length)
+uint32_t WAMRWasmModule::mmapFile(uint32_t fp, size_t length)
 {
     // TODO - implement
     return 0;

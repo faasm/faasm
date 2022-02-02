@@ -117,7 +117,7 @@ std::string WasmModule::snapshot(bool locallyRestorable)
     return snapKey;
 }
 
-void WasmModule::setMemorySize(uint32_t nBytes)
+void WasmModule::setMemorySize(size_t nBytes)
 {
     uint32_t memSize = getCurrentBrk();
 
@@ -670,27 +670,27 @@ void WasmModule::writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer)
     throw std::runtime_error("writeWasmEnvToMemory not implemented");
 }
 
-uint32_t WasmModule::growMemory(uint32_t nBytes)
+uint32_t WasmModule::growMemory(size_t nBytes)
 {
     throw std::runtime_error("growMemory not implemented");
 }
 
-uint32_t WasmModule::shrinkMemory(uint32_t nBytes)
+uint32_t WasmModule::shrinkMemory(size_t nBytes)
 {
     throw std::runtime_error("shrinkMemory not implemented");
 }
 
-uint32_t WasmModule::mmapMemory(uint32_t nBytes)
+uint32_t WasmModule::mmapMemory(size_t nBytes)
 {
     throw std::runtime_error("mmapMemory not implemented");
 }
 
-uint32_t WasmModule::mmapFile(uint32_t fp, uint32_t length)
+uint32_t WasmModule::mmapFile(uint32_t fp, size_t length)
 {
     throw std::runtime_error("mmapFile not implemented");
 }
 
-void WasmModule::unmapMemory(uint32_t offset, uint32_t nBytes)
+void WasmModule::unmapMemory(uint32_t offset, size_t nBytes)
 {
     throw std::runtime_error("unmapMemory not implemented");
 }
