@@ -740,7 +740,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     // Regardless if we have to individually migrate or not, we need to prepare
     // for the app migration
     if (appMustMigrate && call->ismpi()) {
-        auto& mpiWorld = faabric::scheduler::getMpiWorldRegistry().getWorld(call->mpiworldid());
+        auto& mpiWorld = faabric::scheduler::getMpiWorldRegistry().getWorld(
+          call->mpiworldid());
         mpiWorld.prepareMigration(call->mpirank(), pendingMigrations);
     }
 
@@ -758,25 +759,23 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         msg.set_inputdata(inputData.data(), inputData.size());
         msg.set_funcptr(entrypointFuncPtr);
 
-        // Take snapshot of function and send it ourselves. Note that the
-        // scheduler only pushes snapshots from the master host of the app, and
-        // we are most likely migrating from a non-master host
-        // TODO - can we only take diffs here?
+        // Take snapshot of function and send it to the host we are migrating
+        // to. Note that the scheduler only pushes snapshots as part of function
+        // chaining from the master host of the app, and
+        // we are most likely migrating from a non-master host. Thus, we must
+        // take and push the snapshot manually.
         auto* exec = faabric::scheduler::getExecutingExecutor();
         auto snap =
           std::make_shared<faabric::util::SnapshotData>(exec->getMemoryView());
         std::string snapKey = "migration_" + std::to_string(msg.id());
-        // TODO - we need to do this for the scheduler not to fail. Ideally
-        // we would have a different path in callFunctions for migrated funcs
         auto& reg = faabric::snapshot::getSnapshotRegistry();
         reg.registerSnapshot(snapKey, snap);
         sch.getSnapshotClient(hostToMigrateTo).pushSnapshot(snapKey, snap);
 
-        // Propagate the app ID and set the SAME message ID
+        // Propagate the app ID and set the _same_ message ID
         msg.set_id(call->id());
         msg.set_groupid(call->groupid());
         msg.set_appid(call->appid());
-        // msg.set_snapshotkey(snapKey);
 
         // If message is MPI, propagate the necessary MPI bits
         if (call->ismpi()) {
@@ -791,10 +790,10 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         }
 
         SPDLOG_INFO("Migrating {}/{} {} to {}",
-                     msg.user(),
-                     msg.function(),
-                     call->id(),
-                     hostToMigrateTo);
+                    msg.user(),
+                    msg.function(),
+                    call->id(),
+                    hostToMigrateTo);
 
         // Build decision and send
         faabric::util::SchedulingDecision decision(msg.appid(), msg.groupid());
@@ -805,10 +804,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
             sch.logChainedFunction(call->id(), msg.id());
         }
 
-        // TODO Finish off the migration
-        // - Migrate function group details
-        // - Throw an exception which is caught by the executor, doesn't set
-        // a result for the function, then terminates
+        // Throw an exception to be caught by the executor and terminate
         throw faabric::util::FunctionMigratedException("Migrating MPI rank");
     }
 }
