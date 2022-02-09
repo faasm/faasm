@@ -1,5 +1,8 @@
 #define CATCH_CONFIG_RUNNER
 
+// Disable catch signal catching to avoid interfering with dirty tracking
+#define CATCH_CONFIG_NO_POSIX_SIGNALS 1
+
 #include "faabric_utils.h"
 #include "utils.h"
 
