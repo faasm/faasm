@@ -117,7 +117,7 @@ int Level::getMaxThreadsAtNextLevel() const
         return wantedThreads;
     }
 
-    int defaultNumThreads = faabric::util::getUsableCores();
+    int defaultNumThreads = faabric::util::getUsableCores() - 1;
     return defaultNumThreads;
 }
 
