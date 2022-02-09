@@ -180,7 +180,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 dataPtr,
                                I32 dataLen)
 {
-
     Runtime::Memory* memoryPtr = getExecutingWAVMModule()->defaultMemory;
     U8* data =
       Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr)dataPtr, (Uptr)dataLen);
@@ -671,7 +670,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
           faabric::scheduler::getExecutingExecutor();
         auto snap = executor->getMainThreadSnapshot(*msg, false);
         snap->addMergeRegion(
-          varPtr, dataType.first, dataType.second, mergeOp, true);
+          varPtr, dataType.first, dataType.second, mergeOp);
     } else {
         wasm::WasmModule* module = getExecutingModule();
         module->addMergeRegionForNextThreads(

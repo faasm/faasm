@@ -179,8 +179,7 @@ void WasmModule::ignoreThreadStacksInSnapshot(const std::string& snapKey)
     snap->addMergeRegion(threadStackRegionStart,
                          threadStackRegionSize,
                          faabric::util::SnapshotDataType::Raw,
-                         faabric::util::SnapshotMergeOperation::Ignore,
-                         true);
+                         faabric::util::SnapshotMergeOperation::Ignore);
 }
 
 std::string WasmModule::getBoundUser()
