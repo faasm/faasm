@@ -3,6 +3,7 @@
 #include "faasm_fixtures.h"
 #include "utils.h"
 
+#include <wamr/WAMRWasmModule.h>
 #include <wavm/WAVMWasmModule.h>
 
 #include <faabric/util/bytes.h>
@@ -155,5 +156,46 @@ TEST_CASE_METHOD(FunctionExecTestFixture, "Test big mmap", "[faaslet]")
 {
     faabric::Message msg = faabric::util::messageFactory("demo", "mmap_big");
     execFunction(msg);
+}
+
+TEST_CASE_METHOD(FunctionExecTestFixture,
+                 "Test allocating over max memory",
+                 "[wasm]")
+{
+    faabric::Message call = faabric::util::messageFactory("demo", "echo");
+
+    std::shared_ptr<wasm::WasmModule> module = nullptr;
+
+    std::string expectedMessage;
+    SECTION("WAVM")
+    {
+        module = std::make_shared<wasm::WAVMWasmModule>();
+        expectedMessage = "Memory growth exceeding max";
+    }
+
+    SECTION("WAMR")
+    {
+        module = std::make_shared<wasm::WAMRWasmModule>();
+        expectedMessage = "WAMR grow memory exceeding max";
+    }
+
+    module->bindToFunction(call);
+
+    size_t oneKib = 1024L;
+    size_t oneMib = 1024L * oneKib;
+    size_t oneGib = 1024L * oneMib;
+
+    // We have to hope this works, otherwise we may cause an OOM on the host
+    size_t tenGib = 10L * oneGib;
+    bool failed = false;
+    try {
+        module->setMemorySize(tenGib);
+    } catch (std::runtime_error& ex) {
+        failed = true;
+        std::string actualMessage = ex.what();
+        REQUIRE(actualMessage == expectedMessage);
+    }
+
+    REQUIRE(failed);
 }
 }

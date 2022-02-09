@@ -64,15 +64,15 @@ class WAVMWasmModule final
     void reset(faabric::Message& msg, const std::string& snapshotKey) override;
 
     // ----- Memory management -----
-    uint32_t growMemory(uint32_t nBytes) override;
+    uint32_t growMemory(size_t nBytes) override;
 
-    uint32_t shrinkMemory(uint32_t nBytes) override;
+    uint32_t shrinkMemory(size_t nBytes) override;
 
-    uint32_t mmapMemory(uint32_t nBytes) override;
+    uint32_t mmapMemory(size_t nBytes) override;
 
-    uint32_t mmapFile(uint32_t fd, uint32_t length) override;
+    uint32_t mmapFile(uint32_t fd, size_t length) override;
 
-    void unmapMemory(uint32_t offset, uint32_t nBytes) override;
+    void unmapMemory(uint32_t offset, size_t nBytes) override;
 
     uint8_t* wasmPointerToNative(uint32_t wasmPtr) override;
 
