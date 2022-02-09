@@ -11,7 +11,7 @@ export FAASM_LOCAL_MOUNT=/usr/local/faasm
 docker-compose \
     up \
     -d \
-    --scale worker=4 \
+    --scale worker=2 \
     nginx
 
 popd > /dev/null

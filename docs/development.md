@@ -202,10 +202,19 @@ docker-compose up -d redis-state redis-queue minio
 docker-compose ps
 ```
 
-Take good note of the host and the port for `minio`, and then run:
+To tell Faasm outside the container to use the containerised Minio, set the
+following:
 
+```bash
+export S3_HOST=localhost
 ```
-S3_HOST="127.0.0.1" S3_PORT="9000" func_runner demo hello
+
+To check things have worked
+
+```bash
+inv dev.tools
+codegen demo hello
+func_runner demo hello
 ```
 
 ## Code style
@@ -345,4 +354,27 @@ docker-compose down
 
 # Run once through
 ./deploy/dist-test/run.sh
+```
+
+## Notes on Ubuntu 18.04
+
+To install Faasm outside of the containerised setup on 18.04 we have to do some
+extra fiddling to get C++20 to work (correct as of 11/01/2022):
+
+```bash
+# Nuke your local conan cache to make sure nothing is cached from container
+builds
+rm -rf ~/.conan
+# Install latest LLVM
+wget https://apt.llvm.org/llvm.sh
+chmod +x llvm.sh
+./llvm.sh
+# Install g++-11
+sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+sudo apt install -y g++-11
+# Install all C++ environment
+sudo apt install libc++-dev libc++abi-13-dev clang-tools-13 clang-format-13 clang-tidy-13
+# Install conan
+curl -s -L -o /tmp/conan-latest.deb https://github.com/conan-io/conan/releases/download/1.43.0/conan-ubuntu-64.deb
+sudo dpkg -i /tmp/conan-latest.deb && rm -f /tmp/conan-latest.deb
 ```
