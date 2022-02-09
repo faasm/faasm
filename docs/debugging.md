@@ -4,6 +4,14 @@ Code in Faasm has been cross-compiled to WebAssembly, so we lose a lot of
 debugging information. However, there are still some options for chasing down
 issues.
 
+## `gdb`
+
+This project contains a default `.gdbinit` file to set some defaults for using
+gdb (e.g. disabling the segfault signal handling which is used by Faabric to
+do dirty tracking).
+
+This is configured by default in the CLI container.
+
 ## Backtrace
 
 If you're seeing a failure nested somewhere deep in an application but can't
@@ -73,7 +81,7 @@ Note that because the function itself is loaded using LLVM JIT libraries, GDB
 doesn't have the symbols up front, but we can still set breakpoints pending a
 shared library load.
 
-## Debugging SGX 
+## Debugging SGX
 
 To debug SGX applications, you may need the `sgx-gdb` debugger to see the
 function symbols.
