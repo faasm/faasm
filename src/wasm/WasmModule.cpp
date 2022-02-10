@@ -605,6 +605,41 @@ std::vector<uint32_t> WasmModule::getThreadStacks()
     return threadStacks;
 }
 
+std::shared_ptr<std::mutex> WasmModule::getPthreadMutex(uint32_t id)
+{
+    faabric::util::SharedLock lock(pthreadLocksMx);
+    auto it = pthreadLocks.find(id);
+    if (it != pthreadLocks.end()) {
+        return it->second;
+    }
+
+    SPDLOG_ERROR("Trying to get non-existent pthread lock {}", id);
+    throw std::runtime_error("Non-existent pthread lock");
+}
+
+std::shared_ptr<std::mutex> WasmModule::getOrCreatePthreadMutex(uint32_t id)
+{
+    std::shared_ptr<std::mutex> mx = nullptr;
+    {
+        faabric::util::SharedLock lock(pthreadLocksMx);
+        auto it = pthreadLocks.find(id);
+        if (it != pthreadLocks.end()) {
+            return it->second;
+        }
+    }
+
+    faabric::util::FullLock lock(pthreadLocksMx);
+    auto it = pthreadLocks.find(id);
+    if (it != pthreadLocks.end()) {
+        return it->second;
+    }
+
+    mx = std::make_shared<std::mutex>();
+    pthreadLocks[id] = mx;
+
+    return mx;
+}
+
 bool WasmModule::isBound()
 {
     return _isBound;
