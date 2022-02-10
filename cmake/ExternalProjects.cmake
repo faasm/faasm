@@ -30,7 +30,7 @@ endif()
 
 conan_cmake_configure(
     REQUIRES
-        catch2/2.13.7@#31c8cd08e3c957a9eac8cb1377cf5863
+        "catch2/2.13.7@#31c8cd08e3c957a9eac8cb1377cf5863"
     GENERATORS
         cmake_find_package
         cmake_paths
@@ -40,6 +40,7 @@ conan_cmake_autodetect(FAABRIC_CONAN_SETTINGS)
 
 conan_cmake_install(PATH_OR_REFERENCE .
                     BUILD outdated
+                    UPDATE
                     REMOTE conancenter
                     PROFILE_HOST ${CMAKE_CURRENT_LIST_DIR}/../faabric/conan-profile.txt
                     PROFILE_BUILD ${CMAKE_CURRENT_LIST_DIR}/../faabric/conan-profile.txt
