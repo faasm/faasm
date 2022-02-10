@@ -1,5 +1,3 @@
-#include "faabric/snapshot/SnapshotClient.h"
-#include "faabric/util/scheduling.h"
 #include "syscalls.h"
 
 #include <wasm/WasmExecutionContext.h>
@@ -11,6 +9,7 @@
 #include <WAVM/Runtime/Runtime.h>
 
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/snapshot/SnapshotClient.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/transport/PointToPointBroker.h>
 #include <faabric/util/bytes.h>
@@ -18,6 +17,7 @@
 #include <faabric/util/func.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
+#include <faabric/util/scheduling.h>
 #include <faabric/util/snapshot.h>
 #include <faabric/util/state.h>
 
