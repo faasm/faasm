@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21.0)
+cmake_minimum_required(VERSION 3.18.2)
 project(faasm)
 
 # Optional functionality
@@ -14,18 +14,17 @@ endif ()
 option(FAASM_SELF_TRACING "Turn on system tracing using the logger" OFF)
 option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md" OFF)
 
-# WAMR
-# Enabling the spec tests performs stricter checks. E.g. it will error if can't
-# link an imported function
-# set (WAMR_BUILD_SPEC_TEST)
-
 # SGX functionality
 # These options customise the SGX features _provided_ SGX is found
+option(FAASM_SGX "Enable SGX support" ON)
 option(FAASM_SGX_SIM_MODE "Turn on SGX sim mode" ON)
 option(FAASM_SGX_ATTESTATION "Turn on attestation" OFF)
 option(FAASM_SGX_XRA "Turn on support for XRA" OFF)
 
 # Top-level CMake config
+if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+    add_compile_options(-march=skylake -mtune=skylake)
+endif ()
 set(CMAKE_CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_STANDARD 20)
@@ -91,7 +90,7 @@ find_package(cpprestsdk REQUIRED)
 
 # Detect SGX
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
-if (NOT SANITISER_DISABLE_SGX)
+if (NOT SANITISER_DISABLE_SGX AND FAASM_SGX)
     find_package(SGX)
 endif ()
 

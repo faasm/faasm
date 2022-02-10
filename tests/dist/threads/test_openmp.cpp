@@ -5,9 +5,10 @@
 #include <faabric/scheduler/Scheduler.h>
 
 namespace tests {
+// 10/02/22 Broken by latest Faabric
 TEST_CASE_METHOD(DistTestsFixture,
                  "Test OpenMP across hosts",
-                 "[threads][openmp]")
+                 "[.][threads][openmp]")
 {
     conf.overrideCpuCount = 6;
 

@@ -36,7 +36,7 @@ Our paper from Usenix ATC '20 on Faasm can be found
 Update submodules:
 
 ```bash
-git submodule update
+git submodule update --init --recursive
 ```
 
 Start a Faasm cluster locally using `docker-compose`:
