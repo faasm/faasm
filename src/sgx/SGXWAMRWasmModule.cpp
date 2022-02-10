@@ -153,7 +153,7 @@ int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
     return 0;
 }
 
-uint32_t SGXWAMRWasmModule::growMemory(uint32_t nBytes)
+uint32_t SGXWAMRWasmModule::growMemory(size_t nBytes)
 {
     SPDLOG_DEBUG("SGX-WAMR growing memory by {}", nBytes);
 
@@ -167,7 +167,7 @@ uint32_t SGXWAMRWasmModule::growMemory(uint32_t nBytes)
     return memBase;
 }
 
-uint32_t SGXWAMRWasmModule::shrinkMemory(uint32_t nBytes)
+uint32_t SGXWAMRWasmModule::shrinkMemory(size_t nBytes)
 {
     SPDLOG_WARN("SGX-WAMR ignoring shrink memory");
     return 0;

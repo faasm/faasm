@@ -96,17 +96,17 @@ class WasmModule
     // ----- Memory management -----
     uint32_t getCurrentBrk();
 
-    virtual void setMemorySize(uint32_t nBytes);
+    virtual void setMemorySize(size_t nBytes);
 
-    virtual uint32_t growMemory(uint32_t nBytes);
+    virtual uint32_t growMemory(size_t nBytes);
 
-    virtual uint32_t shrinkMemory(uint32_t nBytes);
+    virtual uint32_t shrinkMemory(size_t nBytes);
 
-    virtual uint32_t mmapMemory(uint32_t nBytes);
+    virtual uint32_t mmapMemory(size_t nBytes);
 
-    virtual uint32_t mmapFile(uint32_t fp, uint32_t length);
+    virtual uint32_t mmapFile(uint32_t fp, size_t length);
 
-    virtual void unmapMemory(uint32_t offset, uint32_t nBytes);
+    virtual void unmapMemory(uint32_t offset, size_t nBytes);
 
     uint32_t createMemoryGuardRegion(uint32_t wasmOffset);
 
@@ -224,7 +224,7 @@ class WasmModule
 };
 
 // Convenience functions
-size_t getNumberOfWasmPagesForBytes(uint32_t nBytes);
+size_t getNumberOfWasmPagesForBytes(size_t nBytes);
 
 uint32_t roundUpToWasmPageAligned(uint32_t nBytes);
 
