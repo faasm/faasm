@@ -25,6 +25,7 @@ def cmake(
     perf=False,
     prof=False,
     sanitiser="None",
+    nosgx=True,
 ):
     """
     Configures the CMake build
@@ -50,6 +51,7 @@ def cmake(
         "-DFAABRIC_SELF_TRACING=ON" if prof else "",
         "-DFAASM_USE_SANITISER={}".format(sanitiser),
         "-DFAABRIC_USE_SANITISER={}".format(sanitiser),
+        "-DFAASM_SGX=OFF" if nosgx else "",
         PROJ_ROOT,
     ]
 
