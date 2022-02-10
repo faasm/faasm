@@ -424,6 +424,11 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         nextLevel->setSharedVarOffsets(sharedVarsPtr, nSharedVars);
     }
 
+    if (nextLevel->depth > 1) {
+        SPDLOG_ERROR("Nested OpenMP support removed");
+        throw std::runtime_error("Nested OpenMP support removed");
+    }
+
     // Set up the chained calls
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory(
@@ -597,8 +602,8 @@ void for_static_init(I32 schedule,
             break;
         }
         default: {
-            throw std::runtime_error(
-              fmt::format("Unimplemented scheduler {}", schedule));
+            SPDLOG_ERROR("Unimplemented OpenMP scheduler {}", schedule);
+            throw std::runtime_error("Unimplemented OpenMP scheduler");
         }
     }
 }
