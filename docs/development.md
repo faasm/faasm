@@ -131,92 +131,6 @@ tests "[mpi]"
 tests "Test some feature"
 ```
 
-## Building outside of the container
-
-If you want to build projects outside of the recommended containers, or just
-run some of the CLI tasks, you'll need to install the required packages on your
-local machine.
-
-This is not the recommended approach to developing Faasm, so it's not scripted,
-but you can work out what's required by looking at the following Dockerfiles:
-
-- [`faasm/faabric-base`](https://github.com/faasm/faabric/blob/master/docker/faabric-base.dockerfile)
-- [`faasm/cpp-root`](../docker/cpp-root.dockerfile)
-
-Most things can be done with `apt`, but the difficult bits might be:
-
-- LLVM and Clang
-- Conan
-- Up-to-date CMake
-
-You will also need to set up the Python environment:
-
-```bash
-# Set up the venv
-./bin/create_venv.sh
-
-# Activate the Faasm virtualenv
-source bin/workon.sh
-
-# Check things work
-inv -l
-
-cd clients/cpp
-inv -l
-
-cd ../python
-inv -l
-```
-
-If you've been running the containerised development environment too, it's
-highly likely that the permissions will be messed up and cause cryptic error
-messages. To be safe, reset the permissions on everything:
-
-```bash
-sudo sh -c 'chown -R ${SUDO_USER}:${SUDO_USER} .'
-```
-
-Then you can try building one of the executables:
-
-```bash
-# Check environment is correct and build directories look sane
-env | grep FAASM
-
-# Run cmake and build
-inv dev.cmake
-inv dev.cc func_runner
-
-# Check which binary is on the path
-which func_runner
-```
-
-Before running one of the executables, you must make sure that the `minio`
-container is running, and reachable from outside the container.
-
-```
-# Stop anything that may be running in the background
-docker-compose down
-
-docker-compose up -d redis-state redis-queue minio
-
-docker-compose ps
-```
-
-To tell Faasm outside the container to use the containerised Minio, set the
-following:
-
-```bash
-export S3_HOST=localhost
-```
-
-To check things have worked
-
-```bash
-inv dev.tools
-codegen demo hello
-func_runner demo hello
-```
-
 ## Code style
 
 Code style is checked as part of the CI build and uses the following
@@ -356,25 +270,146 @@ docker-compose down
 ./deploy/dist-test/run.sh
 ```
 
-## Notes on Ubuntu 18.04
+## Building outside of the container
 
-To install Faasm outside of the containerised setup on 18.04 we have to do some
-extra fiddling to get C++20 to work (correct as of 11/01/2022):
+**This is not the recommended approach to developing Faasm**, so it's not
+scripted.
+
+However, it can be useful for profiling.
+
+You can work out what's required by looking at the following Dockerfiles:
+
+- [`faasm/faabric-base`](https://github.com/faasm/faabric/blob/master/docker/faabric-base.dockerfile)
+- [`faasm/cpp-root`](../docker/cpp-root.dockerfile)
+
+The following notes were correct at the time of writing but aren't necessarily
+kept up to date, so YMMV:
+
+### LLVM and Clang
+
+LLVM and Clang can be installed using the script from the LLVM website (we use
+13 at the time of writing):
 
 ```bash
-# Nuke your local conan cache to make sure nothing is cached from container
-builds
-rm -rf ~/.conan
-# Install latest LLVM
 wget https://apt.llvm.org/llvm.sh
 chmod +x llvm.sh
-./llvm.sh
-# Install g++-11
+sudo ./llvm.sh 13
+```
+
+You then need to make sure all the tooling and latest C++ stdlib is installed:
+
+```bash
+sudo apt install -y g++-11 libc++-dev libc++abi-13-dev clang-tools-13 clang-format-13 clang-tidy-13
+```
+
+On Ubuntu 18.04 you need to add a specific apt repo to install g++-11:
+
+```bash
 sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
 sudo apt install -y g++-11
-# Install all C++ environment
-sudo apt install libc++-dev libc++abi-13-dev clang-tools-13 clang-format-13 clang-tidy-13
-# Install conan
-curl -s -L -o /tmp/conan-latest.deb https://github.com/conan-io/conan/releases/download/1.43.0/conan-ubuntu-64.deb
-sudo dpkg -i /tmp/conan-latest.deb && rm -f /tmp/conan-latest.deb
 ```
+
+### Conan
+
+Follow the Conan [installation docs](https://conan.io/downloads.html).
+
+If you've also been building using the containerised setup, it's safest to also
+nuke your conan cache:
+
+```bash
+rm -rf ~/.conan
+```
+
+### CMake
+
+You can check what version of CMake you already have. If it's above the minimum
+required for Faasm you don't need to change it.
+
+If you need to update it's best to install from source as per [the
+instructions](https://cmake.org/install/).
+
+### Python environment
+
+You will then need to set up the Faasm Python environment:
+
+```bash
+./bin/create_venv.sh
+
+source bin/workon.sh
+
+inv -l
+```
+
+### Local dev files
+
+You can pull the latest development files using:
+
+```bash
+./bin/refresh_local.sh
+```
+
+### Tidy-up
+
+If you've been running the containerised development environment too, it's
+highly likely that the permissions will be messed up and cause cryptic error
+messages. To be safe, reset the permissions on everything:
+
+```bash
+sudo sh -c 'chown -R ${SUDO_USER}:${SUDO_USER} .'
+```
+
+### Building
+
+Then you can try building one of the executables:
+
+```bash
+# Check environment is correct and build directories look sane
+env | grep FAASM
+
+# Run cmake and build
+inv dev.cmake
+inv dev.cc func_runner
+
+# Check which binary is on the path
+which func_runner
+```
+
+### Minio
+
+Before running one of the executables, you must make sure that the `minio`
+container is running, and reachable from outside the container.
+
+```
+# Stop anything that may be running in the background
+docker-compose down
+
+docker-compose up -d redis-state redis-queue minio
+
+docker-compose ps
+```
+
+To tell Faasm outside the container to use the containerised Minio, set the
+following:
+
+```bash
+export S3_HOST=localhost
+```
+
+### Compile and run a function
+
+Compile a function with the CPP CLI:
+
+```bash
+./bin/cli.sh cpp
+
+inv func demo hello
+```
+
+Then back in the Faasm root:
+
+```bash
+inv dev.tools
+inv codegen demo hello
+inv run demo hello
+```
+
