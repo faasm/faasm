@@ -53,13 +53,13 @@ class WAMRWasmModule final : public WasmModule
     uint32_t nativePointerToWasm(void* nativePtr);
 
     // ----- Memory management -----
-    uint32_t growMemory(uint32_t nBytes) override;
+    uint32_t growMemory(size_t nBytes) override;
 
-    uint32_t shrinkMemory(uint32_t nBytes) override;
+    uint32_t shrinkMemory(size_t nBytes) override;
 
-    uint32_t mmapMemory(uint32_t nBytes) override;
+    uint32_t mmapMemory(size_t nBytes) override;
 
-    uint32_t mmapFile(uint32_t fp, uint32_t length) override;
+    uint32_t mmapFile(uint32_t fp, size_t length) override;
 
     size_t getMemorySizeBytes() override;
 

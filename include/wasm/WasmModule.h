@@ -96,17 +96,17 @@ class WasmModule
     // ----- Memory management -----
     uint32_t getCurrentBrk();
 
-    virtual void setMemorySize(uint32_t nBytes);
+    virtual void setMemorySize(size_t nBytes);
 
-    virtual uint32_t growMemory(uint32_t nBytes);
+    virtual uint32_t growMemory(size_t nBytes);
 
-    virtual uint32_t shrinkMemory(uint32_t nBytes);
+    virtual uint32_t shrinkMemory(size_t nBytes);
 
-    virtual uint32_t mmapMemory(uint32_t nBytes);
+    virtual uint32_t mmapMemory(size_t nBytes);
 
-    virtual uint32_t mmapFile(uint32_t fp, uint32_t length);
+    virtual uint32_t mmapFile(uint32_t fp, size_t length);
 
-    virtual void unmapMemory(uint32_t offset, uint32_t nBytes);
+    virtual void unmapMemory(uint32_t offset, size_t nBytes);
 
     uint32_t createMemoryGuardRegion(uint32_t wasmOffset);
 
@@ -140,6 +140,12 @@ class WasmModule
     int awaitPthreadCall(faabric::Message* msg, int pthreadPtr);
 
     std::vector<uint32_t> getThreadStacks();
+
+    // Returns the given pthread mutex and errors if it doesn't exist
+    std::shared_ptr<std::mutex> getPthreadMutex(uint32_t id);
+
+    // Returns the given pthread mutex, creating it if it doesn't exist
+    std::shared_ptr<std::mutex> getOrCreatePthreadMutex(uint32_t id);
 
     // Adds a merge region to be used in the next threaded operation spawned by
     // this module
@@ -194,6 +200,9 @@ class WasmModule
     std::vector<std::pair<uint32_t, int32_t>> lastPthreadResults;
     std::vector<faabric::util::SnapshotMergeRegion> mergeRegions;
 
+    std::shared_mutex pthreadLocksMx;
+    std::unordered_map<uint32_t, std::shared_ptr<std::mutex>> pthreadLocks;
+
     // Shared memory regions
     std::shared_mutex sharedMemWasmPtrsMutex;
     std::unordered_map<std::string, uint32_t> sharedMemWasmPtrs;
@@ -215,7 +224,7 @@ class WasmModule
 };
 
 // Convenience functions
-size_t getNumberOfWasmPagesForBytes(uint32_t nBytes);
+size_t getNumberOfWasmPagesForBytes(size_t nBytes);
 
 uint32_t roundUpToWasmPageAligned(uint32_t nBytes);
 

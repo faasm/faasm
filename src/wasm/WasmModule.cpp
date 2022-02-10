@@ -33,7 +33,7 @@ bool isWasmPageAligned(int32_t offset)
     }
 }
 
-size_t getNumberOfWasmPagesForBytes(uint32_t nBytes)
+size_t getNumberOfWasmPagesForBytes(size_t nBytes)
 {
     // Round up to nearest page
     size_t pageCount =
@@ -117,18 +117,18 @@ std::string WasmModule::snapshot(bool locallyRestorable)
     return snapKey;
 }
 
-void WasmModule::setMemorySize(uint32_t nBytes)
+void WasmModule::setMemorySize(size_t nBytes)
 {
     uint32_t memSize = getCurrentBrk();
 
     if (nBytes > memSize) {
         size_t bytesRequired = nBytes - memSize;
-        SPDLOG_DEBUG("Growing memory by {} bytes to restore snapshot",
+        SPDLOG_DEBUG("Growing memory by {} bytes to set memory size",
                      bytesRequired);
         this->growMemory(bytesRequired);
     } else if (nBytes < memSize) {
         size_t shrinkBy = memSize - nBytes;
-        SPDLOG_DEBUG("Shrinking memory by {} bytes to restore snapshot",
+        SPDLOG_DEBUG("Shrinking memory by {} bytes to set memory size",
                      shrinkBy);
         this->shrinkMemory(shrinkBy);
     } else {
@@ -179,8 +179,7 @@ void WasmModule::ignoreThreadStacksInSnapshot(const std::string& snapKey)
     snap->addMergeRegion(threadStackRegionStart,
                          threadStackRegionSize,
                          faabric::util::SnapshotDataType::Raw,
-                         faabric::util::SnapshotMergeOperation::Ignore,
-                         true);
+                         faabric::util::SnapshotMergeOperation::Ignore);
 }
 
 std::string WasmModule::getBoundUser()
@@ -606,6 +605,41 @@ std::vector<uint32_t> WasmModule::getThreadStacks()
     return threadStacks;
 }
 
+std::shared_ptr<std::mutex> WasmModule::getPthreadMutex(uint32_t id)
+{
+    faabric::util::SharedLock lock(pthreadLocksMx);
+    auto it = pthreadLocks.find(id);
+    if (it != pthreadLocks.end()) {
+        return it->second;
+    }
+
+    SPDLOG_ERROR("Trying to get non-existent pthread lock {}", id);
+    throw std::runtime_error("Non-existent pthread lock");
+}
+
+std::shared_ptr<std::mutex> WasmModule::getOrCreatePthreadMutex(uint32_t id)
+{
+    std::shared_ptr<std::mutex> mx = nullptr;
+    {
+        faabric::util::SharedLock lock(pthreadLocksMx);
+        auto it = pthreadLocks.find(id);
+        if (it != pthreadLocks.end()) {
+            return it->second;
+        }
+    }
+
+    faabric::util::FullLock lock(pthreadLocksMx);
+    auto it = pthreadLocks.find(id);
+    if (it != pthreadLocks.end()) {
+        return it->second;
+    }
+
+    mx = std::make_shared<std::mutex>();
+    pthreadLocks[id] = mx;
+
+    return mx;
+}
+
 bool WasmModule::isBound()
 {
     return _isBound;
@@ -636,27 +670,27 @@ void WasmModule::writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer)
     throw std::runtime_error("writeWasmEnvToMemory not implemented");
 }
 
-uint32_t WasmModule::growMemory(uint32_t nBytes)
+uint32_t WasmModule::growMemory(size_t nBytes)
 {
     throw std::runtime_error("growMemory not implemented");
 }
 
-uint32_t WasmModule::shrinkMemory(uint32_t nBytes)
+uint32_t WasmModule::shrinkMemory(size_t nBytes)
 {
     throw std::runtime_error("shrinkMemory not implemented");
 }
 
-uint32_t WasmModule::mmapMemory(uint32_t nBytes)
+uint32_t WasmModule::mmapMemory(size_t nBytes)
 {
     throw std::runtime_error("mmapMemory not implemented");
 }
 
-uint32_t WasmModule::mmapFile(uint32_t fp, uint32_t length)
+uint32_t WasmModule::mmapFile(uint32_t fp, size_t length)
 {
     throw std::runtime_error("mmapFile not implemented");
 }
 
-void WasmModule::unmapMemory(uint32_t offset, uint32_t nBytes)
+void WasmModule::unmapMemory(uint32_t offset, size_t nBytes)
 {
     throw std::runtime_error("unmapMemory not implemented");
 }

@@ -1,0 +1,2 @@
+
+handle SIGSEGV nostop noprint
