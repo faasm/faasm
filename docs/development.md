@@ -395,13 +395,21 @@ following:
 export S3_HOST=localhost
 ```
 
-### Running
+### Compile and run a function
 
-To check things have worked
+Compile a function with the CPP CLI:
+
+```bash
+./bin/cli.sh cpp
+
+inv func demo hello
+```
+
+Then back in the Faasm root:
 
 ```bash
 inv dev.tools
-codegen demo hello
-func_runner demo hello
+inv codegen demo hello
+inv run demo hello
 ```
 
