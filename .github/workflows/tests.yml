@@ -35,14 +35,17 @@ jobs:
 
   docs:
     if: github.event.pull_request.draft == false
-    needs: [conan-cache]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     container:
-      image: faasm/faabric:0.2.4
+      image: faasm/cli:0.7.8
     defaults:
       run:
-        working-directory: /code/faabric
+        working-directory: /code/faasm
     steps:
+      - name: "Fetch ref"
+        run: git fetch origin ${GITHUB_REF}:ci-branch
+      - name: "Check out branch"
+        run: git checkout --force ci-branch
       - name: "TEMP - install doxygen"
         run: apt install -y doxygen
       - name: "TEMP - install python deps"
