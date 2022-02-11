@@ -1,5 +1,6 @@
 from os import makedirs
-from os.path import join
+from os.path import join, exists
+from shutil import rmtree
 from subprocess import run
 
 from faasmcli.util.env import DOCS_ROOT
@@ -7,6 +8,8 @@ from faasmcli.util.env import DOCS_ROOT
 from invoke import task
 
 SPHINX_OUT_DIR = join(DOCS_ROOT, "sphinx")
+
+GENERATED_DIRS = ["apidoc", "sphinx", "doxygen"]
 
 
 @task(default=True)
@@ -22,3 +25,14 @@ def generate(ctx):
         check=True,
         shell=True,
     )
+
+
+@task(default=True)
+def clean(ctx):
+    """
+    Removes all generated docs files
+    """
+    for d in GENERATED_DIRS:
+        dir_path = join(DOCS_ROOT, d)
+        if exists(dir_path):
+            rmtree(dir_path)
