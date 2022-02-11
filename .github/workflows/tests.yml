@@ -33,6 +33,23 @@ jobs:
       - name: "Check C/C++ formatting changes"
         run: git diff --exit-code
 
+  docs:
+    if: github.event.pull_request.draft == false
+    needs: [conan-cache]
+    runs-on: ubuntu-latest
+    container:
+      image: faasm/faabric:0.2.4
+    defaults:
+      run:
+        working-directory: /code/faabric
+    steps:
+      - name: "TEMP - install doxygen"
+        run: apt install -y doxygen
+      - name: "TEMP - install python deps"
+        run: pip install -r faasmcli/requirements.txt
+      - name: "Build docs"
+        run: inv docs
+
   cpp-funcs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04

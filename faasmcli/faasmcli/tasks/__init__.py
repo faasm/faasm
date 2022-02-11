@@ -7,6 +7,7 @@ from . import config
 from . import dev
 from . import disas
 from . import docker_tasks
+from . import docs
 from . import files
 from . import flame
 from . import flush
@@ -26,6 +27,7 @@ ns = Collection(
     config,
     dev,
     disas,
+    docs,
     files,
     flame,
     flush,

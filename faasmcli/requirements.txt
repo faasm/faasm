@@ -1,5 +1,6 @@
 ansible==4.2.0
 black==21.9b0
+breathe==4.32.0
 configparser==5.0.2
 cryptography==3.4.7
 docker==5.0.0
@@ -7,6 +8,7 @@ flake8==3.9.2
 gunicorn==20.1.0
 hiredis==2.0.0
 invoke==1.5.0
+myst-parser==0.16.1
 Jinja2==2.11.3
 matplotlib==3.3.4
 networkx==2.5.1
@@ -21,4 +23,5 @@ PyOpenSSL==20.0.1
 redis==3.5.3
 requests==2.25.1
 setuptools==57.0.0
+sphinx-rtd-theme==1.0.0
 wheel==0.36.2
