@@ -174,10 +174,10 @@ jobs:
         ports:
           - 9000:9000
     steps:
-      - name: "Fetch ref"
-        run: git fetch origin ${GITHUB_REF}:ci-branch
-      - name: "Check out branch"
-        run: git checkout --force ci-branch
+      # --- Cache based on Conan version and ExternalProjects cmake source
+      - uses: faasm/conan-cache-action@v1
+        with:
+           directory: /usr/local/code/faasm
       - name: "Update faabric submodule"
         run: git submodule update faabric
       # --- Checks ---
@@ -217,10 +217,6 @@ jobs:
         run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
       - name: "Print CPU model"
         run: echo "${{ env.CPU_MODEL}}"
-      # --- Cache based on Conan version and ExternalProjects cmake source
-      - uses: faasm/conan-cache-action@v1
-        with:
-           directory: /usr/local/code/faasm
       # --- Cache ---
       - name: "Configure machine code cache"
         uses: actions/cache@v2
@@ -296,9 +292,13 @@ jobs:
           path: ./dev/minio/data/faasm
           key: ${{ env.CPU_MODEL }}-s3-data-${{ secrets.CACHE_VERSION }}
       # --- Cache based on Conan version and ExternalProjects cmake source
+      - name: "Get CWD for conan cache action"
+        id: dist-tests-cwd
+        run: echo "::set-output name=dist-tests-cwd::$(pwd)"
+        shell: bash
       - uses: faasm/conan-cache-action@v1
         with:
-           directory: /usr/local/code/faasm
+           directory: ${{ steps.dist-tests-cwd.outputs.dist-tests-cwd }}
       # --- Set up and run ---
       - name: "Build tests"
         run: ./deploy/dist-test/build.sh
