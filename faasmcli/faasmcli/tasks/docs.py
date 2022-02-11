@@ -27,7 +27,6 @@ def generate(ctx):
     )
 
 
-@task(default=True)
 def clean(ctx):
     """
     Removes all generated docs files
