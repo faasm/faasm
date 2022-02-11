@@ -81,7 +81,7 @@ TEST_CASE_METHOD(OpenMPTestFixture, "Test OpenMP reduction", "[wasm][openmp]")
 
 TEST_CASE_METHOD(OpenMPTestFixture,
                  "Test a mix of OpenMP constructs",
-                 "[wasm][openmp]")
+                 "[.][wasm][openmp]")
 {
     doOmpTestLocal("reduction_integral");
 }
@@ -147,7 +147,7 @@ TEST_CASE_METHOD(OpenMPTestFixture,
     doOmpTestLocal("repeated_reduce");
 }
 
-TEST_CASE_METHOD(OpenMPTestFixture, "Test OpenMP atomic", "[wasm][openmp]")
+TEST_CASE_METHOD(OpenMPTestFixture, "Test OpenMP atomic", "[.][wasm][openmp]")
 {
     doOmpTestLocal("simple_atomic");
 }
