@@ -48,6 +48,8 @@ jobs:
         run: git checkout --force ci-branch
       - name: "TEMP - install doxygen"
         run: apt install -y doxygen
+      - name: "TEMP - uninstall dodgy ansible"
+        run: pip uninstall ansible
       - name: "TEMP - install python deps"
         run: pip install -r faasmcli/requirements.txt
       - name: "Build docs"
