@@ -51,7 +51,7 @@ jobs:
       - name: "Build docs"
         run: |
           source venv/bin/activate
-          inv docs
+          inv -r faasmcli/faasmcli docs
         shell: bash
 
   cpp-funcs:
@@ -128,43 +128,10 @@ jobs:
       run:
         working-directory: /usr/local/code/faasm
     steps:
-      - name: "Fetch ref"
-        run: git fetch origin ${GITHUB_REF}:ci-branch
-      - name: "Check out branch"
-        run: git checkout --force ci-branch
-      - name: "Update faabric submodule"
-        run: git submodule update faabric
-      # --- Host information ---
-      - name: "Expand stack space"
-        run: ulimit -s 16384
-      - name: "Print rlimits"
-        run: ulimit -all
-      - name: "CPU info"
-        run: cat /proc/cpuinfo
-      - name: "Get CPU model name"
-        run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
-      - name: "Print CPU model"
-        run: echo "${{ env.CPU_MODEL}}"
-      # --- Cache based on Conan version and ExternalProjects cmake source
-      - name: Get Conan version
-        id: get-conan-version
-        run: |
-          echo "::set-output name=conan-version::$(conan --version | tr -d '[:alpha:] ')"
-        shell: bash
-      - name: Hash ExternalProjects
-        id: hash-external
-        run: |
-          echo "::set-output name=hash-external::$(sha256sum cmake/ExternalProjects.cmake | cut '-d ' -f 1)-$(sha256sum faabric/cmake/ExternalProjects.cmake | cut '-d ' -f 1)"
-        shell: bash
-      - uses: actions/cache@v2
+      - uses: faasm/conan-cache-action@v1
         with:
-          path: '~/.conan'
-          key: ${{ secrets.CACHE_VERSION }}-${{ runner.os }}-${{ steps.get-conan-version.outputs.conan-version }}-${{ steps.hash-external.outputs.hash-external }}
-          restore-keys: |
-            ${{ secrets.CACHE_VERSION }}-${{ runner.os }}-${{ steps.get-conan-version.outputs.conan-version }}-
-            ${{ secrets.CACHE_VERSION }}-${{ runner.os }}-
-      # --- Code build (Debug required for tests) ---
-      - name: "Build dev dependencies"
+           directory: /usr/local/code/faasm
+      - name: "Build dev dependencies to be shared by all runs"
         run: |
           source venv/bin/activate
           inv -r faasmcli/faasmcli dev.cmake --build Debug
@@ -218,7 +185,7 @@ jobs:
         run: redis-cli -h redis ping
       - name: "Ping minio"
         run: curl -f http://minio:9000/minio/health/live
-      # --- Get artifacts from other steps ---
+      # --- Get WASM files from the cross-compilation steps ---
       - name: "Download CPP wasm"
         uses: actions/download-artifact@v2
         with:
@@ -251,23 +218,9 @@ jobs:
       - name: "Print CPU model"
         run: echo "${{ env.CPU_MODEL}}"
       # --- Cache based on Conan version and ExternalProjects cmake source
-      - name: Get Conan version
-        id: get-conan-version
-        run: |
-          echo "::set-output name=conan-version::$(conan --version | tr -d '[:alpha:] ')"
-        shell: bash
-      - name: Hash ExternalProjects
-        id: hash-external
-        run: |
-          echo "::set-output name=hash-external::$(sha256sum cmake/ExternalProjects.cmake | cut '-d ' -f 1)-$(sha256sum faabric/cmake/ExternalProjects.cmake | cut '-d ' -f 1)"
-        shell: bash
-      - uses: actions/cache@v2
+      - uses: faasm/conan-cache-action@v1
         with:
-          path: '~/.conan'
-          key: ${{ secrets.CACHE_VERSION }}-${{ runner.os }}-${{ steps.get-conan-version.outputs.conan-version }}-${{ steps.hash-external.outputs.hash-external }}
-          restore-keys: |
-            ${{ secrets.CACHE_VERSION }}-${{ runner.os }}-${{ steps.get-conan-version.outputs.conan-version }}-
-            ${{ secrets.CACHE_VERSION }}-${{ runner.os }}-
+           directory: /usr/local/code/faasm
       # --- Cache ---
       - name: "Configure machine code cache"
         uses: actions/cache@v2
@@ -343,23 +296,9 @@ jobs:
           path: ./dev/minio/data/faasm
           key: ${{ env.CPU_MODEL }}-s3-data-${{ secrets.CACHE_VERSION }}
       # --- Cache based on Conan version and ExternalProjects cmake source
-      - name: Get Conan version
-        id: get-conan-version
-        run: |
-          echo "::set-output name=conan-version::$(conan --version | tr -d '[:alpha:] ')"
-        shell: bash
-      - name: Hash ExternalProjects
-        id: hash-external
-        run: |
-          echo "::set-output name=hash-external::$(sha256sum cmake/ExternalProjects.cmake | cut '-d ' -f 1)-$(sha256sum faabric/cmake/ExternalProjects.cmake | cut '-d ' -f 1)"
-        shell: bash
-      - uses: actions/cache@v2
+      - uses: faasm/conan-cache-action@v1
         with:
-          path: '~/.conan'
-          key: ${{ secrets.CACHE_VERSION }}-${{ runner.os }}-${{ steps.get-conan-version.outputs.conan-version }}-${{ steps.hash-external.outputs.hash-external }}
-          restore-keys: |
-            ${{ secrets.CACHE_VERSION }}-${{ runner.os }}-${{ steps.get-conan-version.outputs.conan-version }}-
-            ${{ secrets.CACHE_VERSION }}-${{ runner.os }}-
+           directory: /usr/local/code/faasm
       # --- Set up and run ---
       - name: "Build tests"
         run: ./deploy/dist-test/build.sh
