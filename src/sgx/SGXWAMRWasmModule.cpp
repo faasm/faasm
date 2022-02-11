@@ -18,6 +18,8 @@ using namespace sgx;
 namespace wasm {
 SGXWAMRWasmModule::SGXWAMRWasmModule()
 {
+    checkSgxSetup();
+
     // Allocate memory for response
     sgxWamrMsgResponse.buffer_len =
       (sizeof(sgx_wamr_msg_t) + sizeof(sgx_wamr_msg_hdr_t));
@@ -171,5 +173,17 @@ uint32_t SGXWAMRWasmModule::shrinkMemory(size_t nBytes)
 {
     SPDLOG_WARN("SGX-WAMR ignoring shrink memory");
     return 0;
+}
+
+size_t SGXWAMRWasmModule::getMemorySizeBytes()
+{
+    SPDLOG_WARN("SGX-WAMR getMemorySizeBytes not implemented");
+    return 0;
+}
+
+uint8_t* SGXWAMRWasmModule::getMemoryBase()
+{
+    SPDLOG_WARN("SGX-WAMR getMemoryBase not implemented");
+    return nullptr;
 }
 }
