@@ -49,7 +49,10 @@ jobs:
       - name: "Check out branch"
         run: git checkout --force ci-branch
       - name: "Build docs"
-        run: inv docs
+        run: |
+          source venv/bin/activate
+          inv docs
+        shell: bash
 
   cpp-funcs:
     if: github.event.pull_request.draft == false
