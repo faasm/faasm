@@ -40,7 +40,7 @@ jobs:
       image: faasm/cli:0.7.8
     defaults:
       run:
-        working-directory: /code/faasm
+        working-directory: /usr/local/code/faasm
     steps:
       - name: "Fetch ref"
         run: git fetch origin ${GITHUB_REF}:ci-branch
