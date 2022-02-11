@@ -3,7 +3,7 @@
 #include <sgx/enclave_types.h>
 #include <sgx/error.h>
 #include <sgx/native.h>
-#include <sgx/native_symbols_wrapper.h>
+#include <sgx/ocalls.h>
 #include <sgx/rw_lock.h>
 
 #include <iwasm/include/wasm_export.h>
