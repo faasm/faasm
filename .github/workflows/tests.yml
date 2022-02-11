@@ -33,6 +33,28 @@ jobs:
       - name: "Check C/C++ formatting changes"
         run: git diff --exit-code
 
+  docs:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-20.04
+    container:
+      image: faasm/cli:0.7.8
+    defaults:
+      run:
+        working-directory: /usr/local/code/faasm
+    steps:
+      - name: "Fetch ref"
+        run: git fetch origin ${GITHUB_REF}:ci-branch
+      - name: "Check out branch"
+        run: git checkout --force ci-branch
+      - name: "TEMP - install doxygen"
+        run: apt install -y doxygen
+      - name: "TEMP - uninstall dodgy ansible"
+        run: pip uninstall ansible
+      - name: "TEMP - install python deps"
+        run: pip install -r faasmcli/requirements.txt
+      - name: "Build docs"
+        run: inv docs
+
   cpp-funcs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04

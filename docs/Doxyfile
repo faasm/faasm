@@ -1,0 +1,18 @@
+DOXYFILE_ENCODING = UTF-8
+PROJECT_NAME      = "Faasm"
+OUTPUT_DIRECTORY  = doxygen
+OUTPUT_LANGUAGE   = English
+
+FULL_PATH_NAMES   = NO
+MARKDOWN_SUPPORT  = YES
+RECURSIVE         = YES
+QUIET             = YES
+
+GENERATE_LATEX    = NO
+GENERATE_XML      = YES
+GENERATE_HTML     = NO
+
+INPUT             = ../include ../src
+FILE_PATTERNS     = *.h *.cpp
+
+EXCLUDE_SYMBOLS   = Aws::*,faabric::*,boost::*,web::*
