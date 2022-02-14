@@ -70,6 +70,10 @@ class SGXWAMRWasmModule final : public WasmModule
 
     uint32_t shrinkMemory(size_t nBytes) override;
 
+    size_t getMemorySizeBytes() override;
+
+    uint8_t* getMemoryBase() override;
+
     // TODO: Move in gs/fs
     faaslet_sgx_msg_buffer_t sgxWamrMsgResponse;
 
