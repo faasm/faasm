@@ -1,4 +1,3 @@
-
 #include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/bytes.h>
@@ -37,7 +36,8 @@ int makeChainedCall(const std::string& functionName,
                     const std::vector<uint8_t>& inputData)
 {
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-    faabric::Message* originalCall = &ExecutorContext::get()->getMsg();
+    faabric::Message* originalCall =
+      &faabric::scheduler::ExecutorContext::get()->getMsg();
 
     std::string user = originalCall->user();
 

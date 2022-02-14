@@ -764,7 +764,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         // chaining from the master host of the app, and
         // we are most likely migrating from a non-master host. Thus, we must
         // take and push the snapshot manually.
-        auto* exec = faabric::scheduler::getExecutingExecutor();
+        auto* exec = faabric::scheduler::ExecutorContext::get()->getExecutor();
         auto snap =
           std::make_shared<faabric::util::SnapshotData>(exec->getMemoryView());
         std::string snapKey = "migration_" + std::to_string(msg.id());

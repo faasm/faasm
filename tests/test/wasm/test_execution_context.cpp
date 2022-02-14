@@ -20,11 +20,11 @@ TEST_CASE("Test nesting wasm execution contexts", "[wasm]")
     REQUIRE(wasm::getExecutingModule() == nullptr);
 
     {
-        wasm::WasmExecutionContext ctxA(&moduleA, &msgA);
+        wasm::WasmExecutionContext ctxA(&moduleA);
         REQUIRE(wasm::getExecutingModule() == &moduleA);
 
         {
-            wasm::WasmExecutionContext ctxB(&moduleB, &msgB);
+            wasm::WasmExecutionContext ctxB(&moduleB);
             REQUIRE(wasm::getExecutingModule() == &moduleB);
         }
 

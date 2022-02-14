@@ -464,7 +464,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     // Execute the threads
     faabric::scheduler::Executor* executor =
-      faabric::scheduler::getExecutingExecutor();
+      faabric::scheduler::ExecutorContext::get()->getExecutor();
     std::vector<std::pair<uint32_t, int>> results =
       executor->executeThreads(req, parentModule->getMergeRegions());
 

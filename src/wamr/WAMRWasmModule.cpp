@@ -115,7 +115,7 @@ int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
     SPDLOG_DEBUG("WAMR executing message {}", msg.id());
 
     // Make sure context is set
-    WasmExecutionContext ctx(this, &msg);
+    WasmExecutionContext ctx(this);
     int returnValue = 0;
 
     // Run wasm initialisers

@@ -885,7 +885,7 @@ int32_t WAVMWasmModule::executeFunction(faabric::Message& msg)
     }
 
     // Call the function
-    WasmExecutionContext ctx(this, &msg);
+    WasmExecutionContext ctx(this);
     int returnValue = 0;
     try {
         Runtime::catchRuntimeExceptions(
