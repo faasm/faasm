@@ -1,8 +1,8 @@
 <div align="center">
-<img src="https://raw.githubusercontent.com/faasm/faasm/master/faasm_logo.png"></img>
+<img src="https://raw.githubusercontent.com/faasm/faasm/main/faasm_logo.png"></img>
 </div>
 
-# Faasm [![Tests](https://github.com/faasm/faasm/workflows/Tests/badge.svg?branch=master)](https://github.com/faasm/faasm/actions)  [![License](https://img.shields.io/github/license/faasm/faasm.svg)](https://github.com/faasm/faasm/blob/master/LICENSE.md)  [![Release](https://img.shields.io/github/release/faasm/faasm.svg)](https://github.com/faasm/faasm/releases/)  [![Contributors](https://img.shields.io/github/contributors/faasm/faasm.svg)](https://github.com/faasm/faasm/graphs/contributors/)
+# Faasm [![Tests](https://github.com/faasm/faasm/workflows/Tests/badge.svg?branch=main)](https://github.com/faasm/faasm/actions)  [![License](https://img.shields.io/github/license/faasm/faasm.svg)](https://github.com/faasm/faasm/blob/main/LICENSE.md)  [![Release](https://img.shields.io/github/release/faasm/faasm.svg)](https://github.com/faasm/faasm/releases/)  [![Contributors](https://img.shields.io/github/contributors/faasm/faasm.svg)](https://github.com/faasm/faasm/graphs/contributors/)
 
 Faasm is a high-performance stateful serverless runtime.
 

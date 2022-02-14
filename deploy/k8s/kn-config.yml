@@ -8,7 +8,7 @@ metadata:
 data:
   # This is our custom configuration for the Knative autoscaler. See the default
   # version for explanations of parameters:
-  # https://github.com/knative/serving/blob/master/config/core/configmaps/autoscaler.yaml
+  # https://github.com/knative/serving/blob/main/config/core/configmaps/autoscaler.yaml
 
   # Container concurrency
   container-concurrency-target-percentage: "100"

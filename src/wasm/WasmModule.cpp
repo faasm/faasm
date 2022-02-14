@@ -494,7 +494,7 @@ void WasmModule::queuePthreadCall(threads::PthreadCall call)
 
 int WasmModule::awaitPthreadCall(faabric::Message* msg, int pthreadPtr)
 {
-    // We assume that await is called in a loop from the master thread, after
+    // We assume that await is called in a loop from the main thread, after
     // all pthread calls have been queued, so this function doesn't need to be
     // thread safe.
     assert(msg != nullptr);

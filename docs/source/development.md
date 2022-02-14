@@ -279,8 +279,8 @@ However, it can be useful for profiling.
 
 You can work out what's required by looking at the following Dockerfiles:
 
-- [`faasm/faabric-base`](https://github.com/faasm/faabric/blob/master/docker/faabric-base.dockerfile)
-- [`faasm/cpp-root`](../docker/cpp-root.dockerfile)
+- [`faasm/faabric-base`](https://github.com/faasm/faabric/blob/main/docker/faabric-base.dockerfile)
+- [`faasm/cpp-root`](https://github.com/faasm/faabric/blob/main/docker/cpp-root.dockerfile)
 
 The following notes were correct at the time of writing but aren't necessarily
 kept up to date, so YMMV:
