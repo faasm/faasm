@@ -1,9 +1,0 @@
----
-
-- hosts: all
-  gather_facts: yes
-  roles:
-    - code
-    - time
-    - faasm
-
