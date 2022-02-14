@@ -228,7 +228,7 @@ jobs:
     needs: [conan-cache]
     defaults:
       run:
-        working-directory: /__w/faasm/faasm
+        working-directory: /home/runner/work/faasm/faasm
     steps:
       - name: "Check out code"
         uses: actions/checkout@v2
@@ -239,7 +239,7 @@ jobs:
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
         with:
-          directory: /__w/faasm/faasm
+          directory: /home/runner/work/faasm/faasm
       # Cache contains architecture-specific machine code
       - name: "Get CPU model name"
         run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
@@ -262,7 +262,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: /__w/faasm/faasm
+        working-directory: /home/runner/work/faasm/faasm
     env:
       PYTHON_CODEGEN: "on"
     steps:
