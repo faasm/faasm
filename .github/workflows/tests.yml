@@ -185,10 +185,6 @@ jobs:
         with:
           name: py-funcs
           path: /usr/local/faasm/shared
-      - name: "Expand stack space"
-        run: ulimit -s 16384
-      - name: "Print rlimits"
-        run: ulimit -all
       # Cache contains architecture-specific machine code
       - name: "CPU info"
         run: cat /proc/cpuinfo
