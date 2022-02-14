@@ -30,10 +30,10 @@
  *
  * The main WASI repo contains a fair bit of info on WASI's filesystem handling.
  *
- * https://github.com/WebAssembly/WASI/blob/master/phases/snapshot/docs.md
+ * https://github.com/WebAssembly/WASI/blob/main/phases/snapshot/docs.md
  *
  * You can also look at the WASI API:
- * https://github.com/WebAssembly/wasi-libc/blob/master/libc-bottom-half/headers/public/wasi/api.h
+ * https://github.com/WebAssembly/wasi-libc/blob/main/libc-bottom-half/headers/public/wasi/api.h
  */
 
 using namespace WAVM;
