@@ -29,7 +29,8 @@ int doRun(std::ofstream& outFs,
           const std::string& user,
           const std::string& function,
           int nRuns,
-          const std::string& inputData)
+          const std::string& inputData,
+          bool isSgx = false)
 {
     // Clear out redis
     faabric::redis::Redis& redis = faabric::redis::Redis::getQueue();
@@ -47,6 +48,10 @@ int doRun(std::ofstream& outFs,
 
         msg.set_user(PYTHON_USER);
         msg.set_function(PYTHON_FUNC);
+    }
+
+    if (isSgx) {
+        msg.set_issgx(true);
     }
 
     msg.set_inputdata(inputData);
@@ -107,7 +112,8 @@ int doRun(std::ofstream& outFs,
 }
 
 int MicrobenchRunner::execute(const std::string& inFile,
-                              const std::string& outFile)
+                              const std::string& outFile,
+                              bool isSgx)
 {
     if (!boost::filesystem::exists(inFile)) {
         SPDLOG_ERROR("Input file does not exist: {}", inFile);
@@ -157,7 +163,7 @@ int MicrobenchRunner::execute(const std::string& inFile,
         SPDLOG_INFO(
           "Running {}/{} x{} (input [{}])", user, function, nRuns, inputData);
 
-        int returnValue = doRun(outFs, user, function, nRuns, inputData);
+        int returnValue = doRun(outFs, user, function, nRuns, inputData, isSgx);
         if (returnValue != 0) {
             break;
         }

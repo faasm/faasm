@@ -43,6 +43,12 @@ demo,hello,0,29.0,0.18
 These can then be parsed and plotted, as is done in the
 [experiment-microbench](https://github.com/faasm/experiment-microbench) repo.
 
+To run the same micro-benchmark in SGX, re-run the same command as follows:
+
+```bash
+WASM_VM="wamr" microbenchmark_runner <spec_file> <out_file> --sgx
+```
+
 ## High-level
 
 To get a quick overview of how things are performing you can use

@@ -4,6 +4,8 @@ namespace runner {
 class MicrobenchRunner
 {
   public:
-    static int execute(const std::string& inFile, const std::string& outFile);
+    static int execute(const std::string& inFile,
+                       const std::string& outFile,
+                       bool isSgx = false);
 };
 }

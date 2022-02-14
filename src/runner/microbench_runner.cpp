@@ -26,8 +26,13 @@ int main(int argc, char* argv[])
     initLogging();
 
     if (argc < 3) {
-        SPDLOG_ERROR("Usage: microbench_runner <infile> <outfile>");
+        SPDLOG_ERROR("Usage: microbench_runner <infile> <outfile> [--sgx]");
         return 1;
+    }
+
+    bool isSgx = false;
+    if (argc == 4 && std::string(argv[3]) == "--sgx") {
+        isSgx = true;
     }
 
     // Process input args
@@ -47,7 +52,7 @@ int main(int argc, char* argv[])
       std::make_shared<faaslet::FaasletFactory>();
     faabric::scheduler::setExecutorFactory(fac);
 
-    int returnValue = MicrobenchRunner::execute(inFile, outFile);
+    int returnValue = MicrobenchRunner::execute(inFile, outFile, isSgx);
 
     faabric::transport::closeGlobalMessageContext();
     storage::shutdownFaasmS3();
