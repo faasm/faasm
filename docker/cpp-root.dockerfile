@@ -7,7 +7,6 @@ RUN apt-get upgrade -y
 
 # Faasm-specific dependencies
 RUN apt-get install -y \
-    ansible \
     cgroup-tools \
     iproute2 \
     iptables \

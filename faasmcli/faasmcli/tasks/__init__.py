@@ -1,6 +1,5 @@
 from invoke import Collection
 
-from . import bare_metal
 from . import call
 from . import codegen
 from . import config
@@ -23,7 +22,6 @@ from . import wast
 
 # Default names
 ns = Collection(
-    bare_metal,
     codegen,
     config,
     dev,
@@ -44,6 +42,5 @@ ns = Collection(
 )
 
 # Custom names
-ns.add_collection(ns.from_module(bare_metal), name="bm")
 ns.add_collection(ns.from_module(call), name="invoke")
 ns.add_collection(ns.from_module(docker_tasks), name="docker")
