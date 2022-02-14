@@ -21,7 +21,7 @@ NAMESPACE_FILE = join(K8S_DIR, "namespace.yml")
 KNATIVE_VERSION = "1.1.0"
 
 # Notes on Knative client
-# https://github.com/knative/client/blob/master/docs/cmd/kn_service_create.md
+# https://github.com/knative/client/blob/main/docs/cmd/kn_service_create.md
 #
 # Configuring the scheduler:
 # https://knative.dev/docs/serving/configuring-the-autoscaler/

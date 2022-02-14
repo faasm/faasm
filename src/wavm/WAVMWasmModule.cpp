@@ -289,7 +289,7 @@ void WAVMWasmModule::addModuleToGOT(IR::Module& mod, bool isMainModule)
     // This function is **critical** for dynamic linking to work properly,
     // but the underlying spec is still in flux so it may break. The wasm
     // dynamic linking docs can be found here:
-    // https://github.com/WebAssembly/tool-conventions/blob/master/DynamicLinking.md
+    // https://github.com/WebAssembly/tool-conventions/blob/main/DynamicLinking.md
     //
     // To handle dynamically loaded modules, we need to provide a "global
     // offset table (GOT)" which holds offsets to all the functions and data

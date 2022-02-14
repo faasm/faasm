@@ -239,7 +239,7 @@ void S3Wrapper::addKeyBytes(const std::string& bucketName,
                             const std::vector<uint8_t>& data)
 {
     // See example:
-    // https://github.com/awsdocs/aws-doc-sdk-examples/blob/master/cpp/example_code/s3/put_object_buffer.cpp
+    // https://github.com/awsdocs/aws-doc-sdk-examples/blob/main/cpp/example_code/s3/put_object_buffer.cpp
     SPDLOG_TRACE("Writing S3 key {}/{} as bytes", bucketName, keyName);
     auto request = reqFactory<PutObjectRequest>(bucketName, keyName);
 
@@ -259,7 +259,7 @@ void S3Wrapper::addKeyStr(const std::string& bucketName,
                           const std::string& data)
 {
     // See example:
-    // https://github.com/awsdocs/aws-doc-sdk-examples/blob/master/cpp/example_code/s3/put_object_buffer.cpp
+    // https://github.com/awsdocs/aws-doc-sdk-examples/blob/main/cpp/example_code/s3/put_object_buffer.cpp
     SPDLOG_TRACE("Writing S3 key {}/{} as string", bucketName, keyName);
 
     auto request = reqFactory<PutObjectRequest>(bucketName, keyName);

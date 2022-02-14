@@ -30,7 +30,7 @@ void dynlinkLink() {}
  *  https://webassembly.org/docs/dynamic-linking/
  *
  *  Tool conventions:
- *  https://github.com/WebAssembly/tool-conventions/blob/master/DynamicLinking.md
+ *  https://github.com/WebAssembly/tool-conventions/blob/main/DynamicLinking.md
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "dlopen",
