@@ -16,9 +16,7 @@ makedirs(APIDOC_OUT_DIR, exist_ok=True)
 run("doxygen", cwd=DOCS_ROOT, check=True, shell=True)
 
 run(
-    "breathe-apidoc {} -o {} -f -m".format(
-        DOXYGEN_OUT, APIDOC_OUT_DIR
-    ),
+    "breathe-apidoc {} -o {} -f -m".format(DOXYGEN_OUT, APIDOC_OUT_DIR),
     cwd=DOCS_ROOT,
     check=True,
     shell=True,
@@ -40,4 +38,3 @@ html_theme = "sphinx_rtd_theme"
 breathe_projects = {"Faasm": DOXYGEN_OUT}
 breathe_default_project = "Faasm"
 breathe_default_members = ("members", "undoc-members")
-

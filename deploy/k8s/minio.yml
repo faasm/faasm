@@ -11,7 +11,7 @@ metadata:
 spec:
   containers:
     - name: minio-main
-      image: faasm/minio:0.7.8
+      image: faasm/minio:0.8.0
       env:
         - name: MINIO_ROOT_USER
           value: "minio"

@@ -23,6 +23,7 @@ from . import wast
 
 # Default names
 ns = Collection(
+    bare_metal,
     codegen,
     config,
     dev,

@@ -634,7 +634,7 @@ extractSnapshotDataType(I32 varType)
 
 static faabric::util::SnapshotMergeOperation extractSnapshotMergeOp(I32 mergeOp)
 {
-    if (faabric::util::SnapshotMergeOperation::Overwrite <= mergeOp &&
+    if (faabric::util::SnapshotMergeOperation::Bytewise <= mergeOp &&
         mergeOp <= faabric::util::SnapshotMergeOperation::Min) {
         return static_cast<faabric::util::SnapshotMergeOperation>(mergeOp);
     }

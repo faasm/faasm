@@ -8,6 +8,7 @@ RUN apt-get update
 RUN apt-get install -y \
     clang-tidy-10 \
     clang-tidy-13 \
+    doxygen \
     libpython3-dev \
     python3-dev \
     python3-pip \
