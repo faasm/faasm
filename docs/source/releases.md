@@ -47,7 +47,7 @@ locally.
 ## 3. Create a PR
 
 Create a PR from your branch, this will then run through the tests for the new
-release. If it's green, you can merge it into master.
+release. If it's green, you can merge it into main.
 
 ## 4. Re-tag after the PR is merged
 
@@ -55,8 +55,8 @@ It is encouraged to re-tag the code once the PR has been merged to keep a clean
 commit log. To do so, once the PR has been merged:
 
 ```bash
-git checkout master
-git pull origin master
+git checkout main
+git pull origin main
 cat VERSION # ensure VERSION has the correct tag
 inv release.tag --force
 ```

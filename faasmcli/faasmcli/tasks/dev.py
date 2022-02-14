@@ -25,7 +25,7 @@ def cmake(
     perf=False,
     prof=False,
     sanitiser="None",
-    nosgx=True,
+    nosgx=False,
 ):
     """
     Configures the CMake build

@@ -20,7 +20,7 @@ inv invoke mpi hellompi
 ## Extending the Faasm MPI implementation
 
 The MPI interface declarations live in the [`libfaasmpi`
-directory](https://github.com/faasm/cpp/tree/master/libfaasmpi) of
+directory](https://github.com/faasm/cpp/tree/main/libfaasmpi) of
 the `cpp` repo. The host interface definitions live
 [here](../src/wavm/mpi.cpp).
 
