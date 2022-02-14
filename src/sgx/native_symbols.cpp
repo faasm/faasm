@@ -1,14 +1,17 @@
+#include <faabric/scheduler/ExecutorContext.h>
+
 #include <sgx/SGXWAMRWasmModule.h>
 #include <wasm/chaining.h>
 
 #include <cstring>
 
 using namespace faabric::state;
+using namespace faabric::scheduler;
 
 #define STATE_KV(key, stateLen)                                                \
     State& state = getGlobalState();                                           \
     std::shared_ptr<StateKeyValue> stateKv = state.getKV(                      \
-      wasm::getExecutingCall()->user(), std::string(key), stateLen);
+      ExecutorContext::get()->getMsg().user(), std::string(key), stateLen);
 
 extern "C"
 {
@@ -22,7 +25,7 @@ extern "C"
 
         if (bufferLen == 0) {
             return (uint64_t)state.getStateSize(
-              wasm::getExecutingCall()->user(), std::string(key));
+              ExecutorContext::get()->getMsg().user(), std::string(key));
         }
 
         return stateKv->size();
@@ -111,7 +114,7 @@ extern "C"
     {
         STATE_KV(key, 0)
         auto maskKv = state.getKV(
-          wasm::getExecutingCall()->user(), std::string(maskKey), 0);
+          ExecutorContext::get()->getMsg().user(), std::string(maskKey), 0);
         stateKv->pushPartialMask(maskKv);
     }
 
@@ -159,7 +162,7 @@ extern "C"
 
     int ocall_faasm_read_input(uint8_t* buffer, unsigned int bufferSize)
     {
-        faabric::Message* msg = wasm::getExecutingCall();
+        faabric::Message* msg = &ExecutorContext::get()->getMsg();
 
         unsigned long inputLen = msg->inputdata().size();
 
@@ -183,7 +186,8 @@ extern "C"
 
     void ocall_faasm_write_output(uint8_t* output, unsigned int outputSize)
     {
-        wasm::getExecutingCall()->set_outputdata((void*)output, outputSize);
+        ExecutorContext::get()->getMsg().set_outputdata((void*)output,
+                                                        outputSize);
     }
 
     unsigned int ocall_faasm_chain_name(const char* name,
@@ -200,7 +204,10 @@ extern "C"
     {
         const std::vector<uint8_t> _input(input, input + inputSize);
         return wasm::makeChainedCall(
-          wasm::getExecutingCall()->function(), wasmFuncPtr, nullptr, _input);
+          ExecutorContext::get()->getMsg().function(),
+          wasmFuncPtr,
+          nullptr,
+          _input);
     }
 
     unsigned int ocall_faasm_await_call(unsigned int callId)

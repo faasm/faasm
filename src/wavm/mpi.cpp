@@ -1,17 +1,20 @@
-#include "WAVMWasmModule.h"
 #include "math.h"
 #include "syscalls.h"
-#include "wasm/WasmModule.h"
+
+#include <wasm/WasmModule.h>
+#include <wavm/WAVMWasmModule.h>
 
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 
 #include <faabric/mpi/mpi.h>
+#include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/MpiContext.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/gids.h>
 #include <faabric/util/logging.h>
 
+using namespace faabric::scheduler;
 using namespace WAVM;
 
 #define MPI_FUNC(str)                                                          \
@@ -123,7 +126,7 @@ static thread_local std::unique_ptr<ContextWrapper> ctx = nullptr;
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Init", I32, MPI_Init, I32 a, I32 b)
 {
-    faabric::Message* call = getExecutingCall();
+    faabric::Message* call = &ExecutorContext::get()->getMsg();
 
     // Note - only want to initialise the world on rank zero (or when rank isn't
     // set yet)

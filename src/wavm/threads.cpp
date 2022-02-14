@@ -1,6 +1,7 @@
 #include "syscalls.h"
 
 #include <faabric/proto/faabric.pb.h>
+#include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/transport/PointToPointBroker.h>
@@ -21,6 +22,7 @@
 #include <WAVM/Runtime/Runtime.h>
 
 using namespace WAVM;
+using namespace faabric::scheduler;
 
 namespace wasm {
 
@@ -88,7 +90,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 {
     SPDLOG_DEBUG("S - pthread_join - {} {}", pthreadPtr, resPtrPtr);
 
-    faabric::Message* call = getExecutingCall();
+    faabric::Message* call = &ExecutorContext::get()->getMsg();
     WasmModule* thisModule = getExecutingModule();
 
     // Await the result

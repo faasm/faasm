@@ -1,5 +1,5 @@
-#include "WasmModule.h"
 
+#include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/func.h>
@@ -7,6 +7,7 @@
 
 #include <conf/FaasmConfig.h>
 #include <wasm/WasmExecutionContext.h>
+#include <wasm/WasmModule.h>
 #include <wasm/chaining.h>
 
 namespace wasm {
@@ -36,7 +37,7 @@ int makeChainedCall(const std::string& functionName,
                     const std::vector<uint8_t>& inputData)
 {
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-    faabric::Message* originalCall = getExecutingCall();
+    faabric::Message* originalCall = &ExecutorContext::get()->getMsg();
 
     std::string user = originalCall->user();
 
@@ -100,13 +101,14 @@ int spawnChainedThread(const std::string& snapshotKey,
 {
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
 
-    faabric::Message* originalCall = getExecutingCall();
-    faabric::Message call = faabric::util::messageFactory(
-      originalCall->user(), originalCall->function());
+    faabric::Message& originalMsg =
+      faabric::scheduler::ExecutorContext::get()->getMsg();
+    faabric::Message call =
+      faabric::util::messageFactory(originalMsg.user(), originalMsg.function());
     call.set_isasync(true);
 
     // Propagate app ID
-    call.set_appid(originalCall->appid());
+    call.set_appid(originalMsg.appid());
 
     // Snapshot details
     call.set_snapshotkey(snapshotKey);
@@ -118,8 +120,7 @@ int spawnChainedThread(const std::string& snapshotKey,
     call.set_funcptr(funcPtr);
     call.set_inputdata(std::to_string(argsPtr));
 
-    const std::string origStr =
-      faabric::util::funcToString(*originalCall, false);
+    const std::string origStr = faabric::util::funcToString(originalMsg, false);
     const std::string chainedStr = faabric::util::funcToString(call, false);
 
     // Schedule the call
