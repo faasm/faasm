@@ -60,18 +60,17 @@ Faaslet::Faaslet(faabric::Message& msg)
     conf::FaasmConfig& conf = conf::getFaasmConfig();
 
     // Instantiate the right wasm module for the chosen runtime
-    if (conf.wasmVm == "wamr") {
+    if (conf.wasmVm == "sgx") {
 #if (FAASM_SGX)
-        // When SGX is enabled, we may still be running with vanilla WAMR
-        if (msg.issgx()) {
-            module = std::make_unique<wasm::SGXWAMRWasmModule>();
-        } else {
-            module = std::make_unique<wasm::WAMRWasmModule>(threadPoolSize);
-        }
+        module = std::make_unique<wasm::SGXWAMRWasmModule>();
 #else
+        SPDLOG_ERROR(
+          "SGX WASM VM selected, but SGX support disabled in config");
+        throw std::runtime_error("SGX support disabled in config");
+#endif
+    } else if (conf.wasmVm == "wamr") {
         // Vanilla WAMR
         module = std::make_unique<wasm::WAMRWasmModule>(threadPoolSize);
-#endif
     } else if (conf.wasmVm == "wavm") {
         module = std::make_unique<wasm::WAVMWasmModule>(threadPoolSize);
     } else {
@@ -148,7 +147,7 @@ void Faaslet::restore(const std::string& snapshotKey)
 
     // Restore from snapshot if necessary
     if (conf.wasmVm == "wavm") {
-        if (!snapshotKey.empty() && !boundMessage.issgx()) {
+        if (!snapshotKey.empty()) {
             SPDLOG_DEBUG("Restoring {} from snapshot {} before execution",
                          id,
                          snapshotKey);
