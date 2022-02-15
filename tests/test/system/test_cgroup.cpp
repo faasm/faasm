@@ -3,6 +3,7 @@
 #include <faabric/util/config.h>
 #include <faabric/util/environment.h>
 #include <faabric/util/files.h>
+#include <faabric/util/logging.h>
 #include <faabric/util/string_tools.h>
 
 #include <conf/FaasmConfig.h>
@@ -17,7 +18,6 @@
 using namespace isolation;
 
 namespace tests {
-static int cgroupCheckSuccessful = 0;
 
 TEST_CASE("Test cgroup on/ off", "[faaslet]")
 {
@@ -59,6 +59,8 @@ TEST_CASE("Test cgroup on/ off", "[faaslet]")
     conf.reset();
 }
 
+static bool cgroupCheckPassed = false;
+
 // Need to run this check in a separate thread
 void checkCgroupAddition()
 {
@@ -66,7 +68,11 @@ void checkCgroupAddition()
     cgroupPath.append("cpu");
     cgroupPath.append(BASE_CGROUP_NAME);
 
-    REQUIRE(boost::filesystem::exists(cgroupPath));
+    if (!boost::filesystem::exists(cgroupPath)) {
+        SPDLOG_ERROR("cgroup does not exist at {}", cgroupPath.string());
+        cgroupCheckPassed = false;
+        return;
+    }
 
     // Add the current thread
     // Note - it's possible that another test has already done this, so
@@ -81,10 +87,14 @@ void checkCgroupAddition()
     std::string fileContents =
       faabric::util::readFileToString(cgroupPath.string());
 
-    REQUIRE(faabric::util::contains(fileContents, tid));
+    if (!faabric::util::contains(fileContents, tid)) {
+        SPDLOG_ERROR("cgroup file does not contain tid {}", tid);
+        cgroupCheckPassed = false;
+        return;
+    }
 
     // Set success
-    cgroupCheckSuccessful = 1;
+    cgroupCheckPassed = true;
 }
 
 TEST_CASE("Test adding thread to cpu controller", "[faaslet]")
@@ -100,8 +110,11 @@ TEST_CASE("Test adding thread to cpu controller", "[faaslet]")
     REQUIRE(conf.cgroupMode == "on");
 
     std::thread t(checkCgroupAddition);
-    t.join();
 
-    REQUIRE(cgroupCheckSuccessful == 1);
+    if (t.joinable()) {
+        t.join();
+    }
+
+    REQUIRE(cgroupCheckPassed);
 }
 }
