@@ -37,16 +37,19 @@ int main(int argc, char* argv[])
     faabric::util::initLogging();
     storage::initFaasmS3();
 
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
     if (argc == 3) {
         std::string user = argv[1];
         std::string func = argv[2];
 
-        SPDLOG_INFO("Running codegen for function {}/{}", user, func);
+        SPDLOG_INFO("Running codegen for function {}/{} (WASM VM: {})",
+                    user,
+                    func,
+                    conf.wasmVm);
         codegenForFunc(user, func);
     } else if (argc == 2) {
         std::string user = argv[1];
 
-        conf::FaasmConfig& conf = conf::getFaasmConfig();
         SPDLOG_INFO(
           "Running codegen for user {} on dir {}", user, conf.functionDir);
 
