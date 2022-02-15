@@ -1,6 +1,6 @@
 #pragma once
 
-#include <sgx/error.h>
+#include <enclave/error.h>
 
 #include <sgx_eid.h>
 #include <sgx_error.h>

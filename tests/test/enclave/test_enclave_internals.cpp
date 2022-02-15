@@ -1,6 +1,6 @@
 #include <catch2/catch.hpp>
 
-#include <sgx/system.h>
+#include <enclave/system.h>
 
 namespace tests {
 class SgxTestFixture

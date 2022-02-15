@@ -1,4 +1,4 @@
-#include <sgx/crypto/encryption.h>
+#include <enclave/crypto/encryption.h>
 
 FaasmSgxEncryptedMsg* doSymEncrypt(FaasmSgxMsg* decryptedMsg,
                                    FaasmSgxSymKey symKey)

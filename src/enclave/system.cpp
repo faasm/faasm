@@ -1,6 +1,6 @@
-#include <sgx/SGXWAMRWasmModule.h>
-#include <sgx/error.h>
-#include <sgx/system.h>
+#include <enclave/SGXWAMRWasmModule.h>
+#include <enclave/error.h>
+#include <enclave/system.h>
 
 #include <boost/filesystem/operations.hpp>
 #include <sgx_urts.h>

@@ -133,15 +133,14 @@ target_compile_options(wamrlib_untrusted PRIVATE
 # --------------------------------------------------------
 
 set(ENCLAVE_HEADERS
-    ${FAASM_INCLUDE_DIR}/sgx/attestation.h
-    ${FAASM_INCLUDE_DIR}/sgx/enclave_config.h
-    ${FAASM_INCLUDE_DIR}/sgx/enclave_types.h
-    ${FAASM_INCLUDE_DIR}/sgx/error.h
-    ${FAASM_INCLUDE_DIR}/sgx/native.h
-    ${FAASM_INCLUDE_DIR}/sgx/ocalls.h
-    ${FAASM_INCLUDE_DIR}/sgx/rw_lock.h
-    ${FAASM_INCLUDE_DIR}/sgx/SGXWAMRWasmModule.h
-    ${FAASM_INCLUDE_DIR}/sgx/system.h
+    ${FAASM_INCLUDE_DIR}/enclave/enclave_config.h
+    ${FAASM_INCLUDE_DIR}/enclave/enclave_types.h
+    ${FAASM_INCLUDE_DIR}/enclave/error.h
+    ${FAASM_INCLUDE_DIR}/enclave/native.h
+    ${FAASM_INCLUDE_DIR}/enclave/ocalls.h
+    ${FAASM_INCLUDE_DIR}/enclave/rw_lock.h
+    ${FAASM_INCLUDE_DIR}/enclave/SGXWAMRWasmModule.h
+    ${FAASM_INCLUDE_DIR}/enclave/system.h
 )
 
 # SGX WAMR enclave library
@@ -223,9 +222,9 @@ target_link_libraries(enclave_trusted
 # --------------------------------------------------------
 
 set(ENCLAVE_UNTRUSTED_HEADERS
-    ${FAASM_INCLUDE_DIR}/sgx/error.h
-    ${FAASM_INCLUDE_DIR}/sgx/system.h
-    ${FAASM_INCLUDE_DIR}/sgx/SGXWAMRWasmModule.h
+    ${FAASM_INCLUDE_DIR}/enclave/error.h
+    ${FAASM_INCLUDE_DIR}/enclave/system.h
+    ${FAASM_INCLUDE_DIR}/enclave/SGXWAMRWasmModule.h
 )
 
 set(ENCLAVE_UNTRUSTED_ASM_SRC
@@ -237,7 +236,6 @@ set_source_files_properties(${ENCLAVE_UNTRUSTED_ASM_SRC}
 )
 
 set(ENCLAVE_UNTRUSTED_SRC
-    attestation.cpp
     ocalls.cpp
     rw_lock.cpp
     SGXWAMRWasmModule.cpp
@@ -285,7 +283,7 @@ target_link_libraries(enclave_untrusted
     wasm
 )
 
-add_library(faasm::sgx ALIAS enclave_untrusted)
+add_library(faasm::enclave ALIAS enclave_untrusted)
 
 # --------------------------------------------------------
 # Trusted Enclave Build + Signature
@@ -294,7 +292,7 @@ add_library(faasm::sgx ALIAS enclave_untrusted)
 add_custom_command(TARGET enclave_trusted
     PRE_BUILD COMMAND ${SGX_SDK_ENCLAVE_EDGER8R}
     --trusted ${ENCLAVE_EDL_FILENAME}.edl
-    --search-path ${FAASM_SOURCE_DIR}/sgx
+    --search-path ${FAASM_SOURCE_DIR}/enclave
     --search-path ${SGX_SDK_PATH}/include
     --search-path ${WAMR_SHARED_DIR}/platform/linux-sgx/
 )
@@ -325,7 +323,7 @@ add_custom_command(TARGET enclave_trusted
 add_custom_command(TARGET enclave_untrusted
     PRE_BUILD COMMAND ${SGX_SDK_ENCLAVE_EDGER8R}
     --untrusted ${ENCLAVE_EDL_FILENAME}.edl
-    --search-path ${FAASM_SOURCE_DIR}/sgx
+    --search-path ${FAASM_SOURCE_DIR}/enclave
     --search-path ${SGX_SDK_PATH}/include
     --search-path ${WAMR_SHARED_DIR}/platform/linux-sgx/
 )

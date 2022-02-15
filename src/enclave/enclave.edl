@@ -3,8 +3,7 @@
 #define FAASM_SGX_WAMR_WASI_LIBC 0
 
 enclave{
-    include "/usr/local/code/faasm/include/sgx/error.h"
-    include "/usr/local/code/faasm/include/sgx/attestation.h"
+    include "/usr/local/code/faasm/include/enclave/error.h"
     include "/build/faasm/_deps/wamr_ext-src/core/iwasm/include/wasm_export.h"
     from "sgx_tstdc.edl" import *;
     from "sgx_pthread.edl" import *;

@@ -1,7 +1,6 @@
 #pragma once
 
-#include <sgx/attestation.h>
-#include <sgx/error.h>
+#include <enclave/error.h>
 
 #include <storage/FileLoader.h>
 #include <storage/FileSystem.h>
@@ -73,9 +72,6 @@ class SGXWAMRWasmModule final : public WasmModule
     size_t getMemorySizeBytes() override;
 
     uint8_t* getMemoryBase() override;
-
-    // TODO: Move in gs/fs
-    faaslet_sgx_msg_buffer_t sgxWamrMsgResponse;
 
   private:
     uint32_t threadId = 0;

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <sgx/error.h>
-#include <sgx/ocalls.h>
+#include <enclave/error.h>
+#include <enclave/ocalls.h>
 
 #include <iwasm/aot/aot_runtime.h>
 #include <iwasm/common/wasm_exec_env.h>

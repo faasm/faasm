@@ -1,17 +1,14 @@
 #include <cstdio>
 
+#include <enclave/SGXWAMRWasmModule.h>
+#include <enclave/system.h>
 #include <faabric/util/func.h>
-#include <sgx/SGXWAMRWasmModule.h>
-#include <sgx/attestation.h>
-#include <sgx/system.h>
 #include <wasm/WasmExecutionContext.h>
 
 extern "C"
 {
     void ocall_printf(const char* msg) { printf("%s", msg); }
 }
-
-thread_local faaslet_sgx_msg_buffer_t* faasletSgxMsgBufferPtr;
 
 using namespace sgx;
 
@@ -20,21 +17,6 @@ SGXWAMRWasmModule::SGXWAMRWasmModule()
 {
     checkSgxSetup();
 
-    // Allocate memory for response
-    sgxWamrMsgResponse.buffer_len =
-      (sizeof(sgx_wamr_msg_t) + sizeof(sgx_wamr_msg_hdr_t));
-    sgxWamrMsgResponse.buffer_ptr =
-      (sgx_wamr_msg_t*)calloc(sgxWamrMsgResponse.buffer_len, sizeof(uint8_t));
-
-    if (!sgxWamrMsgResponse.buffer_ptr) {
-        SPDLOG_ERROR(
-          "Unable to allocate space for SGX message response buffer");
-        throw std::runtime_error(
-          "Unable to allocate space for SGX message response buffer");
-    }
-
-    faasletSgxMsgBufferPtr = &sgxWamrMsgResponse;
-
     SPDLOG_DEBUG("Created SGX wasm module for enclave {}",
                  sgx::getGlobalEnclaveId());
 }
@@ -42,10 +24,6 @@ SGXWAMRWasmModule::SGXWAMRWasmModule()
 SGXWAMRWasmModule::~SGXWAMRWasmModule()
 {
     unbindFunction();
-
-    if (sgxWamrMsgResponse.buffer_ptr) {
-        free(sgxWamrMsgResponse.buffer_ptr);
-    }
 }
 
 // ----- Module lifecycle -----

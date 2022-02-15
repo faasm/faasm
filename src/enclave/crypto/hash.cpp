@@ -1,4 +1,4 @@
-#include <sgx/crypto/hash.h>
+#include <enclave/crypto/hash.h>
 
 FaasmSgxHashedMsg* doSha256(FaasmSgxMsg* srcMsg)
 {

@@ -208,10 +208,10 @@ target_include_directories(faasm_common_deps INTERFACE
 
 # Faasm SGX support
 if (SGX_FOUND)
-    add_subdirectory(src/sgx)
+    add_subdirectory(src/enclave)
 else ()
-    add_library(faasm_sgx_dummy INTERFACE)
-    add_library(faasm::sgx ALIAS faasm_sgx_dummy)
+    add_library(faasm_enclave_dummy INTERFACE)
+    add_library(faasm::enclave ALIAS faasm_enclave_dummy)
 endif ()
 
 # Faasm runtime

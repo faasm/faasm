@@ -1,10 +1,9 @@
-#include <sgx/attestation.h>
-#include <sgx/enclave_config.h>
-#include <sgx/enclave_types.h>
-#include <sgx/error.h>
-#include <sgx/native.h>
-#include <sgx/ocalls.h>
-#include <sgx/rw_lock.h>
+#include <enclave/enclave_config.h>
+#include <enclave/enclave_types.h>
+#include <enclave/error.h>
+#include <enclave/native.h>
+#include <enclave/ocalls.h>
+#include <enclave/rw_lock.h>
 
 #include <iwasm/include/wasm_export.h>
 #include <libcxx/cstdlib>
