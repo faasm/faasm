@@ -1,7 +1,6 @@
 #pragma once
 
 #include "fixtures.h"
-#include "wavm/IRModuleCache.h"
 
 #include <codegen/MachineCodeGenerator.h>
 #include <conf/FaasmConfig.h>
@@ -60,20 +59,6 @@ class SharedFilesTestFixture : public S3TestFixture
 
   protected:
     storage::FileLoader& loader;
-};
-
-class IRModuleCacheTestFixture
-{
-  public:
-    IRModuleCacheTestFixture()
-      : irModuleCache(wasm::getIRModuleCache())
-    {
-        irModuleCache.clear();
-    }
-    ~IRModuleCacheTestFixture() { irModuleCache.clear(); }
-
-  protected:
-    wasm::IRModuleCache& irModuleCache;
 };
 
 class WAVMModuleCacheTestFixture

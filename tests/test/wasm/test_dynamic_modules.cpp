@@ -65,6 +65,20 @@ int dataBOffset = 21692416;
 int extraTableEntriesModA = 18;
 int extraTableEntriesModB = 32;
 
+class IRModuleCacheTestFixture
+{
+  public:
+    IRModuleCacheTestFixture()
+      : irModuleCache(wasm::getIRModuleCache())
+    {
+        irModuleCache.clear();
+    }
+    ~IRModuleCacheTestFixture() { irModuleCache.clear(); }
+
+  protected:
+    wasm::IRModuleCache& irModuleCache;
+};
+
 class DynamicModulesFixture
   : public FunctionExecTestFixture
   , public IRModuleCacheTestFixture

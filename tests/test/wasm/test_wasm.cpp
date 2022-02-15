@@ -1,8 +1,8 @@
+#include <catch2/catch.hpp>
+
 #include "faabric_utils.h"
 #include "faasm_fixtures.h"
-#include "fixtures.h"
 #include "utils.h"
-#include <catch2/catch.hpp>
 
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
@@ -14,9 +14,7 @@ using namespace WAVM;
 
 namespace tests {
 
-class SimpleWasmTestFixture
-  : public FunctionExecTestFixture
-  , public ExecutorContextTestFixture
+class SimpleWasmTestFixture : public FunctionExecTestFixture
 {
   public:
     void executeX2(wasm::WAVMWasmModule& module)
