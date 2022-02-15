@@ -1,4 +1,4 @@
-#include <enclave/rw_lock.h>
+#include <enclave/inside/rw_lock.h>
 
 #define atomic_xadd(P, V) __sync_fetch_and_add((P), (V))
 #define atomic_inc(P) __sync_add_and_fetch((P), 1)

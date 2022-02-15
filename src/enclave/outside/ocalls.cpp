@@ -1,4 +1,4 @@
-#include <enclave/SGXWAMRWasmModule.h>
+#include <enclave/outside/SGXWAMRWasmModule.h>
 #include <wasm/chaining.h>
 
 #include <cstring>

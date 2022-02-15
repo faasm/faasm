@@ -1,4 +1,4 @@
-#include <enclave/native.h>
+#include <enclave/inside/native.h>
 
 namespace sgx {
 void doNativeSymbolRegistration(uint32_t (*f)(NativeSymbol** ns))

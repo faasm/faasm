@@ -1,7 +1,7 @@
 #include <cstdio>
 
-#include <enclave/SGXWAMRWasmModule.h>
-#include <enclave/system.h>
+#include <enclave/outside/SGXWAMRWasmModule.h>
+#include <enclave/outside/system.h>
 #include <faabric/util/func.h>
 #include <wasm/WasmExecutionContext.h>
 

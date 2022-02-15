@@ -1,4 +1,4 @@
-#include <enclave/native.h>
+#include <enclave/inside/native.h>
 
 namespace sgx {
 static uint64_t faasm_read_state_wrapper(wasm_exec_env_t exec_env,

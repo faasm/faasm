@@ -1,4 +1,4 @@
-#include <enclave/native.h>
+#include <enclave/inside/native.h>
 
 namespace sgx {
 static int wasi_fd_close(wasm_exec_env_t exec_env, int a)

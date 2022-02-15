@@ -20,8 +20,8 @@
 #include <stdexcept>
 
 #if (FAASM_SGX)
-#include <enclave/SGXWAMRWasmModule.h>
-#include <enclave/system.h>
+#include <enclave/outside/SGXWAMRWasmModule.h>
+#include <enclave/outside/system.h>
 #else
 #include <storage/FileLoader.h>
 #include <storage/FileSystem.h>

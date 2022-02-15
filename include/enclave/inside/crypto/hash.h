@@ -1,6 +1,6 @@
 #pragma once
 
-#include <enclave/crypto/types.h>
+#include <enclave/inside/crypto/types.h>
 
 #include <sgx_tcrypto.h>
 

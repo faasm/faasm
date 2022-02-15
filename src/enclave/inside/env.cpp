@@ -1,4 +1,4 @@
-#include <enclave/native.h>
+#include <enclave/inside/native.h>
 
 namespace sgx {
 static int wasi_args_get(wasm_exec_env_t exec_env, int a, int b)

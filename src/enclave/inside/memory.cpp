@@ -1,4 +1,4 @@
-#include <enclave/native.h>
+#include <enclave/inside/native.h>
 
 namespace sgx {
 static int32_t __sbrk_wrapper(wasm_exec_env_t exec_env, int32_t increment)

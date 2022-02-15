@@ -2,10 +2,10 @@
 #include <sgx_defs.h>
 #include <tlibc/string.h>
 
-#include <enclave/crypto/encryption.h>
-#include <enclave/crypto/hash.h>
-#include <enclave/crypto/types.h>
 #include <enclave/error.h>
+#include <enclave/inside/crypto/encryption.h>
+#include <enclave/inside/crypto/hash.h>
+#include <enclave/inside/crypto/types.h>
 
 extern "C"
 {
