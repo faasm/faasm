@@ -330,7 +330,7 @@ void FileLoader::uploadFunctionObjectHash(const faabric::Message& msg,
 
 static const std::string getWamrAotKey(const faabric::Message& msg)
 {
-    if (msg.issgx()) {
+    if (conf::getFaasmConfig().wasmVm == "sgx") {
         return getKey(msg, SGX_WAMR_AOT_FILENAME);
     } else {
         return getKey(msg, WAMR_AOT_FILENAME);
@@ -340,7 +340,7 @@ static const std::string getWamrAotKey(const faabric::Message& msg)
 std::string FileLoader::getFunctionAotFile(const faabric::Message& msg)
 {
     auto path = getDir(conf.objectFileDir, msg, true);
-    if (msg.issgx()) {
+    if (conf::getFaasmConfig().wasmVm == "sgx") {
         path.append(SGX_WAMR_AOT_FILENAME);
     } else {
         path.append(WAMR_AOT_FILENAME);
