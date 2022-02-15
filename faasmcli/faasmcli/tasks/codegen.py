@@ -13,7 +13,7 @@ LIB_FAKE_FILES = [
     join(FAASM_RUNTIME_ROOT, "lib", "fake", "libfakeLibB.so"),
 ]
 
-WAMR_WHITELISTED_FUNCS = [
+WAMR_ALLOWED_FUNCS = [
     # Misc
     ["demo", "chain"],
     ["ffmpeg", "check"],
@@ -34,7 +34,7 @@ WAMR_WHITELISTED_FUNCS = [
     ["demo", "stderr"],
 ]
 
-SGX_WHITELISTED_FUNCS = [
+SGX_ALLOWED_FUNCS = [
     ["demo", "hello"],
     ["demo", "chain_named_a"],
     ["demo", "chain_named_b"],
@@ -114,10 +114,15 @@ def local(ctx):
     for so in LIB_FAKE_FILES:
         _do_codegen_file(so)
 
+    # For WAMR and SGX codegen, we need to update the environment
+    env = copy(environ)
+
     # Run the WAMR codegen required by the tests
-    for user, func in WAMR_WHITELISTED_FUNCS:
-        codegen(ctx, user, func, wamr=True)
+    env.update({"WASM_VM": "wamr"})
+    for user, func in WAMR_ALLOWED_FUNCS:
+        codegen(ctx, user, func)
 
     # Run the SGX codegen required by the tests
-    for user, func in SGX_WHITELISTED_FUNCS:
-        codegen(ctx, user, func, wamr=True, sgx=True)
+    env.update({"WASM_VM": "sgx"})
+    for user, func in SGX_ALLOWED_FUNCS:
+        codegen(ctx, user, func)
