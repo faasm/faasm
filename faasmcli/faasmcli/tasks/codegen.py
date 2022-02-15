@@ -44,25 +44,20 @@ SGX_WHITELISTED_FUNCS = [
 
 
 @task(default=True)
-def codegen(ctx, user, function, wamr=False, sgx=False):
+def codegen(ctx, user, function):
     """
     Generates machine code for the given function
     """
     env = copy(environ)
     env.update(
         {
-            "WASM_VM": "wamr" if wamr else "wavm",
             "LD_LIBRARY_PATH": "/usr/local/lib/",
         }
     )
 
-    if (not wamr) and sgx:
-        print("Can't run SGX codegen with WAVM. Add --wamr flag.")
-        exit(1)
-
     binary = find_codegen_func()
     run(
-        "{} {} {} {}".format(binary, user, function, "--sgx" if sgx else ""),
+        "{} {} {}".format(binary, user, function),
         shell=True,
         env=env,
         check=True,
