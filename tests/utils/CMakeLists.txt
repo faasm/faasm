@@ -1,6 +1,5 @@
 
 faasm_private_lib(test_utils
-    system_utils.cpp
     worker_utils.cpp
     utils.h
 )

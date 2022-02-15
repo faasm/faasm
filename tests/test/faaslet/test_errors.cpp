@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "faasm_fixtures.h"
 #include "utils.h"
 
 #include <faabric/runner/FaabricMain.h>
@@ -8,36 +9,42 @@
 using namespace faaslet;
 
 namespace tests {
-void checkError(const std::string& funcName, const std::string& expectedMsg)
+
+class ErrorCheckFixture : public FunctionExecTestFixture
 {
-    cleanSystem();
+  public:
+    void checkError(const std::string& funcName, const std::string& expectedMsg)
+    {
+        auto req = setUpContext("errors", funcName);
+        faabric::Message& call = req->mutable_messages()->at(0);
+        faabric::Message result = execErrorFunction(call);
 
-    faabric::Message call = faabric::util::messageFactory("errors", funcName);
+        // Get result
+        REQUIRE(result.returnvalue() > 0);
 
-    faabric::Message result = execErrorFunction(call);
+        if (expectedMsg.empty()) {
+            return;
+        }
 
-    // Get result
-    REQUIRE(result.returnvalue() > 0);
+        const std::string actualOutput = result.outputdata();
+        bool messageIsFound = false;
+        if (actualOutput.find(expectedMsg) != std::string::npos) {
+            messageIsFound = true;
+        }
 
-    if (expectedMsg.empty()) {
-        return;
+        if (!messageIsFound) {
+            printf("%s not found in %s\n",
+                   expectedMsg.c_str(),
+                   actualOutput.c_str());
+        }
+
+        REQUIRE(messageIsFound);
     }
+};
 
-    const std::string actualOutput = result.outputdata();
-    bool messageIsFound = false;
-    if (actualOutput.find(expectedMsg) != std::string::npos) {
-        messageIsFound = true;
-    }
-
-    if (!messageIsFound) {
-        printf(
-          "%s not found in %s\n", expectedMsg.c_str(), actualOutput.c_str());
-    }
-
-    REQUIRE(messageIsFound);
-}
-
-TEST_CASE("Test non-zero return code is error", "[wasm]")
+TEST_CASE_METHOD(ErrorCheckFixture,
+                 "Test non-zero return code is error",
+                 "[wasm]")
 {
     checkError("ret_one", "Call failed (return value=1)");
 }

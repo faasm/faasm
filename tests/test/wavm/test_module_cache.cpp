@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "faasm_fixtures.h"
 #include "utils.h"
 
 #include <faabric/proto/faabric.pb.h>
@@ -9,10 +10,10 @@
 #include <wavm/WAVMWasmModule.h>
 
 namespace tests {
-TEST_CASE("Test creating cached WAVM modules", "[wasm]")
+TEST_CASE_METHOD(WAVMModuleCacheTestFixture,
+                 "Test creating cached WAVM modules",
+                 "[wasm]")
 {
-    cleanSystem();
-
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory("demo", "chain", 2);
     faabric::Message& msgA = req->mutable_messages()->at(0);
@@ -30,10 +31,9 @@ TEST_CASE("Test creating cached WAVM modules", "[wasm]")
 
     // Note - we need to explicitly unlock these locks otherwise we get a
     // deadlock
-    wasm::WAVMModuleCache& registry = wasm::getWAVMModuleCache();
-    auto [moduleA, lockA] = registry.getCachedModule(msgA);
+    auto [moduleA, lockA] = moduleCache.getCachedModule(msgA);
     lockA.unlock();
-    auto [moduleB, lockB] = registry.getCachedModule(msgB);
+    auto [moduleB, lockB] = moduleCache.getCachedModule(msgB);
     lockB.unlock();
 
     // Check modules are the same

@@ -5,8 +5,6 @@
 #include <faaslet/Faaslet.h>
 
 namespace tests {
-void cleanSystem();
-
 void execFunction(std::shared_ptr<faabric::BatchExecuteRequest> req,
                   const std::string& expectedOutput = "");
 

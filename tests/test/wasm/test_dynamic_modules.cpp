@@ -1,6 +1,10 @@
-#include "utils.h"
 #include <catch2/catch.hpp>
 
+#include "faasm_fixtures.h"
+#include "fixtures.h"
+#include "utils.h"
+
+#include <faabric/util/config.h>
 #include <faabric/util/logging.h>
 
 #include <conf/FaasmConfig.h>
@@ -61,16 +65,73 @@ int dataBOffset = 21692416;
 int extraTableEntriesModA = 18;
 int extraTableEntriesModB = 32;
 
-TEST_CASE("Test dynamic load/ function lookup", "[wasm]")
+class DynamicModulesFixture
+  : public FunctionExecTestFixture
+  , public IRModuleCacheTestFixture
 {
-    cleanSystem();
+  public:
+    DynamicModulesFixture()
+      : conf(faabric::util::getSystemConfig())
+      , faasmConf(conf::getFaasmConfig())
+    {}
 
+    ~DynamicModulesFixture()
+    {
+        conf.reset();
+        faasmConf.reset();
+    }
+
+    void checkFuncInGOT(wasm::WAVMWasmModule& module,
+                        const std::string& funcName,
+                        int expectedIdx,
+                        const std::string& expectedName)
+    {
+        int funcIdx = module.getFunctionOffsetFromGOT(funcName);
+        if (funcIdx != expectedIdx) {
+            FAIL(fmt::format(
+              "GOT index {}: {} != {}", funcName, funcIdx, expectedIdx));
+        }
+
+        Runtime::Object* tableElem =
+          Runtime::getTableElement(module.defaultTable, funcIdx);
+        Runtime::Function* funcObj = Runtime::asFunction(tableElem);
+
+        REQUIRE(Runtime::getFunctionDebugName(funcObj) == expectedName);
+    }
+
+    void checkDataInGOT(wasm::WAVMWasmModule& module,
+                        const std::string& dataName,
+                        int expectedOffset)
+    {
+        int actualOffset = module.getDataOffsetFromGOT(dataName);
+        REQUIRE(actualOffset == expectedOffset);
+    }
+
+    void resolveGlobalI32(wasm::WAVMWasmModule& module,
+                          const std::string& moduleName,
+                          const std::string& name,
+                          I32 expected)
+    {
+        IR::GlobalType globalType;
+        Runtime::Object* importObj;
+        module.resolve(moduleName, name, globalType, importObj);
+        Runtime::Global* thisGlobal = Runtime::asGlobal(importObj);
+        const IR::Value& value =
+          Runtime::getGlobalValue(module.executionContext, thisGlobal);
+        REQUIRE(value.i32 == expected);
+    }
+
+  protected:
+    faabric::util::SystemConfig& conf;
+    conf::FaasmConfig& faasmConf;
+};
+
+TEST_CASE_METHOD(DynamicModulesFixture,
+                 "Test dynamic load/ function lookup",
+                 "[wasm]")
+{
     // Need to force python function _not_ to load numpy up front
-    conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
-    std::string preloadBefore = faasmConf.pythonPreload;
     faasmConf.pythonPreload = "off";
-
-    wasm::IRModuleCache& registry = wasm::getIRModuleCache();
 
     // Get the guard region size
     size_t guardBytes = GUARD_REGION_SIZE;
@@ -94,8 +155,8 @@ TEST_CASE("Test dynamic load/ function lookup", "[wasm]")
     REQUIRE(handleA >= 2);
     REQUIRE(module.getDynamicModuleCount() == 1);
 
-    U64 moduleTableSizeA =
-      registry.getSharedModuleTableSize(PYTHON_USER, PYTHON_FUNC, modulePathA);
+    U64 moduleTableSizeA = irModuleCache.getSharedModuleTableSize(
+      PYTHON_USER, PYTHON_FUNC, modulePathA);
 
     // Check the table size has grown to fit the new functions
     Uptr tableSizeAfterA = Runtime::getTableNumElements(module.defaultTable);
@@ -140,8 +201,8 @@ TEST_CASE("Test dynamic load/ function lookup", "[wasm]")
     REQUIRE(handleB == handleA + 1);
     REQUIRE(module.getDynamicModuleCount() == 2);
 
-    U64 moduleTableSizeB =
-      registry.getSharedModuleTableSize(PYTHON_USER, PYTHON_FUNC, modulePathB);
+    U64 moduleTableSizeB = irModuleCache.getSharedModuleTableSize(
+      PYTHON_USER, PYTHON_FUNC, modulePathB);
 
     // Check the table
     Uptr tableSizeAfterB = Runtime::getTableNumElements(module.defaultTable);
@@ -170,46 +231,13 @@ TEST_CASE("Test dynamic load/ function lookup", "[wasm]")
     module.getDynamicModuleFunction(handleB, funcB);
     Uptr numElemsAfterB = Runtime::getTableNumElements(module.defaultTable);
     REQUIRE(numElemsAfterB == tableSizeAfterB + 1);
-
-    faasmConf.pythonPreload = preloadBefore;
 }
 
-void checkFuncInGOT(wasm::WAVMWasmModule& module,
-                    const std::string& funcName,
-                    int expectedIdx,
-                    const std::string& expectedName)
+TEST_CASE_METHOD(DynamicModulesFixture, "Test GOT population", "[wasm]")
 {
-    int funcIdx = module.getFunctionOffsetFromGOT(funcName);
-    if (funcIdx != expectedIdx) {
-        FAIL(fmt::format(
-          "GOT index {}: {} != {}", funcName, funcIdx, expectedIdx));
-    }
-
-    Runtime::Object* tableElem =
-      Runtime::getTableElement(module.defaultTable, funcIdx);
-    Runtime::Function* funcObj = Runtime::asFunction(tableElem);
-
-    REQUIRE(Runtime::getFunctionDebugName(funcObj) == expectedName);
-}
-
-void checkDataInGOT(wasm::WAVMWasmModule& module,
-                    const std::string& dataName,
-                    int expectedOffset)
-{
-    int actualOffset = module.getDataOffsetFromGOT(dataName);
-    REQUIRE(actualOffset == expectedOffset);
-}
-
-TEST_CASE("Test GOT population", "[wasm]")
-{
-    cleanSystem();
-
     // Note - we want to set a fixed thread pool size here as this determines
     // the location of data in the wasm memory
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     conf.overrideCpuCount = 2;
-
-    conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
     faasmConf.pythonPreload = "off";
 
     // Bind to Python function
@@ -263,31 +291,12 @@ TEST_CASE("Test GOT population", "[wasm]")
     REQUIRE(expectedIdxA < tableSizeAfterA);
     REQUIRE(expectedIdxB > tableSizeAfterA);
     REQUIRE(expectedIdxB < tableSizeAfterB);
-
-    conf.reset();
-    faasmConf.reset();
 }
 
-void resolveGlobalI32(wasm::WAVMWasmModule& module,
-                      const std::string& moduleName,
-                      const std::string& name,
-                      I32 expected)
+TEST_CASE_METHOD(DynamicModulesFixture,
+                 "Test resolving dynamic module imports",
+                 "[wasm]")
 {
-    IR::GlobalType globalType;
-    Runtime::Object* importObj;
-    module.resolve(moduleName, name, globalType, importObj);
-    Runtime::Global* thisGlobal = Runtime::asGlobal(importObj);
-    const IR::Value& value =
-      Runtime::getGlobalValue(module.executionContext, thisGlobal);
-    REQUIRE(value.i32 == expected);
-}
-
-TEST_CASE("Test resolving dynamic module imports", "[wasm]")
-{
-    cleanSystem();
-
-    conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
-    std::string preloadBefore = faasmConf.pythonPreload;
     faasmConf.pythonPreload = "off";
 
     // Bind to Python function
@@ -315,7 +324,5 @@ TEST_CASE("Test resolving dynamic module imports", "[wasm]")
     Runtime::Table* table = Runtime::asTable(importedTable);
 
     REQUIRE(table == module.defaultTable);
-
-    faasmConf.pythonPreload = preloadBefore;
 }
 }

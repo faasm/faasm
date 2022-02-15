@@ -119,10 +119,6 @@ void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
                        int nSlots,
                        bool clean)
 {
-    if (clean) {
-        cleanSystem();
-    }
-
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
     conf.boundTimeout = 1000;
@@ -157,10 +153,6 @@ void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
 
 void execFuncWithPool(faabric::Message& call, bool clean, int timeout)
 {
-    if (clean) {
-        cleanSystem();
-    }
-
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.shutdown();
     sch.addHostToGlobalSet();
@@ -189,8 +181,6 @@ void execFuncWithPool(faabric::Message& call, bool clean, int timeout)
     faasmConf.netNsMode = originalNsMode;
 
     m.shutdown();
-
-    cleanSystem();
 }
 
 void doWamrPoolExecution(faabric::Message& msg, int timeout = 1000)
