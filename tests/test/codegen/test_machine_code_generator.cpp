@@ -112,20 +112,15 @@ TEST_CASE_METHOD(CodegenTestFixture,
     SECTION("WAMR codegen")
     {
         conf.wasmVm = "wamr";
+        objectFileA = "/tmp/obj/demo/hello/function.aot";
+        objectFileB = "/tmp/obj/demo/echo/function.aot";
+    }
 
-        SECTION("Non-SGX")
-        {
-            objectFileA = "/tmp/obj/demo/hello/function.aot";
-            objectFileB = "/tmp/obj/demo/echo/function.aot";
-        }
-
-        SECTION("SGX")
-        {
-            objectFileA = "/tmp/obj/demo/hello/function.aot.sgx";
-            objectFileB = "/tmp/obj/demo/echo/function.aot.sgx";
-            msgA.set_issgx(true);
-            msgB.set_issgx(true);
-        }
+    SECTION("SGX codegen")
+    {
+        conf.wasmVm = "wamr";
+        objectFileA = "/tmp/obj/demo/hello/function.aot.sgx";
+        objectFileB = "/tmp/obj/demo/echo/function.aot.sgx";
     }
 
     codegen::MachineCodeGenerator gen(loader);
@@ -273,14 +268,11 @@ TEST_CASE_METHOD(CodegenTestFixture,
 {
     std::string objectFile;
     std::string objectFileSgx;
-    conf.wasmVm = "wamr";
 
     // Rename messages for more clarity
     faabric::Message msg = msgA;
     faabric::Message msgSgx = msgA;
 
-    msg.set_issgx(false);
-    msgSgx.set_issgx(true);
     objectFile = "/tmp/obj/demo/hello/function.aot";
     objectFileSgx = "/tmp/obj/demo/hello/function.aot.sgx";
 
@@ -302,20 +294,24 @@ TEST_CASE_METHOD(CodegenTestFixture,
     // Do codegen for both in different orders
     SECTION("SGX first")
     {
+        conf.wasmVm = "sgx";
         gen.codegenForFunction(msgSgx);
         REQUIRE(std::filesystem::exists(hashFileSgx));
         REQUIRE(!std::filesystem::exists(hashFile));
 
+        conf.wasmVm = "wamr";
         gen.codegenForFunction(msg);
         REQUIRE(std::filesystem::exists(hashFile));
     }
 
     SECTION("SGX second")
     {
+        conf.wasmVm = "wamr";
         gen.codegenForFunction(msg);
         REQUIRE(std::filesystem::exists(hashFile));
         REQUIRE(!std::filesystem::exists(hashFileSgx));
 
+        conf.wasmVm = "sgx";
         gen.codegenForFunction(msgSgx);
         REQUIRE(std::filesystem::exists(hashFileSgx));
     }
