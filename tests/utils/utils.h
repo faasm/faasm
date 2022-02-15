@@ -1,10 +1,14 @@
 #pragma once
 
 #include <faabric/util/func.h>
+
 #include <faaslet/Faaslet.h>
 
 namespace tests {
 void cleanSystem();
+
+void execFunction(std::shared_ptr<faabric::BatchExecuteRequest> req,
+                  const std::string& expectedOutput = "");
 
 void execFunction(faabric::Message& msg,
                   const std::string& expectedOutput = "");

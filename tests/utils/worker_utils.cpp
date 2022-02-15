@@ -21,6 +21,12 @@ using namespace faaslet;
 
 namespace tests {
 
+void execFunction(std::shared_ptr<faabric::BatchExecuteRequest> req,
+                  const std::string& expectedOutput)
+{
+    return execFunction(req->mutable_messages()->at(0), expectedOutput);
+}
+
 void execFunction(faabric::Message& call, const std::string& expectedOutput)
 {
     // Turn off python preloading

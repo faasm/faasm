@@ -1,12 +1,13 @@
 #include <catch2/catch.hpp>
 
+#include "faasm_fixtures.h"
 #include "utils.h"
 
 namespace tests {
-TEST_CASE("Test time progresses", "[faaslet]")
+
+TEST_CASE_METHOD(FunctionExecTestFixture, "Test time progresses", "[faaslet]")
 {
-    cleanSystem();
-    faabric::Message msg = faabric::util::messageFactory("demo", "gettime");
-    execFunction(msg);
+    auto req = setUpContext("demo", "gettime");
+    execFunction(req->mutable_messages()->at(0));
 }
 }

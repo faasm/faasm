@@ -1,23 +1,24 @@
 #include <catch2/catch.hpp>
 
+#include "faasm_fixtures.h"
 #include "utils.h"
 
 #include <faabric/util/func.h>
 
 namespace tests {
-TEST_CASE("Test zygote function works", "[faaslet]")
+TEST_CASE_METHOD(FunctionExecTestFixture,
+                 "Test zygote function works",
+                 "[faaslet]")
 {
-    cleanSystem();
-    faabric::Message msg =
-      faabric::util::messageFactory("demo", "zygote_check");
-    execFunction(msg);
+    auto req = setUpContext("demo", "zygote_check");
+    execFunction(req);
 }
 
-TEST_CASE("Test repeat execution of zygote function", "[faaslet]")
+TEST_CASE_METHOD(FunctionExecTestFixture,
+                 "Test repeat execution of zygote function",
+                 "[faaslet]")
 {
-    cleanSystem();
-    faabric::Message msg =
-      faabric::util::messageFactory("demo", "zygote_check");
-    checkMultipleExecutions(msg, 4);
+    auto req = setUpContext("demo", "zygote_check");
+    checkMultipleExecutions(req->mutable_messages()->at(0), 4);
 }
 }

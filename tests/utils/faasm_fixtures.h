@@ -61,7 +61,9 @@ class SharedFilesTestFixture : public S3TestFixture
     storage::FileLoader& loader;
 };
 
-class FunctionExecTestFixture : public SchedulerTestFixture
+class FunctionExecTestFixture
+  : public SchedulerTestFixture
+  , public ExecutorContextTestFixture
 {
   public:
     FunctionExecTestFixture() {}

@@ -1,6 +1,7 @@
 #include <catch2/catch.hpp>
 
 #include "faasm_fixtures.h"
+#include "fixtures.h"
 #include "utils.h"
 
 #include <storage/FileLoader.h>
@@ -13,9 +14,13 @@
 #include <boost/filesystem.hpp>
 
 namespace tests {
-TEST_CASE_METHOD(SharedFilesTestFixture,
-                 "Test accessing shared files from wasm",
-                 "[faaslet]")
+
+class LocalFixture
+  : public SharedFilesTestFixture
+  , public ExecutorContextTestFixture
+{};
+
+TEST_CASE_METHOD(LocalFixture, "Test accessing shared files from wasm", "[faaslet]")
 {
     // Set up a dummy file location
     std::string relativePath = "test/shared-wasm.txt";
@@ -32,13 +37,13 @@ TEST_CASE_METHOD(SharedFilesTestFixture,
     boost::filesystem::remove(fullPath);
 
     // Set up the function
-    faabric::Message call =
-      faabric::util::messageFactory("demo", "shared_file");
+    auto req = setUpContext("demo", "shared_file");
+    faabric::Message& msg = req->mutable_messages()->at(0);
     std::string sharedPath = std::string(SHARED_FILE_PREFIX) + relativePath;
-    call.set_inputdata(sharedPath);
+    msg.set_inputdata(sharedPath);
 
     // Invoke the function and make sure result is echoing the file content
-    std::string actual = execFunctionWithStringResult(call);
+    std::string actual = execFunctionWithStringResult(msg);
     REQUIRE(actual == expected);
 
     // Check file has been synced locally

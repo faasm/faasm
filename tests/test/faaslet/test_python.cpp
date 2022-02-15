@@ -1,3 +1,5 @@
+#include "faabric/proto/faabric.pb.h"
+#include "faasm_fixtures.h"
 #include "utils.h"
 #include <catch2/catch.hpp>
 
@@ -10,39 +12,46 @@
 #include <storage/FileLoader.h>
 
 namespace tests {
-void checkPythonFunction(const std::string& funcName, bool withPool)
+
+class PythonFuncTestFixture : public FunctionExecTestFixture
 {
-    cleanSystem();
-
-    faabric::Message call =
-      faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
-    call.set_pythonuser("python");
-    call.set_pythonfunction(funcName);
-    call.set_ispython(true);
-
-    if (withPool) {
-        // Note - some of the python checks can take a while to run
-        execFuncWithPool(call, false, 10000);
-    } else {
-        execFunction(call);
+  public:
+    std::shared_ptr<faabric::BatchExecuteRequest> setUpPythonContext(
+      const std::string& pyUser,
+      const std::string& pyFunc)
+    {
+        auto req = setUpContext(PYTHON_USER, PYTHON_FUNC);
+        faabric::Message& call = req->mutable_messages()->at(0);
+        call.set_pythonuser(pyUser);
+        call.set_pythonfunction(pyFunc);
+        call.set_ispython(true);
+        return req;
     }
-}
 
-TEST_CASE("Test python listdir", "[python]")
+    void checkPythonFunction(const std::string& funcName, bool withPool)
+    {
+        auto req = setUpPythonContext("python", funcName);
+        faabric::Message& call = req->mutable_messages()->at(0);
+
+        if (withPool) {
+            // Note - some of the python checks can take a while to run
+            execFuncWithPool(call, false, 10000);
+        } else {
+            execFunction(call);
+        }
+    }
+};
+
+TEST_CASE_METHOD(PythonFuncTestFixture, "Test python listdir", "[python]")
 {
     // We need to list a big enough directory here to catch issues with long
     // file listings and the underlying syscalls
     std::string realDir = "/usr/local/faasm/runtime_root/lib/python3.8";
     std::string wasmDir = "/lib/python3.8";
 
-    cleanSystem();
-
     // Build the call, passing in the path as input
-    faabric::Message call =
-      faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
-    call.set_pythonuser("python");
-    call.set_pythonfunction("dir_test");
-    call.set_ispython(true);
+    auto req = setUpPythonContext("python", "dir_test");
+    faabric::Message& call = req->mutable_messages()->at(0);
     call.set_inputdata(wasmDir);
 
     // Execute the function
@@ -79,97 +88,87 @@ TEST_CASE("Test python listdir", "[python]")
     REQUIRE(wasmList == nativeList);
 }
 
-TEST_CASE("Test python conformance", "[python]")
+TEST_CASE_METHOD(PythonFuncTestFixture, "Test python conformance", "[python]")
 {
     checkPythonFunction("lang_test", false);
 }
 
-TEST_CASE("Test numpy conformance", "[python]")
+TEST_CASE_METHOD(PythonFuncTestFixture, "Test numpy conformance", "[python]")
 {
     checkPythonFunction("numpy_test", false);
 }
 
-TEST_CASE("Test reading pyc files", "[python]")
+TEST_CASE_METHOD(PythonFuncTestFixture, "Test reading pyc files", "[python]")
 {
     checkPythonFunction("pyc_check", false);
 }
 
-TEST_CASE("Test repeated numpy execution", "[python]")
+TEST_CASE_METHOD(PythonFuncTestFixture,
+                 "Test repeated numpy execution",
+                 "[python]")
 {
-    cleanSystem();
-
-    faabric::Message call =
-      faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
-    call.set_pythonuser("python");
-    call.set_pythonfunction("numpy_test");
-    call.set_ispython(true);
-
+    auto req = setUpPythonContext("python", "numpy_test");
+    faabric::Message& call = req->mutable_messages()->at(0);
     checkMultipleExecutions(call, 3);
 }
 
-TEST_CASE("Test python echo", "[python]")
+TEST_CASE_METHOD(PythonFuncTestFixture, "Test python echo", "[python]")
 {
-    cleanSystem();
+    auto req = setUpPythonContext("python", "echo");
+    faabric::Message& call = req->mutable_messages()->at(0);
 
     std::string input = "foobar blah blah";
-    faabric::Message call =
-      faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
-    call.set_pythonuser("python");
-    call.set_pythonfunction("echo");
-    call.set_ispython(true);
     call.set_inputdata(input);
 
     std::string result = execFunctionWithStringResult(call);
     REQUIRE(result == input);
 }
 
-TEST_CASE("Test python state write/ read", "[python]")
+TEST_CASE_METHOD(PythonFuncTestFixture,
+                 "Test python state write/ read",
+                 "[python]")
 {
-    cleanSystem();
+    auto writeReq = setUpPythonContext("python", "state_test_write");
+    faabric::Message& writeCall = writeReq->mutable_messages()->at(0);
 
-    // Run the state write function
-    faabric::Message writeCall =
-      faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
-    writeCall.set_pythonuser("python");
-    writeCall.set_pythonfunction("state_test_write");
-    writeCall.set_ispython(true);
+    std::string input = "foobar blah blah";
+    writeCall.set_inputdata(input);
     execFunction(writeCall);
 
     // Now run the state read function
-    faabric::Message readCall =
-      faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
-    readCall.set_pythonuser("python");
-    readCall.set_pythonfunction("state_test_read");
-    readCall.set_ispython(true);
+    auto readReq = setUpPythonContext("python", "state_test_read");
+    faabric::Message& readCall = writeReq->mutable_messages()->at(0);
     execFunction(readCall);
 }
 
-TEST_CASE("Test python chaining", "[python]")
+TEST_CASE_METHOD(PythonFuncTestFixture, "Test python chaining", "[python]")
 {
     checkPythonFunction("chain", true);
 }
 
-TEST_CASE("Test python sharing dict", "[python]")
+TEST_CASE_METHOD(PythonFuncTestFixture, "Test python sharing dict", "[python]")
 {
     checkPythonFunction("dict_state", true);
 }
 
-TEST_CASE("Test python ctypes", "[python]")
+TEST_CASE_METHOD(PythonFuncTestFixture, "Test python ctypes", "[python]")
 {
     checkPythonFunction("ctypes_check", false);
 }
 
-TEST_CASE("Test python hashing", "[python]")
+TEST_CASE_METHOD(PythonFuncTestFixture, "Test python hashing", "[python]")
 {
     checkPythonFunction("hash_check", false);
 }
 
-TEST_CASE("Test python picklinkg", "[python]")
+TEST_CASE_METHOD(PythonFuncTestFixture, "Test python picklinkg", "[python]")
 {
     checkPythonFunction("pickle_check", false);
 }
 
-TEST_CASE("Test python perf benchmark", "[python]")
+TEST_CASE_METHOD(PythonFuncTestFixture,
+                 "Test python perf benchmark",
+                 "[python]")
 {
     checkPythonFunction("bench_deltablue", false);
 }
