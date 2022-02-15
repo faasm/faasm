@@ -118,7 +118,7 @@ TEST_CASE_METHOD(CodegenTestFixture,
 
     SECTION("SGX codegen")
     {
-        conf.wasmVm = "wamr";
+        conf.wasmVm = "sgx";
         objectFileA = "/tmp/obj/demo/hello/function.aot.sgx";
         objectFileB = "/tmp/obj/demo/echo/function.aot.sgx";
     }
