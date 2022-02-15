@@ -1,6 +1,5 @@
 from invoke import task
 from os import getenv
-from sys import exit
 
 from faasmcli.util.shell import run_command
 

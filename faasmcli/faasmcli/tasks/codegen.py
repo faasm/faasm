@@ -4,7 +4,6 @@ from invoke import task
 from copy import copy
 from os import environ
 from os.path import join
-from sys import exit
 
 from faasmcli.util.codegen import find_codegen_func, find_codegen_shared_lib
 from faasmcli.util.env import FAASM_RUNTIME_ROOT
