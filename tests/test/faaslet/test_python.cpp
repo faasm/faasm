@@ -137,7 +137,7 @@ TEST_CASE_METHOD(PythonFuncTestFixture,
 
     // Now run the state read function
     auto readReq = setUpPythonContext("python", "state_test_read");
-    faabric::Message& readCall = writeReq->mutable_messages()->at(0);
+    faabric::Message& readCall = readReq->mutable_messages()->at(0);
     execFunction(readCall);
 }
 
