@@ -225,7 +225,7 @@ jobs:
       run:
         working-directory: ${{ github.workspace }}
     env:
-        CONAN_CACHE_MOUNT_SOURCE: ${{ env.HOME }}/.conan
+        CONAN_CACHE_MOUNT_SOURCE: ~/.conan
     steps:
       - name: "Check out code"
         uses: actions/checkout@v2
