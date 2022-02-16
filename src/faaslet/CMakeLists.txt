@@ -11,5 +11,5 @@ target_link_libraries(faaslet_lib PUBLIC
 
 # Include SGX lib if enabled
 if(SGX_FOUND)
-    target_link_libraries(faaslet_lib PUBLIC faasm::sgx)
+    target_link_libraries(faaslet_lib PUBLIC faasm::enclave)
 endif()
