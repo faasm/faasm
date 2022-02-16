@@ -226,16 +226,14 @@ jobs:
       run:
         working-directory: /home/runner/work/faasm/faasm
     steps:
-      - name: "Check out code"
-        uses: actions/checkout@v2
-      - name: "Update faabric submodule"
-        run: git submodule update --init faabric
-      - name: "Update cpp client submodule"
-        run: git submodule update --init clients/cpp
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
         with:
           directory: /home/runner/work/faasm/faasm
+      - name: "Update faabric submodule"
+        run: git submodule update --init faabric
+      - name: "Update cpp client submodule"
+        run: git submodule update --init clients/cpp
       # Cache contains architecture-specific machine code
       - name: "Get CPU model name"
         run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
