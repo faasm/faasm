@@ -34,7 +34,6 @@ Experiments and benchmarks:
    :caption: Topics
 
    source/api
-   source/bare_metal
    source/cpp
    source/debugging
    source/development

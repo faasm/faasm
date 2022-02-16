@@ -14,14 +14,11 @@
 
 #include <storage/S3Wrapper.h>
 #include <storage/SharedFiles.h>
-#include <system/memory.h>
 
 FAABRIC_CATCH_LOGGER
 
 int main(int argc, char* argv[])
 {
-    isolation::checkStackSize();
-
     faabric::util::setUpCrashHandler();
 
     faabric::util::initLogging();

@@ -30,9 +30,10 @@ WORKDIR /usr/local/code/faasm
 RUN git submodule update --init
 
 # Set up runtime filesystem
-WORKDIR /usr/local/code/faasm/ansible
-ENV USER=root
-RUN ansible-playbook runtime_fs.yml
+RUN mkdir -p /usr/local/faasm/runtime_root/etc
+RUN cp deploy/conf/hosts /usr/local/faasm/runtime_root/etc/
+RUN cp deploy/conf/resolv.conf /usr/local/faasm/runtime_root/etc/
+RUN cp deploy/conf/passwd /usr/local/faasm/runtime_root/etc/
 
 # Out of tree build
 WORKDIR /build/faasm

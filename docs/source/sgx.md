@@ -20,11 +20,14 @@ inv func demo hello
 exit
 ./bin/cli.sh faasm
 
-# Generate machine code for SGX
-inv codegen demo hello --wamr --sgx
+# Set SGX as our execution mode of choice, and operate as usual
+export WASM_VM="sgx"
+
+# Generate machine code
+inv codegen demo hello
 
 # Run the code
-inv run demo hello --wamr --sgx
+inv run demo hello
 ```
 
 ## SGX Set-up
