@@ -227,9 +227,15 @@ void executeWithSGX(const std::string& user,
                     const std::string& func,
                     int timeout)
 {
-    faabric::Message call = faabric::util::messageFactory(user, func);
-    call.set_issgx(true);
-    doWamrPoolExecution(call, timeout);
+    faabric::Message msg = faabric::util::messageFactory(user, func);
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
+    const std::string originalVm = conf.wasmVm;
+    conf.wasmVm = "sgx";
+
+    // Don't clean so that the SGX configuration persists
+    execFuncWithPool(msg, false, timeout);
+
+    conf.wasmVm = originalVm;
 }
 
 void checkCallingFunctionGivesBoolOutput(const std::string& user,

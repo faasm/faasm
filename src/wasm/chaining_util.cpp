@@ -61,10 +61,6 @@ int makeChainedCall(const std::string& functionName,
     }
     msg.set_ispython(originalCall->ispython());
 
-    if (originalCall->issgx()) {
-        msg.set_issgx(true);
-    }
-
     if (originalCall->recordexecgraph()) {
         msg.set_recordexecgraph(true);
     }
