@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "faabric/proto/faabric.pb.h"
 #include "faasm_fixtures.h"
 #include "utils.h"
 
@@ -29,17 +30,18 @@ class CloneExecTestFixture : public FunctionExecTestFixture
         msg.set_ispython(true);
     }
 
-    void _doChecks(wasm::WAVMWasmModule& moduleA,
-                   wasm::WAVMWasmModule& moduleB,
-                   const std::string& user,
-                   const std::string& func,
-                   const std::string& inputA,
-                   const std::string& inputB,
-                   bool isPython)
+    void doChecks(wasm::WAVMWasmModule& moduleA,
+                  wasm::WAVMWasmModule& moduleB,
+                  const std::string& user,
+                  const std::string& func,
+                  const std::string& inputA,
+                  const std::string& inputB,
+                  bool isPython)
     {
-
-        faabric::Message msgA = faabric::util::messageFactory(user, func);
-        faabric::Message msgB = faabric::util::messageFactory(user, func);
+        auto reqA = faabric::util::batchExecFactory(user, func);
+        auto reqB = faabric::util::batchExecFactory(user, func);
+        faabric::Message& msgA = reqA->mutable_messages()->at(0);
+        faabric::Message& msgB = reqB->mutable_messages()->at(0);
 
         msgA.set_inputdata(inputA);
         msgB.set_inputdata(inputB);
@@ -50,6 +52,7 @@ class CloneExecTestFixture : public FunctionExecTestFixture
         }
 
         // Dummy execution initially to avoid any first-time set-up differences
+        setUpContext(reqA);
         WAVMWasmModule moduleWarmUp;
         moduleWarmUp.bindToFunction(msgA);
         moduleWarmUp.executeFunction(msgA);
@@ -89,6 +92,7 @@ class CloneExecTestFixture : public FunctionExecTestFixture
         REQUIRE(baseA != baseB);
 
         // Execute the function with the first module and check it works
+        setUpContext(reqA);
         int returnValueA = moduleA.executeFunction(msgA);
         REQUIRE(returnValueA == 0);
 
@@ -122,6 +126,7 @@ class CloneExecTestFixture : public FunctionExecTestFixture
         REQUIRE(tableAfterB1 == tableBeforeA);
 
         // Execute with second module
+        setUpContext(reqB);
         int returnValueB = moduleB.executeFunction(msgB);
         REQUIRE(returnValueB == 0);
 
@@ -156,11 +161,11 @@ class CloneExecTestFixture : public FunctionExecTestFixture
         REQUIRE(tableAfterA1 == tableAfterA2);
     }
 
-    void _checkCopyConstructor(const std::string& user,
-                               const std::string& func,
-                               const std::string& inputA,
-                               const std::string& inputB,
-                               bool isPython)
+    void checkCopyConstructor(const std::string& user,
+                              const std::string& func,
+                              const std::string& inputA,
+                              const std::string& inputB,
+                              bool isPython)
     {
         faabric::Message msgA = faabric::util::messageFactory(user, func);
 
@@ -173,14 +178,14 @@ class CloneExecTestFixture : public FunctionExecTestFixture
         REQUIRE(moduleA.isBound());
 
         WAVMWasmModule moduleB(moduleA);
-        _doChecks(moduleA, moduleB, user, func, inputA, inputB, isPython);
+        doChecks(moduleA, moduleB, user, func, inputA, inputB, isPython);
     }
 
-    void _checkAssignmentOperator(const std::string& user,
-                                  const std::string& func,
-                                  const std::string& inputA,
-                                  const std::string& inputB,
-                                  bool isPython)
+    void checkAssignmentOperator(const std::string& user,
+                                 const std::string& func,
+                                 const std::string& inputA,
+                                 const std::string& inputB,
+                                 bool isPython)
     {
         faabric::Message msgA = faabric::util::messageFactory(user, func);
 
@@ -192,7 +197,7 @@ class CloneExecTestFixture : public FunctionExecTestFixture
         moduleA.bindToFunction(msgA);
 
         WAVMWasmModule moduleB = moduleA;
-        _doChecks(moduleA, moduleB, user, func, inputA, inputB, isPython);
+        doChecks(moduleA, moduleB, user, func, inputA, inputB, isPython);
     }
 };
 
@@ -205,14 +210,11 @@ TEST_CASE_METHOD(CloneExecTestFixture,
     std::string inputA = "aaa";
     std::string inputB = "bbb";
 
-    SECTION("copy")
-    {
-        _checkCopyConstructor(user, func, inputA, inputB, false);
-    }
+    SECTION("copy") { checkCopyConstructor(user, func, inputA, inputB, false); }
 
     SECTION("assignment")
     {
-        _checkAssignmentOperator(user, func, inputA, inputB, false);
+        checkAssignmentOperator(user, func, inputA, inputB, false);
     }
 }
 
@@ -228,10 +230,10 @@ TEST_CASE_METHOD(CloneExecTestFixture,
     std::string func = "numpy_test";
     std::string input;
 
-    SECTION("copy") { _checkCopyConstructor(user, func, input, input, true); }
+    SECTION("copy") { checkCopyConstructor(user, func, input, input, true); }
     SECTION("assignment")
     {
-        _checkAssignmentOperator(user, func, input, input, true);
+        checkAssignmentOperator(user, func, input, input, true);
     }
 
     conf.pythonPreload = preloadVal;

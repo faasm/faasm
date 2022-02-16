@@ -116,8 +116,7 @@ void checkMultipleExecutions(faabric::Message& msg, int nExecs)
 }
 
 void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
-                       int nSlots,
-                       bool clean)
+                       int nSlots)
 {
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     conf::FaasmConfig& faasmConf = conf::getFaasmConfig();

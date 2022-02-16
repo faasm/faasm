@@ -17,8 +17,7 @@ void execWamrFunction(faabric::Message& msg,
 std::string execFunctionWithStringResult(faabric::Message& msg);
 
 void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
-                       int nThreads,
-                       bool clean);
+                       int nThreads);
 
 void execFuncWithPool(faabric::Message& call,
                       bool clean = true,

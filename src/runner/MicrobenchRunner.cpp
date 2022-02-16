@@ -1,3 +1,4 @@
+#include "faabric/scheduler/ExecutorContext.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <fstream>
@@ -68,6 +69,7 @@ int doRun(std::ofstream& outFs,
 
     // Create faaslet
     faaslet::Faaslet f(msg);
+    faabric::scheduler::ExecutorContext::set(&f, req, 0);
 
     // Preflight if necessary
     if (PREFLIGHT_CALLS) {

@@ -10,12 +10,12 @@
 #include <wavm/WAVMWasmModule.h>
 
 namespace tests {
-TEST_CASE_METHOD(WAVMModuleCacheTestFixture,
+
+TEST_CASE_METHOD(FunctionExecTestFixture,
                  "Test creating cached WAVM modules",
                  "[wasm]")
 {
-    std::shared_ptr<faabric::BatchExecuteRequest> req =
-      faabric::util::batchExecFactory("demo", "chain", 2);
+    auto req = setUpContext("demo", "chain", 2);
     faabric::Message& msgA = req->mutable_messages()->at(0);
     faabric::Message& msgB = req->mutable_messages()->at(1);
 
