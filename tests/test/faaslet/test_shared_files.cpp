@@ -20,7 +20,9 @@ class LocalFixture
   , public ExecutorContextTestFixture
 {};
 
-TEST_CASE_METHOD(LocalFixture, "Test accessing shared files from wasm", "[faaslet]")
+TEST_CASE_METHOD(LocalFixture,
+                 "Test accessing shared files from wasm",
+                 "[faaslet]")
 {
     // Set up a dummy file location
     std::string relativePath = "test/shared-wasm.txt";
