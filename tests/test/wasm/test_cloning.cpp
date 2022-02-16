@@ -1,11 +1,11 @@
 #include <catch2/catch.hpp>
 
-#include "faabric/proto/faabric.pb.h"
 #include "faasm_fixtures.h"
 #include "utils.h"
 
 #include <WAVM/Runtime/Intrinsics.h>
 
+#include <faabric/proto/faabric.pb.h>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 

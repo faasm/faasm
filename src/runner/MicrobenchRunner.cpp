@@ -1,4 +1,3 @@
-#include "faabric/scheduler/ExecutorContext.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <fstream>
@@ -13,6 +12,7 @@
 #include <wavm/WAVMWasmModule.h>
 
 #include <faabric/runner/FaabricMain.h>
+#include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/ExecutorFactory.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/transport/context.h>
