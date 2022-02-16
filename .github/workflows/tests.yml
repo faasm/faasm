@@ -221,23 +221,22 @@ jobs:
   dist-tests:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
-    needs: [conan-cache]
     defaults:
       run:
-        working-directory: /home/runner/work/faasm/faasm
+        working-directory: ${{ github.workspace }}
     env:
         CONAN_CACHE_MOUNT_SOURCE: ${{ env.HOME }}/.conan
     steps:
       - name: "Check out code"
         uses: actions/checkout@v2
+      - name: "Conan cache"
+        uses: faasm/conan-cache-action@v1
+        with:
+          directory: ${{ github.workspace }}
       - name: "Update faabric submodule"
         run: git submodule update --init faabric
       - name: "Update cpp client submodule"
         run: git submodule update --init clients/cpp
-      - name: "Conan cache"
-        uses: faasm/conan-cache-action@v1
-        with:
-          directory: /home/runner/work/faasm/faasm
       # Cache contains architecture-specific machine code
       - name: "Get CPU model name"
         run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
@@ -260,7 +259,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: /home/runner/work/faasm/faasm
+        working-directory: ${{ github.workspace }}
     env:
       PYTHON_CODEGEN: "on"
     steps:
