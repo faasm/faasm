@@ -70,6 +70,8 @@ elseif (FAASM_USE_SANITISER STREQUAL "Memory")
     set(FAASM_SGX OFF)
 elseif (NOT ((FAASM_USE_SANITISER STREQUAL "None") OR (NOT FAASM_USE_SANITISER)))
     message(FATAL_ERROR "Invalid FAASM_USE_SANITISER setting: ${FAASM_USE_SANITISER}")
+else ()
+    set(FAASM_SGX ON)
 endif()
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -96,8 +98,6 @@ endif ()
 
 # SGX configuration
 if (SGX_FOUND)
-    message("SGX found at ${SGX_SDK_PATH}")
-
     # SGX includes
     include_directories(${SGX_SDK_PATH}/include)
 
@@ -119,7 +119,6 @@ if (SGX_FOUND)
         add_definitions(-DFAASM_SGX_ATTESTATION=0)
     endif()
 else ()
-    message("SGX not found")
     add_definitions(-DFAASM_SGX=0)
 endif ()
 
