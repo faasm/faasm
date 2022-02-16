@@ -225,6 +225,8 @@ jobs:
     defaults:
       run:
         working-directory: /home/runner/work/faasm/faasm
+    env:
+        CONAN_CACHE_MOUNT_SOURCE: ${{ env.HOME }}/.conan
     steps:
       - name: "Check out code"
         uses: actions/checkout@v2
