@@ -7,6 +7,7 @@ export PROJ_ROOT=${THIS_DIR}/../..
 pushd ${PROJ_ROOT} > /dev/null
 
 export FAASM_BUILD_MOUNT=/build/faasm
+export CONAN_CACHE_MOUNT_SOURCE=$HOME/.conan/
 
 # Make sure upload server is running
 docker-compose \
