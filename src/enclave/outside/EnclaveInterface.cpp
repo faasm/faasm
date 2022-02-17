@@ -1,33 +1,27 @@
-#include <cstdio>
-
-#include <enclave/outside/SGXWAMRWasmModule.h>
+#include <enclave/outside/ecalls.h>
+#include <enclave/outside/EnclaveInterface.h>
 #include <enclave/outside/system.h>
 #include <faabric/util/func.h>
 #include <wasm/WasmExecutionContext.h>
 
-extern "C"
-{
-    void ocall_printf(const char* msg) { printf("%s", msg); }
-}
-
 using namespace sgx;
 
 namespace wasm {
-SGXWAMRWasmModule::SGXWAMRWasmModule()
+EnclaveInterface::EnclaveInterface()
 {
     checkSgxSetup();
 
-    SPDLOG_DEBUG("Created SGX wasm module for enclave {}",
+    SPDLOG_DEBUG("Created enclave interface for enclave {}",
                  sgx::getGlobalEnclaveId());
 }
 
-SGXWAMRWasmModule::~SGXWAMRWasmModule()
+EnclaveInterface::~EnclaveInterface()
 {
     unbindFunction();
 }
 
 // ----- Module lifecycle -----
-void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
+void EnclaveInterface::doBindToFunction(faabric::Message& msg, bool cache)
 {
     // Set up filesystem
     storage::FileSystem fs;
@@ -67,7 +61,7 @@ void SGXWAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
     threadStacks.push_back(-1);
 }
 
-bool SGXWAMRWasmModule::unbindFunction()
+bool EnclaveInterface::unbindFunction()
 {
     if (!isBound()) {
         return true;
@@ -94,7 +88,7 @@ bool SGXWAMRWasmModule::unbindFunction()
     return true;
 }
 
-int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
+int32_t EnclaveInterface::executeFunction(faabric::Message& msg)
 {
 
     std::string funcStr = faabric::util::funcToString(msg, true);
@@ -133,7 +127,7 @@ int32_t SGXWAMRWasmModule::executeFunction(faabric::Message& msg)
     return 0;
 }
 
-uint32_t SGXWAMRWasmModule::growMemory(size_t nBytes)
+uint32_t EnclaveInterface::growMemory(size_t nBytes)
 {
     SPDLOG_DEBUG("SGX-WAMR growing memory by {}", nBytes);
 
@@ -147,19 +141,19 @@ uint32_t SGXWAMRWasmModule::growMemory(size_t nBytes)
     return memBase;
 }
 
-uint32_t SGXWAMRWasmModule::shrinkMemory(size_t nBytes)
+uint32_t EnclaveInterface::shrinkMemory(size_t nBytes)
 {
     SPDLOG_WARN("SGX-WAMR ignoring shrink memory");
     return 0;
 }
 
-size_t SGXWAMRWasmModule::getMemorySizeBytes()
+size_t EnclaveInterface::getMemorySizeBytes()
 {
     SPDLOG_WARN("SGX-WAMR getMemorySizeBytes not implemented");
     return 0;
 }
 
-uint8_t* SGXWAMRWasmModule::getMemoryBase()
+uint8_t* EnclaveInterface::getMemoryBase()
 {
     SPDLOG_WARN("SGX-WAMR getMemoryBase not implemented");
     return nullptr;
