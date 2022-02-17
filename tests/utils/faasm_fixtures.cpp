@@ -25,4 +25,3 @@ IRModuleCacheTestFixture::~IRModuleCacheTestFixture()
     wasm::getIRModuleCache().clear();
 }
 }
-
