@@ -1,5 +1,7 @@
 #include <catch2/catch.hpp>
 
+#include "faasm_fixtures.h"
+
 #include <faabric/util/bytes.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
@@ -16,7 +18,7 @@ void checkObjCode(const Runtime::ModuleRef moduleRef, const std::string& path)
     REQUIRE(moduleBytes == fileBytes);
 }
 
-TEST_CASE("Test main module caching", "[wasm]")
+TEST_CASE_METHOD(IRModuleCacheTestFixture, "Test main module caching", "[wasm]")
 {
     wasm::IRModuleCache& registry = wasm::getIRModuleCache();
 
@@ -76,7 +78,9 @@ TEST_CASE("Test main module caching", "[wasm]")
     checkObjCode(objRefB1, objPathB);
 }
 
-TEST_CASE("Test shared library caching", "[wasm]")
+TEST_CASE_METHOD(IRModuleCacheTestFixture,
+                 "Test shared library caching",
+                 "[wasm]")
 {
     wasm::IRModuleCache& registry = wasm::getIRModuleCache();
 
@@ -139,7 +143,7 @@ TEST_CASE("Test shared library caching", "[wasm]")
     checkObjCode(objRefB1, objPathB);
 }
 
-TEST_CASE("Test IR cache clearing", "[wasm]")
+TEST_CASE_METHOD(IRModuleCacheTestFixture, "Test IR cache clearing", "[wasm]")
 {
     wasm::IRModuleCache& registry = wasm::getIRModuleCache();
 

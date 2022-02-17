@@ -1,6 +1,7 @@
 #include "WAVMWasmModule.h"
 #include "syscalls.h"
 
+#include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/logging.h>
@@ -11,6 +12,7 @@
 #include <WAVM/Runtime/Runtime.h>
 
 using namespace WAVM;
+using namespace faabric::scheduler;
 
 namespace wasm {
 void chainLink() {}
@@ -77,7 +79,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     SPDLOG_DEBUG(
       "S - chain_ptr - {} {} {}", wasmFuncPtr, inputDataPtr, inputDataLen);
 
-    faabric::Message* call = getExecutingCall();
+    faabric::Message* call = &ExecutorContext::get()->getMsg();
     const std::vector<uint8_t> inputData =
       getBytesFromWasm(inputDataPtr, inputDataLen);
 
@@ -96,7 +98,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     SPDLOG_DEBUG(
       "S - chain_py - {} {} {}", pyFuncName, inputDataPtr, inputDataLen);
 
-    faabric::Message* call = getExecutingCall();
+    faabric::Message* call = &ExecutorContext::get()->getMsg();
     const std::vector<uint8_t> inputData =
       getBytesFromWasm(inputDataPtr, inputDataLen);
 

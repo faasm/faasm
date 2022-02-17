@@ -8,6 +8,7 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 
+#include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotClient.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
@@ -25,6 +26,7 @@
 
 using namespace WAVM;
 using namespace faabric::transport;
+using namespace faabric::scheduler;
 
 namespace wasm {
 
@@ -300,7 +302,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     // If buffer len is zero, just need the state size
     if (bufferLen == 0) {
-        std::string user = getExecutingCall()->user();
+        std::string user = ExecutorContext::get()->getMsg().user();
         std::string key = getStringFromWasm(keyPtr);
         SPDLOG_DEBUG("S - read_state - {} {} {}", key, bufferPtr, bufferLen);
 
@@ -425,7 +427,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 I32 _readInputImpl(I32 bufferPtr, I32 bufferLen)
 {
     // Get the input
-    faabric::Message* call = getExecutingCall();
+    faabric::Message* call = &ExecutorContext::get()->getMsg();
     std::vector<uint8_t> inputBytes =
       faabric::util::stringToBytes(call->inputdata());
 
@@ -463,7 +465,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 void _writeOutputImpl(I32 outputPtr, I32 outputLen)
 {
     std::vector<uint8_t> outputData = getBytesFromWasm(outputPtr, outputLen);
-    faabric::Message* call = getExecutingCall();
+    faabric::Message* call = &ExecutorContext::get()->getMsg();
     call->set_outputdata(outputData.data(), outputData.size());
 }
 
@@ -505,7 +507,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 bufferLen)
 {
     SPDLOG_DEBUG("S - get_py_user - {} {}", bufferPtr, bufferLen);
-    std::string value = getExecutingCall()->pythonuser();
+    std::string value = ExecutorContext::get()->getMsg().pythonuser();
 
     if (value.empty()) {
         throw std::runtime_error("Python user empty, cannot return");
@@ -522,7 +524,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 bufferLen)
 {
     SPDLOG_DEBUG("S - get_py_func - {} {}", bufferPtr, bufferLen);
-    std::string value = getExecutingCall()->pythonfunction();
+    std::string value = ExecutorContext::get()->getMsg().pythonfunction();
     _readPythonInput(bufferPtr, bufferLen, value);
 }
 
@@ -534,7 +536,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 bufferLen)
 {
     SPDLOG_DEBUG("S - get_py_entry - {} {}", bufferPtr, bufferLen);
-    std::string value = getExecutingCall()->pythonentry();
+    std::string value = ExecutorContext::get()->getMsg().pythonentry();
     _readPythonInput(bufferPtr, bufferLen, value);
 }
 
@@ -599,8 +601,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
 static std::shared_ptr<PointToPointGroup> getPointToPointGroup()
 {
-    faabric::Message* msg = getExecutingCall();
-    return PointToPointGroup::getOrAwaitGroup(msg->groupid());
+    faabric::Message msg = ExecutorContext::get()->getMsg();
+    return PointToPointGroup::getOrAwaitGroup(msg.groupid());
 }
 
 static std::pair<uint32_t, faabric::util::SnapshotDataType>
@@ -660,7 +662,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
       extractSnapshotMergeOp(reduceOp);
 
     bool isCurrentBatch = currentBatch == 1;
-    faabric::Message* msg = getExecutingCall();
+    faabric::Message* msg = &ExecutorContext::get()->getMsg();
 
     SPDLOG_DEBUG("Registering reduction variable {}-{} for {} {}",
                  varPtr,
@@ -670,7 +672,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     if (isCurrentBatch) {
         faabric::scheduler::Executor* executor =
-          faabric::scheduler::getExecutingExecutor();
+          ExecutorContext::get()->getExecutor();
         auto snap = executor->getMainThreadSnapshot(*msg, false);
         snap->addMergeRegion(varPtr, dataType.first, dataType.second, mergeOp);
     } else {
@@ -714,7 +716,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     SPDLOG_DEBUG(
       "S - faasm_migrate_point {} {}", entrypointFuncPtr, entrypointFuncArg);
 
-    auto* call = getExecutingCall();
+    auto* call = &ExecutorContext::get()->getMsg();
     auto& sch = faabric::scheduler::getScheduler();
 
     // Detect if there is a pending migration for the current app
@@ -762,7 +764,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         // chaining from the master host of the app, and
         // we are most likely migrating from a non-master host. Thus, we must
         // take and push the snapshot manually.
-        auto* exec = faabric::scheduler::getExecutingExecutor();
+        auto* exec = faabric::scheduler::ExecutorContext::get()->getExecutor();
         auto snap =
           std::make_shared<faabric::util::SnapshotData>(exec->getMemoryView());
         std::string snapKey = "migration_" + std::to_string(msg.id());

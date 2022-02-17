@@ -3,6 +3,7 @@
 #include <WAVM/Runtime/Runtime.h>
 
 #include <faabric/proto/faabric.pb.h>
+#include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/state/StateKeyValue.h>
@@ -24,6 +25,7 @@
 #include <wavm/WAVMWasmModule.h>
 
 using namespace WAVM;
+using namespace faabric::scheduler;
 
 namespace wasm {
 
@@ -33,7 +35,7 @@ namespace wasm {
 
 #define OMP_FUNC(str)                                                          \
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();  \
-    faabric::Message* msg = getExecutingCall();                                \
+    faabric::Message* msg = &ExecutorContext::get()->getMsg();                 \
     int localThreadNum = level->getLocalThreadNum(msg);                        \
     int globalThreadNum = level->getGlobalThreadNum(msg);                      \
     UNUSED(level);                                                             \
@@ -44,7 +46,7 @@ namespace wasm {
 
 #define OMP_FUNC_ARGS(formatStr, ...)                                          \
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();  \
-    faabric::Message* msg = getExecutingCall();                                \
+    faabric::Message* msg = &ExecutorContext::get()->getMsg();                 \
     int localThreadNum = level->getLocalThreadNum(msg);                        \
     int globalThreadNum = level->getGlobalThreadNum(msg);                      \
     UNUSED(level);                                                             \
@@ -59,9 +61,9 @@ namespace wasm {
 static std::shared_ptr<faabric::transport::PointToPointGroup>
 getExecutingPointToPointGroup()
 {
-    faabric::Message* msg = getExecutingCall();
+    faabric::Message& msg = ExecutorContext::get()->getMsg();
     return faabric::transport::PointToPointGroup::getOrAwaitGroup(
-      msg->groupid());
+      msg.groupid());
 }
 
 // ------------------------------------------------
@@ -406,7 +408,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     WAVMWasmModule* parentModule = getExecutingWAVMModule();
     Runtime::Memory* memoryPtr = parentModule->defaultMemory;
-    faabric::Message* parentCall = getExecutingCall();
+    faabric::Message* parentCall = &ExecutorContext::get()->getMsg();
 
     const std::string parentStr =
       faabric::util::funcToString(*parentCall, false);
@@ -462,7 +464,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     // Execute the threads
     faabric::scheduler::Executor* executor =
-      faabric::scheduler::getExecutingExecutor();
+      faabric::scheduler::ExecutorContext::get()->getExecutor();
     std::vector<std::pair<uint32_t, int>> results =
       executor->executeThreads(req, parentModule->getMergeRegions());
 
@@ -513,7 +515,7 @@ void for_static_init(I32 schedule,
     // Unsigned version of the given template parameter
     typedef typename std::make_unsigned<T>::type UT;
 
-    faabric::Message* msg = getExecutingCall();
+    faabric::Message* msg = &ExecutorContext::get()->getMsg();
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
     int localThreadNum = level->getLocalThreadNum(msg);
 

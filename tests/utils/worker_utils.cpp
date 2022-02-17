@@ -21,6 +21,12 @@ using namespace faaslet;
 
 namespace tests {
 
+void execFunction(std::shared_ptr<faabric::BatchExecuteRequest> req,
+                  const std::string& expectedOutput)
+{
+    return execFunction(req->mutable_messages()->at(0), expectedOutput);
+}
+
 void execFunction(faabric::Message& call, const std::string& expectedOutput)
 {
     // Turn off python preloading
@@ -110,13 +116,8 @@ void checkMultipleExecutions(faabric::Message& msg, int nExecs)
 }
 
 void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
-                       int nSlots,
-                       bool clean)
+                       int nSlots)
 {
-    if (clean) {
-        cleanSystem();
-    }
-
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
     conf.boundTimeout = 1000;
@@ -151,10 +152,6 @@ void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
 
 void execFuncWithPool(faabric::Message& call, bool clean, int timeout)
 {
-    if (clean) {
-        cleanSystem();
-    }
-
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.shutdown();
     sch.addHostToGlobalSet();
@@ -183,8 +180,6 @@ void execFuncWithPool(faabric::Message& call, bool clean, int timeout)
     faasmConf.netNsMode = originalNsMode;
 
     m.shutdown();
-
-    cleanSystem();
 }
 
 void doWamrPoolExecution(faabric::Message& msg, int timeout = 1000)

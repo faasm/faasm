@@ -1,4 +1,5 @@
 #include <faabric/proto/faabric.pb.h>
+#include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
@@ -8,6 +9,8 @@
 #include <wasm/WasmModule.h>
 #include <wasm/chaining.h>
 #include <wasm_export.h>
+
+using namespace faabric::scheduler;
 
 namespace wasm {
 
@@ -20,9 +23,9 @@ static int32_t __faasm_read_input_wrapper(wasm_exec_env_t exec_env,
 {
     SPDLOG_DEBUG("S - faasm_read_input {} {}", inBuff, inLen);
 
-    faabric::Message* call = getExecutingCall();
+    faabric::Message& call = ExecutorContext::get()->getMsg();
     std::vector<uint8_t> inputBytes =
-      faabric::util::stringToBytes(call->inputdata());
+      faabric::util::stringToBytes(call.inputdata());
 
     // If nothing, return nothing
     if (inputBytes.empty()) {
@@ -44,8 +47,8 @@ static void __faasm_write_output_wrapper(wasm_exec_env_t exec_env,
 {
     SPDLOG_DEBUG("S - faasm_write_output {} {}", outBuff, outLen);
 
-    faabric::Message* call = getExecutingCall();
-    call->set_outputdata(outBuff, outLen);
+    faabric::Message& call = ExecutorContext::get()->getMsg();
+    call.set_outputdata(outBuff, outLen);
 }
 
 /**
@@ -58,9 +61,9 @@ static int32_t __faasm_chain_ptr_wrapper(wasm_exec_env_t exec_env,
 {
     SPDLOG_DEBUG("S - faasm_chain_ptr {} {} {}", wasmFuncPtr, inBuff, inLen);
 
-    faabric::Message* call = getExecutingCall();
+    faabric::Message& call = ExecutorContext::get()->getMsg();
     std::vector<uint8_t> inputData(BYTES(inBuff), BYTES(inBuff) + inLen);
-    return makeChainedCall(call->function(), wasmFuncPtr, nullptr, inputData);
+    return makeChainedCall(call.function(), wasmFuncPtr, nullptr, inputData);
 }
 
 /**

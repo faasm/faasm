@@ -1,5 +1,8 @@
-#include "utils.h"
 #include <catch2/catch.hpp>
+
+#include "faabric_utils.h"
+#include "faasm_fixtures.h"
+#include "utils.h"
 
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
@@ -11,20 +14,47 @@ using namespace WAVM;
 
 namespace tests {
 
-TEST_CASE("Test executing WASM module with no input", "[wasm]")
+class SimpleWasmTestFixture : public FunctionExecTestFixture
 {
-    cleanSystem();
+  public:
+    void executeX2(wasm::WAVMWasmModule& module)
+    {
+        auto req = setUpContext("demo", "x2");
+        faabric::Message& msg = req->mutable_messages()->at(0);
 
-    faabric::Message call = faabric::util::messageFactory("demo", "dummy");
+        // Build input as byte stream
+        uint8_t inputValues[10] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+        msg.set_inputdata(inputValues, 10);
+
+        // Make the call
+        int returnValue = module.executeFunction(msg);
+        REQUIRE(returnValue == 0);
+
+        std::string outputData = msg.outputdata();
+        const std::vector<uint8_t> outputBytes =
+          faabric::util::stringToBytes(outputData);
+
+        // Check the results
+        std::vector<uint8_t> expected = { 0, 2, 4, 6, 8, 10, 12, 14, 16, 18 };
+        REQUIRE(outputBytes == expected);
+    }
+};
+
+TEST_CASE_METHOD(SimpleWasmTestFixture,
+                 "Test executing WASM module with no input",
+                 "[wasm]")
+{
+    auto req = setUpContext("demo", "dummy");
 
     wasm::WAVMWasmModule module;
-    module.bindToFunction(call);
+    faabric::Message& msg = req->mutable_messages()->at(0);
+    module.bindToFunction(msg);
 
     // Execute the function
-    int returnValue = module.executeFunction(call);
+    int returnValue = module.executeFunction(msg);
     REQUIRE(returnValue == 0);
 
-    std::string outputData = call.outputdata();
+    std::string outputData = msg.outputdata();
     const std::vector<uint8_t> outputBytes =
       faabric::util::stringToBytes(outputData);
 
@@ -35,103 +65,63 @@ TEST_CASE("Test executing WASM module with no input", "[wasm]")
     REQUIRE(outputBytes[3] == 3);
 }
 
-TEST_CASE("Test printf doesn't fail", "[wasm]")
+TEST_CASE_METHOD(SimpleWasmTestFixture, "Test printf doesn't fail", "[wasm]")
 {
-    cleanSystem();
-
-    faabric::Message call;
-    call.set_user("demo");
-    call.set_function("print");
+    auto req = setUpContext("demo", "print");
+    faabric::Message& msg = req->mutable_messages()->at(0);
 
     wasm::WAVMWasmModule module;
-    module.bindToFunction(call);
-
-    int returnValue = module.executeFunction(call);
+    module.bindToFunction(msg);
+    int returnValue = module.executeFunction(msg);
     REQUIRE(returnValue == 0);
 }
 
-void executeX2(wasm::WAVMWasmModule& module)
+TEST_CASE_METHOD(SimpleWasmTestFixture, "Test binding", "[wasm]")
 {
-    faabric::Message call;
-    call.set_user("demo");
-    call.set_function("x2");
-
-    // Build input as byte stream
-    uint8_t inputValues[10] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-    call.set_inputdata(inputValues, 10);
-
-    // Make the call
-    int returnValue = module.executeFunction(call);
-    REQUIRE(returnValue == 0);
-
-    std::string outputData = call.outputdata();
-    const std::vector<uint8_t> outputBytes =
-      faabric::util::stringToBytes(outputData);
-
-    // Check the results
-    std::vector<uint8_t> expected = { 0, 2, 4, 6, 8, 10, 12, 14, 16, 18 };
-    REQUIRE(outputBytes == expected);
-}
-
-TEST_CASE("Test binding", "[wasm]")
-{
-    cleanSystem();
-
-    faabric::Message call;
-    call.set_user("demo");
-    call.set_function("x2");
-
+    faabric::Message msg = faabric::util::messageFactory("demo", "x2");
     wasm::WAVMWasmModule module;
     REQUIRE(!module.isBound());
 
-    module.bindToFunction(call);
+    module.bindToFunction(msg);
     REQUIRE(module.isBound());
 }
 
-TEST_CASE("Test repeat execution on simple WASM module", "[wasm]")
+TEST_CASE_METHOD(SimpleWasmTestFixture,
+                 "Test repeat execution on simple WASM module",
+                 "[wasm]")
 {
-    cleanSystem();
-
-    faabric::Message call;
-    call.set_user("demo");
-    call.set_function("x2");
-
+    faabric::Message msg = faabric::util::messageFactory("demo", "x2");
     wasm::WAVMWasmModule module;
-    module.bindToFunction(call);
+    module.bindToFunction(msg);
 
     // Perform first execution
     executeX2(module);
 
     // Reset
-    module.reset(call, "");
+    module.reset(msg, "");
 
     // Perform repeat executions on same module
     executeX2(module);
 
     // Reset
-    module.reset(call, "");
+    module.reset(msg, "");
 
     executeX2(module);
 }
 
-TEST_CASE("Test execution without binding fails", "[wasm]")
+TEST_CASE_METHOD(SimpleWasmTestFixture,
+                 "Test execution without binding fails",
+                 "[wasm]")
 {
-    cleanSystem();
-
-    faabric::Message callA;
-    callA.set_user("demo");
-    callA.set_function("dummy");
-
+    faabric::Message msg = faabric::util::messageFactory("demo", "dummy");
     wasm::WAVMWasmModule module;
-    REQUIRE_THROWS(module.executeFunction(callA));
+    REQUIRE_THROWS(module.executeFunction(msg));
 }
 
-TEST_CASE("Test reclaiming memory", "[wasm]")
+TEST_CASE_METHOD(SimpleWasmTestFixture, "Test reclaiming memory", "[wasm]")
 {
-    cleanSystem();
-
-    faabric::Message call = faabric::util::messageFactory("demo", "heap");
-
+    auto req = setUpContext("demo", "heap");
+    faabric::Message& call = req->mutable_messages()->at(0);
     wasm::WAVMWasmModule module;
     module.bindToFunction(call);
 
@@ -146,11 +136,10 @@ TEST_CASE("Test reclaiming memory", "[wasm]")
     REQUIRE(pagesAfter == initialPages);
 }
 
-TEST_CASE("Test disassemble module", "[wasm]")
+TEST_CASE_METHOD(SimpleWasmTestFixture, "Test disassemble module", "[wasm]")
 {
-    cleanSystem();
-
-    faabric::Message call = faabric::util::messageFactory("demo", "echo");
+    auto req = setUpContext("demo", "echo");
+    faabric::Message& call = req->mutable_messages()->at(0);
     wasm::WAVMWasmModule module;
     module.bindToFunction(call);
 

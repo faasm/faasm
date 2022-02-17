@@ -1,6 +1,7 @@
+#include <catch2/catch.hpp>
+
 #include "faasm_fixtures.h"
 #include "utils.h"
-#include <catch2/catch.hpp>
 
 #include <faabric/util/config.h>
 
@@ -9,12 +10,13 @@
 using namespace faaslet;
 
 namespace tests {
+
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test fixed input with colon",
                  "[faaslet][wamr]")
 {
-    faabric::Message call =
-      faabric::util::messageFactory("demo", "check_input");
+    auto req = setUpContext("demo", "check_input");
+    faabric::Message& call = req->mutable_messages()->at(0);
     call.set_inputdata("http://www.foobar.com");
 
     SECTION("WAVM") { execFunction(call); }
@@ -26,7 +28,8 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test execution of echo function",
                  "[faaslet][wamr]")
 {
-    faabric::Message call = faabric::util::messageFactory("demo", "echo");
+    auto req = setUpContext("demo", "echo");
+    faabric::Message& call = req->mutable_messages()->at(0);
     std::string inputData = "http://www.testinput/foo.com";
     call.set_inputdata(inputData.c_str());
 
@@ -43,7 +46,8 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test capturing stdout",
                  "[faaslet][wamr]")
 {
-    faabric::Message call = faabric::util::messageFactory("demo", "stdout");
+    auto req = setUpContext("demo", "stdout");
+    faabric::Message& call = req->mutable_messages()->at(0);
     std::string expected;
 
     SECTION("Capture off")
@@ -81,7 +85,8 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test capturing stderr",
                  "[faaslet]")
 {
-    faabric::Message call = faabric::util::messageFactory("demo", "stderr");
+    auto req = setUpContext("demo", "stderr");
+    faabric::Message& call = req->mutable_messages()->at(0);
 
     std::string expected;
 

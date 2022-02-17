@@ -27,12 +27,13 @@ endif()
 
 set(ENCLAVE_UNTRUSTED_HEADERS
     ${FAASM_INCLUDE_DIR}/enclave/error.h
+    ${FAASM_INCLUDE_DIR}/enclave/outside/ecalls.h
     ${FAASM_INCLUDE_DIR}/enclave/outside/system.h
-    ${FAASM_INCLUDE_DIR}/enclave/outside/SGXWAMRWasmModule.h
+    ${FAASM_INCLUDE_DIR}/enclave/outside/EnclaveInterface.h
 )
 
 set(ENCLAVE_UNTRUSTED_ASM_SRC
-    SGXWAMRWasmModule.S
+    getSgxSupport.S
 )
 
 set_source_files_properties(${ENCLAVE_UNTRUSTED_ASM_SRC}
@@ -41,7 +42,7 @@ set_source_files_properties(${ENCLAVE_UNTRUSTED_ASM_SRC}
 
 set(ENCLAVE_UNTRUSTED_SRC
     ocalls.cpp
-    SGXWAMRWasmModule.cpp
+    EnclaveInterface.cpp
     system.cpp
 )
 

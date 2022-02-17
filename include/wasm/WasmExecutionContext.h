@@ -12,9 +12,8 @@ class WasmExecutionContext
 {
   public:
     WasmModule* executingModule = nullptr;
-    faabric::Message* executingCall = nullptr;
 
-    WasmExecutionContext(WasmModule* module, faabric::Message* call);
+    WasmExecutionContext(WasmModule* module);
 
     ~WasmExecutionContext();
 
@@ -23,6 +22,4 @@ class WasmExecutionContext
 };
 
 WasmModule* getExecutingModule();
-
-faabric::Message* getExecutingCall();
 }

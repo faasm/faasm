@@ -1,5 +1,7 @@
-#include "utils.h"
 #include <catch2/catch.hpp>
+
+#include "faasm_fixtures.h"
+#include "utils.h"
 
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
@@ -7,18 +9,15 @@
 
 namespace tests {
 
-TEST_CASE("Test printf", "[wasm]")
+TEST_CASE_METHOD(FunctionExecTestFixture, "Test printf", "[wasm]")
 {
-    cleanSystem();
-    faabric::Message call = faabric::util::messageFactory("demo", "print");
-    execFunction(call);
+    auto req = setUpContext("demo", "print");
+    execFunction(req);
 }
 
-TEST_CASE("Test emscripten I/O", "[wasm]")
+TEST_CASE_METHOD(FunctionExecTestFixture, "Test emscripten I/O", "[wasm]")
 {
-    cleanSystem();
-    faabric::Message call =
-      faabric::util::messageFactory("demo", "emscripten_check");
-    execFunction(call);
+    auto req = setUpContext("demo", "emscripten_check");
+    execFunction(req);
 }
 }

@@ -28,7 +28,7 @@ class PthreadTestFixture
         std::shared_ptr<faabric::BatchExecuteRequest> req =
           faabric::util::batchExecFactory("demo", function, 1);
 
-        execBatchWithPool(req, nThreads, false);
+        execBatchWithPool(req, nThreads);
     }
 
   protected:

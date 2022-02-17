@@ -20,7 +20,7 @@
 #include <stdexcept>
 
 #if (FAASM_SGX)
-#include <enclave/outside/SGXWAMRWasmModule.h>
+#include <enclave/outside/EnclaveInterface.h>
 #include <enclave/outside/system.h>
 #else
 #include <storage/FileLoader.h>
@@ -62,7 +62,7 @@ Faaslet::Faaslet(faabric::Message& msg)
     // Instantiate the right wasm module for the chosen runtime
     if (conf.wasmVm == "sgx") {
 #if (FAASM_SGX)
-        module = std::make_unique<wasm::SGXWAMRWasmModule>();
+        module = std::make_unique<wasm::EnclaveInterface>();
 #else
         SPDLOG_ERROR(
           "SGX WASM VM selected, but SGX support disabled in config");

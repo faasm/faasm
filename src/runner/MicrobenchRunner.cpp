@@ -12,6 +12,7 @@
 #include <wavm/WAVMWasmModule.h>
 
 #include <faabric/runner/FaabricMain.h>
+#include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/ExecutorFactory.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/transport/context.h>
@@ -68,7 +69,7 @@ int doRun(std::ofstream& outFs,
 
     // Create faaslet
     faaslet::Faaslet f(msg);
-    faabric::scheduler::setExecutingExecutor(&f);
+    faabric::scheduler::ExecutorContext::set(&f, req, 0);
 
     // Preflight if necessary
     if (PREFLIGHT_CALLS) {

@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "fixtures.h"
 #include "utils.h"
 
 #include <boost/filesystem.hpp>
@@ -16,7 +17,7 @@ namespace tests {
 // NOTE: we must be careful with this fixture that we don't have to rerun the
 // codegen for the ffmpeg function as it's over 40MB of wasm and takes several
 // minutes.
-class FFmpegTestFixture
+class FFmpegTestFixture : public ExecutorContextTestFixture
 {
 
   public:
@@ -55,7 +56,8 @@ TEST_CASE_METHOD(FFmpegTestFixture,
                  "Test executing FFmpeg checks in WAVM",
                  "[libs]")
 {
-    faabric::Message msg = faabric::util::messageFactory("ffmpeg", "check");
+    auto req = setUpContext("ffmpeg", "check");
+    faabric::Message& msg = req->mutable_messages()->at(0);
     execFunction(msg);
 }
 
@@ -63,6 +65,7 @@ TEST_CASE_METHOD(FFmpegTestFixture,
                  "Test executing FFmpeg checks in WAMR",
                  "[libs][wamr]")
 {
+    auto req = setUpContext("ffmpeg", "check");
     executeWithWamrPool("ffmpeg", "check");
 }
 }

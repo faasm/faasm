@@ -1,4 +1,5 @@
 #include <faabric/proto/faabric.pb.h>
+#include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/util/logging.h>
 
 #include <wamr/WAMRWasmModule.h>
@@ -6,6 +7,8 @@
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 #include <wasm_export.h>
+
+using namespace faabric::scheduler;
 
 namespace wasm {
 /**
@@ -20,7 +23,7 @@ static int32_t __faasm_read_state_wrapper(wasm_exec_env_t exec_env,
 {
     SPDLOG_DEBUG("S - faasm_read_state {} <buffer> {}", key, bufferLen);
 
-    std::string user = getExecutingCall()->user();
+    std::string user = ExecutorContext::get()->getMsg().user();
 
     if (bufferLen == 0) {
         // If buffer len is zero, just need the state size
@@ -45,7 +48,7 @@ static int32_t __faasm_read_state_ptr_wrapper(wasm_exec_env_t exec_env,
                                               char* key,
                                               int32_t bufferLen)
 {
-    std::string user = getExecutingCall()->user();
+    std::string user = ExecutorContext::get()->getMsg().user();
     auto kv = faabric::state::getGlobalState().getKV(user, key, bufferLen);
 
     SPDLOG_DEBUG("S - faasm_read_state_ptr - {} {}", kv->key, bufferLen);
@@ -68,7 +71,7 @@ static void __faasm_write_state_wrapper(wasm_exec_env_t exec_env,
                                         char* buffer,
                                         int32_t bufferLen)
 {
-    std::string user = getExecutingCall()->user();
+    std::string user = ExecutorContext::get()->getMsg().user();
     auto kv = faabric::state::getGlobalState().getKV(user, key, bufferLen);
 
     SPDLOG_DEBUG("S - faasm_write_state - {} <data> {}", kv->key, bufferLen);
@@ -83,7 +86,7 @@ static void __faasm_push_state_wrapper(wasm_exec_env_t exec_env, char* key)
 {
     SPDLOG_DEBUG("S - faasm_push_state - {}", key);
 
-    std::string user = getExecutingCall()->user();
+    std::string user = ExecutorContext::get()->getMsg().user();
     auto kv = faabric::state::getGlobalState().getKV(user, key, 0);
     kv->pushFull();
 }

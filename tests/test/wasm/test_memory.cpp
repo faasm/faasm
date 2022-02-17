@@ -154,15 +154,16 @@ TEST_CASE_METHOD(FunctionExecTestFixture, "Test mmap/munmap", "[faaslet]")
 
 TEST_CASE_METHOD(FunctionExecTestFixture, "Test big mmap", "[faaslet]")
 {
-    faabric::Message msg = faabric::util::messageFactory("demo", "mmap_big");
-    execFunction(msg);
+    auto req = setUpContext("demo", "mmap_big");
+    execFunction(req);
 }
 
 TEST_CASE_METHOD(FunctionExecTestFixture,
                  "Test allocating over max memory",
                  "[wasm]")
 {
-    faabric::Message call = faabric::util::messageFactory("demo", "echo");
+    auto req = setUpContext("demo", "echo");
+    faabric::Message& call = req->mutable_messages()->at(0);
 
     std::shared_ptr<wasm::WasmModule> module = nullptr;
 
@@ -186,10 +187,10 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
     size_t oneGib = 1024L * oneMib;
 
     // We have to hope this works, otherwise we may cause an OOM on the host
-    size_t tenGib = 10L * oneGib;
+    size_t fiveGib = 5L * oneGib;
     bool failed = false;
     try {
-        module->setMemorySize(tenGib);
+        module->setMemorySize(fiveGib);
     } catch (std::runtime_error& ex) {
         failed = true;
         std::string actualMessage = ex.what();

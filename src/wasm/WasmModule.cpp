@@ -4,6 +4,7 @@
 #include <wasm/WasmModule.h>
 
 #include <faabric/proto/faabric.pb.h>
+#include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/util/bytes.h>
@@ -281,7 +282,7 @@ void WasmModule::bindToFunction(faabric::Message& msg, bool cache)
     boundFunction = msg.function();
 
     // Call into subclass hook, setting the context beforehand
-    WasmExecutionContext ctx(this, &msg);
+    WasmExecutionContext ctx(this);
     doBindToFunction(msg, cache);
 }
 
@@ -380,7 +381,7 @@ int32_t WasmModule::executeTask(
     assert(boundFunction == msg.function());
 
     // Set up context for this task
-    WasmExecutionContext ctx(this, &msg);
+    WasmExecutionContext ctx(this);
 
     // Modules must have provisioned their own thread stacks
     assert(!threadStacks.empty());
@@ -501,7 +502,7 @@ int WasmModule::awaitPthreadCall(faabric::Message* msg, int pthreadPtr)
 
     // Execute the queued pthread calls
     faabric::scheduler::Executor* executor =
-      faabric::scheduler::getExecutingExecutor();
+      faabric::scheduler::ExecutorContext::get()->getExecutor();
     if (!queuedPthreadCalls.empty()) {
         int nPthreadCalls = queuedPthreadCalls.size();
 

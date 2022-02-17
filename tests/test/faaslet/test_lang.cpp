@@ -1,49 +1,48 @@
 #include <catch2/catch.hpp>
 
+#include "faasm_fixtures.h"
 #include "utils.h"
 
 #include <faabric/util/func.h>
 
 namespace tests {
-TEST_CASE("Test pointer to pointer", "[faaslet]")
+TEST_CASE_METHOD(FunctionExecTestFixture,
+                 "Test pointer to pointer",
+                 "[faaslet]")
 {
-    cleanSystem();
-    faabric::Message msg = faabric::util::messageFactory("demo", "ptr_ptr");
-    execFunction(msg);
+    auto req = setUpContext("demo", "ptr_ptr");
+    execFunction(req);
 }
 
-TEST_CASE("Test long double print doesn't fail", "[faaslet]")
+TEST_CASE_METHOD(FunctionExecTestFixture,
+                 "Test long double print doesn't fail",
+                 "[faaslet]")
 {
-    cleanSystem();
-    faabric::Message msg = faabric::util::messageFactory("demo", "long_double");
-    execFunction(msg);
+    auto req = setUpContext("demo", "long_double");
+    execFunction(req);
 }
 
-TEST_CASE("Test sizes", "[faaslet]")
+TEST_CASE_METHOD(FunctionExecTestFixture, "Test sizes", "[faaslet]")
 {
-    cleanSystem();
-    faabric::Message msg = faabric::util::messageFactory("demo", "sizes");
-    execFunction(msg);
+    auto req = setUpContext("demo", "sizes");
+    execFunction(req);
 }
 
-TEST_CASE("Test stack/ heap", "[faaslet]")
+TEST_CASE_METHOD(FunctionExecTestFixture, "Test stack/ heap", "[faaslet]")
 {
-    cleanSystem();
-    faabric::Message msg = faabric::util::messageFactory("demo", "stackheap");
-    execFunction(msg);
+    auto req = setUpContext("demo", "stackheap");
+    execFunction(req);
 }
 
-TEST_CASE("Test backtrace", "[faaslet]")
+TEST_CASE_METHOD(FunctionExecTestFixture, "Test backtrace", "[faaslet]")
 {
-    cleanSystem();
-    faabric::Message msg = faabric::util::messageFactory("demo", "backtrace");
-    execFunction(msg);
+    auto req = setUpContext("demo", "backtrace");
+    execFunction(req);
 }
 
-TEST_CASE("Test varargs", "[faaslet]")
+TEST_CASE_METHOD(FunctionExecTestFixture, "Test varargs", "[faaslet]")
 {
-    cleanSystem();
-    faabric::Message msg = faabric::util::messageFactory("demo", "va_arg");
-    execFunction(msg);
+    auto req = setUpContext("demo", "va_arg");
+    execFunction(req);
 }
 }
