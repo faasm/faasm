@@ -1,6 +1,7 @@
 #include <catch2/catch.hpp>
 
 #include "faasm_fixtures.h"
+#include "fixtures.h"
 #include "utils.h"
 
 #include <faabric/proto/faabric.pb.h>
@@ -18,7 +19,8 @@ namespace tests {
 
 class OpenMPTestFixture
   : public FunctionExecTestFixture
-  , ConfTestFixture
+  , public ConfTestFixture
+  , public SnapshotTestFixture
 {
   public:
     OpenMPTestFixture() { conf.overrideCpuCount = 30; }

@@ -49,7 +49,9 @@ class StateFuncTestFixture : public FunctionExecTestFixture
     }
 };
 
-TEST_CASE("Test repeat invocation with state", "[state]")
+TEST_CASE_METHOD(FunctionExecTestFixture,
+                 "Test repeat invocation with state",
+                 "[state]")
 {
     // Set up the function call
     faabric::Message call = faabric::util::messageFactory("demo", "increment");

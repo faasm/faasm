@@ -76,7 +76,7 @@ TEST_CASE_METHOD(SimpleWasmTestFixture, "Test printf doesn't fail", "[wasm]")
     REQUIRE(returnValue == 0);
 }
 
-TEST_CASE("Test binding", "[wasm]")
+TEST_CASE_METHOD(SimpleWasmTestFixture, "Test binding", "[wasm]")
 {
     faabric::Message msg = faabric::util::messageFactory("demo", "x2");
     wasm::WAVMWasmModule module;

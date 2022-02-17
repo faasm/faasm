@@ -187,10 +187,10 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
     size_t oneGib = 1024L * oneMib;
 
     // We have to hope this works, otherwise we may cause an OOM on the host
-    size_t tenGib = 10L * oneGib;
+    size_t fiveGib = 5L * oneGib;
     bool failed = false;
     try {
-        module->setMemorySize(tenGib);
+        module->setMemorySize(fiveGib);
     } catch (std::runtime_error& ex) {
         failed = true;
         std::string actualMessage = ex.what();
