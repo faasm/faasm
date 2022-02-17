@@ -32,8 +32,6 @@ enclave{
     };
 
     untrusted{
-        void ocall_printf([in, string] const char* msg);
-
         void ocall_faasm_log_error([in, string] const char* msg);
 
         void ocall_faasm_log_debug([in, string] const char* msg);

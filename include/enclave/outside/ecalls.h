@@ -8,9 +8,6 @@
 // all function invocations (i.e. module instantiation).
 extern "C"
 {
-
-    extern void ocall_printf(const char* msg);
-
     extern faasm_sgx_status_t faasm_sgx_get_sgx_support(void);
 
     extern sgx_status_t faasm_sgx_enclave_init_wamr(
