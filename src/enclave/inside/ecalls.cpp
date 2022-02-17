@@ -16,9 +16,8 @@ extern "C"
 
     faasm_sgx_status_t faasm_sgx_enclave_init_wamr(void)
     {
-        // TODO - implement proper logging
-        ocall_faasm_log_debug("Initialising WAMR runtime");
         // Initialise WAMR once for all modules
+        ocall_faasm_log_debug("Initialising WAMR runtime");
         if (!wasm::EnclaveWasmModule::initialiseWAMRGlobally()) {
             ocall_faasm_log_error("Error initialising WAMR globally");
             return FAASM_SGX_WAMR_RTE_INIT_FAILED;

@@ -18,6 +18,10 @@ namespace wasm {
 
 static uint8_t wamrHeapBuffer[FAASM_SGX_WAMR_HEAP_SIZE];
 
+/*
+ * Abstraction around a WebAssembly module running inside an SGX enclave with
+ * the WAMR runtime.
+ */
 class EnclaveWasmModule
 {
   public:

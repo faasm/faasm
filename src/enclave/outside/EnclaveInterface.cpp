@@ -9,6 +9,8 @@
 using namespace sgx;
 
 namespace wasm {
+// TODO - replace threadId by the message id from the executor context when
+// merged in faabric::scheduler::ExecutorContext::get()->getMsgIdx()
 EnclaveInterface::EnclaveInterface()
   : threadId(faabric::util::generateGid())
 {
