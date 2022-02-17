@@ -1,3 +1,4 @@
+#include "faabric/proto/faabric.pb.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <fstream>
@@ -26,16 +27,11 @@ using namespace faabric::util;
 
 namespace runner {
 
-int doRun(std::ofstream& outFs,
-          const std::string& user,
-          const std::string& function,
-          int nRuns,
-          const std::string& inputData)
+std::shared_ptr<faabric::BatchExecuteRequest>
+MicrobenchRunner::createBatchRequest(const std::string& user,
+                                     const std::string& function,
+                                     const std::string& inputData)
 {
-    // Clear out redis
-    faabric::redis::Redis& redis = faabric::redis::Redis::getQueue();
-    redis.flushAll();
-
     // Set up invocation message
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory(user, function, 1);
@@ -51,6 +47,25 @@ int doRun(std::ofstream& outFs,
     }
 
     msg.set_inputdata(inputData);
+
+    // Force local to avoid any scheduling logic
+    msg.set_topologyhint("FORCE_LOCAL");
+
+    return req;
+}
+
+int MicrobenchRunner::doRun(std::ofstream& outFs,
+                            const std::string& user,
+                            const std::string& function,
+                            int nRuns,
+                            const std::string& inputData)
+{
+    // Clear out redis
+    faabric::redis::Redis& redis = faabric::redis::Redis::getQueue();
+    redis.flushAll();
+
+    auto req = createBatchRequest(user, function, inputData);
+    faabric::Message& msg = req->mutable_messages()->at(0);
 
     // Check files have been uploaded
     storage::FileLoader& loader = storage::getFileLoader();
@@ -68,32 +83,28 @@ int doRun(std::ofstream& outFs,
     }
 
     // Create faaslet
-    faaslet::Faaslet f(msg);
-    faabric::scheduler::ExecutorContext::set(&f, req, 0);
+    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
 
     // Preflight if necessary
     if (PREFLIGHT_CALLS) {
-        f.executeTask(0, 0, req);
-        f.reset(msg);
+        auto preflightReq = createBatchRequest(user, function, inputData);
+        sch.callFunctions(preflightReq);
+        sch.getFunctionResult(preflightReq->messages().at(0).id(), 10000);
     }
 
     // Main loop
     for (int r = 0; r < nRuns; r++) {
         // Execute
         TimePoint execStart = startTimer();
-        int returnValue = f.executeTask(0, 0, req);
+        sch.callFunctions(req);
+        faabric::Message res = sch.getFunctionResult(msg.id(), 10000);
         long execNanos = getTimeDiffNanos(execStart);
         float execMicros = float(execNanos) / 1000;
 
-        // Reset
-        TimePoint resetStart = startTimer();
-        f.reset(msg);
-        long resetNanos = getTimeDiffNanos(resetStart);
-        float resetMicros = float(resetNanos) / 1000;
-
         // Write result line
+        int returnValue = res.returnvalue();
         outFs << user << "," << function << "," << returnValue << ","
-              << execMicros << "," << resetMicros << std::endl;
+              << execMicros << std::endl;
 
         if (returnValue != 0) {
             SPDLOG_ERROR("{}/{} failed on run {} with value {}",
@@ -119,8 +130,7 @@ int MicrobenchRunner::execute(const std::string& inFile,
     // Set up output file
     std::ofstream outFs;
     outFs.open(outFile);
-    outFs << "User,Function,Return value,Execution (us),Reset (us)"
-          << std::endl;
+    outFs << "User,Function,Return value,Execution (us)" << std::endl;
 
     std::fstream inFs;
     inFs.open(inFile, std::ios::in);
@@ -129,6 +139,13 @@ int MicrobenchRunner::execute(const std::string& inFile,
         SPDLOG_ERROR("Cannot open input file at {}", inFile);
         return 1;
     }
+
+    // Set up the runner
+    std::shared_ptr<faaslet::FaasletFactory> fac =
+      std::make_shared<faaslet::FaasletFactory>();
+    faabric::scheduler::setExecutorFactory(fac);
+    faabric::runner::FaabricMain m(fac);
+    m.startRunner();
 
     std::string nextLine;
     while (getline(inFs, nextLine)) {
@@ -167,6 +184,8 @@ int MicrobenchRunner::execute(const std::string& inFile,
 
     outFs.close();
     inFs.close();
+
+    m.shutdown();
 
     return 0;
 }

@@ -42,11 +42,6 @@ int main(int argc, char* argv[])
     conf.globalMessageTimeout = 60000;
     faasmConf.chainedCallTimeout = 60000;
 
-    // Set executor factory
-    std::shared_ptr<faaslet::FaasletFactory> fac =
-      std::make_shared<faaslet::FaasletFactory>();
-    faabric::scheduler::setExecutorFactory(fac);
-
     int returnValue = MicrobenchRunner::execute(inFile, outFile);
 
     faabric::transport::closeGlobalMessageContext();
