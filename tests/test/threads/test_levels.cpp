@@ -14,8 +14,6 @@ namespace tests {
 
 TEST_CASE("Check level serialisation and deserialisation", "[threads]")
 {
-    cleanSystem();
-
     Level lvlA(10);
 
     lvlA.activeLevels = 222;

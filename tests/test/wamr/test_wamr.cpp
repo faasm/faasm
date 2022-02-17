@@ -1,6 +1,7 @@
-#include "utils.h"
-
 #include <catch2/catch.hpp>
+
+#include "faasm_fixtures.h"
+#include "utils.h"
 
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
@@ -12,9 +13,12 @@ using namespace wasm;
 
 namespace tests {
 
-TEST_CASE("Test executing echo function with WAMR", "[wamr]")
+TEST_CASE_METHOD(FunctionExecTestFixture,
+                 "Test executing echo function with WAMR",
+                 "[wamr]")
 {
-    faabric::Message call = faabric::util::messageFactory("demo", "echo");
+    auto req = setUpContext("demo", "echo");
+    faabric::Message& call = req->mutable_messages()->at(0);
     std::string inputData = "hello there";
     call.set_inputdata(inputData);
 
@@ -28,9 +32,10 @@ TEST_CASE("Test executing echo function with WAMR", "[wamr]")
     REQUIRE(outputData == inputData);
 }
 
-TEST_CASE("Test WAMR sbrk", "[wamr]")
+TEST_CASE_METHOD(FunctionExecTestFixture, "Test WAMR sbrk", "[wamr]")
 {
-    faabric::Message call = faabric::util::messageFactory("demo", "echo");
+    auto req = setUpContext("demo", "echo");
+    faabric::Message& call = req->mutable_messages()->at(0);
     std::string inputData = "hello there";
     call.set_inputdata(inputData);
 
@@ -56,7 +61,9 @@ TEST_CASE("Test WAMR sbrk", "[wamr]")
     REQUIRE(module.getCurrentBrk() == sizeB);
 }
 
-TEST_CASE("Test executing chain function with WAMR", "[wamr]")
+TEST_CASE_METHOD(FunctionExecTestFixture,
+                 "Test executing chain function with WAMR",
+                 "[wamr]")
 {
     executeWithWamrPool("demo", "chain", 10000);
 }

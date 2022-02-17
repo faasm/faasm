@@ -13,6 +13,7 @@
 #include <faabric/util/logging.h>
 
 #include <storage/S3Wrapper.h>
+#include <storage/SharedFiles.h>
 
 FAABRIC_CATCH_LOGGER
 
@@ -24,7 +25,16 @@ int main(int argc, char* argv[])
     storage::initFaasmS3();
     faabric::transport::initGlobalMessageContext();
 
-    tests::cleanSystem();
+    // Faabric stuff
+    tests::cleanFaabric();
+
+    // Clear local cache of shared files
+    storage::SharedFiles::clear();
+
+    // Set Faaslets as the executors
+    std::shared_ptr<faabric::scheduler::ExecutorFactory> fac =
+      std::make_shared<faaslet::FaasletFactory>();
+    faabric::scheduler::setExecutorFactory(fac);
 
     int result = Catch::Session().run(argc, argv);
 

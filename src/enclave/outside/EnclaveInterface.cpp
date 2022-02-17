@@ -1,8 +1,9 @@
 #include <enclave/outside/EnclaveInterface.h>
 #include <enclave/outside/ecalls.h>
 #include <enclave/outside/system.h>
-#include <faabric/util/func.h>
 #include <wasm/WasmExecutionContext.h>
+
+#include <faabric/util/func.h>
 
 using namespace sgx;
 
@@ -78,7 +79,7 @@ int32_t EnclaveInterface::executeFunction(faabric::Message& msg)
       "Entering enclave {} to execute {}", sgx::getGlobalEnclaveId(), funcStr);
 
     // Set execution context
-    wasm::WasmExecutionContext ctx(this, &msg);
+    wasm::WasmExecutionContext ctx(this);
 
     // Enter enclave and call function
     faasm_sgx_status_t returnValue;

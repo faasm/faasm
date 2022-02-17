@@ -1,28 +1,26 @@
 #include <catch2/catch.hpp>
 
+#include "faasm_fixtures.h"
 #include "utils.h"
 
 #include <faabric/util/func.h>
 
 namespace tests {
-TEST_CASE("Test memcpy", "[faaslet]")
+TEST_CASE_METHOD(FunctionExecTestFixture, "Test memcpy", "[faaslet]")
 {
-    cleanSystem();
-    faabric::Message msg = faabric::util::messageFactory("demo", "memcpy");
-    execFunction(msg);
+    auto req = setUpContext("demo", "memcpy");
+    execFunction(req);
 }
 
-TEST_CASE("Test memmove", "[faaslet]")
+TEST_CASE_METHOD(FunctionExecTestFixture, "Test memmove", "[faaslet]")
 {
-    cleanSystem();
-    faabric::Message msg = faabric::util::messageFactory("demo", "memcpy");
-    execFunction(msg);
+    auto req = setUpContext("demo", "memmove");
+    execFunction(req);
 }
 
-TEST_CASE("Test calloc", "[faaslet]")
+TEST_CASE_METHOD(FunctionExecTestFixture, "Test calloc", "[faaslet]")
 {
-    cleanSystem();
-    faabric::Message msg = faabric::util::messageFactory("demo", "memcpy");
-    execFunction(msg);
+    auto req = setUpContext("demo", "calloc");
+    execFunction(req);
 }
 }

@@ -8,11 +8,8 @@ namespace wasm {
 // global accessor methods for the current context
 static thread_local std::stack<WasmExecutionContext*> contexts;
 
-WasmExecutionContext::WasmExecutionContext(WasmModule* module,
-                                           faabric::Message* call)
-
+WasmExecutionContext::WasmExecutionContext(WasmModule* module)
   : executingModule(module)
-  , executingCall(call)
 {
     contexts.push(this);
 }
@@ -29,14 +26,5 @@ WasmModule* getExecutingModule()
     }
 
     return contexts.top()->executingModule;
-}
-
-faabric::Message* getExecutingCall()
-{
-    if (contexts.empty()) {
-        return nullptr;
-    }
-
-    return contexts.top()->executingCall;
 }
 }

@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "fixtures.h"
 #include "utils.h"
 
 #include <faabric/util/func.h>
@@ -10,25 +11,30 @@
 using namespace WAVM;
 
 namespace tests {
-void _checkMapping(wasm::WAVMWasmModule& module,
-                   std::shared_ptr<faabric::state::StateKeyValue>& kv,
-                   long offset,
-                   long size,
-                   std::vector<uint8_t>& expected)
+
+class WasmStateTestFixture : public StateTestFixture
 {
-    // Check mapped whole region
-    U32 wasmPtr = module.mapSharedStateMemory(kv, offset, size);
-    U8* hostPtr = Runtime::memoryArrayPtr<U8>(
-      module.defaultMemory, (Uptr)wasmPtr, (Uptr)size);
+  public:
+    void checkMapping(wasm::WAVMWasmModule& module,
+                      std::shared_ptr<faabric::state::StateKeyValue>& kv,
+                      long offset,
+                      long size,
+                      std::vector<uint8_t>& expected)
+    {
+        // Check mapped whole region
+        U32 wasmPtr = module.mapSharedStateMemory(kv, offset, size);
+        U8* hostPtr = Runtime::memoryArrayPtr<U8>(
+          module.defaultMemory, (Uptr)wasmPtr, (Uptr)size);
 
-    std::vector<uint8_t> actual(hostPtr, hostPtr + size);
-    REQUIRE(actual == expected);
-}
+        std::vector<uint8_t> actual(hostPtr, hostPtr + size);
+        REQUIRE(actual == expected);
+    }
+};
 
-TEST_CASE("Test loading state into wasm module", "[wasm]")
+TEST_CASE_METHOD(WasmStateTestFixture,
+                 "Test loading state into wasm module",
+                 "[wasm]")
 {
-    cleanSystem();
-
     wasm::WAVMWasmModule moduleA;
     wasm::WAVMWasmModule moduleB;
 
@@ -58,27 +64,26 @@ TEST_CASE("Test loading state into wasm module", "[wasm]")
     value[offsetB2] = markerB2;
 
     // Get the kv
-    faabric::state::State& s = faabric::state::getGlobalState();
     const std::string user = "demo";
     const std::string key = "wasm_state_test";
-    auto kv = s.getKV(user, key, stateSize);
+    auto kv = state.getKV(user, key, stateSize);
 
     // Write the value to the key-value
     kv->set(value.data());
 
     // Check mapping the whole region
-    _checkMapping(moduleA, kv, 0, stateSize, value);
+    checkMapping(moduleA, kv, 0, stateSize, value);
 
     // Map a segment of that module to the same value
     std::vector<uint8_t> expectedA2 = { 1, markerA1, 1, 1 };
-    _checkMapping(moduleA, kv, offsetA1 - 1, 4, expectedA2);
+    checkMapping(moduleA, kv, offsetA1 - 1, 4, expectedA2);
 
     // Map a segment of a different module and check
     std::vector<uint8_t> expectedB1 = { 1, 1, 1, markerB1, 1, 1, 1 };
-    _checkMapping(moduleB, kv, offsetB1 - 3, 7, expectedB1);
+    checkMapping(moduleB, kv, offsetB1 - 3, 7, expectedB1);
 
     // Map a segment of a different module and check
     std::vector<uint8_t> expectedB2 = { 1, 1, 1, 1, 1, markerB2, 1 };
-    _checkMapping(moduleB, kv, offsetB2 - 5, 7, expectedB2);
+    checkMapping(moduleB, kv, offsetB2 - 5, 7, expectedB2);
 }
 }

@@ -1,6 +1,8 @@
-#include "WAVMWasmModule.h"
 #include "syscalls.h"
 
+#include <wavm/WAVMWasmModule.h>
+
+#include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/logging.h>
@@ -10,6 +12,7 @@
 #include <WAVM/WASI/WASIABI.h>
 
 using namespace WAVM;
+using namespace faabric::scheduler;
 
 namespace wasm {
 void getBytesFromWasm(I32 dataPtr, I32 dataLen, uint8_t* buffer)
@@ -42,7 +45,7 @@ std::pair<std::string, std::string> getUserKeyPairFromWasm(I32 keyPtr)
     Runtime::Memory* memoryPtr = getExecutingWAVMModule()->defaultMemory;
     char* key = &Runtime::memoryRef<char>(memoryPtr, (Uptr)keyPtr);
 
-    const faabric::Message* call = getExecutingCall();
+    const faabric::Message* call = &ExecutorContext::get()->getMsg();
     return std::pair<std::string, std::string>(call->user(), key);
 }
 

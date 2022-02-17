@@ -35,7 +35,8 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     std::vector<std::string> expected = { "",      ".",      "..",
                                           "hosts", "passwd", "resolv.conf" };
 
-    faabric::Message msg = faabric::util::messageFactory("demo", "getdents");
+    auto req = setUpContext("demo", "getdents");
+    faabric::Message& msg = req->mutable_messages()->at(0);
 
     const std::string result = execFunctionWithStringResult(msg);
     std::vector<std::string> actual = splitString(result, ",");
@@ -57,15 +58,16 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test listdir",
                  "[faaslet]")
 {
-    faabric::Message msg = faabric::util::messageFactory("demo", "listdir");
-    execFunction(msg);
+    auto req = setUpContext("demo", "listdir");
+    execFunction(req);
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test fcntl",
                  "[faaslet][wamr]")
 {
-    faabric::Message msg = faabric::util::messageFactory("demo", "fcntl");
+    auto req = setUpContext("demo", "fcntl");
+    faabric::Message& msg = req->mutable_messages()->at(0);
 
     SECTION("WAVM") { execFunction(msg); }
 
@@ -76,7 +78,8 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 // when fixed.
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fread", "[faaslet]")
 {
-    faabric::Message msg = faabric::util::messageFactory("demo", "fread");
+    auto req = setUpContext("demo", "fread");
+    faabric::Message& msg = req->mutable_messages()->at(0);
 
     SECTION("WAVM") { execFunction(msg); }
 
@@ -87,7 +90,8 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test fstat",
                  "[faaslet][wamr]")
 {
-    faabric::Message msg = faabric::util::messageFactory("demo", "fstat");
+    auto req = setUpContext("demo", "fstat");
+    faabric::Message& msg = req->mutable_messages()->at(0);
 
     SECTION("WAVM") { execFunction(msg); }
 
@@ -98,7 +102,8 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test file operations",
                  "[faaslet][wamr]")
 {
-    faabric::Message msg = faabric::util::messageFactory("demo", "file");
+    auto req = setUpContext("demo", "file");
+    faabric::Message& msg = req->mutable_messages()->at(0);
 
     SECTION("WAVM") { execFunction(msg); }
 
@@ -109,8 +114,8 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test file descriptors",
                  "[faaslet][wamr]")
 {
-    faabric::Message msg =
-      faabric::util::messageFactory("demo", "filedescriptor");
+    auto req = setUpContext("demo", "filedescriptor");
+    faabric::Message& msg = req->mutable_messages()->at(0);
 
     SECTION("WAVM") { execFunction(msg); }
 

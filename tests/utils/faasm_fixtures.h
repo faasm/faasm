@@ -13,6 +13,10 @@
 
 namespace tests {
 
+/**
+ * Fixture to provide access to the global Faasm config and resets it after each
+ * test.
+ */
 class FaasmConfTestFixture
 {
   public:
@@ -25,6 +29,9 @@ class FaasmConfTestFixture
     conf::FaasmConfig& conf;
 };
 
+/**
+ * Fixture that sets up a dummy S3 bucket and deletes it after each test.
+ */
 class S3TestFixture
 {
   public:
@@ -46,6 +53,10 @@ class S3TestFixture
     conf::FaasmConfig& conf;
 };
 
+/**
+ * Fixture that sets up a dummy bucket for holding shared files, and deletes
+ * it after each test.
+ */
 class SharedFilesTestFixture : public S3TestFixture
 {
   public:
@@ -61,13 +72,50 @@ class SharedFilesTestFixture : public S3TestFixture
     storage::FileLoader& loader;
 };
 
-class FunctionExecTestFixture : public SchedulerTestFixture
+/**
+ * Fixture that clears the WASM IR cache before and after each test.
+ */
+class IRModuleCacheTestFixture
+{
+  public:
+    IRModuleCacheTestFixture();
+    ~IRModuleCacheTestFixture();
+};
+
+/**
+ * Fixture that clears the WAVM module cache before and after each test.
+ */
+class WAVMModuleCacheTestFixture
+{
+  public:
+    WAVMModuleCacheTestFixture();
+    ~WAVMModuleCacheTestFixture();
+
+  protected:
+    wasm::WAVMModuleCache& moduleCache;
+};
+
+/**
+ * Convenience fixture that bundles all fixtures necessary for executing
+ * functions and tidying up afterwards (resetting the scheduler, clearning
+ * caches etc.).
+ */
+class FunctionExecTestFixture
+  : public SchedulerTestFixture
+  , public WAVMModuleCacheTestFixture
+  , public IRModuleCacheTestFixture
+  , public ExecutorContextTestFixture
 {
   public:
     FunctionExecTestFixture() {}
-    ~FunctionExecTestFixture() { wasm::getWAVMModuleCache().clear(); }
+    ~FunctionExecTestFixture() {}
 };
 
+/**
+ * Convenience fixture that combines the standard function executor fixture with
+ * Faasm config, allowing tests to switch the WASM runtime and ensure it's reset
+ * afterwards.
+ */
 class MultiRuntimeFunctionExecTestFixture
   : public FaasmConfTestFixture
   , public FunctionExecTestFixture
@@ -77,6 +125,10 @@ class MultiRuntimeFunctionExecTestFixture
     ~MultiRuntimeFunctionExecTestFixture() {}
 };
 
+/**
+ * Fixture that supports checks around loading function wasm and machine code
+ * files, deleting all of them after each test.
+ */
 class FunctionLoaderTestFixture : public S3TestFixture
 {
   public:
