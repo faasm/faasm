@@ -1,6 +1,7 @@
 #include <enclave/outside/EnclaveInterface.h>
 #include <enclave/outside/ecalls.h>
 #include <enclave/outside/system.h>
+#include <faabric/util/gids.h> // TODO - remove me
 #include <wasm/WasmExecutionContext.h>
 
 #include <faabric/util/func.h>
@@ -9,6 +10,7 @@ using namespace sgx;
 
 namespace wasm {
 EnclaveInterface::EnclaveInterface()
+  : threadId(faabric::util::generateGid())
 {
     checkSgxSetup();
 
@@ -42,7 +44,7 @@ void EnclaveInterface::doBindToFunction(faabric::Message& msg, bool cache)
                                     &returnValue,
                                     (void*)wasmBytes.data(),
                                     (uint32_t)wasmBytes.size(),
-                                    &threadId);
+                                    threadId);
     processECallErrors("Unable to enter enclave", status, returnValue);
 
     // Set up the thread stacks
