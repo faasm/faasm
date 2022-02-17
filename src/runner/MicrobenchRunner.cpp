@@ -68,6 +68,7 @@ int doRun(std::ofstream& outFs,
 
     // Create faaslet
     faaslet::Faaslet f(msg);
+    faabric::scheduler::setExecutingExecutor(&f);
 
     // Preflight if necessary
     if (PREFLIGHT_CALLS) {

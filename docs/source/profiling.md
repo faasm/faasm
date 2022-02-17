@@ -143,7 +143,7 @@ inv dev.cc func_runner
 
 Then do a profiling run with:
 
-```
+```bash
 # Standard CPU profiling of demo/hello (too short for meaningful profile)
 perf record -k 1 -F 99 -g func_runner demo hello
 
@@ -193,16 +193,3 @@ Once the call has `SUCCEDED` you may generate the execution graph with:
 ```bash
 inv invoke.exec-graph --call-id <CALL_ID>
 ```
-
-## Valgrind
-
-WAVM seems to require a large stack, so you'll have to bump up the
-`main-stacksize`. An example run with Callgrind might look like:
-
-```bash
-valgrind --tool=callgrind --main-stacksize=16777216 func_runner demo hello
-```
-
-Unfortunately we've not yet worked out a way to get valgrind to include the
-JITed wasm symbols, so at the moment it's only useful for profiling the Faasm
-runtime itself.

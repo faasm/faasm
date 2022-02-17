@@ -94,7 +94,7 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
                              int msgIdx,
                              std::shared_ptr<faabric::BatchExecuteRequest> req)
 {
-    // Lazily setup Faaslet isolation.
+    // Lazily set up Faaslet isolation.
     // This has to be done within the same thread as the execution (hence we
     // leave it until just before execution).
     // Because this is a thread-specific operation we don't need any
