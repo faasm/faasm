@@ -2,9 +2,9 @@
 
 ## Microbenchmarks
 
-Microbenchmarks to examine the raw function throughput or isolation overhead of
-Faasm may wish to use the
-[`microbenchmark_runner`](../src/runner/microbenchmark_runner.cpp) script.
+Microbenchmarks are useful for assessing the raw function throughput or
+isolation overhead of Faasm, and can be run using the
+[`microbenchmark_runner`](../src/runner/microbenchmark_runner.cpp) target.
 
 Once built, usage is:
 
@@ -43,7 +43,7 @@ demo,hello,0,29.0,0.18
 These can then be parsed and plotted, as is done in the
 [experiment-microbench](https://github.com/faasm/experiment-microbench) repo.
 
-## High-level
+## Via a GUI on the same machine
 
 To get a quick overview of how things are performing you can use
 [Vector](https://github.com/Netflix/vector) and [Performance
@@ -68,69 +68,19 @@ You should then be able to use Vector to get some high-level performance metrics
 related to whatever you're running in the `faasm-cli` container (e.g. some
 stress-testing script).
 
-## Low-level
+## Using `perf`
 
-Note that although using profilers inside containers is possible, it's best to
-run the on Faasm binaries built and executed outside a container.
+It's easiest to run `perf` on an out-of-container-build (see the [dev
+docs](development.md) on how to set this up).
 
-See the [dev docs](development.md) on how to set this up.
-
-## Set-up
-
-- Build Faasm outside a container, as described in the [dev docs](development.md)
-- Install BCC tools
-- Install `perf`
-- Build LLVM with JIT perf support (see below)
-
-The Ubuntu BCC binaries are quite out of date but should be sufficient. If not
-you can look at their
-[docs](https://github.com/iovisor/bcc/blob/master/INSTALL.md):
-
-```
-sudo apt-get install bpfcc-tools linux-headers-$(uname -r)
-```
-
-Set up `perf` to run without `sudo`:
+Then you can set perf to run without `sudo`:
 
 ```
 sudo sysctl -w kernel.perf_event_paranoid=-1
 sudo sysctl -w kernel.kptr_restrict=0
 ```
 
-## Building LLVM with JIT perf support
-
-You can use perf with a standard Faasm build, but this may have large gaps with
-`perf.<PID>.map`. This is because WAVM uses the LLVM JIT libraries to load and
-execute code at runtime, including any WebAssembly.
-
-Unfortunately the default build of the LLVM JIT libraries doesn't include the
-perf events that we need, so we need to rebuild LLVM with the right flags (takes
-a while):
-
-```bash
-./bin/build_llvm_perf.sh
-```
-
-Now you can rebuild the parts of Faasm you're profiling, e.g.
-
-```bash
-# Note the --perf here to switch on the build against the custom LLVM
-inv dev.cmake --perf --clean
-
-inv dev.cc func_runner
-```
-
-Note that this will also set `-fno-omit-frame-pointer` to the compile flags
-which can also improve the level of detail exposed in the perf data generally.
-
-WebAssembly functions will be output with names like `functionDef123`, see the
-[development docs](development.md) on how to map these back to names in the
-source (using `inv disas`).
-
-Once this is done you can use `perf` with JIT symbols as described
-[here](https://lwn.net/Articles/633846/).
-
-## perf
+### Running `perf`
 
 ```
 # Standard CPU profiling of demo/hello (too short for meaningful profile)
@@ -151,7 +101,7 @@ You can also check the
 [diff](https://github.com/WAVM/WAVM/compare/master...faasm:faasm) of the Faasm
 WAVM fork to see the changes that were made.
 
-## Flame graphs
+### Flame graphs
 
 There is a task in the Faasm CLI for creating
 [Flame graphs](https://github.com/brendangregg/FlameGraph) which automatically
@@ -186,18 +136,35 @@ inv flame <user> <func> --cmd="my_runner <args>"
 firefox flame.svg
 ```
 
-## Valgrind
+## Profiling WebAssembly code with `perf`
 
-WAVM seems to require a large stack, so you'll have to bump up the
-`main-stacksize`. An example run with Callgrind might look like:
+You can use `perf` with a standard Faasm build, but this may have large gaps
+with `perf.<PID>.map`. This is because wasm code will have been built using the
+LLVM JIT libraries, which don't include the perf events that we need.
+
+To rebuild LLVM with the right flags, you can run:
 
 ```bash
-valgrind --tool=callgrind --main-stacksize=16777216 func_runner demo hello
+./bin/build_llvm_perf.sh
 ```
 
-Unfortunately we've not yet worked out a way to get valgrind to include the
-JITed wasm symbols, so at the moment it's only useful for profiling the Faasm
-runtime itself.
+Now you can rebuild the parts of Faasm you're profiling, e.g.
+
+```bash
+# The --perf here to switch on the build against the custom LLVM
+inv dev.cmake --perf --clean
+inv dev.cc func_runner
+```
+
+This should also set `-fno-omit-frame-pointer` which can also improve the level
+of detail exposed in the perf data generally.
+
+WebAssembly functions will be output with names like `functionDef123`, see the
+[development docs](development.md) on how to map these back to names in the
+source (using `inv disas`).
+
+Once this is done you can use `perf` with JIT symbols as described
+[here](https://lwn.net/Articles/633846/).
 
 ## Execution Graphs
 
@@ -223,3 +190,16 @@ Once the call has `SUCCEDED` you may generate the execution graph with:
 ```bash
 inv invoke.exec-graph --call-id <CALL_ID>
 ```
+
+## Valgrind
+
+WAVM seems to require a large stack, so you'll have to bump up the
+`main-stacksize`. An example run with Callgrind might look like:
+
+```bash
+valgrind --tool=callgrind --main-stacksize=16777216 func_runner demo hello
+```
+
+Unfortunately we've not yet worked out a way to get valgrind to include the
+JITed wasm symbols, so at the moment it's only useful for profiling the Faasm
+runtime itself.
