@@ -1,6 +1,7 @@
 #include <enclave/error.h>
-#include <enclave/outside/SGXWAMRWasmModule.h>
+#include <enclave/outside/ecalls.h>
 #include <enclave/outside/system.h>
+#include <faabric/util/logging.h>
 
 #include <boost/filesystem/operations.hpp>
 #include <sgx_urts.h>
@@ -33,7 +34,7 @@ void checkSgxSetup()
     faasm_sgx_status_t returnValue;
 
 #if (!SGX_SIM_MODE)
-    returnValue = faasm_sgx_get_sgx_support();
+    returnValue = getSgxSupport();
     if (returnValue != FAASM_SGX_SUCCESS) {
         SPDLOG_ERROR("Machine doesn't support SGX {}",
                      faasmSgxErrorString(returnValue));
@@ -47,46 +48,24 @@ void checkSgxSetup()
         throw std::runtime_error("Could not find enclave file");
     }
 
-    // Create the enclave
     sgx_status_t sgxReturnValue;
     sgx_launch_token_t sgxEnclaveToken = { 0 };
     uint32_t sgxEnclaveTokenUpdated = 0;
+
+    // Create the enclave
     sgxReturnValue = sgx_create_enclave(FAASM_ENCLAVE_PATH,
                                         SGX_DEBUG_FLAG,
                                         &sgxEnclaveToken,
                                         (int*)&sgxEnclaveTokenUpdated,
                                         &globalEnclaveId,
                                         nullptr);
-
-    if (sgxReturnValue != SGX_SUCCESS) {
-        SPDLOG_ERROR("Unable to create enclave: {}",
-                     sgxErrorString(sgxReturnValue));
-        throw std::runtime_error("Unable to create enclave");
-    }
-
+    processECallErrors("Unable to create enclave", sgxReturnValue);
     SPDLOG_DEBUG("Created SGX enclave: {}", globalEnclaveId);
 
+    // Initialise WebAssembly runtime inside the enclave (WAMR)
     sgxReturnValue = faasm_sgx_enclave_init_wamr(globalEnclaveId, &returnValue);
-    if (sgxReturnValue != SGX_SUCCESS) {
-        SPDLOG_ERROR("Unable to enter enclave: {}",
-                     sgxErrorString(sgxReturnValue));
-        throw std::runtime_error("Unable to enter enclave");
-    }
-
-    if (returnValue != FAASM_SGX_SUCCESS) {
-        if (FAASM_SGX_OCALL_GET_SGX_ERROR(returnValue)) {
-            SPDLOG_ERROR(
-              "Unable to initialise WAMR due to an SGX error: {}",
-              sgxErrorString(
-                (sgx_status_t)FAASM_SGX_OCALL_GET_SGX_ERROR(returnValue)));
-            throw std::runtime_error(
-              "Unable to initialise WAMR due to an SGX error");
-        }
-        SPDLOG_ERROR("Unable to initialise WAMR: {}",
-                     faasmSgxErrorString(returnValue));
-        throw std::runtime_error("Unable to initialise WAMR");
-    }
-
+    processECallErrors(
+      "Unable to initialise WAMR inside enclave", sgxReturnValue, returnValue);
     SPDLOG_DEBUG("Initialised WAMR in SGX enclave {}", globalEnclaveId);
 }
 
@@ -96,12 +75,7 @@ void tearDownEnclave()
     SPDLOG_DEBUG("Destroying enclave {}", globalEnclaveId);
 
     sgx_status_t sgxReturnValue = sgx_destroy_enclave(globalEnclaveId);
-    if (sgxReturnValue != SGX_SUCCESS) {
-        SPDLOG_ERROR("Unable to destroy enclave {}: {}",
-                     globalEnclaveId,
-                     sgxErrorString(sgxReturnValue));
-        throw std::runtime_error("Unable to destroy enclave");
-    }
+    processECallErrors("Unable to destroy enclave", sgxReturnValue);
 
     globalEnclaveId = 0;
 }
@@ -114,22 +88,31 @@ void checkSgxCrypto()
     sgxReturnValue =
       faasm_sgx_enclave_crypto_checks(globalEnclaveId, &faasmReturnValue);
 
+    processECallErrors(
+      "Error running SGX crypto checks", sgxReturnValue, faasmReturnValue);
+
+    SPDLOG_DEBUG("Succesful SGX crypto checks");
+}
+
+void processECallErrors(std::string errorMessage,
+                        sgx_status_t sgxReturnValue,
+                        faasm_sgx_status_t faasmReturnValue)
+{
     if (sgxReturnValue != SGX_SUCCESS) {
-        SPDLOG_ERROR("SGX error in crypto checks: {}",
-                     sgxErrorString(sgxReturnValue));
-        throw std::runtime_error("SGX error in crypto checks");
+        std::string errorText = "(SGX Error) " + errorMessage;
+        SPDLOG_ERROR("{}: {}", errorText, sgxErrorString(sgxReturnValue));
+        throw std::runtime_error(errorText);
     }
 
     if (faasmReturnValue != FAASM_SGX_SUCCESS) {
+        std::string errorText = "(Faasm Error) " + errorMessage;
         if (FAASM_SGX_OCALL_GET_SGX_ERROR(faasmReturnValue)) {
-            throw std::runtime_error("SGX error in crypto checks");
+            throw std::runtime_error(errorText);
         }
-        SPDLOG_ERROR("Error running SGX crypto checks: {}",
-                     faasmSgxErrorString(faasmReturnValue));
-        throw std::runtime_error("Error running SGX crypto checks");
+        SPDLOG_ERROR(
+          "{}: {}", errorText, faasmSgxErrorString(faasmReturnValue));
+        throw std::runtime_error(errorText);
     }
-
-    SPDLOG_DEBUG("Succesful SGX crypto checks");
 }
 
 std::string sgxErrorString(sgx_status_t status)

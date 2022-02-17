@@ -1,6 +1,7 @@
-#include <enclave/outside/SGXWAMRWasmModule.h>
+#include <enclave/outside/EnclaveInterface.h>
 #include <wasm/chaining.h>
 
+#include <cstdio>
 #include <cstring>
 
 using namespace faabric::state;
@@ -12,7 +13,6 @@ using namespace faabric::state;
 
 extern "C"
 {
-
     uint64_t ocall_faasm_read_state(const char* key,
                                     uint8_t* bufferPtr,
                                     const uint32_t bufferLen)
@@ -230,4 +230,6 @@ extern "C"
             return module->growMemory(increment);
         }
     }
+
+    void ocall_printf(const char* msg) { printf("%s", msg); }
 }
