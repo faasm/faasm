@@ -9,7 +9,9 @@
 // Implementation of the ECalls API
 extern "C"
 {
-    static std::unordered_map<uint32_t, std::shared_ptr<wasm::EnclaveWasmModule>> moduleMap;
+    static std::unordered_map<uint32_t,
+                              std::shared_ptr<wasm::EnclaveWasmModule>>
+      moduleMap;
     static std::mutex moduleMapMutex;
 
     faasm_sgx_status_t faasm_sgx_enclave_init_wamr(void)
@@ -28,10 +30,9 @@ extern "C"
         return FAASM_SGX_SUCCESS;
     }
 
-    faasm_sgx_status_t faasm_sgx_enclave_load_module(
-      void* wasm_opcode_ptr,
-      uint32_t wasm_opcode_size,
-      uint32_t faaslet_id)
+    faasm_sgx_status_t faasm_sgx_enclave_load_module(void* wasm_opcode_ptr,
+                                                     uint32_t wasm_opcode_size,
+                                                     uint32_t faaslet_id)
     {
         // Check if passed wasm opcode size or wasm opcode ptr is zero
         if (!wasm_opcode_size) {
@@ -50,7 +51,8 @@ extern "C"
             }
 
             moduleMap[faaslet_id] = std::make_shared<wasm::EnclaveWasmModule>();
-            if (!moduleMap[faaslet_id]->loadWasm(wasm_opcode_ptr, wasm_opcode_size)) {
+            if (!moduleMap[faaslet_id]->loadWasm(wasm_opcode_ptr,
+                                                 wasm_opcode_size)) {
                 ocall_faasm_log_error("Error loading WASM to module");
                 return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
             }
