@@ -60,33 +60,18 @@ int mainDataOffset = 4863252;
 int dataAOffset = 16231136;
 int dataBOffset = 21692416;
 
-// NOTE - we don't get perfect pakcing of the indexing, so each module has
+// NOTE - we don't get perfect packing of the indexing, so each module has
 // an arbitrary extra offset.
 int extraTableEntriesModA = 18;
 int extraTableEntriesModB = 32;
 
-class IRModuleCacheTestFixture
-{
-  public:
-    IRModuleCacheTestFixture()
-      : irModuleCache(wasm::getIRModuleCache())
-    {
-        irModuleCache.clear();
-    }
-    ~IRModuleCacheTestFixture() { irModuleCache.clear(); }
-
-  protected:
-    wasm::IRModuleCache& irModuleCache;
-};
-
-class DynamicModulesFixture
-  : public FunctionExecTestFixture
-  , public IRModuleCacheTestFixture
+class DynamicModulesFixture : public FunctionExecTestFixture
 {
   public:
     DynamicModulesFixture()
       : conf(faabric::util::getSystemConfig())
       , faasmConf(conf::getFaasmConfig())
+      , irModuleCache(wasm::getIRModuleCache())
     {}
 
     ~DynamicModulesFixture()
@@ -138,6 +123,7 @@ class DynamicModulesFixture
   protected:
     faabric::util::SystemConfig& conf;
     conf::FaasmConfig& faasmConf;
+    wasm::IRModuleCache& irModuleCache;
 };
 
 TEST_CASE_METHOD(DynamicModulesFixture,
