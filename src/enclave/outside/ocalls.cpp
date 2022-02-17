@@ -1,6 +1,6 @@
 #include <faabric/scheduler/ExecutorContext.h>
-#include <enclave/outside/EnclaveInterface.h>
 
+#include <enclave/outside/EnclaveInterface.h>
 #include <wasm/chaining.h>
 
 #include <cstdio>
