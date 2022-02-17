@@ -75,31 +75,16 @@ docs](development.md) on how to set this up).
 
 Then you can set perf to run without `sudo`:
 
-```
+```bash
 sudo sysctl -w kernel.perf_event_paranoid=-1
 sudo sysctl -w kernel.kptr_restrict=0
 ```
 
-### Running `perf`
+And a standard profiling run:
 
+```bash
+perf record --call-graph func_runner demo echo
 ```
-# Standard CPU profiling of demo/hello (too short for meaningful profile)
-perf record -k 1 -F 99 -g func_runner demo hello
-
-# Inject the JIT dumps into perf data
-perf inject -i perf.data -j -o perf.data.jit
-
-# View the report
-perf report -i perf.data.jit
-```
-
-Note that if the `perf` notifier isn't working, check that the code isn't
-getting excluded by the pre-processor by looking at the WAVM `LLVMModule.cpp`
-file and grepping for `WAVM_PERF_EVENTS`.
-
-You can also check the
-[diff](https://github.com/WAVM/WAVM/compare/master...faasm:faasm) of the Faasm
-WAVM fork to see the changes that were made.
 
 ### Flame graphs
 
@@ -156,12 +141,30 @@ inv dev.cmake --perf --clean
 inv dev.cc func_runner
 ```
 
-This should also set `-fno-omit-frame-pointer` which can also improve the level
-of detail exposed in the perf data generally.
+Then do a profiling run with:
+
+```
+# Standard CPU profiling of demo/hello (too short for meaningful profile)
+perf record -k 1 -F 99 -g func_runner demo hello
+
+# Inject the JIT dumps into perf data
+perf inject -i perf.data -j -o perf.data.jit
+
+# View the report
+perf report -i perf.data.jit
+```
 
 WebAssembly functions will be output with names like `functionDef123`, see the
 [development docs](development.md) on how to map these back to names in the
 source (using `inv disas`).
+
+Note that if the `perf` notifier isn't working, check that the code isn't
+getting excluded by the pre-processor by looking at the WAVM `LLVMModule.cpp`
+file and grepping for `WAVM_PERF_EVENTS`.
+
+You can also check the
+[diff](https://github.com/WAVM/WAVM/compare/master...faasm:faasm) of the Faasm
+WAVM fork to see the changes that were made.
 
 Once this is done you can use `perf` with JIT symbols as described
 [here](https://lwn.net/Articles/633846/).
