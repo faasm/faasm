@@ -31,10 +31,8 @@ void checkLine(const std::string& line,
     REQUIRE(lineParts[2] == "0");
 
     float runTime = std::stof(lineParts[3]);
-    float resetTime = std::stof(lineParts[4]);
 
     REQUIRE(runTime > 0);
-    REQUIRE(resetTime > 0);
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,

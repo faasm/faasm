@@ -1,4 +1,3 @@
-#include "faabric/proto/faabric.pb.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <fstream>
@@ -12,6 +11,7 @@
 #include <wasm/WasmModule.h>
 #include <wavm/WAVMWasmModule.h>
 
+#include <faabric/proto/faabric.pb.h>
 #include <faabric/runner/FaabricMain.h>
 #include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/ExecutorFactory.h>

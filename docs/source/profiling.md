@@ -83,7 +83,7 @@ sudo sysctl -w kernel.kptr_restrict=0
 And a standard profiling run:
 
 ```bash
-perf record --call-graph func_runner demo echo
+perf record --call-graph dwarf func_runner demo echo
 ```
 
 ### Flame graphs
