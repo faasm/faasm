@@ -1,6 +1,7 @@
 #include <enclave/error.h>
-#include <enclave/outside/SGXWAMRWasmModule.h>
+#include <enclave/outside/ecalls.h>
 #include <enclave/outside/system.h>
+#include <faabric/util/logging.h>
 
 #include <boost/filesystem/operations.hpp>
 #include <sgx_urts.h>
