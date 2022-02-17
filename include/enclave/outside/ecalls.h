@@ -38,4 +38,3 @@ extern "C"
       sgx_enclave_id_t enclave_id,
       faasm_sgx_status_t* ret_val);
 }
-

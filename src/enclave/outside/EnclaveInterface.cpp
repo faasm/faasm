@@ -1,5 +1,5 @@
-#include <enclave/outside/ecalls.h>
 #include <enclave/outside/EnclaveInterface.h>
+#include <enclave/outside/ecalls.h>
 #include <enclave/outside/system.h>
 #include <faabric/util/func.h>
 #include <wasm/WasmExecutionContext.h>
@@ -42,17 +42,7 @@ void EnclaveInterface::doBindToFunction(faabric::Message& msg, bool cache)
                                     (void*)wasmBytes.data(),
                                     (uint32_t)wasmBytes.size(),
                                     &threadId);
-
-    if (status != SGX_SUCCESS) {
-        SPDLOG_ERROR("Unable to enter enclave: {}", sgxErrorString(status));
-        throw std::runtime_error("Unable to enter enclave");
-    }
-
-    if (returnValue != FAASM_SGX_SUCCESS) {
-        SPDLOG_ERROR("Unable to load WASM module: {}",
-                     faasmSgxErrorString(returnValue));
-        throw std::runtime_error("Unable to load WASM module");
-    }
+    processECallErrors("Unable to enter enclave", status, returnValue);
 
     // Set up the thread stacks
     // 28/06/2021 - Threading is not supported in SGX-WAMR. However, the Faasm
@@ -72,18 +62,9 @@ bool EnclaveInterface::unbindFunction()
     faasm_sgx_status_t returnValue;
     sgx_status_t sgxReturnValue = faasm_sgx_enclave_unload_module(
       sgx::getGlobalEnclaveId(), &returnValue, threadId);
-
-    if (sgxReturnValue != SGX_SUCCESS) {
-        SPDLOG_ERROR("Unable to unbind function due to SGX error: {}",
-                     sgxErrorString(sgxReturnValue));
-        throw std::runtime_error("Unable to unbind function due to SGX error");
-    }
-
-    if (returnValue != FAASM_SGX_SUCCESS) {
-        SPDLOG_ERROR("Unable to unbind function: {}",
-                     faasmSgxErrorString(returnValue));
-        throw std::runtime_error("Unable to unbind function");
-    }
+    processECallErrors("Error trying to unload module from enclave",
+                       sgxReturnValue,
+                       returnValue);
 
     return true;
 }
@@ -103,26 +84,8 @@ int32_t EnclaveInterface::executeFunction(faabric::Message& msg)
     faasm_sgx_status_t returnValue;
     sgx_status_t sgxReturnValue = faasm_sgx_enclave_call_function(
       sgx::getGlobalEnclaveId(), &returnValue, threadId);
-
-    if (sgxReturnValue != SGX_SUCCESS) {
-        SPDLOG_ERROR("Unable to enter enclave: {}",
-                     sgxErrorString(sgxReturnValue));
-        throw std::runtime_error("Unable to enter enclave");
-    }
-
-    if (returnValue != FAASM_SGX_SUCCESS) {
-        // Check if an ocall has failed
-        sgxReturnValue =
-          (sgx_status_t)FAASM_SGX_OCALL_GET_SGX_ERROR(returnValue);
-        if (sgxReturnValue) {
-            SPDLOG_ERROR("An OCALL failed: {}", sgxErrorString(sgxReturnValue));
-            throw std::runtime_error("OCALL failed");
-        }
-
-        SPDLOG_ERROR("Error occurred during function execution: {}",
-                     faasmSgxErrorString(returnValue));
-        throw std::runtime_error("Error occurred during function execution");
-    }
+    processECallErrors(
+      "Error running function inside enclave", sgxReturnValue, returnValue);
 
     return 0;
 }

@@ -1,8 +1,8 @@
 #include <enclave/outside/EnclaveInterface.h>
 #include <wasm/chaining.h>
 
-#include <cstring>
 #include <cstdio>
+#include <cstring>
 
 using namespace faabric::state;
 
