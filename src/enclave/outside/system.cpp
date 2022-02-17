@@ -34,7 +34,7 @@ void checkSgxSetup()
     faasm_sgx_status_t returnValue;
 
 #if (!SGX_SIM_MODE)
-    returnValue = faasm_sgx_get_sgx_support();
+    returnValue = getSgxSupport();
     if (returnValue != FAASM_SGX_SUCCESS) {
         SPDLOG_ERROR("Machine doesn't support SGX {}",
                      faasmSgxErrorString(returnValue));

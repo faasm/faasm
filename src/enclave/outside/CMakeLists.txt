@@ -33,7 +33,7 @@ set(ENCLAVE_UNTRUSTED_HEADERS
 )
 
 set(ENCLAVE_UNTRUSTED_ASM_SRC
-    SGXWAMRWasmModule.S
+    getSgxSupport.S
 )
 
 set_source_files_properties(${ENCLAVE_UNTRUSTED_ASM_SRC}
