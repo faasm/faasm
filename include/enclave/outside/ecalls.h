@@ -1,13 +1,5 @@
-#pragma once
-
 #include <enclave/error.h>
 
-#include <storage/FileLoader.h>
-#include <storage/FileSystem.h>
-#include <wasm/WasmExecutionContext.h>
-#include <wasm/WasmModule.h>
-
-// Non-faasm SGX includes
 #include <sgx.h>
 #include <sgx_urts.h>
 
@@ -45,35 +37,4 @@ extern "C"
     extern sgx_status_t faasm_sgx_enclave_crypto_checks(
       sgx_enclave_id_t enclave_id,
       faasm_sgx_status_t* ret_val);
-}
-
-namespace wasm {
-// This class interfaces between an untrusted Faasm runtime running outside any
-// enclave, and a WebAssembly runtime (WAMR) running inside.
-// This class lives _outside_ the enclave, in an untrusted region, but is the
-// single entrypoint to the enclave.
-class SGXWAMRWasmModule final : public WasmModule
-{
-  public:
-    explicit SGXWAMRWasmModule();
-
-    ~SGXWAMRWasmModule() override;
-
-    void doBindToFunction(faabric::Message& msg, bool cache) override;
-
-    bool unbindFunction();
-
-    int32_t executeFunction(faabric::Message& msg) override;
-
-    uint32_t growMemory(size_t nBytes) override;
-
-    uint32_t shrinkMemory(size_t nBytes) override;
-
-    size_t getMemorySizeBytes() override;
-
-    uint8_t* getMemoryBase() override;
-
-  private:
-    uint32_t threadId = 0;
-};
 }

@@ -107,3 +107,5 @@ add_subdirectory(inside)
 # --------------------------------------------------------
 add_subdirectory(outside)
 
+# Set dependency so that trusted code gets built with all major CMake targets
+add_dependencies(enclave_untrusted enclave_trusted)
