@@ -1,6 +1,7 @@
 #include <enclave/outside/EnclaveInterface.h>
 #include <enclave/outside/ecalls.h>
 #include <enclave/outside/system.h>
+#include <faabric/util/gids.h> // TODO - remove me
 #include <wasm/WasmExecutionContext.h>
 
 #include <faabric/util/func.h>
@@ -8,7 +9,9 @@
 using namespace sgx;
 
 namespace wasm {
+
 EnclaveInterface::EnclaveInterface()
+  : interfaceId(faabric::util::generateGid())
 {
     checkSgxSetup();
 
@@ -42,7 +45,7 @@ void EnclaveInterface::doBindToFunction(faabric::Message& msg, bool cache)
                                     &returnValue,
                                     (void*)wasmBytes.data(),
                                     (uint32_t)wasmBytes.size(),
-                                    &threadId);
+                                    interfaceId);
     processECallErrors("Unable to enter enclave", status, returnValue);
 
     // Set up the thread stacks
@@ -62,7 +65,7 @@ bool EnclaveInterface::unbindFunction()
 
     faasm_sgx_status_t returnValue;
     sgx_status_t sgxReturnValue = faasm_sgx_enclave_unload_module(
-      sgx::getGlobalEnclaveId(), &returnValue, threadId);
+      sgx::getGlobalEnclaveId(), &returnValue, interfaceId);
     processECallErrors("Error trying to unload module from enclave",
                        sgxReturnValue,
                        returnValue);
@@ -84,7 +87,7 @@ int32_t EnclaveInterface::executeFunction(faabric::Message& msg)
     // Enter enclave and call function
     faasm_sgx_status_t returnValue;
     sgx_status_t sgxReturnValue = faasm_sgx_enclave_call_function(
-      sgx::getGlobalEnclaveId(), &returnValue, threadId);
+      sgx::getGlobalEnclaveId(), &returnValue, interfaceId);
     processECallErrors(
       "Error running function inside enclave", sgxReturnValue, returnValue);
 

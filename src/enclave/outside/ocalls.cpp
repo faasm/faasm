@@ -238,5 +238,13 @@ extern "C"
         }
     }
 
-    void ocall_printf(const char* msg) { printf("%s", msg); }
+    void ocall_faasm_log_debug(const char* msg)
+    {
+        SPDLOG_DEBUG("[enclave] {}", msg);
+    }
+
+    void ocall_faasm_log_error(const char* msg)
+    {
+        SPDLOG_ERROR("[enclave] {}", msg);
+    }
 }

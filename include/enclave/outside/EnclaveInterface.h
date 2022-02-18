@@ -12,10 +12,13 @@
 #include <sgx_urts.h>
 
 namespace wasm {
-// This class interfaces between an untrusted Faasm runtime running outside any
-// enclave, and a WebAssembly runtime (WAMR) running inside.
-// This class lives _outside_ the enclave, in an untrusted region, but is the
-// single entrypoint to the enclave.
+/*
+ * This class interfaces between an untrusted Faasm runtime running outside any
+ * enclave, and a WebAssembly runtime (WAMR) running inside.
+ * This class lives _outside_ the enclave, in an untrusted region, but is the
+ * single entrypoint to the enclave. It is _not_ a WebAssembly module, but it
+ * implements the stubs to operate with Faaslets.
+ */
 class EnclaveInterface final : public WasmModule
 {
   public:
@@ -38,6 +41,6 @@ class EnclaveInterface final : public WasmModule
     uint8_t* getMemoryBase() override;
 
   private:
-    uint32_t threadId = 0;
+    uint32_t interfaceId = 0;
 };
 }

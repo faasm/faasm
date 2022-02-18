@@ -14,7 +14,10 @@ set(ENCLAVE_TRUSTED_C_FLAGS
 )
 
 set(ENCLAVE_TRUSTED_CXX_FLAGS
+    -frtti
     -Wnon-virtual-dtor
+    # https://github.com/intel/linux-sgx/issues/545
+    -Wno-implicit-exception-spec-mismatch
     -std=c++11
     -nostdinc++
 )
@@ -25,23 +28,22 @@ set(ENCLAVE_TRUSTED_CXX_FLAGS
 
 set(ENCLAVE_TRUSTED_HEADERS
     ${FAASM_INCLUDE_DIR}/enclave/error.h
-    ${FAASM_INCLUDE_DIR}/enclave/inside/enclave_config.h
+    ${FAASM_INCLUDE_DIR}/enclave/inside/EnclaveWasmModule.h
     ${FAASM_INCLUDE_DIR}/enclave/inside/enclave_types.h
     ${FAASM_INCLUDE_DIR}/enclave/inside/native.h
     ${FAASM_INCLUDE_DIR}/enclave/inside/ocalls.h
-    ${FAASM_INCLUDE_DIR}/enclave/inside/rw_lock.h
 )
 
 set(ENCLAVE_TRUSTED_SRC
+    EnclaveWasmModule.cpp
     checks.cpp
-    enclave.cpp
+    ecalls.cpp
     env.cpp
     filesystem.cpp
     funcs.cpp
     memory.cpp
     native.cpp
     pthread.cpp
-    rw_lock.cpp
     state.cpp
     ${ENCLAVE_TRUSTED_HEADERS}
 )
