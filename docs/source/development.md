@@ -288,12 +288,13 @@ kept up to date, so YMMV:
 ### LLVM and Clang
 
 LLVM and Clang can be installed using the script from the LLVM website (we use
-13 at the time of writing):
+13 _and_ 10 at the time of writing):
 
 ```bash
 wget https://apt.llvm.org/llvm.sh
 chmod +x llvm.sh
 sudo ./llvm.sh 13
+sudo ./llvm.sh 10
 ```
 
 You then need to make sure all the tooling and latest C++ stdlib is installed:
