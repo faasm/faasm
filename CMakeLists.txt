@@ -22,9 +22,9 @@ option(FAASM_SGX_ATTESTATION "Turn on attestation" OFF)
 option(FAASM_SGX_XRA "Turn on support for XRA" OFF)
 
 # Top-level CMake config
-if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
-    add_compile_options(-march=skylake -mtune=skylake)
-endif ()
+# if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+#     add_compile_options(-march=skylake -mtune=skylake)
+# endif ()
 set(CMAKE_CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_STANDARD 20)
@@ -183,7 +183,10 @@ else ()
     find_package(LLVM REQUIRED CONFIG)
 endif ()
 
-message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+separate_arguments(LLVM_DEFINITIONS)
+separate_arguments(LLVM_INCLUDE_DIRS)
+
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION} (${LLVM_INCLUDE_DIRS})")
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
