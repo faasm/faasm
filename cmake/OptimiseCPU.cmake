@@ -1,7 +1,3 @@
-
-set(CPU_ARCH "none")
-set(CPU_ARCH_FLAGS "")
-
 set(CPU_VENDOR)
 set(CPU_FAMILY)
 set(CPU_MODEL)
@@ -19,13 +15,12 @@ string(REGEX REPLACE ".*flags[ \t]*:[ \t]+([^\n]+).*" "\\1"
 
 message("Found CPU: Vendor = ${CPU_VENDOR} Family = ${CPU_FAMILY} Model = ${CPU_MODEL} Props = ${CPU_PROPS}")
 
-set(CPU_COMPILE_FLAGS)
-
 # See this file for an example of extending this list:
 # https://github.com/VcDevel/Vc/blob/1.4/cmake/OptimizeForArchitecture.cmake
 # See the LLVM source for list of supported arch, e.g. this test:
 # https://github.com/llvm/llvm-project/blob/main/clang/test/Driver/x86-march.c
 
+set(CPU_COMPILE_FLAGS)
 if(CPU_VENDOR STREQUAL "GenuineIntel")
     if(CPU_FAMILY EQUAL 6)
         if(CPU_MODEL EQUAL 78 OR CPU_MODEL EQUAL 94)
