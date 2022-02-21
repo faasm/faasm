@@ -16,6 +16,7 @@ option(FAASM_PERF_PROFILING "Turn on profiling features as described in debuggin
 
 # SGX functionality
 # These options customise the SGX features _provided_ SGX is found
+unset(FAASM_SGX CACHE)
 option(FAASM_SGX "Enable SGX support" ON)
 option(FAASM_SGX_SIM_MODE "Turn on SGX sim mode" ON)
 option(FAASM_SGX_ATTESTATION "Turn on attestation" OFF)
@@ -70,8 +71,6 @@ elseif (FAASM_USE_SANITISER STREQUAL "Memory")
     set(FAASM_SGX OFF)
 elseif (NOT ((FAASM_USE_SANITISER STREQUAL "None") OR (NOT FAASM_USE_SANITISER)))
     message(FATAL_ERROR "Invalid FAASM_USE_SANITISER setting: ${FAASM_USE_SANITISER}")
-else ()
-    set(FAASM_SGX ON)
 endif()
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
