@@ -14,7 +14,7 @@ extern "C"
       moduleMap;
     static std::mutex moduleMapMutex;
 
-    faasm_sgx_status_t faasm_sgx_enclave_init_wamr(void)
+    faasm_sgx_status_t ecallInitWamr(void)
     {
         // Initialise WAMR once for all modules
         ocall_faasm_log_debug("Initialising WAMR runtime");
@@ -29,9 +29,9 @@ extern "C"
         return FAASM_SGX_SUCCESS;
     }
 
-    faasm_sgx_status_t faasm_sgx_enclave_load_module(void* wasm_opcode_ptr,
-                                                     uint32_t wasm_opcode_size,
-                                                     uint32_t faaslet_id)
+    faasm_sgx_status_t ecallLoadModule(void* wasm_opcode_ptr,
+                                       uint32_t wasm_opcode_size,
+                                       uint32_t faaslet_id)
     {
         // Check if passed wasm opcode size or wasm opcode ptr is zero
         if (!wasm_opcode_size) {
@@ -60,7 +60,7 @@ extern "C"
         return FAASM_SGX_SUCCESS;
     }
 
-    faasm_sgx_status_t faasm_sgx_enclave_unload_module(uint32_t faaslet_id)
+    faasm_sgx_status_t ecallUnloadModule(uint32_t faaslet_id)
     {
         std::unique_lock<std::mutex> lock(moduleMapMutex);
         if (moduleMap.find(faaslet_id) == moduleMap.end()) {
@@ -74,7 +74,7 @@ extern "C"
         return FAASM_SGX_SUCCESS;
     }
 
-    faasm_sgx_status_t faasm_sgx_enclave_call_function(uint32_t faaslet_id)
+    faasm_sgx_status_t ecallCallFunction(uint32_t faaslet_id)
     {
         std::shared_ptr<wasm::EnclaveWasmModule> module = nullptr;
 
