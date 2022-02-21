@@ -44,7 +44,6 @@ set(ENCLAVE_TRUSTED_SRC
     memory.cpp
     native.cpp
     pthread.cpp
-    state.cpp
     ${ENCLAVE_TRUSTED_HEADERS}
 )
 
