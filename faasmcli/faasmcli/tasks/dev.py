@@ -51,7 +51,7 @@ def cmake(
         "-DFAABRIC_SELF_TRACING=ON" if prof else "",
         "-DFAASM_USE_SANITISER={}".format(sanitiser),
         "-DFAABRIC_USE_SANITISER={}".format(sanitiser),
-        "-DFAASM_SGX=OFF" if nosgx else "",
+        "-DFAASM_SGX={}".format("OFF" if nosgx else "ON"),
         PROJ_ROOT,
     ]
 
