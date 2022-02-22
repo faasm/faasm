@@ -66,14 +66,14 @@ bool EnclaveWasmModule::callFunction()
                                             argv.data());
 
     if (success) {
-        ocall_faasm_log_debug("Success calling WASM function");
+        ocallLogDebug("Success calling WASM function");
     } else {
         std::string errorMessage(
           ((AOTModuleInstance*)moduleInstance)->cur_exception);
         // TODO - better logging
         std::string errorText =
           "Caught WASM runtime exception: " + errorMessage;
-        ocall_faasm_log_error(errorText.c_str());
+        ocallLogError(errorText.c_str());
     }
 
     return success;

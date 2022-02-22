@@ -7,7 +7,7 @@ static int32_t faasm_read_input_wrapper(wasm_exec_env_t exec_env,
 {
     int32_t returnValue;
     sgx_status_t sgxReturnValue;
-    if ((sgxReturnValue = ocall_faasm_read_input(
+    if ((sgxReturnValue = ocallFaasmReadInput(
            &returnValue, buffer, buffer_size)) != SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
@@ -19,7 +19,7 @@ static void faasm_write_output_wrapper(wasm_exec_env_t exec_env,
                                        unsigned int output_size)
 {
     sgx_status_t sgxReturnValue;
-    if ((sgxReturnValue = ocall_faasm_write_output(output, output_size)) !=
+    if ((sgxReturnValue = ocallFaasmWriteOutput(output, output_size)) !=
         SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
@@ -32,7 +32,7 @@ static unsigned int faasm_chain_name_wrapper(wasm_exec_env_t exec_env,
 {
     sgx_status_t sgxReturnValue;
     unsigned int returnValue;
-    if ((sgxReturnValue = ocall_faasm_chain_name(
+    if ((sgxReturnValue = ocallFaasmChainName(
            &returnValue, name, input, input_size)) != SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
@@ -57,7 +57,7 @@ static unsigned int faasm_await_call_wrapper(wasm_exec_env_t exec_env,
 {
     sgx_status_t sgxReturnValue;
     unsigned int returnValue;
-    if ((sgxReturnValue = ocall_faasm_await_call(&returnValue, call_id)) !=
+    if ((sgxReturnValue = ocallFaasmAwaitCall(&returnValue, call_id)) !=
         SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
@@ -71,7 +71,7 @@ static unsigned int faasm_await_call_output_wrapper(wasm_exec_env_t exec_env,
 {
     sgx_status_t sgxReturnValue;
     unsigned int returnValue;
-    if ((sgxReturnValue = ocall_faasm_await_call_output(
+    if ((sgxReturnValue = ocallFaasmAwaitCallOutput(
            &returnValue, call_id, buffer, buffer_size)) != SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
