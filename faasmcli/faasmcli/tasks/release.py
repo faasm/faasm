@@ -46,18 +46,8 @@ def _get_current_branch_name():
 def _get_release():
     r = _get_repo()
     rels = r.get_releases()
-    tag_name = _get_tag()
 
-    rel = rels[0]
-    if rel.tag_name != tag_name:
-        print(
-            "Expected latest release to have tag {} but had {}".format(
-                tag_name, rel.tag_name
-            )
-        )
-        exit(1)
-
-    return rel
+    return rels[0]
 
 
 def _get_github_instance():
@@ -148,6 +138,27 @@ def tag(ctx, force=False):
     _create_tag(tag_name, force=force)
 
 
+def get_release_body():
+    """
+    Generate body for release with detailed changelog
+    """
+    docker_cmd = [
+        "docker run -t -v",
+        "{}:/app/".format(PROJ_ROOT),
+        "orhunp/git-cliff:latest",
+        "--config cliff.toml",
+        "--repository .",
+        "{}..v{}".format(_get_release().tag_name, get_faasm_version()),
+    ]
+
+    cmd = " ".join(docker_cmd)
+    print("Generating release body...")
+    print(cmd)
+    result = run(cmd, shell=True, stdout=PIPE, stderr=PIPE)
+
+    return result.stdout.decode("utf-8")
+
+
 @task
 def create(ctx):
     """
@@ -162,7 +173,7 @@ def create(ctx):
     r.create_git_release(
         tag_name,
         "Faasm {}".format(faasm_ver),
-        "Release {}\n".format(faasm_ver),
+        get_release_body(),
         draft=True,
     )
 

@@ -34,6 +34,8 @@ RUN mkdir -p /usr/local/faasm/runtime_root/etc
 RUN cp deploy/conf/hosts /usr/local/faasm/runtime_root/etc/
 RUN cp deploy/conf/resolv.conf /usr/local/faasm/runtime_root/etc/
 RUN cp deploy/conf/passwd /usr/local/faasm/runtime_root/etc/
+RUN mkdir -p /usr/local/faasm/runtime_root/tmp
+RUN mkdir -p /usr/local/faasm/runtime_root/share
 
 # Out of tree build
 WORKDIR /build/faasm
