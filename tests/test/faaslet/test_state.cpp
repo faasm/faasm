@@ -128,6 +128,10 @@ TEST_CASE_METHOD(StateFuncTestFixture,
 TEST_CASE_METHOD(StateFuncTestFixture, "Test writing file to state", "[state]")
 {
     auto req = setUpContext("demo", "state_file");
+    std::vector<uint8_t> fileBytes = faabric::util::readFileToBytes(
+      "./tests/test/ported_libs/files/ffmpeg_video.mp4");
+    auto loader = storage::getFileLoader();
+    loader.uploadSharedFile("tmp/state_file_test", fileBytes);
     execFunction(req);
 }
 
