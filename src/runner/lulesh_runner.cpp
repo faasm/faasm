@@ -41,7 +41,7 @@ int doLuleshRun(int argc, char* argv[])
     }
 
     // Commandline arguments
-    std::string cmdlineArgs = fmt::format("-i {} -s {} -r {} -c {} -b {}",
+    std::string cmdlineArgs = fmt::format("-i {} -s {} -r {} -c {} -b {} -p",
                                           ITERATIONS,
                                           CUBE_SIZE,
                                           REGIONS,
@@ -96,7 +96,9 @@ int main(int argc, char* argv[])
     storage::initFaasmS3();
     faabric::transport::initGlobalMessageContext();
 
+    PROF_BEGIN
     int result = doLuleshRun(argc, argv);
+    PROF_SUMMARY
 
     faabric::transport::closeGlobalMessageContext();
     storage::shutdownFaasmS3();

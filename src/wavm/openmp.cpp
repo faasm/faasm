@@ -405,7 +405,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   nSharedVars,
                   microtaskPtr,
                   sharedVarPtrs);
-
     WAVMWasmModule* parentModule = getExecutingWAVMModule();
     Runtime::Memory* memoryPtr = parentModule->defaultMemory;
     faabric::Message* parentCall = &ExecutorContext::get()->getMsg();
