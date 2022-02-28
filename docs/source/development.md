@@ -375,7 +375,7 @@ inv dev.cc func_runner
 which func_runner
 ```
 
-### Minio
+### Minio and Redis
 
 Before running one of the executables, you must make sure that the `minio`
 container is running, and reachable from outside the container.
@@ -396,6 +396,12 @@ following:
 export S3_HOST=localhost
 ```
 
+You also need Redis available locally:
+
+```bash
+sudo apt install redis-server redis-cli -y
+```
+
 ### Compile and run a function
 
 Compile a function with the CPP CLI:
@@ -414,3 +420,13 @@ inv codegen demo hello
 inv run demo hello
 ```
 
+### Running against a dev cluster
+
+To run your out-of-container build in a dev cluster, you need to specify the
+location of the built files, which is handled by the environment variables set
+in `bin/workon.sh`.
+
+```bash
+source bin/workon.sh
+./deploy/local/dev_cluster.sh
+```

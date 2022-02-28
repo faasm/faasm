@@ -43,7 +43,7 @@ demo,hello,0,29.0,0.18
 These can then be parsed and plotted, as is done in the
 [experiment-microbench](https://github.com/faasm/experiment-microbench) repo.
 
-## Via a GUI on the same machine
+## Using Vector
 
 To get a quick overview of how things are performing you can use
 [Vector](https://github.com/Netflix/vector) and [Performance
@@ -85,6 +85,12 @@ And a standard profiling run:
 ```bash
 perf record --call-graph dwarf func_runner demo echo
 ```
+
+### Off-CPU profiling
+
+Off-CPU profiling can be done with [Hotspot](https://github.com/KDAB/hotspot).
+
+See [their docs](https://github.com/KDAB/hotspot#off-cpu-profiling).
 
 ### Flame graphs
 

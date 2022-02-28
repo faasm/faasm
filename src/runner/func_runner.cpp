@@ -105,6 +105,7 @@ int doRunner(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
+    conf::getFaasmConfig().s3Host = "localhost";
     storage::initFaasmS3();
     faabric::transport::initGlobalMessageContext();
 
