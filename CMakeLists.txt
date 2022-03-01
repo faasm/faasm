@@ -21,10 +21,10 @@ option(FAASM_SGX_SIM_MODE "Turn on SGX sim mode" ON)
 option(FAASM_SGX_ATTESTATION "Turn on attestation" OFF)
 option(FAASM_SGX_XRA "Turn on support for XRA" OFF)
 
+# Optimise for CPU
+include(cmake/OptimiseCPU.cmake)
+
 # Top-level CMake config
-if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
-    add_compile_options(-march=skylake -mtune=skylake)
-endif ()
 set(CMAKE_CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_STANDARD 20)
