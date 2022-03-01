@@ -21,10 +21,10 @@ option(FAASM_SGX_SIM_MODE "Turn on SGX sim mode" ON)
 option(FAASM_SGX_ATTESTATION "Turn on attestation" OFF)
 option(FAASM_SGX_XRA "Turn on support for XRA" OFF)
 
-# Optimise for CPU
-include(cmake/OptimiseCPU.cmake)
-
 # Top-level CMake config
+if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+    add_compile_options(-march=skylake -mtune=skylake)
+endif ()
 set(CMAKE_CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_STANDARD 20)
@@ -70,8 +70,6 @@ elseif (FAASM_USE_SANITISER STREQUAL "Memory")
     set(FAASM_SGX OFF)
 elseif (NOT ((FAASM_USE_SANITISER STREQUAL "None") OR (NOT FAASM_USE_SANITISER)))
     message(FATAL_ERROR "Invalid FAASM_USE_SANITISER setting: ${FAASM_USE_SANITISER}")
-else ()
-    set(FAASM_SGX ON)
 endif()
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -183,6 +181,7 @@ else ()
     find_package(LLVM REQUIRED CONFIG)
 endif ()
 
+# Separate LLVM vars into CMake-friendly lists
 separate_arguments(LLVM_DEFINITIONS)
 separate_arguments(LLVM_INCLUDE_DIRS)
 
