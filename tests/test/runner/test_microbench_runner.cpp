@@ -48,6 +48,9 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     std::ofstream specFs;
     specFs.open(specFile);
 
+    // Override CPU count for executing OpenMP function
+    faabric::util::getSystemConfig().overrideCpuCount = 30;
+
     specFs << "demo,echo,4,blah" << std::endl;
     specFs << "demo,hello,3" << std::endl;
     specFs << "python,hello,3" << std::endl;
