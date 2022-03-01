@@ -202,7 +202,13 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other,
 
         // Restore from snapshot
         if (!snapshotKey.empty()) {
-            restore(snapshotKey);
+            // Expand memory if necessary
+            auto data = reg.getSnapshot(snapshotKey);
+            setMemorySize(data->getSize());
+
+            // Map the snapshot into memory
+            uint8_t* memoryBase = getMemoryBase();
+            data->mapToMemory({ memoryBase, data->getSize() });
         }
 
         // Reset shared memory variables
@@ -835,11 +841,6 @@ int32_t WAVMWasmModule::executeFunction(faabric::Message& msg)
 
     // Ensure Python function file in place (if necessary)
     storage::SharedFiles::syncPythonFunctionFile(msg);
-
-    // Restore from snapshot before executing if necessary
-    if (!msg.snapshotkey().empty()) {
-        restore(msg.snapshotkey());
-    }
 
     int funcPtr = msg.funcptr();
     std::vector<IR::UntaggedValue> invokeArgs;

@@ -3,6 +3,7 @@
 #include "WasmEnvironment.h"
 
 #include <faabric/proto/faabric.pb.h>
+#include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/state/State.h>
 #include <faabric/util/memory.h>
 #include <faabric/util/queue.h>
@@ -215,6 +216,8 @@ class WasmModule
     virtual void doBindToFunction(faabric::Message& msg, bool cache);
 
     // Snapshots
+    faabric::snapshot::SnapshotRegistry& reg;
+
     void snapshotWithKey(const std::string& snapKey);
 
     void ignoreThreadStacksInSnapshot(const std::string& snapKey);
