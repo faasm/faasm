@@ -14,6 +14,7 @@
 #include <faaslet/Faaslet.h>
 
 #include <conf/FaasmConfig.h>
+#include <enclave/outside/EnclaveInterface.h>
 #include <wamr/WAMRWasmModule.h>
 #include <wavm/WAVMWasmModule.h>
 
@@ -55,6 +56,7 @@ void execWamrFunction(faabric::Message& call, const std::string& expectedOutput)
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string originalPreload = conf.pythonPreload;
     conf.pythonPreload = "off";
+    conf.wasmVm = "wamr";
 
     wasm::WAMRWasmModule module;
     module.bindToFunction(call);
@@ -218,17 +220,35 @@ void executeWithWamrPool(const std::string& user,
     doWamrPoolExecution(call, timeout);
 }
 
-void executeWithSGX(const std::string& user,
-                    const std::string& func,
-                    int timeout)
+void execSgxFunction(faabric::Message& call, const std::string& expectedOutput)
 {
-    faabric::Message msg = faabric::util::messageFactory(user, func);
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
+    const std::string originalVm = conf.wasmVm;
+    conf.wasmVm = "sgx";
+
+    wasm::EnclaveInterface enclaveInterface;
+    enclaveInterface.bindToFunction(call);
+    int returnValue = enclaveInterface.executeFunction(call);
+
+    if (!expectedOutput.empty()) {
+        std::string actualOutput = call.outputdata();
+        REQUIRE(actualOutput == expectedOutput);
+    }
+
+    REQUIRE(returnValue == 0);
+    REQUIRE(call.returnvalue() == 0);
+
+    conf.wasmVm = originalVm;
+}
+
+void execFuncWithSgxPool(faabric::Message& call, int timeout)
+{
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     const std::string originalVm = conf.wasmVm;
     conf.wasmVm = "sgx";
 
     // Don't clean so that the SGX configuration persists
-    execFuncWithPool(msg, false, timeout);
+    execFuncWithPool(call, false, timeout);
 
     conf.wasmVm = originalVm;
 }
