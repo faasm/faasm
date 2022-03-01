@@ -62,6 +62,7 @@ WasmModule::WasmModule()
 
 WasmModule::WasmModule(int threadPoolSizeIn)
   : threadPoolSize(threadPoolSizeIn)
+  , reg(faabric::snapshot::getSnapshotRegistry())
 {}
 
 WasmModule::~WasmModule() {}

@@ -141,22 +141,6 @@ void Faaslet::setMemorySize(size_t newSize)
     module->setMemorySize(newSize);
 }
 
-void Faaslet::restore(const std::string& snapshotKey)
-{
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
-
-    // Restore from snapshot if necessary
-    if (conf.wasmVm == "wavm") {
-        if (!snapshotKey.empty()) {
-            SPDLOG_DEBUG("Restoring {} from snapshot {} before execution",
-                         id,
-                         snapshotKey);
-
-            module->restore(snapshotKey);
-        }
-    }
-}
-
 std::string Faaslet::getLocalResetSnapshotKey()
 {
     return localResetSnapshotKey;
