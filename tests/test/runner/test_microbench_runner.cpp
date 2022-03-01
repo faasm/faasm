@@ -25,7 +25,7 @@ void checkLine(const std::string& line,
     std::vector<std::string> lineParts;
     boost::split(lineParts, line, [](char c) { return c == ','; });
 
-    REQUIRE(lineParts.size() == 5);
+    REQUIRE(lineParts.size() == 4);
     REQUIRE(lineParts[0] == user);
     REQUIRE(lineParts[1] == function);
     REQUIRE(lineParts[2] == "0");
@@ -67,8 +67,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 
     REQUIRE(lines.size() == 14);
 
-    REQUIRE(lines.at(0) ==
-            "User,Function,Return value,Execution (us),Reset (us)");
+    REQUIRE(lines.at(0) == "User,Function,Return value,Execution (us)");
 
     for (int i = 1; i < 5; i++) {
         checkLine(lines.at(i), "demo", "echo");
