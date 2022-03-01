@@ -24,13 +24,7 @@ static int wasi_args_sizes_get(wasm_exec_env_t exec_env,
 {
     ocallLogDebug("S - wasi_args_sizes_get");
 
-    std::shared_ptr<wasm::EnclaveWasmModule> module =
-      wasm::getExecutingEnclaveWasmModule(exec_env);
-    if (module == nullptr) {
-        ocallLogError(
-          "Error linking execution environment to registered modules");
-        return 1;
-    }
+    GET_EXECUTING_MODULE_AND_CHECK(exec_env);
 
     *argcWasm = module->getArgc();
     *argvBuffSizeWasm = module->getArgvBufferSize();
