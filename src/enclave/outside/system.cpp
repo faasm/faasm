@@ -63,7 +63,7 @@ void checkSgxSetup()
     SPDLOG_DEBUG("Created SGX enclave: {}", globalEnclaveId);
 
     // Initialise WebAssembly runtime inside the enclave (WAMR)
-    sgxReturnValue = faasm_sgx_enclave_init_wamr(globalEnclaveId, &returnValue);
+    sgxReturnValue = ecallInitWamr(globalEnclaveId, &returnValue);
     processECallErrors(
       "Unable to initialise WAMR inside enclave", sgxReturnValue, returnValue);
     SPDLOG_DEBUG("Initialised WAMR in SGX enclave {}", globalEnclaveId);
@@ -85,8 +85,7 @@ void checkSgxCrypto()
     faasm_sgx_status_t faasmReturnValue;
     sgx_status_t sgxReturnValue;
 
-    sgxReturnValue =
-      faasm_sgx_enclave_crypto_checks(globalEnclaveId, &faasmReturnValue);
+    sgxReturnValue = ecallCryptoChecks(globalEnclaveId, &faasmReturnValue);
 
     processECallErrors(
       "Error running SGX crypto checks", sgxReturnValue, faasmReturnValue);
