@@ -25,16 +25,13 @@ void checkLine(const std::string& line,
     std::vector<std::string> lineParts;
     boost::split(lineParts, line, [](char c) { return c == ','; });
 
-    REQUIRE(lineParts.size() == 5);
+    REQUIRE(lineParts.size() == 4);
     REQUIRE(lineParts[0] == user);
     REQUIRE(lineParts[1] == function);
     REQUIRE(lineParts[2] == "0");
 
     float runTime = std::stof(lineParts[3]);
-    float resetTime = std::stof(lineParts[4]);
-
     REQUIRE(runTime > 0);
-    REQUIRE(resetTime > 0);
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
@@ -51,9 +48,13 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     std::ofstream specFs;
     specFs.open(specFile);
 
+    // Override CPU count for executing OpenMP function
+    faabric::util::getSystemConfig().overrideCpuCount = 30;
+
     specFs << "demo,echo,4,blah" << std::endl;
     specFs << "demo,hello,3" << std::endl;
     specFs << "python,hello,3" << std::endl;
+    specFs << "omp,hellomp,2" << std::endl;
     specFs.close();
 
     std::string outFile = "/tmp/microbench_out.csv";
@@ -64,10 +65,9 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     std::vector<std::string> lines;
     boost::split(lines, result, [](char c) { return c == '\n'; });
 
-    REQUIRE(lines.size() == 12);
+    REQUIRE(lines.size() == 14);
 
-    REQUIRE(lines.at(0) ==
-            "User,Function,Return value,Execution (us),Reset (us)");
+    REQUIRE(lines.at(0) == "User,Function,Return value,Execution (us)");
 
     for (int i = 1; i < 5; i++) {
         checkLine(lines.at(i), "demo", "echo");
@@ -81,6 +81,10 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
         checkLine(lines.at(i), "python", "hello");
     }
 
-    REQUIRE(lines.at(11).empty());
+    for (int i = 11; i < 13; i++) {
+        checkLine(lines.at(i), "omp", "hellomp");
+    }
+
+    REQUIRE(lines.at(13).empty());
 }
 }
