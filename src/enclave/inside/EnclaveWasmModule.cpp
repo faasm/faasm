@@ -6,6 +6,14 @@
 
 namespace wasm {
 
+// Define the module map and its mutex
+std::unordered_map<uint32_t, std::shared_ptr<wasm::EnclaveWasmModule>>
+  moduleMap;
+std::mutex moduleMapMutex;
+
+// Define the WAMR's heap buffer
+static uint8_t wamrHeapBuffer[FAASM_SGX_WAMR_HEAP_SIZE];
+
 bool EnclaveWasmModule::initialiseWAMRGlobally()
 {
     // Initialise the WAMR runtime
@@ -51,12 +59,15 @@ bool EnclaveWasmModule::loadWasm(void* wasmOpCodePtr, uint32_t wasmOpCodeSize)
     return moduleInstance != nullptr;
 }
 
-bool EnclaveWasmModule::callFunction()
+bool EnclaveWasmModule::callFunction(uint32_t argcIn, char** argvIn)
 {
     WASMFunctionInstanceCommon* func =
       wasm_runtime_lookup_function(moduleInstance, WASM_ENTRY_FUNC, nullptr);
 
+    prepareArgcArgv(argcIn, argvIn);
+
     // Set argv to capture return value
+    // TODO - do we want to do this??
     std::vector<uint32_t> argv = { 0 };
 
     bool success =
@@ -77,5 +88,61 @@ bool EnclaveWasmModule::callFunction()
     }
 
     return success;
+}
+
+/*
+ * Validate that a memory range defined by a pointer and a size is a valid
+ * memory range in the WASM module's instance memory.
+ */
+bool EnclaveWasmModule::validateNativeAddress(void* nativePtr, size_t size)
+{
+    return wasm_runtime_validate_native_addr(moduleInstance, nativePtr, size);
+}
+
+std::shared_ptr<EnclaveWasmModule> getExecutingEnclaveWasmModule(
+  wasm_exec_env_t execEnv)
+{
+    // Acquiring a lock every time may be too conservative
+    std::unique_lock<std::mutex> lock(wasm::moduleMapMutex);
+    for (auto& it : wasm::moduleMap) {
+        if (it.second->moduleInstance == execEnv->module_inst) {
+            return it.second;
+        }
+    }
+
+    // Returning a null ptr means that we haven't been able to link the
+    // execution environment to any of the registered modules. This is a fatal
+    // error, but we expect the caller to handle it, as throwing exceptions
+    // is not supported.
+    return nullptr;
+}
+
+void EnclaveWasmModule::prepareArgcArgv(uint32_t argcIn, char** argvIn)
+{
+    argc = argcIn;
+    argv.resize(argc);
+    argvBufferSize = 0;
+
+    for (int i = 0; i < argc; i++) {
+        // Add one to account for newline
+        argvBufferSize += strlen(argvIn[i]) + 1;
+        argv.at(i) = std::string(argvIn[i]);
+    }
+}
+
+uint32_t EnclaveWasmModule::getArgc()
+{
+    return argc;
+}
+
+size_t EnclaveWasmModule::getArgvBufferSize()
+{
+    return argvBufferSize;
+}
+
+void EnclaveWasmModule::writeArgvToWamrMemory(uint32_t wasmArgvPointers,
+                                              uint32_t wasmArgvBuffer)
+{
+    ocallLogError("not implemented");
 }
 }
