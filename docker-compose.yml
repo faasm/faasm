@@ -35,7 +35,7 @@ services:
     restart: on-failure
     volumes:
       - ./:/usr/local/code/faasm/
-      - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
+      - ${FAASM_BUILD_DIR}:${FAASM_BUILD_MOUNT}
       - ./dev/faasm-local/wasm/:/usr/local/faasm/wasm
       - ./dev/faasm-local/object/:/usr/local/faasm/object
     environment:
@@ -61,7 +61,7 @@ services:
     privileged: true
     volumes:
       - ./:/usr/local/code/faasm/
-      - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
+      - ${FAASM_BUILD_DIR}:${FAASM_BUILD_MOUNT}
       - ./dev/faasm-local/:${FAASM_LOCAL_MOUNT}
     environment:
       - CAPTURE_STDOUT=on
@@ -129,7 +129,7 @@ services:
       - UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1
     volumes:
       - ./:/usr/local/code/faasm/
-      - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
+      - ${FAASM_BUILD_DIR}:${FAASM_BUILD_MOUNT}
       - ./dev/faasm-local/:${FAASM_LOCAL_MOUNT}
       - ${CONAN_CACHE_MOUNT_SOURCE}:/root/.conan
 
@@ -154,7 +154,7 @@ services:
     command: ./bin/dist_test_server
     volumes:
       - ./:/usr/local/code/faasm/
-      - ./dev/faasm/build/:${FAASM_BUILD_MOUNT}
+      - ${FAASM_BUILD_DIR}:${FAASM_BUILD_MOUNT}
 
   # Profiling/ perf testing
   vector:
