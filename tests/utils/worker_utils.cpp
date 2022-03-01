@@ -14,7 +14,9 @@
 #include <faaslet/Faaslet.h>
 
 #include <conf/FaasmConfig.h>
+#if (FAASM_SGX)
 #include <enclave/outside/EnclaveInterface.h>
+#endif
 #include <wamr/WAMRWasmModule.h>
 #include <wavm/WAVMWasmModule.h>
 
@@ -222,6 +224,7 @@ void executeWithWamrPool(const std::string& user,
 
 void execSgxFunction(faabric::Message& call, const std::string& expectedOutput)
 {
+#if (FAASM_SGX)
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     const std::string originalVm = conf.wasmVm;
     conf.wasmVm = "sgx";
@@ -239,10 +242,14 @@ void execSgxFunction(faabric::Message& call, const std::string& expectedOutput)
     REQUIRE(call.returnvalue() == 0);
 
     conf.wasmVm = originalVm;
+#else
+    SPDLOG_ERROR("Running SGX test but SGX is disabled");
+#endif
 }
 
 void execFuncWithSgxPool(faabric::Message& call, int timeout)
 {
+#if (FAASM_SGX)
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     const std::string originalVm = conf.wasmVm;
     conf.wasmVm = "sgx";
@@ -251,6 +258,9 @@ void execFuncWithSgxPool(faabric::Message& call, int timeout)
     execFuncWithPool(call, false, timeout);
 
     conf.wasmVm = originalVm;
+#else
+    SPDLOG_ERROR("Running SGX test but SGX is disabled");
+#endif
 }
 
 void checkCallingFunctionGivesBoolOutput(const std::string& user,
