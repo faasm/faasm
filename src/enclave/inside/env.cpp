@@ -5,9 +5,16 @@
 #include <string>
 
 namespace sgx {
-static int wasi_args_get(wasm_exec_env_t exec_env, int a, int b)
+static int wasi_args_get(wasm_exec_env_t exec_env,
+                         uint32_t* argvOffsetsWasm,
+                         char* argvBuffWasm)
 {
-    // module->writeArgvToWamrMemory(argvOffsetsWasm, argvBuffWasm);
+    ocallLogDebug("S - wasi_args_get");
+
+    GET_EXECUTING_MODULE_AND_CHECK(exec_env);
+
+    module->writeArgvToWamrMemory(argvOffsetsWasm, argvBuffWasm);
+
     return 0;
 }
 
