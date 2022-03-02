@@ -1,5 +1,7 @@
 #pragma once
 
+#include <wamr/WAMRModuleMixin.h>
+
 #include <iwasm/aot/aot_runtime.h>
 #include <wasm_runtime_common.h>
 
@@ -24,7 +26,7 @@ namespace wasm {
 /*
  * Abstraction around a WebAssembly module running inside an SGX enclave with
  * the WAMR runtime.  */
-class EnclaveWasmModule
+class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 {
   public:
     static bool initialiseWAMRGlobally();
@@ -37,30 +39,21 @@ class EnclaveWasmModule
 
     bool callFunction(uint32_t argcIn, char** argvIn);
 
-    // ---- Native address - WASM offset translation and bound-checks ----
-
-    // Validate that a memory range defined by a pointer and a size is a valid
-    // offset in the module's WASM linear memory.
-    bool validateNativePointer(void* nativePtr, size_t size);
-
-    // Convert a native pointer to the corresponding offset in the WASM linear
-    // memory.
-    uint32_t nativePointerToWasmOffset(void* nativePtr);
-
-    WASMModuleInstanceCommon* moduleInstance;
+    WASMModuleInstanceCommon* getModuleInstance();
 
     // ---- argc/arv ----
 
     uint32_t getArgc();
 
-    size_t getArgvBufferSize();
+    std::vector<std::string> getArgv();
 
-    void writeArgvToWamrMemory(uint32_t* argvOffsetsWasm, char* argvBuffWasm);
+    size_t getArgvBufferSize();
 
   private:
     char errorBuffer[FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE];
 
     WASMModuleCommon* wasmModule;
+    WASMModuleInstanceCommon* moduleInstance;
 
     // Argc/argv
     uint32_t argc;
@@ -68,13 +61,6 @@ class EnclaveWasmModule
     size_t argvBufferSize;
 
     void prepareArgcArgv(uint32_t argcIn, char** argvIn);
-
-    // Helper function to write a string array to a buffer in the WASM linear
-    // memory, and record the offsets where each new string begins (note that
-    // in WASM this strings are now interpreted as char pointers).
-    void writeStringArrayToMemory(const std::vector<std::string>& strings,
-                                  uint32_t* strOffsets,
-                                  char* strBuffer);
 };
 
 // Data structure to keep track of the modules currently loaded in the enclave.

@@ -89,56 +89,9 @@ bool EnclaveWasmModule::callFunction(uint32_t argcIn, char** argvIn)
     return success;
 }
 
-bool EnclaveWasmModule::validateNativePointer(void* nativePtr, size_t size)
+WASMModuleInstanceCommon* EnclaveWasmModule::getModuleInstance()
 {
-    return wasm_runtime_validate_native_addr(moduleInstance, nativePtr, size);
-}
-
-uint32_t EnclaveWasmModule::nativePointerToWasmOffset(void* nativePtr)
-{
-    return wasm_runtime_addr_native_to_app(moduleInstance, nativePtr);
-}
-
-std::shared_ptr<EnclaveWasmModule> getExecutingEnclaveWasmModule(
-  wasm_exec_env_t execEnv)
-{
-    // Acquiring a lock every time may be too conservative
-    std::unique_lock<std::mutex> lock(wasm::moduleMapMutex);
-    for (auto& it : wasm::moduleMap) {
-        if (it.second->moduleInstance == execEnv->module_inst) {
-            return it.second;
-        }
-    }
-
-    // Returning a null ptr means that we haven't been able to link the
-    // execution environment to any of the registered modules. This is a fatal
-    // error, but we expect the caller to handle it, as throwing exceptions
-    // is not supported.
-    return nullptr;
-}
-
-void EnclaveWasmModule::writeStringArrayToMemory(
-  const std::vector<std::string>& strings,
-  uint32_t* strOffsets,
-  char* strBuffer)
-{
-    // Validate that the offset array has enough capacity to hold all offsets
-    // (one per string)
-    validateNativePointer(strOffsets, strings.size() * sizeof(uint32_t));
-
-    char* nextBuffer = strBuffer;
-    for (size_t i = 0; i < strings.size(); i++) {
-        const std::string& thisStr = strings.at(i);
-
-        // Validate that the WASM offset we are going to write to is within
-        // the bounds of the linear memory
-        validateNativePointer(nextBuffer, thisStr.size() + 1);
-
-        std::copy(thisStr.begin(), thisStr.end(), nextBuffer);
-        strOffsets[i] = nativePointerToWasmOffset(nextBuffer);
-
-        nextBuffer += thisStr.size() + 1;
-    }
+    return moduleInstance;
 }
 
 void EnclaveWasmModule::prepareArgcArgv(uint32_t argcIn, char** argvIn)
@@ -159,14 +112,32 @@ uint32_t EnclaveWasmModule::getArgc()
     return argc;
 }
 
+std::vector<std::string> EnclaveWasmModule::getArgv()
+{
+    return argv;
+}
+
 size_t EnclaveWasmModule::getArgvBufferSize()
 {
     return argvBufferSize;
 }
 
-void EnclaveWasmModule::writeArgvToWamrMemory(uint32_t* argvOffsetsWasm,
-                                              char* argvBuffWasm)
+std::shared_ptr<EnclaveWasmModule> getExecutingEnclaveWasmModule(
+  wasm_exec_env_t execEnv)
 {
-    writeStringArrayToMemory(argv, argvOffsetsWasm, argvBuffWasm);
+    // Acquiring a lock every time may be too conservative
+    std::unique_lock<std::mutex> lock(wasm::moduleMapMutex);
+    for (auto& it : wasm::moduleMap) {
+        if (it.second->getModuleInstance() == execEnv->module_inst) {
+            return it.second;
+        }
+    }
+
+    // Returning a null ptr means that we haven't been able to link the
+    // execution environment to any of the registered modules. This is a fatal
+    // error, but we expect the caller to handle it, as throwing exceptions
+    // is not supported.
+    return nullptr;
 }
+
 }

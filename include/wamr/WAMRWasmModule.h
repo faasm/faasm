@@ -1,5 +1,6 @@
 #pragma once
 
+#include <wamr/WAMRModuleMixin.h>
 #include <wasm/WasmModule.h>
 #include <wasm_runtime_common.h>
 
@@ -11,7 +12,9 @@ namespace wasm {
 
 std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx);
 
-class WAMRWasmModule final : public WasmModule
+class WAMRWasmModule final
+  : public WasmModule
+  , public WAMRModuleMixin<WAMRWasmModule>
 {
   public:
     static void initialiseWAMRGlobally();
@@ -30,27 +33,15 @@ class WAMRWasmModule final : public WasmModule
     // ----- Helper functions -----
     void writeStringToWasmMemory(const std::string& strHost, char* strWasm);
 
-    void writeStringArrayToMemory(const std::vector<std::string>& strings,
-                                  uint32_t* strOffsets,
-                                  char* strBuffer);
-
-    void writeArgvToWamrMemory(uint32_t* argvOffsetsWasm, char* argvBuffWasm);
-
     void writeWasmEnvToWamrMemory(uint32_t* envOffsetsWasm, char* envBuffWasm);
 
     // ----- Address translation and validation -----
-    // Validate that the native address belongs to the module's instance address
-    // space
-    void validateNativeAddress(void* nativePtr, size_t size);
 
     // Check if WASM offset belongs to WASM memory
     void validateWasmOffset(uint32_t wasmOffset, size_t size);
 
     // Convert relative address to absolute address (pointer to memory)
     uint8_t* wasmPointerToNative(uint32_t wasmPtr) override;
-
-    // Convert absolute address to relative address (offset in WASM memory)
-    uint32_t nativePointerToWasm(void* nativePtr);
 
     // ----- Memory management -----
     uint32_t growMemory(size_t nBytes) override;
@@ -68,6 +59,8 @@ class WAMRWasmModule final : public WasmModule
     size_t getMaxMemoryPages();
 
     WASMModuleInstanceCommon* getModuleInstance();
+
+    std::vector<std::string> getArgv();
 
   private:
     char errorBuffer[ERROR_BUFFER_SIZE];

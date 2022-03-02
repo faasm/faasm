@@ -210,34 +210,8 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
 void WAMRWasmModule::writeStringToWasmMemory(const std::string& strHost,
                                              char* strWasm)
 {
-    validateNativeAddress(strWasm, strHost.size());
+    validateNativePointer(strWasm, strHost.size());
     std::copy(strHost.begin(), strHost.end(), strWasm);
-}
-
-void WAMRWasmModule::writeStringArrayToMemory(
-  const std::vector<std::string>& strings,
-  uint32_t* strOffsets,
-  char* strBuffer)
-{
-    validateNativeAddress(strOffsets, strings.size() * sizeof(uint32_t));
-
-    char* nextBuffer = strBuffer;
-    for (size_t i = 0; i < strings.size(); ++i) {
-        const std::string& thisStr = strings.at(i);
-
-        validateNativeAddress(nextBuffer, thisStr.size() + 1);
-
-        std::copy(thisStr.begin(), thisStr.end(), nextBuffer);
-        strOffsets[i] = nativePointerToWasm(nextBuffer);
-
-        nextBuffer += thisStr.size() + 1;
-    }
-}
-
-void WAMRWasmModule::writeArgvToWamrMemory(uint32_t* argvOffsetsWasm,
-                                           char* argvBuffWasm)
-{
-    writeStringArrayToMemory(argv, argvOffsetsWasm, argvBuffWasm);
 }
 
 void WAMRWasmModule::writeWasmEnvToWamrMemory(uint32_t* envOffsetsWasm,
@@ -245,15 +219,6 @@ void WAMRWasmModule::writeWasmEnvToWamrMemory(uint32_t* envOffsetsWasm,
 {
     writeStringArrayToMemory(
       wasmEnvironment.getVars(), envOffsetsWasm, envBuffWasm);
-}
-
-void WAMRWasmModule::validateNativeAddress(void* nativePtr, size_t size)
-{
-    if (!wasm_runtime_validate_native_addr(moduleInstance, nativePtr, size)) {
-        std::string errorMsg = "Pointer out of WAMR's module address space";
-        SPDLOG_ERROR(errorMsg);
-        throw std::runtime_error(errorMsg);
-    }
 }
 
 void WAMRWasmModule::validateWasmOffset(uint32_t wasmOffset, size_t size)
@@ -276,11 +241,6 @@ uint8_t* WAMRWasmModule::wasmPointerToNative(uint32_t wasmPtr)
         throw std::runtime_error("Offset out of WAMR memory");
     }
     return static_cast<uint8_t*>(nativePtr);
-}
-
-uint32_t WAMRWasmModule::nativePointerToWasm(void* nativePtr)
-{
-    return wasm_runtime_addr_native_to_app(moduleInstance, nativePtr);
 }
 
 uint32_t WAMRWasmModule::growMemory(size_t nBytes)
@@ -374,6 +334,11 @@ WASMModuleInstanceCommon* WAMRWasmModule::getModuleInstance()
         throw std::runtime_error("Null WAMR module instance");
     }
     return moduleInstance;
+}
+
+std::vector<std::string> WAMRWasmModule::getArgv()
+{
+    return argv;
 }
 
 uint32_t WAMRWasmModule::mmapFile(uint32_t fp, size_t length)
