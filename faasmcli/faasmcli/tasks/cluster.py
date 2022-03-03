@@ -50,7 +50,7 @@ def stop(ctx, workers=2):
 @task
 def restart(ctx):
     """
-    Restarts the whole dev cluster
+    Restart the whole dev cluster
     """
     run("docker-compose restart", shell=True, check=True, cwd=PROJ_ROOT)
 
@@ -58,7 +58,7 @@ def restart(ctx):
 @task
 def restart_worker(ctx):
     """
-    Restarts the workers in the dev cluster
+    Restart the workers in the dev cluster
     """
     run("docker-compose restart worker", shell=True, check=True, cwd=PROJ_ROOT)
 
@@ -66,7 +66,7 @@ def restart_worker(ctx):
 @task
 def logs(ctx):
     """
-    Follows the logs of the dev cluster
+    Follow the logs of the dev cluster
     """
     run("docker-compose logs -f", shell=True, check=True, cwd=PROJ_ROOT)
 
