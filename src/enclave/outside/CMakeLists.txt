@@ -28,19 +28,13 @@ endif()
 set(ENCLAVE_UNTRUSTED_HEADERS
     ${FAASM_INCLUDE_DIR}/enclave/error.h
     ${FAASM_INCLUDE_DIR}/enclave/outside/ecalls.h
+    ${FAASM_INCLUDE_DIR}/enclave/outside/getSgxSupport.h
     ${FAASM_INCLUDE_DIR}/enclave/outside/system.h
     ${FAASM_INCLUDE_DIR}/enclave/outside/EnclaveInterface.h
 )
 
-set(ENCLAVE_UNTRUSTED_ASM_SRC
-    getSgxSupport.S
-)
-
-set_source_files_properties(${ENCLAVE_UNTRUSTED_ASM_SRC}
-    PROPERTIES LANGUAGE ASM_NASM
-)
-
 set(ENCLAVE_UNTRUSTED_SRC
+    getSgxSupport.cpp
     ocalls.cpp
     EnclaveInterface.cpp
     system.cpp
@@ -80,6 +74,7 @@ target_link_libraries(enclave_untrusted
     faasm::common_deps
     ${SGX_UNTRUSTED_RUNTIME_LIB}
     ${SGX_UAE_SERVICE_LIB}
+    ${SGX_SDK_LIB_PATH}/libsgx_capable.so
     Threads::Threads
     wamrlib_untrusted
     wasm

@@ -1,5 +1,6 @@
 #include <enclave/error.h>
 #include <enclave/outside/ecalls.h>
+#include <enclave/outside/getSgxSupport.h>
 #include <enclave/outside/system.h>
 #include <faabric/util/logging.h>
 
@@ -33,12 +34,12 @@ void checkSgxSetup()
 
     faasm_sgx_status_t returnValue;
 
-#if (!SGX_SIM_MODE)
-    returnValue = getSgxSupport();
-    if (returnValue != FAASM_SGX_SUCCESS) {
-        SPDLOG_ERROR("Machine doesn't support SGX {}",
-                     faasmSgxErrorString(returnValue));
+#if (!FAASM_SGX_SIM_MODE)
+    if (!isSgxEnabled()) {
+        SPDLOG_ERROR("Machine doesn't support SGX");
         throw std::runtime_error("Machine doesn't support SGX");
+    } else {
+        SPDLOG_INFO("SGX detected in machine to run in HW mode");
     }
 #endif
 
