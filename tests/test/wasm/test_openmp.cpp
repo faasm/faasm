@@ -110,10 +110,17 @@ TEST_CASE_METHOD(OpenMPTestFixture,
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture,
-                 "Test OpenMP Pi calculation",
+                 "Test OpenMP Pi calculation using libfaasm",
                  "[wasm][openmp]")
 {
-    doOmpTestLocal("mt_pi");
+    doOmpTestLocal("pi_faasm");
+}
+
+TEST_CASE_METHOD(OpenMPTestFixture,
+                 "Test OpenMP Pi calculation using native-like code",
+                 "[wasm][openmp]")
+{
+    doOmpTestLocal("pi_native");
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture,
