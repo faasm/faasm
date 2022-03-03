@@ -136,6 +136,9 @@ std::shared_ptr<EnclaveWasmModule> getExecutingEnclaveWasmModule(
     // execution environment to any of the registered modules. This is a fatal
     // error, but we expect the caller to handle it, as throwing exceptions
     // is not supported.
+    ocallLogError("Can not find any registered module corresponding to the "
+                  "supplied execution environment, this is a fatal error");
+
     return nullptr;
 }
 
