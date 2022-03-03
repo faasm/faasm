@@ -69,3 +69,17 @@ def logs(ctx):
     Follows the logs of the dev cluster
     """
     run("docker-compose logs -f", shell=True, check=True, cwd=PROJ_ROOT)
+
+
+@task
+def flush_redis(ctx):
+    """
+    Flush redis in the dev cluster
+    """
+    for r in ["redis-state", "redis-queue"]:
+        run(
+            "docker-compose exec {} redis-cli flushall".format(r),
+            shell=True,
+            check=True,
+            cwd=PROJ_ROOT,
+        )
