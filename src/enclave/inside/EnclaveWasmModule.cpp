@@ -7,8 +7,7 @@
 namespace wasm {
 
 // Define the module map and its mutex
-std::unordered_map<uint32_t, std::shared_ptr<wasm::EnclaveWasmModule>>
-  moduleMap;
+std::unordered_map<uint32_t, std::shared_ptr<EnclaveWasmModule>> moduleMap;
 std::mutex moduleMapMutex;
 
 // Define the WAMR's heap buffer
@@ -126,8 +125,8 @@ std::shared_ptr<EnclaveWasmModule> getExecutingEnclaveWasmModule(
   wasm_exec_env_t execEnv)
 {
     // Acquiring a lock every time may be too conservative
-    std::unique_lock<std::mutex> lock(wasm::moduleMapMutex);
-    for (auto& it : wasm::moduleMap) {
+    std::unique_lock<std::mutex> lock(moduleMapMutex);
+    for (auto& it : moduleMap) {
         if (it.second->getModuleInstance() == execEnv->module_inst) {
             return it.second;
         }
