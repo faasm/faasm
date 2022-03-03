@@ -5,6 +5,20 @@
 #include <string>
 #include <vector>
 
+/*
+ * This mixin implements common methods shared between the WAMRWasmModule class
+ * and the EnclaveWasmModule class. Both classes abstract a WAMR WebAssembly
+ * module: the former runs in a regular Faaslet and the latter inside an SGX
+ * enclave (the former knows nothing about SGX whatsoever).
+ *
+ * The reason we need a mixin and can not use a common shared super class is
+ * because all transitive dependencies that are to be run inside an SGX enclave
+ * need to be self-contained in said enclave. The SGX SDK provides transparent
+ * replacements for headers like <string> and <vector> through their custom
+ * (in-house) implementation of libc and libc++. However, having a class such
+ * as WasmModule inside an enclave is unfeasible given the amount of include
+ * dependencies.
+ */
 template<typename T>
 struct WAMRModuleMixin
 {
