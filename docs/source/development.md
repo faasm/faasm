@@ -176,7 +176,7 @@ sudo ./bin/cgroup.sh
 To start the local development cluster, you can run:
 
 ```bash
-./deploy/local/dev_cluster.sh
+inv cluster.start
 ```
 
 To run external applications and benchmarks against this cluster, you may also
@@ -202,7 +202,7 @@ inv dev.cc pool_runner
 From a different terminal, restart the worker and check the logs:
 
 ```bash
-docker-compose restart worker
+inv cluster.restart-worker
 
 docker-compose logs -f
 ```
