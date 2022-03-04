@@ -82,9 +82,9 @@ std::shared_ptr<wasm::EnclaveWasmModule> getExecutingEnclaveWasmModule(
 // get the executing enclave with a check for success. This macro is meant to
 // be used in the implementation of native symbols, where returning 1 is
 // interpreted as a failure.
-#define GET_EXECUTING_MODULE_AND_CHECK(exec_env)                               \
+#define GET_EXECUTING_MODULE_AND_CHECK(execEnv)                                \
     std::shared_ptr<wasm::EnclaveWasmModule> module =                          \
-      wasm::getExecutingEnclaveWasmModule(exec_env);                           \
+      wasm::getExecutingEnclaveWasmModule(execEnv);                            \
     if (module == nullptr) {                                                   \
         ocallLogError(                                                         \
           "Error linking execution environment to registered modules");        \

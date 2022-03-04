@@ -1,49 +1,49 @@
 #include <enclave/inside/native.h>
 
 namespace sgx {
-static int32_t faasm_read_input_wrapper(wasm_exec_env_t exec_env,
+static int32_t faasm_read_input_wrapper(wasm_exec_env_t execEnv,
                                         uint8_t* buffer,
-                                        unsigned int buffer_size)
+                                        unsigned int bufferSize)
 {
     int32_t returnValue;
     sgx_status_t sgxReturnValue;
     if ((sgxReturnValue = ocallFaasmReadInput(
-           &returnValue, buffer, buffer_size)) != SGX_SUCCESS) {
+           &returnValue, buffer, bufferSize)) != SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
     return returnValue;
 }
 
-static void faasm_write_output_wrapper(wasm_exec_env_t exec_env,
+static void faasm_write_output_wrapper(wasm_exec_env_t execEnv,
                                        uint8_t* output,
-                                       unsigned int output_size)
+                                       unsigned int outputSize)
 {
     sgx_status_t sgxReturnValue;
-    if ((sgxReturnValue = ocallFaasmWriteOutput(output, output_size)) !=
+    if ((sgxReturnValue = ocallFaasmWriteOutput(output, outputSize)) !=
         SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
 }
 
-static unsigned int faasm_chain_name_wrapper(wasm_exec_env_t exec_env,
+static unsigned int faasm_chain_name_wrapper(wasm_exec_env_t execEnv,
                                              const char* name,
                                              const uint8_t* input,
-                                             unsigned int input_size)
+                                             unsigned int inputSize)
 {
     sgx_status_t sgxReturnValue;
     unsigned int returnValue;
     if ((sgxReturnValue = ocallFaasmChainName(
-           &returnValue, name, input, input_size)) != SGX_SUCCESS) {
+           &returnValue, name, input, inputSize)) != SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
 
     return returnValue;
 }
 
-static unsigned int faasm_chain_ptr_wrapper(wasm_exec_env_t exec_env,
+static unsigned int faasm_chain_ptr_wrapper(wasm_exec_env_t execEnv,
                                             int wasmFuncPtr,
-                                            const uint8_t* input_data,
-                                            unsigned int input_size)
+                                            const uint8_t* inputData,
+                                            unsigned int inputSize)
 {
     // 01/07/2021 - Chain function by pointer is not supported in SGX as it
     // breaks attestation model. Chain by name instead.
@@ -52,27 +52,27 @@ static unsigned int faasm_chain_ptr_wrapper(wasm_exec_env_t exec_env,
     return 1;
 }
 
-static unsigned int faasm_await_call_wrapper(wasm_exec_env_t exec_env,
-                                             unsigned int call_id)
+static unsigned int faasm_await_call_wrapper(wasm_exec_env_t execEnv,
+                                             unsigned int callId)
 {
     sgx_status_t sgxReturnValue;
     unsigned int returnValue;
-    if ((sgxReturnValue = ocallFaasmAwaitCall(&returnValue, call_id)) !=
+    if ((sgxReturnValue = ocallFaasmAwaitCall(&returnValue, callId)) !=
         SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
     return returnValue;
 }
 
-static unsigned int faasm_await_call_output_wrapper(wasm_exec_env_t exec_env,
-                                                    unsigned int call_id,
+static unsigned int faasm_await_call_output_wrapper(wasm_exec_env_t execEnv,
+                                                    unsigned int callId,
                                                     uint8_t* buffer,
-                                                    unsigned int buffer_size)
+                                                    unsigned int bufferSize)
 {
     sgx_status_t sgxReturnValue;
     unsigned int returnValue;
     if ((sgxReturnValue = ocallFaasmAwaitCallOutput(
-           &returnValue, call_id, buffer, buffer_size)) != SGX_SUCCESS) {
+           &returnValue, callId, buffer, bufferSize)) != SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
     return returnValue;
