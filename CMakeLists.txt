@@ -16,10 +16,8 @@ option(FAASM_PERF_PROFILING "Turn on profiling features as described in debuggin
 
 # SGX functionality
 # These options customise the SGX features _provided_ SGX is found
-option(FAASM_SGX "Enable SGX support" ON)
-option(FAASM_SGX_SIM_MODE "Turn on SGX sim mode" OFF)
-option(FAASM_SGX_ATTESTATION "Turn on attestation" OFF)
-option(FAASM_SGX_XRA "Turn on support for XRA" OFF)
+option(FAASM_SGX_MODE "Enable SGX support" ON) # DISABLED/SIM/HW
+# option(FAASM_SGX_SIM_MODE "Turn on SGX sim mode" OFF)
 
 # Top-level CMake config
 if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")

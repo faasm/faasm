@@ -41,11 +41,13 @@ RUN mkdir -p /usr/local/faasm/runtime_root/share
 WORKDIR /build/faasm
 
 # Build the basics here to set up the CMake build
+ARG SGX_HW_MODE
 RUN cmake \
     -GNinja \
     -DCMAKE_CXX_COMPILER=/usr/bin/clang++-13 \
     -DCMAKE_C_COMPILER=/usr/bin/clang-13 \
     -DCMAKE_BUILD_TYPE=Release \
+    -DFAASM_SGX_SIM_MODE=${SGX_HW_MODE:+OFF} \
     /usr/local/code/faasm
 
 RUN cmake --build . --target tests

@@ -130,3 +130,29 @@ def delete_old(ctx):
             if version.parse(tag_ver) < version.parse(faasm_ver):
                 print("Removing old image: {}".format(t))
                 dock.images.remove(t, force=True)
+
+
+@task
+def build_sgx_worker(ctx, nocache=False):
+    """
+    Build worker with SGX enabled in hardware mode
+    """
+    # Use buildkit for nicer logging
+    shell_env = copy(os.environ)
+    shell_env["DOCKER_BUILDKIT"] = "1"
+
+    containers = ["base", "worker"]
+    faasm_ver = get_faasm_version()
+
+    for container in containers:
+        dockerfile = join("docker", "{}.dockerfile".format(container))
+        tag_name = "faasm/{}-sgx:{}".format(container, faasm_ver)
+
+        cmd = "docker build {} -t {} --build-arg FAASM_VERSION={} --build-arg SGX_HW_MODE=ON -f {} .".format(
+            "--no-cache" if nocache else "", tag_name, faasm_ver, dockerfile
+        )
+        print(cmd)
+        run(cmd, shell=True, check=True, cwd=PROJ_ROOT, env=shell_env)
+
+        if False:
+            _do_push(container, faasm_ver)
