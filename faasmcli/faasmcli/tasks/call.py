@@ -74,7 +74,7 @@ def status(ctx, call_id=None):
 
 
 @task
-def exec_graph(ctx, call_id=None, headless=True, output_file=None):
+def exec_graph(ctx, call_id=None, headless=False, output_file=None):
     """
     Get the execution graph for the given call ID
     """

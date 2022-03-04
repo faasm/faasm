@@ -45,7 +45,7 @@ def all_workers(ctx, local=False, docker=False, knative=True):
     """
     List all available Faasm instances
     """
-    _do_redis_command("smembers available_faaslets", local, docker, knative)
+    _do_redis_command("smembers available_hosts", local, docker, knative)
 
 
 @task
