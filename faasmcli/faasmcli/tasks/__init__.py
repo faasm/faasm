@@ -1,6 +1,7 @@
 from invoke import Collection
 
 from . import call
+from . import cluster
 from . import codegen
 from . import config
 from . import dev
@@ -22,6 +23,7 @@ from . import wast
 
 # Default names
 ns = Collection(
+    cluster,
     codegen,
     config,
     dev,
