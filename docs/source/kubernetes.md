@@ -77,10 +77,10 @@ docker-compose -f docker-compose-k8s.yml run cpp-cli /bin/bash
 
 # Compile and upload a function
 inv func demo hello
-inv func.upload demo hello --host=<upload_host>
+inv func.upload demo hello
 
 # Invoke the function
-inv func.invoke demo hello --host=<invoke_host> --port=<invoke_port>
+inv func.invoke demo hello
 ```
 
 # Troubleshooting

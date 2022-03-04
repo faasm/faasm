@@ -10,9 +10,11 @@ services:
     environment:
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
     volumes:
+      - ./faasm.ini:/root/.config/faasm.ini
       - ./:/usr/local/code/faasm/
-      - ./dev/faasm/build:/build/faasm/
-      - ./dev/faasm-local:/usr/local/faasm
+      - ${FAASM_BUILD_DIR}:${FAASM_BUILD_MOUNT}
+      - ./dev/faasm-local/:${FAASM_LOCAL_MOUNT}
+      - ${CONAN_CACHE_MOUNT_SOURCE}:/root/.conan
 
   cpp-cli:
     image: ${CPP_CLI_IMAGE}
@@ -20,12 +22,10 @@ services:
     network_mode: host
     stdin_open: true
     tty: true
-    environment:
-      - LOG_LEVEL=debug
     volumes:
+      - ./faasm.ini:/root/.config/faasm.ini
       - ./clients/cpp:/code/cpp
-      - ./dev/cpp/build:/build/cpp
-      - ./dev/faasm-local:/usr/local/faasm
+      - ./dev/faasm-local/:${FAASM_LOCAL_MOUNT}
 
   python-cli:
     image: ${PYTHON_CLI_IMAGE}
@@ -33,8 +33,7 @@ services:
     network_mode: host
     stdin_open: true
     tty: true
-    environment:
-      - LOG_LEVEL=debug
     volumes:
+      - ./faasm.ini:/root/.config/faasm.ini
       - ./clients/python:/code/python
-      - ./dev/faasm-local:/usr/local/faasm
+      - ./dev/faasm-local/:${FAASM_LOCAL_MOUNT}
