@@ -30,6 +30,11 @@
     *((uint32_t*)&((AOTModuleInstance*)exec_env->module_inst)                  \
         ->cur_exception[sizeof(_FAASM_SGX_ERROR_PREFIX)]) = (X);
 
+/*
+ * See the WAMR native header file for a detailed explanation on WAMR's native
+ * signatures.
+ */
+
 namespace sgx {
 void initialiseSGXWAMRNatives();
 

@@ -3,17 +3,10 @@
 #include <enclave/inside/ocalls.h>
 
 #include <memory>
-#include <mutex>
-#include <unordered_map>
 
 // Implementation of the ECalls API
 extern "C"
 {
-    static std::unordered_map<uint32_t,
-                              std::shared_ptr<wasm::EnclaveWasmModule>>
-      moduleMap;
-    static std::mutex moduleMapMutex;
-
     faasm_sgx_status_t ecallInitWamr(void)
     {
         // Initialise WAMR once for all modules
@@ -43,15 +36,16 @@ extern "C"
 
         // Add module for faaslet to the module map
         {
-            std::unique_lock<std::mutex> lock(moduleMapMutex);
-            if (moduleMap.find(faaslet_id) != moduleMap.end()) {
+            std::unique_lock<std::mutex> lock(wasm::moduleMapMutex);
+            if (wasm::moduleMap.find(faaslet_id) != wasm::moduleMap.end()) {
                 ocallLogError("Faaslet is already bound to a module.");
                 return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
             }
 
-            moduleMap[faaslet_id] = std::make_shared<wasm::EnclaveWasmModule>();
-            if (!moduleMap[faaslet_id]->loadWasm(wasm_opcode_ptr,
-                                                 wasm_opcode_size)) {
+            wasm::moduleMap[faaslet_id] =
+              std::make_shared<wasm::EnclaveWasmModule>();
+            if (!wasm::moduleMap[faaslet_id]->loadWasm(wasm_opcode_ptr,
+                                                       wasm_opcode_size)) {
                 ocallLogError("Error loading WASM to module");
                 return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
             }
@@ -62,36 +56,38 @@ extern "C"
 
     faasm_sgx_status_t ecallUnloadModule(uint32_t faaslet_id)
     {
-        std::unique_lock<std::mutex> lock(moduleMapMutex);
-        if (moduleMap.find(faaslet_id) == moduleMap.end()) {
+        std::unique_lock<std::mutex> lock(wasm::moduleMapMutex);
+        if (wasm::moduleMap.find(faaslet_id) == wasm::moduleMap.end()) {
             ocallLogError("Faaslet not bound to any module.");
             return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
         }
 
         // Erase will call the underlying destructor for the module
-        moduleMap.erase(faaslet_id);
+        wasm::moduleMap.erase(faaslet_id);
 
         return FAASM_SGX_SUCCESS;
     }
 
-    faasm_sgx_status_t ecallCallFunction(uint32_t faaslet_id)
+    faasm_sgx_status_t ecallCallFunction(uint32_t faaslet_id,
+                                         uint32_t argc,
+                                         char** argv)
     {
         std::shared_ptr<wasm::EnclaveWasmModule> module = nullptr;
 
         // Acquire a lock just to get the module
         {
-            std::unique_lock<std::mutex> lock(moduleMapMutex);
-            if (moduleMap.find(faaslet_id) == moduleMap.end()) {
+            std::unique_lock<std::mutex> lock(wasm::moduleMapMutex);
+            if (wasm::moduleMap.find(faaslet_id) == wasm::moduleMap.end()) {
                 ocallLogError("Faaslet not bound to any module.");
                 return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
             }
 
-            module = moduleMap[faaslet_id];
+            module = wasm::moduleMap[faaslet_id];
         }
 
         // Call the function without a lock on the module map, to allow for
         // chaining on the same enclave
-        if (!module->callFunction()) {
+        if (!module->callFunction(argc, argv)) {
             ocallLogError("Error trying to call function");
             return FAASM_SGX_WAMR_FUNCTION_UNABLE_TO_CALL;
         }

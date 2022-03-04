@@ -39,6 +39,8 @@ SGX_ALLOWED_FUNCS = [
     ["demo", "chain_named_a"],
     ["demo", "chain_named_b"],
     ["demo", "chain_named_c"],
+    # Environment
+    ["demo", "argc_argv_test"],
 ]
 
 

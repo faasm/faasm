@@ -65,7 +65,8 @@ def tools(ctx, clean=False, build="Debug", parallel=0, sanitiser="None"):
     """
     Builds all the targets commonly used for development
     """
-    cmake(ctx, clean=clean, build=build, sanitiser=sanitiser)
+    nosgx = sanitiser != "None"
+    cmake(ctx, clean=clean, build=build, sanitiser=sanitiser, nosgx=nosgx)
 
     targets = " ".join(DEV_TARGETS)
 

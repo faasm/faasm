@@ -25,7 +25,9 @@ extern "C"
 
     extern sgx_status_t ecallCallFunction(sgx_enclave_id_t enclave_id,
                                           faasm_sgx_status_t* ret_val,
-                                          uint32_t faaslet_id);
+                                          uint32_t faaslet_id,
+                                          uint32_t argc,
+                                          char** argv);
 
     extern sgx_status_t ecallCryptoChecks(sgx_enclave_id_t enclave_id,
                                           faasm_sgx_status_t* ret_val);

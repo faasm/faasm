@@ -25,7 +25,9 @@ enclave{
         );
 
         public faasm_sgx_status_t ecallCallFunction(
-            uint32_t faaslet_id
+                                uint32_t faaslet_id,
+                                uint32_t argc,
+            [in, count=argc]    char** argv
         );
 
         public faasm_sgx_status_t ecallCryptoChecks(void);

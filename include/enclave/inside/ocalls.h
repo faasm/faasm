@@ -10,7 +10,13 @@ extern "C"
 {
     extern sgx_status_t SGX_CDECL ocallLogError(const char* msg);
 
+// In enclave release mode (i.e NDEBUG set) we disable debug logging, and
+// prevent it from doing an ocall (hence the different signature).
+#ifdef NDEBUG
+    void ocallLogDebug(const char* msg) { ; };
+#else
     extern sgx_status_t SGX_CDECL ocallLogDebug(const char* msg);
+#endif
 
     extern sgx_status_t SGX_CDECL ocallFaasmReadInput(int* returnValue,
                                                       uint8_t* buffer,
