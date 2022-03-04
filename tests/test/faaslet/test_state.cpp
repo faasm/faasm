@@ -6,6 +6,7 @@
 #include <faabric/runner/FaabricMain.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/environment.h>
+#include <faabric/util/string_tools.h>
 #include <faaslet/Faaslet.h>
 
 using namespace faaslet;
@@ -136,5 +137,14 @@ TEST_CASE_METHOD(StateFuncTestFixture, "Test appended state", "[state]")
     auto req = setUpContext("demo", "state_append");
     faabric::Message& call = req->mutable_messages()->at(0);
     execFuncWithPool(call);
+}
+
+TEST_CASE_METHOD(StateFuncTestFixture, "Test Pi estimate", "[state]")
+{
+    auto req = setUpContext("demo", "pi");
+    faabric::Message& call = req->mutable_messages()->at(0);
+    faabric::Message result = execFuncWithPool(call);
+    std::string output = result.outputdata();
+    REQUIRE(faabric::util::startsWith(output, "Pi estimate: 3.1"));
 }
 }

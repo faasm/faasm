@@ -1,9 +1,9 @@
 #include <catch2/catch.hpp>
 
-#include "faabric/util/string_tools.h"
 #include "fixtures.h"
 
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/string_tools.h>
 #include <faabric/util/logging.h>
 
 namespace tests {
@@ -34,8 +34,8 @@ TEST_CASE_METHOD(DistTestsFixture,
       sch.getFunctionResult(msg.id(), functionCallTimeout);
     REQUIRE(result.returnvalue() == 0);
 
-    // Get the estimate (check first 2 decimal places)
+    // Get the estimate (check one dp)
     std::string outputData = msg.outputdata();
-    REQUIRE(faabric::util::startsWith("Pi estimate: 3.14", outputData));
+    REQUIRE(faabric::util::startsWith("Pi estimate: 3.1", outputData));
 }
 }

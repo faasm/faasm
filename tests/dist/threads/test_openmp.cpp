@@ -5,10 +5,9 @@
 #include <faabric/scheduler/Scheduler.h>
 
 namespace tests {
-// 10/02/22 Broken by latest Faabric
 TEST_CASE_METHOD(DistTestsFixture,
                  "Test OpenMP across hosts",
-                 "[.][threads][openmp]")
+                 "[threads][openmp]")
 {
     conf.overrideCpuCount = 6;
 
@@ -25,6 +24,8 @@ TEST_CASE_METHOD(DistTestsFixture,
     SECTION("Using shared memory") { function = "omp_checks"; }
 
     SECTION("Repeated reduce") { function = "repeated_reduce"; }
+
+    SECTION("Repeated reduce") { function = "pi_faasm"; }
 
     // Set up the message
     std::shared_ptr<faabric::BatchExecuteRequest> req =

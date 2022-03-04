@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "faabric/util/string_tools.h"
 #include "faasm_fixtures.h"
 #include "fixtures.h"
 #include "utils.h"
@@ -27,10 +28,13 @@ class OpenMPTestFixture
 
     ~OpenMPTestFixture() {}
 
-    void doOmpTestLocal(const std::string& function)
+    std::string doOmpTestLocal(const std::string& function)
     {
         faabric::Message msg = faabric::util::messageFactory("omp", function);
-        execFuncWithPool(msg, false, OMP_TEST_TIMEOUT_MS);
+        faabric::Message result =
+          execFuncWithPool(msg, false, OMP_TEST_TIMEOUT_MS);
+
+        return result.outputdata();
     }
 };
 
@@ -113,14 +117,10 @@ TEST_CASE_METHOD(OpenMPTestFixture,
                  "Test OpenMP Pi calculation using libfaasm",
                  "[wasm][openmp]")
 {
-    doOmpTestLocal("pi_faasm");
-}
+    std::string output = doOmpTestLocal("pi_faasm");
 
-TEST_CASE_METHOD(OpenMPTestFixture,
-                 "Test OpenMP Pi calculation using native-like code",
-                 "[wasm][openmp]")
-{
-    doOmpTestLocal("pi_native");
+    // Just check Pi to one dp
+    REQUIRE(faabric::util::startsWith(output, "Pi estimate: 3.1"));
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture,

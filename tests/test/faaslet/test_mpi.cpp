@@ -8,6 +8,7 @@
 #include <faabric/util/environment.h>
 #include <faabric/util/func.h>
 #include <faabric/util/logging.h>
+#include <faabric/util/string_tools.h>
 
 namespace tests {
 
@@ -16,12 +17,12 @@ class MPIFuncTestFixture
   , public MpiBaseTestFixture
 {
   public:
-    void checkMpiFunc(const char* funcName)
+    faabric::Message checkMpiFunc(const char* funcName)
     {
         // Note: we don't `set_mpiworldsize` here, so all tests run with the
         // default MPI world size (5). Some tests will fail if we change this.
         faabric::Message msg = faabric::util::messageFactory("mpi", funcName);
-        execFuncWithPool(msg, true, 10000);
+        faabric::Message result = execFuncWithPool(msg, true, 10000);
 
         // Check all other functions were successful
         auto& sch = faabric::scheduler::getScheduler();
@@ -32,13 +33,14 @@ class MPIFuncTestFixture
                 continue;
             }
 
-            const faabric::Message& result =
-              sch.getFunctionResult(messageId, 1);
+            faabric::Message result = sch.getFunctionResult(messageId, 1);
 
             if (result.returnvalue() != 0) {
                 FAIL(fmt::format("Message ID {} failed", messageId));
             }
         }
+
+        return result;
     }
 };
 
@@ -131,5 +133,12 @@ TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI type sizes", "[mpi]")
 TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI async", "[mpi]")
 {
     checkMpiFunc("mpi_isendrecv");
+}
+
+TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI Pi", "[mpi]")
+{
+    faabric::Message result = checkMpiFunc("mpi_pi");
+    std::string output = result.outputdata();
+    REQUIRE(faabric::util::startsWith(output, "Pi estimate: 3.1"));
 }
 }

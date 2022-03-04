@@ -150,7 +150,7 @@ void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
     m.shutdown();
 }
 
-void execFuncWithPool(faabric::Message& call, bool clean, int timeout)
+faabric::Message execFuncWithPool(faabric::Message& call, bool clean, int timeout)
 {
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.shutdown();
@@ -180,6 +180,8 @@ void execFuncWithPool(faabric::Message& call, bool clean, int timeout)
     faasmConf.netNsMode = originalNsMode;
 
     m.shutdown();
+
+    return result;
 }
 
 void doWamrPoolExecution(faabric::Message& msg, int timeout = 1000)
