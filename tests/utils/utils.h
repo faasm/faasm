@@ -20,8 +20,8 @@ void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
                        int nThreads);
 
 faabric::Message execFuncWithPool(faabric::Message& call,
-                      bool clean = true,
-                      int timeout = 1000);
+                                  bool clean = true,
+                                  int timeout = 1000);
 
 faabric::Message execErrorFunction(faabric::Message& call);
 

@@ -150,7 +150,9 @@ void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
     m.shutdown();
 }
 
-faabric::Message execFuncWithPool(faabric::Message& call, bool clean, int timeout)
+faabric::Message execFuncWithPool(faabric::Message& call,
+                                  bool clean,
+                                  int timeout)
 {
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.shutdown();

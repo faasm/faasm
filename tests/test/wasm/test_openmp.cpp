@@ -1,6 +1,5 @@
 #include <catch2/catch.hpp>
 
-#include "faabric/util/string_tools.h"
 #include "faasm_fixtures.h"
 #include "fixtures.h"
 #include "utils.h"
@@ -11,6 +10,7 @@
 #include <faabric/util/config.h>
 #include <faabric/util/environment.h>
 #include <faabric/util/func.h>
+#include <faabric/util/string_tools.h>
 
 // Longer timeout to allow longer-running functions to finish even when doing
 // trace-level logging
