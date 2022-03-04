@@ -29,7 +29,6 @@ set(ENCLAVE_TRUSTED_CXX_FLAGS
 set(ENCLAVE_TRUSTED_HEADERS
     ${FAASM_INCLUDE_DIR}/enclave/error.h
     ${FAASM_INCLUDE_DIR}/enclave/inside/EnclaveWasmModule.h
-    ${FAASM_INCLUDE_DIR}/enclave/inside/enclave_types.h
     ${FAASM_INCLUDE_DIR}/enclave/inside/native.h
     ${FAASM_INCLUDE_DIR}/enclave/inside/ocalls.h
 )
