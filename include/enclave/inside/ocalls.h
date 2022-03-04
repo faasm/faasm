@@ -20,20 +20,20 @@ extern "C"
 
     extern sgx_status_t SGX_CDECL ocallFaasmReadInput(int* returnValue,
                                                       uint8_t* buffer,
-                                                      unsigned int buffer_size);
+                                                      unsigned int bufferSize);
 
     extern sgx_status_t SGX_CDECL
-    ocallFaasmWriteOutput(uint8_t* output, unsigned int output_size);
+    ocallFaasmWriteOutput(uint8_t* output, unsigned int outputSize);
 
     extern sgx_status_t SGX_CDECL ocallFaasmChainName(unsigned int* returnValue,
                                                       const char* name,
                                                       const uint8_t* input,
-                                                      unsigned int input_size);
+                                                      unsigned int inputSize);
 
     extern sgx_status_t SGX_CDECL ocallFaasmChainPtr(unsigned int* returnValue,
                                                      const int wasmFuncPtr,
                                                      const uint8_t* input,
-                                                     unsigned int input_size);
+                                                     unsigned int inputSize);
 
     extern sgx_status_t SGX_CDECL ocallFaasmAwaitCall(unsigned int* returnValue,
                                                       unsigned int callId);
@@ -42,7 +42,7 @@ extern "C"
     ocallFaasmAwaitCallOutput(unsigned int* returnValue,
                               unsigned int callId,
                               uint8_t* buffer,
-                              unsigned int buffer_size);
+                              unsigned int bufferSize);
 
     extern sgx_status_t SGX_CDECL ocallSbrk(int32_t* returnValue,
                                             int32_t increment);
