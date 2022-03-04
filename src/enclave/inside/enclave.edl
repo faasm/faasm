@@ -15,17 +15,17 @@ enclave{
         public faasm_sgx_status_t ecallInitWamr(void);
 
         public faasm_sgx_status_t ecallLoadModule(
-            [in, size=wasm_opcode_size]     void *wasm_opcode_ptr,
-                                            uint32_t wasm_opcode_size,
-                                            uint32_t faaslet_id
+            [in, size=wasmOpCodeSize]   void *wasmOpCodePtr,
+                                        uint32_t wasmOpCodeSize,
+                                        uint32_t faasletId
         );
 
         public faasm_sgx_status_t ecallUnloadModule(
-            uint32_t faaslet_id
+            uint32_t faasletId
         );
 
         public faasm_sgx_status_t ecallCallFunction(
-                                uint32_t faaslet_id,
+                                uint32_t faasletId,
                                 uint32_t argc,
             [in, count=argc]    char** argv
         );
@@ -39,33 +39,33 @@ enclave{
         void ocallLogDebug([in, string] const char* msg);
 
         int ocallFaasmReadInput(
-            [in, out, size=buffer_size]     uint8_t* buffer,
-                                            unsigned int buffer_size
+            [in, out, size=bufferSize]  uint8_t* buffer,
+                                        unsigned int bufferSize
         );
 
         void ocallFaasmWriteOutput(
-            [in, size=output_size]  uint8_t* output,
-                                    unsigned int output_size
+            [in, size=outputSize]   uint8_t* output,
+                                    unsigned int outputSize
         );
 
         unsigned int ocallFaasmChainName(
             [in, string]            const char* name,
-            [in, size=input_size]   uint8_t* input,
-                                    long input_size
+            [in, size=inputSize]    uint8_t* input,
+                                    long inputSize
         ) allow(ecallLoadModule);
 
         unsigned int ocallFaasmChainPtr(
                                     int wasmFuncPtr,
-            [in, size=input_size]   uint8_t* input,
-                                    long input_size
+            [in, size=inputSize]    uint8_t* input,
+                                    long inputSize
         );
 
-        unsigned int ocallFaasmAwaitCall(unsigned int call_id);
+        unsigned int ocallFaasmAwaitCall(unsigned int callId);
 
         unsigned int ocallFaasmAwaitCallOutput(
-                                        unsigned int call_id,
-            [out, size=buffer_size]     uint8_t* buffer,
-                                        unsigned int buffer_size
+                                    unsigned int callId,
+            [out, size=bufferSize]  uint8_t* buffer,
+                                    unsigned int bufferSize
         );
 
         int32_t ocallSbrk(int32_t increment);

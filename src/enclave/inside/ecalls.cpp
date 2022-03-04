@@ -22,30 +22,30 @@ extern "C"
         return FAASM_SGX_SUCCESS;
     }
 
-    faasm_sgx_status_t ecallLoadModule(void* wasm_opcode_ptr,
-                                       uint32_t wasm_opcode_size,
-                                       uint32_t faaslet_id)
+    faasm_sgx_status_t ecallLoadModule(void* wasmOpCodePtr,
+                                       uint32_t wasmOpCodeSize,
+                                       uint32_t faasletId)
     {
         // Check if passed wasm opcode size or wasm opcode ptr is zero
-        if (!wasm_opcode_size) {
+        if (!wasmOpCodeSize) {
             return FAASM_SGX_INVALID_OPCODE_SIZE;
         }
-        if (!wasm_opcode_ptr) {
+        if (!wasmOpCodePtr) {
             return FAASM_SGX_INVALID_PTR;
         }
 
         // Add module for faaslet to the module map
         {
             std::unique_lock<std::mutex> lock(wasm::moduleMapMutex);
-            if (wasm::moduleMap.find(faaslet_id) != wasm::moduleMap.end()) {
+            if (wasm::moduleMap.find(faasletId) != wasm::moduleMap.end()) {
                 ocallLogError("Faaslet is already bound to a module.");
                 return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
             }
 
-            wasm::moduleMap[faaslet_id] =
+            wasm::moduleMap[faasletId] =
               std::make_shared<wasm::EnclaveWasmModule>();
-            if (!wasm::moduleMap[faaslet_id]->loadWasm(wasm_opcode_ptr,
-                                                       wasm_opcode_size)) {
+            if (!wasm::moduleMap[faasletId]->loadWasm(wasmOpCodePtr,
+                                                      wasmOpCodeSize)) {
                 ocallLogError("Error loading WASM to module");
                 return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
             }
@@ -54,21 +54,21 @@ extern "C"
         return FAASM_SGX_SUCCESS;
     }
 
-    faasm_sgx_status_t ecallUnloadModule(uint32_t faaslet_id)
+    faasm_sgx_status_t ecallUnloadModule(uint32_t faasletId)
     {
         std::unique_lock<std::mutex> lock(wasm::moduleMapMutex);
-        if (wasm::moduleMap.find(faaslet_id) == wasm::moduleMap.end()) {
+        if (wasm::moduleMap.find(faasletId) == wasm::moduleMap.end()) {
             ocallLogError("Faaslet not bound to any module.");
             return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
         }
 
         // Erase will call the underlying destructor for the module
-        wasm::moduleMap.erase(faaslet_id);
+        wasm::moduleMap.erase(faasletId);
 
         return FAASM_SGX_SUCCESS;
     }
 
-    faasm_sgx_status_t ecallCallFunction(uint32_t faaslet_id,
+    faasm_sgx_status_t ecallCallFunction(uint32_t faasletId,
                                          uint32_t argc,
                                          char** argv)
     {
@@ -77,12 +77,12 @@ extern "C"
         // Acquire a lock just to get the module
         {
             std::unique_lock<std::mutex> lock(wasm::moduleMapMutex);
-            if (wasm::moduleMap.find(faaslet_id) == wasm::moduleMap.end()) {
+            if (wasm::moduleMap.find(faasletId) == wasm::moduleMap.end()) {
                 ocallLogError("Faaslet not bound to any module.");
                 return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
             }
 
-            module = wasm::moduleMap[faaslet_id];
+            module = wasm::moduleMap[faasletId];
         }
 
         // Call the function without a lock on the module map, to allow for
