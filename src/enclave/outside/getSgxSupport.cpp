@@ -3,6 +3,8 @@
 
 #include <sgx_capable.h>
 
+namespace sgx {
+
 bool isSgxEnabled()
 {
     sgx_status_t sgxStatus;
@@ -56,10 +58,11 @@ bool isSgxEnabled()
             break;
         }
         case SGX_DISABLED_UNSUPPORTED_CPU: {
-            SPDLOG_ERROR("SGX is not supported byt his CPU");
+            SPDLOG_ERROR("SGX is not supported by this CPU");
             break;
         }
     }
 
     return false;
+}
 }

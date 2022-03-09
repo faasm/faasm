@@ -19,13 +19,12 @@
 
 #include <stdexcept>
 
-#if (FAASM_SGX)
+#ifndef FAASM_SGX_DISABLED_MODE
 #include <enclave/outside/EnclaveInterface.h>
 #include <enclave/outside/system.h>
-#else
+#endif
 #include <storage/FileLoader.h>
 #include <storage/FileSystem.h>
-#endif
 
 static thread_local bool threadIsIsolated = false;
 
@@ -61,7 +60,7 @@ Faaslet::Faaslet(faabric::Message& msg)
 
     // Instantiate the right wasm module for the chosen runtime
     if (conf.wasmVm == "sgx") {
-#if (FAASM_SGX)
+#ifndef FAASM_SGX_DISABLED_MODE
         module = std::make_unique<wasm::EnclaveInterface>();
 #else
         SPDLOG_ERROR(

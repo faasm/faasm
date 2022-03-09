@@ -19,8 +19,6 @@ COPY --from=sgx /opt/intel /opt/intel
 COPY --from=sgx /linux-sgx/linux/installer/bin/ /tmp/linux-sgx
 WORKDIR /opt/intel
 RUN sh -c 'echo yes | /tmp/linux-sgx/sgx_linux_x64_sdk_2.15.101.1.bin'
-# TODO - only do this if hw mode
-# RUN rm -rf /opt/intel/sgxpsw
 RUN sh -c 'echo yes | /tmp/linux-sgx/sgx_linux_x64_psw_2.15.101.1.bin --no-start-aesm'
 RUN cp /opt/intel/sgxsdk/lib64/libsgx_capable.so /usr/lib
 

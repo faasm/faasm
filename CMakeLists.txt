@@ -93,28 +93,22 @@ find_package(cpprestsdk REQUIRED)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 if (NOT (FAASM_SGX_MODE STREQUAL "Disabled"))
+    # Set maro definitions for conditional compilation
+    if (FAASM_SGX_MODE STREQUAL "Hardware")
+        add_definitions(-DFAASM_SGX_HARDWARE_MODE)
+    elseif (FAASM_SGX_MODE STREQUAL "Simulation")
+        add_definitions(-DFAASM_SGX_SIMULATION_MODE)
+    else ()
+        message(FATAL_ERROR "Unrecognised SGX mode: ${FAASM_SGX_MODE}")
+    endif ()
+
     # Detect SGX intallation
     find_package(SGX)
-
-    # SGX configuration
-    if (SGX_FOUND)
-        # Set up SGX definitions
-        add_definitions(-DFAASM_SGX=1)
-
-        # TODO - do we need this?
-        if (FAASM_SGX_MODE STREQUAL "Simulation")
-            add_definitions(-DSGX_SIM_MODE=1)
-            set(Protobuf_USE_STATIC_LIBS 0)
-        else ()
-            add_definitions(-DSGX_SIM_MODE=0)
-            # Must link protobuf statically because SGX LE probably uses an older version
-            set(Protobuf_USE_STATIC_LIBS 1)
-        endif ()
-    else ()
+    if (NOT SGX_FOUND)
         message(FATAL_ERROR "FAASM SGX in mode ${FAASM_SGX_MODE} but SGX not found!")
     endif ()
 else ()
-    add_definitions(-DFAASM_SGX=0)
+    add_definitions(-DFAASM_SGX_DISABLED_MODE)
 endif ()
 message(STATUS "FAASM SGX Mode: ${FAASM_SGX_MODE}")
 

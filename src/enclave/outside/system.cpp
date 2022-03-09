@@ -34,7 +34,7 @@ void checkSgxSetup()
 
     faasm_sgx_status_t returnValue;
 
-#if (!FAASM_SGX_SIM_MODE)
+#ifdef FAASM_SGX_HARDWARE_MODE
     if (!isSgxEnabled()) {
         SPDLOG_ERROR("Machine doesn't support SGX");
         throw std::runtime_error("Machine doesn't support SGX");
