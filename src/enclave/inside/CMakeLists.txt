@@ -78,13 +78,15 @@ target_link_options(enclave_trusted PRIVATE
     -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/enclave.lds
 )
 
-if(FAASM_SGX_SIM_MODE)
+if (FAASM_SGX_MODE STREQUAL "Simulation")
     set(SGX_TRUSTED_RUNTIME_LIB ${SGX_SDK_LIB_PATH}/libsgx_trts_sim.a)
     set(SGX_SERVICE_LIB ${SGX_SDK_LIB_PATH}/libsgx_tservice_sim.a)
-else()
+elseif (FAASM_SGX_MODE STREQUAL "Hardware")
     set(SGX_TRUSTED_RUNTIME_LIB ${SGX_SDK_LIB_PATH}/libsgx_trts.a)
     set(SGX_SERVICE_LIB ${SGX_SDK_LIB_PATH}/libsgx_tservice.a)
-endif()
+else ()
+    message(FATAL_ERROR "Building SGX code with mode: ${FAASM_SGX_MODE}")
+endif ()
 
 # Enclave trusted crypto
 add_subdirectory(crypto)

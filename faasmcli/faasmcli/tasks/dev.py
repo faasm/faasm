@@ -25,7 +25,7 @@ def cmake(
     perf=False,
     prof=False,
     sanitiser="None",
-    nosgx=False,
+    sgx="Simulation",
 ):
     """
     Configures the CMake build
@@ -51,7 +51,7 @@ def cmake(
         "-DFAABRIC_SELF_TRACING=ON" if prof else "",
         "-DFAASM_USE_SANITISER={}".format(sanitiser),
         "-DFAABRIC_USE_SANITISER={}".format(sanitiser),
-        "-DFAASM_SGX={}".format("OFF" if nosgx else "ON"),
+        "-DFAASM_SGX_MODE={}".format(sgx),
         PROJ_ROOT,
     ]
 
@@ -65,8 +65,8 @@ def tools(ctx, clean=False, build="Debug", parallel=0, sanitiser="None"):
     """
     Builds all the targets commonly used for development
     """
-    nosgx = sanitiser != "None"
-    cmake(ctx, clean=clean, build=build, sanitiser=sanitiser, nosgx=nosgx)
+    sgx = "Disabled" if sanitiser != "None" else "Simulation"
+    cmake(ctx, clean=clean, build=build, sanitiser=sanitiser, sgx=sgx)
 
     targets = " ".join(DEV_TARGETS)
 

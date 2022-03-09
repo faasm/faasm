@@ -15,9 +15,11 @@ option(FAASM_SELF_TRACING "Turn on system tracing using the logger" OFF)
 option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md" OFF)
 
 # SGX functionality
-# These options customise the SGX features _provided_ SGX is found
-option(FAASM_SGX_MODE "Enable SGX support" ON) # DISABLED/SIM/HW
-# option(FAASM_SGX_SIM_MODE "Turn on SGX sim mode" OFF)
+# These options customise the SGX features _provided_ SGX is found:
+# - Disabled: disable all SGX features
+# - Simulation: use SGX in simulation mode (default)
+# - Hardware: use SGX in hardware mode
+option(FAASM_SGX_MODE "Enable SGX support" "Simulation")
 
 # Top-level CMake config
 if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
@@ -51,21 +53,21 @@ set(WAVM_ENABLE_TSAN OFF CACHE BOOL "" FORCE)
 if (FAASM_USE_SANITISER STREQUAL "Address")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
     set(WAVM_ENABLE_ASAN ON CACHE BOOL "" FORCE)
-    set(FAASM_SGX OFF)
+    set(FAASM_SGX_MODE "Disabled")
 elseif (FAASM_USE_SANITISER STREQUAL "Thread")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -fsanitize-ignorelist=${CMAKE_CURRENT_LIST_DIR}/thread-sanitizer-ignorelist.txt")
     set(WAVM_ENABLE_TSAN ON CACHE BOOL "" FORCE)
-    set(FAASM_SGX OFF)
+    set(FAASM_SGX_MODE "Disabled")
 elseif (FAASM_USE_SANITISER STREQUAL "Undefined")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
     set(WAVM_ENABLE_UBSAN ON CACHE BOOL "" FORCE)
-    set(FAASM_SGX OFF)
+    set(FAASM_SGX_MODE "Disabled")
 elseif (FAASM_USE_SANITISER STREQUAL "Leak")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=leak -fsanitize-ignorelist=${CMAKE_CURRENT_LIST_DIR}/leak-sanitizer-ignorelist.txt")
-    set(FAASM_SGX OFF)
+    set(FAASM_SGX_MODE "Disabled")
 elseif (FAASM_USE_SANITISER STREQUAL "Memory")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=memory")
-    set(FAASM_SGX OFF)
+    set(FAASM_SGX_MODE "Disabled")
 elseif (NOT ((FAASM_USE_SANITISER STREQUAL "None") OR (NOT FAASM_USE_SANITISER)))
     message(FATAL_ERROR "Invalid FAASM_USE_SANITISER setting: ${FAASM_USE_SANITISER}")
 endif()
@@ -86,44 +88,42 @@ list(PREPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_BINARY_DIR}/faabric)
 include(${CMAKE_CURRENT_BINARY_DIR}/faabric/conan_paths.cmake)
 find_package(cpprestsdk REQUIRED)
 
-# Detect SGX
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
-if (FAASM_SGX)
-    find_package(SGX)
-endif ()
-
+# ----------------------------------------
 # SGX configuration
-if (SGX_FOUND)
-    # SGX includes
-    include_directories(${SGX_SDK_PATH}/include)
+# ----------------------------------------
 
-    # Set up SGX definitions
-    add_definitions(-DFAASM_SGX=1)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
+if (NOT (FAASM_SGX_MODE STREQUAL "Disabled"))
+    # Detect SGX intallation
+    find_package(SGX)
 
-    if(FAASM_SGX_SIM_MODE)
-        add_definitions(-DSGX_SIM_MODE=1)
-        set(Protobuf_USE_STATIC_LIBS 0)
-    else()
-	    add_definitions(-DSGX_SIM_MODE=0)
-        # Must link protobuf statically because SGX LE probably uses an older version
-        set(Protobuf_USE_STATIC_LIBS 1)
-    endif()
+    # SGX configuration
+    if (SGX_FOUND)
+        # Set up SGX definitions
+        add_definitions(-DFAASM_SGX=1)
 
-    if(FAASM_SGX_ATTESTATION)
-        add_definitions(-DFAASM_SGX_ATTESTATION=1)
-    else()
-        add_definitions(-DFAASM_SGX_ATTESTATION=0)
-    endif()
+        # TODO - do we need this?
+        if (FAASM_SGX_MODE STREQUAL "Simulation")
+            add_definitions(-DSGX_SIM_MODE=1)
+            set(Protobuf_USE_STATIC_LIBS 0)
+        else ()
+            add_definitions(-DSGX_SIM_MODE=0)
+            # Must link protobuf statically because SGX LE probably uses an older version
+            set(Protobuf_USE_STATIC_LIBS 1)
+        endif ()
+    else ()
+        message(FATAL_ERROR "FAASM SGX in mode ${FAASM_SGX_MODE} but SGX not found!")
+    endif ()
 else ()
     add_definitions(-DFAASM_SGX=0)
 endif ()
+message(STATUS "FAASM SGX Mode: ${FAASM_SGX_MODE}")
 
 # ----------------------------------------
 # WAMR configuration
 # ----------------------------------------
 
 add_definitions(-DBUILD_TARGET_X86_64)
-enable_language(ASM)
 add_definitions(-DWAMR_EXECUTION_MODE_INTERP=0)
 
 # ----------------------------------------
