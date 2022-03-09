@@ -107,3 +107,10 @@ add_custom_command(TARGET enclave_untrusted
     -c ${ENCLAVE_EDL_FILENAME}_u.c
     -o ${ENCLAVE_EDL_FILENAME}_u.o
 )
+
+# --------------------------------------------------------
+# Helper binary to detect SGX from the command line
+# --------------------------------------------------------
+
+add_executable(detect_sgx detect_sgx.cpp)
+target_link_libraries(detect_sgx faasm::enclave)
