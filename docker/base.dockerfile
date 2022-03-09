@@ -49,6 +49,7 @@ RUN cmake \
     -DCMAKE_CXX_COMPILER=/usr/bin/clang++-13 \
     -DCMAKE_C_COMPILER=/usr/bin/clang-13 \
     -DCMAKE_BUILD_TYPE=Release \
+    -DFAASM_SGX_MODE=Simulation \
     /usr/local/code/faasm
 
 RUN cmake --build . --target tests
