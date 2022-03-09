@@ -14,8 +14,7 @@ endif ()
 option(FAASM_SELF_TRACING "Turn on system tracing using the logger" OFF)
 option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md" OFF)
 
-# SGX functionality
-# These options customise the SGX features _provided_ SGX is found:
+# This option customises the SGX features _provided_ SGX is found:
 # - Disabled: disable all SGX features
 # - Simulation: use SGX in simulation mode (default)
 # - Hardware: use SGX in hardware mode
