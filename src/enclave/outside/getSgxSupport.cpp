@@ -30,6 +30,7 @@ bool isSgxEnabled()
 
     switch (sgxDeviceStatus) {
         case SGX_ENABLED:
+            SPDLOG_INFO("SGX is enabled and ready to be used");
             return true;
         case SGX_DISABLED_REBOOT_REQUIRED: {
             SPDLOG_ERROR("A reboot is required to finish enabling SGX");

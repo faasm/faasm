@@ -6,8 +6,26 @@ support using [WAMR](https://github.com/bytecodealliance/wasm-micro-runtime).
 
 ## Quick start
 
-SGX support is currently only available for development clusters.
-Note that the following will run in simulation mode.
+To configure SGX, we must build the code with the desired SGX flavour: disabled
+(no SGX functionality), simulation (default), or hardware.
+
+```bash
+inv dev.cmake --sgx "Disabled"|"Simulation"|"Hardware"
+```
+
+Note that to run in hardware mode, you must have an SGX-capable CPU where
+SGX has been enabled. To check you may run:
+
+```bash
+inv dev.cc detect_sgx
+inv sgx.check
+```
+
+Note also that hardware mode is not yet available in development clusters, only
+through the CLI.
+
+Then, to run functions using SGX compile them as usual, and set the `WASM_VM`
+environment variable to "sgx".
 
 ```bash
 # Start development cluster, and log into the cpp container
@@ -29,38 +47,3 @@ inv codegen demo hello
 # Run the code
 inv run demo hello
 ```
-
-## SGX Set-up
-
-_Simulation Mode_
-
-You'll need to install SGX. You can see how this is done by looking at the
-[`faasm/sgx` dockerfile](../docker/sgx.dockerfile).
-
-Simulation mode is the default for Faasm builds.
-
-_Hardware mode_
-
-Hardware Mode requires more SGX packages than Simulation Mode (e.g. SGX driver,
-SGX LE etc.). The drive and prebuilt binaries can be downloaded from [the Intel
-website](https://download.01.org/intel-sgx/sgx-linux/2.12/distro/ubuntu20.04-server/).
-
-To run in Hardware Mode, you need to set `FAASM_SGX_SIM_MODE=OFF` (obviously
-this is only possible with an SGX-enabled CPU).
-
-## Building Faasm with SGX enabled
-
-The Faasm build will automatically detect some properties of your SGX
-installation with [SGX-CMake](https://github.com/xzhangxa/SGX-CMake).
-
-High-level Faasm SGX support is configured with CMake options in the [main
-`CMakeLists.txt`](../CMakeLists.txt).
-
-Low-level SGX-related customisation is found in [the SGX-specific
-`CMakeLists.txt`](../src/sgx/CMakeLists.txt).
-
-### General Options
-
-- `FAASM_SGX_SIM_MODE` - Specifies the SGX execution mode whether the Simulation
-  or Hardware mode is used. Enabling this option chooses the Simulation mode.
-  Default is on.
