@@ -55,7 +55,12 @@ target_compile_options(enclave_untrusted PRIVATE
     -fdata-sections
 )
 
-target_link_directories(enclave_untrusted INTERFACE ${SGX_SDK_LIB_PATH})
+# It is important to link to the SDK lib path _only_ in simulation mode. In
+# HW mode we must link to the system libraries. Note that this only applies to
+# code living outside the enclave.
+if(FAASM_SGX_SIM_MODE)
+    target_link_directories(enclave_untrusted INTERFACE ${SGX_SDK_LIB_PATH})
+endif()
 
 target_link_options(enclave_untrusted PUBLIC
     ${CMAKE_CURRENT_BINARY_DIR}/${ENCLAVE_EDL_FILENAME}_u.o
@@ -65,16 +70,18 @@ target_link_options(enclave_untrusted PUBLIC
 if(FAASM_SGX_SIM_MODE)
     set(SGX_UNTRUSTED_RUNTIME_LIB ${SGX_SDK_LIB_PATH}/libsgx_urts_sim.so)
     set(SGX_UAE_SERVICE_LIB ${SGX_SDK_LIB_PATH}/libsgx_uae_service_sim.so)
+    set(SGX_CAPABLE_LIB ${SGX_SDK_LIB_PATH}/libsgx_capable.so)
 else()
-    set(SGX_UNTRUSTED_RUNTIME_LIB ${SGX_SDK_LIB_PATH}/libsgx_urts.so)
-    set(SGX_UAE_SERVICE_LIB ${SGX_SDK_LIB_PATH}/libsgx_uae_service.so)
+    set(SGX_UNTRUSTED_RUNTIME_LIB /usr/lib/libsgx_urts.so)
+    set(SGX_UAE_SERVICE_LIB /usr/lib/libsgx_uae_service.so)
+    set(SGX_CAPABLE_LIB /usr/lib/libsgx_capable.so)
 endif()
 
 target_link_libraries(enclave_untrusted
     faasm::common_deps
     ${SGX_UNTRUSTED_RUNTIME_LIB}
     ${SGX_UAE_SERVICE_LIB}
-    ${SGX_SDK_LIB_PATH}/libsgx_capable.so
+    ${SGX_CAPABLE_LIB}
     Threads::Threads
     wamrlib_untrusted
     wasm
