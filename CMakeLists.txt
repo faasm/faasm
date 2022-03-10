@@ -93,7 +93,7 @@ find_package(cpprestsdk REQUIRED)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 if (NOT (FAASM_SGX_MODE STREQUAL "Disabled"))
-    # Set maro definitions for conditional compilation
+    # Set macro definitions for conditional compilation
     if (FAASM_SGX_MODE STREQUAL "Hardware")
         add_definitions(-DFAASM_SGX_HARDWARE_MODE)
     elseif (FAASM_SGX_MODE STREQUAL "Simulation")
