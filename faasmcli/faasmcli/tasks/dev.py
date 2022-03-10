@@ -16,6 +16,10 @@ DEV_TARGETS = [
     "tests",
 ]
 
+SGX_MODE_SIM = "Simulation"
+SGX_MODE_DISABLED = "Disabled"
+SANITISER_NONE = "None"
+
 
 @task
 def cmake(
@@ -24,8 +28,8 @@ def cmake(
     build="Debug",
     perf=False,
     prof=False,
-    sanitiser="None",
-    sgx="Simulation",
+    sanitiser=SANITISER_NONE,
+    sgx=SGX_MODE_SIM,
 ):
     """
     Configures the CMake build
@@ -61,11 +65,13 @@ def cmake(
 
 
 @task
-def tools(ctx, clean=False, build="Debug", parallel=0, sanitiser="None"):
+def tools(
+    ctx, clean=False, build="Debug", parallel=0, sanitiser=SANITISER_NONE
+):
     """
     Builds all the targets commonly used for development
     """
-    sgx = "Disabled" if sanitiser != "None" else "Simulation"
+    sgx = SGX_MODE_DISABLED if sanitiser != SANITISER_NONE else SGX_MODE_SIM
     cmake(ctx, clean=clean, build=build, sanitiser=sanitiser, sgx=sgx)
 
     targets = " ".join(DEV_TARGETS)
