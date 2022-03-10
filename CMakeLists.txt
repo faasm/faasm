@@ -15,10 +15,7 @@ option(FAASM_SELF_TRACING "Turn on system tracing using the logger" OFF)
 option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md" OFF)
 
 # This option customises the SGX features _provided_ SGX is found:
-# - Disabled: disable all SGX features
-# - Simulation: use SGX in simulation mode (default)
-# - Hardware: use SGX in hardware mode
-option(FAASM_SGX_MODE "Enable SGX support" "Simulation")
+option(FAASM_SGX_MODE "Type of SGX support: Disabled, Simulation or Hardware" "Simulation")
 
 # Top-level CMake config
 if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
