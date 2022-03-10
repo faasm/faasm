@@ -2,7 +2,11 @@ FROM ubuntu:20.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# System deps
+# This long dependency list is a combination of:
+# i) The dependencies listed in to build SGX SDK and PSW from source in 20.04:
+#   https://github.com/intel/linux-sgx#prerequisites
+# ii) The docker image to build SGX SDK and PSW in a 18.04 container:
+#   https://github.com/intel/linux-sgx/blob/master/docker/build/Dockerfile#L33-L50
 RUN apt-get update
 RUN apt-get install  -y \
     autoconf \
