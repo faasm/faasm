@@ -7,11 +7,9 @@ namespace sgx {
 
 bool isSgxEnabled()
 {
-    sgx_status_t sgxStatus;
-
     // First check if the machine is capable
     int isSgxCapable;
-    sgxStatus = sgx_is_capable(&isSgxCapable);
+    sgx_status_t sgxStatus = sgx_is_capable(&isSgxCapable);
     if (sgxStatus != SGX_SUCCESS) {
         SPDLOG_ERROR("Call to check if system is SGX-capable failed");
         return false;
