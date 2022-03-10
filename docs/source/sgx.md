@@ -10,7 +10,7 @@ To configure SGX, we must build the code with the desired SGX flavour: disabled
 (no SGX functionality), simulation (default), or hardware.
 
 ```bash
-inv dev.cmake --sgx "Disabled"|"Simulation"|"Hardware"
+inv dev.cmake --sgx Disabled|Simulation|Hardware
 ```
 
 Note that to run in hardware mode, you must have an SGX-capable CPU where
@@ -47,3 +47,17 @@ inv codegen demo hello
 # Run the code
 inv run demo hello
 ```
+
+## Update SGX SDK and PSW version
+
+We use SGX SDK and PSW version [`2.15.1`](https://github.com/intel/linux-sgx/tree/sgx_2.15.1)
+as defined in [`sgx.dockerfile`](https://github.com/faasm/faasm/blob/main/docker/sgx.dockerfile).
+If you want to upgrade the version, change it there, and create a new docker
+image using:
+
+```bash
+inv docker.build -c sgx --nocache --push
+```
+
+The image will be tagged with the current code version, which you will have to
+amend in [`base.dockerfile`](https://github.com/faasm/faasm/blob/be3f2f73ec1120047ddabd1a50629d1b075023e6/docker/base.dockerfile#L5).
