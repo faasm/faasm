@@ -323,8 +323,11 @@ def ini_file(ctx, local=False, publicip=None):
     print("Overwriting config file at {}\n".format(FAASM_CONFIG_FILE))
 
     with open(FAASM_CONFIG_FILE, "w") as fh:
-        fh.write("# Auto-generated at {}\n".format(datetime.now()))
         fh.write("[Faasm]\n")
+
+        # This comment line can't be outside of the Faasm section
+        fh.write("# Auto-generated at {}\n".format(datetime.now()))
+
         fh.write("invoke_host = {}\n".format(invoke_ip))
         fh.write("invoke_port = {}\n".format(invoke_port))
         fh.write("upload_host = {}\n".format(upload_ip))
