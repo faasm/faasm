@@ -55,6 +55,8 @@ number of replicas.
 
 The deploy can take up to a couple of minutes.
 
+## Faasm config file
+
 Once everything has started up, Faasm should also generate a config file,
 `faasm.ini` at root of this project. This contains the relevant endpoints for
 accessing the Faasm deployment.
@@ -64,6 +66,24 @@ If you need to regenerate this, you can run:
 ```bash
 inv knative.ini-file
 ```
+
+*If you are running on a bare metal cluster (i.e. not as part of a managed k8s
+service like AKS), you'll need to run the following instead:*
+
+```bash
+inv knative.ini-file --publicip <ip of one of your hosts>
+```
+
+This is because Faasm normally assumes different public IPs for the upload and
+invocation services, which are created as k8s `LoadBalancer`s in a cloud
+provider. The command above instead uses the underlying `NodePort`s from those
+`LoadBalancers`, by hitting one of the underlying hosts directly.
+
+Unfortunately it's often not possible to query this public IP from within
+`kubectl` itself, so you have to tell Faasm what it is explicitly.
+
+Also make sure that all the ports mentioned in the Faasm config file are
+accessible via your hosts' firewall rules.
 
 ## Uploading and invoking functions
 
