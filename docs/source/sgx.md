@@ -21,9 +21,6 @@ inv dev.cc detect_sgx
 inv sgx.check
 ```
 
-Note also that hardware mode is not yet available in development clusters, only
-through the CLI.
-
 Then, to run functions using SGX compile them as usual, and set the `WASM_VM`
 environment variable to "sgx".
 
@@ -47,6 +44,10 @@ inv codegen demo hello
 # Run the code
 inv run demo hello
 ```
+
+To run SGX in an Azure kubernetes cluster, see the relevant repositories:
+[experiment-base](https://github.com/faasm/experiment-base) and
+[experiment-sgx](https://github.com/faasm/experiment-sgx).
 
 ## Update SGX SDK and PSW version
 
