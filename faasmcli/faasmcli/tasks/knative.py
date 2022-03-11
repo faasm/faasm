@@ -82,20 +82,20 @@ def delete_worker(ctx):
 
 
 @task
-def deploy(ctx, replicas=0):
+def deploy(ctx, replicas=0, sgx=False):
     """
     Deploy Faasm to knative
     """
-    _deploy_faasm_services()
+    _deploy_faasm_services(sgx)
 
     replicas = int(replicas)
     print("Deploying Faasm worker with {} fixed replicas".format(replicas))
-    _deploy_faasm_worker(replicas)
+    _deploy_faasm_worker(replicas, sgx)
 
     ini_file(ctx)
 
 
-def _deploy_faasm_services():
+def _deploy_faasm_services(sgx=False):
     # Set up the namespace first, then the rest, excluding the worker
     run(
         "kubectl apply -f {}".format(NAMESPACE_FILE),
@@ -105,7 +105,16 @@ def _deploy_faasm_services():
 
     k8s_files = listdir(K8S_DIR)
     k8s_files = [f for f in k8s_files if f.endswith(".yml")]
-    k8s_files = [f for f in k8s_files if f != "worker.yml"]
+    if sgx:
+        k8s_files = [
+            f for f in k8s_files if ("worker" not in f and f != "upload.yml")
+        ]
+    else:
+        k8s_files = [
+            f
+            for f in k8s_files
+            if ("worker" not in f and f != "upload-sgx.yml")
+        ]
 
     print("Applying k8s files: {}".format(k8s_files))
 
@@ -137,14 +146,14 @@ def _deploy_faasm_services():
         sleep(5)
 
 
-def _deploy_faasm_worker(replicas):
+def _deploy_faasm_worker(replicas, sgx=False):
     cmd = [
         "kn",
         "service",
         "-n faasm",
         "apply",
         "-f",
-        join(K8S_DIR, "worker.yml"),
+        join(K8S_DIR, "worker-sgx.yml" if sgx else "worker.yml"),
         "--wait",
     ]
 
@@ -159,7 +168,7 @@ def _deploy_faasm_worker(replicas):
 
 
 @task
-def delete_full(ctx, local=False):
+def delete_full(ctx, local=False, sgx=False):
     """
     Fully delete Faasm from Knative
     """
