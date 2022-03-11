@@ -22,7 +22,7 @@ spec:
               weight: 100
 
       containers:
-        - image: faasm/worker-sgx:0.8.2
+        - image: faasm/worker-sgx:0.8.3
           resources:
             limits:
               sgx.intel.com/epc: "10Mi"
