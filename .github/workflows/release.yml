@@ -92,6 +92,33 @@ jobs:
           context: .
           tags: faasm/base:${{ env.TAG_VERSION }}
 
+  build-base-sgx:
+    needs: clean
+    runs-on: ubuntu-20.04
+    steps:
+      - name: "Get the code"
+        uses: actions/checkout@v2
+      - name: "Get tag version"
+        run: echo "TAG_VERSION=${GITHUB_REF#refs/tags/v*}" >> $GITHUB_ENV
+      - name: "Set up QEMU"
+        uses: docker/setup-qemu-action@v1
+      - name: "Set up Docker Buildx"
+        uses: docker/setup-buildx-action@v1
+      - name: "Log in to DockerHub"
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: "Build base container"
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          file: docker/base.dockerfile
+          build-args: FAASM_VERSION=${{ env.TAG_VERSION }}
+          build-args: FAASM_SGX_MODE=Hardware
+          context: .
+          tags: faasm/base-sgx:${{ env.TAG_VERSION }}
+
   build-cli:
     needs: build-base
     runs-on: ubuntu-20.04
@@ -143,6 +170,33 @@ jobs:
           build-args: FAASM_VERSION=${{ env.TAG_VERSION }}
           context: .
           tags: faasm/worker:${{ env.TAG_VERSION }}
+
+  build-worker-sgx:
+    needs: build-base-sgx
+    runs-on: ubuntu-20.04
+    steps:
+      - name: "Get the code"
+        uses: actions/checkout@v2
+      - name: "Get tag version"
+        run: echo "TAG_VERSION=${GITHUB_REF#refs/tags/v*}" >> $GITHUB_ENV
+      - name: "Set up QEMU"
+        uses: docker/setup-qemu-action@v1
+      - name: "Set up Docker Buildx"
+        uses: docker/setup-buildx-action@v1
+      - name: "Log in to DockerHub"
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: "Build worker container"
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          file: docker/worker.dockerfile
+          build-args: FAASM_VERSION=${{ env.TAG_VERSION }}
+          build-args: FAASM_SGX_MODE=Hardware
+          context: .
+          tags: faasm/worker-sgx:${{ env.TAG_VERSION }}
 
   build-upload:
     needs: build-base
