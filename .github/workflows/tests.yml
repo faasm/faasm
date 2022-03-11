@@ -294,16 +294,16 @@ jobs:
         run: docker-compose run -T python inv func func.upload func.uploadpy hello
       # Function invocation
       - name: "Invoke cpp function"
-        run: docker-compose run -T cpp inv func.invoke --host=nginx demo hello | tee output_1.log
+        run: docker-compose run -T cpp inv func.invoke demo hello | tee output_1.log
       - name: "Invoke python hello function"
         run: docker-compose run -T python inv func.invoke --host=nginx python hello
       # Re-invocation of same function with different code after flush
       - name: "Flush workers"
-        run: docker-compose run -T cpp inv func.flush --host=nginx
+        run: docker-compose run -T cpp inv func.flush
       - name: "Build echo function and upload in place of hello function"
         run: ./deploy/local/replace_hello_with_echo.sh
       - name: "Invoke cpp function"
-        run: docker-compose run -T cpp inv func.invoke --host=nginx demo hello | tee output_2.log
+        run: docker-compose run -T cpp inv func.invoke demo hello | tee output_2.log
       - name: "Check both outputs are different"
         run: (cmp output_1.log output_2.log && exit 1 || exit 0)
       # Print logs and finish
