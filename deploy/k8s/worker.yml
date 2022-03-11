@@ -22,7 +22,7 @@ spec:
               weight: 100
 
       containers:
-        - image: faasm/worker:0.8.1
+        - image: faasm/worker:0.8.2
           env:
             - name: REDIS_STATE_HOST
               value: "redis-state"

@@ -2,7 +2,7 @@ file(GLOB_RECURSE TEST_FILES test_*.cpp)
 file(GLOB_RECURSE ENCLAVE_TEST_FILES enclave/test_*.cpp)
 
 # Remove SGX tests if SGX disabled or not found
-if (NOT SGX_FOUND)
+if (FAASM_SGX_MODE STREQUAL "Disabled")
     list(REMOVE_ITEM TEST_FILES ${ENCLAVE_TEST_FILES})
 endif()
 

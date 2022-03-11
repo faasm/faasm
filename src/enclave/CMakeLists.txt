@@ -20,13 +20,6 @@ else()
     message(FATAL_ERROR "SGX-SDK not installed in ${SGX_SDK_PATH}")
 endif()
 
-# NASM configuration
-enable_language(ASM_NASM)
-set(CMAKE_ASM_NASM_FLAGS -felf64)
-set(CMAKE_ASM_NASM_COMPILE_OBJECT
-    "<CMAKE_ASM_NASM_COMPILER> <INCLUDES> ${CMAKE_ASM_NASM_FLAGS} -o <OBJECT> <SOURCE>"
-)
-
 # --------------------------------------------------------
 # Global SGX Compilation Flags
 # --------------------------------------------------------

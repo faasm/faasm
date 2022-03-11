@@ -17,6 +17,7 @@ from . import python
 from . import redis
 from . import release
 from . import run
+from . import sgx
 from . import state
 from . import upload
 from . import wast
@@ -38,6 +39,7 @@ ns = Collection(
     redis,
     release,
     run,
+    sgx,
     state,
     upload,
     wast,

@@ -28,19 +28,13 @@ endif()
 set(ENCLAVE_UNTRUSTED_HEADERS
     ${FAASM_INCLUDE_DIR}/enclave/error.h
     ${FAASM_INCLUDE_DIR}/enclave/outside/ecalls.h
+    ${FAASM_INCLUDE_DIR}/enclave/outside/getSgxSupport.h
     ${FAASM_INCLUDE_DIR}/enclave/outside/system.h
     ${FAASM_INCLUDE_DIR}/enclave/outside/EnclaveInterface.h
 )
 
-set(ENCLAVE_UNTRUSTED_ASM_SRC
-    getSgxSupport.S
-)
-
-set_source_files_properties(${ENCLAVE_UNTRUSTED_ASM_SRC}
-    PROPERTIES LANGUAGE ASM_NASM
-)
-
 set(ENCLAVE_UNTRUSTED_SRC
+    getSgxSupport.cpp
     ocalls.cpp
     EnclaveInterface.cpp
     system.cpp
@@ -61,25 +55,32 @@ target_compile_options(enclave_untrusted PRIVATE
     -fdata-sections
 )
 
-target_link_directories(enclave_untrusted INTERFACE ${SGX_SDK_LIB_PATH})
-
 target_link_options(enclave_untrusted PUBLIC
     ${CMAKE_CURRENT_BINARY_DIR}/${ENCLAVE_EDL_FILENAME}_u.o
     -Wl,--gc-sections
 )
 
-if(FAASM_SGX_SIM_MODE)
+# It is important to link to the SDK lib path _only_ in simulation mode. In
+# HW mode we must link to the system libraries. Note that this only applies to
+# code living outside the enclave.
+if (FAASM_SGX_MODE STREQUAL "Simulation")
+    target_link_directories(enclave_untrusted INTERFACE ${SGX_SDK_LIB_PATH})
     set(SGX_UNTRUSTED_RUNTIME_LIB ${SGX_SDK_LIB_PATH}/libsgx_urts_sim.so)
     set(SGX_UAE_SERVICE_LIB ${SGX_SDK_LIB_PATH}/libsgx_uae_service_sim.so)
+    set(SGX_CAPABLE_LIB ${SGX_SDK_LIB_PATH}/libsgx_capable.so)
+elseif (FAASM_SGX_MODE STREQUAL "Hardware")
+    set(SGX_UNTRUSTED_RUNTIME_LIB /usr/lib/libsgx_urts.so)
+    set(SGX_UAE_SERVICE_LIB /usr/lib/libsgx_uae_service.so)
+    set(SGX_CAPABLE_LIB /usr/lib/libsgx_capable.so)
 else()
-    set(SGX_UNTRUSTED_RUNTIME_LIB ${SGX_SDK_LIB_PATH}/libsgx_urts.so)
-    set(SGX_UAE_SERVICE_LIB ${SGX_SDK_LIB_PATH}/libsgx_uae_service.so)
+    message(FATAL_ERROR "Building SGX code with mode: ${FAASM_SGX_MODE}")
 endif()
 
 target_link_libraries(enclave_untrusted
     faasm::common_deps
     ${SGX_UNTRUSTED_RUNTIME_LIB}
     ${SGX_UAE_SERVICE_LIB}
+    ${SGX_CAPABLE_LIB}
     Threads::Threads
     wamrlib_untrusted
     wasm
@@ -106,3 +107,10 @@ add_custom_command(TARGET enclave_untrusted
     -c ${ENCLAVE_EDL_FILENAME}_u.c
     -o ${ENCLAVE_EDL_FILENAME}_u.o
 )
+
+# --------------------------------------------------------
+# Helper binary to detect SGX from the command line
+# --------------------------------------------------------
+
+add_executable(detect_sgx detect_sgx.cpp)
+target_link_libraries(detect_sgx faasm::enclave)

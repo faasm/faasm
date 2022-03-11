@@ -122,18 +122,3 @@ message(STATUS FAASM_WAVM_SOURCE_DIR ${FAASM_WAVM_SOURCE_DIR})
 
 FetchContent_GetProperties(wamr_ext SOURCE_DIR WAMR_ROOT_DIR)
 message(STATUS WAMR_ROOT_DIR ${WAMR_ROOT_DIR})
-
-# SGX-specific dependencies
-if(FAASM_SGX_XRA)
-    FetchContent_Declare(xra_ext
-        GIT_REPOSITORY "https://github.com/J-Heinemann/eXtended-Remote-Attestation"
-        GIT_TAG "1252f429c478d8c9052b02fc54f9f7d6ecc33594"
-    )
-
-    FetchContent_MakeAvailable(xra_ext)
-
-    # Access to headers in XRA
-    FetchContent_GetProperties(xra_ext SOURCE_DIR FAASM_XRA_ROOT_DIR)
-    set(FAASM_XRA_INCLUDE_PATH ${FAASM_XRA_ROOT_DIR}/include)
-endif()
-

@@ -14,7 +14,7 @@
 #include <faaslet/Faaslet.h>
 
 #include <conf/FaasmConfig.h>
-#if (FAASM_SGX)
+#ifndef FAASM_SGX_DISABLED_MODE
 #include <enclave/outside/EnclaveInterface.h>
 #endif
 #include <wamr/WAMRWasmModule.h>
@@ -224,7 +224,7 @@ void executeWithWamrPool(const std::string& user,
 
 void execSgxFunction(faabric::Message& call, const std::string& expectedOutput)
 {
-#if (FAASM_SGX)
+#ifndef FAASM_SGX_DISABLED_MODE
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     const std::string originalVm = conf.wasmVm;
     conf.wasmVm = "sgx";
@@ -249,7 +249,7 @@ void execSgxFunction(faabric::Message& call, const std::string& expectedOutput)
 
 void execFuncWithSgxPool(faabric::Message& call, int timeout)
 {
-#if (FAASM_SGX)
+#ifndef FAASM_SGX_DISABLED_MODE
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     const std::string originalVm = conf.wasmVm;
     conf.wasmVm = "sgx";
