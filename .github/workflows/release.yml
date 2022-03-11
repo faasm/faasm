@@ -114,8 +114,9 @@ jobs:
         with:
           push: true
           file: docker/base.dockerfile
-          build-args: FAASM_VERSION=${{ env.TAG_VERSION }}
-          build-args: FAASM_SGX_MODE=Hardware
+          build-args: |
+            FAASM_VERSION=${{ env.TAG_VERSION }}
+            FAASM_SGX_MODE=Hardware
           context: .
           tags: faasm/base-sgx:${{ env.TAG_VERSION }}
 
@@ -193,8 +194,9 @@ jobs:
         with:
           push: true
           file: docker/worker.dockerfile
-          build-args: FAASM_VERSION=${{ env.TAG_VERSION }}
-          build-args: FAASM_SGX_MODE=Hardware
+          build-args: |
+            FAASM_VERSION=${{ env.TAG_VERSION }}
+            FAASM_SGX_MODE=Hardware
           context: .
           tags: faasm/worker-sgx:${{ env.TAG_VERSION }}
 
