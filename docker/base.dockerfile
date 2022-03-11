@@ -51,12 +51,13 @@ RUN mkdir -p /usr/local/faasm/runtime_root/share
 WORKDIR /build/faasm
 
 # Build the basics here to set up the CMake build
+ARG FAASM_SGX_MODE
 RUN cmake \
     -GNinja \
     -DCMAKE_CXX_COMPILER=/usr/bin/clang++-13 \
     -DCMAKE_C_COMPILER=/usr/bin/clang-13 \
     -DCMAKE_BUILD_TYPE=Release \
-    -DFAASM_SGX_MODE=Simulation \
+    -DFAASM_SGX_MODE=${FAASM_SGX_MODE:-Simulation} \
     /usr/local/code/faasm
 
 RUN cmake --build . --target tests
