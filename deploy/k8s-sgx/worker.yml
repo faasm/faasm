@@ -23,6 +23,9 @@ spec:
 
       containers:
         - image: faasm/worker-sgx:0.8.3
+          # We need to add this resources field to make sure the SGX device is
+          # available in the pods:
+          # https://docs.microsoft.com/en-us/azure/confidential-computing/confidential-nodes-aks-overview#azure-device-plugin-for-intel-sgx-
           resources:
             limits:
               sgx.intel.com/epc: "10Mi"
