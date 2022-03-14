@@ -17,10 +17,9 @@ option(FAASM_PERF_PROFILING "Turn on profiling features as described in debuggin
 # This option customises the SGX features _provided_ SGX is found:
 option(FAASM_SGX_MODE "Type of SGX support: Disabled, Simulation or Hardware" "Simulation")
 
+option(FAASM_TARGET_CPU "CPU to optimise for, e.g. skylake, icelake or native" OFF)
+
 # Top-level CMake config
-if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
-    add_compile_options(-march=skylake -mtune=skylake)
-endif ()
 set(CMAKE_CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_STANDARD 20)
@@ -28,6 +27,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld")
+
+if(FAASM_TARGET_CPU)
+    message(STATUS "Optimising Faasm for CPU ${FAASM_TARGET_CPU}")
+    add_compile_options(-march=${FAASM_TARGET_CPU} -mtune=${FAASM_TARGET_CPU})
+else()
+    message(STATUS "Faasm not optimised for specific CPU")
+endif()
 
 # Faasm profiling
 if (${FAASM_SELF_TRACING})
@@ -78,6 +84,7 @@ set(FAASM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
 set(FAASM_NATIVE_INSTALL "/usr/local/faasm/native")
 
 # Faabric
+set(FAABRIC_TARGET_CPU ${FAASM_TARGET_CPU} CACHE BOOL "" FORCE)
 add_subdirectory(faabric)
 list(PREPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR}/faabric)
 list(PREPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_BINARY_DIR}/faabric)

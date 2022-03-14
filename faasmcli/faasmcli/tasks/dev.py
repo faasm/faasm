@@ -30,6 +30,7 @@ def cmake(
     prof=False,
     sanitiser=SANITISER_NONE,
     sgx=SGX_MODE_SIM,
+    cpu=None,
 ):
     """
     Configures the CMake build
@@ -56,6 +57,7 @@ def cmake(
         "-DFAASM_USE_SANITISER={}".format(sanitiser),
         "-DFAABRIC_USE_SANITISER={}".format(sanitiser),
         "-DFAASM_SGX_MODE={}".format(sgx),
+        "-DFAASM_TARGET_CPU={}".format(cpu) if cpu else "",
         PROJ_ROOT,
     ]
 
