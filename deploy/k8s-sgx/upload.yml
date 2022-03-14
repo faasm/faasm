@@ -27,17 +27,3 @@ spec:
         - name: WASM_VM
           value: "sgx"
 
----
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: upload-lb
-  namespace: faasm
-spec:
-  type: LoadBalancer
-  ports:
-  - port: 8002
-  selector:
-    role: upload
-
