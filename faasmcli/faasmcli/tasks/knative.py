@@ -15,8 +15,10 @@ from faasmcli.util.env import (
 
 LOCALHOST_IP = "127.0.0.1"
 
+K8S_COMMON_DIR = join(PROJ_ROOT, "deploy", "k8s-common")
+K8S_SGX_DIR = join(PROJ_ROOT, "deploy", "k8s-sgx")
 K8S_DIR = join(PROJ_ROOT, "deploy", "k8s")
-NAMESPACE_FILE = join(K8S_DIR, "namespace.yml")
+NAMESPACE_FILE = join(K8S_COMMON_DIR, "namespace.yml")
 
 KNATIVE_VERSION = "1.1.0"
 
@@ -103,23 +105,17 @@ def _deploy_faasm_services(sgx=False):
         shell=True,
     )
 
-    k8s_files = listdir(K8S_DIR)
-    k8s_files = [f for f in k8s_files if f.endswith(".yml")]
-    if sgx:
-        k8s_files = [
-            f for f in k8s_files if ("worker" not in f and f != "upload.yml")
-        ]
-    else:
-        k8s_files = [
-            f
-            for f in k8s_files
-            if ("worker" not in f and f != "upload-sgx.yml")
-        ]
+    # Apply all files in the common directory, and the corresponding upload
+    # service
+    k8s_files = listdir(K8S_COMMON_DIR)
+    k8s_files = [
+        join(K8S_COMMON_DIR, f) for f in k8s_files if f.endswith(".yml")
+    ]
+    k8s_files.append(join(K8S_SGX_DIR if sgx else K8S_DIR, "upload.yml"))
 
     print("Applying k8s files: {}".format(k8s_files))
 
-    for f in k8s_files:
-        file_path = join(K8S_DIR, f)
+    for file_path in k8s_files:
         run(
             "kubectl apply -f {}".format(file_path),
             check=True,
@@ -153,7 +149,7 @@ def _deploy_faasm_worker(replicas, sgx=False):
         "-n faasm",
         "apply",
         "-f",
-        join(K8S_DIR, "worker-sgx.yml" if sgx else "worker.yml"),
+        join(K8S_SGX_DIR if sgx else K8S_DIR, "worker.yml"),
         "--wait",
     ]
 
@@ -168,7 +164,7 @@ def _deploy_faasm_worker(replicas, sgx=False):
 
 
 @task
-def delete_full(ctx, local=False, sgx=False):
+def delete_full(ctx, local=False):
     """
     Fully delete Faasm from Knative
     """
@@ -176,9 +172,10 @@ def delete_full(ctx, local=False, sgx=False):
     delete_worker(ctx)
 
     # Delete the rest
-    cmd = "kubectl delete --all -f {}".format(K8S_DIR)
-    print(cmd)
-    run(cmd, shell=True, check=True)
+    for dir_to_delete in [K8S_DIR, K8S_SGX_DIR, K8S_COMMON_DIR]:
+        cmd = "kubectl delete --all -f {}".format(dir_to_delete)
+        print(cmd)
+        run(cmd, shell=True, check=True)
 
 
 def _kn_github_url(repo, filename):
