@@ -36,6 +36,6 @@ TEST_CASE_METHOD(DistTestsFixture,
 
     // Get the estimate (check one dp)
     std::string outputData = msg.outputdata();
-    REQUIRE(faabric::util::startsWith("Pi estimate: 3.1", outputData));
+    REQUIRE(faabric::util::startsWith(outputData, "Pi estimate: 3.1"));
 }
 }
