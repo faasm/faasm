@@ -53,7 +53,7 @@ inv func demo hello
 inv func.upload demo hello
 
 # Invoke the function
-inv func.invoke --host=nginx demo hello
+inv func.invoke demo hello
 ```
 
 ## Acknowledgements
