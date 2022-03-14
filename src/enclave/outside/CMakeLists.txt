@@ -27,17 +27,21 @@ endif()
 
 set(ENCLAVE_UNTRUSTED_HEADERS
     ${FAASM_INCLUDE_DIR}/enclave/error.h
+    ${FAASM_INCLUDE_DIR}/enclave/outside/attestation.h
     ${FAASM_INCLUDE_DIR}/enclave/outside/ecalls.h
     ${FAASM_INCLUDE_DIR}/enclave/outside/getSgxSupport.h
     ${FAASM_INCLUDE_DIR}/enclave/outside/system.h
     ${FAASM_INCLUDE_DIR}/enclave/outside/EnclaveInterface.h
+    ${FAASM_INCLUDE_DIR}/enclave/outside/EnclaveQuote.h
 )
 
 set(ENCLAVE_UNTRUSTED_SRC
+    attestation.cpp
     getSgxSupport.cpp
     ocalls.cpp
-    EnclaveInterface.cpp
     system.cpp
+    EnclaveInterface.cpp
+    EnclaveQuote.cpp
 )
 
 add_library(enclave_untrusted STATIC
@@ -68,6 +72,11 @@ if (FAASM_SGX_MODE STREQUAL "Simulation")
     set(SGX_UNTRUSTED_RUNTIME_LIB ${SGX_SDK_LIB_PATH}/libsgx_urts_sim.so)
     set(SGX_UAE_SERVICE_LIB ${SGX_SDK_LIB_PATH}/libsgx_uae_service_sim.so)
     set(SGX_CAPABLE_LIB ${SGX_SDK_LIB_PATH}/libsgx_capable.so)
+    set(SGX_DCAP_LIBS
+        ${SGX_DCAP_LIB_PATH}/libsgx_dcap_ql.so
+        ${SGX_DCAP_LIB_PATH}/libsgx_qe3_logic.so
+        ${SGX_DCAP_LIB_PATH}/libsgx_pce_logic.so
+    )
 elseif (FAASM_SGX_MODE STREQUAL "Hardware")
     set(SGX_UNTRUSTED_RUNTIME_LIB /usr/lib/libsgx_urts.so)
     set(SGX_UAE_SERVICE_LIB /usr/lib/libsgx_uae_service.so)
@@ -81,6 +90,7 @@ target_link_libraries(enclave_untrusted
     ${SGX_UNTRUSTED_RUNTIME_LIB}
     ${SGX_UAE_SERVICE_LIB}
     ${SGX_CAPABLE_LIB}
+    ${SGX_DCAP_LIBS}
     Threads::Threads
     wamrlib_untrusted
     wasm
