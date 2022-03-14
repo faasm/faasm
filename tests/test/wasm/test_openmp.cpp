@@ -113,7 +113,7 @@ TEST_CASE_METHOD(OpenMPTestFixture,
                  "Test OpenMP Pi calculation",
                  "[wasm][openmp]")
 {
-    doOmpTestLocal("mt_pi");
+    doOmpTestLocal("pi_faasm");
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture,
