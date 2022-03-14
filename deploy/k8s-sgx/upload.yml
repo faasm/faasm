@@ -24,4 +24,6 @@ spec:
           value: "info"
         - name: LD_LIBRARY_PATH
           value: "/build/faasm/third-party/lib:/usr/local/lib"
+        - name: WASM_VM
+          value: "sgx"
 

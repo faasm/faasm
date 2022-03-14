@@ -1,5 +1,6 @@
 ARG FAASM_VERSION
-FROM faasm/base:${FAASM_VERSION}
+ARG FAASM_SGX_MODE
+FROM faasm/base${FAASM_SGX_MODE:+-sgx}:${FAASM_VERSION}
 
 # Build the worker binary
 WORKDIR /build/faasm

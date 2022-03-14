@@ -91,7 +91,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                __faasm_lock_state_global,
                                I32 keyPtr)
 {
-    auto kv = getStateKV(keyPtr, 0);
+    auto kv = getStateKV(keyPtr);
     SPDLOG_DEBUG("S - lock_state_global - {}", kv->key);
 
     kv->lockGlobal();
@@ -103,7 +103,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                __faasm_unlock_state_global,
                                I32 keyPtr)
 {
-    auto kv = getStateKV(keyPtr, 0);
+    auto kv = getStateKV(keyPtr);
     SPDLOG_DEBUG("S - unlock_state_global - {}", kv->key);
 
     kv->unlockGlobal();

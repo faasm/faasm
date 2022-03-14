@@ -24,11 +24,16 @@
     }
 
 #define SET_ERROR(X)                                                           \
-    memcpy(((AOTModuleInstance*)exec_env->module_inst)->cur_exception,         \
+    memcpy(((AOTModuleInstance*)execEnv->module_inst)->cur_exception,          \
            _FAASM_SGX_ERROR_PREFIX,                                            \
            sizeof(_FAASM_SGX_ERROR_PREFIX));                                   \
-    *((uint32_t*)&((AOTModuleInstance*)exec_env->module_inst)                  \
+    *((uint32_t*)&((AOTModuleInstance*)execEnv->module_inst)                   \
         ->cur_exception[sizeof(_FAASM_SGX_ERROR_PREFIX)]) = (X);
+
+/*
+ * See the WAMR native header file for a detailed explanation on WAMR's native
+ * signatures.
+ */
 
 namespace sgx {
 void initialiseSGXWAMRNatives();

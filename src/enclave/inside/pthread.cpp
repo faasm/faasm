@@ -1,42 +1,42 @@
 #include <enclave/inside/native.h>
 
 namespace sgx {
-static int32_t pthread_mutex_init_wrapper(wasm_exec_env_t exec_env,
+static int32_t pthread_mutex_init_wrapper(wasm_exec_env_t execEnv,
                                           int32_t a,
                                           int32_t b)
 {
     return 0;
 }
 
-static int32_t pthread_mutex_lock_wrapper(wasm_exec_env_t exec_env, int32_t a)
+static int32_t pthread_mutex_lock_wrapper(wasm_exec_env_t execEnv, int32_t a)
 {
     return 0;
 }
 
-static int32_t pthread_mutex_unlock_wrapper(wasm_exec_env_t exec_env, int32_t a)
+static int32_t pthread_mutex_unlock_wrapper(wasm_exec_env_t execEnv, int32_t a)
 {
     return 0;
 }
 
-static int32_t pthread_cond_broadcast_wrapper(wasm_exec_env_t exec_env,
+static int32_t pthread_cond_broadcast_wrapper(wasm_exec_env_t execEnv,
                                               int32_t a)
 {
     return 0;
 }
 
-static int32_t pthread_mutexattr_init_wrapper(wasm_exec_env_t exec_env,
+static int32_t pthread_mutexattr_init_wrapper(wasm_exec_env_t execEnv,
                                               int32_t a)
 {
     return 0;
 }
 
-static int32_t pthread_mutexattr_destroy_wrapper(wasm_exec_env_t exec_env,
+static int32_t pthread_mutexattr_destroy_wrapper(wasm_exec_env_t execEnv,
                                                  int32_t a)
 {
     return 0;
 }
 
-static int32_t pthread_equal_wrapper(wasm_exec_env_t exec_env,
+static int32_t pthread_equal_wrapper(wasm_exec_env_t execEnv,
                                      int32_t a,
                                      int32_t b)
 {

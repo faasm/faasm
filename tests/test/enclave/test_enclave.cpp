@@ -9,17 +9,23 @@
 using namespace wasm;
 
 namespace tests {
-TEST_CASE_METHOD(FunctionExecTestFixture,
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test executing hello function with SGX",
                  "[sgx]")
 {
-    executeWithSGX("demo", "hello");
+    auto req = setUpContext("demo", "hello");
+    faabric::Message& msg = req->mutable_messages()->at(0);
+
+    execSgxFunction(msg);
 }
 
-TEST_CASE_METHOD(FunctionExecTestFixture,
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test executing chaining by name with SGX",
                  "[sgx]")
 {
-    executeWithSGX("demo", "chain_named_a", 10000);
+    auto req = setUpContext("demo", "hello");
+    faabric::Message& msg = req->mutable_messages()->at(0);
+
+    execFuncWithSgxPool(msg, 10000);
 }
 }

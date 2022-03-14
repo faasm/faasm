@@ -31,8 +31,8 @@ uint32_t wasi_args_sizes_get(wasm_exec_env_t exec_env,
 
     WAMRWasmModule* module = getExecutingWAMRModule();
 
-    module->validateNativeAddress(argcWasm, sizeof(uint32_t));
-    module->validateNativeAddress(argvBuffSizeWasm, sizeof(uint32_t));
+    module->validateNativePointer(argcWasm, sizeof(uint32_t));
+    module->validateNativePointer(argvBuffSizeWasm, sizeof(uint32_t));
 
     *argcWasm = module->getArgc();
     *argvBuffSizeWasm = module->getArgvBufferSize();
@@ -61,8 +61,8 @@ uint32_t wasi_environ_sizes_get(wasm_exec_env_t exec_env,
     WAMRWasmModule* module = getExecutingWAMRModule();
     WasmEnvironment& wasmEnv = module->getWasmEnvironment();
 
-    module->validateNativeAddress(envCountWasm, sizeof(uint32_t));
-    module->validateNativeAddress(envBufferSizeWasm, sizeof(uint32_t));
+    module->validateNativePointer(envCountWasm, sizeof(uint32_t));
+    module->validateNativePointer(envBufferSizeWasm, sizeof(uint32_t));
 
     *envCountWasm = wasmEnv.getEnvCount();
     *envBufferSizeWasm = wasmEnv.getEnvBufferSize();

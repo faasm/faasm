@@ -50,11 +50,8 @@ class StateFuncTestFixture : public FunctionExecTestFixture
     }
 };
 
-TEST_CASE_METHOD(FunctionExecTestFixture,
-                 "Test repeat invocation with state",
-                 "[state]")
+TEST_CASE_METHOD(FunctionExecTestFixture, "Test state counter", "[state]")
 {
-    // Set up the function call
     faabric::Message call = faabric::util::messageFactory("demo", "increment");
 
     auto fac = std::make_shared<faaslet::FaasletFactory>();
@@ -64,20 +61,8 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.callFunction(call);
 
-    // Check result
-    faabric::Message resultA = sch.getFunctionResult(call.id(), 1);
-    REQUIRE(resultA.returnvalue() == 0);
-    REQUIRE(resultA.outputdata() == "Counter: 001");
-
-    // Call the function a second time, the state should have been incremented
-    call.set_id(0);
-    faabric::util::setMessageId(call);
-
-    sch.callFunction(call);
-
-    faabric::Message resultB = sch.getFunctionResult(call.id(), 1);
-    REQUIRE(resultB.returnvalue() == 0);
-    REQUIRE(resultB.outputdata() == "Counter: 002");
+    faabric::Message result = sch.getFunctionResult(call.id(), 1);
+    REQUIRE(result.returnvalue() == 0);
 
     m.shutdown();
 }

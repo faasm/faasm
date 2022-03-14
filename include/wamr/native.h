@@ -31,6 +31,15 @@
  * int32_t myBigIntFunc(int64_t i, char* s) = "(I$)i"
  * void fooBar(*int32_t i, char* s, float32_t f) = "(*$f)"
  * void nothing() = "()"
+ *
+ * Note that, when using `*`, `~`, or `$`, the WASM runtime checks that the
+ * offset is a pointer within the WASM linear memory, and translates it into a
+ * native pointer that we can use. I.e. you could also use `i` to indicate a
+ * offset into WASM memory, but it would not be bound-checked, nor translated
+ * to a native pointer.
+ *
+ * Link to WAMR docs:
+ * https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/export_native_api.md#buffer-address-conversion-and-boundary-check
  */
 
 namespace wasm {

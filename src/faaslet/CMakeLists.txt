@@ -10,6 +10,6 @@ target_link_libraries(faaslet_lib PUBLIC
 )
 
 # Include SGX lib if enabled
-if(SGX_FOUND)
+if (NOT (FAASM_SGX_MODE STREQUAL "Disabled"))
     target_link_libraries(faaslet_lib PUBLIC faasm::enclave)
-endif()
+endif ()

@@ -1,6 +1,7 @@
 from invoke import Collection
 
 from . import call
+from . import cluster
 from . import codegen
 from . import config
 from . import dev
@@ -16,12 +17,14 @@ from . import python
 from . import redis
 from . import release
 from . import run
+from . import sgx
 from . import state
 from . import upload
 from . import wast
 
 # Default names
 ns = Collection(
+    cluster,
     codegen,
     config,
     dev,
@@ -36,6 +39,7 @@ ns = Collection(
     redis,
     release,
     run,
+    sgx,
     state,
     upload,
     wast,

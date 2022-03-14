@@ -26,8 +26,9 @@ Our paper from Usenix ATC '20 on Faasm can be found `here
 Experiments and benchmarks:
 
 - `Microbenchmarks (C++ and Python) <https://github.com/faasm/experiment-microbench/>`_
-- `MPI <https://github.com/faasm/experiment-mpi>`_
-- `OpenMP <https://github.com/faasm/experiment-openmp>`_
+- `MPI (LAMMPS + ParRes Kernels) <https://github.com/faasm/experiment-mpi>`_
+- `OpenMP (CovidSim + LULESH + ParRes Kernels) <https://github.com/faasm/experiment-openmp>`_
+- `SGX (Image pipeline) <https://github.com/faasm/experiment-sgx>`_
 
 .. toctree::
    :maxdepth: 1

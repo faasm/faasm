@@ -15,8 +15,10 @@ from faasmcli.util.env import (
 
 LOCALHOST_IP = "127.0.0.1"
 
+K8S_COMMON_DIR = join(PROJ_ROOT, "deploy", "k8s-common")
+K8S_SGX_DIR = join(PROJ_ROOT, "deploy", "k8s-sgx")
 K8S_DIR = join(PROJ_ROOT, "deploy", "k8s")
-NAMESPACE_FILE = join(K8S_DIR, "namespace.yml")
+NAMESPACE_FILE = join(K8S_COMMON_DIR, "namespace.yml")
 
 KNATIVE_VERSION = "1.1.0"
 
@@ -82,20 +84,20 @@ def delete_worker(ctx):
 
 
 @task
-def deploy(ctx, replicas=0):
+def deploy(ctx, replicas=0, sgx=False):
     """
     Deploy Faasm to knative
     """
-    _deploy_faasm_services()
+    _deploy_faasm_services(sgx)
 
     replicas = int(replicas)
     print("Deploying Faasm worker with {} fixed replicas".format(replicas))
-    _deploy_faasm_worker(replicas)
+    _deploy_faasm_worker(replicas, sgx)
 
     ini_file(ctx)
 
 
-def _deploy_faasm_services():
+def _deploy_faasm_services(sgx=False):
     # Set up the namespace first, then the rest, excluding the worker
     run(
         "kubectl apply -f {}".format(NAMESPACE_FILE),
@@ -103,14 +105,17 @@ def _deploy_faasm_services():
         shell=True,
     )
 
-    k8s_files = listdir(K8S_DIR)
-    k8s_files = [f for f in k8s_files if f.endswith(".yml")]
-    k8s_files = [f for f in k8s_files if f != "worker.yml"]
+    # Apply all files in the common directory, and the corresponding upload
+    # service
+    k8s_files = listdir(K8S_COMMON_DIR)
+    k8s_files = [
+        join(K8S_COMMON_DIR, f) for f in k8s_files if f.endswith(".yml")
+    ]
+    k8s_files.append(join(K8S_SGX_DIR if sgx else K8S_DIR, "upload.yml"))
 
     print("Applying k8s files: {}".format(k8s_files))
 
-    for f in k8s_files:
-        file_path = join(K8S_DIR, f)
+    for file_path in k8s_files:
         run(
             "kubectl apply -f {}".format(file_path),
             check=True,
@@ -137,14 +142,14 @@ def _deploy_faasm_services():
         sleep(5)
 
 
-def _deploy_faasm_worker(replicas):
+def _deploy_faasm_worker(replicas, sgx=False):
     cmd = [
         "kn",
         "service",
         "-n faasm",
         "apply",
         "-f",
-        join(K8S_DIR, "worker.yml"),
+        join(K8S_SGX_DIR if sgx else K8S_DIR, "worker.yml"),
         "--wait",
     ]
 
@@ -167,9 +172,10 @@ def delete_full(ctx, local=False):
     delete_worker(ctx)
 
     # Delete the rest
-    cmd = "kubectl delete --all -f {}".format(K8S_DIR)
-    print(cmd)
-    run(cmd, shell=True, check=True)
+    for dir_to_delete in [K8S_DIR, K8S_SGX_DIR, K8S_COMMON_DIR]:
+        cmd = "kubectl delete --all -f {}".format(dir_to_delete)
+        print(cmd)
+        run(cmd, shell=True, check=True)
 
 
 def _kn_github_url(repo, filename):
@@ -217,7 +223,7 @@ def install(ctx, reverse=False):
 
 
 @task
-def ini_file(ctx, local=False):
+def ini_file(ctx, local=False, publicip=None):
     """
     Set up the faasm config file for interacting with k8s
     """
@@ -236,7 +242,6 @@ def ini_file(ctx, local=False):
         worker_names = list()
         worker_ips = list()
     else:
-        print("\n----- Extracting info from k8s -----\n")
         knative_host = _capture_cmd_output(
             [
                 "kn",
@@ -249,42 +254,74 @@ def ini_file(ctx, local=False):
         )
         knative_host = knative_host.strip()
 
-        # NOTE: we have to remove the http:// prefix from this url otherwise Istio
+        # We have to remove the http:// prefix from this url otherwise Istio
         # won't recognise it
         knative_host = knative_host.replace("http://", "")
 
-        invoke_ip = _capture_cmd_output(
-            [
-                "kubectl",
-                "-n istio-system",
-                "get",
-                "service",
-                "istio-ingressgateway",
-                "-o 'jsonpath={.status.loadBalancer.ingress[0].ip}'",
-            ]
-        )
-        invoke_port = 80
+        # If we're running on bare metal or VMs, we need to use the IP of the
+        # host provided for both invocations and upload, but instead of using a
+        # different load balancer for each, we must use the underlying node port
+        if publicip:
+            print("\n----- Setting up bare metal k8s config -----\n")
 
-        upload_ip = _capture_cmd_output(
-            [
-                "kubectl",
-                "-n faasm",
-                "get",
-                "service",
-                "upload-lb",
-                "-o 'jsonpath={.status.loadBalancer.ingress[0].ip}'",
-            ]
-        )
-        upload_port = _capture_cmd_output(
-            [
-                "kubectl",
-                "-n faasm",
-                "get",
-                "service",
-                "upload-lb",
-                "-o 'jsonpath={.spec.ports[0].port}'",
-            ]
-        )
+            invoke_ip = publicip
+            upload_ip = publicip
+
+            invoke_port = _capture_cmd_output(
+                [
+                    "kubectl",
+                    "-n istio-system",
+                    "get",
+                    "service",
+                    "istio-ingressgateway",
+                    "-o 'jsonpath={.spec.ports[?(@.name==\"http2\")].nodePort}'",
+                ]
+            )
+
+            upload_port = _capture_cmd_output(
+                [
+                    "kubectl",
+                    "-n faasm",
+                    "get",
+                    "service",
+                    "upload-lb",
+                    "-o 'jsonpath={.spec.ports[0].nodePort}'",
+                ]
+            )
+        else:
+            print("\n----- Extracting info from k8s -----\n")
+            invoke_ip = _capture_cmd_output(
+                [
+                    "kubectl",
+                    "-n istio-system",
+                    "get",
+                    "service",
+                    "istio-ingressgateway",
+                    "-o 'jsonpath={.status.loadBalancer.ingress[0].ip}'",
+                ]
+            )
+            invoke_port = 80
+
+            upload_ip = _capture_cmd_output(
+                [
+                    "kubectl",
+                    "-n faasm",
+                    "get",
+                    "service",
+                    "upload-lb",
+                    "-o 'jsonpath={.status.loadBalancer.ingress[0].ip}'",
+                ]
+            )
+            upload_port = _capture_cmd_output(
+                [
+                    "kubectl",
+                    "-n faasm",
+                    "get",
+                    "service",
+                    "upload-lb",
+                    "-o 'jsonpath={.spec.ports[0].port}'",
+                ]
+            )
 
         worker_names, worker_ips = _get_faasm_worker_pods()
 
@@ -293,11 +330,14 @@ def ini_file(ctx, local=False):
 
     with open(FAASM_CONFIG_FILE, "w") as fh:
         fh.write("[Faasm]\n")
+
+        # This comment line can't be outside of the Faasm section
         fh.write("# Auto-generated at {}\n".format(datetime.now()))
+
         fh.write("invoke_host = {}\n".format(invoke_ip))
         fh.write("invoke_port = {}\n".format(invoke_port))
         fh.write("upload_host = {}\n".format(upload_ip))
-        fh.write("upload_port= {}\n".format(upload_port))
+        fh.write("upload_port = {}\n".format(upload_port))
         fh.write("knative_host = {}\n".format(knative_host))
         fh.write("worker_names = {}\n".format(",".join(worker_names)))
         fh.write("worker_ips = {}\n".format(",".join(worker_ips)))
@@ -317,16 +357,3 @@ def ini_file(ctx, local=False):
         shell=True,
         check=True,
     )
-
-    print("\n----- Examples -----\n")
-
-    print("Invoke:")
-    print("curl -H 'Host: {}' http://{}".format(knative_host, invoke_ip))
-
-    print("\nUpload:")
-    print(
-        "curl -X PUT http://{}:{}/f/<user>/<func> -T <wasm_file>".format(
-            upload_ip, upload_port
-        )
-    )
-    print("")

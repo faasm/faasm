@@ -79,7 +79,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test argc/argv",
-                 "[faaslet][wamr]")
+                 "[faaslet]")
 {
     auto req = setUpContext("demo", "argc_argv_test");
     faabric::Message& msg = req->mutable_messages()->at(0);
@@ -88,6 +88,8 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     SECTION("WAVM") { execFunction(msg); }
 
     SECTION("WAMR") { execWamrFunction(msg); }
+
+    SECTION("SGX") { execSgxFunction(msg); }
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
