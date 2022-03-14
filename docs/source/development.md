@@ -176,7 +176,7 @@ sudo ./bin/cgroup.sh
 To start the local development cluster, you can run:
 
 ```bash
-./deploy/local/dev_cluster.sh
+inv cluster.start
 ```
 
 To run external applications and benchmarks against this cluster, you may also
@@ -202,7 +202,7 @@ inv dev.cc pool_runner
 From a different terminal, restart the worker and check the logs:
 
 ```bash
-docker-compose restart worker
+inv cluster.restart-worker
 
 docker-compose logs -f
 ```
@@ -288,12 +288,13 @@ kept up to date, so YMMV:
 ### LLVM and Clang
 
 LLVM and Clang can be installed using the script from the LLVM website (we use
-13 at the time of writing):
+13 _and_ 10 at the time of writing):
 
 ```bash
 wget https://apt.llvm.org/llvm.sh
 chmod +x llvm.sh
 sudo ./llvm.sh 13
+sudo ./llvm.sh 10
 ```
 
 You then need to make sure all the tooling and latest C++ stdlib is installed:
@@ -374,7 +375,7 @@ inv dev.cc func_runner
 which func_runner
 ```
 
-### Minio
+### Minio and Redis
 
 Before running one of the executables, you must make sure that the `minio`
 container is running, and reachable from outside the container.
@@ -395,6 +396,12 @@ following:
 export S3_HOST=localhost
 ```
 
+You also need Redis available locally:
+
+```bash
+sudo apt install redis-server redis-cli -y
+```
+
 ### Compile and run a function
 
 Compile a function with the CPP CLI:
@@ -413,3 +420,13 @@ inv codegen demo hello
 inv run demo hello
 ```
 
+### Running against a dev cluster
+
+To run your out-of-container build in a dev cluster, you need to specify the
+location of the built files, which is handled by the environment variables set
+in `bin/workon.sh`.
+
+```bash
+source bin/workon.sh
+./deploy/local/dev_cluster.sh
+```

@@ -16,6 +16,10 @@ DEV_TARGETS = [
     "tests",
 ]
 
+SGX_MODE_SIM = "Simulation"
+SGX_MODE_DISABLED = "Disabled"
+SANITISER_NONE = "None"
+
 
 @task
 def cmake(
@@ -24,8 +28,8 @@ def cmake(
     build="Debug",
     perf=False,
     prof=False,
-    sanitiser="None",
-    nosgx=False,
+    sanitiser=SANITISER_NONE,
+    sgx=SGX_MODE_SIM,
 ):
     """
     Configures the CMake build
@@ -51,7 +55,7 @@ def cmake(
         "-DFAABRIC_SELF_TRACING=ON" if prof else "",
         "-DFAASM_USE_SANITISER={}".format(sanitiser),
         "-DFAABRIC_USE_SANITISER={}".format(sanitiser),
-        "-DFAASM_SGX={}".format("OFF" if nosgx else "ON"),
+        "-DFAASM_SGX_MODE={}".format(sgx),
         PROJ_ROOT,
     ]
 
@@ -61,11 +65,14 @@ def cmake(
 
 
 @task
-def tools(ctx, clean=False, build="Debug", parallel=0, sanitiser="None"):
+def tools(
+    ctx, clean=False, build="Debug", parallel=0, sanitiser=SANITISER_NONE
+):
     """
     Builds all the targets commonly used for development
     """
-    cmake(ctx, clean=clean, build=build, sanitiser=sanitiser)
+    sgx = SGX_MODE_DISABLED if sanitiser != SANITISER_NONE else SGX_MODE_SIM
+    cmake(ctx, clean=clean, build=build, sanitiser=sanitiser, sgx=sgx)
 
     targets = " ".join(DEV_TARGETS)
 

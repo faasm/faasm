@@ -14,6 +14,9 @@
 #include <faaslet/Faaslet.h>
 
 #include <conf/FaasmConfig.h>
+#ifndef FAASM_SGX_DISABLED_MODE
+#include <enclave/outside/EnclaveInterface.h>
+#endif
 #include <wamr/WAMRWasmModule.h>
 #include <wavm/WAVMWasmModule.h>
 
@@ -55,6 +58,7 @@ void execWamrFunction(faabric::Message& call, const std::string& expectedOutput)
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string originalPreload = conf.pythonPreload;
     conf.pythonPreload = "off";
+    conf.wasmVm = "wamr";
 
     wasm::WAMRWasmModule module;
     module.bindToFunction(call);
@@ -218,19 +222,45 @@ void executeWithWamrPool(const std::string& user,
     doWamrPoolExecution(call, timeout);
 }
 
-void executeWithSGX(const std::string& user,
-                    const std::string& func,
-                    int timeout)
+void execSgxFunction(faabric::Message& call, const std::string& expectedOutput)
 {
-    faabric::Message msg = faabric::util::messageFactory(user, func);
+#ifndef FAASM_SGX_DISABLED_MODE
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
+    const std::string originalVm = conf.wasmVm;
+    conf.wasmVm = "sgx";
+
+    wasm::EnclaveInterface enclaveInterface;
+    enclaveInterface.bindToFunction(call);
+    int returnValue = enclaveInterface.executeFunction(call);
+
+    if (!expectedOutput.empty()) {
+        std::string actualOutput = call.outputdata();
+        REQUIRE(actualOutput == expectedOutput);
+    }
+
+    REQUIRE(returnValue == 0);
+    REQUIRE(call.returnvalue() == 0);
+
+    conf.wasmVm = originalVm;
+#else
+    SPDLOG_ERROR("Running SGX test but SGX is disabled");
+#endif
+}
+
+void execFuncWithSgxPool(faabric::Message& call, int timeout)
+{
+#ifndef FAASM_SGX_DISABLED_MODE
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     const std::string originalVm = conf.wasmVm;
     conf.wasmVm = "sgx";
 
     // Don't clean so that the SGX configuration persists
-    execFuncWithPool(msg, false, timeout);
+    execFuncWithPool(call, false, timeout);
 
     conf.wasmVm = originalVm;
+#else
+    SPDLOG_ERROR("Running SGX test but SGX is disabled");
+#endif
 }
 
 void checkCallingFunctionGivesBoolOutput(const std::string& user,

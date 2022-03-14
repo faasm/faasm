@@ -19,13 +19,12 @@
 
 #include <stdexcept>
 
-#if (FAASM_SGX)
+#ifndef FAASM_SGX_DISABLED_MODE
 #include <enclave/outside/EnclaveInterface.h>
 #include <enclave/outside/system.h>
-#else
+#endif
 #include <storage/FileLoader.h>
 #include <storage/FileSystem.h>
-#endif
 
 static thread_local bool threadIsIsolated = false;
 
@@ -61,7 +60,7 @@ Faaslet::Faaslet(faabric::Message& msg)
 
     // Instantiate the right wasm module for the chosen runtime
     if (conf.wasmVm == "sgx") {
-#if (FAASM_SGX)
+#ifndef FAASM_SGX_DISABLED_MODE
         module = std::make_unique<wasm::EnclaveInterface>();
 #else
         SPDLOG_ERROR(
@@ -139,22 +138,6 @@ std::span<uint8_t> Faaslet::getMemoryView()
 void Faaslet::setMemorySize(size_t newSize)
 {
     module->setMemorySize(newSize);
-}
-
-void Faaslet::restore(const std::string& snapshotKey)
-{
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
-
-    // Restore from snapshot if necessary
-    if (conf.wasmVm == "wavm") {
-        if (!snapshotKey.empty()) {
-            SPDLOG_DEBUG("Restoring {} from snapshot {} before execution",
-                         id,
-                         snapshotKey);
-
-            module->restore(snapshotKey);
-        }
-    }
 }
 
 std::string Faaslet::getLocalResetSnapshotKey()

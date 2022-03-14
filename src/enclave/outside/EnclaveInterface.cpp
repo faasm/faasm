@@ -80,13 +80,23 @@ int32_t EnclaveInterface::executeFunction(faabric::Message& msg)
     SPDLOG_DEBUG(
       "Entering enclave {} to execute {}", sgx::getGlobalEnclaveId(), funcStr);
 
+    // Prepare argc/argv to be passed to the enclave.
+    std::vector<std::string> argv = faabric::util::getArgvForMessage(msg);
+    int argc = argv.size();
+    // Convert to vector of char pointers for easier serialisation
+    std::vector<char*> cArgv;
+    cArgv.resize(argv.size());
+    for (int i = 0; i < argv.size(); i++) {
+        cArgv.at(i) = const_cast<char*>(argv.at(i).c_str());
+    }
+
     // Set execution context
     wasm::WasmExecutionContext ctx(this);
 
     // Enter enclave and call function
     faasm_sgx_status_t returnValue;
-    sgx_status_t sgxReturnValue =
-      ecallCallFunction(sgx::getGlobalEnclaveId(), &returnValue, interfaceId);
+    sgx_status_t sgxReturnValue = ecallCallFunction(
+      sgx::getGlobalEnclaveId(), &returnValue, interfaceId, argc, &cArgv[0]);
     processECallErrors(
       "Error running function inside enclave", sgxReturnValue, returnValue);
 

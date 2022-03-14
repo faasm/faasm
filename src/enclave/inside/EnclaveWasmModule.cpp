@@ -6,6 +6,13 @@
 
 namespace wasm {
 
+// Define the module map and its mutex
+std::unordered_map<uint32_t, std::shared_ptr<EnclaveWasmModule>> moduleMap;
+std::mutex moduleMapMutex;
+
+// Define the WAMR's heap buffer
+static uint8_t wamrHeapBuffer[FAASM_SGX_WAMR_HEAP_SIZE];
+
 bool EnclaveWasmModule::initialiseWAMRGlobally()
 {
     // Initialise the WAMR runtime
@@ -51,12 +58,14 @@ bool EnclaveWasmModule::loadWasm(void* wasmOpCodePtr, uint32_t wasmOpCodeSize)
     return moduleInstance != nullptr;
 }
 
-bool EnclaveWasmModule::callFunction()
+bool EnclaveWasmModule::callFunction(uint32_t argcIn, char** argvIn)
 {
     WASMFunctionInstanceCommon* func =
       wasm_runtime_lookup_function(moduleInstance, WASM_ENTRY_FUNC, nullptr);
 
-    // Set argv to capture return value
+    prepareArgcArgv(argcIn, argvIn);
+
+    // Set dummy argv to capture return value
     std::vector<uint32_t> argv = { 0 };
 
     bool success =
@@ -78,4 +87,59 @@ bool EnclaveWasmModule::callFunction()
 
     return success;
 }
+
+WASMModuleInstanceCommon* EnclaveWasmModule::getModuleInstance()
+{
+    return moduleInstance;
+}
+
+void EnclaveWasmModule::prepareArgcArgv(uint32_t argcIn, char** argvIn)
+{
+    argc = argcIn;
+    argv.resize(argc);
+    argvBufferSize = 0;
+
+    for (int i = 0; i < argc; i++) {
+        // Add one to account for newline
+        argvBufferSize += strlen(argvIn[i]) + 1;
+        argv.at(i) = std::string(argvIn[i]);
+    }
+}
+
+uint32_t EnclaveWasmModule::getArgc()
+{
+    return argc;
+}
+
+std::vector<std::string> EnclaveWasmModule::getArgv()
+{
+    return argv;
+}
+
+size_t EnclaveWasmModule::getArgvBufferSize()
+{
+    return argvBufferSize;
+}
+
+std::shared_ptr<EnclaveWasmModule> getExecutingEnclaveWasmModule(
+  wasm_exec_env_t execEnv)
+{
+    // Acquiring a lock every time may be too conservative
+    std::unique_lock<std::mutex> lock(moduleMapMutex);
+    for (auto& it : moduleMap) {
+        if (it.second->getModuleInstance() == execEnv->module_inst) {
+            return it.second;
+        }
+    }
+
+    // Returning a null ptr means that we haven't been able to link the
+    // execution environment to any of the registered modules. This is a fatal
+    // error, but we expect the caller to handle it, as throwing exceptions
+    // is not supported.
+    ocallLogError("Can not find any registered module corresponding to the "
+                  "supplied execution environment, this is a fatal error");
+
+    return nullptr;
+}
+
 }
