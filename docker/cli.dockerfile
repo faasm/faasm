@@ -32,6 +32,7 @@ WORKDIR /usr/local/code/faasm
 RUN ./bin/create_venv.sh
 
 # Build some useful targets
+ARG FAASM_SGX_MODE
 RUN source venv/bin/activate && \
         inv -r faasmcli/faasmcli dev.tools \
         --build Release \

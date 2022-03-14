@@ -9,6 +9,12 @@ support using [WAMR](https://github.com/bytecodealliance/wasm-micro-runtime).
 To configure SGX, we must build the code with the desired SGX flavour: disabled
 (no SGX functionality), simulation (default), or hardware.
 
+First, access an SGX-enabled docker-based CLI:
+
+```bash
+./bin/cli.sh faasm-sgx
+```
+
 ```bash
 inv dev.cmake --sgx Disabled|Simulation|Hardware
 ```
@@ -57,7 +63,7 @@ If you want to upgrade the version, change it there, and create a new docker
 image using:
 
 ```bash
-inv docker.build -c sgx --nocache --push
+inv docker.build -c base-sgx -c base-sgx-sim --nocache --push
 ```
 
 The image will be tagged with the current code version, which you will have to
