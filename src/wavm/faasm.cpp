@@ -657,13 +657,21 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     SPDLOG_DEBUG(
       "S - sm_reduce - {} {} {} {}", varPtr, varType, reduceOp, currentBatch);
 
+    bool isSingleHost = ExecutorContext::get()->getBatchRequest()->singlehost();
+
+    // In single host mode, we don't do any snapshot merging, and thus this
+    // function doesn't need to do anything.
+    if (isSingleHost) {
+        return;
+    }
+
     auto dataType = extractSnapshotDataType(varType);
     faabric::util::SnapshotMergeOperation mergeOp =
       extractSnapshotMergeOp(reduceOp);
 
     bool isCurrentBatch = currentBatch == 1;
-    faabric::Message* msg = &ExecutorContext::get()->getMsg();
 
+    faabric::Message* msg = &ExecutorContext::get()->getMsg();
     SPDLOG_DEBUG("Registering reduction variable {}-{} for {} {}",
                  varPtr,
                  varPtr + dataType.first,
