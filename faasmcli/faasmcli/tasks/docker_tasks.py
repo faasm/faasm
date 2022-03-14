@@ -11,6 +11,8 @@ from invoke import task
 from faasmcli.util.env import PROJ_ROOT
 from faasmcli.util.version import get_faasm_version
 
+SGX_CONTAINER_SUFFIX = "-sgx"
+
 
 @task
 def purge(context):
@@ -32,6 +34,9 @@ def purge(context):
 
 def _check_valid_containers(containers):
     for container in containers:
+        # Remove SGX suffix if present
+        container = container.strip(SGX_CONTAINER_SUFFIX)
+
         dockerfile = join(
             PROJ_ROOT, "docker", "{}.dockerfile".format(container)
         )
@@ -66,16 +71,29 @@ def build(ctx, c, nocache=False, push=False):
     faasm_ver = get_faasm_version()
 
     for container in c:
-        dockerfile = join("docker", "{}.dockerfile".format(container))
+        # Strip SGX suffix from container name if present
+        dockerfile = join(
+            "docker",
+            "{}.dockerfile".format(container.strip(SGX_CONTAINER_SUFFIX)),
+        )
         tag_name = "faasm/{}:{}".format(container, faasm_ver)
 
         faasm_ver = get_faasm_version()
 
-        cmd = "docker build {} -t {} --build-arg FAASM_VERSION={} -f {} .".format(
-            "--no-cache" if nocache else "", tag_name, faasm_ver, dockerfile
-        )
-        print(cmd)
-        run(cmd, shell=True, check=True, cwd=PROJ_ROOT, env=shell_env)
+        cmd = [
+            "docker build {}".format("--no-cache" if nocache else ""),
+            "-t {}".format(tag_name),
+            "--build-arg FAASM_VERSION={}".format(faasm_ver),
+            "{}".format(
+                "--build-arg FAASM_SGX_MODE=Hardware"
+                if container.endswith(SGX_CONTAINER_SUFFIX)
+                else ""
+            ),
+            "-f {} .".format(dockerfile),
+        ]
+        docker_cmd = " ".join(cmd)
+        print(docker_cmd)
+        run(docker_cmd, shell=True, check=True, cwd=PROJ_ROOT, env=shell_env)
 
         if push:
             _do_push(container, faasm_ver)
