@@ -6,6 +6,7 @@
 set(SGX_SDK_LIB_PATH ${SGX_SDK_PATH}/lib64)
 set(SGX_SDK_ENCLAVE_SIGNER ${SGX_SDK_PATH}/bin/x64/sgx_sign)
 set(SGX_SDK_ENCLAVE_EDGER8R ${SGX_SDK_PATH}/bin/x64/sgx_edger8r)
+set(SGX_DCAP_LIB_PATH "/opt/intel/sgx-dcap")
 set(ENCLAVE_PATH "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/enclave_trusted.sign.so")
 set(ENCLAVE_EDL_FILENAME "enclave")
 add_definitions(-DFAASM_ENCLAVE_PATH="${ENCLAVE_PATH}")
