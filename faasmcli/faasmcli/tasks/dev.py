@@ -4,7 +4,13 @@ from subprocess import run
 
 from invoke import task
 
-from faasmcli.util.env import PROJ_ROOT, FAASM_BUILD_DIR, FAASM_INSTALL_DIR
+from faasmcli.util.env import (
+    PROJ_ROOT,
+    FAASM_BUILD_DIR,
+    FAASM_INSTALL_DIR,
+    FAASM_SGX_MODE_DISABLED,
+    FAASM_SGX_MODE_SIM,
+)
 
 DEV_TARGETS = [
     "codegen_func",
@@ -16,8 +22,6 @@ DEV_TARGETS = [
     "tests",
 ]
 
-SGX_MODE_SIM = "Simulation"
-SGX_MODE_DISABLED = "Disabled"
 SANITISER_NONE = "None"
 
 
@@ -29,7 +33,7 @@ def cmake(
     perf=False,
     prof=False,
     sanitiser=SANITISER_NONE,
-    sgx=SGX_MODE_SIM,
+    sgx=FAASM_SGX_MODE_SIM,
     cpu=None,
 ):
     """
@@ -73,7 +77,11 @@ def tools(
     """
     Builds all the targets commonly used for development
     """
-    sgx = SGX_MODE_DISABLED if sanitiser != SANITISER_NONE else SGX_MODE_SIM
+    sgx = (
+        FAASM_SGX_MODE_DISABLED
+        if sanitiser != SANITISER_NONE
+        else FAASM_SGX_MODE_SIM
+    )
     cmake(ctx, clean=clean, build=build, sanitiser=sanitiser, sgx=sgx)
 
     targets = " ".join(DEV_TARGETS)
