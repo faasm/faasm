@@ -22,7 +22,15 @@ spec:
               weight: 100
 
       containers:
-        - image: faasm/worker:0.8.3
+        - image: faasm/worker-sgx:0.8.3
+          # We need to add this resources field to make sure the SGX device is
+          # available in the pods:
+          # https://docs.microsoft.com/en-us/azure/confidential-computing/confidential-nodes-aks-overview#azure-device-plugin-for-intel-sgx-
+          resources:
+            limits:
+              sgx.intel.com/epc: "10Mi"
+            requests:
+              sgx.intel.com/epc: "10Mi"
           env:
             - name: REDIS_STATE_HOST
               value: "redis-state"
@@ -52,4 +60,6 @@ spec:
               value: "700000"
             - name: ENDPOINT_INTERFACE
               value: "eth0"
+            - name: WASM_VM
+              value: "sgx"
 

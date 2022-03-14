@@ -15,8 +15,10 @@ from faasmcli.util.env import (
 
 LOCALHOST_IP = "127.0.0.1"
 
+K8S_COMMON_DIR = join(PROJ_ROOT, "deploy", "k8s-common")
+K8S_SGX_DIR = join(PROJ_ROOT, "deploy", "k8s-sgx")
 K8S_DIR = join(PROJ_ROOT, "deploy", "k8s")
-NAMESPACE_FILE = join(K8S_DIR, "namespace.yml")
+NAMESPACE_FILE = join(K8S_COMMON_DIR, "namespace.yml")
 
 KNATIVE_VERSION = "1.1.0"
 
@@ -82,20 +84,20 @@ def delete_worker(ctx):
 
 
 @task
-def deploy(ctx, replicas=0):
+def deploy(ctx, replicas=0, sgx=False):
     """
     Deploy Faasm to knative
     """
-    _deploy_faasm_services()
+    _deploy_faasm_services(sgx)
 
     replicas = int(replicas)
     print("Deploying Faasm worker with {} fixed replicas".format(replicas))
-    _deploy_faasm_worker(replicas)
+    _deploy_faasm_worker(replicas, sgx)
 
     ini_file(ctx)
 
 
-def _deploy_faasm_services():
+def _deploy_faasm_services(sgx=False):
     # Set up the namespace first, then the rest, excluding the worker
     run(
         "kubectl apply -f {}".format(NAMESPACE_FILE),
@@ -103,14 +105,17 @@ def _deploy_faasm_services():
         shell=True,
     )
 
-    k8s_files = listdir(K8S_DIR)
-    k8s_files = [f for f in k8s_files if f.endswith(".yml")]
-    k8s_files = [f for f in k8s_files if f != "worker.yml"]
+    # Apply all files in the common directory, and the corresponding upload
+    # service
+    k8s_files = listdir(K8S_COMMON_DIR)
+    k8s_files = [
+        join(K8S_COMMON_DIR, f) for f in k8s_files if f.endswith(".yml")
+    ]
+    k8s_files.append(join(K8S_SGX_DIR if sgx else K8S_DIR, "upload.yml"))
 
     print("Applying k8s files: {}".format(k8s_files))
 
-    for f in k8s_files:
-        file_path = join(K8S_DIR, f)
+    for file_path in k8s_files:
         run(
             "kubectl apply -f {}".format(file_path),
             check=True,
@@ -137,14 +142,14 @@ def _deploy_faasm_services():
         sleep(5)
 
 
-def _deploy_faasm_worker(replicas):
+def _deploy_faasm_worker(replicas, sgx=False):
     cmd = [
         "kn",
         "service",
         "-n faasm",
         "apply",
         "-f",
-        join(K8S_DIR, "worker.yml"),
+        join(K8S_SGX_DIR if sgx else K8S_DIR, "worker.yml"),
         "--wait",
     ]
 
@@ -167,9 +172,10 @@ def delete_full(ctx, local=False):
     delete_worker(ctx)
 
     # Delete the rest
-    cmd = "kubectl delete --all -f {}".format(K8S_DIR)
-    print(cmd)
-    run(cmd, shell=True, check=True)
+    for dir_to_delete in [K8S_DIR, K8S_SGX_DIR, K8S_COMMON_DIR]:
+        cmd = "kubectl delete --all -f {}".format(dir_to_delete)
+        print(cmd)
+        run(cmd, shell=True, check=True)
 
 
 def _kn_github_url(repo, filename):
