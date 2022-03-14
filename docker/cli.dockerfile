@@ -32,7 +32,10 @@ WORKDIR /usr/local/code/faasm
 RUN ./bin/create_venv.sh
 
 # Build some useful targets
-RUN source venv/bin/activate && inv -r faasmcli/faasmcli dev.tools --build Release
+RUN source venv/bin/activate && \
+        inv -r faasmcli/faasmcli dev.tools \
+        --build Release \
+        --sgx ${FAASM_SGX_MODE}
 
 # Remove worker entrypoint
 COPY bin/noop-entrypoint.sh /entrypoint.sh

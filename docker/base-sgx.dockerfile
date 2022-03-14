@@ -15,7 +15,8 @@ RUN apt-get install  -y \
     lsb-release \
     ocaml \
     ocamlbuild \
-    protobuf-compiler
+    protobuf-compiler \
+    python
 
 # 09/03/2022 - As part of the preparation step, we download pre-built binaries
 # from Intel's official repositories. There does not seem to be a clear way
@@ -36,7 +37,7 @@ RUN sh -c 'echo yes | /linux-sgx/linux/installer/bin/sgx_linux_x64_sdk_2.15.101.
 WORKDIR /linux-sgx
 RUN make psw_install_pkg
 WORKDIR /opt/intel
-RUN sh -c 'echo yes | /linux-sgx/linx/installer/bin/sgx_linux_x64_psw_2.15.101.1.bin --no-start-aesm'
+RUN sh -c 'echo yes | /linux-sgx/linux/installer/bin/sgx_linux_x64_psw_2.15.101.1.bin --no-start-aesm'
 # In hardware builds we don't want to link against any library in the SDK, thus
 # we copy this library to detect sgx into `/usr/lib`. See this related issue:
 # https://github.com/intel/linux-sgx/issues/47

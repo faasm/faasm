@@ -16,9 +16,12 @@ jobs:
       - name: "Prune docker"
         run: "docker system prune -f --all"
 
-  build-redis:
+  build-dep-free-images:
     needs: clean
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        image: [redis, minio, base]
     steps:
       - name: "Get the code"
         uses: actions/checkout@v2
@@ -37,64 +40,17 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          file: docker/redis.dockerfile
-          context: .
-          tags: faasm/redis:${{ env.TAG_VERSION }}
-
-  build-minio:
-    needs: clean
-    runs-on: ubuntu-20.04
-    steps:
-      - name: "Get the code"
-        uses: actions/checkout@v2
-      - name: "Get tag version"
-        run: echo "TAG_VERSION=${GITHUB_REF#refs/tags/v*}" >> $GITHUB_ENV
-      - name: "Set up QEMU"
-        uses: docker/setup-qemu-action@v1
-      - name: "Set up Docker Buildx"
-        uses: docker/setup-buildx-action@v1
-      - name: "Log in to DockerHub"
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: "Build minio container"
-        uses: docker/build-push-action@v2
-        with:
-          push: true
-          file: docker/minio.dockerfile
-          context: .
-          tags: faasm/minio:${{ env.TAG_VERSION }}
-
-  build-base:
-    needs: clean
-    runs-on: ubuntu-20.04
-    steps:
-      - name: "Get the code"
-        uses: actions/checkout@v2
-      - name: "Get tag version"
-        run: echo "TAG_VERSION=${GITHUB_REF#refs/tags/v*}" >> $GITHUB_ENV
-      - name: "Set up QEMU"
-        uses: docker/setup-qemu-action@v1
-      - name: "Set up Docker Buildx"
-        uses: docker/setup-buildx-action@v1
-      - name: "Log in to DockerHub"
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: "Build base container"
-        uses: docker/build-push-action@v2
-        with:
-          push: true
-          file: docker/base.dockerfile
+          file: docker/{{ matrix.image }}.dockerfile
           build-args: FAASM_VERSION=${{ env.TAG_VERSION }}
           context: .
-          tags: faasm/base:${{ env.TAG_VERSION }}
+          tags: faasm/{{ matrix.image }}:${{ env.TAG_VERSION }}
 
-  build-base-sgx:
-    needs: clean
+  build-dep-on-base-images:
+    needs: build-dep-free-images
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        image: [cli, upload, worker]
     steps:
       - name: "Get the code"
         uses: actions/checkout@v2
@@ -116,18 +72,23 @@ jobs:
           file: docker/base.dockerfile
           build-args: |
             FAASM_VERSION=${{ env.TAG_VERSION }}
-            FAASM_SGX_MODE=Hardware
+            FAASM_SGX_MODE=Disabled
           context: .
           tags: faasm/base-sgx:${{ env.TAG_VERSION }}
 
-  build-cli:
-    needs: build-base
+  build-base-sgx:
+    needs: build-dep-free-images
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        sgx-mode: [[-sgx, Hardware], [-sgx-sim, Simulation]]
     steps:
       - name: "Get the code"
         uses: actions/checkout@v2
       - name: "Get tag version"
         run: echo "TAG_VERSION=${GITHUB_REF#refs/tags/v*}" >> $GITHUB_ENV
+      - name: "Work out the right docker tag"
+        run: echo "DOCKER_TAG=${GITHUB_REF#refs/tags/v*}" >> $GITHUB_ENV
       - name: "Set up QEMU"
         uses: docker/setup-qemu-action@v1
       - name: "Set up Docker Buildx"
@@ -137,77 +98,32 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: "Build CLI container"
+      - name: "Build base container"
         uses: docker/build-push-action@v2
         with:
           push: true
-          file: docker/cli.dockerfile
-          build-args: FAASM_VERSION=${{ env.TAG_VERSION }}
-          context: .
-          tags: faasm/cli:${{ env.TAG_VERSION }}
-
-  build-worker:
-    needs: build-base
-    runs-on: ubuntu-20.04
-    steps:
-      - name: "Get the code"
-        uses: actions/checkout@v2
-      - name: "Get tag version"
-        run: echo "TAG_VERSION=${GITHUB_REF#refs/tags/v*}" >> $GITHUB_ENV
-      - name: "Set up QEMU"
-        uses: docker/setup-qemu-action@v1
-      - name: "Set up Docker Buildx"
-        uses: docker/setup-buildx-action@v1
-      - name: "Log in to DockerHub"
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: "Build worker container"
-        uses: docker/build-push-action@v2
-        with:
-          push: true
-          file: docker/worker.dockerfile
-          build-args: FAASM_VERSION=${{ env.TAG_VERSION }}
-          context: .
-          tags: faasm/worker:${{ env.TAG_VERSION }}
-
-  build-worker-sgx:
-    needs: build-base-sgx
-    runs-on: ubuntu-20.04
-    steps:
-      - name: "Get the code"
-        uses: actions/checkout@v2
-      - name: "Get tag version"
-        run: echo "TAG_VERSION=${GITHUB_REF#refs/tags/v*}" >> $GITHUB_ENV
-      - name: "Set up QEMU"
-        uses: docker/setup-qemu-action@v1
-      - name: "Set up Docker Buildx"
-        uses: docker/setup-buildx-action@v1
-      - name: "Log in to DockerHub"
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: "Build worker container"
-        uses: docker/build-push-action@v2
-        with:
-          push: true
-          file: docker/worker.dockerfile
+          file: docker/base-sgx.dockerfile
           build-args: |
             FAASM_VERSION=${{ env.TAG_VERSION }}
-            FAASM_SGX_MODE=Hardware
+            FAASM_SGX_IMAGE_SUFFIX=${{ matrix.sgx-mode[0] }}
+            FAASM_SGX_MODE=${{ matrix.sgx-mode[1] }}
           context: .
-          tags: faasm/worker-sgx:${{ env.TAG_VERSION }}
+          tags: faasm/base${{ matrix.sgx-mode[0] }}:${{ env.TAG_VERSION }}
 
-  build-upload:
-    needs: build-base
+  build-worker-cli-sgx:
+    needs: build-base-sgx
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        image: [worker, cli]
+        sgx-mode: [[-sgx, Hardware], [-sgx-sim, Simulation]]
     steps:
       - name: "Get the code"
         uses: actions/checkout@v2
       - name: "Get tag version"
         run: echo "TAG_VERSION=${GITHUB_REF#refs/tags/v*}" >> $GITHUB_ENV
+      - name: "Work out the right docker tag"
+        run: echo "DOCKER_TAG=${GITHUB_REF#refs/tags/v*}" >> $GITHUB_ENV
       - name: "Set up QEMU"
         uses: docker/setup-qemu-action@v1
       - name: "Set up Docker Buildx"
@@ -217,11 +133,14 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: "Build upload container"
+      - name: "Build base container"
         uses: docker/build-push-action@v2
         with:
           push: true
-          file: docker/upload.dockerfile
-          build-args: FAASM_VERSION=${{ env.TAG_VERSION }}
+          file: docker/{{ matrix.image }}.dockerfile
+          build-args: |
+            FAASM_VERSION=${{ env.TAG_VERSION }}
+            FAASM_SGX_IMAGE_SUFFIX=${{ matrix.sgx-mode[0] }}
+            FAASM_SGX_MODE=${{ matrix.sgx-mode[1] }}
           context: .
-          tags: faasm/upload:${{ env.TAG_VERSION }}
+          tags: faasm/${{ matrix.image }}${{ matrix.sgx-mode[0] }}:${{ env.TAG_VERSION }}

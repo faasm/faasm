@@ -9,8 +9,9 @@ from subprocess import run, PIPE
 from invoke import task
 
 from faasmcli.util.env import (
-    FAASM_SGX_MODE_SIM,
+    FAASM_SGX_MODE_DISABLED,
     FAASM_SGX_MODE_HARDWARE,
+    FAASM_SGX_MODE_SIM,
     PROJ_ROOT,
 )
 from faasmcli.util.version import get_faasm_version
@@ -24,11 +25,11 @@ CONTAINER_NAME2FILE_MAP = {
     "base-sgx": "base-sgx.dockerfile",
     "base-sgx-sim": "base-sgx.dockerfile",
     "worker": "worker.dockerfile",
-    "worker-sgx": "worker-sgx.dockerfile",
-    "worker-sgx-sim": "worker-sgx.dockerfile",
+    "worker-sgx": "worker.dockerfile",
+    "worker-sgx-sim": "worker.dockerfile",
     "cli": "cli.dockerfile",
-    "cli-sgx": "cli-sgx.dockerfile",
-    "cli-sgx-sim": "cli-sgx.dockerfile",
+    "cli-sgx": "cli.dockerfile",
+    "cli-sgx-sim": "cli.dockerfile",
 }
 
 
@@ -98,6 +99,8 @@ def build(ctx, c, nocache=False, push=False):
             build_args[
                 "FAASM_SGX_PARENT_SUFFIX"
             ] = SGX_SIMULATION_CONTAINER_SUFFIX
+        else:
+            build_args["FAASM_SGX_MODE"] = FAASM_SGX_MODE_DISABLED
 
         # Prepare docker command
         cmd = [

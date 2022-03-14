@@ -9,7 +9,6 @@ from faasmcli.util.env import (
     FAASM_BUILD_DIR,
     FAASM_INSTALL_DIR,
     FAASM_SGX_MODE_DISABLED,
-    FAASM_SGX_MODE_SIM,
 )
 
 DEV_TARGETS = [
@@ -33,7 +32,7 @@ def cmake(
     perf=False,
     prof=False,
     sanitiser=SANITISER_NONE,
-    sgx=FAASM_SGX_MODE_SIM,
+    sgx=FAASM_SGX_MODE_DISABLED,
     cpu=None,
 ):
     """
@@ -72,16 +71,19 @@ def cmake(
 
 @task
 def tools(
-    ctx, clean=False, build="Debug", parallel=0, sanitiser=SANITISER_NONE
+    ctx,
+    clean=False,
+    build="Debug",
+    parallel=0,
+    sanitiser=SANITISER_NONE,
+    sgx=FAASM_SGX_MODE_DISABLED,
 ):
     """
     Builds all the targets commonly used for development
     """
-    sgx = (
-        FAASM_SGX_MODE_DISABLED
-        if sanitiser != SANITISER_NONE
-        else FAASM_SGX_MODE_SIM
-    )
+    if sgx != FAASM_SGX_MODE_DISABLED and sanitiser != SANITISER_NONE:
+        raise RuntimeError("SGX and sanitised builds are incompatible!")
+
     cmake(ctx, clean=clean, build=build, sanitiser=sanitiser, sgx=sgx)
 
     targets = " ".join(DEV_TARGETS)
