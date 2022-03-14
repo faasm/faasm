@@ -25,17 +25,3 @@ spec:
         - name: LD_LIBRARY_PATH
           value: "/build/faasm/third-party/lib:/usr/local/lib"
 
----
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: upload-lb
-  namespace: faasm
-spec:
-  type: LoadBalancer
-  ports:
-  - port: 8002
-  selector:
-    role: upload
-
