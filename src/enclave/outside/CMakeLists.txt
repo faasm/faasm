@@ -47,10 +47,12 @@ set(ENCLAVE_UNTRUSTED_SRC
 add_library(enclave_untrusted STATIC
     ${ENCLAVE_UNTRUSTED_HEADERS}
     ${ENCLAVE_UNTRUSTED_SRC}
-    ${ENCLAVE_UNTRUSTED_ASM_SRC}
 )
 
-target_include_directories(enclave_untrusted PUBLIC ${SGX_SDK_PATH}/include)
+target_include_directories(enclave_untrusted PUBLIC
+    ${SGX_SDK_PATH}/include
+    ${SGX_DCAP_QUOTE_GENERATION_INCLUDE}/ql/inc
+)
 
 target_compile_options(enclave_untrusted PRIVATE
     ${ENCLAVE_UNTRUSTED_C_FLAGS}
