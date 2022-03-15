@@ -28,7 +28,7 @@ TEST_CASE_METHOD(DistTestsFixture,
 
     SECTION("Repeated reduce") { function = "repeated_reduce"; }
 
-    SECTION("Repeated reduce") { function = PI_FUNCTION; }
+    SECTION("Pi estimation") { function = PI_FUNCTION; }
 
     // Set up the message
     std::shared_ptr<faabric::BatchExecuteRequest> req =
