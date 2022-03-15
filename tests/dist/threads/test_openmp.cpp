@@ -3,12 +3,14 @@
 #include "fixtures.h"
 
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/string_tools.h>
+
+#define PI_FUNCTION "pi_faasm"
 
 namespace tests {
-// 10/02/22 Broken by latest Faabric
 TEST_CASE_METHOD(DistTestsFixture,
                  "Test OpenMP across hosts",
-                 "[.][threads][openmp]")
+                 "[threads][openmp]")
 {
     conf.overrideCpuCount = 6;
 
@@ -25,6 +27,8 @@ TEST_CASE_METHOD(DistTestsFixture,
     SECTION("Using shared memory") { function = "omp_checks"; }
 
     SECTION("Repeated reduce") { function = "repeated_reduce"; }
+
+    SECTION("Pi estimation") { function = PI_FUNCTION; }
 
     // Set up the message
     std::shared_ptr<faabric::BatchExecuteRequest> req =
@@ -48,5 +52,11 @@ TEST_CASE_METHOD(DistTestsFixture,
     // Check other host is registered
     std::set<std::string> expectedRegisteredHosts = { getDistTestWorkerIp() };
     REQUIRE(sch.getFunctionRegisteredHosts(msg) == expectedRegisteredHosts);
+
+    // Check specific results
+    if (function == PI_FUNCTION) {
+        REQUIRE(
+          faabric::util::startsWith(result.outputdata(), "Pi estimate: 3.1"));
+    }
 }
 }

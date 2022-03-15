@@ -18,10 +18,10 @@ using namespace faabric::scheduler;
 using namespace WAVM;
 
 #define MPI_FUNC(str)                                                          \
-    SPDLOG_DEBUG("MPI-{} {}", executingContext.getRank(), str);
+    SPDLOG_TRACE("MPI-{} {}", executingContext.getRank(), str);
 
 #define MPI_FUNC_ARGS(formatStr, ...)                                          \
-    SPDLOG_DEBUG("MPI-{} " formatStr, executingContext.getRank(), __VA_ARGS__);
+    SPDLOG_TRACE("MPI-{} " formatStr, executingContext.getRank(), __VA_ARGS__);
 
 namespace wasm {
 static thread_local faabric::scheduler::MpiContext executingContext;
@@ -413,7 +413,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 datatype,
                                I32 countPtr)
 {
-    SPDLOG_DEBUG("S - MPI_Get_count {} {} {}", statusPtr, datatype, countPtr);
+    SPDLOG_TRACE("S - MPI_Get_count {} {} {}", statusPtr, datatype, countPtr);
 
     MPI_Status* status =
       &Runtime::memoryRef<MPI_Status>(ctx->memory, statusPtr);

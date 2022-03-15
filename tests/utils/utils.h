@@ -19,9 +19,9 @@ std::string execFunctionWithStringResult(faabric::Message& msg);
 void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
                        int nThreads);
 
-void execFuncWithPool(faabric::Message& call,
-                      bool clean = true,
-                      int timeout = 1000);
+faabric::Message execFuncWithPool(faabric::Message& call,
+                                  bool clean = true,
+                                  int timeout = 1000);
 
 faabric::Message execErrorFunction(faabric::Message& call);
 

@@ -10,6 +10,7 @@
 #include <faabric/util/config.h>
 #include <faabric/util/environment.h>
 #include <faabric/util/func.h>
+#include <faabric/util/string_tools.h>
 
 // Longer timeout to allow longer-running functions to finish even when doing
 // trace-level logging
@@ -27,16 +28,19 @@ class OpenMPTestFixture
 
     ~OpenMPTestFixture() {}
 
-    void doOmpTestLocal(const std::string& function)
+    std::string doOmpTestLocal(const std::string& function)
     {
         faabric::Message msg = faabric::util::messageFactory("omp", function);
-        execFuncWithPool(msg, false, OMP_TEST_TIMEOUT_MS);
+        faabric::Message result =
+          execFuncWithPool(msg, false, OMP_TEST_TIMEOUT_MS);
+
+        return result.outputdata();
     }
 };
 
 TEST_CASE_METHOD(OpenMPTestFixture,
                  "Test OpenMP static for scheduling",
-                 "[.][wasm][openmp]")
+                 "[wasm][openmp]")
 {
     doOmpTestLocal("for_static_schedule");
 }
@@ -83,7 +87,7 @@ TEST_CASE_METHOD(OpenMPTestFixture, "Test OpenMP reduction", "[wasm][openmp]")
 
 TEST_CASE_METHOD(OpenMPTestFixture,
                  "Test a mix of OpenMP constructs",
-                 "[.][wasm][openmp]")
+                 "[wasm][openmp]")
 {
     doOmpTestLocal("reduction_integral");
 }
@@ -110,10 +114,13 @@ TEST_CASE_METHOD(OpenMPTestFixture,
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture,
-                 "Test OpenMP Pi calculation",
+                 "Test OpenMP Pi calculation using libfaasm",
                  "[wasm][openmp]")
 {
-    doOmpTestLocal("pi_faasm");
+    std::string output = doOmpTestLocal("pi_faasm");
+
+    // Just check Pi to one dp
+    REQUIRE(faabric::util::startsWith(output, "Pi estimate: 3.1"));
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture,
@@ -149,7 +156,7 @@ TEST_CASE_METHOD(OpenMPTestFixture,
     doOmpTestLocal("repeated_reduce");
 }
 
-TEST_CASE_METHOD(OpenMPTestFixture, "Test OpenMP atomic", "[.][wasm][openmp]")
+TEST_CASE_METHOD(OpenMPTestFixture, "Test OpenMP atomic", "[wasm][openmp]")
 {
     doOmpTestLocal("simple_atomic");
 }
