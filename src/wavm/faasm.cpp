@@ -654,22 +654,38 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 reduceOp,
                                int currentBatch)
 {
-    SPDLOG_DEBUG(
-      "S - sm_reduce - {} {} {} {}", varPtr, varType, reduceOp, currentBatch);
+    // Here we have two scenarios, the second of which differs in behaviour when
+    // we're in single host mode:
+    //
+    // 1. We're being notified of a reduction variable in an *upcoming* batch of
+    // threads. This means the snapshot doesn't yet exist, and we don't know
+    // whether it will be in single host mode or not. Therefore, we always keep
+    // the merge region in a list.
+    //
+    // 2. We're being notified of a reduction variable in the *current* batch of
+    // threads. If this is in single host mode, we can ignore it, as there won't
+    // be any snapshotting at all, otherwise we add it to the snapshot.
 
+    bool isCurrentBatch = currentBatch == 1;
     bool isSingleHost = ExecutorContext::get()->getBatchRequest()->singlehost();
 
-    // In single host mode, we don't do any snapshot merging, and thus this
-    // function doesn't need to do anything.
-    if (isSingleHost) {
+    // Here we can ignore if we're in the current batch, and it's in single host
+    // mode.
+    if (isCurrentBatch && isSingleHost) {
+        SPDLOG_DEBUG("S - sm_reduce - {} {} {} {} (ignored, single host)",
+                     varPtr,
+                     varType,
+                     reduceOp,
+                     currentBatch);
         return;
     }
+
+    SPDLOG_DEBUG(
+      "S - sm_reduce - {} {} {} {}", varPtr, varType, reduceOp, currentBatch);
 
     auto dataType = extractSnapshotDataType(varType);
     faabric::util::SnapshotMergeOperation mergeOp =
       extractSnapshotMergeOp(reduceOp);
-
-    bool isCurrentBatch = currentBatch == 1;
 
     faabric::Message* msg = &ExecutorContext::get()->getMsg();
     SPDLOG_DEBUG("Registering reduction variable {}-{} for {} {}",

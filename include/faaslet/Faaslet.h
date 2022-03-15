@@ -34,6 +34,8 @@ class Faaslet final : public faabric::scheduler::Executor
 
     void setMemorySize(size_t newSize) override;
 
+    size_t getMaxMemorySize() override;
+
   private:
     std::string localResetSnapshotKey;
 

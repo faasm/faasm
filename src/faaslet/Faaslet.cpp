@@ -140,6 +140,11 @@ void Faaslet::setMemorySize(size_t newSize)
     module->setMemorySize(newSize);
 }
 
+size_t Faaslet::getMaxMemorySize()
+{
+    return MAX_WASM_MEM;
+}
+
 std::string Faaslet::getLocalResetSnapshotKey()
 {
     return localResetSnapshotKey;
