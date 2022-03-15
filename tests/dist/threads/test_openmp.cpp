@@ -3,6 +3,9 @@
 #include "fixtures.h"
 
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/string_tools.h>
+
+#define PI_FUNCTION "pi_faasm"
 
 namespace tests {
 TEST_CASE_METHOD(DistTestsFixture,
@@ -25,7 +28,7 @@ TEST_CASE_METHOD(DistTestsFixture,
 
     SECTION("Repeated reduce") { function = "repeated_reduce"; }
 
-    SECTION("Repeated reduce") { function = "pi_faasm"; }
+    SECTION("Repeated reduce") { function = PI_FUNCTION; }
 
     // Set up the message
     std::shared_ptr<faabric::BatchExecuteRequest> req =
@@ -49,5 +52,11 @@ TEST_CASE_METHOD(DistTestsFixture,
     // Check other host is registered
     std::set<std::string> expectedRegisteredHosts = { getDistTestWorkerIp() };
     REQUIRE(sch.getFunctionRegisteredHosts(msg) == expectedRegisteredHosts);
+
+    // Check specific results
+    if (function == PI_FUNCTION) {
+        REQUIRE(
+          faabric::util::startsWith(result.outputdata(), "Pi estimate: 3.1"));
+    }
 }
 }

@@ -219,55 +219,47 @@ interfering with the tests:
 docker-compose down
 ```
 
-Start the distributed tests server:
+Make sure your local setup is built, along with the distributed tests:
 
 ```bash
-./deploy/dist-test/dev_server.sh
-```
-
-Then you need to make sure all the functions are up to date:
-
-```bash
-./deploy/dist-test/upload.sh
-```
-
-Build and run the tests:
-
-```bash
-# Enter the Faasm CLI container
+# Enter CLI container
 ./bin/cli.sh faasm
 
-# Build and run the tests
-inv dev.cc dist_tests
+# Build local environment
+inv dev.tools
+
+# Build dist tests
+inv dev.cc dist_tests dev.cc dist_test_server
+```
+
+Outside the container, start the distributed tests server, then upload all the
+functions:
+
+```bash
+# Start server
+./deploy/dist-test/dev_server.sh
+
+# Upload everything
+./deploy/dist-test/upload.sh
+
+# Run the tests
+./deploy/dist-test/run.sh
+```
+
+You can then rebuild and rerun from inside the container:
+
+```bash
+# Build tests and the server
+inv dev.cc dist_tests dev.cc dist_test_server
+
+# Run
 dist_tests
 ```
 
-To rebuild the server (inside the Faasm CLI container):
-
-```bash
-inv dev.cc dist_test_server
-```
-
-Then from outside the container, you can restart the server:
+If changing the server, you need to restart from outside the container:
 
 ```bash
 ./deploy/dist-test/dev_server.sh restart
-```
-
-### Replicating CI
-
-To run the distributed tests as if in CI:
-
-```bash
-# Clear up
-docker-compose down
-
-# Set up
-./deploy/dist-test/build.sh
-./deploy/dist-test/upload.sh
-
-# Run once through
-./deploy/dist-test/run.sh
 ```
 
 ## Building outside of the container
