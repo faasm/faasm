@@ -30,6 +30,10 @@ GLOBAL_FAASM_CONFIG_FILE = join(GLOBAL_FAASM_CONFIG_DIR, "faasm.ini")
 
 PY_RUNTIME_ROOT = join(FAASM_RUNTIME_ROOT, "lib", "python3.8")
 
+FAASM_SGX_MODE_DISABLED = "Disabled"
+FAASM_SGX_MODE_SIM = "Simulation"
+FAASM_SGX_MODE_HARDWARE = "Hardware"
+
 
 def get_wasm_func_path(user, func_name):
     func_dir = join(WASM_DIR, user, func_name)

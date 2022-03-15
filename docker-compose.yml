@@ -44,6 +44,7 @@ services:
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
+      - WASM_VM=${WASM_VM:-wavm}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8002/ping"]
       interval: 5s
@@ -52,7 +53,7 @@ services:
 
   # Distributed worker, used for executing as a local cluster
   worker:
-    image: faasm/worker:${FAASM_VERSION}
+    image: ${FAASM_WORKER_IMAGE}
     depends_on:
       - upload
     expose:
@@ -74,6 +75,7 @@ services:
       - REDIS_STATE_HOST=redis-state
       - OVERRIDE_CPU_COUNT=4
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
+      - WASM_VM=${WASM_VM:-wavm}
 
   # Load balancer for local cluster
   nginx:
@@ -127,6 +129,7 @@ services:
       - LSAN_OPTIONS=suppressions=/usr/local/code/faasm/leak-sanitizer-ignorelist.txt
       - TSAN_OPTIONS=halt_on_error=1:suppressions=/usr/local/code/faasm/thread-sanitizer-ignorelist.txt:history_size=7:second_deadlock_stack=1
       - UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1
+      - WASM_VM=${WASM_VM:-wavm}
     volumes:
       - ./:/usr/local/code/faasm/
       - ${FAASM_BUILD_DIR}:${FAASM_BUILD_MOUNT}

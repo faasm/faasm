@@ -90,7 +90,7 @@ working, this line will get all the container images up to speed (will take a
 while though):
 
 ```bash
-inv docker.build -c redis -c minio -c base -c worker -c cli -c upload --push --nocache
+inv docker.build-all --push --nocache
 ```
 
 # Github config

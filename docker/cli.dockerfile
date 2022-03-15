@@ -1,5 +1,6 @@
 ARG FAASM_VERSION
-FROM faasm/base:$FAASM_VERSION
+ARG FAASM_SGX_PARENT_SUFFIX
+FROM faasm/base${FAASM_SGX_PARENT_SUFFIX}:$FAASM_VERSION
 
 SHELL ["/bin/bash", "-c"]
 
@@ -31,7 +32,11 @@ WORKDIR /usr/local/code/faasm
 RUN ./bin/create_venv.sh
 
 # Build some useful targets
-RUN source venv/bin/activate && inv -r faasmcli/faasmcli dev.tools --build Release
+ARG FAASM_SGX_MODE
+RUN source venv/bin/activate && \
+        inv -r faasmcli/faasmcli dev.tools \
+        --build Release \
+        --sgx ${FAASM_SGX_MODE}
 
 # Remove worker entrypoint
 COPY bin/noop-entrypoint.sh /entrypoint.sh

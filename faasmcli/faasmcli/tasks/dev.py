@@ -4,7 +4,12 @@ from subprocess import run
 
 from invoke import task
 
-from faasmcli.util.env import PROJ_ROOT, FAASM_BUILD_DIR, FAASM_INSTALL_DIR
+from faasmcli.util.env import (
+    PROJ_ROOT,
+    FAASM_BUILD_DIR,
+    FAASM_INSTALL_DIR,
+    FAASM_SGX_MODE_DISABLED,
+)
 
 DEV_TARGETS = [
     "codegen_func",
@@ -16,8 +21,6 @@ DEV_TARGETS = [
     "tests",
 ]
 
-SGX_MODE_SIM = "Simulation"
-SGX_MODE_DISABLED = "Disabled"
 SANITISER_NONE = "None"
 
 
@@ -29,7 +32,8 @@ def cmake(
     perf=False,
     prof=False,
     sanitiser=SANITISER_NONE,
-    sgx=SGX_MODE_SIM,
+    sgx=FAASM_SGX_MODE_DISABLED,
+    cpu=None,
 ):
     """
     Configures the CMake build
@@ -56,6 +60,7 @@ def cmake(
         "-DFAASM_USE_SANITISER={}".format(sanitiser),
         "-DFAABRIC_USE_SANITISER={}".format(sanitiser),
         "-DFAASM_SGX_MODE={}".format(sgx),
+        "-DFAASM_TARGET_CPU={}".format(cpu) if cpu else "",
         PROJ_ROOT,
     ]
 
@@ -66,12 +71,19 @@ def cmake(
 
 @task
 def tools(
-    ctx, clean=False, build="Debug", parallel=0, sanitiser=SANITISER_NONE
+    ctx,
+    clean=False,
+    build="Debug",
+    parallel=0,
+    sanitiser=SANITISER_NONE,
+    sgx=FAASM_SGX_MODE_DISABLED,
 ):
     """
     Builds all the targets commonly used for development
     """
-    sgx = SGX_MODE_DISABLED if sanitiser != SANITISER_NONE else SGX_MODE_SIM
+    if sgx != FAASM_SGX_MODE_DISABLED and sanitiser != SANITISER_NONE:
+        raise RuntimeError("SGX and sanitised builds are incompatible!")
+
     cmake(ctx, clean=clean, build=build, sanitiser=sanitiser, sgx=sgx)
 
     targets = " ".join(DEV_TARGETS)
