@@ -53,7 +53,7 @@ services:
 
   # Distributed worker, used for executing as a local cluster
   worker:
-    image: ${FAASM_WORKER_IMAGE:-faasm/worker:${FAASM_VERSION}}
+    image: ${FAASM_WORKER_IMAGE}
     depends_on:
       - upload
     expose:

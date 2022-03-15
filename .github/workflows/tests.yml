@@ -120,7 +120,7 @@ jobs:
       - name: "Build dev dependencies to be shared by all runs"
         run: ./bin/inv_wrapper.sh dev.cmake --build Debug
 
-  build:
+  tests:
     if: github.event.pull_request.draft == false
     needs: [cpp-funcs, py-funcs, conan-cache]
     runs-on: ubuntu-latest
@@ -232,7 +232,7 @@ jobs:
       REDIS_QUEUE_HOST: redis
       REDIS_STATE_HOST: redis
     container:
-      image: faasm/cli:0.8.4
+      image: faasm/cli-sgx-sim:0.8.4
     services:
       redis:
         image: faasm/redis:0.8.4

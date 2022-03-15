@@ -51,6 +51,12 @@ inv codegen demo hello
 inv run demo hello
 ```
 
+To run a development cluster with SGX run:
+
+```bash
+inv cluster.start --sgx Simulation|Hardware
+```
+
 To run SGX in an Azure kubernetes cluster, see the relevant repositories:
 [experiment-base](https://github.com/faasm/experiment-base) and
 [experiment-sgx](https://github.com/faasm/experiment-sgx).
