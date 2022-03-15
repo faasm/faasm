@@ -13,6 +13,7 @@ function usage() {
     echo "container being one of: "
     echo "- cpp         C/C++ functions"
     echo "- faasm       Managing Faasm cluster"
+    echo "- faasm-sgx   Manage SGX-enabled Faasm cluster"
     echo "- python      Python functions"
 }
 
@@ -21,6 +22,11 @@ if [[ -z "$1" ]]; then
     exit 1
 elif [[ "$1" == "faasm" ]]; then
     CLI_CONTAINER="faasm-cli"
+elif [[ "$1" == "faasm-sgx" ]]; then
+    CLI_CONTAINER="faasm-cli"
+    export FAASM_CLI_IMAGE=faasm/cli-sgx-sim:$(cat ${PROJ_ROOT}/VERSION)
+    export FAASM_WORKER_IMAGE=faasm/worker-sgx-sim:$(cat ${PROJ_ROOT}/VERSION)
+    export WASM_VM=sgx
 elif [[ "$1" == "cpp" ]]; then
     CLI_CONTAINER="cpp"
 elif [[ "$1" == "python" ]]; then

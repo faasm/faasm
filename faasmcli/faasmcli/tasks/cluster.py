@@ -4,17 +4,33 @@ from subprocess import run
 
 from invoke import task
 
-from faasmcli.util.env import PROJ_ROOT
+from faasmcli.util.env import (
+    FAASM_SGX_MODE_DISABLED,
+    FAASM_SGX_MODE_HARDWARE,
+    FAASM_SGX_MODE_SIM,
+    PROJ_ROOT,
+)
+from faasmcli.util.version import get_faasm_version
 
 
 @task
-def start(ctx, workers=2):
+def start(ctx, workers=2, sgx=FAASM_SGX_MODE_DISABLED):
     """
     Start the local dev cluster
     """
     env = copy(os.environ)
     env["FAASM_BUILD_MOUNT"] = "/build/faasm"
     env["FAASM_LOCAL_MOUNT"] = "/usr/local/faasm"
+
+    faasm_ver = get_faasm_version()
+    if sgx == FAASM_SGX_MODE_SIM:
+        env["FAASM_CLI_IMAGE"] = "faasm/cli-sgx-sim:{}".format(faasm_ver)
+        env["FAASM_WORKER_IMAGE"] = "faasm/worker-sgx-sim:{}".format(faasm_ver)
+        env["WASM_VM"] = "sgx"
+    elif sgx == FAASM_SGX_MODE_HARDWARE:
+        env["FAASM_CLI_IMAGE"] = "faasm/cli-sgx:{}".format(faasm_ver)
+        env["FAASM_WORKER_IMAGE"] = "faasm/worker-sgx:{}".format(faasm_ver)
+        env["WASM_VM"] = "sgx"
 
     cmd = [
         "docker-compose up -d",
