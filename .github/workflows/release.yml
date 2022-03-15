@@ -69,12 +69,12 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          file: docker/base.dockerfile
+          file: docker/${{ matrix.image }}.dockerfile
           build-args: |
             FAASM_VERSION=${{ env.TAG_VERSION }}
             FAASM_SGX_MODE=Disabled
           context: .
-          tags: faasm/base-sgx:${{ env.TAG_VERSION }}
+          tags: faasm/${{ matrix.image }}:${{ env.TAG_VERSION }}
 
   build-base-sgx:
     needs: build-dep-free-images

@@ -24,6 +24,7 @@ CONTAINER_NAME2FILE_MAP = {
     "base": "base.dockerfile",
     "base-sgx": "base-sgx.dockerfile",
     "base-sgx-sim": "base-sgx.dockerfile",
+    "upload": "upload.dockerfile",
     "worker": "worker.dockerfile",
     "worker-sgx": "worker.dockerfile",
     "worker-sgx-sim": "worker.dockerfile",
@@ -106,7 +107,6 @@ def build(ctx, c, nocache=False, push=False):
         cmd = [
             "docker build {}".format("--no-cache" if nocache else ""),
             "-t {}".format(tag_name),
-            "--build-arg FAASM_VERSION={}".format(faasm_ver),
             "{}".format(
                 " ".join(
                     [
