@@ -39,7 +39,7 @@ def start(ctx, workers=2, sgx=FAASM_SGX_MODE_DISABLED):
     ]
     cmd = " ".join(cmd)
     print(cmd)
-    run(cmd, shell=True, check=True, cwd=PROJ_ROOT)
+    run(cmd, shell=True, check=True, cwd=PROJ_ROOT, env=env)
 
 
 @task
