@@ -49,10 +49,7 @@ add_library(enclave_untrusted STATIC
     ${ENCLAVE_UNTRUSTED_SRC}
 )
 
-target_include_directories(enclave_untrusted PUBLIC
-    ${SGX_SDK_PATH}/include
-    ${SGX_DCAP_QUOTE_GENERATION_INCLUDE}/ql/inc
-)
+target_include_directories(enclave_untrusted PUBLIC ${SGX_SDK_PATH}/include)
 
 target_compile_options(enclave_untrusted PRIVATE
     ${ENCLAVE_UNTRUSTED_C_FLAGS}
@@ -66,6 +63,10 @@ target_link_options(enclave_untrusted PUBLIC
     -Wl,--gc-sections
 )
 
+# --------------------------------------------------------
+# Intel SGX SDK and PSW
+# --------------------------------------------------------
+
 # It is important to link to the SDK lib path _only_ in simulation mode. In
 # HW mode we must link to the system libraries. Note that this only applies to
 # code living outside the enclave.
@@ -74,11 +75,6 @@ if (FAASM_SGX_MODE STREQUAL "Simulation")
     set(SGX_UNTRUSTED_RUNTIME_LIB ${SGX_SDK_LIB_PATH}/libsgx_urts_sim.so)
     set(SGX_UAE_SERVICE_LIB ${SGX_SDK_LIB_PATH}/libsgx_uae_service_sim.so)
     set(SGX_CAPABLE_LIB ${SGX_SDK_LIB_PATH}/libsgx_capable.so)
-    set(SGX_DCAP_LIBS
-        ${SGX_DCAP_LIB_PATH}/libsgx_dcap_ql.so
-        ${SGX_DCAP_LIB_PATH}/libsgx_qe3_logic.so
-        ${SGX_DCAP_LIB_PATH}/libsgx_pce_logic.so
-    )
 elseif (FAASM_SGX_MODE STREQUAL "Hardware")
     set(SGX_UNTRUSTED_RUNTIME_LIB /usr/lib/libsgx_urts.so)
     set(SGX_UAE_SERVICE_LIB /usr/lib/libsgx_uae_service.so)
@@ -86,6 +82,30 @@ elseif (FAASM_SGX_MODE STREQUAL "Hardware")
 else()
     message(FATAL_ERROR "Building SGX code with mode: ${FAASM_SGX_MODE}")
 endif()
+
+# --------------------------------------------------------
+# Intel DCAP for remote attestation
+# --------------------------------------------------------
+
+if (FAASM_SGX_MODE STREQUAL "Simulation")
+    set(SGX_DCAP_LIBS
+        ${SGX_DCAP_QUOTE_GENERATION_LIB_PATH}/libsgx_dcap_ql.so
+        ${SGX_DCAP_QUOTE_GENERATION_LIB_PATH}/libsgx_qe3_logic.so
+        ${SGX_DCAP_QUOTE_GENERATION_LIB_PATH}/libsgx_pce_logic.so
+        # Installed as part of PSW
+        ${SGX_DCAP_QUOTE_GENERATION_LIB_PATH}/libsgx_quote_ex.so
+    )
+else ()
+    message(FATAL_ERROR "DCAP not ready for mode: ${FAASM_SGX_MODE}")
+endif()
+
+target_include_directories(enclave_untrusted PUBLIC
+    ${SGX_DCAP_QUOTE_GENERATION_INCLUDE}/ql/inc
+)
+
+# --------------------------------------------------------
+# Link everything together and add alias
+# --------------------------------------------------------
 
 target_link_libraries(enclave_untrusted
     faasm::common_deps
