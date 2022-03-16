@@ -172,8 +172,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     auto kv = getStateKV(keyPtr);
     kv->append(data, dataLen);
-
-    SPDLOG_DEBUG("append_state done");
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
