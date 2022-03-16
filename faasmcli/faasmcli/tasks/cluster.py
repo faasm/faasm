@@ -1,4 +1,5 @@
 import os
+from os.path import join
 from copy import copy
 from subprocess import run
 
@@ -18,7 +19,10 @@ def start(ctx, workers=2, sgx=FAASM_SGX_MODE_DISABLED):
     """
     Start the local dev cluster
     """
+    # This env makes sure we mount our local setup into the containers, rather
+    # than using the prebuilt binaries
     env = copy(os.environ)
+    env["FAASM_BUILD_DIR"] = join(PROJ_ROOT, "dev/faasm/build")
     env["FAASM_BUILD_MOUNT"] = "/build/faasm"
     env["FAASM_LOCAL_MOUNT"] = "/usr/local/faasm"
 
@@ -39,7 +43,8 @@ def start(ctx, workers=2, sgx=FAASM_SGX_MODE_DISABLED):
     ]
     cmd = " ".join(cmd)
     print(cmd)
-    run(cmd, shell=True, check=True, cwd=PROJ_ROOT)
+
+    run(cmd, shell=True, check=True, cwd=PROJ_ROOT, env=env)
 
 
 @task
