@@ -95,6 +95,14 @@ if (FAASM_SGX_MODE STREQUAL "Simulation")
         # Installed as part of PSW
         ${SGX_DCAP_QUOTE_GENERATION_LIB_PATH}/libsgx_quote_ex.so
     )
+elseif (FAASM_SGX_MODE STREQUAL "Hardware")
+    set(SGX_DCAP_LIBS
+        ${SGX_DCAP_QUOTE_GENERATION_LIB_PATH}/libsgx_dcap_ql.so
+        ${SGX_DCAP_QUOTE_GENERATION_LIB_PATH}/libsgx_qe3_logic.so
+        ${SGX_DCAP_QUOTE_GENERATION_LIB_PATH}/libsgx_pce_logic.so
+        # Installed as part of PSW
+        /usr/local/lib/libsgx_quote_ex.so
+    )
 else ()
     message(FATAL_ERROR "DCAP not ready for mode: ${FAASM_SGX_MODE}")
 endif()
