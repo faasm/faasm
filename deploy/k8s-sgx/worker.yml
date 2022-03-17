@@ -62,4 +62,6 @@ spec:
               value: "eth0"
             - name: WASM_VM
               value: "sgx"
+            - name: SGX_AESM_ADDR
+              value: 1
 
