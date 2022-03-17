@@ -48,6 +48,7 @@ Experiments and benchmarks:
    source/python
    source/releases
    source/sgx
+   source/shared_files
    source/state
    source/threads
 
