@@ -82,7 +82,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm/cpython:0.1.0
+      image: faasm/cpython:0.1.1
     defaults:
       run:
         working-directory: /__w/faasm/faasm/clients/python
