@@ -38,6 +38,7 @@ Experiments and benchmarks:
    source/cpp
    source/debugging
    source/development
+   source/getting_started
    source/host_interface
    source/kubernetes
    source/mpi
@@ -46,11 +47,9 @@ Experiments and benchmarks:
    source/proto_faaslets
    source/python
    source/releases
-   source/setup
    source/sgx
    source/state
    source/threads
-   source/wamr
 
 .. toctree::
    :maxdepth: 1

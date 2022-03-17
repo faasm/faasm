@@ -1,4 +1,4 @@
-# Faasm SGX Support
+# SGX support
 
 Faasm provides
 [SGX](https://software.intel.com/content/www/us/en/develop/topics/software-guard-extensions.html)

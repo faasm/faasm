@@ -1,4 +1,4 @@
-# Faasm Kubernetes/ Knative integration
+# Kubernetes/ Knative integration
 
 Faasm runs on K8s using [Knative](https://knative.dev/).
 

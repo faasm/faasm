@@ -1,4 +1,4 @@
-# Faasm MPI support
+# MPI support
 
 Faasm provides a custom MPI implementation to execute existing unmodified MPI
 applications in a serverless context.

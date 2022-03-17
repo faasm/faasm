@@ -1,4 +1,4 @@
-# Faasm HTTP API
+# HTTP API
 
 Most interactions with Faasm can be performed through the [CLI](cli.md),
 which itself uses the Faasm HTTP API.
@@ -82,7 +82,7 @@ Functions can be invoked synchronously while the client awaits the result, or
 asynchronously when a call ID is returned which can be used to poll
 the function's status.
 
-### JSON Format
+### JSON format
 
 All Faasm invoke API calls use the same JSON message format. Possible
 fields are as follows:

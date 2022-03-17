@@ -1,4 +1,4 @@
-# Faasm Releases
+# Releases
 
 ## 0. Create a branch
 

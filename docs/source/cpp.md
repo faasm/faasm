@@ -1,10 +1,12 @@
+# C++ support
+
 ## Compiling a C++ function
 
-C++ functions are built with CMake and held in the [func](../func) directory. 
+C++ functions are built with CMake and held in the [func](../func) directory.
 
 A simple hello world function exists at [hello.cpp](../func/demo/hello.cpp).
 
-From the Faasm CLI, you can compile, upload and invoke the `hello.cpp` 
+From the Faasm CLI, you can compile, upload and invoke the `hello.cpp`
 function with:
 
 ```bash
@@ -43,7 +45,7 @@ interface](host_interface.md).  Some of the methods in this wrapper are:
   read/ write at specific points in existing state (e.g. updating a subsection
   of an array)
 
-They are found in the header `faasm/faasm.h`.
+They are found in the [`cpp` repo](https://github.com/faasm/cpp/tree/main/libfaasm).
 
 ## Chaining
 
@@ -99,7 +101,3 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 ```
-
-## OpenMP and MPI
-
-See the [OpenMP](openmp.md) and [MPI](mpi.md) docs for further C/C++ APIs.

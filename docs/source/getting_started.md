@@ -1,4 +1,4 @@
-# Usage and Set-Up
+# Getting started
 
 ## CLI
 
@@ -8,17 +8,17 @@ Faasm can be accessed from the commandline with the containerised CLI:
 ./bin/cli.sh
 ```
 
-This will mount some directories from your local project root inside the 
-container. 
+This will mount some directories from your local project root inside the
+container.
 
-The Faasm CLI uses [Invoke](https://www.pyinvoke.org/), and a list of the 
+The Faasm CLI uses [Invoke](https://www.pyinvoke.org/), and a list of the
 available commands can be shown with:
 
 ```bash
 inv -l
 ```
 
-They are loosely collected into namespaces (of the format `xxx.yyy`) and 
+They are loosely collected into namespaces (of the format `xxx.yyy`) and
 there is tab completion (but it's a bit slow).
 
 ## Local cluster
