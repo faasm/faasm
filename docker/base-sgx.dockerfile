@@ -50,7 +50,7 @@ RUN cp /opt/intel/sgxsdk/lib64/libsgx_capable.so /usr/lib
 RUN git clone -b DCAP_1.12.1 \
     https://github.com/intel/SGXDataCenterAttestationPrimitives.git \
     /opt/intel/sgxdcap
-WORKDIR /opt/intel/sgxdcap
+WORKDIR /opt/intel/sgxdcap/QuoteGeneration
 RUN ./download_prebuilt.sh
 RUN make
 # TODO - fix this, why is it happening?

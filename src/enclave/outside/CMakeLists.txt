@@ -101,7 +101,7 @@ elseif (FAASM_SGX_MODE STREQUAL "Hardware")
         ${SGX_DCAP_QUOTE_GENERATION_LIB_PATH}/libsgx_qe3_logic.so
         ${SGX_DCAP_QUOTE_GENERATION_LIB_PATH}/libsgx_pce_logic.so
         # Installed as part of PSW
-        /usr/local/lib/libsgx_quote_ex.so
+        /usr/lib/libsgx_quote_ex.so
     )
 else ()
     message(FATAL_ERROR "DCAP not ready for mode: ${FAASM_SGX_MODE}")
