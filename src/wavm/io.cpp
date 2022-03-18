@@ -332,9 +332,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I32 iovecCount,
                                I32 resBytesWrittenPtr)
 {
-    bool isStd = fd <= 2;
-    PROF_START(FdWrite)
-
     storage::FileSystem& fileSystem = getExecutingWAVMModule()->getFileSystem();
     std::string path = fileSystem.getPathForFd(fd);
 
@@ -348,17 +345,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
     storage::FileDescriptor& fileDesc = fileSystem.getFileDescriptor(fd);
 
     auto nativeIovecs = wasiIovecsToNativeIovecs(iovecsPtr, iovecCount);
-
-    ssize_t bytesWritten =
-      ::writev(fileDesc.getLinuxFd(), nativeIovecs.data(), iovecCount);
-
+    ssize_t bytesWritten = fileDesc.write(nativeIovecs, iovecCount);
     if (bytesWritten < 0) {
-        SPDLOG_ERROR(
-          "writev failed on fd {}: {}", fileDesc.getLinuxFd(), strerror(errno));
+        return fileDesc.getWasiErrno();
     }
 
     // Catpure stdout if necessary, otherwise write as normal
     conf::FaasmConfig& conf = conf::getFaasmConfig();
+    bool isStd = fd <= 2;
     if (isStd && conf.captureStdout == "on") {
         getExecutingWAVMModule()->captureStdout(nativeIovecs.data(),
                                                 iovecCount);
@@ -367,17 +361,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
     Runtime::memoryRef<int32_t>(getExecutingWAVMModule()->defaultMemory,
                                 resBytesWrittenPtr) = bytesWritten;
 
-    if (!isStd) {
-        // This function is used for printing, and we're only interested in
-        // profiling the actual filesystem
-        PROF_END(FdWrite)
-    }
-
-    if (bytesWritten < 0) {
-        return storage::errnoToWasi(errno);
-    } else {
-        return __WASI_ESUCCESS;
-    }
+    return __WASI_ESUCCESS;
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,

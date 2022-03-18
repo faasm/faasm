@@ -2,8 +2,6 @@
 #include <storage/FileLoader.h>
 #include <storage/SharedFiles.h>
 
-#include <stdexcept>
-
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/files.h>
@@ -11,6 +9,7 @@
 #include <faabric/util/testing.h>
 
 #include <filesystem>
+#include <stdexcept>
 
 using namespace faabric::util;
 
@@ -486,7 +485,28 @@ std::string FileLoader::getSharedFileFile(const std::string& path)
 
 std::vector<uint8_t> FileLoader::loadSharedFile(const std::string& path)
 {
-    return loadFileBytes(path, getSharedFileFile(path));
+    // Tolerate missing, throw exception if file doesn't exist
+    std::vector<uint8_t> bytes =
+      loadFileBytes(path, getSharedFileFile(path), true);
+
+    if (bytes.empty()) {
+        throw SharedFileNotExistsException(path);
+    }
+
+    return bytes;
+}
+
+void FileLoader::deleteSharedFile(const std::string& path)
+{
+    std::string pathCopy = trimLeadingSlashes(path);
+    SPDLOG_TRACE(
+      "Deleting shared file {} in S3 at {}/{}", path, conf.s3Bucket, pathCopy);
+    s3.deleteKey(conf.s3Bucket, pathCopy);
+
+    const std::string localCachePath = getSharedFileFile(path);
+    if (useLocalFsCache && !localCachePath.empty()) {
+        std::filesystem::remove(localCachePath);
+    }
 }
 
 void FileLoader::uploadSharedFile(const std::string& path,

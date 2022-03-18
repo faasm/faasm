@@ -14,7 +14,9 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <stdexcept>
+#include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <sys/uio.h>
 
 #define WASI_FD_FLAGS                                                          \
     (__WASI_FDFLAG_RSYNC | __WASI_FDFLAG_APPEND | __WASI_FDFLAG_DSYNC |        \
@@ -374,12 +376,15 @@ bool FileDescriptor::pathOpen(uint32_t lookupFlags,
     ReadWriteType rwType = getRwType(actualRightsBase);
 
     int readWrite = 0;
+    bool isWrite = false;
     if (openMode == OpenMode::DIRECTORY) {
         readWrite = O_RDONLY;
     } else if (rwType == ReadWriteType::READ_WRITE) {
         readWrite = O_RDWR;
+        isWrite = true;
     } else if (rwType == ReadWriteType::WRITE_ONLY) {
         readWrite = O_WRONLY;
+        isWrite = true;
     } else if (rwType == ReadWriteType::READ_ONLY) {
         readWrite = O_RDONLY;
     } else if (rwType == ReadWriteType::NO_READ_WRITE) {
@@ -419,10 +424,23 @@ bool FileDescriptor::pathOpen(uint32_t lookupFlags,
     if (isShared) {
         // Pull the shared file
         linuxErrno = SharedFiles::syncSharedFile(path);
+
+        // If we can't find the file, and *not* opening in write mode, then it's
+        // an error. If we're opening in write mode, we continue with the
+        // underlying syscall, which will implicitly create the local file if
+        // necessary.
         if (linuxErrno != 0) {
-            linuxFd = -1;
-            wasiErrno = errnoToWasi(linuxErrno);
-            return false;
+            if (!isWrite) {
+                linuxFd = -1;
+                wasiErrno = errnoToWasi(linuxErrno);
+                return false;
+            }
+
+            // As we're probably creating the file here, we want to invalidate
+            // any cached decisions on this file
+            if (linuxErrno != 0) {
+                SharedFiles::clearCacheForSharedFile(path);
+            }
         }
 
         realPath = SharedFiles::realPathForSharedFile(path);
@@ -479,6 +497,28 @@ bool FileDescriptor::updateFlags(int32_t fdFlags)
     return true;
 }
 
+ssize_t FileDescriptor::write(std::vector<::iovec>& nativeIovecs,
+                              int iovecCount)
+{
+    ssize_t bytesWritten =
+      ::writev(getLinuxFd(), nativeIovecs.data(), iovecCount);
+
+    if (bytesWritten < 0) {
+        SPDLOG_ERROR(
+          "writev failed on fd {}: {}", getLinuxFd(), strerror(errno));
+        wasiErrno = errnoToWasi(errno);
+        return false;
+    }
+
+    bool isShared = SharedFiles::isPathShared(path);
+    std::string realPath;
+    if (isShared) {
+        SharedFiles::updateSharedFile(path);
+    }
+
+    return bytesWritten;
+}
+
 void FileDescriptor::close() const
 {
     if (linuxFd > 0) {
@@ -488,13 +528,17 @@ void FileDescriptor::close() const
 
 bool FileDescriptor::unlink(const std::string& relativePath)
 {
-    std::string fullPath = absPath(relativePath);
-    const std::string maskedPath = prependRuntimeRoot(fullPath);
-    int res = ::unlink(maskedPath.c_str());
+    if (SharedFiles::isPathShared(relativePath)) {
+        SharedFiles::deleteSharedFile(relativePath);
+    } else {
+        std::string fullPath = absPath(relativePath);
+        const std::string maskedPath = prependRuntimeRoot(fullPath);
+        int res = ::unlink(maskedPath.c_str());
 
-    if (res != 0) {
-        wasiErrno = errnoToWasi(errno);
-        return false;
+        if (res != 0) {
+            wasiErrno = errnoToWasi(errno);
+            return false;
+        }
     }
 
     return true;
@@ -711,5 +755,4 @@ int FileDescriptor::duplicate(const FileDescriptor& other)
 
     return linuxFd;
 }
-
 }

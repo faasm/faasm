@@ -49,6 +49,24 @@ bool SharedFiles::isPathShared(const std::string& p)
     return faabric::util::startsWith(p, SHARED_FILE_PREFIX);
 }
 
+void SharedFiles::deleteSharedFile(const std::string& p)
+{
+    FileLoader& loader = getFileLoader();
+    std::string relativePath = stripSharedPrefix(p);
+    loader.deleteSharedFile(relativePath);
+
+    clearCacheForSharedFile(relativePath);
+}
+
+void SharedFiles::updateSharedFile(const std::string& p)
+{
+    FileLoader& loader = getFileLoader();
+    std::string relativePath = stripSharedPrefix(p);
+
+    std::vector<uint8_t> bytes = loader.loadSharedFile(relativePath);
+    loader.uploadSharedFile(relativePath, bytes);
+}
+
 int getReturnValueForSharedFileState(const std::string& sharedPath)
 {
     FileState& state = sharedFileMap[sharedPath];
@@ -66,14 +84,30 @@ int getReturnValueForSharedFileState(const std::string& sharedPath)
     }
 }
 
+void SharedFiles::clearCacheForSharedFile(const std::string& sharedPath)
+{
+    SPDLOG_TRACE("Clearing shared file cache for {}", sharedPath);
+    faabric::util::FullLock lock(sharedFileMapMutex);
+
+    sharedFileMap.erase(sharedPath);
+}
+
 int SharedFiles::syncSharedFile(const std::string& sharedPath,
                                 const std::string& localPath)
 {
     // See if file already synced
     {
         faabric::util::SharedLock lock(sharedFileMapMutex);
-        if (sharedFileMap.count(sharedPath) > 0) {
-            SPDLOG_TRACE("Not syncing {}, cached at {}", sharedPath, localPath);
+        if (sharedFileMap.find(sharedPath) != sharedFileMap.end()) {
+            if (localPath.empty()) {
+                SPDLOG_TRACE("Not syncing shared file {}, already checked",
+                             sharedPath);
+            } else {
+                SPDLOG_TRACE("Not syncing shared file {}, cached at {}",
+                             sharedPath,
+                             localPath);
+            }
+
             return getReturnValueForSharedFileState(sharedPath);
         }
     }
@@ -87,7 +121,11 @@ int SharedFiles::syncSharedFile(const std::string& sharedPath,
         return getReturnValueForSharedFileState(sharedPath);
     }
 
-    SPDLOG_TRACE("Syncing {} to {}", sharedPath, localPath);
+    if (localPath.empty()) {
+        SPDLOG_TRACE("Syncing shared file {}", sharedPath);
+    } else {
+        SPDLOG_TRACE("Syncing shared file {} to {}", sharedPath, localPath);
+    }
 
     // Work out the real path
     std::string strippedPath =
@@ -119,6 +157,8 @@ int SharedFiles::syncSharedFile(const std::string& sharedPath,
             bytes = loader.loadSharedFile(strippedPath);
         } catch (storage::SharedFileIsDirectoryException& e) {
             isDir = true;
+        } catch (storage::SharedFileNotExistsException& e) {
+            // Tolerate not existing
         }
 
         // Handle directories and files accordingly
