@@ -94,6 +94,8 @@ class FileLoader
 
     std::vector<uint8_t> loadSharedFile(const std::string& path);
 
+    void deleteSharedFile(const std::string& path);
+
     void uploadSharedFile(const std::string& path,
                           const std::vector<uint8_t>& fileBytes);
 
@@ -139,6 +141,14 @@ class FileLoader
 FileLoader& getFileLoader();
 
 FileLoader& getFileLoaderWithoutLocalCache();
+
+class SharedFileNotExistsException : public faabric::util::FaabricException
+{
+  public:
+    explicit SharedFileNotExistsException(const std::string& filePath)
+      : faabric::util::FaabricException(filePath + " does not exist")
+    {}
+};
 
 class SharedFileIsDirectoryException : public faabric::util::FaabricException
 {
