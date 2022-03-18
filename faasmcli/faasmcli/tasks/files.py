@@ -1,5 +1,5 @@
 from invoke import task
-from subprocess import run
+import requests
 
 from faasmcli.util.endpoints import get_upload_host_port
 from faasmcli.util.upload_util import curl_file
@@ -17,7 +17,7 @@ def upload(ctx, in_path, shared_path):
     Uploads a shared file
     """
     url = get_file_url()
-    print("Uploading {} to {} ({})".format(in_path, shared_path, url))
+    print("Uploading {} to {} (at {})".format(in_path, shared_path, url))
 
     curl_file(
         url,
@@ -34,10 +34,14 @@ def download(ctx, shared_path, out_path):
     Downloads a shared file
     """
     url = get_file_url()
-    print("Downloading {} to {} ({})".format(shared_path, out_path, url))
+    print("Downloading {} to {} (from {})".format(shared_path, out_path, url))
 
-    cmd = ["curl", "-X", "GET", url, "-o", out_path]
-    cmd = " ".join(cmd)
+    resp = requests.get(
+        url,
+        headers={
+            "FilePath": shared_path,
+        },
+    )
 
-    print(cmd)
-    run(cmd, shell=True, check=True)
+    with open(out_path, "wb") as fh:
+        fh.write(resp.content)
