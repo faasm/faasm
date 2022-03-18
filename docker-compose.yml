@@ -118,6 +118,8 @@ services:
       - redis-state
       - redis-queue
       - minio
+      - aesm # TODO: these two services only conditionally
+      - pccs
     environment:
       - UPLOAD_HOST=${UPLOAD_HOST:-upload}
       - INVOKE_HOST=${INVOKE_HOST:-nginx}
@@ -130,11 +132,29 @@ services:
       - TSAN_OPTIONS=halt_on_error=1:suppressions=/usr/local/code/faasm/thread-sanitizer-ignorelist.txt:history_size=7:second_deadlock_stack=1
       - UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1
       - WASM_VM=${WASM_VM:-wavm}
+      - SGX_AESM_ADDR=1
     volumes:
       - ./:/usr/local/code/faasm/
       - ${FAASM_BUILD_DIR}:${FAASM_BUILD_MOUNT}
       - ./dev/faasm-local/:${FAASM_LOCAL_MOUNT}
       - ${CONAN_CACHE_MOUNT_SOURCE}:/root/.conan
+
+  # SGX services
+  pccs:
+    image: faasm/sgx-pccs:${FAASM_VERSION}
+    ports:
+      - "8081:8081"
+    command: node -r esm pccs_server.js
+
+  aesm:
+    image: faasm/sgx-aesm:${FAASM_VERSION}
+    devices: # TODO - do we need this?
+      - /dev/sgx/enclave
+      - /dev/sgx/provision
+    volumes:
+      - aesmd-socket:/var/run/aesmd
+    stdin_open: true
+    tty: true
 
   # Distributed tests server
   dist-test-server:
@@ -166,3 +186,8 @@ services:
       - faasm-cli
     ports:
       - "80:80"
+
+# Can we avoid doing this?
+volumes:
+  aesmd-socket:
+    external: true
