@@ -19,3 +19,16 @@ inv files.upload <local_path> <shared_path>
 
 inv files.download <shared_path> <local_path>
 ```
+
+For example:
+
+```bash
+# Create some data
+echo "This is content" > /tmp/dummy.txt
+
+inv files.upload /tmp/bar.txt foo/bar.txt
+
+# Function can access and modify file at faasm://foo/bar.txt
+
+inv files.download foo/bar.txt /tmp/bar.txt
+```

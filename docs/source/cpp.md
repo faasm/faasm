@@ -1,10 +1,22 @@
 # C++ support
 
+All C++ work takes place in the `cpp` container, i.e.:
+
+```bash
+./bin/cli.sh cpp
+```
+
+From here you can compile, upload and invoke different functions defined in the
+[Faasm C++ repo](https://github.com/faasm/cpp), or add your own.
+
+If you want to upload C/C++ functions from other repos, you can look at the
+[Faasm HTTP API](api.md).
+
 ## Compiling a C++ function
 
-C++ functions are built with CMake and held in the [func](../func) directory.
-
-A simple hello world function exists at [hello.cpp](../func/demo/hello.cpp).
+A simple hello world function is
+[`demo/hello`](https://github.com/faasm/cpp/blob/main/func/demo/hello.cpp) which
+just returns a hello message.
 
 From the Faasm CLI, you can compile, upload and invoke the `hello.cpp`
 function with:
@@ -16,6 +28,23 @@ inv invoke demo hello
 ```
 
 You should then see the response `Hello faasm!`.
+
+## Updating a function
+
+You can edit the message in the `hello.cpp` file, then update and invoke again
+with:
+
+```bash
+# Recompile and upload
+inv compile demo hello
+inv upload demo hello
+
+# Flush - this is important to remove any cached versions of your function
+inv flush
+
+# Invoke again
+inv invoke demo hello
+```
 
 # Writing functions
 
@@ -45,7 +74,8 @@ interface](host_interface.md).  Some of the methods in this wrapper are:
   read/ write at specific points in existing state (e.g. updating a subsection
   of an array)
 
-They are found in the [`cpp` repo](https://github.com/faasm/cpp/tree/main/libfaasm).
+They are found in the [`cpp`
+repo](https://github.com/faasm/cpp/tree/main/libfaasm).
 
 ## Chaining
 
@@ -58,46 +88,17 @@ applications).
 ### Chaining a function
 
 Multiple functions can be defined in the same file, invoke each other and await
-results. For example:
+results.
 
-```c++
-#include "faasm/faasm.h"
-#include <vector>
+Functions can either be chained by passing another function's name, or by
+passing a pointer to a function in the same file.
 
-// Define some function to be chained
-int funcOne() {
-    return 0;
-}
+Examples:
 
-// Define another function to be chained
-int funcTwo() {
-    return 0;
-}
+- Chaining by name
+  [`demo/chain_named_a`](https://github.com/faasm/cpp/blob/main/func/demo/chain_named_a.cpp),
+  [`demo/chain_named_b`](https://github.com/faasm/cpp/blob/main/func/demo/chain_named_b.cpp),
+  [`demo/chain_named_c`](https://github.com/faasm/cpp/blob/main/func/demo/chain_named_c.cpp).
+- Chaining by function pointer
+  [`demo/chain`](https://github.com/faasm/cpp/blob/main/func/demo/chain.cpp).
 
-// Define the main function
-int main(int argc, char* argv[]) {
-    // Chain calls to the other functions
-    int callOneId = faasmChain(funcOne);
-    int callTwoId = faasmChain(funcTwo);
-
-    // Await results
-    faasmAwaitCall(callOneId);
-    faasmAwaitCall(callTwoId);
-
-    return 0;
-}
-```
-
-Chaining can also be done by name across functions defined separately, e.g.:
-
-```c++
-#include "faasm/faasm.h"
-
-int main(int argc, char* argv[]) {
-    // Chain a call to my other function named "other-func"
-    int callId = faasmChainNamed("other-func");
-    faasmAwaitCall(callId);
-
-    return 0;
-}
-```

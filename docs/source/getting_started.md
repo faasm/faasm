@@ -1,25 +1,34 @@
 # Getting started
 
-## CLI
-
-Faasm can be accessed from the commandline with the containerised CLI:
+Faasm can be accessed from the commandline via the containerised Faasm
+environment:
 
 ```bash
-./bin/cli.sh
+./bin/cli.sh faasm
 ```
 
-This will mount some directories from your local project root inside the
-container.
+This will mount your local project checkout into the containerised development
+setup (more info on developing Faasm can be found in the [dev
+docs](development.md).
 
-The Faasm CLI uses [Invoke](https://www.pyinvoke.org/), and a list of the
-available commands can be shown with:
+## Commandline interface
+
+The Faasm CLI uses [Invoke](https://www.pyinvoke.org/), which means you can do
+the following:
 
 ```bash
+# List all commands
 inv -l
-```
 
-They are loosely collected into namespaces (of the format `xxx.yyy`) and
-there is tab completion (but it's a bit slow).
+# List all commands in the knative namespace
+inv -l knative
+
+# Show help for a given command
+inv -h invoke
+
+# Chain commands
+inv flush invoke demo hello
+```
 
 ## Local cluster
 
@@ -32,9 +41,28 @@ docker-compose up
 which creates the containers defined in
 [docker-compose.yml](../docker-compose.yml):
 
-Faasm will generate machine code from all WebAssembly it encounters. This is
-stored in the `container/machine-code` directory at the root of this project.
+Faasm will generate machine code from all WebAssembly it encounters. This, along
+with other local development artifacts are stored in the `dev` dir at the root
+of your local checkout.
 
 ## Writing and deploying functions
 
-See the language-specific docs for [C/C++](cpp.md) and [Python](python.md).
+See the language-specific docs for [C/C++](cpp.md) and [Python](python.md),
+
+### Flushing
+
+Faasm does a lot of caching, so if you want to update a function, you must flush
+the system before invoking it again. This is done using the `flush` command.
+Each language-specific container has its own way of flushing (e.g. `inv
+func.flush` in the `cpp` container), but you can also do it from the CLI.
+
+```bash
+inv flush
+```
+
+The process for updating and invoking an updated function is:
+
+- Modify and recompile the function
+- Upload the function
+- Flush
+- Invoke function and see updated version
