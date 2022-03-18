@@ -1,34 +1,38 @@
 # Threading
 
-Serverless applications benefit most from the parallelism of many small
-functions distributed across hosts. Spawning one or two threads to do background
-work still makes sense, but using threading and shared memory to parallelise a
-larger application is not necessarily effective in a serverless context.
+Faasm transparently distributes multi-threaded applications across hosts, and
+synchronises changes to shared memory across those hosts.
 
-To support larger multi-threaded applications, Faasm can transparently
-distribute threads across multiple serverless functions, thus allowing them to
-take advantage of serverless parallelism. 
+To synchronise shared memory, Faasm tracks which pages of memory have been
+written to by remote threads, then merges them back into a single main copy of
+the shared address space. Faasm also provides a number of distributed
+coordination primitives such as locks and barriers. The logic and messaging
+underlying this is implemented in [Faabric](https://github.com/faasm/faabric).
 
-This functionality is accessed in C/C++ through pthreads and
-[OpenMP](openmp.md).  Faasm intercepts normal threading calls and chains a new
-serverless function to execute the thread, potentially on another host. Shared
-data is managed with [shared state](state.md) and the process memory is migrated
-across hosts with [Proto-Faaslets](proto_faaslets.md).
-
-## pthreads
- 
-Faasm supports the following pthread functions. Although all `pthread_attr_XXX`
-calls are supported, the attributes themselves may be ignored in a Faasm
-context.
- 
-| Function | Description  |
-|---|---|
-| `int pthread_create(...)` | Spawn a new thread | 
-| `int pthread_join(...)` | Await thread completion |
-| `void pthread_exit(...)` | Exit the current thread |
-| `void pthread_attr_XXX` | All attr-related calls |
+Faasm currently supports two multi-threading APIs: OpenMP and pthreads.
 
 ## OpenMP
 
-Faasm OpenMP support has [separate docs](openmp.md).
+Faasm supports a number of OpenMP constructs including simple parallel for loops
+and reductions. You can find a number of OpenMP example functions in the
+[`func/omp` directory](https://github.com/faasm/cpp/tree/main/func/omp) of the
+C/C++ repo.
 
+## pthreads
+
+Faasm supports simple creation and joining of pthreads, as well as pthread
+mutexes. It also provides stubs for serveral other pthread calls so that
+applications can be linked and run without failing (although behaviour of things
+like pthread attributes may not be replicated).
+
+To find out more, you can have a look at the following pthreaded functions:
+
+- [Example
+  1](https://github.com/faasm/cpp/blob/main/func/demo/threads_check.cpp)
+- [Example
+  2](https://github.com/faasm/cpp/blob/main/func/demo/threads_local.cpp)
+- [Example
+  3](https://github.com/faasm/cpp/blob/main/func/demo/threads_memory.cpp)
+
+You can see which pthread calls are supported in
+[`src/wavm/threads.cpp`](https://github.com/faasm/faasm/blob/main/src/wavm/threads.cpp).

@@ -56,6 +56,9 @@ inv func.upload demo hello
 inv func.invoke demo hello
 ```
 
+For more information on next steps you can look at the [getting started
+docs](https://faasm.readthedocs.io/en/latest/source/getting_started.html)
+
 ## Acknowledgements
 
 This project has received funding from the European Union's Horizon 2020

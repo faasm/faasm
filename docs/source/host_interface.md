@@ -1,4 +1,4 @@
-# Faasm Host Interface
+# Host interface
 
 Faasm functions can interact with the Faasm runtime and underlying host
 through the host interface. This lets them do things like manage state and
