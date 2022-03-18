@@ -25,3 +25,10 @@ def upload(ctx, in_path, shared_path):
             "FilePath": shared_path,
         },
     )
+
+
+@task
+def download(ctx, shared_path, out_path):
+    host, port = get_upload_host_port()
+
+    # TODO - implement
