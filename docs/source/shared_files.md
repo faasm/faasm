@@ -24,7 +24,7 @@ For example:
 
 ```bash
 # Create some data
-echo "This is content" > /tmp/dummy.txt
+echo "This is content" > /tmp/bar.txt
 
 inv files.upload /tmp/bar.txt foo/bar.txt
 
