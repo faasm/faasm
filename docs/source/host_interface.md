@@ -44,7 +44,6 @@ This section of the host interface covers management of state as outlined in
 | `void push/pull_state_offset(key, off)` | Push/pull global state value for `key` at offset |
 | `void append_state(key, val)` | Append data to state value for `key` |
 | `void lock_state_read/write(key)` | Lock local copy of state value for `key` |
-| `void lock_state_global_read/write(key)` | Lock state value for `key` globally |
 
  ## POSIX-like calls and WASI
 
