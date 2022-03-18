@@ -50,23 +50,6 @@ class StateFuncTestFixture : public FunctionExecTestFixture
     }
 };
 
-TEST_CASE_METHOD(FunctionExecTestFixture, "Test state counter", "[state]")
-{
-    faabric::Message call = faabric::util::messageFactory("demo", "increment");
-
-    auto fac = std::make_shared<faaslet::FaasletFactory>();
-    faabric::runner::FaabricMain m(fac);
-    m.startRunner();
-
-    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-    sch.callFunction(call);
-
-    faabric::Message result = sch.getFunctionResult(call.id(), 1);
-    REQUIRE(result.returnvalue() == 0);
-
-    m.shutdown();
-}
-
 TEST_CASE_METHOD(StateFuncTestFixture, "Test asynchronous state", "[state]")
 {
     checkStateExample(
