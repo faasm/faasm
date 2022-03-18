@@ -15,12 +15,24 @@
 
 namespace tests {
 
-class LocalFixture
-  : public SharedFilesTestFixture
-  , public ExecutorContextTestFixture
-{};
+class SharedFilesExecTestFixture
+  : public S3TestFixture
+  , public FunctionExecTestFixture
+{
+  public:
+    SharedFilesExecTestFixture()
+      : loader(storage::getFileLoader())
+    {
+        storage::SharedFiles::clear();
+    }
 
-TEST_CASE_METHOD(LocalFixture,
+    ~SharedFilesExecTestFixture() { storage::SharedFiles::clear(); }
+
+  protected:
+    storage::FileLoader& loader;
+};
+
+TEST_CASE_METHOD(SharedFilesExecTestFixture,
                  "Test accessing shared files from wasm",
                  "[faaslet]")
 {
@@ -31,7 +43,9 @@ TEST_CASE_METHOD(LocalFixture,
 
     // Execute the function
     auto req = setUpContext("demo", "shared_file");
-    execFunction(req);
+    SECTION("WAVM") { execFunction(req); }
+
+    SECTION("WAMR") { execWamrFunction(req->mutable_messages()->at(0)); }
 
     // Check file has been synced locally
     REQUIRE(boost::filesystem::exists(fullPath));
