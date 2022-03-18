@@ -58,6 +58,15 @@ void SharedFiles::deleteSharedFile(const std::string& p)
     clearCacheForSharedFile(relativePath);
 }
 
+void SharedFiles::updateSharedFile(const std::string& p)
+{
+    FileLoader& loader = getFileLoader();
+    std::string relativePath = stripSharedPrefix(p);
+
+    std::vector<uint8_t> bytes = loader.loadSharedFile(relativePath);
+    loader.uploadSharedFile(relativePath, bytes);
+}
+
 int getReturnValueForSharedFileState(const std::string& sharedPath)
 {
     FileState& state = sharedFileMap[sharedPath];

@@ -115,6 +115,8 @@ class FileDescriptor
 
     bool updateFlags(int32_t fdFlags);
 
+    ssize_t write(std::vector<::iovec>& nativeIovecs, int iovecCount);
+
     void close() const;
 
     bool mkdir(const std::string& dirPath);

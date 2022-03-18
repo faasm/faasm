@@ -129,9 +129,24 @@ TEST_CASE_METHOD(FileLoaderTestFixture,
     // Ensure nothing in S3 to start with
     REQUIRE(s3.listKeys(conf.s3Bucket).empty());
 
+    // Check we can try loading the file and it throws an exception
     std::string relativePath = "test/local_file_loader.txt";
-    std::vector<uint8_t> expected = { 1, 5, 3, 2, 4 };
+    bool exThrown = false;
+    try {
+        loader.loadSharedFile(relativePath);
+    } catch (SharedFileNotExistsException& e) {
+        std::string expected = fmt::format("{} does not exist", relativePath);
+        REQUIRE(e.what() == expected);
+        exThrown = true;
+    }
 
+    REQUIRE(exThrown);
+
+    // Check we can delete when it doesn't exist
+    loader.deleteSharedFile(relativePath);
+
+    // Create the shared file
+    std::vector<uint8_t> expected = { 1, 5, 3, 2, 4 };
     storage::FileLoader loader;
     loader.uploadSharedFile(relativePath, expected);
 
@@ -159,6 +174,13 @@ TEST_CASE_METHOD(FileLoaderTestFixture,
     const std::vector<uint8_t> actualAfter =
       loader.loadSharedFile(relativePath);
     REQUIRE(actualAfter == expected);
+
+    // Delete the file
+    loader.deleteSharedFile(relativePath);
+
+    // Check it no longer exists
+    REQUIRE_THROWS_AS(loader.loadSharedFile(relativePath),
+                      SharedFileNotExistsException);
 }
 
 TEST_CASE_METHOD(FileLoaderTestFixture,

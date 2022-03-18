@@ -21,6 +21,8 @@ class SharedFiles
 
     static void deleteSharedFile(const std::string& p);
 
+    static void updateSharedFile(const std::string& p);
+
     static void syncPythonFunctionFile(const faabric::Message& msg);
 
     static void clear();

@@ -14,7 +14,9 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <stdexcept>
+#include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <sys/uio.h>
 
 #define WASI_FD_FLAGS                                                          \
     (__WASI_FDFLAG_RSYNC | __WASI_FDFLAG_APPEND | __WASI_FDFLAG_DSYNC |        \
@@ -493,6 +495,28 @@ bool FileDescriptor::updateFlags(int32_t fdFlags)
     // Update existing Linux flags
     linuxFlags |= newFlags;
     return true;
+}
+
+ssize_t FileDescriptor::write(std::vector<::iovec>& nativeIovecs,
+                              int iovecCount)
+{
+    ssize_t bytesWritten =
+      ::writev(getLinuxFd(), nativeIovecs.data(), iovecCount);
+
+    if (bytesWritten < 0) {
+        SPDLOG_ERROR(
+          "writev failed on fd {}: {}", getLinuxFd(), strerror(errno));
+        wasiErrno = errnoToWasi(errno);
+        return false;
+    }
+
+    bool isShared = SharedFiles::isPathShared(path);
+    std::string realPath;
+    if (isShared) {
+        SharedFiles::updateSharedFile(path);
+    }
+
+    return bytesWritten;
 }
 
 void FileDescriptor::close() const

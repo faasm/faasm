@@ -499,7 +499,7 @@ std::vector<uint8_t> FileLoader::loadSharedFile(const std::string& path)
 void FileLoader::deleteSharedFile(const std::string& path)
 {
     std::string pathCopy = trimLeadingSlashes(path);
-    SPDLOG_TRACE("Caching deleting shared file {} in S3 at {}/{}",
+    SPDLOG_TRACE("Deleting shared file {} in S3 at {}/{}",
                  path,
                  conf.s3Bucket,
                  pathCopy);
