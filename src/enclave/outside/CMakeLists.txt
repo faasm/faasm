@@ -90,19 +90,9 @@ endif()
 if (FAASM_SGX_MODE STREQUAL "Simulation")
     set(SGX_DCAP_LIBS
         ${SGX_DCAP_QUOTE_GENERATION_LIB_PATH}/libsgx_dcap_ql.so
-        ${SGX_DCAP_QUOTE_GENERATION_LIB_PATH}/libsgx_qe3_logic.so
-        ${SGX_DCAP_QUOTE_GENERATION_LIB_PATH}/libsgx_pce_logic.so
-        # Installed as part of PSW
-        ${SGX_DCAP_QUOTE_GENERATION_LIB_PATH}/libsgx_quote_ex.so
     )
 elseif (FAASM_SGX_MODE STREQUAL "Hardware")
-    set(SGX_DCAP_LIBS
-        ${SGX_DCAP_QUOTE_GENERATION_LIB_PATH}/libsgx_dcap_ql.so
-        ${SGX_DCAP_QUOTE_GENERATION_LIB_PATH}/libsgx_qe3_logic.so
-        ${SGX_DCAP_QUOTE_GENERATION_LIB_PATH}/libsgx_pce_logic.so
-        # Installed as part of PSW
-        /usr/lib/libsgx_quote_ex.so
-    )
+    set(SGX_DCAP_LIB /usr/lib/libsgx_dcap_ql.so)
 else ()
     message(FATAL_ERROR "DCAP not ready for mode: ${FAASM_SGX_MODE}")
 endif()
@@ -117,10 +107,10 @@ target_include_directories(enclave_untrusted PUBLIC
 
 target_link_libraries(enclave_untrusted
     faasm::common_deps
-    ${SGX_UNTRUSTED_RUNTIME_LIB}
-    ${SGX_UAE_SERVICE_LIB}
     ${SGX_CAPABLE_LIB}
-    ${SGX_DCAP_LIBS}
+    ${SGX_UNTRUSTED_RUNTIME_LIB}
+    ${SGX_DCAP_LIB}
+    # ${SGX_UAE_SERVICE_LIB}
     Threads::Threads
     wamrlib_untrusted
     wasm

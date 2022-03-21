@@ -118,8 +118,7 @@ services:
       - redis-state
       - redis-queue
       - minio
-      - aesm # TODO: these two services only conditionally
-      - pccs
+      - aesmd # TODO: these two services only conditionally
     environment:
       - UPLOAD_HOST=${UPLOAD_HOST:-upload}
       - INVOKE_HOST=${INVOKE_HOST:-nginx}
@@ -133,25 +132,23 @@ services:
       - UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1
       - WASM_VM=${WASM_VM:-wavm}
       - SGX_AESM_ADDR=1
+      - AZDCAP_DEBUG_LOG_LEVEL=info
     volumes:
       - ./:/usr/local/code/faasm/
       - ${FAASM_BUILD_DIR}:${FAASM_BUILD_MOUNT}
       - ./dev/faasm-local/:${FAASM_LOCAL_MOUNT}
       - ${CONAN_CACHE_MOUNT_SOURCE}:/root/.conan
       - aesmd-socket:/var/run/aesmd
+      - /dev/sgx:/dev/sgx
 
-  # SGX services
-  pccs:
-    image: faasm/sgx-pccs:${FAASM_VERSION}
-    ports:
-      - "8081:8081"
-    command: node -r esm pccs_server.js
-
-  aesm:
-    image: faasm/sgx-aesm:${FAASM_VERSION}
-    devices: # TODO - do we need this?
+  # SGX AESM service to mock the attestation environment in production
+  aesmd:
+    image: faasm/sgx-aesmd:${FAASM_VERSION}
+    devices:
       - /dev/sgx/enclave
       - /dev/sgx/provision
+    environment:
+      - AZDCAP_DEBUG_LOG_LEVEL=info
     volumes:
       - aesmd-socket:/var/run/aesmd
     stdin_open: true
