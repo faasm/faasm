@@ -138,6 +138,7 @@ services:
       - ${FAASM_BUILD_DIR}:${FAASM_BUILD_MOUNT}
       - ./dev/faasm-local/:${FAASM_LOCAL_MOUNT}
       - ${CONAN_CACHE_MOUNT_SOURCE}:/root/.conan
+      - aesmd-socket:/var/run/aesmd
 
   # SGX services
   pccs:
