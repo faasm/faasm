@@ -17,11 +17,13 @@ spec:
         - containerPort: 5000
       env:
         - name: REDIS_STATE_HOST
-          value: redis-state
+          value: "redis-state"
         - name: REDIS_QUEUE_HOST
-          value: redis-queue
+          value: "redis-queue"
         - name: LOG_LEVEL
           value: "info"
         - name: LD_LIBRARY_PATH
           value: "/build/faasm/third-party/lib:/usr/local/lib"
+        - name: PYTHON_CODEGEN
+          value: "on"
 
