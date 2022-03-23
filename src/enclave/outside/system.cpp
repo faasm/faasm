@@ -1,5 +1,6 @@
 #include <enclave/error.h>
-#include <enclave/outside/attestation.h>
+// #include <enclave/outside/attestation.h>
+int generateQuote();
 #include <enclave/outside/ecalls.h>
 #include <enclave/outside/getSgxSupport.h>
 #include <enclave/outside/system.h>
@@ -70,8 +71,10 @@ void checkSgxSetup()
       "Unable to initialise WAMR inside enclave", sgxReturnValue, returnValue);
     SPDLOG_DEBUG("Initialised WAMR in SGX enclave {}", globalEnclaveId);
 
+    generateQuote();
     // Attest enclave
     // Enclave Held Data could be faasm version
+    /*
     std::vector<uint8_t> enclaveHeldData{0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
     std::string url = "foo-bar";
     bool success = attestEnclave(url,
@@ -81,6 +84,7 @@ void checkSgxSetup()
     if (!success) {
         throw std::runtime_error("Error attesting SGX enclave");
     }
+    */
 }
 
 void tearDownEnclave()
