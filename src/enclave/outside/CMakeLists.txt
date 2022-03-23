@@ -27,7 +27,7 @@ endif()
 
 set(ENCLAVE_UNTRUSTED_HEADERS
     ${FAASM_INCLUDE_DIR}/enclave/error.h
-    ${FAASM_INCLUDE_DIR}/enclave/outside/attestation.h
+    # ${FAASM_INCLUDE_DIR}/enclave/outside/attestation.h
     ${FAASM_INCLUDE_DIR}/enclave/outside/ecalls.h
     ${FAASM_INCLUDE_DIR}/enclave/outside/getSgxSupport.h
     ${FAASM_INCLUDE_DIR}/enclave/outside/system.h
@@ -36,7 +36,7 @@ set(ENCLAVE_UNTRUSTED_HEADERS
 )
 
 set(ENCLAVE_UNTRUSTED_SRC
-    attestation.cpp
+	# attestation.cpp
     getSgxSupport.cpp
     ocalls.cpp
     system.cpp
@@ -101,6 +101,8 @@ target_include_directories(enclave_untrusted PUBLIC
     ${SGX_DCAP_QUOTE_GENERATION_INCLUDE}/ql/inc
 )
 
+add_subdirectory(attestation)
+
 # --------------------------------------------------------
 # Link everything together and add alias
 # --------------------------------------------------------
@@ -109,7 +111,8 @@ target_link_libraries(enclave_untrusted
     faasm::common_deps
     ${SGX_CAPABLE_LIB}
     ${SGX_UNTRUSTED_RUNTIME_LIB}
-    ${SGX_DCAP_LIB}
+    attestation
+    # ${SGX_DCAP_LIB}
     # ${SGX_UAE_SERVICE_LIB}
     Threads::Threads
     wamrlib_untrusted
@@ -144,3 +147,27 @@ add_custom_command(TARGET enclave_untrusted
 
 add_executable(detect_sgx detect_sgx.cpp)
 target_link_libraries(detect_sgx faasm::enclave)
+
+# --------------------------------------------------------
+# Test to see what is going on
+# --------------------------------------------------------
+
+# This works
+add_executable(test_dlopen test.cpp)
+target_include_directories(test_dlopen PUBLIC
+    	${SGX_SDK_PATH}/include
+    	${SGX_DCAP_QUOTE_GENERATION_INCLUDE}/ql/inc
+)
+target_link_libraries(test_dlopen
+	faasm::common_deps
+	${SGX_CAPABLE_LIB}
+	${SGX_UNTRUSTED_RUNTIME_LIB}
+	${SGX_DCAP_LIB}
+	# ${SGX_UAE_SERVICE_LIB}
+	Threads::Threads
+)
+
+# This also works
+# Note: worst case scenario we just build a binary to do the attestation 
+add_executable(attestation_exe test2.cpp)
+target_link_libraries(attestation_exe attestation)
