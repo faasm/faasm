@@ -15,10 +15,9 @@ tooling, to provide security and resource isolation at low cost. Faasm runs
 functions side-by-side as threads of a single runtime process, with low
 overheads and fast boot times.
 
-Faasm defines a custom [host interface](docs/host_interface.md) which extends
-[WASI](https://wasi.dev/) to include function inputs and outputs, chaining
-functions, managing state, accessing the distributed filesystem, dynamic
-linking, pthreads, OpenMP and MPI.
+Faasm defines a custom host interface that extends [WASI](https://wasi.dev/) to
+include function inputs and outputs, chaining functions, managing state,
+accessing the distributed filesystem, dynamic linking, pthreads, OpenMP and MPI.
 
 Our paper from Usenix ATC '20 on Faasm can be found
 [here](https://www.usenix.org/conference/atc20/presentation/shillaker).
