@@ -165,11 +165,4 @@ TEST_CASE_METHOD(PythonFuncTestFixture, "Test python picklinkg", "[python]")
 {
     checkPythonFunction("pickle_check", false);
 }
-
-TEST_CASE_METHOD(PythonFuncTestFixture,
-                 "Test python perf benchmark",
-                 "[python]")
-{
-    checkPythonFunction("bench_deltablue", false);
-}
 }
