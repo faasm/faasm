@@ -8,7 +8,8 @@ Faasm is a high-performance stateful serverless runtime.
 
 Faasm provides multi-tenant isolation, yet allows functions to share regions of
 memory. These shared memory regions give low-latency concurrent access to data,
-and are synchronised globally to support large-scale parallelism.
+and are synchronised globally to support large-scale parallelism across multiple
+hosts.
 
 Faasm combines software fault isolation from WebAssembly with standard Linux
 tooling, to provide security and resource isolation at low cost. Faasm runs
