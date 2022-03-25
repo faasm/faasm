@@ -10,14 +10,16 @@ extern "C"
                                          const sgx_report_data_t* heldData,
                                          sgx_report_t* report)
     {
-        sgx_status_t sgxReturnValue = sgx_create_report(qeTarget,
-                                                        heldData,
-                                                        report);
-        
-        switch(sgxReturnValue) {
-            case SGX_ERROR_INVALID_PARAMETER: return FAASM_SGX_INVALID_PTR;
-            case SGX_SUCCESS: return FAASM_SGX_SUCCESS;
-            default: return FAASM_SGX_GENERATE_REPORT_FAILED;
+        sgx_status_t sgxReturnValue =
+          sgx_create_report(qeTarget, heldData, report);
+
+        switch (sgxReturnValue) {
+            case SGX_ERROR_INVALID_PARAMETER:
+                return FAASM_SGX_INVALID_PTR;
+            case SGX_SUCCESS:
+                return FAASM_SGX_SUCCESS;
+            default:
+                return FAASM_SGX_GENERATE_REPORT_FAILED;
         }
     }
 }

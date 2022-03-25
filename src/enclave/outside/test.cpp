@@ -16,7 +16,7 @@ int generateQuote()
         return 1;
     } else {
         printf("Success in step 1!\n");
-	// SPDLOG_INFO("Succes in step 1!");
+        // SPDLOG_INFO("Succes in step 1!");
     }
 
     return 0;

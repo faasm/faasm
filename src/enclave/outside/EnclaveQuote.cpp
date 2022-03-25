@@ -2,7 +2,5 @@
 
 namespace sgx {
 
-EnclaveQuote::EnclaveQuote()
-{
-}
+EnclaveQuote::EnclaveQuote() {}
 }

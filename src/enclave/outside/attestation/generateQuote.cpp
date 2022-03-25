@@ -1,16 +1,16 @@
 #include <enclave/outside/attestation/ecalls.h>
 #include <faabric/util/logging.h>
 
-#include <stdio.h>
 #include <dlfcn.h>
 #include <openssl/sha.h>
+#include <stdio.h>
 
 #include <sgx_dcap_ql_wrapper.h>
 #include <sgx_ql_lib_common.h>
 #include <sgx_report.h>
 #include <sgx_urts.h>
 
-static void sha256sum(const uint8_t *data, uint32_t data_size, uint8_t *hash)
+static void sha256sum(const uint8_t* data, uint32_t data_size, uint8_t* hash)
 {
     SHA256_CTX sha256;
     SHA256_Init(&sha256);
@@ -33,7 +33,7 @@ int generateQuote(int enclaveId)
     printf("Success in step 1!\n");
 
     printf("\nStep2: Call create_app_report: ");
-    uint8_t enclaveHeldData[6] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
+    uint8_t enclaveHeldData[6] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 };
     sgx_report_data_t enclaveHeldDataHashed;
     sha256sum(enclaveHeldData, 6, enclaveHeldDataHashed.d);
     sgx_report_t enclaveReport;
