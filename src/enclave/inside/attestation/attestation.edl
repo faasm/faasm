@@ -1,0 +1,13 @@
+
+enclave{
+    include "/usr/local/code/faasm/include/enclave/error.h"
+    include "sgx_report.h"
+    from "sgx_tstdc.edl" import *;
+
+    trusted{
+        public faasm_sgx_status_t ecallCreateReport(
+            [in]    const sgx_target_info_t* qeTarget,
+            [in]    const sgx_report_data_t* heldData,
+            [out]   sgx_report_t* report);
+    };
+};

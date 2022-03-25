@@ -87,7 +87,11 @@ else ()
     message(FATAL_ERROR "Building SGX code with mode: ${FAASM_SGX_MODE}")
 endif ()
 
+# Enclave trusted attestation
+add_subdirectory(attestation)
+
 # Enclave trusted crypto
+# TODO - probably delete this
 add_subdirectory(crypto)
 
 # Common libraries
@@ -102,6 +106,7 @@ target_link_libraries(enclave_trusted
     ${SGX_SDK_LIB_PATH}/libsgx_tcxx.a
     ${SGX_SDK_LIB_PATH}/libsgx_tcrypto.a
     ${SGX_SERVICE_LIB}
+    enclave_trusted_attestation
     enclave_trusted_crypto
     wamrlib_trusted
     -Wl,--end-group
@@ -111,6 +116,7 @@ target_link_libraries(enclave_trusted
 # Trusted Enclave Build + Signature
 # --------------------------------------------------------
 
+# TODO - make a function out of this
 add_custom_command(TARGET enclave_trusted
     PRE_BUILD COMMAND ${SGX_SDK_ENCLAVE_EDGER8R}
     --trusted ${ENCLAVE_EDL_FILENAME}.edl

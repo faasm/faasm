@@ -1,4 +1,16 @@
 # --------------------------------------------------------
+# Untrusted WAMR library
+# --------------------------------------------------------
+
+add_library(wamrlib_untrusted STATIC ${PLATFORM_SHARED_SOURCE_UNTRUSTED})
+
+target_compile_options(wamrlib_untrusted PRIVATE
+    -fPIC
+    -ffunction-sections
+    -fdata-sections
+)
+
+# --------------------------------------------------------
 # Untrusted SGX Compilation Flags
 # --------------------------------------------------------
 
@@ -27,7 +39,7 @@ endif()
 
 set(ENCLAVE_UNTRUSTED_HEADERS
     ${FAASM_INCLUDE_DIR}/enclave/error.h
-    # ${FAASM_INCLUDE_DIR}/enclave/outside/attestation.h
+    ${FAASM_INCLUDE_DIR}/enclave/outside/attestation_wrapper.h
     ${FAASM_INCLUDE_DIR}/enclave/outside/ecalls.h
     ${FAASM_INCLUDE_DIR}/enclave/outside/getSgxSupport.h
     ${FAASM_INCLUDE_DIR}/enclave/outside/system.h
@@ -36,7 +48,7 @@ set(ENCLAVE_UNTRUSTED_HEADERS
 )
 
 set(ENCLAVE_UNTRUSTED_SRC
-	# attestation.cpp
+    attestation_wrapper.cpp
     getSgxSupport.cpp
     ocalls.cpp
     system.cpp
@@ -87,6 +99,7 @@ endif()
 # Intel DCAP for remote attestation
 # --------------------------------------------------------
 
+# TODO - eventually move this into attestation/CMakeLists.txt
 if (FAASM_SGX_MODE STREQUAL "Simulation")
     set(SGX_DCAP_LIBS
         ${SGX_DCAP_QUOTE_GENERATION_LIB_PATH}/libsgx_dcap_ql.so
@@ -101,7 +114,13 @@ target_include_directories(enclave_untrusted PUBLIC
     ${SGX_DCAP_QUOTE_GENERATION_INCLUDE}/ql/inc
 )
 
-add_subdirectory(attestation)
+if (FAASM_SGX_MODE STREQUAL "Hardware")
+    add_subdirectory(attestation)
+    add_definitions(-DFAASM_DCAP_ATTESTATION_BINARY="${CMAKE_BINARY_DIR}/bin/attest_enclave")
+    add_library(faasm::true_attestation ALIAS attestation)
+else ()
+    message(STATUS "Remote attestation is only available in hardware mode")
+endif ()
 
 # --------------------------------------------------------
 # Link everything together and add alias
@@ -109,12 +128,11 @@ add_subdirectory(attestation)
 
 target_link_libraries(enclave_untrusted
     faasm::common_deps
-    ${SGX_CAPABLE_LIB}
     ${SGX_UNTRUSTED_RUNTIME_LIB}
-    attestation
-    # ${SGX_DCAP_LIB}
+    ${SGX_CAPABLE_LIB}
+    faasm::attestation
     # ${SGX_UAE_SERVICE_LIB}
-    Threads::Threads
+    # Threads::Threads
     wamrlib_untrusted
     wasm
 )

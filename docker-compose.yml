@@ -118,7 +118,7 @@ services:
       - redis-state
       - redis-queue
       - minio
-      - aesmd # TODO: these two services only conditionally
+        # - aesmd # TODO: these two services only conditionally
     environment:
       - UPLOAD_HOST=${UPLOAD_HOST:-upload}
       - INVOKE_HOST=${INVOKE_HOST:-nginx}
@@ -142,17 +142,17 @@ services:
       - /dev/sgx:/dev/sgx
 
   # SGX AESM service to mock the attestation environment in production
-  aesmd:
-    image: faasm/sgx-aesmd:${FAASM_VERSION}
-    devices:
-      - /dev/sgx/enclave
-      - /dev/sgx/provision
-    environment:
-      - AZDCAP_DEBUG_LOG_LEVEL=info
-    volumes:
-      - aesmd-socket:/var/run/aesmd
-    stdin_open: true
-    tty: true
+  #   aesmd:
+  #     image: faasm/sgx-aesmd:0.8.4
+  #     devices:
+  #       - /dev/sgx/enclave
+  #       - /dev/sgx/provision
+  #     environment:
+  #       - AZDCAP_DEBUG_LOG_LEVEL=info
+  #     volumes:
+  #       - aesmd-socket:/var/run/aesmd
+  #     stdin_open: true
+  #     tty: true
 
   # Distributed tests server
   dist-test-server:
