@@ -24,13 +24,15 @@ class EnclaveQuote
     uint8_t securityVersion;
     uint32_t attributes;
     std::string enclaveQuoteHex;
-    std::string enclaveHeldDataHex;;
+    std::string enclaveHeldDataHex;
+    ;
 
     // static EnclaveInfo CreateFromFile(string filePath);
 
     /*
     AttestSgxEnclaveRequestBody* GetMaaBody();
-    bool CompareToMaaServiceJwtToken(string serviceJwtToken, bool includeDetails);
+    bool CompareToMaaServiceJwtToken(string serviceJwtToken, bool
+    includeDetails);
     */
 };
 }

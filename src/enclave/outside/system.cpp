@@ -73,7 +73,7 @@ void checkSgxSetup()
 
     // Attest enclave
     // Enclave Held Data could be faasm version
-    std::vector<uint8_t> enclaveHeldData{0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
+    std::vector<uint8_t> enclaveHeldData{ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 };
     std::string url = "foo-bar";
     generateQuote(globalEnclaveId);
     /*

@@ -18,7 +18,7 @@ RUN wget -qO - https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
 
 
 WORKDIR /opt/intel
-RUN wget https://download.01.org/intel-sgx/sgx-dcap/1.12.1/linux/distro/ubuntu20.04-server/sgx_linux_x64_sdk_2.15.101.1.bin \
+RUN wget https://download.01.org/intel-sgx/sgx-dcap/1.12.1/linux/distro/ubuntu18.04-server/sgx_linux_x64_sdk_2.15.101.1.bin \
     -O sgx_linux_x64_sdk.bin
 RUN chmod a+x sgx_linux_x64_sdk.bin
 RUN sh -c 'echo yes | ./sgx_linux_x64_sdk.bin'

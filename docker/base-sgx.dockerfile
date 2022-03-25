@@ -11,12 +11,25 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update
 RUN apt-get install  -y \
     debhelper \
-    libprotobuf-dev \
     lsb-release \
     ocaml \
     ocamlbuild \
-    protobuf-compiler \
     python
+
+# We must install protobuf manually, as a static library and PIC. Otherwise,
+# attestation will fail at runtime with a hard to debug segmentation fault when
+# dlopen-ing some sgx-related libraries. The problem arises when these libraries
+# link with protobuf as a shared library, as reported in GH issues:
+WORKDIR /tmp
+RUN git clone -b v3.17.0 https://github.com/protocolbuffers/protobuf.git
+WORKDIR /tmp/protobuf/build
+RUN cmake \
+    -Dprotobuf_BUILD_SHARED_LIBS=OFF \
+    -Dprotobuf_BUILD_TESTS=OFF \
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+    ../cmake/
+RUN make
+RUN make install
 
 # 09/03/2022 - As part of the preparation step, we download pre-built binaries
 # from Intel's official repositories. There does not seem to be a clear way
@@ -58,9 +71,9 @@ RUN ln -s /opt/intel/sgxdcap/QuoteGeneration/build/linux/libsgx_dcap_ql.so \
     /opt/intel/sgxdcap/QuoteGeneration/build/linux/libsgx_dcap_ql.so.1
 # Install manually the libraries under `/usr/lib` for a lack of a `make install`
 # recipe
-RUN cp /opt/intel/sgx/dcap/QuoteGeneration/build/linux/libsgx_dcap_ql.so* \
-    /opt/intel/sgx/dcap/QuoteGeneration/build/linux/libsgx_pce_logic.so \
-    /opt/intel/sgx/dcap/QuoteGeneration/build/linux/libsgx_qe3_logic.so \
+RUN cp /opt/intel/sgxdcap/QuoteGeneration/build/linux/libsgx_dcap_ql.so* \
+    /opt/intel/sgxdcap/QuoteGeneration/build/linux/libsgx_pce_logic.so \
+    /opt/intel/sgxdcap/QuoteGeneration/build/linux/libsgx_qe3_logic.so \
     /usr/lib/
 
 # ----------------------------
