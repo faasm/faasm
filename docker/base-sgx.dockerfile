@@ -20,10 +20,10 @@ RUN apt-get install  -y \
 
 # 09/03/2022 - As part of the preparation step, we download pre-built binaries
 # from Intel's official repositories. There does not seem to be a clear way
-# to specify which version to download. As this image is not re-built often,
-# we pin to version 2.15.101.1. It may happen that, at some point, the image
-# build fails because the preparation script points to out-of-date links. In
-# that case we will have to clone from a more recent tag.
+# to specify which version to download. We pin to code version 2.15.101.1. It
+# may happen that, at some point, the image build fails because the preparation
+# script points to out-of-date links. In that case we will have to clone from a
+# more recent tag.
 RUN git clone -b sgx_2.15.1 https://github.com/intel/linux-sgx.git /linux-sgx
 WORKDIR /linux-sgx
 RUN make preparation
@@ -56,6 +56,12 @@ RUN make
 # TODO - fix this, why is it happening?
 RUN ln -s /opt/intel/sgxdcap/QuoteGeneration/build/linux/libsgx_dcap_ql.so \
     /opt/intel/sgxdcap/QuoteGeneration/build/linux/libsgx_dcap_ql.so.1
+# Install manually the libraries under `/usr/lib` for a lack of a `make install`
+# recipe
+RUN cp /opt/intel/sgx/dcap/QuoteGeneration/build/linux/libsgx_dcap_ql.so* \
+    /opt/intel/sgx/dcap/QuoteGeneration/build/linux/libsgx_pce_logic.so \
+    /opt/intel/sgx/dcap/QuoteGeneration/build/linux/libsgx_qe3_logic.so \
+    /usr/lib/
 
 # ----------------------------
 # Build Fassm

@@ -14,6 +14,7 @@ add_definitions(-DFAASM_ENCLAVE_PATH="${ENCLAVE_PATH}")
 set(SGX_DCAP_QUOTE_GENERATION "/opt/intel/sgxdcap/QuoteGeneration")
 set(SGX_DCAP_QUOTE_GENERATION_LIB_PATH "${SGX_DCAP_QUOTE_GENERATION}/build/linux/")
 set(SGX_DCAP_QUOTE_GENERATION_INCLUDE "${SGX_DCAP_QUOTE_GENERATION}/quote_wrapper")
+set(ATTESTATION_EDL_FILENAME "attestation")
 
 # Check for SGX SDK
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -87,13 +88,13 @@ target_compile_options(wamrlib_trusted PRIVATE
 )
 
 # WAMR untrusted lib
-add_library(wamrlib_untrusted STATIC ${PLATFORM_SHARED_SOURCE_UNTRUSTED})
-
-target_compile_options(wamrlib_untrusted PRIVATE
-    -fPIC
-    -ffunction-sections
-    -fdata-sections
-)
+# add_library(wamrlib_untrusted STATIC ${PLATFORM_SHARED_SOURCE_UNTRUSTED})
+# 
+# target_compile_options(wamrlib_untrusted PRIVATE
+#     -fPIC
+#     -ffunction-sections
+#     -fdata-sections
+# )
 
 # --------------------------------------------------------
 # Trusted Enclave Library
