@@ -5,6 +5,8 @@
 enclave{
     include "/usr/local/code/faasm/include/enclave/error.h"
     include "/build/faasm/_deps/wamr_ext-src/core/iwasm/include/wasm_export.h"
+    include "sgx_report.h"
+
     from "sgx_tstdc.edl" import *;
     from "sgx_pthread.edl" import *;
 #if(FAASM_SGX_WAMR_WASI_LIBC)
@@ -12,6 +14,11 @@ enclave{
 #endif
 
     trusted{
+        public faasm_sgx_status_t ecallCreateReport(
+            [in]    const sgx_target_info_t* qeTarget,
+            [in]    const sgx_report_data_t* heldData,
+            [out]   sgx_report_t* report);
+
         public faasm_sgx_status_t ecallInitWamr(void);
 
         public faasm_sgx_status_t ecallLoadModule(

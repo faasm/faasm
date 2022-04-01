@@ -1,16 +1,19 @@
-#include <enclave/outside/attestation/ecalls.h>
+#include <enclave/outside/attestation.h>
+#include <enclave/outside/ecalls.h>
 #include <faabric/util/logging.h>
 
-#include <stdio.h>
 #include <dlfcn.h>
 #include <openssl/sha.h>
+#include <stdio.h>
 
 #include <sgx_dcap_ql_wrapper.h>
 #include <sgx_ql_lib_common.h>
 #include <sgx_report.h>
 #include <sgx_urts.h>
 
-static void sha256sum(const uint8_t *data, uint32_t data_size, uint8_t *hash)
+namespace sgx {
+
+static void sha256sum(const uint8_t* data, uint32_t data_size, uint8_t* hash)
 {
     SHA256_CTX sha256;
     SHA256_Init(&sha256);
@@ -18,7 +21,7 @@ static void sha256sum(const uint8_t *data, uint32_t data_size, uint8_t *hash)
     SHA256_Final(hash, &sha256);
 }
 
-int generateQuote(int enclaveId)
+EnclaveInfo generateQuote(int enclaveId)
 {
     SPDLOG_INFO("Step 0: call dlopen");
     void* handle = dlopen("libsgx_quote_ex.so.1", RTLD_LAZY | RTLD_GLOBAL);
@@ -30,7 +33,8 @@ int generateQuote(int enclaveId)
 
     SPDLOG_INFO("Step 1: call sgx_qe_get_target_info");
     sgx_target_info_t quotingEnclaveTargetInfo;
-    quote3_error_t qeReturnValue = sgx_qe_get_target_info(&quotingEnclaveTargetInfo);
+    quote3_error_t qeReturnValue =
+      sgx_qe_get_target_info(&quotingEnclaveTargetInfo);
     if (qeReturnValue != SGX_QL_SUCCESS) {
         printf("Error getting the quoting enclave's info: %x\n", qeReturnValue);
         throw std::runtime_error("Error in step 1");
@@ -38,9 +42,11 @@ int generateQuote(int enclaveId)
     SPDLOG_INFO("Success in step 1");
 
     SPDLOG_INFO("Step 2: call create_app_report");
-    uint8_t enclaveHeldData[6] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
+    std::vector<uint8_t> enclaveHeldData = {
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06
+    };
     sgx_report_data_t enclaveHeldDataHashed;
-    sha256sum(enclaveHeldData, 6, enclaveHeldDataHashed.d);
+    sha256sum(enclaveHeldData.data(), 6, enclaveHeldDataHashed.d);
     sgx_report_t enclaveReport;
     faasm_sgx_status_t returnValue;
     sgx_status_t sgxReturnValue = ecallCreateReport(enclaveId,
@@ -63,16 +69,18 @@ int generateQuote(int enclaveId)
         throw std::runtime_error("Error in step 3");
     }
     SPDLOG_INFO("Success in step 3");
-    SPDLOG_INFO("Quote size: {}", quoteSize);
 
     std::vector<uint8_t> quoteBuffer(quoteSize, 0);
     SPDLOG_INFO("Step 4: call sgx_qe_get_quote");
-    qeReturnValue = sgx_qe_get_quote(&enclaveReport, quoteSize, quoteBuffer.data());
+    qeReturnValue =
+      sgx_qe_get_quote(&enclaveReport, quoteSize, quoteBuffer.data());
     if (qeReturnValue != SGX_QL_SUCCESS) {
         printf("Error in sgx_qe_get_quote. 0x%04x\n", qeReturnValue);
         throw std::runtime_error("Error in step 3");
     }
     SPDLOG_INFO("Success in step 4");
 
-    return 0;
+    EnclaveInfo enclaveInfo(enclaveReport, quoteBuffer, enclaveHeldData);
+    return enclaveInfo;
+}
 }

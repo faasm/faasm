@@ -10,12 +10,6 @@ set(ENCLAVE_PATH "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/enclave_trusted.sign.so")
 set(ENCLAVE_EDL_FILENAME "enclave")
 add_definitions(-DFAASM_ENCLAVE_PATH="${ENCLAVE_PATH}")
 
-# DCAP configuration
-set(SGX_DCAP_QUOTE_GENERATION "/opt/intel/sgxdcap/QuoteGeneration")
-set(SGX_DCAP_QUOTE_GENERATION_LIB_PATH "${SGX_DCAP_QUOTE_GENERATION}/build/linux/")
-set(SGX_DCAP_QUOTE_GENERATION_INCLUDE "${SGX_DCAP_QUOTE_GENERATION}/quote_wrapper")
-set(ATTESTATION_EDL_FILENAME "attestation")
-
 # Check for SGX SDK
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
