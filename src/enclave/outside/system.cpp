@@ -1,6 +1,6 @@
 #include <enclave/error.h>
-int generateQuote(int enclaveId);
-#include <enclave/outside/attestation_wrapper.h>
+// int generateQuote(int enclaveId);
+#include <enclave/outside/attestation.h>
 #include <enclave/outside/ecalls.h>
 #include <enclave/outside/getSgxSupport.h>
 #include <enclave/outside/system.h>
@@ -51,17 +51,15 @@ void checkSgxSetup()
         throw std::runtime_error("Could not find enclave file");
     }
 
-    sgx_status_t sgxReturnValue;
-    sgx_launch_token_t sgxEnclaveToken = { 0 };
-    uint32_t sgxEnclaveTokenUpdated = 0;
-
     // Create the enclave
-    sgxReturnValue = sgx_create_enclave(FAASM_ENCLAVE_PATH,
-                                        SGX_DEBUG_FLAG,
-                                        &sgxEnclaveToken,
-                                        (int*)&sgxEnclaveTokenUpdated,
-                                        &globalEnclaveId,
-                                        nullptr);
+    sgx_launch_token_t sgxEnclaveToken = { 0 };
+    int sgxEnclaveTokenUpdated = 0;
+    sgx_status_t sgxReturnValue = sgx_create_enclave(FAASM_ENCLAVE_PATH,
+                                                     SGX_DEBUG_FLAG,
+                                                     &sgxEnclaveToken,
+                                                     &sgxEnclaveTokenUpdated,
+                                                     &globalEnclaveId,
+                                                     nullptr);
     processECallErrors("Unable to create enclave", sgxReturnValue);
     SPDLOG_DEBUG("Created SGX enclave: {}", globalEnclaveId);
 
@@ -75,18 +73,10 @@ void checkSgxSetup()
     // Enclave Held Data could be faasm version
     std::vector<uint8_t> enclaveHeldData{ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 };
     std::string url = "foo-bar";
-    generateQuote(globalEnclaveId);
-    /*
-    bool success = attestEnclaveWrapper(url,
-                                        false,
-                                        FAASM_ENCLAVE_PATH,
-                                        enclaveHeldData);
-    if (!success) {
-        SPDLOG_ERROR("Error attesting enclave at path {} with provider at {}",
-                     FAASM_ENCLAVE_PATH, url);
-        throw std::runtime_error("Error attesting SGX enclave");
-    }
-    */
+    // TODO - replace by call to attestEnclave, and don't make the other two
+    // methods callable from anywhere else
+    EnclaveInfo enclaveInfo = generateQuote(globalEnclaveId);
+    validateQuote(enclaveInfo, url, false);
 }
 
 void tearDownEnclave()

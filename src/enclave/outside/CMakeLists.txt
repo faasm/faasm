@@ -39,7 +39,6 @@ endif()
 
 set(ENCLAVE_UNTRUSTED_HEADERS
     ${FAASM_INCLUDE_DIR}/enclave/error.h
-    ${FAASM_INCLUDE_DIR}/enclave/outside/attestation_wrapper.h
     ${FAASM_INCLUDE_DIR}/enclave/outside/ecalls.h
     ${FAASM_INCLUDE_DIR}/enclave/outside/getSgxSupport.h
     ${FAASM_INCLUDE_DIR}/enclave/outside/system.h
@@ -48,7 +47,6 @@ set(ENCLAVE_UNTRUSTED_HEADERS
 )
 
 set(ENCLAVE_UNTRUSTED_SRC
-    attestation_wrapper.cpp
     getSgxSupport.cpp
     ocalls.cpp
     system.cpp
@@ -96,28 +94,10 @@ else()
 endif()
 
 # --------------------------------------------------------
-# Intel DCAP for remote attestation
+# Remote attestation
 # --------------------------------------------------------
-
-# TODO - eventually move this into attestation/CMakeLists.txt
-if (FAASM_SGX_MODE STREQUAL "Simulation")
-    set(SGX_DCAP_LIBS
-        ${SGX_DCAP_QUOTE_GENERATION_LIB_PATH}/libsgx_dcap_ql.so
-    )
-elseif (FAASM_SGX_MODE STREQUAL "Hardware")
-    set(SGX_DCAP_LIB /usr/lib/libsgx_dcap_ql.so)
-else ()
-    message(FATAL_ERROR "DCAP not ready for mode: ${FAASM_SGX_MODE}")
-endif()
-
-target_include_directories(enclave_untrusted PUBLIC
-    ${SGX_DCAP_QUOTE_GENERATION_INCLUDE}/ql/inc
-)
-
 if (FAASM_SGX_MODE STREQUAL "Hardware")
     add_subdirectory(attestation)
-    add_definitions(-DFAASM_DCAP_ATTESTATION_BINARY="${CMAKE_BINARY_DIR}/bin/attest_enclave")
-    add_library(faasm::true_attestation ALIAS attestation)
 else ()
     message(STATUS "Remote attestation is only available in hardware mode")
 endif ()
@@ -165,27 +145,3 @@ add_custom_command(TARGET enclave_untrusted
 
 add_executable(detect_sgx detect_sgx.cpp)
 target_link_libraries(detect_sgx faasm::enclave)
-
-# --------------------------------------------------------
-# Test to see what is going on
-# --------------------------------------------------------
-
-# This works
-add_executable(test_dlopen test.cpp)
-target_include_directories(test_dlopen PUBLIC
-    	${SGX_SDK_PATH}/include
-    	${SGX_DCAP_QUOTE_GENERATION_INCLUDE}/ql/inc
-)
-target_link_libraries(test_dlopen
-	faasm::common_deps
-	${SGX_CAPABLE_LIB}
-	${SGX_UNTRUSTED_RUNTIME_LIB}
-	${SGX_DCAP_LIB}
-	# ${SGX_UAE_SERVICE_LIB}
-	Threads::Threads
-)
-
-# This also works
-# Note: worst case scenario we just build a binary to do the attestation 
-add_executable(attestation_exe test2.cpp)
-target_link_libraries(attestation_exe attestation)
