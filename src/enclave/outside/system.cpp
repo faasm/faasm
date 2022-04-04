@@ -1,5 +1,4 @@
 #include <enclave/error.h>
-// int generateQuote(int enclaveId);
 #include <enclave/outside/attestation.h>
 #include <enclave/outside/ecalls.h>
 #include <enclave/outside/getSgxSupport.h>
@@ -72,10 +71,11 @@ void checkSgxSetup()
     // Attest enclave
     // Enclave Held Data could be faasm version
     std::vector<uint8_t> enclaveHeldData{ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 };
-    std::string url = "foo-bar";
+    // TODO - make the url an environment variable
+    std::string url = "https://faasmattprov.eus2.attest.azure.net";
     // TODO - replace by call to attestEnclave, and don't make the other two
     // methods callable from anywhere else
-    EnclaveInfo enclaveInfo = generateQuote(globalEnclaveId);
+    EnclaveInfo enclaveInfo = generateQuote(globalEnclaveId, enclaveHeldData);
     validateQuote(enclaveInfo, url, false);
 }
 

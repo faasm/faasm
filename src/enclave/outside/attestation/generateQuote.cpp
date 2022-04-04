@@ -11,6 +11,9 @@
 #include <sgx_report.h>
 #include <sgx_urts.h>
 
+// DELETE ME
+#include <cppcodec/base64_url.hpp>
+
 namespace sgx {
 
 static void sha256sum(const uint8_t* data, uint32_t data_size, uint8_t* hash)
@@ -21,7 +24,8 @@ static void sha256sum(const uint8_t* data, uint32_t data_size, uint8_t* hash)
     SHA256_Final(hash, &sha256);
 }
 
-EnclaveInfo generateQuote(int enclaveId)
+EnclaveInfo generateQuote(int enclaveId,
+                          const std::vector<uint8_t>& enclaveHeldData)
 {
     SPDLOG_INFO("Step 0: call dlopen");
     void* handle = dlopen("libsgx_quote_ex.so.1", RTLD_LAZY | RTLD_GLOBAL);
@@ -42,11 +46,10 @@ EnclaveInfo generateQuote(int enclaveId)
     SPDLOG_INFO("Success in step 1");
 
     SPDLOG_INFO("Step 2: call create_app_report");
-    std::vector<uint8_t> enclaveHeldData = {
-        0x01, 0x02, 0x03, 0x04, 0x05, 0x06
-    };
     sgx_report_data_t enclaveHeldDataHashed;
-    sha256sum(enclaveHeldData.data(), 6, enclaveHeldDataHashed.d);
+    sha256sum(
+      &enclaveHeldData[0], enclaveHeldData.size(), enclaveHeldDataHashed.d);
+    SPDLOG_WARN("Enclave held data hashed: {}", enclaveHeldDataHashed.d);
     sgx_report_t enclaveReport;
     faasm_sgx_status_t returnValue;
     sgx_status_t sgxReturnValue = ecallCreateReport(enclaveId,
@@ -73,7 +76,8 @@ EnclaveInfo generateQuote(int enclaveId)
     std::vector<uint8_t> quoteBuffer(quoteSize, 0);
     SPDLOG_INFO("Step 4: call sgx_qe_get_quote");
     qeReturnValue =
-      sgx_qe_get_quote(&enclaveReport, quoteSize, quoteBuffer.data());
+      sgx_qe_get_quote(&enclaveReport, quoteSize, &quoteBuffer[0]);
+    // sgx_qe_get_quote(&enclaveReport, quoteSize, quoteBuffer.data());
     if (qeReturnValue != SGX_QL_SUCCESS) {
         printf("Error in sgx_qe_get_quote. 0x%04x\n", qeReturnValue);
         throw std::runtime_error("Error in step 3");
@@ -81,6 +85,7 @@ EnclaveInfo generateQuote(int enclaveId)
     SPDLOG_INFO("Success in step 4");
 
     EnclaveInfo enclaveInfo(enclaveReport, quoteBuffer, enclaveHeldData);
+    SPDLOG_INFO("Generated attestation quote for enclave");
     return enclaveInfo;
 }
 }

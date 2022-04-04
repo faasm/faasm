@@ -1,4 +1,4 @@
-#include <enclave/outside/attestation.h>
+#include <enclave/outside/attestation/EnclaveInfo.h>
 
 #include <iomanip>
 #include <sstream>
@@ -31,7 +31,9 @@ static std::string intToHexString(T i)
 // the quote generation step
 EnclaveInfo::EnclaveInfo(const sgx_report_t& enclaveReport,
                          const std::vector<uint8_t>& quoteBuffer,
-                         const std::vector<uint8_t>& enclaveHeldData)
+                         const std::vector<uint8_t>& enclaveHeldDataIn)
+  : quote(quoteBuffer)
+  , enclaveHeldData(enclaveHeldDataIn)
 {
     // Hard-code enclave type to 2 for SGX enclaves
     enclaveType = 2;
@@ -43,8 +45,18 @@ EnclaveInfo::EnclaveInfo(const sgx_report_t& enclaveReport,
       intToHexString(static_cast<uint16_t>(enclaveReport.body.isv_prod_id));
     securityVersion = static_cast<uint32_t>(enclaveReport.body.isv_svn);
     attributes = static_cast<uint64_t>(enclaveReport.body.attributes.flags);
-    quoteHex = byteArrayToHexString(quoteBuffer.data(), quoteBuffer.size());
-    enclaveHeldDatHex =
-      byteArrayToHexString(enclaveHeldData.data(), enclaveHeldData.size());
+    // quoteHex = byteArrayToHexString(quoteBuffer.data(), quoteBuffer.size());
+    // enclaveHeldDatHex =
+    // byteArrayToHexString(enclaveHeldData.data(), enclaveHeldData.size());
+}
+
+const std::vector<uint8_t>& EnclaveInfo::getQuote() const
+{
+    return quote;
+}
+
+const std::vector<uint8_t>& EnclaveInfo::getEnclaveHeldData() const
+{
+    return enclaveHeldData;
 }
 }
