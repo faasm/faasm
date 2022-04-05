@@ -61,6 +61,7 @@ set(WAMR_BUILD_LIB_PTHREAD 0)
 include(${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
 
 # WAMR Trusted lib
+# TODO - move this to enclave/inside
 faasm_private_lib(wamrlib_trusted "${WAMR_RUNTIME_LIB_SOURCE}")
 
 target_include_directories(wamrlib_trusted PRIVATE
@@ -80,15 +81,6 @@ target_compile_options(wamrlib_trusted PRIVATE
     -nostdinc
     -fvisibility=hidden
 )
-
-# WAMR untrusted lib
-# add_library(wamrlib_untrusted STATIC ${PLATFORM_SHARED_SOURCE_UNTRUSTED})
-# 
-# target_compile_options(wamrlib_untrusted PRIVATE
-#     -fPIC
-#     -ffunction-sections
-#     -fdata-sections
-# )
 
 # --------------------------------------------------------
 # Trusted Enclave Library

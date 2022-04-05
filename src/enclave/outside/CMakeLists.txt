@@ -43,7 +43,6 @@ set(ENCLAVE_UNTRUSTED_HEADERS
     ${FAASM_INCLUDE_DIR}/enclave/outside/getSgxSupport.h
     ${FAASM_INCLUDE_DIR}/enclave/outside/system.h
     ${FAASM_INCLUDE_DIR}/enclave/outside/EnclaveInterface.h
-    ${FAASM_INCLUDE_DIR}/enclave/outside/EnclaveQuote.h
 )
 
 set(ENCLAVE_UNTRUSTED_SRC
@@ -51,7 +50,6 @@ set(ENCLAVE_UNTRUSTED_SRC
     ocalls.cpp
     system.cpp
     EnclaveInterface.cpp
-    EnclaveQuote.cpp
 )
 
 add_library(enclave_untrusted STATIC
@@ -111,8 +109,6 @@ target_link_libraries(enclave_untrusted
     ${SGX_UNTRUSTED_RUNTIME_LIB}
     ${SGX_CAPABLE_LIB}
     faasm::attestation
-    # ${SGX_UAE_SERVICE_LIB}
-    # Threads::Threads
     wamrlib_untrusted
     wasm
 )

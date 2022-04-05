@@ -1,8 +1,0 @@
-
-enclave{
-    include "/usr/local/code/faasm/include/enclave/error.h"
-    from "sgx_tstdc.edl" import *;
-
-    trusted{
-    };
-};
