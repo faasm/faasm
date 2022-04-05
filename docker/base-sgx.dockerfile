@@ -66,7 +66,7 @@ RUN git clone -b DCAP_1.12.1 \
 WORKDIR /opt/intel/sgxdcap/QuoteGeneration
 RUN ./download_prebuilt.sh
 RUN make
-# TODO - fix this, why is it happening?
+# We need this soft-link as otherwise the runtime linking fails
 RUN ln -s /opt/intel/sgxdcap/QuoteGeneration/build/linux/libsgx_dcap_ql.so \
     /opt/intel/sgxdcap/QuoteGeneration/build/linux/libsgx_dcap_ql.so.1
 # Install manually the libraries under `/usr/lib` for a lack of a `make install`

@@ -12,7 +12,7 @@ typedef jwt::jwks<jwt::traits::kazuho_picojson> JwksSet;
 
 /*
  * This class interfaces with a remote instance of an Azure Attestation Serivce.
- * It provides methos to attest an enclave using the attestation service, and
+ * It provides methods to attest an enclave using the attestation service, and
  * also to manipulate the JWT returned as validation.
  */
 class AzureAttestationServiceClient
@@ -27,30 +27,34 @@ class AzureAttestationServiceClient
     // verification.
     JwksSet cachedJwks;
 
-    // Validate that the JKU (JWT Set URL) parameter points to the expected
-    // certificate  endpoint.
-    void validateJkuUri(const DecodedJwt& decodedJwt);
-
     // Fetch the JSON Web Key Set (JWKS) from the remote attestation service and
     // populate the local cache.
     JwksSet fetchJwks();
+
+    // Validate that the JKU (JWT Set URL) parameter points to the expected
+    // certificate  endpoint.
+    void validateJkuUri(const DecodedJwt& decodedJwt);
 
     // Validate the signature of a JWT against the set of known trusted
     // signatures.
     void validateJwtSignature(const DecodedJwt& decodedJwt);
 
   public:
+    // Generate the request body to remotely attest an enclave from the locally
+    // generated quote.
     static std::string requestBodyFromEnclaveInfo(
       const EnclaveInfo& enclaveInfo);
 
     AzureAttestationServiceClient(const std::string& attestationServiceUrlIn);
 
-    // This method sends the enclave report to the remote attestation service.
+    // This method sends the enclave quote to the remote attestation service.
     // If the report passes the attestation checks according to the attestation
     // policy in the remote service, we receive a JWT in response. Otherwise
     // this method throws an exception.
     std::string attestEnclave(const EnclaveInfo& enclaveInfo);
 
+    // Upon succcesful attestation, the attestation service returns a JWT. This
+    // method validates the token's integrity and signature.
     void validateJwtToken(const std::string& jwtToken);
 };
 

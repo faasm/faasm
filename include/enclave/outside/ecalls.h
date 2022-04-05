@@ -9,9 +9,6 @@
 // all function invocations (i.e. module instantiation).
 extern "C"
 {
-    // TODO - delete me
-    extern faasm_sgx_status_t faasm_sgx_get_sgx_support(void);
-
     extern sgx_status_t ecallCreateReport(sgx_enclave_id_t enclaveId,
                                           faasm_sgx_status_t* retVal,
                                           const sgx_target_info_t* qeTarget,

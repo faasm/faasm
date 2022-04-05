@@ -45,9 +45,6 @@ EnclaveInfo::EnclaveInfo(const sgx_report_t& enclaveReport,
       intToHexString(static_cast<uint16_t>(enclaveReport.body.isv_prod_id));
     securityVersion = static_cast<uint32_t>(enclaveReport.body.isv_svn);
     attributes = static_cast<uint64_t>(enclaveReport.body.attributes.flags);
-    // quoteHex = byteArrayToHexString(quoteBuffer.data(), quoteBuffer.size());
-    // enclaveHeldDatHex =
-    // byteArrayToHexString(enclaveHeldData.data(), enclaveHeldData.size());
 }
 
 const std::vector<uint8_t>& EnclaveInfo::getQuote() const

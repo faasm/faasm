@@ -31,6 +31,7 @@ endif()
 conan_cmake_configure(
     REQUIRES
         "catch2/2.13.7@#31c8cd08e3c957a9eac8cb1377cf5863"
+        "jwt-cpp/0.6.0@#cd6b5c1318b29f4becaf807b23f7bb44"
     GENERATORS
         cmake_find_package
         cmake_paths
@@ -50,6 +51,7 @@ conan_cmake_install(PATH_OR_REFERENCE .
 include(${CMAKE_CURRENT_BINARY_DIR}/conan_paths.cmake)
 
 find_package(Catch2 REQUIRED)
+find_package(jwt-cpp REQUIRED)
 
 # 22/12/2021 - WARNING: we don't install AWS through Conan as the recipe proved
 # very unstable and failed frequently.
