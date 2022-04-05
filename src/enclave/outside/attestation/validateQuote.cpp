@@ -1,12 +1,11 @@
-#include <enclave/outside/attestation.h>
 #include <enclave/outside/attestation/AzureAttestationServiceClient.h>
+#include <enclave/outside/attestation/attestation.h>
 #include <faabric/util/logging.h>
 
 namespace sgx {
 
 void validateQuote(const EnclaveInfo& enclaveInfo,
-                   const std::string& attestationProviderUrl,
-                   bool includeDetails)
+                   const std::string& attestationProviderUrl)
 {
     AzureAttestationServiceClient client(attestationProviderUrl);
 

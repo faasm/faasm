@@ -1,4 +1,4 @@
-#include <enclave/outside/attestation.h>
+#include <enclave/outside/attestation/attestation.h>
 #include <enclave/outside/ecalls.h>
 #include <faabric/util/logging.h>
 
@@ -24,32 +24,36 @@ static void sha256sum(const uint8_t* data, uint32_t data_size, uint8_t* hash)
     SHA256_Final(hash, &sha256);
 }
 
+// To generate an enclave quote we need to do four steps:
+// 1. Query the state of the Quoting Enclave (QE)
+// 2. Generate the enclave report
+// 3. Prepare the enclave quote buffer
+// 4. Send the enclave report to the QE to get the enclave quote in return
+// For more information see the SGX docs and the header file where this method
+// is declared.
 EnclaveInfo generateQuote(int enclaveId,
                           const std::vector<uint8_t>& enclaveHeldData)
 {
-    SPDLOG_INFO("Step 0: call dlopen");
-    void* handle = dlopen("libsgx_quote_ex.so.1", RTLD_LAZY | RTLD_GLOBAL);
-    if (handle == nullptr) {
-        SPDLOG_ERROR("Error running dlopen: {}", dlerror());
-        throw std::runtime_error("Error in step 0");
-    }
-    SPDLOG_INFO("Success in step 0");
-
-    SPDLOG_INFO("Step 1: call sgx_qe_get_target_info");
+    // Step 1: query the state of the Quoting Enclave (QE)
     sgx_target_info_t quotingEnclaveTargetInfo;
     quote3_error_t qeReturnValue =
       sgx_qe_get_target_info(&quotingEnclaveTargetInfo);
     if (qeReturnValue != SGX_QL_SUCCESS) {
         printf("Error getting the quoting enclave's info: %x\n", qeReturnValue);
-        throw std::runtime_error("Error in step 1");
+        SPDLOG_ERROR("Error getting the quoting enclave's info: 0x{:04X}",
+                     qeReturnValue);
+        throw std::runtime_error("Error getting the QE's info");
     }
-    SPDLOG_INFO("Success in step 1");
+    SPDLOG_DEBUG("Success communicating with the Quoting Enclave");
 
-    SPDLOG_INFO("Step 2: call create_app_report");
+    // The enclave held data is an additional piece of information that can be
+    // included as part of the attestation process
     sgx_report_data_t enclaveHeldDataHashed;
     sha256sum(
       &enclaveHeldData[0], enclaveHeldData.size(), enclaveHeldDataHashed.d);
     SPDLOG_WARN("Enclave held data hashed: {}", enclaveHeldDataHashed.d);
+
+    // Step 2: generate the enclave report
     sgx_report_t enclaveReport;
     faasm_sgx_status_t returnValue;
     sgx_status_t sgxReturnValue = ecallCreateReport(enclaveId,
@@ -58,32 +62,32 @@ EnclaveInfo generateQuote(int enclaveId,
                                                     &enclaveHeldDataHashed,
                                                     &enclaveReport);
     if (sgxReturnValue != SGX_SUCCESS) {
-        // TODO - make processEcallErrors a macro usable here as well
-        printf("error: %x\n", sgxReturnValue);
-        throw std::runtime_error("Error in step 2");
+        SPDLOG_ERROR("Error creating enclave's report: 0x{:04X}",
+                     qeReturnValue);
+        throw std::runtime_error("Error creating enclave's report");
     }
-    SPDLOG_INFO("Success in step 2");
+    SPDLOG_DEBUG("Success generating enclave's report");
 
-    SPDLOG_INFO("Step 3: call sgx_qe_get_quote_size");
+    // Step 3: prepare the enclave quote buffer
     uint32_t quoteSize = 0;
     qeReturnValue = sgx_qe_get_quote_size(&quoteSize);
     if (qeReturnValue != SGX_QL_SUCCESS) {
-        printf("Error in sgx_qe_get_quote_size. 0x%04x\n", qeReturnValue);
-        throw std::runtime_error("Error in step 3");
+        SPDLOG_ERROR("Error getting enclave'squote size: 0x{:04X}",
+                     qeReturnValue);
+        throw std::runtime_error("Error getting enclave's quote size");
     }
-    SPDLOG_INFO("Success in step 3");
 
+    // Step 4: send the enclave report to the QE to get the quote in return
     std::vector<uint8_t> quoteBuffer(quoteSize, 0);
-    SPDLOG_INFO("Step 4: call sgx_qe_get_quote");
     qeReturnValue =
       sgx_qe_get_quote(&enclaveReport, quoteSize, &quoteBuffer[0]);
-    // sgx_qe_get_quote(&enclaveReport, quoteSize, quoteBuffer.data());
     if (qeReturnValue != SGX_QL_SUCCESS) {
-        printf("Error in sgx_qe_get_quote. 0x%04x\n", qeReturnValue);
-        throw std::runtime_error("Error in step 3");
+        SPDLOG_ERROR("Error in getting enclave's quote: 0x{:04X}",
+                     qeReturnValue);
+        throw std::runtime_error("Error getting enclave's quote");
     }
-    SPDLOG_INFO("Success in step 4");
 
+    // Wrap the received information in a convinient wrapper
     EnclaveInfo enclaveInfo(enclaveReport, quoteBuffer, enclaveHeldData);
     SPDLOG_INFO("Generated attestation quote for enclave");
     return enclaveInfo;

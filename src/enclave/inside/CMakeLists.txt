@@ -1,4 +1,28 @@
 # --------------------------------------------------------
+# WAMR Trusted lib
+# --------------------------------------------------------
+
+faasm_private_lib(wamrlib_trusted "${WAMR_RUNTIME_LIB_SOURCE}")
+
+target_include_directories(wamrlib_trusted PRIVATE
+    ${SGX_SDK_PATH}/include
+    ${SGX_SDK_PATH}/include/tlibc
+    ${SGX_SDK_PATH}/include/libcxx
+)
+
+target_compile_options(wamrlib_trusted PRIVATE
+    -std=gnu99
+    -fPIC
+    -ffunction-sections
+    -fdata-sections
+    -Wall
+    -Wno-unused-parameter
+    -Wno-pedantic
+    -nostdinc
+    -fvisibility=hidden
+)
+
+# --------------------------------------------------------
 # Trusted SGX Compilation Flags
 # --------------------------------------------------------
 
