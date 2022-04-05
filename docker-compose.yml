@@ -118,7 +118,6 @@ services:
       - redis-state
       - redis-queue
       - minio
-      - aesmd # TODO: these two services only conditionally
     environment:
       - UPLOAD_HOST=${UPLOAD_HOST:-upload}
       - INVOKE_HOST=${INVOKE_HOST:-nginx}
@@ -132,25 +131,26 @@ services:
       - UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1
       - WASM_VM=${WASM_VM:-wavm}
       - SGX_AESM_ADDR=1
+      - AZ_ATTESTATION_PROVIDER_URL=https://faasmattprov.eus2.attest.azure.net
       - AZDCAP_DEBUG_LOG_LEVEL=info
     volumes:
       - ./:/usr/local/code/faasm/
       - ${FAASM_BUILD_DIR}:${FAASM_BUILD_MOUNT}
       - ./dev/faasm-local/:${FAASM_LOCAL_MOUNT}
       - ${CONAN_CACHE_MOUNT_SOURCE}:/root/.conan
-      - aesmd-socket:/var/run/aesmd
-      - /dev/sgx:/dev/sgx
+      - ${AESMD_SOCKET_MOUNT:-/var/run/aesmd}:/var/run/aesmd
+      - ${SGX_DEVICE_MOUNT_DIR:-./dev/faasm-local/sgx}:/dev/sgx
 
-  # SGX AESM service to mock the attestation environment in production
+  # SGX AESM service to mock the remote attestation environment in production
   aesmd:
     image: faasm/sgx-aesmd:${FAASM_VERSION}
     devices:
-      - /dev/sgx/enclave
-      - /dev/sgx/provision
+      - ${SGX_DEVICE_MOUNT_DIR}/enclave
+      - ${SGX_DEVICE_MOUNT_DIR}/provision
     environment:
       - AZDCAP_DEBUG_LOG_LEVEL=info
     volumes:
-      - aesmd-socket:/var/run/aesmd
+      - ${AESMD_SOCKET_MOUNT}:/var/run/aesmd
     stdin_open: true
     tty: true
 
@@ -185,7 +185,8 @@ services:
     ports:
       - "80:80"
 
-# Can we avoid doing this?
+# This volume will only be created when running SGX in hardware mode, in an
+# SGX-enabled machine. It is needed for remote attestation.
 volumes:
   aesmd-socket:
     external: true

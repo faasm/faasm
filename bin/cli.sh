@@ -11,10 +11,35 @@ function usage() {
     echo "./bin/cli.sh <container>"
     echo ""
     echo "container being one of: "
-    echo "- cpp         C/C++ functions"
-    echo "- faasm       Managing Faasm cluster"
-    echo "- faasm-sgx   Manage SGX-enabled Faasm cluster"
-    echo "- python      Python functions"
+    echo "- cpp             C/C++ functions"
+    echo "- faasm           Managing Faasm cluster"
+    echo "- faasm-sgx-sim   Manage SGX-enabled Faasm cluster (simulation mode)"
+    echo "- faasm-sgx       Manage SGX-enabled Faasm cluster"
+    echo "- python          Python functions"
+}
+
+# The AESMD socket is necessary when running SGX in hardware mode for remote
+# attestation. In a K8s deployment it is provided by the K8s runtime.
+function start_sgx_aesmd_socket() {
+    # First, double check the SGX devices exist in the host
+    if [ ! -d /dev/sgx ] ; then
+        echo "SGX hardware mode set, but SGX devices not found under /dev/sgx"
+        exit 1
+    fi
+    export SGX_DEVICE_MOUNT_DIR=/dev/sgx
+    # Create a named volume to communicate between containers using sockets
+    export AESMD_SOCKET_MOUNT=aesmd-socket
+    docker volume create \
+        --driver local \
+        --opt type=tmpfs \
+        --opt device=tmpfs \
+        --opt o=rw \
+        ${AESMD_SOCKET_MOUNT}
+    docker-compose \
+        up \
+        --no-recreate \
+        -d \
+        aesmd
 }
 
 if [[ -z "$1" ]]; then
@@ -22,11 +47,17 @@ if [[ -z "$1" ]]; then
     exit 1
 elif [[ "$1" == "faasm" ]]; then
     CLI_CONTAINER="faasm-cli"
-elif [[ "$1" == "faasm-sgx" ]]; then
+elif [[ "$1" == "faasm-sgx-sim" ]]; then
     CLI_CONTAINER="faasm-cli"
     export FAASM_CLI_IMAGE=faasm/cli-sgx-sim:$(cat ${PROJ_ROOT}/VERSION)
     export FAASM_WORKER_IMAGE=faasm/worker-sgx-sim:$(cat ${PROJ_ROOT}/VERSION)
     export WASM_VM=sgx
+elif [[ "$1" == "faasm-sgx" ]]; then
+    CLI_CONTAINER="faasm-cli"
+    export FAASM_CLI_IMAGE=faasm/cli-sgx:$(cat ${PROJ_ROOT}/VERSION)
+    export FAASM_WORKER_IMAGE=faasm/worker-sgx:$(cat ${PROJ_ROOT}/VERSION)
+    export WASM_VM=sgx
+    start_sgx_aesmd_socket
 elif [[ "$1" == "cpp" ]]; then
     CLI_CONTAINER="cpp"
 elif [[ "$1" == "python" ]]; then
