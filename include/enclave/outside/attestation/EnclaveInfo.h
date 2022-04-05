@@ -29,8 +29,12 @@ class EnclaveInfo
                 const std::vector<uint8_t>& quoteBuffer,
                 const std::vector<uint8_t>& enclaveHeldDataIn);
 
+    EnclaveInfo(const std::string& jsonPath);
+
     const std::vector<uint8_t>& getQuote() const;
 
     const std::vector<uint8_t>& getEnclaveHeldData() const;
+
+    void toJson(const std::string& jsonPath);
 };
 }

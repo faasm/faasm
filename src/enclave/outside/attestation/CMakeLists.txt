@@ -7,10 +7,11 @@ set(SGX_DCAP_QUOTE_GENERATION_INCLUDE "${SGX_DCAP_QUOTE_GENERATION}/quote_wrappe
 set(SGX_DCAP_LIB /usr/lib/libsgx_dcap_ql.so)
 
 add_library(attestation STATIC
-    AzureAttestationServiceClient.cpp
-    EnclaveInfo.cpp
+    attestation.cpp
     generateQuote.cpp
     validateQuote.cpp
+    AzureAttestationServiceClient.cpp
+    EnclaveInfo.cpp
 )
 
 target_include_directories(attestation PUBLIC
@@ -22,7 +23,6 @@ target_include_directories(attestation PUBLIC
 # over HTTP. We use that the library is installed through faabric.
 find_package(cpprestsdk REQUIRED)
 find_package(cppcodec REQUIRED)
-find_package(jwt-cpp REQUIRED)
 
 target_link_libraries(attestation
     faasm::common_deps
@@ -31,6 +31,7 @@ target_link_libraries(attestation
     cppcodec::cppcodec
     cpprestsdk::cpprestsdk
     jwt-cpp::jwt-cpp
+    picojson::picojson
 )
 
 add_library(faasm::attestation ALIAS attestation)

@@ -113,19 +113,8 @@ std::string AzureAttestationServiceClient::attestEnclave(
     std::string requestBodyJson = requestBodyFromEnclaveInfo(enclaveInfo);
     request.set_body(requestBodyJson);
 
-    // Send HTTP request
+    // Send HTTP request and wait for task to complete
     pplx::task<http_response> responseTask = client.request(request);
-    responseTask.then([=](pplx::task<http_response> task) {
-        if (task.get().status_code() != status_codes::OK) {
-            std::string body = task.get().extract_string().get();
-            SPDLOG_ERROR(
-              "Error querying Azure to validate SGX quote (code {}): {}",
-              task.get().status_code(),
-              body);
-        }
-    });
-
-    // Wait for outstanding task to complete
     try {
         responseTask.wait();
     } catch (const std::exception& e) {
@@ -134,6 +123,15 @@ std::string AzureAttestationServiceClient::attestEnclave(
                      e.what());
         throw std::runtime_error(
           "Exception querying Azure Attestation Service");
+    }
+
+    // Process output
+    if (responseTask.get().status_code() != status_codes::OK) {
+        std::string body = responseTask.get().extract_string().get();
+        SPDLOG_ERROR("Error querying Azure to validate SGX quote (code {}): {}",
+                     responseTask.get().status_code(),
+                     body);
+        throw std::runtime_error("Error validaing enclave quote");
     }
     SPDLOG_DEBUG("Received JWT from Azure Attestation Service");
 
