@@ -16,7 +16,9 @@ target_compile_options(wamrlib_trusted PRIVATE
     -ffunction-sections
     -fdata-sections
     -Wall
+    -Wno-unused-command-line-argument
     -Wno-unused-parameter
+    -Wno-typedef-redefinition
     -Wno-pedantic
     -nostdinc
     -fvisibility=hidden
@@ -42,6 +44,7 @@ set(ENCLAVE_TRUSTED_CXX_FLAGS
     -Wnon-virtual-dtor
     # https://github.com/intel/linux-sgx/issues/545
     -Wno-implicit-exception-spec-mismatch
+    -Wno-typedef-redefinition
     -std=c++11
     -nostdinc++
 )

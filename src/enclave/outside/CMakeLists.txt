@@ -98,6 +98,8 @@ if (FAASM_SGX_MODE STREQUAL "Hardware")
     add_subdirectory(attestation)
 else ()
     message(STATUS "Remote attestation is only available in hardware mode")
+    add_library(attestation_dummy INTERFACE)
+    add_library(faasm::attestation ALIAS attestation_dummy)
 endif ()
 
 # --------------------------------------------------------
