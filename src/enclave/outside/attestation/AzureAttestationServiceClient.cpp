@@ -50,7 +50,6 @@ std::string AzureAttestationServiceClient::requestBodyFromEnclaveInfo(
     outer.AddMember("initTimeData", inner, allocator);
 
     // quote: quote of the enclave to be attested
-    // Check if the hashed data from this quote matches
     std::vector<uint8_t> quote = enclaveInfo.getQuote();
     std::string quoteBase64 =
       cppcodec::base64_url::encode(&quote[0], quote.size());
