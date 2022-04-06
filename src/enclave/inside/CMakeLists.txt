@@ -16,6 +16,7 @@ target_compile_options(wamrlib_trusted PRIVATE
     -ffunction-sections
     -fdata-sections
     -Wall
+    -Wno-pointer-sign
     -Wno-unused-command-line-argument
     -Wno-unused-parameter
     -Wno-typedef-redefinition

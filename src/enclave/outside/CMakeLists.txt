@@ -8,6 +8,7 @@ target_compile_options(wamrlib_untrusted PRIVATE
     -fPIC
     -ffunction-sections
     -fdata-sections
+    -Wno-unused-variable
 )
 
 # --------------------------------------------------------
@@ -94,10 +95,10 @@ endif()
 # --------------------------------------------------------
 # Remote attestation
 # --------------------------------------------------------
-if (FAASM_SGX_MODE STREQUAL "Hardware")
+
+if (FAASM_SGX_MODE STREQUAL "Hardware" OR FAASM_SGX_MODE STREQUAL "Simulation")
     add_subdirectory(attestation)
 else ()
-    message(STATUS "Remote attestation is only available in hardware mode")
     add_library(attestation_dummy INTERFACE)
     add_library(faasm::attestation ALIAS attestation_dummy)
 endif ()
@@ -109,6 +110,7 @@ endif ()
 target_link_libraries(enclave_untrusted
     faasm::common_deps
     ${SGX_UNTRUSTED_RUNTIME_LIB}
+    ${SGX_UAE_SERVICE_LIB}
     ${SGX_CAPABLE_LIB}
     faasm::attestation
     wamrlib_untrusted
