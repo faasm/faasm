@@ -82,6 +82,10 @@ ExternalProject_Add(aws_ext
                      -DAUTORUN_UNIT_TESTS=OFF
                      -DENABLE_TESTING=OFF
                      -DCMAKE_BUILD_TYPE=Release
+    LOG_CONFIGURE ON
+    LOG_INSTALL ON
+    LOG_BUILD ON
+    LOG_OUTPUT_ON_FAILURE ON
 )
 
 add_library(aws_ext_core SHARED IMPORTED)
