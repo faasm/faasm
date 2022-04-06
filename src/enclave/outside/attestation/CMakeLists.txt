@@ -4,12 +4,7 @@
 
 set(SGX_DCAP_QUOTE_GENERATION "/opt/intel/sgxdcap/QuoteGeneration")
 set(SGX_DCAP_QUOTE_GENERATION_INCLUDE "${SGX_DCAP_QUOTE_GENERATION}/quote_wrapper")
-
-if (FAASM_SGX_MODE STREQUAL "Hardware")
-    set(SGX_DCAP_LIB /usr/lib/libsgx_dcap_ql.so)
-else ()
-    set(SGX_DCAP_LIB "${SGX_DCAP_QUOTE_GENERATION}/build/linux/libsgx_dcap_ql.so")
-endif ()
+set(SGX_DCAP_LIB /usr/lib/libsgx_dcap_ql.so)
 
 add_library(attestation STATIC
     attestation.cpp
@@ -31,14 +26,15 @@ find_package(cppcodec REQUIRED)
 
 target_link_libraries(attestation
     faasm::common_deps
-    # ${SGX_UNTRUSTED_RUNTIME_LIB}
-    # ${SGX_DCAP_LIB}
     cppcodec::cppcodec
     cpprestsdk::cpprestsdk
     jwt-cpp::jwt-cpp
     picojson::picojson
 )
 
+# Quote generation is only supported in hardware mode. Therefore, we only link
+# against SGX libraries in hardware mode. Quote validation needs no SGX features
+# and we want to also test it in simulation mode.
 if (FAASM_SGX_MODE STREQUAL "Hardware")
     target_link_libraries(attestation
         ${SGX_UNTRUSTED_RUNTIME_LIB}
