@@ -28,13 +28,13 @@ function start_sgx_aesmd_socket() {
     fi
     export SGX_DEVICE_MOUNT_DIR=/dev/sgx
     # Create a named volume to communicate between containers using sockets
-    export AESMD_SOCKET_MOUNT=aesmd-socket
+    export AESMD_SOCKET_EXTERNAL_VOLUME=true
     docker volume create \
         --driver local \
         --opt type=tmpfs \
         --opt device=tmpfs \
         --opt o=rw \
-        ${AESMD_SOCKET_MOUNT}
+        aesmd-socket
     docker-compose \
         up \
         --no-recreate \
