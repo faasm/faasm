@@ -4,7 +4,6 @@
 
 #include <dlfcn.h>
 #include <openssl/sha.h>
-#include <stdio.h>
 
 #include <sgx_dcap_ql_wrapper.h>
 #include <sgx_ql_lib_common.h>
@@ -36,7 +35,6 @@ EnclaveInfo generateQuote(int enclaveId,
     quote3_error_t qeReturnValue =
       sgx_qe_get_target_info(&quotingEnclaveTargetInfo);
     if (qeReturnValue != SGX_QL_SUCCESS) {
-        printf("Error getting the quoting enclave's info: %x\n", qeReturnValue);
         SPDLOG_ERROR("Error getting the quoting enclave's info: 0x{:04X}",
                      qeReturnValue);
         throw std::runtime_error("Error getting the QE's info");
