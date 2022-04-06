@@ -19,7 +19,7 @@ RUN apt-get install  -y \
 # We must install protobuf manually, as a static library and PIC. Otherwise,
 # attestation will fail at runtime with a hard to debug segmentation fault when
 # dlopen-ing some sgx-related libraries. The problem arises when these libraries
-# link with protobuf as a shared library, as reported in GH issues:
+# link with protobuf as a shared library, as reported in protobuf#206
 WORKDIR /tmp
 RUN git clone -b v3.17.0 https://github.com/protocolbuffers/protobuf.git
 WORKDIR /tmp/protobuf/build
