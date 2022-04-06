@@ -18,16 +18,6 @@ using namespace web::http::client;
 
 namespace sgx {
 
-// TODO - remove me
-#include <openssl/sha.h>
-static void sha256sum(const uint8_t* data, uint32_t data_size, uint8_t* hash)
-{
-    SHA256_CTX sha256;
-    SHA256_Init(&sha256);
-    SHA256_Update(&sha256, data, data_size);
-    SHA256_Final(hash, &sha256);
-}
-
 std::string AzureAttestationServiceClient::requestBodyFromEnclaveInfo(
   const EnclaveInfo& enclaveInfo)
 {
@@ -70,21 +60,20 @@ std::string AzureAttestationServiceClient::requestBodyFromEnclaveInfo(
     // runtimeData: data provided by the enclave at quote generation time. This
     // field corresponds to the enclave held data variable that we can configure
     // before attestation.
-    /* TODO: enclave held data currently not working
-    std::vector<uint8_t> heldData = enclaveInfo.getEnclaveHeldData();
+    // 06/04/2022 - For the moment we don't include the enclave held data in
+    // the request, as there is still not a clear use for it.
+    std::vector<uint8_t> heldData = {};
     std::string enclaveHeldDataBase64 =
       cppcodec::base64_url::encode(&heldData[0], heldData.size());
-    SPDLOG_WARN("Enclave held data: {}", enclaveHeldDataBase64);
     std::string dataType = "Binary";
     inner.SetObject();
-    inner.AddMember("data", Value(enclaveHeldDataBase64.c_str(),
-                                  enclaveHeldDataBase64.size()),
-                    allocator);
-    inner.AddMember("dataType",
-                    Value(dataType.c_str(), dataType.size()),
-                    allocator);
+    inner.AddMember(
+      "data",
+      Value(enclaveHeldDataBase64.c_str(), enclaveHeldDataBase64.size()),
+      allocator);
+    inner.AddMember(
+      "dataType", Value(dataType.c_str(), dataType.size()), allocator);
     outer.AddMember("runtimeData", inner, allocator);
-    */
 
     d.CopyFrom(outer, allocator);
 
@@ -167,27 +156,29 @@ void AzureAttestationServiceClient::validateJkuUri(const DecodedJwt& decodedJwt)
 JwksSet AzureAttestationServiceClient::fetchJwks()
 {
     // Retrieve trusted signing keys from the attestation service
-    // TODO - can we do this asynchronously?
     http_client client(certificateEndpoint);
     http_request request(methods::GET);
     request.headers().add("tenantName", tenantName);
     pplx::task<http_response> responseTask = client.request(request);
-    responseTask.then([=](pplx::task<http_response> task) {
-        if (task.get().status_code() != status_codes::OK) {
-            SPDLOG_ERROR("Error querying Azure Attestation Service for the"
-                         "trusted signing keys ({})",
-                         tenantName);
-            throw std::runtime_error(
-              "Exception querying Azure Attestation Service");
-        }
-    });
 
+    // Send request
     try {
         responseTask.wait();
     } catch (const std::exception& e) {
         SPDLOG_ERROR("Caught exception while querying for the trusted signing "
                      "keys from Azure Attestation Service: {}",
                      e.what());
+        throw std::runtime_error(
+          "Exception querying Azure Attestation Service");
+    }
+
+    // Process output
+    if (responseTask.get().status_code() != status_codes::OK) {
+        std::string body = responseTask.get().extract_string().get();
+        SPDLOG_ERROR("Error querying Azure Attestation Service for the"
+                     "trusted signing keys ({}): {}",
+                     tenantName,
+                     body);
         throw std::runtime_error(
           "Exception querying Azure Attestation Service");
     }

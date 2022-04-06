@@ -11,9 +11,6 @@
 #include <sgx_report.h>
 #include <sgx_urts.h>
 
-// DELETE ME
-#include <cppcodec/base64_url.hpp>
-
 namespace sgx {
 
 static void sha256sum(const uint8_t* data, uint32_t data_size, uint8_t* hash)
@@ -51,7 +48,6 @@ EnclaveInfo generateQuote(int enclaveId,
     sgx_report_data_t enclaveHeldDataHashed;
     sha256sum(
       &enclaveHeldData[0], enclaveHeldData.size(), enclaveHeldDataHashed.d);
-    SPDLOG_WARN("Enclave held data hashed: {}", enclaveHeldDataHashed.d);
 
     // Step 2: generate the enclave report
     sgx_report_t enclaveReport;

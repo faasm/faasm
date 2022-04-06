@@ -9,7 +9,6 @@ void validateQuote(const EnclaveInfo& enclaveInfo,
 {
     AzureAttestationServiceClient client(attestationProviderUrl);
 
-    // TODO - enclave held data not working
     // Send enclave quote to remote attestation service for validation
     std::string jwtResponse = client.attestEnclave(enclaveInfo);
 
