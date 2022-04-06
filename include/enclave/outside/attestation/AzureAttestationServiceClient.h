@@ -57,6 +57,4 @@ class AzureAttestationServiceClient
     // method validates the token's integrity and signature.
     void validateJwtToken(const std::string& jwtToken);
 };
-
-// TODO - static client and global getter
 }
