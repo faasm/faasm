@@ -64,6 +64,8 @@ services:
       - ./:/usr/local/code/faasm/
       - ${FAASM_BUILD_DIR}:${FAASM_BUILD_MOUNT}
       - ./dev/faasm-local/:${FAASM_LOCAL_MOUNT}
+      - aesmd-socket:/var/run/aesmd
+      - ${SGX_DEVICE_MOUNT_DIR:-./dev/faasm-local/sgx}:/dev/sgx
     environment:
       - CAPTURE_STDOUT=on
       - CGROUP_MODE=on
@@ -76,6 +78,8 @@ services:
       - OVERRIDE_CPU_COUNT=4
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
       - WASM_VM=${WASM_VM:-wavm}
+      - SGX_AESM_ADDR=1
+      - AZ_ATTESTATION_PROVIDER_URL=https://faasmattprov.eus2.attest.azure.net
 
   # Load balancer for local cluster
   nginx:
@@ -138,7 +142,7 @@ services:
       - ${FAASM_BUILD_DIR}:${FAASM_BUILD_MOUNT}
       - ./dev/faasm-local/:${FAASM_LOCAL_MOUNT}
       - ${CONAN_CACHE_MOUNT_SOURCE}:/root/.conan
-      - ${AESMD_SOCKET_MOUNT:-/var/run/aesmd}:/var/run/aesmd
+      - aesmd-socket:/var/run/aesmd
       - ${SGX_DEVICE_MOUNT_DIR:-./dev/faasm-local/sgx}:/dev/sgx
 
   # SGX AESM service to mock the remote attestation environment in production
@@ -150,7 +154,7 @@ services:
     environment:
       - AZDCAP_DEBUG_LOG_LEVEL=info
     volumes:
-      - ${AESMD_SOCKET_MOUNT:-/var/run/aesmd}:/var/run/aesmd
+      - aesmd-socket:/var/run/aesmd
     stdin_open: true
     tty: true
 
@@ -185,8 +189,9 @@ services:
     ports:
       - "80:80"
 
-# This volume will only be created when running SGX in hardware mode, in an
-# SGX-enabled machine. It is needed for remote attestation.
+# This volume is only needed when running SGX in hardware mode, in an
+# SGX-enabled machine. It enables communication between the AESMD container
+# and the SGX-enabled client or worker. It is needed for remote attestation.
 volumes:
   aesmd-socket:
-    external: true
+    external: ${AESMD_SOCKET_EXTERNAL_VOLUME:-false}
