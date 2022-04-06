@@ -68,11 +68,13 @@ void checkSgxSetup()
       "Unable to initialise WAMR inside enclave", sgxReturnValue, returnValue);
     SPDLOG_DEBUG("Initialised WAMR in SGX enclave {}", globalEnclaveId);
 
-    // Attest enclave
+#ifdef FAASM_SGX_HARDWARE_MODE
+    // Attest enclave only in hardware mode
     // Enclave Held Data could be faasm version
     std::vector<uint8_t> enclaveHeldData{ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 };
     attestEnclave(globalEnclaveId, enclaveHeldData);
     SPDLOG_DEBUG("Attested SGX enclave: {}", globalEnclaveId);
+#endif
 }
 
 void tearDownEnclave()
