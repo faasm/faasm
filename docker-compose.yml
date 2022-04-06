@@ -145,12 +145,12 @@ services:
   aesmd:
     image: faasm/sgx-aesmd:${FAASM_VERSION}
     devices:
-      - ${SGX_DEVICE_MOUNT_DIR}/enclave
-      - ${SGX_DEVICE_MOUNT_DIR}/provision
+      - ${SGX_DEVICE_MOUNT_DIR:-./dev/faasm-local/sgx}/enclave
+      - ${SGX_DEVICE_MOUNT_DIR:-./dev/faasm-local/sgx}/provision
     environment:
       - AZDCAP_DEBUG_LOG_LEVEL=info
     volumes:
-      - ${AESMD_SOCKET_MOUNT}:/var/run/aesmd
+      - ${AESMD_SOCKET_MOUNT:-/var/run/aesmd}:/var/run/aesmd
     stdin_open: true
     tty: true
 
