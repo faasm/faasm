@@ -9,7 +9,7 @@
 #define HEAP_SIZE_KB 8192
 
 #define WAMR_INTERNAL_EXCEPTION_PREFIX "Exception: "
-#define WAMR_RETURN_PREFIX "wamr_ret_code_"
+#define WAMR_EXIT_PREFIX "wamr_exit_code_"
 
 namespace wasm {
 

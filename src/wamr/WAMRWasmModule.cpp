@@ -210,9 +210,9 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
 
         // Special case where we've set the exit code from within the host
         // interface
-        if (faabric::util::startsWith(errorMessage, WAMR_RETURN_PREFIX)) {
+        if (faabric::util::startsWith(errorMessage, WAMR_EXIT_PREFIX)) {
             std::string returnValueString =
-              faabric::util::removeSubstr(errorMessage, WAMR_RETURN_PREFIX);
+              faabric::util::removeSubstr(errorMessage, WAMR_EXIT_PREFIX);
             int parsedReturnValue = std::stoi(returnValueString);
 
             SPDLOG_ERROR("Caught WAMR exit code {} (from {})",

@@ -73,7 +73,7 @@ void wasi_proc_exit(wasm_exec_env_t exec_env, int32_t retCode)
     SPDLOG_DEBUG("S - proc_exit {}", retCode);
 
     WAMRWasmModule* module = getExecutingWAMRModule();
-    std::string resStr = WAMR_RETURN_PREFIX;
+    std::string resStr = WAMR_EXIT_PREFIX;
     resStr += std::to_string(retCode);
     wasm_runtime_set_exception(module->getModuleInstance(), resStr.c_str());
 }
