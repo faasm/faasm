@@ -74,8 +74,6 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     SECTION("WAMR") { execWamrFunction(msg); }
 }
 
-// TODO - bug in WAMR's WASI implementation makes this test fail. Will uncomment
-// when fixed.
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fread", "[faaslet]")
 {
     auto req = setUpContext("demo", "fread");
@@ -83,6 +81,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fread", "[faaslet]")
 
     SECTION("WAVM") { execFunction(msg); }
 
+    // 11/04/22 - WAMR fread implementation broken
     // SECTION("WAMR") { execWamrFunction(msg); }
 }
 

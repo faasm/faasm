@@ -8,6 +8,9 @@
 #define STACK_SIZE_KB 8192
 #define HEAP_SIZE_KB 8192
 
+#define WAMR_INTERNAL_EXCEPTION_PREFIX "Exception: "
+#define WAMR_EXIT_PREFIX "wamr_exit_code_"
+
 namespace wasm {
 
 std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx);

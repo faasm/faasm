@@ -10,7 +10,7 @@ using namespace faaslet;
 
 namespace tests {
 
-class ErrorCheckFixture : public FunctionExecTestFixture
+class ErrorCheckFixture : public MultiRuntimeFunctionExecTestFixture
 {
   public:
     void checkError(const std::string& funcName, const std::string& expectedMsg)
@@ -46,6 +46,10 @@ TEST_CASE_METHOD(ErrorCheckFixture,
                  "Test non-zero return code is error",
                  "[wasm]")
 {
+    SECTION("WAVM") { conf.wasmVm = "wavm"; }
+
+    SECTION("WAMR") { conf.wasmVm = "wamr"; }
+
     checkError("ret_one", "Call failed (return value=1)");
 }
 }
