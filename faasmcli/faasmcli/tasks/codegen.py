@@ -21,6 +21,7 @@ WAMR_ALLOWED_FUNCS = [
     ["demo", "argc_argv_test"],
     ["demo", "exit"],
     ["demo", "getenv"],
+    ["errors", "ret_one"],
     # Filesystem
     ["demo", "fcntl"],
     ["demo", "file"],

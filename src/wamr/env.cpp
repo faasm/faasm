@@ -8,8 +8,6 @@
 #include <wasm_export.h>
 #include <wasmtime_ssp.h>
 
-#define WAMR_PROC_EXIT_STRING "wasi proc exit"
-
 namespace wasm {
 uint32_t wasi_args_get(wasm_exec_env_t exec_env,
                        uint32_t* argvOffsetsWasm,
@@ -74,12 +72,10 @@ void wasi_proc_exit(wasm_exec_env_t exec_env, int32_t retCode)
 {
     SPDLOG_DEBUG("S - proc_exit {}", retCode);
 
-    // The WAMR runtime will detect this exception as a regular wasm app exit
-    // and remove the exception
-    // https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/core/iwasm/aot/aot_runtime.c#L874
     WAMRWasmModule* module = getExecutingWAMRModule();
-    wasm_runtime_set_exception(module->getModuleInstance(),
-                               WAMR_PROC_EXIT_STRING);
+    std::string resStr = WAMR_RETURN_PREFIX;
+    resStr += std::to_string(retCode);
+    wasm_runtime_set_exception(module->getModuleInstance(), resStr.c_str());
 }
 
 static NativeSymbol wasiNs[] = {
