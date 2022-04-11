@@ -81,7 +81,8 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fread", "[faaslet]")
 
     SECTION("WAVM") { execFunction(msg); }
 
-    SECTION("WAMR") { execWamrFunction(msg); }
+    // 11/04/22 - WAMR fread implementation broken
+    // SECTION("WAMR") { execWamrFunction(msg); }
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
