@@ -36,7 +36,7 @@ TEST_CASE_METHOD(DistTestsFixture,
     faabric::Message& msg = req->mutable_messages()->at(0);
 
     // Check other host is not registered initially
-    REQUIRE(sch.getFunctionRegisteredHosts(msg).empty());
+    REQUIRE(sch.getFunctionRegisteredHosts(msg.user(), msg.function()).empty());
 
     // Invoke the function
     sch.callFunctions(req);
@@ -51,7 +51,8 @@ TEST_CASE_METHOD(DistTestsFixture,
 
     // Check other host is registered
     std::set<std::string> expectedRegisteredHosts = { getDistTestWorkerIp() };
-    REQUIRE(sch.getFunctionRegisteredHosts(msg) == expectedRegisteredHosts);
+    REQUIRE(sch.getFunctionRegisteredHosts(msg.user(), msg.function()) ==
+            expectedRegisteredHosts);
 
     // Check specific results
     if (function == PI_FUNCTION) {

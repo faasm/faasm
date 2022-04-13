@@ -22,7 +22,7 @@ int main()
         // Start endpoint (will also have multiple threads)
         SPDLOG_INFO("Starting endpoint");
         faabric::endpoint::FaabricEndpoint endpoint;
-        endpoint.start();
+        endpoint.start(faabric::endpoint::EndpointMode::SIGNAL);
 
         SPDLOG_INFO("Shutting down");
         m.shutdown();
