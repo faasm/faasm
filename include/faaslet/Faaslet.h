@@ -28,7 +28,7 @@ class Faaslet final : public faabric::scheduler::Executor
     std::string getLocalResetSnapshotKey();
 
   protected:
-    void postFinish() override;
+    void shutdown() override;
 
     std::span<uint8_t> getMemoryView() override;
 

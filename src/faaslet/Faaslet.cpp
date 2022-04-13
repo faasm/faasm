@@ -122,12 +122,14 @@ void Faaslet::reset(faabric::Message& msg)
     module->reset(msg, localResetSnapshotKey);
 }
 
-void Faaslet::postFinish()
+void Faaslet::shutdown()
 {
     if (ns != nullptr) {
         ns->removeCurrentThread();
         returnNetworkNamespace(ns);
     }
+
+    Executor::shutdown();
 }
 
 std::span<uint8_t> Faaslet::getMemoryView()
