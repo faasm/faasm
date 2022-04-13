@@ -36,7 +36,6 @@ std::shared_ptr<NetworkNamespace> claimNetworkNamespace()
     const auto& conf = conf::getFaasmConfig();
 
     if (namespaces.empty() && !namespacesInitialised) {
-
         if (conf.maxNetNs == 0) {
             SPDLOG_ERROR("Can't provide a MAX_NET_NAMESPACES value of 0");
             throw std::runtime_error("Invalid env. var MAX_NET_NAMESPACES");
@@ -72,6 +71,7 @@ NetworkNamespace::NetworkNamespace(const std::string& name)
 
 const std::string NetworkNamespace::getName()
 {
+    faabric::util::SharedLock lock(mx);
     return this->name;
 }
 
@@ -105,6 +105,7 @@ void joinNamespace(const boost::filesystem::path& nsPath)
 
 void NetworkNamespace::addCurrentThread()
 {
+    faabric::util::FullLock lock(mx);
     const auto& conf = conf::getFaasmConfig();
     if (conf.netNsMode == "off") {
         SPDLOG_DEBUG("Not using network ns, support off");
@@ -124,6 +125,7 @@ void NetworkNamespace::addCurrentThread()
 
 void NetworkNamespace::removeCurrentThread()
 {
+    faabric::util::FullLock lock(mx);
     const auto& conf = conf::getFaasmConfig();
     if (conf.netNsMode == "off") {
         SPDLOG_DEBUG("Not using network ns, support off");
