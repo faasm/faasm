@@ -93,11 +93,25 @@ in this repo as normal, for example:
 
 ```bash
 # Start the cpp container (make sure you've stopped all other Faasm containers)
-docker-compose -f docker-compose-k8s.yml run cpp-cli /bin/bash
+docker-compose -f docker-compose-k8s.yml up -d --no-recreate cpp-cli
+docker-compose -f docker-compose-k8s.yml exec cpp-cli /bin/bash
 
 # Compile and upload a function
 inv func demo hello
 inv func.upload demo hello
+
+# Invoke the function
+inv func.invoke demo hello
+```
+
+For Python:
+
+```bash
+# Start the python container
+docker-compose -f docker-compose-k8s.yml up -d --no-recreate python-cli
+docker-compose -f docker-compose-k8s.yml exec python-cli /bin/bash
+
+inv func.uploadpy python hello
 
 # Invoke the function
 inv func.invoke demo hello
