@@ -1,4 +1,3 @@
-#include "faabric/util/environment.h"
 #include <conf/FaasmConfig.h>
 #include <faaslet/Faaslet.h>
 #include <storage/FileLoader.h>
@@ -9,6 +8,7 @@
 #include <faabric/scheduler/ExecutorFactory.h>
 #include <faabric/transport/context.h>
 #include <faabric/util/config.h>
+#include <faabric/util/environment.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/timing.h>
 

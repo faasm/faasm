@@ -46,5 +46,7 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
     REQUIRE(returnValue == 0);
 
     REQUIRE(std::addressof(moduleA) != std::addressof(*faaslet.module));
+
+    faaslet.shutdown();
 }
 }

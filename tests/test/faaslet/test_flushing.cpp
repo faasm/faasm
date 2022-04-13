@@ -136,6 +136,8 @@ TEST_CASE_METHOD(FlushingTestFixture,
     // Flush and check it's gone
     faabric::scheduler::getExecutorFactory()->flushHost();
     REQUIRE(!cache.isModuleCached("demo", "echo", ""));
+
+    f.shutdown();
 }
 
 TEST_CASE_METHOD(FlushingTestFixture,
