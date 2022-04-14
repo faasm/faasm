@@ -1,0 +1,143 @@
+worker_2            | Number of iterations  = 400
+worker_2            | Using MKL library     = off
+worker_2            | Solution validates
+worker_2            | Rate (MFlops/s): 5347.816937  Avg time (s): 0.023935
+worker_2            | Caught stack backtrace:
+worker_2            | /build/faasm/bin/pool_runner(_ZN7faabric4util11handleCrashEi+0x3b)[0x524942b]
+worker_2            | /build/faasm/bin/pool_runner(_ZN7faabric4util20SegfaultDirtyTracker7handlerEiP9siginfo_tPv+0x4c)[0x524f00c]
+worker_2            | /lib/x86_64-linux-gnu/libpthread.so.0(+0x153c0)[0x7ff496ea23c0]
+worker_2            | /build/faasm/bin/pool_runner(_ZNK6google8protobuf8internal9TaggedPtrINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEE6as_intEv+0xc)[0x2af04dc]
+worker_2            | /build/faasm/bin/pool_runner(_ZNK6google8protobuf8internal9TaggedPtrINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEE3GetEv+0x15)[0x2af04c5]
+worker_2            | /build/faasm/bin/pool_runner(_ZNK6google8protobuf8internal14ArenaStringPtr3GetB5cxx11Ev+0x15)[0x2af04a5]
+worker_2            | /build/faasm/bin/pool_runner(_ZNK7faabric7Message14_internal_userB5cxx11Ev+0x1c)[0x2af047c]
+worker_2            | /build/faasm/bin/pool_runner(_ZNK7faabric7Message4userB5cxx11Ev+0x15)[0x2aeab95]
+worker_2            | /build/faasm/bin/pool_runner(_ZN7faabric9scheduler9Scheduler18reapStaleExecutorsEv+0x165)[0x51a1435]
+worker_2            | /build/faasm/bin/pool_runner(_ZN7faabric9scheduler21SchedulerReaperThread6doWorkEv+0x19)[0x51a12c9]
+worker_2            | /build/faasm/bin/pool_runner[0x5279049]
+worker_2            | /build/faasm/bin/pool_runner[0x5278f33]
+worker_2            | /build/faasm/bin/pool_runner[0x5278e72]
+worker_2            | /build/faasm/bin/pool_runner[0x5278e32]
+worker_2            | /build/faasm/bin/pool_runner[0x5278de5]
+worker_2            | /build/faasm/bin/pool_runner[0x5278ca9]
+worker_2            | /lib/x86_64-linux-gnu/libstdc++.so.6(+0xda6b4)[0x7ff4965d96b4]
+worker_2            | /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609)[0x7ff496e96609]
+worker_2            | /lib/x86_64-linux-gnu/libc.so.6(clone+0x43)[0x7ff496412293]
+worker_2            | [13:26:41] [103] [E] Destructing scheduler without shutting down first
+worker_2            | terminate called without an active exception
+worker_2            | Caught stack backtrace:
+worker_2            | /build/faasm/bin/pool_runner(_ZN7faabric4util11handleCrashEi+0x3b)[0x524942b]
+worker_2            | /build/faasm/bin/pool_runner(_Z12crashHandleri+0x13)[0x52493d3]
+worker_2            | /lib/x86_64-linux-gnu/libc.so.6(+0x46210)[0x7ff496336210]
+worker_2            | /lib/x86_64-linux-gnu/libc.so.6(gsignal+0xcb)[0x7ff49633618b]
+worker_2            | /lib/x86_64-linux-gnu/libc.so.6(abort+0x12b)[0x7ff496315859]
+worker_2            | /lib/x86_64-linux-gnu/libstdc++.so.6(+0xa1a31)[0x7ff4965a0a31]
+worker_2            | /lib/x86_64-linux-gnu/libstdc++.so.6(+0xad5dc)[0x7ff4965ac5dc]
+worker_2            | /lib/x86_64-linux-gnu/libstdc++.so.6(+0xad647)[0x7ff4965ac647]
+worker_2            | /build/faasm/bin/pool_runner(_ZNSt6threadD2Ev+0x27)[0x2ab9f47]
+worker_2            | /build/faasm/bin/pool_runner(_ZNSt7jthreadD2Ev+0x5b)[0x2ab943b]
+worker_2            | /build/faasm/bin/pool_runner(_ZNKSt14default_deleteISt7jthreadEclEPS0_+0x2b)[0x51b1f5b]
+worker_2            | /build/faasm/bin/pool_runner(_ZNSt10unique_ptrISt7jthreadSt14default_deleteIS0_EED2Ev+0x5a)[0x51b1eba]
+worker_2            | Number of iterations  = 400
+worker_2            | Using MKL library     = off
+worker_2            | Solution validates
+worker_2            | Rate (MFlops/s): 5347.816937  Avg time (s): 0.023935
+worker_2            | Caught stack backtrace:
+worker_2            | /build/faasm/bin/pool_runner(_ZN7faabric4util11handleCrashEi+0x3b)[0x524942b]
+worker_2            | /build/faasm/bin/pool_runner(_ZN7faabric4util20SegfaultDirtyTracker7handlerEiP9siginfo_tPv+0x4c)[0x524f00c]
+worker_2            | /lib/x86_64-linux-gnu/libpthread.so.0(+0x153c0)[0x7ff496ea23c0]
+worker_2            | /build/faasm/bin/pool_runner(_ZNK6google8protobuf8internal9TaggedPtrINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEE6as_intEv+0xc)[0x2af04dc]
+worker_2            | /build/faasm/bin/pool_runner(_ZNK6google8protobuf8internal9TaggedPtrINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEE3GetEv+0x15)[0x2af04c5]
+worker_2            | /build/faasm/bin/pool_runner(_ZNK6google8protobuf8internal14ArenaStringPtr3GetB5cxx11Ev+0x15)[0x2af04a5]
+worker_2            | /build/faasm/bin/pool_runner(_ZNK7faabric7Message14_internal_userB5cxx11Ev+0x1c)[0x2af047c]
+worker_2            | /build/faasm/bin/pool_runner(_ZNK7faabric7Message4userB5cxx11Ev+0x15)[0x2aeab95]
+worker_2            | /build/faasm/bin/pool_runner(_ZN7faabric9scheduler9Scheduler18reapStaleExecutorsEv+0x165)[0x51a1435]
+worker_2            | /build/faasm/bin/pool_runner(_ZN7faabric9scheduler21SchedulerReaperThread6doWorkEv+0x19)[0x51a12c9]
+worker_2            | /build/faasm/bin/pool_runner[0x5279049]
+worker_2            | /build/faasm/bin/pool_runner[0x5278f33]
+worker_2            | /build/faasm/bin/pool_runner[0x5278e72]
+worker_2            | /build/faasm/bin/pool_runner[0x5278e32]
+worker_2            | /build/faasm/bin/pool_runner[0x5278de5]
+worker_2            | /build/faasm/bin/pool_runner[0x5278ca9]
+worker_2            | /lib/x86_64-linux-gnu/libstdc++.so.6(+0xda6b4)[0x7ff4965d96b4]
+worker_2            | /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609)[0x7ff496e96609]
+worker_2            | /lib/x86_64-linux-gnu/libc.so.6(clone+0x43)[0x7ff496412293]
+worker_2            | [13:26:41] [103] [E] Destructing scheduler without shutting down first
+worker_2            | terminate called without an active exception
+worker_2            | Caught stack backtrace:
+worker_2            | /build/faasm/bin/pool_runner(_ZN7faabric4util11handleCrashEi+0x3b)[0x524942b]
+worker_2            | /build/faasm/bin/pool_runner(_Z12crashHandleri+0x13)[0x52493d3]
+worker_2            | /lib/x86_64-linux-gnu/libc.so.6(+0x46210)[0x7ff496336210]
+worker_2            | /lib/x86_64-linux-gnu/libc.so.6(gsignal+0xcb)[0x7ff49633618b]
+worker_2            | /lib/x86_64-linux-gnu/libc.so.6(abort+0x12b)[0x7ff496315859]
+worker_2            | /lib/x86_64-linux-gnu/libstdc++.so.6(+0xa1a31)[0x7ff4965a0a31]
+worker_2            | /lib/x86_64-linux-gnu/libstdc++.so.6(+0xad5dc)[0x7ff4965ac5dc]
+worker_2            | /lib/x86_64-linux-gnu/libstdc++.so.6(+0xad647)[0x7ff4965ac647]
+worker_2            | /build/faasm/bin/pool_runner(_ZNSt6threadD2Ev+0x27)[0x2ab9f47]
+worker_2            | /build/faasm/bin/pool_runner(_ZNSt7jthreadD2Ev+0x5b)[0x2ab943b]
+worker_2            | /build/faasm/bin/pool_runner(_ZNKSt14default_deleteISt7jthreadEclEPS0_+0x2b)[0x51b1f5b]
+worker_2            | /build/faasm/bin/pool_runner(_ZNSt10unique_ptrISt7jthreadSt14default_deleteIS0_EED2Ev+0x5a)[0x51b1eba]
+
+----------------------------------------------
+
+worker_1            | Caught stack backtrace:
+worker_1            | /build/faasm/bin/pool_runner(_ZN7faabric4util11handleCrashEi+0x3b)[0x524942b]
+worker_1            | /build/faasm/bin/pool_runner(_ZN7faabric4util20SegfaultDirtyTracker7handlerEiP9siginfo_tPv+0x4c)[0x524f00c]
+worker_1            | /lib/x86_64-linux-gnu/libpthread.so.0(+0x153c0)[0x7f816c9ab3c0]
+worker_1            | /build/faasm/bin/pool_runner(_ZNK6google8protobuf8internal9TaggedPtrINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEE6as_intEv+0xc)[0x2af04dc]
+worker_1            | /build/faasm/bin/pool_runner(_ZNK6google8protobuf8internal9TaggedPtrINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEE3GetEv+0x15)[0x2af04c5]
+worker_1            | /build/faasm/bin/pool_runner(_ZNK6google8protobuf8internal14ArenaStringPtr3GetB5cxx11Ev+0x15)[0x2af04a5]
+worker_1            | /build/faasm/bin/pool_runner(_ZNK7faabric7Message14_internal_userB5cxx11Ev+0x1c)[0x2af047c]
+worker_1            | /build/faasm/bin/pool_runner(_ZNK7faabric7Message4userB5cxx11Ev+0x15)[0x2aeab95]
+worker_1            | /build/faasm/bin/pool_runner(_ZN7faabric9scheduler9Scheduler18reapStaleExecutorsEv+0x165)[0x51a1435]
+worker_1            | /build/faasm/bin/pool_runner(_ZN7faabric9scheduler21SchedulerReaperThread6doWorkEv+0x19)[0x51a12c9]
+worker_1            | /build/faasm/bin/pool_runner[0x5279049]
+worker_1            | /build/faasm/bin/pool_runner[0x5278f33]
+worker_1            | /build/faasm/bin/pool_runner[0x5278e72]
+worker_1            | /build/faasm/bin/pool_runner[0x5278e32]
+worker_1            | /build/faasm/bin/pool_runner[0x5278de5]
+worker_1            | /build/faasm/bin/pool_runner[0x5278ca9]
+worker_1            | /lib/x86_64-linux-gnu/libstdc++.so.6(+0xda6b4)[0x7f816c0e26b4]
+worker_1            | /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609)[0x7f816c99f609]
+worker_1            | /lib/x86_64-linux-gnu/libc.so.6(clone+0x43)[0x7f816bf1b293]
+worker_1            | [13:26:43] [106] [E] Destructing scheduler without shutting down first
+worker_1            | terminate called without an active exception
+worker_1            | Caught stack backtrace:
+worker_1            | /build/faasm/bin/pool_runner(_ZN7faabric4util11handleCrashEi+0x3b)[0x524942b]
+worker_1            | /build/faasm/bin/pool_runner(_Z12crashHandleri+0x13)[0x52493d3]
+worker_1            | /lib/x86_64-linux-gnu/libc.so.6(+0x46210)[0x7f816be3f210]
+worker_1            | /lib/x86_64-linux-gnu/libc.so.6(gsignal+0xcb)[0x7f816be3f18b]
+worker_1            | /lib/x86_64-linux-gnu/libc.so.6(abort+0x12b)[0x7f816be1e859]
+worker_1            | /lib/x86_64-linux-gnu/libstdc++.so.6(+0xa1a31)[0x7f816c0a9a31]
+worker_1            | /lib/x86_64-linux-gnu/libstdc++.so.6(+0xad5dc)[0x7f816c0b55dc]
+worker_1            | /lib/x86_64-linux-gnu/libstdc++.so.6(+0xad647)[0x7f816c0b5647]
+worker_1            | /build/faasm/bin/pool_runner(_ZNSt6threadD2Ev+0x27)[0x2ab9f47]
+worker_1            | /build/faasm/bin/pool_runner(_ZNSt7jthreadD2Ev+0x5b)[0x2ab943b]
+worker_1            | /build/faasm/bin/pool_runner(_ZNKSt14default_deleteISt7jthreadEclEPS0_+0x2b)[0x51b1f5b]
+worker_1            | /build/faasm/bin/pool_runner(_ZNSt10unique_ptrISt7jthreadSt14default_deleteIS0_EED2Ev+0x5a)[0x51b1eba]
+worker_1            | /build/faasm/bin/pool_runner(_ZN7faabric4util24PeriodicBackgroundThreadD2Ev+0x3b)[0x51b1e4b]
+worker_1            | /build/faasm/bin/pool_runner(_ZN7faabric9scheduler21SchedulerReaperThreadD2Ev+0x15)[0x51abf05]
+worker_1            | /build/faasm/bin/pool_runner(_ZN7faabric9scheduler9SchedulerD1Ev+0x216)[0x51a0ae6]
+worker_1            | /lib/x86_64-linux-gnu/libc.so.6(+0x49a27)[0x7f816be42a27]
+worker_1            | /lib/x86_64-linux-gnu/libc.so.6(on_exit+0x0)[0x7f816be42be0]
+worker_1            | /build/faasm/bin/pool_runner(_ZN7faabric4util11handleCrashEi+0x104)[0x52494f4]
+worker_1            | /build/faasm/bin/pool_runner(_ZN7faabric4util20SegfaultDirtyTracker7handlerEiP9siginfo_tPv+0x4c)[0x524f00c]
+worker_1            | /lib/x86_64-linux-gnu/libpthread.so.0(+0x153c0)[0x7f816c9ab3c0]
+worker_1            | /build/faasm/bin/pool_runner(_ZNK6google8protobuf8internal9TaggedPtrINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEE6as_intEv+0xc)[0x2af04dc]
+worker_1            | /build/faasm/bin/pool_runner(_ZNK6google8protobuf8internal9TaggedPtrINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEE3GetEv+0x15)[0x2af04c5]
+worker_1            | /build/faasm/bin/pool_runner(_ZNK6google8protobuf8internal14ArenaStringPtr3GetB5cxx11Ev+0x15)[0x2af04a5]
+worker_1            | /build/faasm/bin/pool_runner(_ZNK7faabric7Message14_internal_userB5cxx11Ev+0x1c)[0x2af047c]
+worker_1            | /build/faasm/bin/pool_runner(_ZNK7faabric7Message4userB5cxx11Ev+0x15)[0x2aeab95]
+worker_1            | /build/faasm/bin/pool_runner(_ZN7faabric9scheduler9Scheduler18reapStaleExecutorsEv+0x165)[0x51a1435]
+worker_1            | /build/faasm/bin/pool_runner(_ZN7faabric9scheduler21SchedulerReaperThread6doWorkEv+0x19)[0x51a12c9]
+worker_1            | /build/faasm/bin/pool_runner[0x5279049]
+worker_1            | /build/faasm/bin/pool_runner[0x5278f33]
+worker_1            | /build/faasm/bin/pool_runner[0x5278e72]
+worker_1            | /build/faasm/bin/pool_runner[0x5278e32]
+worker_1            | /build/faasm/bin/pool_runner[0x5278de5]
+worker_1            | pool_runner: /usr/local/code/faasm/faabric/src/transport/MessageEndpoint.cpp:253: faabric::transport::Message faabric::transport::MessageEndpoint::recvMessage(zmq::socket_t &, bool): Assert
+ion `headerMessage.size() == HEADER_MSG_SIZE' failed.
+worker_1            | pool_runner: /usr/local/code/faasm/faabric/src/transport/MessageEndpoint.cpp:253: faabric::transport::Message faabric::transport::MessageEndpoint::recvMessage(zmq::socket_t &, bool): Assert
+ion `headerMessage.size() == HEADER_MSG_SIZE' failed.
+worker_1            | Aborted (core dumped)
+
+
