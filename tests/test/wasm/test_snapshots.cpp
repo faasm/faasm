@@ -209,6 +209,8 @@ TEST_CASE_METHOD(WasmSnapTestFixture,
 
         REQUIRE(dataAfter == dummyDataB);
         REQUIRE(f.module->getCurrentBrk() == snapSize);
+
+        f.shutdown();
     }
 }
 }

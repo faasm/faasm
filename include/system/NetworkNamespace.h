@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <shared_mutex>
 #include <string>
 
 #define BASE_NETNS_NAME "faasmns"
@@ -19,6 +20,8 @@ class NetworkNamespace
 
   private:
     std::string name;
+
+    std::shared_mutex mx;
 };
 
 std::shared_ptr<NetworkNamespace> claimNetworkNamespace();

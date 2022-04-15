@@ -72,6 +72,7 @@ TEST_CASE_METHOD(DistTestsFixture, "Test chaining across hosts", "[scheduler]")
 
     // Check other host is registered
     std::set<std::string> expectedRegisteredHosts = { getDistTestWorkerIp() };
-    REQUIRE(sch.getFunctionRegisteredHosts(msg) == expectedRegisteredHosts);
+    REQUIRE(sch.getFunctionRegisteredHosts(msg.user(), msg.function()) ==
+            expectedRegisteredHosts);
 }
 }
