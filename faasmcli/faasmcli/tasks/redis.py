@@ -2,7 +2,7 @@ from subprocess import call
 
 from invoke import task
 from os import environ
-from faasmcli.util.env import PROJ_ROOT
+from faasmcli.util.env import PROJ_ROOT, AVAILABLE_HOSTS_SET
 
 
 def _do_redis_command(sub_cmd, local, docker, knative):
@@ -45,7 +45,9 @@ def all_workers(ctx, local=False, docker=False, knative=True):
     """
     List all available Faasm instances
     """
-    _do_redis_command("smembers available_hosts", local, docker, knative)
+    _do_redis_command(
+        "smembers {}".format(AVAILABLE_HOSTS_SET), local, docker, knative
+    )
 
 
 @task
