@@ -81,24 +81,23 @@ int doKernelRun(const std::string& kernelName,
 
 int doKernelsRun(int argc, char* argv[])
 {
+    std::vector<std::string> kernels = { "dgemm", "nstream", "sparse", "p2p" };
+    if (argc > 1) {
+        kernels = { argv[1] };
+    }
+
     int nThreads = 4;
 
     std::map<std::string, std::vector<int>> cmdline = {
-        { "dgemm", { 400, 400 } },      { "nstream", { 20000, 200000, 0 } },
-        { "reduce", { 40000, 20000 } }, { "stencil", { 200, 5000 } },
-        { "global", { 5000, 250000 } }, { "p2p", { 750, 10000, 1000 } }
+        { "dgemm", { 10, 1400, 32 } },
+        { "nstream", { 10, 50000000, 32 } },
+        { "sparse", { 10, 10, 12 } },
+        { "p2p", { 10, 10000, 10000 } },
     };
 
-    for (auto& p : cmdline) {
-        std::string kernelName = p.first;
-        std::vector<int> cmdlineArgs = p.second;
-
-        if (kernelName == "global") {
-            cmdlineArgs.at(1) =
-              cmdlineArgs.at(1) - (cmdlineArgs.at(1) % nThreads);
-        }
-
-        doKernelRun(kernelName, cmdlineArgs, nThreads);
+    for (auto& kernel : kernels) {
+        std::vector<int> cmdlineArgs = cmdline[kernel];
+        doKernelRun(kernel, cmdlineArgs, nThreads);
     }
 
     return 0;
@@ -107,11 +106,12 @@ int doKernelsRun(int argc, char* argv[])
 int main(int argc, char* argv[])
 {
     SystemConfig& conf = getSystemConfig();
-    conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
-
-    faasmConf.chainedCallTimeout = 480000;
     conf.boundTimeout = 480000;
     conf.globalMessageTimeout = 480000;
+    conf.noSingleHostOptimisations = 1;
+
+    conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
+    faasmConf.chainedCallTimeout = 480000;
 
     storage::initFaasmS3();
     faabric::transport::initGlobalMessageContext();
