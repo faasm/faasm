@@ -4,16 +4,18 @@
 #include <enclave/outside/ecalls.h>
 #include <faabric/util/logging.h>
 
+#ifdef FAASM_SGX_HARDWARE_MODE
 #include <dlfcn.h>
 #include <openssl/sha.h>
-
 #include <sgx_dcap_ql_wrapper.h>
 #include <sgx_ql_lib_common.h>
 #include <sgx_report.h>
 #include <sgx_urts.h>
+#endif
 
 namespace sgx {
 
+#ifdef FAASM_SGX_HARDWARE_MODE
 static void sha256sum(const uint8_t* data, uint32_t data_size, uint8_t* hash)
 {
     SHA256_CTX sha256;
@@ -88,6 +90,7 @@ EnclaveInfo generateQuote(int enclaveId,
     SPDLOG_INFO("Generated attestation quote for enclave");
     return enclaveInfo;
 }
+#endif
 
 void validateQuote(const EnclaveInfo& enclaveInfo,
                    const std::string& attestationProviderUrl)
@@ -101,9 +104,11 @@ void validateQuote(const EnclaveInfo& enclaveInfo,
     client.validateJwtToken(jwtResponse);
 }
 
+#ifdef FAASM_SGX_HARDWARE_MODE
 void attestEnclave(int enclaveId, std::vector<uint8_t> enclaveHeldData)
 {
     EnclaveInfo enclaveInfo = generateQuote(enclaveId, enclaveHeldData);
     validateQuote(enclaveInfo, conf::getFaasmConfig().attestationProviderUrl);
 }
+#endif
 }
