@@ -31,6 +31,8 @@ endif()
 conan_cmake_configure(
     REQUIRES
         "catch2/2.13.7@#31c8cd08e3c957a9eac8cb1377cf5863"
+        # These two dependencies are only needed to perform remote attestation
+        # of SGX enclaves using Microsoft Azure's Attestation Service
         "jwt-cpp/0.6.0@#cd6b5c1318b29f4becaf807b23f7bb44"
         "picojson/cci.20210117@#2af3ad146959275c97a6957b87b9073f"
     GENERATORS
