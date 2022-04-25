@@ -22,7 +22,7 @@ spec:
               weight: 100
 
       containers:
-        - image: faasm/worker-sgx:0.8.8
+        - image: faasm/worker-sgx:0.8.9
           # We need to add this resources field to make sure the SGX device is
           # available in the pods:
           # https://docs.microsoft.com/en-us/azure/confidential-computing/confidential-nodes-aks-overview#azure-device-plugin-for-intel-sgx-
@@ -62,4 +62,8 @@ spec:
               value: "eth0"
             - name: WASM_VM
               value: "sgx"
+            - name: SGX_AESM_ADDR
+              value: 1
+            - name: AZ_ATTESTATION_PROVIDER_URL
+              valie: "https://faasmattprov.eus2.attest.azure.net"
 
